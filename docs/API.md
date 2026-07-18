@@ -42,9 +42,14 @@ CommandEnvelope {
 → CommandReceipt { seq, tick_applied, result: Ok(Effects) | Rejected(Reason) }
 ```
 
-- **Ordering**: applied at `(tick, consumer priority class, per-consumer seq)`.
-  Player input gets the highest priority class; plugins/MCP next; scheduled
-  jobs last. Total order ⇒ determinism.
+- **Ordering**: applied at `(tick, consumer priority class, consumer id,
+  per-consumer seq)` — the consumer-id tie-break (added by S5) makes the order
+  total across consumers in the same class. Player input gets the highest
+  priority class; plugins/MCP next; scheduled jobs last. Total order ⇒
+  determinism.
+- **Submission is async**: submit returns a `SubmitAck` immediately; the
+  `CommandReceipt` is a tick-boundary artifact delivered afterwards (plugins
+  drain receipts; MCP sessions poll/stream them). Normative as of S5.
 - **Transactions**: all-or-nothing batches ("save this blueprint" = one txn).
   No isolation beyond atomicity in v0 — txns apply within one tick.
 - **Queries** run read-only against the last completed tick's snapshot; they
@@ -161,7 +166,25 @@ schedule.manage(own)               events.subscribe(filters)
    embodied character surface as a first-class shipped feature (see
    § Characters). Two MCP servers over one API.
 
-## Open questions
+4. **Receipt verbosity** — DECIDED by S5 measurement: receipts carry a
+   **summary plus a capped effect sample** (N≈8). Full effect echo was
+   measured at ~21× the bytes on the demo session and ~5 MB for one legal
+   64³ fill; bulk deltas belong to scan queries (cheaper per voxel) or event
+   subscriptions.
 
-4. **Effects in receipts**: how much does a receipt echo back (full effect
-   list vs summary counts)? Affects WASM boundary chattiness; measure in S5.
+## v0 implementation notes (adopted from S5, details in docs/spikes/S5-results.md)
+
+- Wire types never use `skip_serializing_if` — postcard is positional and
+  silently corrupts on omitted fields (found the hard way; regression-tested).
+- Consumers hold **grant handles**, not by-value tokens; the host owns token
+  contents, so a WASM guest cannot fabricate or escalate grants (proven:
+  contraband defines leave zero trace).
+- `events/poll` is a channel operation, not a query.
+- `registry.define` grants accept namespace patterns (multi-namespace owners).
+- Envelope construction is registry-generated per consumer; MCP tool names map
+  canonically from command ids (`dc:world/set_block` → `dc_world_set_block`).
+- The `Payload` union keeps an open path (schema-registered, serde-tagged) so
+  new commands don't ossify the enum across the ABI.
+- Plugin ABI: wasm32-unknown-unknown (no WASI, no ambient authority); one
+  host import `dc.call` carrying postcard request/response; guest exports
+  `dc_run`/`dc_tick`; receipts drained asynchronously.
