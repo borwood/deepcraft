@@ -33,9 +33,7 @@ pub const MATERIAL_COUNT: usize = 12;
 /// id appears up to 8 times per voxel, so entry compactness matters more than
 /// ceiling here; the eventual data-driven registry can widen it behind this
 /// type.
-#[derive(
-    Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
 pub struct MaterialId(u8);
 
 impl MaterialId {

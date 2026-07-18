@@ -171,7 +171,18 @@ mod tests {
         let c = mixed_deposit();
         let mut prev_settled = 0u32;
         let mut prev_expansion: Vec<MaterialId> = Vec::new();
-        for t in [0, 100, 500, 1_000, 2_000, 4_000, 8_000, 15_999, 16_000, 1 << 40] {
+        for t in [
+            0,
+            100,
+            500,
+            1_000,
+            2_000,
+            4_000,
+            8_000,
+            15_999,
+            16_000,
+            1 << 40,
+        ] {
             let view = stratify(&c, t);
             assert_eq!(view.total_eighths(), 6, "mass conserved at t={t}");
             let settled: u32 = view.settled.iter().map(|b| u32::from(b.eighths)).sum();

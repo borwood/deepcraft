@@ -142,10 +142,7 @@ fn extraction_order_ascends_resistance_with_id_tiebreak() {
             let seq = extraction_sequence(&c, damage);
             for pair in seq.windows(2) {
                 let (a, b) = (pair[0].material, pair[1].material);
-                let (ra, rb) = (
-                    a.props().resistance(damage),
-                    b.props().resistance(damage),
-                );
+                let (ra, rb) = (a.props().resistance(damage), b.props().resistance(damage));
                 assert!(
                     ra < rb || (ra == rb && a < b),
                     "case {case}, {damage:?}: {} (r={ra}) must precede {} (r={rb})",
@@ -184,7 +181,8 @@ fn debris_damage_never_yields_structure_slots() {
     for case in 0..CASES {
         let c = arbitrary_contents(&mut rng);
         // Total per material across the loose pools only.
-        let mut loose: std::collections::HashMap<MaterialId, u32> = std::collections::HashMap::new();
+        let mut loose: std::collections::HashMap<MaterialId, u32> =
+            std::collections::HashMap::new();
         for &m in c.debris().iter().chain(c.pore_fill()) {
             *loose.entry(m).or_insert(0) += 1;
         }
@@ -205,7 +203,18 @@ fn debris_damage_never_yields_structure_slots() {
 #[test]
 fn stratification_is_deterministic_monotone_and_conserving() {
     let mut rng = Rng::new(0x57);
-    let times = [0u64, 50, 200, 900, 1_000, 3_000, 9_000, 15_999, 16_000, u64::MAX];
+    let times = [
+        0u64,
+        50,
+        200,
+        900,
+        1_000,
+        3_000,
+        9_000,
+        15_999,
+        16_000,
+        u64::MAX,
+    ];
     for case in 0..CASES {
         let c = arbitrary_contents(&mut rng);
         let n = c.debris().len() as u32;
@@ -239,7 +248,10 @@ fn stratification_is_deterministic_monotone_and_conserving() {
         }
         // Fully banded at/after the saturation time.
         let full = stratify(&c, STRATIFY_FULL_TIME);
-        assert!(full.mixed.is_empty(), "case {case}: saturates to full bands");
+        assert!(
+            full.mixed.is_empty(),
+            "case {case}: saturates to full bands"
+        );
     }
 }
 

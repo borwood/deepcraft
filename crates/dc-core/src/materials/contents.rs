@@ -277,7 +277,10 @@ impl VoxelContents {
         for (slot, &r) in mats.iter_mut().zip(raw) {
             *slot = MaterialId::from_raw(r).ok_or(ContentsError::UnknownMaterial(r))?;
         }
-        let (a, b) = (structure_len as usize, structure_len as usize + pore_len as usize);
+        let (a, b) = (
+            structure_len as usize,
+            structure_len as usize + pore_len as usize,
+        );
         if !(mats[..a].is_sorted() && mats[a..b].is_sorted() && mats[b..total].is_sorted()) {
             return Err(ContentsError::NotCanonical);
         }
@@ -294,7 +297,10 @@ mod tests {
     fn empty_is_empty() {
         assert!(VoxelContents::EMPTY.is_empty());
         assert_eq!(VoxelContents::EMPTY.solid_eighths(), 0);
-        assert_eq!(VoxelContents::debris_only(&[]).unwrap(), VoxelContents::EMPTY);
+        assert_eq!(
+            VoxelContents::debris_only(&[]).unwrap(),
+            VoxelContents::EMPTY
+        );
     }
 
     #[test]
@@ -396,10 +402,12 @@ mod tests {
                 &[MaterialId::BONE, MaterialId::ASH, MaterialId::POTSHERD],
             )
             .unwrap(),
-            VoxelContents::new(StructureShape::Quarter, &[MaterialId::GRAVEL], &[], &[
-                MaterialId::LEAF_LITTER,
-                MaterialId::LOAM,
-            ])
+            VoxelContents::new(
+                StructureShape::Quarter,
+                &[MaterialId::GRAVEL],
+                &[],
+                &[MaterialId::LEAF_LITTER, MaterialId::LOAM],
+            )
             .unwrap(),
         ];
         for c in cases {
@@ -416,10 +424,7 @@ mod tests {
     #[test]
     fn decode_rejects_bad_input() {
         // Truncated header / body.
-        assert_eq!(
-            VoxelContents::decode(&[]),
-            Err(ContentsError::Truncated)
-        );
+        assert_eq!(VoxelContents::decode(&[]), Err(ContentsError::Truncated));
         assert_eq!(VoxelContents::decode(&[0]), Err(ContentsError::Truncated));
         let mut bytes = Vec::new();
         VoxelContents::debris_only(&[MaterialId::SAND, MaterialId::SNOW])

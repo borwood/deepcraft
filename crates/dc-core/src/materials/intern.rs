@@ -48,9 +48,7 @@ pub const MIXTURES_SIDECAR_NAME: &str = "materials/mixtures-v0";
 
 /// Interned index of a canonical [`VoxelContents`] in a region's
 /// [`MixtureTable`]. Id 0 is always the empty voxel.
-#[derive(
-    Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize,
-)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
 pub struct MixtureId(u32);
 
 impl MixtureId {
@@ -268,7 +266,11 @@ impl MaterialChunk {
     /// # Panics
     /// Panics if `ids.len() != CHUNK_VOLUME`.
     pub fn from_dense(ids: &[MixtureId]) -> Self {
-        assert_eq!(ids.len(), CHUNK_VOLUME, "dense id array must cover the chunk");
+        assert_eq!(
+            ids.len(),
+            CHUNK_VOLUME,
+            "dense id array must cover the chunk"
+        );
         let mut palette: Vec<MixtureId> = Vec::new();
         let mut lookup: HashMap<MixtureId, usize> = HashMap::new();
         for &id in ids {
@@ -389,9 +391,7 @@ impl MaterialChunk {
 
     /// Read the material sidecar from a format-v1 container. `Ok(None)` when
     /// the container carries none (a debris-free chunk).
-    pub fn from_container(
-        container: &ChunkContainer,
-    ) -> Result<Option<Self>, MaterialChunkError> {
+    pub fn from_container(container: &ChunkContainer) -> Result<Option<Self>, MaterialChunkError> {
         match container.sidecar(MATERIALS_SIDECAR_NAME) {
             None => Ok(None),
             Some(bytes) => Self::decode(bytes).map(Some),
@@ -431,7 +431,11 @@ mod tests {
     #[test]
     fn table_roundtrip() {
         let mut table = MixtureTable::new();
-        table.intern(mix(&[MaterialId::SAND, MaterialId::SAND, MaterialId::GRAVEL]));
+        table.intern(mix(&[
+            MaterialId::SAND,
+            MaterialId::SAND,
+            MaterialId::GRAVEL,
+        ]));
         table.intern(
             VoxelContents::new(
                 StructureShape::Slab,
@@ -479,7 +483,10 @@ mod tests {
         // Zero-entry table.
         let mut manual = Vec::new();
         write_varint(0, &mut manual);
-        assert_eq!(MixtureTable::decode(&manual), Err(TableError::FirstNotEmpty));
+        assert_eq!(
+            MixtureTable::decode(&manual),
+            Err(TableError::FirstNotEmpty)
+        );
     }
 
     #[test]
@@ -540,9 +547,11 @@ mod tests {
         let materials = MaterialChunk::from_dense(&dense);
 
         let mut container = ChunkContainer::new(PalettedChunk::uniform(Block::Stone));
-        container
-            .sidecars
-            .push(materials.to_sidecar().expect("non-empty chunk has a sidecar"));
+        container.sidecars.push(
+            materials
+                .to_sidecar()
+                .expect("non-empty chunk has a sidecar"),
+        );
         let bytes = container.encode();
 
         let back = ChunkContainer::decode(&bytes).expect("container roundtrip");
@@ -608,6 +617,9 @@ mod tests {
             palette: vec![],
             indices: PackedIndices::new(0, CHUNK_VOLUME),
         };
-        assert!(matches!(bad.validate(), Err(MaterialChunkError::EmptyPalette)));
+        assert!(matches!(
+            bad.validate(),
+            Err(MaterialChunkError::EmptyPalette)
+        ));
     }
 }

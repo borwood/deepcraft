@@ -27,8 +27,8 @@
 //!
 //! Invariant (proved in tests, induction over levels): if the block grid
 //! marks exactly the non-empty material voxels solid, then wherever material
-//! LOD is non-empty, [`crate::lod::MajorityNonAir`] block LOD is solid —
-//! >= 32 occupied eighths forces >= 4 non-empty child voxels. Material LOD
+//! LOD is non-empty, [`crate::lod::MajorityNonAir`] block LOD is solid
+//! (32+ occupied eighths force 4+ non-empty child voxels). Material LOD
 //! never claims volume the block pyramid dissolved.
 
 use std::collections::BTreeMap;
@@ -251,8 +251,8 @@ mod tests {
         let rule = DominantClassDebrisAware;
         // 6 voxels of full scree structure (48 eighths), 2 voxels of full
         // silt debris (16): structure wins, silt survives in the pores.
-        let wall = VoxelContents::new(StructureShape::Full, &[MaterialId::SCREE; 8], &[], &[])
-            .unwrap();
+        let wall =
+            VoxelContents::new(StructureShape::Full, &[MaterialId::SCREE; 8], &[], &[]).unwrap();
         let silt = full_of(MaterialId::SILT);
         let cell = [wall, wall, wall, wall, wall, wall, silt, silt];
         let reduced = rule.reduce(&cell);
@@ -267,8 +267,8 @@ mod tests {
         let rule = DominantClassDebrisAware;
         // 2 voxels of half-filled quarter structure (2 scree eighths each),
         // 6 voxels of full sand: debris wins, scree becomes part of the mix.
-        let stub = VoxelContents::new(StructureShape::Quarter, &[MaterialId::SCREE; 2], &[], &[])
-            .unwrap();
+        let stub =
+            VoxelContents::new(StructureShape::Quarter, &[MaterialId::SCREE; 2], &[], &[]).unwrap();
         let sand = full_of(MaterialId::SAND);
         let cell = [stub, stub, sand, sand, sand, sand, sand, sand];
         let reduced = rule.reduce(&cell);
@@ -302,8 +302,7 @@ mod tests {
         // slot first (largest remainder), then the sand/snow tie breaks by id
         // (sand < ash? no — ordering is by remainder desc, ties lowest id:
         // sand id 0 beats snow id 2).
-        let count =
-            |m: MaterialId| out.iter().filter(|&&x| x == m).count();
+        let count = |m: MaterialId| out.iter().filter(|&&x| x == m).count();
         assert_eq!(count(MaterialId::ASH), 3);
         assert_eq!(count(MaterialId::SAND), 3);
         assert_eq!(count(MaterialId::SNOW), 2);
@@ -313,9 +312,7 @@ mod tests {
 
     /// Build a mound scene: full-debris voxels below a sloped height field,
     /// as parallel material chunks + block chunks (Dirt where non-empty).
-    fn mound_scene(
-        table: &mut MixtureTable,
-    ) -> (Vec<MaterialChunk>, Vec<PalettedChunk>) {
+    fn mound_scene(table: &mut MixtureTable) -> (Vec<MaterialChunk>, Vec<PalettedChunk>) {
         let sand_full = table.intern(full_of(MaterialId::SAND));
         let snow_full = table.intern(full_of(MaterialId::SNOW));
         let mixed = table.intern(
@@ -446,11 +443,7 @@ mod tests {
             let (material_chunks, _) = mound_scene(&mut table);
             let children: [Option<&MaterialChunk>; 8] =
                 std::array::from_fn(|i| Some(&material_chunks[i]));
-            let l1 = derive_material_lod_chunk(
-                &children,
-                &mut table,
-                &DominantClassDebrisAware,
-            );
+            let l1 = derive_material_lod_chunk(&children, &mut table, &DominantClassDebrisAware);
             (l1.encode(), table.encode())
         };
         assert_eq!(build(), build());
@@ -464,8 +457,7 @@ mod tests {
         let child = MaterialChunk::from_dense(&ids);
         let mut children: [Option<&MaterialChunk>; 8] = [None; 8];
         children[1] = Some(&child); // octant dx=1
-        let parent =
-            derive_material_lod_chunk(&children, &mut table, &DominantClassDebrisAware);
+        let parent = derive_material_lod_chunk(&children, &mut table, &DominantClassDebrisAware);
         assert_eq!(parent.get(16, 0, 0), full);
         assert_eq!(parent.get(31, 15, 15), full);
         assert_eq!(parent.get(15, 0, 0), MixtureId::EMPTY);
