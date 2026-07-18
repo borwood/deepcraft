@@ -7,5 +7,6 @@ publish.workspace = true
 
 [dependencies]
 glam.workspace = true
+postcard.workspace = true
 serde.workspace = true
 thiserror.workspace = true
