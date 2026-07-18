@@ -59,11 +59,16 @@ the same serializable command surface.
   is LOD-aware from v1: chunks can store/derive downsampled pyramids or
   per-column summaries; the mesher targets multiple LOD levels. The statistical
   sim tier reads the same summaries.
-- **Custom shaders are a contract.** User shader packs need a stable surface:
-  which passes exist, what the G-buffer contains, which uniforms/hooks packs
-  may touch (the Iris/OptiFine lesson). Forward-vs-deferred and the hook
-  surface get decided by spike S4, before renderer growth makes it expensive.
-  WGSL is the pack language; naga translates per backend.
+- **Custom shaders are a contract — DECIDED by S4 (2026-07-18): clustered
+  forward (Forward+), deferred rejected.** Culled voxel meshes have near-zero
+  opaque overdraw (deferred's advantage evaporates); Bevy 0.19 clusters
+  colored point lights; POM/LabPBR/splat-blending want a forward surface
+  shader, not G-buffer channels. Pack overridability comes from named stages
+  with stable inputs (the Iris lesson), not pipeline shape: hook surface v0
+  in docs/rendering/PIPELINE.md (`post` live, others reserved), packs are
+  WGSL validated via naga with per-stage fallback to the default pack, and
+  cross-backend translation (HLSL/SPIR-V/MSL) is CI-tested. Art direction in
+  docs/design/visuals.md; the default look is itself a pack.
 
 ## World structure: cubic chunks (3D lattice)
 
