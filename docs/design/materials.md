@@ -73,21 +73,28 @@ Compaction closes the deep-time loop: debris under overburden, over ledger
 time, migrates into a structure slot as sedimentary stone. Worldgen strata,
 gameplay middens, and geology are one process at different tick rates.
 
-## Storage: the open dragon (spike S8)
+## Storage — RESOLVED by S8 (2026-07-18): GO on free-form mixtures
 
-Naive cost is ~8 × material-id per voxel — unaffordable as a base grid.
-Survival strategy: eighths are coarse quantization; unordered multisets
-canonicalize (one state for any ordering); deposition is spatially correlated
-so mixtures repeat regionally. Plan: intern mixture states in a region table;
-chunk palettes index into it; rich voxels live in a format-v1 sidecar so
-debris-free terrain pays nothing. **Empirical question**: do realistic
-deposition processes stay palette-friendly, or do smooth gradients explode
-distinct-state counts? If gradients blow up, snap mixtures to a curated
-recipe set (possibly better game design anyway — nameable, learnable strata).
+The feared gradient explosion is **combinatorially impossible** for small
+material sets: eighth quantization caps a k-material locale at `C(k+8,8)−1`
+distinct canonical states. Measured: 2-material processes (wind, scree)
+saturate at exactly 45 states and stay flat forever after; an adversarial
+continuous 4-material gradient caps at exactly 495. Real deposit chunks cost
+0.14–0.38 B/m³ (vs 0.144 debris-free, 2.74 raw); even 12-material uniform
+noise — which no plausible process produces — stays 2.9× under raw.
+Debris-free chunks attach no sidecar and pay zero bytes.
 
-S8 also owes: the LOD downsample rule for mixed voxels (S3 made the rule
-pluggable), angle-of-repose settling on dirty voxels, and the render-blend
-prototype.
+Implementation (dc-core::materials, sidecars `materials/slots-v0` +
+`materials/mixtures-v0`): region-interned canonical mixtures, chunk palettes
+indexing the intern table, riding format v1. Curated recipes are NOT needed
+for storage — retained only as an optional cap-and-snap guardrail. Extraction
+ordering, lazy stratification, and the mixed-voxel LOD rule are implemented
+and property-tested; details in docs/spikes/S8-results.md.
+
+Still owed by later work: sparse sidecar encoding for thin drapes (index
+array, not the table, dominates cost), region-table lifecycle/compaction,
+angle-of-repose settling, the render-blend prototype (S4 input), pore-packing
+and heterogeneous-structure-fill mechanics.
 
 ## Open questions
 
