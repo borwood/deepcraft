@@ -13,7 +13,10 @@ use bevy::prelude::*;
 use bevy::render::render_resource::PrimitiveTopology;
 use dc_core::{CHUNK_SIZE, ChunkPos};
 
-use crate::app::{ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, LoadedChunk, Terrain};
+use crate::app::{
+    ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, LoadedChunk, Terrain,
+    to_render,
+};
 use crate::meshing::{MeshData, mesh_chunk};
 use crate::player::Player;
 
@@ -34,6 +37,7 @@ pub fn stream_chunks(
     terrain: Res<Terrain>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
+    origin: Res<FloatingOrigin>,
     mut map: ResMut<ChunkMap>,
 ) {
     let vscale = scale.scale;
@@ -99,9 +103,16 @@ pub fn stream_chunks(
                         Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
                         MeshMaterial3d(material.0.clone()),
                         ChunkEntity(pos),
-                        // Real transform is set from f64 world coordinates by
-                        // `position_chunks` before rendering.
-                        Transform::default(),
+                        // Spawn already positioned: `position_chunks` ran
+                        // earlier this frame and won't see this entity until
+                        // the next one, and a default transform would render
+                        // one frame at the floating origin (visible flash).
+                        {
+                            let (mx, my, mz) = pos.min_voxel();
+                            let min_m = glam::DVec3::new(mx as f64, my as f64, mz as f64)
+                                * vscale.voxel_size_m();
+                            Transform::from_translation(to_render(min_m - origin.0))
+                        },
                     ))
                     .id(),
             )

@@ -25,6 +25,16 @@
 //! and out of spike scope. Between adjacent LOD rings there is no overlap:
 //! both rings sample the same generator, so silhouettes match to within one
 //! coarse voxel and the residual cracks at ring boundaries are accepted.
+//!
+//! Because the Y bias is a whole number of finer voxels, overlapping levels
+//! produce exactly coplanar faces — and Y bias does nothing for vertical
+//! faces — which z-fight (the two tessellations of one plane interpolate
+//! depth with different per-pixel float error; draw order can't fix that).
+//! Each far chunk is therefore pushed [`DEPTH_PUSH_FRAC`] of its coarse voxel
+//! *away from the viewer along the view direction*, separating every face
+//! orientation in real depth. Adjacent same-level chunks shift by
+//! near-identical vectors, so no visible gaps open; deeper levels push
+//! further, so ring pairs separate too.
 
 use std::collections::HashMap;
 
@@ -60,6 +70,29 @@ const FAR_BUDGET_PER_FRAME: usize = 3;
 /// Hysteresis: a far chunk is only despawned once its center is this far
 /// outside its ring, so ring membership doesn't thrash while walking.
 const FAR_UNLOAD_SLACK_M: f64 = 48.0;
+/// Fraction of a level's coarse voxel size that its chunks are pushed away
+/// from the viewer to separate coplanar faces in depth (see module docs).
+/// L1 ≈ 0.27 m at ≥112 m distance — angularly invisible, decisively beyond
+/// f32 depth interpolation error.
+const DEPTH_PUSH_FRAC: f64 = 0.15;
+
+/// The anti-z-fight translation for a far chunk: origin-relative position plus
+/// the half-voxel downward seam bias plus the radial depth push.
+fn far_transform_translation(
+    base: VoxelScale,
+    level: u8,
+    pos: ChunkPos,
+    viewer_m: DVec3,
+    origin_m: DVec3,
+) -> Vec3 {
+    let vs = coarse_scale(base, level).voxel_size_m();
+    let (mx, my, mz) = pos.min_voxel();
+    let min_m = DVec3::new(mx as f64, my as f64, mz as f64) * vs;
+    let bias = DVec3::new(0.0, -0.5 * vs, 0.0);
+    let center = far_chunk_center_m(base, level, pos);
+    let away = (center - viewer_m).normalize_or_zero() * (DEPTH_PUSH_FRAC * vs);
+    to_render(min_m + bias + away - origin_m)
+}
 
 /// LOD level whose ring contains a chunk-center distance, `None` for the
 /// full-detail region and beyond the far field.
@@ -138,6 +171,7 @@ pub fn stream_far_chunks(
     terrain: Res<Terrain>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
+    origin: Res<FloatingOrigin>,
     mut map: ResMut<FarChunkMap>,
 ) {
     let base = scale.scale;
@@ -198,7 +232,16 @@ pub fn stream_far_chunks(
                         Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
                         MeshMaterial3d(material.0.clone()),
                         FarChunkEntity { level, pos },
-                        Transform::default(),
+                        // Spawn already positioned (same reasoning as
+                        // streaming.rs): a default transform renders one frame
+                        // at the floating origin.
+                        Transform::from_translation(far_transform_translation(
+                            base,
+                            level,
+                            pos,
+                            player.pos_m,
+                            origin.0,
+                        )),
                     ))
                     .id(),
             )
@@ -208,18 +251,16 @@ pub fn stream_far_chunks(
 }
 
 /// Place far chunks relative to the floating origin from f64, every frame,
-/// with the half-coarse-voxel downward seam bias (module docs).
+/// with the seam bias and anti-z-fight depth push (module docs).
 pub fn position_far_chunks(
     origin: Res<FloatingOrigin>,
     scale: Res<CurrentScale>,
+    player: Res<Player>,
     mut chunks: Query<(&FarChunkEntity, &mut Transform)>,
 ) {
     for (far, mut transform) in &mut chunks {
-        let vs = coarse_scale(scale.scale, far.level).voxel_size_m();
-        let (mx, my, mz) = far.pos.min_voxel();
-        let min_m = DVec3::new(mx as f64, my as f64, mz as f64) * vs;
-        let bias = DVec3::new(0.0, -0.5 * vs, 0.0);
-        transform.translation = to_render(min_m + bias - origin.0);
+        transform.translation =
+            far_transform_translation(scale.scale, far.level, far.pos, player.pos_m, origin.0);
     }
 }
 
