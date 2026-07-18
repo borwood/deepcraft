@@ -88,6 +88,20 @@ a region graph, statistical tier only.
 - **Exit**: level/neighborhood dependency spec; decision on how deep-time
   history layers hand constraints down to chunk gen.
 
+## S8 — Material volume model storage  `[risk: state-space explosion vs palette]`
+
+Design in docs/design/materials.md (voxel as 8 material eighths: structure /
+debris / pore occupancy, packing, derived stratification).
+
+- Prototype the interned-mixture-table + sidecar storage over S3's format-v1
+  container; simulate realistic deposition (wind-blown snow, rockfall, a
+  midden, alluvial fan) on S1 terrain and MEASURE distinct-state counts per
+  chunk — the palette-survivability question is empirical.
+- Extraction prototype: typed damage vs per-material resistance ordering.
+- LOD downsample rule for mixed voxels (S3 made the rule pluggable).
+- **Exit**: go/no-go on free-form mixtures vs curated mixture recipes;
+  measured bytes/m³ with debris present; sidecar schema v1.
+
 ## Deliberately not spiked yet
 
 - Multiplayer/networking — dc-api's serializable commands are the future wire
