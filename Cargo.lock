@@ -2559,6 +2559,7 @@ dependencies = [
 name = "dc-core"
 version = "0.1.0"
 dependencies = [
+ "fastnoise-lite",
  "glam 0.30.10",
  "postcard",
  "serde",

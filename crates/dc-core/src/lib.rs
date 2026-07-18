@@ -18,6 +18,7 @@ pub mod collision;
 pub mod column;
 pub mod format;
 pub mod lod;
+pub mod materials;
 pub mod palette;
 pub mod scale;
 pub mod voxel;
@@ -30,6 +31,19 @@ pub use lod::{
     DownsampleRule, LodPyramid, MAX_LOD_LEVEL, MajorityNonAir, ancestor_pos, child_positions,
     derive_lod_chunk, parent_pos,
 };
+pub use materials::contents::{ContentsError, StructureShape, VOXEL_EIGHTHS, VoxelContents};
+pub use materials::extract::{ExtractionYield, extraction_sequence};
+pub use materials::intern::{
+    MATERIALS_SIDECAR_NAME, MIXTURES_SIDECAR_NAME, MaterialChunk, MaterialChunkError, MixtureId,
+    MixtureTable, TableError,
+};
+pub use materials::lod::{
+    DominantClassDebrisAware, MixtureDownsampleRule, derive_material_lod_chunk,
+};
+pub use materials::stratify::{
+    Band, STRATIFY_FULL_TIME, STRATIFY_HALF_TIME, StratifiedView, stratify,
+};
+pub use materials::{DamageType, MATERIAL_COUNT, MaterialId, MaterialProps};
 pub use palette::{PackedIndices, PaletteError, PalettedChunk, bits_for_palette_len};
 pub use scale::VoxelScale;
 pub use voxel::Block;

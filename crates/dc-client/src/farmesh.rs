@@ -164,6 +164,9 @@ pub struct FarChunkMap {
     pub loaded: HashMap<(u8, ChunkPos), Option<Entity>>,
 }
 
+// Bevy systems take their inputs as parameters by design; splitting this one
+// to appease the 7-argument lint would only obscure the data flow.
+#[allow(clippy::too_many_arguments)]
 pub fn stream_far_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,

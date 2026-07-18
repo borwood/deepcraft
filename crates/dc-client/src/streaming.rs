@@ -30,6 +30,9 @@ const UNLOAD_RADIUS_M: f64 = LOAD_RADIUS_M + 32.0;
 /// Chunks generated + meshed per frame.
 const LOAD_BUDGET_PER_FRAME: usize = 8;
 
+// Bevy systems take their inputs as parameters by design; splitting this one
+// to appease the 7-argument lint would only obscure the data flow.
+#[allow(clippy::too_many_arguments)]
 pub fn stream_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
