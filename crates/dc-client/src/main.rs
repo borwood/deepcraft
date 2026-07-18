@@ -8,9 +8,16 @@
 //! S1 additions: the voxel-scale walking skeleton (see docs/SPIKES.md § S1 and
 //! docs/spikes/S1-results.md). Run with `--bench-scales` for the headless
 //! measurement pass; run with no arguments for the interactive app.
+//!
+//! S3 additions: the far-mesh path (farmesh.rs — LOD rings out to 1.2 km) and
+//! `--bench-storage`, the headless S3 measurement pass (palette compression,
+//! LOD derive cost, column summaries, far-mesh cost; see
+//! docs/spikes/S3-results.md).
 
 mod app;
 mod bench;
+mod bench_storage;
+mod farmesh;
 mod meshing;
 mod player;
 mod streaming;
@@ -23,6 +30,8 @@ pub const PLAYER_HEIGHT_M: f64 = 1.8;
 fn main() {
     if std::env::args().any(|a| a == "--bench-scales") {
         bench::run();
+    } else if std::env::args().any(|a| a == "--bench-storage") {
+        bench_storage::run();
     } else {
         app::run();
     }

@@ -142,6 +142,12 @@ impl Chunk {
         self.blocks.iter().all(|b| *b == Block::Air)
     }
 
+    /// All blocks in [`Chunk::index`] order (x-fastest, then z, then y).
+    /// Read-only bulk access for compression and analysis.
+    pub fn blocks(&self) -> &[Block] {
+        &self.blocks[..]
+    }
+
     /// Bytes of raw block storage (the measurement S1 reports on).
     pub const fn raw_byte_size() -> usize {
         CHUNK_VOLUME * std::mem::size_of::<Block>()

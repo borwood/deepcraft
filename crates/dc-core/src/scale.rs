@@ -29,6 +29,22 @@ impl VoxelScale {
         }
     }
 
+    /// A scale where one voxel is `voxel_size_m` meters on a side. Used by the
+    /// far-mesh path to sample coarse LOD grids (a level-L voxel is simply a
+    /// `2^L`-times-larger voxel).
+    ///
+    /// # Panics
+    /// Panics if `voxel_size_m` is not positive and finite.
+    pub fn from_voxel_size_m(voxel_size_m: f64) -> Self {
+        assert!(
+            voxel_size_m.is_finite() && voxel_size_m > 0.0,
+            "voxel size must be positive"
+        );
+        Self {
+            voxels_per_meter: 1.0 / voxel_size_m,
+        }
+    }
+
     #[inline]
     pub fn voxels_per_meter(self) -> f64 {
         self.voxels_per_meter

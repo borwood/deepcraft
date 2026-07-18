@@ -19,8 +19,8 @@ pub const BENCH_SEED: i32 = 1337;
 /// Measured region in meters: x/z in [-128, 128), y in [-96, 32).
 /// 256 m x 128 m x 256 m, placed to include the surface (~-6..+22 m) and the
 /// chasm floor (~-80 m) so the numbers reflect real terrain, not empty sky.
-const REGION_MIN_M: [f64; 3] = [-128.0, -96.0, -128.0];
-const REGION_MAX_M: [f64; 3] = [128.0, 32.0, 128.0];
+pub const REGION_MIN_M: [f64; 3] = [-128.0, -96.0, -128.0];
+pub const REGION_MAX_M: [f64; 3] = [128.0, 32.0, 128.0];
 
 struct Row {
     player_voxels: u32,
@@ -124,12 +124,12 @@ fn bench_scale(generator: &TerrainGen, player_voxels: u32) -> Row {
     }
 }
 
-fn format_bytes(b: u64) -> String {
+pub fn format_bytes(b: u64) -> String {
     const MIB: f64 = 1024.0 * 1024.0;
     format!("{:.1} MiB", b as f64 / MIB)
 }
 
-fn group_thousands(n: u64) -> String {
+pub fn group_thousands(n: u64) -> String {
     let s = n.to_string();
     let mut out = String::with_capacity(s.len() + s.len() / 3);
     for (i, c) in s.chars().enumerate() {
