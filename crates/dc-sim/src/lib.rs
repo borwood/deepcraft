@@ -18,3 +18,5 @@
 //! this same crate run over pre-player time, driven by dc-worldgen.
 
 pub const CRATE_ROLE: &str = "tiered simulation + constraint ledger";
+
+pub mod statistical;
