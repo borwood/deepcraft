@@ -85,15 +85,19 @@ pub struct BlockChange {
 /// Everything a command did. v0 receipts echo the FULL effect list; whether
 /// that survives is API.md open question 4 — S5 measures it (see
 /// [`Effects::summary`] and the S5 results doc).
+///
+/// NOTE: no `skip_serializing_if` here (or anywhere on wire types) — postcard
+/// is not self-describing, so conditional field skipping corrupts the WASM
+/// boundary encoding. Wire types serialize every field, always.
 #[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
 pub struct Effects {
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub blocks_changed: Vec<BlockChange>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub entities_spawned: Vec<u64>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub items_defined: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub subscriptions_created: Vec<u64>,
 }
 

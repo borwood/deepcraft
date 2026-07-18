@@ -19,7 +19,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::envelope::{CommandEnvelope, CommandReceipt, QueryReceipt, SubmitAck};
+use crate::envelope::{CommandEnvelope, CommandReceipt, QueryReceipt, ReceiptEntry, SubmitAck};
 
 /// What a plugin can ask of the host.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -28,6 +28,10 @@ pub enum PluginRequest {
     Submit(CommandEnvelope),
     /// Run a query against the last completed tick.
     Query(CommandEnvelope),
+    /// Fetch this plugin's receipts produced since the last drain. Receipts
+    /// are tick-boundary artifacts, so a submitting plugin sees them
+    /// asynchronously — typically from its `dc_tick` callback.
+    DrainReceipts,
 }
 
 /// What comes back.
@@ -41,6 +45,8 @@ pub enum PluginResponse {
     SubmitRejected(CommandReceipt),
     /// Query answer.
     Query(QueryReceipt),
+    /// Receipts for this plugin since the last drain, in apply order.
+    Receipts(Vec<ReceiptEntry>),
     /// The host could not parse or process the request itself.
     Error(String),
 }
@@ -68,6 +74,32 @@ pub fn unpack_ptr_len(packed: u64) -> (u32, u32) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Postcard is not self-describing: every wire type must round-trip
+    /// exactly (this guards against e.g. `skip_serializing_if` sneaking onto
+    /// an envelope/receipt type and silently corrupting the WASM boundary).
+    #[test]
+    fn postcard_roundtrips_receipts_with_sparse_effects() {
+        use crate::envelope::{
+            CommandReceipt, CommandResult, ConsumerId, ConsumerKind, Effects, ReceiptEntry,
+        };
+        let entry = ReceiptEntry {
+            source: ConsumerId::new(ConsumerKind::Plugin, "p"),
+            command_id: "dc:events/subscribe".into(),
+            consumer_seq: 0,
+            receipt: CommandReceipt {
+                seq: 1,
+                tick_applied: 1,
+                result: CommandResult::Ok(Effects {
+                    subscriptions_created: vec![1],
+                    ..Effects::default()
+                }),
+            },
+        };
+        let response = PluginResponse::Receipts(vec![entry]);
+        let decoded: PluginResponse = decode(&encode(&response)).expect("round-trip");
+        assert_eq!(decoded, response);
+    }
 
     #[test]
     fn ptr_len_roundtrip() {

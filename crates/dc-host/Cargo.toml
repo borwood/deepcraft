@@ -7,4 +7,10 @@ publish.workspace = true
 
 [dependencies]
 dc-api.workspace = true
-thiserror.workspace = true
+wasmtime.workspace = true
+
+[dev-dependencies]
+dc-mcp-dev.workspace = true
+postcard.workspace = true
+serde.workspace = true
+serde_json.workspace = true
