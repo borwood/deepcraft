@@ -17,6 +17,7 @@ use glam::DVec3;
 
 use crate::PLAYER_HEIGHT_M;
 use crate::bench::BENCH_SEED;
+use crate::farmesh;
 use crate::player::{self, Player};
 use crate::streaming;
 use crate::worldgen::TerrainGen;
@@ -113,6 +114,7 @@ pub fn run() {
         .insert_resource(FloatingOrigin(spawn))
         .insert_resource(Player::new(spawn))
         .insert_resource(ChunkMap::default())
+        .insert_resource(farmesh::FarChunkMap::default())
         .add_systems(Startup, setup)
         .add_systems(
             Update,
@@ -123,7 +125,9 @@ pub fn run() {
                 update_origin,
                 player::update_camera,
                 position_chunks,
+                farmesh::position_far_chunks,
                 streaming::stream_chunks,
+                farmesh::stream_far_chunks,
                 update_title,
             )
                 .chain(),
@@ -149,6 +153,12 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>
     ));
     commands.spawn((
         Camera3d::default(),
+        // The far field reaches 1.2 km (see farmesh.rs); the default 1 km far
+        // plane would clip the outermost LOD ring.
+        Projection::Perspective(PerspectiveProjection {
+            far: 3000.0,
+            ..default()
+        }),
         AmbientLight {
             color: Color::WHITE,
             brightness: 400.0,

@@ -17,11 +17,13 @@ use crate::app::{ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, LoadedChunk
 use crate::meshing::{MeshData, mesh_chunk};
 use crate::player::Player;
 
-/// Chunks whose center is within this many meters of the player are loaded.
-/// Meters, not chunks: every scale streams the same world volume.
-const LOAD_RADIUS_M: f64 = 72.0;
+/// Chunks whose center is within this many meters of the player are loaded at
+/// full detail. Meters, not chunks: every scale streams the same world volume.
+/// S3 raised this from S1's 72 m; beyond it the far-mesh path (farmesh.rs)
+/// renders LOD rings out to 1.2 km.
+const LOAD_RADIUS_M: f64 = crate::farmesh::FULL_DETAIL_RADIUS_M;
 /// Hysteresis: unload only beyond this distance.
-const UNLOAD_RADIUS_M: f64 = 96.0;
+const UNLOAD_RADIUS_M: f64 = LOAD_RADIUS_M + 32.0;
 /// Chunks generated + meshed per frame.
 const LOAD_BUDGET_PER_FRAME: usize = 8;
 
@@ -108,7 +110,7 @@ pub fn stream_chunks(
     }
 }
 
-fn to_bevy_mesh(data: MeshData) -> Mesh {
+pub fn to_bevy_mesh(data: MeshData) -> Mesh {
     let mut mesh = Mesh::new(
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::RENDER_WORLD,
