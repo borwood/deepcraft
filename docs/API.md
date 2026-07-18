@@ -86,6 +86,38 @@ Whether a given MCP session is diegetic (an agent playing the world, whose
 glances collapse it) or an out-of-band tool is purely a question of which
 grants it holds — the mechanism supports both.
 
+## Characters, controllers, and the two MCP surfaces
+
+**Decided 2026-07-18.** AI-driven characters are a first-class feature, not a
+dev affordance: players may create multiple characters on a world and hand any
+of them to an AI (start two characters, give one to Claude).
+
+- **Character** is a primitive: a persistent entity owned by a player account,
+  existing in the world independent of who (or what) is driving it.
+- **Controller** is a binding: whoever holds `entity.control(character)` right
+  now — human input, an MCP session, a WASM script, or nobody (idle/NPC-tier).
+  Handing a character to an AI is just re-granting control; no special path.
+- A character acts through the same command door with the same priority class
+  as human player input, and its observations are diegetic: an AI companion
+  seeing something commits facts exactly as a human-driven character would.
+  Same world, same consequences, same physics of attention.
+
+This yields **two MCP surfaces** (likely two servers, to keep tool lists tidy):
+
+| | `dc-mcp-dev` | `dc-mcp-character` |
+|---|---|---|
+| Audience | building the game, creative tooling | AI companions in the shipped game |
+| Grants | broad world.*/registry.*/`sim.inspect` | `entity.control(one character)` + that character's senses |
+| Reads | out-of-band, commit nothing | through the character's senses only — raycasts from its eyes, hearing range, view capture; all diegetic |
+| Precedent | the author's `minecraft` server MCP | the author's `minecraft-client` sense/view MCP |
+
+Both are thin skins over dc-api — the character surface is dc-api filtered
+through a grant set, not a second API.
+
+Open (deferred to the sim/character spike): when an AI-driven character's
+session disconnects, does it degrade to coarse-tier NPC behavior or freeze?
+And whose compute runs a companion's cognition in multiplayer?
+
 ## Capabilities
 
 ```
@@ -117,15 +149,19 @@ schedule.manage(own)               events.subscribe(filters)
   instead retired commands keep accepting old payloads through serde defaults
   for one deprecation cycle. Schema registry records `since`/`deprecated`.
 
-## Open questions (user input wanted)
+## Decisions log
 
-1. **Id naming**: `dc:world/set_block` (namespace:domain/verb_noun) is the
-   working convention — permanent bikeshed, confirm before S5.
-2. **Player input as commands from day one** — recommended (determinism payoff
-   above); the cost is a thin indirection on the input path. Confirm.
-3. **Default MCP posture**: are agent sessions diegetic observers (their reads
-   collapse the world) or dev tools by default? Mechanism supports both;
-   default shapes the game's soul. Leaning: dev-tool default for building the
-   game, diegetic as the shipped-game default.
+1. **Id naming** — CONFIRMED 2026-07-18: `dc:world/set_block`
+   (namespace:domain/verb_noun).
+2. **Player input as commands** — CONFIRMED 2026-07-18: yes, from day one.
+   Rationale beyond determinism: replay is the substrate for an AI-native dev
+   pipeline — reproducing a bug or scaffolding a test-world state is
+   "replay this command log," which agents can generate and rerun.
+3. **MCP posture** — CONFIRMED 2026-07-18: dev-tool surface while building;
+   embodied character surface as a first-class shipped feature (see
+   § Characters). Two MCP servers over one API.
+
+## Open questions
+
 4. **Effects in receipts**: how much does a receipt echo back (full effect
    list vs summary counts)? Affects WASM boundary chattiness; measure in S5.
