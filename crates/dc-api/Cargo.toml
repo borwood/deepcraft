@@ -6,8 +6,11 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+# Deliberately lean: this crate (types + schema registry + reference host) must
+# compile for wasm32-unknown-unknown so plugins can share the envelope types.
+# dc-sim / dc-worldgen bind to the API from the sim side and are NOT deps here.
 dc-core.workspace = true
-dc-sim.workspace = true
-dc-worldgen.workspace = true
+postcard.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true

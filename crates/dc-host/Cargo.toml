@@ -1,0 +1,16 @@
+[package]
+name = "dc-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+dc-api.workspace = true
+wasmtime.workspace = true
+
+[dev-dependencies]
+dc-mcp-dev.workspace = true
+postcard.workspace = true
+serde.workspace = true
+serde_json.workspace = true

@@ -1,0 +1,30 @@
+# Demo WASM plugin (S5). Excluded from the workspace on purpose: it is built
+# for wasm32-unknown-unknown by a separate cargo invocation (crates/dc-host
+# tests trigger it, or scripts/build-demo-plugin), and a host-target cdylib
+# with unresolved `dc.call` imports would fail to link under
+# `cargo <test|clippy> --workspace --all-targets`.
+#
+# Standalone package => no workspace field inheritance; values are literal.
+# The empty [workspace] table stops cargo walking up to an enclosing
+# workspace manifest.
+
+[workspace]
+
+[package]
+name = "demo-builder"
+version = "0.1.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+dc-api = { path = "../../crates/dc-api" }
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+
+[profile.release]
+# Small, fast-to-compile artifact; debug info is useless inside the sandbox.
+opt-level = "s"
+strip = true
