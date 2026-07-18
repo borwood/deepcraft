@@ -84,13 +84,33 @@ design pillar. Consequences we accept and design for from v1:
 - **Depth is a worldgen axis**: deep-time geological history generates literal
   strata; caves/aquifers/lava at region scale, not per-column noise hacks.
 
+**Chunk shape — DECIDED 2026-07-18: chunks stay 32³ cubes.** The "tall chunks"
+instinct (keep what's below loaded when overlooking a chasm; don't simulate the
+surface when a kilometer deep) is implemented as *policy over cubes*, not as
+chunk geometry:
+
+- **Adaptive load volume**: base sphere around the player plus a downward
+  (or any-direction) extension wherever column summaries report open air —
+  chasms stream downward; solid plains don't drag bedrock columns into memory.
+  Cubes keep remesh granularity (one edit = one 32³ remesh), frustum culling,
+  and the S3 octree uniform; post-S3 palette compression makes all-stone/all-air
+  cubes nearly free, removing tall chunks' only real advantage.
+- **Sim tiers are 3D volumes**: full-sim is a bubble, so a deep-earth society
+  800 m below the player sits in the coarse/statistical tier despite horizontal
+  distance zero — same machinery as a village beyond the mountains. Deep
+  cultures accumulate ledger history without ever being fully simulated until
+  approached (or observed diegetically).
+
 ## Voxel scale
 
-Player height is 3 or 4 voxels (vs Minecraft's 2). This is a world-resolution
-budget decision, not aesthetics: halving voxel size is 8× voxels per world
-volume — memory, meshing, worldgen, save size, physics query density. It also
-sets reach, jump height, stair conventions, and every block model's real scale.
-Resolved empirically by S1; until then nothing hard-codes a voxel:meter ratio.
+**DECIDED 2026-07-18 (S1 feel pass): player height = 2 voxels, voxel = 0.9 m.**
+Rationale: S1 measured the 2→4 blowup at exactly 8× memory / ~4× triangles for
+the same world volume; N=2 is the cheapest tier and the fidelity gap is closed
+by **sub-voxel block shapes** (half/quarter blocks, stairs, etc.) — block
+states resolved at meshing/collision time, not a finer world grid. The grid
+stays 0.9 m everywhere; `VoxelScale` remains the single source of truth.
+S1 budget baseline at N=2: 2.74 B/m³ raw chunks, ~31 tris/m² culled-meshed
+(pre-palette-compression, pre-greedy-meshing — both improve from here).
 
 ## Physics
 
