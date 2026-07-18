@@ -7,5 +7,17 @@ publish.workspace = true
 
 [dependencies]
 dc-api.workspace = true
+rmcp = { workspace = true, features = ["transport-io"] }
 serde_json.workspace = true
 thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "macros", "io-util"] }
+
+[dev-dependencies]
+# The session test runs an in-process rmcp client against the server over a
+# tokio duplex pipe (a real MCP session, no OS pipes needed).
+rmcp = { workspace = true, features = ["client"] }
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+
+[[bin]]
+name = "dc-mcp-dev"
+path = "src/main.rs"
