@@ -10,3 +10,8 @@ glam.workspace = true
 postcard.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+# S8 deposition simulator terrain (tests/s8_measurements.rs) — same generator
+# family the S1/S3 spike terrain uses.
+fastnoise-lite.workspace = true
