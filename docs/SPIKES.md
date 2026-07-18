@@ -78,15 +78,24 @@ a region graph, statistical tier only.
 - **Exit**: collider-bubble strategy note; perf numbers (bodies vs tick time)
   at S1 scale. Adds `rapier3d`.
 
-## S7 — Hierarchical worldgen slice  `[risk: medium — pattern is known, fit is not]`
+## S7 — Worldgen: coarse pregen + lazy pyramid  `[risk: medium-high — two systems and their seam]`
 
-- Continent-graph → region → chunk with bounded-neighborhood dependency only;
-  rivers planned at region-graph scale that provably reach seas across region
-  boundaries; a faction-graph layer stub feeding dc-sim's statistical tier.
-- Stress: walk 10k+ chunks in one direction, verify no unbounded lookahead,
-  no seams, deterministic regeneration from seed.
-- **Exit**: level/neighborhood dependency spec; decision on how deep-time
-  history layers hand constraints down to chunk gen.
+Design in docs/design/worldgen.md (bounded world, pregenerated coarse
+deep-time sim, lazy collapse below region scale, unbounded border wilds,
+extent as a player knob).
+
+- Coarse pregen pipeline slice: closed-surface tectonics → climate/
+  hydrology (rivers reach the sea by construction) → a thin history pass
+  writing committed facts into the S2 ledger.
+- Lazy pyramid below: the one collapse rule (base + neighbor-summary +
+  parent) region → locale → chunk; border-wilds path (no history layer).
+- Stress: walk 10k+ chunks in one direction incl. across the civilized/wilds
+  boundary; no unbounded lookahead; deterministic regeneration from seed.
+- **Measure pregen time vs extent** (the player knob needs honest labels) at
+  ≥3 world sizes.
+- **Exit**: level/resolution spec per pyramid level; pregen-time table;
+  demonstrated ledger handoff (a pregen-era fact visible to a live
+  statistical-tier query); topology recommendation.
 
 ## S8 — Material volume model storage  `[risk: state-space explosion vs palette]`
 
