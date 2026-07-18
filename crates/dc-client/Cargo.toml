@@ -9,5 +9,6 @@ publish.workspace = true
 dc-core.workspace = true
 dc-api.workspace = true
 
-# bevy is added here by spike S1 — kept out of the initial scaffold so the
-# first `cargo check` isn't a multi-minute dependency build.
+bevy.workspace = true
+fastnoise-lite.workspace = true
+glam.workspace = true

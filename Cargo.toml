@@ -24,8 +24,11 @@ glam = "0.30"
 serde = { version = "1", features = ["derive"] }
 thiserror = "2"
 
+# Pinned exact by S1 (see docs/spikes/S1-results.md for the version rationale).
+bevy = "=0.19.0"
+fastnoise-lite = "1.1.1"
+
 # Deliberately NOT yet dependencies (added by their spikes, see docs/SPIKES.md):
-# bevy      — added by S1 (voxel scale walking skeleton)
 # rapier3d  — added by S6 (physics bubble)
 # wasmtime  — added by S5 (plugin host)
 # rmcp      — added by S5 (MCP server over the same command API)
