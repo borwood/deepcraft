@@ -109,6 +109,56 @@ impl ToyWorld {
         }
     }
 
+    /// Construct a world over an arbitrary region graph (added by S7: worldgen
+    /// overlays its site graph on the statistical tier so deep-time history
+    /// and live far-sim run on one system). `adjacency[r]` lists `r`'s
+    /// neighbours; `agent_home[a]` anchors agent `a`. Agents are optional —
+    /// an empty `agent_home` gives a pressure-field-only world.
+    ///
+    /// # Panics
+    /// Panics if the graph is empty, has more than 255 regions, is asymmetric,
+    /// has self-loops, or references out-of-range region ids.
+    pub fn with_graph(seed: u64, adjacency: Vec<Vec<RegionId>>, agent_home: Vec<RegionId>) -> Self {
+        let n = adjacency.len();
+        assert!(
+            (1..=usize::from(u8::MAX)).contains(&n),
+            "region count must be 1..=255 to fit RegionId"
+        );
+        for (r, neigh) in adjacency.iter().enumerate() {
+            for &m in neigh {
+                assert!(usize::from(m) < n, "neighbour {m} out of range");
+                assert_ne!(usize::from(m), r, "self-loop at region {r}");
+                assert!(
+                    adjacency[usize::from(m)].contains(&(r as RegionId)),
+                    "adjacency must be symmetric ({r} -> {m})"
+                );
+            }
+        }
+        for &h in &agent_home {
+            assert!(usize::from(h) < n, "agent home {h} out of range");
+        }
+        let mut adjacency = adjacency;
+        for neigh in &mut adjacency {
+            neigh.sort_unstable();
+            neigh.dedup();
+        }
+        Self {
+            seed,
+            adjacency,
+            agent_home,
+        }
+    }
+
+    /// Number of regions in this world's graph.
+    pub fn num_regions(&self) -> u8 {
+        self.adjacency.len() as u8
+    }
+
+    /// Number of agents in this world.
+    pub fn num_agents(&self) -> u16 {
+        self.agent_home.len() as u16
+    }
+
     pub fn neighbors(&self, r: RegionId) -> &[RegionId] {
         &self.adjacency[r as usize]
     }
@@ -118,39 +168,42 @@ impl ToyWorld {
         self.agent_home[a as usize]
     }
 
-    /// Regions within graph distance `depth` of `center` (`None` = all).
+    /// Regions within graph distance `depth` of `center` (`None` = all
+    /// reachable regions).
     pub fn ball(
         &self,
         center: RegionId,
         depth: Option<u32>,
     ) -> std::collections::BTreeSet<RegionId> {
-        let mut dist = vec![u32::MAX; NUM_REGIONS as usize];
+        let n = self.adjacency.len();
+        let mut dist = vec![u32::MAX; n];
         let mut queue = std::collections::VecDeque::new();
         dist[center as usize] = 0;
         queue.push_back(center);
         while let Some(r) = queue.pop_front() {
-            for &n in self.neighbors(r) {
-                if dist[n as usize] == u32::MAX {
-                    dist[n as usize] = dist[r as usize] + 1;
-                    queue.push_back(n);
+            for &m in self.neighbors(r) {
+                if dist[m as usize] == u32::MAX {
+                    dist[m as usize] = dist[r as usize] + 1;
+                    queue.push_back(m);
                 }
             }
         }
         let limit = depth.unwrap_or(u32::MAX);
-        (0..NUM_REGIONS)
+        (0..n as u8)
             .filter(|&r| dist[r as usize] <= limit)
             .collect()
     }
 
-    /// Graph diameter (max shortest-path distance).
+    /// Graph diameter (max shortest-path distance; assumes connectivity).
     pub fn diameter(&self) -> u32 {
-        (0..NUM_REGIONS)
+        let n = self.adjacency.len();
+        (0..n as u8)
             .map(|c| {
                 let ball = self.ball(c, None);
-                debug_assert_eq!(ball.len(), NUM_REGIONS as usize);
+                debug_assert_eq!(ball.len(), n);
                 // Re-run BFS capturing max distance.
-                (0..=u32::from(NUM_REGIONS))
-                    .find(|&d| self.ball(c, Some(d)).len() == NUM_REGIONS as usize)
+                (0..=n as u32)
+                    .find(|&d| self.ball(c, Some(d)).len() == n)
                     .unwrap()
             })
             .max()
@@ -330,6 +383,27 @@ mod tests {
         assert_eq!(a.agent_home, b.agent_home);
         assert_eq!(a.adjacency, b.adjacency);
         assert!(a.diameter() >= 3, "graph should have non-trivial distances");
+    }
+
+    #[test]
+    fn with_graph_builds_custom_worlds() {
+        // A path graph 0-1-2 with one agent homed at 1.
+        let adj = vec![vec![1], vec![0, 2], vec![1]];
+        let w = ToyWorld::with_graph(11, adj, vec![1]);
+        assert_eq!(w.num_regions(), 3);
+        assert_eq!(w.num_agents(), 1);
+        assert_eq!(w.agent_home(0), 1);
+        assert_eq!(w.ball(0, Some(1)).len(), 2);
+        assert_eq!(w.diameter(), 2);
+        // Agent-free worlds are legal (pressure field only).
+        let w = ToyWorld::with_graph(11, vec![vec![1], vec![0]], vec![]);
+        assert_eq!(w.num_agents(), 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "symmetric")]
+    fn with_graph_rejects_asymmetric_adjacency() {
+        ToyWorld::with_graph(1, vec![vec![1], vec![]], vec![]);
     }
 
     #[test]

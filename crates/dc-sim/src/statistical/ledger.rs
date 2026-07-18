@@ -26,10 +26,18 @@ use super::rng::mix;
 use super::world::{AgentId, AgentState, Behavior, RegionId, Tick};
 
 /// What a fact is about.
+///
+/// `Agent`/`Region` are the S2 toy-world subjects. `Site`/`Polity` were added
+/// by S7: deep-time worldgen (dc-worldgen) commits settlement history into the
+/// same ledger the live sim reads — one system, no seam at year zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Subject {
     Agent(AgentId),
     Region(RegionId),
+    /// A settlement site (S7 worldgen history).
+    Site(u32),
+    /// A polity — a people/state owning sites (S7 worldgen history).
+    Polity(u32),
 }
 
 impl Subject {
@@ -37,6 +45,8 @@ impl Subject {
         match self {
             Subject::Agent(a) => (1 << 32) | u64::from(a),
             Subject::Region(r) => (2 << 32) | u64::from(r),
+            Subject::Site(s) => (3 << 32) | u64::from(s),
+            Subject::Polity(p) => (4 << 32) | u64::from(p),
         }
     }
 }
@@ -53,6 +63,15 @@ pub enum Aspect {
     AgentAlive,
     /// A region's hostile-mob pressure level.
     RegionPressure,
+    /// Whether a site is settled (S7). Founding commits `Exists(true)`;
+    /// abandonment commits `Exists(false)` at a strictly later time.
+    SiteExists,
+    /// Which polity holds a site (S7).
+    SitePolity,
+    /// A notable event at a site in a given epoch (S7).
+    SiteEvent,
+    /// How many cells a polity holds in a given epoch (S7).
+    PolityExtent,
 }
 
 impl Aspect {
@@ -62,6 +81,28 @@ impl Aspect {
             Aspect::AgentBehavior => 2,
             Aspect::AgentAlive => 3,
             Aspect::RegionPressure => 4,
+            Aspect::SiteExists => 5,
+            Aspect::SitePolity => 6,
+            Aspect::SiteEvent => 7,
+            Aspect::PolityExtent => 8,
+        }
+    }
+}
+
+/// Kind of notable site event (S7 worldgen history).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum SiteEventKind {
+    Founded,
+    Sacked,
+    Abandoned,
+}
+
+impl SiteEventKind {
+    pub(crate) fn key(self) -> u64 {
+        match self {
+            SiteEventKind::Founded => 0,
+            SiteEventKind::Sacked => 1,
+            SiteEventKind::Abandoned => 2,
         }
     }
 }
@@ -73,6 +114,14 @@ pub enum Value {
     Behavior(Behavior),
     Alive(bool),
     Pressure(u8),
+    /// Site settled or not (S7).
+    Exists(bool),
+    /// Owning polity id (S7).
+    PolityRef(u32),
+    /// Notable event kind (S7).
+    Event(SiteEventKind),
+    /// Cells held (S7).
+    Extent(u32),
 }
 
 impl Value {
@@ -82,6 +131,13 @@ impl Value {
             Value::Behavior(b) => (2 << 16) | b.key(),
             Value::Alive(a) => (3 << 16) | u64::from(a),
             Value::Pressure(p) => (4 << 16) | u64::from(p),
+            // S7 additions use a 32-bit payload field so u32 payloads cannot
+            // bleed into the tag bits. Existing variants keep their original
+            // shape (changing them would change committed content hashes).
+            Value::Exists(e) => (5 << 32) | u64::from(e),
+            Value::PolityRef(p) => (6 << 32) | u64::from(p),
+            Value::Event(k) => (7 << 32) | k.key(),
+            Value::Extent(n) => (8 << 32) | u64::from(n),
         }
     }
 
@@ -92,6 +148,10 @@ impl Value {
                 | (Aspect::AgentBehavior, Value::Behavior(_))
                 | (Aspect::AgentAlive, Value::Alive(_))
                 | (Aspect::RegionPressure, Value::Pressure(_))
+                | (Aspect::SiteExists, Value::Exists(_))
+                | (Aspect::SitePolity, Value::PolityRef(_))
+                | (Aspect::SiteEvent, Value::Event(_))
+                | (Aspect::PolityExtent, Value::Extent(_))
         )
     }
 }
@@ -313,6 +373,41 @@ mod tests {
         )
         .unwrap();
         assert_eq!(l.len(), 2);
+    }
+
+    #[test]
+    fn worldgen_fact_kinds_append_and_conflict() {
+        let mut l = Ledger::new();
+        let s = Subject::Site(7);
+        l.append(0, s, Aspect::SiteExists, Value::Exists(true))
+            .unwrap();
+        l.append(
+            0,
+            s,
+            Aspect::SiteEvent,
+            Value::Event(SiteEventKind::Founded),
+        )
+        .unwrap();
+        l.append(5, s, Aspect::SiteExists, Value::Exists(false))
+            .unwrap();
+        l.append(
+            3,
+            Subject::Polity(1),
+            Aspect::PolityExtent,
+            Value::Extent(4),
+        )
+        .unwrap();
+        // Aspect/value pairing is enforced for the new kinds too.
+        let err = l
+            .append(1, s, Aspect::SiteExists, Value::Pressure(1))
+            .unwrap_err();
+        assert!(matches!(err, LedgerError::AspectValueMismatch { .. }));
+        // Exact-key conflicts bounce.
+        let err = l
+            .append(5, s, Aspect::SiteExists, Value::Exists(true))
+            .unwrap_err();
+        assert!(matches!(err, LedgerError::ConflictsWithCommitted { .. }));
+        assert_eq!(l.len(), 4);
     }
 
     #[test]
