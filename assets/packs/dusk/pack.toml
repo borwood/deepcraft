@@ -1,0 +1,13 @@
+# deepcraft "dusk" shader pack — the S4 example override pack.
+#
+# Proves the vibe-agnosticism valve (docs/design/visuals.md § Custom
+# shaders): same world, same hook surface, different mood. Run with:
+#
+#     cargo run --release -p dc-client -- --pack dusk
+
+[pack]
+name = "dusk"
+format = 0
+
+[stages]
+post = "post.wgsl"
