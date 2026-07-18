@@ -1,0 +1,17 @@
+# deepcraft shader pack manifest — hook format 0 (docs/rendering/PIPELINE.md).
+#
+# The default pack IS the game's look (docs/design/visuals.md § Custom
+# shaders): it goes through exactly the same loading, validation, and
+# pipeline machinery as any user pack. It is also the fallback every broken
+# pack degrades to.
+
+[pack]
+name = "default"
+# Hook-surface version this pack targets. The loader refuses other versions.
+format = 0
+
+[stages]
+# Stage name -> WGSL file, relative to this manifest. A stage a pack does not
+# name falls back to the default pack's implementation. Unknown stage names
+# are an error (a stage we cannot honor must not be silently dropped).
+post = "post.wgsl"

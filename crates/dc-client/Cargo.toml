@@ -12,3 +12,19 @@ dc-api.workspace = true
 bevy.workspace = true
 fastnoise-lite.workspace = true
 glam.workspace = true
+
+# S4 (shader hook contract): shader packs are validated through the same naga
+# the renderer's wgpu uses (version pinned to wgpu's via bevy 0.19 = 29.x).
+naga = { version = "29", default-features = false, features = ["wgsl-in"] }
+serde.workspace = true
+toml = "0.9"
+
+[dev-dependencies]
+# The S4 cross-backend portability test additionally translates every pack
+# entry point to HLSL/SPIR-V/MSL (docs/rendering/PIPELINE.md § Portability).
+naga = { version = "29", default-features = false, features = [
+    "wgsl-in",
+    "hlsl-out",
+    "spv-out",
+    "msl-out",
+] }

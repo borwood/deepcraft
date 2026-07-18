@@ -10,7 +10,10 @@
 
 use std::collections::HashMap;
 
+use bevy::core_pipeline::tonemapping::Tonemapping;
 use bevy::prelude::*;
+use bevy::render::render_resource::TextureUsages;
+use bevy::render::view::Msaa;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
 use dc_core::{Block, Chunk, ChunkPos, VoxelScale, local_voxel};
 use glam::DVec3;
@@ -19,6 +22,7 @@ use crate::PLAYER_HEIGHT_M;
 use crate::bench::BENCH_SEED;
 use crate::farmesh;
 use crate::player::{self, Player};
+use crate::poststage::{PostStage, PostStagePlugin};
 use crate::streaming;
 use crate::worldgen::TerrainGen;
 
@@ -96,7 +100,7 @@ pub fn to_render(v: DVec3) -> Vec3 {
     Vec3::new(v.x as f32, v.y as f32, v.z as f32)
 }
 
-pub fn run() {
+pub fn run(pack_selector: Option<String>) {
     let terrain = TerrainGen::new(BENCH_SEED);
     let spawn = DVec3::new(0.0, terrain.surface_height_m(0.0, 0.0) + 2.0, 0.0);
 
@@ -108,6 +112,7 @@ pub fn run() {
             }),
             ..default()
         }))
+        .add_plugins(PostStagePlugin { pack_selector })
         .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
         .insert_resource(Terrain(terrain))
         .insert_resource(CurrentScale::new(3))
@@ -143,16 +148,36 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>
     })));
 
     // Simple diffuse setup: one sun, flat ambient on the camera.
+    let sun_rotation = Quat::from_euler(EulerRot::YXZ, 0.6, -1.0, 0.0);
     commands.spawn((
         DirectionalLight {
             illuminance: 12_000.0,
             shadow_maps_enabled: false,
             ..default()
         },
-        Transform::from_rotation(Quat::from_euler(EulerRot::YXZ, 0.6, -1.0, 0.0)),
+        Transform::from_rotation(sun_rotation),
     ));
     commands.spawn((
-        Camera3d::default(),
+        Camera3d {
+            // The S4 post stage samples scene depth (fog/haze), so the depth
+            // texture must be bindable, not only an attachment.
+            depth_texture_usages: (TextureUsages::RENDER_ATTACHMENT
+                | TextureUsages::TEXTURE_BINDING)
+                .into(),
+            ..default()
+        },
+        // The post-stage contract v0 binds single-sample depth (see
+        // poststage.rs); MSAA is off for the S4 slice.
+        Msaa::Off,
+        // The active shader pack owns the tonemap curve (visuals.md § post);
+        // Bevy's built-in pass must not grade on top of it.
+        Tonemapping::None,
+        // World state seen by the shader pack's post stage. A light points
+        // along its -Z, so "toward the sun" is the rotated +Z.
+        PostStage {
+            sun_dir: sun_rotation * Vec3::Z,
+            ..default()
+        },
         // The far field reaches 1.2 km (see farmesh.rs); the default 1 km far
         // plane would clip the outermost LOD ring.
         Projection::Perspective(PerspectiveProjection {

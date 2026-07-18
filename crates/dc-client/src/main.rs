@@ -13,6 +13,11 @@
 //! `--bench-storage`, the headless S3 measurement pass (palette compression,
 //! LOD derive cost, column summaries, far-mesh cost; see
 //! docs/spikes/S3-results.md).
+//!
+//! S4 additions: runtime shader packs (shaderpack.rs, poststage.rs; contract
+//! in docs/rendering/PIPELINE.md). `--pack <name>` selects a pack directory
+//! under assets/packs/ (default: `default`; try `dusk`); a broken pack falls
+//! back to the built-in default with a warning, never a crash.
 
 mod app;
 mod bench;
@@ -20,6 +25,8 @@ mod bench_storage;
 mod farmesh;
 mod meshing;
 mod player;
+mod poststage;
+mod shaderpack;
 mod streaming;
 mod worldgen;
 
@@ -28,11 +35,16 @@ mod worldgen;
 pub const PLAYER_HEIGHT_M: f64 = 1.8;
 
 fn main() {
-    if std::env::args().any(|a| a == "--bench-scales") {
+    let args: Vec<String> = std::env::args().collect();
+    if args.iter().any(|a| a == "--bench-scales") {
         bench::run();
-    } else if std::env::args().any(|a| a == "--bench-storage") {
+    } else if args.iter().any(|a| a == "--bench-storage") {
         bench_storage::run();
     } else {
-        app::run();
+        let pack = args
+            .windows(2)
+            .find(|w| w[0] == "--pack")
+            .map(|w| w[1].clone());
+        app::run(pack);
     }
 }
