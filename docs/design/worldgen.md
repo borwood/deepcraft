@@ -90,8 +90,13 @@ gets honest labels.
 
 ## Open questions
 
-- Topology: east–west wrap with polar-caps-as-wilds vs continent-disc in
-  world-ocean (wilds decision works with either). Decide in/after S7.
+- Topology — PROVISIONALLY DECIDED by S7 (2026-07-18): **continent-disc in a
+  world-ocean.** The chunk lattice is natively planar; a wrap would force a
+  seam column through every pyramid level. The disc gives border wilds on
+  every compass point (deepening abyssal ocean, polar ice beyond ~84°
+  synthesized latitude); climate closure via prescribed latitude/wind fields.
+  Trade-off accepted: plates on a bounded grid with the ocean ring as
+  closure, not a closed sphere. Revisit only if a strong reason emerges.
 - Coarse cell resolution per level; history-sim tick count vs quality.
 - How much of the historical record is browsable in-game at v1 (legends UI)
   vs merely present in the ledger.
