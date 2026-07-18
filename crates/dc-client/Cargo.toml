@@ -1,0 +1,13 @@
+[package]
+name = "dc-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+dc-core.workspace = true
+dc-api.workspace = true
+
+# bevy is added here by spike S1 — kept out of the initial scaffold so the
+# first `cargo check` isn't a multi-minute dependency build.

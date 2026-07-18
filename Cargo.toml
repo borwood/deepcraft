@@ -1,0 +1,39 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/dc-core",
+    "crates/dc-sim",
+    "crates/dc-worldgen",
+    "crates/dc-api",
+    "crates/dc-client",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[workspace.dependencies]
+dc-core = { path = "crates/dc-core" }
+dc-sim = { path = "crates/dc-sim" }
+dc-worldgen = { path = "crates/dc-worldgen" }
+dc-api = { path = "crates/dc-api" }
+
+glam = "0.30"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+# Deliberately NOT yet dependencies (added by their spikes, see docs/SPIKES.md):
+# bevy      — added by S1 (voxel scale walking skeleton)
+# rapier3d  — added by S6 (physics bubble)
+# wasmtime  — added by S5 (plugin host)
+# rmcp      — added by S5 (MCP server over the same command API)
+
+[profile.dev]
+# Voxel meshing/worldgen is unusable at opt-level 0; keep our code debuggable
+# but dependencies optimized.
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
