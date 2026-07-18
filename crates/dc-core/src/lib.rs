@@ -5,9 +5,18 @@
 //! - Chunk storage is LOD-aware from v1: every chunk can yield or store downsampled
 //!   representations. Distant-terrain rendering and the statistical sim tier both
 //!   consume these; retrofitting them later is the failure mode we are avoiding
-//!   (see docs/ARCHITECTURE.md § Rendering).
+//!   (see docs/ARCHITECTURE.md § Rendering). S1 ships the dense form only; the
+//!   pyramid/palette formats are S3.
 //! - Voxel scale (player height in voxels) is an open question resolved by spike S1.
-//!   Nothing in this crate may hard-code a voxel:meter ratio.
+//!   Nothing in this crate hard-codes a voxel:meter ratio — everything goes
+//!   through [`VoxelScale`].
 
-/// Placeholder until S1/S3 land the real chunk format.
-pub const CRATE_ROLE: &str = "voxel data model";
+pub mod chunk;
+pub mod collision;
+pub mod scale;
+pub mod voxel;
+
+pub use chunk::{CHUNK_SIZE, CHUNK_SIZE_USIZE, CHUNK_VOLUME, Chunk, ChunkPos, local_voxel};
+pub use collision::{Aabb, MoveResult, VoxelQuery, move_aabb};
+pub use scale::VoxelScale;
+pub use voxel::Block;
