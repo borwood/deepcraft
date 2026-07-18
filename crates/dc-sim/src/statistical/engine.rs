@@ -40,8 +40,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::ledger::{AppendOutcome, Aspect, Fact, Ledger, LedgerError, Subject, Value};
 use super::rng::{Pcg32, draw_f64, mix};
 use super::world::{
-    AgentId, AgentState, NUM_AGENTS, RegionId, SALT_AGENT_STEP, SALT_COLLAPSE, SALT_REGION_STEP,
-    Tick, ToyWorld,
+    AgentId, AgentState, RegionId, SALT_AGENT_STEP, SALT_COLLAPSE, SALT_REGION_STEP, Tick, ToyWorld,
 };
 
 /// Tuning knobs for a query/collapse.
@@ -151,6 +150,11 @@ fn anchor(world: &ToyWorld, subject: Subject) -> RegionId {
         // from home are simulated with frontier priors for their surroundings.
         Subject::Agent(a) => world.agent_home(a),
         Subject::Region(r) => r,
+        // Worldgen-history subjects (S7) are ledger-only: they condition
+        // nothing dynamically and cannot be query targets.
+        Subject::Site(_) | Subject::Polity(_) => {
+            unreachable!("worldgen subjects are not simulated by this engine")
+        }
     }
 }
 
@@ -178,7 +182,7 @@ fn build_scope(
         .flat_map(|&r| world.neighbors(r).iter().copied())
         .filter(|n| !regions.contains(n))
         .collect();
-    let agents: Vec<AgentId> = (0..NUM_AGENTS)
+    let agents: Vec<AgentId> = (0..world.num_agents())
         .filter(|&a| regions.contains(&world.agent_home(a)))
         .collect();
     let agent_set: BTreeSet<AgentId> = agents.iter().copied().collect();
@@ -283,8 +287,11 @@ fn simulate_sample(
                     Aspect::AgentRegion => Value::Region(state.region),
                     Aspect::AgentBehavior => Value::Behavior(state.behavior),
                     Aspect::AgentAlive => Value::Alive(state.is_alive()),
-                    Aspect::RegionPressure => unreachable!("region aspect on agent subject"),
+                    _ => unreachable!("non-agent aspect on agent subject"),
                 }
+            }
+            Subject::Site(_) | Subject::Polity(_) => {
+                unreachable!("worldgen subjects are not simulated by this engine")
             }
         });
     };

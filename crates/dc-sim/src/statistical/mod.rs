@@ -21,5 +21,5 @@ pub mod rng;
 pub mod world;
 
 pub use engine::{Distribution, ObserveError, Params, Report, force_fact, observe, query};
-pub use ledger::{AppendOutcome, Aspect, Fact, Ledger, LedgerError, Subject, Value};
+pub use ledger::{AppendOutcome, Aspect, Fact, Ledger, LedgerError, SiteEventKind, Subject, Value};
 pub use world::{AgentId, AgentState, Behavior, NUM_AGENTS, NUM_REGIONS, RegionId, Tick, ToyWorld};
