@@ -1,0 +1,11 @@
+[package]
+name = "dc-mcp-dev"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+dc-api.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

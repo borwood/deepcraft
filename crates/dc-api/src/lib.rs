@@ -1,13 +1,40 @@
 //! The one command/query surface. Three consumers, one contract:
 //!
-//! 1. **WASM plugins** (wasmtime host, spike S5) — sandboxed, language-agnostic.
-//! 2. **MCP** (in-process rmcp server, spike S5) — agents drive the same API.
-//! 3. **In-game editors** (item/block/blueprint/model+anim authoring) — UI over
-//!    the same commands, so anything an editor can do, a plugin or agent can do.
+//! 1. **WASM plugins** (wasmtime host, crates/dc-host) — sandboxed,
+//!    language-agnostic.
+//! 2. **MCP** (in-process rmcp server, crates/dc-mcp-dev) — agents drive the
+//!    same API; the tool list is generated from [`schema::registry`].
+//! 3. **In-game editors** (later) — UI over the same commands.
 //!
 //! Commands and queries are serializable data (serde), not trait calls, so the
-//! same surface crosses the WASM boundary, the MCP boundary, and (later) the
-//! network boundary unchanged. Capability-scoped: a consumer holds explicit
-//! grants, not ambient authority.
+//! same envelope crosses the WASM boundary (postcard), the MCP boundary
+//! (JSON), and later the network boundary unchanged. Capability-scoped, deny
+//! by default: a consumer holds explicit grants, not ambient authority.
+//!
+//! Module map:
+//! - [`envelope`] — CommandEnvelope / CommandReceipt / QueryReceipt wire shape
+//! - [`payload`] — typed payloads + the `Payload` union
+//! - [`capability`] — grants, tokens, attenuation, requirements
+//! - [`event`] — event kinds and delivery records
+//! - [`schema`] — the machine-readable command registry (consumers generate
+//!   from this; the MCP tool list is never hand-written)
+//! - [`host`] — the reference in-process world implementing the surface's
+//!   semantics (tick quantization, total order, txn atomicity, enforcement)
+//! - [`abi`] — the WASM-boundary request/response shapes (postcard)
 
-pub const CRATE_ROLE: &str = "command/query surface for plugins, MCP, editors";
+pub mod abi;
+pub mod capability;
+pub mod envelope;
+pub mod event;
+pub mod host;
+pub mod payload;
+pub mod schema;
+
+pub use capability::{CapabilityToken, Grant, Requirement};
+pub use envelope::{
+    BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, ConsumerKind, Effects,
+    EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,
+};
+pub use event::{EventKind, GameEvent};
+pub use host::HostWorld;
+pub use payload::{EntityInfo, Payload, QueryData, Vec3f, Vec3i, Volume, ids};

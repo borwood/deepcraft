@@ -2255,9 +2255,9 @@ name = "dc-api"
 version = "0.1.0"
 dependencies = [
  "dc-core",
- "dc-sim",
- "dc-worldgen",
+ "postcard",
  "serde",
+ "serde_json",
  "thiserror 2.0.18",
 ]
 
@@ -2279,6 +2279,23 @@ dependencies = [
  "glam 0.30.10",
  "postcard",
  "serde",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "dc-host"
+version = "0.1.0"
+dependencies = [
+ "dc-api",
+ "thiserror 2.0.18",
+]
+
+[[package]]
+name = "dc-mcp-dev"
+version = "0.1.0"
+dependencies = [
+ "dc-api",
+ "serde_json",
  "thiserror 2.0.18",
 ]
 
