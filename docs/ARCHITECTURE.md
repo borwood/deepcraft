@@ -65,6 +65,25 @@ the same serializable command surface.
   surface get decided by spike S4, before renderer growth makes it expensive.
   WGSL is the pack language; naga translates per backend.
 
+## World structure: cubic chunks (3D lattice)
+
+Chunks have 3D positions — a lattice of cubes, not a 2D lattice of full-height
+columns (Minecraft loads strictly by column; true 3D addressing is what the
+Cubic Chunks mod existed for). Traveling down loads deeper chunks the same way
+traveling north loads farther ones. Vastness of scale — especially depth — is a
+design pillar. Consequences we accept and design for from v1:
+
+- **Skylight/heightmaps are no longer local.** "Under open sky" can't be
+  answered inside one chunk. Per-column summaries (already required for distant
+  LOD and the statistical sim tier) double as lazy heightmap / sky-exposure
+  caches; nothing may assume a bounded world height.
+- **LOD is a 3D lattice too** (octree-style pyramid, not heightmap LOD):
+  looking down a megachasm needs coarse chunks *below* the player.
+- **Floating origin from day one**: f64 world coordinates in sim, camera-
+  relative f32 on the GPU. Cheap now, a rewrite later.
+- **Depth is a worldgen axis**: deep-time geological history generates literal
+  strata; caves/aquifers/lava at region scale, not per-column noise hacks.
+
 ## Voxel scale
 
 Player height is 3 or 4 voxels (vs Minecraft's 2). This is a world-resolution

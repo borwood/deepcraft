@@ -7,8 +7,10 @@ are not throwaway.
 
 ## S1 — Voxel scale walking skeleton  `[risk: reshapes every budget]`
 
-Bevy app, flat generated terrain, fly + walk around. Same world built at
-player-height = 2, 3, and 4 voxels.
+Bevy app, generated terrain, fly + walk around. Same world built at
+player-height = 2, 3, and 4 voxels. Cubic chunks (3D chunk positions) and a
+floating origin from the start — this skeleton is also the proof of the 3D
+lattice (dig/fly down through many chunk layers; no column assumptions).
 
 - Measure: chunk memory, mesh gen time, meshed triangle counts, save size per
   world-meter³ at each scale.
@@ -34,9 +36,13 @@ a region graph, statistical tier only.
 
 ## S3 — LOD-aware chunk storage  `[risk: v1 serialization lock-in]`
 
-- Chunk format storing/deriving downsampled levels (pyramid vs per-column
-  summary — decide by measuring); palette compression; what the statistical
-  sim tier reads vs what the distant mesher reads.
+- Chunk format storing/deriving downsampled levels (octree-style pyramid —
+  cubic chunks make heightmap-only LOD a non-starter — plus per-column
+  summaries, which also serve as the lazy heightmap/sky-exposure cache);
+  palette compression; what the statistical sim tier reads vs what the distant
+  mesher reads.
+- Skylight with unbounded depth is this spike's hard problem: light queries may
+  only touch loaded chunks + column summaries, never "the column above."
 - Prove the Distant-Horizons-style far render from LOD data only, near render
   from full data, seam handling at the boundary.
 - **Exit**: chunk format v1 spec; measured size/derive-cost numbers at the S1
