@@ -22,11 +22,21 @@
 //! S6 additions: the physics demo (physdemo.rs) — **G** tosses a rigid-body
 //! cube that collides with loaded terrain through dc-physics' collider
 //! bubbles (see docs/spikes/S6-results.md).
+//!
+//! Client-through-dc-api milestone: the game hosts dc-api's `HostWorld` as
+//! the edit authority (authority.rs), player LMB/RMB edits become
+//! `dc:world/set_block` commands (edit.rs), and an in-client MCP server over
+//! streamable HTTP (mcp.rs; default port 7777, `--mcp-port <n>`, `--no-mcp`)
+//! lets an agent drive and observe the running game — including
+//! `client_screenshot` captures into journal/assets. See journal/0002.
 
 mod app;
+mod authority;
 mod bench;
 mod bench_storage;
+mod edit;
 mod farmesh;
+mod mcp;
 mod meshing;
 mod physdemo;
 mod player;
@@ -50,6 +60,6 @@ fn main() {
             .windows(2)
             .find(|w| w[0] == "--pack")
             .map(|w| w[1].clone());
-        app::run(pack);
+        app::run(pack, mcp::McpOptions::parse(&args));
     }
 }

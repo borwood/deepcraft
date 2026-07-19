@@ -14,9 +14,9 @@ use crate::PLAYER_HEIGHT_M;
 use crate::app::{ChunkMap, CurrentScale, FloatingOrigin, Terrain, to_render};
 
 /// Player collision width in meters (x and z).
-const PLAYER_WIDTH_M: f64 = 0.6;
+pub const PLAYER_WIDTH_M: f64 = 0.6;
 /// Eye height as a fraction of player height.
-const EYE_FRACTION: f64 = 0.9;
+pub const EYE_FRACTION: f64 = 0.9;
 const WALK_SPEED_M_S: f64 = 4.5;
 const FLY_SPEED_M_S: f64 = 16.0;
 const GRAVITY_M_S2: f64 = 25.0;
@@ -49,6 +49,14 @@ impl Player {
             fly: true,
             on_ground: false,
         }
+    }
+
+    /// Unit view direction from yaw/pitch (bevy convention: -Z forward at
+    /// yaw 0). Shared by the crosshair raycast and anything else that aims.
+    pub fn view_dir(&self) -> DVec3 {
+        let (sin_yaw, cos_yaw) = (f64::from(self.yaw.sin()), f64::from(self.yaw.cos()));
+        let (sin_pitch, cos_pitch) = (f64::from(self.pitch.sin()), f64::from(self.pitch.cos()));
+        DVec3::new(-sin_yaw * cos_pitch, sin_pitch, -cos_yaw * cos_pitch)
     }
 }
 

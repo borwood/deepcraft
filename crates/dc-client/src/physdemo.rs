@@ -33,6 +33,14 @@ pub struct PhysicsDemo {
     built_for_voxels: u32,
 }
 
+impl PhysicsDemo {
+    /// The dc-physics world, for the edit path's collider-tile invalidation
+    /// (client-through-dc-api milestone).
+    pub fn physics_mut(&mut self) -> &mut PhysicsWorld {
+        &mut self.world
+    }
+}
+
 #[derive(Resource)]
 pub struct CubeAssets {
     mesh: Handle<Mesh>,

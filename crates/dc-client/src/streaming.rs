@@ -4,8 +4,16 @@
 //! chunk positions on all three axes, so descending into the chasm loads
 //! chunks far below exactly the way walking north loads chunks far ahead.
 //! Border faces mesh correctly on first try because out-of-map neighbor
-//! queries fall back to the deterministic generator — no remesh-on-neighbor-
-//! load bookkeeping is needed (there are no world edits in S1).
+//! queries fall back to the deterministic generator.
+//!
+//! Since the client-through-dc-api milestone, chunks stream in as **clones of
+//! the authoritative hosted world's chunks** (terrain + applied edits), not
+//! fresh generator output: the `ChunkMap` is a render/collision cache of the
+//! authority, never a second source of truth. The generator fallback for
+//! *unloaded* neighbors remains correct because the host uses the same
+//! `TerrainGen` closure for never-edited chunks (an edited-but-unloaded
+//! neighbor can mis-cull a border face until it streams in — accepted,
+//! self-healing, and noted in journal/0002).
 
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::Indices;
@@ -17,6 +25,7 @@ use crate::app::{
     ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, LoadedChunk, Terrain,
     to_render,
 };
+use crate::authority::Authority;
 use crate::meshing::{MeshData, mesh_chunk};
 use crate::player::Player;
 
@@ -42,6 +51,7 @@ pub fn stream_chunks(
     player: Res<Player>,
     origin: Res<FloatingOrigin>,
     mut map: ResMut<ChunkMap>,
+    mut authority: ResMut<Authority>,
 ) {
     let vscale = scale.scale;
     let chunk_m = vscale.voxels_to_meters(f64::from(CHUNK_SIZE));
@@ -94,7 +104,9 @@ pub fn stream_chunks(
     missing.sort_unstable_by_key(|(d, _)| *d);
 
     for (_, pos) in missing.into_iter().take(LOAD_BUDGET_PER_FRAME) {
-        let chunk = terrain.0.generate_chunk(vscale, pos);
+        // Clone from the authority (lazily generated there via the same
+        // TerrainGen, plus any applied edits) — the cache never re-generates.
+        let chunk = authority.world.chunk(pos).clone();
         let neighbor_solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
         let mesh_data = mesh_chunk(&chunk, pos, vscale.voxel_size_m() as f32, &neighbor_solid);
         let entity = if mesh_data.is_empty() {
