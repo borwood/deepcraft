@@ -7,8 +7,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
-- 2026-07-19 — S1-fallback sweep (journal/0017, **branch awaiting integration**
-  — NOT yet merged): closed the defect class journal/0016 named. The client now
+- 2026-07-19 — S1-fallback sweep (journal/0017, merged `--no-ff` to main,
+  gates re-run on merged main by the integrator): closed the defect class
+  journal/0016 named. The client now
   has ONE world-answer surface for solidity — `Authority::is_solid_voxel`
   (lazily generating the hosted world, edits included) — and the six near-field
   consumers that answered from the legacy S1 `TerrainGen` on a ChunkMap miss now

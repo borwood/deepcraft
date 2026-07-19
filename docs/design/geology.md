@@ -136,3 +136,11 @@ not ossify:
   Silent skip / "other rules fill gaps" is rejected on principle: world
   content must never be a function of installed-pack coincidence; two
   same-seed worlds differ only by declared pack differences, loudly.
+
+  *Refined 2026-07-19 (user, second session): the refuse-to-build stance is
+  the interim, not the end state. Eventual shape for unfilled framework
+  classes: world creation raises a named warning and skips them — a **loud**
+  skip, which keeps the principle above intact (the rejected thing was
+  silent dependence on pack coincidence, not degradation per se). Hard
+  enforcement rides as-built until this is worth building; current shape
+  precludes nothing (same checkpoint, different policy).*

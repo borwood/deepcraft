@@ -126,10 +126,14 @@ A class a gen pass selects from can never be silently empty:
 
 - **Define-time (`dc_api::classes::validate_pack`).** A content-pack batch must
   register at least one member for every class it *declares* in the same batch
-  ("a pass is a pack"). Rejects by name. *(For ratification: enforced for every
-  declared class — a hair stronger than the "consumes a class it also
-  introduces" wording, and crate-boundary-clean: dc-api cannot see the worldgen
-  passes.)*
+  ("a pass is a pack"). Rejects by name. *(Decided 2026-07-19: rides as-built
+  for now — NOT ratified as final doctrine. The eventual shape (user):
+  unfilled framework classes don't hard-reject at define time; world creation
+  raises a named warning and skips the unfilled class/pass — a LOUD skip,
+  preserving geology.md's actual principle (no silent pack-coincidence
+  content). Nothing in the current shape precludes that: it's a policy swap
+  at the existing satisfiability checkpoint, which already names pass and
+  class. Low priority; revisit when a real framework pack exists.)*
 - **World-build-time (`Pipeline::check_class_satisfiability`, run by
   `WorldGenerator::try_with_geology[_owned]`).** A world refuses to build if any
   class a registered pass's `selects` names has zero members — naming pass and
