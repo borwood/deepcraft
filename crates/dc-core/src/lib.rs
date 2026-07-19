@@ -20,6 +20,7 @@ pub mod format;
 pub mod lod;
 pub mod materials;
 pub mod palette;
+pub mod raycast;
 pub mod scale;
 pub mod voxel;
 
@@ -45,5 +46,6 @@ pub use materials::stratify::{
 };
 pub use materials::{DamageType, MATERIAL_COUNT, MaterialId, MaterialProps};
 pub use palette::{PackedIndices, PaletteError, PalettedChunk, bits_for_palette_len};
+pub use raycast::{RaycastHit, raycast_voxels};
 pub use scale::VoxelScale;
 pub use voxel::Block;

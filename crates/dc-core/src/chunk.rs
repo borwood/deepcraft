@@ -78,6 +78,9 @@ pub fn local_voxel(vx: i64, vy: i64, vz: i64) -> (usize, usize, usize) {
 }
 
 /// A 32^3 cube of voxels. Dense boxed array for S1 (see module docs).
+/// `Clone` added by the client-through-dc-api milestone: render/collision
+/// caches copy authoritative chunks out of the hosted world.
+#[derive(Clone)]
 pub struct Chunk {
     blocks: Box<[Block; CHUNK_VOLUME]>,
 }
