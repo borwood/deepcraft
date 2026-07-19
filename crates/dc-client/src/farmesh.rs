@@ -383,8 +383,34 @@ fn far_tile_center_dist(base: VoxelScale, level: u8, tx: i32, tz: i32, viewer_m:
     ((cx - viewer_m.x).powi(2) + (cz - viewer_m.z).powi(2)).sqrt()
 }
 
+/// Whether a level-L tile at horizontal `dist` belongs to level L's ring —
+/// with a one-tile **inner overlap** that laps this ring under the next-finer
+/// one (or, for L1, under the near volumetric field).
+///
+/// **Why the overlap (journal/0022 walk 17 — the sky holes).** Far tiles tile
+/// the ground plane *without overlap*, so a point lies in exactly ONE tile per
+/// level. Ring membership is by tile-*center* distance, so at an inter-ring
+/// boundary R a point can land in a tile that both levels reject at once: the
+/// finer tile whose center sits just *past* R (excluded from the finer ring by
+/// its outer edge) and the coarser tile whose center sits just *short* of R
+/// (excluded from the coarser ring by its inner edge). With no third tile to
+/// cover it (tiling is a partition), that whole cell is a fixed-position sky
+/// hole. A boundary point's containing coarser tile has its center within one
+/// coarse half-diagonal (< one tile) of R, so lapping the coarser ring exactly
+/// one of its own tiles inward guarantees that tile is in-band, closing the
+/// seam. The overlapping coarse cells sit under the finer ring and are occluded
+/// by the half-voxel sink, so the overlap costs a few extra tiles and no
+/// visible artifact. For L1 the same inward lap slides the far sheet a full
+/// tile under the near field, killing the grazing-angle slivers at the handoff.
+fn far_tile_in_ring(base: VoxelScale, level: u8, dist: f64) -> bool {
+    let inner = RING_EDGES_M[usize::from(level) - 1] - far_tile_m(base, level);
+    let outer = RING_EDGES_M[usize::from(level)];
+    (inner..outer).contains(&dist)
+}
+
 /// All level-L surface tiles wanted around a viewer (2D ring by horizontal
-/// distance). Pure, so a headless bench measures the same set the app streams.
+/// distance, with the one-tile inner overlap of [`far_tile_in_ring`]). Pure, so
+/// a headless bench measures the same set the app streams.
 pub fn wanted_far_tiles(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<(i32, i32)> {
     let tile_m = far_tile_m(base, level);
     let outer = RING_EDGES_M[usize::from(level)];
@@ -395,9 +421,11 @@ pub fn wanted_far_tiles(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<(i3
     for dz in -r..=r {
         for dx in -r..=r {
             let (tx, tz) = (center_tx + dx, center_tz + dz);
-            if level_for_distance(far_tile_center_dist(base, level, tx, tz, viewer_m))
-                == Some(level)
-            {
+            if far_tile_in_ring(
+                base,
+                level,
+                far_tile_center_dist(base, level, tx, tz, viewer_m),
+            ) {
                 out.push((tx, tz));
             }
         }
@@ -563,7 +591,11 @@ pub fn stream_far_surface(
         .keys()
         .filter(|(level, tx, tz)| {
             let d = far_tile_center_dist(base, *level, *tx, *tz, player.pos_m);
-            let inner = RING_EDGES_M[usize::from(*level) - 1];
+            // Match the one-tile inner overlap of `far_tile_in_ring` so lapped
+            // tiles don't load-then-immediately-unload (a coarse tile's own size
+            // exceeds the slack, so keying the unload to the un-lapped inner
+            // would thrash the whole overlap band — journal/0022 walk 17 fix).
+            let inner = RING_EDGES_M[usize::from(*level) - 1] - far_tile_m(base, *level);
             let outer = RING_EDGES_M[usize::from(*level)];
             d < inner - FAR_UNLOAD_SLACK_M || d > outer + FAR_UNLOAD_SLACK_M
         })
@@ -695,11 +727,15 @@ mod tests {
         let b = wanted_far_tiles(base, viewer, 2);
         assert_eq!(a, b, "deterministic");
         assert!(!a.is_empty());
+        // The ring band carries the one-tile inner overlap (`far_tile_in_ring`):
+        // level-2 tiles lap one L2 tile inward past RING_EDGES_M[1] to close the
+        // seam with L1 (journal/0022 walk 17).
+        let inner = RING_EDGES_M[1] - far_tile_m(base, 2);
         for &(tx, tz) in &a {
             let d = far_tile_center_dist(base, 2, tx, tz, viewer);
             assert!(
-                (RING_EDGES_M[1]..RING_EDGES_M[2]).contains(&d),
-                "tile at horizontal distance {d} outside LOD-2 ring"
+                (inner..RING_EDGES_M[2]).contains(&d),
+                "tile at horizontal distance {d} outside LOD-2 ring (inner {inner})"
             );
         }
     }
@@ -778,6 +814,68 @@ mod tests {
         assert_eq!(
             max_mismatch, 0,
             "far horizon corner height must equal the near ground exactly"
+        );
+    }
+
+    /// Walk 17's sky holes, as a coverage theorem. The far tiles of a single
+    /// level partition the ground plane, so a point lies in exactly one tile per
+    /// level; the far field covers a point iff *some* level's containing tile is
+    /// wanted. This sweeps the inner rings densely across the L1/L2 (256 m) and
+    /// L2/L3 (512 m) seams and asserts every ground point in the far field's
+    /// responsibility band is covered by at least one tile. FAILS on the pre-fix
+    /// code — at each inter-ring boundary some cells are rejected by both the
+    /// finer ring (center past the outer edge) and the coarser ring (center short
+    /// of the inner edge), leaving fixed-position sky holes. (The outermost L4
+    /// edge is deliberately excluded: its huge tiles make the world's outer rim
+    /// legitimately ragged, and that rim dissolves in haze — not a seam bug.)
+    #[test]
+    fn far_tiles_cover_the_rings_without_seams() {
+        use std::collections::HashSet;
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        // An arbitrary, grid-unaligned viewer so no seam hides behind a lattice
+        // symmetry.
+        let viewer = DVec3::new(123.4, 1000.0, -77.6);
+        let sets: Vec<HashSet<(i32, i32)>> = (1..=3u8)
+            .map(|l| wanted_far_tiles(base, viewer, l).into_iter().collect())
+            .collect();
+        let covered = |px: f64, pz: f64| -> bool {
+            (1..=3u8).any(|l| {
+                let tile_m = far_tile_m(base, l);
+                let tx = (px / tile_m).floor() as i32;
+                let tz = (pz / tile_m).floor() as i32;
+                sets[usize::from(l) - 1].contains(&(tx, tz))
+            })
+        };
+        // Sweep from the LOD-1 inner edge into the L3 body, densely in radius
+        // (every 1 m) and angle (0.25°). The cap stays clear of the L3/L4 seam:
+        // level-4 tiles are so large that the world's outer rim (dropped where a
+        // tile center passes 1200 m) reaches inward far enough to entangle the
+        // 1024 m seam, and that rim is a legitimate, haze-dissolved world edge —
+        // not the seam bug under test. Within [112, 800] every point that the
+        // far field must cover is coverable by levels 1–3 alone.
+        let r_max = 800.0;
+        let mut holes = 0usize;
+        let mut first_hole = None;
+        let mut r = RING_EDGES_M[0]; // 112 m: LOD-1 inner edge
+        while r < r_max {
+            let steps = 1440; // 0.25° angular resolution
+            for k in 0..steps {
+                let a = std::f64::consts::TAU * f64::from(k) / f64::from(steps);
+                let px = viewer.x + r * a.cos();
+                let pz = viewer.z + r * a.sin();
+                if !covered(px, pz) {
+                    holes += 1;
+                    if first_hole.is_none() {
+                        first_hole = Some((r, a));
+                    }
+                }
+            }
+            r += 1.0;
+        }
+        assert_eq!(
+            holes, 0,
+            "far field has {holes} uncovered ground points (sky holes); \
+             first at radius/angle {first_hole:?}"
         );
     }
 }

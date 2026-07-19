@@ -192,3 +192,63 @@ annulus coverage gap. Also filed: thin sky slivers at the near/far
 overlap at grazing angles (the sink doesn't occlude everywhere), and
 faint tile-edge stitch lines (the known one-sided-normal seam). Fix
 cycle dispatched.
+
+## The holes were a partition with no redundancy (fix cycle)
+
+The two live vantages reproduced instantly and stably: parallelogram sky
+gaps at fixed world positions, unmoved by any amount of streaming budget.
+Neither hypothesis on the docket was right. It wasn't winding — the tile
+mesher winds every tile the same way, so backface culling is all-or-nothing,
+never a scattering of specific tiles. And it wasn't a missing index — the
+`r`-radius scan reaches every tile position in every ring.
+
+The mechanism is subtler and it is the reason the holes sit at *fixed*
+positions. **A single level's far tiles tile the ground plane as a
+partition** — no overlap, no gaps — so a ground point falls in *exactly one*
+tile per level, and the far field covers that point iff that one tile is
+in-band. Ring membership is decided by the tile's *center* distance
+(`RING_EDGES_M`), and there's the trap: at an inter-ring boundary R a point's
+finer-level tile can have its center just *past* R (rejected by the finer
+ring's outer edge) while its coarser-level tile has its center just *short* of
+R (rejected by the coarser ring's inner edge). Both containing tiles rejected,
+and because the partition offers no third tile to fall back on, the whole cell
+is sky. Which cells hit the double-rejection is fixed by the grid phase
+against the ring circle — hence holes nailed to the world, not the walker.
+The same failure at the *innermost* edge (a level-1 tile whose center falls
+just inside the 112 m LOD-1 edge, with no far ring beneath it) is exactly the
+grazing-angle sliver at the near/far handoff — one bug, two symptoms.
+
+> blogworthy: "the horizon holes were a partition with no quorum." The far
+> field looked redundant — overlapping LOD rings, a documented overlap band —
+> but a *partition* has no redundancy inside a level, and center-distance ring
+> assignment quietly punched a cell out of both levels at once. The overlap
+> that mattered wasn't within a ring; it was *between* rings.
+
+The fix restores the missing redundancy: each ring's band extends its inner
+edge inward by exactly one of its own tiles (`far_tile_in_ring`), lapping the
+coarser ring one tile under the finer one. A boundary point's containing
+coarser tile has its center within one coarse half-diagonal (< a full tile) of
+R, so a one-tile inward lap guarantees that tile is in-band — the seam is
+provably closed. The lapped coarse cells sit under the finer ring and the
+existing half-voxel sink keeps them occluded, so the repair costs ~10 extra
+tiles per ring and no new artifact. For level 1 the same lap slides the far
+sheet a full tile *under* the near volumetric field, which is precisely the
+recommended sliver cure — so the primary holes and the secondary slivers fall
+to one three-line change. (The unload hysteresis had to learn the lapped inner
+edge too, or coarse tiles whose own size exceeds the 48 m slack would
+load-then-instantly-unload and thrash.)
+
+Proof. The holes are a coverage theorem, so the test is one:
+`far_tiles_cover_the_rings_without_seams` sweeps the inner rings across the
+256 m and 512 m seams at 0.25° × 1 m and asserts every ground point in the far
+field's responsibility band lands in some wanted tile. On the pre-fix code it
+fails loudly — **88 463 uncovered points**, the first at radius 112 (the very
+near/far sliver). Post-fix it passes. And live, at the two walk-17 vantages
+re-shot at the identical poses: the parallelograms are simply gone, the far
+sheet rolls unbroken to the hazed skyline, and three extra yaw sweeps found no
+holes elsewhere.
+
+Left filed: the faint tile-edge **stitch lines** (one-sided differenced
+normals, no cross-tile halo — the journal/0022 loose end). Still cosmetic,
+still invisible under real haze, and a cross-tile normal halo is a larger
+change than this seam fix warranted; it stays a cheap future polish.
