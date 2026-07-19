@@ -48,14 +48,15 @@ You wear all four, switching freely:
   explicit do-NOT-touch files, gates, deliverables (results doc or journal
   entry per CLAUDE.md), and a RETURN spec naming exactly what the final
   report must contain.
-- **Model economy (ratified 2026-07-19)**: agents inherit the session model
-  by default — override deliberately. Implementation milestones with a
-  mostly-solved design and test-based iteration: pass `model: "opus"` on
-  the Agent call (most post-spike work is this shape). Reserve the session
-  model (Fable) for agents facing genuine design/research risk — novel
-  algorithms, undecided architecture, spike-class uncertainty. Design
-  conversation, integration judgment, and walk interpretation stay in the
-  main session regardless.
+- **Model economy (re-ratified 2026-07-19, superseding the inherit-default)**:
+  **every agent gets `model: "opus"` by default — including Explore/recon
+  agents.** Fable is the MAIN SESSION's model only; passing no model
+  override inherits Fable and burns the usage budget (it cut into the week
+  once — that's why this rule exists). The sole exception: an agent doing
+  genuinely deep design work (novel algorithms, undecided architecture,
+  spike-class uncertainty) may get Fable by deliberate, stated choice.
+  Design conversation, integration judgment, and walk interpretation stay
+  in the main session regardless.
 - Agents sometimes stop while waiting on background builds and their
   completion notification can be lost — if a "waiting" agent goes quiet,
   check for live compiler processes; if none, verify the gates yourself and
