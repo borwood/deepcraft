@@ -19,6 +19,7 @@ use std::collections::HashMap;
 use dc_core::{Block, Chunk, ChunkPos, local_voxel, raycast_voxels};
 use glam::DVec3;
 
+use crate::bodies::{AnimClipDef, BodyPlanDef, validate_clip, validate_plan};
 use crate::capability::requirement_for;
 use crate::character::{CharacterConfig, CharacterState, step_character, valid_character_name};
 use crate::classes::{ClassMemberDef, ContentClassDef, validate_class_contract, validate_params};
@@ -117,6 +118,8 @@ enum Undo {
     RestoreCharacter(Box<CharacterState>),
     RemoveContentClass(String),
     RemoveClassMember(String),
+    RemoveBodyPlan(String),
+    RemoveAnimClip(String),
 }
 
 /// Max range of a character sense raycast, meters.
@@ -155,6 +158,10 @@ pub struct HostWorld {
     /// (BTreeMaps: iteration order is part of the deterministic surface).
     content_classes: std::collections::BTreeMap<String, ContentClassDef>,
     class_members: std::collections::BTreeMap<String, ClassMemberDef>,
+    /// Body plans and animation clips — the bodies registry (bodies.md steps
+    /// 1–2). BTreeMaps: iteration order is part of the deterministic surface.
+    body_plans: std::collections::BTreeMap<String, BodyPlanDef>,
+    anim_clips: std::collections::BTreeMap<String, AnimClipDef>,
     subs: std::collections::BTreeMap<u64, Subscription>,
     next_sub_id: u64,
     queue: Vec<QueuedCmd>,
@@ -177,6 +184,8 @@ impl HostWorld {
             items: std::collections::BTreeMap::new(),
             content_classes: std::collections::BTreeMap::new(),
             class_members: std::collections::BTreeMap::new(),
+            body_plans: std::collections::BTreeMap::new(),
+            anim_clips: std::collections::BTreeMap::new(),
             subs: std::collections::BTreeMap::new(),
             next_sub_id: 1,
             queue: Vec::new(),
@@ -229,6 +238,24 @@ impl HostWorld {
     /// All class members, in name order.
     pub fn class_members(&self) -> impl Iterator<Item = &ClassMemberDef> {
         self.class_members.values()
+    }
+
+    pub fn body_plan(&self, name: &str) -> Option<&BodyPlanDef> {
+        self.body_plans.get(name)
+    }
+
+    /// All body plans, in name order.
+    pub fn body_plans(&self) -> impl Iterator<Item = &BodyPlanDef> {
+        self.body_plans.values()
+    }
+
+    pub fn anim_clip(&self, name: &str) -> Option<&AnimClipDef> {
+        self.anim_clips.get(name)
+    }
+
+    /// All animation clips, in name order.
+    pub fn anim_clips(&self) -> impl Iterator<Item = &AnimClipDef> {
+        self.anim_clips.values()
     }
 
     pub fn entities(&self) -> &[EntityInfo] {
@@ -553,6 +580,12 @@ impl HostWorld {
                         Undo::RemoveClassMember(name) => {
                             self.class_members.remove(&name);
                         }
+                        Undo::RemoveBodyPlan(name) => {
+                            self.body_plans.remove(&name);
+                        }
+                        Undo::RemoveAnimClip(name) => {
+                            self.anim_clips.remove(&name);
+                        }
                     }
                 }
                 let failed_id = failed.env.id.clone();
@@ -783,6 +816,50 @@ impl HostWorld {
                 );
                 journal.push(Undo::RemoveClassMember(p.name.clone()));
                 effects.class_members_defined.push(p.name.clone());
+            }
+            Payload::DefineAnimClip(p) => {
+                let clip = &p.0;
+                if self.anim_clips.contains_key(&clip.name) {
+                    return Err(RejectReason::AlreadyDefined {
+                        key: clip.name.clone(),
+                    });
+                }
+                validate_clip(clip).map_err(|reason| RejectReason::SchemaViolation { reason })?;
+                self.anim_clips.insert(
+                    clip.name.clone(),
+                    AnimClipDef {
+                        clip: clip.clone(),
+                        defined_tick: t,
+                        defined_by: env.source.clone(),
+                    },
+                );
+                journal.push(Undo::RemoveAnimClip(clip.name.clone()));
+                effects.anim_clips_defined.push(clip.name.clone());
+            }
+            Payload::DefineBodyPlan(p) => {
+                let plan = &p.0;
+                if self.body_plans.contains_key(&plan.name) {
+                    return Err(RejectReason::AlreadyDefined {
+                        key: plan.name.clone(),
+                    });
+                }
+                // The verb→slot contract is checked here, against the clips
+                // already registered — a plan that leaves a required slot
+                // unfilled, or binds a missing/incompatible clip, rejects.
+                validate_plan(plan, |name| {
+                    self.anim_clips.get(name).map(|d| d.clip.clone())
+                })
+                .map_err(|reason| RejectReason::SchemaViolation { reason })?;
+                self.body_plans.insert(
+                    plan.name.clone(),
+                    BodyPlanDef {
+                        plan: plan.clone(),
+                        defined_tick: t,
+                        defined_by: env.source.clone(),
+                    },
+                );
+                journal.push(Undo::RemoveBodyPlan(plan.name.clone()));
+                effects.body_plans_defined.push(plan.name.clone());
             }
             Payload::EventsSubscribe(p) => {
                 let id = self.next_sub_id;
@@ -1119,6 +1196,8 @@ impl HostWorld {
             | Payload::DefineItem(_)
             | Payload::DefineContentClass(_)
             | Payload::DefineClassMember(_)
+            | Payload::DefineBodyPlan(_)
+            | Payload::DefineAnimClip(_)
             | Payload::EventsSubscribe(_)
             | Payload::SpawnCharacter(_)
             | Payload::SetMoveIntent(_)
