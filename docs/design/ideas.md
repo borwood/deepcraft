@@ -46,6 +46,59 @@ treat any shape below as final.
 - Failure is content: outcomes are drop distributions (fracture machinery
   reused); slag heaps are debris deposits.
 
+### Accessibility synthesis (agreed 2026-07-19, still sketch-tier)
+
+**The sim gates excellence, not function.** One simulation, four interfaces:
+
+1. **Quick-craft** — a recipe is a *saved process plan* (knowledge object)
+   executed in one click; the sim runs underneath. Your culture's plan-book
+   is your starter kit — knowledge inheritance IS the accessibility
+   mechanism. This is the Minecraft mode, and it is the default.
+2. **Work the craft** — opt-in *per act*: open the process view, chase the
+   window, read diegetic tells (metal color, strike sound — not gauges).
+   Masterwork, pattern-welding, signatures live here only.
+3. **Commission** — the simulated economy crafts for you; depth reaches
+   adventure-mood players as world texture and trade, not homework.
+4. **Automate** (later) — plans executed by apprentices/golem controllers.
+
+Supporting rules: **window width scales with tier** (campfire/knapping are
+unmissable by physics — one gesture, no UI; steel narrows); **low-tier
+failure costs quality, never materials**. Litmus for every crafting
+decision: can the indifferent player get a usable item in one interaction,
+AND does the invested player have something real to master in the same
+interaction? Both yes or redesign.
+
+## The historied player (2026-07-19)
+
+Character creation is a **ledger operation** — choices/knobs, with
+multiplayer server policies over which modes are open (only hermits, only
+historical figures, …):
+
+- **Become a historical figure**: RPG-style rolls offer characters from the
+  generated record; you inherit their committed facts — home, debts,
+  enemies, reputation, knowledge. The record continues through you.
+- **Join a historical community**: a fresh subject seeded with the
+  community's fact-set — its plan-books, traditions, local knowledge. Your
+  starting knowledge is your inheritance (the crafting plan-book is one
+  instance of this general rule).
+- **Hermit/outsider**: empty ledger, no inheritance, hardest and freest.
+
+The character then *continues to accrue history* — deeds commit facts, fame
+propagates (see Knowledge is physical) — which enables:
+
+- **Dreams**: sleep runs a sampling pass over the character's personal
+  fact-set — abstract associative imagery across history/experience layers
+  (room for genuinely strange renderings under the elevated-pixel
+  aesthetic). A **sensitivity stat** opens the inspect-tier channel during
+  sleep: augury glimpses of distant superposed state, symbol-wrapped and
+  deniable — prophecy that is true but not legible until confirmed.
+- **Thoughts**: the player character has a blackboard (it is a body with a
+  controller, like any NPC); blackboard-relevant events surface as visible/
+  audible remarks or thoughts. Doubles as **diegetic tutorialization**:
+  "this gravel looks water-sorted…" is simulated knowledge surfacing as
+  cognition, not an authored tooltip — the character can know things the
+  player doesn't yet.
+
 ## Structure & danger
 
 - **Cave-ins / structural integrity** from structure density/porosity:
