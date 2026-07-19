@@ -24,7 +24,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   ms/chunk — generate-once-and-memoize beats per-voxel S1 noise). Keys 3/4 (S1
   authority) unchanged; all 38 suites green. **Far mesh left on S1** (residue
   below) — sourcing coarse far rings from worldgen is renderer/storage-scale
-  work, not cheap.
+  work, not cheap. **Walk-13 verified live** (journal/0018): unstreamed-edge
+  collision (mid-air character spawn → landing at a never-streamed column),
+  authoritative `eye_in_solid`, edits-included `surface:true` seating, and
+  the first deep-time cut-face photographs (0018 assets — mudstone/basalt/
+  olivine-speckled granite at outcrop scale).
 
 - 2026-07-19 — Body staircase step 3 (journal/0014, walk 11, merge
   `f0e9f2d`): trunk-follows-travel / head-follows-look via the neck
@@ -166,17 +170,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **S1-fallback sweep — branch awaiting integration** (journal/0017, gates
-  green: fmt + clippy `-D warnings` + all 38 suites, +2 new client tests). The
-  main session integrates. Its doctrine entry (ARCHITECTURE.md § "One
-  world-answer surface") and the retained N=2-worldgen scale-key mapping both
-  carry **NEEDS RATIFICATION**.
-
-Otherwise paused 2026-07-19. **Walk 13 is owed**: the deep-time cut-face
-photograph walk 12 never got, live verification of the hardened instruments
-(`eye_in_solid` authoritative, `surface_snapped` reporting), and now live
-verification of the sweep — collision at streaming edges, and the far-mesh
-phantom vs deep-time terrain. Then PBR-1.
+(nothing — the S1-fallback sweep was integrated 2026-07-19: merged
+`--no-ff`, gates re-run green on merged main by the integrator, doctrine
+RATIFIED in ARCHITECTURE.md. **Walk 13 delivered** same day, journal/0018:
+instruments verified live at unstreamed locations, streaming-edge collision
+proven (mid-air spawn → landing), deep-time cut face photographed
+(0018 assets), empty-horizon far-field assessment filed. Next up per
+Sequenced: **PBR-1**; the far-field summary-pyramid work (journal/0017
+§ far mesh) is the other candidate — walk 13 showed the worldgen horizon
+is empty sky, so that milestone is building the horizon, not fixing an
+artifact.)
 
 ## Sequenced
 
@@ -280,11 +283,19 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
   sealing `TerrainGen` behind `pub(in crate::authority)` — the far mesh is its
   last near-namer. Visual assessment of the phantom vs deep-time terrain still
   owed (walk 12/13).
-- Walk 12 also owes: far-mesh S1 fallback vs deep-time terrain never
-  visually assessed; test-suite time +~6 min (deep-time on every
-  Medium/Large pregen — wants a cost-insensitive fast path); Large
-  extent runs a coarsened (~1.8 km) deep cell under the width cap until
-  3e-2's C refinement restores landform detail on approach.
+- Walk 12 residue: *(far-mesh visual assessment: DONE, walk 13 —
+  journal/0018 § the empty horizon: at worldgen altitude the horizon is
+  sky; the S1 phantom shows only from steep angles through haze. The
+  far-field milestone is "build the horizon", not "fix the phantom".)*
+  Still open: test-suite time +~6 min (deep-time on every Medium/Large
+  pregen — wants a cost-insensitive fast path); Large extent runs a
+  coarsened (~1.8 km) deep cell under the width cap until 3e-2's C
+  refinement restores landform detail on approach.
+
+- Walk 13 (journal/0018): **`surface_snapped` is absent from the
+  `surface:true` teleport reply on success** — the snap is only inferable
+  from y moving; absence-means-success is instrument ambiguity (pairs with
+  the owed voxel-coordinate echo in pose replies, same fix batch).
 
 - Walk 11 + step-3 loose ends (journal/0014): *(crouch factor: DECIDED
   2026-07-19, bodies.md § Crouch semantics — 0.6× stands; crouch is
