@@ -60,6 +60,11 @@ fn main() {
             .windows(2)
             .find(|w| w[0] == "--pack")
             .map(|w| w[1].clone());
-        app::run(pack, mcp::McpOptions::parse(&args));
+        // `--fullbright`: unlit materials — the agent-walk diagnostic mode.
+        // Anything non-shader-related should be tested with this on, so
+        // lighting/tonemap output never masquerades as a geometry or data
+        // defect (journal/0004's lesson, generalized).
+        let fullbright = args.iter().any(|a| a == "--fullbright");
+        app::run(pack, mcp::McpOptions::parse(&args), fullbright);
     }
 }

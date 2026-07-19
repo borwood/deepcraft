@@ -47,6 +47,19 @@ cargo clippy --workspace --all-targets --release -- -D warnings
 cargo test --workspace --release
 ```
 
+## Agent walks
+
+- Connect: run the game (`cargo run --release -p dc-client` from repo root),
+  MCP at `http://127.0.0.1:7777/mcp` (streamable HTTP).
+- **Testing anything non-shader-related? Launch with `--fullbright`** —
+  unlit materials, pure vertex color — so lighting/tonemap output never
+  masquerades as a geometry or data defect (journal/0004).
+- Check `eye_in_solid` in every pose response before trusting a screenshot;
+  use `pose_set { surface: true }` for walker-safe teleports. Pitch:
+  negative looks down.
+- Screenshots land in `journal/assets/` — name them `NNNN-description` for
+  the journal entry they belong to.
+
 ## Conventions
 
 - Headless crates (dc-core, dc-sim, dc-worldgen, dc-api, dc-physics) never

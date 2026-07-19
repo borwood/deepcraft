@@ -130,7 +130,12 @@ pub fn find_open_spawn(terrain: &TerrainGen) -> DVec3 {
     DVec3::new(sx, terrain.surface_height_m(sx, sz) + 2.0, sz)
 }
 
-pub fn run(pack_selector: Option<String>, mcp_options: McpOptions) {
+/// `--fullbright` diagnostic mode: chunk materials render unlit so agent
+/// walks testing non-visual features see pure vertex color, never lighting.
+#[derive(Resource, Clone, Copy)]
+pub struct Fullbright(pub bool);
+
+pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: bool) {
     let terrain = TerrainGen::new(BENCH_SEED);
     let spawn = find_open_spawn(&terrain);
 
@@ -144,6 +149,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions) {
     }))
     .add_plugins(PostStagePlugin { pack_selector })
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
+    .insert_resource(Fullbright(fullbright))
     .insert_resource(Terrain(terrain))
     .insert_resource(CurrentScale::new(3))
     .insert_resource(FloatingOrigin(spawn))
@@ -185,10 +191,16 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions) {
     app.run();
 }
 
-fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>) {
+fn setup(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    fullbright: Res<Fullbright>,
+) {
     commands.insert_resource(ChunkMaterial(materials.add(StandardMaterial {
         base_color: Color::WHITE, // multiplied by vertex colors
         perceptual_roughness: 0.95,
+        // Diagnostic mode: pure vertex color, no lighting (see Fullbright).
+        unlit: fullbright.0,
         ..default()
     })));
 
