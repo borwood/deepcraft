@@ -11,11 +11,13 @@
 //! - strata records exist and respect province/climate driving.
 
 use dc_core::materials::geology::{
-    self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, FormationWindow, GeoHabit, GeoMemberDef,
-    GeologySet,
+    self, CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
+    CLASS_IGNEOUS_INTRUSIVE, FormationWindow, GeoHabit, GeoMemberDef, GeologySet,
 };
 use dc_core::{Chunk, ChunkPos, MaterialId};
-use dc_worldgen::geology::{coarse_fraction, member_settle_threshold, ore_eighths};
+use dc_worldgen::geology::{
+    StrataEvent, coarse_fraction, dithered_member, member_settle_threshold, ore_eighths,
+};
 use dc_worldgen::{Extent, Pregen, Provenance, WorldGenerator, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
@@ -372,7 +374,13 @@ fn render_contents_carry_the_placer_mixture() {
                         // A uniform loose clastic band (sandstone / mudstone) —
                         // the ground the ore is disseminated into.
                         if slots.iter().all(|&m| m == slots[0])
-                            && matches!(slots[0], MaterialId::SANDSTONE | MaterialId::MUDSTONE)
+                            && matches!(
+                                slots[0],
+                                MaterialId::SANDSTONE
+                                    | MaterialId::MUDSTONE
+                                    | MaterialId::SILTSTONE
+                                    | MaterialId::CONGLOMERATE
+                            )
                         {
                             saw_uniform_clastic = true;
                         }
@@ -412,9 +420,9 @@ fn render_contents_carry_the_placer_mixture() {
 
 #[test]
 fn strata_records_are_province_and_climate_driven() {
+    use dc_core::materials::geology::CLASS_IGNEOUS_INTRUSIVE;
     let pregen = medium();
     let set = geology::vanilla();
-    let granite = set.member_index("dc:geo/granite").unwrap();
     let mut g = WorldGenerator::with_geology(&pregen, set.clone());
 
     let mut land_cols = 0usize;
@@ -455,11 +463,18 @@ fn strata_records_are_province_and_climate_driven() {
                 assert!(e.precip >= 0.0 && e.precip <= 1.0);
                 assert!(e.temp_c.is_finite());
             }
-            // Province-driven: orogeny/arc columns carry the intrusive
-            // basement at the BOTTOM of the record.
+            // Province-driven: orogeny/arc columns carry an intrusive basement
+            // (granite or diorite — the roster widened) at the BOTTOM of the
+            // record. The specific member is province/depth-selected, never
+            // weather-selected.
             if matches!(cellp, Some(Provenance::Orogeny | Provenance::Arc)) {
                 orogenic += 1;
-                if col.strata.events.first().map(|e| e.member) == Some(granite) {
+                let basement_is_intrusive = col
+                    .strata
+                    .events
+                    .first()
+                    .is_some_and(|e| set.member(e.member).class == CLASS_IGNEOUS_INTRUSIVE);
+                if basement_is_intrusive {
                     orogenic_with_basement += 1;
                 }
             }
@@ -470,5 +485,182 @@ fn strata_records_are_province_and_climate_driven() {
     assert_eq!(
         orogenic, orogenic_with_basement,
         "every orogenic/arc land column must record an intrusive basement"
+    );
+}
+
+/// 3d mechanic 2: the chunk-line family cutover, smoothed. The material-tier
+/// boundary dither re-selects a class's host member per voxel-column from a
+/// bilinear field whose corners are the chunk-column hashes — so a member
+/// contact wanders like a facies boundary and can fall INSIDE a chunk, which a
+/// per-chunk selection (constant across the whole 32-column footprint) can
+/// never do. Isolated with a two-member, equal-fitness class so only the
+/// dithered draw decides.
+#[test]
+fn family_contacts_wander_off_the_chunk_grid() {
+    let mut b = GeologySet::builder();
+    b.declare_class(CLASS_CLASTIC_FINE).unwrap();
+    for id in ["dc:geo/aaa", "dc:geo/bbb"] {
+        b.add_member(GeoMemberDef {
+            id: id.into(),
+            class: CLASS_CLASTIC_FINE.into(),
+            material: MaterialId::MUDSTONE,
+            window: FormationWindow::ANY,
+            abundance: 1.0,
+            habit: GeoHabit::Blanket,
+            hardness: 0.5,
+            erodibility: 0.5,
+        })
+        .unwrap();
+    }
+    let set = b.build();
+    let m_a = set.member_index("dc:geo/aaa").unwrap();
+    let m_b = set.member_index("dc:geo/bbb").unwrap();
+    let seed = 0xDEED_1234_5678u64;
+    let event = StrataEvent {
+        member: m_a,
+        thickness_vox: 4,
+        temp_c: 10.0,
+        precip: 0.5,
+        depth_m: 1.0,
+        sel_salt: 0x5700_000A,
+        sel_tag: 3,
+        ore: None,
+        accessory: None,
+    };
+    let sample = |cx: i64, x: usize| dithered_member(&set, seed, &event, cx, 0, x, 0);
+
+    // Determinism.
+    assert_eq!(sample(3, 7), sample(3, 7));
+
+    // Sweep a long transect (12 chunks × 32 columns): the contact interleaves
+    // both members and falls interior to at least one chunk.
+    let mut saw_a = false;
+    let mut saw_b = false;
+    let mut interior_transitions = 0usize;
+    let mut border_only = true;
+    for cx in -6i64..6 {
+        let mut prev: Option<_> = None;
+        for x in 0..32usize {
+            let m = sample(cx, x);
+            saw_a |= m == m_a;
+            saw_b |= m == m_b;
+            if let Some(p) = prev
+                && p != m
+            {
+                interior_transitions += 1;
+                border_only = false;
+            }
+            prev = Some(m);
+        }
+    }
+    assert!(
+        saw_a && saw_b,
+        "the transect must cross both members (interleaving), not one flat family"
+    );
+    assert!(
+        interior_transitions > 0 && !border_only,
+        "a family contact must fall INSIDE a chunk — a per-chunk selection could not"
+    );
+
+    // Registration-order independence: the canonical (id-sorted) order wins, so
+    // swapping which member registers first cannot move a single contact.
+    let mut b2 = GeologySet::builder();
+    b2.declare_class(CLASS_CLASTIC_FINE).unwrap();
+    for id in ["dc:geo/bbb", "dc:geo/aaa"] {
+        b2.add_member(GeoMemberDef {
+            id: id.into(),
+            class: CLASS_CLASTIC_FINE.into(),
+            material: MaterialId::MUDSTONE,
+            window: FormationWindow::ANY,
+            abundance: 1.0,
+            habit: GeoHabit::Blanket,
+            hardness: 0.5,
+            erodibility: 0.5,
+        })
+        .unwrap();
+    }
+    let set2 = b2.build();
+    for cx in -6i64..6 {
+        for x in 0..32usize {
+            assert_eq!(
+                dithered_member(&set, seed, &event, cx, 0, x, 0),
+                dithered_member(&set2, seed, &event, cx, 0, x, 0),
+                "registration order moved a dithered contact"
+            );
+        }
+    }
+}
+
+/// 3d mechanic 4: accessory inclusions as pore partials. The igneous pass
+/// emplaces an accessory mineral sparsely into its event; the render seam
+/// surfaces it as a host-rock structure with the accessory in the **pore
+/// slots** — the placer pattern in igneous dress, rendered by the existing
+/// mixture dither with zero renderer-side code.
+#[test]
+fn accessory_inclusions_ride_igneous_pores() {
+    let pregen = medium();
+    let set = geology::vanilla();
+    let mut g = WorldGenerator::with_geology(&pregen, set.clone());
+
+    let mut igneous_events = 0usize;
+    let mut with_accessory = 0usize;
+    let mut accessory_cols: Vec<(i64, i64)> = Vec::new();
+    for cz in -20i64..20 {
+        for cx in -20i64..20 {
+            let (ccx, ccz) = (cx * 4, cz * 4);
+            let col = g.column_record(ccx, ccz);
+            if col.wilds {
+                continue;
+            }
+            let mut col_has_accessory = false;
+            for e in &col.strata.events {
+                let class = set.member(e.member).class.as_str();
+                if class == CLASS_IGNEOUS_INTRUSIVE || class == CLASS_IGNEOUS_EXTRUSIVE {
+                    igneous_events += 1;
+                    if let Some((acc, k)) = e.accessory {
+                        assert_eq!(
+                            set.member(acc).class,
+                            CLASS_ACCESSORY_MAFIC,
+                            "accessory must come from the accessory class"
+                        );
+                        assert!((1..=2).contains(&k), "accessory eighths out of range: {k}");
+                        with_accessory += 1;
+                        col_has_accessory = true;
+                    }
+                }
+            }
+            if col_has_accessory {
+                accessory_cols.push((ccx, ccz));
+            }
+        }
+    }
+    assert!(igneous_events > 0, "sample crossed no igneous provinces");
+    assert!(with_accessory > 0, "no accessory inclusions were emplaced");
+
+    // The render seam surfaces the accessory as a pore partial of the host
+    // igneous rock (structure slots host, pore slots accessory).
+    let mut olivine_in_host_pores = false;
+    'scan: for &(ccx, ccz) in accessory_cols.iter().take(12) {
+        let surf_y = g.surface_chunk_y(ccx, ccz);
+        for cy in (surf_y - 5)..=surf_y {
+            let Some(grid) = g.chunk_contents(ChunkPos::new(ccx as i32, cy, ccz as i32)) else {
+                continue;
+            };
+            for c in grid.palette() {
+                if c.pore_fill().contains(&MaterialId::OLIVINE) {
+                    assert!(
+                        !c.structure().is_empty()
+                            && c.structure().iter().all(|&m| m != MaterialId::OLIVINE),
+                        "accessory must ride the host rock's pores, not fill the structure"
+                    );
+                    olivine_in_host_pores = true;
+                    break 'scan;
+                }
+            }
+        }
+    }
+    assert!(
+        olivine_in_host_pores,
+        "accessory olivine never surfaced in a host igneous rock's pore slots"
     );
 }

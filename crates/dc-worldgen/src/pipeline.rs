@@ -25,6 +25,8 @@
 
 use std::collections::BTreeMap;
 
+use dc_core::materials::geology::GeologySet;
+
 use crate::geology::StrataCtx;
 use crate::pregen::{CellGrid, history};
 
@@ -78,13 +80,19 @@ pub enum PassBody {
     Strata(fn(&mut StrataCtx)),
 }
 
-/// One registered pass: identity, phase, declared reads/writes, body.
+/// One registered pass: identity, phase, declared reads/writes, the content
+/// classes it selects members from, and body.
 #[derive(Clone, Copy, Debug)]
 pub struct Pass {
     pub id: &'static str,
     pub phase: Phase,
     pub reads: &'static [Resource],
     pub writes: &'static [Resource],
+    /// Content classes this pass selects members from (geology backbone). A
+    /// world refuses to build if any of these has zero members — same
+    /// named-culprit philosophy as the graph rejections (class-satisfiability
+    /// enforcement, geology.md § unfilled slots).
+    pub selects: &'static [&'static str],
     pub body: PassBody,
 }
 
@@ -117,6 +125,8 @@ pub enum PipelineError {
     PhaseViolation { resource: Resource, pass: String },
     #[error("pass graph has a cycle involving: {0:?}")]
     Cycle(Vec<String>),
+    #[error("pass `{pass}` selects from class `{class}`, which has no members")]
+    UnsatisfiableClass { pass: String, class: String },
 }
 
 /// A validated, ordered pass graph.
@@ -286,6 +296,31 @@ impl Pipeline {
             }
         }
     }
+
+    /// World-build-time class-satisfiability check (geology.md § unfilled
+    /// slots, layer 2): a world must not build if any class a registered pass
+    /// selects from has zero members — a silent skip would make world content a
+    /// function of installed-pack coincidence. Rejects with the named culprit
+    /// (pass + class), the same philosophy as [`PipelineError::Cycle`] and the
+    /// ambiguous-writer rejections. Registration order cannot change the
+    /// verdict: it is a pure function of the declared `selects` and the set's
+    /// member counts.
+    pub fn check_class_satisfiability(&self, geology: &GeologySet) -> Result<(), PipelineError> {
+        for p in &self.passes {
+            for &class in p.selects {
+                let satisfied = geology
+                    .class(class)
+                    .is_some_and(|c| !c.members().is_empty());
+                if !satisfied {
+                    return Err(PipelineError::UnsatisfiableClass {
+                        pass: p.id.to_string(),
+                        class: class.to_string(),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 fn transitive_closure(adj: &[Vec<usize>]) -> Vec<Vec<bool>> {
@@ -328,6 +363,11 @@ fn history_pass(ctx: &mut PregenCtx) {
 /// on top of it (modifier) and creates the alluvium state, the placer
 /// reworks the alluvial body (modifier ordered after clastic via Alluvium).
 pub fn vanilla_passes() -> Vec<Pass> {
+    use dc_core::materials::geology::{
+        CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
+        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER,
+    };
+
     use Resource::*;
     vec![
         Pass {
@@ -335,6 +375,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Pregen,
             reads: &[],
             writes: &[Plates, Elevation, Provenance],
+            selects: &[],
             body: PassBody::Pregen(tectonics_pass),
         },
         Pass {
@@ -342,6 +383,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Pregen,
             reads: &[Elevation],
             writes: &[Climate],
+            selects: &[],
             body: PassBody::Pregen(climate_pass),
         },
         Pass {
@@ -349,6 +391,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Pregen,
             reads: &[Elevation, Climate],
             writes: &[Hydrology],
+            selects: &[],
             body: PassBody::Pregen(hydrology_pass),
         },
         Pass {
@@ -356,6 +399,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Pregen,
             reads: &[Elevation, Climate, Hydrology],
             writes: &[History],
+            selects: &[],
             body: PassBody::Pregen(history_pass),
         },
         Pass {
@@ -363,6 +407,13 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Collapse,
             reads: &[Provenance, Elevation, Climate],
             writes: &[Strata],
+            // Selects the two igneous classes and the accessory it emplaces as
+            // a pore partial — all must ship a member or the world refuses.
+            selects: &[
+                CLASS_IGNEOUS_INTRUSIVE,
+                CLASS_IGNEOUS_EXTRUSIVE,
+                CLASS_ACCESSORY_MAFIC,
+            ],
             body: PassBody::Strata(crate::geology::igneous_pass),
         },
         Pass {
@@ -370,6 +421,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Collapse,
             reads: &[Climate, Hydrology, Elevation, Strata],
             writes: &[Strata, Alluvium],
+            selects: &[CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE],
             body: PassBody::Strata(crate::geology::clastic_pass),
         },
         Pass {
@@ -377,6 +429,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Collapse,
             reads: &[Alluvium, Hydrology, Strata],
             writes: &[Strata],
+            selects: &[CLASS_ORE_PLACER],
             body: PassBody::Strata(crate::geology::placer_pass),
         },
     ]
@@ -394,7 +447,35 @@ mod tests {
             phase: Phase::Pregen,
             reads,
             writes,
+            selects: &[],
             body: PassBody::Pregen(noop),
+        }
+    }
+
+    #[test]
+    fn vanilla_geology_set_satisfies_every_selecting_pass() {
+        let p = Pipeline::vanilla().expect("vanilla graph is valid");
+        p.check_class_satisfiability(&dc_core::materials::geology::vanilla())
+            .expect("vanilla content satisfies the vanilla passes");
+    }
+
+    #[test]
+    fn an_empty_selected_class_is_rejected_with_the_culprits() {
+        // A geology set that declares the classes but registers no members: the
+        // igneous pass selects from an empty class and the build must refuse,
+        // naming the pass and the class.
+        let mut b = dc_core::materials::geology::GeologySet::builder();
+        for c in dc_core::materials::geology::v1_classes() {
+            b.declare_class(c).unwrap();
+        }
+        let empty = b.build();
+        let p = Pipeline::vanilla().expect("vanilla graph is valid");
+        match p.check_class_satisfiability(&empty).unwrap_err() {
+            PipelineError::UnsatisfiableClass { pass, class } => {
+                assert!(pass.starts_with("dc:pass/"), "named a pass: {pass}");
+                assert!(class.starts_with("dc:"), "named a class: {class}");
+            }
+            other => panic!("expected UnsatisfiableClass, got {other}"),
         }
     }
 

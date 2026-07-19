@@ -44,7 +44,8 @@ use dc_core::{
 };
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::geology::{StrataCtx, StrataEvent, StrataRec};
+use crate::geology::{StrataCtx, StrataEvent, StrataRec, dithered_member};
+use crate::pipeline::PipelineError;
 use crate::pregen::{CELL_VOXELS, Pregen, Provenance, SALT_ELEV, SALT_RUIN, temp_sea_level};
 
 /// Lattice level whose spacing is one region (8 192 voxels, 7.37 km).
@@ -249,9 +250,22 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// A generator over an explicit geology content set (registered class
-    /// members). `new` uses the vanilla set.
+    /// members). `new` uses the vanilla set. Panics if the set leaves a class
+    /// a registered pass selects from empty — see [`Self::try_with_geology`]
+    /// for the fallible, named-culprit form.
     pub fn with_geology(pregen: &'a Pregen, geology: GeologySet) -> Self {
         Self::build(PregenSource::Borrowed(pregen), geology)
+    }
+
+    /// [`Self::with_geology`], but refuses to build (naming pass and class)
+    /// when the content set leaves any selected class empty — the
+    /// world-build-time half of the class-satisfiability enforcement
+    /// (geology.md § unfilled slots).
+    pub fn try_with_geology(
+        pregen: &'a Pregen,
+        geology: GeologySet,
+    ) -> Result<Self, PipelineError> {
+        Self::build_checked(PregenSource::Borrowed(pregen), geology)
     }
 }
 
@@ -268,10 +282,30 @@ impl WorldGenerator<'static> {
     pub fn with_geology_owned(pregen: Arc<Pregen>, geology: GeologySet) -> Self {
         Self::build(PregenSource::Owned(pregen), geology)
     }
+
+    /// The fallible, named-culprit form of [`Self::with_geology_owned`].
+    pub fn try_with_geology_owned(
+        pregen: Arc<Pregen>,
+        geology: GeologySet,
+    ) -> Result<Self, PipelineError> {
+        Self::build_checked(PregenSource::Owned(pregen), geology)
+    }
 }
 
 impl<'a> WorldGenerator<'a> {
     fn build(pregen: PregenSource<'a>, geology: GeologySet) -> Self {
+        Self::build_checked(pregen, geology)
+            .expect("registered geology satisfies the pass graph (vanilla is complete)")
+    }
+
+    fn build_checked(pregen: PregenSource<'a>, geology: GeologySet) -> Result<Self, PipelineError> {
+        // Class-satisfiability enforcement (geology.md § unfilled slots): a
+        // world must not build if a pass selects from an empty class.
+        pregen.pipeline.check_class_satisfiability(&geology)?;
+        Ok(Self::assemble(pregen, geology))
+    }
+
+    fn assemble(pregen: PregenSource<'a>, geology: GeologySet) -> Self {
         let scale = VoxelScale::from_player_height(1.8, 2); // N=2: 0.9 m voxels
         let mut sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>> = HashMap::new();
         for s in &pregen.sites {
@@ -399,13 +433,17 @@ impl<'a> WorldGenerator<'a> {
     /// per-column cache, so calling it after `generate_chunk` costs only the
     /// per-voxel classification, not another column collapse.
     fn material_ids(&mut self, pos: ChunkPos) -> Vec<MixtureId> {
-        let col = self.column(i64::from(pos.x), i64::from(pos.z));
+        let (cx, cz) = (i64::from(pos.x), i64::from(pos.z));
+        let col = self.column(cx, cz);
         let events = event_spans(&col.strata);
         let mut dense = vec![MixtureId::EMPTY; CHUNK_VOLUME];
         if !events.is_empty() {
             let base_y = i64::from(pos.y) * 32;
-            // Memoize per-event contents: one intern per (event, this chunk).
-            let mut memo: Vec<Option<MixtureId>> = vec![None; events.len()];
+            // Memoize per (event, resolved host member): the boundary dither
+            // re-selects the host member per voxel-column, so the intern key is
+            // the pair, not the event alone (one intern per distinct mixture in
+            // this chunk — still bounded, and interning is idempotent).
+            let mut memo: HashMap<(usize, GeoMemberIdx), MixtureId> = HashMap::new();
             for z in 0..32usize {
                 for x in 0..32usize {
                     let h = i64::from(col.heights[z * 32 + x]);
@@ -418,9 +456,13 @@ impl<'a> WorldGenerator<'a> {
                         let Some(k) = events.iter().position(|&(end, _)| depth <= end) else {
                             continue; // unrecorded basement
                         };
-                        let id = *memo[k].get_or_insert_with(|| {
+                        let event = &events[k].1;
+                        // Per-voxel-column host member (family contacts wander
+                        // off the chunk grid); ore/accessory stay per-event.
+                        let host = dithered_member(&self.geology, self.seed, event, cx, cz, x, z);
+                        let id = *memo.entry((k, host)).or_insert_with(|| {
                             self.materials
-                                .intern(contents_for_event(&self.geology, &events[k].1))
+                                .intern(contents_for_event(&self.geology, host, event))
                         });
                         dense[Chunk::index(x, y, z)] = id;
                     }
@@ -926,16 +968,19 @@ fn event_spans(strata: &StrataRec) -> Vec<(u32, StrataEvent)> {
     spans
 }
 
-/// Canonical voxel contents for one stratum event — always through the
-/// [`VoxelContents`] constructors (canonical form is a hard invariant).
-/// Clastic strata are loose debris (with placer ore grains substituted into
-/// their eighths where the placer pass enriched the event); igneous strata
-/// are full structural fill.
-fn contents_for_event(set: &GeologySet, e: &StrataEvent) -> VoxelContents {
-    let host = set.member(e.member).material;
-    let class = set.member(e.member).class.as_str();
+/// Canonical voxel contents for one stratum event, given the **resolved host
+/// member** for this voxel-column (the boundary dither picks it) — always
+/// through the [`VoxelContents`] constructors (canonical form is a hard
+/// invariant). Clastic strata are loose debris (with placer ore grains
+/// substituted into their eighths where the placer pass enriched the event);
+/// igneous strata are full structural fill, with accessory minerals carried in
+/// the host rock's **pore slots** where the pass emplaced them (3d pore
+/// partials — the placer pattern in igneous dress).
+fn contents_for_event(set: &GeologySet, host: GeoMemberIdx, e: &StrataEvent) -> VoxelContents {
+    let host_mat = set.member(host).material;
+    let class = set.member(host).class.as_str();
     if class == CLASS_CLASTIC_FINE || class == CLASS_CLASTIC_COARSE {
-        let mut debris = [host; 8];
+        let mut debris = [host_mat; 8];
         if let Some((ore_member, eighths)) = e.ore {
             let ore = set.member(ore_member).material;
             for slot in debris.iter_mut().take(usize::from(eighths.min(8))) {
@@ -943,8 +988,21 @@ fn contents_for_event(set: &GeologySet, e: &StrataEvent) -> VoxelContents {
             }
         }
         VoxelContents::debris_only(&debris).expect("8 debris eighths fit an open voxel")
+    } else if let Some((acc_member, eighths)) = e.accessory {
+        // Host rock in the structure slots; accessory mineral in the pores.
+        let k = eighths.clamp(1, 7);
+        let acc = set.member(acc_member).material;
+        let structure = [host_mat; 8];
+        let pore = [acc; 8];
+        VoxelContents::new(
+            StructureShape::Full,
+            &structure[..usize::from(8 - k)],
+            &pore[..usize::from(k)],
+            &[],
+        )
+        .expect("host structure + accessory pore fill is canonical")
     } else {
-        VoxelContents::new(StructureShape::Full, &[host; 8], &[], &[])
+        VoxelContents::new(StructureShape::Full, &[host_mat; 8], &[], &[])
             .expect("full structural fill is canonical")
     }
 }

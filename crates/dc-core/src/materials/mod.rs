@@ -30,9 +30,11 @@ pub mod stratify;
 use serde::{Deserialize, Serialize};
 
 /// Number of materials in the prototype registry (12 S8 debris materials +
-/// the 5-entry v1 geology set; the table widens behind `MaterialId`, the
+/// the 5-entry v1 geology set + the 3d roster-proof widening: a second fine
+/// clastic, a second coarse clastic, a second intrusive, a second extrusive,
+/// and one accessory mineral; the table widens behind `MaterialId`, the
 /// type does not).
-pub const MATERIAL_COUNT: usize = 17;
+pub const MATERIAL_COUNT: usize = 22;
 
 /// Identifier of a granular material in the registry. `u8`-sized: a material
 /// id appears up to 8 times per voxel, so entry compactness matters more than
@@ -66,6 +68,20 @@ impl MaterialId {
     /// Placer ore mineral: a dense grain that sorts with the coarse fraction
     /// despite its small size — the placer mechanism in one property sheet.
     pub const GOLD_DUST: MaterialId = MaterialId(16);
+    // --- 3d roster-proof widening (docs/design/geology.md § roster, the
+    // rich-mineral posture proven small: a second member per v1 class + one
+    // accessory mineral). Appended so existing ids are undisturbed. ---
+    /// Clastic sediment, fine (lithified silt) — second fine clastic.
+    pub const SILTSTONE: MaterialId = MaterialId(17);
+    /// Clastic sediment, coarse (lithified gravel) — second coarse clastic.
+    pub const CONGLOMERATE: MaterialId = MaterialId(18);
+    /// Igneous intrusive (intermediate plutonic) — second intrusive.
+    pub const DIORITE: MaterialId = MaterialId(19);
+    /// Igneous extrusive (intermediate lava) — second extrusive.
+    pub const ANDESITE: MaterialId = MaterialId(20);
+    /// Accessory mafic mineral: rides the pore slots of a host igneous rock
+    /// (olivine in basalt/gabbro) — the inclusion-as-pore-partial representation.
+    pub const OLIVINE: MaterialId = MaterialId(21);
 
     /// A registry-valid id from its raw value; `None` when out of range.
     #[inline]
@@ -344,6 +360,57 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.1, 6.0, 4.4, 5.0, 0.8],
         permeability: 0.5,
         insulation: 0.15,
+    },
+    // --- 3d roster-proof widening ---
+    MaterialProps {
+        name: "siltstone",
+        albedo: [0.52, 0.47, 0.40],
+        density_kg_m3: 2300.0,
+        grain_size_mm: 0.02,
+        cohesion: 0.9,
+        extraction_resistance: [3.0, 5.2, 4.0, 2.6, 0.02],
+        permeability: 0.08,
+        insulation: 0.4,
+    },
+    MaterialProps {
+        name: "conglomerate",
+        albedo: [0.60, 0.52, 0.44],
+        density_kg_m3: 2500.0,
+        grain_size_mm: 8.0,
+        cohesion: 0.8,
+        extraction_resistance: [3.8, 6.8, 4.8, 5.6, 8.0],
+        permeability: 0.3,
+        insulation: 0.3,
+    },
+    MaterialProps {
+        name: "diorite",
+        albedo: [0.55, 0.55, 0.57],
+        density_kg_m3: 2800.0,
+        grain_size_mm: 2.0,
+        cohesion: 1.0,
+        extraction_resistance: [6.2, 9.2, 5.6, 8.2, 2.0],
+        permeability: 0.02,
+        insulation: 0.2,
+    },
+    MaterialProps {
+        name: "andesite",
+        albedo: [0.42, 0.40, 0.40],
+        density_kg_m3: 2650.0,
+        grain_size_mm: 0.08,
+        cohesion: 1.0,
+        extraction_resistance: [5.6, 9.4, 5.2, 8.4, 0.08],
+        permeability: 0.05,
+        insulation: 0.2,
+    },
+    MaterialProps {
+        name: "olivine",
+        albedo: [0.42, 0.52, 0.28],
+        density_kg_m3: 3300.0,
+        grain_size_mm: 1.5,
+        cohesion: 0.9,
+        extraction_resistance: [5.0, 8.5, 5.0, 7.5, 1.5],
+        permeability: 0.05,
+        insulation: 0.2,
     },
 ];
 

@@ -29,23 +29,40 @@
 //! single byte of the world (proven in tests/geology.rs).
 
 use dc_core::materials::geology::{
-    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE,
-    CLASS_ORE_PLACER, FormationContext, GeoMemberIdx, GeologySet, settle_energy,
+    CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
+    CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, FormationContext, GeoMemberIdx, GeologySet,
+    settle_energy,
 };
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::pregen::{Provenance, SALT_GEO_ORE, SALT_GEO_SELECT, SALT_GEO_THICK};
+use crate::pregen::{Provenance, SALT_GEO_ACC, SALT_GEO_ORE, SALT_GEO_SELECT, SALT_GEO_THICK};
 
 /// One deposition event: the selected member, its per-column thickness, and
-/// the climate it was deposited under. `ore` is a placer enrichment riding
-/// *inside* this stratum (grain habit): `(member, eighths per voxel)`.
+/// the formation context it was deposited under. `ore` is a placer enrichment
+/// riding *inside* this stratum (grain habit): `(member, eighths per voxel)`;
+/// `accessory` is an igneous inclusion carried in the host rock's pore slots
+/// (`(member, eighths per voxel)`, 3d pore partials).
+///
+/// The context and selection address (`depth_m`, `sel_salt`, `sel_tag`) are
+/// recorded so the material tier can **re-resolve the host member per
+/// voxel-column** with a boundary-dithered draw, smoothing family contacts off
+/// the chunk grid (the chunk-line cutover fix, 3c-2). `member` is the
+/// chunk-centre representative — the record's canonical identity — while the
+/// dither interpolates the same selection field across the footprint.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StrataEvent {
     pub member: GeoMemberIdx,
     pub thickness_vox: u8,
     pub temp_c: f32,
     pub precip: f32,
+    /// Emplacement/formation depth used for member fitness (meters).
+    pub depth_m: f32,
+    /// Selection-draw address of the class this event filled — the field the
+    /// per-voxel dither re-samples.
+    pub sel_salt: u64,
+    pub sel_tag: u64,
     pub ore: Option<(GeoMemberIdx, u8)>,
+    pub accessory: Option<(GeoMemberIdx, u8)>,
 }
 
 /// The ordered per-column deposition log, bottom-up: `events[0]` is the
@@ -125,19 +142,82 @@ impl<'a> StrataCtx<'a> {
         }
     }
 
-    /// Addressed selection draw for `class_tag` at this column.
+    /// Selection draw at the chunk-column **centre**, read from the smooth
+    /// bilinear field the material tier reuses per voxel-column
+    /// ([`interp_select_draw`]). Sampling the interpolated field (not a single
+    /// per-chunk hash) is what keeps the record's representative member in
+    /// agreement with the dithered footprint at its centre.
     fn draw(&self, salt: u64, tag: u64) -> f64 {
-        draw_f64(&[self.seed, salt, tag, self.cx as u64, self.cz as u64])
+        interp_select_draw(self.seed, salt, tag, self.cx, self.cz, 0.5, 0.5)
     }
 
-    fn push(&mut self, member: GeoMemberIdx, thickness_vox: u8, ore: Option<(GeoMemberIdx, u8)>) {
+    fn push(&mut self, member: GeoMemberIdx, thickness_vox: u8, salt: u64, tag: u64, depth_m: f64) {
         self.strata.events.push(StrataEvent {
             member,
             thickness_vox,
             temp_c: self.temp_c as f32,
             precip: self.precip as f32,
-            ore,
+            depth_m: depth_m as f32,
+            sel_salt: salt,
+            sel_tag: tag,
+            ore: None,
+            accessory: None,
         });
+    }
+}
+
+/// Bilinear interpolation of the per-chunk-column selection hash to a
+/// fractional position `(fx, fz)` inside the chunk. The four samples are the
+/// chunk-column **corner** hashes, so neighbouring chunks share edge values and
+/// the field is C0-continuous across chunk borders: a class's member-partition
+/// boundary becomes a smooth curve that wanders like a facies contact instead
+/// of snapping to the 28.8 m chunk grid (the chunk-line family cutover fix).
+///
+/// Pure in `(seed, salt, tag, coords)` — no iteration-order entropy,
+/// registration-order independent, and it consults no cells or columns, so the
+/// lookahead bounds are untouched.
+pub(crate) fn interp_select_draw(
+    seed: u64,
+    salt: u64,
+    tag: u64,
+    cx: i64,
+    cz: i64,
+    fx: f64,
+    fz: f64,
+) -> f64 {
+    let corner =
+        |dx: i64, dz: i64| draw_f64(&[seed, salt, tag, (cx + dx) as u64, (cz + dz) as u64]);
+    let (u00, u10, u01, u11) = (corner(0, 0), corner(1, 0), corner(0, 1), corner(1, 1));
+    let a = u00 * (1.0 - fx) + u10 * fx;
+    let b = u01 * (1.0 - fx) + u11 * fx;
+    (a * (1.0 - fz) + b * fz).clamp(0.0, 1.0 - f64::EPSILON)
+}
+
+/// Fraction of an igneous column that carries an accessory inclusion (sparse
+/// presence gate) and the pore eighths it fills when present. Subtle by
+/// construction — the 3c-2 face dither renders the single pore eighth as
+/// scattered cells with no renderer-side code (geology.md § inclusions).
+const ACC_PRESENCE: f64 = 0.6;
+const ACC_EIGHTHS: u8 = 1;
+
+/// Emplace an accessory inclusion into the igneous event at `event_idx`:
+/// province/depth-driven class selection, gated sparsely per column. No-op
+/// when the accessory class is empty (define-time enforcement guarantees it is
+/// not, for a registered pack) or the gate is closed.
+fn emplace_accessory(ctx: &mut StrataCtx, event_idx: usize, depth_m: f64, tag: u64) {
+    if ctx.draw(SALT_GEO_ACC, tag) >= ACC_PRESENCE {
+        return; // this column's igneous rock is accessory-free
+    }
+    let form = ctx.formation(depth_m);
+    let pick = ctx.geology.select(
+        CLASS_ACCESSORY_MAFIC,
+        &form,
+        ctx.draw(SALT_GEO_ACC, tag + 1024),
+    );
+    if let Some((acc, _)) = pick
+        && let Some(event) = ctx.strata.events.get_mut(event_idx)
+    {
+        event.accessory = Some((acc, ACC_EIGHTHS));
     }
 }
 
@@ -163,7 +243,15 @@ pub fn igneous_pass(ctx: &mut StrataCtx) {
             ctx.draw(SALT_GEO_SELECT, 0),
         )
     {
-        ctx.push(member, INTRUSIVE_TOP_VOX, None);
+        ctx.push(
+            member,
+            INTRUSIVE_TOP_VOX,
+            SALT_GEO_SELECT,
+            0,
+            INTRUSIVE_DEPTH_M,
+        );
+        let idx = ctx.strata.events.len() - 1;
+        emplace_accessory(ctx, idx, INTRUSIVE_DEPTH_M, 0);
     }
     if matches!(ctx.provenance, Provenance::Rift | Provenance::Arc)
         && let Some((member, _)) = ctx.geology.select(
@@ -173,7 +261,9 @@ pub fn igneous_pass(ctx: &mut StrataCtx) {
         )
     {
         let thickness = 2 + (ctx.draw(SALT_GEO_THICK, 1) * 3.0) as u8;
-        ctx.push(member, thickness, None);
+        ctx.push(member, thickness, SALT_GEO_SELECT, 1, 5.0);
+        let idx = ctx.strata.events.len() - 1;
+        emplace_accessory(ctx, idx, 5.0, 1);
     }
 }
 
@@ -207,7 +297,7 @@ pub fn clastic_pass(ctx: &mut StrataCtx) {
             ctx.draw(SALT_GEO_SELECT, 2),
         )
     {
-        ctx.push(member, coarse as u8, None);
+        ctx.push(member, coarse as u8, SALT_GEO_SELECT, 2, 2.0);
         ctx.alluvium = Some(AlluviumRec {
             event: ctx.strata.events.len() - 1,
             energy: ctx.flow_energy,
@@ -220,7 +310,7 @@ pub fn clastic_pass(ctx: &mut StrataCtx) {
             ctx.draw(SALT_GEO_SELECT, 3),
         )
     {
-        ctx.push(member, fine as u8, None);
+        ctx.push(member, fine as u8, SALT_GEO_SELECT, 3, 1.0);
     }
 }
 
@@ -273,4 +363,36 @@ pub fn placer_pass(ctx: &mut StrataCtx) {
     if eighths > 0 {
         ctx.strata.events[alluvium.event].ore = Some((ore_member, eighths));
     }
+}
+
+/// Resolve the **host member** of one event for a single voxel-column,
+/// dithering the class selection across the chunk footprint (the material-tier
+/// smoothing of the chunk-line family cutover). At the chunk centre this
+/// reproduces `event.member`; away from it the interpolated selection field
+/// ([`interp_select_draw`]) re-picks within the event's class under the
+/// recorded formation context, so the contact between two members of a class
+/// wanders like a facies boundary instead of snapping to chunk lines. The
+/// block tier is unaffected (both members share a class, hence a block); only
+/// the material albedo the mesher dithers changes.
+pub fn dithered_member(
+    geology: &GeologySet,
+    seed: u64,
+    event: &StrataEvent,
+    cx: i64,
+    cz: i64,
+    x: usize,
+    z: usize,
+) -> GeoMemberIdx {
+    let class = geology.member(event.member).class.as_str();
+    let fx = (x as f64 + 0.5) / 32.0;
+    let fz = (z as f64 + 0.5) / 32.0;
+    let u = interp_select_draw(seed, event.sel_salt, event.sel_tag, cx, cz, fx, fz);
+    let ctx = FormationContext {
+        temp_c: f64::from(event.temp_c),
+        precip: f64::from(event.precip),
+        depth_m: f64::from(event.depth_m),
+    };
+    geology
+        .select(class, &ctx, u)
+        .map_or(event.member, |(i, _)| i)
 }
