@@ -462,6 +462,94 @@ fn senses_are_embodied_and_range_capped() {
     }
 }
 
+/// Instrument fix (corrections #10 + walk-11 loose end): the pose reply speaks
+/// both of the walker's languages — meters (`pos`) AND world voxels (`pos_voxel`,
+/// the coordinate `get_block` takes) — and echoes the driver's own posture in the
+/// exact vocabulary `set_posture` accepts. `pos_voxel` must be the SAME frame
+/// `get_block` reads, so a cross-check needs no mental unit math (the misread that
+/// cost a full agent cycle).
+#[test]
+fn pose_echoes_feet_voxel_and_posture() {
+    let mut world = slab_world(7);
+    // Feet well above the slab (top solid voxel y = -1): the feet voxel is
+    // unambiguously air, and the slab sits at a known integer voxel — so the
+    // frame check does not depend on where gravity settles the body.
+    spawn_scout(&mut world, Vec3f::new(0.3, 5.0, 0.3));
+    let session = session_source("scout");
+    // get_block wants `world.read`, which the dev/write token does not cover.
+    let reader = (
+        ConsumerId::new(ConsumerKind::McpSession, "reader"),
+        CapabilityToken::new(vec![Grant::WorldRead { volume: None }]),
+    );
+    let vs = world.character_config().voxel_size_m;
+
+    let (pos, pos_voxel, posture) = match pose(&mut world, &session, "scout") {
+        QueryResult::Ok(QueryData::CharacterPose {
+            pos,
+            pos_voxel,
+            posture,
+            ..
+        }) => (pos, pos_voxel, posture),
+        other => panic!("{other:?}"),
+    };
+
+    // 1) pos_voxel is exactly the active-scale floor of the meters pose.
+    assert_eq!(
+        pos_voxel,
+        Vec3i::new(
+            (pos.x / vs).floor() as i64,
+            (pos.y / vs).floor() as i64,
+            (pos.z / vs).floor() as i64,
+        ),
+    );
+
+    // 2) It is the SAME frame get_block speaks: read via a real
+    //    `dc:world/get_block` at those integer voxels — no unit conversion. The
+    //    feet voxel is air (feet are above the slab); the slab is stone at its
+    //    own known voxel in that same lattice, directly below the feet column.
+    let block = |world: &mut HostWorld, v: Vec3i| -> String {
+        match world
+            .query(&env(
+                &reader,
+                Payload::GetBlock(payload::GetBlock { pos: v }),
+            ))
+            .result
+        {
+            QueryResult::Ok(QueryData::Block { block }) => block,
+            other => panic!("{other:?}"),
+        }
+    };
+    assert_eq!(block(&mut world, pos_voxel), "dc:air", "feet voxel is air");
+    let slab = Vec3i::new(pos_voxel.x, -1, pos_voxel.z);
+    assert_eq!(
+        block(&mut world, slab),
+        "dc:stone",
+        "the slab sits at a known voxel in the same lattice"
+    );
+
+    // 3) Posture reads back the controller state in set_posture's own words:
+    //    standing by default, then crouch and read it back.
+    assert_eq!(posture, "standing");
+    let dev = dev_source();
+    assert!(matches!(
+        run(
+            &mut world,
+            &dev,
+            Payload::SetPosture(payload::SetPosture {
+                character: "scout".into(),
+                posture: "crouching".into(),
+            }),
+        ),
+        CommandResult::Ok(_)
+    ));
+    match pose(&mut world, &session, "scout") {
+        QueryResult::Ok(QueryData::CharacterPose { posture, .. }) => {
+            assert_eq!(posture, "crouching", "posture readback follows set_posture");
+        }
+        other => panic!("{other:?}"),
+    }
+}
+
 /// The determinism payoff (docs/API.md principle 3), embodied: the same
 /// scripted movement session against the same seed lands on the bit-identical
 /// final pose; a different seed's terrain produces a different trajectory.

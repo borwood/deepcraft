@@ -236,19 +236,23 @@ pub fn client_tools() -> Vec<Tool> {
         ),
         Tool::new(
             "client_player_pose_get",
-            "Read the player pose: feet position in world meters, yaw/pitch \
-             in radians, fly mode, ground contact, and eye_in_solid (true = \
-             the camera is inside terrain and screenshots will show backface \
-             nonsense — move before shooting).",
+            "Read the player pose: feet position in BOTH world meters (`pos`) \
+             and world voxels (`pos_voxel`, the coordinate world_get_block \
+             takes), yaw/pitch in radians, fly mode, ground contact, and \
+             eye_in_solid (true = the camera is inside terrain and screenshots \
+             will show backface nonsense — move before shooting).",
             obj(json!({}), json!([])),
         ),
         Tool::new(
             "client_player_pose_set",
             "Teleport and/or aim the player (dev-grant tool): any of pos \
-             (feet, world meters), yaw, pitch (radians). Returns the \
-             resulting pose, including eye_in_solid (if true, the view is \
-             buried — adjust before screenshotting). Velocity is zeroed on \
-             teleport.",
+             (feet, world meters), yaw, pitch (radians). Returns the resulting \
+             pose — feet in meters (`pos`) and world voxels (`pos_voxel`), plus \
+             eye_in_solid (if true, the view is buried — adjust before \
+             screenshotting). With surface:true the reply always carries \
+             `surface_snapped` (true = feet seated on the surface, false = no \
+             ground under the footprint, position left as requested). Velocity \
+             is zeroed on teleport.",
             obj(
                 json!({
                     "pos": {

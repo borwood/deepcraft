@@ -765,41 +765,19 @@ pub fn drain_bridge(
                     player.pos_m = glam::DVec3::new(p[0], p[1], p[2]);
                     player.vel_m = glam::DVec3::ZERO;
                 }
-                let mut surface_miss = false;
-                if surface {
-                    // Walker-safe teleport: feet snap to the TRUE voxel surface
-                    // under the player's footprint at (x, z), regardless of the
-                    // requested y — over the ACTIVE authority (worldgen or S1
-                    // terrain). Reads the hosted world's live solidity (edits
-                    // included), from an honest per-column ceiling that tracks
-                    // the deep-time surface (journal/0004, journal/0006,
-                    // journal/0015). On a genuine miss (no ground under the
-                    // footprint) the position is LEFT as requested and the reply
-                    // says so — never a buried fallback y.
-                    match authority.true_surface_m(
-                        player.pos_m.x,
-                        player.pos_m.z,
-                        PLAYER_WIDTH_M / 2.0,
-                    ) {
-                        Some(y) => {
-                            player.pos_m.y = y + 0.05;
-                            player.vel_m = glam::DVec3::ZERO;
-                        }
-                        None => surface_miss = true,
-                    }
-                }
                 if let Some(y) = yaw {
                     player.yaw = y;
                 }
                 if let Some(p) = pitch {
                     player.pitch = p.clamp(-1.55, 1.55);
                 }
-                let mut value = pose_json(&player, &mut authority);
-                if surface_miss {
-                    value["surface_snapped"] = json!(false);
-                    value["surface_error"] =
-                        json!("no solid ground under the footprint; position left as requested");
-                }
+                // A `surface` teleport ALWAYS reports `surface_snapped`
+                // (journal/0018); a plain teleport reports the ordinary pose.
+                let value = if surface {
+                    surface_teleport_reply(&mut player, &mut authority)
+                } else {
+                    pose_json(&player, &mut authority)
+                };
                 let _ = reply.send(value);
             }
             BridgeRequest::Screenshot { name, reply } => {
@@ -851,14 +829,53 @@ fn pose_json(player: &Player, authority: &mut Authority) -> Value {
     // fallback is the wrong world under the worldgen authority — journal/0015).
     let eye = player.pos_m + glam::DVec3::new(0.0, PLAYER_HEIGHT_M * 0.9, 0.0);
     let eye_in_solid = authority.is_solid_m(eye);
+    // The walker speaks two languages: `pos` is meters, block queries
+    // (`world_get_block`, `scan_region`) are world voxels. Echo the feet voxel
+    // in the SAME conversion the authority uses (`scale.voxel_at`), so a
+    // cross-check never needs a mental unit conversion (corrections #10 — a
+    // meters-vs-voxels misread cost a full agent cycle).
+    let scale = authority.scale;
+    let pos_voxel = json!({
+        "x": scale.voxel_at(player.pos_m.x),
+        "y": scale.voxel_at(player.pos_m.y),
+        "z": scale.voxel_at(player.pos_m.z),
+    });
     json!({
         "pos": { "x": player.pos_m.x, "y": player.pos_m.y, "z": player.pos_m.z },
+        "pos_voxel": pos_voxel,
         "yaw": player.yaw,
         "pitch": player.pitch,
         "fly": player.fly,
         "on_ground": player.on_ground,
         "eye_in_solid": eye_in_solid,
     })
+}
+
+/// Build the reply for a `surface`-flagged teleport: snap the feet to the TRUE
+/// voxel surface under the player's footprint at (x, z) — over the ACTIVE
+/// authority, reading the hosted world's live solidity (edits included), from
+/// an honest per-column ceiling that tracks the deep-time surface (journal/0004,
+/// 0006, 0015). On a genuine miss (no ground under the footprint) the position
+/// is LEFT as requested. Either way `surface_snapped` is ALWAYS present — true
+/// when the scan seated the feet, false on a miss. Absence-means-success was the
+/// instrument ambiguity walk 13 filed (journal/0018): silence is not a reading.
+fn surface_teleport_reply(player: &mut Player, authority: &mut Authority) -> Value {
+    let snapped =
+        match authority.true_surface_m(player.pos_m.x, player.pos_m.z, PLAYER_WIDTH_M / 2.0) {
+            Some(y) => {
+                player.pos_m.y = y + 0.05;
+                player.vel_m = glam::DVec3::ZERO;
+                true
+            }
+            None => false,
+        };
+    let mut value = pose_json(player, authority);
+    value["surface_snapped"] = json!(snapped);
+    if !snapped {
+        value["surface_error"] =
+            json!("no solid ground under the footprint; position left as requested");
+    }
+    value
 }
 
 /// Tick the hosted world on its fixed cadence and route the resulting effects:
@@ -1801,5 +1818,109 @@ pub(crate) mod tests {
             "body kept moving after freeze"
         );
         assert!(rested.vel_m.x.abs() < 1e-9 && rested.vel_m.z.abs() < 1e-9);
+    }
+
+    /// Instrument fix (corrections #10, journal/0016): the player pose reply
+    /// echoes the feet **voxel** coordinate beside the meters, in the SAME
+    /// conversion the authority (and `world_get_block`) uses — so a walker can
+    /// cross-check a meters pose against block queries with no mental unit math.
+    /// A meters-vs-voxels misread cost a full agent cycle.
+    #[test]
+    fn pose_reply_echoes_feet_voxel_in_get_block_frame() {
+        let mut authority = Authority::new(1337, 3);
+        let scale = authority.scale;
+        // A non-grid, non-integer pose so floor-division actually matters.
+        let player = Player::new(DVec3::new(10.3, 5.7, -3.2));
+
+        let reply = pose_json(&player, &mut authority);
+        let (vx, vy, vz) = (
+            scale.voxel_at(player.pos_m.x),
+            scale.voxel_at(player.pos_m.y),
+            scale.voxel_at(player.pos_m.z),
+        );
+        assert_eq!(reply["pos_voxel"]["x"], json!(vx));
+        assert_eq!(reply["pos_voxel"]["y"], json!(vy));
+        assert_eq!(reply["pos_voxel"]["z"], json!(vz));
+
+        // The meters pose is still present and unrenamed (append-only).
+        assert_eq!(reply["pos"]["x"], json!(player.pos_m.x));
+
+        // The echoed voxel is exactly the `world_get_block` argument for these
+        // feet: the point query at pos_voxel and the meters query at pos resolve
+        // to the same block, because both go through the one `scale.voxel_at`.
+        assert_eq!(
+            authority.is_solid_voxel(vx, vy, vz),
+            authority.is_solid_m(player.pos_m),
+        );
+    }
+
+    /// Instrument fix (journal/0018, walk 13): a `surface:true` teleport reply
+    /// ALWAYS carries `surface_snapped` — true when the scan seated the feet,
+    /// false on a miss (position left as requested). Absence-means-success was
+    /// the ambiguity; silence is not a reading.
+    #[test]
+    fn surface_teleport_reply_reports_snapped_on_success_and_miss() {
+        let mut authority = Authority::new(1337, 3);
+        let scale = authority.scale;
+
+        // Success: over a real land column the scan seats the feet, and the
+        // requested (far-above) y is discarded for the surface.
+        let spawn = authority.find_open_spawn();
+        let mut player = Player::new(DVec3::new(spawn.x, spawn.y + 100.0, spawn.z));
+        let reply = surface_teleport_reply(&mut player, &mut authority);
+        assert_eq!(reply["surface_snapped"], json!(true), "{reply}");
+        assert!(reply.get("surface_error").is_none());
+        assert!(
+            (player.pos_m.y - (spawn.y - 2.0)).abs() < 1.0,
+            "feet snapped to the surface (~{:.2}), not the requested {:.2}",
+            spawn.y - 2.0,
+            spawn.y + 100.0,
+        );
+
+        // Miss: carve a tall air shaft over the footprint columns — wider and
+        // taller than any column's scan window at S1 amplitude, so a cave under
+        // the footprint cannot leave a solid voxel the scan still reaches. With
+        // nothing to stand on, the teleport reports a miss and leaves the
+        // requested position untouched.
+        let half = PLAYER_WIDTH_M / 2.0;
+        let (cx, cz) = (spawn.x, spawn.z);
+        // Absolute bounds that bracket the whole S1 surface band (deepest chasm
+        // ~ -90 m, tallest hill ~ +22 m) plus generous slack for the scan depth.
+        let y_bot = scale.voxel_at(-220.0);
+        let y_top = scale.voxel_at(40.0);
+        let x0 = scale.voxel_at(cx - half) - 2;
+        let x1 = scale.voxel_at(cx + half) + 2;
+        let z0 = scale.voxel_at(cz - half) - 2;
+        let z1 = scale.voxel_at(cz + half) + 2;
+        authority.submit_player(Payload::Fill(payload::Fill {
+            min: Vec3i::new(x0, y_bot, z0),
+            max: Vec3i::new(x1, y_top, z1),
+            block: "dc:air".into(),
+        }));
+        authority.tick_now();
+
+        // Self-check: the carve really cleared the footprint's scan column (edits
+        // override generated solid). If this trips, the miss below would be a
+        // false negative, so localize it here.
+        for x in scale.voxel_at(cx - half)..=scale.voxel_at(cx + half) {
+            for z in scale.voxel_at(cz - half)..=scale.voxel_at(cz + half) {
+                for y in y_bot..=y_top {
+                    assert!(
+                        !authority.is_solid_voxel(x, y, z),
+                        "carve left solid at ({x}, {y}, {z})"
+                    );
+                }
+            }
+        }
+
+        let mut player = Player::new(DVec3::new(cx, 500.0, cz));
+        let reply = surface_teleport_reply(&mut player, &mut authority);
+        assert_eq!(reply["surface_snapped"], json!(false), "{reply}");
+        assert!(reply["surface_error"].is_string());
+        assert!(
+            (player.pos_m.y - 500.0).abs() < 1e-9,
+            "a miss leaves the position as requested, got y = {}",
+            player.pos_m.y
+        );
     }
 }

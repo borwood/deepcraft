@@ -1114,6 +1114,14 @@ impl HostWorld {
                     (eye.y / voxel_size).floor() as i64,
                     (eye.z / voxel_size).floor() as i64,
                 );
+                // The feet voxel, in the same world-voxel space `get_block`
+                // takes — floor per axis, exactly as `eye_voxel` above (the
+                // active scale's authoritative meters→voxel conversion).
+                let pos_voxel = Vec3i::new(
+                    (character.pos_m.x / voxel_size).floor() as i64,
+                    (character.pos_m.y / voxel_size).floor() as i64,
+                    (character.pos_m.z / voxel_size).floor() as i64,
+                );
                 QueryData::CharacterPose {
                     name: character.name.clone(),
                     pos: character.pos_m,
@@ -1122,6 +1130,8 @@ impl HostWorld {
                     pitch: character.pitch,
                     on_ground: character.on_ground,
                     eye_in_solid: self.block_at(eye_voxel).is_solid(),
+                    pos_voxel,
+                    posture: character.posture.to_wire().to_string(),
                 }
             }
             Payload::SenseRaycast(p) => {

@@ -35,7 +35,7 @@ pub mod ids {
 
 /// A world-space voxel coordinate (the 3D lattice is unbounded; i64 like
 /// dc-core's world-voxel space).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default, Serialize, Deserialize)]
 pub struct Vec3i {
     pub x: i64,
     pub y: i64,
@@ -429,6 +429,20 @@ pub enum QueryData {
         /// True when the eye voxel is solid — screenshots/senses from here
         /// are inside terrain.
         eye_in_solid: bool,
+        /// Feet **voxel** coordinate at the active scale — the same world-voxel
+        /// language `dc:world/get_block`/`scan_region` speak, so a driver can
+        /// cross-check its meters pose against block queries with no mental unit
+        /// conversion (corrections #10). Appended field: postcard is positional,
+        /// so this stays last; `serde(default)` decodes pre-echo streams to the
+        /// origin.
+        #[serde(default)]
+        pos_voxel: Vec3i,
+        /// Discrete collider posture as its wire string (`standing`|`crouching`)
+        /// — the vocabulary `dc:character/set_posture` accepts, so a driver reads
+        /// its own posture back (walk-11 loose end). Appended field; `serde(default)`
+        /// decodes pre-posture streams to an empty string.
+        #[serde(default)]
+        posture: String,
     },
     /// First solid voxel along a character's gaze (`sense_raycast`).
     /// All fields are `None` on a miss.
