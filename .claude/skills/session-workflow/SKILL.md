@@ -57,9 +57,20 @@ You wear all four, switching freely:
   report must contain.
 - **Model economy (re-ratified 2026-07-19, superseding the inherit-default)**:
   **every agent gets `model: "opus"` by default — including Explore/recon
-  agents.** Fable is the MAIN SESSION's model only; passing no model
+  agents — AND every `agent()` call inside a Workflow script** (learned
+  the expensive way same day: a stock deep-research workflow inherits the
+  main session's Fable into every fan-out agent; stock/named workflows
+  must be re-authored with explicit `model: 'opus'` before launch, never
+  run as-is). Fable is the MAIN SESSION's model only; passing no model
   override inherits Fable and burns the usage budget (it cut into the week
-  once — that's why this rule exists). The sole exception: an agent doing
+  once — that's why this rule exists). **Scale is part of the same rule
+  (user, 2026-07-19: "usage is a concern" — a ~100-agent research run
+  for mod documentation was "unfathomable overkill for what a handful of
+  articles could have told us"): before launching ANY fan-out, state the
+  expected agent count and model to the user; size the harness to the
+  question — uncontested documentation wants 2-3 readers, not
+  per-claim adversarial panels. Full-width research harnesses are for
+  genuinely contested claims, by explicit agreement.** The sole exception: an agent doing
   genuinely deep design work (novel algorithms, undecided architecture,
   spike-class uncertainty) may get Fable by deliberate, stated choice.
   Design conversation, integration judgment, and walk interpretation stay
