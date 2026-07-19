@@ -183,10 +183,18 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
    axes from pregen history feeding deposition/metamorphism; igneous from
    tectonic setting + emplacement depth. Orogeny-repo recon 2026-07-19 as
    idea quarry; couples to S2 checkpoint-facts design (Observed).
-4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
-   axes; registry-defined).
-5. Ecology design (succession as derived-from-disturbance state; populations
-   as statistical-tier distributions).
+4/5. **Ecology + organisms** — designed 2026-07-19, docs/design/ecology.md
+   (supersedes the old biomes/ecology seeds and the agenda doc): species
+   is the primitive, biome is a diagnosis; the six-process biotic layer on
+   the deep-time tier; biology as an erosion/weathering/rock-forming term;
+   a "biome pack" is an organism pack. Evolution recorded as the user's
+   teleology design (org defs pin a form at a horizon; the lineage between
+   is simulated; ahistorical override; fossils = mid-horizon pins) —
+   post-v1, but v1 must not foreclose it.
+   - **S10 biotic-layer spike** is the gate: community vector + six
+     processes on the A-tier; measure cost vs the ~14 s ritual and
+     read-quality (coal seams, paleosols, charcoal, retrogression).
+     Evolution explicitly out of scope for S10.
 6. Body plans implementation staircase (docs/design/bodies.md § staircase,
    ratified 2026-07-19) — six steps from joint-tree skeleton to authoring
    editor; not yet scheduled against the geology track.
