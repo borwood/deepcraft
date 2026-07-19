@@ -342,6 +342,25 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **The Voxy-vs-Distant-Horizons thread** (user restated 2026-07-19; the
+  original research session predates the repo and was never recorded —
+  the defer=write-it-now rule exists because of this loss). What's known:
+  Voxy is the perf champion among MC distance mods via GPU optimization;
+  the techniques need RE-DERIVING BY RESEARCH (dispatched 2026-07-19,
+  report to land in docs/design/). Both mods also **show player edits in
+  distant LODs** (edits regenerate cached LOD data) — our far field
+  doesn't; the edit→summary-update architecture is a design owed
+  (likely: summaries subscribe to the edit dirty-rail at chunk
+  granularity, dirty far tiles remesh budgeted; persists with S3 region
+  storage). Unique deepcraft constraint: distant VIEWING must not force
+  simulation — where distant regions hold observation-constrained
+  superpositional ongoing history, the vista must be **augury-grade**
+  (read committed facts + statistical tier without committing; the
+  ideas.md divination split, applied to rendering). Terrain is committed
+  at worldgen so the current far field is safe; the constraint binds
+  when live-sim state (settlements, travelers, growth) becomes
+  far-visible.
+
 - Walk 17 (journal/0022 § walk 17 + § the holes were a partition): **far
   sheet parallelogram sky holes — RESOLVED** 2026-07-19 (fix cycle,
   worktree branch). Mechanism: a level's far tiles *partition* the ground

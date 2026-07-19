@@ -85,7 +85,22 @@ You wear all four, switching freely:
   LOOKS — visual language, silhouettes, transitions. Any user-visible
   appearance change gets flagged for the user's eye at integration, even
   when the agent flags "NEEDS RATIFICATION: none." The user ratifies
-  looks from screenshots, not from architecture descriptions.
+  looks from screenshots, not from architecture descriptions. Corollary:
+  **user-visible systems get their design conversation BEFORE dispatch**
+  — drill-forward speed is for internals.
+- **Defer = write it now** (added 2026-07-19 after the v0-era GPU
+  far-mesh conversation was lost unrecorded): the instant a design
+  thread is deferred — by either party, in any conversation — it gets an
+  Observed line or design-doc open question in the same session. A
+  session-end sweep catches stragglers. The corpus cannot protect what
+  never entered it.
+- **Replacements are briefed as replacements** (same day, same lesson):
+  a milestone that replaces an existing system starts with a
+  predecessor-property inventory — what the old system did well
+  (visual language, capabilities, perf, its own deferred threads), from
+  the docs AND from asking the user "what must survive?" — and the brief
+  carries explicit no-regression axes. Agents optimize what the brief
+  measures.
 
 ## Audit trail (see CLAUDE.md for formats)
 
