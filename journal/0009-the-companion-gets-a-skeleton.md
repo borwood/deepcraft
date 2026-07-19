@@ -1,9 +1,8 @@
-# 0009 — the companion grows a skeleton (DRAFT)
+# 0009 — the companion grows a skeleton
 
-*2026-07-19 · body-plan staircase steps 1–2 (background agent; DRAFT — the walk
-section is a placeholder for the main session to fill after it walks and
-photographs the animated companion). Implements docs/design/bodies.md steps 1
-and 2, ratified the same day.*
+*2026-07-19 · body-plan staircase steps 1–2 (background agent; integrated +
+walk-verified by the main session, merge `dd9b802`, 36 suites green).
+Implements docs/design/bodies.md steps 1 and 2, ratified the same day.*
 
 The companion has been two cuboids since journal/0005: an orange torso and a
 pale head that slid through the world facing its heading, rigid as a chess
@@ -109,10 +108,49 @@ collision is not in scope, and no animation state is readable by sim or replay
 code. The skeleton is a client-side view of the same authoritative pose the
 two cuboids showed — just with more joints and a clock.
 
-## Walk (placeholder — main session)
+## Walk 8: the body reads — and hides one thing
 
-*To be written after the walk: does the driven companion read right — limbs
-swinging, 12 fps steppiness visible, blend on start/stop? Screenshots to
-`journal/assets/0009-*`. Note anything the stepped look does or doesn't sell at
-walking distance, and whether the jump fallback pose is legible or should be
-promoted from "documented fallback" to a real authored clip.*
+Main session, merged main (`dd9b802`, 36 suites green), `--fullbright`,
+rebuilt exe (timestamp checked). Character `dancer` attached on the surface
+near the walk-7 quarry: the plan-driven biped stands where two cuboids used
+to — head, neck, orange trunk, sleeved upper arms with skin-tone hands,
+legs (`assets/0009-biped-idle.png`). Driven side-on, the walk cycle is
+real: legs scissored mid-stride, arms counter-swinging, and the pose holds
+between 12 fps steps so stills catch honest keyframes
+(`assets/0009-biped-stride-a.png`, `-facing.png`).
+
+**The walk's finding came from the user, watching live**: the body moved
+one way while facing another — "appears to strafe." The code confirms the
+mechanism: `SetMoveIntent` stores only `dx/dz/speed`; yaw changes solely
+via `SetLook`; the renderer rotates the whole body by that look yaw. So
+**nothing owns turning the trunk toward travel** — any controller that
+doesn't call `set_look` walks its body sideways or backward. The user's
+follow-up sighting ("latest run faced its travel — what changed?") was
+answered by the second finding: with a direction-symmetric walk clip on a
+**faceless head**, forward and backward walks are photographically
+indistinguishable — the apparent fix was viewpoint coincidence. Orientation
+is currently *unverifiable* from stills; bodies need a face cue (free with
+textures, or a v0 asymmetry) before facing claims can be photographed at
+all. Both filed to Observed; the trunk-follows-travel /
+head-follows-look split belongs to staircase step 3 (the neck exists for
+exactly this), with the v0 answer a design call: renderer-side
+trunk-toward-velocity (cosmetic, firewall-legal) vs controller convention.
+
+Also sighted live by the user, filed to Observed: the far-mesh S1 phantom —
+the old hill-field renders ~500 m *below* the worldgen terrain in far LOD
+rings until approach replaces it (the known TerrainGen fallback, now with
+its full weirdness on display); and harsh material-family cutovers on chunk
+lines — candidate mechanism: at N=2 a chunk (32 × 0.9 m = 28.8 m) exactly
+matches the S7 column-quantization cell, so cell-stepped climate context
+makes selection flip families precisely on chunk boundaries. Diagnosis
+task filed; smoothing (per-column context interpolation and/or boundary
+dither) looks tractable, not fundamental.
+
+The jump fallback pose went unphotographed (facing ambiguity made the
+session about orientation instead) — promotion to a real clip stays open.
+
+> blogworthy: "the walk found what the tests couldn't" — define-time
+> contracts, bit-identical samplers, 36 green suites, and the first live
+> viewer immediately caught that nobody owns which way a body faces. Also
+> a photography lesson: you cannot verify orientation on a faceless
+> cuboid; observability is a *feature of the model*, not the camera.

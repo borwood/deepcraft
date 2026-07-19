@@ -37,6 +37,20 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — Body staircase steps 1–2 (journal/0009, walk 8, merge
+  `dd9b802`): body plans + anim clips as namespace-owned registry data
+  (fourth roles-as-contracts instance; clips standalone-before-plan, flagged
+  in API.md); the 11-segment `dc:body/biped` replacing the two-cuboid
+  companion; stepped 12 fps sampler (32-step rotations, 5 mm bob — the bob
+  quantization also fixed a ULP loop-wrap divergence), crossfade idle↔walk,
+  verb→anim-slot contract enforced at define time. Walk-photographed
+  standing and mid-stride (assets 0009-*).
+
+- 2026-07-19 — Placeholder LabPBR texture packs (merge `78e9d95`, asset-
+  only): 21 deterministic 16×16 three-texture sets generated from the
+  property sheets; seamless tiling verified after user query and now
+  asserted by the generator's self-check (`ea7251d`).
+
 - 2026-07-19 — 3c-1: geology walkable at block tier (journal/0008, walk 7,
   merge `ee639f9`): dc-worldgen through the client seam (PregenSource
   Arc-opening, Rc→Arc caches, one Mutex two worlds — seam-level order-
@@ -88,13 +102,10 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- Body-plan staircase steps 1–2 (bodies.md § staircase; agent launched
-  2026-07-19): joint-tree skeleton, plan-as-registry-def, companion
-  re-expressed as a biped, MCP-authored data clips; locomotion set +
-  crossfade blending + the verb→anim-slot define-time contract.
-- Placeholder LabPBR texture packs (code-only agent, 2026-07-19):
-  procedurally generated 16×16 three-texture sets per material, assets-in-
-  waiting for the splat milestone (visuals.md § mixture road).
+- 3c-2: material-tier geology in the client (agent launched 2026-07-19):
+  sidecar channel through the seam, interim world-anchored dither
+  materialization, partial-height loose-material rendering (visuals.md §
+  mixture road, all DECIDED 2026-07-19).
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
@@ -142,11 +153,28 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   persist the table, never re-derive it (lifecycle belongs to region-file
   grouping, S3 OQ 7).
 
+- Walk 8 + user live observations (journal/0009): **nobody owns body
+  orientation** — `SetMoveIntent` never touches yaw, `SetLook` is the only
+  writer, so un-looked bodies strafe/moonwalk; v0 fix is a design call
+  (renderer-side trunk-toward-velocity, cosmetic, vs controller
+  convention), real answer is staircase step 3's trunk/look split.
+  **Faceless heads make orientation unphotographable** — a face cue
+  (texture or v0 asymmetry) is prerequisite to walk-verifying facing.
+  **Material families cut hard on chunk lines** — candidate mechanism: at
+  N=2 the chunk (28.8 m) equals the S7 column-quantization cell, so
+  cell-stepped climate context flips selection exactly on chunk borders;
+  diagnosis + smoothing (context interpolation / boundary dither) filed.
+  **Third-person view** needed eventually to verify the player's own body
+  (dev affordance; not slated). `jump` remains a fallback pose, not an
+  authored clip. Plans/clips are define-only (no get/list queries yet).
+
 - Walk 7 loose ends (journal/0008): **unloaded-neighbour and far-mesh
   fallbacks still sample S1 `TerrainGen`** — near-field loaded chunks are
   worldgen, but the far LOD rings and load-radius border faces show the old
-  hill-field; a visible seam until the far field becomes worldgen/summary-
-  shaped (pairs with the existing far-mesh Observed items). Single-material
+  hill-field; user-sighted in walk 8 as a *phantom old world ~500 m below*
+  the real terrain that dissolves on approach. A visible artifact until the
+  far field becomes worldgen/summary-shaped (pairs with the existing
+  far-mesh Observed items). Single-material
   faces under fullbright are featureless color fields — information arrives
   with the 3c-2 dither and later the splat pipeline. The `Terrain` resource
   is retained solely as the 3/4-key legacy fallback. *(Scale-3 boot default:
