@@ -99,6 +99,8 @@ pub struct Effects {
     pub items_defined: Vec<String>,
     #[serde(default)]
     pub subscriptions_created: Vec<u64>,
+    #[serde(default)]
+    pub characters_spawned: Vec<String>,
 }
 
 impl Effects {
@@ -108,6 +110,7 @@ impl Effects {
             entities_spawned: self.entities_spawned.len() as u64,
             items_defined: self.items_defined.len() as u64,
             subscriptions_created: self.subscriptions_created.len() as u64,
+            characters_spawned: self.characters_spawned.len() as u64,
         }
     }
 }
@@ -119,6 +122,7 @@ pub struct EffectsSummary {
     pub entities_spawned: u64,
     pub items_defined: u64,
     pub subscriptions_created: u64,
+    pub characters_spawned: u64,
 }
 
 /// Why a command (or query) was refused.
@@ -146,6 +150,8 @@ pub enum RejectReason {
     RegionTooLarge { voxels: u64, max: u64 },
     #[error("unknown or foreign subscription {id}")]
     UnknownSubscription { id: u64 },
+    #[error("unknown character `{name}`")]
+    UnknownCharacter { name: String },
     #[error("transaction aborted: `{failed_id}` failed ({reason})")]
     TxnAborted {
         failed_id: String,

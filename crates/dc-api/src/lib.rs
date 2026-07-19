@@ -15,6 +15,8 @@
 //! - [`envelope`] — CommandEnvelope / CommandReceipt / QueryReceipt wire shape
 //! - [`payload`] — typed payloads + the `Payload` union
 //! - [`capability`] — grants, tokens, attenuation, requirements
+//! - [`character`] — the character primitive: a persistent named body stepped
+//!   on the host tick, driven by controller-verb commands (API.md § Characters)
 //! - [`event`] — event kinds and delivery records
 //! - [`schema`] — the machine-readable command registry (consumers generate
 //!   from this; the MCP tool list is never hand-written)
@@ -24,6 +26,7 @@
 
 pub mod abi;
 pub mod capability;
+pub mod character;
 pub mod envelope;
 pub mod event;
 pub mod host;
@@ -31,6 +34,7 @@ pub mod payload;
 pub mod schema;
 
 pub use capability::{CapabilityToken, Grant, Requirement};
+pub use character::{CharacterConfig, CharacterInput, CharacterState};
 pub use envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, ConsumerKind, Effects,
     EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,

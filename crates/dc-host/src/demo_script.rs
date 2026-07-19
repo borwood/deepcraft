@@ -94,5 +94,19 @@ pub fn minimal_grants_for(payload: &dc_api::Payload) -> Vec<dc_api::Grant> {
             namespace: item.name.split(':').next().unwrap_or("").into(),
         }],
         P::EventsSubscribe(_) | P::EventsPoll(_) => vec![dc_api::Grant::EventsSubscribe],
+        // The demo consumer never touches characters; these arms exist only
+        // because the payload union grew (character-MCP milestone) and this
+        // match is deliberately exhaustive (drift protection).
+        P::SpawnCharacter(_) => vec![dc_api::Grant::EntitySpawn],
+        P::SetMoveIntent(dc_api::payload::SetMoveIntent { character, .. })
+        | P::SetLook(dc_api::payload::SetLook { character, .. })
+        | P::Jump(dc_api::payload::Jump { character })
+        | P::CharacterPose(dc_api::payload::CharacterPose { character })
+        | P::SenseRaycast(dc_api::payload::SenseRaycast { character, .. })
+        | P::SenseSurroundings(dc_api::payload::SenseSurroundings { character, .. }) => {
+            vec![dc_api::Grant::CharacterControl {
+                character: Some(character.clone()),
+            }]
+        }
     }
 }
