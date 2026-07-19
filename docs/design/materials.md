@@ -96,6 +96,36 @@ array, not the table, dominates cost), region-table lifecycle/compaction,
 angle-of-repose settling, the render-blend prototype (S4 input), pore-packing
 and heterogeneous-structure-fill mechanics.
 
+## Materials and forms (added 2026-07-18)
+
+A **material** is one identity with one property sheet. A **form** is a
+presentation of it in context:
+
+- **Emplaced**: structure (shape slots), debris eighths, pore fill — above.
+- **Item**: discrete object — world pickup (a dc-physics rigidbody), in
+  inventory, in hand/socket.
+
+**Form archetypes are registry entries binding to material classes** (chunk,
+shard, brick, powder, …) — the same contract pattern as geology passes
+(docs/design/geology.md). New material × existing archetypes = its whole item
+family for free; a new archetype retroactively covers every qualifying
+material.
+
+**Breaking is a sampled, conservative distribution.** Typed damage × the
+material's fracture stats × tool → a seeded (replay-deterministic) sample
+over outcomes; mass that doesn't become discrete drops **remains in the voxel
+as debris eighths** (mining brittle shale leaves a shale drape in the hole —
+sievable, shovelable, or left for archaeologists). Nothing is deleted;
+middens happen by physics. Granular/sub-threshold outcomes deposit as debris;
+discrete outcomes persist as rigidbody pickups with the sleep→inert-item
+handoff (S6).
+
+**Bodies/sockets (deferred design)**: a body is a plugin — one kind, shared
+by players/NPCs/mobs — exposing item sockets and driven by controller
+signals, composing with API.md's character/controller split so
+transmogrification is a body swap under an unchanged controller. Gets its own
+design doc when sequenced.
+
 ## Open questions
 
 - Heterogeneous structure fill: what gameplay produces it (construction with

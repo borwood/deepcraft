@@ -26,8 +26,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
    (orogeny's 0033 pattern).
 2. Character MCP surface (`dc-mcp-character`): grant-scoped embodied agent
    play — same generator as dc-mcp-dev, different grants.
-3. Geology deep-dive (design conversation → docs/design/geology.md; mine
-   orogeny's stratigraphy-v1 ideas — in-progress source, not a spec).
+3. Geology deep-dive — backbone seeded in docs/design/geology.md
+   (classes/processes/contexts as registry data); v1 content selection is the
+   remaining conversation. Mine orogeny's stratigraphy-v1 — source of ideas,
+   not a spec.
+3a. Form archetypes + drop distributions (materials.md § forms) — implement
+   with the first inventory/interaction milestone.
+3b. Bodies/sockets design doc (body-as-plugin, controller-driven, transmog) —
+   after character MCP.
 4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
    axes; registry-defined).
 5. Ecology design (succession as derived-from-disturbance state; populations
