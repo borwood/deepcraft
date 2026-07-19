@@ -147,10 +147,19 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — the autonomous queue is complete; next items need the user:
-the 3e commitment with S9/S9b evidence, biomes (4) and ecology (5)
-design conversations, body staircase steps 4+, and the game-feel calls
-in Observed)
+- 3e-1: deep-time A-tier into real worldgen (agent launched 2026-07-19;
+  A+C user-ratified): deeptime passes join the pregen pipeline, deep-time
+  surface drives elevation, strata records become the epoch-indexed
+  formation context (the year-zero shim dies for deep strata), column
+  stories reach blocks.
+- QUEUED (fires when 3e-1 frees the build slot) — PBR-1: the real
+  material renderer (user 2026-07-19: "wish we had that pbr renderer
+  done — achievable without me"). LabPBR three-texture atlas from the
+  placeholder packs, normal mapping, sun+ambient PBR shading,
+  height/AO splat blending (heightlerp) replacing the mosaic dither for
+  mixtures, uniform-contents voxels finally rendering their material
+  identity (kills the walk-10 render-invisibility item). Shadows/point
+  lights/tonemap/POM = PBR-2.
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
