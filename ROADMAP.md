@@ -200,28 +200,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **PBR-1 render polish awaiting integration** (journal/0020, background agent,
-  separate worktree branch): the two walk-14 ratifications — the placeholder
-  tiling cleanup (world-anchored UVs + de-directionalized textures) and the
-  fullbright mixture-speckle variant (a second unlit custom material). Gates green
-  on the worktree branch (fmt, clippy `-D warnings`, full workspace test suite);
-  live-verified lit + fullbright on the RTX 3070 with no shader/pipeline errors.
-  Merges on top of PBR-1. Owed to the milestone walk: the geology-outcrop
-  before/after and the in-world fullbright speckle on a real mixed face (see
-  Observed). No NEEDS RATIFICATION flags (the SPLAT_N=4 + calibration flags from
-  PBR-1 still ride; this pass added none).
+*(PBR-1 and the render polish both integrated 2026-07-19 — merges
+`c49566f`/`016ac1b`, gates green on merged main, walks 14/15 verified;
+SPLAT_N=4 ratified, calibration rides awaiting the lighting design.)*
 
-- **PBR-1 awaiting integration + milestone walk** (journal/0019, background
-  agent): gates green on the worktree branch (fmt, clippy `-D warnings`, 105+
-  workspace tests; live-verified lit + fullbright on Vulkan/RTX 3070 with no
-  shader/pipeline errors). The integrator merges `--no-ff`, re-runs gates on
-  merged main, and the main session runs the milestone walk (shot list in
-  journal/0019). Two **NEEDS RATIFICATION** flags ride: `SPLAT_N = 4` and the
-  sun/hemi-ambient calibration (both aesthetic/user-owned). Next Sequenced after
-  it: **PBR-2** (shadows/point-lights/HDR/POM/water/weather + the `opaque.terrain`
-  pack hook), or the far-field summary-pyramid work (journal/0017 § far mesh —
-  walk 13 showed the worldgen horizon is empty sky, so that milestone is building
-  the horizon, not fixing an artifact).
+- **Instrument batch** (voxel echo in pose replies, always-present
+  `surface_snapped`, posture readback): agent code complete on its
+  worktree branch; gates + integration in progress (main session running
+  the gates — the agent parked on the build slot).
+
+Queue after it (**reordered 2026-07-19, user**): **far-field horizon
+promoted ahead of S10** — the phantom S1 LODs below the worldgen terrain
+and the missing worldgen far field are the most user-visible defect left
+(user-sighted again post-PBR-1; summary-pyramid shape in journal/0017
+§ far mesh). Then **S10**, then **3e-2 implementation** (fully decided,
+earth-processes.md § 3e-2 decisions). The water-model design doc rides
+alongside as conversation (field-notebook first, no build slot). Also
+owed: the lit-vs-fullbright mixture close-up pair (walk 16, with the
+instrument-batch integration walk).
 
 ## Sequenced
 
