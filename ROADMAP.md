@@ -31,11 +31,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   running game — pose/scan/edit/screenshot loop proven; six findings filed
   to Observed. The practice is established.
 
+- 2026-07-18 — Walk-3 corrections + walker proprioception (journal/0004,
+  `0ba292f`): three of four walk-3 "renderer defects" were camera-inside-
+  block misdiagnoses (corrections.md #3); shipped eye_in_solid, surface-
+  clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
+  photographically verified.
+
 ## In flight
 
-- Walk-3 fixes: near-field haze inversion (blinds all walks — first);
-  client cache subscription to block_changed (MCP edits invisible);
-  far-mesh floating shards + horizon seam line.
+(nothing — next up from Sequenced)
 
 ## Sequenced
 2. Character MCP surface (`dc-mcp-character`): grant-scoped embodied agent
@@ -55,12 +59,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- Walk 3 (journal/0003): near-field white wash — haze appears inverted
-  (suspect reverse-Z linearization in the post prelude); MCP-sourced edits
-  invisible to the render cache (hypothesis: own-receipts only, needs
-  block_changed subscription); floating LOD shards + hard horizon seam line;
-  white speckle on chasm cliff faces; spawn lands inside the chasm;
-  pose_set pitch sign undocumented (negative = down).
+- Walks 3–4 (journal/0003, 0004 — corrected record in corrections.md #3):
+  `surface_height_m` under-reports the actual voxel surface (~7 m at the
+  spawn site, location-dependent; affects spawn, surface teleport, any
+  helper consumer). Near-field lighting blows out pale top faces (flat
+  shading + near-vertical sun + no tonemap shoulder) — art calibration,
+  belongs to the visuals pass. Chasm cliff "speckle" unverified from clean
+  air.
 
 - The embedded HostWorld never evicts chunks (~64 KiB per chunk ever
   streamed/edited); never-edited chunks are pure generator output and could

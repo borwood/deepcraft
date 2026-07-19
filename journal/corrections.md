@@ -32,12 +32,19 @@ hanging in the sky and a hard seam line across the horizon.
 block**. The "seam line" was the outline of the face being viewed from its
 reverse side; the "floating" faces were outcroppings whose toward-facing
 faces were visible from within the terrain. Observer error, not renderer
-error. The finding #1 "inverted haze" diagnosis is also suspect for the same
-reason (white wash may be far-plane fog showing through culled near faces)
-— re-verify from provably-open air before fixing any shader.
-**Lesson**: a walker must know whether its own camera is inside solid. A
-"camera in solid" indicator (or teleport surface-clamping) is walker
-infrastructure, not polish.
+error.
+**Walk 4 follow-through (journal/0004) falsified the rest of the report:**
+- Finding #1 "inverted haze": FALSE — distance haze is normal; the near
+  white is flat shading under a near-vertical sun blowing out pale top faces
+  (user diagnosis; art calibration, not a shader bug).
+- Finding #2 "MCP edits invisible / receipts-vs-events seam": FALSE twice —
+  `tick_authority` applies changes from ALL receipts regardless of source
+  (code reading), and a pillar placed over MCP photographs correctly from
+  open air (`0004-pillar-verified.png`). The walk-3 pillar was invisible
+  because the photographer was buried.
+**Lesson**: a walker must know whether its own camera is inside solid —
+now shipped as `eye_in_solid` + `surface:true` teleport (`0ba292f`). Do not
+diagnose renderer defects from a viewpoint you haven't verified is in air.
 
 ## 4. "serde `skip_serializing_if` is safe on wire types" (2026-07-18)
 
