@@ -252,3 +252,11 @@ Left filed: the faint tile-edge **stitch lines** (one-sided differenced
 normals, no cross-tile halo — the journal/0022 loose end). Still cosmetic,
 still invisible under real haze, and a cross-tile normal halo is a larger
 change than this seam fix warranted; it stays a cheap future polish.
+
+## Walk 18 addendum: the sky holes stay closed on main
+
+Post-integration spot-check at the walk-17 high vantage
+(`0022-skyline-holes-fixed`): continuous terrain to the ridgeline, no
+parallelograms, 18 s streaming wait. One faint stitch line remains
+(filed cosmetic). The partition-with-no-redundancy fix holds on merged
+main.

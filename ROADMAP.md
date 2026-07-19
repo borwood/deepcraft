@@ -386,11 +386,11 @@ before any code.
   pixels in lit; same splat attributes, so the heightlerp buries it
   (elevation = weight + texture height; a 1/8 accessory can't out-elevate
   a 7/8 host anywhere). Contradicts the ratified "grains poke through"
-  intent. Mechanism DECIDED 2026-07-19 (user; visuals.md § Lit-mixture
-  visibility): **amplitude by rarity + anti-wallpaper jitter** — cell
-  quantization rejected (grids shear authored features). Shader patch
-  written, awaiting the build slot for live smoke + photographic pair
-  before commit. Also note:
+  intent. RESOLVED 2026-07-19: amplitude-by-rarity + jitter shipped and
+  photographically verified (0021-*-v2 pair — olivine visible lit,
+  statistical agreement with fullbright; amp constant is the tuning knob
+  if ore should read louder). Cell quantization was rejected (grids shear
+  authored features). Residual note:
   the houndstooth fix's narrowed albedo spread (0.17→0.11) reduced
   constituent contrast in the lit path generally.
 

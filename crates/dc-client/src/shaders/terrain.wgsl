@@ -84,15 +84,26 @@ fn tangent_frame(n: vec3<f32>) -> mat3x3<f32> {
 fn fragment(in: VsOut) -> @location(0) vec4<f32> {
     let uv = fract(in.uv);
 
-    // Heightlerp: elevation per layer = splat weight + texture height; the
-    // winning layers within a small band blend, so grains poke through with a
-    // crisp pixel edge instead of alpha-mushing (visuals.md).
-    var elev = vec4<f32>(-1.0, -1.0, -1.0, -1.0);
-    var maxe = -1.0;
+    // Heightlerp with AMPLITUDE BY RARITY + anti-wallpaper jitter (visuals.md
+    // § Lit-mixture visibility, DECIDED 2026-07-19). Plain weight+height let a
+    // 7/8 host bury a 1/8 accessory on every pixel (walk 16, 0021-mixture-*
+    // pair): the ranges never overlapped. A rare constituent's height term is
+    // therefore high-variance — it wins sparsely but decisively at its OWN
+    // heightmap's peaks, so whole authored features pop through and nothing is
+    // cut on a grid (cell quantization rejected: it shears multi-pixel
+    // features). Heights tile once per voxel, so peak-wins would repeat as a
+    // periodic lattice; the per-voxel hash bias decorrelates which peaks clear
+    // the bar. Calibration: at 1/8 vs 7/8 the accessory takes roughly its top
+    // height-decile of pixels, preferentially where the host is low.
+    let vox = floor(in.uv);
+    var elev = vec4<f32>(-9.0, -9.0, -9.0, -9.0);
+    var maxe = -9.0;
     for (var i = 0u; i < 4u; i = i + 1u) {
         if (in.weights[i] > 0.0) {
             let hgt = textureSampleLevel(normal_tex, atlas_sampler, uv, i32(in.layers[i]), 0.0).a;
-            let e = in.weights[i] + hgt * 0.6;
+            let amp = 0.6 + 1.6 * (1.0 - in.weights[i]);
+            let jit = fract(sin(dot(vox, vec2<f32>(127.1, 311.7)) + f32(in.layers[i]) * 57.31) * 43758.547) - 0.5;
+            let e = in.weights[i] + amp * (hgt - 0.5) + 0.3 * jit;
             elev[i] = e;
             maxe = max(maxe, e);
         }

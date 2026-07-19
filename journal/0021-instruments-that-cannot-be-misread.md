@@ -116,3 +116,15 @@ speckle uses — the cell's categorical pick gets an elevation bonus, so
 lit mixture reads as textured cells that AGREE with fullbright about
 where the ore is. Lit and diagnostic modes telling one story is itself
 an auditability property.
+
+## Walk 18 addendum: the mixture returns to the lit world
+
+*The amplitude-by-rarity + jitter shader (visuals.md § Lit-mixture
+visibility, user mechanism) verified live at the same quarry wall.* The
+v2 pair (`0021-mixture-lit-closeup-v2` / `-fullbright-closeup-v2`):
+olivine now shows in the lit path as sparse dark-green texels riding the
+granite grain — texture-morphology-shaped, no grid, no wallpaper at this
+framing — where v1 showed zero pixels. Fullbright agreement is
+statistical as designed (comparable fractions, different positions); the
+lit fraction reads slightly under fullbright's — the amp constant is the
+photographic-tuning knob if the user wants ore louder.
