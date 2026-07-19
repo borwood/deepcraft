@@ -342,15 +342,23 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- Walk 17 (journal/0022 § walk 17): **far sheet has persistent
-  parallelogram sky holes** at fixed world positions (0022 assets) —
-  whole-tile granularity, unchanged after 15 s of budget, so
-  missing/culled tiles not latency; suspect backface winding on specific
-  tiles or annulus coverage gap. Also: grazing-angle sky slivers at the
-  near/far overlap (sink doesn't occlude everywhere); faint tile-edge
-  stitch lines (known one-sided-normal seam). Fix cycle dispatched
-  2026-07-19. *(Phantom old world + empty horizon: RESOLVED, verified
-  photographically at the 0018 framings.)*
+- Walk 17 (journal/0022 § walk 17 + § the holes were a partition): **far
+  sheet parallelogram sky holes — RESOLVED** 2026-07-19 (fix cycle,
+  worktree branch). Mechanism: a level's far tiles *partition* the ground
+  plane (no overlap), so a point has exactly one tile per level; center-
+  distance ring assignment let an inter-ring boundary cell be rejected by
+  BOTH the finer ring (center past its outer edge) and the coarser ring
+  (center short of its inner edge), punching a fixed-position sky hole with
+  no fallback tile. NOT winding, NOT a missing index. Fix: each ring laps
+  its inner edge one own-tile inward (`far_tile_in_ring`), restoring
+  between-ring redundancy; the same lap under the near field also cured the
+  **grazing-angle near/far slivers**. Headless proof:
+  `far_tiles_cover_the_rings_without_seams` (88 463 uncovered points
+  pre-fix → 0). Verified live hole-free at both walk-17 vantages + 3 yaw
+  sweeps (fullbright). *(Phantom old world + empty horizon: RESOLVED
+  earlier, verified at the 0018 framings.)* **Left filed:** faint
+  tile-edge stitch lines (one-sided-normal seam) — cosmetic, haze-hidden;
+  a cross-tile normal halo is deferred polish.
 
 
 - Walk 16 (journal/0021 § walk 16): **the lit path erases low-fraction
