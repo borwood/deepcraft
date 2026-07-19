@@ -89,6 +89,42 @@ Not a mod; a research framework, directly relevant to **FF2b**:
 4. Bevy 2026 status of multidraw limitations — measure before building
    the bespoke cmdgen path.
 
+## Addendum 2026-07-19 (session 3) — open question 4 resolved; the submission DECIDED
+
+**DECIDED (user): the far field rides Bevy's engine-provided GPU-driven
+path — not a bespoke Voxy-style cmdgen, and not CPU submission sized to
+today's constants.** The determination that led here:
+
+- **Bevy 0.19 status (re-verified)**: indirect draw commands are now built
+  **on the GPU** — the mesh-preprocessing compute pass writes instance
+  counts and a second dispatch converts them into indirect draws, submitted
+  via `multi_draw_indirect_count` where available (PR #17211 on top of
+  PR #16427's opaque multidraw); two-phase GPU occlusion-culling
+  infrastructure is in place. The "eventual GPU-driven far pass" from the
+  transfer map is engine-provided, on the standard `Mesh` path.
+- **Voxy's vertex-pulling is therefore rejected**, permanently: abandoning
+  Bevy `Mesh` for pulled packed quads would *forfeit* the engine machinery
+  that gives us Voxy-class submission. The 8-byte packed quad survives only
+  as a candidate *storage/summary* format (persistence spine, S3
+  region-file coupling) — a data-format question, decided later.
+- **The load-bearing constraint**: multidraw batches by pipeline +
+  material bind group. Our architecture already satisfies it — ONE shared
+  terrain material renders the whole world; *variety is data* (atlas
+  layers + per-vertex splat attributes), never per-thing material
+  instances. This is now a hard constraint on all far-field (and
+  near-field) work: anything that introduces per-tile/per-kind materials
+  shatters the batch.
+- **Scale framing correction** (assistant misread, user-corrected): the
+  current 1.2 km / ~150-tile far field is bring-up scaffolding, not
+  intent. The design target is **massive draw distance over a densely
+  populated, high-variety world** — the regime GPU-driven submission is
+  *for*. Architecture decisions size to the target, not the scaffold.
+- **Empirical caveat carried into FF2a**: whether Bevy's multidraw/GPU
+  preprocessing actually *engages* for our custom `Material` with custom
+  vertex attributes (and on which backends — `multi_draw_indirect_count`
+  is Vulkan/DX12; fallbacks are automatic but slower) is unverified.
+  FF2a step 0 measures it; nothing bespoke gets built either way.
+
 ## Sources
 
 Verified pass (primary): `github.com/MCRcortex/voxy` (+README),

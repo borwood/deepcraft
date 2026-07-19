@@ -231,18 +231,17 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — session 2 paused 2026-07-19. The day shipped and walk-verified
-SIX integrated milestones: S1-fallback sweep (journal/0017), PBR-1
-(0019 + walk-14 tangent-NaN fix), render polish (0020), instrument batch
-(0021), far-field horizon (0022 + hole fix), lit-mixture
-amplitude-by-rarity (walks 16/18) — plus walks 13-18, ~15 ratifications
-recorded, and the Voxy/DH research doc. Main is green (38 suites), all
-worktrees cleaned. **Next session: dispatch FF2a** (voxel-language far
-field — brief notes in Sequenced: replacement-parity vs current tiles,
-extensible span payload, packed-quad option per the recon doc), then
-S10, then 3e-2 implementation. Water-model design doc is open as
-conversation. Read journal/0021-0022 walk sections for the freshest
-lessons; session-workflow SKILL.md gained six new guards today.)
+- 2026-07-19 (session 3) — **FF2a dispatched** (background agent,
+  worktree): voxel-language far field on the DECIDED GPU-driven substrate
+  (see Sequenced entry + voxy-dh-recon addendum). Owns the buried-far-
+  sheet and tile-crack field reports.
+
+*(Session-2 close state: the day shipped and walk-verified SIX integrated
+milestones — S1-fallback sweep 0017, PBR-1 0019, render polish 0020,
+instrument batch 0021, far-field horizon 0022 + hole fix, lit-mixture
+amplitude-by-rarity — plus walks 13-18 and the Voxy/DH research doc. Main
+green, 38 suites. After FF2a: S10, then 3e-2 implementation. Water-model
+design doc open as conversation.)*
 
 ## Sequenced
 
@@ -250,7 +249,19 @@ lessons; session-workflow SKILL.md gained six new guards today.)
 § distance speaks the voxel language; runs immediately after the far-tile
 hole fix integrates): quantize the existing coarse column summaries to
 voxel steps, mesh stepped columns — full fidelity today since worldgen
-terrain is column-shaped; smooth TIN retired. **FF2b — coarse volumetric
+terrain is column-shaped; smooth TIN retired. **Submission substrate
+DECIDED 2026-07-19 (session 3, voxy-dh-recon addendum): standard Bevy
+`Mesh` + the ONE shared terrain material, so the far field rides Bevy
+0.19's engine GPU-driven path (GPU-built indirect draws /
+`multi_draw_indirect_count`, two-phase occlusion culling) — sized to the
+design target (massive draw distance, dense high-variety world), not
+today's bring-up constants. No vertex pulling, no bespoke cmdgen, no
+per-tile materials ever (variety is data: atlas layers + splat
+attributes). FF2a step 0 empirically verifies the multidraw path engages
+for our custom material.** Owns the two field-report defects (buried far
+sheet under near field → coverage logic, not buried lap; T-junction
+cracks → expected cured by stepped-prism sides, verify then skirt only
+what remains). **FF2b — coarse volumetric
 summaries** paired with the caves/underground thread of the water design
 pass (when overhangs exist, the summary goes 3D; couples to S3 region
 storage).
@@ -356,16 +367,14 @@ before any code.
   are solid-sided prisms; adjacent columns share faces — cracks are a
   smooth-TIN disease). Verify during FF2a; skirt only what remains.
 
-- **The Voxy-vs-Distant-Horizons thread — re-derived**
-  (docs/design/voxy-dh-recon-2026-07-19.md, verified research pass
-  2026-07-19; the original session was lost unrecorded — see
-  defer=write-it-now). Key holdings: both mods are persistent
-  derived-cache LOD stores updated on edit (validates our
-  authority-derived summary + dirty-rail design, still owed); Voxy wins
-  via GPU-driven submission (compute-generated indirect draws, 8-byte
-  packed quads + vertex pulling, frustum+Hi-Z GPU culling — transfer
-  map in the doc, FF2a can adopt packed quads); Aokana's SVDAG +
-  ray-marching is the FF2b volumetric candidate. Vista-as-augury
+- **The Voxy-vs-Distant-Horizons thread** *(submission question DECIDED
+  2026-07-19 session 3 — docs/design/voxy-dh-recon-2026-07-19.md
+  § Addendum: far field rides Bevy 0.19's engine GPU-driven path on the
+  one-shared-material `Mesh` substrate; vertex pulling/bespoke cmdgen
+  rejected; packed quad survives only as a candidate storage format.)*
+  Still open from the doc: persistent edit-updated LOD store (summaries
+  beside S3 region files, dirty-rail subscription — still owed); Aokana
+  SVDAG ray-march as the FF2b volumetric candidate. Vista-as-augury
   constraint stands (rendering is never an observer — binds when
   live-sim state becomes far-visible).
 
