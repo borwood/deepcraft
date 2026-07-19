@@ -4,6 +4,8 @@
 //! relative to the floating origin. Walk mode runs dc-core's swept-AABB
 //! collision in voxel units — the conversion happens here, at the edge.
 
+use std::cell::RefCell;
+
 use bevy::input::mouse::AccumulatedMouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
@@ -11,7 +13,8 @@ use dc_core::{Aabb, move_aabb};
 use glam::DVec3;
 
 use crate::PLAYER_HEIGHT_M;
-use crate::app::{ChunkMap, CurrentScale, FloatingOrigin, Terrain, to_render};
+use crate::app::{CurrentScale, FloatingOrigin, to_render};
+use crate::authority::Authority;
 
 /// Player collision width in meters (x and z).
 pub const PLAYER_WIDTH_M: f64 = 0.6;
@@ -60,18 +63,13 @@ impl Player {
     }
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "bevy system: each parameter is a distinct resource"
-)]
 pub fn update_player(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
     motion: Res<AccumulatedMouseMotion>,
     cursor_options: Single<&CursorOptions>,
-    terrain: Res<Terrain>,
+    mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
-    map: Res<ChunkMap>,
     mut player: ResMut<Player>,
 ) {
     let dt = f64::from(time.delta_secs()).min(MAX_STEP_S);
@@ -128,7 +126,12 @@ pub fn update_player(
         vscale.meters_to_voxels(PLAYER_WIDTH_M / 2.0),
         vscale.meters_to_voxels(PLAYER_HEIGHT_M),
     );
-    let solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+    // Collision reads the AUTHORITY's solidity (edits included), lazily
+    // generating any unstreamed chunk at a streaming edge — never the client
+    // cache's old wrong-world S1 fallback (journal/0017). The `RefCell` gives
+    // the `Fn`-typed `VoxelQuery` interior-mutable access to the hosted world.
+    let authority_cell = RefCell::new(&mut *authority);
+    let solid = |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
     let result = move_aabb(&solid, aabb, to_voxels(player.vel_m * dt));
 
     player.pos_m += result.delta * vscale.voxel_size_m();

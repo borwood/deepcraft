@@ -42,10 +42,32 @@ use bevy::prelude::*;
 use dc_core::{CHUNK_SIZE, ChunkPos, VoxelScale};
 use glam::DVec3;
 
-use crate::app::{ChunkMaterial, CurrentScale, FloatingOrigin, Terrain, to_render};
+use crate::app::{ChunkMaterial, CurrentScale, FloatingOrigin, to_render};
 use crate::meshing::mesh_chunk;
 use crate::player::Player;
 use crate::streaming::to_bevy_mesh;
+use crate::worldgen::TerrainGen;
+
+/// The legacy S1 [`TerrainGen`] the far-mesh rings still sample from — owned
+/// here and NOWHERE else in the near-field pipeline.
+///
+/// **KNOWN DEFECT (ROADMAP Observed, journal/0017).** Under the worldgen
+/// authority (surface ~1000 m) this generator's surface sits at ~8 m, so the
+/// far rings paint a *phantom old world* ~1 km below the real terrain that
+/// dissolves as the player approaches and near-field chunks stream in. Sourcing
+/// far rings from a coarse worldgen summary is renderer-scale work (a persisted
+/// LOD/summary pyramid — see the far-field Observed items); until then the far
+/// field is honestly, loudly wrong here rather than silently wrong inside a
+/// shared cache. The S1-fallback sweep removed every *near-field* consumer of
+/// this generator; this resource is the single sanctioned survivor.
+#[derive(Resource)]
+pub struct FarFieldTerrain(pub(crate) TerrainGen);
+
+impl FarFieldTerrain {
+    pub fn new(seed: i32) -> Self {
+        Self(TerrainGen::new(seed))
+    }
+}
 
 /// Full-detail radius in meters (S1 shipped 72 m; S3 raises it and hangs the
 /// far field beyond it).
@@ -171,7 +193,7 @@ pub fn stream_far_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<ChunkMaterial>,
-    terrain: Res<Terrain>,
+    terrain: Res<FarFieldTerrain>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
     origin: Res<FloatingOrigin>,

@@ -15,20 +15,20 @@
 //! transmog are step 3+). The plan drives geometry and the verb→slot bindings;
 //! `body.rs` drives the motion.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 use bevy::prelude::*;
 use dc_api::Posture;
 use dc_api::bodies::{AnimClip, BodyPlan, biped_clips, biped_plan};
-use dc_core::VoxelScale;
+use dc_core::{VoxelQuery, VoxelScale};
 use glam::DVec3;
 
-use crate::app::{ChunkMap, CurrentScale, FloatingOrigin, Fullbright, Terrain, to_render};
+use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
     AnimState, CROUCH_ROOT_DROP_M, pose_for, resolve_orientation, solve_leg_ik, stepped_angle,
 };
-use crate::worldgen::TerrainGen;
 
 /// Root marker on a character's body root entity (translation = feet, rotation
 /// = yaw). Which character it is lives in [`CharacterVisuals::bodies`].
@@ -96,9 +96,7 @@ pub fn sync_characters(
     mut materials: ResMut<Assets<StandardMaterial>>,
     fullbright: Res<Fullbright>,
     origin: Res<FloatingOrigin>,
-    authority: Res<Authority>,
-    map: Res<ChunkMap>,
-    terrain: Res<Terrain>,
+    mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
     mut visuals: ResMut<CharacterVisuals>,
     mut transforms: Query<&mut Transform, With<BodySegment>>,
@@ -192,7 +190,18 @@ pub fn sync_characters(
     let mut seen: Vec<String> = Vec::new();
     let mut to_spawn: Vec<(String, DVec3, f32, f64)> = Vec::new();
 
-    for character in authority.world.characters() {
+    // Collect the characters first (releasing the shared authority borrow),
+    // then build the foot-IK ground query over the SAME authority. Foot
+    // placement reads the world the body actually stands in — edits included,
+    // lazily generating an unstreamed chunk — never the old S1 far-mesh phantom
+    // the render cache used to fall back to (walk-11 loose end / journal/0017).
+    // Generating a chunk here is a pure, deterministic memoization of the host;
+    // it never touches sim/replay state, so the animation firewall holds.
+    let characters: Vec<dc_api::CharacterState> = authority.world.characters().cloned().collect();
+    let authority_cell = RefCell::new(&mut *authority);
+    let solid = |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
+
+    for character in &characters {
         seen.push(character.name.clone());
         let feet = DVec3::new(character.pos_m.x, character.pos_m.y, character.pos_m.z);
         let translation = to_render(feet - origin.0);
@@ -242,7 +251,7 @@ pub fn sync_characters(
                     let foot_z = feet.z + hz + dfz;
                     let foot_y = hip_y + fy;
                     if let Some(ground) =
-                        ground_top_m(&map, &terrain.0, vscale, foot_x, foot_z, foot_y, half_voxel)
+                        ground_top_m(&solid, vscale, foot_x, foot_z, foot_y, half_voxel)
                     {
                         let adjust = ground - foot_y;
                         if adjust.abs() > 1e-3 && adjust.abs() <= half_voxel {
@@ -428,12 +437,12 @@ fn rotate_y_xz(yaw: f64, x: f64, z: f64) -> (f64, f64) {
 }
 
 /// The top face height (meters) of the highest solid voxel under a foot column,
-/// scanning a half-voxel window around `near_y_m`. Reads the render/collision
-/// cache (`ChunkMap`) — the loaded solidity the renderer already sees, a legal
-/// one-way read. `None` when the window holds no solid (the foot then floats).
+/// scanning a half-voxel window around `near_y_m`. Reads `solid` — the active
+/// authority's solidity (edits included), a legal one-way world read for
+/// cosmetic foot placement. `None` when the window holds no solid (the foot
+/// then floats).
 fn ground_top_m(
-    map: &ChunkMap,
-    terrain: &TerrainGen,
+    solid: &impl VoxelQuery,
     scale: VoxelScale,
     x_m: f64,
     z_m: f64,
@@ -447,7 +456,7 @@ fn ground_top_m(
     let vy_lo = scale.voxel_at(near_y_m - half_voxel_m) - 1;
     let mut vy = vy_hi;
     while vy >= vy_lo {
-        if map.is_solid(terrain, scale, vx, vy, vz) {
+        if solid.is_solid(vx, vy, vz) {
             return Some((vy as f64 + 1.0) * vs);
         }
         vy -= 1;

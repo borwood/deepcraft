@@ -15,6 +15,8 @@
 //! neighbor can mis-cull a border face until it streams in — accepted,
 //! self-healing, and noted in journal/0002).
 
+use std::cell::RefCell;
+
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::Indices;
 use bevy::prelude::*;
@@ -22,8 +24,7 @@ use bevy::render::render_resource::PrimitiveTopology;
 use dc_core::{CHUNK_SIZE, ChunkPos};
 
 use crate::app::{
-    ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, LoadedChunk, Terrain,
-    to_render,
+    ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, LoadedChunk, to_render,
 };
 use crate::authority::Authority;
 use crate::meshing::{MeshData, mesh_chunk};
@@ -46,7 +47,6 @@ pub fn stream_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<ChunkMaterial>,
-    terrain: Res<Terrain>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
     origin: Res<FloatingOrigin>,
@@ -104,13 +104,20 @@ pub fn stream_chunks(
     missing.sort_unstable_by_key(|(d, _)| *d);
 
     for (_, pos) in missing.into_iter().take(LOAD_BUDGET_PER_FRAME) {
-        // Clone from the authority (lazily generated there via the same
-        // TerrainGen, plus any applied edits) — the cache never re-generates.
+        // Clone from the authority (lazily generated there, plus any applied
+        // edits) — the cache never re-generates.
         let chunk = authority.world.chunk(pos).clone();
         // Render-only material contents (worldgen authority; None otherwise).
         // The block chunk above already warmed the generator's column cache.
         let contents = authority.chunk_contents(pos);
-        let neighbor_solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+        // Border faces cull against the AUTHORITY (edits included, lazily
+        // generating an unstreamed neighbour) — never the old wrong-world S1
+        // fallback (journal/0017). Built AFTER the fetches above so the mutable
+        // authority borrows don't overlap; generating a neighbour here also
+        // warms the very cache this streamer is about to want.
+        let authority_cell = RefCell::new(&mut *authority);
+        let neighbor_solid =
+            |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
         let mesh_data = mesh_chunk(
             &chunk,
             pos,

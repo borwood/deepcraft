@@ -41,7 +41,7 @@ use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
 use crate::PLAYER_HEIGHT_M;
-use crate::app::{ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, Terrain, to_render};
+use crate::app::{ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, to_render};
 use crate::mcp::{BridgeRequest, McpBridge};
 use crate::meshing::mesh_chunk;
 use crate::physdemo::PhysicsDemo;
@@ -306,26 +306,36 @@ impl Authority {
         }
     }
 
-    /// Is the voxel at world position `p` (meters) solid, read from the
-    /// **authoritative** hosted world (terrain + edits) at the active scale?
+    /// Solidity at a **world voxel** coordinate over the active scale, read
+    /// from the **authoritative** hosted world (terrain + edits), lazily
+    /// generating the containing chunk if it has not streamed yet.
     ///
-    /// This is what `eye_in_solid` must consult. The client-side `ChunkMap`
-    /// answer falls back to the legacy S1 [`TerrainGen`] for any chunk that has
-    /// not streamed yet — a *different world* from the worldgen authority — so
-    /// right after a teleport it reports the eye in air (S1 ground sits at ~8 m)
-    /// while the worldgen surface is ~1000 m up: a false negative that told the
-    /// walk-12 walker it was clear while it distrusted the view (journal/0015).
-    /// The host world lazily generates the one chunk and always answers for the
-    /// world the player is actually standing in.
+    /// This is the client's single world-answer surface for solidity (doctrine,
+    /// docs/ARCHITECTURE.md § "One world-answer surface"). Every gameplay
+    /// system that asks "is this voxel solid?" — player collision, character
+    /// ground-finding, the crosshair edit raycast, physics collider tiles, and
+    /// mesh-border face culling — routes here or through the closure it backs.
+    ///
+    /// The client-side [`ChunkMap`] is a render/collision *cache*: it answers
+    /// only for chunks it holds and never invents an answer for one it does
+    /// not. Its former miss path fell back to the legacy S1 [`TerrainGen`] — a
+    /// *different world* under the worldgen authority (S1 ground ~8 m, worldgen
+    /// ~1000 m) — which silently shipped a wrong-world answer into every one of
+    /// those systems for any not-yet-streamed chunk (journal/0015–0017).
+    pub fn is_solid_voxel(&mut self, x: i64, y: i64, z: i64) -> bool {
+        self.world.block_at(Vec3i::new(x, y, z)).is_solid()
+    }
+
+    /// Is the voxel at world position `p` (meters) solid? Meters-typed shim over
+    /// [`Self::is_solid_voxel`] at the active scale — what `eye_in_solid`
+    /// consults (journal/0015).
     pub fn is_solid_m(&mut self, p: DVec3) -> bool {
         let scale = self.scale;
-        self.world
-            .block_at(Vec3i::new(
-                scale.voxel_at(p.x),
-                scale.voxel_at(p.y),
-                scale.voxel_at(p.z),
-            ))
-            .is_solid()
+        self.is_solid_voxel(
+            scale.voxel_at(p.x),
+            scale.voxel_at(p.y),
+            scale.voxel_at(p.z),
+        )
     }
 
     /// Open-ground spawn over the active authority: spiral out from the origin
@@ -891,7 +901,7 @@ pub fn remesh_dirty(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<ChunkMaterial>,
-    terrain: Res<Terrain>,
+    mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
     origin: Res<FloatingOrigin>,
     mut map: ResMut<ChunkMap>,
@@ -908,7 +918,12 @@ pub fn remesh_dirty(
         }
         let mesh_data = {
             let loaded = &map.loaded[&pos];
-            let neighbor_solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+            // Border faces cull against the AUTHORITY's solidity (edits
+            // included), lazily generating an unstreamed neighbour — never the
+            // client cache's old wrong-world S1 fallback (journal/0017).
+            let authority_cell = RefCell::new(&mut *authority);
+            let neighbor_solid =
+                |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
             // Reuse the chunk's existing render-only contents: an edit changes
             // blocks, not materials (ROADMAP 3c-2), and the mesher's block gate
             // keeps stale contents from a re-typed voxel out of the dither.
@@ -1525,6 +1540,88 @@ pub(crate) mod tests {
         assert!(!a.is_solid_m(DVec3::new(0.3, 3000.0, 0.7)));
     }
 
+    /// The S1-fallback-sweep tripwire (journal/0017). With an **empty** chunk
+    /// cache — the state right after a teleport, exactly when every gameplay
+    /// system asks its solidity question — a known-solid worldgen voxel deep
+    /// below the ~1000 m surface must answer *solid* through every public
+    /// solidity path a gameplay system reaches: the point query
+    /// ([`Authority::is_solid_voxel`]) and the `Fn` closure the collision,
+    /// raycast, and physics sites build over it (`dc-core`'s `move_aabb`,
+    /// `raycast_voxels`, and the `VoxelQuery` the physics step consumes).
+    ///
+    /// On pre-sweep `main` these sites consulted `ChunkMap::is_solid`, whose
+    /// empty-cache miss fell back to the legacy S1 [`TerrainGen`] (surface
+    /// ~8 m), which calls this voxel **air** — the assertions below would fail.
+    /// It therefore catches all six routed sites at once: player collision
+    /// (`player.rs`), character ground-finding (`character.rs`), the crosshair
+    /// edit raycast (`edit.rs`), physics collider tiles (`physdemo.rs`), and
+    /// mesh-border culling (`streaming.rs` + `remesh_dirty`).
+    #[test]
+    fn empty_cache_solidity_paths_read_the_worldgen_authority() {
+        use dc_core::{move_aabb, raycast_voxels};
+
+        let mut a = Authority::new(1337, 2);
+        let scale = a.scale;
+        let vpm = scale.voxels_per_meter();
+        // A voxel deep in the worldgen ground (surface ~1000 m). The same point
+        // the eye_in_solid tripwire uses — proven solid for this seed.
+        let deep_m = DVec3::new(0.3, 900.0, 0.7);
+        let (dx, dy, dz) = (
+            scale.voxel_at(deep_m.x),
+            scale.voxel_at(deep_m.y),
+            scale.voxel_at(deep_m.z),
+        );
+
+        // The wrong world the old empty-cache fallback consulted: pure air here.
+        let s1 = TerrainGen::new(1337);
+        assert_eq!(
+            s1.block_at(scale, dx, dy, dz),
+            Block::Air,
+            "precondition: the old ChunkMap-miss fallback (S1) calls this voxel air"
+        );
+
+        // 1) The point query every site funnels through.
+        assert!(
+            a.is_solid_voxel(dx, dy, dz),
+            "is_solid_voxel must read the worldgen authority with an empty cache"
+        );
+
+        // 2) The `Fn` closure the collision / raycast / physics sites build over
+        //    it — no ChunkMap in sight, so it can only be the authority.
+        let cell = RefCell::new(&mut a);
+        let solid = |x: i64, y: i64, z: i64| cell.borrow_mut().is_solid_voxel(x, y, z);
+
+        assert!(solid(dx, dy, dz), "closure form reads the authority");
+
+        // Raycast straight down from high sky finds the worldgen surface (the S1
+        // fallback would only ever hit ~8 m, far outside a ray aimed at 900 m).
+        let ray_origin = DVec3::new(
+            dx as f64 + 0.5,
+            scale.voxel_at(2000.0) as f64 + 0.5,
+            dz as f64 + 0.5,
+        );
+        let hit = raycast_voxels(&solid, ray_origin, DVec3::new(0.0, -1.0, 0.0), 3000.0 * vpm);
+        assert!(
+            hit.is_some(),
+            "a downward ray finds the worldgen ground through the authority"
+        );
+
+        // Player-collision path: a body dropped just above the solid voxel is
+        // stopped by it (the most serious old defect — no collision at
+        // streaming edges).
+        let half = PLAYER_WIDTH_M / 2.0 * vpm;
+        let aabb = Aabb::from_bottom_center(
+            DVec3::new(dx as f64 + 0.5, dy as f64 + 2.0, dz as f64 + 0.5),
+            half,
+            PLAYER_HEIGHT_M * vpm,
+        );
+        let result = move_aabb(&solid, aabb, DVec3::new(0.0, -4.0, 0.0));
+        assert!(
+            result.on_ground && result.hit_y,
+            "collision must land on the worldgen ground, not fall through the S1 phantom"
+        );
+    }
+
     /// Decision A determinism proof at the SEAM: two independent worldgen
     /// authorities from one seed, generating the same chunk set in OPPOSITE
     /// orders, produce byte-identical chunks. The collapse caches memoize but
@@ -1582,6 +1679,58 @@ pub(crate) mod tests {
         println!(
             "worldgen seam cold-chunk mean: {mean_ms:.3} ms over {} chunks \
              (S7 headless surface mean: 0.711 ms)",
+            positions.len()
+        );
+    }
+
+    /// Perf reference (S1-fallback sweep, journal/0017): the mesh-border culling
+    /// cost when neighbour solidity comes from the AUTHORITY (lazily generating
+    /// an unstreamed neighbour through worldgen) vs. the old S1-analytic
+    /// fallback. Both passes mesh the SAME worldgen chunks; only the
+    /// border-neighbour query differs, so the delta is the sweep's meshing tax.
+    /// Prints with `--nocapture`; no hard threshold (machine-dependent).
+    #[test]
+    fn mesh_border_culling_cost_authority_vs_s1() {
+        use crate::meshing::mesh_chunk;
+        use std::time::Instant;
+        const SEED: i32 = 1337;
+
+        let mut a = Authority::new(SEED, 2);
+        let positions = worldgen_sample_positions(&mut a);
+        let scale = a.scale;
+        let vs = scale.voxel_size_m() as f32;
+
+        // (A) OLD: border faces cull against the legacy S1 analytic field.
+        let s1 = TerrainGen::new(SEED);
+        let chunks_a: Vec<_> = positions
+            .iter()
+            .map(|&p| (p, a.world.chunk(p).clone()))
+            .collect();
+        let start_a = Instant::now();
+        for (p, chunk) in &chunks_a {
+            let neighbor = |x: i64, y: i64, z: i64| s1.block_at(scale, x, y, z).is_solid();
+            let _ = mesh_chunk(chunk, *p, vs, &neighbor, None);
+        }
+        let ms_a = start_a.elapsed().as_secs_f64() * 1000.0 / chunks_a.len() as f64;
+
+        // (B) NEW: border faces cull against the authority (lazy worldgen
+        // neighbour). A fresh authority so neighbour generation is cold.
+        let mut b = Authority::new(SEED, 2);
+        let chunks_b: Vec<_> = positions
+            .iter()
+            .map(|&p| (p, b.world.chunk(p).clone()))
+            .collect();
+        let cell = RefCell::new(&mut b);
+        let neighbor = |x: i64, y: i64, z: i64| cell.borrow_mut().is_solid_voxel(x, y, z);
+        let start_b = Instant::now();
+        for (p, chunk) in &chunks_b {
+            let _ = mesh_chunk(chunk, *p, vs, &neighbor, None);
+        }
+        let ms_b = start_b.elapsed().as_secs_f64() * 1000.0 / chunks_b.len() as f64;
+
+        println!(
+            "mesh-border culling mean per chunk over {} chunks: S1-analytic (old) {ms_a:.3} ms, \
+             authority lazy-neighbour cold (new) {ms_b:.3} ms",
             positions.len()
         );
     }
