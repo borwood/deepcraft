@@ -104,3 +104,34 @@ The thickness/class-presence quantization (e.g. a sandstone cap appearing via
 quantization has several candidate cells (pregen cell vs collapse unit),
 measure which one the artifact actually rides before naming the field that
 steps.
+
+## 7. "env!(CARGO_MANIFEST_DIR) is a fine way for tests to find the workspace" (2026-07-19)
+
+**Claim** (implicit in dc-host test plumbing since S5): compile-time
+`env!("CARGO_MANIFEST_DIR")` locates the workspace for spawning the nested
+demo-plugin build.
+**Falsified during S9 integration**: agent worktrees share one
+`CARGO_TARGET_DIR`; the workspace-feature flavor of the parity test binary
+was last compiled inside a since-deleted worktree, so the baked path pointed
+at nothing (OS 267 NotADirectory at spawn). Solo reruns used a different
+cached feature flavor compiled from main and passed — deterministic per
+flavor, masquerading as flaky.
+**Fix**: runtime `std::env::var("CARGO_MANIFEST_DIR")` with compile-time
+fallback (dc-host tests/common). Standing rule: no `env!`-baked absolute
+paths in anything that outlives its compilation directory.
+
+## 8. "B is minutes, paid once" and "erosion is bounded" (2026-07-19)
+
+**Claims** (earth-processes.md § S9 framing, Claude): full-resolution
+global deep-time (B) costs "minutes, paid once"; and "bounded processes
+(erosion, deposition — not drainage)" can refine regionally.
+**Falsified by S9 measurement**: B at Medium on the scalar engine is
+**~63–80 minutes + ~3 GiB** (minutes only at Small extent or with ~30×
+parallelism — the named flip condition). And only **hillslope** erosion is
+bounded (clean 21-cell decay); **fluvial** erosion inherits drainage's
+global reach (isolated spikes to 26 cells as reroutes teleport along
+receiver chains). C is licensed solely because drainage is decided
+coarse-globally.
+**Lesson**: cost claims and boundedness claims are measurements, not
+adjectives; the halo theorem applies per-process, never to "erosion" as a
+lump.

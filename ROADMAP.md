@@ -7,6 +7,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — S9 deep-time spike (journal/0012, merge `3fd00bb`): the
+  spike era reopens and pays off — two-plane erosion + measurement-tagged
+  strata recorder + orographic march, additive in dc-worldgen. A/B/C
+  measured (A 14 s; B ~63 min/~3 GiB scalar — corrections #8; C region
+  refinement 3.6 s); decay length 21 cells (hillslope), drainage the sole
+  advect; 500 m columns already tell true stories. Verdict: A+C unless
+  parallelism flips B (S9b decides). Integration fought and won a
+  stale-worktree env!-path bomb in the parity tests (corrections #7).
+
 - 2026-07-18 — Repo, architecture, CI (3-OS), five-crate workspace.
 - 2026-07-18 — S1 voxel scale (N=2 decided) · S2 constraint ledger (GO) ·
   S3 chunk format v1 + LOD + far mesh · S4 Forward+ + shader packs ·
@@ -121,10 +130,10 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- S9 deep-time spike (agent launched 2026-07-19; earth-processes.md § S9
-  framing): two-plane erosion + strata recorder + orographic march;
-  A/B/C priced honestly (B a live contender per recorded user doubt);
-  halo decay length measured; process classification table.
+- S9b parallelism mini-spike (agent launched 2026-07-19): parallel
+  priority-flood + parallel erosion step on the S9 harness — the one
+  measurement that can flip the deep-time verdict from A+C to
+  brute-force B (earth-processes.md § S9 VERDICT).
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement

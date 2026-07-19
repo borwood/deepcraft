@@ -10,7 +10,14 @@ use std::sync::OnceLock;
 pub fn plugin_wasm_path() -> PathBuf {
     static WASM: OnceLock<PathBuf> = OnceLock::new();
     WASM.get_or_init(|| {
-        let plugin_dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+        // Resolve the manifest dir at RUNTIME: the compile-time env! path is
+        // baked into the cached artifact, and with agent worktrees sharing
+        // one CARGO_TARGET_DIR the binary may have been compiled in a
+        // since-deleted worktree (NotADirectory at spawn — found the hard
+        // way when a full-workspace gate run picked up a stale flavor).
+        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+            .unwrap_or_else(|_| env!("CARGO_MANIFEST_DIR").to_string());
+        let plugin_dir = Path::new(&manifest_dir)
             .ancestors()
             .nth(2)
             .expect("workspace root")

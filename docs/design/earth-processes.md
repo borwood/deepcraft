@@ -140,6 +140,24 @@ with measured decay length; **process classification** — for each engine
 we care about, does it relax (refine locally) or advect (decide coarse)?
 Rivers are the known advective wall (the 2-ring re-proof item).
 
+**S9 VERDICT (measured 2026-07-19 — docs/spikes/S9-results.md):**
+A (460 m) = 14.1 s / 52 MiB; B (48 m, 27.3 M cells) = **~63 min /
+~3 GiB projected** on the scalar engine (corrections #8 — "minutes" was
+wrong); C refinement ≈ 3.6 s/region. Decay length measured at **21
+cells** for hillslope (clean relaxation); fluvial spikes to 26 via
+drainage reroutes — **drainage/flow-area is the sole ADVECT**, everything
+else in the catalog relaxes at 16–24 cells. Read-quality at 500 m already
+tells true stories (pulsed arid fans, transgressive couplets, condensed
+cyclic margins). **Recommendation: A always-on + C refinement; do NOT
+build B — UNLESS the erosion engine parallelizes** (a parallel
+priority-flood could pull B to ~2 min, where its simplicity wins; that
+mini-spike decides, honoring the recorded user doubt). 3e must also:
+calibrate iteration↔Myr against a real orogen, build the coarse→fine
+drainage handoff + collapse stitching (halo width is now a measured
+budget input), widen recorder tags (agent axis + grain continuum), and
+replace placeholder sea-level/climate curves with epoch-indexed pregen
+state.
+
 ## Standing question for every future pass
 
 "What does this look like in reality, and how did it get there?" — if the

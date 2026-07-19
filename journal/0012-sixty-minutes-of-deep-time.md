@@ -1,8 +1,25 @@
-# 0012 (draft) — deep time in a box: two-plane erosion, and where the halo holds
+# 0012 — deep time in a box: two-plane erosion, and where the halo holds
 
-*Draft from the S9 spike agent. Numbers and full tables in
-docs/spikes/S9-results.md; this is the narrative for the future reader (and the
-blog).*
+*2026-07-19 · S9 spike (background agent; integrated by the main session,
+merge `3fd00bb`, 37 suites green on merged main after one real fight —
+below). Numbers and full tables in docs/spikes/S9-results.md.*
+
+## Integration note: the test that remembered a deleted worktree
+
+The merge's first full-workspace gate run went red — and the failure was
+nowhere near the spike. The dc-host parity suite spawns a nested cargo to
+build the demo plugin wasm, locating the workspace via **compile-time**
+`env!("CARGO_MANIFEST_DIR")` — a path baked into the cached test binary.
+Agent worktrees share one `CARGO_TARGET_DIR`, and the workspace-feature
+flavor of that binary had last been compiled *inside a worktree that no
+longer exists*: `current_dir` → OS error 267, NotADirectory. Solo reruns
+passed (different feature flavor, compiled from main), which made it look
+flaky; it was deterministic per cached flavor. Fix: resolve the manifest
+dir at **runtime** (the test runner sets it in the environment), with the
+compile-time value as fallback. Lesson for the shared-cache-plus-worktrees
+practice: **compile-time absolute paths and shared build caches are
+enemies**; any `env!`-baked path in test plumbing is a stale-worktree bomb
+(corrections #7).
 
 We had a pregen world — 17×17 cells at 14.7 km, tectonics and climate and
 drainage and a thin settlement history, all committed once at world-create
