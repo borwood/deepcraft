@@ -116,9 +116,10 @@ is:
   as an unknown param at define time. The worldgen igneous windows leave those
   axes unbounded, so weather cannot enter selection even internally
   (`FormationWindow::igneous`). Province gating stays in the pass; depth is the
-  member-differentiating axis. *(Design choice for ratification: v1 keeps the
-  province gate in the pass rather than adding a tectonic-setting `Choice`
-  param to the fitness model — geology.md offered "depth_m and/or setting".)*
+  member-differentiating axis. *(RATIFIED 2026-07-19: v1 keeps the province
+  gate in the pass; no provisional tectonic-setting `Choice` param — the
+  setting vocabulary is 3e's to design from pregen history, and 3e promotes
+  `setting` into the class contract then. Per the no-bandaid razor.)*
 
 **Class-satisfiability enforcement (two layers; geology.md § unfilled slots).**
 A class a gen pass selects from can never be silently empty:
