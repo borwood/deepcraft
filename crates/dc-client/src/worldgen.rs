@@ -135,40 +135,51 @@ impl TerrainGen {
     }
 }
 
-/// Headroom above the analytic surface to begin a true-surface scan.
+/// Edit allowance above the **authority's own** per-column surface where the
+/// downward scan begins, in meters.
 ///
-/// `surface_height_m` is an *upper* bound on the true voxel surface *within one
-/// column*: `block_in_column` makes a voxel solid only when its center is below
-/// the analytic height, so the top solid face sits at most half a voxel above
-/// it. The margin adds room for near-surface edits stacked on the ground, so
-/// the scan starts safely in air.
-pub const SURFACE_SCAN_HEADROOM_M: f64 = 8.0;
+/// This is *not* slop against an estimate of the terrain — journal/0016. The
+/// `analytic` closure the scan is seeded with is now the authority's exact
+/// column-surface height (the collapse `ColumnRec` for worldgen; `block_in_column`'s
+/// own half-voxel-exact bound for the legacy S1 terrain), so the ceiling always
+/// sits at or above the true *generated* top solid voxel. The only thing that
+/// can rise above it is a stack of player **edits** placed on the ground, and
+/// this is the headroom for that. It is deliberately small: a ceiling derived
+/// from the terrain's provenance can never drift from the terrain again (the
+/// bug journal/0015 diagnosed — an 8 m S1-sized headroom over a *pre-deep-time*
+/// estimate started the window ~100 m below the moved ground).
+pub const SURFACE_SCAN_EDIT_HEADROOM_M: f64 = 4.0;
 
-/// How far below the scan ceiling [`true_surface_m`] probes before giving up.
-/// Covers the deepest chasm floor (the S1 carve cuts ~90 m below base, and the
-/// ceiling already sits above the surrounding rim).
-pub const SURFACE_SCAN_DEPTH_M: f64 = 220.0;
+/// How far below each column's own ceiling [`true_surface_m`] probes before
+/// giving up on that column. The ceiling now tracks the true surface per
+/// column, so this only has to span the deepest *edit* dug down from the
+/// surface plus generous slack; a genuine miss returns `None` (loud), never a
+/// buried point.
+pub const SURFACE_SCAN_DEPTH_M: f64 = 96.0;
 
 /// The **true** walking surface in meters for a body of footprint half-width
 /// `footprint_half_m` centered at `(xm, zm)`: the highest solid voxel's top
 /// face across every column the footprint covers, read from the live solidity
-/// query `solid` (terrain AND edits), at the active `scale`.
+/// query `solid` (terrain AND edits), at the active `scale`. `None` when *no*
+/// solid voxel is found under the whole footprint within the scan window — an
+/// honest "there is nothing to stand on here" the caller must reject rather
+/// than seat a body on a plausible-looking buried y (journal/0015).
 ///
-/// This is the fix for the `surface_height_m` under-report (ROADMAP Observed;
-/// journal/0006). The analytic heightfield is sampled per column at one point;
-/// a body's footprint spans neighbouring columns, and on a slope the highest of
-/// those can stand meters above the analytic value at the center — so feet
-/// clamped to the analytic height end up embedded in the higher ground. Reading
-/// the actual voxels (max over the footprint) rests the body on what is really
-/// there.
+/// This is the fix for the `surface_height_m` under-report (journal/0006) and,
+/// with the honest ceiling below, for the deep-time ceiling regression
+/// (journal/0015–0016). A body's footprint spans neighbouring columns, and on a
+/// slope the highest of those can stand meters above the value at the center —
+/// so the resting surface is the *max* of the per-column top faces.
 ///
-/// `analytic` is the per-column analytic height (`surface_height_m`), used only
-/// to start each column's downward scan safely in air: within a column the
-/// analytic height is an upper bound on the true voxel surface (a voxel is
-/// solid only if its center is below it). It is sampled *per footprint column*,
-/// not once — a shared ceiling from the center column would start below a
-/// steeper edge column's real surface and miss its top voxels (found the hard
-/// way; see the discrepancy test).
+/// `analytic` is the authority's **exact** per-column surface height — the
+/// collapse `ColumnRec` height for the worldgen authority (deep-time-aware, so
+/// the window tracks the real ground) or the S1 `surface_height_m` (a
+/// half-voxel-exact upper bound by construction). It seeds each column's
+/// downward scan a small [`SURFACE_SCAN_EDIT_HEADROOM_M`] above its own surface,
+/// so the window is derived from the terrain's own provenance, never an
+/// independent estimate that could drift from it. It is sampled *per footprint
+/// column*, not once — a shared ceiling from the center column would start below
+/// a steeper edge column's real surface and miss its top voxels.
 pub fn true_surface_m(
     solid: &impl VoxelQuery,
     analytic: impl Fn(f64, f64) -> f64,
@@ -176,7 +187,7 @@ pub fn true_surface_m(
     xm: f64,
     zm: f64,
     footprint_half_m: f64,
-) -> f64 {
+) -> Option<f64> {
     let vs = scale.voxel_size_m();
     let x0 = scale.voxel_at(xm - footprint_half_m);
     let x1 = scale.voxel_at(xm + footprint_half_m);
@@ -185,23 +196,32 @@ pub fn true_surface_m(
     let mut top: Option<i64> = None;
     for x in x0..=x1 {
         for z in z0..=z1 {
-            // Each column scans down from above its OWN analytic surface.
+            // Each column scans down from a small edit-headroom above its OWN
+            // authority surface — an honest ceiling, not an estimate.
             let (cx, cz) = ((x as f64 + 0.5) * vs, (z as f64 + 0.5) * vs);
             let h = analytic(cx, cz);
-            let ceil_y = scale.voxel_at(h + SURFACE_SCAN_HEADROOM_M);
+            let ceil_y = scale.voxel_at(h + SURFACE_SCAN_EDIT_HEADROOM_M);
             let floor_y = scale.voxel_at(h - SURFACE_SCAN_DEPTH_M);
             if let Some(y) = column_top_solid_y(solid, x, z, ceil_y, floor_y) {
+                // The ceiling must sit strictly ABOVE the true top solid voxel:
+                // if the topmost voxel in the window is itself solid, the window
+                // started at or below the ground and may be hiding solid above
+                // it — exactly the deep-time-outran-the-ceiling failure
+                // (journal/0015). In generated terrain (no tall edits) this can
+                // never happen; the assertion catches a ceiling that drifts
+                // below the terrain again.
+                debug_assert!(
+                    y < ceil_y,
+                    "surface scan ceiling below solid ground at column ({x}, {z}): \
+                     top solid voxel {y} reached the ceiling {ceil_y} (analytic h = {h:.2} m); \
+                     the scan window is starting inside the terrain"
+                );
                 top = Some(top.map_or(y, |t| t.max(y)));
             }
         }
     }
-    match top {
-        // Rest on the solid voxel's top face.
-        Some(y) => (y + 1) as f64 * vs,
-        // Entirely air under the footprint (open chasm): the center column's
-        // scan floor, so a teleport there at least lands deterministically.
-        None => scale.voxel_at(analytic(xm, zm) - SURFACE_SCAN_DEPTH_M) as f64 * vs,
-    }
+    // Rest on the solid voxel's top face, or report the honest miss.
+    top.map(|y| (y + 1) as f64 * vs)
 }
 
 #[cfg(test)]
@@ -298,7 +318,8 @@ mod tests {
                         xm,
                         zm,
                         half,
-                    );
+                    )
+                    .expect("a land column above -20 m always has a surface");
                     let gap = truth - analytic;
                     if gap > worst_gap {
                         worst_gap = gap;
