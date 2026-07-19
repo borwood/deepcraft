@@ -68,9 +68,13 @@ fn vertex(v: Vertex) -> VsOut {
     return out;
 }
 
-// A stable tangent frame for an axis-aligned voxel face normal.
+// A stable tangent frame for an axis-aligned voxel face normal. The helper
+// must never be parallel to n: world-up works for every side face (±X AND
+// ±Z — a (0,0,1) helper is parallel to ±Z normals, whose cross is zero and
+// whose normalize is NaN, which painted every ±Z face black in walk 14);
+// X serves the top/bottom faces where up is parallel instead.
 fn tangent_frame(n: vec3<f32>) -> mat3x3<f32> {
-    let helper = select(vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 0.0, 1.0), abs(n.y) < 0.99);
+    let helper = select(vec3<f32>(1.0, 0.0, 0.0), vec3<f32>(0.0, 1.0, 0.0), abs(n.y) < 0.99);
     let t = normalize(cross(helper, n));
     let b = cross(n, t);
     return mat3x3<f32>(t, b, n);

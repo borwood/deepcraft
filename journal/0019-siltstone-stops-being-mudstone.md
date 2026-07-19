@@ -166,3 +166,56 @@ Left for the main session's milestone walk (name the shots for
 - A far-field / near-field boundary shot to confirm the single-material world has
   no texture seam at the load radius (the phantom-far-world defect is separate,
   ROADMAP Observed).
+
+## Walk 14 (main session): the black wall, and the NaN in the tangent frame
+
+*Appended by the integrating session after the milestone walk. Merge
+`c49566f`; gates re-run green on merged main (38 suites, case-sensitive).*
+
+The first lit photograph of the quarry cut came back with the north wall
+**pitch black** — not dark: black, emission-of-nothing black — while the
+east/west walls and the floor rendered lit and textured beside it. A
+no-shadow renderer (sun + hemispherical ambient) cannot legitimately
+produce a black exterior face, so the walk had found a real defect within
+its first three frames. The pattern (±Z faces black, ±X and top faces
+fine) pointed at the one thing that differs per face orientation: the
+tangent frame.
+
+`tangent_frame` chose its helper vector as `(0,0,1)` for every non-top
+face. For a ±Z face the helper is **parallel to the normal** —
+`cross(helper, n)` is the zero vector, `normalize(0)` is NaN, and the NaN
+propagates through the perturbed normal into every lighting term. The
+±X faces worked by luck of the cross product; the ±Z faces rendered the
+color of NaN, which the framebuffer clamps to black. One-line fix: the
+helper is world-up for side faces (never parallel to any horizontal
+normal) and X for top/bottom. Re-shot: every face lit.
+
+> blogworthy: the color of NaN. A shader bug that produces *wrongly lit*
+> faces gets caught by taste; one that produces NaN gets caught only by a
+> walk, because NaN clamps to a black that looks like "shadow" until you
+> remember the renderer has no shadows.
+
+What the re-shot walk recorded (assets 0019-*): the **textured-outcrop**
+and **strata-band-closeup** — the 0018 quarry under real lighting, grass
+rim / brown soil-mudstone cap / black basalt band / pale granite mass, the
+first photographs where the geology is *textured* and readable at outcrop
+scale. The **lit-vista** — terrace risers shading differently by
+orientation, top faces holding under the sun with no walk-3 blowout at
+this calibration. And the **fullbright-unchanged** control, which was
+honest enough to file a finding instead of a confirmation:
+
+**Fullbright lost the mixture speckle.** The old mosaic gave the
+diagnostic mode per-subquad dither colors; the single-quad splat mesh
+carries one blended vertex color, so a mixed granite/olivine wall now
+reads as a uniform pale field under fullbright. The unlit *path* is
+unchanged (the hard constraint holds — flat color, no lighting, protocol
+functional); the mixed-face *appearance* is not. Mixture presence is now
+visible only in the lit path. Filed to Observed with the question it
+raises: does the walk protocol want a fullbright splat variant, or is
+lit-path-only mixture visibility acceptable?
+
+Not photographed, owed: the **siltstone-vs-mudstone member contact** (the
+walk-10 kill shot) — under grass cover a fine-clastic member contact is
+not findable by eye; the hunt wants the pregen-introspection dev MCP
+tools already in Observed. The placer closeup rides with it (same
+scan-guided-site problem, ~60 km out).

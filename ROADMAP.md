@@ -7,9 +7,10 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
-- 2026-07-19 — **PBR-1: the real material renderer** (journal/0019, background
-  agent, gates green on the worktree branch — **integration + milestone walk
-  owed to the main session**). The interim vertex-color dither/mosaic
+- 2026-07-19 — **PBR-1: the real material renderer** (journal/0019, merged
+  `c49566f`, gates green on merged main; **walk 14 done** — which caught a
+  ±Z-face NaN in the shader's tangent frame within three frames, fixed in
+  integration, journal/0019 § walk 14). The interim vertex-color dither/mosaic
   (journal/0010) is replaced by a **custom Forward+ LabPBR material**: three
   `texture_2d_array`s (basecolor / normal+AO / specular), layer index = material
   id, blended per fragment by height/AO contrast (heightlerp). **Mixed faces
@@ -23,10 +24,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   material count with four **block-only** layers (grass/dirt/stone/wood) so a
   *single* material renders the whole lit world — near geology, uniform strata,
   the far LOD rings, and the legacy S1 terrain — with no seam. `--fullbright`
-  is unchanged: the same mesh carries both vertex color and splat data, and the
-  streamer picks the unlit `StandardMaterial` under the flag (validated live:
-  clean startup on Vulkan/RTX 3070, both lit and fullbright, no shader/pipeline
-  errors). Directional sun + hemispherical ambient only (PBR-2 owns shadows,
+  path unchanged: the same mesh carries both vertex color and splat data, and
+  the streamer picks the unlit `StandardMaterial` under the flag — but walk 14
+  found mixed-face *appearance* changed (speckle loss, Observed below). Directional sun + hemispherical ambient only (PBR-2 owns shadows,
   point lights, tonemap/HDR, POM, water; never GI). Placeholder packs regenerated
   21 → 26 to cover the full `MaterialId` registry (the 3d roster widening:
   siltstone/conglomerate/diorite/andesite/olivine got packs). **NEEDS
@@ -278,12 +278,22 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- PBR-1 loose ends (journal/0019, walk owed):
+- Walk 14 (journal/0019 § walk 14): **fullbright lost the mixture
+  speckle** — the single-quad splat mesh carries one blended vertex color,
+  so mixed faces read uniform under fullbright (the mosaic's sub-quad
+  dither colors are gone); the unlit path itself is intact. Open question:
+  a fullbright splat variant for the walk protocol, or lit-path-only
+  mixture visibility is acceptable. **Member-contact + placer closeup
+  shots owed** — not findable by eye under ground cover; wants the
+  pregen-introspection dev MCP tools (walk-9 Observed item).
+
+- PBR-1 loose ends (journal/0019):
   - **Terrain lighting is hand-rolled** (directional sun + hemispherical
     ambient from a plain uniform, not Bevy's clustered path — PBR-1 has no point
-    lights). The sun/ambient calibration is unphotographed against the walk-3
-    top-face blowout note; art-pass / walk judgement owed (couples to PBR-2's
-    HDR + tonemap, where the curve becomes real).
+    lights). Sun/ambient calibration photographed in walk 14 (0019 assets:
+    lit-vista, textured-outcrop — no top-face blowout at this calibration);
+    **user read owed for the SPLAT_N=4 + calibration ratification**; the
+    real curve arrives with PBR-2's HDR + tonemap.
   - **Far field + legacy S1 are now textured too** (one material renders the
     whole lit world). The phantom-far-world defect (below) is unchanged — it now
     paints a *textured* phantom ~1 km down; still needs the summary-shaped far
