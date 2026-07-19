@@ -265,10 +265,13 @@ impl Authority {
     /// The TRUE walking surface (meters) under a footprint at `(xm, zm)` over
     /// the ACTIVE authority: the highest solid voxel top across the footprint
     /// columns, read from the hosted world's real solidity (edits included),
-    /// each column scanned from its own analytic ceiling (journal/0006). Works
-    /// over both authorities — the only difference is where the per-column
+    /// each column scanned from its own **exact** authority ceiling — the
+    /// collapse `ColumnRec` height for worldgen (deep-time-aware, journal/0015),
+    /// `surface_height_m` for S1. `None` when nothing solid is under the whole
+    /// footprint: an honest miss the caller must reject, never a buried point.
+    /// Works over both authorities — the only difference is where the per-column
     /// ceiling comes from.
-    pub fn true_surface_m(&mut self, xm: f64, zm: f64, footprint_half_m: f64) -> f64 {
+    pub fn true_surface_m(&mut self, xm: f64, zm: f64, footprint_half_m: f64) -> Option<f64> {
         let scale = self.scale;
         // Split the borrow: the analytic ceiling reads `self.surface`
         // (immutably / via the generator mutex), the solidity reads
@@ -303,6 +306,28 @@ impl Authority {
         }
     }
 
+    /// Is the voxel at world position `p` (meters) solid, read from the
+    /// **authoritative** hosted world (terrain + edits) at the active scale?
+    ///
+    /// This is what `eye_in_solid` must consult. The client-side `ChunkMap`
+    /// answer falls back to the legacy S1 [`TerrainGen`] for any chunk that has
+    /// not streamed yet — a *different world* from the worldgen authority — so
+    /// right after a teleport it reports the eye in air (S1 ground sits at ~8 m)
+    /// while the worldgen surface is ~1000 m up: a false negative that told the
+    /// walk-12 walker it was clear while it distrusted the view (journal/0015).
+    /// The host world lazily generates the one chunk and always answers for the
+    /// world the player is actually standing in.
+    pub fn is_solid_m(&mut self, p: DVec3) -> bool {
+        let scale = self.scale;
+        self.world
+            .block_at(Vec3i::new(
+                scale.voxel_at(p.x),
+                scale.voxel_at(p.y),
+                scale.voxel_at(p.z),
+            ))
+            .is_solid()
+    }
+
     /// Open-ground spawn over the active authority: spiral out from the origin
     /// to a column whose analytic surface is clearly above sea level, then seat
     /// the feet on the TRUE voxel surface there (never the analytic height,
@@ -328,7 +353,14 @@ impl Authority {
                 }
             }
         }
-        let surface = self.true_surface_m(sx, sz, PLAYER_WIDTH_M / 2.0);
+        // The ring search only accepts columns whose analytic surface is
+        // clearly above sea level, so the true-surface scan finds ground there;
+        // if it somehow does not (all air under the footprint), fall back to the
+        // analytic height rather than panicking — a deterministic, above-ground
+        // landing.
+        let surface = self
+            .true_surface_m(sx, sz, PLAYER_WIDTH_M / 2.0)
+            .unwrap_or_else(|| self.analytic_height_m(sx, sz));
         DVec3::new(sx, surface + 2.0, sz)
     }
 
@@ -498,7 +530,24 @@ impl Authority {
         // height only seeds each column's scan ceiling).
         let mut feet = pos;
         if surface {
-            feet.y = self.true_surface_m(pos.x, pos.z, half_m) + 0.05;
+            match self.true_surface_m(pos.x, pos.z, half_m) {
+                Some(y) => feet.y = y + 0.05,
+                None => {
+                    // No ground under the footprint (open air / chasm): refuse
+                    // rather than snap the body to a buried fallback y.
+                    let _ = reply.send(json!({
+                        "ok": false,
+                        "code": "no_surface",
+                        "character": name,
+                        "error": format!(
+                            "cannot attach `{name}`: no solid ground found under the footprint \
+                             at ({:.2}, {:.2}) to drop onto. Choose a position over land.",
+                            pos.x, pos.z
+                        ),
+                    }));
+                    return;
+                }
+            }
         }
 
         // Embed guard: reject rather than create a stuck statue.
@@ -680,9 +729,6 @@ pub fn drain_bridge(
     bridge: Option<Res<McpBridge>>,
     mut authority: ResMut<Authority>,
     mut player: ResMut<Player>,
-    terrain: Res<Terrain>,
-    scale: Res<CurrentScale>,
-    map: Res<ChunkMap>,
     mut commands: Commands,
 ) {
     let Some(bridge) = bridge else { return };
@@ -693,7 +739,7 @@ pub fn drain_bridge(
                 authority.handle_api_call(&tool, &args, reply);
             }
             BridgeRequest::PoseGet { reply } => {
-                let _ = reply.send(pose_json(&player, &map, &terrain, scale.scale));
+                let _ = reply.send(pose_json(&player, &mut authority));
             }
             BridgeRequest::PoseSet {
                 pos,
@@ -706,20 +752,28 @@ pub fn drain_bridge(
                     player.pos_m = glam::DVec3::new(p[0], p[1], p[2]);
                     player.vel_m = glam::DVec3::ZERO;
                 }
+                let mut surface_miss = false;
                 if surface {
                     // Walker-safe teleport: feet snap to the TRUE voxel surface
                     // under the player's footprint at (x, z), regardless of the
                     // requested y — over the ACTIVE authority (worldgen or S1
                     // terrain). Reads the hosted world's live solidity (edits
-                    // included), not the analytic `surface_height_m` that
-                    // under-reports on slopes and left the camera buried
-                    // (journal/0004, journal/0006).
-                    player.pos_m.y = authority.true_surface_m(
+                    // included), from an honest per-column ceiling that tracks
+                    // the deep-time surface (journal/0004, journal/0006,
+                    // journal/0015). On a genuine miss (no ground under the
+                    // footprint) the position is LEFT as requested and the reply
+                    // says so — never a buried fallback y.
+                    match authority.true_surface_m(
                         player.pos_m.x,
                         player.pos_m.z,
                         PLAYER_WIDTH_M / 2.0,
-                    ) + 0.05;
-                    player.vel_m = glam::DVec3::ZERO;
+                    ) {
+                        Some(y) => {
+                            player.pos_m.y = y + 0.05;
+                            player.vel_m = glam::DVec3::ZERO;
+                        }
+                        None => surface_miss = true,
+                    }
                 }
                 if let Some(y) = yaw {
                     player.yaw = y;
@@ -727,7 +781,13 @@ pub fn drain_bridge(
                 if let Some(p) = pitch {
                     player.pitch = p.clamp(-1.55, 1.55);
                 }
-                let _ = reply.send(pose_json(&player, &map, &terrain, scale.scale));
+                let mut value = pose_json(&player, &mut authority);
+                if surface_miss {
+                    value["surface_snapped"] = json!(false);
+                    value["surface_error"] =
+                        json!("no solid ground under the footprint; position left as requested");
+                }
+                let _ = reply.send(value);
             }
             BridgeRequest::Screenshot { name, reply } => {
                 crate::mcp::take_screenshot(&mut commands, &name, reply);
@@ -770,18 +830,14 @@ pub fn drain_bridge(
     }
 }
 
-fn pose_json(player: &Player, map: &ChunkMap, terrain: &Terrain, scale: VoxelScale) -> Value {
+fn pose_json(player: &Player, authority: &mut Authority) -> Value {
     // Eye = camera height: feet + 90% of player height (player.rs camera).
     // If this voxel is solid, every screenshot is backface nonsense — the
-    // walk-3 lesson (journal/corrections.md #3): the walker must know.
+    // walk-3 lesson (journal/corrections.md #3): the walker must know. Read the
+    // AUTHORITATIVE hosted world, not the client `ChunkMap` (whose unstreamed
+    // fallback is the wrong world under the worldgen authority — journal/0015).
     let eye = player.pos_m + glam::DVec3::new(0.0, PLAYER_HEIGHT_M * 0.9, 0.0);
-    let eye_in_solid = map.is_solid(
-        &terrain.0,
-        scale,
-        scale.voxel_at(eye.x),
-        scale.voxel_at(eye.y),
-        scale.voxel_at(eye.z),
-    );
+    let eye_in_solid = authority.is_solid_m(eye);
     json!({
         "pos": { "x": player.pos_m.x, "y": player.pos_m.y, "z": player.pos_m.z },
         "yaw": player.yaw,
@@ -1206,7 +1262,8 @@ pub(crate) mod tests {
             sx,
             sz,
             half,
-        );
+        )
+        .expect("the open spawn column has a surface");
 
         // Precondition: feet a few meters below the surface really are embedded
         // (self-check so a cave at this column would surface as a failure).
@@ -1308,6 +1365,164 @@ pub(crate) mod tests {
             }
         }
         positions
+    }
+
+    /// The build box for a body-sized AABB seated at `feet` over the worldgen
+    /// authority, and whether it overlaps solid — the embed check the spawn,
+    /// teleport, and attach paths all rely on.
+    fn body_embedded(a: &mut Authority, feet: DVec3) -> bool {
+        let cfg = *a.world.character_config();
+        let vs = cfg.voxel_size_m;
+        let body = Aabb::from_bottom_center(feet / vs, cfg.width_m / 2.0 / vs, cfg.height_m / vs);
+        let world = RefCell::new(&mut a.world);
+        let solid =
+            |x: i64, y: i64, z: i64| world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid();
+        aabb_overlaps_solid(&solid, body)
+    }
+
+    /// The regression test walk 12 would have caught (journal/0015–0016): over a
+    /// **deep-time (worldgen) world**, [`Authority::true_surface_m`] must return a
+    /// point that is genuinely the surface — air at the feet, solid immediately
+    /// below — not a plausible y buried inside terrain the pre-deep-time ceiling
+    /// could no longer see. The deep-time surface sits ~1000 m up, ~100× above
+    /// the S1 estimate the old 8 m headroom was sized against, so a ceiling that
+    /// did not track deep time would start the scan below the ground and bury
+    /// every seated body.
+    #[test]
+    fn worldgen_true_surface_is_really_the_surface() {
+        let mut a = Authority::new(1337, 2);
+        let scale = a.scale;
+        let vs = scale.voxel_size_m();
+        let half = PLAYER_WIDTH_M / 2.0;
+        // The S1 estimate for the same columns: proof deep-time moved the ground
+        // enormously far from the field the old headroom assumed.
+        let s1 = TerrainGen::new(1337);
+
+        let mut checked = 0usize;
+        let mut max_gap_vs_s1 = 0.0f64;
+        let mut zi = -6i64;
+        while zi <= 6 {
+            let mut xi = -6i64;
+            while xi <= 6 {
+                let (xm, zm) = (xi as f64 * 47.0 + 0.3, zi as f64 * 53.0 + 0.7);
+                let analytic = a.analytic_height_m(xm, zm);
+                let ts = a
+                    .true_surface_m(xm, zm, half)
+                    .expect("a worldgen land column has a surface");
+                // Genuinely the surface, not the old buried fallback. Two
+                // guarantees together pin it: (1) a player-sized body seated at
+                // `ts` is NOT embedded — the resting height is clear of solid;
+                // (2) `ts` sits in the honest surface band, at or above the
+                // column's own deep-time-aware analytic height (never below it).
+                // The regression returned `analytic - 96..220 m` — a point ~100 m
+                // *inside* the mountain — which this lower bound rejects, while
+                // the footprint-max can only push `ts` *up* to a taller
+                // neighbour, never down.
+                assert!(
+                    !body_embedded(&mut a, DVec3::new(xm, ts + 0.05, zm)),
+                    "seated body embedded at ({xm:.1}, {zm:.1}), ts = {ts:.2}, analytic = {analytic:.2}"
+                );
+                assert!(
+                    ts >= analytic - vs,
+                    "true surface {ts:.2} is buried below the analytic ceiling {analytic:.2} \
+                     at ({xm:.1}, {zm:.1}) — the deep-time regression signature"
+                );
+                let s1h = s1.surface_height_m(xm, zm);
+                max_gap_vs_s1 = max_gap_vs_s1.max(ts - s1h);
+                checked += 1;
+                xi += 1;
+            }
+            zi += 1;
+        }
+        assert!(
+            checked >= 100,
+            "expected a broad column sample, got {checked}"
+        );
+        // The whole point: deep-time drove the surface hundreds of meters off the
+        // S1-scale estimate, so the honest ceiling had to come from the deep-time
+        // record. (Seed 1337 sits the worldgen surface ~1000 m up; S1 ~8 m.)
+        assert!(
+            max_gap_vs_s1 > 100.0,
+            "deep-time surface should tower over the S1 estimate; max gap {max_gap_vs_s1:.1} m"
+        );
+    }
+
+    /// Seating a body over the worldgen authority never embeds it: the player
+    /// surface-teleport math across a broad column grid, and a `surface:true`
+    /// character attach dropped from far above. Extends the S1-only
+    /// `attach_rejects_embedded_allows_clear_and_snaps_to_surface` to the
+    /// deep-time world where the regression lived.
+    #[test]
+    fn worldgen_surface_seating_never_embeds() {
+        let mut a = Authority::new(1337, 2);
+
+        // find_open_spawn seats the player 2 m above ground — trivially clear,
+        // but the surface it chose must itself be real ground.
+        let spawn = a.find_open_spawn();
+        assert!(
+            a.is_solid_m(DVec3::new(spawn.x, spawn.y - 2.5, spawn.z)),
+            "open spawn is not above real ground: {spawn:?}"
+        );
+
+        // Attach with surface:true from 5 km up lands the body standing on the
+        // deep-time ground, not embedded and not at a buried fallback y.
+        let (tx, mut rx) = oneshot::channel();
+        a.handle_character_attach(
+            "walker",
+            dc_api::payload::Vec3f::new(spawn.x, 5000.0, spawn.z),
+            true,
+            tx,
+        );
+        a.tick_now();
+        let reply = rx.try_recv().expect("surface attach resolves");
+        assert_eq!(reply["ok"], json!(true), "{reply}");
+        let walker = a.world.character("walker").expect("spawned").clone();
+        let feet = DVec3::new(walker.pos_m.x, walker.pos_m.y, walker.pos_m.z);
+        assert!(
+            !body_embedded(&mut a, feet),
+            "worldgen surface-attach landed embedded at {feet:?}"
+        );
+
+        // The teleport math over a grid: true_surface + 0.05 never embeds.
+        for (xm, zm) in [(0.3, 0.7), (120.0, -90.0), (-260.0, 310.0), (500.0, 500.0)] {
+            if let Some(ts) = a.true_surface_m(xm, zm, PLAYER_WIDTH_M / 2.0) {
+                assert!(
+                    !body_embedded(&mut a, DVec3::new(xm, ts + 0.05, zm)),
+                    "teleport seat embedded at ({xm}, {zm}), ts = {ts:.2}"
+                );
+            }
+        }
+    }
+
+    /// `eye_in_solid` must read the AUTHORITY, not the client `ChunkMap`'s
+    /// unstreamed fallback to the legacy S1 terrain — a *different world* under
+    /// the worldgen authority (journal/0015). Deep inside the worldgen ground the
+    /// eye is solid even though the S1 field there is pure air, and clear sky
+    /// reads not-solid.
+    #[test]
+    fn eye_in_solid_reads_the_authority_not_stale_s1() {
+        let mut a = Authority::new(1337, 2);
+        let scale = a.scale;
+        // A point well below the worldgen surface (~1000 m) but far above the S1
+        // surface (~8 m): the old fallback would call it air.
+        let deep = DVec3::new(0.3, 900.0, 0.7);
+        let s1 = TerrainGen::new(1337);
+        assert_eq!(
+            s1.block_at(
+                scale,
+                scale.voxel_at(deep.x),
+                scale.voxel_at(deep.y),
+                scale.voxel_at(deep.z)
+            ),
+            Block::Air,
+            "precondition: the stale S1 fallback reports air at 900 m"
+        );
+        assert!(
+            a.is_solid_m(deep),
+            "eye_in_solid must see the worldgen ground the S1 fallback misses"
+        );
+        // Clear sky is honestly not solid.
+        assert!(!a.is_solid_m(DVec3::new(0.3, 3000.0, 0.7)));
     }
 
     /// Decision A determinism proof at the SEAM: two independent worldgen

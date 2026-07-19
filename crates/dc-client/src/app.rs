@@ -154,7 +154,8 @@ pub fn find_open_spawn(terrain: &TerrainGen, scale: VoxelScale) -> DVec3 {
         sx,
         sz,
         crate::player::PLAYER_WIDTH_M / 2.0,
-    );
+    )
+    .unwrap_or_else(|| terrain.surface_height_m(sx, sz));
     DVec3::new(sx, surface + 2.0, sz)
 }
 
@@ -341,12 +342,15 @@ fn switch_scale(
             // The authority (key 2 = worldgen; 3/4 = S1 terrain) — and possibly
             // the whole world — changed under the player. Reseat the feet on
             // the new authority's TRUE voxel surface at (x, z) so a switch never
-            // leaves them buried or falling.
-            player.pos_m.y = authority.true_surface_m(
+            // leaves them buried or falling. On a genuine miss (over open air)
+            // keep the current altitude rather than dropping to a buried y.
+            if let Some(surface) = authority.true_surface_m(
                 player.pos_m.x,
                 player.pos_m.z,
                 crate::player::PLAYER_WIDTH_M / 2.0,
-            ) + 0.05;
+            ) {
+                player.pos_m.y = surface + 0.05;
+            }
             player.vel_m = DVec3::ZERO;
         }
     }
