@@ -147,12 +147,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **Surface-machinery fix vs deep-time elevation** (agent launched
-  2026-07-19; BLOCKING — see Observed): `true_surface_m`'s scan ceiling is
-  stale against 3e-1's elevation, so `surface:true` can seat a body inside
-  rock and `eye_in_solid` can lie. Ceiling must derive from the
-  generator's own column knowledge; misses must fail loudly, not return a
-  buried point; the S1-sized headroom constant retires.
+(nothing — session paused 2026-07-19 with main green at 38 suites. Next
+session: read this file, then journal/0016 + corrections #10 for the
+freshest lesson. **Walk 13 is owed**: the deep-time cut-face photograph
+walk 12 never got, plus live verification of the hardened instruments
+(`eye_in_solid` authoritative, `surface_snapped` reporting). Then the
+S1-fallback sweep — probably ahead of PBR-1, since player collision is
+affected.)
 
 ## Sequenced
 
