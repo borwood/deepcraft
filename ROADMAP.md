@@ -346,6 +346,16 @@ before any code.
   against loaded near chunks rather than tucking them underneath; the
   seam redundancy must come from coverage logic, not buried geometry.
 
+- **User field report (same pass): clear pixel gaps between far-field
+  tiles** — actual cracks, distinct from the cosmetic one-sided-normal
+  stitch *lines* already filed. Likely T-junctions where rings of
+  different stride meet (finer edge has vertices the coarser edge
+  lacks) and/or float mismatch at tile borders. Classic cures: edge
+  skirts (DH-style) or matched edge tessellation — but note **FF2a's
+  voxelization plausibly cures the class inherently** (stepped columns
+  are solid-sided prisms; adjacent columns share faces — cracks are a
+  smooth-TIN disease). Verify during FF2a; skirt only what remains.
+
 - **The Voxy-vs-Distant-Horizons thread — re-derived**
   (docs/design/voxy-dh-recon-2026-07-19.md, verified research pass
   2026-07-19; the original session was lost unrecorded — see
