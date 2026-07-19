@@ -13,7 +13,9 @@
 
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::pregen::{CELL_VOXELS, LAT_NORTH, LAT_SOUTH, Pregen, Provenance, provenance_roughness};
+use crate::pregen::{
+    CELL_VOXELS, CellGrid, LAT_NORTH, LAT_SOUTH, Pregen, Provenance, provenance_roughness,
+};
 
 use super::recorder::DeepStrata;
 
@@ -189,11 +191,19 @@ impl DeepGrid {
 }
 
 /// Build the deep-time grid from a pregenerated world at the config resolution.
-/// Initial bedrock is the pregen elevation resampled bilinearly plus an
-/// addressed roughness jitter; the uplift field is the per-provenance rate,
-/// resampled the same way. Alluvium starts at zero everywhere.
+/// Thin wrapper over [`build_cells`] for the spike harnesses that hold a whole
+/// [`Pregen`]; the production pipeline pass builds from the [`CellGrid`] alone
+/// (it runs *inside* pregen, before a `Pregen` exists).
 pub fn build(pregen: &Pregen, cfg: &DeepConfig) -> DeepGrid {
-    let wp = pregen.grid.w as usize;
+    build_cells(&pregen.grid, cfg)
+}
+
+/// Build the deep-time grid from the coarse pregen [`CellGrid`] at the config
+/// resolution. Initial bedrock is the pregen elevation resampled bilinearly
+/// plus an addressed roughness jitter; the uplift field is the per-provenance
+/// rate, resampled the same way. Alluvium starts at zero everywhere.
+pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
+    let wp = cells.w as usize;
     // World extent in metres, and the deep grid width covering it.
     let extent_m = wp as f64 * CELL_VOXELS as f64 * 0.9;
     let w = (extent_m / cfg.cell_m).round().max(2.0) as usize;
@@ -204,7 +214,7 @@ pub fn build(pregen: &Pregen, cfg: &DeepConfig) -> DeepGrid {
     let mut src_uplift = vec![0.0f64; wp * wp];
     for gy in 0..wp {
         for gx in 0..wp {
-            let c = pregen.grid.get(gx as i32, gy as i32).expect("in grid");
+            let c = cells.get(gx as i32, gy as i32).expect("in grid");
             let i = gy * wp + gx;
             src_elev[i] = c.elev_m;
             src_rough[i] = provenance_roughness(c.provenance);

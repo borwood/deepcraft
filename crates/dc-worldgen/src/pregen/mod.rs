@@ -55,6 +55,10 @@ pub(crate) const SALT_GEO_THICK: u64 = 0x5700_000B;
 pub(crate) const SALT_GEO_ORE: u64 = 0x5700_000C;
 /// Accessory-inclusion presence gate + selection (3d pore partials).
 pub(crate) const SALT_GEO_ACC: u64 = 0x5700_000D;
+/// Deep-time-derived depositional strata: member selection draw (3e-1). Distinct
+/// tag space from the year-zero veneer's `SALT_GEO_SELECT` so the two never
+/// collide, and the per-voxel member dither addresses each deep unit uniquely.
+pub(crate) const SALT_GEO_DEEP: u64 = 0x5700_000E;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -259,6 +263,10 @@ pub struct Pregen {
     /// The validated pass graph this world was built with; the lazy layer
     /// runs its collapse-phase (strata) passes per column.
     pub pipeline: crate::pipeline::Pipeline,
+    /// The always-on deep-time field (3e-1): the eroded surface driving the
+    /// collapse macro-terrain and the per-cell strata record driving
+    /// depositional formation context. Built by the `dc:pass/deep-time` pass.
+    pub deep: crate::deeptime::DeepField,
 }
 
 impl Pregen {
@@ -276,10 +284,12 @@ impl Pregen {
             w: params.extent.cells(),
             grid: None,
             history: None,
+            deep: None,
         };
         pipeline.run_pregen(&mut ctx);
         let grid = ctx.grid.expect("tectonics pass creates the grid");
         let history = ctx.history.expect("history pass runs");
+        let deep = ctx.deep.expect("deep-time pass runs");
         Self {
             seed: params.seed,
             extent: params.extent,
@@ -290,6 +300,7 @@ impl Pregen {
             n_polities: history.n_polities,
             observe_count: history.observe_count,
             pipeline,
+            deep,
         }
     }
 
@@ -352,5 +363,6 @@ impl Pregen {
         self.grid.cells.len() * std::mem::size_of::<Cell>()
             + self.ledger.len() * std::mem::size_of::<dc_sim::statistical::Fact>()
             + self.sites.len() * std::mem::size_of::<SiteSummary>()
+            + self.deep.resident_bytes()
     }
 }

@@ -23,16 +23,20 @@
 
 pub mod climate;
 pub mod erosion;
+pub mod field;
 pub mod grid;
 pub mod recorder;
 pub mod refine;
 
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
-pub use grid::{DeepConfig, DeepGrid, SEA_LEVEL_M, build, provenance_uplift, sea_level_at};
+pub use field::{DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field};
+pub use grid::{
+    DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
+};
 pub use recorder::{Aridity, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 
-use crate::pregen::Pregen;
+use crate::pregen::{CellGrid, Pregen};
 
 /// A completed deep-time run: the evolved grid plus the mass ledger for the
 /// conservation check.
@@ -62,7 +66,15 @@ pub fn run(pregen: &Pregen, cfg: &DeepConfig) -> DeepRun {
 /// parallel path is **byte-identical** to the scalar path (S9b); this exists so
 /// the harness can measure both and the determinism test can compare them.
 pub fn run_with(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> DeepRun {
-    let mut grid = build(pregen, cfg);
+    run_cells(&pregen.grid, cfg, parallel)
+}
+
+/// Like [`run_with`], but from the coarse [`CellGrid`] alone — the entry point
+/// the production pregen pass uses, since it runs *inside* pregen (before a
+/// whole [`Pregen`] exists). Same fixed iteration schedule, deterministic in
+/// `(cells, cfg)`.
+pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun {
+    let mut grid = build_cells(cells, cfg);
     let mut erosion = Erosion::new(&grid);
     erosion.set_parallel(parallel);
     let mass_before = total_mass(&grid);
