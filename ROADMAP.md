@@ -37,13 +37,22 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — Character MCP surface (journal/0005): the second surface from
+  API.md § Characters, embodied sessions on :7778. Character primitive in
+  dc-api (named body, host-tick swept-AABB stepping, controller verbs as
+  commands, diegetic pose/raycast/surroundings senses, all schema-
+  registered); `Grant::CharacterControl` with attenuate-to-one-character
+  sessions (cage proven at capability/host/HTTP layers; dev surface keeps
+  full reach incl. any-character control); two-cuboid companion rendering;
+  bit-identical scripted-session replay. Walk: companion attached, driven,
+  sensed, photographed standing/walking/jumping (assets 0005-*) — and it
+  walked off a cliff, which is the feature.
+
 ## In flight
 
 (nothing — next up from Sequenced)
 
 ## Sequenced
-2. Character MCP surface (`dc-mcp-character`): grant-scoped embodied agent
-   play — same generator as dc-mcp-dev, different grants.
 3. Geology deep-dive — backbone seeded in docs/design/geology.md
    (classes/processes/contexts as registry data); v1 content selection is the
    remaining conversation. Mine orogeny's stratigraphy-v1 — source of ideas,
@@ -51,13 +60,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.
 3b. Bodies/sockets design doc (body-as-plugin, controller-driven, transmog) —
-   after character MCP.
+   character MCP has shipped; this is unblocked.
 4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
    axes; registry-defined).
 5. Ecology design (succession as derived-from-disturbance state; populations
    as statistical-tier distributions).
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- Walk 5 (journal/0005, character surface): characters have **no auto
+  step-up** — a one-voxel rise halts a grounded walker until it jumps
+  (mover feature vs controller skill: undecided, belongs to the NPC-
+  intelligence design). **Attach placement is unguarded** — spawning a
+  character embedded in terrain makes a permanent statue (no despawn verb,
+  no character-surface teleport by design); wants safe-spawn validation,
+  blocked on the `surface_height_m` under-report below. **Disconnect
+  policy**: a session's last move intent persists after disconnect, so an
+  abandoned body keeps walking until it hits something — freeze vs NPC-tier
+  degradation needs deciding (API.md open question, now concrete).
 
 - Walks 3–4 (journal/0003, 0004 — corrected record in corrections.md #3):
   `surface_height_m` under-reports the actual voxel surface (~7 m at the
