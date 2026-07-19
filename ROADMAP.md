@@ -27,11 +27,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   journal/assets + player pose get/set); direct/MCP-layer/HTTP-wire edit
   parity proven headless.
 
+- 2026-07-18 — First agent self-walk (journal/0003): MCP session against the
+  running game — pose/scan/edit/screenshot loop proven; six findings filed
+  to Observed. The practice is established.
+
 ## In flight
 
-- **Agent self-walk practice** (orogeny's 0033 pattern): drive the running
-  client over its MCP surface, capture screenshots to the journal, file
-  field reports to Observed.
+- Walk-3 fixes: near-field haze inversion (blinds all walks — first);
+  client cache subscription to block_changed (MCP edits invisible);
+  far-mesh floating shards + horizon seam line.
 
 ## Sequenced
 2. Character MCP surface (`dc-mcp-character`): grant-scoped embodied agent
@@ -50,6 +54,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
    as statistical-tier distributions).
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- Walk 3 (journal/0003): near-field white wash — haze appears inverted
+  (suspect reverse-Z linearization in the post prelude); MCP-sourced edits
+  invisible to the render cache (hypothesis: own-receipts only, needs
+  block_changed subscription); floating LOD shards + hard horizon seam line;
+  white speckle on chasm cliff faces; spawn lands inside the chasm;
+  pose_set pitch sign undocumented (negative = down).
 
 - The embedded HostWorld never evicts chunks (~64 KiB per chunk ever
   streamed/edited); never-edited chunks are pure generator output and could
