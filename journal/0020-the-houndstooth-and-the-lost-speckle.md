@@ -163,3 +163,18 @@ the playable range; extreme deep-time coordinates would eventually lose texel
 precision (noted, far field is a known defect anyway). No headless crate, no wire
 type, and no lit-path lighting math was touched — the walk-14 tangent-frame fix
 stands as-is.
+
+## Walk 15 (main session): verified
+
+*Appended post-integration (merge `016ac1b`, gates green on merged main —
+38 suites, case-sensitive).* Re-shot the walk-14 framings
+(`0020-outcrop-isotropic`, `0020-strata-band-closeup`): the houndstooth is
+gone — granite reads as isotropic grain, block boundaries within
+same-material runs are no longer legible; a faint fine-scale repetition
+remains at close range, inherent to 16×16 placeholder tiles, rides until
+real texture authoring. And the fullbright variant closed its own
+verification gap: the agent had no mixed faces at spawn, but the quarry
+walls are pore-partial mixtures everywhere — `0020-fullbright-flat-albedo`
+shows the restored world-anchored olivine speckle on flat granite albedo,
+the walk-13 diagnostic look, exactly. Screenshot auditability restored on
+real geology.
