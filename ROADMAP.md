@@ -335,6 +335,17 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **User field report (2026-07-19, session close): the far LOD sheet is
+  buried under the near field** — the "distant" terrain render extends
+  below the player's feet, hidden by the voxel render, and **digging
+  down hits the LOD**. Likely mechanism: the hole-fix's one-tile inner
+  lap intentionally slides far tiles under the near field (sliver cure)
+  with the half-voxel sink hiding them from above — but they sit inside
+  solid ground, so any excavation exposes a phantom floor. Fix belongs
+  to **FF2a** (it rebuilds tile geometry): cull/clip lapped far tiles
+  against loaded near chunks rather than tucking them underneath; the
+  seam redundancy must come from coverage logic, not buried geometry.
+
 - **The Voxy-vs-Distant-Horizons thread — re-derived**
   (docs/design/voxy-dh-recon-2026-07-19.md, verified research pass
   2026-07-19; the original session was lost unrecorded — see
