@@ -60,3 +60,35 @@ and further ore vectors.
   (aquifers in porous stone — materials.md); deep-earth exotic classes for
   the trog layers (depth is a first-class axis for us in a way surface games
   never had).
+
+## Roster, inclusions, and unfilled slots — DECIDED 2026-07-19
+
+- **Rich vanilla mineral roster.** The default pack does not shy away from
+  a wide Earth-mineral/metal/gem set. Parity is free by construction:
+  properties-not-recipes (any metal makes the armor, any gem fills the
+  ring — form archetypes × property sheets, DF-style), and the S8 mixture
+  cap binds **per-locale co-occurrence, not global roster size** — fitness ×
+  normalized abundance keeps local k small no matter how wide the pack.
+  Legibility of many similar materials is the knowledge system's job
+  (inspection, thoughts), not the recipe system's.
+- **Inclusions are pore partials.** The standard representation for
+  accessory minerals and in-situ ore: a voxel whose structure slots are the
+  host rock and whose pore slots carry the accessory (olivine in basalt,
+  vein ore in country rock) — the same eighths machinery the placer already
+  uses (gold-dust inside sandstone events). Veins, phenocrysts, and gem
+  pockets are one representation; `extraction_sequence` already recovers
+  eighth-wise; visuals stay subtle by construction (§ ore legibility,
+  visuals.md). Post-v1 pass extension: igneous/metamorphic passes emit
+  accessory pore fill via class selection.
+- **Unfilled slots cannot break generation — enforced at two layers.**
+  (1) Define-time: a gen pass that *consumes* a class it also *introduces*
+  must register at least one fallback member in the same registry batch —
+  a pass is a pack; the magic-terrain-without-magic-materials mistake is
+  structurally impossible. Fallback members are ordinary members (canonical
+  order, normalized abundance), so later packs diversify, never invalidate.
+  (2) World-build-time: the pipeline refuses to build if any class a pass
+  selects from has zero members, naming pass and class — same
+  named-culprit philosophy as the cycle/ambiguous-writer rejections.
+  Silent skip / "other rules fill gaps" is rejected on principle: world
+  content must never be a function of installed-pack coincidence; two
+  same-seed worlds differ only by declared pack differences, loudly.

@@ -107,6 +107,12 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
    order-dependent MixtureTable ids at the seam (journal/0008). Data-driven
    block registry (API.md `define block_type`) supersedes the appended enum
    here or soon after.
+3d. Geology post-v1 slice (geology.md § roster/inclusions/slots, DECIDED
+   2026-07-19): two-layer class-satisfiability enforcement in the pipeline
+   validation (pass-bundles-fallback rule + world-build refusal with named
+   culprits); accessory inclusions as pore partials (igneous/metamorphic
+   passes emit via class selection); then the rich vanilla mineral roster
+   rides the proven machinery. Carbonate milestone follows per § v1.
 4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
    axes; registry-defined).
 5. Ecology design (succession as derived-from-disturbance state; populations
