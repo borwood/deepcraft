@@ -231,25 +231,18 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-*(PBR-1 and the render polish both integrated 2026-07-19 — merges
-`c49566f`/`016ac1b`, gates green on merged main, walks 14/15 verified;
-SPLAT_N=4 ratified, calibration rides awaiting the lighting design.)*
-
-*(Instrument batch integrated 2026-07-19 — merge `71403e0`, gates green
-on merged main, walk 16 verified all three instruments live: pos_voxel
-cross-checked against get_block with no conversion, surface_snapped
-explicit, posture readback round-trips. Journal/0021 § walk 16.)*
-
-*(**Far-field horizon** built 2026-07-19 — journal/0022, worktree branch
-awaiting integration, gates green + smoke-run verified. Moved to Shipped
-(draft). The worldgen world has a horizon for the first time.)*
-
-Queue (**reordered 2026-07-19, user**; far-field horizon now built): **S10**,
-then **3e-2 implementation** (fully decided, earth-processes.md § 3e-2
-decisions). The water-model design doc rides alongside as conversation
-(field-notebook first, no build slot). Also owed: the lit-vs-fullbright mixture
-close-up pair (walk 16, with the instrument-batch integration walk); and the
-far-field integration walk shot list (journal/0022 § for the integration walk).
+(nothing — session 2 paused 2026-07-19. The day shipped and walk-verified
+SIX integrated milestones: S1-fallback sweep (journal/0017), PBR-1
+(0019 + walk-14 tangent-NaN fix), render polish (0020), instrument batch
+(0021), far-field horizon (0022 + hole fix), lit-mixture
+amplitude-by-rarity (walks 16/18) — plus walks 13-18, ~15 ratifications
+recorded, and the Voxy/DH research doc. Main is green (38 suites), all
+worktrees cleaned. **Next session: dispatch FF2a** (voxel-language far
+field — brief notes in Sequenced: replacement-parity vs current tiles,
+extensible span payload, packed-quad option per the recon doc), then
+S10, then 3e-2 implementation. Water-model design doc is open as
+conversation. Read journal/0021-0022 walk sections for the freshest
+lessons; session-workflow SKILL.md gained six new guards today.)
 
 ## Sequenced
 
@@ -342,24 +335,18 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **The Voxy-vs-Distant-Horizons thread** (user restated 2026-07-19; the
-  original research session predates the repo and was never recorded —
-  the defer=write-it-now rule exists because of this loss). What's known:
-  Voxy is the perf champion among MC distance mods via GPU optimization;
-  the techniques need RE-DERIVING BY RESEARCH (dispatched 2026-07-19,
-  report to land in docs/design/). Both mods also **show player edits in
-  distant LODs** (edits regenerate cached LOD data) — our far field
-  doesn't; the edit→summary-update architecture is a design owed
-  (likely: summaries subscribe to the edit dirty-rail at chunk
-  granularity, dirty far tiles remesh budgeted; persists with S3 region
-  storage). Unique deepcraft constraint: distant VIEWING must not force
-  simulation — where distant regions hold observation-constrained
-  superpositional ongoing history, the vista must be **augury-grade**
-  (read committed facts + statistical tier without committing; the
-  ideas.md divination split, applied to rendering). Terrain is committed
-  at worldgen so the current far field is safe; the constraint binds
-  when live-sim state (settlements, travelers, growth) becomes
-  far-visible.
+- **The Voxy-vs-Distant-Horizons thread — re-derived**
+  (docs/design/voxy-dh-recon-2026-07-19.md, verified research pass
+  2026-07-19; the original session was lost unrecorded — see
+  defer=write-it-now). Key holdings: both mods are persistent
+  derived-cache LOD stores updated on edit (validates our
+  authority-derived summary + dirty-rail design, still owed); Voxy wins
+  via GPU-driven submission (compute-generated indirect draws, 8-byte
+  packed quads + vertex pulling, frustum+Hi-Z GPU culling — transfer
+  map in the doc, FF2a can adopt packed quads); Aokana's SVDAG +
+  ray-marching is the FF2b volumetric candidate. Vista-as-augury
+  constraint stands (rendering is never an observer — binds when
+  live-sim state becomes far-visible).
 
 - Walk 17 (journal/0022 § walk 17 + § the holes were a partition): **far
   sheet parallelogram sky holes — RESOLVED** 2026-07-19 (fix cycle,
