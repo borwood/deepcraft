@@ -513,6 +513,31 @@ pub fn registry() -> &'static [CommandSpec] {
             decode_json: |v| decode(v, Payload::SetLook),
         },
         CommandSpec {
+            id: ids::CHARACTER_SET_POSTURE,
+            kind: CommandKind::Command,
+            doc: "Set a character's discrete collider posture: `standing` or \
+                  `crouching`. Crouching shrinks the swept-AABB height at the \
+                  next tick (an honest hunker that clears low gaps); the \
+                  cosmetic bend is client-side. Standing up is refused when the \
+                  taller collider would embed in solid (e.g. under a low \
+                  ceiling), leaving the body crouched.",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "set_posture payload",
+                    &[
+                        ("character", s_str("character name"), true),
+                        (
+                            "posture",
+                            s_str("posture: \"standing\" or \"crouching\""),
+                            true,
+                        ),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::SetPosture),
+        },
+        CommandSpec {
             id: ids::CHARACTER_JUMP,
             kind: CommandKind::Command,
             doc: "Request a jump; fires at the next tick if the character is \
@@ -671,6 +696,10 @@ mod tests {
                 character: "scout".into(),
                 yaw: 0.5,
                 pitch: -0.2,
+            }),
+            Payload::SetPosture(payload::SetPosture {
+                character: "scout".into(),
+                posture: "crouching".into(),
             }),
             Payload::Jump(payload::Jump {
                 character: "scout".into(),

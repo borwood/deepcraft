@@ -25,7 +25,7 @@
 use glam::DVec3;
 use serde::{Deserialize, Serialize};
 
-use dc_core::{Aabb, VoxelQuery, move_aabb};
+use dc_core::{Aabb, VoxelQuery, aabb_overlaps_solid, move_aabb};
 
 use crate::payload::Vec3f;
 
@@ -68,6 +68,45 @@ impl Default for CharacterConfig {
     }
 }
 
+/// Parametric posture — the sim-visible half of the crouch firewall split
+/// (docs/design/bodies.md § determinism firewall). v0 postures: `Standing` and
+/// `Crouching`. This is *discrete, deterministic* state that alters the
+/// swept-AABB collider height at the tick boundary; the cosmetic pose (spine
+/// lowered, legs bent via IK, head keeps look) is derived client-side from it
+/// and never read back. Set by the `dc:character/set_posture` controller verb.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default, Serialize, Deserialize)]
+pub enum Posture {
+    #[default]
+    Standing,
+    Crouching,
+}
+
+/// The swept-AABB height multiplier a crouching body collides with. Chosen at
+/// 0.6× — an honest "hunker": low enough to clear a two-thirds-height gap a
+/// standing body cannot, high enough that the mover still reads as a person and
+/// not a slab. Deterministic and a single discrete step, so it is firewall-legal
+/// sim state.
+pub const CROUCH_HEIGHT_FACTOR: f64 = 0.6;
+
+impl Posture {
+    /// Fraction of full body height this posture's collider occupies.
+    pub fn height_factor(self) -> f64 {
+        match self {
+            Posture::Standing => 1.0,
+            Posture::Crouching => CROUCH_HEIGHT_FACTOR,
+        }
+    }
+
+    /// Parse the wire string (`standing` | `crouching`).
+    pub fn from_wire(s: &str) -> Option<Posture> {
+        match s {
+            "standing" => Some(Posture::Standing),
+            "crouching" => Some(Posture::Crouching),
+            _ => None,
+        }
+    }
+}
+
 /// Controller input — what the controller verbs write and the tick step
 /// consumes. Persist between ticks: a move intent keeps the character walking
 /// until countermanded (set speed 0 to stop); a jump request is consumed by
@@ -97,6 +136,11 @@ pub struct CharacterState {
     pub pitch: f32,
     pub on_ground: bool,
     pub input: CharacterInput,
+    /// Discrete collider posture (standing / crouching). Appended field: wire
+    /// order is postcard identity, and `serde(default)` keeps old logs (which
+    /// predate posture) decoding to `Standing`.
+    #[serde(default)]
+    pub posture: Posture,
 }
 
 impl CharacterState {
@@ -109,7 +153,14 @@ impl CharacterState {
             pitch: 0.0,
             on_ground: false,
             input: CharacterInput::default(),
+            posture: Posture::Standing,
         }
+    }
+
+    /// Effective collider height in meters for the current posture (full height
+    /// standing, scaled down crouching). The one place posture touches physics.
+    pub fn effective_height_m(&self, cfg: &CharacterConfig) -> f64 {
+        cfg.height_m * self.posture.height_factor()
     }
 
     /// Unit view direction from yaw/pitch (same convention as the client's
@@ -120,11 +171,13 @@ impl CharacterState {
         DVec3::new(-sin_yaw * cos_pitch, sin_pitch, -cos_yaw * cos_pitch)
     }
 
-    /// Eye position in world meters.
+    /// Eye position in world meters. Follows posture: a crouching body's eyes
+    /// ride at `eye_fraction` of the *shortened* collider, so its senses and
+    /// `eye_in_solid` see from where the head actually is.
     pub fn eye_m(&self, cfg: &CharacterConfig) -> DVec3 {
         DVec3::new(
             self.pos_m.x,
-            self.pos_m.y + cfg.eye_fraction * cfg.height_m,
+            self.pos_m.y + cfg.eye_fraction * self.effective_height_m(cfg),
             self.pos_m.z,
         )
     }
@@ -174,7 +227,7 @@ pub fn step_character(c: &mut CharacterState, cfg: &CharacterConfig, world: &imp
     let aabb = Aabb::from_bottom_center(
         DVec3::new(c.pos_m.x, c.pos_m.y, c.pos_m.z) * to_voxels,
         (cfg.width_m / 2.0) * to_voxels,
-        cfg.height_m * to_voxels,
+        c.effective_height_m(cfg) * to_voxels,
     );
     let delta_v = DVec3::new(c.vel_m.x, c.vel_m.y, c.vel_m.z) * dt * to_voxels;
     let result = move_aabb(world, aabb, delta_v);
@@ -186,6 +239,22 @@ pub fn step_character(c: &mut CharacterState, cfg: &CharacterConfig, world: &imp
         c.vel_m.y = 0.0;
     }
     c.on_ground = result.on_ground;
+}
+
+/// Would a *standing* body at `feet` embed in solid terrain? The stand-up guard
+/// for a `crouching → standing` posture change: crouching may have carried the
+/// body under a low ceiling, and standing back up must not push the taller
+/// collider into solid voxels. Reuses the same `aabb_overlaps_solid` test the
+/// attach embed guard uses (dc-client authority.rs) — one honest solidity check,
+/// deterministic. `world` answers in **voxel** coordinates.
+pub fn standing_would_embed(feet: Vec3f, cfg: &CharacterConfig, world: &impl VoxelQuery) -> bool {
+    let to_voxels = 1.0 / cfg.voxel_size_m;
+    let aabb = Aabb::from_bottom_center(
+        DVec3::new(feet.x, feet.y, feet.z) * to_voxels,
+        (cfg.width_m / 2.0) * to_voxels,
+        cfg.height_m * to_voxels,
+    );
+    aabb_overlaps_solid(world, aabb)
 }
 
 #[cfg(test)]

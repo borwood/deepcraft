@@ -183,6 +183,10 @@ pub enum RejectReason {
     UnknownClass { class: String },
     #[error("class contract violation: {reason}")]
     SchemaViolation { reason: String },
+    // Appended (body-plan staircase step 3: parametric crouch) — variant order
+    // is postcard wire identity, so new reasons go at the end.
+    #[error("character `{character}` cannot stand: the space above is obstructed")]
+    PostureBlocked { character: String },
 }
 
 /// Outcome half of a receipt.
