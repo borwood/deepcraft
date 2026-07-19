@@ -103,9 +103,23 @@ enum Undo {
     RemoveSub(u64),
 }
 
+/// Pluggable base-terrain generator: the authoritative contents of a chunk
+/// that has never been edited. Must be a pure function of `pos` (all entropy
+/// baked in at construction) or replay determinism breaks.
+///
+/// Added by the client-through-dc-api milestone (additive): the client embeds
+/// a `HostWorld` as the edit authority and needs it to serve the *same*
+/// terrain the client streams (the S1 `TerrainGen`), not the built-in
+/// hill-field. The built-in generator remains the default for `new` so every
+/// existing consumer/test is unchanged.
+pub type ChunkGenerator = Box<dyn Fn(ChunkPos) -> Chunk + Send + Sync>;
+
 /// The in-process world. Single-threaded, manual tick driver.
 pub struct HostWorld {
     seed: u64,
+    /// Base terrain for never-edited chunks. `None` = the built-in seeded
+    /// hill-field (S5 behavior, byte-for-byte).
+    generator: Option<ChunkGenerator>,
     /// Last completed tick. State always reflects exactly this tick.
     tick: Tick,
     chunks: HashMap<ChunkPos, Chunk>,
@@ -124,6 +138,7 @@ impl HostWorld {
     pub fn new(seed: u64) -> Self {
         Self {
             seed,
+            generator: None,
             tick: 0,
             chunks: HashMap::new(),
             entities: Vec::new(),
@@ -136,6 +151,15 @@ impl HostWorld {
             apply_seq: 0,
             log: Vec::new(),
         }
+    }
+
+    /// A world whose base terrain comes from `generator` instead of the
+    /// built-in hill-field. The seed still salts everything non-terrain and is
+    /// part of the replay identity; the generator must be deterministic.
+    pub fn with_generator(seed: u64, generator: ChunkGenerator) -> Self {
+        let mut world = Self::new(seed);
+        world.generator = Some(generator);
+        world
     }
 
     /// Last completed tick.
@@ -180,6 +204,9 @@ impl HostWorld {
     }
 
     fn generate_chunk(&self, pos: ChunkPos) -> Chunk {
+        if let Some(generator) = &self.generator {
+            return generator(pos);
+        }
         let mut chunk = Chunk::new();
         let (mx, my, mz) = pos.min_voxel();
         for lz in 0..dc_core::CHUNK_SIZE_USIZE {
@@ -207,6 +234,14 @@ impl HostWorld {
             self.chunks.insert(pos, c);
         }
         self.chunks.get_mut(&pos).expect("just inserted")
+    }
+
+    /// Authoritative contents of a chunk (lazily generated; includes every
+    /// applied edit). Render/collision caches clone from here — added by the
+    /// client-through-dc-api milestone (additive) so the client's `ChunkMap`
+    /// can be a cache of the hosted world instead of a second authority.
+    pub fn chunk(&mut self, pos: ChunkPos) -> &Chunk {
+        self.chunk_at(pos)
     }
 
     /// Read a voxel (lazily generating its chunk).

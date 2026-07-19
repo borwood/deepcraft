@@ -36,5 +36,5 @@ pub use envelope::{
     EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,
 };
 pub use event::{EventKind, GameEvent};
-pub use host::HostWorld;
+pub use host::{ChunkGenerator, HostWorld};
 pub use payload::{EntityInfo, Payload, QueryData, Vec3f, Vec3i, Volume, ids};
