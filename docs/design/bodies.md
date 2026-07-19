@@ -151,6 +151,12 @@ that is fine, because passage-through-low-spaces belongs to the future
 role is posture: stability, stealth, aim, working under things you can
 already fit beneath.
 
+Reaffirmed 2026-07-19 (second session — the ROADMAP entry had gone stale
+and re-asked this): crouch's world-interaction verb is the **sneak
+edge-walk-block** behavior (a crouched body will not walk off a block
+edge), not passage. The prone/crawl posture family is sketched in
+ideas.md § posture ladder; nothing there is scheduled.
+
 ## Formerly open questions — DECIDED 2026-07-19
 
 1. **Bodies are diegetic items**: found vessels, and eventually craftable

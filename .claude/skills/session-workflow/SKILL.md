@@ -34,6 +34,13 @@ You wear all four, switching freely:
   doc, with rationale, in the same conversation they were made.
 - Genuinely-user-owned choices (game feel, art, scope forks): present
   options with a recommendation; do not preempt.
+- **When a decision lands in a design doc, resolve its ROADMAP Observed
+  line in the SAME commit** (added 2026-07-19 after two decided questions
+  were re-asked from a stale map). Observed entries that a decision closes
+  get collapsed to a parenthetical citing the doc. Corollary: before
+  re-asking anything that looks like an open question, grep the design
+  docs for a DECIDED entry first — ROADMAP is the sequence, the design
+  docs are the record of decisions.
 
 ## Delegation
 

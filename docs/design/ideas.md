@@ -166,6 +166,22 @@ character MCP / bodies)
   conditioned on route + time (the proven S2 traveler machinery). First
   prototype candidate: portal graph + traveler collapse.
 
+## Posture ladder (user sketch, 2026-07-19 — crouch DECIDED separately in
+bodies.md; everything below is unscheduled)
+
+- Standing → crouch (0.6×, DECIDED: posture + sneak edge-walk-block; never
+  passage) → **crawl** (all fours, faster, transitional) → **belly-prone**
+  (slowest, strategic — the deliberate stance). Prone is what solves
+  1-voxel-height passage.
+- The interesting mechanism: **crawl as a geometry-triggered transition,
+  not a keybind** — crouch-walking into a 1-height gap drops you to all
+  fours automatically; posture as a consequence of intent + geometry.
+  Trigger only on deliberate entry (walking into the gap face), never
+  spontaneously, so stealth players near ledges don't get surprise posture
+  changes. Belly-prone stays an explicit verb.
+- Firewall-clean: triggers are geometric and deterministic, sim sees only
+  the parametric posture ladder; all animation cosmetic per bodies.md.
+
 ## Misc noted
 
 - Seasons/calendar as the missing middle timescale (weather ↔ deep time).

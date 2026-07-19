@@ -255,11 +255,11 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
   extent runs a coarsened (~1.8 km) deep cell under the width cap until
   3e-2's C refinement restores landform detail on approach.
 
-- Walk 11 + step-3 loose ends (journal/0014): **crouch factor is a
-  user-owned game-feel call** — at N=2, passages step by 0.9 m and
-  standing flush-fits 1.8 m gaps, so 0.6× crouch (1.08 m) earns no
-  passage; ≤0.5× would flush-fit 1-voxel crawlspaces (crouch-as-
-  crawlspace vs crouch-as-stealth decision). Max-bend leg fold reads
+- Walk 11 + step-3 loose ends (journal/0014): *(crouch factor: DECIDED
+  2026-07-19, bodies.md § Crouch semantics — 0.6× stands; crouch is
+  posture + the future sneak edge-walk-block verb, never crawlspace
+  access; sub-standing clearances belong to prone/crawl, sketched in
+  ideas.md § posture ladder.)* Max-bend leg fold reads
   tangled — knee pole/fold distribution wants a photo-driven tuning
   pass. Posture is not exposed in `character_pose` (a driver can't read
   its own posture back). Foot-IK ground read can momentarily see the S1
@@ -267,12 +267,12 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
 
 - Walk 5 (journal/0005, character surface): characters have **no auto
   step-up** — a one-voxel rise halts a grounded walker until it jumps
-  (mover feature vs controller skill: undecided, belongs to the NPC-
-  intelligence design). **Disconnect policy**: a session's last move intent
-  persists after disconnect, so an abandoned body keeps walking until it
-  hits something — freeze vs NPC-tier degradation needs deciding (API.md
-  open question, now concrete; interacts with bodies.md open question 3).
-  *(Attach placement guard: fixed, journal/0006.)*
+  *(DECIDED 2026-07-19: stays jump-required; mover-feature vs
+  controller-skill is the NPC-intelligence design's question)*.
+  *(Disconnect policy: DECIDED 2026-07-19 — freeze for v1, NPC-tier
+  degradation as a later controller binding; API.md § Characters,
+  bodies.md formerly-open Q3. Attach placement guard: fixed,
+  journal/0006.)*
 
 - Geology v1 loose ends (journal/0007): sea-floor/wilds columns keep empty
   strata records (subaqueous sedimentation = the carbonate milestone); no
