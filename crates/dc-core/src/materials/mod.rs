@@ -12,6 +12,8 @@
 //!   interning of distinct mixture states, chunk-level palette-compressed
 //!   references, serialized as the `"materials/slots-v0"` format-v1 sidecar;
 //! - [`extract`]: typed-damage extraction ordering;
+//! - [`geology`]: content classes as contracts + deterministic member
+//!   selection (the geology backbone's typed model);
 //! - [`stratify`]: derived (never ticked) stratification;
 //! - [`lod`]: the mixed-voxel LOD downsample rule.
 //!
@@ -20,14 +22,17 @@
 
 pub mod contents;
 pub mod extract;
+pub mod geology;
 pub mod intern;
 pub mod lod;
 pub mod stratify;
 
 use serde::{Deserialize, Serialize};
 
-/// Number of materials in the prototype registry.
-pub const MATERIAL_COUNT: usize = 12;
+/// Number of materials in the prototype registry (12 S8 debris materials +
+/// the 5-entry v1 geology set; the table widens behind `MaterialId`, the
+/// type does not).
+pub const MATERIAL_COUNT: usize = 17;
 
 /// Identifier of a granular material in the registry. `u8`-sized: a material
 /// id appears up to 8 times per voxel, so entry compactness matters more than
@@ -49,6 +54,18 @@ impl MaterialId {
     pub const LOAM: MaterialId = MaterialId(9);
     pub const SCREE: MaterialId = MaterialId(10);
     pub const BONE: MaterialId = MaterialId(11);
+    // --- v1 geology set (docs/design/geology.md, DECIDED 2026-07-18) ---
+    /// Clastic sediment, fine (lithified mud/silt).
+    pub const MUDSTONE: MaterialId = MaterialId(12);
+    /// Clastic sediment, coarse (lithified sand).
+    pub const SANDSTONE: MaterialId = MaterialId(13);
+    /// Igneous intrusive (coarse-crystalline basement).
+    pub const GRANITE: MaterialId = MaterialId(14);
+    /// Igneous extrusive (fine-crystalline surface flows).
+    pub const BASALT: MaterialId = MaterialId(15);
+    /// Placer ore mineral: a dense grain that sorts with the coarse fraction
+    /// despite its small size — the placer mechanism in one property sheet.
+    pub const GOLD_DUST: MaterialId = MaterialId(16);
 
     /// A registry-valid id from its raw value; `None` when out of range.
     #[inline]
@@ -258,6 +275,51 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.2, 2.0, 1.1, 1.5, 60.0],
         permeability: 0.75,
         insulation: 0.3,
+    },
+    MaterialProps {
+        name: "mudstone",
+        density_kg_m3: 2400.0,
+        grain_size_mm: 0.004,
+        cohesion: 0.95,
+        extraction_resistance: [3.2, 5.0, 4.2, 2.8, 0.004],
+        permeability: 0.02,
+        insulation: 0.4,
+    },
+    MaterialProps {
+        name: "sandstone",
+        density_kg_m3: 2350.0,
+        grain_size_mm: 0.3,
+        cohesion: 0.85,
+        extraction_resistance: [3.6, 6.5, 4.6, 5.2, 0.3],
+        permeability: 0.35,
+        insulation: 0.3,
+    },
+    MaterialProps {
+        name: "granite",
+        density_kg_m3: 2700.0,
+        grain_size_mm: 3.0,
+        cohesion: 1.0,
+        extraction_resistance: [6.0, 9.0, 5.5, 8.0, 3.0],
+        permeability: 0.02,
+        insulation: 0.2,
+    },
+    MaterialProps {
+        name: "basalt",
+        density_kg_m3: 2900.0,
+        grain_size_mm: 0.05,
+        cohesion: 1.0,
+        extraction_resistance: [5.5, 9.5, 5.0, 8.5, 0.05],
+        permeability: 0.05,
+        insulation: 0.2,
+    },
+    MaterialProps {
+        name: "gold-dust",
+        density_kg_m3: 16000.0,
+        grain_size_mm: 0.8,
+        cohesion: 0.02,
+        extraction_resistance: [1.1, 6.0, 4.4, 5.0, 0.8],
+        permeability: 0.5,
+        insulation: 0.15,
     },
 ];
 

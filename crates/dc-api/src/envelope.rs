@@ -101,6 +101,12 @@ pub struct Effects {
     pub subscriptions_created: Vec<u64>,
     #[serde(default)]
     pub characters_spawned: Vec<String>,
+    // Appended (content-class registry milestone) — postcard field order is
+    // wire identity, so new fields go at the end, always serialized.
+    #[serde(default)]
+    pub classes_defined: Vec<String>,
+    #[serde(default)]
+    pub class_members_defined: Vec<String>,
 }
 
 impl Effects {
@@ -111,6 +117,8 @@ impl Effects {
             items_defined: self.items_defined.len() as u64,
             subscriptions_created: self.subscriptions_created.len() as u64,
             characters_spawned: self.characters_spawned.len() as u64,
+            classes_defined: self.classes_defined.len() as u64,
+            class_members_defined: self.class_members_defined.len() as u64,
         }
     }
 }
@@ -123,6 +131,8 @@ pub struct EffectsSummary {
     pub items_defined: u64,
     pub subscriptions_created: u64,
     pub characters_spawned: u64,
+    pub classes_defined: u64,
+    pub class_members_defined: u64,
 }
 
 /// Why a command (or query) was refused.
@@ -157,6 +167,12 @@ pub enum RejectReason {
         failed_id: String,
         reason: Box<RejectReason>,
     },
+    // Appended (content-class registry milestone) — variant order is postcard
+    // wire identity, so new reasons go at the end.
+    #[error("unknown content class `{class}`")]
+    UnknownClass { class: String },
+    #[error("class contract violation: {reason}")]
+    SchemaViolation { reason: String },
 }
 
 /// Outcome half of a receipt.

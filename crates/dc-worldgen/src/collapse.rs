@@ -34,10 +34,17 @@
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
-use dc_core::{Block, Chunk, ChunkPos, VoxelScale};
+use dc_core::materials::geology::{
+    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, GeoMemberIdx, GeologySet,
+};
+use dc_core::{
+    Block, CHUNK_VOLUME, Chunk, ChunkPos, MaterialChunk, MixtureId, MixtureTable, StructureShape,
+    VoxelContents, VoxelScale,
+};
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::pregen::{CELL_VOXELS, Pregen, SALT_ELEV, SALT_RUIN, temp_sea_level};
+use crate::geology::{StrataCtx, StrataEvent, StrataRec};
+use crate::pregen::{CELL_VOXELS, Pregen, Provenance, SALT_ELEV, SALT_RUIN, temp_sea_level};
 
 /// Lattice level whose spacing is one region (8 192 voxels, 7.37 km).
 pub const L_REGION: u8 = 1;
@@ -184,6 +191,9 @@ pub struct ColumnRec {
     pub posts: Vec<(u8, u8, u8)>,
     /// True when generated beyond the pregen grid (border wilds).
     pub wilds: bool,
+    /// The ordered deposition log (geology strata passes). Empty where no
+    /// pass deposited (ocean, wilds): the legacy soil band applies there.
+    pub strata: StrataRec,
 }
 
 /// The lazy generator: owns the collapse caches and instrumentation, borrows
@@ -193,6 +203,11 @@ pub struct WorldGenerator<'a> {
     pregen: &'a Pregen,
     seed: u64,
     voxel_m: f64,
+    /// The registered geology content the strata passes select from.
+    geology: GeologySet,
+    /// Region-scale mixture intern table (S8 `materials/mixtures-v0` path);
+    /// ids are first-intern order, deterministic given generation order.
+    materials: MixtureTable,
     sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>>,
     lattice_memo: HashMap<(u8, i64, i64), (f64, f64)>,
     region_cache: HashMap<(i64, i64), Rc<RegionRec>>,
@@ -204,6 +219,12 @@ pub struct WorldGenerator<'a> {
 
 impl<'a> WorldGenerator<'a> {
     pub fn new(pregen: &'a Pregen) -> Self {
+        Self::with_geology(pregen, dc_core::materials::geology::vanilla())
+    }
+
+    /// A generator over an explicit geology content set (registered class
+    /// members). `new` uses the vanilla set.
+    pub fn with_geology(pregen: &'a Pregen, geology: GeologySet) -> Self {
         let scale = VoxelScale::from_player_height(1.8, 2); // N=2: 0.9 m voxels
         let mut sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>> = HashMap::new();
         for s in &pregen.sites {
@@ -221,6 +242,8 @@ impl<'a> WorldGenerator<'a> {
             pregen,
             seed: pregen.seed,
             voxel_m: scale.voxel_size_m(),
+            geology,
+            materials: MixtureTable::new(),
             sites_by_cell,
             lattice_memo: HashMap::new(),
             region_cache: HashMap::new(),
@@ -236,11 +259,21 @@ impl<'a> WorldGenerator<'a> {
         &self.last_stats
     }
 
+    /// The region-scale mixture intern table accumulated by
+    /// [`Self::generate_chunk_with_materials`] (the S8 `materials/mixtures-v0`
+    /// sidecar payload is `mixture_table().encode()`).
+    pub fn mixture_table(&self) -> &MixtureTable {
+        &self.materials
+    }
+
     /// Generate one 32³ chunk of blocks. Deterministic in
     /// `(seed, extent, pos)`; asserts [`LOOKAHEAD_BOUNDS`].
     pub fn generate_chunk(&mut self, pos: ChunkPos) -> Chunk {
         self.trace.clear();
         let col = self.column(i64::from(pos.x), i64::from(pos.z));
+        // The strata record as top-down bands: (cumulative depth, block).
+        // Depth 1 = directly under the surface voxel.
+        let bands = strata_bands(&self.geology, &col.strata);
         let mut chunk = Chunk::new();
         let base_y = i64::from(pos.y) * 32;
         for z in 0..32usize {
@@ -253,10 +286,21 @@ impl<'a> WorldGenerator<'a> {
                         Block::Air
                     } else if vy == h {
                         col.surface[i]
-                    } else if vy >= h - i64::from(col.soil) {
-                        Block::Dirt
+                    } else if bands.is_empty() {
+                        // No deposition record (ocean, wilds): legacy soil.
+                        if vy >= h - i64::from(col.soil) {
+                            Block::Dirt
+                        } else {
+                            Block::Stone
+                        }
                     } else {
-                        Block::Stone
+                        // The 3-band fill consumes the record: recorded
+                        // strata as bands, unrecorded basement below = stone.
+                        let depth = (h - vy) as u32;
+                        bands
+                            .iter()
+                            .find(|&&(end, _)| depth <= end)
+                            .map_or(Block::Stone, |&(_, b)| b)
                     };
                     if b != Block::Air {
                         chunk.set(x, y, z, b);
@@ -283,6 +327,46 @@ impl<'a> WorldGenerator<'a> {
         self.assert_bounds();
         self.evict();
         chunk
+    }
+
+    /// Generate a chunk plus its material contents: every buried voxel inside
+    /// the recorded strata resolves to a canonical [`VoxelContents`]
+    /// (constructor-only — never hand-assembled slots), interned through the
+    /// region [`MixtureTable`] and palette-compressed as a [`MaterialChunk`]
+    /// (the decided `materials/slots-v0` / `mixtures-v0` sidecar path).
+    /// Chunks with no recorded strata in range return an all-empty material
+    /// chunk, which attaches no sidecar and pays nothing.
+    pub fn generate_chunk_with_materials(&mut self, pos: ChunkPos) -> (Chunk, MaterialChunk) {
+        let chunk = self.generate_chunk(pos);
+        let col = self.column(i64::from(pos.x), i64::from(pos.z));
+        let events = event_spans(&col.strata);
+        let mut dense = vec![MixtureId::EMPTY; CHUNK_VOLUME];
+        if !events.is_empty() {
+            let base_y = i64::from(pos.y) * 32;
+            // Memoize per-event contents: one intern per (event, this chunk).
+            let mut memo: Vec<Option<MixtureId>> = vec![None; events.len()];
+            for z in 0..32usize {
+                for x in 0..32usize {
+                    let h = i64::from(col.heights[z * 32 + x]);
+                    for y in 0..32usize {
+                        let vy = base_y + y as i64;
+                        if vy >= h {
+                            continue; // surface voxel and air carry no record
+                        }
+                        let depth = (h - vy) as u32;
+                        let Some(k) = events.iter().position(|&(end, _)| depth <= end) else {
+                            continue; // unrecorded basement
+                        };
+                        let id = *memo[k].get_or_insert_with(|| {
+                            self.materials
+                                .intern(contents_for_event(&self.geology, &events[k].1))
+                        });
+                        dense[Chunk::index(x, y, z)] = id;
+                    }
+                }
+            }
+        }
+        (chunk, MaterialChunk::from_dense(&dense))
     }
 
     /// The chunk-column record for chunk coordinates `(cx, cz)` — exposed for
@@ -637,12 +721,55 @@ impl<'a> WorldGenerator<'a> {
             }
         }
         let posts = self.ruin_posts(cx, cz, &locale);
+
+        // ---- geology strata passes (collapse phase, bounded context) ----
+        // Provenance of the parent cell (already in this column's 1-ring
+        // climate consult set; traced for the lookahead instrumentation).
+        let (pgx, pgy) = self.pregen.grid.cell_of_voxel(cx * 32 + 16, cz * 32 + 16);
+        self.trace.cells.insert((pgx, pgy));
+        let provenance = match (i32::try_from(pgx), i32::try_from(pgy)) {
+            (Ok(gx32), Ok(gy32)) => self
+                .pregen
+                .grid
+                .get(gx32, gy32)
+                .map_or(Provenance::OceanFloor, |c| c.provenance),
+            _ => Provenance::OceanFloor,
+        };
+        let mean_h = heights.iter().map(|&h| f64::from(h)).sum::<f64>() / 1024.0;
+        let elev_m = mean_h * self.voxel_m;
+        // Fluvial energy: discharge-scaled channel width, decaying with
+        // distance from the nearest channel (canonical seg order ⇒ adjacent
+        // columns agree).
+        let (ccx, ccz) = ((cx * 32 + 16) as f64, (cz * 32 + 16) as f64);
+        let flow_energy = locale
+            .segs
+            .iter()
+            .map(|s| s.width * (-seg_point_dist(s, ccx, ccz) / 24.0).exp())
+            .fold(0.0f64, f64::max);
+        let mut strata_ctx = StrataCtx {
+            seed: self.seed,
+            cx,
+            cz,
+            temp_c: temp_sl,
+            precip,
+            provenance,
+            elev_m,
+            flow_energy,
+            wilds,
+            geology: &self.geology,
+            strata: StrataRec::default(),
+            alluvium: None,
+        };
+        self.pregen.pipeline.run_strata(&mut strata_ctx);
+        let strata = strata_ctx.strata;
+
         let rec = Rc::new(ColumnRec {
             heights,
             surface,
             soil,
             posts,
             wilds,
+            strata,
         });
         self.column_cache.insert((cx, cz), rec.clone());
         rec
@@ -676,6 +803,62 @@ impl<'a> WorldGenerator<'a> {
 
 fn avg2(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
+}
+
+/// Block-tier reading of a class member: clastic strata read as soil (Dirt),
+/// everything else (igneous, unknown future classes) as Stone. Client
+/// visibility of the actual materials is the sequenced 3c milestone; the
+/// voxel *contents* carry the real member via the material sidecar.
+fn block_for_member(set: &GeologySet, member: GeoMemberIdx) -> Block {
+    match set.member(member).class.as_str() {
+        c if c == CLASS_CLASTIC_FINE || c == CLASS_CLASTIC_COARSE => Block::Dirt,
+        _ => Block::Stone,
+    }
+}
+
+/// The record as top-down `(cumulative depth, block)` bands.
+fn strata_bands(set: &GeologySet, strata: &StrataRec) -> Vec<(u32, Block)> {
+    let mut bands = Vec::with_capacity(strata.events.len());
+    let mut acc = 0u32;
+    for e in strata.events.iter().rev() {
+        acc += u32::from(e.thickness_vox);
+        bands.push((acc, block_for_member(set, e.member)));
+    }
+    bands
+}
+
+/// The record as top-down `(cumulative depth, event)` spans.
+fn event_spans(strata: &StrataRec) -> Vec<(u32, StrataEvent)> {
+    let mut spans = Vec::with_capacity(strata.events.len());
+    let mut acc = 0u32;
+    for e in strata.events.iter().rev() {
+        acc += u32::from(e.thickness_vox);
+        spans.push((acc, *e));
+    }
+    spans
+}
+
+/// Canonical voxel contents for one stratum event — always through the
+/// [`VoxelContents`] constructors (canonical form is a hard invariant).
+/// Clastic strata are loose debris (with placer ore grains substituted into
+/// their eighths where the placer pass enriched the event); igneous strata
+/// are full structural fill.
+fn contents_for_event(set: &GeologySet, e: &StrataEvent) -> VoxelContents {
+    let host = set.member(e.member).material;
+    let class = set.member(e.member).class.as_str();
+    if class == CLASS_CLASTIC_FINE || class == CLASS_CLASTIC_COARSE {
+        let mut debris = [host; 8];
+        if let Some((ore_member, eighths)) = e.ore {
+            let ore = set.member(ore_member).material;
+            for slot in debris.iter_mut().take(usize::from(eighths.min(8))) {
+                *slot = ore;
+            }
+        }
+        VoxelContents::debris_only(&debris).expect("8 debris eighths fit an open voxel")
+    } else {
+        VoxelContents::new(StructureShape::Full, &[host; 8], &[], &[])
+            .expect("full structural fill is canonical")
+    }
 }
 
 fn seg_point_dist(s: &RiverSeg, px: f64, pz: f64) -> f64 {

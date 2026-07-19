@@ -27,6 +27,7 @@
 pub mod abi;
 pub mod capability;
 pub mod character;
+pub mod classes;
 pub mod envelope;
 pub mod event;
 pub mod host;
@@ -35,6 +36,7 @@ pub mod schema;
 
 pub use capability::{CapabilityToken, Grant, Requirement};
 pub use character::{CharacterConfig, CharacterInput, CharacterState};
+pub use classes::{ClassMemberDef, ContentClassDef, ParamEntry, ParamKind, ParamSpec, ParamValue};
 pub use envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, ConsumerKind, Effects,
     EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,
