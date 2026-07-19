@@ -26,24 +26,46 @@ use std::collections::BTreeMap;
 
 use super::{MaterialId, MaterialProps};
 
-/// v1 class roster (DECIDED 2026-07-18: minimal-but-complete).
+/// v1 class roster (DECIDED 2026-07-18: minimal-but-complete) plus the 3d
+/// accessory-inclusion class (docs/design/geology.md § roster/inclusions).
 pub const CLASS_CLASTIC_FINE: &str = "dc:stratum/clastic-fine";
 pub const CLASS_CLASTIC_COARSE: &str = "dc:stratum/clastic-coarse";
 pub const CLASS_IGNEOUS_INTRUSIVE: &str = "dc:stratum/igneous-intrusive";
 pub const CLASS_IGNEOUS_EXTRUSIVE: &str = "dc:stratum/igneous-extrusive";
 pub const CLASS_ORE_PLACER: &str = "dc:ore/placer";
+/// Accessory minerals that ride the pore slots of a host igneous rock
+/// (olivine in basalt/gabbro) — the inclusion-as-pore-partial representation
+/// (DECIDED 2026-07-19). Province/depth-driven like its igneous host; it
+/// never reads the weather.
+pub const CLASS_ACCESSORY_MAFIC: &str = "dc:accessory/mafic";
 
-/// The v1 classes, in canonical (sorted) order.
-pub fn v1_classes() -> [&'static str; 5] {
+/// The vanilla classes, in canonical (sorted) order.
+pub fn v1_classes() -> [&'static str; 6] {
     let mut c = [
         CLASS_CLASTIC_FINE,
         CLASS_CLASTIC_COARSE,
         CLASS_IGNEOUS_INTRUSIVE,
         CLASS_IGNEOUS_EXTRUSIVE,
         CLASS_ORE_PLACER,
+        CLASS_ACCESSORY_MAFIC,
     ];
     c.sort_unstable();
     c
+}
+
+/// Whether a class binds its member fitness to the **surface weather** of the
+/// deposition epoch. Clastic sediment and surficial placers do (year-zero
+/// climate is ratified-correct for the veneer, geology.md § formation
+/// context); igneous and its accessories do **not** — their fitness is
+/// province/depth-driven, so a granite never reads the weather. dc-api's
+/// class contract omits the `temp_c`/`precip` params for the latter, and the
+/// worldgen igneous windows leave those axes unbounded, so weather cannot
+/// enter their selection.
+pub fn class_reads_climate(class: &str) -> bool {
+    !matches!(
+        class,
+        CLASS_IGNEOUS_INTRUSIVE | CLASS_IGNEOUS_EXTRUSIVE | CLASS_ACCESSORY_MAFIC
+    )
 }
 
 /// An inclusive window on one context axis plus the whole formation-condition
@@ -68,6 +90,19 @@ impl FormationWindow {
         precip: (f64::NEG_INFINITY, f64::INFINITY),
         depth_m: (f64::NEG_INFINITY, f64::INFINITY),
     };
+
+    /// A province/depth-driven igneous window: the `temp_c`/`precip` axes are
+    /// left unbounded (fitness 1 regardless of weather), so an igneous member
+    /// **never reads the surface weather** — only its emplacement `depth_m`
+    /// (and the pass's province gate) steer selection (geology.md § formation
+    /// context, the 2026-07-19 shim correction).
+    pub const fn igneous(depth_m: (f64, f64)) -> FormationWindow {
+        FormationWindow {
+            temp_c: (f64::NEG_INFINITY, f64::INFINITY),
+            precip: (f64::NEG_INFINITY, f64::INFINITY),
+            depth_m,
+        }
+    }
 
     fn axes_valid(&self) -> bool {
         let ok = |(lo, hi): (f64, f64)| !lo.is_nan() && !hi.is_nan() && lo <= hi;
@@ -395,13 +430,7 @@ pub fn settle_energy(props: &MaterialProps) -> f64 {
 /// registry-table entries to slice-1 class defs).
 pub fn vanilla() -> GeologySet {
     let mut b = GeologySet::builder();
-    for class in [
-        CLASS_CLASTIC_FINE,
-        CLASS_CLASTIC_COARSE,
-        CLASS_IGNEOUS_INTRUSIVE,
-        CLASS_IGNEOUS_EXTRUSIVE,
-        CLASS_ORE_PLACER,
-    ] {
+    for class in v1_classes() {
         b.declare_class(class).expect("vanilla classes are valid");
     }
     let members = vanilla_members();
@@ -442,33 +471,50 @@ pub fn vanilla_members() -> Vec<GeoMemberDef> {
             hardness: 0.5,
             erodibility: 0.5,
         },
+        // --- igneous: province/depth-driven, weather-blind (unbounded
+        // temp_c/precip via FormationWindow::igneous). ---
         GeoMemberDef {
             id: "dc:geo/granite".into(),
             class: CLASS_IGNEOUS_INTRUSIVE.into(),
             material: MaterialId::GRANITE,
-            window: FormationWindow {
-                temp_c: (-40.0, 50.0),
-                precip: (0.0, 1.0),
-                depth_m: (120.0, 40_000.0),
-            },
+            window: FormationWindow::igneous((120.0, 40_000.0)),
             abundance: 1.0,
             habit: GeoHabit::Lens,
             hardness: 0.9,
             erodibility: 0.15,
         },
         GeoMemberDef {
+            // A second intrusive (roster proof): a shallower-seated pluton, so
+            // depth — not weather — differentiates it from granite.
+            id: "dc:geo/diorite".into(),
+            class: CLASS_IGNEOUS_INTRUSIVE.into(),
+            material: MaterialId::DIORITE,
+            window: FormationWindow::igneous((90.0, 8_000.0)),
+            abundance: 0.6,
+            habit: GeoHabit::Lens,
+            hardness: 0.88,
+            erodibility: 0.16,
+        },
+        GeoMemberDef {
             id: "dc:geo/basalt".into(),
             class: CLASS_IGNEOUS_EXTRUSIVE.into(),
             material: MaterialId::BASALT,
-            window: FormationWindow {
-                temp_c: (-40.0, 50.0),
-                precip: (0.0, 1.0),
-                depth_m: (0.0, 60.0),
-            },
+            window: FormationWindow::igneous((0.0, 60.0)),
             abundance: 1.0,
             habit: GeoHabit::Blanket,
             hardness: 0.85,
             erodibility: 0.2,
+        },
+        GeoMemberDef {
+            // A second extrusive (roster proof): intermediate lava.
+            id: "dc:geo/andesite".into(),
+            class: CLASS_IGNEOUS_EXTRUSIVE.into(),
+            material: MaterialId::ANDESITE,
+            window: FormationWindow::igneous((0.0, 40.0)),
+            abundance: 0.7,
+            habit: GeoHabit::Blanket,
+            hardness: 0.82,
+            erodibility: 0.22,
         },
         GeoMemberDef {
             id: "dc:geo/gold-dust".into(),
@@ -483,6 +529,47 @@ pub fn vanilla_members() -> Vec<GeoMemberDef> {
             habit: GeoHabit::Grain,
             hardness: 0.4,
             erodibility: 0.3,
+        },
+        // --- second fine + coarse clastic members (roster proof). ---
+        GeoMemberDef {
+            id: "dc:geo/siltstone".into(),
+            class: CLASS_CLASTIC_FINE.into(),
+            material: MaterialId::SILTSTONE,
+            window: FormationWindow {
+                temp_c: (-5.0, 30.0),
+                precip: (0.10, 0.9),
+                depth_m: (0.0, 80.0),
+            },
+            abundance: 0.7,
+            habit: GeoHabit::Blanket,
+            hardness: 0.32,
+            erodibility: 0.72,
+        },
+        GeoMemberDef {
+            id: "dc:geo/conglomerate".into(),
+            class: CLASS_CLASTIC_COARSE.into(),
+            material: MaterialId::CONGLOMERATE,
+            window: FormationWindow {
+                temp_c: (-10.0, 40.0),
+                precip: (0.05, 1.0),
+                depth_m: (0.0, 100.0),
+            },
+            abundance: 0.6,
+            habit: GeoHabit::Blanket,
+            hardness: 0.55,
+            erodibility: 0.45,
+        },
+        // --- accessory: rides the host igneous rock's pores (province/depth
+        // -driven, weather-blind). ---
+        GeoMemberDef {
+            id: "dc:geo/olivine".into(),
+            class: CLASS_ACCESSORY_MAFIC.into(),
+            material: MaterialId::OLIVINE,
+            window: FormationWindow::igneous((0.0, 40_000.0)),
+            abundance: 1.0,
+            habit: GeoHabit::Grain,
+            hardness: 0.7,
+            erodibility: 0.25,
         },
     ]
 }
@@ -515,17 +602,29 @@ mod tests {
     #[test]
     fn vanilla_builds_and_selects_each_class() {
         let set = vanilla();
-        assert_eq!(set.members().len(), 5);
-        // Warm wet surface: fine clastic answers with mudstone.
+        assert_eq!(set.members().len(), 10);
+        // Warm wet surface: fine clastic answers (mudstone or siltstone).
         let (_, m) = set
-            .select(CLASS_CLASTIC_FINE, &ctx(18.0, 0.6, 3.0), 0.5)
+            .select(CLASS_CLASTIC_FINE, &ctx(18.0, 0.6, 3.0), 0.1)
             .expect("fine clastic member");
-        assert_eq!(m.material, MaterialId::MUDSTONE);
-        // Deep: intrusive answers with granite.
+        assert!(matches!(
+            m.material,
+            MaterialId::MUDSTONE | MaterialId::SILTSTONE
+        ));
+        // Deep intrusive: an igneous member answers regardless of the (unused)
+        // weather axes.
         let (_, m) = set
-            .select(CLASS_IGNEOUS_INTRUSIVE, &ctx(10.0, 0.3, 400.0), 0.5)
+            .select(CLASS_IGNEOUS_INTRUSIVE, &ctx(10.0, 0.3, 400.0), 0.1)
             .expect("intrusive member");
-        assert_eq!(m.material, MaterialId::GRANITE);
+        assert!(matches!(
+            m.material,
+            MaterialId::GRANITE | MaterialId::DIORITE
+        ));
+        // The accessory class answers under province/depth context.
+        let (_, m) = set
+            .select(CLASS_ACCESSORY_MAFIC, &ctx(0.0, 0.0, 50.0), 0.5)
+            .expect("accessory member");
+        assert_eq!(m.material, MaterialId::OLIVINE);
         assert!(
             set.select("dc:stratum/nope", &ctx(0.0, 0.0, 0.0), 0.5)
                 .is_none()
@@ -533,17 +632,33 @@ mod tests {
     }
 
     #[test]
+    fn igneous_selection_never_reads_the_weather() {
+        // The formation-context shim correction (geology.md 2026-07-19): an
+        // igneous member's fitness is depth-driven only — swinging temp/precip
+        // across their whole range cannot change the selection at a fixed depth.
+        let set = vanilla();
+        for class in [CLASS_IGNEOUS_INTRUSIVE, CLASS_IGNEOUS_EXTRUSIVE] {
+            for depth in [5.0, 60.0, 300.0, 2_000.0] {
+                for &u in &[0.05, 0.35, 0.65, 0.95] {
+                    let hot_wet = set.select(class, &ctx(45.0, 1.0, depth), u).map(|(i, _)| i);
+                    let cold_dry = set
+                        .select(class, &ctx(-40.0, 0.0, depth), u)
+                        .map(|(i, _)| i);
+                    assert_eq!(
+                        hot_wet, cold_dry,
+                        "igneous class {class} at depth {depth} read the weather"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn member_indices_are_registration_order_independent() {
         let members = vanilla_members();
-        let build = |order: &[usize]| {
+        let build = |order: &[usize], classes: &[&str]| {
             let mut b = GeologySet::builder();
-            for c in [
-                CLASS_ORE_PLACER, // classes declared in a different order too
-                CLASS_IGNEOUS_EXTRUSIVE,
-                CLASS_IGNEOUS_INTRUSIVE,
-                CLASS_CLASTIC_COARSE,
-                CLASS_CLASTIC_FINE,
-            ] {
+            for c in classes {
                 b.declare_class(c).unwrap();
             }
             for &i in order {
@@ -551,8 +666,29 @@ mod tests {
             }
             b.build()
         };
-        let a = build(&[0, 1, 2, 3, 4]);
-        let z = build(&[4, 2, 3, 0, 1]);
+        // Classes declared in a different order too.
+        let a = build(
+            &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            &[
+                CLASS_CLASTIC_FINE,
+                CLASS_CLASTIC_COARSE,
+                CLASS_IGNEOUS_INTRUSIVE,
+                CLASS_IGNEOUS_EXTRUSIVE,
+                CLASS_ORE_PLACER,
+                CLASS_ACCESSORY_MAFIC,
+            ],
+        );
+        let z = build(
+            &[9, 7, 5, 3, 1, 8, 6, 4, 2, 0],
+            &[
+                CLASS_ACCESSORY_MAFIC,
+                CLASS_ORE_PLACER,
+                CLASS_IGNEOUS_EXTRUSIVE,
+                CLASS_IGNEOUS_INTRUSIVE,
+                CLASS_CLASTIC_COARSE,
+                CLASS_CLASTIC_FINE,
+            ],
+        );
         assert_eq!(a.members(), z.members(), "canonical order must win");
         for m in a.members() {
             assert_eq!(a.member_index(&m.id), z.member_index(&m.id));

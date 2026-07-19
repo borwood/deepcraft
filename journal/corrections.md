@@ -72,3 +72,35 @@ included; everything that seats a body routes through it (merge `8aafc3a`).
 different surfaces; never seat a body on the former. Also: the plausible
 single-cause story ("missing octave") survived three walks because nobody
 priced the footprint; quantify before naming mechanisms.
+
+## 6. Chunk-line family cutover: "cell-stepped climate context flips selection on chunk borders" (2026-07-19)
+
+**Claim** (ROADMAP Observed, walk 8): material families cut hard on chunk
+lines because "at N=2 the chunk (28.8 m) equals the S7 column-quantization
+cell, so cell-stepped climate context flips selection exactly on chunk
+borders."
+**Half falsified (mechanism refined).** The pregen climate/provenance **cell**
+is `CELL_VOXELS` = 16 384 voxels (512 chunks, ~14.7 km) — *not* the chunk — and
+`climate_at` is already **bilinear** between cell centres, so climate is a
+smooth field that does not step at chunk borders. Climate is not the culprit.
+The half that is right: the quantization cell that *does* equal the chunk at
+N=2 is the **chunk-column collapse unit** (`L_COLUMN`, 32 voxels), and the
+strata passes run **once per chunk-column**. So every field the passes consume
+— the single centre climate sample, the single centre `flow_energy`, the
+footprint-mean elevation, the per-chunk selection hash, and the integer-rounded
+thicknesses — is piecewise-constant across the whole 32×32 footprint and
+uncorrelated with its neighbours. Member identity (and, for the widened roster,
+which member of a class) is therefore uniform per chunk and flips on the grid.
+It is **selection quantization**, not "cell-stepped climate."
+**Fix** (3d mechanic 2, journal/0011): a material-tier **boundary dither** —
+per voxel-column the host member is re-selected from a bilinear field whose
+corners are the chunk-column selection hashes (C0-continuous across borders),
+so a class's member contact wanders like a facies boundary and can fall inside
+a chunk. Proven by a transect test (`family_contacts_wander_off_the_chunk_grid`).
+The thickness/class-presence quantization (e.g. a sandstone cap appearing via
+`flow_energy` rounding) is a *separate* per-chunk artifact, left as a loose end
+(ROADMAP Observed) — it needs per-voxel-column context, not member dither.
+**Lesson**: "the cell equals the chunk" was true of the *wrong* cell. When a
+quantization has several candidate cells (pregen cell vs collapse unit),
+measure which one the artifact actually rides before naming the field that
+steps.

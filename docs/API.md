@@ -93,13 +93,53 @@ MCP surfaces grow the tools automatically):
 Namespace rule unchanged from S5: the grant must own the namespace of the
 thing being *named* — for members that is the member's namespace, so a
 plugin registers `foo:geo/…` into `dc:stratum/…` (joining a foreign class is
-the point). The v1 geology classes all declare one shared contract
-(formation `temp_c`/`precip`/`depth_m` ranges, `abundance`, `habit`,
-`hardness`, `erodibility`, `material`); `dc_api::classes` bridges registered
-defs into the canonically ordered typed `GeologySet` (members sorted by
-namespaced id, abundance normalized within class) that worldgen selection
-consumes. The vanilla geology pack is generated from the typed set, so pack
-and model cannot drift.
+the point). `dc_api::classes` bridges registered defs into the canonically
+ordered typed `GeologySet` (members sorted by namespaced id, abundance
+normalized within class) that worldgen selection consumes. The vanilla geology
+pack is generated from the typed set, so pack and model cannot drift.
+
+<!-- EDITED 2026-07-19 (3d — geology post-v1 slice); NEEDS RATIFICATION -->
+**Per-class contracts (the formation-context correction, 2026-07-19).** The
+geology contract is no longer one shared param set. Which context flows into
+fitness is now class-dependent — the machinery is unchanged, the *contract*
+is:
+
+- **Clastic / placer** classes bind fitness to the deposition *weather*, so
+  their contract carries the `temp_c`/`precip` ranges (year-zero climate is
+  ratified-correct for the surficial veneer) alongside `depth_m`, `abundance`,
+  `habit`, `hardness`, `erodibility`, `material`.
+- **Igneous / accessory** classes are **province/depth-driven** and their
+  contract carries **no weather params at all** (`geology_param_specs(class)`
+  omits `temp_c`/`precip` for them). A granite is structurally prevented from
+  ever being handed the weather: an igneous member supplying `temp_c` rejects
+  as an unknown param at define time. The worldgen igneous windows leave those
+  axes unbounded, so weather cannot enter selection even internally
+  (`FormationWindow::igneous`). Province gating stays in the pass; depth is the
+  member-differentiating axis. *(Design choice for ratification: v1 keeps the
+  province gate in the pass rather than adding a tectonic-setting `Choice`
+  param to the fitness model — geology.md offered "depth_m and/or setting".)*
+
+**Class-satisfiability enforcement (two layers; geology.md § unfilled slots).**
+A class a gen pass selects from can never be silently empty:
+
+- **Define-time (`dc_api::classes::validate_pack`).** A content-pack batch must
+  register at least one member for every class it *declares* in the same batch
+  ("a pass is a pack"). Rejects by name. *(For ratification: enforced for every
+  declared class — a hair stronger than the "consumes a class it also
+  introduces" wording, and crate-boundary-clean: dc-api cannot see the worldgen
+  passes.)*
+- **World-build-time (`Pipeline::check_class_satisfiability`, run by
+  `WorldGenerator::try_with_geology[_owned]`).** A world refuses to build if any
+  class a registered pass's `selects` names has zero members — naming pass and
+  class, the same philosophy as the cycle/ambiguous-writer rejections. The
+  infallible `with_geology[_owned]` constructors panic on an unsatisfiable set;
+  vanilla is always complete.
+
+**Accessory inclusions as pore partials.** The new `dc:accessory/mafic` class
+(vanilla member `dc:geo/olivine`) is emplaced by the igneous pass into the host
+rock's **pore slots** (structure = host, pore = accessory) — the placer pattern
+in igneous dress, through the `VoxelContents` canonical constructors, rendered
+sparse by the existing 3c-2 face dither with no renderer-side code.
 <!-- END EDIT -->
 
 <!-- EDITED 2026-07-19 (body-plan staircase steps 1–2) — the bodies registry;

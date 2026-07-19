@@ -53,6 +53,8 @@ pub(crate) const SALT_RUIN: u64 = 0x5700_0009;
 pub(crate) const SALT_GEO_SELECT: u64 = 0x5700_000A;
 pub(crate) const SALT_GEO_THICK: u64 = 0x5700_000B;
 pub(crate) const SALT_GEO_ORE: u64 = 0x5700_000C;
+/// Accessory-inclusion presence gate + selection (3d pore partials).
+pub(crate) const SALT_GEO_ACC: u64 = 0x5700_000D;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

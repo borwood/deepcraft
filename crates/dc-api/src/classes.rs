@@ -215,60 +215,82 @@ fn range(name: &str, min: f64, max: f64) -> ParamSpec {
     }
 }
 
-/// The parameter contract every v1 geology class declares
-/// (docs/design/geology.md: formation T/P window, abundance weight, habit,
-/// hardness/erodibility — over the core context axes only).
-pub fn geology_param_specs() -> Vec<ParamSpec> {
-    vec![
-        ParamSpec {
-            name: "material".into(),
-            kind: ParamKind::MaterialName,
-            required: true,
+/// The parameter contract a geology class declares (docs/design/geology.md:
+/// abundance weight, habit, hardness/erodibility, emplacement depth over the
+/// core axes). **The formation-context correction (2026-07-19):** clastic and
+/// placer classes bind fitness to the deposition *weather*, so they carry
+/// `temp_c`/`precip` windows; igneous and accessory classes are
+/// **province/depth-driven** and carry no weather params at all — a granite is
+/// structurally prevented from ever being handed the weather (an igneous
+/// member that supplied `temp_c` would be rejected as an unknown param at
+/// define time). Which context flows is the fix; the machinery is unchanged.
+pub fn geology_param_specs(class: &str) -> Vec<ParamSpec> {
+    let mut specs = vec![ParamSpec {
+        name: "material".into(),
+        kind: ParamKind::MaterialName,
+        required: true,
+    }];
+    if geology::class_reads_climate(class) {
+        specs.push(range("temp_c", -80.0, 80.0));
+        specs.push(range("precip", 0.0, 1.0));
+    }
+    specs.push(range("depth_m", 0.0, 100_000.0));
+    specs.push(num("abundance", 1e-9, 1e9));
+    specs.push(ParamSpec {
+        name: "habit".into(),
+        kind: ParamKind::Choice {
+            options: vec!["blanket".into(), "lens".into(), "grain".into()],
         },
-        range("temp_c", -80.0, 80.0),
-        range("precip", 0.0, 1.0),
-        range("depth_m", 0.0, 100_000.0),
-        num("abundance", 1e-9, 1e9),
-        ParamSpec {
-            name: "habit".into(),
-            kind: ParamKind::Choice {
-                options: vec!["blanket".into(), "lens".into(), "grain".into()],
-            },
-            required: true,
-        },
-        num("hardness", 0.0, 1.0),
-        num("erodibility", 0.0, 1.0),
-    ]
+        required: true,
+    });
+    specs.push(num("hardness", 0.0, 1.0));
+    specs.push(num("erodibility", 0.0, 1.0));
+    specs
 }
 
-/// Convert a typed geology member def into the define-command params.
+/// The parameter names common to every geology class contract — the detector
+/// [`geology_set_from_defs`] uses to recognize a geology class regardless of
+/// whether it also carries the (climate-only) `temp_c`/`precip` axes.
+const GEO_COMMON_PARAMS: [&str; 6] = [
+    "material",
+    "depth_m",
+    "abundance",
+    "habit",
+    "hardness",
+    "erodibility",
+];
+
+/// Convert a typed geology member def into the define-command params. The
+/// weather axes are emitted only for classes that read the climate — an
+/// igneous or accessory member carries none, matching its contract.
 pub fn member_params(def: &GeoMemberDef) -> Vec<ParamEntry> {
     let entry = |name: &str, value: ParamValue| ParamEntry {
         name: name.into(),
         value,
     };
-    vec![
-        entry(
-            "material",
-            ParamValue::Text(def.material.props().name.into()),
-        ),
-        entry(
+    let mut out = vec![entry(
+        "material",
+        ParamValue::Text(def.material.props().name.into()),
+    )];
+    if geology::class_reads_climate(&def.class) {
+        out.push(entry(
             "temp_c",
             ParamValue::Range(def.window.temp_c.0, def.window.temp_c.1),
-        ),
-        entry(
+        ));
+        out.push(entry(
             "precip",
             ParamValue::Range(def.window.precip.0, def.window.precip.1),
-        ),
-        entry(
-            "depth_m",
-            ParamValue::Range(def.window.depth_m.0, def.window.depth_m.1),
-        ),
-        entry("abundance", ParamValue::Number(def.abundance)),
-        entry("habit", ParamValue::Text(def.habit.as_str().into())),
-        entry("hardness", ParamValue::Number(def.hardness)),
-        entry("erodibility", ParamValue::Number(def.erodibility)),
-    ]
+        ));
+    }
+    out.push(entry(
+        "depth_m",
+        ParamValue::Range(def.window.depth_m.0, def.window.depth_m.1),
+    ));
+    out.push(entry("abundance", ParamValue::Number(def.abundance)));
+    out.push(entry("habit", ParamValue::Text(def.habit.as_str().into())));
+    out.push(entry("hardness", ParamValue::Number(def.hardness)));
+    out.push(entry("erodibility", ParamValue::Number(def.erodibility)));
+    out
 }
 
 /// The vanilla v1 geology content as a recorded command batch (content
@@ -280,8 +302,8 @@ pub fn vanilla_geology_pack() -> Vec<Payload> {
     for class in geology::v1_classes() {
         out.push(Payload::DefineContentClass(DefineContentClass {
             name: class.to_string(),
-            doc: format!("v1 geology class `{class}` (docs/design/geology.md)"),
-            params: geology_param_specs(),
+            doc: format!("vanilla geology class `{class}` (docs/design/geology.md)"),
+            params: geology_param_specs(class),
         }));
     }
     for def in geology::vanilla_members() {
@@ -292,6 +314,43 @@ pub fn vanilla_geology_pack() -> Vec<Payload> {
         }));
     }
     out
+}
+
+/// Define-time class-satisfiability enforcement (geology.md § unfilled slots,
+/// layer 1): a content-pack batch must register **at least one member for
+/// every class it declares in the same batch**. "A pass is a pack" — a class
+/// introduced with no fallback member is rejected by name, so the
+/// magic-terrain-without-magic-materials mistake is structurally impossible
+/// before a world is ever built.
+///
+/// This is slightly stronger than the design's "consumes a class it also
+/// introduces" phrasing (we hold *every* introduced class to the rule) and is
+/// deliberately crate-boundary-clean: dc-api cannot see the worldgen passes, so
+/// it cannot know which introduced classes a pass consumes; requiring a
+/// fallback for all of them is the honest, self-contained realization.
+/// Fallback members are ordinary members (canonical order, normalized
+/// abundance), so later packs diversify, never invalidate.
+pub fn validate_pack(payloads: &[Payload]) -> Result<(), String> {
+    use std::collections::BTreeMap;
+    let mut declared: Vec<&str> = Vec::new();
+    let mut member_counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for p in payloads {
+        match p {
+            Payload::DefineContentClass(c) => declared.push(&c.name),
+            Payload::DefineClassMember(m) => {
+                *member_counts.entry(m.class.as_str()).or_default() += 1
+            }
+            _ => {}
+        }
+    }
+    for class in declared {
+        if member_counts.get(class).copied().unwrap_or(0) == 0 {
+            return Err(format!(
+                "content class `{class}` is introduced with no fallback member in the same pack"
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn param<'a>(entries: &'a [ParamEntry], name: &str) -> Result<&'a ParamValue, String> {
@@ -308,6 +367,20 @@ fn param_range(entries: &[ParamEntry], name: &str) -> Result<(f64, f64), String>
         _ => Err(format!("parameter `{name}` is not a range")),
     }
 }
+
+/// An optional range param: `None` when absent (the climate axes on a
+/// province/depth-driven igneous/accessory class), `Some(range)` when present.
+fn opt_param_range(entries: &[ParamEntry], name: &str) -> Result<Option<(f64, f64)>, String> {
+    match entries.iter().find(|e| e.name == name).map(|e| &e.value) {
+        None => Ok(None),
+        Some(ParamValue::Range(lo, hi)) => Ok(Some((*lo, *hi))),
+        Some(_) => Err(format!("parameter `{name}` is not a range")),
+    }
+}
+
+/// The unbounded window on a weather axis a climate-blind class leaves open —
+/// fitness 1 regardless of the value (see `FormationWindow::igneous`).
+const WEATHER_ANY: (f64, f64) = (f64::NEG_INFINITY, f64::INFINITY);
 
 fn param_number(entries: &[ParamEntry], name: &str) -> Result<f64, String> {
     match param(entries, name)? {
@@ -332,11 +405,13 @@ pub fn geology_set_from_defs<'a>(
     classes: impl Iterator<Item = &'a ContentClassDef>,
     members: impl Iterator<Item = &'a ClassMemberDef>,
 ) -> Result<GeologySet, String> {
-    let contract_names: Vec<String> = geology_param_specs().into_iter().map(|s| s.name).collect();
     let mut builder = GeologySet::builder();
     let mut geo_classes: Vec<String> = Vec::new();
     for c in classes {
-        let is_geo = contract_names
+        // A geology class is recognized by the axes common to every geology
+        // contract; the (climate-only) temp_c/precip axes are optional, so
+        // both the clastic and the igneous/accessory contracts qualify.
+        let is_geo = GEO_COMMON_PARAMS
             .iter()
             .all(|n| c.params.iter().any(|p| p.name == *n));
         if !is_geo {
@@ -363,8 +438,12 @@ pub fn geology_set_from_defs<'a>(
             class: m.class.clone(),
             material,
             window: FormationWindow {
-                temp_c: param_range(&m.params, "temp_c").map_err(wrap)?,
-                precip: param_range(&m.params, "precip").map_err(wrap)?,
+                temp_c: opt_param_range(&m.params, "temp_c")
+                    .map_err(wrap)?
+                    .unwrap_or(WEATHER_ANY),
+                precip: opt_param_range(&m.params, "precip")
+                    .map_err(wrap)?
+                    .unwrap_or(WEATHER_ANY),
                 depth_m: param_range(&m.params, "depth_m").map_err(wrap)?,
             },
             abundance: param_number(&m.params, "abundance").map_err(wrap)?,
@@ -385,18 +464,80 @@ mod tests {
 
     #[test]
     fn geology_contract_validates_its_own_vanilla_members() {
-        let contract = geology_param_specs();
-        validate_class_contract(&contract).expect("contract is well-formed");
+        // Each class's own (per-class) contract validates its members.
+        for class in geology::v1_classes() {
+            validate_class_contract(&geology_param_specs(class))
+                .unwrap_or_else(|e| panic!("class {class} contract malformed: {e}"));
+        }
         for def in geology::vanilla_members() {
+            let contract = geology_param_specs(&def.class);
             validate_params(&contract, &member_params(&def))
                 .unwrap_or_else(|e| panic!("vanilla member {} rejected: {e}", def.id));
         }
     }
 
     #[test]
+    fn igneous_contract_omits_the_weather_axes() {
+        // The formation-context correction, at the contract level: an igneous
+        // class declares no temp_c/precip params, and an igneous member that
+        // tried to supply them would be rejected as an unknown param.
+        let contract = geology_param_specs(geology::CLASS_IGNEOUS_INTRUSIVE);
+        assert!(
+            !contract
+                .iter()
+                .any(|p| p.name == "temp_c" || p.name == "precip")
+        );
+        assert!(contract.iter().any(|p| p.name == "depth_m"));
+        let mut params = member_params(&GeoMemberDef {
+            id: "dc:geo/granite".into(),
+            class: geology::CLASS_IGNEOUS_INTRUSIVE.into(),
+            material: dc_core::MaterialId::GRANITE,
+            window: FormationWindow::igneous((120.0, 40_000.0)),
+            abundance: 1.0,
+            habit: GeoHabit::Lens,
+            hardness: 0.9,
+            erodibility: 0.15,
+        });
+        assert!(!params.iter().any(|e| e.name == "temp_c"));
+        params.push(ParamEntry {
+            name: "temp_c".into(),
+            value: ParamValue::Range(0.0, 10.0),
+        });
+        assert!(
+            validate_params(&contract, &params).is_err(),
+            "an igneous member supplying weather must be rejected"
+        );
+    }
+
+    #[test]
+    fn a_pack_declaring_an_empty_class_is_rejected_by_name() {
+        // Define-time class-satisfiability (layer 1): the vanilla pack ships a
+        // member for every class it declares…
+        validate_pack(&vanilla_geology_pack()).expect("vanilla pack is self-satisfying");
+        // …but a batch that introduces a class with no member is refused,
+        // naming the culprit class.
+        let mut pack = vanilla_geology_pack();
+        pack.push(Payload::DefineContentClass(DefineContentClass {
+            name: "dc:stratum/empty".into(),
+            doc: "no members".into(),
+            params: geology_param_specs("dc:stratum/empty"),
+        }));
+        let err = validate_pack(&pack).expect_err("empty class must be rejected");
+        assert!(
+            err.contains("dc:stratum/empty"),
+            "must name the class: {err}"
+        );
+    }
+
+    #[test]
     fn validate_params_enforces_the_contract() {
-        let contract = geology_param_specs();
-        let base = member_params(&geology::vanilla_members()[0]);
+        // Use the clastic (weather-carrying) contract + a clastic member.
+        let contract = geology_param_specs(geology::CLASS_CLASTIC_FINE);
+        let mudstone = geology::vanilla_members()
+            .into_iter()
+            .find(|m| m.class == geology::CLASS_CLASTIC_FINE)
+            .expect("a fine clastic member");
+        let base = member_params(&mudstone);
         // Unknown parameter.
         let mut bad = base.clone();
         bad.push(ParamEntry {
