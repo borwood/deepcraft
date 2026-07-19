@@ -117,6 +117,29 @@ Full report: docs/design/orogeny-recon-2026-07-19.md. Headlines:
   surface geometry, declared-prehistory instead of a simulated Wilson
   cycle.
 
+## S9 deep-time spike — framing (blessed 2026-07-19, with recorded doubt)
+
+Architecture candidates for the deep-time tier between pregen and
+collapse: **A** single global mid-tier (~460 m cells, seconds at
+creation); **B** full landform-resolution global (~48 m, ~27 M cells,
+minutes, paid once); **C** coarse global + lazy bounded regional
+refinement (orogeny's halo theorem + our pyramid).
+
+The user blessed testing **C** — and recorded explicit skepticism: "not
+yet convinced this is the genius holy grail golden superthink path for
+perf and deep simulation — in an engine that we 100% own." The spike must
+therefore treat **B as a live contender, not a strawman**: measure
+full-resolution global cost/memory honestly (a couple of minutes once per
+world may beat an entire refinement architecture on simplicity), and
+judge all candidates on read-quality per the ratified method plus total
+cost of ownership (code complexity counts).
+
+Spike tasks: two-plane erosion + strata recorder + orographic march;
+coarse tier at ~250 m / 500 m / 1 km; one bounded regional refinement
+with measured decay length; **process classification** — for each engine
+we care about, does it relax (refine locally) or advect (decide coarse)?
+Rivers are the known advective wall (the 2-ring re-proof item).
+
 ## Standing question for every future pass
 
 "What does this look like in reality, and how did it get there?" — if the
