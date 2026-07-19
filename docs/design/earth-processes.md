@@ -148,10 +148,16 @@ cells** for hillslope (clean relaxation); fluvial spikes to 26 via
 drainage reroutes — **drainage/flow-area is the sole ADVECT**, everything
 else in the catalog relaxes at 16–24 cells. Read-quality at 500 m already
 tells true stories (pulsed arid fans, transgressive couplets, condensed
-cyclic margins). **Recommendation: A always-on + C refinement; do NOT
-build B — UNLESS the erosion engine parallelizes** (a parallel
-priority-flood could pull B to ~2 min, where its simplicity wins; that
-mini-spike decides, honoring the recorded user doubt). 3e must also:
+cyclic margins). **Recommendation: A always-on + C refinement — CONFIRMED by S9b
+(2026-07-19, docs/spikes/S9b-results.md, corrections #9): parallelism
+does NOT flip B on this hardware.** The determinism tax forecloses it:
+the flood (98.5% of the step at B scale) has no byte-identical parallel
+form; deterministic-parallel phases are a bandwidth-bound minority
+(whole-step 1.2×, saturating at 8 threads); realistic parallel B is
+15–70 min vs the 2-min flip target. Reopens only on ~32-core hardware
+with a deterministic parallel flood (Barnes spill-graph, unbuilt) —
+`examples/deeptime_par.rs --full-b` re-measures anywhere. B remains fine
+for Small worlds. 3e must also:
 calibrate iteration↔Myr against a real orogen, build the coarse→fine
 drainage handoff + collapse stitching (halo width is now a measured
 budget input), widen recorder tags (agent axis + grain continuum), and

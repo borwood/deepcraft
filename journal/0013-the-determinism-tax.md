@@ -1,6 +1,6 @@
-# 0013 (draft) — the parallelism that wasn't: measuring the deep-time flip
+# 0013 — the determinism tax on parallelism
 
-*Draft for integration. S9b, the follow-up S9 asked for by name.*
+*2026-07-19 · S9b spike (background agent; integrated by the main session, merge `9910c45`, 37 suites green on merged main). Full tables in docs/spikes/S9b-results.md.*
 
 S9 ended with one honest loophole. We'd measured B — the full-resolution global
 deep-time tier, 27 M cells at 48 m — at ~63 minutes and ~3 GiB, and recommended

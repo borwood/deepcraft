@@ -135,3 +135,24 @@ coarse-globally.
 **Lesson**: cost claims and boundedness claims are measurements, not
 adjectives; the halo theorem applies per-process, never to "erosion" as a
 lump.
+
+## 9. "A parallel priority-flood could pull B to ~2 minutes" (2026-07-19)
+
+**Claim** (S9-results.md recommendation, carried into earth-processes.md):
+the deep-time verdict's flip condition — parallelizing the flood could make
+brute-force B (~27 M cells) cost ~2 minutes, where its simplicity wins.
+**Falsified by S9b measurement (on this 6-core/12-thread machine)**: the
+flood (65–72% of the step, 98.5% at B scale) has **no byte-identical
+parallel form** — level-gather reordering breaks fp-sum determinism, and
+the open-seam tiled variant diverges up to 110 m at ~0.4% of cells. The
+phases that DO parallelize deterministically (route 9×, diffusion 5.7×)
+are a bandwidth-bound minority: whole-step speedup 1.18–1.26×, saturating
+by 8 threads. Realistic parallel B ≈ 15–70 min vs the 2-min target.
+(Also: S9's recorder empty-header estimate was 648 MiB; measured 833 MiB.)
+**Standing**: A+C stands. The question reopens only on ~32-core hardware
+with a deterministic parallel flood (Barnes spill-graph unbuilt) AND
+parallel transport — `examples/deeptime_par.rs --full-b` re-measures it
+anywhere.
+**Lesson**: "could be parallelized" is a claim about an algorithm's
+existence, not its cost under a byte-identity mandate — the determinism
+tax must be priced per phase before it prices your architecture.

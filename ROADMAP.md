@@ -7,6 +7,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — S9b parallelism spike (journal/0013, merge `9910c45`):
+  the determinism tax measured — flood has no byte-identical parallel
+  form (98.5% serial floor at B); deterministic-parallel phases 1.2×
+  whole-step, bandwidth-saturated by 8 threads; **A+C confirmed**,
+  corrections #9 (S9's 2-minute flip condition falsified on ≤12-thread
+  hardware; reopenable via deeptime_par --full-b elsewhere). Scatter→
+  gather diffusion reformulation, byte-identity proven scalar-vs-parallel.
+
 - 2026-07-19 — S9 deep-time spike (journal/0012, merge `3fd00bb`): the
   spike era reopens and pays off — two-plane erosion + measurement-tagged
   strata recorder + orographic march, additive in dc-worldgen. A/B/C
@@ -130,10 +138,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- S9b parallelism mini-spike (agent launched 2026-07-19): parallel
-  priority-flood + parallel erosion step on the S9 harness — the one
-  measurement that can flip the deep-time verdict from A+C to
-  brute-force B (earth-processes.md § S9 VERDICT).
+- Body staircase step 3 (agent launched 2026-07-19; bodies.md §
+  staircase): two-bone leg IK + foot placement, neck look-at, the
+  trunk-follows-travel / head-follows-look split (closes walk-8's
+  orientation gap), parametric crouch (sim posture state + cosmetic
+  pose), v0 face cue so orientation photographs.
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
