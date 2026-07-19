@@ -6,8 +6,7 @@ forms — without thinking of our code — then build the highest-fidelity
 process sim we can achieve, working backward from reality.** Like orogeny,
 but we fully own generation.
 
-Method (proposed by Claude same day, operationalizing the doctrine —
-PROPOSED until ratified):
+Method (RATIFIED 2026-07-19, operationalizing the doctrine):
 1. **Field notebook first** — every wanted feature begins as a written
    causal account: feature → engines → sequence → what the record looks
    like. Before any code.
@@ -100,8 +99,8 @@ Full report: docs/design/orogeny-recon-2026-07-19.md. Headlines:
 - Orogeny independently built and stress-tested our per-column
   strata-record-with-context-tags shape at 147k columns — the design is
   field-proven.
-- Cost philosophy adopted (PROPOSED): **"coarsen the cause, never delete
-  it and fake the appearance."**
+- Cost philosophy adopted (RATIFIED 2026-07-19): **"coarsen the cause,
+  never delete it and fake the appearance."**
 - Steal directly: uplift-value-as-fold-phase (coherent folding, no 3D
   solver, addressed-hash friendly); exhumation-exposes-cooked-rock
   (grade = burial + stripped overburden); orographic-march paleoclimate
