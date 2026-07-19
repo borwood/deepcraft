@@ -504,6 +504,65 @@ impl<'a> WorldGenerator<'a> {
         self.column(cx, cz)
     }
 
+    /// Surface height (voxels) and surface block at ONE world voxel column,
+    /// given its locale's river segments + fringe flag and its climate. The
+    /// per-column kernel shared by the full [`Self::column`] collapse and the
+    /// coarse far-field summary ([`Self::coarse_surface`]) — so the distant
+    /// horizon and the ground underfoot are the SAME surface function sampled at
+    /// different strides. Height is independent of climate (climate only tints
+    /// the surface block), so a far sample lands on *exactly* the near column's
+    /// height where the two coincide (journal/0022).
+    fn surface_sample(
+        &mut self,
+        vx: i64,
+        vz: i64,
+        segs: &[RiverSeg],
+        fringe: bool,
+        temp_sl: f64,
+        precip: f64,
+    ) -> (i32, Block) {
+        let (raw, _) = self.lattice(L_VOXEL, vx, vz);
+        let (elev, riverbed) = carve_rivers(raw, vx as f64, vz as f64, segs);
+        let h = (elev / self.voxel_m).floor() as i32;
+        let t = temp_sl - 6.5 * elev.max(0.0) / 1000.0;
+        // Riverbeds, deserts, and the blighted wilds-fringe read as bare Dirt;
+        // frozen or abyssal surfaces as Stone; temperate watered land grows Grass.
+        let bare = riverbed || precip < 0.10 || (fringe && precip < 0.35);
+        let block = if elev <= -1.0 {
+            if elev > -35.0 {
+                Block::Dirt
+            } else {
+                Block::Stone
+            }
+        } else if t < -4.0 {
+            Block::Stone
+        } else if bare {
+            Block::Dirt
+        } else {
+            Block::Grass
+        };
+        (h, block)
+    }
+
+    /// The coarse far-field summary at one world voxel column: surface height
+    /// (voxels, N=2 base scale) and surface block, sampled from the SAME
+    /// elevation lattice + river carving + surface rule the near-field
+    /// [`Self::column`] collapses from. A far heightfield built from these agrees
+    /// with the near ground **by construction** — identical height where a far
+    /// sample lands on a near column, within the dropped sub-coarse relief in
+    /// between (journal/0022). Cost is O(pyramid depth) per call and memoized; it
+    /// never full-resolution-generates a chunk, and it runs into the border wilds
+    /// too (the pyramid runs forever), so the horizon never dissolves into empty
+    /// sky. This is the worldgen authority's OWN answer for the far field — no
+    /// second terrain opinion (docs/ARCHITECTURE.md § One world-answer surface).
+    pub fn coarse_surface(&mut self, vx: i64, vz: i64) -> (i32, Block) {
+        // Same locale the near column resolves to (512 = 2^9 voxels): its river
+        // segments carve the far surface exactly as they carve the near one.
+        let locale = self.locale(vx.div_euclid(512), vz.div_euclid(512));
+        let (temp_sl, precip) = self.climate_at(vx, vz);
+        self.surface_sample(vx, vz, &locale.segs, locale.fringe, temp_sl, precip)
+    }
+
     /// Chunk y containing the highest surface voxel of this chunk footprint.
     pub fn surface_chunk_y(&mut self, cx: i64, cz: i64) -> i32 {
         let col = self.column(cx, cz);
@@ -838,29 +897,11 @@ impl<'a> WorldGenerator<'a> {
                 {
                     wilds = false;
                 }
-                let (raw, _) = self.lattice(L_VOXEL, vx, vz);
-                let (elev, riverbed) = carve_rivers(raw, vx as f64, vz as f64, &locale.segs);
-                let h = (elev / self.voxel_m).floor() as i32;
-                let t = temp_sl - 6.5 * elev.max(0.0) / 1000.0;
                 let i = (z * 32 + x) as usize;
+                let (h, block) =
+                    self.surface_sample(vx, vz, &locale.segs, locale.fringe, temp_sl, precip);
                 heights[i] = h;
-                // Riverbeds, deserts, and the blighted wilds-fringe read as
-                // bare Dirt; frozen or abyssal surfaces as Stone; temperate
-                // watered land grows Grass.
-                let bare = riverbed || precip < 0.10 || (locale.fringe && precip < 0.35);
-                surface[i] = if elev <= -1.0 {
-                    if elev > -35.0 {
-                        Block::Dirt
-                    } else {
-                        Block::Stone
-                    }
-                } else if t < -4.0 {
-                    Block::Stone
-                } else if bare {
-                    Block::Dirt
-                } else {
-                    Block::Grass
-                };
+                surface[i] = block;
             }
         }
         let posts = self.ruin_posts(cx, cz, &locale);
@@ -1082,4 +1123,127 @@ fn carve_rivers(mut elev: f64, px: f64, pz: f64, segs: &[RiverSeg]) -> (f64, boo
         }
     }
     (elev, riverbed)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::WorldGenerator;
+    use crate::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
+
+    fn small(seed: u64) -> Pregen {
+        Pregen::run(WorldParams {
+            seed,
+            extent: Extent::Small,
+        })
+    }
+
+    /// The far-field summary is the SAME surface function the near ground
+    /// collapses from: `coarse_surface` must return the exact per-column height
+    /// `column_record` computes at every coinciding voxel — height agreement by
+    /// construction (journal/0022), the guarantee the near/far horizon seam rests
+    /// on. Sampled across several chunks and both civilized + fringe columns.
+    #[test]
+    fn coarse_surface_matches_near_column_height() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 0x0D5E_ED57_2026,
+            extent: Extent::Small,
+        });
+        let mut g = WorldGenerator::new(&pregen);
+        let mut checked = 0usize;
+        for cx in -3..=3i64 {
+            for cz in -3..=3i64 {
+                let col = g.column_record(cx, cz);
+                for &(lx, lz) in &[(0usize, 0usize), (7, 19), (16, 16), (31, 31)] {
+                    let (vx, vz) = (cx * 32 + lx as i64, cz * 32 + lz as i64);
+                    let near = col.heights[lz * 32 + lx];
+                    let (far, _block) = g.coarse_surface(vx, vz);
+                    assert_eq!(
+                        far, near,
+                        "coarse_surface height {far} != near column height {near} at voxel ({vx},{vz})"
+                    );
+                    checked += 1;
+                }
+            }
+        }
+        assert!(checked >= 100, "sampled {checked} columns");
+    }
+
+    /// Summaries are a pure function of the world seed: two generators over the
+    /// same seed produce byte-identical coarse surfaces, and a different seed
+    /// diverges (the generator is really in the loop). The determinism the
+    /// persisted-summary follow-on will rely on.
+    #[test]
+    fn coarse_surface_is_seed_deterministic() {
+        let pa = small(1337);
+        let pb = small(1337);
+        let pc = small(1338);
+        let mut a = WorldGenerator::new(&pa);
+        let mut b = WorldGenerator::new(&pb);
+        let mut c = WorldGenerator::new(&pc);
+        let mut any_diff = false;
+        for k in -40..=40i64 {
+            let (vx, vz) = (k * CELL_VOXELS / 7, -k * 53);
+            assert_eq!(a.coarse_surface(vx, vz), b.coarse_surface(vx, vz));
+            if a.coarse_surface(vx, vz) != c.coarse_surface(vx, vz) {
+                any_diff = true;
+            }
+        }
+        assert!(
+            any_diff,
+            "a different seed must produce a different surface"
+        );
+    }
+
+    /// Deriving a whole far-field's worth of coarse summary is well under a
+    /// second (journal/0022 perf claim): the horizon streams in, it is not a
+    /// world-create tax. ~160 k coarse columns — the order of a full 1.2 km, four
+    /// LOD-ring far field — sampled from a warm generator. Prints the measured
+    /// number for the journal; asserts only a generous ceiling so it is a guard,
+    /// not a flake.
+    #[test]
+    fn coarse_surface_far_field_derivation_is_sub_second() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Medium,
+        });
+        let mut g = WorldGenerator::new(&pregen);
+        let stride = 2i64; // level-1 coarse stride, the densest ring
+        let side = 400i64; // 400² = 160 000 coarse columns
+        let t0 = std::time::Instant::now();
+        let mut acc = 0i64;
+        for j in 0..side {
+            for i in 0..side {
+                let (h, _b) = g.coarse_surface(i * stride, j * stride);
+                acc = acc.wrapping_add(h as i64);
+            }
+        }
+        let dt = t0.elapsed();
+        let n = side * side;
+        println!(
+            "coarse_surface far-field derivation: {n} columns in {:?} ({:.3} µs/column), checksum {acc}",
+            dt,
+            dt.as_secs_f64() * 1e6 / n as f64
+        );
+        assert!(
+            dt.as_secs_f64() < 3.0,
+            "far-field summary derivation {dt:?} should be well under a world-create budget"
+        );
+    }
+
+    /// The far field runs into the border wilds too (no `None`, no empty sky):
+    /// far out past the pregen grid the pyramid still answers a height, so the
+    /// horizon is built everywhere the player can look (journal/0022).
+    #[test]
+    fn coarse_surface_answers_in_the_border_wilds() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        });
+        let mut g = WorldGenerator::new(&pregen);
+        // Well outside any Small-extent grid (millions of voxels out).
+        let (h, _b) = g.coarse_surface(50_000_000, -50_000_000);
+        // A finite height (not NaN / not a panic) is all we assert — the wilds
+        // have their own hostile surface, but they HAVE one.
+        assert!(h.abs() < 1_000_000, "wilds height {h} is finite and sane");
+    }
 }

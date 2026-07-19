@@ -194,8 +194,9 @@ fn corner_world_uv(normal: &[i64; 3], c: &[f32; 3], wx: i64, wy: i64, wz: i64) -
 /// surface reads at a glance; the geology block colors match the material
 /// registry albedos, so a uniform geology voxel reads identically whether
 /// colored by block or by contents. Used for the vertex color (fullbright) on
-/// block-colored faces.
-fn face_color(block: Block, normal_y: i64) -> [f32; 4] {
+/// block-colored faces, and by the far-field heightfield (farmesh.rs) for its
+/// top-surface vertex color.
+pub(crate) fn face_color(block: Block, normal_y: i64) -> [f32; 4] {
     match (block, normal_y) {
         (Block::Grass, 1) => [0.30, 0.62, 0.25, 1.0],
         (Block::Grass, _) => [0.38, 0.45, 0.22, 1.0],

@@ -243,6 +243,35 @@ impl Authority {
         }
     }
 
+    /// Whether the active far field is the worldgen coarse-summary **horizon**
+    /// (key 2) rather than the legacy S1 volumetric far mesh (keys 3/4). The
+    /// far-field horizon (journal/0022) is built from the worldgen authority's
+    /// OWN surface summary; the S1 authority keeps the S1 far mesh that was never
+    /// wrong for the S1 world.
+    pub fn far_field_is_worldgen(&self) -> bool {
+        matches!(self.surface, SurfaceAuthority::Worldgen(_))
+    }
+
+    /// The coarse far-field surface summary — surface height (in active-scale
+    /// voxels) and surface block — at a world voxel column, sampled from the
+    /// worldgen authority's OWN elevation lattice (journal/0022). `None` under the
+    /// S1 authority (which renders its own far mesh). The generator `Mutex` gives
+    /// the interior mutability its pyramid memoization needs, so this reads
+    /// through `&self`; the SAME generator the chunk seam and the surface-scan
+    /// ceiling use — one world, no second opinion (docs/ARCHITECTURE.md § One
+    /// world-answer surface).
+    pub fn worldgen_coarse_surface(&self, vx: i64, vz: i64) -> Option<(i32, dc_core::Block)> {
+        match &self.surface {
+            SurfaceAuthority::Terrain(_) => None,
+            SurfaceAuthority::Worldgen(worldgen) => Some(
+                worldgen
+                    .lock()
+                    .expect("worldgen generator mutex")
+                    .coarse_surface(vx, vz),
+            ),
+        }
+    }
+
     /// The per-column analytic surface height (meters) at `(xm, zm)` over the
     /// active authority: an UPPER bound on the true voxel surface used to seed
     /// each column's downward scan. For `Terrain`, `surface_height_m`; for
@@ -1922,5 +1951,39 @@ pub(crate) mod tests {
             "a miss leaves the position as requested, got y = {}",
             player.pos_m.y
         );
+    }
+
+    /// Far-field authority gating (journal/0022): the worldgen authority (key 2)
+    /// answers the coarse far-field summary from its OWN elevation lattice, and
+    /// that summary sits ~1 km up with the real terrain (not the S1 phantom ~8 m
+    /// down). The S1 authority (keys 3/4) returns `None` from the summary path —
+    /// the worldgen far field NEVER touches `TerrainGen`, and the S1 far field
+    /// keeps its own S1 mesh. This is the tripwire the doctrine rests on: a
+    /// worldgen far horizon that read the S1 generator would answer near y=0 here.
+    #[test]
+    fn far_field_summary_gates_on_authority() {
+        let seed = 1337;
+
+        // Worldgen authority: summary present, and it is the ~1 km-up real world.
+        let mut worldgen = Authority::new(seed, 2);
+        assert!(worldgen.far_field_is_worldgen());
+        let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        let spawn = worldgen.find_open_spawn(); // a worldgen land column
+        let (vx, vz) = (scale.voxel_at(spawn.x), scale.voxel_at(spawn.z));
+        let (h, _block) = worldgen
+            .worldgen_coarse_surface(vx, vz)
+            .expect("worldgen authority answers its own far-field summary");
+        // The worldgen surface is high above the S1 ~8 m surface: a summary that
+        // secretly read TerrainGen would land near y=0, not up near the terrain.
+        assert!(
+            h > 200,
+            "worldgen far summary height {h} voxels should be far above the S1 phantom"
+        );
+
+        // S1 authority: no worldgen summary — the S1 far mesh owns keys 3/4, and
+        // the worldgen summary path never invokes the S1 generator.
+        let s1 = Authority::new(seed, 3);
+        assert!(!s1.far_field_is_worldgen());
+        assert!(s1.worldgen_coarse_surface(vx, vz).is_none());
     }
 }

@@ -7,6 +7,37 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — **The far-field horizon — the worldgen world gets a far field**
+  (journal/0022, background agent; **DRAFT — awaiting integration**, gates green
+  on the worktree branch, smoke-run verified live). Under the worldgen authority
+  the far LOD rings drew the legacy S1 terrain (~8 m) while the real world sat
+  ~1000 m up: a phantom old world below and — worse — **no horizon at all**
+  beyond the load radius (journal/0018 § the empty horizon). Now the far field is
+  the authority's **own** surface, sampled coarsely: a new
+  `WorldGenerator::coarse_surface` runs the per-column collapse kernel (elevation
+  lattice + river carving + surface rule — factored out of `column()` so near and
+  far are provably one function) for a single column, O(pyramid depth), memoized,
+  **no full-res chunk**. The lattice already folds the deep-time `DeepField`
+  surface in at the locale level (journal/0015), and runs into the wilds, so the
+  summary needs no second source and never dissolves into empty sky. The far mesh
+  is now a **2-D annulus of heightfield tiles** (top surface only, 2048 tris/tile
+  vs the old shell's ~⅔-sealed-cave triangles), gated on the active authority:
+  key 2 → the worldgen heightfield (`farmesh::stream_far_surface`), keys 3/4 →
+  the untouched S1 far mesh. **Near/far boundary height mismatch: 0 voxels** at
+  coinciding corners (height is climate-independent, so a far sample equals its
+  near column exactly); residual is only the sub-coarse relief dropped between
+  corners, dressed by a half-coarse-voxel downward sink + depth push + S4 haze.
+  Perf: world-create unchanged (streams post-spawn); derivation **1.377 µs/column
+  → a full 1.2 km 4-ring field in ~0.22 s**, budgeted 2 tiles/frame, no hitch.
+  Tripwire: the worldgen summary path never touches `TerrainGen` (S1 authority
+  returns `None`). **NEEDS RATIFICATION**: none new — the heightfield-vs-shell
+  far-field shape follows the journal/0017 summary-pyramid direction the user
+  already promoted; the aesthetic sink/push/haze constants ride as-built (no
+  bandaid). Files: `collapse.rs` (`coarse_surface`, `surface_sample`),
+  `authority.rs` (`far_field_is_worldgen`, `worldgen_coarse_surface` + tripwire),
+  `farmesh.rs` (heightfield path), `meshing.rs` (`face_color` opened),
+  `app.rs` (wiring).
+
 - 2026-07-19 — **PBR-1: the real material renderer** (journal/0019, merged
   `c49566f`, gates green on merged main; **walk 14 done** — which caught a
   ±Z-face NaN in the shader's tangent frame within three frames, fixed in
@@ -209,18 +240,16 @@ on merged main, walk 16 verified all three instruments live: pos_voxel
 cross-checked against get_block with no conversion, surface_snapped
 explicit, posture readback round-trips. Journal/0021 § walk 16.)*
 
-- **Far-field horizon** — next agent slot (promoted by user; brief from
-  journal/0017 § far mesh + walk-13 empty-horizon assessment).
+*(**Far-field horizon** built 2026-07-19 — journal/0022, worktree branch
+awaiting integration, gates green + smoke-run verified. Moved to Shipped
+(draft). The worldgen world has a horizon for the first time.)*
 
-Queue after it (**reordered 2026-07-19, user**): **far-field horizon
-promoted ahead of S10** — the phantom S1 LODs below the worldgen terrain
-and the missing worldgen far field are the most user-visible defect left
-(user-sighted again post-PBR-1; summary-pyramid shape in journal/0017
-§ far mesh). Then **S10**, then **3e-2 implementation** (fully decided,
-earth-processes.md § 3e-2 decisions). The water-model design doc rides
-alongside as conversation (field-notebook first, no build slot). Also
-owed: the lit-vs-fullbright mixture close-up pair (walk 16, with the
-instrument-batch integration walk).
+Queue (**reordered 2026-07-19, user**; far-field horizon now built): **S10**,
+then **3e-2 implementation** (fully decided, earth-processes.md § 3e-2
+decisions). The water-model design doc rides alongside as conversation
+(field-notebook first, no build slot). Also owed: the lit-vs-fullbright mixture
+close-up pair (walk 16, with the instrument-batch integration walk); and the
+far-field integration walk shot list (journal/0022 § for the integration walk).
 
 ## Sequenced
 
@@ -353,9 +382,9 @@ before any code.
     **user read owed for the SPLAT_N=4 + calibration ratification**; the
     real curve arrives with PBR-2's HDR + tonemap.
   - **Far field + legacy S1 are now textured too** (one material renders the
-    whole lit world). The phantom-far-world defect (below) is unchanged — it now
-    paints a *textured* phantom ~1 km down; still needs the summary-shaped far
-    field, not a renderer fix.
+    whole lit world). *(The phantom-far-world it painted is **gone** under the
+    worldgen authority — journal/0022's summary-shaped far field; the same
+    terrain material now lights the horizon that lights the ground.)*
   - **Normal-map tangent frame is a per-face axis-aligned approximation**; the
     normal X/Y orientation may be inconsistent across the six faces (cosmetic on
     the subtle placeholder relief). Revisit with authored textures + POM (PBR-2).
@@ -395,24 +424,20 @@ before any code.
   voxels via the authority's own `scale.voxel_at`) beside the meters `pos` —
   the walker's two languages both labelled, no mental unit conversion (the
   corrections #10 misread that cost a full agent cycle).
-- **Far mesh still generates from S1 `TerrainGen`** (journal/0017 — the one
-  residue the S1-fallback sweep left standing; the six *near-field* consumers
-  are shipped). Under the worldgen authority the far rings paint a phantom old
-  world ~1 km below the real terrain that dissolves on approach. It is now
-  isolated in a single loudly-named resource (`farmesh::FarFieldTerrain`) whose
-  doc names the defect — honestly wrong, not silently wrong in a shared cache.
-  **Shape of the fix** (renderer + storage scale, not cheap — investigated and
-  deferred): the far mesh samples a *coarse voxel scale* (2^L base voxels), but
-  the worldgen generator is N=2-baked with no coarse-sampling path. The right
-  answer is a **persisted coarse summary pyramid** — worldgen emits per-column
-  height/material summaries at coarse LOD levels on save; the far mesh reads
-  cached summaries. Couples to "far field should become summary-shaped"
-  (Observed below), S3 region-file grouping, and the LOD-derive-on-save path
-  exercised in `--bench-storage`. Full-res-generate-then-downsample is the
-  non-starter alternative (~5 min for 1 km). Until then: also blocks fully
-  sealing `TerrainGen` behind `pub(in crate::authority)` — the far mesh is its
-  last near-namer. Visual assessment of the phantom vs deep-time terrain still
-  owed (walk 12/13).
+- *(**Far mesh generated from S1 `TerrainGen` under the worldgen authority:
+  RESOLVED** — journal/0022, the far-field horizon. Key 2 now samples the
+  authority's OWN coarse surface (`WorldGenerator::coarse_surface`, the collapse
+  kernel at a coarse stride — the lattice already folds in the deep-time surface)
+  into a heightfield far field; the phantom old world ~1 km down is gone and there
+  is a horizon. Keys 3/4 keep the S1 far mesh (`FarFieldTerrain`), which was never
+  wrong for the S1 world. **Still open**: sealing `TerrainGen` behind
+  `pub(in crate::authority)` — keys 3/4 still name it, so the seal waits on
+  retiring S1 entirely, not on the far field. **Deferred by design** (journal/0022,
+  noted here): (a) *persisted* summaries — the far field derives in-memory on
+  demand this milestone (~0.22 s/full field), region-file storage couples to S3
+  grouping and is the follow-on; (b) the heightfield is a **top surface**, so
+  looking up from deep in a chasm loses the far field — the volumetric shell did
+  extend down a chasm; a volumetric/skirted summary is the follow-on.)*
 - Walk 12 residue: *(far-mesh visual assessment: DONE, walk 13 —
   journal/0018 § the empty horizon: at worldgen altitude the horizon is
   sky; the S1 phantom shows only from steep angles through haze. The
@@ -533,15 +558,18 @@ before any code.
 - The embedded HostWorld never evicts chunks (~64 KiB per chunk ever
   streamed/edited); never-edited chunks are pure generator output and could
   be dropped freely (journal/0002).
-- Far mesh doesn't see edits — farmesh samples TerrainGen directly, so a
-  broken block un-breaks beyond the full-detail radius; will be subsumed by
-  the summary-shaped far field (journal/0002).
+- Far field doesn't see edits — the worldgen far field is a coarse *summary*
+  (not a cache), so a broken block un-breaks beyond the full-detail radius; a
+  summary that tracks edits is a follow-on (journal/0002, 0022). (Same for the
+  S1 far mesh on keys 3/4.)
 - Edits don't survive a 2/3/4 scale switch (authority rebuilt); the command
   log is the eventual persistence answer (journal/0002).
-- ~2/3 of far-mesh triangles are sealed cave surfaces (S3) — column-summary
-  skip estimated 3–5×; far field should become summary-shaped (adaptive
-  volume), not spherical.
-- Far meshing is main-thread, budgeted (S1/S3) — wants async tasks.
+- *(**~2/3 of far-mesh triangles were sealed cave surfaces (S3): RESOLVED for
+  the worldgen far field** — journal/0022. The worldgen horizon is a **top-surface
+  heightfield** (2048 tris/tile, no interiors), not a volumetric shell. The S1 far
+  mesh on keys 3/4 is unchanged / still volumetric.)*
+- Far meshing is main-thread, budgeted (S1/S3, and the worldgen heightfield) —
+  wants async tasks (journal/0022 keeps it budgeted/incremental).
 - Rivers are straight cell-chords (S7); course refinement needs the 2-ring
   argument re-proved at finer levels.
 - Terrain amplitude conservative — no voxel-scale cliffs (S7).

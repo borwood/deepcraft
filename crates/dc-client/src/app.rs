@@ -177,11 +177,13 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     let mut authority = Authority::new(BENCH_SEED, boot_voxels);
     let spawn = authority.find_open_spawn();
     let boot_title = title_text(boot_voxels, true, authority.authority_label());
-    // The far-mesh rings still sample the legacy S1 `TerrainGen` (ROADMAP
-    // Observed / journal/0017: the far field is not yet worldgen-shaped, so it
-    // paints a ~1 km phantom old world below the real terrain). That generator
-    // now lives ONLY inside the far-mesh's own resource — there is no ambient
-    // `Terrain` fallback for a near-field system to reach a wrong world through.
+    // Under the worldgen authority (boot, key 2) the horizon is now the
+    // coarse-summary heightfield sampled from the authority's OWN surface
+    // (journal/0022, `farmesh::stream_far_surface`) — the phantom S1 old-world is
+    // gone. The legacy S1 `TerrainGen` far mesh survives ONLY for the S1
+    // authority (keys 3/4), where it was never wrong; its generator lives inside
+    // the far-mesh's own resource, with no ambient `Terrain` fallback for a
+    // near-field system to reach a wrong world through.
     let far_terrain = farmesh::FarFieldTerrain::new(BENCH_SEED);
 
     let mut app = App::new();
@@ -202,6 +204,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     .insert_resource(Player::new(spawn))
     .insert_resource(ChunkMap::default())
     .insert_resource(farmesh::FarChunkMap::default())
+    .insert_resource(farmesh::FarSurfaceMap::default())
     // The authoritative world for edits (client-through-dc-api milestone):
     // the worldgen authority built above, serving the streamed terrain.
     .insert_resource(authority)
@@ -227,8 +230,10 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
             physdemo::update,
             position_chunks,
             farmesh::position_far_chunks,
+            farmesh::position_far_tiles,
             streaming::stream_chunks,
             farmesh::stream_far_chunks,
+            farmesh::stream_far_surface,
             update_title,
         )
             .chain(),
