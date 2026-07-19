@@ -1,0 +1,172 @@
+# 0022 — the first horizon
+
+*2026-07-19 · the far-field horizon (background agent; worktree branch for the
+main session to integrate). Seed 1337, N=2 worldgen authority. Builds directly on
+journal/0017 § the far mesh (the shape) and journal/0018 § the empty horizon (the
+symptom). Numbers from the Windows dev box, release profile.*
+
+## What a walker actually saw
+
+journal/0018 named it more sharply than any metric could: standing on the
+worldgen surface, *"the near terrain rolls out to the load radius and then the
+horizon is **sky**. Nothing. The world ends like a floating island."* Under the
+worldgen authority the far LOD rings were still the legacy S1 `TerrainGen` — a
+surface at ~8 m while the real terrain sat ~1000 m up — so the far mesh drew a
+phantom old world a kilometre *below* the player's feet, visible only as
+haze-bleached fragments off a cliff edge, and contributed **nothing to the
+skyline**. Two defects wearing one cause: a phantom below, and no horizon at all.
+
+So this milestone was never "fix the artifact." It was the sentence the user
+promoted it to: *build the horizon.* The world gets a far field, over the
+worldgen authority, for the first time.
+
+## The shape was already decided — the question was where the summary comes from
+
+journal/0017 priced the two honest paths and ruled on them. Full-res-generate-
+then-downsample is ~5 min per kilometre — a non-starter at boot. The right answer
+is a **coarse summary**: worldgen emits a per-column surface summary at coarse
+resolution, and the far mesh consumes summaries, never a generator. The open
+engineering question this milestone had to answer: *which* worldgen data is the
+summary, and how do we get it without paying for a chunk we throw away?
+
+The tempting answer was to sample the deep-time `DeepField` surface directly — it
+exists at exactly the coarse scale the far field wants (460 m cells), it is the
+eroded macro-surface, and it is already resident (~25 MiB). But it has two holes.
+It returns `None` in the border wilds (the pyramid runs forever out there; the
+`DeepField` does not) — which would put the empty horizon *back* the moment a
+walker looks past the civilized extent. And it is only the macro-surface: the
+near ground is the deep surface **plus** the sub-locale midpoint jitter the
+collapse pyramid adds below level 5. Sampling the `DeepField` alone would put a
+smooth far surface next to a jittered near one, and the boundary would not agree.
+
+### The lattice already is the summary
+
+The insight that made this clean: the near ground's height at a world column is
+`floor(carve_rivers(lattice(L_VOXEL, vx, vz)) / voxel_m)`, and that `lattice`
+call **already embeds the `DeepField`** — at level 5 (the locale, ≈ the deep
+tier's own 460 m cell) it replaces the analytic elevation with a bilinear sample
+of the deep surface (journal/0015 § the elevation composition), then refines with
+addressed jitter down to the voxel. So the elevation lattice *is* the deep-time
+surface plus its own detail, sampled at whatever stride you ask for, and it runs
+into the wilds because the pyramid does.
+
+The far field therefore samples the **same function the near ground collapses
+from**, at a coarse stride: a new `WorldGenerator::coarse_surface(vx, vz)` that
+runs the per-column kernel — lattice, river carving, the surface-block rule — for
+one column, O(pyramid depth) and memoized, no full chunk. To avoid a second
+divergent copy of that kernel, I first factored the near collapse's per-column
+body out of `column()` into a shared `surface_sample`; `column()` calls it 1024
+times, `coarse_surface` calls it once. The near ground and the far horizon are now
+provably the same surface — the seam invariant test over 10 000 chunks stayed
+green through the refactor, byte-for-byte.
+
+> blogworthy: "the horizon was hiding in the lattice." The instinct was to reach
+> for the deep-time surface — the obvious coarse data. But the coarse data that
+> *agrees with the ground* was the ground's own elevation function, which had
+> quietly folded the deep surface into itself two milestones earlier. The far
+> field didn't need a new source; it needed to sample the source the near field
+> was already using, one stride coarser.
+
+## Agreement by construction — and the number that proves it
+
+Because `coarse_surface` and the near `column()` call the identical kernel, and
+because **height is independent of climate** (climate only tints the surface
+block; it never moves the ground), a far sample that lands on a near column
+returns *exactly* that column's height. Not "within tolerance" — equal to the
+integer voxel. The far-corner grid at level L lands on world voxels at stride
+`2^L`; every one of them coincides with a near column, so every far-tile corner
+sits on the near ground. The only residual is the sub-coarse relief **dropped
+between** corners — bounded by the level's coarse voxel (≈ 1.8 m of vertical wander
+at the innermost L1 ring, angularly nothing at 112 m).
+
+Measured, at the L1 boundary ring, over a full tile's 33×33 corners: **max
+height mismatch 0 voxels.** The near/far seam is not stitched; it is the same
+theorem the collapse pyramid was continuous by — shared samples of one field
+(journal/0015 § the seam that didn't happen, wearing a far-field hat).
+
+The remaining seam risk is *cosmetic*: a far tile sunk half a coarse voxel below
+the true surface (so the opaque near terrain wins the overlap band), a small
+radial depth push so adjacent LOD rings separate, and — the honest workhorse —
+the S4 post-stage haze, which fades the far rings toward the sky and dissolves the
+ring/tile boundaries into atmosphere (earth-processes.md method rule 5: no hard
+grid boundary reaches the eye). The high-altitude smoke shot shows the ring seams
+as barely-legible diagonals under the haze.
+
+## The mesh: a top sheet, not a shell
+
+The old S3 far mesh was a 3-D spherical shell of coarse *chunks*, greedy-meshed —
+and journal's own Observed cluster measured **~2/3 of its triangles were sealed
+cave surfaces** nobody could ever see. A summary far field has no business
+meshing caves. So the worldgen far field is a **2-D annulus of heightfield
+tiles**: each tile is a 32×32-cell patch whose 33×33 corner heights come from
+`coarse_surface`, emitted as a shared-vertex quad sheet — **2048 triangles, top
+surface only.** Smooth normals from the height gradient; world-anchored UVs at
+base-voxel density so the texture pitch matches the near ground rather than
+stretching one tile per coarse cell; one block atlas layer per vertex, so the
+same terrain material (post-PBR-1) lights the horizon that lights the ground, no
+seam in material either.
+
+Gating is on the active authority: `Authority::far_field_is_worldgen()` routes
+key 2 to the heightfield (`stream_far_surface`) and keys 3/4 to the untouched S1
+volumetric far mesh — the S1 far field was never wrong for the S1 world, so it
+keeps it. The worldgen summary path **never touches `TerrainGen`**; a tripwire
+test asserts the S1 authority returns `None` from the summary and the worldgen
+authority answers ~1 km up (a summary that secretly read S1 would land near y=0).
+
+## Perf: the horizon is not a world-create tax
+
+World-create is unchanged — the far field streams *after* spawn, so the ~13 s
+ritual pays nothing. And the derivation is cheap: **1.377 µs per coarse column**,
+so a whole 1.2 km four-ring far field (~160 k columns) derives in **~0.22 s** if
+you did it all at once. It is instead budgeted at 2 tiles/frame, and the full
+horizon filled in within a few seconds of the smoke run with no visible hitch.
+Each tile is 1089 vertices / 2048 triangles against the old shell's thousands,
+two-thirds of which were caves — a strict win in both directions.
+
+Nothing new is held resident: the summary is derived on demand from the pyramid
+that already exists (persisting it to region files is the noted follow-on, coupled
+to S3 grouping — out of scope here by design).
+
+## What this resolves, and what it leaves
+
+Resolved: the empty horizon (there is one now); the phantom old world ~1 km down
+(gone — the worldgen authority no longer draws S1 at all); the far mesh's
+sealed-cave triangle waste (top sheet, no interiors); the far field sampling a
+*different world* than the authority (it is now the authority's own surface). The
+S1 `TerrainGen` is one step closer to `pub(in crate::authority)` — the far mesh
+was its last near-namer, and under key 2 it no longer names it (keys 3/4 still do,
+so the seal waits on retiring S1 entirely).
+
+Deferred, honestly: the heightfield is a **top surface**, so looking up from deep
+in a chasm loses the far field (the volumetric shell did extend down a chasm) —
+accepted for "build the horizon a walker sees from the ground," noted for the
+volumetric follow-on. Far-field edits are still invisible (a summary, not a cache
+— unchanged). Persisted summaries (region-file storage) remain the follow-on. Far
+meshing is still main-thread/budgeted. The ring/tile normal seam at tile edges is
+one-sided-differenced (no cross-tile halo) — invisible under haze, a cheap polish
+if it ever isn't.
+
+> blogworthy: the accidental proof that correctness and cost point the same way
+> again (journal/0017's refrain): the far field that is the authority's *own*
+> surface is also the cheapest to derive, because it is a coarse sample of a
+> pyramid that was going to run anyway — not a second world to keep in sync.
+
+## For the integration walk
+
+The smoke run (worktree scratch, not committed) confirmed the pipeline: clean
+launch, worldgen authority, shaders compiled, no panic, and a real horizon in
+both a ground-level and a 1080 m vantage. Shots the milestone walk should take
+(fullbright *and* lit):
+
+1. **Ground-level horizon** from a walker's eye on open worldgen surface — the
+   before/after against journal/0018's `0018-empty-horizon-player-view` (same
+   framing if findable): terrain now meets sky continuously instead of ending in
+   void.
+2. **High vantage (~1 km up), pitch down** — the four LOD rings as a hazed skyline
+   disc; look for the ring/tile seams (should read as terrain, not as a grid).
+3. **Near/far boundary at a walk** — pan across the ~112–128 m band and confirm no
+   vertical gap where the fine near terrain hands off to the coarse sheet.
+4. **A cliff-edge / steep angle** where journal/0018 saw the S1 phantom — confirm
+   the phantom old world is gone (nothing ~1 km down).
+5. **Chasm-descent** — confirm (and photograph) the accepted degradation: the far
+   field is a top sheet, so it thins looking up from deep underground.
