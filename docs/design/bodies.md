@@ -142,6 +142,15 @@ applies — growing into solid is the embedded-attach case).
 Not scheduled against geology; slots in when 3b's implementation is
 sequenced.
 
+## Crouch semantics — DECIDED 2026-07-19
+
+Crouch is **not** crawlspace access: the 0.6× factor stands as-built
+(walk 11 measured that it earns no passage at N=2's 0.9 m steps — and
+that is fine, because passage-through-low-spaces belongs to the future
+**prone/crawl** verbs, which will own sub-standing clearances). Crouch's
+role is posture: stability, stealth, aim, working under things you can
+already fit beneath.
+
 ## Formerly open questions — DECIDED 2026-07-19
 
 1. **Bodies are diegetic items**: found vessels, and eventually craftable

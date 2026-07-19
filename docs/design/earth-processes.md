@@ -148,7 +148,8 @@ cells** for hillslope (clean relaxation); fluvial spikes to 26 via
 drainage reroutes — **drainage/flow-area is the sole ADVECT**, everything
 else in the catalog relaxes at 16–24 cells. Read-quality at 500 m already
 tells true stories (pulsed arid fans, transgressive couplets, condensed
-cyclic margins). **Recommendation: A always-on + C refinement — CONFIRMED by S9b
+cyclic margins). **USER-RATIFIED for 3e (2026-07-19): A always-on + C refinement.**
+**Recommendation: A always-on + C refinement — CONFIRMED by S9b
 (2026-07-19, docs/spikes/S9b-results.md, corrections #9): parallelism
 does NOT flip B on this hardware.** The determinism tax forecloses it:
 the flood (98.5% of the step at B scale) has no byte-identical parallel
