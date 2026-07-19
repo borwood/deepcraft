@@ -79,6 +79,13 @@ You wear all four, switching freely:
 - Fold agent findings into the docs *you* own: decisions → design docs,
   loose ends → ROADMAP Observed, proposed API revisions → reviewed then
   applied. Update auto-memory when project state shifts materially.
+- **Architecture and APPEARANCE are different ratification axes** (added
+  2026-07-19 after the smooth-TIN far field shipped unseen): an agent's
+  work can follow ratified architecture and still change how the world
+  LOOKS — visual language, silhouettes, transitions. Any user-visible
+  appearance change gets flagged for the user's eye at integration, even
+  when the agent flags "NEEDS RATIFICATION: none." The user ratifies
+  looks from screenshots, not from architecture descriptions.
 
 ## Audit trail (see CLAUDE.md for formats)
 
