@@ -77,6 +77,8 @@ pub enum BridgeRequest {
         pos: Option<[f64; 3]>,
         yaw: Option<f32>,
         pitch: Option<f32>,
+        /// Clamp feet to the terrain surface at (x, z) — walker-safe teleport.
+        surface: bool,
         reply: oneshot::Sender<Value>,
     },
     Screenshot {
@@ -181,14 +183,18 @@ pub fn client_tools() -> Vec<Tool> {
         Tool::new(
             "client_player_pose_get",
             "Read the player pose: feet position in world meters, yaw/pitch \
-             in radians, fly mode, ground contact.",
+             in radians, fly mode, ground contact, and eye_in_solid (true = \
+             the camera is inside terrain and screenshots will show backface \
+             nonsense — move before shooting).",
             obj(json!({}), json!([])),
         ),
         Tool::new(
             "client_player_pose_set",
             "Teleport and/or aim the player (dev-grant tool): any of pos \
              (feet, world meters), yaw, pitch (radians). Returns the \
-             resulting pose. Velocity is zeroed on teleport.",
+             resulting pose, including eye_in_solid (if true, the view is \
+             buried — adjust before screenshotting). Velocity is zeroed on \
+             teleport.",
             obj(
                 json!({
                     "pos": {
@@ -203,7 +209,14 @@ pub fn client_tools() -> Vec<Tool> {
                         "additionalProperties": false,
                     },
                     "yaw": { "type": "number", "description": "radians, 0 = -Z" },
-                    "pitch": { "type": "number", "description": "radians, clamped to ±1.55" },
+                    "pitch": {
+                        "type": "number",
+                        "description": "radians, NEGATIVE looks down, positive up, clamped to ±1.55",
+                    },
+                    "surface": {
+                        "type": "boolean",
+                        "description": "clamp feet to the terrain surface at (x, z), ignoring pos.y — walker-safe teleport",
+                    },
                 }),
                 json!([]),
             ),
@@ -264,6 +277,10 @@ impl ClientMcpServer {
                     pos,
                     yaw: angle("yaw"),
                     pitch: angle("pitch"),
+                    surface: args
+                        .get("surface")
+                        .and_then(Value::as_bool)
+                        .unwrap_or(false),
                     reply: tx,
                 }
             }

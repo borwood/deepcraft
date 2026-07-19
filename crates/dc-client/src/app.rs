@@ -104,9 +104,35 @@ pub fn to_render(v: DVec3) -> Vec3 {
     Vec3::new(v.x as f32, v.y as f32, v.z as f32)
 }
 
+/// First surface point spiraling out from the origin that is open ground
+/// (above y = 2 m). The origin itself sits on the chasm floor at ~−82 m,
+/// which made every new walker's first view a wall (journal/0003).
+pub fn find_open_spawn(terrain: &TerrainGen) -> DVec3 {
+    let (mut sx, mut sz) = (0.0, 0.0);
+    'search: for ring in 0..48 {
+        let d = f64::from(ring) * 12.0;
+        for (ox, oz) in [
+            (0.0, d),
+            (0.0, -d),
+            (d, 0.0),
+            (-d, 0.0),
+            (d, d),
+            (-d, d),
+            (d, -d),
+            (-d, -d),
+        ] {
+            if terrain.surface_height_m(ox, oz) > 2.0 {
+                (sx, sz) = (ox, oz);
+                break 'search;
+            }
+        }
+    }
+    DVec3::new(sx, terrain.surface_height_m(sx, sz) + 2.0, sz)
+}
+
 pub fn run(pack_selector: Option<String>, mcp_options: McpOptions) {
     let terrain = TerrainGen::new(BENCH_SEED);
-    let spawn = DVec3::new(0.0, terrain.surface_height_m(0.0, 0.0) + 2.0, 0.0);
+    let spawn = find_open_spawn(&terrain);
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -308,5 +334,25 @@ fn update_title(
     let title = title_text(scale.player_voxels, player.fly);
     if window.title != title {
         window.title = title;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::bench::BENCH_SEED;
+
+    #[test]
+    fn spawn_search_finds_open_ground_off_the_chasm_floor() {
+        let terrain = TerrainGen::new(BENCH_SEED);
+        // The origin is the chasm floor (journal/0003) — well below open ground.
+        assert!(terrain.surface_height_m(0.0, 0.0) < 0.0);
+        let spawn = find_open_spawn(&terrain);
+        let surface = terrain.surface_height_m(spawn.x, spawn.z);
+        assert!(
+            surface > 2.0,
+            "spawn surface at {surface} m is not open ground"
+        );
+        assert!((spawn.y - (surface + 2.0)).abs() < 1e-9);
     }
 }

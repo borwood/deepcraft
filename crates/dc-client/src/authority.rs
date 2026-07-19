@@ -236,6 +236,9 @@ pub fn drain_bridge(
     bridge: Option<Res<McpBridge>>,
     mut authority: ResMut<Authority>,
     mut player: ResMut<Player>,
+    terrain: Res<Terrain>,
+    scale: Res<CurrentScale>,
+    map: Res<ChunkMap>,
     mut commands: Commands,
 ) {
     let Some(bridge) = bridge else { return };
@@ -246,16 +249,26 @@ pub fn drain_bridge(
                 authority.handle_api_call(&tool, &args, reply);
             }
             BridgeRequest::PoseGet { reply } => {
-                let _ = reply.send(pose_json(&player));
+                let _ = reply.send(pose_json(&player, &map, &terrain, scale.scale));
             }
             BridgeRequest::PoseSet {
                 pos,
                 yaw,
                 pitch,
+                surface,
                 reply,
             } => {
                 if let Some(p) = pos {
                     player.pos_m = glam::DVec3::new(p[0], p[1], p[2]);
+                    player.vel_m = glam::DVec3::ZERO;
+                }
+                if surface {
+                    // Walker-safe teleport: feet snap to the terrain surface
+                    // at (x, z) regardless of the requested y. (Terrain only —
+                    // edits are rare enough that a buried result still shows
+                    // in eye_in_solid.)
+                    player.pos_m.y =
+                        terrain.0.surface_height_m(player.pos_m.x, player.pos_m.z) + 0.05;
                     player.vel_m = glam::DVec3::ZERO;
                 }
                 if let Some(y) = yaw {
@@ -264,7 +277,7 @@ pub fn drain_bridge(
                 if let Some(p) = pitch {
                     player.pitch = p.clamp(-1.55, 1.55);
                 }
-                let _ = reply.send(pose_json(&player));
+                let _ = reply.send(pose_json(&player, &map, &terrain, scale.scale));
             }
             BridgeRequest::Screenshot { name, reply } => {
                 crate::mcp::take_screenshot(&mut commands, &name, reply);
@@ -273,13 +286,25 @@ pub fn drain_bridge(
     }
 }
 
-fn pose_json(player: &Player) -> Value {
+fn pose_json(player: &Player, map: &ChunkMap, terrain: &Terrain, scale: VoxelScale) -> Value {
+    // Eye = camera height: feet + 90% of player height (player.rs camera).
+    // If this voxel is solid, every screenshot is backface nonsense — the
+    // walk-3 lesson (journal/corrections.md #3): the walker must know.
+    let eye = player.pos_m + glam::DVec3::new(0.0, PLAYER_HEIGHT_M * 0.9, 0.0);
+    let eye_in_solid = map.is_solid(
+        &terrain.0,
+        scale,
+        scale.voxel_at(eye.x),
+        scale.voxel_at(eye.y),
+        scale.voxel_at(eye.z),
+    );
     json!({
         "pos": { "x": player.pos_m.x, "y": player.pos_m.y, "z": player.pos_m.z },
         "yaw": player.yaw,
         "pitch": player.pitch,
         "fly": player.fly,
         "on_ground": player.on_ground,
+        "eye_in_solid": eye_in_solid,
     })
 }
 
