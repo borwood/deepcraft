@@ -165,9 +165,9 @@ Deep-time history (geological, then social/territorial) = dc-sim's coarse and
 statistical tiers run over pre-player time. Worldgen history and live
 far-simulation are one system, not two.
 
-## One world-answer surface (2026-07-19, **NEEDS RATIFICATION**)
+## One world-answer surface (2026-07-19, RATIFIED 2026-07-19)
 
-Drafted by the S1-fallback sweep (journal/0017); the user ratifies doctrine.
+Drafted by the S1-fallback sweep (journal/0017); user-ratified same day.
 
 **The client has exactly one authority for "what is the world here?" — the
 active `Authority` (the embedded `HostWorld`).** Every gameplay question about
