@@ -63,6 +63,23 @@ and further ore vectors.
 
 ## Formation context — DECIDED 2026-07-19 (correcting a v1 shim)
 
+> **SHIP UPDATE 2026-07-19 (3e-1 — the shim is dead for deep strata).** The
+> deep-time A tier is now always-on in `Pregen::run` (a declared pregen pass:
+> reads Elevation/Provenance/Climate, creates DeepElevation + DeepStrata), and
+> the collapse clastic pass reads its per-cell record as the **at-deposition**
+> formation-context source. A depositional stratum's member fitness now
+> evaluates against the environment *measured when it was laid down* — paleo
+> precipitation from the recorder's aridity tag, temperature from the column's
+> latitude (a paleo-temperature curve is a later 3e slice), burial depth from
+> the overlying record — **not** the year-zero climate. So the shim below is
+> obituary for deep strata: year-zero climate remains legitimate **only for the
+> active surficial veneer** (soil, still-forming alluvium — which the pass keeps
+> depositing on top, and which the placer reworks). The recorded units sit
+> between the igneous basement and that veneer, so a cut face reads marine mud
+> under arid fill under recent veneer — the record of a landscape that ran.
+> Igneous stays province/depth-driven (already weather-blind). See journal/0015,
+> `deeptime/field.rs`, `geology.rs::deposit_deep_history`.
+
 The v1 implementation evaluates ALL class fitness — including igneous —
 against the column's **present-day** temp/precip (plus a depth constant).
 This is a documented shim, ratified as acceptable **only for the surficial

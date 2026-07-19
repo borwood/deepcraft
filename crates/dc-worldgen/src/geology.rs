@@ -35,7 +35,10 @@ use dc_core::materials::geology::{
 };
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::pregen::{Provenance, SALT_GEO_ACC, SALT_GEO_ORE, SALT_GEO_SELECT, SALT_GEO_THICK};
+use crate::deeptime::recorder::{Aridity, DepEnv, DepTag, DepUnit, EnergyBand};
+use crate::pregen::{
+    Provenance, SALT_GEO_ACC, SALT_GEO_DEEP, SALT_GEO_ORE, SALT_GEO_SELECT, SALT_GEO_THICK,
+};
 
 /// One deposition event: the selected member, its per-column thickness, and
 /// the formation context it was deposited under. `ore` is a placer enrichment
@@ -114,6 +117,14 @@ pub struct StrataCtx<'a> {
     /// Fluvial energy at the column: discharge-scaled channel width decayed
     /// by distance from the nearest river segment; 0 = no fluvial influence.
     pub flow_energy: f64,
+    /// Voxel edge (metres) — the deep-time record's metres are quantized to it.
+    pub voxel_m: f64,
+    /// The deep-time strata record for this column (nearest 460 m deep cell),
+    /// bottom-up units tagged at deposition. Empty in the wilds / where the deep
+    /// sim laid nothing down (bare erosional uplands). The **at-deposition
+    /// formation-context source** for depositional strata (3e-1): the clastic
+    /// pass reads these instead of the year-zero climate shim.
+    pub deep_units: &'a [DepUnit],
     /// True beyond the pregen grid.
     pub wilds: bool,
     pub geology: &'a GeologySet,
@@ -274,14 +285,102 @@ pub fn coarse_fraction(e: f64) -> f64 {
     (e / 30.0).clamp(0.0, 0.85)
 }
 
-/// Clastic deposition: climate- and hydrology-driven. The sediment budget
-/// scales with precipitation (the old soil-depth signal) plus a fluvial
-/// bonus; the energy-graded split stacks a coarse body below fines — the
-/// fining-upward sequence.
+/// Paleo-precipitation proxy for a deep-time deposition tag: the recorder's
+/// aridity axis (measured from the marched precip *at deposition*) mapped onto
+/// the normalized-precip axis clastic-fine fitness reads. Subsea units carry the
+/// recorder's `Humid` normalization, so marine bands read humid → fine mud,
+/// which is the intent.
+fn deep_precip(tag: DepTag) -> f64 {
+    match tag.aridity {
+        Aridity::Arid => 0.12,
+        Aridity::Humid => 0.60,
+    }
+}
+
+/// The clastic class a deep-time unit deposits into, from its measured facies
+/// tags: marine (subsea) → fine mud; subaerial high/medium energy → coarse
+/// proximal bodies; subaerial low energy → distal fines. Roster-independent —
+/// only *which* member fills the class is selection (so adding a member never
+/// changes the class share, the invariant tests/geology.rs asserts).
+fn deep_class(tag: DepTag) -> &'static str {
+    match tag.env {
+        DepEnv::Subsea => CLASS_CLASTIC_FINE,
+        DepEnv::Subaerial => match tag.energy {
+            EnergyBand::High | EnergyBand::Medium => CLASS_CLASTIC_COARSE,
+            EnergyBand::Low => CLASS_CLASTIC_FINE,
+        },
+    }
+}
+
+/// Overburden (metres) attributed to the active surficial veneer above the
+/// deep-time record, added to each deep unit's burial depth so the
+/// formation-context depth axis is honest.
+const DEEP_VENEER_MARGIN_M: f64 = 2.0;
+
+/// Deposit the deep-time depositional history below the active veneer: one
+/// stratum per recorded deep unit (bottom-up), its class fixed by the measured
+/// facies tag ([`deep_class`]) and its member selected under the
+/// **at-deposition** formation context — paleo precipitation from the aridity
+/// tag ([`deep_precip`]), temperature from the column's latitude (paleo-
+/// temperature is a later 3e slice), and burial depth from the overlying
+/// record. This is the point of 3e-1: a cut face reads the record of a landscape
+/// that ran (marine mud under arid fill under the recent veneer), not the
+/// year-zero climate shim.
+fn deposit_deep_history(ctx: &mut StrataCtx) {
+    let total_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
+    let mut below_m = 0.0;
+    for (k, u) in ctx.deep_units.iter().enumerate() {
+        let depth_above = (total_m - below_m - u.thickness_m).max(0.0);
+        below_m += u.thickness_m;
+        let tv = (u.thickness_m / ctx.voxel_m).round();
+        if tv < 1.0 {
+            // Sub-voxel unit: a condensed couplet the record keeps but 0.9 m
+            // blocks cannot resolve. Dropped consistently (roster-independent).
+            continue;
+        }
+        let thickness_vox = tv.min(255.0) as u8;
+        let class = deep_class(u.tag);
+        let precip = deep_precip(u.tag);
+        let depth_m = depth_above + DEEP_VENEER_MARGIN_M;
+        let temp_c = ctx.temp_c; // latitude proxy; paleo-temp curve is 3e-later
+        let form = FormationContext {
+            temp_c,
+            precip,
+            depth_m,
+        };
+        let tag = k as u64;
+        let u_draw = interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
+        if let Some((member, _)) = ctx.geology.select(class, &form, u_draw) {
+            ctx.strata.events.push(StrataEvent {
+                member,
+                thickness_vox,
+                temp_c: temp_c as f32,
+                precip: precip as f32,
+                depth_m: depth_m as f32,
+                sel_salt: SALT_GEO_DEEP,
+                sel_tag: tag,
+                ore: None,
+                accessory: None,
+            });
+        }
+    }
+}
+
+/// Clastic deposition. The deep-time record (3e-1) supplies the depositional
+/// **history** below an active surficial **veneer**: [`deposit_deep_history`]
+/// lays the recorded units (at-deposition context) just above the igneous
+/// basement, then the veneer below deposits the recent, still-forming alluvium
+/// under the year-zero climate (ratified-legitimate for the veneer — geology.md
+/// § formation context) and hands its graded coarse body to the placer. In the
+/// wilds / bare uplands (no deep record) only the veneer remains — the
+/// historyless border keeps the analytic year-zero behaviour.
 pub fn clastic_pass(ctx: &mut StrataCtx) {
     if ctx.elev_m <= 0.0 {
         return; // subaqueous sedimentation is the carbonate milestone
     }
+    // The recorded deep-time history sits below the active veneer.
+    deposit_deep_history(ctx);
+    // Active surficial veneer (year-zero climate — the legitimate veneer).
     // Budget in voxels: arid columns get a thin veneer, wet columns a real
     // soil column, fan columns extra.
     let base = 1.0 + (ctx.precip * 2.5);

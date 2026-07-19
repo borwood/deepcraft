@@ -56,6 +56,12 @@ pub const L_LOCALE: u8 = 5;
 pub const L_COLUMN: u8 = 9;
 /// Finest lattice level: one voxel (0.9 m).
 pub const L_VOXEL: u8 = 14;
+/// Lattice level at which the deep-time surface drives elevation (3e-1): the
+/// locale scale (512 voxels ≈ 460.8 m) ≈ the deep tier's own 460 m cell. At and
+/// above this scale the macro-terrain is the eroded deep-time surface (bilinear,
+/// continuous); finer levels keep the addressed midpoint jitter for sub-460 m
+/// relief, so no sub-locale detail is lost and the deep terrain drives the rest.
+pub const L_DEEP: u8 = L_LOCALE;
 
 /// Per-refinement amplitude decay for elevation jitter.
 const AMP_DECAY: f64 = 0.55;
@@ -544,7 +550,7 @@ impl<'a> WorldGenerator<'a> {
         if let Some(&v) = self.lattice_memo.get(&(level, i, j)) {
             return v;
         }
-        let v = if level == 0 {
+        let mut v = if level == 0 {
             self.corner0(i, j)
         } else {
             let (pi, pj) = (i >> 1, j >> 1);
@@ -576,6 +582,20 @@ impl<'a> WorldGenerator<'a> {
                 parent.1,
             )
         };
+        // 3e-1: at the deep tier's own resolution (level L_DEEP ≈ 460 m ≈ the
+        // locale), replace the analytic elevation with the eroded deep-time
+        // surface (bilinear → C0-continuous, so adjacent locale corners differ
+        // gently over the 512-voxel span and the ≤6-voxel seam invariant holds).
+        // Roughness is untouched — it still schedules the finer midpoint jitter.
+        // Outside the deep grid (the border wilds) the sample is absent and the
+        // analytic value stands, so the boundary keeps its single-field
+        // continuity (both sides ≈ the shared pregen edge elevation).
+        if level == L_DEEP {
+            let shift = u32::from(L_VOXEL - L_DEEP);
+            if let Some(e) = self.pregen.deep.surface_at_voxel(i << shift, j << shift) {
+                v.0 = e;
+            }
+        }
         self.lattice_memo.insert((level, i, j), v);
         v
     }
@@ -869,6 +889,14 @@ impl<'a> WorldGenerator<'a> {
             .iter()
             .map(|s| s.width * (-seg_point_dist(s, ccx, ccz) / 24.0).exp())
             .fold(0.0f64, f64::max);
+        // The deep-time depositional record for this column: the strata of the
+        // nearest 460 m deep cell (the at-deposition formation-context source).
+        // Empty in the wilds / where the deep sim laid nothing down.
+        let deep_units = self
+            .pregen
+            .deep
+            .record_at_voxel(cx * 32 + 16, cz * 32 + 16)
+            .map_or(&[][..], |s| s.units.as_slice());
         let mut strata_ctx = StrataCtx {
             seed: self.seed,
             cx,
@@ -878,6 +906,8 @@ impl<'a> WorldGenerator<'a> {
             provenance,
             elev_m,
             flow_energy,
+            voxel_m: self.voxel_m,
+            deep_units,
             wilds,
             geology: &self.geology,
             strata: StrataRec::default(),

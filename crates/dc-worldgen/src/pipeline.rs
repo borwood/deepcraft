@@ -27,6 +27,7 @@ use std::collections::BTreeMap;
 
 use dc_core::materials::geology::GeologySet;
 
+use crate::deeptime::DeepField;
 use crate::geology::StrataCtx;
 use crate::pregen::{CellGrid, history};
 
@@ -55,6 +56,13 @@ pub enum Resource {
     Hydrology,
     /// Settlement history: ledger, overlay, sites.
     History,
+    /// The deep-time eroded surface (the A-tier final elevation field). Created
+    /// by the deep-time pass; the collapse elevation lattice reads it.
+    DeepElevation,
+    /// The deep-time per-cell strata record (tagged deposition log). Created by
+    /// the deep-time pass; the collapse depositional passes read it as the
+    /// at-deposition formation-context source (geology.md § formation context).
+    DeepStrata,
     /// The per-column ordered deposition log.
     Strata,
     /// Alluvial-fan state (flow energy, the graded coarse body) the placer
@@ -70,6 +78,9 @@ pub struct PregenCtx {
     pub w: i32,
     pub grid: Option<CellGrid>,
     pub history: Option<history::History>,
+    /// The deep-time field, filled by the deep-time pass (creator of
+    /// [`Resource::DeepElevation`] + [`Resource::DeepStrata`]).
+    pub deep: Option<DeepField>,
 }
 
 /// What a pass does when it runs (plain function pointers: deterministic,
@@ -357,6 +368,15 @@ fn history_pass(ctx: &mut PregenCtx) {
     ctx.history = Some(history::run(ctx.seed, grid));
 }
 
+/// The always-on deep-time A tier (3e-1): run the two-plane erosion sim over
+/// the coarse grid and keep its eroded surface + strata record. Reads
+/// Elevation/Provenance/Climate (bilinear-resampled to the deep grid), creates
+/// DeepElevation + DeepStrata. This is the "generating world history…" ritual.
+fn deep_time_pass(ctx: &mut PregenCtx) {
+    let grid = ctx.grid.as_ref().expect("tectonics ran (declared read)");
+    ctx.deep = Some(crate::deeptime::build_field(grid, ctx.seed));
+}
+
 /// The vanilla pass roster with honest read/write declarations. The four S7
 /// stages' declarations force the exact legacy order; the geology passes
 /// slot in behind them: igneous creates the strata record, clastic deposits
@@ -403,6 +423,14 @@ pub fn vanilla_passes() -> Vec<Pass> {
             body: PassBody::Pregen(history_pass),
         },
         Pass {
+            id: "dc:pass/deep-time",
+            phase: Phase::Pregen,
+            reads: &[Elevation, Provenance, Climate],
+            writes: &[DeepElevation, DeepStrata],
+            selects: &[],
+            body: PassBody::Pregen(deep_time_pass),
+        },
+        Pass {
             id: "dc:pass/igneous-emplacement",
             phase: Phase::Collapse,
             reads: &[Provenance, Elevation, Climate],
@@ -419,7 +447,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
         Pass {
             id: "dc:pass/clastic-deposition",
             phase: Phase::Collapse,
-            reads: &[Climate, Hydrology, Elevation, Strata],
+            reads: &[Climate, Hydrology, Elevation, Strata, DeepStrata],
             writes: &[Strata, Alluvium],
             selects: &[CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE],
             body: PassBody::Strata(crate::geology::clastic_pass),
@@ -487,6 +515,10 @@ mod tests {
             vec![
                 "dc:pass/tectonics",
                 "dc:pass/climate",
+                // deep-time depends only on Elevation/Provenance/Climate, so it
+                // is ready right after climate and its id sorts ahead of the
+                // hydrology/igneous ties.
+                "dc:pass/deep-time",
                 "dc:pass/hydrology",
                 "dc:pass/history",
                 "dc:pass/igneous-emplacement",
