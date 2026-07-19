@@ -1,8 +1,7 @@
-# 0011 — the geology post-v1 slice: weather-blind granite, wandering contacts (DRAFT)
+# 0011 — the geology post-v1 slice: weather-blind granite, wandering contacts
 
-Draft. The walk section is a placeholder — the main session re-walks a former
-hard family boundary and photographs the smoothed transition before this
-entry is finalized.
+*2026-07-19 · 3d (background agent; integrated + walk-verified by the main
+session, merge `ba666e6`, 36 suites green on merged main).*
 
 ROADMAP 3d bundled four small mechanics and a roster proof, all decided
 2026-07-19. They share a spine: the v1 geology shipped a *shape* — classes as
@@ -133,13 +132,33 @@ which is the whole point: diversifying a class redistributes its share, it never
 inflates it, and canonical order makes registration sequence irrelevant to the
 last byte.
 
-## Walk (placeholder)
+## Walk 10: the fix that photographs, and the fix that can't yet
 
-_To be filled by the main session: re-walk a former hard family boundary near a
-placer fan / clastic contact under `--fullbright`, photograph the smoothed
-material transition (before/after against a walk-8 chunk-line shot if one
-exists), and confirm accessory speckle reads on an igneous exposure. Screenshots
-to `journal/assets/0011-*`._
+The accessory half photographs beautifully: a pit deepened to basement
+shows **olivine pore-partials as sparse sage cells in the pink granite**
+(`assets/0011-olivine-in-granite.png`) — the 3c-2 dither rendering the new
+inclusions with zero renderer changes, sparse and undemonstrative, as the
+subtle-ore doctrine wants.
+
+The member-contact half produced the walk's real finding: a 160×160-voxel
+overburden strip, meant to show wandering mudstone/siltstone contacts in
+plan view, rendered as **one featureless field** — because **member
+identity is render-invisible**. Uniform-contents voxels take the
+single-color fast path and paint the *block* color, and siltstone and
+mudstone are both the `Mudstone` block; the wandering contact exists in
+the data (the transect test proves interleaving and an interior contact)
+but cannot reach the eye until uniform contents render their *material*
+albedo instead of their block color. Filed to Observed — it's a small,
+honest extension of the interim renderer (make real data visible), not a
+bandaid tune.
+
+Which also sharpens the record on walk 8: what the user saw was most
+likely the **class-presence quantization** (a sandstone cap appearing via
+`flow_energy` rounding, per-chunk) — the loose end 3d explicitly left —
+compounded by member flips that were, it turns out, never visible anyway.
+The user-facing seam is therefore *not yet fixed in the visible world*:
+one mechanism is smoothed but invisible, the other is diagnosed and
+sequenced. The honest scoreboard matters more than a victory lap.
 
 ## Loose ends (→ ROADMAP Observed)
 

@@ -72,9 +72,10 @@ editors emit them, plugins ship them, "vanilla" is the first one. Model +
 animation payloads follow the transformed-cubes/keyframe format
 (Blockbench-shaped, see ARCHITECTURE.md § Content model).
 
-<!-- EDITED 2026-07-19 (geology backbone slice 1) — content-class registry;
-     NEEDS RATIFICATION -->
-**Content-class registry (added 2026-07-19; needs ratification).** A second
+<!-- EDITED 2026-07-19 (geology backbone slice 1); accepted as-built,
+     integrator review 2026-07-19 (engineering internals within the ratified
+     geology design — see docs/design/geology.md for the user-owned frame) -->
+**Content-class registry (added 2026-07-19).** A second
 registry beside the command registry: **classes as contracts**
 (docs/design/geology.md). Two verbs, both ordinary registry CommandSpecs (so
 MCP surfaces grow the tools automatically):
@@ -98,7 +99,7 @@ ordered typed `GeologySet` (members sorted by namespaced id, abundance
 normalized within class) that worldgen selection consumes. The vanilla geology
 pack is generated from the typed set, so pack and model cannot drift.
 
-<!-- EDITED 2026-07-19 (3d — geology post-v1 slice); NEEDS RATIFICATION -->
+<!-- EDITED 2026-07-19 (3d); accepted as-built, integrator review 2026-07-19 -->
 **Per-class contracts (the formation-context correction, 2026-07-19).** The
 geology contract is no longer one shared param set. Which context flows into
 fitness is now class-dependent — the machinery is unchanged, the *contract*
@@ -143,8 +144,9 @@ sparse by the existing 3c-2 face dither with no renderer-side code.
 <!-- END EDIT -->
 
 <!-- EDITED 2026-07-19 (body-plan staircase steps 1–2) — the bodies registry;
-     NEEDS RATIFICATION -->
-**Bodies registry (added 2026-07-19; needs ratification).** Body plans and
+     accepted as-built, integrator review 2026-07-19 (implements the ratified
+     bodies.md design; schema shapes are engineering internals) -->
+**Bodies registry (added 2026-07-19).** Body plans and
 animation clips as registry data (docs/design/bodies.md; the fourth
 roles-as-contracts instance). Two more ordinary registry CommandSpecs, so the
 MCP surfaces grow the tools automatically — both `registry.define(namespace)`
@@ -312,7 +314,7 @@ schedule.manage(own)               events.subscribe(filters)
 - The `Payload` union keeps an open path (schema-registered, serde-tagged) so
   new commands don't ossify the enum across the ABI.
   <!-- EDITED 2026-07-19 (geology backbone slice 1) — the open path's first
-       realization; NEEDS RATIFICATION -->
+       realization; accepted as-built, integrator review 2026-07-19 -->
   First realized (minimally) by `define_class_member`: the union stays a
   closed enum, but that payload's *contents* are open — parameter keys over a
   closed value vocabulary, legal shape defined by the registered class

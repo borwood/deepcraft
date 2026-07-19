@@ -37,6 +37,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — 3d: geology post-v1 slice (journal/0011, walk 10, merge
+  `ba666e6`): igneous fitness weather-blind (per-class contracts —
+  corrections #6: the seam's real quantizer was the chunk-column collapse
+  unit, not cell-stepped climate); member-contact boundary dither
+  (data-proven wandering contacts); two-layer class-satisfiability
+  enforcement with named culprits; olivine pore-partial inclusions
+  (photographed, assets 0011-*); roster proof 17→22 materials, 10 vanilla
+  members across 6 classes.
+
 - 2026-07-19 — 3c-2: material-tier geology visible (journal/0010, walk 9,
   merge `8c9f67f`): registry albedos on all 17 materials; sidecar channel
   through the seam (order-dependent MixtureTable ids resolved to a
@@ -112,8 +121,10 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — next: the S9 deep-time spike awaits user blessing of the
-earth-processes method + spike framing; see journal/0010 wrap)
+- S9 deep-time spike (agent launched 2026-07-19; earth-processes.md § S9
+  framing): two-plane erosion + strata recorder + orographic march;
+  A/B/C priced honestly (B a live contender per recorded user doubt);
+  halo decay length measured; process classification table.
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
@@ -166,9 +177,22 @@ earth-processes method + spike framing; see journal/0010 wrap)
   persist the table, never re-derive it (lifecycle belongs to region-file
   grouping, S3 OQ 7).
 
-- Walk 9 + 3c-2 loose ends (journal/0010): **NEEDS RATIFICATION — dither
-  cell count** (4×4 per face, ~22 cm at N=2; 8×8 costs 4× triangles) and
-  the **resolve-at-boundary sidecar transport shape**. Far field and the
+- Walk 10 + 3d loose ends (journal/0011): **member identity is
+  render-invisible** — uniform-contents voxels paint their *block* color
+  (siltstone and mudstone are both the Mudstone block), so the 3d contact
+  smoothing exists in data but not to the eye; wants uniform contents to
+  render their material albedo (an honest extension of the interim
+  renderer, next client-touching milestone). **Class-presence
+  quantization still cuts on chunk lines** (flow_energy rounding
+  per-chunk) — most likely what walk 8 actually saw; needs per-voxel-
+  column context. Igneous tectonic-setting fitness axis deferred to 3e.
+  Olivine albedo reads close to grass green from afar — registry-data
+  polish with the real texture milestone. Accessory gate/pore-fraction
+  values picked, not tuned.
+
+- Walk 9 + 3c-2 loose ends (journal/0010): dither cell count (4×4) and
+  the resolve-at-boundary sidecar transport accepted as-built (integrator
+  review 2026-07-19, per the no-bandaid razor). Far field and the
   legacy S1 authority render no dither (near-field worldgen only).
   Partial-height rendering is dormant until loose deposition emits sub-8
   columns; edits don't update materials (safe via the block gate).
