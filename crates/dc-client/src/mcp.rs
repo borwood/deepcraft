@@ -114,10 +114,12 @@ pub enum BridgeRequest {
     },
     /// Character-surface session attach: spawn-or-attach to one character
     /// (spawns with the surface's parent token if it does not exist; default
-    /// position = just in front of the player).
+    /// position = just in front of the player). `surface` drops the new body
+    /// onto the true voxel surface at the requested x/z before the embed guard.
     CharacterAttach {
         name: String,
         pos: Option<[f64; 3]>,
+        surface: bool,
         reply: oneshot::Sender<Value>,
     },
     /// A character-surface tool call. The ECS side derives the session's

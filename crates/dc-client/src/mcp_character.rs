@@ -55,7 +55,10 @@ pub fn attach_tool() -> Tool {
          spawns it (feet at `pos`, world meters; default just in front of \
          the player) if not. From then on this session's token covers exactly \
          that character's control and senses — every other tool call must \
-         name it. One attach per session.",
+         name it. One attach per session. A spawn whose body would be embedded \
+         in solid terrain is refused (ok:false, code:\"obstructed\") rather \
+         than creating a stuck statue; pass surface:true to drop the body onto \
+         the true surface at pos's x/z first.",
         match json!({
             "type": "object",
             "properties": {
@@ -73,6 +76,10 @@ pub fn attach_tool() -> Tool {
                     },
                     "required": ["x", "y", "z"],
                     "additionalProperties": false,
+                },
+                "surface": {
+                    "type": "boolean",
+                    "description": "drop the new body onto the true voxel surface at pos's x/z (ignoring pos.y); ignored when attaching to an existing character",
                 },
             },
             "required": ["character"],
@@ -175,12 +182,17 @@ impl ServerHandler for CharacterMcpServer {
                     }
                 }
             };
+            let surface = args
+                .get("surface")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
             let (reply, rx) = oneshot::channel();
             let result = self
                 .bridge(
                     BridgeRequest::CharacterAttach {
                         name: name.to_string(),
                         pos,
+                        surface,
                         reply,
                     },
                     rx,
@@ -271,11 +283,17 @@ mod tests {
             while !pump_shutdown.load(std::sync::atomic::Ordering::Relaxed) {
                 while let Ok(request) = rx.try_recv() {
                     match request {
-                        BridgeRequest::CharacterAttach { name, pos, reply } => {
+                        BridgeRequest::CharacterAttach {
+                            name,
+                            pos,
+                            surface,
+                            reply,
+                        } => {
                             let pos = pos.expect("test always passes pos");
                             authority.handle_character_attach(
                                 &name,
                                 dc_api::payload::Vec3f::new(pos[0], pos[1], pos[2]),
+                                surface,
                                 reply,
                             );
                         }
@@ -381,7 +399,10 @@ mod tests {
         // and well ABOVE it: `surface_height_m` under-reports the voxel
         // surface (ROADMAP Observed), so spawning at the helper's height can
         // embed the body. Dropping in from +20 m lets gravity find the truth.
-        let spawn = crate::app::find_open_spawn(&crate::worldgen::TerrainGen::new(SEED));
+        let spawn = crate::app::find_open_spawn(
+            &crate::worldgen::TerrainGen::new(SEED),
+            dc_core::VoxelScale::from_player_height(crate::PLAYER_HEIGHT_M, 3),
+        );
         let reply = call(
             "character_attach",
             json!({ "character": "scout",

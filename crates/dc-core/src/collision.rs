@@ -155,6 +155,61 @@ fn sweep_axis(
     (d, hit)
 }
 
+/// Does any solid voxel overlap `aabb`? Uses the same `EPS`-shrunk cell
+/// coverage as [`move_aabb`]'s sweep, so a body resting flush on a surface —
+/// its base exactly on a voxel's top face — does NOT count as overlapping the
+/// solid it stands on; only genuine interpenetration does.
+///
+/// This is the placement guard's core: a body whose AABB overlaps solid is
+/// *embedded* (swept collision refuses to move an interpenetrating box, so it
+/// is stuck forever — journal/0005). Callers work in voxel units, converting
+/// from meters with [`crate::VoxelScale`] first, exactly like [`move_aabb`].
+pub fn aabb_overlaps_solid(world: &impl VoxelQuery, aabb: Aabb) -> bool {
+    let x0 = floor_i(aabb.min.x + EPS);
+    let x1 = floor_i(aabb.max.x - EPS);
+    let y0 = floor_i(aabb.min.y + EPS);
+    let y1 = floor_i(aabb.max.y - EPS);
+    let z0 = floor_i(aabb.min.z + EPS);
+    let z1 = floor_i(aabb.max.z - EPS);
+    for x in x0..=x1 {
+        for y in y0..=y1 {
+            for z in z0..=z1 {
+                if world.is_solid(x, y, z) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// The highest solid voxel Y in the column at `(x, z)`, scanning downward from
+/// `ceil_y` to `floor_y` (both inclusive). `None` if every voxel in that span
+/// is air.
+///
+/// This is the true voxel surface — edits and all, since `world` answers the
+/// live solidity — for safe body placement. It exists because an *analytic*
+/// heightfield (`TerrainGen::surface_height_m`) can disagree with the voxels it
+/// generates once a footprint spans a slope, and trusting it buried spawns and
+/// teleports (ROADMAP Observed; journal/0006). The resting surface a body sits
+/// on is `top + 1` — the solid voxel's top face.
+pub fn column_top_solid_y(
+    world: &impl VoxelQuery,
+    x: i64,
+    z: i64,
+    ceil_y: i64,
+    floor_y: i64,
+) -> Option<i64> {
+    let mut y = ceil_y;
+    while y >= floor_y {
+        if world.is_solid(x, y, z) {
+            return Some(y);
+        }
+        y -= 1;
+    }
+    None
+}
+
 /// Any solid voxel in the 1-cell-thick slab at `a` along `axis`, spanning
 /// `[u0, u1] x [v0, v1]` on the other axes?
 #[expect(
@@ -295,5 +350,36 @@ mod tests {
         let r2 = move_aabb(&world, aabb, DVec3::new(-1.0, 0.0, 0.0));
         assert!(!r2.hit_x);
         assert!((r2.delta.x + 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn overlap_detects_embedded_and_ignores_flush_rest() {
+        let world = |_x: i64, y: i64, _z: i64| y < 4; // floor: solid below y = 4.
+
+        // Resting flush on the floor (base exactly on the top face at y = 4):
+        // NOT an overlap — a body standing on the ground is not embedded.
+        let standing = player_at(DVec3::new(0.0, 4.0, 0.0));
+        assert!(!aabb_overlaps_solid(&world, standing));
+
+        // Sunk half a voxel into the floor: embedded.
+        let sunk = player_at(DVec3::new(0.0, 3.5, 0.0));
+        assert!(aabb_overlaps_solid(&world, sunk));
+
+        // Hovering clear above the floor: not embedded.
+        let hovering = player_at(DVec3::new(0.0, 8.0, 0.0));
+        assert!(!aabb_overlaps_solid(&world, hovering));
+    }
+
+    #[test]
+    fn column_top_solid_finds_surface_and_reports_empty_air() {
+        // Floor below y = 4, plus a lone block at y = 9.
+        let world = |x: i64, y: i64, _z: i64| y < 4 || (x == 0 && y == 9);
+
+        // Scanning down from y = 20 finds the lone block first.
+        assert_eq!(column_top_solid_y(&world, 0, 0, 20, -20), Some(9));
+        // A neighbouring column (no lone block) finds the floor top at y = 3.
+        assert_eq!(column_top_solid_y(&world, 1, 0, 20, -20), Some(3));
+        // A window entirely in air returns None.
+        assert_eq!(column_top_solid_y(&world, 1, 0, 20, 6), None);
     }
 }

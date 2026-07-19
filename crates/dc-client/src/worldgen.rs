@@ -6,7 +6,9 @@
 //! seed produces the same landscape at every voxel scale — only the sampling
 //! resolution changes. That is exactly the comparison S1 wants to make.
 
-use dc_core::{Block, CHUNK_SIZE_USIZE, Chunk, ChunkPos, VoxelScale};
+use dc_core::{
+    Block, CHUNK_SIZE_USIZE, Chunk, ChunkPos, VoxelQuery, VoxelScale, column_top_solid_y,
+};
 use fastnoise_lite::{FastNoiseLite, FractalType, NoiseType};
 
 /// Base terrain altitude in meters.
@@ -133,10 +135,79 @@ impl TerrainGen {
     }
 }
 
+/// Headroom above the analytic surface to begin a true-surface scan.
+///
+/// `surface_height_m` is an *upper* bound on the true voxel surface *within one
+/// column*: `block_in_column` makes a voxel solid only when its center is below
+/// the analytic height, so the top solid face sits at most half a voxel above
+/// it. The margin adds room for near-surface edits stacked on the ground, so
+/// the scan starts safely in air.
+pub const SURFACE_SCAN_HEADROOM_M: f64 = 8.0;
+
+/// How far below the scan ceiling [`true_surface_m`] probes before giving up.
+/// Covers the deepest chasm floor (the S1 carve cuts ~90 m below base, and the
+/// ceiling already sits above the surrounding rim).
+pub const SURFACE_SCAN_DEPTH_M: f64 = 220.0;
+
+/// The **true** walking surface in meters for a body of footprint half-width
+/// `footprint_half_m` centered at `(xm, zm)`: the highest solid voxel's top
+/// face across every column the footprint covers, read from the live solidity
+/// query `solid` (terrain AND edits), at the active `scale`.
+///
+/// This is the fix for the `surface_height_m` under-report (ROADMAP Observed;
+/// journal/0006). The analytic heightfield is sampled per column at one point;
+/// a body's footprint spans neighbouring columns, and on a slope the highest of
+/// those can stand meters above the analytic value at the center — so feet
+/// clamped to the analytic height end up embedded in the higher ground. Reading
+/// the actual voxels (max over the footprint) rests the body on what is really
+/// there.
+///
+/// `analytic` is the per-column analytic height (`surface_height_m`), used only
+/// to start each column's downward scan safely in air: within a column the
+/// analytic height is an upper bound on the true voxel surface (a voxel is
+/// solid only if its center is below it). It is sampled *per footprint column*,
+/// not once — a shared ceiling from the center column would start below a
+/// steeper edge column's real surface and miss its top voxels (found the hard
+/// way; see the discrepancy test).
+pub fn true_surface_m(
+    solid: &impl VoxelQuery,
+    analytic: impl Fn(f64, f64) -> f64,
+    scale: VoxelScale,
+    xm: f64,
+    zm: f64,
+    footprint_half_m: f64,
+) -> f64 {
+    let vs = scale.voxel_size_m();
+    let x0 = scale.voxel_at(xm - footprint_half_m);
+    let x1 = scale.voxel_at(xm + footprint_half_m);
+    let z0 = scale.voxel_at(zm - footprint_half_m);
+    let z1 = scale.voxel_at(zm + footprint_half_m);
+    let mut top: Option<i64> = None;
+    for x in x0..=x1 {
+        for z in z0..=z1 {
+            // Each column scans down from above its OWN analytic surface.
+            let (cx, cz) = ((x as f64 + 0.5) * vs, (z as f64 + 0.5) * vs);
+            let h = analytic(cx, cz);
+            let ceil_y = scale.voxel_at(h + SURFACE_SCAN_HEADROOM_M);
+            let floor_y = scale.voxel_at(h - SURFACE_SCAN_DEPTH_M);
+            if let Some(y) = column_top_solid_y(solid, x, z, ceil_y, floor_y) {
+                top = Some(top.map_or(y, |t| t.max(y)));
+            }
+        }
+    }
+    match top {
+        // Rest on the solid voxel's top face.
+        Some(y) => (y + 1) as f64 * vs,
+        // Entirely air under the footprint (open chasm): the center column's
+        // scan floor, so a teleport there at least lands deterministically.
+        None => scale.voxel_at(analytic(xm, zm) - SURFACE_SCAN_DEPTH_M) as f64 * vs,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dc_core::local_voxel;
+    use dc_core::{Aabb, aabb_overlaps_solid, local_voxel};
 
     #[test]
     fn block_at_matches_generate_chunk() {
@@ -185,6 +256,101 @@ mod tests {
         assert!(
             deepest < -40.0,
             "expected a deep chasm below -40 m in the scanned region, deepest = {deepest}"
+        );
+    }
+
+    /// The under-report, quantified — and its fix.
+    ///
+    /// `surface_height_m` is analytic and per-column; a body's footprint spans
+    /// neighbouring columns, and on a slope the highest of those stands above
+    /// the analytic value at the center. Clamping feet to `analytic + eps` then
+    /// embeds the body in that higher ground (the buried spawns/teleports of
+    /// journal/0004–0005). This test measures the gap over a broad grid, proves
+    /// it can bury a body, and proves [`true_surface_m`] never does.
+    #[test]
+    fn surface_height_m_underreports_true_voxel_surface() {
+        let generator = TerrainGen::new(1337);
+        let scale = VoxelScale::from_player_height(1.8, 3);
+        let vs = scale.voxel_size_m();
+        let half = 0.3; // player footprint half-width (0.6 m wide)
+        let solid = |x: i64, y: i64, z: i64| generator.block_at(scale, x, y, z) != Block::Air;
+
+        let mut worst_gap = 0.0f64;
+        let mut worst_at = (0.0, 0.0);
+        let mut embedded_by_analytic = 0usize;
+        let mut samples = 0usize;
+
+        // Scan a broad grid straddling the chasm walls (steep gradients live
+        // there), at non-grid offsets so we sample mid-column too.
+        let mut zi = -400;
+        while zi <= 400 {
+            let mut xi = -400;
+            while xi <= 400 {
+                let (xm, zm) = (f64::from(xi) + 0.37, f64::from(zi) + 0.61);
+                let analytic = generator.surface_height_m(xm, zm);
+                // Skip the open chasm interior (nothing to stand on near here).
+                if analytic > -20.0 {
+                    samples += 1;
+                    let truth = true_surface_m(
+                        &solid,
+                        |x, z| generator.surface_height_m(x, z),
+                        scale,
+                        xm,
+                        zm,
+                        half,
+                    );
+                    let gap = truth - analytic;
+                    if gap > worst_gap {
+                        worst_gap = gap;
+                        worst_at = (xm, zm);
+                    }
+                    // Would feet clamped just above the analytic height be
+                    // embedded? (Mirrors the old spawn/teleport: analytic + a
+                    // small margin.)
+                    let feet_analytic = analytic + 0.05;
+                    let aabb = Aabb::from_bottom_center(
+                        glam::DVec3::new(xm, feet_analytic, zm) / vs,
+                        half / vs,
+                        1.8 / vs,
+                    );
+                    if aabb_overlaps_solid(&solid, aabb) {
+                        embedded_by_analytic += 1;
+                    }
+
+                    // The fix: feet on the true surface are never embedded.
+                    let feet_true = truth + 0.05;
+                    let aabb_true = Aabb::from_bottom_center(
+                        glam::DVec3::new(xm, feet_true, zm) / vs,
+                        half / vs,
+                        1.8 / vs,
+                    );
+                    assert!(
+                        !aabb_overlaps_solid(&solid, aabb_true),
+                        "true_surface_m left a body embedded at ({xm:.2}, {zm:.2})"
+                    );
+                }
+                xi += 7;
+            }
+            zi += 7;
+        }
+
+        // Print the measured numbers (see with `--nocapture`; captured in
+        // journal/0006).
+        println!(
+            "surface under-report: worst gap = {worst_gap:.2} m at ({:.1}, {:.1}); \
+             analytic-clamped feet embedded at {embedded_by_analytic}/{samples} sites",
+            worst_at.0, worst_at.1
+        );
+
+        // The bug is real: the analytic height under-reports by more than a
+        // voxel somewhere, and that buries bodies.
+        assert!(
+            worst_gap > vs,
+            "expected an under-report exceeding one voxel ({vs:.2} m); got {worst_gap:.2} m"
+        );
+        assert!(
+            embedded_by_analytic > 0,
+            "expected analytic-clamped placement to embed a body somewhere"
         );
     }
 }

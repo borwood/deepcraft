@@ -123,6 +123,20 @@ Open (deferred to the sim/character spike): when an AI-driven character's
 session disconnects, does it degrade to coarse-tier NPC behavior or freeze?
 And whose compute runs a companion's cognition in multiplayer?
 
+<!-- EDITED 2026-07-19 (journal/0006 draft) — attach placement; NEEDS RATIFICATION -->
+**Attach placement (added 2026-07-19; needs ratification).** The character
+surface's `character_attach` guards placement: if the body's AABB at the target
+feet overlaps solid voxels the attach is refused with a machine-readable receipt
+(`{ ok: false, code: "obstructed", ... }`) and nothing is spawned — an embedded
+body is a permanent statue (no despawn verb, no character-surface teleport, both
+by design). An opt-in `surface: true` first snaps the feet to the **true voxel
+surface** (top solid voxel under the footprint, edits included) at the requested
+x/z, mirroring the player's `surface` teleport. Two things want ratification:
+the `surface: true` attach semantics (new API surface), and the decision to
+leave the dev-grant `spawn_character` unguarded (dev surface keeps full reach).
+<!-- END EDIT -->
+
+
 ## Capabilities
 
 ```

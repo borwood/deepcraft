@@ -16,16 +16,18 @@
 //! The far-mesh path still samples `TerrainGen` LOD grids directly — edits are
 //! not visible beyond the full-detail radius (documented limit).
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 
 use bevy::prelude::*;
 use dc_api::host::block_from_name;
+use dc_api::payload::Vec3i;
 use dc_api::schema::CommandKind;
 use dc_api::{
     BlockChange, CapabilityToken, CommandEnvelope, CommandResult, ConsumerId, ConsumerKind, Grant,
     HostWorld, Payload, ReceiptEntry,
 };
-use dc_core::{CHUNK_SIZE_USIZE, ChunkPos, VoxelScale, local_voxel};
+use dc_core::{Aabb, CHUNK_SIZE_USIZE, ChunkPos, VoxelScale, aabb_overlaps_solid, local_voxel};
 use dc_mcp_dev::envelope_for_tool_call;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
@@ -35,9 +37,9 @@ use crate::app::{ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, Terrain,
 use crate::mcp::{BridgeRequest, McpBridge};
 use crate::meshing::mesh_chunk;
 use crate::physdemo::PhysicsDemo;
-use crate::player::Player;
+use crate::player::{PLAYER_WIDTH_M, Player};
 use crate::streaming::to_bevy_mesh;
-use crate::worldgen::TerrainGen;
+use crate::worldgen::{TerrainGen, true_surface_m};
 
 /// Fixed host tick cadence, seconds. 20 Hz: an edit's receipt (and therefore
 /// its remesh) lands within 50 ms of the tick boundary — imperceptible against
@@ -69,6 +71,11 @@ pub struct Authority {
     character_parent_token: CapabilityToken,
     /// Consumer identity for surface-side acts (the attach flow's spawns).
     character_surface_consumer: ConsumerId,
+    /// A private terrain generator (same seed as the world's) used only to pick
+    /// the scan ceiling for the attach surface-snap — the analytic height is a
+    /// cheap upper bound on the true voxel surface. Never the placement source
+    /// itself: the snap and the embed guard read the world's real solidity.
+    terrain: TerrainGen,
 }
 
 impl Authority {
@@ -113,6 +120,7 @@ impl Authority {
                 ConsumerKind::McpSession,
                 "character-surface",
             ),
+            terrain: TerrainGen::new(seed),
         }
     }
 
@@ -215,15 +223,27 @@ impl Authority {
     /// character (with the surface's parent token, not the session's) if it
     /// does not exist. The reply carries `{ ok, character, spawned }`; the
     /// session's MCP handler binds itself to the name only on `ok`.
+    ///
+    /// Placement is guarded (walk-5 finding, journal/0005): an embedded spawn is
+    /// a permanent statue (swept collision won't move an interpenetrating box,
+    /// and there is no despawn verb by design). If the body's AABB at `pos`
+    /// overlaps solid voxels the attach is refused with a machine-readable
+    /// receipt (`ok:false`, `code:"obstructed"`) and nothing is spawned. With
+    /// `surface: true` the feet are first snapped to the TRUE voxel surface at
+    /// `pos`'s x/z (mirroring the player's `surface` teleport) — reading the
+    /// live world's solidity (edits included), not the analytic height that
+    /// under-reports (ROADMAP Observed).
     pub fn handle_character_attach(
         &mut self,
         name: &str,
         pos: dc_api::payload::Vec3f,
+        surface: bool,
         reply: oneshot::Sender<Value>,
     ) {
         if !dc_api::character::valid_character_name(name) {
             let _ = reply.send(json!({
                 "ok": false,
+                "code": "invalid_name",
                 "error": "invalid character name: bare slug required ([a-z0-9_-], max 64 chars)",
             }));
             return;
@@ -232,13 +252,68 @@ impl Authority {
             let _ = reply.send(json!({ "ok": true, "character": name, "spawned": false }));
             return;
         }
+
+        // Body dimensions and voxel lattice from the world's character config.
+        let cfg = *self.world.character_config();
+        let vs = cfg.voxel_size_m;
+        let scale = VoxelScale::from_voxel_size_m(vs);
+        let half_m = cfg.width_m / 2.0;
+
+        // Optional surface snap: rest the feet on the true voxel surface under
+        // the footprint at the requested x/z (the world's real solidity, edits
+        // included; `terrain` only seeds each column's scan ceiling).
+        let mut feet = pos;
+        if surface {
+            let terrain = &self.terrain;
+            let world = RefCell::new(&mut self.world);
+            let solid = |x: i64, y: i64, z: i64| {
+                world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid()
+            };
+            feet.y = true_surface_m(
+                &solid,
+                |x, z| terrain.surface_height_m(x, z),
+                scale,
+                pos.x,
+                pos.z,
+                half_m,
+            ) + 0.05;
+        }
+
+        // Embed guard: reject rather than create a stuck statue.
+        let body = Aabb::from_bottom_center(
+            glam::DVec3::new(feet.x, feet.y, feet.z) / vs,
+            half_m / vs,
+            cfg.height_m / vs,
+        );
+        let embedded = {
+            let world = RefCell::new(&mut self.world);
+            let solid = |x: i64, y: i64, z: i64| {
+                world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid()
+            };
+            aabb_overlaps_solid(&solid, body)
+        };
+        if embedded {
+            let _ = reply.send(json!({
+                "ok": false,
+                "code": "obstructed",
+                "character": name,
+                "error": format!(
+                    "cannot attach `{name}`: body would be embedded in solid terrain at \
+                     ({:.2}, {:.2}, {:.2}). Pass surface:true to drop onto the surface, \
+                     or choose an open position.",
+                    feet.x, feet.y, feet.z
+                ),
+            }));
+            return;
+        }
+
         let envelope = CommandEnvelope {
             id: dc_api::ids::CHARACTER_SPAWN.to_string(),
             source: self.character_surface_consumer.clone(),
             grant: self.character_parent_token.clone(),
             payload: Payload::SpawnCharacter(dc_api::payload::SpawnCharacter {
                 name: name.to_string(),
-                pos,
+                pos: feet,
             }),
             target_tick: None,
             txn: None,
@@ -410,12 +485,22 @@ pub fn drain_bridge(
                     player.vel_m = glam::DVec3::ZERO;
                 }
                 if surface {
-                    // Walker-safe teleport: feet snap to the terrain surface
-                    // at (x, z) regardless of the requested y. (Terrain only —
-                    // edits are rare enough that a buried result still shows
-                    // in eye_in_solid.)
-                    player.pos_m.y =
-                        terrain.0.surface_height_m(player.pos_m.x, player.pos_m.z) + 0.05;
+                    // Walker-safe teleport: feet snap to the TRUE voxel surface
+                    // under the player's footprint at (x, z), regardless of the
+                    // requested y. Reads the live solidity (loaded edits, with a
+                    // terrain fallback) via ChunkMap, not the analytic
+                    // `surface_height_m` that under-reports on slopes and left
+                    // the camera buried (journal/0004, ROADMAP Observed).
+                    let vscale = scale.scale;
+                    let solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+                    player.pos_m.y = true_surface_m(
+                        &solid,
+                        |x, z| terrain.0.surface_height_m(x, z),
+                        vscale,
+                        player.pos_m.x,
+                        player.pos_m.z,
+                        PLAYER_WIDTH_M / 2.0,
+                    ) + 0.05;
                     player.vel_m = glam::DVec3::ZERO;
                 }
                 if let Some(y) = yaw {
@@ -429,7 +514,12 @@ pub fn drain_bridge(
             BridgeRequest::Screenshot { name, reply } => {
                 crate::mcp::take_screenshot(&mut commands, &name, reply);
             }
-            BridgeRequest::CharacterAttach { name, pos, reply } => {
+            BridgeRequest::CharacterAttach {
+                name,
+                pos,
+                surface,
+                reply,
+            } => {
                 let pos = match pos {
                     Some(p) => dc_api::payload::Vec3f::new(p[0], p[1], p[2]),
                     None => {
@@ -443,7 +533,7 @@ pub fn drain_bridge(
                         dc_api::payload::Vec3f::new(spot.x, spot.y, spot.z)
                     }
                 };
-                authority.handle_character_attach(&name, pos, reply);
+                authority.handle_character_attach(&name, pos, surface, reply);
             }
             BridgeRequest::CharacterApi {
                 tool,
@@ -759,6 +849,7 @@ pub(crate) mod tests {
             authority.handle_character_attach(
                 "scout",
                 dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+                false,
                 tx,
             );
             authority.tick_now();
@@ -809,11 +900,21 @@ pub(crate) mod tests {
         // an existing character does not respawn it.
         let mut authority = Authority::new(1337, 3);
         let (tx, mut rx) = oneshot::channel();
-        authority.handle_character_attach("scout", dc_api::payload::Vec3f::new(0.3, 40.0, 0.3), tx);
+        authority.handle_character_attach(
+            "scout",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            tx,
+        );
         authority.tick_now();
         assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
         let (tx, mut rx) = oneshot::channel();
-        authority.handle_character_attach("scout", dc_api::payload::Vec3f::new(9.0, 9.0, 9.0), tx);
+        authority.handle_character_attach(
+            "scout",
+            dc_api::payload::Vec3f::new(9.0, 9.0, 9.0),
+            false,
+            tx,
+        );
         let reply = rx.try_recv().expect("existing attach answers immediately");
         assert_eq!(reply["ok"], json!(true));
         assert_eq!(reply["spawned"], json!(false));
@@ -851,5 +952,109 @@ pub(crate) mod tests {
         }));
         authority.tick_now();
         assert_eq!(authority.world.chunk(pos).get(1, 1, 1), Block::Wood);
+    }
+
+    /// Walk-5 fix: attach guards placement. A body dropped into solid terrain is
+    /// refused (no stuck statue, journal/0005); clear air spawns; and
+    /// `surface: true` snaps the body onto the true voxel surface and lands it
+    /// standing — never embedded.
+    #[test]
+    fn attach_rejects_embedded_allows_clear_and_snaps_to_surface() {
+        let seed = 1337;
+        let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 3);
+        let terrain = TerrainGen::new(seed);
+        let spawn = crate::app::find_open_spawn(&terrain, scale);
+        let (sx, sz) = (spawn.x, spawn.z);
+        let vs = scale.voxel_size_m();
+        let half = PLAYER_WIDTH_M / 2.0;
+
+        // Reference true surface at the spawn column.
+        let solid = |x: i64, y: i64, z: i64| terrain.block_at(scale, x, y, z) != Block::Air;
+        let true_surf = true_surface_m(
+            &solid,
+            |x, z| terrain.surface_height_m(x, z),
+            scale,
+            sx,
+            sz,
+            half,
+        );
+
+        // Precondition: feet a few meters below the surface really are embedded
+        // (self-check so a cave at this column would surface as a failure).
+        let buried_feet = true_surf - 3.0;
+        let buried_aabb = Aabb::from_bottom_center(
+            glam::DVec3::new(sx, buried_feet, sz) / vs,
+            half / vs,
+            PLAYER_HEIGHT_M / vs,
+        );
+        assert!(
+            aabb_overlaps_solid(&solid, buried_aabb),
+            "test precondition: {buried_feet} m should be inside the ground"
+        );
+
+        // 1) Embedded spawn is refused with a machine-readable receipt, and no
+        //    character is created.
+        let mut authority = Authority::new(seed, 3);
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "buried",
+            dc_api::payload::Vec3f::new(sx, buried_feet, sz),
+            false,
+            tx,
+        );
+        let reply = rx.try_recv().expect("embed guard answers immediately");
+        assert_eq!(reply["ok"], json!(false), "{reply}");
+        assert_eq!(reply["code"], json!("obstructed"), "{reply}");
+        authority.tick_now();
+        assert!(
+            authority.world.character("buried").is_none(),
+            "an obstructed attach must spawn no statue"
+        );
+
+        // 2) Clear air spawns fine.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "flyer",
+            dc_api::payload::Vec3f::new(sx, true_surf + 50.0, sz),
+            false,
+            tx,
+        );
+        authority.tick_now();
+        let reply = rx.try_recv().expect("clear attach resolves");
+        assert_eq!(reply["ok"], json!(true), "{reply}");
+        assert_eq!(reply["spawned"], json!(true));
+        assert!(authority.world.character("flyer").is_some());
+
+        // 3) surface:true snaps to the true surface regardless of the requested
+        //    y, and the landed body is not embedded.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "walker",
+            dc_api::payload::Vec3f::new(sx, true_surf + 100.0, sz),
+            true,
+            tx,
+        );
+        authority.tick_now();
+        let reply = rx.try_recv().expect("surface attach resolves");
+        assert_eq!(reply["ok"], json!(true), "{reply}");
+        let walker = authority
+            .world
+            .character("walker")
+            .expect("spawned")
+            .clone();
+        assert!(
+            (walker.pos_m.y - (true_surf + 0.05)).abs() < vs,
+            "surface-snapped feet {} near the true surface {true_surf}",
+            walker.pos_m.y
+        );
+        let landed = Aabb::from_bottom_center(
+            glam::DVec3::new(walker.pos_m.x, walker.pos_m.y, walker.pos_m.z) / vs,
+            half / vs,
+            PLAYER_HEIGHT_M / vs,
+        );
+        assert!(
+            !aabb_overlaps_solid(&solid, landed),
+            "surface-snapped body must not be embedded"
+        );
     }
 }

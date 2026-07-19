@@ -108,7 +108,13 @@ pub fn to_render(v: DVec3) -> Vec3 {
 /// First surface point spiraling out from the origin that is open ground
 /// (above y = 2 m). The origin itself sits on the chasm floor at ~−82 m,
 /// which made every new walker's first view a wall (journal/0003).
-pub fn find_open_spawn(terrain: &TerrainGen) -> DVec3 {
+///
+/// The final feet altitude comes from the **true voxel surface** under the
+/// player's footprint ([`true_surface_m`]), not `surface_height_m` — the
+/// analytic height under-reports on slopes and buried the spawn (journal/0004,
+/// ROADMAP Observed). The ring search still uses the analytic height as a cheap
+/// "is this column out of the chasm" filter.
+pub fn find_open_spawn(terrain: &TerrainGen, scale: VoxelScale) -> DVec3 {
     let (mut sx, mut sz) = (0.0, 0.0);
     'search: for ring in 0..48 {
         let d = f64::from(ring) * 12.0;
@@ -128,7 +134,16 @@ pub fn find_open_spawn(terrain: &TerrainGen) -> DVec3 {
             }
         }
     }
-    DVec3::new(sx, terrain.surface_height_m(sx, sz) + 2.0, sz)
+    let solid = |x: i64, y: i64, z: i64| terrain.block_at(scale, x, y, z) != Block::Air;
+    let surface = crate::worldgen::true_surface_m(
+        &solid,
+        |x, z| terrain.surface_height_m(x, z),
+        scale,
+        sx,
+        sz,
+        crate::player::PLAYER_WIDTH_M / 2.0,
+    );
+    DVec3::new(sx, surface + 2.0, sz)
 }
 
 /// `--fullbright` diagnostic mode: chunk materials render unlit so agent
@@ -138,7 +153,7 @@ pub struct Fullbright(pub bool);
 
 pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: bool) {
     let terrain = TerrainGen::new(BENCH_SEED);
-    let spawn = find_open_spawn(&terrain);
+    let spawn = find_open_spawn(&terrain, VoxelScale::from_player_height(PLAYER_HEIGHT_M, 3));
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -360,14 +375,27 @@ mod tests {
     #[test]
     fn spawn_search_finds_open_ground_off_the_chasm_floor() {
         let terrain = TerrainGen::new(BENCH_SEED);
+        let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 3);
         // The origin is the chasm floor (journal/0003) — well below open ground.
         assert!(terrain.surface_height_m(0.0, 0.0) < 0.0);
-        let spawn = find_open_spawn(&terrain);
+        let spawn = find_open_spawn(&terrain, scale);
         let surface = terrain.surface_height_m(spawn.x, spawn.z);
         assert!(
             surface > 2.0,
             "spawn surface at {surface} m is not open ground"
         );
-        assert!((spawn.y - (surface + 2.0)).abs() < 1e-9);
+        // The spawn body is placed on the TRUE voxel surface, not the analytic
+        // height — so the player is never embedded (journal/0004 buried it here).
+        let vs = scale.voxel_size_m();
+        let solid = |x: i64, y: i64, z: i64| terrain.block_at(scale, x, y, z) != Block::Air;
+        let aabb = dc_core::Aabb::from_bottom_center(
+            DVec3::new(spawn.x, spawn.y, spawn.z) / vs,
+            (crate::player::PLAYER_WIDTH_M / 2.0) / vs,
+            PLAYER_HEIGHT_M / vs,
+        );
+        assert!(
+            !dc_core::aabb_overlaps_solid(&solid, aabb),
+            "spawn body embedded in terrain at {spawn:?}"
+        );
     }
 }
