@@ -39,7 +39,7 @@ pub use bodies::{
     AnimClip, AnimClipDef, AnimSlot, BodyPlan, BodyPlanDef, JointRot, Keyframe, SegmentDef,
 };
 pub use capability::{CapabilityToken, Grant, Requirement};
-pub use character::{CharacterConfig, CharacterInput, CharacterState};
+pub use character::{CharacterConfig, CharacterInput, CharacterState, Posture};
 pub use classes::{ClassMemberDef, ContentClassDef, ParamEntry, ParamKind, ParamSpec, ParamValue};
 pub use envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, ConsumerKind, Effects,

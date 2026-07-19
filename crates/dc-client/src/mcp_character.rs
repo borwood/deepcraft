@@ -429,6 +429,7 @@ mod tests {
                 "character_sense_surroundings",
                 "character_set_look",
                 "character_set_move_intent",
+                "character_set_posture",
             ]
         );
 

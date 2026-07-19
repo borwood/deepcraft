@@ -250,6 +250,24 @@ unguarded (dev surface keeps full reach); the refusal receipt as the attach
 flow's JSON `{ ok, code }` convention (a typed dc-api `RejectReason` can
 supersede it if the pattern recurs).
 
+<!-- EDITED 2026-07-19 (body staircase step 3) — accepted as-built, integrator
+     review 2026-07-19 -->
+**Posture (added 2026-07-19).** A fourth controller verb joins the character
+domain: `dc:character/set_posture` (`{ character, posture }`, posture one of
+`standing` | `crouching`) — `character.control(character)` like the other
+controller verbs, appended at the `Payload`/`RejectReason` ends (postcard order
+is wire identity; `CharacterState` gains a `serde(default)` `posture` field so
+old logs decode to `standing`). This is the **sim** half of bodies.md's crouch
+firewall split: crouching scales the swept-AABB collider height (0.6×) at the
+tick boundary; the cosmetic bend (spine lowered, knees via IK, head keeps its
+look) is client-only and never read back. Standing up is **guarded** — a
+`crouching → standing` change is refused with `RejectReason::PostureBlocked`
+when the taller collider would embed in solid (the same `aabb_overlaps_solid`
+test the attach embed guard uses), so a body under a low ceiling stays
+crouched instead of clipping up. Replay bit-identity extends to posture
+(`character_semantics::posture_transitions_replay_identically`).
+<!-- END EDIT -->
+
 
 ## Capabilities
 

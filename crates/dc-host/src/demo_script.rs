@@ -100,6 +100,7 @@ pub fn minimal_grants_for(payload: &dc_api::Payload) -> Vec<dc_api::Grant> {
         P::SpawnCharacter(_) => vec![dc_api::Grant::EntitySpawn],
         P::SetMoveIntent(dc_api::payload::SetMoveIntent { character, .. })
         | P::SetLook(dc_api::payload::SetLook { character, .. })
+        | P::SetPosture(dc_api::payload::SetPosture { character, .. })
         | P::Jump(dc_api::payload::Jump { character })
         | P::CharacterPose(dc_api::payload::CharacterPose { character })
         | P::SenseRaycast(dc_api::payload::SenseRaycast { character, .. })

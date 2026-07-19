@@ -593,3 +593,120 @@ fn spawn_validates_names_and_uniqueness() {
     // nothing about other characters.)
     assert_eq!(ids::CHARACTER_JUMP, "dc:character/jump");
 }
+
+/// Parametric crouch is sim state (bodies.md § determinism firewall): a scripted
+/// session that crouches, walks, and stands replays to a bit-identical final
+/// state — posture included — over the same seed.
+#[test]
+fn posture_transitions_replay_identically() {
+    let final_state = |seed: u64| -> dc_api::CharacterState {
+        let mut world = slab_world(seed);
+        spawn_scout(&mut world, Vec3f::new(0.3, 2.0, 0.3));
+        let session = session_source("scout");
+        for _ in 0..40 {
+            world.tick(); // settle onto the slab
+        }
+        let posture = |p: &str| {
+            Payload::SetPosture(payload::SetPosture {
+                character: "scout".into(),
+                posture: p.into(),
+            })
+        };
+        run(&mut world, &session, posture("crouching"));
+        run(
+            &mut world,
+            &session,
+            Payload::SetMoveIntent(payload::SetMoveIntent {
+                character: "scout".into(),
+                dx: 1.0,
+                dz: 0.0,
+                speed: 1.0,
+            }),
+        );
+        for _ in 0..20 {
+            world.tick();
+        }
+        run(&mut world, &session, posture("standing"));
+        for _ in 0..20 {
+            world.tick();
+        }
+        world.character("scout").expect("still exists").clone()
+    };
+    let a = final_state(7);
+    let b = final_state(7);
+    assert_eq!(a, b, "same seed + posture script = identical final state");
+    assert_eq!(a.pos_m.x.to_bits(), b.pos_m.x.to_bits());
+    assert_eq!(a.pos_m.y.to_bits(), b.pos_m.y.to_bits());
+    assert_eq!(a.posture, b.posture);
+}
+
+/// The crouch collider is real, and standing back up is guarded: a low ceiling
+/// that a crouched body clears blocks the stand-up, and clearing it lets the
+/// body rise. The sim half of bodies.md's crouch example.
+#[test]
+fn stand_up_is_blocked_under_a_low_ceiling() {
+    let mut world = slab_world(7);
+    let dev = dev_source();
+    spawn_scout(&mut world, Vec3f::new(0.3, 2.0, 0.3));
+    let session = session_source("scout");
+    for _ in 0..40 {
+        world.tick();
+    }
+    assert!(world.character("scout").unwrap().on_ground, "settled");
+
+    let posture = |p: &str| {
+        Payload::SetPosture(payload::SetPosture {
+            character: "scout".into(),
+            posture: p.into(),
+        })
+    };
+    // Crouch is always allowed.
+    assert!(run(&mut world, &session, posture("crouching")).is_ok());
+    assert_eq!(
+        world.character("scout").unwrap().posture,
+        dc_api::Posture::Crouching
+    );
+
+    // A low ceiling over the footprint at voxel y=2 (1.2–1.8 m): a crouched body
+    // (~1.08 m) clears it, a standing one (1.8 m) does not.
+    let ceiling = |block: &str| {
+        Payload::Fill(payload::Fill {
+            min: Vec3i::new(-1, 2, -1),
+            max: Vec3i::new(1, 2, 1),
+            block: block.into(),
+        })
+    };
+    assert!(run(&mut world, &dev, ceiling("dc:stone")).is_ok());
+    for _ in 0..5 {
+        world.tick();
+    }
+    // The crouched body still fits and stays put.
+    assert_eq!(
+        world.character("scout").unwrap().posture,
+        dc_api::Posture::Crouching
+    );
+
+    // Standing up is refused — the taller collider would embed in the ceiling.
+    let r = run(&mut world, &session, posture("standing"));
+    assert!(
+        matches!(
+            r,
+            CommandResult::Rejected(RejectReason::PostureBlocked { .. })
+        ),
+        "stand-up under a low ceiling must be blocked: {r:?}"
+    );
+    assert_eq!(
+        world.character("scout").unwrap().posture,
+        dc_api::Posture::Crouching,
+        "stays crouched after a blocked stand-up"
+    );
+
+    // Clear the ceiling; now standing succeeds.
+    assert!(run(&mut world, &dev, ceiling("dc:air")).is_ok());
+    let r = run(&mut world, &session, posture("standing"));
+    assert!(r.is_ok(), "with the ceiling gone, standing succeeds: {r:?}");
+    assert_eq!(
+        world.character("scout").unwrap().posture,
+        dc_api::Posture::Standing
+    );
+}

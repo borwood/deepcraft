@@ -26,6 +26,7 @@ pub mod ids {
     pub const CHARACTER_SPAWN: &str = "dc:character/spawn_character";
     pub const CHARACTER_SET_MOVE_INTENT: &str = "dc:character/set_move_intent";
     pub const CHARACTER_SET_LOOK: &str = "dc:character/set_look";
+    pub const CHARACTER_SET_POSTURE: &str = "dc:character/set_posture";
     pub const CHARACTER_JUMP: &str = "dc:character/jump";
     pub const CHARACTER_POSE: &str = "dc:character/pose";
     pub const CHARACTER_SENSE_RAYCAST: &str = "dc:character/sense_raycast";
@@ -280,6 +281,19 @@ pub struct Jump {
     pub character: String,
 }
 
+/// `dc:character/set_posture` — set the character's discrete collider posture
+/// (`standing` | `crouching`). Crouching shrinks the swept-AABB height at the
+/// next tick boundary (bodies.md § determinism firewall). A `crouching →
+/// standing` change is guarded: it is refused when standing would embed the
+/// taller collider in solid terrain (e.g. under a low ceiling), so the body
+/// stays crouched rather than clipping upward.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SetPosture {
+    pub character: String,
+    /// `standing` or `crouching`.
+    pub posture: String,
+}
+
 /// `dc:character/pose` — the character's own proprioception: pose, ground
 /// contact, and eye_in_solid.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -337,6 +351,9 @@ pub enum Payload {
     // identity, so these stay at the end.
     DefineBodyPlan(DefineBodyPlan),
     DefineAnimClip(DefineAnimClip),
+    // Appended (body-plan staircase step 3: parametric crouch) — enum indices
+    // are wire identity, so this stays at the end.
+    SetPosture(SetPosture),
 }
 
 impl Payload {
@@ -364,6 +381,7 @@ impl Payload {
             Payload::DefineClassMember(_) => ids::REGISTRY_DEFINE_CLASS_MEMBER,
             Payload::DefineBodyPlan(_) => ids::REGISTRY_DEFINE_BODY_PLAN,
             Payload::DefineAnimClip(_) => ids::REGISTRY_DEFINE_ANIM_CLIP,
+            Payload::SetPosture(_) => ids::CHARACTER_SET_POSTURE,
         }
     }
 }
@@ -480,6 +498,7 @@ mod tests {
             ids::CHARACTER_SPAWN,
             ids::CHARACTER_SET_MOVE_INTENT,
             ids::CHARACTER_SET_LOOK,
+            ids::CHARACTER_SET_POSTURE,
             ids::CHARACTER_JUMP,
             ids::CHARACTER_POSE,
             ids::CHARACTER_SENSE_RAYCAST,

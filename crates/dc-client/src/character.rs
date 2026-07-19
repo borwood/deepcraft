@@ -18,12 +18,17 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use dc_api::Posture;
 use dc_api::bodies::{AnimClip, BodyPlan, biped_clips, biped_plan};
+use dc_core::VoxelScale;
 use glam::DVec3;
 
-use crate::app::{FloatingOrigin, Fullbright, to_render};
+use crate::app::{ChunkMap, CurrentScale, FloatingOrigin, Fullbright, Terrain, to_render};
 use crate::authority::Authority;
-use crate::body::{AnimState, pose_for};
+use crate::body::{
+    AnimState, CROUCH_ROOT_DROP_M, pose_for, resolve_orientation, solve_leg_ik, stepped_angle,
+};
+use crate::worldgen::TerrainGen;
 
 /// Root marker on a character's body root entity (translation = feet, rotation
 /// = yaw). Which character it is lives in [`CharacterVisuals::bodies`].
@@ -50,6 +55,18 @@ pub struct CharacterVisuals {
     assets: Option<BodyAssets>,
 }
 
+/// A leg's two-bone rig, derived from the plan once: the hip joint position in
+/// body-local meters and the two bone lengths, for the foot-placement IK.
+struct LegRig {
+    upper: String,
+    lower: String,
+    /// Hip joint offset from the body root (feet), meters.
+    hip_local: [f64; 3],
+    /// Upper bone length (hip→knee) and lower bone length (knee→sole), meters.
+    l1: f64,
+    l2: f64,
+}
+
 /// The vanilla plan, its idle/walk clips, and the per-segment mesh+material,
 /// built once and shared across every body.
 struct BodyAssets {
@@ -58,6 +75,11 @@ struct BodyAssets {
     walk: AnimClip,
     /// Segment name → (cuboid mesh, tinted material).
     segs: HashMap<String, (Handle<Mesh>, Handle<StandardMaterial>)>,
+    /// The two legs' IK rigs (empty if the plan has no `leg_*_upper/lower`).
+    legs: Vec<LegRig>,
+    /// v0 face cue: a small dark brow band parented to the head's front (−Z)
+    /// face, so orientation is photographable (placeholder until head textures).
+    face: (Handle<Mesh>, Handle<StandardMaterial>),
 }
 
 /// Mirror the authority's characters into animated biped bodies: spawn bodies
@@ -75,6 +97,9 @@ pub fn sync_characters(
     fullbright: Res<Fullbright>,
     origin: Res<FloatingOrigin>,
     authority: Res<Authority>,
+    map: Res<ChunkMap>,
+    terrain: Res<Terrain>,
+    scale: Res<CurrentScale>,
     mut visuals: ResMut<CharacterVisuals>,
     mut transforms: Query<&mut Transform, With<BodySegment>>,
 ) {
@@ -104,11 +129,55 @@ pub fn sync_characters(
             });
             segs.insert(s.name.clone(), (mesh, material));
         }
+        // Derive each leg's IK rig from the plan: hip = parent(upper).pivot +
+        // upper.pivot; l1 = |lower.pivot| (hip→knee); l2 = |lower.offset.y| +
+        // lower.size.y/2 (knee→sole). Generic over any `leg_*_upper/_lower`.
+        let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
+        let mut legs = Vec::new();
+        for upper in plan
+            .segments
+            .iter()
+            .filter(|s| s.name.starts_with("leg_") && s.name.ends_with("_upper"))
+        {
+            let lower_name = upper.name.replace("_upper", "_lower");
+            let Some(lower) = seg_by(&lower_name) else {
+                continue;
+            };
+            let hip_local = match upper.parent.as_deref().and_then(seg_by) {
+                Some(parent) => [
+                    parent.pivot_m[0] + upper.pivot_m[0],
+                    parent.pivot_m[1] + upper.pivot_m[1],
+                    parent.pivot_m[2] + upper.pivot_m[2],
+                ],
+                None => upper.pivot_m,
+            };
+            let l1 =
+                (lower.pivot_m[0].powi(2) + lower.pivot_m[1].powi(2) + lower.pivot_m[2].powi(2))
+                    .sqrt();
+            let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
+            legs.push(LegRig {
+                upper: upper.name.clone(),
+                lower: lower_name,
+                hip_local,
+                l1,
+                l2,
+            });
+        }
+        // The v0 face cue: a thin dark quad across the head's upper front.
+        let face_mesh = meshes.add(Cuboid::new(0.2, 0.06, 0.02));
+        let face_material = materials.add(StandardMaterial {
+            base_color: Color::srgb(0.08, 0.08, 0.11),
+            perceptual_roughness: 0.9,
+            unlit: fullbright.0,
+            ..default()
+        });
         visuals.assets = Some(BodyAssets {
             idle: clip("dc:anim/biped_idle"),
             walk: clip("dc:anim/biped_walk"),
             plan,
             segs,
+            legs,
+            face: (face_mesh, face_material),
         });
     }
 
@@ -127,18 +196,71 @@ pub fn sync_characters(
         seen.push(character.name.clone());
         let feet = DVec3::new(character.pos_m.x, character.pos_m.y, character.pos_m.z);
         let translation = to_render(feet - origin.0);
-        let rotation = Quat::from_rotation_y(character.yaw);
         let speed =
             (character.vel_m.x * character.vel_m.x + character.vel_m.z * character.vel_m.z).sqrt();
 
         match visuals.bodies.get_mut(character.name.as_str()) {
             Some(instance) => {
+                instance.anim.advance(dt, speed);
+                instance
+                    .anim
+                    .steer(dt, character.vel_m.x, character.vel_m.z);
+                let pose = pose_for(&instance.anim, &assets.idle, &assets.walk);
+                // Trunk faces travel; head/neck follow the look (the walk-8 gap).
+                let orient = resolve_orientation(
+                    instance.anim.trunk_yaw,
+                    f64::from(character.yaw),
+                    f64::from(character.pitch),
+                );
+                let crouch_drop = if character.posture == Posture::Crouching {
+                    CROUCH_ROOT_DROP_M
+                } else {
+                    0.0
+                };
+
+                // Root: feet position; the trunk faces travel, not the look.
                 if let Ok(mut transform) = transforms.get_mut(instance.root) {
                     transform.translation = translation;
-                    transform.rotation = rotation;
+                    transform.rotation = Quat::from_rotation_y(orient.trunk_yaw as f32);
                 }
-                instance.anim.advance(dt, speed);
-                let pose = pose_for(&instance.anim, &assets.idle, &assets.walk);
+
+                // Foot-placement IK: seat each foot on the ground under it,
+                // overriding the clip's leg swing only where the terrain differs
+                // (within a half-voxel); beyond the cap the foot floats honestly.
+                let vscale = scale.scale;
+                let half_voxel = vscale.voxel_size_m() * 0.5;
+                let trunk = instance.anim.trunk_yaw;
+                let mut leg_overrides: HashMap<String, [f64; 3]> = HashMap::new();
+                for leg in &assets.legs {
+                    let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
+                    let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
+                    let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
+                    let (hx, hz) = rotate_y_xz(trunk, leg.hip_local[0], leg.hip_local[2]);
+                    let hip_y = feet.y + leg.hip_local[1] - crouch_drop;
+                    let (dfx, dfz) = rotate_y_xz(trunk, 0.0, fz);
+                    let foot_x = feet.x + hx + dfx;
+                    let foot_z = feet.z + hz + dfz;
+                    let foot_y = hip_y + fy;
+                    if let Some(ground) =
+                        ground_top_m(&map, &terrain.0, vscale, foot_x, foot_z, foot_y, half_voxel)
+                    {
+                        let adjust = ground - foot_y;
+                        if adjust.abs() > 1e-3 && adjust.abs() <= half_voxel {
+                            let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
+                            if ik.upper_x.is_finite() && ik.lower_x.is_finite() {
+                                leg_overrides.insert(
+                                    leg.upper.clone(),
+                                    [stepped_angle(ik.upper_x), 0.0, 0.0],
+                                );
+                                leg_overrides.insert(
+                                    leg.lower.clone(),
+                                    [stepped_angle(ik.lower_x), 0.0, 0.0],
+                                );
+                            }
+                        }
+                    }
+                }
+
                 for s in &assets.plan.segments {
                     let Some(&joint) = instance.joints.get(&s.name) else {
                         continue;
@@ -152,9 +274,26 @@ pub fn sync_characters(
                         s.pivot_m[2] as f32,
                     );
                     if s.parent.is_none() {
-                        t.y += pose.root_bob_m as f32;
+                        // Root bob, plus the crouch spine drop (cosmetic half of
+                        // the parametric-crouch split).
+                        t.y += (pose.root_bob_m - crouch_drop) as f32;
                     }
-                    let e = pose.joints.get(&s.name).copied().unwrap_or([0.0, 0.0, 0.0]);
+                    // IK override on a leg joint; the neck composes the look on
+                    // top of its clip pose; everything else is the clip pose.
+                    let e = if let Some(o) = leg_overrides.get(&s.name) {
+                        *o
+                    } else {
+                        let base = pose.joints.get(&s.name).copied().unwrap_or([0.0, 0.0, 0.0]);
+                        if s.name == "neck" {
+                            [
+                                base[0] + orient.neck_pitch,
+                                base[1] + orient.neck_yaw,
+                                base[2],
+                            ]
+                        } else {
+                            base
+                        }
+                    };
                     tf.translation = t;
                     tf.rotation =
                         Quat::from_euler(EulerRot::XYZ, e[0] as f32, e[1] as f32, e[2] as f32);
@@ -167,8 +306,7 @@ pub fn sync_characters(
     // Spawn new bodies (after the read-only pass over `bodies`).
     for (name, feet, yaw, _dt) in to_spawn {
         let translation = to_render(feet - origin.0);
-        let rotation = Quat::from_rotation_y(yaw);
-        let instance = spawn_body(&mut commands, assets, translation, rotation);
+        let instance = spawn_body(&mut commands, assets, translation, yaw);
         visuals.bodies.insert(name, instance);
     }
 
@@ -194,13 +332,13 @@ fn spawn_body(
     commands: &mut Commands,
     assets: &BodyAssets,
     translation: Vec3,
-    rotation: Quat,
+    yaw: f32,
 ) -> BodyInstance {
     let root = commands
         .spawn((
             CharacterBody,
             BodySegment,
-            Transform::from_translation(translation).with_rotation(rotation),
+            Transform::from_translation(translation).with_rotation(Quat::from_rotation_y(yaw)),
             Visibility::default(),
         ))
         .id();
@@ -231,6 +369,24 @@ fn spawn_body(
             ))
             .id();
         commands.entity(joint).add_child(cuboid);
+        // v0 face cue: a dark brow band on the head's front (−Z) face, so the
+        // body's facing is photographable (walk-8: orientation was unverifiable
+        // on a featureless head). Placeholder until head textures land.
+        if s.name == "head" {
+            let (fm, fmat) = assets.face.clone();
+            let face = commands
+                .spawn((
+                    Mesh3d(fm),
+                    MeshMaterial3d(fmat),
+                    Transform::from_translation(Vec3::new(
+                        s.offset_m[0] as f32,
+                        s.offset_m[1] as f32 + 0.03,
+                        s.offset_m[2] as f32 - (s.size_m[2] as f32) / 2.0 - 0.005,
+                    )),
+                ))
+                .id();
+            commands.entity(joint).add_child(face);
+        }
         joints.insert(s.name.clone(), joint);
     }
     // Wire the tree: each segment under its parent joint, roots under the body.
@@ -245,6 +401,56 @@ fn spawn_body(
     BodyInstance {
         root,
         joints,
-        anim: AnimState::default(),
+        anim: AnimState {
+            // Start facing the spawn yaw so the trunk doesn't swing to face
+            // travel from an arbitrary zero on the first steps.
+            trunk_yaw: f64::from(yaw),
+            ..AnimState::default()
+        },
     }
+}
+
+/// Foot position of a two-bone leg in its sagittal (y, z) plane, from the clip's
+/// hip/knee X-rotations — the inverse of [`solve_leg_ik`]'s reconstruction, used
+/// to find where the animation currently places the foot before re-seating it.
+fn fk_foot_local(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64) {
+    let ky = -l1 * upper_x.cos();
+    let kz = -l1 * upper_x.sin();
+    let total = upper_x + lower_x;
+    (ky - l2 * total.cos(), kz - l2 * total.sin())
+}
+
+/// Rotate a body-local horizontal offset `(x, z)` by trunk yaw into world XZ
+/// (bevy: `from_rotation_y(yaw)` maps `x' = x cos + z sin`, `z' = −x sin + z cos`).
+fn rotate_y_xz(yaw: f64, x: f64, z: f64) -> (f64, f64) {
+    let (s, c) = yaw.sin_cos();
+    (x * c + z * s, -x * s + z * c)
+}
+
+/// The top face height (meters) of the highest solid voxel under a foot column,
+/// scanning a half-voxel window around `near_y_m`. Reads the render/collision
+/// cache (`ChunkMap`) — the loaded solidity the renderer already sees, a legal
+/// one-way read. `None` when the window holds no solid (the foot then floats).
+fn ground_top_m(
+    map: &ChunkMap,
+    terrain: &TerrainGen,
+    scale: VoxelScale,
+    x_m: f64,
+    z_m: f64,
+    near_y_m: f64,
+    half_voxel_m: f64,
+) -> Option<f64> {
+    let vs = scale.voxel_size_m();
+    let vx = scale.voxel_at(x_m);
+    let vz = scale.voxel_at(z_m);
+    let vy_hi = scale.voxel_at(near_y_m + half_voxel_m);
+    let vy_lo = scale.voxel_at(near_y_m - half_voxel_m) - 1;
+    let mut vy = vy_hi;
+    while vy >= vy_lo {
+        if map.is_solid(terrain, scale, vx, vy, vz) {
+            return Some((vy as f64 + 1.0) * vs);
+        }
+        vy -= 1;
+    }
+    None
 }

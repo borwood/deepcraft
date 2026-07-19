@@ -21,7 +21,10 @@ use glam::DVec3;
 
 use crate::bodies::{AnimClipDef, BodyPlanDef, validate_clip, validate_plan};
 use crate::capability::requirement_for;
-use crate::character::{CharacterConfig, CharacterState, step_character, valid_character_name};
+use crate::character::{
+    CharacterConfig, CharacterState, Posture, standing_would_embed, step_character,
+    valid_character_name,
+};
 use crate::classes::{ClassMemberDef, ContentClassDef, validate_class_contract, validate_params};
 use crate::envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, Effects, QueryReceipt,
@@ -939,6 +942,48 @@ impl HostWorld {
                 journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
                 character.input.jump = true;
             }
+            Payload::SetPosture(p) => {
+                let Some(posture) = Posture::from_wire(&p.posture) else {
+                    return Err(RejectReason::PayloadInvalid {
+                        reason: format!(
+                            "unknown posture `{}` (expected `standing` or `crouching`)",
+                            p.posture
+                        ),
+                    });
+                };
+                let cfg = self.character_config;
+                let current = self
+                    .characters
+                    .get(&p.character)
+                    .ok_or_else(|| RejectReason::UnknownCharacter {
+                        name: p.character.clone(),
+                    })?
+                    .clone();
+                // Stand-up guard: rising from a crouch must not embed the taller
+                // standing collider (crouching may have carried the body under a
+                // low ceiling). The same solidity test the attach embed guard
+                // uses; deterministic, so replay is untouched.
+                if current.posture == Posture::Crouching && posture == Posture::Standing {
+                    let embedded = {
+                        let world = RefCell::new(&mut *self);
+                        let solid = |x: i64, y: i64, z: i64| {
+                            world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid()
+                        };
+                        standing_would_embed(current.pos_m, &cfg, &solid)
+                    };
+                    if embedded {
+                        return Err(RejectReason::PostureBlocked {
+                            character: p.character.clone(),
+                        });
+                    }
+                }
+                let character = self
+                    .characters
+                    .get_mut(&p.character)
+                    .expect("presence checked above");
+                journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
+                character.posture = posture;
+            }
             // Queries never reach apply (submit rejects them).
             Payload::GetBlock(_)
             | Payload::ScanRegion(_)
@@ -1202,6 +1247,7 @@ impl HostWorld {
             | Payload::SpawnCharacter(_)
             | Payload::SetMoveIntent(_)
             | Payload::SetLook(_)
+            | Payload::SetPosture(_)
             | Payload::Jump(_) => {
                 return reject(tick, RejectReason::NotAQuery { id: env.id.clone() });
             }
