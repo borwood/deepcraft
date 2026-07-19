@@ -103,6 +103,13 @@ fn face_color(block: Block, normal_y: i64) -> [f32; 4] {
         (Block::Dirt, _) => [0.42, 0.30, 0.19, 1.0],
         (Block::Stone, _) => [0.52, 0.52, 0.54, 1.0],
         (Block::Wood, _) => [0.44, 0.33, 0.17, 1.0],
+        // Geology block tier (ROADMAP 3c-1): fullbright-readable, distinct at a
+        // glance. Mudstone red-brown, sandstone tan, granite pinkish-grey,
+        // basalt near-black.
+        (Block::Mudstone, _) => [0.46, 0.26, 0.20, 1.0],
+        (Block::Sandstone, _) => [0.76, 0.66, 0.44, 1.0],
+        (Block::Granite, _) => [0.66, 0.56, 0.58, 1.0],
+        (Block::Basalt, _) => [0.14, 0.14, 0.16, 1.0],
         (Block::Air, _) => [1.0, 0.0, 1.0, 1.0], // never emitted
     }
 }

@@ -114,6 +114,12 @@ pub fn to_render(v: DVec3) -> Vec3 {
 /// analytic height under-reports on slopes and buried the spawn (journal/0004,
 /// ROADMAP Observed). The ring search still uses the analytic height as a cheap
 /// "is this column out of the chasm" filter.
+///
+/// The interactive boot now spawns over the ACTIVE authority
+/// ([`Authority::find_open_spawn`], worldgen at N=2); this free form over an
+/// explicit `TerrainGen` remains the S1-terrain reference the spawn/attach
+/// tests exercise.
+#[cfg(test)]
 pub fn find_open_spawn(terrain: &TerrainGen, scale: VoxelScale) -> DVec3 {
     let (mut sx, mut sz) = (0.0, 0.0);
     'search: for ring in 0..48 {
@@ -152,13 +158,22 @@ pub fn find_open_spawn(terrain: &TerrainGen, scale: VoxelScale) -> DVec3 {
 pub struct Fullbright(pub bool);
 
 pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: bool) {
+    // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
+    // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
+    // to the worldgen authority (keys 3/4 stay the legacy S1 TerrainGen). The
+    // spawn is seated on the worldgen's TRUE voxel surface.
+    let boot_voxels = 2u32;
+    let mut authority = Authority::new(BENCH_SEED, boot_voxels);
+    let spawn = authority.find_open_spawn();
+    let boot_title = title_text(boot_voxels, true, authority.authority_label());
+    // TerrainGen is still the streaming fallback for unloaded neighbours and
+    // the far-mesh rings (ROADMAP Observed: far field is not yet worldgen).
     let terrain = TerrainGen::new(BENCH_SEED);
-    let spawn = find_open_spawn(&terrain, VoxelScale::from_player_height(PLAYER_HEIGHT_M, 3));
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
-            title: title_text(3, true),
+            title: boot_title,
             ..default()
         }),
         ..default()
@@ -167,14 +182,14 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
     .insert_resource(Terrain(terrain))
-    .insert_resource(CurrentScale::new(3))
+    .insert_resource(CurrentScale::new(boot_voxels))
     .insert_resource(FloatingOrigin(spawn))
     .insert_resource(Player::new(spawn))
     .insert_resource(ChunkMap::default())
     .insert_resource(farmesh::FarChunkMap::default())
     // The authoritative world for edits (client-through-dc-api milestone):
-    // same seed and generator as the streamed terrain.
-    .insert_resource(Authority::new(BENCH_SEED, 3))
+    // the worldgen authority built above, serving the streamed terrain.
+    .insert_resource(authority)
     .insert_resource(DirtyChunks::default())
     .insert_resource(character::CharacterVisuals::default())
     .insert_resource(edit::CrosshairTarget::default())
@@ -317,9 +332,15 @@ fn switch_scale(
             // dropped, which the server reports as a world reset.
             *authority = Authority::new(BENCH_SEED, n);
             dirty.0.clear();
-            // The re-voxelized surface can differ by up to a voxel; nudge up
-            // so the player is never left embedded in the new ground.
-            player.pos_m.y += scale.scale.voxel_size_m();
+            // The authority (key 2 = worldgen; 3/4 = S1 terrain) — and possibly
+            // the whole world — changed under the player. Reseat the feet on
+            // the new authority's TRUE voxel surface at (x, z) so a switch never
+            // leaves them buried or falling.
+            player.pos_m.y = authority.true_surface_m(
+                player.pos_m.x,
+                player.pos_m.z,
+                crate::player::PLAYER_WIDTH_M / 2.0,
+            ) + 0.05;
             player.vel_m = DVec3::ZERO;
         }
     }
@@ -346,12 +367,12 @@ fn position_chunks(
     }
 }
 
-fn title_text(player_voxels: u32, fly: bool) -> String {
+fn title_text(player_voxels: u32, fly: bool, authority: &str) -> String {
     let mode = if fly { "fly" } else { "walk" };
     format!(
-        "deepcraft — player = {player_voxels} voxels ({:.2} m/voxel) — {mode} \
+        "deepcraft — player = {player_voxels} voxels ({:.2} m/voxel) — {authority} — {mode} \
          [click: capture mouse | Esc: release | LMB/RMB: break/place | F: fly/walk | \
-         2/3/4: scale | G: toss cube]",
+         2: worldgen | 3/4: S1 scale | G: toss cube]",
         PLAYER_HEIGHT_M / f64::from(player_voxels),
     )
 }
@@ -359,9 +380,10 @@ fn title_text(player_voxels: u32, fly: bool) -> String {
 fn update_title(
     scale: Res<CurrentScale>,
     player: Res<Player>,
+    authority: Res<Authority>,
     mut window: Single<&mut Window, With<PrimaryWindow>>,
 ) {
-    let title = title_text(scale.player_voxels, player.fly);
+    let title = title_text(scale.player_voxels, player.fly, authority.authority_label());
     if window.title != title {
         window.title = title;
     }

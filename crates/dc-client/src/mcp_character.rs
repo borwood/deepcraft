@@ -91,6 +91,30 @@ pub fn attach_tool() -> Tool {
     )
 }
 
+/// Fires freeze-on-disconnect when a session ends. Held by `Arc` inside the
+/// per-session handler and shared across every clone rmcp makes to serve a
+/// request, so its `Drop` runs EXACTLY once — when the last handle to the
+/// session drops (session close / timeout / shutdown), never on a transient
+/// per-call clone. On drop, if the session had attached to a character, it
+/// zeroes that character's move intent (API.md § Characters, DECIDED
+/// 2026-07-19): the abandoned body stands where it was left instead of walking
+/// on forever under its last intent.
+struct SessionEnd {
+    tx: mpsc::UnboundedSender<BridgeRequest>,
+    attached: Arc<Mutex<Option<String>>>,
+}
+
+impl Drop for SessionEnd {
+    fn drop(&mut self) {
+        let name = self.attached.lock().ok().and_then(|guard| guard.clone());
+        if let Some(name) = name {
+            // Fire-and-forget: a closed bridge (client already shutting down)
+            // simply means nothing left to freeze.
+            let _ = self.tx.send(BridgeRequest::CharacterFreeze { name });
+        }
+    }
+}
+
 /// Per-session handler: created fresh per MCP session (the service factory),
 /// so `attached` is session state — exactly the "session spawns-or-attaches
 /// to one character" contract.
@@ -98,13 +122,22 @@ pub fn attach_tool() -> Tool {
 pub struct CharacterMcpServer {
     tx: mpsc::UnboundedSender<BridgeRequest>,
     attached: Arc<Mutex<Option<String>>>,
+    /// Session-teardown guard (freeze-on-disconnect). `Arc` so it drops once,
+    /// when the session — not a per-call clone — ends.
+    _session_end: Arc<SessionEnd>,
 }
 
 impl CharacterMcpServer {
     pub fn new(tx: mpsc::UnboundedSender<BridgeRequest>) -> Self {
+        let attached = Arc::new(Mutex::new(None));
+        let session_end = Arc::new(SessionEnd {
+            tx: tx.clone(),
+            attached: attached.clone(),
+        });
         Self {
             tx,
-            attached: Arc::new(Mutex::new(None)),
+            attached,
+            _session_end: session_end,
         }
     }
 
@@ -264,6 +297,38 @@ mod tests {
     use super::*;
     use crate::authority::Authority;
     use crate::mcp::tests::post;
+
+    /// Freeze-on-disconnect (Decision E): dropping a session that had attached
+    /// to a character emits a `CharacterFreeze` for it — the teardown `Drop`
+    /// fires exactly once when the last handle to the session goes away.
+    #[test]
+    fn dropping_an_attached_session_emits_a_freeze() {
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let server = CharacterMcpServer::new(tx);
+        // Stand in for a successful attach binding the session.
+        *server.attached.lock().unwrap() = Some("scout".to_string());
+        // A per-call clone (as rmcp makes to serve a request) must NOT freeze.
+        let clone = server.clone();
+        drop(clone);
+        assert!(rx.try_recv().is_err(), "a per-call clone must not freeze");
+        // The session ending (last handle dropped) freezes exactly once.
+        drop(server);
+        match rx.try_recv() {
+            Ok(BridgeRequest::CharacterFreeze { name }) => assert_eq!(name, "scout"),
+            Ok(_) => panic!("expected a CharacterFreeze request"),
+            Err(e) => panic!("expected a freeze on session drop, got {e}"),
+        }
+        assert!(rx.try_recv().is_err(), "freeze fires exactly once");
+    }
+
+    /// A session that never attached freezes nothing on drop.
+    #[test]
+    fn dropping_an_unattached_session_is_silent() {
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let server = CharacterMcpServer::new(tx);
+        drop(server);
+        assert!(rx.try_recv().is_err(), "no attach, nothing to freeze");
+    }
 
     /// The whole character surface, end to end over the real streamable-HTTP
     /// wire (ECS stand-in pump): the tool list is ONLY the embodied set; a
