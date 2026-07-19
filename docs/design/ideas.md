@@ -191,6 +191,26 @@ post-playable-demo by priority razor)
   from dev-only `define(dc:*)` — users mod vanilla attributably and
   reversibly; shipped defaults stay inviolate underneath.
 
+## Uncollapsed history frontier (user sketch, 2026-07-19 — an architecture
+challenge, explicitly maybe-impossible)
+
+- Floated against the deep-time width cap: instead of one global coarse
+  A-tier, generate **full history for a large region and gradate past its
+  border into uncollapsed minimal information** — just enough constraint
+  mass to justify what's collapsed inside — then *stream history* at the
+  borders as the world grows. Deep-time history as first-class
+  superposition, collapsed regionally on demand.
+- Kinship: this is the S2 constraint-ledger "collapse under observation"
+  concept applied to the pregen/deep-time tier itself (today S2 governs
+  live sim state; pregen history collapses globally at world creation).
+- Known hard part: deep-time processes are global (drainage/fluvial reach
+  — corrections #8), so a border can't be "minimal information" for any
+  process whose influence crosses it; the frontier would need per-process
+  treatment (bounded processes stream freely; global ones need committed
+  coarse skeletons — which is exactly what the A-tier cap already is).
+  Parked as a challenge, not scheduled; the width cap + C refinement is
+  the working answer.
+
 ## Posture ladder (user sketch, 2026-07-19 — crouch DECIDED separately in
 bodies.md; everything below is unscheduled)
 

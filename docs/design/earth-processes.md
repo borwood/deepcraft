@@ -18,6 +18,15 @@ Method (RATIFIED 2026-07-19, operationalizing the doctrine):
 4. **Validation is a geologist's-eye walk** — a cut face must *read*;
    "how did this get here?" must have a true, discoverable answer. The
    same property powers prospecting/knowledge gameplay.
+5. **The unsimulated remainder → procedural tricks** (RATIFIED
+   2026-07-19, user, during the 3e-2 stitching discussion): simulation
+   stops at some resolution everywhere, and no simulation-resolution
+   edge may reach the eye as a square or analytic boundary — "if i see a
+   square boundary I'll scream." Every grid-scale contact (facies
+   boundaries at deep-cell scale, C-refinement region edges, collapse
+   cells) must be dressed by noise/dither/blend/sampling tricks before
+   it is visible. The 3d member-boundary dither is the pattern instance;
+   contact-softening is therefore IN SCOPE for 3e-2, not optional.
 
 ## The engines (working notes — sketches, NOT decisions)
 

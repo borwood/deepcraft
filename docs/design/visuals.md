@@ -55,6 +55,29 @@ blending. Dynamic detail (foam etc.) rendered as pixelated textures, not
 smooth sprays — pixel-realism extends underwater. Water placement is physical
 (aquifers, porous stone) and the look should honor that.
 
+## PBR-1 walk-14 ratifications (2026-07-19, user)
+
+- **`SPLAT_N = 4` RATIFIED** — the per-face material cap under the 8-slot
+  storage. The reconciling mechanism (as-built) is exactly the condition
+  the user set: each face gets its own weighted world-anchored roll of
+  which ≤4 of the voxel's constituents paint it, so across faces all 8
+  slots participate; no single face ever needs more than 4 to read as the
+  mixture.
+- **Sun/ambient calibration: rides as placeholder, un-ratified by intent**
+  — lighting design awaits the day/night + shadows design (PBR-2+).
+  Noted user lean for that design: **possibly no darkness at all, even
+  underground** ("truly i don't think any darkness" — a legibility-first
+  stance, not yet a decision).
+- **Placeholder texture tiling: cleanup pass ratified** — walk-14 photos
+  show obvious per-block repetition/boundaries on same-material runs;
+  worth a parallel texture/UV cleanup pass (dispatched same day).
+- **Fullbright mixture visibility is REQUIRED** — the walk protocol and
+  screenshot auditability need an AI viewer to *notice mixtures* without
+  lighting noise: flat albedo + the old world-anchored speckle look,
+  shader-side (no mosaic geometry). Albedo-only stays the default
+  diagnostic register (flat color is easiest for shape detection);
+  texture-confirmation shots use the lit path.
+
 ## Mixture rendering road — DECIDED 2026-07-19
 
 The splat-blend destination above stands. The road to it:
