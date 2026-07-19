@@ -102,6 +102,46 @@ consumes. The vanilla geology pack is generated from the typed set, so pack
 and model cannot drift.
 <!-- END EDIT -->
 
+<!-- EDITED 2026-07-19 (body-plan staircase steps 1–2) — the bodies registry;
+     NEEDS RATIFICATION -->
+**Bodies registry (added 2026-07-19; needs ratification).** Body plans and
+animation clips as registry data (docs/design/bodies.md; the fourth
+roles-as-contracts instance). Two more ordinary registry CommandSpecs, so the
+MCP surfaces grow the tools automatically — both `registry.define(namespace)`
+grants, namespace-owned like every other def:
+
+- `dc:registry/define_anim_clip` — a clip: `{ name, doc, duration_s, loops,
+  keyframes: [{ t, root_bob_m, rotations: [{ segment, euler:[x,y,z] }] }] }`.
+  Angles are XYZ Euler radians; keyframe `t` is strictly ascending in
+  `[0, duration_s]`. Clips are standalone data (they name joints, not a plan),
+  so they are defined **before** the plan that binds them. Validated at define
+  time (finite positive duration, ascending in-range times).
+- `dc:registry/define_body_plan` — a plan: `{ name, doc, segments, slots }`.
+  `segments` is a joint-tree of cuboids `{ name, parent|null, pivot_m:[3],
+  size_m:[3], offset_m:[3], tint:[3] }` (`pivot_m` is the joint's offset from
+  its parent's pivot; `offset_m` places the cuboid relative to that pivot).
+  `slots` binds driver verbs to clips `{ verb, clip }`.
+
+The **verb→slot contract** is the schema-checked-at-define-time rule
+(bodies.md): `define_body_plan` **rejects** (`SchemaViolation`) if the joint
+tree is malformed (no root / bad parent / cycle / dup name / non-positive
+size), if a slot names an unknown verb, or if a required verb's slot is
+unfilled or bound to a missing/joint-incompatible clip. **v0 verb vocabulary**:
+`idle`, `walk`, `jump`; **required**: `idle` + `walk` (locomotion is
+mandatory), `jump` optional (a minimal authored pose or documented fallback).
+The vanilla `dc:body/biped` (trunk, neck, head, two upper/lower arms, two
+upper/lower legs) with hand-authored `idle`/`walk`/`jump` clips is the first
+bodies pack, generated from the in-repo authored source so pack and model
+cannot drift. **Firewall**: plans/clips are pure data; the stepped ~12 fps
+sampler + crossfade player + segment renderer are client-only (dc-client
+`body.rs`/`character.rs`) and never read back into sim (the sampler reads body
+velocity one-way to pick idle vs walk). `Payload`/`Effects`/`RejectReason`
+grew only appended variants/fields (postcard wire identity preserved). **Open
+for ratification**: the plan/clip schema fields; the verb vocabulary and the
+required set; whether clips should be plan-owned rather than standalone; the
+render-side quantization constants (12 fps, 32-step rotations, 5 mm bob).
+<!-- END EDIT -->
+
 ## Observation vs inspection (the constraint-ledger interaction)
 
 Reading distant fluid state is not free — per the sim design (S2), an

@@ -116,5 +116,17 @@ pub fn minimal_grants_for(payload: &dc_api::Payload) -> Vec<dc_api::Grant> {
                 namespace: name.split(':').next().unwrap_or("").into(),
             }]
         }
+        // Body-plan / anim-clip defines (bodies.md steps 1–2): namespace-scoped
+        // like every other registry define. The demo consumer never issues them.
+        P::DefineBodyPlan(dc_api::payload::DefineBodyPlan(plan)) => {
+            vec![dc_api::Grant::RegistryDefine {
+                namespace: plan.name.split(':').next().unwrap_or("").into(),
+            }]
+        }
+        P::DefineAnimClip(dc_api::payload::DefineAnimClip(clip)) => {
+            vec![dc_api::Grant::RegistryDefine {
+                namespace: clip.name.split(':').next().unwrap_or("").into(),
+            }]
+        }
     }
 }

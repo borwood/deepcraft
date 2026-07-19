@@ -25,6 +25,7 @@
 //! - [`abi`] — the WASM-boundary request/response shapes (postcard)
 
 pub mod abi;
+pub mod bodies;
 pub mod capability;
 pub mod character;
 pub mod classes;
@@ -34,6 +35,9 @@ pub mod host;
 pub mod payload;
 pub mod schema;
 
+pub use bodies::{
+    AnimClip, AnimClipDef, AnimSlot, BodyPlan, BodyPlanDef, JointRot, Keyframe, SegmentDef,
+};
 pub use capability::{CapabilityToken, Grant, Requirement};
 pub use character::{CharacterConfig, CharacterInput, CharacterState};
 pub use classes::{ClassMemberDef, ContentClassDef, ParamEntry, ParamKind, ParamSpec, ParamValue};

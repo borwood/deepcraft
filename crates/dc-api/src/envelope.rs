@@ -107,6 +107,12 @@ pub struct Effects {
     pub classes_defined: Vec<String>,
     #[serde(default)]
     pub class_members_defined: Vec<String>,
+    // Appended (body-plan staircase steps 1–2) — postcard field order is wire
+    // identity, so new fields go at the end, always serialized.
+    #[serde(default)]
+    pub body_plans_defined: Vec<String>,
+    #[serde(default)]
+    pub anim_clips_defined: Vec<String>,
 }
 
 impl Effects {
@@ -119,6 +125,8 @@ impl Effects {
             characters_spawned: self.characters_spawned.len() as u64,
             classes_defined: self.classes_defined.len() as u64,
             class_members_defined: self.class_members_defined.len() as u64,
+            body_plans_defined: self.body_plans_defined.len() as u64,
+            anim_clips_defined: self.anim_clips_defined.len() as u64,
         }
     }
 }
@@ -133,6 +141,8 @@ pub struct EffectsSummary {
     pub characters_spawned: u64,
     pub classes_defined: u64,
     pub class_members_defined: u64,
+    pub body_plans_defined: u64,
+    pub anim_clips_defined: u64,
 }
 
 /// Why a command (or query) was refused.

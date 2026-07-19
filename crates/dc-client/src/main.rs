@@ -33,8 +33,9 @@
 //! Character-MCP milestone: a SECOND MCP surface on port 7778
 //! (mcp_character.rs; `--mcp-character-port <n>`, `--no-mcp-character`;
 //! `--no-mcp` disables both) hosts embodied character sessions — an AI
-//! attaches to one character (character.rs renders its two-cube body in the
-//! world), drives it through collision-checked movement commands, and
+//! attaches to one character (character.rs renders its jointed biped body via
+//! the body-plan registry, animated by body.rs — bodies.md steps 1–2), drives
+//! it through collision-checked movement commands, and
 //! perceives only through its senses, under a token attenuated to exactly
 //! that character. See docs/API.md § Characters and journal/0005.
 
@@ -42,6 +43,7 @@ mod app;
 mod authority;
 mod bench;
 mod bench_storage;
+mod body;
 mod character;
 mod edit;
 mod farmesh;

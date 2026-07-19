@@ -127,6 +127,50 @@ fn s_param_entries(doc: &str) -> Value {
     })
 }
 
+/// Schema for a body plan's `segments`/`slots` (body-plan staircase). Loose
+/// object arrays that mirror serde exactly; the joint-tree and verb→slot
+/// contract are deeply validated at define time.
+fn s_body_plan(doc: &str) -> Value {
+    json!({
+        "type": "object",
+        "description": format!(
+            "{doc}. Fields: name (namespaced, e.g. dc:body/biped), doc, \
+             segments (each {{name, parent|null, pivot_m:[3], size_m:[3], \
+             offset_m:[3], tint:[3]}}), slots (each {{verb, clip}} — verb one \
+             of idle/walk/jump; idle+walk required)."
+        ),
+        "properties": {
+            "name": s_str("namespaced plan name"),
+            "doc": s_str("human-readable description"),
+            "segments": {"type": "array", "description": "joint-tree cuboid segments"},
+            "slots": {"type": "array", "description": "verb -> clip bindings"},
+        },
+        "required": ["name", "segments", "slots"],
+    })
+}
+
+/// Schema for an anim clip payload (body-plan staircase). Loose; keyframe
+/// timing and finiteness are validated at define time.
+fn s_anim_clip(doc: &str) -> Value {
+    json!({
+        "type": "object",
+        "description": format!(
+            "{doc}. Fields: name (namespaced, e.g. dc:anim/biped_walk), doc, \
+             duration_s (>0), loops (bool), keyframes (each {{t, root_bob_m, \
+             rotations:[{{segment, euler:[3]}}]}}, t strictly ascending in \
+             [0,duration_s])."
+        ),
+        "properties": {
+            "name": s_str("namespaced clip name"),
+            "doc": s_str("human-readable description"),
+            "duration_s": s_num("clip length in seconds (>0)"),
+            "loops": {"type": "boolean", "description": "does the clip loop?"},
+            "keyframes": {"type": "array", "description": "keyed joint rotations over time"},
+        },
+        "required": ["name", "duration_s", "loops", "keyframes"],
+    })
+}
+
 /// `props`: (name, schema, required).
 fn s_obj(doc: &str, props: &[(&str, Value, bool)]) -> Value {
     let mut properties = serde_json::Map::new();
@@ -328,6 +372,30 @@ pub fn registry() -> &'static [CommandSpec] {
                 )
             },
             decode_json: |v| decode(v, Payload::DefineClassMember),
+        },
+        CommandSpec {
+            id: ids::REGISTRY_DEFINE_ANIM_CLIP,
+            kind: CommandKind::Command,
+            doc: "Define an animation clip: keyframed joint rotations plus an \
+                  optional root bob, and a loop flag. Standalone data — define \
+                  clips before the body plan that binds them. Validated at \
+                  define time (finite positive duration, strictly-ascending \
+                  in-range keyframe times).",
+            capability: "registry.define(namespace of name)",
+            payload_schema: || s_anim_clip("define_anim_clip payload"),
+            decode_json: |v| decode(v, Payload::DefineAnimClip),
+        },
+        CommandSpec {
+            id: ids::REGISTRY_DEFINE_BODY_PLAN,
+            kind: CommandKind::Command,
+            doc: "Define a body plan: a joint-tree of cuboid segments plus its \
+                  verb->anim-slot bindings. FAILS at define time if a required \
+                  verb slot (idle/walk) is unfilled, a verb is unknown, or a \
+                  slot binds a missing or joint-incompatible clip. Define its \
+                  clips first.",
+            capability: "registry.define(namespace of name)",
+            payload_schema: || s_body_plan("define_body_plan payload"),
+            decode_json: |v| decode(v, Payload::DefineBodyPlan),
         },
         CommandSpec {
             id: ids::EVENTS_SUBSCRIBE,
@@ -639,6 +707,10 @@ mod tests {
                     value: crate::classes::ParamValue::Number(1.0),
                 }],
             }),
+            Payload::DefineAnimClip(payload::DefineAnimClip(
+                crate::bodies::biped_clips()[0].clone(),
+            )),
+            Payload::DefineBodyPlan(payload::DefineBodyPlan(crate::bodies::biped_plan())),
         ];
         assert_eq!(
             samples.len(),

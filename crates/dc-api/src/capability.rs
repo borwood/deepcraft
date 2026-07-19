@@ -129,6 +129,14 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
         Payload::DefineClassMember(p) => {
             Requirement::RegistryDefine(name_namespace(&p.name, "class member")?)
         }
+        // Body plans and clips are namespace-owned registry defs like any
+        // other (docs/design/bodies.md: "namespace-owned like everything else").
+        Payload::DefineBodyPlan(p) => {
+            Requirement::RegistryDefine(name_namespace(&p.0.name, "body plan")?)
+        }
+        Payload::DefineAnimClip(p) => {
+            Requirement::RegistryDefine(name_namespace(&p.0.name, "anim clip")?)
+        }
         Payload::EventsSubscribe(_) => Requirement::EventsSubscribe,
         Payload::EventsPoll(_) => Requirement::EventsSubscribe,
         // Spawning a character is a dev-grant act (the character surface's

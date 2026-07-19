@@ -19,6 +19,8 @@ pub mod ids {
     pub const REGISTRY_DEFINE_ITEM: &str = "dc:registry/define_item";
     pub const REGISTRY_DEFINE_CONTENT_CLASS: &str = "dc:registry/define_content_class";
     pub const REGISTRY_DEFINE_CLASS_MEMBER: &str = "dc:registry/define_class_member";
+    pub const REGISTRY_DEFINE_BODY_PLAN: &str = "dc:registry/define_body_plan";
+    pub const REGISTRY_DEFINE_ANIM_CLIP: &str = "dc:registry/define_anim_clip";
     pub const EVENTS_SUBSCRIBE: &str = "dc:events/subscribe";
     pub const EVENTS_POLL: &str = "dc:events/poll";
     pub const CHARACTER_SPAWN: &str = "dc:character/spawn_character";
@@ -199,6 +201,23 @@ pub struct DefineClassMember {
     pub params: Vec<crate::classes::ParamEntry>,
 }
 
+/// `dc:registry/define_body_plan` — register a body plan (a joint-tree of
+/// cuboid segments plus its verb→anim-slot bindings; docs/design/bodies.md).
+/// Validated at define time against the already-registered clips: a missing
+/// required slot, an unknown verb, or a slot bound to a missing/joint-
+/// incompatible clip all reject. The grant must own the plan name's namespace.
+/// The payload IS the plan content ([`crate::bodies::BodyPlan`]); the stored
+/// def adds provenance.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DefineBodyPlan(pub crate::bodies::BodyPlan);
+
+/// `dc:registry/define_anim_clip` — register an animation clip (keyframed
+/// joint rotations + optional root bob; loop flag). Clips are standalone data
+/// (they name joints but not a plan), so they are defined before the plan that
+/// binds them. The grant must own the clip name's namespace.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DefineAnimClip(pub crate::bodies::AnimClip);
+
 /// `dc:events/subscribe` — open an event subscription with a filter.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct EventsSubscribe {
@@ -314,6 +333,10 @@ pub enum Payload {
     // the variants above are wire identity — new variants go at the end.
     DefineContentClass(DefineContentClass),
     DefineClassMember(DefineClassMember),
+    // Appended (body-plan staircase steps 1–2) — enum indices are wire
+    // identity, so these stay at the end.
+    DefineBodyPlan(DefineBodyPlan),
+    DefineAnimClip(DefineAnimClip),
 }
 
 impl Payload {
@@ -339,6 +362,8 @@ impl Payload {
             Payload::SenseSurroundings(_) => ids::CHARACTER_SENSE_SURROUNDINGS,
             Payload::DefineContentClass(_) => ids::REGISTRY_DEFINE_CONTENT_CLASS,
             Payload::DefineClassMember(_) => ids::REGISTRY_DEFINE_CLASS_MEMBER,
+            Payload::DefineBodyPlan(_) => ids::REGISTRY_DEFINE_BODY_PLAN,
+            Payload::DefineAnimClip(_) => ids::REGISTRY_DEFINE_ANIM_CLIP,
         }
     }
 }
@@ -448,6 +473,8 @@ mod tests {
             ids::REGISTRY_DEFINE_ITEM,
             ids::REGISTRY_DEFINE_CONTENT_CLASS,
             ids::REGISTRY_DEFINE_CLASS_MEMBER,
+            ids::REGISTRY_DEFINE_BODY_PLAN,
+            ids::REGISTRY_DEFINE_ANIM_CLIP,
             ids::EVENTS_SUBSCRIBE,
             ids::EVENTS_POLL,
             ids::CHARACTER_SPAWN,
