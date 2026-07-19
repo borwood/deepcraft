@@ -225,7 +225,13 @@ pub fn stream_far_chunks(
         // seamless internally; ring-to-ring boundaries are the accepted seam.
         let neighbor_solid =
             |x: i64, y: i64, z: i64| terrain.0.block_at(cscale, x, y, z).is_solid();
-        let mesh_data = mesh_chunk(&chunk, pos, cscale.voxel_size_m() as f32, &neighbor_solid);
+        let mesh_data = mesh_chunk(
+            &chunk,
+            pos,
+            cscale.voxel_size_m() as f32,
+            &neighbor_solid,
+            None,
+        );
         let entity = if mesh_data.is_empty() {
             None
         } else {

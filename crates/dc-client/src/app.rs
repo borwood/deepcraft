@@ -60,6 +60,12 @@ pub struct FloatingOrigin(pub DVec3);
 
 pub struct LoadedChunk {
     pub chunk: Chunk,
+    /// Render-only per-voxel material contents (worldgen authority only;
+    /// `None` for the S1 terrain authority and for debris-free chunks). The
+    /// mesher dithers mixed voxels from these; edits do not update them
+    /// (ROADMAP 3c-2, render-only — the block gate keeps stale contents from
+    /// bleeding through after an edit).
+    pub contents: Option<dc_core::ContentsGrid>,
     /// `None` when the chunk meshed to nothing (all air / fully buried).
     pub entity: Option<Entity>,
 }

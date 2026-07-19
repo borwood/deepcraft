@@ -214,6 +214,24 @@ impl Authority {
         }
     }
 
+    /// The render-only per-voxel material contents of a chunk over the ACTIVE
+    /// authority, or `None` when there are none (the S1 terrain authority, or a
+    /// debris-free worldgen chunk). This is the seam's parallel material path
+    /// (ROADMAP 3c-2): it locks the SAME `WorldGenerator` the chunk seam serves
+    /// blocks from — so the column caches are already warm — and resolves the
+    /// order-dependent mixture table away into canonical [`ContentsGrid`] before
+    /// anything leaves the generator. Blocks (replay identity) come from the
+    /// `HostWorld`; these contents never touch sim state, receipts, or replay.
+    pub fn chunk_contents(&self, pos: ChunkPos) -> Option<dc_core::ContentsGrid> {
+        match &self.surface {
+            SurfaceAuthority::Terrain(_) => None,
+            SurfaceAuthority::Worldgen(worldgen) => worldgen
+                .lock()
+                .expect("worldgen generator mutex")
+                .chunk_contents(pos),
+        }
+    }
+
     /// A short label for the active authority (window title / diagnostics).
     pub fn authority_label(&self) -> &'static str {
         match self.surface {
@@ -835,11 +853,15 @@ pub fn remesh_dirty(
         let mesh_data = {
             let loaded = &map.loaded[&pos];
             let neighbor_solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+            // Reuse the chunk's existing render-only contents: an edit changes
+            // blocks, not materials (ROADMAP 3c-2), and the mesher's block gate
+            // keeps stale contents from a re-typed voxel out of the dither.
             mesh_chunk(
                 &loaded.chunk,
                 pos,
                 vscale.voxel_size_m() as f32,
                 &neighbor_solid,
+                loaded.contents.as_ref(),
             )
         };
         let loaded = map.loaded.get_mut(&pos).expect("checked above");
@@ -918,6 +940,7 @@ pub(crate) mod tests {
             ChunkPos::new(0, 0, 0),
             LoadedChunk {
                 chunk: Chunk::new(),
+                contents: None,
                 entity: None,
             },
         );
@@ -925,6 +948,7 @@ pub(crate) mod tests {
             ChunkPos::new(1, 0, 0),
             LoadedChunk {
                 chunk: Chunk::new(),
+                contents: None,
                 entity: None,
             },
         );

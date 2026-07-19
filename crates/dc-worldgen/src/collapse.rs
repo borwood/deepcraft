@@ -39,8 +39,8 @@ use dc_core::materials::geology::{
     GeoMemberIdx, GeologySet,
 };
 use dc_core::{
-    Block, CHUNK_VOLUME, Chunk, ChunkPos, MaterialChunk, MixtureId, MixtureTable, StructureShape,
-    VoxelContents, VoxelScale,
+    Block, CHUNK_VOLUME, Chunk, ChunkPos, ContentsGrid, MaterialChunk, MixtureId, MixtureTable,
+    StructureShape, VoxelContents, VoxelScale,
 };
 use dc_sim::statistical::rng::draw_f64;
 
@@ -386,6 +386,19 @@ impl<'a> WorldGenerator<'a> {
     /// chunk, which attaches no sidecar and pays nothing.
     pub fn generate_chunk_with_materials(&mut self, pos: ChunkPos) -> (Chunk, MaterialChunk) {
         let chunk = self.generate_chunk(pos);
+        let dense = self.material_ids(pos);
+        (chunk, MaterialChunk::from_dense(&dense))
+    }
+
+    /// The material half of [`Self::generate_chunk_with_materials`]: one
+    /// interned [`MixtureId`] per voxel (dense, [`Chunk::index`] order). Every
+    /// buried voxel inside the recorded strata resolves to a canonical
+    /// [`VoxelContents`] (constructor-only — never hand-assembled slots),
+    /// interned through the region [`MixtureTable`]. Shared by the storage path
+    /// (above) and the render path ([`Self::chunk_contents`]); reuses the
+    /// per-column cache, so calling it after `generate_chunk` costs only the
+    /// per-voxel classification, not another column collapse.
+    fn material_ids(&mut self, pos: ChunkPos) -> Vec<MixtureId> {
         let col = self.column(i64::from(pos.x), i64::from(pos.z));
         let events = event_spans(&col.strata);
         let mut dense = vec![MixtureId::EMPTY; CHUNK_VOLUME];
@@ -414,7 +427,26 @@ impl<'a> WorldGenerator<'a> {
                 }
             }
         }
-        (chunk, MaterialChunk::from_dense(&dense))
+        dense
+    }
+
+    /// The **render-only** material view of a chunk: its per-voxel canonical
+    /// [`VoxelContents`], resolved into a [`ContentsGrid`] so no order-dependent
+    /// [`MixtureId`] escapes the generator (the MixtureTable-id landmine,
+    /// journal/0007–0008). `None` when the chunk has no recorded strata in range
+    /// — a debris-free chunk, which carries no render data and costs nothing
+    /// downstream, exactly as it attaches no storage sidecar. This is the seam's
+    /// parallel path (docs/design/visuals.md § Mixture rendering road, 3c-2): the
+    /// client fetches blocks through the `HostWorld` closure and contents through
+    /// this method on the same `Arc<Mutex<WorldGenerator>>`; the interning it
+    /// does is render-only and never reaches sim state, receipts, or replay.
+    pub fn chunk_contents(&mut self, pos: ChunkPos) -> Option<ContentsGrid> {
+        let dense = self.material_ids(pos);
+        let mc = MaterialChunk::from_dense(&dense);
+        if mc.is_all_empty() {
+            return None;
+        }
+        mc.resolve_contents(&self.materials)
     }
 
     /// The chunk-column record for chunk coordinates `(cx, cz)` — exposed for

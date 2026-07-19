@@ -41,8 +41,8 @@ pub use materials::geology::{
     GeologyError, GeologySet, GeologySetBuilder,
 };
 pub use materials::intern::{
-    MATERIALS_SIDECAR_NAME, MIXTURES_SIDECAR_NAME, MaterialChunk, MaterialChunkError, MixtureId,
-    MixtureTable, TableError,
+    ContentsGrid, MATERIALS_SIDECAR_NAME, MIXTURES_SIDECAR_NAME, MaterialChunk, MaterialChunkError,
+    MixtureId, MixtureTable, TableError,
 };
 pub use materials::lod::{
     DominantClassDebrisAware, MixtureDownsampleRule, derive_material_lod_chunk,
