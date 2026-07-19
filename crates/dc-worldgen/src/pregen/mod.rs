@@ -49,6 +49,10 @@ pub(crate) const SALT_OVERLAY: u64 = 0x5700_0006;
 pub(crate) const SALT_EXPAND: u64 = 0x5700_0007;
 pub(crate) const SALT_SACK: u64 = 0x5700_0008;
 pub(crate) const SALT_RUIN: u64 = 0x5700_0009;
+// Geology strata passes (addressed member selection + thicknesses).
+pub(crate) const SALT_GEO_SELECT: u64 = 0x5700_000A;
+pub(crate) const SALT_GEO_THICK: u64 = 0x5700_000B;
+pub(crate) const SALT_GEO_ORE: u64 = 0x5700_000C;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -250,16 +254,30 @@ pub struct Pregen {
     pub n_polities: u32,
     /// Number of `engine::observe` collapses the history pass performed.
     pub observe_count: u32,
+    /// The validated pass graph this world was built with; the lazy layer
+    /// runs its collapse-phase (strata) passes per column.
+    pub pipeline: crate::pipeline::Pipeline,
 }
 
 impl Pregen {
     /// Run the full coarse pipeline. Deterministic in `params`.
+    ///
+    /// The pregen stages are no longer a hand-ordered list: the vanilla
+    /// pass graph ([`crate::pipeline::Pipeline::vanilla`]) topo-sorts them
+    /// from their declared reads/writes; the declarations force exactly the
+    /// legacy tectonics → climate → hydrology → history order, so this is
+    /// output-preserving (S7 byte-identity tests prove it).
     pub fn run(params: WorldParams) -> Self {
-        let w = params.extent.cells();
-        let mut grid = tectonics::build(params.seed, w);
-        climate::apply(&mut grid);
-        hydrology::apply(&mut grid);
-        let history = history::run(params.seed, &grid);
+        let pipeline = crate::pipeline::Pipeline::vanilla().expect("vanilla pass graph is valid");
+        let mut ctx = crate::pipeline::PregenCtx {
+            seed: params.seed,
+            w: params.extent.cells(),
+            grid: None,
+            history: None,
+        };
+        pipeline.run_pregen(&mut ctx);
+        let grid = ctx.grid.expect("tectonics pass creates the grid");
+        let history = ctx.history.expect("history pass runs");
         Self {
             seed: params.seed,
             extent: params.extent,
@@ -269,6 +287,7 @@ impl Pregen {
             sites: history.sites,
             n_polities: history.n_polities,
             observe_count: history.observe_count,
+            pipeline,
         }
     }
 

@@ -35,10 +35,8 @@ pub mod payload;
 pub mod schema;
 
 pub use capability::{CapabilityToken, Grant, Requirement};
-pub use classes::{
-    ClassMemberDef, ContentClassDef, ParamEntry, ParamKind, ParamSpec, ParamValue,
-};
 pub use character::{CharacterConfig, CharacterInput, CharacterState};
+pub use classes::{ClassMemberDef, ContentClassDef, ParamEntry, ParamKind, ParamSpec, ParamValue};
 pub use envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, ConsumerKind, Effects,
     EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,

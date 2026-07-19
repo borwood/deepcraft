@@ -104,7 +104,7 @@ impl GeoHabit {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<GeoHabit> {
+    pub fn parse(s: &str) -> Option<GeoHabit> {
         Some(match s {
             "blanket" => GeoHabit::Blanket,
             "lens" => GeoHabit::Lens,
@@ -219,7 +219,7 @@ impl GeologySetBuilder {
         if self.members.iter().any(|m| m.id == def.id) {
             return Err(GeologyError::DuplicateMember(def.id));
         }
-        if !self.classes.iter().any(|c| *c == def.class) {
+        if !self.classes.contains(&def.class) {
             return Err(GeologyError::UnknownClass {
                 class: def.class,
                 member: def.id,
@@ -526,7 +526,10 @@ mod tests {
             .select(CLASS_IGNEOUS_INTRUSIVE, &ctx(10.0, 0.3, 400.0), 0.5)
             .expect("intrusive member");
         assert_eq!(m.material, MaterialId::GRANITE);
-        assert!(set.select("dc:stratum/nope", &ctx(0.0, 0.0, 0.0), 0.5).is_none());
+        assert!(
+            set.select("dc:stratum/nope", &ctx(0.0, 0.0, 0.0), 0.5)
+                .is_none()
+        );
     }
 
     #[test]
@@ -556,7 +559,11 @@ mod tests {
         }
         // And selection agrees everywhere we probe.
         for k in 0..32 {
-            let c = ctx(-10.0 + f64::from(k) * 2.0, f64::from(k) / 32.0, f64::from(k) * 12.0);
+            let c = ctx(
+                -10.0 + f64::from(k) * 2.0,
+                f64::from(k) / 32.0,
+                f64::from(k) * 12.0,
+            );
             let u = f64::from(k) / 32.0;
             for class in v1_classes() {
                 assert_eq!(
@@ -572,14 +579,17 @@ mod tests {
         // One member: it takes the whole class share at any abundance.
         let mut b = GeologySet::builder();
         b.declare_class("t:class/a").unwrap();
-        b.add_member(test_member("t:m/solo", "t:class/a", 7.0)).unwrap();
+        b.add_member(test_member("t:m/solo", "t:class/a", 7.0))
+            .unwrap();
         let solo = b.build();
         // Adding a second member redistributes, never inflates: with equal
         // fitness the shares follow relative abundance and sum to 1.
         let mut b = GeologySet::builder();
         b.declare_class("t:class/a").unwrap();
-        b.add_member(test_member("t:m/solo", "t:class/a", 7.0)).unwrap();
-        b.add_member(test_member("t:m/new", "t:class/a", 21.0)).unwrap();
+        b.add_member(test_member("t:m/solo", "t:class/a", 7.0))
+            .unwrap();
+        b.add_member(test_member("t:m/new", "t:class/a", 21.0))
+            .unwrap();
         let duo = b.build();
 
         let c = ctx(10.0, 0.5, 5.0);
@@ -616,8 +626,12 @@ mod tests {
         // With a multi-member class, different u picks different members.
         let mut builder = GeologySet::builder();
         builder.declare_class("t:class/a").unwrap();
-        builder.add_member(test_member("t:m/a", "t:class/a", 1.0)).unwrap();
-        builder.add_member(test_member("t:m/b", "t:class/a", 1.0)).unwrap();
+        builder
+            .add_member(test_member("t:m/a", "t:class/a", 1.0))
+            .unwrap();
+        builder
+            .add_member(test_member("t:m/b", "t:class/a", 1.0))
+            .unwrap();
         let set = builder.build();
         let lo = set.select("t:class/a", &c, 0.1).unwrap().1.id.clone();
         let hi = set.select("t:class/a", &c, 0.9).unwrap().1.id.clone();
@@ -657,12 +671,15 @@ mod tests {
             GeologyError::UnknownClass { .. }
         ));
         assert!(matches!(
-            b.add_member(test_member("t:m/a", "t:class/a", 0.0)).unwrap_err(),
+            b.add_member(test_member("t:m/a", "t:class/a", 0.0))
+                .unwrap_err(),
             GeologyError::BadParams { .. }
         ));
-        b.add_member(test_member("t:m/a", "t:class/a", 1.0)).unwrap();
+        b.add_member(test_member("t:m/a", "t:class/a", 1.0))
+            .unwrap();
         assert!(matches!(
-            b.add_member(test_member("t:m/a", "t:class/a", 1.0)).unwrap_err(),
+            b.add_member(test_member("t:m/a", "t:class/a", 1.0))
+                .unwrap_err(),
             GeologyError::DuplicateMember(_)
         ));
         let mut bad_window = test_member("t:m/w", "t:class/a", 1.0);
@@ -684,6 +701,8 @@ mod tests {
         // between sand and gravel — density puts it in the coarse band.
         assert!(e(MaterialId::GOLD_DUST) > e(MaterialId::SAND));
         assert!(e(MaterialId::GOLD_DUST) < e(MaterialId::GRAVEL));
-        assert!(MaterialId::GOLD_DUST.props().grain_size_mm < MaterialId::GRAVEL.props().grain_size_mm);
+        assert!(
+            MaterialId::GOLD_DUST.props().grain_size_mm < MaterialId::GRAVEL.props().grain_size_mm
+        );
     }
 }

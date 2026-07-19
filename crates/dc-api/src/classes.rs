@@ -35,10 +35,8 @@
 //! defs back into a [`GeologySet`] (canonical order, normalized abundance —
 //! the determinism rules live there).
 
-use dc_core::materials::geology::{
-    self, FormationWindow, GeoHabit, GeoMemberDef, GeologySet,
-};
 use dc_core::MaterialId;
+use dc_core::materials::geology::{self, FormationWindow, GeoHabit, GeoMemberDef, GeologySet};
 use serde::{Deserialize, Serialize};
 
 use crate::envelope::{ConsumerId, Tick};
@@ -144,7 +142,10 @@ pub fn validate_params(contract: &[ParamSpec], supplied: &[ParamEntry]) -> Resul
             return Err(format!("duplicate parameter `{}`", e.name));
         }
         let Some(spec) = contract.iter().find(|s| s.name == e.name) else {
-            return Err(format!("parameter `{}` is not in the class contract", e.name));
+            return Err(format!(
+                "parameter `{}` is not in the class contract",
+                e.name
+            ));
         };
         match (&spec.kind, &e.value) {
             (ParamKind::Number { min, max }, ParamValue::Number(v)) => {
@@ -247,10 +248,22 @@ pub fn member_params(def: &GeoMemberDef) -> Vec<ParamEntry> {
         value,
     };
     vec![
-        entry("material", ParamValue::Text(def.material.props().name.into())),
-        entry("temp_c", ParamValue::Range(def.window.temp_c.0, def.window.temp_c.1)),
-        entry("precip", ParamValue::Range(def.window.precip.0, def.window.precip.1)),
-        entry("depth_m", ParamValue::Range(def.window.depth_m.0, def.window.depth_m.1)),
+        entry(
+            "material",
+            ParamValue::Text(def.material.props().name.into()),
+        ),
+        entry(
+            "temp_c",
+            ParamValue::Range(def.window.temp_c.0, def.window.temp_c.1),
+        ),
+        entry(
+            "precip",
+            ParamValue::Range(def.window.precip.0, def.window.precip.1),
+        ),
+        entry(
+            "depth_m",
+            ParamValue::Range(def.window.depth_m.0, def.window.depth_m.1),
+        ),
         entry("abundance", ParamValue::Number(def.abundance)),
         entry("habit", ParamValue::Text(def.habit.as_str().into())),
         entry("hardness", ParamValue::Number(def.hardness)),
@@ -335,14 +348,14 @@ pub fn geology_set_from_defs<'a>(
         geo_classes.push(c.name.clone());
     }
     for m in members {
-        if !geo_classes.iter().any(|c| *c == m.class) {
+        if !geo_classes.contains(&m.class) {
             continue;
         }
         let material = param_text(&m.params, "material")
             .and_then(|t| material_by_name(t).ok_or_else(|| format!("unknown material `{t}`")))
             .map_err(|e| format!("member `{}`: {e}", m.name))?;
         let habit = param_text(&m.params, "habit")
-            .and_then(|t| GeoHabit::from_str(t).ok_or_else(|| format!("unknown habit `{t}`")))
+            .and_then(|t| GeoHabit::parse(t).ok_or_else(|| format!("unknown habit `{t}`")))
             .map_err(|e| format!("member `{}`: {e}", m.name))?;
         let wrap = |e: String| format!("member `{}`: {e}", m.name);
         let def = GeoMemberDef {
@@ -392,12 +405,18 @@ mod tests {
         });
         assert!(validate_params(&contract, &bad).is_err());
         // Missing required parameter.
-        let bad: Vec<ParamEntry> = base.iter().filter(|e| e.name != "abundance").cloned().collect();
+        let bad: Vec<ParamEntry> = base
+            .iter()
+            .filter(|e| e.name != "abundance")
+            .cloned()
+            .collect();
         assert!(validate_params(&contract, &bad).is_err());
         // Kind mismatch.
         let mut bad = base.clone();
-        bad.iter_mut().find(|e| e.name == "abundance").unwrap().value =
-            ParamValue::Text("lots".into());
+        bad.iter_mut()
+            .find(|e| e.name == "abundance")
+            .unwrap()
+            .value = ParamValue::Text("lots".into());
         assert!(validate_params(&contract, &bad).is_err());
         // Out of bounds.
         let mut bad = base.clone();
@@ -449,9 +468,13 @@ mod tests {
                 other => panic!("unexpected payload in pack: {other:?}"),
             }
         }
-        let compiled = geology_set_from_defs(classes.iter(), members.iter())
-            .expect("vanilla pack compiles");
+        let compiled =
+            geology_set_from_defs(classes.iter(), members.iter()).expect("vanilla pack compiles");
         let typed = geology::vanilla();
-        assert_eq!(compiled.members(), typed.members(), "pack ⇄ typed bridge must not drift");
+        assert_eq!(
+            compiled.members(),
+            typed.members(),
+            "pack ⇄ typed bridge must not drift"
+        );
     }
 }

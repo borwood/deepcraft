@@ -108,5 +108,13 @@ pub fn minimal_grants_for(payload: &dc_api::Payload) -> Vec<dc_api::Grant> {
                 character: Some(character.clone()),
             }]
         }
+        // Content-class defines (content-class registry milestone): the demo
+        // consumer never issues these; namespace-scoped like item defines.
+        P::DefineContentClass(dc_api::payload::DefineContentClass { name, .. })
+        | P::DefineClassMember(dc_api::payload::DefineClassMember { name, .. }) => {
+            vec![dc_api::Grant::RegistryDefine {
+                namespace: name.split(':').next().unwrap_or("").into(),
+            }]
+        }
     }
 }

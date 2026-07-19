@@ -33,9 +33,13 @@
 //! Rules: headless, deterministic (all entropy flows from the world seed).
 
 pub mod collapse;
+pub mod geology;
+pub mod pipeline;
 pub mod pregen;
 
 pub use collapse::{ChunkStats, LOOKAHEAD_BOUNDS, LookaheadBounds, WorldGenerator};
+pub use geology::{AlluviumRec, StrataCtx, StrataEvent, StrataRec};
+pub use pipeline::{Pass, PassBody, Phase, Pipeline, PipelineError, PregenCtx, Resource};
 pub use pregen::{
     CELL_CHUNKS, CELL_VOXELS, Cell, CellGrid, CellView, Extent, Pregen, Provenance, SiteSummary,
     WorldParams, YEAR_ZERO_TICK,

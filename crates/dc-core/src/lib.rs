@@ -37,8 +37,8 @@ pub use lod::{
 pub use materials::contents::{ContentsError, StructureShape, VOXEL_EIGHTHS, VoxelContents};
 pub use materials::extract::{ExtractionYield, extraction_sequence};
 pub use materials::geology::{
-    FormationContext, FormationWindow, GeoClass, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologyError,
-    GeologySet, GeologySetBuilder,
+    FormationContext, FormationWindow, GeoClass, GeoHabit, GeoMemberDef, GeoMemberIdx,
+    GeologyError, GeologySet, GeologySetBuilder,
 };
 pub use materials::intern::{
     MATERIALS_SIDECAR_NAME, MIXTURES_SIDECAR_NAME, MaterialChunk, MaterialChunkError, MixtureId,

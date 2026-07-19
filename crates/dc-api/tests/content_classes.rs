@@ -4,7 +4,7 @@
 //! command batch, and the bridge into the canonically ordered typed set.
 
 use dc_api::classes::{
-    geology_set_from_defs, vanilla_geology_pack, ParamEntry, ParamKind, ParamSpec, ParamValue,
+    ParamEntry, ParamKind, ParamSpec, ParamValue, geology_set_from_defs, vanilla_geology_pack,
 };
 use dc_api::payload::{DefineClassMember, DefineContentClass};
 use dc_api::{
@@ -77,14 +77,23 @@ fn class_and_member_defines_are_namespace_owned() {
     let (src, token) = definer("demo");
 
     // Own namespace: accepted.
-    let r = apply(&mut world, envelope(&src, &token, simple_class("demo:stratum/test")));
+    let r = apply(
+        &mut world,
+        envelope(&src, &token, simple_class("demo:stratum/test")),
+    );
     assert!(r.is_ok(), "own-namespace class define: {r:?}");
     assert!(world.content_class("demo:stratum/test").is_some());
 
     // Foreign namespace: rejected, nothing stored.
-    let r = apply(&mut world, envelope(&src, &token, simple_class("other:stratum/test")));
+    let r = apply(
+        &mut world,
+        envelope(&src, &token, simple_class("other:stratum/test")),
+    );
     assert!(
-        matches!(r, CommandResult::Rejected(RejectReason::MissingCapability { .. })),
+        matches!(
+            r,
+            CommandResult::Rejected(RejectReason::MissingCapability { .. })
+        ),
         "foreign-namespace class define must reject: {r:?}"
     );
     assert!(world.content_class("other:stratum/test").is_none());
@@ -120,12 +129,22 @@ fn class_and_member_defines_are_namespace_owned() {
 fn member_defines_are_schema_validated_at_define_time() {
     let mut world = HostWorld::new(2);
     let (src, token) = definer("demo");
-    assert!(apply(&mut world, envelope(&src, &token, simple_class("demo:stratum/test"))).is_ok());
+    assert!(
+        apply(
+            &mut world,
+            envelope(&src, &token, simple_class("demo:stratum/test"))
+        )
+        .is_ok()
+    );
 
     // Unknown class.
     let r = apply(
         &mut world,
-        envelope(&src, &token, simple_member("demo:member/x", "demo:stratum/nope", 1.0)),
+        envelope(
+            &src,
+            &token,
+            simple_member("demo:member/x", "demo:stratum/nope", 1.0),
+        ),
     );
     assert!(matches!(
         r,
@@ -166,21 +185,34 @@ fn member_defines_are_schema_validated_at_define_time() {
     ] {
         let r = apply(&mut world, envelope(&src, &token, bad));
         assert!(
-            matches!(r, CommandResult::Rejected(RejectReason::SchemaViolation { .. })),
+            matches!(
+                r,
+                CommandResult::Rejected(RejectReason::SchemaViolation { .. })
+            ),
             "{label} must reject with SchemaViolation: {r:?}"
         );
         assert!(world.class_member("demo:member/x").is_none(), "{label}");
     }
 
     // A valid define lands; a duplicate is refused.
-    assert!(apply(
-        &mut world,
-        envelope(&src, &token, simple_member("demo:member/x", "demo:stratum/test", 1.0))
-    )
-    .is_ok());
+    assert!(
+        apply(
+            &mut world,
+            envelope(
+                &src,
+                &token,
+                simple_member("demo:member/x", "demo:stratum/test", 1.0)
+            )
+        )
+        .is_ok()
+    );
     let r = apply(
         &mut world,
-        envelope(&src, &token, simple_member("demo:member/x", "demo:stratum/test", 1.0)),
+        envelope(
+            &src,
+            &token,
+            simple_member("demo:member/x", "demo:stratum/test", 1.0),
+        ),
     );
     assert!(matches!(
         r,

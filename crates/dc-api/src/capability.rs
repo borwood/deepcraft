@@ -149,7 +149,9 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
 pub fn name_namespace(name: &str, what: &str) -> Result<String, String> {
     match name.split_once(':') {
         Some((ns, path)) if !ns.is_empty() && !path.is_empty() => Ok(ns.to_string()),
-        _ => Err(format!("{what} name `{name}` is not of the form namespace:path")),
+        _ => Err(format!(
+            "{what} name `{name}` is not of the form namespace:path"
+        )),
     }
 }
 

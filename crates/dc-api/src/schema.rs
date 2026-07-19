@@ -319,7 +319,9 @@ pub fn registry() -> &'static [CommandSpec] {
                         ),
                         (
                             "params",
-                            s_param_entries("member parameters, validated against the class contract"),
+                            s_param_entries(
+                                "member parameters, validated against the class contract",
+                            ),
                             true,
                         ),
                     ],
@@ -622,7 +624,10 @@ mod tests {
                 doc: "a test class".into(),
                 params: vec![crate::classes::ParamSpec {
                     name: "abundance".into(),
-                    kind: crate::classes::ParamKind::Number { min: 0.0, max: 10.0 },
+                    kind: crate::classes::ParamKind::Number {
+                        min: 0.0,
+                        max: 10.0,
+                    },
                     required: true,
                 }],
             }),
