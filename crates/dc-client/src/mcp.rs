@@ -38,27 +38,54 @@ use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, Stream
 use serde_json::{Value, json};
 use tokio::sync::{mpsc, oneshot};
 
-/// Default localhost port for the in-client MCP server.
+/// Default localhost port for the in-client dev-surface MCP server.
 pub const DEFAULT_MCP_PORT: u16 = 7777;
+/// Default localhost port for the embodied character-surface MCP server
+/// (docs/API.md § two MCP surfaces). On by default, like the dev surface:
+/// both are loopback-only and the second proves the two-surface design every
+/// time the game runs.
+pub const DEFAULT_MCP_CHARACTER_PORT: u16 = 7778;
 
-/// Command-line options for the MCP server. `port: None` = disabled.
+/// Command-line options for the MCP servers. `None` = that surface disabled.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct McpOptions {
+    /// Dev surface (broad dev grants). `--mcp-port <n>`.
     pub port: Option<u16>,
+    /// Character surface (one attenuated character per session).
+    /// `--mcp-character-port <n>`, `--no-mcp-character` to disable.
+    pub character_port: Option<u16>,
 }
 
 impl McpOptions {
-    /// Parse `--no-mcp` / `--mcp-port <n>` out of the process arguments.
+    /// Parse `--no-mcp` (disables BOTH surfaces) / `--mcp-port <n>` /
+    /// `--no-mcp-character` / `--mcp-character-port <n>` out of the process
+    /// arguments.
     pub fn parse(args: &[String]) -> Self {
         if args.iter().any(|a| a == "--no-mcp") {
-            return Self { port: None };
+            return Self {
+                port: None,
+                character_port: None,
+            };
         }
-        let port = args
-            .windows(2)
-            .find(|w| w[0] == "--mcp-port")
-            .and_then(|w| w[1].parse().ok())
-            .unwrap_or(DEFAULT_MCP_PORT);
-        Self { port: Some(port) }
+        let flag = |name: &str, default: u16| {
+            args.windows(2)
+                .find(|w| w[0] == name)
+                .and_then(|w| w[1].parse().ok())
+                .unwrap_or(default)
+        };
+        let character_port = if args.iter().any(|a| a == "--no-mcp-character") {
+            None
+        } else {
+            Some(flag("--mcp-character-port", DEFAULT_MCP_CHARACTER_PORT))
+        };
+        Self {
+            port: Some(flag("--mcp-port", DEFAULT_MCP_PORT)),
+            character_port,
+        }
+    }
+
+    pub fn any_enabled(&self) -> bool {
+        self.port.is_some() || self.character_port.is_some()
     }
 }
 
@@ -83,6 +110,25 @@ pub enum BridgeRequest {
     },
     Screenshot {
         name: String,
+        reply: oneshot::Sender<Value>,
+    },
+    /// Character-surface session attach: spawn-or-attach to one character
+    /// (spawns with the surface's parent token if it does not exist; default
+    /// position = just in front of the player).
+    CharacterAttach {
+        name: String,
+        pos: Option<[f64; 3]>,
+        reply: oneshot::Sender<Value>,
+    },
+    /// A character-surface tool call. The ECS side derives the session's
+    /// token by attenuating the surface parent token to exactly
+    /// `session_character` — the tool arguments never carry grants, and a
+    /// payload naming any other character fails capability enforcement in
+    /// the host.
+    CharacterApi {
+        tool: String,
+        args: Value,
+        session_character: String,
         reply: oneshot::Sender<Value>,
     },
 }
@@ -370,19 +416,46 @@ pub fn http_service(
     )
 }
 
-/// Start the MCP thread: a current-thread tokio runtime accepting HTTP/1
-/// connections on `127.0.0.1:<port>` and serving the streamable-HTTP MCP
-/// protocol. Returns the ECS-side bridge resource.
-pub fn spawn_server(port: u16) -> McpBridge {
+/// Start the enabled MCP surfaces, each on its own thread + port, all
+/// bridging into one ECS-side channel: the dev surface (broad grants, port
+/// 7777) and the character surface (one attenuated character per session,
+/// port 7778 — see [`crate::mcp_character`]). Returns the bridge resource,
+/// or `None` when both surfaces are disabled.
+pub fn spawn_servers(options: McpOptions) -> Option<McpBridge> {
+    if !options.any_enabled() {
+        return None;
+    }
     let (tx, rx) = mpsc::unbounded_channel();
-    std::thread::Builder::new()
-        .name("dc-mcp-http".into())
-        .spawn(move || run_server(port, tx))
-        .expect("spawn MCP thread");
-    McpBridge { rx: Mutex::new(rx) }
+    if let Some(port) = options.port {
+        let tx = tx.clone();
+        std::thread::Builder::new()
+            .name("dc-mcp-http".into())
+            .spawn(move || run_server(port, http_service(tx, true), "dev surface"))
+            .expect("spawn MCP thread");
+    }
+    if let Some(port) = options.character_port {
+        let tx = tx.clone();
+        std::thread::Builder::new()
+            .name("dc-mcp-character".into())
+            .spawn(move || {
+                run_server(
+                    port,
+                    crate::mcp_character::http_service(tx, true),
+                    "character surface",
+                )
+            })
+            .expect("spawn character MCP thread");
+    }
+    Some(McpBridge { rx: Mutex::new(rx) })
 }
 
-fn run_server(port: u16, tx: mpsc::UnboundedSender<BridgeRequest>) {
+/// A current-thread tokio runtime accepting HTTP/1 connections on
+/// `127.0.0.1:<port>` and serving one surface's streamable-HTTP MCP protocol.
+fn run_server<H: ServerHandler>(
+    port: u16,
+    service: StreamableHttpService<H, LocalSessionManager>,
+    label: &'static str,
+) {
     let runtime = match tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -394,15 +467,14 @@ fn run_server(port: u16, tx: mpsc::UnboundedSender<BridgeRequest>) {
         }
     };
     runtime.block_on(async move {
-        let service = http_service(tx, true);
         let listener = match tokio::net::TcpListener::bind(("127.0.0.1", port)).await {
             Ok(listener) => listener,
             Err(e) => {
-                error!("MCP: cannot bind 127.0.0.1:{port}: {e} (use --mcp-port or --no-mcp)");
+                error!("MCP: cannot bind 127.0.0.1:{port}: {e} (use --mcp-port / --mcp-character-port or --no-mcp)");
                 return;
             }
         };
-        info!("MCP: streamable HTTP on http://127.0.0.1:{port}/mcp");
+        info!("MCP: {label} on http://127.0.0.1:{port}/mcp");
         loop {
             let (stream, _peer) = match listener.accept().await {
                 Ok(accepted) => accepted,
@@ -432,7 +504,7 @@ fn run_server(port: u16, tx: mpsc::UnboundedSender<BridgeRequest>) {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::authority::Authority;
     use crate::authority::tests::{edit_script, script_hash};
@@ -466,26 +538,49 @@ mod tests {
         assert_eq!(
             McpOptions::parse(&args(&["game"])),
             McpOptions {
-                port: Some(DEFAULT_MCP_PORT)
+                port: Some(DEFAULT_MCP_PORT),
+                character_port: Some(DEFAULT_MCP_CHARACTER_PORT),
             }
         );
         assert_eq!(
             McpOptions::parse(&args(&["game", "--mcp-port", "9000"])),
-            McpOptions { port: Some(9000) }
+            McpOptions {
+                port: Some(9000),
+                character_port: Some(DEFAULT_MCP_CHARACTER_PORT),
+            }
         );
         assert_eq!(
-            McpOptions::parse(&args(&["game", "--no-mcp"])),
-            McpOptions { port: None }
+            McpOptions::parse(&args(&["game", "--mcp-character-port", "9001"])),
+            McpOptions {
+                port: Some(DEFAULT_MCP_PORT),
+                character_port: Some(9001),
+            }
+        );
+        assert_eq!(
+            McpOptions::parse(&args(&["game", "--no-mcp-character"])),
+            McpOptions {
+                port: Some(DEFAULT_MCP_PORT),
+                character_port: None,
+            }
+        );
+        // --no-mcp kills both surfaces.
+        assert_eq!(
+            McpOptions::parse(&args(&["game", "--no-mcp", "--mcp-character-port", "9001"])),
+            McpOptions {
+                port: None,
+                character_port: None,
+            }
         );
     }
 
-    /// POST one JSON-RPC message through the real streamable-HTTP service and
+    /// POST one JSON-RPC message through a real streamable-HTTP service and
     /// return (session id header, data payloads). This is the actual MCP wire
     /// protocol — headers, session management, SSE framing — minus the TCP
     /// socket (the S5 session test's "identical to stdio minus the OS pipes"
-    /// pattern, one transport further on).
-    async fn post(
-        service: &StreamableHttpService<ClientMcpServer, LocalSessionManager>,
+    /// pattern, one transport further on). Generic over the handler so the
+    /// character-surface session test (mcp_character.rs) shares it.
+    pub(crate) async fn post<H: ServerHandler>(
+        service: &StreamableHttpService<H, LocalSessionManager>,
         session: Option<&str>,
         body: Value,
     ) -> (Option<String>, Vec<Value>) {

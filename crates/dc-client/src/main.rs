@@ -29,14 +29,24 @@
 //! streamable HTTP (mcp.rs; default port 7777, `--mcp-port <n>`, `--no-mcp`)
 //! lets an agent drive and observe the running game — including
 //! `client_screenshot` captures into journal/assets. See journal/0002.
+//!
+//! Character-MCP milestone: a SECOND MCP surface on port 7778
+//! (mcp_character.rs; `--mcp-character-port <n>`, `--no-mcp-character`;
+//! `--no-mcp` disables both) hosts embodied character sessions — an AI
+//! attaches to one character (character.rs renders its two-cube body in the
+//! world), drives it through collision-checked movement commands, and
+//! perceives only through its senses, under a token attenuated to exactly
+//! that character. See docs/API.md § Characters and journal/0005.
 
 mod app;
 mod authority;
 mod bench;
 mod bench_storage;
+mod character;
 mod edit;
 mod farmesh;
 mod mcp;
+mod mcp_character;
 mod meshing;
 mod physdemo;
 mod player;

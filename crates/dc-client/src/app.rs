@@ -21,6 +21,7 @@ use glam::DVec3;
 use crate::PLAYER_HEIGHT_M;
 use crate::authority::{self, Authority, DirtyChunks};
 use crate::bench::BENCH_SEED;
+use crate::character;
 use crate::edit;
 use crate::farmesh;
 use crate::mcp::{self, McpOptions};
@@ -160,6 +161,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     // same seed and generator as the streamed terrain.
     .insert_resource(Authority::new(BENCH_SEED, 3))
     .insert_resource(DirtyChunks::default())
+    .insert_resource(character::CharacterVisuals::default())
     .insert_resource(edit::CrosshairTarget::default())
     .add_systems(Startup, (setup, physdemo::setup, edit::setup_crosshair))
     .add_systems(
@@ -176,6 +178,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
             authority::drain_bridge,
             authority::tick_authority,
             authority::remesh_dirty,
+            character::sync_characters,
             physdemo::update,
             position_chunks,
             farmesh::position_far_chunks,
@@ -185,8 +188,8 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
         )
             .chain(),
     );
-    if let Some(port) = mcp_options.port {
-        app.insert_resource(mcp::spawn_server(port));
+    if let Some(bridge) = mcp::spawn_servers(mcp_options) {
+        app.insert_resource(bridge);
     }
     app.run();
 }

@@ -53,12 +53,22 @@ pub struct Authority {
     pub world: HostWorld,
     accumulator: f64,
     /// MCP command replies waiting for their tick-boundary receipt, keyed by
-    /// the MCP consumer's per-consumer seq.
-    pending: Vec<(u64, oneshot::Sender<Value>)>,
+    /// (consumer identity, per-consumer seq).
+    pending: Vec<(ConsumerId, u64, oneshot::Sender<Value>)>,
+    /// Character-surface attach flows waiting for their spawn receipt:
+    /// (surface consumer seq, character name, reply).
+    pending_attach: Vec<(u64, String, oneshot::Sender<Value>)>,
     mcp_consumer: ConsumerId,
     mcp_token: CapabilityToken,
     player_consumer: ConsumerId,
     player_token: CapabilityToken,
+    /// The character surface's parent authority: spawn characters + control
+    /// any. Sessions never hold this — each session's token is ATTENUATED
+    /// from it to exactly one character (attenuation can narrow, never
+    /// widen — dc-api capability tests prove the partial order).
+    character_parent_token: CapabilityToken,
+    /// Consumer identity for surface-side acts (the attach flow's spawns).
+    character_surface_consumer: ConsumerId,
 }
 
 impl Authority {
@@ -68,14 +78,23 @@ impl Authority {
     pub fn new(seed: i32, player_voxels: u32) -> Self {
         let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, player_voxels);
         let terrain = TerrainGen::new(seed);
-        let world = HostWorld::with_generator(
+        let mut world = HostWorld::with_generator(
             seed as u64,
             Box::new(move |pos| terrain.generate_chunk(scale, pos)),
         );
+        // Character bodies share the player's dimensions and dynamics
+        // (dc-api's defaults ARE the player constants); only the voxel size
+        // follows the active scale. Part of the replay identity.
+        world.set_character_config(dc_api::CharacterConfig {
+            voxel_size_m: scale.voxel_size_m(),
+            tick_dt_s: HOST_TICK_DT,
+            ..dc_api::CharacterConfig::default()
+        });
         Self {
             world,
             accumulator: 0.0,
             pending: Vec::new(),
+            pending_attach: Vec::new(),
             mcp_consumer: ConsumerId::new(ConsumerKind::McpSession, "client-http"),
             // The in-client MCP session is a dev-grant session (documented in
             // journal/0002): unbounded world read/write, entity spawn, event
@@ -86,6 +105,14 @@ impl Authority {
             // v0 dev posture: the local player may edit anywhere. Survival
             // scoping (reach, gamemode) belongs to a later slice.
             player_token: CapabilityToken::new(vec![Grant::WorldWrite { volume: None }]),
+            character_parent_token: CapabilityToken::new(vec![
+                Grant::EntitySpawn,
+                Grant::CharacterControl { character: None },
+            ]),
+            character_surface_consumer: ConsumerId::new(
+                ConsumerKind::McpSession,
+                "character-surface",
+            ),
         }
     }
 
@@ -104,12 +131,59 @@ impl Authority {
         let _ = self.world.submit(envelope);
     }
 
-    /// Handle one MCP tool call against the dc-api surface (the registry-
-    /// generated tools). Queries answer immediately from the last completed
-    /// tick; commands are submitted and their reply is delivered when the
-    /// receipt materializes at the tick boundary.
+    /// Handle one MCP tool call against the dc-api surface with the dev
+    /// session's identity and broad dev-grant token (the 7777 surface).
     pub fn handle_api_call(&mut self, tool: &str, args: &Value, reply: oneshot::Sender<Value>) {
-        match envelope_for_tool_call(tool, args, &self.mcp_consumer, &self.mcp_token) {
+        let consumer = self.mcp_consumer.clone();
+        let token = self.mcp_token.clone();
+        self.handle_api_call_as(consumer, token, tool, args, reply);
+    }
+
+    /// Handle one character-surface tool call: same registry-generated tool
+    /// layer, but the identity is the session's character and the token is
+    /// the parent token ATTENUATED to exactly that character. A payload that
+    /// names any other character (or any non-character command) fails
+    /// capability enforcement inside the host — the session's reach is the
+    /// grant, not the tool list.
+    pub fn handle_character_api(
+        &mut self,
+        tool: &str,
+        args: &Value,
+        session_character: &str,
+        reply: oneshot::Sender<Value>,
+    ) {
+        let token =
+            match self
+                .character_parent_token
+                .attenuate(vec![dc_api::Grant::CharacterControl {
+                    character: Some(session_character.to_string()),
+                }]) {
+                Ok(token) => token,
+                Err(e) => {
+                    let _ = reply.send(json!({ "error": format!("attenuation failed: {e}") }));
+                    return;
+                }
+            };
+        let consumer = ConsumerId::new(
+            ConsumerKind::McpSession,
+            format!("character-{session_character}"),
+        );
+        self.handle_api_call_as(consumer, token, tool, args, reply);
+    }
+
+    /// Registry tool dispatch under an explicit identity + token. Queries
+    /// answer immediately from the last completed tick; commands are
+    /// submitted and their reply is delivered when the receipt materializes
+    /// at the tick boundary.
+    fn handle_api_call_as(
+        &mut self,
+        consumer: ConsumerId,
+        token: CapabilityToken,
+        tool: &str,
+        args: &Value,
+        reply: oneshot::Sender<Value>,
+    ) {
+        match envelope_for_tool_call(tool, args, &consumer, &token) {
             Err(e) => {
                 let _ = reply.send(json!({ "error": e.to_string() }));
             }
@@ -128,9 +202,55 @@ impl Authority {
                                 .unwrap_or_else(|e| json!({"error": e.to_string()})),
                         );
                     }
-                    Ok(ack) => self.pending.push((ack.consumer_seq, reply)),
+                    Ok(ack) => self.pending.push((consumer, ack.consumer_seq, reply)),
                 },
             },
+        }
+    }
+
+    /// Character-surface attach flow: bind a session to `name`, spawning the
+    /// character (with the surface's parent token, not the session's) if it
+    /// does not exist. The reply carries `{ ok, character, spawned }`; the
+    /// session's MCP handler binds itself to the name only on `ok`.
+    pub fn handle_character_attach(
+        &mut self,
+        name: &str,
+        pos: dc_api::payload::Vec3f,
+        reply: oneshot::Sender<Value>,
+    ) {
+        if !dc_api::character::valid_character_name(name) {
+            let _ = reply.send(json!({
+                "ok": false,
+                "error": "invalid character name: bare slug required ([a-z0-9_-], max 64 chars)",
+            }));
+            return;
+        }
+        if self.world.character(name).is_some() {
+            let _ = reply.send(json!({ "ok": true, "character": name, "spawned": false }));
+            return;
+        }
+        let envelope = CommandEnvelope {
+            id: dc_api::ids::CHARACTER_SPAWN.to_string(),
+            source: self.character_surface_consumer.clone(),
+            grant: self.character_parent_token.clone(),
+            payload: Payload::SpawnCharacter(dc_api::payload::SpawnCharacter {
+                name: name.to_string(),
+                pos,
+            }),
+            target_tick: None,
+            txn: None,
+        };
+        match self.world.submit(envelope) {
+            Err(entry) => {
+                let _ = reply.send(json!({
+                    "ok": false,
+                    "error": format!("spawn rejected: {:?}", entry.receipt.result),
+                }));
+            }
+            Ok(ack) => {
+                self.pending_attach
+                    .push((ack.consumer_seq, name.to_string(), reply));
+            }
         }
     }
 
@@ -153,10 +273,10 @@ impl Authority {
         let receipts = self.world.tick();
         if !self.pending.is_empty() {
             let mut still = Vec::new();
-            for (seq, reply) in self.pending.drain(..) {
+            for (consumer, seq, reply) in self.pending.drain(..) {
                 match receipts
                     .iter()
-                    .find(|e| e.source == self.mcp_consumer && e.consumer_seq == seq)
+                    .find(|e| e.source == consumer && e.consumer_seq == seq)
                 {
                     Some(entry) => {
                         let _ = reply.send(
@@ -164,10 +284,34 @@ impl Authority {
                                 .unwrap_or_else(|e| json!({"error": e.to_string()})),
                         );
                     }
-                    None => still.push((seq, reply)),
+                    None => still.push((consumer, seq, reply)),
                 }
             }
             self.pending = still;
+        }
+        if !self.pending_attach.is_empty() {
+            let mut still = Vec::new();
+            for (seq, name, reply) in self.pending_attach.drain(..) {
+                match receipts
+                    .iter()
+                    .find(|e| e.source == self.character_surface_consumer && e.consumer_seq == seq)
+                {
+                    Some(entry) => {
+                        let value = match &entry.receipt.result {
+                            dc_api::CommandResult::Ok(_) => {
+                                json!({ "ok": true, "character": name, "spawned": true })
+                            }
+                            dc_api::CommandResult::Rejected(reason) => json!({
+                                "ok": false,
+                                "error": format!("spawn rejected: {reason}"),
+                            }),
+                        };
+                        let _ = reply.send(value);
+                    }
+                    None => still.push((seq, name, reply)),
+                }
+            }
+            self.pending_attach = still;
         }
         receipts
     }
@@ -281,6 +425,30 @@ pub fn drain_bridge(
             }
             BridgeRequest::Screenshot { name, reply } => {
                 crate::mcp::take_screenshot(&mut commands, &name, reply);
+            }
+            BridgeRequest::CharacterAttach { name, pos, reply } => {
+                let pos = match pos {
+                    Some(p) => dc_api::payload::Vec3f::new(p[0], p[1], p[2]),
+                    None => {
+                        // Default: two meters in front of the player, one
+                        // meter up — it lands where the player is looking and
+                        // settles under gravity (a walker-visible entrance).
+                        let (sin_yaw, cos_yaw) =
+                            (f64::from(player.yaw.sin()), f64::from(player.yaw.cos()));
+                        let spot =
+                            player.pos_m + glam::DVec3::new(-sin_yaw * 2.0, 1.0, -cos_yaw * 2.0);
+                        dc_api::payload::Vec3f::new(spot.x, spot.y, spot.z)
+                    }
+                };
+                authority.handle_character_attach(&name, pos, reply);
+            }
+            BridgeRequest::CharacterApi {
+                tool,
+                args,
+                session_character,
+                reply,
+            } => {
+                authority.handle_character_api(&tool, &args, &session_character, reply);
             }
         }
     }
@@ -573,6 +741,92 @@ pub(crate) mod tests {
         }
         other.tick_now();
         assert_ne!(script_hash(&mut direct), script_hash(&mut other));
+    }
+
+    /// Character milestone: the identical scripted movement session, driven
+    /// through the character surface's own layers (attach flow + JSON tool
+    /// layer under the session-attenuated token), replays to a bit-identical
+    /// final pose at the client's scale over the real TerrainGen — and the
+    /// session's token cannot reach any other character.
+    #[test]
+    fn character_session_replays_identically_and_stays_caged() {
+        fn run_session(seed: i32) -> dc_api::CharacterState {
+            let mut authority = Authority::new(seed, 3);
+            let (tx, mut rx) = oneshot::channel();
+            authority.handle_character_attach(
+                "scout",
+                dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+                tx,
+            );
+            authority.tick_now();
+            let reply = rx.try_recv().expect("attach resolves at the tick boundary");
+            assert_eq!(reply["ok"], json!(true), "{reply}");
+            assert_eq!(reply["spawned"], json!(true));
+
+            let call = |authority: &mut Authority, tool: &str, args: Value| {
+                let (tx, _rx) = oneshot::channel();
+                authority.handle_character_api(tool, &args, "scout", tx);
+            };
+            call(
+                &mut authority,
+                "character_set_move_intent",
+                json!({ "character": "scout", "dx": 1.0, "dz": 0.25, "speed": 1.0 }),
+            );
+            for _ in 0..40 {
+                authority.tick_now();
+            }
+            call(
+                &mut authority,
+                "character_set_look",
+                json!({ "character": "scout", "yaw": 0.8, "pitch": -0.3 }),
+            );
+            call(
+                &mut authority,
+                "character_jump",
+                json!({ "character": "scout" }),
+            );
+            for _ in 0..30 {
+                authority.tick_now();
+            }
+            authority.world.character("scout").expect("exists").clone()
+        }
+
+        let a = run_session(1337);
+        let b = run_session(1337);
+        assert_eq!(a, b, "same seed + same JSON session = identical pose");
+        assert_eq!(a.pos_m.x.to_bits(), b.pos_m.x.to_bits());
+        assert_eq!(a.pos_m.y.to_bits(), b.pos_m.y.to_bits());
+        assert_eq!(a.pos_m.z.to_bits(), b.pos_m.z.to_bits());
+        // The generator is in the loop: another seed's terrain, another path.
+        let c = run_session(1338);
+        assert_ne!(a.pos_m.y.to_bits(), c.pos_m.y.to_bits());
+
+        // Attenuation is the cage: the scout session naming another character
+        // is refused by capability enforcement in the host, and attaching to
+        // an existing character does not respawn it.
+        let mut authority = Authority::new(1337, 3);
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach("scout", dc_api::payload::Vec3f::new(0.3, 40.0, 0.3), tx);
+        authority.tick_now();
+        assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach("scout", dc_api::payload::Vec3f::new(9.0, 9.0, 9.0), tx);
+        let reply = rx.try_recv().expect("existing attach answers immediately");
+        assert_eq!(reply["ok"], json!(true));
+        assert_eq!(reply["spawned"], json!(false));
+
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_api(
+            "character_pose",
+            &json!({ "character": "other" }),
+            "scout",
+            tx,
+        );
+        let reply = rx.try_recv().expect("query answers immediately");
+        assert!(
+            reply["result"]["Rejected"]["MissingCapability"].is_object(),
+            "foreign character denied: {reply}"
+        );
     }
 
     /// The streamed cache is a copy of the authoritative world: a chunk
