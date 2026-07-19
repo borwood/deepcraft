@@ -8,6 +8,7 @@ publish.workspace = true
 [dependencies]
 dc-core.workspace = true
 dc-api.workspace = true
+dc-physics.workspace = true
 
 bevy.workspace = true
 fastnoise-lite.workspace = true

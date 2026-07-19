@@ -128,11 +128,13 @@ fn normalize(cells: &[(i64, i64, i64)]) -> BTreeSet<(i64, i64, i64)> {
         .collect()
 }
 
+type LatticeRot = fn((i64, i64, i64)) -> (i64, i64, i64);
+
 /// Do two voxel sets have congruent shapes (equal up to one of the 24 axis
 /// rotations plus translation)?
 fn congruent(a: &[(i64, i64, i64)], b: &[(i64, i64, i64)]) -> bool {
     let nb = normalize(b);
-    let rots: [fn((i64, i64, i64)) -> (i64, i64, i64); 4] = [
+    let rots: [LatticeRot; 4] = [
         |v| v,
         |(x, y, z)| (-z, y, x),
         |(x, y, z)| (-x, y, -z),
@@ -141,7 +143,7 @@ fn congruent(a: &[(i64, i64, i64)], b: &[(i64, i64, i64)]) -> bool {
     // Full check over all 24 rotations: every proper axis rotation decomposes
     // as `up ∘ yaw` where `yaw` fixes +Y and `up` sends +Y to one of the six
     // axis directions.
-    let ups: [fn((i64, i64, i64)) -> (i64, i64, i64); 6] = [
+    let ups: [LatticeRot; 6] = [
         |v| v,
         |(x, y, z)| (x, -y, -z),
         |(x, y, z)| (x, z, -y),
@@ -186,19 +188,28 @@ fn prop_detach_settle_reattach_roundtrip() {
     }
     assert!(slept, "prop never settled in 60 simulated seconds");
 
-    let reattached = world.reattach_prop(prop, VS).expect("asleep prop reattaches");
+    let reattached = world
+        .reattach_prop(prop, VS)
+        .expect("asleep prop reattaches");
 
     // Round-trip properties: same voxel count, no duplicates, congruent shape.
     assert_eq!(reattached.len(), original.len(), "voxel count changed");
     let distinct: BTreeSet<_> = reattached.iter().copied().collect();
-    assert_eq!(distinct.len(), reattached.len(), "reattach produced duplicates");
+    assert_eq!(
+        distinct.len(),
+        reattached.len(),
+        "reattach produced duplicates"
+    );
     assert!(
         congruent(&original, &reattached),
         "reattached shape is not congruent with the original"
     );
     // It settled onto the floor: lowest voxel sits at or just above y = 0.
     let min_y = reattached.iter().map(|c| c.1).min().unwrap();
-    assert!((0..=1).contains(&min_y), "prop settled at voxel y = {min_y}");
+    assert!(
+        (0..=1).contains(&min_y),
+        "prop settled at voxel y = {min_y}"
+    );
 
     // The body is gone.
     assert!(world.body_pose(prop).is_none());

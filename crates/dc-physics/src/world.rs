@@ -126,8 +126,10 @@ pub struct PhysicsWorld {
 
 impl PhysicsWorld {
     pub fn new(config: PhysicsConfig) -> Self {
-        let mut params = IntegrationParameters::default();
-        params.dt = config.fixed_dt as f32;
+        let params = IntegrationParameters {
+            dt: config.fixed_dt as f32,
+            ..Default::default()
+        };
         Self {
             bodies: RigidBodySet::new(),
             colliders: ColliderSet::new(),
@@ -163,12 +165,7 @@ impl PhysicsWorld {
     /// Advance by a (variable) frame delta: runs zero or more fixed steps from
     /// the accumulator. Returns how many fixed steps ran. `voxel_size_m` and
     /// `solid` describe the voxel world for the bubble refresh.
-    pub fn advance(
-        &mut self,
-        frame_dt_s: f64,
-        voxel_size_m: f64,
-        solid: &impl VoxelQuery,
-    ) -> u32 {
+    pub fn advance(&mut self, frame_dt_s: f64, voxel_size_m: f64, solid: &impl VoxelQuery) -> u32 {
         self.accumulator += frame_dt_s.max(0.0);
         let max_budget = f64::from(self.config.max_steps_per_advance) * self.config.fixed_dt;
         if self.accumulator > max_budget {
@@ -210,7 +207,12 @@ impl PhysicsWorld {
 
     /// Spawn a dropped item: a small dynamic cuboid with friction/restitution,
     /// CCD, and sleep enabled. Position is the cuboid center in world meters.
-    pub fn spawn_item(&mut self, center_m: DVec3, half_extents_m: DVec3, vel_m_s: DVec3) -> RigidBodyHandle {
+    pub fn spawn_item(
+        &mut self,
+        center_m: DVec3,
+        half_extents_m: DVec3,
+        vel_m_s: DVec3,
+    ) -> RigidBodyHandle {
         let body = RigidBodyBuilder::dynamic()
             .translation(to_r(center_m))
             .linvel(to_r(vel_m_s))
@@ -225,7 +227,8 @@ impl PhysicsWorld {
         .friction(ITEM_FRICTION)
         .restitution(ITEM_RESTITUTION)
         .build();
-        self.colliders.insert_with_parent(collider, handle, &mut self.bodies);
+        self.colliders
+            .insert_with_parent(collider, handle, &mut self.bodies);
         handle
     }
 
@@ -278,7 +281,11 @@ impl PhysicsWorld {
                 max[i] = max[i].max(v);
             }
         }
-        let dims = [max[0] - min[0] + 1, max[1] - min[1] + 1, max[2] - min[2] + 1];
+        let dims = [
+            max[0] - min[0] + 1,
+            max[1] - min[1] + 1,
+            max[2] - min[2] + 1,
+        ];
         if dims.iter().product::<i64>() > MAX_PROP_BOUNDING_VOXELS {
             return Err(PropError::TooLarge);
         }
@@ -329,7 +336,8 @@ impl PhysicsWorld {
             .friction(PROP_FRICTION)
             .restitution(PROP_RESTITUTION)
             .build();
-        self.colliders.insert_with_parent(collider, handle, &mut self.bodies);
+        self.colliders
+            .insert_with_parent(collider, handle, &mut self.bodies);
         self.props.insert(handle, PropData { offsets });
         Ok(handle)
     }
@@ -467,7 +475,12 @@ impl PhysicsWorld {
 
     /// Scan one tile through the solidity closure and insert its compound
     /// collider (or record it as known-empty).
-    fn build_tile(&mut self, key: TileKey, voxel_size_m: f64, solid: &impl VoxelQuery) -> TileEntry {
+    fn build_tile(
+        &mut self,
+        key: TileKey,
+        voxel_size_m: f64,
+        solid: &impl VoxelQuery,
+    ) -> TileEntry {
         let ts = self.config.bubble.tile_size_voxels;
         let base = [key.0 * ts, key.1 * ts, key.2 * ts];
         let n = ts as i32;

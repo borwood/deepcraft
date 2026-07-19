@@ -160,7 +160,9 @@ fn prop_cycle(pit: &Pit) {
     let settle_ms = t1.elapsed().as_secs_f64() * 1e3;
 
     let t2 = Instant::now();
-    let reattached = world.reattach_prop(prop, VS).expect("asleep prop reattaches");
+    let reattached = world
+        .reattach_prop(prop, VS)
+        .expect("asleep prop reattaches");
     let reattach_ms = t2.elapsed().as_secs_f64() * 1e3;
 
     assert_eq!(reattached.len(), voxels.len(), "voxel count changed");
@@ -173,7 +175,11 @@ fn prop_cycle(pit: &Pit) {
         f64::from(settle_steps) / 60.0
     );
     println!("| reattach (snap + write-back set) | {reattach_ms:.3} ms |");
-    println!("| voxel count preserved | {} -> {} |", voxels.len(), reattached.len());
+    println!(
+        "| voxel count preserved | {} -> {} |",
+        voxels.len(),
+        reattached.len()
+    );
 }
 
 fn main() {
@@ -182,7 +188,9 @@ fn main() {
         "S6 bench: tumbling cubes into the S1-noise pit, {STEPS} steps @ 60 Hz, \
          voxel = {VS} m (N=2), release build\n"
     );
-    println!("| N cubes | mean step | max step | mean bubble refresh | peak tiles | peak cuboids | asleep at end |");
+    println!(
+        "| N cubes | mean step | max step | mean bubble refresh | peak tiles | peak cuboids | asleep at end |"
+    );
     println!("|---|---|---|---|---|---|---|");
     for n in [10usize, 100, 500] {
         let r = tumble(n, &pit);

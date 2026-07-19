@@ -68,11 +68,7 @@ pub(crate) fn axis_rotations() -> Vec<(IntRot, glam::Quat)> {
             ];
             // Store row-major: rows are the images' components; columns are
             // the images of the basis vectors.
-            let m: IntRot = [
-                [x[0], y[0], z[0]],
-                [x[1], y[1], z[1]],
-                [x[2], y[2], z[2]],
-            ];
+            let m: IntRot = [[x[0], y[0], z[0]], [x[1], y[1], z[1]], [x[2], y[2], z[2]]];
             let mat = glam::Mat3::from_cols(
                 glam::Vec3::new(x[0] as f32, x[1] as f32, x[2] as f32),
                 glam::Vec3::new(y[0] as f32, y[1] as f32, y[2] as f32),
@@ -142,13 +138,7 @@ mod tests {
         for (m, _) in axis_rotations() {
             // Rotating the 8 corner offsets of a cube permutes them (up to sign).
             let mut images = Vec::new();
-            for v in [
-                [1, 2, 3],
-                [-1, 2, 3],
-                [1, -2, 3],
-                [1, 2, -3],
-                [4, 5, 6],
-            ] {
+            for v in [[1, 2, 3], [-1, 2, 3], [1, -2, 3], [1, 2, -3], [4, 5, 6]] {
                 let r = rotate_i(&m, v);
                 let norm2 = |a: [i64; 3]| a[0] * a[0] + a[1] * a[1] + a[2] * a[2];
                 assert_eq!(norm2(r), norm2(v), "rotation changed length");

@@ -104,8 +104,8 @@ mod tests {
         let boxes = merge_boxes(dims, solid);
         let mut covered: HashSet<(i32, i32, i32)> = HashSet::new();
         for b in &boxes {
-            for i in 0..3 {
-                assert!(b.min[i] >= 0 && b.min[i] + b.size[i] <= dims[i], "{b:?}");
+            for (i, dim) in dims.iter().enumerate() {
+                assert!(b.min[i] >= 0 && b.min[i] + b.size[i] <= *dim, "{b:?}");
                 assert!(b.size[i] >= 1, "{b:?}");
             }
             for y in b.min[1]..b.min[1] + b.size[1] {
@@ -121,7 +121,10 @@ mod tests {
             for z in 0..dims[2] {
                 for x in 0..dims[0] {
                     if solid(x, y, z) {
-                        assert!(covered.contains(&(x, y, z)), "uncovered solid ({x},{y},{z})");
+                        assert!(
+                            covered.contains(&(x, y, z)),
+                            "uncovered solid ({x},{y},{z})"
+                        );
                     }
                 }
             }
@@ -133,7 +136,13 @@ mod tests {
     fn full_region_is_one_box() {
         let boxes = assert_exact_cover([4, 5, 6], &|_, _, _| true);
         assert_eq!(boxes.len(), 1);
-        assert_eq!(boxes[0], VoxelBox { min: [0, 0, 0], size: [4, 5, 6] });
+        assert_eq!(
+            boxes[0],
+            VoxelBox {
+                min: [0, 0, 0],
+                size: [4, 5, 6]
+            }
+        );
     }
 
     #[test]
@@ -144,7 +153,13 @@ mod tests {
     #[test]
     fn single_voxel() {
         let boxes = assert_exact_cover([3, 3, 3], &|x, y, z| (x, y, z) == (1, 2, 0));
-        assert_eq!(boxes, vec![VoxelBox { min: [1, 2, 0], size: [1, 1, 1] }]);
+        assert_eq!(
+            boxes,
+            vec![VoxelBox {
+                min: [1, 2, 0],
+                size: [1, 1, 1]
+            }]
+        );
     }
 
     #[test]
