@@ -1,9 +1,8 @@
-# 0008 — the geology becomes ground you can stand on (DRAFT)
+# 0008 — the geology becomes ground you can stand on
 
-*DRAFT — background agent (ROADMAP 3c part 1). Gates green on the worktree
-branch; the walk section is a placeholder for the main session to fill after
-integration. No screenshots yet — journal/0007 promised this entry would carry
-the first geology photograph; it belongs below.*
+*2026-07-19 · 3c-1 (background agent; integrated + walk-verified by the main
+session, merge `ee639f9`, 35 suites green on merged main). Carries the first
+geology photographs, as journal/0007 promised.*
 
 Geology shipped headless in 0007: strata records, passes-as-graph, a placer
 that finds gold-dust by density alone. All of it invisible — the client still
@@ -146,14 +145,41 @@ scattered surface chunks. Read it as "the seam adds nothing measurable, and
 locality helps" rather than as a speedup. The Medium pregen at boot is the
 one-time "generating world history…" cost (~15 ms, 0007), paid once.
 
-## The walk
+## Walk 7: the quarry
 
-*(Placeholder — main session, `--fullbright`, after integration.)* Aim it at a
-province boundary where the strata change: orogenic columns should show a
-granite basement under a sandstone/mudstone cover; a river fan should band
-sandstone below mudstone. Confirm `eye_in_solid: false` before every shot, and
-check the ratified N=2 spawn lands standing. First geology photograph goes to
-`journal/assets/0008-*`.
+Main session, merged main, `--fullbright`, freshly rebuilt exe (timestamp
+checked against the merge — the 0006 lesson holds). Spawn landed in air at
+**y = 529** — the worldgen world has real S7 elevation, and the N=2 spawn
+seated correctly on the new authority's surface.
+
+The vista (`assets/0008-first-geology-vista.png`) is all grass and soil —
+correctly: the soil band caps everything, and geology does not show itself on
+gentle slopes. So the first geology photograph took the honest route: **dig**.
+A scan column at spawn read, bottom to top: 53 voxels of granite → 3 of
+basalt → mudstone → dirt → air. A dev-command quarry (21×38×13 voxels of
+`world_fill dc:air` — the receipt came back `from: "dc:granite"`, the edit
+pipeline speaking the new blocks) opened the cut, and the wall shows the
+column exactly (`assets/0008-quarry-strata-bands.png`): pale granite mass,
+near-black basalt flow, red-brown mudstone drape, tan soil cap. From the rim
+(`assets/0008-quarry-from-rim.png`) the pit reads as a proper stratigraphic
+section. Every shot from verified open air (`eye_in_solid: false`).
+
+An honest observation for the visuals pass: a single-material wall under
+fullbright flat shading is a *featureless color field* — the first quarry
+shot was a full frame of undifferentiated granite pink. Banding carries all
+the information; within-material structure carries none yet. That is exactly
+the gap the interim dither (3c-2, decided this session) and later the
+LabPBR/splat pipeline exist to close.
+
+**Freeze, live.** The `Drop`-fires-once mechanism got its end-to-end proof
+the unit tests couldn't give it: character `strider` attached via 7778,
+driven at full walk (measured 4.5 m/s), session killed with an HTTP DELETE
+mid-stride — reattach found it standing within a tick of the drop, velocity
+zero, position stable across polls. The walking-corpse era (0005) is over.
+
+Ratified 2026-07-19 during integration: the authority-aware scale keys
+(2 = worldgen, 3/4 = legacy S1 terrain as a dev affordance — with the note
+that scale 3 may yet win later on feel).
 
 > blogworthy: "one lock, two worlds" — a pure-function chunk seam meets a
 > stateful, borrowing, single-threaded lazy generator, and the adaptation

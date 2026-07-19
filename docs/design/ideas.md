@@ -141,6 +141,13 @@ An **interlingua of concept-tokens**, honest about channel fidelity —
 - **An automaton is a body driven by a WASM-script controller** — the
   character/controller split makes player-programmable golems free, with
   plugin-sandbox security semantics. The "redstone answer."
+- **Possession / animus override** (user, 2026-07-19): with bodies as
+  diegetic items animated by an **animus** (the craftable carrier of a
+  controller binding — bodies.md), overriding or supplanting another's
+  animus is a natural mechanic: possession of golems, wresting a body from
+  its driver, ghosts-in-machines. The controller-layer degradation ladder
+  gives it mechanics for free (rebind = possess); costs/consent/defense are
+  the design questions when this is sequenced.
 
 ## NPC intelligence (discussion 2026-07-18; needs its own design doc after
 character MCP / bodies)

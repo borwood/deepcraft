@@ -55,6 +55,29 @@ blending. Dynamic detail (foam etc.) rendered as pixelated textures, not
 smooth sprays — pixel-realism extends underwater. Water placement is physical
 (aquifers, porous stone) and the look should honor that.
 
+## Mixture rendering road — DECIDED 2026-07-19
+
+The splat-blend destination above stands. The road to it:
+
+- **Interim vertex-color materialization first (3c-2)**: every material def
+  carries an albedo in the registry (pack data); a mixed voxel's face renders
+  a **world-anchored deterministic dither** — each face pixel-cell picks one
+  constituent's color by position hash, weighted by its eighths fraction.
+  Pixels composing ground, no assets required. The later splat pipeline
+  replaces the color source, not the data plumbing.
+- **Placeholder LabPBR packs begin in parallel**: procedurally generated
+  16×16 three-texture sets per material, so the splat milestone starts with
+  assets waiting. Real texture authoring decided when that milestone opens.
+- **Loose (granular) materials render partial-height** by eighths
+  (snow-layer style). Collider stays binary for now (solid ≥ 4/8) — the
+  visible mismatch is accepted until movement learns partials; **"sinking"
+  rules (knee-deep snow) are a deliberate future step**, as is body-driven
+  compaction (packing the bottom layer underfoot atop solid — materials.md).
+- **Ore is subtle**: member-level tint variation within class and sparse
+  close-range speckle only — no distance glint. Recognizing ore-bearing
+  ground is knowledge gameplay (prospecting, panning, surfacing thoughts),
+  not a highlight shader.
+
 ## Custom shaders
 
 The pack system (ARCHITECTURE.md § Rendering) is the vibe-agnosticism valve:

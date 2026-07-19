@@ -120,11 +120,25 @@ middens happen by physics. Granular/sub-threshold outcomes deposit as debris;
 discrete outcomes persist as rigidbody pickups with the sleep→inert-item
 handoff (S6).
 
-**Bodies/sockets (deferred design)**: a body is a plugin — one kind, shared
-by players/NPCs/mobs — exposing item sockets and driven by controller
-signals, composing with API.md's character/controller split so
-transmogrification is a body swap under an unchanged controller. Gets its own
-design doc when sequenced.
+**Terminology — noted 2026-07-19**: the design term for these unconsolidated
+eighths is **loose (granular) materials** — "debris" implies a provenance
+(broken from something) that fresh snow, dune sand, or river gravel don't
+have. The S8 *storage role* keyword stays `debris` (decided wire format);
+the rename is vocabulary, not bytes.
+
+**Loose-material mechanics (user sketches 2026-07-19, future work)**:
+- **Gravity by vertical march** — unsupported loose eighths fall
+  column-wise (the loose-snow/sand/gravel Minecraft behavior), never as
+  rigidbodies; deterministic, tick-boundary, cheap.
+- **Body interaction/compaction** — a body standing on loose material can
+  transform the bottom layer in place (loose snow → packed snow under a
+  boot) when solid backing exists beneath, leaving the rest loose. Pairs
+  with the deferred "sinking in partials" movement rules (visuals.md §
+  mixture road). Compaction-by-use is the shallow-time cousin of the
+  deep-time compaction loop above.
+
+**Bodies/sockets**: designed — see docs/design/bodies.md (body plans,
+sockets, animation, all ratified state lives there).
 
 **Inventory — DECIDED 2026-07-18: mass/volume with encumbrance, behind a
 realism knob.** The foundations (every form has real mass/volume; carry

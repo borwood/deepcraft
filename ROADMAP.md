@@ -37,6 +37,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — 3c-1: geology walkable at block tier (journal/0008, walk 7,
+  merge `ee639f9`): dc-worldgen through the client seam (PregenSource
+  Arc-opening, Rc→Arc caches, one Mutex two worlds — seam-level order-
+  independence proven); Mudstone/Sandstone/Granite/Basalt blocks; N=2 boot
+  restored (scale keys ratified: 2 = worldgen, 3/4 = legacy S1 dev
+  affordance); surface machinery authority-aware; freeze-on-disconnect
+  (Drop-fires-once → zero-intent command on the receipted rail), proven
+  live mid-stride in walk 7. First geology photographs: quarry cut showing
+  granite → basalt → mudstone → soil (assets 0008-*).
+
 - 2026-07-19 — Geology v1 backbone (journal/0007, merge `1df2666`): content-
   class registry (classes-as-contracts; the Payload opening as open keys
   over a closed value vocabulary — NEEDS RATIFICATION with the class-sheet
@@ -78,19 +88,25 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- Geology client integration, block tier (3c part 1; agent launched
-  2026-07-19): dc-worldgen swapped into the client `ChunkGenerator` seam,
-  N=2 boot default restored, geology block types visible (Mudstone/
-  Sandstone/Granite/Basalt appended to the enum), freeze-on-disconnect.
-  Unlocks walking the geology (journal 0008 owes the first photograph).
+- Body-plan staircase steps 1–2 (bodies.md § staircase; agent launched
+  2026-07-19): joint-tree skeleton, plan-as-registry-def, companion
+  re-expressed as a biped, MCP-authored data clips; locomotion set +
+  crossfade blending + the verb→anim-slot define-time contract.
+- Placeholder LabPBR texture packs (code-only agent, 2026-07-19):
+  procedurally generated 16×16 three-texture sets per material, assets-in-
+  waiting for the splat milestone (visuals.md § mixture road).
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.
-3c-2. Geology client integration, material tier — sidecar channel through
-   the seam + render blend for mixtures (S8 render-blend prototype still
-   owed; visuals conversation first), data-driven block registry
-   (API.md `define block_type`) superseding the appended enum.
+3c-2. Geology client integration, material tier (visuals DECIDED
+   2026-07-19, visuals.md § mixture road): sidecar channel through the
+   seam + interim world-anchored dither materialization (registry albedos,
+   eighths-weighted), partial-height loose-material rendering with binary
+   threshold collider; subtle ore. Runs after body steps 1–2. Watch the
+   order-dependent MixtureTable ids at the seam (journal/0008). Data-driven
+   block registry (API.md `define block_type`) supersedes the appended enum
+   here or soon after.
 4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
    axes; registry-defined).
 5. Ecology design (succession as derived-from-disturbance state; populations
@@ -120,12 +136,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   persist the table, never re-derive it (lifecycle belongs to region-file
   grouping, S3 OQ 7).
 
-- User field report 2026-07-19: the client **boots at scale 3** (player = 3
-  voxels, 0.6 m/voxel) though S1 ratified **N=2**. Diagnosed: hardcoded
-  spike-era bench default (`app.rs:170,177` + spawn at `:156`), not a
-  decision. One-line-class fix; deferred only until the geology agent frees
-  the build slot (gates required). Tests hardcoding 3 are scale-pinned
-  measurements and stay.
+- Walk 7 loose ends (journal/0008): **unloaded-neighbour and far-mesh
+  fallbacks still sample S1 `TerrainGen`** — near-field loaded chunks are
+  worldgen, but the far LOD rings and load-radius border faces show the old
+  hill-field; a visible seam until the far field becomes worldgen/summary-
+  shaped (pairs with the existing far-mesh Observed items). Single-material
+  faces under fullbright are featureless color fields — information arrives
+  with the 3c-2 dither and later the splat pipeline. The `Terrain` resource
+  is retained solely as the 3/4-key legacy fallback. *(Scale-3 boot default:
+  fixed in 3c-1; freeze wire-drop path: proven live in walk 7.)*
 
 - Walk 6 loose ends (journal/0006): the surface scan window is
   S1-terrain-sized (8 m headroom / 220 m depth) — structures stacked >8 m
