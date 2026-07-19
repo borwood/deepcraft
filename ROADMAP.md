@@ -204,10 +204,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 `c49566f`/`016ac1b`, gates green on merged main, walks 14/15 verified;
 SPLAT_N=4 ratified, calibration rides awaiting the lighting design.)*
 
-- **Instrument batch** (voxel echo in pose replies, always-present
-  `surface_snapped`, posture readback): agent code complete on its
-  worktree branch; gates + integration in progress (main session running
-  the gates — the agent parked on the build slot).
+- **Instrument batch — integrating now** (journal/0021, background agent):
+  three walker-instrument fixes — `pos_voxel` echoed beside meters in both
+  pose replies (client + character), `surface_snapped` always present in
+  `surface:true` replies, `posture` exposed in `dc:character/pose`. All
+  fields **appended** with `serde(default)` (postcard-positional
+  discipline, corrections #4); `QueryData::CharacterPose` is a query
+  result, never logged, so replay bit-identity is untouched. Gates green
+  on the worktree branch; integrator re-runs on merged main. Resolves
+  three Observed lines (walk-13 `surface_snapped`, walk-11 posture
+  readback, corrections-#10 voxel echo). Walk 16 verifies live.
 
 Queue after it (**reordered 2026-07-19, user**): **far-field horizon
 promoted ahead of S10** — the phantom S1 LODs below the worldgen terrain
@@ -374,9 +380,12 @@ before any code.
   from the legacy S1 world on any ChunkMap miss, and a failed surface scan
   silently returned `analytic − 220 m`. Both fixed (merge `81a87b8`;
   `Option`-typed misses, authoritative solidity).
-- **Instrument fix owed**: pose replies should echo the **voxel** coordinate
-  beside the meters — the walker speaks two languages and nothing labels
-  which. This misdiagnosis cost a full agent cycle.
+- **Instrument fix: pose replies echo the voxel coordinate — DONE**
+  (journal/0021, instrument batch, awaiting integration). `client_player_pose_
+  {get,set}` and `dc:character/pose` now carry `pos_voxel` (feet, active-scale
+  voxels via the authority's own `scale.voxel_at`) beside the meters `pos` —
+  the walker's two languages both labelled, no mental unit conversion (the
+  corrections #10 misread that cost a full agent cycle).
 - **Far mesh still generates from S1 `TerrainGen`** (journal/0017 — the one
   residue the S1-fallback sweep left standing; the six *near-field* consumers
   are shipped). Under the worldgen authority the far rings paint a phantom old
@@ -404,10 +413,12 @@ before any code.
   coarsened (~1.8 km) deep cell under the width cap until 3e-2's C
   refinement restores landform detail on approach.
 
-- Walk 13 (journal/0018): **`surface_snapped` is absent from the
-  `surface:true` teleport reply on success** — the snap is only inferable
-  from y moving; absence-means-success is instrument ambiguity (pairs with
-  the owed voxel-coordinate echo in pose replies, same fix batch).
+- Walk 13 (journal/0018): *(**`surface_snapped` absent on the `surface:true`
+  success path: RESOLVED** — journal/0021, instrument batch. The flag is now
+  ALWAYS present in a `surface:true` reply: true when the scan seated the feet,
+  false on a miss (position left as requested, `surface_error` string). Both
+  paths leave through one `surface_teleport_reply` helper, so the flag can't be
+  set on only one branch again.)*
 
 - Walk 11 + step-3 loose ends (journal/0014): *(crouch factor: DECIDED
   2026-07-19, bodies.md § Crouch semantics — 0.6× stands; crouch is
@@ -415,8 +426,10 @@ before any code.
   access; sub-standing clearances belong to prone/crawl, sketched in
   ideas.md § posture ladder.)* Max-bend leg fold reads
   tangled — knee pole/fold distribution wants a photo-driven tuning
-  pass. Posture is not exposed in `character_pose` (a driver can't read
-  its own posture back). Foot-IK ground read can momentarily see the S1
+  pass. *(Posture not exposed in `character_pose`: **RESOLVED** — journal/0021,
+  instrument batch; the pose reply now carries `posture` in `set_posture`'s own
+  `standing`/`crouching` vocabulary, so a readback round-trips into a command.)*
+  Foot-IK ground read can momentarily see the S1
   far-mesh phantom at the extreme load-radius edge.
 
 - Walk 5 (journal/0005, character surface): characters have **no auto

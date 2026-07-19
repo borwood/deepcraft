@@ -105,6 +105,18 @@ impl Posture {
             _ => None,
         }
     }
+
+    /// The wire string (`standing` | `crouching`) — the inverse of
+    /// [`Posture::from_wire`] and the exact vocabulary `dc:character/set_posture`
+    /// accepts, so a `dc:character/pose` readback round-trips straight back into
+    /// a posture command (walk-11 loose end: a driver could not read its own
+    /// posture back).
+    pub fn to_wire(self) -> &'static str {
+        match self {
+            Posture::Standing => "standing",
+            Posture::Crouching => "crouching",
+        }
+    }
 }
 
 /// Controller input — what the controller verbs write and the tick step

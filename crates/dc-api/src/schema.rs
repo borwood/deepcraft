@@ -554,9 +554,11 @@ pub fn registry() -> &'static [CommandSpec] {
         CommandSpec {
             id: ids::CHARACTER_POSE,
             kind: CommandKind::Query,
-            doc: "The character's own proprioception: feet position (meters), \
-                  velocity, yaw/pitch, on_ground, and eye_in_solid (true = its \
-                  eyes are buried; senses from here see the inside of terrain).",
+            doc: "The character's own proprioception: feet position in both \
+                  meters (`pos`) and world voxels (`pos_voxel`, the coordinate \
+                  `get_block` takes), velocity, yaw/pitch, on_ground, posture \
+                  (`standing`|`crouching`), and eye_in_solid (true = its eyes \
+                  are buried; senses from here see the inside of terrain).",
             capability: "character.control(character)",
             payload_schema: || {
                 s_obj(
