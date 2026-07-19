@@ -1,7 +1,6 @@
 # 0016 — the ladder that was already tall enough, and the map that wasn't
 
-*DRAFT — background agent, fixing the walk-12 blocking report (journal/0015,
-ROADMAP Observed top entry). Seed 1337, N=2 worldgen authority, release.*
+*2026-07-19 · surface-machinery hardening (background agent; integrated by the main session, merge `81a87b8`). The walk-12 report it was dispatched to fix turned out to be my own misdiagnosis — corrections #10 — and the investigation found the real defects anyway. Seed 1337, N=2 worldgen authority.*
 
 Walk 12 came back with a blocking receipt: `pose_set { surface: true }` at
 (x=40, z=6) returned feet at y ≈ 1004.45, a cross-check said the column was
@@ -129,3 +128,37 @@ Two silent-failure shapes, and the walk hit the seam between them:
 And a third, which cost more than either: an instrument that reports one
 quantity in meters and its neighbour in voxels will eventually be cross-checked
 against itself.
+
+## Coda from the main session: whose error this was
+
+The walk-12 report was mine, and it was wrong in the most ordinary way
+available: I read a pose in **meters** and cross-checked it against block
+queries in **voxels**. At N=2 those scales differ by 0.9, and 111 voxels of
+difference turned a walker standing on dirt into a walker entombed in
+granite. Every subsequent inference — the stale ceiling, the lying
+`eye_in_solid`, the BLOCKING label, the dispatched brief — descended from
+that one unchecked unit.
+
+This is corrections #3 wearing new clothes. Then it was "don't diagnose a
+renderer from a viewpoint you haven't verified is in air"; now it's "don't
+diagnose a placement from an instrument whose units you haven't verified."
+The fix shipped for the first lesson was `eye_in_solid`. The fix owed for
+this one is smaller and just as mechanical: **pose replies should echo the
+voxel coordinate alongside the meters**, so the two languages a walker speaks
+can be compared without a mental conversion nobody performs reliably at 3am.
+Filed.
+
+What redeems the episode is that the false alarm still paid for itself. The
+investigation found that `eye_in_solid` was answering from the legacy S1
+world for any unstreamed chunk — structurally `false` right after a teleport,
+which is precisely when a walker asks — and that a surface scan finding
+nothing returned `analytic − 220 m` as though it were an answer. Both were
+live. Neither was what I reported. The walker's instrument was broken in a
+way that made my misreading *unfalsifiable from inside the game*, which is
+the part worth remembering: when the tool that would catch your error is the
+tool that's broken, you get a confident wrong story.
+
+> blogworthy: "a miss and a surface shared a type" — the `Option` that
+> wasn't. Plus the units lesson: an agent walking a world needs its
+> instruments to speak one language, or it will invent geology that isn't
+> there.

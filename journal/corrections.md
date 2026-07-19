@@ -156,3 +156,42 @@ anywhere.
 **Lesson**: "could be parallelized" is a claim about an algorithm's
 existence, not its cost under a byte-identity mandate — the determinism
 tax must be priced per phase before it prices your architecture.
+
+## 10. Walk-12 misdiagnosis: "surface:true seated the player inside rock" (2026-07-19)
+
+**Claim** (journal/0015 walk section, ROADMAP Observed as BLOCKING, and the
+dispatched fix brief — all mine): 3e-1's deep-time elevation left
+`true_surface_m`'s per-column scan ceiling stale, so `surface:true` seated a
+body inside solid rock at (40, 6) while `eye_in_solid` falsely reported
+`false`.
+**Falsified on reproduction.** At that column `true_surface_m` returns
+1004.40 and the voxel there is **air with dirt beneath** — a correct
+placement. My "proof" compared a pose in **meters** (feet y = 1004.45)
+against `world_get_block` queries in **voxels** (granite at y = 1050): at
+N=2 the surface voxel is 1115, so "granite at 1050" is basement 65 voxels
+*below* the walker, not rock around their chest. Read in the wrong unit,
+an ordinary column looks like a burial.
+**The stated mechanism was also wrong**: the worldgen ceiling had already
+stopped being an independent estimate — it reads `ColumnRec.heights`, which
+derive from the same lattice 3e-1 taught to inject the deep-time surface,
+so it inherited deep time for free the day the terrain did. Reading the
+generator's own answer instead of re-deriving one is what saved it.
+**What was really broken** (found by the investigation, so the false alarm
+still paid): `eye_in_solid` consulted the client `ChunkMap`, whose miss path
+falls back to the legacy S1 `TerrainGen` (surface ≈ 8 m). Under the worldgen
+authority (~1000 m) it answered from a different planet — structurally
+`false` right after any teleport, exactly when a walker needs it. And a scan
+that found nothing silently returned `analytic − 220 m`: **a miss and a
+surface shared a type.** Fault injection (ceiling forced 200 m low) buried a
+body 195 m deep with no complaint.
+**Fixes** (merge `81a87b8`): `true_surface_m → Option<f64>` so misses reject
+loudly (teleport reports `surface_snapped:false`, attach refuses with
+`no_surface`); `eye_in_solid` reads the authority via `Authority::is_solid_m`;
+headroom re-scoped as an edit allowance (8→4 m), depth 220→96 m;
+`debug_assert` when a column's top solid reaches the ceiling.
+**Lessons**: (1) this is corrections #3 again — *do not diagnose from an
+instrument you have not verified*, and units are part of the instrument;
+pose speaks meters, block queries speak voxels, and nothing in either reply
+says so. Echoing voxel coordinates in pose replies is filed as a fix. (2) An
+`Option` is not pedantry: when "no answer" and "an answer" share a type, the
+silent path is the one that ships.

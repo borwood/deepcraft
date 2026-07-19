@@ -228,15 +228,26 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **BLOCKING (walk 12, journal/0015): the surface machinery is stale
-  against deep-time elevation.** `true_surface_m`'s per-column scan
-  ceiling still derives from the pre-3e-1 analytic estimate + 8 m
-  headroom, but deep-time elevation moves real ground by ~100 m — so
-  `surface:true` teleport/spawn/attach can seat a body inside rock and
-  `eye_in_solid` can report false while buried. Fix dispatched
-  2026-07-19 (ceiling must come from the deep-time-aware elevation, and
-  the headroom constant must stop being S1-sized). Walk 13 owes the
-  deep-time cut-face photograph once a walker can stand up.
+- **Walk 12's "blocking regression" was a misdiagnosis** (corrections #10,
+  journal/0016): a pose in meters cross-checked against block queries in
+  voxels. `true_surface_m` was already deep-time-aware (its ceiling reads
+  `ColumnRec`). The investigation still paid: `eye_in_solid` was answering
+  from the legacy S1 world on any ChunkMap miss, and a failed surface scan
+  silently returned `analytic − 220 m`. Both fixed (merge `81a87b8`;
+  `Option`-typed misses, authoritative solidity).
+- **Instrument fix owed**: pose replies should echo the **voxel** coordinate
+  beside the meters — the walker speaks two languages and nothing labels
+  which. This misdiagnosis cost a full agent cycle.
+- **Sibling S1-fallback consumers under the worldgen authority** (found,
+  untouched, root = `map.is_solid(&terrain.0, …)` falling back to
+  `TerrainGen` on a ChunkMap miss — the legacy world's surface is ~8 m while
+  worldgen's is ~1000 m): **player collision** (`player.rs:131` — no
+  collision at streaming edges, the most serious), character ground-finding
+  (`character.rs:245`), mesh-border face culling (`streaming.rs:113`,
+  `authority.rs:911`), crosshair edit targeting (`edit.rs:43`), physics
+  collider tiles (`physdemo.rs:119`), and the far rings, which generate from
+  S1 entirely (`farmesh.rs:223`) — a ~1 km vertical discontinuity between
+  near terrain and far field. **This is the next client-side milestone.**
 - Walk 12 also owes: far-mesh S1 fallback vs deep-time terrain never
   visually assessed; test-suite time +~6 min (deep-time on every
   Medium/Large pregen — wants a cost-insensitive fast path); Large

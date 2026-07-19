@@ -155,6 +155,16 @@ function dressed as rock.
 
 ## Walk 12: the terrain that happened — and the ceiling that didn't move
 
+> **CORRECTED 2026-07-19 (corrections #10, and see journal/0016).** The
+> regression reported below is **not real**: I compared a pose in meters
+> against block queries in voxels, and an ordinary column looked like a
+> burial. `true_surface_m` was already deep-time-aware (its ceiling reads
+> `ColumnRec`, which 3e-1 taught the deep-time surface). The section stands
+> as written because it is what I believed at the time; the investigation it
+> triggered found genuine defects elsewhere — an `eye_in_solid` that answered
+> from the legacy S1 world, and a miss path that silently returned a buried
+> point. Read this section as the wrong turn, and 0016 as the mechanism.
+
 The vista is unmistakable (`assets/0015-deeptime-vista.png`): the S1
 hill-field is gone, replaced by **long erosion-graded ridges and rounded
 divides** — landscape as the time-integral of uplift minus erosion rather
