@@ -1,4 +1,4 @@
-# 0015 — the record becomes the world: deep time in real generation
+# 0015 — deep time becomes the world
 
 *DRAFT — 3e-1 (background agent; integrated by the main session). Numbers from
 the Windows dev box, release profile, seed `0x0D5E_ED57_2026`. Full context in
@@ -153,15 +153,44 @@ chunk of the richest sampled column and confirms the recorded sequence reaches
 *blocks*: a multi-band cliff of distinct strata a player can read, not a noise
 function dressed as rock.
 
-## Walk (main session)
+## Walk 12: the terrain that happened — and the ceiling that didn't move
 
-*[PLACEHOLDER — to be filled by the integrating session's walk. Targets: (1) a
-cliff face whose strata tell the deep-time story — marine mud band under arid
-coarse fill under the recent veneer, walked and screenshotted before/after; (2)
-the changed terrain character at spawn — the macro-relief is now an eroded
-landscape (ridge-and-valley, basins that accumulated) rather than fractal noise;
-(3) confirm `eye_in_solid` before trusting any shot, launch `--fullbright`.
-Screenshots to journal/assets/0015-*.]*
+The vista is unmistakable (`assets/0015-deeptime-vista.png`): the S1
+hill-field is gone, replaced by **long erosion-graded ridges and rounded
+divides** — landscape as the time-integral of uplift minus erosion rather
+than as summed octaves. A scanned column reads granite basement → basalt
+flows → a thin recorded clastic band → soil veneer: the deep record
+reaching blocks, exactly as designed.
+
+**Then the walk found a regression, and it is the walk-6 lesson wearing a
+new hat.** `pose_set { surface: true }` at (40, 6) returned feet at
+y = 1004.45 — while direct authority queries show that column solid
+(granite at y = 1050, stone at 1006/1010). The teleport put the player
+**inside rock**, and `eye_in_solid` returned `false` while doing it.
+
+Mechanism (diagnosed, not yet fixed): `true_surface_m` scans a column
+downward from a per-column *ceiling*, and for the worldgen authority that
+ceiling still comes from the pre-deep-time elevation estimate plus a small
+headroom (the S1-sized `SURFACE_SCAN_HEADROOM_M = 8`, already an Observed
+item since journal/0006). 3e-1 replaced macro-elevation with the deep-time
+surface at the locale level — which moves real ground by **~100 m** in
+places. The scan window now starts *below* the true surface, finds no
+top-solid voxel in range, and returns a point inside the mountain. The
+`eye_in_solid: false` is the same lie from the same stale window (plus
+client-side chunk-map solidity that hadn't streamed).
+
+So: the deep-time world generates correctly and reads correctly, but
+**every consumer that seats a body — spawn, surface teleport, safe attach
+— is broken against it until the ceiling learns about deep time.** Filed
+blocking; fix dispatched the same session. The photograph of a deep-time
+cut face is owed to walk 13, once a walker can stand up in this world.
+
+> blogworthy: "the ground moved and the ladder didn't" — a surface query
+> whose upper bound is an *estimate of the terrain it is measuring* is
+> correct exactly until the terrain's provenance changes. Journal/0006
+> taught us not to seat bodies on an analytic field; 3e-1 taught us the
+> same field can also be a stale *ceiling*, which fails silently in the
+> other direction.
 
 ## Perf
 

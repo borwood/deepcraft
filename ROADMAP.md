@@ -193,6 +193,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **BLOCKING (walk 12, journal/0015): the surface machinery is stale
+  against deep-time elevation.** `true_surface_m`'s per-column scan
+  ceiling still derives from the pre-3e-1 analytic estimate + 8 m
+  headroom, but deep-time elevation moves real ground by ~100 m — so
+  `surface:true` teleport/spawn/attach can seat a body inside rock and
+  `eye_in_solid` can report false while buried. Fix dispatched
+  2026-07-19 (ceiling must come from the deep-time-aware elevation, and
+  the headroom constant must stop being S1-sized). Walk 13 owes the
+  deep-time cut-face photograph once a walker can stand up.
+- Walk 12 also owes: far-mesh S1 fallback vs deep-time terrain never
+  visually assessed; test-suite time +~6 min (deep-time on every
+  Medium/Large pregen — wants a cost-insensitive fast path); Large
+  extent runs a coarsened (~1.8 km) deep cell under the width cap until
+  3e-2's C refinement restores landform detail on approach.
+
 - Walk 11 + step-3 loose ends (journal/0014): **crouch factor is a
   user-owned game-feel call** — at N=2, passages step by 0.9 m and
   standing flush-fits 1.8 m gaps, so 0.6× crouch (1.08 m) earns no
