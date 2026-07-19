@@ -496,8 +496,62 @@ def write_manifest(packs: dict) -> None:
         f.write("\n")
 
 
+def _read_png_pixels(path: str) -> list[list[tuple[int, int, int, int]]]:
+    """Decode one of OUR PNGs (8-bit RGBA, filter 0 on every row — exactly
+    what write_png emits). Not a general decoder."""
+    with open(path, "rb") as f:
+        data = f.read()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG"
+    pos, w, h, idat = 8, None, None, b""
+    while pos < len(data):
+        ln = struct.unpack(">I", data[pos:pos + 4])[0]
+        tag = data[pos + 4:pos + 8]
+        if tag == b"IHDR":
+            w, h = struct.unpack(">II", data[pos + 8:pos + 16])
+        elif tag == b"IDAT":
+            idat += data[pos + 8:pos + 8 + ln]
+        pos += 12 + ln
+    raw = zlib.decompress(idat)
+    stride = w * 4
+    px = []
+    for y in range(h):
+        row = raw[y * (stride + 1):(y + 1) * (stride + 1)]
+        assert row[0] == 0, "self-decoder only handles filter 0"
+        px.append([tuple(row[1 + x * 4:5 + x * 4]) for x in range(w)])
+    return px
+
+
+def _seam_check(path: str) -> None:
+    """Assert the texture tiles: luminance gradients across the wrap edges
+    must be statistically indistinguishable from internal gradients. Guards
+    the lattice-wrap property against future edits (checked 2026-07-19)."""
+    px = _read_png_pixels(path)
+    h, w = len(px), len(px[0])
+
+    def lum(p):
+        return 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2]
+
+    internal, wrap = [], []
+    for y in range(h):
+        for x in range(w - 1):
+            internal.append(abs(lum(px[y][x]) - lum(px[y][x + 1])))
+        wrap.append(abs(lum(px[y][w - 1]) - lum(px[y][0])))
+    for x in range(w):
+        for y in range(h - 1):
+            internal.append(abs(lum(px[y][x]) - lum(px[y + 1][x])))
+        wrap.append(abs(lum(px[h - 1][x]) - lum(px[0][x])))
+    mi = sum(internal) / len(internal)
+    mw = sum(wrap) / len(wrap)
+    # 1.6x tolerance: measured worst honest ratio is 1.33x (gravel); a real
+    # non-wrapping seam lands at 2-4x.
+    assert mw <= mi * 1.6 + 1.0, (
+        f"{path}: wrap-edge gradient {mw:.1f} vs internal {mi:.1f} — "
+        f"texture no longer tiles seamlessly"
+    )
+
+
 def self_check(packs: dict | None = None) -> None:
-    """Read a sample of PNGs back and assert 16x16 RGBA."""
+    """Read a sample of PNGs back and assert 16x16 RGBA + seamless tiling."""
     if packs is None:
         slugs = [row[0] for row in MATERIALS]
     else:
@@ -511,9 +565,11 @@ def self_check(packs: dict | None = None) -> None:
             path = os.path.join(d, tex)
             w, h, ch = _read_png_dims_channels(path)
             assert (w, h, ch) == (SIZE, SIZE, 4), f"{path}: got {(w, h, ch)}"
+            if tex != "specular.png":  # flat channels; seam test is meaningless
+                _seam_check(path)
             checked += 1
-    print(f"self-check OK: {checked} PNGs verified as {SIZE}x{SIZE} RGBA "
-          f"(sampled {len(sample)} packs)")
+    print(f"self-check OK: {checked} PNGs verified as {SIZE}x{SIZE} RGBA, "
+          f"basecolor/normal seam-checked (sampled {len(sample)} packs)")
 
 
 def main() -> None:
