@@ -165,6 +165,36 @@ Deep-time history (geological, then social/territorial) = dc-sim's coarse and
 statistical tiers run over pre-player time. Worldgen history and live
 far-simulation are one system, not two.
 
+## One world-answer surface (2026-07-19, **NEEDS RATIFICATION**)
+
+Drafted by the S1-fallback sweep (journal/0017); the user ratifies doctrine.
+
+**The client has exactly one authority for "what is the world here?" — the
+active `Authority` (the embedded `HostWorld`).** Every gameplay question about
+world state — is this voxel solid, what is the surface height, what does a
+raycast hit — is answered by the authority, which generates lazily and includes
+edits. There is no second world.
+
+**Caches never fall back to a generator they do not own.** The client `ChunkMap`
+is a render/collision *cache* of the authority: it answers only for chunks it
+holds and returns an explicit miss otherwise. It must never invent an answer for
+an absent chunk by sampling a generator — because the generator it would reach
+for may describe a *different world* than the active authority. This is exactly
+what shipped the legacy S1 terrain (~8 m surface) into player collision,
+grounding, edit targeting, physics, and mesh-border culling under the worldgen
+authority (~1000 m surface): a silent wrong-world fallback at every streaming
+edge (journal/0015–0017).
+
+The rule is structural, not vigilance: the fallback method is deleted, and the
+ambient wrong-world generator is not an ECS resource, so a new consumer cannot
+inject it by accident. A tripwire test asserts a deep worldgen voxel answers
+solid through every public solidity path with an empty cache
+(`empty_cache_solidity_paths_read_the_worldgen_authority`).
+
+Corollary (deferred): the legacy S1 `TerrainGen` should become unnameable
+outside the authority module once its last near-namer — the far-mesh's own
+`FarFieldTerrain` — moves onto a worldgen-shaped summary far field.
+
 ## Content model
 
 Items, blocks, biomes, blueprints, models, animations are all data-driven

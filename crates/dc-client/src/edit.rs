@@ -7,13 +7,15 @@
 //! walk over the same solidity query collision uses, so what you aim at is
 //! exactly what you stand on.
 
+use std::cell::RefCell;
+
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
 use dc_core::{RaycastHit, raycast_voxels};
 use glam::DVec3;
 
 use crate::PLAYER_HEIGHT_M;
-use crate::app::{ChunkMap, CurrentScale, FloatingOrigin, Terrain, to_render};
+use crate::app::{CurrentScale, FloatingOrigin, to_render};
 use crate::authority::Authority;
 use crate::player::{EYE_FRACTION, PLAYER_WIDTH_M, Player};
 use dc_api::{Payload, Vec3i, payload};
@@ -27,12 +29,13 @@ const PLACE_BLOCK: &str = "dc:stone";
 #[derive(Resource, Default)]
 pub struct CrosshairTarget(pub Option<RaycastHit>);
 
-/// Raycast from the eye along the view direction against the same solidity
-/// query used for collision (loaded cache first, generator fallback).
+/// Raycast from the eye along the view direction against the **authority's**
+/// solidity — the same world the player stands on, edits included, so what you
+/// aim at is exactly what you collide with (journal/0017). Never the client
+/// cache's old wrong-world S1 fallback.
 pub fn update_target(
-    terrain: Res<Terrain>,
+    mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
-    map: Res<ChunkMap>,
     player: Res<Player>,
     mut target: ResMut<CrosshairTarget>,
 ) {
@@ -40,7 +43,8 @@ pub fn update_target(
     let eye_m = player.pos_m + DVec3::new(0.0, EYE_FRACTION * PLAYER_HEIGHT_M, 0.0);
     // Meters -> voxel units is a uniform scale, so the direction is unchanged.
     let origin_v = eye_m * vscale.voxels_per_meter();
-    let solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+    let authority_cell = RefCell::new(&mut *authority);
+    let solid = |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
     target.0 = raycast_voxels(
         &solid,
         origin_v,

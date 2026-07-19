@@ -7,6 +7,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — S1-fallback sweep (journal/0017, **branch awaiting integration**
+  — NOT yet merged): closed the defect class journal/0016 named. The client now
+  has ONE world-answer surface for solidity — `Authority::is_solid_voxel`
+  (lazily generating the hosted world, edits included) — and the six near-field
+  consumers that answered from the legacy S1 `TerrainGen` on a ChunkMap miss now
+  route through it: player collision, character foot-IK grounding, crosshair
+  edit raycast, physics collider tiles, and mesh-border culling
+  (`streaming.rs` + `remesh_dirty`). Guard: `ChunkMap::is_solid` (the fallback
+  method) deleted; the ambient `Terrain` resource deleted (no system can
+  `Res<Terrain>` a wrong world); tripwire test
+  `empty_cache_solidity_paths_read_the_worldgen_authority` fails on old main and
+  catches all six sites; doctrine drafted in ARCHITECTURE.md (**NEEDS
+  RATIFICATION**). Meshing measured *faster* through the authority (0.93 vs 1.17
+  ms/chunk — generate-once-and-memoize beats per-voxel S1 noise). Keys 3/4 (S1
+  authority) unchanged; all 38 suites green. **Far mesh left on S1** (residue
+  below) — sourcing coarse far rings from worldgen is renderer/storage-scale
+  work, not cheap.
+
 - 2026-07-19 — Body staircase step 3 (journal/0014, walk 11, merge
   `f0e9f2d`): trunk-follows-travel / head-follows-look via the neck
   (walk-8 orientation gap closed, photographically verified thanks to
@@ -147,13 +165,17 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — session paused 2026-07-19 with main green at 38 suites. Next
-session: read this file, then journal/0016 + corrections #10 for the
-freshest lesson. **Walk 13 is owed**: the deep-time cut-face photograph
-walk 12 never got, plus live verification of the hardened instruments
-(`eye_in_solid` authoritative, `surface_snapped` reporting). Then the
-S1-fallback sweep — probably ahead of PBR-1, since player collision is
-affected.)
+- **S1-fallback sweep — branch awaiting integration** (journal/0017, gates
+  green: fmt + clippy `-D warnings` + all 38 suites, +2 new client tests). The
+  main session integrates. Its doctrine entry (ARCHITECTURE.md § "One
+  world-answer surface") and the retained N=2-worldgen scale-key mapping both
+  carry **NEEDS RATIFICATION**.
+
+Otherwise paused 2026-07-19. **Walk 13 is owed**: the deep-time cut-face
+photograph walk 12 never got, live verification of the hardened instruments
+(`eye_in_solid` authoritative, `surface_snapped` reporting), and now live
+verification of the sweep — collision at streaming edges, and the far-mesh
+phantom vs deep-time terrain. Then PBR-1.
 
 ## Sequenced
 
@@ -239,16 +261,24 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
 - **Instrument fix owed**: pose replies should echo the **voxel** coordinate
   beside the meters — the walker speaks two languages and nothing labels
   which. This misdiagnosis cost a full agent cycle.
-- **Sibling S1-fallback consumers under the worldgen authority** (found,
-  untouched, root = `map.is_solid(&terrain.0, …)` falling back to
-  `TerrainGen` on a ChunkMap miss — the legacy world's surface is ~8 m while
-  worldgen's is ~1000 m): **player collision** (`player.rs:131` — no
-  collision at streaming edges, the most serious), character ground-finding
-  (`character.rs:245`), mesh-border face culling (`streaming.rs:113`,
-  `authority.rs:911`), crosshair edit targeting (`edit.rs:43`), physics
-  collider tiles (`physdemo.rs:119`), and the far rings, which generate from
-  S1 entirely (`farmesh.rs:223`) — a ~1 km vertical discontinuity between
-  near terrain and far field. **This is the next client-side milestone.**
+- **Far mesh still generates from S1 `TerrainGen`** (journal/0017 — the one
+  residue the S1-fallback sweep left standing; the six *near-field* consumers
+  are shipped). Under the worldgen authority the far rings paint a phantom old
+  world ~1 km below the real terrain that dissolves on approach. It is now
+  isolated in a single loudly-named resource (`farmesh::FarFieldTerrain`) whose
+  doc names the defect — honestly wrong, not silently wrong in a shared cache.
+  **Shape of the fix** (renderer + storage scale, not cheap — investigated and
+  deferred): the far mesh samples a *coarse voxel scale* (2^L base voxels), but
+  the worldgen generator is N=2-baked with no coarse-sampling path. The right
+  answer is a **persisted coarse summary pyramid** — worldgen emits per-column
+  height/material summaries at coarse LOD levels on save; the far mesh reads
+  cached summaries. Couples to "far field should become summary-shaped"
+  (Observed below), S3 region-file grouping, and the LOD-derive-on-save path
+  exercised in `--bench-storage`. Full-res-generate-then-downsample is the
+  non-starter alternative (~5 min for 1 km). Until then: also blocks fully
+  sealing `TerrainGen` behind `pub(in crate::authority)` — the far mesh is its
+  last near-namer. Visual assessment of the phantom vs deep-time terrain still
+  owed (walk 12/13).
 - Walk 12 also owes: far-mesh S1 fallback vs deep-time terrain never
   visually assessed; test-suite time +~6 min (deep-time on every
   Medium/Large pregen — wants a cost-insensitive fast path); Large

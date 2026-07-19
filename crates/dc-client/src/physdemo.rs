@@ -8,12 +8,15 @@
 //! inside the Update chain; rendering reads poses each frame and, like
 //! everything else, positions them relative to the floating origin.
 
+use std::cell::RefCell;
+
 use bevy::prelude::*;
 use dc_physics::{PhysicsConfig, PhysicsWorld, RigidBodyHandle};
 use glam::DVec3;
 
 use crate::PLAYER_HEIGHT_M;
-use crate::app::{ChunkMap, CurrentScale, FloatingOrigin, Terrain, to_render};
+use crate::app::{CurrentScale, FloatingOrigin, to_render};
+use crate::authority::Authority;
 use crate::player::Player;
 
 /// Cube half-extent in meters (0.4 m cubes: item-sized, clearly sub-voxel).
@@ -76,9 +79,8 @@ pub fn update(
     time: Res<Time>,
     keys: Res<ButtonInput<KeyCode>>,
     mut commands: Commands,
-    terrain: Res<Terrain>,
+    mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
-    map: Res<ChunkMap>,
     origin: Res<FloatingOrigin>,
     player: Res<Player>,
     assets: Res<CubeAssets>,
@@ -114,9 +116,12 @@ pub fn update(
     }
 
     // Fixed-timestep stepping, decoupled from frame rate. Solidity is the same
-    // query the player's collision uses.
+    // authority query the player's collision uses (edits included, lazily
+    // generated) — never the client cache's old wrong-world S1 fallback
+    // (journal/0017).
     let vscale = scale.scale;
-    let solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
+    let authority_cell = RefCell::new(&mut *authority);
+    let solid = |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
     demo.world
         .advance(f64::from(time.delta_secs()), vscale.voxel_size_m(), &solid);
 

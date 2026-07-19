@@ -15,7 +15,7 @@ use bevy::prelude::*;
 use bevy::render::render_resource::TextureUsages;
 use bevy::render::view::Msaa;
 use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow};
-use dc_core::{Block, Chunk, ChunkPos, VoxelScale, local_voxel};
+use dc_core::{Chunk, ChunkPos, VoxelScale};
 use glam::DVec3;
 
 use crate::PLAYER_HEIGHT_M;
@@ -29,13 +29,17 @@ use crate::physdemo;
 use crate::player::{self, Player};
 use crate::poststage::{PostStage, PostStagePlugin};
 use crate::streaming;
+// The legacy S1 `TerrainGen` is no longer an ambient client resource: gameplay
+// systems answer world questions from the active `Authority` (the S1-fallback
+// sweep, journal/0017). It survives inside the authority module (the 3/4-key
+// legacy authority) and in the far-mesh's own resource; here it is test-only.
+#[cfg(test)]
 use crate::worldgen::TerrainGen;
+#[cfg(test)]
+use dc_core::Block;
 
 /// Distance from the origin (meters) at which we re-snap it to the player.
 const ORIGIN_REBASE_M: f64 = 256.0;
-
-#[derive(Resource)]
-pub struct Terrain(pub TerrainGen);
 
 /// The active voxel scale. Switched at runtime with keys 2/3/4.
 #[derive(Resource, Clone, Copy)]
@@ -71,31 +75,18 @@ pub struct LoadedChunk {
 }
 
 /// All currently loaded chunks, at the current scale.
+///
+/// A render/collision **cache** of the authoritative hosted world, never a
+/// second source of truth. It answers only for chunks it holds; it does not
+/// invent an answer for a chunk it does not — the former generator fallback
+/// silently shipped the legacy S1 world into player collision, grounding, edit
+/// targeting, physics, and mesh-border culling under the worldgen authority
+/// (journal/0015–0017). Every gameplay solidity question now routes through
+/// [`Authority::is_solid_voxel`], which lazily generates from the *active*
+/// world. See docs/ARCHITECTURE.md § "One world-answer surface".
 #[derive(Resource, Default)]
 pub struct ChunkMap {
     pub loaded: HashMap<ChunkPos, LoadedChunk>,
-}
-
-impl ChunkMap {
-    /// Solidity at a world voxel. Falls back to sampling the (deterministic)
-    /// generator for chunks that aren't loaded, so collision and border
-    /// meshing never see a hole where a chunk merely hasn't streamed in yet.
-    pub fn is_solid(
-        &self,
-        terrain: &TerrainGen,
-        scale: VoxelScale,
-        x: i64,
-        y: i64,
-        z: i64,
-    ) -> bool {
-        match self.loaded.get(&ChunkPos::from_world_voxel(x, y, z)) {
-            Some(loaded) => {
-                let (lx, ly, lz) = local_voxel(x, y, z);
-                loaded.chunk.get(lx, ly, lz).is_solid()
-            }
-            None => terrain.block_at(scale, x, y, z) != Block::Air,
-        }
-    }
 }
 
 /// Marks a chunk's render entity; the transform is recomputed from f64 every
@@ -173,9 +164,12 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     let mut authority = Authority::new(BENCH_SEED, boot_voxels);
     let spawn = authority.find_open_spawn();
     let boot_title = title_text(boot_voxels, true, authority.authority_label());
-    // TerrainGen is still the streaming fallback for unloaded neighbours and
-    // the far-mesh rings (ROADMAP Observed: far field is not yet worldgen).
-    let terrain = TerrainGen::new(BENCH_SEED);
+    // The far-mesh rings still sample the legacy S1 `TerrainGen` (ROADMAP
+    // Observed / journal/0017: the far field is not yet worldgen-shaped, so it
+    // paints a ~1 km phantom old world below the real terrain). That generator
+    // now lives ONLY inside the far-mesh's own resource — there is no ambient
+    // `Terrain` fallback for a near-field system to reach a wrong world through.
+    let far_terrain = farmesh::FarFieldTerrain::new(BENCH_SEED);
 
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -188,7 +182,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     .add_plugins(PostStagePlugin { pack_selector })
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
-    .insert_resource(Terrain(terrain))
+    .insert_resource(far_terrain)
     .insert_resource(CurrentScale::new(boot_voxels))
     .insert_resource(FloatingOrigin(spawn))
     .insert_resource(Player::new(spawn))
