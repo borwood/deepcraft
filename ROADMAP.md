@@ -372,8 +372,9 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
   above the analytic surface won't be snapped to; revisit when worldgen
   amplitude grows. `find_open_spawn` uses terrain-only solidity — correct
   at startup, wrong if ever reused post-edits. Dev `spawn_character` stays
-  unguarded (dev keeps full reach) — **pending ratification**, along with
-  `surface:true` attach semantics (API.md § Characters, marked).
+  unguarded (dev keeps full reach) — *ratified 2026-07-19 along with
+  `surface:true` attach semantics (API.md § Characters records it; this
+  line was stale until the 2nd-session doc sweep).*
 
 - Walks 3–4 (journal/0003, 0004 — corrected record in corrections.md #3,
   #5): near-field lighting blows out pale top faces (flat shading +

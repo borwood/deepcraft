@@ -72,6 +72,18 @@ editors emit them, plugins ship them, "vanilla" is the first one. Model +
 animation payloads follow the transformed-cubes/keyframe format
 (Blockbench-shaped, see ARCHITECTURE.md § Content model).
 
+**Pack-degradation doctrine — DECIDED 2026-07-19 (user).** Players will run
+messy, experimental, willy-nilly plugin lists; that is anticipated, not
+misuse. Pack-content problems therefore **inform and degrade — they never
+fail the game**: the result is playable by construction, with warnings
+naming what was skipped and why (loudness is the invariant — no world
+content may *silently* depend on installed-pack coincidence, geology.md
+§ unfilled slots). Individual malformed defs still reject at define time
+with `SchemaViolation` — that rejection *is* the informing mechanism at
+authoring time, and it never takes the world down with it. Instances so
+far: unfilled framework classes (eventual warn-and-skip at world creation),
+orphan anim clips (lint warning).
+
 <!-- EDITED 2026-07-19 (geology backbone slice 1); accepted as-built,
      integrator review 2026-07-19 (engineering internals within the ratified
      geology design — see docs/design/geology.md for the user-owned frame) -->
@@ -183,10 +195,15 @@ cannot drift. **Firewall**: plans/clips are pure data; the stepped ~12 fps
 sampler + crossfade player + segment renderer are client-only (dc-client
 `body.rs`/`character.rs`) and never read back into sim (the sampler reads body
 velocity one-way to pick idle vs walk). `Payload`/`Effects`/`RejectReason`
-grew only appended variants/fields (postcard wire identity preserved). **Open
-for ratification**: the plan/clip schema fields; the verb vocabulary and the
-required set; whether clips should be plan-owned rather than standalone; the
-render-side quantization constants (12 fps, 32-step rotations, 5 mm bob).
+grew only appended variants/fields (postcard wire identity preserved).
+*(Resolved 2026-07-19: **clips standalone RATIFIED** — clips name joints and
+predate plans, so forked plans reuse ancestor clips by retained joints and
+clips share across plans; orphan clips are a **warning, never a failure**
+(lint concern). Schema fields, verb vocabulary + required set, and the
+render quantization constants (12 fps / 32-step / 5 mm) ride as-built —
+engineering internals and tuning within the ratified bodies design; the
+vocabulary grows with gameplay verbs, the constants await the filed
+photo-driven tuning pass.)*
 <!-- END EDIT -->
 
 ## Observation vs inspection (the constraint-ledger interaction)
