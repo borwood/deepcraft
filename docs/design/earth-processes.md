@@ -158,6 +158,37 @@ drainage reroutes — **drainage/flow-area is the sole ADVECT**, everything
 else in the catalog relaxes at 16–24 cells. Read-quality at 500 m already
 tells true stories (pulsed arid fans, transgressive couplets, condensed
 cyclic margins). **USER-RATIFIED for 3e (2026-07-19): A always-on + C refinement.**
+
+**3e-2 decisions (RATIFIED 2026-07-19, second session, unpacked walkthrough):**
+
+1. **Drainage handoff**: drainage and contributing area are decided ONCE at
+   the coarse A tier; C inherits them as fixed boundary fields and never
+   re-routes (the halo theorem forecloses fine re-derivation — fluvial
+   reach is global, corrections #8). Ratified **with the river-conditioning
+   mechanism as the excuse (user)**: within a corridor ~one coarse cell
+   wide, the channel line wanders by deterministic noise bent toward
+   refined local lows, while the refined surface is simultaneously nudged
+   so elevation descends monotonically along the flow path and
+   cross-slopes tilt toward the channel — two-way negotiation below a
+   frozen macro topology. Hard constraints: descent-along-flow is a hard
+   refinement constraint (not cosmetic), and the corridor never crosses a
+   drainage divide (no catchment theft — the line between lerp and
+   re-routing).
+2. **Width cap**: permanent architecture, not apology — "coarsen the
+   cause, refine on approach" (user: "the cost of global and scale").
+3. **Stitching**: elevation injects at the finer lattice level inside a
+   refined region (shared-ancestor interpolation absorbs the boundary —
+   the 0015 mechanism, third use); the strata record commits interior-only
+   after simulating with the measured 16–24-cell halo; record contacts
+   step at the commit boundary and at cell scale — and per method rule 5,
+   every such contact must be dressed by procedural tricks before it
+   reaches the eye (contact-softening IN SCOPE for 3e-2).
+4. **Approach trigger**: proximity at region granularity within
+   LOOKAHEAD_BOUNDS plus lead margin, refined async (~3.6 s measured);
+   deterministic and approach-order-independent by construction given
+   decision 1.
+5. **Calibration (iteration↔Myr)**: OPEN — the remembered-time question,
+   user-owned, under discussion; can land with S10.
 **Recommendation: A always-on + C refinement — CONFIRMED by S9b
 (2026-07-19, docs/spikes/S9b-results.md, corrections #9): parallelism
 does NOT flip B on this hardware.** The determinism tax forecloses it:

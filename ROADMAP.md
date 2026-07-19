@@ -232,12 +232,25 @@ docs/design/ecology.md): community vector + the six processes on the
 read-quality — do we get coal seams, paleosols, charcoal bands,
 retrogressive surfaces? Evolution explicitly out of scope.
 
-**3e-2 — C refinement** (needs deciding first, per the 3e-1 report): the
-coarse→fine drainage handoff (decide drainage coarse at A, inherit area
-as a fixed boundary field); how a refined region's strata stitch into the
-collapse pyramid within LOOKAHEAD_BOUNDS given the measured 16–24-cell
-halo; the approach trigger; whether C supersedes the Large-extent deep
-grid width cap; and the iteration↔Myr / cell↔km calibration.
+**3e-2 — C refinement** (DECIDED 2026-07-19 — earth-processes.md § 3e-2
+decisions — and implementable): drainage coarse-at-A with the
+river-conditioning mechanism (corridor wander toward refined lows +
+descent-along-flow as hard constraint, no divide-crossing); width cap
+permanent; 0015-mechanism elevation stitch + interior-commit records over
+the 16–24-cell halo; proximity approach trigger, order-independent by
+construction; **contact-softening in scope per method rule 5** (no
+grid/analytic boundary reaches the eye). Open: iteration↔Myr calibration
+(the remembered-time question, user-owned; can land with S10).
+
+**Water-model design pass** (ratified 2026-07-19, user; field-notebook
+first per the earth-processes method): groundwater as "another dimension
+for the flow to go" — water table / aquifers (S8 per-voxel porosity is
+the waiting substrate), ponds and sub-resolution water (procedural-tricks
+tail), visible/flowing water (couples to PBR-2 water), lakes/inland seas
+already implicit as deep-tier flooded basins (spill levels known).
+**Groundwater ↔ CAVES coupling flagged by the user** — speleogenesis as
+the eventual cave story (today's caves are S1 noise carving). Design doc
+before any code.
 
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.

@@ -208,8 +208,17 @@ challenge, explicitly maybe-impossible)
   process whose influence crosses it; the frontier would need per-process
   treatment (bounded processes stream freely; global ones need committed
   coarse skeletons — which is exactly what the A-tier cap already is).
-  Parked as a challenge, not scheduled; the width cap + C refinement is
-  the working answer.
+- **User counter (2026-07-19, second pass): even global flow can be
+  frontier-hacked.** A cross-border flux is a *committed fact that
+  constrains the uncollapsed exterior*: "we don't know where all this
+  water came from at this edge, but it does imply there's higher terrain
+  that way which hasn't been collapsed yet." Seeded rolls at the edge
+  commit inflow magnitudes; the exterior's later collapse must honor them
+  (enough catchment mass, enough elevation, that way). This is exactly
+  S2 ledger semantics — facts constraining distributions — applied to
+  terrain itself. Still a challenge (conservation across a growing
+  frontier; retro-consistency of many committed fluxes), not scheduled;
+  the width cap + C refinement is the working answer.
 
 ## Posture ladder (user sketch, 2026-07-19 — crouch DECIDED separately in
 bodies.md; everything below is unscheduled)
