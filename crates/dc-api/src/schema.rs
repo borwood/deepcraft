@@ -275,6 +275,146 @@ pub fn registry() -> &'static [CommandSpec] {
             },
             decode_json: |v| decode(v, Payload::EventsPoll),
         },
+        CommandSpec {
+            id: ids::CHARACTER_SPAWN,
+            kind: CommandKind::Command,
+            doc: "Spawn a persistent named character with a physical body at a \
+                  position (feet, world meters). It exists in the world, falls \
+                  and collides, and is driven by whoever holds control of it.",
+            capability: "entity.spawn (dev grant; character sessions spawn via \
+                         their attach flow)",
+            payload_schema: || {
+                s_obj(
+                    "spawn_character payload",
+                    &[
+                        (
+                            "name",
+                            s_str("bare slug name ([a-z0-9_-], max 64), e.g. scout"),
+                            true,
+                        ),
+                        ("pos", s_vec3f("feet position in world meters"), true),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::SpawnCharacter),
+        },
+        CommandSpec {
+            id: ids::CHARACTER_SET_MOVE_INTENT,
+            kind: CommandKind::Command,
+            doc: "Set a character's horizontal movement intent: world-space \
+                  direction (dx, dz — normalized; zero = stop) and a fraction \
+                  of full walk speed. Persists until countermanded; the body \
+                  integrates with collision and gravity every tick.",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "set_move_intent payload",
+                    &[
+                        ("character", s_str("character name"), true),
+                        ("dx", s_num("world-space X direction component"), true),
+                        ("dz", s_num("world-space Z direction component"), true),
+                        ("speed", s_num("fraction of full walk speed, 0..1"), true),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::SetMoveIntent),
+        },
+        CommandSpec {
+            id: ids::CHARACTER_SET_LOOK,
+            kind: CommandKind::Command,
+            doc: "Aim a character's gaze: yaw and pitch in radians \
+                  (yaw 0 = -Z; NEGATIVE pitch looks down, clamped to ±1.55).",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "set_look payload",
+                    &[
+                        ("character", s_str("character name"), true),
+                        ("yaw", s_num("radians, 0 = -Z"), true),
+                        (
+                            "pitch",
+                            s_num("radians, NEGATIVE looks down, clamped to ±1.55"),
+                            true,
+                        ),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::SetLook),
+        },
+        CommandSpec {
+            id: ids::CHARACTER_JUMP,
+            kind: CommandKind::Command,
+            doc: "Request a jump; fires at the next tick if the character is \
+                  on the ground then (dropped otherwise).",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "jump payload",
+                    &[("character", s_str("character name"), true)],
+                )
+            },
+            decode_json: |v| decode(v, Payload::Jump),
+        },
+        CommandSpec {
+            id: ids::CHARACTER_POSE,
+            kind: CommandKind::Query,
+            doc: "The character's own proprioception: feet position (meters), \
+                  velocity, yaw/pitch, on_ground, and eye_in_solid (true = its \
+                  eyes are buried; senses from here see the inside of terrain).",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "pose payload",
+                    &[("character", s_str("character name"), true)],
+                )
+            },
+            decode_json: |v| decode(v, Payload::CharacterPose),
+        },
+        CommandSpec {
+            id: ids::CHARACTER_SENSE_RAYCAST,
+            kind: CommandKind::Query,
+            doc: "Cast the character's gaze from its eyes along its look \
+                  direction (or a given direction): first solid voxel with \
+                  block name, entry face, and distance. Max range 50 m.",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "sense_raycast payload",
+                    &[
+                        ("character", s_str("character name"), true),
+                        (
+                            "dir",
+                            s_vec3f("direction override (default: current gaze)"),
+                            false,
+                        ),
+                        (
+                            "max_distance_m",
+                            s_num("max range in meters, capped at 50"),
+                            false,
+                        ),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::SenseRaycast),
+        },
+        CommandSpec {
+            id: ids::CHARACTER_SENSE_SURROUNDINGS,
+            kind: CommandKind::Query,
+            doc: "The character's near perception: scan the block volume in a \
+                  cube of `radius` voxels (max 16) around its feet, as \
+                  palette + indices (x-fastest, then z, then y).",
+            capability: "character.control(character)",
+            payload_schema: || {
+                s_obj(
+                    "sense_surroundings payload",
+                    &[
+                        ("character", s_str("character name"), true),
+                        ("radius", s_int("cube half-extent in voxels, 0..=16"), true),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::SenseSurroundings),
+        },
     ];
     REGISTRY
 }
@@ -345,6 +485,36 @@ mod tests {
             Payload::EventsPoll(payload::EventsPoll {
                 subscription: 1,
                 max: None,
+            }),
+            Payload::SpawnCharacter(payload::SpawnCharacter {
+                name: "scout".into(),
+                pos: crate::payload::Vec3f::new(1.0, 2.0, 3.0),
+            }),
+            Payload::SetMoveIntent(payload::SetMoveIntent {
+                character: "scout".into(),
+                dx: 1.0,
+                dz: -0.5,
+                speed: 0.8,
+            }),
+            Payload::SetLook(payload::SetLook {
+                character: "scout".into(),
+                yaw: 0.5,
+                pitch: -0.2,
+            }),
+            Payload::Jump(payload::Jump {
+                character: "scout".into(),
+            }),
+            Payload::CharacterPose(payload::CharacterPose {
+                character: "scout".into(),
+            }),
+            Payload::SenseRaycast(payload::SenseRaycast {
+                character: "scout".into(),
+                dir: None,
+                max_distance_m: Some(20.0),
+            }),
+            Payload::SenseSurroundings(payload::SenseSurroundings {
+                character: "scout".into(),
+                radius: 8,
             }),
         ];
         assert_eq!(

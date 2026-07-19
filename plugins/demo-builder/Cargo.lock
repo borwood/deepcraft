@@ -16,6 +16,7 @@ name = "dc-api"
 version = "0.1.0"
 dependencies = [
  "dc-core",
+ "glam",
  "postcard",
  "serde",
  "serde_json",

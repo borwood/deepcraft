@@ -19,6 +19,13 @@ pub mod ids {
     pub const REGISTRY_DEFINE_ITEM: &str = "dc:registry/define_item";
     pub const EVENTS_SUBSCRIBE: &str = "dc:events/subscribe";
     pub const EVENTS_POLL: &str = "dc:events/poll";
+    pub const CHARACTER_SPAWN: &str = "dc:character/spawn_character";
+    pub const CHARACTER_SET_MOVE_INTENT: &str = "dc:character/set_move_intent";
+    pub const CHARACTER_SET_LOOK: &str = "dc:character/set_look";
+    pub const CHARACTER_JUMP: &str = "dc:character/jump";
+    pub const CHARACTER_POSE: &str = "dc:character/pose";
+    pub const CHARACTER_SENSE_RAYCAST: &str = "dc:character/sense_raycast";
+    pub const CHARACTER_SENSE_SURROUNDINGS: &str = "dc:character/sense_surroundings";
 }
 
 /// A world-space voxel coordinate (the 3D lattice is unbounded; i64 like
@@ -182,6 +189,77 @@ pub struct EventsPoll {
     pub max: Option<u32>,
 }
 
+/// `dc:character/spawn_character` — create a persistent named character with
+/// a body at a position (feet, meters). Dev-grant (`entity.spawn`); the
+/// character surface spawns through its session attach flow, never directly.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SpawnCharacter {
+    /// Bare slug (`[a-z0-9_-]{1,64}`): becomes a grant scope and a consumer
+    /// identity.
+    pub name: String,
+    pub pos: Vec3f,
+}
+
+/// `dc:character/set_move_intent` — set the character's horizontal movement
+/// intent: a world-space direction (normalized by the host; zero = stop) and
+/// a fraction of full walk speed. Persists until countermanded.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SetMoveIntent {
+    pub character: String,
+    /// World-space X component of the intended direction.
+    pub dx: f64,
+    /// World-space Z component of the intended direction.
+    pub dz: f64,
+    /// Fraction of full walk speed, clamped to [0, 1].
+    pub speed: f64,
+}
+
+/// `dc:character/set_look` — aim the character's head/eyes.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SetLook {
+    pub character: String,
+    /// Radians, 0 = -Z.
+    pub yaw: f32,
+    /// Radians, NEGATIVE looks down; clamped to ±1.55.
+    pub pitch: f32,
+}
+
+/// `dc:character/jump` — request a jump; fires at the next tick step if the
+/// character is on the ground then (dropped otherwise).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct Jump {
+    pub character: String,
+}
+
+/// `dc:character/pose` — the character's own proprioception: pose, ground
+/// contact, and eye_in_solid.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct CharacterPose {
+    pub character: String,
+}
+
+/// `dc:character/sense_raycast` — look along the character's own gaze (or a
+/// given direction) from its eyes; first solid voxel within range.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SenseRaycast {
+    pub character: String,
+    /// Direction to look; `None` = the character's current view direction.
+    #[serde(default)]
+    pub dir: Option<Vec3f>,
+    /// Max range in meters, capped at 50.
+    #[serde(default)]
+    pub max_distance_m: Option<f64>,
+}
+
+/// `dc:character/sense_surroundings` — near perception: the block volume in a
+/// cube of `radius` voxels (≤ 16) around the character's feet.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct SenseSurroundings {
+    pub character: String,
+    /// Half-extent of the scanned cube in voxels, 0..=16.
+    pub radius: u32,
+}
+
 /// The typed union of every payload in the v0 slice. Externally tagged serde
 /// (JSON: `{"SetBlock": {...}}`), enum-indexed in postcard.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -195,6 +273,13 @@ pub enum Payload {
     DefineItem(DefineItem),
     EventsSubscribe(EventsSubscribe),
     EventsPoll(EventsPoll),
+    SpawnCharacter(SpawnCharacter),
+    SetMoveIntent(SetMoveIntent),
+    SetLook(SetLook),
+    Jump(Jump),
+    CharacterPose(CharacterPose),
+    SenseRaycast(SenseRaycast),
+    SenseSurroundings(SenseSurroundings),
 }
 
 impl Payload {
@@ -211,6 +296,13 @@ impl Payload {
             Payload::DefineItem(_) => ids::REGISTRY_DEFINE_ITEM,
             Payload::EventsSubscribe(_) => ids::EVENTS_SUBSCRIBE,
             Payload::EventsPoll(_) => ids::EVENTS_POLL,
+            Payload::SpawnCharacter(_) => ids::CHARACTER_SPAWN,
+            Payload::SetMoveIntent(_) => ids::CHARACTER_SET_MOVE_INTENT,
+            Payload::SetLook(_) => ids::CHARACTER_SET_LOOK,
+            Payload::Jump(_) => ids::CHARACTER_JUMP,
+            Payload::CharacterPose(_) => ids::CHARACTER_POSE,
+            Payload::SenseRaycast(_) => ids::CHARACTER_SENSE_RAYCAST,
+            Payload::SenseSurroundings(_) => ids::CHARACTER_SENSE_SURROUNDINGS,
         }
     }
 }
@@ -245,6 +337,29 @@ pub enum QueryData {
     Events {
         events: Vec<crate::event::GameEvent>,
         remaining: u64,
+    },
+    /// A character's own pose and proprioception (`dc:character/pose`).
+    CharacterPose {
+        name: String,
+        /// Feet position, meters.
+        pos: Vec3f,
+        vel: Vec3f,
+        yaw: f32,
+        pitch: f32,
+        on_ground: bool,
+        /// True when the eye voxel is solid — screenshots/senses from here
+        /// are inside terrain.
+        eye_in_solid: bool,
+    },
+    /// First solid voxel along a character's gaze (`sense_raycast`).
+    /// All fields are `None` on a miss.
+    CharacterRaycast {
+        hit: bool,
+        voxel: Option<Vec3i>,
+        block: Option<String>,
+        /// Entry-face normal; (0,0,0) when the eye started inside a solid.
+        normal: Option<Vec3i>,
+        distance_m: Option<f64>,
     },
 }
 
@@ -297,6 +412,13 @@ mod tests {
             ids::REGISTRY_DEFINE_ITEM,
             ids::EVENTS_SUBSCRIBE,
             ids::EVENTS_POLL,
+            ids::CHARACTER_SPAWN,
+            ids::CHARACTER_SET_MOVE_INTENT,
+            ids::CHARACTER_SET_LOOK,
+            ids::CHARACTER_JUMP,
+            ids::CHARACTER_POSE,
+            ids::CHARACTER_SENSE_RAYCAST,
+            ids::CHARACTER_SENSE_SURROUNDINGS,
         ] {
             let rest = id.strip_prefix("dc:").expect("dc: namespace");
             let (domain, verb) = rest.split_once('/').expect("domain/verb");

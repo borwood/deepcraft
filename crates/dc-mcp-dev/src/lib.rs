@@ -190,7 +190,9 @@ impl ServerHandler for DevMcpServer {
 }
 
 /// The broad dev-session token: unbounded world read/write, entity spawn,
-/// event subscription, and `dev:*` item authorship.
+/// event subscription, `dev:*` item authorship, and control of any character
+/// (the character-MCP milestone: the dev surface may puppet/debug every
+/// character; an embodied session holds the attenuated one-character form).
 pub fn dev_session_token() -> CapabilityToken {
     CapabilityToken::new(vec![
         dc_api::Grant::WorldRead { volume: None },
@@ -200,5 +202,6 @@ pub fn dev_session_token() -> CapabilityToken {
         dc_api::Grant::RegistryDefine {
             namespace: "dev".into(),
         },
+        dc_api::Grant::CharacterControl { character: None },
     ])
 }

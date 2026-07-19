@@ -16,11 +16,25 @@ use crate::payload::{DefineItem, Payload, Volume};
 /// One scoped grant. `None` volumes mean "anywhere".
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum Grant {
-    WorldRead { volume: Option<Volume> },
-    WorldWrite { volume: Option<Volume> },
+    WorldRead {
+        volume: Option<Volume>,
+    },
+    WorldWrite {
+        volume: Option<Volume>,
+    },
     EntitySpawn,
-    RegistryDefine { namespace: String },
+    RegistryDefine {
+        namespace: String,
+    },
     EventsSubscribe,
+    /// Control of a character's body **and** access to its senses — the
+    /// controller verbs (`set_move_intent`/`set_look`/`jump`) and the
+    /// diegetic queries (`pose`/`sense_raycast`/`sense_surroundings`) all
+    /// require this. `None` = any character (the broad dev/parent form);
+    /// `Some(name)` = exactly that character (the attenuated session form).
+    CharacterControl {
+        character: Option<String>,
+    },
 }
 
 impl Grant {
@@ -39,6 +53,14 @@ impl Grant {
                 a == b
             }
             (Grant::EventsSubscribe, Grant::EventsSubscribe) => true,
+            (
+                Grant::CharacterControl { character: a },
+                Grant::CharacterControl { character: b },
+            ) => match (a, b) {
+                (None, _) => true,
+                (Some(_), None) => false,
+                (Some(a), Some(b)) => a == b,
+            },
             _ => false,
         }
     }
@@ -56,6 +78,8 @@ pub enum Requirement {
     EntitySpawn,
     RegistryDefine(String),
     EventsSubscribe,
+    /// Control/senses of this specific character.
+    CharacterControl(String),
 }
 
 impl std::fmt::Display for Requirement {
@@ -75,6 +99,7 @@ impl std::fmt::Display for Requirement {
             Requirement::EntitySpawn => write!(f, "entity.spawn"),
             Requirement::RegistryDefine(ns) => write!(f, "registry.define({ns})"),
             Requirement::EventsSubscribe => write!(f, "events.subscribe"),
+            Requirement::CharacterControl(name) => write!(f, "character.control({name})"),
         }
     }
 }
@@ -96,6 +121,17 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
         Payload::DefineItem(p) => Requirement::RegistryDefine(item_namespace(p)?),
         Payload::EventsSubscribe(_) => Requirement::EventsSubscribe,
         Payload::EventsPoll(_) => Requirement::EventsSubscribe,
+        // Spawning a character is a dev-grant act (the character surface's
+        // attach flow spawns with the surface's parent token, not the
+        // session's); everything a character *does or senses* requires
+        // control of exactly that character.
+        Payload::SpawnCharacter(_) => Requirement::EntitySpawn,
+        Payload::SetMoveIntent(p) => Requirement::CharacterControl(p.character.clone()),
+        Payload::SetLook(p) => Requirement::CharacterControl(p.character.clone()),
+        Payload::Jump(p) => Requirement::CharacterControl(p.character.clone()),
+        Payload::CharacterPose(p) => Requirement::CharacterControl(p.character.clone()),
+        Payload::SenseRaycast(p) => Requirement::CharacterControl(p.character.clone()),
+        Payload::SenseSurroundings(p) => Requirement::CharacterControl(p.character.clone()),
     })
 }
 
@@ -148,6 +184,9 @@ impl CapabilityToken {
                 namespace == need
             }
             (Grant::EventsSubscribe, Requirement::EventsSubscribe) => true,
+            (Grant::CharacterControl { character }, Requirement::CharacterControl(need)) => {
+                character.as_ref().is_none_or(|c| c == need)
+            }
             _ => false,
         })
     }
@@ -282,6 +321,51 @@ mod tests {
         let claimed_forged = CapabilityToken::new(vec![Grant::WorldWrite { volume: None }]);
         assert!(installed.covers_token(&claimed_ok));
         assert!(!installed.covers_token(&claimed_forged));
+    }
+
+    #[test]
+    fn character_control_scopes_to_one_name_and_never_widens() {
+        let any = CapabilityToken::new(vec![Grant::CharacterControl { character: None }]);
+        let scout = CapabilityToken::new(vec![Grant::CharacterControl {
+            character: Some("scout".into()),
+        }]);
+        // Coverage: the broad grant covers any name; the scoped one exactly its own.
+        assert!(any.covers(&Requirement::CharacterControl("scout".into())));
+        assert!(any.covers(&Requirement::CharacterControl("other".into())));
+        assert!(scout.covers(&Requirement::CharacterControl("scout".into())));
+        assert!(!scout.covers(&Requirement::CharacterControl("other".into())));
+        // Character control implies nothing else (deny by default).
+        assert!(!scout.covers(&Requirement::WorldWrite(vol((0, 0, 0), (0, 0, 0)))));
+        assert!(!scout.covers(&Requirement::WorldRead(vol((0, 0, 0), (0, 0, 0)))));
+        assert!(!scout.covers(&Requirement::EntitySpawn));
+        assert!(!scout.covers(&Requirement::EventsSubscribe));
+        // Attenuation: any -> one narrows; one -> other/any refused.
+        assert!(
+            any.attenuate(vec![Grant::CharacterControl {
+                character: Some("scout".into())
+            }])
+            .is_ok()
+        );
+        assert!(
+            scout
+                .attenuate(vec![Grant::CharacterControl {
+                    character: Some("other".into())
+                }])
+                .is_err()
+        );
+        assert!(
+            scout
+                .attenuate(vec![Grant::CharacterControl { character: None }])
+                .is_err()
+        );
+        // A token without the family cannot mint it at all.
+        assert!(
+            CapabilityToken::none()
+                .attenuate(vec![Grant::CharacterControl {
+                    character: Some("scout".into())
+                }])
+                .is_err()
+        );
     }
 
     #[test]

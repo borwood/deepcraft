@@ -10,6 +10,9 @@ publish.workspace = true
 # compile for wasm32-unknown-unknown so plugins can share the envelope types.
 # dc-sim / dc-worldgen bind to the API from the sim side and are NOT deps here.
 dc-core.workspace = true
+# Character bodies (character-MCP milestone): the swept-AABB step and raycast
+# senses share dc-core's DVec3-based geometry. Still wasm-safe.
+glam.workspace = true
 postcard.workspace = true
 serde.workspace = true
 serde_json.workspace = true

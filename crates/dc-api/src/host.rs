@@ -13,11 +13,14 @@
 //! a low hill-field with grass tops between y=-3 and y=-1, air above), a Vec
 //! of simple entities, a manual [`HostWorld::tick`] driver. No rendering.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
 
-use dc_core::{Block, Chunk, ChunkPos, local_voxel};
+use dc_core::{Block, Chunk, ChunkPos, local_voxel, raycast_voxels};
+use glam::DVec3;
 
 use crate::capability::requirement_for;
+use crate::character::{CharacterConfig, CharacterState, step_character, valid_character_name};
 use crate::envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, Effects, QueryReceipt,
     QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick,
@@ -101,7 +104,14 @@ enum Undo {
     PopEntity,
     RemoveItem(String),
     RemoveSub(u64),
+    RemoveCharacter(String),
+    RestoreCharacter(Box<CharacterState>),
 }
+
+/// Max range of a character sense raycast, meters.
+pub const MAX_SENSE_RAYCAST_M: f64 = 50.0;
+/// Max half-extent of a `sense_surroundings` scan, voxels.
+pub const MAX_SENSE_RADIUS_VOXELS: u32 = 16;
 
 /// Pluggable base-terrain generator: the authoritative contents of a chunk
 /// that has never been edited. Must be a pure function of `pos` (all entropy
@@ -124,6 +134,10 @@ pub struct HostWorld {
     tick: Tick,
     chunks: HashMap<ChunkPos, Chunk>,
     entities: Vec<EntityInfo>,
+    /// Persistent named characters, stepped every tick (BTreeMap: the step
+    /// order is part of the deterministic replay identity).
+    characters: std::collections::BTreeMap<String, CharacterState>,
+    character_config: CharacterConfig,
     next_entity_id: u64,
     items: std::collections::BTreeMap<String, ItemDef>,
     subs: std::collections::BTreeMap<u64, Subscription>,
@@ -142,6 +156,8 @@ impl HostWorld {
             tick: 0,
             chunks: HashMap::new(),
             entities: Vec::new(),
+            characters: std::collections::BTreeMap::new(),
+            character_config: CharacterConfig::default(),
             next_entity_id: 1,
             items: std::collections::BTreeMap::new(),
             subs: std::collections::BTreeMap::new(),
@@ -182,6 +198,26 @@ impl HostWorld {
 
     pub fn entities(&self) -> &[EntityInfo] {
         &self.entities
+    }
+
+    /// Configure character body dimensions / dynamics (the client sets
+    /// `voxel_size_m` from its active scale). Part of the replay identity:
+    /// replays must use the same config.
+    pub fn set_character_config(&mut self, config: CharacterConfig) {
+        self.character_config = config;
+    }
+
+    pub fn character_config(&self) -> &CharacterConfig {
+        &self.character_config
+    }
+
+    pub fn character(&self, name: &str) -> Option<&CharacterState> {
+        self.characters.get(name)
+    }
+
+    /// All characters, in deterministic (name) order.
+    pub fn characters(&self) -> impl Iterator<Item = &CharacterState> {
+        self.characters.values()
     }
 
     // ------------------------------------------------------------ terrain --
@@ -388,8 +424,33 @@ impl HostWorld {
             produced.extend(self.apply_group(t, group));
             i = group_end;
         }
+        // Character bodies integrate after this tick's commands have applied,
+        // so a controller verb takes effect on the tick it lands on.
+        self.step_characters();
         self.tick = t;
         produced
+    }
+
+    /// Step every character one tick against the voxel world, in name order.
+    /// The solidity query lazily generates chunks like any other consumer
+    /// (hence the RefCell: `move_aabb` wants a `Fn`, chunk generation wants
+    /// `&mut self`; single-threaded and non-reentrant, so this is safe).
+    fn step_characters(&mut self) {
+        if self.characters.is_empty() {
+            return;
+        }
+        let cfg = self.character_config;
+        let mut characters = std::mem::take(&mut self.characters);
+        {
+            let world = RefCell::new(&mut *self);
+            let solid = |x: i64, y: i64, z: i64| {
+                world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid()
+            };
+            for character in characters.values_mut() {
+                step_character(character, &cfg, &solid);
+            }
+        }
+        self.characters = characters;
     }
 
     /// Apply an all-or-nothing group (a lone command is a group of one).
@@ -444,6 +505,12 @@ impl HostWorld {
                         Undo::RemoveSub(id) => {
                             self.subs.remove(&id);
                             self.next_sub_id -= 1;
+                        }
+                        Undo::RemoveCharacter(name) => {
+                            self.characters.remove(&name);
+                        }
+                        Undo::RestoreCharacter(prev) => {
+                            self.characters.insert(prev.name.clone(), *prev);
                         }
                     }
                 }
@@ -644,11 +711,77 @@ impl HostWorld {
                 journal.push(Undo::RemoveSub(id));
                 effects.subscriptions_created.push(id);
             }
+            Payload::SpawnCharacter(p) => {
+                if !valid_character_name(&p.name) {
+                    return Err(RejectReason::PayloadInvalid {
+                        reason: format!(
+                            "character name `{}` is not a bare slug ([a-z0-9_-], max 64)",
+                            p.name
+                        ),
+                    });
+                }
+                if ![p.pos.x, p.pos.y, p.pos.z].iter().all(|v| v.is_finite()) {
+                    return Err(RejectReason::PayloadInvalid {
+                        reason: "character position must be finite".into(),
+                    });
+                }
+                if self.characters.contains_key(&p.name) {
+                    return Err(RejectReason::AlreadyDefined {
+                        key: p.name.clone(),
+                    });
+                }
+                self.characters
+                    .insert(p.name.clone(), CharacterState::new(p.name.clone(), p.pos));
+                journal.push(Undo::RemoveCharacter(p.name.clone()));
+                effects.characters_spawned.push(p.name.clone());
+            }
+            Payload::SetMoveIntent(p) => {
+                if ![p.dx, p.dz, p.speed].iter().all(|v| v.is_finite()) {
+                    return Err(RejectReason::PayloadInvalid {
+                        reason: "move intent must be finite".into(),
+                    });
+                }
+                let character = self.characters.get_mut(&p.character).ok_or_else(|| {
+                    RejectReason::UnknownCharacter {
+                        name: p.character.clone(),
+                    }
+                })?;
+                journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
+                character.input.move_dir = (p.dx, p.dz);
+                character.input.speed = p.speed.clamp(0.0, 1.0);
+            }
+            Payload::SetLook(p) => {
+                if !p.yaw.is_finite() || !p.pitch.is_finite() {
+                    return Err(RejectReason::PayloadInvalid {
+                        reason: "look angles must be finite".into(),
+                    });
+                }
+                let character = self.characters.get_mut(&p.character).ok_or_else(|| {
+                    RejectReason::UnknownCharacter {
+                        name: p.character.clone(),
+                    }
+                })?;
+                journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
+                character.yaw = p.yaw;
+                character.pitch = p.pitch.clamp(-1.55, 1.55);
+            }
+            Payload::Jump(p) => {
+                let character = self.characters.get_mut(&p.character).ok_or_else(|| {
+                    RejectReason::UnknownCharacter {
+                        name: p.character.clone(),
+                    }
+                })?;
+                journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
+                character.input.jump = true;
+            }
             // Queries never reach apply (submit rejects them).
             Payload::GetBlock(_)
             | Payload::ScanRegion(_)
             | Payload::EntityQuery(_)
-            | Payload::EventsPoll(_) => {
+            | Payload::EventsPoll(_)
+            | Payload::CharacterPose(_)
+            | Payload::SenseRaycast(_)
+            | Payload::SenseSurroundings(_) => {
                 return Err(RejectReason::NotACommand { id: env.id.clone() });
             }
         }
@@ -720,29 +853,7 @@ impl HostWorld {
                         },
                     );
                 }
-                let mut palette: Vec<String> = Vec::new();
-                let mut indices = Vec::with_capacity(vol.voxel_count() as usize);
-                for y in vol.min.y..=vol.max.y {
-                    for z in vol.min.z..=vol.max.z {
-                        for x in vol.min.x..=vol.max.x {
-                            let name = block_name(self.block_at(Vec3i::new(x, y, z)));
-                            let idx = match palette.iter().position(|p| p == name) {
-                                Some(i) => i,
-                                None => {
-                                    palette.push(name.to_string());
-                                    palette.len() - 1
-                                }
-                            };
-                            indices.push(idx as u32);
-                        }
-                    }
-                }
-                QueryData::Region {
-                    min: vol.min,
-                    max: vol.max,
-                    palette,
-                    indices,
-                }
+                self.scan_data(vol)
             }
             Payload::EntityQuery(p) => {
                 let entities = self
@@ -777,17 +888,186 @@ impl HostWorld {
                 let remaining = sub.queue.len() as u64;
                 QueryData::Events { events, remaining }
             }
+            Payload::CharacterPose(p) => {
+                let Some(character) = self.characters.get(&p.character).cloned() else {
+                    return reject(
+                        tick,
+                        RejectReason::UnknownCharacter {
+                            name: p.character.clone(),
+                        },
+                    );
+                };
+                let eye = character.eye_m(&self.character_config);
+                let voxel_size = self.character_config.voxel_size_m;
+                let eye_voxel = Vec3i::new(
+                    (eye.x / voxel_size).floor() as i64,
+                    (eye.y / voxel_size).floor() as i64,
+                    (eye.z / voxel_size).floor() as i64,
+                );
+                QueryData::CharacterPose {
+                    name: character.name.clone(),
+                    pos: character.pos_m,
+                    vel: character.vel_m,
+                    yaw: character.yaw,
+                    pitch: character.pitch,
+                    on_ground: character.on_ground,
+                    eye_in_solid: self.block_at(eye_voxel).is_solid(),
+                }
+            }
+            Payload::SenseRaycast(p) => {
+                let Some(character) = self.characters.get(&p.character).cloned() else {
+                    return reject(
+                        tick,
+                        RejectReason::UnknownCharacter {
+                            name: p.character.clone(),
+                        },
+                    );
+                };
+                let dir = match p.dir {
+                    Some(d) => DVec3::new(d.x, d.y, d.z),
+                    None => character.view_dir(),
+                };
+                if !dir.is_finite() || dir.length_squared() <= 0.0 {
+                    return reject(
+                        tick,
+                        RejectReason::PayloadInvalid {
+                            reason: "raycast direction must be finite and nonzero".into(),
+                        },
+                    );
+                }
+                let dir = dir.normalize();
+                let max_m = p
+                    .max_distance_m
+                    .unwrap_or(MAX_SENSE_RAYCAST_M)
+                    .clamp(0.0, MAX_SENSE_RAYCAST_M);
+                let voxel_size = self.character_config.voxel_size_m;
+                let origin_v = character.eye_m(&self.character_config) / voxel_size;
+                // Direction is unitless: meters-space and voxel-space agree.
+                let hit = {
+                    let world = RefCell::new(&mut *self);
+                    let solid = |x: i64, y: i64, z: i64| {
+                        world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid()
+                    };
+                    raycast_voxels(&solid, origin_v, dir, max_m / voxel_size)
+                };
+                match hit {
+                    None => QueryData::CharacterRaycast {
+                        hit: false,
+                        voxel: None,
+                        block: None,
+                        normal: None,
+                        distance_m: None,
+                    },
+                    Some(h) => {
+                        let voxel = Vec3i::new(h.voxel.0, h.voxel.1, h.voxel.2);
+                        // Distance to the entry face: the ray crossed the grid
+                        // plane on the normal's axis (zero normal = eye already
+                        // inside solid, distance 0).
+                        let distance_v = match h.normal {
+                            (0, 0, 0) => 0.0,
+                            (nx, ny, nz) => {
+                                let (axis, negative_normal) = if nx != 0 {
+                                    (0, nx < 0)
+                                } else if ny != 0 {
+                                    (1, ny < 0)
+                                } else {
+                                    (2, nz < 0)
+                                };
+                                let coord = [h.voxel.0, h.voxel.1, h.voxel.2][axis];
+                                // Negative normal = ray was moving +axis and
+                                // entered through the low face.
+                                let plane = if negative_normal { coord } else { coord + 1 } as f64;
+                                let (o, d) = (origin_v[axis], dir[axis]);
+                                ((plane - o) / d).max(0.0)
+                            }
+                        };
+                        let block = block_name(self.block_at(voxel)).to_string();
+                        QueryData::CharacterRaycast {
+                            hit: true,
+                            voxel: Some(voxel),
+                            block: Some(block),
+                            normal: Some(Vec3i::new(h.normal.0, h.normal.1, h.normal.2)),
+                            distance_m: Some(distance_v * voxel_size),
+                        }
+                    }
+                }
+            }
+            Payload::SenseSurroundings(p) => {
+                let Some(character) = self.characters.get(&p.character) else {
+                    return reject(
+                        tick,
+                        RejectReason::UnknownCharacter {
+                            name: p.character.clone(),
+                        },
+                    );
+                };
+                if p.radius > MAX_SENSE_RADIUS_VOXELS {
+                    return reject(
+                        tick,
+                        RejectReason::PayloadInvalid {
+                            reason: format!(
+                                "surroundings radius {} exceeds the sense range of {} voxels",
+                                p.radius, MAX_SENSE_RADIUS_VOXELS
+                            ),
+                        },
+                    );
+                }
+                let voxel_size = self.character_config.voxel_size_m;
+                let center = Vec3i::new(
+                    (character.pos_m.x / voxel_size).floor() as i64,
+                    (character.pos_m.y / voxel_size).floor() as i64,
+                    (character.pos_m.z / voxel_size).floor() as i64,
+                );
+                let r = i64::from(p.radius);
+                let vol = Volume::new(
+                    Vec3i::new(center.x - r, center.y - r, center.z - r),
+                    Vec3i::new(center.x + r, center.y + r, center.z + r),
+                );
+                self.scan_data(vol)
+            }
             Payload::SetBlock(_)
             | Payload::Fill(_)
             | Payload::EntitySpawn(_)
             | Payload::DefineItem(_)
-            | Payload::EventsSubscribe(_) => {
+            | Payload::EventsSubscribe(_)
+            | Payload::SpawnCharacter(_)
+            | Payload::SetMoveIntent(_)
+            | Payload::SetLook(_)
+            | Payload::Jump(_) => {
                 return reject(tick, RejectReason::NotAQuery { id: env.id.clone() });
             }
         };
         QueryReceipt {
             tick_observed: tick,
             result: QueryResult::Ok(data),
+        }
+    }
+
+    /// Palette + indices scan of an inclusive volume (shared by
+    /// `world/scan_region` and the character's `sense_surroundings`).
+    fn scan_data(&mut self, vol: Volume) -> QueryData {
+        let mut palette: Vec<String> = Vec::new();
+        let mut indices = Vec::with_capacity(vol.voxel_count() as usize);
+        for y in vol.min.y..=vol.max.y {
+            for z in vol.min.z..=vol.max.z {
+                for x in vol.min.x..=vol.max.x {
+                    let name = block_name(self.block_at(Vec3i::new(x, y, z)));
+                    let idx = match palette.iter().position(|p| p == name) {
+                        Some(i) => i,
+                        None => {
+                            palette.push(name.to_string());
+                            palette.len() - 1
+                        }
+                    };
+                    indices.push(idx as u32);
+                }
+            }
+        }
+        QueryData::Region {
+            min: vol.min,
+            max: vol.max,
+            palette,
+            indices,
         }
     }
 
