@@ -24,7 +24,22 @@ render-space (0,0,0) — the floating origin, up to 256 m behind the player —
 producing movement-correlated geometry flashes.
 **Fix**: compute the origin-relative transform at spawn (`64729c5`).
 
-## 3. "serde `skip_serializing_if` is safe on wire types" (2026-07-18)
+## 3. Walk-3 misdiagnosis: "floating LOD shards and a horizon seam line" (2026-07-18)
+
+**Claim** (journal/0003 findings #3): far-mesh defects — detached geometry
+hanging in the sky and a hard seam line across the horizon.
+**Falsified by user review of the screenshots**: the camera was **inside a
+block**. The "seam line" was the outline of the face being viewed from its
+reverse side; the "floating" faces were outcroppings whose toward-facing
+faces were visible from within the terrain. Observer error, not renderer
+error. The finding #1 "inverted haze" diagnosis is also suspect for the same
+reason (white wash may be far-plane fog showing through culled near faces)
+— re-verify from provably-open air before fixing any shader.
+**Lesson**: a walker must know whether its own camera is inside solid. A
+"camera in solid" indicator (or teleport surface-clamping) is walker
+infrastructure, not polish.
+
+## 4. "serde `skip_serializing_if` is safe on wire types" (2026-07-18)
 
 **Falsified during S5**: postcard is positional; omitting fields silently
 corrupts the stream. Standing rule in API.md § v0 implementation notes;
