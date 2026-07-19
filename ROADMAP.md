@@ -37,6 +37,23 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — Surface-truth fix + attach guard (journal/0006, walk 6): the
+  walks-3–5 "under-report" diagnosed and closed — analytic field vs its own
+  voxelization (½-voxel top-face offset) compounded by footprint-over-slope
+  (14.49 m worst; 61% of columns would embed a body). `true_surface_m`
+  (footprint-max per-column voxel scan, edits included) now seats spawn,
+  `surface:true` teleport, and character attach; embed-guarded attach with
+  `obstructed` receipt + opt-in surface-snap; photographically verified at
+  the measured worst case. Corrections #5 (the "missing octave" story).
+
+- 2026-07-19 — Bodies/sockets design doc (docs/design/bodies.md), Sequenced
+  3b: body plans as registry contracts (anims bind to the plan; fork
+  inherits by retained joints; verb→anim-slot validated at define time),
+  the animation-is-cosmetic determinism firewall (sim sees parametric
+  posture states only), IK as retargeting glue, 12 fps stepped-animation
+  aesthetic, clothing as segment-copy shells — all ratified 2026-07-19;
+  sockets/transmog mechanics remain PROPOSED.
+
 - 2026-07-19 — Character MCP surface (journal/0005): the second surface from
   API.md § Characters, embodied sessions on :7778. Character primitive in
   dc-api (named body, host-tick swept-AABB stepping, controller verbs as
@@ -50,42 +67,56 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — next up from Sequenced)
+- Geology v1 (background agent, launched 2026-07-19): content-class registry
+  in dc-api, pass graph replacing `Pregen::run`'s hand-ordered stages,
+  strata recording + clastic/igneous/placer passes through the S8 storage
+  path. Headless by decision — client visibility of geology is a separate
+  sequenced milestone (recon 2026-07-19: dc-worldgen is an island; the
+  `ChunkGenerator` seam carries `Block` only, no material sidecar channel).
 
 ## Sequenced
-3. Geology deep-dive — backbone seeded in docs/design/geology.md
-   (classes/processes/contexts as registry data); v1 content selection is the
-   remaining conversation. Mine orogeny's stratigraphy-v1 — source of ideas,
-   not a spec.
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.
-3b. Bodies/sockets design doc (body-as-plugin, controller-driven, transmog) —
-   character MCP has shipped; this is unblocked.
+3c. Geology client integration — swap dc-worldgen into the client's
+   `ChunkGenerator` seam (interior-mutability/lock design owed; scale-N
+   baking vs live 2/3/4 switch), widen the 5-entry block enum/`block_from_name`
+   or land the data-driven block registry, add a material-sidecar channel +
+   render blend. Unlocks walking the geology.
 4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
    axes; registry-defined).
 5. Ecology design (succession as derived-from-disturbance state; populations
    as statistical-tier distributions).
+6. Body plans implementation staircase (docs/design/bodies.md § staircase,
+   ratified 2026-07-19) — six steps from joint-tree skeleton to authoring
+   editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
 - Walk 5 (journal/0005, character surface): characters have **no auto
   step-up** — a one-voxel rise halts a grounded walker until it jumps
   (mover feature vs controller skill: undecided, belongs to the NPC-
-  intelligence design). **Attach placement is unguarded** — spawning a
-  character embedded in terrain makes a permanent statue (no despawn verb,
-  no character-surface teleport by design); wants safe-spawn validation,
-  blocked on the `surface_height_m` under-report below. **Disconnect
-  policy**: a session's last move intent persists after disconnect, so an
-  abandoned body keeps walking until it hits something — freeze vs NPC-tier
-  degradation needs deciding (API.md open question, now concrete).
+  intelligence design). **Disconnect policy**: a session's last move intent
+  persists after disconnect, so an abandoned body keeps walking until it
+  hits something — freeze vs NPC-tier degradation needs deciding (API.md
+  open question, now concrete; interacts with bodies.md open question 3).
+  *(Attach placement guard: fixed, journal/0006.)*
 
-- Walks 3–4 (journal/0003, 0004 — corrected record in corrections.md #3):
-  `surface_height_m` under-reports the actual voxel surface (~7 m at the
-  spawn site, location-dependent; affects spawn, surface teleport, any
-  helper consumer). Near-field lighting blows out pale top faces (flat
-  shading + near-vertical sun + no tonemap shoulder) — art calibration,
-  belongs to the visuals pass. Chasm cliff "speckle" unverified from clean
-  air.
+- Walk 6 loose ends (journal/0006): the surface scan window is
+  S1-terrain-sized (8 m headroom / 220 m depth) — structures stacked >8 m
+  above the analytic surface won't be snapped to; revisit when worldgen
+  amplitude grows. `find_open_spawn` uses terrain-only solidity — correct
+  at startup, wrong if ever reused post-edits. Dev `spawn_character` stays
+  unguarded (dev keeps full reach) — **pending ratification**, along with
+  `surface:true` attach semantics (API.md § Characters, marked).
+
+- Walks 3–4 (journal/0003, 0004 — corrected record in corrections.md #3,
+  #5): near-field lighting blows out pale top faces (flat shading +
+  near-vertical sun + no tonemap shoulder) — art calibration, belongs to
+  the visuals pass. Chasm cliff "speckle" now photographed from verified
+  clean air (0006 asset): reads as genuine single-voxel terracing on the
+  near-vertical carve, not a mesh defect — diagnosis still owed.
+  *(`surface_height_m` under-report: diagnosed and fixed, journal/0006 —
+  the "missing octave" hypothesis falsified, corrections #5.)*
 
 - The embedded HostWorld never evicts chunks (~64 KiB per chunk ever
   streamed/edited); never-edited chunks are pure generator output and could

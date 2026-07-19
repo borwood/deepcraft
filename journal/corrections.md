@@ -51,3 +51,24 @@ diagnose renderer defects from a viewpoint you haven't verified is in air.
 **Falsified during S5**: postcard is positional; omitting fields silently
 corrupts the stream. Standing rule in API.md § v0 implementation notes;
 regression-tested in dc-api.
+
+## 5. "`surface_height_m` under-reports ~7 m — likely a missing detail octave" (2026-07-19)
+
+**Claim** (journal/0004, carried into ROADMAP Observed): the analytic helper
+under-reports the voxel surface by ~7 m, "likely a detail octave present in
+voxel generation but missing from the heightmap helper."
+**Falsified**: there is one field — `block_in_column` calls `surface_height_m`
+directly, so a same-column disagreement of meters is impossible *by
+construction* (in-column error is bounded to +½ voxel by the center-solidity
+rule). The real mechanism is two compounding effects: (1) the solid **top
+face** sits up to half a voxel above the analytic height everywhere, and
+(2) a body's **footprint spans columns** and rests on the highest of them —
+on the chasm walls neighbouring columns differ by many meters. Measured worst
+gap 14.49 m; 61% of near-surface columns would embed a body placed at
+`analytic + 0.05` (journal/0006).
+**Fix**: `true_surface_m` — footprint-max over per-column voxel scans, edits
+included; everything that seats a body routes through it (merge `8aafc3a`).
+**Lesson**: an analytic generator field and its own voxelization are
+different surfaces; never seat a body on the former. Also: the plausible
+single-cause story ("missing octave") survived three walks because nobody
+priced the footprint; quantify before naming mechanisms.

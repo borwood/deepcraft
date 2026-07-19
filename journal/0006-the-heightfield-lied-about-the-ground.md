@@ -1,7 +1,7 @@
-# 0006 — The heightfield lied about the ground (DRAFT)
+# 0006 — The heightfield lied about the ground
 
-*2026-07-19 · surface-query fix + attach placement guard (background agent)*
-*DRAFT — main session owns finalizing (ROADMAP/corrections updates, screenshots).*
+*2026-07-19 · surface-query fix + attach placement guard (background agent,
+integrated + walk-verified by the main session)*
 
 > blogworthy: three field reports blamed one number — `surface_height_m` "under-
 > reports by ~7 m." The real story was better and worse: an analytic heightfield
@@ -89,13 +89,40 @@ the true surface at the requested x/z (mirroring the player teleport), then the
 guard confirms the landing is clear. The raw dev `spawn_character` is
 deliberately left unguarded (the dev surface keeps full reach).
 
+## Walk 6: the proof photograph
+
+Integration walk (main session, merged main, `--fullbright`), aimed at the
+worst spot the test found. First lesson re-learned before the walk even
+started: the running exe predated the merge — `character_attach` had no
+`surface` field in its live schema. `cargo test` does not relink the main
+binary; **check the exe timestamp against the merge before walking**.
+
+On the rebuilt client, at the exact worst-case coordinates (−182.6, −189.4):
+
+- Attach at y = −200 (deep in the wall) → refused: `{ ok: false, code:
+  "obstructed" }`, no statue, and the error text says what to do instead.
+- Attach with `surface: true` → spawned, proprioception reports
+  `on_ground: true`, `eye_in_solid: false`, feet at y = −4.8 — standing on a
+  ledge of the near-vertical chasm wall, terrain that would have buried the
+  old placement 14 m deep
+  (`assets/0006-walker-snapped-to-chasm-wall.png`).
+- Player `surface: true` teleport 15 m away landed feet at y = −67.15 — that
+  column is the chasm *floor*. The per-column scan is doing real work:
+  neighbouring columns 60 m apart in height each get their own honest answer.
+
+Side observation for the record: the photo is the first clean-air look at the
+chasm-wall "speckle" (Observed since walk 3) — from this angle it reads as
+genuine steep-slope terracing, single-voxel ledges with gaps, not a mesh
+defect. Diagnosis still owed; the asset is now evidence.
+
 ## Status
 
 - [x] mechanism diagnosed + quantified (14.49 m worst gap; 61% of columns embed)
 - [x] `true_surface_m` (footprint-max, per-column ceiling, edits-included);
       spawn + teleport + attach routed through it
 - [x] attach embed guard + opt-in surface-snap; obstructed receipt
-- [x] gates green; character replay still bit-identical
+- [x] gates green on merged main; character replay still bit-identical
+- [x] walk-verified photographically at the measured worst case
+- [x] falsified "missing octave" claim → corrections.md #5
 - [ ] **ratify**: `surface: true` attach semantics are new API surface
 - [ ] **ratify**: dev `spawn_character` staying unguarded
-- [ ] falsified "missing octave" claim → corrections.md (main session)
