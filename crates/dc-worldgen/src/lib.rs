@@ -33,6 +33,7 @@
 //! Rules: headless, deterministic (all entropy flows from the world seed).
 
 pub mod collapse;
+pub mod deeptime;
 pub mod geology;
 pub mod pipeline;
 pub mod pregen;
