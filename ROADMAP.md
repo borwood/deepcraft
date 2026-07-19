@@ -7,6 +7,36 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — **PBR-1: the real material renderer** (journal/0019, background
+  agent, gates green on the worktree branch — **integration + milestone walk
+  owed to the main session**). The interim vertex-color dither/mosaic
+  (journal/0010) is replaced by a **custom Forward+ LabPBR material**: three
+  `texture_2d_array`s (basecolor / normal+AO / specular), layer index = material
+  id, blended per fragment by height/AO contrast (heightlerp). **Mixed faces
+  return to single quads** — the mosaic's 16× geometry is gone
+  (196 608 → 12 288 tris on a fully-mixed 32³ chunk); constituents ride as
+  per-vertex splat attributes (`Uint32x4` layers + `Float32x4` weights), top-N
+  chosen by the world-anchored hash (the >N path is test-only headroom).
+  **Uniform-contents voxels now sample their MATERIAL pack, not their block's**
+  — this **kills the walk-10 "member identity is render-invisible" item**
+  (siltstone renders differently from mudstone). The atlas is widened past the
+  material count with four **block-only** layers (grass/dirt/stone/wood) so a
+  *single* material renders the whole lit world — near geology, uniform strata,
+  the far LOD rings, and the legacy S1 terrain — with no seam. `--fullbright`
+  is unchanged: the same mesh carries both vertex color and splat data, and the
+  streamer picks the unlit `StandardMaterial` under the flag (validated live:
+  clean startup on Vulkan/RTX 3070, both lit and fullbright, no shader/pipeline
+  errors). Directional sun + hemispherical ambient only (PBR-2 owns shadows,
+  point lights, tonemap/HDR, POM, water; never GI). Placeholder packs regenerated
+  21 → 26 to cover the full `MaterialId` registry (the 3d roster widening:
+  siltstone/conglomerate/diorite/andesite/olivine got packs). **NEEDS
+  RATIFICATION**: `SPLAT_N = 4` (the per-face material cap, like 0010's 4×4 dither
+  flag) and the sun/hemi-ambient calibration constants (aesthetic, user-owned —
+  the walk judges them). Files: `terrain_material.rs`, `shaders/terrain.wgsl`
+  (new); `meshing.rs` (splat rewrite); `app.rs`/`streaming.rs`/`farmesh.rs`/
+  `authority.rs` (material wiring); `tools/gen_placeholder_textures.py` + the 5
+  new packs + manifest.
+
 - 2026-07-19 — S1-fallback sweep (journal/0017, merged `--no-ff` to main,
   gates re-run on merged main by the integrator): closed the defect class
   journal/0016 named. The client now
@@ -170,38 +200,31 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — the S1-fallback sweep was integrated 2026-07-19: merged
-`--no-ff`, gates re-run green on merged main by the integrator, doctrine
-RATIFIED in ARCHITECTURE.md. **Walk 13 delivered** same day, journal/0018:
-instruments verified live at unstreamed locations, streaming-edge collision
-proven (mid-air spawn → landing), deep-time cut face photographed
-(0018 assets), empty-horizon far-field assessment filed. Next up per
-Sequenced: **PBR-1**; the far-field summary-pyramid work (journal/0017
-§ far mesh) is the other candidate — walk 13 showed the worldgen horizon
-is empty sky, so that milestone is building the horizon, not fixing an
-artifact.)
+- **PBR-1 awaiting integration + milestone walk** (journal/0019, background
+  agent): gates green on the worktree branch (fmt, clippy `-D warnings`, 105+
+  workspace tests; live-verified lit + fullbright on Vulkan/RTX 3070 with no
+  shader/pipeline errors). The integrator merges `--no-ff`, re-runs gates on
+  merged main, and the main session runs the milestone walk (shot list in
+  journal/0019). Two **NEEDS RATIFICATION** flags ride: `SPLAT_N = 4` and the
+  sun/hemi-ambient calibration (both aesthetic/user-owned). Next Sequenced after
+  it: **PBR-2** (shadows/point-lights/HDR/POM/water/weather + the `opaque.terrain`
+  pack hook), or the far-field summary-pyramid work (journal/0017 § far mesh —
+  walk 13 showed the worldgen horizon is empty sky, so that milestone is building
+  the horizon, not fixing an artifact).
 
 ## Sequenced
 
-**PBR-1 — the real material renderer** (user asked 2026-07-19: "wish we had
-that pbr renderer done — achievable without me"). Spec is
-docs/design/visuals.md § Material/texture model; assets already exist in
-`assets/textures/placeholder-labpbr/` (21 deterministic packs + manifest
-with the material↔block map; regenerate via `tools/gen_placeholder_textures.py`).
-Scope: load the three LabPBR channels into atlases (basecolor RGB /
-normal XY+AO / specular smoothness+F0+porosity+emission); custom
-Forward+ material per the S4 shader-pack contract; directional sun +
-hemispherical ambient. **Mixtures switch from the 4×4 mosaic to
-height/AO-driven splat blending (heightlerp)** — mixed faces return to
-single quads (the mosaic multiplied geometry 16×), constituent weights as
-vertex attributes, top-N constituents chosen by the existing
-world-anchored hash. **Uniform-contents voxels must sample their MATERIAL
-pack, not their block's** — this kills the walk-10 "member identity is
-render-invisible" Observed item (siltstone finally differs from
-mudstone). Hard constraints: `--fullbright` must keep working exactly as
-today (the walk protocol depends on it); no headless-crate render deps.
-Out of scope → PBR-2: shadows, godrays, point lights, tonemap/HDR, POM,
-water, weather. Never: GI (doctrine).
+**PBR-2 — lit-world completion** (the deferred half of the renderer, opened by
+PBR-1 shipping): sun **shadows** (Bevy cascades + our knobs, the chasm-shaft
+signature shot), **colored point lights** (lava/forge/bioluminescence via Bevy's
+clustered path), **tonemap/HDR** (`Camera::hdr` + exposure — real darkness and
+earned firelight), **POM** (the LabPBR height channel is already packed),
+**light shafts/godrays**, **water**, and **weather/wetness** coupling
+(sim-driven porosity darkening — the specular B channel is already sampled).
+The `opaque.terrain` shader-pack HOOK (PIPELINE.md § 5, format ≥ 1) also lands
+here: PBR-1's material follows the § 5 texture + vertex-attribute contract but is
+not yet runtime-overridable via a pack (needs a `HOOK_FORMAT` bump + prelude
+composition, like the `post` stage). Never: GI (doctrine).
 
 **S10 — biotic-layer spike** (the gate for ecology work; design in
 docs/design/ecology.md): community vector + the six processes on the
@@ -254,6 +277,30 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- PBR-1 loose ends (journal/0019, walk owed):
+  - **Terrain lighting is hand-rolled** (directional sun + hemispherical
+    ambient from a plain uniform, not Bevy's clustered path — PBR-1 has no point
+    lights). The sun/ambient calibration is unphotographed against the walk-3
+    top-face blowout note; art-pass / walk judgement owed (couples to PBR-2's
+    HDR + tonemap, where the curve becomes real).
+  - **Far field + legacy S1 are now textured too** (one material renders the
+    whole lit world). The phantom-far-world defect (below) is unchanged — it now
+    paints a *textured* phantom ~1 km down; still needs the summary-shaped far
+    field, not a renderer fix.
+  - **Normal-map tangent frame is a per-face axis-aligned approximation**; the
+    normal X/Y orientation may be inconsistent across the six faces (cosmetic on
+    the subtle placeholder relief). Revisit with authored textures + POM (PBR-2).
+  - **The 16×16 atlas has no mipmaps** (nearest, no mip) — distance aliasing on
+    the far rings; accepted for placeholder, revisit with real textures/POM.
+  - Specular **porosity/emission channels are sampled but wetness is not wired**
+    (no weather → no sim-driven porosity darkening yet; PBR-2 + materials sim).
+  - Placeholder packs widened **21 → 26**; the historical placeholder-textures
+    Shipped line still reads "21 deterministic packs" (not amended — dated
+    record).
+  - `MeshData` now carries UV + splat attributes on **every** chunk (far field
+    and benches included), a small per-vertex memory bump over block-only meshes;
+    accepted (the far field is getting subsumed anyway).
 
 - **Walk 12's "blocking regression" was a misdiagnosis** (corrections #10,
   journal/0016): a pose in meters cross-checked against block queries in
@@ -327,12 +374,11 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
   persist the table, never re-derive it (lifecycle belongs to region-file
   grouping, S3 OQ 7).
 
-- Walk 10 + 3d loose ends (journal/0011): **member identity is
-  render-invisible** — uniform-contents voxels paint their *block* color
-  (siltstone and mudstone are both the Mudstone block), so the 3d contact
-  smoothing exists in data but not to the eye; wants uniform contents to
-  render their material albedo (an honest extension of the interim
-  renderer, next client-touching milestone). **Class-presence
+- Walk 10 + 3d loose ends (journal/0011): *(member identity is
+  render-invisible: **RESOLVED by PBR-1**, journal/0019 — uniform-contents
+  voxels now sample their material atlas layer, so siltstone renders
+  differently from mudstone; the 3d contact smoothing is now visible. Walk
+  confirmation owed with the PBR-1 milestone walk.)* **Class-presence
   quantization still cuts on chunk lines** (flow_energy rounding
   per-chunk) — most likely what walk 8 actually saw; needs per-voxel-
   column context. Igneous tectonic-setting fitness axis deferred to 3e.

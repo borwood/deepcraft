@@ -55,6 +55,7 @@ mod player;
 mod poststage;
 mod shaderpack;
 mod streaming;
+mod terrain_material;
 mod worldgen;
 
 /// The player is always this tall in meters; the voxel scale decides how many

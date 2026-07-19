@@ -41,7 +41,10 @@ use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
 use crate::PLAYER_HEIGHT_M;
-use crate::app::{ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, to_render};
+use crate::app::{
+    ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, Fullbright, TerrainMaterialHandle,
+    to_render,
+};
 use crate::mcp::{BridgeRequest, McpBridge};
 use crate::meshing::mesh_chunk;
 use crate::physdemo::PhysicsDemo;
@@ -901,6 +904,8 @@ pub fn remesh_dirty(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<ChunkMaterial>,
+    terrain_mat: Res<TerrainMaterialHandle>,
+    fullbright: Res<Fullbright>,
     mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
     origin: Res<FloatingOrigin>,
@@ -942,18 +947,18 @@ pub fn remesh_dirty(
         if !mesh_data.is_empty() {
             let (mx, my, mz) = pos.min_voxel();
             let min_m = glam::DVec3::new(mx as f64, my as f64, mz as f64) * vscale.voxel_size_m();
-            loaded.entity = Some(
-                commands
-                    .spawn((
-                        Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
-                        MeshMaterial3d(material.0.clone()),
-                        crate::app::ChunkEntity(pos),
-                        // Spawn already positioned (see streaming.rs on the
-                        // spawn-frame flash).
-                        Transform::from_translation(to_render(min_m - origin.0)),
-                    ))
-                    .id(),
-            );
+            let mut ent = commands.spawn((
+                Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
+                crate::app::ChunkEntity(pos),
+                // Spawn already positioned (see streaming.rs on the flash).
+                Transform::from_translation(to_render(min_m - origin.0)),
+            ));
+            if fullbright.0 {
+                ent.insert(MeshMaterial3d(material.0.clone()));
+            } else {
+                ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
+            }
+            loaded.entity = Some(ent.id());
         }
     }
 }

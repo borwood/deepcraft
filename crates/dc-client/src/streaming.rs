@@ -24,11 +24,13 @@ use bevy::render::render_resource::PrimitiveTopology;
 use dc_core::{CHUNK_SIZE, ChunkPos};
 
 use crate::app::{
-    ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, LoadedChunk, to_render,
+    ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, Fullbright, LoadedChunk,
+    TerrainMaterialHandle, to_render,
 };
 use crate::authority::Authority;
 use crate::meshing::{MeshData, mesh_chunk};
 use crate::player::Player;
+use crate::terrain_material::{ATTRIBUTE_MAT_LAYERS, ATTRIBUTE_MAT_WEIGHTS};
 
 /// Chunks whose center is within this many meters of the player are loaded at
 /// full detail. Meters, not chunks: every scale streams the same world volume.
@@ -47,6 +49,8 @@ pub fn stream_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<ChunkMaterial>,
+    terrain_mat: Res<TerrainMaterialHandle>,
+    fullbright: Res<Fullbright>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
     origin: Res<FloatingOrigin>,
@@ -128,25 +132,26 @@ pub fn stream_chunks(
         let entity = if mesh_data.is_empty() {
             None
         } else {
-            Some(
-                commands
-                    .spawn((
-                        Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
-                        MeshMaterial3d(material.0.clone()),
-                        ChunkEntity(pos),
-                        // Spawn already positioned: `position_chunks` ran
-                        // earlier this frame and won't see this entity until
-                        // the next one, and a default transform would render
-                        // one frame at the floating origin (visible flash).
-                        {
-                            let (mx, my, mz) = pos.min_voxel();
-                            let min_m = glam::DVec3::new(mx as f64, my as f64, mz as f64)
-                                * vscale.voxel_size_m();
-                            Transform::from_translation(to_render(min_m - origin.0))
-                        },
-                    ))
-                    .id(),
-            )
+            // Spawn already positioned: `position_chunks` ran earlier this frame
+            // and won't see this entity until the next one, and a default
+            // transform would render one frame at the floating origin (flash).
+            let (mx, my, mz) = pos.min_voxel();
+            let min_m = glam::DVec3::new(mx as f64, my as f64, mz as f64) * vscale.voxel_size_m();
+            let transform = Transform::from_translation(to_render(min_m - origin.0));
+            let mut ent = commands.spawn((
+                Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
+                ChunkEntity(pos),
+                transform,
+            ));
+            // Lit → LabPBR terrain material; `--fullbright` → unlit vertex color
+            // (the walk-protocol diagnostic; the material must stay exactly as
+            // before — pure vertex color, no lighting).
+            if fullbright.0 {
+                ent.insert(MeshMaterial3d(material.0.clone()));
+            } else {
+                ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
+            }
+            Some(ent.id())
         };
         map.loaded.insert(
             pos,
@@ -166,7 +171,12 @@ pub fn to_bevy_mesh(data: MeshData) -> Mesh {
     );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, data.positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, data.normals);
+    // Vertex color feeds the `--fullbright` unlit path; the lit terrain
+    // material ignores it and samples the LabPBR atlases via the splat data.
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, data.colors);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, data.uvs);
+    mesh.insert_attribute(ATTRIBUTE_MAT_LAYERS, data.mat_layers);
+    mesh.insert_attribute(ATTRIBUTE_MAT_WEIGHTS, data.mat_weights);
     mesh.insert_indices(Indices::U32(data.indices));
     mesh
 }

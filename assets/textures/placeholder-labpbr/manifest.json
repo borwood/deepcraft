@@ -31,9 +31,41 @@
       "ramp_levels": "from grain size (4 fine / 5 mid / 6 coarse)"
     }
   },
-  "material_count": 17,
+  "material_count": 22,
   "block_only_count": 4,
   "materials": {
+    "andesite": {
+      "name": "andesite",
+      "kind": "material",
+      "files": {
+        "basecolor": "andesite/basecolor.png",
+        "normal": "andesite/normal.png",
+        "specular": "andesite/specular.png"
+      },
+      "base_color_srgb": [
+        0.42,
+        0.4,
+        0.4
+      ],
+      "seed": 17610808148520020160,
+      "params": {
+        "grain_mm": 0.08,
+        "grain_norm": 0.3409,
+        "noise_freq": 8,
+        "hardness": 7.15,
+        "relief_amp": 2.5859,
+        "ramp_levels": 5,
+        "smoothness": 0.7318,
+        "porosity": 0.1719,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 187,
+        "G_f0_or_metal": 10,
+        "B_porosity": 11,
+        "A_emission": 255
+      }
+    },
     "ash": {
       "name": "ash",
       "kind": "material",
@@ -159,6 +191,70 @@
         "R_smoothness": 192,
         "G_f0_or_metal": 10,
         "B_porosity": 29,
+        "A_emission": 255
+      }
+    },
+    "conglomerate": {
+      "name": "conglomerate",
+      "kind": "material",
+      "files": {
+        "basecolor": "conglomerate/basecolor.png",
+        "normal": "conglomerate/normal.png",
+        "specular": "conglomerate/specular.png"
+      },
+      "base_color_srgb": [
+        0.6,
+        0.52,
+        0.44
+      ],
+      "seed": 2543736259810672757,
+      "params": {
+        "grain_mm": 8.0,
+        "grain_norm": 0.7666,
+        "noise_freq": 4,
+        "hardness": 5.25,
+        "relief_amp": 2.0516,
+        "ramp_levels": 6,
+        "smoothness": 0.5547,
+        "porosity": 0.2188,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 141,
+        "G_f0_or_metal": 10,
+        "B_porosity": 14,
+        "A_emission": 255
+      }
+    },
+    "diorite": {
+      "name": "diorite",
+      "kind": "material",
+      "files": {
+        "basecolor": "diorite/basecolor.png",
+        "normal": "diorite/normal.png",
+        "specular": "diorite/specular.png"
+      },
+      "base_color_srgb": [
+        0.55,
+        0.55,
+        0.57
+      ],
+      "seed": 5420081653530767869,
+      "params": {
+        "grain_mm": 2.0,
+        "grain_norm": 0.6384,
+        "noise_freq": 4,
+        "hardness": 7.3,
+        "relief_amp": 2.6,
+        "ramp_levels": 5,
+        "smoothness": 0.6723,
+        "porosity": 0.125,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 171,
+        "G_f0_or_metal": 10,
+        "B_porosity": 8,
         "A_emission": 255
       }
     },
@@ -450,6 +546,38 @@
         "A_emission": 255
       }
     },
+    "olivine": {
+      "name": "olivine",
+      "kind": "material",
+      "files": {
+        "basecolor": "olivine/basecolor.png",
+        "normal": "olivine/normal.png",
+        "specular": "olivine/specular.png"
+      },
+      "base_color_srgb": [
+        0.42,
+        0.52,
+        0.28
+      ],
+      "seed": 18143636363087911210,
+      "params": {
+        "grain_mm": 1.5,
+        "grain_norm": 0.6118,
+        "noise_freq": 4,
+        "hardness": 6.5,
+        "relief_amp": 2.4031,
+        "ramp_levels": 5,
+        "smoothness": 0.6316,
+        "porosity": 0.0,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 161,
+        "G_f0_or_metal": 10,
+        "B_porosity": 0,
+        "A_emission": 255
+      }
+    },
     "potsherd": {
       "name": "potsherd",
       "kind": "material",
@@ -607,6 +735,38 @@
         "R_smoothness": 134,
         "G_f0_or_metal": 10,
         "B_porosity": 34,
+        "A_emission": 255
+      }
+    },
+    "siltstone": {
+      "name": "siltstone",
+      "kind": "material",
+      "files": {
+        "basecolor": "siltstone/basecolor.png",
+        "normal": "siltstone/normal.png",
+        "specular": "siltstone/specular.png"
+      },
+      "base_color_srgb": [
+        0.52,
+        0.47,
+        0.4
+      ],
+      "seed": 10345602989639673093,
+      "params": {
+        "grain_mm": 0.02,
+        "grain_norm": 0.2128,
+        "noise_freq": 8,
+        "hardness": 3.7,
+        "relief_amp": 1.6156,
+        "ramp_levels": 4,
+        "smoothness": 0.7114,
+        "porosity": 0.2812,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 181,
+        "G_f0_or_metal": 10,
+        "B_porosity": 18,
         "A_emission": 255
       }
     },

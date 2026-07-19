@@ -42,7 +42,9 @@ use bevy::prelude::*;
 use dc_core::{CHUNK_SIZE, ChunkPos, VoxelScale};
 use glam::DVec3;
 
-use crate::app::{ChunkMaterial, CurrentScale, FloatingOrigin, to_render};
+use crate::app::{
+    ChunkMaterial, CurrentScale, FloatingOrigin, Fullbright, TerrainMaterialHandle, to_render,
+};
 use crate::meshing::mesh_chunk;
 use crate::player::Player;
 use crate::streaming::to_bevy_mesh;
@@ -193,6 +195,8 @@ pub fn stream_far_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<ChunkMaterial>,
+    terrain_mat: Res<TerrainMaterialHandle>,
+    fullbright: Res<Fullbright>,
     terrain: Res<FarFieldTerrain>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
@@ -257,25 +261,26 @@ pub fn stream_far_chunks(
         let entity = if mesh_data.is_empty() {
             None
         } else {
-            Some(
-                commands
-                    .spawn((
-                        Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
-                        MeshMaterial3d(material.0.clone()),
-                        FarChunkEntity { level, pos },
-                        // Spawn already positioned (same reasoning as
-                        // streaming.rs): a default transform renders one frame
-                        // at the floating origin.
-                        Transform::from_translation(far_transform_translation(
-                            base,
-                            level,
-                            pos,
-                            player.pos_m,
-                            origin.0,
-                        )),
-                    ))
-                    .id(),
-            )
+            // Spawn already positioned (same reasoning as streaming.rs): a
+            // default transform renders one frame at the floating origin.
+            let transform = Transform::from_translation(far_transform_translation(
+                base,
+                level,
+                pos,
+                player.pos_m,
+                origin.0,
+            ));
+            let mut ent = commands.spawn((
+                Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
+                FarChunkEntity { level, pos },
+                transform,
+            ));
+            if fullbright.0 {
+                ent.insert(MeshMaterial3d(material.0.clone()));
+            } else {
+                ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
+            }
+            Some(ent.id())
         };
         map.loaded.insert((level, pos), entity);
     }

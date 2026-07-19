@@ -98,6 +98,13 @@ MATERIALS = [
     ("granite",         "granite",         (0.66, 0.56, 0.58), 2700,  3.0,   1.00, [6.0, 9.0, 5.5, 8.0], "material", False),
     ("basalt",          "basalt",          (0.14, 0.14, 0.16), 2900,  0.05,  1.00, [5.5, 9.5, 5.0, 8.5], "material", False),
     ("gold-dust",       "gold dust",       (0.80, 0.66, 0.28),16000,  0.8,   0.02, [1.1, 6.0, 4.4, 5.0], "material", True),
+    # 3d roster-proof widening (second member per v1 class + one accessory) ----
+    # MIRROR crates/dc-core/src/materials/mod.rs ids 17..=21.
+    ("siltstone",       "siltstone",       (0.52, 0.47, 0.40), 2300,  0.02,  0.90, [3.0, 5.2, 4.0, 2.6], "material", False),
+    ("conglomerate",    "conglomerate",    (0.60, 0.52, 0.44), 2500,  8.0,   0.80, [3.8, 6.8, 4.8, 5.6], "material", False),
+    ("diorite",         "diorite",         (0.55, 0.55, 0.57), 2800,  2.0,   1.00, [6.2, 9.2, 5.6, 8.2], "material", False),
+    ("andesite",        "andesite",        (0.42, 0.40, 0.40), 2650,  0.08,  1.00, [5.6, 9.4, 5.2, 8.4], "material", False),
+    ("olivine",         "olivine",         (0.42, 0.52, 0.28), 3300,  1.5,   0.90, [5.0, 8.5, 5.0, 7.5], "material", False),
     # block-only packs (no material twin) -- synthetic property sheets --------
     ("stone",           "stone",           (0.52, 0.52, 0.54), 2600,  2.0,   1.00, [5.0, 9.0, 5.0, 8.0], "block", False),
     ("dirt",            "dirt",            (0.42, 0.30, 0.19), 1300,  0.1,   0.35, [0.9, 3.5, 3.0, 1.8], "block", False),

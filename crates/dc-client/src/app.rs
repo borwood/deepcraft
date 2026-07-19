@@ -29,6 +29,7 @@ use crate::physdemo;
 use crate::player::{self, Player};
 use crate::poststage::{PostStage, PostStagePlugin};
 use crate::streaming;
+use crate::terrain_material::{self, TerrainMaterial, TerrainMaterialPlugin};
 // The legacy S1 `TerrainGen` is no longer an ambient client resource: gameplay
 // systems answer world questions from the active `Authority` (the S1-fallback
 // sweep, journal/0017). It survives inside the authority module (the 3/4-key
@@ -94,9 +95,16 @@ pub struct ChunkMap {
 #[derive(Component)]
 pub struct ChunkEntity(pub ChunkPos);
 
-/// Shared vertex-colored material for all chunk meshes.
+/// Shared **unlit** vertex-colored material — the `--fullbright` diagnostic
+/// path for chunk meshes (pure vertex color, no lighting).
 #[derive(Resource)]
 pub struct ChunkMaterial(pub Handle<StandardMaterial>);
+
+/// Shared **lit** LabPBR terrain material (ROADMAP PBR-1) — the default chunk
+/// material when not in fullbright. One instance for near-field, far field, and
+/// legacy S1; per-voxel material selection lives in the mesh splat attributes.
+#[derive(Resource)]
+pub struct TerrainMaterialHandle(pub Handle<TerrainMaterial>);
 
 pub fn to_render(v: DVec3) -> Vec3 {
     Vec3::new(v.x as f32, v.y as f32, v.z as f32)
@@ -180,6 +188,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
         ..default()
     }))
     .add_plugins(PostStagePlugin { pack_selector })
+    .add_plugins(TerrainMaterialPlugin)
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
     .insert_resource(far_terrain)
@@ -228,18 +237,25 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
 fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    fullbright: Res<Fullbright>,
+    mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
+    mut images: ResMut<Assets<Image>>,
 ) {
+    // Simple diffuse setup: one sun, flat ambient on the camera. Computed first
+    // so the LabPBR terrain material lights against the same sun.
+    let sun_rotation = Quat::from_euler(EulerRot::YXZ, 0.6, -1.0, 0.0);
+    let sun_dir = sun_rotation * Vec3::Z; // a light points along -Z → toward sun is +Z
+
+    // Fullbright chunk material: unlit, pure vertex color (walk diagnostic).
     commands.insert_resource(ChunkMaterial(materials.add(StandardMaterial {
         base_color: Color::WHITE, // multiplied by vertex colors
         perceptual_roughness: 0.95,
-        // Diagnostic mode: pure vertex color, no lighting (see Fullbright).
-        unlit: fullbright.0,
+        unlit: true,
         ..default()
     })));
-
-    // Simple diffuse setup: one sun, flat ambient on the camera.
-    let sun_rotation = Quat::from_euler(EulerRot::YXZ, 0.6, -1.0, 0.0);
+    // Lit LabPBR terrain material (the default): assembles the placeholder
+    // atlases and lights them against the scene sun.
+    let terrain = terrain_material::build_terrain_material(&mut images, sun_dir);
+    commands.insert_resource(TerrainMaterialHandle(terrain_materials.add(terrain)));
     commands.spawn((
         DirectionalLight {
             illuminance: 12_000.0,
