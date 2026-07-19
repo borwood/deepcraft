@@ -32,10 +32,11 @@
 //! level; that is the point.
 
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::sync::Arc;
 
 use dc_core::materials::geology::{
-    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, GeoMemberIdx, GeologySet,
+    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE,
+    GeoMemberIdx, GeologySet,
 };
 use dc_core::{
     Block, CHUNK_VOLUME, Chunk, ChunkPos, MaterialChunk, MixtureId, MixtureTable, StructureShape,
@@ -196,11 +197,36 @@ pub struct ColumnRec {
     pub strata: StrataRec,
 }
 
+/// How a [`WorldGenerator`] holds its pregen output: `Borrowed` (the original
+/// borrowing API — tests and headless callers keep an owned `Pregen` on the
+/// stack) or `Owned` (an `Arc<Pregen>`, so the generator is `'static` and can
+/// live inside the client's `Send + Sync` `ChunkGenerator` seam behind a
+/// `Mutex`). Both deref to the same `Pregen`, so every `self.pregen.…` reads
+/// identically and generation is byte-for-byte the same regardless of which
+/// form built it.
+pub enum PregenSource<'a> {
+    Borrowed(&'a Pregen),
+    Owned(Arc<Pregen>),
+}
+
+impl std::ops::Deref for PregenSource<'_> {
+    type Target = Pregen;
+    fn deref(&self) -> &Pregen {
+        match self {
+            PregenSource::Borrowed(p) => p,
+            PregenSource::Owned(p) => p,
+        }
+    }
+}
+
 /// The lazy generator: owns the collapse caches and instrumentation, borrows
-/// the pregen output. All state is derived — dropping a cache entry can never
-/// change any answer (everything is a pure function of seed + pregen).
+/// (or `Arc`-owns) the pregen output. All state is derived — dropping a cache
+/// entry can never change any answer (everything is a pure function of seed +
+/// pregen). The caches are `Arc` (not `Rc`) so a `Mutex<WorldGenerator>` is
+/// `Send`, which the client's chunk seam requires; nothing about the atomics
+/// affects determinism.
 pub struct WorldGenerator<'a> {
-    pregen: &'a Pregen,
+    pregen: PregenSource<'a>,
     seed: u64,
     voxel_m: f64,
     /// The registered geology content the strata passes select from.
@@ -210,9 +236,9 @@ pub struct WorldGenerator<'a> {
     materials: MixtureTable,
     sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>>,
     lattice_memo: HashMap<(u8, i64, i64), (f64, f64)>,
-    region_cache: HashMap<(i64, i64), Rc<RegionRec>>,
-    locale_cache: HashMap<(i64, i64), Rc<LocaleRec>>,
-    column_cache: HashMap<(i64, i64), Rc<ColumnRec>>,
+    region_cache: HashMap<(i64, i64), Arc<RegionRec>>,
+    locale_cache: HashMap<(i64, i64), Arc<LocaleRec>>,
+    column_cache: HashMap<(i64, i64), Arc<ColumnRec>>,
     trace: Trace,
     last_stats: ChunkStats,
 }
@@ -225,6 +251,27 @@ impl<'a> WorldGenerator<'a> {
     /// A generator over an explicit geology content set (registered class
     /// members). `new` uses the vanilla set.
     pub fn with_geology(pregen: &'a Pregen, geology: GeologySet) -> Self {
+        Self::build(PregenSource::Borrowed(pregen), geology)
+    }
+}
+
+impl WorldGenerator<'static> {
+    /// A `'static`, `Arc`-owning generator: the same generator, but it carries
+    /// its `Pregen` by `Arc` instead of borrowing it, so a `Mutex` around it is
+    /// `Send + Sync` and it can back the client's `ChunkGenerator` closure. The
+    /// vanilla geology set.
+    pub fn new_owned(pregen: Arc<Pregen>) -> Self {
+        Self::with_geology_owned(pregen, dc_core::materials::geology::vanilla())
+    }
+
+    /// [`Self::new_owned`] over an explicit geology content set.
+    pub fn with_geology_owned(pregen: Arc<Pregen>, geology: GeologySet) -> Self {
+        Self::build(PregenSource::Owned(pregen), geology)
+    }
+}
+
+impl<'a> WorldGenerator<'a> {
+    fn build(pregen: PregenSource<'a>, geology: GeologySet) -> Self {
         let scale = VoxelScale::from_player_height(1.8, 2); // N=2: 0.9 m voxels
         let mut sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>> = HashMap::new();
         for s in &pregen.sites {
@@ -238,9 +285,10 @@ impl<'a> WorldGenerator<'a> {
         for spots in sites_by_cell.values_mut() {
             spots.sort_by_key(|s| s.id);
         }
+        let seed = pregen.seed;
         Self {
             pregen,
-            seed: pregen.seed,
+            seed,
             voxel_m: scale.voxel_size_m(),
             geology,
             materials: MixtureTable::new(),
@@ -370,8 +418,9 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// The chunk-column record for chunk coordinates `(cx, cz)` — exposed for
-    /// the seam/continuity tests, which reason about surface heights.
-    pub fn column_record(&mut self, cx: i64, cz: i64) -> Rc<ColumnRec> {
+    /// the seam/continuity tests (which reason about surface heights) and the
+    /// client's surface-scan ceiling over the worldgen authority.
+    pub fn column_record(&mut self, cx: i64, cz: i64) -> Arc<ColumnRec> {
         self.column(cx, cz)
     }
 
@@ -500,7 +549,7 @@ impl<'a> WorldGenerator<'a> {
 
     // ----- semantic records: region → locale → column ----------------------
 
-    fn region(&mut self, rx: i64, rz: i64) -> Rc<RegionRec> {
+    fn region(&mut self, rx: i64, rz: i64) -> Arc<RegionRec> {
         self.trace.regions.insert((rx, rz));
         if let Some(r) = self.region_cache.get(&(rx, rz)) {
             return r.clone();
@@ -528,7 +577,7 @@ impl<'a> WorldGenerator<'a> {
                 .expect("finite coords")
         });
         segs.dedup();
-        let rec = Rc::new(RegionRec {
+        let rec = Arc::new(RegionRec {
             fringe: base.civilized && wilds_adjacent,
             segs,
             site: base.site,
@@ -602,7 +651,7 @@ impl<'a> WorldGenerator<'a> {
         }
     }
 
-    fn locale(&mut self, lx: i64, lz: i64) -> Rc<LocaleRec> {
+    fn locale(&mut self, lx: i64, lz: i64) -> Arc<LocaleRec> {
         self.trace.locales.insert((lx, lz));
         if let Some(l) = self.locale_cache.get(&(lx, lz)) {
             return l.clone();
@@ -624,7 +673,7 @@ impl<'a> WorldGenerator<'a> {
             }
         }
         sites.sort_by_key(|s| s.id);
-        let rec = Rc::new(LocaleRec {
+        let rec = Arc::new(LocaleRec {
             fringe: base.fringe,
             segs: base.segs,
             sites,
@@ -667,7 +716,7 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// Collapse one chunk-column (the chunk footprint's 32×32 voxel columns).
-    fn column(&mut self, cx: i64, cz: i64) -> Rc<ColumnRec> {
+    fn column(&mut self, cx: i64, cz: i64) -> Arc<ColumnRec> {
         self.trace.columns.insert((cx, cz));
         if let Some(c) = self.column_cache.get(&(cx, cz)) {
             return c.clone();
@@ -763,7 +812,7 @@ impl<'a> WorldGenerator<'a> {
         self.pregen.pipeline.run_strata(&mut strata_ctx);
         let strata = strata_ctx.strata;
 
-        let rec = Rc::new(ColumnRec {
+        let rec = Arc::new(ColumnRec {
             heights,
             surface,
             soil,
@@ -805,13 +854,20 @@ fn avg2(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
 
-/// Block-tier reading of a class member: clastic strata read as soil (Dirt),
-/// everything else (igneous, unknown future classes) as Stone. Client
-/// visibility of the actual materials is the sequenced 3c milestone; the
-/// voxel *contents* carry the real member via the material sidecar.
+/// Block-tier reading of a class member: the four v1 strata classes get their
+/// own visible block (ROADMAP 3c-1) so walked geology reads at a glance —
+/// clastic-fine → Mudstone, clastic-coarse → Sandstone, intrusive → Granite,
+/// extrusive → Basalt. Unknown future classes (and the placer ore, which never
+/// forms a band of its own — it rides *inside* a clastic event) fall back to
+/// Stone. The voxel *contents* still carry the real member via the material
+/// sidecar; these blocks are the stand-in the data-driven registry (3c-2)
+/// supersedes.
 fn block_for_member(set: &GeologySet, member: GeoMemberIdx) -> Block {
     match set.member(member).class.as_str() {
-        c if c == CLASS_CLASTIC_FINE || c == CLASS_CLASTIC_COARSE => Block::Dirt,
+        c if c == CLASS_CLASTIC_FINE => Block::Mudstone,
+        c if c == CLASS_CLASTIC_COARSE => Block::Sandstone,
+        c if c == CLASS_IGNEOUS_INTRUSIVE => Block::Granite,
+        c if c == CLASS_IGNEOUS_EXTRUSIVE => Block::Basalt,
         _ => Block::Stone,
     }
 }

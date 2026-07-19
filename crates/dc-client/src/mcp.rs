@@ -133,6 +133,12 @@ pub enum BridgeRequest {
         session_character: String,
         reply: oneshot::Sender<Value>,
     },
+    /// A character session ended: freeze that character's body (zero its move
+    /// intent) — API.md § Characters, DECIDED 2026-07-19. Fire-and-forget (the
+    /// sender is a session-teardown `Drop`, which cannot await a reply).
+    CharacterFreeze {
+        name: String,
+    },
 }
 
 /// ECS resource: the receiving end of the bridge (drained every frame by

@@ -37,7 +37,9 @@ pub mod geology;
 pub mod pipeline;
 pub mod pregen;
 
-pub use collapse::{ChunkStats, LOOKAHEAD_BOUNDS, LookaheadBounds, WorldGenerator};
+pub use collapse::{
+    ChunkStats, ColumnRec, LOOKAHEAD_BOUNDS, LookaheadBounds, PregenSource, WorldGenerator,
+};
 pub use geology::{AlluviumRec, StrataCtx, StrataEvent, StrataRec};
 pub use pipeline::{Pass, PassBody, Phase, Pipeline, PipelineError, PregenCtx, Resource};
 pub use pregen::{

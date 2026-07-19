@@ -130,7 +130,7 @@ fn class_registration_order_cannot_change_world_bytes() {
 fn sample_columns(
     g: &mut WorldGenerator,
     n: i64,
-) -> Vec<std::rc::Rc<dc_worldgen::collapse::ColumnRec>> {
+) -> Vec<std::sync::Arc<dc_worldgen::collapse::ColumnRec>> {
     let mut out = Vec::new();
     for cz in -n..n {
         for cx in -n..n {

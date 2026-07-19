@@ -11,13 +11,19 @@
 //! reach it by receipt.
 //!
 //! Terrain reconciliation: the host is built with a generator closure over the
-//! client's S1 [`TerrainGen`] (dc-api's pluggable-generator addition), so the
-//! world the host serves is byte-identical to the world the client streams.
-//! The far-mesh path still samples `TerrainGen` LOD grids directly — edits are
-//! not visible beyond the full-detail radius (documented limit).
+//! active authority (dc-api's pluggable-generator addition), so the world the
+//! host serves is what the client streams. ROADMAP 3c-1 gives that seam a
+//! choice: at N=2 (boot, key 2) it is the real hierarchical worldgen
+//! (dc-worldgen), one `WorldGenerator` behind a `Mutex` serving both the chunk
+//! seam and the surface-scan ceiling; at keys 3/4 it is the legacy S1
+//! [`TerrainGen`]. The near-field streamed chunks (ChunkMap) are clones of the
+//! authority; the unloaded-neighbour and far-mesh fallbacks still sample
+//! `TerrainGen` directly — a documented seam at the load-radius edge and in the
+//! far rings (ROADMAP Observed) until the far field becomes worldgen-shaped.
 
 use std::cell::RefCell;
 use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
 use dc_api::host::block_from_name;
@@ -29,6 +35,8 @@ use dc_api::{
 };
 use dc_core::{Aabb, CHUNK_SIZE_USIZE, ChunkPos, VoxelScale, aabb_overlaps_solid, local_voxel};
 use dc_mcp_dev::envelope_for_tool_call;
+use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
+use glam::DVec3;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
@@ -40,6 +48,26 @@ use crate::physdemo::PhysicsDemo;
 use crate::player::{PLAYER_WIDTH_M, Player};
 use crate::streaming::to_bevy_mesh;
 use crate::worldgen::{TerrainGen, true_surface_m};
+
+/// World extent baked into the worldgen authority. Medium is the design doc's
+/// default class; its pregen runs in ~15 ms (journal/0007), trivial at boot.
+const WORLDGEN_EXTENT: Extent = Extent::Medium;
+
+/// The active surface authority — the source of both never-edited terrain (the
+/// `HostWorld`'s chunk generator) and the per-column analytic ceiling the
+/// surface scan starts from.
+///
+/// - `Terrain`: the legacy S1 [`TerrainGen`] (keys 3/4, any scale).
+/// - `Worldgen`: the real hierarchical worldgen (ROADMAP 3c-1), N=2-baked. The
+///   `Arc<Mutex<..>>` is the SAME generator the `ChunkGenerator` closure holds,
+///   so the analytic ceiling and the streamed chunks come from one world and
+///   one cache. The `Mutex` is what makes the (now `Arc`-cached, `Send`)
+///   generator fit the `Fn + Send + Sync` seam; it hides nothing about
+///   determinism — the closure stays a pure function of `pos`.
+enum SurfaceAuthority {
+    Terrain(TerrainGen),
+    Worldgen(Arc<Mutex<WorldGenerator<'static>>>),
+}
 
 /// Fixed host tick cadence, seconds. 20 Hz: an edit's receipt (and therefore
 /// its remesh) lands within 50 ms of the tick boundary — imperceptible against
@@ -71,24 +99,80 @@ pub struct Authority {
     character_parent_token: CapabilityToken,
     /// Consumer identity for surface-side acts (the attach flow's spawns).
     character_surface_consumer: ConsumerId,
-    /// A private terrain generator (same seed as the world's) used only to pick
-    /// the scan ceiling for the attach surface-snap — the analytic height is a
-    /// cheap upper bound on the true voxel surface. Never the placement source
-    /// itself: the snap and the embed guard read the world's real solidity.
-    terrain: TerrainGen,
+    /// The active scale — the voxel lattice the hosted world lives on (N=2 for
+    /// the worldgen authority; 3/4 for the legacy terrain authority).
+    scale: VoxelScale,
+    /// The active surface authority. Its analytic per-column height seeds the
+    /// scan ceiling for spawn / `surface:true` teleport / `surface:true`
+    /// attach; the snap and embed guard read the hosted world's real solidity
+    /// (edits included) — the analytic is only a cheap upper bound
+    /// (journal/0006). For the worldgen variant this is the SAME generator the
+    /// chunk seam serves from.
+    surface: SurfaceAuthority,
 }
 
 impl Authority {
-    /// Build the hosted world over the client's terrain generator at the given
-    /// scale. The generator closure owns its own `TerrainGen` (same seed =>
-    /// identical noise), keeping the closure `Send + Sync` and deterministic.
+    /// Build the hosted world for the given player-height scale, choosing the
+    /// authority the way the scale keys do (ROADMAP 3c-1, **NEEDS
+    /// RATIFICATION**): **N=2 (key 2) = the real hierarchical worldgen** (the
+    /// ratified S1 scale, geology visible + walkable), any other scale (keys
+    /// 3/4) = the legacy S1 [`TerrainGen`] at that resolution. dc-worldgen is
+    /// N=2-baked, so its authority only makes sense at N=2.
     pub fn new(seed: i32, player_voxels: u32) -> Self {
         let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, player_voxels);
+        if player_voxels == 2 {
+            Self::new_worldgen(seed, scale)
+        } else {
+            Self::new_terrain(seed, scale)
+        }
+    }
+
+    /// The legacy S1 terrain authority (keys 3/4). The generator closure owns
+    /// its own `TerrainGen` (same seed => identical noise), keeping the closure
+    /// `Send + Sync` and deterministic.
+    fn new_terrain(seed: i32, scale: VoxelScale) -> Self {
         let terrain = TerrainGen::new(seed);
-        let mut world = HostWorld::with_generator(
-            seed as u64,
-            Box::new(move |pos| terrain.generate_chunk(scale, pos)),
-        );
+        let world = Self::host_world(seed, scale, move |pos| terrain.generate_chunk(scale, pos));
+        Self::finish(
+            scale,
+            world,
+            SurfaceAuthority::Terrain(TerrainGen::new(seed)),
+        )
+    }
+
+    /// The worldgen authority (key 2 / boot): build the world history (the
+    /// pregen — the "generating world history…" moment, ~15 ms at Medium),
+    /// then wrap ONE `WorldGenerator` behind a `Mutex` and serve chunks through
+    /// it. The same `Arc` backs both the chunk seam and the surface-scan
+    /// ceiling, so streamed terrain and surface queries are one world.
+    ///
+    /// Determinism: the closure locks the generator and calls `generate_chunk`,
+    /// which is a pure function of `pos` — the collapse caches memoize but
+    /// never reorder output (proven byte-identical in dc-worldgen and by
+    /// [`tests::worldgen_seam_is_order_independent`]).
+    fn new_worldgen(seed: i32, scale: VoxelScale) -> Self {
+        let pregen = Arc::new(Pregen::run(WorldParams {
+            seed: seed as u64,
+            extent: WORLDGEN_EXTENT,
+        }));
+        let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen)));
+        let seam = generator.clone();
+        let world = Self::host_world(seed, scale, move |pos| {
+            seam.lock()
+                .expect("worldgen generator mutex")
+                .generate_chunk(pos)
+        });
+        Self::finish(scale, world, SurfaceAuthority::Worldgen(generator))
+    }
+
+    /// Wrap a chunk generator in a `HostWorld` with the client's character
+    /// config for `scale` (shared by both authority constructors).
+    fn host_world(
+        seed: i32,
+        scale: VoxelScale,
+        generator: impl Fn(ChunkPos) -> dc_core::Chunk + Send + Sync + 'static,
+    ) -> HostWorld {
+        let mut world = HostWorld::with_generator(seed as u64, Box::new(generator));
         // Character bodies share the player's dimensions and dynamics
         // (dc-api's defaults ARE the player constants); only the voxel size
         // follows the active scale. Part of the replay identity.
@@ -97,6 +181,11 @@ impl Authority {
             tick_dt_s: HOST_TICK_DT,
             ..dc_api::CharacterConfig::default()
         });
+        world
+    }
+
+    /// Assemble the consumer identities / tokens shared by every authority.
+    fn finish(scale: VoxelScale, world: HostWorld, surface: SurfaceAuthority) -> Self {
         Self {
             world,
             accumulator: 0.0,
@@ -120,8 +209,135 @@ impl Authority {
                 ConsumerKind::McpSession,
                 "character-surface",
             ),
-            terrain: TerrainGen::new(seed),
+            scale,
+            surface,
         }
+    }
+
+    /// A short label for the active authority (window title / diagnostics).
+    pub fn authority_label(&self) -> &'static str {
+        match self.surface {
+            SurfaceAuthority::Terrain(_) => "S1-terrain",
+            SurfaceAuthority::Worldgen(_) => "worldgen",
+        }
+    }
+
+    /// The per-column analytic surface height (meters) at `(xm, zm)` over the
+    /// active authority: an UPPER bound on the true voxel surface used to seed
+    /// each column's downward scan. For `Terrain`, `surface_height_m`; for
+    /// `Worldgen`, the collapse `ColumnRec` height (surface voxel top) at that
+    /// column.
+    fn analytic_height_m(&self, xm: f64, zm: f64) -> f64 {
+        match &self.surface {
+            SurfaceAuthority::Terrain(t) => t.surface_height_m(xm, zm),
+            SurfaceAuthority::Worldgen(worldgen) => {
+                let scale = self.scale;
+                let (vx, vz) = (scale.voxel_at(xm), scale.voxel_at(zm));
+                let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+                let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
+                let col = worldgen
+                    .lock()
+                    .expect("worldgen generator mutex")
+                    .column_record(cx, cz);
+                f64::from(col.heights[lz * 32 + lx]) * scale.voxel_size_m()
+            }
+        }
+    }
+
+    /// The TRUE walking surface (meters) under a footprint at `(xm, zm)` over
+    /// the ACTIVE authority: the highest solid voxel top across the footprint
+    /// columns, read from the hosted world's real solidity (edits included),
+    /// each column scanned from its own analytic ceiling (journal/0006). Works
+    /// over both authorities — the only difference is where the per-column
+    /// ceiling comes from.
+    pub fn true_surface_m(&mut self, xm: f64, zm: f64, footprint_half_m: f64) -> f64 {
+        let scale = self.scale;
+        // Split the borrow: the analytic ceiling reads `self.surface`
+        // (immutably / via the generator mutex), the solidity reads
+        // `self.world` (mutably, for lazy chunk generation). Disjoint fields.
+        let surface = &self.surface;
+        let world = RefCell::new(&mut self.world);
+        let solid =
+            |x: i64, y: i64, z: i64| world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid();
+        match surface {
+            SurfaceAuthority::Terrain(t) => true_surface_m(
+                &solid,
+                |x, z| t.surface_height_m(x, z),
+                scale,
+                xm,
+                zm,
+                footprint_half_m,
+            ),
+            SurfaceAuthority::Worldgen(worldgen) => {
+                let worldgen = worldgen.clone();
+                let analytic = |x: f64, z: f64| {
+                    let (vx, vz) = (scale.voxel_at(x), scale.voxel_at(z));
+                    let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+                    let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
+                    let col = worldgen
+                        .lock()
+                        .expect("worldgen generator mutex")
+                        .column_record(cx, cz);
+                    f64::from(col.heights[lz * 32 + lx]) * scale.voxel_size_m()
+                };
+                true_surface_m(&solid, analytic, scale, xm, zm, footprint_half_m)
+            }
+        }
+    }
+
+    /// Open-ground spawn over the active authority: spiral out from the origin
+    /// to a column whose analytic surface is clearly above sea level, then seat
+    /// the feet on the TRUE voxel surface there (never the analytic height,
+    /// which under-reports on slopes — journal/0006). Mirrors the free
+    /// `crate::app::find_open_spawn` but over whichever authority is live.
+    pub fn find_open_spawn(&mut self) -> DVec3 {
+        let (mut sx, mut sz) = (0.0f64, 0.0f64);
+        'search: for ring in 0..64 {
+            let d = f64::from(ring) * 12.0;
+            for (ox, oz) in [
+                (0.0, d),
+                (0.0, -d),
+                (d, 0.0),
+                (-d, 0.0),
+                (d, d),
+                (-d, d),
+                (d, -d),
+                (-d, -d),
+            ] {
+                if self.analytic_height_m(ox, oz) > 2.0 {
+                    (sx, sz) = (ox, oz);
+                    break 'search;
+                }
+            }
+        }
+        let surface = self.true_surface_m(sx, sz, PLAYER_WIDTH_M / 2.0);
+        DVec3::new(sx, surface + 2.0, sz)
+    }
+
+    /// Freeze a character on session disconnect (API.md § Characters, DECIDED
+    /// 2026-07-19): zero its move intent so the body stands where it was left.
+    /// Submitted as an ordinary zero move-intent command under the surface's
+    /// parent token, so it rides the same receipted, tick-quantized rail as any
+    /// controller verb — the replay identity is unchanged. No-op if the
+    /// character is already gone.
+    pub fn freeze_character(&mut self, name: &str) {
+        if self.world.character(name).is_none() {
+            return;
+        }
+        let envelope = CommandEnvelope {
+            id: dc_api::ids::CHARACTER_SET_MOVE_INTENT.to_string(),
+            source: self.character_surface_consumer.clone(),
+            grant: self.character_parent_token.clone(),
+            payload: Payload::SetMoveIntent(dc_api::payload::SetMoveIntent {
+                character: name.to_string(),
+                dx: 0.0,
+                dz: 0.0,
+                speed: 0.0,
+            }),
+            target_tick: None,
+            txn: None,
+        };
+        let _ = self.world.submit(envelope);
     }
 
     /// Submit a player-sourced command (highest priority class). Receipts are
@@ -256,27 +472,15 @@ impl Authority {
         // Body dimensions and voxel lattice from the world's character config.
         let cfg = *self.world.character_config();
         let vs = cfg.voxel_size_m;
-        let scale = VoxelScale::from_voxel_size_m(vs);
         let half_m = cfg.width_m / 2.0;
 
         // Optional surface snap: rest the feet on the true voxel surface under
-        // the footprint at the requested x/z (the world's real solidity, edits
-        // included; `terrain` only seeds each column's scan ceiling).
+        // the footprint at the requested x/z, over the ACTIVE authority (the
+        // world's real solidity, edits included; the authority's analytic
+        // height only seeds each column's scan ceiling).
         let mut feet = pos;
         if surface {
-            let terrain = &self.terrain;
-            let world = RefCell::new(&mut self.world);
-            let solid = |x: i64, y: i64, z: i64| {
-                world.borrow_mut().block_at(Vec3i::new(x, y, z)).is_solid()
-            };
-            feet.y = true_surface_m(
-                &solid,
-                |x, z| terrain.surface_height_m(x, z),
-                scale,
-                pos.x,
-                pos.z,
-                half_m,
-            ) + 0.05;
+            feet.y = self.true_surface_m(pos.x, pos.z, half_m) + 0.05;
         }
 
         // Embed guard: reject rather than create a stuck statue.
@@ -487,16 +691,12 @@ pub fn drain_bridge(
                 if surface {
                     // Walker-safe teleport: feet snap to the TRUE voxel surface
                     // under the player's footprint at (x, z), regardless of the
-                    // requested y. Reads the live solidity (loaded edits, with a
-                    // terrain fallback) via ChunkMap, not the analytic
-                    // `surface_height_m` that under-reports on slopes and left
-                    // the camera buried (journal/0004, ROADMAP Observed).
-                    let vscale = scale.scale;
-                    let solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
-                    player.pos_m.y = true_surface_m(
-                        &solid,
-                        |x, z| terrain.0.surface_height_m(x, z),
-                        vscale,
+                    // requested y — over the ACTIVE authority (worldgen or S1
+                    // terrain). Reads the hosted world's live solidity (edits
+                    // included), not the analytic `surface_height_m` that
+                    // under-reports on slopes and left the camera buried
+                    // (journal/0004, journal/0006).
+                    player.pos_m.y = authority.true_surface_m(
                         player.pos_m.x,
                         player.pos_m.z,
                         PLAYER_WIDTH_M / 2.0,
@@ -542,6 +742,11 @@ pub fn drain_bridge(
                 reply,
             } => {
                 authority.handle_character_api(&tool, &args, &session_character, reply);
+            }
+            BridgeRequest::CharacterFreeze { name } => {
+                // A character session disconnected: freeze its body where it
+                // was left (API.md § Characters, DECIDED 2026-07-19).
+                authority.freeze_character(&name);
             }
         }
     }
@@ -1056,5 +1261,152 @@ pub(crate) mod tests {
             !aabb_overlaps_solid(&solid, landed),
             "surface-snapped body must not be embedded"
         );
+    }
+
+    /// A sample of chunk positions around the worldgen spawn column (guaranteed
+    /// land), spanning the surface (some strata, some air, some deep).
+    fn worldgen_sample_positions(a: &mut Authority) -> Vec<ChunkPos> {
+        let spawn = a.find_open_spawn();
+        let scale = a.scale;
+        let scx = scale.voxel_at(spawn.x).div_euclid(32);
+        let scz = scale.voxel_at(spawn.z).div_euclid(32);
+        let scy = scale.voxel_at(spawn.y).div_euclid(32);
+        let mut positions = Vec::new();
+        for cz in -2..=2 {
+            for cx in -2..=2 {
+                for cy in -1..=1 {
+                    positions.push(ChunkPos::new(
+                        (scx + cx) as i32,
+                        (scy + cy) as i32,
+                        (scz + cz) as i32,
+                    ));
+                }
+            }
+        }
+        positions
+    }
+
+    /// Decision A determinism proof at the SEAM: two independent worldgen
+    /// authorities from one seed, generating the same chunk set in OPPOSITE
+    /// orders, produce byte-identical chunks. The collapse caches memoize but
+    /// never reorder output — the `ChunkGenerator` closure stays a pure
+    /// function of `pos`. Also confirms geology blocks actually appear.
+    #[test]
+    fn worldgen_seam_is_order_independent() {
+        const SEED: i32 = 1337;
+        let mut a = Authority::new(SEED, 2);
+        let positions = worldgen_sample_positions(&mut a);
+        let forward: Vec<(ChunkPos, Vec<Block>)> = positions
+            .iter()
+            .map(|&p| (p, a.world.chunk(p).blocks().to_vec()))
+            .collect();
+
+        // A fresh authority, same seed, chunks fetched in reverse order.
+        let mut b = Authority::new(SEED, 2);
+        for &p in positions.iter().rev() {
+            let got = b.world.chunk(p).blocks().to_vec();
+            let want = &forward.iter().find(|(q, _)| *q == p).expect("pos").1;
+            assert_eq!(&got, want, "chunk {p:?} depends on fetch order");
+        }
+
+        let saw_geology = forward.iter().any(|(_, bs)| {
+            bs.iter().any(|b| {
+                matches!(
+                    b,
+                    Block::Mudstone | Block::Sandstone | Block::Granite | Block::Basalt
+                )
+            })
+        });
+        assert!(
+            saw_geology,
+            "expected geology blocks in the sampled worldgen chunks"
+        );
+    }
+
+    /// Perf reference (Decision A deliverable): cold-chunk generation through
+    /// the worldgen seam, to compare against the S7 headless 0.711 ms mean.
+    /// Prints with `--nocapture`; no hard threshold (machine-dependent).
+    #[test]
+    fn worldgen_seam_cold_chunk_timing() {
+        use std::time::Instant;
+        const SEED: i32 = 1337;
+        let mut a = Authority::new(SEED, 2);
+        let positions = worldgen_sample_positions(&mut a);
+        // Fresh authority so every fetch is a cold chunk through the seam.
+        let mut b = Authority::new(SEED, 2);
+        let start = Instant::now();
+        for &p in &positions {
+            let _ = b.world.chunk(p);
+        }
+        let elapsed = start.elapsed();
+        let mean_ms = elapsed.as_secs_f64() * 1000.0 / positions.len() as f64;
+        println!(
+            "worldgen seam cold-chunk mean: {mean_ms:.3} ms over {} chunks \
+             (S7 headless surface mean: 0.711 ms)",
+            positions.len()
+        );
+    }
+
+    /// Decision E: a session disconnect zeroes the character's move intent and
+    /// the body comes to rest where it was left (API.md § Characters, DECIDED
+    /// 2026-07-19). Here `freeze_character` stands in for the session-teardown
+    /// `Drop` (proven to emit the request in mcp_character.rs).
+    #[test]
+    fn freeze_zeroes_move_intent_and_body_rests() {
+        let seed = 1337;
+        let mut authority = Authority::new(seed, 3);
+        let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 3);
+        let terrain = TerrainGen::new(seed);
+        let spawn = crate::app::find_open_spawn(&terrain, scale);
+
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "scout",
+            dc_api::payload::Vec3f::new(spawn.x, spawn.y + 2.0, spawn.z),
+            true,
+            tx,
+        );
+        authority.tick_now();
+        assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
+        for _ in 0..40 {
+            authority.tick_now();
+        }
+
+        // Drive it: a persistent walk intent.
+        let (tx, _rx) = oneshot::channel();
+        authority.handle_character_api(
+            "character_set_move_intent",
+            &json!({ "character": "scout", "dx": 1.0, "dz": 0.0, "speed": 1.0 }),
+            "scout",
+            tx,
+        );
+        for _ in 0..5 {
+            authority.tick_now();
+        }
+        let moving = authority.world.character("scout").expect("exists").clone();
+        assert!(
+            moving.input.move_dir != (0.0, 0.0) && moving.input.speed > 0.0,
+            "precondition: the walk intent is set"
+        );
+
+        // Disconnect: freeze. The command applies on the next tick.
+        authority.freeze_character("scout");
+        authority.tick_now();
+        let frozen = authority.world.character("scout").expect("exists").clone();
+        assert_eq!(frozen.input.move_dir, (0.0, 0.0), "move dir cleared");
+        assert_eq!(frozen.input.speed, 0.0, "speed cleared");
+
+        // And the body is at rest: no horizontal drift over further ticks.
+        let x0 = frozen.pos_m.x;
+        let z0 = frozen.pos_m.z;
+        for _ in 0..4 {
+            authority.tick_now();
+        }
+        let rested = authority.world.character("scout").expect("exists");
+        assert!(
+            (rested.pos_m.x - x0).abs() < 1e-6 && (rested.pos_m.z - z0).abs() < 1e-6,
+            "body kept moving after freeze"
+        );
+        assert!(rested.vel_m.x.abs() < 1e-9 && rested.vel_m.z.abs() < 1e-9);
     }
 }

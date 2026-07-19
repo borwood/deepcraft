@@ -2566,6 +2566,7 @@ dependencies = [
  "dc-core",
  "dc-mcp-dev",
  "dc-physics",
+ "dc-worldgen",
  "fastnoise-lite",
  "glam 0.30.10",
  "http",

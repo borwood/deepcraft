@@ -9,6 +9,9 @@ publish.workspace = true
 dc-core.workspace = true
 dc-api.workspace = true
 dc-physics.workspace = true
+# ROADMAP 3c-1: the real hierarchical worldgen backs the client's chunk seam
+# (client may depend on headless crates; the reverse never happens).
+dc-worldgen.workspace = true
 # The registry-generated MCP tool layer is shared with the standalone dev
 # server (registry_tools / envelope_for_tool_call) — see journal/0002.
 dc-mcp-dev.workspace = true
