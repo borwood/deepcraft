@@ -13,17 +13,18 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   S5 dc-api parity (wasm/MCP/native) · S7 worldgen pregen + lazy pyramid +
   year-zero handoff · S8 materials storage (GO, free-form mixtures).
 - 2026-07-18 — Rendering fixes from walk 2: spawn-frame flash, LOD z-fight.
+- 2026-07-18 — S6 physics bubble: dc-physics (rapier3d 0.34 direct,
+  enhanced-determinism), 4³-voxel collider tiles with set-difference refresh,
+  bit-identical replay, detach→settle→reattach via the 24 integer lattice
+  rotations, G-key client demo. **Spike era closed: all eight spikes shipped.**
 
 ## In flight
 
-- S6 physics bubble (rapier3d, dc-physics crate, client G-key demo).
+- **Client through dc-api + observability harness**: player input as
+  commands against a hosted world; in-client MCP surface; screenshot capture
+  to journal/assets; agent self-walk practice (orogeny's 0033 pattern).
 
 ## Sequenced
-
-1. **Client through dc-api + observability harness** (queued behind S6):
-   player input as commands against a hosted world; in-client MCP surface;
-   screenshot capture to journal/assets; agent self-walk practice
-   (orogeny's 0033 pattern).
 2. Character MCP surface (`dc-mcp-character`): grant-scoped embodied agent
    play — same generator as dc-mcp-dev, different grants.
 3. Geology deep-dive — backbone seeded in docs/design/geology.md
