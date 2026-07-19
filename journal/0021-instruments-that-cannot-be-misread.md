@@ -80,3 +80,39 @@ tied to the meters query through the shared conversion. `surface_snapped` is
 exercised on both the success path (a real land column) and a forced miss (the
 scan window carved to air, so there is genuinely nothing to stand on). Posture
 readback is driven through `set_posture` and read back off the pose query.
+
+## Walk 16 (main session): instruments live, and the pair that convicted the heightlerp
+
+*Appended post-integration (merge `71403e0`, gates green on merged main).*
+All three instruments verified against the running game: `surface_snapped:
+true` in a successful surface teleport; `pos_voxel` echoed and
+cross-checked against `world_get_block` with **no manual conversion** —
+feet voxel air, voxel below grass, first try (the corrections-#10 failure
+mode is now structurally hard to reproduce); posture set to `crouching`
+and read back as `crouching`.
+
+Then the walk paid twice. The user had asked whether the lit PBR path
+shows mixtures at all — hard to tell by eye. The instrument for that
+question is a **same-framing pair**: stand two voxels from the quarry's
+olivine-bearing granite wall, photograph lit, relaunch fullbright,
+photograph again (`0021-mixture-lit-closeup` / `0021-mixture-fullbright-
+closeup`). Verdict: fullbright shows olivine winning whole world-anchored
+cells — including one inside the crosshair-targeted face — and the lit
+shot shows **no green anywhere**. Same mesh, same splat attributes, so
+the data is present; the heightlerp buries it. Mechanism: per-pixel
+elevation = splat weight + texture height, and a ~1/8-fraction accessory
+cannot out-elevate a ~7/8 host on any pixel — the minority constituent
+loses everywhere, which is exactly the "alpha-mush" failure the
+heightlerp was chosen to avoid, inverted: not mushed, erased.
+
+> blogworthy: the diagnostic mode as adversarial witness — fullbright
+> exists so an AI walker can see data without lighting noise, and its
+> first structural use was to prove the pretty renderer was hiding the
+> geology. Auditability caught what taste couldn't.
+
+Filed to Observed with the fix shape (proposed, not decided): quantize
+the lit blend by the same world-anchored 4×4 cell hash the fullbright
+speckle uses — the cell's categorical pick gets an elevation bonus, so
+lit mixture reads as textured cells that AGREE with fullbright about
+where the ore is. Lit and diagnostic modes telling one story is itself
+an auditability property.

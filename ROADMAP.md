@@ -204,16 +204,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 `c49566f`/`016ac1b`, gates green on merged main, walks 14/15 verified;
 SPLAT_N=4 ratified, calibration rides awaiting the lighting design.)*
 
-- **Instrument batch — integrating now** (journal/0021, background agent):
-  three walker-instrument fixes — `pos_voxel` echoed beside meters in both
-  pose replies (client + character), `surface_snapped` always present in
-  `surface:true` replies, `posture` exposed in `dc:character/pose`. All
-  fields **appended** with `serde(default)` (postcard-positional
-  discipline, corrections #4); `QueryData::CharacterPose` is a query
-  result, never logged, so replay bit-identity is untouched. Gates green
-  on the worktree branch; integrator re-runs on merged main. Resolves
-  three Observed lines (walk-13 `surface_snapped`, walk-11 posture
-  readback, corrections-#10 voxel echo). Walk 16 verifies live.
+*(Instrument batch integrated 2026-07-19 — merge `71403e0`, gates green
+on merged main, walk 16 verified all three instruments live: pos_voxel
+cross-checked against get_block with no conversion, surface_snapped
+explicit, posture readback round-trips. Journal/0021 § walk 16.)*
+
+- **Far-field horizon** — next agent slot (promoted by user; brief from
+  journal/0017 § far mesh + walk-13 empty-horizon assessment).
 
 Queue after it (**reordered 2026-07-19, user**): **far-field horizon
 promoted ahead of S10** — the phantom S1 LODs below the worldgen terrain
@@ -305,6 +302,18 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- Walk 16 (journal/0021 § walk 16): **the lit path erases low-fraction
+  mixtures** — DIAGNOSED by same-framing lit/fullbright pair
+  (0021-mixture-* assets): olivine wins whole cells in fullbright, zero
+  pixels in lit; same splat attributes, so the heightlerp buries it
+  (elevation = weight + texture height; a 1/8 accessory can't out-elevate
+  a 7/8 host anywhere). Contradicts the ratified "grains poke through"
+  intent. Fix shape PROPOSED (user reviewing): cell-quantized categorical
+  bonus from the same world-anchored 4×4 hash the fullbright speckle
+  uses, so lit and diagnostic modes agree where the ore is. Also note:
+  the houndstooth fix's narrowed albedo spread (0.17→0.11) reduced
+  constituent contrast in the lit path generally.
 
 - Walk 14 (journal/0019 § walk 14): *(fullbright lost the mixture speckle:
   **RESOLVED by PBR-1 render polish**, journal/0020 — a `FullbrightTerrainMaterial`
