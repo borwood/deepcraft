@@ -1,9 +1,8 @@
-# 0010 — the ground learns to show its grains (DRAFT)
+# 0010 — the ground learns to show its grains
 
-*DRAFT — background agent (ROADMAP 3c-2, material-tier geology in the client).
-Gates green on the worktree branch; the main session integrates, walks a placer
-fan, and photographs the first visible mixtures before this entry is finalized.
-Placeholder walk section below.*
+*2026-07-19 · 3c-2, material-tier geology in the client (background agent;
+integrated + walk-verified by the main session, merge `8c9f67f`, 36 suites
+green on merged main).*
 
 Journal/0008 ended on an honest complaint: a single-material wall under
 fullbright flat shading is a *featureless color field* — the first quarry shot
@@ -121,10 +120,36 @@ almost nothing is.
   (not shipping `MaterialChunk` + table to the client). One source of truth
   (the decided sidecar path), no intern id ever crosses the lock.
 
-## Walk N: the placer fan *(placeholder — main session)*
+## Walk 9: sixty kilometers to the nearest river
 
-*The main session walks to a river's alluvium under `--fullbright`, digs to the
-clastic-coarse band, and photographs the first sandstone-with-gold dither
-against a uniform sandstone wall — the before/after the milestone exists to
-show. Screenshots land in `journal/assets/0010-*`. `eye_in_solid` checked on
-every pose.*
+The walk's first finding was about *scale*, not materials: after ten long
+scan strips near spawn found mudstone drapes but zero sandstone, the math
+surfaced — a Medium world is 17×17 cells at **14.7 km per cell (~251 km
+across)**, rivers are sparse cell-chords, and blind scanning covers a
+rounding error of one cell. The honest tool was a new dev example
+(`dc-worldgen/examples/river_cells.rs`): print the river segments for the
+client's seed. Seed 1337 has **five river segments**, nearest ~60 km from
+spawn. (Filed to Observed: the walk wants pregen introspection as dev MCP
+tools — hydrology/province queries — instead of a side-channel binary.
+Also: coarse clastic is *rare* at world scale, which is either honest
+sedimentology or a knob to revisit when rivers refine.)
+
+Teleported to a river midpoint (surface y = 114 m — real valley country,
+415 m below the spawn highlands). A scan line found the coarse body
+immediately: sandstone x −16384..−16359, y 123..131, under the mudstone
+drape — fining-upward, as deposited. Cut a trench through it
+(`world_fill`, receipts speaking sandstone), stood in the cut, and there
+it is (`assets/0010-placer-cut-wall.png`,
+`0010-placer-dither-closeup.png`): **mixed faces dithering rose/tan/grey
+pixel cells along the bedding, sandstone-dominant patches clustering where
+the coarse body runs — pixels composing ground, no textures, no
+shaders.** And no glint: the gold rides as occasional warm cells inside
+the sandstone patches, findable if you look, advertised never — the
+subtle-ore decision photographing exactly as ratified.
+
+Two operator lessons for the record: the first three shots were voids and
+featureless fields — a 60 km teleport outruns streaming for a few seconds,
+and a mis-aimed pitch photographs one uniform face (which under fullbright
+is indistinguishable from "nothing rendered"). The 0008 observability
+lesson generalizes: at these fidelities, *framing is part of the
+instrument*. `eye_in_solid` was false for every kept shot.

@@ -37,6 +37,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — 3c-2: material-tier geology visible (journal/0010, walk 9,
+  merge `8c9f67f`): registry albedos on all 17 materials; sidecar channel
+  through the seam (order-dependent MixtureTable ids resolved to a
+  render-only ContentsGrid at the generator boundary — no intern id
+  crosses the lock); 4×4 world-anchored deterministic dither on mixed
+  faces (subtle ore with zero ore-specific code); partial-height loose
+  rendering built-but-dormant. First mixture photographs from a placer
+  cut 60 km out (assets 0010-*); `examples/river_cells.rs` dev tool born
+  of the hunt.
+
 - 2026-07-19 — Body staircase steps 1–2 (journal/0009, walk 8, merge
   `dd9b802`): body plans + anim clips as namespace-owned registry data
   (fourth roles-as-contracts instance; clips standalone-before-plan, flagged
@@ -102,10 +112,8 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- 3c-2: material-tier geology in the client (agent launched 2026-07-19):
-  sidecar channel through the seam, interim world-anchored dither
-  materialization, partial-height loose-material rendering (visuals.md §
-  mixture road, all DECIDED 2026-07-19).
+(nothing — next: the S9 deep-time spike awaits user blessing of the
+earth-processes method + spike framing; see journal/0010 wrap)
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
@@ -157,6 +165,18 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   unbounded, and its ids are generation-order-dependent — a save layer must
   persist the table, never re-derive it (lifecycle belongs to region-file
   grouping, S3 OQ 7).
+
+- Walk 9 + 3c-2 loose ends (journal/0010): **NEEDS RATIFICATION — dither
+  cell count** (4×4 per face, ~22 cm at N=2; 8×8 costs 4× triangles) and
+  the **resolve-at-boundary sidecar transport shape**. Far field and the
+  legacy S1 authority render no dither (near-field worldgen only).
+  Partial-height rendering is dormant until loose deposition emits sub-8
+  columns; edits don't update materials (safe via the block gate).
+  Mixed-heavy meshing worst case 16× triangles (real placer bands are
+  thin). The walk wants **pregen introspection as dev MCP tools**
+  (hydrology/province queries) instead of a side-channel example binary.
+  Coarse clastic is rare at world scale (5 river segments on the Medium
+  seed) — honest sedimentology vs knob, revisit when rivers refine.
 
 - Walk 8 + user live observations (journal/0009): **nobody owns body
   orientation** — `SetMoveIntent` never touches yaw, `SetLook` is the only
