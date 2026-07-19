@@ -166,6 +166,31 @@ character MCP / bodies)
   conditioned on route + time (the proven S2 traveler machinery). First
   prototype candidate: portal graph + traveler collapse.
 
+## Namespace deltas (parked 2026-07-19 — user direction + Claude sharpening;
+post-playable-demo by priority razor)
+
+- The gap: fork-and-replace can't alter a `dc:*` def in place for downstream
+  consumers (references keep naming the original), and shipped builds never
+  get `define(dc:*)` (API.md § Capabilities). Render packs already cover
+  textures; class-joining covers additive content; *modifying vanilla data*
+  (distribution logic, params) has no shipped path.
+- Mechanism sketch: **identity-preserving patches** — a plugin ships
+  field-level diffs against foreign defs; registry state = base ⊕ ordered
+  patches; downstream references stay `dc:...` and see the patched def.
+  Provenance carried as a queryable chain on the def ("granite, as patched
+  by my-mod"), NOT encoded in the id (that would re-break references).
+- **Union-of-patches merge (user, from MC-mod-community experience): two
+  patches touching disjoint fields of one def BOTH apply (distribution +
+  hardness compose); pack order trumps only on per-param conflicts**, loudly.
+  Field-level merge, never pack-level shadowing.
+- Reversibility free by construction (defs are session-state rebuilt from
+  base + patch packs at boot; removing the pack is the revert). Patches
+  validate against class contracts; invalid patch = named warning + skip
+  (pack-degradation doctrine). Patch set joins pack set in world identity.
+- Grant shape: `registry.patch(dc:*)` as a SHIPPED capability, distinct
+  from dev-only `define(dc:*)` — users mod vanilla attributably and
+  reversibly; shipped defaults stay inviolate underneath.
+
 ## Posture ladder (user sketch, 2026-07-19 — crouch DECIDED separately in
 bodies.md; everything below is unscheduled)
 
