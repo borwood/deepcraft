@@ -41,6 +41,41 @@ fn same_seed_is_byte_identical_planes_and_records() {
 }
 
 #[test]
+fn parallel_equals_scalar_byte_identical() {
+    // S9b: the data-parallel per-cell phases must reproduce the scalar path to
+    // the bit — same planes AND same strata records. A Small world is below the
+    // PAR_MIN_CELLS fork threshold, so exercise a bigger grid (finer cell) to
+    // force the actual rayon paths.
+    let pregen = small_world(SEED);
+    let cfg = DeepConfig {
+        seed: SEED,
+        cell_m: 120.0, // ~ a few hundred k cells on Small → past the fork floor
+        iterations: 30,
+        remarch_interval: 20,
+        record: true,
+        ..DeepConfig::default()
+    };
+    let scalar = deeptime::run_with(&pregen, &cfg, false);
+    let parallel = deeptime::run_with(&pregen, &cfg, true);
+    assert_eq!(
+        scalar.grid.r, parallel.grid.r,
+        "bedrock plane: parallel must be byte-identical to scalar"
+    );
+    assert_eq!(
+        scalar.grid.h, parallel.grid.h,
+        "alluvium plane: parallel must be byte-identical to scalar"
+    );
+    assert_eq!(
+        scalar.grid.strata, parallel.grid.strata,
+        "strata records: parallel must be byte-identical to scalar"
+    );
+    assert_eq!(
+        scalar.uplift_total, parallel.uplift_total,
+        "uplift ledger: parallel must match scalar"
+    );
+}
+
+#[test]
 fn a_different_seed_diverges() {
     let pregen_a = small_world(SEED);
     let pregen_b = small_world(SEED ^ 0xABCD);

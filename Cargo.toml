@@ -32,6 +32,10 @@ dc-mcp-dev = { path = "crates/dc-mcp-dev" }
 dc-physics = { path = "crates/dc-physics" }
 
 glam = "0.30"
+# S9b: data-parallel deep-time erosion phases (headless compute only — no
+# rendering/OS dependency, honors the headless-crate convention). Already in the
+# lock tree transitively; pinned to the workspace's resolved minor.
+rayon = "1.12"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"

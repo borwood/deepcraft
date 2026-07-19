@@ -18,12 +18,35 @@
 //! Determinism: a fixed scan order everywhere, no wall clock, no ambient
 //! entropy (the only draws are the addressed initial-roughness jitter in
 //! grid.rs). A timing harness may wrap `Instant` *around* a run, never inside.
+//!
+//! **S9b parallelism.** The per-cell-independent phases (uplift apply, surface
+//! build, D8 routing, weathering, hillslope diffusion, and the strata recorder)
+//! run data-parallel across cells via rayon when [`Erosion::set_parallel`] is
+//! on. Each is expressed as a *pure per-cell function* driven by either a
+//! sequential or a `par_iter` loop, so the parallel result is **byte-identical**
+//! to the scalar one by construction (identical per-cell arithmetic, disjoint
+//! writes, no cross-cell summation reorder). The three phases with a genuine
+//! cross-cell dependency — the priority-flood fill (a global min-heap), the
+//! drainage-area accumulation, and the mass-routing transport pass (both are
+//! downstream-ordered flux chains) — stay **scalar**: parallelizing them means a
+//! level-ordered gather whose summation order differs from the serial scan,
+//! which would break byte-identity. They are the measured serial floor
+//! (S9b-results).
+//!
+//! Note (S9b): hillslope diffusion is reformulated from the original scatter
+//! (`h[i] -= f; h[j] += f`) to an equivalent **gather** (each cell sums its own
+//! in/out edge fluxes), which conserves mass identically but changes the
+//! floating-point summation order. Scalar and parallel both use the gather, so
+//! they agree to the bit; the gather differs from the pre-S9b scatter only in fp
+//! round-off (well inside the mass-conservation slack).
 
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
+use rayon::prelude::*;
+
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::recorder::{Aridity, DepEnv, DepTag, EnergyBand};
+use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand};
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
 const EPS: f64 = 0.001;
@@ -39,6 +62,10 @@ const NEIGH8: [(i32, i32); 8] = [
     (1, 1),
 ];
 const NEIGH4: [(i32, i32); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+/// Below this cell count the rayon fork/join overhead outweighs the work, so the
+/// per-cell phases fall back to the sequential loop even when parallel is on.
+const PAR_MIN_CELLS: usize = 1 << 15;
 
 /// A priority-flood heap item ordered by filled elevation (min-heap via
 /// `Reverse`), ties broken by index for determinism.
@@ -61,12 +88,280 @@ impl Ord for Item {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Pure per-cell kernels. Each is a function of read-only inputs and returns (or
+// mutates only) the single cell's own state, so a sequential and a parallel
+// driver over them produce byte-identical output. Grid geometry helpers are
+// free functions taking `w` so the kernels don't borrow `&Erosion`.
+
+#[inline]
+fn in_grid(gx: i32, gy: i32, w: usize) -> Option<usize> {
+    if gx >= 0 && gy >= 0 && (gx as usize) < w && (gy as usize) < w {
+        Some(gy as usize * w + gx as usize)
+    } else {
+        None
+    }
+}
+
+#[inline]
+fn coords_of(i: usize, w: usize) -> (i32, i32) {
+    ((i % w) as i32, (i / w) as i32)
+}
+
+#[inline]
+fn is_border(i: usize, w: usize) -> bool {
+    let (gx, gy) = coords_of(i, w);
+    gx == 0 || gy == 0 || gx as usize == w - 1 || gy as usize == w - 1
+}
+
+/// D8 steepest-descent receiver of cell `i` on the filled surface (`-1` = sink).
+#[inline]
+fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) -> i32 {
+    if surf[i] <= sea_level || is_border(i, w) {
+        return -1;
+    }
+    let (gx, gy) = coords_of(i, w);
+    let fi = filled[i];
+    let mut best: Option<(f64, usize)> = None;
+    for (dx, dy) in NEIGH8 {
+        let Some(j) = in_grid(gx + dx, gy + dy, w) else {
+            continue;
+        };
+        if filled[j] < fi && best.is_none_or(|(bf, _)| filled[j] < bf) {
+            best = Some((filled[j], j));
+        }
+    }
+    best.map_or(-1, |(_, j)| j as i32)
+}
+
+/// Net hillslope-diffusion thickness change at cell `i` (metres), gathered from
+/// its four edges on the frozen surface with the frozen per-cell limiter
+/// `scale`. Outflux edges (i higher) use `scale[i]`; influx edges (neighbour
+/// higher) use the donor's `scale[j]` — exactly the flux the scatter form moved,
+/// so the two conserve mass identically. Summation order is fixed (`NEIGH4`).
+#[inline]
+fn diffuse_net_cell(i: usize, w: usize, surf: &[f64], scale: &[f64], diffusion: f64) -> f64 {
+    let (gx, gy) = coords_of(i, w);
+    let si = surf[i];
+    let mut net = 0.0;
+    for (dx, dy) in NEIGH4 {
+        if let Some(j) = in_grid(gx + dx, gy + dy, w) {
+            let d = si - surf[j];
+            if d > 0.0 {
+                net -= diffusion * d * scale[i];
+            } else if d < 0.0 {
+                net += diffusion * (-d) * scale[j];
+            }
+        }
+    }
+    net
+}
+
+/// Per-cell diffusion outflux sum → limiter scale on the frozen surface.
+#[inline]
+fn diffuse_scale_cell(i: usize, w: usize, surf: &[f64], h: f64, diffusion: f64) -> f64 {
+    let (gx, gy) = coords_of(i, w);
+    let si = surf[i];
+    let mut out = 0.0;
+    for (dx, dy) in NEIGH4 {
+        if let Some(j) = in_grid(gx + dx, gy + dy, w) {
+            let d = si - surf[j];
+            if d > 0.0 {
+                out += diffusion * d;
+            }
+        }
+    }
+    if out > h && out > 0.0 { h / out } else { 1.0 }
+}
+
+/// Subaerial bedrock→regolith weathering for one cell (cover-tapered).
+#[inline]
+fn weather_cell(r: &mut f64, h: &mut f64, dh: &mut f64, sea: f64, weathering: f64, h_star: f64) {
+    if *r + *h > sea {
+        let wth = weathering * (-*h / h_star).exp();
+        *r -= wth;
+        *h += wth;
+        *dh += wth;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// S9b flood-parallelism probe (MEASUREMENT ONLY — not on the byte-identical
+// path). The verdict hinges on whether the priority-flood, the step's dominant
+// serial cost, can be parallelized. These two functions let the harness measure
+// the *optimistic* parallel-flood ceiling and its correctness cost, without
+// pretending the result is deterministic or exact.
+
+/// Serial priority-flood, returning only the filled surface (the reference for
+/// the tiled-flood divergence check). Same algorithm as [`Erosion::flood`].
+pub fn flood_fill_serial(w: usize, surf: &[f64], sea: f64) -> Vec<f64> {
+    let n = w * w;
+    let mut filled = vec![f64::INFINITY; n];
+    let mut done = vec![false; n];
+    let mut heap: BinaryHeap<Reverse<Item>> = BinaryHeap::new();
+    for i in 0..n {
+        if surf[i] <= sea || is_border(i, w) {
+            filled[i] = surf[i];
+            heap.push(Reverse(Item {
+                filled: surf[i],
+                idx: i as u32,
+            }));
+        }
+    }
+    while let Some(Reverse(item)) = heap.pop() {
+        let i = item.idx as usize;
+        if done[i] {
+            continue;
+        }
+        done[i] = true;
+        let (gx, gy) = coords_of(i, w);
+        for (dx, dy) in NEIGH8 {
+            if let Some(j) = in_grid(gx + dx, gy + dy, w) {
+                if done[j] || filled[j].is_finite() {
+                    continue;
+                }
+                filled[j] = surf[j].max(filled[i] + EPS);
+                heap.push(Reverse(Item {
+                    filled: filled[j],
+                    idx: j as u32,
+                }));
+            }
+        }
+    }
+    filled
+}
+
+/// **Optimistic** tiled parallel priority-flood: split the grid into `strips`
+/// row bands, fill each in parallel with its internal seams treated as *open*
+/// outlets (a cell on a strip's top/bottom edge pours at its own surface). This
+/// is the best case for a parallel flood — no reconciliation passes — so its
+/// wall time upper-bounds any correct tiled flood's speedup, and its divergence
+/// from [`flood_fill_serial`] is the correctness debt a real (Barnes-style)
+/// parallel flood must pay back with border-relaxation sweeps. It is **not**
+/// deterministic-equivalent to the serial fill and is never on the sim path.
+pub fn flood_fill_tiled(w: usize, surf: &[f64], sea: f64, strips: usize) -> Vec<f64> {
+    let n = w * w;
+    let strips = strips.clamp(1, w);
+    let bands: Vec<(usize, usize)> = (0..strips)
+        .map(|t| (t * w / strips, (t + 1) * w / strips))
+        .collect();
+    let results: Vec<Vec<f64>> = bands
+        .par_iter()
+        .map(|&(y0, y1)| {
+            let h = y1 - y0;
+            let mut filled = vec![f64::INFINITY; h * w];
+            let mut done = vec![false; h * w];
+            let mut heap: BinaryHeap<Reverse<Item>> = BinaryHeap::new();
+            for ly in 0..h {
+                let gy = y0 + ly;
+                for gx in 0..w {
+                    let gi = gy * w + gx;
+                    let li = ly * w + gx;
+                    let seam = (ly == 0 && y0 > 0) || (ly == h - 1 && y1 < w);
+                    if surf[gi] <= sea || is_border(gi, w) || seam {
+                        filled[li] = surf[gi];
+                        heap.push(Reverse(Item {
+                            filled: surf[gi],
+                            idx: li as u32,
+                        }));
+                    }
+                }
+            }
+            while let Some(Reverse(item)) = heap.pop() {
+                let li = item.idx as usize;
+                if done[li] {
+                    continue;
+                }
+                done[li] = true;
+                let lx = (li % w) as i32;
+                let lly = (li / w) as i32;
+                for (dx, dy) in NEIGH8 {
+                    let (nx, ny) = (lx + dx, lly + dy);
+                    if nx < 0 || ny < 0 || nx as usize >= w || ny as usize >= h {
+                        continue;
+                    }
+                    let lj = ny as usize * w + nx as usize;
+                    if done[lj] || filled[lj].is_finite() {
+                        continue;
+                    }
+                    let gj = (y0 + ny as usize) * w + nx as usize;
+                    filled[lj] = surf[gj].max(filled[li] + EPS);
+                    heap.push(Reverse(Item {
+                        filled: filled[lj],
+                        idx: lj as u32,
+                    }));
+                }
+            }
+            filled
+        })
+        .collect();
+    let mut out = vec![f64::INFINITY; n];
+    for (t, &(y0, y1)) in bands.iter().enumerate() {
+        let h = y1 - y0;
+        out[y0 * w..y1 * w].copy_from_slice(&results[t][..h * w]);
+    }
+    out
+}
+
+/// Map a stream transport capacity to a facies energy band. Thresholds are in
+/// the capacity units of the transport pass (metres/iteration); calibrated so
+/// headwater hillslopes read Low, trunk rivers read High.
+pub fn energy_band(cap: f64) -> EnergyBand {
+    if cap < 0.002 {
+        EnergyBand::Low
+    } else if cap < 0.02 {
+        EnergyBand::Medium
+    } else {
+        EnergyBand::High
+    }
+}
+
+/// The measured depositional tag for a cell given its final surface, precip, and
+/// the transport capacity it saw this iteration.
+#[inline]
+fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64) -> DepTag {
+    let env = if surf_i <= sea_level {
+        DepEnv::Subsea
+    } else {
+        DepEnv::Subaerial
+    };
+    let aridity = if f64::from(precip_i) < 0.32 {
+        Aridity::Arid
+    } else {
+        Aridity::Humid
+    };
+    DepTag {
+        env,
+        aridity,
+        energy: energy_band(energy_i),
+    }
+}
+
+/// Apply one cell's net thickness change to its strata record under `tag`.
+#[inline]
+fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag) {
+    if dh.abs() < 1e-9 {
+        return;
+    }
+    if dh > 0.0 {
+        s.deposit(tag, dh);
+    } else {
+        s.erode(-dh);
+    }
+}
+
 /// Reusable scratch for the erosion iteration (allocated once, reused every
 /// step — the per-iteration working set the memory measurement counts).
 pub struct Erosion {
     w: usize,
     n: usize,
     cell_m: f64,
+    /// Data-parallel per-cell phases when set (byte-identical to scalar).
+    parallel: bool,
+    /// `Σ grid.uplift` precomputed once (constant across iterations): the ledger
+    /// value each step returns. Summed sequentially so it equals the scalar
+    /// in-loop fold to the bit.
+    uplift_sum: f64,
     /// Sea level for the current step (set by [`Erosion::step`]); the dynamic
     /// paleo-sea-level stand drives shoreline transgression/regression, so a
     /// coastal column records alternating marine/subaerial bands (the classic
@@ -82,16 +377,21 @@ pub struct Erosion {
     dh: Vec<f64>,
     energy: Vec<f64>,
     scale: Vec<f64>,
+    /// Diffusion gather scratch: per-cell net ΔH, applied after the gather.
+    netdiff: Vec<f64>,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
 impl Erosion {
     pub fn new(grid: &DeepGrid) -> Self {
         let n = grid.w * grid.w;
+        let uplift_sum = grid.uplift.iter().sum();
         Self {
             w: grid.w,
             n,
             cell_m: grid.cell_m,
+            parallel: false,
+            uplift_sum,
             sea_level: SEA_LEVEL_M,
             surf: vec![0.0; n],
             filled: vec![0.0; n],
@@ -103,8 +403,22 @@ impl Erosion {
             dh: vec![0.0; n],
             energy: vec![0.0; n],
             scale: vec![0.0; n],
+            netdiff: vec![0.0; n],
             heap: BinaryHeap::new(),
         }
+    }
+
+    /// Turn data-parallel per-cell phases on/off. Off by default (the scalar
+    /// reference path). Parallel output is byte-identical (see module docs).
+    pub fn set_parallel(&mut self, on: bool) {
+        self.parallel = on;
+    }
+
+    /// Whether cell-parallel phases actually fork (parallel on *and* the grid is
+    /// big enough to amortise rayon's overhead).
+    #[inline]
+    fn par(&self) -> bool {
+        self.parallel && self.n >= PAR_MIN_CELLS
     }
 
     /// Working-set footprint of the scratch arrays (bytes), for the memory
@@ -116,75 +430,75 @@ impl Erosion {
             + self.qs.len()
             + self.dh.len()
             + self.energy.len()
-            + self.scale.len();
+            + self.scale.len()
+            + self.netdiff.len();
         f64s * 8 + self.recv.len() * 4 + self.order.capacity() * 4 + self.done.len()
     }
 
-    #[inline]
-    fn idx(&self, gx: i32, gy: i32) -> Option<usize> {
-        if gx >= 0 && gy >= 0 && (gx as usize) < self.w && (gy as usize) < self.w {
-            Some(gy as usize * self.w + gx as usize)
-        } else {
-            None
-        }
-    }
-
-    #[inline]
-    fn coords(&self, i: usize) -> (i32, i32) {
-        ((i % self.w) as i32, (i / self.w) as i32)
-    }
-
-    #[inline]
-    fn is_border(&self, i: usize) -> bool {
-        let (gx, gy) = self.coords(i);
-        gx == 0 || gy == 0 || gx as usize == self.w - 1 || gy as usize == self.w - 1
+    /// Set the paleo-sea-level stand the standalone phase methods read (the
+    /// profiling harness drives phases individually; [`Self::step`] sets this).
+    pub fn set_sea_level(&mut self, sea_level: f64) {
+        self.sea_level = sea_level;
     }
 
     /// One deep-time iteration at the given `sea_level` stand. Returns the
     /// total uplift added this step (for the mass-conservation ledger).
     pub fn step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, sea_level: f64) -> f64 {
         self.sea_level = sea_level;
-        // 1. Uplift (metres/iteration), into bedrock.
-        let mut uplift_added = 0.0;
-        for i in 0..self.n {
-            grid.r[i] += grid.uplift[i];
-            uplift_added += grid.uplift[i];
-        }
-
-        // 2. Surface, priority-flood fill, D8 receivers, drainage area.
-        for i in 0..self.n {
-            self.surf[i] = grid.surf_at(i);
-        }
+        let uplift_added = self.apply_uplift(grid);
+        self.build_surface(grid);
         self.flood();
         self.route();
         self.accumulate_area();
-
-        // 3. Mass-conserving stream-power transport pass (upstream → down).
-        self.dh.iter_mut().for_each(|d| *d = 0.0);
         self.transport(grid, cfg);
-
-        // 4. Bedrock weathering (subaerial): bedrock → regolith, cover-tapered.
-        for i in 0..self.n {
-            if grid.surf_at(i) > self.sea_level {
-                let w = cfg.weathering * (-grid.h[i] / cfg.h_star).exp();
-                grid.r[i] -= w;
-                grid.h[i] += w;
-                self.dh[i] += w;
-            }
-        }
-
-        // 5. Hillslope diffusion of the regolith (conserving, flux-limited).
+        self.weather(grid, cfg);
         self.diffuse(grid, cfg);
-
-        // 6. Record net thickness change under the environment measured now.
         if cfg.record {
             self.record(grid);
         }
         uplift_added
     }
 
+    // ---- phase 1: uplift into bedrock -------------------------------------
+
+    /// Add the per-cell uplift into bedrock. Returns the (constant) total.
+    pub fn apply_uplift(&mut self, grid: &mut DeepGrid) -> f64 {
+        if self.par() {
+            grid.r
+                .par_iter_mut()
+                .zip(grid.uplift.par_iter())
+                .for_each(|(r, u)| *r += *u);
+        } else {
+            for i in 0..self.n {
+                grid.r[i] += grid.uplift[i];
+            }
+        }
+        self.uplift_sum
+    }
+
+    // ---- phase 2: surface snapshot ----------------------------------------
+
+    /// Snapshot the current surface `R + H` into scratch.
+    pub fn build_surface(&mut self, grid: &DeepGrid) {
+        if self.par() {
+            self.surf
+                .par_iter_mut()
+                .zip(grid.r.par_iter())
+                .zip(grid.h.par_iter())
+                .for_each(|((s, r), h)| *s = *r + *h);
+        } else {
+            for i in 0..self.n {
+                self.surf[i] = grid.r[i] + grid.h[i];
+            }
+        }
+    }
+
+    // ---- phase 3: priority-flood fill (SCALAR — serial min-heap) ----------
+
     /// Priority-flood depression fill (Barnes 2014) seeded from sea and border.
-    fn flood(&mut self) {
+    /// Serial by nature (a global elevation-ordered frontier); the measured
+    /// deep-time floor S9b could not break without abandoning byte-identity.
+    pub fn flood(&mut self) {
         self.heap.clear();
         self.order.clear();
         for f in &mut self.filled {
@@ -192,7 +506,7 @@ impl Erosion {
         }
         self.done.iter_mut().for_each(|d| *d = false);
         for i in 0..self.n {
-            if self.surf[i] <= self.sea_level || self.is_border(i) {
+            if self.surf[i] <= self.sea_level || is_border(i, self.w) {
                 self.filled[i] = self.surf[i];
                 self.heap.push(Reverse(Item {
                     filled: self.filled[i],
@@ -207,9 +521,9 @@ impl Erosion {
             }
             self.done[i] = true;
             self.order.push(i as u32);
-            let (gx, gy) = self.coords(i);
+            let (gx, gy) = coords_of(i, self.w);
             for (dx, dy) in NEIGH8 {
-                let Some(j) = self.idx(gx + dx, gy + dy) else {
+                let Some(j) = in_grid(gx + dx, gy + dy, self.w) else {
                     continue;
                 };
                 if self.done[j] || self.filled[j].is_finite() {
@@ -224,33 +538,33 @@ impl Erosion {
         }
     }
 
+    // ---- phase 4: D8 routing (PARALLEL — per-cell independent) -------------
+
     /// D8 steepest-descent receivers on filled elevation. Sea and border cells
-    /// are sinks (`recv = -1`): incoming sediment settles there.
-    fn route(&mut self) {
-        for i in 0..self.n {
-            if self.surf[i] <= self.sea_level || self.is_border(i) {
-                self.recv[i] = -1;
-                continue;
+    /// are sinks (`recv = -1`). Per-cell independent → byte-identical parallel.
+    pub fn route(&mut self) {
+        let (w, sea) = (self.w, self.sea_level);
+        let surf = &self.surf;
+        let filled = &self.filled;
+        if self.par() {
+            self.recv
+                .par_iter_mut()
+                .enumerate()
+                .for_each(|(i, r)| *r = route_cell(i, w, surf, filled, sea));
+        } else {
+            for i in 0..self.n {
+                self.recv[i] = route_cell(i, w, surf, filled, sea);
             }
-            let (gx, gy) = self.coords(i);
-            let mut best: Option<(f64, usize)> = None;
-            for (dx, dy) in NEIGH8 {
-                let Some(j) = self.idx(gx + dx, gy + dy) else {
-                    continue;
-                };
-                if self.filled[j] < self.filled[i] && best.is_none_or(|(bf, _)| self.filled[j] < bf)
-                {
-                    best = Some((self.filled[j], j));
-                }
-            }
-            self.recv[i] = best.map_or(-1, |(_, j)| j as i32);
         }
     }
 
-    /// Drainage area (in cell units) accumulated downstream: process cells in
-    /// descending filled order (reverse of the flood pop order), so a receiver
-    /// has all its upstream contributions before it is itself routed on.
-    fn accumulate_area(&mut self) {
+    // ---- phase 5: drainage-area accumulation (SCALAR — flux chain) --------
+
+    /// Drainage area (in cell units) accumulated downstream in descending
+    /// filled order. A receiver must see all upstream contributions before it is
+    /// routed on — a serial dependency chain; a level-parallel gather would
+    /// reorder the sums and break byte-identity.
+    pub fn accumulate_area(&mut self) {
         self.area.iter_mut().for_each(|a| *a = 1.0);
         for k in (0..self.order.len()).rev() {
             let i = self.order[k] as usize;
@@ -261,8 +575,14 @@ impl Erosion {
         }
     }
 
+    // ---- phase 6: stream-power transport (SCALAR — flux chain) ------------
+
     /// Stream-power transport with cover shielding and explicit flux routing.
-    fn transport(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+    /// Suspended load flows down the receiver chain (`qs[rc] += qs_out`), so a
+    /// cell needs its full upstream load before it runs — a serial chain, kept
+    /// scalar for byte-identity. Zeroes `dh` (the recorder's net-ΔH scratch).
+    pub fn transport(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        self.dh.iter_mut().for_each(|d| *d = 0.0);
         self.qs.iter_mut().for_each(|q| *q = 0.0);
         self.energy.iter_mut().for_each(|e| *e = 0.0);
         for k in (0..self.order.len()).rev() {
@@ -320,102 +640,111 @@ impl Erosion {
         }
     }
 
+    // ---- phase 7: bedrock weathering (PARALLEL — per-cell independent) -----
+
+    /// Subaerial bedrock → regolith, cover-tapered. Purely local per cell.
+    pub fn weather(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        let parallel = self.par();
+        let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
+        let dh = &mut self.dh;
+        if parallel {
+            grid.r
+                .par_iter_mut()
+                .zip(grid.h.par_iter_mut())
+                .zip(dh.par_iter_mut())
+                .for_each(|((r, h), d)| weather_cell(r, h, d, sea, weathering, h_star));
+        } else {
+            for ((r, h), d) in grid.r.iter_mut().zip(grid.h.iter_mut()).zip(dh.iter_mut()) {
+                weather_cell(r, h, d, sea, weathering, h_star);
+            }
+        }
+    }
+
+    // ---- phase 8: hillslope diffusion (PARALLEL — gather form) ------------
+
     /// Flux-limited hillslope diffusion of the regolith along the surface
-    /// gradient. Fluxes are computed from a frozen surface then applied, so the
-    /// exchange is symmetric and conserves `ΣH` exactly; a cell never sheds more
-    /// than it has (the scale factor caps outflux at `H`).
-    fn diffuse(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+    /// gradient, in **gather** form: fluxes are computed from a frozen surface
+    /// and a frozen per-cell limiter, then each cell sums its own in/out edges.
+    /// Conserves `ΣH` exactly (each edge's flux is referenced identically from
+    /// both endpoints) and is byte-identical scalar↔parallel.
+    pub fn diffuse(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
         if cfg.diffusion <= 0.0 {
             return;
         }
-        for i in 0..self.n {
-            self.surf[i] = grid.surf_at(i);
-        }
-        // Pass 1: outflux sum per cell, and the per-cell limiter scale.
-        for i in 0..self.n {
-            let (gx, gy) = self.coords(i);
-            let mut out = 0.0;
-            for (dx, dy) in NEIGH4 {
-                if let Some(j) = self.idx(gx + dx, gy + dy) {
-                    let d = self.surf[i] - self.surf[j];
-                    if d > 0.0 {
-                        out += cfg.diffusion * d;
-                    }
+        let parallel = self.par();
+        let (w, diff) = (self.w, cfg.diffusion);
+        // Freeze the surface.
+        self.build_surface(grid);
+        // Pass 1: per-cell limiter scale on the frozen surface.
+        {
+            let surf = &self.surf;
+            let scale = &mut self.scale;
+            let h = &grid.h;
+            if parallel {
+                scale
+                    .par_iter_mut()
+                    .enumerate()
+                    .for_each(|(i, sc)| *sc = diffuse_scale_cell(i, w, surf, h[i], diff));
+            } else {
+                for i in 0..self.n {
+                    scale[i] = diffuse_scale_cell(i, w, surf, h[i], diff);
                 }
             }
-            self.area[i] = out; // reuse `area` as outflux scratch
-            self.scale[i] = if out > grid.h[i] && out > 0.0 {
-                grid.h[i] / out
-            } else {
-                1.0
-            };
         }
-        // Pass 2: apply scaled directed fluxes downhill.
-        for i in 0..self.n {
-            let (gx, gy) = self.coords(i);
-            let si = self.surf[i];
-            for (dx, dy) in NEIGH4 {
-                if let Some(j) = self.idx(gx + dx, gy + dy) {
-                    let d = si - self.surf[j];
-                    if d > 0.0 {
-                        let f = cfg.diffusion * d * self.scale[i];
-                        grid.h[i] -= f;
-                        grid.h[j] += f;
-                        self.dh[i] -= f;
-                        self.dh[j] += f;
-                    }
+        // Pass 2: gather net ΔH per cell.
+        {
+            let surf = &self.surf;
+            let scale = &self.scale;
+            let netdiff = &mut self.netdiff;
+            if parallel {
+                netdiff
+                    .par_iter_mut()
+                    .enumerate()
+                    .for_each(|(i, nd)| *nd = diffuse_net_cell(i, w, surf, scale, diff));
+            } else {
+                for (i, nd) in netdiff.iter_mut().enumerate() {
+                    *nd = diffuse_net_cell(i, w, surf, scale, diff);
                 }
+            }
+        }
+        // Apply: h += net, dh += net (disjoint per-cell writes).
+        if parallel {
+            grid.h
+                .par_iter_mut()
+                .zip(self.dh.par_iter_mut())
+                .zip(self.netdiff.par_iter())
+                .for_each(|((h, d), nd)| {
+                    *h += *nd;
+                    *d += *nd;
+                });
+        } else {
+            for i in 0..self.n {
+                grid.h[i] += self.netdiff[i];
+                self.dh[i] += self.netdiff[i];
             }
         }
     }
+
+    // ---- phase 9: strata recorder (PARALLEL — per-cell independent) --------
 
     /// Record each cell's net thickness change this iteration under the tag
-    /// measured now: environment from the final surface, aridity from the
-    /// marched precip, energy band from the stream capacity used.
-    fn record(&mut self, grid: &mut DeepGrid) {
-        for i in 0..self.n {
-            let dh = self.dh[i];
-            if dh.abs() < 1e-9 {
-                continue;
-            }
-            if dh > 0.0 {
-                let tag = self.tag_at(grid, i);
-                grid.strata[i].deposit(tag, dh);
-            } else {
-                grid.strata[i].erode(-dh);
+    /// measured now. Each cell's `DeepStrata` is independent → byte-identical
+    /// parallel (per-cell record ops, disjoint records).
+    pub fn record(&mut self, grid: &mut DeepGrid) {
+        let parallel = self.par();
+        let sea = self.sea_level;
+        let (r, h, precip, energy) = (&grid.r, &grid.h, &grid.precip, &self.energy);
+        let dh = &self.dh;
+        if parallel {
+            grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
+                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
+                record_cell(s, dh[i], tag);
+            });
+        } else {
+            for i in 0..self.n {
+                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
+                record_cell(&mut grid.strata[i], dh[i], tag);
             }
         }
-    }
-
-    fn tag_at(&self, grid: &DeepGrid, i: usize) -> DepTag {
-        let env = if grid.surf_at(i) <= self.sea_level {
-            DepEnv::Subsea
-        } else {
-            DepEnv::Subaerial
-        };
-        let aridity = if f64::from(grid.precip[i]) < 0.32 {
-            Aridity::Arid
-        } else {
-            Aridity::Humid
-        };
-        let energy = energy_band(self.energy[i]);
-        DepTag {
-            env,
-            aridity,
-            energy,
-        }
-    }
-}
-
-/// Map a stream transport capacity to a facies energy band. Thresholds are in
-/// the capacity units of the transport pass (metres/iteration); calibrated so
-/// headwater hillslopes read Low, trunk rivers read High.
-pub fn energy_band(cap: f64) -> EnergyBand {
-    if cap < 0.002 {
-        EnergyBand::Low
-    } else if cap < 0.02 {
-        EnergyBand::Medium
-    } else {
-        EnergyBand::High
     }
 }
