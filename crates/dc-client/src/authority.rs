@@ -164,8 +164,11 @@ impl Authority {
                     return;
                 }
             };
+        // API.md § Characters: a character acts with the SAME priority class
+        // as human player input — an embodied session is player-tier, not
+        // tool-tier.
         let consumer = ConsumerId::new(
-            ConsumerKind::McpSession,
+            ConsumerKind::Player,
             format!("character-{session_character}"),
         );
         self.handle_api_call_as(consumer, token, tool, args, reply);
