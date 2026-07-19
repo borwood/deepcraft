@@ -94,6 +94,30 @@ Sim: water-table interplay (materials.md aquifers); vein/inclusion
 emplacement via pore partials (geology.md); fracture networks from the
 deformation history.
 
+## Quarry results (orogeny recon 2026-07-19)
+
+Full report: docs/design/orogeny-recon-2026-07-19.md. Headlines:
+- Orogeny independently built and stress-tested our per-column
+  strata-record-with-context-tags shape at 147k columns — the design is
+  field-proven.
+- Cost philosophy adopted (PROPOSED): **"coarsen the cause, never delete
+  it and fake the appearance."**
+- Steal directly: uplift-value-as-fold-phase (coherent folding, no 3D
+  solver, addressed-hash friendly); exhumation-exposes-cooked-rock
+  (grade = burial + stripped overburden); orographic-march paleoclimate
+  (precipitation, not residual humidity); run-length merge +
+  thinnest-pair eviction; tag-by-measurement discipline;
+  jitter-renormalized-to-period (phantom-fault lesson); caves reading
+  solubility from the recorded volume.
+- The bounded/unbounded theorem (drainage is global, erosion is bounded;
+  decay-length halos beat propagation-speed halos ~4×) is the same
+  theorem as our LOOKAHEAD_BOUNDS — and speaks directly to the rivers
+  2-ring Observed item.
+- Their compromises we refuse: lossy K=8 eviction, nearest-cell mosaic,
+  one-sided folds, single drainage-deciding layer, collapsed (ahistorical)
+  surface geometry, declared-prehistory instead of a simulated Wilson
+  cycle.
+
 ## Standing question for every future pass
 
 "What does this look like in reality, and how did it get there?" — if the
