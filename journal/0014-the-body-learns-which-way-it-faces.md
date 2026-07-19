@@ -1,4 +1,4 @@
-# 0014 — the body learns to face, plant, and hunker (DRAFT)
+# 0014 — the body learns which way it faces
 
 *DRAFT — background agent, body-plan staircase step 3 (docs/design/bodies.md
 § staircase). Headless-and-gated; the walk photographs come when the main
@@ -107,21 +107,29 @@ look, leg IK, the crouch bend, the face — is client-side cosmetic, derived fro
 sim state the renderer is allowed to read and never written back. Replay
 bit-identity is extended, not dented.
 
-## Walk section (PLACEHOLDER — for the main session)
+## Walk 11: the face cue earns its keep
 
-To be photographed by the integrating session (launch `--fullbright`, check
-`eye_in_solid` before trusting a still):
+Side-on, driven +Z with look set 90° toward the camera
+(`assets/0014-trunk-travel-head-aside.png`): **trunk squarely in profile
+facing its travel, mid-stride, head turned to the camera with the brow
+band unambiguous** — the walk-8 orientation gap closed, and *provably*
+closed, because for the first time a photograph can testify which way a
+head points. The 0009 lesson ("observability is a feature of the model")
+pays off in one frame.
 
-- A driven character walking **facing its travel** while its head looks aside —
-  now verifiable via the face cue (drive with `set_move_intent` one way,
-  `set_look` another; the brow band should point along travel, the face turn to
-  the gaze).
-- Feet **seated on a terrain step** — walk a body onto a one-voxel ledge and
-  confirm the downhill foot plants on the lower tread instead of hovering.
-- A **crouch under a low ceiling** — `set_posture crouching`, walk under a
-  2-voxel-clearance overhang, confirm the body fits; `set_posture standing`
-  under it is refused (`PostureBlocked`); step clear and it stands.
+Crouch under a built stone eave
+(`assets/0014-crouch-under-ceiling.png`): trunk lowered, legs IK-folded,
+head level under the slab. Two honest findings:
+- **The stand-up guard never fired** — standing (1.8 m) fits *flush*
+  under a 2-voxel (1.8 m) ceiling by the same EPS rule that makes resting
+  on ground not-embedded. And since passages at N=2 come in 0.9 m steps,
+  a 0.6× crouch (1.08 m) fits nothing standing doesn't: **crouch cannot
+  currently earn any passage**. Factor ≤ 0.5 would flush-fit 1-voxel
+  crawlspaces — but that's game feel (crouch-as-crawlspace vs
+  crouch-as-stealth-pose), so it's filed for the user, not tuned here.
+  The guard's rejection path stays proven by test only
+  (`stand_up_is_blocked_under_a_low_ceiling` uses a sub-flush ceiling).
+- The max-bend leg fold reads compressed/tangled — the knee pole and
+  fold distribution want a tuning pass from photographs (agent flagged
+  it; confirmed).
 
-> blogworthy: closing a walk-8 finding with the neck that was built for it —
-> and the discipline that the fix shipped *with* the face cue that makes it
-> photographable, because a fix you can't observe is a fix you can't trust.

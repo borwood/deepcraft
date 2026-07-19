@@ -7,6 +7,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — Body staircase step 3 (journal/0014, walk 11, merge
+  `f0e9f2d`): trunk-follows-travel / head-follows-look via the neck
+  (walk-8 orientation gap closed, photographically verified thanks to
+  the new v0 brow face cue); two-bone leg IK with stepped output and
+  half-voxel offset cap; parametric crouch split exactly on the firewall
+  (`dc:character/set_posture`, 0.6× collider, stand-up guard,
+  PostureBlocked receipt; procedural pose cosmetic-side); posture replay
+  bit-identity proven.
+
 - 2026-07-19 — S9b parallelism spike (journal/0013, merge `9910c45`):
   the determinism tax measured — flood has no byte-identical parallel
   form (98.5% serial floor at B); deterministic-parallel phases 1.2×
@@ -138,11 +147,10 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- Body staircase step 3 (agent launched 2026-07-19; bodies.md §
-  staircase): two-bone leg IK + foot placement, neck look-at, the
-  trunk-follows-travel / head-follows-look split (closes walk-8's
-  orientation gap), parametric crouch (sim posture state + cosmetic
-  pose), v0 face cue so orientation photographs.
+(nothing — the autonomous queue is complete; next items need the user:
+the 3e commitment with S9/S9b evidence, biomes (4) and ecology (5)
+design conversations, body staircase steps 4+, and the game-feel calls
+in Observed)
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
@@ -175,6 +183,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- Walk 11 + step-3 loose ends (journal/0014): **crouch factor is a
+  user-owned game-feel call** — at N=2, passages step by 0.9 m and
+  standing flush-fits 1.8 m gaps, so 0.6× crouch (1.08 m) earns no
+  passage; ≤0.5× would flush-fit 1-voxel crawlspaces (crouch-as-
+  crawlspace vs crouch-as-stealth decision). Max-bend leg fold reads
+  tangled — knee pole/fold distribution wants a photo-driven tuning
+  pass. Posture is not exposed in `character_pose` (a driver can't read
+  its own posture back). Foot-IK ground read can momentarily see the S1
+  far-mesh phantom at the extreme load-radius edge.
 
 - Walk 5 (journal/0005, character surface): characters have **no auto
   step-up** — a one-voxel rise halts a grounded walker until it jumps
