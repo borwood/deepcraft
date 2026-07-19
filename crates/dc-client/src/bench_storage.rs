@@ -291,7 +291,13 @@ pub fn run() {
             let neighbor_solid =
                 |x: i64, y: i64, z: i64| generator.block_at(cscale, x, y, z).is_solid();
             let t = Instant::now();
-            let mesh = mesh_chunk(&chunk, *pos, cscale.voxel_size_m() as f32, &neighbor_solid);
+            let mesh = mesh_chunk(
+                &chunk,
+                *pos,
+                cscale.voxel_size_m() as f32,
+                &neighbor_solid,
+                None,
+            );
             mesh_s += t.elapsed().as_secs_f64();
             tris += mesh.triangle_count() as u64;
         }

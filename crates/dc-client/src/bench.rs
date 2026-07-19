@@ -107,7 +107,7 @@ fn bench_scale(generator: &TerrainGen, player_voxels: u32) -> Row {
     let mesh_start = Instant::now();
     let mut triangles = 0u64;
     for (pos, chunk) in &chunks {
-        let mesh = mesh_chunk(chunk, *pos, voxel_size_m as f32, &neighbor_solid);
+        let mesh = mesh_chunk(chunk, *pos, voxel_size_m as f32, &neighbor_solid, None);
         triangles += mesh.triangle_count() as u64;
     }
     let mesh_time_s = mesh_start.elapsed().as_secs_f64();

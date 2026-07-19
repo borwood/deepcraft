@@ -107,8 +107,17 @@ pub fn stream_chunks(
         // Clone from the authority (lazily generated there via the same
         // TerrainGen, plus any applied edits) — the cache never re-generates.
         let chunk = authority.world.chunk(pos).clone();
+        // Render-only material contents (worldgen authority; None otherwise).
+        // The block chunk above already warmed the generator's column cache.
+        let contents = authority.chunk_contents(pos);
         let neighbor_solid = |x: i64, y: i64, z: i64| map.is_solid(&terrain.0, vscale, x, y, z);
-        let mesh_data = mesh_chunk(&chunk, pos, vscale.voxel_size_m() as f32, &neighbor_solid);
+        let mesh_data = mesh_chunk(
+            &chunk,
+            pos,
+            vscale.voxel_size_m() as f32,
+            &neighbor_solid,
+            contents.as_ref(),
+        );
         let entity = if mesh_data.is_empty() {
             None
         } else {
@@ -132,7 +141,14 @@ pub fn stream_chunks(
                     .id(),
             )
         };
-        map.loaded.insert(pos, LoadedChunk { chunk, entity });
+        map.loaded.insert(
+            pos,
+            LoadedChunk {
+                chunk,
+                contents,
+                entity,
+            },
+        );
     }
 }
 

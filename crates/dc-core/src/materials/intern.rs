@@ -397,6 +397,89 @@ impl MaterialChunk {
             Some(bytes) => Self::decode(bytes).map(Some),
         }
     }
+
+    /// Resolve this chunk's order-dependent [`MixtureId`] palette against its
+    /// region `table` into a [`ContentsGrid`] of canonical [`VoxelContents`] —
+    /// the **render-only** view (docs/design/visuals.md § Mixture rendering
+    /// road). `None` if any palette id is absent from the table (a mismatched
+    /// chunk/table pair). The point of resolving here is that no order-sensitive
+    /// intern id ever escapes into a renderer: the MixtureTable-id landmine
+    /// (ids are generation-order-dependent, journal/0007–0008) is disarmed at
+    /// this boundary, and only canonical, order-independent contents flow out.
+    pub fn resolve_contents(&self, table: &MixtureTable) -> Option<ContentsGrid> {
+        let mut palette = Vec::with_capacity(self.palette.len());
+        for id in &self.palette {
+            palette.push(*table.get(*id)?);
+        }
+        Some(ContentsGrid {
+            palette,
+            indices: self.indices.clone(),
+        })
+    }
+}
+
+/// Render-only resolved per-voxel material contents for one chunk: a palette of
+/// canonical [`VoxelContents`] plus one palette index per voxel (same palette
+/// discipline as [`MaterialChunk`], but the entries are the *contents*, not
+/// region-table [`MixtureId`]s). Built by [`MaterialChunk::resolve_contents`]
+/// or [`ContentsGrid::from_dense`]; because the entries are canonical (multiset
+/// order destroyed) and carry no intern id, this is safe to hand to a mesher
+/// without leaking the order-dependent table (docs/design/visuals.md).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ContentsGrid {
+    palette: Vec<VoxelContents>,
+    indices: PackedIndices,
+}
+
+impl ContentsGrid {
+    /// Palette-compress a dense per-voxel contents array ([`Chunk::index`]
+    /// order). Palette order is first appearance.
+    ///
+    /// # Panics
+    /// Panics if `voxels.len() != CHUNK_VOLUME`.
+    pub fn from_dense(voxels: &[VoxelContents]) -> Self {
+        assert_eq!(
+            voxels.len(),
+            CHUNK_VOLUME,
+            "dense contents array must cover the chunk"
+        );
+        let mut palette: Vec<VoxelContents> = Vec::new();
+        let mut lookup: HashMap<VoxelContents, usize> = HashMap::new();
+        for &c in voxels {
+            if let std::collections::hash_map::Entry::Vacant(e) = lookup.entry(c) {
+                e.insert(palette.len());
+                palette.push(c);
+            }
+        }
+        let bits = bits_for_palette_len(palette.len());
+        let mut indices = PackedIndices::new(bits, CHUNK_VOLUME);
+        if bits > 0 {
+            for (i, c) in voxels.iter().enumerate() {
+                indices.set(i, lookup[c]);
+            }
+        }
+        Self { palette, indices }
+    }
+
+    /// The canonical contents at one voxel (12-byte `Copy`).
+    ///
+    /// # Panics
+    /// Panics if any coordinate is `>= CHUNK_SIZE`.
+    #[inline]
+    pub fn get(&self, x: usize, y: usize, z: usize) -> VoxelContents {
+        self.palette[self.indices.get(Chunk::index(x, y, z))]
+    }
+
+    /// Distinct contents appearing in the chunk, first-appearance order.
+    pub fn palette(&self) -> &[VoxelContents] {
+        &self.palette
+    }
+
+    /// True when every voxel is the empty mixture — the grid a debris-free
+    /// chunk produces, which the renderer should treat as "no material data".
+    pub fn is_all_empty(&self) -> bool {
+        self.palette.iter().all(VoxelContents::is_empty)
+    }
 }
 
 #[cfg(test)]
@@ -583,6 +666,40 @@ mod tests {
                 .expect("no sidecar is not an error")
                 .is_none()
         );
+    }
+
+    #[test]
+    fn contents_grid_resolves_render_only_view() {
+        let mut table = MixtureTable::new();
+        let placer = table.intern(
+            VoxelContents::debris_only(&[
+                MaterialId::SANDSTONE,
+                MaterialId::SANDSTONE,
+                MaterialId::GOLD_DUST,
+            ])
+            .unwrap(),
+        );
+        let mut dense = vec![MixtureId::EMPTY; CHUNK_VOLUME];
+        dense[Chunk::index(4, 5, 6)] = placer;
+        let chunk = MaterialChunk::from_dense(&dense);
+
+        // Resolving against its own table yields the canonical contents, no
+        // MixtureId in sight.
+        let grid = chunk.resolve_contents(&table).expect("palette resolves");
+        assert!(!grid.is_all_empty());
+        let c = grid.get(4, 5, 6);
+        assert_eq!(c.debris().len(), 3);
+        assert_eq!(grid.get(0, 0, 0), VoxelContents::EMPTY);
+
+        // from_dense round-trips the same contents.
+        let mut dense_contents = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+        dense_contents[Chunk::index(4, 5, 6)] = *table.get(placer).unwrap();
+        let direct = ContentsGrid::from_dense(&dense_contents);
+        assert_eq!(direct, grid);
+
+        // A palette id missing from the table fails to resolve.
+        let orphan = MaterialChunk::from_dense(&vec![MixtureId(999); CHUNK_VOLUME]);
+        assert!(orphan.resolve_contents(&table).is_none());
     }
 
     #[test]

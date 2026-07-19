@@ -140,6 +140,13 @@ impl DamageType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct MaterialProps {
     pub name: &'static str,
+    /// Linear-RGB base albedo in `[0, 1]³` — the interim vertex-color source
+    /// for mixture dithering (docs/design/visuals.md § Mixture rendering road,
+    /// DECIDED 2026-07-19). Pack data: materials with a block twin match the
+    /// client block palette; the loose granular set carries placeholder colors
+    /// shared with `tools/gen_placeholder_textures.py`. The later splat pipeline
+    /// replaces this color *source* without disturbing any data plumbing.
+    pub albedo: [f32; 3],
     /// Bulk density in kg/m^3 — stratification sort key and weight.
     pub density_kg_m3: f32,
     /// Characteristic grain size in mm — what fits into which pores; sieving.
@@ -170,6 +177,7 @@ impl MaterialProps {
 const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     MaterialProps {
         name: "sand",
+        albedo: [0.80, 0.72, 0.52],
         density_kg_m3: 1600.0,
         grain_size_mm: 0.5,
         cohesion: 0.05,
@@ -179,6 +187,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "gravel",
+        albedo: [0.50, 0.48, 0.45],
         density_kg_m3: 1800.0,
         grain_size_mm: 20.0,
         cohesion: 0.02,
@@ -188,6 +197,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "snow",
+        albedo: [0.92, 0.94, 0.98],
         density_kg_m3: 300.0,
         grain_size_mm: 1.0,
         cohesion: 0.3,
@@ -197,6 +207,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "leaf-litter",
+        albedo: [0.40, 0.30, 0.14],
         density_kg_m3: 150.0,
         grain_size_mm: 25.0,
         cohesion: 0.15,
@@ -206,6 +217,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "clay",
+        albedo: [0.62, 0.48, 0.38],
         density_kg_m3: 1750.0,
         grain_size_mm: 0.002,
         cohesion: 0.9,
@@ -215,6 +227,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "silt",
+        albedo: [0.58, 0.50, 0.38],
         density_kg_m3: 1500.0,
         grain_size_mm: 0.02,
         cohesion: 0.5,
@@ -224,6 +237,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "potsherd",
+        albedo: [0.60, 0.34, 0.24],
         density_kg_m3: 1900.0,
         grain_size_mm: 40.0,
         cohesion: 0.0,
@@ -233,6 +247,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "knapping-debris",
+        albedo: [0.42, 0.42, 0.46],
         density_kg_m3: 2300.0,
         grain_size_mm: 15.0,
         cohesion: 0.0,
@@ -242,6 +257,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "ash",
+        albedo: [0.32, 0.31, 0.30],
         density_kg_m3: 700.0,
         grain_size_mm: 0.05,
         cohesion: 0.1,
@@ -251,6 +267,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "loam",
+        albedo: [0.36, 0.26, 0.17],
         density_kg_m3: 1300.0,
         grain_size_mm: 0.1,
         cohesion: 0.35,
@@ -260,6 +277,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "scree",
+        albedo: [0.48, 0.46, 0.44],
         density_kg_m3: 2000.0,
         grain_size_mm: 100.0,
         cohesion: 0.05,
@@ -269,6 +287,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "bone",
+        albedo: [0.86, 0.82, 0.70],
         density_kg_m3: 1100.0,
         grain_size_mm: 60.0,
         cohesion: 0.0,
@@ -278,6 +297,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "mudstone",
+        albedo: [0.46, 0.26, 0.20],
         density_kg_m3: 2400.0,
         grain_size_mm: 0.004,
         cohesion: 0.95,
@@ -287,6 +307,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "sandstone",
+        albedo: [0.76, 0.66, 0.44],
         density_kg_m3: 2350.0,
         grain_size_mm: 0.3,
         cohesion: 0.85,
@@ -296,6 +317,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "granite",
+        albedo: [0.66, 0.56, 0.58],
         density_kg_m3: 2700.0,
         grain_size_mm: 3.0,
         cohesion: 1.0,
@@ -305,6 +327,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "basalt",
+        albedo: [0.14, 0.14, 0.16],
         density_kg_m3: 2900.0,
         grain_size_mm: 0.05,
         cohesion: 1.0,
@@ -314,6 +337,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "gold-dust",
+        albedo: [0.80, 0.66, 0.28],
         density_kg_m3: 16000.0,
         grain_size_mm: 0.8,
         cohesion: 0.02,
@@ -363,6 +387,9 @@ mod tests {
             assert!((0.0..=1.0).contains(&p.cohesion), "{}", p.name);
             assert!((0.0..=1.0).contains(&p.permeability), "{}", p.name);
             assert!((0.0..=1.0).contains(&p.insulation), "{}", p.name);
+            for c in p.albedo {
+                assert!((0.0..=1.0).contains(&c), "{} albedo {c}", p.name);
+            }
             for r in p.extraction_resistance {
                 assert!(r > 0.0 && r.is_finite());
             }

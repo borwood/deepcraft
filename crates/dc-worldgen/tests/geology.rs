@@ -320,6 +320,96 @@ fn placer_follows_the_sorted_gradient() {
     );
 }
 
+/// ROADMAP 3c-2 seam proof: a worldgen chunk with a placer body produces
+/// **mixed-voxel render data** at the mesher input. `chunk_contents` resolves
+/// the order-dependent mixture table away into a canonical `ContentsGrid`; a
+/// placer-enriched clastic voxel therefore surfaces as contents mixing the
+/// clastic host with gold-dust — exactly what the mesher dithers. Air chunks
+/// carry no contents at all (the debris-free zero-cost invariant).
+#[test]
+fn render_contents_carry_the_placer_mixture() {
+    let pregen = medium();
+    // River midpoints — the placer fans hang off channels (same discovery as
+    // the gradient test above).
+    let mut midpoints = Vec::new();
+    for (i, c) in pregen.grid.cells.iter().enumerate() {
+        if !(c.river && c.is_land()) {
+            continue;
+        }
+        let Some(to) = c.flow_to else { continue };
+        let (agx, agy) = pregen.grid.coords(i);
+        let (bgx, bgy) = pregen.grid.coords(to as usize);
+        let a = pregen.grid.cell_center_voxel(agx, agy);
+        let b = pregen.grid.cell_center_voxel(bgx, bgy);
+        midpoints.push(((a.0 + b.0) / 2, (a.1 + b.1) / 2));
+        if midpoints.len() >= 6 {
+            break;
+        }
+    }
+    assert!(!midpoints.is_empty(), "medium world has no rivers?");
+
+    let mut g = WorldGenerator::with_geology(&pregen, geology::vanilla());
+    let mut mixed_with_gold = 0usize;
+    let mut saw_uniform_clastic = false;
+    'search: for (mx, mz) in midpoints {
+        let (ccx, ccz) = (mx.div_euclid(32), mz.div_euclid(32));
+        for dz in -8i64..8 {
+            for dx in -8i64..8 {
+                let (cx, cz) = (ccx + dx, ccz + dz);
+                let surf_y = g.surface_chunk_y(cx, cz);
+                // The placer rides shallow clastic; scan the surface chunk and
+                // a few below so we cover its depth window across the footprint.
+                for cy in (surf_y - 3)..=surf_y {
+                    let pos = ChunkPos::new(cx as i32, cy, cz as i32);
+                    let Some(grid) = g.chunk_contents(pos) else {
+                        continue;
+                    };
+                    for c in grid.palette() {
+                        let slots = c.filled_slots();
+                        if slots.is_empty() {
+                            continue;
+                        }
+                        // A uniform loose clastic band (sandstone / mudstone) —
+                        // the ground the ore is disseminated into.
+                        if slots.iter().all(|&m| m == slots[0])
+                            && matches!(slots[0], MaterialId::SANDSTONE | MaterialId::MUDSTONE)
+                        {
+                            saw_uniform_clastic = true;
+                        }
+                        if slots.contains(&MaterialId::GOLD_DUST) {
+                            // The dense grain rides inside a clastic host: the
+                            // mixture the mesher dithers.
+                            assert!(
+                                slots.iter().any(|&m| m != MaterialId::GOLD_DUST),
+                                "placer ore must ride inside a clastic host, not fill a voxel"
+                            );
+                            mixed_with_gold += 1;
+                            if mixed_with_gold >= 3 {
+                                break 'search;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        mixed_with_gold > 0,
+        "no placer-mixed render contents found — the seam is not carrying mixtures"
+    );
+    assert!(
+        saw_uniform_clastic,
+        "expected uniform clastic contents alongside the placer mixtures"
+    );
+
+    // A chunk far above any surface is debris-free: no render contents, zero
+    // cost, exactly as it attaches no storage sidecar.
+    assert!(
+        g.chunk_contents(ChunkPos::new(0, 4000, 0)).is_none(),
+        "an all-air chunk must carry no material contents"
+    );
+}
+
 #[test]
 fn strata_records_are_province_and_climate_driven() {
     let pregen = medium();
