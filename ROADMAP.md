@@ -308,9 +308,10 @@ grid width cap; and the iteration↔Myr / cell↔km calibration.
 - Geology v1 loose ends (journal/0007): sea-floor/wilds columns keep empty
   strata records (subaqueous sedimentation = the carbonate milestone); no
   `def_changed` events for class/member defines (hot-reload signal; the
-  events schema still enumerates only the original three kinds); dev MCP
-  token owns only `dev:` — defining `dc:*` vanilla over MCP needs an
-  explicit grant decision; worldgen `MixtureTable` is per-generator,
+  events schema still enumerates only the original three kinds); dev-token
+  `dc:*` grant *(DECIDED 2026-07-19, API.md § Capabilities: dev builds
+  yes, shipped builds never — build-config gated; implementation owed)*;
+  worldgen `MixtureTable` is per-generator,
   unbounded, and its ids are generation-order-dependent — a save layer must
   persist the table, never re-derive it (lifecycle belongs to region-file
   grouping, S3 OQ 7).

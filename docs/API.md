@@ -304,6 +304,16 @@ schedule.manage(own)               events.subscribe(filters)
 - Tokens are scoped and attenuable (a plugin can hand a narrower token to a
   sub-component, never a broader one).
 - `registry.define` is namespace-owned: plugin `foo` writes `foo:*` defs only.
+- **Dev token vs `dc:*` — DECIDED 2026-07-19 (user).** In **development
+  builds**, the dev MCP surface may `registry.define(dc:*)` — agents
+  live-change vanilla, photograph, and port the verified change into the
+  in-repo typed sources (which remain the sole durable truth; defs are
+  session-state, boot regenerates vanilla). **Shipped builds carry no such
+  grant** — build-config gated, not runtime-flagged: end users author
+  plugins in their own namespaces over MCP (forking dc content into their
+  namespace is fine and expected) but never redefine shipped `dc:*`
+  defaults. The game is not open source; the dev surface is ours, not a
+  shipped mod loader.
 - Editors run with the player's grants; in survival that means an editor can
   author *definitions* but placing the result in-world costs materials like
   any build (design intent — revisit in the editor spike).
