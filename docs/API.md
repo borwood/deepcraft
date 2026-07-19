@@ -72,6 +72,36 @@ editors emit them, plugins ship them, "vanilla" is the first one. Model +
 animation payloads follow the transformed-cubes/keyframe format
 (Blockbench-shaped, see ARCHITECTURE.md § Content model).
 
+<!-- EDITED 2026-07-19 (geology backbone slice 1) — content-class registry;
+     NEEDS RATIFICATION -->
+**Content-class registry (added 2026-07-19; needs ratification).** A second
+registry beside the command registry: **classes as contracts**
+(docs/design/geology.md). Two verbs, both ordinary registry CommandSpecs (so
+MCP surfaces grow the tools automatically):
+
+- `dc:registry/define_content_class` — declares a namespaced class (e.g.
+  `dc:stratum/clastic-fine`) **and its parameter contract**: a list of
+  `ParamSpec { name, kind, required }` where `kind` is one of
+  `Number{min,max}`, `Range{min,max}`, `Text`, `MaterialName`,
+  `Choice{options}`.
+- `dc:registry/define_class_member` — registers a member into a class,
+  carrying `params: [(name, value)]` over the closed value vocabulary
+  (`Number | Range | Text`), **validated against the class contract at
+  define time** (unknown keys, missing required keys, kind mismatches, and
+  out-of-bounds values all reject with `SchemaViolation`).
+
+Namespace rule unchanged from S5: the grant must own the namespace of the
+thing being *named* — for members that is the member's namespace, so a
+plugin registers `foo:geo/…` into `dc:stratum/…` (joining a foreign class is
+the point). The v1 geology classes all declare one shared contract
+(formation `temp_c`/`precip`/`depth_m` ranges, `abundance`, `habit`,
+`hardness`, `erodibility`, `material`); `dc_api::classes` bridges registered
+defs into the canonically ordered typed `GeologySet` (members sorted by
+namespaced id, abundance normalized within class) that worldgen selection
+consumes. The vanilla geology pack is generated from the typed set, so pack
+and model cannot drift.
+<!-- END EDIT -->
+
 ## Observation vs inspection (the constraint-ledger interaction)
 
 Reading distant fluid state is not free — per the sim design (S2), an
@@ -199,6 +229,17 @@ schedule.manage(own)               events.subscribe(filters)
   canonically from command ids (`dc:world/set_block` → `dc_world_set_block`).
 - The `Payload` union keeps an open path (schema-registered, serde-tagged) so
   new commands don't ossify the enum across the ABI.
+  <!-- EDITED 2026-07-19 (geology backbone slice 1) — the open path's first
+       realization; NEEDS RATIFICATION -->
+  First realized (minimally) by `define_class_member`: the union stays a
+  closed enum, but that payload's *contents* are open — parameter keys over a
+  closed value vocabulary, legal shape defined by the registered class
+  contract rather than a compile-time struct. New classes therefore need
+  zero new Payload variants; wire encoding stays postcard-positional-safe
+  (every field always serialized); validation runs at define time against
+  registry-owned schema. New variants/fields appended at enum/struct ends
+  only — postcard order is wire identity.
+  <!-- END EDIT -->
 - Plugin ABI: wasm32-unknown-unknown (no WASI, no ambient authority); one
   host import `dc.call` carrying postcard request/response; guest exports
   `dc_run`/`dc_tick`; receipts drained asynchronously.
