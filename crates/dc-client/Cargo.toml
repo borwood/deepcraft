@@ -9,6 +9,9 @@ publish.workspace = true
 dc-core.workspace = true
 dc-api.workspace = true
 dc-physics.workspace = true
+# The registry-generated MCP tool layer is shared with the standalone dev
+# server (registry_tools / envelope_for_tool_call) — see journal/0002.
+dc-mcp-dev.workspace = true
 
 bevy.workspace = true
 fastnoise-lite.workspace = true
@@ -20,6 +23,17 @@ naga = { version = "29", default-features = false, features = ["wgsl-in"] }
 serde.workspace = true
 toml = "0.9"
 
+# In-client MCP server (client-through-dc-api milestone): rmcp streamable
+# HTTP served by a minimal hyper accept loop on a dedicated tokio thread.
+rmcp = { workspace = true, features = ["transport-streamable-http-server"] }
+serde_json.workspace = true
+tokio = { workspace = true, features = ["rt", "net", "time", "sync"] }
+hyper = { workspace = true, features = ["server", "http1"] }
+hyper-util = { workspace = true, features = ["tokio"] }
+# Screenshot encoding: the same `image` bevy already links (0.25.x), used
+# directly so save errors reach the MCP caller.
+image = { version = "0.25", default-features = false, features = ["png"] }
+
 [dev-dependencies]
 # The S4 cross-backend portability test additionally translates every pack
 # entry point to HLSL/SPIR-V/MSL (docs/rendering/PIPELINE.md § Portability).
@@ -29,3 +43,9 @@ naga = { version = "29", default-features = false, features = [
     "spv-out",
     "msl-out",
 ] }
+# The MCP-over-HTTP session test drives the real streamable-HTTP service with
+# hand-built http requests (the S5 duplex-pipe pattern, one transport on).
+tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+http.workspace = true
+http-body-util.workspace = true
+bytes.workspace = true

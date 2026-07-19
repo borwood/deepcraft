@@ -41,6 +41,59 @@ pub enum ToolCallError {
     Poisoned,
 }
 
+/// The MCP tool list generated from the schema registry — shared by every
+/// MCP surface over dc-api (this dev server and the in-client server;
+/// docs/API.md principle 5: the tool list is never hand-written).
+pub fn registry_tools() -> Vec<Tool> {
+    schema::registry()
+        .iter()
+        .map(|spec| {
+            let schema_obj = match (spec.payload_schema)() {
+                Value::Object(map) => map,
+                other => panic!("payload schema for {} is not an object: {other}", spec.id),
+            };
+            let description = format!(
+                "{} [{}] (id: {}; requires {})",
+                spec.doc,
+                match spec.kind {
+                    CommandKind::Command => "command: applies at the next tick boundary",
+                    CommandKind::Query => "query: reads the last completed tick",
+                },
+                spec.id,
+                spec.capability,
+            );
+            Tool::new(schema::mcp_tool_name(spec.id), description, schema_obj)
+        })
+        .collect()
+}
+
+/// Decode one MCP tool call into the typed [`CommandEnvelope`] it denotes,
+/// stamped with the session's ambient identity and token (tool callers never
+/// pass grants). Registry-driven: the tool name maps back to the command id
+/// and the registry's `decode_json` builds the payload — there is no per-tool
+/// code anywhere. Extracted from `ToolLayer::call` by the client-through-dc-api
+/// milestone so the in-client MCP server shares it instead of duplicating it.
+pub fn envelope_for_tool_call(
+    tool_name: &str,
+    arguments: &Value,
+    consumer: &ConsumerId,
+    session_token: &CapabilityToken,
+) -> Result<(&'static dc_api::schema::CommandSpec, CommandEnvelope), ToolCallError> {
+    let id = schema::id_for_mcp_tool(tool_name)
+        .ok_or_else(|| ToolCallError::UnknownTool(tool_name.to_string()))?;
+    let spec = schema::spec(id).expect("id came from the registry");
+    let payload = (spec.decode_json)(arguments).map_err(ToolCallError::BadArguments)?;
+    let envelope = CommandEnvelope {
+        id: id.to_string(),
+        source: consumer.clone(),
+        grant: session_token.clone(),
+        payload,
+        target_tick: None,
+        txn: None,
+    };
+    Ok((spec, envelope))
+}
+
 /// The generated tool layer: registry-driven dispatch onto a shared world.
 pub struct ToolLayer {
     pub world: Arc<Mutex<HostWorld>>,
@@ -52,26 +105,7 @@ pub struct ToolLayer {
 impl ToolLayer {
     /// The MCP tool list, generated from the schema registry.
     pub fn tools() -> Vec<Tool> {
-        schema::registry()
-            .iter()
-            .map(|spec| {
-                let schema_obj = match (spec.payload_schema)() {
-                    Value::Object(map) => map,
-                    other => panic!("payload schema for {} is not an object: {other}", spec.id),
-                };
-                let description = format!(
-                    "{} [{}] (id: {}; requires {})",
-                    spec.doc,
-                    match spec.kind {
-                        CommandKind::Command => "command: applies at the next tick boundary",
-                        CommandKind::Query => "query: reads the last completed tick",
-                    },
-                    spec.id,
-                    spec.capability,
-                );
-                Tool::new(schema::mcp_tool_name(spec.id), description, schema_obj)
-            })
-            .collect()
+        registry_tools()
     }
 
     /// Dispatch one tool call. Returns the JSON the MCP client sees:
@@ -81,18 +115,8 @@ impl ToolLayer {
     ///   (receipts arrive when the world owner ticks);
     /// - submit-time rejections → the rejection [`dc_api::CommandReceipt`].
     pub fn call(&self, tool_name: &str, arguments: &Value) -> Result<Value, ToolCallError> {
-        let id = schema::id_for_mcp_tool(tool_name)
-            .ok_or_else(|| ToolCallError::UnknownTool(tool_name.to_string()))?;
-        let spec = schema::spec(id).expect("id came from the registry");
-        let payload = (spec.decode_json)(arguments).map_err(ToolCallError::BadArguments)?;
-        let envelope = CommandEnvelope {
-            id: id.to_string(),
-            source: self.consumer.clone(),
-            grant: self.session_token.clone(),
-            payload,
-            target_tick: None,
-            txn: None,
-        };
+        let (spec, envelope) =
+            envelope_for_tool_call(tool_name, arguments, &self.consumer, &self.session_token)?;
         let mut world = self.world.lock().map_err(|_| ToolCallError::Poisoned)?;
         let response = match spec.kind {
             CommandKind::Query => serde_json::to_value(world.query(&envelope)),

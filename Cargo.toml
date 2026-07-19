@@ -48,6 +48,17 @@ wasmtime = "=46.0.1"
 rmcp = "=2.2.0"
 tokio = "1.53"
 
+# Client-through-dc-api milestone: the in-client MCP server speaks rmcp's
+# streamable HTTP transport (a tower service); hyper/hyper-util are the
+# minimal HTTP/1.1 server loop that drives it (axum would add a router we
+# don't need). http/http-body-util/bytes are already in rmcp's transport
+# dependency tree; listed here for the in-process session tests.
+hyper = { version = "1", default-features = false }
+hyper-util = { version = "0.1", default-features = false }
+http = "1"
+http-body-util = "0.1"
+bytes = "1"
+
 # Pinned exact by S6 (physics bubble). Direct rapier3d, not bevy_rapier: we own
 # the stepping loop, the collider-bubble lifecycle, and the voxel-world
 # coupling; a Bevy plugin layer would own exactly the parts we need to own

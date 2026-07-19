@@ -389,6 +389,69 @@ impl PhysicsWorld {
         Ok(out)
     }
 
+    /// Invalidate the collider tile covering an edited world voxel — the S6
+    /// open question "world edits vs live bubbles", wired by the
+    /// client-through-dc-api milestone (additive API).
+    ///
+    /// One `BTreeMap` remove: the tile entry (built *or* known-empty) is
+    /// dropped so the next fixed step rescans the voxels through the solidity
+    /// closure and rebuilds the compound collider if any bubble still wants
+    /// the tile. Tile colliders are parentless (static), so removing one wakes
+    /// nothing by itself — dynamic bodies whose bubble padding overlaps the
+    /// tile are woken explicitly (in arena order, which is deterministic given
+    /// identical command history), so a sleeper resting on the edited tile
+    /// re-settles against the new geometry instead of floating on a memory.
+    /// Returns `true` if a tile entry was dropped (false = no bubble had ever
+    /// scanned that tile; nothing to invalidate).
+    pub fn invalidate_voxel(&mut self, x: i64, y: i64, z: i64, voxel_size_m: f64) -> bool {
+        let ts = self.config.bubble.tile_size_voxels;
+        let key = (tile_of(x, ts), tile_of(y, ts), tile_of(z, ts));
+        let Some(entry) = self.bubbles.tiles.remove(&key) else {
+            return false;
+        };
+        if let Some(h) = entry.collider {
+            self.colliders
+                .remove(h, &mut self.islands, &mut self.bodies, false);
+        }
+        // Wake nearby dynamic bodies: same padding rule as the bubble itself
+        // (margin only; velocity is zero for the sleepers this exists for).
+        let tile_m = ts as f64 * voxel_size_m;
+        let pad = self.config.bubble.margin_m as f32;
+        let t_min = [
+            (key.0 as f64 * tile_m) as f32 - pad,
+            (key.1 as f64 * tile_m) as f32 - pad,
+            (key.2 as f64 * tile_m) as f32 - pad,
+        ];
+        let t_max = [
+            ((key.0 + 1) as f64 * tile_m) as f32 + pad,
+            ((key.1 + 1) as f64 * tile_m) as f32 + pad,
+            ((key.2 + 1) as f64 * tile_m) as f32 + pad,
+        ];
+        let to_wake: Vec<RigidBodyHandle> = self
+            .bodies
+            .iter()
+            .filter(|(_, body)| body.is_dynamic())
+            .filter(|(_, body)| {
+                body.colliders().iter().any(|ch| {
+                    let aabb = self.colliders[*ch].compute_aabb();
+                    aabb.mins.x <= t_max[0]
+                        && aabb.maxs.x >= t_min[0]
+                        && aabb.mins.y <= t_max[1]
+                        && aabb.maxs.y >= t_min[1]
+                        && aabb.mins.z <= t_max[2]
+                        && aabb.maxs.z >= t_min[2]
+                })
+            })
+            .map(|(h, _)| h)
+            .collect();
+        for h in to_wake {
+            if let Some(body) = self.bodies.get_mut(h) {
+                body.wake_up(true);
+            }
+        }
+        true
+    }
+
     /// Recompute the wanted tile set from every dynamic body's bubble and
     /// apply the difference: build entering tiles, drop leaving ones. This is
     /// the only place voxel geometry becomes rapier colliders.

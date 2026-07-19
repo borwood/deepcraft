@@ -19,8 +19,11 @@ use dc_core::{Block, Chunk, ChunkPos, VoxelScale, local_voxel};
 use glam::DVec3;
 
 use crate::PLAYER_HEIGHT_M;
+use crate::authority::{self, Authority, DirtyChunks};
 use crate::bench::BENCH_SEED;
+use crate::edit;
 use crate::farmesh;
+use crate::mcp::{self, McpOptions};
 use crate::physdemo;
 use crate::player::{self, Player};
 use crate::poststage::{PostStage, PostStagePlugin};
@@ -101,45 +104,59 @@ pub fn to_render(v: DVec3) -> Vec3 {
     Vec3::new(v.x as f32, v.y as f32, v.z as f32)
 }
 
-pub fn run(pack_selector: Option<String>) {
+pub fn run(pack_selector: Option<String>, mcp_options: McpOptions) {
     let terrain = TerrainGen::new(BENCH_SEED);
     let spawn = DVec3::new(0.0, terrain.surface_height_m(0.0, 0.0) + 2.0, 0.0);
 
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: title_text(3, true),
-                ..default()
-            }),
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: title_text(3, true),
             ..default()
-        }))
-        .add_plugins(PostStagePlugin { pack_selector })
-        .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
-        .insert_resource(Terrain(terrain))
-        .insert_resource(CurrentScale::new(3))
-        .insert_resource(FloatingOrigin(spawn))
-        .insert_resource(Player::new(spawn))
-        .insert_resource(ChunkMap::default())
-        .insert_resource(farmesh::FarChunkMap::default())
-        .add_systems(Startup, (setup, physdemo::setup))
-        .add_systems(
-            Update,
-            (
-                grab_mouse,
-                switch_scale,
-                player::update_player,
-                update_origin,
-                player::update_camera,
-                physdemo::update,
-                position_chunks,
-                farmesh::position_far_chunks,
-                streaming::stream_chunks,
-                farmesh::stream_far_chunks,
-                update_title,
-            )
-                .chain(),
+        }),
+        ..default()
+    }))
+    .add_plugins(PostStagePlugin { pack_selector })
+    .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
+    .insert_resource(Terrain(terrain))
+    .insert_resource(CurrentScale::new(3))
+    .insert_resource(FloatingOrigin(spawn))
+    .insert_resource(Player::new(spawn))
+    .insert_resource(ChunkMap::default())
+    .insert_resource(farmesh::FarChunkMap::default())
+    // The authoritative world for edits (client-through-dc-api milestone):
+    // same seed and generator as the streamed terrain.
+    .insert_resource(Authority::new(BENCH_SEED, 3))
+    .insert_resource(DirtyChunks::default())
+    .insert_resource(edit::CrosshairTarget::default())
+    .add_systems(Startup, (setup, physdemo::setup, edit::setup_crosshair))
+    .add_systems(
+        Update,
+        (
+            grab_mouse,
+            switch_scale,
+            player::update_player,
+            update_origin,
+            player::update_camera,
+            edit::update_target,
+            edit::apply_edits,
+            edit::draw_target,
+            authority::drain_bridge,
+            authority::tick_authority,
+            authority::remesh_dirty,
+            physdemo::update,
+            position_chunks,
+            farmesh::position_far_chunks,
+            streaming::stream_chunks,
+            farmesh::stream_far_chunks,
+            update_title,
         )
-        .run();
+            .chain(),
+    );
+    if let Some(port) = mcp_options.port {
+        app.insert_resource(mcp::spawn_server(port));
+    }
+    app.run();
 }
 
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>) {
@@ -213,11 +230,17 @@ fn grab_mouse(
 
 /// Keys 2/3/4: rebuild the world at player-height = N voxels. Same seed, same
 /// landscape (noise is sampled in meter space) — only the resolution changes.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "bevy system: each parameter is a distinct resource"
+)]
 fn switch_scale(
     keys: Res<ButtonInput<KeyCode>>,
     mut scale: ResMut<CurrentScale>,
     mut map: ResMut<ChunkMap>,
     mut player: ResMut<Player>,
+    mut authority: ResMut<Authority>,
+    mut dirty: ResMut<DirtyChunks>,
     mut commands: Commands,
     chunk_entities: Query<Entity, With<ChunkEntity>>,
 ) {
@@ -232,6 +255,12 @@ fn switch_scale(
                 commands.entity(entity).despawn();
             }
             map.loaded.clear();
+            // The voxel lattice changed under the hosted world: rebuild the
+            // authority at the new scale. Edits do not survive a scale switch
+            // (the lattice they lived on is gone); pending MCP replies are
+            // dropped, which the server reports as a world reset.
+            *authority = Authority::new(BENCH_SEED, n);
+            dirty.0.clear();
             // The re-voxelized surface can differ by up to a voxel; nudge up
             // so the player is never left embedded in the new ground.
             player.pos_m.y += scale.scale.voxel_size_m();
@@ -264,8 +293,9 @@ fn position_chunks(
 fn title_text(player_voxels: u32, fly: bool) -> String {
     let mode = if fly { "fly" } else { "walk" };
     format!(
-        "deepcraft S1 — player = {player_voxels} voxels ({:.2} m/voxel) — {mode} \
-         [click: capture mouse | Esc: release | F: fly/walk | 2/3/4: scale | G: toss cube]",
+        "deepcraft — player = {player_voxels} voxels ({:.2} m/voxel) — {mode} \
+         [click: capture mouse | Esc: release | LMB/RMB: break/place | F: fly/walk | \
+         2/3/4: scale | G: toss cube]",
         PLAYER_HEIGHT_M / f64::from(player_voxels),
     )
 }
