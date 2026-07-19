@@ -170,3 +170,25 @@ both a ground-level and a 1080 m vantage. Shots the milestone walk should take
    the phantom old world is gone (nothing ~1 km down).
 5. **Chasm-descent** — confirm (and photograph) the accepted degradation: the far
    field is a top sheet, so it thins looking up from deep underground.
+
+## Walk 17 (main session): the horizon exists — with holes in it
+
+*Appended post-integration (merge, gates green on merged main, 38 suites).*
+
+The before/after is the milestone: `0022-first-horizon-player-view` at the
+exact framing of `0018-empty-horizon-player-view` — where the world ended
+in sky at the load radius, terrain now rolls to a hazed skyline. The
+steep-angle check at the old phantom coordinates shows worldgen far
+ground where the S1 old-world used to lurk: **the phantom is gone**. The
+high vantage shows the skyline as intended — hills dissolving into
+atmosphere.
+
+And the walk earned its keep again: the far sheet has **persistent
+rectangular sky holes** — parallelogram gaps at fixed world positions
+(`0022-skyline-high-vantage`, `0022-phantom-check-steep`), unchanged
+after 15 s of streaming budget, so they are missing/culled tiles, not
+latency. Whole-tile granularity says winding (backface-culled tiles) or
+annulus coverage gap. Also filed: thin sky slivers at the near/far
+overlap at grazing angles (the sink doesn't occlude everywhere), and
+faint tile-edge stitch lines (the known one-sided-normal seam). Fix
+cycle dispatched.

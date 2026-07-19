@@ -332,6 +332,17 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- Walk 17 (journal/0022 § walk 17): **far sheet has persistent
+  parallelogram sky holes** at fixed world positions (0022 assets) —
+  whole-tile granularity, unchanged after 15 s of budget, so
+  missing/culled tiles not latency; suspect backface winding on specific
+  tiles or annulus coverage gap. Also: grazing-angle sky slivers at the
+  near/far overlap (sink doesn't occlude everywhere); faint tile-edge
+  stitch lines (known one-sided-normal seam). Fix cycle dispatched
+  2026-07-19. *(Phantom old world + empty horizon: RESOLVED, verified
+  photographically at the 0018 framings.)*
+
+
 - Walk 16 (journal/0021 § walk 16): **the lit path erases low-fraction
   mixtures** — DIAGNOSED by same-framing lit/fullbright pair
   (0021-mixture-* assets): olivine wins whole cells in fullbright, zero
