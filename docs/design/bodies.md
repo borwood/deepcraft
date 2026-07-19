@@ -142,12 +142,24 @@ applies — growing into solid is the embedded-attach case).
 Not scheduled against geology; slots in when 3b's implementation is
 sequenced.
 
-## Open questions (user-owned)
+## Formerly open questions — DECIDED 2026-07-19
 
-1. Are bodies diegetic items (craftable golem shells, found vessels) or pure
-   definitions instantiated at spawn?
-2. Socket loadout realism: is `back` + two hands the survival cap
-   (encumbrance doctrine), creative bypass?
-3. Does NPC-tier degradation on disconnect live in the controller layer
-   (fallback controller) or the body (autonomic reflexes)? Interacts with
-   the walk-5 disconnect-policy question (API.md open).
+1. **Bodies are diegetic items**: found vessels, and eventually craftable
+   from materials plus an **animus** — the item that carries a controller
+   binding (an MCP session, a WASM script, …). The automation sketch's
+   golem is exactly body + script-animus; the animus makes "who's driving"
+   a diegetic, craftable, presumably stealable thing.
+2. **Survival loadout cap: two hands + back** (encumbrance doctrine;
+   creative bypasses). Containers extend it diegetically: a backpack in the
+   `back` socket extends inventory; belts/pockets and similar arrive as
+   clothing that *adds container capacity* — clothing defs can contribute
+   carry slots, not just cuboids.
+3. **NPC-tier degradation lives in the controller layer** (a fallback
+   controller binding), never in the body: the body stays pure physics +
+   anim slots, so transmog never carries behavior and any controller can
+   drive any plan. **Disconnect v0 (decided with it): freeze** — a
+   session's disconnect zeroes move intent and the body stands where it was
+   left (implementation queued in 3c). The degradation ladder (MCP session
+   → local NPC controller → null/freeze) is just re-binding down the same
+   rail; richer NPC-tier controllers arrive with the NPC-intelligence
+   design.

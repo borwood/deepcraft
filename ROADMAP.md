@@ -37,6 +37,17 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   clamped teleport, pitch docs, open-ground spawn; MCP edit pipeline
   photographically verified.
 
+- 2026-07-19 — Geology v1 backbone (journal/0007, merge `1df2666`): content-
+  class registry (classes-as-contracts; the Payload opening as open keys
+  over a closed value vocabulary — NEEDS RATIFICATION with the class-sheet
+  fields and pass vocabulary, marked in API.md); pass graph with
+  creator/modifier/reader semantics replacing `Pregen::run` (output-
+  preserving, S7 byte-identity unchanged); strata recording with climate-
+  at-deposition tags; clastic/igneous/placer passes (placer from property-
+  derived settle energies — gold-dust lands mid-gravel with zero
+  ore-specific code); registration-order independence proven as fingerprint
+  equality; perf cost is noise (cold chunk 0.711 ms mean post-geology).
+
 - 2026-07-19 — Surface-truth fix + attach guard (journal/0006, walk 6): the
   walks-3–5 "under-report" diagnosed and closed — analytic field vs its own
   voxelization (½-voxel top-face offset) compounded by footprint-over-slope
@@ -67,21 +78,19 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- Geology v1 (background agent, launched 2026-07-19): content-class registry
-  in dc-api, pass graph replacing `Pregen::run`'s hand-ordered stages,
-  strata recording + clastic/igneous/placer passes through the S8 storage
-  path. Headless by decision — client visibility of geology is a separate
-  sequenced milestone (recon 2026-07-19: dc-worldgen is an island; the
-  `ChunkGenerator` seam carries `Block` only, no material sidecar channel).
+- Geology client integration, block tier (3c part 1; agent launched
+  2026-07-19): dc-worldgen swapped into the client `ChunkGenerator` seam,
+  N=2 boot default restored, geology block types visible (Mudstone/
+  Sandstone/Granite/Basalt appended to the enum), freeze-on-disconnect.
+  Unlocks walking the geology (journal 0008 owes the first photograph).
 
 ## Sequenced
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.
-3c. Geology client integration — swap dc-worldgen into the client's
-   `ChunkGenerator` seam (interior-mutability/lock design owed; scale-N
-   baking vs live 2/3/4 switch), widen the 5-entry block enum/`block_from_name`
-   or land the data-driven block registry, add a material-sidecar channel +
-   render blend. Unlocks walking the geology.
+3c-2. Geology client integration, material tier — sidecar channel through
+   the seam + render blend for mixtures (S8 render-blend prototype still
+   owed; visuals conversation first), data-driven block registry
+   (API.md `define block_type`) superseding the appended enum.
 4. Biomes-as-diagnosis design (consumers of climate/substrate/disturbance
    axes; registry-defined).
 5. Ecology design (succession as derived-from-disturbance state; populations
@@ -100,6 +109,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   hits something — freeze vs NPC-tier degradation needs deciding (API.md
   open question, now concrete; interacts with bodies.md open question 3).
   *(Attach placement guard: fixed, journal/0006.)*
+
+- Geology v1 loose ends (journal/0007): sea-floor/wilds columns keep empty
+  strata records (subaqueous sedimentation = the carbonate milestone); no
+  `def_changed` events for class/member defines (hot-reload signal; the
+  events schema still enumerates only the original three kinds); dev MCP
+  token owns only `dev:` — defining `dc:*` vanilla over MCP needs an
+  explicit grant decision; worldgen `MixtureTable` is per-generator,
+  unbounded, and its ids are generation-order-dependent — a save layer must
+  persist the table, never re-derive it (lifecycle belongs to region-file
+  grouping, S3 OQ 7).
 
 - User field report 2026-07-19: the client **boots at scale 3** (player = 3
   voxels, 0.6 m/voxel) though S1 ratified **N=2**. Diagnosed: hardcoded

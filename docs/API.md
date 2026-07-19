@@ -149,9 +149,11 @@ This yields **two MCP surfaces** (likely two servers, to keep tool lists tidy):
 Both are thin skins over dc-api — the character surface is dc-api filtered
 through a grant set, not a second API.
 
-Open (deferred to the sim/character spike): when an AI-driven character's
-session disconnects, does it degrade to coarse-tier NPC behavior or freeze?
-And whose compute runs a companion's cognition in multiplayer?
+Disconnect — v0 DECIDED 2026-07-19: **freeze**. A session disconnect zeroes
+the character's move intent; the body stands where it was left. NPC-tier
+degradation is a later, richer *controller* binding on the same rail
+(bodies.md § formerly open questions) — never body-side behavior. Still
+open: whose compute runs a companion's cognition in multiplayer?
 
 **Attach placement (added 2026-07-19; RATIFIED 2026-07-19).** The character
 surface's `character_attach` guards placement: if the body's AABB at the target

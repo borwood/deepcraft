@@ -1,9 +1,12 @@
-# 0007 — draft: the geology backbone lands (classes, passes, and a placer)
+# 0007 — the geology backbone lands (classes, passes, and a placer)
 
-Status: DRAFT from the implementation agent, for main-session review. The
-backbone (classes-as-contracts, deterministic selection,
-processes-as-passes, core-axes-only) and the v1 content set were ratified
-2026-07-18; this entry is about what building them actually surfaced.
+*2026-07-19 · geology v1 (background agent, integrated by the main session:
+merge `1df2666`, all 35 suites green on merged main). The backbone
+(classes-as-contracts, deterministic selection, processes-as-passes,
+core-axes-only) and the v1 content set were ratified 2026-07-18; this entry
+is about what building them actually surfaced. No screenshots — geology is
+deliberately headless until the client integration (ROADMAP 3c) makes it
+walkable; the next entry should have the first geology photograph.*
 
 ## The registry opening that wasn't an opening
 
