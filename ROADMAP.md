@@ -17,12 +17,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   enhanced-determinism), 4³-voxel collider tiles with set-difference refresh,
   bit-identical replay, detach→settle→reattach via the 24 integer lattice
   rotations, G-key client demo. **Spike era closed: all eight spikes shipped.**
+- 2026-07-18 — Client through dc-api + observability harness (journal/0002):
+  HostWorld embedded as the client's edit authority (pluggable generator over
+  the S1 TerrainGen; ChunkMap demoted to receipt-driven cache); LMB/RMB edits
+  as player-class `dc:world/set_block` commands (dc-core DDA raycast,
+  crosshair + target gizmo); edit→remesh dirty sets + S6 collider-tile
+  invalidation wired; in-client MCP over streamable HTTP :7777 (registry-
+  generated tools shared with dc-mcp-dev + client_screenshot to
+  journal/assets + player pose get/set); direct/MCP-layer/HTTP-wire edit
+  parity proven headless.
 
 ## In flight
 
-- **Client through dc-api + observability harness**: player input as
-  commands against a hosted world; in-client MCP surface; screenshot capture
-  to journal/assets; agent self-walk practice (orogeny's 0033 pattern).
+- **Agent self-walk practice** (orogeny's 0033 pattern): drive the running
+  client over its MCP surface, capture screenshots to the journal, file
+  field reports to Observed.
 
 ## Sequenced
 2. Character MCP surface (`dc-mcp-character`): grant-scoped embodied agent
@@ -42,6 +51,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- The embedded HostWorld never evicts chunks (~64 KiB per chunk ever
+  streamed/edited); never-edited chunks are pure generator output and could
+  be dropped freely (journal/0002).
+- Far mesh doesn't see edits — farmesh samples TerrainGen directly, so a
+  broken block un-breaks beyond the full-detail radius; will be subsumed by
+  the summary-shaped far field (journal/0002).
+- Edits don't survive a 2/3/4 scale switch (authority rebuilt); the command
+  log is the eventual persistence answer (journal/0002).
 - ~2/3 of far-mesh triangles are sealed cave surfaces (S3) — column-summary
   skip estimated 3–5×; far field should become summary-shaped (adaptive
   volume), not spherical.
