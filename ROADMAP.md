@@ -239,8 +239,10 @@ descent-along-flow as hard constraint, no divide-crossing); width cap
 permanent; 0015-mechanism elevation stitch + interior-commit records over
 the 16–24-cell halo; proximity approach trigger, order-independent by
 construction; **contact-softening in scope per method rule 5** (no
-grid/analytic boundary reaches the eye). Open: iteration↔Myr calibration
-(the remembered-time question, user-owned; can land with S10).
+grid/analytic boundary reaches the eye); calibration RATIFIED — the
+Phanerozoic register (~500 Myr recorded span, basement ages procedural
+— "procedural hacks for the boring billion"; knob deferred). **Nothing
+open — implementable.**
 
 **Water-model design pass** (ratified 2026-07-19, user; field-notebook
 first per the earth-processes method): groundwater as "another dimension

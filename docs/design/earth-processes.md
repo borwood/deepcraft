@@ -187,8 +187,17 @@ cyclic margins). **USER-RATIFIED for 3e (2026-07-19): A always-on + C refinement
    LOOKAHEAD_BOUNDS plus lead margin, refined async (~3.6 s measured);
    deterministic and approach-order-independent by construction given
    decision 1.
-5. **Calibration (iteration↔Myr)**: OPEN — the remembered-time question,
-   user-owned, under discussion; can land with S10.
+5. **Calibration (iteration↔Myr): RATIFIED 2026-07-19 (user)** — the
+   **Phanerozoic register**: the recorded span calibrates to ~500 Myr, so
+   every recorded unit is life-adjacent time (S10 biotic annotation valid
+   anywhere in the column; evolution horizons fit inside the record; ages
+   at human-intuition scale). The pre-record deep past is not simulated:
+   basement ages are procedural flavor — "**procedural hacks for the
+   boring billion**" (user) — assigned plausibly from province/depth, lore
+   below the record. A world-creation calibration knob is the deferred
+   eventual shape (sim-depth-knobs doctrine); ~500 Myr is the default.
+   Must be labeled before persistence/knowledge commit ages as facts —
+   after that, re-labeling is a compat break.
 **Recommendation: A always-on + C refinement — CONFIRMED by S9b
 (2026-07-19, docs/spikes/S9b-results.md, corrections #9): parallelism
 does NOT flip B on this hardware.** The determinism tax forecloses it:
