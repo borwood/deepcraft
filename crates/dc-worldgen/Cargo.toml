@@ -8,5 +8,6 @@ publish.workspace = true
 [dependencies]
 dc-core.workspace = true
 dc-sim.workspace = true
+rayon.workspace = true
 serde.workspace = true
 thiserror.workspace = true

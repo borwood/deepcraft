@@ -27,7 +27,7 @@ pub mod grid;
 pub mod recorder;
 pub mod refine;
 
-pub use erosion::{Erosion, energy_band};
+pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use grid::{DeepConfig, DeepGrid, SEA_LEVEL_M, build, provenance_uplift, sea_level_at};
 pub use recorder::{Aridity, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
@@ -55,8 +55,16 @@ pub fn total_mass(grid: &DeepGrid) -> f64 {
 /// Build the deep-time grid from a pregenerated world and run the fixed
 /// iteration schedule. Deterministic in `(pregen, cfg)`.
 pub fn run(pregen: &Pregen, cfg: &DeepConfig) -> DeepRun {
+    run_with(pregen, cfg, false)
+}
+
+/// Like [`run`], but with the data-parallel per-cell phases toggled. The
+/// parallel path is **byte-identical** to the scalar path (S9b); this exists so
+/// the harness can measure both and the determinism test can compare them.
+pub fn run_with(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> DeepRun {
     let mut grid = build(pregen, cfg);
     let mut erosion = Erosion::new(&grid);
+    erosion.set_parallel(parallel);
     let mass_before = total_mass(&grid);
     climate::march(&mut grid, grid::sea_level_at(cfg, 0));
     let mut uplift_total = 0.0;
