@@ -126,6 +126,18 @@ signals, composing with API.md's character/controller split so
 transmogrification is a body swap under an unchanged controller. Gets its own
 design doc when sequenced.
 
+**Inventory — DECIDED 2026-07-18: mass/volume with encumbrance, behind a
+realism knob.** The foundations (every form has real mass/volume; carry
+capacity; encumbrance effects) are built once; a gameplay-mode knob scales
+them from Minecraft-breezy to hardcore sim (a full granite voxel is a
+two-handed drag or a cart job). Development default: tuned way low so it
+never impedes testing. Same knob doctrine as world extent.
+
+**Fracture — DECIDED 2026-07-18: per-damage-type outcome weights**, not one
+brittleness scalar. Each (material, damage type) row carries weights over
+outcome forms (smash → mostly shards; careful dig → mostly chunks) — extends
+S8's typed-resistance table, and makes tool choice narratively legible.
+
 ## Open questions
 
 - Heterogeneous structure fill: what gameplay produces it (construction with

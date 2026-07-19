@@ -38,11 +38,19 @@ first geology pack.
   ecology niches are classes; history could take cultural vectors. Roles +
   contexts + processes, all registry data.
 
-## v1 content (TO DECIDE — the ongoing conversation)
+## v1 content — DECIDED 2026-07-18: minimal-but-complete
 
-- Candidate classes: clastic sediment (fine/coarse), chemical sediment
-  (carbonate, evaporite), igneous intrusive/extrusive, metamorphic grades,
-  ore (hydrothermal / placer / magmatic), regolith/soil.
+v1 proves the class machinery end-to-end with the smallest honest set:
+**clastic sediment + igneous (intrusive/extrusive) + one ore vector**
+(placer is the cheapest — it falls out of S8's alluvial grain-sorting).
+Next after v1: chemical sediment (carbonate) — caves-in-carbonate-on-
+water-tables is orogeny-proven and gameplay-rich — then metamorphic grades
+and further ore vectors.
+
+- Full candidate-class roster (for the sequence, not v1): clastic sediment
+  (fine/coarse), chemical sediment (carbonate, evaporite), igneous
+  intrusive/extrusive, metamorphic grades, ore (hydrothermal / placer /
+  magmatic), regolith/soil.
 - Candidate passes: S7's pipeline extended with strata *recording*
   (deposition logged per-cell with climate-at-deposition tags — the orogeny
   0045 pattern, which is also our materials deep-time loop); intrusion;
