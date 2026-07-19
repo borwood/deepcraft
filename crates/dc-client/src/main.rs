@@ -18,12 +18,17 @@
 //! in docs/rendering/PIPELINE.md). `--pack <name>` selects a pack directory
 //! under assets/packs/ (default: `default`; try `dusk`); a broken pack falls
 //! back to the built-in default with a warning, never a crash.
+//!
+//! S6 additions: the physics demo (physdemo.rs) — **G** tosses a rigid-body
+//! cube that collides with loaded terrain through dc-physics' collider
+//! bubbles (see docs/spikes/S6-results.md).
 
 mod app;
 mod bench;
 mod bench_storage;
 mod farmesh;
 mod meshing;
+mod physdemo;
 mod player;
 mod poststage;
 mod shaderpack;

@@ -7,6 +7,7 @@ members = [
     "crates/dc-api",
     "crates/dc-host",
     "crates/dc-mcp-dev",
+    "crates/dc-physics",
     "crates/dc-client",
 ]
 # The demo plugin is built for wasm32-unknown-unknown by a separate cargo
@@ -28,6 +29,7 @@ dc-worldgen = { path = "crates/dc-worldgen" }
 dc-api = { path = "crates/dc-api" }
 dc-host = { path = "crates/dc-host" }
 dc-mcp-dev = { path = "crates/dc-mcp-dev" }
+dc-physics = { path = "crates/dc-physics" }
 
 glam = "0.30"
 serde = { version = "1", features = ["derive"] }
@@ -46,8 +48,17 @@ wasmtime = "=46.0.1"
 rmcp = "=2.2.0"
 tokio = "1.53"
 
-# Deliberately NOT yet dependencies (added by their spikes, see docs/SPIKES.md):
-# rapier3d  — added by S6 (physics bubble)
+# Pinned exact by S6 (physics bubble). Direct rapier3d, not bevy_rapier: we own
+# the stepping loop, the collider-bubble lifecycle, and the voxel-world
+# coupling; a Bevy plugin layer would own exactly the parts we need to own
+# (see docs/spikes/S6-results.md for the full rationale).
+# `enhanced-determinism` trades SIMD for cross-platform reproducibility.
+rapier3d = { version = "=0.34.0", default-features = false, features = [
+    "dim3",
+    "f32",
+    "std",
+    "enhanced-determinism",
+] }
 
 [profile.dev]
 # Voxel meshing/worldgen is unusable at opt-level 0; keep our code debuggable

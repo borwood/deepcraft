@@ -21,6 +21,7 @@ use glam::DVec3;
 use crate::PLAYER_HEIGHT_M;
 use crate::bench::BENCH_SEED;
 use crate::farmesh;
+use crate::physdemo;
 use crate::player::{self, Player};
 use crate::poststage::{PostStage, PostStagePlugin};
 use crate::streaming;
@@ -120,7 +121,7 @@ pub fn run(pack_selector: Option<String>) {
         .insert_resource(Player::new(spawn))
         .insert_resource(ChunkMap::default())
         .insert_resource(farmesh::FarChunkMap::default())
-        .add_systems(Startup, setup)
+        .add_systems(Startup, (setup, physdemo::setup))
         .add_systems(
             Update,
             (
@@ -129,6 +130,7 @@ pub fn run(pack_selector: Option<String>) {
                 player::update_player,
                 update_origin,
                 player::update_camera,
+                physdemo::update,
                 position_chunks,
                 farmesh::position_far_chunks,
                 streaming::stream_chunks,
@@ -263,7 +265,7 @@ fn title_text(player_voxels: u32, fly: bool) -> String {
     let mode = if fly { "fly" } else { "walk" };
     format!(
         "deepcraft S1 — player = {player_voxels} voxels ({:.2} m/voxel) — {mode} \
-         [click: capture mouse | Esc: release | F: fly/walk | 2/3/4: scale]",
+         [click: capture mouse | Esc: release | F: fly/walk | 2/3/4: scale | G: toss cube]",
         PLAYER_HEIGHT_M / f64::from(player_voxels),
     )
 }
