@@ -25,7 +25,9 @@ pub mod scale;
 pub mod voxel;
 
 pub use chunk::{CHUNK_SIZE, CHUNK_SIZE_USIZE, CHUNK_VOLUME, Chunk, ChunkPos, local_voxel};
-pub use collision::{Aabb, MoveResult, VoxelQuery, move_aabb};
+pub use collision::{
+    Aabb, MoveResult, VoxelQuery, aabb_overlaps_solid, column_top_solid_y, move_aabb,
+};
 pub use column::{ColumnInfo, ColumnSummaries, LodBlockSource, column_summary, open_air_below};
 pub use format::{ChunkContainer, FORMAT_VERSION, FormatError, Sidecar};
 pub use lod::{
