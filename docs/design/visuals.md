@@ -78,6 +78,29 @@ smooth sprays — pixel-realism extends underwater. Water placement is physical
   diagnostic register (flat color is easiest for shape detection);
   texture-confirmation shots use the lit path.
 
+## The distance speaks the voxel language — DECIDED 2026-07-19 (user)
+
+The far-field horizon's smooth heightfield TIN is REJECTED as a visual
+direction: "the distance transition from block to smooth is obviously
+wrong to any eye." The world is voxels at every distance. Decided shape:
+
+- **FF2a — voxelize the far field** (next increment): quantize the same
+  coarse column summaries to voxel steps and mesh stepped columns
+  (Distant-Horizons-style). Because worldgen terrain is currently
+  column-shaped (no caves/overhangs exist yet), this is FULL visual
+  fidelity today, not an approximation. Keeps the zero-mismatch corner
+  property and the summary architecture.
+- **FF2b — coarse volumetric summaries**, paired and sequenced to land
+  WITH underground/overhang features (the water→caves design thread):
+  when the world grows things a heightfield cannot say, the far field
+  grows the 3D summary to say them. Couples to S3 region storage for
+  persistence.
+
+Process note (integrator breach, guarded in session-workflow): this
+direction shipped without the user's eye because the agent's flag said
+"follows the promoted architecture" — architecture and APPEARANCE are
+different ratification axes; appearance is always user-owned.
+
 ## Lit-mixture visibility — DECIDED 2026-07-19 (user mechanism)
 
 Walk 16 proved the lit heightlerp ERASES low-fraction constituents (a ⅛

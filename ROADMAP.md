@@ -253,6 +253,16 @@ far-field integration walk shot list (journal/0022 § for the integration walk).
 
 ## Sequenced
 
+**FF2a — voxel-language far field** (user-decided 2026-07-19, visuals.md
+§ distance speaks the voxel language; runs immediately after the far-tile
+hole fix integrates): quantize the existing coarse column summaries to
+voxel steps, mesh stepped columns — full fidelity today since worldgen
+terrain is column-shaped; smooth TIN retired. **FF2b — coarse volumetric
+summaries** paired with the caves/underground thread of the water design
+pass (when overhangs exist, the summary goes 3D; couples to S3 region
+storage).
+
+
 **PBR-2 — lit-world completion** (the deferred half of the renderer, opened by
 PBR-1 shipping): sun **shadows** (Bevy cascades + our knobs, the chasm-shaft
 signature shot), **colored point lights** (lava/forge/bioluminescence via Bevy's
