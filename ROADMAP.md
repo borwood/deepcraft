@@ -147,21 +147,48 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- 3e-1: deep-time A-tier into real worldgen (agent launched 2026-07-19;
-  A+C user-ratified): deeptime passes join the pregen pipeline, deep-time
-  surface drives elevation, strata records become the epoch-indexed
-  formation context (the year-zero shim dies for deep strata), column
-  stories reach blocks.
-- QUEUED (fires when 3e-1 frees the build slot) — PBR-1: the real
-  material renderer (user 2026-07-19: "wish we had that pbr renderer
-  done — achievable without me"). LabPBR three-texture atlas from the
-  placeholder packs, normal mapping, sun+ambient PBR shading,
-  height/AO splat blending (heightlerp) replacing the mosaic dither for
-  mixtures, uniform-contents voxels finally rendering their material
-  identity (kills the walk-10 render-invisibility item). Shadows/point
-  lights/tonemap/POM = PBR-2.
+- **Surface-machinery fix vs deep-time elevation** (agent launched
+  2026-07-19; BLOCKING — see Observed): `true_surface_m`'s scan ceiling is
+  stale against 3e-1's elevation, so `surface:true` can seat a body inside
+  rock and `eye_in_solid` can lie. Ceiling must derive from the
+  generator's own column knowledge; misses must fail loudly, not return a
+  buried point; the S1-sized headroom constant retires.
 
 ## Sequenced
+
+**PBR-1 — the real material renderer** (user asked 2026-07-19: "wish we had
+that pbr renderer done — achievable without me"). Spec is
+docs/design/visuals.md § Material/texture model; assets already exist in
+`assets/textures/placeholder-labpbr/` (21 deterministic packs + manifest
+with the material↔block map; regenerate via `tools/gen_placeholder_textures.py`).
+Scope: load the three LabPBR channels into atlases (basecolor RGB /
+normal XY+AO / specular smoothness+F0+porosity+emission); custom
+Forward+ material per the S4 shader-pack contract; directional sun +
+hemispherical ambient. **Mixtures switch from the 4×4 mosaic to
+height/AO-driven splat blending (heightlerp)** — mixed faces return to
+single quads (the mosaic multiplied geometry 16×), constituent weights as
+vertex attributes, top-N constituents chosen by the existing
+world-anchored hash. **Uniform-contents voxels must sample their MATERIAL
+pack, not their block's** — this kills the walk-10 "member identity is
+render-invisible" Observed item (siltstone finally differs from
+mudstone). Hard constraints: `--fullbright` must keep working exactly as
+today (the walk protocol depends on it); no headless-crate render deps.
+Out of scope → PBR-2: shadows, godrays, point lights, tonemap/HDR, POM,
+water, weather. Never: GI (doctrine).
+
+**S10 — biotic-layer spike** (the gate for ecology work; design in
+docs/design/ecology.md): community vector + the six processes on the
+3e-1 A-tier; measure cost against the ~14 s world-creation ritual and
+read-quality — do we get coal seams, paleosols, charcoal bands,
+retrogressive surfaces? Evolution explicitly out of scope.
+
+**3e-2 — C refinement** (needs deciding first, per the 3e-1 report): the
+coarse→fine drainage handoff (decide drainage coarse at A, inherit area
+as a fixed boundary field); how a refined region's strata stitch into the
+collapse pyramid within LOOKAHEAD_BOUNDS given the measured 16–24-cell
+halo; the approach trigger; whether C supersedes the Large-extent deep
+grid width cap; and the iteration↔Myr / cell↔km calibration.
+
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.
 3c-2. Geology client integration, material tier (visuals DECIDED
