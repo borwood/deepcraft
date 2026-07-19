@@ -1,0 +1,744 @@
+{
+  "pack_format_version": 1,
+  "placeholder": true,
+  "note": "Procedurally generated placeholder LabPBR packs (visuals.md mixture road, 2026-07-19). Assets-in-waiting for the splat-blend milestone. NOT art direction -- regenerate via tools/gen_placeholder_textures.py.",
+  "resolution": [
+    16,
+    16
+  ],
+  "channel_packing": {
+    "basecolor": "R,G,B = albedo; A = opacity",
+    "normal": "R,G = tangent normal X,Y (reconstruct Z); B = AO; A = height",
+    "specular": "R = perceptual smoothness; G = F0 (0-229) / metal id (230-255); B = porosity(0-64)/SSS(65-255); A = emission (255 = none)"
+  },
+  "generation": {
+    "seed_source": "sha256(slug)[:8] big-endian (process-independent)",
+    "grain_bounds_mm": [
+      0.002,
+      100.0
+    ],
+    "freq_ladder": [
+      16,
+      8,
+      4,
+      2
+    ],
+    "derivations": {
+      "noise_freq": "from grain size (fine=high freq, coarse=low)",
+      "relief_amp": "from hardness = mean(dig,chop,smash,cut resist)",
+      "smoothness": "from cohesion + fineness",
+      "porosity": "from density (loose=high, rock=low, metal~0)",
+      "ramp_levels": "from grain size (4 fine / 5 mid / 6 coarse)"
+    }
+  },
+  "material_count": 17,
+  "block_only_count": 4,
+  "materials": {
+    "ash": {
+      "name": "ash",
+      "kind": "material",
+      "files": {
+        "basecolor": "ash/basecolor.png",
+        "normal": "ash/normal.png",
+        "specular": "ash/specular.png"
+      },
+      "base_color_srgb": [
+        0.32,
+        0.31,
+        0.3
+      ],
+      "seed": 251419881477470574,
+      "params": {
+        "grain_mm": 0.05,
+        "grain_norm": 0.2975,
+        "noise_freq": 8,
+        "hardness": 2.0,
+        "relief_amp": 1.1375,
+        "ramp_levels": 4,
+        "smoothness": 0.3265,
+        "porosity": 0.7812,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 83,
+        "G_f0_or_metal": 10,
+        "B_porosity": 50,
+        "A_emission": 255
+      }
+    },
+    "basalt": {
+      "name": "basalt",
+      "kind": "material",
+      "files": {
+        "basecolor": "basalt/basecolor.png",
+        "normal": "basalt/normal.png",
+        "specular": "basalt/specular.png"
+      },
+      "base_color_srgb": [
+        0.14,
+        0.14,
+        0.16
+      ],
+      "seed": 9469229618193940658,
+      "params": {
+        "grain_mm": 0.05,
+        "grain_norm": 0.2975,
+        "noise_freq": 8,
+        "hardness": 7.125,
+        "relief_amp": 2.5789,
+        "ramp_levels": 4,
+        "smoothness": 0.7405,
+        "porosity": 0.0938,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 189,
+        "G_f0_or_metal": 10,
+        "B_porosity": 6,
+        "A_emission": 255
+      }
+    },
+    "bone": {
+      "name": "bone",
+      "kind": "material",
+      "files": {
+        "basecolor": "bone/basecolor.png",
+        "normal": "bone/normal.png",
+        "specular": "bone/specular.png"
+      },
+      "base_color_srgb": [
+        0.86,
+        0.82,
+        0.7
+      ],
+      "seed": 14473108387353144160,
+      "params": {
+        "grain_mm": 60.0,
+        "grain_norm": 0.9528,
+        "noise_freq": 2,
+        "hardness": 1.45,
+        "relief_amp": 0.9828,
+        "ramp_levels": 6,
+        "smoothness": 0.1494,
+        "porosity": 0.6562,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 38,
+        "G_f0_or_metal": 10,
+        "B_porosity": 42,
+        "A_emission": 255
+      }
+    },
+    "clay": {
+      "name": "clay",
+      "kind": "material",
+      "files": {
+        "basecolor": "clay/basecolor.png",
+        "normal": "clay/normal.png",
+        "specular": "clay/specular.png"
+      },
+      "base_color_srgb": [
+        0.62,
+        0.48,
+        0.38
+      ],
+      "seed": 447603852247425432,
+      "params": {
+        "grain_mm": 0.002,
+        "grain_norm": 0.0,
+        "noise_freq": 16,
+        "hardness": 3.2,
+        "relief_amp": 1.475,
+        "ramp_levels": 4,
+        "smoothness": 0.754,
+        "porosity": 0.4531,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 192,
+        "G_f0_or_metal": 10,
+        "B_porosity": 29,
+        "A_emission": 255
+      }
+    },
+    "dirt": {
+      "name": "dirt",
+      "kind": "block",
+      "files": {
+        "basecolor": "dirt/basecolor.png",
+        "normal": "dirt/normal.png",
+        "specular": "dirt/specular.png"
+      },
+      "base_color_srgb": [
+        0.42,
+        0.3,
+        0.19
+      ],
+      "seed": 14088256351745175367,
+      "params": {
+        "grain_mm": 0.1,
+        "grain_norm": 0.3616,
+        "noise_freq": 8,
+        "hardness": 2.3,
+        "relief_amp": 1.2219,
+        "ramp_levels": 5,
+        "smoothness": 0.4287,
+        "porosity": 0.5938,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 109,
+        "G_f0_or_metal": 10,
+        "B_porosity": 38,
+        "A_emission": 255
+      }
+    },
+    "gold-dust": {
+      "name": "gold dust",
+      "kind": "material",
+      "files": {
+        "basecolor": "gold-dust/basecolor.png",
+        "normal": "gold-dust/normal.png",
+        "specular": "gold-dust/specular.png"
+      },
+      "base_color_srgb": [
+        0.8,
+        0.66,
+        0.28
+      ],
+      "seed": 17213330891055837105,
+      "params": {
+        "grain_mm": 0.8,
+        "grain_norm": 0.5538,
+        "noise_freq": 4,
+        "hardness": 4.125,
+        "relief_amp": 1.7352,
+        "ramp_levels": 5,
+        "smoothness": 0.2384,
+        "porosity": 0.0,
+        "metal": true
+      },
+      "specular_channels": {
+        "R_smoothness": 61,
+        "G_f0_or_metal": 231,
+        "B_porosity": 0,
+        "A_emission": 8
+      }
+    },
+    "granite": {
+      "name": "granite",
+      "kind": "material",
+      "files": {
+        "basecolor": "granite/basecolor.png",
+        "normal": "granite/normal.png",
+        "specular": "granite/specular.png"
+      },
+      "base_color_srgb": [
+        0.66,
+        0.56,
+        0.58
+      ],
+      "seed": 12429283137197702266,
+      "params": {
+        "grain_mm": 3.0,
+        "grain_norm": 0.6759,
+        "noise_freq": 4,
+        "hardness": 7.125,
+        "relief_amp": 2.5789,
+        "ramp_levels": 6,
+        "smoothness": 0.6648,
+        "porosity": 0.1562,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 170,
+        "G_f0_or_metal": 10,
+        "B_porosity": 10,
+        "A_emission": 255
+      }
+    },
+    "grass": {
+      "name": "grass",
+      "kind": "block",
+      "files": {
+        "basecolor": "grass/basecolor.png",
+        "normal": "grass/normal.png",
+        "specular": "grass/specular.png"
+      },
+      "base_color_srgb": [
+        0.3,
+        0.62,
+        0.25
+      ],
+      "seed": 17783689120030210170,
+      "params": {
+        "grain_mm": 0.5,
+        "grain_norm": 0.5103,
+        "noise_freq": 4,
+        "hardness": 1.375,
+        "relief_amp": 0.9617,
+        "ramp_levels": 5,
+        "smoothness": 0.4219,
+        "porosity": 0.625,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 108,
+        "G_f0_or_metal": 10,
+        "B_porosity": 40,
+        "A_emission": 255
+      }
+    },
+    "gravel": {
+      "name": "gravel",
+      "kind": "material",
+      "files": {
+        "basecolor": "gravel/basecolor.png",
+        "normal": "gravel/normal.png",
+        "specular": "gravel/specular.png"
+      },
+      "base_color_srgb": [
+        0.5,
+        0.48,
+        0.45
+      ],
+      "seed": 3941328132169343029,
+      "params": {
+        "grain_mm": 20.0,
+        "grain_norm": 0.8513,
+        "noise_freq": 2,
+        "hardness": 4.4,
+        "relief_amp": 1.8125,
+        "ramp_levels": 6,
+        "smoothness": 0.1789,
+        "porosity": 0.4375,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 46,
+        "G_f0_or_metal": 10,
+        "B_porosity": 28,
+        "A_emission": 255
+      }
+    },
+    "knapping-debris": {
+      "name": "knapping debris",
+      "kind": "material",
+      "files": {
+        "basecolor": "knapping-debris/basecolor.png",
+        "normal": "knapping-debris/normal.png",
+        "specular": "knapping-debris/specular.png"
+      },
+      "base_color_srgb": [
+        0.42,
+        0.42,
+        0.46
+      ],
+      "seed": 14169586915430600611,
+      "params": {
+        "grain_mm": 15.0,
+        "grain_norm": 0.8247,
+        "noise_freq": 4,
+        "hardness": 4.075,
+        "relief_amp": 1.7211,
+        "ramp_levels": 6,
+        "smoothness": 0.1751,
+        "porosity": 0.2812,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 45,
+        "G_f0_or_metal": 10,
+        "B_porosity": 18,
+        "A_emission": 255
+      }
+    },
+    "leaf-litter": {
+      "name": "leaf litter",
+      "kind": "material",
+      "files": {
+        "basecolor": "leaf-litter/basecolor.png",
+        "normal": "leaf-litter/normal.png",
+        "specular": "leaf-litter/specular.png"
+      },
+      "base_color_srgb": [
+        0.4,
+        0.3,
+        0.14
+      ],
+      "seed": 9727910064829736995,
+      "params": {
+        "grain_mm": 25.0,
+        "grain_norm": 0.8719,
+        "noise_freq": 2,
+        "hardness": 0.8,
+        "relief_amp": 0.8,
+        "ramp_levels": 6,
+        "smoothness": 0.2346,
+        "porosity": 0.9531,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 60,
+        "G_f0_or_metal": 10,
+        "B_porosity": 61,
+        "A_emission": 255
+      }
+    },
+    "loam": {
+      "name": "loam",
+      "kind": "material",
+      "files": {
+        "basecolor": "loam/basecolor.png",
+        "normal": "loam/normal.png",
+        "specular": "loam/specular.png"
+      },
+      "base_color_srgb": [
+        0.36,
+        0.26,
+        0.17
+      ],
+      "seed": 8976157817138149887,
+      "params": {
+        "grain_mm": 0.1,
+        "grain_norm": 0.3616,
+        "noise_freq": 8,
+        "hardness": 2.3,
+        "relief_amp": 1.2219,
+        "ramp_levels": 5,
+        "smoothness": 0.4287,
+        "porosity": 0.5938,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 109,
+        "G_f0_or_metal": 10,
+        "B_porosity": 38,
+        "A_emission": 255
+      }
+    },
+    "mudstone": {
+      "name": "mudstone",
+      "kind": "material",
+      "files": {
+        "basecolor": "mudstone/basecolor.png",
+        "normal": "mudstone/normal.png",
+        "specular": "mudstone/specular.png"
+      },
+      "base_color_srgb": [
+        0.46,
+        0.26,
+        0.2
+      ],
+      "seed": 6539632718805461223,
+      "params": {
+        "grain_mm": 0.004,
+        "grain_norm": 0.0641,
+        "noise_freq": 16,
+        "hardness": 3.8,
+        "relief_amp": 1.6438,
+        "ramp_levels": 4,
+        "smoothness": 0.7642,
+        "porosity": 0.25,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 195,
+        "G_f0_or_metal": 10,
+        "B_porosity": 16,
+        "A_emission": 255
+      }
+    },
+    "potsherd": {
+      "name": "potsherd",
+      "kind": "material",
+      "files": {
+        "basecolor": "potsherd/basecolor.png",
+        "normal": "potsherd/normal.png",
+        "specular": "potsherd/specular.png"
+      },
+      "base_color_srgb": [
+        0.6,
+        0.34,
+        0.24
+      ],
+      "seed": 2675279361929553116,
+      "params": {
+        "grain_mm": 40.0,
+        "grain_norm": 0.9153,
+        "noise_freq": 2,
+        "hardness": 3.125,
+        "relief_amp": 1.4539,
+        "ramp_levels": 6,
+        "smoothness": 0.1569,
+        "porosity": 0.4062,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 40,
+        "G_f0_or_metal": 10,
+        "B_porosity": 26,
+        "A_emission": 255
+      }
+    },
+    "sand": {
+      "name": "sand",
+      "kind": "material",
+      "files": {
+        "basecolor": "sand/basecolor.png",
+        "normal": "sand/normal.png",
+        "specular": "sand/specular.png"
+      },
+      "base_color_srgb": [
+        0.8,
+        0.72,
+        0.52
+      ],
+      "seed": 17842554893718717656,
+      "params": {
+        "grain_mm": 0.5,
+        "grain_norm": 0.5103,
+        "noise_freq": 4,
+        "hardness": 4.0,
+        "relief_amp": 1.7,
+        "ramp_levels": 5,
+        "smoothness": 0.2609,
+        "porosity": 0.5,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 67,
+        "G_f0_or_metal": 10,
+        "B_porosity": 32,
+        "A_emission": 255
+      }
+    },
+    "sandstone": {
+      "name": "sandstone",
+      "kind": "material",
+      "files": {
+        "basecolor": "sandstone/basecolor.png",
+        "normal": "sandstone/normal.png",
+        "specular": "sandstone/specular.png"
+      },
+      "base_color_srgb": [
+        0.76,
+        0.66,
+        0.44
+      ],
+      "seed": 16317702854111982942,
+      "params": {
+        "grain_mm": 0.3,
+        "grain_norm": 0.4631,
+        "noise_freq": 8,
+        "hardness": 4.975,
+        "relief_amp": 1.9742,
+        "ramp_levels": 5,
+        "smoothness": 0.6384,
+        "porosity": 0.2656,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 163,
+        "G_f0_or_metal": 10,
+        "B_porosity": 17,
+        "A_emission": 255
+      }
+    },
+    "scree": {
+      "name": "scree",
+      "kind": "material",
+      "files": {
+        "basecolor": "scree/basecolor.png",
+        "normal": "scree/normal.png",
+        "specular": "scree/specular.png"
+      },
+      "base_color_srgb": [
+        0.48,
+        0.46,
+        0.44
+      ],
+      "seed": 16747025936257861229,
+      "params": {
+        "grain_mm": 100.0,
+        "grain_norm": 1.0,
+        "noise_freq": 2,
+        "hardness": 5.3,
+        "relief_amp": 2.0656,
+        "ramp_levels": 6,
+        "smoothness": 0.163,
+        "porosity": 0.375,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 42,
+        "G_f0_or_metal": 10,
+        "B_porosity": 24,
+        "A_emission": 255
+      }
+    },
+    "silt": {
+      "name": "silt",
+      "kind": "material",
+      "files": {
+        "basecolor": "silt/basecolor.png",
+        "normal": "silt/normal.png",
+        "specular": "silt/specular.png"
+      },
+      "base_color_srgb": [
+        0.58,
+        0.5,
+        0.38
+      ],
+      "seed": 18100397826828462579,
+      "params": {
+        "grain_mm": 0.02,
+        "grain_norm": 0.2128,
+        "noise_freq": 8,
+        "hardness": 2.65,
+        "relief_amp": 1.3203,
+        "ramp_levels": 4,
+        "smoothness": 0.5274,
+        "porosity": 0.5312,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 134,
+        "G_f0_or_metal": 10,
+        "B_porosity": 34,
+        "A_emission": 255
+      }
+    },
+    "snow": {
+      "name": "snow",
+      "kind": "material",
+      "files": {
+        "basecolor": "snow/basecolor.png",
+        "normal": "snow/normal.png",
+        "specular": "snow/specular.png"
+      },
+      "base_color_srgb": [
+        0.92,
+        0.94,
+        0.98
+      ],
+      "seed": 12053359038127691269,
+      "params": {
+        "grain_mm": 1.0,
+        "grain_norm": 0.5744,
+        "noise_freq": 4,
+        "hardness": 2.225,
+        "relief_amp": 1.2008,
+        "ramp_levels": 5,
+        "smoothness": 0.3631,
+        "porosity": 0.9062,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 93,
+        "G_f0_or_metal": 10,
+        "B_porosity": 58,
+        "A_emission": 255
+      }
+    },
+    "stone": {
+      "name": "stone",
+      "kind": "block",
+      "files": {
+        "basecolor": "stone/basecolor.png",
+        "normal": "stone/normal.png",
+        "specular": "stone/specular.png"
+      },
+      "base_color_srgb": [
+        0.52,
+        0.52,
+        0.54
+      ],
+      "seed": 15869929561533449247,
+      "params": {
+        "grain_mm": 2.0,
+        "grain_norm": 0.6384,
+        "noise_freq": 4,
+        "hardness": 6.75,
+        "relief_amp": 2.4734,
+        "ramp_levels": 5,
+        "smoothness": 0.6723,
+        "porosity": 0.1875,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 171,
+        "G_f0_or_metal": 10,
+        "B_porosity": 12,
+        "A_emission": 255
+      }
+    },
+    "wood": {
+      "name": "wood",
+      "kind": "block",
+      "files": {
+        "basecolor": "wood/basecolor.png",
+        "normal": "wood/normal.png",
+        "specular": "wood/specular.png"
+      },
+      "base_color_srgb": [
+        0.44,
+        0.33,
+        0.17
+      ],
+      "seed": 11094482848903192556,
+      "params": {
+        "grain_mm": 1.0,
+        "grain_norm": 0.5744,
+        "noise_freq": 4,
+        "hardness": 2.5,
+        "relief_amp": 1.2781,
+        "ramp_levels": 5,
+        "smoothness": 0.5011,
+        "porosity": 0.7812,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 128,
+        "G_f0_or_metal": 10,
+        "B_porosity": 50,
+        "A_emission": 255
+      }
+    }
+  },
+  "block_to_pack": {
+    "basalt": {
+      "pack": "basalt",
+      "shared_with_material": true
+    },
+    "dirt": {
+      "pack": "dirt",
+      "shared_with_material": false
+    },
+    "granite": {
+      "pack": "granite",
+      "shared_with_material": true
+    },
+    "grass": {
+      "pack": "grass",
+      "shared_with_material": false
+    },
+    "mudstone": {
+      "pack": "mudstone",
+      "shared_with_material": true
+    },
+    "sandstone": {
+      "pack": "sandstone",
+      "shared_with_material": true
+    },
+    "stone": {
+      "pack": "stone",
+      "shared_with_material": false
+    },
+    "wood": {
+      "pack": "wood",
+      "shared_with_material": false
+    }
+  }
+}
