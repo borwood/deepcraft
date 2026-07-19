@@ -43,7 +43,8 @@ use dc_core::{CHUNK_SIZE, ChunkPos, VoxelScale};
 use glam::DVec3;
 
 use crate::app::{
-    ChunkMaterial, CurrentScale, FloatingOrigin, Fullbright, TerrainMaterialHandle, to_render,
+    CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle, TerrainMaterialHandle,
+    to_render,
 };
 use crate::meshing::mesh_chunk;
 use crate::player::Player;
@@ -194,7 +195,7 @@ pub struct FarChunkMap {
 pub fn stream_far_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    material: Res<ChunkMaterial>,
+    material: Res<FullbrightMaterialHandle>,
     terrain_mat: Res<TerrainMaterialHandle>,
     fullbright: Res<Fullbright>,
     terrain: Res<FarFieldTerrain>,

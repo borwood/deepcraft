@@ -200,6 +200,17 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **PBR-1 render polish awaiting integration** (journal/0020, background agent,
+  separate worktree branch): the two walk-14 ratifications — the placeholder
+  tiling cleanup (world-anchored UVs + de-directionalized textures) and the
+  fullbright mixture-speckle variant (a second unlit custom material). Gates green
+  on the worktree branch (fmt, clippy `-D warnings`, full workspace test suite);
+  live-verified lit + fullbright on the RTX 3070 with no shader/pipeline errors.
+  Merges on top of PBR-1. Owed to the milestone walk: the geology-outcrop
+  before/after and the in-world fullbright speckle on a real mixed face (see
+  Observed). No NEEDS RATIFICATION flags (the SPLAT_N=4 + calibration flags from
+  PBR-1 still ride; this pass added none).
+
 - **PBR-1 awaiting integration + milestone walk** (journal/0019, background
   agent): gates green on the worktree branch (fmt, clippy `-D warnings`, 105+
   workspace tests; live-verified lit + fullbright on Vulkan/RTX 3070 with no
@@ -293,14 +304,35 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- Walk 14 (journal/0019 § walk 14): **fullbright lost the mixture
-  speckle** — the single-quad splat mesh carries one blended vertex color,
-  so mixed faces read uniform under fullbright (the mosaic's sub-quad
-  dither colors are gone); the unlit path itself is intact. Open question:
-  a fullbright splat variant for the walk protocol, or lit-path-only
-  mixture visibility is acceptable. **Member-contact + placer closeup
-  shots owed** — not findable by eye under ground cover; wants the
-  pregen-introspection dev MCP tools (walk-9 Observed item).
+- Walk 14 (journal/0019 § walk 14): *(fullbright lost the mixture speckle:
+  **RESOLVED by PBR-1 render polish**, journal/0020 — a `FullbrightTerrainMaterial`
+  (unlit custom `Material`) now renders uniform/block faces as one flat registry
+  albedo and mixed faces as the world-anchored 4×4-cell constituent speckle,
+  computed shader-side from the splat attributes + a world-anchored cell hash +
+  the albedo palette uniform, NOT the LabPBR textures. Zero mosaic geometry.
+  Live-verified: uniform spawn strata read flat under fullbright, both shaders
+  compile/render error-free. **In-world speckle photograph still owed** — needs a
+  real mixed face.)* **Member-contact + placer closeup shots owed** — not
+  findable by eye under ground cover; wants the pregen-introspection dev MCP tools
+  (walk-9 Observed item). The fullbright speckle photo rides with them (same
+  scan-guided-site problem).
+
+- **Placeholder texture tiling: cleanup pass DONE** (journal/0020, PBR-1 render
+  polish). The walk-14 "houndstooth" was diagnosed as **legible per-voxel
+  repetition of a low-frequency directional texture signature, NOT a seam
+  failure** — the tiles wrap (the generator's `_seam_check` is still green;
+  offline 4×4 tiling shows no boundary discontinuity), so the "seamless tiling
+  verified" claim is **not** falsified (no corrections.md entry). Two mechanisms
+  shipped: (1) **world-anchored UVs** in the mesher (tile origin = world voxel
+  coord — continuous across same-material blocks and greedy quads, and the source
+  of the fullbright speckle's world-stable cell grid; near visually-neutral in the
+  lit path on its own for the current seamless tiles); (2) **de-directionalized
+  placeholder textures** (`gen_placeholder_textures.py`: freq floor 2→4 + a
+  three-octave fractal weighted to high frequency, albedo spread 0.17→0.11, relief
+  2.6→1.5, softer AO ramp — regenerated all 26 packs, seam self-check still green)
+  — this is the mechanism that actually removes the visible artifact. Live spawn
+  (grass/dirt) reads as isotropic pixel grain with no legible period. **Geology
+  outcrop before/after at the walk-14 framing still owed to the milestone walk.**
 
 - PBR-1 loose ends (journal/0019):
   - **Terrain lighting is hand-rolled** (directional sun + hemispherical
@@ -318,6 +350,18 @@ before any code.
     the subtle placeholder relief). Revisit with authored textures + POM (PBR-2).
   - **The 16×16 atlas has no mipmaps** (nearest, no mip) — distance aliasing on
     the far rings; accepted for placeholder, revisit with real textures/POM.
+  - **World-anchored UVs are f32 world voxel coordinates** (journal/0020) —
+    integer at corners, so tiles resolve exactly to ~±16 M voxels and acceptably
+    across the playable range; extreme deep-time coordinates would eventually lose
+    texel precision. Accepted (the far field, the other extreme-coordinate
+    consumer, is a known defect). One tile per *current-scale* voxel, so far-mesh
+    coarse voxels still stretch a single tile — subsumed with the summary-shaped
+    far field.
+  - **Embedded WGSL shaders are compiled by naga at pipeline-build time** — no CPU
+    gate (`fmt`/`clippy`/tests) sees them (journal/0020: a `active` reserved-word
+    typo passed every gate and would have blanked fullbright; caught only by the
+    live smoke run). The live launch + log read is the shader's only compiler;
+    keep it in the walk protocol for any shader change.
   - Specular **porosity/emission channels are sampled but wetness is not wired**
     (no weather → no sim-driven porosity darkening yet; PBR-2 + materials sim).
   - Placeholder packs widened **21 → 26**; the historical placeholder-textures

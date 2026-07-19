@@ -24,8 +24,8 @@ use bevy::render::render_resource::PrimitiveTopology;
 use dc_core::{CHUNK_SIZE, ChunkPos};
 
 use crate::app::{
-    ChunkEntity, ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, Fullbright, LoadedChunk,
-    TerrainMaterialHandle, to_render,
+    ChunkEntity, ChunkMap, CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle,
+    LoadedChunk, TerrainMaterialHandle, to_render,
 };
 use crate::authority::Authority;
 use crate::meshing::{MeshData, mesh_chunk};
@@ -48,7 +48,7 @@ const LOAD_BUDGET_PER_FRAME: usize = 8;
 pub fn stream_chunks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    material: Res<ChunkMaterial>,
+    material: Res<FullbrightMaterialHandle>,
     terrain_mat: Res<TerrainMaterialHandle>,
     fullbright: Res<Fullbright>,
     scale: Res<CurrentScale>,

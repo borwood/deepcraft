@@ -193,11 +193,17 @@ def derive_params(row) -> dict:
 
     # grain size -> feature frequency (fine = high freq fine speckle,
     # coarse = low freq chunky blobs). freqs divide SIZE for seamless tiling.
+    #
+    # journal/0020: the ladder floor was raised from 2 to 4. At one 16×16 tile
+    # per 0.9 m voxel a freq-2 low-frequency blob reads as a strong directional
+    # "houndstooth" the moment the tile repeats block-to-block. A higher floor
+    # (plus the fractal high-freq octaves in build_height) keeps the tile reading
+    # as isotropic grain, so per-voxel repetition is far less legible.
     g_norm = clamp01(
         (math.log10(grain) - math.log10(GRAIN_MIN))
         / (math.log10(GRAIN_MAX) - math.log10(GRAIN_MIN))
     )
-    freqs = [16, 8, 4, 2]
+    freqs = [16, 8, 8, 4]
     freq = freqs[min(3, int(round(g_norm * 3)))]
 
     # hardness = mean of the four extraction resistances (sieve excluded --
@@ -205,7 +211,11 @@ def derive_params(row) -> dict:
     # observed span (~0.8 leaf-litter .. ~7.1 granite/basalt).
     hardness = sum(resist) / len(resist)
     h_norm = clamp01((hardness - 0.8) / (7.2 - 0.8))
-    relief_amp = _lerp(0.8, 2.6, h_norm)  # harder -> deeper normal relief
+    # harder -> deeper normal relief. Range softened (journal/0020): the old
+    # (0.8, 2.6) span cast strong per-texel shadows that, tiled block-to-block
+    # under the lit path, sharpened the directional houndstooth. Gentler relief
+    # keeps a pixel-game surface without a legible repeat.
+    relief_amp = _lerp(0.5, 1.5, h_norm)
 
     # cohesion + fineness -> perceptual smoothness (specular R)
     smoothness = clamp01(0.14 + 0.46 * cohesion + 0.20 * (1.0 - g_norm))
@@ -255,16 +265,26 @@ def derive_params(row) -> dict:
 
 
 def build_height(p: dict):
-    """Continuous height field H[y][x] in [0,1], two octaves, seamless."""
+    """Continuous height field H[y][x] in [0,1], three octaves, seamless.
+
+    journal/0020: reweighted toward the higher-frequency octaves so the tile
+    reads as isotropic grain rather than a single low-frequency directional
+    blob. The material's `noise_freq` octave (grain character) still leads, but
+    fixed freq-8 and freq-16 octaves now carry more of the field, dissolving the
+    per-block "houndstooth" the low-freq blob produced when tiled. All octave
+    frequencies wrap modulo their cell count, so the field stays seamless.
+    """
     seed = p["seed"]
     freq = p["noise_freq"]
-    fine_seed = seed ^ 0x9E3779B97F4A7C15
+    mid_seed = seed ^ 0x9E3779B97F4A7C15
+    fine_seed = seed ^ 0xD1B54A32D192ED03
     H = [[0.0] * SIZE for _ in range(SIZE)]
     for y in range(SIZE):
         for x in range(SIZE):
-            base = value_noise(seed, x, y, freq)
+            lo = value_noise(seed, x, y, freq)
+            mid = value_noise(mid_seed, x, y, 8)
             fine = value_noise(fine_seed, x, y, 16)
-            H[y][x] = clamp01(0.72 * base + 0.28 * fine)
+            H[y][x] = clamp01(0.40 * lo + 0.24 * mid + 0.36 * fine)
     return H
 
 
@@ -272,7 +292,11 @@ def gen_basecolor(p: dict, H) -> bytes:
     """Albedo RGB (quantized pixel ramp around the palette color) + opaque A."""
     r, g, b = p["base_rgb"]
     levels = p["ramp_levels"]
-    spread = 0.17
+    # journal/0020: the albedo shade spread was narrowed (0.17 -> 0.11) so the
+    # per-texel value steps are gentler. The strong old contrast made the tiled
+    # low-frequency pattern read as a bold repeating grid; a tighter ramp keeps
+    # the pixel-game quantization while softening the legibility of the repeat.
+    spread = 0.11
     metal = p["metal"]
     flake_seed = p["seed"] ^ 0xA24BAED4963EE407
     out = bytearray(SIZE * SIZE * 4)
@@ -311,8 +335,10 @@ def gen_normal(p: dict, H) -> bytes:
             nz = 1.0
             inv = 1.0 / math.sqrt(nx * nx + ny * ny + nz * nz)
             nx, ny, nz = nx * inv, ny * inv, nz * inv
-            # AO from height: low spots are more occluded
-            ao = 0.55 + 0.45 * H[y][x]
+            # AO from height: low spots are more occluded. Contrast softened
+            # (journal/0020) so baked occlusion doesn't re-draw the low-freq
+            # blob as a dark repeating grid across tiled blocks.
+            ao = 0.72 + 0.28 * H[y][x]
             out[i] = int(round((nx * 0.5 + 0.5) * 255))
             out[i + 1] = int(round((ny * 0.5 + 0.5) * 255))
             out[i + 2] = int(round(clamp01(ao) * 255))
