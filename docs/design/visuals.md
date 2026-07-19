@@ -78,6 +78,29 @@ smooth sprays — pixel-realism extends underwater. Water placement is physical
   diagnostic register (flat color is easiest for shape detection);
   texture-confirmation shots use the lit path.
 
+## Lit-mixture visibility — DECIDED 2026-07-19 (user mechanism)
+
+Walk 16 proved the lit heightlerp ERASES low-fraction constituents (a ⅛
+accessory never out-elevates a ⅞ host — 0021-mixture-* pair). Cell-hash
+quantization REJECTED (user): an imposed grid shears authored texture
+features (multi-pixel cobbles must never be cut). The decided mechanism:
+
+- **Amplitude by rarity**: each constituent's height term scales inversely
+  with its fraction — `elev_i = w_i + amp(w_i)·(h_i − ½)`, amp large when
+  w small. Rare constituents win sparsely but decisively AT THEIR OWN
+  HEIGHTMAP PEAKS — whole features pop in or stay out, nothing shears;
+  coverage ≈ proportional for well-behaved heightmaps, and deviation is
+  authorable: **a pack's height channel is its ore-clumping knob**.
+- **Plus anti-wallpaper jitter**: heights tile per voxel, so peak-wins
+  would repeat as a periodic lattice; a small per-voxel world-hash bias in
+  the elevation battle (LOW-amplitude, never a cutting grid) decorrelates
+  which peaks clear the bar, voxel to voxel.
+- Consequence accepted: lit and fullbright agree **statistically**
+  (fractions), not spatially (cell speckle vs height peaks) — audits
+  compare presence/proportion, not positions.
+- Calibration constants (amp curve, jitter magnitude) are engineering,
+  tuned photographically; live smoke mandatory (WGSL invisible to gates).
+
 ## Mixture rendering road — DECIDED 2026-07-19
 
 The splat-blend destination above stands. The road to it:

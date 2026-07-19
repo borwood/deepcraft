@@ -349,9 +349,11 @@ before any code.
   pixels in lit; same splat attributes, so the heightlerp buries it
   (elevation = weight + texture height; a 1/8 accessory can't out-elevate
   a 7/8 host anywhere). Contradicts the ratified "grains poke through"
-  intent. Fix shape PROPOSED (user reviewing): cell-quantized categorical
-  bonus from the same world-anchored 4×4 hash the fullbright speckle
-  uses, so lit and diagnostic modes agree where the ore is. Also note:
+  intent. Mechanism DECIDED 2026-07-19 (user; visuals.md § Lit-mixture
+  visibility): **amplitude by rarity + anti-wallpaper jitter** — cell
+  quantization rejected (grids shear authored features). Shader patch
+  written, awaiting the build slot for live smoke + photographic pair
+  before commit. Also note:
   the houndstooth fix's narrowed albedo spread (0.17→0.11) reduced
   constituent contrast in the lit path generally.
 
