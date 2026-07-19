@@ -99,6 +99,36 @@ propagates (see Knowledge is physical) — which enables:
   cognition, not an authored tooltip — the character can know things the
   player doesn't yet.
 
+## Procedural languages (2026-07-19)
+
+An **interlingua of concept-tokens**, honest about channel fidelity —
+"broken english mixed with pictures," never uncanny fluency:
+
+- Lexicon = pictographs for materials/items (their textures, for free) and
+  actions (item animations rendered to animated glyphs) + generated proper
+  names (people/places/events — history gen already makes them).
+- A language is only `{lexicon mapping, word order (SOV/VSO/SVO), 2–3
+  morphological toggles (particles vs affixes, reduplication, honorifics),
+  name inventory}`. HARD SCOPE GUARD: no phonology, no morphology tables —
+  never a full conlang. Styling varies by culture + speaker mood + styles
+  propagated between historied actors.
+- **Language is the knowledge system's wire format**: an utterance is a
+  serialized fact-fragment (concept graph linearized by the speaker's
+  grammar). Rumor noise, mythologization, whisper-chain distortion become
+  mechanical (token substitution/drop/re-encoding). Old inscriptions in
+  dead languages = archaeology of the ledger; expert consultations render
+  their structured output (knowledge.md #6) through this layer.
+- **Comprehension is a rendering setting**: character fluency (knowledge —
+  learnable, inherited at creation) controls how much of an utterance
+  renders as English vs glyphs/foreign names. Learning a language is
+  watching text resolve. Player input: a composition bar over known
+  concepts auto-cast into target grammar; LLM-assist may map free text onto
+  the concept vocabulary. LLM companions emit concept-sequences
+  (constrained decoding) — in-world by construction.
+- Known costs: glyph-fatigue (mitigated by comprehension-rendering),
+  accessibility (gloss/alt-text from day one), narrow tonal range
+  (acceptable for an information-forward game).
+
 ## Structure & danger
 
 - **Cave-ins / structural integrity** from structure density/porosity:
