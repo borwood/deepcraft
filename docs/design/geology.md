@@ -61,6 +61,33 @@ and further ore vectors.
   the trog layers (depth is a first-class axis for us in a way surface games
   never had).
 
+## Formation context — DECIDED 2026-07-19 (correcting a v1 shim)
+
+The v1 implementation evaluates ALL class fitness — including igneous —
+against the column's **present-day** temp/precip (plus a depth constant).
+This is a documented shim, ratified as acceptable **only for the surficial
+veneer** (year-zero deposition under the year-zero climate is the truth for
+recent sediments; the fine/coarse choice within a deposit is fluvial-energy
+sedimentology and unimpeachable). It is WRONG for everything else and must
+not ossify:
+
+- **Formation context must become epoch-indexed.** Deposition events draw
+  paleo-context from the deep-time story; igneous fitness consumes tectonic
+  setting + emplacement depth (never surface weather); metamorphism
+  consumes the P/T path from burial/exhumation. The architecture already
+  supports this — classes declare their own param contracts, the strata
+  record tags events with context, the pass graph is where a paleo-context
+  provider slots in. Which context flows is the fix, not the machinery.
+- **Near-term task**: strip climate windows from the igneous class sheets
+  (fitness becomes province/depth-driven — the pass already gates on
+  `Provenance`).
+- The paleo-context ("T/P history") axis joins the sequenced deep-time
+  work (S2 checkpoint facts, pregen history). Inspiration source: the
+  orogeny repo's earth-process sim (deep-time material movement over
+  eons) — mine for mechanism, not as a map; we fully own gen here.
+- Note: the chunk-line family cutover (ROADMAP Observed) is an orthogonal
+  quantization artifact — it would occur under perfect paleo-context too.
+
 ## Roster, inclusions, and unfilled slots — DECIDED 2026-07-19
 
 - **Rich vanilla mineral roster.** The default pack does not shy away from
