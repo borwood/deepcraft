@@ -101,6 +101,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   open question, now concrete; interacts with bodies.md open question 3).
   *(Attach placement guard: fixed, journal/0006.)*
 
+- User field report 2026-07-19: the client **boots at scale 3** (player = 3
+  voxels, 0.6 m/voxel) though S1 ratified **N=2**. Diagnosed: hardcoded
+  spike-era bench default (`app.rs:170,177` + spawn at `:156`), not a
+  decision. One-line-class fix; deferred only until the geology agent frees
+  the build slot (gates required). Tests hardcoding 3 are scale-pinned
+  measurements and stay.
+
 - Walk 6 loose ends (journal/0006): the surface scan window is
   S1-terrain-sized (8 m headroom / 220 m depth) — structures stacked >8 m
   above the analytic surface won't be snapped to; revisit when worldgen

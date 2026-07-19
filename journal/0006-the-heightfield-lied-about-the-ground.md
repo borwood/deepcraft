@@ -124,5 +124,5 @@ defect. Diagnosis still owed; the asset is now evidence.
 - [x] gates green on merged main; character replay still bit-identical
 - [x] walk-verified photographically at the measured worst case
 - [x] falsified "missing octave" claim → corrections.md #5
-- [ ] **ratify**: `surface: true` attach semantics are new API surface
-- [ ] **ratify**: dev `spawn_character` staying unguarded
+- [x] ratified 2026-07-19: `surface: true` attach semantics; dev
+      `spawn_character` staying unguarded; the JSON `obstructed` receipt shape

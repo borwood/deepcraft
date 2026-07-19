@@ -69,13 +69,45 @@ Character animation renders **frame-stepped (~12 fps, quantized rotations)**
 — a stop-motion look chosen for the elevated-pixel aesthetic (an identity,
 not a workaround; it also happens to be cheap and forgiving).
 
-## Clothing/armor overlays — DECIDED 2026-07-19
+## Clothing/armor — DECIDED 2026-07-19 (refined same day)
 
-Clothing is textures / transformed inflated copies of plan segments, bound
-by segment name — one chestplate def adorns every mob of every plan that has
-those segments, mutations included, because it is expressed relative to
-segment dimensions. **v1 boundary: form-fitting shells only**; skirts,
-capes, dangling gear need their own segments/sim — later.
+Clothing is **authored as its own set of cuboids**, each parented to a body-
+plan segment either **fully** (rigid follow — armor plates, shirts) or **at
+a point** (pinned with constrained rotation — a floating cape pins to the
+trunk and swings within limits; a soft-body deepening of pinned pieces is a
+later option). The earlier textures / transformed-segment-copies method
+survives as the **default/fallback authoring path** (a copy is the
+degenerate case: one cuboid, fully parented, inheriting segment transform).
+
+Binding is by **segment name**, and authored cuboids are expressed
+**relative to segment dimensions** (mechanism note: this is what keeps "one
+chestplate def adorns every mob of every plan with those segments,
+mutations included" true — absolute-meter authoring would break on scaled
+mutations). Pinned/swinging pieces are cosmetic-side per the determinism
+firewall. v1 boundary softens accordingly: pinned-rigid pieces (capes) are
+in; soft-body is later.
+
+## Plan parameters — PROPOSED (user sketch 2026-07-19)
+
+Body plans may declare **scalar and bool parameters** that bodies bind to
+character state:
+
+- **Scalar**: a segment expands/contracts within a plan-declared range,
+  driven by a stat (weight, strength) — visible bulk from simulation state.
+- **Bool**: a segment is present/absent by character property (e.g.
+  sex-dimorphic segments) — a bool param is effectively a *fork you can
+  flip per instance*, unifying with plan forking.
+
+Interaction notes (Claude, for discussion — not decided):
+
+- Absent segments drop their animation channels — the same rule as fork
+  inheritance — and sockets on absent segments vanish (missing-socket ⇒
+  item-to-inventory rule from transmog).
+- Each param must declare **which side of the firewall it touches**: purely
+  cosmetic scale (visual bulk) is free; a param that alters collider
+  extents or reach is sim-visible and must be quantized + deterministic
+  (stats are sim state, so this is legal — but stepwise, never smooth
+  per-frame).
 
 ## Sockets — PROPOSED
 
