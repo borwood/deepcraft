@@ -17,6 +17,8 @@ pub mod ids {
     pub const ENTITY_SPAWN: &str = "dc:entity/spawn";
     pub const ENTITY_QUERY: &str = "dc:entity/query";
     pub const REGISTRY_DEFINE_ITEM: &str = "dc:registry/define_item";
+    pub const REGISTRY_DEFINE_CONTENT_CLASS: &str = "dc:registry/define_content_class";
+    pub const REGISTRY_DEFINE_CLASS_MEMBER: &str = "dc:registry/define_class_member";
     pub const EVENTS_SUBSCRIBE: &str = "dc:events/subscribe";
     pub const EVENTS_POLL: &str = "dc:events/poll";
     pub const CHARACTER_SPAWN: &str = "dc:character/spawn_character";
@@ -169,6 +171,34 @@ pub struct DefineItem {
     pub description: Option<String>,
 }
 
+/// `dc:registry/define_content_class` — declare a content class (a
+/// contract): its namespaced name and the parameter schema its members must
+/// satisfy. The consumer's `registry.define` grant must own the namespace.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DefineContentClass {
+    /// Namespaced class name, e.g. `dc:stratum/clastic-fine`.
+    pub name: String,
+    #[serde(default)]
+    pub doc: String,
+    /// The class contract: what member definitions must supply.
+    pub params: Vec<crate::classes::ParamSpec>,
+}
+
+/// `dc:registry/define_class_member` — register a member into a content
+/// class. `params` is schema-validated against the class contract at define
+/// time (the smallest honest opening of the closed `Payload` union: open
+/// keys over a closed value vocabulary — see `classes` module docs). The
+/// grant must own the *member* name's namespace; the class may live in
+/// another namespace.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DefineClassMember {
+    /// Namespaced member name, e.g. `dc:geo/mudstone`.
+    pub name: String,
+    /// The class being implemented, e.g. `dc:stratum/clastic-fine`.
+    pub class: String,
+    pub params: Vec<crate::classes::ParamEntry>,
+}
+
 /// `dc:events/subscribe` — open an event subscription with a filter.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct EventsSubscribe {
@@ -280,6 +310,10 @@ pub enum Payload {
     CharacterPose(CharacterPose),
     SenseRaycast(SenseRaycast),
     SenseSurroundings(SenseSurroundings),
+    // Appended (content-class registry milestone): postcard enum indices of
+    // the variants above are wire identity — new variants go at the end.
+    DefineContentClass(DefineContentClass),
+    DefineClassMember(DefineClassMember),
 }
 
 impl Payload {
@@ -303,6 +337,8 @@ impl Payload {
             Payload::CharacterPose(_) => ids::CHARACTER_POSE,
             Payload::SenseRaycast(_) => ids::CHARACTER_SENSE_RAYCAST,
             Payload::SenseSurroundings(_) => ids::CHARACTER_SENSE_SURROUNDINGS,
+            Payload::DefineContentClass(_) => ids::REGISTRY_DEFINE_CONTENT_CLASS,
+            Payload::DefineClassMember(_) => ids::REGISTRY_DEFINE_CLASS_MEMBER,
         }
     }
 }
@@ -410,6 +446,8 @@ mod tests {
             ids::ENTITY_SPAWN,
             ids::ENTITY_QUERY,
             ids::REGISTRY_DEFINE_ITEM,
+            ids::REGISTRY_DEFINE_CONTENT_CLASS,
+            ids::REGISTRY_DEFINE_CLASS_MEMBER,
             ids::EVENTS_SUBSCRIBE,
             ids::EVENTS_POLL,
             ids::CHARACTER_SPAWN,

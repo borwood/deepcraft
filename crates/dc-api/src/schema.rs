@@ -85,6 +85,48 @@ fn s_volume(doc: &str) -> Value {
     })
 }
 
+/// Schema for a `Vec<ParamSpec>` (serde externally tagged kinds). The JSON
+/// shape mirrors serde exactly; deep validation happens at define time.
+fn s_param_specs(doc: &str) -> Value {
+    json!({
+        "type": "array",
+        "description": format!(
+            "{doc}. Each item: {{name, required, kind}} where kind is \"Text\", \
+             \"MaterialName\", {{\"Number\":{{\"min\",\"max\"}}}}, \
+             {{\"Range\":{{\"min\",\"max\"}}}}, or {{\"Choice\":{{\"options\":[...]}}}}."
+        ),
+        "items": {
+            "type": "object",
+            "properties": {
+                "name": s_str("parameter name"),
+                "kind": {"description": "parameter kind (serde externally tagged)"},
+                "required": {"type": "boolean", "description": "must members supply it?"},
+            },
+            "required": ["name", "kind", "required"],
+        },
+    })
+}
+
+/// Schema for a `Vec<ParamEntry>`: `(name, value)` pairs over the closed
+/// value vocabulary.
+fn s_param_entries(doc: &str) -> Value {
+    json!({
+        "type": "array",
+        "description": format!(
+            "{doc}. Each item: {{name, value}} where value is \
+             {{\"Number\": f64}}, {{\"Range\": [lo, hi]}}, or {{\"Text\": string}}."
+        ),
+        "items": {
+            "type": "object",
+            "properties": {
+                "name": s_str("parameter name from the class contract"),
+                "value": {"description": "parameter value (serde externally tagged)"},
+            },
+            "required": ["name", "value"],
+        },
+    })
+}
+
 /// `props`: (name, schema, required).
 fn s_obj(doc: &str, props: &[(&str, Value, bool)]) -> Value {
     let mut properties = serde_json::Map::new();
@@ -225,6 +267,65 @@ pub fn registry() -> &'static [CommandSpec] {
                 )
             },
             decode_json: |v| decode(v, Payload::DefineItem),
+        },
+        CommandSpec {
+            id: ids::REGISTRY_DEFINE_CONTENT_CLASS,
+            kind: CommandKind::Command,
+            doc: "Declare a content class (a contract): its namespaced name \
+                  and the parameter schema members must satisfy. Member \
+                  defines are validated against it at define time.",
+            capability: "registry.define(namespace of name)",
+            payload_schema: || {
+                s_obj(
+                    "define_content_class payload",
+                    &[
+                        (
+                            "name",
+                            s_str("namespaced class name, e.g. dc:stratum/clastic-fine"),
+                            true,
+                        ),
+                        ("doc", s_str("human-readable description"), false),
+                        (
+                            "params",
+                            s_param_specs("the class contract: parameters members must supply"),
+                            true,
+                        ),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::DefineContentClass),
+        },
+        CommandSpec {
+            id: ids::REGISTRY_DEFINE_CLASS_MEMBER,
+            kind: CommandKind::Command,
+            doc: "Register a member into a content class. `params` must \
+                  satisfy the class contract (schema-validated at define \
+                  time). The grant must own the member name's namespace; the \
+                  class may live in another namespace.",
+            capability: "registry.define(namespace of name)",
+            payload_schema: || {
+                s_obj(
+                    "define_class_member payload",
+                    &[
+                        (
+                            "name",
+                            s_str("namespaced member name, e.g. dc:geo/mudstone"),
+                            true,
+                        ),
+                        (
+                            "class",
+                            s_str("class being implemented, e.g. dc:stratum/clastic-fine"),
+                            true,
+                        ),
+                        (
+                            "params",
+                            s_param_entries("member parameters, validated against the class contract"),
+                            true,
+                        ),
+                    ],
+                )
+            },
+            decode_json: |v| decode(v, Payload::DefineClassMember),
         },
         CommandSpec {
             id: ids::EVENTS_SUBSCRIBE,
@@ -515,6 +616,23 @@ mod tests {
             Payload::SenseSurroundings(payload::SenseSurroundings {
                 character: "scout".into(),
                 radius: 8,
+            }),
+            Payload::DefineContentClass(payload::DefineContentClass {
+                name: "demo:stratum/test".into(),
+                doc: "a test class".into(),
+                params: vec![crate::classes::ParamSpec {
+                    name: "abundance".into(),
+                    kind: crate::classes::ParamKind::Number { min: 0.0, max: 10.0 },
+                    required: true,
+                }],
+            }),
+            Payload::DefineClassMember(payload::DefineClassMember {
+                name: "demo:member/test".into(),
+                class: "demo:stratum/test".into(),
+                params: vec![crate::classes::ParamEntry {
+                    name: "abundance".into(),
+                    value: crate::classes::ParamValue::Number(1.0),
+                }],
             }),
         ];
         assert_eq!(

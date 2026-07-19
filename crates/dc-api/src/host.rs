@@ -21,6 +21,7 @@ use glam::DVec3;
 
 use crate::capability::requirement_for;
 use crate::character::{CharacterConfig, CharacterState, step_character, valid_character_name};
+use crate::classes::{ClassMemberDef, ContentClassDef, validate_class_contract, validate_params};
 use crate::envelope::{
     BlockChange, CommandEnvelope, CommandReceipt, CommandResult, ConsumerId, Effects, QueryReceipt,
     QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick,
@@ -106,6 +107,8 @@ enum Undo {
     RemoveSub(u64),
     RemoveCharacter(String),
     RestoreCharacter(Box<CharacterState>),
+    RemoveContentClass(String),
+    RemoveClassMember(String),
 }
 
 /// Max range of a character sense raycast, meters.
@@ -140,6 +143,10 @@ pub struct HostWorld {
     character_config: CharacterConfig,
     next_entity_id: u64,
     items: std::collections::BTreeMap<String, ItemDef>,
+    /// Content classes (contracts) and their members — the second registry
+    /// (BTreeMaps: iteration order is part of the deterministic surface).
+    content_classes: std::collections::BTreeMap<String, ContentClassDef>,
+    class_members: std::collections::BTreeMap<String, ClassMemberDef>,
     subs: std::collections::BTreeMap<u64, Subscription>,
     next_sub_id: u64,
     queue: Vec<QueuedCmd>,
@@ -160,6 +167,8 @@ impl HostWorld {
             character_config: CharacterConfig::default(),
             next_entity_id: 1,
             items: std::collections::BTreeMap::new(),
+            content_classes: std::collections::BTreeMap::new(),
+            class_members: std::collections::BTreeMap::new(),
             subs: std::collections::BTreeMap::new(),
             next_sub_id: 1,
             queue: Vec::new(),
@@ -194,6 +203,24 @@ impl HostWorld {
 
     pub fn items(&self) -> impl Iterator<Item = &ItemDef> {
         self.items.values()
+    }
+
+    pub fn content_class(&self, name: &str) -> Option<&ContentClassDef> {
+        self.content_classes.get(name)
+    }
+
+    /// All content classes, in name order.
+    pub fn content_classes(&self) -> impl Iterator<Item = &ContentClassDef> {
+        self.content_classes.values()
+    }
+
+    pub fn class_member(&self, name: &str) -> Option<&ClassMemberDef> {
+        self.class_members.get(name)
+    }
+
+    /// All class members, in name order.
+    pub fn class_members(&self) -> impl Iterator<Item = &ClassMemberDef> {
+        self.class_members.values()
     }
 
     pub fn entities(&self) -> &[EntityInfo] {
@@ -512,6 +539,12 @@ impl HostWorld {
                         Undo::RestoreCharacter(prev) => {
                             self.characters.insert(prev.name.clone(), *prev);
                         }
+                        Undo::RemoveContentClass(name) => {
+                            self.content_classes.remove(&name);
+                        }
+                        Undo::RemoveClassMember(name) => {
+                            self.class_members.remove(&name);
+                        }
                     }
                 }
                 let failed_id = failed.env.id.clone();
@@ -695,6 +728,53 @@ impl HostWorld {
                     cause: env.source.clone(),
                     tick: t,
                 });
+            }
+            Payload::DefineContentClass(p) => {
+                if self.content_classes.contains_key(&p.name) {
+                    return Err(RejectReason::AlreadyDefined {
+                        key: p.name.clone(),
+                    });
+                }
+                validate_class_contract(&p.params)
+                    .map_err(|reason| RejectReason::SchemaViolation { reason })?;
+                self.content_classes.insert(
+                    p.name.clone(),
+                    ContentClassDef {
+                        name: p.name.clone(),
+                        doc: p.doc.clone(),
+                        params: p.params.clone(),
+                        defined_tick: t,
+                        defined_by: env.source.clone(),
+                    },
+                );
+                journal.push(Undo::RemoveContentClass(p.name.clone()));
+                effects.classes_defined.push(p.name.clone());
+            }
+            Payload::DefineClassMember(p) => {
+                if self.class_members.contains_key(&p.name) {
+                    return Err(RejectReason::AlreadyDefined {
+                        key: p.name.clone(),
+                    });
+                }
+                let class = self.content_classes.get(&p.class).ok_or_else(|| {
+                    RejectReason::UnknownClass {
+                        class: p.class.clone(),
+                    }
+                })?;
+                validate_params(&class.params, &p.params)
+                    .map_err(|reason| RejectReason::SchemaViolation { reason })?;
+                self.class_members.insert(
+                    p.name.clone(),
+                    ClassMemberDef {
+                        name: p.name.clone(),
+                        class: p.class.clone(),
+                        params: p.params.clone(),
+                        defined_tick: t,
+                        defined_by: env.source.clone(),
+                    },
+                );
+                journal.push(Undo::RemoveClassMember(p.name.clone()));
+                effects.class_members_defined.push(p.name.clone());
             }
             Payload::EventsSubscribe(p) => {
                 let id = self.next_sub_id;
@@ -1029,6 +1109,8 @@ impl HostWorld {
             | Payload::Fill(_)
             | Payload::EntitySpawn(_)
             | Payload::DefineItem(_)
+            | Payload::DefineContentClass(_)
+            | Payload::DefineClassMember(_)
             | Payload::EventsSubscribe(_)
             | Payload::SpawnCharacter(_)
             | Payload::SetMoveIntent(_)

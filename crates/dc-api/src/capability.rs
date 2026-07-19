@@ -119,6 +119,16 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
             None => Requirement::WorldReadAnywhere,
         },
         Payload::DefineItem(p) => Requirement::RegistryDefine(item_namespace(p)?),
+        // Class defines are namespace-owned exactly like item defines. For a
+        // member the *member's* namespace is what the grant must own — the
+        // class may belong to someone else (that is what registering into
+        // `dc:stratum/...` from a plugin namespace means).
+        Payload::DefineContentClass(p) => {
+            Requirement::RegistryDefine(name_namespace(&p.name, "class")?)
+        }
+        Payload::DefineClassMember(p) => {
+            Requirement::RegistryDefine(name_namespace(&p.name, "class member")?)
+        }
         Payload::EventsSubscribe(_) => Requirement::EventsSubscribe,
         Payload::EventsPoll(_) => Requirement::EventsSubscribe,
         // Spawning a character is a dev-grant act (the character surface's
@@ -135,15 +145,17 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
     })
 }
 
+/// Parse the namespace out of a `namespace:path` name.
+pub fn name_namespace(name: &str, what: &str) -> Result<String, String> {
+    match name.split_once(':') {
+        Some((ns, path)) if !ns.is_empty() && !path.is_empty() => Ok(ns.to_string()),
+        _ => Err(format!("{what} name `{name}` is not of the form namespace:path")),
+    }
+}
+
 /// Parse the namespace out of a `namespace:path` item name.
 pub fn item_namespace(item: &DefineItem) -> Result<String, String> {
-    match item.name.split_once(':') {
-        Some((ns, path)) if !ns.is_empty() && !path.is_empty() => Ok(ns.to_string()),
-        _ => Err(format!(
-            "item name `{}` is not of the form namespace:path",
-            item.name
-        )),
-    }
+    name_namespace(&item.name, "item")
 }
 
 #[derive(Error, Debug, PartialEq, Eq)]
