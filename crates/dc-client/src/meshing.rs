@@ -12,8 +12,15 @@
 //!
 //! Every emitted face carries, per vertex:
 //!
-//! - a **UV** in `[0, 1]²` (one texture tile per voxel face — the "elevated
-//!   pixel game" look at 16×16 texels / 0.9 m voxel);
+//! - a **world-anchored UV** in tile units (one texture tile per voxel, but the
+//!   tile *origin* is the world voxel coordinate rather than a per-face `[0, 1]`
+//!   reset — so the pattern is continuous across adjacent same-material voxels
+//!   and a greedy quad spanning K voxels tiles K times). The old per-face
+//!   `[0, 1]` window made every block present the *identical* tile image; with a
+//!   directional placeholder texture that read as a legible per-block grid
+//!   (journal/0020). The shader `fract`s the UV to sample; its integer part also
+//!   gives the fullbright variant a **world-anchored 4×4 cell grid** for the
+//!   mixture speckle with no extra vertex attribute;
 //! - up to [`SPLAT_N`] **material atlas layers** + normalized **splat weights**
 //!   — the LabPBR terrain material (terrain_material.rs) blends the layers with
 //!   height/AO-driven contrast (heightlerp) so grains poke through instead of
@@ -158,9 +165,30 @@ const FACES: [([i64; 3], [[f32; 3]; 4]); 6] = [
     ),
 ];
 
-/// The four corners' UVs, matching the corner winding above: c0 → (0,0),
-/// c1 → (0,1), c2 → (1,1), c3 → (1,0). One texture tile per voxel face.
-const FACE_UVS: [[f32; 2]; 4] = [[0.0, 0.0], [0.0, 1.0], [1.0, 1.0], [1.0, 0.0]];
+/// World-anchored UV for one face corner (in tile units, one tile per voxel).
+///
+/// The tile origin is the world voxel coordinate, not a per-face `[0, 1]` reset:
+/// the two in-plane world axes become U and V, so the pattern flows continuously
+/// across adjacent same-material voxels (and a K-voxel greedy quad would tile
+/// K times). At a corner the UV is integer-valued; the shader `fract`s it to
+/// sample the tile, and `floor(uv * 4)` gives the fullbright speckle its
+/// world-anchored 4×4 cell grid. `cy` is the corner's *geometric* height (the
+/// partial-height fraction for a loose voxel's top), so a squished voxel keeps a
+/// consistent world-anchored V.
+#[inline]
+fn corner_world_uv(normal: &[i64; 3], c: &[f32; 3], wx: i64, wy: i64, wz: i64) -> [f32; 2] {
+    let (wx, wy, wz) = (wx as f32, wy as f32, wz as f32);
+    if normal[0] != 0 {
+        // ±X face: U = world Z, V = world Y.
+        [wz + c[2], wy + c[1]]
+    } else if normal[1] != 0 {
+        // ±Y face: U = world X, V = world Z.
+        [wx + c[0], wz + c[2]]
+    } else {
+        // ±Z face: U = world X, V = world Y.
+        [wx + c[0], wy + c[1]]
+    }
+}
 
 /// Albedo per block and face. Grass gets a green top and earthy sides so the
 /// surface reads at a glance; the geology block colors match the material
@@ -432,9 +460,8 @@ pub fn mesh_chunk(
                     let color = contents_color.unwrap_or_else(|| face_color(block, normal[1]));
                     emit_face(
                         &mut mesh,
-                        x,
-                        y,
-                        z,
+                        (x, y, z),
+                        (wx, wy, wz),
                         normal,
                         corners,
                         voxel_size_m,
@@ -450,27 +477,14 @@ pub fn mesh_chunk(
     mesh
 }
 
-/// Remap a unit-cube corner to chunk-local meters, collapsing the voxel's top
-/// (`y == 1`) down to its render height fraction (partial-height boxes).
-#[inline]
-fn corner_m(x: usize, y: usize, z: usize, c: &[f32; 3], size: f32, frac: f32) -> [f32; 3] {
-    let cy = if c[1] >= 1.0 { frac } else { c[1] };
-    [
-        (x as f32 + c[0]) * size,
-        (y as f32 + cy) * size,
-        (z as f32 + c[2]) * size,
-    ]
-}
-
 #[expect(
     clippy::too_many_arguments,
     reason = "internal helper, flat is clearer"
 )]
 fn emit_face(
     mesh: &mut MeshData,
-    x: usize,
-    y: usize,
-    z: usize,
+    local: (usize, usize, usize),
+    world: (i64, i64, i64),
     normal: &[i64; 3],
     corners: &[[f32; 3]; 4],
     voxel_size_m: f32,
@@ -479,14 +493,26 @@ fn emit_face(
     layers: [u32; SPLAT_N],
     weights: [f32; SPLAT_N],
 ) {
+    let (x, y, z) = local;
+    let (wx, wy, wz) = world;
     let base = mesh.positions.len() as u32;
     let n = [normal[0] as f32, normal[1] as f32, normal[2] as f32];
-    for (corner, uv) in corners.iter().zip(FACE_UVS.iter()) {
-        mesh.positions
-            .push(corner_m(x, y, z, corner, voxel_size_m, frac));
+    for corner in corners.iter() {
+        // Collapse the voxel top to its render height (partial-height boxes) so
+        // geometry and the world-anchored V stay consistent.
+        let geo = [
+            corner[0],
+            if corner[1] >= 1.0 { frac } else { corner[1] },
+            corner[2],
+        ];
+        mesh.positions.push([
+            (x as f32 + geo[0]) * voxel_size_m,
+            (y as f32 + geo[1]) * voxel_size_m,
+            (z as f32 + geo[2]) * voxel_size_m,
+        ]);
         mesh.normals.push(n);
         mesh.colors.push(color);
-        mesh.uvs.push(*uv);
+        mesh.uvs.push(corner_world_uv(normal, &geo, wx, wy, wz));
         mesh.mat_layers.push(layers);
         mesh.mat_weights.push(weights);
     }
@@ -526,8 +552,14 @@ mod tests {
         for w in &mesh.mat_weights {
             assert_eq!(*w, [1.0, 0.0, 0.0, 0.0]);
         }
-        assert!(mesh.uvs.contains(&[0.0, 0.0]));
-        assert!(mesh.uvs.contains(&[1.0, 1.0]));
+        // UVs are world-anchored (tile origin = world voxel coord), so the
+        // voxel at world (5,5,5) tiles from 5..6, not a per-face 0..1 window.
+        assert!(mesh.uvs.contains(&[5.0, 5.0]));
+        assert!(mesh.uvs.contains(&[6.0, 6.0]));
+        assert!(
+            !mesh.uvs.contains(&[0.0, 0.0]),
+            "UVs are not per-face reset"
+        );
         for p in &mesh.positions {
             for v in p {
                 assert!((2.5..=3.0).contains(v), "vertex {p:?} out of range");
@@ -578,6 +610,27 @@ mod tests {
         let neighbor = |x: i64, y: i64, z: i64| (x, y, z) == (-33, 0, 0);
         let mesh = mesh_chunk(&chunk, pos, 1.0, &neighbor, None);
         assert_eq!(mesh.triangle_count(), 10);
+    }
+
+    #[test]
+    fn uvs_are_world_anchored_and_continuous_across_voxels() {
+        // Two stone voxels side by side along X. Their +Z faces should carry
+        // UVs whose U spans [wx, wx+1] per voxel — so the right edge of the left
+        // voxel (U = 6) meets the left edge of the right voxel (U = 6): the tile
+        // pattern is continuous across the block boundary, not reset per face.
+        let mut chunk = Chunk::new();
+        chunk.set(5, 5, 5, Block::Stone);
+        chunk.set(6, 5, 5, Block::Stone);
+        let mesh = mesh_chunk(&chunk, ChunkPos::new(0, 0, 0), 1.0, &no_neighbors, None);
+        // Every UV is an integer at a corner (tile origin = world voxel coord).
+        for uv in &mesh.uvs {
+            assert_eq!(uv[0], uv[0].round(), "U not integer-anchored: {uv:?}");
+            assert_eq!(uv[1], uv[1].round(), "V not integer-anchored: {uv:?}");
+        }
+        // The shared boundary U = 6 appears (left voxel's max U == right voxel's
+        // min U): continuity, not a per-face 0..1 reset.
+        let us: std::collections::HashSet<i64> = mesh.uvs.iter().map(|uv| uv[0] as i64).collect();
+        assert!(us.contains(&5) && us.contains(&6) && us.contains(&7));
     }
 
     #[test]

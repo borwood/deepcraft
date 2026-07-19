@@ -29,11 +29,18 @@ use bevy::render::render_resource::{
 use bevy::shader::{Shader, ShaderRef};
 
 use crate::meshing::{ATLAS_LAYER_COUNT, BLOCK_ONLY_SLUGS};
-use dc_core::MaterialId;
+use dc_core::{MATERIAL_COUNT, MaterialId};
 
 /// Embedded surface shader handle (in-tree, compiled into the binary — no
 /// runtime asset-dir dependency, same robustness as the shader-pack loader).
 const TERRAIN_SHADER: Handle<Shader> = uuid_handle!("7b9c1e2a-3d4f-4a5b-8c6d-0e1f2a3b4c5d");
+/// Embedded fullbright surface shader handle (the unlit splat variant).
+const FULLBRIGHT_SHADER: Handle<Shader> = uuid_handle!("2f8a6b3c-1d0e-4f9a-8b7c-5d4e3a2b1c0f");
+
+/// Length of the fullbright albedo palette: one flat color per atlas layer.
+/// Must equal [`ATLAS_LAYER_COUNT`] and the `array<..>` size in the fullbright
+/// shader (kept in lockstep — `palette_len_matches_atlas` guards it).
+pub const PALETTE_LEN: usize = MATERIAL_COUNT + BLOCK_ONLY_SLUGS.len();
 
 /// Per-vertex material layer indices (up to 4), `@location(3)` in the shader.
 pub const ATTRIBUTE_MAT_LAYERS: MeshVertexAttribute =
@@ -120,7 +127,87 @@ impl Material for TerrainMaterial {
     }
 }
 
-/// Installs the embedded shader and the material renderer.
+/// Flat per-layer albedo palette for the fullbright variant: `albedo[layer]` is
+/// the registry albedo of the material occupying that atlas layer (block-only
+/// layers carry the block's side color). The fullbright shader reads this — NOT
+/// the LabPBR basecolor textures — because "albedo-only is better for AI
+/// viewers" (visuals.md § PBR-1 walk-14 ratifications).
+#[derive(Clone, Copy, ShaderType)]
+pub struct TerrainPalette {
+    pub albedo: [Vec4; PALETTE_LEN],
+}
+
+/// The **fullbright** terrain material (ROADMAP PBR-1 walk-14 ratification): an
+/// unlit splat variant for the walk protocol's screenshot auditability. Uniform
+/// and block faces render one flat albedo (the mesh's vertex color); *mixed*
+/// faces reproduce the old world-anchored 4×4-cell mixture speckle shader-side
+/// (journal/0010), computed from the same splat attributes + a world-anchored
+/// hash — zero mosaic geometry, zero lighting. It shares the chunk mesh with the
+/// lit [`TerrainMaterial`]; the streamer picks one by the `--fullbright` flag.
+#[derive(Asset, TypePath, AsBindGroup, Clone)]
+pub struct FullbrightTerrainMaterial {
+    #[uniform(0)]
+    pub palette: TerrainPalette,
+}
+
+impl Material for FullbrightTerrainMaterial {
+    fn vertex_shader() -> ShaderRef {
+        FULLBRIGHT_SHADER.into()
+    }
+
+    fn fragment_shader() -> ShaderRef {
+        FULLBRIGHT_SHADER.into()
+    }
+
+    fn specialize(
+        _pipeline: &MaterialPipeline,
+        descriptor: &mut RenderPipelineDescriptor,
+        layout: &MeshVertexBufferLayoutRef,
+        _key: MaterialPipelineKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        let vertex_layout = layout.0.get_layout(&[
+            Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
+            Mesh::ATTRIBUTE_COLOR.at_shader_location(1),
+            Mesh::ATTRIBUTE_UV_0.at_shader_location(2),
+            ATTRIBUTE_MAT_LAYERS.at_shader_location(3),
+            ATTRIBUTE_MAT_WEIGHTS.at_shader_location(4),
+        ])?;
+        descriptor.vertex.buffers = vec![vertex_layout];
+        Ok(())
+    }
+}
+
+/// The flat side color of a block-only pack (grass/dirt/stone/wood), matching
+/// the mesher's `face_color` side tones — the palette entry for a block-only
+/// atlas layer. (Block-only layers never appear on a *mixed* face, so these
+/// entries are only a defensive fill; the speckle only ever reads material
+/// layers.)
+fn block_only_albedo(slug: &str) -> Vec4 {
+    match slug {
+        "grass" => Vec4::new(0.38, 0.45, 0.22, 1.0),
+        "dirt" => Vec4::new(0.42, 0.30, 0.19, 1.0),
+        "stone" => Vec4::new(0.52, 0.52, 0.54, 1.0),
+        "wood" => Vec4::new(0.44, 0.33, 0.17, 1.0),
+        _ => Vec4::new(0.5, 0.5, 0.5, 1.0),
+    }
+}
+
+/// Build the fullbright material's flat-albedo palette from the registry.
+pub fn build_fullbright_material() -> FullbrightTerrainMaterial {
+    let mut albedo = [Vec4::new(0.5, 0.5, 0.5, 1.0); PALETTE_LEN];
+    for m in MaterialId::all() {
+        let a = m.props().albedo;
+        albedo[m.raw() as usize] = Vec4::new(a[0], a[1], a[2], 1.0);
+    }
+    for (i, slug) in BLOCK_ONLY_SLUGS.iter().enumerate() {
+        albedo[MATERIAL_COUNT + i] = block_only_albedo(slug);
+    }
+    FullbrightTerrainMaterial {
+        palette: TerrainPalette { albedo },
+    }
+}
+
+/// Installs the embedded shaders and both material renderers (lit + fullbright).
 pub struct TerrainMaterialPlugin;
 
 impl Plugin for TerrainMaterialPlugin {
@@ -131,7 +218,14 @@ impl Plugin for TerrainMaterialPlugin {
             "shaders/terrain.wgsl",
             Shader::from_wgsl
         );
+        load_internal_asset!(
+            app,
+            FULLBRIGHT_SHADER,
+            "shaders/terrain_fullbright.wgsl",
+            Shader::from_wgsl
+        );
         app.add_plugins(MaterialPlugin::<TerrainMaterial>::default());
+        app.add_plugins(MaterialPlugin::<FullbrightTerrainMaterial>::default());
     }
 }
 
@@ -278,6 +372,25 @@ mod tests {
         // Block-only packs follow.
         for (i, s) in BLOCK_ONLY_SLUGS.iter().enumerate() {
             assert_eq!(&slugs[MaterialId::all().count() + i], s);
+        }
+    }
+
+    #[test]
+    fn palette_len_matches_atlas() {
+        // The fullbright palette has one flat color per atlas layer, and the
+        // shader hardcodes this size in its `array<vec4<f32>, N>` — keep them
+        // in lockstep with this guard.
+        assert_eq!(PALETTE_LEN as u32, ATLAS_LAYER_COUNT);
+        assert_eq!(PALETTE_LEN, 26);
+    }
+
+    #[test]
+    fn fullbright_palette_is_registry_albedo() {
+        let m = build_fullbright_material();
+        for mat in MaterialId::all() {
+            let a = mat.props().albedo;
+            let p = m.palette.albedo[mat.raw() as usize];
+            assert_eq!([p.x, p.y, p.z], a, "layer {} albedo", mat.raw());
         }
     }
 

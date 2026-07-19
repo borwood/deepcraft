@@ -29,7 +29,9 @@ use crate::physdemo;
 use crate::player::{self, Player};
 use crate::poststage::{PostStage, PostStagePlugin};
 use crate::streaming;
-use crate::terrain_material::{self, TerrainMaterial, TerrainMaterialPlugin};
+use crate::terrain_material::{
+    self, FullbrightTerrainMaterial, TerrainMaterial, TerrainMaterialPlugin,
+};
 // The legacy S1 `TerrainGen` is no longer an ambient client resource: gameplay
 // systems answer world questions from the active `Authority` (the S1-fallback
 // sweep, journal/0017). It survives inside the authority module (the 3/4-key
@@ -95,10 +97,13 @@ pub struct ChunkMap {
 #[derive(Component)]
 pub struct ChunkEntity(pub ChunkPos);
 
-/// Shared **unlit** vertex-colored material — the `--fullbright` diagnostic
-/// path for chunk meshes (pure vertex color, no lighting).
+/// Shared **unlit** fullbright terrain material — the `--fullbright` diagnostic
+/// path for chunk meshes (flat registry albedo, no lighting; mixed faces show
+/// the world-anchored constituent speckle shader-side — ROADMAP PBR-1 walk-14,
+/// journal/0020). Replaced the plain vertex-colored `StandardMaterial`, which
+/// lost the mixture speckle when the mosaic collapsed to single quads.
 #[derive(Resource)]
-pub struct ChunkMaterial(pub Handle<StandardMaterial>);
+pub struct FullbrightMaterialHandle(pub Handle<FullbrightTerrainMaterial>);
 
 /// Shared **lit** LabPBR terrain material (ROADMAP PBR-1) — the default chunk
 /// material when not in fullbright. One instance for near-field, far field, and
@@ -236,8 +241,8 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
 
 fn setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
+    mut fullbright_materials: ResMut<Assets<FullbrightTerrainMaterial>>,
     mut images: ResMut<Assets<Image>>,
 ) {
     // Simple diffuse setup: one sun, flat ambient on the camera. Computed first
@@ -245,13 +250,12 @@ fn setup(
     let sun_rotation = Quat::from_euler(EulerRot::YXZ, 0.6, -1.0, 0.0);
     let sun_dir = sun_rotation * Vec3::Z; // a light points along -Z → toward sun is +Z
 
-    // Fullbright chunk material: unlit, pure vertex color (walk diagnostic).
-    commands.insert_resource(ChunkMaterial(materials.add(StandardMaterial {
-        base_color: Color::WHITE, // multiplied by vertex colors
-        perceptual_roughness: 0.95,
-        unlit: true,
-        ..default()
-    })));
+    // Fullbright chunk material: unlit flat registry albedo, with the
+    // world-anchored mixture speckle on mixed faces (the walk diagnostic).
+    let fullbright = terrain_material::build_fullbright_material();
+    commands.insert_resource(FullbrightMaterialHandle(
+        fullbright_materials.add(fullbright),
+    ));
     // Lit LabPBR terrain material (the default): assembles the placeholder
     // atlases and lights them against the scene sun.
     let terrain = terrain_material::build_terrain_material(&mut images, sun_dir);

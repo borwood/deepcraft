@@ -42,8 +42,8 @@ use tokio::sync::oneshot;
 
 use crate::PLAYER_HEIGHT_M;
 use crate::app::{
-    ChunkMap, ChunkMaterial, CurrentScale, FloatingOrigin, Fullbright, TerrainMaterialHandle,
-    to_render,
+    ChunkMap, CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle,
+    TerrainMaterialHandle, to_render,
 };
 use crate::mcp::{BridgeRequest, McpBridge};
 use crate::meshing::mesh_chunk;
@@ -903,7 +903,7 @@ pub fn tick_authority(
 pub fn remesh_dirty(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    material: Res<ChunkMaterial>,
+    material: Res<FullbrightMaterialHandle>,
     terrain_mat: Res<TerrainMaterialHandle>,
     fullbright: Res<Fullbright>,
     mut authority: ResMut<Authority>,
