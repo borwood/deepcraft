@@ -8,8 +8,8 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 ## Shipped
 
 - 2026-07-19 — **The far-field horizon — the worldgen world gets a far field**
-  (journal/0022, background agent; **DRAFT — awaiting integration**, gates green
-  on the worktree branch, smoke-run verified live). Under the worldgen authority
+  (journal/0022, background agent; merged `--no-ff`, gates re-run green on
+  merged main, walk 17 photographs below). Under the worldgen authority
   the far LOD rings drew the legacy S1 terrain (~8 m) while the real world sat
   ~1000 m up: a phantom old world below and — worse — **no horizon at all**
   beyond the load radius (journal/0018 § the empty horizon). Now the far field is
