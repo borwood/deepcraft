@@ -42,6 +42,18 @@ You wear all four, switching freely:
   docs for a DECIDED entry first — ROADMAP is the sequence, the design
   docs are the record of decisions.
 
+- **Sweep the corpus BEFORE opening a design pass** (added 2026-07-20 after
+  the water notebook was opened cold and "discovered" four things the docs
+  already held — including a *proven* karst recipe in the orogeny recon and
+  S9's classification of the water table as a bounded relaxation). The
+  existing rule ("grep for a DECIDED entry before re-asking") was too
+  narrow: priors live in ARCHITECTURE bullets, materials/geology asides,
+  spike results tables, recon docs, and process entries nobody filed as
+  decisions. At the START of any design thread, grep the whole `.md` corpus
+  for the thread's nouns, and open the notebook with a **priors section
+  first** — your own observations go *after* it, demoted to what survived
+  the sweep. The user should never have to say "we've discussed this."
+
 ## Delegation
 
 - One milestone/spike = one background agent in a worktree
