@@ -7,6 +7,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Zonal circulation profile** (journal/0037, session-4
+  background agent; gates green on merged main). The `wind_dx` sign bit is
+  dead: C¹-continuous `zonal_wind` (sin² lobes, trades 1.0 / westerlies
+  0.9 / polar 0.45, ~6°-wide calm belts at 30°/60°), Gaussian `subsidence`
+  (0.75 @ 30° — the Hadley desert belt on FLAT terrain, proven by test;
+  ITCZ kept wet; 60° calm-but-wet, the mechanism unity), latitude-shaped
+  convective floor. Eolian deflation now scales by |wind| — dune fields
+  fade in calm belts. Measured: mean |Δprecip| 0.082; 28–38° band −0.18
+  (the new desert), mid-latitudes ~unchanged. UNFLAGGED by ratified
+  decision — every new world's climate shifts; the walk photographs the
+  30° desert (no mountain upwind) and the former 30° seam, lit pass. Two
+  bonus finds: a latent half-cell bug in the coal test's voxel↔cell
+  inverse (fixed); relocated settlements can over-constrain the S2
+  pressure collapse — `history.rs` now skips (reject-don't-crash, the
+  engine's own policy) instead of panicking, integrator-reviewed and
+  approved; the skip is currently SILENT — a loud warning is owed per the
+  degradation doctrine (loose end).
+
 - 2026-07-20 — **Tectonic-history SPIKE — the architecture works**
   (S12-results, journal/0036, session-4 background agent; gates green on
   merged main with corrections-#21 eviction prophylaxis). `tectonic_history`
@@ -737,6 +755,8 @@ see the question you are asking.
   the 50 km artifact, byte-identity off, relief distributions for the
   re-sequenced amplitude call, drainage-export fidelity). **Dispatch after
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
+- *(**Zonal circulation profile: SHIPPED** 2026-07-20, journal/0037 — see
+  Shipped.)*
 - **Erosion-supply calibration** (from the S12 spike's new finding,
   2026-07-20): exhumation comes out metre-scale at shipped erosion rates,
   gating exhumed-core/foreland legibility independent of amplitude — the

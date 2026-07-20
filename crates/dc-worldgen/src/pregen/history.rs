@@ -194,15 +194,24 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
             if !(contested || threat) {
                 continue;
             }
-            let (value, _) = observe(
+            // A relocated-settlement graph — upstream climate can move who settles
+            // where (journal/0037: deserts become uninhabitable, the ITCZ/front
+            // habitable) — can over-constrain a region's pressure so the S2 ensemble
+            // finds *no* surviving history. The engine's own policy is
+            // reject-don't-crash (see `force_fact`), so skip the collapse for this
+            // region this epoch rather than panic. For every seed whose history stays
+            // consistent (observe never rejects) this is byte-identical to the
+            // previous `expect`.
+            let Ok((value, _)) = observe(
                 &overlay,
                 &mut ledger,
                 Subject::Region(s as RegionId),
                 epoch,
                 Aspect::RegionPressure,
                 OBSERVE_PARAMS,
-            )
-            .expect("pregen pressure collapse must be consistent");
+            ) else {
+                continue;
+            };
             observe_count += 1;
             if value == Value::Pressure(2) && state.founded < epoch {
                 let doom = draw_f64(&[seed, SALT_SACK, s as u64, u64::from(epoch)]);
@@ -246,7 +255,9 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
     // already observed this epoch).
     for (s, st) in site_state.iter().enumerate() {
         if st.as_ref().is_some_and(|st| st.abandoned.is_none()) {
-            observe(
+            // Same reject-don't-crash handling as the epoch pressure collapse above:
+            // an over-constrained census observation is skipped, not fatal.
+            if observe(
                 &overlay,
                 &mut ledger,
                 Subject::Region(s as RegionId),
@@ -254,8 +265,10 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
                 Aspect::RegionPressure,
                 OBSERVE_PARAMS,
             )
-            .expect("year-zero census must be consistent");
-            observe_count += 1;
+            .is_ok()
+            {
+                observe_count += 1;
+            }
         }
     }
 

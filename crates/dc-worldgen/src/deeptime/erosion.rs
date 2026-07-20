@@ -1321,13 +1321,21 @@ impl Erosion {
 
     /// **Wind deflation and downwind loess/dune deposition** (the eolian agent,
     /// [`Agent::Eolian`], journal/0034). A 1D march along the **prevailing-wind**
-    /// direction the climate already uses ([`climate::wind_dx`] — never a second
-    /// wind): dry, unvegetated, subaerial cells hand loose cover to an airborne
-    /// load; vegetated or humid downwind cells trap it. In the arid source zone
-    /// the trapped sand records as a **dune field** ([`Eolian::Dune`], coarse); on
-    /// the damp margin the fine silt records as a **loess** sheet
+    /// direction the climate already uses ([`climate::zonal_wind`] — never a
+    /// second wind): dry, unvegetated, subaerial cells hand loose cover to an
+    /// airborne load; vegetated or humid downwind cells trap it. In the arid
+    /// source zone the trapped sand records as a **dune field** ([`Eolian::Dune`],
+    /// coarse); on the damp margin the fine silt records as a **loess** sheet
     /// ([`Eolian::Loess`], fine). At 460 m the unit is the *region*, not the
     /// individual dune (earth-processes.md § 4).
+    ///
+    /// **Smooth zonal profile** (journal/0037): the march direction is the sign
+    /// of `zonal_wind`, and the deflation rate is scaled by its **magnitude**
+    /// `|zonal_wind| ∈ [0, 1]`. So in a calm belt (the horse latitudes at 30°,
+    /// the polar front at 60°) the wind neither picks up nor carries — dune fields
+    /// fade to nothing there rather than reversing direction at full strength
+    /// across a single grid row (the analytic-boundary "scream" the old three-way
+    /// `wind_dx` bit produced).
     ///
     /// Wind only **redistributes** loose `H` (it never touches bedrock, and never
     /// adds external mass), so the mass ledger `Δ(ΣR+ΣH) == uplift + biotic` is
@@ -1351,11 +1359,16 @@ impl Erosion {
         let (w, thr, sea) = (self.w, cfg.eolian_arid_precip, self.sea_level);
         let (defl, dep_frac) = (cfg.eolian_deflation, cfg.eolian_deposit_frac);
         for gy in 0..w {
-            let dx = climate::wind_dx(grid.lat_deg(gy));
+            // Direction and strength both come from the shared smooth profile: the
+            // sign steps the row, the magnitude (0..1) scales deflation so calm
+            // belts do no eolian work (journal/0037).
+            let wind = climate::zonal_wind(grid.lat_deg(gy));
+            let dir = if wind > 0.0 { 1 } else { -1 };
+            let wind_mag = wind.abs();
             let mut load = 0.0f64;
             let mut last_land: Option<usize> = None;
             for s in 0..w {
-                let gx = if dx > 0 { s } else { w - 1 - s };
+                let gx = if dir > 0 { s } else { w - 1 - s };
                 let i = gy * w + gx;
                 let surf = grid.r[i] + grid.h[i];
                 if surf <= sea {
@@ -1390,7 +1403,8 @@ impl Erosion {
                 // from fp round-off, and `clamp(0.0, neg)` would panic.
                 let l = lithology::exposed_litho(grid.strata.get(i).and_then(|s| s.units.last()));
                 let avail = grid.h[i].max(0.0);
-                let pickup = (defl * sus_tab[l.index()] * arid * (1.0 - veg)).clamp(0.0, avail);
+                let pickup =
+                    (defl * sus_tab[l.index()] * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
                 if pickup > 0.0 {
                     grid.h[i] -= pickup;
                     load += pickup;
