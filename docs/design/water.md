@@ -73,6 +73,54 @@ rock formation. This *replaces* today's caves, which are S1 noise carving
 
 ---
 
+### User notebook, 2026-07-20 (second pass — fluid as a material state)
+
+> our water can fill loose partials and structure pores - fluid
+> (generalized) can do so and can *settle* (prior discussion on settling
+> heavies in loose mixes: fluid obeys different rules than mere weight).
+> settling: attempting to leave one block and occupy spaces below.
+> drippin from ceiling, or absorbing into the next porous layer.
+> generated world would have such things - groundwater etc - and in the
+> deepsim time, one imagines water moving through porous limestone eating
+> it away and depositing it elsewhere: also worth considering if we could
+> ever model capillary action - a water partial moving along the *ceiling*
+> or *side face* before stochastically dropping to the floor. more
+> complication - would imply a whole other state for partial fluids, but
+> flashy.
+>
+> features: galciars, lakes, lagoons, oceans, inland seas, waterfalls, etc
+> etc. literally whatever you encounter on earth.
+
+Unpacked:
+
+- **Fluid is a generalized material state, not a water special case.**
+  It fills **loose partials** (the empty eighths of a partially-filled
+  loose voxel) *and* **structure pores** — both already in materials.md.
+- **Settling is the fluid's own rule**, and explicitly **not** the solids'
+  rule. The existing solid mechanism is `settle_energy = sqrt(grain_size ×
+  specific_gravity)` (journal/0007 — the placer falls out of it). The user
+  names that as the prior discussion and says **fluid obeys different
+  rules than mere weight**.
+- **Settling defined**: *attempting to leave one block and occupy spaces
+  below*. Two named expressions of the same rule — **dripping from a
+  ceiling**, and **absorbing into the next porous layer**.
+- **Deep-sim consequence, stated**: water moving through porous limestone
+  **eating it away and depositing it elsewhere**. That is dissolution +
+  re-precipitation as ONE transport process — i.e. the karst conduit and
+  the speleothem are the same mechanism read at two ends. Pairs exactly
+  with the orogeny-proven recipe below (solubility read from the recorded
+  volume).
+- **Capillary action — speculative, flagged by the user as "flashy"**: a
+  water partial travelling along a **ceiling** or **side face** before
+  **stochastically dropping** to the floor. The user notes the cost
+  honestly: it would imply **a whole other state for partial fluids**
+  (adhesion/attachment, not just occupancy). Filed as wanted-if-affordable,
+  not scoped.
+- **Feature target: "literally whatever you encounter on earth"** —
+  glaciers, lakes, lagoons, oceans, inland seas, waterfalls, and the rest.
+  This is a completeness statement about the default pack (see ideas.md
+  § content packs and the default world's scope) more than a feature list.
+
 ## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
 **Read this section before proposing anything.** The user flagged a

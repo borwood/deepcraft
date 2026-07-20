@@ -312,3 +312,35 @@ capping simulation depth:
   seed-versioning contract (the filed "seed-stable worlds across releases"
   question becomes load-bearing here), and how player edits diverge from a
   canonical shipped world.
+
+## Content packs and the default world's scope (user, 2026-07-20)
+
+Stated while listing the water features the world should have ("literally
+whatever you encounter on earth"). Recorded with the user's own hedge
+intact — "probably" is theirs, so this is a strong direction, not a
+closed decision.
+
+- **The default pack is approximately EARTH**, and its history **ends
+  before the age of mechanised industry** — the user puts the **tech
+  cutoff around medieval**. So the default world is a real-Earth-like
+  world simulated up to a pre-industrial horizon.
+- **The fantasy pack is probably a separate addon** — and the user is
+  explicit about what it is for: *"that's where we get our actual dwarf
+  fortress, and it's what i actually want to play."* It would carry
+  **fantasy materials and items** of its own.
+- Architecturally this is already the shape of the thing: ARCHITECTURE.md
+  holds that "vanilla content is just the first content pack going through
+  the same door", and content packs are registry command batches
+  (journal/0007). So *Earth-default + fantasy-addon* is a content
+  packaging decision, not an engine one — the same door serves both.
+- Consequences worth noticing early: the **completeness bar for the
+  default pack is Earth itself** (every water feature, every rock, every
+  climate), which is a much stronger content target than "enough for a
+  game"; and the **fantasy pack's blast radius** is the same open question
+  ecology.md § 5 fork 2 asks about organism packs — a pack that adds
+  materials or organisms can change terrain and history, not just
+  contents.
+- Open: whether the pre-industrial cutoff is a *simulation* boundary (the
+  history sim stops advancing tech) or a *content* boundary (no
+  industrial-era items defined), and what that means for player tech
+  progression inside a world.
