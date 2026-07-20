@@ -1708,3 +1708,16 @@ before any code.
   interesting is empty. S9's C-refinement (bounded regional refinement,
   halo theorem, `deeptime/refine.rs`) was designed for exactly this and
   sits unbuilt; it is the ratified extension point, not a bandaid.
+
+- **The next arc after planet gen: back to block primitives + the artful
+  procedural dressing** (user, 2026-07-20, stated as anticipation — filed
+  so the sequence is on the record). "Jittering structural partials,
+  deposits of loose partial mixes from grinding and hydrology below
+  surface, stepped partials for loose material landscapes (the topsoils,
+  sand dunes, etc.)." This is the collapse-tier rendezvous of four filed
+  threads: the dormant 3c-2 partial-height loose rendering (content/sim
+  half missing), method rule 5 (unsimulated remainder → procedural
+  tricks), the monolith problem (thick units need partings/defects), and
+  the new eolian dune-FIELD regions (journal/0034) whose individual dunes
+  are exactly the stepped-partial landscape the user names. Also where the
+  sub-460 m process band's outputs get their look.
