@@ -7,6 +7,31 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Zonal circulation profile** (journal/0037, background agent;
+  gates green — fmt/clippy/test all `--release`). Replaced the three-way
+  `wind_dx` sign bit with a smooth `zonal_wind(lat)` (squared-sine lobes per
+  Hadley/Ferrel/polar cell, C¹-continuous through ~zero at the 30° and 60° calm
+  belts) plus `subsidence(lat)` (Gaussian descending limbs peaking at 30° and the
+  pole). One object kills two defects: the hard direction flip that printed a
+  grid-straight climate/dune seam (defect a), and the missing subtropical desert
+  belt — 30° now reads arid on *flat* terrain from subsidence alone (defect b),
+  while the equator stays wet (c) and rain shadow still holds (d). Shared
+  `rainout` physics between the pregen and deep-time marches; the eolian agent
+  reads `|zonal_wind|` as deflation strength through the same climate seam, so
+  dune fields fade into calm belts instead of reversing. The background floor is
+  latitude-shaped (equatorial ITCZ + ~60° storm-track bumps, low across the
+  semi-arid mid-latitude interior) so it fixes bone-dry flats without inflating
+  interior river discharge. **Upstream of biotic + erodibility + eolian, so it
+  changes precip for every new world (ratified directly, no flip-flag): mean
+  |Δprecip| ≈ 0.082 on a seeded Medium world — dominated by the 30° desert (Δ
+  ≈ −0.18), mid-latitudes barely move (Δ ≈ −0.01).** Consumer touches: the organic
+  coal-seam test's fixed S10 voxel no longer holds the thickest seam (still a 28 m
+  diggable seam elsewhere) so it now tracks the seam by scanning; s7_pregen's
+  rain-shadow uses the new `wind_dir`. **NEEDS RATIFICATION** on world appearance —
+  a walk should photograph the 30° desert (no mountain) and the now-gradient band
+  boundaries; the poleward-flat wettening magnitude rides as built pending that
+  look.
+
 - 2026-07-20 — **Registry `commands!` macro + `completions` hook**
   (journal/0033, session-4 background agent; gates green on final merged
   main — the run that first compiled the console against the generated
@@ -682,11 +707,6 @@ see the question you are asking.
   the 50 km artifact, byte-identity off, relief distributions for the
   re-sequenced amplitude call, drainage-export fidelity). **Dispatch after
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
-- **Zonal circulation profile** (ratified 2026-07-20, earth-processes § 4
-  follow-up): smooth wind magnitude + subsidence aridity replacing the
-  `wind_dx` sign bit. Dispatch after eolian merges; write-set is
-  `climate.rs` (pregen + deeptime) — parallelizable with the spike per the
-  write-set rule if desired, machine serializes compiles.
 - **Tectonic uplift-plane redesign — DESIGN PASS (superseded — done)** (direction ratified
   2026-07-20, earth-processes.md § 1 DECIDED entry): tectonic history
   (uplift(t), plate advection, chaptered boundary re-classification) +

@@ -9,8 +9,24 @@
 //! 1D advection streaks along rows; a box blur across the wind (orogeny's fix)
 //! spreads the signal so a north–south range shadows a coherent lee band
 //! instead of a comb of dry rows.
+//!
+//! **The circulation profile is shared with pregen** (journal/0037): the zonal
+//! wind is a smooth signed magnitude ([`zonal_wind`]) that eases through a calm
+//! belt at each band boundary, and the moisture march runs the identical
+//! per-cell [`rainout`] physics — orographic wring-out plus a subsidence gate
+//! ([`subsidence`]) that makes the 30° Hadley descending limb a desert with no
+//! mountain in front of it. Deep time and pregen therefore share one climate
+//! model, not two that can drift apart.
 
 use super::grid::DeepGrid;
+
+/// The circulation profile — defined once in [`crate::pregen::climate`] and
+/// re-exported here so the deep-time consumers (this march and the eolian agent)
+/// read the same wind and subsidence as pregen. `zonal_wind` is a signed 0..1
+/// magnitude (the eolian agent scales deflation by `|zonal_wind|`); `wind_dir`
+/// is its sign; `subsidence` is the precip-suppression factor; `rainout` is the
+/// shared per-land-cell march step.
+pub use crate::pregen::climate::{rainout, subsidence, wind_dir, zonal_wind};
 
 /// Air temperature (°C) at a cell: a latitude gradient minus an altitude lapse.
 /// The **single** climate temperature model deep time carries — the biotic layer
@@ -27,18 +43,6 @@ pub fn air_temp_c(lat_deg: f64, surf: f64) -> f32 {
     (sea_temp - lapse) as f32
 }
 
-/// Zonal wind x-step for a latitude band (trade easterlies, mid-latitude
-/// westerlies, polar easterlies) — the pregen climate bands, reused.
-pub fn wind_dx(lat_deg: f64) -> i32 {
-    if lat_deg < 30.0 {
-        -1
-    } else if lat_deg < 60.0 {
-        1
-    } else {
-        -1
-    }
-}
-
 /// Re-march precipitation over the current surface. `surf` is `R + H`;
 /// `sea_level` is the current paleo-stand. Writes normalized precip (0..1) into
 /// `grid.precip`.
@@ -47,9 +51,9 @@ pub fn march(grid: &mut DeepGrid, sea_level: f64) {
     let mut raw = vec![0.0f32; w * w];
     for gy in 0..w {
         let lat = grid.lat_deg(gy);
-        let dx = wind_dx(lat);
+        let dir = wind_dir(lat);
         // March order along x, in wind direction.
-        let xs: Vec<usize> = if dx > 0 {
+        let xs: Vec<usize> = if dir > 0 {
             (0..w).collect()
         } else {
             (0..w).rev().collect()
@@ -65,12 +69,11 @@ pub fn march(grid: &mut DeepGrid, sea_level: f64) {
                 raw[i] = 0.6;
             } else {
                 let uplift = ((elev - prev_elev.max(0.0)) / 1000.0).max(0.0);
-                let frac = (0.18 + 1.8 * uplift).min(0.85);
-                let p = (moisture * frac).min(1.0);
+                // The exact same land-cell physics as the pregen march: moisture-
+                // and subsidence-modulated rainout with a local convective floor.
+                let (p, m) = rainout(moisture, uplift, lat);
                 raw[i] = p as f32;
-                // Partial depletion + weak evapotranspiration recharge keeps
-                // interiors semi-arid rather than bone dry (pregen climate).
-                moisture = (moisture - 0.5 * p + 0.03).clamp(0.0, 1.0);
+                moisture = m;
             }
             prev_elev = elev;
         }

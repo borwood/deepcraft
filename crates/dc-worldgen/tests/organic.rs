@@ -23,20 +23,59 @@ use dc_core::materials::geology::{
 };
 use dc_core::{Block, ChunkPos, MaterialId, VoxelContents};
 use dc_worldgen::deeptime::{Biofacies, DeepConfig};
-use dc_worldgen::pregen::CellGrid;
+use dc_worldgen::pregen::{CELL_VOXELS, CellGrid};
 use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
 
-/// The S10-measured coal site (docs/spikes/S10-results.md § 1): a 24.03 m seam
-/// over a marine section, capped by fire-bearing alluvium.
-const COAL_SITE: (i64, i64) = (107_338, 58_787);
-
+/// The S10-measured coal site (docs/spikes/S10-results.md § 1) *was* a fixed
+/// voxel, `(107_338, 58_787)` — a 24.03 m seam over a marine section. But a
+/// hard-coded location is a golden that any upstream climate change invalidates:
+/// the ratified **zonal circulation** slice (journal/0037) shifted precipitation
+/// for every new world, and this world's thickest coal swamp moved off that exact
+/// cell (the S10 voxel now records 0 m of coal). What this test *proves* — a coal
+/// seam is biofacies-tagged, survives collapse as the COAL class, and ends up
+/// diggable — is a claim about the pipeline, not a location, so we now find the
+/// seam wherever the current climate puts it. See [`thickest_coal_voxel`].
 fn medium() -> Pregen {
     Pregen::run(WorldParams {
         seed: SEED,
         extent: Extent::Medium,
     })
+}
+
+/// Every deep cell holding a coal seam thicker than `min_m`, as the world voxel
+/// at that cell's centre, sorted thickest-first. Inverts the deep-field
+/// voxel↔cell mapping ([`dc_worldgen::deeptime::DeepField`]) so the
+/// collapse/dig assertions downstream address the same cell. Returns
+/// `(vx, vz, thickest_coal_m)` per candidate — the test walks them thickest-first
+/// and takes the first that also survives collapse to diggable coal (a thick
+/// *record* seam can be buried below the collapse column; the S10 site was
+/// near-surface, and after the climate move we re-find a near-surface one).
+fn coal_seam_candidates(pregen: &Pregen, min_m: f64) -> Vec<(i64, i64, f64)> {
+    let deep = &pregen.deep;
+    let (w, wp) = (deep.w, deep.wp);
+    // Inverse of `DeepField::deep_coords`: note the half-extent is integer
+    // `wp / 2` (matching `(self.wp / 2) as f64` there), NOT `wp / 2.0` — for odd
+    // `wp` the half-cell difference lands on the wrong deep cell.
+    let half = (wp / 2) as f64;
+    let voxel = |c: f64| (((c + 0.5) * wp as f64 / w as f64 - half) * CELL_VOXELS as f64) as i64;
+    let mut out: Vec<(i64, i64, f64)> = deep
+        .strata
+        .iter()
+        .enumerate()
+        .filter_map(|(i, s)| {
+            let coal = s
+                .units
+                .iter()
+                .filter(|u| u.tag.biota == Biofacies::Coal)
+                .map(|u| u.thickness_m)
+                .fold(0.0f64, f64::max);
+            (coal > min_m).then(|| (voxel((i % w) as f64), voxel((i / w) as f64), coal))
+        })
+        .collect();
+    out.sort_by(|a, b| b.2.total_cmp(&a.2));
+    out
 }
 
 /// The chunk-column containing a world voxel.
@@ -155,37 +194,47 @@ fn with_second_coal() -> GeologySet {
 #[test]
 fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     let pregen = medium();
+    let set = geology::vanilla();
+    let mut g = WorldGenerator::new(&pregen);
 
-    // ---- 1. the record still says what S10 measured -----------------------
+    // ---- 1. the world still grows a thick, diggable coal seam -------------
+    // History of this site: S10 measured 24.03 m at a fixed voxel with erosion
+    // lithology-blind; the erodibility flip (journal/0030) took the same cell to
+    // 17.04 m; the zonal-circulation climate change (journal/0037) shifted precip
+    // for every new world and moved the thickest seam to a *different* cell. What
+    // this test is *about* is that a coal seam is biofacies-tagged, survives
+    // collapse as the COAL class, and ends up as diggable `Block::Coal` — a claim
+    // about the pipeline, not a fixed location. So we take the thickest coal seam
+    // that also collapses to diggable coal (some thick record seams are buried
+    // below the collapse column; the S10 seam was near-surface).
+    let candidates = coal_seam_candidates(&pregen, 15.0);
+    assert!(
+        !candidates.is_empty(),
+        "the world grew no coal seam thicker than 15 m at all"
+    );
+    let (coal_x, coal_z, thickest_coal) = candidates
+        .iter()
+        .copied()
+        .find(|&(vx, vz, _)| {
+            let (cx, cz) = column_of(vx, vz);
+            let col = g.column_record(cx, cz);
+            col.strata
+                .events
+                .iter()
+                .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
+                .map(|e| u32::from(e.thickness_vox))
+                .sum::<u32>()
+                >= 15
+        })
+        .expect("no thick coal seam survived collapse as diggable coal");
+    println!("[coal] thickest diggable seam {thickest_coal:.2} m at voxel ({coal_x}, {coal_z})");
+
     let rec = pregen
         .deep
-        .record_at_voxel(COAL_SITE.0, COAL_SITE.1)
+        .record_at_voxel(coal_x, coal_z)
         .expect("the coal site is inside the pregen grid");
-    let thickest_coal = rec
-        .units
-        .iter()
-        .filter(|u| u.tag.biota == Biofacies::Coal)
-        .map(|u| u.thickness_m)
-        .fold(0.0f64, f64::max);
-    // **Re-baselined 2026-07-20 for the erodibility flip** (journal/0030).
-    // S10 measured 24.03 m here with erosion lithology-blind; with coupling on
-    // in `production_config` the same cell keeps **17.04 m** — the new
-    // differential weathering strips this seam's soft cover faster, so more of
-    // it is eroded away before the run ends. That is the flip working, not a
-    // routing regression: what this test is *about* is that a coal seam is
-    // tagged by biofacies, survives collapse as the COAL class, and ends up as
-    // diggable `Block::Coal` — none of which is a claim about thickness. The
-    // threshold is therefore a floor on "still a thick seam", not a golden.
-    assert!(
-        thickest_coal > 15.0,
-        "the seam here should still be thick (S10: 24.03 m lithology-blind, \
-         17.04 m with erodibility coupling); the record now holds {thickest_coal:.2} m"
-    );
-
-    let mut g = WorldGenerator::new(&pregen);
-    let (cx, cz) = column_of(COAL_SITE.0, COAL_SITE.1);
+    let (cx, cz) = column_of(coal_x, coal_z);
     let col = g.column_record(cx, cz);
-    let set = geology::vanilla();
 
     // ---- 2. the seam survives collapse as the COAL class -------------------
     let coal_vox: u32 = col
@@ -197,7 +246,7 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
         .sum();
     assert!(
         coal_vox >= 15,
-        "expected the 17 m seam as ~19 voxels of coal in the collapsed column, got {coal_vox}"
+        "expected the seam as ~19 voxels of coal in the collapsed column, got {coal_vox}"
     );
     assert!(
         col.strata

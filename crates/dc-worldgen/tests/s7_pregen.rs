@@ -97,7 +97,7 @@ fn climate_latitude_gradient_and_rain_shadow() {
             if c.elev_m < 900.0 {
                 continue;
             }
-            let dx = dc_worldgen::pregen::climate::wind_dx(c.lat_deg);
+            let dx = dc_worldgen::pregen::climate::wind_dir(c.lat_deg);
             if let Some(u) = p.grid.get(gx - dx, gy).filter(|u| u.is_land()) {
                 upwind.push(u.precip);
             }
