@@ -7,6 +7,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Registry `commands!` macro + `completions` hook**
+  (journal/0033, session-4 background agent; gates green on final merged
+  main — the run that first compiled the console against the generated
+  registry). API decisions #6/#7 built: one macro table row per command
+  emits the id const, the `Payload` variant, and the `CommandSpec`
+  together, so a missing registry entry is now a rustc error, not a test
+  artifact. `Payload` variant order verified identical by the integrator
+  (postcard is positional — corrections #3); wire schemas byte-identical
+  (the dc-mcp-dev session test asserts tool schema == spec schema, still
+  green). `Completer::{Static, World}` hook populated with real sources:
+  block names, live character names, content classes, postures, event
+  kinds. Sole observable change: `registry()` order now follows wire order
+  (cosmetic; nothing looks up by position). Follow-up owned by a future
+  slice: wire the hook into the console so `block=<TAB>` completes.
+
 - 2026-07-20 — **In-game dev console (T key)** (journal/0032, session-4
   background agent; gates green on merged main — fmt/clippy/test all
   `--release`, 42 suites 0 failed, console core 14 unit tests). The full
@@ -604,13 +619,7 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **Registry `completions` hook + macro/derive self-consistency** —
-  background worktree agent, dispatched 2026-07-20 (session 4; API.md
-  Decisions #6/#7, user-ratified). Writes dc-api only — disjoint from the
-  other two agents' write-sets, which is what makes it safely parallel.
-  Public surface (`ids::`, `Payload`, `CommandSpec`, `registry()`) and
-  wire-visible schema shapes unchanged, so the console agent's work merges
-  clean against it.
+(nothing — all three session-4 agents merged, gates green on final main.)
 
 **Session 3 shipped, all gates green on merged main:** FF2a voxel far field
 (0023) · far-seam uniform-push fix (0024) · S10 biotic layer (0025) ·
