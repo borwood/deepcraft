@@ -1,0 +1,228 @@
+//! S10 biotic-layer falsifiers: determinism (byte-identical planes AND records
+//! under a repeated seed, and scalar-vs-parallel identity), the abiotic path's
+//! byte-identity with the pre-S10 engine, the recorder invariants under the
+//! pedogenic overprint, the mass ledger with biotic carbon as an external input,
+//! and the presence of the four target read-quality signals.
+//!
+//! Measured numbers live in docs/spikes/S10-results.md; these are the falsifiers.
+
+use dc_worldgen::deeptime::{self, Biofacies, COAL_MIN_M, DeepConfig, DeepGrid};
+use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
+
+const SEED: u64 = 0x0D5E_ED57_2026;
+
+fn cfg(seed: u64, cell_m: f64, iterations: u32, biotic: bool) -> DeepConfig {
+    DeepConfig {
+        seed,
+        cell_m,
+        iterations,
+        remarch_interval: 20,
+        record: true,
+        biotic,
+        ..DeepConfig::default()
+    }
+}
+
+fn small(seed: u64) -> Pregen {
+    Pregen::run(WorldParams {
+        seed,
+        extent: Extent::Small,
+    })
+}
+
+fn medium(seed: u64) -> Pregen {
+    Pregen::run(WorldParams {
+        seed,
+        extent: Extent::Medium,
+    })
+}
+
+#[test]
+fn biotic_same_seed_is_byte_identical_planes_and_records() {
+    let pregen = small(SEED);
+    let c = cfg(SEED, 1000.0, 60, true);
+    let a = deeptime::run(&pregen, &c);
+    let b = deeptime::run(&pregen, &c);
+    assert_eq!(a.grid.r, b.grid.r, "bedrock plane must be byte-identical");
+    assert_eq!(a.grid.h, b.grid.h, "alluvium plane must be byte-identical");
+    assert_eq!(
+        a.grid.strata, b.grid.strata,
+        "strata records (with biotic tags) must be byte-identical"
+    );
+    assert_eq!(
+        a.grid.bio_weather, b.grid.bio_weather,
+        "biotic weathering modifiers must be byte-identical"
+    );
+    assert_eq!(
+        a.grid.bio_resist, b.grid.bio_resist,
+        "biotic resistance modifiers must be byte-identical"
+    );
+    assert_eq!(
+        a.biotic_total.to_bits(),
+        b.biotic_total.to_bits(),
+        "the biotic mass ledger must be byte-identical"
+    );
+}
+
+#[test]
+fn biotic_parallel_equals_scalar_byte_identical() {
+    // The biotic step is a pure per-cell function of frozen inputs, so the
+    // data-parallel driver must reproduce the scalar one to the bit — the same
+    // contract the S9b erosion phases hold. Use a grid past the rayon fork floor.
+    let pregen = small(SEED);
+    let c = cfg(SEED, 200.0, 20, true);
+    let scalar = deeptime::run_with(&pregen, &c, false);
+    let parallel = deeptime::run_with(&pregen, &c, true);
+    assert!(
+        scalar.grid.w * scalar.grid.w >= 1 << 15,
+        "grid must be past the parallel fork floor to exercise the rayon path"
+    );
+    assert_eq!(scalar.grid.r, parallel.grid.r, "bedrock plane");
+    assert_eq!(scalar.grid.h, parallel.grid.h, "alluvium plane");
+    assert_eq!(
+        scalar.grid.strata, parallel.grid.strata,
+        "strata records: parallel must be byte-identical to scalar"
+    );
+    assert_eq!(
+        scalar.biotic_total.to_bits(),
+        parallel.biotic_total.to_bits(),
+        "biotic ledger: parallel must be byte-identical to scalar"
+    );
+}
+
+#[test]
+fn a_different_seed_diverges_biotically() {
+    let a = deeptime::run(&small(SEED), &cfg(SEED, 1000.0, 60, true));
+    let b = deeptime::run(&small(SEED ^ 0xABCD), &cfg(SEED ^ 0xABCD, 1000.0, 60, true));
+    assert_ne!(
+        a.grid.strata, b.grid.strata,
+        "a different world must grow a different biotic record"
+    );
+}
+
+#[test]
+fn biotic_off_leaves_the_record_purely_mineral() {
+    // The abiotic path must be byte-identical to the pre-S10 engine. The two
+    // observable guarantees: the modifier planes stay EMPTY (so the erosion
+    // kernels read their identity values `1.0` / `0.0`, and `x * 1.0 == x`
+    // exactly), and every recorded unit carries the default `Mineral` facies —
+    // i.e. the new merge-key axis has exactly one inhabited value, so units
+    // merge exactly as they did before.
+    let run = deeptime::run(&small(SEED), &cfg(SEED, 1000.0, 60, false));
+    assert!(
+        run.grid.bio_weather.is_empty() && run.grid.bio_resist.is_empty(),
+        "biotic-off must not allocate modifier planes"
+    );
+    assert_eq!(run.biotic_total, 0.0, "biotic-off must add no biotic mass");
+    assert!(
+        run.biota.is_none(),
+        "biotic-off must hold no community state"
+    );
+    for s in &run.grid.strata {
+        for u in &s.units {
+            assert_eq!(
+                u.tag.biota,
+                Biofacies::Mineral,
+                "biotic-off must record only mineral units"
+            );
+        }
+    }
+}
+
+#[test]
+fn recorder_total_equals_alluvium_with_biotic_on() {
+    // The pedogenic overprint adds thickness to an existing unit and can merge
+    // it downward; both must preserve `sum(units) == H` exactly, or the record
+    // stops mirroring the alluvium plane.
+    let run = deeptime::run(&small(SEED), &cfg(SEED, 1000.0, 80, true));
+    let mut worst = 0.0f64;
+    for (i, s) in run.grid.strata.iter().enumerate() {
+        worst = worst.max((s.total_m() - run.grid.h[i]).abs());
+    }
+    assert!(
+        worst < 1e-6,
+        "recorder invariant sum(units)==H violated under the biotic layer, worst {worst}"
+    );
+}
+
+#[test]
+fn mass_ledger_accounts_for_biotic_carbon() {
+    // Photosynthesis fixes carbon from the air, so buried organic matter is a
+    // genuine EXTERNAL mass input — like uplift, not a conservation violation.
+    // The ledger must therefore close as uplift + biotic input.
+    let run = deeptime::run(&small(SEED), &cfg(SEED, 1000.0, 80, true));
+    let after = deeptime::total_mass(&run.grid);
+    let residual = after - run.mass_before - run.uplift_total - run.biotic_total;
+    assert!(
+        residual.abs() < 1.0,
+        "mass leaked: residual {residual} (uplift {}, biotic {})",
+        run.uplift_total,
+        run.biotic_total
+    );
+    assert!(
+        run.biotic_total > 0.0,
+        "the biotic layer must actually bury organic matter"
+    );
+}
+
+/// Count columns carrying each of the four S10 target signals.
+fn signal_columns(grid: &DeepGrid) -> (usize, usize, usize, usize) {
+    let mut coal = 0;
+    let mut paleosol = 0;
+    let mut charcoal = 0;
+    let mut retro = 0;
+    for s in &grid.strata {
+        if s.coal_seams(COAL_MIN_M) > 0 {
+            coal += 1;
+        }
+        if s.paleosols() > 0 {
+            paleosol += 1;
+        }
+        if s.charcoal_bands() > 0 {
+            charcoal += 1;
+        }
+        if s.retro_surfaces() > 0 {
+            retro += 1;
+        }
+    }
+    (coal, paleosol, charcoal, retro)
+}
+
+#[test]
+fn the_four_target_signals_reach_the_record() {
+    // The read-quality falsifier: a full-length A-tier run must write all four
+    // signals ecology.md § 3 asks for. This is the test that fails if a future
+    // change quietly kills coal swamps or the fire regime.
+    let run = deeptime::run(&medium(SEED), &cfg(SEED, 1000.0, 200, true));
+    let (coal, paleosol, charcoal, retro) = signal_columns(&run.grid);
+    assert!(coal > 0, "no coal seam reached the record");
+    assert!(
+        paleosol > 0,
+        "no buried soil horizon (paleosol) reached the record"
+    );
+    assert!(charcoal > 0, "no charcoal band reached the record");
+    assert!(retro > 0, "no retrogressive surface reached the record");
+}
+
+#[test]
+fn biology_changes_the_landscape_it_grows_on() {
+    // Biology is an EROSION term, not just an annotation (ecology.md § 1): root
+    // cohesion resists hillslope creep and root acids accelerate weathering, so
+    // a biotic run must produce a measurably different surface — otherwise the
+    // lagged coupling is decorative and the cost buys only tags.
+    let pregen = small(SEED);
+    let abiotic = deeptime::run(&pregen, &cfg(SEED, 1000.0, 120, false));
+    let biotic = deeptime::run(&pregen, &cfg(SEED, 1000.0, 120, true));
+    let diff = abiotic
+        .grid
+        .r
+        .iter()
+        .zip(&biotic.grid.r)
+        .map(|(a, b)| (a - b).abs())
+        .fold(0.0f64, f64::max);
+    assert!(
+        diff > 1.0,
+        "the biotic run's bedrock surface is indistinguishable from the abiotic \
+         one (max diff {diff} m) — the erosion/weathering feedback is not wired"
+    );
+}

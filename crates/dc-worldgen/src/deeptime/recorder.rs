@@ -46,6 +46,69 @@ pub enum EnergyBand {
     High,
 }
 
+/// The **biotic facies** measured at deposition (S10 biotic layer). `Mineral` is
+/// the always-present default: a run with the biotic layer OFF tags every unit
+/// `Mineral`, which is byte-identical to the pre-S10 record (the enum is a new
+/// merge-key axis whose only inhabited value is `Mineral` when biology is off,
+/// so `x.deposit(mineral_tag, d)` merges exactly as before).
+///
+/// The inhabited values are the four read-quality target signals ecology.md § 3
+/// asks the record to carry, each a *measurement* of the depositing community —
+/// never an interpretation (earth-processes.md § method):
+/// - [`Soil`](Self::Soil) — an organic horizon: litter outpaced erosion under a
+///   living community. Buried (not the topmost unit), a `Soil`/`Peat`/`Retro`
+///   unit is a **paleosol**, carrying its own at-deposition climate tag.
+/// - [`Peat`](Self::Peat) — waterlogged organic accumulation that outran
+///   decomposition (a swamp persisted); the proto-coal.
+/// - [`Coal`](Self::Coal) — a `Peat` band buried and compacted past a threshold
+///   (burial diagenesis promotes peat to coal, earth-processes.md § 5) — a
+///   **coal seam** in the record.
+/// - [`Charcoal`](Self::Charcoal) — a fire event: standing biomass burned, its
+///   residue entering the record as a thin band (disturbance signature).
+/// - [`Retro`](Self::Retro) — an organic horizon under a **retrogressive**
+///   community: an ancient, phosphorus-starved surface carrying sclerophyllous
+///   scrub (the Walker & Syers end state, ecology.md § 0) — community collapse
+///   leaving a signature.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum Biofacies {
+    /// No biotic signature (default — the only value when biology is off).
+    #[default]
+    Mineral,
+    /// Organic soil horizon (a living community's litter accumulation).
+    Soil,
+    /// Waterlogged organic accumulation (proto-coal).
+    Peat,
+    /// Buried, compacted peat — a coal seam.
+    Coal,
+    /// Fire-event residue band.
+    Charcoal,
+    /// Retrogressive (P-depleted, sclerophyllous) soil horizon.
+    Retro,
+}
+
+impl Biofacies {
+    /// Short two-char code for column printouts.
+    pub fn code(self) -> &'static str {
+        match self {
+            Biofacies::Mineral => "--",
+            Biofacies::Soil => "So",
+            Biofacies::Peat => "Pt",
+            Biofacies::Coal => "Co",
+            Biofacies::Charcoal => "Ch",
+            Biofacies::Retro => "Rt",
+        }
+    }
+
+    /// Whether this facies is an organic horizon (i.e. a soil, in the paleosol
+    /// sense): `Soil`, `Peat`, `Coal`, or `Retro`.
+    pub fn is_organic(self) -> bool {
+        matches!(
+            self,
+            Biofacies::Soil | Biofacies::Peat | Biofacies::Coal | Biofacies::Retro
+        )
+    }
+}
+
 /// A measured depositional tag. Two units merge only when every measured axis
 /// agrees (and the younger is not the first unit after an erosional strip).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -53,10 +116,26 @@ pub struct DepTag {
     pub env: DepEnv,
     pub aridity: Aridity,
     pub energy: EnergyBand,
+    /// The biotic facies measured at deposition (S10). `Mineral` for every unit
+    /// when the biotic layer is off — byte-identical to the pre-S10 record.
+    pub biota: Biofacies,
 }
 
 impl DepTag {
-    /// A short human-readable code for column printouts (`Sa/H/M`, `Ss/-/L`).
+    /// A purely-mineral tag (biotic layer off / abiotic deposition). The erosion
+    /// recorder builds every unit through this axis defaulted to `Mineral`.
+    pub fn mineral(env: DepEnv, aridity: Aridity, energy: EnergyBand) -> Self {
+        Self {
+            env,
+            aridity,
+            energy,
+            biota: Biofacies::Mineral,
+        }
+    }
+
+    /// A short human-readable code for column printouts (`Sa/H/M`, `Ss/-/L`),
+    /// with the biotic facies appended only when it is not `Mineral`
+    /// (`Sa/H/L·Pt` for a humid low-energy peat).
     pub fn code(&self) -> String {
         let env = match self.env {
             DepEnv::Subaerial => "Sa",
@@ -72,7 +151,11 @@ impl DepTag {
             EnergyBand::Medium => "M",
             EnergyBand::High => "H",
         };
-        format!("{env}/{ar}/{en}")
+        if self.biota == Biofacies::Mineral {
+            format!("{env}/{ar}/{en}")
+        } else {
+            format!("{env}/{ar}/{en}·{}", self.biota.code())
+        }
     }
 }
 
@@ -129,6 +212,47 @@ impl DeepStrata {
         self.stripped = false;
     }
 
+    /// **Pedogenic overprint** (S10): soil formation is not a deposit stacked on
+    /// top of the column — it *alters the material already at the surface*. This
+    /// adds `extra` metres of organic matter to the topmost unit and retags it
+    /// with `tag`, then merges it down into the unit below if that unit carries
+    /// the identical tag (so a surface that stays stable for a hundred epochs
+    /// records **one thick horizon**, not a hundred laminae).
+    ///
+    /// Two refusals keep the record honest:
+    /// - a `Charcoal` top is never retagged — a fire band is a preserved event
+    ///   bed, so the soil starts a *new* unit above it;
+    /// - a unit flagged `unconformity` is never merged downward, which would
+    ///   erase the time gap.
+    ///
+    /// Preserves `sum(units) == H` exactly: `extra` is added once, and the merge
+    /// only moves thickness between units.
+    pub fn overprint_top(&mut self, tag: DepTag, extra: f64) {
+        let charcoal_top = self
+            .units
+            .last()
+            .is_some_and(|u| u.tag.biota == Biofacies::Charcoal);
+        if self.units.is_empty() || charcoal_top {
+            // Bare bedrock, or a fire bed we must not overwrite: start a unit.
+            self.units.push(DepUnit {
+                tag,
+                thickness_m: extra,
+                unconformity: self.stripped,
+            });
+            self.stripped = false;
+            return;
+        }
+        let top = self.units.last_mut().expect("non-empty");
+        top.thickness_m += extra;
+        top.tag = tag;
+        // Merge down into an identically-tagged predecessor.
+        let n = self.units.len();
+        if n >= 2 && self.units[n - 2].tag == tag && !self.units[n - 1].unconformity {
+            let t = self.units.pop().expect("non-empty").thickness_m;
+            self.units.last_mut().expect("non-empty").thickness_m += t;
+        }
+    }
+
     /// Pop `amount` metres of recorded history off the top (erosion). When the
     /// record empties, the column is stripped to bedrock and the next deposit
     /// will record an unconformity.
@@ -168,6 +292,66 @@ impl DeepStrata {
     /// erosional surface) — the readable time gaps.
     pub fn unconformities(&self) -> usize {
         self.units.iter().filter(|u| u.unconformity).count()
+    }
+
+    /// Count of **paleosols**: buried organic horizons — a `Soil`/`Peat`/`Coal`/
+    /// `Retro` unit that is *not* the topmost unit (something was deposited over
+    /// it, so it is a fossil soil rather than the living surface). Each carries
+    /// its own at-deposition climate tag (`env`/`aridity`) on `DepUnit::tag`.
+    pub fn paleosols(&self) -> usize {
+        if self.units.is_empty() {
+            return 0;
+        }
+        let last = self.units.len() - 1;
+        self.units
+            .iter()
+            .enumerate()
+            .filter(|(k, u)| *k != last && u.tag.biota.is_organic())
+            .count()
+    }
+
+    /// Count of coal seams (units tagged [`Biofacies::Coal`]) at or above
+    /// `min_m` thickness — the legible ones.
+    pub fn coal_seams(&self, min_m: f64) -> usize {
+        self.units
+            .iter()
+            .filter(|u| u.tag.biota == Biofacies::Coal && u.thickness_m >= min_m)
+            .count()
+    }
+
+    /// Count of charcoal bands (fire-event units) in the record.
+    pub fn charcoal_bands(&self) -> usize {
+        self.units
+            .iter()
+            .filter(|u| u.tag.biota == Biofacies::Charcoal)
+            .count()
+    }
+
+    /// Count of retrogressive organic horizons (units tagged
+    /// [`Biofacies::Retro`]) — collapsed, P-starved surfaces.
+    pub fn retro_surfaces(&self) -> usize {
+        self.units
+            .iter()
+            .filter(|u| u.tag.biota == Biofacies::Retro)
+            .count()
+    }
+
+    /// **Burial diagenesis** (earth-processes.md § 5): promote every buried peat
+    /// unit thicker than `min_m` to coal. A peat band is "buried" when a younger
+    /// unit sits on top of it (it is not the current living surface), so its
+    /// organic matter has been compacted and cooked past the peat stage. Called
+    /// once at run finalize. Pure in the record; preserves `sum(units) == H`
+    /// (only the tag changes, never a thickness).
+    pub fn promote_coal(&mut self, min_m: f64) {
+        if self.units.is_empty() {
+            return;
+        }
+        let last = self.units.len() - 1;
+        for (k, u) in self.units.iter_mut().enumerate() {
+            if k != last && u.tag.biota == Biofacies::Peat && u.thickness_m >= min_m {
+                u.tag.biota = Biofacies::Coal;
+            }
+        }
     }
 
     /// Rough heap footprint of this record's unit vector (bytes).
