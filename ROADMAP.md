@@ -377,6 +377,24 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **User field report (2026-07-20, post-FF2a): thin bright seams between far
+  patches persist** — light shining through very thin gaps, repro: high
+  altitude, look down ~-45°; discernible even in
+  `0023-lit-high-vantage-rings.png` (integrator misread it there as stitch
+  shading; the user's eye overrode). Key discriminator (user): **v0 gen's
+  original far mesh never showed this.** DIAGNOSED — corrections #11: the
+  per-tile radial anti-z-fight push translates adjacent same-level tiles
+  along *different* directions (differential ≈ push × tile/dist, 0.08–0.9 m
+  L1→L4), reopening mesh-space-watertight seams at the transform stage. The
+  S1 mesh hid it because volumetric shells back a lateral gap with their own
+  side geometry; hollow top-surface sheets (0022, FF2a) show background
+  through the slot — the walk-17 "pixel gaps" were mostly THIS, not (only)
+  T-junctions. FF2a's watertight claim falsified at the transform stage.
+  **Fix cycle dispatched 2026-07-20**: per-level UNIFORM push (one shared
+  vector per level per frame, along camera forward) — same-level seams close
+  by construction, all face orientations keep real depth separation
+  (corrections #1 honored); world-space seam proof past the transform.
+
 - *(**User field report: the far LOD sheet is buried under the near field —
   RESOLVED** 2026-07-19, FF2a journal/0023. Mechanism confirmed: the walk-17
   one-tile inner lap slid the L1 far sheet under the near field (from ~54 m),

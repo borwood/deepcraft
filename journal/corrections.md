@@ -195,3 +195,44 @@ pose speaks meters, block queries speak voxels, and nothing in either reply
 says so. Echoing voxel coordinates in pose replies is filed as a fix. (2) An
 `Option` is not pedantry: when "no answer" and "an answer" share a type, the
 silent path is the one that ships.
+
+## 11. "Adjacent same-level far chunks shift by near-identical vectors, so no visible gaps open" (2026-07-20)
+
+**Claim** (farmesh.rs module docs since the radial push shipped, `64729c5`;
+re-affirmed by FF2a/journal 0023's "crack class cured inherently — same-level
+seams watertight" and its "no pixel cracks" grazing-angle photo): the
+per-tile anti-z-fight push (0.15 of a coarse voxel, each tile along its OWN
+center-to-viewer direction) never opens visible seams between same-level
+neighbours.
+**Falsified**: user field report, twice — thin bright seams between far
+patches, seen from altitude looking down ~-45°, discernible even in
+`0023-lit-high-vantage-rings.png` (which the integrator misread as the
+cosmetic one-sided-normal stitch *shading*; light through = geometry gap —
+the user's eye was the instrument that worked).
+**Mechanism**: the push is a rigid per-tile translation whose direction
+differs between adjacent tiles by their angular separation as seen from the
+viewer (≈ tile_size/distance). The shared edge therefore separates by
+push × (tile_m/dist): ≈0.08 m (L1) up to ≈0.9 m (L4) — a sub-pixel-to-pixel
+sliver of background light at range. The claim was *observationally* true
+for the S1 far mesh only because those chunks are volumetric shells: a
+sub-meter lateral offset between closed volumes exposes the neighbour's own
+side geometry, never the sky — the user confirmed v0 gen never showed this.
+The moment the far field became a hollow top-surface sheet (journal/0022),
+the same offsets became see-through slots; the walk-17-era "pixel gaps"
+report was THIS, not (only) T-junctions. FF2a cured the T-junction class in
+mesh space and kept the push, so the slots survived: **watertight geometry,
+reopened at the transform stage**. Float precision is innocent by three
+orders of magnitude (f32 at 1.2 km ≈ 0.1 mm vs 0.08–0.9 m differential).
+Why the FF2a walk missed it: grazing angles foreshorten the slots and back
+them with terrain; the top-down-from-altitude view maximizes the open
+cross-section against bright haze.
+**Fix direction** (fix cycle dispatched same day): make the push uniform
+per level — one shared translation vector per LOD level per frame (along
+the camera forward axis), so same-level seams stay closed *by construction*
+(identical rigid motion) while every face orientation still gains real
+depth separation along the view axis. Corrections #1 still stands: it must
+remain a true world-space offset, never a bias.
+**Lesson**: a per-entity transform computed from per-entity state is part
+of the mesh's watertightness contract. "Watertight" proven in mesh space
+means nothing if the transform stage is allowed to move neighbours
+differently — prove seam closure PAST the transform, in world space.
