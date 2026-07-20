@@ -121,6 +121,58 @@ Unpacked:
   This is a completeness statement about the default pack (see ideas.md
   § content packs and the default world's scope) more than a feature list.
 
+## DECIDED 2026-07-20 (user) — one quantity, two regimes
+
+**Water is ONE conserved quantity existing in two regimes, not two
+systems.** User ratified: "one quantity, two regimes — that's quite right."
+
+- **Bound water** — occupying pores and the empty eighths of loose
+  partials (materials.md's existing fluid model). Moves slowly, by
+  settling and permeability. This is groundwater.
+- **Free water** — occupying open space. Moves fast, by flow. This is
+  rivers, lakes, waterfalls, the sea.
+
+**Rationale (the argument that carried it):** every phenomenon named in
+the notebook is a **transition between the regimes**, not a behaviour of
+either one. Absorbing into the next porous layer is free→bound. A spring
+is bound→free. Dripping from a ceiling is bound→free at low rate into a
+void. Waterlogged debris and quicksand are bound at saturation. If the two
+were separate systems, each of those would need bespoke coupling code;
+as one quantity they are the same transition read in different settings.
+
+### Consequences that follow immediately
+
+1. **The water table is READ, not modelled.** It is the top of the
+   saturated zone — where bound water reaches saturation and meets open
+   space. Nothing stores "the water table"; it is a query over the
+   saturation field. This is why S9 could classify it as a *bounded
+   relaxation* (haloable, C-refinable) rather than an advective field: it
+   equilibrates locally and never has to be traced from a source.
+2. **Vadose vs phreatic falls out for free**, and with it cave
+   morphology. Below the water table is phreatic (saturated — where
+   dissolution happens, the orogeny-proven karst regime). Above it is
+   vadose (air-filled — where dripping, flowstone and speleothems happen).
+   The same conduit changes character when the table drops past it, which
+   is exactly what real caves do. **No cave-morphology system is needed;
+   it is the regime boundary moving through rock over time.**
+3. **Aquifer and aquitard are material facts, not authored features** —
+   permeability comes from the property sheet, and the loose-vs-packed
+   soil contrast (ideas.md § soil is loose but packable) supplies the
+   sharp permeability contrast that makes an aquitard an aquitard.
+4. **S10's waterlogging proxy has a defined retirement**: waterlogging
+   becomes "the water table is at or near the surface here", read from the
+   field. Biology reads the real quantity; the proxy is deleted.
+5. **Conservation is the invariant to protect** — whatever the two regimes
+   use for representation, the transition between them must neither create
+   nor destroy water. That invariant is the natural test target (cf. S10's
+   mass ledger `Δ(ΣR+ΣH) == uplift + biotic`).
+
+### NOT decided by this entry
+
+The *representation* of each regime (the bulk-flow octree, the saturation
+field), the event vocabulary, timescale ownership, sub-resolution water,
+and capillary action all remain open below.
+
 ## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
 **Read this section before proposing anything.** The user flagged a
