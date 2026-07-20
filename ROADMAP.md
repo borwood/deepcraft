@@ -7,6 +7,48 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-19 — **FF2a — the voxel-language far field** (journal/0023, background
+  agent; worktree branch for the integrator; gates green — fmt/clippy/test all
+  `--release`; walk-verified live, RTX 3070 / Vulkan). Replaces journal/0022's
+  smooth-TIN far tiles with **voxel-stepped columns** (visuals.md § distance
+  speaks the voxel language): each coarse column's summary height is FLOOR-
+  quantized to the level's coarse-voxel step, meshed as stepped prisms — greedy-
+  merged top faces + exposed side faces between neighbour columns of differing
+  height. **Step 0 (empirical, DECIDED-substrate check):** Bevy 0.19's GPU-driven
+  multidraw path **engages fully** for our custom `TerrainMaterial` with custom
+  vertex attributes — live probe read `mode=Culling`, `Opaque3d batches=74 sets=1`
+  (all near + far terrain draws, one shared material, merged into a *single*
+  multidraw set); Vulkan backend; custom attributes only choose the allocator
+  slab, they don't disqualify batching. Nothing bespoke needed. **Three wins fall
+  out of the voxelization:** (a) *near/far parity, no sink* — flooring makes the
+  far top ≤ the near surface by construction, so the opaque near terrain wins the
+  overlap band and journal/0022's half-voxel sink is deleted; a stride-aligned
+  column matches the near voxel top exactly (quantized-exact). (b) *crack class
+  cured inherently* — a step's side face is emitted once, by the taller column
+  only, and a tile samples its neighbours' shared boundary columns, so same-level
+  seams are watertight with no skirt (grazing-angle shot: no pixel cracks);
+  ring-to-ring and near/far edges get a modest 2-voxel skirt ("skirt only what
+  remains"). (c) *no buried sheet* — far columns the near field covers are CULLED
+  (`near_covers`, altitude-aware 3-D distance < 112 m), not lapped underneath, so
+  digging never exposes a phantom floor (dig test: only real near geology; a
+  fully-covered tile meshes to empty). The per-column payload is an extensible
+  `ColumnSpan` (top + block today, persistence-shaped POD, FF2b extends to a span
+  stack); the tile mesher is a **pure function** of (spans + coverage mask + ring
+  flags) with the impure derivation in the streamer, so filed async far-meshing
+  and edit-driven re-derivation stay drop-in (coordinator amendments). Perf:
+  ~1.87 ms/tile derive+mesh, budgeted 2 tiles/frame, no hitch; greedy merging
+  makes stepped tiles *cheaper* than the smooth sheet (worst-case ~698 vs fixed
+  2048 tris/tile). Scale checkpoint (dev measurement, radius unchanged): current
+  1.2 km field 188 tiles / ~21.5 MiB; projected ~10 km ≈ 376 tiles / ~43 MiB,
+  per-frame meshing stays budget-bounded (~3.7 ms) regardless of radius. Keys 3/4
+  keep the untouched S1 far mesh. **NEEDS RATIFICATION**: this CHANGES HOW THE
+  WORLD LOOKS (smooth horizon → stepped voxel horizon) — the user ratifies the
+  look from `journal/assets/0023-*` (lit + fullbright horizons, dig test, holes
+  check); the skirt depth (2 coarse voxels) and the 112 m coverage inset ride
+  as-built (no bandaid). Files: `farmesh.rs` (stepped mesher, `ColumnSpan`,
+  `quantize_top`, `near_covers`, coverage-refresh streamer), `app.rs`
+  (`GpuProbePlugin`, env-gated).
+
 - 2026-07-19 — **The far-field horizon — the worldgen world gets a far field**
   (journal/0022, background agent; merged `--no-ff`, gates re-run green on
   merged main, walk 17 photographs below). Under the worldgen authority
@@ -231,10 +273,8 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- 2026-07-19 (session 3) — **FF2a dispatched** (background agent,
-  worktree): voxel-language far field on the DECIDED GPU-driven substrate
-  (see Sequenced entry + voxy-dh-recon addendum). Owns the buried-far-
-  sheet and tile-crack field reports.
+*(none — FF2a landed on its worktree branch, journal/0023, awaiting the
+integrator's merge; step-0 confirmed the multidraw substrate engages.)*
 
 *(Session-2 close state: the day shipped and walk-verified SIX integrated
 milestones — S1-fallback sweep 0017, PBR-1 0019, render polish 0020,
@@ -245,26 +285,17 @@ design doc open as conversation.)*
 
 ## Sequenced
 
-**FF2a — voxel-language far field** (user-decided 2026-07-19, visuals.md
-§ distance speaks the voxel language; runs immediately after the far-tile
-hole fix integrates): quantize the existing coarse column summaries to
-voxel steps, mesh stepped columns — full fidelity today since worldgen
-terrain is column-shaped; smooth TIN retired. **Submission substrate
-DECIDED 2026-07-19 (session 3, voxy-dh-recon addendum): standard Bevy
-`Mesh` + the ONE shared terrain material, so the far field rides Bevy
-0.19's engine GPU-driven path (GPU-built indirect draws /
-`multi_draw_indirect_count`, two-phase occlusion culling) — sized to the
-design target (massive draw distance, dense high-variety world), not
-today's bring-up constants. No vertex pulling, no bespoke cmdgen, no
-per-tile materials ever (variety is data: atlas layers + splat
-attributes). FF2a step 0 empirically verifies the multidraw path engages
-for our custom material.** Owns the two field-report defects (buried far
-sheet under near field → coverage logic, not buried lap; T-junction
-cracks → expected cured by stepped-prism sides, verify then skirt only
-what remains). **FF2b — coarse volumetric
+*(**FF2a — voxel-language far field: SHIPPED** 2026-07-19, journal/0023 — see
+Shipped. Stepped columns retired the smooth TIN; step 0 empirically confirmed
+Bevy 0.19's GPU-driven multidraw engages for our custom material
+(`mode=Culling`, 74 draws → 1 multidraw set); the buried-sheet and tile-crack
+field reports are resolved, below.)* **FF2b — coarse volumetric
 summaries** paired with the caves/underground thread of the water design
 pass (when overhangs exist, the summary goes 3D; couples to S3 region
-storage).
+storage). FF2a left the extension point ready: the per-column payload is a
+`ColumnSpan` the mesher already treats as one of a potential stack, and the
+tile mesher is a pure function of plain span data (async-meshing / persistent
+edit-tracked LOD store stay drop-in).
 
 
 **PBR-2 — lit-world completion** (the deferred half of the renderer, opened by
@@ -346,35 +377,42 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **User field report (2026-07-19, session close): the far LOD sheet is
-  buried under the near field** — the "distant" terrain render extends
-  below the player's feet, hidden by the voxel render, and **digging
-  down hits the LOD**. Likely mechanism: the hole-fix's one-tile inner
-  lap intentionally slides far tiles under the near field (sliver cure)
-  with the half-voxel sink hiding them from above — but they sit inside
-  solid ground, so any excavation exposes a phantom floor. Fix belongs
-  to **FF2a** (it rebuilds tile geometry): cull/clip lapped far tiles
-  against loaded near chunks rather than tucking them underneath; the
-  seam redundancy must come from coverage logic, not buried geometry.
+- *(**User field report: the far LOD sheet is buried under the near field —
+  RESOLVED** 2026-07-19, FF2a journal/0023. Mechanism confirmed: the walk-17
+  one-tile inner lap slid the L1 far sheet under the near field (from ~54 m),
+  sunk half a coarse voxel — present but hidden, so digging exposed a phantom
+  floor. Fix: **coverage logic, not buried geometry** — a far column the near
+  volumetric field covers (`near_covers`, altitude-aware 3-D distance < 112 m)
+  is CULLED, so a fully-covered tile meshes to *nothing*. Floor-quantized far
+  tops (≤ near surface) let the near field win the thin [112, 128] m occluded
+  overlap with no sink. Dig test photographed: only real near geology, no
+  phantom floor (`0023-fb-dig-no-phantom-floor`); headless proof: fully-covered
+  tile meshes empty.)*
 
-- **User field report (same pass): clear pixel gaps between far-field
-  tiles** — actual cracks, distinct from the cosmetic one-sided-normal
-  stitch *lines* already filed. Likely T-junctions where rings of
-  different stride meet (finer edge has vertices the coarser edge
-  lacks) and/or float mismatch at tile borders. Classic cures: edge
-  skirts (DH-style) or matched edge tessellation — but note **FF2a's
-  voxelization plausibly cures the class inherently** (stepped columns
-  are solid-sided prisms; adjacent columns share faces — cracks are a
-  smooth-TIN disease). Verify during FF2a; skirt only what remains.
+- *(**User field report: clear pixel gaps between far-field tiles — RESOLVED**
+  2026-07-19, FF2a journal/0023. The prediction held: voxelization cures the
+  crack class **inherently**. Stepped prisms share face planes; a step's side
+  face is emitted once by the taller column only, and a tile samples its
+  neighbours' shared boundary columns, so same-level tile seams are watertight
+  with no skirt (grazing-angle fullbright shot `0023-fb-grazing-horizon`: no
+  cracks). Only differing-stride ring-to-ring edges and the near/far coverage
+  boundary get a modest 2-coarse-voxel skirt — "skirt only what remains." The
+  faint one-sided-normal stitch *lines* (cosmetic, haze-hidden) stay filed
+  below, unchanged.)*
 
 - **The Voxy-vs-Distant-Horizons thread** *(submission question DECIDED
   2026-07-19 session 3 — docs/design/voxy-dh-recon-2026-07-19.md
   § Addendum: far field rides Bevy 0.19's engine GPU-driven path on the
   one-shared-material `Mesh` substrate; vertex pulling/bespoke cmdgen
-  rejected; packed quad survives only as a candidate storage format.)*
+  rejected; packed quad survives only as a candidate storage format.
+  **Step-0 CONFIRMED** 2026-07-19, FF2a journal/0023: the multidraw path
+  engages for our custom material — live `mode=Culling`, `Opaque3d
+  batches=74 sets=1` on Vulkan; custom vertex attributes don't disqualify
+  batching. Substrate decision is real on this hardware.)*
   Still open from the doc: persistent edit-updated LOD store (summaries
-  beside S3 region files, dirty-rail subscription — still owed); Aokana
-  SVDAG ray-march as the FF2b volumetric candidate. Vista-as-augury
+  beside S3 region files, dirty-rail subscription — still owed; FF2a kept
+  the mesher pure + the `ColumnSpan` payload persistence-shaped so it's a
+  drop-in); Aokana SVDAG ray-march as the FF2b volumetric candidate. Vista-as-augury
   constraint stands (rendering is never an observer — binds when
   live-sim state becomes far-visible).
 

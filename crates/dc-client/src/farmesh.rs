@@ -319,40 +319,138 @@ pub fn position_far_chunks(
 }
 
 // ===========================================================================
-// The worldgen horizon: a coarse-summary heightfield far field (journal/0022).
+// The worldgen horizon: a VOXEL-STEPPED coarse-summary far field (FF2a,
+// journal/0023 — replaces the smooth-TIN heightfield of journal/0022).
 //
 // Under the worldgen authority the far rings are NOT a second terrain: they are
 // the authority's OWN surface, sampled coarsely. Each far *tile* is a 32×32-cell
-// patch of coarse columns whose corner heights come from
+// patch of coarse **columns** whose heights come from
 // `Authority::worldgen_coarse_surface` (the same elevation lattice + river
-// carving the near ground collapses from). We emit only the **top surface** —
-// no sealed cave interiors, no undersides — so a tile is 2·32² triangles instead
-// of a volumetric coarse chunk's shell, and the silhouette is the real terrain's,
-// ~1 km up, not the S1 phantom ~1 km down. Continuity with the near field is by
-// construction: where a far corner lands on a near column the heights are equal
-// (journal/0022); the sheet is sunk half a coarse voxel so the near volumetric
-// terrain wins the overlap band, and pushed slightly away from the viewer so
-// adjacent LOD rings separate in depth (same anti-z-fight reasoning as the S1
-// far mesh above). The tiles are a 2D annulus at the surface, not a 3D shell:
-// looking up from deep in a chasm loses the far field (accepted — this milestone
-// builds the horizon a walker sees from the ground; the volumetric-down case is
-// a noted follow-on).
+// carving the near ground collapses from). Where journal/0022 drew a smooth
+// interpolated sheet, FF2a speaks the voxel language (visuals.md § distance
+// speaks the voxel language): each column's summary height is **quantized to the
+// level's coarse-voxel step** and the tile meshes as stepped prisms — greedy-
+// merged top faces at the quantized height + exposed vertical side faces between
+// neighbour columns of differing height. Still a top surface only (no sealed
+// cave interiors), so a mostly-flat tile is a handful of merged quads, not the
+// old shell's thousands of cave triangles.
+//
+// **Three properties fall out of the voxelization (the FF2a wins):**
+//  - *Near/far parity, no sink hack.* The quantized top FLOORS the sampled
+//    surface to the coarse lattice ([`quantize_top`]), so a far column top is
+//    always ≤ the near-field surface at a coinciding column — the near
+//    volumetric terrain wins the overlap band with no downward "sink" bias. At a
+//    stride-aligned column the far top equals the near voxel top exactly.
+//  - *Crack class cured inherently.* Adjacent columns (within a tile AND across a
+//    same-level tile boundary — both sample the identical shared column) share
+//    face planes; the side face is emitted once, by the taller column only, so
+//    same-level seams are watertight with no T-junctions. Only ring-to-ring
+//    (differing stride) and near/far boundaries get a modest downward skirt.
+//  - *No buried sheet.* Far columns the near volumetric field covers are CULLED
+//    ([`near_covers`]), not lapped underneath — so excavating a near chunk never
+//    exposes a phantom far floor. Seam redundancy is coverage, not buried
+//    geometry (replaces journal/0022 walk-17's one-tile inner lap + half-voxel
+//    sink).
+//
+// Adjacent LOD rings still overlap (the inter-ring lap of [`far_tile_in_ring`])
+// and are pushed slightly away from the viewer so their coplanar faces separate
+// in depth (corrections #1 — draw order can't fix coplanar z-fight; the radial
+// push moves faces apart in real depth). The tiles are a 2-D annulus at the
+// surface: looking up from deep in a chasm still loses the far field (accepted —
+// FF2b's volumetric spans own the chasm case; the per-column payload is already
+// a [`ColumnSpan`] so that extension needs no mesher rewrite).
 // ===========================================================================
 
-/// Far surface tiles generated + meshed per frame (each samples 33² coarse
-/// columns — a warm pyramid makes that ~1 ms). The full horizon fills in a
+/// Far surface tiles generated + meshed per frame. The full horizon fills in a
 /// second or two of streaming, same as the S1 far mesh.
 const FAR_SURFACE_BUDGET_PER_FRAME: usize = 2;
-/// Fraction of a coarse voxel the far sheet is sunk *below* the true surface so
-/// the near-field volumetric terrain occludes it in the overlap band (and so
-/// deeper, larger-voxel rings sit under nearer ones at ring seams).
-const SURFACE_SINK_FRAC: f64 = 0.5;
+/// Horizontal radius (m) within which the near volumetric field is treated as
+/// covering the surface, so far columns there are CULLED rather than buried.
+/// Equals the far-overlap inset of the full-detail radius: the near field
+/// streams a [`FULL_DETAIL_RADIUS_M`] sphere, so culling far columns whose 3-D
+/// distance to the viewer is under this inset leaves exactly the intended
+/// ~[`FAR_OVERLAP_M`] occluded overlap band (far quantized below near, near
+/// opaque on top) and NO deeper buried geometry — the coverage-logic replacement
+/// for journal/0022 walk-17's buried inner lap.
+const NEAR_COVER_R_M: f64 = FULL_DETAIL_RADIUS_M - FAR_OVERLAP_M;
+/// Depth of the ring-transition / near-seam skirt, in this level's coarse
+/// voxels. A stepped tile's *outer* boundary (where the next-coarser ring takes
+/// over, or where the near field culls its columns) drops a short vertical apron
+/// this deep so a stride mismatch at the transition can't open a pixel crack.
+/// Same-level tile boundaries need no skirt (their steps are watertight).
+const RING_SKIRT_COARSE_VOXELS: i64 = 2;
+
+/// An extensible per-column far-field summary span (FF2a). Today a column is a
+/// single solid span described by its quantized `top` (base voxels, N=2 base
+/// scale) and the `block` at the surface. FF2b's coarse *volumetric* summaries
+/// extend a column to a STACK of these (top/bottom pairs with per-span material,
+/// for overhangs and caves) — the stepped mesher already reasons in "a column is
+/// a set of spans with tops and sides", so that extension needs no rewrite here.
+///
+/// **Persistence-shaped** (coordinator amendment 3): this is the payload the
+/// decided follow-on will store beside S3 region files (voxy-dh-recon transfer
+/// map). It is plain fixed-layout POD — no `Option`, no `skip_serializing_if` —
+/// so a positional format (postcard, corrections #3) or the recon doc's compact
+/// 8-byte packed encoding can serialize it verbatim. A tile's spans are derived
+/// per-tile in isolation ([`tile_column_spans`]) and re-derivable on demand, so
+/// edit-driven invalidation is a drop-in, not a rewrite (amendment 2).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ColumnSpan {
+    /// Quantized top, base voxels — a coarse-voxel boundary at or below the
+    /// sampled surface (see [`quantize_top`]).
+    pub top: i32,
+    /// The surface block (drives the atlas layer + fullbright vertex color).
+    pub block: Block,
+}
+
+/// Base voxels per coarse voxel at level L (the sampling / quantization stride).
+#[inline]
+fn level_stride(level: u8) -> i64 {
+    1i64 << level
+}
+
+/// Quantize a base-voxel surface height to the level's coarse-voxel lattice,
+/// FLOORING to the coarse boundary at or below the surface. Flooring is the
+/// mechanism that retires journal/0022's half-voxel sink: the stepped column top
+/// is always ≤ the true (hence the near-field) surface, so the opaque near
+/// terrain wins the overlap band with no bias hack, and a stride-aligned column
+/// matches the near voxel top exactly (quantized-exact parity).
+#[inline]
+fn quantize_top(h: i32, stride: i64) -> i32 {
+    let s = stride as i32;
+    h.div_euclid(s) * s
+}
+
+/// Whether the near volumetric field covers a far column at world `(wx_m, wz_m)`
+/// whose stepped top is at `top_m` — a pure function of the viewer pose, so a
+/// tile's culled set depends only on the viewer and not on near-chunk streaming
+/// progress (deterministic, unit-testable). Altitude-aware: flying far above the
+/// surface grows the vertical term, shrinking the covered disc to nothing, so the
+/// horizon is never culled when viewed from the air (the key-2 high vantage).
+fn near_covers(wx_m: f64, wz_m: f64, top_m: f64, viewer_m: DVec3) -> bool {
+    let dx = wx_m - viewer_m.x;
+    let dz = wz_m - viewer_m.z;
+    let dy = top_m - viewer_m.y;
+    dx * dx + dy * dy + dz * dz < NEAR_COVER_R_M * NEAR_COVER_R_M
+}
+
+/// A loaded far tile's bookkeeping: the mesh entity (`None` = the tile meshed to
+/// nothing — e.g. every column culled by near coverage) and, for tiles near the
+/// near/far seam, the viewer near-chunk the tile's column-cull was computed for.
+/// `Some(chunk)` marks a **seam tile** whose culled column set depends on the
+/// viewer, so it is rebuilt when the viewer crosses into a new near-chunk (the
+/// coverage boundary moved); `None` marks a stable tile with no cullable columns
+/// that never rebuilds for viewer motion.
+pub struct LoadedFarTile {
+    pub entity: Option<Entity>,
+    pub cull_chunk: Option<(i64, i64, i64)>,
+}
 
 /// All loaded far surface tiles (worldgen authority). Keyed by (level, tx, tz);
 /// tiles are a 2D annulus, so there is no chunk-Y in the key.
 #[derive(Resource, Default)]
 pub struct FarSurfaceMap {
-    pub loaded: HashMap<(u8, i32, i32), Option<Entity>>,
+    pub loaded: HashMap<(u8, i32, i32), LoadedFarTile>,
 }
 
 /// A far surface tile entity; its transform is recomputed from f64 every frame
@@ -398,10 +496,12 @@ fn far_tile_center_dist(base: VoxelScale, level: u8, tx: i32, tz: i32, viewer_m:
 /// hole. A boundary point's containing coarser tile has its center within one
 /// coarse half-diagonal (< one tile) of R, so lapping the coarser ring exactly
 /// one of its own tiles inward guarantees that tile is in-band, closing the
-/// seam. The overlapping coarse cells sit under the finer ring and are occluded
-/// by the half-voxel sink, so the overlap costs a few extra tiles and no
-/// visible artifact. For L1 the same inward lap slides the far sheet a full
-/// tile under the near field, killing the grazing-angle slivers at the handoff.
+/// seam. The overlapping coarse cells sit under the finer ring; FF2a floor-
+/// quantizes them below the finer ring's surface (no sink needed) and the radial
+/// depth push separates the coplanar faces. For L1 the inner lap makes tiles
+/// *present* across the near/far band, but their columns under the near field are
+/// CULLED by coverage ([`near_covers`]) rather than buried — the FF2a
+/// replacement for journal/0022's buried lap.
 fn far_tile_in_ring(base: VoxelScale, level: u8, dist: f64) -> bool {
     let inner = RING_EDGES_M[usize::from(level) - 1] - far_tile_m(base, level);
     let outer = RING_EDGES_M[usize::from(level)];
@@ -434,7 +534,14 @@ pub fn wanted_far_tiles(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<(i3
 }
 
 /// The far tile's transform: tile origin (meters) minus the floating origin,
-/// plus the downward surface sink and the radial depth push (see section docs).
+/// plus the radial depth push. **No sink** — the stepped columns are FLOOR-
+/// quantized ([`quantize_top`]) so a far top already sits at or below the near
+/// surface; the near volumetric terrain wins the overlap band with no downward
+/// bias. The radial push survives (corrections #1): overlapping LOD rings still
+/// present coplanar faces where their quantized tops coincide, and draw order
+/// cannot resolve coplanar z-fight — only a real depth offset can. Each level is
+/// pushed `DEPTH_PUSH_FRAC` of its coarse voxel away from the viewer, so deeper
+/// (coarser) rings sit behind nearer ones in the lap band.
 fn far_tile_translation(
     base: VoxelScale,
     level: u8,
@@ -447,108 +554,304 @@ fn far_tile_translation(
     let cvs = coarse_scale(base, level).voxel_size_m();
     let tile_m = cvs * f64::from(CHUNK_SIZE);
     let min = DVec3::new(f64::from(tx) * tile_m, y_ref_m, f64::from(tz) * tile_m);
-    let sink = DVec3::new(0.0, -SURFACE_SINK_FRAC * cvs, 0.0);
     let center = DVec3::new(min.x + tile_m * 0.5, y_ref_m, min.z + tile_m * 0.5);
     let away = (center - viewer_m).normalize_or_zero() * (DEPTH_PUSH_FRAC * cvs);
-    to_render(min + sink + away - origin_m)
+    to_render(min + away - origin_m)
 }
 
-/// Number of corner samples per tile side (33: one more than the 32 cells).
-const TILE_CORNERS: usize = CHUNK_SIZE as usize + 1;
+/// Interior cell count per tile side (32 coarse columns).
+const TILE_CELLS: usize = CHUNK_SIZE as usize;
 
-/// Build one far tile's top-surface heightfield mesh from the coarse summary.
-/// `sample(wx, wz)` returns (surface height in base voxels, surface block) at a
-/// world base-voxel column. Shared-vertex quad sheet (1089 verts, 2048 tris),
-/// smooth normals from the height gradient, world-anchored UVs at base-voxel
-/// density (so tiling matches the near field), one block atlas layer per vertex.
-/// Returns the mesh and the tile's y-reference (min corner height, meters).
+/// Sample a tile's extended column grid: quantized [`ColumnSpan`]s and near-cover
+/// cull flags over indices −1..=`TILE_CELLS` on each axis (an (N+2)² grid). The
+/// interior 0..`TILE_CELLS` is what the tile emits; the −1 / `TILE_CELLS` ring is
+/// neighbour data for watertight boundary side faces (a same-level neighbour tile
+/// samples the shared column identically, so the step matches). `sample(wx, wz)`
+/// returns the summary (surface height in base voxels, surface block) at a world
+/// base-voxel column; every sampled column is a real near column (stride-aligned
+/// base voxel), so quantized tops agree with the near ground by construction.
+fn tile_column_spans(
+    base: VoxelScale,
+    level: u8,
+    tx: i32,
+    tz: i32,
+    viewer_m: DVec3,
+    sample: &dyn Fn(i64, i64) -> (i32, Block),
+) -> (Vec<ColumnSpan>, Vec<bool>) {
+    let stride = level_stride(level);
+    let base_vs = base.voxel_size_m();
+    let m = TILE_CELLS + 2;
+    let mut spans = vec![
+        ColumnSpan {
+            top: 0,
+            block: Block::Stone,
+        };
+        m * m
+    ];
+    let mut culled = vec![false; m * m];
+    for gj in -1..=TILE_CELLS as i64 {
+        for gi in -1..=TILE_CELLS as i64 {
+            let wx = (i64::from(tx) * TILE_CELLS as i64 + gi) * stride;
+            let wz = (i64::from(tz) * TILE_CELLS as i64 + gj) * stride;
+            let (h, block) = sample(wx, wz);
+            let top = quantize_top(h, stride);
+            let k = (gj + 1) as usize * m + (gi + 1) as usize;
+            spans[k] = ColumnSpan { top, block };
+            culled[k] = near_covers(
+                wx as f64 * base_vs,
+                wz as f64 * base_vs,
+                f64::from(top) * base_vs,
+                viewer_m,
+            );
+        }
+    }
+    (spans, culled)
+}
+
+/// Build one far tile's VOXEL-STEPPED mesh (FF2a) — a **pure function** of plain
+/// data: the extended quantized column `spans` (an (N+2)² grid: interior 0..N
+/// plus a one-cell neighbour ring), the near-coverage `culled` mask over the same
+/// grid, and `ring_edges` (per tile side: does it face a coarser ring / world
+/// rim?). No ECS/world/authority read happens here — coverage is passed in as
+/// data (coordinator amendment 1), so async far-meshing (a filed follow-on) is a
+/// drop-in and the mesher is trivially testable.
+///
+/// Emits greedy-merged top faces at each column's quantized height, exposed
+/// vertical side faces between neighbour columns of differing height (emitted
+/// once, by the taller column, so same-level tile seams are watertight and never
+/// double-wall), and a modest downward skirt where a coarser ring takes over or
+/// the near field culls the column. Returns the mesh and the tile's y-reference
+/// (min emitted top, meters) — positions are tile-local so the absolute height
+/// rides in the transform (floating-origin discipline). Order of `ring_edges`
+/// matches the side-face direction order: +X, −X, +Z, −Z.
 fn build_far_tile_mesh(
     base: VoxelScale,
     level: u8,
     tx: i32,
     tz: i32,
-    sample: &dyn Fn(i64, i64) -> (i32, Block),
+    spans: &[ColumnSpan],
+    culled: &[bool],
+    ring_edges: [bool; 4],
 ) -> (MeshData, f64) {
-    const N: usize = TILE_CORNERS;
-    let stride = 1i64 << level; // base voxels per coarse voxel
+    let stride = level_stride(level);
     let base_vs = base.voxel_size_m();
-    let cvs = base_vs * stride as f64; // coarse voxel size (horizontal spacing)
-    let corner_world = |i: usize, j: usize| -> (i64, i64) {
-        (
-            (i64::from(tx) * i64::from(CHUNK_SIZE) + i as i64) * stride,
-            (i64::from(tz) * i64::from(CHUNK_SIZE) + j as i64) * stride,
-        )
-    };
+    let n = TILE_CELLS;
+    let m = n + 2;
+    debug_assert_eq!(spans.len(), m * m);
+    debug_assert_eq!(culled.len(), m * m);
+    let idx = |i: i64, j: i64| -> usize { (j + 1) as usize * m + (i + 1) as usize };
 
-    let mut hgt = [0i32; N * N];
-    let mut blk = [Block::Stone; N * N];
-    for j in 0..N {
-        for i in 0..N {
-            let (wx, wz) = corner_world(i, j);
-            let (h, b) = sample(wx, wz);
-            hgt[j * N + i] = h;
-            blk[j * N + i] = b;
+    let ox = i64::from(tx) * n as i64 * stride;
+    let oz = i64::from(tz) * n as i64 * stride;
+
+    // y_ref = the lowest emitted (unculled) top. If every column is culled by
+    // near coverage, the tile draws nothing.
+    let mut min_top: Option<i32> = None;
+    for j in 0..n as i64 {
+        for i in 0..n as i64 {
+            if !culled[idx(i, j)] {
+                let t = spans[idx(i, j)].top;
+                min_top = Some(min_top.map_or(t, |mt| mt.min(t)));
+            }
         }
     }
-    let min_h = hgt.iter().copied().min().unwrap_or(0);
-    let y_ref = f64::from(min_h) * base_vs;
+    let Some(min_top) = min_top else {
+        return (MeshData::default(), 0.0);
+    };
+    let y_ref = f64::from(min_top) * base_vs;
 
     let mut mesh = MeshData::default();
-    for j in 0..N {
-        for i in 0..N {
-            let h_m = f64::from(hgt[j * N + i]) * base_vs;
+    // Push one quad (4 world-base-voxel corners, ccw seen from outside) with the
+    // block's atlas layer / fullbright color and a world-anchored UV.
+    let mut push_quad = |corners: [[f64; 3]; 4], normal: [i64; 3], block: Block| {
+        let b = mesh.positions.len() as u32;
+        let nrm = [normal[0] as f32, normal[1] as f32, normal[2] as f32];
+        let color = face_color(block, normal[1]);
+        let layer = block_layer(block);
+        for c in corners {
+            let (fx, fy, fz) = (c[0], c[1], c[2]);
             mesh.positions.push([
-                (i as f64 * cvs) as f32,
-                (h_m - y_ref) as f32,
-                (j as f64 * cvs) as f32,
+                ((fx - ox as f64) * base_vs) as f32,
+                (fy * base_vs - y_ref) as f32,
+                ((fz - oz as f64) * base_vs) as f32,
             ]);
-            // Smooth normal from the height gradient (central difference where
-            // it has both neighbours, one-sided at the tile edge).
-            let (il, ir) = (i.saturating_sub(1), (i + 1).min(N - 1));
-            let (jl, jr) = (j.saturating_sub(1), (j + 1).min(N - 1));
-            let span_x = (ir - il) as f64 * cvs;
-            let span_z = (jr - jl) as f64 * cvs;
-            let dhx = if span_x > 0.0 {
-                f64::from(hgt[j * N + ir] - hgt[j * N + il]) * base_vs / span_x
+            mesh.normals.push(nrm);
+            mesh.colors.push(color);
+            // World-anchored UV in base-voxel units: the two in-plane world axes
+            // for this face orientation, so the texture tiles at the near-ground
+            // pitch (a coarse quad spans `stride` tile units).
+            let uv = if normal[1] != 0 {
+                [fx as f32, fz as f32]
+            } else if normal[0] != 0 {
+                [fz as f32, fy as f32]
             } else {
-                0.0
+                [fx as f32, fy as f32]
             };
-            let dhz = if span_z > 0.0 {
-                f64::from(hgt[jr * N + i] - hgt[jl * N + i]) * base_vs / span_z
-            } else {
-                0.0
-            };
-            let nrm = DVec3::new(-dhx, 1.0, -dhz).normalize();
-            mesh.normals
-                .push([nrm.x as f32, nrm.y as f32, nrm.z as f32]);
-            let block = blk[j * N + i];
-            mesh.colors.push(face_color(block, 1));
-            let (wx, wz) = corner_world(i, j);
-            // World-anchored UV at base-voxel density (the near field's units):
-            // a coarse quad spans `stride` tile units, so the texture repeats at
-            // the same pitch as the near ground, not stretched one-per-cell.
-            mesh.uvs.push([wx as f32, wz as f32]);
-            mesh.mat_layers.push([block_layer(block), 0, 0, 0]);
+            mesh.uvs.push(uv);
+            mesh.mat_layers.push([layer, 0, 0, 0]);
             mesh.mat_weights.push([1.0, 0.0, 0.0, 0.0]);
         }
-    }
-    // Two triangles per cell, wound +Y-up (matches the near mesher's +Y face so
-    // backface culling keeps the top visible).
-    for j in 0..N - 1 {
-        for i in 0..N - 1 {
-            let v00 = (j * N + i) as u32;
-            let v01 = ((j + 1) * N + i) as u32;
-            let v11 = ((j + 1) * N + i + 1) as u32;
-            let v10 = (j * N + i + 1) as u32;
-            mesh.indices.extend([v00, v01, v11, v00, v11, v10]);
+        mesh.indices.extend([b, b + 1, b + 2, b, b + 2, b + 3]);
+    };
+
+    // --- Greedy-merged top faces -------------------------------------------
+    let mut consumed = vec![false; n * n];
+    for j0 in 0..n {
+        for i0 in 0..n {
+            if consumed[j0 * n + i0] || culled[idx(i0 as i64, j0 as i64)] {
+                continue;
+            }
+            let span0 = spans[idx(i0 as i64, j0 as i64)];
+            let mut w = 1;
+            while i0 + w < n
+                && !consumed[j0 * n + i0 + w]
+                && !culled[idx((i0 + w) as i64, j0 as i64)]
+                && spans[idx((i0 + w) as i64, j0 as i64)] == span0
+            {
+                w += 1;
+            }
+            let mut h = 1;
+            'grow: while j0 + h < n {
+                for k in 0..w {
+                    let (ii, jj) = ((i0 + k) as i64, (j0 + h) as i64);
+                    if consumed[(j0 + h) * n + i0 + k]
+                        || culled[idx(ii, jj)]
+                        || spans[idx(ii, jj)] != span0
+                    {
+                        break 'grow;
+                    }
+                }
+                h += 1;
+            }
+            for jj in j0..j0 + h {
+                for ii in i0..i0 + w {
+                    consumed[jj * n + ii] = true;
+                }
+            }
+            let (x0, x1) = (ox + i0 as i64 * stride, ox + (i0 + w) as i64 * stride);
+            let (z0, z1) = (oz + j0 as i64 * stride, oz + (j0 + h) as i64 * stride);
+            let ty = f64::from(span0.top);
+            // +Y top, ccw seen from above (matches the near mesher's +Y winding).
+            push_quad(
+                [
+                    [x0 as f64, ty, z0 as f64],
+                    [x0 as f64, ty, z1 as f64],
+                    [x1 as f64, ty, z1 as f64],
+                    [x1 as f64, ty, z0 as f64],
+                ],
+                [0, 1, 0],
+                span0.block,
+            );
         }
     }
+
+    // --- Side faces + skirts ------------------------------------------------
+    let skirt = (RING_SKIRT_COARSE_VOXELS * stride) as i32;
+    // The four neighbour directions, tagged with their `ring_edges` index (+X,
+    // −X, +Z, −Z): a cell on that tile edge whose `ring_edges` flag is set faces
+    // a coarser ring / the world rim and gets a downward skirt.
+    let dirs: [(i64, i64, [i64; 3], usize); 4] = [
+        (1, 0, [1, 0, 0], 0),
+        (-1, 0, [-1, 0, 0], 1),
+        (0, 1, [0, 0, 1], 2),
+        (0, -1, [0, 0, -1], 3),
+    ];
+    for j in 0..n as i64 {
+        for i in 0..n as i64 {
+            if culled[idx(i, j)] {
+                continue;
+            }
+            let top = spans[idx(i, j)].top;
+            let block = spans[idx(i, j)].block;
+            for (di, dj, normal, edge_ix) in dirs {
+                let (ni, nj) = (i + di, j + dj);
+                let neighbor_top = spans[idx(ni, nj)].top;
+                let neighbor_culled = culled[idx(ni, nj)];
+                let out_of_tile = !(0..n as i64).contains(&ni) || !(0..n as i64).contains(&nj);
+                let ring_edge = out_of_tile && ring_edges[edge_ix];
+
+                let bottom = if neighbor_culled {
+                    // Near/far seam: the near field covers the neighbour, so drop
+                    // a skirt to hide the handoff crack (never step *up* to it).
+                    top - skirt
+                } else if ring_edge {
+                    // Ring/world outer boundary: down to the neighbour, then a
+                    // skirt below to cover the coarser ring's differing stride.
+                    neighbor_top.min(top) - skirt
+                } else if neighbor_top < top {
+                    // Ordinary exposed step: the taller column walls down to the
+                    // shorter neighbour, emitted once (only the taller side sees
+                    // neighbour < top) — so same-level seams never double-wall.
+                    neighbor_top
+                } else {
+                    continue;
+                };
+                if bottom >= top {
+                    continue;
+                }
+
+                let (cx0, cx1) = ((ox + i * stride) as f64, (ox + (i + 1) * stride) as f64);
+                let (cz0, cz1) = ((oz + j * stride) as f64, (oz + (j + 1) * stride) as f64);
+                let (ylo, yhi) = (f64::from(bottom), f64::from(top));
+                let corners = match normal {
+                    [1, 0, 0] => [
+                        [cx1, ylo, cz0],
+                        [cx1, yhi, cz0],
+                        [cx1, yhi, cz1],
+                        [cx1, ylo, cz1],
+                    ],
+                    [-1, 0, 0] => [
+                        [cx0, ylo, cz1],
+                        [cx0, yhi, cz1],
+                        [cx0, yhi, cz0],
+                        [cx0, ylo, cz0],
+                    ],
+                    [0, 0, 1] => [
+                        [cx1, ylo, cz1],
+                        [cx1, yhi, cz1],
+                        [cx0, yhi, cz1],
+                        [cx0, ylo, cz1],
+                    ],
+                    _ => [
+                        [cx0, ylo, cz0],
+                        [cx0, yhi, cz0],
+                        [cx1, yhi, cz0],
+                        [cx1, ylo, cz0],
+                    ],
+                };
+                push_quad(corners, normal, block);
+            }
+        }
+    }
+
     (mesh, y_ref)
 }
 
-/// Stream the worldgen horizon: the coarse-summary surface heightfield rings.
+/// The viewer's near-field chunk (base-voxel chunk coords) — the granularity at
+/// which the coverage cull is refreshed. A seam tile rebuilt for one near-chunk
+/// stays valid until the viewer crosses into the next (~one near chunk of
+/// motion), keeping the cull boundary fresh without per-frame churn.
+fn viewer_near_chunk(base: VoxelScale, viewer: DVec3) -> (i64, i64, i64) {
+    (
+        base.voxel_at(viewer.x).div_euclid(i64::from(CHUNK_SIZE)),
+        base.voxel_at(viewer.y).div_euclid(i64::from(CHUNK_SIZE)),
+        base.voxel_at(viewer.z).div_euclid(i64::from(CHUNK_SIZE)),
+    )
+}
+
+/// Whether a tile is close enough to the viewer that some of its columns could be
+/// culled by near coverage — the band where the coverage cull is viewer-relative
+/// and must be refreshed as the viewer moves.
+fn tile_in_cull_band(base: VoxelScale, level: u8, tx: i32, tz: i32, viewer: DVec3) -> bool {
+    far_tile_center_dist(base, level, tx, tz, viewer) < NEAR_COVER_R_M + far_tile_m(base, level)
+}
+
+/// Stream the worldgen horizon: the voxel-stepped coarse-summary rings (FF2a).
 /// Runs only under the worldgen authority; the S1 authority uses
-/// [`stream_far_chunks`]. Budgeted/incremental like the S1 far mesh.
+/// [`stream_far_chunks`]. Budgeted/incremental like the S1 far mesh. Beyond
+/// filling newly-wanted tiles, it refreshes **seam tiles** in place (no blink)
+/// when the viewer crosses into a new near-chunk, so the near-coverage column
+/// cull tracks the moving near field (the buried-sheet fix).
 #[allow(clippy::too_many_arguments)]
 pub fn stream_far_surface(
     mut commands: Commands,
@@ -566,8 +869,8 @@ pub fn stream_far_surface(
     // the S1 authority is active (keys 3/4).
     if !authority.far_field_is_worldgen() {
         if !map.loaded.is_empty() {
-            for (_, e) in map.loaded.drain() {
-                if let Some(e) = e {
+            for (_, t) in map.loaded.drain() {
+                if let Some(e) = t.entity {
                     commands.entity(e).despawn();
                 }
             }
@@ -578,23 +881,24 @@ pub fn stream_far_surface(
     let base = scale.scale;
     // Scale switched: tiles are per-scale, rebuild them.
     if scale.is_changed() && !map.loaded.is_empty() {
-        for (_, e) in map.loaded.drain() {
-            if let Some(e) = e {
+        for (_, t) in map.loaded.drain() {
+            if let Some(e) = t.entity {
                 commands.entity(e).despawn();
             }
         }
     }
 
-    // Unload tiles that left their ring (horizontal distance, hysteresis).
+    let viewer = player.pos_m;
+    let cur_chunk = viewer_near_chunk(base, viewer);
+
+    // Unload tiles that left their ring (horizontal distance, hysteresis). The
+    // inner bound matches the one-tile ring lap of `far_tile_in_ring` so lapped
+    // tiles don't load-then-immediately-unload (journal/0022 walk 17).
     let to_unload: Vec<(u8, i32, i32)> = map
         .loaded
         .keys()
         .filter(|(level, tx, tz)| {
-            let d = far_tile_center_dist(base, *level, *tx, *tz, player.pos_m);
-            // Match the one-tile inner overlap of `far_tile_in_ring` so lapped
-            // tiles don't load-then-immediately-unload (a coarse tile's own size
-            // exceeds the slack, so keying the unload to the un-lapped inner
-            // would thrash the whole overlap band — journal/0022 walk 17 fix).
+            let d = far_tile_center_dist(base, *level, *tx, *tz, viewer);
             let inner = RING_EDGES_M[usize::from(*level) - 1] - far_tile_m(base, *level);
             let outer = RING_EDGES_M[usize::from(*level)];
             d < inner - FAR_UNLOAD_SLACK_M || d > outer + FAR_UNLOAD_SLACK_M
@@ -602,38 +906,87 @@ pub fn stream_far_surface(
         .copied()
         .collect();
     for key in to_unload {
-        if let Some(Some(e)) = map.loaded.remove(&key) {
+        if let Some(t) = map.loaded.remove(&key)
+            && let Some(e) = t.entity
+        {
             commands.entity(e).despawn();
         }
     }
 
-    // Collect missing tiles across all rings, nearest first.
+    // Newly-wanted (missing) tiles, nearest first — these appear the horizon.
     let mut missing: Vec<(u64, u8, i32, i32)> = Vec::new();
     for level in 1..=4u8 {
-        for (tx, tz) in wanted_far_tiles(base, player.pos_m, level) {
+        for (tx, tz) in wanted_far_tiles(base, viewer, level) {
             if !map.loaded.contains_key(&(level, tx, tz)) {
-                let d = far_tile_center_dist(base, level, tx, tz, player.pos_m);
+                let d = far_tile_center_dist(base, level, tx, tz, viewer);
                 missing.push(((d * 1000.0) as u64, level, tx, tz));
             }
         }
     }
     missing.sort_unstable_by_key(|(d, _, _, _)| *d);
 
-    for (_, level, tx, tz) in missing.into_iter().take(FAR_SURFACE_BUDGET_PER_FRAME) {
-        let sample = |wx: i64, wz: i64| {
-            authority
-                .worldgen_coarse_surface(wx, wz)
-                .expect("worldgen far-field summary under the worldgen authority")
+    // Seam tiles whose coverage cull is stale: either they were built for a
+    // different near-chunk, or they are newly in the cull band and have never
+    // been culled. Refreshed in place (no blink), nearest first, with leftover
+    // budget after the missing fills — staleness in the occluded overlap band is
+    // invisible, so the horizon (missing) takes priority.
+    let mut stale: Vec<(u64, u8, i32, i32)> = Vec::new();
+    for (&(level, tx, tz), t) in &map.loaded {
+        let in_band = tile_in_cull_band(base, level, tx, tz, viewer);
+        let needs = match t.cull_chunk {
+            Some(c) => c != cur_chunk,
+            None => in_band,
         };
-        let (mesh_data, y_ref) = build_far_tile_mesh(base, level, tx, tz, &sample);
+        if needs {
+            let d = far_tile_center_dist(base, level, tx, tz, viewer);
+            stale.push(((d * 1000.0) as u64, level, tx, tz));
+        }
+    }
+    stale.sort_unstable_by_key(|(d, _, _, _)| *d);
+
+    let sample = |wx: i64, wz: i64| {
+        authority
+            .worldgen_coarse_surface(wx, wz)
+            .expect("worldgen far-field summary under the worldgen authority")
+    };
+    // Derive the tile's summary + coverage inputs here (the impure boundary:
+    // reads the authority + viewer), then mesh purely from that plain data.
+    let ring_edges_of = |level: u8, tx: i32, tz: i32| -> [bool; 4] {
+        let edge = |ntx: i32, ntz: i32| {
+            !far_tile_in_ring(
+                base,
+                level,
+                far_tile_center_dist(base, level, ntx, ntz, viewer),
+            )
+        };
+        [
+            edge(tx + 1, tz),
+            edge(tx - 1, tz),
+            edge(tx, tz + 1),
+            edge(tx, tz - 1),
+        ]
+    };
+    let build = |commands: &mut Commands,
+                 meshes: &mut Assets<Mesh>,
+                 level: u8,
+                 tx: i32,
+                 tz: i32|
+     -> LoadedFarTile {
+        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, &sample);
+        let ring_edges = ring_edges_of(level, tx, tz);
+        let (mesh_data, y_ref) =
+            build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges);
+        let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer).then_some(cur_chunk);
+        if mesh_data.is_empty() {
+            // Every column culled (fully under the near field): a real, tracked
+            // "meshed to nothing" so it isn't re-attempted every frame.
+            return LoadedFarTile {
+                entity: None,
+                cull_chunk,
+            };
+        }
         let transform = Transform::from_translation(far_tile_translation(
-            base,
-            level,
-            tx,
-            tz,
-            y_ref,
-            player.pos_m,
-            origin.0,
+            base, level, tx, tz, y_ref, viewer, origin.0,
         ));
         let mut ent = commands.spawn((
             Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
@@ -650,7 +1003,32 @@ pub fn stream_far_surface(
         } else {
             ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
         }
-        map.loaded.insert((level, tx, tz), Some(ent.id()));
+        LoadedFarTile {
+            entity: Some(ent.id()),
+            cull_chunk,
+        }
+    };
+
+    let mut budget = FAR_SURFACE_BUDGET_PER_FRAME;
+    for (_, level, tx, tz) in missing {
+        if budget == 0 {
+            break;
+        }
+        let loaded = build(&mut commands, &mut meshes, level, tx, tz);
+        map.loaded.insert((level, tx, tz), loaded);
+        budget -= 1;
+    }
+    for (_, level, tx, tz) in stale {
+        if budget == 0 {
+            break;
+        }
+        let old = map.loaded.get(&(level, tx, tz)).and_then(|t| t.entity);
+        let loaded = build(&mut commands, &mut meshes, level, tx, tz);
+        if let Some(e) = old {
+            commands.entity(e).despawn();
+        }
+        map.loaded.insert((level, tx, tz), loaded);
+        budget -= 1;
     }
 }
 
@@ -740,50 +1118,229 @@ mod tests {
         }
     }
 
+    /// Mesh a tile for tests: derive spans + coverage from `sample`/`viewer`,
+    /// then run the pure mesher. `ring_edges` all false = an interior tile with
+    /// same-level neighbours on every side.
+    fn mesh_tile(
+        base: VoxelScale,
+        level: u8,
+        tx: i32,
+        tz: i32,
+        viewer: DVec3,
+        ring_edges: [bool; 4],
+        sample: &dyn Fn(i64, i64) -> (i32, Block),
+    ) -> (MeshData, f64) {
+        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, sample);
+        build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges)
+    }
+
+    /// A viewer far enough that `near_covers` never fires — isolates meshing from
+    /// the coverage cull.
+    const FAR_VIEWER: DVec3 = DVec3::new(1.0e6, 1.0e6, 1.0e6);
+
     #[test]
-    fn far_tile_is_a_top_surface_sheet() {
-        // A far tile is the TOP surface only — 32×32 cells × 2 triangles, no
-        // sealed cave interiors or undersides (the S3 far-mesh waste is gone).
-        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
-        let sample = |wx: i64, wz: i64| (((wx + wz).rem_euclid(7)) as i32, Block::Grass);
-        let (mesh, _y) = build_far_tile_mesh(base, 1, 3, -2, &sample);
-        assert_eq!(mesh.triangle_count(), 2 * 32 * 32);
-        assert_eq!(mesh.positions.len(), TILE_CORNERS * TILE_CORNERS);
-        assert_eq!(mesh.mat_layers.len(), mesh.positions.len());
-        assert_eq!(mesh.uvs.len(), mesh.positions.len());
-        // Every normal points up — a heightfield sheet, and the +Y winding keeps
-        // the top visible under backface culling.
-        for n in &mesh.normals {
-            assert!(n[1] > 0.0, "far surface normal not up: {n:?}");
+    fn quantize_top_floors_to_the_coarse_lattice() {
+        // Floor to the level's coarse voxel: always ≤ h, exact when aligned, and
+        // never off by a whole coarse voxel (the no-sink downward bias).
+        for level in 0..=4u8 {
+            let s = level_stride(level);
+            for h in -40i32..=40 {
+                let q = quantize_top(h, s);
+                assert_eq!(q % s as i32, 0, "not on the coarse lattice");
+                assert!(q <= h, "quantized top rose above the surface");
+                assert!(
+                    h - q < s as i32,
+                    "quantization error exceeds a coarse voxel"
+                );
+            }
         }
-        // Block-colored: one atlas layer at full weight, no splat mix.
+    }
+
+    #[test]
+    fn far_tile_is_stepped_voxel_columns_not_a_smooth_sheet() {
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        // A flat tile greedy-merges its whole top to ONE quad (2 tris), with no
+        // side faces (equal neighbours, interior edges) — the voxel-language win.
+        let flat = |_wx: i64, _wz: i64| (20i32, Block::Grass);
+        let (mesh, _y) = mesh_tile(base, 1, 0, 0, FAR_VIEWER, [false; 4], &flat);
+        assert_eq!(
+            mesh.triangle_count(),
+            2,
+            "flat tile should merge to one quad"
+        );
+        for n in &mesh.normals {
+            assert_eq!(n[1], 1.0, "flat top normals point straight up");
+        }
+
+        // A stepped surface emits horizontal side faces (the voxel steps) — a
+        // smooth TIN never would.
+        let stepped = |wx: i64, _wz: i64| {
+            let cell = wx.div_euclid(level_stride(1));
+            (if cell.rem_euclid(2) == 0 { 6 } else { 12 }, Block::Stone)
+        };
+        let (mesh, yr) = mesh_tile(base, 1, 0, 0, FAR_VIEWER, [false; 4], &stepped);
+        let has_side = mesh.normals.iter().any(|n| n[1] == 0.0);
+        assert!(has_side, "stepped columns must emit vertical side faces");
+        // Every emitted top sits on the coarse lattice (steps, not a slope).
+        let base_vs = base.voxel_size_m() as f32;
+        for (p, nrm) in mesh.positions.iter().zip(&mesh.normals) {
+            if nrm[1] > 0.0 {
+                let world_y = p[1] + (yr as f32);
+                let steps = world_y / (base_vs * level_stride(1) as f32);
+                assert!((steps - steps.round()).abs() < 1e-3, "top off the lattice");
+            }
+        }
+        // Block-colored, single atlas layer at full weight (one shared material).
         for w in &mesh.mat_weights {
             assert_eq!(*w, [1.0, 0.0, 0.0, 0.0]);
         }
     }
 
     #[test]
-    fn far_tile_corner_y_equals_sampled_height() {
-        // The mesh faithfully carries the summary: a corner's world Y (local +
-        // y_ref) equals the sampled surface height at that world column.
+    fn far_columns_quantize_the_near_ground_below_it() {
+        // Near/far parity, quantized-exact and no sink: the far column top equals
+        // floor(near_height / stride) * stride, is never above the near surface,
+        // and is within one coarse voxel of it.
+        use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        });
+        let mut g = WorldGenerator::new(&pregen);
+        for level in 1..=3u8 {
+            let stride = level_stride(level);
+            for j in 0..8i64 {
+                for i in 0..8i64 {
+                    let (wx, wz) = (i * stride, j * stride);
+                    let (h, _) = g.coarse_surface(wx, wz);
+                    let col = g.column_record(wx.div_euclid(32), wz.div_euclid(32));
+                    let (lx, lz) = (wx.rem_euclid(32) as usize, wz.rem_euclid(32) as usize);
+                    let near = col.heights[lz * 32 + lx];
+                    assert_eq!(h, near, "far summary must equal the near column height");
+                    let q = quantize_top(h, stride);
+                    assert_eq!(
+                        q,
+                        near.div_euclid(stride as i32) * stride as i32,
+                        "quantized-exact parity"
+                    );
+                    assert!(q <= near, "far top rose above near (would need a sink)");
+                    assert!(near - q < stride as i32, "error exceeds one coarse voxel");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn near_coverage_culls_far_columns_instead_of_burying_them() {
         let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
-        let base_vs = base.voxel_size_m();
-        let h_at = |wx: i64, wz: i64| (wx.rem_euclid(5) + wz.rem_euclid(3)) as i32;
-        let sample = |wx: i64, wz: i64| (h_at(wx, wz), Block::Stone);
-        let (mesh, y_ref) = build_far_tile_mesh(base, 2, 1, -1, &sample);
-        let stride = 1i64 << 2;
-        let n = TILE_CORNERS;
-        let (i, j) = (5usize, 7usize);
-        let (wx, wz) = (
-            (i64::from(1) * i64::from(CHUNK_SIZE) + i as i64) * stride,
-            (i64::from(-1) * i64::from(CHUNK_SIZE) + j as i64) * stride,
-        );
-        let expect = f64::from(h_at(wx, wz)) * base_vs;
-        let got = f64::from(mesh.positions[j * n + i][1]) + y_ref;
+        let surf = 100i32;
+        let surf_m = f64::from(surf) * base.voxel_size_m();
+        let sample = |_wx: i64, _wz: i64| (surf, Block::Grass);
+
+        // A distant viewer culls nothing — the full horizon renders.
+        let (_s, culled_far) = tile_column_spans(base, 1, 0, 0, FAR_VIEWER, &sample);
         assert!(
-            (got - expect).abs() < 1e-3,
-            "corner Y {got} != sampled {expect}"
+            culled_far.iter().all(|c| !c),
+            "distant viewer culls no columns"
         );
+
+        // A viewer standing on the surface at the L1 tile's centre puts every
+        // column inside NEAR_COVER_R (an L1 tile is ~57 m < 112 m), so the tile is
+        // fully covered and meshes to NOTHING — no buried sheet to dig into.
+        let tile_m = far_tile_m(base, 1);
+        let centre = DVec3::new(tile_m * 0.5, surf_m, tile_m * 0.5);
+        let (spans, culled) = tile_column_spans(base, 1, 0, 0, centre, &sample);
+        assert!(
+            culled.iter().all(|&c| c),
+            "a tile under the near field must have all columns culled"
+        );
+        let (mesh, _y) = build_far_tile_mesh(base, 1, 0, 0, &spans, &culled, [false; 4]);
+        assert!(
+            mesh.is_empty(),
+            "a fully-covered tile draws nothing (coverage, not buried geometry)"
+        );
+    }
+
+    /// FF2a scale-headroom checkpoint (deliverable 4). Measures REAL per-tile
+    /// vertex bytes + build time on the worldgen authority across the current
+    /// 1.2 km field, then projects tile count / memory for a 5–10 km draw
+    /// distance (the design target). Run with `--nocapture` to read the numbers;
+    /// as a test it just asserts the field is non-empty and bounded. Does NOT
+    /// change the shipped radius.
+    #[test]
+    fn scale_headroom_checkpoint() {
+        use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
+        use std::cell::RefCell;
+        use std::time::Instant;
+
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Medium,
+        });
+        let g = RefCell::new(WorldGenerator::new(&pregen));
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        let sample = |wx: i64, wz: i64| g.borrow_mut().coarse_surface(wx, wz);
+        // Viewer high above so nothing is coverage-culled — worst case (every
+        // wanted tile emits its full stepped geometry).
+        let viewer = DVec3::new(0.0, 5000.0, 0.0);
+
+        // pos(12) + normal(12) + color(16) + uv(8) + layers(16) + weights(16).
+        const BYTES_PER_VERT: usize = 12 + 12 + 16 + 8 + 16 + 16;
+        let mut tiles = 0usize;
+        let mut tris = 0usize;
+        let mut verts = 0usize;
+        let mut per_ring = [0usize; 5];
+        let t0 = Instant::now();
+        for level in 1..=4u8 {
+            for (tx, tz) in wanted_far_tiles(base, viewer, level) {
+                let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, &sample);
+                let (mesh, _y) =
+                    build_far_tile_mesh(base, level, tx, tz, &spans, &culled, [true; 4]);
+                tiles += 1;
+                per_ring[level as usize] += 1;
+                tris += mesh.triangle_count();
+                verts += mesh.positions.len();
+            }
+        }
+        let elapsed = t0.elapsed();
+        let mesh_bytes = verts * BYTES_PER_VERT + tris * 3 * 4;
+        let avg_tile_bytes = mesh_bytes / tiles.max(1);
+        let ms_per_tile = elapsed.as_secs_f64() * 1e3 / tiles.max(1) as f64;
+        // Projection: extend by doubling LOD rings; tiles-per-ring stays ~flat
+        // (annulus area and tile area both scale ~4× per doubling). Extra rings
+        // to reach R from the current 1.2 km outer edge:
+        let tiles_per_ring = tiles / 4;
+        let project = |r: f64| -> (usize, f64) {
+            let extra = (r / RING_EDGES_M[4]).log2().ceil().max(0.0) as usize;
+            let t = tiles + extra * tiles_per_ring;
+            (t, (t * avg_tile_bytes) as f64 / 1_048_576.0)
+        };
+        let (t5, mb5) = project(5_000.0);
+        let (t10, mb10) = project(10_000.0);
+        println!("\n=== FF2a scale-headroom checkpoint (worst case: no coverage cull) ===");
+        println!("bytes/vertex = {BYTES_PER_VERT} (pos+nrm+col+uv+layers+weights)");
+        println!(
+            "current 1.2 km field: {tiles} tiles {per_ring:?} (L1..L4), {tris} tris, {verts} verts",
+        );
+        println!(
+            "  mesh memory {:.2} MiB, avg {avg_tile_bytes} bytes/tile ({:.1} tris/tile avg)",
+            mesh_bytes as f64 / 1_048_576.0,
+            tris as f64 / tiles.max(1) as f64,
+        );
+        println!(
+            "  derive+mesh {:.3} s total, {ms_per_tile:.3} ms/tile (budget 2 tiles/frame)",
+            elapsed.as_secs_f64(),
+        );
+        println!("projected 5 km:  ~{t5} tiles, ~{mb5:.1} MiB mesh");
+        println!("projected 10 km: ~{t10} tiles, ~{mb10:.1} MiB mesh");
+        println!(
+            "per-frame meshing stays ~{:.3} ms (2 tiles) regardless of radius — no hitch; \
+             full 10 km fill ~{:.1} s at 2 tiles/frame @60fps\n",
+            2.0 * ms_per_tile,
+            t10 as f64 / 2.0 / 60.0,
+        );
+        assert!(tiles > 0, "the far field must produce tiles");
+        assert!(avg_tile_bytes < 200_000, "per-tile mesh unexpectedly large");
     }
 
     /// The milestone's continuity guarantee, measured: every far-horizon corner

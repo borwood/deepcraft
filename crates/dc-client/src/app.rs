@@ -196,6 +196,7 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     }))
     .add_plugins(PostStagePlugin { pack_selector })
     .add_plugins(TerrainMaterialPlugin)
+    .add_plugins(GpuProbePlugin)
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
     .insert_resource(far_terrain)
@@ -242,6 +243,74 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
         app.insert_resource(bridge);
     }
     app.run();
+}
+
+/// FF2a step-0 instrumentation (env-gated by `DC_GPU_PROBE`, zero cost when
+/// unset): does Bevy 0.19's GPU-driven multidraw path engage for our custom
+/// `TerrainMaterial` meshes? Adds a render-app system that, after the phase
+/// buffers are collected, logs the device's `GpuPreprocessingMode` and the count
+/// of GPU-built indirect draw batches / multidraw sets for the `Opaque3d` phase
+/// (which our lit terrain — near chunks + far tiles, one shared material — draws
+/// into). `mode == Culling` with `batch_count > 0` proves indirect multidraw is
+/// engaged; `sets < batches` proves meshes are merged into shared multidraws.
+struct GpuProbePlugin;
+
+impl Plugin for GpuProbePlugin {
+    fn build(&self, app: &mut App) {
+        use bevy::render::batching::gpu_preprocessing::{
+            GpuPreprocessingMode, GpuPreprocessingSupport, IndirectParametersBuffers,
+        };
+        use bevy::render::{Render, RenderApp, RenderSystems};
+
+        if std::env::var("DC_GPU_PROBE").is_err() {
+            return;
+        }
+        let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
+            return;
+        };
+        render_app.add_systems(
+            Render,
+            probe_gpu_driven.after(RenderSystems::PrepareResourcesCollectPhaseBuffers),
+        );
+
+        fn probe_gpu_driven(
+            support: Res<GpuPreprocessingSupport>,
+            indirect: Res<IndirectParametersBuffers>,
+            mut frame: Local<u32>,
+        ) {
+            *frame += 1;
+            // Warm up (let terrain + far tiles stream) then log every ~2 s.
+            if *frame < 180 || !(*frame).is_multiple_of(120) {
+                return;
+            }
+            let mode = match support.max_supported_mode {
+                GpuPreprocessingMode::None => "None (CPU uniforms, direct draws)",
+                GpuPreprocessingMode::PreprocessingOnly => {
+                    "PreprocessingOnly (GPU uniforms, direct draws — no multidraw)"
+                }
+                GpuPreprocessingMode::Culling => "Culling (GPU multidraw indirect eligible)",
+            };
+            match indirect.buffers.get(&std::any::TypeId::of::<
+                bevy::core_pipeline::core_3d::Opaque3d,
+            >()) {
+                Some(phase) => info!(
+                    "DC_GPU_PROBE f{}: mode={} | Opaque3d indexed batches={} sets={} | \
+                     nonindexed batches={} sets={}",
+                    *frame,
+                    mode,
+                    phase.indexed.batch_count(),
+                    phase.batch_set_count(true),
+                    phase.non_indexed.batch_count(),
+                    phase.batch_set_count(false),
+                ),
+                None => info!(
+                    "DC_GPU_PROBE f{}: mode={} | no Opaque3d indirect buffers \
+                     (direct-draw path — indirect drawing not in use)",
+                    *frame, mode
+                ),
+            }
+        }
+    }
 }
 
 fn setup(
