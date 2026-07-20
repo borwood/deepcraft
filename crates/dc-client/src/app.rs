@@ -22,6 +22,7 @@ use crate::PLAYER_HEIGHT_M;
 use crate::authority::{self, Authority, DirtyChunks};
 use crate::bench::BENCH_SEED;
 use crate::character;
+use crate::console::{self, ConsolePlugin};
 use crate::edgepass::{EdgeParams, EdgePassPlugin};
 use crate::edit;
 use crate::farmesh;
@@ -225,32 +226,44 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     .add_systems(
         Update,
         (
-            grab_mouse,
-            switch_scale,
-            player::update_player,
-            update_origin,
-            player::update_camera,
-            edit::update_target,
-            edit::apply_edits,
-            edit::draw_target,
-            authority::drain_bridge,
-            authority::tick_authority,
-            authority::remesh_dirty,
-            character::sync_characters,
-            physdemo::update,
-            position_chunks,
-            farmesh::position_far_chunks,
-            farmesh::position_far_tiles,
-            streaming::stream_chunks,
-            farmesh::stream_far_chunks,
-            farmesh::stream_far_surface,
-            update_title,
+            // Front of the chain: the dev console eats keystrokes while open
+            // and resets the input resources, so the gameplay systems below see
+            // nothing while the player is typing. Nested so the outer tuple
+            // stays within Bevy's 20-element system-tuple limit; both levels are
+            // `.chain()`ed, so the whole gameplay block still runs in order
+            // after `console_input`.
+            console::console_input,
+            (
+                grab_mouse,
+                switch_scale,
+                player::update_player,
+                update_origin,
+                player::update_camera,
+                edit::update_target,
+                edit::apply_edits,
+                edit::draw_target,
+                authority::drain_bridge,
+                authority::tick_authority,
+                authority::remesh_dirty,
+                character::sync_characters,
+                physdemo::update,
+                position_chunks,
+                farmesh::position_far_chunks,
+                farmesh::position_far_tiles,
+                streaming::stream_chunks,
+                farmesh::stream_far_chunks,
+                farmesh::stream_far_surface,
+                update_title,
+            )
+                .chain(),
         )
             .chain(),
     );
-    if let Some(bridge) = mcp::spawn_servers(mcp_options) {
-        app.insert_resource(bridge);
-    }
+    // The bridge always exists (its channel also carries the dev console's
+    // submissions); the MCP server threads inside are what `mcp_options` gates.
+    let (bridge, console_tx) = mcp::spawn_servers(mcp_options);
+    app.insert_resource(bridge);
+    app.add_plugins(ConsolePlugin { bridge: console_tx });
     app.run();
 }
 

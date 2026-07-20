@@ -45,6 +45,7 @@ mod bench;
 mod bench_storage;
 mod body;
 mod character;
+mod console;
 mod edgepass;
 mod edit;
 mod farmesh;
