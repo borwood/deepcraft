@@ -24,21 +24,33 @@
 
 pub mod core;
 
+use std::collections::HashSet;
+
 use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
+use bevy::input::mouse::MouseWheel;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, CursorOptions};
+use dc_api::HostWorld;
+use dc_api::schema::{self, Completer};
 use serde_json::Value;
 use tokio::sync::{mpsc, oneshot};
 
+use crate::authority::Authority;
 use crate::mcp::{BridgeRequest, bridge_request_for, client_tools};
-use core::{Candidate, CommandClass, ConsoleCommand};
+use core::{Candidate, CommandClass, Completion, ConsoleCommand};
 
-/// How many scrollback lines to retain, and how many to show at once.
-const SCROLLBACK_CAP: usize = 240;
-const MAX_VISIBLE_LINES: usize = 24;
+/// How many scrollback lines to retain, and how many to show at once. The cap
+/// is a few hundred lines so PageUp/wheel can scroll back through a real
+/// session; only [`MAX_VISIBLE_LINES`] render at the current scroll offset.
+const SCROLLBACK_CAP: usize = 500;
+const MAX_VISIBLE_LINES: usize = 22;
+/// Lines a PageUp/PageDown or one wheel notch moves the scrollback window.
+const SCROLL_STEP: usize = 8;
 /// How many completion candidates to list before eliding the rest.
 const MAX_LISTED_CANDIDATES: usize = 24;
+/// How many example values to show in the per-arg hint area.
+const MAX_HINT_EXAMPLES: usize = 4;
 
 /// The console plugin: owns the console resources and systems. `console_input`
 /// is registered in the app's main system chain (it must run before the
@@ -102,6 +114,16 @@ pub struct ConsoleState {
     /// fresh line.
     history_pos: Option<usize>,
     scrollback: Vec<String>,
+    /// Lines scrolled UP from the bottom (0 = pinned to the latest output).
+    scroll: usize,
+    /// The live hint area: the recognized command's signature, plus a per-arg
+    /// help line for the parameter the caret sits on. Recomputed each frame the
+    /// console is open (cheap, pure schema walk + one completer read).
+    hint: Vec<String>,
+    /// Keys physically held while the console is open, tracked from the event
+    /// stream so a movement key held across close can be re-pressed (the
+    /// `reset_all` swallow otherwise leaves it stuck "released").
+    held: HashSet<KeyCode>,
     pending: Vec<Pending>,
 }
 
@@ -111,11 +133,18 @@ impl ConsoleState {
         if self.scrollback.len() > SCROLLBACK_CAP {
             let overflow = self.scrollback.len() - SCROLLBACK_CAP;
             self.scrollback.drain(..overflow);
+            self.scroll = self.scroll.saturating_sub(overflow);
         }
     }
 
     fn push_err(&mut self, msg: impl Into<String>) {
         self.push_line(format!("  ! {}", msg.into()));
+    }
+
+    /// The largest scroll offset that still shows a full window (so PageUp
+    /// stops at the oldest retained line).
+    fn max_scroll(&self) -> usize {
+        self.scrollback.len().saturating_sub(MAX_VISIBLE_LINES)
     }
 }
 
@@ -125,6 +154,8 @@ impl ConsoleState {
 struct ConsoleUiRoot;
 #[derive(Component)]
 struct ConsoleScrollback;
+#[derive(Component)]
+struct ConsoleHint;
 #[derive(Component)]
 struct ConsoleInputLine;
 
@@ -162,6 +193,14 @@ fn setup_console_ui(mut commands: Commands) {
                     ..default()
                 },
             ));
+            // The live hint area: signature + per-arg help for what's being
+            // typed. Dimmer/tinted so it reads as guidance, not output.
+            panel.spawn((
+                ConsoleHint,
+                Text::new(String::new()),
+                TextFont::from_font_size(13.0),
+                TextColor(Color::srgba(0.70, 0.78, 0.95, 0.92)),
+            ));
             panel.spawn((
                 ConsoleInputLine,
                 Text::new("> "),
@@ -171,11 +210,37 @@ fn setup_console_ui(mut commands: Commands) {
         });
 }
 
+#[allow(
+    clippy::type_complexity,
+    reason = "three disjoint Text queries need mutually-exclusive marker filters"
+)]
 fn console_render(
     state: Res<ConsoleState>,
     mut root: Query<&mut Visibility, With<ConsoleUiRoot>>,
-    mut scrollback: Query<&mut Text, With<ConsoleScrollback>>,
-    mut input: Query<&mut Text, (With<ConsoleInputLine>, Without<ConsoleScrollback>)>,
+    mut scrollback: Query<
+        &mut Text,
+        (
+            With<ConsoleScrollback>,
+            Without<ConsoleHint>,
+            Without<ConsoleInputLine>,
+        ),
+    >,
+    mut hint: Query<
+        &mut Text,
+        (
+            With<ConsoleHint>,
+            Without<ConsoleScrollback>,
+            Without<ConsoleInputLine>,
+        ),
+    >,
+    mut input: Query<
+        &mut Text,
+        (
+            With<ConsoleInputLine>,
+            Without<ConsoleScrollback>,
+            Without<ConsoleHint>,
+        ),
+    >,
 ) {
     if let Ok(mut vis) = root.single_mut() {
         *vis = if state.open {
@@ -188,8 +253,21 @@ fn console_render(
         return;
     }
     if let Ok(mut text) = scrollback.single_mut() {
-        let start = state.scrollback.len().saturating_sub(MAX_VISIBLE_LINES);
-        text.0 = state.scrollback[start..].join("\n");
+        // Render the window ending `scroll` lines above the latest.
+        let total = state.scrollback.len();
+        let scroll = state.scroll.min(state.max_scroll());
+        let end = total - scroll;
+        let start = end.saturating_sub(MAX_VISIBLE_LINES);
+        let mut body = state.scrollback[start..end].join("\n");
+        if scroll > 0 {
+            body.push_str(&format!(
+                "\n  -- {scroll} line(s) below (PageDown / wheel down for latest) --"
+            ));
+        }
+        text.0 = body;
+    }
+    if let Ok(mut text) = hint.single_mut() {
+        text.0 = state.hint.join("\n");
     }
     if let Ok(mut text) = input.single_mut() {
         // A trailing block stands in for a caret.
@@ -267,13 +345,22 @@ fn truncate(s: &str, max: usize) -> String {
 ///
 /// Registered at the FRONT of the app's system chain so the reset lands before
 /// any gameplay input system runs this frame.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "bevy system: each parameter is a distinct resource / event reader"
+)]
 pub fn console_input(
     mut reader: MessageReader<KeyboardInput>,
+    mut wheel: MessageReader<MouseWheel>,
     mut keys: ResMut<ButtonInput<KeyCode>>,
     mut mouse: ResMut<ButtonInput<MouseButton>>,
     mut state: ResMut<ConsoleState>,
     cmds: Res<ConsoleCommands>,
     bridge: Res<ConsoleBridge>,
+    // Read-only, for value-level completion + per-arg example hints. Optional so
+    // a missing/contended world degrades to no suggestions, never a stall; the
+    // completer touches only `&self` accessors, so it cannot mutate the sim.
+    authority: Option<Res<Authority>>,
     mut cursor: Single<&mut CursorOptions>,
 ) {
     // Drain this frame's key events regardless (so a stale T press cannot leak
@@ -287,6 +374,11 @@ pub fn console_input(
         if opened {
             state.open = true;
             state.history_pos = None;
+            state.scroll = 0;
+            // Snapshot the keys physically held at open time; the event stream
+            // keeps this current while open, so movement keys held across close
+            // can be re-pressed (see below).
+            state.held = keys.get_pressed().copied().collect();
             // Release the cursor so mouse-look (which reads grab state, not the
             // button input we reset) stops while the console is up.
             cursor.visible = true;
@@ -295,7 +387,19 @@ pub fn console_input(
         return;
     }
 
+    let world = authority.as_deref().map(|a| &a.world);
+
     for e in &events {
+        // Track physically-held keys from the raw event stream (survives the
+        // reset_all swallow below, which the ButtonInput view does not).
+        match e.state {
+            ButtonState::Pressed => {
+                state.held.insert(e.key_code);
+            }
+            ButtonState::Released => {
+                state.held.remove(&e.key_code);
+            }
+        }
         if e.state != ButtonState::Pressed {
             continue;
         }
@@ -305,9 +409,16 @@ pub fn console_input(
             KeyCode::Backspace => {
                 state.input.pop();
             }
-            KeyCode::Tab => complete_input(&mut state, &cmds.0),
+            KeyCode::Tab => complete_input(&mut state, &cmds.0, world),
             KeyCode::ArrowUp => history_prev(&mut state),
             KeyCode::ArrowDown => history_next(&mut state),
+            KeyCode::PageUp => {
+                let max = state.max_scroll();
+                state.scroll = (state.scroll + SCROLL_STEP).min(max);
+            }
+            KeyCode::PageDown => {
+                state.scroll = state.scroll.saturating_sub(SCROLL_STEP);
+            }
             _ => {
                 if let Some(text) = &e.text {
                     for ch in text.chars() {
@@ -323,9 +434,38 @@ pub fn console_input(
         }
     }
 
-    // Swallow all input from the gameplay systems that run after us this frame.
+    // Mouse wheel over the console scrolls its scrollback (the console owns focus
+    // while open; no hit-test needed).
+    for ev in wheel.read() {
+        if ev.y > 0.0 {
+            let max = state.max_scroll();
+            state.scroll = (state.scroll + SCROLL_STEP).min(max);
+        } else if ev.y < 0.0 {
+            state.scroll = state.scroll.saturating_sub(SCROLL_STEP);
+        }
+    }
+
+    // Swallow all input from the gameplay systems that run after us this frame
+    // (including the close-frame's own Esc/keystrokes).
     keys.reset_all();
     mouse.reset_all();
+    if state.open {
+        recompute_hint(&mut state, &cmds.0, world);
+    } else {
+        // Closing this frame: reset_all just cleared the pressed state of every
+        // physically-held key, and Bevy re-emits no event for a key that is
+        // still down — so a movement key held across close would stay stuck
+        // "released" until re-pressed (the journal/0032 quirk). Re-press what is
+        // still held and clear its just_pressed edge, so walking resumes
+        // seamlessly without re-firing a one-shot action (jump/edit).
+        let held: Vec<KeyCode> = state.held.iter().copied().collect();
+        for k in held {
+            keys.press(k);
+            keys.clear_just_pressed(k);
+        }
+        state.held.clear();
+        state.hint.clear();
+    }
 }
 
 fn history_prev(state: &mut ConsoleState) {
@@ -355,8 +495,29 @@ fn history_next(state: &mut ConsoleState) {
     }
 }
 
-fn complete_input(state: &mut ConsoleState, cmds: &[ConsoleCommand]) {
-    let comp = core::complete(cmds, &state.input);
+fn complete_input(state: &mut ConsoleState, cmds: &[ConsoleCommand], world: Option<&HostWorld>) {
+    // In value position (`key=<partial>`), ask the command's registry completer
+    // for legal values (block names, live character names, postures, …).
+    // Everywhere else — command names, param keys — it is the pure schema walk.
+    let comp = if let Some((vstart, key, prefix)) = core::value_context(&state.input) {
+        let head = state.input.split_whitespace().next().unwrap_or("");
+        match core::find(cmds, head) {
+            Some(cmd) => {
+                let values = completer_values(cmd, world, key, prefix);
+                core::value_completion(vstart, prefix, &values)
+            }
+            None => core::complete(cmds, &state.input),
+        }
+    } else {
+        core::complete(cmds, &state.input)
+    };
+    apply_completion(state, comp);
+}
+
+/// Apply a completion to the input line: a lone candidate replaces the token;
+/// several fill the common prefix (when it extends the token) and list into the
+/// scrollback with their type/description display.
+fn apply_completion(state: &mut ConsoleState, comp: Completion) {
     if comp.candidates.is_empty() {
         return;
     }
@@ -365,13 +526,13 @@ fn complete_input(state: &mut ConsoleState, cmds: &[ConsoleCommand]) {
         state.input.push_str(&comp.candidates[0].text);
         return;
     }
-    // Multiple: fill in the common prefix (if it extends the current token),
-    // then list the candidates.
     let current_len = state.input.len() - comp.token_start;
     if comp.common.len() > current_len {
         state.input.truncate(comp.token_start);
         state.input.push_str(&comp.common);
     }
+    // Listing pushes output; pin to the bottom so the candidates are visible.
+    state.scroll = 0;
     state.push_line("  candidates:");
     for Candidate { display, .. } in comp.candidates.iter().take(MAX_LISTED_CANDIDATES) {
         state.push_line(format!("    {display}"));
@@ -381,6 +542,74 @@ fn complete_input(state: &mut ConsoleState, cmds: &[ConsoleCommand]) {
             "    … {} more",
             comp.candidates.len() - MAX_LISTED_CANDIDATES
         ));
+    }
+}
+
+/// Value candidates for a command's parameter, from the registry completion
+/// hook (docs/API.md decision 6). READ-ONLY by construction: `Static` sources
+/// need no world; `World` sources take a shared `&HostWorld` and call only
+/// `&self` accessors (`block_names`, `characters`, `content_classes`), so
+/// completion can never tick, submit, or otherwise mutate the sim. Client-shell
+/// tools (no registry id) and commands without a source yield nothing; a
+/// missing world degrades a `World` source to nothing rather than stalling.
+fn completer_values(
+    cmd: &ConsoleCommand,
+    world: Option<&HostWorld>,
+    param: &str,
+    prefix: &str,
+) -> Vec<String> {
+    let Some(id) = &cmd.id else {
+        return Vec::new();
+    };
+    let Some(spec) = schema::spec(id) else {
+        return Vec::new();
+    };
+    match &spec.completions {
+        None => Vec::new(),
+        Some(Completer::Static(f)) => f(param, prefix),
+        Some(Completer::World(f)) => match world {
+            Some(w) => f(w, param, prefix),
+            None => Vec::new(),
+        },
+    }
+}
+
+/// Recompute the live hint area from the current line: the recognized command's
+/// signature, plus a per-arg help line (type, required, description, example
+/// values) for the parameter the caret sits on.
+fn recompute_hint(state: &mut ConsoleState, cmds: &[ConsoleCommand], world: Option<&HostWorld>) {
+    state.hint.clear();
+    let head = state
+        .input
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .to_string();
+    if head.is_empty() {
+        return;
+    }
+    if head == "help" {
+        state
+            .hint
+            .push("help <command>  —  full reference card (params + example)".to_string());
+        return;
+    }
+    let Some(cmd) = core::find(cmds, &head) else {
+        return;
+    };
+    let active = core::active_arg_key(&state.input).map(str::to_string);
+    state.hint.push(core::signature(cmd));
+    let detail = active.and_then(|key| {
+        core::describe_param(cmd, &key).map(|param| {
+            let examples: Vec<String> = completer_values(cmd, world, &key, "")
+                .into_iter()
+                .take(MAX_HINT_EXAMPLES)
+                .collect();
+            core::arg_help_line(&param, &examples)
+        })
+    });
+    if let Some(line) = detail {
+        state.hint.push(line);
     }
 }
 
@@ -395,6 +624,8 @@ fn submit(
     let line = state.input.trim().to_string();
     state.input.clear();
     state.history_pos = None;
+    // A fresh submission pins the view to the latest output.
+    state.scroll = 0;
     if line.is_empty() {
         return;
     }

@@ -432,7 +432,7 @@ pub fn help_command(cmd: &ConsoleCommand) -> Vec<String> {
     }
     lines.push("  parameters:".to_string());
     let width = params.iter().map(|p| p.path.len()).max().unwrap_or(0);
-    for p in params {
+    for p in &params {
         let req = if p.required { "required" } else { "optional" };
         lines.push(format!(
             "    {:width$}  {:<8} {:<8}  {}",
@@ -443,7 +443,173 @@ pub fn help_command(cmd: &ConsoleCommand) -> Vec<String> {
             width = width
         ));
     }
+    // A schema-driven example invocation, so a reader sees a valid line to copy,
+    // not just a parameter list. Description-based placeholders (`e.g. dc:stone`)
+    // are deterministic; the Bevy shell can enrich with live completer values.
+    lines.push(String::new());
+    lines.push(format!("  example: {}", example_invocation(cmd, |_| None)));
     lines
+}
+
+// ------------------------------------------------ signatures & hints ----
+
+/// A short display type for a schema `type` name: `integer`→`int`,
+/// `number`→`num`, `boolean`→`bool`, `string`→`string`, everything else
+/// (arrays, loose objects, unknown) →`json` (the raw-JSON escape hatch leaf).
+pub fn short_type(type_name: &str) -> &'static str {
+    match type_name {
+        "integer" => "int",
+        "number" => "num",
+        "boolean" => "bool",
+        "string" => "string",
+        _ => "json",
+    }
+}
+
+/// The one-line signature of a command, generated from its schema: every leaf
+/// parameter as `key=<type>`, required params bare and optional ones bracketed
+/// (`[key=<type>]`). This is the persistent "shape of args" the console shows
+/// the moment a command name is recognized, so a first-time user sees the
+/// whole form without prior knowledge. Pure function of the schema.
+pub fn signature(cmd: &ConsoleCommand) -> String {
+    let params = param_paths(cmd);
+    if params.is_empty() {
+        return format!("{}  (no arguments)", cmd.name);
+    }
+    let parts: Vec<String> = params
+        .iter()
+        .map(|p| {
+            let body = format!("{}=<{}>", p.path, short_type(&p.type_name));
+            if p.required {
+                body
+            } else {
+                format!("[{body}]")
+            }
+        })
+        .collect();
+    format!("{}  {}", cmd.name, parts.join(" "))
+}
+
+/// The parameter key of the `key=value` token the caret currently sits in (the
+/// caret is the end of `input`). `None` in command position or while a bare key
+/// is still being typed (no `=` yet). Drives the per-arg hint area.
+pub fn active_arg_key(input: &str) -> Option<&str> {
+    let (_, token) = current_token(input);
+    let (key, _) = token.split_once('=')?;
+    (!key.is_empty()).then_some(key)
+}
+
+/// The [`ParamInfo`] for a command's dotted `key`, or `None` if the command has
+/// no such leaf parameter.
+pub fn describe_param(cmd: &ConsoleCommand, key: &str) -> Option<ParamInfo> {
+    param_paths(cmd).into_iter().find(|p| p.path == key)
+}
+
+/// The per-arg help line for the parameter the caret sits on: name, type,
+/// required-ness, description, and up to a few example values when a command's
+/// completer supplied them (passed in — the world lives in the Bevy shell).
+pub fn arg_help_line(param: &ParamInfo, examples: &[String]) -> String {
+    let req = if param.required {
+        "required"
+    } else {
+        "optional"
+    };
+    let mut line = format!("{} : {} ({req})", param.path, short_type(&param.type_name));
+    if !param.description.is_empty() {
+        line.push_str(" — ");
+        line.push_str(&param.description);
+    }
+    if !examples.is_empty() {
+        line.push_str("   e.g. ");
+        line.push_str(&examples.join(", "));
+    }
+    line
+}
+
+/// Extract an `e.g. X` example token from a parameter description, if present
+/// (the registry docs carry them: `"block name, e.g. dc:stone"`). Used to seed
+/// a string placeholder in a generated example when no live completer value
+/// exists.
+fn hint_from_description(desc: &str) -> Option<String> {
+    let idx = desc.find("e.g. ")? + "e.g. ".len();
+    let token = desc[idx..].split([',', ';', ')', ' ', '\n']).next()?.trim();
+    (!token.is_empty()).then(|| token.to_string())
+}
+
+/// A schema-appropriate placeholder value for one parameter: ints/nums→`0`,
+/// bools→`false`, arrays/objects→`[]`, strings→an `e.g.` hint from the
+/// description if present, else `text`.
+fn placeholder_value(p: &ParamInfo) -> String {
+    match p.type_name.as_str() {
+        "integer" | "number" => "0".to_string(),
+        "boolean" => "false".to_string(),
+        "string" => hint_from_description(&p.description).unwrap_or_else(|| "text".to_string()),
+        _ => "[]".to_string(),
+    }
+}
+
+/// A copy-pasteable example invocation covering every REQUIRED parameter with
+/// schema-appropriate placeholders (nested params stay dotted: `pos.x=0`).
+/// `example_for(path)` may override a placeholder with a live value (e.g. a real
+/// block name from the completer); returning `None` falls back to the schema
+/// placeholder. Pure — the impurity (asking the world) lives in the closure.
+pub fn example_invocation(
+    cmd: &ConsoleCommand,
+    example_for: impl Fn(&str) -> Option<String>,
+) -> String {
+    let parts: Vec<String> = param_paths(cmd)
+        .into_iter()
+        .filter(|p| p.required)
+        .map(|p| {
+            let v = example_for(&p.path).unwrap_or_else(|| placeholder_value(&p));
+            format!("{}={}", p.path, v)
+        })
+        .collect();
+    if parts.is_empty() {
+        cmd.name.clone()
+    } else {
+        format!("{}  {}", cmd.name, parts.join(" "))
+    }
+}
+
+// ------------------------------------------------- value completion ----
+
+/// When the caret sits in the value half of a `key=value` token, the byte
+/// offset where the value begins, the key, and the partial value typed so far.
+/// `None` in command or bare-key position. The console asks the command's
+/// [`dc_api::schema::Completer`] for candidate values for `key` and feeds them
+/// to [`value_completion`].
+pub fn value_context(input: &str) -> Option<(usize, &str, &str)> {
+    let (start, token) = current_token(input);
+    let eq = token.find('=')?;
+    let key = &token[..eq];
+    if key.is_empty() {
+        return None;
+    }
+    let value = &token[eq + 1..];
+    Some((start + eq + 1, key, value))
+}
+
+/// Build a [`Completion`] over `values` (the candidate set a completer returned
+/// for this parameter), replacing only the partial value after `=` and filtering
+/// by its prefix. `value_start` is the byte offset [`value_context`] reported.
+pub fn value_completion(value_start: usize, prefix: &str, values: &[String]) -> Completion {
+    let mut candidates: Vec<Candidate> = values
+        .iter()
+        .filter(|v| v.starts_with(prefix))
+        .map(|v| Candidate {
+            text: v.clone(),
+            display: v.clone(),
+        })
+        .collect();
+    candidates.sort_by(|a, b| a.text.cmp(&b.text));
+    candidates.dedup_by(|a, b| a.text == b.text);
+    let common = longest_common_prefix(candidates.iter().map(|c| c.text.as_str()));
+    Completion {
+        token_start: value_start,
+        common,
+        candidates,
+    }
 }
 
 #[cfg(test)]
@@ -652,5 +818,129 @@ mod tests {
         );
         let lines = help_command(&empty);
         assert!(lines.iter().any(|l| l.contains("(none)")));
+    }
+
+    #[test]
+    fn signature_marks_required_and_brackets_optional() {
+        let cmds = table();
+        // set_block: all params required (schema key order is alphabetical —
+        // serde_json Map is a BTreeMap — so assert by token, not full string).
+        let sig = signature(find(&cmds, "world_set_block").unwrap());
+        assert!(sig.starts_with("world_set_block  "), "{sig}");
+        for tok in [
+            "pos.x=<int>",
+            "pos.y=<int>",
+            "pos.z=<int>",
+            "block=<string>",
+        ] {
+            assert!(sig.contains(tok), "{sig} missing {tok}");
+        }
+        // Required params are bare (not bracketed).
+        assert!(!sig.contains('['), "{sig} should have no optionals");
+        // entity_query: both params optional → bracketed.
+        let sig = signature(find(&cmds, "entity_query").unwrap());
+        assert!(sig.contains("[kind=<string>]"), "{sig}");
+        assert!(sig.contains("[volume.min.x=<int>]"), "{sig}");
+    }
+
+    #[test]
+    fn active_arg_key_tracks_the_value_token() {
+        // Command position / bare key → no active arg.
+        assert_eq!(active_arg_key("world_set_block po"), None);
+        assert_eq!(active_arg_key("world_set_block"), None);
+        // Inside a key=value token → that key (empty value counts).
+        assert_eq!(active_arg_key("world_set_block block="), Some("block"));
+        assert_eq!(active_arg_key("world_set_block pos.x=1"), Some("pos.x"));
+        // Only the token under the caret matters.
+        assert_eq!(
+            active_arg_key("world_set_block pos.x=1 block=dc:s"),
+            Some("block")
+        );
+    }
+
+    #[test]
+    fn arg_help_line_carries_type_required_desc_and_examples() {
+        let cmds = table();
+        let cmd = find(&cmds, "world_set_block").unwrap();
+        let param = describe_param(cmd, "block").unwrap();
+        let line = arg_help_line(&param, &["dc:stone".into(), "dc:dirt".into()]);
+        assert!(line.contains("block : string (required)"), "{line}");
+        assert!(line.contains("block name"), "{line}");
+        assert!(line.contains("e.g. dc:stone, dc:dirt"), "{line}");
+        // No examples → no joined example tail (`dc:dirt` appears only in the
+        // examples list, never in this param's own description).
+        assert!(!arg_help_line(&param, &[]).contains("dc:dirt"));
+    }
+
+    #[test]
+    fn example_invocation_uses_placeholders_and_description_hints() {
+        let cmds = table();
+        let cmd = find(&cmds, "world_set_block").unwrap();
+        // Schema-only (no live values): ints→0, string block→its e.g. hint.
+        let ex = example_invocation(cmd, |_| None);
+        assert!(ex.starts_with("world_set_block  "), "{ex}");
+        for tok in ["pos.x=0", "pos.y=0", "pos.z=0", "block=dc:stone"] {
+            assert!(ex.contains(tok), "{ex} missing {tok}");
+        }
+        // A live completer value overrides the placeholder.
+        let ex = example_invocation(cmd, |path| {
+            (path == "block").then(|| "dc:granite".to_string())
+        });
+        assert!(ex.contains("block=dc:granite"), "{ex}");
+    }
+
+    #[test]
+    fn value_context_finds_the_value_half() {
+        assert_eq!(value_context("world_set_block po"), None);
+        let (start, key, prefix) = value_context("world_set_block block=dc:s").unwrap();
+        assert_eq!(key, "block");
+        assert_eq!(prefix, "dc:s");
+        assert_eq!(&"world_set_block block=dc:s"[start..], "dc:s");
+        // Empty value: prefix is empty, start points just past '='.
+        let (start, key, prefix) = value_context("world_set_block block=").unwrap();
+        assert_eq!((key, prefix), ("block", ""));
+        assert_eq!(&"world_set_block block="[start..], "");
+    }
+
+    #[test]
+    fn value_completion_replaces_only_the_value_and_finds_common_prefix() {
+        let input = "world_set_block block=dc:s";
+        let (start, _key, prefix) = value_context(input).unwrap();
+        let values = vec![
+            "dc:stone".to_string(),
+            "dc:sandstone".to_string(),
+            "dc:dirt".to_string(),
+        ];
+        let comp = value_completion(start, prefix, &values);
+        let texts: Vec<&str> = comp.candidates.iter().map(|c| c.text.as_str()).collect();
+        // Prefix-filtered to the dc:s* names, sorted.
+        assert_eq!(texts, vec!["dc:sandstone", "dc:stone"]);
+        assert_eq!(comp.common, "dc:s");
+        // Replacing from token_start keeps `block=` and swaps the value.
+        let mut line = input.to_string();
+        line.truncate(comp.token_start);
+        line.push_str(&comp.candidates[1].text);
+        assert_eq!(line, "world_set_block block=dc:stone");
+    }
+
+    /// Property-style: every command in the registry renders a signature, an
+    /// example, and a per-arg help line for each of its params without
+    /// panicking — the "generated from the registry" guarantee, now covering
+    /// presentation as well as data.
+    #[test]
+    fn every_registry_command_renders_signature_example_and_arg_help() {
+        for cmd in ConsoleCommand::from_registry() {
+            let sig = signature(&cmd);
+            assert!(sig.starts_with(&cmd.name), "signature: {sig}");
+            let ex = example_invocation(&cmd, |_| None);
+            assert!(ex.starts_with(&cmd.name), "example: {ex}");
+            for p in param_paths(&cmd) {
+                let line = arg_help_line(&p, &[]);
+                assert!(line.starts_with(&p.path), "arg help: {line}");
+                // help_command must also fold this param in without panic.
+            }
+            let help = help_command(&cmd);
+            assert!(help.iter().any(|l| l.contains("example:")), "{}", cmd.name);
+        }
     }
 }
