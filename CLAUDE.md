@@ -63,6 +63,11 @@ cargo test --workspace --release
   negative looks down.
 - Screenshots land in `journal/assets/` — name them `NNNN-description` for
   the journal entry they belong to.
+- **Never compare LIT before/after screenshots across two launches** — the
+  sun angle differs between runs, and a walk once measured 48.9 % pixel
+  change from sun movement alone (journal/0030). Until a deterministic sun
+  exists, before/after appearance claims must rest on the `--fullbright`
+  control; the lit pass shows what a player sees, not what changed.
 
 ## Conventions
 

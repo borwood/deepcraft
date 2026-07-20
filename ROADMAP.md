@@ -914,6 +914,33 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **INSTRUMENT: lit before/after screenshots are invalid — the sun moves
+  between runs** (journal/0030, 2026-07-20). The erodibility-flip walk's
+  *lit* before/after pairs differed by up to **48.9 % of pixels**, almost
+  entirely because the sun was at a different angle in the second launch.
+  Read alone they would have reported a dramatic improvement that did not
+  happen; only the mandatory fullbright control caught it. **This
+  invalidates the lit pass for every before/after appearance comparison we
+  have done or will do**, and lit is precisely the register the user
+  ratifies appearance in. Fix named by the walk: a **deterministic sun**
+  for screenshots (`--fixed-sun`, or a fixed tick), which would make the
+  lit pass usable for diffing. Same family as the pos_voxel instrument fix
+  (journal/0021): the walker's instruments must not lie. **Highest-value
+  instrument fix outstanding.**
+
+- **INSTRUMENT: `--fullbright` does not disable distance fog** (journal/0030).
+  The 3.5 km massif vista washed to near-white in *both* passes, so
+  landform-scale silhouette assessment is currently impossible — fog, not
+  lighting, destroyed the frame (`0030-massif-*-fullbright.png`). Since
+  fullbright exists to be a pure-data diagnostic register, atmospheric
+  haze does not belong in it. Cheap fix; blocks silhouette work, which is
+  exactly what the dismal-mountains thread needs.
+  *(Related walk suggestion, not filed as a defect: crease-aware dark face
+  borders under a separate flag — outlining silhouette/depth-discontinuity
+  edges only, distance-faded, never per-cube, which would alias at range.
+  Kept separate from `--fullbright` so the pure-data control survives.)*
+
+
 - **"Our dismal mountains"** (user, 2026-07-20) — DIAGNOSED, four causes,
   all absences rather than bugs, which is why the terrain reads as flat in
   character rather than visibly broken:
