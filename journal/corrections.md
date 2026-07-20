@@ -283,3 +283,73 @@ code path that produced it, and measure the production entry point at least once
 before quoting the number as the user-visible cost. S10-results.md is left
 unamended — a spike result is a dated record of what was measured; this entry is
 the pointer.
+
+## 13. "The body graph needs rich inlet/outlet structure" (2026-07-20)
+
+**Claim** (docs/design/water.md § the hypothesis, and the S11 brief that
+followed it): free water is a graph of bodies carrying *volume, level,
+inlet(s), outlet(s)*, with links between them — and the spike's risk was that
+adversarial digging would explode the node and link counts.
+
+**Half falsified (the shape was wrong, and the risk was in the other half).**
+Measured across all seven S11 scenarios, **links were 0 or 1** — never more.
+The mechanism: in a voxel world **air connectivity already carries the
+relation**. Two bodies in the same air component are not *linked*, they are the
+*same body* (they merge), so a link can only exist between components — a
+waterfall lip, a gate, a pipe. A kilometre-long channel joined to a river is
+not "a link on the river's body" as the notebook sketched; it is the river.
+Node count likewise never grew with edits: through 1 624 edits and 508 084 dug
+voxels the body count stayed at **1**, because digging creates space, not
+water. The ceiling on bodies is the **component** count (217 when one body is
+forced into every component), and components track the derived coarse index.
+
+**What this relocates rather than removes**: the dense, changes-on-every-edit
+structure is real, but it is the *derived* connectivity index, not the
+persisted graph. That is a better place for it — derived state need not be
+saved, versioned, or made consistent across a reload, and S11 proves the
+derivation by byte-identical reload from 39 persisted bytes.
+
+**Lesson**: before pricing a graph, ask what the substrate already encodes.
+Voxel geometry is itself a connectivity structure; a graph laid over it should
+carry only what the geometry cannot say — here, that water *is* present and how
+much. Fix/measurements: docs/spikes/S11-results.md § Q2, journal/0028.
+
+## 14. "A closed domain with recharge and a drain measures a water-table halo" (2026-07-20)
+
+**Claim** (implicit in S11's first Q1 harness, mine): perturb a saturation
+field with a drain, relax, difference against the unperturbed field, read the
+halo by Chebyshev ring — the method S9 used for erosion's decay length.
+
+**Falsified by its own output, which looked like a *result*.** Every
+permeability contrast at every drainage spacing reported the same halo — the
+radius of the domain — with a perfectly flat profile (`d0=5.16 d16=3.10
+d32=3.05`). Read at face value that falsifies the whole "bound water is local"
+hypothesis. It was an artifact: a **closed box with recharge and one drain has
+no local equilibrium**. Water accumulates until the domain saturates, and the
+single drain is then the only sink in the world, so it necessarily influences
+every column. The flat profile was the shape of a box with nowhere for water to
+go, not a property of groundwater.
+
+**Mechanism of the fix**: a real water table is not bounded by the edge of the
+world, it is **pinned by the drainage network** — streams, springs, coastlines
+every few hundred metres. With a drainage lattice plus a leaky aquitard over a
+regional sink, the field has an actual equilibrium and the halo is 4–11 cells
+with clean geometric decay.
+
+Three further errors compounded it, each independently sufficient to produce a
+confident wrong number: **the integrator was oscillating, not relaxing**
+(`k·lateral_c` must stay under `φ/(2·ndim)`; the first version was ~30× over,
+so the "noise floor" was the scheme ringing); **control and treated were
+differenced at different step counts** (reference at `steady`, perturbed at
+`steady + budget`, so part of every halo was just elapsed time); and the deep
+sink's per-step acceptance was set **exactly equal to the recharge**, balancing
+the column on a critical point.
+
+**Lesson**: a relaxation measurement is only meaningful against the boundary
+condition the real system has — get that wrong and the method still produces a
+clean, reproducible, entirely fictional decay curve. And when a measurement
+agrees with the hypothesis you were dispatched to *break*, that is the moment
+to audit the harness, not to write it up. Corollary for the ring-difference
+method generally (S9, orogeny, S11): always report the residual drift of the
+unperturbed control alongside the halo, so a reader can see whether the number
+sits above the noise floor. S11-results.md § Q1, journal/0028.

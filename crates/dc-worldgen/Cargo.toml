@@ -8,6 +8,10 @@ publish.workspace = true
 [dependencies]
 dc-core.workspace = true
 dc-sim.workspace = true
+# S11 spike: the free-water body graph is persisted world state; postcard is
+# the project's wire format (S3 chunk container, S5 envelope), so the spike
+# measures persisted bytes in the encoding production would actually use.
+postcard.workspace = true
 rayon.workspace = true
 serde.workspace = true
 thiserror.workspace = true

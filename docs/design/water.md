@@ -216,6 +216,39 @@ fill and drain — breaching it must not empty it. This suggests bodies need
 a character distinction (level-pinned reservoirs vs finite volumes), which
 S11 must exercise rather than assume.
 
+### S11 ANSWERED THIS (2026-07-20) — docs/spikes/S11-results.md, journal/0028
+
+Spike complete; **agent recommendation GO**, four calls NEEDS RATIFICATION
+(ROADMAP § Sequenced). The hypothesis above survived, with three amendments
+the measurement forced:
+
+- **Bound water is local**: halo **4–11 cells** at a bounded post-edit budget,
+  **0–6** for the player-visible integer water table, geometric decay, no
+  advective spikes. S9's "bounded relaxation" classification now has a number,
+  and it is *smaller* than erosion's 16–24. A sharp aquitard makes it **more**
+  local, not less — the loose-vs-packed contrast (§ consequence 3) is the best
+  case, not the risk case.
+- **Amendment 1 — connectivity does most of the graph's work.** Two bodies in
+  the same air component *are* one body; links only exist *between* components
+  and measured 0–1 in every scenario. The km channel joined to a river is not
+  "a link on the river's body" as sketched above — **it is the river**. See
+  corrections #13.
+- **Amendment 2 — the ocean's character distinction is necessary AND cheaper.**
+  A finite sea breached into a large void drops 13.18 m. A pinned sea needs no
+  capacity curve at all, so its derived cost goes 415 ms → 0.0 ms. Pinning is
+  the fast path, not a concession.
+- **Amendment 3 — the dense structure is the DERIVED index, not the persisted
+  graph.** Bodies are ~20 bytes and do not grow with edits (1 body through
+  1 624 edits; ceiling 217 = the component count). What changes on every edit
+  is the connectivity index, and that is a pure function of geometry —
+  never persisted, proven by byte-identical reload from 39 bytes.
+
+Still open below and untouched by S11: the bulk-flow octree (though note free
+water in equilibrium measured as **static data with a level**, which is what
+§ 2's "creates no new blocks so long as its outlet connects" predicted),
+sub-resolution water, capillary action, cave families, deep-time water field
+placement.
+
 ## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
 **Read this section before proposing anything.** The user flagged a
