@@ -340,7 +340,52 @@ closed decision.
   ecology.md § 5 fork 2 asks about organism packs — a pack that adds
   materials or organisms can change terrain and history, not just
   contents.
-- Open: whether the pre-industrial cutoff is a *simulation* boundary (the
-  history sim stops advancing tech) or a *content* boundary (no
-  industrial-era items defined), and what that means for player tech
-  progression inside a world.
+- **Tech cutoff clarified (user, same day)**: "at least for now i'm not
+  interested in thinking about items past medieval. it's not out of the
+  question but it dramatically changes game if we get electricity." So the
+  cutoff is a **design-attention boundary**, not a law of the world — the
+  reason is that industrial/electrical technology would *dramatically
+  change the game*, not that the simulation forbids it. Treat medieval as
+  the ceiling for item/tech thinking until the user reopens it.
+
+### The default pack: pure Earth, or a bespoke setting? (REOPENED by the user, 2026-07-20)
+
+The user reconsidered the "default pack ≈ Earth" framing within the hour,
+and this is **user-owned territory** (setting, aesthetic, scope) — recorded,
+not decided:
+
+> i don't know whether default, on second thought, should be pure earth
+> as-is or should be my own bespoke setting, which gives a very deep and
+> honest nod to nature and the natural processes of the earth and of socia
+> - but also evolves its own fitting aesthetic, balance, shape, charm.
+
+- The bespoke option keeps the **honest nod to real process** — the
+  natural processes of the earth *and of society* ("socia": the history
+  sim is a natural-process system too, not a backdrop) — while **evolving
+  its own aesthetic, balance, shape, charm**.
+- **Already anticipated for it** (user, from a pre-repo conversation that
+  was never written down — captured here on sight): **golems** ("script or
+  mcp 'animus' driven made/found bodies"), **deep lore**, **ancient
+  evils**.
+- Note for whoever builds golems: the architecture is largely *already
+  shipped*. Bodies are registry data (bodies.md), characters are bodies
+  with controller bindings, and the character MCP surface (journal/0005)
+  already lets an external agent drive a body. A golem is a made-or-found
+  body whose controller is a script or an MCP "animus" — that is the
+  existing seam, not a new one.
+
+### The aesthetic thesis (user, 2026-07-20) — worth treating as a north star
+
+> minecraft is ahistorical. our vibe inherits from that - elevated pixel,
+> timeless - while being anything but timeless
+
+- The visual language **inherits Minecraft's timelessness** — "elevated
+  pixel", a look that doesn't date itself — while the **world is nothing
+  but history**: deep time, strata, paleosols, fire records, ruins,
+  lineage.
+- The tension is the signature, not a problem to resolve: **it looks like a
+  toy and reads like a core sample.** A world that presents as timeless and
+  rewards excavation with 500 Myr of consequence.
+- Cross-reference visuals.md (§ distance speaks the voxel language is the
+  same instinct applied to LOD: the world stays in its own visual dialect
+  at every range).
