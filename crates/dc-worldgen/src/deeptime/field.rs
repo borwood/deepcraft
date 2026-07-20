@@ -61,6 +61,17 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
         // `geology::deep_class`, so the coal the sim writes is coal a player
         // can dig.
         biotic: true,
+        // **Erodibility ON** (ratified by the user 2026-07-20, journal/0030:
+        // "flip it, i want to see"). Erosion is lithology-aware: the incision,
+        // entrainment and — the term that carries the hillslope signal —
+        // bedrock→regolith weathering rates are scaled per cell per epoch by
+        // the resistance of the unit outcropping there (journal/0029,
+        // corrections #17). This CHANGES TERRAIN SHAPE for every world created
+        // from here on; worlds made before this flip are not reproducible under
+        // it. The resistance is agent-specific by construction, so the karst,
+        // cryosphere and littoral agents land by adding a term rather than by
+        // renegotiating this one.
+        erodibility: true,
         ..DeepConfig::default()
     }
 }

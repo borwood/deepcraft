@@ -7,6 +7,40 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Erodibility coupling turned ON in production** (journal/0030;
+  gates green — fmt/clippy/test all `--release`, 0 failed). The user ratified the
+  appearance call ("flip it, i want to see"), so `production_config` now carries
+  `erodibility: true` beside `biotic: true`. **Every world created from here on
+  has a different shape; worlds made before today are not reproducible under this
+  build.** No rate, contrast or clamp was touched — the amplitude question stays
+  the user's. **The appraisal is negative and that is the finding**: re-shooting
+  four exact vantages (summit silhouette, stripped granite upland, bare hillside,
+  green lowland) before and after, the `--fullbright` pairs — the honest geometry
+  comparison — differ by **0.08–0.93 %** of pixels at three of four sites (8.4 %
+  at the fourth). A 110-point 5 km lattice across the main massif moved by
+  **−2 to +2 m** (mean −0.34 m), total relief **2,615 → 2,614 m**, and 38 of 110
+  samples did not move at all; the walking surface at all three ground vantages
+  dropped **exactly one voxel**. No bench, ledge or resistant core is visible to
+  the eye at any vantage. This is what 0029's own numbers predicted (modest until
+  rates ×10, where a hard bed stood 44.7 m proud): **the model is not the
+  bottleneck, the amplitude is.** Method note worth keeping — the *lit* pairs
+  differ by up to 48.9 % of pixels purely because the sun moved between passes;
+  reading them alone would have reported a dramatic false positive, and the
+  mandatory fullbright control is the only reason it didn't (journal/0030,
+  blogworthy). **Two tests re-baselined, both legitimate consequences, neither a
+  bug:** `dc-client::authority::worldgen_surface_seating_never_embeds` probed the
+  *centre* column under a spawn, but `true_surface_m` returns the max over the
+  body's *footprint* — post-flip the origin column sits one voxel below all four
+  neighbours, so the centre probe hit air while the seating was correct; it now
+  probes the footprint corners too. `dc-worldgen::organic::the_measured_coal_seam_is_coal_a_player_can_dig`
+  held a 24.03 m seam lithology-blind and holds **17.04 m** coupled (19 vox
+  through collapse, was ~27) because differential weathering strips its soft
+  cover faster; its three magnitude thresholds dropped 20→15 as a floor on "still
+  a thick seam", the test's actual subject (biofacies routing → COAL class →
+  diggable `Block::Coal`) unchanged. **The only world fingerprint deliberately
+  loosened.** Files: `deeptime/field.rs` (the flip), `dc-client/src/authority.rs`
+  and `dc-worldgen/tests/organic.rs` (the two re-baselines).
+
 - 2026-07-20 — **Erodibility coupling — lithology-aware erosion** (journal/0029,
   background agent, worktree branch for the integrator; gates green —
   fmt/clippy/test all `--release`, 42 suites 0 failed). Closes cause 1 of the
@@ -572,15 +606,14 @@ agent-specific resistance so karst/glacial/littoral stay implementable.
 What remains is **user decisions**.)*
 
 **NEEDS RATIFICATION (user-owned — this CHANGES TERRAIN SHAPE):**
-1. **Flipping `production_config`'s `erodibility` to true** — the appearance
-   call, and the whole point of the milestone. It is off today, so no world has
-   changed yet. On, it differentiates terrain by rock: soft beds cut into
-   slopes/benches, hard beds and basement stand proud. **What to look at** (the
-   agent is headless): cut faces and hillsides where a mudstone/sandstone or
-   organic-soil contact outcrops — the resistant bed should now form a small
-   ledge/bench where before it was a smooth ramp; and any stripped upland, where
-   basement should read as a resistant core. Same flip class as the S10 biotic
-   flip.
+1. ~~**Flipping `production_config`'s `erodibility` to true**~~ **RATIFIED AND
+   DONE 2026-07-20** (user: "flip it, i want to see"; journal/0030). It is on;
+   every new world has a different shape. The appearance answer came back
+   **negative** — the predicted ledges/benches at hard beds and the resistant
+   basement core are real in the data and **invisible on screen** at the shipped
+   amplitude (fullbright before/after pairs <1 % different at three of four
+   vantages; 5 km lattice ±2 m; the ground dropped one voxel). Which makes
+   item 2 below the live question, not a footnote.
 2. **The contrast is currently modest at the shipped erosion amplitude** (relief
    +2 m aggregate) because the world barely erodes against its uplift; the
    headroom test shows the model produces real cliffs (44.7 m) the moment erosion
@@ -884,14 +917,24 @@ before any code.
 - **"Our dismal mountains"** (user, 2026-07-20) — DIAGNOSED, four causes,
   all absences rather than bugs, which is why the terrain reads as flat in
   character rather than visibly broken:
-  1. ~~**Erosion is lithology-blind**~~ **CLOSED 2026-07-20 (journal/0029),
-     pending the on-flip ratification.** Erosion is now lithology-aware
+  1. ~~**Erosion is lithology-blind**~~ **CLOSED AND SHIPPED ON 2026-07-20**
+     (journal/0029 built it, journal/0030 flipped it). Erosion is lithology-aware
      (`deeptime::lithology`), with agent-specific resistance so the fix does not
-     foreclose karst/glacial/littoral. Built off-by-default and byte-identical;
-     differential erosion is proven present (hard beds stand proud, basement
-     shields for free) and bounded (stability clamp). The mechanism now exists;
-     what remains is the user's call to flip it on in `production_config` and the
-     amplitude decision (which overlaps cause 3). Causes 2 and 4 remain open.
+     foreclose karst/glacial/littoral, and `production_config` now runs it.
+     Differential erosion is proven present in the numbers (hard beds stand
+     proud, basement shields for free) and bounded (stability clamp). **But the
+     photographs say the flip changed nothing a player can see** — fullbright
+     before/after pairs differ by <1 % of pixels at three of four vantages, a
+     5 km lattice moved ±2 m on 2,615 m of relief, and no bench, ledge or
+     resistant core is visible at any vantage. **Cause 1 is closed and the
+     mountains are still dismal**, which localises the remaining problem
+     precisely: causes 2 and 3 are the load-bearing ones.
+     **Remaining: 2 (no dip/fold), 3 (conservative amplitude), 4 (no glacial).**
+     Cause 3 is now the highest-value next move and it is a **user decision, not
+     a build** — the lever exists as knobs (`erodibility_contrast`, the global
+     erosion rates), and 0029's headroom test (all rates ×10) already showed a
+     hard bed standing 44.7 m proud. Nothing more should be photographed here
+     until the amplitude call is made.
   2. **No dip/fold** (the layer-cake item below): even differentiated beds
      would only give horizontal benches and mesas; **dipping** hard beds
      are what produce hogbacks, cuestas and flatirons. Second in the

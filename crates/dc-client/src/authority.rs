@@ -1523,12 +1523,26 @@ pub(crate) mod tests {
         let mut a = Authority::new(1337, 2);
 
         // find_open_spawn seats the player 2 m above ground — trivially clear,
-        // but the surface it chose must itself be real ground.
+        // but the surface it chose must itself be real ground. That surface is
+        // the MAX over the columns the body's footprint covers
+        // (worldgen.rs::true_surface_m — a body rests on the highest column it
+        // straddles, not the one under its navel), so the voxel proving it real
+        // is solid under *some* footprint column. Probing only the centre column
+        // held by luck until the erodibility flip dropped the origin column one
+        // voxel below its neighbours and left the centre probe in air, with the
+        // seating perfectly correct (journal/0030).
         let spawn = a.find_open_spawn();
-        assert!(
-            a.is_solid_m(DVec3::new(spawn.x, spawn.y - 2.5, spawn.z)),
-            "open spawn is not above real ground: {spawn:?}"
-        );
+        let half = PLAYER_WIDTH_M / 2.0;
+        let on_ground = [
+            (spawn.x, spawn.z),
+            (spawn.x - half, spawn.z - half),
+            (spawn.x - half, spawn.z + half),
+            (spawn.x + half, spawn.z - half),
+            (spawn.x + half, spawn.z + half),
+        ]
+        .into_iter()
+        .any(|(x, z)| a.is_solid_m(DVec3::new(x, spawn.y - 2.5, z)));
+        assert!(on_ground, "open spawn is not above real ground: {spawn:?}");
 
         // Attach with surface:true from 5 km up lands the body standing on the
         // deep-time ground, not embedded and not at a buried fallback y.

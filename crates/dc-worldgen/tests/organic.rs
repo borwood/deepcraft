@@ -167,9 +167,19 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
         .filter(|u| u.tag.biota == Biofacies::Coal)
         .map(|u| u.thickness_m)
         .fold(0.0f64, f64::max);
+    // **Re-baselined 2026-07-20 for the erodibility flip** (journal/0030).
+    // S10 measured 24.03 m here with erosion lithology-blind; with coupling on
+    // in `production_config` the same cell keeps **17.04 m** — the new
+    // differential weathering strips this seam's soft cover faster, so more of
+    // it is eroded away before the run ends. That is the flip working, not a
+    // routing regression: what this test is *about* is that a coal seam is
+    // tagged by biofacies, survives collapse as the COAL class, and ends up as
+    // diggable `Block::Coal` — none of which is a claim about thickness. The
+    // threshold is therefore a floor on "still a thick seam", not a golden.
     assert!(
-        thickest_coal > 20.0,
-        "S10 measured a 24.03 m seam here; the record now holds {thickest_coal:.2} m"
+        thickest_coal > 15.0,
+        "the seam here should still be thick (S10: 24.03 m lithology-blind, \
+         17.04 m with erodibility coupling); the record now holds {thickest_coal:.2} m"
     );
 
     let mut g = WorldGenerator::new(&pregen);
@@ -186,8 +196,8 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
         .map(|e| u32::from(e.thickness_vox))
         .sum();
     assert!(
-        coal_vox >= 20,
-        "expected the 24 m seam as ~27 voxels of coal in the collapsed column, got {coal_vox}"
+        coal_vox >= 15,
+        "expected the 17 m seam as ~19 voxels of coal in the collapsed column, got {coal_vox}"
     );
     assert!(
         col.strata
@@ -205,7 +215,7 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     let seam = rec
         .units
         .iter()
-        .find(|u| u.tag.biota == Biofacies::Coal && u.thickness_m > 20.0)
+        .find(|u| u.tag.biota == Biofacies::Coal && u.thickness_m > 15.0)
         .expect("the thick seam");
     assert_eq!(
         seam.tag.energy,
