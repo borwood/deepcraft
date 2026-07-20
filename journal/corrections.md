@@ -550,3 +550,27 @@ the real defect, #18's fullbright blindness.
    guard (added this morning) points outward at the repo; it needs a
    corollary pointing at your own recent work — the fastest falsifier of a
    fresh claim is often a fact you handled an hour ago.
+
+## 20. "Rivers share the one-shot disease" — half-wrong; the stale authority is elsewhere (2026-07-20)
+
+**Claim** (assistant, written into earth-processes § 1's DECIDED scope item 5
+the same day): deep-time drainage is computed once against final topography,
+so water gaps / terraces / captures are impossible for the same reason
+one-shot uplift forecloses superimposed orogenies.
+
+**Falsified by** the tectonics design agent reading the source
+(docs/design/tectonics.md § 14), verified by the integrator: deep-time
+erosion re-derives drainage (priority-flood + steepest descent) **every
+iteration** — inside the sim, rivers already migrate. The genuinely stale
+authority is downstream: the rivers *carved into the world* at collapse come
+from **pregen** `Cell.river` / `flow_to` / `discharge` (collapse.rs
+surface_sample river segs), computed on the PRE-erosion coarse surface — a
+second, older hydrology painted over terrain the deep sim has since
+reshaped. The remedy in the DECIDED entry stands (export deep-time drainage,
+retire the pregen chords); the *mechanism* stated for it was wrong.
+
+**Lesson**: same class as #19 — a confident causal story recorded into a
+design doc without a source check, caught only because the design pass was
+briefed to contradict its own scope where the code disagreed. Briefing
+agents to say "the ratified scope is wrong where it is wrong" is cheap and
+pays.

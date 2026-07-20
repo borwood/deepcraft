@@ -85,11 +85,14 @@ data model:
    to every belt. Requires exactly the crustal columns above. This is also
    the dynamic answer to one-shot upheaval: rebound is uplift *responding*
    to erosion.
-5. **Drainage re-march per chapter** — rivers currently share the one-shot
-   disease; re-marching hydrology against each tectonic chapter yields
-   water gaps (antecedent rivers sawing through rising ridges), river
-   terraces from uplift pulses, and basin captures. Couples to the slated
-   deep-hydrology work — the two designs must know about each other.
+5. **Drainage export per chapter** — *(diagnosis corrected same day,
+   corrections #20: deep-time drainage already re-routes every iteration;
+   the stale authority is that collapse carves rivers from PRE-erosion
+   pregen `Cell.river`/`discharge` chords.)* Export the deep sim's final
+   drainage (and per-chapter snapshots) and retire the pregen chords;
+   chaptered forcing ramps are what buy water gaps, terraces, and
+   captures. Couples to the slated deep-hydrology work — the two designs
+   must know about each other.
 6. **Recorder event-entries** — the strata record is a deposition-ordered
    stack and cannot express anything that *modifies previous entries*:
    dikes, plutons, fault offsets, tilting. The record needs a second entry
