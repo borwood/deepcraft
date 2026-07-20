@@ -232,6 +232,19 @@ the camera forward axis), so same-level seams stay closed *by construction*
 (identical rigid motion) while every face orientation still gains real
 depth separation along the view axis. Corrections #1 still stands: it must
 remain a true world-space offset, never a bias.
+**Fixed** (journal/0024, 2026-07-20): both far paths route their push through
+one `level_depth_push(base, level, forward)` — `forward` is `Player::view_dir()`
+(the camera axis, always unit, so the old `normalize_or_zero` degeneracy is
+gone), magnitude `DEPTH_PUSH_FRAC × coarse voxel` unchanged. Since the push
+takes no tile coordinate, every tile of a level translates by the byte-identical
+vector; along the view axis this adds exactly `magnitude` of depth to every face
+orientation uniformly, and per-level magnitude keeps overlapping rings apart.
+Proven past the transform in world space by
+`uniform_push_keeps_same_level_seams_watertight_in_world_space` (exact-zero
+shared-edge gap at a nasty off-axis high vantage; the retired radial scheme
+opens a >0.05 m gap on the same check, asserted as rationale). Walk-verified
+live, lit + fullbright, high vantage −45° yaw sweep: the seams are gone with no
+z-fight regression.
 **Lesson**: a per-entity transform computed from per-entity state is part
 of the mesh's watertightness contract. "Watertight" proven in mesh space
 means nothing if the transform stage is allowed to move neighbours
