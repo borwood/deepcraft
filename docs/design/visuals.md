@@ -198,11 +198,38 @@ No prior in the corpus on a **sim-side light field** (light as simulation
 data, MC-style propagated light levels) as distinct from render-side
 lighting. Recorded now as an open design thread, undesigned:
 
-- **Why the sim needs it** (candidates, unconfirmed): photosynthesis and
-  plant growth (S10's biology already gates on moisture/temperature; light
-  is the missing axis, and it is what makes caves lightless *in the
-  simulation*, not just visually); creature/spawn behaviour; stealth and
-  NPC vision; anything that grows or avoids light.
+- **The first real consumer, from the user 2026-07-20: embodied agent
+  perception.** Clarifying corrections #13, the user distinguished two
+  registers that had been conflated:
+  - **Dev/debug visuals, and visuals for AIs driving characters over MCP
+    for development** — fullbright, no darkness, maximum legibility. This
+    is the existing albedo-only diagnostic register and it stays.
+  - **An AI that is IN-GAME rather than dev/debug** — "probably they do
+    actually need darkness, to be fair to players." Perception parity is
+    the principle: an MCP-driven character must not see better than a
+    human player simply because it reads a different channel.
+- **What sim light IS, per the user**: "maybe this is a simulated
+  dark/light like minecraft blocklight — the simulation level of our
+  light, **not crisp dynamic shadows etc, just what the voxels know**."
+  So the fidelity target is deliberately coarse: a propagated per-voxel
+  light level, not a sampling of the rendered image.
+- **Therefore renderer light and sim light are two different things with
+  two different consumers, by design** — the shader may do shadows,
+  godrays, HDR and tonemapping; the sim carries a blocklight-grade field.
+  They must not be assumed to agree, and neither is derived from the
+  other. (The natural seam for the embodied case is the character sense
+  surface, which already exposes diegetic pose/raycast/surroundings —
+  a light sense joins those, and the dev surface keeps full reach as it
+  already does for character control.)
+- **This is also what makes "darkness is a gameplay material" true rather
+  than decorative** (§ Mood): if only the shader knows about darkness,
+  darkness is a look; if the voxels know, darkness can gate behaviour —
+  perception, spawning, growth, stealth.
+- **Other candidate consumers** (unconfirmed, listed for the design):
+  photosynthesis and plant growth (S10's biology already gates on
+  moisture/temperature — light is the missing axis, and it is what makes
+  caves lightless *in the simulation*, not merely visually); creature and
+  spawn behaviour; stealth and NPC vision.
 - **Determinism**: a sim light field must be deterministic and replayable,
   entropy from seeds only — the same law as every other sim field.
 - **Assistant observation (PROPOSAL)**: a propagated sim light field and

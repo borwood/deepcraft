@@ -298,12 +298,19 @@ opposite — **much darker underground, with shadows**, referenced to modded
 Minecraft with shaders, and consistent with § Mood's original "real
 darkness underground, no floaty ambient minimum".
 
-**Mechanism** (hypothesis, offered to the user): the same commit's next
-bullet ratifies **fullbright mixture visibility** — the albedo-only
+**Mechanism — CONFIRMED by the user, 2026-07-20**: the same commit's next
+bullet ratifies **fullbright mixture visibility**, the albedo-only
 diagnostic register that exists so screenshots can be audited "without
-lighting noise". A statement about wanting no darkness in *the fullbright
-debug view* appears to have been recorded as a position on *the game's
-lighting design*. Two adjacent sentences about opposite things.
+lighting noise". The user was talking about **debug visuals, and visuals
+for AIs controlling characters over MCP** — a statement about *the
+diagnostic view* was recorded as a position on *the game's lighting
+design*. Two adjacent sentences about opposite things.
+
+The user's actual position on the embodied case, stated at the same time
+and now recorded in visuals.md: an AI that is **in-game rather than
+dev/debug probably does need darkness, in fairness to players** — but as
+*simulated* light (Minecraft-blocklight-like, "what the voxels know"),
+not as crisp dynamic shadows.
 
 **Fix**: the bullet is struck at its source with a pointer here; the DECIDED
 entry no longer cites the quote (it stood on a contradiction that never
