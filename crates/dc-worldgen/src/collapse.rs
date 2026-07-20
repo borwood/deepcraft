@@ -36,7 +36,7 @@ use std::sync::Arc;
 
 use dc_core::materials::geology::{
     CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE,
-    GeoMemberIdx, GeologySet,
+    CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL, GeoMemberIdx, GeologySet,
 };
 use dc_core::{
     Block, CHUNK_VOLUME, Chunk, ChunkPos, ContentsGrid, MaterialChunk, MixtureId, MixtureTable,
@@ -1013,6 +1013,11 @@ fn block_for_member(set: &GeologySet, member: GeoMemberIdx) -> Block {
         c if c == CLASS_CLASTIC_COARSE => Block::Sandstone,
         c if c == CLASS_IGNEOUS_INTRUSIVE => Block::Granite,
         c if c == CLASS_IGNEOUS_EXTRUSIVE => Block::Basalt,
+        // Organic strata (journal/0026): the biotic layer at the block tier, so
+        // a seam is legible in a cut face without reading the material sidecar.
+        c if c == CLASS_ORGANIC_COAL => Block::Coal,
+        c if c == CLASS_ORGANIC_PEAT => Block::Peat,
+        c if c == CLASS_ORGANIC_SOIL => Block::CarbonaceousMudstone,
         _ => Block::Stone,
     }
 }

@@ -32,9 +32,9 @@ use serde::{Deserialize, Serialize};
 /// Number of materials in the prototype registry (12 S8 debris materials +
 /// the 5-entry v1 geology set + the 3d roster-proof widening: a second fine
 /// clastic, a second coarse clastic, a second intrusive, a second extrusive,
-/// and one accessory mineral; the table widens behind `MaterialId`, the
-/// type does not).
-pub const MATERIAL_COUNT: usize = 22;
+/// and one accessory mineral + the three **organic** rocks the biotic layer's
+/// facies resolve to; the table widens behind `MaterialId`, the type does not).
+pub const MATERIAL_COUNT: usize = 25;
 
 /// Identifier of a granular material in the registry. `u8`-sized: a material
 /// id appears up to 8 times per voxel, so entry compactness matters more than
@@ -82,6 +82,22 @@ impl MaterialId {
     /// Accessory mafic mineral: rides the pore slots of a host igneous rock
     /// (olivine in basalt/gabbro) — the inclusion-as-pore-partial representation.
     pub const OLIVINE: MaterialId = MaterialId(21);
+    // --- organic rocks (the S10 biotic layer reaching the material tier,
+    // journal/0026). The deep-time recorder's `Biofacies` axis selects the
+    // content CLASS; these are the vanilla members that fill those classes.
+    // Appended so existing ids are undisturbed. ---
+    /// Waterlogged organic accumulation that outran decomposition — the
+    /// **proto-coal**. Light, fibrous, an excellent insulator; the one organic
+    /// rock that is not yet a rock.
+    pub const PEAT: MaterialId = MaterialId(22);
+    /// **Coal**: peat buried and compacted past the burial-diagenesis
+    /// threshold. Dark, soft for a rock (Mohs ~2), low density — the seam a
+    /// player digs.
+    pub const COAL: MaterialId = MaterialId(23);
+    /// Organic-rich (carbonaceous) mudstone: the lithified organic soil
+    /// horizon. Buried, it is a **paleosol** — the most abundant organic
+    /// facies in the record by far.
+    pub const CARBONACEOUS_MUDSTONE: MaterialId = MaterialId(24);
 
     /// A registry-valid id from its raw value; `None` when out of range.
     #[inline]
@@ -411,6 +427,42 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [5.0, 8.5, 5.0, 7.5, 1.5],
         permeability: 0.05,
         insulation: 0.2,
+    },
+    // --- organic rocks. Real-material values: peat is light (~400 kg/m³
+    // drained) and famously insulating; coal is low-density for a rock
+    // (~1350 kg/m³) and SOFT (Mohs 2–2.5), so it yields to smashing far sooner
+    // than any silicate — which is exactly why a seam is worth digging;
+    // carbonaceous mudstone is an ordinary mudstone darkened and lightened by
+    // its organic fraction.
+    MaterialProps {
+        name: "peat",
+        albedo: [0.24, 0.17, 0.11],
+        density_kg_m3: 400.0,
+        grain_size_mm: 5.0,
+        cohesion: 0.45,
+        extraction_resistance: [0.5, 1.6, 1.8, 1.0, 5.0],
+        permeability: 0.5,
+        insulation: 0.8,
+    },
+    MaterialProps {
+        name: "coal",
+        albedo: [0.07, 0.065, 0.06],
+        density_kg_m3: 1350.0,
+        grain_size_mm: 0.05,
+        cohesion: 0.9,
+        extraction_resistance: [2.4, 4.0, 2.2, 3.0, 0.05],
+        permeability: 0.05,
+        insulation: 0.35,
+    },
+    MaterialProps {
+        name: "carbonaceous-mudstone",
+        albedo: [0.21, 0.18, 0.15],
+        density_kg_m3: 2200.0,
+        grain_size_mm: 0.004,
+        cohesion: 0.92,
+        extraction_resistance: [3.0, 4.8, 3.9, 2.6, 0.004],
+        permeability: 0.03,
+        insulation: 0.42,
     },
 ];
 

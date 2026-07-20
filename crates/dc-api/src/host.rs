@@ -54,6 +54,9 @@ pub fn block_from_name(name: &str) -> Option<Block> {
         "dc:sandstone" => Block::Sandstone,
         "dc:granite" => Block::Granite,
         "dc:basalt" => Block::Basalt,
+        "dc:coal" => Block::Coal,
+        "dc:peat" => Block::Peat,
+        "dc:carbonaceous-mudstone" => Block::CarbonaceousMudstone,
         _ => return None,
     })
 }
@@ -69,6 +72,9 @@ pub fn block_name(block: Block) -> &'static str {
         Block::Sandstone => "dc:sandstone",
         Block::Granite => "dc:granite",
         Block::Basalt => "dc:basalt",
+        Block::Coal => "dc:coal",
+        Block::Peat => "dc:peat",
+        Block::CarbonaceousMudstone => "dc:carbonaceous-mudstone",
     }
 }
 

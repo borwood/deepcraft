@@ -268,3 +268,43 @@ The GO/NO-GO and five ratification calls are the user's — ROADMAP
 - **Still open, still the user's**: § 5 fork 2 (pack-addition blast radius).
   S10 proved biology is an erosion term, so an organism pack changes terrain.
   Undecided as of this entry.
+
+## SHIPPED 2026-07-20 — the flip is live, biology reaches the material tier
+
+journal/0026. The GO action is done and the gap above is closed.
+
+- **`production_config`'s `biotic` is ON.** Every new world runs the six
+  processes over deep time; the `DeepField` carries organic facies.
+- **`deep_class` consults `Biofacies` first and lets it win where inhabited.**
+  Three new content classes — `dc:stratum/organic-{coal,peat,soil}` — each a
+  contract for one *measured* facies, filled by one vanilla member (coal, peat,
+  carbonaceous mudstone). `Soil` and `Retro` share the soil class. The
+  class-share invariant and registration-order independence both hold.
+- **Why "wins" and not "blends":** the 24 m seam's own tag is `Sa/A/L` —
+  subaerial, **arid**, **low** energy. Flow energy describes the grains a
+  passing current carried; it says nothing about plant matter outrunning decay,
+  which is the whole reason the rock exists. § 3's waterlogging-vs-rainfall
+  separation (S10 design choice 8) is what puts an arid tag on a coal swamp, and
+  it is correct: swamps sit where drainage collects, not where rain falls. The
+  organic classes therefore leave the **precip axis open** and let depth work.
+- **The record's resolution limit is now measured, and it bounds what ecology
+  can express as material.** Against the 0.9 m voxel: coal 89.6 % of units
+  survive, Soil 48.5 %, Retro 6 % of units (56 % of thickness), Peat 2.3 %, and
+  **Charcoal 0 of 158 310** (mean bed ~3.5 cm). So the fire record — one of the
+  four signals this doc asked for and S10 delivered — **exists in the record and
+  is invisible in the world.** No charcoal material was shipped; a band that
+  thin is an inclusion, not a layer (geology.md § inclusions), and that is filed.
+  This is a general lesson for § 3's derivation chain: **a facies the A tier can
+  record is not automatically a facies the collapse tier can show**, and the
+  sieve is the voxel edge.
+- **Not shipped, honestly**: coal rank (needs ~1–2 km burial; we record ~100 m —
+  the class's depth axis is reserved as the rank axis), and a distinct
+  retrogressive material (retrogression is a phosphorus fact about a *community*;
+  the property sheet has no nutrient axis — the day we track weathering products
+  is the day that class gains a second member).
+- **Cost correction**: the ratified 25 s ritual was the spike harness's scalar
+  path. Shipped it is **13.79 s**, biology's marginal cost **+2.6 s** — see
+  journal/corrections.md #12.
+- **Still open, still the user's**: § 5 fork 2 (pack-addition blast radius).
+  Unchanged by this milestone, and now shipping in a world where biology really
+  does move rock.

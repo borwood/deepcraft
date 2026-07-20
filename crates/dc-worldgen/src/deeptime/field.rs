@@ -53,6 +53,14 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
         cell_m,
         iterations: DEEP_ITERATIONS,
         record: true,
+        // **S10 GO** (ecology.md § DECIDED 2026-07-20, user): biology is a
+        // shipped part of world generation, not an experiment. The ritual grows
+        // 15 s → 25 s at every extent (`DEEP_MAX_WIDTH` makes the +10 s flat,
+        // not extent-scaled) and the world *keeps* only +6 MiB. The record's
+        // organic facies now reach material selection through
+        // `geology::deep_class`, so the coal the sim writes is coal a player
+        // can dig.
+        biotic: true,
         ..DeepConfig::default()
     }
 }

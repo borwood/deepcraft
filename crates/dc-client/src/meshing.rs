@@ -207,6 +207,9 @@ pub(crate) fn face_color(block: Block, normal_y: i64) -> [f32; 4] {
         (Block::Sandstone, _) => [0.76, 0.66, 0.44, 1.0],
         (Block::Granite, _) => [0.66, 0.56, 0.58, 1.0],
         (Block::Basalt, _) => [0.14, 0.14, 0.16, 1.0],
+        (Block::Coal, _) => [0.07, 0.065, 0.06, 1.0],
+        (Block::Peat, _) => [0.24, 0.17, 0.11, 1.0],
+        (Block::CarbonaceousMudstone, _) => [0.21, 0.18, 0.15, 1.0],
         (Block::Air, _) => [1.0, 0.0, 1.0, 1.0], // never emitted
     }
 }
@@ -241,6 +244,9 @@ pub fn block_layer(block: Block) -> u32 {
         Block::Sandstone => material_layer(MaterialId::SANDSTONE),
         Block::Granite => material_layer(MaterialId::GRANITE),
         Block::Basalt => material_layer(MaterialId::BASALT),
+        Block::Coal => material_layer(MaterialId::COAL),
+        Block::Peat => material_layer(MaterialId::PEAT),
+        Block::CarbonaceousMudstone => material_layer(MaterialId::CARBONACEOUS_MUDSTONE),
         Block::Air => 0, // never emitted
     }
 }
@@ -254,7 +260,13 @@ pub fn block_layer(block: Block) -> u32 {
 fn block_uses_contents(block: Block) -> bool {
     matches!(
         block,
-        Block::Mudstone | Block::Sandstone | Block::Granite | Block::Basalt
+        Block::Mudstone
+            | Block::Sandstone
+            | Block::Granite
+            | Block::Basalt
+            | Block::Coal
+            | Block::Peat
+            | Block::CarbonaceousMudstone
     )
 }
 

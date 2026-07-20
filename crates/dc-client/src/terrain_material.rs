@@ -381,7 +381,11 @@ mod tests {
         // shader hardcodes this size in its `array<vec4<f32>, N>` — keep them
         // in lockstep with this guard.
         assert_eq!(PALETTE_LEN as u32, ATLAS_LAYER_COUNT);
-        assert_eq!(PALETTE_LEN, 26);
+        // 25 registry materials + 4 block-only packs. Bump the shader's
+        // `array<vec4<f32>, N>` in terrain_fullbright.wgsl with this number —
+        // naga only compiles the WGSL at pipeline build, so this guard is the
+        // only CPU-side gate that sees the mismatch (journal/0020).
+        assert_eq!(PALETTE_LEN, 29);
     }
 
     #[test]

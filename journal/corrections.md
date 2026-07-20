@@ -249,3 +249,37 @@ z-fight regression.
 of the mesh's watertightness contract. "Watertight" proven in mesh space
 means nothing if the transform stage is allowed to move neighbours
 differently — prove seam closure PAST the transform, in world space.
+
+## 12. "The world-creation ritual costs 25 s with biology on" (2026-07-20)
+
+**Claimed** (docs/spikes/S10-results.md § Cost, and repeated in ROADMAP and at
+the GO ratification): flipping `production_config`'s `biotic` grows the ritual
+from **15.17 s to 25.19 s** (+66 %, 1.66×) at the A tier. This is the number the
+user was asked to ratify, and did.
+
+**Measured on the shipped path** (journal/0026, same box, same seed
+`0x0D5E_ED57_2026`, same 297 025 cells @ 460 m, same 200 iterations, same
+`DeepConfig` values): **10.82 s → 13.46 s** for the deep-time sim, and **13.79 s**
+for the whole `Pregen::run` ritual with biology on. Biology's marginal cost is
+**+2.6 s (1.24×)**, not +10 s (1.66×).
+
+**Mechanism**: the S10 cost table came from `examples/biotic_spike.rs`, which
+calls `deeptime::run` — and `deeptime::run` delegates to `run_with(.., false)`,
+the **scalar** path. Production calls `deeptime::build_field`, which passes
+`true` and takes the **byte-identical parallel** path S9b built and proved. The
+spike measured the scalar worst case and the doc reported it as "the ritual".
+Both halves were honest in isolation; the composition was not, because nothing in
+the results doc said which driver produced the table.
+
+Not a defect and not a regression — the shipped world is cheaper than promised,
+and byte-identical either way (S9b's parity proof is what makes the two
+interchangeable in the first place). It matters only because a user ratified a
+cost that is roughly double what they will experience, and because the same trap
+is waiting for the next spike.
+
+**Lesson**: a measurement harness may exercise a different driver than
+production. When a spike publishes a cost the ship decision rests on, name the
+code path that produced it, and measure the production entry point at least once
+before quoting the number as the user-visible cost. S10-results.md is left
+unamended — a spike result is a dated record of what was measured; this entry is
+the pointer.
