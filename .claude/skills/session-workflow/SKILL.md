@@ -107,6 +107,27 @@ You wear all four, switching freely:
 - Merge with `--no-ff`, then run the full gate suite on merged main
   yourself (fmt --check, clippy -D warnings, test — all `--release`).
   Grep test output case-sensitively; "0 failed" contains "failed".
+- **Shared-cache poisoning: an impossible-looking red gate on main after
+  sibling worktree builds is a STALE ARTIFACT until proven otherwise**
+  (added 2026-07-20, corrections #21 — mechanism CONFIRMED by eviction).
+  Symptom: post-merge `cargo test --workspace` fails with missing-symbol
+  compile errors (E0432/E0560) against source that plainly has the
+  symbols, while the targeted `-p <crate> --test <name>` run passes from
+  the same tree. Mechanism: agent worktrees pinned at OTHER commits build
+  the same packages into the shared `CARGO_TARGET_DIR`; under workspace
+  feature-unification the lib unit differs from the `-p` unit, and a
+  sibling's stale artifact for that unit carries a falsely-fresh
+  fingerprint. It does NOT heal on re-run. Remedy: `cargo clean -p <merged
+  crates> --release`, then re-run — this resolved it same-day (1.6 GiB
+  evicted, suite green). Discipline: (a) `Set-Location` the repo root
+  explicitly in every gate invocation; (b) capture `error`/`panicked`
+  lines, not only `test result:` lines — a compile failure is invisible to
+  a test-result filter; (c) on an impossible red: verify source integrity,
+  run targeted, then EVICT — never start "fixing" code the compiler
+  says lacks fields it visibly has; (d) two wrong hypotheses preceded the
+  fix (transient-heals-itself; port-7777 test collision) — both died on
+  the second identical failure; the -p-passes/workspace-fails split was
+  the discriminating observation.
 - Remove the worktree and branch after merge. Watch for agents whose HEAD
   branch differs from the auto-named worktree branch.
 - Fold agent findings into the docs *you* own: decisions → design docs,

@@ -574,3 +574,31 @@ design doc without a source check, caught only because the design pass was
 briefed to contradict its own scope where the code disagreed. Briefing
 agents to say "the ratified scope is wrong where it is wrong" is cheap and
 pays.
+
+## 21. The impossible red gate: two wrong mechanisms before the real one (2026-07-20)
+
+**Claim 1** (assistant, on the first post-console-v2 red gate): transient
+cross-worktree contamination — "heals once siblings stop building." Written
+into the workflow skill. **Falsified within the hour** by an identical
+second failure: the poisoning is persistent.
+
+**Claim 2** (assistant, same episode): concurrent workspace test runs
+colliding on port 7777. Never fit the evidence (the errors were COMPILE
+errors) and was dropped when the full capture showed E0432/E0560.
+
+**The real mechanism, confirmed by remedy**: sibling agent worktrees at
+other commits build the same packages into the shared `CARGO_TARGET_DIR`;
+under workspace feature-unification the dc-worldgen lib unit differs from
+the `-p` unit, and the console-v2 worktree (branched pre-eolian) left a
+stale artifact for that unit with a falsely-fresh fingerprint. Result:
+`cargo test --workspace` compiled main's own `full_agents` test against a
+lib without the fields, while `-p dc-worldgen --test full_agents` passed
+from the same tree — THE discriminating observation. `cargo clean -p
+dc-worldgen -p dc-client --release` (1.6 GiB evicted) + re-run → all green.
+
+**Lesson**: when the compiler reports missing symbols that are visibly
+present in source, the code is the LAST suspect — verify source, split
+targeted-vs-workspace, evict. And a mechanism written into a load-bearing
+doc (the skill) within minutes of forming is exactly how #19 happened;
+this one was caught because the second failure arrived before the session
+ended. The skill entry now records the confirmed mechanism.
