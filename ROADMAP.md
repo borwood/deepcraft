@@ -1030,6 +1030,18 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Console v1 field report: "still unusable" (user, 2026-07-20, first
+  test drive).** Two defects, both discoverability-of-what-exists rather
+  than missing data: (a) the arg surface is invisible in practice — no
+  per-arg help while typing, no visible arg shapes/expected inputs, so a
+  user cannot form a valid command without already knowing it; (b) the
+  output pane cannot scroll. DIAGNOSED at dispatch (same day): v0 rendered
+  help only on explicit `help <cmd>` and completion stopped at param keys;
+  the fix is presentational (inline signature + per-arg hints from the
+  schemas already carried) plus wiring the merged `Completer` hook
+  (decision #6) for value completion. Console-v2 agent dispatched — see In
+  flight.
+
 - **Unlock ranking (assistant view, unratified, 2026-07-20)** — raised at
   the user's "what else do we need to get moving to unlock things?" and not
   yet answered, so recorded rather than lost. Ranked by how many downstream
