@@ -173,6 +173,49 @@ The *representation* of each regime (the bulk-flow octree, the saturation
 field), the event vocabulary, timescale ownership, sub-resolution water,
 and capillary action all remain open below.
 
+## The hypothesis S11 tests (2026-07-20) — persist bodies, derive voxels
+
+Not decided; this is the model the spike is dispatched to falsify or
+support. It arose from the user breaking an earlier, wronger claim.
+
+**The wrong claim (assistant, retracted same conversation):** "water is a
+function until an edit makes the function wrong — re-derive everything
+from current geometry." The user broke it with two cases: a km-deep chasm
+dug from a lake bottom (standing at the bottom, how does anything know
+water reaches here?) and a km-long channel dug tangent from a river (how
+does the far end know a source is at the other end?).
+
+**Why it was wrong:** the two regimes have different *locality*.
+
+- **Bound water is local.** Saturation relaxes against neighbours; S9's
+  "bounded relaxation" classification holds. Derivable within a halo.
+- **Free water is CONNECTIVITY, which is not local at any radius.**
+  Whether water reaches a place is graph reachability through geometry the
+  player invented. No halo sees it; re-deriving per frame would mean
+  flood-filling the world.
+
+**The hypothesis:** the user's own event-driven instinct is the answer —
+*the graph is the memory*. Nothing asks per frame whether water could be
+somewhere; a breach event links a volume to a source, and the link is only
+revisited when another event touches it.
+
+- **Persist BODIES and their links** — volume, level, inlet(s), outlet(s).
+  A flooded cave is one node. A km channel joined to a river is a link on
+  the river's body. Sparse; thousands cost nothing.
+- **Derive VOXELS** — per-voxel water comes from the body's level plus
+  local geometry, like a lake surface. Dense but free.
+- **Persistence rule**: the body graph is world state (like an edit) and
+  must survive unload/reload. Voxel water must not be persisted. Dropping
+  a body node loses the one thing no derivation can reconstruct.
+- **Storage rule (sharpened)**: store only what the derivation cannot
+  predict — transients in flight, and bodies in containers the derivation
+  says should be dry (a bucket poured into a sealed stone basin).
+
+**Ocean/sea scale (user, at dispatch)**: a sea is not a finite volume to
+fill and drain — breaching it must not empty it. This suggests bodies need
+a character distinction (level-pinned reservoirs vs finite volumes), which
+S11 must exercise rather than assume.
+
 ## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
 **Read this section before proposing anything.** The user flagged a

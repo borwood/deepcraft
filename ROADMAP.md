@@ -409,6 +409,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- 2026-07-20 — **S11 — water locality + body-graph spike** (background agent,
+  worktree; design in docs/design/water.md). Tests the "persist bodies,
+  derive voxels" hypothesis against the two questions that broke the
+  derive-everything model: is the bound-water relaxation genuinely local
+  (halo size), and does the free-water body graph stay sparse under
+  adversarial digging? Headless cost-and-locality measurement only — no
+  renderer water, no deep-time changes. Scenarios include ocean-scale
+  breach (a sea must not drain). Agent recommends GO/NO-GO; verdict is the
+  user's.
+
 *(**Organic materials + the biotic production flip: SHIPPED** 2026-07-20,
 journal/0026 — see Shipped. Biology is on in every new world and the 24 m seam
 is diggable.)*
