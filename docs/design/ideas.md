@@ -452,3 +452,57 @@ screenshots, then generalized by the user beyond coal.
   100 m+ (Latrobe Valley), and are laterally extensive sheets. Our shape
   is right (bedded sheets, deposited per-cell per-epoch, not blobs); the
   interior is what is wrong.
+
+## Extensibility: the passes ARE the API being built (user, 2026-07-20)
+
+Asked how passes are expressed as plugins and how a plugin would add new
+passes to generation — a compartmentalization/moddability worry. The
+user's own framing resolved the sequencing question:
+
+> makes perfect sense that our passes right now are also *building that
+> api* - or what will become it - alongside the passes. we're early in
+> dev. plugins won't build the api, they're built on the api. eventually
+> we stabilize our api, expose it to plugins, start versioning /
+> developing backwards compatibly.
+
+So: **do not design a plugin-pass mechanism yet.** Keep writing passes;
+the API is the residue they leave behind. Stabilize → expose → version →
+maintain backwards compatibility, in that order, later.
+
+### What modders will actually want (the user's design target)
+
+> this game gives modder imaginations a surface to dream about deep time,
+> so if they picture a fantastic present that depends upon deeptime, or
+> they imagine a deeptime scenario ... **some** affordance should be given
+> to satisfy those emergent fantasies.
+
+**The worked example, and a genuinely good API probe:**
+
+> ancient aliens had impenetrable outposts built on the planet in far
+> geological prehistory -> what api do i have as a modder to inject this
+> in a way the sim understands.
+
+Assistant analysis (PROPOSAL): decompose what that fantasy actually needs,
+and most of it is machinery we already have or are about to build.
+
+- **Emplace a thing at a place at an epoch** — deep time has no way to
+  accept *exogenous* emplacement today. This is the genuinely missing
+  primitive.
+- **Declare it effectively unerodible** — this is *precisely* the
+  erodibility-coupling milestone now sequenced first (per-cell erodibility
+  read from the exposed material). An impenetrable outpost is a cell whose
+  material has extreme hardness. **The dismal-mountains fix is also the
+  first plank of the modder API.**
+- **Then it rides existing machinery unchanged**: erosion refuses to cut
+  it, sediment buries it, uplift and exhumation may expose it again on a
+  scarp, and the strata recorder logs what accumulated over it. A modder
+  gets "you dig down 200 m and hit an alien wall, and the *layers above it*
+  tell you how long it has been there" without a single bespoke system.
+- **What the record cannot yet say**: that a unit is an *artifact* rather
+  than a rock. The recorder's vocabulary is depositional
+  (env/energy/aridity/biofacies); provenance-as-artifact is a new axis.
+
+The lesson to carry: the test of the deep-time API is not "can a mod add a
+block" but **"can a mod inject a fact into prehistory and have the whole
+downstream simulation take it seriously."** That is the acceptance
+criterion when the API is eventually stabilized.

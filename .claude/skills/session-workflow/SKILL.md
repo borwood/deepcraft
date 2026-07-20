@@ -125,6 +125,16 @@ You wear all four, switching freely:
   carries explicit no-regression axes. Agents optimize what the brief
   measures.
 
+- **Triage the agent's NEEDS RATIFICATION list; never relay it whole**
+  (added 2026-07-20, after two S11 engineering questions — body identity
+  across merges, whether a derived index is persisted — were forwarded to
+  the user, who rightly asked "how am i supposed to decide on that?").
+  Ratification is for **user-owned** choices: game feel, appearance, scope
+  forks, world-model commitments. Implementation questions with measurable
+  answers are the integrator's to settle or to sequence as work. Sort the
+  agent's list into user-owned / rides-as-built / needs-measurement before
+  it reaches the user, and say which is which.
+
 ## Audit trail (see CLAUDE.md for formats)
 
 - Journal entries are narrative for a future reader and developer-blog

@@ -286,6 +286,42 @@ water in equilibrium measured as **static data with a level**, which is what
 sub-resolution water, capillary action, cave families, deep-time water field
 placement.
 
+## DECIDED 2026-07-20 (user) — S11 ratification calls
+
+S11 returned GO with four calls. Answered:
+
+1. **`Pinned` vs `Finite` reservoirs: PINNED, default ON, and it must be
+   TOGGLEABLE.** User: "i guess pinned but we have to be able to turn it
+   off and see what happens. simple as. default on." So a sea holds its
+   level rather than draining when breached — but the finite behaviour
+   stays reachable as a switch, because watching an ocean drain into a
+   chasm is worth being able to see. (Note the measurement agrees with the
+   world model: pinning needs no capacity curve, taking that derived cost
+   415 ms → 0.0 ms.)
+2. **The ~12-cell halo: it is a KNOB, not a constant.** User doctrine,
+   stated generally: **"where there's a cell range, there's a knob. we
+   don't know what may be more perf in the future when other unbuilt
+   systems are also running. knob now."** Applies beyond water — any
+   measured radius/halo/range should ship adjustable rather than baked.
+3. **Body identity across merges** — RECLASSIFIED as an engineering
+   choice, not a user call (see below). Rides as-built; revisit if and
+   when bodies acquire durable identity (a named lake, a quest site), at
+   which point it becomes a design question rather than an implementation
+   one.
+4. **Whether the connectivity index is truly never persisted** —
+   likewise engineering. It is derived state and S11 proved byte-identical
+   reload without it; it stays underived-and-unpersisted unless a
+   measurement says otherwise. Shares the open question with the far-field
+   summary store, and should be decided with it rather than separately.
+
+**Process note (assistant error, recorded deliberately):** calls 3 and 4
+should never have been put to the user. The ratification rule covers
+game feel, art, and scope forks — user-owned choices. Body identity across
+merges and index persistence are implementation questions with measurable
+answers; forwarding an agent's "NEEDS RATIFICATION" list without filtering
+it pushed engineering decisions onto the user. The integrator's job is to
+triage that list, not relay it.
+
 ## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
 **Read this section before proposing anything.** The user flagged a
