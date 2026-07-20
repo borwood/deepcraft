@@ -587,6 +587,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   fullbright disables distance fog data-side via the `PostStage` uniform.
   Required to re-shoot the 3.5 km massif vista and report the moiré check
   honestly.
+- **Registry `completions` hook + macro/derive self-consistency** —
+  background worktree agent, dispatched 2026-07-20 (session 4; API.md
+  Decisions #6/#7, user-ratified). Writes dc-api only — disjoint from the
+  other two agents' write-sets, which is what makes it safely parallel.
+  Public surface (`ids::`, `Payload`, `CommandSpec`, `registry()`) and
+  wire-visible schema shapes unchanged, so the console agent's work merges
+  clean against it.
 
 **Session 3 shipped, all gates green on merged main:** FF2a voxel far field
 (0023) · far-seam uniform-push fix (0024) · S10 biotic layer (0025) ·
@@ -610,6 +617,13 @@ corrections #18 and #19 — both are about choosing an instrument that can
 see the question you are asking.
 
 ## Sequenced
+
+- **Retire `client_player_pose_set` into `dc:character/pose`** (API.md
+  Decisions #5, ratified 2026-07-20): make the player a dc-api character
+  and route the player controller through controller-verb commands — the
+  work that makes player input replayable (decision 2). Explicitly
+  sequenced AFTER the session-4 console and edges agents merge: it rewrites
+  `mcp.rs` and `player.rs`, both in those agents' write-sets.
 
 *(**FF2a — voxel-language far field: SHIPPED** 2026-07-19, journal/0023 — see
 Shipped. Stepped columns retired the smooth TIN; step 0 empirically confirmed
@@ -1553,28 +1567,11 @@ before any code.
 - S2 checkpoint facts (deep-time re-derivation cost) — design owed before
   ledgers densify.
 
-- **`client_player_pose_set` mutates the sim outside the one door**
-  (assistant analysis, 2026-07-20, session-4 console feasibility pass;
-  unratified). It teleports the player and zeroes velocity with no
-  capability check, no tick quantization, no receipt, no replay entry —
-  while API.md principle 1 says player input becomes commands, and the
-  registry already holds its near-twin `dc:character/pose`. The seam is
-  "the player isn't a dc-api character yet" (`player.rs` has no Character
-  reference), not architectural conviction. Retiring it means routing the
-  player controller through controller-verb commands — the same work that
-  makes player input replayable at all (principle 3), so likely implied
-  scope, not new scope. `client_screenshot` / `pose_get` are correctly
-  outside (disk I/O and camera-state reads; no replay meaning). The
-  in-game console makes the asymmetry visible: it will be the one surface
-  where every command returns a receipt except this one.
+- *(**`client_player_pose_set` outside the one door: RATIFIED same day** —
+  API.md Decisions log #5. Retirement = player controller through
+  controller-verb commands; sequenced after the session-4 agents land,
+  since it rewrites files they are touching. See Sequenced.)*
 
-- **Console follow-ups filed at dispatch** (2026-07-20): (a) value-level
-  completion (`block=<TAB>` → registered block names) has no source in the
-  registry — wants an additive `completions` fn on `CommandSpec` so it
-  stays free forever; (b) the "future commands just work" promise currently
-  rests on discipline plus the schema.rs completeness tests (samples-len ==
-  registry-len), since payload schemas are hand-rolled `fn() -> Value`,
-  not derived from the Rust types — a declarative macro emitting the id
-  const + `Payload` variant + `CommandSpec` from one block (schemars-style
-  derive underneath, wasm-safe) would make a missing entry a compile
-  error. Assistant proposals, unratified; neither blocks console v0.
+- *(**Console follow-ups: RATIFIED same day** — API.md Decisions log #6
+  (`completions` hook) and #7 (registry macro/derive). Dispatched as a
+  session-4 background agent — see In flight.)*

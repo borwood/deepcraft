@@ -350,6 +350,43 @@ schedule.manage(own)               events.subscribe(filters)
    64³ fill; bulk deltas belong to scan queries (cheaper per voxel) or event
    subscriptions.
 
+5. **`client_player_pose_set` retires into the door** — DECIDED 2026-07-20
+   (user ratified the session-4 analysis). It is a sim mutation living
+   outside the surface: no capability check, no tick quantization, no
+   receipt, no replay entry — while decision 2 says player input becomes
+   commands, and the registry already holds its near-twin
+   `dc:character/pose`. The seam is "the player isn't a dc-api character
+   yet" (`player.rs` has no Character reference), not architectural
+   conviction. Retirement = routing the player controller through
+   controller-verb commands — the same work that makes player input
+   replayable at all, so implied scope of decision 2 rather than new scope.
+   `client_screenshot` and `client_player_pose_get` stay outside by design:
+   disk I/O and camera-state reads have no replay meaning, and dc-api is
+   headless. Sequenced, not immediate — it rewrites `mcp.rs`/`player.rs`,
+   which two in-flight agents are touching.
+
+6. **Registry `completions` hook** — DECIDED 2026-07-20 (user). Value-level
+   completion (`block=<TAB>` → registered block names) has no source in the
+   registry: parameter *names* and types come free from `payload_schema()`,
+   but legal *values* are dynamic world/registry content. An additive
+   per-`CommandSpec` completion source closes that so value completion is
+   generated like everything else and stays free for future commands.
+   Signature is implementation-designed under two constraints: wasm-safe
+   (dc-api compiles for wasm32) and consumable by the in-client console.
+
+7. **Registry self-consistency moves from tests to the compiler** — DECIDED
+   2026-07-20 (user). Today "every command is registered" rests on
+   discipline plus the schema.rs completeness tests (sample-list length ==
+   registry length); payload schemas are hand-rolled `fn() -> Value`, not
+   derived from the Rust types, so a forgotten entry is a runtime/test
+   artifact. One declarative site (macro) that emits the `ids::` const, the
+   `Payload` variant, and the `CommandSpec` per command makes a missing
+   entry a compile error. Hard constraint: the wire-visible JSON schemas
+   keep their current shape (inline, no `$ref` — consumers parse property
+   descriptions for help/completion) and the public surface (`ids::`,
+   `Payload`, `CommandSpec`, `registry()`) is unchanged, so no consumer
+   edits ride along.
+
 ## v0 implementation notes (adopted from S5, details in docs/spikes/S5-results.md)
 
 - Wire types never use `skip_serializing_if` — postcard is positional and

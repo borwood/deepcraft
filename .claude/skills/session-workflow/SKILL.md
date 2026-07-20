@@ -58,6 +58,16 @@ You wear all four, switching freely:
 
 - One milestone/spike = one background agent in a worktree
   (`isolation: "worktree"`). Design conversation continues while it runs.
+- **Parallelize by write-set, serialize the machine** (user, 2026-07-20):
+  run multiple agents concurrently whenever their WRITE-sets are disjoint
+  (reading shared files is fine — only writes conflict). The compile /
+  playtest slot stays global-singular: one cargo invocation and one
+  dc-client instance (port 7777) across everything; agents are briefed to
+  check for live cargo/rustc/dc-client processes and wait. Jobs still
+  SEQUENCE when they build on each other's output or share files with high
+  conflict potential — name the dependency in ROADMAP when you defer one
+  for this reason (e.g. pose_set retirement waits on the console + edges
+  merges because all three touch mcp.rs/player.rs/app.rs).
 - **Resource rules are mandatory in every agent brief** (machine has hung
   before): one cargo invocation at a time anywhere; every cargo call sets
   `CARGO_TARGET_DIR=<repo>\target` and `CARGO_BUILD_JOBS=4` in the same
