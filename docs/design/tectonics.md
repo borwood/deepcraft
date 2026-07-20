@@ -1,11 +1,18 @@
 # Tectonics — the moving world
 
-> **DRAFT — NOT RATIFIED.** Scope ratified (earth-processes § 1, DECIDED
-> 2026-07-20, items 1–7 + the plate-scale knob); this architecture is not,
-> until the user reviews. Produced 2026-07-20 by the dispatched design
-> agent, following the ratified shape: design pass → spike → milestone.
-> Decisions below carry dates only where they quote an existing ratified
-> record; everything of this document's own is PROPOSED.
+> **RATIFIED 2026-07-20 (user)** — architecture and all eight user
+> decisions accepted in session 4, same day as the draft. U1 (plate_scale_km
+> = 65 knob), U2 (K = 8, knob), U4 (W ≈ 25 km, arc gap ≈ 50 km, judged from
+> spike renders), U5 (~1 plate-width advection/run), U6 (≤1 impact, ~1–2
+> other punctuation rolls/world), U7 (amplitude call re-sequenced to after
+> analytic forcing), U8 (production flip after spike screenshots,
+> 0030-style): accepted as recommended. **U3 amended by the user beyond the
+> recommendation**: the ritual-length ceiling is not ~28 s — "when we're
+> done with the game i can accept 5 min if that's what it takes." The spike
+> should therefore report time/quality tradeoffs rather than optimizing to
+> a cap; worldgen time is not a constraint (standing rule).
+> Next step: the SPIKE, per § SPIKE below. Produced 2026-07-20 by the
+> dispatched design agent (design pass → spike → milestone).
 
 **The one-sentence thesis.** Tectonics stops being a one-shot painting of
 uplift onto coarse cells and becomes a *chaptered kinematic history* —

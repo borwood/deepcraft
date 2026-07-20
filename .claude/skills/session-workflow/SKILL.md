@@ -152,6 +152,18 @@ You wear all four, switching freely:
   that load the right mental model. **Read it at session start, before the
   design docs.** Append the moment an example lands; do not batch it.
 
+- **Every gen slice gets a gameplay-impact + fidelity trace before it is
+  sized** (user, 2026-07-20, after the wind-band flip was initially scored
+  "cosmetic-ish": tracing what the player actually sees — a dead-straight
+  vegetation line, dune fields migrating in opposite directions across one
+  row — upgraded it to a merge-with-the-desert-belt slice). Two explicit
+  questions, answered in writing when proposing or filing any change:
+  (a) what Earth mechanism is this faithful to, at what tier; (b) what
+  will the player see or do differently — walk the readouts (vegetation,
+  landforms, strata, resources), don't stop at the field being changed.
+  "Cosmetic" is a conclusion that requires the trace, never a substitute
+  for it.
+
 - **An agent's MECHANISM is a hypothesis; only its numbers are evidence**
   (added 2026-07-20, corrections #19, after the integrator wrote an agent's
   unverified "the sun moves between launches" into CLAUDE.md as doctrine —

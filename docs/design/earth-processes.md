@@ -157,6 +157,24 @@ exists) resistance axes built in 0029. At 460 m resolution the deliverable
 is dune-*field*/loess/periglacial *regions* in the record and surface;
 individual dunes and scree cones are collapse-tier detail for the
 sub-460 m band work.
+
+**Follow-up slice RATIFIED 2026-07-20 (user) — zonal circulation profile,
+dispatch after the eolian agent lands (same march, avoid mid-flight scope):**
+replace the three-way wind sign bit (`wind_dx`) with smooth latitude
+profiles — zonal wind as signed *magnitude* passing through ~zero at the
+band boundaries, plus a subsidence factor peaking there. One object fixes
+two diagnosed defects: (a) the hard direction flip at 30°/60° that would
+print a dead-straight climate/vegetation line and opposite-migrating dune
+fields across one grid row (an analytic boundary reaching the eye — the
+scream rule); (b) missing subsidence aridity — Earth's 30° desert belt is
+the Hadley descending limb, not rain shadow, and the calm horse latitudes
+ARE that limb, so magnitude-through-zero and desert-belt suppression are
+the same mechanism. Also seeds the wind-strength field that deflation
+scaling and future gameplay wind (present-day weather layer) want.
+Gameplay-impact trace (required per the session-workflow rule this slice
+occasioned): deserts land where a player who knows Earth expects them;
+no straight-line seams; dune-field orientation varies believably with
+latitude.
 Reality: water (sorted, graded, channelized), wind (well-sorted fine
 dunes/loess), ice (unsorted till, striations, U-valleys), gravity (talus,
 landslides). Each environment leaves a distinct facies.

@@ -619,7 +619,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **Tectonic design pass — DRAFT LANDED, awaiting user ratification**
+- *(**Tectonics architecture RATIFIED 2026-07-20** — all of U1–U8, with
+  U3 amended (ritual ceiling relaxed to "5 min if that's what it takes");
+  see the tectonics.md banner. The SPIKE is next — sequenced below, behind
+  the eolian agent's landing: both write `deeptime/erosion.rs`.)*
+- **Tectonic design pass — DRAFT LANDED (historical entry)**
   (docs/design/tectonics.md, merged 2026-07-20; Fable design agent). The
   inversion: surface uplift stops being the input — plate kinematics
   (advected Voronoi seeds, K~8 chapters) drive analytic boundary forcing →
@@ -669,7 +673,21 @@ see the question you are asking.
 
 ## Sequenced
 
-- **Tectonic uplift-plane redesign — DESIGN PASS** (direction ratified
+- **Tectonics SPIKE** (per tectonics.md § SPIKE, architecture ratified
+  2026-07-20): implement `DeepConfig::tectonic_history` behind the flag and
+  produce the eight measurement groups (clamp stability under ramped
+  repaints, recorder growth vs K, ritual wall/memory at 200/300/400 iters
+  reporting tradeoffs not optimizing to a cap per amended U3, landform
+  evidence with pass bars + negative controls, forcing-wavelength kill of
+  the 50 km artifact, byte-identity off, relief distributions for the
+  re-sequenced amplitude call, drainage-export fidelity). **Dispatch after
+  the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
+- **Zonal circulation profile** (ratified 2026-07-20, earth-processes § 4
+  follow-up): smooth wind magnitude + subsidence aridity replacing the
+  `wind_dx` sign bit. Dispatch after eolian merges; write-set is
+  `climate.rs` (pregen + deeptime) — parallelizable with the spike per the
+  write-set rule if desired, machine serializes compiles.
+- **Tectonic uplift-plane redesign — DESIGN PASS (superseded — done)** (direction ratified
   2026-07-20, earth-processes.md § 1 DECIDED entry): tectonic history
   (uplift(t), plate advection, chaptered boundary re-classification) +
   analytic boundary forcing (uplift from exact bisector distance at deep-grid
