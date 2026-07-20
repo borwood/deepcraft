@@ -635,6 +635,14 @@ see the question you are asking.
 
 ## Sequenced
 
+- **Tectonic uplift-plane redesign — DESIGN PASS** (direction ratified
+  2026-07-20, earth-processes.md § 1 DECIDED entry): tectonic history
+  (uplift(t), plate advection, chaptered boundary re-classification) +
+  analytic boundary forcing (uplift from exact bisector distance at deep-grid
+  resolution). Spike-class; upstream of dip/fold, volcanism, and the
+  amplitude call. Includes the plate-count/scale-compression knob decision
+  (user-owned).
+
 - **Retire `client_player_pose_set` into `dc:character/pose`** (API.md
   Decisions #5, ratified 2026-07-20): make the player a dc-api character
   and route the player controller through controller-verb commands — the

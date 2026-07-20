@@ -44,6 +44,33 @@ Sim: S7 provenance is the static seed; deep-time needs epoch-stepped
 uplift/subsidence histories per region and deformation applied to the
 accumulated record (3e).
 
+**Direction DECIDED 2026-07-20 (user, session-4 gen review) — design pass
+owed before any code; spike-class.** Two coupled fixes to the uplift plane,
+diagnosed from "one-shot upheaval" and "why is gradation-to-peak 50 km":
+1. **Tectonic history — uplift becomes uplift(t).** Plates (Voronoi seeds +
+   velocities) advect through deep time; boundaries re-classified and the
+   uplift plane repainted every N epochs — the same re-march pattern the
+   climate already uses. Buys superimposed orogenies (old eroded belt +
+   young sharp belt), dip/fold as *recorded* deformation (beds deposit
+   flat, later differential uplift tilts them — the physical mechanism §7's
+   relax-term approximates), meaningful unconformities, migrating arcs,
+   and hotspot tracks (impossible without plate motion). Design pass must
+   settle: chapter count/cadence, advection rules, how the recorder tags
+   deformation, and whether mid-run uplift repainting destabilizes the
+   erosion clamp (measure).
+2. **Analytic boundary forcing.** Stop painting uplift onto 14.7 km cells
+   (which truncates all tectonic forcing at ~15 km wavelength and bilinears
+   it into the 460 m deep grid); evaluate uplift as a continuous function
+   of exact distance-to-Voronoi-bisector × convergence rate, sampled at the
+   deep grid's own resolution. Orogen width becomes a design parameter
+   (fast convergence → narrow sharp belt), not a grid artifact.
+   Prerequisite for the amplitude call: amplitude tuned against the smeared
+   template would need re-tuning after this lands.
+Related decision wanted from the same pass: plate-count/scale compression
+(~14 plates over 251 km ⇒ ~60–70 km plates) is currently an emergent
+constant, not a choice — it directly sets landform provinces per km of
+travel and should be a stated, user-owned knob.
+
 ### 2. Igneous
 Reality: melt generation → intrusion (slow cooling, coarse: granite;
 country-rock contact effects) or extrusion (fast: basalt flows, ash);
