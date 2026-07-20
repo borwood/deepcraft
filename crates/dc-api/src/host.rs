@@ -78,6 +78,26 @@ pub fn block_name(block: Block) -> &'static str {
     }
 }
 
+/// Every block name `set_block`/`fill` will resolve — the value source for the
+/// `block` completion hook (schema.rs `Completer`). Keep in sync with
+/// [`block_from_name`]. Today the fixed S1 table; when the data-driven block
+/// registry lands (the note on `block_from_name`), this reports the world's
+/// registered blocks instead and the completion source is unchanged.
+pub const KNOWN_BLOCK_NAMES: &[&str] = &[
+    "dc:air",
+    "dc:stone",
+    "dc:dirt",
+    "dc:grass",
+    "dc:wood",
+    "dc:mudstone",
+    "dc:sandstone",
+    "dc:granite",
+    "dc:basalt",
+    "dc:coal",
+    "dc:peat",
+    "dc:carbonaceous-mudstone",
+];
+
 /// A data-driven item definition, as stored.
 #[derive(Clone, PartialEq, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ItemDef {
@@ -269,6 +289,15 @@ impl HostWorld {
 
     pub fn entities(&self) -> &[EntityInfo] {
         &self.entities
+    }
+
+    /// The block names this world resolves in `set_block`/`fill` — the value
+    /// source the schema registry's `block` completion hook reads. `&self` is
+    /// the future-facing seam: today the fixed [`KNOWN_BLOCK_NAMES`] table, but
+    /// when blocks become data-driven this reports the world's registered set
+    /// and the completion source does not change.
+    pub fn block_names(&self) -> &'static [&'static str] {
+        KNOWN_BLOCK_NAMES
     }
 
     /// Configure character body dimensions / dynamics (the client sets
