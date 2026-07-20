@@ -417,20 +417,30 @@ before any code.
   this as **the original cause of the walk-8 complaint** — material families
   "appearing to change immediately across some kind of boundary" — now
   legible at full extent because the far field renders the surface rule at
-  km scale: "obviously bad / not natural appearing." Candidate mechanisms
-  (diagnosis owed, likely the walk-8/walk-10 quantization class): a hard
-  threshold in the surface rule (grass-vs-dirt on climate/elevation) stepped
-  at a lattice/cell boundary with no interpolation or dither — candidates
-  include the S7 column-quantization cell, the climate cell, or the Large-
-  extent coarsened (~1.8 km) deep cell under the width cap. Related filed
-  items: walk-8 "material families cut hard on chunk lines", walk-10
-  "class-presence quantization still cuts on chunk lines" (per-chunk
-  flow_energy rounding). The 3d boundary-dither mechanism exists for member
-  contacts at the MATERIAL tier; surface BLOCK selection has no analogous
-  softening. Fix likely per-column context interpolation / boundary dither
-  at the surface rule — and it must show up in `coarse_surface` too, or the
-  far field will keep drawing the hard line even after the near field
-  softens.
+  km scale: "obviously bad / not natural appearing." **DIAGNOSED
+  2026-07-20 (read from source, not yet fixed)** — and it is NOT the
+  quantization class this entry first guessed. `collapse.rs`
+  `surface_sample`: `let bare = riverbed || precip < 0.10 || (fringe &&
+  precip < 0.35)` — a **hard binary threshold on a very smooth field**.
+  `climate_at` bilinearly interpolates precip between climate-cell centres,
+  and a cell is `CELL_VOXELS` = 16 384 voxels ≈ **14.7 km** at N=2, so over
+  any near-field view the field is essentially locally linear: its 0.10
+  isoline is a geometrically straight line running for kilometres, and the
+  threshold gives it **zero transition width**. Two independent defects
+  (both must be fixed): (1) *no transition* — grass/dirt needs a
+  probabilistic/fractional band around the threshold, not a step; (2) *no
+  detail in the boundary itself* — even a soft edge would be a smooth
+  km-scale arc, so the isoline wants domain warp / octave noise on precip
+  (or on the threshold) to make the frontier wander at 10–100 m scale.
+  The 3d member-contact dither is the material-tier precedent; surface
+  BLOCK selection has no analogue. **Any fix must live inside
+  `surface_sample`**, which near and far provably share (journal/0022), so
+  the horizon heals with the ground. Related: walk-8 "material families cut
+  hard on chunk lines" — the user identifies THIS as that complaint's
+  origin (a different mechanism from the walk-10 per-chunk flow_energy
+  rounding, which stays open separately). Couples to the biotic layer: the
+  real cure may be that ground cover stops being a paint decision at all
+  (see docs/design/ideas.md § the bio slot).
 
 - *(**User field report (2026-07-20, post-FF2a): thin bright seams between far
   patches — RESOLVED** 2026-07-20, journal/0024, fix cycle, background agent;

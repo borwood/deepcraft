@@ -243,3 +243,49 @@ bodies.md; everything below is unscheduled)
   generated from actual history.
 - Sim-depth knobs as a general doctrine (extent, encumbrance, integrity…):
   one simulation, player-tunable depth.
+
+## The bio slot on a substrate (user, 2026-07-20)
+
+Raised while diagnosing the razor-straight grass/dirt frontier (ROADMAP
+Observed): today "grass" is a whole *block type* chosen by a threshold —
+ground cover is a paint decision, and there is no biota in the world at
+all. The user's direction reframes it:
+
+- **A voxel is substrate + a biotic occupancy** — "part of this block is
+  vegetative, the rest is substrate or roots." Cover stops being a block
+  identity (Grass vs Dirt) and becomes a *fraction on top of* the material
+  that is actually there. A grass voxel is dirt with a living fraction;
+  the boundary between grassland and bare ground becomes a gradient in
+  that fraction, which dissolves the hard-threshold problem at its root
+  rather than dithering over it.
+- **Convenience the user flagged**: this wants to reuse the S8 loose-
+  material partial machinery (per-voxel fractional contents) rather than
+  invent a parallel system. **Known mismatch, explicitly noted by the
+  user: the desired *presentation* does not align with current partials
+  mixture logic** — mixtures today read as intermixed constituents
+  (speckle/heightlerp), whereas vegetation wants to read as a *layer/
+  canopy on top of* its substrate, with its own silhouette. Open: whether
+  that is a rendering rule over the same data, a distinct occupancy
+  channel, or partial-height geometry (the dormant sub-8 loose rendering).
+- Couples to: S10's community vector (what species the fraction *is*),
+  ecology.md's biology-as-a-rock-forming-term, and the water thread
+  (moisture is the field cover actually responds to).
+
+## Soil is loose, but packable into structural (user, 2026-07-20)
+
+- **Soil should be a LOOSE material, not structural** — it is the S8
+  loose/partial tier, not a solid block, contra today's `Block::Dirt`.
+- **…except that it can transition to structural under weight + time.**
+  Soil is a *packable* material: overburden pressure and duration convert
+  loose soil into a packed, structural form. Worldgen consequence the
+  user named: **most sub-surface soil levels generate already packed** —
+  only the top horizons are genuinely loose, which is also what makes
+  digging feel right (loose topsoil, firm subsoil).
+- Mechanism candidates (undesigned): a packing/consolidation field
+  derived from depth + time-under-load, plausibly the same machinery as
+  the deep-time strata recorder; player-side, tamping/walking/building as
+  the compaction verb (crafting-as-process § "pack" verb already exists).
+  The reverse (structural → loose on disturbance) is the natural pair.
+- Connects to the water thread: porosity/permeability differ sharply
+  between loose and packed soil, so this is upstream of groundwater and
+  of S8 porosity-driven wetness rendering.
