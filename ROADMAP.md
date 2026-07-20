@@ -13,21 +13,30 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   `erodibility: true` beside `biotic: true`. **Every world created from here on
   has a different shape; worlds made before today are not reproducible under this
   build.** No rate, contrast or clamp was touched — the amplitude question stays
-  the user's. **The appraisal is negative and that is the finding**: re-shooting
-  four exact vantages (summit silhouette, stripped granite upland, bare hillside,
-  green lowland) before and after, the `--fullbright` pairs — the honest geometry
-  comparison — differ by **0.08–0.93 %** of pixels at three of four sites (8.4 %
-  at the fourth). A 110-point 5 km lattice across the main massif moved by
-  **−2 to +2 m** (mean −0.34 m), total relief **2,615 → 2,614 m**, and 38 of 110
-  samples did not move at all; the walking surface at all three ground vantages
-  dropped **exactly one voxel**. No bench, ledge or resistant core is visible to
-  the eye at any vantage. This is what 0029's own numbers predicted (modest until
-  rates ×10, where a hard bed stood 44.7 m proud): **the model is not the
-  bottleneck, the amplitude is.** Method note worth keeping — the *lit* pairs
-  differ by up to 48.9 % of pixels purely because the sun moved between passes;
-  reading them alone would have reported a dramatic false positive, and the
-  mandatory fullbright control is the only reason it didn't (journal/0030,
-  blogworthy). **Two tests re-baselined, both legitimate consequences, neither a
+  the user's. **The appraisal: the surface changed everywhere and improved
+  nowhere.** Four exact vantages (summit silhouette, stripped granite upland, bare
+  hillside, green lowland) re-shot before and after, lit and `--fullbright`. The
+  *lit* pairs differ broadly — block-mean |Δ| 11.7–32.5 surviving 16×16 averaging,
+  with ≈ zero *signed* mean — which is **face-orientation change**: the
+  ground-level surface is substantially re-terraced. Macro landform is
+  **unchanged**: the summit silhouette is identical and a 110-point 5 km lattice
+  across the main massif moved only **−2 to +2 m** (mean −0.34 m), relief
+  **2,615 → 2,614 m**, 38 of 110 samples unmoved, the walking surface down
+  **exactly one voxel** at all three ground vantages. The two reconcile through
+  **0.9 m quantization**: a sub-voxel elevation change re-rounds which faces point
+  up, re-cutting every terrace on a slope while moving the landform by nothing.
+  **No bench, ledge or resistant core attributable to lithology at any vantage** —
+  the terraces that moved moved across single-rock-type ground too. This is what
+  0029's own numbers predicted (modest until rates ×10, where a hard bed stood
+  44.7 m proud): **the model is not the bottleneck, the amplitude is.**
+  **Method correction — see corrections #18:** this entry first reported the
+  fullbright pairs (0.08–0.93 % different) as the honest geometry comparison and
+  blamed the lit difference on the sun moving. There is no day/night cycle. In
+  `--fullbright` every face of a block is the same flat colour, so on
+  single-material terrain it **cannot see geometry at all** —
+  `0030-flank-before-fullbright.png` renders a whole terraced hillside as a
+  featureless grey field. The right control for a *material* question (0027's
+  coal) was the blind one for a *geometry* question. **Two tests re-baselined, both legitimate consequences, neither a
   bug:** `dc-client::authority::worldgen_surface_seating_never_embeds` probed the
   *centre* column under a spawn, but `true_surface_m` returns the max over the
   body's *footprint* — post-flip the origin column sits one voxel below all four
@@ -609,11 +618,11 @@ What remains is **user decisions**.)*
 1. ~~**Flipping `production_config`'s `erodibility` to true**~~ **RATIFIED AND
    DONE 2026-07-20** (user: "flip it, i want to see"; journal/0030). It is on;
    every new world has a different shape. The appearance answer came back
-   **negative** — the predicted ledges/benches at hard beds and the resistant
-   basement core are real in the data and **invisible on screen** at the shipped
-   amplitude (fullbright before/after pairs <1 % different at three of four
-   vantages; 5 km lattice ±2 m; the ground dropped one voxel). Which makes
-   item 2 below the live question, not a footnote.
+   **negative** — the ground-level surface is measurably re-terraced, but the
+   predicted ledges/benches at hard beds and the resistant basement core are real
+   in the data and **absent on screen** at the shipped amplitude (summit
+   silhouette identical; 5 km lattice ±2 m; the ground dropped one voxel). Which
+   makes item 2 below the live question, not a footnote.
 2. **The contrast is currently modest at the shipped erosion amplitude** (relief
    +2 m aggregate) because the world barely erodes against its uplift; the
    headroom test shows the model produces real cliffs (44.7 m) the moment erosion
@@ -914,6 +923,32 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **`--fullbright` is blind to geometry, and that cost a walk its conclusion**
+  (2026-07-20, journal/0030 + corrections #18). DIAGNOSED, not yet fixed. In
+  fullbright every face of a block is one flat vertex colour, so on terrain made
+  of a single material there is no cue distinguishing a top face from a side
+  face: `0030-flank-before-fullbright.png` renders an entire terraced hillside as
+  a **featureless grey field** while the lit frame of the same geometry shows
+  every step. The pass that correctly proved a *material* claim in 0027 silently
+  answered "no change" to a *geometry* question in 0030.
+  **User proposal, 2026-07-20: give block faces dark borders in fullbright** —
+  "would give you more sense of dimension and help distinguish block positions."
+  Agreed, and it is the direct fix for the failure above. Design notes from the
+  agent that hit it:
+  1. Prefer **crease/silhouette edges** (outline depth- and normal-discontinuities)
+     over per-cube wireframe. What makes a bench legible is the *step*, not the
+     grid, and per-voxel outlines at 3.5 km would alias into moiré where a voxel
+     is sub-pixel. Fade the edge term out with distance.
+  2. Ship it as a **separate flag** (e.g. `--fullbright --edges`) so the pure
+     "colour in = colour out" control that 0027 depends on still exists unmodified;
+     borders are a renderer-added signal and the data pass should stay data.
+  Two adjacent asks from the same walk, both cheap and both currently blocking
+  landform photography: **(a) `--fullbright` should also disable distance fog** —
+  the 3.5 km summit vista washed to near-white in *both* passes, so silhouette
+  work at landform scale is presently impossible; **(b)** nothing is needed for
+  sun determinism — confirmed with the user that the sun is static, which is what
+  makes the lit pass trustworthy for before/after diffing after all.
+
 - **INSTRUMENT: lit before/after screenshots are invalid — the sun moves
   between runs** (journal/0030, 2026-07-20). The erodibility-flip walk's
   *lit* before/after pairs differed by up to **48.9 % of pixels**, almost
@@ -950,12 +985,13 @@ before any code.
      foreclose karst/glacial/littoral, and `production_config` now runs it.
      Differential erosion is proven present in the numbers (hard beds stand
      proud, basement shields for free) and bounded (stability clamp). **But the
-     photographs say the flip changed nothing a player can see** — fullbright
-     before/after pairs differ by <1 % of pixels at three of four vantages, a
-     5 km lattice moved ±2 m on 2,615 m of relief, and no bench, ledge or
-     resistant core is visible at any vantage. **Cause 1 is closed and the
-     mountains are still dismal**, which localises the remaining problem
-     precisely: causes 2 and 3 are the load-bearing ones.
+     photographs say the flip bought no landform** — the ground-level surface is
+     visibly re-terraced (real, measured in the lit pairs), yet the summit
+     silhouette is identical, a 5 km lattice moved ±2 m on 2,615 m of relief, and
+     no bench, ledge or resistant core is attributable to lithology at any
+     vantage. **Cause 1 is closed and the mountains are still dismal**, which
+     localises the remaining problem precisely: causes 2 and 3 are the
+     load-bearing ones.
      **Remaining: 2 (no dip/fold), 3 (conservative amplitude), 4 (no glacial).**
      Cause 3 is now the highest-value next move and it is a **user decision, not
      a build** — the lever exists as knobs (`erodibility_contrast`, the global

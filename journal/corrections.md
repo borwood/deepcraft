@@ -459,3 +459,47 @@ carries the hillslope signal. journal/0029.
 *rate-limiting term*. Before coupling a resistance to a process, find which phase
 actually sets that process's pace under the model's own flux limits — it may not
 be the one the phenomenon is named after.
+
+## 18. "The lit before/after difference is the sun moving, and the fullbright pair is the honest geometry comparison" (2026-07-20)
+
+**Claim** (mine, journal/0030 as first written and committed): re-shooting four
+vantages before and after the erodibility flip, the `--fullbright` pairs differed
+by 0.08–0.93 % of pixels while the *lit* pairs differed by up to 48.9 %. I
+attributed the lit difference to the sun having moved between passes and declared
+the fullbright pairs the trustworthy geometry comparison — concluding the terrain
+was visually unchanged.
+
+**Falsified by the user**: *"the sun does not move whatsoever today."* There is no
+day/night cycle. The lit difference cannot be a lighting change.
+
+**Measured, after**: the lit difference survives 16×16 block averaging (mean |Δ|
+per block 21.2 flank, 32.5 upland, 11.7 lowland) so it is not per-voxel texture
+noise, and its *signed* mean is ≈ 0 (−0.3, −0.9, +0.1 of 255) so it is not a
+brightness shift either — broad regions brightened and others darkened, in
+balance. That is the signature of **face orientation changing**: surfaces that
+were top faces became side faces and vice versa. The terrain really did change.
+
+**The mechanism, and the real error**: in `--fullbright` every face of a block is
+the same flat colour, because the whole point is unlit pure vertex colour. So for
+terrain built from *one material*, fullbright cannot distinguish a top face from a
+side face — and therefore **cannot see geometry at all**. The proof is in the
+committed assets: `0030-flank-before-fullbright.png` is a *featureless grey
+field*, an entire terraced hillside rendered as one uniform mass, while the lit
+frame of the identical geometry shows every step. The 0.27 % fullbright diff never
+meant "the shape didn't change"; it meant "this control is blind to shape."
+
+I inverted the reliability of my two controls and then reported the blind one.
+
+**Fix**: journal/0030 rewritten — the finding is now that ground-level appearance
+*did* change substantially (real, lit, broad) while macro landform did not
+(silhouette unchanged, 5 km lattice ±2 m). No claim about the sun survives.
+
+**Lesson**: `--fullbright` is the correct control for **material and data**
+questions — it is exactly what proved the coal was fine in 0027 when the renderer
+had crushed it to black. It is the *wrong* control for **geometry** questions,
+because the directional shading it removes is the only cue that distinguishes one
+face of a voxel from another. Pick the control by what it is sensitive to, not by
+what it is sensitive to *elsewhere*; a control that is blind to your question will
+happily report "no change" forever. (This is the direct argument for giving
+fullbright dark face borders — user, 2026-07-20 — which would restore geometric
+legibility to the pass that currently destroys it; filed in ROADMAP.)
