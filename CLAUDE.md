@@ -7,11 +7,15 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
 1. **[`ROADMAP.md`](ROADMAP.md)** — the living sequence (Shipped / In flight /
    Sequenced / Observed). Read before proposing work; update it in the same
    commit as any journal entry.
-2. **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — decisions with dates;
+2. **[`docs/design/things-that-will-happen.md`](docs/design/things-that-will-happen.md)**
+   — one-line concrete examples of what this game IS. Read before the design
+   docs; it loads the mental model fastest. Append to it whenever a genuinely
+   informative new example surfaces.
+3. **[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)** — decisions with dates;
    then `docs/API.md`, `docs/design/*.md`, `docs/rendering/PIPELINE.md`.
-3. **[`journal/corrections.md`](journal/corrections.md)** — claims already
+4. **[`journal/corrections.md`](journal/corrections.md)** — claims already
    falsified, with mechanisms. Check before re-deriving.
-4. Spike results live in `docs/spikes/S*-results.md` — measured numbers,
+5. Spike results live in `docs/spikes/S*-results.md` — measured numbers,
    don't re-guess them.
 
 ## The journal

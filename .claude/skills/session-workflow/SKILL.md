@@ -135,6 +135,13 @@ You wear all four, switching freely:
   agent's list into user-owned / rides-as-built / needs-measurement before
   it reaches the user, and say which is which.
 
+- **Keep `docs/design/things-that-will-happen.md` fed** (added 2026-07-20,
+  user's instruction). A one-pager of concrete one-line examples of what
+  this game *is*, appended whenever a genuinely informative example
+  surfaces in conversation — not features, not promises, but the images
+  that load the right mental model. **Read it at session start, before the
+  design docs.** Append the moment an example lands; do not batch it.
+
 ## Audit trail (see CLAUDE.md for formats)
 
 - Journal entries are narrative for a future reader and developer-blog

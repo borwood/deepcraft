@@ -244,3 +244,99 @@ lighting. Recorded now as an open design thread, undesigned:
   day/night cycles must not require re-propagating block light), update
   cost on edits, and how the sim field relates to the *rendered* lighting
   (they are not the same thing and must not be assumed to match).
+
+## DECIDED 2026-07-20 (user) — the sim light model
+
+Answers to the sim-light design questions. Ratified except where marked
+OPEN.
+
+1. **Light is DERIVED, not stored.** Light attenuates, so it has a hard
+   locality bound *by construction* (reach = emission ÷ attenuation) —
+   unlike water, whose locality had to be measured. Derive per chunk
+   within that halo; do not persist. Matches the house pattern (derive
+   columns/voxels, persist edits/bodies) and dodges ~32 KB/chunk of light
+   bytes.
+2. **Sky and block light are separate channels — with a large amendment
+   from the user: skylight is DIRECTIONAL, and there is a heavenly-bodies
+   field.** See § below; this is the biggest departure from the Minecraft
+   model.
+3. **Emission and opacity come from material properties, not special
+   cases.** Lava glows because its material says so; bioluminescent fungi
+   because their organism def says so; water attenuates less than stone
+   because its sheet says so. No light-source-specific code — the placer
+   pattern. (The LabPBR specular channel already carries emission.)
+4. **Reach is per-source, not a global constant** (user): "would be nice
+   if it depended on the source attenuation tbh. a better material for a
+   torch - more surrounding lit." Falls out of 3 — emission strength is a
+   material property, attenuation is per-material-per-step, reach is where
+   it drops below threshold. Gives crafting real stakes: **torch quality
+   is a material question.** The only global is the representable cap,
+   which is a knob per the knob doctrine.
+5. **Deep time does NOT get a light field** (user: "quite right"). At
+   deep-time scale surface is lit and subsurface is dark; the biotic layer
+   treats it as binary. Bioluminescence exists in caves but is not a light
+   source for photosynthesis or heat, so it does not change this.
+6. **Darkness gates spawning; light is equipment.** User: "torches are
+   definitely equipment... tools and equipment mean something in this
+   game, and the dark may be quite dangerous (esp depending on content
+   pack)." So darkness is a gameplay material with a fuel cost, and its
+   danger level is content-pack-tunable.
+7. **Caves get their own ecology** (user: "if it happens on earth we give
+   it an honest gesture here"). Falls out of biome-as-diagnosis: "no
+   light, stable temperature, wet, fed from outside" is a set of
+   conditions like any other, so the ecology sim diagnoses cave communities
+   once light is an axis. No cave-specific ecology system.
+
+### The heavenly-bodies light field (user, 2026-07-20) — the big amendment
+
+> it would be nice if skylight were quantized directional... hard to
+> imagine a sim world where sun on the horizon doesn't shine into the cave
+> mouth or the house's windows or the overhang, and the sim doesn't know
+> it. additionally it may be a vector of multiple solar sources (foresee a
+> future mod that wants to add more moons on different axes, different
+> colored, different brightness.. heavenly bodies field as a light
+> primitive). sun and moon as the first two bodies feeding the heavenly
+> light field. we do a cheap sky bounce too: if a body is above the
+> horizon, it contributes a small downward heavenly light (maybe adjusted
+> for cloud cover) in addition to its directional.
+
+- **A heavenly body is the light primitive**: direction (a function of
+  time), colour, intensity, and its own rise/set. **Sun and moon are the
+  first two entries, not special cases.** A mod adding moons on other axes
+  is adding rows to a table — cheap and open by construction.
+- **Each body contributes two terms**, exactly as the user split them:
+  a **direct** directional term, and a **cheap sky bounce** — a small
+  downward-diffuse contribution while the body is above the horizon,
+  plausibly modulated by cloud cover.
+- **Assistant proposal (not ratified): direct light is a QUERY, bounce is
+  the FIELD.** The bounce term is direction-free and propagates like
+  Minecraft skylight — cheap, per-voxel, the thing worth storing/deriving.
+  The direct term is a *visibility question along a known direction*
+  ("is this voxel lit by body N right now?"), which is a shadow ray
+  answered on demand, not a field to maintain. If direct light is a query,
+  it need not be quantized at all and can use the body's exact current
+  direction — the user's apologetic "quantized" may be unnecessary. This
+  is what makes sun-into-the-cave-mouth affordable.
+- Ties to the S3 skylight contract (ROADMAP): direct-sky queries are
+  exactly the bounded, summary-consulting, optimistic-sky queries S3
+  specified.
+
+### OPEN — colour, and creatures that see bands we do not
+
+The user pushed back on monochrome sim light:
+
+> the ACTUALLY COOL sim thing light color could give us: a creature (or
+> character!) that can, say, SEE ULTRAVIOLET etc. do we kill it or is this
+> actually deep esp if we go evolution route for bio?
+
+Assistant recommendation (NOT ratified): **do not build it, do not
+foreclose it.** With the direct/bounce split, colour is nearly free *on
+the direct term* — colour is a property of the heavenly body or the
+emitting material, so it rides the source, not the propagated field. Model
+a source's emission and a sensor's sensitivity as a **band vector** (v1
+may have exactly one band), so "sees ultraviolet" becomes a data
+relationship between an organism's sensitivity and a source's spectrum —
+the roles-as-contracts pattern — rather than new machinery. Cost today is
+approximately a one-element array instead of a scalar; the payoff is that
+UV/infrared vision, and its arrival via the evolution route, never needs a
+rewrite. Same discipline as the erodibility/limestone non-preclusion case.
