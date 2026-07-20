@@ -283,3 +283,41 @@ code path that produced it, and measure the production entry point at least once
 before quoting the number as the user-visible cost. S10-results.md is left
 unamended — a spike result is a dated record of what was measured; this entry is
 the pointer.
+
+## 13. Misattributed user quote: "truly i don't think any darkness" (2026-07-20)
+
+**Claim** (docs/design/visuals.md § PBR-1 walk-14 ratifications, added
+2026-07-19 in commit `a29f3f5` by an assistant session): that the user held
+a "noted lean" toward **possibly no darkness at all, even underground**,
+supported by a direct quotation, "truly i don't think any darkness",
+glossed as "a legibility-first stance".
+
+**Falsified by the user, 2026-07-20**: "that's a misattribution." The user's
+actual position, stated the same day and now DECIDED in visuals.md, is the
+opposite — **much darker underground, with shadows**, referenced to modded
+Minecraft with shaders, and consistent with § Mood's original "real
+darkness underground, no floaty ambient minimum".
+
+**Mechanism** (hypothesis, offered to the user): the same commit's next
+bullet ratifies **fullbright mixture visibility** — the albedo-only
+diagnostic register that exists so screenshots can be audited "without
+lighting noise". A statement about wanting no darkness in *the fullbright
+debug view* appears to have been recorded as a position on *the game's
+lighting design*. Two adjacent sentences about opposite things.
+
+**Fix**: the bullet is struck at its source with a pointer here; the DECIDED
+entry no longer cites the quote (it stood on a contradiction that never
+existed).
+
+**Lessons**:
+1. **Do not put quotation marks around words the user did not verifiably
+   say.** In this corpus "the user said X" is load-bearing — later sessions
+   treat it as ratified position. A paraphrase dressed as a quote is
+   indistinguishable from a real one once the conversation is gone, and this
+   one survived a day and was cited in a live design decision before the user
+   caught it.
+2. **Attribute the register, not just the words.** A remark about a debug
+   view, a placeholder, or a diagnostic is not a statement about the shipped
+   game; record which one it was.
+3. Same family as #3 and #10: confident recording of something never
+   verified. Walks, units, and now quotations.

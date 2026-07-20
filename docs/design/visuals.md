@@ -65,9 +65,11 @@ smooth sprays — pixel-realism extends underwater. Water placement is physical
   mixture.
 - **Sun/ambient calibration: rides as placeholder, un-ratified by intent**
   — lighting design awaits the day/night + shadows design (PBR-2+).
-  Noted user lean for that design: **possibly no darkness at all, even
-  underground** ("truly i don't think any darkness" — a legibility-first
-  stance, not yet a decision).
+  *(A "noted user lean" toward **possibly no darkness at all, even
+  underground**, with an attributed quotation, stood here from 2026-07-19
+  to 2026-07-20. **The user states it is a MISATTRIBUTION** — corrections
+  #13. Struck. The real position is DECIDED below: real darkness
+  underground.)*
 - **Placeholder texture tiling: cleanup pass ratified** — walk-14 photos
   show obvious per-block repetition/boundaries on same-material runs;
   worth a parallel texture/UV cleanup pass (dispatched same day).
@@ -158,11 +160,11 @@ post (tonemap/fog).
 
 ## DECIDED 2026-07-20 (user) — real darkness underground; the reference is modded MC + shaders
 
-Resolves a contradiction that sat in this document: § Mood asserted "real
-darkness underground ... no floaty ambient minimum", while § open items
-recorded a later user lean toward "possibly no darkness at all, even
-underground ('truly i don't think any darkness')". **The Mood position
-wins; the no-darkness lean is RETIRED.**
+Confirms and sharpens § Mood ("real darkness underground ... no floaty
+ambient minimum"). A contradicting "user lean" toward no darkness at all
+sat in § PBR-1 walk-14 ratifications from 2026-07-19; the user identifies
+it as a **misattribution** (corrections #13) — it was never their position,
+so there was no real contradiction to resolve, only a bad record to strike.
 
 The user, on seeing the 0027 walk (coal rendering black, excavation
 interiors unlit):
