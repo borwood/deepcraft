@@ -22,6 +22,7 @@ use crate::PLAYER_HEIGHT_M;
 use crate::authority::{self, Authority, DirtyChunks};
 use crate::bench::BENCH_SEED;
 use crate::character;
+use crate::edgepass::{EdgeParams, EdgePassPlugin};
 use crate::edit;
 use crate::farmesh;
 use crate::mcp::{self, McpOptions};
@@ -168,7 +169,13 @@ pub fn find_open_spawn(terrain: &TerrainGen, scale: VoxelScale) -> DVec3 {
 #[derive(Resource, Clone, Copy)]
 pub struct Fullbright(pub bool);
 
-pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: bool) {
+/// `--edges` diagnostic mode: the renderer adds crease/silhouette outlining
+/// (edgepass.rs) so gross geometry is legible even on flat-albedo fullbright
+/// terrain. Read by `setup` to opt the camera into the pass.
+#[derive(Resource, Clone, Copy)]
+pub struct Edges(pub bool);
+
+pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: bool, edges: bool) {
     // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
     // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
     // to the worldgen authority (keys 3/4 stay the legacy S1 TerrainGen). The
@@ -195,10 +202,12 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
         ..default()
     }))
     .add_plugins(PostStagePlugin { pack_selector })
+    .add_plugins(EdgePassPlugin { enabled: edges })
     .add_plugins(TerrainMaterialPlugin)
     .add_plugins(GpuProbePlugin)
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
+    .insert_resource(Edges(edges))
     .insert_resource(far_terrain)
     .insert_resource(CurrentScale::new(boot_voxels))
     .insert_resource(FloatingOrigin(spawn))
@@ -318,6 +327,8 @@ fn setup(
     mut terrain_materials: ResMut<Assets<TerrainMaterial>>,
     mut fullbright_materials: ResMut<Assets<FullbrightTerrainMaterial>>,
     mut images: ResMut<Assets<Image>>,
+    fullbright_mode: Res<Fullbright>,
+    edges: Res<Edges>,
 ) {
     // Simple diffuse setup: one sun, flat ambient on the camera. Computed first
     // so the LabPBR terrain material lights against the same sun.
@@ -342,40 +353,62 @@ fn setup(
         },
         Transform::from_rotation(sun_rotation),
     ));
-    commands.spawn((
-        Camera3d {
-            // The S4 post stage samples scene depth (fog/haze), so the depth
-            // texture must be bindable, not only an attachment.
-            depth_texture_usages: (TextureUsages::RENDER_ATTACHMENT
-                | TextureUsages::TEXTURE_BINDING)
-                .into(),
-            ..default()
-        },
-        // The post-stage contract v0 binds single-sample depth (see
-        // poststage.rs); MSAA is off for the S4 slice.
-        Msaa::Off,
-        // The active shader pack owns the tonemap curve (visuals.md § post);
-        // Bevy's built-in pass must not grade on top of it.
-        Tonemapping::None,
-        // World state seen by the shader pack's post stage. A light points
-        // along its -Z, so "toward the sun" is the rotated +Z.
-        PostStage {
-            sun_dir: sun_rotation * Vec3::Z,
-            ..default()
-        },
-        // The far field reaches 1.2 km (see farmesh.rs); the default 1 km far
-        // plane would clip the outermost LOD ring.
-        Projection::Perspective(PerspectiveProjection {
-            far: 3000.0,
-            ..default()
-        }),
-        AmbientLight {
-            color: Color::WHITE,
-            brightness: 400.0,
-            affects_lightmapped_meshes: true,
-        },
-        Transform::default(),
-    ));
+    // World state seen by the shader pack's post stage. A light points along
+    // its -Z, so "toward the sun" is the rotated +Z.
+    let mut post = PostStage {
+        sun_dir: sun_rotation * Vec3::Z,
+        ..default()
+    };
+    // `--fullbright` disables distance fog entirely (journal/0030,
+    // corrections #18): fullbright is the pure-data diagnostic register, and
+    // atmospheric haze washed the 3.5 km massif vista to near-white in it,
+    // making landform silhouette work impossible. The data-side fix pushes the
+    // fog range beyond the 3 km far plane so `dc_fog_factor` is 0 for ALL
+    // geometry — no pack-WGSL change, and lit-pass fog is untouched. (The
+    // separate sky-haze pull, keyed off `is_sky`, is not distance fog and
+    // stays, so the sky still meets the horizon.)
+    if fullbright_mode.0 {
+        post.fog_start_m = 1.0e9;
+        post.fog_end_m = 2.0e9;
+    }
+
+    let camera = commands
+        .spawn((
+            Camera3d {
+                // The S4 post stage samples scene depth (fog/haze), so the depth
+                // texture must be bindable, not only an attachment.
+                depth_texture_usages: (TextureUsages::RENDER_ATTACHMENT
+                    | TextureUsages::TEXTURE_BINDING)
+                    .into(),
+                ..default()
+            },
+            // The post-stage contract v0 binds single-sample depth (see
+            // poststage.rs); MSAA is off for the S4 slice.
+            Msaa::Off,
+            // The active shader pack owns the tonemap curve (visuals.md § post);
+            // Bevy's built-in pass must not grade on top of it.
+            Tonemapping::None,
+            post,
+            // The far field reaches 1.2 km (see farmesh.rs); the default 1 km far
+            // plane would clip the outermost LOD ring.
+            Projection::Perspective(PerspectiveProjection {
+                far: 3000.0,
+                ..default()
+            }),
+            AmbientLight {
+                color: Color::WHITE,
+                brightness: 400.0,
+                affects_lightmapped_meshes: true,
+            },
+            Transform::default(),
+        ))
+        .id();
+    // Opt the camera into the `--edges` pass. The pass itself is only scheduled
+    // when the plugin is enabled (edgepass.rs), so this component is inert with
+    // `--edges` off — the pure-data control stays byte-identical.
+    if edges.0 {
+        commands.entity(camera).insert(EdgeParams);
+    }
 }
 
 /// Left click grabs the cursor for mouse look; Escape releases it.
