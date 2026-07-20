@@ -73,59 +73,101 @@ rock formation. This *replaces* today's caves, which are S1 noise carving
 
 ---
 
-## Assistant observations on the above (PROPOSALS — not ratified)
+## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
-Kept separate from the user's notebook on purpose.
+**Read this section before proposing anything.** The user flagged a
+discovery failure: the assistant opened this notebook and "observed"
+several things the corpus had already recorded, some of them years-deep in
+prior thinking. What follows is the sweep, so the notebook starts from what
+is known rather than re-deriving it.
 
-- **Karst has a hard prerequisite we have already filed: carbonate rock.**
-  Dissolution needs soluble stone, and carbonate is currently an owed
-  milestone (geology.md/ROADMAP: "Carbonate follows"; sea-floor and wilds
-  columns keep empty strata records because subaqueous sedimentation *is*
-  the carbonate milestone). So **karst is gated on carbonate**, and
-  carbonate is gated on subaqueous deposition. That is a real sequencing
-  edge, not a detail.
-- **Glacial caves imply a cryosphere** — ice as an agent with its own
-  extent and history. Deep time has climate, but ice as a modelled agent
-  is a larger dependency than the other three families. Flag before it is
-  assumed cheap.
-- **Littoral caves need a coastline with wave energy over time** — sea
-  level is already known per deep-tier epoch (flooded basins, spill
-  levels), so the shoreline is derivable; wave energy is not modelled yet.
-- **Erosional caves may be the cheapest first family**: paleo-drainage is
-  something the deep-time tier already computes (drainage is the sole
-  advect term). An abandoned conduit is a former channel that the water
-  table dropped below — arguably derivable from data we already have.
-- **The event-driven rail already exists in spirit.** Edit → dirty set →
-  targeted re-derivation is the pattern used for chunk remeshing, collider
-  tiles, and the (owed) far-field summary invalidation. Bulk-flow
-  invalidation looks like the same rail with different payload.
-- **Determinism constraint to solve EARLY**: event-driven resolution must
-  be order-independent, or replay and the parallel path diverge. S9b
-  measured exactly this class of problem for flood/erosion (scatter→gather
-  reformulation, byte-identity proven). Whatever fires flow events needs a
-  canonical order by construction, not by luck.
-- **Possible shared substrate with FF2b.** FF2b (coarse volumetric far-
-  field summaries) is already paired in ROADMAP with "the caves/underground
-  thread of the water design pass", and its candidate representation is an
-  SVDAG octree (Aokana). Bulk-flow octrees and volumetric summary octrees
-  may want the same machinery — worth checking before either is built.
-- **S10 built a water-table proxy already.** The biotic layer models
-  waterlogging separately from rainfall (climate moisture + bonuses for
-  sitting near base level and receiving upslope drainage) because peat
-  needs standing water, not merely rain. That proxy is a flat stand-in for
-  a real water table; when the real field exists, biology should read it
-  and the proxy should be deleted. Two systems privately approximating the
-  same physical quantity is the thing to avoid.
+- **Architecture, DECIDED 2026-07-18 (ARCHITECTURE.md)**: "Depth is a
+  worldgen axis: deep-time geological history generates literal strata;
+  **caves/aquifers/lava at region scale, not per-column noise hacks**."
+  Caves-from-process is not a new direction — it is the standing
+  architectural commitment, and today's S1 noise caves are the placeholder
+  it already disowns.
+- **Fluid representation is already settled at the material tier**
+  (materials.md): "**Fluids occupy empty eighths and pores** (aquifers in
+  porous stone, waterlogged debris, quicksand — free consequences of the
+  model)." So water in rock is not a new storage question: it is pore
+  occupancy in the S8 model, and aquifers/quicksand/waterlogging were
+  named as falling out of it.
+- **earth-processes.md § 8 is literally "Groundwater, karst,
+  hydrothermal"** — an existing process entry with reality/signatures/sim:
+  dissolution caves on water tables; mineral-charged fluids depositing
+  veins/ore along fractures and contacts; sim = water-table interplay
+  (materials.md aquifers) + vein/inclusion emplacement via pore partials +
+  fracture networks from the deformation history. Related entries: § 2
+  weathering already ends "**karst on carbonates**"; § 4 transport already
+  lists **ice** as one of the four agents (unsorted till, striations,
+  U-valleys); § 6 already has **ice ages rewriting erosion regimes**.
+- **geology.md already sequences it**: "Next after v1: chemical sediment
+  (carbonate) — **caves-in-carbonate-on-water-tables is orogeny-proven and
+  gameplay-rich**". Candidate passes already include **karst** and
+  **glacial (later)**. Open question already filed there: "caves/water-table
+  interplay (aquifers in porous stone)".
+- **The karst mechanism is PROVEN in the orogeny mod** (orogeny-recon
+  § quarry): "**Caves read solubility from the recorded volume** (conduits
+  live inside coalesced carbonate bodies **on a subdued, perched water
+  table**) — solubility is a **volume property, not a surface map**.
+  Determinism hygiene: **judge the whole volume at the same scrambled
+  position**." This is a working recipe, not a sketch, and it already
+  answers the "how does karst pick where to dissolve" question.
+- **S9 already classified the water table's computational character**
+  (S9-results.md § parallelism table): "Groundwater / karst / hydrothermal
+  (§8) — **relax** (water table mildly regional); solubility from the
+  recorded volume (local); **water table a bounded relaxation**." So the
+  water table is a *relaxing* field, not an advective one — which means it
+  is **haloable and C-refinable**, unlike drainage, which S9 measured as
+  the single advective wall.
+- **S10 has already built a water-table PROXY** (2026-07-20): waterlogging
+  modelled separately from rainfall — climate moisture plus bonuses for
+  sitting near base level and for receiving upslope drainage — because peat
+  needs standing water, not rain. It works (coal swamps land on lowlands).
+  When the real field exists, **biology should read it and the proxy should
+  be deleted**; two systems privately approximating one physical quantity
+  is the thing to avoid.
+- **Packable soil is upstream of this** (ideas.md, user 2026-07-20):
+  porosity/permeability differ sharply between loose and packed soil, so
+  the soil-consolidation model feeds aquifer behaviour directly.
+
+### What survived the sweep as genuinely new (assistant, PROPOSALS)
+
+- **Erosional caves may be the cheapest first family** — deep time already
+  computes drainage every epoch, so paleo-channels exist in the record; an
+  abandoned conduit is a former channel the water table later dropped
+  below. Possibly derivable from data already held (the same shape as S10's
+  coal: already in the record before the world could contain it).
+- **Bulk-flow octrees may share substrate with FF2b's volumetric summary
+  octrees** (SVDAG/Aokana candidate) — ROADMAP already pairs FF2b with "the
+  caves/underground thread of the water design pass", but the shared
+  *representation* question has not been asked. Worth checking before
+  either is built.
+- **Event-driven flow invalidation looks like the existing dirty rail**
+  (edit → dirty set → targeted re-derivation; used by remeshing, collider
+  tiles, owed far-field summaries) with a different payload.
+- **Order-independence must be designed in, not discovered** — S9b won
+  exactly this fight for flood/erosion via a scatter→gather reformulation
+  with byte-identity proven. The orogeny hygiene rule ("judge the whole
+  volume at the same scrambled position") is the same lesson from the other
+  direction.
 
 ## Open questions (carried, unanswered)
 
 1. What are the *encounters* — the moments a player meets water that no
    other game gives them? (Asked; the user's answer is pending, and the
    notebook should be driven by it.)
-2. Sub-resolution water (a trickle, a damp seam, a puddle) — representation
-   below one voxel.
-3. Relationship between the bulk-flow octree and the per-voxel porosity /
-   saturation field (S8) — are they one system at two scales, or two?
+2. **Sub-resolution water** (a trickle, a damp seam, a puddle) — pore
+   occupancy covers water *in* rock, but a film or a rivulet in open space
+   is not obviously an eighth.
+3. **Bulk-flow octree vs the per-voxel pore/saturation field**: one system
+   at two scales, or two systems with a boundary? (Partially pre-answered:
+   pores are settled material-tier machinery; the octree is the open half.)
 4. Does the near-field flow network persist, or re-derive from the water
-   table on load? (Persistence question, same family as far-field summaries.)
-5. Where does the deep-time water field live relative to the A/C tiers?
+   table on load? (Same family as the owed far-field summary persistence.)
+5. Where does the deep-time water field live relative to the A/C tiers —
+   given S9 says it *relaxes* and is therefore haloable?
+6. **Which cave family ships first**, and does it wait on carbonate?
+   (Karst is orogeny-proven but carbonate-gated; erosional may be nearly
+   free; littoral needs wave energy; glacial needs ice as an agent.)
