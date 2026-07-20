@@ -23,7 +23,8 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   `far_tile_translation`, via a shared `level_depth_push`). Transform-only — one
   shared material / standard `Mesh` untouched, so the FF2a multidraw batching is
   unaffected. **NEEDS RATIFICATION**: none (transform-only; no appearance change
-  beyond removing the defect). File: `farmesh.rs` (both translation fns + shared
+  beyond removing the defect) — **user-confirmed fixed 2026-07-20** ("seam fix
+  good"). File: `farmesh.rs` (both translation fns + shared
   push helper + module docs + world-space seam test).
 
 - 2026-07-19 — **FF2a — the voxel-language far field** (journal/0023, background
@@ -60,11 +61,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   2048 tris/tile). Scale checkpoint (dev measurement, radius unchanged): current
   1.2 km field 188 tiles / ~21.5 MiB; projected ~10 km ≈ 376 tiles / ~43 MiB,
   per-frame meshing stays budget-bounded (~3.7 ms) regardless of radius. Keys 3/4
-  keep the untouched S1 far mesh. **NEEDS RATIFICATION**: this CHANGES HOW THE
-  WORLD LOOKS (smooth horizon → stepped voxel horizon) — the user ratifies the
-  look from `journal/assets/0023-*` (lit + fullbright horizons, dig test, holes
-  check); the skirt depth (2 coarse voxels) and the 112 m coverage inset ride
-  as-built (no bandaid). Files: `farmesh.rs` (stepped mesher, `ColumnSpan`,
+  keep the untouched S1 far mesh. **RATIFIED 2026-07-20 (user, from the
+  0023/0024 images)**: the stepped-horizon look is approved ("fine for now"),
+  the 112 m coverage inset is good; the skirt depth (2 coarse voxels) rides
+  as-built (no bandaid). Follow-up filed to Sequenced: user wants **knobs to
+  adjust the far-field ranges**. Files: `farmesh.rs` (stepped mesher, `ColumnSpan`,
   `quantize_top`, `near_covers`, coverage-refresh streamer), `app.rs`
   (`GpuProbePlugin`, env-gated).
 
@@ -292,8 +293,12 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-*(none — FF2a landed on its worktree branch, journal/0023, awaiting the
-integrator's merge; step-0 confirmed the multidraw substrate engages.)*
+- 2026-07-20 — **S10 biotic-layer spike dispatched** (background agent,
+  worktree; docs/design/ecology.md is the design): community vector + the
+  six processes on the 3e-1 A-tier; measure cost vs the ~14 s ritual and
+  read-quality (coal seams, paleosols, charcoal bands, retrogressive
+  surfaces). Evolution out of scope. Agent recommends GO/NO-GO; the verdict
+  is the user's.
 
 *(Session-2 close state: the day shipped and walk-verified SIX integrated
 milestones — S1-fallback sweep 0017, PBR-1 0019, render polish 0020,
@@ -316,6 +321,15 @@ storage). FF2a left the extension point ready: the per-column payload is a
 tile mesher is a pure function of plain span data (async-meshing / persistent
 edit-tracked LOD store stay drop-in).
 
+
+**Far-field range knobs** (user-requested 2026-07-20 at the FF2a
+ratification): expose the draw-distance geometry as adjustable settings —
+`FULL_DETAIL_RADIUS_M`, the ring edges, `FAR_MAX_M` (today compile-time
+constants in farmesh.rs) — so the user can push the horizon and feel the
+FF2a scale-checkpoint numbers (~10 km ≈ 376 tiles / ~43 MiB, meshing stays
+budget-bounded) instead of reading them. Small; a dev-console/config
+surface question more than a rendering one; the ring-membership hysteresis
+and coverage tests must hold at any setting.
 
 **PBR-2 — lit-world completion** (the deferred half of the renderer, opened by
 PBR-1 shipping): sun **shadows** (Bevy cascades + our knobs, the chasm-shaft
@@ -395,6 +409,28 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **User field report (2026-07-20, filed at the FF2a/0024 ratification): a
+  razor-straight, kilometer-scale grass/dirt frontier cuts the far field**
+  (visible in `0024-after-ne.png` / `0024-fb-ne.png`; present in fullbright,
+  so it is surface-block DATA, not a seam or lighting). The user identifies
+  this as **the original cause of the walk-8 complaint** — material families
+  "appearing to change immediately across some kind of boundary" — now
+  legible at full extent because the far field renders the surface rule at
+  km scale: "obviously bad / not natural appearing." Candidate mechanisms
+  (diagnosis owed, likely the walk-8/walk-10 quantization class): a hard
+  threshold in the surface rule (grass-vs-dirt on climate/elevation) stepped
+  at a lattice/cell boundary with no interpolation or dither — candidates
+  include the S7 column-quantization cell, the climate cell, or the Large-
+  extent coarsened (~1.8 km) deep cell under the width cap. Related filed
+  items: walk-8 "material families cut hard on chunk lines", walk-10
+  "class-presence quantization still cuts on chunk lines" (per-chunk
+  flow_energy rounding). The 3d boundary-dither mechanism exists for member
+  contacts at the MATERIAL tier; surface BLOCK selection has no analogous
+  softening. Fix likely per-column context interpolation / boundary dither
+  at the surface rule — and it must show up in `coarse_surface` too, or the
+  far field will keep drawing the hard line even after the near field
+  softens.
 
 - *(**User field report (2026-07-20, post-FF2a): thin bright seams between far
   patches — RESOLVED** 2026-07-20, journal/0024, fix cycle, background agent;
