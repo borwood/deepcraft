@@ -195,6 +195,25 @@ pub struct MaterialProps {
     pub permeability: f32,
     /// Insulation contribution in `[0, 1]` when packed into pores.
     pub insulation: f32,
+    /// **Chemical solubility** in `[0, 1]` — how readily this material goes
+    /// into solution in circulating meteoric water. `0.0` means "does not
+    /// dissolve on any timescale we model".
+    ///
+    /// This axis exists because **mechanical competence and chemical
+    /// solubility are independent properties of a rock, and a single
+    /// "erodibility" number cannot hold both**. Limestone is the canonical
+    /// case: it is mechanically strong (it stands in cliffs) *and* highly
+    /// soluble (it hosts caves). One number forces a choice between the cliff
+    /// and the cave; two axes do not (docs/design/earth-processes.md § 8,
+    /// journal/0029).
+    ///
+    /// Every material in today's roster is a silicate, an organic rock, or a
+    /// loose clastic — **none of them dissolve**, so every entry is honestly
+    /// `0.0`. The carbonate/evaporite milestone (geology.md § roster,
+    /// "carbonate follows") is what fills this column in, and the deep-time
+    /// dissolution agent reads it through
+    /// `dc_worldgen::deeptime::lithology::Agent::Dissolution`.
+    pub solubility: f32,
 }
 
 impl MaterialProps {
@@ -216,6 +235,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.0, 6.0, 4.0, 5.0, 0.5],
         permeability: 0.55,
         insulation: 0.25,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "gravel",
@@ -226,6 +246,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.6, 7.0, 3.0, 6.0, 20.0],
         permeability: 0.8,
         insulation: 0.15,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "snow",
@@ -236,6 +257,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [0.4, 5.0, 1.5, 2.0, 1.0],
         permeability: 0.35,
         insulation: 0.85,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "leaf-litter",
@@ -246,6 +268,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [0.2, 1.0, 1.2, 0.8, 25.0],
         permeability: 0.6,
         insulation: 0.7,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "clay",
@@ -256,6 +279,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [2.6, 4.5, 3.5, 2.2, 0.002],
         permeability: 0.05,
         insulation: 0.4,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "silt",
@@ -266,6 +290,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.4, 4.0, 3.2, 2.0, 0.02],
         permeability: 0.15,
         insulation: 0.35,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "potsherd",
@@ -276,6 +301,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [2.0, 5.5, 1.0, 4.0, 40.0],
         permeability: 0.85,
         insulation: 0.2,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "knapping-debris",
@@ -286,6 +312,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.8, 6.5, 2.5, 5.5, 15.0],
         permeability: 0.8,
         insulation: 0.1,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "ash",
@@ -296,6 +323,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [0.6, 3.0, 2.8, 1.6, 0.05],
         permeability: 0.3,
         insulation: 0.6,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "loam",
@@ -306,6 +334,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [0.9, 3.5, 3.0, 1.8, 0.1],
         permeability: 0.4,
         insulation: 0.45,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "scree",
@@ -316,6 +345,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [2.4, 8.0, 3.8, 7.0, 100.0],
         permeability: 0.9,
         insulation: 0.1,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "bone",
@@ -326,6 +356,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.2, 2.0, 1.1, 1.5, 60.0],
         permeability: 0.75,
         insulation: 0.3,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "mudstone",
@@ -336,6 +367,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [3.2, 5.0, 4.2, 2.8, 0.004],
         permeability: 0.02,
         insulation: 0.4,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "sandstone",
@@ -346,6 +378,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [3.6, 6.5, 4.6, 5.2, 0.3],
         permeability: 0.35,
         insulation: 0.3,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "granite",
@@ -356,6 +389,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [6.0, 9.0, 5.5, 8.0, 3.0],
         permeability: 0.02,
         insulation: 0.2,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "basalt",
@@ -366,6 +400,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [5.5, 9.5, 5.0, 8.5, 0.05],
         permeability: 0.05,
         insulation: 0.2,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "gold-dust",
@@ -376,6 +411,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [1.1, 6.0, 4.4, 5.0, 0.8],
         permeability: 0.5,
         insulation: 0.15,
+        solubility: 0.0,
     },
     // --- 3d roster-proof widening ---
     MaterialProps {
@@ -387,6 +423,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [3.0, 5.2, 4.0, 2.6, 0.02],
         permeability: 0.08,
         insulation: 0.4,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "conglomerate",
@@ -397,6 +434,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [3.8, 6.8, 4.8, 5.6, 8.0],
         permeability: 0.3,
         insulation: 0.3,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "diorite",
@@ -407,6 +445,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [6.2, 9.2, 5.6, 8.2, 2.0],
         permeability: 0.02,
         insulation: 0.2,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "andesite",
@@ -417,6 +456,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [5.6, 9.4, 5.2, 8.4, 0.08],
         permeability: 0.05,
         insulation: 0.2,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "olivine",
@@ -427,6 +467,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [5.0, 8.5, 5.0, 7.5, 1.5],
         permeability: 0.05,
         insulation: 0.2,
+        solubility: 0.0,
     },
     // --- organic rocks. Real-material values: peat is light (~400 kg/m³
     // drained) and famously insulating; coal is low-density for a rock
@@ -443,6 +484,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [0.5, 1.6, 1.8, 1.0, 5.0],
         permeability: 0.5,
         insulation: 0.8,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "coal",
@@ -453,6 +495,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [2.4, 4.0, 2.2, 3.0, 0.05],
         permeability: 0.05,
         insulation: 0.35,
+        solubility: 0.0,
     },
     MaterialProps {
         name: "carbonaceous-mudstone",
@@ -463,6 +506,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [3.0, 4.8, 3.9, 2.6, 0.004],
         permeability: 0.03,
         insulation: 0.42,
+        solubility: 0.0,
     },
 ];
 
@@ -506,12 +550,30 @@ mod tests {
             assert!((0.0..=1.0).contains(&p.cohesion), "{}", p.name);
             assert!((0.0..=1.0).contains(&p.permeability), "{}", p.name);
             assert!((0.0..=1.0).contains(&p.insulation), "{}", p.name);
+            assert!((0.0..=1.0).contains(&p.solubility), "{}", p.name);
             for c in p.albedo {
                 assert!((0.0..=1.0).contains(&c), "{} albedo {c}", p.name);
             }
             for r in p.extraction_resistance {
                 assert!(r > 0.0 && r.is_finite());
             }
+        }
+    }
+
+    #[test]
+    fn nothing_in_the_current_roster_dissolves() {
+        // Documented state, not an aspiration: the roster is silicates, organic
+        // rocks and loose clastics. The first carbonate/evaporite member is the
+        // one that makes this assertion fail — and that is exactly the moment
+        // the deep-time dissolution agent becomes meaningful. Change this test
+        // deliberately, with the karst milestone.
+        for m in MaterialId::all() {
+            assert_eq!(
+                m.props().solubility,
+                0.0,
+                "{} claims solubility — see journal/0029 § the limestone problem",
+                m.props().name
+            );
         }
     }
 

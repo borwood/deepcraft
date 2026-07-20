@@ -50,6 +50,38 @@ pub struct DeepConfig {
     /// to the pre-S10 engine (the modifier planes stay empty and read as the
     /// identity `1.0` / `0.0`). Requires `record` for the strata annotations.
     pub biotic: bool,
+    /// Run the **erodibility coupling** (`deeptime::lithology`): erosion rates
+    /// modulated per cell per epoch by the *agent-specific* resistance of the
+    /// lithology outcropping there, instead of one global `k_bedrock` for every
+    /// rock in the world. Off by default — with it off every code path is
+    /// byte-identical to the uncoupled engine (the susceptibility planes stay
+    /// empty and read as the identity `1.0`, and `x * 1.0 == x` exactly).
+    ///
+    /// Turning this on changes `DeepField` — and therefore terrain shape — for
+    /// every world created afterwards, the same class of event as the S10
+    /// biotic flip.
+    pub erodibility: bool,
+    /// **Erodibility contrast** — the exponent applied to the resistance ratio
+    /// (`(reference / resistance) ^ contrast`). The property sheet's smash
+    /// resistances span only ~3× because they are calibrated for tool time,
+    /// while real erodibility spans orders of magnitude; this is the knob that
+    /// re-expands that range to landform scale. `1.0` = take the sheet
+    /// literally, `0.0` = no coupling at all (every multiplier 1.0).
+    pub erodibility_contrast: f64,
+    /// **Erodibility contrast for hillslope diffusion**, separately knobbed and
+    /// deliberately weaker than the fluvial one. Creep acts on regolith, whose
+    /// mobility is governed by root cohesion (the S10 `resist` term) and
+    /// moisture far more than by the competence of the parent rock — but a
+    /// competent bed does armour its own slope with coarse talus, so the
+    /// coupling is real, just softer.
+    pub erodibility_diffusion_contrast: f64,
+    /// **Stability bound** on the feedback: no cell's erosion rate may exceed
+    /// `erodibility_max ×` or fall below `1/erodibility_max ×` the reference
+    /// rate, whatever the contrast knob says. Differential erosion is
+    /// self-reinforcing (erode soft → expose hard → slow down), which is the
+    /// mechanism that carves benches *and* the mechanism that could stall a
+    /// cell forever; this clamp is what keeps the feedback bounded.
+    pub erodibility_max: f64,
     /// Uplift rate scale, metres/iteration for a unit-rate (orogenic) province.
     pub uplift_scale: f64,
     /// Stream transport coefficient (capacity `= k_t · A^m · S^n`).
@@ -96,6 +128,10 @@ impl Default for DeepConfig {
             remarch_interval: 20,
             record: true,
             biotic: false,
+            erodibility: false,
+            erodibility_contrast: 2.5,
+            erodibility_diffusion_contrast: 1.0,
+            erodibility_max: 5.0,
             uplift_scale: 3.0,
             k_transport: 0.0016,
             k_bedrock: 0.0011,

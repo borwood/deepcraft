@@ -56,7 +56,18 @@ and further ore vectors.
   0045 pattern, which is also our materials deep-time loop); intrusion;
   metamorphism by burial/exhumation; karst; ore-genesis vectors; glacial
   (later). Placer ores fall out of S8's alluvial grain-sorting almost free.
-- Open: hardness→erodibility coupling; caves/water-table interplay
+- ~~Open: hardness→erodibility coupling~~ **TAKEN 2026-07-20 (journal/0029,
+  DECIDED user: "sequence erodibility first").** The coupling is built, off by
+  default (`DeepConfig::erodibility`). The load-bearing design decision: erosion
+  resistance is **agent-specific, never a single scalar** — a material's
+  property sheet gained a `solubility` axis alongside its mechanical
+  `extraction_resistance`, and `deeptime::lithology::LithoResistance` carries one
+  resistance *per erosion agent* (abrasion / dissolution / frost-ice / wave), so
+  a future carbonate can be mechanically competent (cliffs) AND soluble (caves)
+  at once. Only the abrasion agent is wired to the (live) mechanical erosion;
+  the other three axes are populated and dormant, waiting for their agents. This
+  is what keeps karst/glacial/littoral implementable without a rewrite. Still
+  open: caves/water-table interplay
   (aquifers in porous stone — materials.md); deep-earth exotic classes for
   the trog layers (depth is a first-class axis for us in a way surface games
   never had).
