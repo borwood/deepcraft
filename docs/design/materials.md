@@ -163,3 +163,22 @@ S8's typed-resistance table, and makes tool choice narratively legible.
   per-material pore spectra?
 - Freeze–thaw: water packed in pores + cold → cracking/spalling (delicious,
   deferred).
+
+## Pore packability — DECIDED 2026-07-20 (user)
+
+**Rule:** a material may be packed into a host's pores iff
+`filler_grain_size ≤ K_PORE × host_grain_size`, one constant `K_PORE ≈ 0.25`
+(derived: ideal-packing interstices fit 0.22–0.41 D; the geotechnical filter
+criterion lands at D/4–D/5). For heterogeneous structure fill the host grain
+is the **minimum** grain among structural components (finest grains set the
+throat). Enforcement lives in a single shared `fits_in_pores(filler, host)`
+helper consulted by every *transport-time* depositing process —
+`VoxelContents` stays pure volume accounting by design.
+
+**Exemption:** formation-context emplacement (worldgen authored — magmatic/
+diagenetic inclusion, e.g. olivine in basalt) bypasses the mechanical rule:
+those crystals grew in place; the pore is representational (3d decision).
+The rule governs infiltration, not genesis.
+
+**Composability:** sieve resistance ≡ grain size (registry invariant), so
+what-packs-in and what-sieves-out-first are the same axis by construction.

@@ -1760,3 +1760,15 @@ before any code.
   something), and § 8 groundwater/karst (slated deep hydrology). The
   vertical dimension is a mostly-unbuilt frontier; no diagnosis filed
   beyond this inventory.
+
+- **Gen never writes Quarter/Slab shapes or debris volumes (user,
+  2026-07-20, "need to think on that" — deferred, filed).** The contents
+  model supports partial structure shapes and loose debris eighths, and
+  3c-2's partial-height loose rendering ships dormant — but worldgen emits
+  only Full-shape voxels with no debris, so none of it is exercised in a
+  generated world. This is the generation half of the filed
+  block-primitives arc (stepped-partial loose landscapes: topsoils, dunes,
+  talus; jittered structural partials at outcrops). Design owed: WHERE gen
+  should emit partial shapes (weathered outcrop edges, scree, soil
+  horizons) and what the deep-time/collapse seam is. Pairs with the
+  sub-460 m process band and the pore-packability rule (materials.md).
