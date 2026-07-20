@@ -42,7 +42,7 @@ pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, exposed_litho, litho_of_tag,
     resistance_of_material, susceptibility_table,
 };
-pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand};
+pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 
 use crate::pregen::{CellGrid, Pregen};

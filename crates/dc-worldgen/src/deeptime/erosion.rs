@@ -37,11 +37,25 @@
 //! the fluvial terms and hillslope diffusion are modulated per cell per epoch by
 //! the resistance of the lithology outcropping there ([`super::lithology`]).
 //! Resistance is **agent-specific, never a single scalar** — the mechanical
-//! agent reads an abrasion axis, and the designed-but-unbuilt dissolution,
-//! frost/ice and littoral agents each have their own; see the lithology module
-//! docs for why a one-number erodibility would foreclose karst. Off by default,
-//! and with it off every multiplier is the exact identity `1.0`, so the
-//! uncoupled path is byte-identical.
+//! agent reads an abrasion axis, and (journal/0034) the frost/ice, littoral and
+//! eolian agents are now live behind [`DeepConfig::full_agents`], each reading
+//! its own axis; only the dissolution (karst) agent remains designed-but-unbuilt.
+//! See the lithology module docs for why a one-number erodibility would foreclose
+//! karst. Both flags are off by default, and with them off every multiplier is
+//! the exact identity `1.0` and every added phase is skipped, so the uncoupled
+//! path is byte-identical.
+//!
+//! **The full agent roster (journal/0034), behind [`DeepConfig::full_agents`]:**
+//! - **frost** — a temperature-gated weathering multiplier folded into the
+//!   `weather` phase (freeze–thaw peaks near `0°C`, weighted by the frost/ice
+//!   axis; see [`Erosion::periglacial`]);
+//! - **wave** — littoral cutting at the current sea stand ([`Erosion::wave`]),
+//!   mass-neutral (quarried rock goes offshore);
+//! - **wind** — deflation + downwind loess/dune deposition along the climate's
+//!   own prevailing wind ([`Erosion::wind`]), mass-neutral (pure redistribution).
+//!
+//! Wind and wave run **after** the recorder and self-record, so their distinct
+//! facies reach the strata; frost rides the normal weathering record.
 //!
 //! Note (S9b): hillslope diffusion is reformulated from the original scatter
 //! (`h[i] -= f; h[j] += f`) to an equivalent **gather** (each cell sums its own
@@ -55,9 +69,10 @@ use std::collections::BinaryHeap;
 
 use rayon::prelude::*;
 
+use super::climate;
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
 use super::lithology::{self, Agent, Litho};
-use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand};
+use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, Eolian};
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
 const EPS: f64 = 0.001;
@@ -255,11 +270,15 @@ fn diffuse_scale_cell(
 /// sets the pace.
 ///
 /// **Composition order** (fixed, and load-bearing for byte-identity since f64
-/// multiplication is not associative): the two modifier layers combine with each
-/// other first — `rate_mult = wmult × litho_sus`, biology on the left — and the
-/// product then scales the base rate before the cover taper:
-/// `weathering × rate_mult × taper`. With lithology off, `wmult × 1.0 == wmult`
-/// exactly, so the S10 expression is reproduced bit for bit.
+/// multiplication is not associative): the modifier layers combine with each
+/// other first — `rate_mult = wmult × litho_sus × frost`, biology on the left,
+/// the periglacial frost multiplier on the right (journal/0034) — and the product
+/// then scales the base rate before the cover taper: `weathering × rate_mult ×
+/// taper`. With lithology and frost off, `wmult × 1.0 × 1.0 == wmult` exactly, so
+/// the S10 expression is reproduced bit for bit. Frost is the second in-place
+/// weathering *agent*: earlier the sum over agents had one mechanical term, now
+/// freeze–thaw adds a temperature-gated term to the same phase (the karst story
+/// will add a third, chemical, term here without a rewrite).
 ///
 /// **What the lithic factor will mean when there is more than one agent.**
 /// In-place weathering is not one process; it is the sum of every agent's attack
@@ -295,6 +314,15 @@ fn wmult_at(bio_weather: &[f32], i: usize) -> f64 {
     } else {
         f64::from(bio_weather[i])
     }
+}
+
+/// The frost weathering multiplier at cell `i`: `≥ 1.0` when the periglacial
+/// agent is on, and the exact identity `1.0` when the plane is empty (the frost
+/// agent is off). Multiplied onto the weathering rate, so `× 1.0` keeps the
+/// frost-off path byte-identical (journal/0034).
+#[inline]
+fn frost_at(frost: &[f64], i: usize) -> f64 {
+    if frost.is_empty() { 1.0 } else { frost[i] }
 }
 
 // ---------------------------------------------------------------------------
@@ -499,6 +527,12 @@ pub struct Erosion {
     litho: Vec<u8>,
     sus_flow: Vec<f64>,
     sus_creep: Vec<f64>,
+    /// **Periglacial frost weathering multiplier** plane (journal/0034), empty
+    /// when the frost agent (`cfg.full_agents`) is off and then read as the exact
+    /// identity `1.0`. `frost[i] ≥ 1.0` is the freeze–thaw enhancement of the
+    /// weathering rate at cell `i` this epoch — computed fresh each epoch because
+    /// it depends on the current surface (temperature lapses with elevation).
+    frost: Vec<f64>,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -527,6 +561,7 @@ impl Erosion {
             litho: Vec::new(),
             sus_flow: Vec::new(),
             sus_creep: Vec::new(),
+            frost: Vec::new(),
             heap: BinaryHeap::new(),
         }
     }
@@ -556,7 +591,8 @@ impl Erosion {
             + self.scale.len()
             + self.netdiff.len()
             + self.sus_flow.len()
-            + self.sus_creep.len();
+            + self.sus_creep.len()
+            + self.frost.len();
         f64s * 8
             + self.recv.len() * 4
             + self.order.capacity() * 4
@@ -583,6 +619,7 @@ impl Erosion {
         self.sea_level = sea_level;
         let uplift_added = self.apply_uplift(grid);
         self.expose(grid, cfg);
+        self.periglacial(grid, cfg);
         self.build_surface(grid);
         self.flood();
         self.route();
@@ -592,6 +629,15 @@ impl Erosion {
         self.diffuse(grid, cfg);
         if cfg.record {
             self.record(grid);
+        }
+        // The wind and wave agents run **after** the recorder and self-record
+        // (like the biotic layer), so their own facies reach the record rather
+        // than being lumped under the epoch's fluvial tag. Both only redistribute
+        // mass — wind moves loose `H`, wave moves `R`/`H` offshore — so the mass
+        // ledger `Δ(ΣR+ΣH) == uplift + biotic` is untouched (journal/0034).
+        if cfg.full_agents {
+            self.wind(grid, cfg);
+            self.wave(grid, cfg);
         }
         uplift_added
     }
@@ -691,6 +737,75 @@ impl Erosion {
                 self.litho[i] = li;
                 self.sus_flow[i] = fi;
                 self.sus_creep[i] = ci;
+            }
+        }
+    }
+
+    // ---- phase 1c: periglacial frost (PARALLEL — per-cell independent) -----
+
+    /// Compute the **temperature-gated frost weathering multiplier** per cell for
+    /// this epoch (the frost agent, journal/0034). Leaves the plane empty — read
+    /// as the identity `1.0` — when `full_agents` is off, so the frost-off path is
+    /// byte-identical.
+    ///
+    /// **Freeze–thaw is maximal in a band around `0°C`, not monotonic with cold.**
+    /// Rock shatters where water repeatedly crosses the phase boundary inside its
+    /// pores and joints; a permanently frozen summit barely weathers, and so does
+    /// a warm lowland. So the multiplier peaks at `0°C` and tapers linearly to
+    /// `1.0` at `±frost_band_width_c`. Temperature is the shared climate model
+    /// ([`climate::air_temp_c`]) — latitude minus an elevation lapse — so the
+    /// periglacial band rides *up* the mountains and *down* the latitudes exactly
+    /// where the biotic layer already agrees it freezes (deep time carries no
+    /// pregen `temp_c`, but latitude and the eroding surface are enough for an
+    /// honest gate).
+    ///
+    /// The enhancement is weighted by the rock's **frost/ice** resistance axis
+    /// ([`Agent::FrostIce`]): a permeable, poorly-cemented bed shatters where a
+    /// tight granite endures — the axis 0029 built and left dormant, now read. It
+    /// is independent of the erodibility flag (it reads the exposed lithology
+    /// straight from the record top), so periglacial shattering works whether or
+    /// not the mechanical coupling is on. Purely per-cell → byte-identical
+    /// parallel.
+    pub fn periglacial(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
+        if !cfg.full_agents {
+            self.frost.clear();
+            return;
+        }
+        let frost_tab = lithology::susceptibility_table(
+            Agent::FrostIce,
+            cfg.erodibility_contrast,
+            cfg.erodibility_max,
+        );
+        if self.frost.len() != self.n {
+            self.frost = vec![1.0; self.n];
+        }
+        let (w, gain, width) = (self.w, cfg.frost_weathering_gain, cfg.frost_band_width_c);
+        let strata = &grid.strata;
+        let (r, h) = (&grid.r, &grid.h);
+        let per_cell = |i: usize| -> f64 {
+            let gy = i / w;
+            let surf = r[i] + h[i];
+            let t = f64::from(climate::air_temp_c(grid.lat_deg(gy), surf));
+            // Triangular freeze–thaw band centred on 0 °C.
+            let band = if width > 0.0 {
+                (1.0 - (t / width).abs()).max(0.0)
+            } else {
+                0.0
+            };
+            if band <= 0.0 {
+                return 1.0;
+            }
+            let l = lithology::exposed_litho(strata.get(i).and_then(|s| s.units.last()));
+            1.0 + gain * band * frost_tab[l.index()]
+        };
+        if self.par() {
+            self.frost
+                .par_iter_mut()
+                .enumerate()
+                .for_each(|(i, f)| *f = per_cell(i));
+        } else {
+            for i in 0..self.n {
+                self.frost[i] = per_cell(i);
             }
         }
     }
@@ -883,14 +998,17 @@ impl Erosion {
 
     /// Subaerial bedrock → regolith, cover-tapered, scaled by the per-cell biotic
     /// weathering multiplier (S10 lagged coupling — `grid.bio_weather`, empty and
-    /// therefore uniform `1.0` when the biotic layer is off). Purely local per
-    /// cell → byte-identical parallel.
+    /// therefore uniform `1.0` when the biotic layer is off), the lithologic
+    /// abrasion susceptibility, and the periglacial **frost** multiplier
+    /// (journal/0034, empty and uniform `1.0` when the frost agent is off). Purely
+    /// local per cell → byte-identical parallel.
     pub fn weather(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
         let parallel = self.par();
         let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
         let dh = &mut self.dh;
         let bio = &grid.bio_weather;
         let sus = &self.sus_flow;
+        let frost = &self.frost;
         if parallel {
             grid.r
                 .par_iter_mut()
@@ -905,7 +1023,7 @@ impl Erosion {
                         sea,
                         weathering,
                         h_star,
-                        wmult_at(bio, i) * sus_at(sus, i),
+                        wmult_at(bio, i) * sus_at(sus, i) * frost_at(frost, i),
                     );
                 });
         } else {
@@ -923,7 +1041,7 @@ impl Erosion {
                     sea,
                     weathering,
                     h_star,
-                    wmult_at(bio, i) * sus_at(sus, i),
+                    wmult_at(bio, i) * sus_at(sus, i) * frost_at(frost, i),
                 );
             }
         }
@@ -1021,6 +1139,204 @@ impl Erosion {
             for i in 0..self.n {
                 let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
                 record_cell(&mut grid.strata[i], dh[i], tag);
+            }
+        }
+    }
+
+    // ---- phase 10: eolian transport (SCALAR — per-row wind march) ---------
+
+    /// **Wind deflation and downwind loess/dune deposition** (the eolian agent,
+    /// [`Agent::Eolian`], journal/0034). A 1D march along the **prevailing-wind**
+    /// direction the climate already uses ([`climate::wind_dx`] — never a second
+    /// wind): dry, unvegetated, subaerial cells hand loose cover to an airborne
+    /// load; vegetated or humid downwind cells trap it. In the arid source zone
+    /// the trapped sand records as a **dune field** ([`Eolian::Dune`], coarse); on
+    /// the damp margin the fine silt records as a **loess** sheet
+    /// ([`Eolian::Loess`], fine). At 460 m the unit is the *region*, not the
+    /// individual dune (earth-processes.md § 4).
+    ///
+    /// Wind only **redistributes** loose `H` (it never touches bedrock, and never
+    /// adds external mass), so the mass ledger `Δ(ΣR+ΣH) == uplift + biotic` is
+    /// untouched: each row conserves its own airborne load, and whatever is still
+    /// aloft at the downwind edge settles there. The deflation susceptibility is
+    /// the rock's **eolian** resistance axis (cohesion — loose sand blows, crusted
+    /// clay resists), scaled by how arid and how bare the cell is.
+    ///
+    /// Runs **after** the recorder and self-records (like the biotic layer), so
+    /// its own facies reach the record rather than being lumped under the epoch's
+    /// fluvial tag. Scalar in both drivers (a row carries a serial load), so it is
+    /// deterministic and scalar↔parallel byte-identical.
+    pub fn wind(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        let record = !grid.strata.is_empty();
+        let sus_tab = lithology::susceptibility_table(
+            Agent::Eolian,
+            cfg.erodibility_contrast,
+            cfg.erodibility_max,
+        );
+        let (w, thr, sea) = (self.w, cfg.eolian_arid_precip, self.sea_level);
+        let (defl, dep_frac) = (cfg.eolian_deflation, cfg.eolian_deposit_frac);
+        for gy in 0..w {
+            let dx = climate::wind_dx(grid.lat_deg(gy));
+            let mut load = 0.0f64;
+            let mut last_land: Option<usize> = None;
+            for s in 0..w {
+                let gx = if dx > 0 { s } else { w - 1 - s };
+                let i = gy * w + gx;
+                let surf = grid.r[i] + grid.h[i];
+                if surf <= sea {
+                    // Over water: the airborne load settles out (dust on the sea).
+                    if load > 0.0 {
+                        grid.h[i] += load;
+                        if record {
+                            let tag = DepTag {
+                                eolian: Eolian::Loess,
+                                ..DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low)
+                            };
+                            grid.strata[i].deposit(tag, load);
+                        }
+                        load = 0.0;
+                    }
+                    continue;
+                }
+                last_land = Some(i);
+                let precip = f64::from(grid.precip[i]);
+                let arid = if thr > 0.0 {
+                    ((thr - precip) / thr).clamp(0.0, 1.0)
+                } else {
+                    0.0
+                };
+                let veg = if grid.bio_resist.is_empty() {
+                    0.0
+                } else {
+                    f64::from(grid.bio_resist[i])
+                };
+                // Deflation: dry, bare cells hand loose cover to the wind. Floor
+                // available cover at zero first — `H` can carry a sub-ULP negative
+                // from fp round-off, and `clamp(0.0, neg)` would panic.
+                let l = lithology::exposed_litho(grid.strata.get(i).and_then(|s| s.units.last()));
+                let avail = grid.h[i].max(0.0);
+                let pickup = (defl * sus_tab[l.index()] * arid * (1.0 - veg)).clamp(0.0, avail);
+                if pickup > 0.0 {
+                    grid.h[i] -= pickup;
+                    load += pickup;
+                    if record {
+                        grid.strata[i].erode(pickup);
+                    }
+                }
+                // Deposition: vegetated or humid ground traps the load.
+                let trap = (1.0 - arid).max(veg).clamp(0.0, 1.0);
+                let drop = load * dep_frac * trap;
+                if drop > 0.0 {
+                    grid.h[i] += drop;
+                    load -= drop;
+                    if record {
+                        // Dune field in the hyper-arid sand-source core, loess on
+                        // the semi-arid downwind margin. (0.7 is an appearance-
+                        // class split — a user-owned magnitude, journal/0034.)
+                        let (facies, energy, ar) = if arid > 0.7 {
+                            (Eolian::Dune, EnergyBand::High, Aridity::Arid)
+                        } else if precip < thr {
+                            (Eolian::Loess, EnergyBand::Low, Aridity::Arid)
+                        } else {
+                            (Eolian::Loess, EnergyBand::Low, Aridity::Humid)
+                        };
+                        let tag = DepTag {
+                            eolian: facies,
+                            ..DepTag::mineral(DepEnv::Subaerial, ar, energy)
+                        };
+                        grid.strata[i].deposit(tag, drop);
+                    }
+                }
+            }
+            // Conserve the row: whatever is still aloft settles at the downwind
+            // land edge (so Σ eolian ΔH over the row is zero — pure redistribution).
+            if load > 0.0
+                && let Some(i) = last_land
+            {
+                grid.h[i] += load;
+                if record {
+                    let tag = DepTag {
+                        eolian: Eolian::Loess,
+                        ..DepTag::mineral(DepEnv::Subaerial, Aridity::Arid, EnergyBand::Low)
+                    };
+                    grid.strata[i].deposit(tag, load);
+                }
+            }
+        }
+    }
+
+    // ---- phase 11: littoral wave attack (SCALAR — shore cells) ------------
+
+    /// **Wave-cut littoral erosion** at the current sea-level stand (the wave
+    /// agent, [`Agent::Wave`], journal/0034). A cell is attacked when it stands in
+    /// the freeboard band `(sea, sea + wave_band_m]` **and** touches open water (a
+    /// subsea neighbour) — the shoreline. Waves cut it down toward sea level,
+    /// clamped so the cell never drops below the stand (a wave-cut platform forms
+    /// *at* sea level, it does not dig a hole), scaled by the rock's **wave**
+    /// resistance axis (cohesion/jointing — the axis 0029 built and left dormant)
+    /// and a freeboard taper (strongest right at the waterline).
+    ///
+    /// The quarried volume goes **offshore** into the deepest adjacent subsea cell
+    /// as marine sediment, so the term is mass-neutral (`ΣR+ΣH` unchanged): loose
+    /// cover is entrained first, then bedrock, and the sum is deposited into the
+    /// sink. Because the sea-level curve cycles (§ 6), the attacked band sweeps up
+    /// and down the coast over the run — which is what records **raised and
+    /// drowned wave-cut features** in a column over successive stands.
+    ///
+    /// Scalar (it writes a neighbour's cell), so deterministic and byte-identical
+    /// scalar↔parallel. Only the thin shore band does work.
+    pub fn wave(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        let (rate, band) = (cfg.wave_erosion, cfg.wave_band_m);
+        if rate <= 0.0 || band <= 0.0 {
+            return;
+        }
+        let record = !grid.strata.is_empty();
+        let (w, sea) = (self.w, self.sea_level);
+        let sus_tab = lithology::susceptibility_table(
+            Agent::Wave,
+            cfg.erodibility_contrast,
+            cfg.erodibility_max,
+        );
+        for i in 0..self.n {
+            let free = grid.r[i] + grid.h[i] - sea;
+            if free <= 0.0 || free > band {
+                continue; // below water, or too high up the shore to be reached
+            }
+            // Deepest adjacent subsea cell is the offshore sink (deterministic).
+            let (gx, gy) = coords_of(i, w);
+            let mut sink: Option<usize> = None;
+            let mut sink_surf = f64::INFINITY;
+            for (dx, dy) in NEIGH8 {
+                if let Some(j) = in_grid(gx + dx, gy + dy, w) {
+                    let sj = grid.r[j] + grid.h[j];
+                    if sj <= sea && sj < sink_surf {
+                        sink_surf = sj;
+                        sink = Some(j);
+                    }
+                }
+            }
+            let Some(j) = sink else {
+                continue; // not on the coast — no open water adjacent
+            };
+            let l = lithology::exposed_litho(grid.strata.get(i).and_then(|s| s.units.last()));
+            let taper = (1.0 - free / band).clamp(0.0, 1.0);
+            let cut = (rate * sus_tab[l.index()] * taper).min(free);
+            if cut <= 0.0 {
+                continue;
+            }
+            // Entrain loose cover first, then quarry bedrock; the sum goes offshore.
+            let removed_h = grid.h[i].min(cut);
+            grid.h[i] -= removed_h;
+            grid.r[i] -= cut - removed_h;
+            grid.h[j] += cut;
+            if record {
+                if removed_h > 0.0 {
+                    grid.strata[i].erode(removed_h);
+                }
+                grid.strata[j].deposit(
+                    DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low),
+                    cut,
+                );
             }
         }
     }

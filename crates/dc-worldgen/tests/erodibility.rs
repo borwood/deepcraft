@@ -13,7 +13,7 @@ use dc_core::materials::geology::{
 };
 use dc_worldgen::deeptime::lithology::{Agent, Litho, LithoResistance};
 use dc_worldgen::deeptime::{
-    self, Aridity, DeepConfig, DepEnv, DepTag, EnergyBand, Erosion, litho_of_tag,
+    self, Aridity, DeepConfig, DepEnv, DepTag, EnergyBand, Eolian, Erosion, litho_of_tag,
     susceptibility_table,
 };
 use dc_worldgen::geology::deep_class;
@@ -194,24 +194,27 @@ fn litho_routing_matches_the_collapse_tier() {
                     deeptime::Biofacies::Charcoal,
                     deeptime::Biofacies::Retro,
                 ] {
-                    let tag = DepTag {
-                        env,
-                        aridity,
-                        energy,
-                        biota,
-                    };
-                    assert_eq!(
-                        class_of(litho_of_tag(tag)),
-                        deep_class(tag),
-                        "deep time and collapse disagree about {}",
-                        tag.code()
-                    );
-                    seen += 1;
+                    for eolian in [Eolian::None, Eolian::Loess, Eolian::Dune] {
+                        let tag = DepTag {
+                            env,
+                            aridity,
+                            energy,
+                            biota,
+                            eolian,
+                        };
+                        assert_eq!(
+                            class_of(litho_of_tag(tag)),
+                            deep_class(tag),
+                            "deep time and collapse disagree about {}",
+                            tag.code()
+                        );
+                        seen += 1;
+                    }
                 }
             }
         }
     }
-    assert_eq!(seen, 2 * 2 * 3 * 6);
+    assert_eq!(seen, 2 * 2 * 3 * 6 * 3);
 }
 
 // ---------------------------------------------------------------------------
@@ -373,6 +376,7 @@ fn a_future_agent_reads_its_own_axis() {
         dissolution: 1.0 / 0.85,
         frost_ice: 4.5 * 0.9,
         wave: 4.5 * 0.9,
+        eolian: 0.9,
     };
     let granite = Litho::Basement.resistance();
     // Mechanically granite wins; chemically limestone is the only thing on the

@@ -109,6 +109,47 @@ impl Biofacies {
     }
 }
 
+/// The **aeolian facies** measured at deposition (the wind agent, journal/0034).
+/// `None` is the always-present default: a run with the wind agent OFF tags every
+/// unit `None`, which is byte-identical to the pre-wind record (the enum is a new
+/// merge-key axis whose only inhabited value is `None` when wind is off, so two
+/// otherwise-identical tags merge exactly as before — the same trick
+/// [`Biofacies::Mineral`] plays).
+///
+/// Wind is a *distinct transport agent* — well-sorted, and it climbs gradients
+/// the wrong way for water — so its deposits must be a distinguishable species in
+/// the record even though the collapse tier still routes them to ordinary clastic
+/// classes by grain size (loess → fine, dune sand → coarse, via
+/// [`crate::geology::deep_class`]). At the deep tier's 460 m cells the readable
+/// unit is the *region*: a loess sheet or a dune field, not an individual dune
+/// (earth-processes.md § 4 — "dune-field/loess regions … individual dunes are
+/// collapse-tier detail"). Carrying the marker now is what lets a future arid-
+/// landform pass find "where did the desert lay its sheets" by reading the record
+/// instead of re-deriving the paleo-wind.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub enum Eolian {
+    /// Not wind-deposited (default — the only value when the wind agent is off).
+    #[default]
+    None,
+    /// Wind-blown silt trapped at the downwind (vegetated/humid) margin of an
+    /// arid source — a **loess** region. Fine clastic.
+    Loess,
+    /// Sand accumulating in the arid source zone itself — a **dune field**.
+    /// Coarse clastic.
+    Dune,
+}
+
+impl Eolian {
+    /// Short code for column printouts (`--` when not aeolian).
+    pub fn code(self) -> &'static str {
+        match self {
+            Eolian::None => "--",
+            Eolian::Loess => "Lo",
+            Eolian::Dune => "Du",
+        }
+    }
+}
+
 /// A measured depositional tag. Two units merge only when every measured axis
 /// agrees (and the younger is not the first unit after an erosional strip).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -119,17 +160,24 @@ pub struct DepTag {
     /// The biotic facies measured at deposition (S10). `Mineral` for every unit
     /// when the biotic layer is off — byte-identical to the pre-S10 record.
     pub biota: Biofacies,
+    /// The aeolian facies measured at deposition (the wind agent, journal/0034).
+    /// `None` for every unit when the wind agent is off — byte-identical to the
+    /// pre-wind record. Appended last, and defaulted through every constructor,
+    /// so it is an additive axis (wire discipline — corrections #3).
+    pub eolian: Eolian,
 }
 
 impl DepTag {
     /// A purely-mineral tag (biotic layer off / abiotic deposition). The erosion
-    /// recorder builds every unit through this axis defaulted to `Mineral`.
+    /// recorder builds every unit through this axis defaulted to `Mineral`, and
+    /// non-aeolian (`Eolian::None`).
     pub fn mineral(env: DepEnv, aridity: Aridity, energy: EnergyBand) -> Self {
         Self {
             env,
             aridity,
             energy,
             biota: Biofacies::Mineral,
+            eolian: Eolian::None,
         }
     }
 
@@ -151,10 +199,15 @@ impl DepTag {
             EnergyBand::Medium => "M",
             EnergyBand::High => "H",
         };
-        if self.biota == Biofacies::Mineral {
+        let base = if self.biota == Biofacies::Mineral {
             format!("{env}/{ar}/{en}")
         } else {
             format!("{env}/{ar}/{en}·{}", self.biota.code())
+        };
+        if self.eolian == Eolian::None {
+            base
+        } else {
+            format!("{base}»{}", self.eolian.code())
         }
     }
 }

@@ -80,8 +80,60 @@ pub struct DeepConfig {
     /// rate, whatever the contrast knob says. Differential erosion is
     /// self-reinforcing (erode soft → expose hard → slow down), which is the
     /// mechanism that carves benches *and* the mechanism that could stall a
-    /// cell forever; this clamp is what keeps the feedback bounded.
+    /// cell forever; this clamp is what keeps the feedback bounded. It also
+    /// bounds the frost/wave/wind agents' susceptibilities (they share this
+    /// `susceptibility_table` clamp — journal/0034).
     pub erodibility_max: f64,
+    /// **The full erosion-agent roster** (wind + frost + wave, journal/0034):
+    /// activates eolian deflation/deposition (a fifth [`super::lithology::Agent`]),
+    /// the temperature-gated frost weathering multiplier, and littoral wave
+    /// attack at the current sea-level stand. Off by default — with it off every
+    /// added code path is skipped and the run is **byte-identical** to the
+    /// pre-0034 engine; and even *on* with the three rate knobs below at zero it
+    /// is byte-identical (the strong off-path proof, the 0029/S10 pattern). The
+    /// three agents compose with the lithology resistance system exactly as
+    /// abrasion does (each reads its own agent axis), and each is bounded by the
+    /// same stability clamp. Turning this on changes `DeepField` — and therefore
+    /// terrain shape — for every world created afterwards, the same class of
+    /// event as the erodibility flip. **The production flip is the user's.**
+    pub full_agents: bool,
+    /// **Wind: base deflation** (metres of loose cover entrained per epoch) in a
+    /// maximally arid, unvegetated cell before the agent susceptibility and the
+    /// aridity/vegetation gates scale it down. Wind only redistributes loose `H`
+    /// (never bedrock), so it is mass-neutral on the ledger. `0.0` disables the
+    /// term while the flag is on (byte-identity proof).
+    pub eolian_deflation: f64,
+    /// **Wind: aridity threshold** — normalized precipitation below which a cell
+    /// is a deflation source (the driest cells deflate most). Matches the
+    /// recorder's [`super::recorder::Aridity::Arid`] cutoff so the wind agent and
+    /// the facies tag agree about where the desert is.
+    pub eolian_arid_precip: f64,
+    /// **Wind: settling fraction** — the fraction of the airborne load a
+    /// vegetated or humid downwind cell traps as loess/dune per epoch. The
+    /// desert interior passes dust through; the margin catches it.
+    pub eolian_deposit_frac: f64,
+    /// **Frost: peak weathering gain** — the extra bedrock→regolith weathering
+    /// multiplier a maximally frost-susceptible rock receives at the centre of
+    /// the freeze–thaw band (`0°C`). Freeze–thaw is *not* monotonic with cold:
+    /// it is maximal where water repeatedly crosses the phase boundary, so the
+    /// multiplier peaks at `0°C` and falls to `1.0` outside the band. `0.0`
+    /// disables the term while the flag is on.
+    pub frost_weathering_gain: f64,
+    /// **Frost: band half-width** (°C) about `0°C` over which freeze–thaw
+    /// enhancement ramps from its peak to nothing. A wide band lets high summits
+    /// and cold high-latitude ground share the periglacial signature.
+    pub frost_band_width_c: f64,
+    /// **Wave: base littoral erosion** (metres per epoch) cut at a shoreline cell
+    /// right at sea level, before the wave-agent susceptibility and the freeboard
+    /// taper. The cut is clamped so a cell can never be lowered below the current
+    /// sea stand (a wave-cut platform forms *at* sea level, it does not dig a
+    /// hole). `0.0` disables the term while the flag is on.
+    pub wave_erosion: f64,
+    /// **Wave: reach band** (metres of freeboard above the current sea stand)
+    /// within which a shore cell adjacent to open water is attacked. Because the
+    /// sea-level curve cycles, the band sweeps up and down the coast over the run,
+    /// which is what records raised and drowned wave-cut features (§ 6).
+    pub wave_band_m: f64,
     /// Uplift rate scale, metres/iteration for a unit-rate (orogenic) province.
     pub uplift_scale: f64,
     /// Stream transport coefficient (capacity `= k_t · A^m · S^n`).
@@ -132,6 +184,14 @@ impl Default for DeepConfig {
             erodibility_contrast: 2.5,
             erodibility_diffusion_contrast: 1.0,
             erodibility_max: 5.0,
+            full_agents: false,
+            eolian_deflation: 0.02,
+            eolian_arid_precip: 0.32,
+            eolian_deposit_frac: 0.25,
+            frost_weathering_gain: 1.5,
+            frost_band_width_c: 12.0,
+            wave_erosion: 0.05,
+            wave_band_m: 30.0,
             uplift_scale: 3.0,
             k_transport: 0.0016,
             k_bedrock: 0.0011,
