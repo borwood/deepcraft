@@ -614,6 +614,45 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **The world is a LAYER CAKE — no dip, no folding, no tilt** (user,
+  2026-07-20, from reading walk cross-sections: "the seams have to match
+  orientation properly if this was pushed up in a tectonic event,
+  subducted, etc."). **Confirmed by source read**: the only structural
+  feature implemented anywhere is `DepUnit::unconformity: bool`
+  (recorder.rs). Strata are per-column stacks of thickness, so every layer
+  in the world is horizontal regardless of the tectonic history that
+  produced it — a seam thrust up by an orogeny lies as flat as one that
+  never moved. earth-processes § 7 (structural deformation:
+  fold/fault/unconformity) is DESIGNED but only the unconformity flag was
+  built; S9 classified fold-phase as a *relax* term (`fold-phase =
+  f(uplift)` at sample time), so the cheap path was identified and not
+  taken. Lateral variation exists only because adjacent columns read
+  different 460 m deep cells. **This matters disproportionately for a game
+  about reading strata**: dipping beds, folds and truncations are how a
+  cross-section tells you what happened to it. Undesigned; pairs with the
+  3e structural-deformation work.
+
+- **Thick units render as flawless monoliths** (user, 2026-07-20; general
+  case, noticed as house-sized unbroken pure coal). Two mechanisms, both
+  ours: deep-time epochs are ~2.5 Myr so parting-forming events are
+  sub-epoch and invisible, and the recorder merges consecutive like epochs
+  into one horizon (the 665 k → 71 k unit optimization). Real thick seams
+  carry mineral partings; real rock generally carries defects. Fix belongs
+  at the **collapse tier as procedural detail** (method rule 5), not in
+  deep time. Sketches in ideas.md § rock is not monolithic and § coal
+  partings; pairs with the filed-not-built charcoal-as-inclusion item.
+
+- **Loose materials do not exist in the world yet** (user, 2026-07-20:
+  "needed — even if they don't fall with gravity yet"). The RENDERER is
+  already waiting: partial-height loose rendering shipped built-but-dormant
+  in 3c-2 (journal/0010) because loose deposition never emits sub-8
+  columns. Missing half is content/simulation. User direction for when it
+  lands: loose materials should **spread on being dropped** (granularity +
+  fall height → partials displaced into surrounding empties) — angle of
+  repose from the partials model rather than a physics solver. Sketch in
+  ideas.md.
+
+
 - **The sim must know about light** (user, 2026-07-20; NEW thread, see
   visuals.md § open thread). Distinct from render-side lighting: a
   deterministic sim-side light field is wanted for (candidates)

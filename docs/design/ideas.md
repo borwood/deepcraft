@@ -389,3 +389,66 @@ not decided:
 - Cross-reference visuals.md (§ distance speaks the voxel language is the
   same instinct applied to LOD: the world stays in its own visual dialect
   at every range).
+
+## Rock is not monolithic — defects, jitter, and loose materials (user, 2026-07-20)
+
+Raised on seeing house-sized volumes of unbroken pure coal in walk
+screenshots, then generalized by the user beyond coal.
+
+- **"Most of these materials are not unbroken in the earth, there are
+  defects."** The monolithic-purity problem is GENERAL, not a coal bug.
+  Every thick uniform unit in a cross-section has the same defect: the
+  record knows a unit, the voxel grid renders it as a flawless mass.
+- **Use partials for defects.** We already have per-voxel fractional
+  contents (S8 eighths). The user's direction: **jitter at the partials
+  scale, dependent on a material property**, softening boundaries where
+  it makes sense — **particularly for soft materials**. So a soft unit's
+  interior and margins carry fractional impurity/void rather than being
+  uniform fill, and hard materials stay crisper.
+  - Precedent to reuse, not reinvent: the 3d **member-contact boundary
+    dither** already wanders material contacts at the material tier
+    (journal/0011). This extends the same instinct inward — from the
+    boundary between units to the *interior* of a unit.
+  - Distinguish from the coal-partings case below: partings are
+    *structural* (bedded mineral bands from events); jitter is
+    *textural* (the material is never perfectly pure or perfectly
+    bounded).
+- **Loose materials are needed in game — and are not there yet.** The
+  user: needed "even if they don't fall with gravity yet." Note the
+  renderer is already waiting: partial-height loose rendering shipped
+  **built-but-dormant** in 3c-2 (journal/0010) because loose deposition
+  never emits sub-8 columns. The missing half is content/simulation, not
+  rendering.
+- **Loose materials should SPREAD when dropped** (user, same pass):
+  depending on material properties — **granularity + (something) +
+  fall height** — a dropped loose material displaces **partials into
+  surrounding empty space** rather than landing as a neat column. This is
+  angle-of-repose behaviour obtained from the partials model instead of
+  from a physics solver, and it composes with the existing eighths
+  representation. Undesigned; the middle property in the user's
+  "granularity + x + fall-height" is deliberately left open.
+
+## Coal partings, and the general case of sub-epoch structure (2026-07-20)
+
+- Real thick coal seams carry **partings** — clay/shale/ash bands from
+  floods and eruptions interrupting the swamp. Coal geologists classify
+  seams by parting structure; ours have none.
+- **Why ours are pure** (diagnosed): (1) deep-time epochs are ~2.5 Myr
+  (200 iterations over the ~500 Myr register), and real coal-forming
+  cycles are Milankovitch-scale (10⁴–10⁵ yr) — **every parting-forming
+  event is sub-epoch and invisible**; (2) the recorder deliberately
+  **merges consecutive organic epochs into one horizon**, which is the
+  optimization that took the record from 665 k units to 71 k (S10) and is
+  also precisely what erases internal structure.
+- **Where the fix belongs**: earth-processes **method rule 5** — the
+  unsimulated remainder gets procedural tricks, and no grid/analytic
+  boundary may reach the eye. Partings should be a **collapse-tier
+  procedural detail** (deterministic, position-seeded mineral bands at
+  realistic spacing inside thick organic units), never simulated at deep
+  time. Pairs with the **charcoal-as-inclusion** item the organics agent
+  filed-but-did-not-build: both are "the record knows something the voxel
+  grid is too coarse to show."
+- Size itself is NOT the defect: real seams reach 30 m (Powder River) to
+  100 m+ (Latrobe Valley), and are laterally extensive sheets. Our shape
+  is right (bedded sheets, deposited per-cell per-epoch, not blobs); the
+  interior is what is wrong.
