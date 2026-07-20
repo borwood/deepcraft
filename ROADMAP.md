@@ -1575,3 +1575,25 @@ before any code.
 - *(**Console follow-ups: RATIFIED same day** — API.md Decisions log #6
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
+
+- **Volcanism does not exist** (agreed 2026-07-20, session-4 gen review).
+  earth-processes § 2 (Igneous) is a sketch; nothing is built. Arc/rift
+  provenance raises elevation but builds no edifices. What it would buy:
+  the fastest legal short-gradation mountain on Earth (a stratovolcano is
+  ~3 km of relief in a ~20 km footprint), calderas, lava caprock → mesas,
+  ash beds as strata events, hotspot island chains. Constructive
+  point-process that feeds the existing erosion sim naturally. Note:
+  hotspot tracks REQUIRE plate motion — couples to the tectonic-history
+  question (one-shot upheaval, below).
+
+- **The 5–460 m band has no process — only decayed noise** (agreed
+  2026-07-20, session-4 gen review; the primary mechanism behind "locally
+  everything looks flat", and it is world-wide, not a mountain thing).
+  Below the deep sim's 460 m floor, elevation is midpoint jitter off a
+  per-provenance roughness budget decaying ×0.55 per halving: total
+  sub-460 m relief ≈ ±26 m in an orogeny, ≈ ±4 m at walking wavelengths,
+  ≈ ±1 m on a craton. No gullies, ravines, outcrops, knickpoints, talus,
+  or hillslope-scale stream incision — the band where travel gets
+  interesting is empty. S9's C-refinement (bounded regional refinement,
+  halo theorem, `deeptime/refine.rs`) was designed for exactly this and
+  sits unbuilt; it is the ratified extension point, not a bandaid.
