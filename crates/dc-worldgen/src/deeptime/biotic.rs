@@ -539,13 +539,13 @@ impl BioticSim {
     }
 }
 
-/// Air temperature (°C) at a cell: a latitude gradient minus an altitude lapse.
+/// Air temperature (°C) at a cell: the shared climate model
+/// ([`super::climate::air_temp_c`]) — a latitude gradient minus an altitude
+/// lapse. Delegated so the biotic suitability gate and the frost erosion agent
+/// read one identical temperature (byte-identical to the pre-0034 inline form).
 #[inline]
 fn temperature(grid: &DeepGrid, gy: usize, surf: f64) -> f32 {
-    let lat = grid.lat_deg(gy).abs();
-    let sea_temp = 30.0 - 0.55 * lat;
-    let lapse = 6.5 * (surf.max(0.0) / 1000.0);
-    (sea_temp - lapse) as f32
+    super::climate::air_temp_c(grid.lat_deg(gy), surf)
 }
 
 /// A plateau tolerance term in 0..1: 1 inside `[lo, hi]`, ramping to 0 over a

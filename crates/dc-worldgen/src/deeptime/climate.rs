@@ -12,6 +12,21 @@
 
 use super::grid::DeepGrid;
 
+/// Air temperature (°C) at a cell: a latitude gradient minus an altitude lapse.
+/// The **single** climate temperature model deep time carries — the biotic layer
+/// (`super::biotic`) and the frost agent (`super::erosion`) both read it, so
+/// "where does it freeze" has one honest answer. Deep time has no pregen
+/// `temp_c` plane (only precipitation is marched), but latitude and the eroding
+/// surface *are* present every epoch, and that is enough for an honest gate:
+/// `30 − 0.55·|lat|` at sea level, cooled `6.5 °C/km` up the current surface.
+#[inline]
+pub fn air_temp_c(lat_deg: f64, surf: f64) -> f32 {
+    let lat = lat_deg.abs();
+    let sea_temp = 30.0 - 0.55 * lat;
+    let lapse = 6.5 * (surf.max(0.0) / 1000.0);
+    (sea_temp - lapse) as f32
+}
+
 /// Zonal wind x-step for a latitude band (trade easterlies, mid-latitude
 /// westerlies, polar easterlies) — the pregen climate bands, reused.
 pub fn wind_dx(lat_deg: f64) -> i32 {

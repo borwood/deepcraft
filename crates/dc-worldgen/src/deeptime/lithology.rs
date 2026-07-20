@@ -33,14 +33,15 @@
 //! |---|---|---|---|
 //! | [`Agent::Abrasion`] | [`LithoResistance::abrasion`] | smash resistance × cohesion | **live** (fluvial incision, cover entrainment, hillslope creep) |
 //! | [`Agent::Dissolution`] | [`LithoResistance::dissolution`] | `solubility` (inverse) | designed, unbuilt — earth-processes § 8, karst/speleogenesis |
-//! | [`Agent::FrostIce`] | [`LithoResistance::frost_ice`] | smash resistance × permeability | designed, unbuilt — the cryosphere |
-//! | [`Agent::Wave`] | [`LithoResistance::wave`] | smash resistance × cohesion (jointing-dominated) | designed, unbuilt — littoral |
+//! | [`Agent::FrostIce`] | [`LithoResistance::frost_ice`] | smash resistance × permeability | **live** (periglacial weathering multiplier — journal/0034) |
+//! | [`Agent::Wave`] | [`LithoResistance::wave`] | smash resistance × cohesion (jointing-dominated) | **live** (littoral cliff/platform cutting — journal/0034) |
+//! | [`Agent::Eolian`] | [`LithoResistance::eolian`] | cohesion (crust vs loose grain) | **live** (wind deflation/deposition — journal/0034) |
 //!
 //! [`Agent`] is deliberately **not** `#[non_exhaustive]` and every consumer
-//! matches it exhaustively: adding a fifth agent is a compile error at every
-//! site that has to answer for it, including [`LithoResistance::to`]. That is
-//! the structural guarantee — a new agent cannot silently inherit the
-//! mechanical answer.
+//! matches it exhaustively: adding the fifth agent ([`Agent::Eolian`],
+//! journal/0034) was a compile error at every site that had to answer for it,
+//! including [`LithoResistance::to`]. That is the structural guarantee — a new
+//! agent cannot silently inherit the mechanical answer.
 //!
 //! ## Which rock is at the surface
 //!
@@ -96,17 +97,24 @@ pub enum Agent {
     /// "later"). Designed, unbuilt.
     FrostIce,
     /// **Wave attack** at a coastline: hydraulic quarrying along joints plus
-    /// abrasion by entrained clasts. The littoral agent. Designed, unbuilt.
+    /// abrasion by entrained clasts. The littoral agent (journal/0034).
     Wave,
+    /// **Wind deflation**: entrainment of loose, dry, unvegetated cover and its
+    /// downwind redeposition as loess/dune. The eolian agent (journal/0034) — the
+    /// fifth agent, added when the arid-landform roster went live. Keys on
+    /// cohesion: a cemented crust or sticky clay resists deflation, loose sand
+    /// blows.
+    Eolian,
 }
 
 impl Agent {
     /// Every agent, for exhaustive sweeps in tests and probes.
-    pub const ALL: [Agent; 4] = [
+    pub const ALL: [Agent; 5] = [
         Agent::Abrasion,
         Agent::Dissolution,
         Agent::FrostIce,
         Agent::Wave,
+        Agent::Eolian,
     ];
 
     /// Short name for probe output.
@@ -116,6 +124,7 @@ impl Agent {
             Agent::Dissolution => "dissolution",
             Agent::FrostIce => "frost/ice",
             Agent::Wave => "wave",
+            Agent::Eolian => "eolian",
         }
     }
 }
@@ -155,6 +164,12 @@ pub struct LithoResistance {
     /// joints and bedding, which is a question of how well the rock is held
     /// together, not how hard its grains are.
     pub wave: f64,
+    /// Resistance to **wind deflation**. Keys on **cohesion** alone: wind cannot
+    /// grind competent bedrock, it only lifts loose grain, so what matters is
+    /// cementation/stickiness — a well-cemented sandstone or a crusted clay
+    /// resists, an unconsolidated fine sand is a dune source. Grain competence
+    /// (`smash`) is deliberately absent: a hard-but-loose sand deflates freely.
+    pub eolian: f64,
 }
 
 impl LithoResistance {
@@ -167,6 +182,7 @@ impl LithoResistance {
             Agent::Dissolution => self.dissolution,
             Agent::FrostIce => self.frost_ice,
             Agent::Wave => self.wave,
+            Agent::Eolian => self.eolian,
         }
     }
 
@@ -320,6 +336,10 @@ pub fn resistance_of_material(m: MaterialId) -> LithoResistance {
         // Wave: jointing/cementation dominates. `max` keeps a cohesionless
         // material from reading as zero-resistance (it is still made of rock).
         wave: smash * cohesion.max(0.05),
+        // Eolian: cohesion alone (no grain competence — wind cannot grind rock,
+        // only lift loose grain). `max` floors a cohesionless material so it
+        // reads as *most* deflatable rather than infinitely so.
+        eolian: cohesion.max(0.05),
     }
 }
 
@@ -458,6 +478,7 @@ mod tests {
             dissolution: 1.0 / 0.85,
             frost_ice: 4.5 * (1.0 - 0.5 * 0.2),
             wave: 4.5 * 0.9,
+            eolian: 0.9,
         };
         let mudstone = Litho::ClasticFine.resistance();
 
@@ -504,6 +525,6 @@ mod tests {
             let r = Litho::ClasticCoarse.resistance();
             assert!(r.to(a) > 0.0, "{}", a.name());
         }
-        assert_eq!(Agent::ALL.len(), 4);
+        assert_eq!(Agent::ALL.len(), 5);
     }
 }
