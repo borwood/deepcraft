@@ -619,7 +619,27 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — all three session-4 agents merged, gates green on final main.)
+- **Tectonic design pass — `docs/design/tectonics.md` DRAFT** (background
+  design agent, Fable by deliberate model-economy exception — spike-class
+  undecided architecture; dispatched 2026-07-20 after user ratified the
+  expanded scope). Owns the full earth-processes § 1 DECIDED list: uplift(t)
+  chapters + plate advection, analytic boundary forcing, crustal columns,
+  isostasy/flexure, drainage re-march coupling, recorder event-entries,
+  punctuation hooks, plate-scale knob options. Deliverable is a DRAFT doc
+  + sorted open questions (user-owned vs measurable) for main-session
+  ratification — no code.
+- **Erosion agents completed: wind (#5) + frost/wave activation**
+  (background build agent, opus; dispatched 2026-07-20; earth-processes § 4
+  RATIFIED entry). Off-by-default, byte-identical when off (the 0029
+  erodibility flip pattern); the production flip is the user's appearance
+  call afterward, from screenshots/numbers.
+
+**Slated by ratification 2026-07-20 (all six unknown-unknowns landed;
+sequenced, not yet scheduled):** marker beds + punctuation event types ride
+the volcanism design (earth-processes § 2 flag); ore-genesis roster is a
+user-owned content design pass (earth-processes § "payoff layer") to be run
+as main-session design conversation; impact structures ride punctuation
+hooks.
 
 **Session 3 shipped, all gates green on merged main:** FF2a voxel far field
 (0023) · far-seam uniform-push fix (0024) · S10 biotic layer (0025) ·

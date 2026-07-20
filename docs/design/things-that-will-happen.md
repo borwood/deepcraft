@@ -44,3 +44,8 @@ list and not a roadmap — some of these are far off, and that is fine.
   whole downstream simulation takes it seriously — burial, exhumation, the lot.
 - The sun's arc across your sky depends on where you are standing, so poles
   and tropics are somewhere you travel to, not a setting anyone chose.
+- You pan gold flakes from a gravel bar. The vein they eroded out of is
+  somewhere upstream — so you read the river, and walk upstream.
+- A coal seam dead-ends at a fault. The white ash stripe forty meters up —
+  the same afternoon, four million years ago, everywhere it appears — is
+  offset by the same throw. Follow it, find your seam again.

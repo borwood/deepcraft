@@ -71,6 +71,35 @@ Related decision wanted from the same pass: plate-count/scale compression
 constant, not a choice — it directly sets landform provinces per km of
 travel and should be a stated, user-owned knob.
 
+**Scope expanded 2026-07-20 (user: "all of these land — escalate the
+foundational"):** the same design pass also owns, because they share one
+data model:
+3. **Crustal columns (2.5D)** — each deep cell carries crust thickness,
+   density, and composition, not just surface height. Collision becomes
+   crustal thickening; the physics runs on column integrals, never voxels.
+4. **Isostasy + flexure** — the missing engine (this doc had eight and not
+   this one): crust floats, so erosion unloads and the root rebounds
+   (~0.8×), which is how relief persists for hundreds of Myr and how
+   deep-formed rock is exhumed to the surface (metamorphic cores). Flexure
+   bows crust down beside loads → foreland basins, the sediment trap next
+   to every belt. Requires exactly the crustal columns above. This is also
+   the dynamic answer to one-shot upheaval: rebound is uplift *responding*
+   to erosion.
+5. **Drainage re-march per chapter** — rivers currently share the one-shot
+   disease; re-marching hydrology against each tectonic chapter yields
+   water gaps (antecedent rivers sawing through rising ridges), river
+   terraces from uplift pulses, and basin captures. Couples to the slated
+   deep-hydrology work — the two designs must know about each other.
+6. **Recorder event-entries** — the strata record is a deposition-ordered
+   stack and cannot express anything that *modifies previous entries*:
+   dikes, plutons, fault offsets, tilting. The record needs a second entry
+   species (events that transform prior units) before the igneous engine
+   lands its first dike. Data-model decision; cheaper before than after.
+7. **Punctuation hooks** — chapter machinery should admit rare discrete
+   events (flood-basalt provinces, mega-landslides, at most one impact
+   structure per world) so worlds get individual biographies. Hooks only;
+   each event type is its own later design.
+
 ### 2. Igneous
 Reality: melt generation → intrusion (slow cooling, coarse: granite;
 country-rock contact effects) or extrusion (fast: basalt flows, ash);
@@ -79,6 +108,12 @@ Signatures: plutons under orogens; flow stacks in rifts; dikes cutting
 strata (cross-cutting = relative age — readable history).
 Sim: province + emplacement-depth context (never surface climate —
 geology.md); cross-cutting events in the strata record.
+**FLAG (2026-07-20, ratified):** blocked on § 1's recorder event-entry
+decision — a deposition-ordered stack cannot represent a dike/pluton/
+offset. Also owns **marker beds** when designed: one ash fall writes an
+identifiable isochronous stripe region-wide, giving players strata
+correlation ("this layer here is that layer there") and making fault
+offsets solvable puzzles (follow the marker to find the displaced seam).
 
 ### 3. Weathering
 Reality: mechanical (frost, roots) + chemical (dissolution, oxidation)
@@ -106,6 +141,19 @@ populated and dormant. The § 8 karst agent, when it lands, reads the
 requires — no rewrite of the mechanical path.
 
 ### 4. Transport + deposition (four agents, four signatures)
+
+**RATIFIED 2026-07-20: wind is agent #5, and the dormant axes go live.**
+Eolian was never enumerated; deserts have arid *tags* but no arid
+*landforms* (dune fields, loess sheets, deflation basins). The `Agent`
+enum's exhaustive-match design (0029) makes the fifth agent a compile
+error until every site answers for it — by construction. Same decision
+activates the dormant **frost** (periglacial: temperature-gated
+weathering — scree, blockfields, shattered summits) and **wave**
+(littoral: sea cliffs, wave-cut platforms; sea-level cycling already
+exists) resistance axes built in 0029. At 460 m resolution the deliverable
+is dune-*field*/loess/periglacial *regions* in the record and surface;
+individual dunes and scree cones are collapse-tier detail for the
+sub-460 m band work.
 Reality: water (sorted, graded, channelized), wind (well-sorted fine
 dunes/loess), ice (unsorted till, striations, U-valleys), gravity (talus,
 landslides). Each environment leaves a distinct facies.
@@ -257,6 +305,20 @@ drainage handoff + collapse stitching (halo width is now a measured
 budget input), widen recorder tags (agent axis + grain continuum), and
 replace placeholder sea-level/climate curves with epoch-indexed pregen
 state.
+
+## The payoff layer — ore genesis (direction DECIDED 2026-07-20, user)
+
+Every engine above writes a findable resource signature, and **ore is the
+reward for reading the world correctly** — the design principle that
+decides which fidelity investments are worth it. Coal already closes this
+loop (biofacies → seam → a player digs); nothing else does. The roster and
+each deposit model are their own design pass (content is user-owned), but
+the standing examples: placers downstream of eroding source lodes (pure
+intersection of existing erosion × hydrology), hydrothermal veins along
+faults and around intrusions, evaporites in closed arid basins (aridity is
+already tagged), porphyry systems at arcs, impact-related ores. When a
+process pass is designed, ask: what does this process leave behind that a
+player who understands it can find?
 
 ## Standing question for every future pass
 
