@@ -63,11 +63,18 @@ cargo test --workspace --release
   negative looks down.
 - Screenshots land in `journal/assets/` — name them `NNNN-description` for
   the journal entry they belong to.
-- **Never compare LIT before/after screenshots across two launches** — the
-  sun angle differs between runs, and a walk once measured 48.9 % pixel
-  change from sun movement alone (journal/0030). Until a deterministic sun
-  exists, before/after appearance claims must rest on the `--fullbright`
-  control; the lit pass shows what a player sees, not what changed.
+- **Pick the control that can SEE your question** (journal/0030,
+  corrections #18/#19). The sun is FIXED (S4: a constant 0.35 time-of-day),
+  so lit before/after comparisons across launches ARE valid.
+  - **Shape / relief / geometry questions → the LIT pass.** Face
+    orientation is what carries shape; `--fullbright` is unlit pure vertex
+    colour, so every face of a block is one colour and a terraced hillside
+    on single-material ground renders as a **featureless grey field**.
+    Fullbright is blind to shape.
+  - **Material / data questions → `--fullbright`.** Flat albedo with no
+    lighting noise is what made the 0027 coal diagnosis possible.
+  - Using the blind control and reporting its null is how journal/0030
+    published a wrong conclusion twice in one day.
 
 ## Conventions
 

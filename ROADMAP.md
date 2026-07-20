@@ -949,19 +949,28 @@ before any code.
   sun determinism — confirmed with the user that the sun is static, which is what
   makes the lit pass trustworthy for before/after diffing after all.
 
-- **INSTRUMENT: lit before/after screenshots are invalid — the sun moves
-  between runs** (journal/0030, 2026-07-20). The erodibility-flip walk's
-  *lit* before/after pairs differed by up to **48.9 % of pixels**, almost
-  entirely because the sun was at a different angle in the second launch.
-  Read alone they would have reported a dramatic improvement that did not
-  happen; only the mandatory fullbright control caught it. **This
-  invalidates the lit pass for every before/after appearance comparison we
-  have done or will do**, and lit is precisely the register the user
-  ratifies appearance in. Fix named by the walk: a **deterministic sun**
-  for screenshots (`--fixed-sun`, or a fixed tick), which would make the
-  lit pass usable for diffing. Same family as the pos_voxel instrument fix
-  (journal/0021): the walker's instruments must not lie. **Highest-value
-  instrument fix outstanding.**
+- *(**INSTRUMENT: "lit before/after is invalid because the sun moves" —
+  RETRACTED same day**, corrections #18/#19. The sun is FIXED (S4: constant
+  0.35 time-of-day); no day/night cycle exists, which is exactly why the
+  sim-light design had to invent heavenly-body paths. The lit pass was the
+  trustworthy register all along. The real defect was the opposite one, and
+  is recorded below.)*
+
+- **INSTRUMENT: `--fullbright` is BLIND TO SHAPE** (journal/0030,
+  corrections #18). It renders unlit pure vertex colour, so every face of a
+  block is the same colour — on single-material terrain a fully terraced
+  hillside renders as a **featureless grey field**
+  (`0030-flank-before-fullbright.png`, whose every step is plainly visible
+  in the lit frame of identical geometry). A near-zero fullbright pixel-diff
+  therefore does **not** mean "the shape did not change"; it means this
+  control cannot see shape. **Choose the control that can see the question**:
+  lit for shape/relief, fullbright for material/data. Proposed fix, filed
+  not built: **crease/silhouette edge outlining under a separate flag**
+  (`--fullbright --edges`) — outline depth and normal discontinuities only,
+  distance-faded, never per-cube (per-voxel outlines alias into moiré where
+  a voxel is sub-pixel at km range); separate flag so the pure
+  colour-in-colour-out control that the 0027 coal diagnosis depended on
+  survives unmodified.
 
 - **INSTRUMENT: `--fullbright` does not disable distance fog** (journal/0030).
   The 3.5 km massif vista washed to near-white in *both* passes, so

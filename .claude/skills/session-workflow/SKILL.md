@@ -142,6 +142,19 @@ You wear all four, switching freely:
   that load the right mental model. **Read it at session start, before the
   design docs.** Append the moment an example lands; do not batch it.
 
+- **An agent's MECHANISM is a hypothesis; only its numbers are evidence**
+  (added 2026-07-20, corrections #19, after the integrator wrote an agent's
+  unverified "the sun moves between launches" into CLAUDE.md as doctrine —
+  the sun is fixed, and the falsifying fact had been quoted by the
+  integrator earlier the same session). Agents measure well and explain
+  confidently; the explanation is where they err. **Test the causal story
+  against the corpus before recording it**, and hold a much higher bar for
+  CLAUDE.md and this skill than for an Observed line — every future session
+  and every agent loads them, so a wrong rule there propagates silently.
+  Corollary to the corpus-sweep guard: also check a fresh claim against
+  **what you yourself wrote this session** — the fastest falsifier is often
+  a fact you handled an hour ago.
+
 ## Audit trail (see CLAUDE.md for formats)
 
 - Journal entries are narrative for a future reader and developer-blog

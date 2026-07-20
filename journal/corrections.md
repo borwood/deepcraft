@@ -503,3 +503,50 @@ what it is sensitive to *elsewhere*; a control that is blind to your question wi
 happily report "no change" forever. (This is the direct argument for giving
 fullbright dark face borders — user, 2026-07-20 — which would restore geometric
 legibility to the pass that currently destroys it; filed in ROADMAP.)
+
+## 19. The integrator wrote an unverified agent mechanism into CLAUDE.md as doctrine (2026-07-20)
+
+**Claim** (mine, integrating journal/0030): that lit before/after
+screenshots are invalid for appearance comparison "because the sun moves
+between launches" — filed within minutes to ROADMAP Observed as the
+"highest-value instrument fix outstanding", and written into **CLAUDE.md's
+walk protocol**, the read-first doc every future session and every agent
+loads.
+
+**Falsified the same day** (agent re-measurement, corrections #18): there
+is no day/night cycle. The sun is **fixed**. The lit difference was real
+terrain change — it survives 16×16 block averaging (so it is not texture
+noise) and its *signed* mean is ≈ 0 (so it is not a brightness shift):
+bright-here-dark-there in balance is **face orientation changing**, which
+is geometry.
+
+**Mechanism of my error, and the part that stings**: I had the falsifying
+fact **in my own context, from this same session**. Writing
+`docs/design/light.md` hours earlier I quoted S4-results verbatim —
+*"app-set constants (fixed 0.35 time-of-day matching the fixed sun)"* —
+and the whole sim-light design rests on there being **no** day/night cycle
+(that is why heavenly-body paths had to be invented). I then accepted
+"the sun moved" without connecting it to either fact, because it arrived
+as a confident agent finding attached to a dramatic number (48.9 %).
+
+**Fixes**: the CLAUDE.md rule is replaced with the true one — *pick the
+control that can SEE your question*: lit for shape/relief (face
+orientation carries shape), fullbright for material/data (flat albedo, no
+lighting noise). The ROADMAP entry is retracted in place and replaced by
+the real defect, #18's fullbright blindness.
+
+**Lessons**:
+1. **An agent's MECHANISM claim is not a measurement.** Its numbers are
+   usually trustworthy; its causal story is a hypothesis. The integrator's
+   job is to test the story against the corpus before it becomes doctrine
+   — this is the same class as #3 (walk misdiagnoses), #10 (units), and
+   #13 (a fabricated quote): confident recording of something never
+   verified.
+2. **Doctrine has a higher bar than an Observed line.** CLAUDE.md and the
+   workflow skill are loaded by every future session and every agent; a
+   wrong rule there propagates silently and forever. Speed is not a virtue
+   when writing to the read-first documents.
+3. **Check new claims against what you wrote today.** The corpus sweep
+   guard (added this morning) points outward at the repo; it needs a
+   corollary pointing at your own recent work — the fastest falsifier of a
+   fresh claim is often a fact you handled an hour ago.
