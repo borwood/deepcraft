@@ -171,3 +171,48 @@ not ossify:
   silent dependence on pack coincidence, not degradation per se). Hard
   enforcement rides as-built until this is worth building; current shape
   precludes nothing (same checkpoint, different policy).*
+
+## Ore — roster, representation, endowment, naming — DECIDED 2026-07-20 (user)
+
+**The payoff-layer principle** (earth-processes § payoff layer) instantiated:
+every v1 ore is the terminus of a process chain we actually simulate, and is
+findable by a player who understands that chain.
+
+**v1 roster (ratified):** coal (shipped) · **banded iron** (marine chemical
+sediment on old craton chapters — chapter-gated once tectonic history lands)
+· **bog iron** (wetland + biotic; the surface-accessible starter iron) ·
+**redbed copper** (arid-basin sediments + buried organics; green staining in
+red sandstone) · **orogenic gold** (veins in exhumed metamorphic cores →
+eroded → **placers** downstream; the flagship end-to-end chain across
+tectonic history + isostasy + hydrology) · **evaporites** (salt/gypsum,
+closed arid basins + sea-level cycles). Deferred with their engines: tin/
+tungsten (plutons), porphyry copper (intrusions), fault/hydrothermal veins
+(faulting). No ore before its process.
+
+**Representation — the accessory-inclusion pattern generalized (user).**
+Ore is a MATERIAL inside a HOST, expressed in the existing eighths/partial
+mix system exactly as the 3d accessory class does it (olivine precedent:
+host rock in structure slots, inclusion in pore slots, face-dither
+rendering). All three forms, most ores taking several:
+1. **pore partials in a host block** — the canonical vein/disseminated form;
+   the host stays itself ("the sandstone part of copper-in-sandstone is just
+   a block with a mix of sandstone and ore partials");
+2. **loose partials** — placer concentrates in gravels, the loose-material
+   landscape form;
+3. **entire blocks** — massive ore (coal already; rich cores where the
+   process honestly makes them).
+**Grade IS the eighths count** — ore "peeks through a little or a lot
+depending on how many partials," so richness is visible, continuous, and
+needs no separate grade mechanic. Raw-form color/texture stays realistic.
+
+**Endowment (ratified):** soft guarantee at Medium+ — every v1 ore present
+at least marginally, but quality/abundance honestly uneven, so "famously
+rich gold country" exists without unwinnable worlds.
+
+**Identification & naming (ratified):** system ids stay simple
+(`dc:ore/...`). Display naming is owned by the future culture/language
+layer (ideas.md § procedural languages — currently a sketch, not a full
+doc). Where a metal has genuinely distinct raw forms (bog iron vs banded
+iron), those are DISTINCT materials that later refine to the same metal —
+identification knowledge is real knowledge. Prospecting is the skill;
+up close, realistic partials peeking through the host are self-announcing.

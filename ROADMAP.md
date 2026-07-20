@@ -7,6 +7,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Console v2 — arg discoverability + scrolling**
+  (journal/0035; dispatched on the user's same-day field report "still
+  unusable... do not know the shape of args"; gates green in worktree and
+  re-run on merged main). All schema-generated, zero per-command code:
+  persistent signature line once a command is recognized; per-arg hint at
+  the caret (type, required, description, live example values); Tab lists
+  param keys with descriptions and completes VALUES via the 0033
+  `Completer` hook (`block=<TAB>` → real block names from the live world,
+  read-only `Res<Authority>` — completers take `&HostWorld` accessors only,
+  cannot tick or stall); `help <cmd>` renders a reference card + generated
+  example invocation; PageUp/PageDown/wheel scrolling over 500 retained
+  lines; held-movement-key restore on close. Deep array leaves still take
+  the raw-JSON escape hatch (unchanged v1 limit). Appearance (hint layout,
+  colors, phrasing) is dev-tool default — user restyles at will.
+
 - 2026-07-20 — **full_agents: wind (agent #5) + frost/wave activation**
   (journal/0034, session-4 background agent; gates re-run green on merged
   main by integrator). The erosion roster completed except karst:
@@ -1052,8 +1067,9 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **Console v1 field report: "still unusable" (user, 2026-07-20, first
-  test drive).** Two defects, both discoverability-of-what-exists rather
+- *(**Console v1 field report: FIXED same day** — console v2 shipped, see
+  Shipped / journal 0035. Original report:)* **"still unusable" (user,
+  2026-07-20, first test drive).** Two defects, both discoverability-of-what-exists rather
   than missing data: (a) the arg surface is invisible in practice — no
   per-arg help while typing, no visible arg shapes/expected inputs, so a
   user cannot form a valid command without already knowing it; (b) the
@@ -1721,3 +1737,26 @@ before any code.
   the new eolian dune-FIELD regions (journal/0034) whose individual dunes
   are exactly the stepped-partial landscape the user names. Also where the
   sub-460 m process band's outputs get their look.
+
+- **Olivine reads as exceedingly common and surface-visible (user field
+  report, 2026-07-20, during the ore conversation).** Olivine is the SOLE
+  accessory-inclusion member (CLASS_ACCESSORY_MAFIC's only entry), so every
+  igneous accessory event in the world is olivine — mono-culture by roster,
+  not by mechanism. Its presence gate + fixed pore-eighths
+  (`emplace_accessory`, geology.rs ~207) and any-depth formation window are
+  the tuning surface; whether "exceedingly common" is a gate constant, the
+  sole-member effect, or surface exposure bias of extrusives is UNDIAGNOSED
+  — measure before touching. The ore work (geology.md § ore DECIDED) will
+  both diversify the inclusion roster and make grade meaningful, which may
+  resolve the perception without a tuning bandaid.
+
+- **"Ours is not a deep world right now — you can keep digging into
+  no-variety" (user field report, 2026-07-20).** Below the recorded
+  deep-time strata the column is undifferentiated basement; depth is
+  monotonous by construction. Connects to: recorded overburdens ≤ ~100 m
+  (coal-rank note in dc-core geology.rs — the record itself is shallow),
+  the § 5 burial/diagenesis/metamorphism engine (sketch), exhumation
+  (ratified — will surface deep rock but also needs deep rock to BE
+  something), and § 8 groundwater/karst (slated deep hydrology). The
+  vertical dimension is a mostly-unbuilt frontier; no diagnosis filed
+  beyond this inventory.
