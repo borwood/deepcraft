@@ -7,6 +7,25 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Far-seam fix cycle: uniform-per-level depth push** (journal/0024,
+  background agent; worktree branch for the integrator; gates green — fmt/clippy/test
+  all `--release`; walk-verified lit + fullbright). The anti-z-fight push in
+  `farmesh.rs` moved each far tile/chunk along its *own* center→viewer direction,
+  so adjacent same-level tiles shifted along slightly different directions and
+  reopened the (mesh-space-watertight) shared edge as a 0.08–0.9 m world-space slot
+  — a see-through bright seam once the far field was a hollow top sheet
+  (corrections #11). Replaced with **one shared push vector per LOD level per
+  frame** along the camera-forward axis (magnitude unchanged, `DEPTH_PUSH_FRAC ×
+  coarse voxel`): identical rigid motion for every tile of a level closes
+  same-level seams by construction, per-level magnitude still separates overlapping
+  rings, and it stays a true world-space depth offset (corrections #1, never a
+  bias). Both far paths fixed (S1 `far_transform_translation` + FF2a
+  `far_tile_translation`, via a shared `level_depth_push`). Transform-only — one
+  shared material / standard `Mesh` untouched, so the FF2a multidraw batching is
+  unaffected. **NEEDS RATIFICATION**: none (transform-only; no appearance change
+  beyond removing the defect). File: `farmesh.rs` (both translation fns + shared
+  push helper + module docs + world-space seam test).
+
 - 2026-07-19 — **FF2a — the voxel-language far field** (journal/0023, background
   agent; worktree branch for the integrator; gates green — fmt/clippy/test all
   `--release`; walk-verified live, RTX 3070 / Vulkan). Replaces journal/0022's
@@ -377,23 +396,27 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **User field report (2026-07-20, post-FF2a): thin bright seams between far
-  patches persist** — light shining through very thin gaps, repro: high
-  altitude, look down ~-45°; discernible even in
-  `0023-lit-high-vantage-rings.png` (integrator misread it there as stitch
-  shading; the user's eye overrode). Key discriminator (user): **v0 gen's
-  original far mesh never showed this.** DIAGNOSED — corrections #11: the
-  per-tile radial anti-z-fight push translates adjacent same-level tiles
-  along *different* directions (differential ≈ push × tile/dist, 0.08–0.9 m
-  L1→L4), reopening mesh-space-watertight seams at the transform stage. The
-  S1 mesh hid it because volumetric shells back a lateral gap with their own
-  side geometry; hollow top-surface sheets (0022, FF2a) show background
-  through the slot — the walk-17 "pixel gaps" were mostly THIS, not (only)
-  T-junctions. FF2a's watertight claim falsified at the transform stage.
-  **Fix cycle dispatched 2026-07-20**: per-level UNIFORM push (one shared
-  vector per level per frame, along camera forward) — same-level seams close
-  by construction, all face orientations keep real depth separation
-  (corrections #1 honored); world-space seam proof past the transform.
+- *(**User field report (2026-07-20, post-FF2a): thin bright seams between far
+  patches — RESOLVED** 2026-07-20, journal/0024, fix cycle, background agent;
+  worktree branch for the integrator; gates green. Mechanism confirmed
+  (corrections #11): the anti-z-fight push translated adjacent same-level tiles
+  along their *own* center→viewer directions, differing by the tiles' angular
+  separation, so mesh-space-watertight seams reopened at the TRANSFORM stage as
+  0.08–0.9 m (L1→L4) world-space slots — see-through once the far field became a
+  hollow top-surface sheet (0022/FF2a). Fix: **per-level UNIFORM push** — one
+  shared vector per LOD level per frame, along the camera-forward axis, magnitude
+  unchanged (`DEPTH_PUSH_FRAC × coarse voxel`). Every tile of a level undergoes
+  the identical rigid translation, so shared edges cannot separate *by
+  construction*; magnitude differs per level, so overlapping ring pairs still
+  separate in the lap band (corrections #1 honored — a true world-space offset,
+  never a bias). Applied to BOTH far paths (S1 chunks + FF2a tiles). World-space
+  seam proof past the transform: `uniform_push_keeps_same_level_seams_watertight_in_world_space`
+  (exact-zero shared-edge gap for a nasty off-axis high vantage; the retired
+  radial scheme fails the same check). Walk-verified live (lit + fullbright, high
+  vantage −45° yaw sweep): far field continuous, no bright light-through slivers
+  anywhere; no z-fight at lap bands or the near/far boundary at grazing or
+  top-down angles. Assets `0024-after-{ne,se}`, `0024-fb-ne`,
+  `0024-fb-zfight-graze`, `0024-zfight-topdown`.)*
 
 - *(**User field report: the far LOD sheet is buried under the near field —
   RESOLVED** 2026-07-19, FF2a journal/0023. Mechanism confirmed: the walk-17

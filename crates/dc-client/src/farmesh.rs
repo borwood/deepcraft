@@ -30,11 +30,34 @@
 //! produce exactly coplanar faces — and Y bias does nothing for vertical
 //! faces — which z-fight (the two tessellations of one plane interpolate
 //! depth with different per-pixel float error; draw order can't fix that).
-//! Each far chunk is therefore pushed [`DEPTH_PUSH_FRAC`] of its coarse voxel
-//! *away from the viewer along the view direction*, separating every face
-//! orientation in real depth. Adjacent same-level chunks shift by
-//! near-identical vectors, so no visible gaps open; deeper levels push
-//! further, so ring pairs separate too.
+//! Every far chunk/tile is therefore pushed [`DEPTH_PUSH_FRAC`] of its coarse
+//! voxel *away from the camera along the camera-forward axis*, separating every
+//! face orientation in real depth.
+//!
+//! **Why a UNIFORM per-level push, not a per-tile radial one (corrections #11).**
+//! The push originally moved each tile along its OWN center-to-viewer direction.
+//! Adjacent same-level tiles then translated along *slightly different*
+//! directions (differing by their angular separation ≈ tile_m/dist as seen from
+//! the viewer), so their shared edge separated by push × (tile_m/dist) — 0.08 m
+//! (L1) up to 0.9 m (L4). On the S1 volumetric shells that sliver merely exposed
+//! a neighbour's own side geometry, but once the far field became a hollow
+//! top-surface sheet (journal/0022–0023) the same offsets became see-through
+//! slots — thin bright seams of background light, worst from altitude looking
+//! down. The mesh was watertight; the *transform* stage reopened it.
+//!
+//! The cure: compute ONE shared push vector per LOD level per frame — direction
+//! = the camera-forward axis (unit, shared by every tile of every level this
+//! frame), magnitude = `DEPTH_PUSH_FRAC × that level's coarse voxel`. Every tile
+//! of a level then undergoes the *identical rigid translation*, so shared edges
+//! cannot separate — **same-level watertightness by construction** (the fix).
+//! It is still a true world-space offset, never a depth bias / draw order
+//! (corrections #1): translating along the view axis adds exactly `magnitude` of
+//! view-space depth to *every* face orientation uniformly, and levels differ in
+//! magnitude, so overlapping ring pairs (coarser = larger push) still separate
+//! in the lap band. The camera-forward axis is always unit, so the old
+//! `normalize_or_zero` degeneracy is gone. Transforms are recomputed from f64
+//! every frame ([`position_far_tiles`] / [`position_far_chunks`]), so a
+//! per-frame camera-forward direction is architecturally free.
 
 use std::collections::HashMap;
 
@@ -96,27 +119,43 @@ const FAR_BUDGET_PER_FRAME: usize = 3;
 /// Hysteresis: a far chunk is only despawned once its center is this far
 /// outside its ring, so ring membership doesn't thrash while walking.
 const FAR_UNLOAD_SLACK_M: f64 = 48.0;
-/// Fraction of a level's coarse voxel size that its chunks are pushed away
-/// from the viewer to separate coplanar faces in depth (see module docs).
-/// L1 ≈ 0.27 m at ≥112 m distance — angularly invisible, decisively beyond
-/// f32 depth interpolation error.
+/// Fraction of a level's coarse voxel size that its chunks/tiles are pushed away
+/// from the camera along the camera-forward axis, to separate coplanar faces in
+/// depth (see module docs — one shared vector per level per frame). L1 ≈ 0.27 m
+/// of view-space depth — angularly invisible, decisively beyond f32 depth
+/// interpolation error.
 const DEPTH_PUSH_FRAC: f64 = 0.15;
 
+/// The shared anti-z-fight push for a LOD level, in world meters: `DEPTH_PUSH_FRAC`
+/// of the level's coarse voxel along the camera-forward axis. Depends ONLY on the
+/// level and the (per-frame, shared) camera forward — **never on a tile's own
+/// position** — so every tile/chunk of a level is translated by the identical
+/// vector and same-level shared edges cannot separate (corrections #11). Both far
+/// paths (S1 chunks and FF2a tiles) route their push through this one function.
+/// `forward` is always unit (the camera view axis), so no `normalize` is needed.
+#[inline]
+fn level_depth_push(base: VoxelScale, level: u8, forward: DVec3) -> DVec3 {
+    forward * (DEPTH_PUSH_FRAC * coarse_scale(base, level).voxel_size_m())
+}
+
 /// The anti-z-fight translation for a far chunk: origin-relative position plus
-/// the half-voxel downward seam bias plus the radial depth push.
+/// the half-voxel downward seam bias plus the UNIFORM-per-level depth push.
+/// `forward` is the camera-forward axis (unit), shared by every chunk this frame,
+/// so all same-level chunks translate by the identical vector — their shared
+/// edges cannot separate (corrections #11). The push magnitude depends only on
+/// the level, so overlapping ring pairs still separate in the lap band.
 fn far_transform_translation(
     base: VoxelScale,
     level: u8,
     pos: ChunkPos,
-    viewer_m: DVec3,
+    forward: DVec3,
     origin_m: DVec3,
 ) -> Vec3 {
     let vs = coarse_scale(base, level).voxel_size_m();
     let (mx, my, mz) = pos.min_voxel();
     let min_m = DVec3::new(mx as f64, my as f64, mz as f64) * vs;
     let bias = DVec3::new(0.0, -0.5 * vs, 0.0);
-    let center = far_chunk_center_m(base, level, pos);
-    let away = (center - viewer_m).normalize_or_zero() * (DEPTH_PUSH_FRAC * vs);
+    let away = level_depth_push(base, level, forward);
     to_render(min_m + bias + away - origin_m)
 }
 
@@ -285,7 +324,7 @@ pub fn stream_far_chunks(
                 base,
                 level,
                 pos,
-                player.pos_m,
+                player.view_dir(),
                 origin.0,
             ));
             let mut ent = commands.spawn((
@@ -312,9 +351,12 @@ pub fn position_far_chunks(
     player: Res<Player>,
     mut chunks: Query<(&FarChunkEntity, &mut Transform)>,
 ) {
+    // One shared camera-forward push direction for every chunk this frame — the
+    // uniform-per-level push that keeps same-level seams closed (corrections #11).
+    let forward = player.view_dir();
     for (far, mut transform) in &mut chunks {
         transform.translation =
-            far_transform_translation(scale.scale, far.level, far.pos, player.pos_m, origin.0);
+            far_transform_translation(scale.scale, far.level, far.pos, forward, origin.0);
     }
 }
 
@@ -353,9 +395,10 @@ pub fn position_far_chunks(
 //    sink).
 //
 // Adjacent LOD rings still overlap (the inter-ring lap of [`far_tile_in_ring`])
-// and are pushed slightly away from the viewer so their coplanar faces separate
-// in depth (corrections #1 — draw order can't fix coplanar z-fight; the radial
-// push moves faces apart in real depth). The tiles are a 2-D annulus at the
+// and are pushed slightly away from the camera so their coplanar faces separate
+// in depth (corrections #1 — draw order can't fix coplanar z-fight; the uniform
+// per-level push moves faces apart in real depth, coarser rings farther). The
+// tiles are a 2-D annulus at the
 // surface: looking up from deep in a chasm still loses the far field (accepted —
 // FF2b's volumetric spans own the chasm case; the per-column payload is already
 // a [`ColumnSpan`] so that extension needs no mesher rewrite).
@@ -534,28 +577,30 @@ pub fn wanted_far_tiles(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<(i3
 }
 
 /// The far tile's transform: tile origin (meters) minus the floating origin,
-/// plus the radial depth push. **No sink** — the stepped columns are FLOOR-
-/// quantized ([`quantize_top`]) so a far top already sits at or below the near
-/// surface; the near volumetric terrain wins the overlap band with no downward
-/// bias. The radial push survives (corrections #1): overlapping LOD rings still
+/// plus the UNIFORM-per-level depth push. **No sink** — the stepped columns are
+/// FLOOR-quantized ([`quantize_top`]) so a far top already sits at or below the
+/// near surface; the near volumetric terrain wins the overlap band with no
+/// downward bias. The push survives (corrections #1): overlapping LOD rings still
 /// present coplanar faces where their quantized tops coincide, and draw order
-/// cannot resolve coplanar z-fight — only a real depth offset can. Each level is
-/// pushed `DEPTH_PUSH_FRAC` of its coarse voxel away from the viewer, so deeper
-/// (coarser) rings sit behind nearer ones in the lap band.
+/// cannot resolve coplanar z-fight — only a real depth offset can. `forward` is
+/// the camera-forward axis (unit, shared by every tile this frame); each level is
+/// pushed `DEPTH_PUSH_FRAC` of its coarse voxel along it, so every tile of a
+/// level moves by the identical vector — same-level shared edges cannot separate
+/// (corrections #11, the seam fix) — while deeper (coarser) rings push farther
+/// and sit behind nearer ones in the lap band.
 fn far_tile_translation(
     base: VoxelScale,
     level: u8,
     tx: i32,
     tz: i32,
     y_ref_m: f64,
-    viewer_m: DVec3,
+    forward: DVec3,
     origin_m: DVec3,
 ) -> Vec3 {
     let cvs = coarse_scale(base, level).voxel_size_m();
     let tile_m = cvs * f64::from(CHUNK_SIZE);
     let min = DVec3::new(f64::from(tx) * tile_m, y_ref_m, f64::from(tz) * tile_m);
-    let center = DVec3::new(min.x + tile_m * 0.5, y_ref_m, min.z + tile_m * 0.5);
-    let away = (center - viewer_m).normalize_or_zero() * (DEPTH_PUSH_FRAC * cvs);
+    let away = level_depth_push(base, level, forward);
     to_render(min + away - origin_m)
 }
 
@@ -889,6 +934,10 @@ pub fn stream_far_surface(
     }
 
     let viewer = player.pos_m;
+    // One shared camera-forward push direction for every tile built this frame —
+    // the uniform-per-level push that keeps same-level seams closed by
+    // construction (corrections #11).
+    let forward = player.view_dir();
     let cur_chunk = viewer_near_chunk(base, viewer);
 
     // Unload tiles that left their ring (horizontal distance, hysteresis). The
@@ -986,7 +1035,7 @@ pub fn stream_far_surface(
             };
         }
         let transform = Transform::from_translation(far_tile_translation(
-            base, level, tx, tz, y_ref, viewer, origin.0,
+            base, level, tx, tz, y_ref, forward, origin.0,
         ));
         let mut ent = commands.spawn((
             Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
@@ -1040,6 +1089,9 @@ pub fn position_far_tiles(
     player: Res<Player>,
     mut tiles: Query<(&FarTileEntity, &mut Transform)>,
 ) {
+    // One shared camera-forward push direction for every tile this frame — the
+    // uniform-per-level push that keeps same-level seams closed (corrections #11).
+    let forward = player.view_dir();
     for (tile, mut transform) in &mut tiles {
         transform.translation = far_tile_translation(
             scale.scale,
@@ -1047,7 +1099,7 @@ pub fn position_far_tiles(
             tile.tx,
             tile.tz,
             tile.y_ref_m,
-            player.pos_m,
+            forward,
             origin.0,
         );
     }
@@ -1433,6 +1485,82 @@ mod tests {
             holes, 0,
             "far field has {holes} uncovered ground points (sky holes); \
              first at radius/angle {first_hole:?}"
+        );
+    }
+
+    /// Corrections #11, the fix pinned in world space. Two adjacent same-level
+    /// tiles share the plane `x = (tx+1)·tile_m`. Each tile places a shared-edge
+    /// physical point P at `P + push(level)`, where `push` is the anti-z-fight
+    /// depth push. With the UNIFORM per-level push (`level_depth_push`, which takes
+    /// no tile coordinate) both tiles use the byte-identical vector, so the two
+    /// placements coincide exactly — the world-space seam gap is zero for an
+    /// arbitrary, nasty viewer pose (high altitude, off-grid yaw, ~-45° pitch).
+    ///
+    /// The RETIRED per-tile radial scheme fails this: it pushed each tile along
+    /// its OWN center→viewer direction, and the two directions differ by the
+    /// tiles' angular separation, opening a real sub-pixel-to-pixel slot of
+    /// background light (the thin bright seams the user reported). That failing
+    /// differential is recomputed here on the retired formula purely to pin the
+    /// mechanism — it is a rationale assertion, not kept-failing production code.
+    /// The f32 render cast (`to_render`) is a separate, shared sub-millimetre
+    /// effect (≈0.1 mm at 1.2 km, corrections #11) and is deliberately out of this
+    /// world-space (f64 meters) proof.
+    #[test]
+    fn uniform_push_keeps_same_level_seams_watertight_in_world_space() {
+        use crate::player::Player;
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        // Level 4: the largest coarse voxel → the largest radial differential the
+        // old scheme would have opened (worst case, ≈0.9 m per corrections #11).
+        let level = 4u8;
+        let tile_m = far_tile_m(base, level);
+
+        // A nasty, off-axis, high-altitude viewer looking down ~-45° — exactly the
+        // vantage the field report used.
+        let mut player = Player::new(DVec3::new(37.0, 900.0, -19.0));
+        player.yaw = 0.7; // off the tile grid, so no symmetry hides a seam
+        player.pitch = -0.78; // ~-45° down
+        let forward = player.view_dir();
+        let viewer = player.pos_m;
+
+        // World position of a physical point P as placed by a given tile: its
+        // transform origin (`min + push`) plus P's tile-local mesh coordinate
+        // (`P - min`). The tile origin `min` really enters and cancels in f64 —
+        // this mirrors `far_tile_translation` minus the shared floating-origin /
+        // f32 render cast. Tiles A=(tx,tz) and B=(tx+1,tz) share the plane x=(tx+1)·tile_m.
+        let (tx, tz) = (3i32, -2i32);
+        let via = |tx: i32, tz: i32, p: DVec3| -> DVec3 {
+            let min = DVec3::new(f64::from(tx) * tile_m, 0.0, f64::from(tz) * tile_m);
+            (min + level_depth_push(base, level, forward)) + (p - min)
+        };
+        let shared_x = f64::from(tx + 1) * tile_m;
+
+        for k in 0..=8 {
+            let pz = (f64::from(tz) + f64::from(k) / 8.0) * tile_m;
+            let p = DVec3::new(shared_x, 40.0, pz);
+            let from_a = via(tx, tz, p);
+            let from_b = via(tx + 1, tz, p);
+            assert_eq!(
+                from_a, from_b,
+                "uniform push split a shared-edge point between adjacent tiles"
+            );
+        }
+        // The push is tile-independent by construction (no tx/tz in its signature).
+        assert_eq!(
+            level_depth_push(base, level, forward),
+            level_depth_push(base, level, forward)
+        );
+
+        // Rationale: the retired radial scheme opens a real world-space slot here.
+        let cvs = coarse_scale(base, level).voxel_size_m();
+        let old_away = |tx: i32, tz: i32| -> DVec3 {
+            let min = DVec3::new(f64::from(tx) * tile_m, 0.0, f64::from(tz) * tile_m);
+            let center = DVec3::new(min.x + tile_m * 0.5, 0.0, min.z + tile_m * 0.5);
+            (center - viewer).normalize_or_zero() * (DEPTH_PUSH_FRAC * cvs)
+        };
+        let old_gap = (old_away(tx, tz) - old_away(tx + 1, tz)).length();
+        assert!(
+            old_gap > 0.05,
+            "retired radial scheme should open a visible slot here (got {old_gap} m)"
         );
     }
 }
