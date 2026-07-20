@@ -7,6 +7,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **full_agents: wind (agent #5) + frost/wave activation**
+  (journal/0034, session-4 background agent; gates re-run green on merged
+  main by integrator). The erosion roster completed except karst:
+  `Agent::Eolian` with a cohesion-keyed resistance axis; frost as a
+  temperature-gated weathering multiplier (freeze-thaw peaking near 0°C,
+  honest gate derived from the same `air_temp_c` the biotic layer uses);
+  littoral wave cutting at the current sea stand, mass-neutral. All behind
+  `DeepConfig::full_agents`, OFF in production, byte-identical off — proven
+  the strong way (flag ON with zero rates == flag off, bit for bit).
+  Measured on a seeded Small world: arid cells deflate −104.3 m ΣH into
+  71.4 m loess + 65.5 m dune deposits (ledger residual −0.000); periglacial
+  band strips +668.5 m extra regolith with a −0.00 warm control; coastal
+  cells retreat ~1.3 m/40 epochs (deliberately modest — magnitude is a
+  user knob). New additive `DepTag` Eolian axis (defaulted → wire-safe).
+  **NEEDS RATIFICATION (user): the production flip itself + the
+  appearance-class magnitudes (wind rates, dune/loess split, frost gain,
+  wave strength).**
+
 - 2026-07-20 — **Registry `commands!` macro + `completions` hook**
   (journal/0033, session-4 background agent; gates green on final merged
   main — the run that first compiled the console against the generated
@@ -637,11 +655,15 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   § 14 corrections verified by integrator (corrections #20; Erosion::new
   uplift_sum cache; Large-extent province-density inversion). Next:
   user ratifies architecture → SPIKE per its § SPIKE.
-- **Erosion agents completed: wind (#5) + frost/wave activation**
-  (background build agent, opus; dispatched 2026-07-20; earth-processes § 4
-  RATIFIED entry). Off-by-default, byte-identical when off (the 0029
-  erodibility flip pattern); the production flip is the user's appearance
-  call afterward, from screenshots/numbers.
+- **Tectonics SPIKE** — dispatched 2026-07-20 on eolian's landing, per the
+  ratified tectonics.md § SPIKE (implement `tectonic_history` behind flag;
+  eight measurement groups; U3-amended tradeoff table at 200/300/400
+  iterations).
+- **Zonal circulation profile** — dispatched same moment (write-set
+  disjoint from spike: climate.rs only). Smooth wind magnitude + subsidence
+  aridity; kills the band-flip line and puts a desert belt at ~30° for the
+  true reason. Changes every new world's climate — integrator presents the
+  measured shift for the user's eye.
 
 **Slated by ratification 2026-07-20 (all six unknown-unknowns landed;
 sequenced, not yet scheduled):** marker beds + punctuation event types ride
