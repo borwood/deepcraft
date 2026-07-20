@@ -58,6 +58,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   `dc-api/host.rs`, `meshing.rs`/`terrain_material.rs`/`terrain_fullbright.wgsl`
   (atlas 26 → 29), `gen_placeholder_textures.py` + 3 packs, `tests/organic.rs` +
   `examples/organic_probe.rs` (new).
+  **PHOTOGRAPHED 2026-07-20 (journal/0027, photo walk, no code changed)** — the
+  appearance question above now has images. Two of three read fine, one does not.
+  **Carbonaceous mudstone reads well**: an ordinary 988 m hillside cut
+  (`0027-carbonaceous-mudstone-ordinary-lit.png`) puts 3 voxels of it as the
+  thickest unit in the soil profile, and it is a distinct chocolate brown against
+  mudstone's red-brown and basalt's blue-black — the profile is *more* legible,
+  not less. **Coal renders as pure black** with zero legibility, including on a
+  fully sunlit up-facing bench floor (`0027-coal-seam-cut-lit.png`) — filed to
+  Observed; the fullbright control proves the data is fine. **The world is not
+  darker** (`0027-vista-lit.png`): nothing organic reaches the surface, so a wide
+  view is unchanged green. **Peat was found** despite 0026's expectation —
+  world voxel (-22983, 24546) on the client's seed carries 16 voxels of peat over
+  1 of coal over carbonaceous mudstone, all three new materials in one section
+  (`0027-peat-coal-mudstone-section-lit.png`). Note the sites are re-derived on
+  **seed 1337** — see the Observed item on the client's fixed seed.
 
 - 2026-07-20 — **S10 — the biotic layer on the deep-time A-tier** (journal/0025,
   docs/spikes/S10-results.md; background agent, worktree branch for the
@@ -583,6 +598,53 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **Walk report (2026-07-20, journal/0027): coal renders as pure black in the
+  lit pass — a hole in the screen, not a rock.** Photographed at world voxel
+  (-76133, -80221) on the client's world: an 18-voxel seam four voxels under
+  turf, cut to an open bench under full sky. `0027-coal-seam-cut-lit.png` shows
+  grass / mudstone / carbonaceous mudstone and then black for the lower
+  two-thirds of the frame — including the **bench floor**, which is an up-facing
+  sunlit surface, so this is not shadowing. **The fullbright control
+  (`0027-coal-seam-cut-fullbright.png`) shows coal as an ordinary mid-dark grey**,
+  so the block, the atlas and the 29-layer palette are all correct. Mechanism:
+  `meshing.rs` gives `Block::Coal` a vertex colour of `[0.07, 0.065, 0.06]` —
+  7 % linear, ≈ 0.29 sRGB, which is exactly what fullbright draws. The lit path
+  multiplies that by the directional term and tonemaps, and 7 % albedo has
+  nowhere to go but zero. **The number is physically right** (real coal is
+  0.04–0.08) — the defect is that the lit path has **no floor under the dark
+  end**, so a correct dark material becomes an absence of image. **Do not fix by
+  brightening coal.** This is a lighting/tonemap question (an ambient/sky floor,
+  or a tonemap that preserves shadow separation), and it belongs with PBR-2's
+  shadow work. Second-order finding from the same walk: **vertical faces deep in
+  an excavation receive essentially no light at all**
+  (`0027-pit-interior-unlit-lit.png` — a bright green plain with a clean brown
+  mudstone rim, and a black void four voxels below it), which is the same missing
+  floor and makes any deep dig unphotographable and probably unplayable.
+
+- **Walk report (2026-07-20, journal/0027): peat and carbonaceous mudstone are
+  nearly the same colour.** `[0.24, 0.17, 0.11]` vs `[0.21, 0.18, 0.15]` — a
+  difference you can measure and not really one you can see, and the fullbright
+  control makes it worse rather than better (side by side and unlit they are
+  nearly the same taupe; `0027-peat-coal-mudstone-section-fullbright.png`).
+  Deliberately unfixed for now: peat is rare (17 cells world-wide on the seed
+  walked), and the pair that actually matters — organic soil against ordinary
+  mudstone — is well separated. Revisit when the placeholder texture packs are
+  replaced with authored art, which is the right moment to space the organic
+  materials across the palette on purpose.
+
+- **Walk report (2026-07-20, journal/0027): the client can only ever open seed
+  1337, so every seed-specific coordinate in the docs is unreachable in game.**
+  `dc-client` takes no `--seed`; `app.rs` boots `Authority::new(BENCH_SEED, ..)`
+  with `BENCH_SEED: i32 = 1337`, and the worldgen authority takes `seed as u64`
+  — so `0x0D5E_ED57_2026` (the seed every spike and the whole S10/0026 site list
+  is measured on) **does not fit in the client's `i32` seed** and world voxel
+  (107338, 58787) is a headless-test address, not a place a player can stand.
+  journal/0026's "stand at world voxel (107338, 58787) and dig down" is not
+  actionable from the game. Cheap fix available (a `--seed` arg on the same
+  path as `--pack`), not taken on a photo walk because it is client code and
+  this walk changed none. Until then, walks must re-site their own subjects on
+  seed 1337, which journal/0027 did.
 
 - **User field report (2026-07-20, filed at the FF2a/0024 ratification): a
   razor-straight, kilometer-scale grass/dirt frontier cuts the far field**
