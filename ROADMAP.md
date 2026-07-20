@@ -574,6 +574,22 @@ feature, and it is deliberately NOT PBR-2.
   different consumers, neither derived from the other** (DECIDED,
   visuals.md). The shader may do shadows/HDR/godrays; the sim carries a
   coarse level. They need not agree.
+- **PRIOR — S3 already wrote the skylight query contract** (S3-results.md
+  § Skylight query contract; also `column.rs` module docs). It solves the
+  cubic-chunk problem (a cube chunk cannot know what is above it) without
+  vertical scans: (1) a sky/light query consults ONLY resident chunks and
+  cached column summaries — it never loads, generates, or walks "the
+  column above"; (2) every query is bounded to a caller-supplied
+  `[y_min, y_max)`, and no unbounded vertical scan exists anywhere;
+  (3) **unknown volumes are non-occluding — "optimistic sky" — and poison
+  the answer's `fully_resolved` flag**, and a consumer needing certainty
+  schedules LOD derivation rather than forcing loads from inside a light
+  query; (4) answers carry the resolution they were derived at. Column
+  summaries build lazily at ~20 µs, so they are effectively free.
+  **S3 OQ 6 explicitly defers a decision to this work**: "optimistic sky
+  is a policy, not a truth... a consumer that ignores the flag will light
+  caves as if open to sky until data arrives. **The lighting spike must
+  decide re-light-on-load.**" That decision is this milestone's to make.
 - **Open design questions** (answer in the design pass): resolution (per
   voxel? per column?); whether sky light and block light are separate
   channels (Minecraft separates them so a day/night cycle need not
