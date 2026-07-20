@@ -611,11 +611,13 @@ budget-bounded) instead of reading them. Small; a dev-console/config
 surface question more than a rendering one; the ring-membership hysteresis
 and coverage tests must hold at any setting.
 
-**Sim light — what the voxels know** (user-sequenced 2026-07-20: "we should
-design and sequence sim light (actually matters to game, unlocks things)";
-design thread in visuals.md § the sim must know about light). **Design pass
-first, then implementation** — this is a new sim field, not a renderer
-feature, and it is deliberately NOT PBR-2.
+**Sim light — what the voxels know** (user-sequenced 2026-07-20.
+**DESIGN PASS DONE 2026-07-20 → `docs/design/light.md`**, which is now the
+doc of record; visuals.md holds the dated DECIDED entries it consolidates.
+**Next step is the SPIKE**, per the ratified shape design → spike →
+milestone; § 10 of light.md states exactly what the spike must measure.)
+This is a new sim field, not a renderer feature, and deliberately NOT
+PBR-2.
 
 - **What it is**: a deterministic, seed-driven, propagated per-voxel light
   level — Minecraft-blocklight-grade, "the simulation level of our light,
