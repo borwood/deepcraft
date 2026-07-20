@@ -570,8 +570,23 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-(nothing — session 3 closed 2026-07-20. Main is green and clean, no
-worktrees, no branches outstanding.)
+- **Dev console (T key)** — background worktree agent, dispatched
+  2026-07-20 (session 4). The full dc-api surface exposed in-game:
+  everything generated from `dc_api::schema::registry()` (command +
+  param-name completion, help from the payload schemas, dotted-path args →
+  `decode_json`, receipts through the same authority bridge MCP uses), the
+  three client-shell tools appended the way `mcp.rs` does. Value-level
+  completion (block names after `block=`) deliberately out of v0 — needs a
+  registry extension (see Observed). User tests the console themselves on
+  landing.
+- **`--edges` + fullbright fog fix** — background worktree agent,
+  dispatched 2026-07-20 (session 4; the user delegated what they had
+  planned to do themselves at session-3 close). Crease/silhouette edges
+  from depth/normal discontinuities, distance-faded, separate flag so
+  `--fullbright` alone stays byte-identical (the 0027 control survives);
+  fullbright disables distance fog data-side via the `PostStage` uniform.
+  Required to re-shoot the 3.5 km massif vista and report the moiré check
+  honestly.
 
 **Session 3 shipped, all gates green on merged main:** FF2a voxel far field
 (0023) · far-seam uniform-push fix (0024) · S10 biotic layer (0025) ·
@@ -581,9 +596,9 @@ erodibility production flip + walk (0030). Eight journal entries; seven
 corrections filed (#11–#19, two of them the assistant's own).
 
 **Next session, in the user's stated order:**
-1. **User is doing `--fullbright --edges` + removing fog from fullbright**
-   themselves (stated at session close). That unblocks landform-scale
-   silhouette assessment, which everything below depends on for its walk.
+1. *(`--fullbright --edges` + fog: delegated to a session-4 agent — see In
+   flight above. Still the unblocker for landform-scale silhouette
+   assessment, which everything below depends on for its walk.)*
 2. **The amplitude call** — the last live cause of "dismal mountains" after
    erodibility closed cause 1. Cause 2 (no dip) also open.
 3. **Sim light SPIKE** — design pass is done (`docs/design/light.md`);
@@ -1537,3 +1552,29 @@ before any code.
 - HDR/exposure: v0 post grades LDR; sky-as-pass needs hook format 1 (S4).
 - S2 checkpoint facts (deep-time re-derivation cost) — design owed before
   ledgers densify.
+
+- **`client_player_pose_set` mutates the sim outside the one door**
+  (assistant analysis, 2026-07-20, session-4 console feasibility pass;
+  unratified). It teleports the player and zeroes velocity with no
+  capability check, no tick quantization, no receipt, no replay entry —
+  while API.md principle 1 says player input becomes commands, and the
+  registry already holds its near-twin `dc:character/pose`. The seam is
+  "the player isn't a dc-api character yet" (`player.rs` has no Character
+  reference), not architectural conviction. Retiring it means routing the
+  player controller through controller-verb commands — the same work that
+  makes player input replayable at all (principle 3), so likely implied
+  scope, not new scope. `client_screenshot` / `pose_get` are correctly
+  outside (disk I/O and camera-state reads; no replay meaning). The
+  in-game console makes the asymmetry visible: it will be the one surface
+  where every command returns a receipt except this one.
+
+- **Console follow-ups filed at dispatch** (2026-07-20): (a) value-level
+  completion (`block=<TAB>` → registered block names) has no source in the
+  registry — wants an additive `completions` fn on `CommandSpec` so it
+  stays free forever; (b) the "future commands just work" promise currently
+  rests on discipline plus the schema.rs completeness tests (samples-len ==
+  registry-len), since payload schemas are hand-rolled `fn() -> Value`,
+  not derived from the Rust types — a declarative macro emitting the id
+  const + `Payload` variant + `CommandSpec` from one block (schemars-style
+  derive underneath, wasm-safe) would make a missing entry a compile
+  error. Assistant proposals, unratified; neither blocks console v0.
