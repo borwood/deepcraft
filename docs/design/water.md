@@ -216,6 +216,43 @@ fill and drain — breaching it must not empty it. This suggests bodies need
 a character distinction (level-pinned reservoirs vs finite volumes), which
 S11 must exercise rather than assume.
 
+## Stance on conservation (user, 2026-07-20) — lossy is allowed, and honest
+
+Stated while S11 was dispatched, before its results:
+
+> i appreciate the fight for water volume conservation and present
+> history. at outset i didn't believe it actually possible even if it's
+> obviously ideal. ... i anticipate the answer is probably "where we
+> compromise" and shades of procedural tricks. it's going to be lossy /
+> not fully conservative of volume - neither is reality (the water cycle
+> is half gaseous) - and ultimately players get to exploit the gaps in the
+> sim, and this won't be the only one. may come with the territory.
+> shouldn't stop us from thinking up genius architectures, but still. and
+> we'll use every perf hack in the book, which goes for the whole game.
+
+Recorded as project stance:
+
+- **Perfect volume conservation is the ideal, not the requirement.** The
+  expected landing place is "where we compromise" plus procedural tricks.
+- **Players will exploit the gaps, and that comes with the territory** —
+  this will not be the only such gap in the game.
+- **Every perf hack in the book is sanctioned**, for water and generally.
+- **But the compromise is the LAST step, not the first**: "shouldn't stop
+  us from thinking up genius architectures." Design for the honest
+  mechanism, then compromise deliberately where measurement forces it.
+
+**Assistant observation (PROPOSAL, not ratified):** the user's gaseous
+aside may be load-bearing rather than rhetorical. *The water cycle is half
+gaseous* means evaporation/transpiration is a **real sink, not an excuse**.
+If the liquid model carries an honest evaporation term, then "lossy"
+stops being a compromise and becomes "conserved with a modelled sink" —
+a much stronger position, and it gives the slop a principled home rather
+than scattering it through the implementation. Note S10's biology already
+demands water (transpiration is implicit in its moisture tolerances), so
+the sink has a consumer waiting. Worth deciding WHERE the loss lives
+before S11's results tempt us to hide it in whichever mechanism is
+convenient.
+
 ## PRIORS ALREADY IN THE CORPUS (swept 2026-07-20 at the user's prompt)
 
 **Read this section before proposing anything.** The user flagged a

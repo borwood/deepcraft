@@ -609,6 +609,22 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **No pooling/reuse of chunk or far-tile GPU resources** (user question,
+  2026-07-20; read from source, not measured). Every chunk load
+  `commands.spawn`s a fresh entity with `meshes.add(to_bevy_mesh(..))` — a
+  newly allocated `Mesh` asset — and every unload `despawn()`s it, freeing
+  the asset. Far tiles (`LoadedFarTile`) follow the same churn. Partly
+  mitigated for free: Bevy's `MeshAllocator` slab-allocates vertex buffers
+  (FF2a step 0 found our custom attributes only *select* a slab), and the
+  ECS recycles entity ids — so the unmitigated cost is CPU-side `Vec` +
+  `Mesh` asset churn on every chunk-boundary crossing. **Filed prior**:
+  voxy-dh-recon transfer map already lists "persistently-mapped pooled
+  vertex buffers (AZDO) → far-tile buffer management when tiles churn."
+  **Unmeasured.** Per placeholder-state-is-not-intent, measure at the
+  design-target scale (10 km field, hundreds of tiles churning while
+  walking), not at today's 1.2 km — the far-field range knobs milestone is
+  the natural vehicle for that measurement.
+
 - **Walk report (2026-07-20, journal/0027): coal renders as pure black in the
   lit pass — a hole in the screen, not a rock.** Photographed at world voxel
   (-76133, -80221) on the client's world: an 18-voxel seam four voxels under
