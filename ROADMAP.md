@@ -570,28 +570,29 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-*(**S11 — water locality + body graph: SPIKE COMPLETE** 2026-07-20 — see
-Shipped. **Agent verdict: GO**, NEEDS RATIFICATION on four calls, the
-load-bearing one being `Finite` vs `Pinned` bodies.)*
+(nothing — session 3 closed 2026-07-20. Main is green and clean, no
+worktrees, no branches outstanding.)
 
-*(**Organic materials + the biotic production flip: SHIPPED** 2026-07-20,
-journal/0026 — see Shipped. Biology is on in every new world and the 24 m seam
-is diggable.)*
+**Session 3 shipped, all gates green on merged main:** FF2a voxel far field
+(0023) · far-seam uniform-push fix (0024) · S10 biotic layer (0025) ·
+organic materials + biotic flip (0026) · organics photo walk (0027) ·
+S11 water locality + body graph (0028) · erodibility coupling (0029) ·
+erodibility production flip + walk (0030). Eight journal entries; seven
+corrections filed (#11–#19, two of them the assistant's own).
 
-*(**S10 biotic-layer spike: SHIPPED** 2026-07-20, journal/0025 — see Shipped.
-**GO RATIFIED 2026-07-20** (user): the 25 s ritual is acceptable —
-world-generation time is explicitly **not** a constraint we optimize against
-(the user's frame: Dwarf Fortress takes minutes; full history will take
-longer), and the answer to gen cost is the ready-made-worlds direction
-(ideas.md), not a cheaper simulation. Roster constants + signal densities
-ride as-built; § 5 fork 2 remains open and the user's.)*
+**Next session, in the user's stated order:**
+1. **User is doing `--fullbright --edges` + removing fog from fullbright**
+   themselves (stated at session close). That unblocks landform-scale
+   silhouette assessment, which everything below depends on for its walk.
+2. **The amplitude call** — the last live cause of "dismal mountains" after
+   erodibility closed cause 1. Cause 2 (no dip) also open.
+3. **Sim light SPIKE** — design pass is done (`docs/design/light.md`);
+   § 10 of that doc states exactly what the spike must measure.
 
-*(Session-2 close state: the day shipped and walk-verified SIX integrated
-milestones — S1-fallback sweep 0017, PBR-1 0019, render polish 0020,
-instrument batch 0021, far-field horizon 0022 + hole fix, lit-mixture
-amplitude-by-rarity — plus walks 13-18 and the Voxy/DH research doc. Main
-green, 38 suites. After FF2a: S10, then 3e-2 implementation. Water-model
-design doc open as conversation.)*
+**Read first next session:** `docs/design/things-that-will-happen.md` (new
+this session, and now item 2 in CLAUDE.md's read-first), then
+corrections #18 and #19 — both are about choosing an instrument that can
+see the question you are asking.
 
 ## Sequenced
 
@@ -922,6 +923,37 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **Unlock ranking (assistant view, unratified, 2026-07-20)** — raised at
+  the user's "what else do we need to get moving to unlock things?" and not
+  yet answered, so recorded rather than lost. Ranked by how many downstream
+  things they gate: (1) **persistence** — three systems have now
+  independently filed "must persist" as an open question (far-field
+  summaries, S11's water body graph, the generation-order-dependent
+  `MixtureTable`), and edits still do not survive a scale switch; it is one
+  answer being asked for three times, and everything built before it gets
+  retrofitted after. (2) **inventory/items/interaction** (filed as 3a,
+  never scheduled) — you can mine a coal seam and nothing happens; every
+  content system terminates at a wall because nothing can be held.
+  (3) **loose materials** — half-built already, since partial-height loose
+  rendering shipped dormant in 3c-2 and only the content/sim half is
+  missing. (4) **water present-tier** — S11 says GO.
+
+- **Test-suite time is trending up: 382 s → 502 s → 541 s** across three
+  2026-07-20 milestones (organics' biotic flip put a real ~14 s ritual
+  behind every world-level suite; erodibility added its own). Each
+  increment was individually justified and none was gated behind
+  `--ignored` on the argument that gating would make the suite
+  unrepresentative of the shipped world. No policy exists; the cheapest
+  moment to set one is before it hurts.
+
+- **An untold user reference: the "culture-language-balrog example"**
+  (2026-07-20). The user cited it as load-bearing for how they picture
+  darkness, danger and equipment — "you don't know about [it] but you'd get
+  it" — then deferred telling it ("it'll cloud your context"). Recorded so
+  the thread is not lost: it belongs in
+  `docs/design/things-that-will-happen.md` when told.
+
 
 - **`--fullbright` is blind to geometry, and that cost a walk its conclusion**
   (2026-07-20, journal/0030 + corrections #18). DIAGNOSED, not yet fixed. In
