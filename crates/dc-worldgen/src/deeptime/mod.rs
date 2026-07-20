@@ -21,6 +21,7 @@
 //! bounded regional refinement (the halo theorem). See [`refine`] for the C
 //! machinery and the decay-length measurement.
 
+pub mod biotic;
 pub mod climate;
 pub mod erosion;
 pub mod field;
@@ -28,12 +29,13 @@ pub mod grid;
 pub mod recorder;
 pub mod refine;
 
+pub use biotic::{BioticSim, COAL_MIN_M, CellBiota, ROSTER, species_name};
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field};
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
 };
-pub use recorder::{Aridity, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand};
+pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 
 use crate::pregen::{CellGrid, Pregen};
@@ -45,8 +47,17 @@ pub struct DeepRun {
     pub erosion: Erosion,
     /// Total uplift added over the run (`Σ over iterations of Σ uplift`).
     pub uplift_total: f64,
+    /// Total **biotic** mass added over the run (organic + charcoal burial —
+    /// carbon fixed from the atmosphere, so a genuine external input like
+    /// uplift). Zero when the biotic layer is off. The mass ledger is therefore
+    /// `Δ(ΣR + ΣH) == uplift_total + biotic_total`.
+    pub biotic_total: f64,
     /// `ΣR + ΣH` before the first iteration.
     pub mass_before: f64,
+    /// The biotic state at the end of the run (`None` when the layer was off).
+    /// Held so the spike harness can read community vectors; the production
+    /// field drops it.
+    pub biota: Option<BioticSim>,
     pub iterations: u32,
 }
 
@@ -79,19 +90,42 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     erosion.set_parallel(parallel);
     let mass_before = total_mass(&grid);
     climate::march(&mut grid, grid::sea_level_at(cfg, 0));
+    // The S10 biotic layer, when enabled: initializing it turns on the grid's
+    // biotic modifier planes at their identity values, so iteration 0's erosion
+    // is byte-identical to a biology-free run (the lagged coupling, below).
+    let mut biota = if cfg.biotic {
+        Some(BioticSim::new(&mut grid, cfg.seed, parallel))
+    } else {
+        None
+    };
     let mut uplift_total = 0.0;
+    let mut biotic_total = 0.0;
     for it in 0..cfg.iterations {
         let sl = grid::sea_level_at(cfg, it);
         if it > 0 && it % cfg.remarch_interval == 0 {
             climate::march(&mut grid, sl);
         }
+        // Erosion consumes the modifiers biology wrote LAST epoch...
         uplift_total += erosion.step(&mut grid, cfg, sl);
+        // ...then biology reads this epoch's fresh terrain, deposits its organic
+        // record, and writes the modifiers the NEXT epoch's erosion consumes.
+        // That one-epoch lag is what breaks the biology↔erosion cycle a
+        // single-epoch pass graph would (correctly) refuse — ecology.md § 3.
+        if let Some(b) = biota.as_mut() {
+            biotic_total += b.step(&mut grid, &erosion, it);
+        }
+    }
+    // Burial diagenesis: buried thick peat becomes coal.
+    if let Some(b) = biota.as_ref() {
+        b.finalize(&mut grid);
     }
     DeepRun {
         grid,
         erosion,
         uplift_total,
+        biotic_total,
         mass_before,
+        biota,
         iterations: cfg.iterations,
     }
 }

@@ -134,13 +134,35 @@ fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) 
     best.map_or(-1, |(_, j)| j as i32)
 }
 
+/// The effective per-cell hillslope diffusivity: the config diffusivity reduced
+/// by the cell's biotic root-cohesion resistance (S10). When `resist` is empty
+/// (biotic layer off) this is exactly `diffusion` — `diffusion * (1.0 - 0.0)` is
+/// bit-identical to `diffusion`, so the abiotic path is byte-identical to
+/// pre-S10. Root cohesion `∈ [0,1]` stabilises slopes (ecology.md § 1).
+#[inline]
+fn eff_diff(diffusion: f64, resist: &[f32], i: usize) -> f64 {
+    if resist.is_empty() {
+        diffusion
+    } else {
+        diffusion * (1.0 - f64::from(resist[i]))
+    }
+}
+
 /// Net hillslope-diffusion thickness change at cell `i` (metres), gathered from
 /// its four edges on the frozen surface with the frozen per-cell limiter
-/// `scale`. Outflux edges (i higher) use `scale[i]`; influx edges (neighbour
-/// higher) use the donor's `scale[j]` — exactly the flux the scatter form moved,
-/// so the two conserve mass identically. Summation order is fixed (`NEIGH4`).
+/// `scale`. Outflux edges (i higher) use `scale[i]` and the donor `i`'s effective
+/// diffusivity; influx edges (neighbour higher) use the donor `j`'s `scale[j]`
+/// and `j`'s effective diffusivity — exactly the flux the scatter form moved, so
+/// the two conserve mass identically. Summation order is fixed (`NEIGH4`).
 #[inline]
-fn diffuse_net_cell(i: usize, w: usize, surf: &[f64], scale: &[f64], diffusion: f64) -> f64 {
+fn diffuse_net_cell(
+    i: usize,
+    w: usize,
+    surf: &[f64],
+    scale: &[f64],
+    diffusion: f64,
+    resist: &[f32],
+) -> f64 {
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
     let mut net = 0.0;
@@ -148,18 +170,26 @@ fn diffuse_net_cell(i: usize, w: usize, surf: &[f64], scale: &[f64], diffusion: 
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
             let d = si - surf[j];
             if d > 0.0 {
-                net -= diffusion * d * scale[i];
+                net -= eff_diff(diffusion, resist, i) * d * scale[i];
             } else if d < 0.0 {
-                net += diffusion * (-d) * scale[j];
+                net += eff_diff(diffusion, resist, j) * (-d) * scale[j];
             }
         }
     }
     net
 }
 
-/// Per-cell diffusion outflux sum → limiter scale on the frozen surface.
+/// Per-cell diffusion outflux sum → limiter scale on the frozen surface (using
+/// the donor cell's biotic-reduced effective diffusivity).
 #[inline]
-fn diffuse_scale_cell(i: usize, w: usize, surf: &[f64], h: f64, diffusion: f64) -> f64 {
+fn diffuse_scale_cell(
+    i: usize,
+    w: usize,
+    surf: &[f64],
+    h: f64,
+    diffusion: f64,
+    resist: &[f32],
+) -> f64 {
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
     let mut out = 0.0;
@@ -167,21 +197,43 @@ fn diffuse_scale_cell(i: usize, w: usize, surf: &[f64], h: f64, diffusion: f64) 
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
             let d = si - surf[j];
             if d > 0.0 {
-                out += diffusion * d;
+                out += eff_diff(diffusion, resist, i) * d;
             }
         }
     }
     if out > h && out > 0.0 { h / out } else { 1.0 }
 }
 
-/// Subaerial bedrock→regolith weathering for one cell (cover-tapered).
+/// Subaerial bedrock→regolith weathering for one cell (cover-tapered), scaled by
+/// the biotic weathering multiplier `wmult` (S10). When `wmult == 1.0` (biotic
+/// layer off) this is bit-identical to the pre-S10 rate. Land plants accelerate
+/// chemical weathering several-fold (ecology.md § 1).
 #[inline]
-fn weather_cell(r: &mut f64, h: &mut f64, dh: &mut f64, sea: f64, weathering: f64, h_star: f64) {
+fn weather_cell(
+    r: &mut f64,
+    h: &mut f64,
+    dh: &mut f64,
+    sea: f64,
+    weathering: f64,
+    h_star: f64,
+    wmult: f64,
+) {
     if *r + *h > sea {
-        let wth = weathering * (-*h / h_star).exp();
+        let wth = weathering * wmult * (-*h / h_star).exp();
         *r -= wth;
         *h += wth;
         *dh += wth;
+    }
+}
+
+/// The biotic weathering multiplier at cell `i`: `1.0` when the biotic layer is
+/// off (empty slice), so the abiotic weathering rate is byte-identical.
+#[inline]
+fn wmult_at(bio_weather: &[f32], i: usize) -> f64 {
+    if bio_weather.is_empty() {
+        1.0
+    } else {
+        f64::from(bio_weather[i])
     }
 }
 
@@ -330,11 +382,7 @@ fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64) -> DepTag {
     } else {
         Aridity::Humid
     };
-    DepTag {
-        env,
-        aridity,
-        energy: energy_band(energy_i),
-    }
+    DepTag::mineral(env, aridity, energy_band(energy_i))
 }
 
 /// Apply one cell's net thickness change to its strata record under `tag`.
@@ -642,22 +690,41 @@ impl Erosion {
 
     // ---- phase 7: bedrock weathering (PARALLEL — per-cell independent) -----
 
-    /// Subaerial bedrock → regolith, cover-tapered. Purely local per cell.
+    /// Subaerial bedrock → regolith, cover-tapered, scaled by the per-cell biotic
+    /// weathering multiplier (S10 lagged coupling — `grid.bio_weather`, empty and
+    /// therefore uniform `1.0` when the biotic layer is off). Purely local per
+    /// cell → byte-identical parallel.
     pub fn weather(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
         let parallel = self.par();
         let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
         let dh = &mut self.dh;
+        let bio = &grid.bio_weather;
         if parallel {
             grid.r
                 .par_iter_mut()
                 .zip(grid.h.par_iter_mut())
                 .zip(dh.par_iter_mut())
-                .for_each(|((r, h), d)| weather_cell(r, h, d, sea, weathering, h_star));
+                .enumerate()
+                .for_each(|(i, ((r, h), d))| {
+                    weather_cell(r, h, d, sea, weathering, h_star, wmult_at(bio, i));
+                });
         } else {
-            for ((r, h), d) in grid.r.iter_mut().zip(grid.h.iter_mut()).zip(dh.iter_mut()) {
-                weather_cell(r, h, d, sea, weathering, h_star);
+            for (i, ((r, h), d)) in grid
+                .r
+                .iter_mut()
+                .zip(grid.h.iter_mut())
+                .zip(dh.iter_mut())
+                .enumerate()
+            {
+                weather_cell(r, h, d, sea, weathering, h_star, wmult_at(bio, i));
             }
         }
+    }
+
+    /// The drainage area (in cell units) accumulated this step — read by the S10
+    /// biotic disturbance phase to find flood-prone valley cells.
+    pub fn area(&self) -> &[f64] {
+        &self.area
     }
 
     // ---- phase 8: hillslope diffusion (PARALLEL — gather form) ------------
@@ -680,14 +747,15 @@ impl Erosion {
             let surf = &self.surf;
             let scale = &mut self.scale;
             let h = &grid.h;
+            let resist = &grid.bio_resist;
             if parallel {
                 scale
                     .par_iter_mut()
                     .enumerate()
-                    .for_each(|(i, sc)| *sc = diffuse_scale_cell(i, w, surf, h[i], diff));
+                    .for_each(|(i, sc)| *sc = diffuse_scale_cell(i, w, surf, h[i], diff, resist));
             } else {
                 for i in 0..self.n {
-                    scale[i] = diffuse_scale_cell(i, w, surf, h[i], diff);
+                    scale[i] = diffuse_scale_cell(i, w, surf, h[i], diff, resist);
                 }
             }
         }
@@ -696,14 +764,15 @@ impl Erosion {
             let surf = &self.surf;
             let scale = &self.scale;
             let netdiff = &mut self.netdiff;
+            let resist = &grid.bio_resist;
             if parallel {
                 netdiff
                     .par_iter_mut()
                     .enumerate()
-                    .for_each(|(i, nd)| *nd = diffuse_net_cell(i, w, surf, scale, diff));
+                    .for_each(|(i, nd)| *nd = diffuse_net_cell(i, w, surf, scale, diff, resist));
             } else {
                 for (i, nd) in netdiff.iter_mut().enumerate() {
-                    *nd = diffuse_net_cell(i, w, surf, scale, diff);
+                    *nd = diffuse_net_cell(i, w, surf, scale, diff, resist);
                 }
             }
         }

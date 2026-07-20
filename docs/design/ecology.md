@@ -216,3 +216,29 @@ the six processes on the S9/3e-1 A-tier; measure cost delta against the
 ~14 s ritual, and read-quality — do we get coal seams, paleosols,
 charcoal bands, retrogressive surfaces? Evolution is explicitly NOT in
 S10; S10 exists to prove the substrate that evolution will later ride.
+
+**RUN 2026-07-20 — measured, not yet ratified** (journal/0025,
+docs/spikes/S10-results.md). All six processes implemented on the A tier,
+off by default. **All four signals present and legible**: coal (thickest
+seam 24 m), paleosols (22.9 % of columns, incl. genuine cyclothems with
+at-deposition climate tags), charcoal (20.2 %), retrogression (23.5 %, with
+the *geography* right — only erosion-untouched surfaces starve). **Cost**:
+ritual 15.2 s → 25.2 s (1.66×), linear in cells, and the world keeps only
++6 MiB (the rest is transient). Determinism intact incl. scalar↔parallel
+byte-identity. Spike-level findings that bear on this doc:
+
+- The **lagged coupling rule of § 3 works as designed** and was the least
+  troublesome part of the build — erosion consumes last epoch's biotic
+  modifiers, biology writes next epoch's.
+- **Biology is measurably an erosion term** (falsifier test: the biotic
+  run's bedrock surface differs from the abiotic one), so § 5 **open fork 2
+  (pack-addition blast radius) is now live** — adding an organism pack would
+  change terrain. It needs deciding before biology ships coupled to erosion.
+- The § 3 **top-K cap was not stressed** (7-species roster fits whole), so
+  its value is assumed rather than measured by S10.
+- The doc is silent on world-genesis colonization; the spike needed a weak
+  background propagule term to avoid a bootstrap deadlock (a species that is
+  nowhere can never be anywhere). FLAGGED in the results doc.
+
+The GO/NO-GO and five ratification calls are the user's — ROADMAP
+§ Sequenced, "S10 follow-through".

@@ -7,6 +7,55 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **S10 — the biotic layer on the deep-time A-tier** (journal/0025,
+  docs/spikes/S10-results.md; background agent, worktree branch for the
+  integrator; gates green — fmt/clippy/test all `--release`, 39 suites 0 failed).
+  ecology.md § 3's **community vector + the six processes** implemented on the
+  3e-1 A tier, additive in dc-worldgen and **off by default**
+  (`DeepConfig::biotic`; with it off every path is byte-identical to pre-S10 —
+  the modifier planes stay empty and read their identity values, and every unit
+  tags `Biofacies::Mineral`). All six processes are real, none stubbed:
+  suitability (`min` over tolerances — Liebig), dispersal (bounded neighbour
+  kernel), competition (finite capacity, incumbency-weighted), nutrient cycling
+  (the Walker & Syers curve **emerges**), niche construction, disturbance (fire
+  real, flood a succession reset whose signature is the mineral overbank band
+  erosion already writes). The **lagged coupling** ecology.md mandates is the run
+  loop: `erosion.step` consumes last epoch's biotic modifiers, then `biotic.step`
+  reads the fresh terrain and writes the next epoch's — which is what keeps the
+  biology↔erosion cycle out of the pass graph. No new pregen pass: biology rides
+  inside `dc:pass/deep-time` (already the creator of `DeepStrata`, already read by
+  `dc:pass/clastic-deposition`), so registration-order independence is inherited.
+  **All four target signals present and legible** (A tier, seed `0x0D5E_ED57_2026`):
+  **coal** 1 133 cols / thickest seam **24.03 m**; **paleosols** 22.9 % of columns
+  (the best is a genuine cyclothem — soils and peats alternating with marine
+  bands, each carrying its at-deposition climate tag); **charcoal** 20.2 % (one
+  upland column carries 19 fire beds, all arid-tagged); **retrogression** 23.5 %
+  (an ancient 1148 m surface, soil at cap, available P 0.0097, rock-P drawn to
+  0.44 — a Walker & Syers chronosequence nobody scripted, with the *geography*
+  right: erosion rejuvenates slopes and floodplains, only untouched surfaces
+  starve). **Cost: the ritual 15.17 s → 25.19 s (1.66×), and the world KEEPS only
+  +6 MiB** — the +68.6 MiB peak is transient working set dropped when the run
+  ends. The curve is **linear in cells** and the ratio *falls* as grids grow
+  (1.80 → 1.66): the biotic step is a flat per-cell pass with no heap and no
+  global dependency chain, while erosion carries the flood's `n log n`. Because
+  `DEEP_MAX_WIDTH` already caps the deep grid, **+10 s is the same at Large as at
+  Medium**. Determinism intact including scalar↔parallel byte-identity; biotic
+  carbon is tracked as a genuine external mass input (`Δ(ΣR+ΣH) == uplift +
+  biotic`). Two mechanisms worth remembering: **soil is a pedogenic OVERPRINT,
+  not a deposited layer** (retag + thicken + merge down — this alone took the
+  record from 665 k units back to 71 k, within 0.2 % of the biology-free run),
+  and **soil horizons require a depositional hiatus** (correct pedology *and* the
+  cost control, the same mechanism). Test-suite delta +16 s; no `--ignored`
+  gating needed. **Agent recommendation: GO** — flip `production_config`'s
+  `biotic` and sequence the collapse-tier organic materials immediately behind
+  it. **The honest gap: the record contains coal, the world does not** — an
+  organic unit still collapses as ordinary clastic (`deep_class` reads only
+  env/energy, and there is no coal material), so a player cannot yet mine that
+  24 m seam. **NEEDS RATIFICATION** (below, § Sequenced). Files: `biotic.rs`
+  (new), `recorder.rs` (`Biofacies` + `overprint_top` + signal queries),
+  `grid.rs`/`erosion.rs`/`mod.rs` (modifier planes + lagged step order),
+  `examples/biotic_spike.rs` + `tests/biotic.rs` (new).
+
 - 2026-07-20 — **Far-seam fix cycle: uniform-per-level depth push** (journal/0024,
   background agent; worktree branch for the integrator; gates green — fmt/clippy/test
   all `--release`; walk-verified lit + fullbright). The anti-z-fight push in
@@ -293,12 +342,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- 2026-07-20 — **S10 biotic-layer spike dispatched** (background agent,
-  worktree; docs/design/ecology.md is the design): community vector + the
-  six processes on the 3e-1 A-tier; measure cost vs the ~14 s ritual and
-  read-quality (coal seams, paleosols, charcoal bands, retrogressive
-  surfaces). Evolution out of scope. Agent recommends GO/NO-GO; the verdict
-  is the user's.
+*(**S10 biotic-layer spike: SHIPPED** 2026-07-20, journal/0025 — see Shipped.
+Agent recommends GO; the verdict and the five ratification calls are the
+user's, listed in Sequenced below.)*
 
 *(Session-2 close state: the day shipped and walk-verified SIX integrated
 milestones — S1-fallback sweep 0017, PBR-1 0019, render polish 0020,
@@ -343,11 +389,47 @@ here: PBR-1's material follows the § 5 texture + vertex-attribute contract but 
 not yet runtime-overridable via a pack (needs a `HOOK_FORMAT` bump + prelude
 composition, like the `post` stage). Never: GI (doctrine).
 
-**S10 — biotic-layer spike** (the gate for ecology work; design in
-docs/design/ecology.md): community vector + the six processes on the
-3e-1 A-tier; measure cost against the ~14 s world-creation ritual and
-read-quality — do we get coal seams, paleosols, charcoal bands,
-retrogressive surfaces? Evolution explicitly out of scope.
+**S10 follow-through — the biotic layer's five open calls** *(the spike
+itself SHIPPED 2026-07-20, journal/0025 + docs/spikes/S10-results.md; it
+answered the gate question — all four signals present and legible, cost
++10 s once and +6 MiB kept. What remains is **user decisions**, and one
+implementation slice.)*
+
+**NEEDS RATIFICATION (user-owned, from S10-results.md § Recommendation):**
+1. **The world-creation ritual grows 15 s → 25 s (+66 %)** at Medium *and*
+   Large. Acceptable, or is the budget tighter?
+2. **Flipping `production_config`'s `biotic` to true** — the actual GO
+   action, and with it a changed `DeepField` for every new world.
+3. **Signal abundance is aesthetic, not correctness**: coal 0.55 % of
+   columns, paleosols 22.9 %, charcoal 20.2 %, retrogression 23.5 %. Is a
+   fifth of the world carrying a fire record the texture we want?
+4. **The 7-species roster and ~25 rate constants** ride as
+   plausible-not-tuned (no-bandaid: they are the mechanism's calibration,
+   not a patch) — same status as S9's physics constants.
+5. **Pack-addition blast radius** (ecology.md § 5 fork 2) **has stopped
+   being hypothetical**: biology is now demonstrably an erosion term, so
+   adding an organism pack would change *terrain*, which materials packs
+   never did. The doc filed this as "needs deciding before biology couples
+   to erosion" — it now does. Options unchanged: bake biotic erosion at
+   world creation (pack-add affects ungenerated regions only, matching the
+   DF-like seed policy) or accept landform drift.
+
+**Implementation slice, sequenced behind the GO — collapse-tier organic
+materials** (the honest gap S10 names): the record contains coal, the world
+does not. `deep_class` maps deep units to material classes from env/energy
+only, so an organic unit collapses as ordinary clastic and there is no coal
+member in the roster. Wants coal/lignite members plus a `Biofacies` → class
+mapping, after which a player can actually mine the 24 m seam at world voxel
+(107338, 58787) on seed `0x0D5E_ED57_2026`. Small, and it is where the
+spike's cost finally buys gameplay.
+
+Also filed from S10 (not blocking): parent-material phosphorus from pregen
+provenance instead of a uniform pool; individual plant placement from the
+community vector by addressed hashing (ecology.md's derivation-chain
+terminus — note the community vector is currently **dropped** after the run,
+so C-refinement would have to re-derive it); vegetation → channel planform
+("vegetation invented meandering rivers") needs 3e-2's finer corridor to
+have any planform to bend.
 
 **3e-2 — C refinement** (DECIDED 2026-07-19 — earth-processes.md § 3e-2
 decisions — and implementable): drainage coarse-at-A with the
@@ -400,10 +482,12 @@ before any code.
    teleology design (org defs pin a form at a horizon; the lineage between
    is simulated; ahistorical override; fossils = mid-horizon pins) —
    post-v1, but v1 must not foreclose it.
-   - **S10 biotic-layer spike** is the gate: community vector + six
-     processes on the A-tier; measure cost vs the ~14 s ritual and
-     read-quality (coal seams, paleosols, charcoal, retrogression).
-     Evolution explicitly out of scope for S10.
+   - *(**S10 biotic-layer spike — the gate — PASSED** 2026-07-20,
+     journal/0025 + docs/spikes/S10-results.md: community vector + all six
+     processes on the A-tier, all four read-quality signals present and
+     legible, cost +10 s once / +6 MiB kept, determinism intact. Evolution
+     stayed out of scope as specified. The substrate evolution will ride is
+     proven; the five ratification calls are above.)*
 6. Body plans implementation staircase (docs/design/bodies.md § staircase,
    ratified 2026-07-19) — six steps from joint-tree skeleton to authoring
    editor; not yet scheduled against the geology track.

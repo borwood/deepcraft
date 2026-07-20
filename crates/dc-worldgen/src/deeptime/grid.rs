@@ -43,6 +43,13 @@ pub struct DeepConfig {
     /// Populate the strata recorder (read-quality). Off = erosion-only, the
     /// cheaper B datapoint.
     pub record: bool,
+    /// Run the **S10 biotic layer** (community vector + the six processes,
+    /// `deeptime::biotic`): organic/charcoal/paleosol/retrogression annotations
+    /// in the record, plus root-cohesion and biological-weathering feedback into
+    /// erosion. Off by default — with it off, every code path is byte-identical
+    /// to the pre-S10 engine (the modifier planes stay empty and read as the
+    /// identity `1.0` / `0.0`). Requires `record` for the strata annotations.
+    pub biotic: bool,
     /// Uplift rate scale, metres/iteration for a unit-rate (orogenic) province.
     pub uplift_scale: f64,
     /// Stream transport coefficient (capacity `= k_t · A^m · S^n`).
@@ -88,6 +95,7 @@ impl Default for DeepConfig {
             iterations: 200,
             remarch_interval: 20,
             record: true,
+            biotic: false,
             uplift_scale: 3.0,
             k_transport: 0.0016,
             k_bedrock: 0.0011,
@@ -134,6 +142,16 @@ pub struct DeepGrid {
     pub precip: Vec<f32>,
     /// Per-cell strata record (empty when `record` is off).
     pub strata: Vec<DeepStrata>,
+    /// **Biotic weathering multiplier** per cell (S10). Empty when the biotic
+    /// layer is off, and the erosion weathering phase then treats it as a
+    /// uniform `1.0` — byte-identical to the pre-S10 path. When biology runs it
+    /// carries root-acid / mycorrhizal weathering acceleration (ecology.md § 1),
+    /// written each epoch for the *next* step (lagged coupling, ecology.md § 3).
+    pub bio_weather: Vec<f32>,
+    /// **Biotic hillslope resistance** per cell (S10), `0..1`: root cohesion
+    /// suppresses regolith creep (ecology.md § 1). Empty when off; diffusion then
+    /// reads a uniform `0.0` resistance — byte-identical to the pre-S10 path.
+    pub bio_resist: Vec<f32>,
     /// South→north latitude span the grid is compressed onto (pregen bands).
     lat_south: f64,
     lat_north: f64,
@@ -156,6 +174,8 @@ impl DeepGrid {
             uplift,
             precip: vec![0.6f32; n],
             strata: Vec::new(),
+            bio_weather: Vec::new(),
+            bio_resist: Vec::new(),
             lat_south: LAT_SOUTH,
             lat_north: LAT_NORTH,
         }
@@ -178,7 +198,8 @@ impl DeepGrid {
     /// "what the deep-time pass costs in memory" number.
     pub fn resident_bytes(&self) -> usize {
         let planes = (self.r.len() + self.h.len() + self.uplift.len()) * std::mem::size_of::<f64>()
-            + self.precip.len() * std::mem::size_of::<f32>();
+            + (self.precip.len() + self.bio_weather.len() + self.bio_resist.len())
+                * std::mem::size_of::<f32>();
         let strata_structs = self.strata.len() * std::mem::size_of::<DeepStrata>();
         let strata_heap: usize = self.strata.iter().map(DeepStrata::heap_bytes).sum();
         planes + strata_structs + strata_heap
@@ -256,6 +277,8 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
         uplift,
         precip: vec![0.6f32; n],
         strata,
+        bio_weather: Vec::new(),
+        bio_resist: Vec::new(),
         lat_south: LAT_SOUTH,
         lat_north: LAT_NORTH,
     }
