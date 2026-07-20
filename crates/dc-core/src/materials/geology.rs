@@ -635,6 +635,14 @@ pub fn vanilla_members() -> Vec<GeoMemberDef> {
             hardness: 0.25,
             erodibility: 0.6,
         },
+        // EXEMPT from the pore-packability rule (docs/design/materials.md
+        // § Pore packability, DECIDED 2026-07-20): this accessory is emplaced
+        // by GENESIS — the olivine crystal grew inside the basalt host — not by
+        // transport-time infiltration, so it never consults
+        // `super::packing::fits_in_pores`. Its 1.5 mm grain would fail that
+        // mechanical throat test against basalt outright; that it rides the
+        // host's pores anyway is precisely the genesis exemption. The rule
+        // governs infiltration, not formation.
         GeoMemberDef {
             id: "dc:geo/olivine".into(),
             class: CLASS_ACCESSORY_MAFIC.into(),

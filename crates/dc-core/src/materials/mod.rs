@@ -14,6 +14,7 @@
 //! - [`extract`]: typed-damage extraction ordering;
 //! - [`geology`]: content classes as contracts + deterministic member
 //!   selection (the geology backbone's typed model);
+//! - [`packing`]: the shared pore-packability rule (grain fits throat);
 //! - [`stratify`]: derived (never ticked) stratification;
 //! - [`lod`]: the mixed-voxel LOD downsample rule.
 //!
@@ -25,6 +26,7 @@ pub mod extract;
 pub mod geology;
 pub mod intern;
 pub mod lod;
+pub mod packing;
 pub mod stratify;
 
 use serde::{Deserialize, Serialize};
