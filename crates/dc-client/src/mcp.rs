@@ -293,64 +293,68 @@ impl ClientMcpServer {
     pub fn new(tx: mpsc::UnboundedSender<BridgeRequest>) -> Self {
         Self { tx }
     }
+}
 
-    fn request_for(
-        &self,
-        name: &str,
-        args: &Value,
-    ) -> Result<Option<(BridgeRequest, oneshot::Receiver<Value>)>, String> {
-        let (tx, rx) = oneshot::channel();
-        let request = match name {
-            "client_screenshot" => {
-                let shot_name = args
-                    .get("name")
-                    .and_then(Value::as_str)
-                    .ok_or("`name` (string) is required")?;
-                if !valid_screenshot_name(shot_name) {
-                    return Err(
-                        "invalid screenshot name: bare slug required ([a-z0-9_-], max 64 chars)"
-                            .into(),
-                    );
-                }
-                BridgeRequest::Screenshot {
-                    name: shot_name.to_string(),
-                    reply: tx,
-                }
+/// Map a tool name + JSON arguments onto the [`BridgeRequest`] it denotes,
+/// paired with the oneshot the ECS side answers on. Shared by the in-client MCP
+/// server (`call_tool`) and the dev console (`crate::console`) so both reach the
+/// world through the one bridge with one mapping — client-shell tools decoded
+/// here, dc-api registry tools forwarded as [`BridgeRequest::Api`]. `Ok(None)`
+/// means the name is neither a client tool nor a registry command.
+pub(crate) fn bridge_request_for(
+    name: &str,
+    args: &Value,
+) -> Result<Option<(BridgeRequest, oneshot::Receiver<Value>)>, String> {
+    let (tx, rx) = oneshot::channel();
+    let request = match name {
+        "client_screenshot" => {
+            let shot_name = args
+                .get("name")
+                .and_then(Value::as_str)
+                .ok_or("`name` (string) is required")?;
+            if !valid_screenshot_name(shot_name) {
+                return Err(
+                    "invalid screenshot name: bare slug required ([a-z0-9_-], max 64 chars)".into(),
+                );
             }
-            "client_player_pose_get" => BridgeRequest::PoseGet { reply: tx },
-            "client_player_pose_set" => {
-                let pos = match args.get("pos") {
-                    None | Some(Value::Null) => None,
-                    Some(p) => {
-                        let component = |k: &str| {
-                            p.get(k)
-                                .and_then(Value::as_f64)
-                                .ok_or_else(|| format!("pos.{k} (number) is required"))
-                        };
-                        Some([component("x")?, component("y")?, component("z")?])
-                    }
-                };
-                let angle = |k: &str| args.get(k).and_then(Value::as_f64).map(|v| v as f32);
-                BridgeRequest::PoseSet {
-                    pos,
-                    yaw: angle("yaw"),
-                    pitch: angle("pitch"),
-                    surface: args
-                        .get("surface")
-                        .and_then(Value::as_bool)
-                        .unwrap_or(false),
-                    reply: tx,
-                }
-            }
-            _ if dc_api::schema::id_for_mcp_tool(name).is_some() => BridgeRequest::Api {
-                tool: name.to_string(),
-                args: args.clone(),
+            BridgeRequest::Screenshot {
+                name: shot_name.to_string(),
                 reply: tx,
-            },
-            _ => return Ok(None),
-        };
-        Ok(Some((request, rx)))
-    }
+            }
+        }
+        "client_player_pose_get" => BridgeRequest::PoseGet { reply: tx },
+        "client_player_pose_set" => {
+            let pos = match args.get("pos") {
+                None | Some(Value::Null) => None,
+                Some(p) => {
+                    let component = |k: &str| {
+                        p.get(k)
+                            .and_then(Value::as_f64)
+                            .ok_or_else(|| format!("pos.{k} (number) is required"))
+                    };
+                    Some([component("x")?, component("y")?, component("z")?])
+                }
+            };
+            let angle = |k: &str| args.get(k).and_then(Value::as_f64).map(|v| v as f32);
+            BridgeRequest::PoseSet {
+                pos,
+                yaw: angle("yaw"),
+                pitch: angle("pitch"),
+                surface: args
+                    .get("surface")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false),
+                reply: tx,
+            }
+        }
+        _ if dc_api::schema::id_for_mcp_tool(name).is_some() => BridgeRequest::Api {
+            tool: name.to_string(),
+            args: args.clone(),
+            reply: tx,
+        },
+        _ => return Ok(None),
+    };
+    Ok(Some((request, rx)))
 }
 
 impl ServerHandler for ClientMcpServer {
@@ -381,7 +385,7 @@ impl ServerHandler for ClientMcpServer {
         _context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
         let args = Value::Object(request.arguments.unwrap_or_default());
-        let (bridge_request, rx) = match self.request_for(&request.name, &args) {
+        let (bridge_request, rx) = match bridge_request_for(&request.name, &args) {
             Ok(Some(pair)) => pair,
             Ok(None) => {
                 return Err(ErrorData::new(
@@ -431,13 +435,19 @@ pub fn http_service(
 /// Start the enabled MCP surfaces, each on its own thread + port, all
 /// bridging into one ECS-side channel: the dev surface (broad grants, port
 /// 7777) and the character surface (one attenuated character per session,
-/// port 7778 — see [`crate::mcp_character`]). Returns the bridge resource,
-/// or `None` when both surfaces are disabled.
-pub fn spawn_servers(options: McpOptions) -> Option<McpBridge> {
-    if !options.any_enabled() {
-        return None;
-    }
+/// port 7778 — see [`crate::mcp_character`]). Returns the bridge resource the
+/// ECS drains AND a sender clone for the in-game dev console
+/// (`crate::console`), which rides the SAME channel as a third consumer. The
+/// channel (and thus the console) exists even when both MCP surfaces are
+/// disabled (`--no-mcp`); only the server threads are conditional.
+pub fn spawn_servers(options: McpOptions) -> (McpBridge, mpsc::UnboundedSender<BridgeRequest>) {
     let (tx, rx) = mpsc::unbounded_channel();
+    let console_tx = tx.clone();
+    if !options.any_enabled() {
+        info!(
+            "MCP: both surfaces disabled (--no-mcp); the in-game dev console still shares the bridge"
+        );
+    }
     if let Some(port) = options.port {
         let tx = tx.clone();
         std::thread::Builder::new()
@@ -458,7 +468,7 @@ pub fn spawn_servers(options: McpOptions) -> Option<McpBridge> {
             })
             .expect("spawn character MCP thread");
     }
-    Some(McpBridge { rx: Mutex::new(rx) })
+    (McpBridge { rx: Mutex::new(rx) }, console_tx)
 }
 
 /// A current-thread tokio runtime accepting HTTP/1 connections on
