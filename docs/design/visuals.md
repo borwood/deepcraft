@@ -155,3 +155,63 @@ The S4 contract must expose: the three material textures as packed above,
 mixture/splat inputs, weather/wetness state, time-of-day, fog/haze parameters,
 emissive surfaces, and the pass points for sky, water, shadows, shafts, and
 post (tonemap/fog).
+
+## DECIDED 2026-07-20 (user) — real darkness underground; the reference is modded MC + shaders
+
+Resolves a contradiction that sat in this document: § Mood asserted "real
+darkness underground ... no floaty ambient minimum", while § open items
+recorded a later user lean toward "possibly no darkness at all, even
+underground ('truly i don't think any darkness')". **The Mood position
+wins; the no-darkness lean is RETIRED.**
+
+The user, on seeing the 0027 walk (coal rendering black, excavation
+interiors unlit):
+
+> underground is lit by global sun right now, depending which way the face
+> faces it has one of six levels of face light, essentially. but I *don't*
+> like that, our visuals inherit from modded minecraft with shaders: much
+> nicer looking, much darker underground, with shadows, etc. shaders can't
+> own light totally, of course - the sim needs to know about light.
+
+- **Reference point: modded Minecraft with shaders** — not vanilla MC, not
+  a generic PBR look. That is the target for "much nicer looking".
+- **Much darker underground, with shadows.** The present model (a global
+  sun giving each face one of ~six brightness levels by orientation, no
+  occlusion) is explicitly rejected as the end state — it is why an
+  excavation interior is unlit and why coal reads as a void.
+- Consistent with PIPELINE.md's "real darkness, no ambient floor" as a
+  lighting-model property, and with § Mood's "warmth is earned".
+- **Consequence for the 0027 findings**: the fix for coal-reads-black is
+  NOT to brighten coal (its 0.07 albedo is physically right). It is the
+  lighting model — which is PBR-2's tonemap/HDR + shadows + earned
+  firelight. This makes PBR-2 the gate on the underground being *lookable
+  at*, not merely prettier.
+
+### Open thread, NEW 2026-07-20: the sim must know about light
+
+> shaders can't own light totally, of course - the sim needs to know about
+> light.
+
+No prior in the corpus on a **sim-side light field** (light as simulation
+data, MC-style propagated light levels) as distinct from render-side
+lighting. Recorded now as an open design thread, undesigned:
+
+- **Why the sim needs it** (candidates, unconfirmed): photosynthesis and
+  plant growth (S10's biology already gates on moisture/temperature; light
+  is the missing axis, and it is what makes caves lightless *in the
+  simulation*, not just visually); creature/spawn behaviour; stealth and
+  NPC vision; anything that grows or avoids light.
+- **Determinism**: a sim light field must be deterministic and replayable,
+  entropy from seeds only — the same law as every other sim field.
+- **Assistant observation (PROPOSAL)**: a propagated sim light field and
+  water.md's bound-water saturation field are **the same computational
+  shape** — a bounded local relaxation over the voxel grid, attenuated by
+  a per-material property (opacity for light, permeability for water),
+  with sources and sinks. If S11 finds the saturation relaxation is local
+  and cheap, that machinery is a candidate for both. Worth checking before
+  either is built twice.
+- Open: resolution (per voxel? per chunk-column?), whether sky light and
+  block light are separate channels (MC keeps them separate for a reason —
+  day/night cycles must not require re-propagating block light), update
+  cost on edits, and how the sim field relates to the *rendered* lighting
+  (they are not the same thing and must not be assumed to match).

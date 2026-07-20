@@ -462,7 +462,12 @@ budget-bounded) instead of reading them. Small; a dev-console/config
 surface question more than a rendering one; the ring-membership hysteresis
 and coverage tests must hold at any setting.
 
-**PBR-2 — lit-world completion** (the deferred half of the renderer, opened by
+**PBR-2 — lit-world completion** *(priority raised 2026-07-20: the 0027
+walk found excavation interiors and coal render black under the current
+sun-plus-face-orientation model, so PBR-2's tonemap/HDR + shadows now gate
+whether the underground is **lookable at**, not merely prettier. Darkness
+target DECIDED same day — visuals.md: real darkness underground, reference
+is modded Minecraft with shaders; the no-darkness lean is retired.)* (the deferred half of the renderer, opened by
 PBR-1 shipping): sun **shadows** (Bevy cascades + our knobs, the chasm-shaft
 signature shot), **colored point lights** (lava/forge/bioluminescence via Bevy's
 clustered path), **tonemap/HDR** (`Camera::hdr` + exposure — real darkness and
@@ -608,6 +613,16 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **The sim must know about light** (user, 2026-07-20; NEW thread, see
+  visuals.md § open thread). Distinct from render-side lighting: a
+  deterministic sim-side light field is wanted for (candidates)
+  photosynthesis/plant growth, spawn behaviour, stealth/NPC vision. No
+  prior existed in the corpus. Noted parallel: a propagated light field
+  and water.md's bound-water saturation field are the same computational
+  shape (bounded local relaxation attenuated by a per-material property),
+  so S11's locality result may transfer. Undesigned.
+
 
 - **No pooling/reuse of chunk or far-tile GPU resources** (user question,
   2026-07-20; read from source, not measured). Every chunk load
