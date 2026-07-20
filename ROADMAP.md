@@ -7,6 +7,28 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Tectonic-history SPIKE — the architecture works**
+  (S12-results, journal/0036, session-4 background agent; gates green on
+  merged main with corrections-#21 eviction prophylaxis). `tectonic_history`
+  implemented per the ratified tectonics.md: kinematic chapters (K=8),
+  analytic bisector forcing, crustal columns, smoothed-load Airy isostasy,
+  chapter-stamped recorder, drainage export. Headlines: **the 50 km
+  gradation artifact is dead** — 20.9 km at default W=25, tracking W
+  linearly with no cell term; byte-identical off + deterministic on (all
+  fingerprint suites untouched); cost 16.2 s Medium/200 iters (1.13×),
+  31 s at 400 — relief builds monotonically with iterations (953 m → 1.5 km
+  Medium; 3.7 km Large/400); recorder ×3.2 at K=8, inside bound. Honest
+  deviations recorded in S12 (two exact ledgers, Eulerian advection).
+  **Pending user: U7 amplitude from walk renders (80 vs 160), U8 flip.**
+  **New finding: exhumation is metre-scale at shipped erosion rates**, so
+  exhumed cores/forelands are illegible at ANY amplitude — see Sequenced
+  (erosion-supply calibration).
+
+- 2026-07-20 — **Pore packability rule** (dc-core `packing.rs`,
+  materials.md DECIDED entry is the record — deliberately no journal
+  entry; gates green). `K_PORE=0.25` + `fits_in_pores` shared helper,
+  7 falsifier tests, genesis exemption comment at the olivine member.
+
 - 2026-07-20 — **Console v2 — arg discoverability + scrolling**
   (journal/0035; dispatched on the user's same-day field report "still
   unusable... do not know the shape of args"; gates green in worktree and
@@ -670,10 +692,6 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   § 14 corrections verified by integrator (corrections #20; Erosion::new
   uplift_sum cache; Large-extent province-density inversion). Next:
   user ratifies architecture → SPIKE per its § SPIKE.
-- **Tectonics SPIKE** — dispatched 2026-07-20 on eolian's landing, per the
-  ratified tectonics.md § SPIKE (implement `tectonic_history` behind flag;
-  eight measurement groups; U3-amended tradeoff table at 200/300/400
-  iterations).
 - **Zonal circulation profile** — dispatched same moment (write-set
   disjoint from spike: climate.rs only). Smooth wind magnitude + subsidence
   aridity; kills the band-flip line and puts a desert belt at ~30° for the
@@ -719,11 +737,13 @@ see the question you are asking.
   the 50 km artifact, byte-identity off, relief distributions for the
   re-sequenced amplitude call, drainage-export fidelity). **Dispatch after
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
-- **Zonal circulation profile** (ratified 2026-07-20, earth-processes § 4
-  follow-up): smooth wind magnitude + subsidence aridity replacing the
-  `wind_dx` sign bit. Dispatch after eolian merges; write-set is
-  `climate.rs` (pregen + deeptime) — parallelizable with the spike per the
-  write-set rule if desired, machine serializes compiles.
+- **Erosion-supply calibration** (from the S12 spike's new finding,
+  2026-07-20): exhumation comes out metre-scale at shipped erosion rates,
+  gating exhumed-core/foreland legibility independent of amplitude — the
+  S9 calibration loose end, now load-bearing. Needs-measurement class:
+  compare model denudation against real orogen rates, propose 2–3
+  calibrations, render each — the user then chooses between pictures, not
+  rate constants. Dispatch after the combined walk settles amplitude.
 - **Tectonic uplift-plane redesign — DESIGN PASS (superseded — done)** (direction ratified
   2026-07-20, earth-processes.md § 1 DECIDED entry): tectonic history
   (uplift(t), plate advection, chaptered boundary re-classification) +
