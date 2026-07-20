@@ -1,37 +1,20 @@
 //! Typed command/query payloads — the data half of "commands are data".
 //!
-//! Every command in the surface has one payload struct and one [`Payload`]
-//! variant. The envelope's string id and the payload variant are redundant on
-//! purpose (the id is what routes/logs/schemas key on; the variant is what the
-//! type system keys on); [`Payload::command_id`] is the bridge and the host
-//! rejects envelopes where the two disagree.
+//! Every command in the surface has one payload *struct* here and one
+//! [`Payload`] variant. The envelope's string id and the payload variant are
+//! redundant on purpose (the id is what routes/logs/schemas key on; the variant
+//! is what the type system keys on); [`Payload::command_id`] is the bridge and
+//! the host rejects envelopes where the two disagree.
+//!
+//! The [`Payload`] union, the [`ids`] consts, and `command_id` are NOT written
+//! here: they are generated from the one command table in [`crate::schema`]
+//! (docs/API.md decision 7 — a missing command is a compile error), then
+//! re-exported below so `crate::payload::Payload` and `crate::payload::ids`
+//! keep their paths. The per-command structs stay hand-written.
 
 use serde::{Deserialize, Serialize};
 
-/// Command ids. Convention (docs/API.md, decision 1): `dc:domain/verb_noun`.
-pub mod ids {
-    pub const WORLD_SET_BLOCK: &str = "dc:world/set_block";
-    pub const WORLD_GET_BLOCK: &str = "dc:world/get_block";
-    pub const WORLD_FILL: &str = "dc:world/fill";
-    pub const WORLD_SCAN_REGION: &str = "dc:world/scan_region";
-    pub const ENTITY_SPAWN: &str = "dc:entity/spawn";
-    pub const ENTITY_QUERY: &str = "dc:entity/query";
-    pub const REGISTRY_DEFINE_ITEM: &str = "dc:registry/define_item";
-    pub const REGISTRY_DEFINE_CONTENT_CLASS: &str = "dc:registry/define_content_class";
-    pub const REGISTRY_DEFINE_CLASS_MEMBER: &str = "dc:registry/define_class_member";
-    pub const REGISTRY_DEFINE_BODY_PLAN: &str = "dc:registry/define_body_plan";
-    pub const REGISTRY_DEFINE_ANIM_CLIP: &str = "dc:registry/define_anim_clip";
-    pub const EVENTS_SUBSCRIBE: &str = "dc:events/subscribe";
-    pub const EVENTS_POLL: &str = "dc:events/poll";
-    pub const CHARACTER_SPAWN: &str = "dc:character/spawn_character";
-    pub const CHARACTER_SET_MOVE_INTENT: &str = "dc:character/set_move_intent";
-    pub const CHARACTER_SET_LOOK: &str = "dc:character/set_look";
-    pub const CHARACTER_SET_POSTURE: &str = "dc:character/set_posture";
-    pub const CHARACTER_JUMP: &str = "dc:character/jump";
-    pub const CHARACTER_POSE: &str = "dc:character/pose";
-    pub const CHARACTER_SENSE_RAYCAST: &str = "dc:character/sense_raycast";
-    pub const CHARACTER_SENSE_SURROUNDINGS: &str = "dc:character/sense_surroundings";
-}
+pub use crate::schema::{Payload, ids};
 
 /// A world-space voxel coordinate (the 3D lattice is unbounded; i64 like
 /// dc-core's world-voxel space).
@@ -321,69 +304,6 @@ pub struct SenseSurroundings {
     pub character: String,
     /// Half-extent of the scanned cube in voxels, 0..=16.
     pub radius: u32,
-}
-
-/// The typed union of every payload in the v0 slice. Externally tagged serde
-/// (JSON: `{"SetBlock": {...}}`), enum-indexed in postcard.
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum Payload {
-    SetBlock(SetBlock),
-    GetBlock(GetBlock),
-    Fill(Fill),
-    ScanRegion(ScanRegion),
-    EntitySpawn(EntitySpawn),
-    EntityQuery(EntityQuery),
-    DefineItem(DefineItem),
-    EventsSubscribe(EventsSubscribe),
-    EventsPoll(EventsPoll),
-    SpawnCharacter(SpawnCharacter),
-    SetMoveIntent(SetMoveIntent),
-    SetLook(SetLook),
-    Jump(Jump),
-    CharacterPose(CharacterPose),
-    SenseRaycast(SenseRaycast),
-    SenseSurroundings(SenseSurroundings),
-    // Appended (content-class registry milestone): postcard enum indices of
-    // the variants above are wire identity — new variants go at the end.
-    DefineContentClass(DefineContentClass),
-    DefineClassMember(DefineClassMember),
-    // Appended (body-plan staircase steps 1–2) — enum indices are wire
-    // identity, so these stay at the end.
-    DefineBodyPlan(DefineBodyPlan),
-    DefineAnimClip(DefineAnimClip),
-    // Appended (body-plan staircase step 3: parametric crouch) — enum indices
-    // are wire identity, so this stays at the end.
-    SetPosture(SetPosture),
-}
-
-impl Payload {
-    /// The command id this payload belongs to. The host rejects envelopes
-    /// whose `id` field disagrees.
-    pub fn command_id(&self) -> &'static str {
-        match self {
-            Payload::SetBlock(_) => ids::WORLD_SET_BLOCK,
-            Payload::GetBlock(_) => ids::WORLD_GET_BLOCK,
-            Payload::Fill(_) => ids::WORLD_FILL,
-            Payload::ScanRegion(_) => ids::WORLD_SCAN_REGION,
-            Payload::EntitySpawn(_) => ids::ENTITY_SPAWN,
-            Payload::EntityQuery(_) => ids::ENTITY_QUERY,
-            Payload::DefineItem(_) => ids::REGISTRY_DEFINE_ITEM,
-            Payload::EventsSubscribe(_) => ids::EVENTS_SUBSCRIBE,
-            Payload::EventsPoll(_) => ids::EVENTS_POLL,
-            Payload::SpawnCharacter(_) => ids::CHARACTER_SPAWN,
-            Payload::SetMoveIntent(_) => ids::CHARACTER_SET_MOVE_INTENT,
-            Payload::SetLook(_) => ids::CHARACTER_SET_LOOK,
-            Payload::Jump(_) => ids::CHARACTER_JUMP,
-            Payload::CharacterPose(_) => ids::CHARACTER_POSE,
-            Payload::SenseRaycast(_) => ids::CHARACTER_SENSE_RAYCAST,
-            Payload::SenseSurroundings(_) => ids::CHARACTER_SENSE_SURROUNDINGS,
-            Payload::DefineContentClass(_) => ids::REGISTRY_DEFINE_CONTENT_CLASS,
-            Payload::DefineClassMember(_) => ids::REGISTRY_DEFINE_CLASS_MEMBER,
-            Payload::DefineBodyPlan(_) => ids::REGISTRY_DEFINE_BODY_PLAN,
-            Payload::DefineAnimClip(_) => ids::REGISTRY_DEFINE_ANIM_CLIP,
-            Payload::SetPosture(_) => ids::CHARACTER_SET_POSTURE,
-        }
-    }
 }
 
 /// A simple entity as the reference host stores and reports it.
