@@ -159,6 +159,66 @@ pub struct DeepConfig {
     pub sea_level_amp: f64,
     /// Sea-level cycle period (iterations).
     pub sea_level_period: u32,
+
+    // ---- Tectonic history (tectonics.md, RATIFIED 2026-07-20) --------------
+    /// **The tectonic-history flag** (§ 12). Off by default — with it off every
+    /// added path is skipped, no column/forcing planes are allocated, the
+    /// isostasy phase no-ops, `provenance_uplift` drives the run exactly as
+    /// today, and every existing world reproduces **byte-identically**. On: the
+    /// whole bundle (chapters + analytic forcing + crustal columns + smoothed
+    /// Airy isostasy + chapter-stamped record + drainage export). The items do
+    /// not flip separately (thickening without isostasy is meaningless; chapters
+    /// without analytic forcing re-smear). Turning it on CHANGES TERRAIN SHAPE
+    /// for every world made afterwards — the production flip is the user's
+    /// appearance call (U8), like the erodibility/biotic flips.
+    pub tectonic_history: bool,
+    /// **Characteristic plate diameter, km** (U1 / § 10, option B, default 65):
+    /// plate count is derived from area and this knob, so province density is
+    /// extent-uniform (fixing the found defect that the old `clamp(24)` made
+    /// Large worlds ~3× sparser per km than Medium).
+    pub plate_scale_km: f64,
+    /// **Chapter count K** (U2 / § 3.1, default 8): the run divides into K equal
+    /// chapters; each advects the plates, re-classifies boundaries, and repaints
+    /// the thickening forcing. K=8 gives Earth-orogeny-length chapters (62.5 Myr)
+    /// with 2–4 legible superpositions per place at the Phanerozoic register.
+    pub chapters: u32,
+    /// **Ramp chapter transitions** (§ 3.1.4, default true): the active forcing
+    /// is a linear blend from the previous chapter's plane to the new one across
+    /// the chapter, so a transverse river saws through a rising axis (the water-
+    /// gap mechanism) instead of being dammed. `false` = step the forcing at the
+    /// boundary — the negative control that must kill the water gaps (§ SPIKE
+    /// 4a).
+    pub ramp_chapters: bool,
+    /// **Orogen half-width W, km** (U4 / § 4.1, default 25): the continent–
+    /// continent belt half-width, scaled by `1/√v_conv` so fast convergence gives
+    /// a narrow sharp belt. A first-class design parameter *in km*, not a ring
+    /// count — the 50 km gradation-to-peak artifact must collapse to ≈ this value
+    /// (§ SPIKE 5).
+    pub orogen_width_km: f64,
+    /// **Arc–trench gap, km** (U4 / § 4.1, default 50): the offset of the volcanic
+    /// arc onto the overriding side. Real gaps are ~100–250 km; ours compress with
+    /// the world.
+    pub arc_gap_km: f64,
+    /// **Total advection over the run, in plate widths** (U5 / § 3.2, default 1):
+    /// how far boundaries migrate over a world's life. Earth-true speed is
+    /// impossible at our extent and undesirable at any (the map churns to noise);
+    /// what the record needs is boundaries moving *relative to columns*, ~1 plate
+    /// width per run.
+    pub advection_plate_widths: f64,
+    /// **Thickening scale, m/iter** for a unit-rate (fast) orogenic boundary
+    /// (§ 4.2). The amplitude the analytic forcing multiplies; the amplitude call
+    /// (dismal-mountains cause 3, U7) is made against *this* forcing with § SPIKE
+    /// 7 data, not before it.
+    pub thickening_scale: f64,
+    /// **Flexural wavelength Λ_flex, km** (§ 6.1, default 50): the smoothing
+    /// half-width of the isostatic load. Smoothing the compensation *is* plate
+    /// rigidity. Resolution-independent because it is stated in km.
+    pub flex_wavelength_km: f64,
+    /// **Isostatic relax rate λ_iso** (§ 6.1, default 0.5): the fraction of the
+    /// gap to Airy equilibrium the bedrock closes per iteration. Mantle response
+    /// at 2.5 Myr/iter is effectively instant, so this is a numerical-stability
+    /// choice, measured not guessed (§ SPIKE 1/8).
+    pub iso_rate: f64,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -203,6 +263,16 @@ impl Default for DeepConfig {
             rough_jitter: 0.18,
             sea_level_amp: 35.0,
             sea_level_period: 50,
+            tectonic_history: false,
+            plate_scale_km: 65.0,
+            chapters: 8,
+            ramp_chapters: true,
+            orogen_width_km: 25.0,
+            arc_gap_km: 50.0,
+            advection_plate_widths: 1.0,
+            thickening_scale: 80.0,
+            flex_wavelength_km: 50.0,
+            iso_rate: 0.5,
         }
     }
 }
@@ -248,6 +318,18 @@ pub struct DeepGrid {
     /// suppresses regolith creep (ecology.md § 1). Empty when off; diffusion then
     /// reads a uniform `0.0` resistance — byte-identical to the pre-S10 path.
     pub bio_resist: Vec<f32>,
+    /// **Crustal thickness (m)** per cell — the conserved stock under the
+    /// tectonic-history inversion (§ 5.1). Continental ~35 km, oceanic ~7 km.
+    /// Empty (and the whole isostasy/thickening machinery skipped) when
+    /// [`DeepConfig::tectonic_history`] is off.
+    pub t_crust: Vec<f64>,
+    /// **Crust kind index** per cell ([`super::tectonics::CrustKind`]): sets the
+    /// Airy density. Empty when tectonic history is off.
+    pub crust_kind: Vec<u8>,
+    /// **Cumulative bedrock exhumed (m)** per cell — Σ of R-lowering by incision
+    /// and weathering (§ 5.2). The metamorphic-grade input for the collapse tier
+    /// (§ 6.4). Empty when tectonic history is off.
+    pub exhum: Vec<f64>,
     /// South→north latitude span the grid is compressed onto (pregen bands).
     lat_south: f64,
     lat_north: f64,
@@ -272,6 +354,9 @@ impl DeepGrid {
             strata: Vec::new(),
             bio_weather: Vec::new(),
             bio_resist: Vec::new(),
+            t_crust: Vec::new(),
+            crust_kind: Vec::new(),
+            exhum: Vec::new(),
             lat_south: LAT_SOUTH,
             lat_north: LAT_NORTH,
         }
@@ -293,9 +378,15 @@ impl DeepGrid {
     /// Rough resident footprint of the grid state (bytes) — the honest
     /// "what the deep-time pass costs in memory" number.
     pub fn resident_bytes(&self) -> usize {
-        let planes = (self.r.len() + self.h.len() + self.uplift.len()) * std::mem::size_of::<f64>()
+        let planes = (self.r.len()
+            + self.h.len()
+            + self.uplift.len()
+            + self.t_crust.len()
+            + self.exhum.len())
+            * std::mem::size_of::<f64>()
             + (self.precip.len() + self.bio_weather.len() + self.bio_resist.len())
-                * std::mem::size_of::<f32>();
+                * std::mem::size_of::<f32>()
+            + self.crust_kind.len();
         let strata_structs = self.strata.len() * std::mem::size_of::<DeepStrata>();
         let strata_heap: usize = self.strata.iter().map(DeepStrata::heap_bytes).sum();
         planes + strata_structs + strata_heap
@@ -365,6 +456,16 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
         Vec::new()
     };
 
+    // Tectonic-history crustal columns (§ 5.2). Off → empty planes, and every
+    // consumer (thickening, isostasy, exhumation) is skipped, so the run is
+    // byte-identical to the pre-tectonic-history engine.
+    let (t_crust, crust_kind, exhum) = if cfg.tectonic_history {
+        let (t, k) = super::tectonics::seed_columns(cfg, w, cfg.cell_m);
+        (t, k, vec![0.0f64; n])
+    } else {
+        (Vec::new(), Vec::new(), Vec::new())
+    };
+
     DeepGrid {
         w,
         cell_m: cfg.cell_m,
@@ -375,6 +476,9 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
         strata,
         bio_weather: Vec::new(),
         bio_resist: Vec::new(),
+        t_crust,
+        crust_kind,
+        exhum,
         lat_south: LAT_SOUTH,
         lat_north: LAT_NORTH,
     }

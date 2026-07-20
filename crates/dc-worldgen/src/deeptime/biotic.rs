@@ -508,6 +508,9 @@ impl BioticSim {
 
         // Sequential apply: update state, deposit into the record, sum the
         // ledger — a fixed 0..n order so scalar and parallel agree to the bit.
+        // Organic units carry the same tectonic chapter the erosion recorder is
+        // stamping this epoch (0 when tectonic history is off — byte-identical).
+        let chapter = ero.current_chapter();
         let mut bio_input = 0.0f64;
         for i in 0..self.n {
             let o = self.out[i];
@@ -518,12 +521,12 @@ impl BioticSim {
                 grid.h[i] += o.org_deposit;
                 // Pedogenesis OVERPRINTS the surface material rather than
                 // stacking a lamina: a stable surface becomes one thick horizon.
-                grid.strata[i].overprint_top(o.org_tag, o.org_deposit);
+                grid.strata[i].overprint_top(o.org_tag, o.org_deposit, chapter);
                 bio_input += o.org_deposit;
             }
             if o.charcoal > 0.0 {
                 grid.h[i] += o.charcoal;
-                grid.strata[i].deposit(o.char_tag, o.charcoal);
+                grid.strata[i].deposit(o.char_tag, o.charcoal, chapter);
                 bio_input += o.charcoal;
             }
         }

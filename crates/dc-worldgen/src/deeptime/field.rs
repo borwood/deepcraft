@@ -30,6 +30,7 @@
 
 use super::grid::DeepConfig;
 use super::recorder::DeepStrata;
+use super::tectonics::Plate;
 use crate::pregen::{CELL_VOXELS, CellGrid, Pregen};
 
 /// Target (finest) deep-time cell edge, metres — S9's A tier resolution.
@@ -90,6 +91,26 @@ pub struct DeepField {
     pub surf: Vec<f64>,
     /// Per-cell strata record, bottom-up units tagged at deposition.
     pub strata: Vec<DeepStrata>,
+    /// **Exported final drainage** (§ 7.3 — tectonic-history only; empty
+    /// otherwise). `recv[i]` is the D8 receiver of the last routing (`-1` = sink),
+    /// `area[i]` the contributing area / discharge, `lake[i]` a depression-filled
+    /// cell at the final sea stand. Consumers: the frozen macro drainage topology
+    /// (3e-2 decision 1), the water-table pinning lattice (corrections #15), and
+    /// the body graph's initial lakes/sea (water.md § S11). Retiring the stale
+    /// pregen chord network of § 7.1(b) as the collapse carving source.
+    pub recv: Vec<i32>,
+    pub area: Vec<f64>,
+    pub lake: Vec<bool>,
+    /// **Exhumation** (m) and **crustal thickness** (m) per cell — the metamorphic-
+    /// grade axes the collapse tier reads (§ 6.4). Empty when tectonic history is
+    /// off.
+    pub exhum: Vec<f64>,
+    pub t_crust: Vec<f64>,
+    /// **The chapter table** (§ 8): plate state per chapter, from which per-unit
+    /// deformation (dip, provenance, fault traces) is re-derived analytically at
+    /// collapse resolution — the ~5 KB that replaces stored per-cell dip vectors.
+    /// Empty when tectonic history is off.
+    pub chapters: Vec<Vec<Plate>>,
 }
 
 /// Run the always-on deep-time sim from the coarse grid and distil it to a
@@ -97,16 +118,66 @@ pub struct DeepField {
 /// phases fork across cells but reproduce the scalar result to the bit, so the
 /// field is deterministic in `(cells, seed)`.
 pub fn build_field(cells: &CellGrid, seed: u64) -> DeepField {
-    let cfg = production_config(cells, seed);
-    let run = super::run_cells(cells, &cfg, true);
-    let grid = run.grid;
-    let surf: Vec<f64> = grid.r.iter().zip(&grid.h).map(|(r, h)| r + h).collect();
+    build_field_cfg(cells, &production_config(cells, seed))
+}
+
+/// Run the deep-time sim under an explicit [`DeepConfig`] and distil the field —
+/// the entry the tectonic-history spike uses to exercise the flag. On the
+/// tectonic-history path the drainage export and crustal/chapter planes are
+/// populated; off, they are empty (and `surf`/`strata` are byte-identical to
+/// [`build_field`]). Uses the byte-identical parallel path.
+pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
+    let run = super::run_cells(cells, cfg, true);
+    let w = run.grid.w;
+    let cell_m = run.grid.cell_m;
+    let surf: Vec<f64> = run
+        .grid
+        .r
+        .iter()
+        .zip(&run.grid.h)
+        .map(|(r, h)| r + h)
+        .collect();
+    let (recv, area, lake, exhum, t_crust, chapters) = if cfg.tectonic_history {
+        let recv = run.erosion.recv().to_vec();
+        let area = run.erosion.area().to_vec();
+        let filled = run.erosion.filled();
+        let routed = run.erosion.routed_surface();
+        // A lake is a cell whose depression fill sits above its own surface at the
+        // final routing (a closed basin holding standing water).
+        let lake: Vec<bool> = (0..w * w)
+            .map(|i| filled[i] > routed[i] + 1e-6 && routed[i] > super::SEA_LEVEL_M)
+            .collect();
+        (
+            recv,
+            area,
+            lake,
+            run.grid.exhum.clone(),
+            run.grid.t_crust.clone(),
+            run.chapters.clone(),
+        )
+    } else {
+        (
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+        )
+    };
+    let strata = run.grid.strata;
     DeepField {
-        w: grid.w,
+        w,
         wp: cells.w as usize,
-        cell_m: grid.cell_m,
+        cell_m,
         surf,
-        strata: grid.strata,
+        strata,
+        recv,
+        area,
+        lake,
+        exhum,
+        t_crust,
+        chapters,
     }
 }
 
@@ -165,7 +236,10 @@ impl DeepField {
     /// Rough resident footprint (bytes) — the honest "what the ritual keeps in
     /// memory" number.
     pub fn resident_bytes(&self) -> usize {
-        self.surf.len() * std::mem::size_of::<f64>()
+        (self.surf.len() + self.area.len() + self.exhum.len() + self.t_crust.len())
+            * std::mem::size_of::<f64>()
+            + self.recv.len() * std::mem::size_of::<i32>()
+            + self.lake.len()
             + self.strata.len() * std::mem::size_of::<DeepStrata>()
             + self
                 .strata

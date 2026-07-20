@@ -473,14 +473,15 @@ fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64) -> DepTag {
     DepTag::mineral(env, aridity, energy_band(energy_i))
 }
 
-/// Apply one cell's net thickness change to its strata record under `tag`.
+/// Apply one cell's net thickness change to its strata record under `tag`,
+/// stamped with the current tectonic `chapter` (0 when tectonic history is off).
 #[inline]
-fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag) {
+fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8) {
     if dh.abs() < 1e-9 {
         return;
     }
     if dh > 0.0 {
-        s.deposit(tag, dh);
+        s.deposit(tag, dh, chapter);
     } else {
         s.erode(-dh);
     }
@@ -533,12 +534,30 @@ pub struct Erosion {
     /// weathering rate at cell `i` this epoch — computed fresh each epoch because
     /// it depends on the current surface (temperature lapses with elevation).
     frost: Vec<f64>,
+    /// **Tectonic-history state** (empty/zero when `cfg.tectonic_history` is off).
+    ///
+    /// `cur_chapter` is the chapter index the recorder stamps this iteration (0
+    /// off the flag). `forcing[i]` is the blended analytic thickening rate
+    /// (m/iter) for the current iteration, written by [`Self::set_forcing`] from
+    /// the driver's precomputed per-chapter planes. `r_snap[i]` snapshots bedrock
+    /// before the erosion phases so [`Self::track_exhumation`] can attribute the
+    /// R-lowering (incision + weathering) to `exhum`/`t_crust` — never the
+    /// isostatic bedrock motion, which runs afterward.
+    cur_chapter: u8,
+    forcing: Vec<f64>,
+    r_snap: Vec<f64>,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
 impl Erosion {
     pub fn new(grid: &DeepGrid) -> Self {
         let n = grid.w * grid.w;
+        // NB (tectonics.md § 14.3): `uplift_sum` caches the constant per-cell
+        // uplift plane — valid on the legacy path where uplift never changes. On
+        // the tectonic-history path the ledger is *not* this sum; it is the
+        // isostatic bedrock injection returned by [`Self::isostasy`] each step
+        // (`uplift(t)` invalidates the cached constant — flagged so the spike
+        // does not discover it as a mysterious conservation failure).
         let uplift_sum = grid.uplift.iter().sum();
         Self {
             w: grid.w,
@@ -562,8 +581,31 @@ impl Erosion {
             sus_flow: Vec::new(),
             sus_creep: Vec::new(),
             frost: Vec::new(),
+            cur_chapter: 0,
+            forcing: Vec::new(),
+            r_snap: Vec::new(),
             heap: BinaryHeap::new(),
         }
+    }
+
+    /// Set the tectonic chapter the recorder stamps and load this iteration's
+    /// blended thickening forcing (§ 3.1). Called by the run driver before each
+    /// [`Self::step`] on the tectonic-history path. `plane` is the analytic
+    /// forcing already blended across the chapter ramp.
+    pub fn set_tectonic(&mut self, chapter: u8, plane: &[f64]) {
+        self.cur_chapter = chapter;
+        if self.forcing.len() != self.n {
+            self.forcing = vec![0.0; self.n];
+            self.r_snap = vec![0.0; self.n];
+        }
+        self.forcing.copy_from_slice(plane);
+    }
+
+    /// The chapter the recorder is currently stamping (read by the biotic layer so
+    /// its organic units carry the same chapter).
+    #[inline]
+    pub fn current_chapter(&self) -> u8 {
+        self.cur_chapter
     }
 
     /// Turn data-parallel per-cell phases on/off. Off by default (the scalar
@@ -617,16 +659,38 @@ impl Erosion {
     /// total uplift added this step (for the mass-conservation ledger).
     pub fn step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, sea_level: f64) -> f64 {
         self.sea_level = sea_level;
-        let uplift_added = self.apply_uplift(grid);
+        // Phase 1: the external forcing. Legacy path adds a constant uplift plane
+        // to bedrock; tectonic-history path adds the analytic thickening rate to
+        // the crustal columns (elevation is then *derived* by isostasy, phase 8b).
+        let legacy_uplift = if cfg.tectonic_history {
+            self.apply_thickening(grid);
+            0.0
+        } else {
+            self.apply_uplift(grid)
+        };
         self.expose(grid, cfg);
         self.periglacial(grid, cfg);
         self.build_surface(grid);
         self.flood();
         self.route();
         self.accumulate_area();
+        if cfg.tectonic_history {
+            self.snapshot_bedrock(grid);
+        }
         self.transport(grid, cfg);
         self.weather(grid, cfg);
         self.diffuse(grid, cfg);
+        // Phase 8b: exhumation bookkeeping + isostasy. The R-lowering the erosion
+        // phases just did decrements `t_crust` and grows `exhum`; then Airy
+        // compensation of the smoothed load derives the new bedrock surface. The
+        // ledger for the tectonic path is the isostatic injection ΣΔR (an external
+        // input to `ΣR+ΣH`, declared exactly like `biotic_total`).
+        let ledger = if cfg.tectonic_history {
+            self.track_exhumation(grid);
+            self.isostasy(grid, cfg)
+        } else {
+            legacy_uplift
+        };
         if cfg.record {
             self.record(grid);
         }
@@ -639,7 +703,97 @@ impl Erosion {
             self.wind(grid, cfg);
             self.wave(grid, cfg);
         }
-        uplift_added
+        ledger
+    }
+
+    // ---- phase 1 (tectonic): crustal thickening + isostasy ----------------
+
+    /// Add the blended analytic thickening rate into the crustal columns
+    /// (§ 4.2/§ 5.2). Positive rates thicken (orogeny/arc), negative thin
+    /// (rift/trench/ridge); `t_crust` is floored so a column cannot thin to
+    /// nothing. Purely per-cell → byte-identical parallel. Elevation is untouched
+    /// here — that is isostasy's job.
+    pub fn apply_thickening(&mut self, grid: &mut DeepGrid) {
+        let forcing = &self.forcing;
+        if forcing.is_empty() {
+            return;
+        }
+        if self.par() {
+            grid.t_crust
+                .par_iter_mut()
+                .zip(forcing.par_iter())
+                .for_each(|(t, f)| *t = (*t + *f).max(1000.0));
+        } else {
+            for (t, f) in grid.t_crust.iter_mut().zip(forcing.iter()) {
+                *t = (*t + *f).max(1000.0);
+            }
+        }
+    }
+
+    /// Snapshot bedrock before the erosion phases, so [`Self::track_exhumation`]
+    /// can measure the R-lowering the phases produce (incision + weathering) and
+    /// attribute it to the column — never the later isostatic motion.
+    fn snapshot_bedrock(&mut self, grid: &DeepGrid) {
+        self.r_snap.copy_from_slice(&grid.r);
+    }
+
+    /// Every metre of bedrock the erosion phases removed this step decrements the
+    /// crustal thickness and grows cumulative exhumation (§ 5.2 — "every metre of
+    /// bedrock converted or incised decrements `t_crust` and increments `exhum`").
+    /// Deposition grows `H`, not `t_crust`, so it is not counted here. Per-cell →
+    /// byte-identical parallel.
+    pub fn track_exhumation(&mut self, grid: &mut DeepGrid) {
+        let snap = &self.r_snap;
+        if self.par() {
+            grid.exhum
+                .par_iter_mut()
+                .zip(grid.t_crust.par_iter_mut())
+                .zip(grid.r.par_iter())
+                .zip(snap.par_iter())
+                .for_each(|(((e, t), r), s)| {
+                    let removed = (*s - *r).max(0.0);
+                    *e += removed;
+                    *t -= removed;
+                });
+        } else {
+            for (((e, t), r), s) in grid
+                .exhum
+                .iter_mut()
+                .zip(grid.t_crust.iter_mut())
+                .zip(grid.r.iter())
+                .zip(snap.iter())
+            {
+                let removed = (*s - *r).max(0.0);
+                *e += removed;
+                *t -= removed;
+            }
+        }
+    }
+
+    /// **Airy compensation of the smoothed load** (§ 6.1). Computes the flexural-
+    /// wavelength-smoothed crust and sediment loads, derives the Airy equilibrium
+    /// surface per cell, and relaxes bedrock toward it at `iso_rate`. Returns the
+    /// summed injected ΔR (the mass-ledger external input). The smoothing is a
+    /// fixed-order separable blur — scalar in both drivers, so isostasy is
+    /// byte-identical scalar↔parallel and is the run's only new serial cost of
+    /// note (§ SPIKE 3/8).
+    pub fn isostasy(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) -> f64 {
+        use super::isostasy;
+        let radius = isostasy::flex_radius_cells(cfg.flex_wavelength_km, self.cell_m);
+        let t_bar = isostasy::box_smooth(&grid.t_crust, self.w, radius);
+        let h_bar = isostasy::box_smooth(&grid.h, self.w, radius);
+        let rate = cfg.iso_rate;
+        let mut injected = 0.0f64;
+        for i in 0..self.n {
+            let rho_c =
+                isostasy::rho_crust(super::tectonics::CrustKind::from_index(grid.crust_kind[i]));
+            let e_eq = isostasy::equilibrium(t_bar[i], h_bar[i], rho_c);
+            let surf = grid.r[i] + grid.h[i];
+            let d_r = rate * (e_eq - surf);
+            grid.r[i] += d_r;
+            injected += d_r;
+        }
+        injected
     }
 
     // ---- phase 1: uplift into bedrock -------------------------------------
@@ -1048,9 +1202,28 @@ impl Erosion {
     }
 
     /// The drainage area (in cell units) accumulated this step — read by the S10
-    /// biotic disturbance phase to find flood-prone valley cells.
+    /// biotic disturbance phase to find flood-prone valley cells, and exported as
+    /// the final-chapter discharge field (§ 7.3, drainage export).
     pub fn area(&self) -> &[f64] {
         &self.area
+    }
+
+    /// The D8 receiver of each cell as of the last routing (`-1` = sink) — the
+    /// exported final drainage network (§ 7.3). This is the last iteration's
+    /// routing exactly (no recompute), so the export matches what the sim used.
+    pub fn recv(&self) -> &[i32] {
+        &self.recv
+    }
+
+    /// The filled (depression-filled) surface from the last flood — used to build
+    /// the exported lake mask (a cell whose fill sits above its own surface).
+    pub fn filled(&self) -> &[f64] {
+        &self.filled
+    }
+
+    /// The pre-erosion surface snapshot from the last routing.
+    pub fn routed_surface(&self) -> &[f64] {
+        &self.surf
     }
 
     // ---- phase 8: hillslope diffusion (PARALLEL — gather form) ------------
@@ -1128,17 +1301,18 @@ impl Erosion {
     pub fn record(&mut self, grid: &mut DeepGrid) {
         let parallel = self.par();
         let sea = self.sea_level;
+        let chapter = self.cur_chapter;
         let (r, h, precip, energy) = (&grid.r, &grid.h, &grid.precip, &self.energy);
         let dh = &self.dh;
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
                 let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
-                record_cell(s, dh[i], tag);
+                record_cell(s, dh[i], tag, chapter);
             });
         } else {
             for i in 0..self.n {
                 let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
-                record_cell(&mut grid.strata[i], dh[i], tag);
+                record_cell(&mut grid.strata[i], dh[i], tag, chapter);
             }
         }
     }
@@ -1168,6 +1342,7 @@ impl Erosion {
     /// deterministic and scalar↔parallel byte-identical.
     pub fn wind(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
         let record = !grid.strata.is_empty();
+        let chapter = self.cur_chapter;
         let sus_tab = lithology::susceptibility_table(
             Agent::Eolian,
             cfg.erodibility_contrast,
@@ -1192,7 +1367,7 @@ impl Erosion {
                                 eolian: Eolian::Loess,
                                 ..DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low)
                             };
-                            grid.strata[i].deposit(tag, load);
+                            grid.strata[i].deposit(tag, load, chapter);
                         }
                         load = 0.0;
                     }
@@ -1244,7 +1419,7 @@ impl Erosion {
                             eolian: facies,
                             ..DepTag::mineral(DepEnv::Subaerial, ar, energy)
                         };
-                        grid.strata[i].deposit(tag, drop);
+                        grid.strata[i].deposit(tag, drop, chapter);
                     }
                 }
             }
@@ -1259,7 +1434,7 @@ impl Erosion {
                         eolian: Eolian::Loess,
                         ..DepTag::mineral(DepEnv::Subaerial, Aridity::Arid, EnergyBand::Low)
                     };
-                    grid.strata[i].deposit(tag, load);
+                    grid.strata[i].deposit(tag, load, chapter);
                 }
             }
         }
@@ -1291,6 +1466,7 @@ impl Erosion {
             return;
         }
         let record = !grid.strata.is_empty();
+        let chapter = self.cur_chapter;
         let (w, sea) = (self.w, self.sea_level);
         let sus_tab = lithology::susceptibility_table(
             Agent::Wave,
@@ -1336,6 +1512,7 @@ impl Erosion {
                 grid.strata[j].deposit(
                     DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low),
                     cut,
+                    chapter,
                 );
             }
         }
