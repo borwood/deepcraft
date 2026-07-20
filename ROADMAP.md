@@ -619,15 +619,20 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **Tectonic design pass — `docs/design/tectonics.md` DRAFT** (background
-  design agent, Fable by deliberate model-economy exception — spike-class
-  undecided architecture; dispatched 2026-07-20 after user ratified the
-  expanded scope). Owns the full earth-processes § 1 DECIDED list: uplift(t)
-  chapters + plate advection, analytic boundary forcing, crustal columns,
-  isostasy/flexure, drainage re-march coupling, recorder event-entries,
-  punctuation hooks, plate-scale knob options. Deliverable is a DRAFT doc
-  + sorted open questions (user-owned vs measurable) for main-session
-  ratification — no code.
+- **Tectonic design pass — DRAFT LANDED, awaiting user ratification**
+  (docs/design/tectonics.md, merged 2026-07-20; Fable design agent). The
+  inversion: surface uplift stops being the input — plate kinematics
+  (advected Voronoi seeds, K~8 chapters) drive analytic boundary forcing →
+  crustal-column thickening → smoothed-load Airy isostasy derives
+  elevation, buying rebound/exhumation/forelands from one mechanism.
+  Deformation re-derived analytically at collapse resolution (no per-cell
+  event storage); sparse event list for what kinematics can't re-derive
+  (unblocks the § 2 igneous flag). Eight user decisions U1–U8 pending
+  (plate-scale knob, chapter count, ritual-length fork, orogen widths,
+  advection scale, punctuation budgets, amplitude re-sequencing, flip).
+  § 14 corrections verified by integrator (corrections #20; Erosion::new
+  uplift_sum cache; Large-extent province-density inversion). Next:
+  user ratifies architecture → SPIKE per its § SPIKE.
 - **Erosion agents completed: wind (#5) + frost/wave activation**
   (background build agent, opus; dispatched 2026-07-20; earth-processes § 4
   RATIFIED entry). Off-by-default, byte-identical when off (the 0029
