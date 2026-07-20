@@ -33,6 +33,16 @@
 //! which would break byte-identity. They are the measured serial floor
 //! (S9b-results).
 //!
+//! **Erodibility coupling (journal/0029).** With [`DeepConfig::erodibility`] on,
+//! the fluvial terms and hillslope diffusion are modulated per cell per epoch by
+//! the resistance of the lithology outcropping there ([`super::lithology`]).
+//! Resistance is **agent-specific, never a single scalar** — the mechanical
+//! agent reads an abrasion axis, and the designed-but-unbuilt dissolution,
+//! frost/ice and littoral agents each have their own; see the lithology module
+//! docs for why a one-number erodibility would foreclose karst. Off by default,
+//! and with it off every multiplier is the exact identity `1.0`, so the
+//! uncoupled path is byte-identical.
+//!
 //! Note (S9b): hillslope diffusion is reformulated from the original scatter
 //! (`h[i] -= f; h[j] += f`) to an equivalent **gather** (each cell sums its own
 //! in/out edge fluxes), which conserves mass identically but changes the
@@ -46,6 +56,7 @@ use std::collections::BinaryHeap;
 use rayon::prelude::*;
 
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
+use super::lithology::{self, Agent, Litho};
 use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand};
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
@@ -134,17 +145,39 @@ fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) 
     best.map_or(-1, |(_, j)| j as i32)
 }
 
-/// The effective per-cell hillslope diffusivity: the config diffusivity reduced
-/// by the cell's biotic root-cohesion resistance (S10). When `resist` is empty
-/// (biotic layer off) this is exactly `diffusion` — `diffusion * (1.0 - 0.0)` is
-/// bit-identical to `diffusion`, so the abiotic path is byte-identical to
-/// pre-S10. Root cohesion `∈ [0,1]` stabilises slopes (ecology.md § 1).
+/// A per-cell erodibility multiplier, or the exact identity `1.0` when the
+/// plane is empty (coupling off). `x * 1.0` is bit-exact for every finite `x`,
+/// which is what makes the uncoupled path byte-identical.
 #[inline]
-fn eff_diff(diffusion: f64, resist: &[f32], i: usize) -> f64 {
-    if resist.is_empty() {
+fn sus_at(sus: &[f64], i: usize) -> f64 {
+    if sus.is_empty() { 1.0 } else { sus[i] }
+}
+
+/// The effective per-cell hillslope diffusivity.
+///
+/// **Composition order is deliberate and fixed** (journal/0029): the config
+/// diffusivity is reduced first by the cell's biotic root-cohesion resistance
+/// (S10 `resist`), then by the lithology's abrasion susceptibility. Rock first
+/// in *meaning* — what the slope is made of — biology second, applied to the
+/// slope biology actually lives on; but in *arithmetic* the biotic factor is
+/// applied first and the lithic factor multiplied onto the right, because f64
+/// multiplication is not associative and the order has to be pinned for
+/// byte-identity. Written the other way round, turning coupling off would not
+/// reproduce the S10 result bit for bit.
+///
+/// With both layers off this is exactly `diffusion`; with only biology on it is
+/// exactly the S10 expression.
+#[inline]
+fn eff_diff(diffusion: f64, resist: &[f32], sus: &[f64], i: usize) -> f64 {
+    let biotic = if resist.is_empty() {
         diffusion
     } else {
         diffusion * (1.0 - f64::from(resist[i]))
+    };
+    if sus.is_empty() {
+        biotic
+    } else {
+        biotic * sus[i]
     }
 }
 
@@ -162,6 +195,7 @@ fn diffuse_net_cell(
     scale: &[f64],
     diffusion: f64,
     resist: &[f32],
+    sus: &[f64],
 ) -> f64 {
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
@@ -170,9 +204,9 @@ fn diffuse_net_cell(
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
             let d = si - surf[j];
             if d > 0.0 {
-                net -= eff_diff(diffusion, resist, i) * d * scale[i];
+                net -= eff_diff(diffusion, resist, sus, i) * d * scale[i];
             } else if d < 0.0 {
-                net += eff_diff(diffusion, resist, j) * (-d) * scale[j];
+                net += eff_diff(diffusion, resist, sus, j) * (-d) * scale[j];
             }
         }
     }
@@ -189,6 +223,7 @@ fn diffuse_scale_cell(
     h: f64,
     diffusion: f64,
     resist: &[f32],
+    sus: &[f64],
 ) -> f64 {
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
@@ -197,7 +232,7 @@ fn diffuse_scale_cell(
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
             let d = si - surf[j];
             if d > 0.0 {
-                out += eff_diff(diffusion, resist, i) * d;
+                out += eff_diff(diffusion, resist, sus, i) * d;
             }
         }
     }
@@ -205,9 +240,34 @@ fn diffuse_scale_cell(
 }
 
 /// Subaerial bedrock→regolith weathering for one cell (cover-tapered), scaled by
-/// the biotic weathering multiplier `wmult` (S10). When `wmult == 1.0` (biotic
-/// layer off) this is bit-identical to the pre-S10 rate. Land plants accelerate
-/// chemical weathering several-fold (ecology.md § 1).
+/// `rate_mult` — the **product of the two modifier layers**, the biotic
+/// weathering multiplier (S10 `wmult`) and the lithologic susceptibility. When
+/// both layers are off that product is exactly `1.0` and this is bit-identical
+/// to the pre-S10 rate. Land plants accelerate chemical weathering several-fold
+/// (ecology.md § 1).
+///
+/// **This is the rate-limiting phase on hillslopes, which is why it must be
+/// coupled** (journal/0029). Hillslope diffusion is flux-limited by the regolith
+/// actually available, so on any real slope it exports everything there is and
+/// the landscape's lowering rate collapses to the rate bedrock is *converted*
+/// into regolith. Coupling incision and entrainment alone left the world
+/// statistically unchanged, because on the majority of land neither term is what
+/// sets the pace.
+///
+/// **Composition order** (fixed, and load-bearing for byte-identity since f64
+/// multiplication is not associative): the two modifier layers combine with each
+/// other first — `rate_mult = wmult × litho_sus`, biology on the left — and the
+/// product then scales the base rate before the cover taper:
+/// `weathering × rate_mult × taper`. With lithology off, `wmult × 1.0 == wmult`
+/// exactly, so the S10 expression is reproduced bit for bit.
+///
+/// **What the lithic factor will mean when there is more than one agent.**
+/// In-place weathering is not one process; it is the sum of every agent's attack
+/// on rock that has not moved yet. Today that sum has exactly one term, the
+/// mechanical one, so the factor is the abrasion susceptibility. When the
+/// dissolution agent lands this becomes a sum over agents — and a limestone will
+/// weather *fast* through the chemical term while resisting the mechanical one,
+/// which is the karst story arriving without anything here being rewritten.
 #[inline]
 fn weather_cell(
     r: &mut f64,
@@ -216,10 +276,10 @@ fn weather_cell(
     sea: f64,
     weathering: f64,
     h_star: f64,
-    wmult: f64,
+    rate_mult: f64,
 ) {
     if *r + *h > sea {
-        let wth = weathering * wmult * (-*h / h_star).exp();
+        let wth = weathering * rate_mult * (-*h / h_star).exp();
         *r -= wth;
         *h += wth;
         *dh += wth;
@@ -427,6 +487,18 @@ pub struct Erosion {
     scale: Vec<f64>,
     /// Diffusion gather scratch: per-cell net ΔH, applied after the gather.
     netdiff: Vec<f64>,
+    /// **Erodibility coupling planes** (empty when `cfg.erodibility` is off, and
+    /// then read as the exact identity `1.0`).
+    ///
+    /// `litho[i]` is the lithology outcropping at cell `i` this epoch;
+    /// `sus_flow[i]` is its abrasion susceptibility for the fluvial terms
+    /// (cover entrainment + bedrock incision) and `sus_creep[i]` the same for
+    /// hillslope diffusion under its own, weaker contrast knob. Both are looked
+    /// up from a six-entry table built once per epoch, so the `powf` is paid six
+    /// times per epoch rather than once per cell.
+    litho: Vec<u8>,
+    sus_flow: Vec<f64>,
+    sus_creep: Vec<f64>,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -452,6 +524,9 @@ impl Erosion {
             energy: vec![0.0; n],
             scale: vec![0.0; n],
             netdiff: vec![0.0; n],
+            litho: Vec::new(),
+            sus_flow: Vec::new(),
+            sus_creep: Vec::new(),
             heap: BinaryHeap::new(),
         }
     }
@@ -479,8 +554,21 @@ impl Erosion {
             + self.dh.len()
             + self.energy.len()
             + self.scale.len()
-            + self.netdiff.len();
-        f64s * 8 + self.recv.len() * 4 + self.order.capacity() * 4 + self.done.len()
+            + self.netdiff.len()
+            + self.sus_flow.len()
+            + self.sus_creep.len();
+        f64s * 8
+            + self.recv.len() * 4
+            + self.order.capacity() * 4
+            + self.done.len()
+            + self.litho.len()
+    }
+
+    /// The lithology outcropping at each cell as of the last [`Self::expose`]
+    /// (empty when the erodibility coupling is off) — read by the measurement
+    /// probe to attribute landform statistics to rock type.
+    pub fn exposed(&self) -> impl Iterator<Item = Litho> + '_ {
+        self.litho.iter().map(|&b| Litho::ALL[b as usize])
     }
 
     /// Set the paleo-sea-level stand the standalone phase methods read (the
@@ -494,6 +582,7 @@ impl Erosion {
     pub fn step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, sea_level: f64) -> f64 {
         self.sea_level = sea_level;
         let uplift_added = self.apply_uplift(grid);
+        self.expose(grid, cfg);
         self.build_surface(grid);
         self.flood();
         self.route();
@@ -522,6 +611,88 @@ impl Erosion {
             }
         }
         self.uplift_sum
+    }
+
+    // ---- phase 1b: expose lithology (PARALLEL — per-cell independent) ------
+
+    /// Determine which lithology outcrops at each cell and cache its
+    /// agent-specific rate multipliers for this epoch (the erodibility
+    /// coupling, `deeptime::lithology`).
+    ///
+    /// Runs at the **top** of the step, so every phase in the epoch sees one
+    /// consistent answer to "what rock is at the surface here" — the record is
+    /// only rewritten at the end of the step, so this reads the true current
+    /// state, not a lagged one (unlike the S10 biotic modifiers, which are
+    /// deliberately one epoch behind to break the biology↔erosion cycle).
+    ///
+    /// **The exposed unit is the top of the record, and an empty record means
+    /// basement.** That single fallback is where resistant shield and craton
+    /// landscapes come from: strip a column past its whole sedimentary history
+    /// and what the flow meets next is igneous basement, the hardest thing in
+    /// the world. Nobody wrote a shield rule.
+    ///
+    /// A note on *which* plane the contrast between beds rides. The brief said
+    /// "modulate bedrock incision", but in the two-plane model the strata record
+    /// mirrors `H`, not `R` — `R` is basement everywhere. So bed-to-bed contrast
+    /// (sandstone standing over mudstone) necessarily rides on **cover
+    /// entrainment**, and the incision term carries the basement contrast. Both
+    /// are coupled here, through the same per-cell susceptibility, because
+    /// wherever cover is thin enough for incision to matter the outcropping
+    /// lithology *is* what the flow is grinding.
+    ///
+    /// Purely per-cell → byte-identical parallel. When the coupling is off this
+    /// leaves the planes empty and every consumer reads the exact identity.
+    pub fn expose(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
+        if !cfg.erodibility {
+            self.litho.clear();
+            self.sus_flow.clear();
+            self.sus_creep.clear();
+            return;
+        }
+        // Six-entry tables, rebuilt each epoch (cheap, and keeps the knobs live
+        // if a harness mutates the config between steps).
+        let flow_tab = lithology::susceptibility_table(
+            Agent::Abrasion,
+            cfg.erodibility_contrast,
+            cfg.erodibility_max,
+        );
+        let creep_tab = lithology::susceptibility_table(
+            Agent::Abrasion,
+            cfg.erodibility_diffusion_contrast,
+            cfg.erodibility_max,
+        );
+        if self.litho.len() != self.n {
+            self.litho = vec![0u8; self.n];
+            self.sus_flow = vec![1.0; self.n];
+            self.sus_creep = vec![1.0; self.n];
+        }
+        let strata = &grid.strata;
+        let per_cell = |i: usize| -> (u8, f64, f64) {
+            let top = strata.get(i).and_then(|s| s.units.last());
+            let l = lithology::exposed_litho(top);
+            let k = l.index();
+            (k as u8, flow_tab[k], creep_tab[k])
+        };
+        if self.par() {
+            self.litho
+                .par_iter_mut()
+                .zip(self.sus_flow.par_iter_mut())
+                .zip(self.sus_creep.par_iter_mut())
+                .enumerate()
+                .for_each(|(i, ((l, f), c))| {
+                    let (li, fi, ci) = per_cell(i);
+                    *l = li;
+                    *f = fi;
+                    *c = ci;
+                });
+        } else {
+            for i in 0..self.n {
+                let (li, fi, ci) = per_cell(i);
+                self.litho[i] = li;
+                self.sus_flow[i] = fi;
+                self.sus_creep[i] = ci;
+            }
+        }
     }
 
     // ---- phase 2: surface snapshot ----------------------------------------
@@ -658,18 +829,38 @@ impl Erosion {
             };
             let cap = cfg.k_transport * ae * sn;
             self.energy[c] = cap;
+            // The erodibility coupling's fluvial multiplier for this cell: the
+            // abrasion susceptibility of whatever lithology outcrops here.
+            // Exactly `1.0` when the coupling is off.
+            let sus = sus_at(&self.sus_flow, c);
             let qs_out = if qin <= cap {
                 let mut room = cap - qin;
-                // Entrain alluvium first (transport-limited).
-                let ent = grid.h[c].min(room);
+                // Entrain the exposed cover. Transport-limited, now scaled by
+                // how detachable that rock is: a weak mudstone hands the flow
+                // everything it can carry, a competent sandstone hands over less
+                // than the flow has room for and the difference is what leaves a
+                // resistant bed standing proud. This is where bed-to-bed
+                // differential erosion lives (see `expose`).
+                //
+                // `sus > 1` (rock softer than the fine-clastic reference) can
+                // push entrainment past this cell's remaining capacity; that is
+                // physical and mass-safe — the excess is routed downstream as
+                // suspended load and the receiver, seeing `qin > cap`, deposits
+                // it. Over-entrainment also drives `room` negative, which skips
+                // incision: a thick soft cover shields the bedrock beneath it,
+                // which is correct.
+                let ent = grid.h[c].min(room * sus);
                 grid.h[c] -= ent;
                 self.dh[c] -= ent;
                 room -= ent;
                 let mut carried = qin + ent;
-                // Then incise bedrock, shielded by remaining cover.
+                // Then incise bedrock, shielded by remaining cover and scaled by
+                // the same susceptibility. Where cover is thin enough for this
+                // term to matter at all, the outcropping lithology is what the
+                // flow is grinding — and on a stripped column that is basement.
                 if room > 0.0 {
                     let shield = (-grid.h[c] / cfg.h_star).exp();
-                    let inc_pot = cfg.k_bedrock * ae * sn * shield;
+                    let inc_pot = cfg.k_bedrock * ae * sn * shield * sus;
                     let floor = grid.surf_at(rc);
                     let max_inc = (grid.r[c] - floor).max(0.0);
                     let inc = inc_pot.min(room).min(max_inc);
@@ -699,6 +890,7 @@ impl Erosion {
         let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
         let dh = &mut self.dh;
         let bio = &grid.bio_weather;
+        let sus = &self.sus_flow;
         if parallel {
             grid.r
                 .par_iter_mut()
@@ -706,7 +898,15 @@ impl Erosion {
                 .zip(dh.par_iter_mut())
                 .enumerate()
                 .for_each(|(i, ((r, h), d))| {
-                    weather_cell(r, h, d, sea, weathering, h_star, wmult_at(bio, i));
+                    weather_cell(
+                        r,
+                        h,
+                        d,
+                        sea,
+                        weathering,
+                        h_star,
+                        wmult_at(bio, i) * sus_at(sus, i),
+                    );
                 });
         } else {
             for (i, ((r, h), d)) in grid
@@ -716,7 +916,15 @@ impl Erosion {
                 .zip(dh.iter_mut())
                 .enumerate()
             {
-                weather_cell(r, h, d, sea, weathering, h_star, wmult_at(bio, i));
+                weather_cell(
+                    r,
+                    h,
+                    d,
+                    sea,
+                    weathering,
+                    h_star,
+                    wmult_at(bio, i) * sus_at(sus, i),
+                );
             }
         }
     }
@@ -748,14 +956,14 @@ impl Erosion {
             let scale = &mut self.scale;
             let h = &grid.h;
             let resist = &grid.bio_resist;
+            let sus = &self.sus_creep;
             if parallel {
-                scale
-                    .par_iter_mut()
-                    .enumerate()
-                    .for_each(|(i, sc)| *sc = diffuse_scale_cell(i, w, surf, h[i], diff, resist));
+                scale.par_iter_mut().enumerate().for_each(|(i, sc)| {
+                    *sc = diffuse_scale_cell(i, w, surf, h[i], diff, resist, sus)
+                });
             } else {
                 for i in 0..self.n {
-                    scale[i] = diffuse_scale_cell(i, w, surf, h[i], diff, resist);
+                    scale[i] = diffuse_scale_cell(i, w, surf, h[i], diff, resist, sus);
                 }
             }
         }
@@ -765,14 +973,14 @@ impl Erosion {
             let scale = &self.scale;
             let netdiff = &mut self.netdiff;
             let resist = &grid.bio_resist;
+            let sus = &self.sus_creep;
             if parallel {
-                netdiff
-                    .par_iter_mut()
-                    .enumerate()
-                    .for_each(|(i, nd)| *nd = diffuse_net_cell(i, w, surf, scale, diff, resist));
+                netdiff.par_iter_mut().enumerate().for_each(|(i, nd)| {
+                    *nd = diffuse_net_cell(i, w, surf, scale, diff, resist, sus)
+                });
             } else {
                 for (i, nd) in netdiff.iter_mut().enumerate() {
-                    *nd = diffuse_net_cell(i, w, surf, scale, diff, resist);
+                    *nd = diffuse_net_cell(i, w, surf, scale, diff, resist, sus);
                 }
             }
         }

@@ -321,7 +321,14 @@ fn deep_precip(tag: DepTag) -> f64 {
 /// dead content. A charcoal-tagged unit therefore reads as the mineral host it
 /// is a streak within. The honest representation is an inclusion (pore/debris
 /// partial, geology.md § inclusions) — filed, not built. See journal/0026.
-fn deep_class(tag: DepTag) -> &'static str {
+///
+/// **Public because deep time now depends on it.** The erodibility coupling
+/// (journal/0029) needs to know which rock resisted erosion at a cell, and that
+/// must be the same rock the collapse layer will build there — otherwise the
+/// world's shape stops explaining the world's rock. `deeptime::lithology::
+/// litho_of_tag` mirrors this routing and a test asserts they agree over every
+/// tag in the space.
+pub fn deep_class(tag: DepTag) -> &'static str {
     match tag.biota {
         Biofacies::Coal => CLASS_ORGANIC_COAL,
         Biofacies::Peat => CLASS_ORGANIC_PEAT,

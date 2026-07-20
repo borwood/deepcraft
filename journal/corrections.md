@@ -397,3 +397,65 @@ to audit the harness, not to write it up. Corollary for the ring-difference
 method generally (S9, orogeny, S11): always report the residual drift of the
 unperturbed control alongside the halo, so a reader can see whether the number
 sits above the noise floor. S11-results.md § Q1, journal/0028.
+
+## 16. "Tempering abrasion resistance by cohesion sharpens the rock contrast" (2026-07-20)
+
+**Claim** (erodibility coupling, first cut, mine): a rock's resistance to
+mechanical abrasion should be its smash resistance *tempered by cohesion* —
+`smash × (0.5 + 0.5·cohesion)` — on the reasoning that a hard but poorly-cemented
+rock sheds clasts and erodes faster than its hardness alone suggests.
+
+**Falsified by the probe.** With the tempering in, coupling on vs off changed the
+world by **relief +0.0 %, slope_sd +0.0 %** — a null result whose control drift
+was exactly zero, so it was not noise. Part of the cause (the other part is #17):
+in our property sheet **mudstone is more cohesive than sandstone** (0.95 vs 0.85)
+because clay is sticky, not strong. So multiplying by cohesion pulled the two
+clastics' resistances *together* (from ~10 % apart toward ~4 % apart) — it
+actively cancelled the differentiation the coupling exists to create. Cohesion is
+the correct modifier for the *wave* agent (sea cliffs fail along joints, a
+cementation question) and the wrong one for fluvial abrasion.
+
+**Fix**: abrasion resistance reads the smash extraction resistance *straight*
+(`deeptime::lithology::resistance_of_material`); a field-doc there records why
+nothing may temper it. Cohesion keys the wave axis only.
+
+**Lesson**: same family as corrections #6 — reaching for a plausible modifier
+without measuring which *direction* it moves the quantity you care about. A
+modifier that feels physical can be anti-correlated with the contrast you want;
+measure the contrast before and after adding it, on the actual property values,
+not the idealized ones in your head.
+
+## 17. "Coupling bedrock incision is how you get differential erosion" (2026-07-20)
+
+**Claim** (the erodibility brief's literal wording — "modulate incision" — and my
+first implementation): making bedrock incision (and cover entrainment)
+lithology-dependent is what produces hard-bed-stands-proud landforms.
+
+**Falsified by measurement.** Coupling the two fluvial terms alone left the world
+statistically unchanged (see #16). The world responded only once the
+**bedrock→regolith weathering** phase was coupled too.
+
+**Mechanism**: on a hillslope — the majority of land — the rate-limiting step is
+neither incision nor entrainment. Hillslope diffusion is *flux-limited by the
+regolith actually available*: on any real slope it exports everything there is,
+so the landscape's lowering rate collapses to the rate at which bedrock is
+*converted into regolith*, which is the weathering rate. Incision matters in the
+channel network; entrainment matters where there is cover to entrain; but the
+pace of an eroding upland is set by weathering. Couple the terms that don't set
+the pace and nothing moves.
+
+This is not a workaround — it is the correct long-run home for the coupling.
+In-place weathering is the *sum of every agent's attack on rock that has not yet
+moved*; today that sum has one term (mechanical), and when the dissolution agent
+lands it becomes a sum over agents, so a limestone weathers fast chemically while
+resisting mechanically. Karst arrives by adding a term to the phase this fix
+already couples.
+
+**Fix**: `erosion.rs::weather_cell` takes the lithic multiplier (composed with
+the S10 biotic `wmult`); fluvial terms are coupled too, but weathering is what
+carries the hillslope signal. journal/0029.
+
+**Lesson**: "modulate X" in a brief names the *intent*, not necessarily the
+*rate-limiting term*. Before coupling a resistance to a process, find which phase
+actually sets that process's pace under the model's own flux limits — it may not
+be the one the phenomenon is named after.

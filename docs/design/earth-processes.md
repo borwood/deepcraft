@@ -61,6 +61,23 @@ outcrops; karst on carbonates.
 Sim: rate = f(climate, hardness/erodibility class params) feeding the
 loose-material budget.
 
+**Erodibility coupling — BUILT 2026-07-20 (journal/0029), off by default.**
+The deep-time engine now modulates erosion by the resistance of the lithology
+outcropping at each cell. The one decision that matters for everything
+downstream: **resistance is agent-specific, not a single "erodibility" scalar.**
+"rates set by lithology" (above) is really *four* statements, one per agent —
+mechanical abrasion, chemical dissolution, frost/ice, wave attack — and a rock
+resists each differently. **Limestone makes cliffs (mechanically strong) AND
+caves (chemically soluble); one number cannot hold both.** So the property sheet
+carries a mechanical competence axis *and* a `solubility` axis, and
+`deeptime::lithology` gives each agent its own resistance. Today only the
+mechanical agent exists (fluvial incision, cover entrainment, and — the
+rate-limiting one on hillslopes — bedrock→regolith weathering, all scaled by the
+same abrasion susceptibility). Dissolution, frost/ice and wave axes are
+populated and dormant. The § 8 karst agent, when it lands, reads the
+`solubility` axis exactly as this section's "karst on carbonates" signature
+requires — no rewrite of the mechanical path.
+
 ### 4. Transport + deposition (four agents, four signatures)
 Reality: water (sorted, graded, channelized), wind (well-sorted fine
 dunes/loess), ice (unsorted till, striations, U-valleys), gravity (talus,

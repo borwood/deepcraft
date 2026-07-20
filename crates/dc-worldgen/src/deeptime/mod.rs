@@ -26,6 +26,7 @@ pub mod climate;
 pub mod erosion;
 pub mod field;
 pub mod grid;
+pub mod lithology;
 pub mod recorder;
 pub mod refine;
 
@@ -36,6 +37,10 @@ pub use field::{
 };
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
+};
+pub use lithology::{
+    Agent, Litho, LithoResistance, REFERENCE_LITHO, exposed_litho, litho_of_tag,
+    resistance_of_material, susceptibility_table,
 };
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};

@@ -7,6 +7,65 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Erodibility coupling — lithology-aware erosion** (journal/0029,
+  background agent, worktree branch for the integrator; gates green —
+  fmt/clippy/test all `--release`, 42 suites 0 failed). Closes cause 1 of the
+  *dismal mountains* diagnosis: `erosion.rs` incised every cell with one global
+  `k_bedrock`, so there was no differential erosion anywhere. Now erosion is
+  modulated per cell per epoch by the resistance of the lithology outcropping
+  there (`deeptime::lithology`). **Off by default and byte-identical when off**
+  (`DeepConfig::erodibility`, same flip class as the S10 biotic layer;
+  `production_config` inherits `false`, so every world today is unchanged);
+  flipping it on changes `DeepField` — and terrain shape — for every new world.
+  **The load-bearing design decision — resistance is agent-specific, never a
+  single scalar.** A one-number "erodibility" cannot represent limestone, which
+  is mechanically competent (cliffs) AND chemically soluble (caves) at once — the
+  scalar forces a choice between them and forecloses karst. So the property sheet
+  gained a `solubility` axis beside its mechanical `extraction_resistance`, and
+  `LithoResistance` carries one resistance **per erosion agent** (abrasion /
+  dissolution / frost-ice / wave), each derived from the property field that
+  governs *that* agent. Only the mechanical (abrasion) agent is wired to live
+  erosion — the dissolution/frost/wave axes are populated and dormant, so the § 8
+  karst agent, the cryosphere, and littoral erosion each land by adding a term,
+  not by a rewrite. `Agent` is exhaustively matched everywhere, so a fifth agent
+  is a compile error until every site answers for it. **Where the contrast
+  rides:** the coupling scales the fluvial terms *and* — the mechanism, found by
+  measurement — the bedrock→regolith **weathering** phase, which is the
+  rate-limiting step on hillslopes (diffusion is flux-limited by available
+  regolith, so lowering collapses to the conversion rate). Coupling incision
+  alone left the world statistically unchanged; coupling weathering is what
+  differentiates it, and it is also the correct long-run home (in-place
+  weathering is the sum over agents' attacks — dissolution adds a term there).
+  **Landform evidence** (Medium, 460 m, biology on, ON vs OFF, same seed): along
+  a 250-change transect, mudstone stands +3 to +12 m above carbonaceous-mudstone
+  cell-by-cell; the sharpest contact **inverts a contour** — a hard cell 14.6 m
+  *below* its soft neighbour with coupling off stands 1.1 m *above* it on. The
+  **basement/shield prediction holds for free**: an empty record exposes igneous
+  basement (hardest in the world), basement outcrops stand ~5,750 m proud, and
+  coupling *widens* exposed basement (729 → 758 cells) as soft cover strips
+  faster around hard cores. Aggregate contrast at the shipped erosion rate is
+  modest (relief +2 m, steep +0.5 pp) because the whole landscape only removes a
+  few metres against hundreds of metres of uplift — a **headroom** experiment
+  (all rates ×10, relative rates fixed) scales it right up (relief +20 m, a hard
+  bed **44.7 m** proud), proving the model waits on an amplitude decision (cause
+  3), not a fix. **Composition order stated** (journal/0029): weathering
+  `× (wmult × litho) × taper`, diffusion `× (1−resist) × litho` — biotic factor
+  left, lithic right, load-bearing for byte-identity (f64 non-associativity).
+  **Feedback bounded**: the self-reinforcing erode-soft→expose-hard loop is
+  clamped to `[1/max, max]` (`erodibility_max`, default 5×); an 80-iter stress
+  test at 4× contrast shows no runaway, no stall, nothing non-finite.
+  **Cost +0.5 s** on the shipped path (13.89 → 14.39 s); test-suite ~503 → ~541 s
+  (the new suite's own runs), no `--ignored` gating. Determinism intact:
+  double-run byte-identical, scalar↔parallel byte-identical coupled (± biology),
+  registration-order independence inherited (the coupling rides inside
+  `dc:pass/deep-time`, adds no pass). Knobs: `erodibility`,
+  `erodibility_contrast` (2.5), `erodibility_diffusion_contrast` (1.0),
+  `erodibility_max` (5×). **NEEDS RATIFICATION** (below, § Sequenced). Files:
+  `deeptime/lithology.rs` + `tests/erodibility.rs` + `examples/erodibility_probe.rs`
+  (new); `materials/mod.rs` (`solubility` axis); `deeptime/{erosion,grid,mod}.rs`
+  (the `expose` phase, config knobs, exports); `geology.rs` (`deep_class` made
+  public); `docs/design/{geology,earth-processes}.md`.
+
 - 2026-07-20 — **S11 — water locality + the free-water body graph** (journal/0028,
   docs/spikes/S11-results.md; background agent, worktree branch for the
   integrator; gates green — fmt/clippy/test all `--release`). The spike the
@@ -506,43 +565,42 @@ tile mesher is a pure function of plain span data (async-meshing / persistent
 edit-tracked LOD store stay drop-in).
 
 
-**Erodibility coupling — lithology-aware erosion** (DECIDED 2026-07-20,
-user: "sequence erodibility first"; diagnoses the *dismal mountains*
-finding in Observed). **The gap**: `erosion.rs` incises bedrock with a
-single global `k_bedrock` — granite and mudstone erode identically, so the
-world has **no differential erosion anywhere**, and differential erosion is
-where nearly all landform drama comes from (hard beds → cliffs, ridges,
-caprock; soft beds → slopes and benches). The only spatial resistance term
-today is S10's biotic `resist`, and it only damps hillslope diffusion.
-Long-standing filed open question in geology.md ("hardness→erodibility
-coupling") — identified, never taken.
+*(**Erodibility coupling — lithology-aware erosion: SHIPPED** 2026-07-20,
+journal/0029 — see Shipped. Cause 1 of the dismal mountains is closed:
+erosion is lithology-aware, off by default, byte-identical when off,
+agent-specific resistance so karst/glacial/littoral stay implementable.
+What remains is **user decisions**.)*
 
-**The data already exists**: erosion runs per deep cell, and the recorder
-already knows which unit is exposed at each cell's surface each epoch.
-Erosion simply never asks. The milestone is to modulate incision (and
-plausibly hillslope diffusivity) by a property-sheet-derived erodibility of
-the exposed material.
+**NEEDS RATIFICATION (user-owned — this CHANGES TERRAIN SHAPE):**
+1. **Flipping `production_config`'s `erodibility` to true** — the appearance
+   call, and the whole point of the milestone. It is off today, so no world has
+   changed yet. On, it differentiates terrain by rock: soft beds cut into
+   slopes/benches, hard beds and basement stand proud. **What to look at** (the
+   agent is headless): cut faces and hillsides where a mudstone/sandstone or
+   organic-soil contact outcrops — the resistant bed should now form a small
+   ledge/bench where before it was a smooth ramp; and any stripped upland, where
+   basement should read as a resistant core. Same flip class as the S10 biotic
+   flip.
+2. **The contrast is currently modest at the shipped erosion amplitude** (relief
+   +2 m aggregate) because the world barely erodes against its uplift; the
+   headroom test shows the model produces real cliffs (44.7 m) the moment erosion
+   is allowed to cut. Whether to raise `erodibility_contrast`, raise the global
+   erosion rates (cause 3, "conservative amplitude"), or both, is the user's
+   amplitude call — the lever now exists and is a knob.
+3. **The four rate coefficients** in `resistance_of_material` (how smash /
+   solubility / permeability / cohesion map to each agent's resistance) and the
+   contrast/clamp defaults ride **plausible-not-tuned**, same status as S9's
+   physics constants and S10's rate constants (no-bandaid). Engineering, rides
+   as-built unless the user wants a different look.
 
-Design notes for whoever takes it:
-- **Feedback is the point, and the risk**: differential erosion is
-  self-reinforcing (erode soft rock → expose hard rock → erosion slows).
-  That is geologically correct and is what carves benches; it also wants a
-  stability check so a cell cannot oscillate or stall pathologically.
-- **Composition with the biotic terms** must be deliberate — `resist`
-  (root cohesion, diffusion) and `wmult` (biotic weathering) already
-  modulate erosion. State the composition order rather than letting it
-  fall out.
-- **Basement is hard by nature**: when a column is stripped past its
-  record to bedrock, the exposed material is basement igneous/metamorphic.
-  Coupling erodibility should therefore produce resistant shield/craton
-  landscapes for free — a good falsifiable prediction to check.
-- **Off-by-default first, like S10's `biotic`**: the abiotic/uncoupled path
-  must stay byte-identical so the change is provable, and flipping it on
-  changes `DeepField` for every new world (same class of event as the
-  biotic flip).
-- Deliverable should include **before/after cross-section and silhouette
-  photographs** — this is an appearance change and the user ratifies looks
-  from images.
+Original charter (for the record):
+The gap was `erosion.rs` incising bedrock with a single global `k_bedrock` —
+granite and mudstone eroded identically, so the world had no differential
+erosion anywhere. The data already existed (the recorder knew the exposed unit
+per cell per epoch); erosion never asked. Design notes honoured: agent-specific
+resistance (NOT a scalar — the limestone cliffs-vs-caves trap); composition order
+with `resist`/`wmult` stated; basement/shield prediction checked and holds;
+feedback stability clamped; off-by-default and byte-identical.
 
 **Far-field range knobs** (user-requested 2026-07-20 at the FF2a
 ratification): expose the draw-distance geometry as adjustable settings —
@@ -742,10 +800,14 @@ before any code.
 - **"Our dismal mountains"** (user, 2026-07-20) — DIAGNOSED, four causes,
   all absences rather than bugs, which is why the terrain reads as flat in
   character rather than visibly broken:
-  1. **Erosion is lithology-blind** (source-confirmed): one global
-     `k_bedrock`, so no differential erosion exists anywhere. → now
-     **Sequenced** as the erodibility-coupling milestone, user-ordered
-     first.
+  1. ~~**Erosion is lithology-blind**~~ **CLOSED 2026-07-20 (journal/0029),
+     pending the on-flip ratification.** Erosion is now lithology-aware
+     (`deeptime::lithology`), with agent-specific resistance so the fix does not
+     foreclose karst/glacial/littoral. Built off-by-default and byte-identical;
+     differential erosion is proven present (hard beds stand proud, basement
+     shields for free) and bounded (stability clamp). The mechanism now exists;
+     what remains is the user's call to flip it on in `production_config` and the
+     amplitude decision (which overlaps cause 3). Causes 2 and 4 remain open.
   2. **No dip/fold** (the layer-cake item below): even differentiated beds
      would only give horizontal benches and mesas; **dipping** hard beds
      are what produce hogbacks, cuestas and flatirons. Second in the
