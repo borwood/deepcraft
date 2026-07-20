@@ -553,12 +553,54 @@ budget-bounded) instead of reading them. Small; a dev-console/config
 surface question more than a rendering one; the ring-membership hysteresis
 and coverage tests must hold at any setting.
 
-**PBR-2 — lit-world completion** *(priority raised 2026-07-20: the 0027
-walk found excavation interiors and coal render black under the current
-sun-plus-face-orientation model, so PBR-2's tonemap/HDR + shadows now gate
-whether the underground is **lookable at**, not merely prettier. Darkness
-target DECIDED same day — visuals.md: real darkness underground, reference
-is modded Minecraft with shaders; the no-darkness lean is retired.)* (the deferred half of the renderer, opened by
+**Sim light — what the voxels know** (user-sequenced 2026-07-20: "we should
+design and sequence sim light (actually matters to game, unlocks things)";
+design thread in visuals.md § the sim must know about light). **Design pass
+first, then implementation** — this is a new sim field, not a renderer
+feature, and it is deliberately NOT PBR-2.
+
+- **What it is**: a deterministic, seed-driven, propagated per-voxel light
+  level — Minecraft-blocklight-grade, "the simulation level of our light,
+  not crisp dynamic shadows etc, just what the voxels know" (user).
+- **Why it unlocks things**: it is the missing axis for photosynthesis and
+  plant growth at the collapse tier (S10's biology gates on moisture and
+  temperature but has no light term, and it is what makes caves lightless
+  *in the simulation*); for creature/spawn behaviour; for stealth and NPC
+  vision; and for **embodied-agent perception parity** — an MCP-driven
+  character must not see better than a human player (visuals.md). It is
+  also what makes "darkness is a gameplay material" true rather than
+  decorative.
+- **Renderer light and sim light are two different things with two
+  different consumers, neither derived from the other** (DECIDED,
+  visuals.md). The shader may do shadows/HDR/godrays; the sim carries a
+  coarse level. They need not agree.
+- **Open design questions** (answer in the design pass): resolution (per
+  voxel? per column?); whether sky light and block light are separate
+  channels (Minecraft separates them so a day/night cycle need not
+  re-propagate block light — likely the same reason applies here);
+  propagation/update cost on edits, which is the same dirty-rail shape as
+  remeshing and collider tiles; and persistence vs re-derivation.
+- **Noted structural parallel** (assistant, unproven): a propagated light
+  field and water.md's bound-water saturation field are the same
+  computational shape — a bounded local relaxation over the voxel grid
+  attenuated by a per-material property (opacity vs permeability), with
+  sources and sinks. S11 measured that relaxation as genuinely local
+  (4–11 cell halo); the machinery may serve both. Check before building
+  either twice.
+- Per the knob doctrine: any propagation radius/level count ships as a
+  knob, not a baked constant.
+
+**PBR-2 — lit-world completion** *(**DEFERRED by the user 2026-07-20** — not
+next, despite wanting it: "although i want this: it's going to gum up the
+pipeline for the actual game and gen stuff. so not yet on pbr2." The
+integrator's earlier "PBR-2 gates whether the underground is lookable at"
+claim was based on a misreading of the 0027 walk and is **withdrawn** — the
+underground IS currently lookable at; one face orientation is black
+everywhere, surface and depth alike, and depth attenuates nothing. The
+darkness TARGET is DECIDED — visuals.md: real darkness underground,
+reference modded Minecraft with shaders — but its renderer half waits.
+**SIM light is sequenced ahead of it** (below): it unlocks gameplay, PBR-2
+polishes appearance.)* (the deferred half of the renderer, opened by
 PBR-1 shipping): sun **shadows** (Bevy cascades + our knobs, the chasm-shaft
 signature shot), **colored point lights** (lava/forge/bioluminescence via Bevy's
 clustered path), **tonemap/HDR** (`Camera::hdr` + exposure — real darkness and
@@ -842,11 +884,21 @@ before any code.
   end**, so a correct dark material becomes an absence of image. **Do not fix by
   brightening coal.** This is a lighting/tonemap question (an ambient/sky floor,
   or a tonemap that preserves shadow separation), and it belongs with PBR-2's
-  shadow work. Second-order finding from the same walk: **vertical faces deep in
-  an excavation receive essentially no light at all**
-  (`0027-pit-interior-unlit-lit.png` — a bright green plain with a clean brown
-  mudstone rim, and a black void four voxels below it), which is the same missing
-  floor and makes any deep dig unphotographable and probably unplayable.
+  shadow work. Second-order finding, **CORRECTED by the user 2026-07-20** — the
+  walk's "excavation interiors receive no light" reading (and the integrator's
+  "the underground is unlookable-at" amplification of it) was WRONG. The user:
+  *"underground is lit by global sun right now, depending which way the face
+  faces it has one of six levels of face light... one block face is dark (idk if
+  it's N, S, E, or W) whether on the surface or deep in a hole - the others are
+  degrees of well lit."* So the real shape of the defect is:
+  **(a) ONE face orientation is black everywhere** — on an open plain exactly as
+  much as at the bottom of a shaft — because the face pointing away from the
+  directional sun has no ambient floor under it; and
+  **(b) there is NO DARKNESS UNDERGROUND AT ALL** — depth does not attenuate
+  anything, because nothing occludes. `0027-pit-interior-unlit-lit.png` was
+  photographing (a), not a property of pits. Being underground is currently
+  *lit exactly like being outside*, which is the deeper problem and the one the
+  darkness decision (visuals.md) is about.
 
 - **Walk report (2026-07-20, journal/0027): peat and carbonaceous mudstone are
   nearly the same colour.** `[0.24, 0.17, 0.11]` vs `[0.21, 0.18, 0.15]` — a
