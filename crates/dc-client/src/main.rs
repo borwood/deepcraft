@@ -45,6 +45,7 @@ mod bench;
 mod bench_storage;
 mod body;
 mod character;
+mod edgepass;
 mod edit;
 mod farmesh;
 mod mcp;
@@ -78,6 +79,12 @@ fn main() {
         // lighting/tonemap output never masquerades as a geometry or data
         // defect (journal/0004's lesson, generalized).
         let fullbright = args.iter().any(|a| a == "--fullbright");
-        app::run(pack, mcp::McpOptions::parse(&args), fullbright);
+        // `--edges`: renderer-added crease/silhouette outlining — the shape
+        // diagnostic. Composable with `--fullbright` (the expected use: benches
+        // legible on the flat-albedo field) and with the lit pass. When off,
+        // the edge pass is never scheduled (edgepass.rs), so `--fullbright`
+        // alone stays the byte-identical pure-data control (corrections #18).
+        let edges = args.iter().any(|a| a == "--edges");
+        app::run(pack, mcp::McpOptions::parse(&args), fullbright, edges);
     }
 }

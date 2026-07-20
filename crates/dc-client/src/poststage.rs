@@ -153,7 +153,8 @@ impl Plugin for PostStagePlugin {
                 Core3d,
                 post_stage
                     .after(tonemapping)
-                    .in_set(Core3dSystems::PostProcess),
+                    .in_set(Core3dSystems::PostProcess)
+                    .in_set(PostStageSet),
             );
     }
 }
@@ -242,6 +243,12 @@ fn prepare_post_stage_pipelines(
         commands.entity(entity).insert(PostStagePipelineId(id));
     }
 }
+
+/// Ordering label for [`post_stage`], so the dev-only `--edges` pass
+/// (edgepass.rs) can schedule itself `.after(PostStageSet)` — outlining the
+/// final composited image — without exposing this system's private param types.
+#[derive(SystemSet, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub(crate) struct PostStageSet;
 
 /// The pass itself: one fullscreen triangle, pack fragment shader, view
 /// target ping-pong. Runs per camera in `Core3dSystems::PostProcess`.
