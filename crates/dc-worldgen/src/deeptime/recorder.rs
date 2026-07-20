@@ -223,6 +223,17 @@ pub struct DepUnit {
     /// reason about (earth-processes.md § 7, structural deformation of the
     /// record). Recorded as a first-class property of the overlying unit.
     pub unconformity: bool,
+    /// The **tectonic chapter** (0-based) this unit was deposited in
+    /// (tectonics.md § 3.3). A *measurement* (when), like every other tag axis,
+    /// and the age label the Phanerozoic register requires: chapter `c` spans
+    /// `[500 − c·(500/K), 500 − (c+1)·(500/K)]` Myr before present. It joins the
+    /// merge key, so units do not merge across a chapter boundary (a real time
+    /// surface). Always `0` when [`super::grid::DeepConfig::tectonic_history`] is
+    /// off — every deposit passes chapter `0`, so `0 == 0` keeps the merge and
+    /// therefore the record byte-identical to the pre-tectonic-history path.
+    /// Appended last (wire discipline — corrections #3): fits `DepUnit`'s
+    /// existing 8-byte padding, so `sizeof` is unchanged (verified in the spike).
+    pub chapter: u8,
 }
 
 /// The ordered per-cell deposition log, bottom-up. `units[0]` is the deepest
@@ -246,13 +257,17 @@ impl DeepStrata {
         self.units.iter().map(|u| u.thickness_m).sum()
     }
 
-    /// Record a net deposition of `d` metres (`d > 0`) under `tag`. Merges into
-    /// the top unit when the tag agrees and the column is conformable; starts a
-    /// new (unconformity-flagged) unit otherwise.
-    pub fn deposit(&mut self, tag: DepTag, d: f64) {
+    /// Record a net deposition of `d` metres (`d > 0`) under `tag`, deposited in
+    /// tectonic `chapter`. Merges into the top unit when the tag **and chapter**
+    /// agree and the column is conformable; starts a new (unconformity-flagged)
+    /// unit otherwise. `chapter` is `0` on the pre-tectonic-history path, so the
+    /// extra `top.chapter == chapter` guard is always satisfied and merging is
+    /// byte-identical to before.
+    pub fn deposit(&mut self, tag: DepTag, d: f64, chapter: u8) {
         if !self.stripped
             && let Some(top) = self.units.last_mut()
             && top.tag == tag
+            && top.chapter == chapter
         {
             top.thickness_m += d;
             return;
@@ -261,6 +276,7 @@ impl DeepStrata {
             tag,
             thickness_m: d,
             unconformity: self.stripped,
+            chapter,
         });
         self.stripped = false;
     }
@@ -280,7 +296,7 @@ impl DeepStrata {
     ///
     /// Preserves `sum(units) == H` exactly: `extra` is added once, and the merge
     /// only moves thickness between units.
-    pub fn overprint_top(&mut self, tag: DepTag, extra: f64) {
+    pub fn overprint_top(&mut self, tag: DepTag, extra: f64, chapter: u8) {
         let charcoal_top = self
             .units
             .last()
@@ -291,6 +307,7 @@ impl DeepStrata {
                 tag,
                 thickness_m: extra,
                 unconformity: self.stripped,
+                chapter,
             });
             self.stripped = false;
             return;
@@ -298,9 +315,14 @@ impl DeepStrata {
         let top = self.units.last_mut().expect("non-empty");
         top.thickness_m += extra;
         top.tag = tag;
-        // Merge down into an identically-tagged predecessor.
+        top.chapter = chapter;
+        // Merge down into an identically-tagged predecessor of the same chapter.
         let n = self.units.len();
-        if n >= 2 && self.units[n - 2].tag == tag && !self.units[n - 1].unconformity {
+        if n >= 2
+            && self.units[n - 2].tag == tag
+            && self.units[n - 2].chapter == chapter
+            && !self.units[n - 1].unconformity
+        {
             let t = self.units.pop().expect("non-empty").thickness_m;
             self.units.last_mut().expect("non-empty").thickness_m += t;
         }

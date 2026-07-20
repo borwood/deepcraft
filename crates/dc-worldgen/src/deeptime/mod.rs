@@ -26,14 +26,17 @@ pub mod climate;
 pub mod erosion;
 pub mod field;
 pub mod grid;
+pub mod isostasy;
 pub mod lithology;
 pub mod recorder;
 pub mod refine;
+pub mod tectonics;
 
 pub use biotic::{BioticSim, COAL_MIN_M, CellBiota, ROSTER, species_name};
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{
-    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field, production_config,
+    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field, build_field_cfg,
+    production_config,
 };
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
@@ -44,6 +47,7 @@ pub use lithology::{
 };
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
+pub use tectonics::{BoundaryKind, CrustKind, Plate};
 
 use crate::pregen::{CellGrid, Pregen};
 
@@ -66,6 +70,19 @@ pub struct DeepRun {
     /// field drops it.
     pub biota: Option<BioticSim>,
     pub iterations: u32,
+    /// **Total thickening applied** over the run (`Σ over iters of Σ blended
+    /// forcing`, before the `t_crust` floor). Zero when tectonic history is off.
+    /// With `exhum_total` this closes the thickness ledger `Δ(Σt_crust) ≈
+    /// thickening_total − exhum_total` (§ 3.4), reported in the spike.
+    pub thickening_total: f64,
+    /// **Total bedrock exhumed** over the run (`Σ grid.exhum` at finalize). Zero
+    /// when tectonic history is off.
+    pub exhum_total: f64,
+    /// **The chapter table** (§ 8): plate state at the start of each chapter
+    /// (`K + 1` entries; the last is one past the final chapter for the ramp).
+    /// Empty when tectonic history is off. ~5 KB — the entire tectonic history of
+    /// a world, from which per-chapter deformation is re-derivable analytically.
+    pub chapters: Vec<Vec<Plate>>,
 }
 
 /// Sum of bedrock + alluvium over the whole grid (the conserved quantity, up
@@ -105,12 +122,30 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     } else {
         None
     };
+
+    // Tectonic history (§ 3): precompute the chapter table and the analytic
+    // thickening forcing plane per chapter geometry (repaint-per-chapter, § 3.1),
+    // to be blended per iteration across the chapter ramp. Off → empty, and the
+    // step's forcing plane stays empty (byte-identical legacy path).
+    let tec = TectonicSchedule::new(cfg, &grid);
+
     let mut uplift_total = 0.0;
     let mut biotic_total = 0.0;
+    let mut thickening_total = 0.0;
+    let mut blended = if cfg.tectonic_history {
+        vec![0.0f64; grid.w * grid.w]
+    } else {
+        Vec::new()
+    };
     for it in 0..cfg.iterations {
         let sl = grid::sea_level_at(cfg, it);
         if it > 0 && it % cfg.remarch_interval == 0 {
             climate::march(&mut grid, sl);
+        }
+        if cfg.tectonic_history {
+            let chapter = tec.blend_into(cfg, it, &mut blended);
+            thickening_total += blended.iter().sum::<f64>();
+            erosion.set_tectonic(chapter, &blended);
         }
         // Erosion consumes the modifiers biology wrote LAST epoch...
         uplift_total += erosion.step(&mut grid, cfg, sl);
@@ -126,6 +161,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     if let Some(b) = biota.as_ref() {
         b.finalize(&mut grid);
     }
+    let exhum_total = grid.exhum.iter().sum::<f64>();
     DeepRun {
         grid,
         erosion,
@@ -134,5 +170,71 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         mass_before,
         biota,
         iterations: cfg.iterations,
+        thickening_total,
+        exhum_total,
+        chapters: tec.table,
+    }
+}
+
+/// The precomputed tectonic-history schedule: the chapter table plus one analytic
+/// thickening forcing plane per chapter geometry, blended per iteration across
+/// the chapter ramp. Empty when tectonic history is off.
+struct TectonicSchedule {
+    /// Plate state at the start of each chapter (`K + 1` entries).
+    table: Vec<Vec<Plate>>,
+    /// One forcing plane (m/iter thickening) per chapter geometry, row-major.
+    planes: Vec<Vec<f64>>,
+}
+
+impl TectonicSchedule {
+    fn new(cfg: &DeepConfig, grid: &DeepGrid) -> Self {
+        if !cfg.tectonic_history {
+            return Self {
+                table: Vec::new(),
+                planes: Vec::new(),
+            };
+        }
+        let w = grid.w;
+        let cell_m = grid.cell_m;
+        let extent_km = w as f64 * cell_m / 1000.0;
+        let table = tectonics::chapter_table(cfg, extent_km);
+        let v_ref = tectonics::reference_velocity(cfg, extent_km);
+        let planes: Vec<Vec<f64>> = table
+            .iter()
+            .map(|plates| {
+                let mut plane = vec![0.0f64; w * w];
+                for gy in 0..w {
+                    for gx in 0..w {
+                        let x = (gx as f64 + 0.5) * cell_m / 1000.0;
+                        let y = (gy as f64 + 0.5) * cell_m / 1000.0;
+                        plane[gy * w + gx] = tectonics::forcing_at(plates, cfg, v_ref, x, y);
+                    }
+                }
+                plane
+            })
+            .collect();
+        Self { table, planes }
+    }
+
+    /// Blend the two chapter planes for iteration `it` into `out`, returning the
+    /// chapter index the recorder should stamp. The forcing is always in transit:
+    /// within chapter `c` it lerps from plane `c` toward plane `c+1` (`ramp`), or
+    /// steps to plane `c` (the negative control, `ramp_chapters = false`).
+    fn blend_into(&self, cfg: &DeepConfig, it: u32, out: &mut [f64]) -> u8 {
+        let k = cfg.chapters.max(1);
+        let ipc = f64::from(cfg.iterations.max(1)) / f64::from(k);
+        let pos = f64::from(it) / ipc;
+        let c = (pos.floor() as usize).min(k as usize - 1);
+        let frac = if cfg.ramp_chapters {
+            (pos - c as f64).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        let a = &self.planes[c];
+        let b = &self.planes[(c + 1).min(self.planes.len() - 1)];
+        for (o, (av, bv)) in out.iter_mut().zip(a.iter().zip(b.iter())) {
+            *o = av * (1.0 - frac) + bv * frac;
+        }
+        c as u8
     }
 }
