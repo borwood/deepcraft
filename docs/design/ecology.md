@@ -242,3 +242,29 @@ byte-identity. Spike-level findings that bear on this doc:
 
 The GO/NO-GO and five ratification calls are the user's — ROADMAP
 § Sequenced, "S10 follow-through".
+
+## DECIDED 2026-07-20 (user) — S10 GO, biology ships
+
+- **GO on the biotic layer.** `production_config`'s `biotic` flag is flipped
+  ON; biology is a shipped part of world generation, not an experiment.
+- **The 25 s ritual is acceptable** — explicitly, with headroom: the user's
+  frame is that Dwarf Fortress takes minutes, and "when we have full history,
+  we'll likely take much longer." **World-generation time is not a design
+  constraint we optimize against by default.** The mitigation is not a faster
+  ritual but an *alternative to running one* — see the ready-made-worlds
+  direction (ideas.md § entering a world without generating one), which the
+  user re-raised at this decision.
+- **Coal, and every other missing organic material, gets built immediately**
+  ("asap"). The measured gap: `deep_class` (geology.rs) selects a content
+  class from `DepTag`'s env/energy only, so the `Biofacies` axis the S10
+  recorder writes never reaches material selection — an organic unit
+  collapses as ordinary clastic and the 24 m seam is unminable. This closes
+  that.
+- Riding as-built pending later judgement (NOT re-opened here): the 7-species
+  roster and its ~25 constants, and the signal densities (a fifth of columns
+  carrying fire records) as an aesthetic question. Both are calibrated to the
+  current precip/P fields — if the orographic march or the P economy is
+  retuned, they need **re-measuring, not re-guessing** (journal/0025).
+- **Still open, still the user's**: § 5 fork 2 (pack-addition blast radius).
+  S10 proved biology is an erosion term, so an organism pack changes terrain.
+  Undecided as of this entry.

@@ -289,3 +289,26 @@ all. The user's direction reframes it:
 - Connects to the water thread: porosity/permeability differ sharply
   between loose and packed soil, so this is upstream of groundwater and
   of S8 porosity-driven wetness rendering.
+
+## Entering a world without generating one (user, re-raised 2026-07-20)
+
+Raised again while ratifying S10's 25 s ritual — the point being that
+generation cost should be answered by *offering a way around it*, not by
+capping simulation depth:
+
+- **Optional ready-made worlds**, shipped pre-generated, where the player
+  picks a locale and starts immediately — **no generation time at all** —
+  with generating your own always available as the alternative.
+- The entry modes discussed before, now attached to this: **join a
+  settlement**, **assume a character from present history**, or **start as a
+  hermit in a random wilderness**. These are not just spawn points; a
+  pre-generated world has a *history*, so entry means entering an ongoing
+  story at a chosen position in it.
+- Why it fits the architecture: worlds are seed + committed ledger facts, so
+  a shipped world is a distributable artifact rather than a special case, and
+  the deep-time record (now including biology's coal, paleosols, charcoal)
+  is exactly the content that makes a canned world worth inhabiting.
+- Open: what a shipped world weighs, whether shipped worlds pin a
+  seed-versioning contract (the filed "seed-stable worlds across releases"
+  question becomes load-bearing here), and how player edits diverge from a
+  canonical shipped world.

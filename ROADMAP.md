@@ -342,9 +342,22 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- 2026-07-20 — **Organic materials + the biotic production flip** (background
+  agent, worktree; **DECIDED 2026-07-20**, ecology.md § DECIDED — S10 GO).
+  Flips `production_config`'s `biotic` ON and closes the S10 gap: the
+  `Biofacies` axis the recorder writes never reaches material selection
+  (`geology.rs::deep_class` switches on env/energy only), so an organic unit
+  collapses as ordinary clastic and the measured 24 m coal seam is unminable.
+  Brings coal + the other missing organic materials to the collapse tier, so
+  the biology in the record becomes world a player can dig.
+
 *(**S10 biotic-layer spike: SHIPPED** 2026-07-20, journal/0025 — see Shipped.
-Agent recommends GO; the verdict and the five ratification calls are the
-user's, listed in Sequenced below.)*
+**GO RATIFIED 2026-07-20** (user): the 25 s ritual is acceptable —
+world-generation time is explicitly **not** a constraint we optimize against
+(the user's frame: Dwarf Fortress takes minutes; full history will take
+longer), and the answer to gen cost is the ready-made-worlds direction
+(ideas.md), not a cheaper simulation. Roster constants + signal densities
+ride as-built; § 5 fork 2 remains open and the user's.)*
 
 *(Session-2 close state: the day shipped and walk-verified SIX integrated
 milestones — S1-fallback sweep 0017, PBR-1 0019, render polish 0020,
