@@ -663,6 +663,30 @@ feature, and it is deliberately NOT PBR-2.
   either twice.
 - Per the knob doctrine: any propagation radius/level count ships as a
   knob, not a baked constant.
+- **SHAPE RATIFIED 2026-07-20 (user: "go with your suggested shape"),
+  mirroring how water went**: (1) a **design pass** producing the doc —
+  including the heavenly-body *path* abstraction; (2) a **spike** measuring
+  derive-per-chunk cost and proving the relaxation's order-independence by
+  construction; (3) the **milestone**. No implementation before the doc.
+- **Day/night needs no separate system** — it emerges from body paths, so
+  the ephemeris IS the path primitive (user, 2026-07-20). Paths must be
+  parameterised over world time AND observer latitude, with a long cycle
+  that changes the path itself, so **seasons, poles and tropics can land
+  later without a rewrite** — build the path capability now, not the
+  features. `lat_deg` already exists on pregen cells.
+- **Block light is unblocked from the item system** by a **dev-light block**
+  (user): a point-light emitter that never spawns naturally, so propagation
+  can be built and tested before torches are items. Plant light budgets
+  deferred.
+- Determinism requirement for the spike: light is a **max-plus relaxation**
+  (`light(v) = max(emission, max over neighbours(light(n) − attenuation))`),
+  monotone with a unique fixpoint, so run-to-convergence is
+  order-independent **by construction**. An ordered flood-fill queue would
+  diverge under replay/parallel — same family as S9b and S11.
+- Note in favour of deriving: a stored model needs *un-propagation* when a
+  source is removed (the classic stuck-light bug class in MC-likes); a
+  derived model has no removal path at all — re-derive the halo and it is
+  correct.
 
 **PBR-2 — lit-world completion** *(**DEFERRED by the user 2026-07-20** — not
 next, despite wanting it: "although i want this: it's going to gum up the

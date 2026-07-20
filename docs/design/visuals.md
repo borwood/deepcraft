@@ -321,6 +321,46 @@ OPEN.
   exactly the bounded, summary-consulting, optimistic-sky queries S3
   specified.
 
+### Body PATHS — the day/night cycle is emergent, and the seasons seam (user, 2026-07-20)
+
+> day-night cycle would be emergent from heavenly bodies paths. by the way:
+> seasons. don't need to flesh that out or build yet, but have the seam in
+> mind - the path of a heavenly body can change on a cycle like the
+> perceived path of the sun, additionally we could actually change the
+> perceived path of a heavenly body depending on region latitude (our poles
+> and tropics fall out). again - not planning all of that now, just building
+> robust path ability for heavenly bodies.
+
+- **There is no separate day/night cycle system.** Day and night *emerge*
+  from body paths. This closes the "we have no ephemeris" gap raised in
+  design discussion — the ephemeris **is** the paths, and it is the same
+  primitive, not an extra one.
+- **A body's path is parameterised, not a fixed direction function.** Build
+  it as `direction = path(body, world_time, observer_latitude)`, with:
+  - **a long cycle over which the path itself changes** — the seam for
+    **seasons** (the sun's perceived arc shifting across a year);
+  - **a latitude term** — so the perceived path differs by region, and
+    **poles and tropics fall out** rather than being authored.
+- **BUILD NOW: only the robust path capability.** Seasons and latitude
+  effects are explicitly NOT planned or built yet (user). The requirement is
+  that the path abstraction can express them later without a rewrite — the
+  same non-preclusion discipline as the erodibility/limestone case.
+- **The latitude input already exists**: pregen cells carry `lat_deg`
+  (`collapse.rs::climate_at` bilinearly interpolates it for the climate
+  field), so an observer's latitude is already a cheap query.
+- World time must be a deterministic tick counter, never a wall clock
+  (project law).
+
+### Block light without items: the dev-light block (user, 2026-07-20)
+
+Block light was noted as blocked on placeable sources, which need the
+unbuilt item system. The user's unblock: **"we can always make a dev-light
+block that does not naturally spawn but is just a point-light block, pretty
+trivially."** So block-light propagation can be developed and tested
+against a dev-only emissive block long before torches exist as items. Plants
+and their light budgets are explicitly deferred ("we can hash out plants
+later").
+
 ### OPEN — colour, and creatures that see bands we do not
 
 The user pushed back on monochrome sim light:

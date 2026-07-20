@@ -42,3 +42,5 @@ list and not a roadmap — some of these are far off, and that is fine.
   of them.
 - Ancient aliens built impenetrable outposts in geological prehistory, and the
   whole downstream simulation takes it seriously — burial, exhumation, the lot.
+- The sun's arc across your sky depends on where you are standing, so poles
+  and tropics are somewhere you travel to, not a setting anyone chose.
