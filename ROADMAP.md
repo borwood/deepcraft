@@ -7,6 +7,58 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Organic materials + the biotic production flip** (journal/0026,
+  background agent, worktree branch for the integrator; gates green —
+  fmt/clippy/test all `--release`, 40 suites 0 failed). **The flip is live**:
+  `production_config`'s `biotic` is ON, so every new world runs the S10 ecology
+  and its `DeepField` carries organic facies. And the S10 gap is closed —
+  `geology.rs::deep_class` now **consults the `Biofacies` axis first and lets it
+  win where inhabited**, so an organic unit resolves to an organic content class
+  instead of collapsing as whatever the transporting flow was doing. The measured
+  seam argues for "wins" over "blends": the 24 m seam at world voxel
+  (107338, 58787) is tagged `Sa/A/L` — subaerial, **arid**, **low** energy — which
+  the old rule sent to clastic-fine, i.e. mudstone (coal swamps sit where
+  drainage collects, not where rain falls; S10 design choice 8). **What a player
+  can now dig**: that column reads 3 vox mudstone / 8 vox sandstone+conglomerate /
+  **27 vox coal** / 7 vox conglomerate / **2 vox coal** / marine mudstone below —
+  `Block::Coal` and `MaterialId::COAL` in the voxel contents, and coal's smash
+  resistance is 2.2 against granite's 5.5 (real property sheet), so it yields to
+  a tool that would barely scratch the cap. **Three materials added**, each a
+  new class filled by one vanilla member (classes-as-contracts, so a pack
+  diversifies without moving a seam): `dc:stratum/organic-coal` → coal,
+  `dc:stratum/organic-peat` → peat, `dc:stratum/organic-soil` → carbonaceous
+  mudstone (fills both `Soil` and `Retro`). **Three deliberately NOT added, on
+  measurement**: a whole-grid census of what survives the 0.9 m voxel decided the
+  roster — coal 89.6 % of units survive, Soil 48.5 %, Retro 6 % of units but 56 %
+  of thickness, Peat 2.3 % (72 units world-wide — rare because thick *and*
+  unburied is the definition of not-yet-coal), and **Charcoal 0 of 158 310**
+  (mean bed ~3.5 cm against a 90 cm voxel). So **no charcoal material** — a
+  charcoal band cannot exist in a voxel column and the material would be dead
+  content; the honest form is an inclusion (pore/debris eighths, the placer
+  pattern), filed to Sequenced with the measurement. **No coal rank ladder** —
+  lignite→anthracite is a real burial-depth progression but the transitions live
+  at 1–2 km and our deepest overburden is ~100 m, so a rank window would be
+  decoration on an axis the data never visits; the class documents that its
+  **depth axis is the rank axis** for the day the record carries kilometres.
+  **No distinct retrogressive material** — retrogression is a phosphorus fact
+  about a community, and the property sheet has no nutrient axis. Invariants
+  intact: class-share unchanged (tested with a second coal member),
+  registration-order independence re-proven roster-agnostically, determinism
+  untouched. **Ritual measured 13.79 s** with biology on — see **corrections
+  #12**: the ratified 25 s was the spike harness's *scalar* path; production takes
+  S9b's byte-identical *parallel* path, so biology's real marginal cost is
+  **+2.6 s**, not +10 s. Test-suite 381.9 s → 503 s (+121 s, of which ~106 s is
+  the flip itself putting a ~14 s ritual behind every world-level suite and ~15 s
+  is the new proof); no `--ignored` gating used. **NEEDS RATIFICATION**
+  (appearance): three new rock colours enter cut faces, and carbonaceous mudstone
+  is now the second most abundant facies in the world (185 km of surviving
+  thickness) — the user should eyeball a cut face before this is settled. Files:
+  `materials/mod.rs`, `materials/geology.rs`, `voxel.rs`, `worldgen/geology.rs`
+  (the routing), `pipeline.rs`, `collapse.rs`, `deeptime/field.rs` (the flip),
+  `dc-api/host.rs`, `meshing.rs`/`terrain_material.rs`/`terrain_fullbright.wgsl`
+  (atlas 26 → 29), `gen_placeholder_textures.py` + 3 packs, `tests/organic.rs` +
+  `examples/organic_probe.rs` (new).
+
 - 2026-07-20 — **S10 — the biotic layer on the deep-time A-tier** (journal/0025,
   docs/spikes/S10-results.md; background agent, worktree branch for the
   integrator; gates green — fmt/clippy/test all `--release`, 39 suites 0 failed).
@@ -342,14 +394,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- 2026-07-20 — **Organic materials + the biotic production flip** (background
-  agent, worktree; **DECIDED 2026-07-20**, ecology.md § DECIDED — S10 GO).
-  Flips `production_config`'s `biotic` ON and closes the S10 gap: the
-  `Biofacies` axis the recorder writes never reaches material selection
-  (`geology.rs::deep_class` switches on env/energy only), so an organic unit
-  collapses as ordinary clastic and the measured 24 m coal seam is unminable.
-  Brings coal + the other missing organic materials to the collapse tier, so
-  the biology in the record becomes world a player can dig.
+*(**Organic materials + the biotic production flip: SHIPPED** 2026-07-20,
+journal/0026 — see Shipped. Biology is on in every new world and the 24 m seam
+is diggable.)*
 
 *(**S10 biotic-layer spike: SHIPPED** 2026-07-20, journal/0025 — see Shipped.
 **GO RATIFIED 2026-07-20** (user): the 25 s ritual is acceptable —
@@ -409,13 +456,24 @@ answered the gate question — all four signals present and legible, cost
 implementation slice.)*
 
 **NEEDS RATIFICATION (user-owned, from S10-results.md § Recommendation):**
-1. **The world-creation ritual grows 15 s → 25 s (+66 %)** at Medium *and*
-   Large. Acceptable, or is the budget tighter?
-2. **Flipping `production_config`'s `biotic` to true** — the actual GO
-   action, and with it a changed `DeepField` for every new world.
+1. ~~**The world-creation ritual grows 15 s → 25 s (+66 %)**~~ — **RATIFIED
+   2026-07-20, and the number was pessimistic**: measured on the shipped path
+   the ritual is **13.79 s** (biology's marginal cost +2.6 s, not +10 s). The
+   25 s figure came from the spike harness's *scalar* driver; production takes
+   S9b's byte-identical parallel path — **corrections #12**, journal/0026.
+2. ~~**Flipping `production_config`'s `biotic` to true**~~ — **DONE**
+   2026-07-20 (journal/0026). Biology runs in every new world; the `DeepField`
+   changed for every world created from here.
 3. **Signal abundance is aesthetic, not correctness**: coal 0.55 % of
    columns, paleosols 22.9 %, charcoal 20.2 %, retrogression 23.5 %. Is a
    fifth of the world carrying a fire record the texture we want?
+   *(Amended 2026-07-20, journal/0026 — the question is now narrower than it
+   looked. Measured against the 0.9 m voxel, the **fire record is entirely
+   invisible** to a player (0 of 158 310 beds survive quantization), so the
+   "fifth of the world burning" texture does not reach the eye at all today.
+   What DOES reach the eye is organic **soil**: 185 km of surviving thickness,
+   making carbonaceous mudstone the second most abundant rock in cut faces.
+   That, not charcoal, is the appearance call to make.)*
 4. **The 7-species roster and ~25 rate constants** ride as
    plausible-not-tuned (no-bandaid: they are the mechanism's calibration,
    not a patch) — same status as S9's physics constants.
@@ -427,14 +485,33 @@ implementation slice.)*
    world creation (pack-add affects ungenerated regions only, matching the
    DF-like seed policy) or accept landform drift.
 
-**Implementation slice, sequenced behind the GO — collapse-tier organic
-materials** (the honest gap S10 names): the record contains coal, the world
-does not. `deep_class` maps deep units to material classes from env/energy
-only, so an organic unit collapses as ordinary clastic and there is no coal
-member in the roster. Wants coal/lignite members plus a `Biofacies` → class
-mapping, after which a player can actually mine the 24 m seam at world voxel
-(107338, 58787) on seed `0x0D5E_ED57_2026`. Small, and it is where the
-spike's cost finally buys gameplay.
+*(**Collapse-tier organic materials + the production flip: SHIPPED**
+2026-07-20, journal/0026 — see Shipped. The `Biofacies` → class routing is in,
+coal/peat/carbonaceous-mudstone exist, and the 24 m seam at world voxel
+(107338, 58787) is diggable. Two follow-ons fell out of it, both
+measurement-backed:)*
+
+**Charcoal as an inclusion, not a band** (journal/0026, measured): the fire
+record is the third most numerous facies (158 310 beds) and **none of it
+survives the collapse tier** — mean bed ~3.5 cm against a 0.9 m voxel, 0 of
+158 310 kept. A charcoal *band* is therefore impossible at this voxel scale, so
+no charcoal material was shipped. The honest representation is the one geology.md
+§ inclusions already ratified: a few dark eighths riding inside the host stratum
+above the burn, exactly as the placer puts gold in gravel and 3d puts olivine in
+basalt. Blocked on a mechanism, not a decision — `deposit_deep_history` currently
+*drops* sub-voxel units, so this needs a redistribute-into-host rule that touches
+every dropped unit (mineral ones included) plus an inclusion channel on
+`StrataEvent` distinct from the placer's `ore`. Its own slice, with its own
+invariant work.
+
+**Coal rank when burial deepens** (journal/0026): `dc:stratum/organic-coal`
+ships one member because rank transitions (lignite → sub-bituminous →
+bituminous → anthracite) live at ~1–2 km of burial and our deepest recorded
+overburden is ~100 m — a rank ladder now would be a discriminator on an axis the
+data never visits. The class's **depth axis is the rank axis** and the
+class-share invariant means members can be added later without moving an
+existing seam. Revisit when the record carries kilometres (3e-later / thicker
+basins).
 
 Also filed from S10 (not blocking): parent-material phosphorus from pregen
 provenance instead of a uniform pool; individual plant placement from the

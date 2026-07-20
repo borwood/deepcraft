@@ -105,6 +105,22 @@ not ossify:
 - Note: the chunk-line family cutover (ROADMAP Observed) is an orthogonal
   quantization artifact — it would occur under perfect paleo-context too.
 
+> **SHIP UPDATE 2026-07-20 (journal/0026 — organic strata join the roster).**
+> Three classes were added on the classes-as-contracts pattern, driven by the
+> deep-time recorder's `Biofacies` axis rather than by the clastic env/energy
+> rule: `dc:stratum/organic-coal` (coal), `dc:stratum/organic-peat` (peat), and
+> `dc:stratum/organic-soil` (carbonaceous mudstone, filling both the `Soil` and
+> `Retro` facies). Two roster decisions were made by MEASUREMENT and are worth
+> keeping as precedent for the carbonate/metamorphic slices: (1) **charcoal got
+> no member** because a fire bed averages ~3.5 cm and *none* of 158 310 of them
+> survives the 0.9 m voxel — the § inclusions representation (pore/debris
+> partials) is the honest form for a sub-voxel facies, and the resolution sieve
+> is a real constraint on what any class can express; (2) **coal rank got no
+> ladder** because lignite→anthracite is discriminated by burial depth at
+> ~1–2 km and our record tops out near 100 m — the class documents its depth
+> axis AS the rank axis so a later pack can fill it without moving a seam, which
+> is the class-share invariant paying rent.
+
 ## Roster, inclusions, and unfilled slots — DECIDED 2026-07-19
 
 - **Rich vanilla mineral roster.** The default pack does not shy away from

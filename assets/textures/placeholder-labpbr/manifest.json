@@ -31,7 +31,7 @@
       "ramp_levels": "from grain size (4 fine / 5 mid / 6 coarse)"
     }
   },
-  "material_count": 22,
+  "material_count": 25,
   "block_only_count": 4,
   "materials": {
     "andesite": {
@@ -162,6 +162,38 @@
         "A_emission": 255
       }
     },
+    "carbonaceous-mudstone": {
+      "name": "carbonaceous mudstone",
+      "kind": "material",
+      "files": {
+        "basecolor": "carbonaceous-mudstone/basecolor.png",
+        "normal": "carbonaceous-mudstone/normal.png",
+        "specular": "carbonaceous-mudstone/specular.png"
+      },
+      "base_color_srgb": [
+        0.21,
+        0.18,
+        0.15
+      ],
+      "seed": 1786418977230135709,
+      "params": {
+        "grain_mm": 0.004,
+        "grain_norm": 0.0641,
+        "noise_freq": 16,
+        "hardness": 3.575,
+        "relief_amp": 0.9336,
+        "ramp_levels": 4,
+        "smoothness": 0.7504,
+        "porosity": 0.3125,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 191,
+        "G_f0_or_metal": 10,
+        "B_porosity": 20,
+        "A_emission": 255
+      }
+    },
     "clay": {
       "name": "clay",
       "kind": "material",
@@ -191,6 +223,38 @@
         "R_smoothness": 192,
         "G_f0_or_metal": 10,
         "B_porosity": 29,
+        "A_emission": 255
+      }
+    },
+    "coal": {
+      "name": "coal",
+      "kind": "material",
+      "files": {
+        "basecolor": "coal/basecolor.png",
+        "normal": "coal/normal.png",
+        "specular": "coal/specular.png"
+      },
+      "base_color_srgb": [
+        0.07,
+        0.065,
+        0.06
+      ],
+      "seed": 7859147031799210125,
+      "params": {
+        "grain_mm": 0.05,
+        "grain_norm": 0.2975,
+        "noise_freq": 8,
+        "hardness": 2.9,
+        "relief_amp": 0.8281,
+        "ramp_levels": 4,
+        "smoothness": 0.6945,
+        "porosity": 0.5781,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 177,
+        "G_f0_or_metal": 10,
+        "B_porosity": 37,
         "A_emission": 255
       }
     },
@@ -578,6 +642,38 @@
         "A_emission": 255
       }
     },
+    "peat": {
+      "name": "peat",
+      "kind": "material",
+      "files": {
+        "basecolor": "peat/basecolor.png",
+        "normal": "peat/normal.png",
+        "specular": "peat/specular.png"
+      },
+      "base_color_srgb": [
+        0.24,
+        0.17,
+        0.11
+      ],
+      "seed": 11302983000946217033,
+      "params": {
+        "grain_mm": 5.0,
+        "grain_norm": 0.7231,
+        "noise_freq": 8,
+        "hardness": 1.225,
+        "relief_amp": 0.5664,
+        "ramp_levels": 6,
+        "smoothness": 0.4024,
+        "porosity": 0.875,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 103,
+        "G_f0_or_metal": 10,
+        "B_porosity": 56,
+        "A_emission": 255
+      }
+    },
     "potsherd": {
       "name": "potsherd",
       "kind": "material",
@@ -872,6 +968,14 @@
       "pack": "basalt",
       "shared_with_material": true
     },
+    "carbonaceous-mudstone": {
+      "pack": "carbonaceous-mudstone",
+      "shared_with_material": false
+    },
+    "coal": {
+      "pack": "coal",
+      "shared_with_material": false
+    },
     "dirt": {
       "pack": "dirt",
       "shared_with_material": false
@@ -887,6 +991,10 @@
     "mudstone": {
       "pack": "mudstone",
       "shared_with_material": true
+    },
+    "peat": {
+      "pack": "peat",
+      "shared_with_material": false
     },
     "sandstone": {
       "pack": "sandstone",

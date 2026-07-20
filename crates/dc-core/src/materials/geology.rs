@@ -39,8 +39,29 @@ pub const CLASS_ORE_PLACER: &str = "dc:ore/placer";
 /// never reads the weather.
 pub const CLASS_ACCESSORY_MAFIC: &str = "dc:accessory/mafic";
 
+// --- organic strata (journal/0026): the classes the deep-time recorder's
+// `Biofacies` axis routes to. Each is a contract for one *measured* organic
+// facies, so a pack diversifies a facies rather than guessing which rock a
+// swamp made. They are surficial depositional classes, so — unlike igneous —
+// they read the climate-at-deposition. ---
+/// A lithified organic soil horizon (carbonaceous mudstone and its kin).
+/// Buried, a member of this class *is* a paleosol. Fills both the `Soil` and
+/// `Retro` facies: the difference between a fertile soil and a
+/// phosphorus-starved retrogressive one is nutrient status, which no property
+/// sheet axis expresses — see journal/0026 § what the record cannot say.
+pub const CLASS_ORGANIC_SOIL: &str = "dc:stratum/organic-soil";
+/// Waterlogged organic accumulation that outran decomposition (the `Peat`
+/// facies) — the pre-burial organic, shallow by definition.
+pub const CLASS_ORGANIC_PEAT: &str = "dc:stratum/organic-peat";
+/// Buried, compacted peat (the `Coal` facies): the coal seam. The class's
+/// **depth axis is the rank axis** — a pack that wants lignite/bituminous/
+/// anthracite members discriminates them on burial depth, which is the real
+/// control. Vanilla ships one member because our recorded overburdens
+/// (≤ ~100 m) do not span the rank transitions (~1–2 km).
+pub const CLASS_ORGANIC_COAL: &str = "dc:stratum/organic-coal";
+
 /// The vanilla classes, in canonical (sorted) order.
-pub fn v1_classes() -> [&'static str; 6] {
+pub fn v1_classes() -> [&'static str; 9] {
     let mut c = [
         CLASS_CLASTIC_FINE,
         CLASS_CLASTIC_COARSE,
@@ -48,6 +69,9 @@ pub fn v1_classes() -> [&'static str; 6] {
         CLASS_IGNEOUS_EXTRUSIVE,
         CLASS_ORE_PLACER,
         CLASS_ACCESSORY_MAFIC,
+        CLASS_ORGANIC_SOIL,
+        CLASS_ORGANIC_PEAT,
+        CLASS_ORGANIC_COAL,
     ];
     c.sort_unstable();
     c
@@ -424,7 +448,8 @@ pub fn settle_energy(props: &MaterialProps) -> f64 {
 }
 
 /// The vanilla v1 geology content (docs/design/geology.md § v1 content):
-/// clastic fine + coarse, igneous intrusive + extrusive, one placer ore.
+/// clastic fine + coarse, igneous intrusive + extrusive, one placer ore, and
+/// the three organic strata the biotic layer's facies resolve to.
 /// This is data, not code — dc-api's vanilla content pack is generated from
 /// this set so the two can never drift (the documented bridge from
 /// registry-table entries to slice-1 class defs).
@@ -561,6 +586,55 @@ pub fn vanilla_members() -> Vec<GeoMemberDef> {
         },
         // --- accessory: rides the host igneous rock's pores (province/depth
         // -driven, weather-blind). ---
+        // --- organic members: one per measured biotic facies. Windows are
+        // honest about what controls each rock: peat/coal are gated by
+        // WATERLOGGING, not rainfall (S10 design choice 8 — a wet mountainside
+        // sheds water and grows forest, a low flat site collects it and grows
+        // peat), which is why the coal seam at (107338, 58787) carries an ARID
+        // climate tag. So the precip axis is left open and DEPTH does the work:
+        // peat is shallow by definition, coal is what burial makes of it. ---
+        GeoMemberDef {
+            id: "dc:geo/carbonaceous-mudstone".into(),
+            class: CLASS_ORGANIC_SOIL.into(),
+            material: MaterialId::CARBONACEOUS_MUDSTONE,
+            window: FormationWindow {
+                temp_c: (-10.0, 40.0),
+                precip: (0.0, 1.0),
+                depth_m: (0.0, 400.0),
+            },
+            abundance: 1.0,
+            habit: GeoHabit::Blanket,
+            hardness: 0.3,
+            erodibility: 0.75,
+        },
+        GeoMemberDef {
+            id: "dc:geo/peat".into(),
+            class: CLASS_ORGANIC_PEAT.into(),
+            material: MaterialId::PEAT,
+            window: FormationWindow {
+                temp_c: (-10.0, 35.0),
+                precip: (0.0, 1.0),
+                depth_m: (0.0, 20.0),
+            },
+            abundance: 1.0,
+            habit: GeoHabit::Blanket,
+            hardness: 0.1,
+            erodibility: 0.9,
+        },
+        GeoMemberDef {
+            id: "dc:geo/coal".into(),
+            class: CLASS_ORGANIC_COAL.into(),
+            material: MaterialId::COAL,
+            window: FormationWindow {
+                temp_c: (-10.0, 40.0),
+                precip: (0.0, 1.0),
+                depth_m: (0.0, 40_000.0),
+            },
+            abundance: 1.0,
+            habit: GeoHabit::Blanket,
+            hardness: 0.25,
+            erodibility: 0.6,
+        },
         GeoMemberDef {
             id: "dc:geo/olivine".into(),
             class: CLASS_ACCESSORY_MAFIC.into(),
@@ -602,7 +676,15 @@ mod tests {
     #[test]
     fn vanilla_builds_and_selects_each_class() {
         let set = vanilla();
-        assert_eq!(set.members().len(), 10);
+        // 10 mineral members + the 3 organic ones (journal/0026).
+        assert_eq!(set.members().len(), 13);
+        // Every declared class must answer — the classes-as-contracts floor.
+        for class in v1_classes() {
+            assert!(
+                set.select(class, &ctx(12.0, 0.5, 20.0), 0.5).is_some(),
+                "class {class} has no member"
+            );
+        }
         // Warm wet surface: fine clastic answers (mudstone or siltstone).
         let (_, m) = set
             .select(CLASS_CLASTIC_FINE, &ctx(18.0, 0.6, 3.0), 0.1)
@@ -666,29 +748,21 @@ mod tests {
             }
             b.build()
         };
-        // Classes declared in a different order too.
-        let a = build(
-            &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-            &[
-                CLASS_CLASTIC_FINE,
-                CLASS_CLASTIC_COARSE,
-                CLASS_IGNEOUS_INTRUSIVE,
-                CLASS_IGNEOUS_EXTRUSIVE,
-                CLASS_ORE_PLACER,
-                CLASS_ACCESSORY_MAFIC,
-            ],
+        // Roster-size agnostic (the roster grows; the guarantee does not):
+        // forward member + class order vs. an interleaved member order with the
+        // classes declared backwards.
+        let forward: Vec<usize> = (0..members.len()).collect();
+        let mut shuffled: Vec<usize> = forward.iter().rev().step_by(2).copied().collect();
+        shuffled.extend(forward.iter().rev().skip(1).step_by(2).copied());
+        assert_eq!(
+            shuffled.len(),
+            members.len(),
+            "permutation covers the roster"
         );
-        let z = build(
-            &[9, 7, 5, 3, 1, 8, 6, 4, 2, 0],
-            &[
-                CLASS_ACCESSORY_MAFIC,
-                CLASS_ORE_PLACER,
-                CLASS_IGNEOUS_EXTRUSIVE,
-                CLASS_IGNEOUS_INTRUSIVE,
-                CLASS_CLASTIC_COARSE,
-                CLASS_CLASTIC_FINE,
-            ],
-        );
+        let classes: Vec<&str> = v1_classes().to_vec();
+        let backwards: Vec<&str> = classes.iter().rev().copied().collect();
+        let a = build(&forward, &classes);
+        let z = build(&shuffled, &backwards);
         assert_eq!(a.members(), z.members(), "canonical order must win");
         for m in a.members() {
             assert_eq!(a.member_index(&m.id), z.member_index(&m.id));

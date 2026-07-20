@@ -385,7 +385,8 @@ fn deep_time_pass(ctx: &mut PregenCtx) {
 pub fn vanilla_passes() -> Vec<Pass> {
     use dc_core::materials::geology::{
         CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
-        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER,
+        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
+        CLASS_ORGANIC_SOIL,
     };
 
     use Resource::*;
@@ -449,7 +450,18 @@ pub fn vanilla_passes() -> Vec<Pass> {
             phase: Phase::Collapse,
             reads: &[Climate, Hydrology, Elevation, Strata, DeepStrata],
             writes: &[Strata, Alluvium],
-            selects: &[CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE],
+            // The deep-time history this pass lays down carries the recorder's
+            // biotic facies, which `geology::deep_class` routes to the organic
+            // classes — so the pass genuinely selects from them and the
+            // class-satisfiability check must hold them too (a world with
+            // biology on and no coal member must refuse to build, by name).
+            selects: &[
+                CLASS_CLASTIC_COARSE,
+                CLASS_CLASTIC_FINE,
+                CLASS_ORGANIC_SOIL,
+                CLASS_ORGANIC_PEAT,
+                CLASS_ORGANIC_COAL,
+            ],
             body: PassBody::Strata(crate::geology::clastic_pass),
         },
         Pass {

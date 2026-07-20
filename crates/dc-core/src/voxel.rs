@@ -29,6 +29,15 @@ pub enum Block {
     Granite = 7,
     /// Extrusive igneous flow (basalt) — near-black.
     Basalt = 8,
+    // Organic strata (journal/0026): the biotic layer's facies reach the block
+    // tier, so a coal seam is legible in a cut face and diggable. Appended.
+    /// Coal seam (buried, compacted peat) — near-black, softer than any rock
+    /// around it.
+    Coal = 9,
+    /// Peat bed (the pre-burial organic) — dark brown, rare and thin.
+    Peat = 10,
+    /// Organic soil horizon / paleosol (carbonaceous mudstone) — dark brown-grey.
+    CarbonaceousMudstone = 11,
 }
 
 impl Block {
@@ -55,6 +64,9 @@ mod tests {
             Block::Sandstone,
             Block::Granite,
             Block::Basalt,
+            Block::Coal,
+            Block::Peat,
+            Block::CarbonaceousMudstone,
         ] {
             assert!(b.is_solid());
         }

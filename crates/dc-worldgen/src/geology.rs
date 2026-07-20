@@ -30,12 +30,12 @@
 
 use dc_core::materials::geology::{
     CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
-    CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, FormationContext, GeoMemberIdx, GeologySet,
-    settle_energy,
+    CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
+    CLASS_ORGANIC_SOIL, FormationContext, GeoMemberIdx, GeologySet, settle_energy,
 };
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::deeptime::recorder::{Aridity, DepEnv, DepTag, DepUnit, EnergyBand};
+use crate::deeptime::recorder::{Aridity, Biofacies, DepEnv, DepTag, DepUnit, EnergyBand};
 use crate::pregen::{
     Provenance, SALT_GEO_ACC, SALT_GEO_DEEP, SALT_GEO_ORE, SALT_GEO_SELECT, SALT_GEO_THICK,
 };
@@ -297,17 +297,44 @@ fn deep_precip(tag: DepTag) -> f64 {
     }
 }
 
-/// The clastic class a deep-time unit deposits into, from its measured facies
-/// tags: marine (subsea) → fine mud; subaerial high/medium energy → coarse
-/// proximal bodies; subaerial low energy → distal fines. Roster-independent —
-/// only *which* member fills the class is selection (so adding a member never
-/// changes the class share, the invariant tests/geology.rs asserts).
+/// The content class a deep-time unit deposits into, from its measured facies
+/// tags. Roster-independent — only *which* member fills the class is selection
+/// (so adding a member never changes the class share, the invariant
+/// tests/geology.rs asserts).
+///
+/// **The biotic facies axis is consulted first, and it wins where inhabited**
+/// (journal/0026 — the S10 gap). An organic unit is a *different rock*, not a
+/// clastic one: what made a coal seam is that peat accumulated faster than it
+/// decayed and was then buried, and the energy of whatever flow happened to be
+/// passing says nothing about that. Reading env/energy for an organic unit is
+/// what made the measured 24 m seam at world voxel (107338, 58787) collapse as
+/// ordinary sandstone. Where the biotic axis is `Mineral` — every unit in a
+/// biology-off world, and every clastic unit in a biology-on one — the original
+/// env/energy rule stands unchanged: marine (subsea) → fine mud; subaerial
+/// high/medium energy → coarse proximal bodies; subaerial low energy → distal
+/// fines.
+///
+/// [`Biofacies::Charcoal`] is deliberately **not** routed to a class of its
+/// own: a fire bed is a *thin event bed* (measured mean ~0.035 m over 158 310
+/// beds, and **none** of them survives the 0.9 m voxel quantization), so a
+/// charcoal band cannot exist in a voxel column and a charcoal member would be
+/// dead content. A charcoal-tagged unit therefore reads as the mineral host it
+/// is a streak within. The honest representation is an inclusion (pore/debris
+/// partial, geology.md § inclusions) — filed, not built. See journal/0026.
 fn deep_class(tag: DepTag) -> &'static str {
-    match tag.env {
-        DepEnv::Subsea => CLASS_CLASTIC_FINE,
-        DepEnv::Subaerial => match tag.energy {
-            EnergyBand::High | EnergyBand::Medium => CLASS_CLASTIC_COARSE,
-            EnergyBand::Low => CLASS_CLASTIC_FINE,
+    match tag.biota {
+        Biofacies::Coal => CLASS_ORGANIC_COAL,
+        Biofacies::Peat => CLASS_ORGANIC_PEAT,
+        // A retrogressive horizon IS an organic soil horizon; what makes it
+        // "retrogressive" is the community's phosphorus starvation, which is an
+        // ecological fact with no material expression in the property sheet.
+        Biofacies::Soil | Biofacies::Retro => CLASS_ORGANIC_SOIL,
+        Biofacies::Charcoal | Biofacies::Mineral => match tag.env {
+            DepEnv::Subsea => CLASS_CLASTIC_FINE,
+            DepEnv::Subaerial => match tag.energy {
+                EnergyBand::High | EnergyBand::Medium => CLASS_CLASTIC_COARSE,
+                EnergyBand::Low => CLASS_CLASTIC_FINE,
+            },
         },
     }
 }

@@ -31,7 +31,9 @@ pub mod refine;
 
 pub use biotic::{BioticSim, COAL_MIN_M, CellBiota, ROSTER, species_name};
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
-pub use field::{DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field};
+pub use field::{
+    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field, production_config,
+};
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
 };

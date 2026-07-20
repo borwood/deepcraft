@@ -105,6 +105,12 @@ MATERIALS = [
     ("diorite",         "diorite",         (0.55, 0.55, 0.57), 2800,  2.0,   1.00, [6.2, 9.2, 5.6, 8.2], "material", False),
     ("andesite",        "andesite",        (0.42, 0.40, 0.40), 2650,  0.08,  1.00, [5.6, 9.4, 5.2, 8.4], "material", False),
     ("olivine",         "olivine",         (0.42, 0.52, 0.28), 3300,  1.5,   0.90, [5.0, 8.5, 5.0, 7.5], "material", False),
+    # organic rocks (journal/0026) -- the biotic layer's facies at the material
+    # tier. MIRROR crates/dc-core/src/materials/mod.rs ids 22..=24.
+    ("peat",            "peat",            (0.24, 0.17, 0.11),  400,  5.0,   0.45, [0.5, 1.6, 1.8, 1.0], "material", False),
+    ("coal",            "coal",            (0.07, 0.065,0.06), 1350,  0.05,  0.90, [2.4, 4.0, 2.2, 3.0], "material", False),
+    ("carbonaceous-mudstone", "carbonaceous mudstone",
+                                           (0.21, 0.18, 0.15), 2200,  0.004, 0.92, [3.0, 4.8, 3.9, 2.6], "material", False),
     # block-only packs (no material twin) -- synthetic property sheets --------
     ("stone",           "stone",           (0.52, 0.52, 0.54), 2600,  2.0,   1.00, [5.0, 9.0, 5.0, 8.0], "block", False),
     ("dirt",            "dirt",            (0.42, 0.30, 0.19), 1300,  0.1,   0.35, [0.9, 3.5, 3.0, 1.8], "block", False),
@@ -123,6 +129,9 @@ BLOCK_SHARES = {
     "sandstone": "sandstone",   # shares material pack
     "granite": "granite",       # shares material pack
     "basalt": "basalt",         # shares material pack
+    "coal": "coal",                                     # shares material pack
+    "peat": "peat",                                     # shares material pack
+    "carbonaceous-mudstone": "carbonaceous-mudstone",   # shares material pack
 }
 
 # Grain-size normalization bounds (mm), log scale (clay .002 .. scree 100).
