@@ -7,6 +7,40 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **In-game dev console (T key)** (journal/0032, session-4
+  background agent; gates green on merged main — fmt/clippy/test all
+  `--release`, 42 suites 0 failed, console core 14 unit tests). The full
+  dc-api surface in a game session: T opens, `help` renders the whole
+  surface, Tab completes commands and dotted param paths, `key=value` args
+  assemble into schema-typed JSON through each spec's `decode_json`,
+  receipts arrive async at the tick boundary. **Everything is generated
+  from `dc_api::schema::registry()`** — no per-command console code exists,
+  so a command added to the registry appears with completion and help for
+  free (API.md principle 5's third consumer, after MCP and WASM). The three
+  client-shell tools ride along the way `mcp.rs` appends them. One-door
+  dispatch through the same bridge/authority path as MCP (`spawn_servers`
+  now always creates the bridge channel, so the console works without
+  `--mcp`). v0 limits filed at merge: no value-level completion (the
+  registry hook is in flight), deep array payloads take a raw-JSON escape
+  hatch at the leaf, ~24-line scrollback. **Appearance/syntax await the
+  user's own test drive** (panel look, `key=value` dotted-path syntax).
+
+- 2026-07-20 — **`--edges` crease/silhouette diagnostic + fullbright fog
+  fix** (journal/0031, session-4 background agent; gates green on merged
+  main). Fullbright is no longer blind to shape when you ask it not to be:
+  `--edges` adds a renderer-owned post pass (after the pack post stage,
+  outside the frozen hook-format-0 contract) outlining depth and
+  depth-reconstructed-normal discontinuities — crease/silhouette, never
+  per-cube — faded 350→1400 m so the 3.5 km massif renders as clean nested
+  contours with **no moiré** (verified by integrator eye on
+  `0031-massif-fullbright-edges.png`). With `--edges` off the plugin
+  builds nothing at all, so `--fullbright` alone stays byte-identical —
+  the 0027 colour-in-colour-out control survives. And `--fullbright` now
+  disables distance fog data-side (fog range pushed past the far plane in
+  the `PostStage` uniform; sky-haze and lit-pass fog untouched), so
+  landform-scale silhouette photography is finally possible. Resolves the
+  three 0030 INSTRUMENT lines' proposed fixes.
+
 - 2026-07-20 — **Erodibility coupling turned ON in production** (journal/0030;
   gates green — fmt/clippy/test all `--release`, 0 failed). The user ratified the
   appearance call ("flip it, i want to see"), so `production_config` now carries
@@ -570,23 +604,6 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- **Dev console (T key)** — background worktree agent, dispatched
-  2026-07-20 (session 4). The full dc-api surface exposed in-game:
-  everything generated from `dc_api::schema::registry()` (command +
-  param-name completion, help from the payload schemas, dotted-path args →
-  `decode_json`, receipts through the same authority bridge MCP uses), the
-  three client-shell tools appended the way `mcp.rs` does. Value-level
-  completion (block names after `block=`) deliberately out of v0 — needs a
-  registry extension (see Observed). User tests the console themselves on
-  landing.
-- **`--edges` + fullbright fog fix** — background worktree agent,
-  dispatched 2026-07-20 (session 4; the user delegated what they had
-  planned to do themselves at session-3 close). Crease/silhouette edges
-  from depth/normal discontinuities, distance-faded, separate flag so
-  `--fullbright` alone stays byte-identical (the 0027 control survives);
-  fullbright disables distance fog data-side via the `PostStage` uniform.
-  Required to re-shoot the 3.5 km massif vista and report the moiré check
-  honestly.
 - **Registry `completions` hook + macro/derive self-consistency** —
   background worktree agent, dispatched 2026-07-20 (session 4; API.md
   Decisions #6/#7, user-ratified). Writes dc-api only — disjoint from the

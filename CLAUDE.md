@@ -73,6 +73,13 @@ cargo test --workspace --release
     Fullbright is blind to shape.
   - **Material / data questions → `--fullbright`.** Flat albedo with no
     lighting noise is what made the 0027 coal diagnosis possible.
+  - **Geometry legibility inside fullbright → add `--edges`** (journal/0031):
+    crease/silhouette outlines, distance-faded to zero past 1.4 km — so the
+    far field carries NO edge signal by design; judge far silhouettes by
+    the skyline, not by missing outlines. `--fullbright` alone remains the
+    byte-identical pure-data control; never use an `--edges` frame for a
+    colour/material diff. Fullbright also no longer applies distance fog
+    (0031), so long-vista silhouettes are readable.
   - Using the blind control and reporting its null is how journal/0030
     published a wrong conclusion twice in one day.
 
