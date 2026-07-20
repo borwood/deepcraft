@@ -37,6 +37,7 @@ pub mod deeptime;
 pub mod geology;
 pub mod pipeline;
 pub mod pregen;
+pub mod water;
 
 pub use collapse::{
     ChunkStats, ColumnRec, LOOKAHEAD_BOUNDS, LookaheadBounds, PregenSource, WorldGenerator,

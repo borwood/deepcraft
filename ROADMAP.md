@@ -7,6 +7,65 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **S11 — water locality + the free-water body graph** (journal/0028,
+  docs/spikes/S11-results.md; background agent, worktree branch for the
+  integrator; gates green — fmt/clippy/test all `--release`). The spike the
+  water notebook dispatched to falsify **"persist bodies, derive voxels."** It
+  did not falsify. **Agent recommendation: GO.** Additive and standalone in
+  `dc-worldgen/src/water/` — nothing in the production path calls it, deep time
+  untouched, no renderer work.
+  **Q1 — bound water is local, comfortably.** A saturation relaxation over the
+  S8 pore model (gather-from-frozen-snapshot in every phase, the S9b
+  reformulation) with the water table *read* as the top of the saturated zone.
+  Perturbing it with a dug seepage shaft gives a halo of **4–11 cells** at a
+  bounded post-edit budget, and the **player-visible** halo (the integer water
+  table moving a whole voxel) is **0–6 cells**. Decay is geometric —
+  `d0=19.7 d2=2.49 d4=0.09 d6=0.001 d8=0` — with **none** of the isolated deep
+  spikes S9 measured for fluvial erosion, because bound water has no advective
+  term. **A ~12-cell derivation halo covers every case measured**, smaller than
+  erosion's 16–24. The counter-intuitive result: **a sharper aquitard gives a
+  SMALLER halo** (contrast 10 000 → 5 cells vs contrast 100 → 6–10), so the
+  loose-vs-packed soil contrast flagged as the risk is the most local case, not
+  the least. Conservation drift 2.4e-7; relaxation byte-identical on double-run.
+  **Q2 — the graph does not grow with edits at all.** The structural finding:
+  in a voxel world **connectivity does most of the graph's work** — two bodies
+  in the same air component *are* one body, so links only exist between
+  components and measured **0 or 1 in every scenario**. Through **1 624 edits
+  and 508 084 dug voxels** (a maze, ~100 separate channels, a spiral shaft, a
+  comb of trenches) the body count stayed at **1**: digging creates space, not
+  water. Forcing the true ceiling — one body per component — tops out at
+  **217 bodies / 4 400 B / 20.3 B per body**. Bodies are bounded by *components*,
+  which track the derived coarse index, not the edit count.
+  **All seven scenarios end in the right state**, including the two that broke
+  the derive-everything model: the far end of a **1 145 m** dug channel reads wet
+  in **45.9 ns** (one union-find `find`, no search at any radius), and standing at
+  the bottom of a **1 073 m** chasm the level answers in **2.8 µs**. Unload, drop
+  everything, reload from **39 persisted bytes**: derived water **byte-identical**.
+  **OCEAN SCALE — the character distinction is real AND cheaper.** A finite
+  7.3 M-voxel sea breached into a void half its volume **drops 13.18 m** (a
+  shoreline retreating because someone dug a cellar). A level-pinned sea does not
+  move — and because a pinned body's level comes from outside, **nothing ever
+  needs its capacity curve**, so the hypsometry scan refuses to walk it:
+  **415 ms → 0.0 ms**. Level-pinning is the *cheaper* implementation, and cheaper
+  in proportion to the biggest body in the world.
+  Two mechanisms worth remembering: **splits are cheap because we stopped being
+  incremental** (union-find cannot un-union, so the coarse graph — thousands of
+  nodes — is rebuilt wholesale per edit and a split costs what a merge costs,
+  0.3 ms, while per-chunk voxel labelling stays incremental where the millions
+  of voxels are); and caching chunk-face label pairs took the per-edit cost from
+  a ship-blocking **19.56 ms to 0.249 ms (78×)** with byte-identical answers.
+  Event-storm worst case **2.30 ms** (one event cascading a 1 000-body chain in
+  2 fixpoint rounds). **Determinism holds by construction** — events are
+  commutative monotone mutations plus one deterministic fixpoint solve — and two
+  real violations were found by writing the adversarial case, not by the shuffle
+  passing: a `Breach` and an `OutletBlocked` on the same link in one batch, and
+  non-associative float addition across several `RegimeCross` on one body. Both
+  fixed; **256 shuffled orders byte-identical**, double-run and edit-order
+  identical too. Test-suite delta **+0.24 s** (12 new tests); no `--ignored`
+  gating. **NEEDS RATIFICATION** (four calls, below in § Sequenced). Files:
+  `water/{mod,vox,sat,conn,body}.rs`, `examples/water_spike.rs`,
+  `tests/water.rs` (all new); `Cargo.toml` (+postcard), `lib.rs` (module).
+
 - 2026-07-20 — **Organic materials + the biotic production flip** (journal/0026,
   background agent, worktree branch for the integrator; gates green —
   fmt/clippy/test all `--release`, 40 suites 0 failed). **The flip is live**:
@@ -409,15 +468,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
-- 2026-07-20 — **S11 — water locality + body-graph spike** (background agent,
-  worktree; design in docs/design/water.md). Tests the "persist bodies,
-  derive voxels" hypothesis against the two questions that broke the
-  derive-everything model: is the bound-water relaxation genuinely local
-  (halo size), and does the free-water body graph stay sparse under
-  adversarial digging? Headless cost-and-locality measurement only — no
-  renderer water, no deep-time changes. Scenarios include ocean-scale
-  breach (a sea must not drain). Agent recommends GO/NO-GO; verdict is the
-  user's.
+*(**S11 — water locality + body graph: SPIKE COMPLETE** 2026-07-20 — see
+Shipped. **Agent verdict: GO**, NEEDS RATIFICATION on four calls, the
+load-bearing one being `Finite` vs `Pinned` bodies.)*
 
 *(**Organic materials + the biotic production flip: SHIPPED** 2026-07-20,
 journal/0026 — see Shipped. Biology is on in every new world and the 24 m seam
@@ -600,6 +653,40 @@ grid/analytic boundary reaches the eye); calibration RATIFIED — the
 Phanerozoic register (~500 Myr recorded span, basement ages procedural
 — "procedural hacks for the boring billion"; knob deferred). **Nothing
 open — implementable.**
+
+**S11 follow-through — the water model's four open calls** *(the spike itself
+is SPIKE COMPLETE 2026-07-20, journal/0028 + docs/spikes/S11-results.md; it
+answered the gate question — bound water's halo is 4–11 cells and the body
+graph does not grow with edits. What remains is **user decisions**.)*
+
+**NEEDS RATIFICATION (user-owned, from S11-results.md § Recommendation):**
+1. **The two body characters — `Finite` vs `Pinned` — as a design commitment.**
+   This is the load-bearing one and it is not a performance question. Pinning
+   is the claim that *some water has a level set by the world rather than by
+   its own volume*. The measurement says the distinction is necessary (a finite
+   sea drops 13.18 m when breached into a large void) and that pinning is also
+   ~415 ms cheaper per resolve. Seas and fed river reaches obviously; **where
+   the boundary sits — a big lake? a spring-fed pool? — is the user's call.**
+2. **The ~12-cell bound-water derivation halo**, if it becomes a constant. Wide
+   margin over everything measured, but it is calibration on a model whose rate
+   constants are plausible-not-tuned — same status as S9's physics constants and
+   S10's rate constants (no-bandaid: rides as measured).
+3. **Body identity is not stable across a merge** (S11 design choice 2): bodies
+   in one air component merge, lowest id surviving. If lakes are ever to be
+   named, findable, or referred to by quest/ledger state, that needs deciding
+   **before** the graph ships.
+4. **Whether the connectivity index is truly never persisted.** The spike
+   asserts it is derived and proves reload identity from it (6 ms rebuild for a
+   1.77 M-voxel world), but at real world scale that becomes a streaming cost
+   nobody has measured. The alternative — persist it beside the S3 region files
+   — is the *same* open question the far-field summary store carries, and the
+   two should probably be answered together.
+
+*(Not decided by S11 and still open in water.md: the bulk-flow octree — though
+note the spike found free water in equilibrium is **static data with a level**,
+which is what the notebook's "creates no new blocks so long as its outlet
+connects" predicted; sub-resolution water; capillary action; which cave family
+ships first; and where the deep-time water field lives.)*
 
 **Water-model design pass** (ratified 2026-07-19, user; field-notebook
 first per the earth-processes method): groundwater as "another dimension
