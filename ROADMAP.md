@@ -453,6 +453,44 @@ tile mesher is a pure function of plain span data (async-meshing / persistent
 edit-tracked LOD store stay drop-in).
 
 
+**Erodibility coupling — lithology-aware erosion** (DECIDED 2026-07-20,
+user: "sequence erodibility first"; diagnoses the *dismal mountains*
+finding in Observed). **The gap**: `erosion.rs` incises bedrock with a
+single global `k_bedrock` — granite and mudstone erode identically, so the
+world has **no differential erosion anywhere**, and differential erosion is
+where nearly all landform drama comes from (hard beds → cliffs, ridges,
+caprock; soft beds → slopes and benches). The only spatial resistance term
+today is S10's biotic `resist`, and it only damps hillslope diffusion.
+Long-standing filed open question in geology.md ("hardness→erodibility
+coupling") — identified, never taken.
+
+**The data already exists**: erosion runs per deep cell, and the recorder
+already knows which unit is exposed at each cell's surface each epoch.
+Erosion simply never asks. The milestone is to modulate incision (and
+plausibly hillslope diffusivity) by a property-sheet-derived erodibility of
+the exposed material.
+
+Design notes for whoever takes it:
+- **Feedback is the point, and the risk**: differential erosion is
+  self-reinforcing (erode soft rock → expose hard rock → erosion slows).
+  That is geologically correct and is what carves benches; it also wants a
+  stability check so a cell cannot oscillate or stall pathologically.
+- **Composition with the biotic terms** must be deliberate — `resist`
+  (root cohesion, diffusion) and `wmult` (biotic weathering) already
+  modulate erosion. State the composition order rather than letting it
+  fall out.
+- **Basement is hard by nature**: when a column is stripped past its
+  record to bedrock, the exposed material is basement igneous/metamorphic.
+  Coupling erodibility should therefore produce resistant shield/craton
+  landscapes for free — a good falsifiable prediction to check.
+- **Off-by-default first, like S10's `biotic`**: the abiotic/uncoupled path
+  must stay byte-identical so the change is provable, and flipping it on
+  changes `DeepField` for every new world (same class of event as the
+  biotic flip).
+- Deliverable should include **before/after cross-section and silhouette
+  photographs** — this is an appearance change and the user ratifies looks
+  from images.
+
 **Far-field range knobs** (user-requested 2026-07-20 at the FF2a
 ratification): expose the draw-distance geometry as adjustable settings —
 `FULL_DETAIL_RADIUS_M`, the ring edges, `FAR_MAX_M` (today compile-time
@@ -613,6 +651,27 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **"Our dismal mountains"** (user, 2026-07-20) — DIAGNOSED, four causes,
+  all absences rather than bugs, which is why the terrain reads as flat in
+  character rather than visibly broken:
+  1. **Erosion is lithology-blind** (source-confirmed): one global
+     `k_bedrock`, so no differential erosion exists anywhere. → now
+     **Sequenced** as the erodibility-coupling milestone, user-ordered
+     first.
+  2. **No dip/fold** (the layer-cake item below): even differentiated beds
+     would only give horizontal benches and mesas; **dipping** hard beds
+     are what produce hogbacks, cuestas and flatirons. Second in the
+     user's ordering; S9 already classified fold-phase as a cheap *relax*
+     term.
+  3. **Conservative amplitude / no voxel-scale cliffs** (filed since S7).
+  4. **No glacial agent** — cirques, arêtes, horns and U-valleys are the
+     most dramatic alpine landforms and we have no cryosphere. Explicitly
+     LAST (geology.md already sequences glacial as "later"); it needs ice
+     as a modelled agent.
+  Causes 1 and 2 multiply: hardness contrast supplies *what* stands out,
+  structural dip supplies *how* it stands out.
+
 
 - **The world is a LAYER CAKE — no dip, no folding, no tilt** (user,
   2026-07-20, from reading walk cross-sections: "the seams have to match
