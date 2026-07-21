@@ -1689,6 +1689,50 @@ mod tests {
         }
     }
 
+    /// The far horizon must agree with the ground on **what the surface is made
+    /// of**, not only on how high it is.
+    ///
+    /// Added by the integrator at the journal/0055 merge. Before that slice the
+    /// surface block came from a climate paint that both paths shared trivially;
+    /// now it is derived from the deep-time record, and `column` and
+    /// `coarse_surface` reach it by *different* routes — the near path resolves a
+    /// member through the full column collapse, the far path reads the shared
+    /// `surface_sample` kernel. The agent argued they agree by construction
+    /// (journal/0055 § judgment call 3) and that argument is sound, but nothing
+    /// asserted it: the sibling height test discards the block (`_block`). An
+    /// untested "by construction" is how the LOD boundary becomes a visible lie —
+    /// the ground reading sandstone while the horizon reads grass
+    /// (ARCHITECTURE.md § One world-answer surface, RATIFIED 2026-07-19).
+    #[test]
+    fn coarse_surface_matches_near_column_surface_block() {
+        for seed in [0x0D5E_ED57_2026u64, 1337] {
+            let pregen = Pregen::run(WorldParams {
+                seed,
+                extent: Extent::Medium,
+            });
+            let mut g = WorldGenerator::new(&pregen);
+            let mut checked = 0usize;
+            for cx in -4..=4i64 {
+                for cz in -4..=4i64 {
+                    let col = g.column_record(cx, cz);
+                    for &(lx, lz) in &[(0usize, 0usize), (7, 19), (16, 16), (31, 31)] {
+                        let (vx, vz) = (cx * 32 + lx as i64, cz * 32 + lz as i64);
+                        let near = col.surface[lz * 32 + lx];
+                        let (_h, far) = g.coarse_surface(vx, vz);
+                        assert_eq!(
+                            far, near,
+                            "seed {seed:#x}: horizon says {far:?} but the ground says \
+                             {near:?} at voxel ({vx},{vz}) — the far field and the near \
+                             field must be one world answer"
+                        );
+                        checked += 1;
+                    }
+                }
+            }
+            assert!(checked >= 300, "sampled {checked} columns");
+        }
+    }
+
     /// The far-field summary is the SAME surface function the near ground
     /// collapses from: `coarse_surface` must return the exact per-column height
     /// `column_record` computes at every coinciding voxel — height agreement by
