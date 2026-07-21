@@ -1274,6 +1274,16 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Stub inventory filed** (`docs/design/stubs.md`, 2026-07-21, read-only audit
+  agent + integrator). Ten active stubs, each with its heir. One genuine
+  discovery: **ruin-posts was UNDOCUMENTED** — the only world-visible
+  substitution with no placeholder marker anywhere; a loud code comment is
+  owed at `collapse.rs::ruin_posts` (deferred: collapse.rs is in the climate
+  agent's write-set). Two audit additions to the decision's holdout list:
+  igneous emplacement-depth constants and paleo-temp-is-present-day. Also
+  flagged: the `field.rs` doc-comment claims the collapse tier "reads"
+  exhum/t_crust when nothing does — do not trust it.
+
 - *(**Sub-km relief / roughness decay: MEASURED** 2026-07-21, S13 + journal/0041
   — see Shipped. Decay confirmed (5 % survives), bilinear falsified (#24), and
   the walk's own sampling corrected (#25). The remaining OPEN part is which
