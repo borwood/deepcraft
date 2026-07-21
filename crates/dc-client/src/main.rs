@@ -86,6 +86,58 @@ fn main() {
         // the edge pass is never scheduled (edgepass.rs), so `--fullbright`
         // alone stays the byte-identical pure-data control (corrections #18).
         let edges = args.iter().any(|a| a == "--edges");
-        app::run(pack, mcp::McpOptions::parse(&args), fullbright, edges);
+        // Deep-config plumbing (journal/0039): gen-time flags that flip the
+        // always-off deep-time knobs ON at world creation. They only bite the
+        // worldgen authority (boot / key 2); the legacy S1 terrain (keys 3/4)
+        // ignores them. Mirror the `--fullbright` boolean and `--pack <v>`
+        // windows(2) parsing patterns above.
+        //
+        // - `--tectonics`      analytic tectonic history (chapters, isostasy,
+        //                      crustal columns, drainage export) — reshapes the
+        //                      terrain, so it is a deliberate world-creation call.
+        // - `--full-agents`    the wind + frost + wave erosion roster.
+        // - `--amplitude <n>`  orogenic thickening scale (m/iter). Only bites
+        //                      when `--tectonics` is on — it is the amplitude the
+        //                      tectonic forcing multiplies.
+        // - `--extent <small|medium|large>`  world size (default: medium).
+        let mut deep = dc_worldgen::DeepOverrides::default();
+        if args.iter().any(|a| a == "--tectonics") {
+            deep.tectonic_history = Some(true);
+        }
+        if args.iter().any(|a| a == "--full-agents") {
+            deep.full_agents = Some(true);
+        }
+        if let Some(v) = args.windows(2).find(|w| w[0] == "--amplitude") {
+            match v[1].parse::<f64>() {
+                Ok(n) => deep.thickening_scale = Some(n),
+                Err(_) => {
+                    eprintln!(
+                        "--amplitude expects a number (m/iter), got `{}`; ignoring it",
+                        v[1]
+                    );
+                }
+            }
+        }
+        let extent = match args.windows(2).find(|w| w[0] == "--extent") {
+            Some(v) => match dc_worldgen::Extent::from_arg(&v[1]) {
+                Some(e) => e,
+                None => {
+                    eprintln!(
+                        "--extent expects small|medium|large, got `{}`; using the default",
+                        v[1]
+                    );
+                    authority::GenOptions::default().extent
+                }
+            },
+            None => authority::GenOptions::default().extent,
+        };
+        let gen_options = authority::GenOptions { extent, deep };
+        app::run(
+            pack,
+            mcp::McpOptions::parse(&args),
+            fullbright,
+            edges,
+            gen_options,
+        );
     }
 }

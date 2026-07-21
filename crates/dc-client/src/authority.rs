@@ -35,7 +35,7 @@ use dc_api::{
 };
 use dc_core::{Aabb, CHUNK_SIZE_USIZE, ChunkPos, VoxelScale, aabb_overlaps_solid, local_voxel};
 use dc_mcp_dev::envelope_for_tool_call;
-use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
+use dc_worldgen::{DeepOverrides, Extent, Pregen, WorldGenerator, WorldParams};
 use glam::DVec3;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
@@ -52,9 +52,32 @@ use crate::player::{PLAYER_WIDTH_M, Player};
 use crate::streaming::to_bevy_mesh;
 use crate::worldgen::{TerrainGen, true_surface_m};
 
-/// World extent baked into the worldgen authority. Medium is the design doc's
-/// default class; its pregen runs in ~15 ms (journal/0007), trivial at boot.
+/// World extent baked into the worldgen authority when `--extent` is not given.
+/// Medium is the design doc's default class; its pregen runs in ~15 ms
+/// (journal/0007), trivial at boot.
 const WORLDGEN_EXTENT: Extent = Extent::Medium;
+
+/// The gen-time knobs a launch flag can dial into the worldgen authority
+/// (deep-config plumbing, journal/0039): the world [`Extent`] and the deep-time
+/// [`DeepOverrides`] (`--tectonics`, `--full-agents`, `--amplitude`). Bundled so
+/// they thread from `app::run` down to [`Pregen::run_with`] as one value rather
+/// than a growing argument list, and held as a Bevy [`Resource`] so a key-2
+/// scale switch rebuilds the world with the same options. `Default` = Medium
+/// extent + empty overrides, which is byte-identical to the pre-plumbing boot.
+#[derive(Resource, Clone, Debug)]
+pub struct GenOptions {
+    pub extent: Extent,
+    pub deep: DeepOverrides,
+}
+
+impl Default for GenOptions {
+    fn default() -> Self {
+        Self {
+            extent: WORLDGEN_EXTENT,
+            deep: DeepOverrides::default(),
+        }
+    }
+}
 
 /// The active surface authority — the source of both never-edited terrain (the
 /// `HostWorld`'s chunk generator) and the per-column analytic ceiling the
@@ -121,10 +144,26 @@ impl Authority {
     /// ratified S1 scale, geology visible + walkable), any other scale (keys
     /// 3/4) = the legacy S1 [`TerrainGen`] at that resolution. dc-worldgen is
     /// N=2-baked, so its authority only makes sense at N=2.
+    ///
+    /// The default-options convenience over [`Authority::new_with`]. Production
+    /// (app.rs) always boots through `new_with` to carry the launch flags'
+    /// [`GenOptions`], so this is only reached from tests that don't exercise
+    /// gen-time overrides — hence `#[cfg(test)]` (a bin crate flags an
+    /// otherwise-uncalled `pub fn` as dead).
+    #[cfg(test)]
     pub fn new(seed: i32, player_voxels: u32) -> Self {
+        Self::new_with(seed, player_voxels, &GenOptions::default())
+    }
+
+    /// Like [`Authority::new`], but with the gen-time [`GenOptions`] (extent +
+    /// deep-time overrides) the launch flags parsed. The options only bite on
+    /// the worldgen authority (key 2); the legacy S1 terrain authority (keys
+    /// 3/4) ignores them. Passing `&GenOptions::default()` reproduces
+    /// [`Authority::new`] exactly.
+    pub fn new_with(seed: i32, player_voxels: u32, opts: &GenOptions) -> Self {
         let scale = VoxelScale::from_player_height(PLAYER_HEIGHT_M, player_voxels);
         if player_voxels == 2 {
-            Self::new_worldgen(seed, scale)
+            Self::new_worldgen(seed, scale, opts)
         } else {
             Self::new_terrain(seed, scale)
         }
@@ -153,11 +192,14 @@ impl Authority {
     /// which is a pure function of `pos` — the collapse caches memoize but
     /// never reorder output (proven byte-identical in dc-worldgen and by
     /// [`tests::worldgen_seam_is_order_independent`]).
-    fn new_worldgen(seed: i32, scale: VoxelScale) -> Self {
-        let pregen = Arc::new(Pregen::run(WorldParams {
-            seed: seed as u64,
-            extent: WORLDGEN_EXTENT,
-        }));
+    fn new_worldgen(seed: i32, scale: VoxelScale, opts: &GenOptions) -> Self {
+        let pregen = Arc::new(Pregen::run_with(
+            WorldParams {
+                seed: seed as u64,
+                extent: opts.extent,
+            },
+            &opts.deep,
+        ));
         let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen)));
         let seam = generator.clone();
         let world = Self::host_world(seed, scale, move |pos| {

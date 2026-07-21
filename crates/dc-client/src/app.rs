@@ -176,13 +176,19 @@ pub struct Fullbright(pub bool);
 #[derive(Resource, Clone, Copy)]
 pub struct Edges(pub bool);
 
-pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: bool, edges: bool) {
+pub fn run(
+    pack_selector: Option<String>,
+    mcp_options: McpOptions,
+    fullbright: bool,
+    edges: bool,
+    gen_options: authority::GenOptions,
+) {
     // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
     // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
     // to the worldgen authority (keys 3/4 stay the legacy S1 TerrainGen). The
     // spawn is seated on the worldgen's TRUE voxel surface.
     let boot_voxels = 2u32;
-    let mut authority = Authority::new(BENCH_SEED, boot_voxels);
+    let mut authority = Authority::new_with(BENCH_SEED, boot_voxels, &gen_options);
     let spawn = authority.find_open_spawn();
     let boot_title = title_text(boot_voxels, true, authority.authority_label());
     // Under the worldgen authority (boot, key 2) the horizon is now the
@@ -219,6 +225,9 @@ pub fn run(pack_selector: Option<String>, mcp_options: McpOptions, fullbright: b
     // The authoritative world for edits (client-through-dc-api milestone):
     // the worldgen authority built above, serving the streamed terrain.
     .insert_resource(authority)
+    // The gen-time options a key-2 scale switch rebuilds the world with
+    // (deep-config plumbing, journal/0039).
+    .insert_resource(gen_options)
     .insert_resource(DirtyChunks::default())
     .insert_resource(character::CharacterVisuals::default())
     .insert_resource(edit::CrosshairTarget::default())
@@ -455,6 +464,7 @@ fn switch_scale(
     mut dirty: ResMut<DirtyChunks>,
     mut commands: Commands,
     chunk_entities: Query<Entity, With<ChunkEntity>>,
+    gen_options: Res<authority::GenOptions>,
 ) {
     for (key, n) in [
         (KeyCode::Digit2, 2u32),
@@ -471,7 +481,7 @@ fn switch_scale(
             // authority at the new scale. Edits do not survive a scale switch
             // (the lattice they lived on is gone); pending MCP replies are
             // dropped, which the server reports as a world reset.
-            *authority = Authority::new(BENCH_SEED, n);
+            *authority = Authority::new_with(BENCH_SEED, n, &gen_options);
             dirty.0.clear();
             // The authority (key 2 = worldgen; 3/4 = S1 terrain) — and possibly
             // the whole world — changed under the player. Reseat the feet on

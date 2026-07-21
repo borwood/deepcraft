@@ -91,6 +91,18 @@ impl Extent {
             Extent::Large => "large (~1017 km)",
         }
     }
+
+    /// Parse the player-facing extent name from a launch argument:
+    /// `small` | `medium` | `large`, case-insensitive and whitespace-trimmed.
+    /// `None` for anything else (the caller turns that into a usage error).
+    pub fn from_arg(s: &str) -> Option<Extent> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "small" => Some(Extent::Small),
+            "medium" => Some(Extent::Medium),
+            "large" => Some(Extent::Large),
+            _ => None,
+        }
+    }
 }
 
 /// World-creation parameters. Everything downstream derives from these.
@@ -278,6 +290,15 @@ impl Pregen {
     /// legacy tectonics → climate → hydrology → history order, so this is
     /// output-preserving (S7 byte-identity tests prove it).
     pub fn run(params: WorldParams) -> Self {
+        Self::run_with(params, &crate::deeptime::DeepOverrides::default())
+    }
+
+    /// Run the full coarse pipeline with gen-time [`DeepOverrides`] applied to
+    /// the deep-time pass (the sealed-path door: `full_agents` / `tectonic_history`
+    /// / amplitude flipped on at world creation). Deterministic in
+    /// `(params, overrides)`. An empty `DeepOverrides` is byte-identical to
+    /// [`Pregen::run`] — no existing world's output changes.
+    pub fn run_with(params: WorldParams, overrides: &crate::deeptime::DeepOverrides) -> Self {
         let pipeline = crate::pipeline::Pipeline::vanilla().expect("vanilla pass graph is valid");
         let mut ctx = crate::pipeline::PregenCtx {
             seed: params.seed,
@@ -285,6 +306,7 @@ impl Pregen {
             grid: None,
             history: None,
             deep: None,
+            deep_overrides: *overrides,
         };
         pipeline.run_pregen(&mut ctx);
         let grid = ctx.grid.expect("tectonics pass creates the grid");

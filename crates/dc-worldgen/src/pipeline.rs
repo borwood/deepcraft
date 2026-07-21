@@ -27,7 +27,7 @@ use std::collections::BTreeMap;
 
 use dc_core::materials::geology::GeologySet;
 
-use crate::deeptime::DeepField;
+use crate::deeptime::{DeepField, DeepOverrides};
 use crate::geology::StrataCtx;
 use crate::pregen::{CellGrid, history};
 
@@ -81,6 +81,10 @@ pub struct PregenCtx {
     /// The deep-time field, filled by the deep-time pass (creator of
     /// [`Resource::DeepElevation`] + [`Resource::DeepStrata`]).
     pub deep: Option<DeepField>,
+    /// Gen-time overrides the deep-time pass applies on top of the production
+    /// config (`full_agents` / `tectonic_history` / amplitude flipped on at
+    /// world creation). `Default` (all-inherit) reproduces production exactly.
+    pub deep_overrides: DeepOverrides,
 }
 
 /// What a pass does when it runs (plain function pointers: deterministic,
@@ -374,7 +378,11 @@ fn history_pass(ctx: &mut PregenCtx) {
 /// DeepElevation + DeepStrata. This is the "generating world history…" ritual.
 fn deep_time_pass(ctx: &mut PregenCtx) {
     let grid = ctx.grid.as_ref().expect("tectonics ran (declared read)");
-    ctx.deep = Some(crate::deeptime::build_field(grid, ctx.seed));
+    ctx.deep = Some(crate::deeptime::build_field_with(
+        grid,
+        ctx.seed,
+        &ctx.deep_overrides,
+    ));
 }
 
 /// The vanilla pass roster with honest read/write declarations. The four S7

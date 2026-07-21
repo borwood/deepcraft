@@ -42,6 +42,42 @@ pub const DEEP_MAX_WIDTH: usize = 550;
 /// Fixed iteration schedule (S9's A — no convergence check in the sim logic).
 pub const DEEP_ITERATIONS: u32 = 200;
 
+/// Gen-time overrides for the production [`DeepConfig`] flags a world can be
+/// booted with. Each field is an `Option`; `None` **inherits the production
+/// default** ([`production_config`]). An all-`None` (`Default`) `DeepOverrides`
+/// therefore yields a config — and so a [`DeepField`] — byte-identical to
+/// production, which is what keeps every already-created world reproducible.
+///
+/// This override channel is the whole point of the deep-config plumbing slice:
+/// a launch flag can flip `tectonic_history` / `full_agents` on and dial the
+/// orogenic amplitude *without* touching `production_config`'s production
+/// defaults and *without* extending [`crate::pregen::WorldParams`] (a bare
+/// `{ seed, extent }` literal at ~30 call sites).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DeepOverrides {
+    /// Override [`DeepConfig::tectonic_history`]: the analytic tectonic-history
+    /// bundle (chapters, crustal columns, smoothed Airy isostasy, drainage
+    /// export). `None` = production default (off).
+    pub tectonic_history: Option<bool>,
+    /// Override [`DeepConfig::full_agents`]: the wind + frost + wave erosion
+    /// roster. `None` = production default (off).
+    pub full_agents: Option<bool>,
+    /// Override [`DeepConfig::thickening_scale`]: the orogenic amplitude the
+    /// analytic tectonic forcing multiplies (m/iter for a unit-rate boundary).
+    /// Only bites when tectonic history is on. `None` = production default.
+    pub thickening_scale: Option<f64>,
+}
+
+impl DeepOverrides {
+    /// True when no override is set — the all-inherit case whose config is
+    /// byte-identical to [`production_config`].
+    pub fn is_empty(&self) -> bool {
+        self.tectonic_history.is_none()
+            && self.full_agents.is_none()
+            && self.thickening_scale.is_none()
+    }
+}
+
 /// The production deep-time config for a given coarse grid: 460 m where it fits
 /// under [`DEEP_MAX_WIDTH`], coarser for very large extents. Recorder on; the
 /// sea-level/climate cycling defaults from [`DeepConfig`] drive read-quality.
@@ -75,6 +111,30 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
         erodibility: true,
         ..DeepConfig::default()
     }
+}
+
+/// The production config with gen-time [`DeepOverrides`] applied on top: start
+/// from [`production_config`], then overwrite each flag the caller set. Every
+/// `None` override inherits, so `production_config_with(cells, seed,
+/// &DeepOverrides::default())` is **byte-identical** to `production_config(cells,
+/// seed)` (asserted in the tests). This is the single seam a launch flag reaches
+/// the deep-time run through.
+pub fn production_config_with(
+    cells: &CellGrid,
+    seed: u64,
+    overrides: &DeepOverrides,
+) -> DeepConfig {
+    let mut cfg = production_config(cells, seed);
+    if let Some(v) = overrides.tectonic_history {
+        cfg.tectonic_history = v;
+    }
+    if let Some(v) = overrides.full_agents {
+        cfg.full_agents = v;
+    }
+    if let Some(v) = overrides.thickening_scale {
+        cfg.thickening_scale = v;
+    }
+    cfg
 }
 
 /// The distilled deep-time output the world keeps: the eroded final surface and
@@ -119,6 +179,16 @@ pub struct DeepField {
 /// field is deterministic in `(cells, seed)`.
 pub fn build_field(cells: &CellGrid, seed: u64) -> DeepField {
     build_field_cfg(cells, &production_config(cells, seed))
+}
+
+/// Run the always-on deep-time sim under the production config with gen-time
+/// [`DeepOverrides`] applied, and distil it to a [`DeepField`]. Mirrors
+/// [`build_field`] but through [`production_config_with`], so
+/// `build_field_with(cells, seed, &DeepOverrides::default())` is byte-identical
+/// to `build_field(cells, seed)` (asserted in the tests). The production pregen
+/// pass calls this with the world's chosen overrides.
+pub fn build_field_with(cells: &CellGrid, seed: u64, overrides: &DeepOverrides) -> DeepField {
+    build_field_cfg(cells, &production_config_with(cells, seed, overrides))
 }
 
 /// Run the deep-time sim under an explicit [`DeepConfig`] and distil the field —
