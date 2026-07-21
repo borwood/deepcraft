@@ -102,17 +102,135 @@ pub const FULL_DETAIL_RADIUS_M: f64 = 128.0;
 /// The LOD-1 ring starts this far *inside* the full-detail edge (the seam
 /// overlap band; see module docs).
 pub const FAR_OVERLAP_M: f64 = 16.0;
-/// Outer edge of the far field.
-pub const FAR_MAX_M: f64 = 1200.0;
-/// Ring edges in meters: level L covers `[RING_EDGES_M[L-1], RING_EDGES_M[L])`
-/// by chunk-center distance, L in 1..=4.
-pub const RING_EDGES_M: [f64; 5] = [
-    FULL_DETAIL_RADIUS_M - FAR_OVERLAP_M,
-    256.0,
-    512.0,
-    1024.0,
-    FAR_MAX_M,
-];
+/// Outer edge of the far field when nothing overrides it (`--horizon`).
+pub const DEFAULT_FAR_MAX_M: f64 = 1200.0;
+/// The interior LOD ring ladder, as multiples of the full-detail radius: the
+/// shipped edges 256 / 512 / 1024 m are exactly 2× / 4× / 8× [`FULL_DETAIL_RADIUS_M`].
+/// Each ring therefore doubles in radius while its tiles double in size, which
+/// is what keeps tiles-per-ring roughly flat (journal/0023's measured 188 tiles
+/// spread ~evenly across L1..L4).
+const RING_LADDER: [f64; 3] = [2.0, 4.0, 8.0];
+/// Smallest / largest horizon a launch flag may ask for (meters). Below the
+/// full-detail radius there is no far field to speak of; above ~64 km the
+/// outermost ring's tile count runs away (see journal/0042's table).
+pub const HORIZON_MIN_M: f64 = 200.0;
+pub const HORIZON_MAX_M: f64 = 64_000.0;
+
+/// The far field's ring geometry — **runtime** configuration (`--horizon`),
+/// not a compile-time constant.
+///
+/// Why this stopped being a `const` (journal/0042): the shipped 1.2 km horizon
+/// puts the camera *inside* every landform the worldgen builds — a mountain
+/// range is 5–20 km across, so its macro shape never entered frame and the
+/// journal/0040 walk could not judge the landform it was standing on. The
+/// horizon had to become something a walker can dial per launch.
+///
+/// **The distribution rule is the shipped constant, generalized.** The old
+/// `RING_EDGES_M` was `[FULL_DETAIL - OVERLAP, 256, 512, 1024, FAR_MAX]`; the
+/// three interior edges are the [`RING_LADDER`] doublings of the full-detail
+/// radius, and only the outer edge is the horizon. Widening the horizon
+/// therefore stretches the **outermost** ring and leaves the inner three exactly
+/// where they were. That is deliberate, and it is the cheap direction:
+/// - The fine rings' tile scan radius (`wanted_far_tiles`) stays small, so the
+///   per-frame want-set cost does not move at all.
+/// - The extra area is covered by L4's 460.8 m tiles (14.4 m coarse voxels at
+///   N=2) — the coarsest, cheapest-per-square-km geometry the 4-level scheme
+///   has. Scaling all four rings proportionally instead would have grown the
+///   L1 ring's tile count with the square of the horizon, for detail nobody can
+///   resolve at 8 km.
+///
+/// The cost that remains is quadratic in the horizon *within L4* — measured in
+/// journal/0042; past ~10 km the answer is more LOD levels (journal/0023's
+/// "add rings" projection), not a longer L4.
+///
+/// [`Default`] reproduces the shipped constants exactly (asserted in
+/// `default_ring_edges_match_the_shipped_constants`), so a launch with no
+/// `--horizon` renders byte-identically to before the knob existed.
+#[derive(Resource, Clone, Copy, Debug, PartialEq)]
+pub struct HorizonConfig {
+    /// Full-detail (near volumetric field) radius, meters.
+    pub full_detail_m: f64,
+    /// How far inside the full-detail edge the LOD-1 ring starts.
+    pub overlap_m: f64,
+    /// Outer edge of the far field, meters — what `--horizon` sets.
+    pub far_max_m: f64,
+    /// Ring edges in meters: level L covers `[ring_edges[L-1], ring_edges[L])`
+    /// by center distance, L in 1..=4. Derived, never set directly.
+    pub ring_edges: [f64; 5],
+}
+
+impl Default for HorizonConfig {
+    fn default() -> Self {
+        Self::new(FULL_DETAIL_RADIUS_M, FAR_OVERLAP_M, DEFAULT_FAR_MAX_M)
+    }
+}
+
+impl HorizonConfig {
+    /// Derive the ring edges from the three real inputs. Interior edges are the
+    /// [`RING_LADDER`] multiples of the full-detail radius, clamped monotone into
+    /// `[inner, far_max]` so an absurdly *short* horizon collapses the inner
+    /// rings instead of inverting them.
+    pub fn new(full_detail_m: f64, overlap_m: f64, far_max_m: f64) -> Self {
+        let inner = full_detail_m - overlap_m;
+        let far_max = far_max_m.max(inner);
+        let e = |k: usize| (RING_LADDER[k] * full_detail_m).clamp(inner, far_max);
+        Self {
+            full_detail_m,
+            overlap_m,
+            far_max_m: far_max,
+            ring_edges: [inner, e(0), e(1), e(2), far_max],
+        }
+    }
+
+    /// The default geometry with a different horizon — what `--horizon <km>`
+    /// builds.
+    pub fn with_far_max(far_max_m: f64) -> Self {
+        Self::new(FULL_DETAIL_RADIUS_M, FAR_OVERLAP_M, far_max_m)
+    }
+
+    /// Inner edge of level `level`'s ring.
+    #[inline]
+    fn inner(&self, level: u8) -> f64 {
+        self.ring_edges[usize::from(level) - 1]
+    }
+
+    /// Outer edge of level `level`'s ring.
+    #[inline]
+    fn outer(&self, level: u8) -> f64 {
+        self.ring_edges[usize::from(level)]
+    }
+
+    /// Horizontal radius (m) within which the near volumetric field is treated as
+    /// covering the surface, so far columns there are CULLED rather than buried.
+    /// Equals the far-overlap inset of the full-detail radius: the near field
+    /// streams a `full_detail_m` sphere, so culling far columns whose 3-D distance
+    /// to the viewer is under this inset leaves exactly the intended `overlap_m`
+    /// occluded overlap band (far quantized below near, near opaque on top) and NO
+    /// deeper buried geometry — the coverage-logic replacement for journal/0022
+    /// walk-17's buried inner lap. Independent of the horizon: widening the far
+    /// field never changes what the near field covers.
+    #[inline]
+    fn near_cover_r_m(&self) -> f64 {
+        self.full_detail_m - self.overlap_m
+    }
+
+    /// Camera far plane for this horizon. The shipped 3 km plane was 2.5× the
+    /// 1.2 km field (headroom for the outermost ring's far corners); keeping the
+    /// ratio means the default is unchanged and a wider horizon is not clipped.
+    pub fn camera_far_m(&self) -> f32 {
+        (2.5 * self.far_max_m).max(2.5 * DEFAULT_FAR_MAX_M) as f32
+    }
+
+    /// Distance fog range (start, end) in meters for this horizon. The shipped
+    /// lit-pass values (150 / 1100 m) are tuned against the 1.2 km field; a
+    /// horizon that reaches 10 km must push the haze out with it or the whole
+    /// point of the knob — seeing macro landform shape — is fogged away. Scales
+    /// with the horizon, so the default is byte-identical.
+    pub fn fog_range_m(&self) -> (f32, f32) {
+        let s = self.far_max_m / DEFAULT_FAR_MAX_M;
+        ((150.0 * s) as f32, (1100.0 * s) as f32)
+    }
+}
 /// Far chunks generated + meshed per frame (each costs ~2.5 ms of main-thread
 /// time; the full 1 km field fills in a few seconds of streaming).
 const FAR_BUDGET_PER_FRAME: usize = 3;
@@ -161,11 +279,11 @@ fn far_transform_translation(
 
 /// LOD level whose ring contains a chunk-center distance, `None` for the
 /// full-detail region and beyond the far field.
-pub fn level_for_distance(d: f64) -> Option<u8> {
-    if !(RING_EDGES_M[0]..RING_EDGES_M[4]).contains(&d) {
+pub fn level_for_distance(hz: &HorizonConfig, d: f64) -> Option<u8> {
+    if !(hz.ring_edges[0]..hz.ring_edges[4]).contains(&d) {
         return None;
     }
-    (1..=4u8).find(|level| d < RING_EDGES_M[usize::from(*level)])
+    (1..=4u8).find(|level| d < hz.outer(*level))
 }
 
 /// The level-L sampling scale: one voxel is `2^L` base voxels.
@@ -186,9 +304,14 @@ pub fn far_chunk_center_m(base: VoxelScale, level: u8, pos: ChunkPos) -> DVec3 {
 /// All level-L chunk positions wanted around a viewer (3D spherical ring —
 /// cubic chunks: the far field extends down a chasm exactly like it extends
 /// north). Pure so the headless bench measures the same set the app streams.
-pub fn wanted_far_positions(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<ChunkPos> {
+pub fn wanted_far_positions(
+    base: VoxelScale,
+    viewer_m: DVec3,
+    level: u8,
+    hz: &HorizonConfig,
+) -> Vec<ChunkPos> {
     let chunk_m = coarse_scale(base, level).voxels_to_meters(f64::from(CHUNK_SIZE));
-    let outer = RING_EDGES_M[usize::from(level)];
+    let outer = hz.outer(level);
     let center_chunk = ChunkPos::new(
         (viewer_m.x / chunk_m).floor() as i32,
         (viewer_m.y / chunk_m).floor() as i32,
@@ -205,7 +328,7 @@ pub fn wanted_far_positions(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec
                     center_chunk.z + dz,
                 );
                 let d = (far_chunk_center_m(base, level, pos) - viewer_m).length();
-                if level_for_distance(d) == Some(level) {
+                if level_for_distance(hz, d) == Some(level) {
                     out.push(pos);
                 }
             }
@@ -261,6 +384,13 @@ pub fn stream_far_chunks(
     }
 
     let base = scale.scale;
+    // The legacy S1 far mesh does NOT follow `--horizon` (journal/0042). It is a
+    // volumetric 3-D shell, so its wanted-set is a *cube* of chunk positions:
+    // stretching its outer ring grows the scan and the loaded set with the CUBE of
+    // the horizon, not the square. It is also the phantom-old-world path
+    // (journal/0017) that only the 3/4 keys reach. The knob belongs to the real
+    // (worldgen) horizon; this one keeps the shipped 1.2 km geometry.
+    let hz = HorizonConfig::default();
 
     // Scale switched (keys 2/3/4): far meshes are per-scale, rebuild them.
     if scale.is_changed() && !map.loaded.is_empty() {
@@ -277,9 +407,7 @@ pub fn stream_far_chunks(
         .keys()
         .filter(|(level, pos)| {
             let d = (far_chunk_center_m(base, *level, *pos) - player.pos_m).length();
-            let inner = RING_EDGES_M[usize::from(*level) - 1];
-            let outer = RING_EDGES_M[usize::from(*level)];
-            d < inner - FAR_UNLOAD_SLACK_M || d > outer + FAR_UNLOAD_SLACK_M
+            d < hz.inner(*level) - FAR_UNLOAD_SLACK_M || d > hz.outer(*level) + FAR_UNLOAD_SLACK_M
         })
         .copied()
         .collect();
@@ -292,7 +420,7 @@ pub fn stream_far_chunks(
     // Collect missing positions across all rings, nearest first.
     let mut missing: Vec<(u64, u8, ChunkPos)> = Vec::new();
     for level in 1..=4u8 {
-        for pos in wanted_far_positions(base, player.pos_m, level) {
+        for pos in wanted_far_positions(base, player.pos_m, level, &hz) {
             if !map.loaded.contains_key(&(level, pos)) {
                 let d = (far_chunk_center_m(base, level, pos) - player.pos_m).length();
                 missing.push(((d * 1000.0) as u64, level, pos));
@@ -407,15 +535,6 @@ pub fn position_far_chunks(
 /// Far surface tiles generated + meshed per frame. The full horizon fills in a
 /// second or two of streaming, same as the S1 far mesh.
 const FAR_SURFACE_BUDGET_PER_FRAME: usize = 2;
-/// Horizontal radius (m) within which the near volumetric field is treated as
-/// covering the surface, so far columns there are CULLED rather than buried.
-/// Equals the far-overlap inset of the full-detail radius: the near field
-/// streams a [`FULL_DETAIL_RADIUS_M`] sphere, so culling far columns whose 3-D
-/// distance to the viewer is under this inset leaves exactly the intended
-/// ~[`FAR_OVERLAP_M`] occluded overlap band (far quantized below near, near
-/// opaque on top) and NO deeper buried geometry — the coverage-logic replacement
-/// for journal/0022 walk-17's buried inner lap.
-const NEAR_COVER_R_M: f64 = FULL_DETAIL_RADIUS_M - FAR_OVERLAP_M;
 /// Depth of the ring-transition / near-seam skirt, in this level's coarse
 /// voxels. A stepped tile's *outer* boundary (where the next-coarser ring takes
 /// over, or where the near field culls its columns) drops a short vertical apron
@@ -470,11 +589,12 @@ fn quantize_top(h: i32, stride: i64) -> i32 {
 /// progress (deterministic, unit-testable). Altitude-aware: flying far above the
 /// surface grows the vertical term, shrinking the covered disc to nothing, so the
 /// horizon is never culled when viewed from the air (the key-2 high vantage).
-fn near_covers(wx_m: f64, wz_m: f64, top_m: f64, viewer_m: DVec3) -> bool {
+fn near_covers(wx_m: f64, wz_m: f64, top_m: f64, viewer_m: DVec3, hz: &HorizonConfig) -> bool {
     let dx = wx_m - viewer_m.x;
     let dz = wz_m - viewer_m.z;
     let dy = top_m - viewer_m.y;
-    dx * dx + dy * dy + dz * dz < NEAR_COVER_R_M * NEAR_COVER_R_M
+    let r = hz.near_cover_r_m();
+    dx * dx + dy * dy + dz * dz < r * r
 }
 
 /// A loaded far tile's bookkeeping: the mesh entity (`None` = the tile meshed to
@@ -545,18 +665,22 @@ fn far_tile_center_dist(base: VoxelScale, level: u8, tx: i32, tz: i32, viewer_m:
 /// *present* across the near/far band, but their columns under the near field are
 /// CULLED by coverage ([`near_covers`]) rather than buried — the FF2a
 /// replacement for journal/0022's buried lap.
-fn far_tile_in_ring(base: VoxelScale, level: u8, dist: f64) -> bool {
-    let inner = RING_EDGES_M[usize::from(level) - 1] - far_tile_m(base, level);
-    let outer = RING_EDGES_M[usize::from(level)];
-    (inner..outer).contains(&dist)
+fn far_tile_in_ring(base: VoxelScale, level: u8, dist: f64, hz: &HorizonConfig) -> bool {
+    let inner = hz.inner(level) - far_tile_m(base, level);
+    (inner..hz.outer(level)).contains(&dist)
 }
 
 /// All level-L surface tiles wanted around a viewer (2D ring by horizontal
 /// distance, with the one-tile inner overlap of [`far_tile_in_ring`]). Pure, so
 /// a headless bench measures the same set the app streams.
-pub fn wanted_far_tiles(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<(i32, i32)> {
+pub fn wanted_far_tiles(
+    base: VoxelScale,
+    viewer_m: DVec3,
+    level: u8,
+    hz: &HorizonConfig,
+) -> Vec<(i32, i32)> {
     let tile_m = far_tile_m(base, level);
-    let outer = RING_EDGES_M[usize::from(level)];
+    let outer = hz.outer(level);
     let center_tx = (viewer_m.x / tile_m).floor() as i32;
     let center_tz = (viewer_m.z / tile_m).floor() as i32;
     let r = (outer / tile_m).ceil() as i32 + 1;
@@ -568,6 +692,7 @@ pub fn wanted_far_tiles(base: VoxelScale, viewer_m: DVec3, level: u8) -> Vec<(i3
                 base,
                 level,
                 far_tile_center_dist(base, level, tx, tz, viewer_m),
+                hz,
             ) {
                 out.push((tx, tz));
             }
@@ -621,6 +746,7 @@ fn tile_column_spans(
     tx: i32,
     tz: i32,
     viewer_m: DVec3,
+    hz: &HorizonConfig,
     sample: &dyn Fn(i64, i64) -> (i32, Block),
 ) -> (Vec<ColumnSpan>, Vec<bool>) {
     let stride = level_stride(level);
@@ -647,6 +773,7 @@ fn tile_column_spans(
                 wz as f64 * base_vs,
                 f64::from(top) * base_vs,
                 viewer_m,
+                hz,
             );
         }
     }
@@ -887,8 +1014,16 @@ fn viewer_near_chunk(base: VoxelScale, viewer: DVec3) -> (i64, i64, i64) {
 /// Whether a tile is close enough to the viewer that some of its columns could be
 /// culled by near coverage — the band where the coverage cull is viewer-relative
 /// and must be refreshed as the viewer moves.
-fn tile_in_cull_band(base: VoxelScale, level: u8, tx: i32, tz: i32, viewer: DVec3) -> bool {
-    far_tile_center_dist(base, level, tx, tz, viewer) < NEAR_COVER_R_M + far_tile_m(base, level)
+fn tile_in_cull_band(
+    base: VoxelScale,
+    level: u8,
+    tx: i32,
+    tz: i32,
+    viewer: DVec3,
+    hz: &HorizonConfig,
+) -> bool {
+    far_tile_center_dist(base, level, tx, tz, viewer)
+        < hz.near_cover_r_m() + far_tile_m(base, level)
 }
 
 /// Stream the worldgen horizon: the voxel-stepped coarse-summary rings (FF2a).
@@ -908,6 +1043,7 @@ pub fn stream_far_surface(
     scale: Res<CurrentScale>,
     player: Res<Player>,
     origin: Res<FloatingOrigin>,
+    horizon: Res<HorizonConfig>,
     mut map: ResMut<FarSurfaceMap>,
 ) {
     // Only the worldgen authority has a coarse summary; tear our tiles down when
@@ -934,6 +1070,7 @@ pub fn stream_far_surface(
     }
 
     let viewer = player.pos_m;
+    let hz = &*horizon;
     // One shared camera-forward push direction for every tile built this frame —
     // the uniform-per-level push that keeps same-level seams closed by
     // construction (corrections #11).
@@ -948,9 +1085,8 @@ pub fn stream_far_surface(
         .keys()
         .filter(|(level, tx, tz)| {
             let d = far_tile_center_dist(base, *level, *tx, *tz, viewer);
-            let inner = RING_EDGES_M[usize::from(*level) - 1] - far_tile_m(base, *level);
-            let outer = RING_EDGES_M[usize::from(*level)];
-            d < inner - FAR_UNLOAD_SLACK_M || d > outer + FAR_UNLOAD_SLACK_M
+            let inner = hz.inner(*level) - far_tile_m(base, *level);
+            d < inner - FAR_UNLOAD_SLACK_M || d > hz.outer(*level) + FAR_UNLOAD_SLACK_M
         })
         .copied()
         .collect();
@@ -965,7 +1101,7 @@ pub fn stream_far_surface(
     // Newly-wanted (missing) tiles, nearest first — these appear the horizon.
     let mut missing: Vec<(u64, u8, i32, i32)> = Vec::new();
     for level in 1..=4u8 {
-        for (tx, tz) in wanted_far_tiles(base, viewer, level) {
+        for (tx, tz) in wanted_far_tiles(base, viewer, level, hz) {
             if !map.loaded.contains_key(&(level, tx, tz)) {
                 let d = far_tile_center_dist(base, level, tx, tz, viewer);
                 missing.push(((d * 1000.0) as u64, level, tx, tz));
@@ -981,7 +1117,7 @@ pub fn stream_far_surface(
     // invisible, so the horizon (missing) takes priority.
     let mut stale: Vec<(u64, u8, i32, i32)> = Vec::new();
     for (&(level, tx, tz), t) in &map.loaded {
-        let in_band = tile_in_cull_band(base, level, tx, tz, viewer);
+        let in_band = tile_in_cull_band(base, level, tx, tz, viewer, hz);
         let needs = match t.cull_chunk {
             Some(c) => c != cur_chunk,
             None => in_band,
@@ -1006,6 +1142,7 @@ pub fn stream_far_surface(
                 base,
                 level,
                 far_tile_center_dist(base, level, ntx, ntz, viewer),
+                hz,
             )
         };
         [
@@ -1021,11 +1158,11 @@ pub fn stream_far_surface(
                  tx: i32,
                  tz: i32|
      -> LoadedFarTile {
-        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, &sample);
+        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, hz, &sample);
         let ring_edges = ring_edges_of(level, tx, tz);
         let (mesh_data, y_ref) =
             build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges);
-        let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer).then_some(cur_chunk);
+        let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
         if mesh_data.is_empty() {
             // Every column culled (fully under the near field): a real, tracked
             // "meshed to nothing" so it isn't re-attempted every frame.
@@ -1112,17 +1249,67 @@ mod tests {
 
     #[test]
     fn ring_selection_by_distance() {
-        assert_eq!(level_for_distance(0.0), None, "full detail");
-        assert_eq!(level_for_distance(111.0), None, "still full detail");
-        assert_eq!(level_for_distance(113.0), Some(1), "overlap band is LOD 1");
-        assert_eq!(level_for_distance(255.0), Some(1));
-        assert_eq!(level_for_distance(256.0), Some(2));
-        assert_eq!(level_for_distance(511.0), Some(2));
-        assert_eq!(level_for_distance(512.0), Some(3));
-        assert_eq!(level_for_distance(1023.0), Some(3));
-        assert_eq!(level_for_distance(1024.0), Some(4));
-        assert_eq!(level_for_distance(1199.0), Some(4));
-        assert_eq!(level_for_distance(1200.0), None, "beyond the far field");
+        let hz = &HorizonConfig::default();
+        assert_eq!(level_for_distance(hz, 0.0), None, "full detail");
+        assert_eq!(level_for_distance(hz, 111.0), None, "still full detail");
+        assert_eq!(
+            level_for_distance(hz, 113.0),
+            Some(1),
+            "overlap band is LOD 1"
+        );
+        assert_eq!(level_for_distance(hz, 255.0), Some(1));
+        assert_eq!(level_for_distance(hz, 256.0), Some(2));
+        assert_eq!(level_for_distance(hz, 511.0), Some(2));
+        assert_eq!(level_for_distance(hz, 512.0), Some(3));
+        assert_eq!(level_for_distance(hz, 1023.0), Some(3));
+        assert_eq!(level_for_distance(hz, 1024.0), Some(4));
+        assert_eq!(level_for_distance(hz, 1199.0), Some(4));
+        assert_eq!(level_for_distance(hz, 1200.0), None, "beyond the far field");
+    }
+
+    /// **The default must not change** (journal/0042). `--horizon` made the ring
+    /// geometry runtime state; this pins the no-flag path to the literal
+    /// constants the `const RING_EDGES_M` shipped, so a launch without the flag
+    /// renders exactly as before.
+    #[test]
+    fn default_ring_edges_match_the_shipped_constants() {
+        let hz = HorizonConfig::default();
+        assert_eq!(
+            hz.ring_edges,
+            [112.0, 256.0, 512.0, 1024.0, 1200.0],
+            "the shipped RING_EDGES_M, exactly"
+        );
+        assert_eq!(hz.far_max_m, 1200.0);
+        assert_eq!(hz.near_cover_r_m(), 112.0, "the shipped NEAR_COVER_R_M");
+        assert_eq!(hz.camera_far_m(), 3000.0, "the shipped camera far plane");
+        assert_eq!(hz.fog_range_m(), (150.0, 1100.0), "the shipped fog range");
+        // Asking for the default horizon explicitly is the same object.
+        assert_eq!(HorizonConfig::with_far_max(DEFAULT_FAR_MAX_M), hz);
+    }
+
+    /// A wider horizon stretches the OUTERMOST ring and leaves the inner three
+    /// exactly where they were — the cheap direction (see [`HorizonConfig`]).
+    #[test]
+    fn horizon_stretches_only_the_outer_ring() {
+        for km in [3.0, 5.0, 10.0] {
+            let hz = HorizonConfig::with_far_max(km * 1000.0);
+            assert_eq!(
+                &hz.ring_edges[..4],
+                &[112.0, 256.0, 512.0, 1024.0],
+                "inner rings must not move at {km} km"
+            );
+            assert_eq!(hz.ring_edges[4], km * 1000.0);
+            // Still 5 edges / 4 levels, monotone, and the whole band is claimed.
+            assert!(hz.ring_edges.windows(2).all(|w| w[0] <= w[1]));
+            assert_eq!(level_for_distance(&hz, km * 1000.0 - 1.0), Some(4));
+            assert_eq!(level_for_distance(&hz, km * 1000.0), None);
+        }
+        // An absurdly SHORT horizon collapses the inner edges instead of
+        // inverting them (monotone by clamp), and never goes below the LOD-1
+        // inner edge.
+        let tiny = HorizonConfig::with_far_max(0.0);
+        assert!(tiny.ring_edges.windows(2).all(|w| w[0] <= w[1]));
+        assert_eq!(tiny.ring_edges, [112.0; 5]);
     }
 
     #[test]
@@ -1136,14 +1323,15 @@ mod tests {
     fn wanted_positions_are_ring_shaped_and_deterministic() {
         let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
         let viewer = DVec3::new(10.0, 5.0, -20.0);
-        let a = wanted_far_positions(base, viewer, 1);
-        let b = wanted_far_positions(base, viewer, 1);
+        let hz = &HorizonConfig::default();
+        let a = wanted_far_positions(base, viewer, 1, hz);
+        let b = wanted_far_positions(base, viewer, 1, hz);
         assert_eq!(a, b, "deterministic");
         assert!(!a.is_empty());
         for pos in &a {
             let d = (far_chunk_center_m(base, 1, *pos) - viewer).length();
             assert!(
-                (RING_EDGES_M[0]..RING_EDGES_M[1]).contains(&d),
+                (hz.ring_edges[0]..hz.ring_edges[1]).contains(&d),
                 "chunk at distance {d} outside LOD-1 ring"
             );
         }
@@ -1153,18 +1341,19 @@ mod tests {
     fn wanted_far_tiles_are_ring_shaped_and_deterministic() {
         let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
         let viewer = DVec3::new(30.0, 980.0, -15.0);
-        let a = wanted_far_tiles(base, viewer, 2);
-        let b = wanted_far_tiles(base, viewer, 2);
+        let hz = &HorizonConfig::default();
+        let a = wanted_far_tiles(base, viewer, 2, hz);
+        let b = wanted_far_tiles(base, viewer, 2, hz);
         assert_eq!(a, b, "deterministic");
         assert!(!a.is_empty());
         // The ring band carries the one-tile inner overlap (`far_tile_in_ring`):
-        // level-2 tiles lap one L2 tile inward past RING_EDGES_M[1] to close the
+        // level-2 tiles lap one L2 tile inward past ring edge 1 to close the
         // seam with L1 (journal/0022 walk 17).
-        let inner = RING_EDGES_M[1] - far_tile_m(base, 2);
+        let inner = hz.ring_edges[1] - far_tile_m(base, 2);
         for &(tx, tz) in &a {
             let d = far_tile_center_dist(base, 2, tx, tz, viewer);
             assert!(
-                (inner..RING_EDGES_M[2]).contains(&d),
+                (inner..hz.ring_edges[2]).contains(&d),
                 "tile at horizontal distance {d} outside LOD-2 ring (inner {inner})"
             );
         }
@@ -1182,7 +1371,8 @@ mod tests {
         ring_edges: [bool; 4],
         sample: &dyn Fn(i64, i64) -> (i32, Block),
     ) -> (MeshData, f64) {
-        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, sample);
+        let hz = HorizonConfig::default();
+        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, &hz, sample);
         build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges)
     }
 
@@ -1288,9 +1478,10 @@ mod tests {
         let surf = 100i32;
         let surf_m = f64::from(surf) * base.voxel_size_m();
         let sample = |_wx: i64, _wz: i64| (surf, Block::Grass);
+        let hz = &HorizonConfig::default();
 
         // A distant viewer culls nothing — the full horizon renders.
-        let (_s, culled_far) = tile_column_spans(base, 1, 0, 0, FAR_VIEWER, &sample);
+        let (_s, culled_far) = tile_column_spans(base, 1, 0, 0, FAR_VIEWER, hz, &sample);
         assert!(
             culled_far.iter().all(|c| !c),
             "distant viewer culls no columns"
@@ -1301,7 +1492,7 @@ mod tests {
         // fully covered and meshes to NOTHING — no buried sheet to dig into.
         let tile_m = far_tile_m(base, 1);
         let centre = DVec3::new(tile_m * 0.5, surf_m, tile_m * 0.5);
-        let (spans, culled) = tile_column_spans(base, 1, 0, 0, centre, &sample);
+        let (spans, culled) = tile_column_spans(base, 1, 0, 0, centre, hz, &sample);
         assert!(
             culled.iter().all(|&c| c),
             "a tile under the near field must have all columns culled"
@@ -1313,14 +1504,17 @@ mod tests {
         );
     }
 
-    /// FF2a scale-headroom checkpoint (deliverable 4). Measures REAL per-tile
-    /// vertex bytes + build time on the worldgen authority across the current
-    /// 1.2 km field, then projects tile count / memory for a 5–10 km draw
-    /// distance (the design target). Run with `--nocapture` to read the numbers;
-    /// as a test it just asserts the field is non-empty and bounded. Does NOT
-    /// change the shipped radius.
+    /// FF2a scale-headroom checkpoint, re-cut as the `--horizon` sweep
+    /// (journal/0042). journal/0023 could only *project* the 5–10 km field
+    /// (by assuming extra LOD rings); with the horizon a runtime knob the whole
+    /// field can be built for real at each setting and MEASURED — tile count,
+    /// mesh memory, derive+mesh ms/tile, and the coarsest ring's voxel step.
+    /// Run with `--nocapture` to read the table; as a test it asserts the field
+    /// is non-empty, per-tile cost is bounded, and — the load-bearing one — that
+    /// the **per-frame** meshing budget does not grow with the horizon (a wider
+    /// horizon buys more frames of streaming, never a hitch).
     #[test]
-    fn scale_headroom_checkpoint() {
+    fn horizon_sweep_measures_the_far_field_cost() {
         use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
         use std::cell::RefCell;
         use std::time::Instant;
@@ -1338,61 +1532,65 @@ mod tests {
 
         // pos(12) + normal(12) + color(16) + uv(8) + layers(16) + weights(16).
         const BYTES_PER_VERT: usize = 12 + 12 + 16 + 8 + 16 + 16;
-        let mut tiles = 0usize;
-        let mut tris = 0usize;
-        let mut verts = 0usize;
-        let mut per_ring = [0usize; 5];
-        let t0 = Instant::now();
-        for level in 1..=4u8 {
-            for (tx, tz) in wanted_far_tiles(base, viewer, level) {
-                let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, &sample);
-                let (mesh, _y) =
-                    build_far_tile_mesh(base, level, tx, tz, &spans, &culled, [true; 4]);
-                tiles += 1;
-                per_ring[level as usize] += 1;
-                tris += mesh.triangle_count();
-                verts += mesh.positions.len();
-            }
-        }
-        let elapsed = t0.elapsed();
-        let mesh_bytes = verts * BYTES_PER_VERT + tris * 3 * 4;
-        let avg_tile_bytes = mesh_bytes / tiles.max(1);
-        let ms_per_tile = elapsed.as_secs_f64() * 1e3 / tiles.max(1) as f64;
-        // Projection: extend by doubling LOD rings; tiles-per-ring stays ~flat
-        // (annulus area and tile area both scale ~4× per doubling). Extra rings
-        // to reach R from the current 1.2 km outer edge:
-        let tiles_per_ring = tiles / 4;
-        let project = |r: f64| -> (usize, f64) {
-            let extra = (r / RING_EDGES_M[4]).log2().ceil().max(0.0) as usize;
-            let t = tiles + extra * tiles_per_ring;
-            (t, (t * avg_tile_bytes) as f64 / 1_048_576.0)
-        };
-        let (t5, mb5) = project(5_000.0);
-        let (t10, mb10) = project(10_000.0);
-        println!("\n=== FF2a scale-headroom checkpoint (worst case: no coverage cull) ===");
+        println!("\n=== --horizon sweep, MEASURED (worst case: no coverage cull) ===");
         println!("bytes/vertex = {BYTES_PER_VERT} (pos+nrm+col+uv+layers+weights)");
         println!(
-            "current 1.2 km field: {tiles} tiles {per_ring:?} (L1..L4), {tris} tris, {verts} verts",
+            "| horizon | tiles (L1..L4) | tris | mesh MiB | ms/tile | frame ms (2 tiles) | \
+             fill s @60fps | coarsest step |"
         );
-        println!(
-            "  mesh memory {:.2} MiB, avg {avg_tile_bytes} bytes/tile ({:.1} tris/tile avg)",
-            mesh_bytes as f64 / 1_048_576.0,
-            tris as f64 / tiles.max(1) as f64,
-        );
-        println!(
-            "  derive+mesh {:.3} s total, {ms_per_tile:.3} ms/tile (budget 2 tiles/frame)",
-            elapsed.as_secs_f64(),
-        );
-        println!("projected 5 km:  ~{t5} tiles, ~{mb5:.1} MiB mesh");
-        println!("projected 10 km: ~{t10} tiles, ~{mb10:.1} MiB mesh");
-        println!(
-            "per-frame meshing stays ~{:.3} ms (2 tiles) regardless of radius — no hitch; \
-             full 10 km fill ~{:.1} s at 2 tiles/frame @60fps\n",
-            2.0 * ms_per_tile,
-            t10 as f64 / 2.0 / 60.0,
-        );
-        assert!(tiles > 0, "the far field must produce tiles");
-        assert!(avg_tile_bytes < 200_000, "per-tile mesh unexpectedly large");
+        let mut baseline_ms_per_tile = 0.0f64;
+        for km in [1.2f64, 3.0, 5.0, 10.0] {
+            let hz = HorizonConfig::with_far_max(km * 1000.0);
+            let mut tiles = 0usize;
+            let mut tris = 0usize;
+            let mut verts = 0usize;
+            let mut per_ring = [0usize; 5];
+            let t0 = Instant::now();
+            for level in 1..=4u8 {
+                for (tx, tz) in wanted_far_tiles(base, viewer, level, &hz) {
+                    let (spans, culled) =
+                        tile_column_spans(base, level, tx, tz, viewer, &hz, &sample);
+                    let (mesh, _y) =
+                        build_far_tile_mesh(base, level, tx, tz, &spans, &culled, [true; 4]);
+                    tiles += 1;
+                    per_ring[level as usize] += 1;
+                    tris += mesh.triangle_count();
+                    verts += mesh.positions.len();
+                }
+            }
+            let elapsed = t0.elapsed();
+            let mesh_bytes = verts * BYTES_PER_VERT + tris * 3 * 4;
+            let ms_per_tile = elapsed.as_secs_f64() * 1e3 / tiles.max(1) as f64;
+            // The coarsest ring's effective voxel step — the legibility cost.
+            let step = coarse_scale(base, 4).voxel_size_m();
+            println!(
+                "| {km} km | {tiles} {:?} | {tris} | {:.1} | {ms_per_tile:.3} | {:.3} | {:.1} | \
+                 {step:.1} m |",
+                &per_ring[1..],
+                mesh_bytes as f64 / 1_048_576.0,
+                FAR_SURFACE_BUDGET_PER_FRAME as f64 * ms_per_tile,
+                tiles as f64 / FAR_SURFACE_BUDGET_PER_FRAME as f64 / 60.0,
+            );
+            assert!(tiles > 0, "the far field must produce tiles at {km} km");
+            assert!(
+                mesh_bytes / tiles < 200_000,
+                "per-tile mesh unexpectedly large at {km} km"
+            );
+            // The budget is per FRAME, not per field: widening the horizon must
+            // not raise the work done in any one frame. Per-tile cost is the
+            // frame cost (× the fixed budget), so it must stay flat within a
+            // generous timing-noise factor.
+            if km == 1.2 {
+                baseline_ms_per_tile = ms_per_tile;
+            } else {
+                assert!(
+                    ms_per_tile < baseline_ms_per_tile * 4.0 + 1.0,
+                    "per-frame meshing cost grew with the horizon \
+                     ({ms_per_tile:.3} ms/tile vs {baseline_ms_per_tile:.3} at 1.2 km)"
+                );
+            }
+        }
+        println!();
     }
 
     /// The milestone's continuity guarantee, measured: every far-horizon corner
@@ -1445,7 +1643,11 @@ mod tests {
         // symmetry.
         let viewer = DVec3::new(123.4, 1000.0, -77.6);
         let sets: Vec<HashSet<(i32, i32)>> = (1..=3u8)
-            .map(|l| wanted_far_tiles(base, viewer, l).into_iter().collect())
+            .map(|l| {
+                wanted_far_tiles(base, viewer, l, &HorizonConfig::default())
+                    .into_iter()
+                    .collect()
+            })
             .collect();
         let covered = |px: f64, pz: f64| -> bool {
             (1..=3u8).any(|l| {
@@ -1465,7 +1667,7 @@ mod tests {
         let r_max = 800.0;
         let mut holes = 0usize;
         let mut first_hole = None;
-        let mut r = RING_EDGES_M[0]; // 112 m: LOD-1 inner edge
+        let mut r = HorizonConfig::default().ring_edges[0]; // 112 m: LOD-1 inner edge
         while r < r_max {
             let steps = 1440; // 0.25° angular resolution
             for k in 0..steps {
@@ -1484,6 +1686,51 @@ mod tests {
         assert_eq!(
             holes, 0,
             "far field has {holes} uncovered ground points (sky holes); \
+             first at radius/angle {first_hole:?}"
+        );
+    }
+
+    /// The same coverage theorem at a STRETCHED horizon (journal/0042): widening
+    /// the outermost ring must not open a new class of sky hole. Levels 1–3 are
+    /// untouched by the knob, so the interesting seam is L3/L4 at 1024 m and the
+    /// whole 1024 m → 8 km body of the stretched L4 ring. As above, the world's
+    /// outer rim (near the 10 km edge) is legitimately ragged and excluded.
+    #[test]
+    fn a_stretched_horizon_opens_no_new_sky_holes() {
+        use std::collections::HashSet;
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        let hz = HorizonConfig::with_far_max(10_000.0);
+        let viewer = DVec3::new(123.4, 1000.0, -77.6);
+        let sets: Vec<HashSet<(i32, i32)>> = (1..=4u8)
+            .map(|l| wanted_far_tiles(base, viewer, l, &hz).into_iter().collect())
+            .collect();
+        let covered = |px: f64, pz: f64| -> bool {
+            (1..=4u8).any(|l| {
+                let tile_m = far_tile_m(base, l);
+                let tx = (px / tile_m).floor() as i32;
+                let tz = (pz / tile_m).floor() as i32;
+                sets[usize::from(l) - 1].contains(&(tx, tz))
+            })
+        };
+        let mut holes = 0usize;
+        let mut first_hole = None;
+        let mut r = hz.ring_edges[0];
+        while r < 8000.0 {
+            for k in 0..720 {
+                let a = std::f64::consts::TAU * f64::from(k) / 720.0;
+                let (px, pz) = (viewer.x + r * a.cos(), viewer.z + r * a.sin());
+                if !covered(px, pz) {
+                    holes += 1;
+                    if first_hole.is_none() {
+                        first_hole = Some((r, a));
+                    }
+                }
+            }
+            r += 2.0;
+        }
+        assert_eq!(
+            holes, 0,
+            "stretched horizon has {holes} uncovered ground points; \
              first at radius/angle {first_hole:?}"
         );
     }

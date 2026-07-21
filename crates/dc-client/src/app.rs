@@ -182,6 +182,7 @@ pub fn run(
     fullbright: bool,
     edges: bool,
     gen_options: authority::GenOptions,
+    horizon: farmesh::HorizonConfig,
 ) {
     // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
     // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
@@ -215,6 +216,10 @@ pub fn run(
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
     .insert_resource(Edges(edges))
+    // The far field's ring geometry (`--horizon`, journal/0042). A resource, not
+    // a const, so the horizon is a launch decision; the default reproduces the
+    // shipped 1.2 km rings exactly.
+    .insert_resource(horizon)
     .insert_resource(far_terrain)
     .insert_resource(CurrentScale::new(boot_voxels))
     .insert_resource(FloatingOrigin(spawn))
@@ -351,6 +356,7 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     fullbright_mode: Res<Fullbright>,
     edges: Res<Edges>,
+    horizon: Res<farmesh::HorizonConfig>,
 ) {
     // Simple diffuse setup: one sun, flat ambient on the camera. Computed first
     // so the LabPBR terrain material lights against the same sun.
@@ -389,6 +395,12 @@ fn setup(
     // geometry — no pack-WGSL change, and lit-pass fog is untouched. (The
     // separate sky-haze pull, keyed off `is_sky`, is not distance fog and
     // stays, so the sky still meets the horizon.)
+    // Distance haze is tuned against the far field's reach, so it has to travel
+    // with `--horizon` (journal/0042): at the default it is byte-identically the
+    // shipped 150 / 1100 m, and a 10 km horizon pushes it out proportionally —
+    // otherwise the macro landform the wider horizon exists to show would be
+    // fogged to white at 1.1 km, which is the exact failure journal/0030 hit.
+    (post.fog_start_m, post.fog_end_m) = horizon.fog_range_m();
     if fullbright_mode.0 {
         post.fog_start_m = 1.0e9;
         post.fog_end_m = 2.0e9;
@@ -411,10 +423,11 @@ fn setup(
             // Bevy's built-in pass must not grade on top of it.
             Tonemapping::None,
             post,
-            // The far field reaches 1.2 km (see farmesh.rs); the default 1 km far
-            // plane would clip the outermost LOD ring.
+            // The far field reaches `--horizon` (1.2 km by default, farmesh.rs);
+            // the default 1 km far plane would clip the outermost LOD ring, and a
+            // widened horizon needs the plane to travel with it.
             Projection::Perspective(PerspectiveProjection {
-                far: 3000.0,
+                far: horizon.camera_far_m(),
                 ..default()
             }),
             AmbientLight {

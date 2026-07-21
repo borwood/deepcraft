@@ -24,7 +24,7 @@ use glam::DVec3;
 use crate::PLAYER_HEIGHT_M;
 use crate::bench::{BENCH_SEED, REGION_MAX_M, REGION_MIN_M, format_bytes, group_thousands};
 use crate::farmesh::{
-    FULL_DETAIL_RADIUS_M, RING_EDGES_M, coarse_scale, far_chunk_center_m, wanted_far_positions,
+    FULL_DETAIL_RADIUS_M, HorizonConfig, coarse_scale, far_chunk_center_m, wanted_far_positions,
 };
 use crate::meshing::mesh_chunk;
 use crate::worldgen::TerrainGen;
@@ -270,9 +270,13 @@ pub fn run() {
 
     // ---- 4. far-mesh cost for the 1.2 km field ------------------------------
     let viewer = DVec3::new(0.0, generator.surface_height_m(0.0, 0.0) + 2.0, 0.0);
+    // The S3 bench measures the SHIPPED (default) horizon; `--horizon`
+    // (journal/0042) is a launch-time knob on the interactive client, and this
+    // table is the reference number the spike results doc quotes.
+    let hz = HorizonConfig::default();
     println!(
         "far mesh: viewer at ({:.0}, {:.0}, {:.0}) m, rings {:?}",
-        viewer.x, viewer.y, viewer.z, RING_EDGES_M
+        viewer.x, viewer.y, viewer.z, hz.ring_edges
     );
     println!("| Level | Ring (m) | Chunks | Gen time | Mesh time | Triangles |");
     println!("|---|---|---|---|---|---|");
@@ -280,7 +284,7 @@ pub fn run() {
     let mut far_total_s = 0.0f64;
     for level in 1..=4u8 {
         let cscale = coarse_scale(scale, level);
-        let positions = wanted_far_positions(scale, viewer, level);
+        let positions = wanted_far_positions(scale, viewer, level, &hz);
         let mut gen_s = 0.0f64;
         let mut mesh_s = 0.0f64;
         let mut tris = 0u64;
@@ -305,13 +309,13 @@ pub fn run() {
         for pos in &positions {
             let d = (far_chunk_center_m(scale, level, *pos) - viewer).length();
             assert!(
-                d >= RING_EDGES_M[usize::from(level) - 1] && d < RING_EDGES_M[usize::from(level)]
+                d >= hz.ring_edges[usize::from(level) - 1] && d < hz.ring_edges[usize::from(level)]
             );
         }
         println!(
             "| {level} | {:.0}-{:.0} | {} | {:.2} s | {:.2} s | {} |",
-            RING_EDGES_M[usize::from(level) - 1],
-            RING_EDGES_M[usize::from(level)],
+            hz.ring_edges[usize::from(level) - 1],
+            hz.ring_edges[usize::from(level)],
             positions.len(),
             gen_s,
             mesh_s,
@@ -324,7 +328,7 @@ pub fn run() {
     // Full-res comparators over the same annulus (extrapolated from S1's
     // measured N=2 numbers; actually generating it would take minutes).
     let inner = FULL_DETAIL_RADIUS_M - 16.0;
-    let outer = RING_EDGES_M[4];
+    let outer = hz.ring_edges[4];
     let annulus_m2 = std::f64::consts::PI * (outer * outer - inner * inner);
     let shell_m3 = 4.0 / 3.0 * std::f64::consts::PI * (outer.powi(3) - inner.powi(3));
     let full_res_chunks = shell_m3 / chunk_vol_m3;
