@@ -1389,6 +1389,18 @@ before any code.
   every production world. The tour map excludes the border ring; the march's
   boundary handling is the defect. Small, mechanical, undiagnosed beyond the
   symptom.
+- **UPDATE 2026-07-21 (second occurrence): the teleport-storm hypothesis is
+  FALSIFIED as the trigger.** A `--horizon 6` session crashed with the
+  IDENTICAL signature (DeviceLost 10:20:59 → buffer-map panic → cluster
+  PoisonError) while **completely idle** — booted, streamed its field, sat
+  untouched ~4.5 min, died. Two for two at `--horizon 6` (~10 min with
+  activity, ~4.5 min idle); default-horizon sessions historically run long.
+  Revised suspicion: resource/VRAM accumulation in the wide-horizon far-field
+  path (or a driver interaction it provokes) — a leak-shaped bug, not a
+  burst-load bug. Repro is now cheap: boot `--horizon 6`, wait five minutes.
+  Diagnosis slice should instrument GPU memory over idle time. Until fixed,
+  walks run `--horizon 3` (stations are close-range reads; only skyline
+  vistas need 6+).
 - **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
   (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
   teleport sequence: `DeviceLost ("driver implementation is at fault")` →
