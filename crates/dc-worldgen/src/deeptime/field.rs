@@ -12,7 +12,11 @@
 //! strata — geology.md § formation context).
 //!
 //! The full `DeepGrid` (with uplift/precip planes and the erosion scratch) is
-//! dropped after the run; only `surf` + `strata` survive into the world state.
+//! dropped after the run; `surf` + `regolith` + `strata` (plus the tectonic
+//! exports) survive into the world state. `regolith` — the `H` plane — was
+//! summed into `surf` and discarded until journal/0053; carrying it is what lets
+//! the collapse tier read soil depth from the recorded cause instead of
+//! re-inventing it from present-day precipitation.
 //!
 //! ## Resolution vs. extent (FLAG — a deviation from a literal fixed 460 m)
 //!
@@ -190,6 +194,21 @@ pub struct DeepField {
     pub cell_m: f64,
     /// Final surface elevation `R + H` per cell, metres (row-major, `w × w`).
     pub surf: Vec<f64>,
+    /// **Final regolith thickness `H` per cell, metres** (row-major, `w × w`) —
+    /// the loose, mobile cover the deep sim weathered off bedrock, transported
+    /// and deposited across the whole run. Bedrock elevation is `surf - regolith`.
+    ///
+    /// Carried since 2026-07-21 (journal/0053). Before that the distillation kept
+    /// only the sum `surf = r + h` and threw `h` away, so the collapse tier
+    /// re-invented soil depth from *present-day precipitation* (stubs.md § 3) —
+    /// which is why a deflation basin the sim had scoured to `H ≈ 0` still wore
+    /// three voxels of topsoil (journal/0049 station 1). This plane is the
+    /// recorded cause; `collapse.rs::column` and `geology.rs::clastic_pass` take
+    /// their soil / veneer depth from it.
+    ///
+    /// Cost: one `f64` per deep cell — `w²·8` bytes, the same order as `surf`,
+    /// which the ritual already pays.
+    pub regolith: Vec<f64>,
     /// Per-cell strata record, bottom-up units tagged at deposition.
     pub strata: Vec<DeepStrata>,
     /// **Exported final drainage** (§ 7.3 — tectonic-history only; empty
@@ -283,12 +302,15 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
             Vec::new(),
         )
     };
+    // The regolith plane, carried (journal/0053) rather than summed away.
+    let regolith = run.grid.h;
     let strata = run.grid.strata;
     DeepField {
         w,
         wp: cells.w as usize,
         cell_m,
         surf,
+        regolith,
         strata,
         recv,
         area,
@@ -334,6 +356,34 @@ impl DeepField {
         Some(bilinear(&self.surf, self.w, gx, gy))
     }
 
+    /// **Regolith thickness `H` (metres) of the deep cell nearest the world
+    /// voxel**, or `None` in the wilds — the recorded loose-cover depth the
+    /// collapse tier reads instead of guessing soil from present-day
+    /// precipitation.
+    ///
+    /// **Nearest, not bilinear — deliberately**, and this is the load-bearing
+    /// choice. journal/0053 measured that `H` is *exactly* the sum of the
+    /// cell's own [`record_at_voxel`](Self::record_at_voxel) unit thicknesses:
+    /// the recorder logs every metre of loose cover the sim deposits, so the
+    /// record IS the regolith column, decomposed. The collapse tier uses the
+    /// difference between the two (total column minus what whole voxels can
+    /// express) as its surficial veneer, and that subtraction only conserves
+    /// mass if both terms name the **same cell**. Interpolating one and not the
+    /// other would leak or invent loose material at every cell boundary. So this
+    /// steps at the ~460 m deep-cell grid exactly as the record does.
+    ///
+    /// Registration is the shared [`Self::deep_coords`] convention (integer
+    /// `wp/2` centring — do not reintroduce the half-cell shift of journal/0043).
+    pub fn regolith_at_voxel(&self, vx: i64, vz: i64) -> Option<f64> {
+        if self.regolith.is_empty() {
+            return None;
+        }
+        let (gx, gy) = self.deep_coords(vx, vz)?;
+        let ix = (gx.round() as i64).clamp(0, self.w as i64 - 1) as usize;
+        let iy = (gy.round() as i64).clamp(0, self.w as i64 - 1) as usize;
+        self.regolith.get(iy * self.w + ix).copied()
+    }
+
     /// The strata record of the deep cell **nearest** the world voxel, or `None`
     /// in the wilds / when there is no record grid. Nearest (not bilinear): a
     /// variable-length unit sequence cannot be interpolated, so the facies story
@@ -354,7 +404,11 @@ impl DeepField {
     /// Rough resident footprint (bytes) — the honest "what the ritual keeps in
     /// memory" number.
     pub fn resident_bytes(&self) -> usize {
-        (self.surf.len() + self.area.len() + self.exhum.len() + self.t_crust.len())
+        (self.surf.len()
+            + self.regolith.len()
+            + self.area.len()
+            + self.exhum.len()
+            + self.t_crust.len())
             * std::mem::size_of::<f64>()
             + self.recv.len() * std::mem::size_of::<i32>()
             + self.lake.len()

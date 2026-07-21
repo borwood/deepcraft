@@ -85,27 +85,44 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
     (blocks.0, materials.0, table.0)
 }
 
-/// `(seed, extent, block hash, material hash, table hash)`, captured against
-/// the pre-rewire generator on 2026-07-21.
+/// `(seed, extent, block hash, material hash, table hash)`.
+///
+/// **Moved 2026-07-21 by the carry-`H` slice (journal/0053) — authorized.** The
+/// world genuinely changed: soil/regolith depth stopped being a guess from
+/// present-day precipitation and became the deep sim's recorded loose-column
+/// thickness `H`. Every land column's veneer thickness moved, some columns bared
+/// out to rock for the first time, and ocean/wilds soil bands re-depthed. The
+/// previous values, captured against the pre-rewire generator on 2026-07-21 and
+/// kept here so the move is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x2028_2534_A728_3142, 0x9EF6_F01B_F072_70C2, 0xBD39_3CF4_10DF_8067)
+/// (0x0000_0000_0000_0539, "medium", 0xF584_F3B2_28AC_B00A, 0x51DC_F658_A7F0_8EC9, 0x4123_D801_8035_82D8)
+/// (0x0000_00C1_1A7E_2026, "small",  0x641A_2C85_7A74_0F8C, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
+/// Note the *mixture table* hashes did not move at all, and the small world's
+/// material hash did not either: the change is one of thickness and extent, not
+/// of which materials exist or how they are interned.
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x2028_2534_A728_3142,
-        0x9EF6_F01B_F072_70C2,
+        0x5863_4C80_C5C1_4D62,
+        0x9B67_5DAB_C68D_BDBC,
         0xBD39_3CF4_10DF_8067,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xF584_F3B2_28AC_B00A,
-        0x51DC_F658_A7F0_8EC9,
+        0x54CD_8922_B21E_852A,
+        0x89F9_9D67_61D2_B38C,
         0x4123_D801_8035_82D8,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x641A_2C85_7A74_0F8C,
+        0x024F_5F94_8C2E_39CC,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

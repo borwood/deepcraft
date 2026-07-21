@@ -119,6 +119,12 @@ pub struct StrataCtx<'a> {
     pub flow_energy: f64,
     /// Voxel edge (metres) — the deep-time record's metres are quantized to it.
     pub voxel_m: f64,
+    /// **Recorded regolith thickness `H` at the column, metres** — the deep
+    /// sim's loose-cover plane, bilinearly sampled (`DeepField::regolith_at_voxel`).
+    /// `None` **only in the border wilds**, where no deep-time history exists;
+    /// there the clastic veneer keeps its year-zero precipitation fallback
+    /// (genesis synthesis, stubs.md § Genesis).
+    pub regolith_m: Option<f64>,
     /// The deep-time strata record for this column (nearest 460 m deep cell),
     /// bottom-up units tagged at deposition. Empty in the wilds / where the deep
     /// sim laid nothing down (bare erosional uplands). The **at-deposition
@@ -360,8 +366,16 @@ const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 /// record. This is the point of 3e-1: a cut face reads the record of a landscape
 /// that ran (marine mud under arid fill under the recent veneer), not the
 /// year-zero climate shim.
-fn deposit_deep_history(ctx: &mut StrataCtx) {
+///
+/// **Returns the voxel thickness it actually expressed** — the whole-voxel part
+/// of the loose column. journal/0053: the deep sim's regolith plane `H` equals
+/// the sum of these units' metres exactly, so `round(H / voxel_m)` minus this
+/// return value is the part of the loose column the 0.9 m sieve could not
+/// resolve, which [`clastic_pass`] then expresses as the surficial veneer
+/// instead of deleting it.
+fn deposit_deep_history(ctx: &mut StrataCtx) -> u32 {
     let total_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
+    let mut expressed_vox = 0u32;
     let mut below_m = 0.0;
     for (k, u) in ctx.deep_units.iter().enumerate() {
         let depth_above = (total_m - below_m - u.thickness_m).max(0.0);
@@ -396,8 +410,10 @@ fn deposit_deep_history(ctx: &mut StrataCtx) {
                 ore: None,
                 accessory: None,
             });
+            expressed_vox += u32::from(thickness_vox);
         }
     }
+    expressed_vox
 }
 
 /// Clastic deposition. The deep-time record (3e-1) supplies the depositional
@@ -408,18 +424,59 @@ fn deposit_deep_history(ctx: &mut StrataCtx) {
 /// § formation context) and hands its graded coarse body to the placer. In the
 /// wilds / bare uplands (no deep record) only the veneer remains — the
 /// historyless border keeps the analytic year-zero behaviour.
+///
+/// Since journal/0053 the veneer's *thickness* is no longer a climate guess: it
+/// is the un-whole-voxel remainder of the deep sim's loose column `H` (see
+/// below). Its *member selection* still reads the year-zero climate, which is
+/// the part geology.md ratifies for an actively-forming surficial body.
 pub fn clastic_pass(ctx: &mut StrataCtx) {
     if ctx.elev_m <= 0.0 {
         return; // subaqueous sedimentation is the carbonate milestone
     }
-    // The recorded deep-time history sits below the active veneer.
-    deposit_deep_history(ctx);
-    // Active surficial veneer (year-zero climate — the legitimate veneer).
-    // Budget in voxels: arid columns get a thin veneer, wet columns a real
-    // soil column, fan columns extra.
-    let base = 1.0 + (ctx.precip * 2.5);
+    // The recorded deep-time history sits below the active veneer, and tells us
+    // how many whole voxels of the loose column it managed to express.
+    let expressed_vox = deposit_deep_history(ctx);
+
+    // **The veneer budget, from the recorded cause** (journal/0053 — retiring the
+    // veneer half of stubs.md § 3).
+    //
+    // The old budget was `1.0 + precip*2.5`, a present-day-rainfall guess with a
+    // floor of one voxel, so no column in the world could ever be bare
+    // (journal/0049 station 1: the user standing in the most wind-stripped
+    // country on the map under topsoil, "always going to have topsoil").
+    //
+    // What the ledger actually says, measured: the deep sim's regolith plane `H`
+    // is **exactly** the sum of the recorded units' metres — the recorder logs
+    // every metre of loose cover the sim lays down, so the record IS the loose
+    // column, decomposed into beds. That makes the honest veneer the part of the
+    // column whole voxels could not express: `round(H / voxel_m)` minus what
+    // `deposit_deep_history` just laid. Those are the beds thinner than half a
+    // voxel that the sieve drops — and dropping them outright would delete
+    // three-quarters of the world's loose cover (measured mean: 4.75 m of `H`
+    // per subaerial cell, of which only ~1.15 m survives as whole-voxel units).
+    //
+    // Amalgamating them into one surficial body is not a fudge, it is the
+    // physical process: bioturbation, creep and soil mixing homogenize thin beds
+    // into a surficial mantle, which is why real soil is not laminated. And it
+    // makes the fill **mass-conserving against the ledger**: expressed loose
+    // voxels = `round(H / voxel_m)`, exactly, wherever the cap does not bite.
+    //
+    // The **fluvial term stays** on top: `H` is a ~460 m deep-cell quantity and a
+    // channel with its fan is a sub-deep-cell feature the deep grid cannot
+    // resolve. That is the enhancement doctrine's sanctioned case — a local
+    // procedure answering "what does this point look like inside this regional
+    // field", conditioned on the collapse tier's own river network. It is also
+    // the term that keeps a graded coarse body under the placer.
+    //
+    // The lower clamp is **0**, not 1: bareness is expressible now.
+    let base = match ctx.regolith_m {
+        Some(h) => ((h / ctx.voxel_m).round() - f64::from(expressed_vox)).max(0.0),
+        // Wilds only: no deep-time history to read (genesis synthesis —
+        // stubs.md § Genesis, border-wilds cell synthesis).
+        None => 1.0 + (ctx.precip * 2.5),
+    };
     let fluvial = (ctx.flow_energy / 12.0).min(3.0);
-    let total = (base + fluvial).round().clamp(1.0, 8.0) as u32;
+    let total = (base + fluvial).round().clamp(0.0, 8.0) as u32;
     let coarse = (f64::from(total) * coarse_fraction(ctx.flow_energy)).round() as u32;
     let fine = total - coarse;
 

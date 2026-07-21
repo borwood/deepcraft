@@ -194,6 +194,10 @@ pub struct ColumnRec {
     /// Surface voxel y per voxel column, indexed `z * 32 + x`.
     pub heights: Vec<i32>,
     pub surface: Vec<Block>,
+    /// Regolith band depth, whole voxels — the deep sim's carried `H` plane
+    /// quantized by [`regolith_voxels`] (or, in the wilds only, the genesis
+    /// precip rule). Applies where no strata pass deposited (ocean, wilds);
+    /// **may be 0**, which is a column with bedrock at the surface.
     pub soil: u8,
     /// Ruin posts: (local x, local z, post height in voxels).
     pub posts: Vec<(u8, u8, u8)>,
@@ -592,6 +596,17 @@ impl<'a> WorldGenerator<'a> {
         v
     }
 
+    /// **Measurement only** (journal/0053): the column's year-zero
+    /// `(sea-level temperature °C, precipitation)` — the exact pair the collapse
+    /// consults, exposed so a probe can print the *retired* precipitation-driven
+    /// soil rule alongside the regolith-driven one it replaced. A pure
+    /// derivation; consulting it can never change a generated chunk.
+    pub fn climate_probe(&mut self, vx: i64, vz: i64) -> (f64, f64) {
+        let c = self.climate_at(vx, vz);
+        self.evict();
+        c
+    }
+
     /// Chunk y containing the highest surface voxel of this chunk footprint.
     pub fn surface_chunk_y(&mut self, cx: i64, cz: i64) -> i32 {
         let col = self.column(cx, cz);
@@ -928,12 +943,20 @@ impl<'a> WorldGenerator<'a> {
         }
         let locale = self.locale(cx >> 4, cz >> 4);
         let (temp_sl, precip) = self.climate_at(cx * 32 + 16, cz * 32 + 16);
-        let soil = if precip > 0.5 {
-            3
-        } else if precip > 0.2 {
-            2
-        } else {
-            1
+        // **Regolith depth from the recorded cause** (journal/0053, retiring the
+        // soil half of stubs.md § 3). The deep-time sim spends its whole run
+        // weathering bedrock into loose cover, moving it, and dropping it; that
+        // per-cell thickness `H` is now carried in the `DeepField` instead of
+        // being summed into the surface and thrown away. `None` only in the
+        // border wilds, where there is no deep-time history to read — see
+        // [`wilds_regolith_voxels`].
+        let regolith_m = self
+            .pregen
+            .deep
+            .regolith_at_voxel(cx * 32 + 16, cz * 32 + 16);
+        let soil = match regolith_m {
+            Some(h) => regolith_voxels(h, self.voxel_m),
+            None => wilds_regolith_voxels(precip),
         };
         let mut heights = vec![0i32; 1024];
         let mut surface = vec![Block::Stone; 1024];
@@ -1000,6 +1023,7 @@ impl<'a> WorldGenerator<'a> {
             elev_m,
             flow_energy,
             voxel_m: self.voxel_m,
+            regolith_m,
             deep_units,
             wilds,
             geology: &self.geology,
@@ -1088,6 +1112,53 @@ fn strata_bands(set: &GeologySet, strata: &StrataRec) -> Vec<(u32, Block)> {
         bands.push((acc, classify(&contents_for_event(set, e.member, e))));
     }
     bands
+}
+
+/// **The quantization rule for the carried regolith plane** (journal/0053).
+///
+/// `H` is metres of loose cover; voxels are 0.9 m. The rule is *round to
+/// nearest whole voxel*, clamped to `0..=MAX_REGOLITH_VOX`:
+///
+/// - **Round, not floor.** Floor would systematically shave up to a whole voxel
+///   of soil off every column in the world and make the whole map barer than the
+///   ledger says. Round is the minimum-error whole-voxel quantizer: the
+///   half-open bands are `H < 0.45 m → 0`, `0.45..1.35 → 1`, `1.35..2.25 → 2`,
+///   and so on.
+/// - **Zero is reachable, and that is the point.** A cell the wind has scoured
+///   to `H ≈ 0` gets no soil band at all — bedrock at the surface, which is what
+///   a deflation basin is. The old precip rule had a floor of 1 voxel, so no
+///   column in the world could ever be bare (journal/0049 station 1: "always
+///   going to have topsoil").
+/// - **Whole voxels only.** The sub-voxel remainder — the 0.3 m of grit that
+///   rounds to nothing — is *not* faked as a thin layer here. Expressing a
+///   partial thickness is the forms/partials slice's job (materials.md § the
+///   forms design pass), and it is blocked on the surface-veneer retirement.
+///   Until then a sub-half-voxel cover is honestly not expressed as a block.
+fn regolith_voxels(thickness_m: f64, voxel_m: f64) -> u8 {
+    (thickness_m / voxel_m)
+        .round()
+        .clamp(0.0, f64::from(MAX_REGOLITH_VOX)) as u8
+}
+
+/// Cap on the expressed regolith band, voxels. Matches the clastic veneer's
+/// long-standing budget ceiling: a 30 m alluvial pile is real in the ledger and
+/// is expressed as *strata*, not as one absurd topsoil band.
+const MAX_REGOLITH_VOX: u8 = 8;
+
+/// **Genesis fallback for the border wilds** (stubs.md § Genesis: border-wilds
+/// cell synthesis is permanently legitimate). Beyond the pregen grid there is no
+/// deep-time run and therefore no `H` to read, so the wilds keep the year-zero
+/// precipitation rule they always had — unchanged, and now *scoped* to the one
+/// place where inventing a number is legitimate because there is no recorded
+/// cause to consult.
+fn wilds_regolith_voxels(precip: f64) -> u8 {
+    if precip > 0.5 {
+        3
+    } else if precip > 0.2 {
+        2
+    } else {
+        1
+    }
 }
 
 /// The record as top-down `(cumulative depth, event)` spans.

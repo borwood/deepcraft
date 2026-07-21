@@ -50,14 +50,29 @@ over a seeded dirt material in loose eighths or packed pores) and explicitly
 **not to be built now**. Non-grasslike ground cover: suspended entirely.
 See materials.md § "The forms design pass".
 
-### 3. soil-depth-from-precip / the discarded `H` plane
-`collapse.rs::column` (~902): soil depth = 3/2/1 voxels by present-day precip,
-while the deep sim's computed regolith plane `H` is summed away
-(`field.rs`: `surf = r + h`, `h` discarded). The clastic veneer thickness
-budget (`clastic_pass`, `base = 1.0 + precip*2.5`) is the same derivation.
-**Heir:** carry `H` into `DeepField`; read soil/regolith depth from the
-recorded cause. Named OPEN work in the Expression decision. **Blast:** depth
-of diggable soil everywhere; the Dirt band in ocean/wilds columns.
+### 3. soil-depth-from-precip / the discarded `H` plane — **RETIRED 2026-07-21 (journal/0053)**
+*Was:* soil depth = 3/2/1 voxels by present-day precip (`collapse.rs::column`)
+and a clastic veneer budget of `1.0 + precip*2.5` (`clastic_pass`), while the
+deep sim's regolith plane `H` was summed away by `field.rs` (`surf = r + h`).
+
+*Now:* `DeepField` carries `regolith` (the `H` plane, +2.27 MB at Medium,
++1.5 % of the field). **Both** consumers read it — the legacy soil band and the
+clastic veneer budget — so the heir landed whole; neither half remains. Rule:
+round `H` to the nearest whole voxel, clamp `0..=8`; **0 is reachable**, which
+is what the old floor of 1 made impossible. Two findings from the slice worth
+carrying forward:
+
+- **`Σ(recorded unit thicknesses) ≡ H` exactly.** The strata record *is* the
+  regolith column, decomposed. So the veneer's honest budget is the part of the
+  column whole voxels cannot resolve (`round(H/0.9)` minus what
+  `deposit_deep_history` expressed), amalgamated as one surficial body —
+  bioturbation, physically. The fill is now mass-conserving against the ledger.
+- **The border wilds keep the precip rule**, explicitly scoped to genesis (there
+  is no deep-time run out there to consult). That is the § Genesis case, not a
+  surviving stub.
+
+*Residual:* the 8-voxel veneer cap truncates the ledger on 14.3 % of land. That
+is **stub 12**, below — a different defect, uncovered by this one.
 
 ### 4. exhum / t_crust — the absent metamorphic expresser
 `field.rs` (~164): shipped, documented in-code as "the metamorphic-grade axes
@@ -117,6 +132,23 @@ the presence term is a field-blind constant. **Heir:** condition
 presence/abundance on the upstream catchment's lode endowment (drainage
 export × the R1 lode field — ores.md R2-B). **Blast:** rivers don't
 differentiate; the "read the river, walk upstream" chain dead-ends.
+
+### 12. the sub-voxel bed sieve eats three-quarters of the sediment pile — *added 2026-07-21 by journal/0053*
+`geology.rs::deposit_deep_history` (~375) rounds each recorded deep unit to whole
+voxels and **drops anything under half a voxel**. Measured on the production
+Medium world: mean `H` per subaerial cell is **4.75 m**, of which only **~1.15 m**
+survives as whole-voxel strata. The dune-field station records 379 units summing
+to 7.99 m and expresses **zero**. journal/0053 stops the loss being a *deletion*
+— the residue is amalgamated into the surficial veneer, so mass is conserved —
+but it is conserved as one homogenized body, and the veneer's 8-voxel cap
+truncates even that on **14.3 % of land**. **Heir:** amalgamate adjacent
+sub-voxel units *inside the record* into composite units (preserving
+stratigraphic order and letting a composite carry its constituents as
+inclusions/partials), which is the forms pass's business, not the veneer's.
+Uncapping the veneer without that is not an option — it would grow a 54 m
+single-member band at the loess margin. **Blast:** the legibility of every
+laminated section in the world, and the honesty of the loose-column mass budget
+in thick basins.
 
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 

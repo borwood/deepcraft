@@ -426,6 +426,8 @@ fn strata_records_are_province_and_climate_driven() {
     let mut g = WorldGenerator::with_geology(&pregen, set.clone());
 
     let mut land_cols = 0usize;
+    let mut clastic_cols = 0usize;
+    let mut bare_cols = 0usize;
     let mut orogenic_with_basement = 0usize;
     let mut orogenic = 0usize;
     for cz in -20i64..20 {
@@ -447,8 +449,14 @@ fn strata_records_are_province_and_climate_driven() {
                 continue;
             }
             land_cols += 1;
-            // Climate-driven: every land column deposits at least one
-            // clastic stratum, tagged with its deposition climate.
+            // The clastic veneer is deposited where there is loose cover to
+            // deposit. **This used to assert "every land column"** — pre-0053
+            // the veneer budget was `1 + precip*2.5` with a floor of one voxel,
+            // so a clastic band was unconditional. Now the budget comes from the
+            // deep sim's carried regolith plane `H` and a column the sim scoured
+            // bare gets none (journal/0053), so the honest claim is
+            // *predominance*, asserted below, plus the deposition-context
+            // invariants per event.
             let clastic: Vec<_> = col
                 .strata
                 .events
@@ -458,7 +466,11 @@ fn strata_records_are_province_and_climate_driven() {
                     c == CLASS_CLASTIC_FINE || c == CLASS_CLASTIC_COARSE
                 })
                 .collect();
-            assert!(!clastic.is_empty(), "land column with no clastic record");
+            if clastic.is_empty() {
+                bare_cols += 1;
+            } else {
+                clastic_cols += 1;
+            }
             for e in &col.strata.events {
                 assert!(e.precip >= 0.0 && e.precip <= 1.0);
                 assert!(e.temp_c.is_finite());
@@ -481,6 +493,11 @@ fn strata_records_are_province_and_climate_driven() {
         }
     }
     assert!(land_cols > 50, "sample found too little land: {land_cols}");
+    println!("land columns {land_cols}: {clastic_cols} with a clastic veneer, {bare_cols} bare");
+    assert!(
+        clastic_cols * 2 > land_cols,
+        "most land columns should still carry a clastic veneer: {clastic_cols} of {land_cols}"
+    );
     assert!(orogenic > 0, "sample crossed no orogenic provinces");
     assert_eq!(
         orogenic, orogenic_with_basement,
