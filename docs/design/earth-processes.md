@@ -183,6 +183,23 @@ on till plains; scree fans under cliffs.
 Sim: energy-threshold settling (S8, proven) generalizes per agent; facies
 = class selection under agent+energy context.
 
+**Erosion-agent roster FLIPPED ON — DECIDED 2026-07-21 (user; journal/0034
+built it, journal/0047 flipped it).** The `full_agents` flag (wind + frost +
+wave, § 4 above and § 3's dormant frost/wave axes) is now ON in
+`production_config`. Every world made from here on runs the full roster:
+eolian deflation/deposition, temperature-gated frost weathering, and littoral
+wave attack. Same world-fingerprint event as the biotic (S10), erodibility
+(0029/0030) and tectonic-history (U8/0044) flips — terrain shape and the
+strata record change everywhere, and worlds made before are not reproducible
+under it (the byte-identical `DeepOverrides { full_agents: Some(false) }`
+channel still reaches the pre-0034 path). **The seven agent magnitudes are
+UNRATIFIED** — they ride at their `DeepConfig` defaults and are appearance-
+class numbers the user will judge live, station by station, in a guided walk
+(journal/0047's tour map); this flip ratifies the roster being ON, not the
+numbers. The knobs, by name and current default: `eolian_deflation` 0.02,
+`eolian_arid_precip` 0.32, `eolian_deposit_frac` 0.25, `frost_weathering_gain`
+1.5, `frost_band_width_c` 12.0, `wave_erosion` 0.05, `wave_band_m` 30.0.
+
 ### 5. Burial, diagenesis, metamorphism
 Reality: pressure/temperature over time lithify sediment and transform
 rock along P/T paths (shale→slate→schist→gneiss); exhumation exposes it.

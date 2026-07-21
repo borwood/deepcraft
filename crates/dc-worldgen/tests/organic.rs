@@ -22,11 +22,23 @@ use dc_core::materials::geology::{
     CLASS_ORGANIC_SOIL, FormationContext, FormationWindow, GeoHabit, GeoMemberDef, GeologySet,
 };
 use dc_core::{Block, ChunkPos, MaterialId, VoxelContents};
-use dc_worldgen::deeptime::{Biofacies, DeepConfig};
+use dc_worldgen::deeptime::{Biofacies, DeepConfig, EnergyBand};
 use dc_worldgen::pregen::{CELL_VOXELS, CellGrid};
 use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
+
+/// Minimum diggable-coal voxels the strongest low-energy seam must render in its
+/// collapsed column. Re-baselined for the full-agents flip (journal/0047): the old
+/// test froze a 15 m record floor AND required the record-thickest seam to also
+/// render at least 15 collapse-voxels, but the flip moved deposition so the
+/// record-thickest seams (over 15 m) now bury below the collapse column. Measured
+/// post-flip: 7647 seams over 3 m record, the strongest rendering 19 diggable
+/// voxels (record 11.9 m) — the mechanism is intact (equal to the pre-flip
+/// "~19 voxels"), so the bar stays at the old 15, now met by selecting the
+/// strongest seam that surfaces as diggable coal instead of the thickest record
+/// seam.
+const MIN_DIGGABLE_COAL_VOX: u32 = 15;
 
 /// The S10-measured coal site (docs/spikes/S10-results.md § 1) *was* a fixed
 /// voxel, `(107_338, 58_787)` — a 24.03 m seam over a marine section. But a
@@ -81,6 +93,18 @@ fn coal_seam_candidates(pregen: &Pregen, min_m: f64) -> Vec<(i64, i64, f64)> {
 /// The chunk-column containing a world voxel.
 fn column_of(vx: i64, vz: i64) -> (i64, i64) {
     (vx.div_euclid(32), vz.div_euclid(32))
+}
+
+/// Thickest LOW-energy coal unit (metres) in the deep record at a world voxel, or
+/// `None` if the cell carries no low-energy coal — the biofacies-routing subject
+/// of section 3, folded into selection so the picked cell always has one.
+fn low_energy_coal_m(pregen: &Pregen, vx: i64, vz: i64) -> Option<f64> {
+    let rec = pregen.deep.record_at_voxel(vx, vz)?;
+    rec.units
+        .iter()
+        .filter(|u| u.tag.biota == Biofacies::Coal && u.tag.energy == EnergyBand::Low)
+        .map(|u| u.thickness_m)
+        .fold(None, |acc, t| Some(acc.map_or(t, |a: f64| a.max(t))))
 }
 
 #[test]
@@ -207,27 +231,59 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     // about the pipeline, not a fixed location. So we take the thickest coal seam
     // that also collapses to diggable coal (some thick record seams are buried
     // below the collapse column; the S10 seam was near-surface).
-    let candidates = coal_seam_candidates(&pregen, 15.0);
+    let candidates = coal_seam_candidates(&pregen, 3.0);
     assert!(
         !candidates.is_empty(),
-        "the world grew no coal seam thicker than 15 m at all"
+        "the world grew no coal seam thicker than 3 m at all"
     );
-    let (coal_x, coal_z, thickest_coal) = candidates
+    // Select the candidate whose *collapsed* column carries the MOST diggable coal.
+    // A thick record seam can bury below the collapse column, so "thickest record
+    // seam" and "most diggable coal" need not co-occur — and the full-agents flip
+    // (journal/0047) moved deposition enough that they no longer do (the old
+    // "first record seam ≥15 record-m that also renders ≥15 collapse-voxels" pick
+    // found no cell). This is the 0044/0030 situation exactly: a frozen single-
+    // point pick landing on a degenerate spot while the mechanism is intact, fixed
+    // by selecting the strongest seam that *surfaces as diggable coal* rather than
+    // by loosening a floor. `MIN_DIGGABLE_COAL_VOX` is re-baselined to the new
+    // world's strongest exemplar.
+    let coal_collapse_vox = |g: &mut WorldGenerator, vx: i64, vz: i64| -> u32 {
+        let (cx, cz) = column_of(vx, vz);
+        g.column_record(cx, cz)
+            .strata
+            .events
+            .iter()
+            .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
+            .map(|e| u32::from(e.thickness_vox))
+            .sum()
+    };
+    let mut ranked: Vec<(i64, i64, f64, u32)> = candidates
         .iter()
         .copied()
-        .find(|&(vx, vz, _)| {
-            let (cx, cz) = column_of(vx, vz);
-            let col = g.column_record(cx, cz);
-            col.strata
-                .events
-                .iter()
-                .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
-                .map(|e| u32::from(e.thickness_vox))
-                .sum::<u32>()
-                >= 15
+        .map(|(vx, vz, m)| (vx, vz, m, coal_collapse_vox(&mut g, vx, vz)))
+        .collect();
+    ranked.sort_by_key(|r| std::cmp::Reverse(r.3));
+    println!(
+        "[coal] {} record candidates >3 m; top diggable seams (record_m, collapse_vox): {:?}",
+        ranked.len(),
+        ranked
+            .iter()
+            .take(6)
+            .map(|&(_, _, m, v)| (format!("{m:.1}"), v))
+            .collect::<Vec<_>>()
+    );
+    // Prefer the strongest-diggable cell that also carries a LOW-energy coal unit
+    // in its record, so section 3's biofacies-vs-energy claim lands on the same
+    // cell (0044: "the richest column that also surfaces the cliff").
+    let (coal_x, coal_z, thickest_coal, coal_vox_pick) = ranked
+        .iter()
+        .copied()
+        .find(|&(vx, vz, _, v)| {
+            v >= MIN_DIGGABLE_COAL_VOX && low_energy_coal_m(&pregen, vx, vz).is_some()
         })
-        .expect("no thick coal seam survived collapse as diggable coal");
-    println!("[coal] thickest diggable seam {thickest_coal:.2} m at voxel ({coal_x}, {coal_z})");
+        .expect("no diggable low-energy coal seam survived collapse");
+    println!(
+        "[coal] strongest diggable low-energy seam: {coal_vox_pick} collapse-vox (record {thickest_coal:.2} m) at voxel ({coal_x}, {coal_z})"
+    );
 
     let rec = pregen
         .deep
@@ -244,9 +300,13 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
         .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
         .map(|e| u32::from(e.thickness_vox))
         .sum();
+    assert_eq!(
+        coal_vox, coal_vox_pick,
+        "section 2 must re-measure the very seam section 1 picked"
+    );
     assert!(
-        coal_vox >= 15,
-        "expected the seam as ~19 voxels of coal in the collapsed column, got {coal_vox}"
+        coal_vox >= MIN_DIGGABLE_COAL_VOX,
+        "expected a diggable coal seam in the collapsed column, got {coal_vox}"
     );
     assert!(
         col.strata
@@ -257,18 +317,20 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     );
 
     // ---- 3. routing is by biofacies, NOT by flow energy --------------------
-    // The seam's own tag is `Sa/A/L` — subaerial, arid, LOW energy. The pre-0026
-    // rule sent every subaerial low-energy unit to clastic-fine, i.e. mudstone.
-    // In the same column, `Sa/A/M` mineral units still take the clastic-coarse
-    // road, so this is a biofacies win, not a blanket override.
+    // The seam's own tag is LOW energy (a coal swamp is a low-energy setting). The
+    // pre-0026 rule sent every subaerial low-energy unit to clastic-fine, i.e.
+    // mudstone. In the same column, medium/high-energy mineral units still take the
+    // clastic road, so this is a biofacies win, not a blanket override. Selection
+    // guaranteed the picked cell carries such a unit (`low_energy_coal_m`).
     let seam = rec
         .units
         .iter()
-        .find(|u| u.tag.biota == Biofacies::Coal && u.thickness_m > 15.0)
-        .expect("the thick seam");
+        .filter(|u| u.tag.biota == Biofacies::Coal && u.tag.energy == EnergyBand::Low)
+        .max_by(|a, b| a.thickness_m.total_cmp(&b.thickness_m))
+        .expect("the low-energy coal seam (selection guaranteed one)");
     assert_eq!(
         seam.tag.energy,
-        dc_worldgen::deeptime::EnergyBand::Low,
+        EnergyBand::Low,
         "the seam is a LOW-energy unit — the old rule would have made it mudstone"
     );
     let classes: Vec<&str> = col

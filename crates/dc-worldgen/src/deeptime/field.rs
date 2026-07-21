@@ -61,7 +61,8 @@ pub struct DeepOverrides {
     /// journal/0044); pass `Some(false)` to reach the legacy off path.
     pub tectonic_history: Option<bool>,
     /// Override [`DeepConfig::full_agents`]: the wind + frost + wave erosion
-    /// roster. `None` = production default (off).
+    /// roster. `None` = production default (**on** since the roster flip
+    /// 2026-07-21, journal/0047); pass `Some(false)` to reach the pre-0034 path.
     pub full_agents: Option<bool>,
     /// Override [`DeepConfig::thickening_scale`]: the orogenic amplitude the
     /// analytic tectonic forcing multiplies (m/iter for a unit-rate boundary).
@@ -128,6 +129,27 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
         // knob to buy no sub-km relief either way (it lifts the continent, it
         // does not make mountains), so its value is a later call.
         tectonic_history: true,
+        // **Full erosion-agent roster ON** (DECIDED 2026-07-21, user; journal/0034
+        // § Knobs, journal/0047). The user ratified turning the roster on as the
+        // next flip ("we turn on agents next"). So production now runs the wind +
+        // frost + wave agents: eolian deflation/deposition (a fifth
+        // `lithology::Agent`) redistributes loose cover into dune fields and
+        // downwind loess; the temperature-gated frost multiplier strips extra
+        // regolith in the periglacial band about 0 °C; littoral wave attack cuts
+        // coasts toward the current sea stand. Same event class as the
+        // biotic/erodibility/tectonic flips above: this CHANGES TERRAIN SHAPE —
+        // and the strata record's eolian facies — for every world created from
+        // here on; worlds made before this flip are not reproducible under it.
+        //
+        // The seven agent MAGNITUDES ride at their `DeepConfig` defaults
+        // (`eolian_deflation` 0.02, `eolian_arid_precip` 0.32, `eolian_deposit_frac`
+        // 0.25, `frost_weathering_gain` 1.5, `frost_band_width_c` 12.0,
+        // `wave_erosion` 0.05, `wave_band_m` 30.0) and are EXPLICITLY UNRATIFIED:
+        // they are appearance-class numbers the user will judge live, station by
+        // station, in a guided walk of this world (journal/0047's tour map). This
+        // flip ratifies turning the roster ON; the LIVE MAGNITUDES TOUR — not this
+        // line — ratifies the numbers. Do not tune them here.
+        full_agents: true,
         ..DeepConfig::default()
     }
 }
