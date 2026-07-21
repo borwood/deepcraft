@@ -508,6 +508,67 @@ noise. Appearance-class discipline applies: the placeholder rides until
 the user upgrades it from pictures (the 0048 substances-not-portraits
 lesson).
 
+## SPIKE SPEC (drafted 2026-07-21, NOT dispatched, NOT ratified) — S14: can drainage refine under coarse boundary conditions?
+
+Written up now rather than later because this one question gates the whole
+river-primitive retirement, and re-deriving it costs the same thinking twice
+("defer = write it now"). **This is a specification awaiting the user's
+go-ahead, not a decision and not scheduled work.**
+
+**The question.** S9 measured erosion as bounded/haloable and named drainage
+**the single advective wall** — the one genuinely global computation. But S9
+tested drainage in its *unconditioned* form. The unasked question is whether
+drainage refines inside a bounded region window when the **inflows across the
+window boundary are pinned by the coarse graph** — i.e. every upstream
+catchment's discharge is supplied as a boundary condition rather than
+re-derived. If yes, channels become part of the eroded surface at landform
+resolution and today's `RiverSeg` carve dies honestly. If no, some channel
+inscription survives at the collapse tier — and the honest framing then is a
+**refinement operator** (lattice-midpoint class machinery, no world-fact
+status), never a persisted primitive.
+
+**Why it is not obviously answered by S9's halo result.** Erosion's halo is a
+*decay-length* argument (influence attenuates with distance). Drainage is a
+*connectivity* argument — a divide shifting one cell can re-route an entire
+catchment. The hypothesis under test is that pinning boundary inflow converts
+the global dependency into a local one *given* the divide structure the coarse
+graph already fixed. The failure mode to hunt: refinement moving a divide such
+that the refined interior disagrees with the coarse boundary it was handed.
+
+**Measurement groups (each needs a number, not an argument):**
+1. **Agreement** — refined-region discharge/flow-direction vs the coarse
+   graph's own answer at coincident points. This is the S13-style "does the
+   fine instrument reproduce the coarse source" check.
+2. **Halo decay** — perturb the interior; measure how far the effect reaches
+   toward the boundary, as S9 and S11 did (S9 erosion 16–24 cells; S11 bound
+   water 4–11). A drainage number in that family is the GO signal.
+3. **Divide instability rate** — how often refinement re-routes a catchment
+   across the window boundary, and the magnitude when it does. This is the
+   mechanism most likely to kill the approach; measure it directly rather
+   than inferring it from (1).
+4. **Seam continuity** — two adjacent refined windows must agree where they
+   meet, to the same standard the elevation lattice already holds (the
+   `s7_walk` interior-step invariant is the precedent).
+5. **Cost** — wall-clock and memory per refined region, against the ratified
+   ritual budget and the approach-time streaming budget. C-refinement
+   (`deeptime/refine.rs`) is the existing machinery; reuse it.
+6. **Negative control** — the same measurements with boundary conditions
+   *deliberately unpinned*, to show the pinning is what buys the locality
+   (the byte-identical-when-off discipline, applied to a claim instead of a
+   flag).
+
+**Decision rule, stated before the measurement** (so the result cannot be
+rationalized): a halo in the S9/S11 family plus a divide-instability rate low
+enough that (4) holds ⇒ **rivers become refined terrain and the primitive
+retires**. Otherwise ⇒ **the carve survives as a named refinement operator**,
+and `RiverSeg`'s heir is that operator rather than the erosion record.
+
+**Sequencing note.** This spike is downstream of a decision it should NOT
+prejudge: the *two-drainage-opinions* finding above (pregen cell hydrology vs
+the deep tier's per-epoch drainage). If deep drainage becomes the spine, this
+spike refines *that* field; if not, it refines the cell graph's. Settle the
+spine question first or the spike measures the wrong field.
+
 ## Open questions (carried, unanswered)
 
 1. What are the *encounters* — the moments a player meets water that no
