@@ -239,9 +239,25 @@ from mipmaps + pooling rather than from reducing draw distance.
 
 **What fills a voxel is its contents; the block is a pure derived
 classification of them.** `classify(contents) -> Block` is a total function in
-dc-core, and the invariant `block == classify(contents)` holds for every voxel,
-generated or edited. Two opinions about what a voxel *is* become structurally
-impossible, because one is a function of the other.
+dc-core, and `block == classify(contents)` is the invariant. Two opinions about
+what a voxel *is* become structurally impossible, because one is a function of
+the other.
+
+**Scope of the invariant, as built (2026-07-21, journal/0052).** This entry
+first said "every voxel"; implementation showed that cannot be true yet, and the
+honest rule is:
+
+> for every voxel with **non-empty contents**, `block == classify(contents)`.
+
+A voxel with no contents record is **unclassified — not classified as Air**.
+`classify` does answer `Block::Air` for empty contents, but the generator does
+not apply it where it never wrote a record: the surface veneer (stubs.md § 2),
+the legacy soil band and the unrecorded basement below the deep-time record,
+ocean floor, the border wilds, and ruin posts all keep their legacy blocks. The
+exception is **enumerated and pinned by test** — a geology block appearing
+without a record fails the suite — so it can only shrink, and it shrinks by
+itself as each stub acquires its heir. Wording corrected by the integrator; the
+decision itself is unchanged.
 
 **Why this, and why now.** Generation currently produces blocks and materials on
 two parallel paths, and journal/0010 installed a trust gate in which the *block*

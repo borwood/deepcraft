@@ -928,6 +928,43 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   sand blanket. Client wiring (lighting up journal/0010's dormant
   partial-height renderer, moving collision onto the occupancy threshold) is
   a deliberate follow-on slice, not this one.
+  - **FOUNDATION LANDED 2026-07-21 (journal/0052).** `dc_core::classify`
+    ships with `block_twin` / `dominant_material`, plus the occupancy
+    primitives (`free_eighths`, `loose_eighths`, `bound_eighths`,
+    `open_pores`, `is_occupancy_solid`, `SOLID_EIGHTHS = 4`) whose doc block
+    names their four intended consumers so none re-derives occupancy
+    privately. `collapse.rs` is rewired contents-first. **Byte-identical:
+    proven by goldens captured against the pre-rewire generator — and
+    INDEPENDENTLY RE-VERIFIED by the integrator, who ran the agent's own
+    fingerprint against pre-merge main and reproduced all three triples
+    exactly, so the goldens are not circular.** The invariant holds over
+    3.64 M contents-bearing voxels. Note the pre-existing
+    `geology_world_regenerates_byte_identically` proves *determinism*, not
+    invariance across a change — the goldens carry that claim alone, which is
+    why the independent check mattered. Also landed: the journal/0050
+    collapse-cache `evict()` gap (now reachable from `coarse_surface`,
+    `column_record`, `surface_elev_m`, `lattice_point`, `surface_chunk_y`).
+  - **Design decision worth knowing**: `classify` is keyed on the **material**,
+    not the geology class — contents carry only `MaterialId`s by design, and
+    passing a `GeologySet` in would make the block tier a function of the
+    registry and destroy the purity the invariant rests on. Byte-neutral for
+    every set in the repo; the one divergence from the retired class table is
+    a pack binding a material into a class whose block disagrees with the
+    material's own nature (e.g. `PEAT` registered as clastic-fine), where the
+    material is now authoritative. Flagged for the user, not blocking.
+  - **NEXT SLICE — the fractional top, and it is BLOCKED on a user-owned
+    decision.** The eolian remainder is real ledger (2.09 m / 0.9 m → 2 voxels
+    + ~2.6 eighths discarded at `.round()`), but a partial voxel with solid
+    material above it is a void underground: the only honest home for a
+    fraction is the top of the column, and that voxel is the **surface-veneer
+    stub**, whose retirement ratification 4 explicitly reserves for its own
+    slice. Doctrine ("fractions come only from the ledger") forbids
+    manufacturing a remainder for the veneer, whose thickness is a
+    whole-voxel analytic budget. So the sequence is: **retire the veneer for
+    recorded columns first** (user in the room), then `StrataEvent.top_eighths`
+    emits the real remainder as `debris_only` — a quantity change on one
+    voxel, since clastic strata are *already* emitted loose. The golden
+    fingerprints move in that slice, and that move is its deliverable.
 - *(**Tectonics architecture RATIFIED 2026-07-20** — all of U1–U8, with
   U3 amended (ritual ceiling relaxed to "5 min if that's what it takes");
   see the tectonics.md banner. The SPIKE is next — sequenced below, behind
