@@ -111,22 +111,27 @@ MATERIALS = [
     ("coal",            "coal",            (0.07, 0.065,0.06), 1350,  0.05,  0.90, [2.4, 4.0, 2.2, 3.0], "material", False),
     ("carbonaceous-mudstone", "carbonaceous mudstone",
                                            (0.21, 0.18, 0.15), 2200,  0.004, 0.92, [3.0, 4.8, 3.9, 2.6], "material", False),
-    # v1 ORE placeholders -- PRE-REGISTRY (docs/design/ores.md, DRAFT). These
-    # five materials are NOT yet in crates/dc-core/src/materials/mod.rs; the
+    # v1 SUBSTANCE placeholders -- PRE-REGISTRY (docs/design/ores.md). These
+    # materials are NOT yet in crates/dc-core/src/materials/mod.rs; the
     # registry/atlas wiring is the deliberately-deferred upstream engineering.
     # Their packs are pre-staged here so the wiring day finds them already
     # built. The atlas loader (dc-client/terrain_material.rs) iterates the
     # REGISTRY, never this directory, so a slug the registry doesn't know is
     # inert -- these dirs are never read until the material is registered.
-    # Ore CHARACTER (flecks / nodular mottle / BIF banding / halite SSS) rides
-    # ORE_STYLE below, not the generic property derivation; appearance doctrine
-    # (ores.md R5 + visuals.md): ore is SUBTLE -- close-range speckle, never a
-    # glint, so NONE of these carry emission (unlike gold-dust, the placer).
-    # property sheets are plausible placeholders, not registry-mirrored.
-    ("gold-quartz",      "gold quartz",     (0.82, 0.82, 0.80), 2650,  2.0,   1.00, [6.0, 9.0, 5.5, 8.0], "material", False),
-    ("bog-iron",         "bog iron",        (0.44, 0.27, 0.13), 2000, 18.0,   0.35, [2.0, 3.5, 2.5, 2.0], "material", False),
+    #
+    # journal/0048 correction (undoing 0045): ore is a MATERIAL inside a HOST
+    # (grade-is-eighths, geology.md § Ore, DECIDED 2026-07-20); the deposit look
+    # (vein / stain / nodule-in-peat) is COMPOSED BY THE RENDERER from host+ore
+    # splat weights (PBR-1), never baked into a substance texture -- baking it
+    # double-composites and forecloses grade. So these are PURE substances:
+    # native gold and malachite are ore materials the mix will host; bog iron
+    # keeps its slug but is regenerated as the pure limonite/goethite nodule
+    # substance; banded ironstone and rock salt are whole-voxel ROCKs whose
+    # internal structure is legitimate sub-voxel texture (ores.md R8).
+    ("native-gold",      "native gold",     (0.85, 0.66, 0.22),19300,  1.0,   1.00, [1.4, 6.0, 4.4, 5.0], "material", True),
+    ("bog-iron",         "bog iron",        (0.52, 0.34, 0.16), 2800,  0.1,   0.18, [2.0, 3.5, 2.5, 2.0], "material", False),
     ("banded-ironstone", "banded ironstone",(0.45, 0.16, 0.13), 3000,  0.5,   0.95, [5.5, 9.0, 5.0, 8.0], "material", False),
-    ("redbed-copper",    "redbed copper",   (0.50, 0.26, 0.18), 2400,  0.3,   0.85, [3.6, 6.5, 4.6, 5.2], "material", False),
+    ("malachite",        "malachite",       (0.11, 0.40, 0.21), 4000,  0.3,   0.80, [3.0, 5.5, 4.0, 4.5], "material", False),
     ("rock-salt",        "rock salt",       (0.90, 0.89, 0.85), 2170,  3.0,   0.70, [2.5, 4.0, 2.0, 3.0], "material", False),
     # block-only packs (no material twin) -- synthetic property sheets --------
     ("stone",           "stone",           (0.52, 0.52, 0.54), 2600,  2.0,   1.00, [5.0, 9.0, 5.0, 8.0], "block", False),
@@ -152,20 +157,37 @@ BLOCK_SHARES = {
 }
 
 # --------------------------------------------------------------------------
-# Pre-registry ore character (docs/design/ores.md). Keyed by slug; a slug that
-# is NOT a key takes the byte-identical legacy path, which is what keeps every
-# existing pack unchanged. Each entry layers ore-specific detail the generic
-# property->texture derivation cannot express:
-#   FLECK  -- sparse colored specks (subtle, close-range; no emission/glint).
-#             `spec_boost` optionally lifts smoothness under the speck.
+# Pre-registry SUBSTANCE character (docs/design/ores.md R8; redone in
+# journal/0048 after the 0045 deposit-portrait failure). Keyed by slug; a slug
+# that is NOT a key takes the byte-identical legacy path, which keeps every
+# existing pack unchanged.
+#
+# DOCTRINE (geology.md § Ore, DECIDED 2026-07-20): ore is a MATERIAL inside a
+# HOST, expressed in the eighths/partial mix system; grade IS the eighths
+# count; the composite deposit look (vein / stain / nodule-in-peat) EMERGES
+# from the renderer compositing host+ore per fragment from splat weights
+# (PBR-1) -- it must NEVER be baked into a substance texture. The 0045 pass
+# baked host-rock-plus-flecks "deposit portraits" (gold-quartz, redbed-copper,
+# a mottled bog-iron matrix); that double-composites and forecloses grade, so
+# those were replaced by PURE substances (native-gold rides the metal path,
+# malachite the MOTTLE below, bog-iron the generic granular path -- no longer
+# an ORE_STYLE key). banded-ironstone (a whole-voxel banded ROCK) and rock-salt
+# (a base evaporite substance) are legitimately internal-structure-in-texture
+# (the carbonaceous-mudstone precedent, ores.md R8) and are UNCHANGED.
+#
+# Directive layers a SUBSTANCE texture may carry (host+ore composition is the
+# renderer's job, never these):
 #   MOTTLE -- clustered two-tone blotching from a low-freq tiling mask
-#             (soft-thresholded so it stays seamless), for nodular rust / salt
-#             facets. `strength` caps the blend.
-#   BANDS  -- horizontal stratified color bands (the iconic BIF stripe). The
-#             band index is periodic over the tile AND phase-centered so the
-#             vertical wrap edge falls INSIDE a band -> tiles seamlessly.
+#             (soft-thresholded so it stays seamless): botryoidal malachite,
+#             halite facet clumps. `strength` caps the blend.
+#   BANDS  -- horizontal stratified color bands (a whole-voxel rock's own
+#             sub-voxel structure, the iconic BIF stripe). Band index is
+#             periodic over the tile AND phase-centered so the vertical wrap
+#             edge falls INSIDE a band -> tiles seamlessly.
 #   SSS    -- overrides specular B (porosity 0-64) with a LabPBR subsurface
 #             value (65-255), so halite reads faintly translucent.
+#   FLECK  -- sparse colored specks; retained (with _FLECK_SEED_XOR, which the
+#             metal path also uses) for a future substance, used by no pack now.
 FLECK = "fleck"
 MOTTLE = "mottle"
 BANDS = "bands"
@@ -176,15 +198,13 @@ SSS = "sss"
 _FLECK_SEED_XOR = 0xA24BAED4963EE407
 
 ORE_STYLE = {
-    # milky quartz host, sparse warm gold flecks that read as brighter (not
-    # emissive) points -- lode gold in vein quartz.
-    "gold-quartz": {
-        FLECK: {"rgb": (0.95, 0.80, 0.36), "threshold": 0.90, "spec_boost": 30},
-    },
-    # rusty limonite: brown host with clustered oranger nodules.
-    "bog-iron": {
-        MOTTLE: {"rgb": (0.62, 0.37, 0.14), "threshold": 0.50,
-                 "strength": 0.85, "freq": 4, "seed_xor": 0x5EED0B0610000001},
+    # malachite (Cu-carbonate SUBSTANCE): deep green body with a lighter-green
+    # botryoidal/concentric-banding HINT -- clustered rounded lighter clumps at
+    # 16 px. Satin, NOT metallic (F0 stays dielectric); the green is the
+    # substance's own albedo, not a host stain baked into a deposit portrait.
+    "malachite": {
+        MOTTLE: {"rgb": (0.34, 0.66, 0.42), "threshold": 0.45,
+                 "strength": 0.70, "freq": 4, "seed_xor": 0x5A1AC17E00000003},
     },
     # banded iron formation: alternating hematite-red / steel-grey / pale chert.
     "banded-ironstone": {
@@ -198,11 +218,6 @@ ORE_STYLE = {
             "nbands": 4,
             "phase": 2,
         },
-    },
-    # sediment-hosted copper: red-brown clastic host, sparse malachite specks.
-    # Doctrine R5 option (a): green cells only, no glint (spec_boost 0).
-    "redbed-copper": {
-        FLECK: {"rgb": (0.20, 0.58, 0.40), "threshold": 0.90, "spec_boost": 0},
     },
     # halite: off-white crystalline with faint cool facet clumps + subsurface.
     "rock-salt": {
@@ -324,8 +339,11 @@ def derive_params(row) -> dict:
     f0_g = 231 if metal else 10
 
     # emission (specular A). LabPBR: 255 == no emission; 0..254 == strength.
-    # Only gold-dust gets a slight glint.
-    emission_a = 8 if metal else 255
+    # Only the gold-dust PLACER gets a slight glint. Native gold as a raw
+    # SUBSTANCE carries NO glint (ores.md R5 / no-glint doctrine, journal/0048):
+    # distance behaviour is the sparse-eighths dither's job, not an emissive
+    # texture -- so a close-range gold cell reads as metal without glinting.
+    emission_a = 8 if (metal and slug != "native-gold") else 255
 
     # basecolor ramp length: coarser material -> more shades to show chunk
     # variation. 4 (fine) / 5 (mid) / 6 (coarse).
@@ -494,10 +512,13 @@ def gen_specular(p: dict, H) -> bytes:
             g = gch
             a = ach
             if metal:
-                # flecks read as brighter metal + faintly more emissive glint
+                # flecks read as brighter metal (crystalline facets). The
+                # gold-dust PLACER also glints (a=4); native gold as a raw
+                # substance does NOT (journal/0048 no-glint doctrine).
                 if _vhash(p["seed"] ^ 0xA24BAED4963EE407, x, y) > 0.86:
                     r = min(255, base_r + 40)
-                    a = 4
+                    if p["slug"] != "native-gold":
+                        a = 4
             if fleck is not None and fleck.get("spec_boost"):
                 if _vhash(p["seed"] ^ _FLECK_SEED_XOR, x, y) > fleck["threshold"]:
                     r = min(255, base_r + fleck["spec_boost"])
@@ -726,6 +747,10 @@ def self_check(packs: dict | None = None) -> None:
     # riskiest new tiling paths, so the shipped self-check must cover them).
     sample = {slugs[0], slugs[len(slugs) // 2], slugs[-1], "gold-dust", "snow"}
     sample |= {s for s in ORE_STYLE if s in slugs}
+    # the journal/0048 redone substances: native-gold rides the metal path and
+    # bog-iron the generic granular path, so neither is an ORE_STYLE key -- name
+    # them explicitly so the shipped self-check seam-tests all three.
+    sample |= {s for s in ("native-gold", "bog-iron") if s in slugs}
     checked = 0
     for slug in sorted(sample):
         d = os.path.join(OUT_DIR, slug)
