@@ -234,10 +234,16 @@ fn generated_world_is_byte_identical_to_the_pre_contract_goldens() {
             ));
         }
     }
+    // `DC_PRINT_GOLDENS` prints, and *only* prints. It must never suppress the
+    // assertion: an env var that can silently disable a correctness gate is the
+    // corrections #27 false-green in miniature, and it bit us — an exploratory
+    // run with the flag set reported this suite green against stale goldens
+    // (journal/0058). The escape hatch was redundant anyway: the failure message
+    // below already carries the got-vs-want values a golden update needs.
     assert!(
-        print || mismatches.is_empty(),
-        "the generated world moved — deriving the block from contents must be \
-         byte-neutral:\n{}",
+        mismatches.is_empty(),
+        "the generated world moved — if that is intended, a journal entry must \
+         authorize it and these become the new goldens:\n{}",
         mismatches.join("\n")
     );
 }
