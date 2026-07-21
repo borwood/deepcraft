@@ -1636,6 +1636,25 @@ before any code.
   growth-reallocs — lives in `meshing.rs`, worth at most a couple of percent of
   that 35 %, unowned and unstarted.
 
+- **HOLES IN THE GROUND — partial voxels are missing side faces** (found in
+  the live walk 2026-07-21, **diagnosed by the user**; fix dispatched).
+  Symptom: sky-blue bands straight through the terrain in a rectilinear
+  pattern, persistent (identical screenshots 20 s apart — not a streaming
+  transient). Assets `0056-nearfar-check-after-3km.png`,
+  `0056-holes-after-settle.png`. The user's read, confirmed against the code:
+  *"the bands you see are missing side faces. these partials mostly have no
+  side faces - some of them do, following no apparent pattern."*
+  **Mechanism:** `meshing.rs` culls side faces on a **block-tier boolean**
+  (`neighbor_solid: &dyn Fn(..) -> bool`), so a 5/8 partial beside a 3/8
+  partial has its whole face culled and the exposed 2/8 band is drawn by
+  nobody. Its own header states the assumption that made this safe —
+  *"Worldgen does not yet emit sub-8 loose voxels"* — which journal/0055
+  falsified world-wide this morning. The dc-core occupancy primitives added by
+  journal/0052 exist precisely for this. **The wider lesson:** journal/0010
+  shipped partial-height rendering dormant and predicted it would "light up
+  for free the day deposition produces its first sub-full column". It lit up
+  and did not work, because the assumption it rested on lived in a doc comment
+  nobody re-read when the world changed underneath it.
 - **Mixed voxels carry no member dither — watch for the chunk-line cutover
   coming back** (journal/0055 judgment call 2, 2026-07-21; UNTESTED either
   way). The 3c-2 boundary dither (`dithered_member`) exists to wander material
