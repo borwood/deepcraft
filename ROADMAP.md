@@ -7,6 +7,20 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Deep-config flag plumbing** (journal/0039, background agent).
+  The sealed gen path is open: a new `DeepOverrides { tectonic_history,
+  full_agents, thickening_scale }` (each `Option`, `None` = production default)
+  threads `production_config_with` → `build_field_with` → `PregenCtx` →
+  `Pregen::run_with`, with `Pregen::run` now a `run_with(&Default)` wrapper so no
+  existing `{ seed, extent }` call site changed. Empty overrides are proven
+  byte-identical to the old path (config, `DeepField`, and `Pregen` seam). Four
+  launch flags on dc-client: `--tectonics`, `--full-agents`, `--amplitude <n>`
+  (only bites with `--tectonics`), `--extent <small|medium|large>`; bundled as a
+  `GenOptions` resource so a key-2 scale switch rebuilds with them. **The
+  amplitude / tectonic / full_agents walk is now unblocked** — a walker can boot
+  a flagged world. Files: `deeptime/field.rs`, `deeptime/mod.rs`, `lib.rs`,
+  `pregen/mod.rs`, `pipeline.rs`, dc-client `authority.rs`/`app.rs`/`main.rs`.
+
 - 2026-07-20 — **Record-walk** (journal/0038): console v2, `--edges`, and
   circulation shot into the visual record on current main. Console-v2
   signature/hint/live-completion verified working (driven via OS keystroke
@@ -764,19 +778,12 @@ see the question you are asking.
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
 - *(**Zonal circulation profile: SHIPPED** 2026-07-20, journal/0037 — see
   Shipped.)*
-- **Deep-config flag plumbing — the prerequisite for the amplitude walk**
-  (found 2026-07-20 at session-4 close, dispatching the record-walk).
-  `full_agents` and `tectonic_history` (and the erodibility/biotic flips)
-  are gen-time `DeepConfig` flags that `production_config` inherits, but the
-  client's `Pregen::run` takes only `{seed, extent}` — so there is NO way to
-  boot a world with them on, which means the combined walk (amplitude call
-  80-vs-160, tectonic flip, full_agents look) is BLOCKED until the flags are
-  threaded through `WorldParams` → `Pregen::run` → `production_config` and
-  exposed via a launch flag (and/or a dev world-recreate console command).
-  Small slice, but load-bearing: without it the user cannot SEE any flagged
-  gen feature, so no gen milestone behind a flag can be walk-ratified.
-  Sequence BEFORE the erosion-supply calibration (which also needs to render
-  flagged worlds).
+- *(**Deep-config flag plumbing: SHIPPED** 2026-07-20, journal/0039 — see
+  Shipped. The four launch flags (`--tectonics`, `--full-agents`,
+  `--amplitude`, `--extent`) boot a flagged world; the combined amplitude /
+  tectonic / full_agents walk is unblocked. The override channel is
+  `DeepOverrides` on top of `production_config`, NOT a `WorldParams` field —
+  the ~30 `{ seed, extent }` call sites were left untouched.)*
 - **Erosion-supply calibration** (from the S12 spike's new finding,
   2026-07-20): exhumation comes out metre-scale at shipped erosion rates,
   gating exhumed-core/foreland legibility independent of amplitude — the

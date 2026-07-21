@@ -42,6 +42,7 @@ pub mod water;
 pub use collapse::{
     ChunkStats, ColumnRec, LOOKAHEAD_BOUNDS, LookaheadBounds, PregenSource, WorldGenerator,
 };
+pub use deeptime::DeepOverrides;
 pub use geology::{AlluviumRec, StrataCtx, StrataEvent, StrataRec};
 pub use pipeline::{Pass, PassBody, Phase, Pipeline, PipelineError, PregenCtx, Resource};
 pub use pregen::{

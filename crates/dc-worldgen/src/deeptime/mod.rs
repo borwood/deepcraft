@@ -35,8 +35,8 @@ pub mod tectonics;
 pub use biotic::{BioticSim, COAL_MIN_M, CellBiota, ROSTER, species_name};
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{
-    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, build_field, build_field_cfg,
-    production_config,
+    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
+    build_field_cfg, build_field_with, production_config, production_config_with,
 };
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
