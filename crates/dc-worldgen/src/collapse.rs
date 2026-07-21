@@ -35,12 +35,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use dc_core::materials::geology::{
-    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE,
-    CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL, GeoMemberIdx, GeologySet,
+    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, GeoMemberIdx, GeologySet,
 };
 use dc_core::{
     Block, CHUNK_VOLUME, Chunk, ChunkPos, ContentsGrid, MaterialChunk, MixtureId, MixtureTable,
-    StructureShape, VoxelContents, VoxelScale,
+    StructureShape, VoxelContents, VoxelScale, classify,
 };
 use dc_sim::statistical::rng::draw_f64;
 
@@ -502,7 +501,9 @@ impl<'a> WorldGenerator<'a> {
     /// the seam/continuity tests (which reason about surface heights) and the
     /// client's surface-scan ceiling over the worldgen authority.
     pub fn column_record(&mut self, cx: i64, cz: i64) -> Arc<ColumnRec> {
-        self.column(cx, cz)
+        let rec = self.column(cx, cz);
+        self.evict();
+        rec
     }
 
     /// Surface height (voxels) and surface block at ONE world voxel column,
@@ -561,7 +562,9 @@ impl<'a> WorldGenerator<'a> {
         // segments carve the far surface exactly as they carve the near one.
         let locale = self.locale(vx.div_euclid(512), vz.div_euclid(512));
         let (temp_sl, precip) = self.climate_at(vx, vz);
-        self.surface_sample(vx, vz, &locale.segs, locale.fringe, temp_sl, precip)
+        let out = self.surface_sample(vx, vz, &locale.segs, locale.fringe, temp_sl, precip);
+        self.evict();
+        out
     }
 
     /// **Measurement only** (S13, `docs/spikes/S13-results.md`): the
@@ -575,6 +578,7 @@ impl<'a> WorldGenerator<'a> {
         let locale = self.locale(vx.div_euclid(512), vz.div_euclid(512));
         let (raw, _) = self.lattice(L_VOXEL, vx, vz);
         let (elev, _) = carve_rivers(raw, vx as f64, vz as f64, &locale.segs);
+        self.evict();
         elev
     }
 
@@ -583,13 +587,16 @@ impl<'a> WorldGenerator<'a> {
     /// pyramid a roughness probe needs to attribute relief per level. A pure
     /// derivation; consulting it can never change a generated chunk.
     pub fn lattice_point(&mut self, level: u8, i: i64, j: i64) -> (f64, f64) {
-        self.lattice(level, i, j)
+        let v = self.lattice(level, i, j);
+        self.evict();
+        v
     }
 
     /// Chunk y containing the highest surface voxel of this chunk footprint.
     pub fn surface_chunk_y(&mut self, cx: i64, cz: i64) -> i32 {
         let col = self.column(cx, cz);
         let max = col.heights.iter().copied().max().expect("1024 heights");
+        self.evict();
         i64::from(max).div_euclid(32) as i32
     }
 
@@ -607,6 +614,16 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// Caches are pure derivations; eviction can never change any answer.
+    ///
+    /// Called from [`Self::generate_chunk`] **and from every public sampling
+    /// entry point** ([`Self::coarse_surface`], [`Self::column_record`],
+    /// [`Self::surface_chunk_y`], [`Self::surface_elev_m`],
+    /// [`Self::lattice_point`]). Before that it was reachable only through
+    /// chunk generation, so a client streaming a horizon — far-field summaries
+    /// only, no chunks — grew `lattice_memo`/`locale_cache`/`region_cache`
+    /// without bound (journal/0050). Determinism-neutral by the contract above:
+    /// every cached value is a pure function of seed + pregen, so dropping one
+    /// costs a recomputation and nothing else.
     fn evict(&mut self) {
         if self.column_cache.len() > 8192 {
             self.column_cache.clear();
@@ -1042,36 +1059,33 @@ fn avg2(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
 
-/// Block-tier reading of a class member: the four v1 strata classes get their
-/// own visible block (ROADMAP 3c-1) so walked geology reads at a glance —
-/// clastic-fine → Mudstone, clastic-coarse → Sandstone, intrusive → Granite,
-/// extrusive → Basalt. Unknown future classes (and the placer ore, which never
-/// forms a band of its own — it rides *inside* a clastic event) fall back to
-/// Stone. The voxel *contents* still carry the real member via the material
-/// sidecar; these blocks are the stand-in the data-driven registry (3c-2)
-/// supersedes.
-fn block_for_member(set: &GeologySet, member: GeoMemberIdx) -> Block {
-    match set.member(member).class.as_str() {
-        c if c == CLASS_CLASTIC_FINE => Block::Mudstone,
-        c if c == CLASS_CLASTIC_COARSE => Block::Sandstone,
-        c if c == CLASS_IGNEOUS_INTRUSIVE => Block::Granite,
-        c if c == CLASS_IGNEOUS_EXTRUSIVE => Block::Basalt,
-        // Organic strata (journal/0026): the biotic layer at the block tier, so
-        // a seam is legible in a cut face without reading the material sidecar.
-        c if c == CLASS_ORGANIC_COAL => Block::Coal,
-        c if c == CLASS_ORGANIC_PEAT => Block::Peat,
-        c if c == CLASS_ORGANIC_SOIL => Block::CarbonaceousMudstone,
-        _ => Block::Stone,
-    }
-}
-
-/// The record as top-down `(cumulative depth, block)` bands.
+/// The record as top-down `(cumulative depth, block)` bands — **derived from
+/// contents**, which is the whole of the fill contract at the generator
+/// (docs/ARCHITECTURE.md § "The fill contract", 2026-07-21). Each event's
+/// canonical [`VoxelContents`] are built by the same [`contents_for_event`]
+/// constructor the material path uses, and [`classify`] turns them into the
+/// block. There is no second class-to-block table any more: the retired one
+/// survives only as the regression oracle in this module's tests.
+///
+/// **Why once per event is enough.** The material path re-resolves the host
+/// member *per voxel-column* ([`dithered_member`]) so family contacts wander
+/// off the chunk grid; that re-selection stays inside the event's own content
+/// class, and every member of a class shares a block twin, so the per-voxel
+/// contents cannot classify to a different block than the event's
+/// representative contents do. The band is computed once per event because it
+/// is provably constant across the footprint — and the invariant is *proved
+/// per voxel*, not assumed: tests/contents_contract.rs asserts
+/// `block == classify(contents)` on the real dithered contents of every
+/// contents-bearing voxel it samples.
+///
+/// Zero-cost invariant intact: a column with no recorded strata produces no
+/// bands and constructs no contents.
 fn strata_bands(set: &GeologySet, strata: &StrataRec) -> Vec<(u32, Block)> {
     let mut bands = Vec::with_capacity(strata.events.len());
     let mut acc = 0u32;
     for e in strata.events.iter().rev() {
         acc += u32::from(e.thickness_vox);
-        bands.push((acc, block_for_member(set, e.member)));
+        bands.push((acc, classify(&contents_for_event(set, e.member, e))));
     }
     bands
 }
@@ -1175,8 +1189,133 @@ fn carve_rivers(mut elev: f64, px: f64, pz: f64, segs: &[RiverSeg]) -> (f64, boo
 
 #[cfg(test)]
 mod tests {
+    use dc_core::materials::geology::{
+        self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
+        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
+        FormationWindow, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologySet,
+    };
+    use dc_core::{Block, MaterialId, classify};
+
+    use super::contents_for_event;
     use crate::WorldGenerator;
+    use crate::geology::StrataEvent;
     use crate::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams, temp_sea_level};
+
+    /// **The retired class-to-block table**, kept only as the regression oracle
+    /// for the fill contract: before 2026-07-21 this is how `generate_chunk`
+    /// computed a band's block, in parallel with (and in ignorance of) the
+    /// contents. `classify(contents_for_event(..))` must reproduce it for every
+    /// member of every registered set — that equivalence is what makes the
+    /// rewire byte-neutral, and it is asserted below rather than assumed.
+    fn block_for_member(set: &GeologySet, member: GeoMemberIdx) -> Block {
+        match set.member(member).class.as_str() {
+            c if c == CLASS_CLASTIC_FINE => Block::Mudstone,
+            c if c == CLASS_CLASTIC_COARSE => Block::Sandstone,
+            c if c == CLASS_IGNEOUS_INTRUSIVE => Block::Granite,
+            c if c == CLASS_IGNEOUS_EXTRUSIVE => Block::Basalt,
+            c if c == CLASS_ORGANIC_COAL => Block::Coal,
+            c if c == CLASS_ORGANIC_PEAT => Block::Peat,
+            c if c == CLASS_ORGANIC_SOIL => Block::CarbonaceousMudstone,
+            _ => Block::Stone,
+        }
+    }
+
+    fn probe_event(member: GeoMemberIdx) -> StrataEvent {
+        StrataEvent {
+            member,
+            thickness_vox: 4,
+            temp_c: 12.0,
+            precip: 0.5,
+            depth_m: 10.0,
+            sel_salt: 0,
+            sel_tag: 0,
+            ore: None,
+            accessory: None,
+        }
+    }
+
+    /// The equivalence the byte-identity goldens rest on, stated directly: for
+    /// every member of a registered set, and for every enrichment shape the
+    /// strata passes can attach (bare, placer ore up to its 3/8 ceiling,
+    /// accessory pore inclusion), the block derived from the event's contents
+    /// equals what the retired class table answered.
+    ///
+    /// Run over vanilla AND over a pack that binds *loose* materials into rock
+    /// classes (`SILT` as a fine clastic, `GRAVEL` as a coarse one — exactly
+    /// what tests/geology.rs registers), because that pack is where a
+    /// material-keyed table could have diverged from a class-keyed one.
+    #[test]
+    fn classify_reproduces_the_retired_class_table() {
+        let mut sets = vec![geology::vanilla()];
+        {
+            let mut members = geology::vanilla_members();
+            members.push(GeoMemberDef {
+                id: "zz:geo/siltstone".into(),
+                class: CLASS_CLASTIC_FINE.into(),
+                material: MaterialId::SILT,
+                window: FormationWindow::ANY,
+                abundance: 1.0,
+                habit: GeoHabit::Blanket,
+                hardness: 0.3,
+                erodibility: 0.75,
+            });
+            members.push(GeoMemberDef {
+                id: "aa:geo/greywacke".into(),
+                class: CLASS_CLASTIC_COARSE.into(),
+                material: MaterialId::GRAVEL,
+                window: FormationWindow::ANY,
+                abundance: 1.0,
+                habit: GeoHabit::Blanket,
+                hardness: 0.55,
+                erodibility: 0.45,
+            });
+            let mut b = GeologySet::builder();
+            for class in geology::v1_classes() {
+                b.declare_class(class).unwrap();
+            }
+            for m in members {
+                b.add_member(m).unwrap();
+            }
+            sets.push(b.build());
+        }
+
+        let mut checked = 0usize;
+        for set in &sets {
+            let ore = set.member_index("dc:geo/gold-dust");
+            let acc = set.member_index("dc:geo/olivine");
+            for (i, def) in set.members().iter().enumerate() {
+                let member = GeoMemberIdx(i as u16);
+                let want = block_for_member(set, member);
+                let mut events = vec![probe_event(member)];
+                for k in 1..=3u8 {
+                    let mut e = probe_event(member);
+                    e.ore = ore.map(|o| (o, k));
+                    events.push(e);
+                }
+                for k in 1..=7u8 {
+                    let mut e = probe_event(member);
+                    e.accessory = acc.map(|a| (a, k));
+                    events.push(e);
+                }
+                for e in &events {
+                    // The ore/accessory enrichments only apply to the class
+                    // that carries them; `contents_for_event` ignores the
+                    // irrelevant one, so every combination is legal input.
+                    let got = classify(&contents_for_event(set, member, e));
+                    assert_eq!(
+                        got, want,
+                        "member {} ({}): classify -> {got:?}, retired table -> {want:?}",
+                        def.id, def.class
+                    );
+                    checked += 1;
+                }
+            }
+        }
+        assert!(
+            checked >= 200,
+            "only {checked} member/enrichment combinations"
+        );
+    }
 
     fn small(seed: u64) -> Pregen {
         Pregen::run(WorldParams {
