@@ -1743,8 +1743,31 @@ before any code.
   surface *contents* contain organic material, versus what fraction of surface
   *blocks* read organic? If contents ≫ blocks, it is summarization (fix at the
   block/presentation tier). If contents ≈ blocks ≈ 6 %, the record itself
-  lacks soil (fix in the biotic layer — adjacent to stubs 7/8). **Do not act
-  on either fix until that number exists.**
+  lacks soil (fix in the biotic layer — adjacent to stubs 7/8).
+  - **LARGELY ANSWERED 2026-07-21 by the user's live observation** (*"the world
+    does not generate dirt anywhere apparently — was only a veneer placement
+    previously"*), verified in the content set: **there is no soil material to
+    place.** `MaterialId::LOAM` is defined but registered in **no** geology
+    class member (its only other appearance in the tree is a unit test), so
+    worldgen can never select it. And the `dc:stratum/organic-soil` class has
+    exactly one member — `dc:geo/carbonaceous-mudstone` — whose material is a
+    lithified **rock**. So every soil horizon the deep sim records is expressed
+    as mudstone because mudstone is the only thing registered to express it.
+    The monotony's two candidate causes were both downstream of this: there is
+    nothing being hidden by summarization, because there is no soil substance
+    in the world. `Block::Dirt` now survives only in the fallback paths
+    (subaqueous, wilds, no-record columns) — the user's "veneer placement"
+    read, confirmed.
+  - **This is a CONTENT-SET gap, not a code bug**, and it is the missing
+    substrate under an already-ratified design: the user's soil model (roots as
+    porous *structure* holding soil in its pores; loose horizons above, packed
+    below — materials.md § forms design pass, ideas.md § soil is loose but
+    packable) has no material to operate on. It compounds with the form gap:
+    `fill::is_loose` covers only clastic and placer, so organics fall in the
+    **structure** bucket and would render as solid cubes even once a soil
+    material exists. Two stacked gaps — **no soil substance, and organics
+    formed as structure** — and the fix order is substance first, then form
+    from provenance (consume-the-ledger piece (c)).
 - **Caves ↔ hydrology integration thread captured** (2026-07-21, off-thread
   session; full capture in water.md § Session capture 2026-07-21 — nothing
   decided). The work-shaped findings: **two drainage opinions** (pregen cell
