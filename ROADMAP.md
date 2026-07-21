@@ -7,6 +7,20 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **Walk 0046 — the scarp and the plateau** (journal/0046, eight
+  assets; the corrections-#25 debt paid on a STOCK production world — first
+  walk needing no flags post-U8, post-climate-fix, `--horizon 6`). The
+  probe-located steepest cell delivers real terrain: terraced flanks, a
+  coastal scarp dropping 241 m into a dry sub-sea basin (bare stone floor,
+  dirt shoreline stripe, green rim — the veneer's elevation banding drawn as
+  a coastline), and distant climate zonation visible on the horizon. The
+  crest re-shot at 6 km stays the 0040 prairie — the plateau is real AND the
+  world is not flat. One new instrument lesson: looking DOWN a grade is the
+  blind vantage (the fall-line frame kept as negative exhibit); slopes read
+  up or across. Verdict for the recalibration: the steep world is already
+  legible from the deep field alone; more noise (A/B) cannot shape the
+  plateau, only more simulation (C) can.
+
 - 2026-07-21 — **U8: tectonic history ON in production** (journal/0044,
   "the flip is pomp"; background agent; gates green on merged main, 46
   suites / 470 tests, 0 failed). Ratified by the user WITHOUT gating on the
@@ -866,14 +880,15 @@ mountains and no longer blocks anything. The order that replaces it:
 
 1. *(**Roughness decay: MEASURED** 2026-07-21, S13/journal/0041. What remains
    is the **user's pick between three costed candidates** — see Sequenced.)*
-0. **Re-walk at a STEEP site** (owed, corrections #25). Every landform
-   impression on record was formed at the summit and along a low-gradient
-   transect — the two flattest kinds of place in the world. S13 says the
-   median site falls ~56 m/km and the steepest ~790 m per 10 km. **Nobody has
-   yet looked at this world's real terrain.** Now cheap and finally possible:
-   `--horizon 6` on the LIT pass at S13's steepest site. Do this before any
-   relief recalibration is chosen, so the picture being judged is the world's,
-   not the plateau's.
+0. *(**Steep-site re-walk: DONE** 2026-07-21, journal/0046 — the #25 debt
+   paid, on a stock post-U8 production world. The scarp is legible (terraced
+   stone basin at −77 m, dirt shoreline stripe, green rim; ~80 m/km of real
+   deep-field relief); the crest is still the 0040 prairie from a 6 km
+   horizon — both halves of #25 confirmed by eye. The distant lapse-rate
+   banding (green→brown→stone) is visible at the horizon for the first time.
+   The recalibration pick now has its context pictures: A/B would texture a
+   plateau that has no shape to reveal; C is the only candidate that changes
+   which landforms exist in the 460 m–7.4 km band.)*
 2. *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — the
    landform-shape walk is now possible and is owed: re-walk the amplitude
    vantages at `--horizon 6` on the LIT pass.)*
