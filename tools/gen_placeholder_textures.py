@@ -111,6 +111,23 @@ MATERIALS = [
     ("coal",            "coal",            (0.07, 0.065,0.06), 1350,  0.05,  0.90, [2.4, 4.0, 2.2, 3.0], "material", False),
     ("carbonaceous-mudstone", "carbonaceous mudstone",
                                            (0.21, 0.18, 0.15), 2200,  0.004, 0.92, [3.0, 4.8, 3.9, 2.6], "material", False),
+    # v1 ORE placeholders -- PRE-REGISTRY (docs/design/ores.md, DRAFT). These
+    # five materials are NOT yet in crates/dc-core/src/materials/mod.rs; the
+    # registry/atlas wiring is the deliberately-deferred upstream engineering.
+    # Their packs are pre-staged here so the wiring day finds them already
+    # built. The atlas loader (dc-client/terrain_material.rs) iterates the
+    # REGISTRY, never this directory, so a slug the registry doesn't know is
+    # inert -- these dirs are never read until the material is registered.
+    # Ore CHARACTER (flecks / nodular mottle / BIF banding / halite SSS) rides
+    # ORE_STYLE below, not the generic property derivation; appearance doctrine
+    # (ores.md R5 + visuals.md): ore is SUBTLE -- close-range speckle, never a
+    # glint, so NONE of these carry emission (unlike gold-dust, the placer).
+    # property sheets are plausible placeholders, not registry-mirrored.
+    ("gold-quartz",      "gold quartz",     (0.82, 0.82, 0.80), 2650,  2.0,   1.00, [6.0, 9.0, 5.5, 8.0], "material", False),
+    ("bog-iron",         "bog iron",        (0.44, 0.27, 0.13), 2000, 18.0,   0.35, [2.0, 3.5, 2.5, 2.0], "material", False),
+    ("banded-ironstone", "banded ironstone",(0.45, 0.16, 0.13), 3000,  0.5,   0.95, [5.5, 9.0, 5.0, 8.0], "material", False),
+    ("redbed-copper",    "redbed copper",   (0.50, 0.26, 0.18), 2400,  0.3,   0.85, [3.6, 6.5, 4.6, 5.2], "material", False),
+    ("rock-salt",        "rock salt",       (0.90, 0.89, 0.85), 2170,  3.0,   0.70, [2.5, 4.0, 2.0, 3.0], "material", False),
     # block-only packs (no material twin) -- synthetic property sheets --------
     ("stone",           "stone",           (0.52, 0.52, 0.54), 2600,  2.0,   1.00, [5.0, 9.0, 5.0, 8.0], "block", False),
     ("dirt",            "dirt",            (0.42, 0.30, 0.19), 1300,  0.1,   0.35, [0.9, 3.5, 3.0, 1.8], "block", False),
@@ -132,6 +149,67 @@ BLOCK_SHARES = {
     "coal": "coal",                                     # shares material pack
     "peat": "peat",                                     # shares material pack
     "carbonaceous-mudstone": "carbonaceous-mudstone",   # shares material pack
+}
+
+# --------------------------------------------------------------------------
+# Pre-registry ore character (docs/design/ores.md). Keyed by slug; a slug that
+# is NOT a key takes the byte-identical legacy path, which is what keeps every
+# existing pack unchanged. Each entry layers ore-specific detail the generic
+# property->texture derivation cannot express:
+#   FLECK  -- sparse colored specks (subtle, close-range; no emission/glint).
+#             `spec_boost` optionally lifts smoothness under the speck.
+#   MOTTLE -- clustered two-tone blotching from a low-freq tiling mask
+#             (soft-thresholded so it stays seamless), for nodular rust / salt
+#             facets. `strength` caps the blend.
+#   BANDS  -- horizontal stratified color bands (the iconic BIF stripe). The
+#             band index is periodic over the tile AND phase-centered so the
+#             vertical wrap edge falls INSIDE a band -> tiles seamlessly.
+#   SSS    -- overrides specular B (porosity 0-64) with a LabPBR subsurface
+#             value (65-255), so halite reads faintly translucent.
+FLECK = "fleck"
+MOTTLE = "mottle"
+BANDS = "bands"
+SSS = "sss"
+
+# Fleck picks reuse the metal-fleck seed constant so basecolor and specular
+# agree on which texels are flecked.
+_FLECK_SEED_XOR = 0xA24BAED4963EE407
+
+ORE_STYLE = {
+    # milky quartz host, sparse warm gold flecks that read as brighter (not
+    # emissive) points -- lode gold in vein quartz.
+    "gold-quartz": {
+        FLECK: {"rgb": (0.95, 0.80, 0.36), "threshold": 0.90, "spec_boost": 30},
+    },
+    # rusty limonite: brown host with clustered oranger nodules.
+    "bog-iron": {
+        MOTTLE: {"rgb": (0.62, 0.37, 0.14), "threshold": 0.50,
+                 "strength": 0.85, "freq": 4, "seed_xor": 0x5EED0B0610000001},
+    },
+    # banded iron formation: alternating hematite-red / steel-grey / pale chert.
+    "banded-ironstone": {
+        BANDS: {
+            "colors": [
+                (0.30, 0.31, 0.34),  # band 0 (spans the wrap): dark steel-grey
+                (0.52, 0.17, 0.13),  # band 1: hematite red
+                (0.61, 0.54, 0.47),  # band 2: pale chert
+                (0.48, 0.16, 0.14),  # band 3: hematite red (2nd couplet)
+            ],
+            "nbands": 4,
+            "phase": 2,
+        },
+    },
+    # sediment-hosted copper: red-brown clastic host, sparse malachite specks.
+    # Doctrine R5 option (a): green cells only, no glint (spec_boost 0).
+    "redbed-copper": {
+        FLECK: {"rgb": (0.20, 0.58, 0.40), "threshold": 0.90, "spec_boost": 0},
+    },
+    # halite: off-white crystalline with faint cool facet clumps + subsurface.
+    "rock-salt": {
+        SSS: 190,
+        MOTTLE: {"rgb": (0.80, 0.85, 0.92), "threshold": 0.55,
+                 "strength": 0.35, "freq": 4, "seed_xor": 0x5A1700000000000A},
+    },
 }
 
 # Grain-size normalization bounds (mm), log scale (clay .002 .. scree 100).
@@ -233,6 +311,13 @@ def derive_params(row) -> dict:
     # dense rock low, metal ~0). LabPBR porosity occupies B in [0,64].
     porosity = clamp01(1.0 - density / 3200.0)
     porosity_b = int(round(porosity * 64.0))
+    # Pre-registry ore override: halite substitutes a LabPBR subsurface value
+    # (65-255) for the porosity byte, so the specular B channel authored into
+    # the PNG and the value the manifest reports stay in agreement.
+    _style = ORE_STYLE.get(slug)
+    spec_b = porosity_b
+    if _style is not None and SSS in _style:
+        spec_b = _style[SSS]
 
     # F0 / metal (specular G). Dielectric F0 ~0.04 -> ~10/255; metal uses the
     # LabPBR predefined-metal id 231 ("gold").
@@ -262,7 +347,7 @@ def derive_params(row) -> dict:
         "porosity": round(porosity, 4),
         "spec_R_smoothness": int(round(smoothness * 255)),
         "spec_G_f0_metal": f0_g,
-        "spec_B_porosity": porosity_b,
+        "spec_B_porosity": spec_b,
         "spec_A_emission": emission_a,
         "ramp_levels": levels,
     }
@@ -297,6 +382,34 @@ def build_height(p: dict):
     return H
 
 
+def _ore_basecolor(style: dict, p: dict, x: int, y: int, factor: float,
+                   cr: float, cg: float, cb: float):
+    """Layer pre-registry ore character (bands -> mottle -> flecks) onto the
+    host ramp color. Only called for slugs present in ORE_STYLE, so existing
+    packs never reach this and stay byte-identical."""
+    if BANDS in style:
+        bs = style[BANDS]
+        n = bs["nbands"]
+        bi = int(math.floor((y + bs["phase"]) * n / SIZE)) % n
+        br, bg, bb = bs["colors"][bi]
+        # keep the height ramp as within-band grain
+        cr, cg, cb = br * factor, bg * factor, bb * factor
+    if MOTTLE in style:
+        ms = style[MOTTLE]
+        mask = value_noise(p["seed"] ^ ms["seed_xor"], x, y, ms["freq"])
+        thr = ms["threshold"]
+        m = clamp01((mask - thr) / (1.0 - thr)) * ms["strength"]
+        mr, mg, mb = ms["rgb"]
+        cr = _lerp(cr, mr * factor, m)
+        cg = _lerp(cg, mg * factor, m)
+        cb = _lerp(cb, mb * factor, m)
+    if FLECK in style:
+        fs = style[FLECK]
+        if _vhash(p["seed"] ^ _FLECK_SEED_XOR, x, y) > fs["threshold"]:
+            cr, cg, cb = fs["rgb"]
+    return cr, cg, cb
+
+
 def gen_basecolor(p: dict, H) -> bytes:
     """Albedo RGB (quantized pixel ramp around the palette color) + opaque A."""
     r, g, b = p["base_rgb"]
@@ -308,6 +421,7 @@ def gen_basecolor(p: dict, H) -> bytes:
     spread = 0.11
     metal = p["metal"]
     flake_seed = p["seed"] ^ 0xA24BAED4963EE407
+    style = ORE_STYLE.get(p["slug"])
     out = bytearray(SIZE * SIZE * 4)
     i = 0
     for y in range(SIZE):
@@ -319,6 +433,8 @@ def gen_basecolor(p: dict, H) -> bytes:
                 # sparse bright gold flecks so it reads as placer dust
                 if _vhash(flake_seed, x, y) > 0.86:
                     cr, cg, cb = 0.98, 0.84, 0.42
+            if style is not None:
+                cr, cg, cb = _ore_basecolor(style, p, x, y, factor, cr, cg, cb)
             out[i] = int(round(clamp01(cr) * 255))
             out[i + 1] = int(round(clamp01(cg) * 255))
             out[i + 2] = int(round(clamp01(cb) * 255))
@@ -364,6 +480,10 @@ def gen_specular(p: dict, H) -> bytes:
     ach = p["spec_A_emission"]
     metal = p["metal"]
     dith_seed = p["seed"] ^ 0x27D4EB2F165667C5
+    style = ORE_STYLE.get(p["slug"])
+    # pre-registry ore: a fleck reads slightly glossier where spec_boost > 0
+    # (gold-quartz); the halite SSS already rides in bch via derive_params.
+    fleck = style.get(FLECK) if style is not None else None
     out = bytearray(SIZE * SIZE * 4)
     i = 0
     for y in range(SIZE):
@@ -378,6 +498,9 @@ def gen_specular(p: dict, H) -> bytes:
                 if _vhash(p["seed"] ^ 0xA24BAED4963EE407, x, y) > 0.86:
                     r = min(255, base_r + 40)
                     a = 4
+            if fleck is not None and fleck.get("spec_boost"):
+                if _vhash(p["seed"] ^ _FLECK_SEED_XOR, x, y) > fleck["threshold"]:
+                    r = min(255, base_r + fleck["spec_boost"])
             out[i] = r
             out[i + 1] = g
             out[i + 2] = bch
@@ -598,8 +721,11 @@ def self_check(packs: dict | None = None) -> None:
         slugs = [row[0] for row in MATERIALS]
     else:
         slugs = list(packs)
-    # sample: first, middle, last, plus gold-dust (the metal special case)
+    # sample: first, middle, last, plus gold-dust (the metal special case),
+    # snow, and every pre-registry ore (their bands/flecks/mottle are the
+    # riskiest new tiling paths, so the shipped self-check must cover them).
     sample = {slugs[0], slugs[len(slugs) // 2], slugs[-1], "gold-dust", "snow"}
+    sample |= {s for s in ORE_STYLE if s in slugs}
     checked = 0
     for slug in sorted(sample):
         d = os.path.join(OUT_DIR, slug)
