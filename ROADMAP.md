@@ -7,6 +7,22 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **U8: tectonic history ON in production** (journal/0044,
+  "the flip is pomp"; background agent; gates green on merged main, 46
+  suites / 470 tests, 0 failed). Ratified by the user WITHOUT gating on the
+  walk; the walk documents. Every new world runs the chaptered kinematic
+  history; `DeepField` keeps drainage export, `exhum`/`t_crust`, and the
+  chapter table (+20.1 MiB at Medium; ritual 15.2 s, 1.06×, inside S12's
+  prediction). U7 amplitude rides at default 80 (corrections #23). Four
+  re-baselines, each documented per the 0030 discipline — including
+  `SEAM_TOLERANCE_VOXELS` 6→12 (measured max interior step rose to 7, a
+  legitimate cliff; all 10 000 chunk-border crossings still ≤6, the actual
+  seam invariant intact). NOTE for the roughness recalibration: S13's
+  "3.0× headroom" was computed against the old tolerance — the binding
+  constraint has moved and candidate A's seam-failure arithmetic needs
+  re-checking against the new measured baseline. Worlds made before this
+  flip are not reproducible under it.
+
 - 2026-07-21 — **Climate registration fix** (journal/0043; gates green on
   merged main, 46 suites 0 failed). The S13 parity flag was a real bug — see
   the resolved Observed line. Every climate-keyed read (veneer, soil tier,
@@ -883,7 +899,7 @@ see the question you are asking.
   always intended it: `DeepField.chapters` ships ~5 KB of plate state per
   chapter EXPLICITLY so per-unit deformation (dip, fault traces) re-derives
   analytically at collapse resolution — built in S12, consumed by nothing.
-  One family, one slice-group, all gated on the U8 flip (in flight):
+  One family, one slice-group, all UNGATED as of the U8 flip (landed 2026-07-21):
   (a) chapters → strata dip/fold/fault expression in cut faces (the
   "coal seam dead-ends at a fault" line of things-that-will-happen);
   (b) `exhum`/`t_crust` → metamorphic-grade classes;
