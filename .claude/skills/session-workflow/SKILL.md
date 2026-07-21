@@ -276,6 +276,17 @@ it at session start, leave it true at session end.
   pre-rewire" (re-ran the fingerprint against pre-merge main — they were, and
   a circular golden would have been undetectable otherwise). Pick the claim
   whose falsity would be worst and go after that one.
+- **A worktree is FROZEN at its branch commit — a design doc you edit after
+  dispatch is invisible to the agent, and its stale copy may actively
+  contradict the amendment you sent** (caught 2026-07-21 by the user asking
+  "you updated the doc while the agent is already working — will it know
+  that?"; the answer was no, and its copy still carried the superseded
+  sequencing line). So: **commit design docs BEFORE dispatch**, and when a
+  decision changes mid-flight, do both halves — `SendMessage` the amendment
+  *and* tell the agent to `git merge main`, naming the commits it is missing
+  and confirming they are outside its write-set so there is no conflict risk.
+  State precedence explicitly ("the message outranks your copy of the doc"),
+  because an agent re-reading its spec later will otherwise follow the file.
 - **Write the brief's premise as a hypothesis.** The carry-`H` brief asserted
   the deflation basin holds `H ≈ 0`; the agent measured 10.66 m and filed
   corrections #26. A brief inherits claims from the corpus, and the corpus can
