@@ -7,8 +7,10 @@
 //! the bit, so every already-created world stays reproducible. Then the two
 //! "the override actually bites" checks (tectonic history *toggles* the drainage
 //! export — since the U8 flip production is tectonics-ON, the override proves
-//! itself by turning the bundle OFF, journal/0044; full agents perturb the
-//! surface), and the [`Extent`] arg parser.
+//! itself by turning the bundle OFF, journal/0044; full agents likewise *toggle*
+//! the surface — since the roster flip production is agents-ON, the override
+//! proves itself by turning the roster OFF, journal/0047), and the [`Extent`] arg
+//! parser.
 
 use dc_worldgen::deeptime::{
     self, DeepOverrides, build_field, build_field_with, production_config, production_config_with,
@@ -131,23 +133,30 @@ fn tectonic_history_override_toggles_the_tectonic_exports() {
     assert!(off.exhum.is_empty(), "override did not clear exhumation");
 }
 
-/// With `full_agents: Some(true)` the eroded surface differs from production —
-/// the wind/frost/wave roster genuinely reaches the run.
+/// The `full_agents` override actually bites — proven, like `tectonic_history`
+/// above, through the seam that now turns the roster OFF. Since the roster flip
+/// (journal/0047) production runs the wind/frost/wave agents ON, so this falsifier
+/// is inverted from journal/0039: `build_field` is the roster-on production
+/// surface, and overriding `full_agents: Some(false)` reaches the pre-0034 path
+/// and changes the surface back. Same override channel, still bites; the subject
+/// (the flag reaches the run) is unchanged.
 #[test]
-fn full_agents_override_changes_the_surface() {
+fn full_agents_override_toggles_the_roster() {
     let pregen = small_world(SEED);
-    let off = build_field(&pregen.grid, SEED);
-    let on = build_field_with(
+    // Production default is now roster-ON.
+    let on = build_field(&pregen.grid, SEED);
+    // Overriding it OFF reaches the pre-0034 path — a different surface.
+    let off = build_field_with(
         &pregen.grid,
         SEED,
         &DeepOverrides {
-            full_agents: Some(true),
+            full_agents: Some(false),
             ..DeepOverrides::default()
         },
     );
     assert_ne!(
-        off.surf, on.surf,
-        "full_agents changed nothing on the surface"
+        on.surf, off.surf,
+        "full_agents override did not reach the run"
     );
 }
 
