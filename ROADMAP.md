@@ -757,6 +757,19 @@ see the question you are asking.
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
 - *(**Zonal circulation profile: SHIPPED** 2026-07-20, journal/0037 — see
   Shipped.)*
+- **Deep-config flag plumbing — the prerequisite for the amplitude walk**
+  (found 2026-07-20 at session-4 close, dispatching the record-walk).
+  `full_agents` and `tectonic_history` (and the erodibility/biotic flips)
+  are gen-time `DeepConfig` flags that `production_config` inherits, but the
+  client's `Pregen::run` takes only `{seed, extent}` — so there is NO way to
+  boot a world with them on, which means the combined walk (amplitude call
+  80-vs-160, tectonic flip, full_agents look) is BLOCKED until the flags are
+  threaded through `WorldParams` → `Pregen::run` → `production_config` and
+  exposed via a launch flag (and/or a dev world-recreate console command).
+  Small slice, but load-bearing: without it the user cannot SEE any flagged
+  gen feature, so no gen milestone behind a flag can be walk-ratified.
+  Sequence BEFORE the erosion-supply calibration (which also needs to render
+  flagged worlds).
 - **Erosion-supply calibration** (from the S12 spike's new finding,
   2026-07-20): exhumation comes out metre-scale at shipped erosion rates,
   gating exhumed-core/foreland legibility independent of amplitude — the
@@ -1812,3 +1825,11 @@ before any code.
   should emit partial shapes (weathered outcrop edges, scree, soil
   horizons) and what the deep-time/collapse seam is. Pairs with the
   sub-460 m process band and the pore-packability rule (materials.md).
+
+- **The `history.rs` reject-don't-crash skip is SILENT** (2026-07-20,
+  from the circulation merge). When a relocated-settlement graph
+  over-constrains the S2 pressure collapse, `history.rs` now skips the
+  observation instead of panicking (integrator-approved) — but the
+  pack-degradation doctrine (API.md) says degradation must be LOUD. A
+  skipped world-history collapse currently emits nothing; it owes a named
+  warning. Small.
