@@ -682,3 +682,43 @@ amplitude call is **"neither, and here is why."** The legibility problem
 lives at sub-km scale — in the collapse lattice's roughness decay and in
 erosion supply (already Sequenced from S12's metre-scale exhumation
 finding) — not in deep-time forcing amplitude. Re-sequenced accordingly.
+
+## 24. "The 460 m bilinear sample is low-passing deep-time detail away" (2026-07-21)
+
+**Claim** (journal/0040 § Why, carried into corrections #23 as half the
+mechanism, and into the S13 dispatch): `DeepField::surface_at_voxel` is a
+bilinear sample of a 460 m grid, read by the collapse lattice at 460.8 m
+spacing, so the near-Nyquist resample must be filtering deep-time relief out of
+the walked surface.
+
+**Falsified by measurement** (S13, `docs/spikes/S13-results.md` § 5; probe
+`crates/dc-worldgen/examples/roughness_probe.rs`). Over a 20.7 km box at four
+sites, the level-5 lattice reproduces the raw deep grid's relief to within
+**0.4 %** and its mean cell-to-cell step to within **0.3 %**:
+
+| site | raw grid relief / mean step | level-5 lattice |
+|---|---|---|
+| crest | 258.79 m / 4.301 m | 258.38 m / 4.312 m |
+| steepest | 1579.74 m / 18.051 m | 1581.34 m / 18.073 m |
+| walk-0040 | 185.07 m / 3.852 m | 184.43 m / 3.859 m |
+
+**Mechanism**: bilinear interpolation is *exact at cell centres*, and the two
+spacings differ by 0.17 %, so the lattice sees essentially every value the grid
+holds. Nothing is smoothed away below 460 m because the source holds nothing
+below 460 m.
+
+**What was true instead.** #23's other half — that the lattice's
+per-refinement decay attenuates roughness by 1–2 orders — is **confirmed at
+exactly `AMP_DECAY^L_DEEP = 0.55⁵ = 1/19.8`**: the jitter at levels 1–4 (66.9,
+39.5, 22.7, 13.9 m RMS, at 7.4 km → 921 m wavelengths) is computed and then
+*discarded* when level 5 (`L_DEEP`) replaces elevation with the deep-time
+surface, so **5.0 % of the scheduled roughness budget reaches the ground**. And
+a third mechanism neither hypothesis named: at the summit the simulated deep
+surface is itself a plateau, adjacent 460 m cells differing by **0.29 m
+(0.065 % grade)** across a 10 km box — so fixing the decay fixes the
+100–500 m band but cannot make that plateau a range.
+
+**Also rejected by number, before anyone builds it**: deriving jitter amplitude
+from the deep field's own local gradient (self-scaling — plains smooth, flanks
+rough). The measured summit gradient is 0.29 m per 460 m, so that rule drives
+summit roughness to ~zero and makes journal/0040's photograph strictly worse.
