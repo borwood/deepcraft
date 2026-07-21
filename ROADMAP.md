@@ -7,6 +7,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-20 — **Record-walk** (journal/0038): console v2, `--edges`, and
+  circulation shot into the visual record on current main. Console-v2
+  signature/hint/live-completion verified working (driven via OS keystroke
+  injection — the console has no MCP door, only real KeyboardInput);
+  `--edges` re-confirmed moiré-free at range; circulation surfaced the
+  finding below (Observed / corrections #22). Six assets `0038-*`.
+
 - 2026-07-20 — **Zonal circulation profile** (journal/0037, session-4
   background agent; gates green on merged main). The `wind_dx` sign bit is
   dead: C¹-continuous `zonal_wind` (sin² lobes, trades 1.0 / westerlies
@@ -1833,3 +1840,16 @@ before any code.
   pack-degradation doctrine (API.md) says degradation must be LOUD. A
   skipped world-history collapse currently emits nothing; it owes a named
   warning. Small.
+
+- **Circulation is fidelity-correct but surface-invisible** (journal/0038
+  record-walk, corrections #22). The ~30° Hadley desert belt is arid in the
+  data (precip ~0.2–0.3, past the 0.32 biome threshold) but `collapse.rs`
+  only bares the surface below precip 0.10, so it renders as grass — the
+  eye reads elevation/temperature, and 30° is the greenest band. Small
+  reconciliation slice, USER-OWNED appearance: decide how bare a subtropical
+  desert should read (lower the bare threshold in the subsidence band, or
+  raise subsidence magnitude, or add a distinct arid surface material short
+  of full bare Dirt). Pairs with the amplitude walk once flag-plumbing
+  lands — until then no flagged gen feature is walkable anyway.
+  > blogworthy: "a climate the map can't see" — the gap between a
+  simulation being correct and being legible.

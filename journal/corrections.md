@@ -602,3 +602,31 @@ targeted-vs-workspace, evict. And a mechanism written into a load-bearing
 doc (the skill) within minutes of forming is exactly how #19 happened;
 this one was caught because the second failure arrived before the session
 ended. The skill entry now records the confirmed mechanism.
+
+## 22. My circulation gameplay-impact trace was surface-blind (2026-07-20)
+
+**Claim** (assistant, written into earth-processes § 4's ratified zonal-
+circulation entry as the required gameplay-impact trace): "deserts land
+where a player who knows Earth expects them." Recorded as a *prediction* of
+what the player would SEE.
+
+**Falsified by the record-walk** (journal/0038, verified by integrator eye on
+`0038-circulation-desert.png`): the surface does NOT show the Hadley desert
+belt. The circulation code is correct — the ~30° subsidence band IS arid in
+the data (precip ~0.2–0.3, arid by the 0.32 *biome* threshold that drives
+erodibility/biotic tags). But `collapse.rs` only bares the surface to Dirt
+below precip **0.10**, so the belt sits above the bare-surface threshold and
+renders as ordinary grass. The visible surface pattern is
+elevation/temperature (grass mid-latitudes, bare stone at coasts/peaks/
+poles); 30° is the *greenest* band, not a desert.
+
+**Not a code bug — a threshold reconciliation gap**, and it is
+**user-owned appearance** (how bare a 30° desert should read). Filed to
+Observed.
+
+**The lesson is the good kind**: this is the 2026-07-20 gameplay-impact-
+trace rule *working*. We wrote the predicted player-visible outcome, the
+walk checked it, and the prediction was false at the surface — caught before
+it became folklore. A mechanism can be fidelity-correct and gameplay-
+invisible at once; the trace is what surfaces the gap. Write traces as
+falsifiable predictions and walk them.
