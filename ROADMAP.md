@@ -7,6 +7,32 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **S13 — where the roughness goes: 5 % of the budget reaches the
+  ground** (journal/0041, `docs/spikes/S13-results.md`, corrections #24/#25;
+  background agent; gates green on merged main, 46 suites 0 failed).
+  Measurement-class, nothing flipped. Reproduced journal/0040's transect
+  headlessly to the decimetre at both amplitudes (constant 1.0 m offset: the
+  client pose sits one voxel above the surface it reports). **Decay hypothesis
+  CONFIRMED to the factor** — `AMP_DECAY^L_DEEP = 0.55⁵ = 1/19.8`, 5.0 % of the
+  scheduled roughness budget survives, at every site and every provenance
+  (`rms|Δ| = 0.577 × amplitude` = 1/√3, the SD of the uniform draw). **The
+  sharper mechanism the dispatch did not guess:** it is the decay *composed
+  with* the `L_DEEP` override — levels 1–4 (7.4 km → 921 m wavelengths, i.e.
+  **mountain shape**) are computed and then **discarded** when level 5 replaces
+  elevation with the deep-time surface. **Bilinear hypothesis FALSIFIED**
+  (corrections #24): the level-5 lattice reproduces the raw deep grid to 0.4 %
+  on relief / 0.3 % on mean step — nothing is smoothed away below 460 m because
+  the source holds nothing below 460 m. **Third mechanism, unnamed by either
+  hypothesis:** the 0040 summit is a *genuine simulated plateau* (adjacent deep
+  cells differ 0.29 m across a 10 km box), so fixing the decay fixes the
+  100–500 m band and **cannot** make that plateau a range. Rivers contribute
+  exactly zero. **Rejected by number before anyone built it:** gradient-derived
+  self-scaling jitter — it drives summit roughness to ~zero and makes 0040's
+  photograph strictly worse. Two bugs found in passing: `DeepField::deep_coords`
+  integer-centring put the probe's first run 7.4 km off ground (round-trip
+  assertion now ships), and corrections #21 shared-cache poisoning reproduced
+  and cleared again.
+
 - 2026-07-21 — **The far-field horizon is a knob** (journal/0042, background
   agent; gates green on merged main — 46 suites, 0 failed). `--horizon <km>`
   (0.2–64 km): the ring geometry moves from `const RING_EDGES_M`/`FAR_MAX_M` to
@@ -810,10 +836,16 @@ and the `pose_set`/`scan`/`client_screenshot` tools go live.
 at ~25 km and above and buys *zero* sub-km relief, so it cannot fix dismal
 mountains and no longer blocks anything. The order that replaces it:
 
-1. **Sub-km roughness decay — measure it** (Observed, journal/0040). Why does
-   a lattice seeded at 90–420 m `provenance_roughness` deliver 7 m? This is
-   now the prime suspect for terrain legibility and is upstream of everything
-   below. Measurement-class, not a design call.
+1. *(**Roughness decay: MEASURED** 2026-07-21, S13/journal/0041. What remains
+   is the **user's pick between three costed candidates** — see Sequenced.)*
+0. **Re-walk at a STEEP site** (owed, corrections #25). Every landform
+   impression on record was formed at the summit and along a low-gradient
+   transect — the two flattest kinds of place in the world. S13 says the
+   median site falls ~56 m/km and the steepest ~790 m per 10 km. **Nobody has
+   yet looked at this world's real terrain.** Now cheap and finally possible:
+   `--horizon 6` on the LIT pass at S13's steepest site. Do this before any
+   relief recalibration is chosen, so the picture being judged is the world's,
+   not the plateau's.
 2. *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — the
    landform-shape walk is now possible and is owed: re-walk the amplitude
    vantages at `--horizon 6` on the LIT pass.)*
@@ -831,6 +863,29 @@ see the question you are asking.
 
 ## Sequenced
 
+- **Roughness recalibration — three costed candidates, USER PICKS FROM PICTURES**
+  (S13 § 6, 2026-07-21; nothing flipped on). Binding constraint measured: the
+  `s7_walk` seam test prints max interior step **2 of 6 voxels**, so there is
+  **3.0× headroom** on the finest levels.
+  - **A. Uniform re-anchor** `AMP_DECAY^(L−2)` (×3.31). Predicts 18/51/66 m at
+    100 m/250 m/1 km at the walk site. Zero gen cost — but **measurably fails
+    the seam test** (2 × 3.31 = 6.6 > 6); a ×2.5 variant fits with nothing to
+    spare.
+  - **B. Band-limited re-anchor**, boosting levels 6–10 by `[4.0, 3.4, 2.8,
+    2.2, 1.6]`, unity from 11. Predicts 14/58/75 m. Zero cost, **seam-safe by
+    construction**. Risks: 58 m over 250 m ≈ 23 % grade may hit character slope
+    limits, and it is five hand-chosen numbers — *a fractal answer to a
+    simulation question*.
+  - **C. Refine the deep tier to 230 m cells.** ~62 s / ~210 MiB at Medium (from
+    15.5 s / 52 MiB); needs `DEEP_MAX_WIDTH` raised and **breaks the ratified
+    `pregen_time_vs_extent` < 60 s budget** (note: U3 already relaxed the ritual
+    ceiling to "5 min if that's what it takes", so this may be cheaper than it
+    reads). No predicted relief — S13 states plainly it cannot predict this
+    without running it. **The only candidate that makes the *mountain* legible
+    rather than the *ground*.**
+  A and B garnish the ground; only C touches the 460 m–7.4 km band the `L_DEEP`
+  override discards. Sequence the steep-site re-walk FIRST so the pick is made
+  against the world's real terrain.
 - *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — see Shipped.
   `--horizon <km>`, default provably unchanged, measured to 10 km.)*
 - **A 5th/6th far LOD level — for horizons past ~10 km** (found by the
@@ -1206,20 +1261,20 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **Sub-km relief is ~7 m and amplitude-independent — the real dismal-mountains
-  cause** (journal/0040 walk, 2026-07-21; corrections #23). Measured on the
-  first flagged world: across the highest crest in the world, 250 m sampling
-  gives **7.2 m of relief over 1.75 km at BOTH `--amplitude 80` and 160** —
-  identical to the decimetre, while absolute elevation moved +714…+1079 m.
-  Ground screenshots at the same vantage are visually indistinguishable.
-  **HYPOTHESIS, unmeasured:** `DeepField::surface_at_voxel` bilinearly samples
-  a 460 m grid, so everything finer comes from the collapse elevation lattice's
-  jitter, which never sees `thickening_scale`. The unexplained part is the
-  magnitude — `provenance_roughness` is 90 m (Craton) to 420 m (Orogeny) but
-  measured relief is 7 m, so `collapse.rs`'s per-refinement amplitude decay is
-  attenuating roughness by 1–2 orders of magnitude. **Needs measurement before
-  it is believed.** This is upstream of the amplitude call and probably the
-  single highest-value open question on terrain legibility.
+- *(**Sub-km relief / roughness decay: MEASURED** 2026-07-21, S13 + journal/0041
+  — see Shipped. Decay confirmed (5 % survives), bilinear falsified (#24), and
+  the walk's own sampling corrected (#25). The remaining OPEN part is which
+  recalibration to take — Sequenced below, awaiting a user picture-pick.)*
+- **The `climate_at` half-cell offset — UNMEASURED, found in passing**
+  (S13 § Method, 2026-07-21). `collapse::climate_at` centres the coarse grid
+  with `f64::from(w)/2.0` (= **8.5** at Medium), while `DeepField::deep_coords`
+  and `CellGrid::cell_of_voxel` both use integer `w/2` (= **8**). If
+  unintended, the climate bilinear is offset **half a coarse cell — ~7.4 km**
+  from the terrain it is supposed to describe, which would misplace every
+  climate-derived surface read (the veneer rule, erodibility/biotic gating,
+  the aridity tags). Nobody has checked whether it is deliberate. **Cheap to
+  investigate, potentially wide blast radius — do this before any work that
+  reasons about where climate lands.**
 - *(**The far field cuts off at 1.2 km**: FIXED 2026-07-21, journal/0042 —
   `--horizon <km>`. Original report: user, 2026-07-21, "the cutoff is still too
   near, can't see macro shape of landscape".)*

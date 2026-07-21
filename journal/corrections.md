@@ -722,3 +722,55 @@ surface is itself a plateau, adjacent 460 m cells differing by **0.29 m
 from the deep field's own local gradient (self-scaling — plains smooth, flanks
 rough). The measured summit gradient is 0.29 m per 460 m, so that rule drives
 summit roughness to ~zero and makes journal/0040's photograph strictly worse.
+
+## 25. I walked the flattest place in the world and called the world flat (2026-07-21)
+
+**Claim** (journal/0040, its ROADMAP Shipped entry, and how I narrated the
+walk to the user): the world has no landform scale — *"the whole belt ~380 m
+over 40 km, ≈1 % grade"*, *"a level green prairie"*, and the world reads as
+*"miles and miles of gentle slope"* with no mountain anywhere.
+
+**Qualified — and in its general form falsified — by S13**
+(`docs/spikes/S13-results.md` § 3, same seed, same build). Relief as a function
+of sampling window, at the site I walked versus the field's median and steepest
+sites:
+
+| window | walk-0040 site | median site | steepest site |
+|---:|---:|---:|---:|
+| 1 km | 19.7 m | **55.8 m** | **80.3 m** |
+| 5 km | 29.3 m | 258.7 m | 390.5 m |
+| 10 km | 54.7 m | 515.1 m | **791.3 m** |
+| 25 km | 295.8 m | 1264.2 m | **1918.5 m** |
+
+A typical place in this world falls ~56 m per kilometre. The steepest ground
+falls ~790 m over 10 km. **That is a landscape.** The world is not uniformly
+flat; I sampled the two flattest kinds of place in it and generalized from
+them.
+
+**Mechanism — the error is in the sampling, not the arithmetic.** Every number
+journal/0040 reports is correct and reproduced by S13 to the decimetre
+(the probe matched all eight heights at both amplitudes, offset a constant
+1.0 m because the client pose sits one voxel above the surface it reports).
+The defect is *where* I stood. I ran a deliberate hierarchical search for the
+**summit** and then measured relief there — but a summit is by construction the
+place where the gradient goes to zero. Then my other transect ran along z = 0,
+which is also low-gradient ground. Having chosen the two flattest sites
+available, I concluded about the world. S13 measured the summit's deep cells
+differing by **0.29 m across a 10 km box (0.065 % grade)** — the plateau is a
+genuine simulated feature, faithfully rendered, and I read it as a global
+verdict.
+
+**What survives.** Corrections #23 is untouched: the amplitude A/B was a
+*same-site* before/after, and the jitter is byte-identical at 80 and 160, so
+"amplitude buys no sub-km relief" stands. What does not survive is the
+characterization of the *world*.
+
+**The lesson — #18/#19 have a sampling twin.** Those two are about choosing an
+instrument that can see the question. This is about choosing a *sample* that
+can: when the question is "does this world have relief," the extremum of the
+field is the blind place to ask, because extrema are where relief vanishes by
+definition. **Sample the distribution, not the extremum** — and when a walk
+reports a global property from one vantage, that is a claim about a
+distribution made from n=1. The user's own flight corroborated my read, which
+is how a sampling error survives two observers: we were both standing in the
+same wrong place.
