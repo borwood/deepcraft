@@ -380,3 +380,102 @@ the roles-as-contracts pattern — rather than new machinery. Cost today is
 approximately a one-element array instead of a scalar; the payoff is that
 UV/infrared vision, and its arrival via the evolution route, never needs a
 rewrite. Same discipline as the erodibility/limestone non-preclusion case.
+
+## LOD colour cascade + the far field's relation to the present (user, 2026-07-21)
+
+Captured from the live walk. **The user's proposal, as spoken:**
+
+> at a distance player can't even see texture, just color. so if we had a
+> method of doing the nearest LOD band with perhaps texture, then the next
+> stepped out to just the average color of the voxel's mix, and beyond that
+> just winning color? with knobs built in to change these dropoffs.
+>
+> this is with the assumption that there are architectural possibilities to
+> accomplish the spirit of this that would win perf... one way may be
+> determining color average of each material before world gen so we have it
+> handy.
+
+And, separately and more load-bearing:
+
+> in any case we need to keep in mind, farfield cannot be expected to just
+> render the prior sim data. it will need to remember deltas: changes... it
+> cannot ONLY be a ghost of the past with no relation to the present. we don't
+> need to utterly solve this right now but we can't preclude it. we also have
+> notes on observer based collapse mechanism, inspecting vs observing, to keep
+> in mind.
+
+### PRIORS THE SWEEP FOUND (do not re-derive)
+
+**The mixture LOD pyramid already exists, built and property-tested in S8** —
+`crates/dc-core/src/materials/lod.rs`, `MixtureDownsampleRule` /
+`DominantClassDebrisAware`. It reduces a 2×2×2 cell of child `VoxelContents`
+(64 eighths) to one parent `VoxelContents` (8 eighths), mirroring
+`crate::lod::derive_lod_chunk`'s octant layout **exactly**, so the material and
+block pyramids compose voxel-for-voxel. Occupancy votes in eighths
+(debris-aware); class by volume with the loser *folded in rather than lost*;
+material slots apportioned by largest remainder, so "the parent mixture is the
+child mixture at 1/8 resolution". Proven invariant: material LOD never claims
+volume the block pyramid dissolved.
+
+So the proposal's three bands map onto machinery that mostly exists:
+
+| band | what it shows | what already exists |
+|---|---|---|
+| near | texture / the 4×4 world-anchored dither over the real mixture | shipping (journal/0010) |
+| mid | the *averaged* mixture — a blended colour per coarser voxel | `MixtureDownsampleRule` computes the reduced mixture; nothing renders it |
+| far | the winning material only, one flat colour | `dominant_material` / `classify` (journal/0052) |
+
+**What is missing is the renderer consuming the pyramid at distance bands**, not
+the pyramid. Today's far field is a top-surface *heightfield of Blocks*
+(journal/0022), coloured per block.
+
+**The perf instinct is supported by measurement.** journal/0010 measured a
+fully-mixed chunk at **16× the triangles** of a uniform one (196 608 vs 12 288)
+purely because every mixed face becomes 16 dither quads. Dropping the dither by
+distance band is therefore a large, direct saving on exactly the faces that got
+expensive. On precomputing colour: material albedos already live in the registry
+as pack data (3c-2), so the *per-material* average is free. **Assistant
+PROPOSAL, not ratified:** cache the blended colour **per interned mixture**
+rather than per material — the region `MixtureTable` is tiny and already
+interned (journal/0055 measured **325 distinct mixtures / 3 160 bytes** for a
+whole sample region), so one colour per entry is a rounding error and is
+computed once instead of per voxel.
+
+**Far field vs edits — the mechanism is already named.** ROADMAP Observed
+(journal/0002, 0022): *"Far field doesn't see edits — the worldgen far field is
+a coarse summary (not a cache), so a broken block un-breaks beyond the
+full-detail radius; a summary that tracks edits is a follow-on."* And the
+voxy/DH recon's transfer map already names the shape: *"Persistent LOD store
+updated on edit → summaries derive from the AUTHORITY, subscribe to the edit
+dirty-rail, persist beside S3 region files."* Related open question, same
+family: journal/0022 deferred *persisted* summaries, and water.md § open
+question 4 explicitly ties the flow network's persistence to "the owed
+far-field summary persistence".
+
+**Assistant observation (PROPOSAL):** journal/0051 just created the delta set
+this needs. `HostWorld` now distinguishes **edited** chunks (pinned, not
+derivable) from generated-untouched ones (droppable, re-derivable) — that
+`edited` flag *is* the list of things a summary cannot derive and must
+therefore remember. The far field's delta subscription and the save layer's
+spill list are the same set viewed twice.
+
+**Observation vs inspection — the constraint this must not preclude.** API.md
+§ "Observation vs inspection" is explicit: `sim.observe` is **diegetic**,
+commits facts to the S2 ledger and can force bounded collapse; `sim.inspect` is
+**out-of-band** and commits nothing. ARCHITECTURE.md § simulation adds "stepped
+abstraction by observer proximity", "committed fact = any observation that has
+leaked to an observer", and the cascade bound ("observing one mind must not
+collapse the planet"). Today's far field is a pure derivation and therefore sits
+cleanly on the *inspect* side — it commits nothing. **The design constraint the
+user is protecting:** when the far field starts carrying deltas and present-tense
+change, "what does the player see at 5 km" stops being a pure query and starts
+touching the observe/collapse machinery. So the far-field read path must be
+built with a **seam where a read can become committing**, rather than as a pure
+function of the past with no such seam. Not to be solved now; not to be
+precluded.
+
+### Open, unratified
+Band distances and the knobs; whether the mid band blends or dithers at reduced
+rate; whether the far band's "winning colour" is `dominant_material` or a
+lit-average; and whether the pyramid is derived on demand or persisted (the same
+question journal/0022 deferred).
