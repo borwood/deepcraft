@@ -67,7 +67,7 @@ use glam::DVec3;
 
 use crate::app::{
     CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle, TerrainMaterialHandle,
-    to_render,
+    churn, to_render,
 };
 use crate::authority::Authority;
 use crate::meshing::{MeshData, block_layer, face_color, mesh_chunk};
@@ -431,6 +431,8 @@ pub fn stream_far_chunks(
 
     for (_, level, pos) in missing.into_iter().take(FAR_BUDGET_PER_FRAME) {
         let cscale = coarse_scale(base, level);
+        // Churn instrument (journal/0051), same window as the near path.
+        let build_start = std::time::Instant::now();
         let chunk = terrain.0.generate_chunk(cscale, pos);
         // Faces cull against same-level generator samples, so a ring is
         // seamless internally; ring-to-ring boundaries are the accepted seam.
@@ -443,9 +445,9 @@ pub fn stream_far_chunks(
             &neighbor_solid,
             None,
         );
-        let entity = if mesh_data.is_empty() {
-            None
-        } else {
+        let bevy_mesh = (!mesh_data.is_empty()).then(move || to_bevy_mesh(mesh_data));
+        churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
+        let entity = if let Some(bevy_mesh) = bevy_mesh {
             // Spawn already positioned (same reasoning as streaming.rs): a
             // default transform renders one frame at the floating origin.
             let transform = Transform::from_translation(far_transform_translation(
@@ -456,7 +458,7 @@ pub fn stream_far_chunks(
                 origin.0,
             ));
             let mut ent = commands.spawn((
-                Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
+                Mesh3d(meshes.add(bevy_mesh)),
                 FarChunkEntity { level, pos },
                 transform,
             ));
@@ -466,6 +468,8 @@ pub fn stream_far_chunks(
                 ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
             }
             Some(ent.id())
+        } else {
+            None
         };
         map.loaded.insert((level, pos), entity);
     }
@@ -1158,12 +1162,16 @@ pub fn stream_far_surface(
                  tx: i32,
                  tz: i32|
      -> LoadedFarTile {
+        // Churn instrument (journal/0051): the far tile is the object the
+        // pooling doctrine names, so time its whole build.
+        let build_start = std::time::Instant::now();
         let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, hz, &sample);
         let ring_edges = ring_edges_of(level, tx, tz);
         let (mesh_data, y_ref) =
             build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges);
         let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
         if mesh_data.is_empty() {
+            churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
             // Every column culled (fully under the near field): a real, tracked
             // "meshed to nothing" so it isn't re-attempted every frame.
             return LoadedFarTile {
@@ -1174,8 +1182,10 @@ pub fn stream_far_surface(
         let transform = Transform::from_translation(far_tile_translation(
             base, level, tx, tz, y_ref, forward, origin.0,
         ));
+        let bevy_mesh = to_bevy_mesh(mesh_data);
+        churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
         let mut ent = commands.spawn((
-            Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
+            Mesh3d(meshes.add(bevy_mesh)),
             FarTileEntity {
                 level,
                 tx,

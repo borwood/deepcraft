@@ -25,7 +25,7 @@ use dc_core::{CHUNK_SIZE, ChunkPos};
 
 use crate::app::{
     ChunkEntity, ChunkMap, CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle,
-    LoadedChunk, TerrainMaterialHandle, to_render,
+    LoadedChunk, TerrainMaterialHandle, churn, to_render,
 };
 use crate::authority::Authority;
 use crate::meshing::{MeshData, mesh_chunk};
@@ -37,8 +37,9 @@ use crate::terrain_material::{ATTRIBUTE_MAT_LAYERS, ATTRIBUTE_MAT_WEIGHTS};
 /// S3 raised this from S1's 72 m; beyond it the far-mesh path (farmesh.rs)
 /// renders LOD rings out to 1.2 km.
 const LOAD_RADIUS_M: f64 = crate::farmesh::FULL_DETAIL_RADIUS_M;
-/// Hysteresis: unload only beyond this distance.
-const UNLOAD_RADIUS_M: f64 = LOAD_RADIUS_M + 32.0;
+/// Hysteresis: unload only beyond this distance. Also the radius the hosted
+/// world's chunk budget is derived from (`Authority::chunk_budget_for`).
+pub const UNLOAD_RADIUS_M: f64 = LOAD_RADIUS_M + 32.0;
 /// Chunks generated + meshed per frame.
 const LOAD_BUDGET_PER_FRAME: usize = 8;
 
@@ -122,6 +123,9 @@ pub fn stream_chunks(
         let authority_cell = RefCell::new(&mut *authority);
         let neighbor_solid =
             |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
+        // Churn instrument (journal/0051): time the whole build — greedy mesh
+        // + the Bevy vertex-buffer conversion, which is where a pool would bite.
+        let build_start = std::time::Instant::now();
         let mesh_data = mesh_chunk(
             &chunk,
             pos,
@@ -129,20 +133,17 @@ pub fn stream_chunks(
             &neighbor_solid,
             contents.as_ref(),
         );
-        let entity = if mesh_data.is_empty() {
-            None
-        } else {
+        let bevy_mesh = (!mesh_data.is_empty()).then(move || to_bevy_mesh(mesh_data));
+        churn::record(&churn::NEAR_MESHES, &churn::NEAR_NANOS, build_start);
+        let entity = if let Some(bevy_mesh) = bevy_mesh {
             // Spawn already positioned: `position_chunks` ran earlier this frame
             // and won't see this entity until the next one, and a default
             // transform would render one frame at the floating origin (flash).
             let (mx, my, mz) = pos.min_voxel();
             let min_m = glam::DVec3::new(mx as f64, my as f64, mz as f64) * vscale.voxel_size_m();
             let transform = Transform::from_translation(to_render(min_m - origin.0));
-            let mut ent = commands.spawn((
-                Mesh3d(meshes.add(to_bevy_mesh(mesh_data))),
-                ChunkEntity(pos),
-                transform,
-            ));
+            let mut ent =
+                commands.spawn((Mesh3d(meshes.add(bevy_mesh)), ChunkEntity(pos), transform));
             // Lit → LabPBR terrain material; `--fullbright` → unlit vertex color
             // (the walk-protocol diagnostic; the material must stay exactly as
             // before — pure vertex color, no lighting).
@@ -152,6 +153,8 @@ pub fn stream_chunks(
                 ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
             }
             Some(ent.id())
+        } else {
+            None
         };
         map.loaded.insert(
             pos,

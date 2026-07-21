@@ -350,6 +350,38 @@ impl Plugin for GpuProbePlugin {
     }
 }
 
+/// Mesh-build churn counters — the instrument that decides whether pooling is
+/// worth building (journal/0051). Statics rather than a Bevy resource because
+/// the far-surface builder is a closure that already captures `Commands` and
+/// `Assets<Mesh>` mutably; one more mutable capture would force a refactor for
+/// a diagnostic. Two relaxed atomics plus an `Instant` per built mesh, at most
+/// a few dozen meshes a frame — under a microsecond of frame time.
+pub mod churn {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::time::Instant;
+
+    /// Near-field (full-detail) chunk meshes built, and nanoseconds spent.
+    pub static NEAR_MESHES: AtomicU64 = AtomicU64::new(0);
+    pub static NEAR_NANOS: AtomicU64 = AtomicU64::new(0);
+    /// Far-field tiles / LOD chunk meshes built, and nanoseconds spent.
+    pub static FAR_MESHES: AtomicU64 = AtomicU64::new(0);
+    pub static FAR_NANOS: AtomicU64 = AtomicU64::new(0);
+
+    /// Record one mesh build: `+1` and its elapsed time since `since`.
+    pub fn record(meshes: &AtomicU64, nanos: &AtomicU64, since: Instant) {
+        meshes.fetch_add(1, Ordering::Relaxed);
+        nanos.fetch_add(since.elapsed().as_nanos() as u64, Ordering::Relaxed);
+    }
+
+    /// Snapshot (meshes, nanos) for the probe.
+    pub fn read(meshes: &AtomicU64, nanos: &AtomicU64) -> (u64, u64) {
+        (
+            meshes.load(Ordering::Relaxed),
+            nanos.load(Ordering::Relaxed),
+        )
+    }
+}
+
 /// Renderer-leak diagnosis instrumentation (env-gated by `DC_MEM_PROBE`, zero
 /// cost when unset; ROADMAP Observed "renderer leak / DeviceLost"). Every ~10 s
 /// it logs the sizes of the allocation sites we own — the loaded-chunk /
@@ -382,20 +414,38 @@ fn mem_probe(
     chunk_map: Res<ChunkMap>,
     far_tiles: Res<farmesh::FarSurfaceMap>,
     far_chunks: Res<farmesh::FarChunkMap>,
+    authority: Res<Authority>,
     all_entities: Query<Entity>,
     chunk_entities: Query<(), With<ChunkEntity>>,
     tile_entities: Query<(), With<farmesh::FarTileEntity>>,
+    mut prev_churn: Local<(u64, u64, u64, u64)>,
 ) {
     let now = time.elapsed_secs_f64();
     // Log at boot (first frame) then every ~10 s of wall-free sim time.
     if *last != 0.0 && now - *last < 10.0 {
         return;
     }
+    let window = now - *last;
     *last = now;
     let live_far_chunks = far_chunks.loaded.values().filter(|e| e.is_some()).count();
+    // The host chunk store — the site journal/0050 pinned the RAM march on and
+    // journal/0051 bounded. `host_chunks` is capped at `budget` plus however
+    // many chunks carry edits (pinned, unbounded by design until the save
+    // layer lands).
+    let residency = authority.world.chunk_residency();
+    let (near_n, near_ns) = churn::read(&churn::NEAR_MESHES, &churn::NEAR_NANOS);
+    let (far_n, far_ns) = churn::read(&churn::FAR_MESHES, &churn::FAR_NANOS);
+    let (pn, pns, pf, pfns) = *prev_churn;
+    *prev_churn = (near_n, near_ns, far_n, far_ns);
+    // Per-second build rate and the share of wall time meshing costs: the
+    // measurement that decides whether pooling would buy anything.
+    let rate = |d: u64| if window > 0.0 { d as f64 / window } else { 0.0 };
+    let build_ms = (near_ns - pns + far_ns - pfns) as f64 / 1.0e6;
     info!(
         "DC_MEM_PROBE t={:.0}s | meshes={} images={} | chunk_map={} chunk_ent={} | \
-         far_tiles={} far_tile_ent={} | far_chunks={} far_chunk_ent={} | entities={}",
+         far_tiles={} far_tile_ent={} | far_chunks={} far_chunk_ent={} | entities={} | \
+         host_chunks={} host_edited={} host_evicted={} host_budget={} | \
+         near_built={:.1}/s far_built={:.1}/s build={:.1}ms/{:.0}s ({:.2}%)",
         now,
         meshes.len(),
         images.len(),
@@ -406,6 +456,19 @@ fn mem_probe(
         far_chunks.loaded.len(),
         live_far_chunks,
         all_entities.iter().count(),
+        residency.resident,
+        residency.edited,
+        residency.evicted,
+        residency.budget,
+        rate(near_n - pn),
+        rate(far_n - pf),
+        build_ms,
+        window,
+        if window > 0.0 {
+            build_ms / (window * 1000.0) * 100.0
+        } else {
+            0.0
+        },
     );
 }
 

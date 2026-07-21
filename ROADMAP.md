@@ -7,6 +7,28 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **HostWorld chunk eviction — the RAM march is flat**
+  (journal/0051; fixes the 0050 diagnosis). `HostWorld.chunks` is now a
+  bounded LRU over *generated-and-untouched* chunks (droppable — they
+  re-derive byte-identically; the S11 "store only what the derivation cannot
+  predict" doctrine) plus a **pinned** set of *edited* chunks, flagged in
+  `set_block_raw`, the single audited voxel-writing path. Budget arrives as
+  data from the client (`Authority::chunk_budget_for`, ~2 360 chunks at the
+  boot scale, clamped [1 024, 16 384]) so dc-api stays headless.
+  **Measured A/B on one binary** (`DC_CHUNK_BUDGET` huge = pre-fix
+  behaviour), `DC_MEM_PROBE=1 --horizon 3`, fresh ±15 km jump every 1.8 s:
+  **+27.4 MB/jump → 0.00 MB/jump** (flat over 147 jumps after warm-up;
+  ~210 jumps / 9 min total, ±20 MB band). Store fills to cap and stays:
+  `host_chunks` 2 129–2 351 against budget 2 360 while 99 752 chunks were
+  evicted. Correctness: byte-identical regenerate proven over 3 seeds ×
+  3 positions and by a budget-4-vs-budget-100k region-hash equality, plus a
+  live MCP edit surviving 40 fresh-ground jumps
+  (`crates/dc-api/tests/chunk_eviction.rs`). 0050's "~33 KB/chunk" corrected:
+  `Block` is `repr(u16)`, so a chunk is **64 KB** and the fill rate is
+  ~335 chunks/jump. **Pooling: measured and deliberately NOT built** — see
+  Observed. No user-visible change (no appearance, feel, or frame-rate
+  difference; mesh build rate unchanged across the A/B).
+
 - 2026-07-21 — **The first guided tour — five stations, five verdicts**
   (journal/0049; the LIVE co-walk protocol's first run — user at every
   station, verdicts gating each move). Wind + frost magnitudes **RATIFIED
@@ -1015,17 +1037,24 @@ see the question you are asking.
 
 ## Sequenced
 
-- **HostWorld chunk eviction — the RAM-march fix** (diagnosed 2026-07-21,
-  journal/0050): evict generated-and-untouched chunks from `HostWorld.chunks`
-  (re-derivable — "store only what the derivation cannot predict", the S11
-  doctrine) while preserving edited chunks (persist/spill to the decided save
-  layer; interacts with the persistence follow-on). Measured target: the
-  ~25 MB/teleport-jump linear RSS march goes flat under the `DC_MEM_PROBE` +
-  external-RSS repro. Residual, lower priority: close the
-  `coarse_surface`-only gap in the collapse caches' `evict()` (currently
-  fired only by `generate_chunk`) and distance-aware caps if measurement
-  asks. Separate hardening item: DeviceLost should degrade loudly, not
-  cascade into `unwrap`/`PoisonError` panics.
+- **Edited chunks still accumulate for the session — the save-layer heir**
+  (surfaced 2026-07-21 by journal/0051, which bounded everything *else* in
+  `HostWorld.chunks`). Eviction deliberately pins edited chunks, so a session
+  that edits 10 000 distinct chunks holds ~640 MB until quit (64 KB/chunk,
+  measured). Correct-as-designed and now *visible* (`host_edited` in the
+  `DC_MEM_PROBE` line, asserted by a dc-api test), but the real answer is the
+  decided save/persistence layer: spill an edited chunk and let the slot go
+  back to being evictable. Sequenced behind persistence itself.
+
+- **Collapse-cache `evict()` is unreachable from far-field-only sampling**
+  (diagnosed 2026-07-21, journal/0050; `evict()` fires only from
+  `generate_chunk`, so a `coarse_surface`/`column_record` sweep can grow
+  `lattice_memo`/`locale_cache`/`region_cache` between chunk generations).
+  Bounded in normal play (a storm generates chunks constantly) — not the RAM
+  march, which was `HostWorld.chunks` and is now fixed. **Reassigned
+  2026-07-21** to the forms/partials `collapse.rs` rewrite, which owns that
+  file. Separate hardening item, still unowned: DeviceLost should degrade
+  loudly, not cascade into `unwrap`/`PoisonError` panics.
 
 - **Tectonic expression at the collapse tier — the layer-cake redemption**
   (promoted 2026-07-21 after the user's callout: dip/fold non-expression
@@ -1466,6 +1495,20 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Mesh-buffer pooling: measured, deliberately NOT built** (2026-07-21,
+  journal/0051 — the user asked for pooling; this is the numbered answer).
+  New churn instrument in the `DC_MEM_PROBE` line: during a teleport storm the
+  client builds ~130 near-chunk + ~32 far-tile meshes/second and spends
+  **3.5 s of every 10 s (35 % of wall time) inside those builds** — but that
+  window is per-voxel compute (32 768 voxels × 6 faces; far tiles dominated by
+  coarse-summary sampling), not allocation. Decisive against pooling at this
+  seam: Bevy's `Mesh::insert_attribute` **takes ownership** of each attribute
+  `Vec` and moves it to the render world, so pooled scratch buffers would have
+  to be **copied** in — zero copies per attribute becomes one. Residual idea
+  that survives: reuse `MeshData`'s buffers *inside* `mesh_chunk` to kill the
+  growth-reallocs — lives in `meshing.rs`, worth at most a couple of percent of
+  that 35 %, unowned and unstarted.
+
 - **Caves ↔ hydrology integration thread captured** (2026-07-21, off-thread
   session; full capture in water.md § Session capture 2026-07-21 — nothing
   decided). The work-shaped findings: **two drainage opinions** (pregen cell
@@ -1514,6 +1557,10 @@ before any code.
   exited CLEANLY (verified: no DeviceLost in the log), vs 4.5–10 min to
   death at `--horizon 6` — accumulation scales with far-field size, and
   smearing is the degraded-but-alive state well before the cliff.**
+- **FIXED 2026-07-21 (journal/0051): eviction landed, the march is flat
+  (+27.4 → 0.00 MB/jump). See Shipped. Two numbers from this diagnosis were
+  corrected on the way: a chunk is 64 KB, not ~33 KB (`Block` is `repr(u16)`),
+  so the fill rate is ~335 chunks/jump, not ~750.** Original diagnosis below.
 - **DIAGNOSED 2026-07-21 (journal/0050): the leak is host-RAM, not the GPU
   and not the far-field pooling.** Instrumented our own allocation counts
   (`DC_MEM_PROBE` plugin, merged) beside external RSS + VRAM sampling.
