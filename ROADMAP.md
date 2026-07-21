@@ -7,6 +7,35 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **The far-field horizon is a knob** (journal/0042, background
+  agent; gates green on merged main — 46 suites, 0 failed). `--horizon <km>`
+  (0.2–64 km): the ring geometry moves from `const RING_EDGES_M`/`FAR_MAX_M` to
+  a runtime `HorizonConfig` resource. **The default is proven unchanged** by
+  exact-float assertion (`[112, 256, 512, 1024, 1200]`, near-cover 112 m, camera
+  far 3000, fog 150/1100) and corroborated by reproducing journal/0023's 188
+  tiles / ~21 MiB. Measured (not projected) cost sweep, worst case with no
+  coverage cull: **1.2 km** 188 tiles / 20.7 MiB / 3.72 ms-frame; **3 km** 288 /
+  31.0; **5 km** 540 / 57.1 / 4.02; **10 km** 1648 / 172.4 / 6.10 ms, fill time
+  1.6 s → 13.7 s. All six FF2a/0024 predecessor properties re-verified (stepped
+  voxel language, no cracks — plus a NEW 10 km no-sky-holes test, no buried
+  sheet, no same-level seams, multidraw batching, budget-bounded meshing, the
+  last now *asserted* to be horizon-independent). Two deviations, both required
+  and both default-preserving: the **camera far plane** and the **lit-pass
+  distance fog** now travel with the horizon — a fixed 1.1 km fog would have
+  whited-out the very landform the wider horizon exists to show, which is the
+  journal/0030 blind-instrument failure and fails *silently*. `--fullbright`
+  still disables fog entirely (journal/0031 preserved), so the byte-identical
+  pure-data control survives. Interior ring ladder deliberately NOT scaled
+  (proportional scaling would put ~4300 L1 tiles at 10 km and blow the want-set
+  scan to 349² per level per frame — rejected on arithmetic). **Legibility is
+  better than 0023 projected**: coarsest step stays 14.4 m at every setting.
+  **NEW LIMITS FOUND:** (a) the 4-level scheme's honest ceiling is **~10 km /
+  172 MiB** — past that the answer is 0023's *add rings*, a 5th/6th LOD level,
+  not a longer L4; (b) **haze, not geometry, is the practical limit** — at
+  `--horizon 8` the outer third washes toward white and silhouette reading works
+  to ~5–6 km, so whether the fog *curve* (not just its range) wants its own knob
+  is a **user-owned visual call**, deliberately not made.
+
 - 2026-07-21 — **First flagged walk: the amplitude call, answered "neither"**
   (journal/0040, corrections #23; the deep-config plumbing's first use). Two
   worlds, same seed, `--tectonics` on both, only `--amplitude` differing.
@@ -785,9 +814,9 @@ mountains and no longer blocks anything. The order that replaces it:
    a lattice seeded at 90–420 m `provenance_roughness` deliver 7 m? This is
    now the prime suspect for terrain legibility and is upstream of everything
    below. Measurement-class, not a design call.
-2. **Far-field horizon knob** (Sequenced below) — independent of (1) and still
-   needed: macro shape is unseeable from the ground at 1.2 km. These two have
-   disjoint write-sets (`collapse.rs` vs `farmesh.rs`) and can run in parallel.
+2. *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — the
+   landform-shape walk is now possible and is owed: re-walk the amplitude
+   vantages at `--horizon 6` on the LIT pass.)*
 3. **Erosion-supply calibration** (Sequenced) — S12's metre-scale exhumation
    finding, now co-equal with (1) as a relief-generating lever.
 4. **The amplitude value itself** — deferrable. Rides as-built at 80 until
@@ -802,21 +831,14 @@ see the question you are asking.
 
 ## Sequenced
 
-- **Far-field horizon knob — the amplitude-walk prerequisite** (user field
-  report 2026-07-21, upgrading the FF2a "knobs to adjust the far-field ranges"
-  follow-up to a load-bearing slice). The far field cuts off at
-  `farmesh.rs::FAR_MAX_M = 1200.0` — a 1.2 km horizon. A mountain range is
-  5–20 km across, so at 1.2 km the camera is always *inside* the landform and
-  its macro shape never reads. This blocks the amplitude call and the tectonic
-  walk directly: both are macro-shape questions the current horizon cannot
-  show. FF2a already measured the fix as cheap (journal/0023: "~10 km ≈ 376
-  tiles / ~43 MiB, per-frame meshing stays budget-bounded"). Work: make
-  `FAR_MAX_M` + the `RING_EDGES_M` distribution runtime config (a Bevy
-  `Resource`, not a `const`) and expose a launch flag (e.g. `--horizon <km>`),
-  threaded like the journal/0039 `GenOptions`. Touches `farmesh.rs` (the ring
-  logic reads the const array — `far_lod_level`, `far_tile_in_ring`), `app.rs`,
-  `main.rs`. **Dispatch FIRST next session, before the amplitude walk** — the
-  walk build needs the extended horizon to answer its own question.
+- *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — see Shipped.
+  `--horizon <km>`, default provably unchanged, measured to 10 km.)*
+- **A 5th/6th far LOD level — for horizons past ~10 km** (found by the
+  journal/0042 measurements, 2026-07-21). The 4-level ring scheme's honest
+  ceiling is ~10 km / 172 MiB / 13.7 s to fill, because cost is quadratic
+  inside the stretched L4. Journal/0023 already named the right answer — *add
+  rings*, don't lengthen the last one. Only worth doing if the design target
+  wants vistas past 10 km; note the haze limit below may bind first.
 - **Tectonics SPIKE** (per tectonics.md § SPIKE, architecture ratified
   2026-07-20): implement `DeepConfig::tectonic_history` behind the flag and
   produce the eight measurement groups (clamp stability under ramped
@@ -1198,10 +1220,33 @@ before any code.
   attenuating roughness by 1–2 orders of magnitude. **Needs measurement before
   it is believed.** This is upstream of the amplitude call and probably the
   single highest-value open question on terrain legibility.
-- **The far field cuts off at 1.2 km** (user field report 2026-07-21;
-  `farmesh.rs::FAR_MAX_M`). Macro landform shape cannot be seen from the
-  ground at all — the camera is always inside the landform. Diagnosed and
-  moved to Sequenced (far-field horizon knob).
+- *(**The far field cuts off at 1.2 km**: FIXED 2026-07-21, journal/0042 —
+  `--horizon <km>`. Original report: user, 2026-07-21, "the cutoff is still too
+  near, can't see macro shape of landscape".)*
+- **The haze curve, not geometry, limits the usable vista** (journal/0042
+  measurement, 2026-07-21). With `--horizon 8` the outer third of the field
+  washes toward white and silhouette reading works only to ~5–6 km, even though
+  the geometry is there and paid for. The fog *range* now scales with the
+  horizon; the fog **curve** (its falloff shape) does not, and whether it should
+  is a **user-owned visual call** the agent deliberately did not make. Cheap to
+  change, needs the user's eye on a before/after.
+- **Material placement rules are climate mocks, and below ~460 m there is no
+  history to read** (user design observation + integrator analysis,
+  2026-07-21 — NOT yet a design pass, nothing ratified). The surface veneer
+  rule (`collapse.rs::surface_sample`) picks Grass/Dirt/Stone from year-zero
+  climate + a 6.5 °C/km lapse against a −4 °C threshold — no slope term, no
+  consultation of the record. geology.md § formation context already ratified
+  that year-zero climate is legitimate **only** for the surficial veneer, so
+  this is the documented last holdout of a dead shim. Two further gaps found in
+  the same sweep: `exhum`/`t_crust` ship in `DeepField` explicitly as "the
+  metamorphic-grade axes the collapse tier reads" and **nothing consumes them**;
+  and there is **no rule deriving material *form*** (loose / pore-partial /
+  whole block) from provenance, though the representation exists (S8 mixtures,
+  pore partials). **Integrator's framing, unratified:** the collapse layer
+  *samples and dresses* rather than re-simulating — shape below the 460 m deep
+  cell is lattice jitter and material below it is member dither, so the
+  sub-km-relief finding (Observed above) and the material-mock question are the
+  same defect. Wants a priors-first design notebook before any work.
 - *(**Console v1 field report: FIXED same day** — console v2 shipped, see
   Shipped / journal 0035. Original report:)* **"still unusable" (user,
   2026-07-20, first test drive).** Two defects, both discoverability-of-what-exists rather
