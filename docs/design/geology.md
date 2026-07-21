@@ -43,6 +43,9 @@ first geology pack.
 v1 proves the class machinery end-to-end with the smallest honest set:
 **clastic sediment + igneous (intrusive/extrusive) + one ore vector**
 (placer is the cheapest — it falls out of S8's alluvial grain-sorting).
+*(Superseded on the ore axis by § Ore — DECIDED 2026-07-20: the full v1 ore
+roster; engineering pass in ores.md. This paragraph's "one ore vector" was
+the geology-backbone scope, not the ore roster's.)*
 Next after v1: chemical sediment (carbonate) — caves-in-carbonate-on-
 water-tables is orogeny-proven and gameplay-rich — then metamorphic grades
 and further ore vectors.
