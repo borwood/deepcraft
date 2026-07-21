@@ -275,3 +275,31 @@ or processes — it is an instance of the loudly-temporary rule above: known,
 loud, and holding a seat for the expresser that subsumes it. The registry of
 these is `docs/design/stubs.md` (the stub inventory); an unlisted stub is a
 defect in the inventory, not a licence.
+
+### Enhancement doctrine — DECIDED 2026-07-21 (user, revising the framing above)
+
+Simulation first — and **procedural tricks can be a kind of honest**. The
+revision: a local procedural process is legitimate when it answers exactly one
+question — *"what does this local point probably look like inside this
+regional field of history?"* Local refinement is **enhancement** (the
+spy-show enhance: resolving plausible detail inside a grainy-but-true image).
+If it were feasible we would run a generative model conditioned on the
+regional field; since it is not, deterministic procedures stand in for it.
+
+Two requirements make an enhancement honest:
+
+1. **Deterministic relationship with the larger field of facts** — same
+   field, same answer, always; the enhancement is a pure function of the
+   recorded history it refines.
+2. **The local procedures are a reflection of the deep-sim processes** that
+   produced the field — local process and deep process **must agree**.
+   *In what sense they must agree is an explicitly open design question*
+   (user: "i do not know in what sense they must agree, but on a high level
+   that appears clear to me") — recorded as the guiding constraint, to be
+   sharpened slice by slice rather than resolved here.
+
+Consequence for any sub-deep-cell detail (the S13 recalibration included): a
+local rule is honest **to the degree it is conditioned on the field** — jitter
+scaled by recorded provenance roughness is conditioned; a field-blind constant
+is not. "Fake the appearance" (the anti-pattern in the cost philosophy) now
+means precisely: detail with **no deterministic tie back to the field**.

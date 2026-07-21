@@ -1006,6 +1006,14 @@ impl<'a> WorldGenerator<'a> {
 
     /// Ruin posts from abandoned sites: committed pregen history, visible in
     /// the terrain. Each post is a point, so it lands in exactly one column.
+    ///
+    /// **STUB (docs/design/stubs.md § 1 — LOUDLY TEMPORARY).** The
+    /// *abandonment fact* is real ledger; the *posts* are a rule-of-thumb
+    /// stand-in for what an abandoned settlement leaves behind. Heir: the
+    /// social sim + ecology (dwarf-fortress-class civilization history — a
+    /// post gets there because someone put it there). Culture-related
+    /// artifacts are placeholder wholesale; do not bandaid, do not extend,
+    /// until ecology lands and the social sim gets its design pass.
     fn ruin_posts(&self, cx: i64, cz: i64, locale: &LocaleRec) -> Vec<(u8, u8, u8)> {
         let (vx0, vz0) = (cx * 32, cz * 32);
         let mut posts = Vec::new();

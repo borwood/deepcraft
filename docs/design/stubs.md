@@ -20,11 +20,13 @@ commit as any change that adds, removes, or subsumes a stub.
 `collapse.rs::ruin_posts` (~997), rendered ~400.
 An abandoned pregen site expresses as ≤10 procedurally-scattered wood posts,
 2–4 voxels tall, at hashed angle/radius. The *abandonment fact* is genuine
-committed history; the *structure* is a rule-of-thumb. **Heir:** a real
-structures/ruins system (buildings, decay, salvage) — nowhere designed; no
-structures doc exists. **Blast:** the only world-visible form of settlement
-history. *Chore owed: a loud placeholder comment at the code site (deferred —
-collapse.rs is in an active agent write-set at audit time).*
+committed history; the *structure* is a rule-of-thumb. **Heir (user, 2026-07-21):** the social sim +
+ecology — dwarf-fortress-class civilization history; "that's the only way a
+post gets there." Culture-related artifacts are placeholder as a class: do not
+bandaid, do not think about, until ecology is done and the social sim gets its
+design pass (the big one: NPCs and all — priors exist in the corpus). **Blast:**
+the only world-visible form of settlement history. *Loud code marker added
+2026-07-21.*
 
 ### 2. surface-veneer-block-rule
 `collapse.rs::surface_sample` (~516): Grass/Dirt/Stone from year-zero climate,

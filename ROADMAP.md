@@ -7,6 +7,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **Climate registration fix** (journal/0043; gates green on
+  merged main, 46 suites 0 failed). The S13 parity flag was a real bug — see
+  the resolved Observed line. Every climate-keyed read (veneer, soil tier,
+  strata formation context) now lands on the terrain it describes.
+
 - 2026-07-21 — **S13 — where the roughness goes: 5 % of the budget reaches the
   ground** (journal/0041, `docs/spikes/S13-results.md`, corrections #24/#25;
   background agent; gates green on merged main, 46 suites 0 failed).
@@ -863,6 +868,21 @@ see the question you are asking.
 
 ## Sequenced
 
+- **Tectonic expression at the collapse tier — the layer-cake redemption**
+  (promoted 2026-07-21 after the user's callout: dip/fold non-expression
+  "slipped by without my understanding or ratification" — an integrator
+  sequencing failure, acknowledged; the Observed LAYER-CAKE line was filed but
+  never surfaced during the tectonics ratification). The ratified architecture
+  always intended it: `DeepField.chapters` ships ~5 KB of plate state per
+  chapter EXPLICITLY so per-unit deformation (dip, fault traces) re-derives
+  analytically at collapse resolution — built in S12, consumed by nothing.
+  One family, one slice-group, all gated on the U8 flip (in flight):
+  (a) chapters → strata dip/fold/fault expression in cut faces (the
+  "coal seam dead-ends at a fault" line of things-that-will-happen);
+  (b) `exhum`/`t_crust` → metamorphic-grade classes;
+  (c) drainage export (`recv`/`area`/`lake`) → the 3e-2 macro drainage
+  consumers. Note: this is the CUT-FACE sin, not the silhouette sin — terrain
+  shape flatness is the separate S13/roughness thread.
 - **Consume the ledger terms the runtime throws away** (geology.md § Expression
   of the ledger, DECIDED 2026-07-21). Four concrete, independently shippable
   pieces: (a) **carry `H`** — the deep sim computes regolith thickness per cell
@@ -1288,16 +1308,13 @@ before any code.
   — see Shipped. Decay confirmed (5 % survives), bilinear falsified (#24), and
   the walk's own sampling corrected (#25). The remaining OPEN part is which
   recalibration to take — Sequenced below, awaiting a user picture-pick.)*
-- **The `climate_at` half-cell offset — UNMEASURED, found in passing**
-  (S13 § Method, 2026-07-21). `collapse::climate_at` centres the coarse grid
-  with `f64::from(w)/2.0` (= **8.5** at Medium), while `DeepField::deep_coords`
-  and `CellGrid::cell_of_voxel` both use integer `w/2` (= **8**). If
-  unintended, the climate bilinear is offset **half a coarse cell — ~7.4 km**
-  from the terrain it is supposed to describe, which would misplace every
-  climate-derived surface read (the veneer rule, erodibility/biotic gating,
-  the aridity tags). Nobody has checked whether it is deliberate. **Cheap to
-  investigate, potentially wide blast radius — do this before any work that
-  reasons about where climate lands.**
+- *(**`climate_at` half-cell offset: CONFIRMED BUG, FIXED** 2026-07-21,
+  journal/0043 — climate sat exactly 7 372.8 m north-east of the terrain it
+  tinted, live at every preset (all odd `w`). One-expression fix,
+  regression-guarded at Small+Medium; 7 surface columns flip Stone→Dirt in the
+  22–33° band (the rock line was 7.4 km off). Heights are climate-independent,
+  so all 0040/S13 elevation numbers stand. No prior conclusion falsified —
+  the 0038 desert-null mechanism (corrections #22) is registration-independent.)*
 - *(**The far field cuts off at 1.2 km**: FIXED 2026-07-21, journal/0042 —
   `--horizon <km>`. Original report: user, 2026-07-21, "the cutoff is still too
   near, can't see macro shape of landscape".)*
