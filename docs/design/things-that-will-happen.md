@@ -69,3 +69,13 @@ list and not a roadmap — some of these are far off, and that is fine.
 - The place where the wind took the most is not the place where the least
   remains — the great deflation basins are deep because they had the most to
   lose, and they are still losing it.
+- A block at a bed contact is *both* rocks, in the proportion the boundary
+  actually cuts it — and the block beside it holds a different proportion,
+  because the world quantized honestly instead of picking a winner.
+- A hand's width of volcanic ash, laid down in an afternoon four million years
+  ago, is still findable — not as its own layer, which is thinner than a
+  block, but as a trace mixed through the blocks that swallowed it.
+- The ground is the colour of what the ground is made of. There is no skin
+  painted over it, so a dune field reads as its own sand and the bare shoulder
+  beside it reads as the granite it was scoured down to — and the horizon
+  behind them agrees, because it is the same answer sampled further away.

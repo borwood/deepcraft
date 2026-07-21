@@ -7,6 +7,32 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **Distribution-first expression: the record skins the world**
+  (journal/0055; user-DECIDED design, materials.md § "integrate the column,
+  then slice it"). The sieve was a quantization-**order** defect — `Σ round(tᵢ)`
+  where honesty needs `round(Σ tᵢ)` — so metres now survive to the voxel
+  boundary and quantize **once**, filling each voxel's eighths from the units
+  overlapping its 0.9 m span by **addressed stochastic rounding** (unbiased;
+  deterministic flooring is biased and always loses). **Sieve loss 75.8 % →
+  0.2 %**; the 48.1 % of land cells that expressed *nothing* now express their
+  record; the dune field's 379 units / 7.99 m go from **zero voxels to nine,
+  all mixed**. The **surface is skinned by the record** (user: *"we don't have
+  to have this problematic of deciding which material to skin the world with
+  when the record already says"*) via the shared `surface_sample` kernel, so
+  the horizon and the ground inherit it structurally — **integrator-added test
+  asserts they agree on surface MATERIAL**, not only height, which nothing did
+  before (the sibling test discards the block). Stubs **2 (where a record
+  exists)**, **3's heir** and **12** retired; the veneer's thickness budget
+  self-retired to `0.00` voxels *without surgery*, and the 8-voxel cap's
+  14.3 % truncation is gone. Cost measured not assumed: 11 → 325 distinct
+  mixtures (0.74 % of the S8 combinatorial cap), sidecar 0.330 → 0.621 B/m³
+  (still 17.7× under raw dense), chunk gen +43 %, far field free, ritual and
+  `DeepField` unchanged. The fill-contract's absent-contents exception shrank
+  `{Air, Stone, Dirt}` → `{Air, Stone}`. Regression caught by an existing test
+  and fixed in-slice: with the residue at zero the veneer *is* the fluvial fan,
+  and whole-voxel rounding made **every placer in the world vanish**.
+  **⚠ APPEARANCE: unratified, world-wide — see Observed.**
+
 - 2026-07-21 — **HostWorld chunk eviction — the RAM march is flat**
   (journal/0051; fixes the 0050 diagnosis). `HostWorld.chunks` is now a
   bounded LRU over *generated-and-untouched* chunks (droppable — they
@@ -1038,10 +1064,19 @@ cheap, high-value first act next session**, and it unblocks the landform-shape
 walk the roughness pick needs.
 
 **Decisions waiting on the user (nothing else is blocked on them):**
-1. **The surface-veneer retirement** — this is now the *gating* decision for
-   the forms/partials thread, not a background stub. The fractional-top slice
-   cannot proceed honestly until the veneer stops owning the top voxel of
-   recorded columns (see In flight). Wants the user in the room.
+1. *(**The surface-veneer retirement: DONE** 2026-07-21 — the user made the
+   call live ("fold them together... the record already says") and it shipped
+   in journal/0055. What replaces it as the live user question is the
+   **appearance walk** below.)*
+1b. **WALK THE NEW WORLD — the biggest unratified appearance change this
+   project has made.** Two merges changed every surface and every dig depth
+   (journal/0053 carry-`H`, journal/0055 the record-skinned surface) and the
+   user has seen neither. The tour map for 0053 is below; for 0055 the sites
+   to add are the **bare granite shoulder** (101663, 5073 — basement at grade,
+   with a horizon that agrees), the **dune field** (107183, 9672 — nine mixed
+   spans where there were zero), and **any cut face** for the new contact
+   voxels. LIT pass for shape and depth; `--fullbright` for the material
+   question specifically. Both are revertible: one merge commit each.
 2. **Ores R1–R8** (ores.md draft).
 3. **Roughness recalibration** — three costed candidates, picked from
    pictures; C is the only one that changes which landforms exist. Sequence
@@ -1057,10 +1092,8 @@ the water/caves thread (water.md § Session capture 2026-07-21 — the
 two-drainage-opinions finding and the bounded-drainage-refinement spike
 question are the live items).
 
-**Engineering still Sequenced:** **sub-voxel facies as inclusions
-(stubs.md § 12 — THE priority piece: journal/0053 measured the sieve eating
-~75 % of the sediment pile, not merely thin ash beds; needs no user decision
-and rides the landed contents-authority machinery)** · tectonic expression
+**Engineering still Sequenced:** *(**sub-voxel facies / the sieve: SHIPPED**
+2026-07-21, journal/0055 — stubs § 12 retired)* · tectonic expression
 (dip/fold + metamorphic) · paleo-context provider (subsumes stubs 4/5/6) ·
 `HostWorld` edited-chunk spill to the save layer (edited chunks are retained
 unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test).
@@ -1603,6 +1636,26 @@ before any code.
   growth-reallocs — lives in `meshing.rs`, worth at most a couple of percent of
   that 35 %, unowned and unstarted.
 
+- **91.4 % of land skins to ONE block, and the diagnosis is not settled**
+  (journal/0055, 2026-07-21). With the record deciding the surface, the
+  world-wide skin goes Grass 81.8 % / Dirt 18.2 % → **Mudstone 91.4 %** /
+  CarbonaceousMudstone 6.3 % / Coal 2.0 % / Peat 0.3 % / Granite 0.02 %. The
+  agent filed this as a *block-vocabulary* question (the block tier cannot
+  summarize the material diversity beneath it). **The integrator does not
+  accept that as the whole diagnosis**, and the competing reading matters
+  because it points at a different fix: the surface block takes the
+  **metre-dominant class of the top 0.9 m**, so a thin organic soil horizon
+  over thicker loess *loses the vote even when it is present in the voxel's
+  eighths*. That is summarization hiding soil. The rival reading is that
+  pedogenesis is simply under-modelled and soil is rarely generated at all —
+  real Earth has soil nearly everywhere subaerial, and this record gives an
+  organic surface to 6.3 %.
+  **The discriminating measurement, cheap and unrun:** what fraction of
+  surface *contents* contain organic material, versus what fraction of surface
+  *blocks* read organic? If contents ≫ blocks, it is summarization (fix at the
+  block/presentation tier). If contents ≈ blocks ≈ 6 %, the record itself
+  lacks soil (fix in the biotic layer — adjacent to stubs 7/8). **Do not act
+  on either fix until that number exists.**
 - **Caves ↔ hydrology integration thread captured** (2026-07-21, off-thread
   session; full capture in water.md § Session capture 2026-07-21 — nothing
   decided). The work-shaped findings: **two drainage opinions** (pregen cell
