@@ -1075,6 +1075,20 @@ but the magnitude and the fact that the world got **deeper on average rather
 than barer** is the opposite of what the tour verdict anticipated. **Walk it
 before ratifying** — it is one merge commit and trivially revertible.
 
+*Tour map for that walk, ready to use* (seed 1337 / Medium; regenerate with
+`cargo run --release -p dc-worldgen --example soil_depth_probe`). Use the LIT
+pass — this is a dig-depth/section question, and the surface block is
+unchanged, so the difference is entirely under the skin:
+- **(101663, 5073) — bare rock at grade**, `H` 0.17 m. The new extreme: basalt
+  at the surface, no soil at all. Did not exist before this slice. *Start here.*
+- **(5993, 14732) — tour station 1**, `H` 10.66 m: 6 → 12 voxels. The station
+  that motivated the slice and moved the opposite way (corrections #26).
+- **(107183, 9672) — tour station 2 dune field**, `H` 7.99 m: 2 → 8 voxels,
+  and the record holds 379 units summing to 7.99 m that express as *zero*
+  whole-voxel strata — so this is also the best place to SEE stubs.md § 12.
+- **(82346, 24391) — loess margin**, `H` 80.49 m: 31 → 37 voxels, where the
+  8-voxel veneer cap truncates hardest (ledger says 89 voxels).
+
 *(Superseded by the session-close block above; kept for the record.)*
 **RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
 **answered: neither 80 nor 160** (corrections #23) — `thickening_scale` acts
