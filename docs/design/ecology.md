@@ -308,3 +308,36 @@ journal/0026. The GO action is done and the gap above is closed.
 - **Still open, still the user's**: § 5 fork 2 (pack-addition blast radius).
   Unchanged by this milestone, and now shipping in a world where biology really
   does move rock.
+
+## DECIDED 2026-07-21 (user) — vegetation joins deep time; the veneer is a placeholder
+
+**Vegetation becomes part of the deep-time sim.** In a sense it already is —
+peat and coal exist in the record *for this reason*, as the preserved residue of
+communities that lived somewhere for a long time. The decision extends that from
+the buried residue to the living cover.
+
+**Runtime gen reads the latest ecological state from deep time and expresses it
+per member.** Not a painted biome lookup: each member has a **proliferation
+pattern** — how it propagates, what it eats, what minerals / warmth / light
+amount / spacing it needs (examples, not a literal schema) — and placement falls
+out of **fitness in a system**, species related to each other and to their
+environment. A region that has not been geologically active for a long while is
+nutrient-sapped and hosts only hardy scrub **because that is how it happened**,
+not because it was painted there afterwards. This is § 2's *"biome is a
+diagnosis, not a primitive"* (DECIDED 2026-07-19) carried into the runtime tier,
+and it is what the S10 substrate already computes at depth — the Walker & Syers
+retrogression chronosequence (23.5 % of columns, nobody scripted it) is exactly
+the nutrient-sapped landscape described above, currently invisible to a player.
+
+**The current surface veneer is waiting-for-the-correct-implementation.**
+`Block::Grass`/`Dirt` chosen from year-zero climate and a lapse-rate threshold
+is **not** an ecology and must not be treated as one. It is explicitly and
+loudly temporary in the sense of geology.md § Expression of the ledger.
+**Do not bandaid it.** No tuning of the grass/dirt/stone thresholds, no slope
+term, no new heuristic — the correct implementation replaces it wholesale.
+Reasoning about grass is suspended until ecology gets its proper design pass.
+
+**When that pass opens, it starts from `docs/design/biomes-ecology-agenda.md`** —
+the standing agenda whose § "The questions only the user can answer" has never
+been worked through, plus § 4 (evolution, the user's design) and § 5 (open
+forks) here.

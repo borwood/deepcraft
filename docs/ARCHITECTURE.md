@@ -202,3 +202,35 @@ registry entries. Models are transformed cubes with keyframe animations —
 steal the shape of Blockbench's geometry/anim JSON rather than inventing one.
 Authored in-game, emitted as content-pack data, consumed by the renderer; no
 engine animation stack.
+
+## Modularity and performance as build constraints — DECIDED 2026-07-21 (user)
+
+**Build every system API-first, in remove-and-plugin shape.** Anticipate that
+any subsystem will be pulled out and replaced — because several will be, and
+some are placeholders today (the surface veneer awaiting ecology is the live
+example). A system whose boundary is a real API can be replaced; one whose
+behaviour has leaked into its callers cannot. This is the same instinct that
+produced roles-as-contracts and classes-as-contracts, stated as a general build
+constraint rather than rediscovered per slice.
+
+The corollary is the honest-placeholder rule: where a subsystem is standing in
+for one not yet built, it is accepted **as-is and marked temporary** — never
+incrementally patched toward looking finished. Bandaiding a placeholder buys
+appearance at the cost of the seam you will need when the real thing lands.
+
+**Performance is a standing doctrine, not a per-slice afterthought.** Memory and
+throughput work belongs in the design of every domain from the start:
+
+- **Recycling and pooling** — reuse LOD objects, chunk buffers, meshes, and
+  scratch allocations rather than churning them. (Prior art already surveyed:
+  `docs/design/voxy-dh-recon-2026-07-19.md` lists persistently-mapped pooled
+  vertex buffers as the transfer for far-tile churn.)
+- **Mipmaps** for terrain texturing — named here because the corpus contained no
+  record of it before this entry.
+- **Perf-first memory usage in all domains**, not only rendering.
+
+Recorded 2026-07-21 after the user observed that this conversation had happened
+before and was never written down — the "defer = write it now" rule
+(`.claude/skills/session-workflow`) failing in the direction it exists to
+prevent. Distance/far-field performance in particular is expected to improve
+from mipmaps + pooling rather than from reducing draw distance.

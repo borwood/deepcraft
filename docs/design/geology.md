@@ -216,3 +216,51 @@ doc). Where a metal has genuinely distinct raw forms (bog iron vs banded
 iron), those are DISTINCT materials that later refine to the same metal —
 identification knowledge is real knowledge. Prospecting is the skill;
 up close, realistic partials peeking through the host are self-announcing.
+
+## Expression of the ledger — DECIDED 2026-07-21 (user)
+
+**Runtime generation is local refinement over the coarse deep-time ledger.**
+The deep-time sim owns the history; the collapse/chunk tier does not invent a
+parallel account of the world, it *collapses the ledger into local expression*.
+Climate is not an input the surface tier consults independently — climate is
+already **in** the history, and that is the proper relationship for it to have.
+
+**Everything in the ledger must be expressed.** Where the record holds a fact —
+provenance, P/T path, consolidation state, ecological state — the world a
+player walks must show it. An unexpressed term is not a neutral omission; it is
+the runtime silently disagreeing with the history that produced it.
+
+**Inexpressed is permitted in exactly one case**: the thing that would express
+it is not built yet. Then it must be **explicitly and loudly temporary** —
+never a quiet gap, never a heuristic standing in for a term the ledger already
+holds. This generalizes the **pack-degradation doctrine** (API.md, DECIDED
+2026-07-19, same user): loudness is the invariant; no world content may
+silently depend on something other than the recorded cause. The cost philosophy
+ratified from the orogeny recon is the same rule stated for budgets —
+*"coarsen the cause, never delete it and fake the appearance."*
+
+**Consequence for placement rules.** Material placement keyed on present-day
+slope/elevation/temperature is a *mock*, not a model, wherever the ledger holds
+the answer. Slope and elevation are supplemental to provenance, never a
+substitute for it. Known holdouts at the time of this decision, all filed to
+ROADMAP Observed: the surface veneer rule (`collapse.rs::surface_sample`);
+`exhum`/`t_crust` shipped explicitly as "the metamorphic-grade axes the collapse
+tier reads" and consumed by nothing; the deep sim's `H` (regolith) plane
+computed and then discarded by `DeepField`, with soil depth re-invented from
+present-day precipitation.
+
+**Form follows provenance.** What a material *is* and what **form** it takes —
+deposited loose, partial in another's pore space, whole block, inclusion — are
+both readings of the same history. A basement rock exhumed after a long
+high-P/T residence should carry inclusions that formed at depth *because that is
+what happened to it*. The sub-voxel constraint does not exempt this: a facies
+thinner than the 0.9 m voxel (the charcoal precedent — mean bed 3.5 cm, **0 of
+158 310** survived the sieve) is expressed as an **inclusion**, not deleted and
+not faked as a layer. Changing form is how sub-voxel reality stays expressed.
+
+**Per-voxel provenance is a first-class output** (user, same conversation):
+it must be possible to query a voxel and read the ledger for its current
+configuration — started as X, heat and pressure did Y, moved because of Z.
+*(Integrator note, NOT yet ratified: taken literally this constrains every
+stage to carry its reasoning forward rather than collapsing to a final value.
+The framing is proposed, not decided — see ROADMAP.)*

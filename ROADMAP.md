@@ -863,6 +863,19 @@ see the question you are asking.
 
 ## Sequenced
 
+- **Consume the ledger terms the runtime throws away** (geology.md § Expression
+  of the ledger, DECIDED 2026-07-21). Four concrete, independently shippable
+  pieces: (a) **carry `H`** — the deep sim computes regolith thickness per cell
+  and `DeepField` keeps only `surf = r + h`, so `collapse.rs` re-invents soil
+  depth from present-day precip; (b) **consume `exhum`/`t_crust`**, which ship
+  explicitly as "the metamorphic-grade axes the collapse tier reads" and are
+  read by nothing; (c) **derive material FORM** (loose / pore-partial / whole /
+  inclusion) from provenance rather than leaving it implicit — sub-voxel facies
+  express as inclusions (the charcoal sieve: 0 of 158 310 beds survived 0.9 m);
+  (d) **per-voxel provenance query** — read a voxel's ledger: started as X,
+  heat/pressure did Y, moved because of Z. **(d) needs a design pass first**
+  (integrator's framing — that it constrains every stage to carry reasoning
+  forward instead of collapsing to a final value — is PROPOSED, not ratified).
 - **Roughness recalibration — three costed candidates, USER PICKS FROM PICTURES**
   (S13 § 6, 2026-07-21; nothing flipped on). Binding constraint measured: the
   `s7_walk` seam test prints max interior step **2 of 6 voxels**, so there is
@@ -1285,6 +1298,14 @@ before any code.
   horizon; the fog **curve** (its falloff shape) does not, and whether it should
   is a **user-owned visual call** the agent deliberately did not make. Cheap to
   change, needs the user's eye on a before/after.
+- *(**Material placement rules are climate mocks: DECIDED 2026-07-21** — see
+  geology.md § Expression of the ledger, ecology.md § DECIDED 2026-07-21, and
+  ARCHITECTURE.md § Modularity and performance. Runtime gen is refinement over
+  the ledger; everything recorded must be expressed; unexpressed only where the
+  expresser is unbuilt, loudly temporary. The veneer rule is a placeholder —
+  DO NOT BANDAID. Remaining OPEN engineering, now Sequenced: consume `exhum`/
+  `t_crust`, carry the discarded `H` regolith plane, derive form from
+  provenance, and the per-voxel provenance query. Original observation:)*
 - **Material placement rules are climate mocks, and below ~460 m there is no
   history to read** (user design observation + integrator analysis,
   2026-07-21 — NOT yet a design pass, nothing ratified). The surface veneer
