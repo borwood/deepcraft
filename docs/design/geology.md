@@ -264,3 +264,14 @@ configuration — started as X, heat and pressure did Y, moved because of Z.
 *(Integrator note, NOT yet ratified: taken literally this constrains every
 stage to carry its reasoning forward rather than collapsing to a final value.
 The framing is proposed, not decided — see ROADMAP.)*
+
+### Genesis addendum — DECIDED 2026-07-21 (user)
+
+**A stub is a candidate to be subsumed into a spine, system, or process — the
+expresser.** Stubs are permanently legitimate in exactly one place: **genesis**
+— the something-from-nothing that seeds the world (initial bedrock, plate
+seeds, the level-0 corners). Everywhere else a stub lives — in spines, systems,
+or processes — it is an instance of the loudly-temporary rule above: known,
+loud, and holding a seat for the expresser that subsumes it. The registry of
+these is `docs/design/stubs.md` (the stub inventory); an unlisted stub is a
+defect in the inventory, not a licence.
