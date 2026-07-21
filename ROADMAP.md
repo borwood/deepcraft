@@ -36,9 +36,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   Sequenced** (user: "more dramatic by default"; fetch-model heir recorded —
   S11 bodies × wind field). Tour's cross-cutting finding: mechanisms fine,
   legibility owed by the same three debts everywhere — carry-`H` (station 1's
-  "always going to have topsoil" is its verbatim trace), the veneer's ecology
-  replacement, and the **forms/partials pass** (station 2's directive: sand =
-  first loose material, partials-first emission — materials.md DECIDED).
+  "always going to have topsoil" is its verbatim trace; **SHIPPED 2026-07-21,
+  journal/0053 — though it made that station DEEPER, not barer: the station's
+  13.06 m is `ΔH`, not remaining cover, corrections #26**), the veneer's
+  ecology replacement, and the **forms/partials pass** (station 2's directive:
+  sand = first loose material, partials-first emission — materials.md DECIDED).
   Station 4's frost story reads IN THE COLUMN (dug variety — a win). New
   symptom filed: texture smearing at `--horizon 3` after heavy teleports —
   the leak isn't horizon-6-exclusive.
@@ -1055,13 +1057,23 @@ the water/caves thread (water.md § Session capture 2026-07-21 — the
 two-drainage-opinions finding and the bounded-drainage-refinement spike
 question are the live items).
 
-**Engineering still Sequenced:** tectonic expression (dip/fold +
-metamorphic) · paleo-context provider (subsumes stubs 4/5/6) · sub-voxel
-facies as inclusions (the charcoal sieve — now much more tractable on the
-landed contents-authority machinery, and it does NOT need the veneer
-decision, so it is the best next forms-adjacent slice) · `HostWorld` edited-
-chunk spill to the save layer (edited chunks are retained unboundedly by
-design; ~640 MB per 10 000 edited chunks, asserted by test).
+**Engineering still Sequenced:** **sub-voxel facies as inclusions
+(stubs.md § 12 — THE priority piece: journal/0053 measured the sieve eating
+~75 % of the sediment pile, not merely thin ash beds; needs no user decision
+and rides the landed contents-authority machinery)** · tectonic expression
+(dip/fold + metamorphic) · paleo-context provider (subsumes stubs 4/5/6) ·
+`HostWorld` edited-chunk spill to the save layer (edited chunks are retained
+unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test).
+
+**⚠ UNRATIFIED APPEARANCE CHANGE AWAITING THE USER'S EYE (2026-07-21):**
+carry-`H` (journal/0053) changed dig depth across the whole world and the
+user has not seen it. Arid basins and dune fields went from 1–3 voxels of
+dirt over stone to 8–12 voxels of loose fill; 0.2 % of land is now bare rock
+at grade (e.g. 101663, 5073 — basalt, no soil). Soil depth now correlates
+with erosion history instead of rainfall, which is the ratified *direction*,
+but the magnitude and the fact that the world got **deeper on average rather
+than barer** is the opposite of what the tour verdict anticipated. **Walk it
+before ratifying** — it is one merge commit and trivially revertible.
 
 *(Superseded by the session-close block above; kept for the record.)*
 **RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
@@ -1133,13 +1145,21 @@ see the question you are asking.
   shape flatness is the separate S13/roughness thread.
 - **Consume the ledger terms the runtime throws away** (geology.md § Expression
   of the ledger, DECIDED 2026-07-21). Four concrete, independently shippable
-  pieces: (a) **carry `H`** — the deep sim computes regolith thickness per cell
-  and `DeepField` keeps only `surf = r + h`, so `collapse.rs` re-invents soil
-  depth from present-day precip; (b) **consume `exhum`/`t_crust`**, which ship
+  pieces: (a) *(**carry `H`: SHIPPED** 2026-07-21, journal/0053 — see Shipped.
+  Both consumers read the recorded plane; stubs.md § 3 retired whole.)*;
+  (b) **consume `exhum`/`t_crust`**, which ship
   explicitly as "the metamorphic-grade axes the collapse tier reads" and are
   read by nothing; (c) **derive material FORM** (loose / pore-partial / whole /
   inclusion) from provenance rather than leaving it implicit — sub-voxel facies
-  express as inclusions (the charcoal sieve: 0 of 158 310 beds survived 0.9 m);
+  express as inclusions (the charcoal sieve: 0 of 158 310 beds survived 0.9 m).
+  **(c) is now the priority piece and much larger than the charcoal framing
+  suggested**: journal/0053 measured the sub-voxel sieve deleting **~75 % of
+  the whole sediment pile** (mean `H` 4.75 m, only ~1.15 m surviving as
+  whole-voxel strata; the tour's dune field records 379 units summing to
+  7.99 m and expresses *zero*). Filed as **stubs.md § 12**, heir named:
+  amalgamate adjacent sub-voxel units **inside the record**, not in the
+  veneer. It needs no user decision and rides the landed contents-authority
+  machinery — the best next forms-adjacent slice;
   (d) **per-voxel provenance query** — read a voxel's ledger: started as X,
   heat/pressure did Y, moved because of Z. **(d) needs a design pass first**
   (integrator's framing — that it constrains every stage to carry reasoning

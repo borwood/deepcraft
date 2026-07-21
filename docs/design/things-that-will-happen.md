@@ -63,3 +63,9 @@ list and not a roadmap — some of these are far off, and that is fine.
 - You dig through loose topsoil into subsoil that resists the shovel, and the
   difference is real — the same material, packed by everything that has sat
   on top of it since.
+- Two fields in the same climate, one a sink and one a scoured shoulder: you
+  shovel ten metres of fill in the first and hit bedrock immediately in the
+  second, because soil depth is a fact about erosion history, not rainfall.
+- The place where the wind took the most is not the place where the least
+  remains — the great deflation basins are deep because they had the most to
+  lose, and they are still losing it.
