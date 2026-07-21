@@ -1636,6 +1636,18 @@ before any code.
   growth-reallocs — lives in `meshing.rs`, worth at most a couple of percent of
   that 35 %, unowned and unstarted.
 
+- **Mixed voxels carry no member dither — watch for the chunk-line cutover
+  coming back** (journal/0055 judgment call 2, 2026-07-21; UNTESTED either
+  way). The 3c-2 boundary dither (`dithered_member`) exists to wander material
+  family contacts *off* the chunk grid; the agent deliberately did not apply it
+  inside mixed voxels, on sound reasoning — the dither re-picks within a class,
+  `classify` breaks ties on the lower material id, so dithering a 4–4
+  cross-class split could flip the block and break
+  `block == classify(contents)`. Single-event voxels keep the dither. The
+  unexamined consequence: mixed bands may now show **chunk-aligned member
+  selection**, i.e. the artifact 3c-2 was built to kill, confined to contacts.
+  Nobody has looked. **Add it to the appearance walk**: stand at a cut face and
+  check whether contact bands change member on chunk lines.
 - **91.4 % of land skins to ONE block, and the diagnosis is not settled**
   (journal/0055, 2026-07-21). With the record deciding the surface, the
   world-wide skin goes Grass 81.8 % / Dirt 18.2 % → **Mudstone 91.4 %** /
