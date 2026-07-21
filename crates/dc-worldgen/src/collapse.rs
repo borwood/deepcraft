@@ -235,6 +235,12 @@ pub struct SurfaceSample {
     /// The content class the record skins this column with; `None` under a
     /// fallback.
     pub class: Option<&'static str>,
+    /// **The member of that class this voxel column resolves to**
+    /// (journal/0058), under the same per-voxel-column boundary dither the
+    /// buried fill uses. `None` under a fallback, or when the class cannot
+    /// resolve a member at all — in which case [`Self::block`] still carries the
+    /// class's block twin and the surface voxel simply gets no contents.
+    pub member: Option<GeoMemberIdx>,
 }
 
 /// How a [`WorldGenerator`] holds its pregen output: `Borrowed` (the original
@@ -667,6 +673,11 @@ impl<'a> WorldGenerator<'a> {
     /// inherits it structurally: deriving it only in [`Self::column`] would turn
     /// the ground sandstone-and-mudstone while the horizon stayed painted, and
     /// the LOD boundary would become a visible lie.
+    ///
+    /// **journal/0058 moved the member resolution in here too**, for the same
+    /// structural reason and one more: resolved outside, it was resolved *per
+    /// chunk column*, and the world's skin quantized into 28.8 m patches. See
+    /// the dither comment in the body.
     fn surface_sample(
         &mut self,
         vx: i64,
@@ -684,15 +695,51 @@ impl<'a> WorldGenerator<'a> {
         } else {
             None
         };
-        if let Some(class) = class
-            && let Some(block) = self.class_block(class)
-        {
-            return SurfaceSample {
-                h,
-                elev_m: elev,
-                block,
-                class: Some(class),
+        if let Some(class) = class {
+            // **The member dither lives here** (journal/0058). Until 0058 the
+            // near path resolved ONE member per 32×32 chunk footprint, drawn at
+            // the chunk centre, so 28.8 m of ground shared a single member's
+            // albedo and the surface quantized into hard rectilinear patches
+            // (`journal/assets/0056-surface-quantized-per-chunk.png`) — the very
+            // chunk-line cutover the 3c-2 boundary dither exists to prevent
+            // (corrections #6, journal/0011). The buried fill never had that
+            // problem because [`dithered_member`] re-picks per voxel column.
+            // This is the same draw at the same salt/tag, evaluated at the
+            // voxel's own fractional position instead of the chunk's centre —
+            // so the contact wanders off the chunk grid, and the chunk centre
+            // remains one sample of the very same field.
+            //
+            // It is safe to put it in the SHARED kernel — and it has to be
+            // there, for the same reason the class consult is (ARCHITECTURE.md
+            // § One world-answer surface). The **block does not move**: every
+            // member of a vanilla class shares a `block_twin`, so dithering
+            // *within* a class cannot change `classify` of the resulting
+            // contents. (That is exactly the property journal/0055's judgment
+            // call 2 could NOT rely on for mixed voxels, where a swap can flip
+            // which of two classes wins a 4–4 tie. A single-member surface voxel
+            // has no cross-class tie to flip.)
+            let form = FormationContext {
+                temp_c: temp_sl,
+                precip,
+                depth_m: 0.0,
             };
+            let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+            let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
+            let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
+            let u = interp_select_draw(self.seed, SALT_GEO_SELECT, 4, cx, cz, fx, fz);
+            let member = self.geology.select(class, &form, u).map(|(i, _)| i);
+            let block = member
+                .map(|m| block_twin(self.geology.member(m).material))
+                .or_else(|| self.class_block(class));
+            if let Some(block) = block {
+                return SurfaceSample {
+                    h,
+                    elev_m: elev,
+                    block,
+                    class: Some(class),
+                    member,
+                };
+            }
         }
         // ---- fallbacks, each legitimate by absence of a record ----------
         // Subaqueous columns (`clastic_pass` returns early below sea level),
@@ -718,6 +765,7 @@ impl<'a> WorldGenerator<'a> {
             elev_m: elev,
             block,
             class: None,
+            member: None,
         }
     }
 
@@ -1200,9 +1248,12 @@ impl<'a> WorldGenerator<'a> {
         };
         let mut heights = vec![0i32; 1024];
         let mut surface = vec![Block::Stone; 1024];
-        // The class the shared kernel says the record skins each voxel column
+        // The member the shared kernel says the record skins each voxel column
         // with, plus the eighths of the surface voxel the ground occupies.
-        let mut surface_class: Vec<Option<(&'static str, u8)>> = vec![None; 1024];
+        // **Per voxel column** since journal/0058 — the kernel dithers it, so the
+        // far field inherits the identical answer and no chunk-shaped patch of
+        // one member can form.
+        let mut surface_member: Vec<Option<(GeoMemberIdx, u8)>> = vec![None; 1024];
         let mut wilds = true;
         for z in 0..32i64 {
             for x in 0..32i64 {
@@ -1225,10 +1276,10 @@ impl<'a> WorldGenerator<'a> {
                 // least one eighth: `h = floor(elev/0.9)` means there IS ground
                 // in this voxel, and rounding it away would silently drop a
                 // voxel of world height.
-                surface_class[i] = s.class.map(|c| {
+                surface_member[i] = s.member.map(|m| {
                     let frac = (s.elev_m - f64::from(s.h) * self.voxel_m) / self.voxel_m;
                     let n = (frac * 8.0).ceil().clamp(1.0, 8.0) as u8;
-                    (c, n)
+                    (m, n)
                 });
             }
         }
@@ -1287,34 +1338,18 @@ impl<'a> WorldGenerator<'a> {
         let strata = strata_ctx.strata;
 
         // **Skin the surface voxel from the record.** The kernel already named
-        // the class (and the far field is using that same answer); here we
-        // resolve it to a member under the column's own formation context and
-        // build the partial contents. `block == classify(contents)` holds by
-        // construction: every member of a class shares a block twin, so
-        // whichever member the draw picks classifies to the block
-        // `surface_sample` already returned.
-        let mut member_of: Vec<(&'static str, Option<GeoMemberIdx>)> = Vec::new();
-        let form = FormationContext {
-            temp_c: temp_sl,
-            precip,
-            depth_m: 0.0,
-        };
+        // both the class and — since journal/0058 — the dithered member, so the
+        // far field is using the same answer this loop builds contents from.
+        // All that is left here is the contents themselves. `block ==
+        // classify(contents)` holds by construction: every member of a class
+        // shares a block twin, so whichever member the dither picks classifies
+        // to the block `surface_sample` already returned. Columns whose class
+        // resolved no member keep the kernel's fallback block and carry no
+        // contents (the shrinking absent-contents exception).
         let mut surface_fill = vec![None; 1024];
         for i in 0..1024usize {
-            let Some((class, n)) = surface_class[i] else {
+            let Some((member, n)) = surface_member[i] else {
                 continue;
-            };
-            let member = match member_of.iter().find(|(c, _)| *c == class) {
-                Some((_, m)) => *m,
-                None => {
-                    let u = interp_select_draw(self.seed, SALT_GEO_SELECT, 4, cx, cz, 0.5, 0.5);
-                    let m = self.geology.select(class, &form, u).map(|(i, _)| i);
-                    member_of.push((class, m));
-                    m
-                }
-            };
-            let Some(member) = member else {
-                continue; // an unfillable class: keep the fallback block
             };
             surface[i] = classify(&mixed_contents(&self.geology, &[(member, n)]));
             surface_fill[i] = Some((member, n));
@@ -1511,7 +1546,7 @@ mod tests {
         CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
         FormationWindow, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologySet,
     };
-    use dc_core::{Block, MaterialId, classify};
+    use dc_core::{Block, MaterialId, block_twin, classify};
 
     use super::contents_for_event;
     use crate::WorldGenerator;
@@ -1731,6 +1766,72 @@ mod tests {
             }
             assert!(checked >= 300, "sampled {checked} columns");
         }
+    }
+
+    /// **The surface member must not be quantized to the chunk grid**
+    /// (journal/0058). Before 0058 the near path drew ONE member per class per
+    /// 32×32 chunk footprint, at the chunk's centre, so the world's skin came out
+    /// in 28.8 m rectilinear patches of one member's albedo — the artifact the
+    /// user photographed in `journal/assets/0056-surface-quantized-per-chunk.png`,
+    /// and exactly the chunk-line family cutover corrections #6 already retired
+    /// once for the buried fill.
+    ///
+    /// Two claims, because either alone is satisfiable by a broken kernel:
+    ///
+    /// 1. **The dither is live**: a healthy fraction of chunk footprints express
+    ///    more than one surface member. (Not *every* chunk — a footprint whose
+    ///    class has one member, or that sits well inside one member's share of
+    ///    the interpolated draw, legitimately reads one member.)
+    /// 2. **The block did not move with it**: every filled surface column's block
+    ///    is the `block_twin` of the member the dither chose. That is the
+    ///    within-class invariance the whole change rests on, and it is what keeps
+    ///    `block == classify(contents)` and the near/far agreement true.
+    #[test]
+    fn surface_member_is_dithered_not_chunk_quantized() {
+        let set = geology::vanilla();
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Medium,
+        });
+        let mut g = WorldGenerator::with_geology(&pregen, set.clone());
+        let (mut chunks, mut multi, mut filled) = (0usize, 0usize, 0usize);
+        for cx in -6..=6i64 {
+            for cz in -6..=6i64 {
+                let col = g.column_record(cx, cz);
+                let mut seen: Vec<GeoMemberIdx> = Vec::new();
+                for i in 0..1024usize {
+                    let Some((m, _n)) = col.surface_fill[i] else {
+                        continue;
+                    };
+                    filled += 1;
+                    if !seen.contains(&m) {
+                        seen.push(m);
+                    }
+                    let want = block_twin(set.member(m).material);
+                    assert_eq!(
+                        col.surface[i],
+                        want,
+                        "chunk ({cx},{cz}) column {i}: surface block {:?} but the dithered \
+                         member {} twins to {want:?} — dithering inside a class must not move \
+                         the block",
+                        col.surface[i],
+                        set.member(m).id
+                    );
+                }
+                if !seen.is_empty() {
+                    chunks += 1;
+                    if seen.len() > 1 {
+                        multi += 1;
+                    }
+                }
+            }
+        }
+        assert!(filled > 50_000, "only {filled} filled surface columns");
+        assert!(
+            multi * 4 >= chunks,
+            "only {multi} of {chunks} chunk footprints express more than one surface member — \
+             the surface member is still quantized to the chunk grid"
+        );
     }
 
     /// The far-field summary is the SAME surface function the near ground

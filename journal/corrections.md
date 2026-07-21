@@ -841,3 +841,87 @@ before a merge gate, clean the crates you changed; then verify the gate by
 **test name or count**, never by `test result: ok` alone. A gate is only
 evidence about the code it actually ran, and "did it run?" is a separate
 question from "did it pass?" — one this project had been conflating.
+
+## 28. "The shipped world does not express journal/0055's numbers" (2026-07-21)
+
+**The claim** (the integrator's, from a live dig): journal/0055 reports the
+loess margin expressing **89 voxels of section, 188 spans, 76 mixed** over
+`H` = 80.49 m. The user walked the running client — seed 1337, `Extent::Medium`,
+stock boot — dug at the coordinates that entry names, and found **~3 voxels of
+mudstone over ~4 of basalt over granite**, at two columns 180 m apart. Eighty-
+nine against three is not rounding. The suspicion raised, and it was the right
+one to raise, was that **the world a player walks is not the world the probes
+measure** — that two entries had been ratified on numbers from a place nobody
+plays.
+
+**Falsified, headlessly, against current main.** `Pregen::run` is *defined* as
+`run_with(params, &DeepOverrides::default())`, and the client's
+`Authority::new_worldgen` calls exactly that with `seed: 1337_i32 as u64` and
+`extent: Extent::Medium`. The measurement is better than the code read: the
+walker reported surface **y153**, **y148** and (at the periglacial summit)
+**y1095** at the voxels he stood on; the headless probe, with no client in the
+loop, independently answers **surface y 153**, **y 148** and **y 1095** at those
+same three voxels. Three columns kilometres apart, three exact agreements. The
+world a player walks is the world we measure.
+
+**Blocks against blocks, which is what finally settled it.** The two sides were
+arguing in different currencies — the probe's metres and contents against
+`world_scan_region`'s blocks — so the probe learned to speak blocks
+(`block_column`: generate the chunks, run-length encode the column downward). At
+the four addresses actually scanned, the generator says y153 `Mudstone×3 /
+Basalt×4 / Granite…`, y1095 `Mudstone×12 / Basalt×3 / Granite…`, y98
+`Mudstone×4 / Basalt×4 / Granite…`, y256 `CarbonaceousMudstone×1 / Basalt×3 /
+Granite…` — **block for block, run for run, y for y, matching every live scan.**
+
+**The "systematic under-expression" is also falsified, and its residue is a
+known, documented +1.** The sharpest form of the worry was that every site
+under-expresses against `round(H / 0.9)`, worst where the record is thickest.
+Measured at both readings of all four labels, the error is **never negative**:
+0 or **+1**, everywhere — 89→90 at the loess margin's true address, 3→3, 17→18,
+11→12, 10→11, 3→4, 0→0, 1→1. The +1 is journal/0055's top-of-column remainder:
+`h = floor(elev/0.9)` guarantees ground in the surface voxel, so it is filled
+from its floor up to the real ground with **at least one eighth** — and a partial
+voxel is still a solid block, so a block scan counts it whole. The generator
+never under-expresses; **the block tier over-reads by exactly the one partial
+voxel it cannot represent.** The apparent shortfall was `H` read at the metres
+address compared against blocks counted at the voxel address — every site
+disagreed because every site was two places.
+
+**The second suspect — the probe's `idx_to_voxel` mapping — is also clean.**
+Over 37 597 deep cells, `regolith_at_voxel` at each cell's own computed voxel
+address reads back that cell's own `H`: **0 disagreements, worst
+|ΔH| = 0.000000 m**. journal/0053's *scanned* coordinates (sites 6 and 7) point
+where they say they do.
+
+**The real mechanism: a coordinate written without its unit.**
+`soil_depth_probe::STATIONS` holds its stations in **world metres**
+(`82346.0, 24391.0`) and divides by 0.9 to reach a voxel. journal/0055 wrote the
+station down as `(82 346, 24 391)` — no unit — in an entry whose every other
+coordinate-shaped number is a voxel. Read as a voxel address it is world
+(74 111 m, 21 952 m): **8.6 km away, nineteen deep cells over**. The loess
+margin's voxel address is **(91 496, 27 101)**, and there the generator answers
+`H` = 80.492 m, 354 recorded units, 170 events, **188 voxel spans, 76 mixed** —
+journal/0055 to the digit. At the address that was actually dug, `H` = 2.281 m
+= 2.53 voxels, which *is* three voxels of mudstone on basement. **Both
+observations were correct measurements of two different places.**
+
+**Why it looked site-specific, and why that is the fingerprint rather than an
+alibi.** A second live sample — the periglacial summit — *agreed* with
+journal/0053, which read as evidence against a world divergence. It is stronger
+than that. Misreading a metres label as a voxel address displaces you by exactly
+`1/0.9 − 1 = 11.1 %` **of the coordinate's own magnitude**: 8.6 km at the loess
+margin (82 km out, 19 deep cells, a different geological story) but only 0.6 km
+at the summit (4.6 km out, barely one deep cell, terrain that looks the same and
+carries a similar pile — `H` = 15.36 m true against 9.70 m misread). A genuine
+world difference has no reason to scale with `|x|`. A units error can do nothing
+else. **"It only disagrees far from the origin" is a units diagnosis, not a
+site-specific one.**
+
+**The practice.** This codebase carries three coordinate systems — metres,
+voxels, chunk columns — and they differ by a factor of 0.9 and 28.8. A bare
+number pair is not an address. Journal entries and probe output must carry the
+unit on every coordinate (`soil_depth_probe` already prints
+`world (X m, Y m) | voxel (vx, vz) | chunk (cx, cz)`; entries quoting it must
+not drop the qualifier). `examples/surface_dither_probe.rs` prints both readings
+of the disputed label side by side so this one cannot be re-derived from memory.
+Full account: journal/0058.
