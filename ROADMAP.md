@@ -1156,6 +1156,40 @@ see the question you are asking.
 
 ## Sequenced
 
+- **The distance pyramid: consume the mixture LOD by band, drop the dither
+  with range** (SEQUENCED 2026-07-21 at the user's direction; design captured
+  in visuals.md § "LOD colour cascade"). Three bands, knobs on the dropoffs
+  (user doctrine: *"where there's a cell range, there's a knob"*):
+  **near** = texture / the 4×4 world-anchored dither over the real mixture;
+  **mid** = the *averaged* mixture, one blended colour per coarsened voxel;
+  **far** = the winning material only, one flat colour.
+  - **Most of the data machinery already exists and is unrendered.** S8's
+    `MixtureDownsampleRule` / `DominantClassDebrisAware`
+    (`dc-core/src/materials/lod.rs`) already reduces a 2×2×2 cell of child
+    `VoxelContents` (64 eighths) to one parent (8 eighths) — occupancy voted in
+    eighths, class by volume with the losing class *folded in rather than
+    lost*, slots by largest remainder, mirroring the block LOD's octant layout
+    voxel-for-voxel with a proved invariant. The far band's "winning colour" is
+    `dominant_material`/`classify` (journal/0052). **What is missing is a
+    renderer that consumes the pyramid by distance**, not the pyramid.
+  - **The perf case is measured, not assumed**: journal/0010 clocked a
+    fully-mixed chunk at **16× the triangles** of a uniform one (196 608 vs
+    12 288), purely because each mixed face becomes 16 dither quads. Journal/0055
+    made mixed faces world-wide, so that ceiling is now being paid at range.
+    Dropping the dither by band saves exactly on the faces that just got
+    expensive.
+  - **Enabling piece, cheap, do it first**: cache the blended colour **per
+    interned `MixtureId`** rather than recomputing per voxel — the region
+    `MixtureTable` is tiny (journal/0055 measured 325 mixtures / 3 160 bytes),
+    so it is a rounding error and is computed once. (The user's instinct was
+    per-material precompute; per-material albedo is already registry pack data
+    from 3c-2, so per-mixture is the version that actually buys something.)
+  - **Sequencing**: lands after the in-flight `meshing.rs` side-face fix
+    (same file). Pairs naturally with **FF2b** (coarse volumetric summaries)
+    and with the Observed *"far field is boxier than the near field"* item —
+    a banded pyramid is the obvious place to carry sub-voxel height too.
+    Band distances are an **appearance call: the user picks from pictures**,
+    so ship the knobs before the values.
 - **Edited chunks still accumulate for the session — the save-layer heir**
   (surfaced 2026-07-21 by journal/0051, which bounded everything *else* in
   `HostWorld.chunks`). Eviction deliberately pins edited chunks, so a session
