@@ -883,10 +883,12 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill
   contract", materials.md § "The forms design pass"). The user ratified
   **contents-as-authority: `classify(contents) -> Block`, invariant
-  `block == classify(contents)`**, after a consumer audit showed four future
+  `block == classify(contents)`**, after a consumer audit (135 block-consuming
+  sites across 31 files, of which **80 across 27 files are solidity-shaped
+  checks** — `!= Block::Air` / `== Block::Air` / `is_solid`) showed four future
   systems (water fill, loose gravity, compaction, sim light) all want one
-  per-voxel occupancy primitive rather than the `!= Air` bool that 135 call
-  sites ask for today. Also ratified in the same conversation: fractions come
+  per-voxel occupancy primitive rather than each re-deriving occupancy from
+  that bool. Also ratified in the same conversation: fractions come
   **only from the ledger** (recorded quantity/variance, never cosmetic noise —
   this scopes the defect-jitter sketch); **sand is a FORM of the existing
   clastic-coarse material**, not a new identity (accepted cost: loose and

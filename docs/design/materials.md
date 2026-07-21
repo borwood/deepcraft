@@ -244,9 +244,39 @@ conversation:
    a roots-texture additive instead. Non-grasslike ground cover:
    thoughts suspended entirely for later passes.
 
-5. **OPEN — the block-tier contract for partial voxels.** The user's
-   naive assumption: the block "reports its honest fractions" (a derived,
-   honest classification of contents). Wants the consumer audit — who
-   asks what the block says, who might in the future — and a regression
-   check once the contract is decided. Discussion live in-session; see
-   the audit below when it lands in this doc or the journal.
+5. **The block-tier contract for partial voxels — RESOLVED, see
+   ARCHITECTURE.md § "The fill contract".** The user's instinct (the block
+   "reports its honest fractions") became the ratified contract: contents
+   are authoritative, `classify(contents) -> Block` is a pure derivation,
+   and `block == classify(contents)` is the regression invariant the user
+   asked for.
+
+   **The consumer audit that grounded it** (2026-07-21; 135 block-consuming
+   sites across 31 files, 80 of them solidity-shaped — `!= Block::Air`,
+   `== Block::Air`, `is_solid` — across 27 files). Who asks, sorted by what
+   they actually want:
+
+   - **"Can I stand on / pass through it?"** — `dc-core/collision.rs`'s
+     trait (consumed by dc-physics), `authority.rs::is_solid_voxel`
+     (player collision, grounding), walker-safety and spawn placement,
+     raycasts (edit targeting, character senses). All are `!= Air`. They
+     want an **occupancy threshold**, and visuals.md already reserved the
+     answer ("solid ≥ 4/8").
+   - **"Where is the surface?"** — the host surface scan, the authority's
+     edit-allowance ceiling, `dc-core/lod.rs`'s column summarizer.
+     Partials change their *answer* (a 3/8 sand top IS the surface) but
+     not their question. `ColumnSpan` already models a column as a
+     potential stack, so the far field anticipated this.
+   - **"What do I draw?"** — the mesher and farmesh. This is where
+     journal/0010's trust gate **inverts**: the block currently decides
+     whether contents are believed, which must reverse or become a
+     two-opinions bug factory.
+   - **"How do I store it?"** — palette compression, `is_empty`, format
+     v1. Semantics-indifferent; wants the atom small and positional.
+   - **The future asker that already exists** — the S11 water spike's
+     `water/vox.rs::is_solid` asks the block *today*. Promoted water does
+     not want a bool: it wants **free capacity in eighths** (water fills
+     empty eighths and pores). So does the loose-gravity march ("can the
+     voxel below receive eighths?"), compaction (overburden on what?),
+     and sim light (partial occlusion). Four future systems, one wanted
+     primitive — which is the argument that carried the decision.
