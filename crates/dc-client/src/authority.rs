@@ -229,8 +229,40 @@ impl Authority {
         world
     }
 
+    /// Cap on *generated-and-untouched* chunks resident in the hosted world,
+    /// derived from the client's own streaming volume at `scale`
+    /// (journal/0051). dc-api is headless and cannot know the streaming radius
+    /// or the voxel scale, so the client supplies the working-set size as data.
+    ///
+    /// The shape: the sphere of chunks the streamer will hold at the unload
+    /// radius, doubled — the streamed set is the near-field floor, and the
+    /// slack absorbs the query traffic that reaches *outside* it (grounding
+    /// scans, surface probes, raycasts, border-face culls against unstreamed
+    /// neighbours). Clamped: never below 1024 (a coarse scale would otherwise
+    /// derive a budget smaller than one frame's work), never above 16 384
+    /// (~512 MB — at the finest scales the derived sphere runs to tens of
+    /// thousands of chunks and the ceiling has to win, at the cost of some
+    /// regeneration). Correctness is indifferent to the number: an evicted
+    /// chunk re-derives byte-identically, so this only trades RAM for
+    /// generator work.
+    fn chunk_budget_for(scale: VoxelScale) -> usize {
+        // Measurement escape hatch, in the `DC_MEM_PROBE` family: an explicit
+        // budget, so the RSS repro can be run A/B on ONE binary — a huge value
+        // reproduces the pre-eviction behaviour (journal/0051) exactly.
+        if let Ok(v) = std::env::var("DC_CHUNK_BUDGET")
+            && let Ok(n) = v.parse::<usize>()
+        {
+            return n.max(1);
+        }
+        let chunk_m = scale.voxels_to_meters(f64::from(dc_core::CHUNK_SIZE));
+        let r = crate::streaming::UNLOAD_RADIUS_M / chunk_m + 1.0;
+        let sphere = (4.0 / 3.0) * std::f64::consts::PI * r * r * r;
+        ((sphere * 2.0) as usize).clamp(1024, 16_384)
+    }
+
     /// Assemble the consumer identities / tokens shared by every authority.
-    fn finish(scale: VoxelScale, world: HostWorld, surface: SurfaceAuthority) -> Self {
+    fn finish(scale: VoxelScale, mut world: HostWorld, surface: SurfaceAuthority) -> Self {
+        world.set_chunk_budget(Self::chunk_budget_for(scale));
         Self {
             world,
             accumulator: 0.0,

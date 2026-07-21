@@ -151,6 +151,48 @@ enum Undo {
     RemoveAnimClip(String),
 }
 
+/// Default cap on *resident generated-and-untouched* chunks (journal/0051).
+/// Edited chunks are never counted here and never evicted. 2048 chunks is
+/// ~64 MB at the current dense 32^3 `Chunk`; the client overrides it from its
+/// streaming radius at the active scale ([`HostWorld::set_chunk_budget`]).
+pub const DEFAULT_CHUNK_BUDGET: usize = 2048;
+
+/// Fraction of the budget freed in one eviction sweep, as a divisor: the sweep
+/// drops down to `budget - budget/CHUNK_EVICT_HYSTERESIS`, so the O(n log n)
+/// sweep runs once per that many newly generated chunks instead of once per
+/// chunk.
+const CHUNK_EVICT_HYSTERESIS: usize = 8;
+
+/// A resident chunk plus the bookkeeping eviction needs.
+///
+/// The doctrine (S11, "store only what the derivation cannot predict"): a
+/// generated-and-untouched chunk is a pure function of (seed, generator, pos)
+/// and can be dropped and re-derived byte-identically at any time. An *edited*
+/// chunk holds information no derivation can reconstruct, so it is pinned
+/// until the save layer exists to spill it.
+struct ChunkSlot {
+    chunk: Chunk,
+    /// Set the first time any voxel in this chunk actually changes value.
+    /// Once set it never clears — a rolled-back txn leaves the flag on, which
+    /// errs toward retention (safe) rather than toward dropping an edit.
+    edited: bool,
+    /// Monotonic access stamp; the LRU key.
+    touched: u64,
+}
+
+/// Chunk-store occupancy, for the client's memory probe.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ChunkResidency {
+    /// Chunks currently held in memory (evictable + edited).
+    pub resident: usize,
+    /// Of those, the ones carrying at least one edit — never evicted.
+    pub edited: usize,
+    /// Lifetime count of generated-untouched chunks dropped.
+    pub evicted: u64,
+    /// The current cap on evictable chunks.
+    pub budget: usize,
+}
+
 /// Max range of a character sense raycast, meters.
 pub const MAX_SENSE_RAYCAST_M: f64 = 50.0;
 /// Max half-extent of a `sense_surroundings` scan, voxels.
@@ -175,7 +217,16 @@ pub struct HostWorld {
     generator: Option<ChunkGenerator>,
     /// Last completed tick. State always reflects exactly this tick.
     tick: Tick,
-    chunks: HashMap<ChunkPos, Chunk>,
+    /// Resident chunks. Generated-untouched entries are an evictable cache
+    /// (bounded LRU, [`HostWorld::set_chunk_budget`]); edited entries are
+    /// authoritative state and are pinned. See journal/0051.
+    chunks: HashMap<ChunkPos, ChunkSlot>,
+    /// Cap on the evictable (generated-untouched) half of `chunks`.
+    chunk_budget: usize,
+    /// Monotonic access counter feeding `ChunkSlot::touched`.
+    touch_clock: u64,
+    /// Lifetime evictions, for the memory probe.
+    evicted_chunks: u64,
     entities: Vec<EntityInfo>,
     /// Persistent named characters, stepped every tick (BTreeMap: the step
     /// order is part of the deterministic replay identity).
@@ -206,6 +257,9 @@ impl HostWorld {
             generator: None,
             tick: 0,
             chunks: HashMap::new(),
+            chunk_budget: DEFAULT_CHUNK_BUDGET,
+            touch_clock: 0,
+            evicted_chunks: 0,
             entities: Vec::new(),
             characters: std::collections::BTreeMap::new(),
             character_config: CharacterConfig::default(),
@@ -364,12 +418,92 @@ impl HostWorld {
         chunk
     }
 
+    // ----------------------------------------------------------- eviction --
+
+    /// Set the cap on resident *generated-and-untouched* chunks. Edited chunks
+    /// are excluded from the cap and are never dropped.
+    ///
+    /// This is the headless seam for the client's viewer-derived working set:
+    /// dc-api cannot know the streaming radius or the active voxel scale, so
+    /// the consumer supplies the number as data (CLAUDE.md § Conventions — no
+    /// rendering/OS dependency here). Correctness does not depend on the value:
+    /// a dropped chunk re-derives byte-identically, so the budget only trades
+    /// memory against regeneration work. Clamped to at least 1 so `chunk_at`
+    /// can always keep the chunk it was asked for.
+    pub fn set_chunk_budget(&mut self, budget: usize) {
+        self.chunk_budget = budget.max(1);
+        self.enforce_chunk_budget(None);
+    }
+
+    /// Chunk-store occupancy — what the memory probe reports.
+    pub fn chunk_residency(&self) -> ChunkResidency {
+        let edited = self.chunks.values().filter(|s| s.edited).count();
+        ChunkResidency {
+            resident: self.chunks.len(),
+            edited,
+            evicted: self.evicted_chunks,
+            budget: self.chunk_budget,
+        }
+    }
+
+    /// Drop least-recently-touched generated-untouched chunks until the
+    /// evictable population is back under budget. `protect` is never dropped
+    /// (the chunk the caller is about to hand out a reference to).
+    ///
+    /// Sweeps in batches (see [`CHUNK_EVICT_HYSTERESIS`]) so the sort is
+    /// amortized across many generated chunks rather than run per insert.
+    fn enforce_chunk_budget(&mut self, protect: Option<ChunkPos>) {
+        let evictable = self.chunks.values().filter(|s| !s.edited).count();
+        if evictable <= self.chunk_budget {
+            return;
+        }
+        let target = self
+            .chunk_budget
+            .saturating_sub(self.chunk_budget / CHUNK_EVICT_HYSTERESIS)
+            .max(1);
+        let mut candidates: Vec<(u64, ChunkPos)> = self
+            .chunks
+            .iter()
+            .filter(|(pos, slot)| !slot.edited && Some(**pos) != protect)
+            .map(|(pos, slot)| (slot.touched, *pos))
+            .collect();
+        // Oldest touch first. Stamps are unique, so this order is total even
+        // though the HashMap hands them over in an arbitrary order.
+        candidates.sort_unstable_by_key(|(touched, _)| *touched);
+        let drop_n = evictable.saturating_sub(target).min(candidates.len());
+        for (_, pos) in candidates.into_iter().take(drop_n) {
+            self.chunks.remove(&pos);
+            self.evicted_chunks += 1;
+        }
+    }
+
     fn chunk_at(&mut self, pos: ChunkPos) -> &mut Chunk {
+        self.touch_clock += 1;
+        let stamp = self.touch_clock;
         if !self.chunks.contains_key(&pos) {
             let c = self.generate_chunk(pos);
-            self.chunks.insert(pos, c);
+            self.chunks.insert(
+                pos,
+                ChunkSlot {
+                    chunk: c,
+                    edited: false,
+                    touched: stamp,
+                },
+            );
+            self.enforce_chunk_budget(Some(pos));
         }
-        self.chunks.get_mut(&pos).expect("just inserted")
+        let slot = self.chunks.get_mut(&pos).expect("just inserted or present");
+        slot.touched = stamp;
+        &mut slot.chunk
+    }
+
+    /// Mark a chunk as carrying an edit — pinning it against eviction. The one
+    /// place this is called from is [`HostWorld::set_block_raw`], the single
+    /// voxel-writing path in this world.
+    fn mark_edited(&mut self, pos: ChunkPos) {
+        if let Some(slot) = self.chunks.get_mut(&pos) {
+            slot.edited = true;
+        }
     }
 
     /// Authoritative contents of a chunk (lazily generated; includes every
@@ -392,7 +526,12 @@ impl HostWorld {
         let (lx, ly, lz) = local_voxel(p.x, p.y, p.z);
         let chunk = self.chunk_at(cpos);
         let prev = chunk.get(lx, ly, lz);
-        chunk.set(lx, ly, lz, block);
+        if prev != block {
+            chunk.set(lx, ly, lz, block);
+            // This chunk now holds information the generator cannot reproduce.
+            // Pin it: eviction may only drop what re-derives (journal/0051).
+            self.mark_edited(cpos);
+        }
         prev
     }
 
