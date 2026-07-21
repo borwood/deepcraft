@@ -341,3 +341,15 @@ Reasoning about grass is suspended until ecology gets its proper design pass.
 the standing agenda whose § "The questions only the user can answer" has never
 been worked through, plus § 4 (evolution, the user's design) and § 5 (open
 forks) here.
+
+## Note 2026-07-21 (user) — charcoal/coal rest on placeholder vegetation
+
+The S10 biotic layer produces coal, peat, and charcoal beds from a **community
+vector** — an abstraction with no actual vegetation in it. There is no concept
+of the plants that burned, accumulated, or starved; the fire disturbance burns
+a number, not a forest. So the organic facies are real *outputs* resting on a
+placeholder *input*: legitimate under the loudly-temporary rule, but **they
+must be revisited and integrated when the ecology pass lands** — when
+vegetation has members with proliferation patterns, the fire/peat/coal
+mechanisms should consume those members, not the community scalar. Filed so
+the ecology pass inherits this obligation explicitly.
