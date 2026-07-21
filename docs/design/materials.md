@@ -353,3 +353,88 @@ shrinks on its own as each stub acquires a real record.
 - Collision / water / sim light reading `is_occupancy_solid` and
   `free_eighths`.
 - Form-dependent texture variants (visuals road, per ratification 2).
+
+## DECIDED 2026-07-21 (user) — distribution-first expression: integrate the column, then slice it
+
+The forms conversation reached the sub-voxel sieve (stubs.md § 12) from the
+user's own framing: *"going fractional first and preserving simulation output
+`H`, then generating chunks as distributions of the cell distribution, means
+subvoxel boundaries become mixed blocks and we get more partials remainders on
+the surface... why is nothing mixed?"*
+
+**The diagnosis it produced.** Nothing is mixed because three gates prevent it,
+and the first is the load-bearing one:
+
+1. `deposit_deep_history` rounds **each unit independently** and drops it if it
+   does not reach a whole voxel (`if tv < 1.0 { continue }`), with no remainder
+   carried forward.
+2. A voxel therefore belongs to exactly one event — contacts land on voxel
+   boundaries by construction, so straddling is impossible.
+3. `contents_for_event` fills all eight eighths from one member. The only
+   heterogeneity in the world is *within* an event: placer ore substitution and
+   igneous accessory pore fill.
+
+**The reframe: this is a quantization-ORDER defect, not a resolution limit.**
+The code computes `Σ round(tᵢ / 0.9)` where honesty requires
+`round(Σ tᵢ / 0.9)`. The errors compound instead of cancelling. The tour's dune
+field is the proof: 379 units summing to 7.99 m, averaging 0.021 m each, every
+one rounding to zero — eight metres of recorded sediment expressing as nothing,
+not because 0.9 m voxels cannot hold it but because the question was asked 379
+times instead of once. This supersedes the heir filed in stubs.md § 12
+("amalgamate adjacent sub-voxel units inside the record"), which patched the
+symptom by pre-merging.
+
+**DECIDED — the rule.** Metres survive to the voxel boundary; quantization
+happens **once**, at contents construction. Each voxel's eighths are filled from
+the recorded units overlapping its 0.9 m span.
+
+**DECIDED (user) — presentation is non-blocking.** A mixed voxel loses the
+internal order of what it mixes. The user: *"we don't have to rederive order in
+a non-ordered voxel — yes it's lost order information in presentation but it's
+far more honest than it was before and presentation can be reconsidered
+later."* So the banded/layered presentation that materials.md § stratification
+anticipates is **not a prerequisite**; contact voxels may render as the shipped
+journal/0010 speckle for now. Revisit when the forms presentation work happens
+(it shares a mechanism with the vegetation layer-vs-speckle mismatch in
+ideas.md).
+
+**DECIDED (user) — dithered eviction, not deterministic truncation.** When a
+voxel span holds more material than eight eighths can carry, evicting the
+thinnest deterministically deletes that material *everywhere*. The user:
+*"to remain honest we could dither the material eviction across voxels... one
+will evict a different partial than its neighbor so there's a fair
+distribution."*
+
+*Integrator generalization (PROPOSED — beyond the user's words, flagged as
+such):* this is **stochastic rounding**, and it should govern the whole eighth
+allocation rather than only the tie case. Each material takes its guaranteed
+whole eighths; leftover eighths go to the materials whose fractional remainders
+win against an **addressed** draw. A material with 0.3 eighths of true share
+then appears as one eighth in ~30 % of voxels. Deterministic flooring is a
+*biased* estimator that always loses mass; addressed stochastic rounding is
+**unbiased** — expected composition over a neighbourhood equals the recorded
+composition. Bias is traded for variance, which is the right trade for a
+record: the ash band should exist *somewhere* rather than uniformly nowhere.
+
+**Hard constraint.** The draw is addressed (seed + world position). Classic
+error diffusion (Floyd–Steinberg) is sequential and order-dependent and is
+therefore forbidden — the same rule that governs every other draw in the
+generator. Precedent in-tree: `dithered_member`'s boundary dither.
+
+**Expected consequences, to be measured not assumed:**
+- The § 12 sieve loss should fall from ~75 % of the pile toward ~0; the drop
+  threshold moves from 0.9 m to ~1/16 voxel (≈5.6 cm), a ~16× resolution gain.
+- The **mixture table grows** — dithering deliberately makes neighbours differ.
+  S8's cap bounds it (2 materials → 45 states; 6 → 3003), so it is expected to
+  be affordable, but this is the slice's main risk and its main measurement.
+- The clastic **veneer thickness budget should self-retire** for recorded
+  columns: carry-`H` defined it as `round(H/0.9) − expressed`, and honest
+  expression drives that difference toward zero without removing any code.
+  Verify rather than surgically delete.
+- Journal/0010's dither currently renders only placer fans, because nothing
+  else is ever mixed. This lights up shipped, tested machinery world-wide.
+
+**Sequencing (integrator).** Slice 1 is **buried strata only** — the surface
+voxel keeps the veneer for now, so the appearance delta is confined to cut
+faces and is attributable. The **top-of-column fractional remainder is slice
+2**, because that voxel is where the surface-veneer handoff lives.
