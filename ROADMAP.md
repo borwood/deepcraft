@@ -751,12 +751,20 @@ S11 water locality + body graph (0028) · erodibility coupling (0029) ·
 erodibility production flip + walk (0030). Eight journal entries; seven
 corrections filed (#11–#19, two of them the assistant's own).
 
+**Walk wiring landed 2026-07-21:** the deepcraft game MCP was never persisted
+anywhere (every prior walk connected ad hoc); it is now a checked-in
+`.mcp.json` at project scope (`deepcraft` → `http://127.0.0.1:7777/mcp`). A
+fresh session must approve the project MCP server on start, launch the game,
+and the `pose_set`/`scan`/`client_screenshot` tools go live.
+
 **Next session, in the user's stated order:**
-1. *(`--fullbright --edges` + fog: delegated to a session-4 agent — see In
-   flight above. Still the unblocker for landform-scale silhouette
-   assessment, which everything below depends on for its walk.)*
+1. **Far-field horizon knob** — dispatch FIRST (Sequenced below). The amplitude
+   walk is a macro-shape question the current 1.2 km horizon cannot show.
 2. **The amplitude call** — the last live cause of "dismal mountains" after
-   erodibility closed cause 1. Cause 2 (no dip) also open.
+   erodibility closed cause 1. Cause 2 (no dip) also open. Now bootable via
+   the journal/0039 flags (`--tectonics --amplitude 160 --extent large`); walk
+   the LIT pass for the shape reads (fullbright is blind to shape —
+   corrections #18), fullbright+edges only at near cut faces.
 3. **Sim light SPIKE** — design pass is done (`docs/design/light.md`);
    § 10 of that doc states exactly what the spike must measure.
 
@@ -767,6 +775,21 @@ see the question you are asking.
 
 ## Sequenced
 
+- **Far-field horizon knob — the amplitude-walk prerequisite** (user field
+  report 2026-07-21, upgrading the FF2a "knobs to adjust the far-field ranges"
+  follow-up to a load-bearing slice). The far field cuts off at
+  `farmesh.rs::FAR_MAX_M = 1200.0` — a 1.2 km horizon. A mountain range is
+  5–20 km across, so at 1.2 km the camera is always *inside* the landform and
+  its macro shape never reads. This blocks the amplitude call and the tectonic
+  walk directly: both are macro-shape questions the current horizon cannot
+  show. FF2a already measured the fix as cheap (journal/0023: "~10 km ≈ 376
+  tiles / ~43 MiB, per-frame meshing stays budget-bounded"). Work: make
+  `FAR_MAX_M` + the `RING_EDGES_M` distribution runtime config (a Bevy
+  `Resource`, not a `const`) and expose a launch flag (e.g. `--horizon <km>`),
+  threaded like the journal/0039 `GenOptions`. Touches `farmesh.rs` (the ring
+  logic reads the const array — `far_lod_level`, `far_tile_in_ring`), `app.rs`,
+  `main.rs`. **Dispatch FIRST next session, before the amplitude walk** — the
+  walk build needs the extended horizon to answer its own question.
 - **Tectonics SPIKE** (per tectonics.md § SPIKE, architecture ratified
   2026-07-20): implement `DeepConfig::tectonic_history` behind the flag and
   produce the eight measurement groups (clamp stability under ramped
