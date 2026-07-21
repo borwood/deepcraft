@@ -195,3 +195,58 @@ mechanism across all systems** (partials in structures, loose volumes,
 bedforms — variety that breaks the cube matrix). The forms pass is
 design-pass-sized and Sequenced; this entry records the direction so no
 slice quantizes away something partials should carry.
+
+## The forms design pass — ratifications of 2026-07-21 (live session)
+
+The pass opened as a main-session conversation (ROADMAP § Sequenced,
+journal/0049 station 2). Decisions landed so far, each from the user in
+conversation:
+
+1. **Fractions come only from the ledger (RATIFIED).** Partial occupancy
+   is the expression of *recorded* quantity (the record's metres → span
+   eighths + remainder) and *recorded* variance — never cosmetic noise.
+   This scopes the defect-jitter idea (ideas.md § rock is not monolithic)
+   as **property-dependent expression of real record variance**, user:
+   "i think i agree with you here re: property-dependent expression of
+   real record variance." Partials-first emission is consuming the
+   ledger, not decorating it.
+
+2. **Sand is a FORM of an existing clastic material (DECIDED).** No new
+   "sand" identity: sand is the loose form of the clastic-coarse member —
+   "one material has one property [sheet]"; within-identity grain-size
+   gradation is not modelled (revisit later if a wall appears; user: "go
+   with forms. maybe it gets revisited at a later time but go with
+   form"). **Known consequence, accepted:** loose clastic is currently
+   textured identically to structural — indistinguishable in a cut face —
+   which implies a later *visual* decision (form-dependent texture
+   variants; files to the visuals road, not this pass).
+
+3. **The soil model (user).** Anything with roots carries a **root
+   material in STRUCTURE form** — porous, holding the soil in its pores.
+   This is an anti-erosion model for free: loose soil with no matrix
+   falls with gravity; the root lattice is what holds a slope. Soil
+   placements come **from simulation, in both forms**: layers of
+   structural dirt (most structure slots filled) with loose layers
+   typically above, and packing downward into porous rock below (the
+   packable-soil thread, ideas.md § soil is loose but packable).
+
+4. **Grass is suspended — do not express it (DECIDED).** Grass/turf is an
+   ecology question: a *state riding on the substrate materials* of a
+   block / its loose eighths, deferred to the ecology pass. The forms
+   slices express the materials the sim says are present and do NOT paint
+   grass. **Appearance change pre-ratified by the user: "it'll be a
+   mostly brown world for a bit."** (This names the heir direction for
+   the surface-veneer stub — stubs.md § 2 — but the veneer's retirement
+   is its own slice, not a side effect.) Turf presentation sketch,
+   captured for later, NOT to be built now: **ligatures + anisotropic
+   variants** — a seeded dirt material occupying loose eighths or packed
+   pores whose green displays only on the top surface, side faces getting
+   a roots-texture additive instead. Non-grasslike ground cover:
+   thoughts suspended entirely for later passes.
+
+5. **OPEN — the block-tier contract for partial voxels.** The user's
+   naive assumption: the block "reports its honest fractions" (a derived,
+   honest classification of contents). Wants the consumer audit — who
+   asks what the block says, who might in the future — and a regression
+   check once the contract is decided. Discussion live in-session; see
+   the audit below when it lands in this doc or the journal.

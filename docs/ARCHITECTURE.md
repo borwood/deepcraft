@@ -234,3 +234,57 @@ before and was never written down — the "defer = write it now" rule
 (`.claude/skills/session-workflow`) failing in the direction it exists to
 prevent. Distance/far-field performance in particular is expected to improve
 from mipmaps + pooling rather than from reducing draw distance.
+
+## The fill contract: contents are authoritative, the block is derived — DECIDED 2026-07-21 (user)
+
+**What fills a voxel is its contents; the block is a pure derived
+classification of them.** `classify(contents) -> Block` is a total function in
+dc-core, and the invariant `block == classify(contents)` holds for every voxel,
+generated or edited. Two opinions about what a voxel *is* become structurally
+impossible, because one is a function of the other.
+
+**Why this, and why now.** Generation currently produces blocks and materials on
+two parallel paths, and journal/0010 installed a trust gate in which the *block*
+decides whether contents are believed — correct while worldgen only ever emitted
+8/8 full voxels, and a bug factory the moment it emits fractions. Four
+independent threads then arrived demanding the same change: partials-first
+emission (sand's fractional top, journal/0049), vegetation as a fraction on a
+substrate, soil's loose/packed form axis, and the caves/water thread's voids and
+occupants (docs/design/water.md). They are one contract change, not four
+features.
+
+**The generalization**: a column's fill is an **ordered list of spans**, each
+carrying (contents, form, fractional occupancy). Today's single-height,
+solid-below-surface column is the degenerate case of that list. New consumers
+should be written against "a column is a set of spans", not against "one height,
+solid below" — the latter contract already has accreting consumers (the edit
+allowance ceiling, far-field column summaries, surface scans) and each one
+raises the price of the fork.
+
+**Consequences accepted with the decision:**
+
+- **`Block` does not grow form-aware variants.** It stays the coarse
+  render/storage/far-field summary in its existing vocabulary; loose clastic
+  classifies to its class block. Form lives in contents. The immediate cost —
+  loose and structural clastic being visually indistinguishable — is accepted,
+  with form-dependent texture variants filed as a later visuals decision.
+- **Solidity moves off the block** onto an occupancy threshold (visuals.md
+  already reserved "solid ≥ 4/8"). `Block::is_solid` degrades to a shim exact
+  only for full voxels.
+- **Contents are promoted from render-only to authoritative.** journal/0010's
+  boundary ("the interning is render-only and never reaches sim state") moves
+  deliberately: collision, water, and loose-material gravity read occupancy.
+  The MixtureTable landmine rules are UNCHANGED and absolute — canonical,
+  order-independent `VoxelContents` cross the seam; order-dependent `MixtureId`s
+  never do (journal/0007–0008, 0010's "resolve at the boundary").
+- **One occupancy answer, not four.** Water fill (free eighths + pores), the
+  loose gravity march, compaction, and sim light all want per-voxel
+  matter/capacity fraction. They read one primitive rather than each
+  re-deriving occupancy from a bool — the private-re-derivation failure mode
+  this decision exists to prevent.
+
+**Fractions come only from the ledger** (user, same conversation): partial
+occupancy expresses recorded quantity and recorded variance — the record's
+metres and its real heterogeneity — never cosmetic noise. See
+`docs/design/materials.md` § "The forms design pass" for the full ratification
+set (sand-as-form, the root-lattice soil model, grass suspended).

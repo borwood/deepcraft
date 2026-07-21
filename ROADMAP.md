@@ -879,6 +879,31 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
+  DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill
+  contract", materials.md § "The forms design pass"). The user ratified
+  **contents-as-authority: `classify(contents) -> Block`, invariant
+  `block == classify(contents)`**, after a consumer audit showed four future
+  systems (water fill, loose gravity, compaction, sim light) all want one
+  per-voxel occupancy primitive rather than the `!= Air` bool that 135 call
+  sites ask for today. Also ratified in the same conversation: fractions come
+  **only from the ledger** (recorded quantity/variance, never cosmetic noise —
+  this scopes the defect-jitter sketch); **sand is a FORM of the existing
+  clastic-coarse material**, not a new identity (accepted cost: loose and
+  structural clastic are visually indistinguishable until a later
+  form-dependent-texture visuals decision); the **root-lattice soil model**
+  (roots as porous STRUCTURE holding soil in its pores — an anti-erosion
+  mechanism for free, since matrix-less loose soil falls); and **grass is
+  suspended, not expressed** (an ecology state riding on substrate materials;
+  the user pre-ratified the appearance: "it'll be a mostly brown world for a
+  bit" — turf's ligature/anisotropic-variant presentation sketch is captured
+  but explicitly NOT to be built). Background agent dispatched for the
+  foundation: dc-core `classify` + occupancy primitives, contents-first
+  rewire of `collapse.rs`, the byte-identity + invariant regression proof,
+  then (if clean) the first ledger-justified fractional top on the eolian
+  sand blanket. Client wiring (lighting up journal/0010's dormant
+  partial-height renderer, moving collision onto the occupancy threshold) is
+  a deliberate follow-on slice, not this one.
 - *(**Tectonics architecture RATIFIED 2026-07-20** — all of U1–U8, with
   U3 amended (ritual ceiling relaxed to "5 min if that's what it takes");
   see the tectonics.md banner. The SPIKE is next — sequenced below, behind
@@ -942,8 +967,9 @@ dc-client -- --horizon 3`), then `/mcp` reconnect. **`--horizon 6` crashes
 in minutes (leak, Observed) — use 3 until diagnosed.** The order:
 1. **Renderer leak diagnosis** — blocks wide horizons; cheap repro (idle
    `--horizon 6`, 5 min); instrument GPU memory; smearing = early warning.
-2. **Wave-magnitude retune** (small, user-directed, Sequenced) — re-walk
-   station 5 live.
+2. *(**Wave-magnitude retune: STRUCK 2026-07-21 by the user** — a bandaid
+   against a mechanism that changes wholesale after the water machinery
+   lands; the fetch model is the heir. See Sequenced.)*
 3. **User decisions when ready:** ores R1–R8 · roughness recalibration
    (behind the C-candidate + erosion-supply measurement campaign).
 4. **Design passes queued:** forms/partials (materials.md DECIDED direction)

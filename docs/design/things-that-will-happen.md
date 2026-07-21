@@ -55,3 +55,11 @@ list and not a roadmap — some of these are far off, and that is fine.
 - A pond laps quietly; an ocean coast is carved by storms — because wave
   energy is a fact about the body of water (its reach, depth, and the wind
   across it over millennia), not a setting someone chose.
+- You undercut a grassy slope and the soil above slumps into your hole —
+  because what was holding it up was a root lattice with soil packed in its
+  pores, and you cut the lattice.
+- The edge of a dune is a hand's depth of sand, not a stair-step of cubes:
+  the world reports the fraction it actually has.
+- You dig through loose topsoil into subsoil that resists the shovel, and the
+  difference is real — the same material, packed by everything that has sat
+  on top of it since.
