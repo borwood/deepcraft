@@ -14,6 +14,17 @@
 > Next step: the SPIKE, per § SPIKE below. Produced 2026-07-20 by the
 > dispatched design agent (design pass → spike → milestone).
 
+> **U8 DECIDED 2026-07-21 (user)** — production flip ON: `production_config`
+> in `deeptime/field.rs` now sets `tectonic_history: true`. Ratified
+> **without** gating on the appearance walk ("the flip is pomp"; "I want us
+> to make progress. We can correct mistakes later"); the walk documents the
+> flip rather than gating it (journal/0044). U7 amplitude rides at the
+> default 80 per corrections #23 — the knob buys no sub-km relief (it lifts
+> the continent, it does not make mountains), so its value is deferrable and
+> not part of this flip. `full_agents` stays OFF (not ratified). Every world
+> created after this flip is unreproducible under earlier builds — the same
+> world-fingerprint cost as the 0030 erodibility flip.
+
 **The one-sentence thesis.** Tectonics stops being a one-shot painting of
 uplift onto coarse cells and becomes a *chaptered kinematic history* —
 plates advect, boundaries re-classify, convergence thickens crustal

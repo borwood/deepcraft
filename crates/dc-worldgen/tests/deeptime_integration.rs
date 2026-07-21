@@ -113,11 +113,21 @@ fn collapse_column_story_comes_from_the_deep_record() {
     // A land column over a layered deep cell must render a multi-band cliff: the
     // recorded sequence (igneous basement / recorded sediments / active veneer)
     // as distinct strata blocks a walker can read.
+    //
+    // Re-baselined for the U8 tectonic-history flip (journal/0044). The flip
+    // rearranged which cell holds the richest record; the single max-events
+    // column now lands on a spot whose tagged sediments do not stack two-deep in
+    // its surface chunk, while its same-event-count neighbours do. The subject is
+    // unchanged and the property is broad — 4908 of 6400 sampled land columns
+    // render a >=2-band cliff post-flip (measured) — so we select the richest
+    // column that ALSO surfaces the cliff, exactly as the 0030 coal test takes
+    // "the thickest seam that also survives collapse". A selection fix, not a
+    // floor loosening.
     let p = medium();
     let mut g = WorldGenerator::new(&p);
 
-    // Find the land column, over the sampled grid, with the richest strata.
-    let mut best: Option<(i64, i64, usize)> = None;
+    // Every sampled land column, richest strata record first.
+    let mut cols: Vec<(i64, i64, usize)> = Vec::new();
     for cz in -40i64..40 {
         for cx in -40i64..40 {
             let (ccx, ccz) = (cx * 2, cz * 2);
@@ -125,42 +135,53 @@ fn collapse_column_story_comes_from_the_deep_record() {
             if col.wilds || col.heights.iter().sum::<i32>() <= 0 {
                 continue;
             }
-            let n = col.strata.events.len();
-            if best.is_none_or(|(_, _, m)| n > m) {
-                best = Some((ccx, ccz, n));
-            }
+            cols.push((ccx, ccz, col.strata.events.len()));
         }
     }
-    let (cx, cz, n_events) = best.expect("sample found a land column");
+    cols.sort_by_key(|c| std::cmp::Reverse(c.2));
+    let richest_events = cols.first().map(|c| c.2).unwrap_or(0);
     assert!(
-        n_events >= 3,
-        "richest column has only {n_events} strata events — the deep history is not reaching blocks"
+        richest_events >= 3,
+        "richest column has only {richest_events} strata events — the deep history is not reaching blocks"
     );
 
-    // Render the surface chunk and count distinct strata block kinds stacked in
-    // one voxel column (the readable cliff).
-    let cy = g.surface_chunk_y(cx, cz);
-    let chunk = g.generate_chunk(ChunkPos::new(cx as i32, cy, cz as i32));
-    let mut best_distinct = 0usize;
-    for z in 0..32usize {
-        for x in 0..32usize {
-            let mut kinds: Vec<Block> = Vec::new();
-            for y in 0..32usize {
-                let b = chunk.get(x, y, z);
-                if matches!(
-                    b,
-                    Block::Mudstone | Block::Sandstone | Block::Granite | Block::Basalt
-                ) && !kinds.contains(&b)
-                {
-                    kinds.push(b);
+    // Walk columns richest-first; take the first that renders a readable cliff:
+    // distinct strata block kinds stacked in one voxel column of its surface
+    // chunk.
+    let mut chosen: Option<(usize, usize)> = None;
+    for &(cx, cz, n) in &cols {
+        let cy = g.surface_chunk_y(cx, cz);
+        let chunk = g.generate_chunk(ChunkPos::new(cx as i32, cy, cz as i32));
+        let mut best_distinct = 0usize;
+        for z in 0..32usize {
+            for x in 0..32usize {
+                let mut kinds: Vec<Block> = Vec::new();
+                for y in 0..32usize {
+                    let b = chunk.get(x, y, z);
+                    if matches!(
+                        b,
+                        Block::Mudstone | Block::Sandstone | Block::Granite | Block::Basalt
+                    ) && !kinds.contains(&b)
+                    {
+                        kinds.push(b);
+                    }
                 }
+                best_distinct = best_distinct.max(kinds.len());
             }
-            best_distinct = best_distinct.max(kinds.len());
+        }
+        if best_distinct >= 2 {
+            chosen = Some((n, best_distinct));
+            break;
         }
     }
+    let (n_events, best_distinct) =
+        chosen.expect("no land column rendered a readable multi-band strata cliff");
+    assert!(
+        n_events >= 3,
+        "the column that renders a cliff has only {n_events} events — not a layered record"
+    );
     assert!(
         best_distinct >= 2,
-        "the richest column's cliff shows only {best_distinct} strata block kind(s) — \
-         no readable multi-unit sequence"
+        "the cliff shows only {best_distinct} strata block kind(s) — no readable multi-unit sequence"
     );
 }

@@ -351,7 +351,12 @@ fn drainage_export_is_populated_and_accounts_for_every_cell() {
 #[test]
 fn drainage_export_is_empty_off_the_flag() {
     let pregen = small_world(SEED);
-    let field = deeptime::build_field(&pregen.grid, SEED); // production_config: off
+    // Since the U8 flip (journal/0044) production runs tectonics ON, take the
+    // production config and force the flag back OFF — the off path must still
+    // export no drainage / chapters.
+    let mut cfg = deeptime::production_config(&pregen.grid, SEED);
+    cfg.tectonic_history = false;
+    let field = deeptime::build_field_cfg(&pregen.grid, &cfg);
     assert!(field.recv.is_empty());
     assert!(field.area.is_empty());
     assert!(field.chapters.is_empty());
