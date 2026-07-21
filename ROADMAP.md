@@ -7,6 +7,20 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **The first guided tour — five stations, five verdicts**
+  (journal/0049; the LIVE co-walk protocol's first run — user at every
+  station, verdicts gating each move). Wind + frost magnitudes **RATIFIED
+  as-built** (earth-processes.md addendum); wave **NULL CONFIRMED → retune
+  Sequenced** (user: "more dramatic by default"; fetch-model heir recorded —
+  S11 bodies × wind field). Tour's cross-cutting finding: mechanisms fine,
+  legibility owed by the same three debts everywhere — carry-`H` (station 1's
+  "always going to have topsoil" is its verbatim trace), the veneer's ecology
+  replacement, and the **forms/partials pass** (station 2's directive: sand =
+  first loose material, partials-first emission — materials.md DECIDED).
+  Station 4's frost story reads IN THE COLUMN (dug variety — a win). New
+  symptom filed: texture smearing at `--horizon 3` after heavy teleports —
+  the leak isn't horizon-6-exclusive.
+
 - 2026-07-21 — **full_agents ON in production + the guided-tour map**
   (journal/0047, background agent; combined gates GREEN on fully-merged main —
   46 suites, 0 failed, covering this flip plus both texture merges). Wind +
@@ -1008,6 +1022,19 @@ see the question you are asking.
   inside the stretched L4. Journal/0023 already named the right answer — *add
   rings*, don't lengthen the last one. Only worth doing if the design target
   wants vistas past 10 km; note the haze limit below may bind first.
+- **Wave-magnitude retune** (user-directed, journal/0049 station 5): raise
+  `wave_erosion` (and widen `wave_band_m`) from the confirmed null (0.68 m
+  total) into the platforms-that-survive-the-voxel class (~10–40×), measure,
+  and re-walk station 5 for the user's eye. EXPLICIT INTERIM: the heir is
+  the fetch model (wave energy from S11 body size/shape/depth × the 0037
+  wind field, evolving over the run) — build the retune so the constant it
+  tunes is exactly what fetch later replaces.
+- **The forms/partials design pass** (user directive, journal/0049 station
+  2; materials.md DECIDED 2026-07-21): partials-first world-gen emission —
+  sand as the first spawned loose material — generalizing to forms across
+  all systems (partials in structures, loose volumes, bedforms). Design
+  pass first (it touches gen emission, meshing, and materials at once);
+  the 0010 dormant loose renderer and S8 mechanics are the substrate.
 - **Tectonics SPIKE** (per tectonics.md § SPIKE, architecture ratified
   2026-07-20): implement `DeepConfig::tectonic_history` behind the flag and
   produce the eight measurement groups (clamp stability under ramped
@@ -1400,7 +1427,13 @@ before any code.
   burst-load bug. Repro is now cheap: boot `--horizon 6`, wait five minutes.
   Diagnosis slice should instrument GPU memory over idle time. Until fixed,
   walks run `--horizon 3` (stations are close-range reads; only skyline
-  vistas need 6+).
+  vistas need 6+). **THIRD SYMPTOM (journal/0049 tour): texture SMEARING
+  visible to the human eye after heavy teleporting at `--horizon 3`** —
+  user field report, live session. The leak is not horizon-6-exclusive,
+  just slower; smearing may be the pre-crash state. Strengthens the
+  resource-accumulation hypothesis; the diagnosis slice should reproduce
+  via teleport churn while instrumenting GPU memory AND watching for
+  texture degradation as the early warning.
 - **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
   (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
   teleport sequence: `DeviceLost ("driver implementation is at fault")` →

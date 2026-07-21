@@ -182,3 +182,16 @@ The rule governs infiltration, not genesis.
 
 **Composability:** sieve resistance ≡ grain size (registry invariant), so
 what-packs-in and what-sieves-out-first are the same axis by construction.
+
+## DECIDED 2026-07-21 (user, journal/0049 tour) — sand first; partials-first emission
+
+**Sand is the first loose material to spawn in the world, emitted as
+partials** (dune/loess blankets express as full voxels + a partial-height
+top, not quantized-away). The substrate is largely built: S8 loose
+mechanics + journal/0010's dormant partial-height loose rendering. And the
+direction it generalizes: **"everything should be spawned in partials"** —
+world gen emitting partial occupancies as the default, with a **forms
+mechanism across all systems** (partials in structures, loose volumes,
+bedforms — variety that breaks the cube matrix). The forms pass is
+design-pass-sized and Sequenced; this entry records the direction so no
+slice quantizes away something partials should carry.

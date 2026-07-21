@@ -52,3 +52,6 @@ list and not a roadmap — some of these are far off, and that is fine.
 - A land can be a desert in every way that matters to its rocks and its life,
   yet look green from a hill — because "arid" is a verdict about water
   balance, not a colour, and the two only sometimes agree.
+- A pond laps quietly; an ocean coast is carved by storms — because wave
+  energy is a fact about the body of water (its reach, depth, and the wind
+  across it over millennia), not a setting someone chose.

@@ -363,3 +363,18 @@ player who understands it can find?
 "What does this look like in reality, and how did it get there?" — if the
 pass can't answer in those terms, it isn't ready to be declared in the
 graph.
+
+> **Magnitude ratification — DECIDED 2026-07-21 (user, live guided tour,
+> journal/0049).** The wind and frost magnitudes are RATIFIED as-built
+> (`eolian_deflation` 0.02, `eolian_arid_precip` 0.32, `eolian_deposit_frac`
+> 0.25, `frost_weathering_gain` 1.5, `frost_band_width_c` 12.0) — judged
+> live at their strongest stations; legibility debts belong to the
+> veneer/carry-H/partials work, not these knobs. The WAVE magnitudes are
+> NOT ratified: station 5 confirmed the null (0.68 m total at the world's
+> most-attacked coast) and the user directed "more dramatic by default" —
+> retune slice Sequenced (target class: cuts that survive the 0.9 m voxel
+> and read as platforms/notches, ~10–40× with `wave_band_m` widened for
+> stranded terraces from the sea-level cycles). **Heir mechanism (user,
+> same session): wave energy as a fact about the water body — fetch from
+> S11's body graph × the 0037 wind field, evolving over the run — replaces
+> the global constant when built.**
