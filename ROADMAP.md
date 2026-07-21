@@ -7,6 +7,34 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **full_agents ON in production + the guided-tour map**
+  (journal/0047, background agent; combined gates GREEN on fully-merged main —
+  46 suites, 0 failed, covering this flip plus both texture merges). Wind +
+  frost + wave run in every new world; the SEVEN MAGNITUDES ride at 0034
+  defaults, UNRATIFIED — to be judged in the first LIVE co-walk (user present
+  at every station, comment/confirm gating each move; the protocol upgrade
+  over screenshot-walks). `examples/tour_map.rs` locates the stations on the
+  client world: deflation basin 13.1 m (legible) · dune field 2.1 m (modest) ·
+  loess margin 2.5 m with walkable desert edge (modest — the open question) ·
+  periglacial summit 11.8 m stripped at 998 m (best station) · **wave coast
+  0.68 m (NULL — the standing magnitude verdict unless the user's eye says
+  otherwise)**. Two re-baselines, 0030-discipline (the coal-seam pick went
+  degenerate under redistribution; world still grows 7647 seams >3 m,
+  strongest diggable renders 19 voxels — no floor loosened). Cost: ritual
+  +2.5 s; **resident +92.76 MB — see Observed**.
+
+- 2026-07-21 — **Ore texture redo — substances, not portraits** (journal/0048;
+  correcting journal/0045 same-day after the user's review: the first pass
+  baked deposit portraits — host-with-flecks — where the ratified
+  eighths/partial representation composes host+substance in the RENDERER
+  (grade-is-eighths; a painted fleck forecloses grade). gold-quartz →
+  **native-gold** (LabPBR metal, no emission), redbed-copper → **malachite**
+  (dielectric botryoidal green), bog-iron regenerated as pure limonite;
+  banded-ironstone/rock-salt kept (whole-voxel rock / already a substance).
+  28 untouched packs byte-identical; deterministic double-run proven. Root
+  cause filed as **ores.md R8**: the draft's member NAMES are deposit names,
+  contradicting geology.md § Ore — rename to substances is a user call.
+
 - 2026-07-21 — **Ore placeholder PBR packs — textures ahead of the registry**
   (journal/0045, background agent; asset/python-only; merged with the
   workspace gate deferred BY INTEGRATOR DECISION to the combined post-
@@ -1347,6 +1375,20 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **The eolian strata record costs +92.76 MB at Medium** (journal/0047
+  measurement, 2026-07-21; UNDIAGNOSED in detail). The roster flip took the
+  kept `DeepField` 52.8 → 145.5 MB — the record roughly triples because wind
+  lays thin units across tens of thousands of cells per chapter. The clock
+  cost is trivial (+2.5 s); the memory cost is the real bill. Perf-doctrine
+  shape (recorder run-length merge / eviction tuning for eolian units is the
+  obvious lever — the S10 soil-overprint precedent), but needs measurement,
+  not a bandaid.
+- **The 1-D wind march dumps residual load at the downwind land edge**
+  (journal/0047, 2026-07-21). The raw strongest loess/deflation/frost cells
+  all sit on grid col 544 — an edge-pileup artifact of 0034's march, real in
+  every production world. The tour map excludes the border ring; the march's
+  boundary handling is the defect. Small, mechanical, undiagnosed beyond the
+  symptom.
 - **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
   (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
   teleport sequence: `DeviceLost ("driver implementation is at fault")` →
