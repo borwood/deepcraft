@@ -816,6 +816,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   true reason. Changes every new world's climate — integrator presents the
   measured shift for the user's eye.
 
+*(**Ore design pass: DRAFT LANDED** 2026-07-21, `docs/design/ores.md` —
+engineering pass over the DECIDED 2026-07-20 roster; R1–R7 awaiting the user.
+Two collisions reported for the record: the ratified lode-gold flagship vs
+S12's metre-scale exhumation (probe-conditioned in R1), and BIF vs the
+Phanerozoic register (reconciled in R3). Placer source-blindness filed as
+stubs.md § 11.)*
+
 **Slated by ratification 2026-07-20 (all six unknown-unknowns landed;
 sequenced, not yet scheduled):** marker beds + punctuation event types ride
 the volcanism design (earth-processes § 2 flag); ore-genesis roster is a

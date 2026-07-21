@@ -118,3 +118,12 @@ contained) · dormant erosion-agent axes ("not a placeholder" by construction)
 animation + parametric crouch (ratified aesthetic/firewall) · placeholder
 texture packs + vertex-color albedo (rendering-asset placeholders — heir is
 authored art, outside this doctrine's scope; visuals.md owns the path).
+
+### 11. placer-presence-is-source-blind — *added 2026-07-21 by the ores design pass*
+`geology.rs` placer pass: gold-dust *presence* in a river is a function of
+discharge + settle energy only — every big-enough river carries some. The
+energy zonation (where in the gravel it concentrates) is real S8 mechanism;
+the presence term is a field-blind constant. **Heir:** condition
+presence/abundance on the upstream catchment's lode endowment (drainage
+export × the R1 lode field — ores.md R2-B). **Blast:** rivers don't
+differentiate; the "read the river, walk upstream" chain dead-ends.
