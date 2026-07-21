@@ -171,26 +171,26 @@
         "specular": "bog-iron/specular.png"
       },
       "base_color_srgb": [
-        0.44,
-        0.27,
-        0.13
+        0.52,
+        0.34,
+        0.16
       ],
       "seed": 14779975858258586066,
       "params": {
-        "grain_mm": 18.0,
-        "grain_norm": 0.8415,
-        "noise_freq": 4,
+        "grain_mm": 0.1,
+        "grain_norm": 0.3616,
+        "noise_freq": 8,
         "hardness": 2.5,
         "relief_amp": 0.7656,
-        "ramp_levels": 6,
-        "smoothness": 0.3327,
-        "porosity": 0.375,
+        "ramp_levels": 5,
+        "smoothness": 0.3505,
+        "porosity": 0.125,
         "metal": false
       },
       "specular_channels": {
-        "R_smoothness": 85,
+        "R_smoothness": 89,
         "G_f0_or_metal": 10,
-        "B_porosity": 24,
+        "B_porosity": 8,
         "A_emission": 255
       }
     },
@@ -450,38 +450,6 @@
         "A_emission": 8
       }
     },
-    "gold-quartz": {
-      "name": "gold quartz",
-      "kind": "material",
-      "files": {
-        "basecolor": "gold-quartz/basecolor.png",
-        "normal": "gold-quartz/normal.png",
-        "specular": "gold-quartz/specular.png"
-      },
-      "base_color_srgb": [
-        0.82,
-        0.82,
-        0.8
-      ],
-      "seed": 18184580745032948331,
-      "params": {
-        "grain_mm": 2.0,
-        "grain_norm": 0.6384,
-        "noise_freq": 8,
-        "hardness": 7.125,
-        "relief_amp": 1.4883,
-        "ramp_levels": 5,
-        "smoothness": 0.6723,
-        "porosity": 0.1719,
-        "metal": false
-      },
-      "specular_channels": {
-        "R_smoothness": 171,
-        "G_f0_or_metal": 10,
-        "B_porosity": 11,
-        "A_emission": 255
-      }
-    },
     "granite": {
       "name": "granite",
       "kind": "material",
@@ -674,6 +642,38 @@
         "A_emission": 255
       }
     },
+    "malachite": {
+      "name": "malachite",
+      "kind": "material",
+      "files": {
+        "basecolor": "malachite/basecolor.png",
+        "normal": "malachite/normal.png",
+        "specular": "malachite/specular.png"
+      },
+      "base_color_srgb": [
+        0.11,
+        0.4,
+        0.21
+      ],
+      "seed": 14887618007591475575,
+      "params": {
+        "grain_mm": 0.3,
+        "grain_norm": 0.4631,
+        "noise_freq": 8,
+        "hardness": 4.25,
+        "relief_amp": 1.0391,
+        "ramp_levels": 5,
+        "smoothness": 0.6154,
+        "porosity": 0.0,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 157,
+        "G_f0_or_metal": 10,
+        "B_porosity": 0,
+        "A_emission": 255
+      }
+    },
     "mudstone": {
       "name": "mudstone",
       "kind": "material",
@@ -703,6 +703,38 @@
         "R_smoothness": 195,
         "G_f0_or_metal": 10,
         "B_porosity": 16,
+        "A_emission": 255
+      }
+    },
+    "native-gold": {
+      "name": "native gold",
+      "kind": "material",
+      "files": {
+        "basecolor": "native-gold/basecolor.png",
+        "normal": "native-gold/normal.png",
+        "specular": "native-gold/specular.png"
+      },
+      "base_color_srgb": [
+        0.85,
+        0.66,
+        0.22
+      ],
+      "seed": 11853651465604519347,
+      "params": {
+        "grain_mm": 1.0,
+        "grain_norm": 0.5744,
+        "noise_freq": 8,
+        "hardness": 4.2,
+        "relief_amp": 1.0312,
+        "ramp_levels": 5,
+        "smoothness": 0.6851,
+        "porosity": 0.0,
+        "metal": true
+      },
+      "specular_channels": {
+        "R_smoothness": 175,
+        "G_f0_or_metal": 231,
+        "B_porosity": 0,
         "A_emission": 255
       }
     },
@@ -799,38 +831,6 @@
         "R_smoothness": 40,
         "G_f0_or_metal": 10,
         "B_porosity": 26,
-        "A_emission": 255
-      }
-    },
-    "redbed-copper": {
-      "name": "redbed copper",
-      "kind": "material",
-      "files": {
-        "basecolor": "redbed-copper/basecolor.png",
-        "normal": "redbed-copper/normal.png",
-        "specular": "redbed-copper/specular.png"
-      },
-      "base_color_srgb": [
-        0.5,
-        0.26,
-        0.18
-      ],
-      "seed": 13550965135660996079,
-      "params": {
-        "grain_mm": 0.3,
-        "grain_norm": 0.4631,
-        "noise_freq": 8,
-        "hardness": 4.975,
-        "relief_amp": 1.1523,
-        "ramp_levels": 5,
-        "smoothness": 0.6384,
-        "porosity": 0.25,
-        "metal": false
-      },
-      "specular_channels": {
-        "R_smoothness": 163,
-        "G_f0_or_metal": 10,
-        "B_porosity": 16,
         "A_emission": 255
       }
     },
