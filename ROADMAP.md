@@ -7,6 +7,25 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **First flagged walk: the amplitude call, answered "neither"**
+  (journal/0040, corrections #23; the deep-config plumbing's first use). Two
+  worlds, same seed, `--tectonics` on both, only `--amplitude` differing.
+  The knob is *correct* — continental elevation +714…+1079 m, abyssal plain
+  unmoved (−2492.1 → −2490.3 m, since orogenic thickening rightly does not
+  drive ocean floor) — and *irrelevant at the scale relief is read*: 250 m
+  sampling across the world's highest crest gives **7.2 m over 1.75 km at
+  BOTH amplitudes, identical to the decimetre**, and the two ground
+  screenshots are visually indistinguishable. Continental structure is
+  excellent (912 → −3523 m margin-to-abyssal, ~4.5 km range); landform scale
+  is absent (whole belt ~380 m over 40 km, ≈1 % grade; summit plateau flatter
+  than the macro). **Method note:** the 1.2 km render horizon is blind to
+  macro shape, so the walk used `pose_set {surface:true}` as a *numeric*
+  instrument — surface height at any (x,z), horizon-independent — with the
+  lit pass kept for what it can see. Corrections #18/#19's lesson again: pick
+  the control that can see the question, even when it isn't a camera. Also
+  fixed en route: the game MCP was **registered nowhere** (every prior walk
+  connected ad hoc) — now a committed project `.mcp.json`.
+
 - 2026-07-20 — **Deep-config flag plumbing** (journal/0039, background agent).
   The sealed gen path is open: a new `DeepOverrides { tectonic_history,
   full_agents, thickening_scale }` (each `Option`, `None` = production default)
@@ -757,15 +776,23 @@ anywhere (every prior walk connected ad hoc); it is now a checked-in
 fresh session must approve the project MCP server on start, launch the game,
 and the `pose_set`/`scan`/`client_screenshot` tools go live.
 
-**Next session, in the user's stated order:**
-1. **Far-field horizon knob** — dispatch FIRST (Sequenced below). The amplitude
-   walk is a macro-shape question the current 1.2 km horizon cannot show.
-2. **The amplitude call** — the last live cause of "dismal mountains" after
-   erodibility closed cause 1. Cause 2 (no dip) also open. Now bootable via
-   the journal/0039 flags (`--tectonics --amplitude 160 --extent large`); walk
-   the LIT pass for the shape reads (fullbright is blind to shape —
-   corrections #18), fullbright+edges only at near cut faces.
-3. **Sim light SPIKE** — design pass is done (`docs/design/light.md`);
+**RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
+**answered: neither 80 nor 160** (corrections #23) — `thickening_scale` acts
+at ~25 km and above and buys *zero* sub-km relief, so it cannot fix dismal
+mountains and no longer blocks anything. The order that replaces it:
+
+1. **Sub-km roughness decay — measure it** (Observed, journal/0040). Why does
+   a lattice seeded at 90–420 m `provenance_roughness` deliver 7 m? This is
+   now the prime suspect for terrain legibility and is upstream of everything
+   below. Measurement-class, not a design call.
+2. **Far-field horizon knob** (Sequenced below) — independent of (1) and still
+   needed: macro shape is unseeable from the ground at 1.2 km. These two have
+   disjoint write-sets (`collapse.rs` vs `farmesh.rs`) and can run in parallel.
+3. **Erosion-supply calibration** (Sequenced) — S12's metre-scale exhumation
+   finding, now co-equal with (1) as a relief-generating lever.
+4. **The amplitude value itself** — deferrable. Rides as-built at 80 until
+   (1) and (3) change what the knob is multiplying.
+5. **Sim light SPIKE** — design pass is done (`docs/design/light.md`);
    § 10 of that doc states exactly what the spike must measure.
 
 **Read first next session:** `docs/design/things-that-will-happen.md` (new
@@ -1157,6 +1184,24 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Sub-km relief is ~7 m and amplitude-independent — the real dismal-mountains
+  cause** (journal/0040 walk, 2026-07-21; corrections #23). Measured on the
+  first flagged world: across the highest crest in the world, 250 m sampling
+  gives **7.2 m of relief over 1.75 km at BOTH `--amplitude 80` and 160** —
+  identical to the decimetre, while absolute elevation moved +714…+1079 m.
+  Ground screenshots at the same vantage are visually indistinguishable.
+  **HYPOTHESIS, unmeasured:** `DeepField::surface_at_voxel` bilinearly samples
+  a 460 m grid, so everything finer comes from the collapse elevation lattice's
+  jitter, which never sees `thickening_scale`. The unexplained part is the
+  magnitude — `provenance_roughness` is 90 m (Craton) to 420 m (Orogeny) but
+  measured relief is 7 m, so `collapse.rs`'s per-refinement amplitude decay is
+  attenuating roughness by 1–2 orders of magnitude. **Needs measurement before
+  it is believed.** This is upstream of the amplitude call and probably the
+  single highest-value open question on terrain legibility.
+- **The far field cuts off at 1.2 km** (user field report 2026-07-21;
+  `farmesh.rs::FAR_MAX_M`). Macro landform shape cannot be seen from the
+  ground at all — the camera is always inside the landform. Diagnosed and
+  moved to Sequenced (far-field horizon knob).
 - *(**Console v1 field report: FIXED same day** — console v2 shipped, see
   Shipped / journal 0035. Original report:)* **"still unusable" (user,
   2026-07-20, first test drive).** Two defects, both discoverability-of-what-exists rather

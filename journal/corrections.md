@@ -630,3 +630,55 @@ walk checked it, and the prediction was false at the surface — caught before
 it became folklore. A mechanism can be fidelity-correct and gameplay-
 invisible at once; the trace is what surfaces the gap. Write traces as
 falsifiable predictions and walk them.
+
+## 23. "The model is not the bottleneck, the amplitude is" (2026-07-21)
+
+**Claim** (journal/0029 § headroom, carried into journal/0030's appraisal and
+then into ROADMAP as the standing sequence item *"the amplitude call — the
+last live cause of dismal mountains"*): the erosion/tectonics model is
+sound and the reason mountains read as dismal is that the forcing amplitude
+is too low. The pending user decision U7 was posed as a straight choice
+between `thickening_scale` **80 and 160**, on the expectation that the
+larger value would make landforms legible.
+
+**Falsified by the first flagged walk** (journal/0040, the deep-config
+plumbing's first use). Same seed, `--tectonics` on in both worlds, only
+`--amplitude` changed. The knob **works** — it moves absolute elevation by
++714 to +1079 m across the continent, and the abyssal plain correctly does
+not move (−2492.1 → −2490.3 m, since orogenic thickening does not drive
+ocean floor). But it does not buy relief where relief is read:
+
+| scale | amp 80 | amp 160 |
+|---|---|---|
+| 250 m steps across the highest crest (1.75 km span) | **7.2 m** | **7.2 m** |
+| 10 km transect (z=0, x=0→10 km) | 38.6 m | **22.4 m** (flatter) |
+| ~25 km across the whole belt | 380 m | 626 m |
+| absolute elevation | — | +714…+1079 m |
+
+The walking-scale number is not merely similar, it is **identical** — and
+the two ground screenshots from the same vantage at the same height above
+the surface (`0040-tectonics-crest-lit-south.png` vs
+`…-amp160.png`) are visually indistinguishable: a level green plain with
+scattered one-voxel ledges, photographed at the summit of the world's
+highest range (1288 m, then 2249 m).
+
+**Mechanism — HYPOTHESIS, not yet measured.** `DeepField::surface_at_voxel`
+is a *bilinear* sample of a **460 m** deep grid, so every wavelength finer
+than that comes from the collapse elevation lattice's own jitter, which is
+seeded from `provenance_roughness` and never sees `thickening_scale`. That
+would explain an exactly-identical sub-cell number. What it does **not**
+explain, and what is the real lead: `provenance_roughness` is 90 m (Craton)
+to 420 m (Orogeny), yet measured walking-scale relief is **7 m** — so the
+lattice's per-refinement amplitude decay (`collapse.rs`) is attenuating
+roughness by one to two orders of magnitude. **Needs measurement before it
+is believed** (this entry's own rule: a mechanism is a hypothesis, only the
+numbers are evidence — and that applies to the integrator too, #19).
+
+**The lesson.** `thickening_scale` is a *lift-the-continent* knob, not a
+*make-mountains* knob: it bites at ~25 km and above and vanishes below it.
+Posing U7 as "80 or 160" framed an appearance decision the knob cannot
+deliver — neither value fixes dismal mountains, so the honest answer to the
+amplitude call is **"neither, and here is why."** The legibility problem
+lives at sub-km scale — in the collapse lattice's roughness decay and in
+erosion supply (already Sequenced from S12's metre-scale exhumation
+finding) — not in deep-time forcing amplitude. Re-sequenced accordingly.
