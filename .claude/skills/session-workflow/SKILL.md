@@ -224,3 +224,25 @@ Kick off the milestone agent → design-converse in the gaps (this is where
 API.md, materials, worldgen, visuals, and the idea inventory all came from)
 → integrate on landing → journal → next. Sequence lives in ROADMAP; consult
 it at session start, leave it true at session end.
+
+## Proven practice additions (2026-07-21, session 5)
+
+- **The live guided-tour ratification** (journal/0049, user-directed): for
+  appearance-class magnitude/knob ratifications, prefer a LIVE co-walk over
+  the screenshot-report loop — the user in the running game, the integrator
+  driving teleports and station briefings (what the sim did here, the number,
+  the owning knob), each move gated on the user's verdict, verdicts recorded
+  per station in the same session. Prepare a **tour map** first (a headless
+  probe that locates the strongest exemplar of each signature and prints
+  coordinates). Null stations are verdicts — brief them honestly rather than
+  inventing a reading.
+- **The build-mutex lockfile** (proven across 4 concurrent agents):
+  `<repo>\target\.agent-build.lock` — create-file loop to acquire, release
+  in finally, >40 min = stale, take it. Every agent brief carries it; the
+  integrator uses it too. Wait for no live `cargo`/`rustc`/`dc-client`
+  BEFORE acquiring.
+- **Exit codes lie about GPU crashes** (two DeviceLost crashes reported exit
+  0): never characterize a session end from the exit code — read the log
+  tail for `DeviceLost`/`panicked` first. Corollary of #18/#19: direct
+  observation outranks side-channel inference (a process list is not an
+  attribution; a stopped agent cannot hold a fresh mutex).

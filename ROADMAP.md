@@ -924,12 +924,36 @@ S11 water locality + body graph (0028) · erodibility coupling (0029) ·
 erodibility production flip + walk (0030). Eight journal entries; seven
 corrections filed (#11–#19, two of them the assistant's own).
 
-**Walk wiring landed 2026-07-21:** the deepcraft game MCP was never persisted
-anywhere (every prior walk connected ad hoc); it is now a checked-in
-`.mcp.json` at project scope (`deepcraft` → `http://127.0.0.1:7777/mcp`). A
-fresh session must approve the project MCP server on start, launch the game,
-and the `pose_set`/`scan`/`client_screenshot` tools go live.
+**Session 5 shipped (2026-07-21, journal/0039–0049, corrections #23–#25),
+all gates green on merged main:** deep-config plumbing (0039) · walk 0040 +
+the amplitude answer "neither" (#23) · S13 roughness measurement (0041,
+#24/#25) · `--horizon` knob (0042) · climate registration fix (0043) · **U8
+tectonic flip (0044)** · ore textures (0045) + substance redo (0048) · steep
+walk 0046 · **full_agents flip + tour map (0047)** · **the first live
+guided-tour ratification (0049)**. Doctrine: ledger-expression + enhancement
++ perf-first + genesis/stubs (stubs.md, 11 entries). Ore design pass drafted
+(ores.md R1–R8 pending).
 
+**NEXT SESSION — set up at 2026-07-21 close. Read first:**
+`docs/design/stubs.md` (new — the doctrine's registry), journal/0049 (the
+live-tour protocol), corrections #23–#25. **Walk wiring:** game MCP is a
+checked-in `.mcp.json`; launch the game FIRST (`cargo run --release -p
+dc-client -- --horizon 3`), then `/mcp` reconnect. **`--horizon 6` crashes
+in minutes (leak, Observed) — use 3 until diagnosed.** The order:
+1. **Renderer leak diagnosis** — blocks wide horizons; cheap repro (idle
+   `--horizon 6`, 5 min); instrument GPU memory; smearing = early warning.
+2. **Wave-magnitude retune** (small, user-directed, Sequenced) — re-walk
+   station 5 live.
+3. **User decisions when ready:** ores R1–R8 · roughness recalibration
+   (behind the C-candidate + erosion-supply measurement campaign).
+4. **Design passes queued:** forms/partials (materials.md DECIDED direction)
+   · ecology (starts from biomes-ecology-agenda.md) · social sim (the big
+   one) — main-session conversations, not dispatches.
+5. Consume-the-ledger engineering remains Sequenced: carry-`H` (station 1
+   is its trace), tectonic expression (dip/fold + metamorphic), paleo-context
+   provider (subsumes stubs 4/5/6).
+
+*(Superseded by the session-close block above; kept for the record.)*
 **RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
 **answered: neither 80 nor 160** (corrections #23) — `thickening_scale` acts
 at ~25 km and above and buys *zero* sub-km relief, so it cannot fix dismal
