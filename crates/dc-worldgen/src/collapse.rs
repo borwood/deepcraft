@@ -702,8 +702,20 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// Bilinear `(sea-level temp °C, precip)` between cell centres.
+    ///
+    /// Registration: `half` is the **integer** grid-centre offset `w / 2` (the
+    /// array index of the cell straddling the world origin), cast to `f64` —
+    /// NOT `f64::from(w) / 2.0`. For the odd `w` every preset uses (5/17/69) the
+    /// float form is `w/2 + 0.5`, which would shift the continuous coordinate
+    /// half a cell so integer grid coords land on cell *corners* instead of
+    /// centres; bilinear at a cell centre would then blend the four neighbours
+    /// and the whole climate field would sit ~7.4 km (`CELL_VOXELS/2 · 0.9 m`)
+    /// off the terrain it tints. This matches `cell_of_voxel` /
+    /// `cell_center_voxel` / `DeepField::deep_coords` / `grid::build_cells`, all
+    /// integer `w / 2`. See journal/0043 and the S13 flag; regression-guarded by
+    /// `climate_at_reproduces_cells_own_climate_at_centre`.
     fn climate_at(&mut self, vx: i64, vz: i64) -> (f64, f64) {
-        let half = f64::from(self.pregen.grid.w) / 2.0;
+        let half = f64::from(self.pregen.grid.w / 2);
         let gx = vx as f64 / CELL_VOXELS as f64 + half - 0.5;
         let gy = vz as f64 / CELL_VOXELS as f64 + half - 0.5;
         let (x0, y0) = (gx.floor(), gy.floor());
@@ -1156,13 +1168,61 @@ fn carve_rivers(mut elev: f64, px: f64, pz: f64, segs: &[RiverSeg]) -> (f64, boo
 #[cfg(test)]
 mod tests {
     use crate::WorldGenerator;
-    use crate::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
+    use crate::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams, temp_sea_level};
 
     fn small(seed: u64) -> Pregen {
         Pregen::run(WorldParams {
             seed,
             extent: Extent::Small,
         })
+    }
+
+    /// Climate registration (S13 flag; journal/0043). `climate_at` bilinearly
+    /// interpolates the coarse per-cell climate; its voxel→grid mapping MUST
+    /// anchor integer grid coordinates at cell CENTRES — the convention
+    /// `cell_of_voxel` / `cell_center_voxel` / `DeepField::deep_coords` /
+    /// `grid::build_cells` all share (integer `w / 2`). Ground truth by
+    /// construction: bilinear evaluated at a node returns that node's value
+    /// exactly, so a voxel sitting on a cell's own centre must read back that
+    /// cell's own baked `(temp, precip)` — no neighbour blend. A half-cell
+    /// mis-registration (float `w / 2.0`, which for ODD `w` is `w/2 + 0.5`)
+    /// averages the four neighbours instead, i.e. reads climate ~7.4 km
+    /// (`CELL_VOXELS/2 · 0.9 m`) north-and-east of the terrain it tints.
+    /// Every preset is odd (Small 5, Medium 17, Large 69), so the parity bug is
+    /// live at all sizes; exercised at Small AND Medium here. Interior cells
+    /// only — the four bilinear neighbours must all be in-grid.
+    #[test]
+    fn climate_at_reproduces_cells_own_climate_at_centre() {
+        for extent in [Extent::Small, Extent::Medium] {
+            let pregen = Pregen::run(WorldParams {
+                seed: 0x00C1_1A7E_2026,
+                extent,
+            });
+            let w = pregen.grid.w;
+            let mut g = WorldGenerator::new(&pregen);
+            let mut checked = 0usize;
+            for gy in 1..w - 1 {
+                for gx in 1..w - 1 {
+                    let (vx, vz) = pregen.grid.cell_center_voxel(gx, gy);
+                    let (temp, precip) = g.climate_at(vx, vz);
+                    let cv = pregen.cell_view(i64::from(gx), i64::from(gy));
+                    let want_temp = temp_sea_level(cv.lat_deg);
+                    assert!(
+                        (temp - want_temp).abs() < 1e-9,
+                        "temp at cell ({gx},{gy}) centre = {temp}, cell's own = {want_temp} \
+                         (w={w}) — bilinear must reproduce a node exactly at its centre"
+                    );
+                    assert!(
+                        (precip - cv.precip).abs() < 1e-9,
+                        "precip at cell ({gx},{gy}) centre = {precip}, cell's own = {} \
+                         (w={w}) — bilinear must reproduce a node exactly at its centre",
+                        cv.precip
+                    );
+                    checked += 1;
+                }
+            }
+            assert!(checked >= 9, "sampled {checked} interior cells (w={w})");
+        }
     }
 
     /// The far-field summary is the SAME surface function the near ground
