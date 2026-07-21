@@ -459,20 +459,45 @@ derivable) from generated-untouched ones (droppable, re-derivable) — that
 therefore remember. The far field's delta subscription and the save layer's
 spill list are the same set viewed twice.
 
-**Observation vs inspection — the constraint this must not preclude.** API.md
-§ "Observation vs inspection" is explicit: `sim.observe` is **diegetic**,
-commits facts to the S2 ledger and can force bounded collapse; `sim.inspect` is
-**out-of-band** and commits nothing. ARCHITECTURE.md § simulation adds "stepped
-abstraction by observer proximity", "committed fact = any observation that has
-leaked to an observer", and the cascade bound ("observing one mind must not
-collapse the planet"). Today's far field is a pure derivation and therefore sits
-cleanly on the *inspect* side — it commits nothing. **The design constraint the
-user is protecting:** when the far field starts carrying deltas and present-tense
-change, "what does the player see at 5 km" stops being a pure query and starts
-touching the observe/collapse machinery. So the far-field read path must be
-built with a **seam where a read can become committing**, rather than as a pure
-function of the past with no such seam. Not to be solved now; not to be
-precluded.
+**Observation vs inspection — CORRECTED 2026-07-21 by the user; the assistant's
+first framing here was wrong and is kept visible.** The assistant wrote that
+once the far field carries deltas, "what does the player see at 5 km" starts
+touching the observe/collapse machinery, and that the read path therefore needs
+a seam where a read can become committing. **The user rejected that, and is
+right:**
+
+> seeing something at 5km shouldn't ever collapse it. it is a function of the
+> past, but that past now remembers in-game past: edits. the mechanism of
+> looking at the far-field does not collapse. the far field will possibly
+> REFLECT new collapses down the line: when something enters near-sim-space and
+> partially collapses the possibilities of something happening distantly, now
+> there's some kind of delta in that region farfield.
+
+**The distinction that makes it precise** (and which API.md already draws):
+`sim.observe` collapses **uncollapsed propositions** — distant *sim state*,
+what is happening in that settlement. Terrain, and edits to it, are **committed
+facts**; there is nothing left to resolve, so reading them commits nothing.
+Rendering a horizon is not querying a proposition, it is reading decided
+history. **The far field therefore sits permanently on the `inspect` side, and
+stays there even once it carries deltas.** The arrow runs the other way from
+what was first written: collapse is triggered by approach or by diegetic
+observation of sim state, and the far field is *downstream* — it reflects the
+facts that result.
+
+**Sharpening (assistant, PROPOSAL):** the delta stream has two sources with
+different shapes. A **player edit** is directly renderable — geometry changed,
+the summary re-derives. A **collapsed sim fact** is not: "this settlement was
+sacked in year 340" must pass through an *expresser* before it is visible at
+5 km. That is the ledger-expression problem (geology.md § Expression of the
+ledger) arriving at distance, and it is why ruin-posts is a stub rather than a
+feature.
+
+**The property that falls out:** if the far field is a function of committed
+history only, it is a **pure function of (seed + ledger + edit log)** —
+deterministic, re-derivable at any time, never guessing. Which is the same
+doctrine as the chunk store (journal/0051) and the S11 water bodies: *store only
+what the derivation cannot predict*. The deltas are exactly the unpredictable
+part, and nothing else needs storing.
 
 ### Open, unratified
 Band distances and the knobs; whether the mid band blends or dithers at reduced
