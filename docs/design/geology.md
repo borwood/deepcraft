@@ -252,6 +252,18 @@ tier reads" and consumed by nothing; the deep sim's `H` (regolith) plane
 computed and then discarded by `DeepField`, with soil depth re-invented from
 present-day precipitation.
 
+**Holdout (c) closed 2026-07-21 — carry-`H` (journal/0053).** `DeepField` now
+carries the regolith plane, and both the soil band and the clastic veneer budget
+read it instead of rainfall. The slice's finding is doctrine-relevant beyond its
+own scope: **`Σ(recorded unit thicknesses) ≡ H` exactly** — the strata record is
+not a sample of the loose column, it *is* the loose column decomposed into beds.
+So the surficial veneer is properly defined as the part of that column whole
+voxels cannot resolve, amalgamated into one body — which is *form following
+provenance* applied to the sub-voxel constraint (§ above): the thin beds are not
+deleted, they change form into a surficial mantle, exactly as bioturbation and
+creep do it in the field. The fill is mass-conserving against the ledger except
+where the veneer's 8-voxel cap bites (stubs.md § 12).
+
 **Form follows provenance.** What a material *is* and what **form** it takes —
 deposited loose, partial in another's pore space, whole block, inclusion — are
 both readings of the same history. A basement rock exhumed after a long

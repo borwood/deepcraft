@@ -774,3 +774,31 @@ reports a global property from one vantage, that is a claim about a
 distribution made from n=1. The user's own flight corroborated my read, which
 is how a sampling error survives two observers: we were both standing in the
 same wrong place.
+
+## 26. "The sim holds `H ≈ 0` in the deflation basin, so carrying `H` bares it out" (2026-07-21)
+
+**The claim** (journal/0049 station 1, and then repeated as the premise of the
+carry-`H` slice): the user standing in the world's most wind-stripped country
+could not judge the erosion because the collapse tier painted topsoil over it —
+"always going to have topsoil" — and *the sim holds `H = 0` there*, so carrying
+the regolith plane would make deflation basins genuinely bare.
+
+**What the measurement says.** Station 1's deep cell holds **10.66 m of `H`**.
+The 13.06 m in the station's name is `ΔH` — cover the wind *removed* (the
+off→wind isolation) — not cover remaining. `tour_map`'s deflation station is a
+max-`ΔH` search, and the cell that loses the most is by construction the cell
+that had the most to lose: a thick, loose, arid basin fill. It is a
+*deflating* basin, not a *deflated* one. Carrying `H` therefore makes station 1
+**deeper**, not barer — generated loose cover 6 → 12 voxels (5.4 m → 10.8 m).
+
+**Where bareness actually lives.** Only 91 of 44 265 subaerial deep cells
+(0.2 %) round to zero loose cover on this world; the barest is world
+(101 663, 5 073) with `H = 0.168 m`, and it now generates basalt at the surface
+with no soil at all. Bareness is real, it is caused by the erosion history, and
+it is rare — the honest answer, not the promised one.
+
+**The lesson — an extremum of a *rate* is not an extremum of a *state*.**
+Sibling to #25: there we sampled the flattest place and concluded about relief;
+here we named a site by its erosion *rate* and read the name as a description
+of its erosion *state*. When a station is chosen by "where did the most
+happen", do not assume it is also "where the least remains".
