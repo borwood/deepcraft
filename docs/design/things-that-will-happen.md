@@ -49,3 +49,6 @@ list and not a roadmap — some of these are far off, and that is fine.
 - A coal seam dead-ends at a fault. The white ash stripe forty meters up —
   the same afternoon, four million years ago, everywhere it appears — is
   offset by the same throw. Follow it, find your seam again.
+- A land can be a desert in every way that matters to its rocks and its life,
+  yet look green from a hill — because "arid" is a verdict about water
+  balance, not a colour, and the two only sometimes agree.
