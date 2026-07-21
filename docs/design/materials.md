@@ -434,7 +434,48 @@ generator. Precedent in-tree: `dithered_member`'s boundary dither.
 - Journal/0010's dither currently renders only placer fans, because nothing
   else is ever mixed. This lights up shipped, tested machinery world-wide.
 
-**Sequencing (integrator).** Slice 1 is **buried strata only** — the surface
-voxel keeps the veneer for now, so the appearance delta is confined to cut
-faces and is attributable. The **top-of-column fractional remainder is slice
-2**, because that voxel is where the surface-veneer handoff lives.
+**Sequencing — AMENDED 2026-07-21 (user): ONE slice, the surface folded in.**
+The integrator proposed splitting buried strata from the surface voxel so the
+appearance delta stayed attributable. The user overruled it and was right:
+*"fold them together, we don't have to have this problematic of deciding which
+material to skin the world with when the record already says. we already wanted
+the veneer gone, if im not wrong that was part of this planned work from the
+outset."*
+
+They are correct about the history. The veneer is **two** mechanisms and only
+one was ever bound for ecology:
+
+- the **block rule** (`surface_sample`'s Grass/Dirt/Stone climate thresholds) —
+  stubs.md § 2, whose named heir was the ecology system, but *specifically for
+  vegetation*. Ratification 4 (grass suspended) already converted that half from
+  "replace" to "delete", so removing the substrate half now is early, not new.
+- the **thickness budget** in `clastic_pass` — rewired by carry-`H`, and
+  self-retiring under distribution-first.
+
+**So, added to the DECIDED rule:** where a record exists, the record decides
+what the world is skinned with. The surface voxel expresses the column's top
+remainder as partial fill and takes its block from `classify(contents)`. Grass
+is not expressed at all; the resulting brown/rock-coloured world is
+**pre-ratified verbatim** ("it'll be a mostly brown world for a bit").
+
+**The constraint this must respect — one world answer.** `surface_sample` is
+the kernel *shared* by `column` (the ground) and `coarse_surface` (the far-field
+horizon), deliberately, so near and far are the same function at different
+strides (ARCHITECTURE.md § One world-answer surface, RATIFIED 2026-07-19). The
+record-derived block therefore belongs **inside `surface_sample`**, so both
+paths inherit it structurally. Derived only in `column`, the ground would turn
+sandstone-and-mudstone while the horizon stayed green and the LOD boundary would
+become a visible lie. Height stays independent of climate and must not move
+(`coarse_surface_matches_near_column_height` guards it).
+
+**Fallbacks that remain legitimate** (to be stated explicitly in the journal,
+each as genesis or absence-of-record rather than a surviving stub): the border
+wilds (no deep run exists out there — stubs.md § Genesis), subaqueous columns
+(`clastic_pass` returns early below sea level), and columns whose record rounds
+to nothing (the 0.2 % bare-rock case from journal/0053), which should read as
+their basement material rather than as painted Dirt.
+
+**Bonus consequence.** The surface voxel carries *no contents at all* today
+(`material_ids` skips `vy >= h`), which is one of the enumerated exceptions to
+the fill-contract invariant in ARCHITECTURE.md. Skinning it from the record
+**shrinks that exception** — and that list is supposed to only ever shrink.
