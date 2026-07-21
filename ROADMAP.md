@@ -1108,19 +1108,31 @@ but the magnitude and the fact that the world got **deeper on average rather
 than barer** is the opposite of what the tour verdict anticipated. **Walk it
 before ratifying** — it is one merge commit and trivially revertible.
 
-*Tour map for that walk, ready to use* (seed 1337 / Medium; regenerate with
-`cargo run --release -p dc-worldgen --example soil_depth_probe`). Use the LIT
-pass — this is a dig-depth/section question, and the surface block is
-unchanged, so the difference is entirely under the skin:
-- **(101663, 5073) — bare rock at grade**, `H` 0.17 m. The new extreme: basalt
-  at the surface, no soil at all. Did not exist before this slice. *Start here.*
-- **(5993, 14732) — tour station 1**, `H` 10.66 m: 6 → 12 voxels. The station
-  that motivated the slice and moved the opposite way (corrections #26).
-- **(107183, 9672) — tour station 2 dune field**, `H` 7.99 m: 2 → 8 voxels,
-  and the record holds 379 units summing to 7.99 m that express as *zero*
-  whole-voxel strata — so this is also the best place to SEE stubs.md § 12.
-- **(82346, 24391) — loess margin**, `H` 80.49 m: 31 → 37 voxels, where the
-  8-voxel veneer cap truncates hardest (ledger says 89 voxels).
+*Tour map for that walk* (seed 1337 / Medium; regenerate with
+`cargo run --release -p dc-worldgen --example soil_depth_probe`).
+
+**⚠ UNITS — read before teleporting (corrections #28).** The station
+coordinates below are **world METRES**, which is what `pose_set` takes, so pass
+them **directly**. `soil_depth_probe::STATIONS` holds metres and *divides* by
+0.9 to reach voxels; the integrator multiplied instead and walked every station
+of the 2026-07-21 live tour **8.6 km off target**, then "verified" it by
+confirming `pos_voxel` matched what he aimed at — a check that could not tell
+the two hypotheses apart. The voxel address of a station is `metres / 0.9`
+(loess margin = voxel 91 496, 27 101).
+
+Use the LIT pass — this is a dig-depth/section question:
+- **(101663, 5073) m — bare rock at grade**, `H` 0.17 m. The new extreme:
+  basement at the surface, no soil at all. Did not exist before this slice.
+  *Start here.*
+- **(5993, 14732) m — tour station 1**, `H` 10.66 m. The station that motivated
+  carry-`H` and moved the opposite way (corrections #26).
+- **(107183, 9672) m — tour station 2 dune field**, `H` 7.99 m; the record
+  holds 379 units that expressed as *zero* whole-voxel strata before
+  journal/0055. Best place to see what the sieve was eating.
+- **(82346, 24391) m — loess margin**, `H` 80.49 m → **188 voxel spans, 76 of
+  them mixed, ~90 sediment blocks**. The deepest, richest section in the world
+  and the best cut face available. *(Verified headlessly in journal/0058 — the
+  "only 3 voxels here" alarm was the integrator standing 8.6 km away.)*
 
 *(Superseded by the session-close block above; kept for the record.)*
 **RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
@@ -1713,6 +1725,22 @@ before any code.
   for free the day deposition produces its first sub-full column". It lit up
   and did not work, because the assumption it rested on lived in a doc comment
   nobody re-read when the world changed underneath it.
+- *(**"The world systematically under-expresses `H`": RETRACTED** 2026-07-21,
+  same day it was filed — corrections #28, journal/0058. The alarm was the
+  integrator's metres/voxels inversion, not a defect. Verified headlessly:
+  the generated column matches `round(H/0.9)` with an error of **0 or +1
+  everywhere, never negative**, the +1 being the top-of-column partial voxel
+  that a *block* scan must count whole. The client world is also byte-identical
+  to the probe world, proven block-for-block at four addresses — the
+  stop-the-world hypothesis is dead.)*
+- *(**"Surface material is quantized per chunk": FIXED** 2026-07-21,
+  journal/0058 — the member is now drawn per voxel column inside the shared
+  `surface_sample` kernel. Chunk footprints expressing more than one surface
+  member went **0/169 → 147/169**. Block fingerprints unchanged in both
+  recorded worlds, which is within-class invariance confirmed by an 80-chunk
+  fingerprint that knows nothing about the argument. **Unwalked** — the fix
+  landed after the user's session closed, so nobody has seen the patches
+  gone.)*
 - **Mixed voxels carry no member dither — watch for the chunk-line cutover
   coming back** (journal/0055 judgment call 2, 2026-07-21; UNTESTED either
   way). The 3c-2 boundary dither (`dithered_member`) exists to wander material
