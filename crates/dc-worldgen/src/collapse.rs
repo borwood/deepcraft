@@ -63,8 +63,9 @@ pub const L_VOXEL: u8 = 14;
 /// relief, so no sub-locale detail is lost and the deep terrain drives the rest.
 pub const L_DEEP: u8 = L_LOCALE;
 
-/// Per-refinement amplitude decay for elevation jitter.
-const AMP_DECAY: f64 = 0.55;
+/// Per-refinement amplitude decay for elevation jitter. Public so the S13
+/// roughness probe reads the shipped constant instead of restating it.
+pub const AMP_DECAY: f64 = 0.55;
 
 /// Hard per-chunk lookahead bounds (distinct cells consulted per level while
 /// generating one chunk). Constants by design: if generation ever needs more,
@@ -561,6 +562,28 @@ impl<'a> WorldGenerator<'a> {
         let locale = self.locale(vx.div_euclid(512), vz.div_euclid(512));
         let (temp_sl, precip) = self.climate_at(vx, vz);
         self.surface_sample(vx, vz, &locale.segs, locale.fringe, temp_sl, precip)
+    }
+
+    /// **Measurement only** (S13, `docs/spikes/S13-results.md`): the
+    /// *continuous* surface elevation in metres at one world voxel column — the
+    /// exact value [`Self::surface_sample`] floors into a voxel height, river
+    /// carving included. Nothing in generation calls this; it exists so a probe
+    /// can measure relief without paying the 0.9 m quantization step, and it
+    /// cannot change any generated output (it is the same pure function the
+    /// column collapse already evaluates, read one step earlier).
+    pub fn surface_elev_m(&mut self, vx: i64, vz: i64) -> f64 {
+        let locale = self.locale(vx.div_euclid(512), vz.div_euclid(512));
+        let (raw, _) = self.lattice(L_VOXEL, vx, vz);
+        let (elev, _) = carve_rivers(raw, vx as f64, vz as f64, &locale.segs);
+        elev
+    }
+
+    /// **Measurement only** (S13): one elevation-lattice point's
+    /// `(elevation m, roughness m)` — the read-only window onto the refinement
+    /// pyramid a roughness probe needs to attribute relief per level. A pure
+    /// derivation; consulting it can never change a generated chunk.
+    pub fn lattice_point(&mut self, level: u8, i: i64, j: i64) -> (f64, f64) {
+        self.lattice(level, i, j)
     }
 
     /// Chunk y containing the highest surface voxel of this chunk footprint.
