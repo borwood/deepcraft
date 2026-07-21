@@ -14,6 +14,7 @@
 //!   through [`VoxelScale`].
 
 pub mod chunk;
+pub mod classify;
 pub mod collision;
 pub mod column;
 pub mod format;
@@ -25,6 +26,7 @@ pub mod scale;
 pub mod voxel;
 
 pub use chunk::{CHUNK_SIZE, CHUNK_SIZE_USIZE, CHUNK_VOLUME, Chunk, ChunkPos, local_voxel};
+pub use classify::{block_twin, classify, dominant_material};
 pub use collision::{
     Aabb, MoveResult, VoxelQuery, aabb_overlaps_solid, column_top_solid_y, move_aabb,
 };
@@ -34,7 +36,9 @@ pub use lod::{
     DownsampleRule, LodPyramid, MAX_LOD_LEVEL, MajorityNonAir, ancestor_pos, child_positions,
     derive_lod_chunk, parent_pos,
 };
-pub use materials::contents::{ContentsError, StructureShape, VOXEL_EIGHTHS, VoxelContents};
+pub use materials::contents::{
+    ContentsError, SOLID_EIGHTHS, StructureShape, VOXEL_EIGHTHS, VoxelContents,
+};
 pub use materials::extract::{ExtractionYield, extraction_sequence};
 pub use materials::geology::{
     FormationContext, FormationWindow, GeoClass, GeoHabit, GeoMemberDef, GeoMemberIdx,

@@ -280,3 +280,76 @@ conversation:
      voxel below receive eighths?"), compaction (overburden on what?),
      and sim light (partial occlusion). Four future systems, one wanted
      primitive — which is the argument that carried the decision.
+
+## The fill contract AS BUILT — 2026-07-21 (journal/0052)
+
+The ratified contract above is implemented; this section records what shipped,
+what it is scoped to, and what is still open. **Nothing here is a new user
+ratification** — it is the engineering record of the decision already made.
+
+### `classify` — implemented
+
+`dc_core::classify::classify(&VoxelContents) -> Block`, pure, total, and
+order-independent (it takes canonical `VoxelContents`; the order-dependent
+`MixtureId` never enters — journal/0010's landmine rules unchanged). The rule
+in two steps:
+
+1. **Which multiset speaks**: structural fill, else debris, else pore fill.
+   Structure is what a voxel *is*, so granite with an olivine pore inclusion is
+   granite; with no structure the loose fill speaks, so a sand blanket is sand;
+   pore fill decides only in the degenerate hollow-shell-packed-with-mud case.
+2. **Who wins inside it**: the most abundant material, ties to the lowest
+   material id. Both the canonical segment sort and the tie-break make this
+   order-independent by construction.
+
+Then `block_twin(material) -> Block`, a **material→block table**, not a
+class→block table. That relocation is the load-bearing bit: two members of one
+content class (mudstone/siltstone, sandstone/conglomerate) summarize to the
+same block because their *materials* do, not because a `GeologySet` said so —
+which is what lets `classify` be pure over contents and independent of the
+registry while still reproducing the retired class table's answer for every
+member any registered pack has used. Loose materials fold into their lithified
+twin's band (sand/gravel → Sandstone, silt/clay → Mudstone, loam → Dirt);
+materials with no twin in today's block vocabulary (snow, ash, scree, bone,
+potsherd, knapping debris, and the accessory grains gold-dust/olivine, which
+never dominate a voxel) fall back to `Block::Stone` — the same coarse fallback
+the class table used for unknown classes.
+
+### Occupancy primitives — implemented
+
+On `VoxelContents`, alongside the existing `solid_eighths` / `open_pores` /
+`free_debris_eighths` / `structure_density`: `free_eighths`, `is_full`,
+`loose_eighths`, `bound_eighths`, `has_structure`, `is_loose_only`,
+`is_occupancy_solid`, and the constant `SOLID_EIGHTHS = 4` (visuals.md's
+reserved "solid ≥ 4/8"). Their doc block names the four consumers they exist to
+serve as ONE answer — fluid fill, the loose gravity march, compaction, and the
+sim/collision tier — so none of them re-derives occupancy privately. **The
+client's collision still reads `Block::is_solid`**; rewiring it to
+`is_occupancy_solid` is its own slice.
+
+### The absent-contents rule — decided in build, flagged
+
+ARCHITECTURE.md states the invariant for "every voxel". As built it is scoped:
+
+> for every voxel with **non-empty** contents, `block == classify(contents)`.
+
+Voxels the generator never gave a contents record are **unclassified, not
+classified as Air**: air above the surface, the surface-veneer stub block
+(stubs.md § 2), the legacy soil band and unrecorded basement below the
+deep-time record, ocean floor, the border wilds, and ruin posts. `classify`
+does answer `Block::Air` for empty contents, but the generator does not apply
+it there. The exception is *enumerated and pinned by test* — a geology block
+appearing without a record fails the suite — so it can only shrink, and it
+shrinks on its own as each stub acquires a real record.
+
+### Still open (not built)
+
+- **The fractional top.** The eolian blanket's real remainder as a
+  partial-height loose top voxel is **deferred**: in today's column the only
+  geometrically honest place for a fraction is the topmost voxel, and that
+  voxel is the surface-veneer stub — whose retirement ratification 4 reserves
+  for its own slice. Emitting the fraction anywhere below it opens a void under
+  solid ground. journal/0052 carries the follow-on spec.
+- Collision / water / sim light reading `is_occupancy_solid` and
+  `free_eighths`.
+- Form-dependent texture variants (visuals road, per ratification 2).

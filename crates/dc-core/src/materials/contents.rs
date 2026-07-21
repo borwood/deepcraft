@@ -28,6 +28,18 @@ use super::MaterialId;
 /// Volume-eighths per voxel.
 pub const VOXEL_EIGHTHS: u8 = 8;
 
+/// Occupied eighths at which a voxel counts as **solid** — collidable,
+/// stood-on, face-culling (docs/design/visuals.md reserves "solid ≥ 4/8").
+///
+/// This is the occupancy-tier home of a property that has lived on `Block`
+/// (`Block::is_solid`) since S1. The forms contract (materials.md
+/// § forms design pass) moves solidity off the block, which is a derived
+/// *classification*, onto the contents, which are the source of truth.
+/// [`VoxelContents::is_occupancy_solid`] is the one place that decides;
+/// consumers migrate to it slice by slice rather than each inventing a
+/// threshold.
+pub const SOLID_EIGHTHS: u8 = 4;
+
 /// Structure shape occupying a voxel; reserves capacity in eighths. The shape
 /// vocabulary will grow (stairs, …) — what matters here is reserved capacity.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -218,6 +230,82 @@ impl VoxelContents {
     #[inline]
     pub fn free_debris_eighths(&self) -> u8 {
         VOXEL_EIGHTHS - self.shape.capacity() - self.debris_len
+    }
+
+    // ----- occupancy primitives -------------------------------------------
+    //
+    // **One occupancy answer, read by everyone.** Four systems in flight all
+    // need to know "how full is this voxel, and with what kind of stuff":
+    //
+    // - **fluid fill** (water, aquifers, waterlogging): how many eighths can a
+    //   fluid still enter → [`Self::free_eighths`], split into
+    //   [`Self::open_pores`] (fluid inside a porous rock) and
+    //   [`Self::free_debris_eighths`] (fluid in the open volume);
+    // - **the loose gravity march** (materials.md § loose-material mechanics):
+    //   which eighths fall column-wise → [`Self::loose_eighths`], and whether
+    //   nothing structural is holding them → [`Self::is_loose_only`];
+    // - **compaction** (boot-on-snow, and its deep-time cousin): loose volume
+    //   available to press, and pore capacity to press it into →
+    //   [`Self::loose_eighths`] + [`Self::open_pores`], with
+    //   [`Self::bound_eighths`] as the part already held;
+    // - **the sim/collision tier**: is this voxel solid enough to stand on and
+    //   occlude → [`Self::is_occupancy_solid`] against [`SOLID_EIGHTHS`].
+    //
+    // They are deliberately thin derivations over the three segment lengths so
+    // that no consumer re-derives occupancy by walking `filled_slots()`, and no
+    // two consumers can disagree about how full a voxel is. Solidity in
+    // particular is moving OFF `Block` onto this threshold
+    // (docs/design/visuals.md reserves "solid ≥ 4/8"); the primitive lands
+    // here first — rewiring the client's collision to read it is its own slice.
+
+    /// Total unoccupied eighths: open pores plus unreserved volume not yet
+    /// holding debris. What a fluid could still enter.
+    #[inline]
+    pub fn free_eighths(&self) -> u8 {
+        VOXEL_EIGHTHS - self.solid_eighths()
+    }
+
+    /// Every eighth is occupied — the voxel admits nothing more.
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        self.solid_eighths() == VOXEL_EIGHTHS
+    }
+
+    /// Loose (granular) eighths: the debris role. What gravity marches, what a
+    /// boot compacts, what a shovel takes first. Pore fill is *not* loose — the
+    /// structure around it holds it ([`Self::bound_eighths`]).
+    #[inline]
+    pub fn loose_eighths(&self) -> u8 {
+        self.debris_len
+    }
+
+    /// Eighths held in place by a structure: structural fill plus whatever is
+    /// packed into its pores. The complement of [`Self::loose_eighths`] within
+    /// the occupied volume.
+    #[inline]
+    pub fn bound_eighths(&self) -> u8 {
+        self.structure_len + self.pore_len
+    }
+
+    /// Does a structure shape reserve any capacity here?
+    #[inline]
+    pub fn has_structure(&self) -> bool {
+        self.shape.capacity() > 0
+    }
+
+    /// Loose material with no structure at all: nothing holds it, so it falls
+    /// (the gravity march) and it renders as a partial-height layer
+    /// (journal/0010's dormant mesher capability). False for the empty voxel.
+    #[inline]
+    pub fn is_loose_only(&self) -> bool {
+        !self.has_structure() && self.debris_len > 0
+    }
+
+    /// Is this voxel solid *by occupancy*? The single occupancy-tier answer for
+    /// collision, face culling and standing-on, against [`SOLID_EIGHTHS`].
+    #[inline]
+    pub fn is_occupancy_solid(&self) -> bool {
+        self.solid_eighths() >= SOLID_EIGHTHS
     }
 
     /// Structure density: filled structural slots over reserved capacity.
