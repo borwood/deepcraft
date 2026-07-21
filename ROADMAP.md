@@ -7,6 +7,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-21 — **Ore placeholder PBR packs — textures ahead of the registry**
+  (journal/0045, background agent; asset/python-only; merged with the
+  workspace gate deferred BY INTEGRATOR DECISION to the combined post-
+  full_agents-flip merged-main run — to be confirmed there). Five
+  deterministic 16×16 LabPBR packs beside the existing 29: gold-quartz
+  (milky vein quartz, sparse warm flecks), bog-iron (limonitic nodular
+  mottle), banded-ironstone (hematite/chert/steel stripe, wrap edge phased
+  inside a band), redbed-copper (R5-option-a subtle malachite specks),
+  rock-salt (LabPBR subsurface B=190 — reads faintly translucent). Tiling
+  self-check green across all 34 packs / 68 tiling PNGs; **87/87 pre-existing
+  PNGs sha256-identical**; gold-dust verified already packed. The new slugs
+  are INERT until registry wiring day — the atlas loader iterates the
+  registry, never the directory. The user judges the looks when the ores
+  render (wiring day), not from files.
+
 - 2026-07-21 — **Walk 0046 — the scarp and the plateau** (journal/0046, eight
   assets; the corrections-#25 debt paid on a STOCK production world — first
   walk needing no flags post-U8, post-climate-fix, `--horizon 6`). The
