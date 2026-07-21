@@ -585,3 +585,18 @@ endowment census (6, feeds R6).
   already IS the massive form (grade-is-eighths, ratified); a separate
   member would duplicate a mechanism.
 - **Charcoal-anything** — settled by measurement in 0026; not revisited.
+
+## R8 — MEMBER NAMING CONTRADICTS THE RATIFIED REPRESENTATION (added 2026-07-21, integrator, after the texture pass failure)
+
+Found the hard way: this doc's members are named as DEPOSITS (`dc:geo/gold-quartz`,
+`dc:geo/redbed-copper`) while geology.md § Ore (DECIDED 2026-07-20) ratifies ore
+as a SUBSTANCE inside a HOST via the eighths/partial system — the composite look
+must EMERGE from the mix (grade-is-eighths), never be baked into a member. The
+first texture pass generated deposit portraits from these names and had to be
+redone as base substances (journal/0048). **Proposed amendment (user call):**
+rename members to substances — `dc:geo/native-gold`, `dc:geo/malachite`,
+`dc:geo/limonite` (bog-iron's nodule substance) — with the deposit geometry
+(vein, stain, nodule-in-peat) supplied by emplacement context + host, exactly as
+gold-dust-in-gravel already works. `banded-ironstone` and `rock-salt` stay
+whole-voxel ROCK members (their internal structure is sub-voxel reality,
+legitimately in-texture — the carbonaceous-mudstone precedent).
