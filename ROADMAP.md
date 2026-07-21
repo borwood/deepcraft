@@ -1636,6 +1636,30 @@ before any code.
   growth-reallocs — lives in `meshing.rs`, worth at most a couple of percent of
   that 35 %, unowned and unstarted.
 
+- **The far field is now BOXIER than the near field** (user, live walk
+  2026-07-21). Partial-height voxels give the near ground sub-voxel height
+  variety; the far field is a whole-voxel column summary and cannot express it,
+  so the LOD transition now differs in **geometry** as well as detail. Note
+  what is and is not guarded: `coarse_surface_matches_near_column_height`
+  asserts whole-voxel height agreement and
+  `..._surface_block` asserts material agreement — **neither can see a
+  sub-voxel height difference**, so this passed every test while being visible
+  to the eye. Not yet diagnosed for severity; candidate answers range from
+  "carry a partial-height byte in the far summary" to "accept it, the far
+  field is a summary". Related: FF2b coarse volumetric summaries.
+- **Organics render as solid boxes because form is keyed on CLASS**
+  (found 2026-07-21 answering the user's question about why some surfaces
+  quantize to boxes and others are partial). `fill::is_loose` returns true only
+  for `clastic-fine` / `clastic-coarse` / `ore-placer`; everything else —
+  including **organic soil, peat and coal** — goes to the structure bucket, and
+  `meshing::height_frac` renders anything that is not loose-only at full
+  height. So a carbonaceous-mudstone or peat surface is always a full cube
+  while a mudstone surface can be a partial plate. Real soil and peat are
+  loose. The user's instinct that this "has to do with form: structure vs
+  loose, and provenance of how they got there" is correct **and is already the
+  sequenced work**: consume-the-ledger piece (c), *derive material FORM from
+  provenance* rather than from class. This is that item's first concrete,
+  visible symptom.
 - **HOLES IN THE GROUND — partial voxels are missing side faces** (found in
   the live walk 2026-07-21, **diagnosed by the user**; fix dispatched).
   Symptom: sky-blue bands straight through the terrain in a rectilinear
