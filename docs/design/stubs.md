@@ -36,6 +36,20 @@ ecology system — vegetation-as-deep-time, placement by fitness (ecology.md
 DECIDED 2026-07-21). **DO NOT BANDAID.** **Blast:** every surface block in the
 world, out to the far horizon (`coarse_surface` shares the rule).
 
+**SHARPENED 2026-07-21 (user, forms pass):** the veneer's *grass* half now has
+an explicit disposition — **grass is suspended and must not be expressed at
+all**. It is an ecology state riding on the substrate materials of a block or
+its loose eighths, not a block identity chosen by a threshold. The forms slices
+express the materials the sim says are present and paint no grass; the user
+pre-ratified the appearance ("it'll be a mostly brown world for a bit"). So the
+retirement of this stub is now *partly a deletion* rather than wholly a
+replacement: the Grass branch goes away with ecology rather than being
+reimplemented by it. Turf's eventual presentation is sketched (ligatures +
+anisotropic variants — green on top faces, roots-texture additive on sides,
+over a seeded dirt material in loose eighths or packed pores) and explicitly
+**not to be built now**. Non-grasslike ground cover: suspended entirely.
+See materials.md § "The forms design pass".
+
 ### 3. soil-depth-from-precip / the discarded `H` plane
 `collapse.rs::column` (~902): soil depth = 3/2/1 voxels by present-day precip,
 while the deep sim's computed regolith plane `H` is summed away
