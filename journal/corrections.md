@@ -802,3 +802,42 @@ Sibling to #25: there we sampled the flattest place and concluded about relief;
 here we named a site by its erosion *rate* and read the name as a description
 of its erosion *state*. When a station is chosen by "where did the most
 happen", do not assume it is also "where the least remains".
+
+## 27. "A green gate means the code you changed passed" — the impossible GREEN (2026-07-21)
+
+**The claim** (implicit in every gate run this project has ever done, and
+explicit in corrections #21, which taught us to distrust an impossible *red*):
+`cargo test --workspace --release` exiting 0 with every suite reporting
+`test result: ok` means the code in the working tree was built and tested.
+
+**Falsified — reported by the journal/0054 agent, with direct evidence.** Its
+first full workspace run reported exit 0 and every suite ok while running
+**none of the three tests it had just written**. Cargo reused a
+`dc_client-*.exe` timestamped minutes *before* `devicelost.rs` existed, out of
+the `CARGO_TARGET_DIR` that agent worktrees deliberately share (CLAUDE.md
+§ Build rules). `cargo clean -p dc-client --release` resolved it, and the
+crate's test count moved **99 → 102** — the three new tests appearing for the
+first time.
+
+**Why it is worse than the impossible red.** #21's failure mode *announces
+itself*: the build goes red with missing symbols and you are forced to
+investigate. This one is silent and flatters you. A grep for `test result: ok`
+— the exact filter this project's gate discipline recommends — cannot see it,
+because every suite genuinely did pass; the suite that mattered simply was not
+the one on disk.
+
+**Epistemic status, stated deliberately.** The stale-artifact mechanism is the
+*agent's* account, supported by the timestamp and the 99 → 102 count. **The
+integrator did not reproduce the stale serve** and cannot distinguish it from
+an ordinary sequencing slip (gates run before the file was saved). What the
+integrator *did* verify is that the remedy works and is cheap: the session's
+final gate ran after `cargo clean -p dc-client -p dc-worldgen -p dc-api
+-p dc-core --release`, and every new test of this session was confirmed
+**present by name** in the output — 48 suites, 489 tests, exit 0. That run is
+the authoritative one for journal/0050–0054.
+
+**The practice that replaces the assumption**, now in CLAUDE.md § Gates:
+before a merge gate, clean the crates you changed; then verify the gate by
+**test name or count**, never by `test result: ok` alone. A gate is only
+evidence about the code it actually ran, and "did it run?" is a separate
+question from "did it pass?" — one this project had been conflating.

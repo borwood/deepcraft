@@ -241,8 +241,43 @@ it at session start, leave it true at session end.
   in finally, >40 min = stale, take it. Every agent brief carries it; the
   integrator uses it too. Wait for no live `cargo`/`rustc`/`dc-client`
   BEFORE acquiring.
-- **Exit codes lie about GPU crashes** (two DeviceLost crashes reported exit
-  0): never characterize a session end from the exit code — read the log
-  tail for `DeviceLost`/`panicked` first. Corollary of #18/#19: direct
-  observation outranks side-channel inference (a process list is not an
-  attribution; a stopped agent cannot hold a fresh mutex).
+- **Exit codes lie about GPU crashes** — *fixed for dc-client 2026-07-21*
+  (journal/0054: the panics were on Bevy worker threads, so the main loop
+  wound down normally and genuinely returned success; `main` now returns a
+  derived `ExitCode` — 0 clean / 70 device lost / 71 fatal render error /
+  101 panic anywhere). Reading the log tail is still the better habit because
+  it names the cause, not just the class. The durable lesson stands:
+  corollary of #18/#19, direct observation outranks side-channel inference
+  (a process list is not an attribution; a stopped agent cannot hold a fresh
+  mutex).
+
+## Proven practice additions (2026-07-21, session 6 — the autonomous session)
+
+- **The impossible GREEN — verify a gate by test NAME, not by `ok`**
+  (corrections #27). Agent worktrees share one `CARGO_TARGET_DIR`; a stale
+  sibling artifact can be served as fresh, so a full run can report exit 0
+  with every suite `ok` while the code just written **never built**. It is the
+  mirror of #21's impossible red and worse, because it flatters instead of
+  alarming and the recommended `test result: ok` filter is blind to it.
+  Integrator practice: `cargo clean -p <every crate changed this session>
+  --release` before the merge gate, then confirm the session's new tests are
+  **present by name**. Ask "did it run?" separately from "did it pass?"
+- **Resume a parked agent; do not re-brief it.** An agent that stops mid-slice
+  saying it will wait on a build is the known lost-wake-up failure, not a
+  failed slice — its worktree usually holds real, complete progress. Verify
+  the machine state yourself (live `cargo`/`rustc`, mutex age), then
+  `SendMessage` it that state plus explicit finish-and-report instructions.
+  Its context is intact and it lands the work. Both halves matter: check
+  before nudging, nudge rather than restart.
+- **Verify the load-bearing claim, not the whole report.** Each agent this
+  session had exactly one claim that carried its slice, and each was worth
+  independent work: for eviction, "`set_block_raw` is the only voxel-writing
+  path" (audited — it is); for the fill contract, "the goldens were captured
+  pre-rewire" (re-ran the fingerprint against pre-merge main — they were, and
+  a circular golden would have been undetectable otherwise). Pick the claim
+  whose falsity would be worst and go after that one.
+- **Write the brief's premise as a hypothesis.** The carry-`H` brief asserted
+  the deflation basin holds `H ≈ 0`; the agent measured 10.66 m and filed
+  corrections #26. A brief inherits claims from the corpus, and the corpus can
+  be wrong — say "the corpus says X; verify before relying on it" rather than
+  stating X as fact, and an agent will check it instead of building on it.

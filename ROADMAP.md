@@ -1139,8 +1139,8 @@ see the question you are asking.
   Bounded in normal play (a storm generates chunks constantly) — not the RAM
   march, which was `HostWorld.chunks` and is now fixed. **Reassigned
   2026-07-21** to the forms/partials `collapse.rs` rewrite, which owns that
-  file. Separate hardening item, still unowned: DeviceLost should degrade
-  loudly, not cascade into `unwrap`/`PoisonError` panics.
+  file. *(**Separate hardening item — DeviceLost degrades loudly: SHIPPED**
+  2026-07-21, journal/0054.)*
 
 - **Tectonic expression at the collapse tier — the layer-cake redemption**
   (promoted 2026-07-21 after the user's callout: dip/fold non-expression
@@ -1682,8 +1682,22 @@ before any code.
   (droppable — "store only what the derivation cannot predict", the S11
   doctrine) from edited (persist/spill to the save layer); generator-cache
   work is residual (close the coarse_surface gap, distance-aware caps if
-  measured). Secondary defect stands: DeviceLost still shouldn't cascade
-  into `unwrap` panics.
+  measured). *(**Secondary defect RESOLVED** 2026-07-21, journal/0054 —
+  DeviceLost now degrades loudly; the poison cascade is gone at source and
+  the exit code no longer lies.)*
+- **The shared `CARGO_TARGET_DIR` can serve a STALE binary and produce a
+  FALSE-GREEN gate** (found 2026-07-21 by the journal/0054 agent; the mirror
+  of corrections #21's impossible *red*, and worse because it does not
+  announce itself). Symptom: a full `cargo test --workspace --release`
+  reported 489 passed / exit 0 while running **none** of the three tests just
+  written — cargo reused a `dc_client-*.exe` timestamped minutes before the
+  new source file existed, out of the target dir two agent worktrees share.
+  Caught only by grepping for the new **test names**; `cargo clean -p
+  dc-client --release` fixed it and the crate's count went 99 → 102.
+  Remedy now practised by the integrator: clean every crate changed in the
+  session before the merge gate, and verify by test name/count rather than by
+  `test result: ok`. Undiagnosed in detail (which fingerprint input goes
+  stale); see corrections #27.
 - **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
   (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
   teleport sequence: `DeviceLost ("driver implementation is at fault")` →

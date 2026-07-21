@@ -51,6 +51,17 @@ cargo clippy --workspace --all-targets --release -- -D warnings
 cargo test --workspace --release
 ```
 
+- **A gate is only evidence about the code it actually ran.** Agent worktrees
+  share one `CARGO_TARGET_DIR`, and a sibling's stale artifact can be served
+  as fresh — producing a **false green**: exit 0, every suite `ok`, and the
+  code you just wrote never built (corrections #27; the silent mirror of #21's
+  impossible red). So before a merge gate, `cargo clean -p <each crate you
+  changed> --release`, and **verify by test name or count**, never by
+  `test result: ok` alone. "Did it run?" is a separate question from "did it
+  pass?"
+- Capture `error` / `panicked` / `FAILED` lines, not only `test result:` lines
+  — a compile failure is invisible to a test-result filter.
+
 ## Agent walks
 
 - Connect: run the game (`cargo run --release -p dc-client` from repo root),
@@ -61,6 +72,11 @@ cargo test --workspace --release
 - Check `eye_in_solid` in every pose response before trusting a screenshot;
   use `pose_set { surface: true }` for walker-safe teleports. Pitch:
   negative looks down.
+- **dc-client's exit code is now honest** (journal/0054): `0` clean, `70`
+  GPU device lost, `71` fatal render error, `101` a panic on any thread. The
+  old "exit codes lie about GPU crashes" warning is retired *for dc-client*.
+  Reading the log tail is still the better habit — it names the cause, not
+  just the class — but it is no longer compensating for a broken signal.
 - Screenshots land in `journal/assets/` — name them `NNNN-description` for
   the journal entry they belong to.
 - **Pick the control that can SEE your question** (journal/0030,
