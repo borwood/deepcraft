@@ -40,6 +40,12 @@ const SEED: u64 = 0x0D5E_ED57_2026;
 /// seam.
 const MIN_DIGGABLE_COAL_VOX: u32 = 15;
 
+/// N=2 voxel edge, metres. Since journal/0055 the record's thicknesses are
+/// metres and the quantization happens once, per voxel span — so a test that
+/// wants "how many voxels of coal" sums the metres and divides *once*, which is
+/// the same `round Σ` discipline the generator now uses.
+const VOXEL_M: f64 = 0.9;
+
 /// The S10-measured coal site (docs/spikes/S10-results.md § 1) *was* a fixed
 /// voxel, `(107_338, 58_787)` — a 24.03 m seam over a marine section. But a
 /// hard-coded location is a golden that any upstream climate change invalidates:
@@ -248,13 +254,15 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     // world's strongest exemplar.
     let coal_collapse_vox = |g: &mut WorldGenerator, vx: i64, vz: i64| -> u32 {
         let (cx, cz) = column_of(vx, vz);
-        g.column_record(cx, cz)
+        (g.column_record(cx, cz)
             .strata
             .events
             .iter()
             .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
-            .map(|e| u32::from(e.thickness_vox))
-            .sum()
+            .map(|e| f64::from(e.thickness_m))
+            .sum::<f64>()
+            / VOXEL_M)
+            .round() as u32
     };
     let mut ranked: Vec<(i64, i64, f64, u32)> = candidates
         .iter()
@@ -293,13 +301,14 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     let col = g.column_record(cx, cz);
 
     // ---- 2. the seam survives collapse as the COAL class -------------------
-    let coal_vox: u32 = col
+    let coal_m: f64 = col
         .strata
         .events
         .iter()
         .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
-        .map(|e| u32::from(e.thickness_vox))
-        .sum();
+        .map(|e| f64::from(e.thickness_m))
+        .sum::<f64>();
+    let coal_vox = (coal_m / VOXEL_M).round() as u32;
     assert_eq!(
         coal_vox, coal_vox_pick,
         "section 2 must re-measure the very seam section 1 picked"
@@ -388,13 +397,15 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     // so a second one to make the same point is not worth the wall clock.
     let extended = with_second_coal();
     let coal_class_vox = |set: &GeologySet, g: &mut WorldGenerator, cx: i64, cz: i64| -> u32 {
-        g.column_record(cx, cz)
+        (g.column_record(cx, cz)
             .strata
             .events
             .iter()
             .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
-            .map(|e| u32::from(e.thickness_vox))
-            .sum()
+            .map(|e| f64::from(e.thickness_m))
+            .sum::<f64>()
+            / VOXEL_M)
+            .round() as u32
     };
     let mut ge = WorldGenerator::with_geology(&pregen, extended.clone());
     let mut total = 0u32;

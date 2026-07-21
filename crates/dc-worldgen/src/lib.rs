@@ -34,6 +34,7 @@
 
 pub mod collapse;
 pub mod deeptime;
+pub mod fill;
 pub mod geology;
 pub mod pipeline;
 pub mod pregen;
@@ -43,6 +44,7 @@ pub use collapse::{
     ChunkStats, ColumnRec, LOOKAHEAD_BOUNDS, LookaheadBounds, PregenSource, WorldGenerator,
 };
 pub use deeptime::DeepOverrides;
+pub use fill::{ColumnFill, Plan};
 pub use geology::{AlluviumRec, StrataCtx, StrataEvent, StrataRec};
 pub use pipeline::{Pass, PassBody, Phase, Pipeline, PipelineError, PregenCtx, Resource};
 pub use pregen::{
