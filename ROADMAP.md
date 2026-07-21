@@ -1433,7 +1433,11 @@ before any code.
   just slower; smearing may be the pre-crash state. Strengthens the
   resource-accumulation hypothesis; the diagnosis slice should reproduce
   via teleport churn while instrumenting GPU memory AND watching for
-  texture degradation as the early warning.
+  texture degradation as the early warning. **Lifetime bound (same day):
+  the smearing `--horizon 3` session ran ~44 min through the whole tour and
+  exited CLEANLY (verified: no DeviceLost in the log), vs 4.5–10 min to
+  death at `--horizon 6` — accumulation scales with far-field size, and
+  smearing is the degraded-but-alive state well before the cliff.**
 - **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
   (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
   teleport sequence: `DeviceLost ("driver implementation is at fault")` →
