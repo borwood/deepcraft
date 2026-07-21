@@ -402,6 +402,112 @@ is known rather than re-deriving it.
   volume at the same scrambled position") is the same lesson from the other
   direction.
 
+## Session capture, 2026-07-21 — caves ↔ hydrology, one system (off-thread session; PROPOSALS except user words)
+
+An off-main-thread session audited chunk generation ("what does a chunk
+know at generation time") and ran the caves/hydrology integration question
+against the corpus. The user judged the analysis "likely sound" — captured
+here so the thread survives the session boundary. **Nothing below is
+DECIDED**; user-owned calls are flagged.
+
+**The integration shape (per tier, all reusing canon spines):**
+
+- **Deep time**: karst enters as *another agent on the one water field* —
+  dissolution = solubility (from the recorded volume, the orogeny recipe)
+  × flow (the same drainage the erosion step already routes) × phreatic
+  residence (below the epoch's table). It writes per-cell void/conduit
+  capacity into the record, and **feeds back into flow routing** —
+  conduit capture is what produces losing streams, dry valleys over cave
+  systems, springs at base level; without the feedback you get rivers
+  flowing intact over networks that should have swallowed them.
+- **Karst is stream-power's chemical twin**: the erode-transport-deposit
+  architecture of `erosion.rs` in the solute phase (capacity = solubility
+  × flow, not slope × discharge). Speleothem/tufa is the deposit end of
+  the same transport ("eating it away and depositing it elsewhere", § 2
+  above). Mass ledger extends: `Δ(ΣR+ΣH) == uplift + biotic − solution
+  export` — dissolved load reaching the sea is a real sink, same
+  epistemic status as the evaporation observation.
+- **Collapse**: recorded conduit capacity refines (bounded, addressed,
+  scrambled-position judged) to **void intervals per column**; the
+  collapse-time water table decides which voids are flooded at year zero
+  — the genesis handoff that seeds the body graph.
+- **Present tier — the punchline: S11 needs zero cave-specific code.** A
+  cave is an air component in the connectivity index; a flooded conduit
+  is a body; a spring is a body outlet where the table meets the surface
+  (derived, not authored). Conduit-vs-matrix flow — the thing that would
+  wreck a naive saturation field — is exactly the free/bound two-regime
+  split, rediscovered by karst hydrology's own conduit/matrix
+  distinction.
+
+**Genuinely new findings (work-shaped, need sequencing):**
+
+1. **Two drainage opinions exist.** Pregen cell hydrology and the deep
+   tier's per-epoch drainage compute the same physical thing at two
+   resolutions — the same disease as two water tables, one level up.
+   Proposed: deep drainage becomes *the* spine, cell graph derived or
+   demoted to initialization. Consequence with teeth: the history pass
+   sites settlements against pregen rivers (order: tectonics → climate →
+   hydrology → history → deep-time), so it would need **resequencing
+   after deep time** to site against the final eroded world's drainage.
+   Pipeline surgery — decide deliberately, not mid-karst-slice.
+2. **The deep sim's per-epoch drainage is computed and discarded**
+   (`DeepField` keeps only `surf` + `strata`). Paleo-channels are the
+   erosional-cave feedstock ("possibly derivable from data already held",
+   § sweep) — needs a recorder axis (channels, and the table per
+   chapter). Cost unmeasured; estimate is hundreds of KB, and the eolian
+   record already carries a memory FLAG, so measure first.
+3. **The spike that gates the river-primitive retirement:** can regional
+   drainage refine at landform resolution under *coarse boundary fluxes*
+   with a measurable halo? S9 named drainage the single advective wall
+   but never tested the boundary-conditioned form. If yes → channels
+   become part of the eroded surface and the RiverSeg chain dies
+   honestly. If no → some channel inscription survives at collapse, and
+   the honest framing is a refinement OPERATOR (lattice-midpoint class
+   machinery), never a persisted primitive.
+4. **Column-model verdict (proposal): don't kill ColumnRec — kill the
+   contract's growth.** A per-column interval log is fully general for 3D
+   solids (caves = void intervals beside deposition events; real
+   stratigraphy is described this way; orogeny field-proved the shape at
+   147k columns). What must stop is new consumers baking in "one height,
+   solid below" (the authority edit-ceiling, far-mesh column reasoning,
+   surface scans accrete on it now). Proposed: a one-paragraph
+   ARCHITECTURE decision naming the interval log as the target fill
+   contract, current single-height as its degenerate case, riding
+   as-built per no-bandaid until the fork. **User-owned scope call.**
+5. **Water-table placement (open question 5, sharpened):** likely BOTH —
+   a coarse paleo table per chapter in the deep record (cave morphology
+   and speleothems want history) AND a present-tier locale relaxation
+   over the strata's permeability (S11's 4–11 halo makes it affordable).
+   Needs the spike, not an assumption.
+
+**Acceptance-test proposal for the first karst slice:** the encounter is a
+stream that vanishes into a sink and a spring that returns it downstream —
+make *that* read-quality the test of the slice, not void statistics. It
+exercises the whole loop (record → capture → refinement → body seeding)
+and it is the thing 460 m coarsening most threatens.
+
+## User directive, 2026-07-21 — rendering water: partials/structure, placeholder texture, honest seams
+
+Captured at session start (user): when we reach rendering water in-world,
+(a) take full advantage of **partials and structure**; (b) **placeholder
+texture is appropriate** at that point; (c) the requirement is to *leave
+the seams* "for us to do more interesting things with rendering it such
+as textures showing direction of flow, waves, etc."
+
+Assistant reading (PROPOSAL beyond the user's words): this is the 0049
+station-2 forms/partials directive reaching water — fluid already
+occupies eighths and pores at the material tier (materials.md), so
+water's render path enters through the same partials/forms substrate sand
+will, not a bespoke water-mesh system. And the seams are **data seams,
+not art seams**: flow direction and wave energy are facts the water
+system owns or will own (body-graph inlets/outlets = direction; the fetch
+heir = wave energy per body, journal/0049 station 5). The extension point
+to preserve is "per-surface water attributes sourced from the body/flow
+data" — future rendering upgrades read sim facts, never invent visual
+noise. Appearance-class discipline applies: the placeholder rides until
+the user upgrades it from pictures (the 0048 substances-not-portraits
+lesson).
+
 ## Open questions (carried, unanswered)
 
 1. What are the *encounters* — the moments a player meets water that no

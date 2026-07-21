@@ -1046,13 +1046,13 @@ see the question you are asking.
   inside the stretched L4. Journal/0023 already named the right answer — *add
   rings*, don't lengthen the last one. Only worth doing if the design target
   wants vistas past 10 km; note the haze limit below may bind first.
-- **Wave-magnitude retune** (user-directed, journal/0049 station 5): raise
-  `wave_erosion` (and widen `wave_band_m`) from the confirmed null (0.68 m
-  total) into the platforms-that-survive-the-voxel class (~10–40×), measure,
-  and re-walk station 5 for the user's eye. EXPLICIT INTERIM: the heir is
-  the fetch model (wave energy from S11 body size/shape/depth × the 0037
-  wind field, evolving over the run) — build the retune so the constant it
-  tunes is exactly what fetch later replaces.
+- **Wave-magnitude retune — STRUCK 2026-07-21 (user): no retune.** "That
+  whole mechanism changes after water machinery. that would be a bandaid,
+  against our standing rule against bandaids. can revisit later." The
+  confirmed null (0.68 m, journal/0049 station 5) rides as-built until the
+  fetch model (wave energy from S11 body size/shape/depth × the 0037 wind
+  field) replaces the constant outright — wave expression is a consumer of
+  the water design pass now, not a tuning slice.
 - **The forms/partials design pass** (user directive, journal/0049 station
   2; materials.md DECIDED 2026-07-21): partials-first world-gen emission —
   sand as the first spawned loose material — generalizing to forms across
@@ -1426,6 +1426,18 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Caves ↔ hydrology integration thread captured** (2026-07-21, off-thread
+  session; full capture in water.md § Session capture 2026-07-21 — nothing
+  decided). The work-shaped findings: **two drainage opinions** (pregen cell
+  hydrology vs the deep tier's per-epoch drainage — subsumption candidate,
+  with a history-pass resequencing consequence); **deep drainage is computed
+  and discarded** (paleo-channel + per-chapter table recorder axis wanted for
+  erosional caves; cost unmeasured, eolian memory FLAG adjacent); the
+  **bounded-drainage-refinement spike question** that gates RiverSeg
+  retirement; the **column-as-interval-log target contract** proposal
+  (user-owned ARCHITECTURE call). Same session recorded the user's
+  water-rendering directive (partials/structure, placeholder texture, data
+  seams for flow/waves) in water.md.
 - **The eolian strata record costs +92.76 MB at Medium** (journal/0047
   measurement, 2026-07-21; UNDIAGNOSED in detail). The roster flip took the
   kept `DeepField` 52.8 → 145.5 MB — the record roughly triples because wind
