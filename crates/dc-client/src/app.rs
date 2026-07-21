@@ -23,6 +23,7 @@ use crate::authority::{self, Authority, DirtyChunks};
 use crate::bench::BENCH_SEED;
 use crate::character;
 use crate::console::{self, ConsolePlugin};
+use crate::devicelost;
 use crate::edgepass::{EdgeParams, EdgePassPlugin};
 use crate::edit;
 use crate::farmesh;
@@ -183,7 +184,7 @@ pub fn run(
     edges: bool,
     gen_options: authority::GenOptions,
     horizon: farmesh::HorizonConfig,
-) {
+) -> AppExit {
     // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
     // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
     // to the worldgen authority (keys 3/4 stay the legacy S1 TerrainGen). The
@@ -214,6 +215,10 @@ pub fn run(
     .add_plugins(TerrainMaterialPlugin)
     .add_plugins(GpuProbePlugin)
     .add_plugins(MemProbePlugin)
+    // A lost GPU device must state itself once and shut the game down, never
+    // cascade into a cluster of `unwrap`/`PoisonError` panics that report the
+    // wrong thing and still exit 0 (journal/0054).
+    .add_plugins(devicelost::DeviceLostPlugin)
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
     .insert_resource(Edges(edges))
@@ -272,14 +277,19 @@ pub fn run(
             )
                 .chain(),
         )
-            .chain(),
+            .chain()
+            // Once the device is gone there is nothing to stream chunks or
+            // build meshes FOR, and every frame of it is another chance to
+            // generate downstream noise on top of the real cause. The app is
+            // already exiting; this just stops the gameplay chain first.
+            .run_if(devicelost::renderer_healthy),
     );
     // The bridge always exists (its channel also carries the dev console's
     // submissions); the MCP server threads inside are what `mcp_options` gates.
     let (bridge, console_tx) = mcp::spawn_servers(mcp_options);
     app.insert_resource(bridge);
     app.add_plugins(ConsolePlugin { bridge: console_tx });
-    app.run();
+    app.run()
 }
 
 /// FF2a step-0 instrumentation (env-gated by `DC_GPU_PROBE`, zero cost when

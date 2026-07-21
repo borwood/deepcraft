@@ -47,6 +47,7 @@ mod bench_storage;
 mod body;
 mod character;
 mod console;
+mod devicelost;
 mod edgepass;
 mod edit;
 mod farmesh;
@@ -65,12 +66,22 @@ mod worldgen;
 /// voxels that is.
 pub const PLAYER_HEIGHT_M: f64 = 1.8;
 
-fn main() {
+/// The process exit code is part of the failure contract (journal/0054): two
+/// recorded GPU crashes reported **exit 0** because the panics happened on
+/// worker threads, so exit-code monitoring could not see them at all. `main`
+/// therefore returns an `ExitCode` that `devicelost::finish` derives from what
+/// actually happened, not from whichever `AppExit` the event loop produced.
+fn main() -> std::process::ExitCode {
+    // Installed before anything else can panic, so a panic in world generation
+    // or plugin build is counted too.
+    devicelost::install_panic_hook();
     let args: Vec<String> = std::env::args().collect();
     if args.iter().any(|a| a == "--bench-scales") {
         bench::run();
+        devicelost::finish(&bevy::app::AppExit::Success)
     } else if args.iter().any(|a| a == "--bench-storage") {
         bench_storage::run();
+        devicelost::finish(&bevy::app::AppExit::Success)
     } else {
         let pack = args
             .windows(2)
@@ -167,7 +178,7 @@ fn main() {
             },
             None => farmesh::HorizonConfig::default(),
         };
-        app::run(
+        let exit = app::run(
             pack,
             mcp::McpOptions::parse(&args),
             fullbright,
@@ -175,5 +186,6 @@ fn main() {
             gen_options,
             horizon,
         );
+        devicelost::finish(&exit)
     }
 }

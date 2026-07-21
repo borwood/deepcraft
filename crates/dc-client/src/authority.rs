@@ -203,9 +203,7 @@ impl Authority {
         let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen)));
         let seam = generator.clone();
         let world = Self::host_world(seed, scale, move |pos| {
-            seam.lock()
-                .expect("worldgen generator mutex")
-                .generate_chunk(pos)
+            crate::devicelost::lock_forgiving(&seam).generate_chunk(pos)
         });
         Self::finish(scale, world, SurfaceAuthority::Worldgen(generator))
     }
@@ -302,10 +300,9 @@ impl Authority {
     pub fn chunk_contents(&self, pos: ChunkPos) -> Option<dc_core::ContentsGrid> {
         match &self.surface {
             SurfaceAuthority::Terrain(_) => None,
-            SurfaceAuthority::Worldgen(worldgen) => worldgen
-                .lock()
-                .expect("worldgen generator mutex")
-                .chunk_contents(pos),
+            SurfaceAuthority::Worldgen(worldgen) => {
+                crate::devicelost::lock_forgiving(worldgen).chunk_contents(pos)
+            }
         }
     }
 
@@ -337,12 +334,9 @@ impl Authority {
     pub fn worldgen_coarse_surface(&self, vx: i64, vz: i64) -> Option<(i32, dc_core::Block)> {
         match &self.surface {
             SurfaceAuthority::Terrain(_) => None,
-            SurfaceAuthority::Worldgen(worldgen) => Some(
-                worldgen
-                    .lock()
-                    .expect("worldgen generator mutex")
-                    .coarse_surface(vx, vz),
-            ),
+            SurfaceAuthority::Worldgen(worldgen) => {
+                Some(crate::devicelost::lock_forgiving(worldgen).coarse_surface(vx, vz))
+            }
         }
     }
 
@@ -359,10 +353,7 @@ impl Authority {
                 let (vx, vz) = (scale.voxel_at(xm), scale.voxel_at(zm));
                 let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
                 let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
-                let col = worldgen
-                    .lock()
-                    .expect("worldgen generator mutex")
-                    .column_record(cx, cz);
+                let col = crate::devicelost::lock_forgiving(worldgen).column_record(cx, cz);
                 f64::from(col.heights[lz * 32 + lx]) * scale.voxel_size_m()
             }
         }
@@ -401,10 +392,7 @@ impl Authority {
                     let (vx, vz) = (scale.voxel_at(x), scale.voxel_at(z));
                     let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
                     let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
-                    let col = worldgen
-                        .lock()
-                        .expect("worldgen generator mutex")
-                        .column_record(cx, cz);
+                    let col = crate::devicelost::lock_forgiving(&worldgen).column_record(cx, cz);
                     f64::from(col.heights[lz * 32 + lx]) * scale.voxel_size_m()
                 };
                 true_surface_m(&solid, analytic, scale, xm, zm, footprint_half_m)
@@ -848,7 +836,11 @@ pub fn drain_bridge(
     mut commands: Commands,
 ) {
     let Some(bridge) = bridge else { return };
-    let Ok(mut rx) = bridge.rx.lock() else { return };
+    // Poison-tolerant (journal/0054): the previous `let Ok(..) else return`
+    // would silently and PERMANENTLY stop draining the MCP bridge after one
+    // unrelated panic — an agent's tool calls would just stop being answered,
+    // with nothing said. A poisoned queue is still a queue.
+    let mut rx = crate::devicelost::lock_forgiving(&bridge.rx);
     while let Ok(request) = rx.try_recv() {
         match request {
             BridgeRequest::Api { tool, args, reply } => {
