@@ -5,8 +5,10 @@
 //! The load-bearing invariant is **byte-identity of the empty-override path**:
 //! an all-`None` [`DeepOverrides`] must reproduce the sealed production path to
 //! the bit, so every already-created world stays reproducible. Then the two
-//! "the override actually bites" checks (tectonic history populates the drainage
-//! export; full agents perturb the surface), and the [`Extent`] arg parser.
+//! "the override actually bites" checks (tectonic history *toggles* the drainage
+//! export — since the U8 flip production is tectonics-ON, the override proves
+//! itself by turning the bundle OFF, journal/0044; full agents perturb the
+//! surface), and the [`Extent`] arg parser.
 
 use dc_worldgen::deeptime::{
     self, DeepOverrides, build_field, build_field_with, production_config, production_config_with,
@@ -89,31 +91,44 @@ fn pregen_run_equals_run_with_default_overrides() {
 // ---------------------------------------------------------------------------
 // The overrides actually bite.
 
-/// With `tectonic_history: Some(true)` the field's tectonic-only exports —
-/// chapters, exhumation, drainage receiver — become non-empty (they are empty on
-/// the production default, see `field.rs` and `tectonic_history.rs`).
+/// The `tectonic_history` override actually bites — proven through the seam that
+/// now turns the bundle OFF. Since the U8 flip (journal/0044) production runs
+/// tectonics ON, so this falsifier is inverted from journal/0039: the production
+/// field carries the tectonic-only exports (chapters, exhumation, drainage
+/// receiver), and overriding `tectonic_history: Some(false)` empties them. Same
+/// override channel, still bites; the subject (the flag reaches the run) is
+/// unchanged.
 #[test]
-fn tectonic_history_override_populates_the_tectonic_exports() {
+fn tectonic_history_override_toggles_the_tectonic_exports() {
     let pregen = small_world(SEED);
-    let off = build_field(&pregen.grid, SEED);
+    // Production default is now tectonics-ON: the exports are populated.
+    let on = build_field(&pregen.grid, SEED);
     assert!(
-        off.chapters.is_empty(),
-        "production default is tectonics-off"
+        !on.chapters.is_empty(),
+        "production default is tectonics-on (U8)"
     );
-    assert!(off.recv.is_empty());
-    assert!(off.exhum.is_empty());
+    assert!(!on.recv.is_empty(), "drainage receiver not exported");
+    assert!(!on.exhum.is_empty(), "exhumation plane not exported");
 
-    let on = build_field_with(
+    // Overriding it OFF empties every tectonic-only plane — the override reaches
+    // the run in the opposite direction.
+    let off = build_field_with(
         &pregen.grid,
         SEED,
         &DeepOverrides {
-            tectonic_history: Some(true),
+            tectonic_history: Some(false),
             ..DeepOverrides::default()
         },
     );
-    assert!(!on.chapters.is_empty(), "chapter table not exported");
-    assert!(!on.recv.is_empty(), "drainage receiver not exported");
-    assert!(!on.exhum.is_empty(), "exhumation plane not exported");
+    assert!(
+        off.chapters.is_empty(),
+        "override did not turn chapters off"
+    );
+    assert!(
+        off.recv.is_empty(),
+        "override did not clear the drainage export"
+    );
+    assert!(off.exhum.is_empty(), "override did not clear exhumation");
 }
 
 /// With `full_agents: Some(true)` the eroded surface differs from production —

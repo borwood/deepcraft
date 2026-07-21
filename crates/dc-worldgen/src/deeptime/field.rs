@@ -57,7 +57,8 @@ pub const DEEP_ITERATIONS: u32 = 200;
 pub struct DeepOverrides {
     /// Override [`DeepConfig::tectonic_history`]: the analytic tectonic-history
     /// bundle (chapters, crustal columns, smoothed Airy isostasy, drainage
-    /// export). `None` = production default (off).
+    /// export). `None` = production default (**on** since the U8 flip,
+    /// journal/0044); pass `Some(false)` to reach the legacy off path.
     pub tectonic_history: Option<bool>,
     /// Override [`DeepConfig::full_agents`]: the wind + frost + wave erosion
     /// roster. `None` = production default (off).
@@ -109,6 +110,24 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
         // cryosphere and littoral agents land by adding a term rather than by
         // renegotiating this one.
         erodibility: true,
+        // **Tectonic history ON — U8 GO** (DECIDED 2026-07-21, user;
+        // tectonics.md § U8, journal/0044). The user ratified the flip
+        // *without* gating it on the appearance walk: "I'm going to tell you to
+        // flip tectonics regardless of what it looks like because I want us to
+        // make progress. We can correct mistakes later. The flip is pomp." So
+        // production now runs the chaptered kinematic history — plate advection,
+        // analytic boundary forcing, crustal columns, smoothed-Airy isostasy,
+        // per-chapter drainage re-march — and the field KEEPS its tectonic-only
+        // exports (`recv`/`area`/`lake` drainage, `exhum`/`t_crust`, the
+        // `chapters` table) that were empty before. Same event class as the
+        // biotic/erodibility flips above: this CHANGES TERRAIN SHAPE — and
+        // strata, drainage, exhumation — for every world created from here on;
+        // worlds made before this flip are not reproducible under it. The
+        // orogenic amplitude (`thickening_scale`) rides at the `DeepConfig`
+        // default of 80: U7 is deferred, because corrections #23 measured the
+        // knob to buy no sub-km relief either way (it lifts the continent, it
+        // does not make mountains), so its value is a later call.
+        tectonic_history: true,
         ..DeepConfig::default()
     }
 }
@@ -162,14 +181,21 @@ pub struct DeepField {
     pub area: Vec<f64>,
     pub lake: Vec<bool>,
     /// **Exhumation** (m) and **crustal thickness** (m) per cell — the metamorphic-
-    /// grade axes the collapse tier reads (§ 6.4). Empty when tectonic history is
-    /// off.
+    /// grade axes the collapse tier WILL read (§ 6.4): exported and, as of U8,
+    /// populated in every production world, but currently consumed by nothing.
+    /// The expression slice is Sequenced (ROADMAP: "tectonic expression at the
+    /// collapse tier" — consume `exhum`/`t_crust` into metamorphic-grade classes;
+    /// stubs.md § 4, "the absent metamorphic expresser"). Empty when tectonic
+    /// history is off.
     pub exhum: Vec<f64>,
     pub t_crust: Vec<f64>,
-    /// **The chapter table** (§ 8): plate state per chapter, from which per-unit
-    /// deformation (dip, provenance, fault traces) is re-derived analytically at
-    /// collapse resolution — the ~5 KB that replaces stored per-cell dip vectors.
-    /// Empty when tectonic history is off.
+    /// **The chapter table** (§ 8): plate state per chapter. Per-unit deformation
+    /// (dip, provenance, fault traces) is *intended* to re-derive analytically
+    /// from it at collapse resolution — the ~5 KB that would replace stored
+    /// per-cell dip vectors — but that re-derivation is the same Sequenced
+    /// collapse-tier slice as above (chapters → strata dip/fold/fault in cut
+    /// faces); today the table is exported and read by nothing. Empty when
+    /// tectonic history is off.
     pub chapters: Vec<Vec<Plate>>,
 }
 

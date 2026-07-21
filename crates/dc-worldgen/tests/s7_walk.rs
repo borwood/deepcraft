@@ -15,10 +15,19 @@ use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
 const WALK_CHUNKS: i64 = 10_000;
-/// Max allowed surface-height step between adjacent voxel columns. The
-/// lattice's amplitude schedule keeps natural slopes far below this; a seam
-/// (mismatched borders) would show up as tens of voxels.
-const SEAM_TOLERANCE_VOXELS: i32 = 6;
+/// Max allowed surface-height step between adjacent voxel columns. A seam
+/// (mismatched borders) would show up as tens of voxels, so this stays well
+/// below that scale and still discriminates.
+///
+/// Re-baselined 6 → 12 for the U8 tectonic-history flip (journal/0044). The
+/// flip steepens natural relief: the max *interior* adjacent-column step over
+/// the whole 10 000-chunk transect rose from ≤6 to **7** voxels (a legitimate
+/// cliff face in tectonic terrain, not a discontinuity). Every one of the 10 000
+/// chunk-*border* crossings still stayed ≤6 — the load-bearing seam invariant is
+/// unchanged; only the natural-slope ceiling moved. 12 clears the measured
+/// maximum with margin while remaining an order below the tens-of-voxels a real
+/// seam produces.
+const SEAM_TOLERANCE_VOXELS: i32 = 12;
 
 fn block_hash(chunk: &Chunk) -> u64 {
     // FNV-1a over the block ids in index order.
