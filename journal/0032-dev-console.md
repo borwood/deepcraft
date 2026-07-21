@@ -1,4 +1,4 @@
-# 0031 — The console reads the registry, not the commands
+# 0032 — The console reads the registry, not the commands
 
 The game could already be driven two ways: a human at the mouse (LMB/RMB
 edits) and an agent over MCP (port 7777, the whole dc-api surface plus three
