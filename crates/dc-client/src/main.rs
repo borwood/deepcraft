@@ -9,7 +9,8 @@
 //! docs/spikes/S1-results.md). Run with `--bench-scales` for the headless
 //! measurement pass; run with no arguments for the interactive app.
 //!
-//! S3 additions: the far-mesh path (farmesh.rs — LOD rings out to 1.2 km) and
+//! S3 additions: the far-mesh path (farmesh.rs — LOD rings out to 1.2 km by
+//! default, `--horizon <km>` to reach further; journal/0042) and
 //! `--bench-storage`, the headless S3 measurement pass (palette compression,
 //! LOD derive cost, column summaries, far-mesh cost; see
 //! docs/spikes/S3-results.md).
@@ -132,12 +133,47 @@ fn main() {
             None => authority::GenOptions::default().extent,
         };
         let gen_options = authority::GenOptions { extent, deep };
+        // `--horizon <km>`: how far the far field reaches, in kilometers
+        // (journal/0042). The shipped 1.2 km horizon puts the camera INSIDE
+        // every landform — a mountain range is 5–20 km across — so macro shape
+        // never entered frame. Omit the flag and the horizon is exactly the
+        // shipped 1.2 km; pass e.g. `--horizon 8` for an 8 km field. A garbage or
+        // out-of-range value warns and falls back rather than aborting the boot
+        // (the `--amplitude` behaviour).
+        let horizon = match args.windows(2).find(|w| w[0] == "--horizon") {
+            Some(v) => match v[1].parse::<f64>() {
+                Ok(km)
+                    if (farmesh::HORIZON_MIN_M..=farmesh::HORIZON_MAX_M)
+                        .contains(&(km * 1000.0)) =>
+                {
+                    farmesh::HorizonConfig::with_far_max(km * 1000.0)
+                }
+                Ok(km) => {
+                    eprintln!(
+                        "--horizon {km} km is outside {:.1}–{:.0} km; using the default {:.1} km",
+                        farmesh::HORIZON_MIN_M / 1000.0,
+                        farmesh::HORIZON_MAX_M / 1000.0,
+                        farmesh::DEFAULT_FAR_MAX_M / 1000.0,
+                    );
+                    farmesh::HorizonConfig::default()
+                }
+                Err(_) => {
+                    eprintln!(
+                        "--horizon expects a number (kilometers), got `{}`; using the default",
+                        v[1]
+                    );
+                    farmesh::HorizonConfig::default()
+                }
+            },
+            None => farmesh::HorizonConfig::default(),
+        };
         app::run(
             pack,
             mcp::McpOptions::parse(&args),
             fullbright,
             edges,
             gen_options,
+            horizon,
         );
     }
 }
