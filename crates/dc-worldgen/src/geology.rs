@@ -52,10 +52,18 @@ use crate::pregen::{
 /// the chunk grid (the chunk-line cutover fix, 3c-2). `member` is the
 /// chunk-centre representative — the record's canonical identity — while the
 /// dither interpolates the same selection field across the footprint.
+///
+/// **Thickness is METRES, not voxels** (materials.md DECIDED 2026-07-21,
+/// distribution-first expression). The record is a continuous stack; the
+/// quantization to eighths happens **once**, at contents construction, from the
+/// units overlapping a voxel's own 0.9 m span (`crate::fill`). Rounding each
+/// event to whole voxels here is the `Σ round` / `round Σ` defect journal/0055
+/// removes — it deleted ~75 % of the world's recorded sediment.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StrataEvent {
     pub member: GeoMemberIdx,
-    pub thickness_vox: u8,
+    /// Recorded thickness in **metres**. Never rounded to voxels here.
+    pub thickness_m: f32,
     pub temp_c: f32,
     pub precip: f32,
     /// Emplacement/formation depth used for member fitness (meters).
@@ -77,23 +85,9 @@ pub struct StrataRec {
 }
 
 impl StrataRec {
-    /// Total recorded thickness, voxels.
-    pub fn total_vox(&self) -> u32 {
-        self.events.iter().map(|e| u32::from(e.thickness_vox)).sum()
-    }
-
-    /// The event containing a voxel `depth` voxels below the surface voxel
-    /// (depth 1 = directly under the surface). `None` below the record.
-    pub fn event_at_depth(&self, depth: u32) -> Option<&StrataEvent> {
-        let mut remaining = depth;
-        for e in self.events.iter().rev() {
-            let t = u32::from(e.thickness_vox);
-            if remaining <= t {
-                return Some(e);
-            }
-            remaining -= t;
-        }
-        None
+    /// Total recorded thickness, **metres**.
+    pub fn total_m(&self) -> f64 {
+        self.events.iter().map(|e| f64::from(e.thickness_m)).sum()
     }
 }
 
@@ -168,10 +162,10 @@ impl<'a> StrataCtx<'a> {
         interp_select_draw(self.seed, salt, tag, self.cx, self.cz, 0.5, 0.5)
     }
 
-    fn push(&mut self, member: GeoMemberIdx, thickness_vox: u8, salt: u64, tag: u64, depth_m: f64) {
+    fn push(&mut self, member: GeoMemberIdx, thickness_m: f64, salt: u64, tag: u64, depth_m: f64) {
         self.strata.events.push(StrataEvent {
             member,
-            thickness_vox,
+            thickness_m: thickness_m as f32,
             temp_c: self.temp_c as f32,
             precip: self.precip as f32,
             depth_m: depth_m as f32,
@@ -260,13 +254,8 @@ pub fn igneous_pass(ctx: &mut StrataCtx) {
             ctx.draw(SALT_GEO_SELECT, 0),
         )
     {
-        ctx.push(
-            member,
-            INTRUSIVE_TOP_VOX,
-            SALT_GEO_SELECT,
-            0,
-            INTRUSIVE_DEPTH_M,
-        );
+        let t = f64::from(INTRUSIVE_TOP_VOX) * ctx.voxel_m;
+        ctx.push(member, t, SALT_GEO_SELECT, 0, INTRUSIVE_DEPTH_M);
         let idx = ctx.strata.events.len() - 1;
         emplace_accessory(ctx, idx, INTRUSIVE_DEPTH_M, 0);
     }
@@ -277,7 +266,7 @@ pub fn igneous_pass(ctx: &mut StrataCtx) {
             ctx.draw(SALT_GEO_SELECT, 1),
         )
     {
-        let thickness = 2 + (ctx.draw(SALT_GEO_THICK, 1) * 3.0) as u8;
+        let thickness = f64::from(2 + (ctx.draw(SALT_GEO_THICK, 1) * 3.0) as u8) * ctx.voxel_m;
         ctx.push(member, thickness, SALT_GEO_SELECT, 1, 5.0);
         let idx = ctx.strata.events.len() - 1;
         emplace_accessory(ctx, idx, 5.0, 1);
@@ -367,26 +356,46 @@ const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 /// that ran (marine mud under arid fill under the recent veneer), not the
 /// year-zero climate shim.
 ///
-/// **Returns the voxel thickness it actually expressed** — the whole-voxel part
-/// of the loose column. journal/0053: the deep sim's regolith plane `H` equals
-/// the sum of these units' metres exactly, so `round(H / voxel_m)` minus this
-/// return value is the part of the loose column the 0.9 m sieve could not
-/// resolve, which [`clastic_pass`] then expresses as the surficial veneer
-/// instead of deleting it.
-fn deposit_deep_history(ctx: &mut StrataCtx) -> u32 {
+/// **No unit is rounded and no unit is dropped** (materials.md DECIDED
+/// 2026-07-21). Until journal/0055 this function computed `Σ round(tᵢ / 0.9)`
+/// where honesty requires `round(Σ tᵢ / 0.9)`: each unit was rounded to whole
+/// voxels *independently* and skipped if it did not reach one, with no remainder
+/// carried forward, so the errors compounded instead of cancelling. Measured
+/// consequence: three-quarters of the world's recorded sediment pile deleted,
+/// and the tour's dune field — 379 units summing to 7.99 m, averaging 0.021 m
+/// each — expressing **zero**. Not because 0.9 m voxels cannot hold eight metres
+/// of sand, but because the rounding question was asked 379 times instead of
+/// once.
+///
+/// Metres now survive to the voxel boundary. `crate::fill` does the single
+/// quantization, filling a voxel's eighths from the units overlapping its own
+/// span with an addressed stochastic draw.
+///
+/// **Returns the metres it actually expressed.** Since `Σ(recorded unit
+/// thicknesses) ≡ H` exactly (journal/0053) and nothing is dropped, this now
+/// equals `H` for any column whose classes all resolve to a member — which is
+/// what retires the clastic veneer's thickness budget without deleting a line of
+/// it (see [`clastic_pass`]).
+///
+/// **Run-length coalescing.** Adjacent units that resolve to the *same member*
+/// are merged into one event. This is lossless for expression — contents depend
+/// on the member, not on how many recorder units contributed it — and it is what
+/// keeps the per-column event vector (and the per-voxel candidate list) bounded
+/// when a cell records hundreds of thin beds. It is *not* the pre-merge heir
+/// filed in stubs.md § 12: that one merged unlike beds and lost them; this one
+/// merges only beds that would express identically anyway.
+fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
     let total_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
-    let mut expressed_vox = 0u32;
+    let mut expressed_m = 0.0f64;
     let mut below_m = 0.0;
+    // Index of the event this pass pushed last, for run-length coalescing.
+    let mut last: Option<(usize, GeoMemberIdx)> = None;
     for (k, u) in ctx.deep_units.iter().enumerate() {
         let depth_above = (total_m - below_m - u.thickness_m).max(0.0);
         below_m += u.thickness_m;
-        let tv = (u.thickness_m / ctx.voxel_m).round();
-        if tv < 1.0 {
-            // Sub-voxel unit: a condensed couplet the record keeps but 0.9 m
-            // blocks cannot resolve. Dropped consistently (roster-independent).
+        if u.thickness_m <= 0.0 {
             continue;
         }
-        let thickness_vox = tv.min(255.0) as u8;
         let class = deep_class(u.tag);
         let precip = deep_precip(u.tag);
         let depth_m = depth_above + DEEP_VENEER_MARGIN_M;
@@ -399,9 +408,17 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> u32 {
         let tag = k as u64;
         let u_draw = interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
         if let Some((member, _)) = ctx.geology.select(class, &form, u_draw) {
+            expressed_m += u.thickness_m;
+            if let Some((idx, prev)) = last
+                && prev == member
+            {
+                let e = &mut ctx.strata.events[idx];
+                e.thickness_m += u.thickness_m as f32;
+                continue;
+            }
             ctx.strata.events.push(StrataEvent {
                 member,
-                thickness_vox,
+                thickness_m: u.thickness_m as f32,
                 temp_c: temp_c as f32,
                 precip: precip as f32,
                 depth_m: depth_m as f32,
@@ -410,10 +427,10 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> u32 {
                 ore: None,
                 accessory: None,
             });
-            expressed_vox += u32::from(thickness_vox);
+            last = Some((ctx.strata.events.len() - 1, member));
         }
     }
-    expressed_vox
+    expressed_m
 }
 
 /// Clastic deposition. The deep-time record (3e-1) supplies the depositional
@@ -435,7 +452,7 @@ pub fn clastic_pass(ctx: &mut StrataCtx) {
     }
     // The recorded deep-time history sits below the active veneer, and tells us
     // how many whole voxels of the loose column it managed to express.
-    let expressed_vox = deposit_deep_history(ctx);
+    let expressed_m = deposit_deep_history(ctx);
 
     // **The veneer budget, from the recorded cause** (journal/0053 — retiring the
     // veneer half of stubs.md § 3).
@@ -469,38 +486,60 @@ pub fn clastic_pass(ctx: &mut StrataCtx) {
     // the term that keeps a graded coarse body under the placer.
     //
     // The lower clamp is **0**, not 1: bareness is expressible now.
+    //
+    // **journal/0055 — the budget self-retires, and is left in place to prove
+    // it.** The residue term above was `round(H / voxel_m) − expressed_voxels`
+    // precisely because whole-voxel expression could not carry a thin bed. Now
+    // that nothing is rounded or dropped, `expressed_m` *is* `H` for any column
+    // whose classes all resolve, so the residue is **0 metres** and the veneer
+    // contributes nothing on its own. The subtraction is written in metres now
+    // (it no longer has to compensate for a quantizer), and it is deliberately
+    // NOT deleted: it is the honest statement of "what the record could not
+    // carry", it still fires in the degenerate case where a class fails to
+    // resolve a member, and stubs.md § 12 asked for verification rather than
+    // surgery.
     let base = match ctx.regolith_m {
-        Some(h) => ((h / ctx.voxel_m).round() - f64::from(expressed_vox)).max(0.0),
+        Some(h) => ((h - expressed_m) / ctx.voxel_m).max(0.0),
         // Wilds only: no deep-time history to read (genesis synthesis —
         // stubs.md § Genesis, border-wilds cell synthesis).
         None => 1.0 + (ctx.precip * 2.5),
     };
     let fluvial = (ctx.flow_energy / 12.0).min(3.0);
-    let total = (base + fluvial).round().clamp(0.0, 8.0) as u32;
-    let coarse = (f64::from(total) * coarse_fraction(ctx.flow_energy)).round() as u32;
+    // **The veneer is metres now too** (journal/0055). It used to round its
+    // budget to whole voxels, and while the residue term was carrying 1–8 voxels
+    // of amalgamated soil that rounding was invisible. With the residue at zero
+    // the veneer *is* the fluvial fan and nothing else — and a modest river's
+    // fan is a fraction of a voxel, so rounding it deleted the entire graded
+    // coarse body, and with it every placer in the world. (Measured the hard
+    // way: `placer_follows_the_sorted_gradient` went from passing to "no placer
+    // deposits found in the sample".) The same rule as everywhere else in this
+    // slice fixes it: keep the metres, let `crate::fill` quantize once.
+    let total = (base + fluvial).min(8.0);
+    let coarse = total * coarse_fraction(ctx.flow_energy);
     let fine = total - coarse;
+    let (coarse_m, fine_m) = (coarse * ctx.voxel_m, fine * ctx.voxel_m);
 
-    if coarse > 0
+    if coarse_m > 0.0
         && let Some((member, _)) = ctx.geology.select(
             CLASS_CLASTIC_COARSE,
             &ctx.formation(2.0),
             ctx.draw(SALT_GEO_SELECT, 2),
         )
     {
-        ctx.push(member, coarse as u8, SALT_GEO_SELECT, 2, 2.0);
+        ctx.push(member, coarse_m, SALT_GEO_SELECT, 2, 2.0);
         ctx.alluvium = Some(AlluviumRec {
             event: ctx.strata.events.len() - 1,
             energy: ctx.flow_energy,
         });
     }
-    if fine > 0
+    if fine_m > 0.0
         && let Some((member, _)) = ctx.geology.select(
             CLASS_CLASTIC_FINE,
             &ctx.formation(1.0),
             ctx.draw(SALT_GEO_SELECT, 3),
         )
     {
-        ctx.push(member, fine as u8, SALT_GEO_SELECT, 3, 1.0);
+        ctx.push(member, fine_m, SALT_GEO_SELECT, 3, 1.0);
     }
 }
 

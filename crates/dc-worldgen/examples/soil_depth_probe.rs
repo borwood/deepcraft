@@ -19,9 +19,12 @@
 //!
 //! `cargo run --release -p dc-worldgen --example soil_depth_probe`
 
-use dc_core::materials::geology::{CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, GeologySet, vanilla};
-use dc_worldgen::WorldGenerator;
+use dc_core::materials::geology::{
+    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE,
+    GeologySet, vanilla,
+};
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
+use dc_worldgen::{ColumnFill, Plan, WorldGenerator};
 
 /// The client's `BENCH_SEED` — the world every walk so far has stood in.
 const SEED: u64 = 1337;
@@ -196,6 +199,61 @@ fn distribution(pregen: &Pregen) {
          \x20 precipitation rule this number was structurally 0 (its floor was 1 voxel).\n",
         100.0 * bare as f64 / land as f64
     );
+
+    // ---- THE SIEVE, before and after (journal/0055) ------------------------
+    //
+    // "Sieve loss" = the fraction of recorded metres that never reaches a voxel.
+    //
+    // BEFORE: `Σ round(tᵢ / 0.9)` — each unit rounded on its own, sub-half-voxel
+    // beds dropped outright. AFTER: `round(Σ tᵢ / 0.9)` — one quantization for
+    // the whole column, so the only loss left is the ≤ half-voxel rounding of
+    // the column's own total, and it is signed (columns round up as often as
+    // down) rather than a one-way deletion.
+    let (mut rec_m, mut old_m, mut new_m, mut new_abs) = (0.0f64, 0.0f64, 0.0f64, 0.0f64);
+    let mut old_zero = 0usize;
+    for i in 0..f.w * f.w {
+        if f.surf[i] <= 0.0 {
+            continue;
+        }
+        let units = &f.strata[i].units;
+        let rec: f64 = units.iter().map(|u| u.thickness_m).sum();
+        let old: f64 = units
+            .iter()
+            .map(|u| (u.thickness_m / VOXEL_M).round())
+            .filter(|t| *t >= 1.0)
+            .sum::<f64>()
+            * VOXEL_M;
+        let new = (rec / VOXEL_M).round() * VOXEL_M;
+        rec_m += rec;
+        old_m += old;
+        new_m += new;
+        new_abs += (new - rec).abs();
+        if old <= 0.0 && rec > 0.0 {
+            old_zero += 1;
+        }
+    }
+    println!("--- THE SIEVE: recorded metres that reach voxels ---");
+    println!(
+        "  recorded          : {:.3} m/cell mean",
+        rec_m / land as f64
+    );
+    println!(
+        "  OLD Σround(tᵢ/0.9): {:.3} m/cell — {:.1}% of the pile LOST",
+        old_m / land as f64,
+        100.0 * (1.0 - old_m / rec_m)
+    );
+    println!(
+        "  NEW round(Σtᵢ/0.9): {:.3} m/cell — {:+.1}% net, {:.3} m/cell mean |error|",
+        new_m / land as f64,
+        100.0 * (new_m / rec_m - 1.0),
+        new_abs / land as f64
+    );
+    println!(
+        "  cells expressing NOTHING under the old rule: {old_zero} ({:.1}% of land); \
+         under the new rule a cell expresses nothing only when its whole column \
+         rounds under half a voxel.\n",
+        100.0 * old_zero as f64 / land as f64
+    );
 }
 
 /// Thickest / thinnest recorded regolith among subaerial deep cells (interior
@@ -289,25 +347,67 @@ fn site(
         f64::from(h_m.map_or_else(|| old_soil_voxels(precip), new_voxels)) * VOXEL_M,
     );
     println!(
-        "  veneer budget OLD → NEW (no-river term): {} → {} voxels",
+        "  veneer budget: retired {} → carry-H {} → distribution-first {:.2} voxels",
         old_veneer_voxels(precip),
         veneer,
+        // journal/0055: the record now expresses ALL of H, so the residue the
+        // veneer exists to amalgamate is zero. Nothing was deleted to make that
+        // happen — the subtraction simply has nothing left to subtract.
+        h_m.map_or(f64::from(old_veneer_voxels(precip)), |h| ((h - rec_units
+            .iter()
+            .sum::<f64>())
+            / VOXEL_M)
+            .max(0.0)),
     );
 
     // What is actually in the ground: the topmost contiguous clastic band (the
     // loose cover a player digs) and the record beneath it.
-    let mut loose = 0u32;
+    //
+    // Note the readout changed meaning with journal/0055: the retired rule
+    // amalgamated everything unresolvable into ONE surficial band, so "the
+    // topmost contiguous clastic run" was the diggable pile. The record is
+    // interbedded, so that run is now often one thin bed. What a player digs is
+    // the whole recorded column above basement, and its clastic share.
+    let mut loose_m = 0.0f64;
+    let mut column_m = 0.0f64;
     for e in col.strata.events.iter().rev() {
         let c = &set.member(e.member).class;
-        if c == CLASS_CLASTIC_FINE || c == CLASS_CLASTIC_COARSE {
-            loose += u32::from(e.thickness_vox);
-        } else {
+        if c == CLASS_IGNEOUS_INTRUSIVE || c == CLASS_IGNEOUS_EXTRUSIVE {
             break;
+        }
+        column_m += f64::from(e.thickness_m);
+        if c == CLASS_CLASTIC_FINE || c == CLASS_CLASTIC_COARSE {
+            loose_m += f64::from(e.thickness_m);
         }
     }
     println!(
-        "  GENERATED loose cover : {loose} voxels ({:.2} m) before the first lithified/igneous unit",
-        f64::from(loose) * VOXEL_M
+        "  GENERATED sediment    : {:.0} voxels ({column_m:.2} m) above basement, of which \
+         {loose_m:.2} m loose clastic",
+        (column_m / VOXEL_M).round()
+    );
+    // Distribution-first expression (journal/0055): how the record slices into
+    // voxel spans, and how many of those spans straddle a contact.
+    let fill = ColumnFill::build(&col.strata, VOXEL_M);
+    let mixed = (1..=fill.depth_count() as u32)
+        .filter(|d| matches!(fill.plan(*d), Some(Plan::Mixed(_))))
+        .count();
+    println!(
+        "  EXPRESSED             : {} events, {} voxel spans, {mixed} of them mixed",
+        col.strata.events.len(),
+        fill.depth_count()
+    );
+    // What the world is skinned with here (journal/0055): the surface voxel's
+    // block now comes from `classify` of its own record-derived contents, and
+    // the far horizon inherits the same answer from the shared kernel.
+    let i = 16 * 32 + 16;
+    println!(
+        "  SURFACE               : {:?}, filled {} of 8 eighths{}",
+        col.surface[i],
+        col.surface_fill[i].map_or(0, |(_, n)| n),
+        col.surface_fill[i].map_or_else(
+            || " (fallback — no record to skin it with)".to_string(),
+            |(m, _)| format!(" of {}", set.member(m).id)
+        )
     );
     let tail: Vec<String> = col
         .strata
@@ -318,9 +418,9 @@ fn site(
         .map(|e| {
             let id = &set.member(e.member).id;
             format!(
-                "{}x{}",
+                "{}@{:.2}m",
                 id.rsplit('/').next().unwrap_or(id),
-                e.thickness_vox
+                e.thickness_m
             )
         })
         .collect();

@@ -59,6 +59,12 @@ pub(crate) const SALT_GEO_ACC: u64 = 0x5700_000D;
 /// tag space from the year-zero veneer's `SALT_GEO_SELECT` so the two never
 /// collide, and the per-voxel member dither addresses each deep unit uniquely.
 pub(crate) const SALT_GEO_DEEP: u64 = 0x5700_000E;
+/// **The eighth-allocation draw** for distribution-first strata expression
+/// (materials.md DECIDED 2026-07-21). Addressed by *world voxel position*, not
+/// by chunk or column: a voxel's composition must not depend on which chunk was
+/// generated first, on the chunk's `y`, or on any iteration order. One draw per
+/// mixed voxel decides which materials win the leftover eighths.
+pub(crate) const SALT_GEO_FILL: u64 = 0x5700_000F;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

@@ -147,7 +147,10 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
     let pregen = medium();
     let vanilla = geology::vanilla();
     let extended = extended_set(false);
-    let mudstone_v = vanilla.member_index("dc:geo/mudstone").unwrap();
+    // The vanilla-side mudstone index is no longer needed: the positional
+    // event-for-event comparison it served became meaningless once
+    // `deposit_deep_history` run-length coalesces same-member runs (journal/0055).
+    let _mudstone_v = vanilla.member_index("dc:geo/mudstone").unwrap();
     let mudstone_e = extended.member_index("dc:geo/mudstone").unwrap();
     let siltstone_e = extended.member_index("zz:geo/siltstone").unwrap();
 
@@ -156,12 +159,12 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
     let cols_v = sample_columns(&mut g_v, 14);
     let cols_e = sample_columns(&mut g_e, 14);
 
-    let fine_thickness = |set: &GeologySet, col: &dc_worldgen::collapse::ColumnRec| -> u32 {
+    let fine_thickness = |set: &GeologySet, col: &dc_worldgen::collapse::ColumnRec| -> f64 {
         col.strata
             .events
             .iter()
             .filter(|e| set.member(e.member).class == CLASS_CLASTIC_FINE)
-            .map(|e| u32::from(e.thickness_vox))
+            .map(|e| f64::from(e.thickness_m))
             .sum()
     };
 
@@ -170,10 +173,16 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
     for (cv, ce) in cols_v.iter().zip(&cols_e) {
         // The class share (how much fine stratum exists) is untouched by
         // adding a member — only WHO fills it changes.
-        assert_eq!(
-            fine_thickness(&vanilla, cv),
-            fine_thickness(&extended, ce),
-            "adding a member must not inflate the class share"
+        // Metres, not voxel counts, since journal/0055 — so this compares with a
+        // tolerance. The two sets coalesce *adjacent same-member* runs into
+        // different groupings (that is the whole point of adding a member), so
+        // the same total is summed in a different order and the last bits of the
+        // f32→f64 accumulation differ. 1e-4 m is 0.1 mm against ~7.6 m; a real
+        // class-share inflation is a whole recorded bed.
+        let (a, b) = (fine_thickness(&vanilla, cv), fine_thickness(&extended, ce));
+        assert!(
+            (a - b).abs() < 1e-4,
+            "adding a member must not inflate the class share: {a} vs {b}"
         );
         for e in &ce.strata.events {
             if e.member == siltstone_e {
@@ -183,13 +192,36 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
                 old_member_hits += 1;
             }
         }
-        // Where the vanilla world chose mudstone, the extended world chose
-        // SOME fine-clastic member at the same stratigraphic position.
-        for (ev, ee) in cv.strata.events.iter().zip(&ce.strata.events) {
-            assert_eq!(ev.thickness_vox, ee.thickness_vox);
-            if ev.member == mudstone_v {
-                assert_eq!(extended.member(ee.member).class, CLASS_CLASTIC_FINE);
+        // Where the vanilla world laid a fine-clastic bed, the extended world
+        // laid one of the same class and thickness at the same stratigraphic
+        // position.
+        //
+        // **Compared as a class profile, not event-for-event** (journal/0055):
+        // `deposit_deep_history` run-length-coalesces adjacent units that resolve
+        // to the *same member*, and diversifying a class is precisely a change to
+        // which runs are adjacent-and-equal — so the two sets legitimately hold
+        // different numbers of events describing the same column. The invariant
+        // that must not move is the **class geography**: the same classes in the
+        // same order for the same metres.
+        let profile = |set: &GeologySet, col: &dc_worldgen::collapse::ColumnRec| {
+            let mut out: Vec<(String, f64)> = Vec::new();
+            for e in &col.strata.events {
+                let c = set.member(e.member).class.clone();
+                match out.last_mut() {
+                    Some((k, m)) if *k == c => *m += f64::from(e.thickness_m),
+                    _ => out.push((c, f64::from(e.thickness_m))),
+                }
             }
+            out
+        };
+        let (pv, pe) = (profile(&vanilla, cv), profile(&extended, ce));
+        assert_eq!(pv.len(), pe.len(), "class profile length moved");
+        for ((kv, mv), (ke, me)) in pv.iter().zip(&pe) {
+            assert_eq!(kv, ke, "class order moved");
+            assert!(
+                (mv - me).abs() < 1e-4,
+                "class thickness moved: {mv} vs {me}"
+            );
         }
     }
     assert!(
@@ -310,7 +342,7 @@ fn placer_follows_the_sorted_gradient() {
                 );
                 assert!((1..=3).contains(&k), "grade out of range: {k} eighths");
                 ore_columns += 1;
-            } else if set.member(e.member).class == CLASS_CLASTIC_COARSE && e.thickness_vox > 0 {
+            } else if set.member(e.member).class == CLASS_CLASTIC_COARSE && e.thickness_m > 0.0 {
                 barren_alluvial += 1;
             }
         }
@@ -535,7 +567,7 @@ fn family_contacts_wander_off_the_chunk_grid() {
     let seed = 0xDEED_1234_5678u64;
     let event = StrataEvent {
         member: m_a,
-        thickness_vox: 4,
+        thickness_m: 3.6,
         temp_c: 10.0,
         precip: 0.5,
         depth_m: 1.0,

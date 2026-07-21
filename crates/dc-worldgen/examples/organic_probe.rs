@@ -87,11 +87,11 @@ fn main() {
         "\ncollapsed chunk-column ({cx},{cz}) at the coal site — {} events, top first:",
         col.strata.events.len()
     );
-    for e in col.strata.events.iter().rev() {
+    for e in col.strata.events.iter().rev().take(40) {
         let m = set.member(e.member);
         println!(
-            "   {:>3} vox  {:28} [{}]",
-            e.thickness_vox,
+            "   {:>8.3} m  {:28} [{}]",
+            e.thickness_m,
             m.id,
             m.class.trim_start_matches("dc:")
         );

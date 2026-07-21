@@ -87,6 +87,51 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-21 by the distribution-first slice (journal/0055) —
+/// authorized.** The world genuinely changed, and this is the largest move the
+/// goldens have taken. `deposit_deep_history` stopped rounding each recorded
+/// unit to whole voxels and dropping anything under half a voxel; the recorded
+/// column now survives in metres to the voxel boundary and is quantized **once**,
+/// per voxel span, by addressed stochastic rounding
+/// (`dc_worldgen::fill`). Consequences visible in the fingerprints:
+///
+/// - **blocks moved** — three-quarters of the recorded sediment pile was being
+///   deleted by the old rounding rule and now reaches the ground, so recorded
+///   columns are deeper and their band boundaries land where the record puts
+///   them rather than on voxel lines;
+/// - **the mixture table moved for the first time** (it survived journal/0053
+///   untouched): contact voxels now hold genuinely mixed contents, so states
+///   exist that the generator could never previously construct;
+/// - **the Small world did not move at all** — it runs no deep-time record, so
+///   there is nothing to slice differently, and its sampled surfaces were
+///   already Dirt/Stone under the retired climate rule. That is the control.
+///
+/// The same slice then folded in the **surface voxel** (materials.md
+/// § Sequencing AMENDED 2026-07-21, user: *"we don't have to have this
+/// problematic of deciding which material to skin the world with when the record
+/// already says"*). Where a record exists the surface block is now
+/// `classify(contents)` of the column's top-of-column remainder, not a year-zero
+/// climate threshold, and **grass is not expressed at all**. That moved the
+/// medium goldens a second time, from:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x3764_06F3_6ABB_3A5E, 0x70B9_5244_6872_27C5, 0x1C9C_58DD_D310_B772)
+/// (0x0000_0000_0000_0539, "medium", 0xDC15_2485_BCF7_EFD2, 0x13FE_3E01_AE0A_4958, 0x2AC6_F556_B746_825E)
+/// ```
+///
+/// and it **shrank the absent-contents exception**: `block_equals_classify_of_
+/// contents` now reports only Air and Stone (unrecorded basement) among
+/// contents-less blocks. The 81 920 veneer-stub Dirt voxels it used to excuse
+/// carry real contents.
+///
+/// The previous values, from the carry-`H` slice, kept so the move is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x5863_4C80_C5C1_4D62, 0x9B67_5DAB_C68D_BDBC, 0xBD39_3CF4_10DF_8067)
+/// (0x0000_0000_0000_0539, "medium", 0x54CD_8922_B21E_852A, 0x89F9_9D67_61D2_B38C, 0x4123_D801_8035_82D8)
+/// (0x0000_00C1_1A7E_2026, "small",  0x024F_5F94_8C2E_39CC, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-21 by the carry-`H` slice (journal/0053) — authorized.** The
 /// world genuinely changed: soil/regolith depth stopped being a guess from
 /// present-day precipitation and became the deep sim's recorded loose-column
@@ -108,16 +153,16 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x5863_4C80_C5C1_4D62,
-        0x9B67_5DAB_C68D_BDBC,
-        0xBD39_3CF4_10DF_8067,
+        0x385D_BBFA_470A_DC40,
+        0xFA60_7EFC_CAE1_98C9,
+        0xAA01_3DEE_63DB_7AF5,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x54CD_8922_B21E_852A,
-        0x89F9_9D67_61D2_B38C,
-        0x4123_D801_8035_82D8,
+        0xE6E4_1C61_159D_5B42,
+        0x4206_56E5_EF00_1196,
+        0xE70C_7DF4_B89F_18CB,
     ),
     (
         0x0000_00C1_1A7E_2026,
