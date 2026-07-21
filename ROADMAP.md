@@ -1332,6 +1332,23 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
+  (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
+  teleport sequence: `DeviceLost ("driver implementation is at fault")` →
+  swap-chain loss → wgpu buffer-map panic → bevy_pbr cluster PoisonError
+  cascade. Suspicion (UNDIAGNOSED — needs reproduction, not a bandaid):
+  far-field rebuild churn — each long jump rebuilds toward a ~900-tile field
+  plus near chunks/colliders — hitting either a Windows TDR (one >2 s GPU
+  frame) or VRAM/allocator exhaustion. This is the failure class the
+  perf-first doctrine (ARCHITECTURE.md § Modularity and performance,
+  DECIDED 2026-07-21) exists for: pooling/recycling of far tiles and chunk
+  meshes is the designed answer; voxy-dh-recon's pooled-vertex-buffer row is
+  the prior art. Note the process exit code was 0 — the crash is invisible
+  to exit-code monitoring; the panic cascade also poisons instead of
+  degrading loudly. Secondary defect either way: a DeviceLost should not
+  cascade into unwrap panics. Repro suggestion: scripted teleport storm via
+  MCP at `--horizon 6+`, watched with GPU memory instrumentation.
+
 - **Stub inventory filed** (`docs/design/stubs.md`, 2026-07-21, read-only audit
   agent + integrator). Ten active stubs, each with its heir. One genuine
   discovery: **ruin-posts was UNDOCUMENTED** — the only world-visible
