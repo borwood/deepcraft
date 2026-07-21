@@ -81,6 +81,13 @@ should check first.
 > (7.4 km) from the cell grid it interpolates. Not investigated here; not a
 > roughness question.
 
+**Resolved (journal/0043): it was a bug — the same `8.5`-for-`8` slip this probe
+made, live in production.** `climate_at` now uses integer `w / 2`, matching
+`deep_coords` / `cell_of_voxel` / `build_cells`. The mis-registration had shifted
+every temp/precip consult 7372.8 m north-and-east of the terrain it keyed; the
+frost line and desert band moved with it. Guarded by
+`climate_at_reproduces_cells_own_climate_at_centre`.
+
 ---
 
 ## 1. The walk baseline — reproduced exactly
