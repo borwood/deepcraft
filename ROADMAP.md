@@ -1020,25 +1020,48 @@ guided-tour ratification (0049)**. Doctrine: ledger-expression + enhancement
 + perf-first + genesis/stubs (stubs.md, 11 entries). Ore design pass drafted
 (ores.md R1–R8 pending).
 
-**NEXT SESSION — set up at 2026-07-21 close. Read first:**
-`docs/design/stubs.md` (new — the doctrine's registry), journal/0049 (the
-live-tour protocol), corrections #23–#25. **Walk wiring:** game MCP is a
-checked-in `.mcp.json`; launch the game FIRST (`cargo run --release -p
-dc-client -- --horizon 3`), then `/mcp` reconnect. **`--horizon 6` crashes
-in minutes (leak, Observed) — use 3 until diagnosed.** The order:
-1. **Renderer leak diagnosis** — blocks wide horizons; cheap repro (idle
-   `--horizon 6`, 5 min); instrument GPU memory; smearing = early warning.
-2. *(**Wave-magnitude retune: STRUCK 2026-07-21 by the user** — a bandaid
-   against a mechanism that changes wholesale after the water machinery
-   lands; the fetch model is the heir. See Sequenced.)*
-3. **User decisions when ready:** ores R1–R8 · roughness recalibration
-   (behind the C-candidate + erosion-supply measurement campaign).
-4. **Design passes queued:** forms/partials (materials.md DECIDED direction)
-   · ecology (starts from biomes-ecology-agenda.md) · social sim (the big
-   one) — main-session conversations, not dispatches.
-5. Consume-the-ledger engineering remains Sequenced: carry-`H` (station 1
-   is its trace), tectonic expression (dip/fold + metamorphic), paleo-context
-   provider (subsumes stubs 4/5/6).
+**NEXT SESSION — rewritten at the 2026-07-21 autonomous-session close
+(supersedes the earlier same-day block below). Read first:**
+`docs/design/stubs.md` (the doctrine's registry), journal/0049 (the live-tour
+protocol), **journal/0050–0052 (the leak, the eviction, the fill contract)**,
+corrections #23–#25. **Walk wiring:** game MCP is a checked-in `.mcp.json`;
+launch the game FIRST (`cargo run --release -p dc-client -- --horizon 3`),
+then `/mcp` reconnect.
+
+**Wide horizons: the blocker is GONE but unproven at 6.** The DeviceLost
+crashes were host-RAM exhaustion from an unbounded chunk store, now evicting
+(journal/0051, measured flat over 210 teleports at `--horizon 3`). Nobody has
+yet re-run a long `--horizon 6` session to confirm it survives — **that is a
+cheap, high-value first act next session**, and it unblocks the landform-shape
+walk the roughness pick needs.
+
+**Decisions waiting on the user (nothing else is blocked on them):**
+1. **The surface-veneer retirement** — this is now the *gating* decision for
+   the forms/partials thread, not a background stub. The fractional-top slice
+   cannot proceed honestly until the veneer stops owning the top voxel of
+   recorded columns (see In flight). Wants the user in the room.
+2. **Ores R1–R8** (ores.md draft).
+3. **Roughness recalibration** — three costed candidates, picked from
+   pictures; C is the only one that changes which landforms exist. Sequence
+   the `--horizon 6` landform walk first so the pick is made against real
+   terrain.
+4. **`classify` is material-keyed, not class-keyed** (journal/0052) — a
+   judgment call the integrator accepted; byte-neutral today, diverges only
+   for a pack that binds a material into a contradicting class.
+
+**Design passes queued (main-session conversations, not dispatches):**
+ecology (starts from biomes-ecology-agenda.md) · social sim (the big one) ·
+the water/caves thread (water.md § Session capture 2026-07-21 — the
+two-drainage-opinions finding and the bounded-drainage-refinement spike
+question are the live items).
+
+**Engineering still Sequenced:** tectonic expression (dip/fold +
+metamorphic) · paleo-context provider (subsumes stubs 4/5/6) · sub-voxel
+facies as inclusions (the charcoal sieve — now much more tractable on the
+landed contents-authority machinery, and it does NOT need the veneer
+decision, so it is the best next forms-adjacent slice) · `HostWorld` edited-
+chunk spill to the save layer (edited chunks are retained unboundedly by
+design; ~640 MB per 10 000 edited chunks, asserted by test).
 
 *(Superseded by the session-close block above; kept for the record.)*
 **RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
