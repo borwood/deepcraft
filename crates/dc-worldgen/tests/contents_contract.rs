@@ -87,6 +87,41 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-21 by the surface member dither (journal/0058) —
+/// authorized.** journal/0055 gave the surface voxel its own member resolution
+/// but left it in `column`, drawn **once per 32×32 chunk footprint** at the
+/// chunk's centre — so the world's skin quantized into 28.8 m rectilinear
+/// patches of one member's albedo (`journal/assets/0056-surface-quantized-per-
+/// chunk.png`), the same chunk-line family cutover corrections #6 retired for
+/// the buried fill. The resolution moved into the shared `surface_sample`
+/// kernel and now uses the per-voxel-column 3c-2 boundary dither, at the
+/// voxel's own fractional position.
+///
+/// Exactly what moved, and it is the shape the change predicts:
+///
+/// - **the block hashes did NOT move, either medium world.** That is the
+///   within-class invariance the whole change rests on: every member of a
+///   vanilla class shares a `block_twin`, so dithering *within* a class cannot
+///   change `classify` of the contents. Asserted, not hoped —
+///   `collapse::tests::surface_member_is_dithered_not_chunk_quantized` checks
+///   every filled surface column's block against its chosen member's twin.
+/// - **the material hashes moved** — the sidecar is where the member lives, and
+///   most of the world's surface columns now resolve a different one from their
+///   chunk's centre pick.
+/// - **the mixture tables moved**, because the surface voxel's single-member
+///   partial fills intern member/eighth combinations the per-chunk pick could
+///   not construct.
+/// - **the Small world did not move at all**, again: no deep-time record, so no
+///   record-derived surface member to dither. The control held.
+///
+/// The values immediately before this move, kept so it is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x385D_BBFA_470A_DC40, 0xFA60_7EFC_CAE1_98C9, 0xAA01_3DEE_63DB_7AF5)
+/// (0x0000_0000_0000_0539, "medium", 0xE6E4_1C61_159D_5B42, 0x4206_56E5_EF00_1196, 0xE70C_7DF4_B89F_18CB)
+/// (0x0000_00C1_1A7E_2026, "small",  0x024F_5F94_8C2E_39CC, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-21 by the distribution-first slice (journal/0055) —
 /// authorized.** The world genuinely changed, and this is the largest move the
 /// goldens have taken. `deposit_deep_history` stopped rounding each recorded
@@ -154,15 +189,15 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
         0x0000_0D5E_ED57_2026,
         "medium",
         0x385D_BBFA_470A_DC40,
-        0xFA60_7EFC_CAE1_98C9,
-        0xAA01_3DEE_63DB_7AF5,
+        0xCDBA_4FF1_0691_FC2C,
+        0xD8D5_222E_2864_F931,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
         0xE6E4_1C61_159D_5B42,
-        0x4206_56E5_EF00_1196,
-        0xE70C_7DF4_B89F_18CB,
+        0x3C69_3E20_80FC_8C8E,
+        0x69F5_739D_D620_597B,
     ),
     (
         0x0000_00C1_1A7E_2026,
@@ -199,10 +234,16 @@ fn generated_world_is_byte_identical_to_the_pre_contract_goldens() {
             ));
         }
     }
+    // `DC_PRINT_GOLDENS` prints, and *only* prints. It must never suppress the
+    // assertion: an env var that can silently disable a correctness gate is the
+    // corrections #27 false-green in miniature, and it bit us — an exploratory
+    // run with the flag set reported this suite green against stale goldens
+    // (journal/0058). The escape hatch was redundant anyway: the failure message
+    // below already carries the got-vs-want values a golden update needs.
     assert!(
-        print || mismatches.is_empty(),
-        "the generated world moved — deriving the block from contents must be \
-         byte-neutral:\n{}",
+        mismatches.is_empty(),
+        "the generated world moved — if that is intended, a journal entry must \
+         authorize it and these become the new goldens:\n{}",
         mismatches.join("\n")
     );
 }
