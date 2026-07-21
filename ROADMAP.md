@@ -987,6 +987,18 @@ see the question you are asking.
 
 ## Sequenced
 
+- **HostWorld chunk eviction — the RAM-march fix** (diagnosed 2026-07-21,
+  journal/0050): evict generated-and-untouched chunks from `HostWorld.chunks`
+  (re-derivable — "store only what the derivation cannot predict", the S11
+  doctrine) while preserving edited chunks (persist/spill to the decided save
+  layer; interacts with the persistence follow-on). Measured target: the
+  ~25 MB/teleport-jump linear RSS march goes flat under the `DC_MEM_PROBE` +
+  external-RSS repro. Residual, lower priority: close the
+  `coarse_surface`-only gap in the collapse caches' `evict()` (currently
+  fired only by `generate_chunk`) and distance-aware caps if measurement
+  asks. Separate hardening item: DeviceLost should degrade loudly, not
+  cascade into `unwrap`/`PoisonError` panics.
+
 - **Tectonic expression at the collapse tier — the layer-cake redemption**
   (promoted 2026-07-21 after the user's callout: dip/fold non-expression
   "slipped by without my understanding or ratification" — an integrator
@@ -1474,6 +1486,35 @@ before any code.
   exited CLEANLY (verified: no DeviceLost in the log), vs 4.5–10 min to
   death at `--horizon 6` — accumulation scales with far-field size, and
   smearing is the degraded-but-alive state well before the cliff.**
+- **DIAGNOSED 2026-07-21 (journal/0050): the leak is host-RAM, not the GPU
+  and not the far-field pooling.** Instrumented our own allocation counts
+  (`DC_MEM_PROBE` plugin, merged) beside external RSS + VRAM sampling.
+  Findings, all measured: (1) **idle `--horizon 6` does NOT leak** — every
+  count flat, RSS ~978 MB, VRAM ~3158 MB, survived 6.5 min (the "idle 4.5 min
+  death" did not reproduce; the leak is motion-driven, not time-driven).
+  (2) A **teleport storm to fresh distant coords leaks RSS linearly, ~25 MB/
+  jump (~13 MB/s), unbounded**, while VRAM stays flat AND our render counts
+  (meshes/entities/far_tiles) only oscillate, never grow — so the far-field
+  pooling and wgpu/VRAM are NOT the site (pooling-doctrine failure-class
+  hypothesis FALSIFIED). (3) The decisive cut: the same storm cycling **four
+  FIXED coords keeps RSS flat within 4 MB for 142 jumps** — the leak is keyed
+  by world *position*, not by render churn. Mechanism (as corrected at
+  integration — the draft's "two unbounded caches" died against
+  `collapse.rs`): **`HostWorld.chunks` is the one genuinely unbounded store**
+  (`dc-api/src/host.rs:178`, materialized `chunk_at` `:367–373`: every chunk
+  any query touches, retained forever, ~33 KB each). The `WorldGenerator`
+  collapse caches are **bounded** by `evict()` caps (`collapse.rs:609–624`,
+  fired per `generate_chunk`) and contribute steady-state footprint, with one
+  real gap: far-field-only sampling paths (`coarse_surface`/`column_record`)
+  never trigger `evict`. h3 and h6 jump slopes are near-identical (streaming
+  budget caps new-world-per-jump); the horizon-scaled *lifetime* the tour saw
+  is a steady-state-footprint + continuous-far-field-sweep effect. Fix =
+  eviction on `HostWorld.chunks`, which must distinguish generated-untouched
+  (droppable — "store only what the derivation cannot predict", the S11
+  doctrine) from edited (persist/spill to the save layer); generator-cache
+  work is residual (close the coarse_surface gap, distance-aware caps if
+  measured). Secondary defect stands: DeviceLost still shouldn't cascade
+  into `unwrap` panics.
 - **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
   (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
   teleport sequence: `DeviceLost ("driver implementation is at fault")` →

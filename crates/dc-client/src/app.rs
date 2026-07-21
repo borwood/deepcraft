@@ -213,6 +213,7 @@ pub fn run(
     .add_plugins(EdgePassPlugin { enabled: edges })
     .add_plugins(TerrainMaterialPlugin)
     .add_plugins(GpuProbePlugin)
+    .add_plugins(MemProbePlugin)
     .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
     .insert_resource(Fullbright(fullbright))
     .insert_resource(Edges(edges))
@@ -347,6 +348,65 @@ impl Plugin for GpuProbePlugin {
             }
         }
     }
+}
+
+/// Renderer-leak diagnosis instrumentation (env-gated by `DC_MEM_PROBE`, zero
+/// cost when unset; ROADMAP Observed "renderer leak / DeviceLost"). Every ~10 s
+/// it logs the sizes of the allocation sites we own — the loaded-chunk /
+/// far-tile / far-chunk maps, their live render entities, and the Bevy asset
+/// stores those meshes and textures live in — as one grep-able `DC_MEM_PROBE`
+/// line stamped with `Time::elapsed`. The discriminator (mission method): if
+/// OUR counts climb, the leak is in our streaming/pooling; if they stay flat
+/// while an external VRAM/RSS sampler (nvidia-smi, Get-Process) climbs to the
+/// DeviceLost cliff, the growth is below us (asset retention, wgpu, driver).
+struct MemProbePlugin;
+
+impl Plugin for MemProbePlugin {
+    fn build(&self, app: &mut App) {
+        if std::env::var("DC_MEM_PROBE").is_err() {
+            return;
+        }
+        app.add_systems(Update, mem_probe);
+    }
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "diagnostic: each count comes from a distinct resource/query"
+)]
+fn mem_probe(
+    time: Res<Time>,
+    mut last: Local<f64>,
+    meshes: Res<Assets<Mesh>>,
+    images: Res<Assets<Image>>,
+    chunk_map: Res<ChunkMap>,
+    far_tiles: Res<farmesh::FarSurfaceMap>,
+    far_chunks: Res<farmesh::FarChunkMap>,
+    all_entities: Query<Entity>,
+    chunk_entities: Query<(), With<ChunkEntity>>,
+    tile_entities: Query<(), With<farmesh::FarTileEntity>>,
+) {
+    let now = time.elapsed_secs_f64();
+    // Log at boot (first frame) then every ~10 s of wall-free sim time.
+    if *last != 0.0 && now - *last < 10.0 {
+        return;
+    }
+    *last = now;
+    let live_far_chunks = far_chunks.loaded.values().filter(|e| e.is_some()).count();
+    info!(
+        "DC_MEM_PROBE t={:.0}s | meshes={} images={} | chunk_map={} chunk_ent={} | \
+         far_tiles={} far_tile_ent={} | far_chunks={} far_chunk_ent={} | entities={}",
+        now,
+        meshes.len(),
+        images.len(),
+        chunk_map.loaded.len(),
+        chunk_entities.iter().count(),
+        far_tiles.loaded.len(),
+        tile_entities.iter().count(),
+        far_chunks.loaded.len(),
+        live_far_chunks,
+        all_entities.iter().count(),
+    );
 }
 
 fn setup(
