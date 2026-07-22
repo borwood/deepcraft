@@ -1219,6 +1219,18 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **The threshold-quantization migration — GREENLIT, "we finish this today"**
+  (user, 2026-07-22; audit: docs/audits/2026-07-22-threshold-quantization-
+  audit.md; end-state: spines § S-4 "Ratified end-state"). Route: **A1
+  dispatched** (share-weighted susceptibility blend over the dominance
+  window — dissolves the S-4 contour by construction; journal/0072) → FF2b
+  integration → **B1** (surface_class plurality → membership dither;
+  interlocked with FF2b's collapse consumption, dispatches after its merge)
+  → **CoarseField<T> extraction** from what the two shape-teachers taught
+  (cannot start before they land — the audit's own sequencing rule). User's
+  framing on the record: "there are things i'd rather do but this is
+  foundational."
+
 - **The octree substrate — DESIGN PASS OPENED, D1–D3 DECIDED** (2026-07-22,
   live session; `docs/design/octree-substrate.md`). The water.md leaning is
   resolved: **one substrate = the existing S3 chunk pyramid**, named and given
