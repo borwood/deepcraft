@@ -295,3 +295,30 @@ real rather than a slogan, since both were independently flagged by the seam
 inventory: `Litho::reference_material` (six named rocks standing for every
 material in the world) and `classify::block_twin` (fifteen named materials, with
 a `_ => Block::Stone` arm that silently swallows any pack's additions).
+
+---
+
+# 6. The audits (`docs/audits/`)
+
+Standing inventories, produced by read-only sweeps. Like `docs/spikes/*`, they
+hold **measured numbers and file:line citations** — consult before re-deriving.
+
+- **`2026-07-22-seam-inventory.md`** — all **34 seams**: what each stands in
+  for, the owing system, the identity fallback (**19 of 34 are arbitrary, not
+  identities** — flagged individually), pass-level vs value-level granularity,
+  blast radius, and a ranked shortlist of 12. Also the finding that
+  `pipeline::Resource` declares *fields*, so **26 of 34 are invisible to the
+  pass graph**.
+- **`2026-07-22-deeptime-vector-audit.md`** — all **24 state-mutating vectors**
+  in the deep sim: reads, writes, whether they reach the record, material- and
+  form-awareness. Headline: **form-awareness is zero across all 24**, and only
+  6 write anything a player can dig.
+- **`2026-07-22-hydrology-priors.md`** — the exhaustive water corpus sweep,
+  including **16 priors that contradict or constrain** a unified-transport
+  framing, and 20 items of genuine blank space.
+
+**These were nearly lost.** They lived in a session scratchpad and were cited
+all day; nothing in the corpus pointed at them. That is **A-4 committed on the
+day A-4 was written** — proof that an index only helps if the artifacts it
+indexes are *in the repo*. Any future sweep lands here, in the same commit as
+the work that used it.

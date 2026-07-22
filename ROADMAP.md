@@ -3221,3 +3221,15 @@ marker beds are the same family. The dominance threshold is a calibration and
 should say so.
 
 Do **not** unwind the coal/charcoal expression work; it is sound.
+
+- **`block_twin` — a process naming fifteen materials** (anti-shape A-7,
+  `docs/spines.md`; `dc-core/src/classify.rs:60`). Fifteen named identities plus
+  a `_ => Block::Stone` arm whose own comment admits it swallows nine materials
+  — so **any pack's new material summarizes to generic stone**. Deliberately
+  **not** batched with the other seam conversions: it touches the ratified fill
+  contract (`block == classify(contents)`, and "every member of a class shares
+  a block twin", asserted in exactly one test), so a careless conversion could
+  quietly weaken an invariant. **Wants thought, not a brief** — but it is owed
+  work, not a decision already taken. Sequenced here so it stops living only as
+  an exclusion note. Full entry: `docs/audits/2026-07-22-seam-inventory.md` (#7
+  on the ranked shortlist).
