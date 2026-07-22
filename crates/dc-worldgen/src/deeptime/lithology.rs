@@ -63,11 +63,14 @@
 //!
 //! ## Structural deformation, and loose materials
 //!
-//! [`exposed_litho`] takes the top of the record because today the record *is*
-//! a flat stack. When the deformation term lands (ROADMAP § Observed, "the
-//! world is a LAYER CAKE"), "which unit outcrops here" stops being "the last
-//! one" — but every other part of this module is indifferent to how that
-//! question is answered. Only the one function changes.
+//! [`exposed_litho`] reads the *near-surface window* of the record — the
+//! lithology that dominates the topmost [`OUTCROP_DOMINANCE_WINDOW_M`], not
+//! merely the last unit — because a bed too thin to fill an erosion cell must not
+//! define its rock (journal/0068). Today the record *is* a flat stack, so that
+//! window is the last few units. When the deformation term lands (ROADMAP
+//! § Observed, "the world is a LAYER CAKE"), "which units lie in the window here"
+//! stops being "the last ones" — but every other part of this module is
+//! indifferent to how that question is answered. Only the one function changes.
 //!
 //! Likewise the split between loose and lithified material is a distinction
 //! [`Litho`] can grow a variant for; nothing here assumes a lithology is rock.
@@ -234,6 +237,14 @@ pub enum Litho {
     OrganicPeat,
     /// Coal seams.
     OrganicCoal,
+    /// Charcoal — a fire bed. Structurally a *thin event bed* (capped at 0.04 m,
+    /// journal/0066), so it is the first member of the thin-lamina family the
+    /// thickness-dominance rule in [`exposed_litho`] exists to keep out of an
+    /// erosion cell's identity. It is a `Litho` so the deep-time↔collapse mirror
+    /// is total (`litho_of_tag` agrees with `geology::deep_class` over the whole
+    /// tag space); it essentially never *outcrops*, because it cannot dominate a
+    /// [`OUTCROP_DOMINANCE_WINDOW_M`] window.
+    OrganicCharcoal,
     /// **Basement**: unrecorded igneous/metamorphic rock below the whole
     /// sedimentary pile. What a column exposes once erosion has stripped its
     /// record — and the reason coupling should hand back resistant shield and
@@ -242,13 +253,17 @@ pub enum Litho {
 }
 
 impl Litho {
+    /// The number of lithologies — the width of every per-lithology table.
+    pub const COUNT: usize = 7;
+
     /// Every lithology, in table order.
-    pub const ALL: [Litho; 6] = [
+    pub const ALL: [Litho; Litho::COUNT] = [
         Litho::ClasticFine,
         Litho::ClasticCoarse,
         Litho::OrganicSoil,
         Litho::OrganicPeat,
         Litho::OrganicCoal,
+        Litho::OrganicCharcoal,
         Litho::Basement,
     ];
 
@@ -261,7 +276,8 @@ impl Litho {
             Litho::OrganicSoil => 2,
             Litho::OrganicPeat => 3,
             Litho::OrganicCoal => 4,
-            Litho::Basement => 5,
+            Litho::OrganicCharcoal => 5,
+            Litho::Basement => 6,
         }
     }
 
@@ -273,6 +289,7 @@ impl Litho {
             Litho::OrganicSoil => "soil",
             Litho::OrganicPeat => "peat",
             Litho::OrganicCoal => "coal",
+            Litho::OrganicCharcoal => "charcoal",
             Litho::Basement => "basement",
         }
     }
@@ -287,6 +304,7 @@ impl Litho {
             Litho::OrganicSoil => MaterialId::CARBONACEOUS_MUDSTONE,
             Litho::OrganicPeat => MaterialId::PEAT,
             Litho::OrganicCoal => MaterialId::COAL,
+            Litho::OrganicCharcoal => MaterialId::CHARCOAL,
             Litho::Basement => MaterialId::GRANITE,
         }
     }
@@ -345,27 +363,28 @@ pub fn resistance_of_material(m: MaterialId) -> LithoResistance {
 
 /// The lithology a recorded unit's measured tag resolves to.
 ///
-/// **Mirrors `crate::geology::deep_class`** — asserted by
-/// `tests/erodibility.rs::litho_routing_matches_the_collapse_tier`. The two must
-/// not drift: if erosion thinks a bed is sandstone and the collapse layer builds
-/// it out of mudstone, the world's shape stops explaining the world's rock.
+/// **Mirrors `crate::geology::deep_class` with no exception** — asserted by
+/// `tests/erodibility.rs::litho_routing_matches_the_collapse_tier` over the whole
+/// tag space. The two must not drift: if erosion thinks a bed is sandstone and
+/// the collapse layer builds it out of mudstone, the world's shape stops
+/// explaining the world's rock.
 ///
-/// **One tag is a deliberate, tested exception: `Charcoal`** (journal/0063).
-/// The collapse tier routes it to the charcoal class, because the carbon really
-/// is in the voxel. This function keeps reading it as the clastic host, because
-/// the question *here* is different: erosion asks "what rock resists this agent
-/// over a 460 m cell", and a 3.5 cm lamina inside a bed of mud has no answer to
-/// that — the mud does. Making charcoal a `Litho` would hand a whole erosion
-/// cell the strength of its thinnest lamina, which is not a fidelity gain, it is
-/// a category error with a golden-shifting blast radius. The mirror's purpose is
-/// intact: the shape still explains the rock, because the rock is still the
-/// host.
+/// This is a per-*unit* fact — the rock this one bed is made of — and it is total
+/// because every facies the recorder can tag has a lithology, charcoal included.
+/// The thin-lamina concern that once lived here as a `Charcoal` special case does
+/// **not** belong in this routing: "a 3 cm fire bed must not set the strength of a
+/// 460 m erosion cell" is a statement about *thickness*, not about *charcoal*, and
+/// it is enforced generally in [`exposed_litho`], where a unit competes for the
+/// outcrop by how much of the near-surface window it fills. Charcoal is capped at
+/// 0.04 m so it essentially never wins that competition; ash falls and marker beds
+/// are the same family and get the same treatment for free (journal/0068, A-7).
 pub fn litho_of_tag(tag: DepTag) -> Litho {
     match tag.biota {
         Biofacies::Coal => Litho::OrganicCoal,
         Biofacies::Peat => Litho::OrganicPeat,
+        Biofacies::Charcoal => Litho::OrganicCharcoal,
         Biofacies::Soil | Biofacies::Retro => Litho::OrganicSoil,
-        Biofacies::Charcoal | Biofacies::Mineral => match tag.env {
+        Biofacies::Mineral => match tag.env {
             DepEnv::Subsea => Litho::ClasticFine,
             DepEnv::Subaerial => match tag.energy {
                 EnergyBand::High | EnergyBand::Medium => Litho::ClasticCoarse,
@@ -375,14 +394,44 @@ pub fn litho_of_tag(tag: DepTag) -> Litho {
     }
 }
 
-/// The lithology **outcropping** at a cell: the top of its record, or
-/// [`Litho::Basement`] when the record is empty (the column has been stripped
-/// past its whole sedimentary history) or when there is no recorder at all.
+/// The near-surface depth of section over which a unit must *dominate* to define
+/// a cell's outcropping lithology.
 ///
-/// This is the one function structural deformation will change. Today the
-/// record is a flat stack and "exposed" means "last unit"; once beds dip, the
-/// outcropping unit at a cell is a function of the fold/fault field and the
-/// erosion surface, and every other part of this module carries over unaltered.
+/// **This is a CALIBRATION — a knob, not a law.** It is set to one collapse voxel
+/// (0.9 m), the smallest depth of section the expressed world can distinguish, on
+/// the statement of shape: **a unit too thin to dominate an erosion cell must not
+/// define its lithology.** That is general and unnamed — a 3 cm charcoal lamina, a
+/// volcanic ash fall, a marker bed are the same family, and none of them should
+/// hand a 460 m erosion cell the strength of its thinnest bed. Widen it and the
+/// outcrop is set by deeper, thicker units (more inertia, less surface detail);
+/// narrow it and thin surface beds start to count. There is no measured Earth
+/// value here to defer to; it is calibrated to the world's own voxel resolution.
+pub const OUTCROP_DOMINANCE_WINDOW_M: f64 = 0.9;
+
+/// The lithology **outcropping** at a cell: the lithology holding the greatest
+/// thickness in the topmost [`OUTCROP_DOMINANCE_WINDOW_M`] of the record, or
+/// [`Litho::Basement`] when the record is empty (the column has been stripped
+/// past its whole sedimentary history), thin, or absent.
+///
+/// **The rule, and why it is a thickness rule.** Walk units from the top of the
+/// record downward, accumulating thickness per [`Litho`] until the window is
+/// full (clipping the last unit to the window boundary so the window is exact).
+/// Any deficit — a record shorter than the window — accrues to [`Litho::Basement`],
+/// the rock below the pile. The winner is the lithology with the most accumulated
+/// thickness; ties go to the one encountered **nearest the surface**. So a bed
+/// too thin to fill much of the window cannot define the cell's rock even if it is
+/// the topmost unit — which is exactly the property that lets charcoal (and ash,
+/// and any marker bed) be its own honest `Litho` in the record without ever
+/// hijacking an erosion cell's strength. It is *dominance*, not a per-unit
+/// thickness floor: forty 2 cm beds of the same lithology stacked together do
+/// dominate, because the rule integrates thickness rather than rejecting thin
+/// units one at a time (journal/0068).
+///
+/// This is the one function structural deformation will change. Today the record
+/// is a flat stack and "the topmost window" means "the last units"; once beds dip,
+/// which units lie in the near-surface window at a cell is a function of the
+/// fold/fault field and the erosion surface, and every other part of this module
+/// carries over unaltered.
 ///
 /// **Since 2026-07-22 that sentence is a socket rather than a promise**
 /// (journal/0060): erosion no longer calls this function directly, it calls
@@ -390,20 +439,66 @@ pub fn litho_of_tag(tag: DepTag) -> Litho {
 /// this function is the registered **identity**. The heir — the layer-cake /
 /// dip-fold term — replaces the slot instead of editing this body, and
 /// `docs/design/stubs.md` carries the entry.
-#[inline]
-pub fn exposed_litho(units: Option<&super::recorder::DepUnit>) -> Litho {
-    match units {
-        Some(u) => litho_of_tag(u.tag),
-        None => Litho::Basement,
+pub fn exposed_litho(units: &[super::recorder::DepUnit]) -> Litho {
+    let mut acc = [0.0f64; Litho::COUNT];
+    // The distinct lithologies, in the order they are first met walking down from
+    // the surface — so the tie-break ("nearest the surface wins") is a strict-`>`
+    // scan over this order, with no float-equality comparison.
+    let mut order = [Litho::Basement; Litho::COUNT];
+    let mut seen = [false; Litho::COUNT];
+    let mut n_order = 0usize;
+    let mut remaining = OUTCROP_DOMINANCE_WINDOW_M;
+
+    for u in units.iter().rev() {
+        if remaining <= 0.0 {
+            break;
+        }
+        if u.thickness_m <= 0.0 {
+            continue;
+        }
+        let l = litho_of_tag(u.tag);
+        let idx = l.index();
+        if !seen[idx] {
+            seen[idx] = true;
+            order[n_order] = l;
+            n_order += 1;
+        }
+        acc[idx] += u.thickness_m.min(remaining);
+        remaining -= u.thickness_m.min(remaining);
     }
+
+    // A record shorter than the window: the deficit is basement, below the pile —
+    // and, being deepest, it is met last and loses every tie.
+    if remaining > 0.0 {
+        let idx = Litho::Basement.index();
+        if !seen[idx] {
+            order[n_order] = Litho::Basement;
+            n_order += 1;
+        }
+        acc[idx] += remaining;
+    }
+
+    // At least one entry always exists (the deficit fills an empty record with
+    // basement), so `order[0]` is present; the scan keeps the earliest (nearest
+    // surface) of any tied maxima by comparing with a strict `>`.
+    let mut best = order[0];
+    let mut best_acc = acc[best.index()];
+    for &l in &order[1..n_order] {
+        let a = acc[l.index()];
+        if a > best_acc {
+            best = l;
+            best_acc = a;
+        }
+    }
+    best
 }
 
 /// Per-lithology rate multipliers for one agent, as a dense table indexed by
 /// [`Litho::index`]. Built once per epoch and read per cell, so the `powf` is
 /// paid six times per epoch rather than once per cell.
-pub fn susceptibility_table(agent: Agent, contrast: f64, cap: f64) -> [f64; 6] {
+pub fn susceptibility_table(agent: Agent, contrast: f64, cap: f64) -> [f64; Litho::COUNT] {
     let reference = REFERENCE_LITHO.resistance().to(agent);
-    let mut out = [1.0; 6];
+    let mut out = [1.0; Litho::COUNT];
     for l in Litho::ALL {
         out[l.index()] = l
             .resistance()

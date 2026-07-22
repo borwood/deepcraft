@@ -22,11 +22,28 @@ use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 /// The seed the goldens were captured at.
 pub const SEED: u64 = 0x0B0A_57EE_0059;
 
-/// FNV-1a-64 over the surface planes of a production `DeepField`, captured from
-/// pre-slice `main` (`2434f37`). See `providers_golden.rs` to re-derive.
-pub const GOLDEN_SURFACE: u64 = 0x7B89_68FD_90E0_4062;
-/// FNV-1a-64 over the strata record of the same field, same provenance.
-pub const GOLDEN_RECORD: u64 = 0x7A7B_0528_2017_2C71;
+/// FNV-1a-64 over the surface planes of a production `DeepField`.
+///
+/// **Moved 2026-07-22 by the outcrop thickness-dominance rule (journal/0068) —
+/// authorized.** `exposed_litho` stopped trusting the topmost recorded unit and
+/// now returns the lithology *dominating* the record's near-surface 0.9 m window,
+/// with any deficit below a short record reading as basement. That feeds the
+/// erosion susceptibility tables, so ~40 % of deep cells changed the rock they
+/// outcrop and **both** the surface planes and the strata record moved (unlike
+/// journal/0066's coal promotion, which relabelled units at finalize and moved
+/// only the record). Prior values — surface unchanged since pre-slice `main`
+/// (`2434f37`); record last set by journal/0066 — kept for audit:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x7B89_68FD_90E0_4062
+/// GOLDEN_RECORD  0x7A7B_0528_2017_2C71
+/// ```
+///
+/// See `providers_golden.rs` to re-derive.
+pub const GOLDEN_SURFACE: u64 = 0x344C_89FF_023F_7BAE;
+/// FNV-1a-64 over the strata record of the same field. Moved with the surface by
+/// journal/0068 — see [`GOLDEN_SURFACE`].
+pub const GOLDEN_RECORD: u64 = 0xEA71_458F_0AB9_7A05;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

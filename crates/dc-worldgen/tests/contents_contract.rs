@@ -87,6 +87,39 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-22 by the outcrop thickness-dominance rule (journal/0068) —
+/// authorized, and the FIRST slice to move the Small control.** `exposed_litho`
+/// now returns the lithology dominating the record's near-surface 0.9 m window
+/// (deficit below a short record → basement) instead of the topmost unit, and
+/// that feeds the erosion susceptibility tables. On the production Medium record
+/// ~40 % of cells changed the rock they outcrop, so both Medium worlds moved on
+/// all three hashes.
+///
+/// **The Small world moved on its BLOCK hash only** — materials and mixture table
+/// are byte-identical. Every prior slice left Small wholly untouched and this file
+/// called it "the control", on the belief that Small "runs no deep-time record".
+/// That belief was imprecise: `Pregen` runs an **always-on** deep-time field at
+/// every extent, and the Small world has ~20 700 recorded deep cells, 92 % of
+/// which change outcrop under the new rule (measured, `examples/
+/// outcrop_dominance_probe.rs`). Prior slices changed record *labels* and
+/// *expression* — which Small does not surface as contents in the sampled columns,
+/// so its material sidecar and table never moved. This slice is the first to change
+/// erosion *rates*, which move the bedrock surface **geometry**; the sampled Small
+/// columns express no deep record as contents (their solids are unrecorded
+/// basement Stone and the veneer stub, both absent-contents), so the shifting
+/// surface changes only which voxels are Stone vs Air — the block hash — while the
+/// contents-derived material and table hashes stay put. `block_equals_classify_of_
+/// contents` still passes with absent-contents blocks limited to Air and Stone,
+/// which is the proof this is geometry and not a classify regression.
+///
+/// The values immediately before this move, kept so it is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x96CF_74C8_7207_F1BE, 0xAB18_73E0_8F0A_5527, 0x0920_6E0D_D4C9_2793)
+/// (0x0000_0000_0000_0539, "medium", 0xA38F_E5B3_01E9_6A82, 0x12E5_D922_7DFD_9C70, 0xBC22_E827_1E70_AA0F)
+/// (0x0000_00C1_1A7E_2026, "small",  0x024F_5F94_8C2E_39CC, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-22 by the organic-facies pair (journal/0063) — authorized.**
 /// Two deliberate behaviour changes landed together, and both are visible here:
 ///
@@ -215,21 +248,21 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x96CF_74C8_7207_F1BE,
-        0xAB18_73E0_8F0A_5527,
-        0x0920_6E0D_D4C9_2793,
+        0x18BD_0AFA_8356_C969,
+        0x2FB1_6035_5F22_5986,
+        0x35AE_2FDA_A2DA_D8CD,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xA38F_E5B3_01E9_6A82,
-        0x12E5_D922_7DFD_9C70,
-        0xBC22_E827_1E70_AA0F,
+        0x9A74_7558_4730_A767,
+        0x505A_ED87_E036_DEFE,
+        0xD8C3_2E22_82E9_3081,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x024F_5F94_8C2E_39CC,
+        0x5B85_62A0_A30E_2E1D,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

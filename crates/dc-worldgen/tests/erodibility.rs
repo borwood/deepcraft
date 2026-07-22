@@ -179,6 +179,7 @@ fn litho_routing_matches_the_collapse_tier() {
         Litho::OrganicSoil => CLASS_ORGANIC_SOIL,
         Litho::OrganicPeat => CLASS_ORGANIC_PEAT,
         Litho::OrganicCoal => CLASS_ORGANIC_COAL,
+        Litho::OrganicCharcoal => CLASS_ORGANIC_CHARCOAL,
         // Basement is below the record, so no recorded tag ever routes to it.
         Litho::Basement => CLASS_IGNEOUS_INTRUSIVE,
     };
@@ -202,30 +203,12 @@ fn litho_routing_matches_the_collapse_tier() {
                             biota,
                             eolian,
                         };
-                        if biota == deeptime::Biofacies::Charcoal {
-                            // **The one deliberate divergence** (journal/0063).
-                            // The collapse tier expresses the carbon; deep time
-                            // keeps reading the host bed, because a 3.5 cm
-                            // lamina cannot set the erodibility of a 460 m cell.
-                            // Asserted by name, not skipped: the exception is
-                            // exactly as pinned as the rule.
-                            assert_eq!(
-                                deep_class(tag),
-                                CLASS_ORGANIC_CHARCOAL,
-                                "charcoal must express as charcoal"
-                            );
-                            let host = DepTag {
-                                biota: deeptime::Biofacies::Mineral,
-                                ..tag
-                            };
-                            assert_eq!(
-                                class_of(litho_of_tag(tag)),
-                                deep_class(host),
-                                "charcoal must erode as its mineral HOST, not as charcoal"
-                            );
-                            seen += 1;
-                            continue;
-                        }
+                        // Total agreement, no exception (journal/0068). Charcoal
+                        // is now its own `Litho`, so both tiers read the fire bed
+                        // as charcoal; the thin-lamina concern that once forced a
+                        // carve-out here moved to `exposed_litho`'s thickness rule,
+                        // where it keeps a 3 cm bed from ever *outcropping* a 460 m
+                        // cell without lying about what the bed is made of.
                         assert_eq!(
                             class_of(litho_of_tag(tag)),
                             deep_class(tag),

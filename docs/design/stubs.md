@@ -355,9 +355,11 @@ fixed here.
   Same family as stub 4: the ledger holds what the runtime does not yet say.
 
   **A socket exists for it as of 2026-07-22 (journal/0060).** The single function
-  the deformation term has to replace — "which unit outcrops here" — is now
-  `providers::Providers::outcrop_at`, whose identity `identity_outcrop_at` is the
-  unchanged `lithology::exposed_litho` (top of the record). Erosion asks the slot,
+  the deformation term has to replace — "which units lie in the near-surface
+  window here" — is now `providers::Providers::outcrop_at`, whose identity
+  `identity_outcrop_at` is `lithology::exposed_litho` — the lithology dominating
+  the record's topmost `OUTCROP_DOMINANCE_WINDOW_M` (0.9 m), a thickness rule as
+  of journal/0068, not merely the top unit. Erosion asks the slot,
   not the function, at all four sites that consult exposed lithology (fluvial
   incision + creep, periglacial frost, eolian deflation, littoral attack). This
   does not close the gap — nothing dips yet — but it converts `lithology.rs`'s

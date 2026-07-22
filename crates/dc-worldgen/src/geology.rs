@@ -335,12 +335,16 @@ fn deep_precip(tag: DepTag) -> f64 {
 /// (journal/0029) needs to know which rock resisted erosion at a cell, and that
 /// must be the same rock the collapse layer will build there — otherwise the
 /// world's shape stops explaining the world's rock. `deeptime::lithology::
-/// litho_of_tag` mirrors this routing and a test asserts they agree over every
-/// tag in the space — with **exactly one deliberate exception, `Charcoal`**,
-/// documented at [`crate::deeptime::lithology::litho_of_tag`]: a 3.5 cm lamina
-/// is a material fact about a voxel and not a rock-strength fact about a 460 m
-/// erosion cell, so the two tiers legitimately answer differently there. The
-/// mirror test asserts the exception by name rather than skipping it.
+/// litho_of_tag` mirrors this routing **totally**, over every tag in the space,
+/// with no exception (asserted by `tests/erodibility.rs::
+/// litho_routing_matches_the_collapse_tier`). Charcoal used to be a deliberate
+/// divergence here — the collapse tier expressed the carbon while deep time read
+/// the host bed — but that was a *thickness* rule wearing a content name
+/// (A-7): the real requirement is "a bed too thin to fill an erosion cell must
+/// not define its lithology", and it now lives generally in
+/// [`exposed_litho`](crate::deeptime::lithology::exposed_litho)'s dominance
+/// window, so both tiers can agree the fire bed is charcoal while it still never
+/// *outcrops* one (journal/0068).
 pub fn deep_class(tag: DepTag) -> &'static str {
     match tag.biota {
         Biofacies::Coal => CLASS_ORGANIC_COAL,
