@@ -283,9 +283,10 @@ the pre-existing off-switch is preserved and is *not* the seam: `wave_erosion <=
 0.0` still short-circuits the whole agent before any provider is consulted, which
 is what `tests/full_agents.rs`'s byte-identity control depends on.
 
-### 14. coal-rank-is-burial-depth-with-no-geotherm — **added 2026-07-22 (journal/0063), replacing a worse stub on the wrong axis**
-`deeptime/biotic.rs::COAL_BURIAL_M` (8.0 m), applied by
-`recorder.rs::DeepStrata::promote_coal`.
+### 14. coal-rank-is-burial-depth-with-no-geotherm — **added 2026-07-22 (journal/0063), replacing a worse stub on the wrong axis; now a provider slot (journal/0067)**
+`deeptime/biotic.rs::COAL_BURIAL_M` (8.0 m) and `COAL_ONSET_C`, applied by
+`recorder.rs::DeepStrata::promote_coal` through
+`providers::Providers::burial_temp_c`.
 
 *Was:* buried peat became coal when **the seam was thick enough**
 (`thickness_m >= 0.4`). That is not a stub with a bad constant, it is a stub on
@@ -315,6 +316,36 @@ deepest". **Heir:** a geotherm, which turns this into a P/T path and lets the
 single `Coal` facies split into the lignite/sub-bituminous/bituminous/anthracite
 members `CLASS_ORGANIC_COAL`'s depth-is-rank contract has been waiting for.
 **Blast:** the abundance and depth of every coal seam a player can dig.
+
+**Now a slot (2026-07-22, journal/0067):** `providers::Providers::burial_temp_c`
+— *"what temperature has this buried unit seen?"* — asked once per candidate
+unit at `BioticSim::finalize`, and compared against `COAL_ONSET_C`. Identity
+`identity_burial_temp_c` is a **degenerate geotherm**: 0 °C at the surface, a
+gradient of exactly 1 °C/m, so the answer is numerically the overburden in
+metres and the test is bit-for-bit the shipped `overburden_m >= 8.0`. The
+gradient is 40× Earth's and is written down as arithmetic rather than dressed up
+as physics — the same deliberate units mismatch `depth_to_water` carries.
+
+The **calibration did not change and is not under review** (user, 2026-07-22:
+*"we knew coal/charcoal would depend on eco + geotherm and need to accept just
+buildin the seams in for now… the calibration is fine"*). What changed is that
+landing the heir is now **supplying a provider** rather than rewriting
+`promote_coal`.
+
+*Why a temperature slot and not an `is_coalified` predicate:* coal rank and
+metamorphic grade are one thermal-maturity ladder (peat → lignite → … →
+anthracite → greenschist), so a temperature composes with `stubs.md` § 4 and
+gives the built-but-unconsumed `exhum`/`t_crust` planes (`spines.md` § 3) their
+first named consumer path. A predicate would answer one rung and compose with
+none. Full argument in `providers/burial_temp_c.rs`'s module docs.
+
+*Two obligations that ride with it.* (1) `COAL_ONSET_C` and the identity
+geotherm are **one calibration in two places and retire together** — a real
+0.025 °C/m gradient against an unchanged onset of 8.0 turns the whole record to
+coal. (2) The payload's `overburden_m` is depth below the **present** surface;
+the record keeps no memory of section deposited and later stripped, so an
+exhumed unit reads as shallow where real coal rank is irreversible. Neither is
+fixed here.
 
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 

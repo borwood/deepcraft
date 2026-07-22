@@ -33,7 +33,9 @@ pub mod recorder;
 pub mod refine;
 pub mod tectonics;
 
-pub use biotic::{BioticSim, COAL_BURIAL_M, COAL_MIN_M, CellBiota, ROSTER, species_name};
+pub use biotic::{
+    BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
+};
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
@@ -46,7 +48,7 @@ pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, exposed_litho, litho_of_tag,
     resistance_of_material, susceptibility_table,
 };
-pub use providers::{ParentCell, Providers, WaveCell};
+pub use providers::{BurialColumn, BuriedUnit, ParentCell, Providers, WaveCell};
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use tectonics::{BoundaryKind, CrustKind, Plate};

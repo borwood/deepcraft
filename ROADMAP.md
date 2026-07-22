@@ -7,6 +7,41 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **Coalification becomes a geotherm seam** (journal/0067;
+  `stubs.md` § 14 now names a slot; background implementation agent, worktree for
+  the integrator; gates green — fmt/clippy/test all `--release`, with
+  `cargo clean -p dc-worldgen -p dc-core --release` before the final gate).
+  **Zero behaviour change; the calibration was deliberately not touched.** The
+  user accepted 0066's coal-on-burial *conditionally*: *"i can accept the coal
+  etc as long as uses geotherm seam with heir etc… the calibration is fine, we
+  aren't answering deep questions about it right now."* So the 8 m overburden
+  test is now `providers::Providers::burial_temp_c` — **"what temperature has
+  this buried unit seen?"** — asked per candidate unit at `BioticSim::finalize`
+  and compared against `COAL_ONSET_C`. **The slot asks for the quantity, not the
+  verdict:** `is_coalified` was the simpler shape and was rejected, because coal
+  rank and metamorphic grade are one thermal-maturity ladder (S-8, *one quantity
+  many regimes*) — a temperature answers every rung, a predicate answers one and
+  composes with none, and it gives the built-but-unconsumed `exhum`/`t_crust`
+  planes (`spines.md` § 3) their first named consumer path. **The identity is a
+  degenerate geotherm** — 0 °C at the surface, 1 °C/m, so the answer is the
+  overburden in metres and the test is bit-for-bit the shipped
+  `overburden_m >= 8.0`. The gradient is 40× Earth's and is written down as
+  arithmetic rather than dressed as physics: a real gradient would put rounding
+  steps between the two comparisons and turn the byte-identity proof into a hope.
+  Filed under **structural**, not a new *diagenesis* group — groups name who
+  **answers**, and a geotherm is crustal (its input is `t_crust`, a tectonics
+  plane); diagenesis merely asks. Byte-identity: `GOLDEN_RECORD` /
+  `GOLDEN_SURFACE` pass unchanged. New falsifiers: a **frozen** geotherm leaves
+  the production world with zero coal and conserves peat + coal (promotion is a
+  retagging), a **molten** one promotes every buried peat *except* each column's
+  living surface — the guard that is structural rather than thresholded, and only
+  observable at infinity. **Nothing to ratify.** Carried, filed not fixed:
+  `overburden_m` is depth below the *present* surface, so an exhumed unit reads
+  as shallow where real rank is irreversible (needs a high-water mark in the
+  record); and rank is time-at-temperature, but `BuriedUnit` carries no age
+  because the record stores a chapter and not a duration — a field the heir could
+  not fill is the `wave_energy` mistake.
+
 - 2026-07-22 — **`None` means identity: provider absence becomes structural**
   (journal/0064; corrections #32 remedy superseded; gates green — fmt/clippy/
   test all `--release`, with `cargo clean -p dc-worldgen --release` before the
