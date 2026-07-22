@@ -20,13 +20,21 @@
 //!
 //! ## The mechanism, and its deliberate limits
 //!
-//! [`Providers`] is **plain function pointers**, the same discipline as
-//! [`crate::pipeline::PassBody`]: deterministic, no captured state, no closures,
-//! no trait objects, no interior mutability. It is resolved **once at world
-//! build** and carried in [`DeepConfig`](super::grid::DeepConfig) alongside the
-//! rest of the run's configuration, so it threads to the sim through the path
+//! [`Providers`] is **plain function pointers in `Option`s**, the same
+//! discipline as [`crate::pipeline::PassBody`]: deterministic, no captured
+//! state, no closures, no trait objects, no interior mutability. It is resolved
+//! **once at world build** and carried in
+//! [`DeepConfig`](super::grid::DeepConfig) alongside the rest of the run's
+//! configuration, so it threads to the sim through the path
 //! `production_config_with` → `build_field_with` → `PregenCtx` →
 //! `Pregen::run_with` that `DeepOverrides` already proved.
+//!
+//! **`None` *is* the identity.** A slot holds `Some(f)` when an heir supplied
+//! `f`, and `None` when nobody has — in which case the slot's accessor calls
+//! the slot's own identity function. Absence is therefore a *shape* of the
+//! struct, not a property inferred by comparing the slot against a reference
+//! value. That distinction is the whole reason this file looks the way it does;
+//! see [`Providers::non_identity_slots`].
 //!
 //! This is **not** a registry, a plugin loader, or a declaration/validation
 //! system. There are four slots, they are named fields, and adding a fifth is
@@ -66,10 +74,10 @@
 //!
 //! | slot | granularity | why |
 //! |---|---|---|
-//! | [`Providers::outcrop_at`] | **value-level** — called per cell per epoch | it was *already* a function call ([`exposed_litho`](super::lithology::exposed_litho)); a pointer indirection replaces a direct call, and nothing else changes |
-//! | [`Providers::wave_energy`] | **value-level** — called per shore cell per epoch | the shore band is a thin fraction of the grid, and the heir's answer genuinely varies per cell per stand |
-//! | [`Providers::parent_p`] | **pass-level** — called `n` times *total*, at [`BioticSim::new`](super::biotic::BioticSim::new) | the value is a property of the parent material, constant over the run; materializing it once as a plane keeps the epoch loop a plain indexed read |
-//! | [`Providers::depth_to_water`] | **pass-level** — called **once per epoch**, at [`BioticSim::step`](super::biotic::BioticSim::step) | the water table moves with the surface, so it cannot be materialized once for the run like `parent_p`; but the heir is a *field* solved over a neighbourhood, so it cannot be a per-cell call either |
+//! | [`Providers::outcrop_at`](field@Providers::outcrop_at) | **value-level** — called per cell per epoch | it was *already* a function call ([`exposed_litho`](super::lithology::exposed_litho)); a pointer indirection replaces a direct call, and nothing else changes |
+//! | [`Providers::wave_energy`](field@Providers::wave_energy) | **value-level** — called per shore cell per epoch | the shore band is a thin fraction of the grid, and the heir's answer genuinely varies per cell per stand |
+//! | [`Providers::parent_p`](field@Providers::parent_p) | **pass-level** — called `n` times *total*, at [`BioticSim::new`](super::biotic::BioticSim::new) | the value is a property of the parent material, constant over the run; materializing it once as a plane keeps the epoch loop a plain indexed read |
+//! | [`Providers::depth_to_water`](field@Providers::depth_to_water) | **pass-level** — called **once per epoch**, at [`BioticSim::step`](super::biotic::BioticSim::step) | the water table moves with the surface, so it cannot be materialized once for the run like `parent_p`; but the heir is a *field* solved over a neighbourhood, so it cannot be a per-cell call either |
 //!
 //! **A provider must never be called inside a hot loop to answer a question that
 //! does not change inside that loop.** `parent_p` is in this slice specifically
@@ -84,11 +92,12 @@
 //!
 //! ## Byte-identity
 //!
-//! [`Providers::default()`] is the identity set: every slot holds exactly the
-//! computation that was inlined at its call site before the seam existed, so a
-//! default-provider world is bit-for-bit the pre-seam world. That is asserted
-//! against goldens captured from pre-slice `main` in
-//! `tests/providers_golden.rs`, not against a post-change self-comparison.
+//! [`Providers::default()`] is the identity set — every slot `None`, so every
+//! slot's accessor runs exactly the computation that was inlined at its call
+//! site before the seam existed, and a default-provider world is bit-for-bit
+//! the pre-seam world. That is asserted against goldens captured from pre-slice
+//! `main` in `tests/providers_golden.rs`, not against a post-change
+//! self-comparison.
 
 pub mod depth_to_water;
 pub mod outcrop_at;
@@ -105,10 +114,16 @@ use super::recorder::DepUnit;
 
 /// The resolved provider set for one world, fixed at world creation.
 ///
-/// Plain `fn` pointers — deterministic, no captured state, `Copy`, trivially
+/// `Option<fn>` per slot — deterministic, no captured state, `Copy`, trivially
 /// carried in [`DeepConfig`](super::grid::DeepConfig). Each slot's doc names the
 /// **question**, the **heir** that will answer it, and the **identity value**
 /// that stands in until then.
+///
+/// **`None` means "no heir yet"** and routes the slot's accessor to its identity
+/// function; `Some(f)` means `f` was supplied. Never read a field directly to
+/// *call* it — use the accessor of the same name
+/// ([`Providers::outcrop_at`](Self::outcrop_at()) and friends), which is the one
+/// place the `None`→identity dispatch happens for that slot.
 ///
 /// **The content set is frozen at world creation** (ARCHITECTURE.md, DECIDED
 /// 2026-07-22): these are generation-affecting, so a world's provider set is
@@ -116,7 +131,7 @@ use super::recorder::DepUnit;
 ///
 /// Fields are grouped by the system that **owes** the answer. Add a slot inside
 /// its group; see the module docs for why that is not decoration.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct Providers {
     // ───────────────────────────── hydrology ─────────────────────────────
     /// **How hard does the sea work at this cell?**
@@ -131,7 +146,7 @@ pub struct Providers {
     ///   at 45° are the same number today, and should not be.
     /// - *Granularity:* value-level, per shore cell per epoch. Only the thin
     ///   freeboard band consults it.
-    pub wave_energy: fn(WaveCell) -> f64,
+    pub wave_energy: Option<fn(WaveCell) -> f64>,
 
     /// **How close to the surface is the water table at this cell?**
     ///
@@ -152,7 +167,7 @@ pub struct Providers {
     ///   slot hands the provider [`WaterPass`]'s network and filled surface
     ///   rather than a lone cell.
     /// - *Granularity:* **pass-level, once per epoch.** Not once per run like
-    ///   [`Providers::parent_p`]: the table follows the surface, and the surface
+    ///   [`Providers::parent_p`](field@Providers::parent_p): the table follows the surface, and the surface
     ///   is what the erosion sim is busy rewriting. Not per cell either — the
     ///   heir is a field, and journal/0060's lesson is that granularity follows
     ///   the heir rather than the call site. `BioticSim::step` materializes the
@@ -164,7 +179,7 @@ pub struct Providers {
     ///   not part of this slice — the slot name is `depth_to_water` because that
     ///   is the question, and the mismatch between the question and today's
     ///   answer is the seam's most useful output.
-    pub depth_to_water: fn(WaterPass<'_>, &mut Vec<f32>),
+    pub depth_to_water: Option<fn(WaterPass<'_>, &mut Vec<f32>)>,
 
     // ────────────────────────────── ecology ──────────────────────────────
     // (no slots yet — the 34-seam inventory says ecology owns 9. Insert here.)
@@ -184,7 +199,7 @@ pub struct Providers {
     ///   run, so the plane is materialized once at
     ///   [`BioticSim::new`](super::biotic::BioticSim::new) and read by index
     ///   thereafter — the epoch loop never calls this pointer.
-    pub parent_p: fn(ParentCell) -> f64,
+    pub parent_p: Option<fn(ParentCell) -> f64>,
 
     // ───────────────────────────── structural ────────────────────────────
     /// **Which rock is outcropping at this cell?**
@@ -201,23 +216,7 @@ pub struct Providers {
     ///   own author; this makes it a socket instead of a sentence.
     /// - *Granularity:* value-level, per cell per epoch. It was already a call,
     ///   so the seam costs one indirection and no new work.
-    pub outcrop_at: fn(Option<&DepUnit>) -> Litho,
-}
-
-impl Default for Providers {
-    /// The identity set: bit-for-bit the pre-seam world.
-    fn default() -> Self {
-        Self {
-            // hydrology
-            wave_energy: identity_wave_energy,
-            depth_to_water: identity_depth_to_water,
-            // ecology — none yet
-            // materials
-            parent_p: identity_parent_p,
-            // structural
-            outcrop_at: identity_outcrop_at,
-        }
-    }
+    pub outcrop_at: Option<fn(Option<&DepUnit>) -> Litho>,
 }
 
 /// One provider slot, by name — the vocabulary a world's manifest needs.
@@ -280,25 +279,74 @@ impl std::fmt::Display for Slot {
 }
 
 impl Providers {
-    /// The address held in one slot, as an integer.
-    ///
-    /// Cast to `usize` rather than compared with `==` on the pointers, so
-    /// clippy's `fn_address_comparisons` has nothing to object to.
-    fn address(&self, slot: Slot) -> usize {
-        match slot {
-            // hydrology
-            Slot::WaveEnergy => self.wave_energy as usize,
-            Slot::DepthToWater => self.depth_to_water as usize,
-            // ecology — none yet
-            // materials
-            Slot::ParentP => self.parent_p as usize,
-            // structural
-            Slot::OutcropAt => self.outcrop_at as usize,
+    // ─────────────────────────── the dispatch points ──────────────────────────
+    //
+    // One accessor per slot, sharing the slot's name. `x.wave_energy(cell)` is a
+    // method call; `x.wave_energy` is the field. Call sites use the former and
+    // never see the `Option` — the `None`→identity choice is made here, once per
+    // slot, and nowhere else.
+
+    /// Ask the [`wave_energy`](field@Self::wave_energy) slot, falling through to
+    /// [`identity_wave_energy`] when no heir has supplied it.
+    #[inline]
+    pub fn wave_energy(&self, cell: WaveCell) -> f64 {
+        match self.wave_energy {
+            Some(f) => f(cell),
+            None => identity_wave_energy(cell),
         }
     }
 
-    /// **Which slots do not hold their identity function** — in field order,
-    /// empty when this world generates exactly as it would have before the seams
+    /// Ask the [`depth_to_water`](field@Self::depth_to_water) slot, falling through to
+    /// [`identity_depth_to_water`] when no heir has supplied it.
+    #[inline]
+    pub fn depth_to_water(&self, pass: WaterPass<'_>, out: &mut Vec<f32>) {
+        match self.depth_to_water {
+            Some(f) => f(pass, out),
+            None => identity_depth_to_water(pass, out),
+        }
+    }
+
+    /// Ask the [`parent_p`](field@Self::parent_p) slot, falling through to
+    /// [`identity_parent_p`] when no heir has supplied it.
+    #[inline]
+    pub fn parent_p(&self, cell: ParentCell) -> f64 {
+        match self.parent_p {
+            Some(f) => f(cell),
+            None => identity_parent_p(cell),
+        }
+    }
+
+    /// Ask the [`outcrop_at`](field@Self::outcrop_at) slot, falling through to
+    /// [`identity_outcrop_at`] when no heir has supplied it.
+    #[inline]
+    pub fn outcrop_at(&self, top: Option<&DepUnit>) -> Litho {
+        match self.outcrop_at {
+            Some(f) => f(top),
+            None => identity_outcrop_at(top),
+        }
+    }
+
+    // ──────────────────────────── the identity report ─────────────────────────
+
+    /// **Is this slot supplied by an heir?** — i.e. does it hold `Some`.
+    ///
+    /// A field check, exhaustively matched, so adding a slot without answering
+    /// for it here is a compile error.
+    pub fn is_supplied(&self, slot: Slot) -> bool {
+        match slot {
+            // hydrology
+            Slot::WaveEnergy => self.wave_energy.is_some(),
+            Slot::DepthToWater => self.depth_to_water.is_some(),
+            // ecology — none yet
+            // materials
+            Slot::ParentP => self.parent_p.is_some(),
+            // structural
+            Slot::OutcropAt => self.outcrop_at.is_some(),
+        }
+    }
+
+    /// **Which slots have been supplied by an heir** — in field order, empty
+    /// when this world generates exactly as it would have before the seams
     /// existed.
     ///
     /// This is the reportable form, and the one journal/0060 asked for: at ten
@@ -307,24 +355,24 @@ impl Providers {
     /// which is what the manifest must record for the frozen-set hard refusal to
     /// have anything to check against.
     ///
-    /// Two distinct functions with identical bodies may share an address after
-    /// identical-code-folding, so a custom provider that is byte-identical to
-    /// the identity one can be reported as identity — the harmless direction.
+    /// **It cannot mis-report.** It reads which fields are `Some`. It was once a
+    /// comparison of `fn` addresses against `default()`'s, and Rust guarantees
+    /// `fn`-pointer address uniqueness in *neither* direction: identical-code
+    /// folding can merge two functions onto one address, and an `#[inline]`
+    /// function can be instantiated per codegen unit at several. The second of
+    /// those actually fired, on the *default* set (corrections #32). No address
+    /// is taken here any more, so neither failure mode has anything to act on.
     pub fn non_identity_slots(&self) -> Vec<Slot> {
-        // Compared against `default()`'s *fields*, which are already fn
-        // pointers: casting a fn item straight to an integer is what clippy's
-        // `fn_to_numeric_cast` objects to.
-        let id = Self::default();
         Slot::ALL
             .iter()
             .copied()
-            .filter(|&s| self.address(s) != id.address(s))
+            .filter(|&s| self.is_supplied(s))
             .collect()
     }
 
-    /// True when every slot still holds its identity function — the bool
-    /// convenience over [`Providers::non_identity_slots`], kept because most
-    /// call sites (tests, assertions) only want the yes/no.
+    /// True when no slot has been supplied — the bool convenience over
+    /// [`Providers::non_identity_slots`], kept because most call sites (tests,
+    /// assertions) only want the yes/no.
     pub fn is_identity(&self) -> bool {
         self.non_identity_slots().is_empty()
     }
@@ -350,10 +398,74 @@ mod tests {
             0.0
         }
         let p = Providers {
-            wave_energy: calm,
+            wave_energy: Some(calm),
             ..Providers::default()
         };
         assert!(!p.is_identity());
+    }
+
+    /// **The `None` path calls the identity, with the same arguments.** This is
+    /// the byte-identity claim stated at the dispatch point rather than only at
+    /// the far end of a 17-second world build: for each slot, the accessor on a
+    /// default set and the identity function itself must return the same bits.
+    #[test]
+    fn the_none_path_is_the_identity_function() {
+        let p = Providers::default();
+        for base_rate in [0.0, 0.05, 1.0, 12.5] {
+            let c = WaveCell {
+                index: 7,
+                gx: 3,
+                gy: 4,
+                base_rate,
+            };
+            assert_eq!(
+                p.wave_energy(c).to_bits(),
+                identity_wave_energy(c).to_bits()
+            );
+        }
+        for index in [0usize, 1, 999] {
+            let c = ParentCell {
+                index,
+                gx: index % 32,
+                gy: index / 32,
+            };
+            assert_eq!(p.parent_p(c).to_bits(), identity_parent_p(c).to_bits());
+        }
+        assert_eq!(p.outcrop_at(None), identity_outcrop_at(None));
+
+        let (precip, r, h) = (vec![0.4f32; 9], vec![25.0f64; 9], vec![2.0f64; 9]);
+        let (area, recv, filled) = (vec![12.0f64; 9], vec![-1i32; 9], vec![27.5f64; 9]);
+        let pass = || WaterPass {
+            w: 3,
+            epoch: 0,
+            precip: &precip,
+            r: &r,
+            h: &h,
+            area: &area,
+            recv: &recv,
+            filled: &filled,
+        };
+        let (mut via_slot, mut direct) = (vec![0.5f32; 9], vec![0.5f32; 9]);
+        p.depth_to_water(pass(), &mut via_slot);
+        identity_depth_to_water(pass(), &mut direct);
+        assert_eq!(via_slot, direct);
+    }
+
+    /// **`Some(identity)` is a resolution, not an absence.** Handing a slot the
+    /// very function it would have fallen back to still reports the slot as
+    /// supplied — the report answers *"did an heir answer this question?"*, not
+    /// *"does the answer happen to equal the old one?"*. Under the address
+    /// comparison those two questions were conflated; they are different
+    /// questions, and only the first is decidable.
+    #[test]
+    fn explicitly_supplying_the_identity_function_still_counts_as_supplied() {
+        let p = Providers {
+            outcrop_at: Some(identity_outcrop_at),
+            ..Providers::default()
+        };
+        assert_eq!(p.non_identity_slots(), vec![Slot::OutcropAt]);
+        // …and it still generates identically, because it is the same function.
+        assert_eq!(p.outcrop_at(None), identity_outcrop_at(None));
     }
 
     /// The reshaped report *names* the swapped slots, and names only those —
@@ -368,8 +480,8 @@ mod tests {
             out.resize(pass.w * pass.w, 1.0);
         }
         let p = Providers {
-            wave_energy: calm,
-            depth_to_water: drowned,
+            wave_energy: Some(calm),
+            depth_to_water: Some(drowned),
             ..Providers::default()
         };
         assert_eq!(

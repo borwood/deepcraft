@@ -1055,3 +1055,17 @@ to control and can change with no diff in the providers file. It is free: a
 provider is always invoked through a pointer and is never inlined at its call
 site anyway, so a wrapper generates the same code. The other three identity
 functions already had this shape, which is why only `outcrop_at` failed.
+
+**Superseded 2026-07-22 (journal/0064) — the remedy, not the falsification.**
+The falsification above stands unchanged: `fn`-pointer addresses are stable in
+neither direction, and comparing them cannot decide slot identity. What is
+retired is the rule that replaced it. A rule in a docstring cannot fail a
+build, and by then the mechanism was load-bearing (the resolved provider table
+is part of world identity, DECIDED 2026-07-22), so a mis-report is a spurious
+load refusal. Slots are now `Option<fn(..)>` with **`None` meaning identity**;
+`non_identity_slots()` reads which fields are `Some`, `Providers::address` is
+deleted, and no address is taken anywhere in the crate. An identity function
+may therefore be `#[inline]`, a `pub use`, or anything else — the constraint
+did not get enforced, it stopped existing. **Do not reintroduce address
+comparison** to answer "is this slot supplied"; that is the question the
+`Option` exists to make unaskable.

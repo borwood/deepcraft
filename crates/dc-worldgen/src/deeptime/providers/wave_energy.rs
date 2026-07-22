@@ -6,7 +6,7 @@
 //! - Identity: [`identity_wave_energy`] — the configured global rate.
 //!
 //! The slot's question, heir and identity are documented on the field itself
-//! ([`Providers::wave_energy`](super::Providers::wave_energy)). Note that this
+//! ([`Providers::wave_energy`](field@super::Providers::wave_energy)). Note that this
 //! payload is the slice's known design error, kept deliberately: journal/0060
 //! records that the named heir needs *fetch*, which no per-cell payload can
 //! carry, so this slot will convert to pass-level when its heir lands.
@@ -30,7 +30,7 @@ pub struct WaveCell {
     pub base_rate: f64,
 }
 
-/// **Identity for [`Providers::wave_energy`](super::Providers::wave_energy)**:
+/// **Identity for [`Providers::wave_energy`](field@super::Providers::wave_energy)**:
 /// the configured global rate, handed back unchanged — the world has one wave
 /// climate everywhere.
 ///

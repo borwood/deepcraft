@@ -18,7 +18,7 @@ fn a_non_identity_wave_provider_reaches_the_run() {
     let base = deeptime::production_config(&pregen.grid, providers_common::SEED);
     let mut swapped = base;
     swapped.providers = Providers {
-        wave_energy: half,
+        wave_energy: Some(half),
         ..Providers::default()
     };
     let a = deeptime::build_field_cfg(&pregen.grid, &base);

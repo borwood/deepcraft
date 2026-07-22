@@ -69,7 +69,7 @@ use dc_sim::statistical::rng::draw_f64;
 
 use super::erosion::Erosion;
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::providers::{ParentCell, WaterPass, wet_at};
+use super::providers::{ParentCell, Providers, WaterPass, wet_at};
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 
 /// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
@@ -470,10 +470,11 @@ pub struct BioticSim {
     /// is fixed for the run, a water table follows the surface the erosion sim
     /// is rewriting.
     wet: Vec<f32>,
-    /// The resolved `depth_to_water` provider, copied out of the config at
-    /// construction — a plain `fn` pointer, so this is `Copy` and the epoch loop
-    /// never touches the config.
-    depth_to_water: fn(WaterPass<'_>, &mut Vec<f32>),
+    /// The resolved provider set, copied out of the config at construction —
+    /// `Option<fn>` pointers, so this is `Copy` and the epoch loop never touches
+    /// the config. Only the `depth_to_water` slot is asked here; it is stored
+    /// whole so a future pass-level slot needs no new field.
+    providers: Providers,
 }
 
 impl BioticSim {
@@ -489,10 +490,10 @@ impl BioticSim {
     pub fn new(grid: &mut DeepGrid, cfg: &DeepConfig, parallel: bool) -> Self {
         let (seed, w) = (cfg.seed, grid.w);
         let n = grid.w * grid.w;
-        let parent = cfg.providers.parent_p;
+        let providers = cfg.providers;
         let parent_p: Vec<f32> = (0..n)
             .map(|index| {
-                parent(ParentCell {
+                providers.parent_p(ParentCell {
                     index,
                     gx: index % w,
                     gy: index / w,
@@ -529,7 +530,7 @@ impl BioticSim {
             // Empty on purpose: the identity `depth_to_water` keeps it empty
             // every epoch, and an empty plane *is* the pre-seam expression.
             wet: Vec::new(),
-            depth_to_water: cfg.providers.depth_to_water,
+            providers,
         }
     }
 
@@ -579,8 +580,8 @@ impl BioticSim {
         // The heir is a field solved over the drainage network, so it gets the
         // network; the identity leaves `self.wet` empty and the per-cell
         // accessor falls through to the pre-seam expression.
-        let dtw = self.depth_to_water;
-        dtw(
+        let providers = self.providers;
+        providers.depth_to_water(
             WaterPass {
                 w: grid.w,
                 epoch,
