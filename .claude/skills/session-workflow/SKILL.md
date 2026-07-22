@@ -424,3 +424,31 @@ cause, reported as a diagnosis. Before concluding an agent is failing: check
 whether the worktree still exists in `git worktree list`, whether its branch has
 commits, and whether its processes are burning CPU. Ask the agent. Do not infer
 failure from absence.
+
+## Clean the crates a SIBLING built, not the crates you changed (2026-07-22)
+
+Sharpening of corrections #21/#27, learned from a false red on merged main.
+
+A merge gate failed on `palette_len_matches_atlas` — a dc-client test asserting
+a shader constant against `MATERIAL_COUNT`. Main had 25 materials and asserts
+29 layers: **self-consistent**, and the merge had touched neither dc-core nor
+dc-client. A concurrent sibling adding a charcoal material had **26**, and its
+dc-core artifact was served to the integrator's dc-client build out of the
+shared `CARGO_TARGET_DIR`.
+
+The standing practice — `cargo clean -p <each crate you changed> --release` —
+**cannot catch this**, because the poisoned crate is one you did *not* change.
+So:
+
+- **Clean the dependency closure your tests actually read**, not your diff. If
+  a sibling is touching dc-core, the integrator cleans dc-core even when the
+  merge was pure dc-worldgen.
+- **The build mutex does not prevent this.** It serializes *invocations*;
+  poisoning comes from artifacts persisting *between* them. Concurrent tracks
+  plus one target dir are mutually corrupting wherever their crate sets
+  overlap — the real cost of parallel tracks, and it lands on the integrator.
+- **Prefer to gate when no sibling with an overlapping crate set is live**, and
+  say in the report which siblings were building during the run.
+- **On any red, check source consistency FIRST** (does main's own source
+  satisfy the assertion?) before reading it as a defect. Two numbers from two
+  worktrees settled this one in a single grep — no rebuild required.
