@@ -320,3 +320,73 @@ local rule is honest **to the degree it is conditioned on the field** — jitter
 scaled by recorded provenance roughness is conditioned; a field-blind constant
 is not. "Fake the appearance" (the anti-pattern in the cost philosophy) now
 means precisely: detail with **no deterministic tie back to the field**.
+
+## DECIDED 2026-07-22 (user) — the deep sim's material interface: seam now, measure, then key on (substance, form) ONCE
+
+**The defect, in the user's words:** *"the whole idea is materials are substance
+and not form. Therefore us requiring a material that inherently has a
+particular form is wrong-shaped… and the whole 'uses one rock as its reference'
+is killing me. Our deep simulation throws out the material properties of almost
+everything in favour of a shortlist of arbitrary proxies."*
+
+**Two errors stacked.** `deeptime::lithology::Litho::reference_material` maps
+six classes to six fixed rocks (MUDSTONE / SANDSTONE / CARBONACEOUS_MUDSTONE /
+PEAT / COAL / GRANITE) and every erosion agent in production reads its
+resistances from those six property sheets, discarding the sheets of ~30 other
+registered materials. That is a **substance** error. And because the record
+mirrors `H` — the *loose* regolith plane — while the proxies are lithified
+rocks, it is simultaneously a **form** error: the sim asks how hard loose river
+sand is to erode and answers with sandstone.
+
+**Its justification expired the same day it was noticed.** The stated reason
+for a fixed proxy is pack-safety, verbatim: *"Fixed, not sampled from the live
+registry, so a content pack cannot move terrain by adding a member… Packs
+diversify what fills a class; they do not renegotiate how fast that class
+erodes."* Under **ARCHITECTURE.md § "The content set is frozen at world
+creation"** (DECIDED the same day), a generation-affecting pack **cannot be
+added to an existing world at all**, so sampling the registry can no longer
+move anyone's terrain. The constraint that forced the proxy is gone. Fourth
+instance in one session of a conclusion outliving its premise (cf. charcoal,
+`stubs.md`; corrections #29).
+
+**The defect one layer down.** `MaterialProps` stores `density`, `cohesion`,
+`permeability`, `insulation` and extraction resistance as constants **on the
+substance** — but those are strongly *form*-dependent, and loose sand versus
+cemented sandstone is, by the ratified forms pass, **one substance in two
+forms**. The property sheet bakes form into substance, and the material *names*
+encode it too (`SANDSTONE` is really "quartz sand, lithified"). Same disease
+`ores.md` R8 found in the ore roster.
+
+**The honest obstacle** (why a proxy exists beyond pack-safety): the deep sim
+runs **before member selection**. The recorder's doctrine is *"at deep-time cell
+resolution the readable story is the process, not the mineral"*, so at erosion
+time no member has been chosen. That justifies an *aggregate*; it does not
+justify one arbitrary member.
+
+**DECIDED — the sequence, and it is NOT a migration ladder:**
+
+1. **Seam now.** `material_properties(litho)` becomes a provider slot with
+   identity = today's table. Byte-identical, no terrain change, lands whenever.
+2. **Measure, do not ship, the class-aggregate.** Probe what abundance-weighted
+   class-mean properties *would* do to erosion — how far six proxies sit from
+   the aggregate truth, and whether the difference is landform-scale or noise.
+   **Zero terrain cost**, and it tells us whether the substance error or the
+   form error is the bigger term (the S13 precedent: measure where the effect
+   goes before moving anything).
+3. **Ship `f(substance, form)` ONCE**, when form exists in the record.
+
+**Why not aggregate-then-form (the integrator's first proposal, rejected by the
+user):** each change to what the erosion sim reads is a **terrain-shape flip** —
+the same event class as the erodibility, biotic, U8 and full_agents flips, each
+of which cost a journal entry, re-baselined golden fingerprints, a "worlds made
+before this are not reproducible under it", and a trip past the user's eye.
+Aggregate-then-form pays that **twice for one conceptual change**, and the
+intermediate world — real aggregate properties, still no form — is a world
+nobody wants to keep. The aggregate step also unblocks nothing. Ship it only if
+form proves far off and the interim fidelity is judged worth a flip on its own,
+with the step-2 measurement in hand.
+
+**Consequence for the recorder entry-species fork:** that decision is now
+larger than "where does form live". If `Litho` should become
+**(substance mixture, form)** rather than six proxy rocks, then the record's
+shape and the deep sim's material interface are **one decision, not two**.
