@@ -364,6 +364,13 @@ hold **measured numbers and file:line citations** — consult before re-deriving
 - **`2026-07-22-hydrology-priors.md`** — the exhaustive water corpus sweep,
   including **16 priors that contradict or constrain** a unified-transport
   framing, and 20 items of genuine blank space.
+- **`2026-07-22-threshold-quantization-audit.md`** — the S-4 square-verdict
+  sweep: every site where a bulk-cell verdict can reach the eye, classified
+  threshold-late / dither-membership / harmless / already-compliant (4/3/3/6,
+  plus 7 sim-internal and 2 conservation-pinned residue), with the
+  `CoarseField<T>` by-construction recommendation, the shape-teacher
+  sequencing, and the finding that it and the octree node payload's sampling
+  vocabulary should be ONE type.
 
 **These were nearly lost.** They lived in a session scratchpad and were cited
 all day; nothing in the corpus pointed at them. That is **A-4 committed on the
