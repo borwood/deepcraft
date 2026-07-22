@@ -50,7 +50,8 @@ use crate::geology::{
 };
 use crate::pipeline::PipelineError;
 use crate::pregen::{
-    CELL_VOXELS, Pregen, Provenance, SALT_ELEV, SALT_GEO_SELECT, SALT_RUIN, temp_sea_level,
+    CELL_VOXELS, Pregen, Provenance, SALT_ELEV, SALT_GEO_CLASS, SALT_GEO_SELECT, SALT_RUIN,
+    temp_sea_level,
 };
 
 /// Lattice level whose spacing is one region (8 192 voxels, 7.37 km).
@@ -769,13 +770,43 @@ impl<'a> WorldGenerator<'a> {
         }
     }
 
-    /// **What the record says this column is made of at the surface**: the
-    /// content class holding the most metres in the recorded column's topmost
+    /// **What the record says this column is made of at the surface**: a content
+    /// class **drawn** from the metre-shares of the recorded column's topmost
     /// 0.9 m. `None` where there is nothing to read.
     ///
     /// Metres, not units — the same `round Σ` discipline the rest of the slice
     /// installs. A voxel whose top 0.9 m is 40 laminae of silt and 3 of sand is
-    /// skinned by the silt, regardless of how the bed *count* falls.
+    /// weighted by the silt, regardless of how the bed *count* falls.
+    ///
+    /// **The verdict is a dither, not a plurality** (audit B1, S-4 move B,
+    /// journal/0073). The class here is a **non-interpolable** cause — a strata
+    /// unit list sampled `record_at_voxel` NEAREST at the 460 m deep-cell grid —
+    /// so the legal cure for its boundary is not to threshold late (there is no
+    /// continuous cause to threshold) but to **dither membership**: draw a class
+    /// from the window's per-class metre shares. A window that is 55 % coarse-
+    /// clastic and 45 % fine skins the two classes in shifting proportion across
+    /// itself, so the frontier between two deep cells that each voted a
+    /// *different* plurality winner dissolves into an interfingered gradient
+    /// rather than a razor-straight 460 m square (the `0070-*-vantage`
+    /// checkerboard).
+    ///
+    /// The draw reads the **coherent** bilinear corner-hash field
+    /// ([`interp_select_draw`], the same field the surface *member* dither uses,
+    /// journal/0058) at a **distinct salt** — deliberately NOT per-voxel white
+    /// noise. The far field point-samples this class through `coarse_surface` at
+    /// a wide stride, and white noise aliases there into a coarse speckle that
+    /// doubled the far-tile mesh (journal/0073); a field coherent over a chunk
+    /// forms sub-chunk class patches that mesh cheaply at every scale. Because
+    /// the field is deterministic in `(seed, vx, vz)` and the shared kernel feeds
+    /// both the near ground and the far horizon at the same `(vx, vz)`, near and
+    /// far inherit the **identical** class and stay one world answer (the
+    /// near/far agreement test asserts it exactly). The trade the coherence buys
+    /// is a small bias toward 50/50 (the bilinear value is not uniform) — the
+    /// same bias the member dither already accepts; the unbiased end-state is the
+    /// far field *summarizing* the shares, which the `CoarseField<T>` extraction
+    /// owns. The **member within** the drawn class is dithered separately by the
+    /// caller; this draw picks the class, that one picks the member, distinct
+    /// salts throughout.
     ///
     /// When the record runs out before half a voxel (the 0.2 % bare-rock case
     /// journal/0053 bought), the surface voxel is basement, and the class is the
@@ -786,7 +817,6 @@ impl<'a> WorldGenerator<'a> {
     fn surface_class(&mut self, vx: i64, vz: i64) -> Option<&'static str> {
         let voxel_m = self.voxel_m;
         let mut acc = 0.0f64;
-        let mut best: Option<(&'static str, f64)> = None;
         if let Some(rec) = self.pregen.deep.record_at_voxel(vx, vz) {
             let mut by_class: Vec<(&'static str, f64)> = Vec::new();
             for u in rec.units.iter().rev() {
@@ -804,16 +834,40 @@ impl<'a> WorldGenerator<'a> {
                     None => by_class.push((c, take)),
                 }
             }
-            // Dominant by metres; ties break on the class id so the answer is
-            // independent of the order the recorder happened to lay them.
-            for (c, m) in by_class {
-                if best.is_none_or(|(bc, bm)| m > bm || (m == bm && c < bc)) {
-                    best = Some((c, m));
-                }
+            if acc >= voxel_m / 2.0 {
+                // Canonical class order so the CDF the draw indexes is
+                // independent of the order the recorder laid the units — the same
+                // order-independence the retired plurality got from its `c < bc`
+                // tie-break. `acc` is the sum of the shares, so `m / acc` is each
+                // class's probability and the draw is the inverse-CDF sample.
+                // Ties need no special case.
+                by_class.sort_unstable_by(|a, b| a.0.cmp(b.0));
+                // **A COHERENT draw, not per-voxel white noise** (journal/0073;
+                // NEEDS RATIFICATION — deviates from the audit's white-noise-à-la-
+                // SALT_GEO_FILL prescription). It is the *same* bilinear
+                // corner-hash field the surface MEMBER dither uses (journal/0058),
+                // at a DISTINCT salt. Why coherent, measured: the far field
+                // POINT-SAMPLES this class through `coarse_surface` at a wide
+                // stride, and per-voxel white noise aliases into coarse speckle —
+                // it doubled the 1.2 km far-tile mesh (21.5 → 43.5 MiB, over the
+                // per-tile budget). The bilinear field instead varies over a
+                // chunk, so the class forms sub-chunk patches whose *composition*
+                // shifts across the 460 m frontier: the checkerboard dissolves
+                // into an interfingered gradient that meshes cheaply at every
+                // scale, and near and far stay EXACTLY equal (one deterministic
+                // kernel). Cost of coherence: the bilinear value is not uniform,
+                // so the split is biased a few points toward 50/50 — the identical
+                // bias the member dither already lives with (0058). Unbiased
+                // white noise is the correct end-state once the far field
+                // *summarizes* the share vector instead of point-sampling it —
+                // that lives in the `CoarseField<T>` extraction (audit Part 2),
+                // where near/far agreement becomes statistical by design.
+                let (ccx, ccz) = (vx.div_euclid(32), vz.div_euclid(32));
+                let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
+                let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
+                let u = interp_select_draw(self.seed, SALT_GEO_CLASS, 0, ccx, ccz, fx, fz);
+                return draw_class(&by_class, acc, u);
             }
-        }
-        if acc >= voxel_m / 2.0 {
-            return best.map(|(c, _)| c);
         }
         // Bare rock: basement, named the way the igneous pass names it.
         let (gx, gy) = self.pregen.grid.cell_of_voxel(vx, vz);
@@ -1406,6 +1460,31 @@ fn avg2(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
 
+/// **The S-4 move-B membership draw** (audit B1): pick one class from the
+/// surface window's per-class metre shares by inverse-CDF against one addressed
+/// uniform `u ∈ [0, 1)`. `shares` must already be in canonical (class-id) order
+/// so the CDF is independent of recorder order; `total` is `Σ shares` (the
+/// caller's `acc`), so `m / total` is each class's probability. Returns `None`
+/// only for an empty slice — the caller never calls it in that case.
+///
+/// Unbiased by the same argument `crate::fill::allocate` rests on: averaged over
+/// the draw, class `i` is chosen with probability exactly `share_i`, so a
+/// neighbourhood's expected class composition equals the recorded composition.
+/// The plurality it replaces was a biased estimator that gave the whole cell to
+/// one winner and stepped hard at the neighbour that voted the other way.
+fn draw_class(shares: &[(&'static str, f64)], total: f64, u: f64) -> Option<&'static str> {
+    let mut cum = 0.0f64;
+    for &(c, m) in shares {
+        cum += m / total;
+        if u < cum {
+            return Some(c);
+        }
+    }
+    // The shares sum to 1 by construction; a floating-point residue at the very
+    // top of the unit interval lands on the last class.
+    shares.last().map(|(c, _)| *c)
+}
+
 /// **The quantization rule for the carried regolith plane** (journal/0053).
 ///
 /// `H` is metres of loose cover; voxels are 0.9 m. The rule is *round to
@@ -1944,5 +2023,122 @@ mod tests {
         // A finite height (not NaN / not a panic) is all we assert — the wilds
         // have their own hostile surface, but they HAVE one.
         assert!(h.abs() < 1_000_000, "wilds height {h} is finite and sane");
+    }
+
+    /// **Move B is unbiased** (audit B1, journal/0073): the class-membership
+    /// draw, averaged over the addressed uniform, chooses each class with
+    /// frequency equal to its recorded metre share. Same proof shape as
+    /// `fill::allocation_is_unbiased_over_the_draw` — this is the whole argument
+    /// for a dither over the retired plurality, which gave a 55/45 window's
+    /// entire 460 m cell to the 55 % class and stepped hard at its neighbour.
+    #[test]
+    fn draw_class_is_unbiased_over_the_draw() {
+        use std::collections::HashMap;
+        // `total` is `Σ shares` (the caller's `acc`); the third case is
+        // un-normalized (metres, not fractions) to exercise `m / total`.
+        let cases: Vec<(Vec<(&'static str, f64)>, f64)> = vec![
+            (vec![("a", 0.55), ("b", 0.45)], 1.0),
+            (vec![("a", 0.50), ("b", 0.30), ("c", 0.20)], 1.0),
+            (vec![("a", 0.09), ("b", 0.81)], 0.90),
+        ];
+        for (shares, total) in &cases {
+            const N: usize = 20_000;
+            let mut hits: HashMap<&str, usize> = HashMap::new();
+            for k in 0..N {
+                let u = (k as f64 + 0.5) / N as f64;
+                let c = super::draw_class(shares, *total, u).expect("non-empty window");
+                *hits.entry(c).or_default() += 1;
+            }
+            for &(c, m) in shares {
+                let freq = *hits.get(c).unwrap_or(&0) as f64 / N as f64;
+                let want = m / total;
+                assert!(
+                    (freq - want).abs() < 1e-2,
+                    "class {c}: chosen {freq} of the time, recorded share {want}"
+                );
+            }
+        }
+    }
+
+    /// **The class dither is live at the surface** (audit B1, journal/0073).
+    ///
+    /// A deep cell's top-window class shares are constant across the whole cell
+    /// (`record_at_voxel` is NEAREST at the 460 m grid), and the within-class
+    /// member dither provably cannot move the block (every member of a class
+    /// shares a `block_twin`) — so if two land columns of the *same* deep cell
+    /// surface two *different* geology blocks, that split can only be the class
+    /// membership dither. Under the retired plurality every land column of a
+    /// cell resolved the one plurality-winning class, hence one geology block,
+    /// and this split count would be exactly zero. Grouping is by the record's
+    /// pointer identity (same cell ⇒ same `&DeepStrata`).
+    #[test]
+    fn surface_class_dither_splits_multiclass_deep_cells() {
+        use std::collections::HashMap;
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Medium,
+        });
+        let mut g = WorldGenerator::new(&pregen);
+        // A class's block twin — NOT the Air/Dirt/Stone fallback vocabulary,
+        // NOT ruin Wood. Intra-cell variation among THESE is the class dither.
+        let geo = |b: Block| {
+            matches!(
+                b,
+                Block::Sandstone
+                    | Block::Mudstone
+                    | Block::Granite
+                    | Block::Basalt
+                    | Block::Coal
+                    | Block::Peat
+                    | Block::CarbonaceousMudstone
+            )
+        };
+        // A 460 m deep cell is ~511 voxels ≈ 16 chunks wide, so a single 32-voxel
+        // chunk sits well inside ONE deep cell: its 1024 columns share one window
+        // and one share-set. Spread the sample chunks at a ~one-cell stride so
+        // each lands in a *distinct* deep cell over a wide area — then a
+        // multi-class cell reveals its split across that chunk's own columns.
+        let mut by_cell: HashMap<usize, Vec<Block>> = HashMap::new();
+        for i in 0..15i64 {
+            for j in 0..15i64 {
+                let (cx, cz) = (i * 17 - 120, j * 17 - 120);
+                let col = g.column_record(cx, cz);
+                for lz in 0..32i64 {
+                    for lx in 0..32i64 {
+                        let (vx, vz) = (cx * 32 + lx, cz * 32 + lz);
+                        let b = col.surface[(lz * 32 + lx) as usize];
+                        if !geo(b) {
+                            continue;
+                        }
+                        let Some(rec) = pregen.deep.record_at_voxel(vx, vz) else {
+                            continue;
+                        };
+                        let key = std::ptr::from_ref(rec) as usize;
+                        let seen = by_cell.entry(key).or_default();
+                        if !seen.contains(&b) {
+                            seen.push(b);
+                        }
+                    }
+                }
+            }
+        }
+        let cells = by_cell.len();
+        let split = by_cell.values().filter(|s| s.len() > 1).count();
+        println!("class dither: {split} of {cells} sampled deep cells surface >1 geology class");
+        assert!(
+            cells > 20,
+            "only {cells} deep cells sampled a geology surface"
+        );
+        // Measured 139/256 on this world (journal/0073): a majority of sampled
+        // deep cells surface more than one geology class within a single chunk
+        // window even though the class draw is spatially coherent (a chunk-scale
+        // patch field), which is why the plurality's checkerboard was pervasive.
+        // The floor is set well below that and far above the plurality signature
+        // (0) so it guards a revert without being brittle to world drift.
+        assert!(
+            split >= 20,
+            "only {split} of {cells} deep cells surface more than one geology class — \
+             the class membership dither is not live (plurality would give exactly 0)"
+        );
     }
 }
