@@ -15,3 +15,12 @@ postcard.workspace = true
 rayon.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+# S15 spike (measurement only — examples + tests, never a build dependency of
+# the library). The spike's whole point is to run against the REAL chunk store,
+# and `HostWorld` is it: the bounded LRU over generated-and-untouched chunks
+# with pinned edited chunks (journal/0051) and the single audited voxel-writing
+# path. dc-api does not depend on dc-worldgen, so this adds no cycle, and it is
+# headless/wasm-safe like the rest of the crate's tree.
+dc-api.workspace = true

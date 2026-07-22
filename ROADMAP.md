@@ -7,6 +7,49 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **S15 — coarse capacity against a lazily generated, evicting
+  world** (journal/0062, docs/spikes/S15-results.md; background spike agent,
+  worktree branch for the integrator; gates green — fmt/clippy/test all
+  `--release`, 51 suites / 528 passed / 0 failed). The spike water.md dispatched
+  because **S11's 415 ms capacity scan is an honest number for a world that does
+  not exist**: it walked a fully-resident toy volume, and against the real
+  generator a capacity scan is a generation storm that evicts the ground the
+  player is digging. **Agent recommendation: GO.** Additive and standalone in
+  `dc-worldgen/src/water/coarse.rs`; nothing in the production path calls it,
+  deep time and the renderer untouched.
+  **Group 1 — the coarse path ships.** A per-cell hypsometric summary (32-column
+  cells = one chunk footprint, 4×4 sub-samples standing in for 1 024 columns, a
+  64× compression) reproduces the exact voxel-walked level within **half a voxel
+  for every body above 26 m²** — 781 of 791 real bodies measured against the
+  production world, up to 212 000 m². Cost over those 791 queries: **coarse
+  109 ms / 0 chunks generated** vs **exact 64 104 ms / 6 444 chunks**. The
+  fallback the rule creates is bounded: the largest body still handed to the
+  exact walk is 23 m², at **0.2–3.2 ms and ≤2 chunks**.
+  **Group 2 — edits are deltas, and they do not drift.** 20 000 voxels dug
+  through the audited `world/set_block` path, fed in as signed integer deltas by
+  y: **drift 1.9 × 10⁻⁵ m**, the residual compression error held constant across
+  the whole session, order-independent over shuffled batches.
+  **Group 3 — the connectivity claim broke, on its second clause.**
+  *"Connectivity only changes where someone edits"* is TRUE (terrain is a pure
+  function of the seed). *"…and therefore the consequence is loaded"* is FALSE:
+  removing **one plug voxel** from a 640-voxel tunnel joins a body **288 m
+  beyond the edit**, and 972 of 1 215 far-apart basin floors are already one body
+  through terrain nobody ever loaded. Two adversarial cases were NOT
+  constructible and the reasons are dated: the *natural sill* needs caves (the
+  world is a pure heightfield today), and the *absent neighbour* needs a store
+  that can fail to answer (`block_at` materializes on demand, always).
+  **Group 4 — eviction is invisible.** Capacity curve and derived water
+  byte-identical across 3 120 evictions at an 8-chunk budget, with an edit
+  pinned inside the body; 127 chunks regenerated, and the re-walk was *cheaper*
+  than the cold first walk (153 ms vs 254 ms).
+  **Falsified:** corrections #30 (the narrow flooded shaft is the mechanism's
+  *best* case, not its worst — a dug void is an exact integer delta; error
+  0.000000 m) and #31 (the connectivity inference above).
+  Files: `dc-worldgen/src/water/coarse.rs`, `examples/water_coarse_spike.rs`,
+  `tests/water_coarse.rs` (all new); `water/mod.rs` (module + re-exports);
+  `dc-worldgen/Cargo.toml` (+`dc-api` as a **dev**-dependency — examples and
+  tests only, no cycle, the whole point being to run against the real store).
+
 - 2026-07-22 — **`depth_to_water`: the widest seam, and the identity path it
   never had** (journal/0061). The second conversion slice, one seam.
   `biotic.rs::step_cell` computed waterlogging from three magic numbers inline —
@@ -1212,7 +1255,18 @@ pass-level) · **the waterlogging heir: the S11 saturation field into
 contract exist; what remains is the field, and the units decision, since the
 four consumers threshold a 0..1 index and a water table speaks metres) ·
 `HostWorld` edited-chunk spill to the save layer (edited chunks are retained
-unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test).
+unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test) ·
+**the coarse-capacity void axis** (S15 design choice 3, journal/0062 — capacity
+below a cell's floor plane comes only from edits today, which is complete for a
+heightfield world and wrong the moment caves exist; the collapse tier's
+"recorded conduit capacity → void intervals per column" is the same axis, so
+decide it once in water.md rather than twice) · **re-run S15's natural-sill
+falsifier when the cave families land** (not constructible today only because
+the world has no 3-D structure — corrections #31) · **when the store can fail
+to answer (async streaming / disk-backed regions), an absent chunk must read
+UNKNOWN, never solid**, or eviction manufactures false component boundaries in
+the connectivity index (corrections #31) · reconcile S15's cell-granularity body
+footprint with S11's air-component container (S15 design choice 2).
 
 **⚠ UNRATIFIED APPEARANCE CHANGE AWAITING THE USER'S EYE (2026-07-21):**
 carry-`H` (journal/0053) changed dig depth across the whole world and the

@@ -587,3 +587,57 @@ spine question first or the spike measures the wrong field.
 6. **Which cave family ships first**, and does it wait on carbonate?
    (Karst is orogeny-proven but carbonate-gated; erosional may be nearly
    free; littoral needs wave energy; glacial needs ice as an agent.)
+
+## S15 ANSWERED (2026-07-22) — docs/spikes/S15-results.md, journal/0062
+
+The spike § SPIKE SPEC S15 dispatched — *what does the free-water graph cost
+against a lazily generated, evicting world?* — is complete. **Agent
+recommendation GO**, and nothing in it needs ratification: the knobs are
+engineering calibrations of the same status as S11's halo, so they ride as
+measured. The user's proposal — *"if cells / the coarse regions know roughly
+their level (and remember if it changes — remembering player edits) then that
+math could be simpler"* — survived, and two of the spec's own claims did not.
+
+- **The coarse path ships above 26 m² of water surface.** A per-cell
+  hypsometric summary (32-column cells = one chunk footprint, 4×4 sub-samples
+  standing in for 1 024 columns — a **64× compression**) reproduces the exact
+  voxel-walked level within half a voxel for **781 of 791** real bodies in the
+  production world, up to 212 000 m². Over those queries: **coarse 109 ms and
+  0 chunks generated** against **exact 64 104 ms and 6 444 chunks**. The
+  fallback the decision rule creates is bounded — the largest body still handed
+  to the exact walk is 23 m², at 0.2–3.2 ms and ≤2 chunks.
+- **Edits are exact integer deltas on the audited write path**, so incremental
+  maintenance adds no error of its own: **drift 1.9 × 10⁻⁵ m over 20 000
+  edits**, with the residual compression error held constant across the whole
+  session, order-independent over shuffled batches.
+- **FALSIFIED — "the narrow flooded shaft is the worst case"** (the spec's own
+  predicted accuracy property; corrections #30). The `ΔV/area` law holds, but a
+  shaft is *dug*, and a dug void is recorded exactly rather than sampled:
+  measured error **0.000000 m**. The mechanism's real worst case is a small
+  **natural** depression, where sub-cell relief is unresolved and there are no
+  edits to correct it.
+- **FALSIFIED — the connectivity claim's second clause** (corrections #31).
+  *"Connectivity only changes where someone edits"* is TRUE, and for a strong
+  reason: terrain is a pure function of the seed and an evicted chunk re-derives
+  byte-identically. *"…and therefore the consequence is inside the loaded set"*
+  is FALSE — **one plug voxel** removed from a 640-voxel tunnel joins a body
+  **288 m beyond the edit**, and **972 of 1 215** far-apart basin floors are
+  already one body through terrain nobody has ever loaded. A container spanning
+  never-generated ground is not the adversarial case; it is the default.
+- **The natural-sill falsifier is not constructible today** — `generate_chunk`
+  is a pure heightfield, so all the sub-level air of a basin is one component by
+  construction. That dates the result: **when the cave families land it becomes
+  constructible at will, and it should be the first thing re-run.**
+- **Eviction identity re-proved against the REAL store**: capacity curve and
+  derived water byte-identical across 3 120 evictions at an 8-chunk budget with
+  an edit pinned inside the body — S11's reload-from-39-bytes, now against a
+  bounded LRU instead of a resident toy volume.
+
+**The one design question this raises, and it belongs in this notebook:**
+capacity below a coarse cell's floor plane comes **only from edits**. That is
+complete for today's heightfield world and wrong the moment caves exist — a
+natural void under a lake is capacity the summary cannot see. The collapse
+tier's *"recorded conduit capacity → void intervals per column"* (§ Session
+capture 2026-07-21) is the **same axis read from the other end**. The cave
+thread and the capacity mechanism share it; decide it once, here, rather than
+discovering it twice.

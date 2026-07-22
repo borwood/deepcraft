@@ -951,3 +951,68 @@ precondition was recorded as *prose in a doc comment directly above the code* �
 which is the right place — and still failed, because prose cannot fail a build.
 When a feature is parked on "this will work when X arrives", the dependency
 needs a test that goes red when X arrives, not a sentence that goes stale.
+
+## 30. "The narrow flooded shaft is the coarse capacity mechanism's worst case" (2026-07-22)
+
+**Claimed** in `docs/design/water.md` § SPIKE SPEC S15 and repeated in the S15
+dispatch brief: level error behaves as `ΔV / surface area`, so the coarse
+capacity estimate is "most accurate exactly where an exact scan is most
+expensive (big lakes) and worst where exact is cheap (flooded shafts)."
+
+**Half right, and the wrong half is the memorable one.** The area law holds —
+S15 measured mean |err| 0.0521 m over the small-area half of 791 real bodies
+against 0.0135 m over the large-area half. But the *named* worst case is the
+mechanism's **best** case. A shaft is **dug**, and a dug void enters the coarse
+summary through the audited write path as an **exact signed integer delta by y**
+— not as a sub-sample of terrain. Measured: a 1×1×64 shaft filled with 32 voxels
+of water gives coarse level `981.000000` against exact `981.000000`, **error
+0.000000 m**.
+
+**The real worst case is a small NATURAL depression** — sub-cell relief that
+16 samples per 1 024 columns cannot resolve, with no edits to correct it. The
+three rows in 791 that failed the half-voxel rule are a 3-column puddle (2 m²,
+err 0.858 m) and a 28-column puddle (23 m², err 0.506 m). Nothing dug failed at
+all.
+
+**The general shape:** "smallest area ⇒ largest error" silently assumes every
+container is *sampled*. The moment part of a container is *recorded exactly*
+(because a player made it, and the write path audited it), the small end of the
+area axis splits into two populations with opposite behaviour. Ask which term of
+the error a case actually exercises before naming it the worst case. Full
+account: `docs/spikes/S15-results.md` § group 1, journal/0062.
+
+## 31. "Connectivity only changes where someone edits, and edits only happen where chunks are loaded" (2026-07-22)
+
+**Claimed** in `docs/design/water.md` § SPIKE SPEC S15 measurement group 4 and
+restated in the S15 brief as the hypothesis to hunt a falsifier for: *to breach
+a lake you must dig, and to dig you must be there.* The unstated inference is
+what the claim was being used for — that the connectivity consequence of an edit
+is therefore inside the loaded set.
+
+**The first clause is true. The inference is false, and S15 measured the gap.**
+
+- **True, and for a strong reason:** terrain is a pure function of the seed, and
+  an evicted chunk re-derives byte-identically (journal/0051, re-proved in S15
+  group 4 against the real bounded LRU with an edit pinned inside it). Unedited
+  geometry cannot change connectivity, and the store cannot perturb it.
+- **False:** a 1×1 tunnel dug 640 voxels out of a lake with **one solid plug**
+  at its midpoint is two bodies. Removing the plug is **one audited voxel edit
+  touching one chunk** — and it joins a body reaching **288 m beyond the edit**.
+  The edit is local; the consequence is graph reachability, and no halo bounds
+  it. Separately, **972 of 1 215** far-apart basin floors in the production
+  world are already ONE body through terrain nobody has ever loaded: a container
+  spanning never-generated ground is not the adversarial case, it is the
+  default.
+
+**Two adversarial cases were NOT constructible, and why is the useful part.**
+A *natural* sill overtopping (two bodies merged by a rising level, with no edit
+at all) cannot be built today because `generate_chunk` is a pure heightfield —
+no caves, no overhangs — so all sub-level air in a basin is one component by
+construction. It becomes constructible the day the cave families land. And "an
+edit at a chunk boundary whose neighbour is absent" cannot be built because
+`HostWorld` has **no absent state**; `block_at` materializes on demand, always.
+It becomes constructible when the store can *fail* to answer — async streaming,
+disk-backed regions, a network authority. **When that lands, the connectivity
+index must treat an absent chunk as UNKNOWN, never as solid**, or eviction will
+manufacture false component boundaries. Full account:
+`docs/spikes/S15-results.md` § group 3, journal/0062.
