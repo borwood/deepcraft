@@ -349,3 +349,17 @@ is supposed to supply"* (user).
    survived whole-voxel quantization; partial voxels made that false and the
    code still encoded the old conclusion, in prose, with nothing to fail.
    Prose cannot fail a build (corrections #29).
+8. **The identity default can be so cheap it bypasses the machinery it
+   validates.** A pass-level provider whose identity is "leave the plane empty"
+   means the byte-identity test never exercises the plane path at all — it
+   proves the fallback, not the seam. Every pass-level conversion has this
+   hole. So a conversion must also ship an **agreement test**: register a
+   *non-identity* provider that materializes the identity answer into a real
+   plane, run the world down the provider path, and land on the same
+   fingerprint. Both arms proven, on the real grid (journal/0061).
+9. **Measure a ritual delta across alternating sets, never A-then-B.** In
+   journal/0061 a single alternation read +0.9 % — plausible, under the bar,
+   and wrong: the second pre-slice set moved the baseline 1.4 % with no code
+   involved. Machine drift between sets is routinely larger than the effect
+   being measured. Alternate, take the mean of several, and confirm each side
+   is the binary you think it is (by test count) *before* timing it.

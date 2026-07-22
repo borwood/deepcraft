@@ -79,3 +79,21 @@ list and not a roadmap — some of these are far off, and that is fine.
   painted over it, so a dune field reads as its own sand and the bare shoulder
   beside it reads as the granite it was scoured down to — and the horizon
   behind them agrees, because it is the same answer sampled further away.
+- You dig up through a confining bed and the shaft fills — you have punched
+  into an unconfined aquifer, and the water table is now a thing you can see
+  the top of.
+- You follow a cave down and it ends in a flooded gorge: the passage kept
+  going, the water table did not.
+- The gravel bar you are standing on holds water in the spaces between its
+  grains; the granite behind it holds water in its cracks. Both are aquifers
+  and they behave nothing alike.
+- Rain falls on a slope and some of it runs off, some soaks in, and some is
+  simply gone by afternoon — and which one dominates is a fact about what the
+  slope is made of.
+- A spring is not placed anywhere. It is where the water table meets the
+  hillside, so draining the hill upstream moves it or kills it.
+- There is a place where the ground is warm and the water comes out hot,
+  because the seam you followed goes down to where the rock is hot.
+- Somewhere in the world there is a canyon you could spend a day walking into,
+  a lake big enough to have weather, and an inland sea with no outlet that is
+  saltier every century.
