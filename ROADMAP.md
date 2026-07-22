@@ -1219,6 +1219,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **The ratified sequence after the migration (user, 2026-07-22: "both
+  revisions greenlit")**: **1. The perf window** — one dc-client cluster:
+  profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
+  killer list) · async-offload slice (chunk gen + far-mesh onto
+  AsyncComputeTaskPool; `streaming.rs:42` suspect) · erosion-budget dev flag
+  (the walkable cranked world → the standing amplitude call) · albedo-at-
+  range once baseline numbers exist, carrying the ranges-as-player-config
+  rider. This PROMOTES perf over the queued seam batch per the runtime-is-
+  sacred convention; **the seam-conversion batch (materials/form,
+  paleoclimate, doc riders) runs in PARALLEL** — headless, disjoint
+  write-sets. **2. The dressing arc** — the user's filed anticipation
+  ("back to block primitives + the artful procedural dressing") named as
+  next-after: material heightmap SHAPES for legibility, form-dependent
+  textures, turf presentation, block primitives; the settings-plumbing
+  slice (game config menu for render knobs) opens with it. FF2b
+  persistence + dirty-rail slots into the first free gap; remaining
+  CoarseField migration follows the type freeze.
+
 - **The threshold-quantization migration — GREENLIT, "we finish this today"**
   (user, 2026-07-22; audit: docs/audits/2026-07-22-threshold-quantization-
   audit.md; end-state: spines § S-4 "Ratified end-state"). Route: **A1
@@ -3179,6 +3197,11 @@ before any code.
     re-baselined 15 → 10 with the census printed (organic.rs), not slid
     silently. The mechanism rides as-built (no-bandaid); this flags the
     reduced-coal *appearance* for the user's blessing.
+    **RATIFIED AS-BUILT (user, 2026-07-22, live session: "bless coal
+    as-built").** Exposed coal is genuinely recessive; scarcity reads as
+    value; deep coal below the window is untouched. If scarcity ever feels
+    wrong at play, the lever is calibration (contrast/cap or coal's property
+    sheet), never the blend.
 
 - **Texel-edge dither bands on close-pressed walls, anisotropic** (user field
   report, walk 0071, 2026-07-22; asset
