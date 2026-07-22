@@ -111,6 +111,19 @@ instead**: unbiased stochastic assignment at the boundary (S-7's medicine at
 a different joint), making the transition a statistical gradient rather than
 a line. Verdict-smoothing is never the fix.
 
+**Ratified end-state (user, same day): solved by construction, approximately
+once.** A boundary type at the sim→expression seam (working name
+`CoarseField<T>`) whose fine-scale API offers exactly the two legal moves —
+interpolated `sample` and seed-addressed `sample_dithered` — and never the
+raw per-cell read, so the square is *inexpressible* downstream (the S-6 /
+`Option<fn>` pattern: structural, not disciplinary). Route per seam-first
+practice #6: shape-teacher conversions first, then freeze the type and
+migrate. Residue the type cannot absorb, named rather than hidden: the sim's
+internal cell-scale verdicts (cell-honest by design; the principle governs
+the EXPRESSION boundary), and conservation-constrained dither choices, which
+stay per-quantity physics. Audit: docs/audits/
+2026-07-22-threshold-quantization-audit.md.
+
 **Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
 `surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
 mosaic under smooth terrain (ROADMAP Observed, 2026-07-22). *Before "fixing"
