@@ -7,6 +7,44 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **The provider file stops being a mutex** (journal/0063;
+  corrections #32; gates green — fmt/clippy/test all `--release`, with
+  `cargo clean -p dc-worldgen --release` before each). **Pure refactor, zero
+  behaviour change**, asked for by journal/0060's and 0061's own retrospectives:
+  `providers.rs` had become the serialization point for concurrent seam work —
+  four seams converted, thirty left in the inventory, and any two conversions
+  collided on the same four regions of one file. Now
+  `deeptime/providers/{mod,outcrop_at,wave_energy,parent_p,depth_to_water}.rs`,
+  one file per slot (payload + identity + unit tests), with `mod.rs` holding
+  only the `Providers` struct, its `Default`, and the new `Slot` enumeration —
+  **grouped by owing system** (hydrology / ecology / materials / structural, the
+  34-seam inventory's own buckets, `ecology` deliberately present and empty as
+  the next insertion point), so two concurrent conversions insert at different
+  points and git merges them. Filed by **who will answer, not who asks**:
+  `parent_p` sits under *materials* though ecology consumes it, so reading down
+  the file gives a map of who owes what. `tests/providers.rs` split the same way,
+  with the byte-identity goldens **alone in `tests/providers_golden.rs`** — no
+  conversion has any reason to open the file holding them. `is_identity()`
+  reshaped as 0060 asked: `Providers::non_identity_slots() -> Vec<Slot>` plus
+  `Slot::{ALL, name}` (the field name verbatim), because a manifest's
+  frozen-content-set refusal needs *which* providers were resolved, not a bool;
+  `is_identity()` survives as a one-line convenience. Still **no** registry,
+  loader or selection channel. **A latent bug fell out of the code motion**
+  (corrections #32): `identity_outcrop_at` was a `pub use` of the `#[inline]`
+  `exposed_litho`, which rustc may instantiate per codegen unit, each with its
+  own address — so `Providers::default().is_identity()` returned **false**. It
+  had been passing on `main` only because the flatter file let the optimizer
+  fold both sides of the address comparison; the test was green for a reason
+  unrelated to what it asserted. Fixed with a plain wrapper (free — a provider
+  is always called through a pointer and never inlined at its call site). New
+  rule: **a slot's identity must be a plain, non-inline function in the slot's
+  own module.** Byte-identity: goldens `surface 0x7B8968FD90E04062` /
+  `record 0xA53BD77F769D7FF4` pass unchanged, as does the materialized-plane
+  agreement test. **Nothing to ratify.** Carried: `grid.rs:230`'s docstring
+  still names the now-split `tests/providers.rs` (outside this slice's
+  write-set), and `Slot::ALL` is hand-maintained — pinned by a test rather than
+  by a derive, the expensive half still correctly deferred.
+
 - 2026-07-22 — **S15 — coarse capacity against a lazily generated, evicting
   world** (journal/0062, docs/spikes/S15-results.md; background spike agent,
   worktree branch for the integrator; gates green — fmt/clippy/test all
