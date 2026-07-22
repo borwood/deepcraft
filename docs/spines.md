@@ -111,12 +111,26 @@ and a doc comment naming its **heir**.
   `full_agents`, `tectonic_history` — each an empty plane plus an identity
   accessor, each with its own byte-identity proof
 - named: `deeptime/providers/` (ARCHITECTURE.md § "Provider seams")
-- 34 seams inventoried; 4 converted
+- 34 seams inventoried; **5 converted** — `outcrop_at`, `wave_energy`,
+  `parent_p`, `depth_to_water`, and `burial_temp_c` (journal/0067: the
+  coalification threshold, whose heir is a geotherm)
 
 **Rule:** the fallback must be an **identity**, never an arbitrary constant —
 otherwise "absent" and "present but silent" are different worlds and nothing
 tells you which one you are in. Pass-level seams need an **agreement test**:
 "leave the plane empty" proves the fallback, not the seam (journal/0061).
+
+**Corollary earned by `burial_temp_c` (2026-07-22):** when a stub is a
+*threshold*, seam the **quantity it thresholds**, not the verdict. `is_coalified`
+would have been simpler and would have answered exactly one rung of a ladder
+(peat → lignite → … → anthracite → metamorphic grade) that the same geotherm
+answers all of — S-8 applied to seam design. The price is that the identity must
+answer in the quantity's units while only knowing the proxy: `burial_temp_c`'s
+identity is a **degenerate 1 °C/m geotherm**, i.e. metres wearing degrees, the
+same deliberate mismatch `depth_to_water` carries. Pay it in the docstring, and
+pin the two halves of the resulting calibration (`COAL_ONSET_C` and the identity)
+as retiring **together** — an heir that lands one without the other is a
+world-scale defect, not a drift.
 
 ## S-6. Declared relations, never incidental order
 
@@ -224,7 +238,7 @@ consumed it and when.
 | `MixtureDownsampleRule` — 2×2×2 contents → one parent, occupancy voted in eighths, losing class folded in rather than lost | `dc-core/src/materials/lod.rs` | **nothing renders it** | the distance pyramid; **already an octree reduction step** for FF2b + coarse water |
 | `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** | every transport-time depositing process: infiltration, diagenesis, ore |
 | `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
-| `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **nothing** | metamorphic grade (stubs.md § 4) |
+| `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **nothing** | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
 | occupancy primitives — `free_eighths`, `loose_eighths`, `bound_eighths`, `open_pores`, `is_occupancy_solid` | `dc-core/src/materials/contents.rs` | partially | the four consumers named at authorship: water fill, loose gravity, compaction, sim light |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |

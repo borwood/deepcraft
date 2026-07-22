@@ -69,7 +69,7 @@ use dc_sim::statistical::rng::draw_f64;
 
 use super::erosion::Erosion;
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::providers::{ParentCell, Providers, WaterPass, wet_at};
+use super::providers::{BurialColumn, ParentCell, Providers, WaterPass, wet_at};
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 
 /// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
@@ -115,7 +115,39 @@ pub const COAL_MIN_M: f64 = 0.4;
 /// it is a quantity the record already knows. The heir is a geotherm — with one,
 /// this becomes a P/T path and the single Coal facies can split by **rank**,
 /// which is what `CLASS_ORGANIC_COAL`'s depth-is-rank contract is waiting for.
+///
+/// **Since 2026-07-22 that heir has a socket** (journal/0067): the promotion
+/// test asks
+/// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c) for
+/// a temperature and compares it against [`COAL_ONSET_C`]. This constant is what
+/// the slot's identity — the degenerate 1 °C/m geotherm — makes that comparison
+/// mean, and it is the number the identity retires with. **The calibration is
+/// not under review here**: the seam was built around the shipped 8.0 m, not
+/// instead of it (user, 2026-07-22: *"the calibration is fine, we aren't
+/// answering deep questions about it right now"*).
 pub const COAL_BURIAL_M: f64 = 8.0;
+
+/// **The coalification onset**, in whatever units
+/// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c)
+/// answers in — the threshold
+/// [`DeepStrata::promote_coal`](super::recorder::DeepStrata::promote_coal)
+/// applies at run finalize.
+///
+/// It is [`COAL_BURIAL_M`] by definition, and that is not a coincidence to be
+/// tidied away: the slot's identity is a **degenerate geotherm** (0 °C at the
+/// surface, 1 °C/m), under which "the temperature this unit has seen" *is* its
+/// overburden in metres, and so an onset of `8.0` is the shipped 8 m burial
+/// threshold expressed in the slot's vocabulary. Written as an alias rather than
+/// as a second literal so the two can never drift apart.
+///
+/// **JUSTIFIED-BY:** there is no geotherm in this project, so the only
+/// temperature scale available is the identity's. **This constant and
+/// [`identity_burial_temp_c`](super::providers::identity_burial_temp_c) are one
+/// calibration in two places and must retire together** — an heir that lands a
+/// real geotherm (Earth's is ~0.025 °C/m) while leaving this at 8.0 would find
+/// every unit in the record above onset and turn the world's whole sedimentary
+/// pile to coal.
+pub const COAL_ONSET_C: f64 = COAL_BURIAL_M;
 
 /// Number of species in the vanilla organism roster (the biotic analogue of the
 /// vanilla geology set). K-cap not stressed at this size — see module docs.
@@ -679,12 +711,42 @@ impl BioticSim {
     }
 
     /// Finalize: promote **deeply buried** peat to coal across the whole grid
-    /// (burial diagenesis — the control is each unit's own overburden, not its
-    /// thickness; see [`COAL_BURIAL_M`]). Preserves `sum(units) == H` (only tags
-    /// change).
+    /// (burial diagenesis — the control is the temperature each unit has seen,
+    /// which under the identity provider is its own overburden; see
+    /// [`COAL_ONSET_C`] and
+    /// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c)).
+    /// Preserves `sum(units) == H` (only tags change).
+    ///
+    /// The per-column half of the provider payload — where the column is and how
+    /// warm its surface is — is assembled here, because a geotherm's upper
+    /// boundary condition is the surface temperature and the record does not
+    /// know it. The row latitudes are lifted out first: `lat_deg` takes `&grid`
+    /// and the loop holds `&mut grid.strata`, and one `w`-long vector is a
+    /// cheaper answer than fighting the borrow checker with a full `n`-long
+    /// temperature plane the identity would never read.
     pub fn finalize(&self, grid: &mut DeepGrid) {
-        for s in &mut grid.strata {
-            s.promote_coal(COAL_BURIAL_M);
+        let lat: Vec<f64> = (0..grid.w).map(|gy| grid.lat_deg(gy)).collect();
+        let DeepGrid {
+            ref r,
+            ref h,
+            ref mut strata,
+            ..
+        } = *grid;
+        let w = self.w;
+        for (index, s) in strata.iter_mut().enumerate() {
+            let (gx, gy) = (index % w, index / w);
+            let surface_temp_c =
+                f64::from(super::climate::air_temp_c(lat[gy], r[index] + h[index]));
+            s.promote_coal(
+                BurialColumn {
+                    index,
+                    gx,
+                    gy,
+                    surface_temp_c,
+                },
+                COAL_ONSET_C,
+                &self.providers,
+            );
         }
     }
 }
