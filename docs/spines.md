@@ -1,0 +1,258 @@
+# The spines — recurring shapes, and where they already live
+
+Created 2026-07-22 at the user's instruction, after a session in which the
+corpus turned out to be ahead of the assistant **fourteen times**. Not because
+the ideas were missing — because they were **already built and lost**.
+
+## What this file is, and how it differs from the others
+
+| file | answers |
+|---|---|
+| `ROADMAP.md` | what is happening, in what order |
+| `docs/ARCHITECTURE.md`, `docs/design/*` | what we decided, and why, with dates |
+| `journal/` | what happened, as narrative |
+| `journal/corrections.md` | what we believed that was false |
+| **this file** | **what SHAPE things take, where that shape already lives, and what exists that nothing calls** |
+
+Decisions were findable this session; DECIDED entries did their job. **Built
+machinery was not findable.** There was no index of what exists and what
+consumes it, so the same mechanism kept being re-invented next to itself. § 3
+exists to close that specifically.
+
+## The rule this file carries
+
+**Work is justified against named shapes.** A plan says which spines it rides
+and which anti-shapes it is avoiding. A review checks that claim. A deviation
+is not forbidden — it is **loud**: the worker states the deviation and the
+argument for it, it goes to main-session discussion, and it ships only with
+user ratification, recorded in § 4. Silence is the only disallowed answer.
+
+**Update this file in the same commit as the work that changes it** — the same
+discipline ROADMAP and the journal already carry. A spine that gains an
+instance, an anti-shape caught in the wild, an item leaving § 3 because it
+finally has a consumer: all of it lands with the change, not after.
+
+---
+
+# 1. The spines
+
+## S-1. Bounded derivation with a synthesized coarse frontier
+
+**The actual spine of this engine.** Nothing derives the world; everything
+derives a *bounded neighbourhood* and synthesizes plausible boundary conditions
+at the frontier rather than recursing.
+
+- far field: an outer ring, budget-bounded meshing (`dc-client/src/farmesh.rs`)
+- drainage: decided once at the coarse tier; refinement inherits pinned inflows
+  and **never re-routes** (3e-2 decision 1, RATIFIED 2026-07-19)
+- S2 collapse: bounded to depth N, frontier conditions synthesized from the
+  statistical tier — *"observing one mind must not collapse the planet"*
+  (ARCHITECTURE.md § Simulation: tiers)
+- erosion halos 16–24 cells (S9); bound-water halo 4–11 cells (S11)
+
+**Rule:** every system declares its halo, and **where there's a cell range,
+there's a knob** (user doctrine, water.md § S11 ratification 2).
+
+## S-2. Committed facts vs fluid state
+
+One quantity of truth: facts that leaked to an observer are **committed and
+immutable**; everything else is **fluid**, derived as a pure function of
+`(seed, position-or-subject, committed facts, time)`, replaying identically.
+
+- the constraint ledger (ARCHITECTURE.md, S2)
+- **the chunk store, unnamed**: `HostWorld` pins *edited* chunks and evicts
+  *untouched* ones because they re-derive byte-identically (journal/0051)
+- water: persist bodies, derive voxels — 39 bytes rebuilt 38 358 wet voxels
+  byte-identically (S11 scenario 7)
+- the resolved provider table in world identity (DECIDED 2026-07-22)
+
+**Rule:** *store only what the derivation cannot predict.*
+
+**Status: our most under-exploited spine** — implemented three times under
+three names before anyone recognised it as one.
+
+## S-3. A summary is derived from the authority, never beside it
+
+A cheap answer written because a consumer cannot afford the real one must be
+*derived from* the real one, never become it.
+
+- violation, shipped: `collapse.rs::surface_sample`'s surface branch — a
+  far-field summarization need that became the world's surface material rule
+- compliance: journal/0055's test asserting horizon and ground agree on surface
+  **material**; S15's coarse capacity held against an exact voxel walk
+
+**Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
+this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an
+authority"). Agreement is **exact** where expression is deterministic and
+**statistical** where quantization is deliberately unbiased (S-7).
+
+## S-4. Coarse cause, fine expression — and its mirror
+
+- deep time → collapse: strata recorded at 460 m, expressed per voxel
+- karst: the capture decided coarse, the sinkhole and spring placed fine
+- **the mirror** — a player diverting a river: **fine cause, coarse
+  propagation**; the coarse network carries it once the water leaves the cell
+
+**Rule:** *coarsen the cause, never delete it and fake the appearance*, and
+**no simulation-resolution edge may reach the eye as a square or analytic
+boundary** (earth-processes.md, DECIDED).
+
+**Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
+`surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
+mosaic under smooth terrain (ROADMAP Observed, 2026-07-22).
+
+## S-5. Seams with identity defaults
+
+A system needing an answer another system will own declares a **provider**: a
+named function, an **identity default** reproducing today's behaviour exactly,
+and a doc comment naming its **heir**.
+
+- hand-rolled four times before it was named: `biotic`, `erodibility`,
+  `full_agents`, `tectonic_history` — each an empty plane plus an identity
+  accessor, each with its own byte-identity proof
+- named: `deeptime/providers/` (ARCHITECTURE.md § "Provider seams")
+- 34 seams inventoried; 4 converted
+
+**Rule:** the fallback must be an **identity**, never an arbitrary constant —
+otherwise "absent" and "present but silent" are different worlds and nothing
+tells you which one you are in. Pass-level seams need an **agreement test**:
+"leave the plane empty" proves the fallback, not the seam (journal/0061).
+
+## S-6. Declared relations, never incidental order
+
+Order exists; it must be **data**, never an artifact of how a loader enumerated
+files.
+
+- `pipeline.rs`: passes declare reads/writes; Kahn's algorithm with a
+  lexicographic tie-break; *"never of registration order"*
+- members canonically ordered by namespaced id (geology.md)
+- patch plugins: declared order, last-in-order wins, **recorded in world
+  identity** (DECIDED 2026-07-22)
+- effective reads = a pass's declared reads **∪** its providers' reads
+
+**Rule:** incidental order is forbidden; declared order is fine. Naming that
+distinction is what freed last-in-order-wins without touching determinism.
+
+## S-7. Distribution-first quantization
+
+Integrate the whole quantity, then slice it. Quantize **once**, at the
+boundary, by **unbiased addressed stochastic rounding**.
+
+- `fill.rs`: `ColumnFill::build`, `allocate`, `allocate_partial`; sieve loss
+  75.8 % → 0.2 % (journal/0055)
+- consequence, unexploited: a 3.5 cm charcoal bed is 0.31 eighths and wins a
+  real eighth ~31 % of the time — expressible *because* the rounding is unbiased
+- consequence, methodological: agreement tests over expressed data are
+  **statistical** — they match an expectation, not an exact value
+
+## S-8. One quantity, many regimes
+
+Do not build two systems and a coupling layer; build one quantity whose
+**transitions are the phenomena**.
+
+- water: free / bound — *"one quantity, two regimes"* (DECIDED 2026-07-20); a
+  spring, a drip, absorption and waterlogging are all regime transitions
+- materials: **substance / form** — not recognised as the same shape until the
+  user said *"materials are substance and not form"* (2026-07-22)
+- terrain: committed / fluid (S-2)
+
+---
+
+# 2. The anti-shapes
+
+## A-1. A stand-in becomes the definition
+
+Four shipped instances found in one audit: `surface_sample`'s branch,
+`Litho::reference_material`, `fill.rs::is_loose`, `bio_resist`.
+
+**Check:** S-3's disappearing-consumer question, asked at write time.
+
+**Why the stub inventory misses it:** a stub *looks* like a fake — it says
+placeholder, it names an heir. A leaked requirement **looks like working code
+that passes tests**.
+
+## A-2. A justification outlives its premise
+
+Charcoal excluded because no bed survived whole-voxel quantization — true until
+partial voxels. `reference_material` fixed so packs could not move terrain —
+true until the content-set freeze, **the same day**.
+
+**Check:** § 5's convention. Note that decisions expire premises *elsewhere*,
+so a sweep must ask "does the cited constraint still hold?"
+
+## A-3. A test green for a reason unrelated to what it asserts
+
+corrections #27 (a stale artifact served as fresh: exit 0, every suite `ok`,
+the code never built) and #32 (function-pointer identity folded by the
+optimizer).
+
+**Check:** verify by test **name and count**, never by `test result: ok`. Ask
+*"did it run?"* separately from *"did it pass?"*
+
+## A-4. Built machinery with no consumer and no index
+
+See § 3. **This is the anti-shape this file exists for.**
+
+## A-5. Locality of cause mistaken for locality of effect
+
+"Connectivity only changes where someone edits" — **true**. "…therefore the
+consequence is inside the loaded set" — **false**: one edit joined a body 288 m
+away, and a container over never-generated ground is the *default* case
+(S15, corrections #31).
+
+**Check:** state cause-locality and effect-locality as two separate claims, and
+measure the second.
+
+## A-6. Measuring what cannot change a decision
+
+The user cut S15's "measure the storm" group: *there is no world in which the
+answer comes back "the storm is fine."*
+
+**Check:** before specifying a measurement, name the action each possible
+outcome leads to. If they are the same action, it is theatre.
+
+---
+
+# 3. Built, and nothing calls it
+
+The index A-4 exists for. **Audit this against the codebase regularly** — see
+the `spine-audit` skill. Leaving this list is a *good* event: record what
+consumed it and when.
+
+| what exists | where | called by | intended consumer |
+|---|---|---|---|
+| `MixtureDownsampleRule` — 2×2×2 contents → one parent, occupancy voted in eighths, losing class folded in rather than lost | `dc-core/src/materials/lod.rs` | **nothing renders it** | the distance pyramid; **already an octree reduction step** for FF2b + coarse water |
+| `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** | every transport-time depositing process: infiltration, diagenesis, ore |
+| `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
+| `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **nothing** | metamorphic grade (stubs.md § 4) |
+| occupancy primitives — `free_eighths`, `loose_eighths`, `bound_eighths`, `open_pores`, `is_occupancy_solid` | `dc-core/src/materials/contents.rs` | partially | the four consumers named at authorship: water fill, loose gravity, compaction, sim light |
+| `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
+| the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
+| pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
+
+---
+
+# 4. Carve-outs
+
+A deviation from a named shape ships only after: a **loud plea** stating the
+deviation and the argument for it · **main-session discussion** · **user
+ratification** · an entry here, dated, with the reasoning.
+
+Undocumented deviation is the failure. A ratified one is just a decision.
+
+*(None yet.)*
+
+---
+
+# 5. The justification convention
+
+When a comment justifies a design by citing a constraint, **name the
+constraint**, so a later reader can ask whether it still holds instead of
+having to notice. Both A-2 instances would have been caught the day their
+premises changed.
+
+    // JUSTIFIED-BY: packs may be added to an existing world and must not move
+    // terrain. (RETIRED 2026-07-22 by ARCHITECTURE.md § content-set freeze.)
+
+A `spine-audit` sweep greps these and asks, one by one, whether the cited
+constraint is still true.

@@ -4,6 +4,13 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
 
 ## Read first
 
+0. **[`docs/spines.md`](docs/spines.md)** — the recurring **shapes** (S-1…S-8),
+   the **anti-shapes** (A-1…A-6), and the index of **machinery that exists and
+   nothing calls**. Read it first: this project's characteristic failure is
+   re-inventing a mechanism *next to* the one it already built. **Work is
+   justified against these shapes**; a deviation is loud, discussed in main
+   session, ratified by the user, and recorded in its § 4. Update it in the
+   same commit as work that adds an instance or empties a row of § 3.
 1. **[`ROADMAP.md`](ROADMAP.md)** — the living sequence (Shipped / In flight /
    Sequenced / Observed). Read before proposing work; update it in the same
    commit as any journal entry.

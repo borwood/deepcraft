@@ -363,3 +363,41 @@ is supposed to supply"* (user).
    involved. Machine drift between sets is routinely larger than the effect
    being measured. Alternate, take the mean of several, and confirm each side
    is the binary you think it is (by test count) *before* timing it.
+
+## Shape compliance — the closed loop (user-directed, 2026-07-22)
+
+`docs/spines.md` names the recurring shapes (S-1…S-8), the anti-shapes
+(A-1…A-6), and the index of machinery that exists and nothing calls. It is
+read-first in CLAUDE.md. This section is how it stays true instead of becoming
+another document nobody consults.
+
+**At PLAN time — every brief names its shapes.** A dispatch brief states which
+spines the work rides and which anti-shapes it is guarding against, and points
+at § 3 if the work should be *consuming* something already built rather than
+writing a second one. A brief that names no shapes is not ready to send.
+
+**At WORK time — deviation is loud, never silent.** A worker who believes a
+deviation is strictly correct **says so, in the report, as a plea**: the shape
+being deviated from, the argument, and what breaks if the shape is followed.
+It is not theirs to approve. Silence is the only disallowed answer — shipping
+a deviation unremarked is the failure, not the deviation itself.
+
+**At REVIEW time — compliance is part of integration.** Before merging, the
+integrator checks: does the work ride the shapes its brief claimed · did it
+introduce a new instance worth listing · did it hit an anti-shape · does it
+empty a row of § 3 (a *good* event — record what consumed it and when) · does
+any comment it touched cite a constraint that has since expired (A-2).
+
+**Carve-outs pass through the user.** A plea goes to main-session discussion,
+and ships only with user ratification, recorded in `spines.md` § 4 with its
+date and reasoning. Ratified deviation is just a decision; undocumented
+deviation is the failure mode.
+
+**Update in the same commit** — the discipline ROADMAP and the journal already
+carry. A spine gaining an instance, an anti-shape caught in the wild, a § 3 row
+emptied: all land with the change, not after.
+
+**Periodically, delegate `spine-audit`** (its own skill) — a deep file-by-file
+sweep checking the doc against the codebase, prioritising files changed that
+day. That is the other half of the loop: this section keeps the doc *applied*,
+the audit keeps it *true*.
