@@ -587,3 +587,75 @@ spine question first or the spike measures the wrong field.
 6. **Which cave family ships first**, and does it wait on carbonate?
    (Karst is orogeny-proven but carbonate-gated; erosional may be nearly
    free; littoral needs wave energy; glacial needs ice as an agent.)
+
+## SPIKE SPEC (drafted 2026-07-22, NOT dispatched) — S15: what does the free-water graph cost against a LAZILY GENERATED, EVICTING world?
+
+**Written because S11's numbers do not transfer and should stop being quoted
+as though they do.** S11 ran on `water/vox.rs` — a deliberately toy one-bit
+solid/air volume, fully resident, explicitly not the production world. There is
+no lazy generation anywhere in that harness, so every capacity scan it timed
+walked memory that was simply there. **415 ms is an honest number for a world
+that does not exist.**
+
+**Not blocked by the two-drainage-opinions decision** that S14 waits on: this
+asks about *free-water bodies against lazy chunks*, which is orthogonal to
+whether channels become refined terrain. Dispatchable independently.
+
+**The question (user, 2026-07-22).** A capacity scan means "walk the container
+to learn volume↔level". Against the real generator that is a **generation
+storm** — and worse, the chunk store is a bounded LRU, so the storm **evicts
+the ground the player is standing on**, right when they are actively digging
+the trench that caused it. The user's proposed answer: *"if cells / the coarse
+regions know roughly their level (and remember if it changes — remembering
+player edits) then that math could be simpler."*
+
+**Why it should work, stated so the spike can falsify it.** Capacity is
+**additive**: volume below level L is a sum over regions, so a per-coarse-cell
+hypsometric summary makes the body's curve a sum, and coarse cells are already
+fully resident. Edits become a **delta, not a rescan** — digging removes a known
+volume below a known level, and `set_block_raw` is the single audited
+voxel-writing path (journal/0051) to hang that increment on. Sub-cell relief is
+available without chunks: `coarse_surface` derives any column's surface at
+**1.377 µs/column**, memoized, generating nothing (journal/0022).
+Expected accuracy property, also to be falsified: level error is `ΔV / surface
+area`, so the coarse estimate is **most accurate exactly where an exact scan is
+most expensive** (big lakes) and worst where exact is cheap (flooded shafts).
+
+**Measurement groups — each needs a number, not an argument:**
+
+1. **Coarse capacity accuracy.** Coarse-derived level vs an exact voxel-walked
+   level over real basins in a production world, as a function of body surface
+   area. *Decision rule, fixed in advance:* if coarse-derived level lands within
+   **half a voxel (0.45 m)** above some area threshold, the coarse path ships and
+   exact scans are reserved for bodies below it. Half a voxel because that is
+   where the shoreline moves.
+   Fold in **one** number, not a study: the exact-scan cost at the *largest*
+   body still handed to the exact path, so the fallback the decision rule
+   creates is bounded rather than open-ended.
+2. *(**CUT 2026-07-22 by the user**: "measure the storm" — chunks generated,
+   wall time, eviction damage for a naive scan against the real store. Cut on
+   the grounds that **no outcome of it changes a decision**: there is no world
+   in which the answer comes back "the storm is fine." A measurement whose
+   every result leads to the same action is theatre. The qualitative fact — a
+   scan generates chunks and thrashes a bounded LRU while the player is
+   digging — is sufficient to reject scan-per-breach.)*
+3. **Incremental maintenance.** Dig through the audited write path, adjust the
+   summaries, compare against a fresh exact computation; measure **drift over a
+   long edit session** (the S11 conservation-drift analogue). Must stay under
+   group 1's half-voxel threshold.
+4. **The connectivity hypothesis — hunt the falsifier.** Claim: *connectivity
+   only changes where someone edits, and edits only happen where chunks are
+   loaded* (to breach a lake you must dig, and to dig you must be there). The
+   adversarial case is a breach joining two bodies through terrain nobody ever
+   loaded. **Try to construct it.** S11 found two real determinism violations by
+   writing the adversarial case, not by the shuffle passing.
+5. **Eviction identity.** S11's reload-from-39-bytes, redone against the real
+   evicting store: does a body's derived water survive its chunks being evicted
+   and re-derived byte-identically?
+
+**Determinism, as ever:** double-run byte-identical; order-independent over
+shuffled edit batches.
+
+**Explicitly out of scope:** rendering water, the water cycle, karst,
+dissolution, cementation. This is the storage-and-cost architecture of free
+water against lazy generation, nothing else.
