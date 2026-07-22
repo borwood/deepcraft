@@ -22,7 +22,6 @@
 //!
 //! `cargo run --release -p dc-worldgen --example surface_dither_probe`
 
-use std::collections::BTreeSet;
 use std::time::Instant;
 
 use dc_core::materials::geology::vanilla;
@@ -156,34 +155,33 @@ fn main() {
         );
     }
 
-    // ---- (B) per-chunk quantization of the surface member ----------------
-    println!("--- distinct SURFACE MEMBERS per 32x32 chunk footprint ---");
-    println!(
-        "  (1 = the whole 28.8 m patch is one member: the per-chunk quantization\n\
-         \x20  the user photographed in journal/assets/0056-surface-quantized-per-chunk.png)"
-    );
+    // ---- (B) per-chunk diversity of the surface BLOCK --------------------
+    // journal/0074: the near surface is the record's top span now, not the
+    // deep-record member draw (which moved to the far summary). This measures
+    // near-surface block diversity per chunk footprint.
+    println!("--- distinct SURFACE BLOCKS per 32x32 chunk footprint ---");
     let mut hist = [0usize; 9];
     let mut chunks = 0usize;
     let (bcx, bcz) = (m2v(82346.0).div_euclid(32), m2v(24391.0).div_euclid(32));
     for dz in -6..=6i64 {
         for dx in -6..=6i64 {
             let col = g.column_record(bcx + dx, bcz + dz);
-            let distinct: BTreeSet<u16> = col
-                .surface_fill
-                .iter()
-                .flatten()
-                .map(|(m, _)| m.0)
-                .collect();
-            hist[distinct.len().min(8)] += 1;
+            let mut seen: Vec<Block> = Vec::new();
+            for &b in &col.surface {
+                if !seen.contains(&b) {
+                    seen.push(b);
+                }
+            }
+            hist[seen.len().min(8)] += 1;
             chunks += 1;
         }
     }
     println!(
-        "  over {chunks} chunk columns around the loess margin: {hist:?}  (index = distinct members)"
+        "  over {chunks} chunk columns around the loess margin: {hist:?}  (index = distinct blocks)"
     );
     let one = hist[1] + hist[0];
     println!(
-        "  chunks expressing AT MOST ONE surface member: {one} ({:.1}%)\n",
+        "  chunks expressing AT MOST ONE surface block: {one} ({:.1}%)\n",
         100.0 * one as f64 / chunks as f64
     );
 
@@ -317,9 +315,15 @@ fn site(g: &mut WorldGenerator<'_>, pregen: &Pregen, label: &str, vx: i64, vz: i
         col.strata.events.len(),
         fill.depth_count()
     );
+    let top = fill.plan(1);
     println!(
-        "  SURFACE               : {:?}, member {:?}\n",
+        "  SURFACE               : {:?}, {} of 8 eighths{}\n",
         col.surface[i],
-        col.surface_fill[i].map(|(m, n)| (m.0, n))
+        if top.is_some() { col.surface_eighths[i] } else { 0 },
+        match top {
+            None => " (fallback — no record)".to_string(),
+            Some(Plan::Single(k)) => format!(" of member {}", col.strata.events[*k].member.0),
+            Some(Plan::Mixed(_)) => " (mixed top span)".to_string(),
+        }
     );
 }

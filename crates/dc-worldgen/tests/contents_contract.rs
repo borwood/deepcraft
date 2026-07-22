@@ -87,6 +87,34 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-22 by the surface-branch removal (journal/0074) — authorized.**
+/// The near surface voxel stopped being a parallel `surface_class` consult of the
+/// deep record and became the record's **top span** through [`dc_worldgen::
+/// ColumnFill`] (`plan(1)`), the same fill machinery as every buried voxel; the
+/// buried column shifted down one record span to make room for the surface it now
+/// owns. Both Medium worlds moved on **all three** hashes: the surface block (now
+/// `classify` of the top-span partial rather than the drawn deep-record class),
+/// the surface *and* shifted-buried contents (materials), and the mixture table
+/// (the surface can now be a genuinely **mixed** partial — a state the
+/// single-member surface path could not construct). **Small did not move at all**,
+/// and the mechanism is exactly the surface-branch removal's blind spot:
+/// Small's sampled chunks carry **no strata record** (empty `col.strata`), so
+/// `ColumnFill` is empty, the surface takes the unchanged year-zero fallback block,
+/// the buried column takes the unchanged legacy soil band, and there is nothing to
+/// re-route — a record-less column is byte-identical under this slice by
+/// construction. `block_equals_classify_of_contents` still passes with
+/// absent-contents blocks limited to Air and Stone (the proof the surface's new
+/// contents classify consistently).
+///
+/// The values immediately before this move (the composed A1+B1 tree), kept so it
+/// is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x8A55_33FA_FAD8_66BF, 0xA0AA_B320_4308_0D7C, 0x93DE_D6C8_983E_D6F4)
+/// (0x0000_0000_0000_0539, "medium", 0x08A9_920E_E5D8_BD27, 0x6D5E_9A98_61E3_84AC, 0x4A1F_F915_9667_15AF)
+/// (0x0000_00C1_1A7E_2026, "small",  0x83A4_FD28_11CB_A19D, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-22 by the share-weighted susceptibility blend (journal/0072) —
 /// authorized (audit site A1).** Erosion's four consumption sites stopped mapping
 /// the outcrop verdict to one susceptibility-table entry and now blend the table by
@@ -269,26 +297,25 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 /// Note the *mixture table* hashes did not move at all, and the small world's
 /// material hash did not either: the change is one of thickness and extent, not
 /// of which materials exist or how they are interned.
-// Re-captured 2026-07-22 on the MERGED tree after the two shape-teacher
-// slices (journal/0072 share-blend + journal/0073 membership dither) landed
-// in parallel from pre-sibling bases: each branch's re-baseline was true of
-// its own tree and neither was true of the composition, so the merge
-// re-captured from the composed world (integrator; both invariant tests
-// green under composition). Authorized by the same two journal entries.
+// Current values: re-captured 2026-07-22 on the surface-branch-removal tree
+// (journal/0074). Small carried over unchanged from the composed A1+B1 tree —
+// see the top authorization block for why a record-less world is byte-identical
+// under this slice. Both invariant tests (`block_equals_classify_of_contents`,
+// the mixture-table round trip) green.
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x8A55_33FA_FAD8_66BF,
-        0xA0AA_B320_4308_0D7C,
-        0x93DE_D6C8_983E_D6F4,
+        0x4A36_838B_A76E_3999,
+        0xECBD_087F_1C41_B0F3,
+        0xE025_5C0E_5E6B_BBBC,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x08A9_920E_E5D8_BD27,
-        0x6D5E_9A98_61E3_84AC,
-        0x4A1F_F915_9667_15AF,
+        0x421C_2B68_24DC_E4F7,
+        0x7A26_9D59_2F98_C6C4,
+        0xC3B9_2A0B_BCC3_7030,
     ),
     (
         0x0000_00C1_1A7E_2026,

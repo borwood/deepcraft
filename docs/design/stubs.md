@@ -47,14 +47,20 @@ consult. The cause of the razor-straight grass/dirt frontier.
 *Now:* **the record decides what the world is skinned with** (materials.md
 § Sequencing AMENDED 2026-07-21, user: *"we don't have to have this problematic
 of deciding which material to skin the world with when the record already
-says"*). `surface_sample` — still the kernel **shared** by the near ground and
-the far horizon, so both inherit it structurally — reads the content class
-holding the most metres in the recorded column's topmost 0.9 m, and the surface
-voxel's block is `classify(contents)` of the top-of-column remainder expressed as
-partial fill. **Grass is not expressed at all** (ratification 4). World-wide, at
-a 907-voxel stride over 12 135 land samples: Grass 81.8 % / Dirt 18.2 %
+says"*). **AMENDED 2026-07-22 (journal/0074, the surface-branch removal):** the
+near ground's surface voxel is the recorded column's **top span** through
+`ColumnFill` (`plan(1)`, the same authority every buried voxel routes through);
+its block is `classify(contents)` of the top-of-column remainder expressed as
+partial fill. journal/0055 originally put this consult in `surface_sample` as a
+kernel **shared** by the near ground and far horizon — but a shared kernel is a
+summary that *became* the authority (spines § S-3), so the near path was routed
+onto `ColumnFill` and `surface_sample` demoted to the far-field summary only
+(`coarse_surface`), reading the deep record's top-window class and held to a
+statistical agreement test against the ground. **Grass is not expressed at all**
+(ratification 4). World-wide, at a 907-voxel stride over 12 135 land samples (the
+journal/0055 far-summary distribution): Grass 81.8 % / Dirt 18.2 %
 **→** Mudstone 91.4 % / CarbonaceousMudstone 6.3 % / Coal 2.0 % / Peat 0.3 % /
-Granite 0.02 %. Far-field cost 22.1 → 22.9 µs/sample.
+Granite 0.02 %.
 
 *Surviving fallbacks — absence of a record, not stubs:* the **border wilds** (no
 deep-time run exists out there — § Genesis), **subaqueous columns** (`clastic_pass`
@@ -353,18 +359,21 @@ fixed here.
 A synthesized far node (a node whose full-res children were never generated —
 most of the far field, forever) fills each column solid up to the FF2a
 floor-quantized surface, and every voxel of that fill carries the **surface**
-block. Height and surface block are the real authority
-(`coarse_surface` — the same kernel the near ground collapses from); the
-**sub-surface uniformity is the stand-in**: the coarse authority currently
+block. Height and surface block come from `coarse_surface`, which since
+journal/0074 is an explicit far-field **summary** (no longer the kernel the near
+ground collapses from — the near ground now expresses the record's top span
+through `ColumnFill`, and the summary is held to a statistical agreement test
+against it). The **sub-surface uniformity is the stand-in**: the coarse summary
 answers only "where is the surface and what is it made of", so a far mesa's
 exposed flank renders as its cap material. FF2a's top sheet had the identical
 appearance (step sides already wore the surface block), so this fakes nothing
 FF2a didn't — but in node form it is now data that *claims* the column, which
-is why it gets an entry. **Heir:** the far-field summarization half of the
-`collapse.rs::surface_sample` surface-branch fix (a separate sequenced slice —
-octree-substrate.md § 3 names this node-synthesis seam as its legal home): a
-coarse strata summary per node, so synthesized spans can carry the recorded
-column's real vertical material sequence. The reduction path already does this
+is why it gets an entry. **Heir:** the far-field **summarization** half of the
+surface-branch work (the near-authority half landed in journal/0074; this
+far half is a separate sequenced slice — octree-substrate.md § 3 names this
+node-synthesis seam as its legal home): a coarse strata summary per node, so
+synthesized spans can carry the recorded column's real vertical material
+sequence. The reduction path already does this
 (reduced spans render `classify` of `MixtureDownsampleRule` mixtures), so the
 two sides of the contract will converge on it. **Loudness:** the agreement
 test compares *tops* only; a strata-aware agreement test lands with the heir.

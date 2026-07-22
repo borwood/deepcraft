@@ -78,10 +78,18 @@ three names before anyone recognised it as one.
 A cheap answer written because a consumer cannot afford the real one must be
 *derived from* the real one, never become it.
 
-- violation, shipped: `collapse.rs::surface_sample`'s surface branch — a
-  far-field summarization need that became the world's surface material rule
-- compliance: journal/0055's test asserting horizon and ground agree on surface
-  **material**; S15's coarse capacity held against an exact voxel walk
+- compliance (2026-07-22, journal/0074 — **the marquee violation emptied**):
+  `collapse.rs::surface_sample`'s surface branch was the far-field summarization
+  need that had become the world's surface material rule. The surface voxel now
+  **is** the record's top span through `ColumnFill` (`plan(1)`), the same
+  authority every buried voxel routes through; `surface_sample`/`draw_class`
+  survive only as the far-field *summary* (`coarse_surface`), typed as such and
+  held to a **statistical agreement test** (`coarse_surface_agrees_with_the_
+  near_column_surface`, 0.9171 near/coarse on geology-surfacing columns) that
+  replaced journal/0055's shared-kernel structural guarantee. The
+  disappearing-consumer test now answers *yes*: if the far field vanished, the
+  surface rule would still exist unchanged, because it is the expression.
+- compliance: S15's coarse capacity held against an exact voxel walk
 
 **Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
 this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an

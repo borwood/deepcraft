@@ -7,6 +7,33 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **The surface-branch removal — the summary stopped being the
+  author** (journal/0074; background implementation agent, worktree for the
+  integrator; **empties spines § S-3's marquee "violation, shipped" line**).
+  The S-3 violation is dead: `collapse.rs::surface_sample`'s branch was a
+  far-field cheap-surface need that had become the world's surface *material*
+  rule. The near surface voxel now **is** the record's top span through
+  `ColumnFill` (`plan(1)`), the same authority every buried voxel routes
+  through — the buried column shifted down one record span to make room for the
+  surface it now owns; heights byte-identical. **`draw_class` survives, re-homed
+  as the far-field summary's class picker** (`coarse_surface` — the far field
+  cannot afford to build a `StrataRec`), typed as a summary and held to a
+  **statistical agreement test** that replaced journal/0055's shared-kernel
+  structural guarantee: **0.9171** near/coarse agreement on geology-surfacing
+  columns (floor 0.88), the ~8 % disagreement being the fluvial veneer (near is
+  *more* correct) and B1's coherent-source bias. **Goldens: both Medium moved on
+  all three hashes (authorized); Small unchanged** — record-less columns are
+  byte-identical under this slice by construction (the mechanism, not luck —
+  corrections #38). Perimeter-guillotine signature **neutral**: the far field is
+  byte-unchanged, and the near ground is also nearest-per-460 m in class shares,
+  so it neither inherits nor cures the cake edge (cure stays the CoarseField
+  heir). Three tests reworked (agreement→statistical; member-dither→
+  routes-through-ColumnFill; class-dither-liveness→far). `surface_fill`/`surface_
+  member` deleted. dc-worldgen suite green (55 lib + all integration, exit 0);
+  full workspace gates run before merge. Far side (`far.rs`/`farpyramid.rs`)
+  untouched — its full node-synthesis adoption is the filed follow-on (stubs
+  § 15).
+
 - 2026-07-22 — **Coalification becomes a geotherm seam** (journal/0067;
   `stubs.md` § 14 now names a slot; background implementation agent, worktree for
   the integrator; gates green — fmt/clippy/test all `--release`, with
@@ -1218,20 +1245,6 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   walked off a cliff, which is the feature.
 
 ## In flight
-
-- **The surface-branch removal — QUEUED after B1 (user, 2026-07-22: "queue
-  it for after B1, we've got runway left")**. The S-3 marquee violation
-  (`collapse.rs::surface_sample` — the far-field cheap-surface need that
-  became the world's surface rule) is now double-unblocked: the octree
-  question is answered and the summarization half's home SHIPPED (FF2b node
-  synthesis, stubs § 15). The slice: route the surface voxel through the
-  same ColumnFill expression as every voxel (the history below gives the
-  surface), delete the parallel path, and replace journal/0055's
-  shared-kernel structural guarantee with the S-7 statistical agreement the
-  node contract sanctions (FF2b's +0.938-within-1 proves the register
-  works). Write-set-gated on B1 (same file); pairs with the CoarseField
-  extraction (disjoint write-sets, parallel dispatch). Empties S-3's
-  "violation, shipped" line.
 
 - **The ratified sequence after the migration (user, 2026-07-22: "both
   revisions greenlit")**: **1. The perf window** — one dc-client cluster:

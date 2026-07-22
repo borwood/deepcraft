@@ -396,18 +396,21 @@ fn site(
         col.strata.events.len(),
         fill.depth_count()
     );
-    // What the world is skinned with here (journal/0055): the surface voxel's
-    // block now comes from `classify` of its own record-derived contents, and
-    // the far horizon inherits the same answer from the shared kernel.
+    // What the world is skinned with here (journal/0055, journal/0074): the
+    // surface voxel is the record's top span (`plan(1)`) expressed as a partial,
+    // through the same fill machinery as every buried voxel.
     let i = 16 * 32 + 16;
+    let top = fill.plan(1);
     println!(
         "  SURFACE               : {:?}, filled {} of 8 eighths{}",
         col.surface[i],
-        col.surface_fill[i].map_or(0, |(_, n)| n),
-        col.surface_fill[i].map_or_else(
-            || " (fallback — no record to skin it with)".to_string(),
-            |(m, _)| format!(" of {}", set.member(m).id)
-        )
+        if top.is_some() { col.surface_eighths[i] } else { 0 },
+        match top {
+            None => " (fallback — no record to skin it with)".to_string(),
+            Some(Plan::Single(k)) =>
+                format!(" of {}", set.member(col.strata.events[*k].member).id),
+            Some(Plan::Mixed(_)) => " (mixed top span)".to_string(),
+        }
     );
     let tail: Vec<String> = col
         .strata
