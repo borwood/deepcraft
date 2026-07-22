@@ -1706,8 +1706,33 @@ before any code.
   sequenced work**: consume-the-ledger piece (c), *derive material FORM from
   provenance* rather than from class. This is that item's first concrete,
   visible symptom.
+- *(**HOLES IN THE GROUND: FIXED** 2026-07-21, journal/0057 + corrections #29.
+  Culling is now **occupancy-aware**: the neighbour predicate returns `f32`
+  coverage and faces resolve **by span** — emit the band `[cover, frac]`, cull
+  only when `cover >= frac`, so exactly one side owns each band and nothing is
+  coplanar-doubled. Bottom faces get the mirrored fix. `height_frac` had been
+  re-deriving loose-only privately, so the mesher was holding **the very second
+  opinion the fill contract exists to prevent**; one `cover_frac` rule now
+  serves both the interior path and the cross-chunk closure. Cost **+30 %
+  triangles on a synthetic worst case** (randomised loose depth per column) —
+  an upper bound, since real depths are spatially correlated and equal-height
+  pairs still cull. Seven tests by name including both border cases.
+  **UNWALKED** — nobody has seen the holes gone; re-walk
+  `0056-holes-after-settle.png`'s coordinates, and if bands persist, distrust
+  journal/0057 first.)*
+- **Two more assumptions the partials-first world falsified** (journal/0057
+  § i, recorded so nobody re-derives them as bugs). **(1)** Partial-height
+  expression is now silently conditional on *which block the record produced*:
+  a voxel whose block resolved to the 0055 fallback vocabulary (Dirt/Stone)
+  renders full height regardless of a sub-8 loose contents value, because
+  `block_uses_contents` gates it. Coverage stays consistent on both sides, so
+  it is not a hole — but it is a decision nobody made deliberately.
+  **(2)** The far field is block-tier and carries no contents, so the horizon
+  draws every column full-height while the near field draws partial tops — a
+  systematic sub-voxel step at the LOD boundary. Same root as the "far field is
+  boxier" item; the distance-pyramid slice is where both get answered.
 - **HOLES IN THE GROUND — partial voxels are missing side faces** (found in
-  the live walk 2026-07-21, **diagnosed by the user**; fix dispatched).
+  the live walk 2026-07-21, **diagnosed by the user**; FIXED — see above).
   Symptom: sky-blue bands straight through the terrain in a rectilinear
   pattern, persistent (identical screenshots 20 s apart — not a streaming
   transient). Assets `0056-nearfar-check-after-3km.png`,
