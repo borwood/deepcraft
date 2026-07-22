@@ -2747,3 +2747,71 @@ before any code.
   lands — until then no flagged gen feature is walkable anyway.
   > blogworthy: "a climate the map can't see" — the gap between a
   simulation being correct and being legible.
+
+- **Walk 0059 — the holes and the chunk patches are gone; the skin is still
+  two flat colours** (2026-07-22, live walk at `--horizon 3 --fullbright
+  --edges`; assets `0059-*`). Two of the session-close checklist's five
+  questions answered YES: **no sky-holes** at two partial-rich stations
+  (journal/0057 confirmed by eye), and **no 28.8 m chunk patches** — a 120 m
+  top-down frame shows organic blobs with wandering contacts (journal/0058
+  confirmed). The third answer is the defect: the surface reads as **exactly
+  two flat colours with a hard one-voxel contact**, no mixed voxel anywhere on
+  the skin. Cause (user-diagnosed, integrator-confirmed in code): the surface
+  voxel is **not sliced from the column at all** — `ColumnFill::build`
+  (`fill.rs:115`) lays the record's top at the surface voxel's *floor*, so
+  plans[0] is the voxel *below* it, and `surface_class` (`collapse.rs:786`)
+  paints the surface voxel with the **dominant class of that lower voxel**,
+  dithered to one member and emitted as a one-element `mixed_contents` call.
+  journal/0055 changed the surface's *source* and kept its *branch*. Fix shape:
+  `ColumnFill::build` takes the top partial, depth 0 covers record metres
+  `[0, frac)`, `allocate_partial` (already exists, `fill.rs:329`) fills its `n`
+  eighths from the units actually overlapping. Golden fingerprints move — that
+  is the slice's deliverable, as already filed. **HELD** pending the seam-first
+  cleanup, at the user's direction: the branch is a leaked LOD requirement and
+  wants a declared provision, not another bespoke call.
+
+- **The bare-cell fallback: a walker stood on paint over nothing**
+  (2026-07-22, `record_hole_probe.rs`, uncommitted). At deep cell (488, 278)
+  — world metres (106 938, 9 953) — the column reads **one voxel of
+  `dc:dirt` over 49+ voxels of `dc:stone`**. `dc:dirt` twins only `LOAM`,
+  which is registered in **no** class, so it cannot come from the record: it is
+  the year-zero fallback, i.e. veneer paint, still under the player. `dc:stone`
+  there is *contents-free* (granite/basalt/mudstone/sandstone/coal/peat/carb-
+  mudstone all have their own blocks), i.e. unrecorded basement. The cell is
+  real but thin: `H 0.25 m · 7 units`, beside a neighbour at **8.0 m / 379
+  units**. Census: **0.2 % of land (91 of 44 265 cells) expresses 0 voxels**;
+  **0.03 % of adjacent pairs (23 of 87 962)** are bare-beside-≥4-voxels. The
+  user walked onto one on the first walk. **Hypothesis FALSIFIED in the same
+  probe**: the integrator predicted north-south banding from `wind`'s per-row
+  1-D transport lanes (`erosion.rs`: `load` is declared inside the `gy` loop
+  and never crosses rows). Measured anisotropy **1.08× ON / 1.06× OFF** — the
+  null. Wind does raise overall roughness ~29 % and *halves* the bare count
+  (428 → 91) by depositing into scoured cells. Two real defects remain, both
+  expression: (a) `regolith_at_voxel` samples **NEAREST** cell while
+  `surface_at_voxel` beside it is **bilinear**, so soil depth is a hard-edged
+  460 m Voronoi mosaic under smooth terrain — the DECIDED "no simulation-
+  resolution edge may reach the eye" doctrine; (b) a column under half a voxel
+  of record falls off the record path entirely into fallback paint, so the rare
+  scoured cell renders as dirt-over-nothing rather than as honestly thin
+  ground. The fractional-top slice fixes (b) by construction. Open design
+  tension: `H` is a scalar and interpolable, the **record is not** (a
+  variable-length unit list has no midpoint — the documented reason nearest
+  was chosen).
+
+- **Charcoal's premise expired and the code still encodes the conclusion**
+  (2026-07-22, user-flagged, integrator-confirmed). `geology.rs:312`
+  deliberately does not route `Biofacies::Charcoal` to a class, reasoning:
+  *"mean ~0.035 m over 158 310 beds, and none of them survives the 0.9 m voxel
+  quantization… a charcoal member would be dead content. The honest
+  representation is an inclusion (pore/debris partial) — filed, not built."*
+  **The load-bearing clause is now false.** One eighth is 0.1125 m, so a 3.5 cm
+  bed is 0.31 eighths, and since journal/0055 allocation is *unbiased addressed
+  stochastic rounding* — so that share wins a real eighth ~31 % of the time.
+  Charcoal is expressible today, as exactly the inclusion the comment
+  describes. What blocks it is small and specific: **no charcoal material is
+  registered at all**, and `deep_class` routes a charcoal-tagged unit to its
+  mineral host — so the fire bed's metres already flow through the mixture
+  path wearing mudstone's identity. **Fourth instance in one day** of the
+  ARCHITECTURE.md § "A summary is not an authority" class: a conclusion
+  justified by a constraint we later removed, recorded in prose, with nothing
+  to fail when the constraint went away (cf. corrections #29).

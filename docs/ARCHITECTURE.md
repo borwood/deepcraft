@@ -304,3 +304,159 @@ occupancy expresses recorded quantity and recorded variance — the record's
 metres and its real heterogeneity — never cosmetic noise. See
 `docs/design/materials.md` § "The forms design pass" for the full ratification
 set (sand-as-form, the root-lattice soil model, grass suspended).
+
+## A summary is not an authority — DECIDED 2026-07-21 (user)
+
+**The rule.** When you write a cheap answer because a consumer cannot afford
+the real one, the cheap answer must be *derived from* the real one — never
+become it.
+
+**The test, asked before the commit lands:** *"if this consumer disappeared
+tomorrow, would this code still exist in this shape?"* If no, it is a summary
+wearing an authority's clothes. It gets a `docs/design/stubs.md` entry naming
+its heir, and — where the authority exists to compare against — **a test
+asserting the summary AGREES with the authority rather than replacing it.**
+
+**Why this needed to be written down.** The failure mode is not a stub. A stub
+looks like a fake: it says placeholder, it names an heir, someone wrote it
+knowing. **A leaked requirement looks like working code that passes tests**,
+which is why `stubs.md`'s "an unlisted stub is a defect in this inventory"
+did not catch a single one of the four instances below. Corrections #29 is the
+same failure one layer down: the assumption that made face-culling safe lived
+in a doc comment, and prose cannot fail a build.
+
+**The class, with the four instances found in one audit (2026-07-21):**
+
+| the stand-in | written because | what it became |
+|---|---|---|
+| `collapse.rs::surface_sample`'s surface branch | the far field cannot afford a full column at 3 km | **the world's surface material rule** |
+| `deeptime/lithology.rs::Litho::reference_material` | the deep sim has no material properties, only 6 classes | **the sim believes loose regolith is sandstone** |
+| `fill.rs::is_loose` (a class-string test) | expression needed form before a form axis existed | **it IS the form rule** |
+| `biotic.rs` `bio_resist` (a rate multiplier) | roots needed representing before root materials existed | **roots are a number, not a material** |
+
+Each was correct when written. Each hardened into the definition of the thing
+it stood in for. **A stand-in becomes the definition unless something stops
+it.**
+
+**The proven implementation pattern is already in-tree**: journal/0055's
+integrator-added test asserts the far horizon and the near ground agree on
+surface *material*, not merely on height. That is the agreement test this rule
+generalizes. Had it covered *contents* rather than *block*, the surface-branch
+defect could not have survived a build.
+
+**Cost of not having had it:** journal/0055 shipped under the headline
+"distribution-first expression — the record skins the world" while the one
+part of the world a player looks at kept a dominant-collapse paint job. The
+slice's own headline claim was false for the surface.
+
+## The content set is frozen at world creation — DECIDED 2026-07-22 (user)
+
+**The rule.** A world's generation-affecting content set is fixed when the
+world is created. **Plugins that affect generation cannot be added to an
+existing world.** Non-generating content can: render/shader packs, recipes,
+items that no worldgen pass emplaces.
+
+**Supersedes** geology.md's earlier seed-stability line ("adding materials
+changes ungenerated regions of existing worlds — accepted, DF-like"). That
+policy is withdrawn.
+
+**Why (user, verbatim in substance):** the world's history is going to be a
+dwarf-fortress-class social simulation, and it will care about materials.
+*"It just wouldn't make sense to try to add content to the game which would
+change the very mythology of it post-generation."* Anything that changes
+history is flatly out. **No post-hoc history rewrites: it was real and it
+mattered.**
+
+**The accepted cost, stated by the user rather than discovered later:** a
+content plugin added to an existing world is **inert / ungenerated at best**.
+A creative-mode player could still spawn its content; a survival player could
+still build recipes from it that use *existing* materials; recipes depending
+on **new materials being found in the world are simply stranded**. The
+cultures of the world would not know about new recipes either — the player
+could teach them. This is judged honest to the simulation.
+
+**The partition this implies** — the line is not "core vs mod", it is
+**"does it participate in generation?"**:
+
+| class | may be added to an existing world |
+|---|---|
+| render/shader packs (S4 `--pack`), purely visual | **yes** — already outside world identity by construction |
+| recipes, items, content no gen pass emplaces | **yes**, inert where it depends on absent materials |
+| geology members, passes, deep-sim providers, anything a pass `selects` from | **no** |
+
+**Consequence this policy FIXES, for free.** `HostWorld` evicts
+generated-and-untouched chunks and re-derives them byte-identically ("store
+only what the derivation cannot predict"). Terrain a player has visited but
+not edited is therefore *re-derived*, not stored — so a content-set change
+would silently rewrite already-walked ground while their edits stayed pinned
+beside it. Freezing the content set removes that failure mode entirely.
+
+**The sharper half, owed as work:** the same argument applies with more force
+to a plugin that goes **missing** on load. A world generated with
+`mw:magic-water` and reopened without it re-derives its droppable chunks
+*wrong*. So the content set must be **recorded in the save and validated on
+load**, and a missing generation-affecting plugin must be a hard refusal, not
+a warning. Whether anything records the content set today is unverified —
+under audit.
+
+**AMENDED 2026-07-22 (user), same conversation — plugins are MARKED, not
+banned.** Plugins present at generation time are **marked as generational**;
+a missing generational plugin on load is a **HARD REFUSAL**, never a warning
+(the droppable-chunk re-derivation would silently rewrite already-walked
+ground). New plugins *may* be added afterwards — they simply **do not
+contribute to world generation**. They may still contribute to *present-day*
+history, but only through an in-world **discovery vector**: the player
+introduces a recipe, or a discovery mechanism fires (DF-style strange mood).
+So the line is not "frozen world, inert additions" but **"history is written
+forward, never backward"** — new content enters the world the way new
+knowledge enters a culture, not by retroactively having always been there.
+
+## Provider seams — the shape (partially DECIDED 2026-07-22, user)
+
+The constructive half of § "A summary is not an authority": rather than a
+stand-in *value* hardening into a definition, a system declares a **seam** —
+a named provider with an explicit contract — so an unbuilt system's obligations
+are visible at its call sites. Derived from the 34-seam inventory
+(2026-07-22): ecology owns 9, hydrology 6, materials 6, social sim 5.
+
+**DECIDED (user):**
+
+- **Shape.** A `Providers` struct of **plain fn pointers** — the `PassBody`
+  discipline: deterministic, no captured state, no closures, no trait objects.
+  Resolved **once at world build**. Every slot carries an **identity default**
+  reproducing today's behaviour exactly, so "provider absent" is provably
+  byte-identical — the proof shape the four existing flags (`biotic`,
+  `erodibility`, `full_agents`, `tectonic_history`) already use.
+- **Effective reads.** A provider **declares its own reads**, and a pass's
+  effective reads = **its declared reads ∪ the reads of every provider it
+  imports**. Without this a provider is a *hidden edge* in the pass graph: a
+  pass importing `depth_to_water` depends on `Hydrology` whether it declared it
+  or not, the topo-sort is silently wrong, and the failure is order-dependent.
+- **Conflicts warn, they do not fail closed.** Two plugins supplying one
+  provider is not an error. The user is asked, at world creation:
+  *"Warning: there are two conflicting providers for X. Proceed with the
+  last-in-order provider? This may result in unexpected generation behaviour.
+  [proceed with last-in-order] [I want to disable one of them]"* — deliberately
+  softer than the pass graph's fail-closed rule for two creators of one
+  resource, because the user, not the engine, should own which of two mods
+  wins.
+
+**PROPOSED, NOT YET RATIFIED** (integrator; do not build against these):
+
+- *Providers resolved are part of world identity* — a world generated with a
+  provider and one generated with its identity fallback are different worlds,
+  so the manifest would record the resolved table and the conflict choice.
+  (The conflict dialog appears to force this: a choice that changes generation
+  must be recorded or the world stops being reproducible.)
+- *Providers produce planes; consumers read planes* — a provider used inside a
+  hot loop is materialized at a pass boundary, once per iteration, preserving
+  the scalar↔parallel byte-identity invariant. Value-level providers legal only
+  at cold call sites.
+- *A purity contract*, since fn pointers do not enforce one: pure in declared
+  inputs, no globals, no interior mutability, no wall clock, and all entropy
+  from caller-owned seeds passed in, never ambient.
+
+**Not built by the first slice.** The first conversion slice (`outcrop_at`,
+`wave_energy`, `parent_p`) deliberately builds the struct and the identity
+defaults ONLY — no registry, no loader, no declaration/validation machinery.
+Those are to be designed from what the conversions teach.

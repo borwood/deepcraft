@@ -101,6 +101,14 @@ cargo test --workspace --release
 
 ## Conventions
 
+- **A summary is not an authority** (DECIDED 2026-07-21, ARCHITECTURE.md).
+  A cheap answer written because a consumer cannot afford the real one must be
+  *derived from* the real one, never become it. Test before committing: **"if
+  this consumer disappeared tomorrow, would this code still exist in this
+  shape?"** If no, it is a summary wearing an authority's clothes — give it a
+  `stubs.md` entry naming its heir, and a test asserting it AGREES with the
+  authority. A leaked requirement looks like working code that passes tests,
+  which is why the stub inventory does not catch it.
 - Headless crates (dc-core, dc-sim, dc-worldgen, dc-api, dc-physics) never
   depend on rendering/OS. dc-client is the only GPU/OS crate.
 - Wire types: no `skip_serializing_if` (postcard is positional — corrections #3).

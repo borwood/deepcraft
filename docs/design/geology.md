@@ -20,8 +20,10 @@ first geology pack.
   Members canonically ordered by namespaced id (registration order never
   changes worlds); abundance normalized within class (mods diversify worlds,
   never inflate them). Consequence for the seed-stability policy: adding
-  materials changes ungenerated regions of existing worlds — accepted,
-  DF-like, must be documented player-facing.
+  materials changes ungenerated regions of existing worlds — ~~accepted,
+  DF-like, must be documented player-facing~~ **SUPERSEDED 2026-07-22 (user):
+  generation-affecting content cannot be added to an existing world at all.
+  See ARCHITECTURE.md § "The content set is frozen at world creation".**
 - **Processes are plugins too.** A creation vector (glacial till, evaporite
   basin, ley-line crystallization) registers as a pass declaring: phase
   (pregen epoch / lazy-collapse contributor / runtime-derived), what it
