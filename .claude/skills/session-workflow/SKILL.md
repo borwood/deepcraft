@@ -467,3 +467,17 @@ followed the rule. The rule was wrong.
 - The staleness test stays age-based — "no live cargo" is not evidence of
   abandonment, because a legitimate holder is idle between invocations. That
   ambiguity is exactly what this rule removes.
+
+## Design passes get journal entries too (user-directed, 2026-07-22)
+
+The journal charter always asked for "the reasoning behind the decision — not
+a changelog," but practice only ever journaled *builds*. The user, at the end
+of the octree pass: *"reasoning like this isn't captured in them. is it
+captured anywhere?"* It wasn't — DECIDED entries keep conclusions, the
+conversation keeps the narrative, and the conversation is not a repo artifact.
+
+So: **a substantive design pass gets a journal entry in the same session** —
+the prompt, the sweep's findings, the corrections made mid-flight (an
+integrator overreach the user catches is exactly the blog-worthy part), the
+holes found and how, the roads not taken. The design doc holds what was
+decided; the journal holds how it went. journal/0069 is the template.

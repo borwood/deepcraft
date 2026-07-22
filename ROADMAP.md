@@ -1232,9 +1232,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   recorded in the doc § 5; vista-as-augury is complementary — it governs far
   *live* state, not terrain). This supersedes FF2b's earlier pairing with the
   caves/underground water thread for the *minimal* slice — the node contract's
-  water stratum stays requirements-only and the hydrology pause holds. Node
-  contract v0 is PROPOSED, awaiting user ratification before any brief is
-  written.
+  water stratum stays requirements-only and the hydrology pause holds. **Node
+  contract v0.1 RATIFIED** (same session — the gap-hunt added two-sided
+  derivation: reduce upward where children exist, synthesize top-down from
+  the worldgen authority where they don't, statistical agreement where they
+  meet; ungenerated ≠ empty; strata independent; seeded synthesis).
+  Narrative: journal/0069. Next: the FF2b-minimal brief (must exercise a
+  synthesized-node path); **dispatch waits on the build slot** — the charcoal
+  thickness-rule agent holds it.
 
 - **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill

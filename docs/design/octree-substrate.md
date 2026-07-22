@@ -2,9 +2,10 @@
 
 Design pass opened 2026-07-22 (live session), from the leaning recorded in
 `water.md` § "LEANING, NOT DECIDED — one octree substrate". Decisions D1–D3
-below are **DECIDED (user, 2026-07-22)**. The node contract (§ 3) is
-**PROPOSED, not ratified** — nothing is briefed against it until the user
-ratifies it.
+below are **DECIDED (user, 2026-07-22)**, and the node contract (§ 3) is
+**RATIFIED at v0.1 (user, same session: "i agree, i think we run with
+this")** after a gap-hunt added the two-sided derivation rule. Narrative of
+the pass: journal/0069.
 
 ## 0. Priors (the sweep — what already existed before this pass)
 
@@ -60,7 +61,9 @@ mesher: coarse volumetric far chunks as stepped geometry, replacing the
 top-sheet-only far field. This empties spines § 3 row 1, gives chasms and
 overhangs a far-field answer, and forces the node contract to be real.
 Persistence + dirty-rail (far edits visible) is the follow-on slice, not this
-one.
+one. *(v0.1 rider: the slice must exercise at least one **synthesized-node**
+path — the far field is mostly never-generated terrain, so reduction-only
+FF2b would demo the exception and skip the default case.)*
 
 **D3 — Stepped all the way.** At every level, distance speaks the voxel
 language: coarser chunks mesh through the same stepped-column register as
@@ -78,7 +81,13 @@ out, the scar is on the skyline (follow-on slice). Look down a chasm: the deep
 dark is coarse-but-real geology, not fog. Later, the same tree that answers
 "what is over that ridge" answers "where is the duke".
 
-## 3. The node contract, v0 — PROPOSED (not ratified)
+## 3. The node contract, v0.1 — RATIFIED (user, 2026-07-22)
+
+*(v0 → v0.1: the gap-hunt found that v0 described only bottom-up derivation,
+while most far-field nodes cover **never-generated** terrain — corrections
+#31's lesson that ungenerated ground is the default case, not the edge case.
+v0.1 adds the two-sided derivation rule, the ungenerated≠empty distinction,
+the extensibility clause, and explicit seeding for synthesis.)*
 
 A node's payload has three strata, each with a declared **reduction rule**
 (child → parent) and a declared **source** — every field derives from the
@@ -103,6 +112,28 @@ authority or from the children's same field, never from a side channel (S-3).
 
 **Rules riding the contract:**
 
+- **Derivation is two-sided.** Where children exist, a node **reduces upward**
+  (the built machinery — `MajorityNonAir`, `MixtureDownsampleRule`). Where
+  they don't — most of the far field, forever — the node **synthesizes
+  top-down** from the worldgen statistical authority (the deep record /
+  collapse statistics): coarse cause, coarse expression. The two directions
+  must **agree** where they meet: a synthesized node and the reduction of its
+  later-generated children match statistically (S-3/S-7 — falsifiable, and
+  the acceptance test for every synthesis path). This is also the legal home
+  of the far-field summarization need that leaked into
+  `collapse.rs::surface_sample` (S-3's shipped violation): the surface-branch
+  fix's summarization half lands *here*, as synthesis, not in the authority.
+- **Ungenerated is not empty.** Reduction must distinguish "air" from "not
+  yet derived": `derive_material_lod_chunk` currently reads a missing child
+  as empty, which is correct in a test scene and an A-5-shaped defect over a
+  lazily generated world. A missing child means "synthesize me", never
+  "nothing there".
+- **Strata are independent and extensible.** Adding a stratum (coarse light —
+  light.md § 5; distributions — § 4) never invalidates or re-derives existing
+  ones. Two more consumers are already named; the contract plans for arrival.
+- **Synthesis is seeded.** Top-down derivation is a pure function of
+  (world seed, node coords, committed facts) — the no-ambient-entropy rule
+  restated at the seam where it would be easiest to violate.
 - **Committed/fluid at node granularity (S-2).** An edit dirties the node's
   ancestor path to the root; untouched nodes re-derive byte-identically and
   may be evicted. Persisted summaries live beside S3 region files (the DH
