@@ -1237,9 +1237,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   derivation: reduce upward where children exist, synthesize top-down from
   the worldgen authority where they don't, statistical agreement where they
   meet; ungenerated ≠ empty; strata independent; seeded synthesis).
-  Narrative: journal/0069. Next: the FF2b-minimal brief (must exercise a
-  synthesized-node path); **dispatch waits on the build slot** — the charcoal
-  thickness-rule agent holds it.
+  Narrative: journal/0069. **FF2b-minimal LANDED** (2026-07-22, background
+  agent, worktree branch — journal/0070): the two-sided derivation is real.
+  `dc_core::farfield` carries the span-stack payload (`ColumnSpan` gains
+  `bottom`; `quantize_top` moves to dc-core so synthesis and the streamer
+  share ONE quantization); `dc-worldgen/src/far.rs` synthesizes nodes
+  top-down from `coarse_surface` (seeded); the client's `FarPyramid` feeds
+  every streamed chunk up the block + `MixtureDownsampleRule` pyramids
+  (**spines § 3 row 1 consumed** — far spans render `classify` of reduced
+  mixtures) and the FF2a mesher now speaks span stacks (bottom faces,
+  interval walls) with an A-5 guard (`subtree_fully_inserted`) and a
+  reduction standoff inside the near field's draw radius. Agreement measured:
+  n=8192 columns, mean(reduced−synth)=+0.938 coarse voxels, 100 % within 1
+  (the majority-vote-rounds-up vs floor mechanism, journal/0070). Tripwire at
+  10 km (stretched L4): 1 648 tiles / ~168 MiB / ~4.9 ms per tile — mesh path
+  nowhere near the Aokana wire; past ~10 km the answer stays "more rings"
+  (journal/0042). Follow-ons unchanged: persistence + dirty-rail (far edits),
+  synthesized sub-surface strata (the `surface_sample` summarization-half
+  home), partial-coverage composition, deep-span greedy merge.
 
 - **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill

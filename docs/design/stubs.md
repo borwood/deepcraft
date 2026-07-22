@@ -347,6 +347,30 @@ the record keeps no memory of section deposited and later stripped, so an
 exhumed unit reads as shallow where real coal rank is irreversible. Neither is
 fixed here.
 
+### 15. far-node-synthesis-paints-the-column-with-the-surface-block — *added 2026-07-22 (journal/0070, FF2b-minimal)*
+`dc-worldgen/src/far.rs::synthesize_far_node`.
+
+A synthesized far node (a node whose full-res children were never generated —
+most of the far field, forever) fills each column solid up to the FF2a
+floor-quantized surface, and every voxel of that fill carries the **surface**
+block. Height and surface block are the real authority
+(`coarse_surface` — the same kernel the near ground collapses from); the
+**sub-surface uniformity is the stand-in**: the coarse authority currently
+answers only "where is the surface and what is it made of", so a far mesa's
+exposed flank renders as its cap material. FF2a's top sheet had the identical
+appearance (step sides already wore the surface block), so this fakes nothing
+FF2a didn't — but in node form it is now data that *claims* the column, which
+is why it gets an entry. **Heir:** the far-field summarization half of the
+`collapse.rs::surface_sample` surface-branch fix (a separate sequenced slice —
+octree-substrate.md § 3 names this node-synthesis seam as its legal home): a
+coarse strata summary per node, so synthesized spans can carry the recorded
+column's real vertical material sequence. The reduction path already does this
+(reduced spans render `classify` of `MixtureDownsampleRule` mixtures), so the
+two sides of the contract will converge on it. **Loudness:** the agreement
+test compares *tops* only; a strata-aware agreement test lands with the heir.
+**Blast:** far-field side-face colour beyond played regions; no sim or replay
+surface.
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural
