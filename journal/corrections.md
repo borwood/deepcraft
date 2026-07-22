@@ -1069,3 +1069,43 @@ may therefore be `#[inline]`, a `pub use`, or anything else — the constraint
 did not get enforced, it stopped existing. **Do not reintroduce address
 comparison** to answer "is this slot supplied"; that is the question the
 `Option` exists to make unaskable.
+
+## 33. "`Authority::chunk_budget_for` scales with horizon" (2026-07-22)
+
+**Claimed by:** the integrator, in the horizon-6 measurement brief, which
+instructed the agent to "report what it resolves to at 6 versus 3".
+
+**False.** The budget derives from `streaming::UNLOAD_RADIUS_M` =
+`FULL_DETAIL_RADIUS_M + 32` — a constant **160 m near-field radius**. It
+resolves to **2 360 at every horizon**, probe-confirmed across all eight runs.
+
+**Why it is correct behaviour, and why the question was malformed:** the far
+field is served from the coarse column summary and **never enters the chunk
+store**, so widening the horizon cannot widen the budget. The brief asked the
+agent to report a quantity that does not vary — the kind of instruction that
+invites an agent to invent a difference rather than report a null.
+
+*(Also false in the same brief, less consequentially: "you have no MCP tools."
+The agent did have them, honoured the instruction anyway, and drove the client
+over raw HTTP JSON-RPC — better for scripted timing regardless. An integrator
+should not assert an agent's capabilities to it; the agent can see them.)*
+
+## 34. "The RAM march at horizon 3 is flat — 0.00 MB/jump" (2026-07-22)
+
+**Claimed by:** journal/0051, measured over 147 jumps after warm-up, and
+carried since as the eviction fix's headline number.
+
+**The conclusion survives; the number was phase.** RSS under teleport storm
+**sawtooths** — climbing ~250 jumps then dropping 120–180 MB as eviction
+catches up. A 700-jump / 23-minute run measures **+0.113 MB/jump** overall and
+**+0.074** over its last 300; but *every 200-jump window sits inside a single
+tooth*, and depending on where a window starts it reads anywhere from 0.00 to
++0.54. journal/0051's `0.00` and journal/0065's `+0.54` are **the same
+bounded oscillation sampled at different phases**.
+
+**The lesson, which is not about memory:** a measurement window shorter than
+the period of the thing you are measuring cannot distinguish *flat* from
+*oscillating*, and it will produce a confident number either way. Before
+quoting a slope, establish that the window spans at least one full cycle of
+whatever the system does on its own. Sibling of #25 (walking the flattest place
+in the world and concluding the world was flat).

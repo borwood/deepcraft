@@ -1269,9 +1269,9 @@ DeviceLost, distribution-first, the holes, the eight-kilometre typo — and
 > sediment blocks, 76 mixed spans — read as *sediment* or as noise; (4) do
 > contact bands change material on chunk lines (the boundary-dither loose end,
 > still open for **mixed** voxels); (5) a long `--horizon 6` session — **DONE
-> 2026-07-21, journal/0064: it survives.**
+> 2026-07-21, journal/0065: it survives.**
 
-**Wide horizons: the blocker is GONE and now PROVEN at 6** (journal/0064,
+**Wide horizons: the blocker is GONE and now PROVEN at 6** (journal/0065,
 2026-07-21). The DeviceLost crashes were host-RAM exhaustion from an unbounded
 chunk store, now evicting (journal/0051, flat over 210 teleports at
 `--horizon 3`). Re-measured at 6, in both regimes, alternated 6/3/6/3 against
@@ -2124,7 +2124,7 @@ before any code.
   exited CLEANLY (verified: no DeviceLost in the log), vs 4.5–10 min to
   death at `--horizon 6` — accumulation scales with far-field size, and
   smearing is the degraded-but-alive state well before the cliff.**
-- **CONFIRMED AT HORIZON 6, 2026-07-21 (journal/0064): the fix holds at the
+- **CONFIRMED AT HORIZON 6, 2026-07-21 (journal/0065): the fix holds at the
   width that used to kill it, and the residual is horizon-independent.**
   Storm and idle regimes, alternated 6/3/6/3. Storm slope +0.542/+0.529
   MB/jump at 6 vs +0.531/+0.542 at 3 (200 jumps each, RSS high-water 1.10 GB,
@@ -2144,7 +2144,7 @@ before any code.
   **sawtoothing** in a ~980–1 170 MB band — climb ~250 jumps, drop 120–180 MB,
   repeat. Full-run slope **+0.113 MB/jump** (jumps 50–700), **+0.074** over the
   last 300; every 200-jump window sat inside one tooth and read ~+0.54.
-  0051's 0.00 and 0064's 0.54 are the same oscillation at different phases.
+  0051's 0.00 and 0065's 0.54 are the same oscillation at different phases.
   Methodological rule now: **measure ≥ 250 jumps or you are measuring a
   tooth.** Final state 71 928 evictions, `host_chunks=2224/2360`, high-water
   1 166 MB, exit 0. The ~0.1 MB/jump that survives is plausibly allocator

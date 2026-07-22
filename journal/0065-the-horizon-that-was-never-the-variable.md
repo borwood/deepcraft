@@ -1,4 +1,4 @@
-# 0064 — The horizon that was never the variable
+# 0065 — The horizon that was never the variable
 
 journal/0051 bounded `HostWorld.chunks` and measured the RAM march flat —
 +27.4 MB/jump before, 0.00 MB/jump after, over 147 jumps. It measured that at
