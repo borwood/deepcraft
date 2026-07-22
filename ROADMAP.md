@@ -1219,6 +1219,20 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **The surface-branch removal — QUEUED after B1 (user, 2026-07-22: "queue
+  it for after B1, we've got runway left")**. The S-3 marquee violation
+  (`collapse.rs::surface_sample` — the far-field cheap-surface need that
+  became the world's surface rule) is now double-unblocked: the octree
+  question is answered and the summarization half's home SHIPPED (FF2b node
+  synthesis, stubs § 15). The slice: route the surface voxel through the
+  same ColumnFill expression as every voxel (the history below gives the
+  surface), delete the parallel path, and replace journal/0055's
+  shared-kernel structural guarantee with the S-7 statistical agreement the
+  node contract sanctions (FF2b's +0.938-within-1 proves the register
+  works). Write-set-gated on B1 (same file); pairs with the CoarseField
+  extraction (disjoint write-sets, parallel dispatch). Empties S-3's
+  "violation, shipped" line.
+
 - **The ratified sequence after the migration (user, 2026-07-22: "both
   revisions greenlit")**: **1. The perf window** — one dc-client cluster:
   profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
