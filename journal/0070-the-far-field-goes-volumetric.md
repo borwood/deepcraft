@@ -162,12 +162,19 @@ played regions, i.e. essentially every pixel of every horizon today — meshes
 byte-identically to FF2a (single-span stacks, same greedy merge, same skirts,
 same quantization). The deltas that do exist, each flagged:
 
-1. **Reduced regions sit one coarse voxel higher.** Where the player has
-   walked (beyond the standoff), far tiles now show the reduction's answer:
-   ~1 coarse voxel (1.8–3.6 m at L1/L2) closer to the true surface than
-   FF2a's floored sheet, with a matching one-voxel ledge at the
-   reduction/synthesis boundary. At 200+ m this is sub-step noise, but it is
-   real and it is new.
+1. **Reduced regions sit one coarse voxel higher AND can read as a different
+   material.** Where the player has walked (beyond the standoff), far tiles
+   show the reduction's answer: ~1 coarse voxel (1.8–3.6 m at L1/L2) closer
+   to the true surface than FF2a's floored sheet, with a matching one-voxel
+   ledge at the boundary — sub-step noise at range. The louder half, seen
+   live in `0070-lit-reduced-behind-standoff`: the reduced span's block is
+   `classify()` of the coarse *mixture* (substrate-dominated) while the
+   synthesized field wears the surface-veneer block, so visited spots show
+   as differently-coloured patches on the far field. The height delta is
+   measured (+0.938 coarse voxels, the agreement test); the block delta is
+   the material pyramid's own honest answer but was NOT covered by the
+   agreement test (tops only) — called out for ratification and for a
+   block-dimension agreement metric with the stubs § 15 heir.
 2. **Bottom faces exist now.** Nothing generates them over today's terrain
    (no overhangs in worldgen; trees mostly dissolve under the majority vote),
    but any reduced overhang — including, after the dirty-rail slice, player
@@ -196,10 +203,21 @@ family of 0023's asset set):
   continuous field to a 10 km skyline, no holes, no cracks — and the
   deep-cell material checkerboard visible to the horizon (the Observed
   item's scale).
-- `0070-lit-reduced-behind-standoff` — looking back at the streamed spawn
-  region from beyond the reduction standoff: reduced tiles in place of
-  synthesis, no poke-through, no frontier crack (the delta is the expected
-  ≤1 coarse voxel and reads as nothing at range — which is the point).
+- `0070-lit-reduced-behind-standoff` — looking back at the two visited spots
+  (spawn and a brief stop 200 m away) from beyond the reduction standoff:
+  reduced tiles live, no poke-through, no frontier crack, no hole — **but the
+  reduced patches render a visibly different surface colour** (pale, close to
+  the near ground's own look) than the synthesized field around them
+  (reddish). Mechanism: a reduced span's block is `classify()` of the
+  **coarse mixture** of its top coarse voxel (1.8–3.6 m of column — mostly
+  substrate), while a synthesized span carries `coarse_surface`'s
+  surface-veneer block; the two are different summaries of the same column
+  and their atlas layers differ. This is the material pyramid genuinely
+  reaching the eye — variety as data — but it means **visited ground is
+  visibly stamped on the far field** today. Flagged as the slice's largest
+  appearance delta (below) and triaged in the report; the convergence path
+  is stubs § 15's heir (one strata-summary block rule shared by both
+  derivation sides).
 
 On today's terrain these are intentionally indistinguishable-or-near from
 0023's — that *is* the acceptance criterion for the synthesized path.
