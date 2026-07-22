@@ -1249,9 +1249,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   derivation: reduce upward where children exist, synthesize top-down from
   the worldgen authority where they don't, statistical agreement where they
   meet; ungenerated ≠ empty; strata independent; seeded synthesis).
-  Narrative: journal/0069. Next: the FF2b-minimal brief (must exercise a
-  synthesized-node path); **dispatch waits on the build slot** — the charcoal
-  thickness-rule agent holds it.
+  Narrative: journal/0069. **FF2b-minimal LANDED** (2026-07-22, background
+  agent, worktree branch — journal/0070): the two-sided derivation is real.
+  `dc_core::farfield` carries the span-stack payload (`ColumnSpan` gains
+  `bottom`; `quantize_top` moves to dc-core so synthesis and the streamer
+  share ONE quantization); `dc-worldgen/src/far.rs` synthesizes nodes
+  top-down from `coarse_surface` (seeded); the client's `FarPyramid` feeds
+  every streamed chunk up the block + `MixtureDownsampleRule` pyramids
+  (**spines § 3 row 1 consumed** — far spans render `classify` of reduced
+  mixtures) and the FF2a mesher now speaks span stacks (bottom faces,
+  interval walls) with an A-5 guard (`subtree_fully_inserted`) and a
+  reduction standoff inside the near field's draw radius. Agreement measured:
+  n=8192 columns, mean(reduced−synth)=+0.938 coarse voxels, 100 % within 1
+  (the majority-vote-rounds-up vs floor mechanism, journal/0070). Tripwire at
+  10 km (stretched L4): 1 648 tiles / ~168 MiB / ~4.9 ms per tile — mesh path
+  nowhere near the Aokana wire; past ~10 km the answer stays "more rings"
+  (journal/0042). Follow-ons unchanged: persistence + dirty-rail (far edits),
+  synthesized sub-surface strata (the `surface_sample` summarization-half
+  home), partial-coverage composition, deep-span greedy merge.
 
 - **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill
@@ -2060,6 +2075,22 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **Deep-cell-square surface-material frontiers checker the far field** (walk
+  2026-07-22, FF2b screenshot pass — `0070-fb-high-vantage-patch-check` for
+  the mechanism-clean single case, `0070-lit-10km-horizon-vantage` for the
+  scale of it): sharply-bounded dark-material regions read as axis-aligned
+  squares/rectangles at roughly the 460 m deep-cell scale, edges
+  razor-straight for hundreds of meters — and from altitude at a 10 km
+  horizon the vista is a **checkerboard of them** to the skyline.
+  Pre-existing, not FF2b: the patch lies over never-generated ground, where
+  the synthesized far field is FF2a-identical by construction, and the
+  surface block is `coarse_surface`'s own answer (post-0055 record skin) —
+  so this is the surface-material sibling of the known S-4-shaped
+  `regolith_at_voxel` nearest-sampling mosaic: a simulation-resolution edge
+  reaching the eye as an analytic boundary. Undiagnosed beyond that; wants
+  the same routing care spines S-4 flags for the soil-depth fix (the record
+  is a non-interpolable unit list — do not naively bilinear it).
 
 - **Mesh-buffer pooling: measured, deliberately NOT built** (2026-07-21,
   journal/0051 — the user asked for pooling; this is the numbered answer).

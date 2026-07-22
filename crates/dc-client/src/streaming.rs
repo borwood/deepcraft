@@ -26,6 +26,7 @@ use crate::app::{
     LoadedChunk, TerrainMaterialHandle, churn, to_render,
 };
 use crate::authority::{Authority, NeighborFill};
+use crate::farpyramid::{FAR_PYRAMID_L0_BUDGET, FarPyramid};
 use crate::meshing::{MeshData, mesh_chunk};
 use crate::player::Player;
 use crate::terrain_material::{ATTRIBUTE_MAT_LAYERS, ATTRIBUTE_MAT_WEIGHTS};
@@ -55,6 +56,7 @@ pub fn stream_chunks(
     origin: Res<FloatingOrigin>,
     mut map: ResMut<ChunkMap>,
     mut authority: ResMut<Authority>,
+    mut far_pyramid: ResMut<FarPyramid>,
 ) {
     let vscale = scale.scale;
     let chunk_m = vscale.voxels_to_meters(f64::from(CHUNK_SIZE));
@@ -113,6 +115,11 @@ pub fn stream_chunks(
         // Render-only material contents (worldgen authority; None otherwise).
         // The block chunk above already warmed the generator's column cache.
         let contents = authority.chunk_contents(pos);
+        // Feed the far reduction pyramid (FF2b, journal/0070): every generated
+        // chunk climbs the block + material pyramids so far tiles over played
+        // regions can render REDUCED geometry instead of the synthesized top
+        // sheet. A fluid derived cache — never a second source of truth.
+        far_pyramid.insert_l0(pos, &chunk, contents.as_ref());
         // Border faces cull against the AUTHORITY (edits included, lazily
         // generating an unstreamed neighbour) — never the old wrong-world S1
         // fallback (journal/0017). Built AFTER the fetches above so the mutable
@@ -165,6 +172,10 @@ pub fn stream_chunks(
             },
         );
     }
+
+    // Bound the far pyramid's L0 tier (S-1 knob; farthest chunks fall back to
+    // synthesized far columns — a fidelity trade, never a correctness one).
+    far_pyramid.enforce_budget(player_chunk, FAR_PYRAMID_L0_BUDGET);
 }
 
 pub fn to_bevy_mesh(data: MeshData) -> Mesh {

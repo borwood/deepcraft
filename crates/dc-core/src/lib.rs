@@ -17,6 +17,7 @@ pub mod chunk;
 pub mod classify;
 pub mod collision;
 pub mod column;
+pub mod farfield;
 pub mod format;
 pub mod lod;
 pub mod materials;
@@ -31,6 +32,9 @@ pub use collision::{
     Aabb, MoveResult, VoxelQuery, aabb_overlaps_solid, column_top_solid_y, move_aabb,
 };
 pub use column::{ColumnInfo, ColumnSummaries, LodBlockSource, column_summary, open_air_below};
+pub use farfield::{
+    ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, node_column_spans, quantize_top,
+};
 pub use format::{ChunkContainer, FORMAT_VERSION, FormatError, Sidecar};
 pub use lod::{
     DownsampleRule, LodPyramid, MAX_LOD_LEVEL, MajorityNonAir, ancestor_pos, child_positions,

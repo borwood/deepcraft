@@ -266,7 +266,6 @@ consumed it and when.
 
 | what exists | where | called by | intended consumer |
 |---|---|---|---|
-| `MixtureDownsampleRule` — 2×2×2 contents → one parent, occupancy voted in eighths, losing class folded in rather than lost | `dc-core/src/materials/lod.rs` | **nothing renders it** | the distance pyramid; **already an octree reduction step** for FF2b + coarse water |
 | `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** | every transport-time depositing process: infiltration, diagenesis, ore |
 | `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
 | `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs:784` — the claim is about downstream, 2026-07-22 audit) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
@@ -274,6 +273,15 @@ consumed it and when.
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
+
+**Departed (the good event):**
+
+- `MixtureDownsampleRule` / `derive_material_lod_chunk` — **consumed
+  2026-07-22 by FF2b-minimal** (journal/0070): the client's far pyramid
+  (`dc-client/src/farpyramid.rs`) derives coarse material chunks through it
+  for every fully-generated node, and the far mesh renders
+  `classify(contents)` of the reduced mixtures
+  (`dc_core::farfield::node_column_spans`). First row to leave the index.
 
 ---
 

@@ -207,7 +207,9 @@ authority or from the children's same field, never from a side channel (S-3).
 3. FF2b-minimal meshing detail: derive per-tile `ColumnSpan` *stacks* from
    coarse chunks vs meshing coarse chunks directly — the mesher already
    reasons in span stacks, so the first is the conservative path; the slice
-   brief decides after measuring.
+   brief decides after measuring. *(Resolved 2026-07-22, journal/0070: the
+   brief chose span stacks; measured ~3.5 ms/tile derive+mesh, per-frame cost
+   budget-bounded — see the tripwire table in 0070.)*
 4. Statistical-tier attachment point — deferred with its own design pass.
 5. **The Aokana tripwire** (§ 5): FF2b-minimal reports memory and frame cost
    at design-target radius. If volumetric summaries push tile count/memory
