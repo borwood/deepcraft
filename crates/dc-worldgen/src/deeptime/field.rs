@@ -164,6 +164,16 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
 /// &DeepOverrides::default())` is **byte-identical** to `production_config(cells,
 /// seed)` (asserted in the tests). This is the single seam a launch flag reaches
 /// the deep-time run through.
+///
+/// **Where the provider set is resolved.** [`DeepConfig::providers`] is fixed
+/// here, at world build, by [`production_config`]'s `..DeepConfig::default()` —
+/// today, unconditionally to the identity set. When a content pack can *supply*
+/// a provider, this function is the one place that resolution happens, so the
+/// resolved set stays a pure function of the world's frozen content set
+/// (ARCHITECTURE.md § *The content set is frozen at world creation*). No
+/// override field exists yet, deliberately: nothing can select one, and a
+/// selection channel with no selectors is the exact stand-in-becomes-definition
+/// shape the seam is meant to avoid.
 pub fn production_config_with(
     cells: &CellGrid,
     seed: u64,

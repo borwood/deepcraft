@@ -28,6 +28,7 @@ pub mod field;
 pub mod grid;
 pub mod isostasy;
 pub mod lithology;
+pub mod providers;
 pub mod recorder;
 pub mod refine;
 pub mod tectonics;
@@ -45,6 +46,7 @@ pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, exposed_litho, litho_of_tag,
     resistance_of_material, susceptibility_table,
 };
+pub use providers::{ParentCell, Providers, WaveCell};
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
@@ -118,7 +120,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // biotic modifier planes at their identity values, so iteration 0's erosion
     // is byte-identical to a biology-free run (the lagged coupling, below).
     let mut biota = if cfg.biotic {
-        Some(BioticSim::new(&mut grid, cfg.seed, parallel))
+        Some(BioticSim::new(&mut grid, cfg, parallel))
     } else {
         None
     };

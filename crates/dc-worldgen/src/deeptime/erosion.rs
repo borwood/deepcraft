@@ -72,6 +72,7 @@ use rayon::prelude::*;
 use super::climate;
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
 use super::lithology::{self, Agent, Litho};
+use super::providers::WaveCell;
 use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, Eolian};
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
@@ -867,9 +868,12 @@ impl Erosion {
             self.sus_creep = vec![1.0; self.n];
         }
         let strata = &grid.strata;
+        // The outcrop seam (providers.rs § `outcrop_at`): identity = top of the
+        // record; heir = structural deformation (dip/fold).
+        let outcrop_at = cfg.providers.outcrop_at;
         let per_cell = |i: usize| -> (u8, f64, f64) {
             let top = strata.get(i).and_then(|s| s.units.last());
-            let l = lithology::exposed_litho(top);
+            let l = outcrop_at(top);
             let k = l.index();
             (k as u8, flow_tab[k], creep_tab[k])
         };
@@ -935,6 +939,7 @@ impl Erosion {
         }
         let (w, gain, width) = (self.w, cfg.frost_weathering_gain, cfg.frost_band_width_c);
         let strata = &grid.strata;
+        let outcrop_at = cfg.providers.outcrop_at;
         let (r, h) = (&grid.r, &grid.h);
         let per_cell = |i: usize| -> f64 {
             let gy = i / w;
@@ -949,7 +954,7 @@ impl Erosion {
             if band <= 0.0 {
                 return 1.0;
             }
-            let l = lithology::exposed_litho(strata.get(i).and_then(|s| s.units.last()));
+            let l = outcrop_at(strata.get(i).and_then(|s| s.units.last()));
             1.0 + gain * band * frost_tab[l.index()]
         };
         if self.par() {
@@ -1356,6 +1361,7 @@ impl Erosion {
             cfg.erodibility_contrast,
             cfg.erodibility_max,
         );
+        let outcrop_at = cfg.providers.outcrop_at;
         let (w, thr, sea) = (self.w, cfg.eolian_arid_precip, self.sea_level);
         let (defl, dep_frac) = (cfg.eolian_deflation, cfg.eolian_deposit_frac);
         for gy in 0..w {
@@ -1401,7 +1407,7 @@ impl Erosion {
                 // Deflation: dry, bare cells hand loose cover to the wind. Floor
                 // available cover at zero first — `H` can carry a sub-ULP negative
                 // from fp round-off, and `clamp(0.0, neg)` would panic.
-                let l = lithology::exposed_litho(grid.strata.get(i).and_then(|s| s.units.last()));
+                let l = outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
                 let avail = grid.h[i].max(0.0);
                 let pickup =
                     (defl * sus_tab[l.index()] * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
@@ -1475,10 +1481,18 @@ impl Erosion {
     /// Scalar (it writes a neighbour's cell), so deterministic and byte-identical
     /// scalar↔parallel. Only the thin shore band does work.
     pub fn wave(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
-        let (rate, band) = (cfg.wave_erosion, cfg.wave_band_m);
-        if rate <= 0.0 || band <= 0.0 {
+        let (base_rate, band) = (cfg.wave_erosion, cfg.wave_band_m);
+        // The configured rate is still the *off switch* — a `0.0` global rate
+        // means "no littoral term at all", provider or no provider, which is the
+        // byte-identity escape `tests/full_agents.rs` already leans on. The
+        // provider is consulted only for cells that survive this gate.
+        if base_rate <= 0.0 || band <= 0.0 {
             return;
         }
+        // The wave-energy seam (providers.rs § `wave_energy`): identity = the
+        // configured global rate; heir = fetch (S11 body graph) × zonal wind.
+        let wave_energy = cfg.providers.wave_energy;
+        let outcrop_at = cfg.providers.outcrop_at;
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
         let (w, sea) = (self.w, self.sea_level);
@@ -1508,8 +1522,14 @@ impl Erosion {
             let Some(j) = sink else {
                 continue; // not on the coast — no open water adjacent
             };
-            let l = lithology::exposed_litho(grid.strata.get(i).and_then(|s| s.units.last()));
+            let l = outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
             let taper = (1.0 - free / band).clamp(0.0, 1.0);
+            let rate = wave_energy(WaveCell {
+                index: i,
+                gx: gx as usize,
+                gy: gy as usize,
+                base_rate,
+            });
             let cut = (rate * sus_tab[l.index()] * taper).min(free);
             if cut <= 0.0 {
                 continue;

@@ -7,6 +7,42 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **The provider seam: three sockets where constants were rules**
+  (journal/0060; ARCHITECTURE.md § "A summary is not an authority" + § "The
+  content set is frozen at world creation"). `deeptime::providers::Providers` —
+  three plain `fn` pointers, same discipline as `pipeline::PassBody`
+  (deterministic, no captured state, `Copy`), resolved once at world build and
+  carried in `DeepConfig` along the proven `production_config_with` →
+  `build_field_with` → `PregenCtx` → `Pregen::run_with` path. Each slot's doc
+  names its **question**, its **heir**, and its **identity value**; the constant
+  survives only as a registered identity, so it can no longer masquerade as the
+  rule. Converted: **`outcrop_at`** (identity `exposed_litho` = top of the
+  record; heir = the layer-cake/dip-fold term — the seam `lithology.rs` had
+  already named in prose, now compile-checked, at all four sites that read
+  exposed lithology), **`wave_energy`** (identity = the global
+  `DeepConfig::wave_erosion`; heir = fetch from the S11 body graph × the zonal
+  wind field — **previously unlisted anywhere**, now stubs.md § 13), and
+  **`parent_p`** (identity = uniform `1.0`; heir = parent-material petrology;
+  stubs.md § 8). The last is deliberately **pass-level** — a plane materialized
+  once at `BioticSim::new`, never a call inside the epoch loop — which is how the
+  rule *"a provider must never be called in a hot loop to answer a question that
+  does not change inside that loop"* got stated rather than assumed.
+  **Byte-identity is the acceptance test and it was proven the non-circular way:**
+  FNV-1a fingerprints over every kept plane and every recorded unit, captured
+  from pre-slice `main` (`2434f37`) *before* the slice existed and independently
+  reproduced from a checked-out pre-slice worktree —
+  `surface 0x7B8968FD90E04062` / `record 0xA53BD77F769D7FF4` — and reproduced
+  exactly by the default-provider world (`tests/providers.rs`). Ritual cost at
+  Medium: **15.93 s → 15.98 s (+0.3 %)**, inside noise. No behaviour change of
+  any kind; **nothing to ratify.** Deliberately NOT built: a registry, a plugin
+  loader, a declaration/validation pass, or a `DeepOverrides` selection channel —
+  three seams is enough to design *for* and not enough to design *from*, and a
+  selection channel with no selectors is the same defect in miniature. Two
+  findings carried, unfixed by design: `promote_coal` promotes on seam
+  *thickness* where burial diagenesis is a function of *depth*, and `P_FRESH`
+  (the rejuvenation *rate*) is still global now that the pool it restores toward
+  is a plane.
+
 - 2026-07-21 — **Distribution-first expression: the record skins the world**
   (journal/0055; user-DECIDED design, materials.md § "integrate the column,
   then slice it"). The sieve was a quantization-**order** defect — `Σ round(tᵢ)`
@@ -1126,7 +1162,12 @@ question are the live items).
 
 **Engineering still Sequenced:** *(**sub-voxel facies / the sieve: SHIPPED**
 2026-07-21, journal/0055 — stubs § 12 retired)* · tectonic expression
-(dip/fold + metamorphic) · paleo-context provider (subsumes stubs 4/5/6) ·
+(dip/fold + metamorphic — *the deep-time half now has a socket waiting for it:
+`Providers::outcrop_at`, journal/0060*) · paleo-context provider (subsumes stubs
+4/5/6) · **the littoral heir: fetch × wind into `Providers::wave_energy`**
+(journal/0060; needs the S11 body graph's open-water field, so it will likely
+arrive as a materialized plane and convert that slot from value-level to
+pass-level) ·
 `HostWorld` edited-chunk spill to the save layer (edited chunks are retained
 unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test).
 
