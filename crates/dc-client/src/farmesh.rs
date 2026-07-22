@@ -436,13 +436,18 @@ pub fn stream_far_chunks(
         let chunk = terrain.0.generate_chunk(cscale, pos);
         // Faces cull against same-level generator samples, so a ring is
         // seamless internally; ring-to-ring boundaries are the accepted seam.
-        let neighbor_solid =
-            |x: i64, y: i64, z: i64| terrain.0.block_at(cscale, x, y, z).is_solid();
+        // Coverage, not solidity (journal/0057). The far rings have no per-voxel
+        // contents, so every solid far voxel is full height — which also means
+        // the far field does NOT show the near field's partial-height tops. A
+        // documented LOD difference, not a culling bug.
+        let neighbor_fill = |x: i64, y: i64, z: i64| {
+            crate::meshing::cover_frac(terrain.0.block_at(cscale, x, y, z), None)
+        };
         let mesh_data = mesh_chunk(
             &chunk,
             pos,
             cscale.voxel_size_m() as f32,
-            &neighbor_solid,
+            &neighbor_fill,
             None,
         );
         let bevy_mesh = (!mesh_data.is_empty()).then(move || to_bevy_mesh(mesh_data));

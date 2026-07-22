@@ -22,7 +22,7 @@
 //! far rings (ROADMAP Observed) until the far field becomes worldgen-shaped.
 
 use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
@@ -417,7 +417,16 @@ impl Authority {
     /// ~1000 m) — which silently shipped a wrong-world answer into every one of
     /// those systems for any not-yet-streamed chunk (journal/0015–0017).
     pub fn is_solid_voxel(&mut self, x: i64, y: i64, z: i64) -> bool {
-        self.world.block_at(Vec3i::new(x, y, z)).is_solid()
+        self.block_voxel(x, y, z).is_solid()
+    }
+
+    /// The block at a world voxel over the active authority (lazily generating
+    /// the containing chunk) — the un-thresholded form of
+    /// [`Self::is_solid_voxel`]. The mesher's occupancy-aware culling needs the
+    /// block itself, because whether a voxel's *contents* are consulted for its
+    /// render height is gated on the block (journal/0057).
+    pub fn block_voxel(&mut self, x: i64, y: i64, z: i64) -> dc_core::Block {
+        self.world.block_at(Vec3i::new(x, y, z))
     }
 
     /// Is the voxel at world position `p` (meters) solid? Meters-typed shim over
@@ -1007,6 +1016,57 @@ pub fn tick_authority(
         .extend(apply_block_changes(&mut map, changes.iter().copied()));
 }
 
+/// Occupancy-aware neighbour coverage for the mesher's cross-chunk shell
+/// (journal/0057).
+///
+/// The mesher culls a side face against how much of the adjacent cell the
+/// neighbour actually fills, so a boolean [`Authority::is_solid_voxel`] is no
+/// longer a sufficient answer at a chunk border: it reported a 3/8 loose top as
+/// *fully* covering, and the exposed band of the taller partial beside it was
+/// drawn by nobody — sky through the ground. Coverage needs the neighbour's
+/// **contents**, which the authority resolves a whole chunk at a time and would
+/// be ruinous to re-resolve per border voxel. So this memoizes the resolved grid
+/// per chunk: one chunk's entire border query touches at most the six chunks
+/// around it, however many thousand voxel queries it makes.
+///
+/// Borrowing is by `RefCell` because the query is handed to `mesh_chunk` as a
+/// `Fn`, and the authority underneath it is `&mut` (it lazily generates the
+/// unstreamed neighbour it is asked about — the journal/0017 rule that border
+/// faces cull against the AUTHORITY, never the client cache's old wrong world).
+pub struct NeighborFill<'a> {
+    authority: RefCell<&'a mut Authority>,
+    contents: RefCell<HashMap<ChunkPos, Option<dc_core::ContentsGrid>>>,
+}
+
+impl<'a> NeighborFill<'a> {
+    pub fn new(authority: &'a mut Authority) -> Self {
+        Self {
+            authority: RefCell::new(authority),
+            contents: RefCell::new(HashMap::new()),
+        }
+    }
+
+    /// Fraction of the cell at world voxel `(x, y, z)` the world fills there —
+    /// the same `[0, 1]` coverage `mesh_chunk` computes for its own interior
+    /// voxels, so a border culls by identical arithmetic to an interior face.
+    pub fn fill(&self, x: i64, y: i64, z: i64) -> f32 {
+        let block = self.authority.borrow_mut().block_voxel(x, y, z);
+        if !crate::meshing::block_uses_contents(block) {
+            // Air, or a block that never carries contents: binary coverage, and
+            // no reason to resolve a contents grid at all.
+            return crate::meshing::cover_frac(block, None);
+        }
+        let cp = ChunkPos::from_world_voxel(x, y, z);
+        let mut cache = self.contents.borrow_mut();
+        let grid = cache
+            .entry(cp)
+            .or_insert_with(|| self.authority.borrow().chunk_contents(cp));
+        let (lx, ly, lz) = local_voxel(x, y, z);
+        let c = grid.as_ref().map(|g| g.get(lx, ly, lz));
+        crate::meshing::cover_frac(block, c.as_ref())
+    }
+}
+
 /// Rebuild meshes for edited chunks (and their affected neighbors).
 #[expect(
     clippy::too_many_arguments,
@@ -1035,12 +1095,11 @@ pub fn remesh_dirty(
         }
         let mesh_data = {
             let loaded = &map.loaded[&pos];
-            // Border faces cull against the AUTHORITY's solidity (edits
+            // Border faces cull against the AUTHORITY's occupancy (edits
             // included), lazily generating an unstreamed neighbour — never the
             // client cache's old wrong-world S1 fallback (journal/0017).
-            let authority_cell = RefCell::new(&mut *authority);
-            let neighbor_solid =
-                |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
+            let fill = NeighborFill::new(&mut authority);
+            let neighbor_fill = |x: i64, y: i64, z: i64| fill.fill(x, y, z);
             // Reuse the chunk's existing render-only contents: an edit changes
             // blocks, not materials (ROADMAP 3c-2), and the mesher's block gate
             // keeps stale contents from a re-typed voxel out of the dither.
@@ -1048,7 +1107,7 @@ pub fn remesh_dirty(
                 &loaded.chunk,
                 pos,
                 vscale.voxel_size_m() as f32,
-                &neighbor_solid,
+                &neighbor_fill,
                 loaded.contents.as_ref(),
             )
         };
@@ -1839,7 +1898,9 @@ pub(crate) mod tests {
             .collect();
         let start_a = Instant::now();
         for (p, chunk) in &chunks_a {
-            let neighbor = |x: i64, y: i64, z: i64| s1.block_at(scale, x, y, z).is_solid();
+            let neighbor = |x: i64, y: i64, z: i64| {
+                crate::meshing::cover_frac(s1.block_at(scale, x, y, z), None)
+            };
             let _ = mesh_chunk(chunk, *p, vs, &neighbor, None);
         }
         let ms_a = start_a.elapsed().as_secs_f64() * 1000.0 / chunks_a.len() as f64;
@@ -1851,8 +1912,8 @@ pub(crate) mod tests {
             .iter()
             .map(|&p| (p, b.world.chunk(p).clone()))
             .collect();
-        let cell = RefCell::new(&mut b);
-        let neighbor = |x: i64, y: i64, z: i64| cell.borrow_mut().is_solid_voxel(x, y, z);
+        let fill = NeighborFill::new(&mut b);
+        let neighbor = |x: i64, y: i64, z: i64| fill.fill(x, y, z);
         let start_b = Instant::now();
         for (p, chunk) in &chunks_b {
             let _ = mesh_chunk(chunk, *p, vs, &neighbor, None);

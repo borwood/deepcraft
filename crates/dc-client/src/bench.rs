@@ -90,16 +90,18 @@ fn bench_scale(generator: &TerrainGen, player_voxels: u32) -> Row {
     }
     let gen_time_s = gen_start.elapsed().as_secs_f64();
 
-    let neighbor_solid = |x: i64, y: i64, z: i64| -> bool {
+    // Coverage, not solidity (journal/0057): the bench has no per-voxel
+    // contents, so every solid voxel is full height.
+    let neighbor_fill = |x: i64, y: i64, z: i64| -> f32 {
         let pos = ChunkPos::from_world_voxel(x, y, z);
         match chunks.get(&pos) {
             Some(chunk) => {
                 let (lx, ly, lz) = local_voxel(x, y, z);
-                chunk.get(lx, ly, lz).is_solid()
+                crate::meshing::cover_frac(chunk.get(lx, ly, lz), None)
             }
             // Outside the region: cull as if solid so the bench doesn't count
             // a fake "wall" of boundary faces that no real world would have.
-            None => true,
+            None => 1.0,
         }
     };
 
@@ -107,7 +109,7 @@ fn bench_scale(generator: &TerrainGen, player_voxels: u32) -> Row {
     let mesh_start = Instant::now();
     let mut triangles = 0u64;
     for (pos, chunk) in &chunks {
-        let mesh = mesh_chunk(chunk, *pos, voxel_size_m as f32, &neighbor_solid, None);
+        let mesh = mesh_chunk(chunk, *pos, voxel_size_m as f32, &neighbor_fill, None);
         triangles += mesh.triangle_count() as u64;
     }
     let mesh_time_s = mesh_start.elapsed().as_secs_f64();
