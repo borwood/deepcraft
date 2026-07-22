@@ -315,6 +315,23 @@ whose numbers aren't measured yet (octree-substrate.md § 6 open questions).
 | 5 | A3 fallback shoreline bands | A | med (visible stripe) but fallback-only | low (no-record columns only) | yes | pure-expression; goldens for wilds/subaqueous columns only |
 | 6 | B3 coal onset dither | B | low (0.78 % of columns) | low | yes | defer; mostly sim-internal (residue a) |
 
+**Status (2026-07-22):** rank 1 (A1) dispatched — journal/0072. **Rank 2 (B1)
+LANDED — journal/0073**: `surface_class` now draws the surface class from the
+top-window metre shares (`SALT_GEO_CLASS`, move B), the byte goldens re-baselined,
+near/far agreement holds *exactly* (both paths read the same `surface_sample(vx,
+vz)`), and the 10 km checkerboard resolved. **One finding amends this doc's
+prescription (NEEDS RATIFICATION):** the recommended white-noise draw ("à la
+`SALT_GEO_FILL`") **doubled the far-tile mesh** (21.5 → 43.5 MiB at 1.2 km,
+measured) because the far field POINT-SAMPLES this class at a coarse stride and
+white noise aliases into unmergeable speckle. B1 shipped the *coherent* bilinear
+field instead (the member dither's `interp_select_draw`; far mesh +13 %, in
+budget), accepting a small toward-50/50 bias. The lesson for Part 2:
+`sample_dithered` cannot be white-noise-per-position alone — a coarse consumer
+needs a **share-summary read** (`summarize(region) -> ShareVec`) distinct from the
+fine dither, at which point near/far agreement becomes statistical by design (as
+this doc's octree convergence section already anticipates). B1 is the
+`Member`/`sample_dithered` witness, and its wrong turn is half the lesson.
+
 **Load-bearing vs pure-expression flag:** ranks 1-3 are **behaviour changes**
 (they alter the erosion *input*, hence terrain geometry) and require golden
 re-baselines with ratification, exactly the journal/0068 discipline (which moved

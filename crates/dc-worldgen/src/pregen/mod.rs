@@ -65,6 +65,17 @@ pub(crate) const SALT_GEO_DEEP: u64 = 0x5700_000E;
 /// generated first, on the chunk's `y`, or on any iteration order. One draw per
 /// mixed voxel decides which materials win the leftover eighths.
 pub(crate) const SALT_GEO_FILL: u64 = 0x5700_000F;
+/// **The surface-class membership dither** (audit B1, S-4 move B; journal/0073).
+/// The surface class is drawn from the record's top-window per-class metre
+/// shares, so the categorical class frontier between two 460 m deep cells
+/// becomes an interfingered gradient instead of a stepped line. The draw reads
+/// the *coherent* bilinear corner-hash field (`interp_select_draw`), NOT
+/// per-voxel white noise — because the far field point-samples this class at a
+/// wide stride and white noise aliases into a mesh-doubling speckle there
+/// (journal/0073). Distinct salt space from the eighth-allocation
+/// `SALT_GEO_FILL` and the member-selection `SALT_GEO_SELECT` / `SALT_GEO_DEEP`,
+/// so the class draw and the within-class member draw never share a value.
+pub(crate) const SALT_GEO_CLASS: u64 = 0x5700_0010;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

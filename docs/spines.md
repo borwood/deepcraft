@@ -118,7 +118,15 @@ interpolated `sample` and seed-addressed `sample_dithered` — and never the
 raw per-cell read, so the square is *inexpressible* downstream (the S-6 /
 `Option<fn>` pattern: structural, not disciplinary). Route per seam-first
 practice #6: shape-teacher conversions first, then freeze the type and
-migrate. Residue the type cannot absorb, named rather than hidden: the sim's
+migrate. **Shape-teacher #2 landed (B1 converted, journal/0073):
+`collapse.rs::surface_class` no longer returns the top-window plurality — it
+**draws** the surface class from the window's per-class metre shares
+(`SALT_GEO_CLASS`), so the 460 m class frontier is an interfingered gradient (the
+move-B witness for `CoarseField::sample_dithered`). NEEDS RATIFICATION: the draw
+reads the *coherent* bilinear field (not the audit's white noise) because the far
+field point-samples it and white noise doubled the far-tile mesh — the honest
+unbiased end-state is the far field *summarizing* the shares, which the type
+extraction owns.** Residue the type cannot absorb, named rather than hidden: the sim's
 internal cell-scale verdicts (cell-honest by design; the principle governs
 the EXPRESSION boundary), and conservation-constrained dither choices, which
 stay per-quantity physics. Audit: docs/audits/

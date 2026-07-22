@@ -1224,9 +1224,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   audit.md; end-state: spines § S-4 "Ratified end-state"). Route: **A1
   dispatched** (share-weighted susceptibility blend over the dominance
   window — dissolves the S-4 contour by construction; journal/0072) → FF2b
-  integration → **B1** (surface_class plurality → membership dither;
-  interlocked with FF2b's collapse consumption, dispatches after its merge)
-  → **CoarseField<T> extraction** from what the two shape-teachers taught
+  integration → **B1 LANDED** (surface_class plurality → membership dither, the
+  move-B witness; journal/0073 — resolves the 10 km checkerboard Observed item;
+  **NEEDS RATIFICATION**: the draw is the *coherent* bilinear field, not the
+  audit's white noise — white noise doubled the far-tile mesh because the far
+  field point-samples it, and the unbiased end-state is deferred to the type's
+  share-summary read) → **CoarseField<T> extraction** from what the two
+  shape-teachers taught
   (cannot start before they land — the audit's own sequencing rule). User's
   framing on the record: "there are things i'd rather do but this is
   foundational."
@@ -2081,21 +2085,14 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **Deep-cell-square surface-material frontiers checker the far field** (walk
-  2026-07-22, FF2b screenshot pass — `0070-fb-high-vantage-patch-check` for
-  the mechanism-clean single case, `0070-lit-10km-horizon-vantage` for the
-  scale of it): sharply-bounded dark-material regions read as axis-aligned
-  squares/rectangles at roughly the 460 m deep-cell scale, edges
-  razor-straight for hundreds of meters — and from altitude at a 10 km
-  horizon the vista is a **checkerboard of them** to the skyline.
-  Pre-existing, not FF2b: the patch lies over never-generated ground, where
-  the synthesized far field is FF2a-identical by construction, and the
-  surface block is `coarse_surface`'s own answer (post-0055 record skin) —
-  so this is the surface-material sibling of the known S-4-shaped
-  `regolith_at_voxel` nearest-sampling mosaic: a simulation-resolution edge
-  reaching the eye as an analytic boundary. Undiagnosed beyond that; wants
-  the same routing care spines S-4 flags for the soil-depth fix (the record
-  is a non-interpolable unit list — do not naively bilinear it).
+- *(**Deep-cell-square surface-material frontiers checker the far field:
+  RESOLVED** 2026-07-22, journal/0073 — the B1 shape-teacher. `surface_class`
+  now dithers class membership from the top-window metre shares (S-4 move B), so
+  the 460 m class frontier is a statistical gradient, not a razor-straight
+  square. The record stays a non-interpolable unit list read NEAREST — the fix
+  routed *around* interpolation exactly as spines S-4 flagged, by dithering
+  membership rather than bilinear-ing the record. Re-shot at the `0070-*`
+  vantages as `0073-*`; verdict in the entry.)*
 
 - **Mesh-buffer pooling: measured, deliberately NOT built** (2026-07-21,
   journal/0051 — the user asked for pooling; this is the numbered answer).

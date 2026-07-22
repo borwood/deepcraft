@@ -87,6 +87,42 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-22 by the surface-class membership dither (journal/0073, B1)
+/// — authorized (threshold-quantization migration, user-greenlit).**
+/// `surface_class` stopped awarding the surface voxel to the top-window's
+/// *plurality* class and now **draws** the class from the window's per-class
+/// metre shares by an addressed `SALT_GEO_CLASS` draw (S-4 move B): the
+/// categorical 460 m class frontier becomes an interleaved statistical gradient
+/// rather than a stepped line (the 10 km checkerboard, ROADMAP Observed →
+/// resolved). What moved, and it is the shape the change predicts:
+///
+/// - **both Medium worlds moved on all three hashes.** The dithered class
+///   changes the surface voxel's *block* (block hash), the surface voxel's
+///   *contents* (the class picks a different member → material hash), and the
+///   *interned mixtures* those single-member partials construct (table hash).
+///   The move is confined to the surface skin: `surface_class` feeds neither
+///   erosion nor the strata record, so terrain geometry and all buried strata
+///   are byte-untouched — only the `vy == h` voxel per column moved.
+/// - **`block == classify(contents)` still holds** (`block_equals_classify_of_
+///   contents` green); the invariant never breaks because block, member and
+///   contents all still flow from the one drawn class, together. Absent-contents
+///   blocks in the sample are Air and Stone only.
+/// - **the Small world did NOT move** — its contents-contract sample positions
+///   its chunks mostly in the border wilds/basement, so its sampled columns
+///   never surface a deep-record class and the dither path is never exercised
+///   there. This is corrections #38 exactly: the control is blind to *this*
+///   axis (surface-class expression at in-grid, record-surfacing columns),
+///   which its sampled columns are not. Stated as a hypothesis before the run;
+///   the run confirmed it held.
+///
+/// The values immediately before this move, kept so it is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x18BD_0AFA_8356_C969, 0x2FB1_6035_5F22_5986, 0x35AE_2FDA_A2DA_D8CD)
+/// (0x0000_0000_0000_0539, "medium", 0x9A74_7558_4730_A767, 0x505A_ED87_E036_DEFE, 0xD8C3_2E22_82E9_3081)
+/// (0x0000_00C1_1A7E_2026, "small",  0x5B85_62A0_A30E_2E1D, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-22 by the outcrop thickness-dominance rule (journal/0068) —
 /// authorized, and the FIRST slice to move the Small control.** `exposed_litho`
 /// now returns the lithology dominating the record's near-surface 0.9 m window
@@ -248,16 +284,16 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x18BD_0AFA_8356_C969,
-        0x2FB1_6035_5F22_5986,
-        0x35AE_2FDA_A2DA_D8CD,
+        0x41A4_B713_1FA7_9046,
+        0x224E_0B86_7200_E14E,
+        0x5961_E13B_F685_3C89,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x9A74_7558_4730_A767,
-        0x505A_ED87_E036_DEFE,
-        0xD8C3_2E22_82E9_3081,
+        0x0A3C_6B54_F62B_646B,
+        0xB9A6_0FBD_89B0_B19B,
+        0xFC52_0E64_4CD3_E8B9,
     ),
     (
         0x0000_00C1_1A7E_2026,

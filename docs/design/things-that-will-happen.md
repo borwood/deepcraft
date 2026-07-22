@@ -108,3 +108,7 @@ list and not a roadmap — some of these are far off, and that is fine.
   not a picture of it.
 - You stand at the lip of a chasm and look down, and the deep dark is coarse
   but real geology — the actual strata, blurred by distance — not fog.
+- Where one soil gives way to another the ground does not switch at a line — it
+  interfingers, a scatter of the old material thinning into the new over the
+  span of a hillside, because a 460 m cell that is 55/45 two soils skins 55/45
+  of its columns, not all of them the winner.
