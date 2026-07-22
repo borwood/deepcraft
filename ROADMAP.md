@@ -3033,6 +3033,18 @@ before any code.
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
 
+- **Chunk gen time is now noticeable in vertical streaming** (user field
+  report, walk 0071, 2026-07-22): dropping from height — so the adaptive
+  load volume streams chunks *below* — gets so choppy that "time appears to
+  slow to a crawl, sometimes." Observation only, no diagnosis: the symptom
+  (sim time dilating, not just frame hitching) suggests generation work is
+  contending with the tick rather than merely the renderer, but that is a
+  hypothesis to test, not a finding. Distinct from the pregen-time
+  non-constraint (that covenant covers world *creation*; this is runtime
+  streaming). Couples forward to the octree substrate (coarse-below is
+  exactly what FF2b-class nodes eventually provide while true chunks
+  generate) — but likely wants profiling before any architecture is blamed.
+
 - **The dominance flip quantizes smooth gradients — a potential S-4 edge**
   (user, walk 0071, 2026-07-22; noted, explicitly no call made). Where a
   deposit thins gradually across country, the outcrop rule's winner-take-all
