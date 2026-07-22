@@ -148,7 +148,15 @@ authority or from the children's same field, never from a side channel (S-3).
   shader packs — journal/0004's lesson; appearance baked into the DAG vs
   variety-is-data; a bespoke forever-maintained subsystem; edits vs subtree
   dedup) are paid only if FF2b-minimal's measured numbers demand it. The
-  tripwire is in § 6.
+  tripwire is in § 6. The user's accompanying observation, recorded
+  (2026-07-22): *the near field itself could have been built mesh-free from
+  the beginning* — true, and the mesh commitment is deliberate architecture
+  rather than habit: sub-voxel block shapes resolve at meshing time (DECIDED,
+  voxel-scale), the fill contract's partial-height rendering is mesh
+  machinery, the shader-pack pillar hangs on a forward mesh surface (S4),
+  Bevy maintains the GPU-driven path upstream, and one edit = one bounded
+  32³ remesh. If the march route is ever taken it is far-field-only, where
+  none of those couplings bite.
 - **A painterly "far register"**: the honest version of this instinct already
   exists in the corpus as **vista-as-augury** — far-visible *live* state
   (smoke, herds, societies) rendered as a read of the *distribution* without
