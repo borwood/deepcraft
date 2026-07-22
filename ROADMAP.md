@@ -1048,13 +1048,32 @@ guided-tour ratification (0049)**. Doctrine: ledger-expression + enhancement
 + perf-first + genesis/stubs (stubs.md, 11 entries). Ore design pass drafted
 (ores.md R1–R8 pending).
 
-**NEXT SESSION — rewritten at the 2026-07-21 autonomous-session close
-(supersedes the earlier same-day block below). Read first:**
-`docs/design/stubs.md` (the doctrine's registry), journal/0049 (the live-tour
-protocol), **journal/0050–0052 (the leak, the eviction, the fill contract)**,
-corrections #23–#25. **Walk wiring:** game MCP is a checked-in `.mcp.json`;
-launch the game FIRST (`cargo run --release -p dc-client -- --horizon 3`),
-then `/mcp` reconnect.
+**NEXT SESSION — rewritten at the 2026-07-21 session close, AFTER the live
+walk (supersedes every earlier same-day block). Read first:**
+**journal/0050–0058** — the leak, the eviction, the fill contract, carry-`H`,
+DeviceLost, distribution-first, the holes, the eight-kilometre typo — and
+**corrections #26–#29**, three of which are the integrator's own errors.
+`docs/design/stubs.md` for the doctrine registry.
+**Walk wiring:** game MCP is a checked-in `.mcp.json`; launch the game FIRST
+(`cargo run --release -p dc-client -- --horizon 3`), then `/mcp` reconnect.
+
+> **⚠ THE FIRST THING TO DO IS WALK.** Six merges today changed what the world
+> is made of, how deep it digs, and what its surface looks like — and **the two
+> most visible fixes (surface dither, the holes) landed after the user's
+> session closed, so nobody has seen them.** Everything below is downstream of
+> that walk. **Station coordinates are METRES** — pass them to `pose_set`
+> directly; the integrator multiplied by 0.9 and spent an afternoon 8.6 km from
+> every station (corrections #28).
+>
+> What to check, in order: (1) are the sky-holes gone (`--fullbright --edges`,
+> re-walk `journal/assets/0056-holes-after-settle.png`'s view; if bands persist,
+> distrust journal/0057 first); (2) are the chunk-shaped surface patches gone
+> (compare against `0056-surface-quantized-per-chunk.png`); (3) does the
+> **loess margin (82346, 24391) m** — the deepest section in the world, ~90
+> sediment blocks, 76 mixed spans — read as *sediment* or as noise; (4) do
+> contact bands change material on chunk lines (the boundary-dither loose end,
+> still open for **mixed** voxels); (5) a long `--horizon 6` session, now that
+> the RAM march is fixed — still unproven at 6.
 
 **Wide horizons: the blocker is GONE but unproven at 6.** The DeviceLost
 crashes were host-RAM exhaustion from an unbounded chunk store, now evicting
@@ -1064,10 +1083,23 @@ cheap, high-value first act next session**, and it unblocks the landform-shape
 walk the roughness pick needs.
 
 **Decisions waiting on the user (nothing else is blocked on them):**
+0. **THE SOIL GAP — the biggest design hole the walk exposed.** The user, in
+   world: *"the world does not generate dirt anywhere apparently — was only a
+   veneer placement previously."* Verified: `MaterialId::LOAM` is registered in
+   **no** geology class member, and the `organic-soil` class's only member is
+   carbonaceous **mudstone**, a rock. **The world has no soil substance at
+   all**, which is why 91.4 % of land skins to one block — both candidate
+   explanations were downstream of that. It compounds with form: organics sit
+   in the *structure* bucket, so soil would render as solid cubes even once it
+   exists. **Fix order: substance first, then form-from-provenance**
+   (consume-the-ledger piece (c)). This is the missing substrate under the
+   already-ratified root-lattice soil model (materials.md § forms design pass)
+   — that model currently has no material to hold in its pores. Content-set
+   work, so the member roster is a **user call**.
 1. *(**The surface-veneer retirement: DONE** 2026-07-21 — the user made the
    call live ("fold them together... the record already says") and it shipped
    in journal/0055. What replaces it as the live user question is the
-   **appearance walk** below.)*
+   **appearance walk** above.)*
 1b. **WALK THE NEW WORLD — the biggest unratified appearance change this
    project has made.** Two merges changed every surface and every dig depth
    (journal/0053 carry-`H`, journal/0055 the record-skinned surface) and the
