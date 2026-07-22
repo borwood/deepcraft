@@ -3094,6 +3094,16 @@ before any code.
   also a render-perf WIN** (far pixels skip the splat/texture work
   entirely) — A-6-clean, since the measurement picks the shader path.
   Sequence with the profiling slice so the before/after is real numbers.
+  **Rider (user, same conversation): rendering ranges are PLAYER-FACING
+  config knobs.** "even at medium distance texture barely registers … may as
+  well skip the stack. like anything, i would prefer to have rendering
+  ranges as knobs. this is a game people will run on different hardware.
+  (goes for the octree LOD bands too). this is a game, it comes with game
+  config settings, one must imagine." — S-1's where-there's-a-range-there's-
+  a-knob doctrine extended to the render tier AND promoted from dev CLI
+  flags to game settings: texture/detail-stack fade range, LOD band radii,
+  horizon. Filed as a constraint on the albedo slice and on all future
+  far-field work: ranges arrive as config, not constants.
 
 - **We cannot see where runtime goes — the perf observability gap** (user,
   2026-07-22: "it's not easy for us to target where the perf killers are";
