@@ -112,3 +112,7 @@ list and not a roadmap — some of these are far off, and that is fine.
   interfingers, a scatter of the old material thinning into the new over the
   span of a hillside, because a 460 m cell that is 55/45 two soils skins 55/45
   of its columns, not all of them the winner.
+- You add a fantasy pack with mithril — stronger and lighter than steel, a
+  raw ore — and the mountains know it: erosion works mithril-bearing rock in
+  its own way, and you can read that signature in the world's record, because
+  the simulation never met a stand-in.
