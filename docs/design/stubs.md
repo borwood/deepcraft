@@ -17,11 +17,11 @@ and not merely an entry. A **provider slot** is a plain `fn` pointer in
 `deeptime::providers::Providers` — resolved once at world build, carried in
 `DeepConfig`, default-identity — that names the question, names its heir, and
 holds the constant as an explicitly registered *identity* rather than as the
-rule. Three exist (stubs 8 and 13, and the layer-cake sibling gap). A slot does
-not retire a stub; it stops the stub from silently becoming the definition, which
-is ARCHITECTURE.md § *A summary is not an authority* made structural. The general
-registry is deliberately unbuilt — three conversions is not enough to design one
-from.
+rule. Four exist (stubs 7b, 8 and 13, and the layer-cake sibling gap). A slot
+does not retire a stub; it stops the stub from silently becoming the definition,
+which is ARCHITECTURE.md § *A summary is not an authority* made structural. The
+general registry is deliberately unbuilt — four conversions is not enough to
+design one from.
 
 ---
 
@@ -140,6 +140,48 @@ fitness inside deep strata.
 fire burns a number, not a forest. **Heir:** ecology-pass vegetation members
 with proliferation patterns, consumed by the same mechanisms (ecology.md Note
 2026-07-21). **Blast:** the geography of all organic facies.
+
+### 7b. s10-waterlogging-proxy — **added 2026-07-22 (journal/0061); now a provider slot**
+*Numbered `7b` because it is the hydrological half of the same S10 shortfall as
+stub 7 — biology asking a question no authority existed to answer — and
+`water.md` already carried its retirement clause. It was nonetheless **unlisted
+here**, which by this file's own doctrine is a defect in the inventory.*
+
+`deeptime/biotic.rs::step_cell`: waterlogging — *is the water table at the
+surface here?* — was three magic numbers summed inline: climate moisture, plus
+`((80 - surf)/80).clamp(0,1) * 0.20` for sitting near base level, plus
+`(area/300).min(1) * 0.15` for receiving upslope drainage. None of the five
+coefficients is measured, and the sum answers in a **dimensionless 0..1 index**
+where the question is asked in **metres below the surface**. It is the widest
+stand-in in the deep sim by consumer count: **four separate thresholds** read it
+— the peat-former waterlog suitability gate, the decomposition drain factor
+(hence peat accumulation), the fire dryness term, and the `peat_site` test that
+picks a column's depositional-hiatus cap — and through organic facies it reaches
+`geology::deep_class` and the world's surface material.
+
+**Heir named by ratified decision, not merely proposed:** `water.md` DECIDED
+2026-07-20 (*one quantity, two regimes*), consequence 4 — *"S10's waterlogging
+proxy has a defined retirement: waterlogging becomes 'the water table is at or
+near the surface here', read from the field. Biology reads the real quantity;
+the proxy is deleted."* The field is S11's saturation over the drainage-pinned
+lattice; the table is the top of the saturated zone, a query rather than a
+stored plane.
+
+**Now a slot:** `providers::Providers::depth_to_water`, **pass-level, once per
+epoch**, materialized at `BioticSim::step` — a water table follows the surface,
+so unlike `parent_p` it cannot be built once for the run, and unlike
+`wave_energy` it cannot be a per-cell call, because the heir is a *field* solved
+over a neighbourhood. Identity `identity_depth_to_water` leaves the plane
+**empty**, which routes `providers::wet_at` to `identity_wet_index` — the
+three-term proxy, verbatim. That empty-plane + identity-accessor pair is the
+`bio_weather` / `frost` shape the four deep-sim flags already prove, and it is
+what this seam alone had no form of. **Blast:** every coal seam, peat bed,
+paleosol and charcoal lamina in the record, and the surface material above them.
+
+**Not retired by this slice.** The four thresholds are untouched and still read a
+0..1 index; converting them to metres is a behaviour change. The units mismatch
+is the seam's most useful output — see journal/0061 § *what the heir must
+supply*.
 
 ### 8. uniform-parent-material-phosphorus — **NOW A PROVIDER SLOT, 2026-07-22 (journal/0060)**
 `deeptime/biotic.rs` (initial P pool): every cell starts with the same P —
