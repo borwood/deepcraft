@@ -136,6 +136,16 @@ cargo test --workspace --release
 
 ## Conventions
 
+- **Runtime perf is a first-class axis, and it is currently under-fought**
+  (user, 2026-07-22): *"efficiency/perf at runtime while not compromising on
+  content is extremely important… our game is getting slow and we've barely
+  cracked the surface."* The two clocks are opposites by doctrine: **gen
+  time is not a constraint** (ready-made worlds are the sanctioned answer);
+  **runtime is sacred**. Content is never cheapened to buy frames — perf
+  work means better mechanisms, not less world. A slice that touches a hot
+  path (per-frame, per-tick, per-chunk-load) reports its measured cost in
+  its RETURN spec like any other gate.
+
 - **A summary is not an authority** (DECIDED 2026-07-21, ARCHITECTURE.md).
   A cheap answer written because a consumer cannot afford the real one must be
   *derived from* the real one, never become it. Test before committing: **"if

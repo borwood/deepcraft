@@ -3033,6 +3033,21 @@ before any code.
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
 
+- **We cannot see where runtime goes — the perf observability gap** (user,
+  2026-07-22: "it's not easy for us to target where the perf killers are";
+  same conversation as the CLAUDE.md runtime-is-sacred convention). The
+  project measures gen-time rigorously (spike results, ritual A/Bs, budget
+  counters) but has NO runtime frame/tick observability: no span-level
+  profiling, no tick-time breakdown, no way to attribute the chunk-drop
+  chop (Observed above) to gen vs meshing vs tick contention. **Enabling
+  slice filed: wire `tracing` spans through the hot paths (chunk gen,
+  meshing, collider tiles, far-field derive, sim tick) with Bevy's Tracy
+  integration (`trace_tracy`), then capture a BASELINE profile of the
+  known-bad scenario (vertical drop) into `docs/audits/` as the first
+  ranked perf-killer list.** Instrument-must-see-the-question applied to
+  time. Sequenced after FF2b-minimal merges (dc-client write-set overlap);
+  pairs naturally with the erosion-budget flag slice already queued there.
+
 - **Material identity is illegible under splat blending — heightmap SHAPE as
   a fix candidate** (user, walk 0071, station 4, 2026-07-22): the charcoal
   specks pass their regression check but are hard to *identify* because
