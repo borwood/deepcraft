@@ -659,3 +659,79 @@ shuffled edit batches.
 **Explicitly out of scope:** rendering water, the water cycle, karst,
 dissolution, cementation. This is the storage-and-cost architecture of free
 water against lazy generation, nothing else.
+
+## LEANING, NOT DECIDED (user, 2026-07-22) — one octree substrate: FF2b, bulk flow, and the statistical tier
+
+Recorded at the user's instruction as a **discoverable leaning**, explicitly
+deferred: *"i agree that we defer and make discoverable note of leaning."*
+Nothing here is ratified and nothing should be built against it yet.
+
+**The question that prompted it** was already filed in this file and unasked:
+*"Bulk-flow octrees may share substrate with FF2b's volumetric summary octrees
+(SVDAG/Aokana candidate)… the shared representation question has not been
+asked. Worth checking before either is built."* One half is the user's own § 2
+notebook entry (bulk flow as octrees of continuous flow); the other is
+visuals.md's FF2b, already sequenced to land **with** the underground/overhang
+features rather than before them.
+
+**The user's lean: YES — one substrate, and it extends further than water.**
+*"I tend to think yes, and I tend to think it will be useful for more
+statistical far-field events in the future; we already have a commitment from
+day one about observation collapse and the quantum state of distant systems —
+particularly social, what a society is doing, what an NPC is doing."*
+
+**The day-one commitment it connects to** (ARCHITECTURE.md § "Simulation:
+tiers + constraint ledger"): the Statistical tier is *"distributions over
+possible states, derived on demand"*; **fluid state** *"evolves as a seeded
+pure function of (region seed, time, committed constraints) — derived, not
+stored; replays identically"*; **collapse** is bounded to depth N, and *"at the
+frontier we synthesize plausible boundary conditions from the statistical tier
+instead of recursing."*
+
+**Three observations from the session that argue for the unification:**
+
+1. **The chunk store is already committed/fluid, for terrain.** `HostWorld`
+   pins *edited* chunks (immutable facts) and evicts *untouched* ones because
+   they re-derive byte-identically (journal/0051). The v1 distinction is
+   already shipped in the storage layer under a different name.
+2. **The lazy water model derived this session IS the fluid-state
+   definition.** "A basin's level is closed-form between scheduled events,
+   evaluated when someone looks" and "a seeded pure function of (region seed,
+   time, committed constraints)" are the same object, arrived at independently.
+3. **The frontier rule is the same rule three times** — the far field's outer
+   ring, drainage-decided-once's pinned boundary inflows, and collapse's
+   synthesized frontier conditions are one pattern: bounded derivation with a
+   coarse boundary condition.
+
+**An integrator split, PROPOSED then WITHDRAWN in the same conversation**, kept
+because the pushback is the useful part. Proposed: *one pattern, two indices* —
+an octree for volumetric things (terrain, water, caves, far-field appearance),
+a region graph for subjects (agents, societies, journeys), on the grounds that
+an NPC's state is a property of a subject rather than of a volume. The user's
+one-line refutation: **"where is the duke?"** A subject *has* a position, that
+position is itself a fluid fact, and the questions a player actually asks are
+spatial — who is in this valley, what is over that ridge. `ideas.md` had
+already settled it: *"journeys are distributions over routes; meeting one is
+bounded collapse conditioned on route + time."* Subjects were never outside the
+spatial index.
+
+**Where it landed: one index, plus a relation graph over it.** Containment
+cannot express a trade route, a political tie, or a drainage path — but that
+shape is already in the engine twice (`DeepField.recv` is exactly a relation
+graph over spatial cells). And an octree is **scale-free by construction**, so
+bounded collapse to depth N and octree depth are the same kind of bound: the
+structure that stops observing one mind from collapsing the planet is the
+structure that stops drawing a horizon from meshing the world.
+
+**Discipline on scope (skill § seam-first, practice 6):** do not design one
+substrate for three consumers before any exists. Ask the representation
+question now — this file has been saying to for two days — but let the **first
+two consumers define the node payload** (renderer: contents; water: storage,
+permeability, level), with social recorded as *"this pattern is intended to
+extend there"* rather than designed for in advance.
+
+**Consequence for S16 (unwritten):** draft it against an **octree node**, not
+a per-deep-cell summary. A single value per 460 m column cannot express a
+confining bed with an aquifer beneath it — the first thing on the user's own
+encounters list — and `MixtureDownsampleRule` (2×2×2 contents → one parent,
+built, tested, unrendered) *is already an octree reduction step*.
