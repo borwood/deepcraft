@@ -69,7 +69,7 @@ use dc_sim::statistical::rng::draw_f64;
 
 use super::erosion::Erosion;
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::providers::ParentCell;
+use super::providers::{ParentCell, WaterPass, wet_at};
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 
 /// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
@@ -454,6 +454,26 @@ pub struct BioticSim {
     /// toward — a stripped surface exposes fresh parent material, and "fresh"
     /// means *this cell's* parent material, not a global constant.
     parent_p: Vec<f32>,
+    /// **The water-table plane** — how wet each cell's *site* is, materialized
+    /// from
+    /// [`providers::Providers::depth_to_water`](super::providers::Providers::depth_to_water)
+    /// once per epoch at the top of [`BioticSim::step`].
+    ///
+    /// **Empty under the identity provider**, which is the point: an empty plane
+    /// makes [`providers::wet_at`](super::providers::wet_at) fall through to the
+    /// pre-seam three-term proxy, so "provider absent" allocates nothing and is
+    /// byte-identical by construction rather than by arithmetic luck. This is
+    /// the `bio_weather` / `frost` empty-plane discipline `erosion.rs` already
+    /// uses, which is exactly what this seam lacked.
+    ///
+    /// Re-materialized every epoch, unlike [`Self::parent_p`]: parent material
+    /// is fixed for the run, a water table follows the surface the erosion sim
+    /// is rewriting.
+    wet: Vec<f32>,
+    /// The resolved `depth_to_water` provider, copied out of the config at
+    /// construction — a plain `fn` pointer, so this is `Copy` and the epoch loop
+    /// never touches the config.
+    depth_to_water: fn(WaterPass<'_>, &mut Vec<f32>),
 }
 
 impl BioticSim {
@@ -506,6 +526,10 @@ impl BioticSim {
             prev_cover: vec![[0.0; ROSTER]; n],
             out: vec![blank; n],
             parent_p,
+            // Empty on purpose: the identity `depth_to_water` keeps it empty
+            // every epoch, and an empty plane *is* the pre-seam expression.
+            wet: Vec::new(),
+            depth_to_water: cfg.providers.depth_to_water,
         }
     }
 
@@ -513,6 +537,14 @@ impl BioticSim {
     /// initialized with — the materialized answer of the `parent_p` provider.
     pub fn parent_p(&self) -> &[f32] {
         &self.parent_p
+    }
+
+    /// The materialized water-table plane as of the last [`Self::step`] —
+    /// **empty under the identity provider**, where wetness is computed inline
+    /// from the three-term proxy instead. Non-empty means an heir supplied a
+    /// field.
+    pub fn wet(&self) -> &[f32] {
+        &self.wet
     }
 
     /// The community + soil state of one cell (spike diagnostics / column dumps).
@@ -542,14 +574,35 @@ impl BioticSim {
             *dst = c.cover;
         }
 
+        // ---- pass boundary: materialize the water table ---------------------
+        // Once per epoch, before any cell is stepped — never inside the loop.
+        // The heir is a field solved over the drainage network, so it gets the
+        // network; the identity leaves `self.wet` empty and the per-cell
+        // accessor falls through to the pre-seam expression.
+        let dtw = self.depth_to_water;
+        dtw(
+            WaterPass {
+                w: grid.w,
+                epoch,
+                precip: &grid.precip,
+                r: &grid.r,
+                h: &grid.h,
+                area: ero.area(),
+                recv: ero.recv(),
+                filled: ero.filled(),
+            },
+            &mut self.wet,
+        );
+
         // Pure per-cell compute (parallel-safe: reads frozen/own state only).
         let (w, seed) = (self.w, self.seed);
         let cells = &self.cells;
         let prev = &self.prev_cover;
         let area = ero.area();
         let parent_p = &self.parent_p;
+        let wet = &self.wet;
         let compute = |i: usize| -> Outcome {
-            step_cell(i, w, seed, epoch, cells, prev, grid, area, parent_p)
+            step_cell(i, w, seed, epoch, cells, prev, grid, area, parent_p, wet)
         };
         if self.parallel && self.n >= (1 << 15) {
             use rayon::prelude::*;
@@ -636,6 +689,9 @@ fn step_cell(
     // The materialized `parent_p` plane — an indexed read, never a provider
     // call, because parent material does not change inside the epoch loop.
     parent_p: &[f32],
+    // The materialized `depth_to_water` plane for THIS epoch — empty under the
+    // identity provider, in which case `wet_at` computes the pre-seam proxy.
+    wet_plane: &[f32],
 ) -> Outcome {
     let gx = i % w;
     let gy = i / w;
@@ -704,12 +760,15 @@ fn step_cell(
     // **Waterlogging** — distinct from rainfall. A peat swamp needs a high water
     // table, which means a low-lying, poorly-drained site that *collects* water,
     // not merely a rainy one (a wet mountainside sheds its water and grows
-    // forest, not peat). Proxy at A resolution: climate moisture, plus a bonus
-    // for sitting near base level (coastal plain / high water table) and for
-    // receiving upslope drainage. This is what puts coal swamps on lowlands.
-    let low_bonus = ((80.0 - surf) / 80.0).clamp(0.0, 1.0) as f32 * 0.20;
-    let area_bonus = (area[i] / 300.0).min(1.0) as f32 * 0.15;
-    let wet = (moist + low_bonus + area_bonus).clamp(0.0, 1.0);
+    // forest, not peat). This is what puts coal swamps on lowlands.
+    //
+    // Asked of the `depth_to_water` provider slot, not computed here: the
+    // three-term proxy that used to sit inline (climate moisture + a bonus for
+    // sitting near base level + a bonus for receiving upslope drainage) is now
+    // the slot's *identity*, reached through the empty-plane branch of `wet_at`.
+    // The heir is the S11 saturation field — a real water table (providers.rs
+    // § `depth_to_water`; water.md DECIDED 2026-07-20, consequence 4).
+    let wet = wet_at(wet_plane, i, moist, surf, area[i]);
 
     // ---- Process 1: Suitability (Liebig min over tolerances) --------------
     let mut suit = [0.0f32; ROSTER];

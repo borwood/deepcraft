@@ -7,6 +7,46 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **`depth_to_water`: the widest seam, and the identity path it
+  never had** (journal/0061). The second conversion slice, one seam.
+  `biotic.rs::step_cell` computed waterlogging from three magic numbers inline —
+  climate moisture + `((80-surf)/80)*0.20` + `(area/300)*0.15` — where the
+  question is *"is the water table at the surface here?"*. It is the
+  highest-blast-radius seam in the 34-seam inventory: **four** thresholds read it
+  (the peat-former waterlog gate, the decomposition drain factor, the fire
+  dryness term, the `peat_site` hiatus-cap test), and it flows through organic
+  facies → `geology::deep_class` → the world's surface material. Its heir is
+  already **ratified**, not proposed: water.md DECIDED 2026-07-20, consequence 4
+  — *"waterlogging becomes 'the water table is at or near the surface here', read
+  from the field"*. Now `Providers::depth_to_water`, and it fixes the one gap the
+  first slice left: this seam had **no identity path at all**, unlike
+  `bio_resist`/`frost`/`wmult`. It has one now — `identity_depth_to_water` leaves
+  the plane **empty**, and `providers::wet_at`'s empty-slice branch *is*
+  `identity_wet_index`, the three-term proxy verbatim. Empty plane + identity
+  accessor, the shape the four deep-sim flags already prove, so "provider absent"
+  is not merely byte-identical but free (no allocation). **Granularity:
+  pass-level, once per epoch**, materialized at `BioticSim::step` — the sharper
+  version of 0060's rule: *granularity follows the **heir**, not the call site*.
+  The call site is four per-cell thresholds in the hot loop and says
+  "value-level"; the heir is a saturation field over the drainage-pinned lattice
+  and says "plane"; the heir wins. `WaterPass` therefore hands the provider the
+  drainage network (`recv`, `area`, `filled`) that a per-cell payload
+  structurally cannot carry. Byte-identity: the pre-slice goldens
+  `surface 0x7B8968FD90E04062` / `record 0xA53BD77F769D7FF4` (captured from
+  `2434f37` for journal/0060) pass unchanged — **and** a new agreement test runs
+  the whole production world down the *materialized-plane* path with a provider
+  that fills the proxy, landing on the same two hashes, so both branches of the
+  seam are proven and not just the empty one. No behaviour change: all four
+  thresholds and all five coefficients are untouched. **Nothing to ratify.**
+  Carried forward: the **units mismatch** — the identity answers a dimensionless
+  0..1 index, a real water table answers metres below the surface, and every one
+  of the four consumers thresholds the index. Journal/0061 § *what the heir must
+  supply* states the contract the hydrology system has to meet. Ritual cost at
+  Medium: **16.011 s → 16.045 s (+0.21 %)**, over two alternations of four runs
+  each — the first alternation read +0.9 %, and a second pre-slice set moved the
+  baseline 1.4 % with no code involved, so two alternations is now the minimum
+  for this measurement.
+
 - 2026-07-22 — **The provider seam: three sockets where constants were rules**
   (journal/0060; ARCHITECTURE.md § "A summary is not an authority" + § "The
   content set is frozen at world creation"). `deeptime::providers::Providers` —
@@ -1167,7 +1207,10 @@ question are the live items).
 4/5/6) · **the littoral heir: fetch × wind into `Providers::wave_energy`**
 (journal/0060; needs the S11 body graph's open-water field, so it will likely
 arrive as a materialized plane and convert that slot from value-level to
-pass-level) ·
+pass-level) · **the waterlogging heir: the S11 saturation field into
+`Providers::depth_to_water`** (journal/0061 — the slot and its `WaterPass`
+contract exist; what remains is the field, and the units decision, since the
+four consumers threshold a 0..1 index and a water table speaks metres) ·
 `HostWorld` edited-chunk spill to the save layer (edited chunks are retained
 unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test).
 
