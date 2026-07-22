@@ -421,12 +421,21 @@ are visible at its call sites. Derived from the 34-seam inventory
 
 **DECIDED (user):**
 
-- **Shape.** A `Providers` struct of **plain fn pointers** — the `PassBody`
+- **Shape.** A `Providers` struct of **`Option<fn>` slots** — the `PassBody`
   discipline: deterministic, no captured state, no closures, no trait objects.
-  Resolved **once at world build**. Every slot carries an **identity default**
-  reproducing today's behaviour exactly, so "provider absent" is provably
-  byte-identical — the proof shape the four existing flags (`biotic`,
-  `erodibility`, `full_agents`, `tectonic_history`) already use.
+  Resolved **once at world build**. **`None` means identity**: the slot's own
+  identity function reproduces today's behaviour exactly, so "provider absent"
+  is provably byte-identical — the proof shape the four existing flags
+  (`biotic`, `erodibility`, `full_agents`, `tectonic_history`) already use.
+  *(REFINED 2026-07-22, user: "roll with that proposal". Was "plain fn
+  pointers" with absence inferred by comparing addresses against `default()`.
+  Rust guarantees `fn`-pointer address uniqueness in neither direction —
+  identical-code folding merges, per-codegen-unit instantiation splits — and
+  both fired: corrections #32. Absence is now **structural**, a discriminant
+  stored at construction, so the failure is impossible rather than guarded by
+  a docstring. Consequence, deliberate: `Some(identity_fn)` counts as
+  **supplied**, because the decidable question for a world manifest is "did an
+  heir answer this slot?", not "does the answer happen to equal the old one?")*
 - **Effective reads.** A provider **declares its own reads**, and a pass's
   effective reads = **its declared reads ∪ the reads of every provider it
   imports**. Without this a provider is a *hidden edge* in the pass graph: a
