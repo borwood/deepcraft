@@ -269,20 +269,26 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 /// Note the *mixture table* hashes did not move at all, and the small world's
 /// material hash did not either: the change is one of thickness and extent, not
 /// of which materials exist or how they are interned.
+// Re-captured 2026-07-22 on the MERGED tree after the two shape-teacher
+// slices (journal/0072 share-blend + journal/0073 membership dither) landed
+// in parallel from pre-sibling bases: each branch's re-baseline was true of
+// its own tree and neither was true of the composition, so the merge
+// re-captured from the composed world (integrator; both invariant tests
+// green under composition). Authorized by the same two journal entries.
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0xA266_4948_492D_0D45,
-        0xC460_0157_9057_F410,
-        0xD818_B64C_3B74_7324,
+        0x8A55_33FA_FAD8_66BF,
+        0xA0AA_B320_4308_0D7C,
+        0x93DE_D6C8_983E_D6F4,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xC20A_9665_BAAE_FDF2,
-        0x0E95_BC9A_68D9_E1E9,
-        0x76CC_9A66_B6BD_C87A,
+        0x08A9_920E_E5D8_BD27,
+        0x6D5E_9A98_61E3_84AC,
+        0x4A1F_F915_9667_15AF,
     ),
     (
         0x0000_00C1_1A7E_2026,
