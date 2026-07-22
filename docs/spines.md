@@ -101,7 +101,11 @@ boundary** (earth-processes.md, DECIDED).
 
 **Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
 `surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
-mosaic under smooth terrain (ROADMAP Observed, 2026-07-22).
+mosaic under smooth terrain (ROADMAP Observed, 2026-07-22). *Before "fixing"
+nearest→bilinear, read `field.rs:374-383`: nearest is a forced trade-off —
+the record is a non-interpolable variable-length unit list and bilinear would
+break mass conservation. The fix must route around that, not through it
+(2026-07-22 audit).*
 
 ## S-5. Seams with identity defaults
 
@@ -240,7 +244,7 @@ consumed it and when.
 | `MixtureDownsampleRule` — 2×2×2 contents → one parent, occupancy voted in eighths, losing class folded in rather than lost | `dc-core/src/materials/lod.rs` | **nothing renders it** | the distance pyramid; **already an octree reduction step** for FF2b + coarse water |
 | `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** | every transport-time depositing process: infiltration, diagenesis, ore |
 | `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
-| `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **nothing** | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
+| `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs:784` — the claim is about downstream, 2026-07-22 audit) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
 | occupancy primitives — `free_eighths`, `loose_eighths`, `bound_eighths`, `open_pores`, `is_occupancy_solid` | `dc-core/src/materials/contents.rs` | partially | the four consumers named at authorship: water fill, loose gravity, compaction, sim light |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |

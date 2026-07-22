@@ -1211,3 +1211,30 @@ sources merely differed rather than failed to link.
   remove, plus a grep looking for the wrong verb.) "Did it pass?" and "did it
   run?" (#27) want a third question in front: **"did it build the code I
   wrote?"** — asked with the verb that gate actually prints.
+
+## 38. "The Small world has no deep-time record" (2026-07-22)
+
+**The claim** (journal/0066 § "What this cost, in goldens", repeated verbatim
+in the thickness-rule brief): the Small contents-contract control did not move
+"for the third slice running: **no deep-time record**, so no peat to promote
+and no fire bed to express."
+
+**Falsified by** the thickness-rule agent (journal/0068), which stopped on the
+brief's own tripwire when Small's block hash moved. `Pregen` runs an
+**always-on** deep-time field at every extent (`pregen/mod.rs:284`); the Small
+world holds **~20,700 recorded deep cells**, 92 % of which change outcrop
+under the dominance rule.
+
+**The mechanism of the error**: Small stayed byte-identical across three
+slices not because the record was absent but because those slices changed
+record *labels and expression* — which Small's contents never surface — while
+leaving erosion *rates* alone. The first slice to change erosion inputs moved
+Small's bedrock geometry immediately. An unmoved control had been read as "no
+substrate" when it meant "no coupling from the axis those slices touched."
+The brief-premise-as-hypothesis discipline caught it: the brief said "if it
+moves, STOP and report," and the agent did exactly that instead of
+re-baselining silently.
+
+**Standing lesson**: a control that never moves is evidence about the *axes
+exercised so far*, not about what the control contains. Say which coupling a
+control is blind to when citing its stillness.
