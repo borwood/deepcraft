@@ -17,7 +17,14 @@
 //!
 //! Deep time is untouched — this is present-tier only.
 
+//! **S15 spike** ([`coarse`]) extends this module with the capacity question
+//! S11 could not ask: its 415 ms hypsometry scan walked a fully-resident toy
+//! volume, so it is an honest number for a world that does not exist. `coarse`
+//! is the per-coarse-cell hypsometric summary that replaces the walk against a
+//! lazily generated, evicting world. Results: `docs/spikes/S15-results.md`.
+
 pub mod body;
+pub mod coarse;
 pub mod conn;
 pub mod sat;
 pub mod vox;
@@ -25,6 +32,7 @@ pub mod vox;
 use std::collections::HashMap;
 
 pub use body::{Body, BodyGraph, BodyId, BodyKind, Link, ResolveStats, WaterEvent};
+pub use coarse::{CAP_CELL, CAP_SUBSAMPLE, CapCell, CapSummary, ExactCurve, summary_hash};
 pub use conn::ConnIndex;
 pub use sat::{ROCK_VOID, RockProps, SATURATED, SatField};
 pub use vox::VoxWorld;

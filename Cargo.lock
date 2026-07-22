@@ -2639,6 +2639,7 @@ dependencies = [
 name = "dc-worldgen"
 version = "0.1.0"
 dependencies = [
+ "dc-api",
  "dc-core",
  "dc-sim",
  "postcard",
