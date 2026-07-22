@@ -57,7 +57,9 @@ fn main() {
             println!("{name}: OUTSIDE the pregen extent (the wilds) — no record by design\n");
             continue;
         };
-        println!("--- {name}: metres ({mx:.0}, {mz:.0}) = voxel ({vx}, {vz}) = deep cell ({cx}, {cy})");
+        println!(
+            "--- {name}: metres ({mx:.0}, {mz:.0}) = voxel ({vx}, {vz}) = deep cell ({cx}, {cy})"
+        );
         let i = cy as usize * f.w + cx as usize;
         println!(
             "    surf {:.1} m | H {:.2} m | units {} | Σrecord {:.2} m",
@@ -76,7 +78,10 @@ fn main() {
 
         // The centre cell's units, top-down — the actual history.
         let s = &f.strata[i];
-        println!("    centre cell record, top-down ({} units):", s.units.len());
+        println!(
+            "    centre cell record, top-down ({} units):",
+            s.units.len()
+        );
         for u in s.units.iter().rev().take(12) {
             println!(
                 "      {:>8.3} m  {:?}  chapter {}{}",
@@ -190,9 +195,7 @@ fn anisotropy(f: &DeepField, label: &str) {
             }
         }
     }
-    println!(
-        "    soil voxels expressed, histogram 0..8: {hist:?}  ({land} land cells)",
-    );
+    println!("    soil voxels expressed, histogram 0..8: {hist:?}  ({land} land cells)",);
     println!(
         "    BARE (0 voxels): {bare} = {:.1}% of land",
         100.0 * bare as f64 / land as f64
