@@ -1016,3 +1016,42 @@ disk-backed regions, a network authority. **When that lands, the connectivity
 index must treat an absent chunk as UNKNOWN, never as solid**, or eviction will
 manufacture false component boundaries. Full account:
 `docs/spikes/S15-results.md` § group 3, journal/0062.
+
+## 32. "Comparing `fn` addresses can only mis-report in the harmless direction" (2026-07-22)
+
+**The claim**, written on `Providers::is_identity` in journal/0060 and carried
+unexamined through journal/0061: a provider slot's identity is decided by
+casting its `fn` pointer to `usize` and comparing, and the only way that can be
+wrong is identical-code-folding giving two *different* functions the *same*
+address — reporting a custom provider as the identity, "which is the harmless
+direction".
+
+**Falsified — the opposite direction fired, and on the default set.** Splitting
+`providers.rs` into a module directory (journal/0063, pure code motion) made
+`Providers::default().is_identity()` return **false**, naming `outcrop_at`. One
+function, two addresses.
+
+**The mechanism.** `identity_outcrop_at` was a `pub use` of
+`lithology::exposed_litho`, which is `#[inline]`. An `#[inline]` function may be
+instantiated in **several codegen units**, and each instance has its own
+address. Two `Providers::default()` values built in two codegen units therefore
+held two different addresses for the same function. Rust does not guarantee
+`fn`-pointer address uniqueness in either direction; only the folding direction
+had been considered.
+
+**Why it was green before.** The bug was latent on `main` — same comparison,
+same `#[inline]`, same re-export. In the flatter file the optimizer saw both
+sides of the comparison in one view and folded the result to `true`. The test
+was passing for a reason unrelated to the property it asserted, and a refactor
+that changed no values changed the inlining and exposed it. Byte-identity
+proves a refactor moved no *values*; it cannot prove it disturbed no
+*coincidences*.
+
+**The rule that replaces the assumption**, now on
+`providers/outcrop_at.rs::identity_outcrop_at`: **a slot's identity must be a
+plain, non-`#[inline]` function defined in the slot's own module** — never a
+`pub use` of another module's function, whose inlining attributes are not ours
+to control and can change with no diff in the providers file. It is free: a
+provider is always invoked through a pointer and is never inlined at its call
+site anyway, so a wrapper generates the same code. The other three identity
+functions already had this shape, which is why only `outcrop_at` failed.
