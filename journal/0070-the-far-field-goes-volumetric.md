@@ -176,12 +176,33 @@ same quantization). The deltas that do exist, each flagged:
    through the same `MeshData` → `to_bevy_mesh` path, one shared terrain
    material, block-driven vertex colour.
 
-Screenshots (lit, per the shape-question rule; same vantage family as 0023's
-asset set): `0070-lit-stepped-horizon-ground` (surface handoff),
-`0070-lit-high-vantage-rings` (ring skyline). Captured for the integrator's
-image ratification; on today's terrain they are intentionally
-indistinguishable-or-near from 0023's — that *is* the acceptance criterion
-for the synthesized path.
+Screenshots (lit for shape, fullbright for the one material question; vantage
+family of 0023's asset set):
+
+- `0070-lit-stepped-horizon-ground` — on the surface at spawn: near voxels
+  roll into a stepped far horizon, continuous handoff, no seam, no holes.
+  (The palette differs from 0023's grass world because journal/0055 reskinned
+  the surface from the record — that delta is 0055's, not this slice's.)
+- `0070-lit-high-vantage-rings` — default 1.2 km horizon from ~400 m up; the
+  rings as a hazed stepped skyline, no sky holes.
+- `0070-fb-high-vantage-patch-check` — fullbright (the instrument that can
+  see a material question): the dark region in the lit shot is a sharply
+  bounded grey-material square at ~deep-cell scale — a pre-existing
+  authority-side frontier (over never-generated ground, where synthesis is
+  FF2a-identical by construction), filed in ROADMAP Observed as the
+  surface-material sibling of the S-4 `regolith_at_voxel` mosaic.
+- `0070-lit-10km-horizon-vantage` — the projected ring config LIVE
+  (`--horizon 10`, fog scaled out with it): 1 648 tiles filled in ~14 s,
+  continuous field to a 10 km skyline, no holes, no cracks — and the
+  deep-cell material checkerboard visible to the horizon (the Observed
+  item's scale).
+- `0070-lit-reduced-behind-standoff` — looking back at the streamed spawn
+  region from beyond the reduction standoff: reduced tiles in place of
+  synthesis, no poke-through, no frontier crack (the delta is the expected
+  ≤1 coarse voxel and reads as nothing at range — which is the point).
+
+On today's terrain these are intentionally indistinguishable-or-near from
+0023's — that *is* the acceptance criterion for the synthesized path.
 
 ## Filed follow-ons (what this slice deliberately did not do)
 

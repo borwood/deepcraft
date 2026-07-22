@@ -2054,6 +2054,22 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Deep-cell-square surface-material frontiers checker the far field** (walk
+  2026-07-22, FF2b screenshot pass — `0070-fb-high-vantage-patch-check` for
+  the mechanism-clean single case, `0070-lit-10km-horizon-vantage` for the
+  scale of it): sharply-bounded dark-material regions read as axis-aligned
+  squares/rectangles at roughly the 460 m deep-cell scale, edges
+  razor-straight for hundreds of meters — and from altitude at a 10 km
+  horizon the vista is a **checkerboard of them** to the skyline.
+  Pre-existing, not FF2b: the patch lies over never-generated ground, where
+  the synthesized far field is FF2a-identical by construction, and the
+  surface block is `coarse_surface`'s own answer (post-0055 record skin) —
+  so this is the surface-material sibling of the known S-4-shaped
+  `regolith_at_voxel` nearest-sampling mosaic: a simulation-resolution edge
+  reaching the eye as an analytic boundary. Undiagnosed beyond that; wants
+  the same routing care spines S-4 flags for the soil-depth fix (the record
+  is a non-interpolable unit list — do not naively bilinear it).
+
 - **Mesh-buffer pooling: measured, deliberately NOT built** (2026-07-21,
   journal/0051 — the user asked for pooling; this is the numbered answer).
   New churn instrument in the `DC_MEM_PROBE` line: during a teleport storm the
