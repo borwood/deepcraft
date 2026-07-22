@@ -1268,15 +1268,23 @@ DeviceLost, distribution-first, the holes, the eight-kilometre typo — and
 > **loess margin (82346, 24391) m** — the deepest section in the world, ~90
 > sediment blocks, 76 mixed spans — read as *sediment* or as noise; (4) do
 > contact bands change material on chunk lines (the boundary-dither loose end,
-> still open for **mixed** voxels); (5) a long `--horizon 6` session, now that
-> the RAM march is fixed — still unproven at 6.
+> still open for **mixed** voxels); (5) a long `--horizon 6` session — **DONE
+> 2026-07-21, journal/0064: it survives.**
 
-**Wide horizons: the blocker is GONE but unproven at 6.** The DeviceLost
-crashes were host-RAM exhaustion from an unbounded chunk store, now evicting
-(journal/0051, measured flat over 210 teleports at `--horizon 3`). Nobody has
-yet re-run a long `--horizon 6` session to confirm it survives — **that is a
-cheap, high-value first act next session**, and it unblocks the landform-shape
-walk the roughness pick needs.
+**Wide horizons: the blocker is GONE and now PROVEN at 6** (journal/0064,
+2026-07-21). The DeviceLost crashes were host-RAM exhaustion from an unbounded
+chunk store, now evicting (journal/0051, flat over 210 teleports at
+`--horizon 3`). Re-measured at 6, in both regimes, alternated 6/3/6/3 against
+machine drift: **teleport storm +0.542 / +0.529 MB/jump at horizon 6 versus
++0.531 / +0.542 at horizon 3** — the horizon signal is zero — and **idle at
+horizon 6 drifts under 7 MB in seven minutes** with every probe count frozen,
+which is the regime that used to die at ~4.5 min. Plus one unbroken
+**700-jump / 23-minute** horizon-6 session: RSS sawtooths in a ~980–1 170 MB
+band, long-run slope **+0.11 MB/jump**, 71 928 evictions, exit 0. All runs
+exited **0**, no `DeviceLost`, no panic, no `ERROR`. Horizon 6's real cost is a **constant**
+~155 MB / 704 resident far tiles (vs 288 at horizon 3), paid once at fill.
+**Wide-horizon walks are unblocked**; 8–10 should hold, and the number to
+watch there is `far_tiles` at fill, not slope.
 
 **Decisions waiting on the user (nothing else is blocked on them):**
 0. **THE SOIL GAP — the biggest design hole the walk exposed.** The user, in
@@ -2116,6 +2124,33 @@ before any code.
   exited CLEANLY (verified: no DeviceLost in the log), vs 4.5–10 min to
   death at `--horizon 6` — accumulation scales with far-field size, and
   smearing is the degraded-but-alive state well before the cliff.**
+- **CONFIRMED AT HORIZON 6, 2026-07-21 (journal/0064): the fix holds at the
+  width that used to kill it, and the residual is horizon-independent.**
+  Storm and idle regimes, alternated 6/3/6/3. Storm slope +0.542/+0.529
+  MB/jump at 6 vs +0.531/+0.542 at 3 (200 jumps each, RSS high-water 1.10 GB,
+  `host_chunks` 2 108–2 332 against `host_budget=2360`, ~19 000 evictions per
+  run). Idle at 6: every probe count frozen, RSS drift < 7 MB in 7 min, at the
+  full 704-tile far field. All exits **0**, no `DeviceLost`/panic/`ERROR`.
+  Two findings ride along: (a) **the teleport storm is nearly blind to
+  `--horizon`** — the field never fills under motion (`far_tiles` oscillates
+  2–40 at *either* width), which is the mechanism behind 0050's unexplained
+  "h3 and h6 slopes are near-identical", so idle is the only regime where the
+  horizon is a real variable; (b) **`Authority::chunk_budget_for` does not
+  scale with the horizon** — it derives from the *near*-field constant
+  `UNLOAD_RADIUS_M`, resolving to 2 360 at every width (correct, but the
+  opposite of what the brief assumed).
+- **RESOLVED IN THE SAME ENTRY: the "+0.54 MB/jump residual" was a windowing
+  artifact.** A single **700-jump / 23-minute** horizon-6 session shows RSS
+  **sawtoothing** in a ~980–1 170 MB band — climb ~250 jumps, drop 120–180 MB,
+  repeat. Full-run slope **+0.113 MB/jump** (jumps 50–700), **+0.074** over the
+  last 300; every 200-jump window sat inside one tooth and read ~+0.54.
+  0051's 0.00 and 0064's 0.54 are the same oscillation at different phases.
+  Methodological rule now: **measure ≥ 250 jumps or you are measuring a
+  tooth.** Final state 71 928 evictions, `host_chunks=2224/2360`, high-water
+  1 166 MB, exit 0. The ~0.1 MB/jump that survives is plausibly allocator
+  hysteresis; if anyone chases it, 0050's open gap is the candidate (the
+  collapse caches' `coarse_surface` / `column_record` paths never trigger
+  `evict()` — position-keyed and horizon-independent, exactly this shape).
 - **FIXED 2026-07-21 (journal/0051): eviction landed, the march is flat
   (+27.4 → 0.00 MB/jump). See Shipped. Two numbers from this diagnosis were
   corrected on the way: a chunk is 64 KB, not ~33 KB (`Block` is `repr(u16)`),
