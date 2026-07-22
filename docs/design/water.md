@@ -662,6 +662,13 @@ water against lazy generation, nothing else.
 
 ## LEANING, NOT DECIDED (user, 2026-07-22) — one octree substrate: FF2b, bulk flow, and the statistical tier
 
+> **RESOLVED same day → `docs/design/octree-substrate.md`** (DECIDED
+> 2026-07-22, live session): one substrate = the existing S3 chunk pyramid,
+> named, with a payload contract; FF2b-minimal is the first build slice.
+> Water's stratum of the node payload stays requirements-only — the hydrology
+> pause holds. The section below is kept as the record of the leaning and its
+> reasoning.
+
 Recorded at the user's instruction as a **discoverable leaning**, explicitly
 deferred: *"i agree that we defer and make discoverable note of leaning."*
 Nothing here is ratified and nothing should be built against it yet.

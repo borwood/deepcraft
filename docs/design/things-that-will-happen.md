@@ -103,3 +103,8 @@ list and not a roadmap — some of these are far off, and that is fine.
 - The coal seam you are standing on is thin, and it is coal because there is a
   hundred metres of rock on top of it. The nine-metre peat bed a valley over is
   still peat, because nothing ever buried it.
+- You dig a pit-mine for a week. Walking home from five kilometres out, the
+  scar is on the skyline, because the far field is a summary of the world and
+  not a picture of it.
+- You stand at the lip of a chasm and look down, and the deep dark is coarse
+  but real geology — the actual strata, blurred by distance — not fog.

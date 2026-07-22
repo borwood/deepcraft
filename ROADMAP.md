@@ -1219,6 +1219,23 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **The octree substrate — DESIGN PASS OPENED, D1–D3 DECIDED** (2026-07-22,
+  live session; `docs/design/octree-substrate.md`). The water.md leaning is
+  resolved: **one substrate = the existing S3 chunk pyramid**, named and given
+  a payload contract (node = `(level, ChunkPos)`; first two consumers —
+  renderer, water — define the payload; statistical/social recorded as
+  intended extension). **First build slice ratified: FF2b-minimal** — the two
+  existing reduction pyramids (block + `MixtureDownsampleRule`, spines § 3
+  row 1) through FF2a's stepped mesher, coarse volumetric far chunks replacing
+  the top-sheet-only far field; persistence + dirty-rail is the follow-on
+  slice. **Stepped all the way** ratified for the far register (alternatives
+  recorded in the doc § 5; vista-as-augury is complementary — it governs far
+  *live* state, not terrain). This supersedes FF2b's earlier pairing with the
+  caves/underground water thread for the *minimal* slice — the node contract's
+  water stratum stays requirements-only and the hydrology pause holds. Node
+  contract v0 is PROPOSED, awaiting user ratification before any brief is
+  written.
+
 - **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill
   contract", materials.md § "The forms design pass"). The user ratified
