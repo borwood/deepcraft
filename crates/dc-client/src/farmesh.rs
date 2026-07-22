@@ -772,13 +772,9 @@ fn tile_column_stacks(
             let (wx_m, wz_m) = (wx as f64 * base_vs, wz as f64 * base_vs);
             let top_m = f64::from(top) * base_vs;
             culled[k] = near_covers(wx_m, wz_m, top_m, viewer_m, hz);
-            let (dx, dy, dz) = (
-                wx_m - viewer_m.x,
-                top_m - viewer_m.y,
-                wz_m - viewer_m.z,
-            );
-            let beyond_standoff = dx * dx + dy * dy + dz * dz
-                >= REDUCTION_STANDOFF_M * REDUCTION_STANDOFF_M;
+            let (dx, dy, dz) = (wx_m - viewer_m.x, top_m - viewer_m.y, wz_m - viewer_m.z);
+            let beyond_standoff =
+                dx * dx + dy * dy + dz * dz >= REDUCTION_STANDOFF_M * REDUCTION_STANDOFF_M;
             stacks[k] = if beyond_standoff {
                 compose_column(synth, &known(wx, wz))
             } else {
@@ -1039,10 +1035,8 @@ fn build_far_tile_mesh(
                         if yhi_i <= ylo_i {
                             continue;
                         }
-                        let (cx0, cx1) =
-                            ((ox + i * stride) as f64, (ox + (i + 1) * stride) as f64);
-                        let (cz0, cz1) =
-                            ((oz + j * stride) as f64, (oz + (j + 1) * stride) as f64);
+                        let (cx0, cx1) = ((ox + i * stride) as f64, (ox + (i + 1) * stride) as f64);
+                        let (cz0, cz1) = ((oz + j * stride) as f64, (oz + (j + 1) * stride) as f64);
                         let (ylo, yhi) = (f64::from(ylo_i), f64::from(yhi_i));
                         let corners = match normal {
                             [1, 0, 0] => [
@@ -1635,8 +1629,7 @@ mod tests {
         let k = (5 + 1) * m + (5 + 1);
         assert_eq!(stacks[k].len(), 2, "composed overhang stack");
         assert_eq!(
-            stacks[k][1].bottom,
-            FAR_BOTTOM_UNBOUNDED,
+            stacks[k][1].bottom, FAR_BOTTOM_UNBOUNDED,
             "reduced ground fuses with the synthesized ground below the node"
         );
         let (mesh, y_ref) = build_far_tile_mesh(base, 1, 0, 0, &stacks, &culled, [false; 4]);
@@ -1645,11 +1638,10 @@ mod tests {
             "the overhang's underside must emit a bottom face"
         );
         let base_vs = base.voxel_size_m() as f32;
-        let has_top_44 = mesh
-            .positions
-            .iter()
-            .zip(&mesh.normals)
-            .any(|(p, nrm)| nrm[1] > 0.0 && (p[1] + y_ref as f32 - 44.0 * base_vs).abs() < 1e-3);
+        let has_top_44 =
+            mesh.positions.iter().zip(&mesh.normals).any(|(p, nrm)| {
+                nrm[1] > 0.0 && (p[1] + y_ref as f32 - 44.0 * base_vs).abs() < 1e-3
+            });
         assert!(has_top_44, "the slab's own top face at base voxel 44");
         // The slab hangs over cell (5,5) only: its four side walls span the
         // interval 40..44 against single-span neighbours.
@@ -1657,11 +1649,12 @@ mod tests {
             .positions
             .iter()
             .zip(&mesh.normals)
-            .filter(|(p, nrm)| {
-                nrm[1] == 0.0 && p[1] + y_ref as f32 > 39.0 * base_vs
-            })
+            .filter(|(p, nrm)| nrm[1] == 0.0 && p[1] + y_ref as f32 > 39.0 * base_vs)
             .count();
-        assert_eq!(wall_at_slab_height, 16, "four interval walls, four verts each");
+        assert_eq!(
+            wall_at_slab_height, 16,
+            "four interval walls, four verts each"
+        );
     }
 
     /// Inside [`REDUCTION_STANDOFF_M`] the floor-quantized synthesis stands
@@ -1818,8 +1811,16 @@ mod tests {
             let t0 = Instant::now();
             for level in 1..=4u8 {
                 for (tx, tz) in wanted_far_tiles(base, viewer, level, &hz) {
-                    let (stacks, culled) =
-                        tile_column_stacks(base, level, tx, tz, viewer, &hz, &sample, &mut no_known);
+                    let (stacks, culled) = tile_column_stacks(
+                        base,
+                        level,
+                        tx,
+                        tz,
+                        viewer,
+                        &hz,
+                        &sample,
+                        &mut no_known,
+                    );
                     let (mesh, _y) =
                         build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, [true; 4]);
                     tiles += 1;

@@ -33,8 +33,7 @@ pub use collision::{
 };
 pub use column::{ColumnInfo, ColumnSummaries, LodBlockSource, column_summary, open_air_below};
 pub use farfield::{
-    ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, node_column_spans,
-    quantize_top,
+    ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, node_column_spans, quantize_top,
 };
 pub use format::{ChunkContainer, FORMAT_VERSION, FormatError, Sidecar};
 pub use lod::{

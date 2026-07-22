@@ -89,7 +89,8 @@ impl FarPyramid {
     /// has any) into the reduction side. Ancestor derivations go stale via the
     /// pyramid's own dirt plus our mirrored cache invalidation.
     pub fn insert_l0(&mut self, pos: ChunkPos, chunk: &Chunk, contents: Option<&ContentsGrid>) {
-        self.blocks.insert_chunk(pos, PalettedChunk::from_dense(chunk));
+        self.blocks
+            .insert_chunk(pos, PalettedChunk::from_dense(chunk));
         let mat = contents.map(|grid| {
             let mut ids = vec![MixtureId::EMPTY; CHUNK_VOLUME];
             for y in 0..32usize {
@@ -106,7 +107,10 @@ impl FarPyramid {
         });
         self.mats.insert((0, pos), mat);
         self.invalidate_ancestors(pos);
-        self.l0_columns.entry((pos.x, pos.z)).or_default().insert(pos.y);
+        self.l0_columns
+            .entry((pos.x, pos.z))
+            .or_default()
+            .insert(pos.y);
         self.l0_present.insert((pos.x, pos.y, pos.z));
     }
 
@@ -300,7 +304,10 @@ mod tests {
                 block: Block::Stone,
             }]
         );
-        assert_ne!(col[0].bottom, FAR_BOTTOM_UNBOUNDED, "reduced spans are bounded");
+        assert_ne!(
+            col[0].bottom, FAR_BOTTOM_UNBOUNDED,
+            "reduced spans are bounded"
+        );
     }
 
     #[test]

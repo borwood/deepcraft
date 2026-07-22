@@ -177,10 +177,8 @@ mod tests {
             let stride = level_stride(level);
             for (px, pz) in [(0i32, 0i32), (5, -3), (-4, 7), (9, 9)] {
                 // Node straddling the surface at its plan corner.
-                let (h, _) = g.coarse_surface(
-                    i64::from(px) * 32 * stride,
-                    i64::from(pz) * 32 * stride,
-                );
+                let (h, _) =
+                    g.coarse_surface(i64::from(px) * 32 * stride, i64::from(pz) * 32 * stride);
                 let ny = (i64::from(h) / stride / 32) as i32;
                 let pos = ChunkPos::new(px, ny, pz);
                 let synth = g.synthesize_far_node(level, pos);
@@ -190,10 +188,7 @@ mod tests {
                 let mut pyramid = LodPyramid::new(MAX_LOD_LEVEL, Box::new(dc_core::MajorityNonAir));
                 let mut frontier = vec![pos];
                 for _ in 0..level {
-                    frontier = frontier
-                        .iter()
-                        .flat_map(|p| child_positions(*p))
-                        .collect();
+                    frontier = frontier.iter().flat_map(|p| child_positions(*p)).collect();
                 }
                 for l0 in frontier {
                     let chunk = g.generate_chunk(l0);
@@ -255,7 +250,15 @@ mod tests {
             (0.0..=1.0).contains(&mean),
             "mean offset {mean:.3} outside the floor-vs-round band [0, 1]"
         );
-        assert!(f1 >= 0.90, "only {:.1}% of columns within 1 coarse voxel", f1 * 100.0);
-        assert!(f2 >= 0.99, "only {:.1}% of columns within 2 coarse voxels", f2 * 100.0);
+        assert!(
+            f1 >= 0.90,
+            "only {:.1}% of columns within 1 coarse voxel",
+            f1 * 100.0
+        );
+        assert!(
+            f2 >= 0.99,
+            "only {:.1}% of columns within 2 coarse voxels",
+            f2 * 100.0
+        );
     }
 }

@@ -167,10 +167,7 @@ fn span_block(
 /// span's block, so a surface node's reduced spans fuse seamlessly with the
 /// synthesized ground below it. The result is descending, disjoint, and always
 /// ends in an unbounded span.
-pub fn compose_column(
-    synth: ColumnSpan,
-    known: &[(i32, i32, Vec<ColumnSpan>)],
-) -> Vec<ColumnSpan> {
+pub fn compose_column(synth: ColumnSpan, known: &[(i32, i32, Vec<ColumnSpan>)]) -> Vec<ColumnSpan> {
     debug_assert_eq!(synth.bottom, FAR_BOTTOM_UNBOUNDED);
     // Synth pieces = the synthesized span minus every known extent. i64 math
     // so the UNBOUNDED sentinel needs no special casing.
