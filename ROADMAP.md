@@ -3078,7 +3078,16 @@ before any code.
   slow to a crawl, sometimes." Observation only, no diagnosis: the symptom
   (sim time dilating, not just frame hitching) suggests generation work is
   contending with the tick rather than merely the renderer, but that is a
-  hypothesis to test, not a finding. Distinct from the pregen-time
+  hypothesis to test, not a finding. *(Sharpened same day with a prime
+  suspect: `dc-client/src/streaming.rs:42` — `LOAD_BUDGET_PER_FRAME = 8`,
+  generated SYNCHRONOUSLY on the main schedule; no AsyncComputeTaskPool
+  anywhere in streaming. Far-mesh is the same pattern (2 tiles/frame,
+  main-thread; journal/0023 filed "async is a drop-in", unclaimed). Chunk
+  gen is a pure seeded function, so task-pool offload does not threaten
+  determinism. Still profile before building — but the profiling slice and
+  the async-offload slice are now an obvious pair, and the client runtime
+  is otherwise nearly single-threaded against a deep sim that already
+  proved byte-identical rayon parallelism.)* Distinct from the pregen-time
   non-constraint (that covenant covers world *creation*; this is runtime
   streaming). Couples forward to the octree substrate (coarse-below is
   exactly what FF2b-class nodes eventually provide while true chunks
