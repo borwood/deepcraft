@@ -3033,6 +3033,18 @@ before any code.
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
 
+- **Material identity is illegible under splat blending — heightmap SHAPE as
+  a fix candidate** (user, walk 0071, station 4, 2026-07-22): the charcoal
+  specks pass their regression check but are hard to *identify* because
+  "everything is honestly so blended." The user's sketch: most material
+  heightmaps are currently a random scramble; if each material's heightmap
+  carried a **characteristic shape**, heightmap-based splat blending would
+  let the eye decode *which* materials were blended, not just that blending
+  happened. Explicitly "not the only possible answer, just a thought" — a
+  visuals/materials design thread, not a decision. Couples to the
+  form-dependent-texture visuals decision already accepted as deferred cost
+  in the fill contract (loose vs structural clastic indistinguishable).
+
 - **Chunk gen time is now noticeable in vertical streaming** (user field
   report, walk 0071, 2026-07-22): dropping from height — so the adaptive
   load volume streams chunks *below* — gets so choppy that "time appears to
