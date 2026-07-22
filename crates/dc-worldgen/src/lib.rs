@@ -34,6 +34,7 @@
 
 pub mod collapse;
 pub mod deeptime;
+pub mod far;
 pub mod fill;
 pub mod geology;
 pub mod pipeline;

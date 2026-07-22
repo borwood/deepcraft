@@ -329,6 +329,31 @@ impl LodPyramid {
         self.derive_count += 1;
     }
 
+    /// Inserted chunks in a level-L position's subtree (0 = unknown position).
+    pub fn coverage_count(&self, level: u8, pos: ChunkPos) -> u32 {
+        self.coverage[usize::from(level)]
+            .get(&pos)
+            .copied()
+            .unwrap_or(0)
+    }
+
+    /// Whether every level-0 chunk of this position's subtree was inserted —
+    /// the A-5 guard for consumers that must not read a derived chunk's
+    /// missing-children air as knowledge (docs/design/octree-substrate.md § 3:
+    /// "ungenerated is not empty"). A derived chunk over a *partial* subtree is
+    /// a legitimate summary of what was inserted, but its silence about the
+    /// missing siblings is not "air"; FF2b's far composition only substitutes
+    /// reduced data where this holds, synthesizing everywhere else.
+    ///
+    /// Exact when insertions are full-resolution ([`Self::insert_chunk`]);
+    /// data inserted directly at a higher level ([`Self::insert_lod_chunk`])
+    /// counts as one, so mixed-level insertion under-reports coverage
+    /// (conservative: never claims fullness falsely).
+    pub fn subtree_fully_inserted(&self, level: u8, pos: ChunkPos) -> bool {
+        let full = 1u64 << (3 * u32::from(level));
+        u64::from(self.coverage_count(level, pos)) >= full
+    }
+
     /// Is this level-0 voxel covered by some *inserted* chunk's cube (at any
     /// level)? Derived chunks summarize inserted data but never extend
     /// knowledge, so a coarse chunk derived from a partially-loaded subtree
@@ -624,6 +649,34 @@ mod tests {
             .get_or_derive(3, ChunkPos::new(1, -1, 0))
             .expect("derives from L2");
         assert_eq!(l3.is_uniform(), None);
+    }
+
+    #[test]
+    fn subtree_fully_inserted_requires_every_child() {
+        let mut pyramid = LodPyramid::default();
+        let parent = ChunkPos::new(0, 0, 0);
+        let children = child_positions(parent);
+        for (i, pos) in children.iter().enumerate() {
+            assert!(
+                !pyramid.subtree_fully_inserted(1, parent),
+                "partial subtree ({i} of 8) must not claim fullness (A-5)"
+            );
+            pyramid.insert_chunk(*pos, full_chunk(Block::Stone));
+        }
+        assert!(pyramid.subtree_fully_inserted(1, parent));
+        assert_eq!(pyramid.coverage_count(1, parent), 8);
+        // Level 2 above it holds 8 of 64: known, not full.
+        assert!(pyramid.coverage_count(2, ChunkPos::new(0, 0, 0)) == 8);
+        assert!(!pyramid.subtree_fully_inserted(2, ChunkPos::new(0, 0, 0)));
+        // Removal reopens the guard.
+        pyramid.remove_chunk(children[3]);
+        assert!(!pyramid.subtree_fully_inserted(1, parent));
+        // A direct higher-level insert counts as one — conservative, never full
+        // (documented under-report for mixed-level insertion).
+        let mut direct = LodPyramid::default();
+        direct.insert_lod_chunk(1, parent, full_chunk(Block::Stone));
+        assert_eq!(direct.coverage_count(1, parent), 1);
+        assert!(!direct.subtree_fully_inserted(1, parent));
     }
 
     #[test]

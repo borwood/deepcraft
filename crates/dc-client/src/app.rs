@@ -233,6 +233,7 @@ pub fn run(
     .insert_resource(ChunkMap::default())
     .insert_resource(farmesh::FarChunkMap::default())
     .insert_resource(farmesh::FarSurfaceMap::default())
+    .insert_resource(crate::farpyramid::FarPyramid::default())
     // The authoritative world for edits (client-through-dc-api milestone):
     // the worldgen authority built above, serving the streamed terrain.
     .insert_resource(authority)

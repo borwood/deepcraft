@@ -51,6 +51,7 @@ mod devicelost;
 mod edgepass;
 mod edit;
 mod farmesh;
+mod farpyramid;
 mod mcp;
 mod mcp_character;
 mod meshing;

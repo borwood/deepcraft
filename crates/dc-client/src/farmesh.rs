@@ -62,6 +62,9 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use dc_core::farfield::{
+    ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, quantize_top,
+};
 use dc_core::{Block, CHUNK_SIZE, ChunkPos, VoxelScale};
 use glam::DVec3;
 
@@ -70,6 +73,7 @@ use crate::app::{
     churn, to_render,
 };
 use crate::authority::Authority;
+use crate::farpyramid::FarPyramid;
 use crate::meshing::{MeshData, block_layer, face_color, mesh_chunk};
 use crate::player::Player;
 use crate::streaming::to_bevy_mesh;
@@ -551,46 +555,26 @@ const FAR_SURFACE_BUDGET_PER_FRAME: usize = 2;
 /// Same-level tile boundaries need no skirt (their steps are watertight).
 const RING_SKIRT_COARSE_VOXELS: i64 = 2;
 
-/// An extensible per-column far-field summary span (FF2a). Today a column is a
-/// single solid span described by its quantized `top` (base voxels, N=2 base
-/// scale) and the `block` at the surface. FF2b's coarse *volumetric* summaries
-/// extend a column to a STACK of these (top/bottom pairs with per-span material,
-/// for overhangs and caves) — the stepped mesher already reasons in "a column is
-/// a set of spans with tops and sides", so that extension needs no rewrite here.
-///
-/// **Persistence-shaped** (coordinator amendment 3): this is the payload the
-/// decided follow-on will store beside S3 region files (voxy-dh-recon transfer
-/// map). It is plain fixed-layout POD — no `Option`, no `skip_serializing_if` —
-/// so a positional format (postcard, corrections #3) or the recon doc's compact
-/// 8-byte packed encoding can serialize it verbatim. A tile's spans are derived
-/// per-tile in isolation ([`tile_column_spans`]) and re-derivable on demand, so
-/// edit-driven invalidation is a drop-in, not a rewrite (amendment 2).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct ColumnSpan {
-    /// Quantized top, base voxels — a coarse-voxel boundary at or below the
-    /// sampled surface (see [`quantize_top`]).
-    pub top: i32,
-    /// The surface block (drives the atlas layer + fullbright vertex color).
-    pub block: Block,
-}
+// The per-column payload ([`ColumnSpan`]) and its quantization
+// ([`quantize_top`], [`level_stride`]) moved to `dc_core::farfield` with FF2b
+// (journal/0070): a far column is now a STACK of spans — solid `[bottom, top)`
+// runs, topmost first, the last one bottom-unbounded — derived headlessly by
+// the two-sided node contract (reduce where chunks exist, synthesize where
+// they never will) and composed here per tile. FF2a's single-span top sheet is
+// exactly the one-span stack, so the synthesized (default) case renders
+// byte-identically to journal/0023.
 
-/// Base voxels per coarse voxel at level L (the sampling / quantization stride).
-#[inline]
-fn level_stride(level: u8) -> i64 {
-    1i64 << level
-}
-
-/// Quantize a base-voxel surface height to the level's coarse-voxel lattice,
-/// FLOORING to the coarse boundary at or below the surface. Flooring is the
-/// mechanism that retires journal/0022's half-voxel sink: the stepped column top
-/// is always ≤ the true (hence the near-field) surface, so the opaque near
-/// terrain wins the overlap band with no bias hack, and a stride-aligned column
-/// matches the near voxel top exactly (quantized-exact parity).
-#[inline]
-fn quantize_top(h: i32, stride: i64) -> i32 {
-    let s = stride as i32;
-    h.div_euclid(s) * s
-}
+/// Reduced node data may only replace the synthesized answer for columns
+/// farther than this from the viewer (meters, 3-D distance). Mechanism: the
+/// near volumetric field draws out to `streaming::UNLOAD_RADIUS_M` (160 m),
+/// and a reduced coarse top can legitimately sit up to one coarse voxel ABOVE
+/// the true surface (`MajorityNonAir` rounds the surface cell to nearest,
+/// while FF2a synthesis FLOORS — journal/0023's near-parity guarantee), so
+/// inside the near field's draw radius a reduced far corner could poke through
+/// the near ground. Within this standoff the floor-quantized synthesis stands;
+/// beyond it there is no near mesh to poke through. 176 = 160 + one tile of
+/// slack against streaming hysteresis.
+const REDUCTION_STANDOFF_M: f64 = 176.0;
 
 /// Whether the near volumetric field covers a far column at world `(wx_m, wz_m)`
 /// whose stepped top is at `top_m` — a pure function of the viewer pose, so a
@@ -741,15 +725,24 @@ fn far_tile_translation(
 /// Interior cell count per tile side (32 coarse columns).
 const TILE_CELLS: usize = CHUNK_SIZE as usize;
 
-/// Sample a tile's extended column grid: quantized [`ColumnSpan`]s and near-cover
-/// cull flags over indices −1..=`TILE_CELLS` on each axis (an (N+2)² grid). The
-/// interior 0..`TILE_CELLS` is what the tile emits; the −1 / `TILE_CELLS` ring is
-/// neighbour data for watertight boundary side faces (a same-level neighbour tile
-/// samples the shared column identically, so the step matches). `sample(wx, wz)`
-/// returns the summary (surface height in base voxels, surface block) at a world
-/// base-voxel column; every sampled column is a real near column (stride-aligned
-/// base voxel), so quantized tops agree with the near ground by construction.
-fn tile_column_spans(
+/// Sample a tile's extended column grid: composed [`ColumnSpan`] **stacks** and
+/// near-cover cull flags over indices −1..=`TILE_CELLS` on each axis (an (N+2)²
+/// grid). The interior 0..`TILE_CELLS` is what the tile emits; the −1 /
+/// `TILE_CELLS` ring is neighbour data for watertight boundary side faces (a
+/// same-level neighbour tile samples the shared column identically — including
+/// its reduced nodes, which are keyed by world node coords — so the steps
+/// match). `sample(wx, wz)` returns the coarse authority's summary (surface
+/// height in base voxels, surface block); `known(wx, wz)` returns the
+/// fully-inserted reduced node answers over that column (empty = synthesize —
+/// never "air", the A-5 rule). Composition is [`compose_column`]: reduced
+/// nodes lay over the synthesized top sheet, which stands wherever the world
+/// was never generated (the default case, forever) and inside
+/// [`REDUCTION_STANDOFF_M`] (near-parity: only the floor-quantized synthesis
+/// is guaranteed to stay under the near ground).
+// The derivation boundary takes its world by parameter (pure-input rule);
+// bundling them into a struct would only obscure the data flow.
+#[allow(clippy::too_many_arguments)]
+fn tile_column_stacks(
     base: VoxelScale,
     level: u8,
     tx: i32,
@@ -757,17 +750,12 @@ fn tile_column_spans(
     viewer_m: DVec3,
     hz: &HorizonConfig,
     sample: &dyn Fn(i64, i64) -> (i32, Block),
-) -> (Vec<ColumnSpan>, Vec<bool>) {
+    known: &mut dyn FnMut(i64, i64) -> Vec<(i32, i32, Vec<ColumnSpan>)>,
+) -> (Vec<Vec<ColumnSpan>>, Vec<bool>) {
     let stride = level_stride(level);
     let base_vs = base.voxel_size_m();
     let m = TILE_CELLS + 2;
-    let mut spans = vec![
-        ColumnSpan {
-            top: 0,
-            block: Block::Stone,
-        };
-        m * m
-    ];
+    let mut stacks = vec![Vec::new(); m * m];
     let mut culled = vec![false; m * m];
     for gj in -1..=TILE_CELLS as i64 {
         for gi in -1..=TILE_CELLS as i64 {
@@ -775,42 +763,60 @@ fn tile_column_spans(
             let wz = (i64::from(tz) * TILE_CELLS as i64 + gj) * stride;
             let (h, block) = sample(wx, wz);
             let top = quantize_top(h, stride);
+            let synth = ColumnSpan {
+                top,
+                bottom: FAR_BOTTOM_UNBOUNDED,
+                block,
+            };
             let k = (gj + 1) as usize * m + (gi + 1) as usize;
-            spans[k] = ColumnSpan { top, block };
-            culled[k] = near_covers(
-                wx as f64 * base_vs,
-                wz as f64 * base_vs,
-                f64::from(top) * base_vs,
-                viewer_m,
-                hz,
+            let (wx_m, wz_m) = (wx as f64 * base_vs, wz as f64 * base_vs);
+            let top_m = f64::from(top) * base_vs;
+            culled[k] = near_covers(wx_m, wz_m, top_m, viewer_m, hz);
+            let (dx, dy, dz) = (
+                wx_m - viewer_m.x,
+                top_m - viewer_m.y,
+                wz_m - viewer_m.z,
             );
+            let beyond_standoff = dx * dx + dy * dy + dz * dz
+                >= REDUCTION_STANDOFF_M * REDUCTION_STANDOFF_M;
+            stacks[k] = if beyond_standoff {
+                compose_column(synth, &known(wx, wz))
+            } else {
+                vec![synth]
+            };
         }
     }
-    (spans, culled)
+    (stacks, culled)
 }
 
-/// Build one far tile's VOXEL-STEPPED mesh (FF2a) — a **pure function** of plain
-/// data: the extended quantized column `spans` (an (N+2)² grid: interior 0..N
-/// plus a one-cell neighbour ring), the near-coverage `culled` mask over the same
-/// grid, and `ring_edges` (per tile side: does it face a coarser ring / world
-/// rim?). No ECS/world/authority read happens here — coverage is passed in as
-/// data (coordinator amendment 1), so async far-meshing (a filed follow-on) is a
-/// drop-in and the mesher is trivially testable.
+/// Build one far tile's VOXEL-STEPPED mesh (FF2a → FF2b) — a **pure function**
+/// of plain data: the extended column span **stacks** (an (N+2)² grid: interior
+/// 0..N plus a one-cell neighbour ring), the near-coverage `culled` mask over
+/// the same grid, and `ring_edges` (per tile side: does it face a coarser ring /
+/// world rim?). No ECS/world/authority read happens here — coverage and the
+/// reduced-node composition are passed in as data (coordinator amendment 1), so
+/// async far-meshing (a filed follow-on) is a drop-in and the mesher is
+/// trivially testable.
 ///
-/// Emits greedy-merged top faces at each column's quantized height, exposed
-/// vertical side faces between neighbour columns of differing height (emitted
-/// once, by the taller column, so same-level tile seams are watertight and never
-/// double-wall), and a modest downward skirt where a coarser ring takes over or
-/// the near field culls the column. Returns the mesh and the tile's y-reference
-/// (min emitted top, meters) — positions are tile-local so the absolute height
-/// rides in the transform (floating-origin discipline). Order of `ring_edges`
-/// matches the side-face direction order: +X, −X, +Z, −Z.
+/// Per span it emits: a greedy-merged top face for each column's TOPMOST span
+/// (byte-identical to FF2a over single-span stacks — the whole synthesized
+/// field), individual top faces for deeper spans, a bottom face where a span's
+/// underside is exposed (finite `bottom` — overhangs/bridges from reduced
+/// nodes; [`FAR_BOTTOM_UNBOUNDED`] means "the ground keeps going" and never
+/// draws), and side walls for the parts of a span's extent the neighbour's
+/// stack leaves uncovered (interval subtraction, [`subtract_neighbor_cover`] —
+/// exposure is disjoint between the two sides of a shared plane, so walls are
+/// emitted once and same-level seams stay watertight, the FF2a theorem
+/// generalized). Ring-transition and near-seam skirts are unchanged. Returns
+/// the mesh and the tile's y-reference (meters) — positions are tile-local so
+/// the absolute height rides in the transform (floating-origin discipline).
+/// Order of `ring_edges` matches the side-face direction order: +X, −X, +Z, −Z.
 fn build_far_tile_mesh(
     base: VoxelScale,
     level: u8,
     tx: i32,
     tz: i32,
-    spans: &[ColumnSpan],
+    stacks: &[Vec<ColumnSpan>],
     culled: &[bool],
     ring_edges: [bool; 4],
 ) -> (MeshData, f64) {
@@ -818,28 +824,37 @@ fn build_far_tile_mesh(
     let base_vs = base.voxel_size_m();
     let n = TILE_CELLS;
     let m = n + 2;
-    debug_assert_eq!(spans.len(), m * m);
+    debug_assert_eq!(stacks.len(), m * m);
     debug_assert_eq!(culled.len(), m * m);
     let idx = |i: i64, j: i64| -> usize { (j + 1) as usize * m + (i + 1) as usize };
 
     let ox = i64::from(tx) * n as i64 * stride;
     let oz = i64::from(tz) * n as i64 * stride;
 
-    // y_ref = the lowest emitted (unculled) top. If every column is culled by
-    // near coverage, the tile draws nothing.
-    let mut min_top: Option<i32> = None;
+    // y_ref = the lowest emitted face height among unculled interior columns
+    // (span tops, and finite span bottoms — overhang undersides reach below
+    // their tops). Skirts may dip below it: y_ref is a reference for f32
+    // precision, not a bound. If every column is culled, the tile draws nothing.
+    let mut min_y: Option<i32> = None;
     for j in 0..n as i64 {
         for i in 0..n as i64 {
-            if !culled[idx(i, j)] {
-                let t = spans[idx(i, j)].top;
-                min_top = Some(min_top.map_or(t, |mt| mt.min(t)));
+            if culled[idx(i, j)] {
+                continue;
+            }
+            for s in &stacks[idx(i, j)] {
+                let low = if s.bottom == FAR_BOTTOM_UNBOUNDED {
+                    s.top
+                } else {
+                    s.bottom
+                };
+                min_y = Some(min_y.map_or(low, |v| v.min(low)));
             }
         }
     }
-    let Some(min_top) = min_top else {
+    let Some(min_y) = min_y else {
         return (MeshData::default(), 0.0);
     };
-    let y_ref = f64::from(min_top) * base_vs;
+    let y_ref = f64::from(min_y) * base_vs;
 
     let mut mesh = MeshData::default();
     // Push one quad (4 world-base-voxel corners, ccw seen from outside) with the
@@ -875,19 +890,27 @@ fn build_far_tile_mesh(
         mesh.indices.extend([b, b + 1, b + 2, b, b + 2, b + 3]);
     };
 
-    // --- Greedy-merged top faces -------------------------------------------
+    // --- Greedy-merged top faces (topmost span per column) ------------------
+    // Merging keys on the top face itself (plane + block) — deeper structure
+    // does not change a top face, so single-span synthesized fields merge
+    // exactly as FF2a did.
+    let surf = |i: i64, j: i64| -> Option<(i32, Block)> {
+        stacks[idx(i, j)].first().map(|s| (s.top, s.block))
+    };
     let mut consumed = vec![false; n * n];
     for j0 in 0..n {
         for i0 in 0..n {
             if consumed[j0 * n + i0] || culled[idx(i0 as i64, j0 as i64)] {
                 continue;
             }
-            let span0 = spans[idx(i0 as i64, j0 as i64)];
+            let Some(key0) = surf(i0 as i64, j0 as i64) else {
+                continue;
+            };
             let mut w = 1;
             while i0 + w < n
                 && !consumed[j0 * n + i0 + w]
                 && !culled[idx((i0 + w) as i64, j0 as i64)]
-                && spans[idx((i0 + w) as i64, j0 as i64)] == span0
+                && surf((i0 + w) as i64, j0 as i64) == Some(key0)
             {
                 w += 1;
             }
@@ -897,7 +920,7 @@ fn build_far_tile_mesh(
                     let (ii, jj) = ((i0 + k) as i64, (j0 + h) as i64);
                     if consumed[(j0 + h) * n + i0 + k]
                         || culled[idx(ii, jj)]
-                        || spans[idx(ii, jj)] != span0
+                        || surf(ii, jj) != Some(key0)
                     {
                         break 'grow;
                     }
@@ -911,7 +934,7 @@ fn build_far_tile_mesh(
             }
             let (x0, x1) = (ox + i0 as i64 * stride, ox + (i0 + w) as i64 * stride);
             let (z0, z1) = (oz + j0 as i64 * stride, oz + (j0 + h) as i64 * stride);
-            let ty = f64::from(span0.top);
+            let ty = f64::from(key0.0);
             // +Y top, ccw seen from above (matches the near mesher's +Y winding).
             push_quad(
                 [
@@ -921,8 +944,41 @@ fn build_far_tile_mesh(
                     [x1 as f64, ty, z0 as f64],
                 ],
                 [0, 1, 0],
-                span0.block,
+                key0.1,
             );
+        }
+    }
+
+    // --- Deeper-span top faces + exposed bottom faces -----------------------
+    // Deeper spans (overhangs/bridges from reduced nodes) are sparse relative
+    // to the field, so their faces go out per-cell without greedy merging (a
+    // filed polish item, journal/0070).
+    for j in 0..n as i64 {
+        for i in 0..n as i64 {
+            if culled[idx(i, j)] {
+                continue;
+            }
+            let (x0, x1) = ((ox + i * stride) as f64, (ox + (i + 1) * stride) as f64);
+            let (z0, z1) = ((oz + j * stride) as f64, (oz + (j + 1) * stride) as f64);
+            for (si, s) in stacks[idx(i, j)].iter().enumerate() {
+                if si > 0 {
+                    let ty = f64::from(s.top);
+                    push_quad(
+                        [[x0, ty, z0], [x0, ty, z1], [x1, ty, z1], [x1, ty, z0]],
+                        [0, 1, 0],
+                        s.block,
+                    );
+                }
+                if s.bottom != FAR_BOTTOM_UNBOUNDED {
+                    let by = f64::from(s.bottom);
+                    // −Y underside, ccw seen from below.
+                    push_quad(
+                        [[x0, by, z0], [x1, by, z0], [x1, by, z1], [x0, by, z1]],
+                        [0, -1, 0],
+                        s.block,
+                    );
+                }
+            }
         }
     }
 
@@ -937,75 +993,142 @@ fn build_far_tile_mesh(
         (0, 1, [0, 0, 1], 2),
         (0, -1, [0, 0, -1], 3),
     ];
+    let mut pieces: Vec<(i32, i32)> = Vec::new();
     for j in 0..n as i64 {
         for i in 0..n as i64 {
             if culled[idx(i, j)] {
                 continue;
             }
-            let top = spans[idx(i, j)].top;
-            let block = spans[idx(i, j)].block;
+            let stack = &stacks[idx(i, j)];
             for (di, dj, normal, edge_ix) in dirs {
                 let (ni, nj) = (i + di, j + dj);
-                let neighbor_top = spans[idx(ni, nj)].top;
+                let neighbor = &stacks[idx(ni, nj)];
                 let neighbor_culled = culled[idx(ni, nj)];
                 let out_of_tile = !(0..n as i64).contains(&ni) || !(0..n as i64).contains(&nj);
                 let ring_edge = out_of_tile && ring_edges[edge_ix];
 
-                let bottom = if neighbor_culled {
-                    // Near/far seam: the near field covers the neighbour, so drop
-                    // a skirt to hide the handoff crack (never step *up* to it).
-                    top - skirt
-                } else if ring_edge {
-                    // Ring/world outer boundary: down to the neighbour, then a
-                    // skirt below to cover the coarser ring's differing stride.
-                    neighbor_top.min(top) - skirt
-                } else if neighbor_top < top {
-                    // Ordinary exposed step: the taller column walls down to the
-                    // shorter neighbour, emitted once (only the taller side sees
-                    // neighbour < top) — so same-level seams never double-wall.
-                    neighbor_top
-                } else {
-                    continue;
-                };
-                if bottom >= top {
-                    continue;
+                for (si, s) in stack.iter().enumerate() {
+                    pieces.clear();
+                    if neighbor_culled {
+                        // Near/far seam: the near field covers the neighbour, so
+                        // drop a skirt from this span's top to hide the handoff
+                        // crack (never step *up* to it); a bounded span (an
+                        // overhang) walls its full extent.
+                        let bottom = if s.bottom == FAR_BOTTOM_UNBOUNDED {
+                            s.top - skirt
+                        } else {
+                            s.bottom
+                        };
+                        pieces.push((bottom, s.top));
+                    } else if ring_edge && si == 0 {
+                        // Ring/world outer boundary: down to the neighbour, then
+                        // a skirt below to cover the coarser ring's differing
+                        // stride (FF2a rule, on the surface span).
+                        let neighbor_top = neighbor.first().map_or(s.top, |ns| ns.top);
+                        pieces.push((neighbor_top.min(s.top) - skirt, s.top));
+                    } else {
+                        // Ordinary exposed step, generalized to stacks: the
+                        // parts of this span's extent the neighbour's stack
+                        // leaves uncovered. Exposure is disjoint between the
+                        // two sides of a shared plane, so every wall is emitted
+                        // once — single-span stacks reduce to FF2a's "taller
+                        // column walls down to the shorter".
+                        subtract_neighbor_cover(s, neighbor, skirt, &mut pieces);
+                    }
+                    for &(ylo_i, yhi_i) in &pieces {
+                        if yhi_i <= ylo_i {
+                            continue;
+                        }
+                        let (cx0, cx1) =
+                            ((ox + i * stride) as f64, (ox + (i + 1) * stride) as f64);
+                        let (cz0, cz1) =
+                            ((oz + j * stride) as f64, (oz + (j + 1) * stride) as f64);
+                        let (ylo, yhi) = (f64::from(ylo_i), f64::from(yhi_i));
+                        let corners = match normal {
+                            [1, 0, 0] => [
+                                [cx1, ylo, cz0],
+                                [cx1, yhi, cz0],
+                                [cx1, yhi, cz1],
+                                [cx1, ylo, cz1],
+                            ],
+                            [-1, 0, 0] => [
+                                [cx0, ylo, cz1],
+                                [cx0, yhi, cz1],
+                                [cx0, yhi, cz0],
+                                [cx0, ylo, cz0],
+                            ],
+                            [0, 0, 1] => [
+                                [cx1, ylo, cz1],
+                                [cx1, yhi, cz1],
+                                [cx0, yhi, cz1],
+                                [cx0, ylo, cz1],
+                            ],
+                            _ => [
+                                [cx0, ylo, cz0],
+                                [cx0, yhi, cz0],
+                                [cx1, yhi, cz0],
+                                [cx1, ylo, cz0],
+                            ],
+                        };
+                        push_quad(corners, normal, s.block);
+                    }
                 }
-
-                let (cx0, cx1) = ((ox + i * stride) as f64, (ox + (i + 1) * stride) as f64);
-                let (cz0, cz1) = ((oz + j * stride) as f64, (oz + (j + 1) * stride) as f64);
-                let (ylo, yhi) = (f64::from(bottom), f64::from(top));
-                let corners = match normal {
-                    [1, 0, 0] => [
-                        [cx1, ylo, cz0],
-                        [cx1, yhi, cz0],
-                        [cx1, yhi, cz1],
-                        [cx1, ylo, cz1],
-                    ],
-                    [-1, 0, 0] => [
-                        [cx0, ylo, cz1],
-                        [cx0, yhi, cz1],
-                        [cx0, yhi, cz0],
-                        [cx0, ylo, cz0],
-                    ],
-                    [0, 0, 1] => [
-                        [cx1, ylo, cz1],
-                        [cx1, yhi, cz1],
-                        [cx0, yhi, cz1],
-                        [cx0, ylo, cz1],
-                    ],
-                    _ => [
-                        [cx0, ylo, cz0],
-                        [cx0, yhi, cz0],
-                        [cx1, yhi, cz0],
-                        [cx1, ylo, cz0],
-                    ],
-                };
-                push_quad(corners, normal, block);
             }
         }
     }
 
     (mesh, y_ref)
+}
+
+/// The vertical intervals of `span` a neighbour column's stack leaves exposed
+/// — interval subtraction over the neighbour's solid runs, in i64 so the
+/// [`FAR_BOTTOM_UNBOUNDED`] sentinel needs no special cases. A piece left open
+/// at the bottom (a neighbour with no unbounded ground span, which
+/// [`compose_column`] never produces) is defensively clamped to one skirt
+/// below its own top rather than emitting a wall to the abyss.
+fn subtract_neighbor_cover(
+    span: &ColumnSpan,
+    neighbor: &[ColumnSpan],
+    skirt: i32,
+    out: &mut Vec<(i32, i32)>,
+) {
+    let lo = |b: i32| -> i64 {
+        if b == FAR_BOTTOM_UNBOUNDED {
+            i64::MIN
+        } else {
+            i64::from(b)
+        }
+    };
+    let mut pieces: Vec<(i64, i64)> = vec![(lo(span.bottom), i64::from(span.top))];
+    for nspan in neighbor {
+        let (nb, nt) = (lo(nspan.bottom), i64::from(nspan.top));
+        let mut next = Vec::with_capacity(pieces.len() + 1);
+        for (pb, pt) in pieces {
+            if nt <= pb || nb >= pt {
+                next.push((pb, pt));
+                continue;
+            }
+            if pb < nb {
+                next.push((pb, nb));
+            }
+            if nt < pt {
+                next.push((nt, pt));
+            }
+        }
+        pieces = next;
+    }
+    for (pb, pt) in pieces {
+        if pt <= pb {
+            continue;
+        }
+        let top = pt as i32;
+        let bottom = if pb <= i64::from(i32::MIN) {
+            top - skirt
+        } else {
+            pb as i32
+        };
+        out.push((bottom, top));
+    }
 }
 
 /// The viewer's near-field chunk (base-voxel chunk coords) — the granularity at
@@ -1020,9 +1143,13 @@ fn viewer_near_chunk(base: VoxelScale, viewer: DVec3) -> (i64, i64, i64) {
     )
 }
 
-/// Whether a tile is close enough to the viewer that some of its columns could be
-/// culled by near coverage — the band where the coverage cull is viewer-relative
-/// and must be refreshed as the viewer moves.
+/// Whether a tile is close enough to the viewer that its column derivation is
+/// viewer-relative — either the near-coverage cull or the FF2b reduction
+/// standoff ([`REDUCTION_STANDOFF_M`], the larger of the two) could gate some
+/// of its columns — and must therefore be refreshed as the viewer moves. This
+/// is also what walks reduced data in behind a moving player: the tiles just
+/// outside the standoff re-derive on the next near-chunk crossing and pick up
+/// freshly reduced nodes.
 fn tile_in_cull_band(
     base: VoxelScale,
     level: u8,
@@ -1032,7 +1159,7 @@ fn tile_in_cull_band(
     hz: &HorizonConfig,
 ) -> bool {
     far_tile_center_dist(base, level, tx, tz, viewer)
-        < hz.near_cover_r_m() + far_tile_m(base, level)
+        < hz.near_cover_r_m().max(REDUCTION_STANDOFF_M) + far_tile_m(base, level)
 }
 
 /// Stream the worldgen horizon: the voxel-stepped coarse-summary rings (FF2a).
@@ -1054,6 +1181,7 @@ pub fn stream_far_surface(
     origin: Res<FloatingOrigin>,
     horizon: Res<HorizonConfig>,
     mut map: ResMut<FarSurfaceMap>,
+    mut pyramid: ResMut<FarPyramid>,
 ) {
     // Only the worldgen authority has a coarse summary; tear our tiles down when
     // the S1 authority is active (keys 3/4).
@@ -1163,6 +1291,7 @@ pub fn stream_far_surface(
     };
     let build = |commands: &mut Commands,
                  meshes: &mut Assets<Mesh>,
+                 pyramid: &mut FarPyramid,
                  level: u8,
                  tx: i32,
                  tz: i32|
@@ -1170,10 +1299,29 @@ pub fn stream_far_surface(
         // Churn instrument (journal/0051): the far tile is the object the
         // pooling doctrine names, so time its whole build.
         let build_start = std::time::Instant::now();
-        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, hz, &sample);
+        // Per-tile cache of reduced node grids: a tile's 34² columns touch at
+        // most a 3×3 patch of node plan columns, and each grid is derived once.
+        let stride = level_stride(level);
+        let mut node_cache: HashMap<(i32, i32), crate::farpyramid::NodeGrids> = HashMap::new();
+        let mut known = |wx: i64, wz: i64| -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+            let (cvx, cvz) = (wx.div_euclid(stride), wz.div_euclid(stride));
+            let (nx, nz) = (cvx.div_euclid(32) as i32, cvz.div_euclid(32) as i32);
+            let (lx, lz) = (cvx.rem_euclid(32) as usize, cvz.rem_euclid(32) as usize);
+            node_cache
+                .entry((nx, nz))
+                .or_insert_with(|| pyramid.known_node_grids(level, nx, nz))
+                .iter()
+                .map(|(ny, grid)| {
+                    let ext = 32 * stride as i32;
+                    (ny * ext, (ny + 1) * ext, grid[lz * 32 + lx].clone())
+                })
+                .collect()
+        };
+        let (stacks, culled) =
+            tile_column_stacks(base, level, tx, tz, viewer, hz, &sample, &mut known);
         let ring_edges = ring_edges_of(level, tx, tz);
         let (mesh_data, y_ref) =
-            build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges);
+            build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges);
         let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
         if mesh_data.is_empty() {
             churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
@@ -1215,7 +1363,7 @@ pub fn stream_far_surface(
         if budget == 0 {
             break;
         }
-        let loaded = build(&mut commands, &mut meshes, level, tx, tz);
+        let loaded = build(&mut commands, &mut meshes, &mut pyramid, level, tx, tz);
         map.loaded.insert((level, tx, tz), loaded);
         budget -= 1;
     }
@@ -1224,7 +1372,7 @@ pub fn stream_far_surface(
             break;
         }
         let old = map.loaded.get(&(level, tx, tz)).and_then(|t| t.entity);
-        let loaded = build(&mut commands, &mut meshes, level, tx, tz);
+        let loaded = build(&mut commands, &mut meshes, &mut pyramid, level, tx, tz);
         if let Some(e) = old {
             commands.entity(e).despawn();
         }
@@ -1374,9 +1522,14 @@ mod tests {
         }
     }
 
-    /// Mesh a tile for tests: derive spans + coverage from `sample`/`viewer`,
-    /// then run the pure mesher. `ring_edges` all false = an interior tile with
-    /// same-level neighbours on every side.
+    /// No reduced nodes anywhere: the pure-synthesis (default) case.
+    fn no_known(_wx: i64, _wz: i64) -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+        Vec::new()
+    }
+
+    /// Mesh a tile for tests: derive stacks + coverage from `sample`/`viewer`
+    /// (no reduced nodes), then run the pure mesher. `ring_edges` all false =
+    /// an interior tile with same-level neighbours on every side.
     fn mesh_tile(
         base: VoxelScale,
         level: u8,
@@ -1387,31 +1540,17 @@ mod tests {
         sample: &dyn Fn(i64, i64) -> (i32, Block),
     ) -> (MeshData, f64) {
         let hz = HorizonConfig::default();
-        let (spans, culled) = tile_column_spans(base, level, tx, tz, viewer, &hz, sample);
-        build_far_tile_mesh(base, level, tx, tz, &spans, &culled, ring_edges)
+        let (stacks, culled) =
+            tile_column_stacks(base, level, tx, tz, viewer, &hz, sample, &mut no_known);
+        build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges)
     }
 
     /// A viewer far enough that `near_covers` never fires — isolates meshing from
     /// the coverage cull.
     const FAR_VIEWER: DVec3 = DVec3::new(1.0e6, 1.0e6, 1.0e6);
 
-    #[test]
-    fn quantize_top_floors_to_the_coarse_lattice() {
-        // Floor to the level's coarse voxel: always ≤ h, exact when aligned, and
-        // never off by a whole coarse voxel (the no-sink downward bias).
-        for level in 0..=4u8 {
-            let s = level_stride(level);
-            for h in -40i32..=40 {
-                let q = quantize_top(h, s);
-                assert_eq!(q % s as i32, 0, "not on the coarse lattice");
-                assert!(q <= h, "quantized top rose above the surface");
-                assert!(
-                    h - q < s as i32,
-                    "quantization error exceeds a coarse voxel"
-                );
-            }
-        }
-    }
+    // `quantize_top`'s floor proof moved to dc-core with the function
+    // (`dc_core::farfield::tests::quantize_top_floors_to_the_coarse_lattice`).
 
     #[test]
     fn far_tile_is_stepped_voxel_columns_not_a_smooth_sheet() {
@@ -1451,6 +1590,120 @@ mod tests {
         for w in &mesh.mat_weights {
             assert_eq!(*w, [1.0, 0.0, 0.0, 0.0]);
         }
+    }
+
+    /// FF2b: a reduced node's overhang stack meshes volumetrically — the
+    /// floating slab gets its own top face, an exposed bottom face (−Y, which
+    /// the FF2a top sheet could never emit), and interval side walls — while
+    /// every synthesized single-span column stays FF2a-exact around it, and
+    /// the reduced ground span fuses with the synthesized ground below the
+    /// node (ungenerated ≠ empty).
+    #[test]
+    fn stacked_columns_mesh_overhangs_with_bottom_faces() {
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        let hz = HorizonConfig::default();
+        let flat = |_wx: i64, _wz: i64| (20i32, Block::Stone);
+        let stride = level_stride(1);
+        let (target_wx, target_wz) = (5 * stride, 5 * stride); // cell (5,5)
+        let mut known = |wx: i64, wz: i64| -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+            if wx == target_wx && wz == target_wz {
+                // Node extent [0, 64): the ground as reduced, plus a floating
+                // slab 40..44 (an overhang the authority would reduce to).
+                vec![(
+                    0,
+                    64,
+                    vec![
+                        ColumnSpan {
+                            top: 44,
+                            bottom: 40,
+                            block: Block::Stone,
+                        },
+                        ColumnSpan {
+                            top: 20,
+                            bottom: 0,
+                            block: Block::Stone,
+                        },
+                    ],
+                )]
+            } else {
+                Vec::new()
+            }
+        };
+        let (stacks, culled) =
+            tile_column_stacks(base, 1, 0, 0, FAR_VIEWER, &hz, &flat, &mut known);
+        let m = TILE_CELLS + 2;
+        let k = (5 + 1) * m + (5 + 1);
+        assert_eq!(stacks[k].len(), 2, "composed overhang stack");
+        assert_eq!(
+            stacks[k][1].bottom,
+            FAR_BOTTOM_UNBOUNDED,
+            "reduced ground fuses with the synthesized ground below the node"
+        );
+        let (mesh, y_ref) = build_far_tile_mesh(base, 1, 0, 0, &stacks, &culled, [false; 4]);
+        assert!(
+            mesh.normals.iter().any(|n| n[1] == -1.0),
+            "the overhang's underside must emit a bottom face"
+        );
+        let base_vs = base.voxel_size_m() as f32;
+        let has_top_44 = mesh
+            .positions
+            .iter()
+            .zip(&mesh.normals)
+            .any(|(p, nrm)| nrm[1] > 0.0 && (p[1] + y_ref as f32 - 44.0 * base_vs).abs() < 1e-3);
+        assert!(has_top_44, "the slab's own top face at base voxel 44");
+        // The slab hangs over cell (5,5) only: its four side walls span the
+        // interval 40..44 against single-span neighbours.
+        let wall_at_slab_height = mesh
+            .positions
+            .iter()
+            .zip(&mesh.normals)
+            .filter(|(p, nrm)| {
+                nrm[1] == 0.0 && p[1] + y_ref as f32 > 39.0 * base_vs
+            })
+            .count();
+        assert_eq!(wall_at_slab_height, 16, "four interval walls, four verts each");
+    }
+
+    /// Inside [`REDUCTION_STANDOFF_M`] the floor-quantized synthesis stands
+    /// even where reduced nodes exist — only flooring guarantees the far top
+    /// stays under the near ground, and the near mesh draws in that band —
+    /// and the reduction is not even consulted; beyond it, reduced data wins.
+    #[test]
+    fn reduction_standoff_keeps_near_columns_synthesized() {
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        let hz = HorizonConfig::default();
+        let surf = 20i32;
+        let flat = move |_wx: i64, _wz: i64| (surf, Block::Grass);
+        // Reduction claims one coarse voxel HIGHER than synthesis everywhere
+        // (the legitimate majority-vs-floor disagreement).
+        let calls = std::cell::Cell::new(0usize);
+        let mut known = |_wx: i64, _wz: i64| {
+            calls.set(calls.get() + 1);
+            vec![(
+                0,
+                64,
+                vec![ColumnSpan {
+                    top: 22,
+                    bottom: 0,
+                    block: Block::Stone,
+                }],
+            )]
+        };
+        // Viewer on the surface at the tile centre: the whole extended grid is
+        // inside the standoff — pure synthesis, reduction never asked.
+        let tile_m = far_tile_m(base, 1);
+        let centre = DVec3::new(
+            tile_m * 0.5,
+            f64::from(surf) * base.voxel_size_m(),
+            tile_m * 0.5,
+        );
+        let (stacks, _c) = tile_column_stacks(base, 1, 0, 0, centre, &hz, &flat, &mut known);
+        assert_eq!(calls.get(), 0, "no reduction consulted inside the standoff");
+        assert!(stacks.iter().all(|s| s.len() == 1 && s[0].top == 20));
+        // A distant viewer consults it and the reduced top wins.
+        let (stacks, _c) = tile_column_stacks(base, 1, 0, 0, FAR_VIEWER, &hz, &flat, &mut known);
+        assert!(calls.get() > 0, "reduction consulted beyond the standoff");
+        assert!(stacks.iter().all(|s| s[0].top == 22));
     }
 
     #[test]
@@ -1496,7 +1749,8 @@ mod tests {
         let hz = &HorizonConfig::default();
 
         // A distant viewer culls nothing — the full horizon renders.
-        let (_s, culled_far) = tile_column_spans(base, 1, 0, 0, FAR_VIEWER, hz, &sample);
+        let (_s, culled_far) =
+            tile_column_stacks(base, 1, 0, 0, FAR_VIEWER, hz, &sample, &mut no_known);
         assert!(
             culled_far.iter().all(|c| !c),
             "distant viewer culls no columns"
@@ -1507,12 +1761,13 @@ mod tests {
         // fully covered and meshes to NOTHING — no buried sheet to dig into.
         let tile_m = far_tile_m(base, 1);
         let centre = DVec3::new(tile_m * 0.5, surf_m, tile_m * 0.5);
-        let (spans, culled) = tile_column_spans(base, 1, 0, 0, centre, hz, &sample);
+        let (stacks, culled) =
+            tile_column_stacks(base, 1, 0, 0, centre, hz, &sample, &mut no_known);
         assert!(
             culled.iter().all(|&c| c),
             "a tile under the near field must have all columns culled"
         );
-        let (mesh, _y) = build_far_tile_mesh(base, 1, 0, 0, &spans, &culled, [false; 4]);
+        let (mesh, _y) = build_far_tile_mesh(base, 1, 0, 0, &stacks, &culled, [false; 4]);
         assert!(
             mesh.is_empty(),
             "a fully-covered tile draws nothing (coverage, not buried geometry)"
@@ -1563,10 +1818,10 @@ mod tests {
             let t0 = Instant::now();
             for level in 1..=4u8 {
                 for (tx, tz) in wanted_far_tiles(base, viewer, level, &hz) {
-                    let (spans, culled) =
-                        tile_column_spans(base, level, tx, tz, viewer, &hz, &sample);
+                    let (stacks, culled) =
+                        tile_column_stacks(base, level, tx, tz, viewer, &hz, &sample, &mut no_known);
                     let (mesh, _y) =
-                        build_far_tile_mesh(base, level, tx, tz, &spans, &culled, [true; 4]);
+                        build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, [true; 4]);
                     tiles += 1;
                     per_ring[level as usize] += 1;
                     tris += mesh.triangle_count();
