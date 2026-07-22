@@ -256,3 +256,42 @@ premises changed.
 
 A `spine-audit` sweep greps these and asks, one by one, whether the cited
 constraint is still true.
+
+## A-7. Naming a content identity inside a process
+
+**DECIDED 2026-07-22 (user):** *"default is just the first content pack. So if
+you feel a need for naming a material directly: that's a want for a feature
+that makes the process more robust. Naming directly will never, in any world,
+be correct."*
+
+The backbone this enforces is `geology.md`'s: **"Processes bind to classes, not
+instances. Vanilla geology is just the first geology pack."** A process that
+names `Charcoal`, or `SANDSTONE`, or any specific identity has bound itself to
+one pack's roster and is wrong for every other pack — including ours, later.
+
+**This is not a ratifiable carve-out.** Unlike other deviations it does not go
+to § 4 for the user's blessing, because there is no world in which it is
+correct. It is a defect. What *is* a live question is the one underneath it:
+**which capability is the process missing?**
+
+**The check, and it is a diagnostic rather than a prohibition:** when you feel
+the need to write a content name into a process, stop and ask what property of
+that content you are actually reaching for. That property is the feature the
+process lacks. Name it, and the special case dissolves for every future member
+of the same family.
+
+**Worked instance (2026-07-22, shipped and owed a rework).** `litho_of_tag`
+gained `Biofacies::Charcoal` as a hardcoded exception so a 3 cm fire lamina
+would not define a 460 m erosion cell's lithology. The *reasoning* was sound
+and never mentioned charcoal: **a unit too thin to dominate the cell should not
+define its rock**. That is a **thickness** rule. Charcoal is structurally capped
+at 0.04 m so it is *always* a lamina — the first member of a family, not an
+exception, and volcanic ash and marker beds arrive next. The rule belongs in
+`outcrop_at`'s identity (already a provider seam, identity `units.last()`),
+where it applies to every thin bed with no name in it.
+
+**Two more instances the principle finds on its own** — corroboration that it is
+real rather than a slogan, since both were independently flagged by the seam
+inventory: `Litho::reference_material` (six named rocks standing for every
+material in the world) and `classify::block_twin` (fifteen named materials, with
+a `_ => Block::Stone` arm that silently swallows any pack's additions).

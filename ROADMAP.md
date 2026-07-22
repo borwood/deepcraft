@@ -3202,3 +3202,22 @@ far-field summarization half waits on the octree question.
 - **A window shorter than the period cannot tell flat from oscillating**
   (corrections #34 — journal/0051's famous `0.00 MB/jump` was phase, not
   flatness).
+
+### FIRST THING NEXT SESSION (filed 2026-07-22 at the user's direction)
+
+**Rework the charcoal carve-out into a thickness rule.** `litho_of_tag` and
+`deep_class` carry a hardcoded `Biofacies::Charcoal` exception (journal/0066),
+with the mirror test amended to assert it. It shipped; the integrator accepted
+it as an internal invariant break and should have brought it to the user — it
+is **anti-shape A-7**, a process bound to a content instance, which `spines.md`
+records as *never* ratifiable rather than a carve-out.
+
+The fix: delete both name-keyed exceptions, restore the mirror test to full
+agreement, and put a **thickness-dominance rule** in **`outcrop_at`'s identity**
+(already a provider seam; identity is `units.last()`). A unit too thin to
+dominate a 460 m erosion cell must not define its lithology — general, unnamed,
+and it makes the volcanism work cheaper instead of dearer, since ash falls and
+marker beds are the same family. The dominance threshold is a calibration and
+should say so.
+
+Do **not** unwind the coal/charcoal expression work; it is sound.
