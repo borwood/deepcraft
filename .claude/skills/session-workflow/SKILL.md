@@ -452,3 +452,18 @@ So:
 - **On any red, check source consistency FIRST** (does main's own source
   satisfy the assertion?) before reading it as a defect. Two numbers from two
   worktrees settled this one in a single grep — no rebuild required.
+
+## Hold the build lock around the CARGO INVOCATION, not the work session (2026-07-22)
+
+Two agents collided on `target\.agent-build.lock`: one held it across a long
+stretch of reading and writing code, the other found it >40 min old with no
+live `cargo`/`rustc`, judged it stale **per protocol**, and took it. Both
+followed the rule. The rule was wrong.
+
+- **Acquire immediately before a cargo invocation; release immediately after**,
+  in a `finally`. Never hold it across thinking, editing, or waiting.
+- A holder that must keep it across successive invocations **touches** it
+  between them, so age reflects activity rather than acquisition.
+- The staleness test stays age-based — "no live cargo" is not evidence of
+  abandonment, because a legitimate holder is idle between invocations. That
+  ambiguity is exactly what this rule removes.
