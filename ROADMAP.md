@@ -3240,22 +3240,17 @@ far-field summarization half waits on the octree question.
 
 ### FIRST THING NEXT SESSION (filed 2026-07-22 at the user's direction)
 
-**Rework the charcoal carve-out into a thickness rule.** `litho_of_tag` and
-`deep_class` carry a hardcoded `Biofacies::Charcoal` exception (journal/0066),
-with the mirror test amended to assert it. It shipped; the integrator accepted
-it as an internal invariant break and should have brought it to the user — it
-is **anti-shape A-7**, a process bound to a content instance, which `spines.md`
-records as *never* ratifiable rather than a carve-out.
-
-The fix: delete both name-keyed exceptions, restore the mirror test to full
-agreement, and put a **thickness-dominance rule** in **`outcrop_at`'s identity**
-(already a provider seam; identity is `units.last()`). A unit too thin to
-dominate a 460 m erosion cell must not define its lithology — general, unnamed,
-and it makes the volcanism work cheaper instead of dearer, since ash falls and
-marker beds are the same family. The dominance threshold is a calibration and
-should say so.
-
-Do **not** unwind the coal/charcoal expression work; it is sound.
+**Rework the charcoal carve-out into a thickness rule — DONE (journal/0068).**
+Both name-keyed `Biofacies::Charcoal` exceptions (`litho_of_tag`, `deep_class`)
+are deleted, the mirror test is restored to full agreement, and the general
+**thickness-dominance rule** lives in `outcrop_at`'s identity `exposed_litho`
+(`OUTCROP_DOMINANCE_WINDOW_M = 0.9 m`, a stated calibration). Charcoal is now its
+own `Litho` and never outcrops a cell (measured: 0 of 297 025 Medium cells).
+Authorized goldens moved, including — for the first time — the Small block hash,
+which the brief predicted would not move; see journal/0068 for why (Small runs
+always-on deep time; erosion *geometry* shifted). **Flagged NEEDS RATIFICATION**:
+the Small control moving, and the ~40 % Medium outcrop change (deep-time terrain
+shape). Coal-dig margin improved (16 → 19 vox over a floor of 15).
 
 - **`block_twin` — a process naming fifteen materials** (anti-shape A-7,
   `docs/spines.md`; `dc-core/src/classify.rs:60`). Fifteen named identities plus

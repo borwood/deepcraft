@@ -872,8 +872,8 @@ impl Erosion {
         // record; heir = structural deformation (dip/fold).
         let providers = cfg.providers;
         let per_cell = |i: usize| -> (u8, f64, f64) {
-            let top = strata.get(i).and_then(|s| s.units.last());
-            let l = providers.outcrop_at(top);
+            let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+            let l = providers.outcrop_at(units);
             let k = l.index();
             (k as u8, flow_tab[k], creep_tab[k])
         };
@@ -954,7 +954,7 @@ impl Erosion {
             if band <= 0.0 {
                 return 1.0;
             }
-            let l = providers.outcrop_at(strata.get(i).and_then(|s| s.units.last()));
+            let l = providers.outcrop_at(strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
             1.0 + gain * band * frost_tab[l.index()]
         };
         if self.par() {
@@ -1407,7 +1407,8 @@ impl Erosion {
                 // Deflation: dry, bare cells hand loose cover to the wind. Floor
                 // available cover at zero first — `H` can carry a sub-ULP negative
                 // from fp round-off, and `clamp(0.0, neg)` would panic.
-                let l = providers.outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
+                let l = providers
+                    .outcrop_at(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
                 let avail = grid.h[i].max(0.0);
                 let pickup =
                     (defl * sus_tab[l.index()] * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
@@ -1521,7 +1522,8 @@ impl Erosion {
             let Some(j) = sink else {
                 continue; // not on the coast — no open water adjacent
             };
-            let l = providers.outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
+            let l =
+                providers.outcrop_at(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
             let taper = (1.0 - free / band).clamp(0.0, 1.0);
             let rate = providers.wave_energy(WaveCell {
                 index: i,

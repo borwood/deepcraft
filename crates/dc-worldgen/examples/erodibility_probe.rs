@@ -118,7 +118,7 @@ fn print_stats(label: &str, s: &Stats) {
 /// but its record still says what rock is at the top).
 fn exposure(grid: &DeepGrid) -> Vec<Litho> {
     (0..grid.w * grid.w)
-        .map(|i| exposed_litho(grid.strata.get(i).and_then(|s| s.units.last())))
+        .map(|i| exposed_litho(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice())))
         .collect()
 }
 
@@ -326,7 +326,13 @@ fn erosion_budget(pregen: &Pregen, cfg: &DeepConfig) {
 }
 
 /// One ON/OFF/uniform-control experiment at a given physics calibration.
-fn experiment(label: &str, pregen: &Pregen, base: &DeepConfig, tab: &[f64; 6], ctab: &[f64; 6]) {
+fn experiment(
+    label: &str,
+    pregen: &Pregen,
+    base: &DeepConfig,
+    tab: &[f64; Litho::COUNT],
+    ctab: &[f64; Litho::COUNT],
+) {
     println!("\n================ {label} ================");
     let cfg_off = DeepConfig {
         erodibility: false,

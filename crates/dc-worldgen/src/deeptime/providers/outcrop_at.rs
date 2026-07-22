@@ -2,23 +2,28 @@
 //!
 //! - Owing system: **structural**.
 //! - Granularity: **value-level**, per cell per epoch.
-//! - Identity: [`identity_outcrop_at`] — the top of the record.
+//! - Identity: [`identity_outcrop_at`] — the lithology dominating the record's
+//!   near-surface window.
 //!
 //! The slot's question, heir and identity are documented on the field itself
 //! ([`Providers::outcrop_at`](field@super::Providers::outcrop_at)); this module holds
 //! the identity and whatever payload the slot needs. This one needs none: the
-//! call site already had a value of exactly the right shape
-//! (`Option<&DepUnit>`), which is why it was the cheapest seam to convert.
+//! call site hands the recorded column's unit slice (`&[DepUnit]`), which the
+//! identity reads directly. (It was once the single top unit, `Option<&DepUnit>`;
+//! journal/0068 widened it to the slice so the identity can weigh the whole
+//! near-surface window instead of trusting the topmost bed — the thickness-
+//! dominance rule.)
 
 use crate::deeptime::lithology::{Litho, exposed_litho};
 use crate::deeptime::recorder::DepUnit;
 
 /// **Identity for [`Providers::outcrop_at`](field@super::Providers::outcrop_at)**: the
-/// top of the record, or [`Litho::Basement`] when the column has been stripped
-/// past its whole sedimentary history. This is the pre-seam
-/// [`exposed_litho`](crate::deeptime::lithology::exposed_litho), called
-/// unchanged, under the slot's name so the identity is a *thing* and not a
-/// description.
+/// lithology dominating the topmost
+/// [`OUTCROP_DOMINANCE_WINDOW_M`](crate::deeptime::lithology::OUTCROP_DOMINANCE_WINDOW_M)
+/// of the record, or [`Litho::Basement`] when the column has been stripped past
+/// its whole sedimentary history. This is
+/// [`exposed_litho`](crate::deeptime::lithology::exposed_litho), called under the
+/// slot's name so the identity is a *thing* and not a description.
 ///
 /// ## A rule that used to live here, and no longer needs to
 ///
@@ -37,6 +42,6 @@ use crate::deeptime::recorder::DepUnit;
 /// `#[inline]`, a re-export, or anything else without consequence. The wrapper
 /// survives only because it gives the identity a *name under the slot's own
 /// module*, which is what the module layout is for.
-pub fn identity_outcrop_at(units: Option<&DepUnit>) -> Litho {
+pub fn identity_outcrop_at(units: &[DepUnit]) -> Litho {
     exposed_litho(units)
 }

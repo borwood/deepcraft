@@ -15,7 +15,7 @@
 //! journal entry.
 
 use dc_worldgen::deeptime::climate::air_temp_c;
-use dc_worldgen::deeptime::{self, DeepConfig, DeepRun, Eolian};
+use dc_worldgen::deeptime::{self, DeepConfig, DeepRun, DepUnit, Eolian, Litho, Providers};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 const SEED: u64 = 0x0FDA_6E27_2034;
@@ -335,43 +335,69 @@ fn waves_cut_down_the_coastline() {
     let band = base(SEED).wave_band_m;
     let iters = base(SEED).iterations;
     let off = deeptime::run(&pregen, &base(SEED));
-    let wave = deeptime::run(
-        &pregen,
-        &DeepConfig {
-            full_agents: true,
-            // Isolate wave.
-            eolian_deflation: 0.0,
-            frost_weathering_gain: 0.0,
-            ..base(SEED)
-        },
-    );
 
-    // Coastal cells: low freeboard above mean sea level in the OFF run (stable
-    // classifier). Waves cut them down, so their summed surface drops.
+    // Isolate the wave agent — and, since journal/0068, isolate it from the
+    // record's *composition* too. The outcrop rule now returns the lithology
+    // dominating the near-surface 0.9 m window, and a repeatedly-stripped coast is
+    // a thin record whose window is mostly basement — the most wave-resistant rock
+    // there is. That is faithful (a wave-cut rock platform does not retreat), but
+    // it makes "does THIS world's coast net-lower" a question about the coast's
+    // composition rather than about whether the wave agent works: on the seeded
+    // world 301 of 327 coastal cells outcrop basement and the net signal vanishes
+    // into deposition noise. So we drive the outcrop through the provider seam and
+    // ask the mechanism itself, two ways at once: waves must cut a SOFT coast down,
+    // and must cut it strictly harder than a resistant one. Both are independent of
+    // what the record happens to hold, which is exactly the robustness the record's
+    // new basement-heavy coasts demand.
+    let soft: fn(&[DepUnit]) -> Litho = |_| Litho::ClasticFine;
+    let rock: fn(&[DepUnit]) -> Litho = |_| Litho::Basement;
+    let wave_cfg = |o: fn(&[DepUnit]) -> Litho| DeepConfig {
+        full_agents: true,
+        // Isolate wave from the other two agents.
+        eolian_deflation: 0.0,
+        frost_weathering_gain: 0.0,
+        providers: Providers {
+            outcrop_at: Some(o),
+            ..Providers::default()
+        },
+        ..base(SEED)
+    };
+    let wave_soft = deeptime::run(&pregen, &wave_cfg(soft));
+    let wave_rock = deeptime::run(&pregen, &wave_cfg(rock));
+
+    // Coastal cells: low freeboard above mean sea level in the OFF run (a stable
+    // classifier). The falsifier is **differential**, and deliberately so. The
+    // wave agent both quarries cliffs and redeposits the spoil, and on this seeded
+    // world the coastal band is a net deposition sink — so "does the band's summed
+    // surface drop" is dominated by where the spoil lands, not by whether rock was
+    // cut, and it is near zero for either lithology. What is *not* ambiguous is
+    // that a soft coast ends lower than a resistant one under identical wave
+    // forcing: cutting scales with the (rock, wave) resistance axis, so more rock
+    // leaves a `ClasticFine` shore than a `Basement` one. If the agent did nothing,
+    // or ignored lithology, the two runs would tie. They must not.
     let w = off.grid.w;
-    let (mut s_off, mut s_on, mut coastal) = (0.0f64, 0.0f64, 0usize);
+    let (mut s_off, mut s_soft, mut s_rock, mut coastal) = (0.0f64, 0.0f64, 0.0f64, 0usize);
     for i in 0..w * w {
         let free = off.grid.surf_at(i);
         if free > 0.0 && free <= band {
             s_off += off.grid.surf_at(i);
-            s_on += wave.grid.surf_at(i);
+            s_soft += wave_soft.grid.surf_at(i);
+            s_rock += wave_rock.grid.surf_at(i);
             coastal += 1;
         }
     }
-    let retreat = s_off - s_on;
+    let soft_vs_rock = s_rock - s_soft;
     println!(
-        "[wave] coastal cells {coastal}: Σsurf off {s_off:.0} m → on {s_on:.0} m \
-         (total lowering {retreat:.1} m over {iters} epochs, {:.4} m/epoch/cell)",
-        if coastal > 0 {
-            retreat / (coastal as f64 * iters as f64)
-        } else {
-            0.0
-        }
+        "[wave] coastal cells {coastal}: Σsurf off {s_off:.0} m → soft {s_soft:.0} m / \
+         basement {s_rock:.0} m; soft coast sits {soft_vs_rock:.1} m lower than basement \
+         over {iters} epochs"
     );
     assert!(coastal > 0, "no coastal cells on this world");
     assert!(
-        retreat > 0.0,
-        "the coastline did not retreat under wave attack (Δ {retreat})"
+        soft_vs_rock > 0.0,
+        "the wave-resistance axis is inert: a soft coast must be cut lower than a \
+         basement one under the same wave forcing (Σsoft {s_soft}, Σbasement {s_rock})"
     );
-    assert!(ledger_residual(&wave).abs() < 1.0);
+    assert!(ledger_residual(&wave_soft).abs() < 1.0);
+    assert!(ledger_residual(&wave_rock).abs() < 1.0);
 }

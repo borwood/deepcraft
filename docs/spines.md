@@ -302,7 +302,10 @@ define its rock**. That is a **thickness** rule. Charcoal is structurally capped
 at 0.04 m so it is *always* a lamina — the first member of a family, not an
 exception, and volcanic ash and marker beds arrive next. The rule belongs in
 `outcrop_at`'s identity (already a provider seam, identity `units.last()`),
-where it applies to every thin bed with no name in it.
+where it applies to every thin bed with no name in it. **Reworked journal/0068,
+2026-07-22:** both name-keyed exceptions deleted, mirror restored to total, and
+`exposed_litho` now returns the lithology dominating a 0.9 m near-surface window
+— charcoal never outcrops (0 of 297 025 cells), ash/marker beds handled for free.
 
 **Two more instances the principle finds on its own** — corroboration that it is
 real rather than a slogan, since both were independently flagged by the seam

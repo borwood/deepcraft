@@ -215,19 +215,26 @@ pub struct Providers {
     // ───────────────────────────── structural ────────────────────────────
     /// **Which rock is outcropping at this cell?**
     ///
-    /// - *Identity:* [`identity_outcrop_at`] — the last unit of the record, i.e.
-    ///   the record is a flat layer-cake and "exposed" means "topmost deposited".
+    /// - *Identity:* [`identity_outcrop_at`] — the lithology dominating the
+    ///   record's topmost
+    ///   [`OUTCROP_DOMINANCE_WINDOW_M`](super::lithology::OUTCROP_DOMINANCE_WINDOW_M)
+    ///   (0.9 m, one collapse voxel). Walks units down from the surface,
+    ///   accumulating thickness per lithology, and returns the greatest;
+    ///   [`Litho::Basement`] fills any deficit below a short record. A bed too
+    ///   thin to fill the window cannot define the cell's rock — the thickness
+    ///   rule that replaced a name-keyed charcoal carve-out (journal/0068).
     /// - *Heir:* **structural deformation** (the layer-cake / dip-fold term,
     ///   tectonics.md § 8 — per-unit dip re-derived analytically from the chapter
-    ///   table at collapse resolution). Once beds dip, the unit outcropping at a
-    ///   cell is a function of the fold/fault field and the erosion surface, not
-    ///   of stacking order. `lithology.rs` already says so in prose: *"This is the
-    ///   one function structural deformation will change… every other part of
-    ///   this module carries over unaltered."* The seam was pre-identified by its
-    ///   own author; this makes it a socket instead of a sentence.
+    ///   table at collapse resolution). Once beds dip, which units lie in the
+    ///   near-surface window at a cell is a function of the fold/fault field and
+    ///   the erosion surface, not of stacking order. `lithology.rs` already says
+    ///   so in prose: *"This is the one function structural deformation will
+    ///   change… every other part of this module carries over unaltered."* The
+    ///   seam was pre-identified by its own author; this makes it a socket instead
+    ///   of a sentence.
     /// - *Granularity:* value-level, per cell per epoch. It was already a call,
     ///   so the seam costs one indirection and no new work.
-    pub outcrop_at: Option<fn(Option<&DepUnit>) -> Litho>,
+    pub outcrop_at: Option<fn(&[DepUnit]) -> Litho>,
 
     /// **What temperature has this buried unit seen?**
     ///
@@ -364,10 +371,10 @@ impl Providers {
     /// Ask the [`outcrop_at`](field@Self::outcrop_at) slot, falling through to
     /// [`identity_outcrop_at`] when no heir has supplied it.
     #[inline]
-    pub fn outcrop_at(&self, top: Option<&DepUnit>) -> Litho {
+    pub fn outcrop_at(&self, units: &[DepUnit]) -> Litho {
         match self.outcrop_at {
-            Some(f) => f(top),
-            None => identity_outcrop_at(top),
+            Some(f) => f(units),
+            None => identity_outcrop_at(units),
         }
     }
 
@@ -487,7 +494,7 @@ mod tests {
             };
             assert_eq!(p.parent_p(c).to_bits(), identity_parent_p(c).to_bits());
         }
-        assert_eq!(p.outcrop_at(None), identity_outcrop_at(None));
+        assert_eq!(p.outcrop_at(&[]), identity_outcrop_at(&[]));
         for overburden_m in [0.0, 7.999_999_999, 8.0, 512.0] {
             let u = BuriedUnit {
                 index: 5,
@@ -535,7 +542,7 @@ mod tests {
         };
         assert_eq!(p.non_identity_slots(), vec![Slot::OutcropAt]);
         // …and it still generates identically, because it is the same function.
-        assert_eq!(p.outcrop_at(None), identity_outcrop_at(None));
+        assert_eq!(p.outcrop_at(&[]), identity_outcrop_at(&[]));
     }
 
     /// The reshaped report *names* the swapped slots, and names only those —
