@@ -4,6 +4,8 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
+*Last `spine-audit` sweep: 2026-07-22 (first run).*
+
 ## What this file is, and how it differs from the others
 
 | file | answers |
