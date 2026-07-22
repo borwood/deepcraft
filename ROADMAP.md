@@ -3033,6 +3033,20 @@ before any code.
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
 
+- **The dominance flip quantizes smooth gradients — a potential S-4 edge**
+  (user, walk 0071, 2026-07-22; noted, explicitly no call made). Where a
+  deposit thins gradually across country, the outcrop rule's winner-take-all
+  window flips adjacent cells to *discontinuously different* erosion rates at
+  the plurality crossover — an analytic boundary in rate space over a smooth
+  underlying gradation, and unlike the old top-unit rule's noise-like
+  cell-to-cell flips, this one is spatially COHERENT (it follows thickness
+  contours), which is exactly the kind of line S-4 forbids reaching the eye.
+  Candidate continuous variant if it ever shows on screen: blend per-agent
+  susceptibilities by window *share* (a 55/45 basement/fine cell gets a
+  55/45-weighted rate) instead of argmax — cheap, and the argmax rule
+  becomes its limiting case. Watch for rate-boundary landforms in future
+  walks before deciding anything.
+
 - **Texel-edge dither bands on close-pressed walls, anisotropic** (user field
   report, walk 0071, 2026-07-22; asset
   `journal/assets/0071-artifact-texel-edge-jitter-wall.png`; observed at
