@@ -401,3 +401,26 @@ emptied: all land with the change, not after.
 sweep checking the doc against the codebase, prioritising files changed that
 day. That is the other half of the loop: this section keeps the doc *applied*,
 the audit keeps it *true*.
+
+## Measurement agents must write to their worktree EARLY (2026-07-22, incident)
+
+A worktree given with `isolation: "worktree"` is **auto-cleaned if unchanged**.
+A *measurement* agent — one that runs a binary, watches memory, times a ritual —
+naturally writes nothing until it has an answer, so it looks unchanged and its
+worktree can be **deleted out from under it mid-run**. That happened to the
+horizon-6 agent; it restored the worktree itself and kept going, and the only
+reason anyone learned of it was the user asking the agent directly.
+
+**Brief every measurement agent to commit something within its first minutes** —
+a stub results file, the harness, even the plan. Two payoffs: the worktree stops
+looking disposable, and a park costs numbers instead of everything.
+
+**And the integrator lesson, which is the larger one:** an empty worktree is
+**not** evidence that an agent has produced nothing. I read three attempts of
+"empty worktree" as three failures and attached a stopping rule to it; the
+actual cause was external deletion, and the agent was working the whole time.
+This is anti-shape **A-5 in `docs/spines.md`** — an observation with an assumed
+cause, reported as a diagnosis. Before concluding an agent is failing: check
+whether the worktree still exists in `git worktree list`, whether its branch has
+commits, and whether its processes are burning CPU. Ask the agent. Do not infer
+failure from absence.
