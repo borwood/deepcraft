@@ -64,18 +64,44 @@ exactly what it was built to do, at both horizons — and note that the budget i
 **2 360 at horizon 6 and 2 360 at horizon 3**, which is the first falsified
 assumption of this slice (below).
 
-The one honest wrinkle: **+0.54 MB/jump is not 0.00 MB/jump.** 0051 reported a
-flat 1 072 → 1 072 MB over its steady window; the same storm today rises about
-half a megabyte per jump at *both* horizons. It is 50× smaller than the
-pre-eviction +27.4 MB/jump and it is emphatically not the unbounded chunk store
-(that is capped and visibly evicting), but it is not nothing. At 1.8 s per
-jump that is ~18 MB/minute of *continuous* teleporting — a regime no player
-occupies — so the honest framing is a slow residual, not a leak that threatens
-a session. The most likely site is the one journal/0050 already named and left
-open: the `WorldGenerator` collapse caches' far-field-only sampling paths
-(`coarse_surface` / `column_record`) never trigger `evict()`. That predicts
-exactly what was measured — position-keyed, horizon-independent growth. Filed
-to Observed, not chased here; this slice's write-set was the harness.
+The one apparent wrinkle: **+0.54 MB/jump is not 0.00 MB/jump.** 0051 reported
+a flat 1 072 → 1 072 MB over its steady window; the same storm today looked
+like it rose half a megabyte per jump, at *both* horizons. Fifty times smaller
+than the pre-eviction +27.4, and certainly not the chunk store (capped, visibly
+evicting) — but not nothing either, and a slope you cannot explain is a slope
+you have to chase.
+
+## The 200-jump window was the wrong window
+
+So the last run was a single **700-jump, 23-minute** session at horizon 6, and
+it dissolved the wrinkle:
+
+| jump | 50 | 150 | 250 | 350 | 450 | 550 | 650 | 700 |
+|------|---:|----:|----:|----:|----:|----:|----:|----:|
+| RSS (MB) | 1 017 | 1 063 | **984** | 1 075 | 1 127 | **1 046** | 1 136 | 1 166 |
+
+It is a **sawtooth**, not a march. RSS climbs for roughly 250 jumps, drops
+120–180 MB in one step, and climbs again, oscillating in a ~980–1 170 MB band
+for the whole session. Regressed over the full run the slope is **+0.113
+MB/jump** (jumps 50–700) and **+0.074 MB/jump** over the last 300 — an order of
+magnitude below what the 200-jump windows reported, because every one of those
+windows happened to sit **inside a single tooth**. Four runs agreeing on +0.54
+was four runs making the same framing error, not four confirmations. 0051's
+0.00 MB/jump and today's +0.54 are the same phenomenon read at two phases of
+the same oscillation.
+
+Final state of that run: 700 acknowledged teleports, **71 928 chunks evicted**,
+`host_chunks=2224` against `host_budget=2360`, RSS high-water **1 166 MB**,
+exit code **0**, and not one `WARN`, `ERROR`, `DeviceLost` or panic in
+twenty-three minutes.
+
+The residual that survives — ~0.07–0.11 MB/jump — is small enough to be
+allocator hysteresis and is horizon-independent either way. If someone does
+want to chase it, journal/0050 already named the candidate and left it open:
+the `WorldGenerator` collapse caches' far-field-only sampling paths
+(`coarse_surface` / `column_record`) never trigger `evict()`, which predicts
+exactly this shape — position-keyed, indifferent to the horizon. Filed to
+Observed, not chased here; this slice's write-set was the harness.
 
 ## The settle — where the horizon finally is a variable
 
@@ -146,15 +172,17 @@ actually move announces itself.
 
 ## Verdict
 
-**Yes — a long `--horizon 6` session survives.** Client launches across storm
-and idle regimes at both horizons, every one exiting **0**, no `DeviceLost`, no
-panic, no `ERROR` line anywhere.
+**Yes — a long `--horizon 6` session survives.** Eight client launches across
+storm and idle regimes at both horizons, ~80 minutes of runtime including one
+unbroken 23-minute horizon-6 session at 700 teleports, every one exiting **0**,
+no `DeviceLost`, no panic, no `ERROR` line anywhere.
 
-The ceiling, honestly: idle and normal play at horizon 6 are **flat**, so the
-ceiling there is not memory at all. Continuous teleport-storming carries a
-residual +0.54 MB/jump that is horizon-*independent*; from a ~1.1 GB working
-set that is hours of nonstop storming before it matters, and it would matter
-identically at horizon 3. Horizon 8 or 10 should hold on this evidence — what
+The ceiling, honestly: idle at horizon 6 is **flat**, and continuous
+teleport-storming at horizon 6 is a **bounded oscillation** — ~980–1 170 MB,
+sawtoothing, +0.07–0.11 MB/jump of residual trend over 700 jumps. Neither
+regime has a memory ceiling worth naming on a 32 GB machine, and the residual
+is horizon-*independent* — it would read the same at horizon 3. Horizon 8 or
+10 should hold on this evidence — what
 they buy is more constant footprint (704 tiles at 6 came from 288 at 3), and
 that is a footprint question with a known shape, not a leak question. The
 number to watch when someone does try 10 is `far_tiles` at fill, not slope.
@@ -166,4 +194,7 @@ DC_MEM_PROBE=1 dc-client --horizon 6     # storm: teleport +-15 km every 1.8 s
 DC_MEM_PROBE=1 dc-client --horizon 6     # settle: boot, sit still 8 min
 # watch host_chunks/host_budget/far_tiles in the probe; sample RSS externally.
 # alternate 6/3/6/3 rather than running two blocks.
+# and run ONE long session (700 jumps / 23 min): under ~250 jumps you are
+# measuring inside a single tooth of a sawtooth and will read a slope that
+# is not there.
 ```
