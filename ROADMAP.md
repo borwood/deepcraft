@@ -1745,6 +1745,16 @@ What remains is **user decisions**.)*
    is allowed to cut. Whether to raise `erodibility_contrast`, raise the global
    erosion rates (cause 3, "conservative amplitude"), or both, is the user's
    amplitude call — the lever now exists and is a knob.
+   *(2026-07-22: the user noted they have never SEEN a cranked erosion
+   budget — the headroom world exists only inside `erodibility_probe`
+   experiment B; no launch path walks one. Note the term collision: the
+   journal/0040 "amplitude call, answered neither" was TECTONIC amplitude
+   (`thickening_scale`, --amplitude), a different lever. Enabling slice
+   filed: extend 0040's deep-config launch plumbing with a dev erosion-budget
+   flag (weathering / k_transport / k_bedrock ×N, optionally
+   erodibility_contrast) so THIS call can be made from vistas on a same-seed
+   pair. Sequenced after FF2b-minimal lands — dc-client write-set overlap
+   with the in-flight agent.)*
 3. **The four rate coefficients** in `resistance_of_material` (how smash /
    solubility / permeability / cohesion map to each agent's resistance) and the
    contrast/clamp defaults ride **plausible-not-tuned**, same status as S9's
