@@ -1016,3 +1016,106 @@ disk-backed regions, a network authority. **When that lands, the connectivity
 index must treat an absent chunk as UNKNOWN, never as solid**, or eviction will
 manufacture false component boundaries. Full account:
 `docs/spikes/S15-results.md` § group 3, journal/0062.
+
+## 32. "A charcoal band cannot exist in a voxel column, so a charcoal member would be dead content" (2026-07-22)
+
+**Claimed** verbatim in `dc_worldgen::geology::deep_class`'s doc comment
+(journal/0026): *a fire bed is a thin event bed (measured mean ~0.035 m over
+158 310 beds, and **none** of them survives the 0.9 m voxel quantization), so a
+charcoal band cannot exist in a voxel column and a charcoal member would be dead
+content. The honest representation is an inclusion (pore/debris partial) — filed,
+not built.*
+
+**Every clause survives except the load-bearing one.** The beds really are thin
+(re-measured on today's production world: 102 113 beds, mean **0.0289 m**, max
+0.0400 m, and **zero** of them reach even one eighth of a voxel on their own).
+What expired is *"cannot exist"*. It was true of a generator that asked
+`round(tᵢ / 0.9)` per unit and dropped the losers. Since journal/0055 the
+generator asks the question **once per voxel span**, by unbiased **addressed
+stochastic rounding**: a 2.9 cm bed claims `8 × 0.0289 / 0.9 ≈ 0.257` of an
+eighth and therefore wins a whole eighth about a quarter of the times it is
+asked. The mechanism the comment described as the honest answer and filed as
+unbuilt had been built eleven days earlier, by a slice aimed at something else
+entirely, and nobody went back to re-read the filings.
+
+**Measured after routing charcoal to its own class:** 0.39 % of recorded voxel
+spans carry at least one charcoal eighth; 0.0495 % of all allocated eighths in
+the world are charcoal. Small, real, and exactly the inclusion. Fix: journal/0063
+(`CLASS_ORGANIC_CHARCOAL`, `MaterialId::CHARCOAL`).
+
+**The general shape** — and it is the reason this entry is worth more than the
+charcoal: a justification for *not building* something is a claim with a
+shelf life, and it expires silently. A stub gets an inventory entry and an heir;
+a **decision not to build** gets a paragraph in a doc comment and no watcher. The
+comment was still perfectly argued the day it became false.
+
+## 33. "`promote_coal` promotes on seam thickness where burial diagenesis is a function of depth — it is a stub on the wrong axis" (2026-07-22)
+
+**Claimed** in ROADMAP (journal/0060's carried findings) and restated as the
+brief for journal/0063. The diagnosis is right; one *implied* consequence in the
+brief was wrong, and it is worth pinning because it is the kind of thing an
+agent brief gets wrong by optimism.
+
+The brief said moving to the burial axis would *move* coal placement and asked
+which columns "gain or lose" it. The measured answer is not a redistribution, it
+is a **collapse**: 12 892 → 2 216 coal-bearing deep cells, 19 008 → 3 888 units,
+22 459 → 3 773 recorded metres. Nothing gains. That is because thickness and
+burial depth are **not** independent in this record — a thick peat is a peat that
+sat at a quiet, aggrading surface, which is exactly the setting that does *not*
+pile a hundred metres of section on top of it. The old rule was not sampling a
+noisy version of the right answer; it was selecting close to the complement of
+it.
+
+The second, self-inflicted claim: the axis is right but the *number* is not
+Earth's. There is **no geotherm** in the project — the only temperature anywhere
+in the sim is surface air temperature — so this is burial depth, not a P/T path,
+and it cannot express coal **rank**. Of 35 382 peat-derived units in the
+production Medium world, **13** lie under 50 m of section and **one** under 100 m,
+so an Earth-calibrated peat→lignite threshold (10²–10³ m) would produce a world
+with no coal in it at all. `COAL_BURIAL_M = 8.0` is calibrated to this record's
+own burial distribution (its ~90th percentile) and is listed in
+`docs/design/stubs.md` § 14 with a geotherm as its heir.
+
+## 34. "`cargo clean -p <crate>` plus a gate proves the gate saw my code" — the cross-worktree serve (2026-07-22)
+
+**Claimed** implicitly by CLAUDE.md's own remedy for corrections #27: before a
+merge gate, `cargo clean -p <each crate you changed> --release`, then gate. Two
+unstated assumptions ride along — that `-p dc-core` names *this* worktree's
+`dc-core`, and that a gate which does not stop to compile has nothing to compile.
+
+**Falsified, observed directly, with a sibling agent building concurrently into
+the shared `CARGO_TARGET_DIR`.** A `cargo test --workspace --release` from this
+worktree failed with ``no `CLASS_ORGANIC_CHARCOAL` in `materials::geology` `` —
+dc-worldgen from **this** worktree compiled against a `dc-core` that did not
+contain a constant this worktree's `dc-core` had had for an hour. The log is the
+whole story: `Blocking waiting for file lock on build directory`, then
+`Compiling dc-worldgen` **with no `Compiling dc-core` above it**. Re-running the
+identical command once the sibling's build had drained compiled all eight crates
+from this worktree's paths and went green.
+
+**The operational rule, stated without claiming to know cargo's internals:** with
+N worktrees pointed at one `CARGO_TARGET_DIR`, build state is shared and package
+*names* are ambiguous. A `-p` clean and a concurrent sibling build can interleave
+such that one worktree's dependency resolves against another's artifact, and the
+`--release` gate then reports on a chimera. This is corrections #27's family, but
+it is **not** the same failure: #27 was a stale artifact producing a false
+*green*; this produced a false *red* about code that was fine — which is the
+#21 shape — and would have produced a false green just as easily had the two
+sources merely differed rather than failed to link.
+
+**Two remedies, both cheap:**
+
+- **Serialize for real, and re-read the mutex.** `target/.agent-build.lock` was
+  **clobbered** during this slice — this agent created it, and it later contained
+  a different agent's name and timestamp. A create-file mutex you never read back
+  is not a mutex. Check the owner before every cargo call, and wait for
+  `Get-Process cargo,rustc` to be empty before a gate that matters.
+- **Verify the gate by what it BUILT.** Grep the log for the crate you changed —
+  but grep for the right word: `cargo build`/`test` print **`Compiling`**,
+  `cargo clippy` prints **`Checking`**, and a filter that only knows the first
+  will report a clean clippy run as having built nothing. (That mistake was made
+  and corrected inside this very slice; the 9 s clippy finish that looked like a
+  false green was clippy's own check cache, which `clean -p --release` does not
+  remove, plus a grep looking for the wrong verb.) "Did it pass?" and "did it
+  run?" (#27) want a third question in front: **"did it build the code I
+  wrote?"** — asked with the verb that gate actually prints.

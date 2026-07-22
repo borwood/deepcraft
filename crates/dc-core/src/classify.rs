@@ -81,6 +81,16 @@ pub fn block_twin(material: MaterialId) -> Block {
         r if r == MaterialId::COAL.raw() => Block::Coal,
         r if r == MaterialId::PEAT.raw() => Block::Peat,
         r if r == MaterialId::CARBONACEOUS_MUDSTONE.raw() => Block::CarbonaceousMudstone,
+        // Charcoal summarizes to the same coarse black-carbon band as coal. It
+        // gets a twin rather than falling through to `Block::Stone` for one
+        // specific reason: charcoal is an *inclusion* — measured, it wins at
+        // most one eighth of a voxel — and the one place a single eighth can
+        // still decide a block is the top-of-column partial fill, where the
+        // surface voxel may hold only one eighth in the first place. Without a
+        // twin, a burned horizon at the surface would occasionally read as grey
+        // stone. Growing the `Block` vocabulary is a separate content decision;
+        // sharing coal's band is the honest summary in today's one.
+        r if r == MaterialId::CHARCOAL.raw() => Block::Coal,
         // --- soil ---
         r if r == MaterialId::LOAM.raw() => Block::Dirt,
         // No block twin yet: gold dust and olivine are accessory grains that

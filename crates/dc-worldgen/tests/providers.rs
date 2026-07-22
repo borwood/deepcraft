@@ -49,8 +49,19 @@ const SEED: u64 = 0x0B0A_57EE_0059;
 /// FNV-1a-64 over the surface planes of a production `DeepField`, captured from
 /// pre-slice `main` (`2434f37`). See the module docs to re-derive.
 const GOLDEN_SURFACE: u64 = 0x7B89_68FD_90E0_4062;
-/// FNV-1a-64 over the strata record of the same field, same provenance.
-const GOLDEN_RECORD: u64 = 0xA53B_D77F_769D_7FF4;
+/// FNV-1a-64 over the strata record of the same field.
+///
+/// **Re-baselined 2026-07-22 by journal/0063 — authorized, and note what did
+/// NOT move.** The pre-slice value was `0xA53B_D77F_769D_7FF4`
+/// (`main` 2434f37). Coal promotion moved from the seam-thickness axis onto the
+/// burial-depth axis, which retags units in the record and therefore changes
+/// this hash by construction. [`GOLDEN_SURFACE`] is **unchanged**, which is the
+/// informative half: promotion runs at finalize, after every erosion epoch, so
+/// it can move which units are labelled coal and cannot move a metre of ground.
+/// The provider slice's byte-identity proof is intact — it just now sits on top
+/// of one authorized behaviour change, exactly as the goldens in
+/// `contents_contract.rs` do.
+const GOLDEN_RECORD: u64 = 0x7A7B_0528_2017_2C71;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

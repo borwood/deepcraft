@@ -301,6 +301,22 @@ age+environment+province gate that is a deterministic read of the ledger
 
 ## 4. Forms — what survives the 0.9 m sieve (charcoal-style reasoning)
 
+> **AMENDED 2026-07-22 (journal/0063) — "fails the sieve" is no longer a kill
+> condition, only a form condition.** The charcoal precedent this section is
+> named for was *"a fire bed averages ~3 cm, none of them survives the 0.9 m
+> voxel, therefore a charcoal member would be dead content"* — and the
+> **therefore** expired when journal/0055 replaced per-unit rounding with
+> **unbiased addressed stochastic rounding** of a voxel's eighths. A bed that
+> claims 0.26 of an eighth now wins a whole one about a quarter of the times it
+> is asked; charcoal shipped, and measures out at 0.394 % of recorded voxel
+> spans. So a census that finds "this unit is always thinner than a voxel"
+> **selects the inclusion form** — it does not veto the member. Read every
+> **needs-measurement** row below with that substitution: bog iron failing the
+> sieve almost everywhere is a prediction about *form*, and its stated kill
+> condition should be re-read as a question about whether the ore is *findable
+> at a playable rate*, which is a different measurement (eighths per sampled
+> voxel, not units per column).
+
 The 0026 lesson: literature thickness vs the voxel decides whole-block vs
 inclusion, and the verdict is a *measurement*, not a vibe. No census can be
 run from this pass (doc-only); each row states the literature-based

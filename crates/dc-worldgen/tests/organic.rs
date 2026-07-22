@@ -18,8 +18,9 @@
 //! - and organic member selection is registration-order independent.
 
 use dc_core::materials::geology::{
-    self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
-    CLASS_ORGANIC_SOIL, FormationContext, FormationWindow, GeoHabit, GeoMemberDef, GeologySet,
+    self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL,
+    CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL, FormationContext, FormationWindow, GeoHabit,
+    GeoMemberDef, GeologySet,
 };
 use dc_core::{Block, ChunkPos, MaterialId, VoxelContents};
 use dc_worldgen::deeptime::{Biofacies, DeepConfig, EnergyBand};
@@ -38,6 +39,15 @@ const SEED: u64 = 0x0D5E_ED57_2026;
 /// "~19 voxels"), so the bar stays at the old 15, now met by selecting the
 /// strongest seam that surfaces as diggable coal instead of the thickest record
 /// seam.
+///
+/// **Held unchanged through journal/0063 — deliberately, and it was close.**
+/// Moving coal promotion onto the burial axis cut coal by ~5.8×: the census
+/// behind this constant went from **7 647** record seams over 3 m to **88**, and
+/// the strongest diggable seam from 19 collapse-voxels to **16**. The bar is not
+/// lowered, because the claim it defends — *a player can find and dig a coal
+/// seam* — still holds with a voxel to spare. If a future slice makes coal
+/// rarer still, the honest response is to say so and re-baseline with the census
+/// printed, not to quietly slide this number down after each change.
 const MIN_DIGGABLE_COAL_VOX: u32 = 15;
 
 /// N=2 voxel edge, metres. Since journal/0055 the record's thicknesses are
@@ -146,6 +156,8 @@ fn every_biofacies_routes_to_a_class_the_vanilla_set_can_fill() {
         (CLASS_ORGANIC_COAL, MaterialId::COAL),
         (CLASS_ORGANIC_PEAT, MaterialId::PEAT),
         (CLASS_ORGANIC_SOIL, MaterialId::CARBONACEOUS_MUDSTONE),
+        // journal/0063: charcoal stopped wearing its host's identity.
+        (CLASS_ORGANIC_CHARCOAL, MaterialId::CHARCOAL),
     ] {
         let (_, m) = set
             .select(class, &ctx, 0.5)
@@ -428,4 +440,98 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
 /// Does a voxel's canonical contents hold this material in any role?
 fn contents_contain(c: &VoxelContents, m: MaterialId) -> bool {
     c.structure().contains(&m) || c.pore_fill().contains(&m) || c.debris().contains(&m)
+}
+
+/// **Charcoal reaches the ground, as an inclusion and never as a stratum**
+/// (journal/0063).
+///
+/// The claim this replaces was in `deep_class`'s own doc comment: *a charcoal
+/// band cannot exist in a voxel column, so a charcoal member would be dead
+/// content.* That was true of the pre-0055 quantizer, which rounded every
+/// recorded unit to whole voxels on its own; it is false of the addressed
+/// stochastic allocation, under which a 2.9 cm bed claims ~0.26 of an eighth and
+/// wins a whole one about a quarter of the times it is asked.
+///
+/// Two halves, and the second is the one that keeps the fix honest:
+///
+/// 1. charcoal **is present** in the world's contents at all — the falsifier for
+///    "dead content";
+/// 2. and it is **never more than a minority of a voxel** — the falsifier for
+///    the opposite failure, a fire lamina inflating into a bed. A charcoal bed
+///    is structurally capped at `SOIL_MAX × FIRE_CHAR_FRAC = 0.04 m`, i.e. 0.356
+///    of an eighth, so a charcoal-dominant voxel would mean the expression path
+///    invented mass.
+#[test]
+fn charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum() {
+    use dc_core::materials::geology::GeoMemberIdx;
+    use dc_worldgen::fill::{ColumnFill, Plan, allocate, fill_draw};
+
+    let pregen = medium();
+    let set = geology::vanilla();
+    let mut g = WorldGenerator::new(&pregen);
+    let charcoal_members: Vec<GeoMemberIdx> = (0..set.members().len())
+        .map(|i| GeoMemberIdx(i as u16))
+        .filter(|m| set.member(*m).material == MaterialId::CHARCOAL)
+        .collect();
+    assert!(
+        !charcoal_members.is_empty(),
+        "vanilla must register a charcoal member"
+    );
+
+    // Slice recorded columns the way the generator does, over a stride wide
+    // enough to cross several fire-bearing deep cells.
+    let mut spans = 0usize;
+    let mut charcoal_spans = 0usize;
+    let mut worst_eighths = 0u8;
+    for cz in (-2400..2400).step_by(149) {
+        for cx in (-2400..2400).step_by(149) {
+            let col = g.column_record(cx as i64, cz as i64);
+            if col.strata.events.is_empty() {
+                continue;
+            }
+            let cf = ColumnFill::build(&col.strata, VOXEL_M);
+            let (vx, vz) = (cx as i64 * 32, cz as i64 * 32);
+            let surf = i64::from(col.heights[0]);
+            for d in 1..=cf.depth_count() as u32 {
+                spans += 1;
+                let parts: Vec<(usize, u8)> = match cf.plan(d) {
+                    Some(Plan::Single(i)) => vec![(*i, 8u8)],
+                    Some(Plan::Mixed(w)) => {
+                        allocate(w, fill_draw(SEED, vx, surf - i64::from(d), vz))
+                    }
+                    None => continue,
+                };
+                let n: u8 = parts
+                    .iter()
+                    .filter(|(i, _)| {
+                        set.member(col.strata.events[*i].member).material == MaterialId::CHARCOAL
+                    })
+                    .map(|(_, k)| *k)
+                    .sum();
+                if n > 0 {
+                    charcoal_spans += 1;
+                    worst_eighths = worst_eighths.max(n);
+                }
+            }
+        }
+    }
+    println!(
+        "[charcoal] {charcoal_spans} of {spans} recorded voxel spans carry charcoal \
+         ({:.4} %); most eighths in any one voxel: {worst_eighths}",
+        charcoal_spans as f64 * 100.0 / spans.max(1) as f64
+    );
+    assert!(
+        spans > 10_000,
+        "the sample must be big enough to mean something"
+    );
+    assert!(
+        charcoal_spans > 0,
+        "no voxel in the world carries charcoal — the expression path is dead \
+         content again"
+    );
+    assert!(
+        worst_eighths <= 4,
+        "a charcoal lamina claimed {worst_eighths}/8 of a voxel; a fire bed is \
+         capped at 0.04 m (0.356 of an eighth), so the expression path invented mass"
+    );
 }

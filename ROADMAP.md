@@ -7,6 +7,66 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-22 — **Two organic facies get the right axis: coal by burial,
+  charcoal at all** (journal/0063; background implementation agent, worktree for
+  the integrator; gates green — fmt/clippy/test all `--release`, 51 suites /
+  531 passed / 0 failed, +3 new tests). Both of journal/0060's carried findings
+  in one slice, because they are the same doctrine case from opposite sides.
+  **Coal.** `promote_coal` tested the seam's own *thickness* (`>= 0.4 m`) where
+  burial diagenesis is a function of **depth** — a statement about how long the
+  swamp lasted standing in for a statement about what happened to it afterwards,
+  while `CLASS_ORGANIC_COAL`'s own contract said *"the depth axis is the rank
+  axis"* and the overburden was derivable from the record in one pass. Now
+  `Σ` of the overlying units, threshold `COAL_BURIAL_M`. **Measured: coal
+  collapses rather than moves** — 12 892 → 2 216 coal-bearing deep cells
+  (4.52 % → 0.78 %), 19 008 → 3 888 units, 22 459 → 3 773 m, thickest seam
+  15.74 → 14.01 m — because thickness and burial are close to *anti*-correlated
+  here (a thick peat is one that sat at a quiet, low-aggradation surface). The
+  **number** remains a stub (`stubs.md` § 14): there is **no geotherm** in this
+  project, so this is burial depth and not a P/T path, and it cannot express coal
+  **rank**; nor can it use Earth's 10²–10³ m, because 13 of 35 382 peat-derived
+  units in the whole world lie under 50 m of section. 8 m is the ~90th percentile
+  of *this* record's burial distribution. Heir: a geotherm.
+  **Charcoal.** `deep_class` deliberately did not route the `Charcoal` facies,
+  reasoning that a fire bed cannot survive voxel quantization so a charcoal
+  member would be dead content — *and that reason expired on 2026-07-21*, eleven
+  days before anyone re-read it. Since journal/0055 the quantization is unbiased
+  **addressed stochastic rounding**, under which a 2.9 cm bed claims ~0.26 of an
+  eighth and wins a whole one about a quarter of the times it is asked. Verified
+  before building on it: 102 113 beds, mean **0.0289 m**, max **0.0400 m** (a
+  hard structural cap — `SOIL_MAX × FIRE_CHAR_FRAC`), **zero** reaching one
+  eighth alone. Now `CLASS_ORGANIC_CHARCOAL` + `MaterialId::CHARCOAL` +
+  `dc:geo/charcoal`, marked `loose` so it rides the debris multiset like a placer
+  grain rather than claiming a voxel's block identity. **Measured expression:
+  0.394 % of recorded voxel spans carry a charcoal eighth; 0.0495 % of all
+  allocated eighths.** Small, real, exactly the inclusion the retired comment
+  called honest.
+  **One deliberate mirror break, asserted by name:** `litho_of_tag` keeps reading
+  a charcoal unit as its clastic host while `deep_class` expresses the carbon —
+  a 3 cm lamina answers *"what fills these metres"* and has no answer to *"what
+  rock resists this agent over a 460 m cell"*. Making it a `Litho` would hand a
+  whole erosion cell the strength of its thinnest lamina.
+  **Goldens moved, authorized:** both Medium worlds in `contents_contract.rs`
+  (blocks + materials + mixture table; the Small control did not move, no deep
+  record); `providers.rs::GOLDEN_RECORD` — and **`GOLDEN_SURFACE` did not**,
+  which is the informative half, since promotion runs at finalize and cannot move
+  a metre of ground. **Falsified:** corrections #32 (the expired charcoal excuse)
+  and #33 (the coal axis, including this slice's own brief predicting coal would
+  *move* when it collapses).
+  Files: `deeptime/recorder.rs`, `deeptime/biotic.rs`, `deeptime/lithology.rs`,
+  `geology.rs`, `fill.rs`, `pipeline.rs`, `collapse.rs`, `dc-core/materials/
+  {mod,geology}.rs`, `dc-core/classify.rs`, `dc-client/{terrain_material.rs,
+  shaders/terrain_fullbright.wgsl}` (palette-size lockstep guard only),
+  `tools/gen_placeholder_textures.py` + the new `charcoal` pack,
+  `examples/coal_charcoal_probe.rs` (new), tests in `biotic.rs`/`organic.rs`/
+  `erodibility.rs`.
+  **Also falsified in passing: corrections #34** — a `cargo clean -p` plus a
+  concurrent sibling build resolved this worktree's `dc-worldgen` against a
+  **sibling worktree's `dc-core`**, and `target/.agent-build.lock` was observed
+  clobbered by another agent. CLAUDE.md § Gates now says to verify by the crate
+  the log says it built (`Compiling` for build/test, `Checking` for clippy) and
+  to re-read the mutex.
+
 - 2026-07-22 — **S15 — coarse capacity against a lazily generated, evicting
   world** (journal/0062, docs/spikes/S15-results.md; background spike agent,
   worktree branch for the integrator; gates green — fmt/clippy/test all
@@ -122,9 +182,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   three seams is enough to design *for* and not enough to design *from*, and a
   selection channel with no selectors is the same defect in miniature. Two
   findings carried, unfixed by design: `promote_coal` promotes on seam
-  *thickness* where burial diagenesis is a function of *depth*, and `P_FRESH`
-  (the rejuvenation *rate*) is still global now that the pool it restores toward
-  is a plane.
+  *thickness* where burial diagenesis is a function of *depth* (**fixed
+  2026-07-22, journal/0063**), and `P_FRESH` (the rejuvenation *rate*) is still
+  global now that the pool it restores toward is a plane.
 
 - 2026-07-21 — **Distribution-first expression: the record skins the world**
   (journal/0055; user-DECIDED design, materials.md § "integrate the column,

@@ -8,8 +8,8 @@
 //! runs away nor stalls.
 
 use dc_core::materials::geology::{
-    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_COAL,
-    CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
+    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_CHARCOAL,
+    CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
 };
 use dc_worldgen::deeptime::lithology::{Agent, Litho, LithoResistance};
 use dc_worldgen::deeptime::{
@@ -202,6 +202,30 @@ fn litho_routing_matches_the_collapse_tier() {
                             biota,
                             eolian,
                         };
+                        if biota == deeptime::Biofacies::Charcoal {
+                            // **The one deliberate divergence** (journal/0063).
+                            // The collapse tier expresses the carbon; deep time
+                            // keeps reading the host bed, because a 3.5 cm
+                            // lamina cannot set the erodibility of a 460 m cell.
+                            // Asserted by name, not skipped: the exception is
+                            // exactly as pinned as the rule.
+                            assert_eq!(
+                                deep_class(tag),
+                                CLASS_ORGANIC_CHARCOAL,
+                                "charcoal must express as charcoal"
+                            );
+                            let host = DepTag {
+                                biota: deeptime::Biofacies::Mineral,
+                                ..tag
+                            };
+                            assert_eq!(
+                                class_of(litho_of_tag(tag)),
+                                deep_class(host),
+                                "charcoal must erode as its mineral HOST, not as charcoal"
+                            );
+                            seen += 1;
+                            continue;
+                        }
                         assert_eq!(
                             class_of(litho_of_tag(tag)),
                             deep_class(tag),

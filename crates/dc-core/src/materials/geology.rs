@@ -59,9 +59,17 @@ pub const CLASS_ORGANIC_PEAT: &str = "dc:stratum/organic-peat";
 /// control. Vanilla ships one member because our recorded overburdens
 /// (≤ ~100 m) do not span the rank transitions (~1–2 km).
 pub const CLASS_ORGANIC_COAL: &str = "dc:stratum/organic-coal";
+/// Fire residue (the `Charcoal` facies): the carbon a burned landscape leaves
+/// behind. **An inclusion class, by measurement rather than by decree** — a
+/// recorded fire bed averages ~3.5 cm, so a member of this class never fills a
+/// 0.9 m voxel; it competes for a single eighth against the host bed it is a
+/// streak within, and wins one about as often as its share says it should
+/// (journal/0063). That is why it is a class of its own and not a coal member:
+/// the *rock* is unchanged, and a charcoal lamina is not a seam.
+pub const CLASS_ORGANIC_CHARCOAL: &str = "dc:stratum/organic-charcoal";
 
 /// The vanilla classes, in canonical (sorted) order.
-pub fn v1_classes() -> [&'static str; 9] {
+pub fn v1_classes() -> [&'static str; 10] {
     let mut c = [
         CLASS_CLASTIC_FINE,
         CLASS_CLASTIC_COARSE,
@@ -72,6 +80,7 @@ pub fn v1_classes() -> [&'static str; 9] {
         CLASS_ORGANIC_SOIL,
         CLASS_ORGANIC_PEAT,
         CLASS_ORGANIC_COAL,
+        CLASS_ORGANIC_CHARCOAL,
     ];
     c.sort_unstable();
     c
@@ -635,6 +644,27 @@ pub fn vanilla_members() -> Vec<GeoMemberDef> {
             hardness: 0.25,
             erodibility: 0.6,
         },
+        // Charcoal: a fire bed. The window is deliberately wide on every axis.
+        // Temperature and precipitation did their selecting *in the recorder* —
+        // the biotic sim only tagged this unit because a fire actually burned
+        // here, on this fuel load, in this climate — so re-adjudicating the
+        // climate at expression time would double-count the same evidence. And
+        // depth does nothing to charcoal: unlike peat, it does not rank up under
+        // burial, it just sits there being carbon.
+        GeoMemberDef {
+            id: "dc:geo/charcoal".into(),
+            class: CLASS_ORGANIC_CHARCOAL.into(),
+            material: MaterialId::CHARCOAL,
+            window: FormationWindow {
+                temp_c: (-30.0, 50.0),
+                precip: (0.0, 1.0),
+                depth_m: (0.0, 40_000.0),
+            },
+            abundance: 1.0,
+            habit: GeoHabit::Blanket,
+            hardness: 0.05,
+            erodibility: 0.95,
+        },
         // EXEMPT from the pore-packability rule (docs/design/materials.md
         // § Pore packability, DECIDED 2026-07-20): this accessory is emplaced
         // by GENESIS — the olivine crystal grew inside the basalt host — not by
@@ -684,8 +714,9 @@ mod tests {
     #[test]
     fn vanilla_builds_and_selects_each_class() {
         let set = vanilla();
-        // 10 mineral members + the 3 organic ones (journal/0026).
-        assert_eq!(set.members().len(), 13);
+        // 10 mineral members + the 3 organic ones (journal/0026) + charcoal
+        // (journal/0063).
+        assert_eq!(set.members().len(), 14);
         // Every declared class must answer — the classes-as-contracts floor.
         for class in v1_classes() {
             assert!(

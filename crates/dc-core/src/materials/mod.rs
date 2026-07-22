@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 /// clastic, a second coarse clastic, a second intrusive, a second extrusive,
 /// and one accessory mineral + the three **organic** rocks the biotic layer's
 /// facies resolve to; the table widens behind `MaterialId`, the type does not).
-pub const MATERIAL_COUNT: usize = 25;
+pub const MATERIAL_COUNT: usize = 26;
 
 /// Identifier of a granular material in the registry. `u8`-sized: a material
 /// id appears up to 8 times per voxel, so entry compactness matters more than
@@ -100,6 +100,13 @@ impl MaterialId {
     /// horizon. Buried, it is a **paleosol** — the most abundant organic
     /// facies in the record by far.
     pub const CARBONACEOUS_MUDSTONE: MaterialId = MaterialId(24);
+    /// **Charcoal**: the residue of a burned landscape (journal/0063). A fire
+    /// bed is a *thin event bed* — the deep-time recorder's charcoal units
+    /// average ~3.5 cm — so charcoal is never a stratum you stand on; it is an
+    /// **inclusion**, a fraction of an eighth of a voxel competing for a whole
+    /// one under `dc_worldgen::fill`'s addressed stochastic allocation. Light,
+    /// friable, extremely black, and porous enough to be a soil amendment.
+    pub const CHARCOAL: MaterialId = MaterialId(25);
 
     /// A registry-valid id from its raw value; `None` when out of range.
     #[inline]
@@ -508,6 +515,24 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
         extraction_resistance: [3.0, 4.8, 3.9, 2.6, 0.004],
         permeability: 0.03,
         insulation: 0.42,
+        solubility: 0.0,
+    },
+    // Charcoal (journal/0063): burned wood, not a rock. Bulk lump charcoal is
+    // ~350 kg/m³ — lighter than peat's drained 400 — and it is the blackest
+    // thing in the roster (a matte carbon surface reflects less than coal's
+    // vitreous one). It is friable to the point of falling apart in the hand,
+    // so cohesion is near zero and every extraction resistance is the lowest in
+    // the registry; and it is famously porous, which is why it filters water and
+    // why terra preta holds nutrients.
+    MaterialProps {
+        name: "charcoal",
+        albedo: [0.045, 0.042, 0.04],
+        density_kg_m3: 350.0,
+        grain_size_mm: 2.0,
+        cohesion: 0.05,
+        extraction_resistance: [0.3, 0.8, 0.5, 0.4, 2.0],
+        permeability: 0.75,
+        insulation: 0.55,
         solubility: 0.0,
     },
 ];

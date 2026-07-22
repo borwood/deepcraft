@@ -137,6 +137,32 @@ not ossify:
 > axis AS the rank axis so a later pack can fill it without moving a seam, which
 > is the class-share invariant paying rent.
 
+> **SHIP UPDATE 2026-07-22 (journal/0063 — one of those two measurements
+> expired, and the other one was being ignored).** Both roster decisions above
+> have been revisited, and the pattern is worth more than either outcome.
+>
+> **(1) Charcoal now has a class and a member** — `dc:stratum/organic-charcoal`
+> / `dc:geo/charcoal` / `MaterialId::CHARCOAL`. The *measurement* held (today:
+> 102 113 beds, mean 0.0289 m, max 0.0400 m, **none** reaching one eighth alone);
+> what expired was the inference *"and therefore it cannot be expressed"*. That
+> was true of a quantizer that rounded each recorded unit independently. Since
+> journal/0055 the fill allocates a voxel's eighths by **unbiased addressed
+> stochastic rounding**, so a 2.9 cm bed claims ~0.26 of an eighth and wins a
+> whole one about a quarter of the times asked. The § inclusions representation
+> the 0026 note called honest is exactly what shipped — it just did not need a
+> new mechanism, because one had arrived in the meantime. **Measured expression:
+> 0.394 % of recorded voxel spans carry a charcoal eighth.** Precedent to keep:
+> *a resolution argument is a claim about the quantizer, and quantizers change.*
+>
+> **(2) Coal rank still has no ladder, but the class's depth axis is now
+> actually the axis the sim uses.** `promote_coal` had been promoting peat on
+> seam **thickness**, in direct contradiction of the contract quoted above,
+> which is worse than the missing ladder: the class documented depth-is-rank
+> while nothing in the pipeline read depth at all. It now promotes on each unit's
+> own overburden. The ladder still cannot be built — there is **no geotherm** in
+> this project, and 13 of 35 382 peat-derived units lie under 50 m of section —
+> so `stubs.md` § 14 carries the threshold with a geotherm as its heir.
+
 ## Roster, inclusions, and unfilled slots — DECIDED 2026-07-19
 
 - **Rich vanilla mineral roster.** The default pack does not shy away from
