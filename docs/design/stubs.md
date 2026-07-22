@@ -12,6 +12,17 @@ loudness at audit time · blast radius. First audit 2026-07-21 (read-only
 sweep, background agent; integrator-curated). Update this file in the same
 commit as any change that adds, removes, or subsumes a stub.
 
+**Provider slots (2026-07-22, journal/0060).** Some stubs now have a *mechanism*
+and not merely an entry. A **provider slot** is a plain `fn` pointer in
+`deeptime::providers::Providers` — resolved once at world build, carried in
+`DeepConfig`, default-identity — that names the question, names its heir, and
+holds the constant as an explicitly registered *identity* rather than as the
+rule. Three exist (stubs 8 and 13, and the layer-cake sibling gap). A slot does
+not retire a stub; it stops the stub from silently becoming the definition, which
+is ARCHITECTURE.md § *A summary is not an authority* made structural. The general
+registry is deliberately unbuilt — three conversions is not enough to design one
+from.
+
 ---
 
 ## Active stubs
@@ -130,11 +141,23 @@ fire burns a number, not a forest. **Heir:** ecology-pass vegetation members
 with proliferation patterns, consumed by the same mechanisms (ecology.md Note
 2026-07-21). **Blast:** the geography of all organic facies.
 
-### 8. uniform-parent-material-phosphorus
+### 8. uniform-parent-material-phosphorus — **NOW A PROVIDER SLOT, 2026-07-22 (journal/0060)**
 `deeptime/biotic.rs` (initial P pool): every cell starts with the same P —
 granite and basalt pretended equal. Documented only in S10-results (§ design
-choice 12); no live code marker. **Heir:** P keyed on provenance. **Blast:**
-retrogression/paleosol geography (currently player-invisible behind stub 2).
+choice 12); no live code marker. **Heir:** P keyed on parent-material petrology
+(provenance/lithology). **Blast:** retrogression/paleosol geography (currently
+player-invisible behind stub 2).
+
+*Change:* the constant is no longer the rule. `providers::Providers::parent_p`
+is the slot; `identity_parent_p` (uniform `1.0`) is its registered identity, and
+`biotic::P_ROCK_INIT` survives only as the value that identity returns. The slot
+is **pass-level**: `BioticSim::new` materializes a per-cell plane from it once,
+and *both* consumers — the initial pool and the rejuvenation cap that a stripped
+surface restores toward — read the plane rather than the constant. The second of
+those was a live second-order defect: "fresh rock" was capped globally, so even a
+hypothetical P-poor parent material would have been rejuvenated to the P-rich
+maximum. The code marker this entry noted as missing now exists, in the slot's
+doc comment.
 
 ### 9. paleo-sea-level-sinusoid
 `deeptime/grid.rs::sea_level_at`: one deterministic sinusoid (amp 35 m,
@@ -198,12 +221,41 @@ information in presentation but it's far more honest than it was before and
 presentation can be reconsidered later"*) and belongs to the forms presentation
 work, not here.
 
+### 13. one-wave-climate-for-the-whole-planet — **added 2026-07-22 (journal/0060); now a provider slot**
+`deeptime/erosion.rs::Erosion::wave`: the littoral agent cut every shore cell at
+the single global constant `DeepConfig::wave_erosion` (0.05 m/epoch at the
+waterline), tapered by freeboard and scaled by the rock's wave-resistance axis —
+but with **no dependence on where the shore is**. A lee shore inside a 40 km
+inland sea and a west-facing ocean coast at 45° S receive identical attack. Wave
+height is set by **fetch** (open water upwind) and **wind**, and the sim has both
+in reach, so this was the model's most conspicuous "one number where a field
+belongs". Unlisted before this entry — which is exactly the defect the doctrine
+names.
+
+**Now a slot:** `providers::Providers::wave_energy`, identity
+`identity_wave_energy` (hand the configured constant straight back). **Heir:**
+fetch from the S11 body graph × the zonal wind field the eolian agent already
+reads (ROADMAP). **Blast:** coastline morphology — where cliffs retreat, where
+platforms cut, and the marine reworking recorded in every coastal column. Note
+the pre-existing off-switch is preserved and is *not* the seam: `wave_erosion <=
+0.0` still short-circuits the whole agent before any provider is consulted, which
+is what `tests/full_agents.rs`'s byte-identity control depends on.
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural
   deformation of the record (earth-processes § 7) is unbuilt except the
   `unconformity` flag. Every stratum lies horizontal regardless of history.
   Same family as stub 4: the ledger holds what the runtime does not yet say.
+
+  **A socket exists for it as of 2026-07-22 (journal/0060).** The single function
+  the deformation term has to replace — "which unit outcrops here" — is now
+  `providers::Providers::outcrop_at`, whose identity `identity_outcrop_at` is the
+  unchanged `lithology::exposed_litho` (top of the record). Erosion asks the slot,
+  not the function, at all four sites that consult exposed lithology (fluvial
+  incision + creep, periglacial frost, eolian deflation, littoral attack). This
+  does not close the gap — nothing dips yet — but it converts `lithology.rs`'s
+  prose promise ("only the one function changes") into a compile-checked seam.
 
 ## Genesis (permanently legitimate — affirmed, not defects)
 

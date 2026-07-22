@@ -68,7 +68,8 @@
 use dc_sim::statistical::rng::draw_f64;
 
 use super::erosion::Erosion;
-use super::grid::{DeepGrid, SEA_LEVEL_M};
+use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
+use super::providers::ParentCell;
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 
 /// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
@@ -286,6 +287,15 @@ const ARRIVE_HALF: f32 = 0.15;
 /// bare ground it is good at.
 const COMP_FLOOR: f32 = 0.15;
 /// Initial rock-derived phosphorus pool (finite → Walker & Syers depletion).
+///
+/// **This is now the identity value of a provider slot**, not the rule: the pool
+/// is a property of the *parent material*, and a uniform constant is a stand-in
+/// for a petrology that does not exist yet
+/// ([`providers::Providers::parent_p`](super::providers::Providers::parent_p)).
+/// [`BioticSim::new`] materializes a per-cell plane from that slot once, and both
+/// the initial pool and the rejuvenation cap read the plane rather than this
+/// constant. With the identity provider the plane is `1.0` everywhere, so the
+/// arithmetic is bit-for-bit what it was.
 const P_ROCK_INIT: f32 = 1.0;
 /// Initial available P / N / cations on a fresh surface.
 const P_AVAIL_INIT: f32 = 0.06;
@@ -430,14 +440,45 @@ pub struct BioticSim {
     prev_cover: Vec<[f32; ROSTER]>,
     /// Per-cell outcome scratch (reused each epoch).
     out: Vec<Outcome>,
+    /// **The parent-material phosphorus plane** — the rock-P endowment of the
+    /// material each cell's soil is forming on, materialized ONCE from
+    /// [`providers::Providers::parent_p`](super::providers::Providers::parent_p)
+    /// at construction.
+    ///
+    /// This is the *pass-level* half of the provider slice: the value is a
+    /// property of the parent rock and does not change over the run, so calling
+    /// the provider inside the epoch loop would be paying `n × iterations` calls
+    /// for `n` distinct answers. The loop reads this plane by index.
+    ///
+    /// It is both the **initial** pool and the **cap** rejuvenation restores
+    /// toward — a stripped surface exposes fresh parent material, and "fresh"
+    /// means *this cell's* parent material, not a global constant.
+    parent_p: Vec<f32>,
 }
 
 impl BioticSim {
     /// Initialize the biotic state for a grid and turn on the grid's biotic
     /// modifier planes (`bio_weather = 1.0`, `bio_resist = 0.0`), so the very
     /// first erosion step is byte-identical to a biology-free run.
-    pub fn new(grid: &mut DeepGrid, seed: u64, parallel: bool) -> Self {
+    ///
+    /// Also materializes the **parent-material phosphorus plane** from
+    /// [`providers::Providers::parent_p`](super::providers::Providers::parent_p)
+    /// — once, here, never in the epoch loop. Takes the whole [`DeepConfig`]
+    /// rather than a bare seed since 2026-07-22 (journal/0060), because the
+    /// provider set rides in the config.
+    pub fn new(grid: &mut DeepGrid, cfg: &DeepConfig, parallel: bool) -> Self {
+        let (seed, w) = (cfg.seed, grid.w);
         let n = grid.w * grid.w;
+        let parent = cfg.providers.parent_p;
+        let parent_p: Vec<f32> = (0..n)
+            .map(|index| {
+                parent(ParentCell {
+                    index,
+                    gx: index % w,
+                    gy: index / w,
+                }) as f32
+            })
+            .collect();
         grid.bio_weather = vec![1.0f32; n];
         grid.bio_resist = vec![0.0f32; n];
         let blank = Outcome {
@@ -449,15 +490,29 @@ impl BioticSim {
             charcoal: 0.0,
             char_tag: DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Low),
         };
+        let cells: Vec<CellBiota> = parent_p
+            .iter()
+            .map(|p| CellBiota {
+                p_rock: *p,
+                ..CellBiota::default()
+            })
+            .collect();
         Self {
             w: grid.w,
             n,
             parallel,
             seed,
-            cells: vec![CellBiota::default(); n],
+            cells,
             prev_cover: vec![[0.0; ROSTER]; n],
             out: vec![blank; n],
+            parent_p,
         }
+    }
+
+    /// The parent-material phosphorus plane (one entry per cell) this run was
+    /// initialized with — the materialized answer of the `parent_p` provider.
+    pub fn parent_p(&self) -> &[f32] {
+        &self.parent_p
     }
 
     /// The community + soil state of one cell (spike diagnostics / column dumps).
@@ -492,8 +547,10 @@ impl BioticSim {
         let cells = &self.cells;
         let prev = &self.prev_cover;
         let area = ero.area();
-        let compute =
-            |i: usize| -> Outcome { step_cell(i, w, seed, epoch, cells, prev, grid, area) };
+        let parent_p = &self.parent_p;
+        let compute = |i: usize| -> Outcome {
+            step_cell(i, w, seed, epoch, cells, prev, grid, area, parent_p)
+        };
         if self.parallel && self.n >= (1 << 15) {
             use rayon::prelude::*;
             self.out
@@ -576,6 +633,9 @@ fn step_cell(
     prev_cover: &[[f32; ROSTER]],
     grid: &DeepGrid,
     area: &[f64],
+    // The materialized `parent_p` plane — an indexed read, never a provider
+    // call, because parent material does not change inside the epoch loop.
+    parent_p: &[f32],
 ) -> Outcome {
     let gx = i % w;
     let gy = i / w;
@@ -626,12 +686,17 @@ fn step_cell(
     // bearing rock; delivered sediment brings fresh mineral P too. Stable
     // surfaces get neither — they age into deep, P-starved profiles (the
     // Walker & Syers chronosequence, made geographic).
+    //
+    // "Fresh" means *this cell's* parent material: the cap is the `parent_p`
+    // plane, not a global constant (providers.rs § `parent_p`). Identity
+    // provider ⇒ every entry is `P_ROCK_INIT`, so the arithmetic is unchanged.
+    let p_rock_max = parent_p[i];
     if d_surf < 0.0 {
         let strip = (-d_surf) as f32;
         cell.soil = (cell.soil - strip * SOIL_STRIP).max(0.0);
-        cell.p_rock = (cell.p_rock + strip * P_FRESH).min(P_ROCK_INIT);
+        cell.p_rock = (cell.p_rock + strip * P_FRESH).min(p_rock_max);
     } else if mineral_dep > 0.0 {
-        cell.p_rock = (cell.p_rock + mineral_dep as f32 * P_FRESH).min(P_ROCK_INIT);
+        cell.p_rock = (cell.p_rock + mineral_dep as f32 * P_FRESH).min(p_rock_max);
     }
 
     let temp = temperature(grid, gy, surf);

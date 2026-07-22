@@ -372,6 +372,13 @@ pub fn litho_of_tag(tag: DepTag) -> Litho {
 /// record is a flat stack and "exposed" means "last unit"; once beds dip, the
 /// outcropping unit at a cell is a function of the fold/fault field and the
 /// erosion surface, and every other part of this module carries over unaltered.
+///
+/// **Since 2026-07-22 that sentence is a socket rather than a promise**
+/// (journal/0060): erosion no longer calls this function directly, it calls
+/// [`Providers::outcrop_at`](super::providers::Providers::outcrop_at), for which
+/// this function is the registered **identity**. The heir — the layer-cake /
+/// dip-fold term — replaces the slot instead of editing this body, and
+/// `docs/design/stubs.md` carries the entry.
 #[inline]
 pub fn exposed_litho(units: Option<&super::recorder::DepUnit>) -> Litho {
     match units {

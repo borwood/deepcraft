@@ -219,6 +219,22 @@ pub struct DeepConfig {
     /// at 2.5 Myr/iter is effectively instant, so this is a numerical-stability
     /// choice, measured not guessed (§ SPIKE 1/8).
     pub iso_rate: f64,
+    /// **The resolved provider set** ([`super::providers::Providers`]) — the
+    /// slots where an unbuilt system will one day answer a question this sim
+    /// currently answers with a constant (outcropping lithology, littoral wave
+    /// energy, parent-material phosphorus).
+    ///
+    /// Fixed at world creation and carried here so it reaches the run through the
+    /// same `production_config_with` → `build_field_with` → `PregenCtx` path the
+    /// flag overrides use. `Default` is the **identity set**: bit-for-bit the
+    /// pre-seam world (`tests/providers.rs`, goldens from pre-slice `main`).
+    ///
+    /// Generation-affecting, therefore frozen at world creation (ARCHITECTURE.md
+    /// § *The content set is frozen at world creation*, DECIDED 2026-07-22).
+    ///
+    /// Appended last (wire discipline, corrections #3) and `Copy`, so every
+    /// `..DeepConfig::default()` literal in the tree keeps working untouched.
+    pub providers: super::providers::Providers,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -273,6 +289,7 @@ impl Default for DeepConfig {
             thickening_scale: 80.0,
             flex_wavelength_km: 50.0,
             iso_rate: 0.5,
+            providers: super::providers::Providers::default(),
         }
     }
 }
