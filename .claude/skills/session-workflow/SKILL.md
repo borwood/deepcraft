@@ -292,3 +292,60 @@ it at session start, leave it true at session end.
   corrections #26. A brief inherits claims from the corpus, and the corpus can
   be wrong — say "the corpus says X; verify before relying on it" rather than
   stating X as fact, and an agent will check it instead of building on it.
+
+## Seam-first: the process half of "a summary is not an authority"
+
+Added 2026-07-22 (user-directed, after an audit found four instances of the
+same defect in one day). The architecture rule lives in ARCHITECTURE.md §
+"A summary is not an authority"; **this is how to work so you stop producing
+them.**
+
+**The defect class.** A stand-in written because the real answer did not exist
+yet **becomes the definition of the thing**. It is not caught by the stub
+inventory, because a stub looks like a fake — it says placeholder, it names an
+heir — whereas **a leaked requirement looks like working code that passes
+tests**. Four shipped instances: a far-field summarization need that became the
+world's surface material rule; six fixed reference rocks that made the sim
+believe loose regolith is sandstone; a class-string test that became the form
+rule; root cohesion as a rate multiplier instead of a material.
+
+**Write the seam, not the value.** When a system needs an answer another
+system will eventually own, do not inline a constant or a heuristic. Declare a
+**provider**: a named function with an explicit contract, an identity default
+that reproduces today's behaviour exactly, and a doc comment naming its
+**heir** — the unbuilt system expected to supply it. The unbuilt system's
+obligations then become readable at its call sites, which is the point:
+*"the stubbed APIs would be telling us right now what an unbuilt hydro system
+is supposed to supply"* (user).
+
+**Practice, in order:**
+
+1. **Ask the test before committing:** *"if this consumer disappeared tomorrow,
+   would this code still exist in this shape?"* If no, it is a summary wearing
+   an authority's clothes.
+2. **Fallbacks must be identities**, not arbitrary constants, wherever the
+   consumer composes. An identity makes "provider absent" provably free; an
+   arbitrary constant means "absent" and "present but silent" are different
+   worlds and nothing tells you which one you are in. The four deep-sim flags
+   (`biotic`, `erodibility`, `full_agents`, `tectonic_history`) are the proven
+   pattern: empty plane + identity accessor, byte-identity tested.
+3. **Byte-identity is the acceptance test for a conversion**, and the goldens
+   must be captured from *pre-slice* code. Self-captured goldens are circular
+   and this project has a correction on file about exactly that. The integrator
+   re-derives them independently.
+4. **Granularity follows the hot loop.** A provider must never be called inside
+   a hot loop to answer a question that does not change inside that loop —
+   materialize it into a plane at a pass boundary instead. Left implicit, the
+   tenth conversion lands in the innermost loop.
+5. **Socket the constant, not the call site.** Grep the *constant* being
+   replaced, not the function you are editing: a constant used twice (as a seed
+   and as a cap) that is socketed once ships a brand-new leaked requirement
+   inside the slice meant to stop them (journal/0060, `P_ROCK_INIT`).
+6. **Do not build the general mechanism first.** Convert the cheapest cold seam,
+   let it teach the shape, convert three more, *then* generalize. A registry
+   designed before its callers exist is the same mistake in a new coat.
+7. **When a stand-in's justification is a measured constraint, the justification
+   expires when the constraint does.** Charcoal was excluded because no bed
+   survived whole-voxel quantization; partial voxels made that false and the
+   code still encoded the old conclusion, in prose, with nothing to fail.
+   Prose cannot fail a build (corrections #29).

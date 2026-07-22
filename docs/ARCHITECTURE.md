@@ -441,13 +441,26 @@ are visible at its call sites. Derived from the 34-seam inventory
   resource, because the user, not the engine, should own which of two mods
   wins.
 
-**PROPOSED, NOT YET RATIFIED** (integrator; do not build against these):
+- **The resolved provider table is part of world identity** (DECIDED
+  2026-07-22, user). A world generated with a provider and one generated with
+  that provider's identity fallback are **different worlds**, so the manifest
+  records the resolved table *and the answer given to the conflict dialog*.
+  This is forced by the two decisions above: a choice that changes generation
+  must be recorded, or the world stops being reproducible and the frozen-set
+  hard refusal has nothing to check against. A fallback firing at world
+  creation is therefore a permanent fact about that world, not a runtime
+  nicety — it is warned about at creation, recorded, and legible afterwards
+  ("this world was generated with N unresolved providers").
+- **Headless creation resolves last-in-order and logs loudly** (DECIDED
+  2026-07-22, user). The conflict dialog cannot be the only resolution path —
+  worlds are created non-interactively by the test suite (dozens per gate
+  run), by probes, by background agents, and by any future dedicated server.
+  Non-interactive resolution takes the last-in-order provider and logs; because
+  the resolution is recorded in world identity, reproducibility holds either
+  way. Refusing when non-interactive was rejected as contrary to the
+  warn-don't-fail spirit.
 
-- *Providers resolved are part of world identity* — a world generated with a
-  provider and one generated with its identity fallback are different worlds,
-  so the manifest would record the resolved table and the conflict choice.
-  (The conflict dialog appears to force this: a choice that changes generation
-  must be recorded or the world stops being reproducible.)
+**PROPOSED, NOT YET RATIFIED** (integrator; do not build against these):
 - *Providers produce planes; consumers read planes* — a provider used inside a
   hot loop is materialized at a pass boundary, once per iteration, preserving
   the scalar↔parallel byte-identity invariant. Value-level providers legal only
