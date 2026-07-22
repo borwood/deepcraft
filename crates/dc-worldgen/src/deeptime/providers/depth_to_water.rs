@@ -9,7 +9,7 @@
 //!   routes [`wet_at`] to [`identity_wet_index`], the pre-seam three-term proxy.
 //!
 //! The slot's question, heir and identity are documented on the field itself
-//! ([`Providers::depth_to_water`](super::Providers::depth_to_water)). This is
+//! ([`Providers::depth_to_water`](field@super::Providers::depth_to_water)). This is
 //! the widest seam converted so far — four consumers threshold its output — and
 //! journal/0061 § *what the heir must actually supply* states the contract,
 //! including the finding that `wet` is not one quantity but three.
@@ -18,7 +18,7 @@
 /// post-erosion, post-routing state of the deep grid.
 ///
 /// This is a **pass-level** payload — a bundle of *planes*, not a cell — because
-/// the heir ([`Providers::depth_to_water`](super::Providers::depth_to_water)) is
+/// the heir ([`Providers::depth_to_water`](field@super::Providers::depth_to_water)) is
 /// a field and not a per-cell answer. A water table is a solution over a
 /// neighbourhood: it needs the drainage network and the filled surface to know
 /// where water *collects*, which a per-cell payload structurally cannot carry
@@ -51,7 +51,7 @@ pub struct WaterPass<'a> {
     pub filled: &'a [f64],
 }
 
-/// **Identity for [`Providers::depth_to_water`](super::Providers::depth_to_water)**:
+/// **Identity for [`Providers::depth_to_water`](field@super::Providers::depth_to_water)**:
 /// leave the plane *empty*.
 ///
 /// This is the `biotic` / `erodibility` / `full_agents` / `tectonic_history`
@@ -75,7 +75,7 @@ pub fn identity_depth_to_water(_pass: WaterPass<'_>, out: &mut Vec<f32>) {
 /// (`80 m`, `0.20`; `300` cell-units, `0.15`) are a guess, not a measurement,
 /// and they answer in a **dimensionless 0..1 wetness index** rather than in
 /// metres below the surface — which is the units mismatch the heir has to
-/// resolve. See [`Providers::depth_to_water`](super::Providers::depth_to_water)
+/// resolve. See [`Providers::depth_to_water`](field@super::Providers::depth_to_water)
 /// for what the heir must supply.
 ///
 /// Kept bit-for-bit: same operations, same order, same `f64 → f32` cast points.
@@ -87,7 +87,7 @@ pub fn identity_wet_index(moist: f32, surf: f64, area: f64) -> f32 {
 }
 
 /// The wetness at cell `i`: the materialized
-/// [`Providers::depth_to_water`](super::Providers::depth_to_water) plane when
+/// [`Providers::depth_to_water`](field@super::Providers::depth_to_water) plane when
 /// one exists, and the exact pre-seam expression ([`identity_wet_index`]) when
 /// the plane is empty.
 ///

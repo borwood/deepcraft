@@ -9,7 +9,7 @@
 //! - Identity: [`identity_parent_p`] — `1.0` everywhere.
 //!
 //! The slot's question, heir and identity are documented on the field itself
-//! ([`Providers::parent_p`](super::Providers::parent_p)). This slot exists in
+//! ([`Providers::parent_p`](field@super::Providers::parent_p)). This slot exists in
 //! the first slice specifically to make the hot-loop rule concrete: **a provider
 //! must never be called inside a hot loop to answer a question that does not
 //! change inside that loop.**
@@ -26,7 +26,7 @@ pub struct ParentCell {
     pub gy: usize,
 }
 
-/// **Identity for [`Providers::parent_p`](super::Providers::parent_p)**: `1.0`
+/// **Identity for [`Providers::parent_p`](field@super::Providers::parent_p)**: `1.0`
 /// everywhere — a uniform, maximally phosphorus-rich parent material. This is
 /// the true identity: the pre-seam code seeded every cell's rock-P pool from one
 /// constant (`biotic::P_ROCK_INIT`) and capped rejuvenation at the same

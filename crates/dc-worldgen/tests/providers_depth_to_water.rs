@@ -14,7 +14,7 @@ fn the_identity_water_table_slot_leaves_the_plane_empty() {
     let (precip, r, h) = (vec![0.4f32; 9], vec![25.0f64; 9], vec![2.0f64; 9]);
     let (area, recv, filled) = (vec![12.0f64; 9], vec![-1i32; 9], vec![27.5f64; 9]);
     let mut plane = vec![0.5f32; 9];
-    (Providers::default().depth_to_water)(
+    Providers::default().depth_to_water(
         WaterPass {
             w: 3,
             epoch: 0,
@@ -63,7 +63,7 @@ fn the_materialized_proxy_plane_agrees_with_the_inline_proxy() {
     let pregen = production_pregen();
     let mut cfg = deeptime::production_config(&pregen.grid, SEED);
     cfg.providers = Providers {
-        depth_to_water: proxy_plane,
+        depth_to_water: Some(proxy_plane),
         ..Providers::default()
     };
     assert!(
@@ -100,7 +100,7 @@ fn a_non_identity_water_table_reaches_the_run() {
     let base = deeptime::production_config(&pregen.grid, SEED);
     let mut swapped = base;
     swapped.providers = Providers {
-        depth_to_water: drowned,
+        depth_to_water: Some(drowned),
         ..Providers::default()
     };
     // The identity report is what a manifest would record for this world.

@@ -870,10 +870,10 @@ impl Erosion {
         let strata = &grid.strata;
         // The outcrop seam (providers.rs § `outcrop_at`): identity = top of the
         // record; heir = structural deformation (dip/fold).
-        let outcrop_at = cfg.providers.outcrop_at;
+        let providers = cfg.providers;
         let per_cell = |i: usize| -> (u8, f64, f64) {
             let top = strata.get(i).and_then(|s| s.units.last());
-            let l = outcrop_at(top);
+            let l = providers.outcrop_at(top);
             let k = l.index();
             (k as u8, flow_tab[k], creep_tab[k])
         };
@@ -939,7 +939,7 @@ impl Erosion {
         }
         let (w, gain, width) = (self.w, cfg.frost_weathering_gain, cfg.frost_band_width_c);
         let strata = &grid.strata;
-        let outcrop_at = cfg.providers.outcrop_at;
+        let providers = cfg.providers;
         let (r, h) = (&grid.r, &grid.h);
         let per_cell = |i: usize| -> f64 {
             let gy = i / w;
@@ -954,7 +954,7 @@ impl Erosion {
             if band <= 0.0 {
                 return 1.0;
             }
-            let l = outcrop_at(strata.get(i).and_then(|s| s.units.last()));
+            let l = providers.outcrop_at(strata.get(i).and_then(|s| s.units.last()));
             1.0 + gain * band * frost_tab[l.index()]
         };
         if self.par() {
@@ -1361,7 +1361,7 @@ impl Erosion {
             cfg.erodibility_contrast,
             cfg.erodibility_max,
         );
-        let outcrop_at = cfg.providers.outcrop_at;
+        let providers = cfg.providers;
         let (w, thr, sea) = (self.w, cfg.eolian_arid_precip, self.sea_level);
         let (defl, dep_frac) = (cfg.eolian_deflation, cfg.eolian_deposit_frac);
         for gy in 0..w {
@@ -1407,7 +1407,7 @@ impl Erosion {
                 // Deflation: dry, bare cells hand loose cover to the wind. Floor
                 // available cover at zero first — `H` can carry a sub-ULP negative
                 // from fp round-off, and `clamp(0.0, neg)` would panic.
-                let l = outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
+                let l = providers.outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
                 let avail = grid.h[i].max(0.0);
                 let pickup =
                     (defl * sus_tab[l.index()] * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
@@ -1491,8 +1491,7 @@ impl Erosion {
         }
         // The wave-energy seam (providers.rs § `wave_energy`): identity = the
         // configured global rate; heir = fetch (S11 body graph) × zonal wind.
-        let wave_energy = cfg.providers.wave_energy;
-        let outcrop_at = cfg.providers.outcrop_at;
+        let providers = cfg.providers;
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
         let (w, sea) = (self.w, self.sea_level);
@@ -1522,9 +1521,9 @@ impl Erosion {
             let Some(j) = sink else {
                 continue; // not on the coast — no open water adjacent
             };
-            let l = outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
+            let l = providers.outcrop_at(grid.strata.get(i).and_then(|s| s.units.last()));
             let taper = (1.0 - free / band).clamp(0.0, 1.0);
-            let rate = wave_energy(WaveCell {
+            let rate = providers.wave_energy(WaveCell {
                 index: i,
                 gx: gx as usize,
                 gy: gy as usize,
