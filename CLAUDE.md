@@ -70,7 +70,12 @@ cargo test --workspace --release
   — a compile failure is invisible to a test-result filter.
 - **And grep the build log for the crate you changed** (corrections #34) — with
   the right verb: `build`/`test` print **`Compiling dc-x`**, `clippy` prints
-  **`Checking dc-x`**. With several worktrees on one `CARGO_TARGET_DIR`, build
+  **`Checking dc-x`**. **Do NOT anchor the pattern to line start** — cargo
+  indents status lines by three spaces, so `^Compiling` matches nothing and the
+  check reads zero forever (caught 2026-07-22 only because the raw count was
+  reported rather than assumed). Grep the **path** too: the line names the
+  checkout it built from, which is how you tell a worktree's artifact from
+  main's. With several worktrees on one `CARGO_TARGET_DIR`, build
   state is shared and package *names* are ambiguous: a `cargo clean -p` plus a
   concurrent sibling build has been observed resolving this worktree's
   `dc-worldgen` against a **sibling's `dc-core`**. Before a gate that matters,
