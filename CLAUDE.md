@@ -36,7 +36,21 @@ the wrong turns taken, the mechanism discovered, the reasoning behind the
 decision — not a changelog. Especially capture **unique problems and why we
 solved them the way we did** (the combinatorial mixture cap, the year-zero
 ledger handoff, the z-fight mechanism — that caliber). Flag standout threads
-with a `> blogworthy:` line naming the angle. Field reports from walks go to
+with a `> blogworthy:` line naming the angle — and name which **lens** it
+speaks to (user, 2026-07-22; a thread can serve several):
+
+1. **AI-native development** — emergent patterns and best practices of
+   building with agents: briefs as hypotheses, ratification hygiene, the
+   corpus outrunning the assistant.
+2. **Procgen dev against the backdrop of priors** — the weighing of options,
+   costs and benefits of competing architectures; the roads not taken and
+   why.
+3. **Reflexions in a deepsim codebase** — architecture philosophy: sorting
+   areas of concern, who owns what, the right primitives and spines so
+   nothing is bespoke and nothing is a carve-out.
+4. **Respect for earth and anthropological processes** — full gamut
+   geo·paleo·archae·eco·anthro·socia: we are students of it and want to be
+   honest and faithful to it. Field reports from walks go to
 ROADMAP **Observed** first; entries diagnosing them move work to Sequenced.
 Falsified claims get a corrections.md entry in the same commit.
 
