@@ -3154,18 +3154,31 @@ before any code.
   generate) — but likely wants profiling before any architecture is blamed.
 
 - **The dominance flip quantizes smooth gradients — a potential S-4 edge**
-  (user, walk 0071, 2026-07-22; noted, explicitly no call made). Where a
-  deposit thins gradually across country, the outcrop rule's winner-take-all
-  window flips adjacent cells to *discontinuously different* erosion rates at
-  the plurality crossover — an analytic boundary in rate space over a smooth
-  underlying gradation, and unlike the old top-unit rule's noise-like
-  cell-to-cell flips, this one is spatially COHERENT (it follows thickness
-  contours), which is exactly the kind of line S-4 forbids reaching the eye.
-  Candidate continuous variant if it ever shows on screen: blend per-agent
-  susceptibilities by window *share* (a 55/45 basement/fine cell gets a
-  55/45-weighted rate) instead of argmax — cheap, and the argmax rule
-  becomes its limiting case. Watch for rate-boundary landforms in future
-  walks before deciding anything.
+  (user, walk 0071, 2026-07-22) — **RESOLVED by the susceptibility blend
+  (journal/0072), shipped 2026-07-22.** The candidate continuous variant is
+  now the mechanism: erosion's four consumption sites blend the per-agent
+  susceptibility table by the near-surface window's per-`Litho` *shares*
+  (`providers::outcrop_shares`) instead of argmax-then-lookup, so the rate
+  field is continuous where the plurality crossover stepped it — argmax is
+  its limiting case (a uniform window blends to that rock's rate bit for bit).
+  Measured (`examples/outcrop_blend_probe.rs`, Medium): ~18 k former-flip
+  adjacencies dropped into the sub-0.1 rate-jump buckets while genuine
+  basement↔sediment contacts stay sharp; per-epoch refresh +6 % (negligible).
+  Goldens re-baselined (all Medium hashes + the Small block hash, geometry
+  only). Audit site A1, shape-teacher #1 of the threshold-quantization
+  migration.
+  - **NEEDS RATIFICATION (world-scale gameplay consequence):** coal
+    diggability fell. A coaly near-surface window is now recessive (coal is
+    the softest rock, so its *share* pulls the blended rate up, where the old
+    argmax handed a coal-minority window the dominant rock's slower rate), so
+    near-surface coal is preferentially stripped. Medium seed
+    `0x0D5EED572026` census dropped from 88 record seams over 3 m (strongest
+    16 diggable) to **10 record seams over 3 m, strongest 11 diggable
+    collapse-voxels** (≈ 10 m — still eminently diggable; the walk-0071 seam
+    the user cut and called "looks great" was 3). `MIN_DIGGABLE_COAL_VOX`
+    re-baselined 15 → 10 with the census printed (organic.rs), not slid
+    silently. The mechanism rides as-built (no-bandaid); this flags the
+    reduced-coal *appearance* for the user's blessing.
 
 - **Texel-edge dither bands on close-pressed walls, anisotropic** (user field
   report, walk 0071, 2026-07-22; asset

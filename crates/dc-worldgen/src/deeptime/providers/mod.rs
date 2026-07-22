@@ -83,6 +83,7 @@
 //! | slot | granularity | why |
 //! |---|---|---|
 //! | [`Providers::outcrop_at`](field@Providers::outcrop_at) | **value-level** — called per cell per epoch | it was *already* a function call ([`exposed_litho`](super::lithology::exposed_litho)); a pointer indirection replaces a direct call, and nothing else changes |
+//! | [`Providers::outcrop_shares`](field@Providers::outcrop_shares) | **value-level** — called per cell per epoch | the quantity `outcrop_at`'s verdict is the argmax of; erosion reads it for rates and blends the table by share (journal/0072). Same walk, same granularity, same heir — a pinned pair with `outcrop_at` |
 //! | [`Providers::wave_energy`](field@Providers::wave_energy) | **value-level** — called per shore cell per epoch | the shore band is a thin fraction of the grid, and the heir's answer genuinely varies per cell per stand |
 //! | [`Providers::parent_p`](field@Providers::parent_p) | **pass-level** — called `n` times *total*, at [`BioticSim::new`](super::biotic::BioticSim::new) | the value is a property of the parent material, constant over the run; materializing it once as a plane keeps the epoch loop a plain indexed read |
 //! | [`Providers::depth_to_water`](field@Providers::depth_to_water) | **pass-level** — called **once per epoch**, at [`BioticSim::step`](super::biotic::BioticSim::step) | the water table moves with the surface, so it cannot be materialized once for the run like `parent_p`; but the heir is a *field* solved over a neighbourhood, so it cannot be a per-cell call either |
@@ -111,17 +112,24 @@
 pub mod burial_temp_c;
 pub mod depth_to_water;
 pub mod outcrop_at;
+pub mod outcrop_shares;
 pub mod parent_p;
 pub mod wave_energy;
 
 pub use burial_temp_c::{BurialColumn, BuriedUnit, identity_burial_temp_c};
 pub use depth_to_water::{WaterPass, identity_depth_to_water, identity_wet_index, wet_at};
 pub use outcrop_at::identity_outcrop_at;
+pub use outcrop_shares::identity_outcrop_shares;
 pub use parent_p::{ParentCell, identity_parent_p};
 pub use wave_energy::{WaveCell, identity_wave_energy};
 
 use super::lithology::Litho;
 use super::recorder::DepUnit;
+
+/// The near-surface window's per-[`Litho`] share vector — the payload the
+/// `outcrop_shares` seam answers in (and the future `Interpolable` sample type of
+/// `CoarseField`). Named so the `Option<fn>` slot type stays legible.
+pub type WindowShares = [f64; Litho::COUNT];
 
 /// The resolved provider set for one world, fixed at world creation.
 ///
@@ -236,6 +244,29 @@ pub struct Providers {
     ///   so the seam costs one indirection and no new work.
     pub outcrop_at: Option<fn(&[DepUnit]) -> Litho>,
 
+    /// **How much of each rock fills the near-surface window at this cell?**
+    ///
+    /// - *Identity:* [`identity_outcrop_shares`] — the per-[`Litho`] thickness
+    ///   *shares* of the topmost
+    ///   [`OUTCROP_DOMINANCE_WINDOW_M`](super::lithology::OUTCROP_DOMINANCE_WINDOW_M),
+    ///   summing to `1.0` (deficit below a short record → [`Litho::Basement`]).
+    ///   This is the *quantity*
+    ///   [`outcrop_at`](field@Providers::outcrop_at)'s verdict is the argmax of —
+    ///   the two are one [`window_walk`](super::lithology::exposed_litho), and
+    ///   erosion reads this one for its **rates** (blend the susceptibility table
+    ///   by share, journal/0072) rather than collapsing to a label and stepping
+    ///   the rate at the plurality crossover (the S-4 flag, walk-0071).
+    /// - *Heir:* **structural deformation** — the *same* heir as
+    ///   [`outcrop_at`](field@Providers::outcrop_at), and a **pinned pair** with
+    ///   it: once beds dip, which units lie in the near-surface window (and how
+    ///   much of each) is a function of the fold/fault field, so the heir supplies
+    ///   the dipped shares *here* and the verdict slot must stay their argmax.
+    ///   Seaming the quantity (not the verdict) is S-5's corollary — the erosion
+    ///   rate field then dips with the beds, not just the outcrop map.
+    /// - *Granularity:* value-level, per cell per epoch — it rides the same walk
+    ///   the outcrop verdict already did, so no new work beyond the blend.
+    pub outcrop_shares: Option<fn(&[DepUnit]) -> WindowShares>,
+
     /// **What temperature has this buried unit seen?**
     ///
     /// - *Identity:* [`identity_burial_temp_c`] — a **degenerate geotherm**:
@@ -288,6 +319,7 @@ pub enum Slot {
     ParentP,
     // structural
     OutcropAt,
+    OutcropShares,
     BurialTempC,
 }
 
@@ -303,6 +335,7 @@ impl Slot {
         Slot::ParentP,
         // structural
         Slot::OutcropAt,
+        Slot::OutcropShares,
         Slot::BurialTempC,
     ];
 
@@ -319,6 +352,7 @@ impl Slot {
             Slot::ParentP => "parent_p",
             // structural
             Slot::OutcropAt => "outcrop_at",
+            Slot::OutcropShares => "outcrop_shares",
             Slot::BurialTempC => "burial_temp_c",
         }
     }
@@ -378,6 +412,16 @@ impl Providers {
         }
     }
 
+    /// Ask the [`outcrop_shares`](field@Self::outcrop_shares) slot, falling through
+    /// to [`identity_outcrop_shares`] when no heir has supplied it.
+    #[inline]
+    pub fn outcrop_shares(&self, units: &[DepUnit]) -> WindowShares {
+        match self.outcrop_shares {
+            Some(f) => f(units),
+            None => identity_outcrop_shares(units),
+        }
+    }
+
     /// Ask the [`burial_temp_c`](field@Self::burial_temp_c) slot, falling through
     /// to [`identity_burial_temp_c`] when no heir has supplied it.
     #[inline]
@@ -404,6 +448,7 @@ impl Providers {
             Slot::ParentP => self.parent_p.is_some(),
             // structural
             Slot::OutcropAt => self.outcrop_at.is_some(),
+            Slot::OutcropShares => self.outcrop_shares.is_some(),
             Slot::BurialTempC => self.burial_temp_c.is_some(),
         }
     }
@@ -495,6 +540,7 @@ mod tests {
             assert_eq!(p.parent_p(c).to_bits(), identity_parent_p(c).to_bits());
         }
         assert_eq!(p.outcrop_at(&[]), identity_outcrop_at(&[]));
+        assert_eq!(p.outcrop_shares(&[]), identity_outcrop_shares(&[]));
         for overburden_m in [0.0, 7.999_999_999, 8.0, 512.0] {
             let u = BuriedUnit {
                 index: 5,

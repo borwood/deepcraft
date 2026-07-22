@@ -274,6 +274,15 @@ refused exactly this — "three seams is enough to design *for* and not enough t
 design *from*", journal/0060). So the type is *extracted from* conversions, not
 committed ahead of them.
 
+**Shape-teacher #1 — SHIPPED 2026-07-22 (journal/0072).** The blend landed as a
+plain function (`exposed_shares` + `blend_susceptibility`) seamed through a new
+value-level `providers::outcrop_shares` slot (the quantity, paired with
+`outcrop_at`'s verdict under one structural-deformation heir); erosion's four
+sites blend rather than argmax-lookup; goldens re-baselined; coal diggability
+fell (NEEDS RATIFICATION, ROADMAP). The `Interpolable` witness for the eventual
+`CoarseField<T>` is `exposed_shares(units) -> [f64; COUNT]` +
+`blend_susceptibility`. Original plan, kept for the record:
+
 **Shape-teacher #1 (convert first — the cheapest hot seam that teaches move A):
 A1, `exposed_litho` → susceptibility blend.** It is self-contained
 (`lithology.rs` + one consumer in `erosion.rs`), it is the walk-0071 flag so the

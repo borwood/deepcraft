@@ -24,26 +24,25 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 
 /// FNV-1a-64 over the surface planes of a production `DeepField`.
 ///
-/// **Moved 2026-07-22 by the outcrop thickness-dominance rule (journal/0068) —
-/// authorized.** `exposed_litho` stopped trusting the topmost recorded unit and
-/// now returns the lithology *dominating* the record's near-surface 0.9 m window,
-/// with any deficit below a short record reading as basement. That feeds the
-/// erosion susceptibility tables, so ~40 % of deep cells changed the rock they
-/// outcrop and **both** the surface planes and the strata record moved (unlike
-/// journal/0066's coal promotion, which relabelled units at finalize and moved
-/// only the record). Prior values — surface unchanged since pre-slice `main`
-/// (`2434f37`); record last set by journal/0066 — kept for audit:
+/// **Moved 2026-07-22 by the share-weighted susceptibility blend (journal/0072) —
+/// authorized (audit site A1).** Erosion stopped mapping the outcrop *verdict* to
+/// one susceptibility-table entry and now blends the table by the near-surface
+/// window's per-`Litho` **shares** (the `outcrop_shares` seam), so the per-agent
+/// erosion rate field is continuous where the old argmax stepped at the plurality
+/// crossover (the walk-0071 S-4 flag). The rates move the erosion *input*, so both
+/// the surface planes and the strata record moved. Prior values — set by
+/// journal/0068's thickness-dominance rule — kept for audit:
 ///
 /// ```text
-/// GOLDEN_SURFACE 0x7B89_68FD_90E0_4062
-/// GOLDEN_RECORD  0x7A7B_0528_2017_2C71
+/// GOLDEN_SURFACE 0x344C_89FF_023F_7BAE
+/// GOLDEN_RECORD  0xEA71_458F_0AB9_7A05
 /// ```
 ///
 /// See `providers_golden.rs` to re-derive.
-pub const GOLDEN_SURFACE: u64 = 0x344C_89FF_023F_7BAE;
+pub const GOLDEN_SURFACE: u64 = 0x176D_40F1_1CCB_006A;
 /// FNV-1a-64 over the strata record of the same field. Moved with the surface by
-/// journal/0068 — see [`GOLDEN_SURFACE`].
-pub const GOLDEN_RECORD: u64 = 0xEA71_458F_0AB9_7A05;
+/// journal/0072 — see [`GOLDEN_SURFACE`].
+pub const GOLDEN_RECORD: u64 = 0xC9C6_D6F6_E908_9653;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

@@ -439,7 +439,31 @@ pub const OUTCROP_DOMINANCE_WINDOW_M: f64 = 0.9;
 /// this function is the registered **identity**. The heir — the layer-cake /
 /// dip-fold term — replaces the slot instead of editing this body, and
 /// `docs/design/stubs.md` carries the entry.
+///
+/// **And since journal/0072 the verdict is no longer what erosion reads for its
+/// *rates*.** Erosion consumes [`exposed_shares`] (through the
+/// [`outcrop_shares`](super::providers::Providers::outcrop_shares) seam) and
+/// blends the susceptibility table by window share, so the verdict here and the
+/// shares are two faces of one [`window_walk`]. The two seams share a single heir
+/// (structural deformation) and retire as a **pinned pair**: once beds dip, the
+/// heir supplies the dipped shares and the verdict is again their argmax.
 pub fn exposed_litho(units: &[super::recorder::DepUnit]) -> Litho {
+    window_walk(units).1
+}
+
+/// The **window walk**, done once, yielding both faces of the near-surface
+/// section: the per-[`Litho`] accumulated thickness (which always totals exactly
+/// [`OUTCROP_DOMINANCE_WINDOW_M`] — the deficit below a short record is charged to
+/// [`Litho::Basement`]) **and** the exact outcrop verdict (the dominant lithology,
+/// nearest-surface tie-break).
+///
+/// This is the single source both [`exposed_litho`] (the verdict) and
+/// [`exposed_shares`] (the quantity) draw from, so the two can never disagree
+/// about what the window holds: the verdict is, by construction, the argmax of the
+/// shares. Keeping it one walk is also why the `Litho`-verdict path stays
+/// **byte-identical** to the pre-blend rule — the tie-break here is the same
+/// strict-`>` scan over first-met (nearest-surface) order it always was.
+fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Litho) {
     let mut acc = [0.0f64; Litho::COUNT];
     // The distinct lithologies, in the order they are first met walking down from
     // the surface — so the tie-break ("nearest the surface wins") is a strict-`>`
@@ -490,7 +514,102 @@ pub fn exposed_litho(units: &[super::recorder::DepUnit]) -> Litho {
             best_acc = a;
         }
     }
+    (acc, best)
+}
+
+/// The **per-[`Litho`] shares** of the near-surface window: the fraction of the
+/// topmost [`OUTCROP_DOMINANCE_WINDOW_M`] each lithology fills, summing to `1.0`
+/// (the deficit below a short record is [`Litho::Basement`]'s share). This is the
+/// *quantity* the outcrop verdict is the argmax of — the interpolable cause S-4
+/// asks erosion to threshold late on, rather than collapsing to a single label and
+/// stepping the rate at the plurality crossover (journal/0072).
+///
+/// It is the same walk as [`exposed_litho`], normalised: a window that is 100 %
+/// one lithology returns `1.0` for that lithology and `0.0` elsewhere, so
+/// [`blend_susceptibility`] over it reproduces the argmax lookup **bit for bit** —
+/// argmax is the degenerate case of the blend.
+///
+/// Like [`exposed_litho`], this is the one function structural deformation will
+/// change: once beds dip, which units lie in the near-surface window (and how much
+/// of each) is a function of the fold/fault field, and *this* quantity — not just
+/// the verdict — is what the heir must supply, so the blended rate field dips with
+/// the beds too. It is the identity of the
+/// [`Providers::outcrop_shares`](super::providers::Providers::outcrop_shares) slot.
+pub fn exposed_shares(units: &[super::recorder::DepUnit]) -> [f64; Litho::COUNT] {
+    // Divide (not multiply by a reciprocal): the accumulator of a uniform window is
+    // bit-identical to `OUTCROP_DOMINANCE_WINDOW_M`, and `x / x == 1.0` exactly in
+    // IEEE-754 — so a single-lithology window gets share exactly `1.0` and
+    // [`blend_susceptibility`] reproduces the argmax lookup bit for bit. `w * (1/w)`
+    // does not carry that guarantee.
+    let (acc, _) = window_walk(units);
+    acc.map(|a| a / OUTCROP_DOMINANCE_WINDOW_M)
+}
+
+/// The lithology holding the greatest share — the outcrop verdict recovered from a
+/// share vector. Ties break by [`Litho`] table order (index), which differs from
+/// [`exposed_litho`]'s nearest-surface tie-break *only* on exact-thickness ties (a
+/// measure-zero event in a real record); use it where a cheap dominant label over
+/// an already-computed share vector is wanted (e.g. the debug `exposed()` probe),
+/// not where the byte-exact verdict is required — for that, call [`exposed_litho`]
+/// or the [`outcrop_at`](super::providers::Providers::outcrop_at) seam.
+pub fn dominant_litho(shares: &[f64; Litho::COUNT]) -> Litho {
+    let mut best = Litho::ALL[0];
+    let mut best_v = shares[best.index()];
+    for l in Litho::ALL {
+        let v = shares[l.index()];
+        if v > best_v {
+            best_v = v;
+            best = l;
+        }
+    }
     best
+}
+
+/// **Blend a per-[`Litho`] susceptibility table by a window's shares** — the
+/// share-weighted rate S-4 move A prescribes (journal/0072). A cell whose window
+/// is 55 % basement / 45 % fine gets `0.55·basement + 0.45·fine`, so the per-agent
+/// rate field follows the thickness contours continuously instead of stepping at
+/// the plurality crossover. It is a dot product; a uniform window (one share
+/// `1.0`, the rest `0.0`) returns exactly that lithology's table entry, so it is a
+/// strict generalisation of the old `sus_tab[litho.index()]` argmax lookup.
+///
+/// Pure function of the shares and the table — no entropy (this is move A, not the
+/// dithered move B). The share vector is [`Interpolable`]-shaped: this is the blend
+/// operation the future `CoarseField<T>`'s `sample` would carry for a small
+/// blendable struct (audit part 2, shape-teacher #1's witness).
+///
+/// **Anchored at the dominant lithology's rate** — `tab[d] + Σ shares[i]·(tab[i] −
+/// tab[d])`, `d = argmax(shares)` — rather than the bare dot `Σ shares[i]·tab[i]`.
+/// Algebraically identical when the shares sum to `1.0`, but the anchoring makes it
+/// **exact at the two boundaries the invariants pin**, where the bare dot is
+/// sub-ULP off because share normalisation (`acc / w`) does not sum to exactly
+/// `1.0`:
+/// - a **uniform window** (one share `1.0`, `d` = that lithology) → `tab[d]` bit
+///   for bit, so the blend is a strict generalisation of the argmax lookup;
+/// - a **uniform table** (contrast `0` → every entry equal) → that value bit for
+///   bit, so a *neutralised* erodibility coupling is a perfect no-op — every
+///   `tab[i] − tab[d]` is `0`, so no share residue can perturb it
+///   (`erodibility.rs::a_neutral_coupling_is_byte_identical`).
+///
+/// Continuity across the old plurality flip is preserved: at the crossover `d`
+/// switches, but the two anchor formulas agree there (the value is the same convex
+/// combination), so the rate field has no step — see
+/// `tests/outcrop_blend.rs::the_rate_is_continuous_across_the_old_flip`.
+#[inline]
+pub fn blend_susceptibility(shares: &[f64; Litho::COUNT], sus_tab: &[f64; Litho::COUNT]) -> f64 {
+    // The anchor is the dominant lithology's rate (argmax over shares, first-max on
+    // ties — the same choice `dominant_litho` makes).
+    let d = shares.iter().enumerate().fold(
+        0usize,
+        |best, (i, &s)| if s > shares[best] { i } else { best },
+    );
+    let anchor = sus_tab[d];
+    // Fold in index order: bit-for-bit `Σ shares[i]·(tab[i] − anchor)` added onto
+    // the anchor.
+    sus_tab
+        .iter()
+        .zip(shares.iter())
+        .fold(anchor, |acc, (&t, &s)| acc + s * (t - anchor))
 }
 
 /// Per-lithology rate multipliers for one agent, as a dense table indexed by

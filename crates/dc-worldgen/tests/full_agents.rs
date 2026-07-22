@@ -349,15 +349,29 @@ fn waves_cut_down_the_coastline() {
     // and must cut it strictly harder than a resistant one. Both are independent of
     // what the record happens to hold, which is exactly the robustness the record's
     // new basement-heavy coasts demand.
-    let soft: fn(&[DepUnit]) -> Litho = |_| Litho::ClasticFine;
-    let rock: fn(&[DepUnit]) -> Litho = |_| Litho::Basement;
-    let wave_cfg = |o: fn(&[DepUnit]) -> Litho| DeepConfig {
+    // journal/0072: the wave agent reads the outcrop SHARES seam for its rate now
+    // (it blends the susceptibility table by window share), not the verdict
+    // `outcrop_at`. So force the composition through `outcrop_shares` — a one-hot
+    // share vector is a uniform window, which the blend maps to exactly that
+    // lithology's rate (argmax is the blend's limiting case), so this drives the
+    // same soft/resistant contrast the verdict override used to.
+    let soft: fn(&[DepUnit]) -> [f64; Litho::COUNT] = |_| {
+        let mut s = [0.0f64; Litho::COUNT];
+        s[Litho::ClasticFine.index()] = 1.0;
+        s
+    };
+    let rock: fn(&[DepUnit]) -> [f64; Litho::COUNT] = |_| {
+        let mut s = [0.0f64; Litho::COUNT];
+        s[Litho::Basement.index()] = 1.0;
+        s
+    };
+    let wave_cfg = |o: fn(&[DepUnit]) -> [f64; Litho::COUNT]| DeepConfig {
         full_agents: true,
         // Isolate wave from the other two agents.
         eolian_deflation: 0.0,
         frost_weathering_gain: 0.0,
         providers: Providers {
-            outcrop_at: Some(o),
+            outcrop_shares: Some(o),
             ..Providers::default()
         },
         ..base(SEED)
