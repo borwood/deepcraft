@@ -48,7 +48,21 @@ const SEED: u64 = 0x0D5E_ED57_2026;
 /// seam* — still holds with a voxel to spare. If a future slice makes coal
 /// rarer still, the honest response is to say so and re-baseline with the census
 /// printed, not to quietly slide this number down after each change.
-const MIN_DIGGABLE_COAL_VOX: u32 = 15;
+///
+/// **Re-baselined 15 → 10 by the susceptibility blend (journal/0072) — authorized,
+/// and it IS the "future slice" the note above warned about; NEEDS RATIFICATION.**
+/// The share-weighted rate gives any near-surface window that *contains* coal a
+/// rate pulled up toward coal's (coal is the softest rock, so a coaly bed is
+/// recessive), where the old argmax handed a coal-minority window the dominant
+/// rock's slower rate. So near-surface coal is preferentially stripped, and this
+/// Medium seed's census dropped from 88 record seams over 3 m (strongest 16
+/// diggable) to **10 record seams over 3 m, strongest 11 diggable collapse-voxels**
+/// (measured, `--nocapture`). The claim still holds — 11 voxels is ≈ 10 m of coal a
+/// player can dig, and the walk-0071 seam the user cut by hand and called "looks
+/// great" was 3 voxels — so the bar drops to 10 (one voxel of margin under the new
+/// strongest), printed here rather than slid silently. The reduction in coal
+/// diggability is a world-scale gameplay consequence flagged for the user.
+const MIN_DIGGABLE_COAL_VOX: u32 = 10;
 
 /// N=2 voxel edge, metres. Since journal/0055 the record's thicknesses are
 /// metres and the quantization happens once, per voxel span — so a test that

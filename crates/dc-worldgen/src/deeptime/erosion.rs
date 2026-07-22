@@ -868,14 +868,25 @@ impl Erosion {
             self.sus_creep = vec![1.0; self.n];
         }
         let strata = &grid.strata;
-        // The outcrop seam (providers.rs § `outcrop_at`): identity = top of the
-        // record; heir = structural deformation (dip/fold).
+        // The outcrop-shares seam (providers.rs § `outcrop_shares`): identity = the
+        // per-Litho shares of the near-surface window; heir = structural deformation
+        // (dip/fold), a pinned pair with `outcrop_at`. Erosion blends the
+        // susceptibility table by share rather than taking the window's argmax and
+        // stepping the rate discontinuously at the plurality crossover — the S-4
+        // flag from walk-0071, cured by construction (journal/0072). Argmax is the
+        // degenerate case: a single-lithology window blends to that rock's rate bit
+        // for bit. `litho[i]` (the debug outcrop, read by `exposed()`) stays the
+        // dominant share.
         let providers = cfg.providers;
         let per_cell = |i: usize| -> (u8, f64, f64) {
             let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
-            let l = providers.outcrop_at(units);
-            let k = l.index();
-            (k as u8, flow_tab[k], creep_tab[k])
+            let shares = providers.outcrop_shares(units);
+            let k = lithology::dominant_litho(&shares).index() as u8;
+            (
+                k,
+                lithology::blend_susceptibility(&shares, &flow_tab),
+                lithology::blend_susceptibility(&shares, &creep_tab),
+            )
         };
         if self.par() {
             self.litho
@@ -954,8 +965,9 @@ impl Erosion {
             if band <= 0.0 {
                 return 1.0;
             }
-            let l = providers.outcrop_at(strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
-            1.0 + gain * band * frost_tab[l.index()]
+            let shares =
+                providers.outcrop_shares(strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
+            1.0 + gain * band * lithology::blend_susceptibility(&shares, &frost_tab)
         };
         if self.par() {
             self.frost
@@ -1407,11 +1419,11 @@ impl Erosion {
                 // Deflation: dry, bare cells hand loose cover to the wind. Floor
                 // available cover at zero first — `H` can carry a sub-ULP negative
                 // from fp round-off, and `clamp(0.0, neg)` would panic.
-                let l = providers
-                    .outcrop_at(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
+                let shares = providers
+                    .outcrop_shares(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
+                let sus = lithology::blend_susceptibility(&shares, &sus_tab);
                 let avail = grid.h[i].max(0.0);
-                let pickup =
-                    (defl * sus_tab[l.index()] * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
+                let pickup = (defl * sus * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
                 if pickup > 0.0 {
                     grid.h[i] -= pickup;
                     load += pickup;
@@ -1522,8 +1534,8 @@ impl Erosion {
             let Some(j) = sink else {
                 continue; // not on the coast — no open water adjacent
             };
-            let l =
-                providers.outcrop_at(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
+            let shares = providers
+                .outcrop_shares(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
             let taper = (1.0 - free / band).clamp(0.0, 1.0);
             let rate = providers.wave_energy(WaveCell {
                 index: i,
@@ -1531,7 +1543,7 @@ impl Erosion {
                 gy: gy as usize,
                 base_rate,
             });
-            let cut = (rate * sus_tab[l.index()] * taper).min(free);
+            let cut = (rate * lithology::blend_susceptibility(&shares, &sus_tab) * taper).min(free);
             if cut <= 0.0 {
                 continue;
             }

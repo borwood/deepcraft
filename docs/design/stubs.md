@@ -359,11 +359,23 @@ fixed here.
   window here" — is now `providers::Providers::outcrop_at`, whose identity
   `identity_outcrop_at` is `lithology::exposed_litho` — the lithology dominating
   the record's topmost `OUTCROP_DOMINANCE_WINDOW_M` (0.9 m), a thickness rule as
-  of journal/0068, not merely the top unit. Erosion asks the slot,
-  not the function, at all four sites that consult exposed lithology (fluvial
-  incision + creep, periglacial frost, eolian deflation, littoral attack). This
+  of journal/0068, not merely the top unit. This
   does not close the gap — nothing dips yet — but it converts `lithology.rs`'s
   prose promise ("only the one function changes") into a compile-checked seam.
+
+  **Since journal/0072 the socket is a PINNED PAIR** (audit site A1,
+  shape-teacher #1): erosion no longer reads the verdict for its *rates* — it
+  reads `providers::Providers::outcrop_shares`, whose identity
+  `identity_outcrop_shares` is `lithology::exposed_shares` (the per-`Litho`
+  window shares), and blends the susceptibility table by share at all four sites
+  (fluvial incision + creep, periglacial frost, eolian deflation, littoral
+  attack). `outcrop_at` (the verdict) is the argmax of the same shares — two
+  faces of one `window_walk`, one heir. **The deformation term must supply BOTH
+  as a pair** (dipped shares here, and the verdict as their argmax), or the rate
+  field and the outcrop map disagree about where a bed is — the same
+  retire-together discipline S-5's `COAL_ONSET_C`+identity precedent carries.
+  Ideal consolidation when the heir lands: supply `outcrop_shares` and reduce
+  `outcrop_at` to `argmax ∘ outcrop_shares`, collapsing the pair to one slot.
 
 ## Genesis (permanently legitimate — affirmed, not defects)
 

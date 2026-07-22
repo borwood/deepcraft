@@ -124,6 +124,15 @@ the EXPRESSION boundary), and conservation-constrained dither choices, which
 stay per-quantity physics. Audit: docs/audits/
 2026-07-22-threshold-quantization-audit.md.
 
+**A1 converted (shape-teacher #1, journal/0072, 2026-07-22):** the walk-0071
+flag — erosion's argmax-then-lookup susceptibility — now blends the per-agent
+table by the near-surface window's per-`Litho` *shares* (`providers::
+outcrop_shares`, the quantity seam paired with `outcrop_at`'s verdict), so the
+coherent rate boundary is continuous by construction (argmax is the limiting
+case). The blend is a plain function, not `CoarseField` yet (seam-first #6);
+its `exposed_shares → blend_susceptibility` signature is the `Interpolable`
+witness the type will be extracted from.
+
 **Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
 `surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
 mosaic under smooth terrain (ROADMAP Observed, 2026-07-22). *Before "fixing"

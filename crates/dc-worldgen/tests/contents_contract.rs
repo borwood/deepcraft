@@ -87,6 +87,31 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-22 by the share-weighted susceptibility blend (journal/0072) —
+/// authorized (audit site A1).** Erosion's four consumption sites stopped mapping
+/// the outcrop verdict to one susceptibility-table entry and now blend the table by
+/// the near-surface window's per-`Litho` shares (the `outcrop_shares` seam), so the
+/// per-agent erosion rate field follows the thickness contours continuously instead
+/// of stepping at the plurality crossover (the walk-0071 S-4 flag). This changes
+/// erosion *rates* → bedrock surface **geometry**, so all three hashes moved on both
+/// Medium worlds. **Small moved on its BLOCK hash only** — materials and table are
+/// byte-identical — the same shape journal/0068 established: Small's sampled columns
+/// express no deep record as contents (their solids are unrecorded basement Stone
+/// and the veneer stub, both absent-contents), so the shifting bedrock surface
+/// changes only which voxels are Stone vs Air, while the contents-derived material
+/// and table hashes stay put. `block_equals_classify_of_contents` still passes with
+/// absent-contents blocks limited to Air and Stone — the proof this is geometry, not
+/// a classify regression.
+///
+/// The values immediately before this move (journal/0068's thickness-dominance
+/// rule), kept so it is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x18BD_0AFA_8356_C969, 0x2FB1_6035_5F22_5986, 0x35AE_2FDA_A2DA_D8CD)
+/// (0x0000_0000_0000_0539, "medium", 0x9A74_7558_4730_A767, 0x505A_ED87_E036_DEFE, 0xD8C3_2E22_82E9_3081)
+/// (0x0000_00C1_1A7E_2026, "small",  0x5B85_62A0_A30E_2E1D, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-22 by the outcrop thickness-dominance rule (journal/0068) —
 /// authorized, and the FIRST slice to move the Small control.** `exposed_litho`
 /// now returns the lithology dominating the record's near-surface 0.9 m window
@@ -248,21 +273,21 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x18BD_0AFA_8356_C969,
-        0x2FB1_6035_5F22_5986,
-        0x35AE_2FDA_A2DA_D8CD,
+        0xA266_4948_492D_0D45,
+        0xC460_0157_9057_F410,
+        0xD818_B64C_3B74_7324,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x9A74_7558_4730_A767,
-        0x505A_ED87_E036_DEFE,
-        0xD8C3_2E22_82E9_3081,
+        0xC20A_9665_BAAE_FDF2,
+        0x0E95_BC9A_68D9_E1E9,
+        0x76CC_9A66_B6BD_C87A,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x5B85_62A0_A30E_2E1D,
+        0x83A4_FD28_11CB_A19D,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),
