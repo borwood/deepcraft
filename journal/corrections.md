@@ -925,3 +925,29 @@ unit on every coordinate (`soil_depth_probe` already prints
 not drop the qualifier). `examples/surface_dither_probe.rs` prints both readings
 of the disputed label side by side so this one cannot be re-derived from memory.
 Full account: journal/0058.
+
+## 29. "Partial-height will light up for free when deposition lands" (2026-07-21)
+
+**Claimed** in journal/0010, and restated as a standing note in `meshing.rs`'s
+module docs: sub-8 loose voxels cannot occur yet, so partial-height rendering is
+a tested-but-dormant capability that "will light up for free the day deposition
+produces its first sub-full column."
+
+**Falsified by a walk**, hours after journal/0055 made the deep-time record
+decide the world's skin and put a sub-8 loose partial on top of nearly every
+column. It did not light up for free; it lit up with holes straight through the
+ground (`assets/0056-holes-after-settle.png`, persistent across a 20 s settle).
+
+**Mechanism** (journal/0057): partial-height *geometry* was correct, but face
+**culling** was block-tier boolean — `neighbor.is_solid()`. A 5/8 partial beside
+a 3/8 partial had its whole side face culled because the neighbour was "solid",
+so the exposed 2/8 band was emitted by nobody. Every 0010 test placed its
+synthetic partial in **open air**, where boolean and occupancy-aware culling
+agree; the arrangement the world would inevitably produce — partial beside
+partial — was the one arrangement untested.
+
+**The general shape**, worth more than the instance: the dormant capability's
+precondition was recorded as *prose in a doc comment directly above the code* —
+which is the right place — and still failed, because prose cannot fail a build.
+When a feature is parked on "this will work when X arrives", the dependency
+needs a test that goes red when X arrives, not a sentence that goes stale.

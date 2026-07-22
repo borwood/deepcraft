@@ -292,14 +292,16 @@ pub fn run() {
             let t = Instant::now();
             let chunk = generator.generate_chunk(cscale, *pos);
             gen_s += t.elapsed().as_secs_f64();
-            let neighbor_solid =
-                |x: i64, y: i64, z: i64| generator.block_at(cscale, x, y, z).is_solid();
+            // The far field carries no per-voxel contents: coverage is binary.
+            let neighbor_fill = |x: i64, y: i64, z: i64| {
+                crate::meshing::cover_frac(generator.block_at(cscale, x, y, z), None)
+            };
             let t = Instant::now();
             let mesh = mesh_chunk(
                 &chunk,
                 *pos,
                 cscale.voxel_size_m() as f32,
-                &neighbor_solid,
+                &neighbor_fill,
                 None,
             );
             mesh_s += t.elapsed().as_secs_f64();

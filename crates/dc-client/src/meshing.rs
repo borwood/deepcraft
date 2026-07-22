@@ -1,4 +1,13 @@
-//! Culled chunk meshing: one quad per solid face whose neighbor is not solid.
+//! Culled chunk meshing: one quad per solid face the neighbor does not cover.
+//!
+//! Culling is **occupancy-aware**, not block-tier boolean: the neighbor query
+//! answers with the fraction of its cell the neighbor fills (0 = air, 1 = full,
+//! k/8 = a loose partial), and a side face is emitted for the vertical band the
+//! neighbor leaves uncovered. Block-tier culling was correct only while every
+//! solid voxel was full height; when worldgen started skinning the whole world
+//! with sub-8 loose tops (journal/0055) it culled the exposed band of every
+//! partial standing beside a shorter partial, and you could see sky through the
+//! ground (journal/0057).
 //!
 //! Deliberately the simple mesher — S1's exit criterion accepts culled meshing;
 //! greedy merging is an optimization for later. Output is plain vertex arrays
@@ -44,15 +53,15 @@
 //! field, benches) resolve to a single **block** atlas layer ([`block_layer`])
 //! at weight 1, so the whole world is textured under one material.
 //!
-//! Loose-only contents (debris role, no structure) still render as
-//! **partial-height** boxes (height = eighths / 8, snow-layer style); the
-//! block-tier collider stays binary (the accepted, documented visible mismatch
-//! — visuals.md). Worldgen does not yet emit sub-8 loose voxels, so partial
-//! heights are exercised by tests until loose-material deposition lands.
+//! Loose-only contents (debris role, no structure) render as **partial-height**
+//! boxes (height = loose eighths / 8, snow-layer style); the block-tier collider
+//! stays binary (the accepted, documented visible mismatch — visuals.md).
+//! **Since journal/0055 worldgen skins nearly every column with a sub-8 loose
+//! top**, so this is the common case, not the test-only one it was written for.
 
 use dc_core::{
     Block, CHUNK_SIZE_USIZE, Chunk, ChunkPos, ContentsGrid, MATERIAL_COUNT, MaterialId,
-    StructureShape, VoxelContents,
+    VOXEL_EIGHTHS, VoxelContents,
 };
 
 /// Max material layers blended per face (the heightlerp splat count). Four is
@@ -257,7 +266,7 @@ pub fn block_layer(block: Block) -> u32 {
 /// touch materials): a voxel edited to any other block falls back to its block
 /// color/layer and full height.
 #[inline]
-fn block_uses_contents(block: Block) -> bool {
+pub(crate) fn block_uses_contents(block: Block) -> bool {
     matches!(
         block,
         Block::Mudstone
@@ -270,21 +279,41 @@ fn block_uses_contents(block: Block) -> bool {
     )
 }
 
-/// Loose-only contents: debris role, no structure. Renders partial-height.
-#[inline]
-fn is_loose_only(c: &VoxelContents) -> bool {
-    c.shape() == StructureShape::None && !c.debris().is_empty()
-}
-
 /// Height fraction (in eighths / 8) a voxel's contents render at: loose-only
 /// contents render as a partial box (snow-layer style); everything else fills
 /// the cell.
+///
+/// Both predicates come from dc-core's occupancy primitives
+/// ([`VoxelContents::is_loose_only`], [`VoxelContents::loose_eighths`] —
+/// journal/0052), so the mesher does not hold a private opinion about how full
+/// a voxel is. It used to re-derive exactly this from `shape()`/`debris()`.
 #[inline]
 fn height_frac(c: &VoxelContents) -> f32 {
-    if is_loose_only(c) {
-        f32::from(c.debris().len() as u8) / 8.0
+    if c.is_loose_only() {
+        f32::from(c.loose_eighths()) / f32::from(VOXEL_EIGHTHS)
     } else {
         1.0
+    }
+}
+
+/// How much of its cell a voxel's rendered geometry fills, in `[0, 1]` — the
+/// **one** answer the mesher culls against, on both sides of a chunk border.
+///
+/// `0.0` for a non-solid block, `1.0` for anything full height, `k/8` for a
+/// loose partial. `contents` must already be the render-only contents view for
+/// that voxel (or `None` for the block-layered paths); the block gate that
+/// keeps stale contents out after an edit re-types a voxel is applied here, so
+/// callers cannot get it subtly different from `mesh_chunk`'s own gate.
+pub fn cover_frac(block: Block, contents: Option<&VoxelContents>) -> f32 {
+    if !block.is_solid() {
+        return 0.0;
+    }
+    if !block_uses_contents(block) {
+        return 1.0;
+    }
+    match contents {
+        Some(c) if !c.is_empty() => height_frac(c),
+        _ => 1.0,
     }
 }
 
@@ -409,9 +438,11 @@ fn weighted_select(cons: &[(MaterialId, u32)], seed: u64, n: usize) -> Vec<(Mate
     out
 }
 
-/// Mesh one chunk with culled faces. `neighbor_solid` is consulted (with
+/// Mesh one chunk with culled faces. `neighbor_fill` is consulted (with
 /// world-space voxel coordinates) only for the one-voxel shell outside the
-/// chunk, so chunk borders cull correctly against neighbors. `contents`, when
+/// chunk, so chunk borders cull correctly against neighbors; it returns the
+/// same `[0, 1]` coverage [`cover_frac`] computes in-chunk, so a border voxel
+/// and an interior voxel cull by identical arithmetic. `contents`, when
 /// present, is the chunk's render-only per-voxel material view (worldgen
 /// authority); passing `None` is the plain block-layered mesher (S1 terrain, far
 /// field, benches).
@@ -419,7 +450,7 @@ pub fn mesh_chunk(
     chunk: &Chunk,
     pos: ChunkPos,
     voxel_size_m: f32,
-    neighbor_solid: &dyn Fn(i64, i64, i64) -> bool,
+    neighbor_fill: &dyn Fn(i64, i64, i64) -> f32,
     contents: Option<&ContentsGrid>,
 ) -> MeshData {
     let mut mesh = MeshData::default();
@@ -456,20 +487,52 @@ pub fn mesh_chunk(
                     let nx = x as i64 + normal[0];
                     let ny = y as i64 + normal[1];
                     let nz = z as i64 + normal[2];
-                    let covered = if (0..n as i64).contains(&nx)
+                    // How much of the adjacent cell the neighbor fills. In-chunk
+                    // and cross-border go through the same [`cover_frac`] rule.
+                    let cover = if (0..n as i64).contains(&nx)
                         && (0..n as i64).contains(&ny)
                         && (0..n as i64).contains(&nz)
                     {
-                        chunk.get(nx as usize, ny as usize, nz as usize).is_solid()
+                        let (ux, uy, uz) = (nx as usize, ny as usize, nz as usize);
+                        let nb = chunk.get(ux, uy, uz);
+                        let nc = contents.map(|g| g.get(ux, uy, uz));
+                        cover_frac(nb, nc.as_ref())
                     } else {
-                        neighbor_solid(mx + nx, my + ny, mz + nz)
+                        neighbor_fill(mx + nx, my + ny, mz + nz)
                     };
-                    // A partial (< full-height) voxel always shows its top: the
-                    // cell above it is open even when the neighbor is solid.
-                    let top_of_partial = frac < 1.0 && normal[1] == 1;
-                    if covered && !top_of_partial {
-                        continue;
-                    }
+                    // Vertical span of the emitted quad, in cell fractions.
+                    //
+                    // - **top** (+Y): the whole face sits at our render height.
+                    //   A partial always shows it — the cell above is open even
+                    //   when something occupies it — and a full voxel hides it
+                    //   the moment anything at all rests on the plane (even a
+                    //   1/8 partial covers the full footprint).
+                    // - **bottom** (-Y): exposed unless the cell below is FULL:
+                    //   a partial below leaves a gap our underside looks through.
+                    // - **sides**: emit exactly the band the neighbor does not
+                    //   reach, `[cover, frac]`. Block-tier culling threw this
+                    //   band away whenever the neighbor was "solid", which is
+                    //   the hole-through-the-ground of journal/0057.
+                    let (y_lo, y_hi) = match normal[1] {
+                        1 => {
+                            if cover > 0.0 && frac >= 1.0 {
+                                continue;
+                            }
+                            (0.0, frac)
+                        }
+                        -1 => {
+                            if cover >= 1.0 {
+                                continue;
+                            }
+                            (0.0, frac)
+                        }
+                        _ => {
+                            if cover >= frac {
+                                continue;
+                            }
+                            (cover, frac)
+                        }
+                    };
                     let color = contents_color.unwrap_or_else(|| face_color(block, normal[1]));
                     emit_face(
                         &mut mesh,
@@ -478,7 +541,7 @@ pub fn mesh_chunk(
                         normal,
                         corners,
                         voxel_size_m,
-                        frac,
+                        (y_lo, y_hi),
                         color,
                         layers,
                         weights,
@@ -501,21 +564,24 @@ fn emit_face(
     normal: &[i64; 3],
     corners: &[[f32; 3]; 4],
     voxel_size_m: f32,
-    frac: f32,
+    y_span: (f32, f32),
     color: [f32; 4],
     layers: [u32; SPLAT_N],
     weights: [f32; SPLAT_N],
 ) {
     let (x, y, z) = local;
     let (wx, wy, wz) = world;
+    let (y_lo, y_hi) = y_span;
     let base = mesh.positions.len() as u32;
     let n = [normal[0] as f32, normal[1] as f32, normal[2] as f32];
     for corner in corners.iter() {
-        // Collapse the voxel top to its render height (partial-height boxes) so
-        // geometry and the world-anchored V stay consistent.
+        // Remap the unit face onto its vertical span: the top edge to the render
+        // height (partial-height boxes), the bottom edge to the neighbor's top
+        // for a side band. The world-anchored V follows the geometry, so a band
+        // keeps tiling continuously with the full faces around it.
         let geo = [
             corner[0],
-            if corner[1] >= 1.0 { frac } else { corner[1] },
+            if corner[1] >= 1.0 { y_hi } else { y_lo },
             corner[2],
         ];
         mesh.positions.push([
@@ -538,8 +604,9 @@ mod tests {
     use super::*;
     use dc_core::CHUNK_VOLUME;
 
-    fn no_neighbors(_: i64, _: i64, _: i64) -> bool {
-        false
+    /// Open sky in every direction outside the chunk (coverage 0).
+    fn no_neighbors(_: i64, _: i64, _: i64) -> f32 {
+        0.0
     }
 
     /// A one-voxel `ContentsGrid` placing `c` at (x,y,z), everything else empty.
@@ -599,7 +666,7 @@ mod tests {
                 }
             }
         }
-        let everything_solid = |_: i64, _: i64, _: i64| true;
+        let everything_solid = |_: i64, _: i64, _: i64| 1.0f32;
         let mesh = mesh_chunk(
             &chunk,
             ChunkPos::new(2, -3, 1),
@@ -620,7 +687,8 @@ mod tests {
         let mut chunk = Chunk::new();
         chunk.set(0, 0, 0, Block::Stone);
         let pos = ChunkPos::new(-1, 0, 0);
-        let neighbor = |x: i64, y: i64, z: i64| (x, y, z) == (-33, 0, 0);
+        let neighbor =
+            |x: i64, y: i64, z: i64| -> f32 { f32::from(u8::from((x, y, z) == (-33, 0, 0))) };
         let mesh = mesh_chunk(&chunk, pos, 1.0, &neighbor, None);
         assert_eq!(mesh.triangle_count(), 10);
     }
@@ -830,6 +898,248 @@ mod tests {
         assert!(
             capped.positions.iter().any(|p| (p[1] - 5.5).abs() < 1e-6),
             "a partial voxel must still show its top under a solid neighbor"
+        );
+    }
+
+    // ----- occupancy-aware culling (journal/0057) -------------------------
+    //
+    // The regression these pin: block-tier culling asked "is the neighbour
+    // solid?", so a 5/8 partial beside a 3/8 partial lost its whole side face
+    // and the exposed 2/8 band was drawn by nobody — sky through the ground.
+
+    /// Loose partial contents of `eighths` sandstone.
+    fn loose(eighths: usize) -> VoxelContents {
+        VoxelContents::debris_only(&vec![MaterialId::SANDSTONE; eighths]).unwrap()
+    }
+
+    /// A `ContentsGrid` holding the listed voxels, everything else empty.
+    fn grid_of(voxels: &[(usize, usize, usize, VoxelContents)]) -> ContentsGrid {
+        let mut dense = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+        for (x, y, z, c) in voxels {
+            dense[Chunk::index(*x, *y, *z)] = *c;
+        }
+        ContentsGrid::from_dense(&dense)
+    }
+
+    /// The distinct vertex heights of the faces with `normal` lying on the
+    /// plane `axis == plane` — i.e. the vertical extent of that quad.
+    fn face_heights(mesh: &MeshData, normal: [f32; 3], axis: usize, plane: f32) -> Vec<f32> {
+        let mut ys: Vec<f32> = mesh
+            .positions
+            .iter()
+            .zip(mesh.normals.iter())
+            .filter(|(p, n)| **n == normal && (p[axis] - plane).abs() < 1e-6)
+            .map(|(p, _)| p[1])
+            .collect();
+        ys.sort_by(|a, b| a.partial_cmp(b).expect("no NaN"));
+        ys.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
+        ys
+    }
+
+    #[test]
+    fn taller_partial_beside_shorter_partial_emits_the_exposed_band() {
+        // 5/8 at x=5, 3/8 at x=6. The shared plane is x = 6.
+        let mut chunk = Chunk::new();
+        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(6, 5, 5, Block::Sandstone);
+        let grid = grid_of(&[(5, 5, 5, loose(5)), (6, 5, 5, loose(3))]);
+        let mesh = mesh_chunk(
+            &chunk,
+            ChunkPos::new(0, 0, 0),
+            1.0,
+            &no_neighbors,
+            Some(&grid),
+        );
+        // The taller voxel's +X face survives, clipped to the uncovered band
+        // [3/8, 5/8] — this is the quad block-tier culling threw away.
+        assert_eq!(
+            face_heights(&mesh, [1.0, 0.0, 0.0], 0, 6.0),
+            vec![5.375, 5.625],
+            "the exposed 2/8 band must be emitted"
+        );
+        // The shorter voxel's -X face is fully covered and stays culled: no
+        // double-drawn coplanar quad (which would z-fight).
+        assert!(
+            face_heights(&mesh, [-1.0, 0.0, 0.0], 0, 6.0).is_empty(),
+            "the covered face must not be emitted from the shorter side"
+        );
+        // 6 quads for the taller voxel + 5 for the shorter (its -X is culled).
+        assert_eq!(mesh.triangle_count(), 22);
+    }
+
+    #[test]
+    fn partial_beside_air_emits_its_full_side_face() {
+        let mut chunk = Chunk::new();
+        chunk.set(5, 5, 5, Block::Sandstone);
+        let grid = grid_of(&[(5, 5, 5, loose(5))]);
+        let mesh = mesh_chunk(
+            &chunk,
+            ChunkPos::new(0, 0, 0),
+            1.0,
+            &no_neighbors,
+            Some(&grid),
+        );
+        // Unchanged from before the fix: side spans the whole 0..5/8 box.
+        assert_eq!(
+            face_heights(&mesh, [1.0, 0.0, 0.0], 0, 6.0),
+            vec![5.0, 5.625]
+        );
+        assert_eq!(mesh.triangle_count(), 12);
+    }
+
+    #[test]
+    fn partial_beside_a_full_voxel_culls_its_side_completely() {
+        let mut chunk = Chunk::new();
+        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(6, 5, 5, Block::Stone); // no contents → full height
+        let grid = grid_of(&[(5, 5, 5, loose(5))]);
+        let mesh = mesh_chunk(
+            &chunk,
+            ChunkPos::new(0, 0, 0),
+            1.0,
+            &no_neighbors,
+            Some(&grid),
+        );
+        assert!(
+            face_heights(&mesh, [1.0, 0.0, 0.0], 0, 6.0).is_empty(),
+            "a full neighbour covers a partial's whole side"
+        );
+        // 5 quads for the partial + 5 for the full voxel (its -X is covered
+        // only up to 5/8, so it emits the band above — see the next test).
+        assert_eq!(
+            face_heights(&mesh, [-1.0, 0.0, 0.0], 0, 6.0),
+            vec![5.625, 6.0],
+            "the full voxel shows the band the partial fails to reach"
+        );
+    }
+
+    #[test]
+    fn a_full_voxel_shows_its_underside_over_a_partial() {
+        // Nothing rests on a partial in today's world, but the rule must hold:
+        // a partial below leaves a gap the upper voxel's bottom face looks
+        // through. Block-tier culling drew nothing there either.
+        let mut chunk = Chunk::new();
+        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(5, 6, 5, Block::Stone);
+        let grid = grid_of(&[(5, 5, 5, loose(4))]);
+        let mesh = mesh_chunk(
+            &chunk,
+            ChunkPos::new(0, 0, 0),
+            1.0,
+            &no_neighbors,
+            Some(&grid),
+        );
+        assert!(
+            mesh.positions
+                .iter()
+                .zip(mesh.normals.iter())
+                .any(|(p, n)| *n == [0.0, -1.0, 0.0] && (p[1] - 6.0).abs() < 1e-6),
+            "the upper voxel's underside is exposed above a 4/8 partial"
+        );
+        // And the partial still shows its own top under that voxel.
+        assert!(
+            mesh.positions
+                .iter()
+                .zip(mesh.normals.iter())
+                .any(|(p, n)| *n == [0.0, 1.0, 0.0] && (p[1] - 5.5).abs() < 1e-6)
+        );
+    }
+
+    #[test]
+    fn cross_chunk_border_emits_the_band_a_shorter_partial_leaves() {
+        // The border path is the one that regressed twice before (tile cracks,
+        // buried sheets): it must cull by the SAME arithmetic as the interior.
+        let mut chunk = Chunk::new();
+        chunk.set(0, 5, 5, Block::Sandstone);
+        let grid = grid_of(&[(0, 5, 5, loose(5))]);
+        let pos = ChunkPos::new(0, 0, 0);
+        // The chunk to the -X holds a 3/8 partial at the touching voxel.
+        let neighbor = |x: i64, y: i64, z: i64| -> f32 {
+            if (x, y, z) == (-1, 5, 5) {
+                3.0 / 8.0
+            } else {
+                0.0
+            }
+        };
+        let mesh = mesh_chunk(&chunk, pos, 1.0, &neighbor, Some(&grid));
+        assert_eq!(
+            face_heights(&mesh, [-1.0, 0.0, 0.0], 0, 0.0),
+            vec![5.375, 5.625],
+            "a cross-border band must be emitted like an interior one"
+        );
+        assert_eq!(mesh.triangle_count(), 12);
+    }
+
+    #[test]
+    fn cross_chunk_border_culls_against_a_taller_or_full_neighbor() {
+        let mut chunk = Chunk::new();
+        chunk.set(0, 5, 5, Block::Sandstone);
+        let grid = grid_of(&[(0, 5, 5, loose(5))]);
+        let pos = ChunkPos::new(0, 0, 0);
+        for cover in [5.0f32 / 8.0, 7.0 / 8.0, 1.0] {
+            let neighbor = |x: i64, y: i64, z: i64| -> f32 {
+                if (x, y, z) == (-1, 5, 5) { cover } else { 0.0 }
+            };
+            let mesh = mesh_chunk(&chunk, pos, 1.0, &neighbor, Some(&grid));
+            assert!(
+                face_heights(&mesh, [-1.0, 0.0, 0.0], 0, 0.0).is_empty(),
+                "cover {cover} ≥ 5/8 must cull the whole border face"
+            );
+            assert_eq!(mesh.triangle_count(), 10, "cover {cover}");
+        }
+    }
+
+    #[test]
+    fn partial_tops_triangle_cost_vs_block_tier_culling() {
+        // A realistic post-journal/0055 chunk: a stepped surface whose every
+        // column ends in a loose partial of a different height. The pre-fix
+        // geometry is estimated by meshing the SAME terrain with every top
+        // rounded up to 8/8 — which is exactly what block-tier culling saw.
+        let n = CHUNK_SIZE_USIZE;
+        let mut chunk = Chunk::new();
+        let mut partial = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+        let mut full = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+        let solid = loose(8);
+        for z in 0..n {
+            for x in 0..n {
+                // A gentle stepped surface: neighbouring columns differ, so
+                // most partials stand beside a shorter or taller one.
+                let h = 8 + (x / 3 + z / 5) % 6;
+                for y in 0..=h {
+                    chunk.set(x, y, z, Block::Sandstone);
+                    partial[Chunk::index(x, y, z)] = solid;
+                    full[Chunk::index(x, y, z)] = solid;
+                }
+                partial[Chunk::index(x, h, z)] = loose(1 + (x * 7 + z * 3) % 7);
+            }
+        }
+        let pos = ChunkPos::new(0, 0, 0);
+        let occ = mesh_chunk(
+            &chunk,
+            pos,
+            1.0,
+            &no_neighbors,
+            Some(&ContentsGrid::from_dense(&partial)),
+        );
+        let block_tier = mesh_chunk(
+            &chunk,
+            pos,
+            1.0,
+            &no_neighbors,
+            Some(&ContentsGrid::from_dense(&full)),
+        );
+        let (a, b) = (block_tier.triangle_count(), occ.triangle_count());
+        let pct = (b as f64 - a as f64) / a as f64 * 100.0;
+        println!(
+            "stepped 32³ surface chunk: block-tier culling {a} tris, \
+             occupancy-aware culling {b} tris ({pct:+.2}%)"
+        );
+        assert!(b > a, "the fix adds the missing bands, it does not remove");
+        // A thin band per exposed surface-voxel side, never a multiplier on the
+        // whole chunk (that was the old 4×4 dither's sin, journal/0010).
+        assert!(
+            pct < 200.0,
+            "occupancy culling should add bands, not multiply geometry: {pct:+.2}%"
         );
     }
 

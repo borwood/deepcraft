@@ -15,8 +15,6 @@
 //! neighbor can mis-cull a border face until it streams in — accepted,
 //! self-healing, and noted in journal/0002).
 
-use std::cell::RefCell;
-
 use bevy::asset::RenderAssetUsages;
 use bevy::mesh::Indices;
 use bevy::prelude::*;
@@ -27,7 +25,7 @@ use crate::app::{
     ChunkEntity, ChunkMap, CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle,
     LoadedChunk, TerrainMaterialHandle, churn, to_render,
 };
-use crate::authority::Authority;
+use crate::authority::{Authority, NeighborFill};
 use crate::meshing::{MeshData, mesh_chunk};
 use crate::player::Player;
 use crate::terrain_material::{ATTRIBUTE_MAT_LAYERS, ATTRIBUTE_MAT_WEIGHTS};
@@ -120,9 +118,11 @@ pub fn stream_chunks(
         // fallback (journal/0017). Built AFTER the fetches above so the mutable
         // authority borrows don't overlap; generating a neighbour here also
         // warms the very cache this streamer is about to want.
-        let authority_cell = RefCell::new(&mut *authority);
-        let neighbor_solid =
-            |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
+        // Occupancy, not solidity (journal/0057): a border face culls against
+        // how much of the neighbouring cell is actually filled, so a partial
+        // beside a shorter partial still emits its exposed band.
+        let fill = NeighborFill::new(&mut authority);
+        let neighbor_fill = |x: i64, y: i64, z: i64| fill.fill(x, y, z);
         // Churn instrument (journal/0051): time the whole build — greedy mesh
         // + the Bevy vertex-buffer conversion, which is where a pool would bite.
         let build_start = std::time::Instant::now();
@@ -130,7 +130,7 @@ pub fn stream_chunks(
             &chunk,
             pos,
             vscale.voxel_size_m() as f32,
-            &neighbor_solid,
+            &neighbor_fill,
             contents.as_ref(),
         );
         let bevy_mesh = (!mesh_data.is_empty()).then(move || to_bevy_mesh(mesh_data));
