@@ -72,6 +72,22 @@ pub struct DeepOverrides {
     /// analytic tectonic forcing multiplies (m/iter for a unit-rate boundary).
     /// Only bites when tectonic history is on. `None` = production default.
     pub thickening_scale: Option<f64>,
+    /// **The erosion budget multiplier** (`erodibility_probe` experiment B):
+    /// scales the three global erosion rates — bedrock→regolith `weathering`,
+    /// stream-power `k_transport`, and bedrock incision `k_bedrock` — *together*
+    /// by this factor, so the **relative** rates (and therefore the differential-
+    /// erosion signal the erodibility coupling expresses) never change; only the
+    /// total amount of material erosion is allowed to move. This is the TERRAIN
+    /// (erosion) amplitude, distinct from `thickening_scale` above, which is the
+    /// TECTONIC (orogenic) amplitude — the term collision the corpus already had
+    /// to disambiguate (journal/0040, ROADMAP § the erodibility rider).
+    ///
+    /// `None` = production default (the shipped calibration, multiplier `1×`).
+    /// `Some(1.0)` is **byte-identical** to `None` (`x * 1.0 == x` exactly), so
+    /// the flag's off-state is provably inert (asserted in the plumbing tests).
+    /// A dev launch flag (`--erosion-budget <mult>`) sets it; the walkable
+    /// cranked world it enables is the standing "conservative amplitude" call.
+    pub erosion_budget: Option<f64>,
 }
 
 impl DeepOverrides {
@@ -81,6 +97,7 @@ impl DeepOverrides {
         self.tectonic_history.is_none()
             && self.full_agents.is_none()
             && self.thickening_scale.is_none()
+            && self.erosion_budget.is_none()
     }
 }
 
@@ -188,6 +205,19 @@ pub fn production_config_with(
     }
     if let Some(v) = overrides.thickening_scale {
         cfg.thickening_scale = v;
+    }
+    // Erosion budget: scale the three global erosion rates *together*
+    // (`erodibility_probe` experiment B), so the relative rates the erodibility
+    // coupling reads never move — only the total amount of erosion does. A
+    // multiplier of `1.0` leaves each rate bit-for-bit unchanged (`x * 1.0 == x`
+    // for f64), which is why `Some(1.0)` is byte-identical to `None` (the
+    // falsifier in the plumbing tests). The multiply is unconditional on
+    // `erodibility`: these are the base rates the run uses either way, and the
+    // coupling — when on — modulates around them without changing this scaling.
+    if let Some(mult) = overrides.erosion_budget {
+        cfg.weathering *= mult;
+        cfg.k_transport *= mult;
+        cfg.k_bedrock *= mult;
     }
     cfg
 }

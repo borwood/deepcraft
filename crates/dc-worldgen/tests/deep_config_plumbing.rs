@@ -190,6 +190,66 @@ fn amplitude_override_rides_through_with_tectonics() {
 }
 
 // ---------------------------------------------------------------------------
+// The erosion-budget override (journal/0076).
+
+/// **The byte-identity falsifier for the erosion budget.** The flag's off-state
+/// must be provably inert: `erosion_budget: Some(1.0)` multiplies weathering /
+/// k_transport / k_bedrock each by `1.0` — `x * 1.0 == x` for f64 — so the
+/// distilled field must be byte-identical to the default (no-flag) boot, every
+/// plane the world keeps. This is what keeps a `--erosion-budget 1.0` launch (and
+/// every already-created world) reproducible: the dev lever exists but its
+/// identity value changes nothing.
+#[test]
+fn erosion_budget_one_is_byte_identical_to_no_flag() {
+    let pregen = small_world(SEED);
+    let base = build_field(&pregen.grid, SEED);
+    let one = build_field_with(
+        &pregen.grid,
+        SEED,
+        &DeepOverrides {
+            erosion_budget: Some(1.0),
+            ..DeepOverrides::default()
+        },
+    );
+    assert_eq!(base.w, one.w);
+    assert_eq!(base.cell_m.to_bits(), one.cell_m.to_bits());
+    assert_eq!(
+        base.surf, one.surf,
+        "surface plane diverged under 1x budget"
+    );
+    assert_eq!(base.regolith, one.regolith, "regolith diverged under 1x");
+    assert_eq!(base.strata, one.strata, "strata record diverged under 1x");
+    assert_eq!(base.recv, one.recv, "drainage receiver diverged under 1x");
+    assert_eq!(base.area, one.area, "drainage area diverged under 1x");
+    assert_eq!(base.lake, one.lake, "lake mask diverged under 1x");
+    assert_eq!(base.exhum, one.exhum, "exhumation plane diverged under 1x");
+    assert_eq!(base.t_crust, one.t_crust, "crust plane diverged under 1x");
+    assert_eq!(base.chapters.len(), one.chapters.len(), "chapter count");
+}
+
+/// And a non-identity budget actually bites — a 10× budget (`erodibility_probe`
+/// experiment B's headroom multiplier) cuts a measurably different surface. The
+/// override reaches the run; the plumbing is live, not a no-op that only *looks*
+/// safe because every test passes it `1.0`.
+#[test]
+fn erosion_budget_ten_reaches_the_run() {
+    let pregen = small_world(SEED);
+    let shipped = build_field(&pregen.grid, SEED);
+    let cranked = build_field_with(
+        &pregen.grid,
+        SEED,
+        &DeepOverrides {
+            erosion_budget: Some(10.0),
+            ..DeepOverrides::default()
+        },
+    );
+    assert_ne!(
+        shipped.surf, cranked.surf,
+        "10x erosion budget did not reach the run"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Extent arg parsing.
 
 #[test]
