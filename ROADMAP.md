@@ -1267,6 +1267,11 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   (journal/0042). Follow-ons unchanged: persistence + dirty-rail (far edits),
   synthesized sub-surface strata (the `surface_sample` summarization-half
   home), partial-coverage composition, deep-span greedy merge.
+  **MERGED TO MAIN + LOOK RATIFIED AS-BUILT** (2026-07-22, integrator merge;
+  user, from the 0070 screenshot set: "visually indistinguishable from the
+  previous version, for me. which is good!" — the reduced-tile patches ride;
+  the 10 km checkerboard is pre-existing, filed in Observed, and is B1's
+  cure to claim; merged-main gate evidence in the merge-gate-0070 log).
 
 - **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill
@@ -3075,6 +3080,20 @@ before any code.
 - *(**Console follow-ups: RATIFIED same day** — API.md Decisions log #6
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
+
+- **Texture steps toward albedo at range** (user, 2026-07-22, on ratifying
+  FF2b's look: "the moire is very strong and only nearfield really needs full
+  texture… at range, step toward albedo. (5 km bluff may as well just be
+  red)"). Priors already pointing here: `--edges` distance-fades to zero past
+  1.4 km because per-voxel signal aliases into moiré (journal/0031); the
+  houndstooth fix cured a range artifact by *narrowing* albedo spread
+  (journal/0020); and every material already carries a flat registry albedo
+  (journal/0010 — fullbright's register), so the far target color is
+  existing data, and the lerp lives in the ONE shared material
+  (pack-compatible, batch-safe). **User hypothesis, to be measured: this is
+  also a render-perf WIN** (far pixels skip the splat/texture work
+  entirely) — A-6-clean, since the measurement picks the shader path.
+  Sequence with the profiling slice so the before/after is real numbers.
 
 - **We cannot see where runtime goes — the perf observability gap** (user,
   2026-07-22: "it's not easy for us to target where the perf killers are";
