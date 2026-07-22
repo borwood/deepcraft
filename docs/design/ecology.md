@@ -280,6 +280,12 @@ journal/0026. The GO action is done and the gap above is closed.
   contract for one *measured* facies, filled by one vanilla member (coal, peat,
   carbonaceous mudstone). `Soil` and `Retro` share the soil class. The
   class-share invariant and registration-order independence both hold.
+  **AMENDED 2026-07-22 (journal/0063): four classes.**
+  `dc:stratum/organic-charcoal` / `dc:geo/charcoal` joined them — the `Charcoal`
+  facies stopped wearing its mineral host's identity. It is an **inclusion**
+  class by measurement: a fire bed is capped at 0.04 m, so it never fills a
+  voxel; it wins single eighths under the distribution-first fill (measured:
+  0.394 % of recorded voxel spans).
 - **Why "wins" and not "blends":** the 24 m seam's own tag is `Sa/A/L` —
   subaerial, **arid**, **low** energy. Flow energy describes the grains a
   passing current carried; it says nothing about plant matter outrunning decay,

@@ -345,10 +345,21 @@ pub fn resistance_of_material(m: MaterialId) -> LithoResistance {
 
 /// The lithology a recorded unit's measured tag resolves to.
 ///
-/// **Mirrors `crate::geology::deep_class` exactly** — asserted by
+/// **Mirrors `crate::geology::deep_class`** — asserted by
 /// `tests/erodibility.rs::litho_routing_matches_the_collapse_tier`. The two must
 /// not drift: if erosion thinks a bed is sandstone and the collapse layer builds
 /// it out of mudstone, the world's shape stops explaining the world's rock.
+///
+/// **One tag is a deliberate, tested exception: `Charcoal`** (journal/0063).
+/// The collapse tier routes it to the charcoal class, because the carbon really
+/// is in the voxel. This function keeps reading it as the clastic host, because
+/// the question *here* is different: erosion asks "what rock resists this agent
+/// over a 460 m cell", and a 3.5 cm lamina inside a bed of mud has no answer to
+/// that — the mud does. Making charcoal a `Litho` would hand a whole erosion
+/// cell the strength of its thinnest lamina, which is not a fidelity gain, it is
+/// a category error with a golden-shifting blast radius. The mirror's purpose is
+/// intact: the shape still explains the rock, because the rock is still the
+/// host.
 pub fn litho_of_tag(tag: DepTag) -> Litho {
     match tag.biota {
         Biofacies::Coal => Litho::OrganicCoal,

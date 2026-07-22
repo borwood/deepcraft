@@ -30,8 +30,9 @@
 
 use dc_core::materials::geology::{
     CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
-    CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
-    CLASS_ORGANIC_SOIL, FormationContext, GeoMemberIdx, GeologySet, settle_energy,
+    CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL,
+    CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL, FormationContext, GeoMemberIdx, GeologySet,
+    settle_energy,
 };
 use dc_sim::statistical::rng::draw_f64;
 
@@ -309,29 +310,47 @@ fn deep_precip(tag: DepTag) -> f64 {
 /// high/medium energy → coarse proximal bodies; subaerial low energy → distal
 /// fines.
 ///
-/// [`Biofacies::Charcoal`] is deliberately **not** routed to a class of its
-/// own: a fire bed is a *thin event bed* (measured mean ~0.035 m over 158 310
-/// beds, and **none** of them survives the 0.9 m voxel quantization), so a
-/// charcoal band cannot exist in a voxel column and a charcoal member would be
-/// dead content. A charcoal-tagged unit therefore reads as the mineral host it
-/// is a streak within. The honest representation is an inclusion (pore/debris
-/// partial, geology.md § inclusions) — filed, not built. See journal/0026.
+/// [`Biofacies::Charcoal`] routes to [`CLASS_ORGANIC_CHARCOAL`] **as of
+/// journal/0063**, and the reason it did not before is a good illustration of a
+/// justification outliving its mechanism. The old comment here read: *a fire bed
+/// is a thin event bed (measured mean ~0.035 m over 158 310 beds, and none of
+/// them survives the 0.9 m voxel quantization), so a charcoal band cannot exist
+/// in a voxel column and a charcoal member would be dead content. The honest
+/// representation is an inclusion (pore/debris partial) — filed, not built.*
+///
+/// Every clause of that is still true except the load-bearing one. Since
+/// journal/0055 a bed does not have to *survive quantization* to be expressed:
+/// `crate::fill` allocates a voxel's eighths from the units overlapping its
+/// span by **unbiased addressed stochastic rounding**, so a 3.5 cm bed claims
+/// `8 × 0.035 / 0.9 ≈ 0.31` of an eighth and therefore wins a whole eighth
+/// about 31 % of the time it is asked. That is precisely the inclusion the old
+/// comment called honest and filed as unbuilt — the filing was overtaken by a
+/// slice aimed at something else.
+///
+/// So charcoal is now its own class, and the class contract says what it is: an
+/// inclusion, never a stratum. See journal/0063 for what it actually measures
+/// out to in the world.
 ///
 /// **Public because deep time now depends on it.** The erodibility coupling
 /// (journal/0029) needs to know which rock resisted erosion at a cell, and that
 /// must be the same rock the collapse layer will build there — otherwise the
 /// world's shape stops explaining the world's rock. `deeptime::lithology::
 /// litho_of_tag` mirrors this routing and a test asserts they agree over every
-/// tag in the space.
+/// tag in the space — with **exactly one deliberate exception, `Charcoal`**,
+/// documented at [`crate::deeptime::lithology::litho_of_tag`]: a 3.5 cm lamina
+/// is a material fact about a voxel and not a rock-strength fact about a 460 m
+/// erosion cell, so the two tiers legitimately answer differently there. The
+/// mirror test asserts the exception by name rather than skipping it.
 pub fn deep_class(tag: DepTag) -> &'static str {
     match tag.biota {
         Biofacies::Coal => CLASS_ORGANIC_COAL,
         Biofacies::Peat => CLASS_ORGANIC_PEAT,
+        Biofacies::Charcoal => CLASS_ORGANIC_CHARCOAL,
         // A retrogressive horizon IS an organic soil horizon; what makes it
         // "retrogressive" is the community's phosphorus starvation, which is an
         // ecological fact with no material expression in the property sheet.
         Biofacies::Soil | Biofacies::Retro => CLASS_ORGANIC_SOIL,
-        Biofacies::Charcoal | Biofacies::Mineral => match tag.env {
+        Biofacies::Mineral => match tag.env {
             DepEnv::Subsea => CLASS_CLASTIC_FINE,
             DepEnv::Subaerial => match tag.energy {
                 EnergyBand::High | EnergyBand::Medium => CLASS_CLASTIC_COARSE,

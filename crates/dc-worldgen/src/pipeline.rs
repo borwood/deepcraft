@@ -393,8 +393,8 @@ fn deep_time_pass(ctx: &mut PregenCtx) {
 pub fn vanilla_passes() -> Vec<Pass> {
     use dc_core::materials::geology::{
         CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
-        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
-        CLASS_ORGANIC_SOIL,
+        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL,
+        CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
     };
 
     use Resource::*;
@@ -469,6 +469,7 @@ pub fn vanilla_passes() -> Vec<Pass> {
                 CLASS_ORGANIC_SOIL,
                 CLASS_ORGANIC_PEAT,
                 CLASS_ORGANIC_COAL,
+                CLASS_ORGANIC_CHARCOAL,
             ],
             body: PassBody::Strata(crate::geology::clastic_pass),
         },

@@ -87,6 +87,33 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 
 /// `(seed, extent, block hash, material hash, table hash)`.
 ///
+/// **Moved 2026-07-22 by the organic-facies pair (journal/0063) — authorized.**
+/// Two deliberate behaviour changes landed together, and both are visible here:
+///
+/// - **coal promotion moved onto the burial axis.** Buried peat becomes coal
+///   when *its own overburden* reaches `COAL_BURIAL_M`, not when the seam is
+///   thick. Coal is now rarer and deeper — measured on the production Medium
+///   world, 12 892 → 2 216 coal-bearing deep cells — so columns that used to
+///   band coal now band peat, and both hashes move.
+/// - **charcoal stopped wearing its host's identity.** A fire bed routes to
+///   `CLASS_ORGANIC_CHARCOAL` and competes for eighths like any other unit, so
+///   the material sidecar carries charcoal where it previously carried the
+///   surrounding mudstone, and the mixture table interns combinations that could
+///   not exist before. Measured: 0.39 % of recorded voxel spans carry at least
+///   one charcoal eighth.
+///
+/// **The Small world did not move**, for the third slice running: it runs no
+/// deep-time record, so it has neither peat to promote nor a fire bed to
+/// express. That is the control, and it held.
+///
+/// The values immediately before this move, kept so it is auditable:
+///
+/// ```text
+/// (0x0000_0D5E_ED57_2026, "medium", 0x385D_BBFA_470A_DC40, 0xCDBA_4FF1_0691_FC2C, 0xD8D5_222E_2864_F931)
+/// (0x0000_0000_0000_0539, "medium", 0xE6E4_1C61_159D_5B42, 0x3C69_3E20_80FC_8C8E, 0x69F5_739D_D620_597B)
+/// (0x0000_00C1_1A7E_2026, "small",  0x024F_5F94_8C2E_39CC, 0x3222_7B87_48CB_0F75, 0xD0A3_9718_6727_310C)
+/// ```
+///
 /// **Moved 2026-07-21 by the surface member dither (journal/0058) —
 /// authorized.** journal/0055 gave the surface voxel its own member resolution
 /// but left it in `column`, drawn **once per 32×32 chunk footprint** at the
@@ -188,16 +215,16 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x385D_BBFA_470A_DC40,
-        0xCDBA_4FF1_0691_FC2C,
-        0xD8D5_222E_2864_F931,
+        0x96CF_74C8_7207_F1BE,
+        0xAB18_73E0_8F0A_5527,
+        0x0920_6E0D_D4C9_2793,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xE6E4_1C61_159D_5B42,
-        0x3C69_3E20_80FC_8C8E,
-        0x69F5_739D_D620_597B,
+        0xA38F_E5B3_01E9_6A82,
+        0x12E5_D922_7DFD_9C70,
+        0xBC22_E827_1E70_AA0F,
     ),
     (
         0x0000_00C1_1A7E_2026,

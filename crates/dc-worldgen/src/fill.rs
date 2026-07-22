@@ -60,7 +60,8 @@
 //! build the same list in the same order and get the same answer.
 
 use dc_core::materials::geology::{
-    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_ORE_PLACER, GeoMemberIdx, GeologySet,
+    CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_ORE_PLACER, CLASS_ORGANIC_CHARCOAL,
+    GeoMemberIdx, GeologySet,
 };
 use dc_core::{StructureShape, VoxelContents};
 use dc_sim::statistical::rng::draw_f64;
@@ -307,9 +308,19 @@ pub fn mixed_contents(set: &GeologySet, parts: &[(GeoMemberIdx, u8)]) -> VoxelCo
 /// rides **inside** the gravel it settled into, which is exactly how
 /// `contents_for_event` places it (into the debris multiset), so a mixed voxel
 /// must not promote it to structure.
+///
+/// **Charcoal is loose too** (journal/0063), and this is the whole substance of
+/// calling it an inclusion rather than a stratum. Charcoal is friable carbon
+/// fragments, not a load-bearing rock; a single charcoal eighth in a bed of mud
+/// must ride in the debris multiset the way a gold grain rides in gravel, not
+/// stand up as structure and claim the voxel's block identity through
+/// `classify`'s structure-first rule.
 fn is_loose(set: &GeologySet, m: GeoMemberIdx) -> bool {
     let class = set.member(m).class.as_str();
-    class == CLASS_CLASTIC_FINE || class == CLASS_CLASTIC_COARSE || class == CLASS_ORE_PLACER
+    class == CLASS_CLASTIC_FINE
+        || class == CLASS_CLASTIC_COARSE
+        || class == CLASS_ORE_PLACER
+        || class == CLASS_ORGANIC_CHARCOAL
 }
 
 /// The smallest structure shape whose reserved capacity holds `k` eighths.

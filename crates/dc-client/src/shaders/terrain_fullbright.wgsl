@@ -17,10 +17,10 @@
 }
 
 // One flat albedo per atlas layer. SIZE MUST EQUAL PALETTE_LEN in
-// terrain_material.rs (= MATERIAL_COUNT 25 + 4 block-only = 29); the Rust guard
+// terrain_material.rs (= MATERIAL_COUNT 26 + 4 block-only = 30); the Rust guard
 // `palette_len_matches_atlas` keeps them in lockstep.
 struct Palette {
-    albedo: array<vec4<f32>, 29>,
+    albedo: array<vec4<f32>, 30>,
 }
 
 @group(3) @binding(0) var<uniform> palette: Palette;

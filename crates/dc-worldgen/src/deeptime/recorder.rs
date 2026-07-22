@@ -411,21 +411,49 @@ impl DeepStrata {
             .count()
     }
 
-    /// **Burial diagenesis** (earth-processes.md § 5): promote every buried peat
-    /// unit thicker than `min_m` to coal. A peat band is "buried" when a younger
-    /// unit sits on top of it (it is not the current living surface), so its
-    /// organic matter has been compacted and cooked past the peat stage. Called
-    /// once at run finalize. Pure in the record; preserves `sum(units) == H`
-    /// (only the tag changes, never a thickness).
-    pub fn promote_coal(&mut self, min_m: f64) {
-        if self.units.is_empty() {
-            return;
-        }
-        let last = self.units.len() - 1;
-        for (k, u) in self.units.iter_mut().enumerate() {
-            if k != last && u.tag.biota == Biofacies::Peat && u.thickness_m >= min_m {
+    /// **Burial diagenesis** (earth-processes.md § 5): promote a peat unit to
+    /// coal once **its own overburden** reaches `min_depth_m` — the sum of the
+    /// thicknesses of every unit recorded above it.
+    ///
+    /// **The axis matters, and until journal/0063 it was the wrong one.** This
+    /// used to promote on the unit's *thickness* (`thickness_m >= 0.4`), which
+    /// is a statement about how long the swamp lasted, not about what happened
+    /// to it afterwards. Coalification is a burial process: peat becomes lignite
+    /// and lignite becomes bituminous coal because overburden squeezes the water
+    /// out and heat drives off the volatiles. A ten-metre peat bed lying at the
+    /// surface is still peat; a ten-centimetre bed under a hundred metres of
+    /// section is coal. `dc_core::materials::geology::CLASS_ORGANIC_COAL`'s own
+    /// contract has said so all along — *"the class's depth axis is the rank
+    /// axis"* — and the burial depth was already derivable from the record in
+    /// one pass, so the thickness test was a summary standing in for an
+    /// authority that was sitting right there (ARCHITECTURE.md § *A summary is
+    /// not an authority*).
+    ///
+    /// **What this still cannot express.** There is no geotherm in the project —
+    /// the only temperature anywhere in the sim is surface air temperature — so
+    /// this is burial *depth*, not a pressure/temperature path, and it therefore
+    /// cannot discriminate coal *rank* (lignite / sub-bituminous / bituminous /
+    /// anthracite). It is the right axis at the wrong resolution, which is a
+    /// different thing from the wrong axis. See `docs/design/stubs.md`.
+    ///
+    /// **The topmost unit is never promoted**, unconditionally. Its overburden
+    /// is zero, so every *positive* threshold excludes it anyway — but the guard
+    /// is written out rather than implied, because "the living surface is not
+    /// coal" is a statement about the world and not an artefact of which number
+    /// the threshold happens to be. (A test pins it at `min_depth_m == 0.0`,
+    /// the one value where the implication fails.)
+    ///
+    /// Called once at run finalize. Pure in the record; preserves
+    /// `sum(units) == H` (only the tag changes, never a thickness).
+    pub fn promote_coal(&mut self, min_depth_m: f64) {
+        // Top-down, accumulating overburden: one pass, no allocation.
+        let top = self.units.len().saturating_sub(1);
+        let mut overburden_m = 0.0f64;
+        for (k, u) in self.units.iter_mut().enumerate().rev() {
+            if k != top && overburden_m >= min_depth_m && u.tag.biota == Biofacies::Peat {
                 u.tag.biota = Biofacies::Coal;
             }
+            overburden_m += u.thickness_m;
         }
     }
 

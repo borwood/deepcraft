@@ -33,7 +33,7 @@ pub mod recorder;
 pub mod refine;
 pub mod tectonics;
 
-pub use biotic::{BioticSim, COAL_MIN_M, CellBiota, ROSTER, species_name};
+pub use biotic::{BioticSim, COAL_BURIAL_M, COAL_MIN_M, CellBiota, ROSTER, species_name};
 pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,

@@ -283,6 +283,39 @@ the pre-existing off-switch is preserved and is *not* the seam: `wave_erosion <=
 0.0` still short-circuits the whole agent before any provider is consulted, which
 is what `tests/full_agents.rs`'s byte-identity control depends on.
 
+### 14. coal-rank-is-burial-depth-with-no-geotherm — **added 2026-07-22 (journal/0063), replacing a worse stub on the wrong axis**
+`deeptime/biotic.rs::COAL_BURIAL_M` (8.0 m), applied by
+`recorder.rs::DeepStrata::promote_coal`.
+
+*Was:* buried peat became coal when **the seam was thick enough**
+(`thickness_m >= 0.4`). That is not a stub with a bad constant, it is a stub on
+the **wrong axis** — a statement about how long a swamp lasted standing in for a
+statement about what happened to it afterwards — and it contradicted
+`CLASS_ORGANIC_COAL`'s own contract (*"the class's depth axis is the rank
+axis"*). The authority it was summarizing was already in the record: burial depth
+is `Σ` thickness of the overlying units, one pass.
+
+*Now:* the control is each unit's own overburden. Measured consequence
+(production Medium): coal-bearing deep cells **12 892 → 2 216**, units
+**19 008 → 3 888**, recorded coal **22 459 → 3 773 m**, thickest seam
+**15.74 → 14.01 m**. Nothing gains coal — thickness and burial are close to
+*anti*-correlated here, because a thick peat is one that sat at a quiet,
+low-aggradation surface.
+
+*What remains a stub, and it is a narrower one:* the **number**, and the
+dimension it is missing. Coalification is a pressure/temperature path, and this
+project has **no geotherm** — surface air temperature is the only temperature
+anywhere in the sim. So this is burial *depth*, and it cannot discriminate coal
+**rank**. Nor can it use Earth's calibration: the peat→lignite transition wants
+10²–10³ m, and of 35 382 peat-derived units in the production world exactly 13
+lie under 50 m of section and one under 100 m, so an honest Earth threshold
+yields a world with no coal at all. 8.0 m is the ~90th percentile of *this*
+record's burial distribution — "coal is what happens to the peat that got buried
+deepest". **Heir:** a geotherm, which turns this into a P/T path and lets the
+single `Coal` facies split into the lignite/sub-bituminous/bituminous/anthracite
+members `CLASS_ORGANIC_COAL`'s depth-is-rank contract has been waiting for.
+**Blast:** the abundance and depth of every coal seam a player can dig.
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

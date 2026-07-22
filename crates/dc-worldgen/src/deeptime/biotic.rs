@@ -78,10 +78,44 @@ use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 const SALT_BIO_FIRE: u64 = 0x5B00_0001;
 const SALT_BIO_FLOOD: u64 = 0x5B00_0002;
 
-/// Minimum buried-peat thickness (metres) promoted to a coal seam at finalize
-/// (burial diagenesis, earth-processes.md § 5). Also the legibility floor the
-/// read-quality scan uses for "a coal seam you could see in a cut face."
+/// Legibility floor (metres) the read-quality scan uses for "a coal seam you
+/// could see in a cut face". A **reporting** threshold on seam thickness, not a
+/// process: it decides which seams get counted, never which peat becomes coal.
+///
+/// Until journal/0063 this constant was doing both jobs, and the second one was
+/// on the wrong axis — see [`COAL_BURIAL_M`] and
+/// [`DeepStrata::promote_coal`](super::recorder::DeepStrata::promote_coal).
 pub const COAL_MIN_M: f64 = 0.4;
+
+/// **Overburden (metres) at which buried peat becomes coal** — the burial
+/// threshold `promote_coal` applies at run finalize (earth-processes.md § 5).
+///
+/// Coalification is driven by pressure and temperature, both of which rise with
+/// burial. On Earth the peat→lignite transition wants of order 10²–10³ m of
+/// section. Our recorded column is the deep sim's *regolith* plane `H`, whose
+/// deepest cells carry ~100 m and whose median subaerial cell carries a few
+/// metres, so an Earth-calibrated threshold would promote **nothing anywhere**:
+/// measured on the production Medium world, of 35 382 peat-derived units exactly
+/// **13** lie under 50 m of section and **one** under 100 m. There is no coal in
+/// a world that only ever buries peat under four metres of mud.
+///
+/// So the number is calibrated to *this* record's burial distribution rather
+/// than to Earth's, and the calibration statement is deliberately a shape and
+/// not a target: **coal is what happens to the peat that got buried deepest.**
+/// 8 m is the ~90th percentile of the measured overburden distribution
+/// (histogram in journal/0063), which promotes 11 % of peat-derived units —
+/// 3 888 units in 2 216 columns, 0.78 % of readable columns. The shipped
+/// thickness rule promoted 19 008 units in 12 892 columns (4.52 %); the axis
+/// change is a 5.8× *reduction* in coal, because thick-and-shallow is common in
+/// this world and deep is not. That reduction is the fix's deliverable, not its
+/// cost.
+///
+/// It is a stub and is listed as one. What it is *not* is a stand-in for the
+/// wrong question: burial depth is the control coalification actually has, and
+/// it is a quantity the record already knows. The heir is a geotherm — with one,
+/// this becomes a P/T path and the single Coal facies can split by **rank**,
+/// which is what `CLASS_ORGANIC_COAL`'s depth-is-rank contract is waiting for.
+pub const COAL_BURIAL_M: f64 = 8.0;
 
 /// Number of species in the vanilla organism roster (the biotic analogue of the
 /// vanilla geology set). K-cap not stressed at this size — see module docs.
@@ -644,11 +678,13 @@ impl BioticSim {
         bio_input
     }
 
-    /// Finalize: promote buried thick peat to coal across the whole grid (burial
-    /// diagenesis). Preserves `sum(units) == H` (only tags change).
+    /// Finalize: promote **deeply buried** peat to coal across the whole grid
+    /// (burial diagenesis — the control is each unit's own overburden, not its
+    /// thickness; see [`COAL_BURIAL_M`]). Preserves `sum(units) == H` (only tags
+    /// change).
     pub fn finalize(&self, grid: &mut DeepGrid) {
         for s in &mut grid.strata {
-            s.promote_coal(COAL_MIN_M);
+            s.promote_coal(COAL_BURIAL_M);
         }
     }
 }

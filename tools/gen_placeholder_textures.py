@@ -111,6 +111,9 @@ MATERIALS = [
     ("coal",            "coal",            (0.07, 0.065,0.06), 1350,  0.05,  0.90, [2.4, 4.0, 2.2, 3.0], "material", False),
     ("carbonaceous-mudstone", "carbonaceous mudstone",
                                            (0.21, 0.18, 0.15), 2200,  0.004, 0.92, [3.0, 4.8, 3.9, 2.6], "material", False),
+    # charcoal (journal/0063) -- the fire-residue INCLUSION. MIRROR
+    # crates/dc-core/src/materials/mod.rs id 25.
+    ("charcoal",        "charcoal",        (0.045,0.042,0.04),  350,  2.0,   0.05, [0.3, 0.8, 0.5, 0.4], "material", False),
     # v1 SUBSTANCE placeholders -- PRE-REGISTRY (docs/design/ores.md). These
     # materials are NOT yet in crates/dc-core/src/materials/mod.rs; the
     # registry/atlas wiring is the deliberately-deferred upstream engineering.

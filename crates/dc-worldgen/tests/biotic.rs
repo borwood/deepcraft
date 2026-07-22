@@ -6,7 +6,10 @@
 //!
 //! Measured numbers live in docs/spikes/S10-results.md; these are the falsifiers.
 
-use dc_worldgen::deeptime::{self, Biofacies, COAL_MIN_M, DeepConfig, DeepGrid};
+use dc_worldgen::deeptime::{
+    self, Aridity, Biofacies, COAL_MIN_M, DeepConfig, DeepGrid, DeepStrata, DepEnv, DepTag,
+    EnergyBand, Eolian,
+};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
@@ -225,4 +228,79 @@ fn biology_changes_the_landscape_it_grows_on() {
         "the biotic run's bedrock surface is indistinguishable from the abiotic \
          one (max diff {diff} m) — the erosion/weathering feedback is not wired"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Burial diagenesis: the axis (journal/0063).
+
+fn organic_tag(biota: Biofacies) -> DepTag {
+    DepTag {
+        env: DepEnv::Subaerial,
+        aridity: Aridity::Humid,
+        energy: EnergyBand::Low,
+        biota,
+        eolian: Eolian::None,
+    }
+}
+
+/// **The axis falsifier.** Coal is made by burial, not by duration. Until
+/// journal/0063 `promote_coal` tested the seam's own *thickness*, which is a
+/// statement about how long the swamp lasted; `CLASS_ORGANIC_COAL`'s contract
+/// has always said the depth axis is the rank axis, and the burial depth was
+/// derivable from the record all along (`Σ` of the overlying units).
+///
+/// The record below is constructed so the two rules give *opposite* answers on
+/// both units, which is the only way to pin an axis rather than a threshold: the
+/// old rule would have promoted the thick shallow bed and refused the thin deep
+/// one.
+#[test]
+fn coal_promotion_reads_burial_depth_not_seam_thickness() {
+    let mut s = DeepStrata::default();
+    // Bottom-up: a THIN peat, buried under 21 m of section, then a THICK peat
+    // under only 1 m, then nothing — the second peat is near the living surface.
+    s.deposit(organic_tag(Biofacies::Peat), 0.05, 0);
+    s.deposit(organic_tag(Biofacies::Mineral), 20.0, 0);
+    s.deposit(organic_tag(Biofacies::Peat), 9.0, 0);
+    s.deposit(organic_tag(Biofacies::Mineral), 1.0, 0);
+    let before = s.total_m();
+
+    s.promote_coal(8.0);
+
+    let biota: Vec<Biofacies> = s.units.iter().map(|u| u.tag.biota).collect();
+    assert_eq!(
+        biota[0],
+        Biofacies::Coal,
+        "a 5 cm bed under 21 m of section is COAL — the old thickness rule \
+         (>= 0.4 m) would have left it peat forever"
+    );
+    assert_eq!(
+        biota[2],
+        Biofacies::Peat,
+        "a 9 m bed under 1 m of section is still PEAT — the old thickness rule \
+         would have promoted it on the strength of the swamp's duration alone"
+    );
+    // Promotion is a retagging, never a remassing: the finalize invariant.
+    assert_eq!(
+        s.total_m().to_bits(),
+        before.to_bits(),
+        "promote_coal moved mass"
+    );
+}
+
+/// The topmost unit is the **living surface**, and it is never coal — at any
+/// threshold, including the degenerate `0.0` where the burial rule would
+/// otherwise promote it on `0.0 >= 0.0`. That is the one value at which the
+/// invariant does *not* fall out of the arithmetic, which is exactly why it is
+/// the value worth testing.
+#[test]
+fn the_living_surface_is_never_coal_whatever_the_threshold() {
+    let mut s = DeepStrata::default();
+    s.deposit(organic_tag(Biofacies::Peat), 40.0, 0);
+    s.promote_coal(0.0);
+    assert_eq!(s.units[0].tag.biota, Biofacies::Peat);
+
+    // And with something above it, the same peat IS coal at zero threshold.
+    s.deposit(organic_tag(Biofacies::Mineral), 0.1, 0);
+    s.promote_coal(0.0);
+    assert_eq!(s.units[0].tag.biota, Biofacies::Coal);
 }

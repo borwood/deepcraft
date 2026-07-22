@@ -31,7 +31,7 @@
       "ramp_levels": "from grain size (4 fine / 5 mid / 6 coarse)"
     }
   },
-  "material_count": 30,
+  "material_count": 31,
   "block_only_count": 4,
   "materials": {
     "andesite": {
@@ -255,6 +255,38 @@
         "R_smoothness": 191,
         "G_f0_or_metal": 10,
         "B_porosity": 20,
+        "A_emission": 255
+      }
+    },
+    "charcoal": {
+      "name": "charcoal",
+      "kind": "material",
+      "files": {
+        "basecolor": "charcoal/basecolor.png",
+        "normal": "charcoal/normal.png",
+        "specular": "charcoal/specular.png"
+      },
+      "base_color_srgb": [
+        0.045,
+        0.042,
+        0.04
+      ],
+      "seed": 11940156417945219393,
+      "params": {
+        "grain_mm": 2.0,
+        "grain_norm": 0.6384,
+        "noise_freq": 8,
+        "hardness": 0.5,
+        "relief_amp": 0.5,
+        "ramp_levels": 5,
+        "smoothness": 0.2353,
+        "porosity": 0.8906,
+        "metal": false
+      },
+      "specular_channels": {
+        "R_smoothness": 60,
+        "G_f0_or_metal": 10,
+        "B_porosity": 57,
         "A_emission": 255
       }
     },

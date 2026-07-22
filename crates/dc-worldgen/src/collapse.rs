@@ -1543,8 +1543,8 @@ fn carve_rivers(mut elev: f64, px: f64, pz: f64, segs: &[RiverSeg]) -> (f64, boo
 mod tests {
     use dc_core::materials::geology::{
         self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
-        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
-        FormationWindow, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologySet,
+        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
+        CLASS_ORGANIC_SOIL, FormationWindow, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologySet,
     };
     use dc_core::{Block, MaterialId, block_twin, classify};
 
@@ -1566,6 +1566,8 @@ mod tests {
             c if c == CLASS_IGNEOUS_INTRUSIVE => Block::Granite,
             c if c == CLASS_IGNEOUS_EXTRUSIVE => Block::Basalt,
             c if c == CLASS_ORGANIC_COAL => Block::Coal,
+            // Charcoal shares coal's block band (see `dc_core::block_twin`).
+            c if c == CLASS_ORGANIC_CHARCOAL => Block::Coal,
             c if c == CLASS_ORGANIC_PEAT => Block::Peat,
             c if c == CLASS_ORGANIC_SOIL => Block::CarbonaceousMudstone,
             _ => Block::Stone,

@@ -68,6 +68,15 @@ cargo test --workspace --release
   pass?"
 - Capture `error` / `panicked` / `FAILED` lines, not only `test result:` lines
   — a compile failure is invisible to a test-result filter.
+- **And grep the build log for the crate you changed** (corrections #34) — with
+  the right verb: `build`/`test` print **`Compiling dc-x`**, `clippy` prints
+  **`Checking dc-x`**. With several worktrees on one `CARGO_TARGET_DIR`, build
+  state is shared and package *names* are ambiguous: a `cargo clean -p` plus a
+  concurrent sibling build has been observed resolving this worktree's
+  `dc-worldgen` against a **sibling's `dc-core`**. Before a gate that matters,
+  wait until `Get-Process cargo,rustc` is empty. **And re-read
+  `.agent-build.lock` before each cargo call — it has been observed clobbered by
+  a sibling; a create-file mutex you never read back is not a mutex.**
 
 ## Agent walks
 

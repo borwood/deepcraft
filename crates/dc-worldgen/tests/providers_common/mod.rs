@@ -26,7 +26,7 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// pre-slice `main` (`2434f37`). See `providers_golden.rs` to re-derive.
 pub const GOLDEN_SURFACE: u64 = 0x7B89_68FD_90E0_4062;
 /// FNV-1a-64 over the strata record of the same field, same provenance.
-pub const GOLDEN_RECORD: u64 = 0xA53B_D77F_769D_7FF4;
+pub const GOLDEN_RECORD: u64 = 0x7A7B_0528_2017_2C71;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

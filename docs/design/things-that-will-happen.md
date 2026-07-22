@@ -97,3 +97,9 @@ list and not a roadmap — some of these are far off, and that is fine.
 - Somewhere in the world there is a canyon you could spend a day walking into,
   a lake big enough to have weather, and an inland sea with no outlet that is
   saltier every century.
+- You cut a face through a floodplain and there are black specks in the mud —
+  not a band, just specks, and only in the layers where a fire came through.
+  You cannot mine them. They tell you the forest here burned.
+- The coal seam you are standing on is thin, and it is coal because there is a
+  hundred metres of rock on top of it. The nine-metre peat bed a valley over is
+  still peat, because nothing ever buried it.
