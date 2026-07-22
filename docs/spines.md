@@ -99,6 +99,18 @@ authority"). Agreement is **exact** where expression is deterministic and
 **no simulation-resolution edge may reach the eye as a square or analytic
 boundary** (earth-processes.md, DECIDED).
 
+**The user's sharpening (2026-07-22, walk-0071 session): smoothing a verdict
+preserves the shape of the cell that voted it.** Anything decided from a bulk
+summary of a cell — when one cell marginally crosses a threshold its
+neighbors miss — stays a *square phenomenon* under smoothing (a feathered
+square is still a square). So the rule's real content is: **threshold late,
+at the fine scale, on interpolated causes** — the boundary then follows the
+cause's contour, not the grid. Where the cause is non-interpolable (the
+strata record — see the S-4 live-violation note below), **dither membership
+instead**: unbiased stochastic assignment at the boundary (S-7's medicine at
+a different joint), making the transition a statistical gradient rather than
+a line. Verdict-smoothing is never the fix.
+
 **Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
 `surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
 mosaic under smooth terrain (ROADMAP Observed, 2026-07-22). *Before "fixing"
