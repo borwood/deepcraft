@@ -1303,7 +1303,7 @@ guided-tour ratification (0049)**. Doctrine: ledger-expression + enhancement
 + perf-first + genesis/stubs (stubs.md, 11 entries). Ore design pass drafted
 (ores.md R1–R8 pending).
 
-**NEXT SESSION — rewritten at the 2026-07-21 session close, AFTER the live
+**(SUPERSEDED by the 2026-07-22 close at the end of this file.)** NEXT SESSION — rewritten at the 2026-07-21 session close, AFTER the live
 walk (supersedes every earlier same-day block). Read first:**
 **journal/0050–0058** — the leak, the eviction, the fill contract, carry-`H`,
 DeviceLost, distribution-first, the holes, the eight-kilometre typo — and
@@ -3124,3 +3124,81 @@ before any code.
   ARCHITECTURE.md § "A summary is not an authority" class: a conclusion
   justified by a constraint we later removed, recorded in prose, with nothing
   to fail when the constraint went away (cf. corrections #29).
+
+---
+
+## NEXT SESSION — written at the 2026-07-22 close (supersedes every earlier block)
+
+**Read first: `docs/spines.md`** — new today, and now item 0 in CLAUDE.md.
+Eight shapes, six anti-shapes, and § 3, the index of **machinery that exists
+and nothing calls**. It exists because the corpus was ahead of the assistant
+**fourteen times** in one session — not because ideas were missing, but because
+they were **already built and lost**. Then `journal/0060–0067` and
+**corrections #30–#37**, five of which are the integrator's own errors.
+
+**The compliance loop is live.** Briefs name the spines they ride; a worker who
+believes a deviation is right makes a **loud plea** rather than shipping it
+silently; compliance is part of integration review; carve-outs pass through
+main-session discussion and user ratification into `spines.md` § 4. The
+`spine-audit` skill is the other half — a periodic read-only sweep that keeps
+the doc **true** while the workflow keeps it **applied**. It has never been
+run; running it is a cheap first act.
+
+### Shipped 2026-07-22
+
+Provider seams (`outcrop_at`, `wave_energy`, `parent_p`, `depth_to_water`) ·
+the module split that made conversions concurrent · `Option<fn>` slots, so
+absence is **structural** rather than inferred from fn addresses (#32) ·
+**S15** coarse capacity, GO · **horizon 6 proven survivable** · coal on burial ·
+charcoal as an inclusion · `spines.md` and the closed loop.
+
+### The one outstanding ratification condition
+
+The user accepted coal **conditionally**: the 8 m threshold must become a
+**provider seam with the geotherm as its heir**. Dispatched at the close; if it
+did not land, it is the first thing to finish. The calibration itself is
+explicitly **not** under review — *"the calibration is fine, we aren't
+answering deep questions about it right now."*
+
+### The live design thread
+
+**The recorder's entry species** — and it is now ONE decision, not two: where
+**form** lives in the record, and what the **erosion sim reads**. If `Litho`
+should become *(substance mixture, form)* rather than six proxy rocks, those
+are the same question. Decided sequence for the material interface
+(geology.md, DECIDED 2026-07-22): **seam now · MEASURE the class-aggregate with
+a probe, at zero terrain cost · ship `f(substance, form)` ONCE.** Never
+aggregate-then-form: each is a terrain-shape flip, and that pays the cost twice
+for one conceptual change.
+
+### Hydrology, on a hard pause the user called
+
+Opens from `water.md` — *not* beside it. `wet` is **three quantities**, one of
+which (fire dryness) is not about a water table at all. The drainage wall:
+**capture is coarse, expression is fine**, and its mirror for player
+diversions, **fine cause, coarse propagation**. Most of the user's encounters
+list does **not** collide with the wall. And the parked leaning: **one octree**
+shared by FF2b, bulk flow and the statistical tier — recorded, deferred,
+discoverable.
+
+### Queued, none blocked
+
+Seam conversions, partitioned by owing-system group so they run concurrently:
+*materials/form* (`material_properties` + `is_granular`) · *paleoclimate*
+(`paleo_temperature`) · doc-only riders (the `fits_in_pores` declaration, the
+`exhum`/`t_crust` comment correction). **Not** `block_twin` — it touches the
+ratified fill contract and wants thought, not a brief. The **surface-branch
+fix** is still held, and it splits: the expression half is independent, the
+far-field summarization half waits on the octree question.
+
+### Operational lessons that cost real time today
+
+- **Clean the crates a SIBLING built, not the crates you changed** — a false
+  red on a dc-client atlas test came from a sibling's dc-core.
+- **Hold the build mutex around the cargo invocation, not the work session.**
+- **Measurement agents must commit something early** — an unchanged worktree is
+  auto-cleaned, and one was deleted mid-run.
+- **An empty worktree is not evidence that an agent produced nothing.**
+- **A window shorter than the period cannot tell flat from oscillating**
+  (corrections #34 — journal/0051's famous `0.00 MB/jump` was phase, not
+  flatness).
