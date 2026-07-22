@@ -3214,6 +3214,22 @@ before any code.
     wrong at play, the lever is calibration (contrast/cap or coal's property
     sheet), never the blend.
 
+- **The cake observation: minority phases guillotine at cell perimeters
+  under the coherent draw** (user, 2026-07-22, on ratifying B1's look —
+  the swirl-cake-slice metaphor). B1's dither made the SOURCE continuous
+  but the SHARES it thresholds are still nearest-per-cell, so minority
+  swirls die at the 460 m line while shared majorities flow through —
+  the S-4 sharpening catching the residual half of its own fix (the cause
+  is still cell-quantized; only the expression got smooth). Suspected
+  harder-to-see sibling: the journal/0058 MEMBER dither should guillotine
+  minority members identically at perimeters (unexamined — check when the
+  cure lands). Cure named, assigned to the CoarseField extraction: near
+  boundaries, seeded membership dither of the SOURCE CELL (bilinearly
+  weighted), then draw within that cell's shares — the residue-(b) paired
+  pattern at the surface. Also owed there: the toward-50/50 bias of
+  interpolated-uniform noise (dice-sum CDF distortion) — either a
+  CDF-corrected coherent source or the far-summarize register retires it.
+
 - **Texel-edge dither bands on close-pressed walls, anisotropic** (user field
   report, walk 0071, 2026-07-22; asset
   `journal/assets/0071-artifact-texel-edge-jitter-wall.png`; observed at

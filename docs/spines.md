@@ -310,7 +310,20 @@ ratification** · an entry here, dated, with the reasoning.
 
 Undocumented deviation is the failure. A ratified one is just a decision.
 
-*(None yet.)*
+**1. (2026-07-22) B1's class draw uses the coherent bilinear source, not
+white noise — a bounded S-7 deviation with a named heir.** White noise (the
+unbiased prescription) doubled far-tile mesh (21.5→43.5 MiB: coarse far
+sampling aliases white noise into unmergeable speckle); runtime-is-sacred
+chose the coherent source the journal/0058 member dither already uses
+(+13 %, in budget). Costs, on the record: a small toward-50/50 bias
+(interpolated uniforms are middle-heavy — the dice-sum CDF distortion), and
+the user's cake observation (minority phases guillotine at cell perimeters
+because the SHARES are still nearest — see ROADMAP Observed). **Heir: the
+`CoarseField` extraction** — far-summarize register (agreement statistical),
+boundary source-cell membership dither, and/or a CDF-corrected source retire
+both costs. Ratified by the user in-session with the observation attached:
+*"a lot better than before… the salient information is that the bilinear
+field we already use doesn't behave in a strictly satisfactory way."*
 
 ---
 
