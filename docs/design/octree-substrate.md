@@ -135,10 +135,20 @@ authority or from the children's same field, never from a side channel (S-3).
   rejected — a pre-baked painting *beside* the authority (A-1/S-3 shape), a
   second art pipeline, and edit propagation becomes re-baking imagery instead
   of re-deriving data.
-- **Aokana-style ray-marched SVDAG** (mesh-free volumetric): already
-  effectively rejected by the Bevy-mesh-path decision (voxy-dh addendum), and
-  it would split the lighting/tonemap register in two — the parity the far
-  field currently keeps for free (journal/0004's lesson standing).
+- **Aokana-style ray-marched SVDAG** (mesh-free volumetric): **OPEN, not
+  rejected** (user, 2026-07-22 — an earlier draft of this bullet claimed the
+  Bevy-mesh-path decision had "effectively rejected" it; the user correctly
+  flagged that as scope-inference: the voxy-dh addendum rejected *Voxy's*
+  bespoke cmdgen/vertex-pulling for the mesh path and never adjudicated the
+  mesh-free paradigm). Two clarifications ratified in that conversation:
+  **(a) D3 and Aokana are orthogonal** — ray-marched voxels still look like
+  stepped voxels, so stepped-all-the-way is an *appearance* decision and
+  mesh-vs-march is a *production* decision under it; **(b) Aokana is
+  spike-gated**: the known burdens (two render paths in permanent parity incl.
+  shader packs — journal/0004's lesson; appearance baked into the DAG vs
+  variety-is-data; a bespoke forever-maintained subsystem; edits vs subtree
+  dedup) are paid only if FF2b-minimal's measured numbers demand it. The
+  tripwire is in § 6.
 - **A painterly "far register"**: the honest version of this instinct already
   exists in the corpus as **vista-as-augury** — far-visible *live* state
   (smoke, herds, societies) rendered as a read of the *distribution* without
@@ -160,3 +170,11 @@ authority or from the children's same field, never from a side channel (S-3).
    reasons in span stacks, so the first is the conservative path; the slice
    brief decides after measuring.
 4. Statistical-tier attachment point — deferred with its own design pass.
+5. **The Aokana tripwire** (§ 5): FF2b-minimal reports memory and frame cost
+   at design-target radius. If volumetric summaries push tile count/memory
+   super-linear, or span-stack meshing blows the frame budget over dense
+   cave-riddled terrain, an Aokana spike (minimal WGSL marcher over a static
+   SVDAG of a real region; measure memory/frame at 10–50 km equivalents;
+   assess pack-parity burden) goes to the user with those numbers. FF2a's
+   headroom checkpoint (~10 km ≈ 376 tiles / ~43 MiB, journal/0023) says the
+   mesh path is nowhere near the wire today.
