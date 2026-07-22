@@ -110,8 +110,17 @@ fn main() -> std::process::ExitCode {
         //                      terrain, so it is a deliberate world-creation call.
         // - `--full-agents`    the wind + frost + wave erosion roster.
         // - `--amplitude <n>`  orogenic thickening scale (m/iter). Only bites
-        //                      when `--tectonics` is on — it is the amplitude the
-        //                      tectonic forcing multiplies.
+        //                      when `--tectonics` is on — it is the TECTONIC
+        //                      amplitude the tectonic forcing multiplies.
+        // - `--erosion-budget <mult>`  the EROSION budget multiplier
+        //                      (`erodibility_probe` experiment B): scales
+        //                      weathering / k_transport / k_bedrock TOGETHER by
+        //                      <mult>, so relative rates never move — only the
+        //                      total erosion does. Distinct from `--amplitude`
+        //                      (which is tectonic, journal/0040); `1.0` is
+        //                      byte-identical to omitting it. This is the dev
+        //                      lever that makes the cranked "conservative
+        //                      amplitude" world walkable (journal/0076).
         // - `--extent <small|medium|large>`  world size (default: medium).
         let mut deep = dc_worldgen::DeepOverrides::default();
         if args.iter().any(|a| a == "--tectonics") {
@@ -126,6 +135,17 @@ fn main() -> std::process::ExitCode {
                 Err(_) => {
                     eprintln!(
                         "--amplitude expects a number (m/iter), got `{}`; ignoring it",
+                        v[1]
+                    );
+                }
+            }
+        }
+        if let Some(v) = args.windows(2).find(|w| w[0] == "--erosion-budget") {
+            match v[1].parse::<f64>() {
+                Ok(n) => deep.erosion_budget = Some(n),
+                Err(_) => {
+                    eprintln!(
+                        "--erosion-budget expects a number (multiplier), got `{}`; ignoring it",
                         v[1]
                     );
                 }

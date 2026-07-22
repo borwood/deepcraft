@@ -1237,8 +1237,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   revisions greenlit")**: **1. The perf window** — one dc-client cluster:
   profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
   killer list) · async-offload slice (chunk gen + far-mesh onto
-  AsyncComputeTaskPool; `streaming.rs:42` suspect) · erosion-budget dev flag
-  (the walkable cranked world → the standing amplitude call) · albedo-at-
+  AsyncComputeTaskPool; `streaming.rs:42` suspect) · ~~erosion-budget dev flag
+  (the walkable cranked world → the standing amplitude call)~~ **LANDED
+  2026-07-22, journal/0076 (`--erosion-budget <mult>`)** · albedo-at-
   range once baseline numbers exist, carrying the ranges-as-player-config
   rider. This PROMOTES perf over the queued seam batch per the runtime-is-
   sacred convention; **the seam-conversion batch (materials/form,
@@ -1821,8 +1822,17 @@ What remains is **user decisions**.)*
    filed: extend 0040's deep-config launch plumbing with a dev erosion-budget
    flag (weathering / k_transport / k_bedrock ×N, optionally
    erodibility_contrast) so THIS call can be made from vistas on a same-seed
-   pair. Sequenced after FF2b-minimal lands — dc-client write-set overlap
-   with the in-flight agent.)*
+   pair.)*
+   **ENABLING SLICE LANDED 2026-07-22 (journal/0076): `--erosion-budget <mult>`
+   on dc-client rides the 0039 `DeepOverrides` door as `erosion_budget:
+   Option<f64>`, multiplying `weathering`/`k_transport`/`k_bedrock` together at
+   world build (experiment B's exact semantics; relative rates fixed). `1.0` is
+   byte-identical to no flag (falsifier `erosion_budget_one_is_byte_identical_to_no_flag`);
+   goldens did not move. The walk is UNBLOCKED — the amplitude call can now be
+   made from vistas on a same-seed pair (`--erosion-budget 3` vs `10`). The knob
+   is the erosion budget only; `erodibility_contrast` was left for a later slice
+   (the budget alone is what experiment B moved). The DECISION is still the
+   user's; this slice only makes it seeable.**
 3. **The four rate coefficients** in `resistance_of_material` (how smash /
    solubility / permeability / cohesion map to each agent's resistance) and the
    contrast/clamp defaults ride **plausible-not-tuned**, same status as S9's
