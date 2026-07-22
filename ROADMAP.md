@@ -3033,7 +3033,30 @@ before any code.
   (`completions` hook) and #7 (registry macro/derive). Dispatched as a
   session-4 background agent — see In flight.)*
 
-- **Volcanism does not exist** (agreed 2026-07-20, session-4 gen review).
+- **Texel-edge dither bands on close-pressed walls, anisotropic** (user field
+  report, walk 0071, 2026-07-22; asset
+  `journal/assets/0071-artifact-texel-edge-jitter-wall.png`; observed at
+  world x ≈ 99,341 m, y ≈ 198 m — a basalt hole wall). At extreme
+  magnification, VERTICAL texel boundaries dissolve into noisy dither bands
+  while HORIZONTAL boundaries stay razor-straight. Not new, per the user; a
+  rendering fix/mitigation dogear, not a walk finding. Two candidate
+  mechanisms, one discriminator:
+  (a) **f32 precision exhaustion in world-position-derived UVs** — at
+  |x| ≈ 99 km an f32 ULP is ~8–16 mm vs a 56 mm texel, so the U axis
+  quantizes noisily while V (from y ≈ 198 m, µm-precise) stays clean —
+  matches the anisotropy exactly; ARCHITECTURE's floating-origin rule
+  protects geometry but not any shader path reconstructing absolute world
+  position in f32;
+  (b) **heightmap-based splat mixing** (user's hypothesis) — near-equal
+  weights on 4 same-texture splats let the per-pixel winner flip; standalone
+  it does not predict the anisotropy, but if the heightmap/splat selector is
+  itself world-position-sampled, (b) inherits (a) and they are one bug.
+  **Falsifier: press against a wall near world origin** — (a) predicts both
+  edge directions straight there and band width growing with |x|; (b) alone
+  predicts the artifact everywhere. Then read the WGSL UV/splat-height
+  derivation. Candidate mitigations if (a): camera-relative or
+  origin-rebased UVs, f64-split world coords on the CPU side, or
+  per-region UV rebasing.
   earth-processes § 2 (Igneous) is a sketch; nothing is built. Arc/rift
   provenance raises elevation but builds no edifices. What it would buy:
   the fastest legal short-gradation mountain on Earth (a stratovolcano is
