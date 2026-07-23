@@ -534,23 +534,15 @@ impl<'a> WorldGenerator<'a> {
                     let id = match plan {
                         Plan::Single(k) => {
                             let event = col.strata.events[*k];
-                            let host = dithered_member(
-                                &self.geology,
-                                self.seed,
-                                &event,
-                                cx,
-                                cz,
-                                x,
-                                z,
-                            );
+                            let host =
+                                dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
                             *memo.entry((*k, host, n)).or_insert_with(|| {
                                 self.materials
                                     .intern(mixed_contents(&self.geology, &[(host, n)]))
                             })
                         }
                         Plan::Mixed(_) => {
-                            let c = self
-                                .surface_voxel_contents(&col.strata, plan, n, vx, vy, vz);
+                            let c = self.surface_voxel_contents(&col.strata, plan, n, vx, vy, vz);
                             self.materials.intern(c)
                         }
                     };
@@ -892,17 +884,20 @@ impl<'a> WorldGenerator<'a> {
     /// noise. The far field point-samples this class through `coarse_surface` at
     /// a wide stride, and white noise aliases there into a coarse speckle that
     /// doubled the far-tile mesh (journal/0073); a field coherent over a chunk
-    /// forms sub-chunk class patches that mesh cheaply at every scale. Because
-    /// the field is deterministic in `(seed, vx, vz)` and the shared kernel feeds
-    /// both the near ground and the far horizon at the same `(vx, vz)`, near and
-    /// far inherit the **identical** class and stay one world answer (the
-    /// near/far agreement test asserts it exactly). The trade the coherence buys
-    /// is a small bias toward 50/50 (the bilinear value is not uniform) — the
-    /// same bias the member dither already accepts; the unbiased end-state is the
-    /// far field *summarizing* the shares, which the `CoarseField<T>` extraction
-    /// owns. The **member within** the drawn class is dithered separately by the
-    /// caller; this draw picks the class, that one picks the member, distinct
-    /// salts throughout.
+    /// forms sub-chunk class patches that mesh cheaply at every scale.
+    ///
+    /// **Since journal/0074 this feeds only the far-field summary** — the near
+    /// ground's surface voxel is the record's top span through `ColumnFill`, not
+    /// this class draw. Near and far are therefore no longer identical by
+    /// construction; they are held to a **statistical** agreement test
+    /// (`coarse_surface_agrees_with_the_near_column_surface`). The trade the
+    /// coherence buys is a bias that **amplifies the majority** class (the
+    /// bilinear value is not uniform — corrections #39 corrected the sign from
+    /// the earlier "toward 50/50" reading), the same bias the member dither
+    /// accepts; the unbiased end-state is the far field *summarizing* the shares,
+    /// which the `CoarseField<T>` extraction owns. The **member within** the drawn
+    /// class is dithered separately by the caller; this draw picks the class, that
+    /// one picks the member, distinct salts throughout.
     ///
     /// When the record runs out before half a voxel (the 0.2 % bare-rock case
     /// journal/0053 bought), the surface voxel is basement, and the class is the
@@ -950,14 +945,16 @@ impl<'a> WorldGenerator<'a> {
                 // chunk, so the class forms sub-chunk patches whose *composition*
                 // shifts across the 460 m frontier: the checkerboard dissolves
                 // into an interfingered gradient that meshes cheaply at every
-                // scale, and near and far stay EXACTLY equal (one deterministic
-                // kernel). Cost of coherence: the bilinear value is not uniform,
-                // so the split is biased a few points toward 50/50 — the identical
-                // bias the member dither already lives with (0058). Unbiased
-                // white noise is the correct end-state once the far field
-                // *summarizes* the share vector instead of point-sampling it —
-                // that lives in the `CoarseField<T>` extraction (audit Part 2),
-                // where near/far agreement becomes statistical by design.
+                // scale. (Before journal/0074 this drove the near ground too, so
+                // near and far were EXACTLY equal; now it is the far summary only
+                // and near/far agreement is statistical.) Cost of coherence: the
+                // bilinear value is not uniform, so the split is biased to
+                // **amplify the majority** class (corrections #39 corrected the
+                // sign from the earlier "toward 50/50") — the identical bias the
+                // member dither already lives with (0058). Unbiased white noise is
+                // the correct end-state once the far field *summarizes* the share
+                // vector instead of point-sampling it — that lives in the
+                // `CoarseField<T>` extraction (audit Part 2).
                 let (ccx, ccz) = (vx.div_euclid(32), vz.div_euclid(32));
                 let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
                 let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
@@ -1506,14 +1503,8 @@ impl<'a> WorldGenerator<'a> {
                     let i = (z * 32 + x) as usize;
                     let (vx, vz) = (cx * 32 + x, cz * 32 + z);
                     let vy = i64::from(heights[i]);
-                    let contents = self.surface_voxel_contents(
-                        &strata,
-                        plan,
-                        surface_eighths[i],
-                        vx,
-                        vy,
-                        vz,
-                    );
+                    let contents =
+                        self.surface_voxel_contents(&strata, plan, surface_eighths[i], vx, vy, vz);
                     surface[i] = classify(&contents);
                 }
             }
@@ -1935,9 +1926,11 @@ mod tests {
     /// The two do not agree exactly because (a) the near path routes the *veneer*
     /// (clastic fan) on top of the deep history where the far window sees only
     /// the deep record, and (b) the far class draw carries the coherent-source
-    /// toward-50/50 bias (spines § 4 carve-out 1). They must still agree on the
-    /// **large majority** of land columns, and where they disagree it must be the
-    /// minority-class / veneer boundary, not a systematic split.
+    /// bias (majority-amplifying, corrections #39; spines § 4 carve-out 1) — a
+    /// sign *favourable* to this agreement, so (a) is the disagreement's source.
+    /// They must still agree on the **large majority** of land columns, and where
+    /// they disagree it must be the minority-class / veneer boundary, not a
+    /// systematic split.
     #[test]
     fn coarse_surface_agrees_with_the_near_column_surface() {
         // Only land columns that surface a geology block on both sides carry
@@ -1992,7 +1985,10 @@ mod tests {
              (geology-surfacing columns, seeds 0x0D5EED572026 + 1337, Medium)",
             frac
         );
-        assert!(compared > 20_000, "only {compared} geology-surfacing columns");
+        assert!(
+            compared > 20_000,
+            "only {compared} geology-surfacing columns"
+        );
         // Floor set from the measured agreement (journal/0074) with margin, so a
         // real drift between horizon and ground trips it. NOT a by-construction
         // equality any more — see the doc comment.
@@ -2078,7 +2074,10 @@ mod tests {
             "surface routing: {varied} of {mixed_top} mixed-top-span chunks vary the \
              surface voxel contents per position (per-voxel allocation is live)"
         );
-        assert!(mixed_top > 20, "only {mixed_top} mixed-top-span chunks sampled");
+        assert!(
+            mixed_top > 20,
+            "only {mixed_top} mixed-top-span chunks sampled"
+        );
         // Per-voxel addressed allocation of a genuine multi-member span varies
         // the contents across the footprint; a chunk-quantized surface gives 0.
         assert!(

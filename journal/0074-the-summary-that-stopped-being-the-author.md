@@ -103,8 +103,13 @@ sources the two paths differ by, and both are named rather than hidden:
    record. Where a fluvial fan skins a column its own colour, near and far
    legitimately differ — the near answer is *more* correct (it is the actual top
    of the deposited column), the far answer is the cheap one.
-2. **The coherent-source bias.** The far class draw carries B1's toward-50/50
-   bias (spines § 4 carve-out 1); the near path draws no class at all.
+2. **The coherent-source bias.** The far class draw carries B1's coherent-source
+   bias — **majority-amplifying**, per corrections #39 (the extraction merge
+   corrected the sign: the bilinear source over-weights the majority class, it
+   does not pull toward 50/50); the near path draws no class at all. That sign is
+   *favourable* to this agreement — the far summary over-picks the same dominant
+   class the near ground most often expresses — so it is not where the ~8 %
+   disagreement comes from; the veneer (1) is.
 
 The reworked test (`coarse_surface_agrees_with_the_near_column_surface`) asserts a
 floor of **0.88** — below the measured 0.9171 with margin, stated as a hypothesis
@@ -193,7 +198,22 @@ and **added** the per-column surface derivation from `ColumnFill` (a
 per column-collapse. Measured on a warm Medium generator, `generate_chunk_with_
 materials` over a 25×25×3 chunk block (`examples/collapse_timing.rs`):
 
-<!-- PERF_PLACEHOLDER -->
+```
+before (main collapse.rs):  876.4 µs/chunk
+after  (surface-branch removal): 784.6 µs/chunk   (−91.8 µs, −10.5 %)
+```
+
+1875 chunks (25×25 columns × 3 chunk-ys), warm generator, Medium seed
+`0x0D5EED572026`. **The change is a perf WIN**, and mechanistically so: the near
+path stopped walking the deep record and drawing a class per voxel column (the
+`surface_class` consult, 1024× per chunk-column) and now reads the record's top
+span it already sliced. The two runs are genuinely distinct builds — the FNV
+block goldens moved (`8A55…` → `4A36…`) and the before-run recompiled main's
+`collapse.rs` (the `Compiling` line), and the ~92 µs gap self-validates against a
+stale artifact (a stale before would time identically). The harness's
+anti-elision checksum is an order-*independent* block sum, so it is coincidentally
+invariant under a span shift — correctness is proven by the goldens and the suite,
+not by it.
 
 The clocks are the ratified ones: this is a chunk-load (runtime) cost, reported
 per the runtime-perf convention; gen time is not the constraint.

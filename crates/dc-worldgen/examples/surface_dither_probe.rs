@@ -319,7 +319,11 @@ fn site(g: &mut WorldGenerator<'_>, pregen: &Pregen, label: &str, vx: i64, vz: i
     println!(
         "  SURFACE               : {:?}, {} of 8 eighths{}\n",
         col.surface[i],
-        if top.is_some() { col.surface_eighths[i] } else { 0 },
+        if top.is_some() {
+            col.surface_eighths[i]
+        } else {
+            0
+        },
         match top {
             None => " (fallback — no record)".to_string(),
             Some(Plan::Single(k)) => format!(" of member {}", col.strata.events[*k].member.0),

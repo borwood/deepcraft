@@ -404,11 +404,14 @@ fn site(
     println!(
         "  SURFACE               : {:?}, filled {} of 8 eighths{}",
         col.surface[i],
-        if top.is_some() { col.surface_eighths[i] } else { 0 },
+        if top.is_some() {
+            col.surface_eighths[i]
+        } else {
+            0
+        },
         match top {
             None => " (fallback — no record to skin it with)".to_string(),
-            Some(Plan::Single(k)) =>
-                format!(" of {}", set.member(col.strata.events[*k].member).id),
+            Some(Plan::Single(k)) => format!(" of {}", set.member(col.strata.events[*k].member).id),
             Some(Plan::Mixed(_)) => " (mixed top span)".to_string(),
         }
     );

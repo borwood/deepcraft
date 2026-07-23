@@ -15,8 +15,8 @@
 use std::time::Instant;
 
 use dc_core::ChunkPos;
-use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 use dc_worldgen::WorldGenerator;
+use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 fn main() {
     let seed = 0x0D5E_ED57_2026u64;
