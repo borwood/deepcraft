@@ -7,6 +7,38 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-23 — **The render-first wedge was already driven — a falsified premise,
+  a guard instead of a deletion** (journal/0082; background implementation agent,
+  worktree for the integrator; step 1 of the north star / block↔material collapse,
+  crux (a)). The dispatched wedge — delete `meshing.rs::block_layer`'s geology
+  re-translation and route `classify → material → atlas` — rested on a mental
+  model the code had outrun. **The near-field mesher's contents-bearing path
+  already routes `contents → material → material_layer` directly** (`top_splat`
+  emits `material_layer(m)` per constituent; it never calls `block_layer`). The
+  `block_layer` geology arms are **not dead**: they are the block-only
+  (contents-absent) render summary, live in **production far rendering**
+  (`farmesh.rs::push_quad` over the far pyramid's `MajorityNonAir` block spans),
+  in the benches, and in the near field's absent-contents geology fallback — the
+  *same* mechanism as the four legacy `grass/dirt/stone/wood` arms the crux keeps
+  (the brief's own reason for keeping those applies verbatim). Deleting them in
+  isolation would break the far field (out of scope) or make `block_layer`
+  non-total, so **no deletion** — the brief's own escape hatch (loud plea, don't
+  force a mess). **Landed instead:** a guard test —
+  `meshing::tests::block_only_geology_layer_agrees_with_direct_material_layer` —
+  pinning `material_layer(m) == block_layer(block_twin(m))` for the seven primary
+  geology blocks (so the direct and block-only routes cannot drift to different
+  atlas layers), plus the siltstone corollary asserting a secondary member stays
+  *distinct* (the material route never degenerates back into the block route —
+  the walk-10 member-identity kill). Byte-identical: **test-only, zero production
+  change.** Findings: the brief's proposed acceptance relation only holds for the
+  seven *primary* materials (`block_twin` is many-to-one); the one residual real
+  Block→layer round-trip for geology is the far-field top face
+  (`farmesh.rs::push_quad`), a separate slice feasible via the far pyramid's
+  material store; Crux 1 (`Block = {Air, Material(MaterialId)}`) subsumes all
+  residuals at once and is the honest next move. Gates green — fmt/clippy/test all
+  `--release`, `cargo clean -p dc-client --release` before the test gate, verified
+  `Compiling dc-client` from this worktree.
+
 - 2026-07-23 — **The perf window opens — runtime span profiling, built to the
   overlay heir** (journal/0080, docs/audits/2026-07-23-perf-baseline-vertical-
   drop.md; spines § S-3 gains a compliance instance; background implementation
@@ -1346,10 +1378,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   long-tail arc.
   **NOW FRAMED AS STEP 1 OF THE NORTH STAR** (2026-07-23): "materials are the
   universal substance the API hangs off." **Cruxes RATIFIED (user, recon:
-  `docs/audits/` block-consumer inventory, journal/0081):** (a) **render-first
+  `docs/audits/` block-consumer inventory, journal/0081):** (a) ~~**render-first
   wedge** — delete `meshing.rs::block_layer`'s geology re-translation, route
-  `classify → material → atlas` (already material-keyed; byte-identical at the
-  pixel level; a proof win). (b) **Crux 1 — air is a peer:** redefine `Block` in
+  `classify → material → atlas`.~~ **INVESTIGATED 2026-07-23, journal/0082: the
+  premise was falsified — no deletion.** The near-field mesher's contents-bearing
+  path already routes `contents → material → material_layer` directly (via
+  `top_splat`; it never calls `block_layer`). `block_layer`'s geology arms are
+  **not** dead: they are the block-only (contents-absent) summary, exercised by
+  the far-field pyramid `push_quad` (production render), the benches, and the
+  absent-contents geology fallback — the *same* mechanism as the four legacy arms
+  the crux keeps, so they cannot be deleted in isolation without breaking the far
+  field (out of scope) or making `block_layer` non-total. Crux 1 (below) subsumes
+  them. Landed instead: a guard test
+  (`block_only_geology_layer_agrees_with_direct_material_layer`) pinning
+  `material_layer(m) == block_layer(block_twin(m))` for the seven primary geology
+  blocks against silent drift (A-7). The only residual *real* Block→layer
+  round-trip for geology is the far-field top face (`farmesh.rs::push_quad`) — a
+  separate slice, feasible via the far pyramid's material store. (b) **Crux 1 —
+  air is a peer:** redefine `Block` in
   place to `enum { Air, Material(MaterialId) }`, keep the token for is_solid/==Air,
   delete `block_twin`; niche-optimise `MaterialId` for a **1-byte atom** (64→32
   KB/chunk, a storage/perf win — verify). (c) **Crux 2 — retire, do not enshrine:**

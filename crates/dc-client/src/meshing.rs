@@ -1160,4 +1160,55 @@ mod tests {
         }
         assert_eq!(seen.len(), ATLAS_LAYER_COUNT as usize);
     }
+
+    #[test]
+    fn block_only_geology_layer_agrees_with_direct_material_layer() {
+        // Render-first step 1 of the north star (block↔material collapse): a
+        // contents-bearing geology voxel already routes contents → material →
+        // material_layer DIRECTLY (the `top_splat` path — see
+        // `uniform_contents_sample_their_material_layer`); it never round-trips
+        // through `block_layer`. The block-only paths (far pyramid `push_quad`,
+        // benches, absent-contents geology voxels) still resolve a geology
+        // *block* via `block_layer`'s geology arms — those arms are NOT dead
+        // (journal/0082). For the seven blocks named after a material, BOTH
+        // routes must land on the same atlas layer, or a geology surface would
+        // flip texture the instant it lost or gained a per-voxel contents
+        // record. This guard pins that byte-identical agreement so a future
+        // edit to `block_twin` or to `block_layer` cannot silently drift the
+        // two tables apart (spines A-7: don't reinvent a mechanism beside the
+        // one that exists).
+        use dc_core::block_twin;
+        let primary = [
+            (Block::Mudstone, MaterialId::MUDSTONE),
+            (Block::Sandstone, MaterialId::SANDSTONE),
+            (Block::Granite, MaterialId::GRANITE),
+            (Block::Basalt, MaterialId::BASALT),
+            (Block::Coal, MaterialId::COAL),
+            (Block::Peat, MaterialId::PEAT),
+            (Block::CarbonaceousMudstone, MaterialId::CARBONACEOUS_MUDSTONE),
+        ];
+        for (block, m) in primary {
+            // block_twin is the single Material→Block derivation; for these
+            // seven it round-trips to the block named after the material.
+            assert_eq!(block_twin(m), block, "block_twin twin for {block:?}");
+            // The load-bearing equivalence the wedge rests on: the direct
+            // material route and the block route resolve the identical layer.
+            assert_eq!(
+                material_layer(m),
+                block_layer(block_twin(m)),
+                "geology layer disagreement for {block:?}"
+            );
+        }
+        // The corollary that makes the near-field convergence meaningful: a
+        // geology block's *secondary* members do NOT collapse onto the block's
+        // layer — siltstone (a Mudstone twin) keeps its own material layer, so
+        // the direct contents route renders siltstone distinctly from mudstone
+        // (the walk-10 "member identity render-invisible" kill). If this ever
+        // became equal, the material route would have degenerated to the block
+        // route and the collapse would have gone backwards.
+        assert_ne!(
+            material_layer(MaterialId::SILTSTONE),
+            block_layer(block_twin(MaterialId::SILTSTONE))
+        );
+    }
 }
