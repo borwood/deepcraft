@@ -1187,7 +1187,7 @@ pub(crate) mod tests {
     use crate::app::LoadedChunk;
     use dc_api::schema::mcp_tool_name;
     use dc_api::{Vec3i, Volume, payload};
-    use dc_core::{Block, Chunk};
+    use dc_core::{Block, Chunk, MaterialId};
 
     #[test]
     fn dirty_set_interior_border_and_corner() {
@@ -1884,10 +1884,13 @@ pub(crate) mod tests {
 
         let saw_geology = forward.iter().any(|(_, bs)| {
             bs.iter().any(|b| {
-                matches!(
-                    b,
-                    Block::Mudstone | Block::Sandstone | Block::Granite | Block::Basalt
-                )
+                matches!(b, Block::Material(m) if [
+                    MaterialId::MUDSTONE,
+                    MaterialId::SANDSTONE,
+                    MaterialId::GRANITE,
+                    MaterialId::BASALT,
+                ]
+                .contains(m))
             })
         });
         assert!(

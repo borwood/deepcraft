@@ -28,7 +28,7 @@ pub mod scale;
 pub mod voxel;
 
 pub use chunk::{CHUNK_SIZE, CHUNK_SIZE_USIZE, CHUNK_VOLUME, Chunk, ChunkPos, local_voxel};
-pub use classify::{block_twin, classify, dominant_material};
+pub use classify::{classify, dominant_material};
 pub use collision::{
     Aabb, MoveResult, VoxelQuery, aabb_overlaps_solid, column_top_solid_y, move_aabb,
 };

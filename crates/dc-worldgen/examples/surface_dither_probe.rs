@@ -25,7 +25,7 @@
 use std::time::Instant;
 
 use dc_core::materials::geology::vanilla;
-use dc_core::{Block, ChunkPos};
+use dc_core::{Block, ChunkPos, MaterialId};
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
 use dc_worldgen::{ColumnFill, Plan, WorldGenerator};
 
@@ -255,7 +255,16 @@ fn block_column(g: &mut WorldGenerator<'_>, pregen: &Pregen, label: &str, vx: i6
             _ => runs.push((*b, 1)),
         }
     }
-    let igneous = |b: Block| matches!(b, Block::Stone | Block::Granite | Block::Basalt);
+    let igneous = |b: Block| {
+        matches!(b, Block::Stone)
+            || matches!(b, Block::Material(m) if [
+                MaterialId::GRANITE,
+                MaterialId::DIORITE,
+                MaterialId::BASALT,
+                MaterialId::ANDESITE,
+            ]
+            .contains(&m))
+    };
     let sediment = col.iter().take_while(|b| !igneous(**b)).count();
     let expected = h_m.map_or(-1.0, |h| (h / VOXEL_M).round());
     println!("--- {label} — voxel ({vx}, {vz}) ---");

@@ -69,7 +69,7 @@ impl DownsampleRule for MajorityNonAir {
                 continue;
             }
             let count = cell.iter().filter(|b| **b == candidate).count();
-            if count > best_count || (count == best_count && candidate as u16 > best as u16) {
+            if count > best_count || (count == best_count && candidate.ordinal() > best.ordinal()) {
                 best = candidate;
                 best_count = count;
             }

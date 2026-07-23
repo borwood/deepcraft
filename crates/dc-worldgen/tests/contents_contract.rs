@@ -76,7 +76,7 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
     for pos in positions {
         let (chunk, mat) = g.generate_chunk_with_materials(pos);
         for b in chunk.blocks() {
-            blocks.u16(*b as u16);
+            blocks.u16(b.ordinal());
         }
         materials.bytes(&mat.encode());
     }
@@ -395,7 +395,7 @@ fn block_equals_classify_of_contents() {
                             .map_or(VoxelContents::EMPTY, |gr| gr.get(x, y, z));
                         checked += 1;
                         if contents.is_empty() {
-                            *absent.entry(block as u16).or_default() += 1;
+                            *absent.entry(block.ordinal()).or_default() += 1;
                             continue;
                         }
                         with_contents += 1;
@@ -425,11 +425,11 @@ fn block_equals_classify_of_contents() {
     // without contents would mean the two paths disagree about WHERE the record
     // is, which is the exact failure the contract exists to prevent.
     let legacy: [u16; 5] = [
-        Block::Air as u16,
-        Block::Stone as u16,
-        Block::Dirt as u16,
-        Block::Grass as u16,
-        Block::Wood as u16,
+        Block::Air.ordinal(),
+        Block::Stone.ordinal(),
+        Block::Dirt.ordinal(),
+        Block::Grass.ordinal(),
+        Block::Wood.ordinal(),
     ];
     for (&b, &n) in &absent {
         let allowed = legacy.contains(&b);

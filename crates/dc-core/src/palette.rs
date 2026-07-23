@@ -402,8 +402,9 @@ mod tests {
         let p = PalettedChunk::from_dense(&c);
         assert_eq!(p.palette().len(), 2);
         assert_eq!(p.index_bits(), 1);
-        // 32768 indices at 1 bit, 64 per word = 512 words = 4096 bytes.
-        assert_eq!(p.heap_bytes(), 512 * 8 + 2 * 2);
+        // 32768 indices at 1 bit, 64 per word = 512 words = 4096 bytes, plus the
+        // 2-entry palette at size_of::<Block>() each (one byte since the collapse).
+        assert_eq!(p.heap_bytes(), 512 * 8 + 2 * std::mem::size_of::<Block>());
         assert_eq!(p.to_dense().get(0, 0, 0), Block::Stone);
         assert_eq!(p.to_dense().get(1, 0, 0), Block::Air);
     }
