@@ -553,6 +553,71 @@ pub fn mesh_chunk(
     mesh
 }
 
+/// Owned, `Send` border-shell coverage for one chunk — the neighbour coverage
+/// [`mesh_chunk`] would otherwise query live through its `neighbor_fill` closure,
+/// resolved on the main thread and captured so the greedy mesh can run on a
+/// task-pool thread (journal/0083, the async-offload slice).
+///
+/// [`mesh_chunk`] calls `neighbor_fill` in exactly one place: a **solid** voxel's
+/// face whose neighbour lies OUTSIDE the chunk (`nx`/`ny`/`nz` out of `[0, n)`).
+/// [`NeighborShell::resolve`] walks the chunk with the identical predicate and
+/// records the coverage for precisely those world positions, so a shell-backed
+/// mesh queries only recorded keys and is byte-identical to the live-closure
+/// mesh (`tests::shell_backed_mesh_equals_direct_mesh`). Keeping `resolve` beside
+/// [`mesh_chunk`] is deliberate: the two must iterate in lockstep, and the guard
+/// test pins it.
+#[derive(Default)]
+pub struct NeighborShell {
+    cover: std::collections::HashMap<(i64, i64, i64), f32>,
+}
+
+impl NeighborShell {
+    /// Resolve the border-shell coverage by calling `neighbor_fill` (world-voxel
+    /// coords) for each solid voxel's out-of-chunk face neighbour — the exact
+    /// call set [`mesh_chunk`] makes. Runs on the main thread, where
+    /// `neighbor_fill` may borrow the authority (the `neighbor_fill.gen` cost).
+    pub fn resolve(
+        chunk: &Chunk,
+        pos: ChunkPos,
+        neighbor_fill: &dyn Fn(i64, i64, i64) -> f32,
+    ) -> Self {
+        let mut cover = std::collections::HashMap::new();
+        let (mx, my, mz) = pos.min_voxel();
+        let n = CHUNK_SIZE_USIZE as i64;
+        for y in 0..CHUNK_SIZE_USIZE {
+            for z in 0..CHUNK_SIZE_USIZE {
+                for x in 0..CHUNK_SIZE_USIZE {
+                    if !chunk.get(x, y, z).is_solid() {
+                        continue;
+                    }
+                    for (normal, _) in FACES.iter() {
+                        let nx = x as i64 + normal[0];
+                        let ny = y as i64 + normal[1];
+                        let nz = z as i64 + normal[2];
+                        if (0..n).contains(&nx) && (0..n).contains(&ny) && (0..n).contains(&nz) {
+                            continue;
+                        }
+                        let key = (mx + nx, my + ny, mz + nz);
+                        cover
+                            .entry(key)
+                            .or_insert_with(|| neighbor_fill(key.0, key.1, key.2));
+                    }
+                }
+            }
+        }
+        Self { cover }
+    }
+
+    /// Coverage at a world voxel — the shell-backed `neighbor_fill` the offloaded
+    /// [`mesh_chunk`] queries. A position outside the recorded shell returns
+    /// `0.0` (open sky); [`mesh_chunk`] never queries such a position for a
+    /// matching chunk, so the default is unreachable in the offload path.
+    #[inline]
+    pub fn cover(&self, x: i64, y: i64, z: i64) -> f32 {
+        self.cover.get(&(x, y, z)).copied().unwrap_or(0.0)
+    }
+}
+
 #[expect(
     clippy::too_many_arguments,
     reason = "internal helper, flat is clearer"
@@ -691,6 +756,72 @@ mod tests {
             |x: i64, y: i64, z: i64| -> f32 { f32::from(u8::from((x, y, z) == (-33, 0, 0))) };
         let mesh = mesh_chunk(&chunk, pos, 1.0, &neighbor, None);
         assert_eq!(mesh.triangle_count(), 10);
+    }
+
+    #[test]
+    fn shell_backed_mesh_equals_direct_mesh() {
+        // The async-offload invariant (journal/0083): meshing off a task-pool
+        // thread against a pre-resolved `NeighborShell` must produce byte-
+        // identical `MeshData` to meshing on the main thread against the live
+        // `neighbor_fill` closure. Set up a chunk with solid voxels on several
+        // borders (so every face direction queries the shell) plus per-voxel
+        // contents, and a non-trivial neighbour closure (varied coverage by
+        // position). If `resolve` and `mesh_chunk` ever fell out of lockstep on
+        // which positions get queried, a shell miss would read 0.0 and this diff
+        // would fire.
+        let pos = ChunkPos::new(2, -1, 3);
+        let mut chunk = Chunk::new();
+        let mut dense = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+        let last = CHUNK_SIZE_USIZE - 1;
+        // Voxels touching all six chunk faces, plus an interior one.
+        for (x, y, z) in [
+            (0, 4, 4),
+            (last, 4, 4),
+            (4, 0, 4),
+            (4, last, 4),
+            (4, 4, 0),
+            (4, 4, last),
+            (0, 0, 0),
+            (last, last, last),
+            (10, 10, 10),
+        ] {
+            chunk.set(x, y, z, Block::Sandstone);
+            dense[Chunk::index(x, y, z)] =
+                VoxelContents::debris_only(&[MaterialId::SANDSTONE; 5]).unwrap();
+        }
+        let grid = ContentsGrid::from_dense(&dense);
+
+        // A neighbour closure whose coverage varies with position (loose partials
+        // of differing height plus some full/air), so the shell must carry the
+        // exact value per key, not a constant.
+        let neighbor = |x: i64, y: i64, z: i64| -> f32 {
+            let h = (x.rem_euclid(9) + y.rem_euclid(9) + z.rem_euclid(9)) % 9;
+            h as f32 / 8.0
+        };
+
+        let direct = mesh_chunk(&chunk, pos, 0.9, &neighbor, Some(&grid));
+        let shell = NeighborShell::resolve(&chunk, pos, &neighbor);
+        let via_shell = mesh_chunk(
+            &chunk,
+            pos,
+            0.9,
+            &|x, y, z| shell.cover(x, y, z),
+            Some(&grid),
+        );
+
+        assert_eq!(direct.positions, via_shell.positions, "positions differ");
+        assert_eq!(direct.normals, via_shell.normals, "normals differ");
+        assert_eq!(direct.colors, via_shell.colors, "colors differ");
+        assert_eq!(direct.uvs, via_shell.uvs, "uvs differ");
+        assert_eq!(direct.mat_layers, via_shell.mat_layers, "mat_layers differ");
+        assert_eq!(
+            direct.mat_weights, via_shell.mat_weights,
+            "mat_weights differ"
+        );
+        assert_eq!(direct.indices, via_shell.indices, "indices differ");
+        // A meaningful mesh, not a degenerate empty one (the diff would pass
+        // vacuously on two empty meshes).
+        assert!(direct.triangle_count() > 0, "test chunk meshed to nothing");
     }
 
     #[test]
@@ -1185,7 +1316,10 @@ mod tests {
             (Block::Basalt, MaterialId::BASALT),
             (Block::Coal, MaterialId::COAL),
             (Block::Peat, MaterialId::PEAT),
-            (Block::CarbonaceousMudstone, MaterialId::CARBONACEOUS_MUDSTONE),
+            (
+                Block::CarbonaceousMudstone,
+                MaterialId::CARBONACEOUS_MUDSTONE,
+            ),
         ];
         for (block, m) in primary {
             // block_twin is the single Material→Block derivation; for these

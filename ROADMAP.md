@@ -39,6 +39,43 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   `--release`, `cargo clean -p dc-client --release` before the test gate, verified
   `Compiling dc-client` from this worktree.
 
+- 2026-07-23 — **Async-offload: CPU meshing leaves the frame thread** (journal/
+  0083; background implementation agent, worktree for the integrator; gates green
+  — fmt/clippy/test all `--release`, both clippy paths incl. `--features perf`,
+  `cargo clean -p dc-client --release` before the test gate; `Checking dc-client`
+  confirmed from this worktree). **The perf baseline retargeted this slice:** the
+  `--perf-drop 20` capture (docs/audits/2026-07-23) overturned the "synchronous
+  chunk gen is the killer" hypothesis this slice was sequenced against — **gen is
+  14 µs / 0.1 %, leave it alone**; the per-frame killer is **CPU meshing**
+  (`far_tile.derive` 10.3 %, `mesh_chunk` 8.2 %, `neighbor_fill.gen` 4.1 %,
+  `far_tile.mesh` 2.6 %). So the offload moves the **pure meshing**, not gen, onto
+  `bevy::tasks::AsyncComputeTaskPool`: `meshtasks.rs` (in-flight `Task` maps +
+  outputs + a `drain_finished` poll helper) plus a rewire of `streaming.rs`
+  (`stream_chunks` gathers owned inputs → spawns a `mesh_chunk` + `to_bevy_mesh`
+  task; `drain_near_meshes` does the main-thread GPU tail — `Assets<Mesh>` insert
+  + entity spawn) and `farmesh.rs` (same shape for `build_far_tile_mesh`, whose
+  purity journal/0070 had already filed as an async drop-in). **Determinism
+  untouched — render path only; the world stays byte-identical.** Meshing is a
+  pure function of owned data, pinned by
+  `meshing::tests::shell_backed_mesh_equals_direct_mesh` (mesh via a pre-resolved
+  owned `NeighborShell` == mesh via the live authority closure). **The
+  `neighbor_fill.gen` crux, measured then decided (option b):** the 4.7 ms/call is
+  `chunk_contents` locking the single `WorldGenerator` `Mutex`; sharing that mutex
+  across threads would stall the frame thread's own `chunk.gen` behind a
+  background lock-holder (a contention regression unmeasurable without a windowed
+  client), and `far_tile.derive` additionally reads the `&mut FarPyramid`
+  resource. So neighbour coverage + far derivation are resolved on the frame
+  thread as OWNED data and only the pure mesh is offloaded. **The only observable
+  change is chunk/tile appearance ORDER** (async completion is not strictly
+  nearest-first; task *spawn* still is). **Re-capture owed to the integrator:** a
+  fresh `--perf-drop 20` should show `mesh_chunk` (8.2 %) + `far_tile.mesh`
+  (2.6 %) LEAVE the frame-thread `schedule` self-time envelope (the layer is
+  per-thread — perf.rs); they still fire on a task thread. **Filed follow-on:**
+  push `neighbor_fill.gen` + `far_tile.derive` off-thread via a per-task
+  `WorldGenerator` minted from the shared `Arc<Pregen>` — no mutex contention,
+  recomputation free under two-clocks; wants live-client contention measurement,
+  so sequenced not forced.
+
 - 2026-07-23 — **The perf window opens — runtime span profiling, built to the
   overlay heir** (journal/0080, docs/audits/2026-07-23-perf-baseline-vertical-
   drop.md; spines § S-3 gains a compliance instance; background implementation
@@ -66,8 +103,10 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   Baseline **numbers PENDING** — a windowed GPU client could not run in the agent
   environment; the artifact is a schema-complete stub the integrator fills by
   running `--perf-drop 20`. **Zero cost off is verified** (default clippy clean,
-  all `enabled` items behind `#[cfg(feature = "perf")]`). Sequenced next:
-  async-offload (`stream_chunks` sync gen+mesh → `AsyncComputeTaskPool`).
+  all `enabled` items behind `#[cfg(feature = "perf")]`). **Followed by
+  async-offload (journal/0083, above): the baseline this instrument first
+  produced retargeted that slice away from "sync gen is the killer" — gen is
+  14 µs; CPU meshing was the killer.**
 
 - 2026-07-23 — **`paleo_temperature` becomes a seam, and the collapse tier grows
   a provider socket** (journal/0078; background implementation agent, worktree

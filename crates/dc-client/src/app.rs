@@ -28,6 +28,7 @@ use crate::edgepass::{EdgeParams, EdgePassPlugin};
 use crate::edit;
 use crate::farmesh;
 use crate::mcp::{self, McpOptions};
+use crate::meshtasks;
 use crate::physdemo;
 use crate::player::{self, Player};
 use crate::poststage::{PostStage, PostStagePlugin};
@@ -296,6 +297,19 @@ pub fn run(
                 // build meshes FOR, and every frame of it is another chance to
                 // generate downstream noise on top of the real cause. The app is
                 // already exiting; this just stops the gameplay chain first.
+                .run_if(devicelost::renderer_healthy),
+        );
+    // Async-offload meshing (journal/0083): the in-flight task maps, and the
+    // polling systems that drain finished meshes onto the main thread (GPU upload
+    // + entity spawn). Separate from the gameplay chain — they touch only their
+    // own task maps plus ChunkMap/FarSurfaceMap/Assets<Mesh> (Bevy serialises the
+    // resource overlap), and a task spawned this frame completes a later frame,
+    // so ordering against the streamers within a frame does not matter.
+    app.insert_resource(meshtasks::NearMeshTasks::default())
+        .insert_resource(meshtasks::FarMeshTasks::default())
+        .add_systems(
+            Update,
+            (streaming::drain_near_meshes, farmesh::drain_far_meshes)
                 .run_if(devicelost::renderer_healthy),
         );
     // The bridge always exists (its channel also carries the dev console's
