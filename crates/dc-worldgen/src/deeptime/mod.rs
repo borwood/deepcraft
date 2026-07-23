@@ -32,6 +32,7 @@ pub mod providers;
 pub mod recorder;
 pub mod refine;
 pub mod tectonics;
+pub mod weather_behavior;
 
 pub use biotic::{
     BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
@@ -52,6 +53,10 @@ pub use providers::{BurialColumn, BuriedUnit, PaleoUnit, ParentCell, Providers, 
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
+pub use weather_behavior::{
+    BedrockWeather, Form, Transform, Weather, WeatherAxis, WeatherCtx, WeatheringPass,
+    weather_one_cell,
+};
 
 use crate::pregen::{CellGrid, Pregen};
 
