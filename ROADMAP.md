@@ -3458,6 +3458,20 @@ a probe, at zero terrain cost · ship `f(substance, form)` ONCE.** Never
 aggregate-then-form: each is a terrain-shape flip, and that pays the cost twice
 for one conceptual change.
 
+> **Step 2 MEASURED (2026-07-22, `docs/audits/2026-07-22-entry-species-probe.md`,
+> probe `entry_species_probe.rs`).** Production Medium record. The **substance**
+> error (the class-aggregate) is noise-scale: **≤ ±12 %**, **0 % of cells past
+> ±1.25×** on any agent, and **4 of 7 classes ship a single member** so their
+> aggregate ≡ proxy. The **form** error (loose `H` charged as lithified rock) is
+> **1.8–4.8×**, saturating the ±5× clamp on wave/eolian/frost — **20–50× the
+> substance term**, cohesion-driven (loose gravel 0.02 vs conglomerate 0.80).
+> Dissolution: identically 0 in both worlds (no soluble member) — unbounded latent
+> headroom for a carbonate pack member. **Verdict:** do NOT ship the aggregate
+> step (measured support for skipping aggregate-then-form); go straight to
+> `f(substance, form)` with **form the load-bearing half**. The rework's
+> justification rests on the measured form error + the already-ratified
+> pack-signature argument, not on vanilla's (small) substance headroom.
+
 ### Hydrology, on a hard pause the user called
 
 Opens from `water.md` — *not* beside it. `wet` is **three quantities**, one of

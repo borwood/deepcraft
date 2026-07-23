@@ -282,7 +282,10 @@ fn main() {
             proxy.props().name,
             members.len()
         );
-        let axes: Vec<Axes> = members.iter().map(|&idx| Axes::of(set.member(idx).material)).collect();
+        let axes: Vec<Axes> = members
+            .iter()
+            .map(|&idx| Axes::of(set.member(idx).material))
+            .collect();
         let mean = aggregate_axes(&set, l, None);
         for (k, an) in axis_name.iter().enumerate() {
             let vals: Vec<f64> = axes.iter().map(|a| a.get(k)).collect();
@@ -346,7 +349,9 @@ fn main() {
         ratios.sort_by(f64::total_cmp);
         let n = ratios.len() as f64;
         let mean = ratios.iter().sum::<f64>() / n.max(1.0);
-        let past = |thr: f64| ratios.iter().filter(|&&r| dev(r) >= thr).count() as f64 / n.max(1.0) * 100.0;
+        let past = |thr: f64| {
+            ratios.iter().filter(|&&r| dev(r) >= thr).count() as f64 / n.max(1.0) * 100.0
+        };
         println!(
             "  {:<11} p01 {:.4}  p10 {:.4}  p50 {:.4}  p90 {:.4}  p99 {:.4}  min {:.4}  max {:.4}  mean {:.4}",
             agent.name(),
@@ -383,7 +388,10 @@ fn main() {
             let p = tab_proxy[l.index()];
             let t = tab_true[l.index()];
             let r = if p > 0.0 { t / p } else { f64::NAN };
-            println!("      {:<9} proxy {p:>7.4}  true {t:>7.4}   ratio {r:>7.4}", l.code());
+            println!(
+                "      {:<9} proxy {p:>7.4}  true {t:>7.4}   ratio {r:>7.4}",
+                l.code()
+            );
         }
     }
 
@@ -434,7 +442,9 @@ fn main() {
     // -----------------------------------------------------------------------
     // PART 4 — the FORM error (loose form vs lithified proxy).
     // -----------------------------------------------------------------------
-    println!("\n== PART 4 — the FORM error: lithified proxy vs the loose form the record mirrors ==");
+    println!(
+        "\n== PART 4 — the FORM error: lithified proxy vs the loose form the record mirrors =="
+    );
     println!(
         "  the deep record mirrors `H`, the LOOSE regolith plane, but every clastic proxy is a\n  \
          LITHIFIED rock (the sim asks how hard loose river sand is and answers with sandstone).\n  \
@@ -489,7 +499,9 @@ fn main() {
     // -----------------------------------------------------------------------
     // PART 5 — context sensitivity of the aggregate (robustness of PART 2).
     // -----------------------------------------------------------------------
-    println!("\n== PART 5 — context sensitivity: does the class-mean move with formation context? ==");
+    println!(
+        "\n== PART 5 — context sensitivity: does the class-mean move with formation context? =="
+    );
     println!(
         "  PART 2 used abundance-only weights. Selection is fitness×abundance, and the clastic\n  \
          members' windows overlap heavily, so context should barely move the aggregate. Bracket\n  \
@@ -513,7 +525,8 @@ fn main() {
         sh_coarse[Litho::ClasticCoarse.index()] = 1.0;
         let mut sh_base = [0.0; Litho::COUNT];
         sh_base[Litho::Basement.index()] = 1.0;
-        let rc = blend_susceptibility(&sh_coarse, &tab_t) / blend_susceptibility(&sh_coarse, &tab_p);
+        let rc =
+            blend_susceptibility(&sh_coarse, &tab_t) / blend_susceptibility(&sh_coarse, &tab_p);
         let rb = blend_susceptibility(&sh_base, &tab_t) / blend_susceptibility(&sh_base, &tab_p);
         println!(
             "  {label}: fine-mean smash {fine:.4}  coarse-mean smash {coarse:.4}   \
@@ -522,5 +535,7 @@ fn main() {
     }
     let fine0 = aggregate_axes(&set, Litho::ClasticFine, None).smash;
     let coarse0 = aggregate_axes(&set, Litho::ClasticCoarse, None).smash;
-    println!("  abundance-only baseline: fine-mean smash {fine0:.4}  coarse-mean smash {coarse0:.4}");
+    println!(
+        "  abundance-only baseline: fine-mean smash {fine0:.4}  coarse-mean smash {coarse0:.4}"
+    );
 }
