@@ -1905,6 +1905,27 @@ What remains is **user decisions**.)*
    is the erosion budget only; `erodibility_contrast` was left for a later slice
    (the budget alone is what experiment B moved). The DECISION is still the
    user's; this slice only makes it seeable.**
+   **ANSWERED — NOT BY A WALK — 2026-07-23 (journal/0079; RATIFIED). The
+   erosion budget is not the amplitude lever.** A faithful probe (1× asserted
+   byte-identical to shipped `build_field`) swept `--erosion-budget` 1×/3×/10×/30×
+   on the client world: relief **1287 m at every budget**, mean |Δsurf| vs 1×
+   climbing only to **0.35 m at 30×**, strongest hard-bed contact gaining 3.5 m,
+   lithologic separation unmoved. A mechanism probe pinned *why*: the surface is
+   **graded to base level** — mean lowering **41 m (max 1.4 km), flat across the
+   whole sweep** — so it is neither supply-limited (it erodes a lot) nor
+   iteration-starved (flat, not growing); the rate only sets approach-to-grade,
+   capped by `inc_pot.min(room).min(max_inc)` (`erosion.rs:1149`). Weathering ×30
+   thickens regolith 5→13 m but does not lower the surface. This is the third leg
+   with journal/0040 (tectonic amplitude bought no relief) and S13 (5 % of
+   roughness reaches the ground; the summit is a genuine plateau): **relief is
+   bottlenecked on the GENERATING side — deep-field elevation structure + uplift —
+   not erosion.** Cranking erosion is pushing on a rope. `--erosion-budget` stays
+   a dev tool (a faithful lever on regolith / approach-to-grade). **Cause 3
+   "conservative amplitude" is REFRAMED, not retired: it is a deep-field
+   relief-generation problem** (couples to S13's owed 100–500 m landform band and
+   the plateau) — its own design pass, Sequenced below. Instruments committed:
+   `examples/amplitude_tour.rs`, `examples/amplitude_mechanism.rs`.
+   corrections #41. **Nothing further to ratify on the erosion axis.**
 3. **The four rate coefficients** in `resistance_of_material` (how smash /
    solubility / permeability / cohesion map to each agent's resistance) and the
    contrast/clamp defaults ride **plausible-not-tuned**, same status as S9's
@@ -3520,10 +3541,14 @@ amplitude call walkable. The **entry-species probe** (audit) proved substance
 ≈proxy (≤12 %) but **form is the signal (1.8–4.8×)**.
 
 ### First things next session (both user-ratified, ready)
-1. **The amplitude walk** — the enabling flag shipped; drive the same-seed pair
-   `--erosion-budget 3` and `--erosion-budget 10`, LIT pass (shape question),
-   station-driven, held for the user's eye. This answers ROADMAP's oldest open
-   NEEDS-RATIFICATION (erodibility amplitude, item 2).
+1. ~~**The amplitude walk**~~ **DONE — RESOLVED WITHOUT A WALK 2026-07-23
+   (journal/0079).** The faithful probe found the erosion budget inert on the
+   client world (relief unchanged 1×→30×) and a mechanism probe pinned it to
+   erosional **equilibrium** (graded to base level; mean lowering 41 m, flat).
+   The amplitude lever is the deep-field relief GENERATOR, not erosion rate —
+   ROADMAP's oldest open NEEDS-RATIFICATION (erodibility amplitude, item 2) is
+   answered and reframed as a relief-generation design pass. No walk of two
+   identical worlds was spent. corrections #41.
 2. **The block↔material collapse, first slice** (DECIDED 0077 / materials.md) —
    kill `classify`'s fifteen-name match + `_ => Stone` arm; dominant material
    wears its own identity; byte-identical where faces exist today. Then the

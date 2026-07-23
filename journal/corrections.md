@@ -1312,3 +1312,47 @@ it now cites spines.md § 3 and names the `burial_temp_c` geotherm arrival addre
 re-read the comment before believing the sweep. A stale or uncharitable quotation
 is indistinguishable, in a summary, from a live defect — and only one of them is
 worth a slice.
+
+## 41. "Raising the erosion budget will raise the world's relief" (2026-07-23)
+
+**The claim.** Standing since journal/0029 and framed as the path forward in
+journal/0076: the erodibility contrast is modest because the world "barely erodes
+against its uplift", and *"raise the global erosion rates … and the same coupling
+cuts 20 m of relief with a hard bed standing 44.7 m proud"* — i.e. the erosion
+budget is the amplitude lever, waiting only on a walk to pick the magnitude.
+
+**The falsification (journal/0079).** A faithful probe (1× asserted byte-identical
+to shipped `build_field`) swept `--erosion-budget` 1×/3×/10×/30× on the client
+world (seed 1337, Medium). Relief was **1287 m at every budget**; mean |Δsurf| vs
+1× reached only **0.35 m at 30×**; lithologic separation did not widen. A mechanism
+probe measured lowering against the zero-erosion counterfactual: **mean 41 m, max
+1.4 km, and flat across the whole sweep**. The landscape is at erosional
+**equilibrium** — graded to base level — so it is neither supply-limited (it
+erodes a lot) nor iteration-starved (flat, not growing). Incision is capped by
+`inc_pot.min(room).min(max_inc)`, `max_inc = r − floor` (`erosion.rs:1149`): a
+graded cell stops incising regardless of `k_bedrock`. Raising the rate reaches the
+same equilibrium faster, not deeper.
+
+**Why experiment B looked otherwise.** journal/0076's cited "44.7 m proud / +20 m
+relief" was on a *different seed* and a *different measurement* — the ON-vs-OFF/
+UNIFORM differential at a fixed high budget, not absolute change vs 1× on the
+production world — so it was never a prediction that the *production* surface would
+move with the budget. The two are not in contradiction; the leaked inference was
+"therefore cranking the budget carves visibly here", and that is false.
+
+**The mechanism of the error.** A headroom number from an isolated probe on a
+hand-picked seed was read as a promise about the shipped world. An experiment that
+isolates a *differential* says nothing about the *absolute* response until you run
+the absolute measurement on the real world — which is what the faithful sweep did.
+
+**Consequences.** No code was wrong; the `--erosion-budget` flag is correct and
+stays as a dev lever (on regolith / approach-to-grade). journal/0029's cause 3
+("conservative amplitude") is reframed as a **deep-field relief-generation**
+problem (converging with journal/0040 and S13), not an erosion-rate decision.
+ROADMAP item 2 and the evening-close "amplitude walk" are marked resolved.
+
+**Standing lesson.** A probe that cranks one term in isolation measures that
+term's *ceiling*, not the shipped system's *response*. Before believing "lever X
+will move the world", measure X on the world, faithfully (prove the instrument
+reproduces the launch), and against the counterfactual that separates
+"rate-limited" from "already done".
