@@ -116,3 +116,10 @@ list and not a roadmap — some of these are far off, and that is fine.
   raw ore — and the mountains know it: erosion works mithril-bearing rock in
   its own way, and you can read that signature in the world's record, because
   the simulation never met a stand-in.
+- A mod adds charcoal as its own material with its own genesis rules, and
+  from then on coal and charcoal are simply different things with different
+  histories — because the sim never needed them to be the same thing, only
+  the vocabulary did.
+- You set a forest fire in the running game and the deep-time record of some
+  ancient fire agree about what burning does to wood — because there is one
+  burned-rule, written on the material, and both clocks read it.

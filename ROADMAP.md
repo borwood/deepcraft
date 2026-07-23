@@ -1219,6 +1219,21 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **The block↔material collapse — DECIDED, one namespace (user, 2026-07-22
+  late session; materials.md two new DECIDED entries)**. Block collapses
+  into material + Air; no twin field is ever built (the block_twin slice as
+  drafted is SUPERSEDED); classify answers with the dominant material
+  wearing its own face; categories become pack-registrable (direction);
+  transformation axes live on material definitions and BOTH sims read the
+  same rule (S-3 applied to processes — the fires pass's soil-scalar proxy
+  is explicitly un-avowed, heir chain: ecology → entry-species record →
+  burned-axis on organics; coal/charcoal ride as-built meanwhile). First
+  slice when dispatched: kill the fifteen-name match + `_ => Stone` arm in
+  classify (dominant material's own identity), byte-identity where faces
+  exist today; the Block-token consumer migration (storage palette,
+  far-field span, solidity checks, mesher layer, player name) is the
+  long-tail arc. Journal entry owed at wrap (design pass).
+
 - **The surface-branch removal — QUEUED after B1 (user, 2026-07-22: "queue
   it for after B1, we've got runway left")**. The S-3 marquee violation
   (`collapse.rs::surface_sample` — the far-field cheap-surface need that

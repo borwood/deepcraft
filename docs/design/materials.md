@@ -479,3 +479,44 @@ their basement material rather than as painted Dirt.
 (`material_ids` skips `vy >= h`), which is one of the enumerated exceptions to
 the fill-contract invariant in ARCHITECTURE.md. Skinning it from the record
 **shrinks that exception** — and that list is supposed to only ever shrink.
+
+## DECIDED 2026-07-22 (live session, late) — one namespace: block IS material
+
+The user, examining the block_twin proposal, rejected the premise: *"they
+should collapse. A material should contain all of the properties for all
+forms of it… there are no edge cases where block != material in my mind."*
+
+- **Block collapses into material + Air over time.** A voxel's one-name is
+  "which material dominates this mixture" — `classify` keeps its job
+  (mixtures still need their one name chosen) but answers with a material
+  identity wearing its own face. The fifteen-name `block_twin` match and its
+  `_ => Stone` arm die; no twin field is ever built (the interim
+  registry-field plan is superseded — twins were the wardrobe for a
+  distinction that shouldn't exist).
+- **Cost accepted: art per material** (every material that can dominate a
+  voxel gets a face) and a long-tail migration of the Block token's remaining
+  consumers (storage palette, far-field span/pyramid, ~80 solidity checks
+  already being drained by the fill contract's occupancy primitives, the
+  mesher's layer pick, the player-facing name).
+- **Categories stay, and become registrable** (direction): "a category list
+  which can be registered to is defensible for materials, but the properties
+  of the materials themselves is what matters, no proxy." Packs add classes,
+  not only members. The class system's fixed-constant roster is scaffolding.
+
+## DECIDED 2026-07-22 (same conversation) — transformation axes live on the
+## material definition; both sims read the same rule
+
+*"The material in the runtime game follows this rule, burned→charcoal, and
+the same rule applies in the deeptime sim in these bulk calculations."*
+(user). Transformations (burned, weathered, dissolved, compacted…) are
+declared on material definitions — inheritable from a category default,
+patchable per material, deletable — and are the ONE authority both the
+runtime simulation and deep-time's bulk arithmetic consult. S-3 applied to
+processes: a sim pass may aggregate and approximate a material's declared
+transformation, never carry a parallel rule beside it. (The fires pass's
+`soil × FIRE_CHAR_FRAC` is the standing counterexample: a bespoke rule over
+a vegetation proxy the user explicitly does NOT avow. Its heir chain, in
+order: ecology supplies the flammable inventory; the entry-species record
+carries what actually burned; the burned-axis on organic materials supplies
+the outcome. Charcoal and coal ride as-built until those heirs land — "I
+don't care about coal and charcoal right now, they have heirs.")
