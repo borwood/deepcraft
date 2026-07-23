@@ -7,6 +7,42 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-23 — **The per-task generator: neighbour fill and far derive leave the
+  frame thread** (journal/0084; the filed follow-on to the async-offload slice
+  journal/0083; background implementation agent, worktree for the integrator).
+  **Landed the fix 0083 measured-then-filed:** push `neighbor_fill.gen` (~5 ms/call
+  frame-thread) and the bulk of `far_tile.derive` (the biggest single frame-thread
+  span, ~1.9 ms/call) off-thread by **minting a per-task `WorldGenerator` from the
+  shared `Arc<Pregen>`** — each mesh task resolves its own neighbour contents /
+  derives its own far surface against its own generator, with **no contention on
+  the shared generator `Mutex`** (the trap that blocked 0083). **Byte-identical
+  world:** generation is a pure function of `(pregen, pos)`, so a per-task
+  generator over the same pregen produces byte-identical contents / coarse surface
+  to the shared one — proven by
+  `authority::tests::per_task_generator_is_byte_identical_to_the_shared_one`,
+  `meshing::tests::plan_backed_mesh_equals_direct_mesh` (near), and
+  `farmesh::tests::offloaded_far_derive_matches_on_thread` (far). **Near** (PRIMARY):
+  `NeighborShellPlan::gather` reads each border neighbour's edit-aware **block** on
+  the frame thread (cheap; edits must stay authority-sourced); the pure-terrain
+  **contents** resolution is deferred into the task via the per-task generator.
+  **Far** (SECONDARY, offloaded — it *was* cleanly separable): the frame thread
+  snapshots the 3×3 patch of `known_node_grids` the tile touches (the ONE
+  `&mut FarPyramid` read, a pure function of tile coords — recorded under a new
+  `far_tile.snapshot` span), and the task derives the 34² `coarse_surface` samples
+  against the per-task generator. Per-task construction cost measured **9.9 µs**
+  (`per_task_generator_construction_is_cheap`, Medium pregen) — off the frame
+  thread, amortized over the task's many generator queries; pooling filed as a
+  non-need. No headless crate touched; only observable change remains appearance
+  order/timing (already accepted, 0083). **Re-capture owed to the integrator:** a
+  fresh `--perf-drop 20` should show `neighbor_fill.gen` (3.1 %) and
+  `far_tile.derive` (7.0 %) LEAVE the frame `schedule` self-time envelope (they now
+  record on task threads), with a small `far_tile.snapshot` residue on the frame
+  thread (the pyramid derive, formerly folded inside the on-thread derive; the next
+  target if it is large). Gates green — fmt/clippy/test all `--release`, both clippy
+  paths incl. `--features perf`, `cargo clean -p dc-client --release` before the
+  test gate, `Compiling dc-client` confirmed from this worktree, 118 dc-client tests
+  pass (0 failed).
+
 - 2026-07-23 — **The render-first wedge was already driven — a falsified premise,
   a guard instead of a deletion** (journal/0082; background implementation agent,
   worktree for the integrator; step 1 of the north star / block↔material collapse,

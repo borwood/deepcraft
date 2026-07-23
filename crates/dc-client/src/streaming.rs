@@ -26,12 +26,13 @@ use crate::app::{
     ChunkEntity, ChunkMap, CurrentScale, FloatingOrigin, Fullbright, FullbrightMaterialHandle,
     LoadedChunk, TerrainMaterialHandle, churn, to_render,
 };
-use crate::authority::{Authority, NeighborFill};
+use crate::authority::Authority;
 use crate::farpyramid::{FAR_PYRAMID_L0_BUDGET, FarPyramid};
-use crate::meshing::{MeshData, NeighborShell, mesh_chunk};
+use crate::meshing::{MeshData, NeighborShellPlan, mesh_chunk};
 use crate::meshtasks::{MAX_INFLIGHT_NEAR, NearMeshOutput, NearMeshTasks};
 use crate::player::Player;
 use crate::terrain_material::{ATTRIBUTE_MAT_LAYERS, ATTRIBUTE_MAT_WEIGHTS};
+use dc_worldgen::WorldGenerator;
 
 /// Chunks whose center is within this many meters of the player are loaded at
 /// full detail. Meters, not chunks: every scale streams the same world volume.
@@ -157,17 +158,21 @@ pub fn stream_chunks(
         // border face culls against how much of the neighbouring cell is filled,
         // so a partial beside a shorter partial still emits its exposed band.
         //
-        // The neighbour coverage is resolved HERE, on the frame thread, into an
-        // owned `NeighborShell`: the resolution borrows `&mut Authority` (it
-        // lazily generates + resolves neighbour contents — the `neighbor_fill.gen`
-        // cost) and so cannot cross the thread boundary. `NeighborShell::resolve`
-        // makes exactly the neighbour queries `mesh_chunk` would, so the offloaded
-        // mesh is byte-identical (journal/0083; the crux decision — the 4.7 ms
-        // neighbour resolution staying on-frame is the filed follow-on).
-        let shell = {
-            let fill = NeighborFill::new(&mut authority);
-            NeighborShell::resolve(&chunk, pos, &|x, y, z| fill.fill(x, y, z))
-        };
+        // journal/0084 splits the coverage resolution across the thread boundary.
+        // Here on the frame thread we gather only the CHEAP, edit-aware inputs:
+        // each border neighbour's BLOCK (from the authority — edits included; an
+        // edited neighbour changes blocks, so this read must stay on-authority).
+        // The EXPENSIVE per-neighbour-chunk CONTENTS resolution (`neighbor_fill.gen`,
+        // ~5 ms/call cold, pure terrain) is deferred into the task below, where a
+        // per-task `WorldGenerator` resolves it with no contention on the shared
+        // generator `Mutex`. `NeighborShellPlan` walks the identical neighbour-query
+        // iteration `mesh_chunk` makes, so the offloaded mesh is byte-identical.
+        let plan =
+            NeighborShellPlan::gather(&chunk, pos, &mut |x, y, z| authority.block_voxel(x, y, z));
+        // The shared `Arc<Pregen>` the task mints its per-task generator from
+        // (`None` under the S1 authority — its border culls are binary and the
+        // plan carries no deferred contents to resolve). A cheap `Arc` clone.
+        let pregen = authority.worldgen_pregen();
 
         // --- Off-thread pure mesh (journal/0083) ---------------------------
         // Move the owned inputs into an AsyncComputeTaskPool task. `mesh_chunk`
@@ -180,6 +185,24 @@ pub fn stream_chunks(
             // Churn instrument (journal/0051): time the whole build — greedy
             // mesh + the Bevy vertex-buffer conversion. Now a task-thread wall.
             let build_start = std::time::Instant::now();
+            // Resolve the deferred neighbour contents off-thread (journal/0084):
+            // mint a per-task `WorldGenerator` from the shared `Arc<Pregen>` and
+            // resolve each needed neighbour chunk's contents through it — no
+            // contention on the frame thread's shared generator `Mutex`. The
+            // generator is built lazily and only when a deferred position needs
+            // contents (never under the S1 authority), and its construction cost
+            // rides on THIS task thread, not the frame thread. `neighbor_fill.gen`
+            // now records here, off the frame-thread `schedule` envelope.
+            let shell = {
+                let _perf = crate::perf_span!("neighbor_fill.gen");
+                let mut generator: Option<WorldGenerator<'static>> = None;
+                plan.resolve(&mut |cp| {
+                    let pregen = pregen.as_ref()?;
+                    generator
+                        .get_or_insert_with(|| WorldGenerator::new_owned(pregen.clone()))
+                        .chunk_contents(cp)
+                })
+            };
             let mesh_data = {
                 let _perf = crate::perf_span!("mesh_chunk");
                 mesh_chunk(
