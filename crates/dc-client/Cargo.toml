@@ -37,6 +37,16 @@ hyper-util = { workspace = true, features = ["tokio"] }
 # directly so save errors reach the MCP caller.
 image = { version = "0.25", default-features = false, features = ["png"] }
 
+[features]
+# Runtime perf-observability (the "perf window" opener, journal/0080). OFF by
+# default so normal play pays ZERO cost: the `perf_span!` macro expands to
+# nothing and no aggregating layer is installed. When enabled it turns on bevy's
+# own `trace` spans (systems/render) alongside our custom hot-path spans, and
+# installs the self-time aggregating subscriber + the `--perf-drop` capture mode.
+# No extra crates are pulled: the layer uses bevy's re-exported `tracing` /
+# `tracing_subscriber`, so there is no version-split risk with LogPlugin.
+perf = ["bevy/trace"]
+
 [dev-dependencies]
 # The S4 cross-backend portability test additionally translates every pack
 # entry point to HLSL/SPIR-V/MSL (docs/rendering/PIPELINE.md § Portability).
