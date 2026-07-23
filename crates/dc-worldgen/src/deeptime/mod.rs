@@ -26,6 +26,7 @@ pub mod climate;
 pub mod erosion;
 pub mod field;
 pub mod grid;
+pub mod inventory;
 pub mod isostasy;
 pub mod lithology;
 pub mod providers;
@@ -44,6 +45,10 @@ pub use field::{
 };
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
+};
+pub use inventory::{
+    FracM, Granularity, InvCtx, InvForm, InvSpan, Portion, WorkingInventory, build_identity,
+    collapse_top_voxel, commit_chapter, quantize_to_eighths,
 };
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
