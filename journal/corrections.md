@@ -1356,3 +1356,45 @@ term's *ceiling*, not the shipped system's *response*. Before believing "lever X
 will move the world", measure X on the world, faithfully (prove the instrument
 reproduces the launch), and against the counterfactual that separates
 "rate-limited" from "already done".
+
+## 42. "Render-first is a cleanly-separable byte-identical wedge" (assistant, 2026-07-23)
+
+**The claim.** In shaping the block↔material collapse, the assistant recommended
+**render-first** as the safe first slice: delete `meshing.rs::block_layer`'s
+geology re-translation, route `classify → material → atlas`, byte-identical.
+
+**The falsification (journal/0082).** The wedge was *already done* for the path it
+named and *impossible* for the path it forgot. The near-field mesher already
+routes contents-bearing voxels `contents → dominant_material → material_layer`
+(journal/0010's splat); it never calls `block_layer`. `block_layer`'s geology arms
+are live only on the **block-only** render path — the far field, benches, and the
+absent-contents fallback — which is block-only *because the far field carries
+blocks, not materials.* Deleting them in isolation would break the far field or
+make `block_layer` non-total. **The same mechanism as the four "legacy" arms the
+brief said to keep.** Crux 1 (`Block={Air,Material}`) subsumes them all; a
+piecemeal deletion "only trades one carve-out for another."
+
+**Mechanism of the error.** The assistant reasoned against a mental model of the
+mesher the code had already outrun (the near field was collapsed a slice ago). The
+brief-as-hypothesis discipline caught it at work-time (a loud plea, not a forced
+mess) — which is the point of writing briefs as hypotheses. Deliverable: a guard
+test pinning the accidental layer-equivalence, and a corrected migration map.
+
+## 43. "Synchronous chunk generation is the vertical-drop killer" (project premise, 2026-07-23)
+
+**The claim.** The ROADMAP's standing perf suspect: `streaming.rs`'s synchronous
+`chunk.gen` on the main schedule is what makes a vertical drop choppy.
+
+**The falsification (journal/0080, the perf baseline).** A faithful `--perf-drop`
+capture: `chunk.gen` is **0.1 %, 14 µs/call — cheap.** The per-frame killer is
+**CPU meshing** — `far_tile.derive` 10.3 %, `mesh_chunk` 8.2 %, `far_tile.mesh`
+2.6 % — plus `neighbor_fill.gen` (5 ms/call). Generation is lazily cached and
+genuinely fast. The async-offload slice was **retargeted** off gen onto meshing as
+a direct result (journal/0083/0084 → +20 % frames).
+
+**Mechanism / lesson.** The suspect was a plausible unmeasured premise that had
+sat in the ROADMAP for days. This is precisely why the observability instrument
+was built: *the instrument overturned the suspect its own slice was filed under.*
+Do not offload against a hypothesis; measure first. (Carried: the perf improved
+onset but a **throughput ceiling remains at terminal velocity** — see ROADMAP
+Observed.)

@@ -2460,6 +2460,36 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Far-field LOD reconstructs differently pre-visit vs post-visit** (user field
+  report, 2026-07-23; texture/LOD/octree). The octree summary LOD for an area
+  looks different *before* you fly over it than the LOD that appears *behind* you
+  after you leave — "the material distribution implied by the texture is different
+  in the fresh LOD vs the LOD that appears behind me." A far-field *reconstruction
+  discrepancy*: the synthesized far node (never-visited) and the reduced far node
+  (built from chunks you loaded) disagree on material distribution. Suspects: the
+  two-sided derivation (reduce-vs-synthesize, journal/0070 measured a +0.938 coarse
+  voxel bias) and the far span's `classify` of reduced-vs-synth mixtures. User will
+  share more next session; **diagnose before touching.** Couples to the
+  texture-steps-toward-albedo-at-range thread.
+
+- **Perf: throughput ceiling at terminal velocity** (user field report,
+  2026-07-23, on the 0083/0084 offload). Noticeably improved — the drop reaches
+  the choking point *later* — but at terminal velocity it **still chokes, about as
+  hard** once it does. So the meshing offload raised throughput/delayed onset but
+  did not raise the *ceiling*: at max fall speed the streaming pipeline still
+  saturates. Next perf targets from here: the `far_tile.snapshot` residue, the
+  ~47 % un-instrumented `schedule` self-time (render/transform systems), and the
+  streaming budget itself (`LOAD_BUDGET_PER_FRAME`) — but **measure with the
+  per-thread-attributed instrument first** (below).
+
+- **The perf instrument can't show the frame-thread envelope** (filed 2026-07-23,
+  journal/0084). `PerfAggregate` sums self-time across the frame thread AND the
+  task-pool threads, so after the offload the `%` table can't show spans "leaving
+  the frame thread" — frame-count is the only clean signal. Owed: **per-thread-role
+  attribution** (frame vs task-pool) in the aggregate, which is also exactly what
+  the perf/debug overlay heir needs. Do this before the next perf slice so its win
+  is directly visible.
+
 - **Async-offload accepted corner — an edit to a chunk in its first ~1–2
   streaming frames meshes the PRE-edit snapshot** (journal/0083, ACCEPTED by the
   user 2026-07-23; must remain VISIBLE). Self-healing: any later edit to that
@@ -3772,7 +3802,70 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-22 EVENING close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-23 close (supersedes every earlier block)
+
+**Read first: `docs/design/north-star.md`** (now CLAUDE.md read-first item 0) —
+the ratified target architecture, and this session's spine. Then `docs/spines.md`.
+
+This was a landmark session: the north star went from *design* to *ratified and
+de-risked on real code.*
+
+### Shipped 2026-07-23 (journals 0078–0085, corrections #40–#43, spike S16)
+- **The north star** — designed, ratified, CLAUDE.md read-first, compliance-wired
+  (0081; `docs/design/north-star.md`). Native engine, uniform self-declaring
+  Pass/Material/`ctx`, tuning-as-data, tiered backend (native `abi_stable` /
+  WASM sandbox) behind ONE authoring shape, **everything through the SDK route**
+  (defaults are the SDK's completeness proof).
+- **The north star, DE-RISKED** — weathering wears the Pass/Material/`ctx`/
+  Transform shape **byte-identical** (0085/S16), purity enforced structurally.
+  The keystone (deep-cell material inventory = Crux 1's storage atom) is named,
+  and the behavior-rate-is-a-fold-over-agents refinement surfaced.
+- **The perf window** — observability instrument (0080; it overturned its own
+  suspect, #43), async-offload of all meshing (0083) + per-task generator (0084)
+  → **+20 % frames** (942→1135), world byte-identical.
+- **Amplitude retired** (0079, #41): erosion budget is not the relief lever
+  (equilibrium); reframed to deep-field relief generation.
+- paleo_temperature seam + collapse-tier Providers channel (0078); render-first
+  falsified into a guard test (0082, #42); the audit-misquote correction (#40).
+
+### First things next session (all ratified-ready)
+1. **Crux 1 / the deep-cell material inventory — THE KEYSTONE.** Both the
+   block↔material collapse's storage atom AND the material-behavior model
+   converge here (S16 named it; the weathering spike thin-adaptered around it).
+   Recon: `docs/audits/2026-07-23-block-consumer-inventory.md`. Ratified atom:
+   `Block = {Air, Material(MaterialId)}`, niche for a 1-byte atom; the deep cell
+   needs a per-cell material multiset. **This is the next foundational slice.**
+2. **The cadence model** — user's fractional-phase scheduler sketch
+   (`ideas.md § Pass cadence`). Compare to the actual deep-sim loop; the first
+   fork is "agents as terms in one pass vs agents as passes with own cadence"
+   (S16's finding meets the scheduler). Design thread, not a build yet.
+3. **The ABI/WASM boundary spike** — the other north-star de-risk; independent of
+   runtime sim; locks the SDK shape (`abi_stable` vs `repr(C)` vs `wasmtime`).
+4. **The agent-set-reduction refinement** to fold into `north-star.md` (behavior
+   rate = fold over agents, not fixed product; the karst/dissolution door).
+
+### Field reports to diagnose (Observed, this session)
+- **Far-field LOD reconstructs differently pre-visit vs post-visit** (user; a
+  reduce-vs-synthesize material-distribution discrepancy) — user will elaborate.
+- **Perf throughput ceiling at terminal velocity** (offload delayed onset, same
+  ceiling) — measure with a per-thread-attributed instrument first.
+
+### Owed / carried
+- The **perf instrument's per-thread-role attribution** (also the overlay's need).
+- The **detection hook** for the async-offload edit-corner (sim/NPC exposure).
+- **Fires-pass onto the shape waits on ecology** (ex-nihilo vegetation — deferred,
+  not the fires proxy; weathering was the shape-teacher instead).
+- The **duality (define-once-run-in-both) validation is deferred to the first
+  runtime-process milestone** — there is no runtime process sim yet (only block
+  edits); the shape was de-risked in deeptime only, with the `ctx` kept
+  granularity-agnostic so it isn't accidentally deeptime-only.
+- A **spine-audit** is owed — the north-star shape is now instantiated in real
+  code (`weather_behavior.rs`); the doc wasn't updated by the (unmerged-then-
+  merged) spike.
+
+*(The 2026-07-22 evening close below is fully consumed; preserved as history.)*
+
+## NEXT SESSION — written at the 2026-07-22 EVENING close (SUPERSEDED by the 2026-07-23 close above)
 
 **Read first: `docs/spines.md`** (item 0 in CLAUDE.md) and, for material/
 identity work, **`materials.md`'s two new DECIDED entries** (one namespace;

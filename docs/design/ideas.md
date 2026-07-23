@@ -524,3 +524,45 @@ must be a **queryable in-memory resource** (the authority), with the
 never a file-only dumper that the overlay would have to re-instrument. "A summary
 derived from the authority, never beside it" (S-3), applied to timing data. The
 overlay is the named heir; do not build it now, but do not foreclose it.
+
+## Pass cadence — the fractional-phase scheduler (user sketch, 2026-07-23)
+
+Carried forward to compare against the actual deep-sim loop and discuss next
+session; **not yet reconciled with how deeptime runs today.** For a single epoch
+that runs N chapters, over a fixed pass list:
+
+- Each pass has a **phase length** = a fraction of a chapter's duration (a
+  "rate"): e.g. tectonics 1.0, hydro 0.33, weathering 0.1.
+- A **canonical start order** (tectonics → hydro → weathering) = the order each
+  pass takes its *first* turn. Passes run **serialized**; a short-phase pass runs
+  many times between long-phase ones, evenly distributed. Example within one
+  chapter: tectonics×1 (whole duration) → hydro×1 (.33) → weathering×3 (.1 each)
+  → hydro×1 (.33) → weathering×3 → … ; any remainder phase gets the leftover
+  fraction as its duration.
+- **A phase is handed the cell state at its start** (as other passes' phases left
+  it) and **duration is a scalar on its transformations.** Shorter phase = higher
+  temporal resolution / more able to respond to mid-chapter changes. Tectonics has
+  nothing to respond to mid-chapter → runs once; weathering runs often.
+
+**Why it matters / convergences already established this session:**
+- "Duration scales the transformation" **is the `rate × dt` time-base** the
+  behavior model (S16) was written against — the fractional phase *is* the `dt` a
+  pass hands its behaviors. The scheduler is the deeptime clock for behaviors.
+- Per-pass phase length = **temporal resolution as a first-class, per-pass
+  knob** — more expressive than the current uniform per-iteration tick (verify).
+
+**The sharp open fork (touches S16's finding from the other side):** is
+weathering **one pass** (agents summed at one cadence — how S16 stayed
+byte-identical) or **one pass per agent** (frost seasonal, dissolution slow —
+each at its own phase length, which this scheduler enables)? "Agents as terms in
+one pass" vs "agents as passes with their own cadence" is the first question to
+resolve when cadence opens for real.
+
+**Epochs** (the user called this the "sloppy" half, but it's the cleaner one):
+declared with pass members + **(a chapter count OR a world-API terminating
+condition)** — the "run N / until" mechanism, with emergent epoch length from
+world state (count of a material, landform variability, …). Determinism holds as
+long as the terminating condition reads only deterministic world state. Multiple
+epochs (deepest runs tectonics/hydro/therm/weather → next adds eco → next adds
+socia) are the layering; **deliberately not thought about yet** (user: "don't
+think about multiple epochs for a second").
