@@ -40,8 +40,10 @@
 //! The world hashed is the **production** config at `Extent::Small`
 //! (`build_field`, which is `production_config`: biotic on, erodibility on,
 //! tectonic history on, full agent roster on) — so all four converted seams are
-//! live in the hashed run: `outcrop_at` through `expose`/`periglacial`/`eolian`/
-//! `wave`, `wave_energy` through the littoral agent, `parent_p` through the
+//! live in the hashed run: `outcrop_shares` through `expose`/`periglacial`/
+//! `eolian`/`wave` (erosion blends the table by share; the verdict `outcrop_at`
+//! is its derived argmax — journal/0072, 0075), `wave_energy` through the
+//! littoral agent, `parent_p` through the
 //! biotic layer's rock-phosphorus pool, `depth_to_water` through the four
 //! waterlogging thresholds.
 

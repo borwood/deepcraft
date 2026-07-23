@@ -30,7 +30,7 @@
 //! field's fine accessor exposes this **interpolable share vector**, and the
 //! verdict is `argmax ∘ sample` — never a separately stored label.
 
-use crate::deeptime::lithology::{Litho, exposed_shares};
+use crate::deeptime::lithology::{WindowShares, exposed_shares};
 use crate::deeptime::recorder::DepUnit;
 
 /// **Identity for [`Providers::outcrop_shares`](field@super::Providers::outcrop_shares)**:
@@ -38,6 +38,6 @@ use crate::deeptime::recorder::DepUnit;
 /// ([`exposed_shares`], summing to `1.0`, deficit below a short record charged to
 /// [`Litho::Basement`]). Called under the slot's name so the identity is a *thing*
 /// and not a description; a `None` slot routes here.
-pub fn identity_outcrop_shares(units: &[DepUnit]) -> [f64; Litho::COUNT] {
+pub fn identity_outcrop_shares(units: &[DepUnit]) -> WindowShares {
     exposed_shares(units)
 }

@@ -45,7 +45,7 @@
 //!
 //! ## The file layout, and why the grouping is load-bearing
 //!
-//! One module per slot — [`outcrop_at`], [`wave_energy`], [`parent_p`],
+//! One module per slot — [`outcrop_shares`], [`wave_energy`], [`parent_p`],
 //! [`depth_to_water`], [`burial_temp_c`] — each holding that slot's payload struct, its identity
 //! function, and its unit tests. This module holds only what is genuinely
 //! *about the set*: the [`Providers`] struct, its identity [`Default`], and the
@@ -82,8 +82,7 @@
 //!
 //! | slot | granularity | why |
 //! |---|---|---|
-//! | [`Providers::outcrop_at`](field@Providers::outcrop_at) | **value-level** — called per cell per epoch | it was *already* a function call ([`exposed_litho`](super::lithology::exposed_litho)); a pointer indirection replaces a direct call, and nothing else changes |
-//! | [`Providers::outcrop_shares`](field@Providers::outcrop_shares) | **value-level** — called per cell per epoch | the quantity `outcrop_at`'s verdict is the argmax of; erosion reads it for rates and blends the table by share (journal/0072). Same walk, same granularity, same heir — a pinned pair with `outcrop_at` |
+//! | [`Providers::outcrop_shares`](field@Providers::outcrop_shares) | **value-level** — called per cell per epoch | the quantity the outcrop verdict is the argmax of; erosion reads it for rates and blends the table by share (journal/0072). The verdict `outcrop_at` is now a **derived accessor** — `argmax ∘ outcrop_shares` — not a second slot: the pinned pair collapsed to one when `CoarseField` was extracted (journal/0075, S-3: the summary derived from the authority, never beside it) |
 //! | [`Providers::wave_energy`](field@Providers::wave_energy) | **value-level** — called per shore cell per epoch | the shore band is a thin fraction of the grid, and the heir's answer genuinely varies per cell per stand |
 //! | [`Providers::parent_p`](field@Providers::parent_p) | **pass-level** — called `n` times *total*, at [`BioticSim::new`](super::biotic::BioticSim::new) | the value is a property of the parent material, constant over the run; materializing it once as a plane keeps the epoch loop a plain indexed read |
 //! | [`Providers::depth_to_water`](field@Providers::depth_to_water) | **pass-level** — called **once per epoch**, at [`BioticSim::step`](super::biotic::BioticSim::step) | the water table moves with the surface, so it cannot be materialized once for the run like `parent_p`; but the heir is a *field* solved over a neighbourhood, so it cannot be a per-cell call either |
@@ -111,25 +110,24 @@
 
 pub mod burial_temp_c;
 pub mod depth_to_water;
-pub mod outcrop_at;
 pub mod outcrop_shares;
 pub mod parent_p;
 pub mod wave_energy;
 
 pub use burial_temp_c::{BurialColumn, BuriedUnit, identity_burial_temp_c};
 pub use depth_to_water::{WaterPass, identity_depth_to_water, identity_wet_index, wet_at};
-pub use outcrop_at::identity_outcrop_at;
 pub use outcrop_shares::identity_outcrop_shares;
 pub use parent_p::{ParentCell, identity_parent_p};
 pub use wave_energy::{WaveCell, identity_wave_energy};
 
-use super::lithology::Litho;
+use super::lithology::{Litho, dominant_litho};
 use super::recorder::DepUnit;
 
 /// The near-surface window's per-[`Litho`] share vector — the payload the
-/// `outcrop_shares` seam answers in (and the future `Interpolable` sample type of
-/// `CoarseField`). Named so the `Option<fn>` slot type stays legible.
-pub type WindowShares = [f64; Litho::COUNT];
+/// `outcrop_shares` seam answers in, now the `CoarseField` extraction's first
+/// concrete [`Interpolable`](dc_core::coarse::Interpolable) `T`
+/// ([`ShareVec`](dc_core::coarse::ShareVec)`<{ Litho::COUNT }>`, journal/0075).
+pub use super::lithology::WindowShares;
 
 /// The resolved provider set for one world, fixed at world creation.
 ///
@@ -221,50 +219,33 @@ pub struct Providers {
     pub parent_p: Option<fn(ParentCell) -> f64>,
 
     // ───────────────────────────── structural ────────────────────────────
-    /// **Which rock is outcropping at this cell?**
-    ///
-    /// - *Identity:* [`identity_outcrop_at`] — the lithology dominating the
-    ///   record's topmost
-    ///   [`OUTCROP_DOMINANCE_WINDOW_M`](super::lithology::OUTCROP_DOMINANCE_WINDOW_M)
-    ///   (0.9 m, one collapse voxel). Walks units down from the surface,
-    ///   accumulating thickness per lithology, and returns the greatest;
-    ///   [`Litho::Basement`] fills any deficit below a short record. A bed too
-    ///   thin to fill the window cannot define the cell's rock — the thickness
-    ///   rule that replaced a name-keyed charcoal carve-out (journal/0068).
-    /// - *Heir:* **structural deformation** (the layer-cake / dip-fold term,
-    ///   tectonics.md § 8 — per-unit dip re-derived analytically from the chapter
-    ///   table at collapse resolution). Once beds dip, which units lie in the
-    ///   near-surface window at a cell is a function of the fold/fault field and
-    ///   the erosion surface, not of stacking order. `lithology.rs` already says
-    ///   so in prose: *"This is the one function structural deformation will
-    ///   change… every other part of this module carries over unaltered."* The
-    ///   seam was pre-identified by its own author; this makes it a socket instead
-    ///   of a sentence.
-    /// - *Granularity:* value-level, per cell per epoch. It was already a call,
-    ///   so the seam costs one indirection and no new work.
-    pub outcrop_at: Option<fn(&[DepUnit]) -> Litho>,
-
     /// **How much of each rock fills the near-surface window at this cell?**
     ///
     /// - *Identity:* [`identity_outcrop_shares`] — the per-[`Litho`] thickness
     ///   *shares* of the topmost
     ///   [`OUTCROP_DOMINANCE_WINDOW_M`](super::lithology::OUTCROP_DOMINANCE_WINDOW_M),
-    ///   summing to `1.0` (deficit below a short record → [`Litho::Basement`]).
-    ///   This is the *quantity*
-    ///   [`outcrop_at`](field@Providers::outcrop_at)'s verdict is the argmax of —
-    ///   the two are one [`window_walk`](super::lithology::exposed_litho), and
-    ///   erosion reads this one for its **rates** (blend the susceptibility table
-    ///   by share, journal/0072) rather than collapsing to a label and stepping
-    ///   the rate at the plurality crossover (the S-4 flag, walk-0071).
-    /// - *Heir:* **structural deformation** — the *same* heir as
-    ///   [`outcrop_at`](field@Providers::outcrop_at), and a **pinned pair** with
-    ///   it: once beds dip, which units lie in the near-surface window (and how
-    ///   much of each) is a function of the fold/fault field, so the heir supplies
-    ///   the dipped shares *here* and the verdict slot must stay their argmax.
-    ///   Seaming the quantity (not the verdict) is S-5's corollary — the erosion
-    ///   rate field then dips with the beds, not just the outcrop map.
-    /// - *Granularity:* value-level, per cell per epoch — it rides the same walk
-    ///   the outcrop verdict already did, so no new work beyond the blend.
+    ///   summing to `1.0` (deficit below a short record → [`Litho::Basement`]). A
+    ///   bed too thin to fill the window cannot define the cell's rock — the
+    ///   thickness rule that replaced a name-keyed charcoal carve-out
+    ///   (journal/0068). Erosion reads this for its **rates** (blend the
+    ///   susceptibility table by share, journal/0072) rather than collapsing to a
+    ///   label and stepping the rate at the plurality crossover (the S-4 flag,
+    ///   walk-0071).
+    /// - *The verdict is derived, not a second slot.* "Which rock is outcropping
+    ///   here?" is [`Providers::outcrop_at`](Self::outcrop_at()), a method that
+    ///   returns `argmax ∘ outcrop_shares` — never a stored label beside the
+    ///   quantity (S-3: the summary derived from the authority). The pinned pair
+    ///   `outcrop_at` + `outcrop_shares` (journal/0072) **collapsed to this one
+    ///   slot** when `CoarseField` was extracted (journal/0075): the extraction's
+    ///   own law — *categorical answers are argmax OF the sample, never stored
+    ///   fields* — made the second slot redundant.
+    /// - *Heir:* **structural deformation** (the layer-cake / dip-fold term,
+    ///   tectonics.md § 8). Once beds dip, which units lie in the near-surface
+    ///   window (and how much of each) is a function of the fold/fault field, so
+    ///   the heir supplies the dipped shares here — and the derived verdict dips
+    ///   with them automatically, because it *is* their argmax. Seaming the
+    ///   quantity (not the verdict) is S-5's corollary.
+    /// - *Granularity:* value-level, per cell per epoch.
     pub outcrop_shares: Option<fn(&[DepUnit]) -> WindowShares>,
 
     /// **What temperature has this buried unit seen?**
@@ -318,7 +299,6 @@ pub enum Slot {
     // materials
     ParentP,
     // structural
-    OutcropAt,
     OutcropShares,
     BurialTempC,
 }
@@ -334,7 +314,6 @@ impl Slot {
         // materials
         Slot::ParentP,
         // structural
-        Slot::OutcropAt,
         Slot::OutcropShares,
         Slot::BurialTempC,
     ];
@@ -351,7 +330,6 @@ impl Slot {
             // materials
             Slot::ParentP => "parent_p",
             // structural
-            Slot::OutcropAt => "outcrop_at",
             Slot::OutcropShares => "outcrop_shares",
             Slot::BurialTempC => "burial_temp_c",
         }
@@ -402,14 +380,17 @@ impl Providers {
         }
     }
 
-    /// Ask the [`outcrop_at`](field@Self::outcrop_at) slot, falling through to
-    /// [`identity_outcrop_at`] when no heir has supplied it.
+    /// **Which rock is outcropping at this cell?** — the verdict, *derived* as
+    /// `argmax ∘ outcrop_shares`, never a stored label beside the quantity
+    /// (S-3, and the `CoarseField` extraction's own law: categorical answers are
+    /// the argmax OF the sample, journal/0075). Not a slot: it has no `Option<fn>`
+    /// and no identity of its own — it is exactly the dominant lithology of
+    /// whatever the [`outcrop_shares`](Self::outcrop_shares()) slot answers, so when
+    /// the structural-deformation heir supplies dipped shares the verdict dips with
+    /// them, and the two can never disagree about where a bed is.
     #[inline]
     pub fn outcrop_at(&self, units: &[DepUnit]) -> Litho {
-        match self.outcrop_at {
-            Some(f) => f(units),
-            None => identity_outcrop_at(units),
-        }
+        dominant_litho(&self.outcrop_shares(units))
     }
 
     /// Ask the [`outcrop_shares`](field@Self::outcrop_shares) slot, falling through
@@ -447,7 +428,6 @@ impl Providers {
             // materials
             Slot::ParentP => self.parent_p.is_some(),
             // structural
-            Slot::OutcropAt => self.outcrop_at.is_some(),
             Slot::OutcropShares => self.outcrop_shares.is_some(),
             Slot::BurialTempC => self.burial_temp_c.is_some(),
         }
@@ -539,7 +519,11 @@ mod tests {
             };
             assert_eq!(p.parent_p(c).to_bits(), identity_parent_p(c).to_bits());
         }
-        assert_eq!(p.outcrop_at(&[]), identity_outcrop_at(&[]));
+        // The verdict is derived (argmax of the shares identity), not a slot.
+        assert_eq!(
+            p.outcrop_at(&[]),
+            dominant_litho(&identity_outcrop_shares(&[]))
+        );
         assert_eq!(p.outcrop_shares(&[]), identity_outcrop_shares(&[]));
         for overburden_m in [0.0, 7.999_999_999, 8.0, 512.0] {
             let u = BuriedUnit {
@@ -583,12 +567,12 @@ mod tests {
     #[test]
     fn explicitly_supplying_the_identity_function_still_counts_as_supplied() {
         let p = Providers {
-            outcrop_at: Some(identity_outcrop_at),
+            outcrop_shares: Some(identity_outcrop_shares),
             ..Providers::default()
         };
-        assert_eq!(p.non_identity_slots(), vec![Slot::OutcropAt]);
+        assert_eq!(p.non_identity_slots(), vec![Slot::OutcropShares]);
         // …and it still generates identically, because it is the same function.
-        assert_eq!(p.outcrop_at(&[]), identity_outcrop_at(&[]));
+        assert_eq!(p.outcrop_shares(&[]), identity_outcrop_shares(&[]));
     }
 
     /// The reshaped report *names* the swapped slots, and names only those —
@@ -634,6 +618,6 @@ mod tests {
         slots.sort_unstable();
         slots.dedup();
         assert_eq!(slots.len(), count, "duplicate variant in Slot::ALL");
-        assert_eq!(format!("{}", Slot::OutcropAt), "outcrop_at");
+        assert_eq!(format!("{}", Slot::OutcropShares), "outcrop_shares");
     }
 }

@@ -65,18 +65,19 @@ fn a_mixed_window_blends_the_table_by_share() {
     // fine on top (0.495), coarse beneath (0.405) → shares fine 0.55, coarse 0.45.
     let record = [coarse(0.405), mud(0.495)];
     let shares = exposed_shares(&record);
+    let sh = shares.shares(); // producer-side value inspection (no CoarseField raw read)
     let fi = Litho::ClasticFine.index();
     let ci = Litho::ClasticCoarse.index();
     assert!(
-        (shares[fi] - 0.55).abs() < 1e-9 && (shares[ci] - 0.45).abs() < 1e-9,
+        (sh[fi] - 0.55).abs() < 1e-9 && (sh[ci] - 0.45).abs() < 1e-9,
         "shares fine {} coarse {} — expected 0.55 / 0.45",
-        shares[fi],
-        shares[ci]
+        sh[fi],
+        sh[ci]
     );
     // Everything else is empty (no deficit — the window is full).
     let others: f64 = (0..Litho::COUNT)
         .filter(|&k| k != fi && k != ci)
-        .map(|k| shares[k])
+        .map(|k| sh[k])
         .sum();
     assert!(
         others.abs() < 1e-12,
@@ -86,7 +87,7 @@ fn a_mixed_window_blends_the_table_by_share() {
     for agent in Agent::ALL {
         let tab = susceptibility_table(agent, CONTRAST, CAP);
         let blended = blend_susceptibility(&shares, &tab);
-        let expected = shares[fi] * tab[fi] + shares[ci] * tab[ci];
+        let expected = sh[fi] * tab[fi] + sh[ci] * tab[ci];
         assert!(
             (blended - expected).abs() < 1e-12,
             "{}: blend {blended} != 0.55·fine + 0.45·coarse {expected}",
@@ -123,7 +124,7 @@ fn a_uniform_window_is_the_argmax_lookup_bit_for_bit() {
         let shares = exposed_shares(&record);
         let k = want.index();
         assert_eq!(
-            shares[k].to_bits(),
+            shares.shares()[k].to_bits(),
             1.0f64.to_bits(),
             "{} share != 1.0",
             want.code()

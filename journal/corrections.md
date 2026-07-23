@@ -1238,3 +1238,43 @@ re-baselining silently.
 **Standing lesson**: a control that never moves is evidence about the *axes
 exercised so far*, not about what the control contains. Say which coupling a
 control is blind to when citing its stillness.
+
+## 39. "The coherent bilinear source biases the class split toward 50/50" (2026-07-22)
+
+**The claim** (journal/0073 § "The wrong turn"; spines § 4 carve-out 1): the
+coherent (interpolated-uniform) surface-class draw carries *"a small toward-50/50
+bias (interpolated uniforms are middle-heavy)"* and *"flattens mixes slightly …
+a 55/45 window renders a few points closer to 50/50 than its true share."* The
+cost was booked as *balancing* the mix.
+
+**Falsified by** the `CoarseField` extraction (journal/0075), which built the
+inverse-CDF draw in dc-core and measured it directly
+(`coarse::tests::white_noise_is_unbiased_but_coherent_amplifies_the_majority`).
+A middle-heavy `u` (the bilinear average of four uniforms bunches toward 0.5) has
+a CDF with `F(s) > s` for the class that straddles the cumulative-½ point.
+`draw_class` returns class 0 when `u < share₀`, so in a two-class cell the class
+covering the ½ crossing — the **majority** — is drawn *more* often than its
+share, and the minority *less*. A 0.6 majority renders ≈ 0.67. The split is
+pushed **away** from 50/50, not toward it: the source **sharpens** the mix, it
+does not flatten it.
+
+**The mechanism of the error**: "middle-heavy `u`" is true, and it *feels* like
+it should centre the output — but the output is `F(share)`, and a distribution
+concentrated at 0.5 makes `F` *steep* through the middle, which pushes any share
+already off 0.5 further off. The phrase "flattens mixes" is consistent with the
+real behaviour (more dominated = flatter/less varied); the parenthetical
+"toward 50/50 / closer to 50/50 than its true share" is the falsified half.
+
+**Consequences**: minorities still surface (better than the plurality's zero —
+journal/0073's cream sandstone specks are genuine), but at *less* than their true
+areal share, so the coherent source **compounds** the cake observation
+(perimeter guillotine) with a within-cell under-representation. The honest fixes
+are unchanged in kind but re-weighted: the far-`summarize` register (unbiased
+statistical agreement) and/or a CDF-corrected source. NEEDS RATIFICATION — the
+decision to ship the coherent source stands (the far-mesh cost argument is
+untouched); only its cost's sign is corrected.
+
+**Standing lesson**: when a cost is a *distribution* distortion, measure the
+output fraction `F(share)`, don't reason from the shape of the noise. "The noise
+clusters at 0.5" and "the output clusters at 0.5" are different claims, and the
+inverse-CDF flips the intuition.
