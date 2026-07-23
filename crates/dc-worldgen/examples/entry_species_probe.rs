@@ -401,7 +401,7 @@ fn main() {
     println!("\n== PART 3 — worst-case columns (largest |ln ratio|, abrasion) ==");
     let tab_proxy = sus_table(&res_proxy, Agent::Abrasion, &ref_proxy);
     let tab_true = sus_table(&res_true, Agent::Abrasion, &ref_true);
-    let mut worst: Vec<(f64, usize, [f64; Litho::COUNT])> = recorded
+    let mut worst: Vec<(f64, usize, dc_core::coarse::ShareVec<{ Litho::COUNT }>)> = recorded
         .iter()
         .map(|&i| {
             let shares = exposed_shares(deep.strata[i].units.as_slice());
@@ -424,8 +424,8 @@ fn main() {
         let mut dom = Litho::Basement;
         let mut domv = 0.0;
         for l in Litho::ALL {
-            if shares[l.index()] > domv {
-                domv = shares[l.index()];
+            if shares.shares()[l.index()] > domv {
+                domv = shares.shares()[l.index()];
                 dom = l;
             }
         }
@@ -521,10 +521,12 @@ fn main() {
         let tab_t = sus_table(&res_ctx, Agent::Abrasion, &ref_ctx);
         let fine = aggregate_axes(&set, Litho::ClasticFine, Some(&c)).smash;
         let coarse = aggregate_axes(&set, Litho::ClasticCoarse, Some(&c)).smash;
-        let mut sh_coarse = [0.0; Litho::COUNT];
-        sh_coarse[Litho::ClasticCoarse.index()] = 1.0;
-        let mut sh_base = [0.0; Litho::COUNT];
-        sh_base[Litho::Basement.index()] = 1.0;
+        let mut sh_coarse_raw = [0.0; Litho::COUNT];
+        sh_coarse_raw[Litho::ClasticCoarse.index()] = 1.0;
+        let sh_coarse = dc_core::coarse::ShareVec::from_shares(sh_coarse_raw);
+        let mut sh_base_raw = [0.0; Litho::COUNT];
+        sh_base_raw[Litho::Basement.index()] = 1.0;
+        let sh_base = dc_core::coarse::ShareVec::from_shares(sh_base_raw);
         let rc =
             blend_susceptibility(&sh_coarse, &tab_t) / blend_susceptibility(&sh_coarse, &tab_p);
         let rb = blend_susceptibility(&sh_base, &tab_t) / blend_susceptibility(&sh_base, &tab_p);
