@@ -7,6 +7,37 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-23 — **`paleo_temperature` becomes a seam, and the collapse tier grows
+  a provider socket** (journal/0078; background implementation agent, worktree
+  for the integrator; gates green — fmt/clippy/test all `--release`, with
+  `cargo clean -p dc-worldgen -p dc-core --release` before the final gate).
+  **Zero behaviour change** — the production world still hashes to the pre-slice
+  goldens `surface 0x176D40F11CCB006A` / `record 0xC9C6D6F6E9089653`.
+  `geology.rs::deposit_deep_history` read *today's* column temperature
+  (`ctx.temp_c`) as every deep unit's at-deposition temperature, while the
+  sibling aridity axis (`deep_precip`) already read the record — the asymmetry
+  sat on adjacent lines. Now `providers::Providers::paleo_temperature` — *"what
+  temperature did this cell see when this unit was deposited?"* — identity =
+  present-day `temp_c` (the wrong quantity, named, not a neutral no-op); heir = an
+  epoch-indexed paleo curve keyed by the unit's `chapter`. **Value-level per
+  unit** (not per column): the identity is constant across a column's units but
+  the heir varies per epoch, and granularity follows the heir. **Finding:** the
+  collapse tier had **no** `Providers` channel at all — the mechanism was only
+  ever plumbed into the deep-time sim via `DeepConfig`. `WorldGenerator` +
+  `StrataCtx` now carry a `Providers` (default = identity, resolved at world
+  build), so both tiers can be handed one resolved set. Tests: 2 slot-identity, 1
+  white-box **consultation** test in `geology.rs` (the golden proves the *absent*
+  provider changes nothing, which is consistent with a slot never consulted; the
+  white-box test proves it IS consulted through the real fn), 1 none-path arm, 3
+  in `providers_paleo_temperature.rs`. Two **doc riders** in the same commit:
+  `fits_in_pores` [S9] now declares its expected consumers (hydrology
+  infiltration, diagenesis cement/ore) so an infiltration author finds it instead
+  of writing a second rule; the `exhum`/`t_crust` [#28] comment cites `spines.md`
+  § 3 and states its no-consumer status crisply (it was already substantially
+  honest — see corrections #40). **`material_properties` [S2] / `is_granular`
+  [S3] remain queued and design-pass-pending** — they couple to the
+  block↔material collapse and were left entirely untouched.
+
 - 2026-07-22 — **The surface-branch removal — the summary stopped being the
   author** (journal/0074; background implementation agent, worktree for the
   integrator; **empties spines § S-3's marquee "violation, shipped" line**).

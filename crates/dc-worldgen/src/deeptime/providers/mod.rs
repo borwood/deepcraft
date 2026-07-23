@@ -46,7 +46,7 @@
 //! ## The file layout, and why the grouping is load-bearing
 //!
 //! One module per slot — [`outcrop_shares`], [`wave_energy`], [`parent_p`],
-//! [`depth_to_water`], [`burial_temp_c`] — each holding that slot's payload struct, its identity
+//! [`depth_to_water`], [`burial_temp_c`], [`paleo_temperature`] — each holding that slot's payload struct, its identity
 //! function, and its unit tests. This module holds only what is genuinely
 //! *about the set*: the [`Providers`] struct, its identity [`Default`], and the
 //! [`Slot`] enumeration.
@@ -87,6 +87,7 @@
 //! | [`Providers::parent_p`](field@Providers::parent_p) | **pass-level** — called `n` times *total*, at [`BioticSim::new`](super::biotic::BioticSim::new) | the value is a property of the parent material, constant over the run; materializing it once as a plane keeps the epoch loop a plain indexed read |
 //! | [`Providers::depth_to_water`](field@Providers::depth_to_water) | **pass-level** — called **once per epoch**, at [`BioticSim::step`](super::biotic::BioticSim::step) | the water table moves with the surface, so it cannot be materialized once for the run like `parent_p`; but the heir is a *field* solved over a neighbourhood, so it cannot be a per-cell call either |
 //! | [`Providers::burial_temp_c`](field@Providers::burial_temp_c) | **value-level** — called per *candidate unit*, at [`BioticSim::finalize`](super::biotic::BioticSim::finalize) | there is no loop to be hot: finalize runs **once at the end of the run**, and the answer varies per unit because burial depth does. A plane cannot hold it — the question is asked of a *unit*, and a column has as many units as its history had events |
+//! | [`Providers::paleo_temperature`](field@Providers::paleo_temperature) | **value-level** — called per *recorded deep unit*, in [`deposit_deep_history`](crate::geology) at collapse | the identity is constant across a column's units (today's climate), but the *heir* answers per epoch and each unit carries its own [`chapter`](super::recorder::DepUnit::chapter). Granularity follows the heir: materializing once per column would erase the epoch axis the paleo-temperature curve exists to express |
 //!
 //! **A provider must never be called inside a hot loop to answer a question that
 //! does not change inside that loop.** `parent_p` is in this slice specifically
@@ -111,12 +112,14 @@
 pub mod burial_temp_c;
 pub mod depth_to_water;
 pub mod outcrop_shares;
+pub mod paleo_temperature;
 pub mod parent_p;
 pub mod wave_energy;
 
 pub use burial_temp_c::{BurialColumn, BuriedUnit, identity_burial_temp_c};
 pub use depth_to_water::{WaterPass, identity_depth_to_water, identity_wet_index, wet_at};
 pub use outcrop_shares::identity_outcrop_shares;
+pub use paleo_temperature::{PaleoUnit, identity_paleo_temperature};
 pub use parent_p::{ParentCell, identity_parent_p};
 pub use wave_energy::{WaveCell, identity_wave_energy};
 
@@ -278,6 +281,32 @@ pub struct Providers {
     ///   [`BioticSim::finalize`](super::biotic::BioticSim::finalize) — which runs
     ///   **once per run**, so the hot-loop rule has nothing to say here.
     pub burial_temp_c: Option<fn(BuriedUnit) -> f64>,
+
+    // ──────────────────────────── paleoclimate ───────────────────────────
+    /// **What temperature did this cell see when this unit was deposited?**
+    ///
+    /// - *Identity:* [`identity_paleo_temperature`] — the column's **present-day**
+    ///   temperature (`ctx.temp_c`), handed straight back, which is what
+    ///   [`deposit_deep_history`](crate::geology) read for *every* deep unit's
+    ///   at-deposition temperature before this seam existed. Not a neutral no-op:
+    ///   it is the **wrong quantity** (today's climate for a Myr-old epoch), and
+    ///   naming that is the seam's whole point.
+    /// - *Heir:* **an epoch-indexed paleo-temperature curve** carried by the deep
+    ///   record (the "later 3e slice", `stubs.md` § 6). The sibling axis
+    ///   `deep_precip` already reads the recorder's own aridity tag — it is
+    ///   genuinely at-deposition — so on adjacent lines of one function aridity
+    ///   is the record's answer and temperature is today's. That asymmetry is
+    ///   what made this seam visible (seam inventory #11). The heir indexes the
+    ///   curve by the unit's [`chapter`](super::recorder::DepUnit::chapter) (the
+    ///   epoch) and the column position, perturbing the present-day baseline the
+    ///   payload carries.
+    /// - *Granularity:* **value-level, per recorded deep unit.** The identity is
+    ///   constant per column, but granularity follows the heir (journal/0060,
+    ///   0061), and the heir's answer varies per unit because each unit records a
+    ///   different epoch. Materializing once per column would collapse exactly
+    ///   that epoch variation. The same shape, for the same reason, as
+    ///   [`burial_temp_c`](Self::burial_temp_c()).
+    pub paleo_temperature: Option<fn(PaleoUnit) -> f64>,
 }
 
 /// One provider slot, by name — the vocabulary a world's manifest needs.
@@ -301,6 +330,8 @@ pub enum Slot {
     // structural
     OutcropShares,
     BurialTempC,
+    // paleoclimate
+    PaleoTemperature,
 }
 
 impl Slot {
@@ -316,6 +347,8 @@ impl Slot {
         // structural
         Slot::OutcropShares,
         Slot::BurialTempC,
+        // paleoclimate
+        Slot::PaleoTemperature,
     ];
 
     /// The slot's field name, verbatim — the token a manifest stores and a log
@@ -332,6 +365,8 @@ impl Slot {
             // structural
             Slot::OutcropShares => "outcrop_shares",
             Slot::BurialTempC => "burial_temp_c",
+            // paleoclimate
+            Slot::PaleoTemperature => "paleo_temperature",
         }
     }
 }
@@ -413,6 +448,16 @@ impl Providers {
         }
     }
 
+    /// Ask the [`paleo_temperature`](field@Self::paleo_temperature) slot, falling
+    /// through to [`identity_paleo_temperature`] when no heir has supplied it.
+    #[inline]
+    pub fn paleo_temperature(&self, unit: PaleoUnit) -> f64 {
+        match self.paleo_temperature {
+            Some(f) => f(unit),
+            None => identity_paleo_temperature(unit),
+        }
+    }
+
     // ──────────────────────────── the identity report ─────────────────────────
 
     /// **Is this slot supplied by an heir?** — i.e. does it hold `Some`.
@@ -430,6 +475,8 @@ impl Providers {
             // structural
             Slot::OutcropShares => self.outcrop_shares.is_some(),
             Slot::BurialTempC => self.burial_temp_c.is_some(),
+            // paleoclimate
+            Slot::PaleoTemperature => self.paleo_temperature.is_some(),
         }
     }
 
@@ -556,6 +603,19 @@ mod tests {
         p.depth_to_water(pass(), &mut via_slot);
         identity_depth_to_water(pass(), &mut direct);
         assert_eq!(via_slot, direct);
+
+        for present_temp_c in [-31.0, 0.0, 14.25, 40.0] {
+            let u = PaleoUnit {
+                cx: 3,
+                cz: -4,
+                chapter: 5,
+                present_temp_c,
+            };
+            assert_eq!(
+                p.paleo_temperature(u).to_bits(),
+                identity_paleo_temperature(u).to_bits()
+            );
+        }
     }
 
     /// **`Some(identity)` is a resolution, not an absence.** Handing a slot the

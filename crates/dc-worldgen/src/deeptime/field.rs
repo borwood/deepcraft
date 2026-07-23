@@ -261,13 +261,21 @@ pub struct DeepField {
     pub recv: Vec<i32>,
     pub area: Vec<f64>,
     pub lake: Vec<bool>,
-    /// **Exhumation** (m) and **crustal thickness** (m) per cell — the metamorphic-
-    /// grade axes the collapse tier WILL read (§ 6.4): exported and, as of U8,
-    /// populated in every production world, but currently consumed by nothing.
-    /// The expression slice is Sequenced (ROADMAP: "tectonic expression at the
-    /// collapse tier" — consume `exhum`/`t_crust` into metamorphic-grade classes;
-    /// stubs.md § 4, "the absent metamorphic expresser"). Empty when tectonic
-    /// history is off.
+    /// **Exhumation** (m) and **crustal thickness** (m) per cell. Exported and,
+    /// as of U8, populated in every production world — **and read by no
+    /// downstream consumer** (`docs/spines.md` § 3, built-but-unconsumed; A-2 —
+    /// prose cannot fail a build, so the status is stated here, not implied).
+    /// These are the *intended* metamorphic-grade axes (§ 6.4): the day a cut
+    /// face should show an aureole rather than plain basement, a metamorphism
+    /// pass reads the P/T path off these planes into grade classes
+    /// (slate/schist/gneiss). The expression slice is **Sequenced** ("tectonic
+    /// expression at the collapse tier"; `stubs.md` § 4, "the absent metamorphic
+    /// expresser"). It now has a named arrival address: the geotherm heir of
+    /// `providers::burial_temp_c` reads crustal heat flow (journal/0067), so
+    /// coal rank and metamorphic grade land as one thermal-maturity ladder.
+    /// *(`t_crust` **is** read inside the sim by `isostasy()` — `erosion.rs` —
+    /// which is why this note is careful to say the unconsumed axis is the
+    /// exported plane, not the value.)* Empty when tectonic history is off.
     pub exhum: Vec<f64>,
     pub t_crust: Vec<f64>,
     /// **The chapter table** (§ 8): plate state per chapter. Per-unit deformation

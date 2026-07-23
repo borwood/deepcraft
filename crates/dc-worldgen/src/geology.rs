@@ -36,6 +36,7 @@ use dc_core::materials::geology::{
 };
 use dc_sim::statistical::rng::draw_f64;
 
+use crate::deeptime::providers::PaleoUnit;
 use crate::deeptime::recorder::{Aridity, Biofacies, DepEnv, DepTag, DepUnit, EnergyBand};
 use crate::pregen::{
     Provenance, SALT_GEO_ACC, SALT_GEO_DEEP, SALT_GEO_ORE, SALT_GEO_SELECT, SALT_GEO_THICK,
@@ -129,6 +130,12 @@ pub struct StrataCtx<'a> {
     /// True beyond the pregen grid.
     pub wilds: bool,
     pub geology: &'a GeologySet,
+    /// The world's resolved provider set — the collapse tier's access to the
+    /// same seam mechanism the deep-time sim carries in `DeepConfig`. `Copy`,
+    /// default (all-identity) until an heir is resolved at world build. The
+    /// clastic pass reads `paleo_temperature` through it (journal/0078); a
+    /// default set reproduces the pre-seam `ctx.temp_c` byte-for-byte.
+    pub providers: crate::deeptime::providers::Providers,
     // -- outputs --
     pub strata: StrataRec,
     /// Alluvial state: set by the clastic pass when it deposits a graded
@@ -373,8 +380,11 @@ const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 /// stratum per recorded deep unit (bottom-up), its class fixed by the measured
 /// facies tag ([`deep_class`]) and its member selected under the
 /// **at-deposition** formation context — paleo precipitation from the aridity
-/// tag ([`deep_precip`]), temperature from the column's latitude (paleo-
-/// temperature is a later 3e slice), and burial depth from the overlying
+/// tag ([`deep_precip`]), temperature through the
+/// [`paleo_temperature`](crate::deeptime::providers::Providers::paleo_temperature)
+/// provider seam (identity = the column's present-day temperature, so this is
+/// byte-identical until a paleoclimate heir lands — journal/0078), and burial
+/// depth from the overlying
 /// record. This is the point of 3e-1: a cut face reads the record of a landscape
 /// that ran (marine mud under arid fill under the recent veneer), not the
 /// year-zero climate shim.
@@ -422,7 +432,21 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
         let class = deep_class(u.tag);
         let precip = deep_precip(u.tag);
         let depth_m = depth_above + DEEP_VENEER_MARGIN_M;
-        let temp_c = ctx.temp_c; // latitude proxy; paleo-temp curve is 3e-later
+        // **At-deposition temperature — the `paleo_temperature` seam** (#11,
+        // journal/0078). Pre-seam this read `ctx.temp_c` (the column's *present*
+        // climate) for every unit — the wrong quantity, while the sibling
+        // `precip` axis above already reads the recorder's own tag. The identity
+        // provider returns that same `ctx.temp_c`, so a default world is
+        // byte-identical; the heir is an epoch-indexed paleo curve indexed by the
+        // unit's `chapter`. Value-level per unit because the heir's answer varies
+        // per epoch even though the identity's does not (granularity follows the
+        // heir — providers/mod.rs).
+        let temp_c = ctx.providers.paleo_temperature(PaleoUnit {
+            cx: ctx.cx,
+            cz: ctx.cz,
+            chapter: u.chapter,
+            present_temp_c: ctx.temp_c,
+        });
         let form = FormationContext {
             temp_c,
             precip,
@@ -647,4 +671,101 @@ pub fn dithered_member(
     geology
         .select(class, &ctx, u)
         .map_or(event.member, |(i, _)| i)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::deeptime::providers::Providers;
+    use crate::deeptime::recorder::{Aridity, DepEnv, DepTag, DepUnit, EnergyBand};
+    use dc_core::materials::geology::vanilla;
+
+    fn one_mineral_unit() -> Vec<DepUnit> {
+        // Subaerial / medium energy routes to a clastic class the vanilla set
+        // fills, so `select` returns a member and an event is actually pushed.
+        vec![DepUnit {
+            tag: DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Medium),
+            thickness_m: 5.0,
+            unconformity: false,
+            chapter: 2,
+        }]
+    }
+
+    fn ctx_over<'a>(
+        units: &'a [DepUnit],
+        geo: &'a GeologySet,
+        providers: Providers,
+        present_temp_c: f64,
+    ) -> StrataCtx<'a> {
+        StrataCtx {
+            seed: 42,
+            cx: 3,
+            cz: -7,
+            temp_c: present_temp_c,
+            precip: 0.5,
+            provenance: Provenance::OceanFloor,
+            elev_m: 100.0,
+            flow_energy: 0.0,
+            voxel_m: 0.9,
+            regolith_m: Some(5.0),
+            deep_units: units,
+            wilds: false,
+            geology: geo,
+            providers,
+            strata: StrataRec::default(),
+            alluvium: None,
+        }
+    }
+
+    /// **The `paleo_temperature` seam is consulted in the real collapse fn, and
+    /// the payload carries what the heir needs.** The golden proves an *absent*
+    /// provider changes nothing — which is equally consistent with a slot that is
+    /// never called (the `burial_temp_c` falsifier's argument, one tier over).
+    /// This drives `deposit_deep_history` directly:
+    ///
+    /// - with the identity set, the deposited event's `temp_c` is the column's
+    ///   present-day temperature (byte-identical to the pre-seam `ctx.temp_c`);
+    /// - with a swapped provider returning `present*100 + chapter`, the recorded
+    ///   temperature is exactly that — proving both `present_temp_c` **and** the
+    ///   unit's `chapter` (the epoch key) reach the provider through the payload.
+    #[test]
+    fn deposit_deep_history_records_the_paleo_temperature_providers_answer() {
+        fn present_and_chapter(u: PaleoUnit) -> f64 {
+            u.present_temp_c * 100.0 + f64::from(u.chapter)
+        }
+
+        let units = one_mineral_unit();
+        let geo = vanilla();
+
+        // Identity: the recorded temperature is the present-day column temp.
+        let mut id_ctx = ctx_over(&units, &geo, Providers::default(), 9.0);
+        assert_eq!(deposit_deep_history(&mut id_ctx), 5.0);
+        assert_eq!(
+            id_ctx.strata.events.len(),
+            1,
+            "the mineral unit must deposit exactly one event"
+        );
+        assert_eq!(
+            id_ctx.strata.events[0].temp_c, 9.0_f32,
+            "the identity records the present-day column temperature"
+        );
+
+        // Swapped: the recorded temperature is the provider's answer, computed
+        // from present_temp_c (9.0) and chapter (2) → 902.0.
+        let mut hot_ctx = ctx_over(
+            &units,
+            &geo,
+            Providers {
+                paleo_temperature: Some(present_and_chapter),
+                ..Providers::default()
+            },
+            9.0,
+        );
+        deposit_deep_history(&mut hot_ctx);
+        assert_eq!(
+            hot_ctx.strata.events[0].temp_c, 902.0_f32,
+            "the swapped provider's answer, keyed by present temp and chapter, is \
+             what the event records — the seam is consulted through the real fn"
+        );
+    }
 }

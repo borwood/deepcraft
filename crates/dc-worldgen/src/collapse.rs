@@ -278,6 +278,12 @@ pub struct WorldGenerator<'a> {
     voxel_m: f64,
     /// The registered geology content the strata passes select from.
     geology: GeologySet,
+    /// The resolved provider set for this world (the collapse tier's half of the
+    /// seam the deep-time sim carries in `DeepConfig`). `Providers::default()` —
+    /// every slot identity — until an heir is resolved at world build, so a
+    /// default generator is byte-identical to the pre-seam collapse path. The
+    /// clastic strata pass reads `paleo_temperature` through it (journal/0078).
+    providers: crate::deeptime::providers::Providers,
     /// Region-scale mixture intern table (S8 `materials/mixtures-v0` path);
     /// ids are first-intern order, deterministic given generation order.
     materials: MixtureTable,
@@ -371,6 +377,7 @@ impl<'a> WorldGenerator<'a> {
             seed,
             voxel_m: scale.voxel_size_m(),
             geology,
+            providers: crate::deeptime::providers::Providers::default(),
             materials: MixtureTable::new(),
             sites_by_cell,
             lattice_memo: HashMap::new(),
@@ -1478,6 +1485,7 @@ impl<'a> WorldGenerator<'a> {
             deep_units,
             wilds,
             geology: &self.geology,
+            providers: self.providers,
             strata: StrataRec::default(),
             alluvium: None,
         };

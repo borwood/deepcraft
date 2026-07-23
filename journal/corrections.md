@@ -1278,3 +1278,37 @@ untouched); only its cost's sign is corrected.
 output fraction `F(share)`, don't reason from the shape of the noise. "The noise
 clusters at 0.5" and "the output clusters at 0.5" are different claims, and the
 inverse-CDF flips the intuition.
+
+## 40. "#28's `exhum`/`t_crust` comment claims 'the collapse tier reads them'" — the audit misquoted an already-honest comment (2026-07-23)
+
+The 2026-07-22 seam inventory listed seam #28 (`exhum`/`t_crust`) as an A-2
+instance: *"documented in-code as 'the metamorphic-grade axes the collapse tier
+reads' — and nothing reads them"* — a false-constraint comment (prose cannot
+fail a build). journal/0078 went to cure it and found nothing to cure.
+
+**The falsification.** The comment in the tree reads *"the metamorphic-grade axes
+the collapse tier **WILL** read (§ 6.4): exported and, as of U8, populated in
+every production world, but **currently consumed by nothing**"* — rewritten at
+commit `11d43859` (2026-07-21 04:33, "U8: flip tectonic_history ON"), *before*
+the audit was written. The audit quoted it as "the collapse tier reads them",
+dropping the "WILL" and the "currently consumed by nothing" clause — which
+inverts an honest future-tense note into a false present-tense claim. A comment
+that already states "consumed by nothing" is not a justification outliving its
+premise; the A-2 was never live.
+
+**The mechanism of the error.** An audit that paraphrases a comment can
+manufacture the very defect it reports. The check A-2 prescribes — *"does the
+cited constraint still hold?"* — has a prerequisite the audit skipped: *is the
+constraint quoted correctly?* Verify the quotation against the source, not just
+the claim about it.
+
+**Consequences.** No code was wrong; stubs.md § 4's "the comment overstates" was
+the same misreading and is corrected. journal/0078 tightened the comment anyway —
+it now cites spines.md § 3 and names the `burial_temp_c` geotherm arrival address
+— but that is polish, not a fix. The `exhum`/`t_crust` row stays in spines.md § 3
+(built-but-unconsumed): the comment correction does not consume it.
+
+**Standing lesson.** When a sweep reports "the comment says X and X is false",
+re-read the comment before believing the sweep. A stale or uncharitable quotation
+is indistinguishable, in a summary, from a live defect — and only one of them is
+worth a slice.
