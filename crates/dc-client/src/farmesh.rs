@@ -62,6 +62,7 @@
 use std::collections::HashMap;
 
 use bevy::prelude::*;
+use bevy::tasks::AsyncComputeTaskPool;
 use dc_core::farfield::{
     ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, quantize_top,
 };
@@ -75,6 +76,7 @@ use crate::app::{
 use crate::authority::Authority;
 use crate::farpyramid::FarPyramid;
 use crate::meshing::{MeshData, block_layer, face_color, mesh_chunk};
+use crate::meshtasks::{FarMeshOutput, FarMeshTasks, MAX_INFLIGHT_FAR};
 use crate::player::Player;
 use crate::streaming::to_bevy_mesh;
 use crate::worldgen::TerrainGen;
@@ -547,6 +549,18 @@ pub fn position_far_chunks(
 // FF2b's volumetric spans own the chasm case; the per-column payload is already
 // a [`ColumnSpan`] so that extension needs no mesher rewrite).
 // ===========================================================================
+
+/// The frame-thread derivation of one far tile — the OWNED plain data the pure
+/// mesher runs on off-thread (journal/0083): the per-column [`ColumnSpan`]
+/// stacks, the near-cover cull mask, the four ring-edge flags, and the tile's
+/// cull-chunk bookkeeping. Aliased so the derive/spawn seam is not a bare
+/// four-tuple (clippy::type_complexity).
+type DerivedTile = (
+    Vec<Vec<ColumnSpan>>,
+    Vec<bool>,
+    [bool; 4],
+    Option<(i64, i64, i64)>,
+);
 
 /// Far surface tiles generated + meshed per frame. The full horizon fills in a
 /// second or two of streaming, same as the S1 far mesh.
@@ -1168,20 +1182,16 @@ fn tile_in_cull_band(
 #[allow(clippy::too_many_arguments)]
 pub fn stream_far_surface(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    material: Res<FullbrightMaterialHandle>,
-    terrain_mat: Res<TerrainMaterialHandle>,
-    fullbright: Res<Fullbright>,
     authority: Res<Authority>,
     scale: Res<CurrentScale>,
     player: Res<Player>,
-    origin: Res<FloatingOrigin>,
     horizon: Res<HorizonConfig>,
     mut map: ResMut<FarSurfaceMap>,
     mut pyramid: ResMut<FarPyramid>,
+    mut tasks: ResMut<FarMeshTasks>,
 ) {
     // Only the worldgen authority has a coarse summary; tear our tiles down when
-    // the S1 authority is active (keys 3/4).
+    // the S1 authority is active (keys 3/4). Also drop any in-flight mesh tasks.
     if !authority.far_field_is_worldgen() {
         if !map.loaded.is_empty() {
             for (_, t) in map.loaded.drain() {
@@ -1190,38 +1200,38 @@ pub fn stream_far_surface(
                 }
             }
         }
+        tasks.0.clear();
         return;
     }
 
     let base = scale.scale;
-    // Scale switched: tiles are per-scale, rebuild them.
+    // Scale switched: tiles are per-scale, rebuild them (and drop in-flight
+    // tasks — their derived data is for the old scale).
     if scale.is_changed() && !map.loaded.is_empty() {
         for (_, t) in map.loaded.drain() {
             if let Some(e) = t.entity {
                 commands.entity(e).despawn();
             }
         }
+        tasks.0.clear();
     }
 
     let viewer = player.pos_m;
     let hz = &*horizon;
-    // One shared camera-forward push direction for every tile built this frame —
-    // the uniform-per-level push that keeps same-level seams closed by
-    // construction (corrections #11).
-    let forward = player.view_dir();
     let cur_chunk = viewer_near_chunk(base, viewer);
 
     // Unload tiles that left their ring (horizontal distance, hysteresis). The
     // inner bound matches the one-tile ring lap of `far_tile_in_ring` so lapped
     // tiles don't load-then-immediately-unload (journal/0022 walk 17).
+    let left_ring = |level: u8, tx: i32, tz: i32| {
+        let d = far_tile_center_dist(base, level, tx, tz, viewer);
+        let inner = hz.inner(level) - far_tile_m(base, level);
+        d < inner - FAR_UNLOAD_SLACK_M || d > hz.outer(level) + FAR_UNLOAD_SLACK_M
+    };
     let to_unload: Vec<(u8, i32, i32)> = map
         .loaded
         .keys()
-        .filter(|(level, tx, tz)| {
-            let d = far_tile_center_dist(base, *level, *tx, *tz, viewer);
-            let inner = hz.inner(*level) - far_tile_m(base, *level);
-            d < inner - FAR_UNLOAD_SLACK_M || d > hz.outer(*level) + FAR_UNLOAD_SLACK_M
-        })
+        .filter(|(level, tx, tz)| left_ring(*level, *tx, *tz))
         .copied()
         .collect();
     for key in to_unload {
@@ -1231,12 +1241,20 @@ pub fn stream_far_surface(
             commands.entity(e).despawn();
         }
     }
+    // Cancel in-flight tile tasks whose tile left the ring before its mesh was
+    // ready (dropping the `Task` detaches it) — otherwise the drain could try to
+    // despawn an old entity the unload sweep already removed.
+    tasks
+        .0
+        .retain(|(level, tx, tz), _| !left_ring(*level, *tx, *tz));
 
-    // Newly-wanted (missing) tiles, nearest first — these appear the horizon.
+    // Newly-wanted (missing) tiles, nearest first — these appear the horizon. A
+    // tile already meshing off-thread is neither loaded nor missing.
     let mut missing: Vec<(u64, u8, i32, i32)> = Vec::new();
     for level in 1..=4u8 {
         for (tx, tz) in wanted_far_tiles(base, viewer, level, hz) {
-            if !map.loaded.contains_key(&(level, tx, tz)) {
+            if !map.loaded.contains_key(&(level, tx, tz)) && !tasks.0.contains_key(&(level, tx, tz))
+            {
                 let d = far_tile_center_dist(base, level, tx, tz, viewer);
                 missing.push(((d * 1000.0) as u64, level, tx, tz));
             }
@@ -1248,9 +1266,13 @@ pub fn stream_far_surface(
     // different near-chunk, or they are newly in the cull band and have never
     // been culled. Refreshed in place (no blink), nearest first, with leftover
     // budget after the missing fills — staleness in the occluded overlap band is
-    // invisible, so the horizon (missing) takes priority.
+    // invisible, so the horizon (missing) takes priority. A tile already being
+    // rebuilt off-thread is skipped (it's in `tasks`).
     let mut stale: Vec<(u64, u8, i32, i32)> = Vec::new();
     for (&(level, tx, tz), t) in &map.loaded {
+        if tasks.0.contains_key(&(level, tx, tz)) {
+            continue;
+        }
         let in_band = tile_in_cull_band(base, level, tx, tz, viewer, hz);
         let needs = match t.cull_chunk {
             Some(c) => c != cur_chunk,
@@ -1268,8 +1290,6 @@ pub fn stream_far_surface(
             .worldgen_coarse_surface(wx, wz)
             .expect("worldgen far-field summary under the worldgen authority")
     };
-    // Derive the tile's summary + coverage inputs here (the impure boundary:
-    // reads the authority + viewer), then mesh purely from that plain data.
     let ring_edges_of = |level: u8, tx: i32, tz: i32| -> [bool; 4] {
         let edge = |ntx: i32, ntz: i32| {
             !far_tile_in_ring(
@@ -1286,19 +1306,16 @@ pub fn stream_far_surface(
             edge(tx, tz - 1),
         ]
     };
-    let build = |commands: &mut Commands,
-                 meshes: &mut Assets<Mesh>,
-                 pyramid: &mut FarPyramid,
-                 level: u8,
-                 tx: i32,
-                 tz: i32|
-     -> LoadedFarTile {
-        // Churn instrument (journal/0051): the far tile is the object the
-        // pooling doctrine names, so time its whole build.
-        let build_start = std::time::Instant::now();
-        // Perf window (journal/0080): the per-frame far-field tile derive+mesh.
-        // Parent span; `far_tile.derive` and `far_tile.mesh` nest below it. Zero
-        // cost without `--features perf`.
+    // Derive the tile's summary + coverage inputs on the FRAME thread (the impure
+    // boundary: reads the `Authority` generator + the `&mut FarPyramid` resource
+    // + the viewer). `far_tile.derive` therefore stays in the frame envelope — it
+    // cannot be offloaded without either sharing the generator `Mutex` across
+    // threads (a contention regression) or handing a `&mut` resource to a task
+    // (impossible); that offload is the filed follow-on (journal/0083). Returns
+    // plain OWNED data the pure mesher runs on off-thread.
+    let derive = |pyramid: &mut FarPyramid, level: u8, tx: i32, tz: i32| -> DerivedTile {
+        // Perf window (journal/0080): the per-frame far-field tile derive. Parent
+        // span; `far_tile.derive` nests below it. Zero cost without `perf`.
         let _perf = crate::perf_span!("far_tile.build");
         // Per-tile cache of reduced node grids: a tile's 34² columns touch at
         // most a 3×3 patch of node plan columns, and each grid is derived once.
@@ -1323,53 +1340,58 @@ pub fn stream_far_surface(
             tile_column_stacks(base, level, tx, tz, viewer, hz, &sample, &mut known)
         };
         let ring_edges = ring_edges_of(level, tx, tz);
-        let (mesh_data, y_ref) = {
-            let _perf = crate::perf_span!("far_tile.mesh");
-            build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges)
-        };
         let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
-        if mesh_data.is_empty() {
-            churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
-            // Every column culled (fully under the near field): a real, tracked
-            // "meshed to nothing" so it isn't re-attempted every frame.
-            return LoadedFarTile {
-                entity: None,
-                cull_chunk,
+        (stacks, culled, ring_edges, cull_chunk)
+    };
+
+    let pool = AsyncComputeTaskPool::get();
+    // Spawn a pure-mesh task from the derived owned data. `build_far_tile_mesh`
+    // + `to_bevy_mesh` are a pure function of it (the `far_tile.mesh` span moves
+    // to the task thread — the measured win). `old_entity` is the seam tile's
+    // current entity, despawned by the drain once the fresh mesh is ready.
+    let spawn_tile = |tasks: &mut FarMeshTasks,
+                      level: u8,
+                      tx: i32,
+                      tz: i32,
+                      stacks: Vec<Vec<ColumnSpan>>,
+                      culled: Vec<bool>,
+                      ring_edges: [bool; 4],
+                      cull_chunk: Option<(i64, i64, i64)>,
+                      old_entity: Option<Entity>| {
+        let task = pool.spawn(async move {
+            // Churn instrument (journal/0051): now a task-thread wall over
+            // the mesh + vertex-buffer conversion.
+            let build_start = std::time::Instant::now();
+            let (mesh_data, y_ref) = {
+                let _perf = crate::perf_span!("far_tile.mesh");
+                build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges)
             };
-        }
-        let transform = Transform::from_translation(far_tile_translation(
-            base, level, tx, tz, y_ref, forward, origin.0,
-        ));
-        let bevy_mesh = to_bevy_mesh(mesh_data);
-        churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
-        let mut ent = commands.spawn((
-            Mesh3d(meshes.add(bevy_mesh)),
-            FarTileEntity {
+            let mesh = (!mesh_data.is_empty()).then(|| to_bevy_mesh(mesh_data));
+            churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);
+            FarMeshOutput {
                 level,
                 tx,
                 tz,
-                y_ref_m: y_ref,
-            },
-            transform,
-        ));
-        if fullbright.0 {
-            ent.insert(MeshMaterial3d(material.0.clone()));
-        } else {
-            ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
-        }
-        LoadedFarTile {
-            entity: Some(ent.id()),
-            cull_chunk,
-        }
+                mesh,
+                y_ref,
+                cull_chunk,
+                old_entity,
+            }
+        });
+        tasks.0.insert((level, tx, tz), task);
     };
 
-    let mut budget = FAR_SURFACE_BUDGET_PER_FRAME;
+    // Bound spawns by the in-flight cap so a meshing backlog can't grow unbounded.
+    let mut budget =
+        FAR_SURFACE_BUDGET_PER_FRAME.min(MAX_INFLIGHT_FAR.saturating_sub(tasks.0.len()));
     for (_, level, tx, tz) in missing {
         if budget == 0 {
             break;
         }
-        let loaded = build(&mut commands, &mut meshes, &mut pyramid, level, tx, tz);
-        map.loaded.insert((level, tx, tz), loaded);
+        let (stacks, culled, ring_edges, cull_chunk) = derive(&mut pyramid, level, tx, tz);
+        spawn_tile(
+            &mut tasks, level, tx, tz, stacks, culled, ring_edges, cull_chunk, None,
+        );
         budget -= 1;
     }
     for (_, level, tx, tz) in stale {
@@ -1377,12 +1399,72 @@ pub fn stream_far_surface(
             break;
         }
         let old = map.loaded.get(&(level, tx, tz)).and_then(|t| t.entity);
-        let loaded = build(&mut commands, &mut meshes, &mut pyramid, level, tx, tz);
-        if let Some(e) = old {
-            commands.entity(e).despawn();
-        }
-        map.loaded.insert((level, tx, tz), loaded);
+        let (stacks, culled, ring_edges, cull_chunk) = derive(&mut pyramid, level, tx, tz);
+        spawn_tile(
+            &mut tasks, level, tx, tz, stacks, culled, ring_edges, cull_chunk, old,
+        );
         budget -= 1;
+    }
+}
+
+/// Drain finished far-tile mesh tasks: despawn the seam tile's old entity (if a
+/// rebuild), insert the new `Mesh`, spawn the already-positioned tile entity, and
+/// record the `LoadedFarTile` bookkeeping (journal/0083). A tile appears — or a
+/// seam refresh swaps in — a frame or more after its task was spawned; that lag
+/// is the only observable change, and the tile mesh is byte-identical to the
+/// synchronous path.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "bevy system: each parameter is a distinct resource"
+)]
+pub fn drain_far_meshes(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    material: Res<FullbrightMaterialHandle>,
+    terrain_mat: Res<TerrainMaterialHandle>,
+    fullbright: Res<Fullbright>,
+    scale: Res<CurrentScale>,
+    origin: Res<FloatingOrigin>,
+    player: Res<Player>,
+    mut map: ResMut<FarSurfaceMap>,
+    mut tasks: ResMut<FarMeshTasks>,
+) {
+    let base = scale.scale;
+    // One shared camera-forward push direction for every tile this frame — the
+    // uniform-per-level push that keeps same-level seams closed (corrections #11).
+    let forward = player.view_dir();
+    for out in crate::meshtasks::drain_finished(&mut tasks.0) {
+        if let Some(old) = out.old_entity {
+            commands.entity(old).despawn();
+        }
+        let entity = out.mesh.map(|bevy_mesh| {
+            let transform = Transform::from_translation(far_tile_translation(
+                base, out.level, out.tx, out.tz, out.y_ref, forward, origin.0,
+            ));
+            let mut ent = commands.spawn((
+                Mesh3d(meshes.add(bevy_mesh)),
+                FarTileEntity {
+                    level: out.level,
+                    tx: out.tx,
+                    tz: out.tz,
+                    y_ref_m: out.y_ref,
+                },
+                transform,
+            ));
+            if fullbright.0 {
+                ent.insert(MeshMaterial3d(material.0.clone()));
+            } else {
+                ent.insert(MeshMaterial3d(terrain_mat.0.clone()));
+            }
+            ent.id()
+        });
+        map.loaded.insert(
+            (out.level, out.tx, out.tz),
+            LoadedFarTile {
+                entity,
+                cull_chunk: out.cull_chunk,
+            },
+        );
     }
 }
 
