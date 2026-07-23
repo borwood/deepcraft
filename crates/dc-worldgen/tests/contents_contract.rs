@@ -215,9 +215,10 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 /// - **the block hashes did NOT move, either medium world.** That is the
 ///   within-class invariance the whole change rests on: every member of a
 ///   vanilla class shares a `block_twin`, so dithering *within* a class cannot
-///   change `classify` of the contents. Asserted, not hoped —
-///   `collapse::tests::surface_member_is_dithered_not_chunk_quantized` checks
-///   every filled surface column's block against its chosen member's twin.
+///   change `classify` of the contents. Asserted, not hoped — by
+///   `collapse::tests::surface_voxel_routes_through_columnfill_per_voxel`
+///   (renamed from `surface_member_is_dithered_not_chunk_quantized` in
+///   journal/0074, when the surface voxel moved onto `ColumnFill`).
 /// - **the material hashes moved** — the sidecar is where the member lives, and
 ///   most of the world's surface columns now resolve a different one from their
 ///   chunk's centre pick.
