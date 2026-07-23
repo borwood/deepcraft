@@ -121,6 +121,15 @@ data — while keeping logic in the fast, validated medium.
 Pass / Material / `ctx` traits); keep the engine private. Standard practice
 (Unity/Unreal expose modding SDKs over closed engines).
 
+**Everything is built on the SDK route mods take** (user, 2026-07-23). The default
+passes/materials are *the first plugins* — first-party content ships **through the
+same SDK** (native backend, since it is trusted), not a privileged internal path.
+Consequence: the SDK surface must be complete enough to carry the **entire default
+content set**, not just toy third-party mods — a higher bar, but **self-validating**
+(if the whole game is built on the SDK, the SDK is proven complete by
+construction; dogfooding in its strongest form). Not built now, but every SDK-shape
+decision is measured against *"can it carry the defaults."*
+
 **One authoring shape, two execution backends — a loader choice, not an
 architecture fork:**
 - **trusted / signed + first-party → NATIVE** (`abi_stable` over a stable

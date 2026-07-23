@@ -1446,6 +1446,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   atom · retire legacy · then categories-registrable. Sibling forks
   (`block_uses_contents` trust gate; the render-edit-writes-materials question)
   parked downstream of the atom. Journal 0081 written (design pass).
+  **COUPLED (user, 2026-07-23, from the weathering-spike shaping):** the
+  **deep-cell material-inventory** question is the same question as Crux 1's
+  storage atom, one tier up. Deeptime stores bedrock/regolith as *heights* (R, H)
+  + a strata record, NOT a material multiset — so a behavior that "consumes
+  bedrock, produces regolith" has no inventory to operate on. The weathering spike
+  works around it with a thin ctx-adapter over heights (deliberately), but the real
+  fix — a material inventory for the deep cell — **needs solving soon** and rides
+  with the material↔block collapse. Filed so it is not the spike's silent debt.
 
 - **The ratified sequence after the migration (user, 2026-07-22: "both
   revisions greenlit")**: **1. The perf window** — one dc-client cluster:
