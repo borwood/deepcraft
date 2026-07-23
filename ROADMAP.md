@@ -3465,7 +3465,61 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-22 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-22 EVENING close (supersedes every earlier block)
+
+**Read first: `docs/spines.md`** (item 0 in CLAUDE.md) and, for material/
+identity work, **`materials.md`'s two new DECIDED entries** (one namespace;
+transformation axes). This was the densest day in the journal: **nine entries,
+0068–0077**, two corrections (#38 the Small control has a record; #39 the
+integrator's own bias-sign error, majority-amplifying not toward-50/50).
+
+### Shipped 2026-07-22 (evening arc)
+The **threshold-quantization migration, complete**: the S-4 square is now
+*inexpressible* — `dc_core::coarse::CoarseField<T>` (journal/0075) forbids the
+raw per-cell read at compile time, extracted from two shape-teachers (A1
+share-blend 0072, B1 membership dither 0073). Two **marquee violations dead**:
+the A-7 charcoal carve-out became a general thickness rule (0068, walked and
+ratified 0071), and the **S-3 surface-branch violation** (0074) — the near
+surface now routes through `ColumnFill` like every voxel; killing it bought
+**−10.5 % collapse perf** and fixed a latent off-by-one. **FF2b-minimal**
+(0070): the far field went volumetric, spines § 3 row 1 **consumed** (first
+departure from the index). **The octree substrate** named and its node contract
+v0.1 ratified (0069). The **erosion-budget dev flag** (0076) makes the
+amplitude call walkable. The **entry-species probe** (audit) proved substance
+≈proxy (≤12 %) but **form is the signal (1.8–4.8×)**.
+
+### First things next session (both user-ratified, ready)
+1. **The amplitude walk** — the enabling flag shipped; drive the same-seed pair
+   `--erosion-budget 3` and `--erosion-budget 10`, LIT pass (shape question),
+   station-driven, held for the user's eye. This answers ROADMAP's oldest open
+   NEEDS-RATIFICATION (erodibility amplitude, item 2).
+2. **The block↔material collapse, first slice** (DECIDED 0077 / materials.md) —
+   kill `classify`'s fifteen-name match + `_ => Stone` arm; dominant material
+   wears its own identity; byte-identical where faces exist today. Then the
+   Block-token consumer migration as a long-tail arc.
+
+### Carve-out to track (spines § 4 #1)
+B1's class draw uses the **coherent** source, not white noise (far-mesh cost);
+its bias is majority-amplifying (#39) and **compounds** the user's cake
+observation (minority phases guillotine at cell perimeters). Heir: the
+`CoarseField` far-`summarize` register / a CDF-corrected source. Also owed
+there: check whether the journal/0058 **member dither** guillotines identically
+(unexamined).
+
+### The rest, sequenced
+- **Perf window** (promoted over the seam batch, which runs parallel): profiling
+  slice (Tracy + vertical-drop baseline → ranked killer list; prime suspect
+  `streaming.rs:42` sync main-thread gen), async-offload, then albedo-at-range
+  (with the ranges-as-player-config rider). Then **the dressing arc**.
+- Remaining `CoarseField` migration (A2–A4, B3, the conservation-pinned
+  soil-depth mosaic behind an S-7 ledger proof); FF2b persistence + dirty-rail.
+
+*(The morning close block that stood here — the spines/seams/five-falsified-
+claims block — is fully consumed and preserved below the line as history.)*
+
+---
+
+## NEXT SESSION — written at the 2026-07-22 MORNING close (SUPERSEDED by the evening close above)
 
 **Read first: `docs/spines.md`** — new today, and now item 0 in CLAUDE.md.
 Eight shapes, six anti-shapes, and § 3, the index of **machinery that exists
