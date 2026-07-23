@@ -506,3 +506,21 @@ The lesson to carry: the test of the deep-time API is not "can a mod add a
 block" but **"can a mod inject a fact into prehistory and have the whole
 downstream simulation take it seriously."** That is the acceptance
 criterion when the API is eventually stabilized.
+
+## The perf/debug overlay is player-facing (ratified direction 2026-07-23)
+
+The runtime-observability slice (ROADMAP § perf window) builds `tracing` spans
+on the hot paths and an aggregating layer that dumps a ranked self-time table to
+`docs/audits/`. That file dump is the **first** consumer, for our own use — but
+the ratified final shape is an **in-game perf/debug overlay with a profiling
+toggle** (user: *"final shape for game includes profiling with a switch in-game
+on a perf/debug overlay; players like that kind of thing"*). Same spirit as the
+ranges-as-player-config doctrine (S-1 extended to the render/debug tier): a dev
+surface players get to see.
+
+The architecture consequence, load-bearing for the slice: the span aggregation
+must be a **queryable in-memory resource** (the authority), with the
+`docs/audits/` text dump as one consumer and the overlay widget as a second —
+never a file-only dumper that the overlay would have to re-instrument. "A summary
+derived from the authority, never beside it" (S-3), applied to timing data. The
+overlay is the named heir; do not build it now, but do not foreclose it.
