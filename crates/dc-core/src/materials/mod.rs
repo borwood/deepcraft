@@ -57,7 +57,10 @@ enum MatRepr {
     M14, M15, M16, M17, M18, M19, M20, M21, M22, M23, M24, M25,
 }
 
-const _: () = assert!(MATERIAL_COUNT == 26, "MatRepr variant count must equal MATERIAL_COUNT");
+const _: () = assert!(
+    MATERIAL_COUNT == 26,
+    "MatRepr variant count must equal MATERIAL_COUNT"
+);
 
 /// Identifier of a granular material in the registry. Byte-sized: a material id
 /// appears up to 8 times per voxel, so entry compactness matters more than
@@ -136,7 +139,9 @@ impl MaterialId {
             // SAFETY: `MatRepr` is `#[repr(u8)]` with contiguous variants
             // `0..MATERIAL_COUNT`, and `raw` is checked in range, so it is a
             // valid `MatRepr` bit pattern. Same size (both one byte).
-            Some(MaterialId(unsafe { core::mem::transmute::<u8, MatRepr>(raw) }))
+            Some(MaterialId(unsafe {
+                core::mem::transmute::<u8, MatRepr>(raw)
+            }))
         } else {
             None
         }

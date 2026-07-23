@@ -991,8 +991,8 @@ mod tests {
         // contents-bearing.
         let block_at = |_x: i64, _y: i64, z: i64| -> Block {
             match z.rem_euclid(3) {
-                0 => Block::Air,       // not solid: resolved on gather, cover 0
-                1 => Block::Stone,     // full solid, no contents: resolved, cover 1
+                0 => Block::Air,   // not solid: resolved on gather, cover 0
+                1 => Block::Stone, // full solid, no contents: resolved, cover 1
                 _ => Block::Material(MaterialId::SANDSTONE), // deferred: needs the neighbour's contents
             }
         };

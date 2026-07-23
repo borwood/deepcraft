@@ -411,11 +411,17 @@ impl<'a> WorldGenerator<'a> {
         // slicing the material path uses, so the two cannot disagree about where
         // the record is or what is in it.
         let fill = ColumnFill::build(&col.strata, self.voxel_m);
-        // Per-event block, for spans a single event covers. Provably constant
-        // across the chunk footprint: the per-voxel-column member dither
-        // re-selects only inside the event's own content class, and every member
-        // of a class shares a block twin.
-        let event_blocks = self.event_blocks(&col.strata);
+        let has_record = !col.strata.events.is_empty();
+        // A buried single-event voxel's block is `classify` of the very contents
+        // [`Self::material_ids`] interns for it — the SAME per-voxel-column
+        // dithered host member, keyed and memoized identically. Before the
+        // block↔material collapse (journal/0087) every member of a content class
+        // shared a `block_twin`, so the event's recorded member sufficed and this
+        // was a flat per-event table; now the block IS the member's material, so
+        // it MUST track the dither or `block == classify(contents)` breaks
+        // (contents_contract). The memo is `(event, host) -> Block`, the block
+        // twin of `material_ids`' `(event, host) -> MixtureId` memo.
+        let mut block_memo: HashMap<(usize, GeoMemberIdx), Block> = HashMap::new();
         let mut chunk = Chunk::new();
         let base_y = i64::from(pos.y) * 32;
         for z in 0..32usize {
@@ -429,7 +435,7 @@ impl<'a> WorldGenerator<'a> {
                         Block::Air
                     } else if vy == h {
                         col.surface[i]
-                    } else if event_blocks.is_empty() {
+                    } else if !has_record {
                         // No deposition record (ocean, wilds): legacy soil.
                         if vy >= h - i64::from(col.soil) {
                             Block::Dirt
@@ -438,7 +444,7 @@ impl<'a> WorldGenerator<'a> {
                         }
                     } else {
                         // The record fills the column; below it is unrecorded
-                        // basement = stone. A mixed voxel's block is
+                        // basement = stone. Every recorded voxel's block is
                         // `classify(contents)` of the very contents the material
                         // path builds — one opinion per voxel, journal/0052.
                         //
@@ -451,7 +457,14 @@ impl<'a> WorldGenerator<'a> {
                         let depth = (h - vy) as u32;
                         match fill.plan(depth + 1) {
                             None => Block::Stone,
-                            Some(Plan::Single(k)) => event_blocks[*k],
+                            Some(Plan::Single(k)) => {
+                                let event = col.strata.events[*k];
+                                let host =
+                                    dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                                *block_memo.entry((*k, host)).or_insert_with(|| {
+                                    classify(&contents_for_event(&self.geology, host, &event))
+                                })
+                            }
                             Some(Plan::Mixed(w)) => {
                                 classify(&self.mixed_at(&col.strata, w, vx, vy, vz, 8))
                             }
@@ -604,17 +617,6 @@ impl<'a> WorldGenerator<'a> {
             }
         }
         dense
-    }
-
-    /// The block each recorded event summarizes to, indexed by event. Empty for
-    /// a column with no record (ocean, wilds), which is what both fill paths
-    /// test to fall back to the legacy soil band.
-    fn event_blocks(&self, strata: &StrataRec) -> Vec<Block> {
-        strata
-            .events
-            .iter()
-            .map(|e| classify(&contents_for_event(&self.geology, e.member, e)))
-            .collect()
     }
 
     /// Contents of one **mixed** voxel: the addressed stochastic allocation of
@@ -1948,12 +1950,16 @@ mod tests {
             let Block::Material(m) = b else { return None };
             let r = m.raw();
             let is = |x: MaterialId| x.raw() == r;
-            if is(MaterialId::MUDSTONE) || is(MaterialId::SILTSTONE) || is(MaterialId::SILT)
+            if is(MaterialId::MUDSTONE)
+                || is(MaterialId::SILTSTONE)
+                || is(MaterialId::SILT)
                 || is(MaterialId::CLAY)
             {
                 Some(0) // fine clastic
-            } else if is(MaterialId::SANDSTONE) || is(MaterialId::CONGLOMERATE)
-                || is(MaterialId::SAND) || is(MaterialId::GRAVEL)
+            } else if is(MaterialId::SANDSTONE)
+                || is(MaterialId::CONGLOMERATE)
+                || is(MaterialId::SAND)
+                || is(MaterialId::GRAVEL)
             {
                 Some(1) // coarse clastic
             } else if is(MaterialId::GRANITE) || is(MaterialId::DIORITE) {
@@ -2284,12 +2290,16 @@ mod tests {
             let Block::Material(m) = b else { return None };
             let r = m.raw();
             let is = |x: MaterialId| x.raw() == r;
-            if is(MaterialId::MUDSTONE) || is(MaterialId::SILTSTONE) || is(MaterialId::SILT)
+            if is(MaterialId::MUDSTONE)
+                || is(MaterialId::SILTSTONE)
+                || is(MaterialId::SILT)
                 || is(MaterialId::CLAY)
             {
                 Some(0)
-            } else if is(MaterialId::SANDSTONE) || is(MaterialId::CONGLOMERATE)
-                || is(MaterialId::SAND) || is(MaterialId::GRAVEL)
+            } else if is(MaterialId::SANDSTONE)
+                || is(MaterialId::CONGLOMERATE)
+                || is(MaterialId::SAND)
+                || is(MaterialId::GRAVEL)
             {
                 Some(1)
             } else if is(MaterialId::GRANITE) || is(MaterialId::DIORITE) {
