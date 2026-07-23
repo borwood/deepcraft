@@ -43,13 +43,17 @@ ships (the pass graph and `Providers`), not the invention of an interpreter.
 - the **pass-runner** — runs passes in declared order at declared cadence within
   declared epochs; topo-validated (rejects cycles, conflicting writers, missing
   producers).
-- **native field-solver passes** — tectonics (isostasy), hydrology (drainage),
-  climate, thermal: global numerical methods that are *not* per-cell material
-  selections. They stay native and **expose their outputs as world/cell API
-  state** ("the tectonics pass plants its API on the cell"), which content passes
-  then read. This is the boundary that keeps the whole model from becoming a
-  mess: not everything is a data-shaped per-cell pass, and pretending so is the
-  failure mode.
+- **field-solver *primitives*** — the native numerical kernels (a bounded
+  relaxation, an advection step, flow accumulation) that a *field pass* calls.
+  These are core the way a shader language's `texture()` is core; the passes that
+  orchestrate them (tectonics, hydrology, climate, thermal) are **content**, not
+  core (2026-07-23 refinement below — the earlier "native field-solvers are core"
+  framing conflated *compute shape* with *trust tier*). A field pass **exposes its
+  outputs as world/cell API state** ("the tectonics pass plants its API on the
+  cell"), which other passes read. What stays irreducibly core is the *kernel*,
+  and the discipline it protects: not everything is a per-cell data-shaped pass,
+  and pretending so is the failure mode.
+- **the event ledger** — provenance of what each pass did to a cell.
 - the **world API** (world settings, epoch configuration).
 
 **Content layer** (authored against the SDK; first-party *or* third-party):
@@ -86,9 +90,14 @@ A pass **declares itself**: `{reads, writes}` over the cell/world/material API,
 its **cadence** (runs per unit of deep-time), its **epoch**, and a `run(ctx)`
 body. The runner topo-sorts by declared reads/writes and rejects conflicts.
 
-Two kinds, one interface:
-- **native field-solvers** (core) — arbitrary computation, expose state.
-- **declarative material-transform passes** (content) — select + transform.
+Two **shapes**, one interface — **both are content** (2026-07-23 refinement):
+- **cellular passes** — per-cell select-and-transform ("select materials
+  matching P in context C, apply T at rate R"). The AI-authorable sweet spot
+  (combustion, weathering, diagenesis, decay, cementation).
+- **field passes** — declare reads/writes over fields; the body is arbitrary
+  computation calling **core solver primitives**. Tectonics/hydrology/climate/
+  thermal. Native-backend and first-party — because they are trusted and hot,
+  *not* because they are core.
 
 **The `ctx` is a capability, not a god-object.** A pass can only touch the state
 it *declared* — the `ctx` it is handed exposes nothing else, enforced by the
@@ -96,6 +105,49 @@ compiler. This is the load-bearing discipline: it is what keeps "it's all native
 Rust, you can add arbitrary functions" from rotting back into bespoke passes that
 reach into global state and recreate the carve-outs the whole model exists to
 kill.
+
+## Refinement (2026-07-23): two shapes, two runtimes, one declaration
+
+Ratified in design conversation 2026-07-23. Sharpens the core/content boundary
+above; where the two disagree, this governs.
+
+**The cut is machine-vs-content, not compute-shape.** Core is only: **cell
+storage + cell/space API · the pass-runner · the event ledger · the field-solver
+primitives · the data-model APIs (materials / items-recipes / blueprints /
+bodies) · the stable SDK surface.** *Every pass is content* — including tectonics
+and erosion. A field pass is thin orchestration over core kernels; it runs native
+because it is trusted and hot, not because it is part of the core. (This retires
+the earlier "native field-solvers are core" framing — that sentence conflated
+compute shape with trust tier.)
+
+**Passes come in two shapes** (§ Passes): **cellular** (per-cell
+select-and-transform) and **field** (global solve over the grid). For the *cell
+world* there is no third.
+
+**Capability, not core, gates the tiers.** What a tier may author is a capability
+set, matching "`ctx` is a capability, not a god-object": the untrusted tier gets
+material declarations + cellular passes + data; registering a new field pass (a
+global solver) is a trusted-tier capability. Same authoring shape, different
+granted powers.
+
+**Deeptime compiles; the present executes.** The two clocks are two *runtimes
+over one set of declarations*: **deeptime is an ahead-of-time compiler** for the
+world (seed + config + declarations → compiled cell state + ledger; gen-time is
+free), and **the present runtime is the live VM** that loads it and re-invokes
+the *same* declarations sparsely and event-driven (runtime is sacred). **One
+declaration, two executors:** `wood`'s `combust→` runs as a bulk fire-record
+transform over chapters in deeptime and as a live per-voxel event in the present
+— the declaration is the single authority (S-3); the runtimes are two
+interpreters of it (materials.md DECIDED 2026-07-22).
+
+**Deferred, named so it is not foreclosed:** actors/agents (DF-style civ + a
+historical ledger, and the evolutionary graduation of body declarations to
+agents) introduce a **second substrate** — an entity/actor table beside the cell
+world — and stepping it is a **third pass shape** (discrete-actor stepping,
+neither cellular nor field). Not built; a *cellular shim spawner* covers mobs
+today and grows into the actor sim without changing the content slot. Provenance
+and observation-collapse ("where is the duke?") are the same overlay shape —
+**spines S-9**.
 
 ## The two clocks (runtime is sacred)
 
@@ -116,6 +168,11 @@ embryo. This dissolves the "recompile to change a rate?" objection — no, that 
 data — while keeping logic in the fast, validated medium.
 
 ## The mod SDK boundary + the tiered backend
+
+> **Status (2026-07-23 refinement):** the trusted/untrusted **backend** split
+> below is **deferred product infrastructure**, not a live architectural fork.
+> The only part that binds design decisions now is **the crossing constraint**
+> (plain data + opaque handles across the seam) — keep that, defer the rest.
 
 **Modding never requires open-sourcing the engine.** Publish an **SDK** (the
 Pass / Material / `ctx` traits); keep the engine private. Standard practice

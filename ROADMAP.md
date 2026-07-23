@@ -1474,6 +1474,23 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   reformulated onto the Pass interface, byte-identical; (3) the ABI/WASM boundary
   research spike (`abi_stable` vs `repr(C)` vs `wasmtime`) — locks the SDK shape.
 
+- **THE MATERIAL-BEHAVIOR SUBSTRATE — design pass RATIFIED 2026-07-23
+  (`docs/design/material-behavior.md`, journal/0086).** The spec for the
+  north-star content layer and the Crux 1 build. The deep-cell inventory IS the
+  fill contract one tier up (a stack of spans indexed by depth; strata record =
+  temporal authority, mutable working-inventory = current, chapter-commit = the
+  compiler step). **Forms** are a closed machine set (structure/loose/pore-fill/
+  fluid; void = the complement) with fractional occupancy orthogonal; **edges**
+  (all form→form moves) are machine-complete and ungated — they ARE the process
+  catalog; **agents** are content rate-terms folded on an edge (S16); **passes**
+  come in two shapes — **cellular** (run edges, local) and **field** (compute a
+  field, plant it) — with the reciprocal loop (S-4) carried by the chapter loop
+  and dual processes split into field+cellular halves. Ownership: forms+edges =
+  machine, materials+agents+passes = content; forms are NOT SDK-registrable.
+  **Two agents dispatched 2026-07-23:** (A1) present-tier `Block={Air,Material}`
+  + solidity→occupancy drain, byte-identical; (A2) deep-cell working-inventory
+  span-list + chapter-commit spike (the keystone, de-risked before build).
+
 - **The block↔material collapse — DECIDED, one namespace (user, 2026-07-22
   late session; materials.md two new DECIDED entries)**. Block collapses
   into material + Air; no twin field is ever built (the block_twin slice as
@@ -2460,17 +2477,22 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **Far-field LOD reconstructs differently pre-visit vs post-visit** (user field
-  report, 2026-07-23; texture/LOD/octree). The octree summary LOD for an area
-  looks different *before* you fly over it than the LOD that appears *behind* you
-  after you leave — "the material distribution implied by the texture is different
-  in the fresh LOD vs the LOD that appears behind me." A far-field *reconstruction
-  discrepancy*: the synthesized far node (never-visited) and the reduced far node
-  (built from chunks you loaded) disagree on material distribution. Suspects: the
-  two-sided derivation (reduce-vs-synthesize, journal/0070 measured a +0.938 coarse
-  voxel bias) and the far span's `classify` of reduced-vs-synth mixtures. User will
-  share more next session; **diagnose before touching.** Couples to the
-  texture-steps-toward-albedo-at-range thread.
+- **Far-field LOD reconstructs a coarse box's MATERIAL IDENTITY differently on
+  cold-gen vs warm-regen** (user field report, 2026-07-23; **mechanism sharpened
+  2026-07-23**). The coarse box for an area shows one material on its *first*
+  (cold) generation and a *different* one after the area has been resident and its
+  LOD is regenerated: the user watched mudstone coarse boxes gain **granite**
+  patches on the second gen — **the sub-surface layer falls into the sample on
+  warm-reduce but not on cold-synthesize.** So the two producers of the *same*
+  coarse box pick a different winning material: **cold-synthesize (surface-sampled)
+  vs warm-reduce (`dominant`/`classify` over resident voxels, subsurface
+  included)** disagree — the reduce-vs-synthesize discrepancy (journal/0070
+  measured a +0.938 coarse voxel bias). This is a **material-identity**
+  disagreement, not a resolution/lighting one: it lives in **block-is-material /
+  `classify` / `MixtureDownsampleRule`** and belongs with the **far-field span
+  migration under Crux 1**. It is a live violation of **spines S-9's consistency
+  law** (a collapse/reduction must agree with the base it refines). Couples to the
+  albedo-at-range thread; **diagnose before touching.**
 
 - **Perf: throughput ceiling at terminal velocity** (user field report,
   2026-07-23, on the 0083/0084 offload). Noticeably improved — the drop reaches

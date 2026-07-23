@@ -3,6 +3,11 @@
 Status: design discussion captured 2026-07-18; storage feasibility is spike S8.
 Chunk format v1 (S3) reserves versioned sidecar sections for this model.
 
+> **Companion:** material *behavior* (forms, the transition graph, agents, and the
+> cellular/field pass shapes) is specified in
+> [`material-behavior.md`](material-behavior.md) (ratified 2026-07-23). This doc
+> owns material *definitions*; that one owns the substrate they behave over.
+
 ## The voxel as a container of eighths
 
 A voxel is 8 volume-eighths. Each eighth holds exactly one material id (or is

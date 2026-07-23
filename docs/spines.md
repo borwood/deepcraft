@@ -4,7 +4,9 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: 2026-07-22 (first run).*
+*Last `spine-audit` sweep: 2026-07-23 (S-9 verification: `column_summary`
+confirmed dormant and added to § 3; far-field cold/warm split confirmed real;
+`weather_behavior.rs` confirmed wired and wearing the north-star shape).*
 
 ## What this file is, and how it differs from the others
 
@@ -252,6 +254,44 @@ Do not build two systems and a coupling layer; build one quantity whose
   user said *"materials are substance and not form"* (2026-07-22)
 - terrain: committed / fluid (S-2)
 
+## S-9. Derivable base + sparse committed facts + fallback query — up to observation-collapse
+
+Generalises S-1 and S-2 into one shape and names its hardest form. **The base of
+an answer is *derivable*; a sparse overlay carries the *facts* a derivation
+cannot predict; a query returns a fact if present, else derives; every answer
+carries a resolved/resolution flag.** Two regimes on one axis:
+
+- **deterministic-derive** (the easy degenerate case) — the base is a pure
+  function; re-derive gives one answer. Facts are edits appended on top.
+  - provenance: a voxel's history re-derives from the deeptime compile; only
+    *edited* voxels append facts (DECIDED 2026-07-23). This **is** ROADMAP
+    Sequenced item (d), and the fact-overlay **is the save layer** — S-2's
+    edited-chunk pinning is the same overlay under another name.
+  - S3 skylight: `column_summary`'s `fully_resolved`/`sky_exposed`
+    (`dc-core/src/column.rs`) — base derived from resident data, unknown volumes
+    poison the resolved flag. **Built and tested, dormant** (no lighting consumer;
+    sim-light unbuilt) — **confirmed and moved to § 3 by the 2026-07-23 sweep**
+    (only caller is the `--bench-storage` timing harness).
+- **observation-collapse** (the general, unsolved case) — the base is an
+  *underdetermined proposition* (many consistent answers); a **read triggers a
+  write**: the query samples one answer and must *pin* it or the next query
+  contradicts it. "Where is the duke?"; "is the northern province on fire?" The
+  sample draws from a **seed owned by the query context** (entropy doctrine — no
+  wall clock), so replay/multiplayer collapse identically. The deferred frontier
+  is the **consistency web**: pins are not independent (the duke's location
+  constrains who rules the province) — lazy-CSP / DF-generates-history-on-zoom.
+
+**Rule:** *store only what the derivation cannot predict* (S-2), and **a collapse
+must not contradict the base it refines or any prior pin** (the consistency law).
+A committed-fact or collapse system that does not route through this shape is
+reinventing it — the loud check.
+
+- **live violation (the law's motivating counterexample):** the far-field LOD
+  reconstructs a coarse box's *material identity* differently on cold-synthesize
+  vs warm-reduce (ROADMAP Observed, 2026-07-23) — two derivations of the same base
+  **disagree**, exactly what the consistency law forbids. A violation to fix
+  (under Crux 1's far-span migration), not an instance done right.
+
 ---
 
 # 2. The anti-shapes
@@ -333,6 +373,7 @@ consumed it and when.
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
+| `column_summary` / `open_air_below` / `ColumnSummaries` — the S3 skylight query (S-9 deterministic-derive), built + 6 tests green | `dc-core/src/column.rs` | **no production caller** — only the `--bench-storage` timing harness (`dc-client/src/bench_storage.rs`); `docs/API.md` lists a `world.column_summary` query but **no dc-api handler exists** for it (2026-07-23 sweep) | **sim-light / skylight** — the "is this column under open sky" query; the lighting/sim-light consumer is unbuilt |
 
 **Departed (the good event):**
 

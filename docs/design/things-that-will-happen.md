@@ -123,3 +123,6 @@ list and not a roadmap — some of these are far off, and that is fine.
 - You set a forest fire in the running game and the deep-time record of some
   ancient fire agree about what burning does to wood — because there is one
   burned-rule, written on the material, and both clocks read it.
+- You loot an iron sword from a ruin and the world knows who forged it: a smith
+  in a kingdom that rose, warred, and fell across the deep past — from ore in a
+  vein the mountains put there before there was anyone to mine it.
