@@ -993,7 +993,12 @@ pub fn tick_authority(
     mut dirty: ResMut<DirtyChunks>,
     mut demo: ResMut<PhysicsDemo>,
 ) {
-    let receipts = authority.advance(f64::from(time.delta_secs()));
+    // Perf window (journal/0080): the authority/host fixed-cadence tick driven
+    // from the client (world.tick + receipt routing). Zero cost without `perf`.
+    let receipts = {
+        let _perf = crate::perf_span!("host.tick");
+        authority.advance(f64::from(time.delta_secs()))
+    };
     if receipts.is_empty() {
         return;
     }
@@ -1059,9 +1064,14 @@ impl<'a> NeighborFill<'a> {
         }
         let cp = ChunkPos::from_world_voxel(x, y, z);
         let mut cache = self.contents.borrow_mut();
-        let grid = cache
-            .entry(cp)
-            .or_insert_with(|| self.authority.borrow().chunk_contents(cp));
+        let grid = cache.entry(cp).or_insert_with(|| {
+            // Perf window (journal/0080): the lazily-generated neighbour contents
+            // resolution — the hidden cost of border culling against the
+            // authority. Bounded to ≤6 per chunk build (memoized per chunk); it
+            // nests under `mesh_chunk`, so it is charged to itself, not the mesh.
+            let _perf = crate::perf_span!("neighbor_fill.gen");
+            self.authority.borrow().chunk_contents(cp)
+        });
         let (lx, ly, lz) = local_voxel(x, y, z);
         let c = grid.as_ref().map(|g| g.get(lx, ly, lz));
         crate::meshing::cover_frac(block, c.as_ref())

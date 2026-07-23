@@ -184,6 +184,7 @@ pub fn run(
     edges: bool,
     gen_options: authority::GenOptions,
     horizon: farmesh::HorizonConfig,
+    perf_drop: Option<f64>,
 ) -> AppExit {
     // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
     // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
@@ -202,94 +203,116 @@ pub fn run(
     // near-field system to reach a wrong world through.
     let far_terrain = farmesh::FarFieldTerrain::new(BENCH_SEED);
 
-    let mut app = App::new();
-    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+    let default_plugins = DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: boot_title,
             ..default()
         }),
         ..default()
-    }))
-    .add_plugins(PostStagePlugin { pack_selector })
-    .add_plugins(EdgePassPlugin { enabled: edges })
-    .add_plugins(TerrainMaterialPlugin)
-    .add_plugins(GpuProbePlugin)
-    .add_plugins(MemProbePlugin)
-    // A lost GPU device must state itself once and shut the game down, never
-    // cascade into a cluster of `unwrap`/`PoisonError` panics that report the
-    // wrong thing and still exit 0 (journal/0054).
-    .add_plugins(devicelost::DeviceLostPlugin)
-    .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
-    .insert_resource(Fullbright(fullbright))
-    .insert_resource(Edges(edges))
-    // The far field's ring geometry (`--horizon`, journal/0042). A resource, not
-    // a const, so the horizon is a launch decision; the default reproduces the
-    // shipped 1.2 km rings exactly.
-    .insert_resource(horizon)
-    .insert_resource(far_terrain)
-    .insert_resource(CurrentScale::new(boot_voxels))
-    .insert_resource(FloatingOrigin(spawn))
-    .insert_resource(Player::new(spawn))
-    .insert_resource(ChunkMap::default())
-    .insert_resource(farmesh::FarChunkMap::default())
-    .insert_resource(farmesh::FarSurfaceMap::default())
-    .insert_resource(crate::farpyramid::FarPyramid::default())
-    // The authoritative world for edits (client-through-dc-api milestone):
-    // the worldgen authority built above, serving the streamed terrain.
-    .insert_resource(authority)
-    // The gen-time options a key-2 scale switch rebuilds the world with
-    // (deep-config plumbing, journal/0039).
-    .insert_resource(gen_options)
-    .insert_resource(DirtyChunks::default())
-    .insert_resource(character::CharacterVisuals::default())
-    .insert_resource(edit::CrosshairTarget::default())
-    .add_systems(Startup, (setup, physdemo::setup, edit::setup_crosshair))
-    .add_systems(
-        Update,
-        (
-            // Front of the chain: the dev console eats keystrokes while open
-            // and resets the input resources, so the gameplay systems below see
-            // nothing while the player is typing. Nested so the outer tuple
-            // stays within Bevy's 20-element system-tuple limit; both levels are
-            // `.chain()`ed, so the whole gameplay block still runs in order
-            // after `console_input`.
-            console::console_input,
+    });
+    // Perf window (journal/0080): under `--features perf`, install the self-time
+    // aggregating layer into bevy's OWN subscriber via `LogPlugin::custom_layer`
+    // — never a second global subscriber (which would conflict with LogPlugin).
+    // `log_layer` also inserts the `PerfHandle` resource (the queryable
+    // authority the docs dump and the future overlay both read). No-op when off.
+    #[cfg(feature = "perf")]
+    let default_plugins = default_plugins.set(bevy::log::LogPlugin {
+        custom_layer: crate::perf::log_layer,
+        ..default()
+    });
+
+    let mut app = App::new();
+    app.add_plugins(default_plugins)
+        .add_plugins(PostStagePlugin { pack_selector })
+        .add_plugins(EdgePassPlugin { enabled: edges })
+        .add_plugins(TerrainMaterialPlugin)
+        .add_plugins(GpuProbePlugin)
+        .add_plugins(MemProbePlugin)
+        // A lost GPU device must state itself once and shut the game down, never
+        // cascade into a cluster of `unwrap`/`PoisonError` panics that report the
+        // wrong thing and still exit 0 (journal/0054).
+        .add_plugins(devicelost::DeviceLostPlugin)
+        .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
+        .insert_resource(Fullbright(fullbright))
+        .insert_resource(Edges(edges))
+        // The far field's ring geometry (`--horizon`, journal/0042). A resource, not
+        // a const, so the horizon is a launch decision; the default reproduces the
+        // shipped 1.2 km rings exactly.
+        .insert_resource(horizon)
+        .insert_resource(far_terrain)
+        .insert_resource(CurrentScale::new(boot_voxels))
+        .insert_resource(FloatingOrigin(spawn))
+        .insert_resource(Player::new(spawn))
+        .insert_resource(ChunkMap::default())
+        .insert_resource(farmesh::FarChunkMap::default())
+        .insert_resource(farmesh::FarSurfaceMap::default())
+        .insert_resource(crate::farpyramid::FarPyramid::default())
+        // The authoritative world for edits (client-through-dc-api milestone):
+        // the worldgen authority built above, serving the streamed terrain.
+        .insert_resource(authority)
+        // The gen-time options a key-2 scale switch rebuilds the world with
+        // (deep-config plumbing, journal/0039).
+        .insert_resource(gen_options)
+        .insert_resource(DirtyChunks::default())
+        .insert_resource(character::CharacterVisuals::default())
+        .insert_resource(edit::CrosshairTarget::default())
+        .add_systems(Startup, (setup, physdemo::setup, edit::setup_crosshair))
+        .add_systems(
+            Update,
             (
-                grab_mouse,
-                switch_scale,
-                player::update_player,
-                update_origin,
-                player::update_camera,
-                edit::update_target,
-                edit::apply_edits,
-                edit::draw_target,
-                authority::drain_bridge,
-                authority::tick_authority,
-                authority::remesh_dirty,
-                character::sync_characters,
-                physdemo::update,
-                position_chunks,
-                farmesh::position_far_chunks,
-                farmesh::position_far_tiles,
-                streaming::stream_chunks,
-                farmesh::stream_far_chunks,
-                farmesh::stream_far_surface,
-                update_title,
+                // Front of the chain: the dev console eats keystrokes while open
+                // and resets the input resources, so the gameplay systems below see
+                // nothing while the player is typing. Nested so the outer tuple
+                // stays within Bevy's 20-element system-tuple limit; both levels are
+                // `.chain()`ed, so the whole gameplay block still runs in order
+                // after `console_input`.
+                console::console_input,
+                (
+                    grab_mouse,
+                    switch_scale,
+                    player::update_player,
+                    update_origin,
+                    player::update_camera,
+                    edit::update_target,
+                    edit::apply_edits,
+                    edit::draw_target,
+                    authority::drain_bridge,
+                    authority::tick_authority,
+                    authority::remesh_dirty,
+                    character::sync_characters,
+                    physdemo::update,
+                    position_chunks,
+                    farmesh::position_far_chunks,
+                    farmesh::position_far_tiles,
+                    streaming::stream_chunks,
+                    farmesh::stream_far_chunks,
+                    farmesh::stream_far_surface,
+                    update_title,
+                )
+                    .chain(),
             )
-                .chain(),
-        )
-            .chain()
-            // Once the device is gone there is nothing to stream chunks or
-            // build meshes FOR, and every frame of it is another chance to
-            // generate downstream noise on top of the real cause. The app is
-            // already exiting; this just stops the gameplay chain first.
-            .run_if(devicelost::renderer_healthy),
-    );
+                .chain()
+                // Once the device is gone there is nothing to stream chunks or
+                // build meshes FOR, and every frame of it is another chance to
+                // generate downstream noise on top of the real cause. The app is
+                // already exiting; this just stops the gameplay chain first.
+                .run_if(devicelost::renderer_healthy),
+        );
     // The bridge always exists (its channel also carries the dev console's
     // submissions); the MCP server threads inside are what `mcp_options` gates.
     let (bridge, console_tx) = mcp::spawn_servers(mcp_options);
     app.insert_resource(bridge);
     app.add_plugins(ConsolePlugin { bridge: console_tx });
+    // Perf window (journal/0080): the deterministic vertical-drop capture. Only
+    // wired under `--features perf`; the `PerfHandle` it reads was inserted by
+    // `log_layer` during LogPlugin build above.
+    #[cfg(feature = "perf")]
+    if let Some(secs) = perf_drop {
+        app.insert_resource(crate::perf::PerfDrop { secs });
+        app.add_systems(Update, crate::perf::perf_drop_driver);
+    }
+    #[cfg(not(feature = "perf"))]
+    let _ = perf_drop;
     app.run()
 }
 

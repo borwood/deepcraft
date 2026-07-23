@@ -122,8 +122,14 @@ pub fn update(
     let vscale = scale.scale;
     let authority_cell = RefCell::new(&mut *authority);
     let solid = |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
-    demo.world
-        .advance(f64::from(time.delta_secs()), vscale.voxel_size_m(), &solid);
+    // Perf window (journal/0080): the collider-tile build + rigid-body step.
+    // Collider tiles are generated lazily inside `advance` via the `solid`
+    // closure (which can generate unstreamed chunks). Zero cost without `perf`.
+    {
+        let _perf = crate::perf_span!("physics.step");
+        demo.world
+            .advance(f64::from(time.delta_secs()), vscale.voxel_size_m(), &solid);
+    }
 
     // Sync render transforms from body poses (f64 world meters -> origin-
     // relative f32, like chunks and the camera).

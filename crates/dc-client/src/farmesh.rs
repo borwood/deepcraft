@@ -437,6 +437,9 @@ pub fn stream_far_chunks(
         let cscale = coarse_scale(base, level);
         // Churn instrument (journal/0051), same window as the near path.
         let build_start = std::time::Instant::now();
+        // Perf window (journal/0080): the legacy S1 volumetric far mesh (keys 3/4
+        // only; absent under the boot worldgen authority). Zero cost without perf.
+        let _perf = crate::perf_span!("far_chunk.build");
         let chunk = terrain.0.generate_chunk(cscale, pos);
         // Faces cull against same-level generator samples, so a ring is
         // seamless internally; ring-to-ring boundaries are the accepted seam.
@@ -1293,6 +1296,10 @@ pub fn stream_far_surface(
         // Churn instrument (journal/0051): the far tile is the object the
         // pooling doctrine names, so time its whole build.
         let build_start = std::time::Instant::now();
+        // Perf window (journal/0080): the per-frame far-field tile derive+mesh.
+        // Parent span; `far_tile.derive` and `far_tile.mesh` nest below it. Zero
+        // cost without `--features perf`.
+        let _perf = crate::perf_span!("far_tile.build");
         // Per-tile cache of reduced node grids: a tile's 34² columns touch at
         // most a 3×3 patch of node plan columns, and each grid is derived once.
         let stride = level_stride(level);
@@ -1311,11 +1318,15 @@ pub fn stream_far_surface(
                 })
                 .collect()
         };
-        let (stacks, culled) =
-            tile_column_stacks(base, level, tx, tz, viewer, hz, &sample, &mut known);
+        let (stacks, culled) = {
+            let _perf = crate::perf_span!("far_tile.derive");
+            tile_column_stacks(base, level, tx, tz, viewer, hz, &sample, &mut known)
+        };
         let ring_edges = ring_edges_of(level, tx, tz);
-        let (mesh_data, y_ref) =
-            build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges);
+        let (mesh_data, y_ref) = {
+            let _perf = crate::perf_span!("far_tile.mesh");
+            build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges)
+        };
         let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
         if mesh_data.is_empty() {
             churn::record(&churn::FAR_MESHES, &churn::FAR_NANOS, build_start);

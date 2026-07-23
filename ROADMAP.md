@@ -7,6 +7,36 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-23 — **The perf window opens — runtime span profiling, built to the
+  overlay heir** (journal/0080, docs/audits/2026-07-23-perf-baseline-vertical-
+  drop.md; spines § S-3 gains a compliance instance; background implementation
+  agent, worktree for the integrator; gates green — fmt/clippy/test all
+  `--release`, both clippy paths incl. `--features perf`, with `cargo clean -p
+  dc-client --release` before the test gate). The project measured gen-time
+  rigorously but had **zero** runtime span profiling — the walk-0071 vertical-drop
+  hitch could not be attributed to gen vs meshing vs tick. Now a `perf` cargo
+  feature on dc-client (OFF by default → **zero runtime cost** in normal play: the
+  `perf_span!` macro compiles to a zero-sized guard, no aggregating layer, no
+  `bevy/trace`) turns on `tracing` spans on the hot paths + bevy's own `trace`
+  spans + a self-time aggregating `tracing_subscriber::Layer` installed via
+  `LogPlugin::custom_layer`. **S-3 applied to timing data:** the aggregate
+  (`perf::PerfAggregate`, per-span exclusive self-time + call count) is the
+  authority, held as the `PerfHandle` resource; the `docs/audits/` ranked-table
+  dump is the first consumer and the ratified in-game perf/debug overlay is the
+  named heir that reads the SAME resource live (not built — clean seam). Spans:
+  `stream_chunks` → `chunk.gen`, `chunk.contents`, `far_pyramid.insert_l0`,
+  `mesh_chunk` → `neighbor_fill.gen` (the hidden lazily-generated-neighbour cost),
+  `to_bevy_mesh`; plus `host.tick`, `physics.step`, `far_tile.build` →
+  `far_tile.derive`/`far_tile.mesh`, `far_chunk.build`. A `--perf-drop <secs>`
+  capture mode scripts the drop deterministically (teleport −30 m/0.5 s, no
+  physics), resets the aggregate after warm-up, writes the ranked artifact, exits
+  `0`. **No headless crate touched; determinism untouched (observability only).**
+  Baseline **numbers PENDING** — a windowed GPU client could not run in the agent
+  environment; the artifact is a schema-complete stub the integrator fills by
+  running `--perf-drop 20`. **Zero cost off is verified** (default clippy clean,
+  all `enabled` items behind `#[cfg(feature = "perf")]`). Sequenced next:
+  async-offload (`stream_chunks` sync gen+mesh → `AsyncComputeTaskPool`).
+
 - 2026-07-23 — **`paleo_temperature` becomes a seam, and the collapse tier grows
   a provider socket** (journal/0078; background implementation agent, worktree
   for the integrator; gates green — fmt/clippy/test all `--release`, with
@@ -1294,9 +1324,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 - **The ratified sequence after the migration (user, 2026-07-22: "both
   revisions greenlit")**: **1. The perf window** — one dc-client cluster:
-  profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
-  killer list) · async-offload slice (chunk gen + far-mesh onto
-  AsyncComputeTaskPool; `streaming.rs:42` suspect) · ~~erosion-budget dev flag
+  ~~profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
+  killer list)~~ **LANDED 2026-07-23, journal/0080 (`perf` feature + self-time
+  aggregating layer + `--perf-drop` capture; baseline artifact stubbed pending an
+  integrator GPU run)** · **async-offload slice is now the sequenced NEXT** (chunk
+  gen + far-mesh onto AsyncComputeTaskPool; the synchronous `stream_chunks`
+  gen+mesh loop is the span-named suspect — `chunk.gen`/`chunk.contents`/
+  `neighbor_fill.gen`/`mesh_chunk` on the frame thread) · ~~erosion-budget dev flag
   (the walkable cranked world → the standing amplitude call)~~ **LANDED
   2026-07-22, journal/0076 (`--erosion-budget <mult>`)** · albedo-at-
   range once baseline numbers exist, carrying the ranges-as-player-config

@@ -58,6 +58,10 @@ pub fn stream_chunks(
     mut authority: ResMut<Authority>,
     mut far_pyramid: ResMut<FarPyramid>,
 ) {
+    // Perf window (journal/0080): the whole-system parent span. Its self-time is
+    // everything NOT inside a child phase below (unload sweep, want-set scan,
+    // sort, spawn bookkeeping). Zero cost without `--features perf`.
+    let _perf = crate::perf_span!("stream_chunks");
     let vscale = scale.scale;
     let chunk_m = vscale.voxels_to_meters(f64::from(CHUNK_SIZE));
     let center_of = |pos: ChunkPos| -> glam::DVec3 {
@@ -110,16 +114,26 @@ pub fn stream_chunks(
 
     for (_, pos) in missing.into_iter().take(LOAD_BUDGET_PER_FRAME) {
         // Clone from the authority (lazily generated there, plus any applied
-        // edits) — the cache never re-generates.
-        let chunk = authority.world.chunk(pos).clone();
+        // edits) — the cache never re-generates. Each phase gets its own block
+        // so its perf span drops before the next phase enters (journal/0080).
+        let chunk = {
+            let _perf = crate::perf_span!("chunk.gen");
+            authority.world.chunk(pos).clone()
+        };
         // Render-only material contents (worldgen authority; None otherwise).
         // The block chunk above already warmed the generator's column cache.
-        let contents = authority.chunk_contents(pos);
+        let contents = {
+            let _perf = crate::perf_span!("chunk.contents");
+            authority.chunk_contents(pos)
+        };
         // Feed the far reduction pyramid (FF2b, journal/0070): every generated
         // chunk climbs the block + material pyramids so far tiles over played
         // regions can render REDUCED geometry instead of the synthesized top
         // sheet. A fluid derived cache — never a second source of truth.
-        far_pyramid.insert_l0(pos, &chunk, contents.as_ref());
+        {
+            let _perf = crate::perf_span!("far_pyramid.insert_l0");
+            far_pyramid.insert_l0(pos, &chunk, contents.as_ref());
+        }
         // Border faces cull against the AUTHORITY (edits included, lazily
         // generating an unstreamed neighbour) — never the old wrong-world S1
         // fallback (journal/0017). Built AFTER the fetches above so the mutable
@@ -133,14 +147,23 @@ pub fn stream_chunks(
         // Churn instrument (journal/0051): time the whole build — greedy mesh
         // + the Bevy vertex-buffer conversion, which is where a pool would bite.
         let build_start = std::time::Instant::now();
-        let mesh_data = mesh_chunk(
-            &chunk,
-            pos,
-            vscale.voxel_size_m() as f32,
-            &neighbor_fill,
-            contents.as_ref(),
-        );
-        let bevy_mesh = (!mesh_data.is_empty()).then(move || to_bevy_mesh(mesh_data));
+        // Greedy mesh. The neighbour-fill closure is called from inside here, so
+        // `neighbor_fill.gen` (in NeighborFill::fill) nests under this span and is
+        // excluded from its self-time (journal/0080).
+        let mesh_data = {
+            let _perf = crate::perf_span!("mesh_chunk");
+            mesh_chunk(
+                &chunk,
+                pos,
+                vscale.voxel_size_m() as f32,
+                &neighbor_fill,
+                contents.as_ref(),
+            )
+        };
+        let bevy_mesh = (!mesh_data.is_empty()).then(move || {
+            let _perf = crate::perf_span!("to_bevy_mesh");
+            to_bevy_mesh(mesh_data)
+        });
         churn::record(&churn::NEAR_MESHES, &churn::NEAR_NANOS, build_start);
         let entity = if let Some(bevy_mesh) = bevy_mesh {
             // Spawn already positioned: `position_chunks` ran earlier this frame

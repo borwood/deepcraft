@@ -97,6 +97,15 @@ A cheap answer written because a consumer cannot afford the real one must be
   present-day value and whose heir is an epoch-indexed curve; byte-identical.
   Surfaced that the **collapse tier had no `Providers` channel** — the mechanism
   was only in the deep-time sim — now threaded through `WorldGenerator`/`StrataCtx`.
+- compliance (2026-07-23, journal/0080 — **built to the shape, not a fix**): the
+  runtime perf-observability slice. The `perf::PerfAggregate` (per-span self-time +
+  call count), held as the `PerfHandle` resource, is the **authority**. The
+  `docs/audits/` ranked-table dump (`write_baseline`) is the FIRST consumer; the
+  ratified in-game perf/debug overlay is the named heir that reads the SAME
+  resource live. The dump is derived from the aggregate, never a file-only dumper
+  the overlay would have to re-instrument — S-3 applied to timing data. The
+  disappearing-consumer test answers *yes* by construction: delete the docs dump
+  and the aggregate still exists in this shape, because the overlay needs it.
 
 **Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
 this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an

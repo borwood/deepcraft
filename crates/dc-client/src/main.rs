@@ -55,6 +55,7 @@ mod farpyramid;
 mod mcp;
 mod mcp_character;
 mod meshing;
+mod perf;
 mod physdemo;
 mod player;
 mod poststage;
@@ -199,6 +200,28 @@ fn main() -> std::process::ExitCode {
             },
             None => farmesh::HorizonConfig::default(),
         };
+        // `--perf-drop <seconds>`: the deterministic vertical-drop capture
+        // (perf window, journal/0080). Only meaningful with `--features perf`;
+        // without it the flag is parsed and warned about, never crashes.
+        let perf_drop = args
+            .windows(2)
+            .find(|w| w[0] == "--perf-drop")
+            .and_then(|w| match w[1].parse::<f64>() {
+                Ok(n) if n > 0.0 => Some(n),
+                _ => {
+                    eprintln!(
+                        "--perf-drop expects a positive number of seconds, got `{}`; ignoring it",
+                        w[1]
+                    );
+                    None
+                }
+            });
+        #[cfg(not(feature = "perf"))]
+        if perf_drop.is_some() {
+            eprintln!(
+                "--perf-drop needs a perf build (`--features perf`); ignoring it in this build"
+            );
+        }
         let exit = app::run(
             pack,
             mcp::McpOptions::parse(&args),
@@ -206,6 +229,7 @@ fn main() -> std::process::ExitCode {
             edges,
             gen_options,
             horizon,
+            perf_drop,
         );
         devicelost::finish(&exit)
     }
