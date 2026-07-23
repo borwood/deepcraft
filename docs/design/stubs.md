@@ -118,13 +118,18 @@ the same day by journal/0055**, which also drove the veneer's own thickness
 budget to zero at every named site without deleting it.
 
 ### 4. exhum / t_crust — the absent metamorphic expresser
-`field.rs` (~164): shipped, documented in-code as "the metamorphic-grade axes
-the collapse tier reads" — **and nothing reads them** (the comment overstates;
-noted here so it isn't trusted). **Heir:** a metamorphism pass reading the
-P/T path into grade classes (schist/slate/gneiss roster, geology.md).
+`field.rs`: shipped and populated since U8, **read by no downstream consumer**.
+The in-code comment is honest about this — it says the collapse tier *WILL* read
+these and that they are *currently consumed by nothing*, and as of journal/0078
+cites `spines.md` § 3. (The 2026-07-22 audit called the comment an A-2
+overstatement by quoting it with its "WILL" dropped; corrections #40 records that
+the comment was already correct.) **Heir:** a metamorphism pass reading the
+P/T path into grade classes (schist/slate/gneiss roster, geology.md) — with a
+named arrival address, the `providers::burial_temp_c` geotherm (journal/0067).
 **Blast:** zero today; lands the day a cut face should show an aureole and
 shows plain basement. *Only populated in tectonic-history worlds (U8 gates
-the payoff).*
+the payoff).* Note `t_crust` *is* read inside the sim by `isostasy()`; the
+unconsumed thing is the exported plane, not the value.
 
 ### 5. igneous-emplacement-depth-constants — *omitted from the decision's holdout list; added by this audit*
 `geology.rs` (~237): `INTRUSIVE_DEPTH_M = 250`, extrusive `5.0`,
@@ -134,12 +139,21 @@ setting + real emplacement depth; geology.md § formation context).
 **Blast:** intrusive/extrusive member choice + basement thickness in every
 Orogeny/Arc/Rift column.
 
-### 6. paleo-temperature-is-present-day-latitude — *omitted from the holdout list; added by this audit*
-`geology.rs::deposit_deep_history` (~379): a deep unit's at-deposition
+### 6. paleo-temperature-is-present-day-latitude — **NOW A PROVIDER SLOT, 2026-07-23 (journal/0078)**
+`geology.rs::deposit_deep_history`: a deep unit's at-deposition
 temperature = today's column temperature (the aridity axis correctly reads the
-recorder's tag; temperature does not). **Heir:** a paleo-temperature curve in
-the deep record (the "later 3e slice"). **Blast:** temp-sensitive member
-fitness inside deep strata.
+recorder's tag; temperature does not — the asymmetry sits on adjacent lines).
+
+**Now a slot:** `providers::Providers::paleo_temperature`, identity
+`identity_paleo_temperature` (return the present-day `ctx.temp_c` — the *wrong
+quantity*, named, not a neutral no-op). **Heir:** an epoch-indexed
+paleo-temperature curve keyed by the unit's `chapter` (the tectonic epoch the
+record already carries). **Value-level per unit** — the identity is constant per
+column but the heir varies per epoch, and granularity follows the heir. **Blast:**
+temp-sensitive member fitness inside deep strata. Byte-identical: the production
+world still hashes to the pre-slice goldens. Surfaced that the collapse tier had
+no `Providers` channel at all — now threaded through `WorldGenerator`/`StrataCtx`
+(the mechanism previously reached only the deep-time sim via `DeepConfig`).
 
 ### 7. s10-community-vector — biology with no vegetation
 `deeptime/biotic.rs`: coal/peat/paleosol/charcoal from a community scalar;

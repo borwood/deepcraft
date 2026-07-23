@@ -90,6 +90,13 @@ A cheap answer written because a consumer cannot afford the real one must be
   disappearing-consumer test now answers *yes*: if the far field vanished, the
   surface rule would still exist unchanged, because it is the expression.
 - compliance: S15's coarse capacity held against an exact voxel walk
+- compliance (2026-07-23, journal/0078): `paleo_temperature` [#11] converted to a
+  provider slot — `deposit_deep_history` read *today's* column temperature for a
+  deep unit's at-deposition temperature (the summary), beside a sibling axis that
+  already read the record (the authority). Now a seam whose identity is that same
+  present-day value and whose heir is an epoch-indexed curve; byte-identical.
+  Surfaced that the **collapse tier had no `Providers` channel** — the mechanism
+  was only in the deep-time sim — now threaded through `WorldGenerator`/`StrataCtx`.
 
 **Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
 this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an
@@ -260,6 +267,15 @@ true until the content-set freeze, **the same day**.
 **Check:** § 5's convention. Note that decisions expire premises *elsewhere*,
 so a sweep must ask "does the cited constraint still hold?"
 
+- not-an-instance (2026-07-23, journal/0078): the 2026-07-22 audit flagged the
+  `exhum`/`t_crust` comment [#28] as an A-2 ("claims the collapse tier reads
+  them"), but the comment already said "WILL read … currently consumed by
+  nothing" (rewritten `11d43859`, *before* the audit) — the audit quoted it with
+  "WILL" dropped. Prose that already states "consumed by nothing" is not a
+  justification outliving its premise. Tightened to cite § 3 anyway; corrections
+  #40. **The check works the other way too:** verify the *quotation*, not just the
+  claim about it.
+
 ## A-3. A test green for a reason unrelated to what it asserts
 
 corrections #27 (a stale artifact served as fresh: exit 0, every suite `ok`,
@@ -301,9 +317,9 @@ consumed it and when.
 
 | what exists | where | called by | intended consumer |
 |---|---|---|---|
-| `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** | every transport-time depositing process: infiltration, diagenesis, ore |
+| `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** (the module now *declares* its expected consumers in-code — journal/0078 — so an infiltration author finds it, but still nothing calls it) | **hydrology** (groundwater infiltration) + **diagenesis** (cement / ore deposition) — the transport-time depositing processes |
 | `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
-| `exhum` / `t_crust` — populated since U8; the doc comment **claims** the collapse tier reads them | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs:784` — the claim is about downstream, 2026-07-22 audit) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
+| `exhum` / `t_crust` — populated since U8; the doc comment is now **honest** (states "consumed by nothing", cites this row — journal/0078; the 2026-07-22 audit's "claims the collapse tier reads them" quoted an already-corrected comment with its "WILL" dropped — corrections #40) | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs` — the unconsumed thing is the exported plane, not the value) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
 | occupancy primitives — `free_eighths`, `loose_eighths`, `bound_eighths`, `open_pores`, `is_occupancy_solid` | `dc-core/src/materials/contents.rs` | partially | the four consumers named at authorship: water fill, loose gravity, compaction, sim light |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |

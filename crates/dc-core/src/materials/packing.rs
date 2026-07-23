@@ -16,6 +16,31 @@
 //! pore is representational, not a passage a grain had to fit through. The
 //! geology emplacement path (`super::geology`) therefore never consults this
 //! helper; see the note at the accessory member there.
+//!
+//! ## Expected consumers — the socket this rule waits in (S9)
+//!
+//! This module is DECIDED, built, and covered by seven tests, and **nothing in
+//! production calls it** (`docs/audits/2026-07-22-seam-inventory.md` § S9;
+//! `docs/spines.md` § 3, built-but-unconsumed). That is the *inverse* of the
+//! "summary becomes an authority" defect: here the authority exists and the
+//! seam is missing. The declaration below is what fixes it — so the next author
+//! of an infiltration or cementation path **finds this rule and calls it**
+//! instead of writing a second, divergent grain-fits-throat test (the user's own
+//! point: "the stubbed APIs would be telling us right now what an unbuilt hydro
+//! system is supposed to supply"). The two systems expected to call
+//! [`fits_in_pores`] are:
+//!
+//! - **hydrology — groundwater infiltration.** A saturation/water-table pass
+//!   (S11, `dc-worldgen/src/water/`, not yet on the production path) deposits
+//!   fines transported by percolating water only where they can enter the host's
+//!   pore throats. This is the transport-time gate on infiltration fill.
+//! - **diagenesis — ore / cement deposition.** Pore-filling cement and
+//!   precipitated ore ride the same rule: a mineral phase can occlude a rock's
+//!   pores only if its grain (or nucleation habit) clears the throat. Distinct
+//!   from *genesis* emplacement above, which is exempt because the crystal grew
+//!   in place rather than infiltrating.
+//!
+//! No behaviour changes here; this is the missing declaration, not a new caller.
 
 use super::MaterialId;
 

@@ -48,7 +48,7 @@ pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
     exposed_litho, exposed_shares, litho_of_tag, resistance_of_material, susceptibility_table,
 };
-pub use providers::{BurialColumn, BuriedUnit, ParentCell, Providers, WaveCell};
+pub use providers::{BurialColumn, BuriedUnit, PaleoUnit, ParentCell, Providers, WaveCell};
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
