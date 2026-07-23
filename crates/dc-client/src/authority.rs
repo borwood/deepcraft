@@ -91,9 +91,21 @@ impl Default for GenOptions {
 ///   one cache. The `Mutex` is what makes the (now `Arc`-cached, `Send`)
 ///   generator fit the `Fn + Send + Sync` seam; it hides nothing about
 ///   determinism — the closure stays a pure function of `pos`.
+///
+///   The `pregen` is the SAME `Arc<Pregen>` that generator is built over, kept
+///   beside it so a background mesh task can mint its OWN
+///   `WorldGenerator::new_owned(pregen.clone())` and resolve neighbour contents /
+///   far coarse surface off-thread with NO contention on the shared `Mutex`
+///   (journal/0084). Generation is a pure function of `(pregen, pos)`, so a
+///   per-task generator over this same pregen is byte-identical to the shared
+///   one — recomputing a cold cache costs generator time, which is free under
+///   the two-clocks doctrine.
 enum SurfaceAuthority {
     Terrain(TerrainGen),
-    Worldgen(Arc<Mutex<WorldGenerator<'static>>>),
+    Worldgen {
+        generator: Arc<Mutex<WorldGenerator<'static>>>,
+        pregen: Arc<Pregen>,
+    },
 }
 
 /// Fixed host tick cadence, seconds. 20 Hz: an edit's receipt (and therefore
@@ -201,12 +213,16 @@ impl Authority {
             },
             &opts.deep,
         ));
-        let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen)));
+        let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen.clone())));
         let seam = generator.clone();
         let world = Self::host_world(seed, scale, move |pos| {
             crate::devicelost::lock_forgiving(&seam).generate_chunk(pos)
         });
-        Self::finish(scale, world, SurfaceAuthority::Worldgen(generator))
+        Self::finish(
+            scale,
+            world,
+            SurfaceAuthority::Worldgen { generator, pregen },
+        )
     }
 
     /// Wrap a chunk generator in a `HostWorld` with the client's character
@@ -301,9 +317,22 @@ impl Authority {
     pub fn chunk_contents(&self, pos: ChunkPos) -> Option<dc_core::ContentsGrid> {
         match &self.surface {
             SurfaceAuthority::Terrain(_) => None,
-            SurfaceAuthority::Worldgen(worldgen) => {
-                crate::devicelost::lock_forgiving(worldgen).chunk_contents(pos)
+            SurfaceAuthority::Worldgen { generator, .. } => {
+                crate::devicelost::lock_forgiving(generator).chunk_contents(pos)
             }
+        }
+    }
+
+    /// The shared `Arc<Pregen>` a background mesh task mints its OWN
+    /// `WorldGenerator` from, to resolve neighbour contents / far coarse surface
+    /// off-thread without touching the shared generator `Mutex` (journal/0084).
+    /// `None` under the S1 terrain authority (which has no worldgen contents or
+    /// coarse summary — its border culls are binary, needing no generator). A
+    /// per-task generator over this pregen is byte-identical to the shared one.
+    pub fn worldgen_pregen(&self) -> Option<Arc<Pregen>> {
+        match &self.surface {
+            SurfaceAuthority::Terrain(_) => None,
+            SurfaceAuthority::Worldgen { pregen, .. } => Some(pregen.clone()),
         }
     }
 
@@ -311,7 +340,7 @@ impl Authority {
     pub fn authority_label(&self) -> &'static str {
         match self.surface {
             SurfaceAuthority::Terrain(_) => "S1-terrain",
-            SurfaceAuthority::Worldgen(_) => "worldgen",
+            SurfaceAuthority::Worldgen { .. } => "worldgen",
         }
     }
 
@@ -321,7 +350,7 @@ impl Authority {
     /// OWN surface summary; the S1 authority keeps the S1 far mesh that was never
     /// wrong for the S1 world.
     pub fn far_field_is_worldgen(&self) -> bool {
-        matches!(self.surface, SurfaceAuthority::Worldgen(_))
+        matches!(self.surface, SurfaceAuthority::Worldgen { .. })
     }
 
     /// The coarse far-field surface summary — surface height (in active-scale
@@ -332,11 +361,18 @@ impl Authority {
     /// through `&self`; the SAME generator the chunk seam and the surface-scan
     /// ceiling use — one world, no second opinion (docs/ARCHITECTURE.md § One
     /// world-answer surface).
+    ///
+    /// journal/0084 moved the far-derive's coarse sampling off-thread onto a
+    /// per-task generator (which calls `WorldGenerator::coarse_surface` directly,
+    /// bypassing this `Mutex`-locking wrapper), so production no longer calls this
+    /// — it survives as the shared-path oracle the per-task path is proven equal
+    /// to (`tests::per_task_generator_is_byte_identical_to_the_shared_one`).
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn worldgen_coarse_surface(&self, vx: i64, vz: i64) -> Option<(i32, dc_core::Block)> {
         match &self.surface {
             SurfaceAuthority::Terrain(_) => None,
-            SurfaceAuthority::Worldgen(worldgen) => {
-                Some(crate::devicelost::lock_forgiving(worldgen).coarse_surface(vx, vz))
+            SurfaceAuthority::Worldgen { generator, .. } => {
+                Some(crate::devicelost::lock_forgiving(generator).coarse_surface(vx, vz))
             }
         }
     }
@@ -349,12 +385,12 @@ impl Authority {
     fn analytic_height_m(&self, xm: f64, zm: f64) -> f64 {
         match &self.surface {
             SurfaceAuthority::Terrain(t) => t.surface_height_m(xm, zm),
-            SurfaceAuthority::Worldgen(worldgen) => {
+            SurfaceAuthority::Worldgen { generator, .. } => {
                 let scale = self.scale;
                 let (vx, vz) = (scale.voxel_at(xm), scale.voxel_at(zm));
                 let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
                 let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
-                let col = crate::devicelost::lock_forgiving(worldgen).column_record(cx, cz);
+                let col = crate::devicelost::lock_forgiving(generator).column_record(cx, cz);
                 f64::from(col.heights[lz * 32 + lx]) * scale.voxel_size_m()
             }
         }
@@ -387,8 +423,8 @@ impl Authority {
                 zm,
                 footprint_half_m,
             ),
-            SurfaceAuthority::Worldgen(worldgen) => {
-                let worldgen = worldgen.clone();
+            SurfaceAuthority::Worldgen { generator, .. } => {
+                let worldgen = generator.clone();
                 let analytic = |x: f64, z: f64| {
                     let (vx, vz) = (scale.voxel_at(x), scale.voxel_at(z));
                     let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
@@ -1857,6 +1893,82 @@ pub(crate) mod tests {
         assert!(
             saw_geology,
             "expected geology blocks in the sampled worldgen chunks"
+        );
+    }
+
+    /// journal/0084: the async-offload follow-on mints a PER-TASK
+    /// [`WorldGenerator`] from the shared `Arc<Pregen>` (via
+    /// [`Authority::worldgen_pregen`]) and resolves neighbour contents /
+    /// far coarse surface through it, off the frame thread. Generation is a pure
+    /// function of `(pregen, pos)`, so a per-task generator MUST produce
+    /// byte-identical results to the shared one behind the authority's `Mutex` —
+    /// that byte-identity is the load-bearing correctness invariant of the whole
+    /// offload. Proven here for both offloaded paths (`chunk_contents` and
+    /// `coarse_surface`), over surface chunks/columns that carry real data.
+    #[test]
+    fn per_task_generator_is_byte_identical_to_the_shared_one() {
+        const SEED: i32 = 1337;
+        let mut authority = Authority::new(SEED, 2);
+        let pregen = authority
+            .worldgen_pregen()
+            .expect("worldgen authority exposes its pregen");
+        // A per-task generator, exactly as a mesh task mints it.
+        let mut per_task = WorldGenerator::new_owned(pregen.clone());
+
+        // Neighbour contents over the surface sample box: the shared (authority)
+        // path vs the per-task generator, byte-for-byte. Non-vacuous: at least one
+        // sampled chunk must carry real contents.
+        let positions = worldgen_sample_positions(&mut authority);
+        let mut saw_contents = false;
+        for &p in &positions {
+            let shared = authority.chunk_contents(p);
+            let task = per_task.chunk_contents(p);
+            assert_eq!(shared, task, "per-task chunk_contents differs at {p:?}");
+            saw_contents |= shared.is_some();
+        }
+        assert!(
+            saw_contents,
+            "no sampled chunk carried contents (test would be vacuous)"
+        );
+
+        // Far coarse surface over a spread of columns (the far-derive path).
+        for (vx, vz) in [(0i64, 0i64), (1000, -500), (-321, 777), (64, 96)] {
+            let shared = authority
+                .worldgen_coarse_surface(vx, vz)
+                .expect("worldgen coarse surface");
+            let task = per_task.coarse_surface(vx, vz);
+            assert_eq!(
+                shared, task,
+                "per-task coarse_surface differs at ({vx},{vz})"
+            );
+        }
+    }
+
+    /// journal/0084 construction-cost check: the offload mints ONE per-task
+    /// `WorldGenerator` per mesh task (near: up to `LOAD_BUDGET_PER_FRAME`/frame;
+    /// far: `FAR_SURFACE_BUDGET_PER_FRAME`/frame), so minting must be cheap. It is
+    /// an `Arc<Pregen>` clone plus `assemble` (build the site index, empty caches)
+    /// — O(sites), no world generation. The cost also rides on the TASK thread,
+    /// never the frame thread, and is amortized over the many generator queries
+    /// each task makes (≤6 cold neighbour contents, or 34² coarse samples). Prints
+    /// the mean with `--nocapture`; no hard threshold (machine-dependent).
+    #[test]
+    fn per_task_generator_construction_is_cheap() {
+        use std::hint::black_box;
+        use std::time::Instant;
+        let pregen = Arc::new(Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Medium,
+        }));
+        const N: u32 = 500;
+        let start = Instant::now();
+        for _ in 0..N {
+            black_box(WorldGenerator::new_owned(pregen.clone()));
+        }
+        let micros = start.elapsed().as_secs_f64() * 1e6 / f64::from(N);
+        println!(
+            "per-task WorldGenerator::new_owned mean: {micros:.1} µs over {N} \
+             (Medium pregen; rides the task thread, amortized over the task's queries)"
         );
     }
 

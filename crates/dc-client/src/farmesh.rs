@@ -59,7 +59,9 @@
 //! every frame ([`position_far_tiles`] / [`position_far_chunks`]), so a
 //! per-frame camera-forward direction is architecturally free.
 
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
@@ -67,6 +69,7 @@ use dc_core::farfield::{
     ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, quantize_top,
 };
 use dc_core::{Block, CHUNK_SIZE, ChunkPos, VoxelScale};
+use dc_worldgen::{Pregen, WorldGenerator};
 use glam::DVec3;
 
 use crate::app::{
@@ -74,7 +77,7 @@ use crate::app::{
     churn, to_render,
 };
 use crate::authority::Authority;
-use crate::farpyramid::FarPyramid;
+use crate::farpyramid::{FarPyramid, NodeGrids};
 use crate::meshing::{MeshData, block_layer, face_color, mesh_chunk};
 use crate::meshtasks::{FarMeshOutput, FarMeshTasks, MAX_INFLIGHT_FAR};
 use crate::player::Player;
@@ -550,17 +553,14 @@ pub fn position_far_chunks(
 // a [`ColumnSpan`] so that extension needs no mesher rewrite).
 // ===========================================================================
 
-/// The frame-thread derivation of one far tile — the OWNED plain data the pure
-/// mesher runs on off-thread (journal/0083): the per-column [`ColumnSpan`]
-/// stacks, the near-cover cull mask, the four ring-edge flags, and the tile's
-/// cull-chunk bookkeeping. Aliased so the derive/spawn seam is not a bare
-/// four-tuple (clippy::type_complexity).
-type DerivedTile = (
-    Vec<Vec<ColumnSpan>>,
-    Vec<bool>,
-    [bool; 4],
-    Option<(i64, i64, i64)>,
-);
+/// The FarPyramid reduced-node grids one tile needs, snapshotted on the frame
+/// thread and moved into the derive task (journal/0084). A tile's 34² columns
+/// touch at most the **3×3** node plan columns centred on `(tx, tz)`, so this is
+/// that patch → each node column's [`NodeGrids`]. The grids are `Arc`-shared
+/// owned data, so the snapshot is cheap to move and the task reads reduced nodes
+/// without any `&mut FarPyramid` access crossing the thread boundary. Aliased so
+/// the snapshot/spawn seam is not a bare map type (clippy::type_complexity).
+type NodeSnapshot = HashMap<(i32, i32), NodeGrids>;
 
 /// Far surface tiles generated + meshed per frame. The full horizon fills in a
 /// second or two of streaming, same as the S1 far mesh.
@@ -1285,11 +1285,6 @@ pub fn stream_far_surface(
     }
     stale.sort_unstable_by_key(|(d, _, _, _)| *d);
 
-    let sample = |wx: i64, wz: i64| {
-        authority
-            .worldgen_coarse_surface(wx, wz)
-            .expect("worldgen far-field summary under the worldgen authority")
-    };
     let ring_edges_of = |level: u8, tx: i32, tz: i32| -> [bool; 4] {
         let edge = |ntx: i32, ntz: i32| {
             !far_tile_in_ring(
@@ -1306,62 +1301,85 @@ pub fn stream_far_surface(
             edge(tx, tz - 1),
         ]
     };
-    // Derive the tile's summary + coverage inputs on the FRAME thread (the impure
-    // boundary: reads the `Authority` generator + the `&mut FarPyramid` resource
-    // + the viewer). `far_tile.derive` therefore stays in the frame envelope — it
-    // cannot be offloaded without either sharing the generator `Mutex` across
-    // threads (a contention regression) or handing a `&mut` resource to a task
-    // (impossible); that offload is the filed follow-on (journal/0083). Returns
-    // plain OWNED data the pure mesher runs on off-thread.
-    let derive = |pyramid: &mut FarPyramid, level: u8, tx: i32, tz: i32| -> DerivedTile {
-        // Perf window (journal/0080): the per-frame far-field tile derive. Parent
-        // span; `far_tile.derive` nests below it. Zero cost without `perf`.
-        let _perf = crate::perf_span!("far_tile.build");
-        // Per-tile cache of reduced node grids: a tile's 34² columns touch at
-        // most a 3×3 patch of node plan columns, and each grid is derived once.
-        let stride = level_stride(level);
-        let mut node_cache: HashMap<(i32, i32), crate::farpyramid::NodeGrids> = HashMap::new();
-        let mut known = |wx: i64, wz: i64| -> Vec<(i32, i32, Vec<ColumnSpan>)> {
-            let (cvx, cvz) = (wx.div_euclid(stride), wz.div_euclid(stride));
-            let (nx, nz) = (cvx.div_euclid(32) as i32, cvz.div_euclid(32) as i32);
-            let (lx, lz) = (cvx.rem_euclid(32) as usize, cvz.rem_euclid(32) as usize);
-            node_cache
-                .entry((nx, nz))
-                .or_insert_with(|| pyramid.known_node_grids(level, nx, nz))
-                .iter()
-                .map(|(ny, grid)| {
-                    let ext = 32 * stride as i32;
-                    (ny * ext, (ny + 1) * ext, grid[lz * 32 + lx].clone())
-                })
-                .collect()
-        };
-        let (stacks, culled) = {
-            let _perf = crate::perf_span!("far_tile.derive");
-            tile_column_stacks(base, level, tx, tz, viewer, hz, &sample, &mut known)
-        };
-        let ring_edges = ring_edges_of(level, tx, tz);
-        let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
-        (stacks, culled, ring_edges, cull_chunk)
+    // Snapshot the reduced-node grids the tile needs on the FRAME thread — the
+    // ONLY impure input the derive reads besides the generator, and the one that
+    // cannot cross to a task (`known_node_grids` takes `&mut FarPyramid`, a
+    // main-thread Bevy resource). A tile's 34² columns touch at most the 3×3 node
+    // plan columns centred on `(tx, tz)` (module note above), so this pre-fills
+    // exactly the memoization set the on-thread `known` closure built lazily —
+    // NOT a re-derivation of the coordinate logic, just the same call set. The
+    // grids are `Arc`-shared, cheap to move. `far_tile.snapshot` is the residual
+    // frame-thread cost; the generator sampling (the bulk of the old
+    // `far_tile.derive`) now runs off-thread (journal/0084).
+    let snapshot = |pyramid: &mut FarPyramid, level: u8, tx: i32, tz: i32| -> NodeSnapshot {
+        let _perf = crate::perf_span!("far_tile.snapshot");
+        let mut snap: NodeSnapshot = HashMap::new();
+        for nz in (tz - 1)..=(tz + 1) {
+            for nx in (tx - 1)..=(tx + 1) {
+                snap.insert((nx, nz), pyramid.known_node_grids(level, nx, nz));
+            }
+        }
+        snap
     };
 
+    let hz_owned = *hz;
+    // The shared `Arc<Pregen>` each tile task mints its OWN generator from (always
+    // present here — this system runs only under the worldgen authority).
+    let pregen = authority
+        .worldgen_pregen()
+        .expect("worldgen far-field runs only under the worldgen authority");
     let pool = AsyncComputeTaskPool::get();
-    // Spawn a pure-mesh task from the derived owned data. `build_far_tile_mesh`
-    // + `to_bevy_mesh` are a pure function of it (the `far_tile.mesh` span moves
-    // to the task thread — the measured win). `old_entity` is the seam tile's
-    // current entity, despawned by the drain once the fresh mesh is ready.
+    // Spawn a task that DERIVES the tile off-thread — a per-task `WorldGenerator`
+    // (minted from the shared pregen, byte-identical to it, no `Mutex` contention)
+    // for the coarse-surface sampling, plus the frame-thread node snapshot for
+    // reduced data — and then meshes it. `far_tile.derive` (the generator
+    // sampling) and `far_tile.mesh` now record on the task thread and drop out of
+    // the frame `schedule` envelope (journal/0084). `old_entity` is the seam
+    // tile's current entity, despawned by the drain once the fresh mesh is ready.
     let spawn_tile = |tasks: &mut FarMeshTasks,
                       level: u8,
                       tx: i32,
                       tz: i32,
-                      stacks: Vec<Vec<ColumnSpan>>,
-                      culled: Vec<bool>,
+                      node_snapshot: NodeSnapshot,
                       ring_edges: [bool; 4],
                       cull_chunk: Option<(i64, i64, i64)>,
+                      pregen: Arc<Pregen>,
                       old_entity: Option<Entity>| {
+        // Owned copies for the `async move` block (all `Copy`).
+        let (base, viewer, hz_owned) = (base, viewer, hz_owned);
         let task = pool.spawn(async move {
-            // Churn instrument (journal/0051): now a task-thread wall over
-            // the mesh + vertex-buffer conversion.
+            // Churn instrument (journal/0051): a task-thread wall over the derive +
+            // mesh + vertex-buffer conversion.
             let build_start = std::time::Instant::now();
+            let _build = crate::perf_span!("far_tile.build");
+            // Per-task generator, minted off-thread from the shared pregen. Its
+            // construction rides on THIS task thread, never the frame thread.
+            let generator = RefCell::new(WorldGenerator::new_owned(pregen));
+            let sample = |wx: i64, wz: i64| generator.borrow_mut().coarse_surface(wx, wz);
+            let stride = level_stride(level);
+            // `known` reads the frame-thread snapshot (the complete 3×3 node
+            // columns the tile can touch), so no pyramid access crosses threads.
+            let mut known = |wx: i64, wz: i64| -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+                let (cvx, cvz) = (wx.div_euclid(stride), wz.div_euclid(stride));
+                let (nx, nz) = (cvx.div_euclid(32) as i32, cvz.div_euclid(32) as i32);
+                let (lx, lz) = (cvx.rem_euclid(32) as usize, cvz.rem_euclid(32) as usize);
+                node_snapshot
+                    .get(&(nx, nz))
+                    .map(|grids| {
+                        grids
+                            .iter()
+                            .map(|(ny, grid)| {
+                                let ext = 32 * stride as i32;
+                                (ny * ext, (ny + 1) * ext, grid[lz * 32 + lx].clone())
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            };
+            let (stacks, culled) = {
+                let _perf = crate::perf_span!("far_tile.derive");
+                tile_column_stacks(base, level, tx, tz, viewer, &hz_owned, &sample, &mut known)
+            };
             let (mesh_data, y_ref) = {
                 let _perf = crate::perf_span!("far_tile.mesh");
                 build_far_tile_mesh(base, level, tx, tz, &stacks, &culled, ring_edges)
@@ -1388,9 +1406,19 @@ pub fn stream_far_surface(
         if budget == 0 {
             break;
         }
-        let (stacks, culled, ring_edges, cull_chunk) = derive(&mut pyramid, level, tx, tz);
+        let node_snapshot = snapshot(&mut pyramid, level, tx, tz);
+        let ring_edges = ring_edges_of(level, tx, tz);
+        let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
         spawn_tile(
-            &mut tasks, level, tx, tz, stacks, culled, ring_edges, cull_chunk, None,
+            &mut tasks,
+            level,
+            tx,
+            tz,
+            node_snapshot,
+            ring_edges,
+            cull_chunk,
+            pregen.clone(),
+            None,
         );
         budget -= 1;
     }
@@ -1399,9 +1427,19 @@ pub fn stream_far_surface(
             break;
         }
         let old = map.loaded.get(&(level, tx, tz)).and_then(|t| t.entity);
-        let (stacks, culled, ring_edges, cull_chunk) = derive(&mut pyramid, level, tx, tz);
+        let node_snapshot = snapshot(&mut pyramid, level, tx, tz);
+        let ring_edges = ring_edges_of(level, tx, tz);
+        let cull_chunk = tile_in_cull_band(base, level, tx, tz, viewer, hz).then_some(cur_chunk);
         spawn_tile(
-            &mut tasks, level, tx, tz, stacks, culled, ring_edges, cull_chunk, old,
+            &mut tasks,
+            level,
+            tx,
+            tz,
+            node_snapshot,
+            ring_edges,
+            cull_chunk,
+            pregen.clone(),
+            old,
         );
         budget -= 1;
     }
@@ -1635,6 +1673,104 @@ mod tests {
     /// A viewer far enough that `near_covers` never fires — isolates meshing from
     /// the coverage cull.
     const FAR_VIEWER: DVec3 = DVec3::new(1.0e6, 1.0e6, 1.0e6);
+
+    /// journal/0084: the far derive moves off-thread — a per-task
+    /// [`WorldGenerator`] for the coarse-surface sampling plus a frame-thread
+    /// snapshot of the [`FarPyramid`]'s known node grids (the `&mut FarPyramid`
+    /// resource cannot cross to a task). Prove the offloaded inputs reproduce the
+    /// on-thread [`tile_column_stacks`] byte-for-byte: a second generator over the
+    /// same `Arc<Pregen>` samples identically, and the 3×3 node snapshot the frame
+    /// thread pre-fills equals the lazy `known_node_grids` the on-thread `known`
+    /// closure calls (it is the SAME call, not a re-derivation). The synthesis
+    /// (empty-pyramid) case is the default forever, so it is what is exercised.
+    #[test]
+    fn offloaded_far_derive_matches_on_thread() {
+        use dc_worldgen::{Extent, Pregen, WorldParams};
+        let pregen = Arc::new(Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        }));
+        let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
+        let hz = HorizonConfig::default();
+        // High above the surface so nothing is coverage-culled (the full stepped
+        // geometry is derived — a non-vacuous tile).
+        let viewer = DVec3::new(30.0, 5000.0, -15.0);
+        let (level, tx, tz) = (2u8, 1i32, -1i32);
+        let stride = level_stride(level);
+        let mut pyramid = FarPyramid::default();
+
+        // On-thread reference: one generator's coarse_surface + lazy pyramid known.
+        let shared = RefCell::new(WorldGenerator::new_owned(pregen.clone()));
+        let sample_shared = |wx: i64, wz: i64| shared.borrow_mut().coarse_surface(wx, wz);
+        let mut node_cache: HashMap<(i32, i32), NodeGrids> = HashMap::new();
+        let mut known_pyr = |wx: i64, wz: i64| -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+            let (cvx, cvz) = (wx.div_euclid(stride), wz.div_euclid(stride));
+            let (nx, nz) = (cvx.div_euclid(32) as i32, cvz.div_euclid(32) as i32);
+            let (lx, lz) = (cvx.rem_euclid(32) as usize, cvz.rem_euclid(32) as usize);
+            node_cache
+                .entry((nx, nz))
+                .or_insert_with(|| pyramid.known_node_grids(level, nx, nz))
+                .iter()
+                .map(|(ny, grid)| {
+                    let ext = 32 * stride as i32;
+                    (ny * ext, (ny + 1) * ext, grid[lz * 32 + lx].clone())
+                })
+                .collect()
+        };
+        let (stacks_a, culled_a) = tile_column_stacks(
+            base,
+            level,
+            tx,
+            tz,
+            viewer,
+            &hz,
+            &sample_shared,
+            &mut known_pyr,
+        );
+
+        // Offloaded path: a per-task generator + the frame-thread 3×3 snapshot.
+        let mut snap: NodeSnapshot = HashMap::new();
+        for nz in (tz - 1)..=(tz + 1) {
+            for nx in (tx - 1)..=(tx + 1) {
+                snap.insert((nx, nz), pyramid.known_node_grids(level, nx, nz));
+            }
+        }
+        let per_task = RefCell::new(WorldGenerator::new_owned(pregen.clone()));
+        let sample_task = |wx: i64, wz: i64| per_task.borrow_mut().coarse_surface(wx, wz);
+        let mut known_snap = |wx: i64, wz: i64| -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+            let (cvx, cvz) = (wx.div_euclid(stride), wz.div_euclid(stride));
+            let (nx, nz) = (cvx.div_euclid(32) as i32, cvz.div_euclid(32) as i32);
+            let (lx, lz) = (cvx.rem_euclid(32) as usize, cvz.rem_euclid(32) as usize);
+            snap.get(&(nx, nz))
+                .map(|grids| {
+                    grids
+                        .iter()
+                        .map(|(ny, grid)| {
+                            let ext = 32 * stride as i32;
+                            (ny * ext, (ny + 1) * ext, grid[lz * 32 + lx].clone())
+                        })
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
+        let (stacks_b, culled_b) = tile_column_stacks(
+            base,
+            level,
+            tx,
+            tz,
+            viewer,
+            &hz,
+            &sample_task,
+            &mut known_snap,
+        );
+
+        assert_eq!(culled_a, culled_b, "cull mask differs off-thread");
+        assert_eq!(stacks_a, stacks_b, "column stacks differ off-thread");
+        assert!(
+            stacks_a.iter().any(|s| !s.is_empty()),
+            "no stacks derived (vacuous)"
+        );
+    }
 
     // `quantize_top`'s floor proof moved to dc-core with the function
     // (`dc_core::farfield::tests::quantize_top_floors_to_the_coarse_lattice`).

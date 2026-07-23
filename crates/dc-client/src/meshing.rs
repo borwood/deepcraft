@@ -61,7 +61,7 @@
 
 use dc_core::{
     Block, CHUNK_SIZE_USIZE, Chunk, ChunkPos, ContentsGrid, MATERIAL_COUNT, MaterialId,
-    VOXEL_EIGHTHS, VoxelContents,
+    VOXEL_EIGHTHS, VoxelContents, local_voxel,
 };
 
 /// Max material layers blended per face (the heightlerp splat count). Four is
@@ -576,6 +576,12 @@ impl NeighborShell {
     /// coords) for each solid voxel's out-of-chunk face neighbour — the exact
     /// call set [`mesh_chunk`] makes. Runs on the main thread, where
     /// `neighbor_fill` may borrow the authority (the `neighbor_fill.gen` cost).
+    ///
+    /// Superseded in production by [`NeighborShellPlan`] (journal/0084 offloads the
+    /// contents resolution off-thread); retained as the guard-test oracle the plan
+    /// path is proven equal to (`tests::shell_backed_mesh_equals_direct_mesh`,
+    /// `tests::plan_backed_mesh_equals_direct_mesh`).
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn resolve(
         chunk: &Chunk,
         pos: ChunkPos,
@@ -615,6 +621,141 @@ impl NeighborShell {
     #[inline]
     pub fn cover(&self, x: i64, y: i64, z: i64) -> f32 {
         self.cover.get(&(x, y, z)).copied().unwrap_or(0.0)
+    }
+}
+
+/// The frame-thread HALF of resolving a chunk's border-shell coverage, split so
+/// the expensive part runs off-thread (journal/0084 — the per-task-generator
+/// follow-on to journal/0083).
+///
+/// [`NeighborShell::resolve`] does the whole job on one thread: for every
+/// out-of-chunk face neighbour of a solid voxel it reads the neighbour BLOCK
+/// (edit-aware, through the authority) and — when that block carries contents —
+/// resolves the neighbour chunk's whole [`ContentsGrid`] (the `neighbor_fill.gen`
+/// cost, ~5 ms/call cold). The block read is cheap and MUST stay edit-aware (an
+/// edited neighbour changes blocks, not contents); the contents resolution is
+/// **pure terrain** and dominates the cost. This plan captures the cheap
+/// edit-aware block reads on the frame thread and DEFERS the contents resolution
+/// to the mesh task, where a per-task [`dc_worldgen::WorldGenerator`] (minted from
+/// the shared `Arc<Pregen>`) resolves it with no contention on the shared
+/// generator `Mutex`.
+///
+/// Byte-identity to the one-thread [`NeighborShell::resolve`] is exact: the block
+/// comes from the same edit-aware source, and contents from a per-task generator
+/// over the same `Arc<Pregen>` are byte-identical to the shared generator's (gen
+/// is a pure function of `(pregen, pos)`) — pinned by
+/// [`tests::plan_backed_mesh_equals_direct_mesh`]. Gathering walks the identical
+/// solid-voxel / out-of-chunk-face iteration [`NeighborShell::resolve`] uses, so
+/// the two stay in lockstep beside each other.
+/// One deferred border position: its world voxel, its (edit-aware) block, its
+/// local voxel within the neighbour chunk, and that neighbour chunk's position —
+/// everything [`NeighborShellPlan::resolve`] needs to turn a resolved contents
+/// grid into a coverage value. Aliased for `clippy::type_complexity`.
+type DeferredCover = ((i64, i64, i64), Block, (usize, usize, usize), ChunkPos);
+
+#[derive(Default)]
+pub struct NeighborShellPlan {
+    /// Border positions whose coverage is fully known from the block alone — air
+    /// or a full-height solid that never consults contents — computed on main.
+    resolved: std::collections::HashMap<(i64, i64, i64), f32>,
+    /// Border positions whose coverage needs the neighbour chunk's contents.
+    deferred: Vec<DeferredCover>,
+    /// The distinct neighbour chunks the deferred entries need contents for
+    /// (resolved once each in [`Self::resolve`], the memoization `NeighborFill`
+    /// did per chunk).
+    needed: Vec<ChunkPos>,
+}
+
+impl NeighborShellPlan {
+    /// Gather the plan on the frame thread. `block_at` reads a world-voxel block
+    /// edit-aware (the authority's `block_voxel`); it may lazily generate an
+    /// unstreamed neighbour chunk (cheap, ~14 µs — the same block gen the near
+    /// path already pays on main). Positions whose block carries no contents get
+    /// their coverage immediately; the rest defer their pure-terrain contents
+    /// resolution to [`Self::resolve`].
+    pub fn gather(
+        chunk: &Chunk,
+        pos: ChunkPos,
+        block_at: &mut dyn FnMut(i64, i64, i64) -> Block,
+    ) -> Self {
+        let mut resolved = std::collections::HashMap::new();
+        let mut deferred = Vec::new();
+        let mut needed: Vec<ChunkPos> = Vec::new();
+        let mut seen: std::collections::HashSet<(i64, i64, i64)> = std::collections::HashSet::new();
+        let (mx, my, mz) = pos.min_voxel();
+        let n = CHUNK_SIZE_USIZE as i64;
+        for y in 0..CHUNK_SIZE_USIZE {
+            for z in 0..CHUNK_SIZE_USIZE {
+                for x in 0..CHUNK_SIZE_USIZE {
+                    if !chunk.get(x, y, z).is_solid() {
+                        continue;
+                    }
+                    for (normal, _) in FACES.iter() {
+                        let nx = x as i64 + normal[0];
+                        let ny = y as i64 + normal[1];
+                        let nz = z as i64 + normal[2];
+                        if (0..n).contains(&nx) && (0..n).contains(&ny) && (0..n).contains(&nz) {
+                            continue;
+                        }
+                        let key = (mx + nx, my + ny, mz + nz);
+                        // One coverage per unique world position (the
+                        // `entry().or_insert_with` memoization NeighborShell used).
+                        if !seen.insert(key) {
+                            continue;
+                        }
+                        let block = block_at(key.0, key.1, key.2);
+                        if !block_uses_contents(block) {
+                            resolved.insert(key, cover_frac(block, None));
+                            continue;
+                        }
+                        let cp = ChunkPos::from_world_voxel(key.0, key.1, key.2);
+                        let local = local_voxel(key.0, key.1, key.2);
+                        if !needed.contains(&cp) {
+                            needed.push(cp);
+                        }
+                        deferred.push((key, block, local, cp));
+                    }
+                }
+            }
+        }
+        Self {
+            resolved,
+            deferred,
+            needed,
+        }
+    }
+
+    /// Whether any deferred position needs a neighbour contents grid — false for
+    /// the S1 authority and any border of only air / full-height solid neighbours.
+    /// The production task mints its generator lazily (so it never needs to ask);
+    /// the guard test asserts this to prove its deferred path is non-vacuous.
+    #[cfg_attr(not(test), allow(dead_code))]
+    #[inline]
+    pub fn needs_contents(&self) -> bool {
+        !self.needed.is_empty()
+    }
+
+    /// Resolve the deferred neighbour contents (the off-thread half). `contents_of`
+    /// resolves one neighbour chunk's [`ContentsGrid`] — a per-task
+    /// `WorldGenerator::chunk_contents`, byte-identical to the shared generator's —
+    /// once per needed chunk. Produces exactly the [`NeighborShell`] the one-thread
+    /// [`NeighborShell::resolve`] would.
+    pub fn resolve(
+        self,
+        contents_of: &mut dyn FnMut(ChunkPos) -> Option<ContentsGrid>,
+    ) -> NeighborShell {
+        let mut cover = self.resolved;
+        let mut grids: std::collections::HashMap<ChunkPos, Option<ContentsGrid>> =
+            std::collections::HashMap::new();
+        for cp in self.needed {
+            grids.insert(cp, contents_of(cp));
+        }
+        for (key, block, (lx, ly, lz), cp) in self.deferred {
+            let grid = grids.get(&cp).and_then(|g| g.as_ref());
+            let c = grid.map(|g| g.get(lx, ly, lz));
+            cover.insert(key, cover_frac(block, c.as_ref()));
+        }
+        NeighborShell { cover }
     }
 }
 
@@ -821,6 +962,109 @@ mod tests {
         assert_eq!(direct.indices, via_shell.indices, "indices differ");
         // A meaningful mesh, not a degenerate empty one (the diff would pass
         // vacuously on two empty meshes).
+        assert!(direct.triangle_count() > 0, "test chunk meshed to nothing");
+    }
+
+    #[test]
+    fn plan_backed_mesh_equals_direct_mesh() {
+        // journal/0084: the near path now GATHERS a `NeighborShellPlan` on the
+        // frame thread (edit-aware block reads) and RESOLVES the neighbour
+        // contents off-thread. Meshing off the plan-resolved `NeighborShell` must
+        // be byte-identical to meshing against a unified live `neighbor_fill`
+        // closure that reads the same block + contents. Exercises all three plan
+        // paths: a non-solid neighbour (air — resolved on gather), a full-height
+        // solid with no contents (resolved on gather), and a contents-bearing
+        // neighbour (deferred, resolved via `contents_of`). If `gather`/`resolve`
+        // and `mesh_chunk` ever fell out of lockstep on which positions get
+        // queried, or split block-vs-contents differently, this diff would fire.
+        let pos = ChunkPos::new(2, -1, 3);
+        let mut chunk = Chunk::new();
+        let mut dense = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+        let last = CHUNK_SIZE_USIZE - 1;
+        for (x, y, z) in [
+            (0, 4, 4),
+            (last, 4, 4),
+            (4, 0, 4),
+            (4, last, 4),
+            (4, 4, 0),
+            (4, 4, last),
+            (0, 0, 0),
+            (last, last, last),
+            (10, 10, 10),
+        ] {
+            chunk.set(x, y, z, Block::Sandstone);
+            dense[Chunk::index(x, y, z)] =
+                VoxelContents::debris_only(&[MaterialId::SANDSTONE; 5]).unwrap();
+        }
+        let grid = ContentsGrid::from_dense(&dense);
+
+        // Neighbour block by world position — spread so this chunk's border
+        // neighbours (whose coords cluster) hit all three: air / full solid /
+        // contents-bearing.
+        let block_at = |_x: i64, _y: i64, z: i64| -> Block {
+            match z.rem_euclid(3) {
+                0 => Block::Air,       // not solid: resolved on gather, cover 0
+                1 => Block::Stone,     // full solid, no contents: resolved, cover 1
+                _ => Block::Sandstone, // deferred: needs the neighbour's contents
+            }
+        };
+        // Neighbour contents grids, varied loose height per voxel so the contents
+        // path drives partial coverage (not a constant).
+        let mut contents_of = |cp: ChunkPos| -> Option<ContentsGrid> {
+            let (mx, my, mz) = cp.min_voxel();
+            let mut dense = vec![VoxelContents::EMPTY; CHUNK_VOLUME];
+            for ly in 0..CHUNK_SIZE_USIZE {
+                for lz in 0..CHUNK_SIZE_USIZE {
+                    for lx in 0..CHUNK_SIZE_USIZE {
+                        let sum = mx + lx as i64 + my + ly as i64 + mz + lz as i64;
+                        let k = 1 + sum.rem_euclid(7) as usize;
+                        dense[Chunk::index(lx, ly, lz)] =
+                            VoxelContents::debris_only(&vec![MaterialId::SANDSTONE; k]).unwrap();
+                    }
+                }
+            }
+            Some(ContentsGrid::from_dense(&dense))
+        };
+
+        // The unified reference `neighbor_fill` (block + contents in one closure),
+        // exactly the split `NeighborFill::fill` makes on the live authority.
+        let neighbor = |x: i64, y: i64, z: i64| -> f32 {
+            let block = block_at(x, y, z);
+            if !block_uses_contents(block) {
+                return cover_frac(block, None);
+            }
+            let cp = ChunkPos::from_world_voxel(x, y, z);
+            let (lx, ly, lz) = local_voxel(x, y, z);
+            let c = contents_of(cp).map(|g| g.get(lx, ly, lz));
+            cover_frac(block, c.as_ref())
+        };
+
+        let direct = mesh_chunk(&chunk, pos, 0.9, &neighbor, Some(&grid));
+
+        let plan = NeighborShellPlan::gather(&chunk, pos, &mut |x, y, z| block_at(x, y, z));
+        assert!(
+            plan.needs_contents(),
+            "the deferred-contents path must be exercised"
+        );
+        let shell = plan.resolve(&mut contents_of);
+        let via_plan = mesh_chunk(
+            &chunk,
+            pos,
+            0.9,
+            &|x, y, z| shell.cover(x, y, z),
+            Some(&grid),
+        );
+
+        assert_eq!(direct.positions, via_plan.positions, "positions differ");
+        assert_eq!(direct.normals, via_plan.normals, "normals differ");
+        assert_eq!(direct.colors, via_plan.colors, "colors differ");
+        assert_eq!(direct.uvs, via_plan.uvs, "uvs differ");
+        assert_eq!(direct.mat_layers, via_plan.mat_layers, "mat_layers differ");
+        assert_eq!(
+            direct.mat_weights, via_plan.mat_weights,
+            "mat_weights differ"
+        );
+        assert_eq!(direct.indices, via_plan.indices, "indices differ");
         assert!(direct.triangle_count() > 0, "test chunk meshed to nothing");
     }
 
