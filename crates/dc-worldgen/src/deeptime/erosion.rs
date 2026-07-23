@@ -74,6 +74,7 @@ use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
 use super::lithology::{self, Agent, Litho};
 use super::providers::WaveCell;
 use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, Eolian};
+use super::weather_behavior;
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
 const EPS: f64 = 0.001;
@@ -255,56 +256,18 @@ fn diffuse_scale_cell(
     if out > h && out > 0.0 { h / out } else { 1.0 }
 }
 
-/// Subaerial bedrock→regolith weathering for one cell (cover-tapered), scaled by
-/// `rate_mult` — the **product of the two modifier layers**, the biotic
-/// weathering multiplier (S10 `wmult`) and the lithologic susceptibility. When
-/// both layers are off that product is exactly `1.0` and this is bit-identical
-/// to the pre-S10 rate. Land plants accelerate chemical weathering several-fold
-/// (ecology.md § 1).
-///
-/// **This is the rate-limiting phase on hillslopes, which is why it must be
-/// coupled** (journal/0029). Hillslope diffusion is flux-limited by the regolith
-/// actually available, so on any real slope it exports everything there is and
-/// the landscape's lowering rate collapses to the rate bedrock is *converted*
-/// into regolith. Coupling incision and entrainment alone left the world
-/// statistically unchanged, because on the majority of land neither term is what
-/// sets the pace.
-///
-/// **Composition order** (fixed, and load-bearing for byte-identity since f64
-/// multiplication is not associative): the modifier layers combine with each
-/// other first — `rate_mult = wmult × litho_sus × frost`, biology on the left,
-/// the periglacial frost multiplier on the right (journal/0034) — and the product
-/// then scales the base rate before the cover taper: `weathering × rate_mult ×
-/// taper`. With lithology and frost off, `wmult × 1.0 × 1.0 == wmult` exactly, so
-/// the S10 expression is reproduced bit for bit. Frost is the second in-place
-/// weathering *agent*: earlier the sum over agents had one mechanical term, now
-/// freeze–thaw adds a temperature-gated term to the same phase (the karst story
-/// will add a third, chemical, term here without a rewrite).
-///
-/// **What the lithic factor will mean when there is more than one agent.**
-/// In-place weathering is not one process; it is the sum of every agent's attack
-/// on rock that has not moved yet. Today that sum has exactly one term, the
-/// mechanical one, so the factor is the abrasion susceptibility. When the
-/// dissolution agent lands this becomes a sum over agents — and a limestone will
-/// weather *fast* through the chemical term while resisting the mechanical one,
-/// which is the karst story arriving without anything here being rewritten.
-#[inline]
-fn weather_cell(
-    r: &mut f64,
-    h: &mut f64,
-    dh: &mut f64,
-    sea: f64,
-    weathering: f64,
-    h_star: f64,
-    rate_mult: f64,
-) {
-    if *r + *h > sea {
-        let wth = weathering * rate_mult * (-*h / h_star).exp();
-        *r -= wth;
-        *h += wth;
-        *dh += wth;
-    }
-}
+// The per-cell weathering kernel now lives in the north-star behavior shape
+// (`weather_behavior::weather_one_cell` / `WeatheringPass`, S16). The domain
+// narrative that used to sit here — **why it is the rate-limiting phase on
+// hillslopes** (journal/0029: diffusion is flux-limited by the regolith actually
+// available, so the landscape's lowering rate collapses to the rate bedrock is
+// *converted* to regolith, which is why weathering had to be coupled at all),
+// and **why the factor is a sum/product over agents** (in-place weathering is not
+// one process; today the mechanical/abrasion term plus the periglacial frost
+// term, and the day the dissolution agent lands a limestone weathers *fast*
+// through the chemical term while resisting the mechanical one — the karst story
+// arriving without a rewrite) — carries over unchanged; the composition order is
+// pinned in `BedrockWeather::weather_rate`.
 
 /// The biotic weathering multiplier at cell `i`: `1.0` when the biotic layer is
 /// off (empty slice), so the abiotic weathering rate is byte-identical.
@@ -1180,6 +1143,14 @@ impl Erosion {
         let bio = &grid.bio_weather;
         let sus = &self.sus_flow;
         let frost = &self.frost;
+        // **S16: routed through the north-star weathering behavior shape.** Each
+        // cell builds a `WeatherCtx` view over the height adapter and runs the
+        // `WeatheringPass`; `weather_one_cell` is byte-identical to the old
+        // `weather_cell` by construction — same operands, same f64 grouping
+        // (`base × ((biotic × weatherability) × frost) × taper`), same
+        // `R -= q; H += q; dH += q` transfer (docs/spikes/S16). The rate factors
+        // are surfaced by name: `wmult` = biotic, the blended `sus` =
+        // weatherability, `frost` = the periglacial agent multiplier.
         if parallel {
             grid.r
                 .par_iter_mut()
@@ -1187,14 +1158,16 @@ impl Erosion {
                 .zip(dh.par_iter_mut())
                 .enumerate()
                 .for_each(|(i, ((r, h), d))| {
-                    weather_cell(
+                    weather_behavior::weather_one_cell(
                         r,
                         h,
                         d,
                         sea,
                         weathering,
                         h_star,
-                        wmult_at(bio, i) * sus_at(sus, i) * frost_at(frost, i),
+                        wmult_at(bio, i),
+                        sus_at(sus, i),
+                        frost_at(frost, i),
                     );
                 });
         } else {
@@ -1205,14 +1178,16 @@ impl Erosion {
                 .zip(dh.iter_mut())
                 .enumerate()
             {
-                weather_cell(
+                weather_behavior::weather_one_cell(
                     r,
                     h,
                     d,
                     sea,
                     weathering,
                     h_star,
-                    wmult_at(bio, i) * sus_at(sus, i) * frost_at(frost, i),
+                    wmult_at(bio, i),
+                    sus_at(sus, i),
+                    frost_at(frost, i),
                 );
             }
         }

@@ -43,6 +43,43 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   test gate, `Compiling dc-client` confirmed from this worktree, 118 dc-client tests
   pass (0 failed).
 
+- 2026-07-23 — **S16: weathering wears the north-star behavior shape, byte-for-byte**
+  (journal/0085, `docs/spikes/S16-weathering-behavior-shape-results.md`; background
+  spike agent, worktree for the integrator; the make-or-break de-risk of the
+  material-behavior model, north-star de-risk item (2)'s sibling — a real behavior,
+  not the fires proxy). The subaerial bedrock→regolith **weathering** conversion
+  (`erosion::weather`) reformulated onto the ratified **Pass / Material / ctx /
+  Transform** shape over the **thin ctx-adapter-over-heights** (Fork 2, ratified):
+  a pass declaring `{reads, writes}`, a *pure* `BedrockWeather` behavior
+  (`weather_rate` / `weather → Transform`), and a `WeatherCtx` capability whose read
+  side is the SDK surface and whose `apply` (the R→H transfer) is pass-owned —
+  purity enforced *structurally* (the behavior holds a `&WeatherCtx` with no write
+  path). **Byte-identity VERDICT: goldens UNMOVED** (`GOLDEN_SURFACE
+  0x176D_40F1_1CCB_006A`, `GOLDEN_RECORD 0xC9C6_D6F6_E908_9653`;
+  `providers_golden::the_production_world_still_hashes_to_the_pre_slice_goldens`
+  ok). **`form_change(Structural→Loose)` maps cleanly onto `R -= q; H += q; dH += q`
+  with ZERO new deep state** — the transfer is a clean *view* over the height
+  stocks; keepable. **Where it strained (the diagnostic, both reported not faked):**
+  (1) the height tier has no single outcropping material — the rate is a
+  share-weighted *blend* over the near-surface window, so `self.weatherability`
+  can't be the byte-identical source and the `materials_with(Weather)` loop
+  degenerates to one synthetic body; (2) weathering is a sum over *agents* — the
+  two-factor `base × (biotic × weatherability) × taper` sketch had to grow the
+  periglacial **frost** factor (`× frost`) to stay bit-exact. Both localize to one
+  ctx method + one missing capability, and **both are the deep-cell material
+  inventory question already coupled to Crux 1** — the spike named the seam, didn't
+  invent state to hide it. dc-core gains a `weatherability` `MaterialProps` axis
+  (distinct from mechanical `smash`, like `solubility` — avoids the
+  one-number-erodibility trap; ordered soft→hard, reference clastic pinned at 1.0,
+  pinned to agree in ordering with the abrasion proxy: authority, not summary).
+  Gates green on the changed crates (dc-core + dc-worldgen): fmt `--all --check`,
+  clippy `--all-targets --release -D warnings`, tests `--release` (goldens +
+  4 new shape tests + dc-core `weatherability_orders_soft_over_hard_with_the_reference_at_one`),
+  every `Compiling`/`Checking dc-core`/`dc-worldgen` line verified from this
+  worktree. Write-set dc-worldgen + dc-core only; dc-client untouched (concurrent
+  agent). **Recommendation: KEEPABLE shape, one seam (per-cell material inventory)
+  left open.**
+
 - 2026-07-23 — **The render-first wedge was already driven — a falsified premise,
   a guard instead of a deletion** (journal/0082; background implementation agent,
   worktree for the integrator; step 1 of the north star / block↔material collapse,

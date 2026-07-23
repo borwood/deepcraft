@@ -223,6 +223,33 @@ pub struct MaterialProps {
     /// dissolution agent reads it through
     /// `dc_worldgen::deeptime::lithology::Agent::Dissolution`.
     pub solubility: f32,
+    /// **Bedrock-weathering susceptibility** — how readily this material, when it
+    /// outcrops as bedrock, is converted *in place* to loose regolith (the
+    /// subaerial `Structural → Loose` form change the deep-time weathering pass
+    /// performs). Expressed relative to the reference fine clastic (mudstone
+    /// `= 1.0`); higher weathers faster, lower resists.
+    ///
+    /// This is the property the north-star weathering **behavior** reads
+    /// (`weather_rate = base × (biotic × weatherability) × cover_taper`,
+    /// docs/design/north-star.md § Materials; the S16 spike). It is **a distinct
+    /// axis, not a restatement of mechanical extraction resistance**, for the same
+    /// reason `solubility` is: competence and weatherability are independent
+    /// properties of a rock. A fresh basalt is mechanically tough (hard to *dig*)
+    /// yet chemically rots to clay readily; a well-cemented sandstone caprock
+    /// stands over a softer mudstone precisely because it *weathers* slower, not
+    /// because it is harder to smash. One number cannot hold both, which is the
+    /// same trap `lithology.rs` documents for a single "erodibility".
+    ///
+    /// **Today the deep-time rate is driven by the mechanical *abrasion* axis**
+    /// (`lithology::Agent::Abrasion`, derived from `smash`) as a stand-in — the
+    /// height-tier sim has no per-cell material to read this field off (it blends
+    /// a share vector over the near-surface window; the S16 diagnostic). So this
+    /// axis and that abrasion proxy are pinned to **agree in ordering**
+    /// (`dc-worldgen` `weatherability_ordering_agrees_with_the_abrasion_proxy`)
+    /// until the deep-cell material inventory (Crux 1) lets the behavior read the
+    /// field per cell directly. It is the authority; the abrasion blend is its
+    /// summary.
+    pub weatherability: f64,
 }
 
 impl MaterialProps {
@@ -237,6 +264,7 @@ impl MaterialProps {
 const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     MaterialProps {
         name: "sand",
+        weatherability: 1.0,
         albedo: [0.80, 0.72, 0.52],
         density_kg_m3: 1600.0,
         grain_size_mm: 0.5,
@@ -248,6 +276,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "gravel",
+        weatherability: 1.0,
         albedo: [0.50, 0.48, 0.45],
         density_kg_m3: 1800.0,
         grain_size_mm: 20.0,
@@ -259,6 +288,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "snow",
+        weatherability: 1.0,
         albedo: [0.92, 0.94, 0.98],
         density_kg_m3: 300.0,
         grain_size_mm: 1.0,
@@ -270,6 +300,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "leaf-litter",
+        weatherability: 1.0,
         albedo: [0.40, 0.30, 0.14],
         density_kg_m3: 150.0,
         grain_size_mm: 25.0,
@@ -281,6 +312,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "clay",
+        weatherability: 1.0,
         albedo: [0.62, 0.48, 0.38],
         density_kg_m3: 1750.0,
         grain_size_mm: 0.002,
@@ -292,6 +324,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "silt",
+        weatherability: 1.0,
         albedo: [0.58, 0.50, 0.38],
         density_kg_m3: 1500.0,
         grain_size_mm: 0.02,
@@ -303,6 +336,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "potsherd",
+        weatherability: 1.0,
         albedo: [0.60, 0.34, 0.24],
         density_kg_m3: 1900.0,
         grain_size_mm: 40.0,
@@ -314,6 +348,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "knapping-debris",
+        weatherability: 1.0,
         albedo: [0.42, 0.42, 0.46],
         density_kg_m3: 2300.0,
         grain_size_mm: 15.0,
@@ -325,6 +360,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "ash",
+        weatherability: 1.0,
         albedo: [0.32, 0.31, 0.30],
         density_kg_m3: 700.0,
         grain_size_mm: 0.05,
@@ -336,6 +372,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "loam",
+        weatherability: 1.0,
         albedo: [0.36, 0.26, 0.17],
         density_kg_m3: 1300.0,
         grain_size_mm: 0.1,
@@ -347,6 +384,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "scree",
+        weatherability: 1.0,
         albedo: [0.48, 0.46, 0.44],
         density_kg_m3: 2000.0,
         grain_size_mm: 100.0,
@@ -358,6 +396,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "bone",
+        weatherability: 1.0,
         albedo: [0.86, 0.82, 0.70],
         density_kg_m3: 1100.0,
         grain_size_mm: 60.0,
@@ -369,6 +408,9 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "mudstone",
+        // Reference fine clastic — the deep-time weathering rate is expressed
+        // relative to this, so it is exactly 1.0 (mirrors `REFERENCE_LITHO`).
+        weatherability: 1.0,
         albedo: [0.46, 0.26, 0.20],
         density_kg_m3: 2400.0,
         grain_size_mm: 0.004,
@@ -380,6 +422,9 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "sandstone",
+        // Cemented coarse clastic — the classic caprock: stands proud because it
+        // weathers slower than the mudstone below it.
+        weatherability: 0.7,
         albedo: [0.76, 0.66, 0.44],
         density_kg_m3: 2350.0,
         grain_size_mm: 0.3,
@@ -391,6 +436,9 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "granite",
+        // Basement — the most weathering-resistant thing in the world, the reason
+        // stripped cratons stand.
+        weatherability: 0.35,
         albedo: [0.66, 0.56, 0.58],
         density_kg_m3: 2700.0,
         grain_size_mm: 3.0,
@@ -402,6 +450,9 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "basalt",
+        // Mechanically tough yet chemically rots to clay readily — the independence
+        // of weatherability from smash competence, stated in one number.
+        weatherability: 0.4,
         albedo: [0.14, 0.14, 0.16],
         density_kg_m3: 2900.0,
         grain_size_mm: 0.05,
@@ -413,6 +464,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "gold-dust",
+        weatherability: 1.0,
         albedo: [0.80, 0.66, 0.28],
         density_kg_m3: 16000.0,
         grain_size_mm: 0.8,
@@ -425,6 +477,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     // --- 3d roster-proof widening ---
     MaterialProps {
         name: "siltstone",
+        weatherability: 0.9,
         albedo: [0.52, 0.47, 0.40],
         density_kg_m3: 2300.0,
         grain_size_mm: 0.02,
@@ -436,6 +489,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "conglomerate",
+        weatherability: 0.6,
         albedo: [0.60, 0.52, 0.44],
         density_kg_m3: 2500.0,
         grain_size_mm: 8.0,
@@ -447,6 +501,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "diorite",
+        weatherability: 0.35,
         albedo: [0.55, 0.55, 0.57],
         density_kg_m3: 2800.0,
         grain_size_mm: 2.0,
@@ -458,6 +513,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "andesite",
+        weatherability: 0.4,
         albedo: [0.42, 0.40, 0.40],
         density_kg_m3: 2650.0,
         grain_size_mm: 0.08,
@@ -469,6 +525,8 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "olivine",
+        // Mafic, weathers readily (the first silicate to go in a soil profile).
+        weatherability: 0.55,
         albedo: [0.42, 0.52, 0.28],
         density_kg_m3: 3300.0,
         grain_size_mm: 1.5,
@@ -486,6 +544,8 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     // its organic fraction.
     MaterialProps {
         name: "peat",
+        // The softest thing in the world — weathers fastest of the roster.
+        weatherability: 3.0,
         albedo: [0.24, 0.17, 0.11],
         density_kg_m3: 400.0,
         grain_size_mm: 5.0,
@@ -497,6 +557,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "coal",
+        weatherability: 1.6,
         albedo: [0.07, 0.065, 0.06],
         density_kg_m3: 1350.0,
         grain_size_mm: 0.05,
@@ -508,6 +569,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     },
     MaterialProps {
         name: "carbonaceous-mudstone",
+        weatherability: 1.05,
         albedo: [0.21, 0.18, 0.15],
         density_kg_m3: 2200.0,
         grain_size_mm: 0.004,
@@ -526,6 +588,7 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
     // why terra preta holds nutrients.
     MaterialProps {
         name: "charcoal",
+        weatherability: 2.5,
         albedo: [0.045, 0.042, 0.04],
         density_kg_m3: 350.0,
         grain_size_mm: 2.0,
@@ -578,6 +641,11 @@ mod tests {
             assert!((0.0..=1.0).contains(&p.permeability), "{}", p.name);
             assert!((0.0..=1.0).contains(&p.insulation), "{}", p.name);
             assert!((0.0..=1.0).contains(&p.solubility), "{}", p.name);
+            assert!(
+                p.weatherability > 0.0 && p.weatherability.is_finite(),
+                "{}",
+                p.name
+            );
             for c in p.albedo {
                 assert!((0.0..=1.0).contains(&c), "{} albedo {c}", p.name);
             }
@@ -602,6 +670,19 @@ mod tests {
                 m.props().name
             );
         }
+    }
+
+    #[test]
+    fn weatherability_orders_soft_over_hard_with_the_reference_at_one() {
+        // The reference fine clastic anchors the axis at 1.0 (the deep-time rate
+        // is expressed relative to it), and the ordering runs soft → hard: peat
+        // rots fastest, granite basement resists most.
+        assert_eq!(MaterialId::MUDSTONE.props().weatherability, 1.0);
+        let w = |m: MaterialId| m.props().weatherability;
+        assert!(w(MaterialId::PEAT) > w(MaterialId::COAL));
+        assert!(w(MaterialId::COAL) > w(MaterialId::MUDSTONE));
+        assert!(w(MaterialId::MUDSTONE) > w(MaterialId::SANDSTONE));
+        assert!(w(MaterialId::SANDSTONE) > w(MaterialId::GRANITE));
     }
 
     #[test]
