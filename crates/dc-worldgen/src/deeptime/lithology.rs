@@ -75,6 +75,7 @@
 //! Likewise the split between loose and lithified material is a distinction
 //! [`Litho`] can grow a variant for; nothing here assumes a lithology is rock.
 
+use dc_core::coarse::ShareVec;
 use dc_core::materials::{DamageType, MaterialId};
 
 use super::recorder::{Biofacies, DepEnv, DepTag, EnergyBand};
@@ -535,15 +536,28 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
 /// the verdict — is what the heir must supply, so the blended rate field dips with
 /// the beds too. It is the identity of the
 /// [`Providers::outcrop_shares`](super::providers::Providers::outcrop_shares) slot.
-pub fn exposed_shares(units: &[super::recorder::DepUnit]) -> [f64; Litho::COUNT] {
+pub fn exposed_shares(units: &[super::recorder::DepUnit]) -> WindowShares {
     // Divide (not multiply by a reciprocal): the accumulator of a uniform window is
     // bit-identical to `OUTCROP_DOMINANCE_WINDOW_M`, and `x / x == 1.0` exactly in
     // IEEE-754 — so a single-lithology window gets share exactly `1.0` and
     // [`blend_susceptibility`] reproduces the argmax lookup bit for bit. `w * (1/w)`
     // does not carry that guarantee.
     let (acc, _) = window_walk(units);
-    acc.map(|a| a / OUTCROP_DOMINANCE_WINDOW_M)
+    ShareVec::from_shares(acc.map(|a| a / OUTCROP_DOMINANCE_WINDOW_M))
 }
+
+/// The near-surface window's per-[`Litho`] share vector, as the headless
+/// [`ShareVec`](dc_core::coarse::ShareVec) the `CoarseField` extraction owns.
+///
+/// This is the **first concrete `Interpolable` `T`** the boundary type was
+/// extracted from (journal/0075, audit site A1): a small fixed-width, `Copy`
+/// share vector whose `blend` must be exact at the identities (a uniform window →
+/// that rock's rate bit-for-bit). Erosion reads it through the `outcrop_shares`
+/// seam and reduces it with [`blend_susceptibility`]; the verdict
+/// [`exposed_litho`] is its argmax. `[f64; Litho::COUNT]` cannot implement a
+/// dc-core trait (orphan rule), so the array becomes this newtype — which is
+/// exactly how the quantity moves behind the type.
+pub type WindowShares = ShareVec<{ Litho::COUNT }>;
 
 /// The lithology holding the greatest share — the outcrop verdict recovered from a
 /// share vector. Ties break by [`Litho`] table order (index), which differs from
@@ -552,17 +566,12 @@ pub fn exposed_shares(units: &[super::recorder::DepUnit]) -> [f64; Litho::COUNT]
 /// an already-computed share vector is wanted (e.g. the debug `exposed()` probe),
 /// not where the byte-exact verdict is required — for that, call [`exposed_litho`]
 /// or the [`outcrop_at`](super::providers::Providers::outcrop_at) seam.
-pub fn dominant_litho(shares: &[f64; Litho::COUNT]) -> Litho {
-    let mut best = Litho::ALL[0];
-    let mut best_v = shares[best.index()];
-    for l in Litho::ALL {
-        let v = shares[l.index()];
-        if v > best_v {
-            best_v = v;
-            best = l;
-        }
-    }
-    best
+pub fn dominant_litho(shares: &WindowShares) -> Litho {
+    // `ShareVec::argmax` is the same strict first-maximum over index order this
+    // function used to inline, so the verdict is bit-identical; the deficit-filled
+    // window always has positive total, so `argmax` is never `None` in production
+    // (an all-zero vector maps to the first lithology, matching the old start).
+    Litho::ALL[shares.argmax().unwrap_or(0)]
 }
 
 /// **Blend a per-[`Litho`] susceptibility table by a window's shares** — the
@@ -596,20 +605,14 @@ pub fn dominant_litho(shares: &[f64; Litho::COUNT]) -> Litho {
 /// combination), so the rate field has no step — see
 /// `tests/outcrop_blend.rs::the_rate_is_continuous_across_the_old_flip`.
 #[inline]
-pub fn blend_susceptibility(shares: &[f64; Litho::COUNT], sus_tab: &[f64; Litho::COUNT]) -> f64 {
-    // The anchor is the dominant lithology's rate (argmax over shares, first-max on
-    // ties — the same choice `dominant_litho` makes).
-    let d = shares.iter().enumerate().fold(
-        0usize,
-        |best, (i, &s)| if s > shares[best] { i } else { best },
-    );
-    let anchor = sus_tab[d];
-    // Fold in index order: bit-for-bit `Σ shares[i]·(tab[i] − anchor)` added onto
-    // the anchor.
-    sus_tab
-        .iter()
-        .zip(shares.iter())
-        .fold(anchor, |acc, (&t, &s)| acc + s * (t - anchor))
+pub fn blend_susceptibility(shares: &WindowShares, sus_tab: &[f64; Litho::COUNT]) -> f64 {
+    // Delegate to the anchored blend the `CoarseField` extraction owns
+    // ([`ShareVec::blend_table`] → `f64::blend`): the shares are the weights, the
+    // table the samples, argmax-anchored so a uniform window is `tab[d]` bit for
+    // bit. This is the *witness* the `Interpolable` trait was extracted from
+    // (journal/0075) — the operation is byte-identical to the dot this function
+    // used to inline (same operands, same index-order fold).
+    shares.blend_table(sus_tab)
 }
 
 /// Per-lithology rate multipliers for one agent, as a dense table indexed by

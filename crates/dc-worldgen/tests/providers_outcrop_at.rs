@@ -1,10 +1,23 @@
-//! **Slot `outcrop_at`** — falsifiers for the outcrop seam (journal/0060) and
-//! its thickness-dominance identity (journal/0068).
+//! **The outcrop verdict** — falsifiers for the outcrop seam (journal/0060) and
+//! its thickness-dominance rule (journal/0068).
+//!
+//! Since journal/0075 `outcrop_at` is no longer a slot with its own identity: the
+//! pinned pair collapsed and the verdict is a **derived accessor**,
+//! `argmax ∘ outcrop_shares` (`Providers::outcrop_at`). These falsifiers now
+//! exercise that derived verdict on the default (identity) provider set — where
+//! `outcrop_shares`'s identity is the per-`Litho` window shares — so they assert
+//! the same thickness-dominance behaviour one layer down.
 
-use dc_worldgen::deeptime::providers::identity_outcrop_at;
+use dc_worldgen::deeptime::providers::Providers;
 use dc_worldgen::deeptime::{
     Aridity, Biofacies, DepEnv, DepTag, DepUnit, EnergyBand, Eolian, Litho, litho_of_tag,
 };
+
+/// The derived outcrop verdict on the identity provider set — `argmax` of the
+/// near-surface window shares.
+fn identity_outcrop_at(units: &[DepUnit]) -> Litho {
+    Providers::default().outcrop_at(units)
+}
 
 /// The recorder logs units bottom-up: `units[0]` is deepest, the last is the
 /// surface. So a "lamina atop mud" record is `[mud, lamina]`.

@@ -112,11 +112,21 @@ a different joint), making the transition a statistical gradient rather than
 a line. Verdict-smoothing is never the fix.
 
 **Ratified end-state (user, same day): solved by construction, approximately
-once.** A boundary type at the sim→expression seam (working name
-`CoarseField<T>`) whose fine-scale API offers exactly the two legal moves —
-interpolated `sample` and seed-addressed `sample_dithered` — and never the
+once. — EXTRACTED 2026-07-22 (journal/0075).** A boundary type at the
+sim→expression seam (`dc_core::coarse::CoarseField<T>`) whose fine-scale API
+offers exactly the two legal moves — interpolated `sample` (`T: Interpolable`)
+and seed-addressed `sample_dithered` (share-vector fields) — and never the
 raw per-cell read, so the square is *inexpressible* downstream (the S-6 /
-`Option<fn>` pattern: structural, not disciplinary). Route per seam-first
+`Option<fn>` pattern: structural, not disciplinary; proven by a `compile_fail`
+doc-test that the raw read does not type-check). The type carries the two
+teachers' laws: the anchored `Interpolable::blend` exact at identities (A1),
+the inverse-CDF `ShareVec::draw` + a `summarize` coarse read + a `DitherSource`
+source axis + the cake-law boundary membership dither (B1 + the cake
+observation). A1 migrated behind it byte-identically, and the pinned pair
+`outcrop_at`+`outcrop_shares` **collapsed to one slot** — the verdict is now a
+derived `argmax ∘ outcrop_shares`, the extraction's own law (*categorical
+answers are argmax OF the sample, never a stored field*) making the second slot
+redundant. Route per seam-first
 practice #6: shape-teacher conversions first, then freeze the type and
 migrate. **Shape-teacher #2 landed (B1 converted, journal/0073):
 `collapse.rs::surface_class` no longer returns the top-window plurality — it
@@ -324,6 +334,24 @@ boundary source-cell membership dither, and/or a CDF-corrected source retire
 both costs. Ratified by the user in-session with the observation attached:
 *"a lot better than before… the salient information is that the bilinear
 field we already use doesn't behave in a strictly satisfactory way."*
+
+> **Amendment flagged by the `CoarseField` extraction (2026-07-22, journal/0075,
+> corrections #39 — NEEDS RATIFICATION): the bias sign is the opposite of
+> "toward 50/50".**
+> Measured through the inverse-CDF draw in dc-core
+> (`white_noise_is_unbiased_but_coherent_amplifies_the_majority`), a middle-heavy
+> `u` gives `F(s) > s` for the class straddling the cumulative-½ point, so a
+> 2-class cell renders the **majority amplified and the minority
+> under-represented** — the mix is pushed *away* from 50/50, not toward it. The
+> coherent source therefore **sharpens** minority phases (compounding the cake
+> observation, not easing it), rather than "flattening mixes toward 50/50". The
+> minorities still *appear* (better than the plurality's zero — journal/0073's
+> cream specks are real), but at less than their true areal share. This does not
+> change the ratified decision to ship the coherent source (the far-mesh
+> argument stands); it corrects the *characterisation* of its cost, and
+> re-weights the heirs: the far-`summarize` register and/or a CDF-corrected
+> source are the honest fixes, and the boundary membership dither eases the
+> *perimeter* guillotine but not the *within-cell* under-representation.
 
 ---
 

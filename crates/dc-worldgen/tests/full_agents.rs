@@ -14,7 +14,9 @@
 //! coastal cells retreat. Numbers print under `--nocapture` and are quoted in the
 //! journal entry.
 
+use dc_core::coarse::ShareVec;
 use dc_worldgen::deeptime::climate::air_temp_c;
+use dc_worldgen::deeptime::lithology::WindowShares;
 use dc_worldgen::deeptime::{self, DeepConfig, DeepRun, DepUnit, Eolian, Litho, Providers};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -355,17 +357,17 @@ fn waves_cut_down_the_coastline() {
     // share vector is a uniform window, which the blend maps to exactly that
     // lithology's rate (argmax is the blend's limiting case), so this drives the
     // same soft/resistant contrast the verdict override used to.
-    let soft: fn(&[DepUnit]) -> [f64; Litho::COUNT] = |_| {
+    let soft: fn(&[DepUnit]) -> WindowShares = |_| {
         let mut s = [0.0f64; Litho::COUNT];
         s[Litho::ClasticFine.index()] = 1.0;
-        s
+        ShareVec::from_shares(s)
     };
-    let rock: fn(&[DepUnit]) -> [f64; Litho::COUNT] = |_| {
+    let rock: fn(&[DepUnit]) -> WindowShares = |_| {
         let mut s = [0.0f64; Litho::COUNT];
         s[Litho::Basement.index()] = 1.0;
-        s
+        ShareVec::from_shares(s)
     };
-    let wave_cfg = |o: fn(&[DepUnit]) -> [f64; Litho::COUNT]| DeepConfig {
+    let wave_cfg = |o: fn(&[DepUnit]) -> WindowShares| DeepConfig {
         full_agents: true,
         // Isolate wave from the other two agents.
         eolian_deflation: 0.0,

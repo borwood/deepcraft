@@ -1277,11 +1277,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   **NEEDS RATIFICATION**: the draw is the *coherent* bilinear field, not the
   audit's white noise — white noise doubled the far-tile mesh because the far
   field point-samples it, and the unbiased end-state is deferred to the type's
-  share-summary read) → **CoarseField<T> extraction** from what the two
-  shape-teachers taught
-  (cannot start before they land — the audit's own sequencing rule). User's
-  framing on the record: "there are things i'd rather do but this is
-  foundational."
+  share-summary read) → **CoarseField<T> — EXTRACTED 2026-07-22 (journal/0075).**
+  Built in dc-core (headless): `CoarseField<T>` + `Interpolable` (move A, anchored
+  blend exact at identities) + `ShareVec` (the quantity both moves read) +
+  `sample_dithered` (cake-law boundary membership dither) + `summarize` (coarse
+  read) + `DitherSource` (the source axis), with generic law-tests and a
+  `compile_fail` doc-test proving the raw per-cell read is inexpressible. A1
+  migrated behind it **byte-identically** (goldens unmoved); the pinned pair
+  `outcrop_at`+`outcrop_shares` **consolidated to one slot** (verdict derived =
+  `argmax ∘ outcrop_shares`). Boundary-dither + summarize falsifiers pass;
+  cake-law adoption in collapse.rs/far.rs is follow-on for those owners, and the
+  node-payload sampling vocabulary adopts the type in a follow-on
+  (octree-substrate.md § 3). **NEEDS RATIFICATION (a finding):** the coherent
+  source's aggregate bias is *majority-amplifying (away from 50/50)*, the opposite
+  sign of carve-out 1's "toward-50/50" characterisation — it sharpens minority
+  phases rather than flattening them (see spines § 4 amendment; Observed).
+  Audit shortlist: A1 EXTRACTED · B1 landed · A2 (rides A1's table) / A3 / A4 / B3
+  / octree node = held for their owners. User's framing on the record: "there are
+  things i'd rather do but this is foundational."
 
 - **The octree substrate — DESIGN PASS OPENED, D1–D3 DECIDED** (2026-07-22,
   live session; `docs/design/octree-substrate.md`). The water.md leaning is

@@ -387,19 +387,27 @@ surface.
   does not close the gap — nothing dips yet — but it converts `lithology.rs`'s
   prose promise ("only the one function changes") into a compile-checked seam.
 
-  **Since journal/0072 the socket is a PINNED PAIR** (audit site A1,
+  **Since journal/0072 the socket was a PINNED PAIR** (audit site A1,
   shape-teacher #1): erosion no longer reads the verdict for its *rates* — it
   reads `providers::Providers::outcrop_shares`, whose identity
   `identity_outcrop_shares` is `lithology::exposed_shares` (the per-`Litho`
   window shares), and blends the susceptibility table by share at all four sites
   (fluvial incision + creep, periglacial frost, eolian deflation, littoral
-  attack). `outcrop_at` (the verdict) is the argmax of the same shares — two
-  faces of one `window_walk`, one heir. **The deformation term must supply BOTH
-  as a pair** (dipped shares here, and the verdict as their argmax), or the rate
-  field and the outcrop map disagree about where a bed is — the same
-  retire-together discipline S-5's `COAL_ONSET_C`+identity precedent carries.
-  Ideal consolidation when the heir lands: supply `outcrop_shares` and reduce
-  `outcrop_at` to `argmax ∘ outcrop_shares`, collapsing the pair to one slot.
+  attack).
+
+  **CONSOLIDATED to one slot 2026-07-22 (journal/0075, the `CoarseField`
+  extraction).** The pair collapsed: `outcrop_at` is no longer an `Option<fn>`
+  slot with its own identity — it is a **derived accessor**,
+  `Providers::outcrop_at(units) = dominant_litho(outcrop_shares(units))` =
+  `argmax ∘ outcrop_shares`. This is the extraction's own law (*categorical
+  answers are the argmax OF the sample, never a stored field alongside it* —
+  S-3), which made the second slot redundant. There is now **one** slot to
+  supply (the quantity) and **one** heir socket; when the structural-deformation
+  term lands it supplies the dipped `outcrop_shares` and the verdict dips with
+  them automatically, because it *is* their argmax — the retire-together
+  discipline is now structural rather than a paired obligation. Byte-identical:
+  no generation consumer reads the verdict (erosion reads shares and takes its
+  own `dominant_litho`), so the collapse moved no goldens.
 
 ## Genesis (permanently legitimate — affirmed, not defects)
 

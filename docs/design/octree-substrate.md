@@ -93,6 +93,18 @@ A node's payload has three strata, each with a declared **reduction rule**
 (child → parent) and a declared **source** — every field derives from the
 authority or from the children's same field, never from a side channel (S-3).
 
+> **Fine-scale sampling vocabulary — adopts `CoarseField<T>` (follow-on).** A
+> node stratum read at a finer scale is either an interpolable reduction (move
+> A, deterministic agreement) or a categorical one that must be statistically
+> unbiased at the contact (move B, seeded) — the same two moves the S-4 boundary
+> type `dc_core::coarse::CoarseField<T>` extracted from the threshold-quantization
+> shape-teachers (journal/0075). The node payload's sampling contract *is* that
+> type: contents' categorical stratum is a `CoarseField<ShareVec<Class>>` (move B
+> + `summarize` for far-field statistical agreement), occupancy is a
+> `CoarseField<u16>` (move A). Wiring the strata behind it is a follow-on slice —
+> the type is built and law-tested; adoption here is deferred so it is not frozen
+> against a consumer whose numbers are not yet measured (§ 6 open questions).
+
 1. **Contents** *(exists)*: the paletted block chunk (S3 pyramid,
    `MajorityNonAir`) and the material chunk (`MixtureDownsampleRule`).
    Deterministic, cacheable, and already proven mutually consistent (material

@@ -15,6 +15,7 @@
 
 pub mod chunk;
 pub mod classify;
+pub mod coarse;
 pub mod collision;
 pub mod column;
 pub mod farfield;
