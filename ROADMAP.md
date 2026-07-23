@@ -1307,6 +1307,29 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## In flight
 
+- **THE NORTH STAR — the engine shape everything converges to (RATIFIED
+  2026-07-23; `docs/design/north-star.md`; now CLAUDE.md read-first item 0).**
+  A **native** engine whose core is only cell storage + a pass-runner + native
+  field-solvers + a stable API surface; materials (sheet + behavior slots +
+  parent-shadowing hierarchy + slug→assets — the `Providers` pattern dropped to
+  material level), their behavior, and the passes over them are **authored in a
+  uniform, self-declaring, compiler-validated shape and tuned by data**. Behavior
+  is code, tuning is data. **Plugin-first, closed-source-OK, untrusted-third-party
+  safe** via a tiered backend behind ONE authoring shape: native `abi_stable` for
+  trusted/first-party (incl. runtime), WASM sandbox for untrusted (gen-tier — the
+  two-clock reconciliation; the Minecraft-space one-better). The crossing
+  constraint (plain-data + handles, no rich Rust across the seam) taxes the SDK
+  *surface we design*, never the content author's expressiveness. Pursued
+  **evolutionarily** — the seam-first march IS the path (~70% embryonic in-tree:
+  pass graph, Providers, MaterialProps, transformation-axes, categories,
+  build_checked, octree, two-clock). **Compliance loop live: all design flows
+  through it, double-checked at plan/work/review, carve-outs through the user
+  (strategic companion to spines).** Narrative: journal/0081. **De-risk before
+  committing the arc (sequenced, not urgent):** (1) hierarchical material behavior
+  resolution prototyped on wood/charcoal `combust→`; (2) one existing pass (fires)
+  reformulated onto the Pass interface, byte-identical; (3) the ABI/WASM boundary
+  research spike (`abi_stable` vs `repr(C)` vs `wasmtime`) — locks the SDK shape.
+
 - **The block↔material collapse — DECIDED, one namespace (user, 2026-07-22
   late session; materials.md two new DECIDED entries)**. Block collapses
   into material + Air; no twin field is ever built (the block_twin slice as
@@ -1320,7 +1343,24 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   classify (dominant material's own identity), byte-identity where faces
   exist today; the Block-token consumer migration (storage palette,
   far-field span, solidity checks, mesher layer, player name) is the
-  long-tail arc. Journal entry owed at wrap (design pass).
+  long-tail arc.
+  **NOW FRAMED AS STEP 1 OF THE NORTH STAR** (2026-07-23): "materials are the
+  universal substance the API hangs off." **Cruxes RATIFIED (user, recon:
+  `docs/audits/` block-consumer inventory, journal/0081):** (a) **render-first
+  wedge** — delete `meshing.rs::block_layer`'s geology re-translation, route
+  `classify → material → atlas` (already material-keyed; byte-identical at the
+  pixel level; a proof win). (b) **Crux 1 — air is a peer:** redefine `Block` in
+  place to `enum { Air, Material(MaterialId) }`, keep the token for is_solid/==Air,
+  delete `block_twin`; niche-optimise `MaterialId` for a **1-byte atom** (64→32
+  KB/chunk, a storage/perf win — verify). (c) **Crux 2 — retire, do not enshrine:**
+  the four legacy S1 blocks (grass/dirt/stone/wood) and the `TerrainGen` path are
+  **retired**, not migrated to materials ("it already exists" is not a reason;
+  carve-outs kept for sentiment are the stumbling blocks the shape can't afford) —
+  verify no live fallback first, re-point it at the real worldgen in the same
+  slice. Order: render-first · redefine Block · drain solidity→occupancy · storage
+  atom · retire legacy · then categories-registrable. Sibling forks
+  (`block_uses_contents` trust gate; the render-edit-writes-materials question)
+  parked downstream of the atom. Journal 0081 written (design pass).
 
 - **The ratified sequence after the migration (user, 2026-07-22: "both
   revisions greenlit")**: **1. The perf window** — one dc-client cluster:

@@ -4,9 +4,20 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
 
 ## Read first
 
-0. **[`docs/spines.md`](docs/spines.md)** — the recurring **shapes** (S-1…S-8),
+0. **[`docs/design/north-star.md`](docs/design/north-star.md)** — the **engine
+   shape everything converges to** (ratified 2026-07-23): a native engine whose
+   core is cell storage + a pass-runner + native field-solvers + a stable API,
+   with materials, their behavior, and the passes over them **authored in a
+   uniform, self-declaring, compiler-validated shape and tuned by data** —
+   plugin-first, safely moddable by untrusted third parties (native `abi_stable`
+   for trusted, WASM sandbox for untrusted, **one authoring shape**). It is the
+   *destination*, pursued **evolutionarily** via seam-first conversions. **All
+   design flows through it; divergence is a loud plea, never silent** (§
+   Compliance). It is the strategic companion to spines — read both first.
+0b. **[`docs/spines.md`](docs/spines.md)** — the recurring **shapes** (S-1…S-8),
    the **anti-shapes** (A-1…A-6), and the index of **machinery that exists and
-   nothing calls**. Read it first: this project's characteristic failure is
+   nothing calls**. spines names the shapes of the code *as it is today*; the
+   north star names where it is *going*. This project's characteristic failure is
    re-inventing a mechanism *next to* the one it already built. **Work is
    justified against these shapes**; a deviation is loud, discussed in main
    session, ratified by the user, and recorded in its § 4. Update it in the
