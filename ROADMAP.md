@@ -2379,6 +2379,21 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **Async-offload accepted corner — an edit to a chunk in its first ~1–2
+  streaming frames meshes the PRE-edit snapshot** (journal/0083, ACCEPTED by the
+  user 2026-07-23; must remain VISIBLE). Self-healing: any later edit to that
+  chunk or a neighbour re-meshes it. Player edits on a just-appearing chunk are
+  rare, but the real exposure is **simulation/NPC edits that fire the instant a
+  chunk loads** — whose frequency is unknown until gameplay matures, and which
+  will be **extremely hard to notice after the fact** (user: "we can accept it but
+  we must know about it"). **Remedy is a DETECTION HOOK, not a doc note** (a note
+  is exactly what gets lost): instrument the edit path with a counter on the
+  perf/debug surface (journal/0080, the overlay heir) that fires when an edit
+  targets an in-flight mesh task — so the corner self-announces the moment
+  sim-editing begins, instead of being an invisible latent bug. Instrument-must-
+  see-the-question applied to a deferred correctness risk. **Owed: build the hook**
+  (small dc-client slice; sequence with or before the first sim-editing feature).
+
 - *(**Deep-cell-square surface-material frontiers checker the far field:
   RESOLVED** 2026-07-22, journal/0073 — the B1 shape-teacher. `surface_class`
   now dithers class membership from the top-window metre shares (S-4 move B), so
