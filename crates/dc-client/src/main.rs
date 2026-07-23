@@ -55,6 +55,7 @@ mod farpyramid;
 mod mcp;
 mod mcp_character;
 mod meshing;
+mod meshtasks;
 mod perf;
 mod physdemo;
 mod player;
