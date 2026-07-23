@@ -44,7 +44,7 @@ use dc_core::{
 };
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::fill::{ColumnFill, Plan, allocate, fill_draw, mixed_contents};
+use crate::fill::{ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents};
 use crate::geology::{
     StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member, interp_select_draw,
 };
@@ -213,16 +213,16 @@ pub struct ColumnRec {
     /// The ordered deposition log (geology strata passes). Empty where no
     /// pass deposited (ocean, wilds): the legacy soil band applies there.
     pub strata: StrataRec,
-    /// **The surface voxel's fill** (journal/0055), per voxel column: the member
-    /// the record skins this column with and how many eighths of the surface
-    /// voxel the ground actually occupies (`ceil((elev − h·0.9) / 0.9 · 8)`,
-    /// at least 1 — the top-of-column remainder, expressed at last).
-    ///
-    /// `None` where a fallback applies and the surface voxel carries no contents:
-    /// the border wilds, subaqueous columns, and columns with neither a record
-    /// nor an igneous province. Those are the remainder of the fill contract's
-    /// absent-contents exception, and the list only shrinks.
-    pub surface_fill: Vec<Option<(GeoMemberIdx, u8)>>,
+    /// **How many eighths of the surface voxel the ground occupies**, per voxel
+    /// column: `ceil((elev − h·0.9) / 0.9 · 8)`, at least 1 — the top-of-column
+    /// remainder (journal/0055). The surface voxel is the *top span* of
+    /// [`ColumnFill`] (`plan(1)`) expressed as a partial of this many eighths,
+    /// so it routes through the **same** fill machinery as every buried voxel
+    /// (journal/0074 — the surface-branch removal). 8 where the ground fills the
+    /// whole surface voxel. Meaningless where the column has no record top span
+    /// (border wilds, subaqueous, bare-province): there the surface voxel keeps
+    /// the year-zero fallback block ([`Self::surface`]) and carries no contents.
+    pub surface_eighths: Vec<u8>,
 }
 
 /// One evaluation of the shared surface kernel ([`WorldGenerator::surface_sample`]).
@@ -434,12 +434,19 @@ impl<'a> WorldGenerator<'a> {
                         // basement = stone. A mixed voxel's block is
                         // `classify(contents)` of the very contents the material
                         // path builds — one opinion per voxel, journal/0052.
+                        //
+                        // **`depth + 1`, not `depth`** (journal/0074): the record's
+                        // topmost span (`plan(1)`) is the *surface* voxel now, not
+                        // the voxel below it. `depth = h − vy` is 1 for the first
+                        // buried voxel, so it reads `plan(2)` = the record's second
+                        // span. The whole buried column shifts down one record span
+                        // to make room for the surface it now owns.
                         let depth = (h - vy) as u32;
-                        match fill.plan(depth) {
+                        match fill.plan(depth + 1) {
                             None => Block::Stone,
                             Some(Plan::Single(k)) => event_blocks[*k],
                             Some(Plan::Mixed(w)) => {
-                                classify(&self.mixed_at(&col.strata, w, vx, vy, vz))
+                                classify(&self.mixed_at(&col.strata, w, vx, vy, vz, 8))
                             }
                         }
                     };
@@ -497,11 +504,15 @@ impl<'a> WorldGenerator<'a> {
         let fill = ColumnFill::build(&col.strata, self.voxel_m);
         let mut dense = vec![MixtureId::EMPTY; CHUNK_VOLUME];
         let base_y = i64::from(pos.y) * 32;
-        // **The surface voxel carries contents now** (journal/0055), which
-        // shrinks the fill contract's absent-contents exception: it used to be
-        // skipped outright (`vy >= h`) and painted by a climate threshold.
+        // **The surface voxel is the record's top span** (journal/0074): the
+        // same `plan(1)` the block path resolves it from, expressed as the
+        // per-column partial. It used to be a parallel `surface_fill` painted by
+        // `surface_class` (the deep-record consult) — that path is gone from the
+        // near field and now lives only in the far summary. A column with no
+        // record top span keeps the year-zero fallback block and no contents,
+        // which is the shrinking absent-contents exception.
         {
-            let mut memo: HashMap<(GeoMemberIdx, u8), MixtureId> = HashMap::new();
+            let mut memo: HashMap<(usize, GeoMemberIdx, u8), MixtureId> = HashMap::new();
             for z in 0..32usize {
                 for x in 0..32usize {
                     let i = z * 32 + x;
@@ -510,18 +521,36 @@ impl<'a> WorldGenerator<'a> {
                     if !(0..32).contains(&y) {
                         continue;
                     }
-                    let Some(part) = col.surface_fill[i] else {
+                    let (vx, vz) = (cx * 32 + x as i64, cz * 32 + z as i64);
+                    // The surface voxel is `plan(1)` — the record's topmost span
+                    // (the buried column is shifted down one span to make room).
+                    let Some(plan) = fill.plan(1) else {
                         continue; // fallback column: no record to skin it with
                     };
-                    let id = *memo.entry(part).or_insert_with(|| {
-                        self.materials
-                            .intern(mixed_contents(&self.geology, &[part]))
-                    });
+                    let n = col.surface_eighths[i];
+                    // Memo key: `Single` interns per (event, dithered host, n);
+                    // `Mixed` is position-addressed and rarely repeats, so it is
+                    // keyed on a sentinel and simply re-interned (idempotent).
+                    let id = match plan {
+                        Plan::Single(k) => {
+                            let event = col.strata.events[*k];
+                            let host =
+                                dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                            *memo.entry((*k, host, n)).or_insert_with(|| {
+                                self.materials
+                                    .intern(mixed_contents(&self.geology, &[(host, n)]))
+                            })
+                        }
+                        Plan::Mixed(_) => {
+                            let c = self.surface_voxel_contents(&col.strata, plan, n, vx, vy, vz);
+                            self.materials.intern(c)
+                        }
+                    };
                     dense[Chunk::index(x, y as usize, z)] = id;
                 }
             }
         }
-        if fill.depth_count() > 0 {
+        if fill.depth_count() > 1 {
             // Memoize per (event, resolved host member): the boundary dither
             // re-selects the host member per voxel-column, so the intern key is
             // the pair, not the event alone (one intern per distinct mixture in
@@ -536,8 +565,10 @@ impl<'a> WorldGenerator<'a> {
                         if vy >= h {
                             continue; // air, and the surface voxel done above
                         }
+                        // `depth + 1`: the surface owns `plan(1)`, so the first
+                        // buried voxel reads `plan(2)` (journal/0074).
                         let depth = (h - vy) as u32;
-                        let id = match fill.plan(depth) {
+                        let id = match fill.plan(depth + 1) {
                             None => continue, // unrecorded basement
                             Some(Plan::Single(k)) => {
                                 let k = *k;
@@ -556,7 +587,7 @@ impl<'a> WorldGenerator<'a> {
                                 })
                             }
                             Some(Plan::Mixed(w)) => {
-                                let c = self.mixed_at(&col.strata, w, vx, vy, vz);
+                                let c = self.mixed_at(&col.strata, w, vx, vy, vz, 8);
                                 self.materials.intern(c)
                             }
                         };
@@ -580,7 +611,10 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// Contents of one **mixed** voxel: the addressed stochastic allocation of
-    /// eight eighths among the events overlapping its 0.9 m span.
+    /// `n` eighths among the events overlapping its span. `n == 8` for a full
+    /// buried voxel; a partial `n < 8` is the surface voxel's top-of-column
+    /// remainder (journal/0074), which shares this exact machinery — the whole
+    /// point of the surface-branch removal.
     ///
     /// **The canonical (undithered) member is used here, deliberately.** The
     /// per-voxel-column dither exists to walk a family contact off the chunk
@@ -599,10 +633,11 @@ impl<'a> WorldGenerator<'a> {
         vx: i64,
         vy: i64,
         vz: i64,
+        n: u8,
     ) -> VoxelContents {
         let u = fill_draw(self.seed, vx, vy, vz);
         let mut parts: Vec<(GeoMemberIdx, u8)> = Vec::with_capacity(weights.len() + 1);
-        for (k, n) in allocate(weights, u) {
+        for (k, cnt) in allocate_partial(weights, u, n) {
             let e = &strata.events[k];
             // A placer enrichment substitutes into its host's OWN eighths — the
             // same substitution `contents_for_event` does, scaled to whatever
@@ -611,16 +646,53 @@ impl<'a> WorldGenerator<'a> {
             // went to zero, is most of them) would pan no gold at all.
             match e.ore {
                 Some((ore, k8)) if k8 > 0 => {
-                    let g = k8.min(n);
-                    if n > g {
-                        parts.push((e.member, n - g));
+                    let g = k8.min(cnt);
+                    if cnt > g {
+                        parts.push((e.member, cnt - g));
                     }
                     parts.push((ore, g));
                 }
-                _ => parts.push((e.member, n)),
+                _ => parts.push((e.member, cnt)),
             }
         }
         mixed_contents(&self.geology, &parts)
+    }
+
+    /// The **surface voxel's contents**: the record's top span ([`ColumnFill`]
+    /// `plan(1)`) expressed as a partial of `n` eighths — the top-of-column
+    /// remainder (journal/0055), routed through the **same** fill machinery as
+    /// every buried voxel (journal/0074, the surface-branch removal). This is the
+    /// expression the old `surface_sample`/`surface_class` parallel path was
+    /// summarizing; that path survives only as the far-field summary
+    /// ([`Self::coarse_surface`]).
+    ///
+    /// A `Single` top span keeps the per-voxel-column member dither
+    /// ([`dithered_member`], journal/0058) — the same dither the buried single
+    /// voxels use — so the world's skin does not quantize into 28.8 m chunk
+    /// patches. A `Mixed` top span allocates its eighths by the addressed draw,
+    /// scaled to the partial. `block == classify(contents)` holds by
+    /// construction: the member dither is within-class (block-invariant), and
+    /// [`Self::column`] sets the surface block to `classify` of exactly these
+    /// contents.
+    fn surface_voxel_contents(
+        &self,
+        strata: &StrataRec,
+        plan: &Plan,
+        n: u8,
+        vx: i64,
+        vy: i64,
+        vz: i64,
+    ) -> VoxelContents {
+        match plan {
+            Plan::Single(k) => {
+                let event = strata.events[*k];
+                let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+                let (x, z) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
+                let host = dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                mixed_contents(&self.geology, &[(host, n)])
+            }
+            Plan::Mixed(w) => self.mixed_at(strata, w, vx, vy, vz, n),
+        }
     }
 
     /// The **render-only** material view of a chunk: its per-voxel canonical
@@ -651,34 +723,67 @@ impl<'a> WorldGenerator<'a> {
         rec
     }
 
-    /// Surface height (voxels) and surface block at ONE world voxel column,
-    /// given its locale's river segments + fringe flag and its climate. The
-    /// per-column kernel shared by the full [`Self::column`] collapse and the
-    /// coarse far-field summary ([`Self::coarse_surface`]) — so the distant
-    /// horizon and the ground underfoot are the SAME surface function sampled at
-    /// different strides. Height is independent of climate, so a far sample
-    /// lands on *exactly* the near column's height where the two coincide
-    /// (journal/0022).
+    /// Surface voxel height, continuous elevation, and the **year-zero fallback
+    /// block** at one world voxel column — the part of the surface answer that
+    /// needs no record. The near path ([`Self::column`]) reads this per voxel
+    /// column for the height and derives the surface *material* from the strata
+    /// record's top span (journal/0074, the surface-branch removal), so it never
+    /// consults `surface_class`. The fallback block stands only where a column
+    /// has no record to skin it with: subaqueous (`clastic_pass` returns early
+    /// below sea level), the border wilds (no deep-time run out there —
+    /// stubs.md § Genesis), and the frozen/abyssal cases. Grass is not expressed
+    /// at all (ratification 4: an ecology state, not a block identity chosen by a
+    /// threshold), so the vocabulary is Dirt/Stone only.
     ///
-    /// **Since journal/0055 the record decides what the world is skinned with**
-    /// (materials.md § Sequencing AMENDED 2026-07-21, user). The year-zero
-    /// climate thresholds that painted Grass/Dirt/Stone — stubs.md § 2, the
-    /// cause of the razor-straight grass/dirt frontier — are gone wherever a
-    /// deep-time record exists: the surface block is the *content class the
-    /// record's topmost 0.9 m is made of*. **Grass is not expressed at all**
-    /// (ratification 4: it is an ecology state riding on substrate materials,
-    /// not a block identity chosen by a threshold), so the fallback vocabulary
-    /// is Dirt/Stone only.
+    /// Height is independent of climate, so a far sample lands on *exactly* the
+    /// near column's height where the two coincide (journal/0022).
+    fn surface_height(
+        &mut self,
+        vx: i64,
+        vz: i64,
+        segs: &[RiverSeg],
+        temp_sl: f64,
+    ) -> (i32, f64, Block) {
+        let (raw, _) = self.lattice(L_VOXEL, vx, vz);
+        let (elev, _riverbed) = carve_rivers(raw, vx as f64, vz as f64, segs);
+        let h = (elev / self.voxel_m).floor() as i32;
+        let t = temp_sl - 6.5 * elev.max(0.0) / 1000.0;
+        let block = if elev <= -1.0 {
+            if elev > -35.0 {
+                Block::Dirt
+            } else {
+                Block::Stone
+            }
+        } else if t < -4.0 {
+            Block::Stone
+        } else {
+            Block::Dirt
+        };
+        (h, elev, block)
+    }
+
+    /// The far-field surface **summary** at one world voxel column: the height,
+    /// and a surface block **drawn from the deep-time record** (`surface_class`
+    /// → the B1 membership dither → a member of the drawn class). Consumed by
+    /// the far field through [`Self::coarse_surface`], which point-samples it at
+    /// a wide stride without paying a full column collapse.
     ///
-    /// The consult lives **here**, in the shared kernel, so `coarse_surface`
-    /// inherits it structurally: deriving it only in [`Self::column`] would turn
-    /// the ground sandstone-and-mudstone while the horizon stayed painted, and
-    /// the LOD boundary would become a visible lie.
+    /// **This is a summary, not the authority** (journal/0074, spines § S-3). The
+    /// near ground's surface voxel is the record's top span expressed through
+    /// [`ColumnFill`] ([`Self::surface_voxel_contents`]); this reads the *deep*
+    /// record's top-0.9 m window directly, because the far field cannot afford to
+    /// run the strata passes to build a [`StrataRec`]. The two are held to a
+    /// **statistical agreement test** (`coarse_surface_agrees_with_the_near_
+    /// column_surface`), which replaces the journal/0055 shared-kernel structural
+    /// guarantee the surface-branch removal retired. Where the far consumer's
+    /// coarse sampling would alias white noise, the class draw reads the coherent
+    /// bilinear source (journal/0073; spines § 4 carve-out 1).
     ///
-    /// **journal/0058 moved the member resolution in here too**, for the same
-    /// structural reason and one more: resolved outside, it was resolved *per
-    /// chunk column*, and the world's skin quantized into 28.8 m patches. See
-    /// the dither comment in the body.
+    /// **The member dither** (journal/0058) lives in this branch: resolved
+    /// per voxel column off the interpolated selection field, so a far
+    /// heightfield built from this summary does not quantize into 28.8 m member
+    /// patches. The block is invariant under it (every member of a class shares a
+    /// `block_twin`).
     fn surface_sample(
         &mut self,
         vx: i64,
@@ -688,9 +793,7 @@ impl<'a> WorldGenerator<'a> {
         temp_sl: f64,
         precip: f64,
     ) -> SurfaceSample {
-        let (raw, _) = self.lattice(L_VOXEL, vx, vz);
-        let (elev, riverbed) = carve_rivers(raw, vx as f64, vz as f64, segs);
-        let h = (elev / self.voxel_m).floor() as i32;
+        let (h, elev, fallback) = self.surface_height(vx, vz, segs, temp_sl);
         let class = if elev > 0.0 {
             self.surface_class(vx, vz)
         } else {
@@ -742,29 +845,14 @@ impl<'a> WorldGenerator<'a> {
                 };
             }
         }
-        // ---- fallbacks, each legitimate by absence of a record ----------
-        // Subaqueous columns (`clastic_pass` returns early below sea level),
-        // the border wilds (no deep-time run exists out there — stubs.md
-        // § Genesis), and the frozen/abyssal cases. Grass is gone: `bare` no
-        // longer selects between Dirt and Grass, only the frozen threshold
-        // still speaks, and everything else is Dirt.
-        let t = temp_sl - 6.5 * elev.max(0.0) / 1000.0;
-        let _ = (riverbed, fringe, precip);
-        let block = if elev <= -1.0 {
-            if elev > -35.0 {
-                Block::Dirt
-            } else {
-                Block::Stone
-            }
-        } else if t < -4.0 {
-            Block::Stone
-        } else {
-            Block::Dirt
-        };
+        // No record class resolved: the fallback block, computed once in
+        // `surface_height` (subaqueous / wilds / frozen, each legitimate by
+        // absence of a record).
+        let _ = (fringe, precip);
         SurfaceSample {
             h,
             elev_m: elev,
-            block,
+            block: fallback,
             class: None,
             member: None,
         }
@@ -796,17 +884,20 @@ impl<'a> WorldGenerator<'a> {
     /// noise. The far field point-samples this class through `coarse_surface` at
     /// a wide stride, and white noise aliases there into a coarse speckle that
     /// doubled the far-tile mesh (journal/0073); a field coherent over a chunk
-    /// forms sub-chunk class patches that mesh cheaply at every scale. Because
-    /// the field is deterministic in `(seed, vx, vz)` and the shared kernel feeds
-    /// both the near ground and the far horizon at the same `(vx, vz)`, near and
-    /// far inherit the **identical** class and stay one world answer (the
-    /// near/far agreement test asserts it exactly). The trade the coherence buys
-    /// is a small bias toward 50/50 (the bilinear value is not uniform) — the
-    /// same bias the member dither already accepts; the unbiased end-state is the
-    /// far field *summarizing* the shares, which the `CoarseField<T>` extraction
-    /// owns. The **member within** the drawn class is dithered separately by the
-    /// caller; this draw picks the class, that one picks the member, distinct
-    /// salts throughout.
+    /// forms sub-chunk class patches that mesh cheaply at every scale.
+    ///
+    /// **Since journal/0074 this feeds only the far-field summary** — the near
+    /// ground's surface voxel is the record's top span through `ColumnFill`, not
+    /// this class draw. Near and far are therefore no longer identical by
+    /// construction; they are held to a **statistical** agreement test
+    /// (`coarse_surface_agrees_with_the_near_column_surface`). The trade the
+    /// coherence buys is a bias that **amplifies the majority** class (the
+    /// bilinear value is not uniform — corrections #39 corrected the sign from
+    /// the earlier "toward 50/50" reading), the same bias the member dither
+    /// accepts; the unbiased end-state is the far field *summarizing* the shares,
+    /// which the `CoarseField<T>` extraction owns. The **member within** the drawn
+    /// class is dithered separately by the caller; this draw picks the class, that
+    /// one picks the member, distinct salts throughout.
     ///
     /// When the record runs out before half a voxel (the 0.2 % bare-rock case
     /// journal/0053 bought), the surface voxel is basement, and the class is the
@@ -854,14 +945,16 @@ impl<'a> WorldGenerator<'a> {
                 // chunk, so the class forms sub-chunk patches whose *composition*
                 // shifts across the 460 m frontier: the checkerboard dissolves
                 // into an interfingered gradient that meshes cheaply at every
-                // scale, and near and far stay EXACTLY equal (one deterministic
-                // kernel). Cost of coherence: the bilinear value is not uniform,
-                // so the split is biased a few points toward 50/50 — the identical
-                // bias the member dither already lives with (0058). Unbiased
-                // white noise is the correct end-state once the far field
-                // *summarizes* the share vector instead of point-sampling it —
-                // that lives in the `CoarseField<T>` extraction (audit Part 2),
-                // where near/far agreement becomes statistical by design.
+                // scale. (Before journal/0074 this drove the near ground too, so
+                // near and far were EXACTLY equal; now it is the far summary only
+                // and near/far agreement is statistical.) Cost of coherence: the
+                // bilinear value is not uniform, so the split is biased to
+                // **amplify the majority** class (corrections #39 corrected the
+                // sign from the earlier "toward 50/50") — the identical bias the
+                // member dither already lives with (0058). Unbiased white noise is
+                // the correct end-state once the far field *summarizes* the share
+                // vector instead of point-sampling it — that lives in the
+                // `CoarseField<T>` extraction (audit Part 2).
                 let (ccx, ccz) = (vx.div_euclid(32), vz.div_euclid(32));
                 let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
                 let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
@@ -1302,12 +1395,11 @@ impl<'a> WorldGenerator<'a> {
         };
         let mut heights = vec![0i32; 1024];
         let mut surface = vec![Block::Stone; 1024];
-        // The member the shared kernel says the record skins each voxel column
-        // with, plus the eighths of the surface voxel the ground occupies.
-        // **Per voxel column** since journal/0058 — the kernel dithers it, so the
-        // far field inherits the identical answer and no chunk-shaped patch of
-        // one member can form.
-        let mut surface_member: Vec<Option<(GeoMemberIdx, u8)>> = vec![None; 1024];
+        // Eighths of the surface voxel the ground fills — the top-of-column
+        // remainder. The surface *material* is derived below, from the record's
+        // top span, once the strata passes have run (journal/0074): the near path
+        // no longer consults `surface_class` at all.
+        let mut surface_eighths = vec![0u8; 1024];
         let mut wilds = true;
         for z in 0..32i64 {
             for x in 0..32i64 {
@@ -1321,20 +1413,21 @@ impl<'a> WorldGenerator<'a> {
                     wilds = false;
                 }
                 let i = (z * 32 + x) as usize;
-                let s = self.surface_sample(vx, vz, &locale.segs, locale.fringe, temp_sl, precip);
-                heights[i] = s.h;
-                surface[i] = s.block;
+                // Height + the year-zero **fallback** block only. No deep-record
+                // class consult in the near path (journal/0074): the surface
+                // material is the record's top span, derived below. The fallback
+                // stands only where there is no record to skin the column with.
+                let (h, elev_m, fallback) = self.surface_height(vx, vz, &locale.segs, temp_sl);
+                heights[i] = h;
+                surface[i] = fallback;
                 // **The top-of-column remainder** (journal/0055): `h` floors the
                 // continuous surface, so the surface voxel is filled from its
                 // floor up to the real ground — a genuine partial. Ceil, and at
                 // least one eighth: `h = floor(elev/0.9)` means there IS ground
                 // in this voxel, and rounding it away would silently drop a
                 // voxel of world height.
-                surface_member[i] = s.member.map(|m| {
-                    let frac = (s.elev_m - f64::from(s.h) * self.voxel_m) / self.voxel_m;
-                    let n = (frac * 8.0).ceil().clamp(1.0, 8.0) as u8;
-                    (m, n)
-                });
+                let frac = (elev_m - f64::from(h) * self.voxel_m) / self.voxel_m;
+                surface_eighths[i] = (frac * 8.0).ceil().clamp(1.0, 8.0) as u8;
             }
         }
         let posts = self.ruin_posts(cx, cz, &locale);
@@ -1391,22 +1484,30 @@ impl<'a> WorldGenerator<'a> {
         self.pregen.pipeline.run_strata(&mut strata_ctx);
         let strata = strata_ctx.strata;
 
-        // **Skin the surface voxel from the record.** The kernel already named
-        // both the class and — since journal/0058 — the dithered member, so the
-        // far field is using the same answer this loop builds contents from.
-        // All that is left here is the contents themselves. `block ==
-        // classify(contents)` holds by construction: every member of a class
-        // shares a block twin, so whichever member the dither picks classifies
-        // to the block `surface_sample` already returned. Columns whose class
-        // resolved no member keep the kernel's fallback block and carry no
-        // contents (the shrinking absent-contents exception).
-        let mut surface_fill = vec![None; 1024];
-        for i in 0..1024usize {
-            let Some((member, n)) = surface_member[i] else {
-                continue;
-            };
-            surface[i] = classify(&mixed_contents(&self.geology, &[(member, n)]));
-            surface_fill[i] = Some((member, n));
+        // **Skin the surface voxel from the record's top span** (journal/0074 —
+        // the surface-branch removal). The surface voxel is [`ColumnFill`]
+        // `plan(1)`, the record's topmost span, expressed as the per-column
+        // partial — the SAME span, through the SAME fill machinery, that the
+        // block and material paths resolve every buried voxel from. There is no
+        // parallel "what is the surface made of" computation any more: the
+        // history the strata passes just wrote IS the surface. `block ==
+        // classify(contents)` holds by construction — the block is set to
+        // `classify` of exactly the contents [`Self::material_ids`] will intern.
+        // Columns with no record top span (subaqueous, wilds, bare-province)
+        // keep the year-zero fallback block set above and carry no contents (the
+        // shrinking absent-contents exception).
+        let fill = ColumnFill::build(&strata, self.voxel_m);
+        if let Some(plan) = fill.plan(1) {
+            for z in 0..32i64 {
+                for x in 0..32i64 {
+                    let i = (z * 32 + x) as usize;
+                    let (vx, vz) = (cx * 32 + x, cz * 32 + z);
+                    let vy = i64::from(heights[i]);
+                    let contents =
+                        self.surface_voxel_contents(&strata, plan, surface_eighths[i], vx, vy, vz);
+                    surface[i] = classify(&contents);
+                }
+            }
         }
 
         let rec = Arc::new(ColumnRec {
@@ -1416,7 +1517,7 @@ impl<'a> WorldGenerator<'a> {
             posts,
             wilds,
             strata,
-            surface_fill,
+            surface_eighths,
         });
         self.column_cache.insert((cx, cz), rec.clone());
         rec
@@ -1625,7 +1726,7 @@ mod tests {
         CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
         CLASS_ORGANIC_SOIL, FormationWindow, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologySet,
     };
-    use dc_core::{Block, MaterialId, block_twin, classify};
+    use dc_core::{Block, MaterialId, classify};
 
     use super::contents_for_event;
     use crate::WorldGenerator;
@@ -1805,113 +1906,184 @@ mod tests {
         }
     }
 
-    /// The far horizon must agree with the ground on **what the surface is made
-    /// of**, not only on how high it is.
+    /// The far horizon must **statistically agree** with the ground on what the
+    /// surface is made of — the S-7 register the octree node contract sanctions
+    /// (docs/design/octree-substrate.md; FF2b's +0.938-within-1 precedent,
+    /// journal/0070).
     ///
-    /// Added by the integrator at the journal/0055 merge. Before that slice the
-    /// surface block came from a climate paint that both paths shared trivially;
-    /// now it is derived from the deep-time record, and `column` and
-    /// `coarse_surface` reach it by *different* routes — the near path resolves a
-    /// member through the full column collapse, the far path reads the shared
-    /// `surface_sample` kernel. The agent argued they agree by construction
-    /// (journal/0055 § judgment call 3) and that argument is sound, but nothing
-    /// asserted it: the sibling height test discards the block (`_block`). An
-    /// untested "by construction" is how the LOD boundary becomes a visible lie —
-    /// the ground reading sandstone while the horizon reads grass
-    /// (ARCHITECTURE.md § One world-answer surface, RATIFIED 2026-07-19).
+    /// **This test changed meaning with journal/0074 (the surface-branch
+    /// removal).** Before: the surface block came from the *shared*
+    /// `surface_sample` kernel, so near and far were equal **by construction**,
+    /// and this test asserted exact equality. Now the near ground's surface voxel
+    /// is the record's top span expressed through [`ColumnFill`] (the real
+    /// authority — [`WorldGenerator::surface_voxel_contents`]), while the far
+    /// field's [`WorldGenerator::coarse_surface`] reads the deep-record top
+    /// window directly as a **summary** (it cannot afford to run the strata
+    /// passes). The journal/0055 structural guarantee is retired; this
+    /// **statistical agreement** replaces it, and it is deliberately strong
+    /// enough that a future drift between horizon and ground fails loudly.
+    ///
+    /// The two do not agree exactly because (a) the near path routes the *veneer*
+    /// (clastic fan) on top of the deep history where the far window sees only
+    /// the deep record, and (b) the far class draw carries the coherent-source
+    /// bias (majority-amplifying, corrections #39; spines § 4 carve-out 1) — a
+    /// sign *favourable* to this agreement, so (a) is the disagreement's source.
+    /// They must still agree on the **large majority** of land columns, and where
+    /// they disagree it must be the minority-class / veneer boundary, not a
+    /// systematic split.
     #[test]
-    fn coarse_surface_matches_near_column_surface_block() {
+    fn coarse_surface_agrees_with_the_near_column_surface() {
+        // Only land columns that surface a geology block on both sides carry
+        // information; the Dirt/Stone fallback vocabulary is shared trivially and
+        // would inflate the agreement. Restrict to columns the far field reports
+        // a geology block for, and compare the near block there.
+        let geo = |b: Block| {
+            matches!(
+                b,
+                Block::Sandstone
+                    | Block::Mudstone
+                    | Block::Granite
+                    | Block::Basalt
+                    | Block::Coal
+                    | Block::Peat
+                    | Block::CarbonaceousMudstone
+            )
+        };
+        let (mut agree, mut compared) = (0usize, 0usize);
         for seed in [0x0D5E_ED57_2026u64, 1337] {
             let pregen = Pregen::run(WorldParams {
                 seed,
                 extent: Extent::Medium,
             });
             let mut g = WorldGenerator::new(&pregen);
-            let mut checked = 0usize;
-            for cx in -4..=4i64 {
-                for cz in -4..=4i64 {
+            for cx in -6..=6i64 {
+                for cz in -6..=6i64 {
                     let col = g.column_record(cx, cz);
-                    for &(lx, lz) in &[(0usize, 0usize), (7, 19), (16, 16), (31, 31)] {
-                        let (vx, vz) = (cx * 32 + lx as i64, cz * 32 + lz as i64);
-                        let near = col.surface[lz * 32 + lx];
-                        let (_h, far) = g.coarse_surface(vx, vz);
-                        assert_eq!(
-                            far, near,
-                            "seed {seed:#x}: horizon says {far:?} but the ground says \
-                             {near:?} at voxel ({vx},{vz}) — the far field and the near \
-                             field must be one world answer"
-                        );
-                        checked += 1;
+                    for lz in 0..32usize {
+                        for lx in 0..32usize {
+                            let (vx, vz) = (cx * 32 + lx as i64, cz * 32 + lz as i64);
+                            let near = col.surface[lz * 32 + lx];
+                            let (_h, far) = g.coarse_surface(vx, vz);
+                            // Compare only where the record surfaces a geology
+                            // block on both sides (a shared fallback is not
+                            // agreement about anything).
+                            if !geo(near) || !geo(far) {
+                                continue;
+                            }
+                            compared += 1;
+                            if near == far {
+                                agree += 1;
+                            }
+                        }
                     }
                 }
             }
-            assert!(checked >= 300, "sampled {checked} columns");
         }
+        let frac = agree as f64 / compared as f64;
+        println!(
+            "near/coarse surface agreement: {agree}/{compared} = {:.4} \
+             (geology-surfacing columns, seeds 0x0D5EED572026 + 1337, Medium)",
+            frac
+        );
+        assert!(
+            compared > 20_000,
+            "only {compared} geology-surfacing columns"
+        );
+        // Floor set from the measured agreement (journal/0074) with margin, so a
+        // real drift between horizon and ground trips it. NOT a by-construction
+        // equality any more — see the doc comment.
+        assert!(
+            frac >= 0.88,
+            "near/coarse surface agreement {frac:.4} below floor 0.88 — the far \
+             summary has drifted from the ground expression it summarizes"
+        );
     }
 
-    /// **The surface member must not be quantized to the chunk grid**
-    /// (journal/0058). Before 0058 the near path drew ONE member per class per
-    /// 32×32 chunk footprint, at the chunk's centre, so the world's skin came out
-    /// in 28.8 m rectilinear patches of one member's albedo — the artifact the
-    /// user photographed in `journal/assets/0056-surface-quantized-per-chunk.png`,
-    /// and exactly the chunk-line family cutover corrections #6 already retired
-    /// once for the buried fill.
+    /// **The surface voxel routes through `ColumnFill` and is dithered per
+    /// voxel** (journal/0074, the surface-branch removal). The surface voxel is
+    /// the record's top span (`plan(1)`) through the SAME fill machinery as every
+    /// buried voxel, so it inherits that machinery's per-voxel addressed
+    /// allocation — the world's skin does not quantize into 28.8 m chunk patches.
     ///
-    /// Two claims, because either alone is satisfiable by a broken kernel:
+    /// Two claims:
     ///
-    /// 1. **The dither is live**: a healthy fraction of chunk footprints express
-    ///    more than one surface member. (Not *every* chunk — a footprint whose
-    ///    class has one member, or that sits well inside one member's share of
-    ///    the interpolated draw, legitimately reads one member.)
-    /// 2. **The block did not move with it**: every filled surface column's block
-    ///    is the `block_twin` of the member the dither chose. That is the
-    ///    within-class invariance the whole change rests on, and it is what keeps
-    ///    `block == classify(contents)` and the near/far agreement true.
+    /// 1. **`block == classify(contents)` at the surface**: [`Self::column`] sets
+    ///    the surface block to `classify` of exactly the contents
+    ///    [`Self::surface_voxel_contents`] builds; this recomputes those contents
+    ///    and asserts the block matches — the S-3 routing proof at the surface
+    ///    voxel specifically (contents-contract proves it globally).
+    /// 2. **The dither is live**: for a `Mixed` top span (the common case since
+    ///    journal/0055), the per-voxel allocation gives the surface voxel varying
+    ///    contents across the 32×32 footprint — a revert to a chunk-quantized
+    ///    surface would make every column identical.
     #[test]
-    fn surface_member_is_dithered_not_chunk_quantized() {
-        let set = geology::vanilla();
+    fn surface_voxel_routes_through_columnfill_per_voxel() {
+        use crate::fill::{ColumnFill, Plan};
+        use dc_core::VoxelContents;
         let pregen = Pregen::run(WorldParams {
             seed: 1337,
             extent: Extent::Medium,
         });
-        let mut g = WorldGenerator::with_geology(&pregen, set.clone());
-        let (mut chunks, mut multi, mut filled) = (0usize, 0usize, 0usize);
-        for cx in -6..=6i64 {
-            for cz in -6..=6i64 {
+        let mut g = WorldGenerator::new(&pregen);
+        let (mut mixed_top, mut varied) = (0usize, 0usize);
+        for cx in -8..=8i64 {
+            for cz in -8..=8i64 {
                 let col = g.column_record(cx, cz);
-                let mut seen: Vec<GeoMemberIdx> = Vec::new();
-                for i in 0..1024usize {
-                    let Some((m, _n)) = col.surface_fill[i] else {
-                        continue;
-                    };
-                    filled += 1;
-                    if !seen.contains(&m) {
-                        seen.push(m);
+                let fill = ColumnFill::build(&col.strata, 0.9);
+                // Mixed top spans exercise the per-voxel allocation; Single spans
+                // (vanishingly rare post-0055) go through `dithered_member`.
+                let plan = match fill.plan(1) {
+                    Some(p @ Plan::Mixed(_)) => p,
+                    _ => continue,
+                };
+                mixed_top += 1;
+                let mut seen: Vec<VoxelContents> = Vec::new();
+                for z in 0..32i64 {
+                    for x in 0..32i64 {
+                        let i = (z * 32 + x) as usize;
+                        let (vx, vz) = (cx * 32 + x, cz * 32 + z);
+                        let vy = i64::from(col.heights[i]);
+                        let c = g.surface_voxel_contents(
+                            &col.strata,
+                            plan,
+                            col.surface_eighths[i],
+                            vx,
+                            vy,
+                            vz,
+                        );
+                        // The S-3 routing proof at the surface: the block IS
+                        // classify of the top-span contents, not a parallel paint.
+                        assert_eq!(
+                            col.surface[i],
+                            classify(&c),
+                            "chunk ({cx},{cz}) column {i}: surface block {:?} != classify of \
+                             its top-span contents — the surface is not routed through the fill",
+                            col.surface[i],
+                        );
+                        if !seen.contains(&c) {
+                            seen.push(c);
+                        }
                     }
-                    let want = block_twin(set.member(m).material);
-                    assert_eq!(
-                        col.surface[i],
-                        want,
-                        "chunk ({cx},{cz}) column {i}: surface block {:?} but the dithered \
-                         member {} twins to {want:?} — dithering inside a class must not move \
-                         the block",
-                        col.surface[i],
-                        set.member(m).id
-                    );
                 }
-                if !seen.is_empty() {
-                    chunks += 1;
-                    if seen.len() > 1 {
-                        multi += 1;
-                    }
+                if seen.len() > 1 {
+                    varied += 1;
                 }
             }
         }
-        assert!(filled > 50_000, "only {filled} filled surface columns");
+        println!(
+            "surface routing: {varied} of {mixed_top} mixed-top-span chunks vary the \
+             surface voxel contents per position (per-voxel allocation is live)"
+        );
         assert!(
-            multi * 4 >= chunks,
-            "only {multi} of {chunks} chunk footprints express more than one surface member — \
-             the surface member is still quantized to the chunk grid"
+            mixed_top > 20,
+            "only {mixed_top} mixed-top-span chunks sampled"
+        );
+        // Per-voxel addressed allocation of a genuine multi-member span varies
+        // the contents across the footprint; a chunk-quantized surface gives 0.
+        assert!(
+            varied * 2 >= mixed_top,
+            "only {varied} of {mixed_top} mixed-top-span chunks vary the surface voxel per \
+             position — the surface is not sharing the per-voxel fill dither"
         );
     }
 
@@ -2060,19 +2232,22 @@ mod tests {
         }
     }
 
-    /// **The class dither is live at the surface** (audit B1, journal/0073).
+    /// **The class-membership dither (`draw_class`) is live in the far summary**
+    /// (audit B1, journal/0073; re-homed by journal/0074, the surface-branch
+    /// removal). `draw_class` no longer paints the near ground — that is the
+    /// record's top span through [`ColumnFill`] now — it is the far field's cheap
+    /// class summary (`coarse_surface` → `surface_class` → `draw_class`), the
+    /// thing whose S-4 checkerboard cure B1 shipped.
     ///
     /// A deep cell's top-window class shares are constant across the whole cell
     /// (`record_at_voxel` is NEAREST at the 460 m grid), and the within-class
     /// member dither provably cannot move the block (every member of a class
-    /// shares a `block_twin`) — so if two land columns of the *same* deep cell
-    /// surface two *different* geology blocks, that split can only be the class
-    /// membership dither. Under the retired plurality every land column of a
-    /// cell resolved the one plurality-winning class, hence one geology block,
-    /// and this split count would be exactly zero. Grouping is by the record's
-    /// pointer identity (same cell ⇒ same `&DeepStrata`).
+    /// shares a `block_twin`) — so if two *far* samples of the same deep cell
+    /// surface two different geology blocks, that split can only be the class
+    /// membership dither. The retired plurality would give exactly 0 splits.
+    /// Grouping is by the record's pointer identity (same cell ⇒ same rec).
     #[test]
-    fn surface_class_dither_splits_multiclass_deep_cells() {
+    fn far_surface_class_dither_splits_multiclass_deep_cells() {
         use std::collections::HashMap;
         let pregen = Pregen::run(WorldParams {
             seed: 1337,
@@ -2093,20 +2268,18 @@ mod tests {
                     | Block::CarbonaceousMudstone
             )
         };
-        // A 460 m deep cell is ~511 voxels ≈ 16 chunks wide, so a single 32-voxel
-        // chunk sits well inside ONE deep cell: its 1024 columns share one window
-        // and one share-set. Spread the sample chunks at a ~one-cell stride so
-        // each lands in a *distinct* deep cell over a wide area — then a
-        // multi-class cell reveals its split across that chunk's own columns.
+        // A 460 m deep cell is ~511 voxels ≈ 16 chunks wide. Spread the sample
+        // chunks at a ~one-cell stride so each lands in a *distinct* deep cell
+        // over a wide area, then sample the FAR summary (`coarse_surface`) across
+        // each chunk's columns — a multi-class cell reveals its split.
         let mut by_cell: HashMap<usize, Vec<Block>> = HashMap::new();
         for i in 0..15i64 {
             for j in 0..15i64 {
                 let (cx, cz) = (i * 17 - 120, j * 17 - 120);
-                let col = g.column_record(cx, cz);
                 for lz in 0..32i64 {
                     for lx in 0..32i64 {
                         let (vx, vz) = (cx * 32 + lx, cz * 32 + lz);
-                        let b = col.surface[(lz * 32 + lx) as usize];
+                        let (_h, b) = g.coarse_surface(vx, vz);
                         if !geo(b) {
                             continue;
                         }
@@ -2124,21 +2297,20 @@ mod tests {
         }
         let cells = by_cell.len();
         let split = by_cell.values().filter(|s| s.len() > 1).count();
-        println!("class dither: {split} of {cells} sampled deep cells surface >1 geology class");
+        println!(
+            "far class dither: {split} of {cells} sampled deep cells surface >1 geology class"
+        );
         assert!(
             cells > 20,
             "only {cells} deep cells sampled a geology surface"
         );
-        // Measured 139/256 on this world (journal/0073): a majority of sampled
-        // deep cells surface more than one geology class within a single chunk
-        // window even though the class draw is spatially coherent (a chunk-scale
-        // patch field), which is why the plurality's checkerboard was pervasive.
-        // The floor is set well below that and far above the plurality signature
-        // (0) so it guards a revert without being brittle to world drift.
+        // The plurality signature is exactly 0 (a deep cell's shares are
+        // constant, so plurality → one class → one block for the whole cell).
+        // The floor guards a revert without being brittle to world drift.
         assert!(
             split >= 20,
             "only {split} of {cells} deep cells surface more than one geology class — \
-             the class membership dither is not live (plurality would give exactly 0)"
+             the far class membership dither is not live (plurality would give exactly 0)"
         );
     }
 }
