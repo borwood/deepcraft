@@ -747,6 +747,69 @@ impl WorkingInventory {
     pub fn portion_count(&self) -> usize {
         self.spans.iter().map(|s| s.portions.len()).sum()
     }
+
+    /// **The derived surface regolith `H`** (material-behavior.md §13.6, Movement
+    /// 2a): the `Loose` above the **topmost `Structure`** — a *positional* query,
+    /// NOT a whole-column `Loose` sum. Buried loose / cave fill (Loose below the
+    /// first Structure) is **excluded**, the distinction scalar `H` cannot make.
+    ///
+    /// The scan is top-to-bottom over the column. [`build_working`] lays the record
+    /// `Loose` spans first (the mobile cover) and appends the basal bedrock
+    /// `Structure` seam LAST, so the Vec order already places every surface-`Loose`
+    /// portion **before** the only `Structure` — exactly the loose-then-structure
+    /// order the positional rule needs. So over a production inventory this sums the
+    /// whole record cover (= `grid.h`) and stops at the bedrock contact; the
+    /// cave-exclusion only bites a column that puts `Loose` below a `Structure`
+    /// (tested with an explicit column via [`surface_regolith_m`]).
+    pub fn derived_regolith_m(&self) -> FracM {
+        surface_regolith_m(self.spans.iter().flat_map(|s| s.portions.iter().copied()))
+    }
+
+    /// **The derived structural stock `R`** = `Σ Structure` over the whole column
+    /// (material-behavior.md §13.6). NOTE (Movement 2a finding): in the two-plane
+    /// erosion engine the scalar `R` plane is a bedrock-top **elevation datum**
+    /// (signed), not a structural thickness, so `Σ Structure` is the *stock beneath
+    /// the surface contact* and the scalar `R` elevation is recovered as
+    /// `surf − H` ([`super::field::DeepField::derive_bedrock_at`]), not from this
+    /// sum. This is the honest structural-stock query the fully-materialized column
+    /// will grow into; today it reads the bedrock seam's (STUB #16) stock.
+    pub fn derived_structure_stock_m(&self) -> FracM {
+        structure_stock_m(self.spans.iter().flat_map(|s| s.portions.iter().copied()))
+    }
+}
+
+/// **The positional surface-`H` rule** (material-behavior.md §13.6): given a
+/// column's portions in **physical top-to-bottom order** (surface first, basement
+/// last), sum the `Loose` down to — and stopping at — the **topmost `Structure`**.
+/// Loose that lies *below* the first Structure (cave fill / buried regolith) is
+/// **excluded** — the honest surface/subsurface distinction the scalar `H` plane
+/// (a single whole-column thickness) structurally cannot represent.
+pub fn surface_regolith_m<I: IntoIterator<Item = Portion>>(top_to_bottom: I) -> FracM {
+    let mut h = 0.0;
+    for p in top_to_bottom {
+        match p.form {
+            // The topmost Structure ends the surface regolith column; everything
+            // below (including buried Loose) is subsurface, excluded from H.
+            InvForm::Structure => break,
+            InvForm::Loose => h += p.quantity_m,
+            // PoreFill/Fluid above the first Structure are not regolith (not Loose)
+            // and do not terminate the scan — only Structure marks the contact.
+            InvForm::PoreFill | InvForm::Fluid | InvForm::Void => {}
+        }
+    }
+    h
+}
+
+/// **`R = Σ Structure`** over a column's portions (order-independent). The
+/// structural-stock half of the §13.6 derivation; see
+/// [`WorkingInventory::derived_structure_stock_m`] for why the scalar `R`
+/// *elevation* is recovered as `surf − H` rather than from this stock.
+pub fn structure_stock_m<I: IntoIterator<Item = Portion>>(portions: I) -> FracM {
+    portions
+        .into_iter()
+        .filter(|p| p.form == InvForm::Structure)
+        .map(|p| p.quantity_m)
+        .sum()
 }
 
 /// **The read-modify-write capability** a cellular behavior receives (§7). Indexes
@@ -1087,6 +1150,56 @@ mod tests {
         assert_eq!(inv.spans[0].portions[0].quantity_m, 0.37);
         assert_eq!(quantize_to_eighths(0.37, 0.9), 3);
         assert_eq!(collapse_top_voxel(&inv, 0.9).solid_eighths(), 3);
+    }
+
+    #[test]
+    fn derived_regolith_is_the_whole_loose_cover_over_a_production_shaped_inventory() {
+        // build_working lays record Loose spans then the basal bedrock Structure
+        // seam, so the derived surface H = Σ record Loose (= H the scalar plane
+        // tracks), and the structural stock = the bedrock seam thickness.
+        let rec = sample_record();
+        let ledger = FactLedger::empty_with_bedrock(&rec);
+        let inv = build_working(&rec, &ledger);
+        let cover: f64 = rec.units.iter().map(|u| u.thickness_m).sum();
+        assert!((inv.derived_regolith_m() - cover).abs() < 1e-12);
+        assert!((inv.derived_structure_stock_m() - BEDROCK_SEAM_THICKNESS_M).abs() < 1e-12);
+    }
+
+    #[test]
+    fn buried_loose_below_a_structure_is_excluded_from_surface_h() {
+        // The positional/cave rule (material-behavior.md §13.6): a column with a
+        // Structure roof over buried Loose (cave fill) — the derived surface H is
+        // ONLY the loose above the roof, though the whole-column Loose sum (what a
+        // scalar H plane would report) is larger.
+        let m = MaterialId::GRANITE;
+        let s = MaterialId::SANDSTONE;
+        let column = [
+            Portion {
+                material: m,
+                form: InvForm::Loose,
+                quantity_m: 2.0,
+            }, // surface regolith
+            Portion {
+                material: m,
+                form: InvForm::Structure,
+                quantity_m: 5.0,
+            }, // roof
+            Portion {
+                material: s,
+                form: InvForm::Loose,
+                quantity_m: 3.0,
+            }, // buried / cave fill
+        ];
+        assert!((surface_regolith_m(column) - 2.0).abs() < 1e-12);
+        // The naive whole-column loose sum (the scalar plane's blind answer) is 5.0.
+        let whole: f64 = column
+            .iter()
+            .filter(|p| p.form == InvForm::Loose)
+            .map(|p| p.quantity_m)
+            .sum();
+        assert!((whole - 5.0).abs() < 1e-12);
+        // Structure stock is order-independent.
+        assert!((structure_stock_m(column) - 5.0).abs() < 1e-12);
     }
 
     #[test]

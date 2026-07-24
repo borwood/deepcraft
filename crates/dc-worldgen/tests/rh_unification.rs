@@ -1,0 +1,94 @@
+//! **Movement 2a — R/H unification: the derived-vs-scalar byte-identity proof.**
+//!
+//! material-behavior.md §13.6 (ratified): the deep-cell working material inventory
+//! is the **authority** for surface material; the scalar `R`/`H` planes are its
+//! **materialized views**. This suite proves the derivation reproduces the planes
+//! over a *real production `DeepField`* — the load-bearing acceptance instrument,
+//! not a unit fixture.
+//!
+//! The honest byte-identical landing is **scratch-first reconcile**: the erosion
+//! loop runs untouched on the scalar planes (so the goldens do not move — see
+//! `providers_golden.rs`), and the persistent per-cell surface-`Loose` inventory
+//! IS the strata record (the deposition pass reconciles each epoch's net ΔH into
+//! it as `void→Loose`/`Loose→void` facts at the epoch boundary). These tests
+//! materialize `H`/`R` from that inventory and assert they equal the stored planes
+//! within the recorder residual — the proof the planes are derived views.
+//!
+//! The **positional/cave rule** (`H` = Loose above the topmost Structure, cave fill
+//! excluded) is a unit test in `deeptime::inventory`
+//! (`buried_loose_below_a_structure_is_excluded_from_surface_h`).
+
+use dc_worldgen::deeptime::{DeepField, build_field};
+use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
+
+/// The production golden world (matches `providers_golden.rs`: same seed,
+/// `Extent::Small`, `build_field` = full production config).
+const SEED: u64 = 0x0B0A_57EE_0059;
+
+fn production_field() -> DeepField {
+    let pregen = Pregen::run(WorldParams {
+        seed: SEED,
+        extent: Extent::Small,
+    });
+    build_field(&pregen.grid, SEED)
+}
+
+/// Tolerance (metres) for derived-vs-scalar agreement. The residual is pure f64
+/// round-off between the incrementally-mutated `grid.h` and the record's
+/// `Σ thickness` (the two accumulate the same per-epoch deltas from different
+/// bases over 200 epochs); it is far below any physical signal (`H` is metres).
+const TOL_M: f64 = 1e-6;
+
+#[test]
+fn derived_regolith_agrees_with_the_scalar_h_plane_over_the_production_field() {
+    let f = production_field();
+    assert!(
+        !f.regolith.is_empty(),
+        "production field carries the H plane"
+    );
+    let mut max_res = 0.0f64;
+    let mut worst = 0usize;
+    for (i, &scalar_h) in f.regolith.iter().enumerate() {
+        let d = (f.derive_regolith_at(i) - scalar_h).abs();
+        if d > max_res {
+            max_res = d;
+            worst = i;
+        }
+    }
+    println!(
+        "H: max |derived - scalar| = {max_res:e} m over {} cells (worst cell {worst})",
+        f.regolith.len()
+    );
+    assert!(
+        max_res < TOL_M,
+        "derived surface regolith H diverged from the scalar plane by {max_res:e} m \
+         (> {TOL_M:e}) at cell {worst} — the inventory no longer reproduces H"
+    );
+}
+
+#[test]
+fn derived_bedrock_agrees_with_the_scalar_r_plane_over_the_production_field() {
+    let f = production_field();
+    // The scalar `R` plane is `grid.r` = bedrock-top elevation. The field keeps
+    // `surf = r + h` and `regolith = h`, so the pre-slice scalar R is exactly
+    // `surf - regolith` per cell. The derived R is `surf - H_derived`.
+    let mut max_res = 0.0f64;
+    let mut worst = 0usize;
+    for (i, (&s, &h)) in f.surf.iter().zip(f.regolith.iter()).enumerate() {
+        let scalar_r = s - h;
+        let d = (f.derive_bedrock_at(i) - scalar_r).abs();
+        if d > max_res {
+            max_res = d;
+            worst = i;
+        }
+    }
+    println!(
+        "R: max |derived - scalar| = {max_res:e} m over {} cells",
+        f.surf.len()
+    );
+    assert!(
+        max_res < TOL_M,
+        "derived bedrock datum R diverged from the scalar plane by {max_res:e} m \
+         (> {TOL_M:e}) at cell {worst}"
+    );
+}

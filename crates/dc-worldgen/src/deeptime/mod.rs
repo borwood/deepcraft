@@ -52,7 +52,7 @@ pub use inventory::{
     BEDROCK_SEAM_MATERIAL, BEDROCK_SEAM_THICKNESS_M, Cause, Fact, FactLedger, FracM, Granularity,
     InvCtx, InvForm, InvSpan, Portion, UnitProvenance, WorkingInventory, build_identity,
     build_working, collapse_top_voxel, commit_chapter, compose_bedrock, compose_unit, derive_base,
-    derive_bedrock, quantize_to_eighths,
+    derive_bedrock, quantize_to_eighths, structure_stock_m, surface_regolith_m,
 };
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
