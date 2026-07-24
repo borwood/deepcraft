@@ -89,13 +89,21 @@ tightly at **~21–26 °C**; an onset left at 8 would promote every one of them.
 the onset is now a genuine temperature, calibrated to *this* record's
 distribution (an Earth-true 50 °C would promote nothing at all here).
 
-At **`COAL_ONSET_C = 25.0 °C`** the geotherm promotes **~23 %** of candidates on
-Small, against the retired 8 m rule's **~12 %** — the same order, plausibly not
-degenerate. What the geotherm *changes* is less the count than the **place**:
-coal follows warm crust now — warm lowlands, and (where burial is deep enough for
-the gradient to bite) steep-gradient rift/arc crust — instead of "wherever peat
-happened to be buried deepest, regardless of climate." That relocation is the
-reason to walk it (§14: "we measure the shift").
+The onset that results is set by **two worlds at once**, which is what pins it to
+a number rather than to taste. It must stay low enough that the production
+**Medium** world keeps a *thick, diggable* coal seam — the "a player can find and
+dig coal" property `organic.rs` guards: at 22 °C that world holds 11 columns with
+over 3 m of contiguous coal (max ~7 m), and by 24 °C it holds none (the geotherm
+had relocated coal off the thick deep seams and onto warm-shallow cells, and a
+too-high onset then kept only the rare deeply-buried unit — thin coal, no seam).
+It must also stay high enough that the uniformly-warm **Small** world doesn't turn
+*all* its buried peat to coal. **`COAL_ONSET_C = 22.0 °C`** is the seat between
+those walls: on Small it promotes **~60 %** of candidates, against the retired 8 m
+rule's **~12 %** — more coal, and discriminating rather than all-or-nothing. What
+the geotherm *changes* is less the count than the **place**: coal follows warm
+crust now — warm lowlands — instead of "wherever peat happened to be buried
+deepest, regardless of climate." That relocation is the reason to walk it (§14:
+"we measure the shift").
 
 > **Honest caveat, filed as needs-measurement.** Because burial in this record is
 > shallow, the *tectonic* half of the geotherm barely moves coal — the gradient
@@ -113,15 +121,17 @@ Production Small, seed `0x…0059`, 1392 candidate units:
 | rule | coal | of candidates |
 |---|---|---|
 | degenerate 8 m burial (retired) | 166 | 11.9 % |
-| geotherm, onset 25 °C | ~320 | ~23 % |
+| geotherm, onset 22 °C | 833 | 59.8 % |
 
 Candidate temperature distribution (°C): p05 20.9, p50 22.4, p90 25.4, max 26.1.
 The gradient field on this seed spans 44.6–51.6 °C/km — a hot, boundary-dense
 crust (few cratonic-cold cells on a Small world), which is why the field-variation
 test asserts a modest spread and leaves the full 12–55 range to the unit tests.
 
-*(Numbers above confirmed against the onset-25 build; see the `geotherm` test's
-`--nocapture` output.)*
+On the production **Medium** world (seed `0x0D5E…`), coal by onset (max contiguous
+coal thickness, columns holding >3 m): 20 °C → 16.6 m / 38 cols; 22 °C → 7.0 m /
+11 cols; 24 °C → 2.2 m / 0 cols; 25 °C → 2.2 m / 0. The steep drop past 22 °C is
+why the onset sits at 22 and not higher — above it the diggable seam vanishes.
 
 ## Goldens
 

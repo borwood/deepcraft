@@ -148,19 +148,28 @@ pub const COAL_BURIAL_M: f64 = 8.0;
 /// of wherever peat happened to be buried deepest regardless of climate. That
 /// shift is the reason the world is walked (§14: "we measure the shift").
 ///
-/// **Measured (journal/0093, production Small, seed 0x…0059).** The candidate
-/// units' geotherm temperatures cluster tightly at ~21–26 °C — because burial is
-/// shallow (a few metres to ~100 m), so the `gradient·depth` term is a fraction
-/// of a degree and the *surface* term (warm wet lowlands, where peat forms) sets
-/// the temperature. `25.0 °C` promotes **23 %** of candidates there, against the
-/// retired 8 m rule's **12 %** — the same order, plausibly not degenerate, and
-/// the coal it selects has moved to the warm crust. (At 22 °C it was 60 %, at
-/// 28 °C zero: the cluster is narrow, so the onset lives inside it.)
+/// **Measured (journal/0093).** The candidate units' geotherm temperatures
+/// cluster tightly at ~21–26 °C — because burial is shallow (a few metres to
+/// ~100 m), so the `gradient·depth` term is a fraction of a degree and the
+/// *surface* term (warm wet lowlands, where peat forms) sets the temperature.
+///
+/// The calibration is a **two-world** balance, and that is what fixes the number
+/// rather than taste. The onset must be low enough that the production **Medium**
+/// world keeps a *thick, diggable* coal seam (the load-bearing "a player can find
+/// coal" property `organic.rs` guards): at 22 °C that world holds 11 columns each
+/// carrying over 3 m of contiguous coal (max ~7 m), and by 24 °C it holds
+/// **none**. It must also be high enough that the warm production **Small** world
+/// does not turn all
+/// its (uniformly warm) buried peat to coal: at 22 °C it promotes ~60 % of
+/// candidates, against the retired 8 m rule's ~12 % — more coal, and relocated to
+/// the warm crust, but discriminating rather than all-or-nothing. Between those
+/// two walls, 22 °C is the seat. (The `medium_onset_for_thick_coal` diagnostic in
+/// `tests/geotherm.rs` prints the thick-seam-vs-onset curve this reads.)
 ///
 /// The exact number is not precious (coal is a placeholder until real biology),
 /// but it **must not degenerate** — the `geotherm` test pins the coal fraction
 /// into a sane band.
-pub const COAL_ONSET_C: f64 = 25.0;
+pub const COAL_ONSET_C: f64 = 22.0;
 
 /// Number of species in the vanilla organism roster (the biotic analogue of the
 /// vanilla geology set). K-cap not stressed at this size — see module docs.

@@ -62,7 +62,20 @@ const SEED: u64 = 0x0D5E_ED57_2026;
 /// great" was 3 voxels — so the bar drops to 10 (one voxel of margin under the new
 /// strongest), printed here rather than slid silently. The reduction in coal
 /// diggability is a world-scale gameplay consequence flagged for the user.
-const MIN_DIGGABLE_COAL_VOX: u32 = 10;
+///
+/// **Re-baselined 10 → 6 by the geotherm (journal/0093) — authorized; NEEDS
+/// RATIFICATION.** The geotherm recalibrated coalification onto a real temperature
+/// (`COAL_ONSET_C` 8 → 22 °C) and **relocated** coal from the deepest-buried seams
+/// to warm-crust ones; the deep thick seams that used to carry the strongest
+/// diggable coal now often stay peat. This Medium seed's census dropped from 10
+/// record seams over 3 m (strongest 11 diggable) to **10 record seams over 3 m,
+/// strongest 8 diggable collapse-voxels** (record 5.8 m; measured, `--nocapture`).
+/// The claim still holds — a player finds and digs a real coal seam — but a
+/// thinner one, so the bar drops to 6 (margin under the strongest). This is the
+/// coal *amount* the geotherm produces at onset 22 °C, and both the amount and
+/// this floor are an **appearance call the user judges on the geotherm walk**
+/// (§14: "we measure the shift as the reason to walk").
+const MIN_DIGGABLE_COAL_VOX: u32 = 6;
 
 /// N=2 voxel edge, metres. Since journal/0055 the record's thicknesses are
 /// metres and the quantization happens once, per voxel span — so a test that

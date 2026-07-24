@@ -149,6 +149,66 @@ fn the_geotherm_coal_shift_is_plausible_not_degenerate() {
     );
 }
 
+/// **DIAGNOSTIC (ignored by default).** On the Medium organic world, for a range
+/// of trial onsets, report the max **contiguous** coal thickness across all
+/// columns and how many columns carry >3 m — the calibration organic.rs's
+/// diggable-seam test depends on. Run:
+/// `cargo test -p dc-worldgen --release --test geotherm -- --ignored --nocapture`
+#[test]
+#[ignore]
+fn medium_onset_for_thick_coal() {
+    let pregen = Pregen::run(WorldParams {
+        seed: 0x0D5E_ED57_2026,
+        extent: Extent::Medium,
+    });
+    let f = deeptime::build_field(&pregen.grid, 0x0D5E_ED57_2026);
+    let w = f.w;
+    println!("\n=== Medium thick-coal vs onset (seed 0x0D5EED572026) ===");
+    for onset in [12.0, 14.0, 16.0, 18.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0] {
+        let mut max_contig = 0.0f64;
+        let mut cols_over_3 = 0usize;
+        for (i, s) in f.strata.iter().enumerate() {
+            let gy = i / w;
+            let surface_t = f64::from(deeptime::climate::air_temp_c(lat_deg(gy, w), f.surf[i]));
+            let gradient = f
+                .geotherm
+                .get(i)
+                .copied()
+                .unwrap_or(deeptime::DEFAULT_CONTINENTAL_GRADIENT_C_PER_M);
+            let top = s.units.len().saturating_sub(1);
+            // Bottom-up overburden per unit (section above), then one scan for the
+            // best contiguous run of promoted (coal) units in the column.
+            let mut over = vec![0.0f64; s.units.len()];
+            let mut acc = 0.0;
+            for (k, u) in s.units.iter().enumerate().rev() {
+                over[k] = acc;
+                acc += u.thickness_m;
+            }
+            let mut run = 0.0f64;
+            let mut col_best = 0.0f64;
+            for (k, u) in s.units.iter().enumerate() {
+                let is_peat = matches!(u.tag.biota, Biofacies::Peat | Biofacies::Coal);
+                let depth = over[k] + 0.5 * u.thickness_m;
+                let t = deeptime::temperature_c(surface_t, gradient, depth);
+                if k != top && is_peat && t >= onset {
+                    run += u.thickness_m;
+                    col_best = col_best.max(run);
+                } else {
+                    run = 0.0;
+                }
+            }
+            max_contig = max_contig.max(col_best);
+            if col_best > 3.0 {
+                cols_over_3 += 1;
+            }
+        }
+        println!(
+            "  onset {onset:>4.0} C  → max contiguous coal {max_contig:6.2} m,  columns >3 m: {cols_over_3}"
+        );
+    }
+    println!();
+}
+
 /// The `temperature` field is a real per-cell field, every gradient in the
 /// plausible band, and it genuinely varies across the map (hot crust exists).
 #[test]
