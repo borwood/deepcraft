@@ -124,6 +124,10 @@ fn main() -> std::process::ExitCode {
         //                      byte-identical to omitting it. This is the dev
         //                      lever that makes the cranked "conservative
         //                      amplitude" world walkable (journal/0076).
+        // - `--weather-inventory`  the S18 first-behavior weathering pass (one
+        //                      chapter over each cell's working inventory). OFF
+        //                      by default (S-5 identity floor); present ⇒ ON for
+        //                      a flag-on walk.
         // - `--extent <small|medium|large>`  world size (default: medium).
         let mut deep = dc_worldgen::DeepOverrides::default();
         if args.iter().any(|a| a == "--tectonics") {
@@ -131,6 +135,9 @@ fn main() -> std::process::ExitCode {
         }
         if args.iter().any(|a| a == "--full-agents") {
             deep.full_agents = Some(true);
+        }
+        if args.iter().any(|a| a == "--weather-inventory") {
+            deep.weather_inventory = Some(true);
         }
         if let Some(v) = args.windows(2).find(|w| w[0] == "--amplitude") {
             match v[1].parse::<f64>() {
