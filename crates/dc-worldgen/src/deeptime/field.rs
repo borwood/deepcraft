@@ -90,6 +90,12 @@ pub struct DeepOverrides {
     /// A dev launch flag (`--erosion-budget <mult>`) sets it; the walkable
     /// cranked world it enables is the standing "conservative amplitude" call.
     pub erosion_budget: Option<f64>,
+    /// Override [`DeepConfig::weather_inventory`]: the S18 first-behavior
+    /// weathering pass (one chapter over the cell's working inventory, writing
+    /// the derived weathered-cover plane). `None` = production default (**off**,
+    /// the S-5 identity floor); pass `Some(true)` to turn the pass on for a
+    /// flag-on walk. A dev launch flag (`--weather-inventory`) sets it.
+    pub weather_inventory: Option<bool>,
 }
 
 impl DeepOverrides {
@@ -100,6 +106,7 @@ impl DeepOverrides {
             && self.full_agents.is_none()
             && self.thickening_scale.is_none()
             && self.erosion_budget.is_none()
+            && self.weather_inventory.is_none()
     }
 }
 
@@ -220,6 +227,9 @@ pub fn production_config_with(
         cfg.weathering *= mult;
         cfg.k_transport *= mult;
         cfg.k_bedrock *= mult;
+    }
+    if let Some(v) = overrides.weather_inventory {
+        cfg.weather_inventory = v;
     }
     cfg
 }

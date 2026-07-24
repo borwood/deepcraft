@@ -60,7 +60,7 @@ const WORLDGEN_EXTENT: Extent = Extent::Medium;
 /// The gen-time knobs a launch flag can dial into the worldgen authority
 /// (deep-config plumbing, journal/0039): the world [`Extent`] and the deep-time
 /// [`DeepOverrides`] (`--tectonics`, `--full-agents`, `--amplitude`,
-/// `--erosion-budget`). Bundled so
+/// `--erosion-budget`, `--weather-inventory`). Bundled so
 /// they thread from `app::run` down to [`Pregen::run_with`] as one value rather
 /// than a growing argument list, and held as a Bevy [`Resource`] so a key-2
 /// scale switch rebuilds the world with the same options. `Default` = Medium
