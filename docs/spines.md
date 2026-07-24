@@ -277,7 +277,14 @@ carries a resolved/resolution flag.** Two regimes on one axis:
   - provenance: a voxel's history re-derives from the deeptime compile; only
     *edited* voxels append facts (DECIDED 2026-07-23). This **is** ROADMAP
     Sequenced item (d), and the fact-overlay **is the save layer** — S-2's
-    edited-chunk pinning is the same overlay under another name.
+    edited-chunk pinning is the same overlay under another name. **BUILT (deeptime
+    tier) 2026-07-24, journal/0088:** the deep-cell fact-ledger — `commit_chapter`
+    diff-and-append (apply-time edge logging is the ratified fact source; each fact
+    carries its `cause`), byte-identical under the identity default over 25,600 real
+    cells, provenance read = `base + facts`. The **runtime tier** (edits as facts over
+    the gen-derivable base; a break = a move-fact) is the same shape one tier down —
+    designed (commit-as-facts), unbuilt; the inspector proved the runtime stores only
+    `Block` and re-derives contents (the derivable base, edit-blind).
   - S3 skylight: `column_summary`'s `fully_resolved`/`sky_exposed`
     (`dc-core/src/column.rs`) — base derived from resident data, unknown volumes
     poison the resolved flag. **Built and tested, dormant** (no lighting consumer;

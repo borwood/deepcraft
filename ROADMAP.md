@@ -1502,7 +1502,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   **Open, blocking merge:** the record is keyed by depositional *environment* not
   material, so material-changing behaviors must **commit as appended facts (S-9)**,
   not tag rewrites — a design call that shapes the keystone. commit-semantics
-  ratification pending.
+  **RATIFIED 2026-07-24** (append facts; fact carries `cause`; apply-time edge
+  logging). **Progress 2026-07-24 — keystone + instrument MERGED, gate-verified:**
+  the **keystone** (`37b0398`, journal/0088) — the fact-ledger, `commit_chapter`
+  diff-and-append, provenance read, byte-identical under the identity default;
+  single-edge shape, apply-time logging + `cause` land with the first behaviors.
+  The **contents inspector** (`f594580`) — `world_get_contents` + F3 HUD (see the
+  Shipped dev slice). The inspector surfaced that the runtime stores only `Block`;
+  contents re-derive from gen (edit-blind, S-2), so **break-gives-mixture needs the
+  runtime edit-fact overlay** — the north-star's first runtime-process milestone,
+  designed (commit-as-facts) but unbuilt.
 
 - **The block↔material collapse — DECIDED, one namespace (user, 2026-07-22
   late session; materials.md two new DECIDED entries)**. Block collapses
@@ -2563,7 +2572,10 @@ before any code.
   down), fly on. A correct fix dissolves the chunk-square tint grid into continuous
   ground with the diagonal structure bands unbroken. **Diagnose before touching.**
 
-- **Dev slice — look-at-voxel contents inspector** (user-requested 2026-07-24;
+- **Dev slice — look-at-voxel contents inspector — SHIPPED 2026-07-24**
+  (`f594580`, journal/0088; `world_get_contents` + `character_sense_raycast` contents
+  + F3 HUD; `ContentsSource` seam re-derives contents since the runtime stores only
+  `Block`). *(Original ask, for the record:)* (user-requested 2026-07-24;
   enabling the palette-quantization measurement above AND a standing dev tool):
   *"check the contents of a voxel just by looking at it."* Two parts: (a) a
   **full-contents query** returning a voxel's whole `VoxelContents` mixture —
