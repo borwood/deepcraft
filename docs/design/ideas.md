@@ -527,9 +527,17 @@ overlay is the named heir; do not build it now, but do not foreclose it.
 
 ## Pass cadence — the fractional-phase scheduler (user sketch, 2026-07-23)
 
+**RECONCILED 2026-07-24 → `material-behavior.md` §5 (Cadence: order × rate).** The
+scheduler is **two orthogonal axes**: topo-sorted **ORDER** (derived from a pass's
+reads/writes) × fractional-phase **RATE** (`dt` = phase length). This sketch is the
+**RATE** axis — it *composes with* topo-sort, is not replaced by it — and the
+sub-chapter multi-rate (weathering ×5 while tectonics ×1) is preserved as the whole
+point. `dt` = phase length is the `rate × dt` S16 already assumed. Sketch retained
+below as the origin.
+
 Carried forward to compare against the actual deep-sim loop and discuss next
-session; **not yet reconciled with how deeptime runs today.** For a single epoch
-that runs N chapters, over a fixed pass list:
+session; ~~not yet reconciled with how deeptime runs today~~ (reconciled, above). For
+a single epoch that runs N chapters, over a fixed pass list:
 
 - Each pass has a **phase length** = a fraction of a chapter's duration (a
   "rate"): e.g. tectonics 1.0, hydro 0.33, weathering 0.1.

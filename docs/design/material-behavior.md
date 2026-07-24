@@ -312,6 +312,39 @@ Two questions hide in "agents as passes vs all-in-one":
 surface. So the default is **separate declared passes**; S16's fold lives *inside*
 each pass.
 
+### Cadence: order × rate — RECONCILED 2026-07-24 (promoting `ideas.md § Pass cadence`, user)
+
+The scheduler has **two orthogonal axes**, and the runner declares **both** per pass:
+
+- **ORDER** — derived from `{reads, writes}` by **topo-sort**; rejects cycles,
+  conflicting writers, missing deps. This *replaces* a hand-declared "canonical
+  order": the order falls out of the declared dependencies and an illegal schedule
+  is **caught**, not trusted.
+- **RATE** — the **fractional-phase phase length**: how many sub-turns a pass takes
+  per chapter, and the **`dt`** that scales its transformations. A chapter subdivides
+  into sub-turns; a **high-rate** pass (weathering ×5) sees mid-chapter state evolve
+  while a **low-rate** pass (tectonics ×1) runs once — the temporal-resolution knob
+  topo-sort alone does **not** give. This is `ideas.md`'s fractional-phase sketch,
+  reconciled: it is the RATE axis, *composed with* topo-sort, never replaced by it.
+
+**`dt` = phase length is not new machinery** — it is exactly the `rate × dt` time-base
+S16's behavior model was already written against; today `dt` is pinned to `1.0`, and
+the fractional-phase clock makes it a real **per-pass** knob. So "raise a pass's rate
+for finer feedback" is the concrete form of the "own cadence" this section already
+endorsed, and the alternative to **fusing** coupled passes (a fused pair is only the
+right answer when their coupling is finer than the *finest* rate available).
+
+**Determinism** holds: fixed rates → a fixed sub-turn schedule; all draws from
+caller-owned seeds. Runtime note: this is the **deeptime** clock — the present VM is
+event-driven, no fixed cadence.
+
+**Live fork (named by the sketch, unresolved):** agents SUM in one pass at one
+cadence (§4, DECIDED) for *co-cadence* agents; agents with genuinely **divergent
+natural rates** (frost seasonal vs dissolution slow) are the case cadence would split
+into separate passes at separate phase lengths — the "agents as terms in one pass vs
+agents as passes with their own cadence" fork. A **measured** call for when those
+agents land, not now; the sum decision holds and cadence marks its boundary.
+
 ---
 
 ## 6. The behavior execution shape
