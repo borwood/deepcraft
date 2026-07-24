@@ -2490,6 +2490,31 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **STATION — per-chunk material-palette quantization makes the chunk grid a
+  visible checkerboard** (user field report + diagnostic station, 2026-07-24;
+  `journal/assets/0088-palette-quantization-chunk-seams.png`). At the **east coast**
+  (~110 km east of spawn; the user noted the weathering regime here reads visibly
+  different from the plateau spawn — worth its own look), a top-down view shows the
+  near/mid field as a **grid of chunk-sized squares, each a distinctly different
+  overall tint** (tan / grey / red-brown / dark-speckled), while the **structure is
+  continuous across the seams** — diagonal dune/wave bands of structure blocks (with
+  yellow inclusion flecks) cross chunk boundaries unbroken, dithered mixed loose
+  voxels between them. So the *material field is continuous* but the *palette
+  quantization is per-chunk*: the same continuous albedo is quantized to a different
+  local palette in each chunk, and each chunk boundary becomes a hard colour
+  discontinuity. **An S-4-square violation on the PALETTE axis** — a chunk-resolution
+  edge reaching the eye as a square (distinct from the far-field LOD material-identity
+  split below, S-9, and from the "far field boxier" geometry thread). **Mechanism
+  hypothesis:** per-chunk interning / blended-colour computation of the mixture
+  palette rather than a globally-consistent quantization (journal/0008 order-dependent
+  `MixtureTable` ids at the seam; journal/0055 `MixtureTable` = 325 mixtures/region;
+  the Sequenced distance-pyramid item's "cache blended colour per interned
+  `MixtureId`" enabling piece is adjacent). **DIAGNOSTIC STATION — return here to
+  check any fix:** feet `pos {x: 71291.7, y: 372.1, z: -2420.9}` / voxel
+  `{x: 79213, y: 413, z: -2690}`, `yaw 21.9968`, `pitch -1.5475` (looking ~straight
+  down), fly on. A correct fix dissolves the chunk-square tint grid into continuous
+  ground with the diagonal structure bands unbroken. **Diagnose before touching.**
+
 - **Far-field LOD reconstructs a coarse box's MATERIAL IDENTITY differently on
   cold-gen vs warm-regen** (user field report, 2026-07-23; **mechanism sharpened
   2026-07-23**). The coarse box for an area shows one material on its *first*
