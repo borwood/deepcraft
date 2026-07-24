@@ -1,4 +1,4 @@
-# 0091 — R and H become views of the inventory
+# 0092 — R and H become views of the inventory
 
 **Movement 2a of the R/H unification** (material-behavior.md §13.6, ratified
 2026-07-23). The deep cell's working material inventory becomes the **authority**
