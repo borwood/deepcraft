@@ -2499,21 +2499,41 @@ before any code.
   overall tint** (tan / grey / red-brown / dark-speckled), while the **structure is
   continuous across the seams** — diagonal dune/wave bands of structure blocks (with
   yellow inclusion flecks) cross chunk boundaries unbroken, dithered mixed loose
-  voxels between them. So the *material field is continuous* but the *palette
-  quantization is per-chunk*: the same continuous albedo is quantized to a different
-  local palette in each chunk, and each chunk boundary becomes a hard colour
-  discontinuity. **An S-4-square violation on the PALETTE axis** — a chunk-resolution
-  edge reaching the eye as a square (distinct from the far-field LOD material-identity
-  split below, S-9, and from the "far field boxier" geometry thread). **Mechanism
-  hypothesis:** per-chunk interning / blended-colour computation of the mixture
-  palette rather than a globally-consistent quantization (journal/0008 order-dependent
-  `MixtureTable` ids at the seam; journal/0055 `MixtureTable` = 325 mixtures/region;
-  the Sequenced distance-pyramid item's "cache blended colour per interned
-  `MixtureId`" enabling piece is adjacent). **DIAGNOSTIC STATION — return here to
+  voxels between them. So the weathering/dune *pattern is continuous* across seams
+  but the **materials are discontinuous** — an **S-4-square violation on the MATERIAL
+  axis** (a chunk-resolution edge reaching the eye as a square; distinct from the
+  far-field LOD material-identity split below, S-9, and the "far field boxier"
+  geometry thread). **Two theories, to be measured:** (T1) the material *families*
+  genuinely differ per chunk — same kind of mix, but a dominant family swapped
+  (sandstone here, mudstone there) — a **generation-side** per-chunk material
+  selection. (T2) the full contents vary *smoothly* (same materials, shifting
+  weights) but voxels hold **more than the 4 materials a mixture can splat**, and the
+  visible **winner reduction (>4 → 4) is salted per-CHUNK instead of per-voxel-
+  position**, so the survivors are uniform within a chunk instead of jittered — a
+  **render/materialization** bug (the >4→4 cut is the likely locus; journal/0055
+  world-anchored dither, 0008 seam-order `MixtureTable` ids, the combinatorial mixture
+  cap). **The discriminating measurement:** sample the *full* top-layer contents (all
+  materials + weights, NOT the classified winner) across adjacent chunks at this
+  station — smoothly-shared materials with jumping winners ⇒ T2; genuinely different
+  material sets ⇒ T1. **This needs full-contents access, which the live
+  `get_block`/`scan_region` do NOT expose** (they return the classified winner only) —
+  see the look-at-contents dev slice below. **DIAGNOSTIC STATION — return here to
   check any fix:** feet `pos {x: 71291.7, y: 372.1, z: -2420.9}` / voxel
   `{x: 79213, y: 413, z: -2690}`, `yaw 21.9968`, `pitch -1.5475` (looking ~straight
   down), fly on. A correct fix dissolves the chunk-square tint grid into continuous
   ground with the diagonal structure bands unbroken. **Diagnose before touching.**
+
+- **Dev slice — look-at-voxel contents inspector** (user-requested 2026-07-24;
+  enabling the palette-quantization measurement above AND a standing dev tool):
+  *"check the contents of a voxel just by looking at it."* Two parts: (a) a
+  **full-contents query** returning a voxel's whole `VoxelContents` mixture —
+  materials, forms, weights — NOT the classified `Block` (`get_block` returns only
+  the winner, which is exactly what hides T1-vs-T2); (b) a **look-at readout** —
+  `character_sense_raycast` already returns the hit voxel + face but only the block
+  name, so extend it to contents and surface it as an on-screen HUD. Small (dc-api
+  query + dc-client HUD/raycast), dual-use: it makes the T1/T2 measurement doable
+  live and gives every future material diagnosis a direct instrument. **Sequence it
+  ahead of the palette-quantization diagnosis — it is that diagnosis's instrument.**
 
 - **Far-field LOD reconstructs a coarse box's MATERIAL IDENTITY differently on
   cold-gen vs warm-regen** (user field report, 2026-07-23; **mechanism sharpened
