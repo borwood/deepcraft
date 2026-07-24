@@ -112,6 +112,13 @@ pub struct GetBlock {
     pub pos: Vec3i,
 }
 
+/// `dc:world/get_contents` — read one voxel's whole material composition (the
+/// full [`dc_core::VoxelContents`], not the single classified block name).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct GetContents {
+    pub pos: Vec3i,
+}
+
 /// `dc:world/fill` — set every voxel in an inclusive box to a named block.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Fill {
@@ -314,11 +321,113 @@ pub struct EntityInfo {
     pub pos: Vec3f,
 }
 
+/// One material and how many of a voxel's eighths it fills within a role.
+/// Each occupied slot is one eighth, so `eighths` is the run length of this
+/// material in its (sorted) segment.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct MaterialCount {
+    /// Qualified material slug, e.g. `dc:granite`.
+    pub material: String,
+    /// Count in eighths (1..=8).
+    pub eighths: u8,
+}
+
+/// A voxel's full material composition — the whole [`dc_core::VoxelContents`]
+/// unpacked for the dev inspector. The three multisets (structure / pore-fill /
+/// debris) are the source of truth; the single classified block name is a
+/// *summary* derived from them and lives beside this in [`QueryData::Contents`],
+/// never inside it (the "a summary is not an authority" doctrine).
+#[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
+pub struct ContentsView {
+    /// Structure shape reserving capacity: `none` | `quarter` | `slab` | `full`.
+    pub shape: String,
+    /// Occupied eighths (structure + pore fill + debris).
+    pub solid_eighths: u8,
+    /// Wholly unoccupied eighths (what a fluid could still enter).
+    pub free_eighths: u8,
+    /// Open (unfilled) pores in the structure's reserved capacity.
+    pub open_pores: u8,
+    /// Unreserved eighths still free for debris.
+    pub free_debris_eighths: u8,
+    /// Structural fill — the load-bearing identity — sorted by material.
+    pub structure: Vec<MaterialCount>,
+    /// Fine material packed into the structure's pores, sorted by material.
+    pub pore_fill: Vec<MaterialCount>,
+    /// Loose granular fill of the unreserved volume, sorted by material.
+    pub debris: Vec<MaterialCount>,
+}
+
+impl ContentsView {
+    /// Unpack canonical [`dc_core::VoxelContents`] into the wire view: each
+    /// sorted segment run-length-collapses into `(slug, eighths)` pairs.
+    pub fn from_contents(c: &dc_core::VoxelContents) -> Self {
+        Self {
+            shape: shape_slug(c.shape()).to_string(),
+            solid_eighths: c.solid_eighths(),
+            free_eighths: c.free_eighths(),
+            open_pores: c.open_pores(),
+            free_debris_eighths: c.free_debris_eighths(),
+            structure: group_materials(c.structure()),
+            pore_fill: group_materials(c.pore_fill()),
+            debris: group_materials(c.debris()),
+        }
+    }
+}
+
+/// Run-length collapse a sorted material segment into `(slug, eighths)` pairs.
+fn group_materials(sorted: &[dc_core::MaterialId]) -> Vec<MaterialCount> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < sorted.len() {
+        let m = sorted[i];
+        let mut n = 1;
+        while i + n < sorted.len() && sorted[i + n] == m {
+            n += 1;
+        }
+        out.push(MaterialCount {
+            material: m.qualified_name().to_string(),
+            eighths: n as u8,
+        });
+        i += n;
+    }
+    out
+}
+
+/// Wire slug for a structure shape.
+fn shape_slug(shape: dc_core::StructureShape) -> &'static str {
+    match shape {
+        dc_core::StructureShape::None => "none",
+        dc_core::StructureShape::Quarter => "quarter",
+        dc_core::StructureShape::Slab => "slab",
+        dc_core::StructureShape::Full => "full",
+    }
+}
+
 /// Typed result data for queries, mirrored to JSON at the MCP boundary.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum QueryData {
     Block {
         block: String,
+    },
+    /// A voxel's full material composition (`dc:world/get_contents`). The three
+    /// multisets in `contents` are the authority; `block` is the stored
+    /// (edit-aware) classified name and `classified` is what the contents
+    /// themselves classify to — equal for an unedited recorded voxel, and
+    /// diverging is the signal that the voxel was edited (an edit writes a
+    /// block, not contents) or that no record backs it.
+    Contents {
+        /// Authoritative stored block name (edit-aware).
+        block: String,
+        /// The block name `classify` derives from `contents`; equals `block`
+        /// for an unedited recorded voxel. When `has_contents` is false this
+        /// echoes `block`.
+        classified: String,
+        /// Whether a full contents record backs this voxel. `false` under the
+        /// S1 terrain authority, for legacy stubs, or when the world carries no
+        /// contents source — then only `block` is meaningful and `contents` is
+        /// the empty composition.
+        has_contents: bool,
+        contents: ContentsView,
     },
     /// Scan result: palette (block names, order of first appearance while
     /// scanning x-fastest, then z, then y — same order as chunk layout) plus
@@ -373,6 +482,13 @@ pub enum QueryData {
         /// Entry-face normal; (0,0,0) when the eye started inside a solid.
         normal: Option<Vec3i>,
         distance_m: Option<f64>,
+        /// The hit voxel's full material composition, when a contents record
+        /// backs it (the same authority `dc:world/get_contents` returns). `None`
+        /// on a miss, or when the world carries no contents source (S1 terrain,
+        /// legacy stubs). Appended field; `serde(default)` decodes pre-contents
+        /// streams to `None` (postcard is positional — this stays last).
+        #[serde(default)]
+        contents: Option<ContentsView>,
     },
 }
 
@@ -418,6 +534,7 @@ mod tests {
         for id in [
             ids::WORLD_SET_BLOCK,
             ids::WORLD_GET_BLOCK,
+            ids::WORLD_GET_CONTENTS,
             ids::WORLD_FILL,
             ids::WORLD_SCAN_REGION,
             ids::ENTITY_SPAWN,

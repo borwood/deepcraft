@@ -31,7 +31,7 @@ use crate::envelope::{
     QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick,
 };
 use crate::event::GameEvent;
-use crate::payload::{EntityInfo, Payload, QueryData, Vec3i, Volume};
+use crate::payload::{ContentsView, EntityInfo, Payload, QueryData, Vec3i, Volume};
 use crate::schema::{CommandKind, spec};
 
 /// Per-command cap on fill/scan volume (voxels). Keeps one envelope from
@@ -65,6 +65,25 @@ pub fn block_name(block: Block) -> &'static str {
         Block::Grass => "dc:grass",
         Block::Wood => "dc:wood",
         Block::Material(m) => m.qualified_name(),
+    }
+}
+
+/// Build the `dc:world/get_contents` result: the full composition (the
+/// authority) beside the stored, edit-aware `block` and the block the contents
+/// themselves classify to. For a voxel with no contents record the composition
+/// is empty and `classified` echoes the stored block.
+fn contents_query_data(block: Block, contents: Option<&dc_core::VoxelContents>) -> QueryData {
+    let classified = match contents {
+        Some(c) => block_name(dc_core::classify(c)),
+        None => block_name(block),
+    };
+    QueryData::Contents {
+        block: block_name(block).to_string(),
+        classified: classified.to_string(),
+        has_contents: contents.is_some(),
+        contents: contents
+            .map(ContentsView::from_contents)
+            .unwrap_or_default(),
     }
 }
 
@@ -190,12 +209,28 @@ pub const MAX_SENSE_RADIUS_VOXELS: u32 = 16;
 /// existing consumer/test is unchanged.
 pub type ChunkGenerator = Box<dyn Fn(ChunkPos) -> Chunk + Send + Sync>;
 
+/// Optional per-chunk **material contents** source, parallel to
+/// [`ChunkGenerator`]. The block generator classifies contents down to a single
+/// [`Block`] per voxel before storage (that is all the sim/edit authority needs);
+/// this seam keeps the *full* [`dc_core::VoxelContents`] reachable for the dev
+/// inspector (`dc:world/get_contents`, the look-at readout) without the host
+/// having to store 8× the bytes per voxel. It is a **pure function of `pos`** —
+/// the render-authority's `chunk_contents`, blind to edits — so where a stored
+/// block was edited it may disagree with the classified contents; the query
+/// surfaces both so the divergence is legible. `None` (the default) = the host
+/// has no contents to offer and `get_contents` answers block-only.
+pub type ContentsSource = Box<dyn Fn(ChunkPos) -> Option<dc_core::ContentsGrid> + Send + Sync>;
+
 /// The in-process world. Single-threaded, manual tick driver.
 pub struct HostWorld {
     seed: u64,
     /// Base terrain for never-edited chunks. `None` = the built-in seeded
     /// hill-field (S5 behavior, byte-for-byte).
     generator: Option<ChunkGenerator>,
+    /// Optional full-contents source for the dev inspector (`get_contents`,
+    /// look-at readout). `None` = the host serves block-only contents queries.
+    /// Never consulted by sim/edit/replay — purely a read-side instrument.
+    contents_source: Option<ContentsSource>,
     /// Last completed tick. State always reflects exactly this tick.
     tick: Tick,
     /// Resident chunks. Generated-untouched entries are an evictable cache
@@ -236,6 +271,7 @@ impl HostWorld {
         Self {
             seed,
             generator: None,
+            contents_source: None,
             tick: 0,
             chunks: HashMap::new(),
             chunk_budget: DEFAULT_CHUNK_BUDGET,
@@ -266,6 +302,27 @@ impl HostWorld {
         let mut world = Self::new(seed);
         world.generator = Some(generator);
         world
+    }
+
+    /// Install the full-contents source for the dev inspector (see
+    /// [`ContentsSource`]). Additive and read-only: it never touches sim state,
+    /// receipts, or replay identity — a world without one answers `get_contents`
+    /// block-only. Idempotent; a later call replaces the source.
+    pub fn set_contents_source(&mut self, source: ContentsSource) {
+        self.contents_source = Some(source);
+    }
+
+    /// The full [`dc_core::VoxelContents`] of a voxel, resolved through the
+    /// installed [`ContentsSource`]. `None` when no source is installed or the
+    /// source has no record for this chunk (S1 terrain, legacy stubs). Resolves
+    /// a whole chunk's contents grid and reads one voxel — a dev-query cost, off
+    /// every hot path (gen time is not a constraint).
+    pub fn contents_at(&self, p: Vec3i) -> Option<dc_core::VoxelContents> {
+        let source = self.contents_source.as_ref()?;
+        let cpos = ChunkPos::from_world_voxel(p.x, p.y, p.z);
+        let (lx, ly, lz) = local_voxel(p.x, p.y, p.z);
+        let grid = source(cpos)?;
+        Some(grid.get(lx, ly, lz))
     }
 
     /// Last completed tick.
@@ -1141,6 +1198,7 @@ impl HostWorld {
             }
             // Queries never reach apply (submit rejects them).
             Payload::GetBlock(_)
+            | Payload::GetContents(_)
             | Payload::ScanRegion(_)
             | Payload::EntityQuery(_)
             | Payload::EventsPoll(_)
@@ -1207,6 +1265,11 @@ impl HostWorld {
             Payload::GetBlock(p) => QueryData::Block {
                 block: block_name(self.block_at(p.pos)).into(),
             },
+            Payload::GetContents(p) => {
+                let block = self.block_at(p.pos);
+                let contents = self.contents_at(p.pos);
+                contents_query_data(block, contents.as_ref())
+            }
             Payload::ScanRegion(p) => {
                 let vol = Volume::new(p.min, p.max);
                 if vol.voxel_count() > MAX_REGION_VOXELS {
@@ -1332,6 +1395,7 @@ impl HostWorld {
                         block: None,
                         normal: None,
                         distance_m: None,
+                        contents: None,
                     },
                     Some(h) => {
                         let voxel = Vec3i::new(h.voxel.0, h.voxel.1, h.voxel.2);
@@ -1357,12 +1421,16 @@ impl HostWorld {
                             }
                         };
                         let block = block_name(self.block_at(voxel)).to_string();
+                        let contents = self
+                            .contents_at(voxel)
+                            .map(|c| ContentsView::from_contents(&c));
                         QueryData::CharacterRaycast {
                             hit: true,
                             voxel: Some(voxel),
                             block: Some(block),
                             normal: Some(Vec3i::new(h.normal.0, h.normal.1, h.normal.2)),
                             distance_m: Some(distance_v * voxel_size),
+                            contents,
                         }
                     }
                 }

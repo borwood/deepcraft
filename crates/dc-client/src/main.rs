@@ -52,6 +52,7 @@ mod edgepass;
 mod edit;
 mod farmesh;
 mod farpyramid;
+mod inspector;
 mod mcp;
 mod mcp_character;
 mod meshing;

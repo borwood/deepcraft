@@ -46,5 +46,7 @@ pub use envelope::{
     EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,
 };
 pub use event::{EventKind, GameEvent};
-pub use host::{ChunkGenerator, ChunkResidency, HostWorld};
+pub use host::{
+    ChunkGenerator, ChunkResidency, ContentsSource, HostWorld, block_from_name, block_name,
+};
 pub use payload::{EntityInfo, Payload, QueryData, Vec3f, Vec3i, Volume, ids};
