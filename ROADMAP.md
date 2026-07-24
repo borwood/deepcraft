@@ -2053,6 +2053,27 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     discoverable and honestly-statused; the biased-fill inputs already exist (§13) so nothing is
     lost by leaving it open.
 
+- **MIGRATE EVERY "NOT REAL" FIELD INTO A REAL DECLARED FIELD PASS** (reminder, user-directed
+  2026-07-24). As the §5 **field-pass half** lands (geotherm = the first, this session), the
+  ad-hoc / stub / unconsumed proto-fields must each migrate into a **real declared field pass
+  writing to the condition-field vocabulary** — not stay ad-hoc planes: `exhum` + `t_crust`
+  exported planes (spines §3, unconsumed), the **degenerate `burial_temp_c` geotherm** (stubs.md
+  #14 — the real geotherm subsumes it, coal recalibration rides along), drainage `recv`/`area`/
+  `lake` (spines §3, unconsumed — the flow field material-aware transport consumes), and any
+  field computed inline that a formation predicate or cellular pass ought to read by id. **Each
+  migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
+  condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
+  output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
+
+- **APPEARANCE WALKS OWED** (tracking, user: "we do that when able" — journal screenshots for
+  appearance-changing work). Owed, to co-walk when the user can launch: **(1)** the far-LOD
+  band-inversion fix (journal/0091 — the finest band no longer cold over resident warm data;
+  fullbright for the material continuity, lit for no poke-through, per the agent's pose note);
+  **(2)** the S18 weathering band **once Movement 3 makes it ≥1 voxel** (the walk that failed
+  sub-voxel this session); **(3)** the geotherm's coal-distribution shift when it lands (coal
+  moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
+  named for their entry.
+
 - **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
   `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md
   block-is-material DECIDED, the block-consumer recon, ARCHITECTURE § "a summary is
