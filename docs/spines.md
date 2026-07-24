@@ -4,20 +4,30 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: 2026-07-24 (the deep-time pass-runner batch —
-`passgraph.rs` confirmed a genuine shared kernel, both `pipeline::schedule`
-[require_creator=true] and `runner::DeepSchedule::new` [false] call it, A-4
-guarded; S-6's runner entry verified accurate. S17 keystone `FactLedger` now
-**consumed** by `collapse.rs` via the weathering-front band — and as of
-**journal/0094 (Movement 3) that weathering is a LIVE per-epoch process**
-(`dc:deep/weather_inventory` runner pass, in-loop, accumulating; stub #17
-discharged, corrections #46/#47 resolved), no longer the one-shot plumbing stub.
-§ 3: occupancy row narrowed — the dev
-inspector now consumes `free_eighths`/`open_pores`; `fits_in_pores`, drainage
-`recv/area/lake`, `exhum/t_crust` exported planes, `Agent::Dissolution`, the S11
-water module, and `column_summary` all re-confirmed uncalled in production.)
-Previous: 2026-07-23 (`column_summary` confirmed dormant and added to § 3;
-far-field cold/warm split confirmed real; `weather_behavior.rs` confirmed wired).*
+*Last `spine-audit` sweep: **2026-07-24 (post-Movement-3)** — the weathering-as-a-
+process merge (`7545643`) + the `palette_quant_tour` example (`0a8168d`/`4318463`).
+Verdicts: **stub #17 is discharged-with-a-residual** (the in-loop half landed; the
+"riding / unifying with the height-tier weathering" half of its own heir sentence is
+deferred and lives in ROADMAP Movement 2 / material-behavior.md §11+§13.6 — the
+discharge note frames that deferral as a satisfied invariant rather than a residual,
+see A-2 below). **Three findings in the merged code:** an expired premise on
+`BEDROCK_SEAM_THICKNESS_M` (A-2), a second fact-merger written beside the one that
+existed (A-4), and a `reads_prev` declaration whose actual epoch is decided by the
+id tie-break (S-6 flag). § 3: **no row was emptied** — the S17 keystone never had one
+(its consumption is recorded in S-9, and spines.md has never contained the string
+`WorkingInventory`); **two rows ADDED** — the exported `DeepField::geotherm` plane
+(journal/0093) and **Movement 2a's derived `R`/`H` views** (journal/0092), both
+built + tested with no production caller. `fits_in_pores`, `bound_eighths`/`is_occupancy_solid`, drainage
+`recv/area/lake`, `exhum`/`t_crust` exported planes, `Agent::Dissolution`, the S11
+water module and `column_summary` all re-confirmed uncalled in production this sweep.*
+
+*Previous: 2026-07-24 (the deep-time pass-runner batch — `passgraph.rs` confirmed a
+genuine shared kernel, both `pipeline::schedule` [require_creator=true] and
+`runner::DeepSchedule::new` [false] call it, A-4 guarded; S-6's runner entry verified
+accurate; occupancy row narrowed — the dev inspector now consumes
+`free_eighths`/`open_pores`). 2026-07-23 (`column_summary` confirmed dormant and added
+to § 3; far-field cold/warm split confirmed real; `weather_behavior.rs` confirmed
+wired).*
 
 ## What this file is, and how it differs from the others
 
@@ -255,6 +265,35 @@ files.
   (`reads_prev`, not handed to the sort); declare it within-epoch and the runner
   rejects the cycle. `climate`'s `remarch_interval` is a low-rate pass. Re-housing
   is byte-identical (the production goldens are unmoved).
+- `dc:deep/weather_inventory` (journal/0094, 2026-07-24): the **first *cellular*
+  pass** on that runner — declares `reads {Settled|Compensated|Diffused, Frosted,
+  Exposed}`, `writes {Saprolite}`, `period = 1`, body a bare `fn`. The crossing
+  constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
+  pointer, `runner.rs:596-604` — no closure crosses the seam), and `Saprolite` is an
+  honest pure-write sink token in the `Geotherm` mould, so the pass is orderable
+  without perturbing the erosion pipeline. **Two declaration defects found by this
+  sweep, both cheap to fix and neither behavioural today:**
+  1. **`reads_prev: &[BioMod]` is not what happens** (`runner.rs:601`, comment
+     `runner.rs:592-593` — *"loop-carried, like `weather`/`diffuse` — last epoch's
+     BioMod"*). `weather_epoch` reads `grid.bio_weather`
+     (`weather_inventory.rs:307`), a plane `biotic` overwrites in place each epoch
+     (`biotic.rs:717`). The pass declares no edge against `biotic`, so which epoch's
+     values it observes is settled by `passgraph`'s **id-lexicographic tie-break**
+     (`passgraph.rs:152-153`, `ready.remove(0)`): `dc:deep/biotic` sorts before
+     `dc:deep/weather_inventory`, so it in fact reads **this** epoch's plane. Rename
+     the pass and the physics changes — **incidental order deciding a data
+     dependency, the exact thing this spine forbids.** The honest declaration is free:
+     `BioMod` as a within-epoch `reads` adds only the edge `biotic →
+     weather_inventory` (nothing reads `Saprolite`, so no cycle) and makes the graph
+     say what the code does.
+  2. **`Exposed` is declared and never read.** `Exposed` is the outcropping-lithology
+     susceptibility plane (`runner.rs:74-76`); the pass's susceptibility comes from
+     `BEDROCK_SEAM_MATERIAL.props().weatherability`, a constant
+     (`weather_inventory.rs:117-127, 232`). Over-declaring a read is safe (it only
+     adds order) but it is a false statement on a self-declaring pass, and the
+     comment at `runner.rs:363` asserting it reads "the exposed lithology" is simply
+     untrue. It becomes true when stub #16's genesis heir gives bedrock a real
+     per-column identity — until then, declare it or don't, but don't narrate it.
 - members canonically ordered by namespaced id (geology.md)
 - patch plugins: declared order, last-in-order wins, **recorded in world
   identity** (DECIDED 2026-07-22)
@@ -311,7 +350,24 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     S18's post-hoc one-shot (`field.rs::build_ledgers`, deleted). The band is now
     ≥1 voxel; **stub #17 discharged** (the plumbing stub is a real behavior). Still
     **gated behind `--weather-inventory` (default off, S-5 identity default →
-    byte-identical)** — a walk-gated appearance change, not a stub. The
+    byte-identical)** — a walk-gated appearance change, not a stub.
+    **The residual, named here so it is not lost (audit 2026-07-24):** #17's heir
+    sentence asked for two things — the per-epoch in-loop pass (*landed*) **and**
+    "riding / unifying with the height-tier weathering". The second is *deliberately
+    deferred*: the pass reads `H` and writes only the ledger sidecar, so `dc:deep/
+    weather` still owns the `R`/`H` budget (the two-authorities split,
+    material-behavior.md §11). That deferral has a home — **ROADMAP "Movement 2 —
+    R/H unification"**, material-behavior.md §11 continuation slot + §13.6, and
+    `docs/spikes/movement2a-rh-unification-plan.md` — but the split is **not yet the
+    invariant the discharge note calls it**: `DeepField::derive_regolith_at`
+    (`field.rs:545-551`) materializes the "one authority" `H` view from
+    `FactLedger::empty_with_bedrock`, i.e. **with an empty ledger**, so the derived
+    view structurally cannot see the 6.09 m of `Loose` the M3 process committed.
+    Movement 2a's claim that "the inventory is the authority and `R`/`H` are its
+    materialized views" (`field.rs:521-537`) is therefore true of the *record* half
+    only; M3 added inventory content no view reflects. Two derivations of one
+    quantity that cannot agree is this section's own consistency law — the
+    unification is what closes it. The
     **runtime tier** (edits as facts over
     the gen-derivable base; a break = a move-fact) is the same shape one tier down —
     designed (commit-as-facts), unbuilt; the inspector proved the runtime stores only
@@ -365,6 +421,22 @@ true until the content-set freeze, **the same day**.
 **Check:** § 5's convention. Note that decisions expire premises *elsewhere*,
 so a sweep must ask "does the cited constraint still hold?"
 
+- **instance (2026-07-24, caught by the post-M3 sweep):
+  `BEDROCK_SEAM_THICKNESS_M`'s justification expired the day Movement 3 merged.**
+  `inventory.rs:425-429` still reads *"a made-up depth chosen only to be an
+  **effectively-inexhaustible** `Structure→Loose` source **over the one chapter this
+  slice weathers**"*. Weathering is no longer one chapter: `dc:deep/weather_inventory`
+  fires every epoch for the whole run and **accumulates**, and the measured
+  production band at the argmax cell is already **6.094 m of the 50 m seam (12 %)**
+  (journal/0094). The number is no longer a shrug — it is a **live ceiling on how
+  deep saprolite can get anywhere in the world**, and it will bite first exactly
+  where the process is strongest (thin cover, long subaerial residence, or a cranked
+  `--erosion-budget` walk). Textbook A-2: the decision that expired the premise was
+  in a different file, the same day. **Proposed wording:** *"…chosen to outlast the
+  accumulated `Structure→Loose` draw of a full run (measured max 6.094 m of 50 m at
+  production scale, journal/0094) — it is a **ceiling on saprolite depth**, not an
+  inexhaustible source; the genesis/emplacement heir supplies a real per-column
+  unroofing depth and retires it."*
 - not-an-instance (2026-07-23, journal/0078): the 2026-07-22 audit flagged the
   `exhum`/`t_crust` comment [#28] as an A-2 ("claims the collapse tier reads
   them"), but the comment already said "WILL read … currently consumed by
@@ -385,7 +457,28 @@ optimizer).
 
 ## A-4. Built machinery with no consumer and no index
 
-See § 3. **This is the anti-shape this file exists for.**
+See § 3. **This is the anti-shape this file exists for.** Its sibling failure — the
+one the header calls this project's characteristic defect — is **a second mechanism
+written beside the one that already existed**:
+
+- **instance (2026-07-24, post-M3 sweep): two fact-mergers, 300 lines apart.**
+  `inventory.rs::commit_chapter` (`593-624`) already merges a drained edge into the
+  preceding fact when `(chapter, cause, from, to)` match — but only against
+  `facts.last_mut()`, so it merges *consecutive* edges only. Movement 3 fires three
+  interleaved agents per epoch, which defeats that, so it added
+  `weather_inventory.rs::coalesce_facts` (`263-281`) — **the same merge, keyed on
+  the same tuple, generalized to non-consecutive** — and calls it in a loop over
+  every slot after every commit (`254-256`). The right shape is one merger:
+  generalize `commit_chapter`'s lookup from `last_mut()` to a search over the slot
+  and delete `coalesce_facts`. Semantically identical (the merge is order-insensitive
+  and mass-preserving), and it removes an O(slots) post-pass from a per-cell,
+  per-epoch path. Caught while it was six lines old, which is the whole point of
+  sweeping after a merge rather than a month later.
+- **not-an-instance, noted for the record:** `weather_epoch` open-codes
+  `grid.r[i] + grid.h[i] <= sea_level` (`weather_inventory.rs:310`) where
+  `DeepGrid::surf_at` (`grid.rs:412-413`) exists — but so do five other sites in
+  `erosion.rs`. That is a pre-existing idiom, not a new mechanism; it belongs to
+  whoever next touches `erosion.rs`, not to M3.
 
 ## A-5. Locality of cause mistaken for locality of effect
 
@@ -419,7 +512,9 @@ consumed it and when.
 | `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
 | `exhum` / `t_crust` — populated since U8; the doc comment is now **honest** (states "consumed by nothing", cites this row — journal/0078; the 2026-07-22 audit's "claims the collapse tier reads them" quoted an already-corrected comment with its "WILL" dropped — corrections #40) | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs` — the unconsumed thing is the exported plane, not the value) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
 | occupancy primitives — `bound_eighths`, `is_occupancy_solid` (the two still uncalled; `free_eighths`/`open_pores` now read by the dev inspector `dc-api/src/payload.rs:367`, `loose_eighths` by `dc-client/src/meshing.rs:281` — 2026-07-24 sweep) | `dc-core/src/materials/contents.rs` | `bound_eighths`/`is_occupancy_solid`: **no production caller** | the four sim consumers named at authorship: water fill, loose gravity, compaction, sim light — none built yet (the inspector/meshing reads above are the dev HUD + render path, not those) |
-| `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
+| **Movement 2a's derived `R`/`H` views** — `DeepField::derive_regolith_at` / `derive_bedrock_at`, `WorkingInventory::derived_regolith_m` / `derived_structure_stock_m`, `surface_regolith_m` / `structure_stock_m` (journal/0092, the positional cave-excluding §13.6 rule, 4 tests green) — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:545,560`; `deeptime/inventory.rs:764,776,787,807` | **no production caller** — only `tests/rh_unification.rs:52,79` (the byte-identity agreement tests). Production still reads the scalar `surf`/`regolith` planes; the views exist to *prove* the inventory is the authority, not yet to *be* it | **the R/H unification** (ROADMAP "Movement 2", material-behavior.md §13.6): retire the scalar planes into the inventory so `H`/`R` derive. Until then this is the authority-half of a two-authorities split (see S-9's M3 residual), and `derive_regolith_at` reads an **empty** ledger, so it cannot see `dc:deep/weather_inventory`'s facts |
+| `DeepField::geotherm` — the exported `temperature` condition-field plane (°C/m per cell), **added 2026-07-24 by journal/0093**; the field's doc already says so honestly (`field.rs:312-321`) but nothing pointed at this index — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:321` (cloned from `run.grid.geotherm`, `field.rs:382`) | **no consumer of the exported plane** — only `tests/geotherm.rs` and `resident_bytes`. The *in-sim* value **is** consumed: coal rank reads `grid.geotherm` at run finalize (`biotic.rs:765-775`). Exactly the `exhum`/`t_crust` shape, one field newer | **metamorphic grade** (`exhum` = P, this = T → schist/gneiss/marble; ROADMAP "Metamorphism — now UNBLOCKED by the geotherm") and the measurement probes |
+| `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** in production (`examples/entry_species_probe.rs:325` is a probe; the *separate* `inventory::Cause::Dissolution` is deliberately excluded from `WEATHERING_AGENTS`, `weather_inventory.rs:61-63`) | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
 | `column_summary` / `open_air_below` / `ColumnSummaries` — the S3 skylight query (S-9 deterministic-derive), built + 6 tests green | `dc-core/src/column.rs` | **no production caller** — only the `--bench-storage` timing harness (`dc-client/src/bench_storage.rs`); `docs/API.md` lists a `world.column_summary` query but **no dc-api handler exists** for it (2026-07-23 sweep) | **sim-light / skylight** — the "is this column under open sky" query; the lighting/sim-light consumer is unbuilt |
@@ -490,6 +585,17 @@ premises changed.
 
 A `spine-audit` sweep greps these and asks, one by one, whether the cited
 constraint is still true.
+
+**Drift check (2026-07-24): the literal marker has zero instances.** A corpus grep
+for `JUSTIFIED-BY` returns this file and the skill that describes it — nothing in
+`crates/`. That is not a failure of the *convention* (the corpus does name its
+constraints, loudly and in prose: `STUB #16`, `REFINEMENT SEAM:`, "consumed by
+nothing, cites spines § 3"), but it does mean the grep the convention promises finds
+nothing, and every A-2 caught so far was caught by **reading**, not grepping — this
+sweep's `BEDROCK_SEAM_THICKNESS_M` instance included. Either the marker earns its
+first real uses on the next stub-adjacent constant, or this section should be
+rewritten around the prose form that is actually in use. Left as a **flag to the main
+session**, not a unilateral rewrite (§ 4's rule binds the auditor too).
 
 ## A-7. Naming a content identity inside a process
 
