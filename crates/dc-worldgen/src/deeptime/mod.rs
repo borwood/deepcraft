@@ -32,6 +32,7 @@ pub mod lithology;
 pub mod providers;
 pub mod recorder;
 pub mod refine;
+pub mod runner;
 pub mod tectonics;
 pub mod weather_behavior;
 pub mod weather_inventory;
@@ -134,51 +135,64 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     let mut erosion = Erosion::new(&grid);
     erosion.set_parallel(parallel);
     let mass_before = total_mass(&grid);
+
+    // --- pre-loop seeding (initial conditions the epoch loop reads) ---
+    // The epoch-0 climate march, the biotic-layer init (which turns on the grid's
+    // biotic modifier planes at their identity values, so iteration 0's erosion is
+    // byte-identical to a biology-free run — the lagged coupling), and the
+    // precomputed tectonic-history schedule (§ 3: the chapter table + one analytic
+    // thickening plane per chapter geometry, blended per iteration across the
+    // chapter ramp; off → empty, byte-identical legacy path). The climate pass is
+    // a coarse-rate pass **seeded here** and re-marched inside the loop every
+    // `remarch_interval` epochs (runner.rs).
     climate::march(&mut grid, grid::sea_level_at(cfg, 0));
-    // The S10 biotic layer, when enabled: initializing it turns on the grid's
-    // biotic modifier planes at their identity values, so iteration 0's erosion
-    // is byte-identical to a biology-free run (the lagged coupling, below).
-    let mut biota = if cfg.biotic {
+    let biota = if cfg.biotic {
         Some(BioticSim::new(&mut grid, cfg, parallel))
     } else {
         None
     };
-
-    // Tectonic history (§ 3): precompute the chapter table and the analytic
-    // thickening forcing plane per chapter geometry (repaint-per-chapter, § 3.1),
-    // to be blended per iteration across the chapter ramp. Off → empty, and the
-    // step's forcing plane stays empty (byte-identical legacy path).
     let tec = TectonicSchedule::new(cfg, &grid);
-
-    let mut uplift_total = 0.0;
-    let mut biotic_total = 0.0;
-    let mut thickening_total = 0.0;
-    let mut blended = if cfg.tectonic_history {
+    let blended = if cfg.tectonic_history {
         vec![0.0f64; grid.w * grid.w]
     } else {
         Vec::new()
     };
-    for it in 0..cfg.iterations {
-        let sl = grid::sea_level_at(cfg, it);
-        if it > 0 && it % cfg.remarch_interval == 0 {
-            climate::march(&mut grid, sl);
-        }
-        if cfg.tectonic_history {
-            let chapter = tec.blend_into(cfg, it, &mut blended);
-            thickening_total += blended.iter().sum::<f64>();
-            erosion.set_tectonic(chapter, &blended);
-        }
-        // Erosion consumes the modifiers biology wrote LAST epoch...
-        uplift_total += erosion.step(&mut grid, cfg, sl);
-        // ...then biology reads this epoch's fresh terrain, deposits its organic
-        // record, and writes the modifiers the NEXT epoch's erosion consumes.
-        // That one-epoch lag is what breaks the biology↔erosion cycle a
-        // single-epoch pass graph would (correctly) refuse — ecology.md § 3.
-        if let Some(b) = biota.as_mut() {
-            biotic_total += b.step(&mut grid, &erosion, it);
-        }
-    }
-    // Burial diagenesis: buried thick peat becomes coal.
+
+    // --- the deep-time pass-runner drives the epoch loop (runner.rs) ---
+    // The four phases the old hand-written loop ran — climate, tectonic forcing,
+    // erosion (decomposed into its sub-passes), biotic — are now self-declaring
+    // passes; the runner topo-sorts them and fires each at its cadence. The
+    // biology↔erosion one-epoch lag is a declared loop-carried edge; climate's
+    // `remarch_interval` is its cadence.
+    let schedule = runner::DeepSchedule::new(runner::deep_passes(cfg))
+        .expect("the deep-time pass graph is valid");
+    let mut ctx = runner::DeepStepCtx {
+        cfg,
+        grid,
+        erosion,
+        biota,
+        tec,
+        blended,
+        epoch: 0,
+        sea_level: grid::sea_level_at(cfg, 0),
+        dt: 1.0,
+        uplift_total: 0.0,
+        biotic_total: 0.0,
+        thickening_total: 0.0,
+    };
+    schedule.run(&mut ctx);
+    let runner::DeepStepCtx {
+        mut grid,
+        erosion,
+        biota,
+        tec,
+        uplift_total,
+        biotic_total,
+        thickening_total,
+        ..
+    } = ctx;
+
+    // Burial diagenesis: buried thick peat becomes coal (post-loop, unchanged).
     if let Some(b) = biota.as_ref() {
         b.finalize(&mut grid);
     }
@@ -200,7 +214,11 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
 /// The precomputed tectonic-history schedule: the chapter table plus one analytic
 /// thickening forcing plane per chapter geometry, blended per iteration across
 /// the chapter ramp. Empty when tectonic history is off.
-struct TectonicSchedule {
+///
+/// `pub` only so it can be a field of the runner's [`runner::DeepStepCtx`]; its
+/// fields and methods stay module-private (the runner is a descendant module and
+/// reaches them anyway).
+pub struct TectonicSchedule {
     /// Plate state at the start of each chapter (`K + 1` entries).
     table: Vec<Vec<Plate>>,
     /// One forcing plane (m/iter thickening) per chapter geometry, row-major.
