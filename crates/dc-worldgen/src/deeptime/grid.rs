@@ -365,6 +365,12 @@ pub struct DeepGrid {
     /// and weathering (§ 5.2). The metamorphic-grade input for the collapse tier
     /// (§ 6.4). Empty when tectonic history is off.
     pub exhum: Vec<f64>,
+    /// **The `temperature` condition-field** (`dc:field/temperature`, §14): the
+    /// per-cell **geothermal gradient** (°C/m) the geotherm field pass
+    /// ([`super::geotherm`]) plants, so `T(depth) = surface_T + gradient·depth`.
+    /// Empty when tectonic history is off (no crustal state to solve over — coal
+    /// then reads [`super::geotherm::DEFAULT_CONTINENTAL_GRADIENT_C_PER_M`]).
+    pub geotherm: Vec<f64>,
     /// South→north latitude span the grid is compressed onto (pregen bands).
     lat_south: f64,
     lat_north: f64,
@@ -392,6 +398,7 @@ impl DeepGrid {
             t_crust: Vec::new(),
             crust_kind: Vec::new(),
             exhum: Vec::new(),
+            geotherm: Vec::new(),
             lat_south: LAT_SOUTH,
             lat_north: LAT_NORTH,
         }
@@ -417,7 +424,8 @@ impl DeepGrid {
             + self.h.len()
             + self.uplift.len()
             + self.t_crust.len()
-            + self.exhum.len())
+            + self.exhum.len()
+            + self.geotherm.len())
             * std::mem::size_of::<f64>()
             + (self.precip.len() + self.bio_weather.len() + self.bio_resist.len())
                 * std::mem::size_of::<f32>()
@@ -494,11 +502,13 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
     // Tectonic-history crustal columns (§ 5.2). Off → empty planes, and every
     // consumer (thickening, isostasy, exhumation) is skipped, so the run is
     // byte-identical to the pre-tectonic-history engine.
-    let (t_crust, crust_kind, exhum) = if cfg.tectonic_history {
+    let (t_crust, crust_kind, exhum, geotherm) = if cfg.tectonic_history {
         let (t, k) = super::tectonics::seed_columns(cfg, w, cfg.cell_m);
-        (t, k, vec![0.0f64; n])
+        // `geotherm` is sized here and filled by the field pass's pre-loop seed;
+        // empty off the tectonic path, where the field has no crustal state.
+        (t, k, vec![0.0f64; n], vec![0.0f64; n])
     } else {
-        (Vec::new(), Vec::new(), Vec::new())
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new())
     };
 
     DeepGrid {
@@ -514,6 +524,7 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
         t_crust,
         crust_kind,
         exhum,
+        geotherm,
         lat_south: LAT_SOUTH,
         lat_north: LAT_NORTH,
     }

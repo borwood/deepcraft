@@ -8,7 +8,7 @@
 
 use dc_worldgen::deeptime::{
     self, Aridity, Biofacies, BurialColumn, COAL_MIN_M, DeepConfig, DeepGrid, DeepStrata, DepEnv,
-    DepTag, EnergyBand, Eolian, Providers,
+    DepTag, EnergyBand, Eolian,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -233,19 +233,19 @@ fn biology_changes_the_landscape_it_grows_on() {
 // ---------------------------------------------------------------------------
 // Burial diagenesis: the axis (journal/0063).
 
-/// A column context for [`DeepStrata::promote_coal`] with no heir supplied — the
-/// identity geotherm, under which the onset threshold is the burial depth in
-/// metres and `surface_temp_c` is ignored (see `providers::burial_temp_c`).
-fn identity_column() -> (BurialColumn, Providers) {
-    (
-        BurialColumn {
-            index: 0,
-            gx: 0,
-            gy: 0,
-            surface_temp_c: 15.0,
-        },
-        Providers::default(),
-    )
+/// A column context for [`DeepStrata::promote_coal`] set to the **degenerate
+/// 1 °C/m geotherm** (0 °C surface, gradient 1 °C/m) — under which the geotherm
+/// temperature at a unit's mid-depth is numerically its burial depth in metres,
+/// so an onset in "metres" behaves exactly as the retired identity did. This
+/// keeps the axis falsifiers below reading as pure burial-depth tests.
+fn degenerate_column() -> BurialColumn {
+    BurialColumn {
+        index: 0,
+        gx: 0,
+        gy: 0,
+        surface_temp_c: 0.0,
+        gradient_c_per_m: 1.0,
+    }
 }
 
 fn organic_tag(biota: Biofacies) -> DepTag {
@@ -279,8 +279,8 @@ fn coal_promotion_reads_burial_depth_not_seam_thickness() {
     s.deposit(organic_tag(Biofacies::Mineral), 1.0, 0);
     let before = s.total_m();
 
-    let (col, providers) = identity_column();
-    s.promote_coal(col, 8.0, &providers);
+    let col = degenerate_column();
+    s.promote_coal(col, 8.0);
 
     let biota: Vec<Biofacies> = s.units.iter().map(|u| u.tag.biota).collect();
     assert_eq!(
@@ -312,12 +312,12 @@ fn coal_promotion_reads_burial_depth_not_seam_thickness() {
 fn the_living_surface_is_never_coal_whatever_the_threshold() {
     let mut s = DeepStrata::default();
     s.deposit(organic_tag(Biofacies::Peat), 40.0, 0);
-    let (col, providers) = identity_column();
-    s.promote_coal(col, 0.0, &providers);
+    let col = degenerate_column();
+    s.promote_coal(col, 0.0);
     assert_eq!(s.units[0].tag.biota, Biofacies::Peat);
 
     // And with something above it, the same peat IS coal at zero threshold.
     s.deposit(organic_tag(Biofacies::Mineral), 0.1, 0);
-    s.promote_coal(col, 0.0, &providers);
+    s.promote_coal(col, 0.0);
     assert_eq!(s.units[0].tag.biota, Biofacies::Coal);
 }

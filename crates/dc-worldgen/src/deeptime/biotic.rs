@@ -68,8 +68,9 @@
 use dc_sim::statistical::rng::draw_f64;
 
 use super::erosion::Erosion;
+use super::geotherm::{self, BurialColumn};
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::providers::{BurialColumn, ParentCell, Providers, WaterPass, wet_at};
+use super::providers::{ParentCell, Providers, WaterPass, wet_at};
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 
 /// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
@@ -110,44 +111,56 @@ pub const COAL_MIN_M: f64 = 0.4;
 /// this world and deep is not. That reduction is the fix's deliverable, not its
 /// cost.
 ///
-/// It is a stub and is listed as one. What it is *not* is a stand-in for the
-/// wrong question: burial depth is the control coalification actually has, and
-/// it is a quantity the record already knows. The heir is a geotherm — with one,
-/// this becomes a P/T path and the single Coal facies can split by **rank**,
-/// which is what `CLASS_ORGANIC_COAL`'s depth-is-rank contract is waiting for.
-///
-/// **Since 2026-07-22 that heir has a socket** (journal/0067): the promotion
-/// test asks
-/// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c) for
-/// a temperature and compares it against [`COAL_ONSET_C`]. This constant is what
-/// the slot's identity — the degenerate 1 °C/m geotherm — makes that comparison
-/// mean, and it is the number the identity retires with. **The calibration is
-/// not under review here**: the seam was built around the shipped 8.0 m, not
-/// instead of it (user, 2026-07-22: *"the calibration is fine, we aren't
-/// answering deep questions about it right now"*).
+/// **Since journal/0093 the heir has LANDED** — the geotherm ([`super::geotherm`],
+/// the first §5 field pass). Coal rank no longer thresholds this depth; it
+/// thresholds the geotherm's `temperature` field at the burial depth against
+/// [`COAL_ONSET_C`] (now a real °C, no longer this depth wearing degrees). This
+/// constant is retained only as the **degenerate-baseline threshold** the
+/// coal-shift probe measures against (the "before": overburden ≥ 8 m), so
+/// journal/0093 can report how far the geotherm moved coal. It drives no
+/// promotion any more.
 pub const COAL_BURIAL_M: f64 = 8.0;
 
-/// **The coalification onset**, in whatever units
-/// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c)
-/// answers in — the threshold
+/// **The coalification onset temperature (°C)** — the threshold
 /// [`DeepStrata::promote_coal`](super::recorder::DeepStrata::promote_coal)
-/// applies at run finalize.
+/// applies to the **geotherm** temperature at a candidate's burial depth
+/// (`T = surface_T + gradient·depth`, [`super::geotherm`]) at run finalize.
 ///
-/// It is [`COAL_BURIAL_M`] by definition, and that is not a coincidence to be
-/// tidied away: the slot's identity is a **degenerate geotherm** (0 °C at the
-/// surface, 1 °C/m), under which "the temperature this unit has seen" *is* its
-/// overburden in metres, and so an onset of `8.0` is the shipped 8 m burial
-/// threshold expressed in the slot's vocabulary. Written as an alias rather than
-/// as a second literal so the two can never drift apart.
+/// **Recalibrated with the geotherm** (journal/0093). It used to be an *alias*
+/// for [`COAL_BURIAL_M`] (8.0), because the degenerate `burial_temp_c` provider's
+/// "temperature" was literally the overburden in metres, so an 8.0 onset *was*
+/// the 8 m burial rule. The moment a real geotherm lands that aliasing is
+/// catastrophic: surface **air** temperature alone clears 8 °C almost everywhere
+/// a peat swamp forms (warm wet lowlands), so `surface_T + gradient·depth ≥ 8`
+/// would promote essentially the whole record — the "retire together" warning
+/// `stubs.md` §14 wrote out in full.
 ///
-/// **JUSTIFIED-BY:** there is no geotherm in this project, so the only
-/// temperature scale available is the identity's. **This constant and
-/// [`identity_burial_temp_c`](super::providers::identity_burial_temp_c) are one
-/// calibration in two places and must retire together** — an heir that lands a
-/// real geotherm (Earth's is ~0.025 °C/m) while leaving this at 8.0 would find
-/// every unit in the record above onset and turn the world's whole sedimentary
-/// pile to coal.
-pub const COAL_ONSET_C: f64 = COAL_BURIAL_M;
+/// So this is now a genuine onset temperature. Earth's peat→lignite transition is
+/// ~50 °C; but this sim's record buries peat only a few metres to ~100 m, so the
+/// burial term (`gradient·depth`, a few °C) is small next to the surface term
+/// (~10–30 °C by latitude/altitude). An Earth-true 50 °C onset would therefore
+/// promote **nothing**. The number is instead calibrated to *this* record's
+/// temperature distribution (journal/0093 measured the candidate-unit `T` on the
+/// production Small world), chosen so the geotherm coal fraction stays the same
+/// order as the retired 8 m rule — plausible, not all-or-nothing. What the
+/// geotherm *changes* is not the count but the **place**: coal now concentrates
+/// where the crust is warm (warm lowlands, steep-gradient rift/arc crust) instead
+/// of wherever peat happened to be buried deepest regardless of climate. That
+/// shift is the reason the world is walked (§14: "we measure the shift").
+///
+/// **Measured (journal/0093, production Small, seed 0x…0059).** The candidate
+/// units' geotherm temperatures cluster tightly at ~21–26 °C — because burial is
+/// shallow (a few metres to ~100 m), so the `gradient·depth` term is a fraction
+/// of a degree and the *surface* term (warm wet lowlands, where peat forms) sets
+/// the temperature. `25.0 °C` promotes **23 %** of candidates there, against the
+/// retired 8 m rule's **12 %** — the same order, plausibly not degenerate, and
+/// the coal it selects has moved to the warm crust. (At 22 °C it was 60 %, at
+/// 28 °C zero: the cluster is narrow, so the onset lives inside it.)
+///
+/// The exact number is not precious (coal is a placeholder until real biology),
+/// but it **must not degenerate** — the `geotherm` test pins the coal fraction
+/// into a sane band.
+pub const COAL_ONSET_C: f64 = 25.0;
 
 /// Number of species in the vanilla organism roster (the biotic analogue of the
 /// vanilla geology set). K-cap not stressed at this size — see module docs.
@@ -710,25 +723,25 @@ impl BioticSim {
         bio_input
     }
 
-    /// Finalize: promote **deeply buried** peat to coal across the whole grid
-    /// (burial diagenesis — the control is the temperature each unit has seen,
-    /// which under the identity provider is its own overburden; see
-    /// [`COAL_ONSET_C`] and
-    /// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c)).
-    /// Preserves `sum(units) == H` (only tags change).
+    /// Finalize: promote **buried** peat to coal across the whole grid (burial
+    /// diagenesis — the control is the temperature each unit has seen, read from
+    /// the geotherm's `temperature` field at the burial depth; see
+    /// [`COAL_ONSET_C`] and [`super::geotherm`]). Preserves `sum(units) == H`
+    /// (only tags change).
     ///
-    /// The per-column half of the provider payload — where the column is and how
-    /// warm its surface is — is assembled here, because a geotherm's upper
-    /// boundary condition is the surface temperature and the record does not
-    /// know it. The row latitudes are lifted out first: `lat_deg` takes `&grid`
-    /// and the loop holds `&mut grid.strata`, and one `w`-long vector is a
-    /// cheaper answer than fighting the borrow checker with a full `n`-long
-    /// temperature plane the identity would never read.
+    /// The per-column boundary conditions — where the column is, how warm its
+    /// surface is, and the geothermal gradient there — are assembled here: the
+    /// surface temperature is the geotherm's upper boundary condition (the record
+    /// does not know it), and the gradient is the `temperature` field the geotherm
+    /// pass planted on the grid. The row latitudes are lifted out first: `lat_deg`
+    /// takes `&grid` and the loop holds `&mut grid.strata`, so a `w`-long vector
+    /// sidesteps the borrow.
     pub fn finalize(&self, grid: &mut DeepGrid) {
         let lat: Vec<f64> = (0..grid.w).map(|gy| grid.lat_deg(gy)).collect();
         let DeepGrid {
             ref r,
             ref h,
+            ref geotherm,
             ref mut strata,
             ..
         } = *grid;
@@ -737,15 +750,22 @@ impl BioticSim {
             let (gx, gy) = (index % w, index / w);
             let surface_temp_c =
                 f64::from(super::climate::air_temp_c(lat[gy], r[index] + h[index]));
+            // The geotherm's gradient at this column (the `temperature` field).
+            // Off the tectonic path the field is empty — fall back to a
+            // continental average, so coal still forms on a non-tectonic world.
+            let gradient_c_per_m = geotherm
+                .get(index)
+                .copied()
+                .unwrap_or(geotherm::DEFAULT_CONTINENTAL_GRADIENT_C_PER_M);
             s.promote_coal(
                 BurialColumn {
                     index,
                     gx,
                     gy,
                     surface_temp_c,
+                    gradient_c_per_m,
                 },
                 COAL_ONSET_C,
-                &self.providers,
             );
         }
     }

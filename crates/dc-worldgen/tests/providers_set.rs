@@ -86,7 +86,8 @@ fn the_identity_report_names_no_slots_for_a_default_set() {
             .map(|s| s.name())
             .collect::<Vec<_>>()
             .join(","),
-        "wave_energy,depth_to_water,parent_p,outcrop_shares,burial_temp_c,paleo_temperature",
+        // burial_temp_c retired as a field pass (journal/0093 — the geotherm).
+        "wave_energy,depth_to_water,parent_p,outcrop_shares,paleo_temperature",
         "Slot::ALL must enumerate every field of Providers, in field order"
     );
 }

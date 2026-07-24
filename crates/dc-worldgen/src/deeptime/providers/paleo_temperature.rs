@@ -35,7 +35,7 @@
 //! it was deposited in. The heir's answer therefore varies per unit; collapsing
 //! it to one value per column would erase exactly the epoch axis the curve
 //! exists to express. So the slot is value-level per unit, the same shape
-//! [`burial_temp_c`](super::burial_temp_c) took for the same reason.
+//! `burial_temp_c` took before it retired as a field pass (journal/0093).
 //!
 //! The cost is a single always-`None` branch per deep unit on the collapse
 //! (per-chunk-load) path — no allocation, no plane — and the world it produces
@@ -67,10 +67,9 @@ pub struct PaleoUnit {
     pub chapter: u8,
     /// The column's **present-day** temperature (°C), column-quantized — what the
     /// identity returns unchanged, and the latitude baseline a curve perturbs by
-    /// epoch. This is the upper-boundary datum the same way
-    /// [`BuriedUnit::surface_temp_c`](super::burial_temp_c::BuriedUnit::surface_temp_c)
-    /// is for the geotherm: a provider is a plain `fn` with no captured state, so
-    /// a field is the only way the present climate reaches it.
+    /// epoch. This is the upper-boundary datum the same way `surface_temp_c` is
+    /// for the geotherm's `BurialColumn`: the present climate is the field's
+    /// boundary condition, carried in rather than re-derived.
     pub present_temp_c: f64,
 }
 

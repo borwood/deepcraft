@@ -25,6 +25,7 @@ pub mod biotic;
 pub mod climate;
 pub mod erosion;
 pub mod field;
+pub mod geotherm;
 pub mod grid;
 pub mod inventory;
 pub mod isostasy;
@@ -45,6 +46,10 @@ pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
     build_field_cfg, build_field_with, production_config, production_config_with,
 };
+pub use geotherm::{
+    BurialColumn, DEFAULT_CONTINENTAL_GRADIENT_C_PER_M, FIELD_TEMPERATURE, GEOTHERM_PERIOD,
+    gradient_c_per_m, temperature_c,
+};
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
 };
@@ -58,7 +63,7 @@ pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
     exposed_litho, exposed_shares, litho_of_tag, resistance_of_material, susceptibility_table,
 };
-pub use providers::{BurialColumn, BuriedUnit, PaleoUnit, ParentCell, Providers, WaveCell};
+pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
@@ -157,6 +162,15 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     } else {
         Vec::new()
     };
+    // The geotherm is a **coarse-rate field pass** (runner.rs), so — like the
+    // climate march above — it is seeded here before the loop and re-marched on
+    // its cadence inside it. Off the tectonic path there is no crustal state, so
+    // the seed is a no-op and the `temperature` field stays empty.
+    if cfg.tectonic_history {
+        let extent_km = grid.w as f64 * grid.cell_m / 1000.0;
+        let v_ref = tectonics::reference_velocity(cfg, extent_km);
+        geotherm::march(&mut grid, tec.plates_at(0), v_ref, cfg);
+    }
 
     // --- the deep-time pass-runner drives the epoch loop (runner.rs) ---
     // The four phases the old hand-written loop ran — climate, tectonic forcing,
@@ -226,6 +240,18 @@ pub struct TectonicSchedule {
 }
 
 impl TectonicSchedule {
+    /// The advected plate set at the start of a chapter — the geotherm field pass
+    /// reads it to classify each cell's tectonic setting
+    /// ([`tectonics::dominant_kind`]). `pub(crate)` so the sibling
+    /// [`geotherm`](crate::deeptime::geotherm) module (and the runner) can reach
+    /// the table without it becoming a public plate dump. Empty table (tectonic
+    /// history off) yields an empty slice, and the geotherm pass is not scheduled
+    /// there anyway.
+    pub(crate) fn plates_at(&self, chapter: u8) -> &[Plate] {
+        let c = (chapter as usize).min(self.table.len().saturating_sub(1));
+        self.table.get(c).map_or(&[], Vec::as_slice)
+    }
+
     fn new(cfg: &DeepConfig, grid: &DeepGrid) -> Self {
         if !cfg.tectonic_history {
             return Self {
