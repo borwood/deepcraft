@@ -7,6 +7,28 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-24 — **Movement 1: the deep-time pass-runner — the erosion loop re-housed as
+  self-declaring passes** (journal/0090; background implementation agent, worktree; the first
+  north-star pass-runner instance at the deep tier). `erosion.step`'s monolith decomposed into
+  **14 declared passes** on a new `deeptime/runner.rs`, each declaring `{reads, writes, rate}`.
+  **ORDER** = topo-sort over a `DeepAxis` vocabulary via a **shared `passgraph.rs` kernel that
+  `pipeline.rs` was refactored onto** (A-4 guarded — one runner, not two; verified by the
+  spine-audit). **RATE** = `period` (epochs between firings) + `dt` (phase length, threaded but
+  **inert this movement** — Movement 3 makes it live). The field-relaxation pipeline is expressed
+  via **revision tokens** (`Forced→Weathered→Diffused→Compensated→Windblown→Settled`) since a
+  single "Terrain" axis can't order readers between successive terrain-writers. **The biology↔
+  erosion one-epoch lag is a declared `reads_prev` loop-carried edge** — a test proves the runner
+  *rejects* it as a cycle if declared a within-epoch `reads` (the ecology.md guarantee now enforced,
+  not commented). **`climate` is a low-rate pass** (`period = remarch_interval`). **BYTE-IDENTICAL**
+  — production goldens unmoved (`the_production_world_still_hashes_to_the_pre_slice_goldens`,
+  `generated_world_is_byte_identical_to_the_pre_contract_goldens`, `full_agents`/`tectonic_history`/
+  `deep_config_plumbing` green); byte-identity *as the check* caught the agent's own dropped
+  sea-level assignment. Crossing-constraint held (declarations plain data + ids, bodies bare `fn`).
+  Gates green on merged main (fmt/clippy/test `--workspace --release`, dc-worldgen cleaned first).
+  **One fusion held:** transport+incision stay one pass (interleaved flux chain — splitting is an
+  algorithm change, not a re-housing). R/H unchanged; no behavior change. **Next: Movement 2
+  (R/H unification + material-aware transport, material-behavior.md §13).**
+
 - 2026-07-24 — **S18: the first real behavior — sum-agent weathering on the deep-cell
   inventory** (journal/0089, `docs/spikes/S18-*-plan.md`; background implementation
   agent, worktree for the integrator). **Consumes the S17 keystone** (`WorkingInventory`
