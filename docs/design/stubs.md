@@ -303,7 +303,19 @@ the pre-existing off-switch is preserved and is *not* the seam: `wave_erosion <=
 0.0` still short-circuits the whole agent before any provider is consulted, which
 is what `tests/full_agents.rs`'s byte-identity control depends on.
 
-### 14. coal-rank-is-burial-depth-with-no-geotherm — **added 2026-07-22 (journal/0063), replacing a worse stub on the wrong axis; now a provider slot (journal/0067)**
+### 14. coal-rank-is-burial-depth-with-no-geotherm — **RETIRED 2026-07-24 (journal/0093, the geotherm field pass)**
+
+*Retired:* the geotherm (the first §5 field pass, `deeptime/geotherm.rs`) supplies a real
+`T(depth)` from a per-cell tectonic gradient; `promote_coal` reads it at the seam's mid-depth
+against `COAL_ONSET_C` (recalibrated 8 → 22 °C). **The `burial_temp_c` provider slot is removed
+entirely** — the honest finding is that a real `T(depth)` is a **field**, not a value a
+stateless `fn(unit)` slot could hold, so it *left* the provider set rather than fitting a socket
+it never belonged in. Residual, honestly: burial in the record is shallow, so the geotherm ≈
+surface temp at seam depth and the tectonic gradient barely moves *coal* — the gradient's real
+payoff is **metamorphism** (deep crust, where `exhum` = P and geotherm = T give the P/T grade).
+Original entry preserved below for audit.
+
+### 14 (original). coal-rank-is-burial-depth-with-no-geotherm — **added 2026-07-22 (journal/0063), replacing a worse stub on the wrong axis; now a provider slot (journal/0067)**
 `deeptime/biotic.rs::COAL_BURIAL_M` (8.0 m) and `COAL_ONSET_C`, applied by
 `recorder.rs::DeepStrata::promote_coal` through
 `providers::Providers::burial_temp_c`.

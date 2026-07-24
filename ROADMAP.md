@@ -7,6 +7,25 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-24 — **The geotherm — the FIRST field pass** (journal/0093; background agent,
+  worktree; **world-changing: coal moves**). New `deeptime/geotherm.rs` + `dc:deep/geotherm`
+  declared **field pass** on the runner (reads Climate+CrustThick, writes Geotherm, `period=40`
+  low rate; **plants a field, runs NO edges** → erosion byte-unchanged). The §5 field-pass half,
+  landed. First condition-field: **`dc:field/temperature`**, a per-cell geothermal gradient
+  (v1 **linear**, tectonic setting + `t_crust` thickness modifier; rift hot, craton cold,
+  clamped 12–55 °C/km). **Retires the degenerate `burial_temp_c` stub (#14) ENTIRELY** — the
+  honest finding: a real `T(depth)` is a **field**, not a value a `fn(unit)` provider-slot could
+  hold, so it *left* the provider set (journal/0093, blogworthy: "the seam that told you it
+  wasn't a seam"). `promote_coal` reads the geotherm at seam mid-depth vs onset. **Coal
+  recalibrated** (`COAL_ONSET_C 8→22 °C`): 12% → 60% of peat candidates, relocated to warm
+  crust, still a diggable seam on Medium (`the_geotherm_coal_shift_is_plausible_not_degenerate`).
+  **`GOLDEN_SURFACE` UNCHANGED** (independent coal-only proof), `GOLDEN_RECORD` re-captured. Gate
+  green by name; **NO capability tiering** (north-star Deviation #2). **Rides-as-built:** burial
+  is shallow so the geotherm ≈ surface temp at seam depth → the tectonic gradient barely moves
+  coal (~surface-temp-thresholded); its real payoff is **metamorphism** (deep crust: `exhum` = P,
+  geotherm = T → grade). **Appearance walk owed but low-priority** — coal is a user-blessed
+  placeholder; don't over-calibrate (it recalibrates when biology lands).
+
 - 2026-07-24 — **Movement 2a: R/H are derived views of the inventory** (journal/0092;
   background agent, worktree). The per-cell working inventory (== the strata record) is now the
   **authority for surface material; `R`/`H` are DERIVED.** `H = Σ surface Loose above the
