@@ -394,6 +394,23 @@ test compares *tops* only; a strata-aware agreement test lands with the heir.
 **Blast:** far-field side-face colour beyond played regions; no sim or replay
 surface.
 
+### 16. bedrock-materialized-as-a-flat-structure-span — *added 2026-07-24 (the first-real-behavior weathering slice); down-and-dirty by explicit user direction*
+`dc-worldgen/src/deeptime/inventory.rs` (the working-inventory build): the deep
+record's units all derive as **`Loose`**, and bedrock (`R`) is a single scalar
+`basement: MaterialId`. Weathering is `Structure→Loose`, so the working inventory
+had **no Structure source to weather from**. For this slice a bedrock Structure span
+is materialized at the base of the column — the basement material, flat, at a
+provisional depth — purely so the edge has a source. **This is a stub on the
+*emplacement* axis:** bedrock is not really one flat basement material; it is
+plutons, sills, and province lithologies, unroofed at real depths. **Heir:** a
+**genesis/emplacement pass** (the ratified "genesis passes model the honest genesis
+of rocks", ROADMAP 2026-07-24) that puts bedrock into the inventory as Structure
+with real per-column material identity and depth — at which point this stand-in is
+**deleted, not reimplemented**. **Blast:** which material a weathering rind is made
+of in the deep tier (the loose product inherits the bedrock's identity); invisible
+until the weathering facts express through the collapse. *Loud code marker required
+at the materialization site.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

@@ -214,8 +214,24 @@ An **agent** is a *named rate-term bound to an edge*:
 > `agent term = environmental driver × per-material susceptibility → added to the edge's rate`
 
 - Frost, abrasion, biotic, dissolution each add a term to (e.g.) `structure→loose`;
-  **multiple agents on one edge sum** — this is the S16 fold (proven, correct; it
-  is *not* a scheduling question).
+  **multiple agents on one edge SUM** — each agent removes its own share of rock per
+  unit time, and independent removal rates add.
+
+**DECIDED 2026-07-24 (this session, ratified): agents SUM; byte-identity with the
+product world is retired.** S16 kept the *product* arithmetic
+(`base × biotic × weatherability × frost × taper`) only to stay bit-identical to the
+legacy `erosion::weather` — a scaffold, now discharged. The honest model is the
+**sum of agent terms**:
+
+> `rate = cover_taper × Σ_a (driver_a × susceptibility_{m,a})`
+
+A product falsely zeroes frost where biota is zero (frost shatters bare rock), and
+only a sum makes each agent's *share* — hence **one fact per agent** (§1) —
+well-defined: `share_a = cover_taper × driver_a × susceptibility_{m,a}`, and
+`Σ share_a = rate`. The first real behavior through the working inventory (the
+weathering slice, this session) adopts the sum and is **NOT byte-identical**; its
+acceptance instrument is a **walk**, not goldens. *(velocity over a preserved legacy
+number — user, 2026-07-24: "sum is honest and faithful; be brave.")*
 - The **material declares its susceptibility per agent** — exactly the existing
   `LithoResistance` axes. The `Agent` set is deliberately closed-at-compile so
   adding one is a checked extension at every material.
@@ -414,4 +430,18 @@ forms or edges.
 
 **~70% embryonic; the seam-first march is the path.** The first buildable slices:
 `Block={Air,Material}` + solidity→occupancy drain (present tier, ~80% done); then
-the deep-cell **working inventory** as a mutable span-list (the keystone).
+the deep-cell **working inventory** as a mutable span-list (the keystone); then the
+**first real cellular behavior** — subaerial weathering run as a sum-agent pass over
+the working inventory, committing cause-carrying facts the present collapse folds
+into contents (this session).
+
+**Continuation slot (loose end, annotated 2026-07-24):** the first-behavior slice
+runs weathering on the inventory as a *material-transformation* layer and leaves the
+existing `erosion.rs` `R`/`H` height loop in place (they compute different things —
+height budget vs material composition — so this is not a summary-beside-authority).
+The **unification** — retiring the scalar `R`/`H` planes into the inventory, with
+`H = Σ Loose` and `R = Σ Structure` *derived*, so there is one authority for both
+height and composition — is the reserved next arc. It is entangled with the shared
+erosion loop (multiple phases mutate `R`/`H`), which is why it is a slice of its own,
+not folded into the first behavior. Heir home for the annotation: this section + the
+ROADMAP continuation slot.

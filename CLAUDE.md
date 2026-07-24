@@ -35,6 +35,17 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
    falsified, with mechanisms. Check before re-deriving.
 5. Spike results live in `docs/spikes/S*-results.md` — measured numbers,
    don't re-guess them.
+6. **"What did we leave dangling here?"** — the loose-ends lookup, three loci,
+   all surfaced by the corpus-grep that opens every design thread (session-workflow
+   § "Sweep the corpus BEFORE opening a design pass"):
+   **[`docs/design/stubs.md`](docs/design/stubs.md)** (stand-ins, each with its heir
+   + blast radius), **[`docs/spines.md`](docs/spines.md) § 3 "Built, and nothing
+   calls it"** (machinery built but not yet consumed), and **ROADMAP Owed /
+   Observed**. A thread deliberately left open is annotated **in code** (a loud
+   marker naming its heir) **and** listed in one of these — an unlisted loose end is
+   the defect, not a licence (stubs.md doctrine). *Added 2026-07-24 after the
+   integrator, holding the whole corpus, still had to hunt for two of these — if the
+   lookup isn't a named pointer, "process points you there" is not real.*
 
 ## The journal
 
