@@ -18,7 +18,7 @@
 //! rather than one event per iteration, and makes the finalize invariant exact
 //! by construction: the record mirrors every metre that entered or left `H`.
 
-use super::providers::{BurialColumn, BuriedUnit, Providers};
+use super::geotherm::{self, BurialColumn};
 
 /// Depositional environment, measured at the event (surface vs. sea level).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -416,38 +416,21 @@ impl DeepStrata {
     /// **Burial diagenesis** (earth-processes.md § 5): promote a peat unit to
     /// coal once the temperature it has seen reaches `onset_c`.
     ///
-    /// The temperature comes from the
-    /// [`burial_temp_c`](super::providers::Providers::burial_temp_c) provider
-    /// slot, asked once per candidate unit with that unit's own overburden — the
-    /// sum of the thicknesses of every unit recorded above it. **Under the
-    /// identity provider the answer is the overburden in metres**, so this is
-    /// exactly the burial-depth test journal/0063 landed, and `onset_c` is
-    /// exactly [`COAL_BURIAL_M`](super::COAL_BURIAL_M) wearing degrees.
+    /// The temperature comes from the **geotherm** — the `temperature`
+    /// condition-field ([`super::geotherm`], §14): for a candidate unit at
+    /// mid-slab burial depth `z`, `T = surface_T + gradient·z`, where the
+    /// per-column `surface_T` and `gradient` ride on [`BurialColumn`]. The
+    /// gradient is set by crustal heat flow — steep under rifts/arcs, shallow
+    /// under thick cratonic crust — so **where** the crust is hot now shifts
+    /// where coal forms, not merely how deep it is buried. This retired the
+    /// degenerate `burial_temp_c` provider (a 1 °C/m identity where "temperature"
+    /// *was* the overburden in metres; journal/0093, `stubs.md` §14).
     ///
-    /// **The axis matters, and until journal/0063 it was the wrong one.** This
-    /// used to promote on the unit's *thickness* (`thickness_m >= 0.4`), which
-    /// is a statement about how long the swamp lasted, not about what happened
-    /// to it afterwards. Coalification is a burial process: peat becomes lignite
-    /// and lignite becomes bituminous coal because overburden squeezes the water
-    /// out and heat drives off the volatiles. A ten-metre peat bed lying at the
-    /// surface is still peat; a ten-centimetre bed under a hundred metres of
-    /// section is coal. `dc_core::materials::geology::CLASS_ORGANIC_COAL`'s own
-    /// contract has said so all along — *"the class's depth axis is the rank
-    /// axis"* — and the burial depth was already derivable from the record in
-    /// one pass, so the thickness test was a summary standing in for an
-    /// authority that was sitting right there (ARCHITECTURE.md § *A summary is
-    /// not an authority*).
-    ///
-    /// **What this still cannot express, and where the obligation now lives.**
-    /// There is no geotherm in the project — the only temperature anywhere in
-    /// the sim is surface air temperature — so the identity answer is burial
-    /// *depth*, not a pressure/temperature path, and it therefore cannot
-    /// discriminate coal *rank* (lignite / sub-bituminous / bituminous /
-    /// anthracite). It is the right axis at the wrong resolution, which is a
-    /// different thing from the wrong axis. Since 2026-07-22 that gap is a
-    /// **socket rather than a sentence**: landing a geotherm means supplying
-    /// [`Providers::burial_temp_c`](super::providers::Providers::burial_temp_c),
-    /// not rewriting this function. See `docs/design/stubs.md` § 14.
+    /// **The axis is burial depth, since journal/0063** — coal is made by burial,
+    /// not by a swamp's duration. `dc_core::materials::geology::CLASS_ORGANIC_COAL`'s
+    /// contract — *"the class's depth axis is the rank axis"* — is what a real
+    /// geotherm finally lets this become: a P/T path down which the single `Coal`
+    /// facies can one day split by rank (a later slice; not built here).
     ///
     /// **The topmost unit is never promoted**, unconditionally. Its overburden
     /// is zero, so every *positive* threshold excludes it anyway — but the guard
@@ -456,28 +439,21 @@ impl DeepStrata {
     /// the threshold happens to be. (A test pins it at `onset_c == 0.0`,
     /// the one value where the implication fails.)
     ///
-    /// The provider is asked **only about candidates** — non-top peat units.
-    /// That is unobservable (the slot is a pure `fn` of its payload, so an
-    /// unasked question has no answer that could have differed) and it keeps the
-    /// call count proportional to the peat in the record rather than to the
-    /// record.
-    ///
-    /// Called once at run finalize. Pure in the record; preserves
+    /// The temperature is computed **only for candidates** — non-top peat units —
+    /// which keeps the work proportional to the peat in the record rather than to
+    /// the record. Called once at run finalize. Pure in the record; preserves
     /// `sum(units) == H` (only the tag changes, never a thickness).
-    pub fn promote_coal(&mut self, col: BurialColumn, onset_c: f64, providers: &Providers) {
+    pub fn promote_coal(&mut self, col: BurialColumn, onset_c: f64) {
         // Top-down, accumulating overburden: one pass, no allocation.
         let top = self.units.len().saturating_sub(1);
         let mut overburden_m = 0.0f64;
         for (k, u) in self.units.iter_mut().enumerate().rev() {
             if k != top && u.tag.biota == Biofacies::Peat {
-                let t_c = providers.burial_temp_c(BuriedUnit {
-                    index: col.index,
-                    gx: col.gx,
-                    gy: col.gy,
-                    surface_temp_c: col.surface_temp_c,
-                    overburden_m,
-                    thickness_m: u.thickness_m,
-                });
+                // Burial depth to the slab's mid-point (the recorder residual the
+                // geotherm integrates a linear gradient across).
+                let depth_m = overburden_m + 0.5 * u.thickness_m;
+                let t_c =
+                    geotherm::temperature_c(col.surface_temp_c, col.gradient_c_per_m, depth_m);
                 if t_c >= onset_c {
                     u.tag.biota = Biofacies::Coal;
                 }

@@ -289,22 +289,36 @@ pub struct DeepField {
     pub area: Vec<f64>,
     pub lake: Vec<bool>,
     /// **Exhumation** (m) and **crustal thickness** (m) per cell. Exported and,
-    /// as of U8, populated in every production world — **and read by no
-    /// downstream consumer** (`docs/spines.md` § 3, built-but-unconsumed; A-2 —
-    /// prose cannot fail a build, so the status is stated here, not implied).
-    /// These are the *intended* metamorphic-grade axes (§ 6.4): the day a cut
-    /// face should show an aureole rather than plain basement, a metamorphism
-    /// pass reads the P/T path off these planes into grade classes
-    /// (slate/schist/gneiss). The expression slice is **Sequenced** ("tectonic
-    /// expression at the collapse tier"; `stubs.md` § 4, "the absent metamorphic
-    /// expresser"). It now has a named arrival address: the geotherm heir of
-    /// `providers::burial_temp_c` reads crustal heat flow (journal/0067), so
-    /// coal rank and metamorphic grade land as one thermal-maturity ladder.
-    /// *(`t_crust` **is** read inside the sim by `isostasy()` — `erosion.rs` —
-    /// which is why this note is careful to say the unconsumed axis is the
-    /// exported plane, not the value.)* Empty when tectonic history is off.
+    /// as of U8, populated in every production world. The **exported** planes are
+    /// still read by no *collapse-tier* consumer (`docs/spines.md` § 3,
+    /// built-but-unconsumed; A-2 — prose cannot fail a build, so the status is
+    /// stated here, not implied). These are the *intended* metamorphic-grade axes
+    /// (§ 6.4): the day a cut face should show an aureole rather than plain
+    /// basement, a metamorphism pass reads the P/T path off these planes into
+    /// grade classes (slate/schist/gneiss). The expression slice is **Sequenced**
+    /// ("tectonic expression at the collapse tier"; `stubs.md` § 4, "the absent
+    /// metamorphic expresser").
+    ///
+    /// *(The in-sim `t_crust` **value** is now read by two passes: `isostasy()`
+    /// (`erosion.rs`) and — since journal/0093 — the **geotherm field pass**
+    /// ([`super::geotherm`]), which reads crustal heat flow off it to plant the
+    /// `temperature` field. That is why this note is careful to say the
+    /// *unconsumed* axis is the **exported** plane, not the value: metamorphism
+    /// (the P side of the ladder) still awaits its expresser, but the T side — the
+    /// geotherm feeding coal rank — has landed.)* Empty when tectonic history is
+    /// off.
     pub exhum: Vec<f64>,
     pub t_crust: Vec<f64>,
+    /// **The `temperature` condition-field** (`dc:field/temperature`, §14) — the
+    /// per-cell **geothermal gradient** (°C/m) the geotherm field pass planted
+    /// ([`super::geotherm`]), so `T(depth) = surface_T + gradient·depth`. Its
+    /// first consumer is coal rank (inside the run, at finalize); it is exported
+    /// here so `temperature` is a real read field for the measurement probes and
+    /// the future metamorphism heir (`exhum` = P, this = T → grade). Empty when
+    /// tectonic history is off. **Not part of the surface fingerprint** — a new
+    /// field, covered by its own tests, so the pre-existing planes' goldens are
+    /// unaffected.
+    pub geotherm: Vec<f64>,
     /// **The chapter table** (§ 8): plate state per chapter. Per-unit deformation
     /// (dip, provenance, fault traces) is *intended* to re-derive analytically
     /// from it at collapse resolution — the ~5 KB that would replace stored
@@ -349,7 +363,7 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         .zip(&run.grid.h)
         .map(|(r, h)| r + h)
         .collect();
-    let (recv, area, lake, exhum, t_crust, chapters) = if cfg.tectonic_history {
+    let (recv, area, lake, exhum, t_crust, geotherm, chapters) = if cfg.tectonic_history {
         let recv = run.erosion.recv().to_vec();
         let area = run.erosion.area().to_vec();
         let filled = run.erosion.filled();
@@ -365,10 +379,12 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
             lake,
             run.grid.exhum.clone(),
             run.grid.t_crust.clone(),
+            run.grid.geotherm.clone(),
             run.chapters.clone(),
         )
     } else {
         (
+            Vec::new(),
             Vec::new(),
             Vec::new(),
             Vec::new(),
@@ -401,6 +417,7 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         lake,
         exhum,
         t_crust,
+        geotherm,
         chapters,
     }
 }
@@ -604,7 +621,8 @@ impl DeepField {
             + self.regolith.len()
             + self.area.len()
             + self.exhum.len()
-            + self.t_crust.len())
+            + self.t_crust.len()
+            + self.geotherm.len())
             * std::mem::size_of::<f64>()
             + self.recv.len() * std::mem::size_of::<i32>()
             + self.lake.len()

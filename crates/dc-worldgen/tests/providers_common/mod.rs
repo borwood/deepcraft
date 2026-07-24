@@ -39,10 +39,28 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```
 ///
 /// See `providers_golden.rs` to re-derive.
+///
+/// **`GOLDEN_SURFACE` did NOT move with the geotherm (journal/0093)** — the first
+/// field pass touches no surface plane (`surf`/`regolith`/drainage/`exhum`/
+/// `t_crust`), so this value still equals pre-slice `main`. That the surface holds
+/// while the record moves is the independent check that the geotherm changed coal
+/// and nothing else.
 pub const GOLDEN_SURFACE: u64 = 0x176D_40F1_1CCB_006A;
-/// FNV-1a-64 over the strata record of the same field. Moved with the surface by
-/// journal/0072 — see [`GOLDEN_SURFACE`].
-pub const GOLDEN_RECORD: u64 = 0xC9C6_D6F6_E908_9653;
+/// FNV-1a-64 over the strata record of the same field.
+///
+/// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
+/// §5 field pass retired the degenerate `burial_temp_c` provider and recalibrated
+/// coalification onto a real geotherm temperature (`COAL_ONSET_C` 8 → 22 °C), so
+/// the record's Coal/Peat tags moved (coal follows warm crust now, ~60 % of the
+/// Small world's peat candidates vs the old 8 m rule's ~12 %). This is an
+/// intentional world change, not a byte-identity regression — which is why only
+/// the *record* hash moved and [`GOLDEN_SURFACE`] held. Prior value (journal/0072
+/// share-weighted blend), kept for audit:
+///
+/// ```text
+/// GOLDEN_RECORD 0xC9C6_D6F6_E908_9653
+/// ```
+pub const GOLDEN_RECORD: u64 = 0x4A20_745B_3879_7C8A;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

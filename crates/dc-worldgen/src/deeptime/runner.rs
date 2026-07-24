@@ -114,6 +114,12 @@ pub enum DeepAxis {
     /// epoch reads them (a distinct axis so `biotic` need not be a modifier of
     /// `Recorded`, which would make it un-orderable against the agents).
     BioRecorded,
+    /// The **`temperature` condition-field** (`dc:field/temperature`, §14) — the
+    /// per-cell geothermal gradient the [`geotherm`](super::geotherm) field pass
+    /// writes. Read by no *in-epoch* pass (coal rank samples it post-loop at
+    /// finalize), so it is a pure write axis; a distinct token so the field pass
+    /// declares an honest, orderable output on the runner.
+    Geotherm,
 }
 
 /// Owned working state the epoch loop threads through its passes. Constructed
@@ -270,6 +276,22 @@ fn eolian_pass(ctx: &mut DeepStepCtx<'_>) {
 /// The littoral wave agent: wave-cut erosion at the current sea stand.
 fn wave_pass(ctx: &mut DeepStepCtx<'_>) {
     ctx.erosion.wave(&mut ctx.grid, ctx.cfg);
+}
+
+/// **The geotherm — the first §5 field pass.** Recompute the per-cell
+/// geothermal gradient (the `temperature` condition-field, `dc:field/temperature`)
+/// from the evolved crustal columns (`t_crust`/`crust_kind`) and the current
+/// chapter's analytic tectonic setting. It **plants a field and runs no edges** —
+/// it never touches `R`/`H`/the record — so it perturbs the erosion result not at
+/// all; only coal rank (post-loop) reads what it writes. A coarse-rate pass
+/// ([`super::geotherm::GEOTHERM_PERIOD`]): heat flow evolves slowly.
+fn geotherm_pass(ctx: &mut DeepStepCtx<'_>) {
+    let extent_km = ctx.grid.w as f64 * ctx.grid.cell_m / 1000.0;
+    let v_ref = super::tectonics::reference_velocity(ctx.cfg, extent_km);
+    let chapter = ctx.erosion.current_chapter();
+    // Disjoint field borrows: the plate table (immutable) and the grid (mutable).
+    let plates = ctx.tec.plates_at(chapter);
+    super::geotherm::march(&mut ctx.grid, plates, v_ref, ctx.cfg);
 }
 
 /// The biotic layer: reads this epoch's fresh post-erosion terrain + drainage,
@@ -438,6 +460,23 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         });
     }
 
+    // The geotherm field pass (the `temperature` condition-field). Coarse-rate,
+    // and only on the tectonic path — it solves over the crustal columns, which
+    // exist only there. Reads Climate (surface temperature, the field's boundary
+    // condition) and CrustThick (the crustal thickness the gradient reads); writes
+    // the Geotherm axis, read by no in-epoch pass. Seeded pre-loop (mod.rs), like
+    // the climate march.
+    if cfg.tectonic_history {
+        passes.push(DeepPass {
+            id: "dc:deep/geotherm",
+            reads: &[Climate, CrustThick],
+            writes: &[Geotherm],
+            reads_prev: &[],
+            period: super::geotherm::GEOTHERM_PERIOD,
+            body: geotherm_pass,
+        });
+    }
+
     // Strata recorder.
     if cfg.record {
         passes.push(DeepPass {
@@ -573,13 +612,19 @@ mod tests {
         }
     }
 
-    const PRODUCTION_ORDER: [&str; 14] = [
+    const PRODUCTION_ORDER: [&str; 15] = [
         "dc:deep/climate",
         "dc:deep/expose",
         "dc:deep/tectonics",
         "dc:deep/forcing",
         "dc:deep/drainage",
         "dc:deep/frost",
+        // The geotherm field pass sorts in here: it becomes ready once `forcing`
+        // has written CrustThick (and climate has written Climate), and among the
+        // ready pool the id-tie-break places `dc:deep/geotherm` after `frost` and
+        // before `transport`. It plants a field and has no in-epoch reader, so its
+        // position never affects the erosion result.
+        "dc:deep/geotherm",
         "dc:deep/transport",
         "dc:deep/weather",
         "dc:deep/diffuse",
@@ -637,6 +682,43 @@ mod tests {
         ];
         let err = DeepSchedule::new(passes).unwrap_err();
         assert!(matches!(err, GraphError::Cycle(_)), "{err:?}");
+    }
+
+    #[test]
+    fn the_geotherm_is_a_declared_coarse_rate_field_pass() {
+        let passes = deep_passes(&all_on());
+        let geo = passes
+            .iter()
+            .find(|p| p.id == "dc:deep/geotherm")
+            .expect("the geotherm pass is scheduled on the tectonic path");
+        // It is a real field pass: declares its reads/writes over the deep-cell
+        // axis vocabulary (surface temperature via Climate, crustal thickness via
+        // CrustThick), and writes the temperature field.
+        assert_eq!(geo.reads, &[DeepAxis::Climate, DeepAxis::CrustThick]);
+        assert_eq!(geo.writes, &[DeepAxis::Geotherm]);
+        // Coarse rate — heat flow evolves slowly, so it re-marches on a cadence
+        // and, like climate, is seeded before the loop (never fires at epoch 0).
+        assert!(geo.period > 1);
+        assert!(!geo.fires(0));
+        assert!(geo.fires(geo.period));
+        // The schedule as a whole is valid with the field pass in it.
+        let sched = DeepSchedule::new(deep_passes(&all_on())).expect("valid with the geotherm");
+        assert!(sched.ordered_ids().contains(&"dc:deep/geotherm"));
+    }
+
+    #[test]
+    fn the_geotherm_is_absent_off_the_tectonic_path() {
+        // No crustal columns without tectonic history, so the field pass that
+        // solves over them is simply not scheduled (pass presence = the old `if`).
+        let cfg = DeepConfig {
+            tectonic_history: false,
+            biotic: true,
+            full_agents: true,
+            erodibility: true,
+            ..DeepConfig::default()
+        };
+        let passes = deep_passes(&cfg);
+        assert!(!passes.iter().any(|p| p.id == "dc:deep/geotherm"));
     }
 
     #[test]

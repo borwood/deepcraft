@@ -46,7 +46,7 @@
 //! ## The file layout, and why the grouping is load-bearing
 //!
 //! One module per slot — [`outcrop_shares`], [`wave_energy`], [`parent_p`],
-//! [`depth_to_water`], [`burial_temp_c`], [`paleo_temperature`] — each holding that slot's payload struct, its identity
+//! [`depth_to_water`], [`paleo_temperature`] — each holding that slot's payload struct, its identity
 //! function, and its unit tests. This module holds only what is genuinely
 //! *about the set*: the [`Providers`] struct, its identity [`Default`], and the
 //! [`Slot`] enumeration.
@@ -67,13 +67,15 @@
 //! *materials*, because parent-material petrology is what will supply it. The
 //! grouping is a map of *who owes what*, which is the whole point of a seam.
 //!
-//! `burial_temp_c` is the sharpest case so far, and it is why no *diagenesis*
-//! group was added for it (2026-07-22). Diagenesis **asks** the question —
-//! coalification is the consumer — but a geotherm is a property of the crust,
-//! and the crust is tectonics' to describe: the heir will read
-//! [`t_crust`](field@super::grid::DeepGrid::t_crust), a tectonics plane, for the heat
-//! flow it needs. A *diagenesis* bucket would have been a group named after an
-//! asker, which is precisely the distinction the four buckets exist to hold.
+//! `burial_temp_c` was the sharpest case, and it **graduated out of this file**
+//! (journal/0093). Its heir — a geotherm — is not a stateless `fn(unit)`: a real
+//! `T(depth)` needs the per-cell geothermal gradient, which is a **field**, not a
+//! value a provider `fn` can hold. So it retired as a *field pass*
+//! ([`super::geotherm`], the first §5 field pass) rather than as a provider heir,
+//! and coal rank reads the planted `temperature` field directly. That is the
+//! lesson the slot itself predicted: the distance between the question and today's
+//! answer is the seam's most useful output, and here the answer was "this is not a
+//! provider at all — it is a field."
 //!
 //! ## Two granularities, and why both are here
 //!
@@ -86,7 +88,7 @@
 //! | [`Providers::wave_energy`](field@Providers::wave_energy) | **value-level** — called per shore cell per epoch | the shore band is a thin fraction of the grid, and the heir's answer genuinely varies per cell per stand |
 //! | [`Providers::parent_p`](field@Providers::parent_p) | **pass-level** — called `n` times *total*, at [`BioticSim::new`](super::biotic::BioticSim::new) | the value is a property of the parent material, constant over the run; materializing it once as a plane keeps the epoch loop a plain indexed read |
 //! | [`Providers::depth_to_water`](field@Providers::depth_to_water) | **pass-level** — called **once per epoch**, at [`BioticSim::step`](super::biotic::BioticSim::step) | the water table moves with the surface, so it cannot be materialized once for the run like `parent_p`; but the heir is a *field* solved over a neighbourhood, so it cannot be a per-cell call either |
-//! | [`Providers::burial_temp_c`](field@Providers::burial_temp_c) | **value-level** — called per *candidate unit*, at [`BioticSim::finalize`](super::biotic::BioticSim::finalize) | there is no loop to be hot: finalize runs **once at the end of the run**, and the answer varies per unit because burial depth does. A plane cannot hold it — the question is asked of a *unit*, and a column has as many units as its history had events |
+//! | `burial_temp_c` *(retired, journal/0093)* | — | subsumed by the geotherm **field pass** ([`super::geotherm`]): a real `T(depth)` is a field, not a value a provider `fn` can hold, so it left the provider set entirely |
 //! | [`Providers::paleo_temperature`](field@Providers::paleo_temperature) | **value-level** — called per *recorded deep unit*, in [`deposit_deep_history`](crate::geology) at collapse | the identity is constant across a column's units (today's climate), but the *heir* answers per epoch and each unit carries its own [`chapter`](super::recorder::DepUnit::chapter). Granularity follows the heir: materializing once per column would erase the epoch axis the paleo-temperature curve exists to express |
 //!
 //! **A provider must never be called inside a hot loop to answer a question that
@@ -109,14 +111,12 @@
 //! `main` in `tests/providers_golden.rs`, not against a post-change
 //! self-comparison.
 
-pub mod burial_temp_c;
 pub mod depth_to_water;
 pub mod outcrop_shares;
 pub mod paleo_temperature;
 pub mod parent_p;
 pub mod wave_energy;
 
-pub use burial_temp_c::{BurialColumn, BuriedUnit, identity_burial_temp_c};
 pub use depth_to_water::{WaterPass, identity_depth_to_water, identity_wet_index, wet_at};
 pub use outcrop_shares::identity_outcrop_shares;
 pub use paleo_temperature::{PaleoUnit, identity_paleo_temperature};
@@ -251,36 +251,13 @@ pub struct Providers {
     /// - *Granularity:* value-level, per cell per epoch.
     pub outcrop_shares: Option<fn(&[DepUnit]) -> WindowShares>,
 
-    /// **What temperature has this buried unit seen?**
-    ///
-    /// - *Identity:* [`identity_burial_temp_c`] — a **degenerate geotherm**:
-    ///   0 °C at the surface, a gradient of exactly 1 °C/m, so the answer is
-    ///   numerically the unit's overburden in metres and
-    ///   `t >= `[`COAL_ONSET_C`](super::COAL_ONSET_C) is bit-for-bit the
-    ///   pre-seam `overburden_m >= `[`COAL_BURIAL_M`](super::COAL_BURIAL_M)
-    ///   (8.0 m). The gradient is 40× Earth's; it is arithmetic, not a claim
-    ///   about the planet, and it is written down rather than hidden.
-    /// - *Heir:* **a geothermal gradient.** There is no temperature anywhere in
-    ///   this sim except surface air (`climate::air_temp_c`), which is why
-    ///   coalification currently rides a *depth* threshold calibrated to this
-    ///   record's own burial distribution rather than to Earth's 10²–10³ m
-    ///   (`stubs.md` § 14, journal/0066). The heir supplies `T(z)` per column —
-    ///   surface temperature plus a gradient set by crustal heat flow, for which
-    ///   [`t_crust`](field@super::grid::DeepGrid::t_crust) is already populated
-    ///   and read by nothing (`spines.md` § 3). With one, `COAL_ONSET_C` becomes
-    ///   a real onset temperature, the 8 m calibration dies with the identity,
-    ///   and the single `Coal` facies can split by **rank** —
-    ///   lignite/sub-bituminous/bituminous/anthracite — which is what
-    ///   `CLASS_ORGANIC_COAL`'s *"the depth axis is the rank axis"* contract has
-    ///   been waiting for.
-    /// - *Why a temperature and not a `is_coalified` predicate:* S-8, *one
-    ///   quantity, many regimes*. Coal rank and metamorphic grade are the same
-    ///   ladder at different heights; a predicate answers one rung and composes
-    ///   with none. See [`burial_temp_c`]'s module docs for the full argument.
-    /// - *Granularity:* value-level, per candidate unit, at
-    ///   [`BioticSim::finalize`](super::biotic::BioticSim::finalize) — which runs
-    ///   **once per run**, so the hot-loop rule has nothing to say here.
-    pub burial_temp_c: Option<fn(BuriedUnit) -> f64>,
+    // `burial_temp_c` lived here until journal/0093. It **retired as a field
+    // pass**, not a provider heir: a real geotherm answers `T(depth)`, which is a
+    // *field* (a per-cell gradient), not a value a stateless `fn(BuriedUnit)`
+    // could hold. See [`super::geotherm`] — the first §5 field pass — which plants
+    // the `temperature` condition-field coal rank now reads. This is why the
+    // structural group has no temperature slot: the question turned out not to be
+    // a provider question at all.
 
     // ──────────────────────────── paleoclimate ───────────────────────────
     /// **What temperature did this cell see when this unit was deposited?**
@@ -329,7 +306,7 @@ pub enum Slot {
     ParentP,
     // structural
     OutcropShares,
-    BurialTempC,
+    // (burial_temp_c retired as a field pass, journal/0093 — see geotherm)
     // paleoclimate
     PaleoTemperature,
 }
@@ -346,7 +323,6 @@ impl Slot {
         Slot::ParentP,
         // structural
         Slot::OutcropShares,
-        Slot::BurialTempC,
         // paleoclimate
         Slot::PaleoTemperature,
     ];
@@ -364,7 +340,6 @@ impl Slot {
             Slot::ParentP => "parent_p",
             // structural
             Slot::OutcropShares => "outcrop_shares",
-            Slot::BurialTempC => "burial_temp_c",
             // paleoclimate
             Slot::PaleoTemperature => "paleo_temperature",
         }
@@ -438,16 +413,6 @@ impl Providers {
         }
     }
 
-    /// Ask the [`burial_temp_c`](field@Self::burial_temp_c) slot, falling through
-    /// to [`identity_burial_temp_c`] when no heir has supplied it.
-    #[inline]
-    pub fn burial_temp_c(&self, unit: BuriedUnit) -> f64 {
-        match self.burial_temp_c {
-            Some(f) => f(unit),
-            None => identity_burial_temp_c(unit),
-        }
-    }
-
     /// Ask the [`paleo_temperature`](field@Self::paleo_temperature) slot, falling
     /// through to [`identity_paleo_temperature`] when no heir has supplied it.
     #[inline]
@@ -474,7 +439,6 @@ impl Providers {
             Slot::ParentP => self.parent_p.is_some(),
             // structural
             Slot::OutcropShares => self.outcrop_shares.is_some(),
-            Slot::BurialTempC => self.burial_temp_c.is_some(),
             // paleoclimate
             Slot::PaleoTemperature => self.paleo_temperature.is_some(),
         }
@@ -572,20 +536,6 @@ mod tests {
             dominant_litho(&identity_outcrop_shares(&[]))
         );
         assert_eq!(p.outcrop_shares(&[]), identity_outcrop_shares(&[]));
-        for overburden_m in [0.0, 7.999_999_999, 8.0, 512.0] {
-            let u = BuriedUnit {
-                index: 5,
-                gx: 5,
-                gy: 0,
-                surface_temp_c: 11.5,
-                overburden_m,
-                thickness_m: 0.4,
-            };
-            assert_eq!(
-                p.burial_temp_c(u).to_bits(),
-                identity_burial_temp_c(u).to_bits()
-            );
-        }
 
         let (precip, r, h) = (vec![0.4f32; 9], vec![25.0f64; 9], vec![2.0f64; 9]);
         let (area, recv, filled) = (vec![12.0f64; 9], vec![-1i32; 9], vec![27.5f64; 9]);
