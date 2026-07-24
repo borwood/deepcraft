@@ -255,8 +255,13 @@ each conversion consciously serve it (the block↔material collapse is step 1 of
    byte-identical to the Rust one as the acceptance test.
 3. **The SDK / ABI boundary research spike.** `abi_stable` vs `repr(C)` vs
    `wasmtime` / the component model, measured on a toy Pass/Material, to see what
-   the seam can carry and what it costs. **This locks the SDK shape** — do not
-   guess it.
+   the seam can carry and what it costs.
+   **AMENDED — NOT GATING (user, 2026-07-24, § Deviations #1):** this spike no
+   longer blocks the arc. Build **native `abi_stable`-shaped now** (plain data +
+   opaque ids — the crossing constraint), **`wasmtime` to follow**; the spike is
+   worth doing "when we have free time, in case of surprises," but the *shape* does
+   not require it first. Build in the way one would reasonably expect to be fine
+   and adjust later if needed.
 
 ## Compliance — all design flows through this (user-directed, 2026-07-23)
 
@@ -280,4 +285,14 @@ double-checked."* The mechanism, mirroring the spines.md loop:
 
 ## Deviations (ratified carve-outs)
 
-*(none yet)*
+**1. (2026-07-24) The trusted/untrusted safety split + the ABI/WASM spike are
+DEFERRED, not gating** (user; *"last session failed to record"* this). We have no
+mod ecosystem and no trust/permission system gamed out — that is a **far concern
+that does not need solving soon**, and the whole trusted/untrusted discussion is
+**paused until we are anywhere near having modders.** The pass/SDK **shape in
+principle does not require the spike now.** So: build **native `abi_stable`-shaped**
+(the crossing constraint — plain data + opaque ids — still held, because it is cheap
+insurance and it *is* the honest shape), **`wasmtime`/sandbox to follow** when there
+are untrusted mods to sandbox. Do the boundary spike opportunistically ("in case of
+surprises"), not as a blocker. Reasoning: build in a way one would reasonably expect
+to be fine, adjustable later — velocity now, safety when it becomes real.
