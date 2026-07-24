@@ -7,6 +7,33 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-24 — **Movement 2a: R/H are derived views of the inventory** (journal/0092;
+  background agent, worktree). The per-cell working inventory (== the strata record) is now the
+  **authority for surface material; `R`/`H` are DERIVED.** `H = Σ surface Loose above the
+  topmost Structure` (positional — **cave fill / buried loose excluded**, which the scalar plane
+  structurally cannot represent). **Scratch-first reconcile:** erosion stays on the fast scalar
+  planes; deposition reconciles net ΔH into the record as `void→Loose`/`Loose→void` facts once
+  per epoch at the boundary (no per-inner-loop walk), material = the **real current `deep_class`
+  rule** (not an anonymous stub). **BYTE-IDENTICAL** — goldens unmoved by name; agreement over
+  the 25 600-cell production field to **8.3e-8 m** (f64 round-off); `buried_loose_below_a_structure_is_excluded_from_surface_h`.
+  **Finding (rides-as-built, byte-identity held):** the engine's `R` is a bedrock-top *elevation
+  datum*, so `R = surf − H` (topmost-Structure contact), not `Σ Structure`; `Σ Structure` exists
+  beside it. **Zero added resident cost** (materialize-on-demand). Combined gate green by name
+  (fmt/clippy/test `--workspace`, both crates cleaned). Next: 2b (material-aware transport), 3
+  (weathering-as-a-process), and the geotherm (first field pass).
+
+- 2026-07-24 — **Far-LOD band-inversion + constant-coupling fix** (journal/0091; background
+  agent, worktree; **render-only, goldens unmoved**). One **`LodLadder`** — nearfield border +
+  each step's range **as a distance past the border**, all named knobs (structured to become
+  in-game per-player perf settings); ring edges + near/unload radii all **derive** from it (grep-
+  proven no duplicate range constants; the `176 m` standoff and `RING_LADDER` gone). **Warm
+  floored geometry-safe** (`floor_known_surface` — cold and warm floor to the identical height).
+  **Standoff removed:** warm where the node subtree is resident, cold only where not (A-5 guard
+  intact). Kills the **finest-band-cold-over-resident-warm-data inversion** + the §6.3 coupling
+  defect (audit `2026-07-24-lod-pre-post-visit-diagnosis.md`). Fix (b) — cold/warm **material**
+  agreement (S-9) — stays for the mixture arc (now a material seam, not a geometry one). Combined
+  gate green by name. **Appearance walk owed.**
+
 - 2026-07-24 — **Movement 1: the deep-time pass-runner — the erosion loop re-housed as
   self-declaring passes** (journal/0090; background implementation agent, worktree; the first
   north-star pass-runner instance at the deep tier). `erosion.step`'s monolith decomposed into
@@ -2073,6 +2100,13 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   sub-voxel this session); **(3)** the geotherm's coal-distribution shift when it lands (coal
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
+
+- **GEOTHERM: nonlinear / mantle-heat enrichment** (followup, user-directed 2026-07-24). The v1
+  geotherm (material-behavior.md §14) is a per-cell **linear** gradient `T(depth) = surface_T +
+  gradient·depth`. Enrich later: non-linear `T(depth)` + a mantle-heat contribution (deep
+  thermal structure, not just a surface-anchored line). Non-blocking; the linear v1 is the
+  honest first field pass and the vocabulary/consumer shape it lands is unchanged by the
+  enrichment.
 
 - **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
   `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md

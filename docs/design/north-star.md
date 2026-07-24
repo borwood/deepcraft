@@ -296,3 +296,19 @@ insurance and it *is* the honest shape), **`wasmtime`/sandbox to follow** when t
 are untrusted mods to sandbox. Do the boundary spike opportunistically ("in case of
 surprises"), not as a blocker. Reasoning: build in a way one would reasonably expect
 to be fine, adjustable later — velocity now, safety when it becomes real.
+
+**2. (2026-07-24) NO capability tiering — a mod can author ANYTHING, including a field
+pass** (user, emphatic). *"There is no trusted or untrusted until such a time as we need to
+figure out what that means because we anticipate mods. ASSUME MODS CAN DO ANYTHING. Including
+author a field pass. Do not bake in any limitations on a trust model I DO NOT RATIFY. We're
+pro modder freedom and creativity — it would be GREAT if a modder wanted to figure out the
+field-pass API. Setting up these walls is pointless; it stifles creativity and they crack in
+anyway (see Minecraft)."* So the **capability-tiering** in § "The core / plugin boundary",
+§ Passes ("field passes … trusted … first-party"), and § Refinement ("a global solver is a
+trusted-tier capability") is **EXPLICITLY NOT THE MODEL** and must not shape any design.
+**One authoring shape, no tiers:** materials, agents, cellular passes, AND field passes are
+authored the same way, by defaults and mods alike. The **crossing constraint** (plain data +
+opaque ids for *declarations*; pass *bodies* are backend-compiled code) stays only as the
+*technical* backend-agnostic shape (cheap insurance, per #1) — **never as a trust wall.**
+Trust/sandboxing is revisited only if/when a real mod ecosystem forces the question — not
+now, not baked in.

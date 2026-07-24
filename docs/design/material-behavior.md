@@ -660,3 +660,42 @@ transport makes the *deposited* material honest.
 - **Lineage history** (the `Move`-fact chain of custody): identity *travels* now; the *full
   history* ("deposited, exhumed, re-transported…") rides the `Move` variant when we need to
   *read* it (the `inventory.rs` forward-note).
+
+---
+
+## 14. Condition-fields, formation predicates, and the geotherm (DECIDED 2026-07-24)
+
+Ratified this session — the §5 **field-pass half** lands, and with it the general
+**condition-field vocabulary** formation predicates read.
+
+**Condition-fields.** A **field** = a named per-cell quantity with an **opaque id**
+(`dc:field/temperature`, `dc:field/depth`, `dc:field/tectonic_setting`, `dc:field/exhum`,
+`dc:field/pressure`). Produced by **field passes**, read by **cellular passes** and by
+**formation predicates**. Initial members: `tectonic_setting` (province), `depth`, `exhum`,
+**`temperature`** (new — the geotherm), `pressure` (derived). **Extensible** — every field
+pass grows the vocabulary; the migration of today's ad-hoc/stub proto-fields into real
+declared field passes is ROADMAP-tracked.
+
+**Formation predicates are plain data over field-ids** (§12: formation is output-owned). A
+predicate is a conjunction of `(field_id, comparator, range)` conditions the engine evaluates
+against local field values — **no code crosses the SDK; the fields are the interface**
+(crossing constraint met by construction). **This is a general engine primitive** (user):
+the same declarative-condition-over-fields model is expected to serve geology's formation
+predicates *and* future **ecology, civilization**, etc. — not a geology carve-out.
+
+**NO capability tiers** (north-star § Deviations #2, user-emphatic): field passes are **not**
+trusted-only — **a mod authors field passes exactly as the defaults do.** One authoring shape,
+no walls.
+
+**The geotherm — the FIRST field pass** (DECIDED). A **low-rate** field pass. **Reads**
+`{surface_temperature (climate), crustal_thickness (t_crust), crust_kind, tectonic_setting}`;
+**writes** the `temperature` field as a per-cell **geothermal gradient**, `T(depth) =
+surface_T + gradient · depth`; `gradient = f(tectonic heat flow)` — rifts/arcs steep
+(~40–50 °C/km), old cratons/thick crust shallow (~15–20). **v1 is linear**;
+nonlinear/mantle-heat is a ROADMAP followup. **Subsumes the degenerate `burial_temp_c`
+geotherm** (stubs.md #14) — the real gradient replaces the 1 °C/m stub, with **`COAL_ONSET_C`
+recalibrated in the same slice** (stub #14's retire-together warning). **NOT byte-identical**
+— coal distribution moves (coal is a placeholder anyway — no real bio yet — so the *number*
+is not precious; **we measure the shift as the reason to walk**). **Unblocks:** metamorphism
+(`exhum` = P, geotherm = T → grade), formation predicates (mineral stability by T), and
+eventually melting/magma.
