@@ -423,7 +423,26 @@ of in the deep tier (the loose product inherits the bedrock's identity); invisib
 until the weathering facts express through the collapse. *Loud code marker required
 at the materialization site.*
 
-### 17. weathering-runs-once-post-hoc — *added 2026-07-24 (the S18 walk finding, corrections #46/#47)*
+### 17. weathering-runs-once-post-hoc — **DISCHARGED 2026-07-24 (journal/0094, Movement 3)**
+*Heir landed.* The inventory weathering is now a **live per-epoch cellular pass inside the
+deep-time loop** — `dc:deep/weather_inventory` on the runner (`deeptime/runner.rs`), driven by
+`weather_inventory::weather_epoch`, weathering each subaerial cell's bedrock seam **every
+epoch on that epoch's live terrain and accumulating** across the run
+(`weather_bedrock_epoch` → `finalize_ledgers`). The post-hoc `field.rs::build_ledgers`
+one-shot is **deleted**. The **span-index crux** — the record grows every epoch, so the
+bedrock's numeric index (`units.len()`) shifts — is solved by keying the accumulator to a
+**stable bedrock sentinel** (bedrock-only ledger, slot 0, record-growth-invariant), re-keyed
+onto the final record only at loop end. `dt` is now **live** (`share ∝ dt`, the pass's phase
+length — journal/0090 M3 deferral closed). Production-scale band at the argmax cell: **≥1
+voxel** (`production_scale_saprolite_band_reaches_at_least_one_voxel`, the A-3 guard). The
+**two-authorities split holds** (material-behavior.md §11): the pass READS `H` but WRITES ONLY
+the ledger — it never touches `R`/`H`, so the height-tier `dc:deep/weather` pass is untouched.
+The flag `weather_inventory` stays a **walk-gated appearance** flip (default off → byte-identical);
+that is not a stub. *Note the loose PRODUCT still inherits stub #16's stand-in bedrock identity
+(one flat granite basement) — #16 is NOT retired by this; the material a rind is made of still
+awaits the genesis/emplacement heir.*
+
+*Original entry (added 2026-07-24, the S18 walk finding, corrections #46/#47; preserved for audit):*
 `dc-worldgen/src/deeptime/field.rs::build_ledgers` + `weather_inventory::weather_column(_,
 chapters=1, _)`: the inventory weathering runs a **single chapter, after the deep-time run,
 over the finished record, with final-state fields frozen**. Weathering is a *continuous*

@@ -1,9 +1,12 @@
-//! Guided-tour map for the S18 first-behavior weathering walk (journal/0089).
+//! Guided-tour map for the weathering walk (journal/0089 S18; **journal/0094 made it
+//! a per-epoch accumulating process**).
 //!
 //! Builds the world the dc-client boots (`BENCH_SEED` = 1337, `Extent::Medium`) with
-//! `weather_inventory` ON (the `--weather-inventory` launch flag), then finds the deep
-//! cells whose committed `Structure→Loose` weathering facts produced the thickest basal
-//! **saprolite band** (`FactLedger::weathering_product_m`). For each station it prints
+//! `weather_inventory` ON (the `--weather-inventory` launch flag) — so the
+//! `dc:deep/weather_inventory` pass runs **inside the deep-time loop, every epoch,
+//! accumulating** — then finds the deep cells whose committed `Structure→Loose`
+//! weathering facts produced the thickest basal **saprolite band**
+//! (`FactLedger::weathering_product_m`), now ≥1 voxel. For each station it prints
 //! the world coordinate a player teleports to, the surface elevation, the band thickness,
 //! and the regolith cover `H` there (thin cover = high `cover_taper` = why the band is
 //! strong). Nothing here is on a generation path.
@@ -108,7 +111,14 @@ fn main() {
         "  banded cells: {n_band} / {total_cells}  ({:.1}%)",
         100.0 * n_band as f64 / total_cells as f64
     );
-    println!("  band thickness: max {max:.2} m, mean {mean:.2} m over banded cells\n");
+    let max_vox = max / VOXEL_M;
+    let max_eighths = (max_vox * 8.0).round() as i64;
+    println!("  band thickness: max {max:.2} m, mean {mean:.2} m over banded cells");
+    println!(
+        "  max band in voxels: {max_vox:.2} voxels ({max_eighths} eighths) @ {VOXEL_M} m/voxel  \
+         [>= 1 voxel: {}]\n",
+        if max >= VOXEL_M { "YES" } else { "NO" }
+    );
 
     if n_band == 0 {
         println!("NULL: no weathering band anywhere — the flag produced nothing to walk.");
@@ -134,7 +144,12 @@ fn main() {
             continue;
         }
         picked.push(i);
-        println!("\nSTATION {} — band {:.2} m", picked.len(), thick);
+        println!(
+            "\nSTATION {} — band {:.2} m ({:.2} voxels)",
+            picked.len(),
+            thick,
+            thick / VOXEL_M
+        );
         println!("  {}", conv.line(i));
         println!("  surface elevation : {:.1} m", field.surf[i]);
         println!(

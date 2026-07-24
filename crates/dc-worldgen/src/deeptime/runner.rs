@@ -43,6 +43,7 @@
 use super::biotic::BioticSim;
 use super::erosion::Erosion;
 use super::grid::{DeepConfig, DeepGrid, sea_level_at};
+use super::inventory::FactLedger;
 use super::{TectonicSchedule, climate};
 use crate::passgraph::{self, Decl, GraphError};
 
@@ -120,6 +121,13 @@ pub enum DeepAxis {
     /// finalize), so it is a pure write axis; a distinct token so the field pass
     /// declares an honest, orderable output on the runner.
     Geotherm,
+    /// The per-cell **inventory-weathering fact-ledger sink** — the accumulating
+    /// saprolite band the [`weather_inventory`](super::weather_inventory) pass writes
+    /// (`Structure→Loose` on the bedrock seam, cause-carrying, every epoch). Like
+    /// [`Geotherm`] it is a **pure write axis no in-epoch pass reads** (the collapse
+    /// folds it post-loop); a distinct token so the material-transformation pass
+    /// declares an honest, orderable output without perturbing the erosion pipeline.
+    Saprolite,
 }
 
 /// Owned working state the epoch loop threads through its passes. Constructed
@@ -146,6 +154,15 @@ pub struct DeepStepCtx<'a> {
     pub uplift_total: f64,
     pub biotic_total: f64,
     pub thickening_total: f64,
+    /// **Per-cell inventory-weathering accumulators** (journal/0094) — the saprolite
+    /// band grown across epochs by the `dc:deep/weather_inventory` pass. Each is a
+    /// **bedrock-only** [`FactLedger`] keyed at the stable sentinel slot 0
+    /// (record-growth-invariant; see
+    /// [`weather_bedrock_epoch`](super::weather_inventory::weather_bedrock_epoch)).
+    /// **Empty** when `weather_inventory` is off (the pass is absent) ⇒ byte-identical.
+    /// Re-keyed onto the final record post-loop
+    /// ([`finalize_ledgers`](super::weather_inventory::finalize_ledgers)).
+    pub weather_ledgers: Vec<FactLedger>,
 }
 
 /// One self-declaring deep-time pass: identity + declared reads/writes (the
@@ -303,6 +320,31 @@ fn biotic_pass(ctx: &mut DeepStepCtx<'_>) {
     }
 }
 
+/// **Inventory weathering as a per-epoch process** (journal/0094, Movement 3) —
+/// the first *cellular* pass on the runner. Weathers each subaerial cell's bedrock
+/// `Structure` seam into `Loose` saprolite on **this epoch's live inputs**
+/// (contemporaneous regolith `H`, frost, biotic multiplier), **accumulating** the
+/// cause-carrying facts across the whole loop into [`DeepStepCtx::weather_ledgers`].
+///
+/// **Two-authorities split** (material-behavior.md §11): it READS the terrain
+/// (regolith cover shielding) but WRITES ONLY the ledger sidecar — it never touches
+/// `R`/`H`, so the height-tier `dc:deep/weather` pass and the erosion result are
+/// byte-unchanged (mirrors how the geotherm plants a field and runs no edges). Its
+/// output axis [`DeepAxis::Saprolite`] is read by no in-epoch pass. `dt` is live —
+/// the share scales by the pass's phase length.
+fn weather_inventory_pass(ctx: &mut DeepStepCtx<'_>) {
+    let chapter = ctx.erosion.current_chapter();
+    super::weather_inventory::weather_epoch(
+        &mut ctx.weather_ledgers,
+        &ctx.grid,
+        ctx.erosion.frost(),
+        chapter,
+        ctx.sea_level,
+        ctx.dt,
+        ctx.cfg,
+    );
+}
+
 // --- cfg-selected read slices for the terrain-revision pipeline -------------
 // The token a downstream pass consumes depends on which upstream stages exist
 // (isostasy only on the tectonic path, the agents only on `full_agents`), so a
@@ -315,6 +357,15 @@ const EOL_READS_LEG: &[DeepAxis] = &[Exposed, Climate, Recorded, Diffused];
 const BIO_READS_AGENTS: &[DeepAxis] = &[Routed, Frosted, Recorded, Settled];
 const BIO_READS_TEC: &[DeepAxis] = &[Routed, Frosted, Recorded, Compensated];
 const BIO_READS_LEG: &[DeepAxis] = &[Routed, Frosted, Recorded, Diffused];
+// The inventory-weathering pass reads the **contemporaneous** settled terrain (for
+// this-epoch regolith `H` cover-shielding), the frost multiplier, and the exposed
+// lithology — sequencing it after the erosion pipeline so `H` is this epoch's. The
+// terrain revision it reads is the last one the active roster produces (Settled with
+// agents, Compensated on the bare tectonic path, Diffused legacy). Frosted exists
+// only with the agent roster, so it appears only in the agents slice.
+const WINV_READS_AGENTS: &[DeepAxis] = &[Settled, Frosted, Exposed];
+const WINV_READS_TEC: &[DeepAxis] = &[Compensated, Exposed];
+const WINV_READS_LEG: &[DeepAxis] = &[Diffused, Exposed];
 
 /// Build the active pass roster for a config. A phase gated off (`tectonic_
 /// history`, `full_agents`, `biotic`, `record`) is simply **absent** — the old
@@ -536,6 +587,30 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         });
     }
 
+    // Inventory weathering (journal/0094): the first cellular material pass, gated
+    // behind `weather_inventory` (absent = off, the old `if` as pass presence — so
+    // the production world is byte-identical off, the S-5 identity default). Reads
+    // the contemporaneous terrain (for this-epoch regolith `H`), Frosted, Exposed,
+    // and — loop-carried, like `weather`/`diffuse` — last epoch's BioMod. Writes only
+    // the Saprolite ledger sink (no in-epoch reader), so it never perturbs erosion.
+    if cfg.weather_inventory {
+        let reads: &[DeepAxis] = if cfg.full_agents {
+            WINV_READS_AGENTS
+        } else if cfg.tectonic_history {
+            WINV_READS_TEC
+        } else {
+            WINV_READS_LEG
+        };
+        passes.push(DeepPass {
+            id: "dc:deep/weather_inventory",
+            reads,
+            writes: &[Saprolite],
+            reads_prev: &[BioMod],
+            period: 1,
+            body: weather_inventory_pass,
+        });
+    }
+
     passes
 }
 
@@ -719,6 +794,53 @@ mod tests {
         };
         let passes = deep_passes(&cfg);
         assert!(!passes.iter().any(|p| p.id == "dc:deep/geotherm"));
+    }
+
+    #[test]
+    fn weather_inventory_is_absent_off_and_a_declared_cellular_pass_on() {
+        // Off (production default): the pass is not scheduled — the byte-identity
+        // default (pass presence = the old `if`).
+        assert!(
+            !deep_passes(&all_on())
+                .iter()
+                .any(|p| p.id == "dc:deep/weather_inventory"),
+            "weather_inventory is off by default ⇒ absent"
+        );
+
+        // On: a declared cellular pass, period 1 (fires every epoch), writing only
+        // the Saprolite sink and reading the settled terrain + frost (contemporaneous
+        // H), with BioMod loop-carried.
+        let cfg = DeepConfig {
+            weather_inventory: true,
+            ..all_on()
+        };
+        let passes = deep_passes(&cfg);
+        let w = passes
+            .iter()
+            .find(|p| p.id == "dc:deep/weather_inventory")
+            .expect("scheduled when flagged on");
+        assert_eq!(w.writes, &[DeepAxis::Saprolite]);
+        assert_eq!(w.reads_prev, &[DeepAxis::BioMod]);
+        assert!(w.reads.contains(&DeepAxis::Settled) && w.reads.contains(&DeepAxis::Frosted));
+        assert_eq!(w.period, 1);
+        assert!(w.fires(0) && w.fires(1));
+
+        // The schedule is valid with it, and it sorts AFTER the terrain settles and
+        // biology runs (it reads Settled which wave writes, and it is the last thing
+        // the graph must place — a pure sink perturbs nothing before it).
+        let sched = DeepSchedule::new(deep_passes(&cfg)).expect("valid with weather_inventory");
+        let order = sched.ordered_ids();
+        let pos = |id: &str| order.iter().position(|&x| x == id).unwrap();
+        assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/wave"));
+        assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/frost"));
+
+        // Off-flag order is exactly the production order (the pass added nothing).
+        assert_eq!(
+            DeepSchedule::new(deep_passes(&all_on()))
+                .unwrap()
+                .ordered_ids(),
+            PRODUCTION_ORDER.to_vec()
+        );
     }
 
     #[test]

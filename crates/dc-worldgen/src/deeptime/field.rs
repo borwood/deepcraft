@@ -34,9 +34,8 @@
 
 use super::grid::DeepConfig;
 use super::inventory::{FactLedger, FracM, build_working};
-use super::recorder::{DeepStrata, DepEnv};
+use super::recorder::DeepStrata;
 use super::tectonics::Plate;
-use super::weather_inventory::{self, WeatherInputs};
 use crate::pregen::{CELL_VOXELS, CellGrid, Pregen};
 
 /// Target (finest) deep-time cell edge, metres — S9's A tier resolution.
@@ -90,11 +89,12 @@ pub struct DeepOverrides {
     /// A dev launch flag (`--erosion-budget <mult>`) sets it; the walkable
     /// cranked world it enables is the standing "conservative amplitude" call.
     pub erosion_budget: Option<f64>,
-    /// Override [`DeepConfig::weather_inventory`]: the S18 first-behavior
-    /// weathering pass (one chapter over the cell's working inventory, writing
-    /// the derived weathered-cover plane). `None` = production default (**off**,
-    /// the S-5 identity floor); pass `Some(true)` to turn the pass on for a
-    /// flag-on walk. A dev launch flag (`--weather-inventory`) sets it.
+    /// Override [`DeepConfig::weather_inventory`]: the in-loop, per-epoch
+    /// **accumulating** inventory-weathering pass (journal/0094) that grows a basal
+    /// saprolite band on each subaerial cell's working inventory across the deep-time
+    /// run. `None` = production default (**off**, the S-5 identity floor); pass
+    /// `Some(true)` to turn the pass on for a flag-on walk. A dev launch flag
+    /// (`--weather-inventory`) sets it.
     pub weather_inventory: Option<bool>,
 }
 
@@ -393,14 +393,15 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
             Vec::new(),
         )
     };
-    // **The first-real-behavior weathering pass** (material-behavior.md §4/§11) —
-    // gated, and the S17 keystone's first production consumer. Runs AFTER the
-    // erosion loop as a material-transformation layer over each subaerial cell's
-    // working inventory, leaving the `R`/`H` height weathering in `erosion.rs`
-    // untouched (they compute different things — §11 continuation slot). Off ⇒ empty
-    // Vec ⇒ byte-identical (S-5 identity default). Built before the moves below so it
-    // can read the strata record, the biotic-weather plane and the frost plane.
-    let ledgers = build_ledgers(cfg, &run);
+    // **Inventory weathering — now a per-epoch PROCESS** (journal/0094, Movement 3;
+    // material-behavior.md §4/§11). The `dc:deep/weather_inventory` runner pass ran
+    // *inside* the deep-time loop, every epoch, accumulating the saprolite band on
+    // each epoch's live terrain; the run hands back the finished, record-keyed
+    // ledgers. This REPLACES S18's post-hoc one-shot over the frozen end-state (stub
+    // #17). It writes only this sidecar — the `R`/`H` height weathering in
+    // `erosion.rs` is untouched (§11 two-authorities split). Off ⇒ empty Vec ⇒
+    // byte-identical (S-5 identity default).
+    let ledgers = run.weather_ledgers;
     // The regolith plane, carried (journal/0053) rather than summed away.
     let regolith = run.grid.h;
     let strata = run.grid.strata;
@@ -420,60 +421,6 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         geotherm,
         chapters,
     }
-}
-
-/// Build the per-cell weathering [`FactLedger`]s (the first-real-behavior slice).
-/// Empty `Vec` unless `cfg.weather_inventory` is on (and there is a record) — the
-/// S-5 identity default that keeps the collapsed world byte-identical.
-///
-/// For each cell that saw **subaerial** conditions it runs the sum-agent weathering
-/// pass ([`weather_inventory`]) for one chapter over the cell's working inventory,
-/// drawing per-cell drivers from what the run already computed: the base `weathering`
-/// rate, the biotic-weather multiplier plane (`1.0`/empty off), the frost multiplier
-/// plane (`1.0`/empty off), and the cell's regolith depth `H`. Purely-marine cells
-/// (and cells with no record) get an empty ledger, so the sidecar stays index-parallel
-/// to `strata`.
-///
-/// **The subaerial gate reads the RECORD, not the final surface** (the corpus-sweep
-/// finding: the deep field's *final* `surf` sits far below the datum after isostasy +
-/// the low sea stand, so a `surf > 0` gate weathers **nothing** on a real world — max
-/// final surf on production Small is ≈ −460 m). A cell's *record* is the honest
-/// authority for whether it ever stood above water: a unit tagged
-/// [`DepEnv::Subaerial`] was deposited on land. This also matches how the height-tier
-/// weathering gated — on the *contemporaneous* sea stand during the run, not the final
-/// one.
-fn build_ledgers(cfg: &DeepConfig, run: &super::DeepRun) -> Vec<FactLedger> {
-    if !cfg.weather_inventory || run.grid.strata.is_empty() {
-        return Vec::new();
-    }
-    let bio = &run.grid.bio_weather; // Vec<f32>, empty ⇒ identity 1.0
-    let frost = run.erosion.frost(); // &[f64], empty ⇒ identity 1.0
-    let h = &run.grid.h;
-    // One chapter this slice (multi-chapter feedback is a later refinement, §5).
-    const CHAPTERS: u8 = 1;
-    run.grid
-        .strata
-        .iter()
-        .enumerate()
-        .map(|(i, strata)| {
-            // Subaerial gate, read from the record: a cell that deposited any
-            // subaerial unit stood above water at some point in its history. A
-            // purely-marine cell gets an empty (zero-alloc) ledger, which
-            // `weathering_product_m` reads back as `0.0`.
-            let saw_subaerial = strata.units.iter().any(|u| u.tag.env == DepEnv::Subaerial);
-            if !saw_subaerial {
-                return FactLedger::default();
-            }
-            let inputs = WeatherInputs {
-                weathering: cfg.weathering,
-                h_star: cfg.h_star,
-                regolith_h: h.get(i).copied().unwrap_or(0.0),
-                biotic: bio.get(i).map_or(1.0, |&b| f64::from(b)),
-                frost: frost.get(i).copied().unwrap_or(1.0),
-            };
-            weather_inventory::weather_column(strata, CHAPTERS, &inputs)
-        })
-        .collect()
 }
 
 impl DeepField {

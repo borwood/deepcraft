@@ -7,6 +7,33 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-24 — **Movement 3: weathering-as-a-PROCESS — the first CELLULAR pass, accumulating**
+  (journal/0094; background agent, worktree; **discharges stub #17**). S18's post-hoc one-shot
+  (`field.rs::build_ledgers`, **deleted**) is relocated into the deep-time loop as
+  `dc:deep/weather_inventory` — a declared **cellular** pass on the runner, gated behind
+  `weather_inventory` (absent = off ⇒ byte-identical). It weathers each subaerial cell's bedrock
+  `Structure` seam → `Loose` saprolite **every epoch on that epoch's LIVE terrain**
+  (contemporaneous regolith `H`/frost/biotic, `reads_prev BioMod`), **accumulating** cause-carrying
+  facts across the whole run. **The span-index crux** (the record grows every epoch, so the bedrock's
+  numeric index `units.len()` shifts) is solved by keying the accumulator to a **stable bedrock
+  sentinel** (bedrock-only ledger, slot 0, record-growth-invariant), re-keyed onto the final record
+  at loop end (`finalize_ledgers`). **`dt` goes LIVE** (`share ∝ dt`, the pass's phase length —
+  journal/0090 M3 deferral closed). **Two-authorities split HELD** (material-behavior.md §11): the
+  pass READS `H` but WRITES ONLY the ledger sink (`DeepAxis::Saprolite`, no in-epoch reader, like
+  the geotherm) — it never touches `R`/`H`, so the height-tier `dc:deep/weather` pass and the erosion
+  result are **byte-unchanged** (`on_flag_is_purely_additive...`). **Production-scale band at argmax:
+  ≥1 voxel** (`production_scale_saprolite_band_reaches_at_least_one_voxel`, the A-3 guard — the S18
+  0.04 m sub-voxel miss redeemed). Tests by name: byte-identity off
+  (`the_production_world_still_hashes_to_the_pre_slice_goldens`,
+  `identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical`),
+  `weathering_accumulates_across_epochs`, `bedrock_facts_key_stably_as_the_record_grows`,
+  `one_fact_per_agent_per_firing`, `dt_scales_the_share_linearly`,
+  `weather_inventory_is_absent_off_and_a_declared_cellular_pass_on`. Rides S-1 (the LOOP is the
+  relaxation), S-2/S-9/S-5; discharges A-4, guards A-3. **Loose product still inherits stub #16's
+  stand-in bedrock identity** (flat granite basement) — #16 NOT retired. **OWED: the flag-ON walk**
+  (the ≥1-voxel band is a walk-gated appearance flip — the user's to bless). Per-crate gates green
+  (dc-worldgen); **`--workspace` gate LEFT FOR THE INTEGRATOR** (the user's dc-client was live).
+
 - 2026-07-24 — **The geotherm — the FIRST field pass** (journal/0093; background agent,
   worktree; **world-changing: coal moves**). New `deeptime/geotherm.rs` + `dc:deep/geotherm`
   declared **field pass** on the runner (reads Climate+CrustThick, writes Geotherm, `period=40`
@@ -110,6 +137,7 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   NOT weathering-as-a-process.** Do NOT read "folds into a band" above as a shipped visible
   effect. The **real first behavior** is weathering run per-epoch in the deep-time loop /
   riding the `H` process (the R/H unification), carrying material + `cause` — sequenced next.
+  **DONE 2026-07-24 (Movement 3, journal/0094, above): stub #17 discharged, band ≥1 voxel.**
 
 - 2026-07-23 — **The per-task generator: neighbour fill and far derive leave the
   frame thread** (journal/0084; the filed follow-on to the async-offload slice
@@ -2116,8 +2144,10 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   fullbright: *"I can now confirm the LOD is fixed!!"* — fine near field transitions cleanly into
   the warm coarse far LOD, no cold-dither ring; screenshots `journal/assets/0091-lod-walk-*`).
   The only residue is the poke-through geometry check on the lit pass — low priority. Still owed:
-  **(2)** the S18 weathering band **once Movement 3 makes it ≥1 voxel** (the walk that failed
-  sub-voxel this session); **(3)** the geotherm's coal-distribution shift when it lands (coal
+  **(2)** the weathering band walk — **Movement 3 (journal/0094) made it ≥1 voxel at production
+  scale**, so the flag-ON walk is now ready to bless (`--weather-inventory`; exemplar = argmax
+  `FactLedger::weathering_product_m`, cut to the basement contact); **(3)** the geotherm's
+  coal-distribution shift when it lands (coal
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
 

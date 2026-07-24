@@ -36,16 +36,24 @@
 //! checked material-sheet extension, deliberately **not** ballooned into this slice;
 //! the reuse is the annotated seam its heir replaces.
 //!
-//! **Runtime clock.** This runs in **deeptime** (the compiler, gen-time is free),
-//! once per cell for the chapters it is asked to weather. It is gated behind
+//! **Runtime clock.** This runs in **deeptime** (the compiler, gen-time is free).
+//! Since **journal/0094 (Movement 3)** it is a per-epoch **process**: the
+//! `dc:deep/weather_inventory` runner pass fires [`weather_epoch`] **every epoch
+//! inside the deep-time loop**, weathering each subaerial cell's bedrock seam on that
+//! epoch's live terrain and **accumulating** the band across the run (the per-cell
+//! accumulator is keyed to a stable bedrock sentinel so the growing record cannot
+//! shift its index — see [`weather_bedrock_epoch`]). It is gated behind
 //! [`DeepConfig::weather_inventory`](super::grid::DeepConfig::weather_inventory);
-//! off (the default) the field carries no ledgers and the collapsed world is
-//! byte-identical, the S-5 identity default.
+//! off (the default) the pass is absent, the field carries no ledgers, and the
+//! collapsed world is byte-identical, the S-5 identity default. `weather_cell` /
+//! `weather_column` (the original one-shot-per-chapter helpers) survive for the
+//! unit tests.
 
 use dc_core::materials::MaterialId;
 
+use super::grid::{DeepConfig, DeepGrid};
 use super::inventory::{
-    BEDROCK_SEAM_MATERIAL, Cause, FactLedger, InvForm, build_working, commit_chapter,
+    BEDROCK_SEAM_MATERIAL, Cause, Fact, FactLedger, InvForm, build_working, commit_chapter,
 };
 use super::recorder::DeepStrata;
 
@@ -186,6 +194,166 @@ pub fn weather_column(strata: &DeepStrata, chapters: u8, inputs: &WeatherInputs)
     ledger
 }
 
+// ===========================================================================
+// Movement 3 (journal/0094): weathering as an IN-LOOP, PER-EPOCH, ACCUMULATING
+// process — the `dc:deep/weather_inventory` runner pass, discharging stub #17.
+// ===========================================================================
+
+/// **Weather the bedrock seam for ONE epoch firing** on this epoch's live inputs,
+/// appending the moved `Structure→Loose` facts (one per agent) into `ledger` — the
+/// per-cell **saprolite accumulator**.
+///
+/// **The span-index crux (journal/0094).** `ledger` is a **bedrock-only** ledger
+/// (built against an empty record via [`FactLedger::empty_with_bedrock`] of a default
+/// [`DeepStrata`]), so the bedrock seam sits at the **stable sentinel slot 0** and its
+/// key does NOT shift as the deep-time record grows unit-by-unit across epochs (the
+/// deposition pass appends a unit every epoch, so `strata.units.len()` — the numeric
+/// bedrock index of the *record-keyed* ledger — moves; keying the accumulator to the
+/// empty-record slot 0 is invariant). Fire it every epoch and the shares accumulate
+/// into one growing band; [`finalize_ledgers`] later re-keys slot 0 onto the final
+/// record's bedrock index for the collapse consumer.
+///
+/// **`dt` is live** (journal/0090 deferred this to Movement 3): each agent's share
+/// scales by `dt` (the pass's phase length), so a coarser cadence weathers
+/// proportionally more per firing — `share ∝ dt`. At `period = 1`, `dt = 1.0` and a
+/// firing is one epoch. Returns the total metres moved this firing.
+pub fn weather_bedrock_epoch(
+    ledger: &mut FactLedger,
+    chapter: u8,
+    inputs: &WeatherInputs,
+    dt: f64,
+) -> f64 {
+    // build_working over an EMPTY record ⇒ one span, the bedrock seam, at index 0
+    // (== spans.len()-1). Re-derived from `base + facts` each firing (S-2), so the
+    // accumulated Loose composes forward and the Structure source depletes honestly.
+    let empty = DeepStrata::default();
+    let mut inv = build_working(&empty, ledger);
+    let bedrock_span = inv.spans.len() - 1;
+    let material = BEDROCK_SEAM_MATERIAL;
+    let mut total = 0.0;
+    for &cause in &WEATHERING_AGENTS {
+        let share = agent_share(inputs, material, cause) * dt;
+        if share <= 0.0 {
+            continue;
+        }
+        total += inv.ctx_for(chapter, cause).move_form(
+            bedrock_span,
+            material,
+            InvForm::Structure,
+            InvForm::Loose,
+            share,
+        );
+    }
+    commit_chapter(&mut inv, ledger);
+    // Keep the accumulator bounded across the many epochs sharing a chapter:
+    // `commit_chapter` merges only *consecutive* identical edges, but successive
+    // firings interleave the three agents (chem, biotic, frost, chem, …), so without
+    // this the facts would grow 3-per-firing (→ hundreds per cell, a slow
+    // collapse-time fold). Merging by (chapter, cause, edge) bounds it to ≤ one fact
+    // per agent per chapter; the band (Σ fractions) is invariant to the merge.
+    for slot in ledger.facts.iter_mut() {
+        coalesce_facts(slot);
+    }
+    total
+}
+
+/// Merge a unit's facts that share the same `(chapter, cause, from, to)` into one,
+/// summing their fractions and preserving first-occurrence order. The band the facts
+/// compose to is unchanged; this only bounds the fact count as firings accumulate.
+fn coalesce_facts(facts: &mut Vec<Fact>) {
+    if facts.len() <= 1 {
+        return;
+    }
+    let mut out: Vec<Fact> = Vec::with_capacity(facts.len().min(WEATHERING_AGENTS.len()));
+    for f in facts.drain(..) {
+        let key = (f.chapter(), f.cause(), f.from(), f.to());
+        if let Some(g) = out
+            .iter_mut()
+            .find(|g| (g.chapter(), g.cause(), g.from(), g.to()) == key)
+        {
+            let Fact::InPlace { fraction_m, .. } = g;
+            *fraction_m += f.fraction_m();
+        } else {
+            out.push(f);
+        }
+    }
+    *facts = out;
+}
+
+/// **The `dc:deep/weather_inventory` pass body over the whole grid for one epoch.**
+/// For each cell standing above the **contemporaneous** sea stand (`r + h >
+/// sea_level` this epoch — the honest live version of `build_ledgers`' post-hoc
+/// record proxy), weather its bedrock seam once on this epoch's live drivers
+/// (regolith `H`, biotic multiplier, frost multiplier), accumulating into
+/// `ledgers[i]`. Purely subaqueous cells this epoch are skipped.
+///
+/// `ledgers` are the per-cell **bedrock-only** saprolite accumulators (empty ⇒ the
+/// pass is off ⇒ nothing happens). Reads terrain/frost/biota; **writes only the
+/// ledger sidecar — never `r`/`h`/the record** (the two-authorities split,
+/// material-behavior.md §11: this pass owns *material composition*, the height-tier
+/// `dc:deep/weather` pass owns the `R`/`H` budget, and they do not touch each other).
+pub fn weather_epoch(
+    ledgers: &mut [FactLedger],
+    grid: &DeepGrid,
+    frost: &[f64],
+    chapter: u8,
+    sea_level: f64,
+    dt: f64,
+    cfg: &DeepConfig,
+) {
+    if ledgers.is_empty() {
+        return;
+    }
+    let bio = &grid.bio_weather;
+    for (i, ledger) in ledgers.iter_mut().enumerate() {
+        // Contemporaneous subaerial gate: this cell stood above THIS epoch's stand.
+        if grid.r[i] + grid.h[i] <= sea_level {
+            continue;
+        }
+        let inputs = WeatherInputs {
+            weathering: cfg.weathering,
+            h_star: cfg.h_star,
+            regolith_h: grid.h[i],
+            biotic: bio.get(i).map_or(1.0, |&b| f64::from(b)),
+            frost: frost.get(i).copied().unwrap_or(1.0),
+        };
+        weather_bedrock_epoch(ledger, chapter, &inputs, dt);
+    }
+}
+
+/// **Re-key the per-cell bedrock-only accumulators onto the final record.** During
+/// the loop each accumulator holds its bedrock facts at the stable sentinel slot 0
+/// ([`weather_bedrock_epoch`]); the collapse consumer expects them at the bedrock
+/// index of the *final* record (`strata.units.len()` — the LAST slot, what
+/// [`FactLedger::weathering_product_m`] and `ledger_at_voxel` read). This moves
+/// slot 0 → that slot, producing the index-parallel [`FactLedger`] sidecar the
+/// `DeepField` carries. Index-parallel to `strata`; a never-weathered cell yields an
+/// empty (identity) ledger, so the sidecar stays byte-identical where nothing fired.
+pub fn finalize_ledgers(accumulators: Vec<FactLedger>, strata: &[DeepStrata]) -> Vec<FactLedger> {
+    accumulators
+        .into_iter()
+        .zip(strata)
+        .map(|(acc, s)| {
+            let mut ledger = FactLedger::empty_with_bedrock(s);
+            let bedrock_slot = s.units.len();
+            // The accumulator's slot 0 is the bedrock seam (empty-record build).
+            if let Some(bedrock_facts) = acc.facts.into_iter().next()
+                && !bedrock_facts.is_empty()
+            {
+                ledger.facts[bedrock_slot] = bedrock_facts;
+            }
+            ledger
+        })
+        .collect()
+}
+
+/// An empty per-cell **bedrock-only** saprolite accumulator — the stable-keyed
+/// ledger [`weather_bedrock_epoch`] accumulates into (bedrock seam at slot 0,
+/// invariant to record growth). One per deep cell, built before the loop.
+pub fn empty_accumulator() -> FactLedger {
+    FactLedger::empty_with_bedrock(&DeepStrata::default())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -296,5 +464,107 @@ mod tests {
         let ledger = weather_column(&strata, 1, &inp);
         assert!(ledger.is_empty(), "no weathering ⇒ empty ledger");
         assert_eq!(ledger.weathering_product_m(strata.units.len()), 0.0);
+    }
+
+    // --- Movement 3 (journal/0094): the in-loop accumulating process -----------
+
+    /// The bedrock band (composed `Loose`) held in a bedrock-only accumulator (slot 0).
+    fn acc_band(acc: &FactLedger) -> f64 {
+        compose_bedrock(acc.facts_for(0))
+            .iter()
+            .filter(|p| p.form == InvForm::Loose)
+            .map(|p| p.quantity_m)
+            .sum()
+    }
+
+    #[test]
+    fn one_fact_per_agent_per_firing() {
+        // A single firing on a fresh accumulator commits exactly one fact per active
+        // agent (the S18 §1 invariant, preserved by the in-loop path).
+        let mut acc = empty_accumulator();
+        let moved = weather_bedrock_epoch(&mut acc, 0, &inputs(), 1.0);
+        let bedrock = acc.facts_for(0);
+        assert_eq!(
+            bedrock.len(),
+            3,
+            "one fact per weathering agent, one firing"
+        );
+        let mut causes: Vec<Cause> = bedrock.iter().map(|f| f.cause()).collect();
+        causes.sort_by_key(|c| c.name());
+        assert_eq!(causes, vec![Cause::Biotic, Cause::Chemical, Cause::Frost]);
+        // Σ shares == the composed band == the returned move.
+        assert!((acc_band(&acc) - moved).abs() < 1e-12);
+        assert!((moved - weather_rate(&inputs(), BEDROCK_SEAM_MATERIAL)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn weathering_accumulates_across_epochs() {
+        // N firings grow the band strictly and monotonically — the whole point of
+        // Movement 3 (a snapshot cannot do this). Same chapter each firing, so the
+        // commit coalesces to one fact per agent while the band keeps growing.
+        let inp = inputs();
+        let mut acc = empty_accumulator();
+        let mut last = 0.0;
+        for n in 1..=10 {
+            weather_bedrock_epoch(&mut acc, 0, &inp, 1.0);
+            let band = acc_band(&acc);
+            assert!(band > last, "band grows at firing {n}: {band} !> {last}");
+            last = band;
+        }
+        // Same-chapter firings coalesce ⇒ still one fact per agent, band = N × rate.
+        assert_eq!(acc.facts_for(0).len(), 3, "coalesced to one fact per agent");
+        let single = weather_rate(&inp, BEDROCK_SEAM_MATERIAL);
+        assert!(
+            (last - single * 10.0).abs() < 1e-9,
+            "10 firings = 10× one firing"
+        );
+    }
+
+    #[test]
+    fn dt_scales_the_share_linearly() {
+        // `dt` is live: doubling the phase length doubles the metres moved in a firing
+        // (share ∝ dt), so the rate becomes a real per-pass knob (journal/0090 M3).
+        let inp = inputs();
+        let mut a1 = empty_accumulator();
+        let mut a2 = empty_accumulator();
+        let m1 = weather_bedrock_epoch(&mut a1, 0, &inp, 1.0);
+        let m2 = weather_bedrock_epoch(&mut a2, 0, &inp, 2.0);
+        assert!((m2 - 2.0 * m1).abs() < 1e-12, "dt=2 moves twice dt=1");
+        assert!((acc_band(&a2) - 2.0 * acc_band(&a1)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn bedrock_facts_key_stably_as_the_record_grows() {
+        // THE SPAN-INDEX CRUX. The accumulator keys bedrock at the invariant sentinel
+        // slot 0 while the (pretend) record grows across epochs. After the loop we
+        // re-key onto a GROWN record: the band composes to exactly the same value it
+        // had in the accumulator — no misalignment as `units.len()` shifted.
+        let inp = inputs();
+        let mut acc = empty_accumulator();
+        for _ in 0..5 {
+            weather_bedrock_epoch(&mut acc, 0, &inp, 1.0);
+        }
+        let band_in_accumulator = acc_band(&acc);
+        assert!(band_in_accumulator > 0.0);
+
+        // A grown record with several units (the deposition pass appended these while
+        // weathering ran) — its bedrock index is units.len(), far from slot 0.
+        let mut grown = DeepStrata::default();
+        for _ in 0..7 {
+            grown.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 0.6, 0);
+        }
+        let finalized = finalize_ledgers(vec![acc], std::slice::from_ref(&grown));
+        // The consumer reads the bedrock band at the FINAL record's bedrock slot.
+        let band_after_finalize = finalized[0].weathering_product_m(grown.units.len());
+        assert!(
+            (band_after_finalize - band_in_accumulator).abs() < 1e-12,
+            "stable key: {band_after_finalize} != {band_in_accumulator}"
+        );
+        // And it landed at the right slot (units.len()), not slot 0.
+        assert!(
+            finalized[0].facts_for(0).is_empty(),
+            "record unit 0 carries no bedrock facts"
+        );
+        assert_eq!(finalized[0].facts_for(grown.units.len()).len(), 3);
     }
 }

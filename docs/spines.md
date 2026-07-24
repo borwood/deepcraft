@@ -8,9 +8,11 @@ the ideas were missing — because they were **already built and lost**.
 `passgraph.rs` confirmed a genuine shared kernel, both `pipeline::schedule`
 [require_creator=true] and `runner::DeepSchedule::new` [false] call it, A-4
 guarded; S-6's runner entry verified accurate. S17 keystone `FactLedger` now
-**consumed** by `collapse.rs` via the S18 weathering-front band — but that S18
-weathering is a **plumbing stub** (default off, corrections #46/#47), not a live
-behavior; no spine entry claims otherwise. § 3: occupancy row narrowed — the dev
+**consumed** by `collapse.rs` via the weathering-front band — and as of
+**journal/0094 (Movement 3) that weathering is a LIVE per-epoch process**
+(`dc:deep/weather_inventory` runner pass, in-loop, accumulating; stub #17
+discharged, corrections #46/#47 resolved), no longer the one-shot plumbing stub.
+§ 3: occupancy row narrowed — the dev
 inspector now consumes `free_eighths`/`open_pores`; `fits_in_pores`, drainage
 `recv/area/lake`, `exhum/t_crust` exported planes, `Agent::Dissolution`, the S11
 water module, and `column_summary` all re-confirmed uncalled in production.)
@@ -300,14 +302,16 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     tier) 2026-07-24, journal/0088:** the deep-cell fact-ledger — `commit_chapter`
     diff-and-append (apply-time edge logging is the ratified fact source; each fact
     carries its `cause`), byte-identical under the identity default over 25,600 real
-    cells, provenance read = `base + facts`. **CONSUMED 2026-07-24 (S18):**
-    `collapse.rs:1487` reads `FactLedger::weathering_product_m` (via
-    `field.rs::build_ledgers` → `weather_inventory::weather_column`) into a basal
-    weathering-front band — so the keystone is no longer tested-only; it has a
-    production consumer. But that consumer is **gated behind `--weather-inventory`
-    (default off, S-5 identity default → byte-identical)** and is a *one-shot
-    plumbing stub, not a live weathering behavior* (corrections #46/#47, stubs.md
-    #17) — the shape is proven end-to-end, the behavior is not yet real. The
+    cells, provenance read = `base + facts`. **CONSUMED as a LIVE PROCESS 2026-07-24
+    (S18 → Movement 3, journal/0094):** `collapse.rs:1487` reads
+    `FactLedger::weathering_product_m` into a basal weathering-front band, and the
+    facts are now grown by the **`dc:deep/weather_inventory` runner pass running
+    inside the deep-time loop, every epoch, accumulating** on each epoch's live
+    terrain (`weather_inventory::weather_epoch` → `finalize_ledgers`) — replacing
+    S18's post-hoc one-shot (`field.rs::build_ledgers`, deleted). The band is now
+    ≥1 voxel; **stub #17 discharged** (the plumbing stub is a real behavior). Still
+    **gated behind `--weather-inventory` (default off, S-5 identity default →
+    byte-identical)** — a walk-gated appearance change, not a stub. The
     **runtime tier** (edits as facts over
     the gen-derivable base; a break = a move-fact) is the same shape one tier down —
     designed (commit-as-facts), unbuilt; the inspector proved the runtime stores only

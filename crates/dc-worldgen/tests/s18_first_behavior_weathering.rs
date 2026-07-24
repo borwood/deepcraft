@@ -1,20 +1,26 @@
-//! **S18 — the first real cellular behavior: sum-agent subaerial weathering on the
-//! working inventory, consuming the S17 keystone end-to-end.**
+//! **S18 → Movement 3 — subaerial weathering as an in-loop, per-epoch,
+//! ACCUMULATING process on the working inventory (journal/0094), consuming the S17
+//! keystone end-to-end.**
 //!
 //! The load-bearing proofs, over a *real* production `DeepField`:
 //!
 //! 1. **Identity floor.** With `weather_inventory` off (the default) the field
 //!    carries **no ledgers** and the record/surface are untouched — byte-identical.
-//! 2. **Purely additive.** Turning the flag on does **not** perturb the erosion
-//!    sim: the `strata` record and `surf` are identical; only the `ledgers` sidecar
-//!    appears (the material-transformation layer runs *after* the height sim).
-//! 3. **One fact per agent, cause-carrying.** A weathered cell's bedrock seam holds
-//!    exactly the three summed agents (chemical/biotic/frost), each its own fact.
-//! 4. **The fold has a product.** `base + facts` composes to a positive loose
-//!    weathering product — the quantity the collapse expresses as a basal band.
+//! 2. **Purely additive (the two-authorities split).** Turning the flag on does
+//!    **not** perturb the erosion sim: the `strata` record and `surf` are identical;
+//!    only the `ledgers` sidecar appears. The `dc:deep/weather_inventory` pass reads
+//!    the terrain but writes only the ledger — it never touches `R`/`H`.
+//! 3. **One fact per agent per chapter, cause-carrying, ACCUMULATED.** The in-loop
+//!    pass fires every epoch; same-chapter firings coalesce to one fact per summed
+//!    agent (chemical/biotic/frost) while the band keeps growing, so a cell weathered
+//!    across several tectonic chapters carries several agent-facts.
+//! 4. **The fold has a REAL product.** `base + facts` composes to a loose weathering
+//!    product that — accumulated over the run — is a multi-decimetre-to-metre band,
+//!    not S18's sub-voxel one-shot. The ≥1-voxel proof is at production scale below.
 
 use dc_worldgen::deeptime::{
-    Cause, DeepConfig, DepEnv, WEATHERING_AGENTS, build_field, build_field_cfg, production_config,
+    BEDROCK_SEAM_MATERIAL, Cause, DeepConfig, InvForm, WEATHERING_AGENTS, build_field,
+    build_field_cfg, production_config,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -76,7 +82,7 @@ fn on_flag_is_purely_additive_record_and_surface_untouched() {
 }
 
 #[test]
-fn a_weathered_cell_carries_one_fact_per_agent_with_the_summed_causes() {
+fn a_weathered_cell_carries_one_fact_per_agent_per_chapter_and_accumulates() {
     let pregen = small_pregen();
     let cfg_on = DeepConfig {
         weather_inventory: true,
@@ -84,18 +90,11 @@ fn a_weathered_cell_carries_one_fact_per_agent_with_the_summed_causes() {
     };
     let field = build_field_cfg(&pregen.grid, &cfg_on);
 
-    // The distillation gates weathering on the RECORD (a cell that deposited any
-    // subaerial unit saw land) — not the final surface, which after isostasy sits
-    // far below the datum on a real world. Count the same way to bound `weathered`.
-    let saw_subaerial = |s: &dc_worldgen::deeptime::DeepStrata| {
-        s.units.iter().any(|u| u.tag.env == DepEnv::Subaerial)
-    };
-    let subaerial = field.strata.iter().filter(|s| saw_subaerial(s)).count();
-
-    // Find a subaerial cell whose bedrock seam actually weathered (a positive
-    // product). Its bedrock ledger slot is the LAST slot (index == units.len()).
+    // Find subaerial cells whose bedrock seam weathered (positive product). Its
+    // bedrock ledger slot is the LAST slot (index == units.len()).
     let mut weathered = 0usize;
-    let mut checked_causes = false;
+    let mut max_band = 0.0f64;
+    let mut checked = false;
     for (i, ledger) in field.ledgers.iter().enumerate() {
         let unit_count = field.strata[i].units.len();
         let product = ledger.weathering_product_m(unit_count);
@@ -103,30 +102,75 @@ fn a_weathered_cell_carries_one_fact_per_agent_with_the_summed_causes() {
             continue;
         }
         weathered += 1;
+        max_band = max_band.max(product);
         let bedrock = ledger.facts_for(unit_count);
+        // Every fact is the same Structure→Loose edge on the basement seam.
+        for f in bedrock {
+            assert_eq!(f.from(), (BEDROCK_SEAM_MATERIAL, InvForm::Structure));
+            assert_eq!(f.to(), (BEDROCK_SEAM_MATERIAL, InvForm::Loose));
+            assert!(WEATHERING_AGENTS.contains(&f.cause()));
+        }
+        // **One fact per (chapter, cause)** — the in-loop commit coalesces
+        // same-chapter firings, so "one fact per agent per firing" becomes one fact
+        // per agent per chapter after coalescing. No duplicate (chapter, cause).
+        let mut keys: Vec<(u8, Cause)> = bedrock.iter().map(|f| (f.chapter(), f.cause())).collect();
+        let n = keys.len();
+        keys.sort_by(|a, b| (a.0, a.1.name()).cmp(&(b.0, b.1.name())));
+        keys.dedup();
         assert_eq!(
-            bedrock.len(),
-            WEATHERING_AGENTS.len(),
-            "cell {i}: one fact per summed weathering agent"
+            keys.len(),
+            n,
+            "cell {i}: no duplicate (chapter, cause) fact"
         );
-        let mut causes: Vec<Cause> = bedrock.iter().map(|f| f.cause()).collect();
-        causes.sort_by_key(|c| c.name());
-        assert_eq!(causes, vec![Cause::Biotic, Cause::Chemical, Cause::Frost]);
         // Σ agent shares == the composed loose product (the fold read-back).
         let sum_shares: f64 = bedrock.iter().map(|f| f.fraction_m()).sum();
         assert!((sum_shares - product).abs() < 1e-9);
-        checked_causes = true;
+        checked = true;
     }
-    assert!(
-        subaerial > 0,
-        "the test seed must record subaerial deposition somewhere"
-    );
-    // Weathering fires on real subaerial history, and ONLY there (a subset — cells
-    // under very thick regolith have sub-EPS shares and commit none).
     assert!(weathered > 0, "some subaerial cell must weather (got 0)");
+    assert!(checked);
+    // The ACCUMULATED process makes a real band — orders above S18's sub-voxel 0.04 m
+    // one-shot. (The ≥1-voxel proof is the production-scale test below.)
     assert!(
-        weathered <= subaerial,
-        "weathering is subaerial-only ({weathered} > {subaerial})"
+        max_band > 0.1,
+        "accumulation over the loop yields a real (multi-decimetre) band: {max_band:.3} m"
     );
-    assert!(checked_causes);
+}
+
+#[test]
+fn production_scale_saprolite_band_reaches_at_least_one_voxel() {
+    // **A-3 GUARD (the S18 lesson made structural).** Prove the ≥1-voxel band on a
+    // PRODUCTION-SCALE world — the tour's seed/extent — not a hand-fed magnitude.
+    // This is the load-bearing acceptance of Movement 3: the in-loop accumulated
+    // process, at production scale, probed in-slice.
+    const TOUR_SEED: u64 = 1337;
+    const VOXEL_M: f64 = 0.9;
+    let pregen = Pregen::run(WorldParams {
+        seed: TOUR_SEED,
+        extent: Extent::Medium,
+    });
+    let cfg = DeepConfig {
+        weather_inventory: true,
+        ..production_config(&pregen.grid, TOUR_SEED)
+    };
+    let field = build_field_cfg(&pregen.grid, &cfg);
+
+    let (mut max_band, mut argmax) = (0.0f64, 0usize);
+    for (i, ledger) in field.ledgers.iter().enumerate() {
+        let b = ledger.weathering_product_m(field.strata[i].units.len());
+        if b > max_band {
+            max_band = b;
+            argmax = i;
+        }
+    }
+    let voxels = max_band / VOXEL_M;
+    let eighths = (voxels * 8.0).round() as i64;
+    println!(
+        "production-scale saprolite band: max {max_band:.3} m = {voxels:.2} voxels \
+         ({eighths} eighths) @ {VOXEL_M} m/voxel, deep cell {argmax}"
+    );
+    assert!(
+        max_band >= VOXEL_M,
+        "band must be >= 1 voxel ({VOXEL_M} m); got {max_band:.3} m ({voxels:.2} vox)"
+    );
 }

@@ -110,6 +110,12 @@ pub struct DeepRun {
     /// Empty when tectonic history is off. ~5 KB — the entire tectonic history of
     /// a world, from which per-chapter deformation is re-derivable analytically.
     pub chapters: Vec<Vec<Plate>>,
+    /// **Per-cell inventory-weathering ledgers** (journal/0094) — the accumulating
+    /// saprolite band the `dc:deep/weather_inventory` pass grew across the loop,
+    /// re-keyed onto the final record (bedrock facts at `strata.units.len()`).
+    /// **Empty** when `weather_inventory` is off (byte-identical). Index-parallel to
+    /// `grid.strata`; the `DeepField` carries them as its `ledgers` sidecar.
+    pub weather_ledgers: Vec<FactLedger>,
 }
 
 /// Sum of bedrock + alluvium over the whole grid (the conserved quantity, up
@@ -178,6 +184,16 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // passes; the runner topo-sorts them and fires each at its cadence. The
     // biology↔erosion one-epoch lag is a declared loop-carried edge; climate's
     // `remarch_interval` is its cadence.
+    // Per-cell inventory-weathering accumulators (journal/0094) — bedrock-only
+    // ledgers keyed at the stable sentinel slot 0, accumulated by the in-loop
+    // `dc:deep/weather_inventory` pass. Empty (and the pass absent) when the flag is
+    // off ⇒ byte-identical.
+    let weather_ledgers = if cfg.weather_inventory {
+        vec![weather_inventory::empty_accumulator(); grid.w * grid.w]
+    } else {
+        Vec::new()
+    };
+
     let schedule = runner::DeepSchedule::new(runner::deep_passes(cfg))
         .expect("the deep-time pass graph is valid");
     let mut ctx = runner::DeepStepCtx {
@@ -193,6 +209,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         uplift_total: 0.0,
         biotic_total: 0.0,
         thickening_total: 0.0,
+        weather_ledgers,
     };
     schedule.run(&mut ctx);
     let runner::DeepStepCtx {
@@ -203,6 +220,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         uplift_total,
         biotic_total,
         thickening_total,
+        weather_ledgers,
         ..
     } = ctx;
 
@@ -210,6 +228,16 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     if let Some(b) = biota.as_ref() {
         b.finalize(&mut grid);
     }
+    // Re-key the accumulated saprolite ledgers onto the final record (bedrock facts
+    // → `strata.units.len()`), so the collapse consumer reads them at the same slot
+    // it always has. Off ⇒ empty ⇒ byte-identical. Done after `b.finalize` so the
+    // record is final (coal promotion does not change the unit count, but keying is
+    // taken against the record the field ships).
+    let weather_ledgers = if cfg.weather_inventory {
+        weather_inventory::finalize_ledgers(weather_ledgers, &grid.strata)
+    } else {
+        Vec::new()
+    };
     let exhum_total = grid.exhum.iter().sum::<f64>();
     DeepRun {
         grid,
@@ -222,6 +250,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         thickening_total,
         exhum_total,
         chapters: tec.table,
+        weather_ledgers,
     }
 }
 

@@ -237,18 +237,21 @@ pub struct DeepConfig {
     pub providers: super::providers::Providers,
 
     /// **The inventory-weathering flag** (the first-real-behavior slice,
-    /// material-behavior.md §4/§11). Off by default — with it off, no per-cell
-    /// [`FactLedger`](super::inventory::FactLedger) is built and the collapsed world
-    /// is **byte-identical** (the S-5 identity default). On: after the erosion run,
-    /// each subaerial deep cell's working inventory is weathered by the **sum-agent**
-    /// pass ([`super::weather_inventory`]) for one chapter and the resulting
-    /// cause-carrying facts are stored as a ledger sidecar on the `DeepField`, which
-    /// the collapse folds into a basal weathering-front band.
+    /// material-behavior.md §4/§11; **journal/0094 made it a per-epoch process**). Off
+    /// by default — with it off, the `dc:deep/weather_inventory` pass is **absent**, no
+    /// per-cell [`FactLedger`](super::inventory::FactLedger) is built, and the collapsed
+    /// world is **byte-identical** (the S-5 identity default). On: the pass runs
+    /// **inside the deep-time loop, every epoch**, weathering each subaerial cell's
+    /// bedrock `Structure` seam into `Loose` saprolite on that epoch's live terrain and
+    /// **accumulating** the cause-carrying facts across the whole run; the resulting
+    /// ledger sidecar on the `DeepField` is folded by the collapse into a basal
+    /// weathering-front band (now ≥1 voxel).
     ///
-    /// This is a **material-transformation** layer that runs *alongside* the existing
-    /// `erosion.rs` `R`/`H` height weathering, which is left in place (they compute
-    /// different things — height budget vs material composition; material-behavior.md
-    /// §11 continuation slot). Turning it on is a **walk-gated appearance** change for
+    /// This is a **material-transformation** authority that runs *alongside* the
+    /// existing `erosion.rs` `R`/`H` height weathering, which is left in place: the
+    /// pass READS the contemporaneous regolith cover but WRITES ONLY the ledger — it
+    /// never touches `R`/`H` (the two-authorities split, material-behavior.md §11
+    /// continuation slot). Turning it on is a **walk-gated appearance** change for
     /// every world made afterwards — the production flip is the user's, like the
     /// erodibility/biotic/tectonic-history flips. Appended last (wire discipline).
     pub weather_inventory: bool,
