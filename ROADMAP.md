@@ -1993,6 +1993,16 @@ see the question you are asking.
   decided save/persistence layer: spill an edited chunk and let the slot go
   back to being evictable. Sequenced behind persistence itself.
 
+- **Distance-evict re-derivable resident data — a knob for later** (user, 2026-07-24).
+  The world is massive; a player 100 km away is holding resident chunk + warm-LOD data
+  that is **re-derivable** (no edits) and just taking space (S-2: store only what the
+  derivation can't predict). *Untouched* `HostWorld.chunks` already evict (journal/0051)
+  and the far pyramid has a budget (`FAR_PYRAMID_L0_BUDGET`); the ask is a **distance
+  knob** letting unedited resident data (near chunks AND the warm-reduced LOD nodes) be
+  reclaimed as the player recedes, while edited chunks stay pinned (→ the save-layer
+  above). Not now — a knob to add later; couples to the LOD warm-cache lifetime the
+  haunted-LOD diagnosis flagged as a needs-live-probe.
+
 - **Collapse-cache `evict()` is unreachable from far-field-only sampling**
   (diagnosed 2026-07-21, journal/0050; `evict()` fires only from
   `generate_chunk`, so a `coarse_surface`/`column_record` sweep can grow
@@ -2585,8 +2595,12 @@ before any code.
   albedo, one blended colour per coarsened voxel (mid) → flat winning material (far),
   pure mixed albedo becoming *necessary* the further out the band. This **converges
   the distance-pyramid Sequenced item + the palette-quant station (T1) + the contents
-  inspector** into one mixture-representation arc — plan them together. Implementation
-  held pending that plan.
+  inspector** into one mixture-representation arc — plan them together. **The hard part
+  is representation, not data** (user, 2026-07-24): a blended mixture still comes out as
+  **quantized colour patches unless dithered**, and the current dither technique looks
+  bad on its own — so "draw the blended mixture" is genuinely hard to make look good,
+  and the arc's real difficulty is the dither/blend method, not the plumbing.
+  Implementation held pending that plan.
 
 - **Perf: throughput ceiling at terminal velocity** (user field report,
   2026-07-23, on the 0083/0084 offload). Noticeably improved — the drop reaches
