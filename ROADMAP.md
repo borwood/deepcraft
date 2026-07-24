@@ -2036,9 +2036,12 @@ see the question you are asking.
   veneer. It needs no user decision and rides the landed contents-authority
   machinery — the best next forms-adjacent slice;
   (d) **per-voxel provenance query** — read a voxel's ledger: started as X,
-  heat/pressure did Y, moved because of Z. **(d) needs a design pass first**
-  (integrator's framing — that it constrains every stage to carry reasoning
-  forward instead of collapsing to a final value — is PROPOSED, not ratified).
+  heat/pressure did Y, moved because of Z. **RESOLVED 2026-07-24 by the
+  commit-as-facts semantics** (material-behavior.md § Commit semantics DECIDED):
+  provenance = `base + facts`, addressed to the material portion's lineage (a move
+  is itself a fact that travels with it) — it falls out of the deep-cell inventory
+  keystone and needs no separate design pass. The earlier "needs a design pass,
+  PROPOSED not ratified" framing is retired.
 - **Roughness recalibration — three costed candidates, USER PICKS FROM PICTURES**
   (S13 § 6, 2026-07-21; nothing flipped on). Binding constraint measured: the
   `s7_walk` seam test prints max interior step **2 of 6 voxels**, so there is
@@ -2077,14 +2080,21 @@ see the question you are asking.
   fetch model (wave energy from S11 body size/shape/depth × the 0037 wind
   field) replaces the constant outright — wave expression is a consumer of
   the water design pass now, not a tuning slice.
-- **The forms/partials design pass** (user directive, journal/0049 station
-  2; materials.md DECIDED 2026-07-21): partials-first world-gen emission —
-  sand as the first spawned loose material — generalizing to forms across
-  all systems (partials in structures, loose volumes, bedforms). Design
-  pass first (it touches gen emission, meshing, and materials at once);
-  the 0010 dormant loose renderer and S8 mechanics are the substrate.
+- **The forms/partials EMISSION slice** (user directive, journal/0049 station
+  2; materials.md DECIDED 2026-07-21). **The forms DESIGN is now done —
+  `material-behavior.md` §§ 2–3 IS that pass** (the closed form set structure/loose/
+  pore-fill/fluid/void, the machine-complete transition graph, agents as folded
+  rate-terms). What remains is the **emission slice**: world-gen emitting partials —
+  sand as the first spawned loose material — which is a **rider on the deep-cell
+  inventory keystone** (Crux 1), NOT a standalone design pass. The 0010 dormant loose
+  renderer and S8 mechanics are the substrate.
 - **Tectonics SPIKE** (per tectonics.md § SPIKE, architecture ratified
-  2026-07-20): implement `DeepConfig::tectonic_history` behind the flag and
+  2026-07-20). **[VALIDATED as a FIELD pass, 2026-07-24 (north-star/material-
+  behavior): tectonics, erosion, drainage, climate, thermal are FIELD passes —
+  they compute+plant a field (native-core), and are explicitly NOT candidates for
+  the cellular/declarative agent treatment. Do NOT recast them as edges/agents; the
+  same stamp covers the erosion-supply calibration, 3e-2 C-refinement, and drainage
+  items below.]** implement `DeepConfig::tectonic_history` behind the flag and
   produce the eight measurement groups (clamp stability under ramped
   repaints, recorder growth vs K, ritual wall/memory at 200/300/400 iters
   reporting tradeoffs not optimizing to a cap per amended U3, landform
@@ -2456,9 +2466,11 @@ before any code.
    seam + interim world-anchored dither materialization (registry albedos,
    eighths-weighted), partial-height loose-material rendering with binary
    threshold collider; subtle ore. Runs after body steps 1–2. Watch the
-   order-dependent MixtureTable ids at the seam (journal/0008). Data-driven
-   block registry (API.md `define block_type`) supersedes the appended enum
-   here or soon after.
+   order-dependent MixtureTable ids at the seam (journal/0008).
+   **(SUPERSEDED 2026-07-22 by block-is-material):** there is no separate block
+   registry — block IS material (one namespace), so the atlas/enum is fed by
+   **material definitions**, never a `define block_type`. A1 (journal/0087) already
+   routes the render through material identity and deleted the block twin.
 3d. Geology post-v1 slice (geology.md §§ formation-context +
    roster/inclusions/slots, DECIDED 2026-07-19): strip climate windows from
    igneous class sheets (formation-context shim correction — fitness goes
