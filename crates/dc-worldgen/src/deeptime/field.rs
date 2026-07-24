@@ -33,7 +33,7 @@
 //! approached Large regions comes back. FLAGGED for the integrating session.
 
 use super::grid::DeepConfig;
-use super::inventory::FactLedger;
+use super::inventory::{FactLedger, FracM, build_working};
 use super::recorder::{DeepStrata, DepEnv};
 use super::tectonics::Plate;
 use super::weather_inventory::{self, WeatherInputs};
@@ -552,6 +552,49 @@ impl DeepField {
         let ix = (gx.round() as i64).clamp(0, self.w as i64 - 1) as usize;
         let iy = (gy.round() as i64).clamp(0, self.w as i64 - 1) as usize;
         self.ledgers.get(iy * self.w + ix)
+    }
+
+    // ---- R/H unification: the derived views (Movement 2a) -----------------
+    //
+    // material-behavior.md §13.6, ratified. The per-cell **working inventory is
+    // the authority** for surface material; the scalar `R`/`H` planes are its
+    // **materialized views**. The persistent, reconciled per-cell surface-`Loose`
+    // inventory IS the strata record (ungated, `record:true`): the deposition
+    // pass reconciled each epoch's net ΔH into it as deposit (`void→Loose`) /
+    // erode (`Loose→void`) facts — the inventory's own edge primitives, keyed by
+    // `DepTag` → material through the *current* `deep_class`/`litho_of_tag` rule —
+    // at the epoch (pass/chapter) boundary. journal/0053's finalize invariant
+    // (`Σ unit.thickness == H`) makes the record the authority `H` derives from.
+    //
+    // These methods MATERIALIZE `H`/`R` from that inventory (scratch-first
+    // reconcile: hot loop on planes, inventory rebuilt at the boundary). The
+    // stored `surf`/`regolith` planes remain the exact byte-identical cache the
+    // collapse reads; the byte-identity agreement tests assert these derived
+    // views reproduce them, proving the inventory is the authority structurally.
+
+    /// **Derive the surface regolith `H` (metres) at cell `i` from the working
+    /// inventory** — the positional §13.6 rule: build the cell's inventory from
+    /// its record (`Loose` cover) + the bedrock `Structure` seam, then take the
+    /// `Loose` **above the topmost `Structure`** (cave fill excluded). Over the
+    /// production record this equals the [`Self::regolith`] plane within the
+    /// recorder residual (the agreement test). `0.0` where there is no record.
+    pub fn derive_regolith_at(&self, i: usize) -> FracM {
+        let Some(strata) = self.strata.get(i) else {
+            return 0.0;
+        };
+        let ledger = FactLedger::empty_with_bedrock(strata);
+        build_working(strata, &ledger).derived_regolith_m()
+    }
+
+    /// **Derive the bedrock-top elevation `R` (metres) at cell `i`.** In the
+    /// two-plane engine `R` is a signed elevation **datum**, not a structural
+    /// stock (Movement 2a finding), so it derives as `surf − H` — the elevation of
+    /// the topmost `Structure` contact — which recovers the scalar `R` plane
+    /// (`surf − regolith`) within the recorder residual. `Σ Structure`
+    /// ([`super::WorkingInventory::derived_structure_stock_m`]) is the *stock*
+    /// beneath that datum, a distinct quantity.
+    pub fn derive_bedrock_at(&self, i: usize) -> f64 {
+        self.surf.get(i).copied().unwrap_or(0.0) - self.derive_regolith_at(i)
     }
 
     /// Rough resident footprint (bytes) — the honest "what the ritual keeps in
