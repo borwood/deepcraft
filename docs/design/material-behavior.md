@@ -654,6 +654,9 @@ transport makes the *deposited* material honest.
   direction (`recv`) + local topography to bias grain placement (coarse near the paleochannel,
   fines in distal lows, cross-beds downflow) instead of unbiased addressed stochastic
   rounding (journal/0055). Transport already produces the inputs (composition + flow vector).
+  **Tracked: ROADMAP Sequenced "STRUCTURE-AWARE FINE EXPRESSION"**, which unifies this
+  (within-*cell* flow bias) with the journal/0010 within-*voxel* order residual (stubs.md §12)
+  — one S-4 gap at two scales, one forms-presentation home.
 - **Lineage history** (the `Move`-fact chain of custody): identity *travels* now; the *full
   history* ("deposited, exhumed, re-transported…") rides the `Move` variant when we need to
   *read* it (the `inventory.rs` forward-note).

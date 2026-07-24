@@ -2000,6 +2000,33 @@ slot each, per the user's "slice-of" principle: never lose what a completed slic
 was a slice OF. Each names WHAT, WHY, how it UNIFIES with the larger threads, its
 FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
 
+- **STRUCTURE-AWARE FINE EXPRESSION — the sub-resolution the collapse randomizes but
+  physics structures** (filed 2026-07-24 at the user's direction; unifies the flow-biased-fill
+  deferral of material-behavior.md §13.8 with the journal/0055 + journal/0010 within-voxel
+  order residual and stubs.md § 12's residual).
+  - **WHAT.** The collapse expresses a coarse record at fine resolution by **addressed
+    stochastic rounding** (journal/0055) — mass-honest but **spatially unbiased**. Two scales
+    of one gap:
+    - **Within-VOXEL order (sub-0.9 m):** a mixed voxel loses the vertical ORDER of what it
+      mixes, so a sharp contact renders as **journal/0010 speckle, not a band** (stubs.md § 12
+      residual; ratified non-blocking, "belongs to the forms presentation work").
+    - **Within-CELL distribution (0.9 m–460 m):** a deep cell's deposited material is spread
+      ~uniformly across its column, **not biased** to where it physically settled — coarse near
+      the paleochannel, fines in the distal lows, cross-beds dipping downflow
+      (material-behavior.md §13.8).
+  - **WHY THEY ARE ONE ITEM.** Both are **S-4 "coarse cause → fine expression"** where the fine
+    expression **randomizes where the physics would structure**. Same class, two axes (vertical
+    bed order vs horizontal flow bias), same eventual home — the **forms / presentation pass**.
+    The fix reads a **structuring signal** (contact orientation for order; the flow field `recv`
+    + local topography for placement) instead of the current unbiased sieve.
+  - **INPUTS ALREADY EXIST.** Material-aware transport (§13) produces exactly what biased fill
+    needs — the cell's composition **and** its flow vector (`recv`) — so deferring the biased
+    expression loses nothing; the record just needs to also carry the within-voxel order the
+    sieve currently drops.
+  - **STATUS: non-blocking, deferred** (ratified non-blocking since journal/0055, user). This
+    entry gives the two scales one discoverable home; lands with / after the forms-presentation
+    pass and the material-aware-transport build (§13).
+
 - **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
   `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md
   block-is-material DECIDED, the block-consumer recon, ARCHITECTURE § "a summary is
