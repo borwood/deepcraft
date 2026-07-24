@@ -2023,9 +2023,13 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     needs — the cell's composition **and** its flow vector (`recv`) — so deferring the biased
     expression loses nothing; the record just needs to also carry the within-voxel order the
     sieve currently drops.
-  - **STATUS: non-blocking, deferred** (ratified non-blocking since journal/0055, user). This
-    entry gives the two scales one discoverable home; lands with / after the forms-presentation
-    pass and the material-aware-transport build (§13).
+  - **STATUS: non-blocking, and the two scales differ in value** (user, 2026-07-24). The
+    within-VOXEL order loss is **ratified-acceptable** — "granted micro-scale lossiness, still
+    reads realistic for most purposes"; **not a defect to fix.** The within-CELL flow-biased
+    placement is an **interesting-but-unsettled enhancement** — "super interesting… not sure
+    about that one, food for thought"; NOT a committed direction. This entry keeps both
+    discoverable and honestly-statused; the biased-fill inputs already exist (§13) so nothing is
+    lost by leaving it open.
 
 - **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
   `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md
