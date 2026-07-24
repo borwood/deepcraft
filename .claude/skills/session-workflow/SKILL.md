@@ -543,3 +543,45 @@ a proxy** for the real system.
   knowingly plumbing-not-behavior, say so in its own label, and file the **stub with its heir
   at the site the full thing will occupy** (stubs.md #17). The inventory that would have
   caught it is only as good as the honesty of the slice's self-description.
+
+## Dispatch discipline — the brief template, journal numbers, the gate protocol (2026-07-24 fingerprints)
+
+Distilled from the densest build day (pass-runner, R/H unification, LOD, geotherm — many
+parallel agents). Three recurring costs, codified so they stop recurring.
+
+**The dispatch-brief template.** Every implementation brief carries these sections — a
+*missing* one is how S18 shipped a mislabeled stub:
+- **Read-first** (docs, in order) · **Scope** (tight) + **do-NOT-touch** (explicit files /
+  deferred movements) · the **north-star shape** the work rides + the **crossing constraint**
+  (declarations = plain data + opaque ids) · **resource/lock rules** (one cargo, the mutex,
+  *yield to a live `dc-client`*) · **gates** (crate-clean the crates you AND siblings changed;
+  verify by test **name**) · **RETURN spec** (exactly what the report must contain) · **shape
+  compliance** (spines ridden, anti-shapes guarded).
+- **Two hard checks that MUST be in the RETURN spec** — the S18 lessons made structural:
+  1. **Accept by OUTCOME:** *"what production-scale number proves the claim?"* A slice claiming
+     a world-visible / magnitude effect ships the headless probe **inside the slice**, and the
+     report quotes the number. (S18 was green on a hand-fed magnitude that never occurs.)
+  2. **Process-not-snapshot:** for a slice modelling a natural **process**, *"does it run where
+     and when the process runs (in the loop, over the span), or as a decoupled one-shot?"* A
+     snapshot of a continuous process is a category error, not a simplification.
+
+**Journal numbers for parallel dispatch.** Two concurrent agents pick the same next-free
+number blind (the 2026-07-24 `0091` collision). **The integrator assigns the journal number in
+the brief at dispatch** (hold the next-free, hand one to each agent), or briefs slug-only
+filenames and numbers them at merge. Never let two live agents both "check `journal/` for the
+next number." (Wrap § 6 still resolves any that slip through.)
+
+**The integrator gate protocol** (the day's dominant *friction*). Before any merge-gate:
+(1) `Get-Process cargo,rustc,dc-client` — no live build, and prefer to gate when no sibling
+with an overlapping crate set is live; (2) `cargo clean -p` **the crates you changed AND any a
+live sibling changed** (a sibling's stale artifact poisons yours — even a crate you didn't
+touch); (3) run `--workspace` fmt/clippy/test; (4) verify by test **name/count**, never
+`test result: ok` alone (a false green flatters); (5) confirm `Compiling <crate>` from
+**main's** path. **Defer overlapping gates** while a concurrent track shares the target dir —
+merge (git-only), run one clean combined gate when the slot frees.
+
+**Don't over-calibrate a placeholder.** A stub's number that will be **recalibrated the moment
+its real driver lands** (coal onset with no biology; a rate with no agent) needs only
+**plausible-not-degenerate**, not a tuned seat. Seating a two-world calibration for a system
+with no real inputs yet is wasted effort (user, 2026-07-24: the geotherm's coal seat "will just
+be calibrated again"). Get it non-degenerate, flag it for the walk, move on.

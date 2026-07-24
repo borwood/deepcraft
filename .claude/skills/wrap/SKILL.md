@@ -100,6 +100,23 @@ ideally with no sibling building during the run.
 Update auto-memory only if project state shifted **materially** — a new
 read-first doc, a changed protocol, a reversed decision. Not a session diary.
 
+## 13. Fingerprints — offer, and fold in what's greenlit
+
+Before the close report, **offer fingerprints** (user-instituted 2026-07-24): a brief,
+honest reflection on the session — the agent experience running main + orchestrating,
+how the process and codebase served (or fought) the work — and **concrete proposed
+improvements at any level** (a brief template, a process rule, a doc-status pass, a
+skill/doc fix). Present them as **proposals the user may greenlight**, often as the
+**last message of the session**. **Fold in the greenlit ones** this same session, into
+the owning skill/doc; leave the rest as recorded proposals. The point is the corpus
+improving itself — each session's friction becomes next session's guardrail. Do not skip
+this when the session was substantive: a session that taught something and left no
+fingerprint wasted the lesson.
+
+*Instituted 2026-07-24, the densest build day — when the dispatch-brief template, the
+journal-number-at-dispatch rule, and the integrator gate protocol were folded into
+`session-workflow` from the day's frictions, and this step added so it recurs.*
+
 ---
 
 ## The close report
