@@ -259,7 +259,8 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     // 17.04 m; the zonal-circulation climate change (journal/0037) shifted precip
     // for every new world and moved the thickest seam to a *different* cell. What
     // this test is *about* is that a coal seam is biofacies-tagged, survives
-    // collapse as the COAL class, and ends up as diggable `Block::Coal` — a claim
+    // collapse as the COAL class, and ends up as diggable `Block::Material(COAL)`
+    // — a claim
     // about the pipeline, not a fixed location. So we take the thickest coal seam
     // that also collapses to diggable coal (some thick record seams are buried
     // below the collapse column; the S10 seam was near-surface).
@@ -392,7 +393,7 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     for cy in (top - 6)..=top {
         let pos = ChunkPos::new(cx as i32, cy, cz as i32);
         let (chunk, _) = g.generate_chunk_with_materials(pos);
-        if chunk.blocks().contains(&Block::Coal) {
+        if chunk.blocks().contains(&Block::Material(MaterialId::COAL)) {
             saw_coal_block = true;
         }
         if let Some(grid) = g.chunk_contents(pos) {
@@ -409,7 +410,7 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     }
     assert!(
         saw_coal_block,
-        "no Block::Coal in the six chunks below the surface at the measured seam"
+        "no Block::Material(COAL) in the six chunks below the surface at the measured seam"
     );
     assert!(
         saw_coal_material,

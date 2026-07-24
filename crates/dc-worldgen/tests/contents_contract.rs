@@ -76,7 +76,7 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
     for pos in positions {
         let (chunk, mat) = g.generate_chunk_with_materials(pos);
         for b in chunk.blocks() {
-            blocks.u16(*b as u16);
+            blocks.u16(b.ordinal());
         }
         materials.bytes(&mat.encode());
     }
@@ -298,23 +298,35 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 /// Note the *mixture table* hashes did not move at all, and the small world's
 /// material hash did not either: the change is one of thickness and extent, not
 /// of which materials exist or how they are interned.
-// Current values: re-captured 2026-07-22 on the surface-branch-removal tree
-// (journal/0074). Small carried over unchanged from the composed A1+B1 tree —
-// see the top authorization block for why a record-less world is byte-identical
-// under this slice. Both invariant tests (`block_equals_classify_of_contents`,
-// the mixture-table round trip) green.
+// **Moved 2026-07-23 by the block↔material collapse (journal/0087) —
+// authorized.** Only the **block** hashes moved, and only for the two medium
+// worlds; the **material and table hashes are byte-identical** to the previous
+// capture, and the record-less **small world did not move at all**. That is the
+// exact signature the collapse predicts: `Block` is now `{ Air, Material(id),
+// legacy }` and a buried voxel's block is the dithered member's own material
+// (`classify` of the very contents interned) rather than the class's block twin
+// — so the block-tier bytes change while the material sidecar the blocks
+// summarize is untouched. The `block == classify(contents)` invariant now holds
+// at the MEMBER level (it held only at the class level before, masked by
+// `block_twin`), which is what surfaced and fixed the buried-voxel member
+// divergence in `collapse::generate_chunk`. Both invariant tests
+// (`block_equals_classify_of_contents`, the mixture-table round trip) green.
+//
+// Previous values (surface-branch-removal tree, journal/0074), kept auditable:
+//   medium 0x0D5EED572026 blocks 0x4A36838BA76E3999
+//   medium 0x539          blocks 0x421C2B6824DCE4F7
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x4A36_838B_A76E_3999,
+        0x4625_0D80_CAB2_50CA,
         0xECBD_087F_1C41_B0F3,
         0xE025_5C0E_5E6B_BBBC,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x421C_2B68_24DC_E4F7,
+        0x11C2_6F4F_7FDC_8E14,
         0x7A26_9D59_2F98_C6C4,
         0xC3B9_2A0B_BCC3_7030,
     ),
@@ -395,7 +407,7 @@ fn block_equals_classify_of_contents() {
                             .map_or(VoxelContents::EMPTY, |gr| gr.get(x, y, z));
                         checked += 1;
                         if contents.is_empty() {
-                            *absent.entry(block as u16).or_default() += 1;
+                            *absent.entry(block.ordinal()).or_default() += 1;
                             continue;
                         }
                         with_contents += 1;
@@ -425,11 +437,11 @@ fn block_equals_classify_of_contents() {
     // without contents would mean the two paths disagree about WHERE the record
     // is, which is the exact failure the contract exists to prevent.
     let legacy: [u16; 5] = [
-        Block::Air as u16,
-        Block::Stone as u16,
-        Block::Dirt as u16,
-        Block::Grass as u16,
-        Block::Wood as u16,
+        Block::Air.ordinal(),
+        Block::Stone.ordinal(),
+        Block::Dirt.ordinal(),
+        Block::Grass.ordinal(),
+        Block::Wood.ordinal(),
     ];
     for (&b, &n) in &absent {
         let allowed = legacy.contains(&b);

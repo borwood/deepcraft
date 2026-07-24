@@ -54,7 +54,13 @@ fn main() {
                 // Fold a cheap invariant of the output into the checksum so the
                 // optimizer cannot elide the work and a divergent build shows.
                 checksum = checksum
-                    .wrapping_add(chunk.blocks().iter().map(|b| *b as u64).sum::<u64>())
+                    .wrapping_add(
+                        chunk
+                            .blocks()
+                            .iter()
+                            .map(|b| u64::from(b.ordinal()))
+                            .sum::<u64>(),
+                    )
                     .wrapping_add(mat.encode().len() as u64);
                 chunks += 1;
             }

@@ -32,7 +32,7 @@ fn medium() -> Pregen {
 fn block_hash(chunk: &Chunk) -> u64 {
     let mut h = 0xcbf2_9ce4_8422_2325u64;
     for b in chunk.blocks() {
-        h ^= u64::from(*b as u16);
+        h ^= u64::from(b.ordinal());
         h = h.wrapping_mul(0x0000_0100_0000_01B3);
     }
     h

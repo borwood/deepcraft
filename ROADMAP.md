@@ -1487,9 +1487,22 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   field, plant it) — with the reciprocal loop (S-4) carried by the chapter loop
   and dual processes split into field+cellular halves. Ownership: forms+edges =
   machine, materials+agents+passes = content; forms are NOT SDK-registrable.
-  **Two agents dispatched 2026-07-23:** (A1) present-tier `Block={Air,Material}`
-  + solidity→occupancy drain, byte-identical; (A2) deep-cell working-inventory
-  span-list + chapter-commit spike (the keystone, de-risked before build).
+  **Progress 2026-07-23:** (A1) present-tier collapse **MERGED** (`de984eb`,
+  journal/0087, gate-verified on merged main) — 1-byte atom (64→32 KiB/chunk;
+  intermediate `{Air,Material,+4 legacy S1}` on the ratified path, 2-variant at
+  Crux 2), `block_twin`+`_=>Stone` deleted, `classify→dominant material identity`,
+  and a latent S-3 violation the collapse surfaced was fixed. **User ratified the
+  appearance change (within-class member variety now visible at block/far tier)
+  on the identity argument, sight-unseen.** Tail: solidity→occupancy drain (~80
+  sites, deferred), far-span `Block` token migration, legacy S1 retire (Crux 2),
+  categories-registrable. (A2) deep-cell working-inventory spike **COMPLETE**
+  (S17, `docs/spikes/S17-deep-cell-inventory-results.md`, branch unmerged):
+  byte-identical under identity default, **per-stratum** granularity, and the
+  inventory is derivable → a **per-chapter transient** (no permanent memory cost).
+  **Open, blocking merge:** the record is keyed by depositional *environment* not
+  material, so material-changing behaviors must **commit as appended facts (S-9)**,
+  not tag rewrites — a design call that shapes the keystone. commit-semantics
+  ratification pending.
 
 - **The block↔material collapse — DECIDED, one namespace (user, 2026-07-22
   late session; materials.md two new DECIDED entries)**. Block collapses
@@ -2476,6 +2489,51 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **STATION — per-chunk material-palette quantization makes the chunk grid a
+  visible checkerboard** (user field report + diagnostic station, 2026-07-24;
+  `journal/assets/0088-palette-quantization-chunk-seams.png`). At the **east coast**
+  (~110 km east of spawn; the user noted the weathering regime here reads visibly
+  different from the plateau spawn — worth its own look), a top-down view shows the
+  near/mid field as a **grid of chunk-sized squares, each a distinctly different
+  overall tint** (tan / grey / red-brown / dark-speckled), while the **structure is
+  continuous across the seams** — diagonal dune/wave bands of structure blocks (with
+  yellow inclusion flecks) cross chunk boundaries unbroken, dithered mixed loose
+  voxels between them. So the weathering/dune *pattern is continuous* across seams
+  but the **materials are discontinuous** — an **S-4-square violation on the MATERIAL
+  axis** (a chunk-resolution edge reaching the eye as a square; distinct from the
+  far-field LOD material-identity split below, S-9, and the "far field boxier"
+  geometry thread). **Two theories, to be measured:** (T1) the material *families*
+  genuinely differ per chunk — same kind of mix, but a dominant family swapped
+  (sandstone here, mudstone there) — a **generation-side** per-chunk material
+  selection. (T2) the full contents vary *smoothly* (same materials, shifting
+  weights) but voxels hold **more than the 4 materials a mixture can splat**, and the
+  visible **winner reduction (>4 → 4) is salted per-CHUNK instead of per-voxel-
+  position**, so the survivors are uniform within a chunk instead of jittered — a
+  **render/materialization** bug (the >4→4 cut is the likely locus; journal/0055
+  world-anchored dither, 0008 seam-order `MixtureTable` ids, the combinatorial mixture
+  cap). **The discriminating measurement:** sample the *full* top-layer contents (all
+  materials + weights, NOT the classified winner) across adjacent chunks at this
+  station — smoothly-shared materials with jumping winners ⇒ T2; genuinely different
+  material sets ⇒ T1. **This needs full-contents access, which the live
+  `get_block`/`scan_region` do NOT expose** (they return the classified winner only) —
+  see the look-at-contents dev slice below. **DIAGNOSTIC STATION — return here to
+  check any fix:** feet `pos {x: 71291.7, y: 372.1, z: -2420.9}` / voxel
+  `{x: 79213, y: 413, z: -2690}`, `yaw 21.9968`, `pitch -1.5475` (looking ~straight
+  down), fly on. A correct fix dissolves the chunk-square tint grid into continuous
+  ground with the diagonal structure bands unbroken. **Diagnose before touching.**
+
+- **Dev slice — look-at-voxel contents inspector** (user-requested 2026-07-24;
+  enabling the palette-quantization measurement above AND a standing dev tool):
+  *"check the contents of a voxel just by looking at it."* Two parts: (a) a
+  **full-contents query** returning a voxel's whole `VoxelContents` mixture —
+  materials, forms, weights — NOT the classified `Block` (`get_block` returns only
+  the winner, which is exactly what hides T1-vs-T2); (b) a **look-at readout** —
+  `character_sense_raycast` already returns the hit voxel + face but only the block
+  name, so extend it to contents and surface it as an on-screen HUD. Small (dc-api
+  query + dc-client HUD/raycast), dual-use: it makes the T1/T2 measurement doable
+  live and gives every future material diagnosis a direct instrument. **Sequence it
+  ahead of the palette-quantization diagnosis — it is that diagnosis's instrument.**
 
 - **Far-field LOD reconstructs a coarse box's MATERIAL IDENTITY differently on
   cold-gen vs warm-regen** (user field report, 2026-07-23; **mechanism sharpened

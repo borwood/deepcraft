@@ -16,7 +16,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 
-use dc_core::{Block, Chunk, ChunkPos, local_voxel, raycast_voxels};
+use dc_core::{Block, Chunk, ChunkPos, MaterialId, local_voxel, raycast_voxels};
 use glam::DVec3;
 
 use crate::bodies::{AnimClipDef, BodyPlanDef, validate_clip, validate_plan};
@@ -41,8 +41,11 @@ pub const MAX_REGION_VOXELS: u64 = 1 << 18; // 262,144 = a 64^3 box
 /// Default max events returned by one poll.
 pub const DEFAULT_POLL_MAX: u32 = 256;
 
-/// v0 block name table (hard-coded S1 block set; the data-driven block
-/// registry is a later slice — items are data-driven already).
+/// Block name table. Since the block↔material collapse (journal/0087) a block
+/// IS a material: every registry material resolves by its own `dc:` id
+/// ([`MaterialId::qualified_name`]), alongside `dc:air` and the four legacy S1
+/// tokens (`dc:stone`/`dc:dirt`/`dc:grass`/`dc:wood`) the walking-skeleton
+/// terrain still emits. The data-driven block registry is a later slice.
 pub fn block_from_name(name: &str) -> Option<Block> {
     Some(match name {
         "dc:air" => Block::Air,
@@ -50,14 +53,7 @@ pub fn block_from_name(name: &str) -> Option<Block> {
         "dc:dirt" => Block::Dirt,
         "dc:grass" => Block::Grass,
         "dc:wood" => Block::Wood,
-        "dc:mudstone" => Block::Mudstone,
-        "dc:sandstone" => Block::Sandstone,
-        "dc:granite" => Block::Granite,
-        "dc:basalt" => Block::Basalt,
-        "dc:coal" => Block::Coal,
-        "dc:peat" => Block::Peat,
-        "dc:carbonaceous-mudstone" => Block::CarbonaceousMudstone,
-        _ => return None,
+        _ => Block::Material(MaterialId::from_qualified_name(name)?),
     })
 }
 
@@ -68,35 +64,20 @@ pub fn block_name(block: Block) -> &'static str {
         Block::Dirt => "dc:dirt",
         Block::Grass => "dc:grass",
         Block::Wood => "dc:wood",
-        Block::Mudstone => "dc:mudstone",
-        Block::Sandstone => "dc:sandstone",
-        Block::Granite => "dc:granite",
-        Block::Basalt => "dc:basalt",
-        Block::Coal => "dc:coal",
-        Block::Peat => "dc:peat",
-        Block::CarbonaceousMudstone => "dc:carbonaceous-mudstone",
+        Block::Material(m) => m.qualified_name(),
     }
 }
 
 /// Every block name `set_block`/`fill` will resolve — the value source for the
-/// `block` completion hook (schema.rs `Completer`). Keep in sync with
-/// [`block_from_name`]. Today the fixed S1 table; when the data-driven block
-/// registry lands (the note on `block_from_name`), this reports the world's
-/// registered blocks instead and the completion source is unchanged.
-pub const KNOWN_BLOCK_NAMES: &[&str] = &[
-    "dc:air",
-    "dc:stone",
-    "dc:dirt",
-    "dc:grass",
-    "dc:wood",
-    "dc:mudstone",
-    "dc:sandstone",
-    "dc:granite",
-    "dc:basalt",
-    "dc:coal",
-    "dc:peat",
-    "dc:carbonaceous-mudstone",
-];
+/// `block` completion hook (schema.rs `Completer`). Kept in sync with
+/// [`block_from_name`]: `dc:air`, the four legacy S1 tokens, then every registry
+/// material by its qualified id.
+pub static KNOWN_BLOCK_NAMES: std::sync::LazyLock<Vec<&'static str>> =
+    std::sync::LazyLock::new(|| {
+        let mut names = vec!["dc:air", "dc:stone", "dc:dirt", "dc:grass", "dc:wood"];
+        names.extend(MaterialId::all().map(MaterialId::qualified_name));
+        names
+    });
 
 /// A data-driven item definition, as stored.
 #[derive(Clone, PartialEq, Debug, serde::Serialize, serde::Deserialize)]
@@ -351,7 +332,7 @@ impl HostWorld {
     /// when blocks become data-driven this reports the world's registered set
     /// and the completion source does not change.
     pub fn block_names(&self) -> &'static [&'static str] {
-        KNOWN_BLOCK_NAMES
+        &KNOWN_BLOCK_NAMES[..]
     }
 
     /// Configure character body dimensions / dynamics (the client sets
@@ -1486,7 +1467,7 @@ impl HostWorld {
             for z in vol.min.z..=vol.max.z {
                 for x in vol.min.x..=vol.max.x {
                     let block = self.block_at(Vec3i::new(x, y, z));
-                    eat(&(block as u16).to_le_bytes());
+                    eat(&block.ordinal().to_le_bytes());
                 }
             }
         }
