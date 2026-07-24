@@ -24,7 +24,8 @@ use glam::DVec3;
 use crate::PLAYER_HEIGHT_M;
 use crate::bench::{BENCH_SEED, REGION_MAX_M, REGION_MIN_M, format_bytes, group_thousands};
 use crate::farmesh::{
-    FULL_DETAIL_RADIUS_M, HorizonConfig, coarse_scale, far_chunk_center_m, wanted_far_positions,
+    FAR_OVERLAP_M, FULL_DETAIL_RADIUS_M, HorizonConfig, coarse_scale, far_chunk_center_m,
+    wanted_far_positions,
 };
 use crate::meshing::mesh_chunk;
 use crate::worldgen::TerrainGen;
@@ -329,7 +330,7 @@ pub fn run() {
 
     // Full-res comparators over the same annulus (extrapolated from S1's
     // measured N=2 numbers; actually generating it would take minutes).
-    let inner = FULL_DETAIL_RADIUS_M - 16.0;
+    let inner = FULL_DETAIL_RADIUS_M - FAR_OVERLAP_M;
     let outer = hz.ring_edges[4];
     let annulus_m2 = std::f64::consts::PI * (outer * outer - inner * inner);
     let shell_m3 = 4.0 / 3.0 * std::f64::consts::PI * (outer.powi(3) - inner.powi(3));
