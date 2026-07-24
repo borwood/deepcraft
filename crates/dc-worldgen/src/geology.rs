@@ -127,6 +127,14 @@ pub struct StrataCtx<'a> {
     /// formation-context source** for depositional strata (3e-1): the clastic
     /// pass reads these instead of the year-zero climate shim.
     pub deep_units: &'a [DepUnit],
+    /// **Metres of loose weathering product from the bedrock seam** (the
+    /// first-real-behavior slice, material-behavior.md §4/§11) — the collapse-tier
+    /// fold of the deep cell's `base + facts`
+    /// ([`FactLedger::weathering_product_m`](crate::deeptime::FactLedger::weathering_product_m)).
+    /// `0.0` unless `DeepConfig::weather_inventory` is on (the S-5 identity default);
+    /// when positive, [`deposit_deep_history`] emplaces a basal weathering-front band
+    /// at the basement contact, below the recorded pile.
+    pub deep_weathering_m: f64,
     /// True beyond the pregen grid.
     pub wilds: bool,
     pub geology: &'a GeologySet,
@@ -376,6 +384,42 @@ pub fn deep_class(tag: DepTag) -> &'static str {
 /// formation-context depth axis is honest.
 const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 
+/// **Emplace the basal weathering-front band** — the collapse-tier consumer of the
+/// deep cell's weathering [`FactLedger`](crate::deeptime::FactLedger) (the
+/// first-real-behavior slice, material-behavior.md §4/§11). The deep sim weathered
+/// the bedrock `Structure` seam into `ctx.deep_weathering_m` metres of loose regolith
+/// at the basement contact; here that becomes a real stratum the player can dig,
+/// laid at the base of the recorded pile.
+///
+/// **The product's CLASS is a stand-in tied to STUB #16** (docs/design/stubs.md):
+/// the loose product inherits the *bedrock's identity*, but the deep tier's bedrock
+/// is one flat granite basement (stub #16), so this expresses the front as
+/// [`CLASS_CLASTIC_FINE`] — a clay-rich saprolite, the honest weathering product of
+/// most bedrock. When the genesis/emplacement heir supplies real per-column basement
+/// lithology, this class choice is replaced by that material's own weathering
+/// product; the fold itself (read `deep_weathering_m`, lay a basal band) is the
+/// durable part. No-op when `deep_weathering_m` rounds to nothing — the S-5 identity
+/// default keeps the world byte-identical with the flag off.
+fn emplace_weathering_front(ctx: &mut StrataCtx) {
+    if ctx.deep_weathering_m <= 0.0 {
+        return;
+    }
+    // Below the whole recorded pile, at the basement contact.
+    let record_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
+    let depth_m = record_m + DEEP_VENEER_MARGIN_M;
+    // A stable draw address reserved for the weathering front (distinct tag).
+    let tag = u64::MAX;
+    let form = FormationContext {
+        temp_c: ctx.temp_c,
+        precip: ctx.precip,
+        depth_m,
+    };
+    let draw = interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
+    if let Some((member, _)) = ctx.geology.select(CLASS_CLASTIC_FINE, &form, draw) {
+        ctx.push(member, ctx.deep_weathering_m, SALT_GEO_DEEP, tag, depth_m);
+    }
+}
+
 /// Deposit the deep-time depositional history below the active veneer: one
 /// stratum per recorded deep unit (bottom-up), its class fixed by the measured
 /// facies tag ([`deep_class`]) and its member selected under the
@@ -418,6 +462,15 @@ const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 /// filed in stubs.md § 12: that one merged unlike beds and lost them; this one
 /// merges only beds that would express identically anyway.
 fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
+    // **The weathering-front band** (the first-real-behavior slice, folding the deep
+    // cell's `base + facts`). Emplaced FIRST, so it sits at the very base of the
+    // recorded pile — the basement contact, where bedrock weathered to regolith.
+    // It is NOT counted in `expressed_m`: `expressed_m` accounts for the loose column
+    // `H`, and this band is NEW material the weathering pass produced from bedrock
+    // (not part of `H`), so leaving it out keeps the veneer budget's `H` accounting
+    // honest. No-op (byte-identical) when `deep_weathering_m == 0` — off, or the
+    // identity floor.
+    emplace_weathering_front(ctx);
     let total_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
     let mut expressed_m = 0.0f64;
     let mut below_m = 0.0;
@@ -709,6 +762,7 @@ mod tests {
             voxel_m: 0.9,
             regolith_m: Some(5.0),
             deep_units: units,
+            deep_weathering_m: 0.0,
             wilds: false,
             geology: geo,
             providers,
@@ -767,5 +821,37 @@ mod tests {
             "the swapped provider's answer, keyed by present temp and chapter, is \
              what the event records — the seam is consulted through the real fn"
         );
+    }
+
+    /// **The weathering fold, at the consumer boundary** (the first-real-behavior
+    /// slice): `deposit_deep_history` reading `deep_weathering_m` (the deep cell's
+    /// `base + facts` product) emplaces a basal weathering-front band **below** the
+    /// recorded pile — and with the identity `0.0` it lays exactly the pre-slice
+    /// events (byte-identical, the S-5 floor).
+    #[test]
+    fn the_weathering_front_folds_into_a_basal_band() {
+        let units = one_mineral_unit();
+        let geo = vanilla();
+
+        // Identity floor: no weathering product ⇒ exactly the pre-slice events.
+        let mut off = ctx_over(&units, &geo, Providers::default(), 9.0);
+        let off_expressed = deposit_deep_history(&mut off);
+        assert_eq!(off.strata.events.len(), 1, "identity: only the record unit");
+
+        // With a weathering product, a basal band is prepended (event 0), the
+        // record unit stacks above it, and the return (expressed record metres) is
+        // UNCHANGED — the band is new bedrock-derived material, not part of H.
+        let mut on = ctx_over(&units, &geo, Providers::default(), 9.0);
+        on.deep_weathering_m = 1.3;
+        let on_expressed = deposit_deep_history(&mut on);
+        assert_eq!(on_expressed, off_expressed, "the band is not counted in H");
+        assert_eq!(on.strata.events.len(), 2, "basal weathering front + record");
+        // The band is the deepest (first-laid) event, carrying the product metres.
+        assert!(
+            (f64::from(on.strata.events[0].thickness_m) - 1.3).abs() < 1e-5,
+            "the basal band carries the weathering-product metres"
+        );
+        // The record unit is preserved above it, unchanged from the off case.
+        assert_eq!(on.strata.events[1].member, off.strata.events[0].member);
     }
 }
