@@ -95,10 +95,21 @@ not material, so a material change cannot rewrite it):
   check. `commit_chapter` = collect the chapter's logged edges (coalescing identical
   successive ones). **Empty log ⇒ no facts ⇒ record byte-identical** (the S17 identity
   default). *(A2's S17 plea, ratified.)*
-- **A fact's shape:** `(chapter, edge, (from-mat, from-form) → (to-mat, to-form),
-  fraction)` — carries material change, form-only change (crumbling), and dissolution
-  (`→ void`). Ordered by chapter; within a chapter a commutative batch (one
-  synchronous pre-state).
+- **A fact's shape:** `(chapter, cause, edge, (from-mat, from-form) → (to-mat, to-form),
+  fraction)` — where **`cause` is the responsible agent** (deeptime: frost / biotic /
+  dissolution / abrasion) **or actor** (present: player / NPC), so provenance is
+  specific ("frost-weathering did Y", "player P deposited it"). Apply-time logging makes
+  `cause` free: each agent/actor logs its own edge application, so a chapter where
+  several agents drive one edge yields **one fact per agent** — the S16 fold sets each
+  agent's *share*, not the fact count (preserving "frost did 3, biotic did 2"). Carries
+  material change, form-only change (crumbling), and dissolution (`→ void`). Ordered by
+  chapter; within a chapter a commutative batch.
+- **The fact is the seed; the story is derived-and-displayed** (S-2). The fact stores
+  only the non-derivable core above. The **pass** (from `chapter` + `cause` + the static
+  schedule — topo-validation forbids two passes writing one edge, so it is unique), the
+  **epoch**, and the **environmental driver** ("because heat/pressure/water was thus",
+  re-derived from the field state at that chapter) are all **derived at read time and
+  shown**, never stored. Same discipline as facts-vs-working-inventory, one tier up.
 - **Per-voxel provenance falls out** (Sequenced item d, resolved): "started as X,
   weathering did Y at chapter Z" is just reading `base + facts`. A cave wall records
   how it was carved.
