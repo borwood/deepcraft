@@ -2541,7 +2541,23 @@ before any code.
   station — smoothly-shared materials with jumping winners ⇒ T2; genuinely different
   material sets ⇒ T1. **This needs full-contents access, which the live
   `get_block`/`scan_region` do NOT expose** (they return the classified winner only) —
-  see the look-at-contents dev slice below. **DIAGNOSTIC STATION — return here to
+  see the look-at-contents dev slice below. **DIAGNOSED 2026-07-24**
+  (`docs/audits/2026-07-24-palette-quant-generation-diagnosis.md`): **T1 confirmed, and
+  it is the SAME ROOT CAUSE as the haunted-LOD blobs.** A chunk's entire strata
+  composition is built from a **single point-sample of the deep record at the chunk
+  centre** (`record_at_voxel(cx*32+16, cz*32+16)`, `collapse.rs:1474`), NEAREST at the
+  **~460 m deep-cell grid** (`DEEP_CELL_M`); `run_strata` shares that one sample across
+  all 1024 columns. So composition tiles are **~460 m deep cells with boundaries
+  chunk-quantized to 28.8 m** (a staircase); climate/elevation/member-dither/mesher are
+  all smooth/per-voxel — hence *continuous pattern, jumping composition*. The far LOD
+  blobs are the **same coarse ~460 m NEAREST deep-facies field point-sampled instead of
+  interpolated/area-summarized**, at a different site (near `record_at_voxel`→
+  `run_strata`; far `surface_class`→`draw_class`) — one phenomenon family, two tiers.
+  It is the **S-4 rule unmet**. **One live-probe question left:** are the visible squares
+  the 460 m deep cells or the 28.8 m chunk staircase — settle by reading dominant surface
+  material per chunk across an east-coast patch (`world_get_block` / the inbound
+  inspector: change every 28.8 m ⇒ member stepping; only at ~460 m ⇒ deep-cell tiles).
+  **Planning held.** **DIAGNOSTIC STATION — return here to
   check any fix:** feet `pos {x: 71291.7, y: 372.1, z: -2420.9}` / voxel
   `{x: 79213, y: 413, z: -2690}`, `yaw 21.9968`, `pitch -1.5475` (looking ~straight
   down), fly on. A correct fix dissolves the chunk-square tint grid into continuous
