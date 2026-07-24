@@ -1398,3 +1398,41 @@ was built: *the instrument overturned the suspect its own slice was filed under.
 Do not offload against a hypothesis; measure first. (Carried: the perf improved
 onset but a **throughput ceiling remains at terminal velocity** — see ROADMAP
 Observed.)
+
+## 44. "`column_summary`'s `fully_resolved` is live in the renderer today" (assistant, 2026-07-24)
+
+**The claim.** Building the S-9 spine, the assistant wrote that the far-field LOD's
+pre/post-visit discrepancy was the *same* live system as S3's `fully_resolved`/
+`sky_exposed` — "the renderer does observation-collapse today, unnamed."
+
+**The falsification (grep + the 2026-07-24 spine-audit).** `fully_resolved` is real
+and tested, but it lives on `ColumnInfo` in `dc-core/src/column.rs` and is **dormant**
+— its only non-test caller is the `--bench-storage` harness; no renderer or lighting
+consumer exists (sim-light unbuilt). Moved to spines § 3. The far-field LOD path is
+different code entirely (`far.rs`/`farpyramid.rs`); the assistant welded two unrelated
+systems.
+
+**Mechanism / lesson.** A claim about *live code*, asserted from a design-doc reading
+instead of a grep; the user caught it directly ("does the renderer do `fully_resolved`
+today, or is that just a plan?"). Verify a claim about live code against the code, not
+the doc that states the intent. Nearly shipped a false "already implemented" into the
+spine.
+
+## 45. "The member dither is chunk-anchored and ignores its neighbours" (assistant + user, shared premise, 2026-07-24)
+
+**The claim.** Diagnosing the near-field material squares, both parties held the member
+dither is "anchored to a chunk with no awareness of its neighbours," snapping at chunk
+lines.
+
+**The falsification (reading `interp_select_draw`, `geology.rs:198`).** It hashes four
+corner values at **absolute** chunk corners (`cx,cz`) and bilinearly interpolates — so
+it is **world-anchored** and **C0-continuous across seams** (adjacent chunks share the
+corner hash). It does not ignore neighbours. The real defect: it is **a single octave
+of value noise at chunk wavelength** — one scale, so every patch is chunk-sized and
+reads as a grid though continuous.
+
+**Mechanism / lesson.** One symptom ("squares aligned to chunks"), two candidate causes
+(no-neighbour-awareness vs single-wavelength) that both predict it; we assumed the first
+until reading the function. The fix follows the true cause — **octaves (multi-scale),
+not a finer grid or neighbour-awareness**; a finer single-octave grid just makes smaller
+squares. Read the noise function before prescribing its replacement.

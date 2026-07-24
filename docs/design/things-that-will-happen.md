@@ -126,3 +126,8 @@ list and not a roadmap — some of these are far off, and that is fine.
 - You loot an iron sword from a ruin and the world knows who forged it: a smith
   in a kingdom that rose, warred, and fell across the deep past — from ore in a
   vein the mountains put there before there was anyone to mine it.
+- You break a block and get exactly what was in it — the real mix of grains, in
+  the proportions it held — not one arbitrary rock the game picked to stand for
+  the rest.
+- You read a cave wall and know how the water carved it, bed by bed, because the
+  rock kept the record of every step that made it what it is.

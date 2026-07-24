@@ -1959,6 +1959,87 @@ see the question you are asking.
 
 ## Sequenced
 
+<!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
+slot each, per the user's "slice-of" principle: never lose what a completed slice
+was a slice OF. Each names WHAT, WHY, how it UNIFIES with the larger threads, its
+FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
+
+- **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
+  `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md
+  block-is-material DECIDED, the block-consumer recon, ARCHITECTURE § "a summary is
+  not an authority", S-3/S-9).
+  - **WHAT.** The honest answer to "what is this voxel" is its full `VoxelContents`
+    (up to 8 partials), never one arbitrary component. One **position-addressed**
+    function `identify(pos) -> { tier, payload }`, tier-flagged (S-9's "answer carries
+    its resolution"): **Near** = full contents · **Mid** = blended mixture (+ mixed
+    flag) · **Far** = dominant material (`classify`). It returns the finest answer
+    honestly resident at `pos` (tracks the pyramid rung rendered there), so "what I'm
+    looking at" matches what I see; a caller wanting more can force a deeper re-derive
+    (gen is pure-of-pos). Raycast composes it (`raycast(camera) → pos → identify`) — a
+    separate step, because "what is at X" is a world question, not a camera question.
+  - **WHY.** "Nobody wants one arbitrary material component of a mixture" (user). The
+    summary existed for the **surface-only** far field; the far field went **volumetric**
+    (FF2b), so its justification **expired — A-2**. The renderer already re-derives full
+    contents (`chunk_contents`) and splats them; the stored 1-byte `Block` is a
+    storage/sim relic the render **bypasses**, and it loses the mixture on edit.
+  - **UNIFIES.** = the block↔material collapse tail (storage palette · far-span ·
+    ~80 solidity · mesher layer pick · player-facing name) + the **distance pyramid**
+    (near/mid/far *are* the `identify` tiers) + **S-3** (`classify` demoted to a derived
+    rung + the pyramid's coarsest tier, never a stored authority) + **S-9** (self-labeled
+    honesty).
+  - **FIRST SLICE.** `identify(pos)` unifying the inspector's `world_get_contents` (Near)
+    with `classify` (Far) under one tier-flagged surface; drain the `Block`-token
+    consumers that can (recon list). Contents stay re-derivable (unedited).
+  - **CONTINUATION SLOT** (this is a slice OF *"the runtime canonical is contents, not a
+    summary"*): after `identify`, the arc continues with the **storage/wire migration**
+    (edited voxels carry contents/edit-facts, not a `Block`), the **runtime edit-fact
+    overlay** (break/place = move-facts — the north-star's *first runtime-process
+    milestone*, which also makes break-gives-the-real-mixture true), the **far-span
+    `Block`→material** migration, and **legacy-S1 retire** (Crux 2). Do not close the
+    arc when the first slice lands.
+
+- **GENESIS-PASSES DRIVE ROCK DISTRIBUTION — retire class-member into hierarchy +
+  property-driven passes** (arc opened 2026-07-24; priors: materials.md "the class
+  system's fixed-constant roster is scaffolding" + transformation-axes DECIDED, north-star
+  declarative-materials, the entry-species probe, the seam-inventory `[S2]`).
+  - **WHAT.** Retire the class-member-fitness abstraction. Rock **distribution + physical
+    facies** come from **deeptime genesis passes** that select a **parent material**, march
+    its **leaf** materials, and derive fitness **purely from properties stored on each
+    material** (grain size, solubility, density…). Adding a leaf → it participates
+    automatically. Diagenesis/metamorphism = **transform edges** (thermo/pressure agents)
+    evolving the distribution across deeptime (the fact-ledger, applied to genesis). Output:
+    where materials are · how distributed · the facies · **octave**-materialized → runtime.
+    The material **hierarchy** (parent→leaf) serves as ~classes where needed.
+  - **WHY.** The class system is self-admittedly *scaffolding* and **measured near-flat**
+    (entry-species probe: formation context barely changes which member). North-star wants
+    materials+passes+hierarchy; property-derivation makes it **modder-extensible** (leaves
+    free); and it is the honest model — a rock's identity is set by its **genesis, at
+    genesis, by the pass**.
+  - **UNIFIES.** This **IS the member-selection/octave arc done right**: the genesis pass
+    produces the distribution (property-derived, physical), the octave dither materialises
+    it — so "retire class-member", "fix the member squares", and "physical facies from
+    passes" are **one arc**, and it fixes the palette-quant + LOD root cause (coarse facies
+    *point-sampled*) by driving distribution from a smooth physical field + octaves instead
+    of a chunk-grid dither. Rides the material-behavior model (cellular passes, edges,
+    agents, hierarchy).
+  - **STEELMAN (recorded so it isn't re-lost):** keep the **distribution concept** (a rock
+    unit *is* a mix of related materials — honest, housed in the hierarchy); class-fitness
+    is a genesis **model** the pass *formalises*, not deletes; the **richness lives in the
+    pass's physics** (property→distribution), which is near-flat today, so re-housing alone
+    buys nothing — the win is encoding real depositional/petrological physics; **leaves are
+    free, a new genesis PROCESS is a new pass**.
+  - **FIRST SLICE.** **Seam-first, byte-identical:** convert the `DepTag→material` /
+    `deep_class`/`dithered_member` determination (the seam-inventory `[S2]`
+    `material_properties`) into a declared pass/provider that reads material **properties**
+    — no behavior change, goldens hold.
+  - **CONTINUATION SLOT** (this is a slice OF *"genesis is a property-driven pass
+    pipeline"*): after the seam conversion — (1) **enrich the property→distribution
+    physics** so energy/depth/thermo genuinely swing the mix; (2) **octave materialisation**
+    (multi-octave + physical driver, retiring the single-octave chunk dither — the member
+    arc); (3) **diagenesis/metamorphism as transform edges** (thermo/pressure agents, on
+    the fact-ledger); (4) the **modder-authors-a-leaf** path (properties only, no bespoke
+    code). Do not close the arc at the seam conversion.
+
 - **The distance pyramid: consume the mixture LOD by band, drop the dither
   with range** (SEQUENCED 2026-07-21 at the user's direction; design captured
   in visuals.md § "LOD colour cascade"). Three bands, knobs on the dropoffs
@@ -3960,7 +4041,78 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-23 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-24 close (supersedes every earlier block)
+
+**Read first: `docs/design/material-behavior.md`** — the substrate spec ratified this
+session (companion to `north-star.md`) — then `docs/spines.md`. This session turned the
+north star's content layer into a buildable spec, landed its keystone, and diagnosed the
+rendering the user kept finding into a single root cause.
+
+### Shipped 2026-07-24 (journals 0086–0088, corrections #44–#45)
+- **The material-behavior substrate SPEC** (`material-behavior.md`): forms (closed machine
+  set: structure/loose/pore-fill/fluid; void=complement) + the machine-complete transition
+  graph (edges = the process catalog) + agents (folded rate-terms carrying a `cause`) +
+  passes (cellular run-edges / field compute-and-plant) + the deep-cell inventory as the
+  fill contract one tier up + commit-as-**appended-facts** (apply-time edge logging;
+  provenance = base+facts, addressed to the material's lineage; pass/driver derived-and-
+  displayed).
+- **THE KEYSTONE MERGED** (0088, gate-verified by name): deep-cell working inventory +
+  transformation-fact ledger — `commit_chapter` diff-and-append, byte-identical identity
+  default over 25 600 real cells, provenance read. Single-edge shape; apply-time logging +
+  `cause` land with the first real behaviors.
+- **The contents inspector MERGED**: `world_get_contents` + F3 HUD; surfaced that the
+  runtime stores only `Block` and re-derives contents (edit-blind, S-2).
+- **The rendering "haunting" DIAGNOSED to ONE root cause** (read-only, planning held): the
+  haunted far LOD (a 176 m standoff *inside* the L1 ring), the chunk checkerboard, and the
+  loud 16-voxel member squares are all the **coarse ~460 m facies field point-sampled
+  instead of interpolated** (S-4 unmet); the member squares are **one octave of value noise
+  at chunk wavelength** — fix = octaves, not resolution.
+- Earlier this arc: **A1 block↔material collapse**, the **north-star refinement**
+  (field-solvers→content; cellular/field passes; tier deferral), **S-9**, and the **ROADMAP
+  staleness reconciliation**.
+
+### Ratified 2026-07-24 (user's terms)
+- **Retire the stored `Block` summary.** *"Nobody wants one arbitrary material component…
+  the only honest answer is the contents."* → one `identify(pos)` tiered by honesty; `classify`
+  demoted to a derived rung. (Sequenced with reasoning + continuation slot.)
+- **Retire class-member into hierarchy + genesis passes.** *"Rock distribution should come from
+  passes that model the honest genesis of rocks… a modder authors a leaf, the pass marches the
+  parent's leaves and derives distribution purely from properties… richer model, richer model,
+  richer model."* Seam-first; the win is richer genesis physics, not re-housing. (Sequenced with
+  the steelman recorded.)
+- **commit-as-appended-facts + `cause` + apply-time logging**; the **six-variant intermediate
+  atom rides** to the 2-variant end-state at Crux 2; **A1's within-class appearance change**
+  accepted on the identity argument, sight-unseen.
+- **The "slice-of" sequencing principle** (added to the session-workflow skill): sequence not
+  only a first slice but a reserved continuation slot — never lose what a slice was a slice *of*.
+
+### Falsified 2026-07-24 (assistant's own first)
+- **#44** — assistant claimed `column_summary`'s `fully_resolved` is live in the renderer; it is
+  dormant in dc-core (two unrelated systems welded). Verify live-code claims against code, not
+  the doc of intent.
+- **#45** — assistant + user both assumed the member dither is chunk-anchored/neighbour-blind;
+  it is world-anchored and C0-continuous, the defect is single-octave. Read the noise function
+  before prescribing its replacement.
+
+### Nothing running
+All agents completed and integrated; both worktrees removed; main green (verified by test
+name/count), tree clean, no lock, no port-7777 process.
+
+### First things next session (all Sequenced with full reasoning)
+1. **The honest identity surface** — `identify(pos)` unifying `world_get_contents` (Near) and
+   `classify` (Far), tier-flagged; start draining the `Block`-token consumers. Continuation:
+   the runtime edit-fact overlay (break-gives-the-real-mixture — the first runtime-process
+   milestone).
+2. **Genesis-passes, seam-first** — convert `DepTag→material` (`[S2]`) to a property-reading
+   declared pass, byte-identical; then enrich the genesis physics + octave materialisation
+   (which *is* the member-squares fix).
+3. **Owed:** a **spine-audit** (much shape landed live this session); the LOD **cold-over-warm**
+   correctness fix (warm to the nearfield edge) when the mixture arc opens; the LOD **warm-cache
+   lifetime** live-probe residue (the palette-quant 460-vs-28.8 was settled — member stepping).
+
+*(The 2026-07-23 close below is consumed; preserved as history.)*
+
+## NEXT SESSION — written at the 2026-07-23 close (SUPERSEDED by the 2026-07-24 close above)
 
 **Read first: `docs/design/north-star.md`** (now CLAUDE.md read-first item 0) —
 the ratified target architecture, and this session's spine. Then `docs/spines.md`.

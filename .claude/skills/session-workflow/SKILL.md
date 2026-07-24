@@ -481,3 +481,25 @@ the prompt, the sweep's findings, the corrections made mid-flight (an
 integrator overreach the user catches is exactly the blog-worthy part), the
 holes found and how, the roads not taken. The design doc holds what was
 decided; the journal holds how it went. journal/0069 is the template.
+
+## Sequence the slice AND reserve what it's a slice OF (user-directed, 2026-07-24)
+
+When sequencing work, do not sequence only the **first slice**. Sequence a
+**reserved continuation slot** naming what the slice is a slice *of* — the larger
+arc, the provisional reasoning, and what comes next — **with the depth captured,
+not compressed to a task line**.
+
+*"We can't afford to lose what a completed slice was a slice of… that's just
+healthy for AI workflows where each session must re-derive everything from
+context"* (user). A first slice with no record of its arc gets picked up next
+session as an orphan; the direction, the *why*, and the unification with larger
+threads evaporate.
+
+**The shape of a sequenced arc:** WHAT · WHY · how it **UNIFIES** with the larger
+threads · **FIRST SLICE** · **CONTINUATION SLOT** (explicitly: "this is a slice OF
+X; after this slice, the arc continues with…"). Record the "what" and the "why" —
+the provisional reasoning developed in conversation — because the conversation is
+not a repo artifact and the next session starts cold. Templates: ROADMAP Sequenced
+"THE HONEST IDENTITY SURFACE" and "GENESIS-PASSES DRIVE ROCK DISTRIBUTION"
+(2026-07-24). This is the corpus-outruns-the-assistant guard applied to sequencing:
+the map must carry the arc, not just the next step.
