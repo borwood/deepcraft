@@ -423,9 +423,17 @@ pub enum Granularity {
 // express through the collapse.
 
 /// Provisional thickness (metres) of the materialized bedrock `Structure` seam —
-/// **STUB #16**, a made-up depth chosen only to be an effectively-inexhaustible
-/// `Structure→Loose` source over the one chapter this slice weathers. The heir
-/// (a genesis/emplacement pass) supplies a real per-column unroofing depth.
+/// **STUB #16**, chosen to outlast the accumulated `Structure→Loose` draw of a full
+/// run (measured max **6.094 m of 50 m** at production scale, journal/0094).
+///
+/// **A-2 correction (spine-audit 2026-07-24):** this previously read "an
+/// effectively-inexhaustible source over the one chapter this slice weathers" — that
+/// justification **expired** when journal/0094 made weathering a per-epoch process
+/// that ACCUMULATES over the whole run. The constant is therefore a live **ceiling on
+/// saprolite depth worldwide**, not an inexhaustible source, and it will bite first
+/// where the process runs strongest (thin cover, long subaerial residence, a cranked
+/// `--erosion-budget`). The heir (a genesis/emplacement pass) supplies a real
+/// per-column unroofing depth and retires it.
 pub const BEDROCK_SEAM_THICKNESS_M: FracM = 50.0;
 
 /// Provisional basement material of the bedrock seam — **STUB #16**. One flat

@@ -2798,6 +2798,32 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **`derive_regolith_at` derives `H` from an EMPTY ledger — Movement 2a's derived views
+  cannot see `dc:deep/weather_inventory`'s facts** (spine-audit 2026-07-24, post-M3).
+  `DeepField::derive_regolith_at` (`deeptime/field.rs:545`) builds its working inventory from
+  `FactLedger::empty_with_bedrock(strata)`, so the "inventory is the authority; `R`/`H` are its
+  materialized views" claim (journal/0092) currently holds for the **record half only** — the
+  derived `H` structurally cannot see the **6.09 m of `Loose`** the M3 weathering process commits
+  per epoch. This is the **concrete content of the R/H-unification residual** left by stub #17's
+  discharge (the deferred half of its heir sentence). Not a defect *of* M3 — the two-authorities
+  split was the briefed design — but it is the thing Movement 2 must actually close, and it is
+  the honest reason "one authority" is not yet true. **Tracked:** ROADMAP Movement 2 /
+  material-behavior.md §11 continuation slot + §13.6 / stubs.md #17 Residual.
+
+- **Two declaration defects on the new `dc:deep/weather_inventory` pass** (spine-audit
+  2026-07-24; both free to fix, neither affects production — the flag is off by default).
+  **(a) `reads_prev: &[BioMod]` is not what happens.** The pass reads `grid.bio_weather`, which
+  `dc:deep/biotic` overwrites **in place** each epoch; no edge is declared against `biotic`, so
+  which epoch's plane it sees is decided by `passgraph`'s id-lexicographic tie-break
+  (`dc:deep/biotic` < `dc:deep/weather_inventory` ⇒ it reads **this** epoch's, not last's).
+  *Rename the pass and the physics changes* — the declaration is a fiction the graph does not
+  enforce. Honest fix is free: move `BioMod` into within-epoch `reads` (adds only
+  `biotic → weather_inventory`; nothing reads `Saprolite`, so no cycle). Note
+  `weather_inventory_is_absent_off_and_a_declared_cellular_pass_on` asserts the **declaration**,
+  not the behaviour — green about the wrong thing (**A-3** shape). **(b) `Exposed` is declared
+  but never read** (susceptibility is a constant off `BEDROCK_SEAM_MATERIAL` until stub #16's
+  genesis heir lands); the comment claiming it reads "the exposed lithology" is untrue today.
+
 - **STATION — per-chunk material-palette quantization makes the chunk grid a
   visible checkerboard** (user field report + diagnostic station, 2026-07-24;
   `journal/assets/0088-palette-quantization-chunk-seams.png`).

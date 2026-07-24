@@ -442,6 +442,18 @@ that is not a stub. *Note the loose PRODUCT still inherits stub #16's stand-in b
 (one flat granite basement) — #16 is NOT retired by this; the material a rind is made of still
 awaits the genesis/emplacement heir.*
 
+**RESIDUAL — where the other half went (spine-audit 2026-07-24).** #17's heir sentence asked for
+**two** things: a per-epoch in-loop cellular pass (**landed**) *and* "riding / unifying with the
+height-tier weathering that already accumulates `H`" (**deferred**). The "two-authorities split
+holds" line above states an *implementation choice for this slice*, **not yet an invariant** — and
+the gap is visible in code, not merely doctrinal: `DeepField::derive_regolith_at`
+(`deeptime/field.rs:545`) derives `H` from an **empty** ledger
+(`FactLedger::empty_with_bedrock`), so Movement 2a's "the inventory is the authority, `R`/`H` are
+its materialized views" is currently true of the **record half only** — the derived view
+structurally cannot see the 6.09 m of `Loose` this pass commits. The unification half is tracked
+as **ROADMAP Movement 2 / material-behavior.md §11 continuation slot + §13.6**; nothing further is
+owed to *this* stub, but do not read the discharge as "the two authorities are reconciled."
+
 *Original entry (added 2026-07-24, the S18 walk finding, corrections #46/#47; preserved for audit):*
 `dc-worldgen/src/deeptime/field.rs::build_ledgers` + `weather_inventory::weather_column(_,
 chapters=1, _)`: the inventory weathering runs a **single chapter, after the deep-time run,
