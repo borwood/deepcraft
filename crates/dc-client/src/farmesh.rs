@@ -105,20 +105,119 @@ impl FarFieldTerrain {
     }
 }
 
-/// Full-detail radius in meters (S1 shipped 72 m; S3 raises it and hangs the
-/// far field beyond it).
-pub const FULL_DETAIL_RADIUS_M: f64 = 128.0;
-/// The LOD-1 ring starts this far *inside* the full-detail edge (the seam
-/// overlap band; see module docs).
-pub const FAR_OVERLAP_M: f64 = 16.0;
 /// Outer edge of the far field when nothing overrides it (`--horizon`).
 pub const DEFAULT_FAR_MAX_M: f64 = 1200.0;
-/// The interior LOD ring ladder, as multiples of the full-detail radius: the
-/// shipped edges 256 / 512 / 1024 m are exactly 2× / 4× / 8× [`FULL_DETAIL_RADIUS_M`].
-/// Each ring therefore doubles in radius while its tiles double in size, which
-/// is what keeps tiles-per-ring roughly flat (journal/0023's measured 188 tiles
-/// spread ~evenly across L1..L4).
-const RING_LADDER: [f64; 3] = [2.0, 4.0, 8.0];
+
+/// The single LOD range ladder — **one source of truth** for every far/near
+/// distance the renderer uses (journal/0091). The nearfield border plus each
+/// far LOD step's starting range *expressed as a distance past that border*;
+/// the ring edges, the warm/cold reduction selection, and the near-field
+/// load/unload radii all DERIVE from these fields, so no LOD range is defined
+/// in two places that could silently drift apart (the constant-coupling defect
+/// the 2026-07-24 audit named § 6.3: `REDUCTION_STANDOFF_M` set independently of
+/// the L1 ring edge, `UNLOAD_RADIUS_M` set independently of the near cover).
+///
+/// **Every field is a range knob, shaped to later become a per-player perf
+/// setting** — a lower-spec player would pull the coarse rings inward, a wider
+/// view dial push them out, all by editing these numbers and letting everything
+/// re-derive. No settings UI exists yet, and this slice builds none: these are
+/// only coupled *named* knobs under one authority, ready for that future.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LodLadder {
+    /// The nearfield border (m): within it the near volumetric field covers the
+    /// surface (far columns are CULLED there, never buried), and at it the finest
+    /// far ring (LOD-1) begins. Also the near-coverage radius `near_covers` uses.
+    pub nearfield_border_m: f64,
+    /// How far PAST the border the near full-detail field still streams real
+    /// chunks — the seam overlap band. Near load radius =
+    /// `nearfield_border_m + overlap_past_border_m`; the far field laps under it.
+    pub overlap_past_border_m: f64,
+    /// Extra distance past the load radius before a streamed near chunk unloads
+    /// (streaming hysteresis). Unload radius = load radius + this.
+    pub unload_slack_m: f64,
+    /// Each far LOD step's inner edge as a distance PAST the nearfield border.
+    /// `step_past_border_m[k]` starts LOD-(k+2): index 0 → LOD-2, 1 → LOD-3,
+    /// 2 → LOD-4. LOD-1 always starts at the border itself (its step ≡ 0). The
+    /// shipped values reproduce the historical 2×/4×/8× full-detail ring ladder
+    /// (256 / 512 / 1024 m) exactly. These are the primary per-player range
+    /// knobs: shrink them to pull the coarse rings inward on a weaker machine.
+    pub step_past_border_m: [f64; 3],
+    /// Outer edge of the far field (the horizon, LOD-4's outer edge) — what
+    /// `--horizon` sets. The only edge a wider horizon moves (journal/0042); the
+    /// inner rings stay put because their edges are border-relative, not
+    /// horizon-relative.
+    pub far_max_m: f64,
+}
+
+impl LodLadder {
+    /// The shipped ladder: border 112 m, load 128 m, unload 160 m, ring inner
+    /// edges [112, 256, 512, 1024] m, horizon 1200 m — byte-identical to the
+    /// pre-ladder scattered constants (pinned by
+    /// `default_ring_edges_match_the_shipped_constants`), so a launch with no
+    /// `--horizon` renders exactly as before the ladder existed.
+    pub const DEFAULT: LodLadder = LodLadder {
+        nearfield_border_m: 112.0,
+        overlap_past_border_m: 16.0,
+        unload_slack_m: 32.0,
+        step_past_border_m: [144.0, 400.0, 912.0],
+        far_max_m: DEFAULT_FAR_MAX_M,
+    };
+
+    /// The near full-detail load radius (m): the near field streams this sphere.
+    #[inline]
+    pub const fn load_radius_m(&self) -> f64 {
+        self.nearfield_border_m + self.overlap_past_border_m
+    }
+
+    /// The near-field unload radius (m): load radius plus hysteresis slack. The
+    /// number `streaming` streams by AND the far field's viewer-relative refresh
+    /// reach — one definition (was the independent `LOAD_RADIUS_M + 32`).
+    #[inline]
+    pub const fn unload_radius_m(&self) -> f64 {
+        self.load_radius_m() + self.unload_slack_m
+    }
+
+    /// The near-coverage radius (m): far columns whose 3-D distance to the viewer
+    /// is under this are CULLED (the near field draws them). Equals the border,
+    /// so culling exactly the border disc leaves the intended overlap band
+    /// occluded and NO deeper buried geometry (journal/0022 walk-17). Independent
+    /// of the horizon: widening the far field never changes what the near covers.
+    #[inline]
+    pub const fn near_cover_r_m(&self) -> f64 {
+        self.nearfield_border_m
+    }
+
+    /// The five ring edges `[inner_L1, inner_L2, inner_L3, inner_L4, far_max]`,
+    /// derived from the border + steps-past-border. Level L covers
+    /// `[edges[L-1], edges[L])` by centre distance. Clamped monotone into
+    /// `[border, far_max]` so an absurdly *short* horizon collapses the inner
+    /// rings instead of inverting them.
+    pub fn ring_edges(&self) -> [f64; 5] {
+        let border = self.nearfield_border_m;
+        let far_max = self.far_max_m.max(border);
+        let e = |past: f64| (border + past).clamp(border, far_max);
+        [
+            border,
+            e(self.step_past_border_m[0]),
+            e(self.step_past_border_m[1]),
+            e(self.step_past_border_m[2]),
+            far_max,
+        ]
+    }
+
+    /// This ladder with a different horizon (what `--horizon <km>` dials).
+    pub fn with_far_max(self, far_max_m: f64) -> Self {
+        Self { far_max_m, ..self }
+    }
+}
+
+/// Full-detail radius in meters — the near load sphere. **Derived from the
+/// single ladder** ([`LodLadder::load_radius_m`]); kept as a named const only
+/// because `streaming` and `bench_storage` still spell it.
+pub const FULL_DETAIL_RADIUS_M: f64 = LodLadder::DEFAULT.load_radius_m();
+/// The LOD-1 ring starts this far *inside* the full-detail edge (the seam
+/// overlap band). Ladder-derived ([`LodLadder::overlap_past_border_m`]).
+pub const FAR_OVERLAP_M: f64 = LodLadder::DEFAULT.overlap_past_border_m;
 /// Smallest / largest horizon a launch flag may ask for (meters). Below the
 /// full-detail radius there is no far field to speak of; above ~64 km the
 /// outermost ring's tile count runs away (see journal/0042's table).
@@ -126,75 +225,51 @@ pub const HORIZON_MIN_M: f64 = 200.0;
 pub const HORIZON_MAX_M: f64 = 64_000.0;
 
 /// The far field's ring geometry — **runtime** configuration (`--horizon`),
-/// not a compile-time constant.
+/// not a compile-time constant — carried as a [`LodLadder`] plus its derived
+/// ring edges.
 ///
 /// Why this stopped being a `const` (journal/0042): the shipped 1.2 km horizon
 /// puts the camera *inside* every landform the worldgen builds — a mountain
 /// range is 5–20 km across, so its macro shape never entered frame and the
 /// journal/0040 walk could not judge the landform it was standing on. The
-/// horizon had to become something a walker can dial per launch.
+/// horizon had to become something a walker can dial per launch. Widening it
+/// stretches only the **outermost** ring (the [`LodLadder`] steps are
+/// border-relative), which is the cheap direction — the fine rings' tile scan
+/// stays small and the extra area is covered by L4's coarse tiles.
 ///
-/// **The distribution rule is the shipped constant, generalized.** The old
-/// `RING_EDGES_M` was `[FULL_DETAIL - OVERLAP, 256, 512, 1024, FAR_MAX]`; the
-/// three interior edges are the [`RING_LADDER`] doublings of the full-detail
-/// radius, and only the outer edge is the horizon. Widening the horizon
-/// therefore stretches the **outermost** ring and leaves the inner three exactly
-/// where they were. That is deliberate, and it is the cheap direction:
-/// - The fine rings' tile scan radius (`wanted_far_tiles`) stays small, so the
-///   per-frame want-set cost does not move at all.
-/// - The extra area is covered by L4's 460.8 m tiles (14.4 m coarse voxels at
-///   N=2) — the coarsest, cheapest-per-square-km geometry the 4-level scheme
-///   has. Scaling all four rings proportionally instead would have grown the
-///   L1 ring's tile count with the square of the horizon, for detail nobody can
-///   resolve at 8 km.
-///
-/// The cost that remains is quadratic in the horizon *within L4* — measured in
-/// journal/0042; past ~10 km the answer is more LOD levels (journal/0023's
-/// "add rings" projection), not a longer L4.
-///
-/// [`Default`] reproduces the shipped constants exactly (asserted in
+/// [`Default`] reproduces the shipped ladder exactly (asserted in
 /// `default_ring_edges_match_the_shipped_constants`), so a launch with no
 /// `--horizon` renders byte-identically to before the knob existed.
 #[derive(Resource, Clone, Copy, Debug, PartialEq)]
 pub struct HorizonConfig {
-    /// Full-detail (near volumetric field) radius, meters.
-    pub full_detail_m: f64,
-    /// How far inside the full-detail edge the LOD-1 ring starts.
-    pub overlap_m: f64,
-    /// Outer edge of the far field, meters — what `--horizon` sets.
-    pub far_max_m: f64,
-    /// Ring edges in meters: level L covers `[ring_edges[L-1], ring_edges[L])`
-    /// by center distance, L in 1..=4. Derived, never set directly.
+    /// The single LOD range ladder this horizon derives everything from.
+    pub ladder: LodLadder,
+    /// Ring edges in meters (derived from `ladder`): level L covers
+    /// `[ring_edges[L-1], ring_edges[L])` by center distance, L in 1..=4. A
+    /// derived field, cached here for the hot want-set scan; never set directly.
     pub ring_edges: [f64; 5],
 }
 
 impl Default for HorizonConfig {
     fn default() -> Self {
-        Self::new(FULL_DETAIL_RADIUS_M, FAR_OVERLAP_M, DEFAULT_FAR_MAX_M)
+        Self::from_ladder(LodLadder::DEFAULT)
     }
 }
 
 impl HorizonConfig {
-    /// Derive the ring edges from the three real inputs. Interior edges are the
-    /// [`RING_LADDER`] multiples of the full-detail radius, clamped monotone into
-    /// `[inner, far_max]` so an absurdly *short* horizon collapses the inner
-    /// rings instead of inverting them.
-    pub fn new(full_detail_m: f64, overlap_m: f64, far_max_m: f64) -> Self {
-        let inner = full_detail_m - overlap_m;
-        let far_max = far_max_m.max(inner);
-        let e = |k: usize| (RING_LADDER[k] * full_detail_m).clamp(inner, far_max);
+    /// Build the horizon config from a ladder, deriving (and caching) the ring
+    /// edges — the ONE place ring edges come from.
+    pub fn from_ladder(ladder: LodLadder) -> Self {
         Self {
-            full_detail_m,
-            overlap_m,
-            far_max_m: far_max,
-            ring_edges: [inner, e(0), e(1), e(2), far_max],
+            ring_edges: ladder.ring_edges(),
+            ladder,
         }
     }
 
-    /// The default geometry with a different horizon — what `--horizon <km>`
+    /// The default ladder with a different horizon — what `--horizon <km>`
     /// builds.
     pub fn with_far_max(far_max_m: f64) -> Self {
-        Self::new(FULL_DETAIL_RADIUS_M, FAR_OVERLAP_M, far_max_m)
+        Self::from_ladder(LodLadder::DEFAULT.with_far_max(far_max_m))
     }
 
     /// Inner edge of level `level`'s ring.
@@ -209,25 +284,27 @@ impl HorizonConfig {
         self.ring_edges[usize::from(level)]
     }
 
-    /// Horizontal radius (m) within which the near volumetric field is treated as
-    /// covering the surface, so far columns there are CULLED rather than buried.
-    /// Equals the far-overlap inset of the full-detail radius: the near field
-    /// streams a `full_detail_m` sphere, so culling far columns whose 3-D distance
-    /// to the viewer is under this inset leaves exactly the intended `overlap_m`
-    /// occluded overlap band (far quantized below near, near opaque on top) and NO
-    /// deeper buried geometry — the coverage-logic replacement for journal/0022
-    /// walk-17's buried inner lap. Independent of the horizon: widening the far
-    /// field never changes what the near field covers.
+    /// Horizontal radius (m) within which the near volumetric field covers the
+    /// surface, so far columns there are CULLED rather than buried. Ladder-derived
+    /// ([`LodLadder::near_cover_r_m`]).
     #[inline]
     fn near_cover_r_m(&self) -> f64 {
-        self.full_detail_m - self.overlap_m
+        self.ladder.near_cover_r_m()
+    }
+
+    /// The near-field unload radius (m) — the far field's viewer-relative refresh
+    /// reach (`tile_in_cull_band`) is measured against it. Ladder-derived, the
+    /// same number `streaming::UNLOAD_RADIUS_M` streams by.
+    #[inline]
+    fn unload_radius_m(&self) -> f64 {
+        self.ladder.unload_radius_m()
     }
 
     /// Camera far plane for this horizon. The shipped 3 km plane was 2.5× the
     /// 1.2 km field (headroom for the outermost ring's far corners); keeping the
     /// ratio means the default is unchanged and a wider horizon is not clipped.
     pub fn camera_far_m(&self) -> f32 {
-        (2.5 * self.far_max_m).max(2.5 * DEFAULT_FAR_MAX_M) as f32
+        (2.5 * self.ladder.far_max_m).max(2.5 * DEFAULT_FAR_MAX_M) as f32
     }
 
     /// Distance fog range (start, end) in meters for this horizon. The shipped
@@ -236,7 +313,7 @@ impl HorizonConfig {
     /// point of the knob — seeing macro landform shape — is fogged away. Scales
     /// with the horizon, so the default is byte-identical.
     pub fn fog_range_m(&self) -> (f32, f32) {
-        let s = self.far_max_m / DEFAULT_FAR_MAX_M;
+        let s = self.ladder.far_max_m / DEFAULT_FAR_MAX_M;
         ((150.0 * s) as f32, (1100.0 * s) as f32)
     }
 }
@@ -581,17 +658,61 @@ const RING_SKIRT_COARSE_VOXELS: i64 = 2;
 // exactly the one-span stack, so the synthesized (default) case renders
 // byte-identically to journal/0023.
 
-/// Reduced node data may only replace the synthesized answer for columns
-/// farther than this from the viewer (meters, 3-D distance). Mechanism: the
-/// near volumetric field draws out to `streaming::UNLOAD_RADIUS_M` (160 m),
-/// and a reduced coarse top can legitimately sit up to one coarse voxel ABOVE
-/// the true surface (`MajorityNonAir` rounds the surface cell to nearest,
-/// while FF2a synthesis FLOORS — journal/0023's near-parity guarantee), so
-/// inside the near field's draw radius a reduced far corner could poke through
-/// the near ground. Within this standoff the floor-quantized synthesis stands;
-/// beyond it there is no near mesh to poke through. 176 = 160 + one tile of
-/// slack against streaming hysteresis.
-const REDUCTION_STANDOFF_M: f64 = 176.0;
+/// Make a resident node's reduced spans **geometry-safe** against the near
+/// ground: no reduced span may raise the column's surface above the
+/// floor-quantized synthesized top (`synth_top`), the same floor cold synthesis
+/// uses (journal/0091). The block/material each span carries is untouched — only
+/// its *height* is floored.
+///
+/// Why this is the prerequisite that lets the 176 m reduction standoff die: the
+/// block pyramid's `MajorityNonAir` reduce ROUNDS the surface cell to nearest,
+/// so a reduced coarse top can sit up to one coarse voxel ABOVE the true
+/// surface, while FF2a synthesis FLOORS ([`quantize_top`]) and cannot. That one
+/// coarse voxel of round-up is the only way warm data could poke through the
+/// near opaque ground, so the old code refused reduced data anywhere the near
+/// field draws (the standoff) — which is exactly what forced the finest band's
+/// inner shell back to cold dither (the band inversion, audit § 5). Flooring the
+/// warm surface to the same lattice line synthesis floors to closes the
+/// poke-through *at the source*, so reduced data is now safe to use right up to
+/// the near-cover edge.
+///
+/// A span whose bottom sits at or below `synth_top` while its top rises above it
+/// is the rounded surface run: its top is clamped down to `synth_top` (it then
+/// fuses with the synthesized ground below in [`compose_column`], so cold and
+/// warm floor to the *identical* surface height — only their material can still
+/// differ, which is fix (b), the S-9 reconciliation, not this slice). A span
+/// wholly above `synth_top` (bottom > `synth_top`, an air gap beneath) is a real
+/// overhang/structure the near field also renders, and is kept. A span wholly at
+/// or below `synth_top` is subsurface/known-air and is kept.
+fn floor_known_surface(
+    synth_top: i32,
+    known: &[(i32, i32, Vec<ColumnSpan>)],
+) -> Vec<(i32, i32, Vec<ColumnSpan>)> {
+    known
+        .iter()
+        .map(|(kb, kt, spans)| {
+            let floored = spans
+                .iter()
+                .filter_map(|s| {
+                    if s.top > synth_top && s.bottom <= synth_top {
+                        // Grounded surface run rounded up past the floor: clamp
+                        // its top to the floor. If that empties it (a lone coarse
+                        // voxel sitting exactly on the floor line), drop it — the
+                        // synthesized ground already reaches `synth_top`.
+                        (synth_top > s.bottom).then_some(ColumnSpan {
+                            top: synth_top,
+                            bottom: s.bottom,
+                            block: s.block,
+                        })
+                    } else {
+                        Some(*s)
+                    }
+                })
+                .collect();
+            (*kb, *kt, floored)
+        })
+        .collect()
+}
 
 /// Whether the near volumetric field covers a far column at world `(wx_m, wz_m)`
 /// whose stepped top is at `top_m` — a pure function of the viewer pose, so a
@@ -753,9 +874,10 @@ const TILE_CELLS: usize = CHUNK_SIZE as usize;
 /// fully-inserted reduced node answers over that column (empty = synthesize —
 /// never "air", the A-5 rule). Composition is [`compose_column`]: reduced
 /// nodes lay over the synthesized top sheet, which stands wherever the world
-/// was never generated (the default case, forever) and inside
-/// [`REDUCTION_STANDOFF_M`] (near-parity: only the floor-quantized synthesis
-/// is guaranteed to stay under the near ground).
+/// was never generated (the default case, forever) and wherever a node's
+/// subtree is not resident. Resident reduced spans are first floored
+/// geometry-safe ([`floor_known_surface`]) so they stay under the near ground —
+/// which is what retired the old per-column distance standoff (journal/0091).
 // The derivation boundary takes its world by parameter (pure-input rule);
 // bundling them into a struct would only obscure the data flow.
 #[allow(clippy::too_many_arguments)]
@@ -789,14 +911,16 @@ fn tile_column_stacks(
             let (wx_m, wz_m) = (wx as f64 * base_vs, wz as f64 * base_vs);
             let top_m = f64::from(top) * base_vs;
             culled[k] = near_covers(wx_m, wz_m, top_m, viewer_m, hz);
-            let (dx, dy, dz) = (wx_m - viewer_m.x, top_m - viewer_m.y, wz_m - viewer_m.z);
-            let beyond_standoff =
-                dx * dx + dy * dy + dz * dz >= REDUCTION_STANDOFF_M * REDUCTION_STANDOFF_M;
-            stacks[k] = if beyond_standoff {
-                compose_column(synth, &known(wx, wz))
-            } else {
-                vec![synth]
-            };
+            // Warm-where-resident, cold-only-where-not (journal/0091, the standoff
+            // removal). `known` returns reduced spans ONLY for nodes whose subtree
+            // is fully inserted (the A-5 guard, `known_node_grids`); a partial or
+            // never-visited node returns empty and `compose_column` falls back to
+            // the synthesized top sheet — never air. No per-column distance gate:
+            // the reduced surface is floored geometry-safe (`floor_known_surface`)
+            // so it physically cannot poke through the near ground, which is what
+            // let the 176 m standoff — and the band inversion it caused — go.
+            let resident = floor_known_surface(top, &known(wx, wz));
+            stacks[k] = compose_column(synth, &resident);
         }
     }
     (stacks, culled)
@@ -1155,12 +1279,15 @@ fn viewer_near_chunk(base: VoxelScale, viewer: DVec3) -> (i64, i64, i64) {
 }
 
 /// Whether a tile is close enough to the viewer that its column derivation is
-/// viewer-relative — either the near-coverage cull or the FF2b reduction
-/// standoff ([`REDUCTION_STANDOFF_M`], the larger of the two) could gate some
-/// of its columns — and must therefore be refreshed as the viewer moves. This
-/// is also what walks reduced data in behind a moving player: the tiles just
-/// outside the standoff re-derive on the next near-chunk crossing and pick up
-/// freshly reduced nodes.
+/// viewer-relative — the near-coverage cull could gate some of its columns — and
+/// must therefore be refreshed as the viewer moves. Measured against the near
+/// field's own reach (the ladder's unload radius, `>= near_cover`, journal/0091):
+/// this is the band the near field draws into, so the tiles that lap it must
+/// refresh their coverage cull, and it is also what walks freshly-resident
+/// reduced data in behind a moving player — the tiles just outside the near field
+/// re-derive on the next near-chunk crossing and pick up newly reduced nodes.
+/// (With the reduction standoff retired the two bounds collapse into one
+/// ladder-derived reach.)
 fn tile_in_cull_band(
     base: VoxelScale,
     level: u8,
@@ -1170,7 +1297,7 @@ fn tile_in_cull_band(
     hz: &HorizonConfig,
 ) -> bool {
     far_tile_center_dist(base, level, tx, tz, viewer)
-        < hz.near_cover_r_m().max(REDUCTION_STANDOFF_M) + far_tile_m(base, level)
+        < hz.near_cover_r_m().max(hz.unload_radius_m()) + far_tile_m(base, level)
 }
 
 /// Stream the worldgen horizon: the voxel-stepped coarse-summary rings (FF2a).
@@ -1567,12 +1694,53 @@ mod tests {
             [112.0, 256.0, 512.0, 1024.0, 1200.0],
             "the shipped RING_EDGES_M, exactly"
         );
-        assert_eq!(hz.far_max_m, 1200.0);
+        assert_eq!(hz.ladder.far_max_m, 1200.0);
         assert_eq!(hz.near_cover_r_m(), 112.0, "the shipped NEAR_COVER_R_M");
         assert_eq!(hz.camera_far_m(), 3000.0, "the shipped camera far plane");
         assert_eq!(hz.fog_range_m(), (150.0, 1100.0), "the shipped fog range");
         // Asking for the default horizon explicitly is the same object.
         assert_eq!(HorizonConfig::with_far_max(DEFAULT_FAR_MAX_M), hz);
+    }
+
+    /// **The ladder is the single source of truth** (journal/0091): the ring
+    /// edges, the near-coverage radius, and the near-field load/unload radii all
+    /// DERIVE from the one [`LodLadder`] — no LOD range is defined in two places
+    /// that could drift (the § 6.3 constant-coupling defect). This pins the
+    /// derivations so a future edit to the ladder moves *everything* together,
+    /// and a stray hardcoded radius somewhere else fails loudly.
+    #[test]
+    fn every_lod_range_derives_from_the_one_ladder() {
+        let l = LodLadder::DEFAULT;
+        // Ring edges = border + each step-past-border (LOD-1 at the border).
+        assert_eq!(
+            l.ring_edges(),
+            [
+                l.nearfield_border_m,
+                l.nearfield_border_m + l.step_past_border_m[0],
+                l.nearfield_border_m + l.step_past_border_m[1],
+                l.nearfield_border_m + l.step_past_border_m[2],
+                l.far_max_m,
+            ],
+            "ring edges are border + steps-past-border"
+        );
+        // Near radii are border-relative, one definition each.
+        assert_eq!(l.near_cover_r_m(), l.nearfield_border_m);
+        assert_eq!(
+            l.load_radius_m(),
+            l.nearfield_border_m + l.overlap_past_border_m
+        );
+        assert_eq!(l.unload_radius_m(), l.load_radius_m() + l.unload_slack_m);
+        // The shipped absolute values, so the defaults are pinned in one spot.
+        assert_eq!(l.near_cover_r_m(), 112.0);
+        assert_eq!(l.load_radius_m(), 128.0);
+        assert_eq!(l.unload_radius_m(), 160.0);
+        // The back-compat consts and the streaming radii read the SAME ladder —
+        // proof there is no second copy of these numbers anywhere.
+        assert_eq!(FULL_DETAIL_RADIUS_M, l.load_radius_m());
+        assert_eq!(FAR_OVERLAP_M, l.overlap_past_border_m);
+        assert_eq!(crate::streaming::UNLOAD_RADIUS_M, l.unload_radius_m());
+        // And the horizon config's derived edges equal the ladder's own.
+        assert_eq!(HorizonConfig::default().ring_edges, l.ring_edges());
     }
 
     /// A wider horizon stretches the OUTERMOST ring and leaves the inner three
@@ -1886,21 +2054,36 @@ mod tests {
         );
     }
 
-    /// Inside [`REDUCTION_STANDOFF_M`] the floor-quantized synthesis stands
-    /// even where reduced nodes exist — only flooring guarantees the far top
-    /// stays under the near ground, and the near mesh draws in that band —
-    /// and the reduction is not even consulted; beyond it, reduced data wins.
+    /// The reduction standoff is **retired** (journal/0091). Reduced data is
+    /// used wherever the node subtree is resident, right up to the near-cover
+    /// edge — no per-column distance gate forces cold synthesis over warm data
+    /// (that gate, `REDUCTION_STANDOFF_M = 176 m`, landed inside the L1 ring and
+    /// WAS the band inversion, audit § 5). What keeps warm safe near the player
+    /// is no longer a standoff but the geometry-safe floor
+    /// (`floor_known_surface`): a reduced surface that `MajorityNonAir` rounded
+    /// one coarse voxel ABOVE the synthesized floor is clamped back to it, so
+    /// warm and cold floor to the identical surface height and warm cannot poke
+    /// through the near ground. Cold synthesis is used ONLY where the reduction
+    /// is absent (never-visited / evicted). This replaces the retired
+    /// `reduction_standoff_keeps_near_columns_synthesized`.
     #[test]
-    fn reduction_standoff_keeps_near_columns_synthesized() {
+    fn reduction_used_where_resident_and_floored_under_the_near_surface() {
         let base = VoxelScale::from_player_height(PLAYER_HEIGHT_M, 2);
         let hz = HorizonConfig::default();
-        let surf = 20i32;
+        let surf = 20i32; // synth floors to 20
         let flat = move |_wx: i64, _wz: i64| (surf, Block::Grass);
-        // Reduction claims one coarse voxel HIGHER than synthesis everywhere
-        // (the legitimate majority-vs-floor disagreement).
-        let calls = std::cell::Cell::new(0usize);
-        let mut known = |_wx: i64, _wz: i64| {
-            calls.set(calls.get() + 1);
+        let tile_m = far_tile_m(base, 1);
+        // Viewer standing on the surface at the tile centre — the whole tile is
+        // inside the old 176 m standoff, where reduced data used to be refused.
+        let centre = DVec3::new(
+            tile_m * 0.5,
+            f64::from(surf) * base.voxel_size_m(),
+            tile_m * 0.5,
+        );
+
+        // A resident node whose reduced surface rounded ONE coarse voxel high
+        // (top 22 vs the synth floor 20) — the legitimate majority-vs-floor gap.
+        let mut resident = |_wx: i64, _wz: i64| {
             vec![(
                 0,
                 64,
@@ -1911,21 +2094,90 @@ mod tests {
                 }],
             )]
         };
-        // Viewer on the surface at the tile centre: the whole extended grid is
-        // inside the standoff — pure synthesis, reduction never asked.
-        let tile_m = far_tile_m(base, 1);
-        let centre = DVec3::new(
-            tile_m * 0.5,
-            f64::from(surf) * base.voxel_size_m(),
-            tile_m * 0.5,
+        let (stacks, _c) = tile_column_stacks(base, 1, 0, 0, centre, &hz, &flat, &mut resident);
+        // Warm-where-resident: the reduction IS used here now, but floored — the
+        // surface top is 20 (the synth floor), NOT 22, so warm cannot rise above
+        // the near ground, while the reduced material (Stone) reaches the eye.
+        for s in &stacks {
+            assert_eq!(s.len(), 1, "reduced surface fuses with the synth ground");
+            assert_eq!(
+                s[0].top, 20,
+                "warm top floored to the synth surface, not 22"
+            );
+            assert_eq!(s[0].block, Block::Stone, "reduced material reaches the eye");
+        }
+
+        // Cold-only-where-not-resident: an empty `known` (never-visited/evicted)
+        // is pure synthesis — the sole remaining use of cold.
+        let mut absent = |_wx: i64, _wz: i64| Vec::new();
+        let (stacks, _c) = tile_column_stacks(base, 1, 0, 0, centre, &hz, &flat, &mut absent);
+        for s in &stacks {
+            assert_eq!(s.len(), 1);
+            assert_eq!(s[0].top, 20);
+            assert_eq!(s[0].block, Block::Grass, "cold synth where not resident");
+        }
+    }
+
+    /// Warm geometry-safe (journal/0091), unit-level: `floor_known_surface`
+    /// clamps a reduced surface run that rounded above the synth floor, so a
+    /// composed warm column's surface can NEVER exceed the floored synthesized
+    /// top — the property that lets warm run right up to the near field without
+    /// poking through. A real overhang (an air gap beneath it) is left untouched.
+    #[test]
+    fn warm_reduce_is_floored_geometry_safe() {
+        let synth_top = 20i32;
+        // A grounded reduced run rounded two coarse voxels high.
+        let rounded = vec![(
+            0,
+            64,
+            vec![ColumnSpan {
+                top: 24,
+                bottom: 0,
+                block: Block::Stone,
+            }],
+        )];
+        let floored = floor_known_surface(synth_top, &rounded);
+        assert_eq!(
+            floored[0].2[0].top, synth_top,
+            "rounded surface run clamped down to the floor"
         );
-        let (stacks, _c) = tile_column_stacks(base, 1, 0, 0, centre, &hz, &flat, &mut known);
-        assert_eq!(calls.get(), 0, "no reduction consulted inside the standoff");
-        assert!(stacks.iter().all(|s| s.len() == 1 && s[0].top == 20));
-        // A distant viewer consults it and the reduced top wins.
-        let (stacks, _c) = tile_column_stacks(base, 1, 0, 0, FAR_VIEWER, &hz, &flat, &mut known);
-        assert!(calls.get() > 0, "reduction consulted beyond the standoff");
-        assert!(stacks.iter().all(|s| s[0].top == 22));
+        let synth = ColumnSpan {
+            top: synth_top,
+            bottom: FAR_BOTTOM_UNBOUNDED,
+            block: Block::Grass,
+        };
+        let col = compose_column(synth, &floored);
+        assert!(
+            col.iter().all(|s| s.top <= synth_top),
+            "no warm span rises above the floored surface"
+        );
+
+        // An overhang wholly above the floor (air gap beneath) is REAL geometry
+        // the near field also renders — kept, not clamped. Its grounded run below
+        // the floor is subsurface and also untouched.
+        let overhang = vec![(
+            0,
+            64,
+            vec![
+                ColumnSpan {
+                    top: 40,
+                    bottom: 32,
+                    block: Block::Stone,
+                },
+                ColumnSpan {
+                    top: 18,
+                    bottom: 0,
+                    block: Block::Stone,
+                },
+            ],
+        )];
+        let floored = floor_known_surface(synth_top, &overhang);
+        assert_eq!(
+            floored[0].2[0].top, 40,
+            "overhang above the floor is preserved"
+        );
+        assert_eq!(floored[0].2[0].bottom, 32);
+        assert_eq!(floored[0].2[1].top, 18, "subsurface run untouched");
     }
 
     #[test]

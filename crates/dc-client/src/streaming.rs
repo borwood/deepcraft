@@ -37,11 +37,15 @@ use dc_worldgen::WorldGenerator;
 /// Chunks whose center is within this many meters of the player are loaded at
 /// full detail. Meters, not chunks: every scale streams the same world volume.
 /// S3 raised this from S1's 72 m; beyond it the far-mesh path (farmesh.rs)
-/// renders LOD rings out to 1.2 km.
-const LOAD_RADIUS_M: f64 = crate::farmesh::FULL_DETAIL_RADIUS_M;
+/// renders LOD rings out to 1.2 km. **Derived from the single LOD ladder**
+/// (journal/0091), so the near load radius and the far ring geometry can never
+/// drift apart.
+const LOAD_RADIUS_M: f64 = crate::farmesh::LodLadder::DEFAULT.load_radius_m();
 /// Hysteresis: unload only beyond this distance. Also the radius the hosted
 /// world's chunk budget is derived from (`Authority::chunk_budget_for`).
-pub const UNLOAD_RADIUS_M: f64 = LOAD_RADIUS_M + 32.0;
+/// Ladder-derived (load radius + the ladder's unload slack) — the same number
+/// `farmesh` measures its viewer-relative tile refresh against.
+pub const UNLOAD_RADIUS_M: f64 = crate::farmesh::LodLadder::DEFAULT.unload_radius_m();
 /// Chunks generated + meshed per frame.
 const LOAD_BUDGET_PER_FRAME: usize = 8;
 
