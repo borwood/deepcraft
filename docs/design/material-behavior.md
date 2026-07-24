@@ -445,3 +445,89 @@ height and composition — is the reserved next arc. It is entangled with the sh
 erosion loop (multiple phases mutate `R`/`H`), which is why it is a slice of its own,
 not folded into the first behavior. Heir home for the annotation: this section + the
 ROADMAP continuation slot.
+
+---
+
+## 12. Creation & ownership — working direction (STRONG LEANING, **NOT RATIFIED**)
+
+> **STATUS (2026-07-24).** This section is a **strong working direction, not a ratified
+> decision.** It is recorded — with its reasoning, not just its conclusion — so the
+> genesis-pass work is designed against a captured frame rather than re-derived cold
+> next session (the slice-of-sequencing / corpus-outruns-the-assistant discipline). It
+> is **open to revision by ongoing decisions.** Provenance is marked per claim: *(user's
+> strong leaning)* = the user's own conclusion; *(framing)* = the assistant's framing,
+> a strong lean the user endorsed as a direction but did not stamp final. Do not treat
+> any of it as a §-DECIDED until it is promoted to one.
+
+**The organizing principle: a transition is owned by whichever end can own it.**
+Creation and transformation are opposite directions, and they are owned at opposite ends:
+
+- **Transformation → input-owned.** The subject already exists and is being changed, so
+  **the edge lives on the input material.** Weather, oxidize, combust, dissolve, crumble,
+  metamorphose. `wood` owns `combust→`; `limestone` owns `dissolve→`. *S18's weathering is
+  the first live instance* (bedrock owns `weather→`, gated by agents). combust/oxidize are
+  siblings — more edges + agents on the same shape, "add a term, not a mechanism."
+  ***(user's strong leaning: transformation edges live on the material being transformed.)***
+- **Formation → output-owned.** The subject does not exist yet, so there is no input to
+  own it; **the output material declares its own formation predicate** ("I form when
+  [conditions]"), read by the genesis/emplacement pass. Emerald owns its conditions. This
+  is the "exception" that isn't one — it's the only end that *can* own a creation. *(framing.)*
+- **Recipe → registry-owned.** Multiple inputs, possibly multiple outputs, no single
+  subject → a **separate recipe registry keyed on ingredients** (crafting; bracketed —
+  does not exist yet). Answers "which material do you store it on?" with *none of them*.
+  ***(user's strong leaning: recipes get a separate registry, NOT an on-material edge.)***
+
+**Separate by concern — do not thread all creation through one API** *(fork resolved
+toward separation)*. Reasons: (a) a material may have **multiple genesis methods** (natural
+glass via a formation predicate; crafted glass via a recipe) so it can't own *the* one
+genesis; (b) multi-ingredient recipes have no owner material; (c) new creation kinds
+(bio-events, etc.) drop in as separate concerns; (d) it costs **no** north-star uniformity —
+these are genuinely different shapes (one-input-one-change vs one-output-one-predicate vs
+many-in-many-out), and forcing one API would bloat the edge with optional multi-input
+fields — the *over*-unification version of the re-invent-next-door sin. Uniformity holds
+**within** each kind. *(framing.)*
+
+**The transform/formation discriminator** *(framing)*: is a **specific solid material
+consumed**, or does the product **precipitate from something diffuse**? clay→mica consumes
+a specific solid → **input-owned transform** (provenance stays on the material); emerald in
+a vein / cement in pores / primordial rock from melt come out of fluid/melt/diffuse
+conditions → **output-owned formation**. This already maps onto §3's edge types: **edges
+*from* fluid/void** (cementation, deposition, crystallization) are output-declared
+formation; **solid↔solid edges** (weathering, metamorphic replacement) are input-owned
+transforms. The graph's edge type already encodes which end owns it.
+
+**Scope now = geo, and geo is entirely on-material in two directions** *(framing, following
+the user's scope call)*: a geo material declares its **formation predicate** (output-owned)
+and the **transform edges** it plays into as input (input-owned) — **no registry needed for
+geo.** The recipe registry is a *crafting* concern; bio / organic / liquid / gas are
+bracketed (no water yet; magma later, possibly several kinds). Bronze simply has no geo
+formation predicate — it is absent from geo and appears later in the recipe registry.
+
+**Distribution emerges from formation predicates over local conditions** *(framing)* — so
+emerald ≠ garnet ≠ ruby with no even sprinkle and no co-location, because their conditions
+differ (emerald needs Be-meets-Cr, a rare conjunction). As rich as the geo state we track
+(metamorphic grade, host composition, trace-element proxies); seam-first, enriched as packs
+demand. Priors: `ores.md` (lode fields, veins, drainage-export placers) already owns this
+territory.
+
+**Substance-kind is derived, not tagged** *(framing)*: metal / crystal / organic / … is a
+**named region of property space**, taken as the argmax of the material's properties against
+category prototypes (spines S-3 — a categorical answer is the argmax *of* the sample, never
+a field stored beside it), so the tag can never contradict the numbers. Crafting keys on
+**leaf** (specific: `mithril`) + **derived kind** (generic: "any metal smelts"). Pure
+game-fiction categories with no physical-property signature (enchantable, edible) stay
+**declared tags**. The carrying axes (luster, tenacity/ductility, conductivity, transparency)
+are cheap author-now/consume-later data, honest-default like `solubility`.
+
+**Materials-are-minerals** *(framing — the LEAST settled, most revisable claim here)*: the
+lean is that first-class materials are **minerals** (leaves authored by properties + a
+formation rule), and named rocks (granite, sandstone) are **derived mixtures-in-forms**
+(granite = a mineral assemblage; sandstone = quartz-in-structure + cement; "sand" = quartz
+loose). Genesis produces a **new identity only at a real mineralogical change**; form changes
+(sand→sandstone) keep the same mineral. Strong lean because the mithril test falls hard for
+it (*"the simulation never met a stand-in"*), but flagged as the least settled — the roster
+refactor it implies is large, and it rides seam-first, not a day-one rewrite.
+
+*Provisional illustrations (NOT committed syntax):* `combust→` (wood→charcoal), `oxidize→`
+with replacement modes (structure→pore-fill / structure→loose / material change) — dreamt-up
+examples of the input-owned edge shape, kept only as illustrations.
