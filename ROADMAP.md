@@ -2550,7 +2550,19 @@ before any code.
   `classify` / `MixtureDownsampleRule`** and belongs with the **far-field span
   migration under Crux 1**. It is a live violation of **spines S-9's consistency
   law** (a collapse/reduction must agree with the base it refines). Couples to the
-  albedo-at-range thread; **diagnose before touching.**
+  albedo-at-range thread. **DIAGNOSED 2026-07-24**
+  (`docs/audits/2026-07-24-lod-pre-post-visit-diagnosis.md`): it is ONE path with
+  ONE distance gate — `REDUCTION_STANDOFF_M = 176 m` (`farmesh.rs:594`) sits *inside*
+  the L1 ring (112–256 m), so L1's inner shell (112→176 m) synthesizes **cold**
+  (surface-dither) while every band ≥ 256 m (L2–L4) **warm-reduces** (dominant
+  subsurface) — the "band inversion" is **static/deterministic, not an eviction race**.
+  Cold blobs = a coherent bilinear field point-sampled at the coarse stride (adjacent
+  cells land on different members); post-visit faithful = the reduction sees real
+  subsurface strata; the two producers were only ever held to tops/occupancy + class
+  agreement, never material identity (the S-9 violation). Root: two unreconciled eras
+  (FF2a synth-dither vs FF2b reduce) made *visible* by the 0087 block-collapse; the
+  176 m standoff was geometry-motivated and never meant to flip *material*.
+  **Planning HELD at the user's direction — diagnosis only.**
 
 - **Perf: throughput ceiling at terminal velocity** (user field report,
   2026-07-23, on the 0083/0084 offload). Noticeably improved — the drop reaches
