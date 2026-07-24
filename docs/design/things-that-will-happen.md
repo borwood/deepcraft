@@ -131,3 +131,7 @@ list and not a roadmap — some of these are far off, and that is fine.
   the rest.
 - You read a cave wall and know how the water carved it, bed by bed, because the
   rock kept the record of every step that made it what it is.
+- An emerald forms only where a beryllium-rich vein cuts chromium-bearing rock —
+  two things that almost never meet — so emeralds are rare *and* clustered, and the
+  world places none of them: it runs the conditions and they appear where the
+  conditions do. A mod adds a new gem the same way: a material, a formation rule.

@@ -4205,7 +4205,74 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-24 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-24 BUILD-DAY close (supersedes every earlier block)
+
+**Read first: `docs/design/material-behavior.md` §§12–14 + `north-star.md` § Deviations.** This
+session turned the north-star's content layer into a *running engine*: the pass-runner landed at
+the deep tier, R/H became **views of the inventory**, and the **first field pass** (geotherm)
+stood up the condition-field vocabulary. The trust model was corrected to **no walls**.
+
+### Shipped (journals 0089–0093, corrections #44–#47)
+- **S18 — first-behavior weathering PLUMBING** (0089): sum-agent weathering on the keystone
+  inventory. The walk found it **sub-voxel + a one-shot snapshot** — plumbing, *not* a behavior
+  (#46/#47, stubs #17). This finding reshaped the whole arc.
+- **Movement 1 — the deep-time pass-runner** (0090): `erosion.step` → 14 self-declaring passes
+  on a shared `passgraph` kernel (A-4 guarded), byte-identical. The north-star runner, deep tier.
+- **Movement 2a — R/H are views of the inventory** (0092): the inventory (== the record) is the
+  authority; R/H derived (H = surface Loose, positional, cave-excluded). Byte-identical.
+- **Far-LOD band-inversion fix** (0091): one `LodLadder` (coupled knobs → future player perf
+  settings), warm floored geometry-safe, standoff gone. **Walk-CONFIRMED by the user.**
+- **The geotherm — the FIRST field pass** (0093): `dc:field/temperature` from a tectonic
+  gradient; retires `burial_temp_c` ENTIRELY (a real `T(depth)` is a field, not a `fn(unit)`
+  value); coal moved (world-changing, user-blessed placeholder).
+
+### Ratified (user's terms)
+- **Agents SUM, not product** ("sum is honest, be brave"; byte-identity with the legacy retired).
+- **Materials are minerals; named rocks are derived mixtures-in-forms** (strong lean, the mithril
+  test; §12). **Ownership:** transformation edges input-owned (on the material), formation
+  output-owned (a predicate), recipes registry-owned (separate); **geo = all on-material, two
+  directions** (§12, user's strong leaning).
+- **Material-aware transport + R/H unification** (§13): identity travels; sorting/placers/
+  provenance/facies emergent = **clastic genesis**. Scratch-first reconcile.
+- **Condition-fields + formation predicates as plain data over field-ids** (§14) — a **general
+  primitive** (ecology/civ too), the geotherm its first field pass.
+- **NO capability tiers** (Deviation #2, emphatic): mods author ANYTHING incl. field passes.
+  **Safety/trust + the ABI/WASM spike DEFERRED, not gating** (Deviation #1).
+- **Cadence = order (topo-sort) × rate (fractional-phase, `dt` = phase length)** — the ideas.md
+  sketch reconciled into material-behavior.md §5.
+
+### Falsified (assistant's own first) — #44–#47
+`fully_resolved` dormant (#44) · member-dither single-octave, not chunk-anchored (#45) · S18
+band sub-voxel — accept-by-mechanism not outcome, A-3 hand-fed magnitude (#46) · S18 is a
+one-shot snapshot, not a process; seam in the wrong place (#47).
+
+### Nothing running (agent-wise)
+All agents completed + integrated; worktrees removed; main green (geotherm gate by name;
+docs-only commits since). **A live `dc-client` on 7777 is the USER's `cargo run` — theirs to
+close, not an orphan.**
+
+### First things next session (all sequenced / unblocked)
+1. **Movement 3 — weathering-as-a-process** (the visible band that failed sub-voxel): weathering
+   runs *every epoch* on the runner riding `H`, real `dt`, accumulating. Acceptance = **≥1-voxel
+   band probed headless in-slice**. 2a's inventory authority is landed for it.
+2. **Movement 2b — material-aware transport** (§13, the big one): load multiset, Hjulström
+   entrainment, settling deposition → sorting/placers/provenance. Appearance-changer → user's eye.
+3. **Metamorphism — now UNBLOCKED by the geotherm:** `exhum` = P, geotherm = T → grade
+   (schist/gneiss/marble). Where the tectonic gradient finally bites (deep crust). Retires stub #4.
+4. **Igneous emplacement + the formation-predicate evaluator** (F1 ratified): the
+   predicate-as-data machinery + exhum-driven outcrop structure, retiring stubs #5/#16.
+
+### Owed / carried
+Appearance walks (S18 band once M3; geotherm coal — low-priority placeholder) · **field-pass
+migration** reminder (exhum/t_crust/drainage → real declared field passes) · geotherm
+nonlinear/mantle-heat · **LOD fix (b)** — cold/warm material S-9 agreement (mixture arc) ·
+structure-aware-fine-expression (within-cell, unsettled) · the poke-through lit-pass check ·
+the **roster refactor toward minerals-as-atoms** (strong lean, seam-first) · don't
+over-calibrate placeholders.
+
+*(The 2026-07-24 MORNING block below is consumed; preserved as history.)*
+
+## NEXT SESSION — written at the 2026-07-24 MORNING close (SUPERSEDED by the build-day close above)
 
 **Read first: `docs/design/material-behavior.md`** — the substrate spec ratified this
 session (companion to `north-star.md`) — then `docs/spines.md`. This session turned the
