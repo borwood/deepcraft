@@ -73,6 +73,44 @@ fractional quantities** (deep behaviors subtract/deposit sub-eighth amounts over
 long time; "fractions come only from the ledger"), and **quantize to eighths only
 at collapse.**
 
+### Commit semantics — DECIDED 2026-07-24 (user, ratified)
+
+Resolves the S17 seam (the strata record is keyed by depositional *environment*,
+not material, so a material change cannot rewrite it):
+
+- **In-place transformation → append a FACT** to the existing unit. A unit becomes
+  its depositional base (`DepTag`, immutable) **+ an appended list of transformation
+  facts**; current composition = `derive(tag)` then fold the facts. S-9 per unit.
+- **Depositional arrival → append a new UNIT** (today's `deposit_deep_history`,
+  unchanged). Transport is a *removal fact* here + a *new unit* at the receiver.
+- **Facts persist; the working inventory is transient.** Facts are the outcome of
+  stochastic, state-reading behaviors — not re-derivable without re-running the
+  compile — so they *are* the compiled artifact; the working inventory is compiler
+  scratch, re-derived from `base + facts` each chapter (S-2).
+- **`commit_chapter` = diff-and-append:** working-inventory vs the chapter-start
+  derived state → the deltas ARE the facts. **Empty delta ⇒ no facts ⇒ record
+  byte-identical** (the S17 identity default, already proven).
+- **A fact's shape:** `(chapter, edge, (from-mat, from-form) → (to-mat, to-form),
+  fraction)` — carries material change, form-only change (crumbling), and dissolution
+  (`→ void`). Ordered by chapter; within a chapter a commutative batch (one
+  synchronous pre-state).
+- **Per-voxel provenance falls out** (Sequenced item d, resolved): "started as X,
+  weathering did Y at chapter Z" is just reading `base + facts`. A cave wall records
+  how it was carved.
+
+**Provenance addresses the material portion's lineage, not the cell** (user,
+2026-07-24 — forward-looking, do not foreclose): when contents *move* — transport in
+deeptime; a player/NPC picking up and depositing in the present — the **move is itself
+a fact**, and the portion's fact-history **travels with it**: *"this X was placed by
+<actor> at <time/place>, after it was picked up at <time/place>, after agent Y
+deposited it…"*. The ledger addresses a portion's lineage; a move appends a move-fact
+and relocates the address. Not built now; the fact shape must leave room for it.
+
+**Correspondence note (S17 plea #3):** "VoxelContents-shaped spans" is a
+*correspondence*, not a shared type — the deep tier is fractional-metres-plus-facts,
+the present voxel is eighth-quantized; they share the form/material vocabulary, and
+eighth-quantization happens at collapse.
+
 ---
 
 ## 2. Forms — the closed set of occupancy modes (the machine)
