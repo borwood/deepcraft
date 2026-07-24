@@ -85,20 +85,64 @@ pub struct Portion {
     pub quantity_m: FracM,
 }
 
+/// The **cause of a transformation fact** — the responsible party (§1, DECIDED
+/// 2026-07-24: *"`cause` is the responsible agent … or actor"*). The apply-time
+/// edge log makes it free: each agent applies its own edge, so a chapter where
+/// several agents drive one edge yields **one fact per agent** with distinct
+/// causes (preserving "frost did 3, biotic did 2"), never a single blended fact.
+///
+/// Today the inhabited values are the **deeptime weathering agents**. The set is
+/// closed-at-compile so adding an agent is a checked extension at every match.
+///
+/// FORWARD-NOTE (DECIDED 2026-07-24, not built): a present-tier **`Actor`** party
+/// — `Actor(ActorId)` for a player/NPC that picks up and deposits material — lands
+/// as a further variant, so the same ledger addresses both "frost-weathering did Y
+/// at chapter Z" and "player P deposited it". The [`Fact::Move`] forward-note is
+/// its structural companion (a move is itself a fact); adding `Actor` here does not
+/// disturb the agent variants below.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum Cause {
+    /// Base **chemical** weathering (the `weathering` config rate; always present).
+    Chemical,
+    /// **Biotic** weathering — land plants/soil acids accelerate the attack.
+    Biotic,
+    /// **Frost** (periglacial) freeze–thaw shattering — acts on bare rock too, so
+    /// it is *summed*, not multiplied (a product would zero it where biota is zero).
+    Frost,
+    /// **Dissolution** — carbonate/evaporite into solution (the karst agent,
+    /// dormant until the carbonate milestone; §10). Named so the edge-to-`Void`
+    /// dissolution fact carries an honest cause.
+    Dissolution,
+}
+
+impl Cause {
+    /// Short name for probe / provenance output.
+    pub fn name(self) -> &'static str {
+        match self {
+            Cause::Chemical => "chemical",
+            Cause::Biotic => "biotic",
+            Cause::Frost => "frost",
+            Cause::Dissolution => "dissolution",
+        }
+    }
+}
+
 /// A **transformation fact** — the ratified persistent compiled artifact (DECIDED
 /// 2026-07-24). An enum so a portion-addressed `Move` variant can be added later
 /// without disturbing the in-place shape (the room the DECIDED asked to leave).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Fact {
     /// **In-place transformation** on a unit: `fraction_m` metres of `from`
-    /// `(material, form)` become `to` `(material, form)`, in tectonic `chapter`.
-    /// One shape carries all three §3 process classes:
+    /// `(material, form)` become `to` `(material, form)`, in tectonic `chapter`,
+    /// **driven by `cause`** (the responsible agent). One shape carries all three
+    /// §3 process classes:
     /// - **material change** (`from.0 != to.0`) — e.g. diagenesis;
     /// - **form-only change** (`from.0 == to.0`) — crumbling `Structure→PoreFill`;
     /// - **dissolution** (`to.1 == InvForm::Void`) — the portion leaves to the
     ///   complement (no sink portion is created).
     InPlace {
         chapter: u8,
+        cause: Cause,
         from: (MaterialId, InvForm),
         to: (MaterialId, InvForm),
         fraction_m: FracM,
@@ -117,6 +161,15 @@ impl Fact {
     pub fn chapter(&self) -> u8 {
         match self {
             Fact::InPlace { chapter, .. } => *chapter,
+        }
+    }
+
+    /// The **responsible agent** (§1) — the party this transformation is attributed
+    /// to. One fact per agent, so this is specific, not a blend.
+    #[inline]
+    pub fn cause(&self) -> Cause {
+        match self {
+            Fact::InPlace { cause, .. } => *cause,
         }
     }
 
@@ -177,6 +230,35 @@ impl FactLedger {
         Self {
             facts: vec![Vec::new(); strata.units.len()],
         }
+    }
+
+    /// An empty ledger sized to a record's unit count **plus one slot for the
+    /// bedrock `Structure` seam** (STUB #16, at index `units.len()` — the LAST
+    /// slot). This is the ledger [`build_working`] and the weathering pass expect,
+    /// so the `Structure→Loose` facts have somewhere to live.
+    pub fn empty_with_bedrock(strata: &DeepStrata) -> Self {
+        Self {
+            facts: vec![Vec::new(); strata.units.len() + 1],
+        }
+    }
+
+    /// The bedrock seam's composed portions from `unit_count` (= the record's unit
+    /// count; the bedrock slot is at that index). Reads `base + facts` for the
+    /// bedrock (§E, the consumer fold): [`compose_bedrock`] of its facts.
+    pub fn bedrock_composition(&self, unit_count: usize) -> Vec<Portion> {
+        compose_bedrock(self.facts_for(unit_count))
+    }
+
+    /// **The weathering product** (metres of `Loose` [`BEDROCK_SEAM_MATERIAL`] the
+    /// committed `Structure→Loose` facts produced) — the quantity the collapse
+    /// expresses as a basal weathering-front band. `0.0` when the bedrock seam was
+    /// never weathered (the identity default).
+    pub fn weathering_product_m(&self, unit_count: usize) -> FracM {
+        self.bedrock_composition(unit_count)
+            .iter()
+            .filter(|p| p.form == InvForm::Loose)
+            .map(|p| p.quantity_m)
+            .sum()
     }
 
     /// The facts appended to unit `i` (empty slice when none / out of range).
@@ -318,11 +400,60 @@ pub enum Granularity {
     PerVoxel { voxel_m: f64 },
 }
 
+// ===========================================================================
+// The bedrock Structure seam (stubs.md #16 — DOWN-AND-DIRTY, heir = genesis pass)
+// ===========================================================================
+//
+// STUB #16 (docs/design/stubs.md), added 2026-07-24 for the first-real-behavior
+// weathering slice. The working inventory derives every RECORD unit as `Loose`
+// and holds bedrock only as the scalar `basement: MaterialId`. Weathering is
+// `Structure → Loose`, so there was **no `Structure` source to weather from**.
+// [`build_working`] therefore materializes a single flat basement `Structure`
+// span at the BASE of the column, purely so the edge has a source.
+//
+// This is a stub on the **emplacement axis**: real bedrock is plutons, sills and
+// province lithologies unroofed at real depths, not one flat basement material at
+// a made-up thickness. **Heir: a genesis/emplacement pass** (ROADMAP 2026-07-24,
+// "genesis passes model the honest genesis of rocks") that puts bedrock into the
+// inventory as `Structure` with real per-column material identity and depth — at
+// which point this stand-in is DELETED, not reimplemented.
+//
+// Blast: which material a weathering rind is made of in the deep tier (the loose
+// product inherits the bedrock's identity); invisible until the weathering facts
+// express through the collapse.
+
+/// Provisional thickness (metres) of the materialized bedrock `Structure` seam —
+/// **STUB #16**, a made-up depth chosen only to be an effectively-inexhaustible
+/// `Structure→Loose` source over the one chapter this slice weathers. The heir
+/// (a genesis/emplacement pass) supplies a real per-column unroofing depth.
+pub const BEDROCK_SEAM_THICKNESS_M: FracM = 50.0;
+
+/// Provisional basement material of the bedrock seam — **STUB #16**. One flat
+/// granite basement everywhere; the heir supplies per-column province lithology.
+pub const BEDROCK_SEAM_MATERIAL: MaterialId = MaterialId::GRANITE;
+
+/// One **applied edge**, logged as [`InvCtx`] runs it (§1 refined 2026-07-24:
+/// *"the logged edges ARE the facts"*). Carries the cause and chapter the ctx was
+/// scoped to, so a chapter with several agents driving one edge coalesces to **one
+/// fact per agent** — not a single diffed fact that has lost per-agent provenance.
+#[derive(Clone, Copy, PartialEq, Debug)]
+struct LoggedEdge {
+    /// The record-unit (or bedrock-seam) index the fact is appended to.
+    unit_index: usize,
+    chapter: u8,
+    cause: Cause,
+    from: (MaterialId, InvForm),
+    to: (MaterialId, InvForm),
+    fraction_m: FracM,
+}
+
 /// A deep cell's **mutable working material inventory** — the transient compiler
 /// scratch of the ratified model, re-derived from `base + facts` each chapter.
 #[derive(Clone, PartialEq, Debug)]
 pub struct WorkingInventory {
-    /// Spans bottom-up, mirroring `DeepStrata.units`.
+    /// Spans bottom-up. `spans[0..units.len()]` mirror `DeepStrata.units`; a final
+    /// bedrock `Structure` span (STUB #16) is appended at index `units.len()` by
+    /// [`build_working`] so weathering has a source.
     pub spans: Vec<InvSpan>,
     /// The basement material below the record (derived; not committed — the record
     /// only ever held the `H` column).
@@ -330,10 +461,14 @@ pub struct WorkingInventory {
     /// The granularity this inventory was built at.
     pub granularity: Granularity,
     /// **Chapter-start snapshot** per span (the state `build_working` derived),
-    /// against which [`commit_chapter`] diffs to produce facts. Empty for a
+    /// against which [`diff_facts`] reconciles the drained log (a validation check
+    /// now, not the fact source — §1 refined 2026-07-24). Empty for a
     /// [`build_identity`] inventory (which is not for committing) — that keeps the
     /// S17 memory-measurement footprint unchanged.
     baseline: Vec<Vec<Portion>>,
+    /// **The applied-edge log** — the authoritative fact source (§1). Each
+    /// [`InvCtx::apply_edge`] appends one entry; [`commit_chapter`] drains it.
+    log: Vec<LoggedEdge>,
 }
 
 /// **The identity default** (base only, no facts, no baseline): build a working
@@ -372,16 +507,24 @@ pub fn build_identity(strata: &DeepStrata, granularity: Granularity) -> WorkingI
         basement: MaterialId::GRANITE,
         granularity,
         baseline: Vec::new(),
+        log: Vec::new(),
     }
 }
 
 /// **Build the chapter's working inventory from `base + facts`** (the ratified
 /// re-derive-each-chapter step, S-2), at per-stratum granularity, capturing the
-/// baseline the commit diffs against. This is the inventory a behavior mutates;
-/// with an **empty** ledger it equals [`build_identity`] (the identity default).
+/// baseline the commit reconciles against, **and materializing the bedrock
+/// `Structure` seam (STUB #16)** at the base so `Structure→Loose` weathering has a
+/// source. This is the inventory a behavior mutates; with an **empty** ledger the
+/// record spans equal [`build_identity`]'s (the identity default) and the extra
+/// bedrock span carries no facts, so nothing commits.
+///
+/// The bedrock span is at index `strata.units.len()` (the LAST span), and the
+/// `ledger` is expected to carry a matching slot ([`FactLedger::empty_with_bedrock`]);
+/// its base is [`compose_bedrock`] of the ledger's bedrock facts.
 pub fn build_working(strata: &DeepStrata, ledger: &FactLedger) -> WorkingInventory {
-    let mut spans = Vec::with_capacity(strata.units.len());
-    let mut baseline = Vec::with_capacity(strata.units.len());
+    let mut spans = Vec::with_capacity(strata.units.len() + 1);
+    let mut baseline = Vec::with_capacity(strata.units.len() + 1);
     for (ui, u) in strata.units.iter().enumerate() {
         let portions = compose_unit(u, ledger.facts_for(ui));
         baseline.push(portions.clone());
@@ -390,37 +533,104 @@ pub fn build_working(strata: &DeepStrata, ledger: &FactLedger) -> WorkingInvento
             portions,
         });
     }
+    // STUB #16: the bedrock Structure seam. Its base + facts compose the same way a
+    // record unit does, so re-running a chapter is idempotent on it too.
+    let bedrock_index = strata.units.len();
+    let bedrock = compose_bedrock(ledger.facts_for(bedrock_index));
+    baseline.push(bedrock.clone());
+    spans.push(InvSpan {
+        unit_index: bedrock_index,
+        portions: bedrock,
+    });
     WorkingInventory {
         spans,
-        basement: MaterialId::GRANITE,
+        basement: BEDROCK_SEAM_MATERIAL,
         granularity: Granularity::PerStratum,
         baseline,
+        log: Vec::new(),
     }
 }
 
-/// **The chapter-commit — diff-and-append** (DECIDED 2026-07-24). For each span,
-/// diff the current portions against the chapter-start baseline; the per-`(material,
-/// form)` deltas ARE the facts, appended to the span's unit in `ledger`.
+/// The bedrock seam's **base composition** (STUB #16): one `Structure` portion of
+/// [`BEDROCK_SEAM_MATERIAL`] at [`BEDROCK_SEAM_THICKNESS_M`], before any fact.
+pub fn derive_bedrock() -> Vec<Portion> {
+    vec![Portion {
+        material: BEDROCK_SEAM_MATERIAL,
+        form: InvForm::Structure,
+        quantity_m: BEDROCK_SEAM_THICKNESS_M,
+    }]
+}
+
+/// Compose the bedrock seam's current composition = [`derive_bedrock`] then fold
+/// its facts (the `Structure→Loose` weathering the pass committed). The `Loose`
+/// portion this yields is the weathering product the collapse expresses.
+pub fn compose_bedrock(facts: &[Fact]) -> Vec<Portion> {
+    let mut portions = derive_bedrock();
+    for f in facts {
+        apply_move(&mut portions, f.from(), f.to(), f.fraction_m());
+    }
+    portions
+}
+
+/// **The chapter-commit — drain the applied-edge LOG** (§1 refined 2026-07-24:
+/// *"the logged edges ARE the facts"*). Each edge the behavior applied logged
+/// itself with its cause and chapter; this coalesces identical successive edges
+/// (same unit · chapter · cause · edge endpoints) and appends **one [`Fact`] per
+/// agent** to the target unit in `ledger`. Clears the log.
 ///
-/// - **Empty delta ⇒ no facts appended ⇒ the record is byte-identical** (the S17
-///   identity default, now on the fact path).
+/// - **Empty log ⇒ no facts appended ⇒ the record is byte-identical** (the S17
+///   identity default, now on the fact path — an unweathered inventory commits
+///   nothing even though the bedrock seam exists).
 /// - The strata record's `units` (the depositional base) are **never written** —
 ///   only the ledger grows (the ratified "base immutable, append facts").
+/// - The **diff is not the source** any more: a multi-edge chapter has no unique
+///   factorization, so a working-vs-baseline diff would lose per-agent provenance.
+///   [`diff_facts`] survives only as a single-edge **validation check**
+///   ([`reconciles_with_diff`]).
 ///
-/// Only meaningful on a [`build_working`] inventory (it needs the baseline); a
-/// bare [`build_identity`] inventory has no baseline and commits nothing.
-pub fn commit_chapter(inv: &WorkingInventory, ledger: &mut FactLedger, chapter: u8) {
-    if inv.baseline.len() != inv.spans.len() {
-        return; // not a committable inventory (no baseline) — nothing to diff.
-    }
-    if ledger.facts.len() < inv.spans.len() {
-        ledger.facts.resize(inv.spans.len(), Vec::new());
-    }
-    for (span, before) in inv.spans.iter().zip(&inv.baseline) {
-        for fact in diff_facts(before, &span.portions, chapter) {
-            ledger.facts[span.unit_index].push(fact);
+/// The ledger is grown to cover every unit index the log touches (including the
+/// bedrock seam's `units.len()` slot).
+pub fn commit_chapter(inv: &mut WorkingInventory, ledger: &mut FactLedger) {
+    // Coalesce identical successive logged edges into one fact each.
+    for e in inv.log.drain(..) {
+        let slot = e.unit_index;
+        if ledger.facts.len() <= slot {
+            ledger.facts.resize(slot + 1, Vec::new());
         }
+        let facts = &mut ledger.facts[slot];
+        if let Some(Fact::InPlace {
+            chapter,
+            cause,
+            from,
+            to,
+            fraction_m,
+        }) = facts.last_mut()
+            && *chapter == e.chapter
+            && *cause == e.cause
+            && *from == e.from
+            && *to == e.to
+        {
+            *fraction_m += e.fraction_m;
+            continue;
+        }
+        facts.push(Fact::InPlace {
+            chapter: e.chapter,
+            cause: e.cause,
+            from: e.from,
+            to: e.to,
+            fraction_m: e.fraction_m,
+        });
     }
+}
+
+/// **Validation check** (§1): the drained log's net per-`(material, form)` delta on
+/// a span must reconcile with a working-vs-baseline [`diff_facts`]. Exact for a
+/// single edge (the diff recovers the net delta); a multi-edge chapter is where the
+/// diff loses provenance the log keeps, so this is a test aid, not the commit path.
+/// Returns the net-delta facts the diff produces for span `i`.
+#[cfg(test)]
+fn reconciles_with_diff(inv: &WorkingInventory, i: usize, chapter: u8) -> Vec<Fact> {
+    diff_facts(&inv.baseline[i], &inv.spans[i].portions, chapter)
 }
 
 /// Diff a chapter-start portion multiset against the post-behavior one into a
@@ -430,11 +640,14 @@ pub fn commit_chapter(inv: &WorkingInventory, ledger: &mut FactLedger, chapter: 
 /// leftover sink ⇒ deposition (`Void →`).
 ///
 /// **Exact for a behavior whose net effect is a set of edges with distinct
-/// endpoints** (the single-edge case this spike tests). The greedy pairing is a
-/// deterministic *simplification* of the general minimal-move assignment when many
-/// sources and sinks coexist in one chapter — filed as an underspecified point in
-/// `docs/spikes/S17-*` (the DECIDED says "the deltas ARE the facts" but not how a
-/// multi-source/multi-sink batch factors into edges).
+/// endpoints** (the single-edge case this validation covers). The greedy pairing is
+/// a deterministic *simplification* of the general minimal-move assignment when many
+/// sources and sinks coexist in one chapter — which is exactly why the DIFF is no
+/// longer the fact source (§1 refined 2026-07-24): it cannot recover per-agent
+/// provenance a multi-edge chapter carries. The recovered facts are stamped
+/// [`Cause::Chemical`] as a placeholder — the diff cannot know the cause, which is
+/// the whole reason the log supersedes it.
+#[cfg(test)]
 fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
     // Net delta per key, in canonical order.
     let mut keys: Vec<(MaterialId, InvForm)> = Vec::new();
@@ -467,6 +680,7 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
         let q = sources[si].1.min(sinks[ki].1);
         facts.push(Fact::InPlace {
             chapter,
+            cause: Cause::Chemical,
             from: sources[si].0,
             to: sinks[ki].0,
             fraction_m: q,
@@ -485,6 +699,7 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
         if *rem > EPS {
             facts.push(Fact::InPlace {
                 chapter,
+                cause: Cause::Chemical,
                 from: *k,
                 to: (k.0, InvForm::Void),
                 fraction_m: *rem,
@@ -497,6 +712,7 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
         if *rem > EPS {
             facts.push(Fact::InPlace {
                 chapter,
+                cause: Cause::Chemical,
                 from: (k.0, InvForm::Void),
                 to: *k,
                 fraction_m: *rem,
@@ -507,10 +723,17 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
 }
 
 impl WorkingInventory {
-    /// A granularity-agnostic capability handle over this inventory (§7).
+    /// A granularity-agnostic capability handle over this inventory (§7), **scoped
+    /// to a `chapter` and a `cause`** — every edge it applies logs itself with that
+    /// scope, so an agent gets its own facts (§1: one fact per agent). Open one ctx
+    /// per agent per chapter; [`commit_chapter`] drains the accumulated log.
     #[inline]
-    pub fn ctx(&mut self) -> InvCtx<'_> {
-        InvCtx { inv: self }
+    pub fn ctx_for(&mut self, chapter: u8, cause: Cause) -> InvCtx<'_> {
+        InvCtx {
+            inv: self,
+            chapter,
+            cause,
+        }
     }
 
     /// Rough heap footprint of the resident inventory (bytes): the span vector plus
@@ -533,6 +756,8 @@ impl WorkingInventory {
 /// RMW the ratified commit diffs into facts.
 pub struct InvCtx<'a> {
     inv: &'a mut WorkingInventory,
+    chapter: u8,
+    cause: Cause,
 }
 
 impl InvCtx<'_> {
@@ -557,6 +782,10 @@ impl InvCtx<'_> {
     /// change, dissolution (`to.1 == Void`) and deposition (`from.1 == Void`) all
     /// ride this one call — the exact vocabulary a committed [`Fact`] records.
     /// Mass-conserving except at a `Void` side; clamped so it cannot mint material.
+    ///
+    /// **Logs the edge it actually moved** with this ctx's scope (`chapter`,
+    /// `cause`) — the fact source `commit_chapter` drains (§1). A zero-move edge
+    /// (nothing available) logs nothing.
     pub fn apply_edge(
         &mut self,
         span: usize,
@@ -564,7 +793,19 @@ impl InvCtx<'_> {
         to: (MaterialId, InvForm),
         qty: FracM,
     ) -> FracM {
-        apply_move(&mut self.inv.spans[span].portions, from, to, qty)
+        let unit_index = self.inv.spans[span].unit_index;
+        let moved = apply_move(&mut self.inv.spans[span].portions, from, to, qty);
+        if moved > EPS {
+            self.inv.log.push(LoggedEdge {
+                unit_index,
+                chapter: self.chapter,
+                cause: self.cause,
+                from,
+                to,
+                fraction_m: moved,
+            });
+        }
+        moved
     }
 
     /// A form-only edge (same material) — the common weathering/crumbling case.
@@ -671,9 +912,9 @@ mod tests {
         // The seam is free when empty: build from base+empty-ledger, run NO
         // behavior, commit → zero facts, and composition reproduces the base.
         let strata = sample_record();
-        let mut ledger = FactLedger::empty_for(&strata);
-        let inv = build_working(&strata, &ledger);
-        commit_chapter(&inv, &mut ledger, 0);
+        let mut ledger = FactLedger::empty_with_bedrock(&strata);
+        let mut inv = build_working(&strata, &ledger);
+        commit_chapter(&mut inv, &mut ledger);
         assert!(ledger.is_empty(), "identity default must append no facts");
         for (ui, u) in strata.units.iter().enumerate() {
             assert_eq!(
@@ -706,13 +947,14 @@ mod tests {
             s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3); // -> SANDSTONE (coarse)
             s
         };
-        let mut ledger = FactLedger::empty_for(&strata);
+        let mut ledger = FactLedger::empty_with_bedrock(&strata);
         let base_mat = litho_of_tag(strata.units[0].tag).reference_material();
         assert_eq!(base_mat, MaterialId::SANDSTONE);
 
-        // Behavior: 0.5 m of SANDSTONE/Loose -> MUDSTONE/Loose (a material change).
+        // Behavior: 0.5 m of SANDSTONE/Loose -> MUDSTONE/Loose (a material change),
+        // attributed to a specific cause.
         let mut inv = build_working(&strata, &ledger);
-        let moved = inv.ctx().apply_edge(
+        let moved = inv.ctx_for(4, Cause::Biotic).apply_edge(
             0,
             (MaterialId::SANDSTONE, InvForm::Loose),
             (MaterialId::MUDSTONE, InvForm::Loose),
@@ -720,12 +962,20 @@ mod tests {
         );
         assert_eq!(moved, 0.5);
 
-        commit_chapter(&inv, &mut ledger, 4);
+        // The drained log reconciles with the diff for this single edge (§1
+        // validation check): net delta recovered equals the logged fact's move.
+        let recon = reconciles_with_diff(&inv, 0, 4);
+        assert_eq!(recon.len(), 1);
+        assert_eq!(recon[0].from(), (MaterialId::SANDSTONE, InvForm::Loose));
+        assert_eq!(recon[0].to(), (MaterialId::MUDSTONE, InvForm::Loose));
 
-        // One fact appended, with the expected shape.
+        commit_chapter(&mut inv, &mut ledger);
+
+        // One fact appended, with the expected shape — carrying its cause.
         assert_eq!(ledger.total_facts(), 1);
         let f = ledger.facts_for(0)[0];
         assert_eq!(f.chapter(), 4);
+        assert_eq!(f.cause(), Cause::Biotic);
         assert_eq!(f.from(), (MaterialId::SANDSTONE, InvForm::Loose));
         assert_eq!(f.to(), (MaterialId::MUDSTONE, InvForm::Loose));
         assert!((f.fraction_m() - 0.5).abs() < 1e-12);
@@ -759,14 +1009,19 @@ mod tests {
             s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 0);
             s
         };
-        let mut ledger = FactLedger::empty_for(&strata);
+        let mut ledger = FactLedger::empty_with_bedrock(&strata);
         let mat = litho_of_tag(strata.units[0].tag).reference_material();
         let mut inv = build_working(&strata, &ledger);
-        inv.ctx()
-            .apply_edge(0, (mat, InvForm::Loose), (mat, InvForm::Void), 0.75);
-        commit_chapter(&inv, &mut ledger, 1);
+        inv.ctx_for(1, Cause::Dissolution).apply_edge(
+            0,
+            (mat, InvForm::Loose),
+            (mat, InvForm::Void),
+            0.75,
+        );
+        commit_chapter(&mut inv, &mut ledger);
         let f = ledger.facts_for(0)[0];
         assert_eq!(f.to().1, InvForm::Void);
+        assert_eq!(f.cause(), Cause::Dissolution);
         let comp = compose_unit(&strata.units[0], ledger.facts_for(0));
         let total: f64 = comp.iter().map(|p| p.quantity_m).sum();
         assert!(
@@ -778,7 +1033,7 @@ mod tests {
     #[test]
     fn move_form_is_a_mass_neutral_read_modify_write_edge() {
         let rec = sample_record();
-        let ledger = FactLedger::empty_for(&rec);
+        let ledger = FactLedger::empty_with_bedrock(&rec);
         let mut inv = build_working(&rec, &ledger);
         inv.spans[0].portions.push(Portion {
             material: MaterialId::GRANITE,
@@ -786,7 +1041,7 @@ mod tests {
             quantity_m: 1.0,
         });
         let before = inv.spans[0].thickness_m();
-        inv.ctx().move_form(
+        inv.ctx_for(0, Cause::Chemical).move_form(
             0,
             MaterialId::GRANITE,
             InvForm::Structure,
@@ -803,7 +1058,7 @@ mod tests {
     #[test]
     fn substrate_accommodates_fluid_without_building_it() {
         let rec = sample_record();
-        let ledger = FactLedger::empty_for(&rec);
+        let ledger = FactLedger::empty_with_bedrock(&rec);
         let mut inv = build_working(&rec, &ledger);
         assert_eq!(
             inv.spans
@@ -815,9 +1070,13 @@ mod tests {
             "identity default builds no fluid"
         );
         let mat = inv.spans[0].portions[0].material;
-        inv.ctx()
+        inv.ctx_for(0, Cause::Chemical)
             .move_form(0, mat, InvForm::Loose, InvForm::Fluid, 0.1);
-        assert!(inv.ctx().fraction(0, mat, InvForm::Fluid) > 0.0);
+        assert!(
+            inv.ctx_for(0, Cause::Chemical)
+                .fraction(0, mat, InvForm::Fluid)
+                > 0.0
+        );
     }
 
     #[test]

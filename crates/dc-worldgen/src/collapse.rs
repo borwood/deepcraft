@@ -1476,6 +1476,16 @@ impl<'a> WorldGenerator<'a> {
             .deep
             .record_at_voxel(cx * 32 + 16, cz * 32 + 16)
             .map_or(&[][..], |s| s.units.as_slice());
+        // **The weathering fold** (the first-real-behavior slice): read the deep
+        // cell's `base + facts` weathering product (metres of loose regolith the
+        // bedrock seam yielded). `0.0` unless `weather_inventory` is on — the S-5
+        // identity default. The ledger is sampled at the SAME nearest cell as
+        // `deep_units`, so its bedrock slot index is `deep_units.len()`.
+        let deep_weathering_m = self
+            .pregen
+            .deep
+            .ledger_at_voxel(cx * 32 + 16, cz * 32 + 16)
+            .map_or(0.0, |l| l.weathering_product_m(deep_units.len()));
         let mut strata_ctx = StrataCtx {
             seed: self.seed,
             cx,
@@ -1488,6 +1498,7 @@ impl<'a> WorldGenerator<'a> {
             voxel_m: self.voxel_m,
             regolith_m,
             deep_units,
+            deep_weathering_m,
             wilds,
             geology: &self.geology,
             providers: self.providers,

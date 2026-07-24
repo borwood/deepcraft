@@ -1200,6 +1200,14 @@ impl Erosion {
         &self.area
     }
 
+    /// The per-cell **frost (periglacial) weathering multiplier** from the last
+    /// step (`≥ 1.0` where the frost agent bit, exactly the identity `1.0`/empty
+    /// when the frost agent is off). Read-only; the inventory-weathering pass reads
+    /// it as the frost agent's driver (material-behavior.md §4). Mirrors [`area`].
+    pub fn frost(&self) -> &[f64] {
+        &self.frost
+    }
+
     /// The D8 receiver of each cell as of the last routing (`-1` = sink) — the
     /// exported final drainage network (§ 7.3). This is the last iteration's
     /// routing exactly (no recompute), so the export matches what the sim used.

@@ -17,8 +17,8 @@
 //! world stays byte-identical to merged main regardless.)
 
 use dc_worldgen::deeptime::{
-    self, DeepField, FactLedger, Granularity, InvForm, InvSpan, UnitProvenance, build_identity,
-    build_working, commit_chapter, compose_unit, derive_base, litho_of_tag,
+    self, Cause, DeepField, FactLedger, Granularity, InvForm, InvSpan, UnitProvenance,
+    build_identity, build_working, commit_chapter, compose_unit, derive_base, litho_of_tag,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -38,9 +38,9 @@ fn identity_default_appends_no_facts_over_a_whole_field() {
     assert!(!field.strata.is_empty());
     let mut checked = 0usize;
     for strata in &field.strata {
-        let mut ledger = FactLedger::empty_for(strata);
-        let inv = build_working(strata, &ledger);
-        commit_chapter(&inv, &mut ledger, 0);
+        let mut ledger = FactLedger::empty_with_bedrock(strata);
+        let mut inv = build_working(strata, &ledger);
+        commit_chapter(&mut inv, &mut ledger);
         assert!(
             ledger.is_empty(),
             "cell {checked}: identity default must append no facts"
@@ -65,13 +65,15 @@ fn non_identity_agreement_on_a_real_cell() {
         .find(|s| s.units.first().is_some_and(|u| u.thickness_m > 0.1))
         .expect("some cell has a unit thick enough to transform");
 
-    let mut ledger = FactLedger::empty_for(strata);
+    let mut ledger = FactLedger::empty_with_bedrock(strata);
     let base_mat = litho_of_tag(strata.units[0].tag).reference_material();
     let sink = dc_core::MaterialId::CLAY;
 
     let mut inv = build_working(strata, &ledger);
-    let avail = inv.ctx().fraction(0, base_mat, InvForm::Loose);
-    let moved = inv.ctx().apply_edge(
+    let avail = inv
+        .ctx_for(5, Cause::Chemical)
+        .fraction(0, base_mat, InvForm::Loose);
+    let moved = inv.ctx_for(5, Cause::Chemical).apply_edge(
         0,
         (base_mat, InvForm::Loose),
         (sink, InvForm::Loose),
@@ -79,10 +81,11 @@ fn non_identity_agreement_on_a_real_cell() {
     );
     assert!(moved > 0.0);
 
-    commit_chapter(&inv, &mut ledger, 5);
+    commit_chapter(&mut inv, &mut ledger);
     assert_eq!(ledger.total_facts(), 1, "one edge → one fact");
     let f = ledger.facts_for(0)[0];
     assert_eq!(f.chapter(), 5);
+    assert_eq!(f.cause(), Cause::Chemical);
     assert_eq!(f.from(), (base_mat, InvForm::Loose));
     assert_eq!(f.to(), (sink, InvForm::Loose));
     assert!((f.fraction_m() - moved).abs() < 1e-12);

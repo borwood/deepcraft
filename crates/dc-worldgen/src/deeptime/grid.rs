@@ -235,6 +235,23 @@ pub struct DeepConfig {
     /// Appended last (wire discipline, corrections #3) and `Copy`, so every
     /// `..DeepConfig::default()` literal in the tree keeps working untouched.
     pub providers: super::providers::Providers,
+
+    /// **The inventory-weathering flag** (the first-real-behavior slice,
+    /// material-behavior.md §4/§11). Off by default — with it off, no per-cell
+    /// [`FactLedger`](super::inventory::FactLedger) is built and the collapsed world
+    /// is **byte-identical** (the S-5 identity default). On: after the erosion run,
+    /// each subaerial deep cell's working inventory is weathered by the **sum-agent**
+    /// pass ([`super::weather_inventory`]) for one chapter and the resulting
+    /// cause-carrying facts are stored as a ledger sidecar on the `DeepField`, which
+    /// the collapse folds into a basal weathering-front band.
+    ///
+    /// This is a **material-transformation** layer that runs *alongside* the existing
+    /// `erosion.rs` `R`/`H` height weathering, which is left in place (they compute
+    /// different things — height budget vs material composition; material-behavior.md
+    /// §11 continuation slot). Turning it on is a **walk-gated appearance** change for
+    /// every world made afterwards — the production flip is the user's, like the
+    /// erodibility/biotic/tectonic-history flips. Appended last (wire discipline).
+    pub weather_inventory: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -289,6 +306,7 @@ impl Default for DeepConfig {
             thickening_scale: 80.0,
             flex_wavelength_km: 50.0,
             iso_rate: 0.5,
+            weather_inventory: false,
             providers: super::providers::Providers::default(),
         }
     }

@@ -33,8 +33,10 @@
 //! approached Large regions comes back. FLAGGED for the integrating session.
 
 use super::grid::DeepConfig;
-use super::recorder::DeepStrata;
+use super::inventory::FactLedger;
+use super::recorder::{DeepStrata, DepEnv};
 use super::tectonics::Plate;
+use super::weather_inventory::{self, WeatherInputs};
 use crate::pregen::{CELL_VOXELS, CellGrid, Pregen};
 
 /// Target (finest) deep-time cell edge, metres — S9's A tier resolution.
@@ -251,6 +253,21 @@ pub struct DeepField {
     pub regolith: Vec<f64>,
     /// Per-cell strata record, bottom-up units tagged at deposition.
     pub strata: Vec<DeepStrata>,
+    /// **Per-cell transformation-fact ledger** (the first-real-behavior weathering
+    /// slice, material-behavior.md §1) — the S17 keystone
+    /// [`FactLedger`](super::inventory::FactLedger) made a **production** artifact.
+    /// Parallel to [`Self::strata`] (indexed by the same cell); each ledger's LAST
+    /// slot is the bedrock seam's `Structure→Loose` weathering facts, cause-carrying
+    /// (frost/biotic/chemical). **Empty (no entries) unless
+    /// [`DeepConfig::weather_inventory`](super::grid::DeepConfig::weather_inventory)
+    /// is on** — off, the field is byte-identical and this Vec is empty (the S-5
+    /// identity default). The collapse folds `base + facts`
+    /// ([`FactLedger::weathering_product_m`]) into a basal weathering-front band.
+    ///
+    /// Sidecar rather than a `facts` field grown onto `DepUnit` (which is `Copy` and
+    /// read across the merged collapse/erosion/biotic files); the eventual home is a
+    /// `RecordedUnit { base, facts }` on `DeepStrata` (inventory.rs).
+    pub ledgers: Vec<FactLedger>,
     /// **Exported final drainage** (§ 7.3 — tectonic-history only; empty
     /// otherwise). `recv[i]` is the D8 receiver of the last routing (`-1` = sink),
     /// `area[i]` the contributing area / discharge, `lake[i]` a depression-filled
@@ -350,6 +367,14 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
             Vec::new(),
         )
     };
+    // **The first-real-behavior weathering pass** (material-behavior.md §4/§11) —
+    // gated, and the S17 keystone's first production consumer. Runs AFTER the
+    // erosion loop as a material-transformation layer over each subaerial cell's
+    // working inventory, leaving the `R`/`H` height weathering in `erosion.rs`
+    // untouched (they compute different things — §11 continuation slot). Off ⇒ empty
+    // Vec ⇒ byte-identical (S-5 identity default). Built before the moves below so it
+    // can read the strata record, the biotic-weather plane and the frost plane.
+    let ledgers = build_ledgers(cfg, &run);
     // The regolith plane, carried (journal/0053) rather than summed away.
     let regolith = run.grid.h;
     let strata = run.grid.strata;
@@ -360,6 +385,7 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         surf,
         regolith,
         strata,
+        ledgers,
         recv,
         area,
         lake,
@@ -367,6 +393,60 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         t_crust,
         chapters,
     }
+}
+
+/// Build the per-cell weathering [`FactLedger`]s (the first-real-behavior slice).
+/// Empty `Vec` unless `cfg.weather_inventory` is on (and there is a record) — the
+/// S-5 identity default that keeps the collapsed world byte-identical.
+///
+/// For each cell that saw **subaerial** conditions it runs the sum-agent weathering
+/// pass ([`weather_inventory`]) for one chapter over the cell's working inventory,
+/// drawing per-cell drivers from what the run already computed: the base `weathering`
+/// rate, the biotic-weather multiplier plane (`1.0`/empty off), the frost multiplier
+/// plane (`1.0`/empty off), and the cell's regolith depth `H`. Purely-marine cells
+/// (and cells with no record) get an empty ledger, so the sidecar stays index-parallel
+/// to `strata`.
+///
+/// **The subaerial gate reads the RECORD, not the final surface** (the corpus-sweep
+/// finding: the deep field's *final* `surf` sits far below the datum after isostasy +
+/// the low sea stand, so a `surf > 0` gate weathers **nothing** on a real world — max
+/// final surf on production Small is ≈ −460 m). A cell's *record* is the honest
+/// authority for whether it ever stood above water: a unit tagged
+/// [`DepEnv::Subaerial`] was deposited on land. This also matches how the height-tier
+/// weathering gated — on the *contemporaneous* sea stand during the run, not the final
+/// one.
+fn build_ledgers(cfg: &DeepConfig, run: &super::DeepRun) -> Vec<FactLedger> {
+    if !cfg.weather_inventory || run.grid.strata.is_empty() {
+        return Vec::new();
+    }
+    let bio = &run.grid.bio_weather; // Vec<f32>, empty ⇒ identity 1.0
+    let frost = run.erosion.frost(); // &[f64], empty ⇒ identity 1.0
+    let h = &run.grid.h;
+    // One chapter this slice (multi-chapter feedback is a later refinement, §5).
+    const CHAPTERS: u8 = 1;
+    run.grid
+        .strata
+        .iter()
+        .enumerate()
+        .map(|(i, strata)| {
+            // Subaerial gate, read from the record: a cell that deposited any
+            // subaerial unit stood above water at some point in its history. A
+            // purely-marine cell gets an empty (zero-alloc) ledger, which
+            // `weathering_product_m` reads back as `0.0`.
+            let saw_subaerial = strata.units.iter().any(|u| u.tag.env == DepEnv::Subaerial);
+            if !saw_subaerial {
+                return FactLedger::default();
+            }
+            let inputs = WeatherInputs {
+                weathering: cfg.weathering,
+                h_star: cfg.h_star,
+                regolith_h: h.get(i).copied().unwrap_or(0.0),
+                biotic: bio.get(i).map_or(1.0, |&b| f64::from(b)),
+                frost: frost.get(i).copied().unwrap_or(1.0),
+            };
+            weather_inventory::weather_column(strata, CHAPTERS, &inputs)
+        })
+        .collect()
 }
 
 impl DeepField {
@@ -449,6 +529,21 @@ impl DeepField {
         self.strata.get(iy * self.w + ix)
     }
 
+    /// The **weathering fact ledger** of the deep cell **nearest** the world voxel,
+    /// or `None` when inventory weathering is off (`ledgers` empty) or in the wilds.
+    /// Nearest, exactly like [`Self::record_at_voxel`] — the ledger is index-parallel
+    /// to `strata`, so it steps at the same ~460 m deep-cell grid the record does.
+    /// The collapse reads this to fold `base + facts` (the weathering-front band).
+    pub fn ledger_at_voxel(&self, vx: i64, vz: i64) -> Option<&FactLedger> {
+        if self.ledgers.is_empty() {
+            return None;
+        }
+        let (gx, gy) = self.deep_coords(vx, vz)?;
+        let ix = (gx.round() as i64).clamp(0, self.w as i64 - 1) as usize;
+        let iy = (gy.round() as i64).clamp(0, self.w as i64 - 1) as usize;
+        self.ledgers.get(iy * self.w + ix)
+    }
+
     /// Rough resident footprint (bytes) — the honest "what the ritual keeps in
     /// memory" number.
     pub fn resident_bytes(&self) -> usize {
@@ -465,6 +560,12 @@ impl DeepField {
                 .strata
                 .iter()
                 .map(DeepStrata::heap_bytes)
+                .sum::<usize>()
+            + self.ledgers.len() * std::mem::size_of::<FactLedger>()
+            + self
+                .ledgers
+                .iter()
+                .map(FactLedger::footprint_bytes)
                 .sum::<usize>()
     }
 }
