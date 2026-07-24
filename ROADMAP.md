@@ -2800,9 +2800,23 @@ before any code.
 
 - **STATION — per-chunk material-palette quantization makes the chunk grid a
   visible checkerboard** (user field report + diagnostic station, 2026-07-24;
-  `journal/assets/0088-palette-quantization-chunk-seams.png`). At the **east coast**
-  (~110 km east of spawn; the user noted the weathering regime here reads visibly
-  different from the plateau spawn — worth its own look), a top-down view shows the
+  `journal/assets/0088-palette-quantization-chunk-seams.png`).
+  **THE REFERENCE STATION — EXACT POSE, recorded 2026-07-24 (user-recovered).** This is
+  the standing reference point for the palette-quantization issue; re-shoot it to compare
+  before/after any fix:
+  > **feet (world m): `x 71291.7, y 372.1, z -2420.9`** · voxel `79213, 413, -2690` ·
+  > **`yaw 21.9968`, `pitch -1.5475`** (looking ~straight down) · fly on.
+  > Re-shot frame: `journal/assets/0088-palette-quant-reference-station.png` (matches the
+  > original capture: tan/grey/red-brown/dark-speckled squares, yellow inclusion flecks).
+  **CORRECTION (2026-07-24):** this station was previously described only as *"the east
+  coast, ~110 km east of spawn"* — that distance was **wrong by ~39 km** (the true spot is
+  **≈71 km east**, `x ≈ +71.3 km`), and the prose landmark sent a reconstruction attempt
+  into grey single-class coastline at 108–110 km, where the checkerboard is absent. The
+  pose was never recorded at capture time (the diagnosis audit § 7 even listed "record the
+  camera pose" as an unfilled needs-a-live-probe item). *A prose landmark is not a pose;
+  "defer = write it now" applies to camera poses too.* The user noted the weathering regime
+  here reads visibly different from the plateau spawn — worth its own look.
+  A top-down view shows the
   near/mid field as a **grid of chunk-sized squares, each a distinctly different
   overall tint** (tan / grey / red-brown / dark-speckled), while the **structure is
   continuous across the seams** — diagonal dune/wave bands of structure blocks (with

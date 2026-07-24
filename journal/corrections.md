@@ -1484,3 +1484,33 @@ a continuous process is incoherent. **Fix:** the real first behavior is weatheri
 per-epoch pass in the deep-time compile / **riding the `H` process** (the R/H unification),
 carrying material identity + per-agent `cause` on top of the process the height loop already
 runs. Tracked as **stubs.md #17**.
+
+## 48. "The palette-quant station is at the east coast, ~110 km east of spawn" (assistant / ROADMAP, 2026-07-24)
+
+**The claim.** The palette-quantization diagnostic station (journal/0088, the chunk-seam
+checkerboard) was recorded in ROADMAP **Observed** with a prose landmark only: *"At the
+**east coast** (~110 km east of spawn) … a top-down view shows the near/mid field as a grid
+of chunk-sized squares."* No camera pose was stored — not in the journal entry, not in the
+commit that added the screenshot (`530dccf` touched only ROADMAP + the PNG), not in the
+diagnosis audit (whose § 7 in fact listed *"record the camera pose at observation time"* as
+an unfilled needs-a-live-probe item).
+
+**The falsification (user, recovering the pose from an old transcript, then flying to it).**
+The station is at **`x ≈ +71.3 km`**, not ~110 km — **wrong by ~39 km**. The error is not
+cosmetic: at 108–110 km the east coast is **grey single-class stone and open water at ~sea
+level**, where the multi-class checkerboard is *absent*. A reconstruction attempt driven by
+the recorded landmark therefore searched the wrong region, shot four null frames, and
+concluded "the region is right but the signature isn't here" — a null produced by a bad
+landmark, not by the world. The true pose (user-recovered, re-shot and confirmed against the
+original capture): **feet `x 71291.7, y 372.1, z -2420.9`, `yaw 21.9968`, `pitch -1.5475`**
+(`journal/assets/0088-palette-quant-reference-station.png`).
+
+**Mechanism / lesson.** A **prose landmark is not a pose.** The user had explicitly named this
+spot a standing *reference point* for the palette-quant issue, yet what entered the corpus was
+an approximate direction-and-distance — and an approximation that was itself wrong, with
+nothing able to fail. This is **"defer = write it now" applied to camera poses**: the instant a
+station is called a reference, its **exact pose** (feet in world metres, yaw, pitch) goes into
+the Observed entry in the same session, beside the asset. Corollary of the A-2 family — prose
+cannot fail a build, and a landmark cannot be re-derived from a screenshot. **Fix:** the exact
+pose is now recorded in the ROADMAP station entry with this correction beside it; re-shoot that
+pose to compare before/after any palette-quant fix.
