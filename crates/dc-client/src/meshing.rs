@@ -212,13 +212,15 @@ pub(crate) fn face_color(block: Block, normal_y: i64) -> [f32; 4] {
         (Block::Dirt, _) => [0.42, 0.30, 0.19, 1.0],
         (Block::Stone, _) => [0.52, 0.52, 0.54, 1.0],
         (Block::Wood, _) => [0.44, 0.33, 0.17, 1.0],
-        (Block::Mudstone, _) => [0.46, 0.26, 0.20, 1.0],
-        (Block::Sandstone, _) => [0.76, 0.66, 0.44, 1.0],
-        (Block::Granite, _) => [0.66, 0.56, 0.58, 1.0],
-        (Block::Basalt, _) => [0.14, 0.14, 0.16, 1.0],
-        (Block::Coal, _) => [0.07, 0.065, 0.06, 1.0],
-        (Block::Peat, _) => [0.24, 0.17, 0.11, 1.0],
-        (Block::CarbonaceousMudstone, _) => [0.21, 0.18, 0.15, 1.0],
+        // A material voxel's block-tier face color is its registry albedo — the
+        // same value the old per-geology-block arms hand-copied (mudstone was
+        // [0.46,0.26,0.20] = mudstone's albedo, and so on), now read straight
+        // from the one authority. The nine formerly face-less materials get
+        // their real color here instead of falling through to grey stone.
+        (Block::Material(m), _) => {
+            let a = m.props().albedo;
+            [a[0], a[1], a[2], 1.0]
+        }
         (Block::Air, _) => [1.0, 0.0, 1.0, 1.0], // never emitted
     }
 }
@@ -237,10 +239,10 @@ pub fn material_layer(m: MaterialId) -> u32 {
     u32::from(m.raw())
 }
 
-/// The atlas layer a block-colored face samples. Geology blocks share their
-/// material pack (so a geology block with no per-voxel contents still reads as
-/// its rock); the non-geology blocks map into the appended block-only layers,
-/// ordered as [`BLOCK_ONLY_SLUGS`].
+/// The atlas layer a block-colored face samples. A material voxel samples its
+/// own material pack directly ([`material_layer`]) — the geology re-translation
+/// arms the collapse deleted; the legacy S1 tokens map into the appended
+/// block-only layers, ordered as [`BLOCK_ONLY_SLUGS`].
 #[inline]
 pub fn block_layer(block: Block) -> u32 {
     let base = MATERIAL_COUNT as u32;
@@ -249,34 +251,20 @@ pub fn block_layer(block: Block) -> u32 {
         Block::Dirt => base + 1,
         Block::Stone => base + 2,
         Block::Wood => base + 3,
-        Block::Mudstone => material_layer(MaterialId::MUDSTONE),
-        Block::Sandstone => material_layer(MaterialId::SANDSTONE),
-        Block::Granite => material_layer(MaterialId::GRANITE),
-        Block::Basalt => material_layer(MaterialId::BASALT),
-        Block::Coal => material_layer(MaterialId::COAL),
-        Block::Peat => material_layer(MaterialId::PEAT),
-        Block::CarbonaceousMudstone => material_layer(MaterialId::CARBONACEOUS_MUDSTONE),
+        Block::Material(m) => material_layer(m),
         Block::Air => 0, // never emitted
     }
 }
 
-/// The blocks whose voxels carry material contents (the recorded strata tier).
-/// Gating contents consumption on the block keeps stale render-only contents
-/// from bleeding through after an edit changes the block (edits do not yet
-/// touch materials): a voxel edited to any other block falls back to its block
-/// color/layer and full height.
+/// The blocks whose voxels carry material contents (the recorded strata tier) —
+/// every [`Block::Material`], now that a block IS a material. Gating contents
+/// consumption on the block keeps stale render-only contents from bleeding
+/// through after an edit changes the block (edits do not yet touch materials):
+/// a voxel edited to a legacy S1 token (`dc:stone`/`dc:dirt`/…) falls back to
+/// its block color/layer and full height.
 #[inline]
 pub(crate) fn block_uses_contents(block: Block) -> bool {
-    matches!(
-        block,
-        Block::Mudstone
-            | Block::Sandstone
-            | Block::Granite
-            | Block::Basalt
-            | Block::Coal
-            | Block::Peat
-            | Block::CarbonaceousMudstone
-    )
+    matches!(block, Block::Material(_))
 }
 
 /// Height fraction (in eighths / 8) a voxel's contents render at: loose-only
@@ -926,7 +914,7 @@ mod tests {
             (last, last, last),
             (10, 10, 10),
         ] {
-            chunk.set(x, y, z, Block::Sandstone);
+            chunk.set(x, y, z, Block::Material(MaterialId::SANDSTONE));
             dense[Chunk::index(x, y, z)] =
                 VoxelContents::debris_only(&[MaterialId::SANDSTONE; 5]).unwrap();
         }
@@ -992,7 +980,7 @@ mod tests {
             (last, last, last),
             (10, 10, 10),
         ] {
-            chunk.set(x, y, z, Block::Sandstone);
+            chunk.set(x, y, z, Block::Material(MaterialId::SANDSTONE));
             dense[Chunk::index(x, y, z)] =
                 VoxelContents::debris_only(&[MaterialId::SANDSTONE; 5]).unwrap();
         }
@@ -1003,9 +991,9 @@ mod tests {
         // contents-bearing.
         let block_at = |_x: i64, _y: i64, z: i64| -> Block {
             match z.rem_euclid(3) {
-                0 => Block::Air,       // not solid: resolved on gather, cover 0
-                1 => Block::Stone,     // full solid, no contents: resolved, cover 1
-                _ => Block::Sandstone, // deferred: needs the neighbour's contents
+                0 => Block::Air,   // not solid: resolved on gather, cover 0
+                1 => Block::Stone, // full solid, no contents: resolved, cover 1
+                _ => Block::Material(MaterialId::SANDSTONE), // deferred: needs the neighbour's contents
             }
         };
         // Neighbour contents grids, varied loose height per voxel so the contents
@@ -1094,7 +1082,7 @@ mod tests {
         // A uniform-contents voxel samples the MATERIAL pack (siltstone), not
         // its block's — the walk-10 "member identity render-invisible" kill.
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Mudstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::MUDSTONE));
         let uniform =
             VoxelContents::debris_only(&[MaterialId::SILTSTONE; 8]).expect("8 debris eighths");
         let grid = grid_with(5, 5, 5, uniform);
@@ -1109,7 +1097,7 @@ mod tests {
         assert_eq!(mesh.triangle_count(), 12);
         assert_ne!(
             material_layer(MaterialId::SILTSTONE),
-            block_layer(Block::Mudstone)
+            block_layer(Block::Material(MaterialId::MUDSTONE))
         );
         for l in &mesh.mat_layers {
             assert_eq!(l[0], material_layer(MaterialId::SILTSTONE));
@@ -1125,7 +1113,7 @@ mod tests {
     #[test]
     fn mixed_contents_are_a_single_quad_with_splat_weights() {
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::SANDSTONE));
         // A placer-style mix: 6 sandstone + 2 gold-dust.
         let mut mats = [MaterialId::SANDSTONE; 8];
         mats[6] = MaterialId::GOLD_DUST;
@@ -1199,7 +1187,7 @@ mod tests {
         for z in 0..CHUNK_SIZE_USIZE {
             for y in 0..CHUNK_SIZE_USIZE {
                 for x in 0..CHUNK_SIZE_USIZE {
-                    chunk.set(x, y, z, Block::Sandstone);
+                    chunk.set(x, y, z, Block::Material(MaterialId::SANDSTONE));
                 }
             }
         }
@@ -1243,7 +1231,7 @@ mod tests {
     #[test]
     fn loose_only_contents_render_partial_height_with_an_exposed_top() {
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::SANDSTONE));
         let loose = VoxelContents::debris_only(&[MaterialId::SANDSTONE; 4]).unwrap();
         let grid = grid_with(5, 5, 5, loose);
         let mesh = mesh_chunk(
@@ -1315,8 +1303,8 @@ mod tests {
     fn taller_partial_beside_shorter_partial_emits_the_exposed_band() {
         // 5/8 at x=5, 3/8 at x=6. The shared plane is x = 6.
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Sandstone);
-        chunk.set(6, 5, 5, Block::Sandstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::SANDSTONE));
+        chunk.set(6, 5, 5, Block::Material(MaterialId::SANDSTONE));
         let grid = grid_of(&[(5, 5, 5, loose(5)), (6, 5, 5, loose(3))]);
         let mesh = mesh_chunk(
             &chunk,
@@ -1345,7 +1333,7 @@ mod tests {
     #[test]
     fn partial_beside_air_emits_its_full_side_face() {
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::SANDSTONE));
         let grid = grid_of(&[(5, 5, 5, loose(5))]);
         let mesh = mesh_chunk(
             &chunk,
@@ -1365,7 +1353,7 @@ mod tests {
     #[test]
     fn partial_beside_a_full_voxel_culls_its_side_completely() {
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::SANDSTONE));
         chunk.set(6, 5, 5, Block::Stone); // no contents → full height
         let grid = grid_of(&[(5, 5, 5, loose(5))]);
         let mesh = mesh_chunk(
@@ -1394,7 +1382,7 @@ mod tests {
         // a partial below leaves a gap the upper voxel's bottom face looks
         // through. Block-tier culling drew nothing there either.
         let mut chunk = Chunk::new();
-        chunk.set(5, 5, 5, Block::Sandstone);
+        chunk.set(5, 5, 5, Block::Material(MaterialId::SANDSTONE));
         chunk.set(5, 6, 5, Block::Stone);
         let grid = grid_of(&[(5, 5, 5, loose(4))]);
         let mesh = mesh_chunk(
@@ -1425,7 +1413,7 @@ mod tests {
         // The border path is the one that regressed twice before (tile cracks,
         // buried sheets): it must cull by the SAME arithmetic as the interior.
         let mut chunk = Chunk::new();
-        chunk.set(0, 5, 5, Block::Sandstone);
+        chunk.set(0, 5, 5, Block::Material(MaterialId::SANDSTONE));
         let grid = grid_of(&[(0, 5, 5, loose(5))]);
         let pos = ChunkPos::new(0, 0, 0);
         // The chunk to the -X holds a 3/8 partial at the touching voxel.
@@ -1448,7 +1436,7 @@ mod tests {
     #[test]
     fn cross_chunk_border_culls_against_a_taller_or_full_neighbor() {
         let mut chunk = Chunk::new();
-        chunk.set(0, 5, 5, Block::Sandstone);
+        chunk.set(0, 5, 5, Block::Material(MaterialId::SANDSTONE));
         let grid = grid_of(&[(0, 5, 5, loose(5))]);
         let pos = ChunkPos::new(0, 0, 0);
         for cover in [5.0f32 / 8.0, 7.0 / 8.0, 1.0] {
@@ -1481,7 +1469,7 @@ mod tests {
                 // most partials stand beside a shorter or taller one.
                 let h = 8 + (x / 3 + z / 5) % 6;
                 for y in 0..=h {
-                    chunk.set(x, y, z, Block::Sandstone);
+                    chunk.set(x, y, z, Block::Material(MaterialId::SANDSTONE));
                     partial[Chunk::index(x, y, z)] = solid;
                     full[Chunk::index(x, y, z)] = solid;
                 }
@@ -1537,56 +1525,32 @@ mod tests {
     }
 
     #[test]
-    fn block_only_geology_layer_agrees_with_direct_material_layer() {
-        // Render-first step 1 of the north star (block↔material collapse): a
-        // contents-bearing geology voxel already routes contents → material →
-        // material_layer DIRECTLY (the `top_splat` path — see
-        // `uniform_contents_sample_their_material_layer`); it never round-trips
-        // through `block_layer`. The block-only paths (far pyramid `push_quad`,
-        // benches, absent-contents geology voxels) still resolve a geology
-        // *block* via `block_layer`'s geology arms — those arms are NOT dead
-        // (journal/0082). For the seven blocks named after a material, BOTH
-        // routes must land on the same atlas layer, or a geology surface would
-        // flip texture the instant it lost or gained a per-voxel contents
-        // record. This guard pins that byte-identical agreement so a future
-        // edit to `block_twin` or to `block_layer` cannot silently drift the
-        // two tables apart (spines A-7: don't reinvent a mechanism beside the
-        // one that exists).
-        use dc_core::block_twin;
-        let primary = [
-            (Block::Mudstone, MaterialId::MUDSTONE),
-            (Block::Sandstone, MaterialId::SANDSTONE),
-            (Block::Granite, MaterialId::GRANITE),
-            (Block::Basalt, MaterialId::BASALT),
-            (Block::Coal, MaterialId::COAL),
-            (Block::Peat, MaterialId::PEAT),
-            (
-                Block::CarbonaceousMudstone,
-                MaterialId::CARBONACEOUS_MUDSTONE,
-            ),
-        ];
-        for (block, m) in primary {
-            // block_twin is the single Material→Block derivation; for these
-            // seven it round-trips to the block named after the material.
-            assert_eq!(block_twin(m), block, "block_twin twin for {block:?}");
-            // The load-bearing equivalence the wedge rests on: the direct
-            // material route and the block route resolve the identical layer.
+    fn material_block_layer_agrees_with_direct_material_layer() {
+        // The block↔material collapse (journal/0087) removed the geology block
+        // tier: a block IS a material. The block-only render paths (far pyramid
+        // `push_quad`, benches, absent-contents voxels) resolve
+        // `block_layer(Block::Material(m))`, while the contents-bearing near path
+        // routes `top_splat` → `material_layer(m)` DIRECTLY. Both MUST land on
+        // the same atlas layer for EVERY material, or a surface would flip
+        // texture the instant it lost or gained a per-voxel contents record.
+        // This is now a total identity — `block_layer(Material(m)) ==
+        // material_layer(m)` by construction — and this guard pins it so a future
+        // edit to `block_layer` cannot silently drift the two routes apart
+        // (spines A-7: don't reinvent a mechanism beside the one that exists).
+        for m in MaterialId::all() {
             assert_eq!(
+                block_layer(Block::Material(m)),
                 material_layer(m),
-                block_layer(block_twin(m)),
-                "geology layer disagreement for {block:?}"
+                "block/direct layer disagreement for {m:?}"
             );
         }
-        // The corollary that makes the near-field convergence meaningful: a
-        // geology block's *secondary* members do NOT collapse onto the block's
-        // layer — siltstone (a Mudstone twin) keeps its own material layer, so
-        // the direct contents route renders siltstone distinctly from mudstone
-        // (the walk-10 "member identity render-invisible" kill). If this ever
-        // became equal, the material route would have degenerated to the block
-        // route and the collapse would have gone backwards.
+        // Member identity is visible: siltstone and mudstone (formerly both the
+        // one `Mudstone` block) now resolve to distinct layers — the walk-10
+        // "member identity render-invisible" kill, and the whole point of the
+        // collapse. If these ever became equal the collapse would have reverted.
         assert_ne!(
             material_layer(MaterialId::SILTSTONE),
-            block_layer(block_twin(MaterialId::SILTSTONE))
+            material_layer(MaterialId::MUDSTONE)
         );
     }
 }

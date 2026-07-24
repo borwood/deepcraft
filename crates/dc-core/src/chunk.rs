@@ -3,11 +3,11 @@
 //! Chunk size rationale (32, i.e. 2^5 per edge):
 //! - Cubic chunks (see docs/ARCHITECTURE.md § World structure) want a cube, not
 //!   a column, so one edge length governs all three axes.
-//! - 32^3 = 32768 voxels; at 2 bytes per block id that is 64 KiB of raw block
-//!   data per chunk — big enough that per-chunk overhead (hash map entry,
-//!   entity, mesh) is amortized, small enough that a single block edit remeshes
-//!   only 64 KiB worth of world and chunk gen/mesh stays comfortably under a
-//!   frame budget.
+//! - 32^3 = 32768 voxels; at 1 byte per block id (the niche-folded `Block` atom,
+//!   journal/0087) that is 32 KiB of raw block data per chunk — big enough that
+//!   per-chunk overhead (hash map entry, entity, mesh) is amortized, small
+//!   enough that a single block edit remeshes only 32 KiB worth of world and
+//!   chunk gen/mesh stays comfortably under a frame budget.
 //! - Power of two keeps voxel→chunk math to shifts/masks.
 //! - 16^3 (Minecraft's section size) doubles chunk-count overhead for our
 //!   deep-world streaming radius; 64^3 (256 KiB, 262k voxels) makes single-chunk
@@ -248,7 +248,10 @@ mod tests {
     }
 
     #[test]
-    fn raw_byte_size_is_64_kib() {
-        assert_eq!(Chunk::raw_byte_size(), 64 * 1024);
+    fn raw_byte_size_is_32_kib() {
+        // The block↔material collapse (journal/0087) made `Block` a one-byte
+        // niche-folded atom, halving the raw block store from 64 KiB to 32 KiB.
+        assert_eq!(std::mem::size_of::<Block>(), 1);
+        assert_eq!(Chunk::raw_byte_size(), 32 * 1024);
     }
 }

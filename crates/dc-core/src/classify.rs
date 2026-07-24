@@ -19,12 +19,14 @@
 //!
 //! ## What the block is, and is not
 //!
-//! `Block` stays the **coarse render / storage / far-field summary** in its
-//! existing vocabulary. It deliberately does **not** grow form-aware variants
-//! (no `LooseSandstone`): loose clastic and structural clastic classify to the
-//! same class block, so today they look identical in a cut face. That
-//! consequence is ratified and accepted; form-dependent texture variants are a
-//! later *visuals* decision, not a block-vocabulary one.
+//! Since the block↔material collapse (journal/0087) `classify` returns the
+//! dominant material's **own identity** — `Block::Material(id)` — not a coarse
+//! block-tier summary. There is no `block_twin` re-translation any more: the
+//! material IS the block (materials.md DECIDED 2026-07-22). It deliberately does
+//! **not** grow form-aware variants (no `LooseSandstone`): loose clastic and
+//! structural clastic classify to the same *material*, so today they look
+//! identical in a cut face. That consequence is ratified and accepted;
+//! form-dependent texture variants are a later *visuals* decision.
 //!
 //! ## The absent-contents rule
 //!
@@ -44,62 +46,6 @@
 use crate::materials::MaterialId;
 use crate::materials::contents::VoxelContents;
 use crate::voxel::Block;
-
-/// The coarse block a material reads as. **A material property, not a geology
-/// class property** — which is the whole point: two members of one content
-/// class (mudstone and siltstone; sandstone and conglomerate) summarize to the
-/// same block because their *materials* do, not because a `GeologySet` said so.
-/// That keeps [`classify`] pure over contents and independent of the registry,
-/// while reproducing exactly what the class→block table used to answer for
-/// every member the vanilla (and the roster-proof) sets register.
-///
-/// Materials with no block twin in today's vocabulary fall back to
-/// [`Block::Stone`] — the same coarse fallback the class table used for unknown
-/// classes. Growing the vocabulary is a content decision; growing *this table*
-/// is how a new material becomes legible at the block tier.
-pub fn block_twin(material: MaterialId) -> Block {
-    match material.raw() {
-        // --- fine clastic ---
-        r if r == MaterialId::MUDSTONE.raw() => Block::Mudstone,
-        r if r == MaterialId::SILTSTONE.raw() => Block::Mudstone,
-        // Loose fines summarize to the same coarse band as their lithified
-        // form: a silt drape and a siltstone bed are the same rock at the
-        // block tier (the forms contract — form is not block identity).
-        r if r == MaterialId::SILT.raw() => Block::Mudstone,
-        r if r == MaterialId::CLAY.raw() => Block::Mudstone,
-        // --- coarse clastic ---
-        r if r == MaterialId::SANDSTONE.raw() => Block::Sandstone,
-        r if r == MaterialId::CONGLOMERATE.raw() => Block::Sandstone,
-        r if r == MaterialId::SAND.raw() => Block::Sandstone,
-        r if r == MaterialId::GRAVEL.raw() => Block::Sandstone,
-        // --- igneous ---
-        r if r == MaterialId::GRANITE.raw() => Block::Granite,
-        r if r == MaterialId::DIORITE.raw() => Block::Granite,
-        r if r == MaterialId::BASALT.raw() => Block::Basalt,
-        r if r == MaterialId::ANDESITE.raw() => Block::Basalt,
-        // --- organic ---
-        r if r == MaterialId::COAL.raw() => Block::Coal,
-        r if r == MaterialId::PEAT.raw() => Block::Peat,
-        r if r == MaterialId::CARBONACEOUS_MUDSTONE.raw() => Block::CarbonaceousMudstone,
-        // Charcoal summarizes to the same coarse black-carbon band as coal. It
-        // gets a twin rather than falling through to `Block::Stone` for one
-        // specific reason: charcoal is an *inclusion* — measured, it wins at
-        // most one eighth of a voxel — and the one place a single eighth can
-        // still decide a block is the top-of-column partial fill, where the
-        // surface voxel may hold only one eighth in the first place. Without a
-        // twin, a burned horizon at the surface would occasionally read as grey
-        // stone. Growing the `Block` vocabulary is a separate content decision;
-        // sharing coal's band is the honest summary in today's one.
-        r if r == MaterialId::CHARCOAL.raw() => Block::Coal,
-        // --- soil ---
-        r if r == MaterialId::LOAM.raw() => Block::Dirt,
-        // No block twin yet: gold dust and olivine are accessory grains that
-        // never dominate a voxel; snow, leaf litter, ash, scree, bone,
-        // potsherds and knapping debris are loose materials the block
-        // vocabulary has not grown a summary for.
-        _ => Block::Stone,
-    }
-}
 
 /// The material that defines this voxel's block-tier identity, or `None` for
 /// empty contents.
@@ -151,7 +97,7 @@ pub fn dominant_material(contents: &VoxelContents) -> Option<MaterialId> {
 pub fn classify(contents: &VoxelContents) -> Block {
     match dominant_material(contents) {
         None => Block::Air,
-        Some(m) => block_twin(m),
+        Some(m) => Block::Material(m),
     }
 }
 
@@ -177,7 +123,7 @@ mod tests {
             &[],
         )
         .unwrap();
-        assert_eq!(classify(&c), Block::Granite);
+        assert_eq!(classify(&c), Block::Material(MaterialId::GRANITE));
     }
 
     #[test]
@@ -189,18 +135,22 @@ mod tests {
                 *slot = MaterialId::GOLD_DUST;
             }
             let c = VoxelContents::debris_only(&d).unwrap();
-            assert_eq!(classify(&c), Block::Sandstone, "{k} ore eighths");
+            assert_eq!(
+                classify(&c),
+                Block::Material(MaterialId::SANDSTONE),
+                "{k} ore eighths"
+            );
         }
-        // A loose sand blanket is the same block as the sandstone it is the
-        // loose form of — form is not block identity (the ratified consequence).
+        // A loose sand blanket classifies to sand — its own material identity,
+        // no longer summarized to a coarse-clastic block (form is not identity).
         let loose = VoxelContents::debris_only(&[MaterialId::SANDSTONE; 3]).unwrap();
-        assert_eq!(classify(&loose), Block::Sandstone);
+        assert_eq!(classify(&loose), Block::Material(MaterialId::SANDSTONE));
     }
 
     #[test]
     fn pore_fill_decides_only_when_alone() {
         let c = VoxelContents::new(StructureShape::Full, &[], &[MaterialId::CLAY; 4], &[]).unwrap();
-        assert_eq!(classify(&c), Block::Mudstone);
+        assert_eq!(classify(&c), Block::Material(MaterialId::CLAY));
     }
 
     #[test]
@@ -225,16 +175,20 @@ mod tests {
         // gold dust (16). The point is that it is stable and independent of
         // insertion order, not which of the two happens to win.
         assert_eq!(dominant_material(&a), Some(MaterialId::SANDSTONE));
-        assert_eq!(classify(&a), Block::Sandstone);
+        assert_eq!(classify(&a), Block::Material(MaterialId::SANDSTONE));
     }
 
     #[test]
-    fn every_material_classifies_to_something() {
-        // Totality: no material may panic or fall out of the table.
+    fn every_material_classifies_to_its_own_identity() {
+        // Totality: every material classifies to exactly itself — the whole
+        // point of the collapse. No `_ => Stone` fallback, no block twin: the
+        // nine formerly face-less materials (snow, leaf-litter, potsherd,
+        // knapping-debris, ash, scree, bone, gold-dust, olivine) now wear their
+        // own identity like every other.
         for m in MaterialId::all() {
             let c = VoxelContents::debris_only(&[m]).unwrap();
             let b = classify(&c);
-            assert_eq!(b, block_twin(m));
+            assert_eq!(b, Block::Material(m));
             assert!(
                 b.is_solid(),
                 "a voxel with contents must not classify to Air"

@@ -9,8 +9,9 @@
 //! 2. **Edits are never dropped.** An edited chunk carries information the
 //!    generator cannot reproduce, so it is pinned regardless of pressure.
 
-use dc_core::{Block, CHUNK_SIZE_USIZE, Chunk, ChunkPos};
+use dc_core::{Block, CHUNK_SIZE_USIZE, Chunk, ChunkPos, MaterialId};
 
+use dc_api::host::block_name;
 use dc_api::{
     CapabilityToken, CommandEnvelope, ConsumerId, ConsumerKind, Grant, HostWorld, Payload, Vec3i,
     Volume, payload,
@@ -32,8 +33,8 @@ fn noisy_generator(seed: u64) -> impl Fn(ChunkPos) -> Chunk + Send + Sync + 'sta
                         0 => Block::Air,
                         1 => Block::Stone,
                         2 => Block::Dirt,
-                        3 => Block::Granite,
-                        _ => Block::Basalt,
+                        3 => Block::Material(MaterialId::GRANITE),
+                        _ => Block::Material(MaterialId::BASALT),
                     };
                     if block != Block::Air {
                         chunk.set(x, y, z, block);
@@ -201,13 +202,7 @@ fn a_no_op_write_does_not_pin_a_chunk() {
     let mut world = HostWorld::with_generator(5, Box::new(noisy_generator(5)));
     let pos = Vec3i::new(0, 0, 0);
     let existing = world.block_at(pos);
-    let name = match existing {
-        Block::Air => "dc:air",
-        Block::Stone => "dc:stone",
-        Block::Dirt => "dc:dirt",
-        Block::Granite => "dc:granite",
-        _ => "dc:basalt",
-    };
+    let name = block_name(existing);
     set_block(&mut world, pos, name);
     assert_eq!(world.chunk_residency().edited, 0);
 }

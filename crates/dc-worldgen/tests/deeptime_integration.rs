@@ -10,7 +10,7 @@
 //!   with a layered record renders a multi-band cliff (the recorded sequence,
 //!   now walkable).
 
-use dc_core::{Block, ChunkPos};
+use dc_core::{Block, ChunkPos, MaterialId};
 use dc_worldgen::deeptime::DepEnv;
 use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
 
@@ -158,10 +158,14 @@ fn collapse_column_story_comes_from_the_deep_record() {
                 let mut kinds: Vec<Block> = Vec::new();
                 for y in 0..32usize {
                     let b = chunk.get(x, y, z);
-                    if matches!(
-                        b,
-                        Block::Mudstone | Block::Sandstone | Block::Granite | Block::Basalt
-                    ) && !kinds.contains(&b)
+                    if matches!(b, Block::Material(m) if [
+                        MaterialId::MUDSTONE,
+                        MaterialId::SANDSTONE,
+                        MaterialId::GRANITE,
+                        MaterialId::BASALT,
+                    ]
+                    .contains(&m))
+                        && !kinds.contains(&b)
                     {
                         kinds.push(b);
                     }

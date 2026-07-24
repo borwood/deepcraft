@@ -40,7 +40,7 @@ use dc_core::materials::geology::{
 };
 use dc_core::{
     Block, CHUNK_VOLUME, Chunk, ChunkPos, ContentsGrid, MaterialChunk, MixtureId, MixtureTable,
-    StructureShape, VoxelContents, VoxelScale, block_twin, classify,
+    StructureShape, VoxelContents, VoxelScale, classify,
 };
 use dc_sim::statistical::rng::draw_f64;
 
@@ -411,11 +411,17 @@ impl<'a> WorldGenerator<'a> {
         // slicing the material path uses, so the two cannot disagree about where
         // the record is or what is in it.
         let fill = ColumnFill::build(&col.strata, self.voxel_m);
-        // Per-event block, for spans a single event covers. Provably constant
-        // across the chunk footprint: the per-voxel-column member dither
-        // re-selects only inside the event's own content class, and every member
-        // of a class shares a block twin.
-        let event_blocks = self.event_blocks(&col.strata);
+        let has_record = !col.strata.events.is_empty();
+        // A buried single-event voxel's block is `classify` of the very contents
+        // [`Self::material_ids`] interns for it — the SAME per-voxel-column
+        // dithered host member, keyed and memoized identically. Before the
+        // block↔material collapse (journal/0087) every member of a content class
+        // shared a `block_twin`, so the event's recorded member sufficed and this
+        // was a flat per-event table; now the block IS the member's material, so
+        // it MUST track the dither or `block == classify(contents)` breaks
+        // (contents_contract). The memo is `(event, host) -> Block`, the block
+        // twin of `material_ids`' `(event, host) -> MixtureId` memo.
+        let mut block_memo: HashMap<(usize, GeoMemberIdx), Block> = HashMap::new();
         let mut chunk = Chunk::new();
         let base_y = i64::from(pos.y) * 32;
         for z in 0..32usize {
@@ -429,7 +435,7 @@ impl<'a> WorldGenerator<'a> {
                         Block::Air
                     } else if vy == h {
                         col.surface[i]
-                    } else if event_blocks.is_empty() {
+                    } else if !has_record {
                         // No deposition record (ocean, wilds): legacy soil.
                         if vy >= h - i64::from(col.soil) {
                             Block::Dirt
@@ -438,7 +444,7 @@ impl<'a> WorldGenerator<'a> {
                         }
                     } else {
                         // The record fills the column; below it is unrecorded
-                        // basement = stone. A mixed voxel's block is
+                        // basement = stone. Every recorded voxel's block is
                         // `classify(contents)` of the very contents the material
                         // path builds — one opinion per voxel, journal/0052.
                         //
@@ -451,7 +457,14 @@ impl<'a> WorldGenerator<'a> {
                         let depth = (h - vy) as u32;
                         match fill.plan(depth + 1) {
                             None => Block::Stone,
-                            Some(Plan::Single(k)) => event_blocks[*k],
+                            Some(Plan::Single(k)) => {
+                                let event = col.strata.events[*k];
+                                let host =
+                                    dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                                *block_memo.entry((*k, host)).or_insert_with(|| {
+                                    classify(&contents_for_event(&self.geology, host, &event))
+                                })
+                            }
                             Some(Plan::Mixed(w)) => {
                                 classify(&self.mixed_at(&col.strata, w, vx, vy, vz, 8))
                             }
@@ -604,17 +617,6 @@ impl<'a> WorldGenerator<'a> {
             }
         }
         dense
-    }
-
-    /// The block each recorded event summarizes to, indexed by event. Empty for
-    /// a column with no record (ocean, wilds), which is what both fill paths
-    /// test to fall back to the legacy soil band.
-    fn event_blocks(&self, strata: &StrataRec) -> Vec<Block> {
-        strata
-            .events
-            .iter()
-            .map(|e| classify(&contents_for_event(&self.geology, e.member, e)))
-            .collect()
     }
 
     /// Contents of one **mixed** voxel: the addressed stochastic allocation of
@@ -789,8 +791,10 @@ impl<'a> WorldGenerator<'a> {
     /// **The member dither** (journal/0058) lives in this branch: resolved
     /// per voxel column off the interpolated selection field, so a far
     /// heightfield built from this summary does not quantize into 28.8 m member
-    /// patches. The block is invariant under it (every member of a class shares a
-    /// `block_twin`).
+    /// patches. Since the block↔material collapse (journal/0087) the block IS the
+    /// dithered member's material, so member variety is now visible in the far
+    /// field too (consistent with the near field); the member's **class** stays
+    /// invariant under the dither, which is what near/far agreement is held to.
     fn surface_sample(
         &mut self,
         vx: i64,
@@ -822,10 +826,11 @@ impl<'a> WorldGenerator<'a> {
             //
             // It is safe to put it in the SHARED kernel — and it has to be
             // there, for the same reason the class consult is (ARCHITECTURE.md
-            // § One world-answer surface). The **block does not move**: every
-            // member of a vanilla class shares a `block_twin`, so dithering
-            // *within* a class cannot change `classify` of the resulting
-            // contents. (That is exactly the property journal/0055's judgment
+            // § One world-answer surface). Since the block↔material collapse
+            // (journal/0087) the block DOES move with the dither — it is now the
+            // chosen member's own material — but the member's **class does not**,
+            // so dithering within a class cannot flip which class the surface
+            // reads as. (That is exactly the property journal/0055's judgment
             // call 2 could NOT rely on for mixed voxels, where a swap can flip
             // which of two classes wins a 4–4 tie. A single-member surface voxel
             // has no cross-class tie to flip.)
@@ -840,7 +845,7 @@ impl<'a> WorldGenerator<'a> {
             let u = interp_select_draw(self.seed, SALT_GEO_SELECT, 4, cx, cz, fx, fz);
             let member = self.geology.select(class, &form, u).map(|(i, _)| i);
             let block = member
-                .map(|m| block_twin(self.geology.member(m).material))
+                .map(|m| Block::Material(self.geology.member(m).material))
                 .or_else(|| self.class_block(class));
             if let Some(block) = block {
                 return SurfaceSample {
@@ -982,14 +987,14 @@ impl<'a> WorldGenerator<'a> {
         }
     }
 
-    /// The block a content class summarizes to, via its first (id-sorted)
-    /// member. Every member of a vanilla class shares a block twin — that is the
-    /// property `classify` relies on everywhere else in the fill — so this
-    /// answers the same block the near path's `classify(contents)` will, whichever
-    /// member the column's own selection draw picks.
+    /// The block a content class fronts with when no member draw resolved, via
+    /// its first (id-sorted) member's material. Since the collapse (journal/0087)
+    /// a block is a material, so this is the first member's own identity — the
+    /// fallback the far surface shows where the class is known but the member
+    /// draw came up empty.
     fn class_block(&self, class: &str) -> Option<Block> {
         let m = *self.geology.class(class)?.members().first()?;
-        Some(block_twin(self.geology.member(m).material))
+        Some(Block::Material(self.geology.member(m).material))
     }
 
     /// The coarse far-field summary at one world voxel column: surface height
@@ -1730,9 +1735,8 @@ fn carve_rivers(mut elev: f64, px: f64, pz: f64, segs: &[RiverSeg]) -> (f64, boo
 #[cfg(test)]
 mod tests {
     use dc_core::materials::geology::{
-        self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
-        CLASS_IGNEOUS_INTRUSIVE, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT,
-        CLASS_ORGANIC_SOIL, FormationWindow, GeoHabit, GeoMemberDef, GeoMemberIdx, GeologySet,
+        self, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, FormationWindow, GeoHabit, GeoMemberDef,
+        GeoMemberIdx, GeologySet,
     };
     use dc_core::{Block, MaterialId, classify};
 
@@ -1741,25 +1745,16 @@ mod tests {
     use crate::geology::StrataEvent;
     use crate::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams, temp_sea_level};
 
-    /// **The retired class-to-block table**, kept only as the regression oracle
-    /// for the fill contract: before 2026-07-21 this is how `generate_chunk`
-    /// computed a band's block, in parallel with (and in ignorance of) the
-    /// contents. `classify(contents_for_event(..))` must reproduce it for every
-    /// member of every registered set — that equivalence is what makes the
-    /// rewire byte-neutral, and it is asserted below rather than assumed.
+    /// The block a member's event must classify to: since the block↔material
+    /// collapse (journal/0087) that is the member's **own material** — a block IS
+    /// a material. The regression this guards is the fill contract's dominance
+    /// rule: no enrichment shape (placer ore ≤3/8, accessory pore inclusion) may
+    /// usurp the structural/host member, so `classify(contents_for_event(..))`
+    /// wears the member's own identity for every member of every registered set.
+    /// (Before 2026-07-21 a parallel class-to-block table computed this; the
+    /// collapse retired even the class summary in between.)
     fn block_for_member(set: &GeologySet, member: GeoMemberIdx) -> Block {
-        match set.member(member).class.as_str() {
-            c if c == CLASS_CLASTIC_FINE => Block::Mudstone,
-            c if c == CLASS_CLASTIC_COARSE => Block::Sandstone,
-            c if c == CLASS_IGNEOUS_INTRUSIVE => Block::Granite,
-            c if c == CLASS_IGNEOUS_EXTRUSIVE => Block::Basalt,
-            c if c == CLASS_ORGANIC_COAL => Block::Coal,
-            // Charcoal shares coal's block band (see `dc_core::block_twin`).
-            c if c == CLASS_ORGANIC_CHARCOAL => Block::Coal,
-            c if c == CLASS_ORGANIC_PEAT => Block::Peat,
-            c if c == CLASS_ORGANIC_SOIL => Block::CarbonaceousMudstone,
-            _ => Block::Stone,
-        }
+        Block::Material(set.member(member).material)
     }
 
     fn probe_event(member: GeoMemberIdx) -> StrataEvent {
@@ -1941,21 +1936,45 @@ mod tests {
     /// systematic split.
     #[test]
     fn coarse_surface_agrees_with_the_near_column_surface() {
-        // Only land columns that surface a geology block on both sides carry
+        // Only land columns that surface a geology material on both sides carry
         // information; the Dirt/Stone fallback vocabulary is shared trivially and
-        // would inflate the agreement. Restrict to columns the far field reports
-        // a geology block for, and compare the near block there.
-        let geo = |b: Block| {
-            matches!(
-                b,
-                Block::Sandstone
-                    | Block::Mudstone
-                    | Block::Granite
-                    | Block::Basalt
-                    | Block::Coal
-                    | Block::Peat
-                    | Block::CarbonaceousMudstone
-            )
+        // would inflate the agreement. Restrict to those, and — since the
+        // block↔material collapse (journal/0087) — compare at **content-class**
+        // granularity: a block now carries its dithered MEMBER's material, and
+        // near (the record's top span through `ColumnFill`) and far (the coarse
+        // window draw) legitimately dither *different members within a class*
+        // (journal/0074). The invariant that must hold is agreement on the
+        // class the surface is made of, exactly what the retired `block_twin`
+        // summarized to — not which member won the within-class dither.
+        let geo_class = |b: Block| -> Option<u8> {
+            let Block::Material(m) = b else { return None };
+            let r = m.raw();
+            let is = |x: MaterialId| x.raw() == r;
+            if is(MaterialId::MUDSTONE)
+                || is(MaterialId::SILTSTONE)
+                || is(MaterialId::SILT)
+                || is(MaterialId::CLAY)
+            {
+                Some(0) // fine clastic
+            } else if is(MaterialId::SANDSTONE)
+                || is(MaterialId::CONGLOMERATE)
+                || is(MaterialId::SAND)
+                || is(MaterialId::GRAVEL)
+            {
+                Some(1) // coarse clastic
+            } else if is(MaterialId::GRANITE) || is(MaterialId::DIORITE) {
+                Some(2) // igneous intrusive
+            } else if is(MaterialId::BASALT) || is(MaterialId::ANDESITE) {
+                Some(3) // igneous extrusive
+            } else if is(MaterialId::COAL) || is(MaterialId::CHARCOAL) {
+                Some(4) // organic coal band
+            } else if is(MaterialId::PEAT) {
+                Some(5)
+            } else if is(MaterialId::CARBONACEOUS_MUDSTONE) {
+                Some(6)
+            } else {
+                None // loose accessory / soil: not a geology surface class
+            }
         };
         let (mut agree, mut compared) = (0usize, 0usize);
         for seed in [0x0D5E_ED57_2026u64, 1337] {
@@ -1973,13 +1992,13 @@ mod tests {
                             let near = col.surface[lz * 32 + lx];
                             let (_h, far) = g.coarse_surface(vx, vz);
                             // Compare only where the record surfaces a geology
-                            // block on both sides (a shared fallback is not
+                            // class on both sides (a shared fallback is not
                             // agreement about anything).
-                            if !geo(near) || !geo(far) {
+                            let (Some(nc), Some(fc)) = (geo_class(near), geo_class(far)) else {
                                 continue;
-                            }
+                            };
                             compared += 1;
-                            if near == far {
+                            if nc == fc {
                                 agree += 1;
                             }
                         }
@@ -2248,10 +2267,12 @@ mod tests {
     /// thing whose S-4 checkerboard cure B1 shipped.
     ///
     /// A deep cell's top-window class shares are constant across the whole cell
-    /// (`record_at_voxel` is NEAREST at the 460 m grid), and the within-class
-    /// member dither provably cannot move the block (every member of a class
-    /// shares a `block_twin`) — so if two *far* samples of the same deep cell
-    /// surface two different geology blocks, that split can only be the class
+    /// (`record_at_voxel` is NEAREST at the 460 m grid). Since the block↔material
+    /// collapse (journal/0087) the far block carries the dithered MEMBER's
+    /// material, so this test tracks the surfaced **class** (the material's
+    /// content class), not the raw block — otherwise the within-class member
+    /// dither would masquerade as a class split. If two *far* samples of the same
+    /// deep cell surface two different *classes*, that split can only be the class
     /// membership dither. The retired plurality would give exactly 0 splits.
     /// Grouping is by the record's pointer identity (same cell ⇒ same rec).
     #[test]
@@ -2262,25 +2283,44 @@ mod tests {
             extent: Extent::Medium,
         });
         let mut g = WorldGenerator::new(&pregen);
-        // A class's block twin — NOT the Air/Dirt/Stone fallback vocabulary,
-        // NOT ruin Wood. Intra-cell variation among THESE is the class dither.
-        let geo = |b: Block| {
-            matches!(
-                b,
-                Block::Sandstone
-                    | Block::Mudstone
-                    | Block::Granite
-                    | Block::Basalt
-                    | Block::Coal
-                    | Block::Peat
-                    | Block::CarbonaceousMudstone
-            )
+        // The surfaced material's content class — NOT the Air/Dirt/Stone fallback
+        // vocabulary, NOT ruin Wood. Intra-cell variation among these classes is
+        // the class dither (member variation within one class is NOT).
+        let geo_class = |b: Block| -> Option<u8> {
+            let Block::Material(m) = b else { return None };
+            let r = m.raw();
+            let is = |x: MaterialId| x.raw() == r;
+            if is(MaterialId::MUDSTONE)
+                || is(MaterialId::SILTSTONE)
+                || is(MaterialId::SILT)
+                || is(MaterialId::CLAY)
+            {
+                Some(0)
+            } else if is(MaterialId::SANDSTONE)
+                || is(MaterialId::CONGLOMERATE)
+                || is(MaterialId::SAND)
+                || is(MaterialId::GRAVEL)
+            {
+                Some(1)
+            } else if is(MaterialId::GRANITE) || is(MaterialId::DIORITE) {
+                Some(2)
+            } else if is(MaterialId::BASALT) || is(MaterialId::ANDESITE) {
+                Some(3)
+            } else if is(MaterialId::COAL) || is(MaterialId::CHARCOAL) {
+                Some(4)
+            } else if is(MaterialId::PEAT) {
+                Some(5)
+            } else if is(MaterialId::CARBONACEOUS_MUDSTONE) {
+                Some(6)
+            } else {
+                None
+            }
         };
         // A 460 m deep cell is ~511 voxels ≈ 16 chunks wide. Spread the sample
         // chunks at a ~one-cell stride so each lands in a *distinct* deep cell
         // over a wide area, then sample the FAR summary (`coarse_surface`) across
         // each chunk's columns — a multi-class cell reveals its split.
-        let mut by_cell: HashMap<usize, Vec<Block>> = HashMap::new();
+        let mut by_cell: HashMap<usize, Vec<u8>> = HashMap::new();
         for i in 0..15i64 {
             for j in 0..15i64 {
                 let (cx, cz) = (i * 17 - 120, j * 17 - 120);
@@ -2288,16 +2328,16 @@ mod tests {
                     for lx in 0..32i64 {
                         let (vx, vz) = (cx * 32 + lx, cz * 32 + lz);
                         let (_h, b) = g.coarse_surface(vx, vz);
-                        if !geo(b) {
+                        let Some(class) = geo_class(b) else {
                             continue;
-                        }
+                        };
                         let Some(rec) = pregen.deep.record_at_voxel(vx, vz) else {
                             continue;
                         };
                         let key = std::ptr::from_ref(rec) as usize;
                         let seen = by_cell.entry(key).or_default();
-                        if !seen.contains(&b) {
-                            seen.push(b);
+                        if !seen.contains(&class) {
+                            seen.push(class);
                         }
                     }
                 }

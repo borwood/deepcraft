@@ -29,7 +29,7 @@ pub mod lod;
 pub mod packing;
 pub mod stratify;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Number of materials in the prototype registry (12 S8 debris materials +
 /// the 5-entry v1 geology set + the 3d roster-proof widening: a second fine
@@ -38,52 +38,76 @@ use serde::{Deserialize, Serialize};
 /// facies resolve to; the table widens behind `MaterialId`, the type does not).
 pub const MATERIAL_COUNT: usize = 26;
 
-/// Identifier of a granular material in the registry. `u8`-sized: a material
-/// id appears up to 8 times per voxel, so entry compactness matters more than
+/// Private niche-bearing representation of a [`MaterialId`]. A `#[repr(u8)]`
+/// fieldless enum with exactly [`MATERIAL_COUNT`] contiguous variants, so the
+/// compiler knows the values `MATERIAL_COUNT..=255` are invalid bit patterns —
+/// a **niche** the [`crate::voxel::Block`] atom folds `Air` and the legacy S1
+/// blocks into, collapsing the voxel atom to a single byte (the 64→32 KiB/chunk
+/// win the block↔material collapse buys). A plain `u8` newtype has no niche, so
+/// `Block` would round back up to two bytes; this enum is the whole reason the
+/// representation is here rather than a bare `u8`. `MaterialId`'s public API is
+/// unchanged — `raw()`, `from_raw`, the associated constants and `props()` all
+/// read exactly as before. Ordinal order (M0 < M1 < …) equals registry-id order,
+/// so the derived `Ord` preserves the classify tie-break's "lowest id wins".
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[repr(u8)]
+#[rustfmt::skip]
+enum MatRepr {
+    M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11, M12, M13,
+    M14, M15, M16, M17, M18, M19, M20, M21, M22, M23, M24, M25,
+}
+
+const _: () = assert!(
+    MATERIAL_COUNT == 26,
+    "MatRepr variant count must equal MATERIAL_COUNT"
+);
+
+/// Identifier of a granular material in the registry. Byte-sized: a material id
+/// appears up to 8 times per voxel, so entry compactness matters more than
 /// ceiling here; the eventual data-driven registry can widen it behind this
-/// type.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Serialize, Deserialize)]
-pub struct MaterialId(u8);
+/// type. Backed by [`MatRepr`] so the type carries a niche (see there).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct MaterialId(MatRepr);
 
 impl MaterialId {
-    pub const SAND: MaterialId = MaterialId(0);
-    pub const GRAVEL: MaterialId = MaterialId(1);
-    pub const SNOW: MaterialId = MaterialId(2);
-    pub const LEAF_LITTER: MaterialId = MaterialId(3);
-    pub const CLAY: MaterialId = MaterialId(4);
-    pub const SILT: MaterialId = MaterialId(5);
-    pub const POTSHERD: MaterialId = MaterialId(6);
-    pub const KNAPPING_DEBRIS: MaterialId = MaterialId(7);
-    pub const ASH: MaterialId = MaterialId(8);
-    pub const LOAM: MaterialId = MaterialId(9);
-    pub const SCREE: MaterialId = MaterialId(10);
-    pub const BONE: MaterialId = MaterialId(11);
+    pub const SAND: MaterialId = MaterialId(MatRepr::M0);
+    pub const GRAVEL: MaterialId = MaterialId(MatRepr::M1);
+    pub const SNOW: MaterialId = MaterialId(MatRepr::M2);
+    pub const LEAF_LITTER: MaterialId = MaterialId(MatRepr::M3);
+    pub const CLAY: MaterialId = MaterialId(MatRepr::M4);
+    pub const SILT: MaterialId = MaterialId(MatRepr::M5);
+    pub const POTSHERD: MaterialId = MaterialId(MatRepr::M6);
+    pub const KNAPPING_DEBRIS: MaterialId = MaterialId(MatRepr::M7);
+    pub const ASH: MaterialId = MaterialId(MatRepr::M8);
+    pub const LOAM: MaterialId = MaterialId(MatRepr::M9);
+    pub const SCREE: MaterialId = MaterialId(MatRepr::M10);
+    pub const BONE: MaterialId = MaterialId(MatRepr::M11);
     // --- v1 geology set (docs/design/geology.md, DECIDED 2026-07-18) ---
     /// Clastic sediment, fine (lithified mud/silt).
-    pub const MUDSTONE: MaterialId = MaterialId(12);
+    pub const MUDSTONE: MaterialId = MaterialId(MatRepr::M12);
     /// Clastic sediment, coarse (lithified sand).
-    pub const SANDSTONE: MaterialId = MaterialId(13);
+    pub const SANDSTONE: MaterialId = MaterialId(MatRepr::M13);
     /// Igneous intrusive (coarse-crystalline basement).
-    pub const GRANITE: MaterialId = MaterialId(14);
+    pub const GRANITE: MaterialId = MaterialId(MatRepr::M14);
     /// Igneous extrusive (fine-crystalline surface flows).
-    pub const BASALT: MaterialId = MaterialId(15);
+    pub const BASALT: MaterialId = MaterialId(MatRepr::M15);
     /// Placer ore mineral: a dense grain that sorts with the coarse fraction
     /// despite its small size — the placer mechanism in one property sheet.
-    pub const GOLD_DUST: MaterialId = MaterialId(16);
+    pub const GOLD_DUST: MaterialId = MaterialId(MatRepr::M16);
     // --- 3d roster-proof widening (docs/design/geology.md § roster, the
     // rich-mineral posture proven small: a second member per v1 class + one
     // accessory mineral). Appended so existing ids are undisturbed. ---
     /// Clastic sediment, fine (lithified silt) — second fine clastic.
-    pub const SILTSTONE: MaterialId = MaterialId(17);
+    pub const SILTSTONE: MaterialId = MaterialId(MatRepr::M17);
     /// Clastic sediment, coarse (lithified gravel) — second coarse clastic.
-    pub const CONGLOMERATE: MaterialId = MaterialId(18);
+    pub const CONGLOMERATE: MaterialId = MaterialId(MatRepr::M18);
     /// Igneous intrusive (intermediate plutonic) — second intrusive.
-    pub const DIORITE: MaterialId = MaterialId(19);
+    pub const DIORITE: MaterialId = MaterialId(MatRepr::M19);
     /// Igneous extrusive (intermediate lava) — second extrusive.
-    pub const ANDESITE: MaterialId = MaterialId(20);
+    pub const ANDESITE: MaterialId = MaterialId(MatRepr::M20);
     /// Accessory mafic mineral: rides the pore slots of a host igneous rock
     /// (olivine in basalt/gabbro) — the inclusion-as-pore-partial representation.
-    pub const OLIVINE: MaterialId = MaterialId(21);
+    pub const OLIVINE: MaterialId = MaterialId(MatRepr::M21);
     // --- organic rocks (the S10 biotic layer reaching the material tier,
     // journal/0026). The deep-time recorder's `Biofacies` axis selects the
     // content CLASS; these are the vanilla members that fill those classes.
@@ -91,28 +115,33 @@ impl MaterialId {
     /// Waterlogged organic accumulation that outran decomposition — the
     /// **proto-coal**. Light, fibrous, an excellent insulator; the one organic
     /// rock that is not yet a rock.
-    pub const PEAT: MaterialId = MaterialId(22);
+    pub const PEAT: MaterialId = MaterialId(MatRepr::M22);
     /// **Coal**: peat buried and compacted past the burial-diagenesis
     /// threshold. Dark, soft for a rock (Mohs ~2), low density — the seam a
     /// player digs.
-    pub const COAL: MaterialId = MaterialId(23);
+    pub const COAL: MaterialId = MaterialId(MatRepr::M23);
     /// Organic-rich (carbonaceous) mudstone: the lithified organic soil
     /// horizon. Buried, it is a **paleosol** — the most abundant organic
     /// facies in the record by far.
-    pub const CARBONACEOUS_MUDSTONE: MaterialId = MaterialId(24);
+    pub const CARBONACEOUS_MUDSTONE: MaterialId = MaterialId(MatRepr::M24);
     /// **Charcoal**: the residue of a burned landscape (journal/0063). A fire
     /// bed is a *thin event bed* — the deep-time recorder's charcoal units
     /// average ~3.5 cm — so charcoal is never a stratum you stand on; it is an
     /// **inclusion**, a fraction of an eighth of a voxel competing for a whole
     /// one under `dc_worldgen::fill`'s addressed stochastic allocation. Light,
     /// friable, extremely black, and porous enough to be a soil amendment.
-    pub const CHARCOAL: MaterialId = MaterialId(25);
+    pub const CHARCOAL: MaterialId = MaterialId(MatRepr::M25);
 
     /// A registry-valid id from its raw value; `None` when out of range.
     #[inline]
     pub const fn from_raw(raw: u8) -> Option<MaterialId> {
         if (raw as usize) < MATERIAL_COUNT {
-            Some(MaterialId(raw))
+            // SAFETY: `MatRepr` is `#[repr(u8)]` with contiguous variants
+            // `0..MATERIAL_COUNT`, and `raw` is checked in range, so it is a
+            // valid `MatRepr` bit pattern. Same size (both one byte).
+            Some(MaterialId(unsafe {
+                core::mem::transmute::<u8, MatRepr>(raw)
+            }))
         } else {
             None
         }
@@ -120,18 +149,85 @@ impl MaterialId {
 
     #[inline]
     pub const fn raw(self) -> u8 {
-        self.0
+        self.0 as u8
     }
 
     /// This material's property sheet.
     #[inline]
     pub fn props(self) -> &'static MaterialProps {
-        &REGISTRY[self.0 as usize]
+        &REGISTRY[self.raw() as usize]
     }
 
     /// Every registered material, in id order.
     pub fn all() -> impl Iterator<Item = MaterialId> {
-        (0..MATERIAL_COUNT as u8).map(MaterialId)
+        (0..MATERIAL_COUNT as u8).map(|r| MaterialId::from_raw(r).expect("r < MATERIAL_COUNT"))
+    }
+
+    /// The material's fully-qualified `dc:` id — the player-facing block name it
+    /// wears now that a block IS a material (host.rs `block_name`). Kept in
+    /// lockstep with the registry slug by a guard test.
+    #[inline]
+    pub fn qualified_name(self) -> &'static str {
+        MATERIAL_QUALIFIED_NAMES[self.raw() as usize]
+    }
+
+    /// The material whose fully-qualified `dc:` id is `name`, or `None`.
+    pub fn from_qualified_name(name: &str) -> Option<MaterialId> {
+        MATERIAL_QUALIFIED_NAMES
+            .iter()
+            .position(|n| *n == name)
+            .and_then(|i| MaterialId::from_raw(i as u8))
+    }
+}
+
+/// Fully-qualified `dc:` id of each material, index-aligned with [`REGISTRY`].
+/// The value source for [`MaterialId::qualified_name`] and the block-name
+/// completion; held to `"dc:" + REGISTRY[i].name` by
+/// `material_qualified_names_match_registry`.
+pub const MATERIAL_QUALIFIED_NAMES: [&str; MATERIAL_COUNT] = [
+    "dc:sand",
+    "dc:gravel",
+    "dc:snow",
+    "dc:leaf-litter",
+    "dc:clay",
+    "dc:silt",
+    "dc:potsherd",
+    "dc:knapping-debris",
+    "dc:ash",
+    "dc:loam",
+    "dc:scree",
+    "dc:bone",
+    "dc:mudstone",
+    "dc:sandstone",
+    "dc:granite",
+    "dc:basalt",
+    "dc:gold-dust",
+    "dc:siltstone",
+    "dc:conglomerate",
+    "dc:diorite",
+    "dc:andesite",
+    "dc:olivine",
+    "dc:peat",
+    "dc:coal",
+    "dc:carbonaceous-mudstone",
+    "dc:charcoal",
+];
+
+// Manual serde so the wire format stays exactly the raw `u8` id — the niche-
+// bearing `MatRepr` backing (above) is a memory-layout detail that must not
+// reach the postcard sidecar. Serializing/deserializing the raw byte keeps the
+// `materials/slots-v0` format byte-identical to the pre-collapse `MaterialId(u8)`.
+impl Serialize for MaterialId {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_u8(self.raw())
+    }
+}
+
+impl<'de> Deserialize<'de> for MaterialId {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let raw = u8::deserialize(d)?;
+        MaterialId::from_raw(raw)
+            .ok_or_else(|| serde::de::Error::custom(format!("material id {raw} out of range")))
     }
 }
 
@@ -603,6 +699,22 @@ const REGISTRY: [MaterialProps; MATERIAL_COUNT] = [
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn material_qualified_names_match_registry() {
+        // One name authority: the `dc:` id is exactly `"dc:" + slug`, and the
+        // slug lives in the registry. This guard keeps the two from drifting.
+        for m in MaterialId::all() {
+            assert_eq!(
+                m.qualified_name(),
+                format!("dc:{}", m.props().name),
+                "qualified name drifted from registry slug for {}",
+                m.props().name
+            );
+            assert_eq!(MaterialId::from_qualified_name(m.qualified_name()), Some(m));
+        }
+        assert_eq!(MaterialId::from_qualified_name("dc:not-a-material"), None);
+    }
 
     #[test]
     fn registry_ids_roundtrip_and_names_are_distinct() {
