@@ -697,7 +697,7 @@ impl Erosion {
     /// Snapshot bedrock before the erosion phases, so [`Self::track_exhumation`]
     /// can measure the R-lowering the phases produce (incision + weathering) and
     /// attribute it to the column — never the later isostatic motion.
-    fn snapshot_bedrock(&mut self, grid: &DeepGrid) {
+    pub fn snapshot_bedrock(&mut self, grid: &DeepGrid) {
         self.r_snap.copy_from_slice(&grid.r);
     }
 

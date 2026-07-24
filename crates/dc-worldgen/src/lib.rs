@@ -37,6 +37,7 @@ pub mod deeptime;
 pub mod far;
 pub mod fill;
 pub mod geology;
+pub mod passgraph;
 pub mod pipeline;
 pub mod pregen;
 pub mod water;

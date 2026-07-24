@@ -234,6 +234,16 @@ files.
 
 - `pipeline.rs`: passes declare reads/writes; Kahn's algorithm with a
   lexicographic tie-break; *"never of registration order"*
+- `deeptime/runner.rs` (journal/0090, 2026-07-24): the **deep-time pass-runner** —
+  the epoch loop's phases (climate, tectonics, and the decomposed erosion
+  sub-passes weather/transport/diffuse/agents/deposition, plus biotic) declare
+  `{reads, writes}` over a deep-cell axis vocabulary **plus a cadence** (order ×
+  rate). Same topo-sort math as `pipeline.rs`, **extracted into the shared
+  `passgraph` kernel and called by both — not a second runner beside it** (A-4
+  guarded). The biology↔erosion one-epoch lag is a declared **loop-carried edge**
+  (`reads_prev`, not handed to the sort); declare it within-epoch and the runner
+  rejects the cycle. `climate`'s `remarch_interval` is a low-rate pass. Re-housing
+  is byte-identical (the production goldens are unmoved).
 - members canonically ordered by namespaced id (geology.md)
 - patch plugins: declared order, last-in-order wins, **recorded in world
   identity** (DECIDED 2026-07-22)

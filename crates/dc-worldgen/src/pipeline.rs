@@ -23,12 +23,11 @@
 //! (Kahn's algorithm with lexicographic-id tie-break), never of registration
 //! order.
 
-use std::collections::BTreeMap;
-
 use dc_core::materials::geology::GeologySet;
 
 use crate::deeptime::{DeepField, DeepOverrides};
 use crate::geology::StrataCtx;
+use crate::passgraph::{self, Decl, GraphError};
 use crate::pregen::{CellGrid, history};
 
 /// When a pass runs.
@@ -153,129 +152,47 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    /// Validate and topo-sort. The order is a pure function of the
-    /// declarations: Kahn's algorithm, ties broken by pass id.
+    /// Validate and topo-sort. The graph math (classification, edges, Kahn's
+    /// algorithm with an id-lexicographic tie-break, cycle + ambiguity
+    /// rejection) is the shared [`passgraph`] kernel; the pregen tier layers one
+    /// extra policy on the verdict — the **phase rule** (a collapse-created
+    /// resource must not feed a pregen pass), which is meaningless at the
+    /// deep-time loop tier that shares the kernel. Pregen builds state from
+    /// nothing, so `require_creator = true`.
     pub fn new(passes: Vec<Pass>) -> Result<Self, PipelineError> {
-        for (i, p) in passes.iter().enumerate() {
-            if passes[..i].iter().any(|q| q.id == p.id) {
-                return Err(PipelineError::DuplicateId(p.id.to_string()));
-            }
-        }
+        let decls: Vec<Decl<Resource>> = passes
+            .iter()
+            .map(|p| Decl {
+                id: p.id,
+                reads: p.reads,
+                writes: p.writes,
+            })
+            .collect();
+        let scheduled = passgraph::schedule(&decls, true).map_err(map_graph_error)?;
 
-        // Classify per resource: (creators, modifiers, pure readers).
-        type Roles = (Vec<usize>, Vec<usize>, Vec<usize>);
-        let mut by_resource: BTreeMap<Resource, Roles> = BTreeMap::new();
-        for (i, p) in passes.iter().enumerate() {
-            for &r in p.writes {
-                let entry = by_resource.entry(r).or_default();
-                if p.reads.contains(&r) {
-                    entry.1.push(i);
-                } else {
-                    entry.0.push(i);
-                }
-            }
-            for &r in p.reads {
-                if !p.writes.contains(&r) {
-                    by_resource.entry(r).or_default().2.push(i);
-                }
-            }
-        }
-
-        // Edges (adjacency): creator -> modifiers + readers; modifier -> readers.
-        let n = passes.len();
-        let mut adj = vec![Vec::<usize>::new(); n];
-        let push_edge = |adj: &mut Vec<Vec<usize>>, from: usize, to: usize| {
-            if from != to && !adj[from].contains(&to) {
-                adj[from].push(to);
-            }
-        };
-        for (&resource, (creators, modifiers, readers)) in &by_resource {
-            if creators.len() > 1 {
-                return Err(PipelineError::MultipleCreators {
-                    resource,
-                    a: passes[creators[0]].id.to_string(),
-                    b: passes[creators[1]].id.to_string(),
-                });
-            }
-            if creators.is_empty() {
-                let culprit = modifiers.first().or(readers.first());
-                if let Some(&i) = culprit {
-                    return Err(PipelineError::UnwrittenResource {
-                        resource,
-                        pass: passes[i].id.to_string(),
-                    });
-                }
-            }
-            for &c in creators {
-                if passes[c].phase == Phase::Collapse {
-                    // A collapse-created resource must not feed pregen passes.
-                    for &i in modifiers.iter().chain(readers.iter()) {
-                        if passes[i].phase == Phase::Pregen {
-                            return Err(PipelineError::PhaseViolation {
-                                resource,
-                                pass: passes[i].id.to_string(),
-                            });
-                        }
-                    }
-                }
-                for &i in modifiers.iter().chain(readers.iter()) {
-                    push_edge(&mut adj, c, i);
-                }
-            }
-            for &m in modifiers {
-                for &r in readers {
-                    push_edge(&mut adj, m, r);
-                }
-            }
-        }
-
-        // Kahn with deterministic (id-lexicographic) tie-break.
-        let mut indegree = vec![0usize; n];
-        for out in &adj {
-            for &t in out {
-                indegree[t] += 1;
-            }
-        }
-        let mut ready: Vec<usize> = (0..n).filter(|&i| indegree[i] == 0).collect();
-        let mut order = Vec::with_capacity(n);
-        while !ready.is_empty() {
-            ready.sort_by_key(|&i| passes[i].id);
-            let next = ready.remove(0);
-            order.push(next);
-            for &t in &adj[next] {
-                indegree[t] -= 1;
-                if indegree[t] == 0 {
-                    ready.push(t);
-                }
-            }
-        }
-        if order.len() != n {
-            let remaining = (0..n)
-                .filter(|i| !order.contains(i))
-                .map(|i| passes[i].id.to_string())
-                .collect();
-            return Err(PipelineError::Cycle(remaining));
-        }
-
-        // Ambiguity check: every writer pair of a resource must be connected
-        // by a path, or their relative order is an accident of the sort.
-        let reachable = transitive_closure(&adj);
-        for (&resource, (creators, modifiers, _)) in &by_resource {
-            let writers: Vec<usize> = creators.iter().chain(modifiers.iter()).copied().collect();
-            for (ai, &a) in writers.iter().enumerate() {
-                for &b in &writers[ai + 1..] {
-                    if !reachable[a][b] && !reachable[b][a] {
-                        return Err(PipelineError::AmbiguousWriters {
+        // Phase rule (pregen-specific): a collapse-created resource must not feed
+        // a pregen-phase pass.
+        for (&resource, roles) in &scheduled.roles {
+            let collapse_created = roles
+                .creators
+                .iter()
+                .any(|&c| passes[c].phase == Phase::Collapse);
+            if collapse_created {
+                for &i in roles.modifiers.iter().chain(roles.readers.iter()) {
+                    if passes[i].phase == Phase::Pregen {
+                        return Err(PipelineError::PhaseViolation {
                             resource,
-                            a: passes[a].id.to_string(),
-                            b: passes[b].id.to_string(),
+                            pass: passes[i].id.to_string(),
                         });
                     }
                 }
             }
         }
 
-        Ok(Self { passes, order })
+        Ok(Self {
+            passes,
+            order: scheduled.order,
+        })
     }
 
     /// The vanilla pass graph: the four S7 stages plus the v1 geology
@@ -338,19 +255,22 @@ impl Pipeline {
     }
 }
 
-fn transitive_closure(adj: &[Vec<usize>]) -> Vec<Vec<bool>> {
-    let n = adj.len();
-    let mut reach = vec![vec![false; n]; n];
-    for start in 0..n {
-        let mut stack: Vec<usize> = adj[start].clone();
-        while let Some(v) = stack.pop() {
-            if !reach[start][v] {
-                reach[start][v] = true;
-                stack.extend(adj[v].iter().copied());
-            }
+/// Map the generic kernel's rejection onto the pregen tier's named error. The
+/// phase rule has no kernel analogue, so `GraphError` carries no such variant.
+fn map_graph_error(e: GraphError<Resource>) -> PipelineError {
+    match e {
+        GraphError::DuplicateId(s) => PipelineError::DuplicateId(s),
+        GraphError::MultipleCreators { resource, a, b } => {
+            PipelineError::MultipleCreators { resource, a, b }
         }
+        GraphError::AmbiguousWriters { resource, a, b } => {
+            PipelineError::AmbiguousWriters { resource, a, b }
+        }
+        GraphError::UnwrittenResource { resource, pass } => {
+            PipelineError::UnwrittenResource { resource, pass }
+        }
+        GraphError::Cycle(v) => PipelineError::Cycle(v),
     }
-    reach
 }
 
 // ---------------------------------------------------- the vanilla passes --
