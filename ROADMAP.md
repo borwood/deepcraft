@@ -1487,9 +1487,22 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   field, plant it) — with the reciprocal loop (S-4) carried by the chapter loop
   and dual processes split into field+cellular halves. Ownership: forms+edges =
   machine, materials+agents+passes = content; forms are NOT SDK-registrable.
-  **Two agents dispatched 2026-07-23:** (A1) present-tier `Block={Air,Material}`
-  + solidity→occupancy drain, byte-identical; (A2) deep-cell working-inventory
-  span-list + chapter-commit spike (the keystone, de-risked before build).
+  **Progress 2026-07-23:** (A1) present-tier collapse **MERGED** (`de984eb`,
+  journal/0087, gate-verified on merged main) — 1-byte atom (64→32 KiB/chunk;
+  intermediate `{Air,Material,+4 legacy S1}` on the ratified path, 2-variant at
+  Crux 2), `block_twin`+`_=>Stone` deleted, `classify→dominant material identity`,
+  and a latent S-3 violation the collapse surfaced was fixed. **User ratified the
+  appearance change (within-class member variety now visible at block/far tier)
+  on the identity argument, sight-unseen.** Tail: solidity→occupancy drain (~80
+  sites, deferred), far-span `Block` token migration, legacy S1 retire (Crux 2),
+  categories-registrable. (A2) deep-cell working-inventory spike **COMPLETE**
+  (S17, `docs/spikes/S17-deep-cell-inventory-results.md`, branch unmerged):
+  byte-identical under identity default, **per-stratum** granularity, and the
+  inventory is derivable → a **per-chapter transient** (no permanent memory cost).
+  **Open, blocking merge:** the record is keyed by depositional *environment* not
+  material, so material-changing behaviors must **commit as appended facts (S-9)**,
+  not tag rewrites — a design call that shapes the keystone. commit-semantics
+  ratification pending.
 
 - **The block↔material collapse — DECIDED, one namespace (user, 2026-07-22
   late session; materials.md two new DECIDED entries)**. Block collapses

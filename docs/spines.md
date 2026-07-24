@@ -108,6 +108,17 @@ A cheap answer written because a consumer cannot afford the real one must be
   the overlay would have to re-instrument — S-3 applied to timing data. The
   disappearing-consumer test answers *yes* by construction: delete the docs dump
   and the aggregate still exists in this shape, because the overlay needs it.
+- compliance (2026-07-23, journal/0087 — the block↔material collapse, A1): `block_twin`
+  (the fifteen-name match + `_ => Stone`) is **deleted**; `classify` is now
+  `dominant_material().map(Material)` — the dominant material IS the authority, the
+  block-tier summary between is gone. The collapse also **surfaced and fixed a latent
+  S-3 violation** that was invisible while `block_twin` shared it: `generate_chunk`
+  derived a buried block from the event's *recorded* member while the voxel interned
+  the *dithered* host (two derivations, one truth) — now `classify` of the same
+  dithered host. **General lesson: deleting a shared summary reveals the
+  disagreements it was hiding, it does not create them** (the far-field cold/warm
+  identity split, S-9, is the same family, still open). Tail: the far-field span
+  still carries a `Block` token (§ 3 migration tail, not yet a summary violation).
 
 **Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
 this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an
