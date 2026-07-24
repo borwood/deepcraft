@@ -564,3 +564,96 @@ refactor it implies is large, and it rides seam-first, not a day-one rewrite.
 *Provisional illustrations (NOT committed syntax):* `combust→` (wood→charcoal), `oxidize→`
 with replacement modes (structure→pore-fill / structure→loose / material change) — dreamt-up
 examples of the input-owned edge shape, kept only as illustrations.
+
+---
+
+## 13. The erosion cycle as material-aware transport (design, 2026-07-24)
+
+> **STATUS.** The **R/H unification** and **material-aware transport** are **ratified this
+> session** (user; scratch-first reconcile, identity-travels, "not scared of a balloon —
+> the anonymous reconcile would be a stub"). The **entrainment/deposition mechanics** below
+> are the assistant's framing, **user-endorsed as "sound and promising"** — a strong design
+> direction, refine on build. The **three deferred layers** are named future work, not this
+> arc. This is the design a Movement-2/3/clastic-4 build brief points at.
+
+**The cycle, end to end** — one coupled loop, all knobs derived from properties we already
+have (`grain_size_mm`, `density_kg_m3`, `cohesion`):
+
+> **weather** (structure→loose, supplies material) → **entrain** (lift loose into the load)
+> → **carry** (down the flow field) → **sort** → **deposit** (drop downstream) → the fresh
+> bedrock exposed underneath weathers faster (self-limiting feedback).
+
+### 13.1 Flow is a FIELD; transport is a CELLULAR pass that walks it
+Drainage is a **field pass** (`recv`/`area`, pinned once, the non-local structure).
+Transport is a **cellular pass** that carries a **transient load** cell-to-cell *in
+downstream order along the pinned receiver* — each cell's op is local ("read my load +
+capacity, entrain/deposit, hand the rest to my receiver"), but the chain moves material
+arbitrarily far downstream **within one pass.** "Transport is the sole advect" + "cellular
+passes are local" hold at once: locality is per-cell, the global structure is the field.
+The current `erosion.rs` already does this scalar-ly; we add **identity**.
+
+### 13.2 Transport is a FAMILY, not a water thing
+"An agent moves material along a driving field." Water (drainage), **wind** (wind field),
+**ice** (glacier), **gravity/mass-wasting** (slope + cohesion) — all share the *same*
+load/entrain/sort/deposit machinery, differing only in **their field and their competence
+curve.** Wind's competence ceiling is *low* (silt + fine sand, never gravel) — so **loess
+and dunes fall out of the identical mechanism**, and the existing eolian agent becomes
+"transport with a wind field," not a bespoke system. **Tectonic drift is NOT in this
+family** — it is bulk advection of whole crustal columns (the tectonics field pass), a
+different scale.
+
+### 13.3 The material-aware load
+The load is a **multiset of `(material, quantity)`** — a suspended inventory riding the
+chain, pass-transient (§7). Entrainment adds specific materials; deposition drops specific
+materials; identity travels between source and receiver.
+
+### 13.4 Entrainment (Hjulström) — the pickup, mirror of deposition
+`τ_c(material)` = the energy to lift a grain, **U-shaped in (velocity vs grain size)**:
+sand lifts easiest; **finer rises (cohesion binds clay); coarser rises (weight).** Derived
+from `grain_size_mm` (curve) + `cohesion` (fine-side rise). Per cell, a loose material lifts
+iff `E > τ_c`, **fines-first when energy is marginal** (selective entrainment / winnowing).
+Consequences: **lag / armoring / desert pavement** (fines stripped, coarse left);
+**cohesive persistence** (mud, hard to re-lift once settled, forms lasting beds). **Only
+LOOSE entrains** — removing **structure** (bedrock) is *incision* (detachment), which needs
+**weathering to make it loose first** (the weathering↔transport coupling).
+
+### 13.5 Deposition — capacity + competence + a settling sort
+Two limits, both needed: **capacity** (`C ∝ discharge × slope`, total mass) and
+**competence** (the size/density ceiling energy `E` can suspend). The load is kept sorted by
+**settling velocity** `w_s(material)` (rises with grain size + density, Stokes→drag). As `E`
+falls downstream the ceiling lowers monotonically and **progressively finer material rains
+out** — gravel in steep reaches, sand on the fan, mud in the still lake. **Sorting is the
+falling ceiling; we write the ceiling, not the sort.** Payoffs as consequences: **facies**
+(where each grain settled), **placers** (dense gold → high `w_s` → drops with the coarse
+fraction in the gravel), **provenance** (grains carry their source lithology's identity).
+
+### 13.6 R/H unification + the reconcile
+The **inventory is the single authority**; **R = Σ Structure**, **H = surface Loose = the
+Loose above the topmost Structure** (a *positional* query, NOT a whole-column sum). **Cave
+fill is valid loose but NOT H** — it is loose *below* the first structure; the inventory
+distinguishes surface regolith from cave fill by position, which scalar R/H cannot (the
+unification is *more* honest, per the user's cave question). **Scratch-first reconcile**
+(ratified): the transport pass mutates the working-inventory surface-loose spans (fast
+scratch), committing net facts at the boundary — **entrainment = `loose→load` removal at the
+source; deposition = `void→loose` arrival at the receiver; cause = the mover
+(fluvial/eolian/…).** The **derived `H` plane** is materialized from Σ surface-loose at pass
+boundaries for height-only passes (no hot-loop regression — the seam-first "materialize at a
+pass boundary" rule). Gen-time cost only; the present VM never runs transport.
+
+### 13.7 This IS clastic sedimentary genesis
+Deposition-with-sorting is *how sedimentary material comes to be where it is*, so this
+**delivers most of Movement-4 genesis for clastics as a consequence of the erosion loop** —
+the `DepTag → reference_material` shortcut half-dissolves (deposited material = what was
+transported and sorted here, not a tag lookup). Weathering makes the *source* honest;
+transport makes the *deposited* material honest.
+
+### 13.8 Three deferred layers (named, not this arc)
+- **3D volumetric flow** (underwater rivers, turbidity currents, cave streams): a richer
+  *flow field* (the free-water body graph, §6/§7); transport-follows-the-field is unchanged.
+- **Flow-biased sub-cell fill** (S-4 fine expression): the collapse should read the flow
+  direction (`recv`) + local topography to bias grain placement (coarse near the paleochannel,
+  fines in distal lows, cross-beds downflow) instead of unbiased addressed stochastic
+  rounding (journal/0055). Transport already produces the inputs (composition + flow vector).
+- **Lineage history** (the `Move`-fact chain of custody): identity *travels* now; the *full
+  history* ("deposited, exhumed, re-transported…") rides the `Move` variant when we need to
+  *read* it (the `inventory.rs` forward-note).
