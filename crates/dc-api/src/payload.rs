@@ -380,15 +380,15 @@ fn group_materials(sorted: &[dc_core::MaterialId]) -> Vec<MaterialCount> {
     let mut i = 0;
     while i < sorted.len() {
         let m = sorted[i];
-        let mut n: u8 = 1;
-        while i + n as usize < sorted.len() && sorted[i + n as usize] == m {
+        let mut n = 1;
+        while i + n < sorted.len() && sorted[i + n] == m {
             n += 1;
         }
         out.push(MaterialCount {
             material: m.qualified_name().to_string(),
-            eighths: n,
+            eighths: n as u8,
         });
-        i += n as usize;
+        i += n;
     }
     out
 }

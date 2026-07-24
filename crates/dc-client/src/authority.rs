@@ -215,9 +215,17 @@ impl Authority {
         ));
         let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen.clone())));
         let seam = generator.clone();
-        let world = Self::host_world(seed, scale, move |pos| {
+        let mut world = Self::host_world(seed, scale, move |pos| {
             crate::devicelost::lock_forgiving(&seam).generate_chunk(pos)
         });
+        // Dev inspector (`dc:world/get_contents`, the look-at readout): the full
+        // per-voxel contents, resolved through the SAME generator the chunk seam
+        // and `chunk_contents` serve from — the render authority, a pure function
+        // of pos (blind to edits). Read-only; never touches sim/replay identity.
+        let contents_gen = generator.clone();
+        world.set_contents_source(Box::new(move |pos| {
+            crate::devicelost::lock_forgiving(&contents_gen).chunk_contents(pos)
+        }));
         Self::finish(
             scale,
             world,

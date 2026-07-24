@@ -81,7 +81,9 @@ fn contents_query_data(block: Block, contents: Option<&dc_core::VoxelContents>) 
         block: block_name(block).to_string(),
         classified: classified.to_string(),
         has_contents: contents.is_some(),
-        contents: contents.map(ContentsView::from_contents).unwrap_or_default(),
+        contents: contents
+            .map(ContentsView::from_contents)
+            .unwrap_or_default(),
     }
 }
 
@@ -217,8 +219,7 @@ pub type ChunkGenerator = Box<dyn Fn(ChunkPos) -> Chunk + Send + Sync>;
 /// block was edited it may disagree with the classified contents; the query
 /// surfaces both so the divergence is legible. `None` (the default) = the host
 /// has no contents to offer and `get_contents` answers block-only.
-pub type ContentsSource =
-    Box<dyn Fn(ChunkPos) -> Option<dc_core::ContentsGrid> + Send + Sync>;
+pub type ContentsSource = Box<dyn Fn(ChunkPos) -> Option<dc_core::ContentsGrid> + Send + Sync>;
 
 /// The in-process world. Single-threaded, manual tick driver.
 pub struct HostWorld {

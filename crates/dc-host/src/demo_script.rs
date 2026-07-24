@@ -86,9 +86,11 @@ pub fn minimal_grants_for(payload: &dc_api::Payload) -> Vec<dc_api::Grant> {
         P::SetBlock(_) | P::Fill(_) => vec![dc_api::Grant::WorldWrite {
             volume: Some(build_volume()),
         }],
-        P::GetBlock(_) | P::ScanRegion(_) | P::EntityQuery(_) => vec![dc_api::Grant::WorldRead {
-            volume: Some(build_volume()),
-        }],
+        P::GetBlock(_) | P::GetContents(_) | P::ScanRegion(_) | P::EntityQuery(_) => {
+            vec![dc_api::Grant::WorldRead {
+                volume: Some(build_volume()),
+            }]
+        }
         P::EntitySpawn(_) => vec![dc_api::Grant::EntitySpawn],
         P::DefineItem(item) => vec![dc_api::Grant::RegistryDefine {
             namespace: item.name.split(':').next().unwrap_or("").into(),

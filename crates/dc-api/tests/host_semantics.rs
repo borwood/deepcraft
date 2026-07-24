@@ -626,8 +626,8 @@ fn replay_determinism() {
 /// A contents source that plants one known mixed voxel at world (1,2,3) — a
 /// granite slab with an olivine pore inclusion and two eighths of loose sand —
 /// and leaves the rest of the chunk empty.
-fn planted_contents(pos: Vec3i) -> Option<dc_core::ContentsGrid> {
-    if dc_core::ChunkPos::from_world_voxel(pos.x, pos.y, pos.z) != dc_core::ChunkPos::new(0, 0, 0) {
+fn planted_contents(cpos: dc_core::ChunkPos) -> Option<dc_core::ContentsGrid> {
+    if cpos != dc_core::ChunkPos::new(0, 0, 0) {
         return None;
     }
     let mut dense = vec![dc_core::VoxelContents::EMPTY; dc_core::CHUNK_VOLUME];
@@ -663,7 +663,9 @@ fn get_contents_unpacks_the_full_composition() {
     let token = all_powers();
     let pos = v(1, 2, 3);
     // Make the stored block agree with the contents (as real worldgen would).
-    world.submit(set_block(&src, &token, pos, "dc:granite")).unwrap();
+    world
+        .submit(set_block(&src, &token, pos, "dc:granite"))
+        .unwrap();
     world.tick();
 
     match get_contents(&mut world, &token, pos) {
@@ -700,7 +702,9 @@ fn get_contents_without_a_source_is_block_only() {
     let src = ConsumerId::new(ConsumerKind::Plugin, "p");
     let token = all_powers();
     let pos = v(5, 5, 5);
-    world.submit(set_block(&src, &token, pos, "dc:stone")).unwrap();
+    world
+        .submit(set_block(&src, &token, pos, "dc:stone"))
+        .unwrap();
     world.tick();
 
     match get_contents(&mut world, &token, pos) {
@@ -729,7 +733,9 @@ fn get_contents_surfaces_edit_divergence() {
     let src = ConsumerId::new(ConsumerKind::Plugin, "p");
     let token = all_powers();
     let pos = v(1, 2, 3);
-    world.submit(set_block(&src, &token, pos, "dc:air")).unwrap();
+    world
+        .submit(set_block(&src, &token, pos, "dc:air"))
+        .unwrap();
     world.tick();
 
     match get_contents(&mut world, &token, pos) {

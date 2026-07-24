@@ -27,6 +27,7 @@ use crate::devicelost;
 use crate::edgepass::{EdgeParams, EdgePassPlugin};
 use crate::edit;
 use crate::farmesh;
+use crate::inspector;
 use crate::mcp::{self, McpOptions};
 use crate::meshtasks;
 use crate::physdemo;
@@ -257,7 +258,16 @@ pub fn run(
         .insert_resource(DirtyChunks::default())
         .insert_resource(character::CharacterVisuals::default())
         .insert_resource(edit::CrosshairTarget::default())
-        .add_systems(Startup, (setup, physdemo::setup, edit::setup_crosshair))
+        .insert_resource(inspector::ContentsHud::default())
+        .add_systems(
+            Startup,
+            (
+                setup,
+                physdemo::setup,
+                edit::setup_crosshair,
+                inspector::setup_contents_hud,
+            ),
+        )
         .add_systems(
             Update,
             (
@@ -312,6 +322,19 @@ pub fn run(
             (streaming::drain_near_meshes, farmesh::drain_far_meshes)
                 .run_if(devicelost::renderer_healthy),
         );
+    // Dev look-at contents inspector (F3): a separate registration so its two
+    // systems stay off the 20-element gameplay tuple. `update_contents_hud`
+    // reads the crosshair target `edit::update_target` computes, so it is
+    // ordered `.after` it (a cross-set hint — if the target system is skipped,
+    // e.g. the console is open, the HUD simply repaints last frame's target).
+    app.add_systems(
+        Update,
+        (
+            inspector::toggle_contents_hud,
+            inspector::update_contents_hud.after(edit::update_target),
+        )
+            .run_if(devicelost::renderer_healthy),
+    );
     // The bridge always exists (its channel also carries the dev console's
     // submissions); the MCP server threads inside are what `mcp_options` gates.
     let (bridge, console_tx) = mcp::spawn_servers(mcp_options);
