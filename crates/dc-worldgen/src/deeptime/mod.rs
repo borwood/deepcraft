@@ -47,8 +47,9 @@ pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
 };
 pub use inventory::{
-    FracM, Granularity, InvCtx, InvForm, InvSpan, Portion, WorkingInventory, build_identity,
-    collapse_top_voxel, commit_chapter, quantize_to_eighths,
+    Fact, FactLedger, FracM, Granularity, InvCtx, InvForm, InvSpan, Portion, UnitProvenance,
+    WorkingInventory, build_identity, build_working, collapse_top_voxel, commit_chapter,
+    compose_unit, derive_base, quantize_to_eighths,
 };
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,

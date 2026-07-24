@@ -1,5 +1,13 @@
 # S17 — Deep-cell material inventory (spike results)
 
+> **Keystone extension — 2026-07-24 (merge-candidate).** After the commit-semantics
+> plea below was **ratified** (`material-behavior.md` § "Commit semantics — DECIDED
+> 2026-07-24"), the spike was rebased onto merged main (**`1a16e67`** — A1's
+> block↔material collapse) and extended into the ratified shape: a **transformation-
+> fact ledger**, a **diff-and-append `commit_chapter`**, and a **provenance read**.
+> See § 7 (appended) for the keystone results; §§ 1–6 are the original spike and
+> stand except where § 7 supersedes the commit mechanism.
+
 **Status: spike complete (agent A2, 2026-07-23).** De-risks
 `docs/design/material-behavior.md` §1 — the deep cell's mutable **working
 material inventory** + the **chapter-commit** — and closes three of the §10 open
@@ -248,3 +256,161 @@ path. No sibling `dc-worldgen` artifact could have been served.
 ## 6. Branch
 
 `worktree-agent-a440caba50b9545b5` (from main `606f17a`).
+
+---
+
+## 7. Keystone extension — the transformation-fact ledger (2026-07-24)
+
+Rebased onto merged main **`1a16e67`** (A1's block↔material collapse merged
+cleanly — `inventory.rs` is a new file, disjoint from `collapse.rs`; no
+conflicts). Built the ratified commit-semantics on top of the proven identity
+seam. Still **no real behavior** — only the fact-ledger, the diff-and-append
+commit, the provenance read, and their tests.
+
+### 7.1 The fact/unit types and where they hang
+
+The ratified model: **a unit = immutable depositional base (`DepTag` + thickness)
++ an appended list of transformation facts; current composition = `derive(tag)`
+then fold the facts** (S-9 per unit). Types (`deeptime/inventory.rs`):
+
+```
+enum Fact {                              // the persistent compiled artifact
+    InPlace { chapter: u8,
+              from: (MaterialId, InvForm),
+              to:   (MaterialId, InvForm),
+              fraction_m: FracM },
+    // (reserved) Move { chapter, from_addr, to_addr, portion }  <- see 7.5
+}
+struct FactLedger { facts: Vec<Vec<Fact>> }   // facts[i] = facts on units[i]
+```
+
+`InvForm` gained a **`Void`** variant — *edge endpoint only, never a stored
+portion* — so dissolution (`… → Void`) and deposition (`Void → …`) ride the same
+`Fact` shape as material change and form-only change. One `Fact` carries all three
+§3 process classes; `sizeof(Fact) ≤ 24 B`, `sizeof(InvSpan) = 32 B`.
+
+**Where it hangs (reported design choice — a plea, not a silent divergence).**
+The ledger is a **sidecar** `Vec<Vec<Fact>>` keyed by unit index, *parallel to*
+`DeepStrata.units`, **not** a `facts` field grown onto `DepUnit`. `DepUnit` is
+`Copy` and read across the just-merged `collapse.rs` / `erosion.rs` / `biotic.rs`;
+growing a `Vec` onto it un-`Copy`s it and churns the exact files A1 merged this
+cycle. The sidecar keeps this spike's write-set disjoint (only `inventory.rs`) and
+the base byte-identical. **The eventual home is a `RecordedUnit { base, facts }`
+on `DeepStrata`** — the integration step (see § 7.6 plea 1). The sidecar's one
+fragility: if the live erosion loop pops/merges `units` *between* build and commit,
+the indices drift; today facts are produced and consumed within one chapter-cycle
+so this does not bite, but the `RecordedUnit` home is what makes facts pop *with*
+their unit under erosion.
+
+### 7.2 The diff-and-append `commit_chapter`
+
+`build_working(strata, ledger)` re-derives the chapter's working inventory from
+`base + facts` (S-2: the working inventory is transient compiler scratch) and
+snapshots that as the **baseline**. A behavior mutates portions through
+`InvCtx::apply_edge(span, (from_mat,from_form), (to_mat,to_form), qty)` — the §3
+edge, mass-conserving except at a `Void` side. `commit_chapter(inv, &mut ledger,
+chapter)` **diffs** each span's post-behavior portions against its baseline: net
+per-`(material, form)` losses are **sources**, gains are **sinks**; sources pair to
+sinks in canonical order → `InPlace` facts appended to the span's unit. Leftover
+source ⇒ `→ Void` (dissolution); leftover sink ⇒ `Void →` (deposition).
+
+- **Empty delta ⇒ no facts ⇒ record byte-identical** (the identity default, on the
+  fact path).
+- **The record's `units` are never written** — only the ledger grows (the ratified
+  "base immutable, append facts"). Depositional arrival stays `deposit_deep_history`
+  (untouched).
+
+The diff is **exact when the behavior's net effect is a set of edges with distinct
+endpoints** (the single-edge case the tests exercise). The greedy source→sink
+pairing is a deterministic *simplification* of the general minimal-move assignment
+for a multi-source/multi-sink chapter — flagged in § 7.6 plea 2.
+
+### 7.3 Byte-identity (identity default) + the non-identity agreement test
+
+Both over a real production `DeepField` (25,600 cells, seed `0x0D5EED572026`),
+built by **unmodified** deep-time code on merged main:
+
+- **`identity_default_appends_no_facts_over_a_whole_field`** — build from
+  `base + empty-ledger`, run **no** behavior, `commit_chapter` → `ledger.is_empty()`
+  and `compose_unit(base, []) == derive_base(base)` for **every** cell. The record
+  base is the pre-spike authority (never rewritten), so byte-identity holds; and
+  `build_field`/`run_cells`/`collapse.rs` are untouched, so the collapsed world is
+  byte-identical to merged main regardless.
+- **`non_identity_agreement_on_a_real_cell`** — on a real cell's bottom unit, apply
+  a known material-change edge (`base_mat/Loose → CLAY/Loose`, half the mass);
+  `commit_chapter(chapter=5)` appends **one** fact whose `(chapter, from, to,
+  fraction)` match; re-deriving `base + facts` shows CLAY holding the moved mass;
+  the `UnitProvenance` read returns the fact and the same composition.
+
+Plus 8 unit falsifiers in `inventory.rs`, incl. `dissolution_edge_commits_a_to_void_fact`
+(a `→ Void` fact shrinks the re-derived column) and
+`non_identity_a_known_edge_commits_a_fact_that_re_derives`.
+
+### 7.4 The provenance read shape
+
+```
+UnitProvenance::of(&strata, &ledger, i) -> Option<{ base: &DepUnit, facts: &[Fact] }>
+    .compose() -> Vec<Portion>   // derive(base) then fold facts (current composition)
+    .facts()   -> &[Fact]        // the lineage, chapter-ordered
+```
+
+"Started as X, chapter-Z weathering did Y" is exactly `base + facts`. **Per-voxel
+provenance falls out as a read** over the per-unit ledger (DECIDED), which is why
+the ledger is per-unit (per-stratum) and needs no per-voxel storage.
+
+### 7.5 Move-fact room (forward-note, not built)
+
+`Fact` is an `enum` precisely so a `Move { chapter, from_addr, to_addr, portion }`
+sibling lands without disturbing `InPlace` — the representational room the DECIDED
+required ("a move is itself a fact and travels with the material; provenance
+addresses the portion's lineage"). Transport in deeptime and pickup/deposit in the
+present will append a `Move` and relocate the portion's address. **Not built.**
+
+### 7.6 Where the DECIDED was underspecified (pleas — filed, not diverged)
+
+1. **The fact ledger's storage home.** DECIDED says "a unit *gains* an appended
+   fact list" but not the storage. I used a unit-indexed sidecar (§ 7.1) to avoid
+   un-`Copy`ing `DepUnit` right after A1's collapse merge. The faithful long-term
+   home is `RecordedUnit { base: DepUnit, facts: Vec<Fact> }` on `DeepStrata`, so
+   facts travel with their unit through erosion pop/merge. This is an integration
+   decision (touches shared `recorder.rs` + `collapse.rs`), deliberately left for
+   the integrating session.
+2. **Multi-source/multi-sink factoring.** "The deltas ARE the facts" is exact for a
+   single edge but a chapter with several coincident edges has no unique
+   factorization of the net delta into `(from → to)` moves. I used deterministic
+   greedy pairing; the honest fix is for the ctx/behavior to **emit the edges it
+   ran** (each `apply_edge` is already a fact-shaped event) rather than reconstruct
+   them from a multiset diff — i.e. record moves at apply-time, so the commit is a
+   *fold of logged edges*, not a diff. That reconciles with "diff vs chapter-start"
+   because a logged-edge fold *is* the diff, without the assignment ambiguity.
+   Recommend the DECIDED name apply-time edge logging as the fact source.
+3. **Dissolution's `to` material.** A `→ Void` fact keeps the source material as its
+   `to.0` label (convention: "this carbonate dissolved"), since void has no
+   material. Reasonable, but the DECIDED does not say; worth pinning.
+
+### 7.7 Gate results (keystone, on merged main `1a16e67`)
+
+- `cargo fmt --all --check` — **PASS**.
+- `cargo clippy --workspace --all-targets --release -- -D warnings` — **PASS**
+  (`cargo clean -p dc-worldgen --release` first; `Checking dc-worldgen …
+  \agent-a440caba50b9545b5\crates\dc-worldgen` verified in the log).
+- `cargo test --workspace --release` — **PASS** (`cargo clean -p dc-worldgen`
+  first; `Compiling dc-worldgen …` from this worktree verified).
+
+New/updated tests by name — `inventory.rs` unit (8):
+`identity_default_commit_appends_no_facts_and_leaves_the_record`,
+`base_composition_matches_the_collapse_tier_routing`,
+`non_identity_a_known_edge_commits_a_fact_that_re_derives`,
+`dissolution_edge_commits_a_to_void_fact`,
+`move_form_is_a_mass_neutral_read_modify_write_edge`,
+`substrate_accommodates_fluid_without_building_it`,
+`eighths_appear_only_at_the_quantize_step`, `sizes_are_pinned`.
+`tests/s17_deep_cell_inventory.rs` (3):
+`identity_default_appends_no_facts_over_a_whole_field`,
+`non_identity_agreement_on_a_real_cell`,
+`memory_measurement_per_stratum_vs_per_voxel`.
+
+**Sibling builds live during the gate:** a sibling was building `dc-api`/`dc-client`
+on the shared `CARGO_TARGET_DIR`; the same poisoning guard as § 5 (wait for empty
+`cargo,rustc,dc-client`, `cargo clean -p dc-worldgen` before each gate build, verify
+the worktree path on the `Compiling`/`Checking dc-worldgen` line).

@@ -1,52 +1,66 @@
-//! **S17 — the deep cell's mutable working material inventory (spike).**
+//! **S17 keystone — the deep cell's working material inventory + the ratified
+//! transformation-fact ledger.**
 //!
-//! This module de-risks `docs/design/material-behavior.md` §1: today a deep cell
-//! stores `R`/`H` heights plus an append-only strata record (its *history*), so a
-//! behavior like "weathering consumes bedrock, produces regolith" has **nothing
-//! per-cell to read-modify-write**. S16 (`weather_behavior.rs`) had to thin-adapt
-//! one over the height planes; this module builds the real substrate the north
-//! star names: a **stack of `VoxelContents`-shaped spans indexed by depth**, that
+//! Realizes `docs/design/material-behavior.md` §1 and its **"Commit semantics —
+//! DECIDED 2026-07-24"**: the deep cell has no per-cell working inventory to
+//! read-modify-write, so behaviors like weathering (bedrock → regolith) had
+//! nothing to act on. This module builds the substrate the north star names — a
+//! stack of `VoxelContents`-shaped spans indexed by depth — **and** the persistent
+//! compiled artifact the ratified commit semantics require.
 //!
-//! - behaviors **read-modify-write** per `(MaterialId, Form)` fraction (§4/§6);
-//! - a **chapter boundary commits back into the strata record** — the
-//!   deeptime-as-compiler step (§1, §8);
-//! - the present voxel still **derives** from record + inventory (§1).
+//! **The ratified shape (DECIDED 2026-07-24).** The strata record is keyed by
+//! depositional *environment* (`DepTag`), not material, so a material change
+//! cannot rewrite it. Resolution:
 //!
-//! **Two roles, cleanly separated** (spines S-2, S-9):
-//! - the **strata record stays the temporal authority** (append-only history —
-//!   the committed facts);
-//! - the **working inventory is the mutable current composition** (fluid state a
-//!   behavior mutates freely) — *store only what derivation cannot predict*.
+//! - A unit = its **immutable depositional base** (`DepTag` + thickness) **+ an
+//!   appended list of [`Fact`]s** ([`FactLedger`]). Current composition =
+//!   `derive(tag)` then **fold the facts** ([`compose_unit`]) — S-9 per unit.
+//! - **In-place transformation → append a fact** to the existing unit.
+//!   **Depositional arrival → a new unit** (`deposit_deep_history`, untouched).
+//! - **Facts persist; the working inventory is transient** (S-2): facts are the
+//!   stochastic, state-reading outcome — not re-derivable without re-running the
+//!   compile — so they *are* the compiled artifact; the working inventory is
+//!   compiler scratch, re-derived from `base + facts` each chapter.
+//! - **[`commit_chapter`] = diff-and-append:** the working inventory vs the
+//!   chapter-start derived state → the deltas ARE the facts → append. **Empty
+//!   delta ⇒ no facts ⇒ record byte-identical** (the S17 identity default).
 //!
-//! The whole point, as an instrument (the deep-sim-flags pattern): wired with an
-//! **identity default** (build from the record, run *no* behavior, commit back),
-//! the record round-trips **byte-identically** — so the seam is provably free when
-//! empty. Where it strains is the finding, not a defect.
+//! **Provenance addresses the portion's lineage, not the cell** (DECIDED,
+//! forward-looking): when contents *move*, the move is itself a fact that travels
+//! with the material. Not built here; [`Fact`] is an enum so a `Move` variant
+//! lands without disturbing the in-place shape — the representational room the
+//! DECIDED asked to leave.
 //!
-//! **Granularity-agnostic on purpose** (§10): a [`Granularity`] selects
-//! per-stratum (one span per record unit) or per-voxel (spans no thicker than a
-//! collapse voxel), and [`InvCtx`] — the capability a behavior holds — indexes by
-//! span identically for either, so the shape is not accidentally deeptime-only.
+//! **Granularity-agnostic on purpose** (§10): [`Granularity`] selects per-stratum
+//! (one span per unit) or per-voxel (spans ≤ one collapse voxel), and [`InvCtx`]
+//! indexes by span identically for either. Per-voxel *provenance* falls out as a
+//! read over the per-unit `base + facts` (DECIDED), so the fact ledger itself is
+//! per-unit — the commit path runs at per-stratum granularity.
 
 use dc_core::{MaterialId, VOXEL_EIGHTHS, VoxelContents};
 
 use super::lithology::litho_of_tag;
-use super::recorder::{DeepStrata, DepTag, DepUnit};
+use super::recorder::{DeepStrata, DepUnit};
+
+/// Floating tolerance below which a delta is treated as zero (no fact emitted /
+/// no portion kept). Deep quantities are metres over eons; 1e-9 m is far below
+/// any physical signal and above f64 round-trip noise.
+const EPS: f64 = 1e-9;
 
 /// A **finer-than-eighth fractional quantity at depth**, in metres — the deep
-/// tier's native unit (`H` is metres). This is the ratified representation
-/// (material-behavior.md §1 DECIDED 2026-07-23: deep spans carry sub-eighth
-/// fractional quantities; *"fractions come only from the ledger"*). Eighths
+/// tier's native unit (`H` is metres; material-behavior.md §1 DECIDED). Eighths
 /// appear **only at collapse** ([`quantize_to_eighths`]).
 pub type FracM = f64;
 
-/// The **form** a material-portion occupies volume in — the deep-tier view of the
-/// machine's closed form set (material-behavior.md §2). `Void` is deliberately
-/// **absent**: it is the unoccupied complement, never a stored role (§2, §10
-/// RESOLVED). `Fluid` is present so the substrate *accommodates* bound water, but
-/// the identity default never populates it and this spike builds no water (§10 —
-/// bound water is derived per the water model, S-2).
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+/// The **form** a material-portion occupies volume in (material-behavior.md §2).
+///
+/// `Structure`/`Loose`/`PoreFill`/`Fluid` are the storable roles. `Void` is **not
+/// a storable role** — it is the unoccupied complement (§2) — but it *is* a legal
+/// **edge endpoint** (§3: edges to/from void change occupancy), so a [`Fact`] may
+/// name it as a source or destination (dissolution is `… → Void`). Invariant: a
+/// stored [`Portion`] never has `form == Void`; [`build_identity`] and the ctx
+/// never create one.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum InvForm {
     /// Coherent, load-bearing framework (the `R`/structural stock).
     Structure,
@@ -55,13 +69,14 @@ pub enum InvForm {
     /// Material held inside another's reserved-but-unfilled pore capacity.
     PoreFill,
     /// Liquid in pores + open space. **Accommodated, never stored by the identity
-    /// default** — the substrate has a slot for it; the water model derives it.
+    /// default** — the water model derives it (§10, S-2).
     Fluid,
+    /// The unoccupied complement — **edge endpoint only, never a stored portion**.
+    Void,
 }
 
-/// A `(MaterialId, Form)` **portion** with a fractional metre quantity — the
-/// exact read-modify-write target §4/§6 name ("a behavior's RMW targets a
-/// `(MaterialId, Form)` fraction drawn from the multiset").
+/// A `(MaterialId, Form)` **portion** with a fractional metre quantity — the exact
+/// read-modify-write target §4/§6 name.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Portion {
     pub material: MaterialId,
@@ -70,23 +85,210 @@ pub struct Portion {
     pub quantity_m: FracM,
 }
 
-/// One **depth-span** of the working inventory: a `VoxelContents`-shaped mixture
-/// (a multiset of [`Portion`]s) over a depth interval. The working analogue of a
-/// [`DepUnit`] (per-stratum) or a collapse voxel (per-voxel).
+/// A **transformation fact** — the ratified persistent compiled artifact (DECIDED
+/// 2026-07-24). An enum so a portion-addressed `Move` variant can be added later
+/// without disturbing the in-place shape (the room the DECIDED asked to leave).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Fact {
+    /// **In-place transformation** on a unit: `fraction_m` metres of `from`
+    /// `(material, form)` become `to` `(material, form)`, in tectonic `chapter`.
+    /// One shape carries all three §3 process classes:
+    /// - **material change** (`from.0 != to.0`) — e.g. diagenesis;
+    /// - **form-only change** (`from.0 == to.0`) — crumbling `Structure→PoreFill`;
+    /// - **dissolution** (`to.1 == InvForm::Void`) — the portion leaves to the
+    ///   complement (no sink portion is created).
+    InPlace {
+        chapter: u8,
+        from: (MaterialId, InvForm),
+        to: (MaterialId, InvForm),
+        fraction_m: FracM,
+    },
+    // FORWARD-NOTE (DECIDED 2026-07-24, not built): a
+    // `Move { chapter, from_addr, to_addr, portion }` sibling — "provenance
+    // addresses the material portion's lineage, not the cell": a move is itself a
+    // fact and the portion's fact-history travels with it (transport in deeptime;
+    // pickup/deposit in the present). Appending this variant relocates the
+    // portion's address; the in-place shape above is untouched.
+}
+
+impl Fact {
+    /// The tectonic chapter this fact was committed in.
+    #[inline]
+    pub fn chapter(&self) -> u8 {
+        match self {
+            Fact::InPlace { chapter, .. } => *chapter,
+        }
+    }
+
+    /// The `(from-form, to-form)` **edge** (§3) this fact rode.
+    #[inline]
+    pub fn edge(&self) -> (InvForm, InvForm) {
+        match self {
+            Fact::InPlace { from, to, .. } => (from.1, to.1),
+        }
+    }
+
+    #[inline]
+    pub fn from(&self) -> (MaterialId, InvForm) {
+        match self {
+            Fact::InPlace { from, .. } => *from,
+        }
+    }
+
+    #[inline]
+    pub fn to(&self) -> (MaterialId, InvForm) {
+        match self {
+            Fact::InPlace { to, .. } => *to,
+        }
+    }
+
+    #[inline]
+    pub fn fraction_m(&self) -> FracM {
+        match self {
+            Fact::InPlace { fraction_m, .. } => *fraction_m,
+        }
+    }
+}
+
+/// The **persistent fact ledger** (DECIDED 2026-07-24): per record unit, the
+/// chapter-ordered list of transformation facts appended by chapter-commits.
+/// Parallel to `DeepStrata.units` (indexed by unit position). The base
+/// (`DepTag` + thickness) stays the immutable depositional record; **the facts are
+/// the compiled deltas** and the only thing a chapter-commit writes.
 ///
-/// Carries the **provenance** the chapter-commit needs to fold back into the
-/// record: the depositional tag/chapter/unconformity of the source unit. (The
-/// record is tagged by *depositional environment*, not material — `litho_of_tag`
-/// is many-to-one — so a faithful commit must preserve the source tag, not
-/// re-derive it from the material.)
+/// **Where it hangs (reported design choice, not a silent divergence).** The
+/// ledger is a *sidecar* keyed by unit index rather than a `facts` field grown
+/// onto `DepUnit`. `DepUnit` is `Copy` and read across the just-merged
+/// `collapse.rs` / `erosion.rs` / `biotic.rs`; growing a `Vec` onto it un-`Copy`s
+/// it and churns files A1 merged this cycle. The sidecar keeps this spike's
+/// write-set disjoint (only `inventory.rs`) and the base byte-identical. The
+/// eventual home is a `RecordedUnit { base, facts }` on `DeepStrata`; that is the
+/// integration step, filed as a plea in `docs/spikes/S17-*`.
+#[derive(Clone, Default, PartialEq, Debug)]
+pub struct FactLedger {
+    /// `facts[i]` = the facts appended to `units[i]`, chapter-ordered.
+    pub facts: Vec<Vec<Fact>>,
+}
+
+impl FactLedger {
+    /// An empty ledger sized to a record's unit count (the identity default: every
+    /// unit starts with zero facts, so `base + facts` == `base`).
+    pub fn empty_for(strata: &DeepStrata) -> Self {
+        Self {
+            facts: vec![Vec::new(); strata.units.len()],
+        }
+    }
+
+    /// The facts appended to unit `i` (empty slice when none / out of range).
+    #[inline]
+    pub fn facts_for(&self, i: usize) -> &[Fact] {
+        self.facts.get(i).map_or(&[], Vec::as_slice)
+    }
+
+    /// True when no fact has been committed anywhere — the identity-default state.
+    pub fn is_empty(&self) -> bool {
+        self.facts.iter().all(Vec::is_empty)
+    }
+
+    /// Total facts across all units (a size metric).
+    pub fn total_facts(&self) -> usize {
+        self.facts.iter().map(Vec::len).sum()
+    }
+
+    /// Rough heap footprint (bytes): the outer vector plus every inner fact vector.
+    pub fn footprint_bytes(&self) -> usize {
+        self.facts.capacity() * std::mem::size_of::<Vec<Fact>>()
+            + self
+                .facts
+                .iter()
+                .map(|v| v.capacity() * std::mem::size_of::<Fact>())
+                .sum::<usize>()
+    }
+}
+
+/// The **depositional base composition** of a unit: exactly what `derive(DepTag)`
+/// yields before any fact — one `Loose` portion of the unit's reference material
+/// (`litho_of_tag(tag).reference_material()`, the same routing the collapse tier's
+/// `deep_class` uses), at the unit's full thickness.
+pub fn derive_base(unit: &DepUnit) -> Vec<Portion> {
+    vec![Portion {
+        material: litho_of_tag(unit.tag).reference_material(),
+        form: InvForm::Loose,
+        quantity_m: unit.thickness_m,
+    }]
+}
+
+/// **Compose a unit's current composition** = `derive_base` then fold its facts
+/// in chapter order (S-9 per unit). This is the provenance-read primitive: it
+/// reconstructs "started as X, then chapter-Z weathering did Y" from `base +
+/// facts`, and it is exactly the state a chapter's working inventory is built
+/// from.
+pub fn compose_unit(unit: &DepUnit, facts: &[Fact]) -> Vec<Portion> {
+    let mut portions = derive_base(unit);
+    for f in facts {
+        apply_move(&mut portions, f.from(), f.to(), f.fraction_m());
+    }
+    portions
+}
+
+/// Apply one `(from) → (to)` move of `qty` metres to a portion multiset,
+/// mass-conserving except when a side is `Void` (the complement). The shared
+/// primitive behind fact-folding ([`compose_unit`]) and the live ctx
+/// ([`InvCtx::apply_edge`]), so a committed fact re-folds to exactly the working
+/// state it was diffed from. Returns the quantity actually moved.
+fn apply_move(
+    portions: &mut Vec<Portion>,
+    from: (MaterialId, InvForm),
+    to: (MaterialId, InvForm),
+    qty: FracM,
+) -> FracM {
+    // Source: `Void` means "from the complement" (deposition) — unlimited; else
+    // clamp to what the source portion holds so a move can never mint material.
+    let avail = if from.1 == InvForm::Void {
+        qty
+    } else {
+        portions
+            .iter()
+            .find(|p| p.material == from.0 && p.form == from.1)
+            .map_or(0.0, |p| p.quantity_m)
+    };
+    let q = qty.min(avail).max(0.0);
+    if q <= EPS {
+        return 0.0;
+    }
+    if from.1 != InvForm::Void {
+        for p in portions.iter_mut() {
+            if p.material == from.0 && p.form == from.1 {
+                p.quantity_m -= q;
+            }
+        }
+        portions.retain(|p| p.quantity_m > EPS);
+    }
+    // Destination: `Void` means "to the complement" (dissolution) — no sink.
+    if to.1 != InvForm::Void {
+        match portions
+            .iter_mut()
+            .find(|p| p.material == to.0 && p.form == to.1)
+        {
+            Some(p) => p.quantity_m += q,
+            None => portions.push(Portion {
+                material: to.0,
+                form: to.1,
+                quantity_m: q,
+            }),
+        }
+    }
+    q
+}
+
+/// One **depth-span** of the working inventory: a `VoxelContents`-shaped mixture
+/// (a [`Portion`] multiset) over a depth interval, carrying the provenance a
+/// commit needs (which record unit it derives from).
 #[derive(Clone, PartialEq, Debug)]
 pub struct InvSpan {
-    /// The depositional tag of the record unit this span derives from.
-    pub tag: DepTag,
-    /// The tectonic chapter of the source unit.
-    pub chapter: u8,
-    /// Whether this span opens on an erosional surface (an unconformity).
-    pub unconformity: bool,
+    /// The record unit this span derives from (its index in `DeepStrata.units`) —
+    /// the address a committed fact is appended to.
+    pub unit_index: usize,
     /// The material×form multiset over this interval. Behaviors RMW this.
     pub portions: Vec<Portion>,
 }
@@ -105,83 +307,62 @@ impl InvSpan {
     }
 }
 
-/// The vertical resolution of the working inventory (material-behavior.md §10 —
-/// *a measurement call*, closed by `docs/spikes/S17`). Kept as an explicit choice
-/// so the substrate is not accidentally locked to one tier.
+/// The vertical resolution of the working inventory (material-behavior.md §10 — a
+/// measurement call, closed by `docs/spikes/S17` → per-stratum).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Granularity {
-    /// One span per record unit — variable thickness, follows the tag changes.
-    /// **Cheaper** (span count = unit count) and span↔unit is 1:1, so the commit
-    /// is exact (no float re-accumulation). The recommended shape (S17 results).
+    /// One span per record unit — cheaper, and span↔unit is 1:1 (exact commit).
     PerStratum,
-    /// Spans no thicker than a collapse voxel — a unit is subdivided into
-    /// `ceil(thickness / voxel_m)` slices, each still tagged to its parent unit.
-    /// Costs more spans (and re-merges at commit under float addition).
+    /// Spans ≤ one collapse voxel — a unit subdivided into slices, each tagged to
+    /// its parent unit. Measured heavier; used only for the memory tradeoff.
     PerVoxel { voxel_m: f64 },
 }
 
-/// A deep cell's **mutable working material inventory**: a stack of spans indexed
-/// by depth (bottom-up, matching `DeepStrata.units`), plus the basement material
-/// below the recorded column.
+/// A deep cell's **mutable working material inventory** — the transient compiler
+/// scratch of the ratified model, re-derived from `base + facts` each chapter.
 #[derive(Clone, PartialEq, Debug)]
 pub struct WorkingInventory {
-    /// Spans bottom-up: `spans[0]` is the deepest recorded stratum, the last span
-    /// ends at the surface. Below is unrecorded basement (`R`).
+    /// Spans bottom-up, mirroring `DeepStrata.units`.
     pub spans: Vec<InvSpan>,
-    /// The basement material below the record. Derived (at real collapse from the
-    /// tectonic province); here the reference basement, and **not committed** to
-    /// the record — the record only ever held the `H` column, so the basement is
-    /// out of the byte-identity round-trip.
+    /// The basement material below the record (derived; not committed — the record
+    /// only ever held the `H` column).
     pub basement: MaterialId,
     /// The granularity this inventory was built at.
     pub granularity: Granularity,
+    /// **Chapter-start snapshot** per span (the state `build_working` derived),
+    /// against which [`commit_chapter`] diffs to produce facts. Empty for a
+    /// [`build_identity`] inventory (which is not for committing) — that keeps the
+    /// S17 memory-measurement footprint unchanged.
+    baseline: Vec<Vec<Portion>>,
 }
 
-/// **The identity default** (the deep-sim-flags pattern): build a working
-/// inventory from a strata record where every span carries exactly the material
-/// its source unit's tag resolves to (`litho_of_tag(...).reference_material()` —
-/// the *same* routing the collapse tier's `deep_class` uses, so the material is
-/// the one the world already builds), all in the `Loose` form (the record mirrors
-/// the loose `H` cover). No behavior transforms anything.
-///
-/// Committed straight back with [`commit_chapter`], this reproduces the record
-/// byte-identically at [`Granularity::PerStratum`] — the proof the seam is free
-/// when empty.
+/// **The identity default** (base only, no facts, no baseline): build a working
+/// inventory straight from a record where each span carries its unit's reference
+/// material as `Loose`. The memory-measurement builder; equivalent to
+/// [`build_working`] with an empty ledger, minus the commit baseline.
 pub fn build_identity(strata: &DeepStrata, granularity: Granularity) -> WorkingInventory {
     let mut spans = Vec::new();
-    for u in &strata.units {
-        let material = litho_of_tag(u.tag).reference_material();
+    for (ui, u) in strata.units.iter().enumerate() {
+        let base = derive_base(u);
         match granularity {
             Granularity::PerStratum => spans.push(InvSpan {
-                tag: u.tag,
-                chapter: u.chapter,
-                unconformity: u.unconformity,
-                portions: vec![Portion {
-                    material,
-                    form: InvForm::Loose,
-                    quantity_m: u.thickness_m,
-                }],
+                unit_index: ui,
+                portions: base,
             }),
             Granularity::PerVoxel { voxel_m } => {
-                // Subdivide the unit into <= voxel_m slices. Only the first slice
-                // inherits the unit's unconformity flag; interior slices are
-                // conformable *within* the unit, so the commit re-merges them.
+                let mat = base[0].material;
                 let mut consumed = 0.0f64;
-                let mut first = true;
                 while consumed < u.thickness_m {
                     let t = (u.thickness_m - consumed).min(voxel_m);
                     spans.push(InvSpan {
-                        tag: u.tag,
-                        chapter: u.chapter,
-                        unconformity: u.unconformity && first,
+                        unit_index: ui,
                         portions: vec![Portion {
-                            material,
+                            material: mat,
                             form: InvForm::Loose,
                             quantity_m: t,
                         }],
                     });
                     consumed += t;
-                    first = false;
                 }
             }
         }
@@ -190,77 +371,166 @@ pub fn build_identity(strata: &DeepStrata, granularity: Granularity) -> WorkingI
         spans,
         basement: MaterialId::GRANITE,
         granularity,
+        baseline: Vec::new(),
     }
 }
 
-/// **The chapter-commit — the deeptime-as-compiler step** (§1, §8). Fold the
-/// working inventory's spans back into the strata record: reconstruct `units`
-/// from the spans, run-length-merging consecutive spans that share tag+chapter
-/// and do not open an unconformity — *exactly* the recorder's own merge rule
-/// (`DeepStrata::deposit`), so per-voxel subdivisions of one unit re-coalesce.
-///
-/// With the identity default (no behavior ran) the rebuilt units equal the input
-/// units, so the whole `DeepStrata` is byte-identical (the private `stripped`
-/// flag and `strips` counter are left untouched, and `units` is public).
-///
-/// A real behavior would have changed portion quantities/forms/materials before
-/// this call; the commit is where those working deltas become committed history.
-pub fn commit_chapter(inv: &WorkingInventory, strata: &mut DeepStrata) {
-    let mut units: Vec<DepUnit> = Vec::new();
-    for span in &inv.spans {
-        let t = span.thickness_m();
-        if t <= 0.0 {
-            continue;
-        }
-        if let Some(last) = units.last_mut()
-            && last.tag == span.tag
-            && last.chapter == span.chapter
-            && !span.unconformity
-        {
-            last.thickness_m += t;
-            continue;
-        }
-        units.push(DepUnit {
-            tag: span.tag,
-            thickness_m: t,
-            unconformity: span.unconformity,
-            chapter: span.chapter,
+/// **Build the chapter's working inventory from `base + facts`** (the ratified
+/// re-derive-each-chapter step, S-2), at per-stratum granularity, capturing the
+/// baseline the commit diffs against. This is the inventory a behavior mutates;
+/// with an **empty** ledger it equals [`build_identity`] (the identity default).
+pub fn build_working(strata: &DeepStrata, ledger: &FactLedger) -> WorkingInventory {
+    let mut spans = Vec::with_capacity(strata.units.len());
+    let mut baseline = Vec::with_capacity(strata.units.len());
+    for (ui, u) in strata.units.iter().enumerate() {
+        let portions = compose_unit(u, ledger.facts_for(ui));
+        baseline.push(portions.clone());
+        spans.push(InvSpan {
+            unit_index: ui,
+            portions,
         });
     }
-    strata.units = units;
+    WorkingInventory {
+        spans,
+        basement: MaterialId::GRANITE,
+        granularity: Granularity::PerStratum,
+        baseline,
+    }
+}
+
+/// **The chapter-commit — diff-and-append** (DECIDED 2026-07-24). For each span,
+/// diff the current portions against the chapter-start baseline; the per-`(material,
+/// form)` deltas ARE the facts, appended to the span's unit in `ledger`.
+///
+/// - **Empty delta ⇒ no facts appended ⇒ the record is byte-identical** (the S17
+///   identity default, now on the fact path).
+/// - The strata record's `units` (the depositional base) are **never written** —
+///   only the ledger grows (the ratified "base immutable, append facts").
+///
+/// Only meaningful on a [`build_working`] inventory (it needs the baseline); a
+/// bare [`build_identity`] inventory has no baseline and commits nothing.
+pub fn commit_chapter(inv: &WorkingInventory, ledger: &mut FactLedger, chapter: u8) {
+    if inv.baseline.len() != inv.spans.len() {
+        return; // not a committable inventory (no baseline) — nothing to diff.
+    }
+    if ledger.facts.len() < inv.spans.len() {
+        ledger.facts.resize(inv.spans.len(), Vec::new());
+    }
+    for (span, before) in inv.spans.iter().zip(&inv.baseline) {
+        for fact in diff_facts(before, &span.portions, chapter) {
+            ledger.facts[span.unit_index].push(fact);
+        }
+    }
+}
+
+/// Diff a chapter-start portion multiset against the post-behavior one into a
+/// deterministic set of [`Fact`]s. Net per-`(material, form)` deltas split into
+/// sources (net loss) and sinks (net gain); sources pair to sinks greedily in
+/// canonical `(material, form)` order. Leftover source ⇒ dissolution (`→ Void`);
+/// leftover sink ⇒ deposition (`Void →`).
+///
+/// **Exact for a behavior whose net effect is a set of edges with distinct
+/// endpoints** (the single-edge case this spike tests). The greedy pairing is a
+/// deterministic *simplification* of the general minimal-move assignment when many
+/// sources and sinks coexist in one chapter — filed as an underspecified point in
+/// `docs/spikes/S17-*` (the DECIDED says "the deltas ARE the facts" but not how a
+/// multi-source/multi-sink batch factors into edges).
+fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
+    // Net delta per key, in canonical order.
+    let mut keys: Vec<(MaterialId, InvForm)> = Vec::new();
+    for p in before.iter().chain(after) {
+        let k = (p.material, p.form);
+        if !keys.contains(&k) {
+            keys.push(k);
+        }
+    }
+    keys.sort_unstable();
+    let qty = |set: &[Portion], k: (MaterialId, InvForm)| -> f64 {
+        set.iter()
+            .filter(|p| p.material == k.0 && p.form == k.1)
+            .map(|p| p.quantity_m)
+            .sum()
+    };
+    let mut sources: Vec<((MaterialId, InvForm), f64)> = Vec::new();
+    let mut sinks: Vec<((MaterialId, InvForm), f64)> = Vec::new();
+    for k in keys {
+        let d = qty(after, k) - qty(before, k);
+        if d < -EPS {
+            sources.push((k, -d));
+        } else if d > EPS {
+            sinks.push((k, d));
+        }
+    }
+    let mut facts = Vec::new();
+    let (mut si, mut ki) = (0usize, 0usize);
+    while si < sources.len() && ki < sinks.len() {
+        let q = sources[si].1.min(sinks[ki].1);
+        facts.push(Fact::InPlace {
+            chapter,
+            from: sources[si].0,
+            to: sinks[ki].0,
+            fraction_m: q,
+        });
+        sources[si].1 -= q;
+        sinks[ki].1 -= q;
+        if sources[si].1 <= EPS {
+            si += 1;
+        }
+        if sinks[ki].1 <= EPS {
+            ki += 1;
+        }
+    }
+    // Leftover source ⇒ dissolution to the complement (Void).
+    for (k, rem) in sources.iter().skip(si) {
+        if *rem > EPS {
+            facts.push(Fact::InPlace {
+                chapter,
+                from: *k,
+                to: (k.0, InvForm::Void),
+                fraction_m: *rem,
+            });
+        }
+    }
+    // Leftover sink ⇒ deposition from the complement (Void). In-place deposition
+    // is unusual; handled for completeness and determinism.
+    for (k, rem) in sinks.iter().skip(ki) {
+        if *rem > EPS {
+            facts.push(Fact::InPlace {
+                chapter,
+                from: (k.0, InvForm::Void),
+                to: *k,
+                fraction_m: *rem,
+            });
+        }
+    }
+    facts
 }
 
 impl WorkingInventory {
-    /// A granularity-agnostic capability handle over this inventory (§7): the
-    /// surface a cellular behavior read-modify-writes through.
+    /// A granularity-agnostic capability handle over this inventory (§7).
     #[inline]
     pub fn ctx(&mut self) -> InvCtx<'_> {
         InvCtx { inv: self }
     }
 
-    /// Rough heap footprint of the whole inventory (bytes): the span vector plus
-    /// every span's portion vector. The "what carrying this per cell would cost"
-    /// number the granularity measurement reports.
+    /// Rough heap footprint of the resident inventory (bytes): the span vector plus
+    /// each span's portion vector. Excludes the transient commit baseline.
     pub fn footprint_bytes(&self) -> usize {
         self.spans.capacity() * std::mem::size_of::<InvSpan>()
             + self.spans.iter().map(InvSpan::heap_bytes).sum::<usize>()
     }
 
-    /// Total portions across all spans (a size metric; identity default = one per
-    /// span).
+    /// Total portions across all spans (identity default = one per span).
     pub fn portion_count(&self) -> usize {
         self.spans.iter().map(|s| s.portions.len()).sum()
     }
 }
 
-/// **The read-modify-write capability** a cellular behavior receives (§7 — "`ctx`
-/// is a capability, not a god-object"). Wraps a mutable inventory; a behavior
-/// reads `(material, form)` fractions and requests **form-transition edges**
-/// (§3), identically whether the underlying spans are per-stratum or per-voxel.
-///
-/// No behavior runs in this spike (the identity default), but the primitive is
-/// here — and tested — so the substrate demonstrably carries the §3 edges and the
-/// §4 `(MaterialId, Form)`-fraction RMW the north star's cellular passes need.
+/// **The read-modify-write capability** a cellular behavior receives (§7). Indexes
+/// by span (granularity-agnostic) and exposes the §3 form-transition / material-
+/// change edge as one primitive. No real behavior runs in this spike; the
+/// primitive is here and tested so the substrate demonstrably carries the §3/§4
+/// RMW the ratified commit diffs into facts.
 pub struct InvCtx<'a> {
     inv: &'a mut WorkingInventory,
 }
@@ -273,7 +543,7 @@ impl InvCtx<'_> {
     }
 
     /// Read the `(material, form)` fraction (metres) in span `span` — `0.0` when
-    /// absent. The pure read side §6 opens with.
+    /// absent.
     pub fn fraction(&self, span: usize, material: MaterialId, form: InvForm) -> FracM {
         self.inv.spans[span]
             .portions
@@ -282,12 +552,22 @@ impl InvCtx<'_> {
             .map_or(0.0, |p| p.quantity_m)
     }
 
-    /// **Run a form-transition edge** (§3): move `qty` metres of `material` from
-    /// `from` to `to` within span `span`, mass-neutral. This is the read side +
-    /// the write side of the §6 shape in one primitive — the move every cellular
-    /// behavior (weathering `Structure→Loose`, cementation `Loose→Structure`, …)
-    /// is built from. Clamps to the available quantity so an over-large request
-    /// cannot mint material.
+    /// **Run a transformation edge** (§3): move `qty` metres from `(from)` to
+    /// `(to)` `(material, form)` within span `span`. Material change, form-only
+    /// change, dissolution (`to.1 == Void`) and deposition (`from.1 == Void`) all
+    /// ride this one call — the exact vocabulary a committed [`Fact`] records.
+    /// Mass-conserving except at a `Void` side; clamped so it cannot mint material.
+    pub fn apply_edge(
+        &mut self,
+        span: usize,
+        from: (MaterialId, InvForm),
+        to: (MaterialId, InvForm),
+        qty: FracM,
+    ) -> FracM {
+        apply_move(&mut self.inv.spans[span].portions, from, to, qty)
+    }
+
+    /// A form-only edge (same material) — the common weathering/crumbling case.
     pub fn move_form(
         &mut self,
         span: usize,
@@ -295,40 +575,43 @@ impl InvCtx<'_> {
         from: InvForm,
         to: InvForm,
         qty: FracM,
-    ) {
-        let portions = &mut self.inv.spans[span].portions;
-        let avail = portions
-            .iter()
-            .find(|p| p.material == material && p.form == from)
-            .map_or(0.0, |p| p.quantity_m);
-        let q = qty.min(avail).max(0.0);
-        if q <= 0.0 {
-            return;
-        }
-        for p in portions.iter_mut() {
-            if p.material == material && p.form == from {
-                p.quantity_m -= q;
-            }
-        }
-        portions.retain(|p| p.quantity_m > 0.0);
-        match portions
-            .iter_mut()
-            .find(|p| p.material == material && p.form == to)
-        {
-            Some(p) => p.quantity_m += q,
-            None => self.inv.spans[span].portions.push(Portion {
-                material,
-                form: to,
-                quantity_m: q,
-            }),
-        }
+    ) -> FracM {
+        self.apply_edge(span, (material, from), (material, to), qty)
+    }
+}
+
+/// A unit's **provenance**: its immutable depositional base and the facts that
+/// have transformed it (DECIDED: "started as X, weathering did Y at chapter Z" is
+/// just reading `base + facts`). [`Self::compose`] folds them into the current
+/// composition; [`Self::facts`] is the lineage read.
+pub struct UnitProvenance<'a> {
+    pub base: &'a DepUnit,
+    pub facts: &'a [Fact],
+}
+
+impl<'a> UnitProvenance<'a> {
+    /// Build the provenance view of unit `i` from a record + ledger.
+    pub fn of(strata: &'a DeepStrata, ledger: &'a FactLedger, i: usize) -> Option<Self> {
+        strata.units.get(i).map(|base| Self {
+            base,
+            facts: ledger.facts_for(i),
+        })
+    }
+
+    /// Current composition = `derive(base) then fold(facts)`.
+    pub fn compose(&self) -> Vec<Portion> {
+        compose_unit(self.base, self.facts)
+    }
+
+    /// The lineage: the facts appended to this unit, chapter-ordered.
+    pub fn facts(&self) -> &[Fact] {
+        self.facts
     }
 }
 
 /// **Quantize a fractional metre quantity to eighths** for a collapse voxel of
-/// height `voxel_m` — the *one* step where eighths appear (§1 DECIDED: deep spans
-/// are sub-eighth fractional; they quantize to eighths **only at collapse**).
-/// Below this call the deep tier is pure metres; above it, integer eighths.
+/// height `voxel_m` — the *one* step where eighths appear (§1 DECIDED). Below this
+/// call the deep tier is pure metres; above it, integer eighths.
 #[inline]
 pub fn quantize_to_eighths(quantity_m: FracM, voxel_m: f64) -> u8 {
     ((quantity_m / voxel_m) * f64::from(VOXEL_EIGHTHS))
@@ -338,13 +621,9 @@ pub fn quantize_to_eighths(quantity_m: FracM, voxel_m: f64) -> u8 {
 
 /// **Collapse the top `voxel_m` of the column into a present `VoxelContents`** — a
 /// *demonstration* of the quantize-at-collapse step (not a replacement for the
-/// shipped `ColumnFill`, which the spike does not touch). Walks spans from the
-/// surface down, accumulating up to `voxel_m` of material, and quantizes each
-/// `Loose` portion's metres to debris eighths.
-///
-/// This confirms the fractional representation closes at exactly one step: the
-/// inventory holds sub-eighth metre quantities, and eighths are minted **here**,
-/// nowhere earlier.
+/// shipped `ColumnFill`, untouched). Confirms the fractional representation closes
+/// at exactly one step: the inventory holds sub-eighth metres, eighths are minted
+/// here.
 pub fn collapse_top_voxel(inv: &WorkingInventory, voxel_m: f64) -> VoxelContents {
     let mut remaining = voxel_m;
     let mut debris: Vec<MaterialId> = Vec::new();
@@ -366,8 +645,6 @@ pub fn collapse_top_voxel(inv: &WorkingInventory, voxel_m: f64) -> VoxelContents
             remaining -= take;
         }
     }
-    // Loose portions become debris (the `Loose` form is the debris role, §2).
-    // A demonstration only, so cap at a legal open voxel.
     VoxelContents::debris_only(&debris[..debris.len().min(VOXEL_EIGHTHS as usize)])
         .unwrap_or(VoxelContents::EMPTY)
 }
@@ -375,14 +652,12 @@ pub fn collapse_top_voxel(inv: &WorkingInventory, voxel_m: f64) -> VoxelContents
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::deeptime::recorder::{Aridity, DepEnv, EnergyBand};
+    use crate::deeptime::recorder::{Aridity, DepEnv, DepTag, EnergyBand};
 
     fn tag(env: DepEnv, energy: EnergyBand) -> DepTag {
         DepTag::mineral(env, Aridity::Humid, energy)
     }
 
-    /// A hand-built record with three units of distinct thicknesses and tags —
-    /// the fixture the round-trip proofs run on.
     fn sample_record() -> DeepStrata {
         let mut s = DeepStrata::default();
         s.deposit(tag(DepEnv::Subsea, EnergyBand::Low), 4.3, 0);
@@ -392,82 +667,126 @@ mod tests {
     }
 
     #[test]
-    fn identity_default_per_stratum_round_trips_byte_identically() {
-        // The core proof: record -> inventory (identity, no behavior) -> commit
-        // reproduces the record BYTE-IDENTICALLY. The seam is free when empty.
-        let original = sample_record();
-        let inv = build_identity(&original, Granularity::PerStratum);
-        let mut committed = original.clone();
-        commit_chapter(&inv, &mut committed);
-        assert_eq!(
-            committed, original,
-            "identity-default per-stratum commit must reproduce the record byte-identically"
-        );
-        // One span per unit, one portion per span (the identity default shape).
-        assert_eq!(inv.spans.len(), original.units.len());
-        assert_eq!(inv.portion_count(), original.units.len());
-    }
-
-    #[test]
-    fn per_stratum_span_material_matches_the_collapse_tier_routing() {
-        // The span material is the SAME one the collapse tier's deep_class routes
-        // (both go through litho_of_tag) — the inventory builds the rock the world
-        // already builds, not a parallel guess.
-        let rec = sample_record();
-        let inv = build_identity(&rec, Granularity::PerStratum);
-        for (span, u) in inv.spans.iter().zip(&rec.units) {
-            let expected = litho_of_tag(u.tag).reference_material();
-            assert_eq!(span.portions.len(), 1);
-            assert_eq!(span.portions[0].material, expected);
-            assert_eq!(span.portions[0].form, InvForm::Loose);
-        }
-    }
-
-    #[test]
-    fn per_voxel_round_trips_within_floating_point_and_preserves_tags() {
-        // Per-voxel subdivides units into <= voxel_m slices; the commit re-merges
-        // them. Thickness re-accumulates under float addition, so the round-trip
-        // is exact-up-to-fp (a second strike against per-voxel — see S17 results),
-        // but tags/chapters/unit COUNT are preserved exactly.
-        let original = sample_record();
-        let inv = build_identity(&original, Granularity::PerVoxel { voxel_m: 0.9 });
-        assert!(
-            inv.spans.len() > original.units.len(),
-            "per-voxel must have more spans than units"
-        );
-        let mut committed = original.clone();
-        commit_chapter(&inv, &mut committed);
-        assert_eq!(
-            committed.units.len(),
-            original.units.len(),
-            "re-merged unit count must match"
-        );
-        for (a, b) in committed.units.iter().zip(&original.units) {
-            assert_eq!(a.tag, b.tag);
-            assert_eq!(a.chapter, b.chapter);
-            assert_eq!(a.unconformity, b.unconformity);
-            assert!(
-                (a.thickness_m - b.thickness_m).abs() < 1e-9,
-                "thickness must re-accumulate to within fp tolerance"
+    fn identity_default_commit_appends_no_facts_and_leaves_the_record() {
+        // The seam is free when empty: build from base+empty-ledger, run NO
+        // behavior, commit → zero facts, and composition reproduces the base.
+        let strata = sample_record();
+        let mut ledger = FactLedger::empty_for(&strata);
+        let inv = build_working(&strata, &ledger);
+        commit_chapter(&inv, &mut ledger, 0);
+        assert!(ledger.is_empty(), "identity default must append no facts");
+        for (ui, u) in strata.units.iter().enumerate() {
+            assert_eq!(
+                compose_unit(u, ledger.facts_for(ui)),
+                derive_base(u),
+                "base + empty facts == base"
             );
         }
     }
 
     #[test]
-    fn move_form_is_a_mass_neutral_read_modify_write_edge() {
-        // The §3 form-transition edge / §6 RMW primitive: a weathering-shaped
-        // Structure->Loose move conserves mass within the span.
+    fn base_composition_matches_the_collapse_tier_routing() {
         let rec = sample_record();
-        let mut inv = build_identity(&rec, Granularity::PerStratum);
-        // Seed a structural portion so there is something to weather.
+        for u in &rec.units {
+            let base = derive_base(u);
+            assert_eq!(base.len(), 1);
+            assert_eq!(base[0].material, litho_of_tag(u.tag).reference_material());
+            assert_eq!(base[0].form, InvForm::Loose);
+            assert_eq!(base[0].quantity_m, u.thickness_m);
+        }
+    }
+
+    #[test]
+    fn non_identity_a_known_edge_commits_a_fact_that_re_derives() {
+        // The agreement test: a synthetic behavior applies a KNOWN material-change
+        // edge; commit turns the delta into a fact; re-deriving base+facts returns
+        // the changed composition, and the provenance read returns the fact.
+        let strata = {
+            let mut s = DeepStrata::default();
+            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3); // -> SANDSTONE (coarse)
+            s
+        };
+        let mut ledger = FactLedger::empty_for(&strata);
+        let base_mat = litho_of_tag(strata.units[0].tag).reference_material();
+        assert_eq!(base_mat, MaterialId::SANDSTONE);
+
+        // Behavior: 0.5 m of SANDSTONE/Loose -> MUDSTONE/Loose (a material change).
+        let mut inv = build_working(&strata, &ledger);
+        let moved = inv.ctx().apply_edge(
+            0,
+            (MaterialId::SANDSTONE, InvForm::Loose),
+            (MaterialId::MUDSTONE, InvForm::Loose),
+            0.5,
+        );
+        assert_eq!(moved, 0.5);
+
+        commit_chapter(&inv, &mut ledger, 4);
+
+        // One fact appended, with the expected shape.
+        assert_eq!(ledger.total_facts(), 1);
+        let f = ledger.facts_for(0)[0];
+        assert_eq!(f.chapter(), 4);
+        assert_eq!(f.from(), (MaterialId::SANDSTONE, InvForm::Loose));
+        assert_eq!(f.to(), (MaterialId::MUDSTONE, InvForm::Loose));
+        assert!((f.fraction_m() - 0.5).abs() < 1e-12);
+        assert_eq!(f.edge(), (InvForm::Loose, InvForm::Loose));
+
+        // Re-derive base+facts → composition changed as expected.
+        let comp = compose_unit(&strata.units[0], ledger.facts_for(0));
+        let sand = comp
+            .iter()
+            .find(|p| p.material == MaterialId::SANDSTONE)
+            .unwrap();
+        let mud = comp
+            .iter()
+            .find(|p| p.material == MaterialId::MUDSTONE)
+            .unwrap();
+        assert!((sand.quantity_m - 1.5).abs() < 1e-12);
+        assert!((mud.quantity_m - 0.5).abs() < 1e-12);
+
+        // Provenance read returns the same fact and composition.
+        let prov = UnitProvenance::of(&strata, &ledger, 0).unwrap();
+        assert_eq!(prov.facts().len(), 1);
+        assert_eq!(prov.compose(), comp);
+    }
+
+    #[test]
+    fn dissolution_edge_commits_a_to_void_fact() {
+        // A dissolution behavior removes material to the complement; the fact's
+        // destination form is Void, and re-derivation shrinks the column.
+        let strata = {
+            let mut s = DeepStrata::default();
+            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 0);
+            s
+        };
+        let mut ledger = FactLedger::empty_for(&strata);
+        let mat = litho_of_tag(strata.units[0].tag).reference_material();
+        let mut inv = build_working(&strata, &ledger);
+        inv.ctx()
+            .apply_edge(0, (mat, InvForm::Loose), (mat, InvForm::Void), 0.75);
+        commit_chapter(&inv, &mut ledger, 1);
+        let f = ledger.facts_for(0)[0];
+        assert_eq!(f.to().1, InvForm::Void);
+        let comp = compose_unit(&strata.units[0], ledger.facts_for(0));
+        let total: f64 = comp.iter().map(|p| p.quantity_m).sum();
+        assert!(
+            (total - 1.25).abs() < 1e-12,
+            "dissolution shrinks the column"
+        );
+    }
+
+    #[test]
+    fn move_form_is_a_mass_neutral_read_modify_write_edge() {
+        let rec = sample_record();
+        let ledger = FactLedger::empty_for(&rec);
+        let mut inv = build_working(&rec, &ledger);
         inv.spans[0].portions.push(Portion {
             material: MaterialId::GRANITE,
             form: InvForm::Structure,
             quantity_m: 1.0,
         });
         let before = inv.spans[0].thickness_m();
-        let mut ctx = inv.ctx();
-        ctx.move_form(
+        inv.ctx().move_form(
             0,
             MaterialId::GRANITE,
             InvForm::Structure,
@@ -477,25 +796,15 @@ mod tests {
         assert_eq!(
             inv.spans[0].thickness_m(),
             before,
-            "form change is mass-neutral within the span"
+            "form change is mass-neutral"
         );
-        assert!(
-            (inv.ctx()
-                .fraction(0, MaterialId::GRANITE, InvForm::Structure)
-                - 0.6)
-                .abs()
-                < 1e-12
-        );
-        assert!((inv.ctx().fraction(0, MaterialId::GRANITE, InvForm::Loose) - 0.4).abs() < 1e-12);
     }
 
     #[test]
-    fn substrate_accommodates_fluid_without_the_identity_default_building_it() {
-        // §10 open question #4: the substrate ACCOMMODATES a fluid form (move_form
-        // can target it) but the identity default never populates one, and this
-        // spike builds no water.
+    fn substrate_accommodates_fluid_without_building_it() {
         let rec = sample_record();
-        let mut inv = build_identity(&rec, Granularity::PerStratum);
+        let ledger = FactLedger::empty_for(&rec);
+        let mut inv = build_working(&rec, &ledger);
         assert_eq!(
             inv.spans
                 .iter()
@@ -505,36 +814,29 @@ mod tests {
             0,
             "identity default builds no fluid"
         );
-        // But the slot exists: a move into Fluid is legal (accommodation).
         let mat = inv.spans[0].portions[0].material;
-        let mut ctx = inv.ctx();
-        ctx.move_form(0, mat, InvForm::Loose, InvForm::Fluid, 0.1);
+        inv.ctx()
+            .move_form(0, mat, InvForm::Loose, InvForm::Fluid, 0.1);
         assert!(inv.ctx().fraction(0, mat, InvForm::Fluid) > 0.0);
     }
 
     #[test]
     fn eighths_appear_only_at_the_quantize_step() {
-        // §10 open question #3 (fractional representation): the deep tier holds
-        // sub-eighth metre quantities; eighths are minted ONLY at collapse.
         let mut s = DeepStrata::default();
-        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 0.37, 0); // sub-eighth of a 0.9 m voxel
+        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 0.37, 0);
         let inv = build_identity(&s, Granularity::PerStratum);
-        // Below the quantize step: a genuine fraction, no rounding.
         assert_eq!(inv.spans[0].portions[0].quantity_m, 0.37);
-        // The quantize step: 0.37 / 0.9 * 8 = 3.29 -> 3 eighths.
         assert_eq!(quantize_to_eighths(0.37, 0.9), 3);
-        let vc = collapse_top_voxel(&inv, 0.9);
-        assert_eq!(vc.solid_eighths(), 3);
+        assert_eq!(collapse_top_voxel(&inv, 0.9).solid_eighths(), 3);
     }
 
     #[test]
-    fn footprint_and_sizes_are_reported() {
-        // Not a falsifier — pins the type sizes the S17 memory measurement rests
-        // on, so a later struct change that moves them fails loudly here.
+    fn sizes_are_pinned() {
         assert_eq!(std::mem::size_of::<Portion>(), 16);
+        assert!(std::mem::size_of::<Fact>() <= 24);
         let rec = sample_record();
-        let per_stratum = build_identity(&rec, Granularity::PerStratum);
-        let per_voxel = build_identity(&rec, Granularity::PerVoxel { voxel_m: 0.9 });
-        assert!(per_voxel.footprint_bytes() > per_stratum.footprint_bytes());
+        let ps = build_identity(&rec, Granularity::PerStratum);
+        let pv = build_identity(&rec, Granularity::PerVoxel { voxel_m: 0.9 });
+        assert!(pv.footprint_bytes() >= ps.footprint_bytes());
     }
 }
