@@ -503,3 +503,43 @@ not a repo artifact and the next session starts cold. Templates: ROADMAP Sequenc
 "THE HONEST IDENTITY SURFACE" and "GENESIS-PASSES DRIVE ROCK DISTRIBUTION"
 (2026-07-24). This is the corpus-outruns-the-assistant guard applied to sequencing:
 the map must carry the arc, not just the next step.
+
+## Accept by OUTCOME, and place a seam WHERE THE FULL THING LIVES (2026-07-24, the S18 walk)
+
+Two failures stacked in one slice (S18 weathering; corrections #46/#47). The machinery was
+correct and the gates green, yet what merged was a **pipework demo mislabelled as a
+behavior**, and it was one headless probe away from being a *dangling, believed, untracked*
+stub. The user's verdict: *"if we lay a seam, let's put it where the full thing is supposed
+to live."* Both halves are process rules now.
+
+**Accept by outcome, not by mechanism.** A slice's tests can be green and its RETURN spec
+satisfied while the thing it *claims to do in the world* never happens. S18's fold test was
+green because it **hand-fed a magnitude that never occurs** (1.3 m; production is 0.04 m —
+sub-voxel, expresses as nothing). That is **anti-shape A-3** (green for a reason unrelated to
+the claim) hiding an unverified outcome.
+- A slice claiming a **world-visible / outcome** change ships a **production-scale outcome
+  probe as an acceptance deliverable** — the tour-map/magnitude probe runs **inside the
+  slice**, not as post-merge walk-prep. Had "report the band in voxels at production scale"
+  been in the brief, the agent's own report would have said "0 eighths, invisible."
+- At review, **demand the load-bearing number.** A report that gives a *recipe* for the
+  effect ("argmax X") but never its *value* is itself the red flag. Do not record "it
+  expresses" into ROADMAP/journal without the number — that is "an agent's mechanism is a
+  hypothesis; test before recording," which the integrator violated here.
+
+**Place the seam where the full thing will live — and never model a process as a snapshot.**
+S18 ran weathering **once, post-hoc, over the finished record with frozen final-state
+fields**, because the brief scoped it decoupled from the deep-time loop to dodge an
+entanglement. But weathering is a **continuous process** (the height loop runs it every
+epoch). A one-shot of a continuous process is a **category error, not a simplification** — a
+snapshot of a movie. And a seam bolted onto a convenient spot is a **dangling extra step, not
+a proxy** for the real system.
+- For a slice modelling a natural **process**, ask *at design/brief time*: does it run **where
+  and when the process runs** — in the loop, over the relevant span — or is it bolted on? A
+  seam-first slice of a process is a **smaller-but-real run of the process** (fewer cells,
+  coarser grid, still in the loop), never a one-shot demo standing in for it.
+- "Keep it simple = run it once" is a false economy when the target is continuous: it does not
+  buy a small version of the behavior, it buys a **non-behavior**.
+- The antidote to the nightmare (a bolted-on stub, believed, untracked): when a slice is
+  knowingly plumbing-not-behavior, say so in its own label, and file the **stub with its heir
+  at the site the full thing will occupy** (stubs.md #17). The inventory that would have
+  caught it is only as good as the honesty of the slice's self-description.

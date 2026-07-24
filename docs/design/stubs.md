@@ -411,6 +411,23 @@ of in the deep tier (the loose product inherits the bedrock's identity); invisib
 until the weathering facts express through the collapse. *Loud code marker required
 at the materialization site.*
 
+### 17. weathering-runs-once-post-hoc — *added 2026-07-24 (the S18 walk finding, corrections #46/#47)*
+`dc-worldgen/src/deeptime/field.rs::build_ledgers` + `weather_inventory::weather_column(_,
+chapters=1, _)`: the inventory weathering runs a **single chapter, after the deep-time run,
+over the finished record, with final-state fields frozen**. Weathering is a *continuous*
+process — the height-tier loop runs it every epoch (→ meters of `H`) — so a one-shot over the
+end-state is a **snapshot, not the process**; its product is sub-voxel (0.04 m) and expresses
+as nothing (corrections #46). **This is a seam in the WRONG PLACE:** bolted onto the end
+rather than living where weathering runs (inside the deep-time loop). **Heir:** weathering as
+a **per-epoch cellular pass inside the deep-time compile**, riding / unifying with the
+height-tier weathering that already accumulates `H` (the R/H-unification continuation slot,
+material-behavior.md §11) — carrying material identity + per-agent `cause` on top of the
+process the height loop already runs. **Blast:** the whole "first real behavior" claim —
+until the heir lands, no weathering *behavior* is modeled; what exists is the keystone
+**plumbing** (inventory + facts + fold), proven and valuable, with a one-shot demo standing on
+it. *Loud: this stub IS the behavior, not a constant — the nightmare case (a bolted-on stub,
+believed, untracked) this inventory exists to prevent.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

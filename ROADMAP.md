@@ -34,6 +34,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   final `surf` (post-isostasy `surf ≈ −460 m` would weather nothing); the product class is a
   fine-clastic saprolite stand-in under #16; one chapter only (multi-chapter feedback is the
   §5 later refinement).
+  **CORRECTED 2026-07-24 (corrections #46/#47; walk finding, headless tour probe
+  `examples/s18_weathering_tour`):** the band is **SUB-VOXEL** at production scale (max
+  **0.04 m** vs 0.9 m voxel ⇒ 0 eighths ⇒ **invisible**; confirmed in-client). And the deeper
+  miss — this runs weathering **once, post-hoc, over the finished record with frozen fields**,
+  so what shipped is keystone-consumption **plumbing + a one-shot behavior STUB (stubs.md #17),
+  NOT weathering-as-a-process.** Do NOT read "folds into a band" above as a shipped visible
+  effect. The **real first behavior** is weathering run per-epoch in the deep-time loop /
+  riding the `H` process (the R/H unification), carrying material + `cause` — sequenced next.
 
 - 2026-07-23 — **The per-task generator: neighbour fill and far derive leave the
   frame thread** (journal/0084; the filed follow-on to the async-offload slice

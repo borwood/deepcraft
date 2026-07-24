@@ -1436,3 +1436,51 @@ reads as a grid though continuous.
 until reading the function. The fix follows the true cause — **octaves (multi-scale),
 not a finer grid or neighbour-awareness**; a finer single-octave grid just makes smaller
 squares. Read the noise function before prescribing its replacement.
+
+## 46. "S18 weathering expresses a saprolite band in the walkable world" (assistant, 2026-07-24)
+
+**The claim.** The S18 merge (ROADMAP Shipped; journal/0089) stated the collapse folds
+`base + facts` into a "basal saprolite band" — recorded as if the first behavior is
+visible in the world.
+
+**The falsification (headless tour probe `examples/s18_weathering_tour`, then in-client).**
+At production scale the strongest band *anywhere* is **0.04 m** against **0.9 m** voxels
+(mean 0.01 m over banded cells). `quantize_to_eighths(0.04, 0.9) = round(0.35) = 0`: the
+band reaches **zero eighths everywhere**. Confirmed in-client — a column scan at the
+strongest cell reads stone/dirt/air, no saprolite voxel. The collapsed world is effectively
+byte-identical; there is nothing to walk to.
+
+**Mechanism / lesson.** Acceptance tested the **mechanism**, not the **outcome**. The fold
+test (`the_weathering_front_folds_into_a_basal_band`) is green because it **hand-feeds
+1.3 m** — an **A-3** green: true of the fold, silent on the production claim. The agent's
+report gave a *recipe* for the exemplar (argmax `weathering_product_m`) but never its
+**value**; the integrator recorded "it expresses" without demanding the number (violating
+"an agent's mechanism is a hypothesis; test before recording"). **Fix (process):** a slice
+claiming a world-visible outcome ships a **production-scale outcome probe as acceptance**,
+and review **demands the load-bearing number**; the tour-map probe that caught this runs
+**inside the slice**, not post-merge.
+
+## 47. "S18 is the first real weathering BEHAVIOR" (assistant / brief, 2026-07-24)
+
+**The claim.** S18 was briefed and shipped as "the first real cellular behavior" — modelling
+subaerial weathering on the deep-cell inventory.
+
+**The falsification (user's question, reading `weather_inventory.rs` + `field.rs::build_ledgers`).**
+Weathering is a **continuous** process — the height-tier loop runs it *every epoch*, which is
+why `H` holds meters of regolith. S18 runs `weather_column` **once**, *after* the run, over
+the *finished* record, with the *final-state* fields frozen. That is not a small weathering;
+it is a single synthetic application — **a snapshot of a continuous process, a category error,
+not a simplification.** What shipped is keystone-consumption **plumbing** with a one-shot
+behavior stub, **not weathering-as-a-process.**
+
+**Mechanism / lesson.** The brief scoped it decoupled from the deep-time loop ("one chapter,
+don't touch the erosion loop") to dodge the R/H entanglement, then labelled a pipework demo
+"the first behavior." Two durable rules: **(1) a seam is placed WHERE THE FULL THING WILL
+LIVE** (user, 2026-07-24) — weathering lives in the loop, over history, not bolted onto the
+end; a seam in the wrong place is a dangling extra step, not a proxy for later work. **(2)**
+For a slice modelling a natural **process**, ask *at design time* whether it runs *where and
+when the process runs* (in the loop, over the span) or as a decoupled snapshot; a one-shot of
+a continuous process is incoherent. **Fix:** the real first behavior is weathering run as a
+per-epoch pass in the deep-time compile / **riding the `H` process** (the R/H unification),
+carrying material identity + per-agent `cause` on top of the process the height loop already
+runs. Tracked as **stubs.md #17**.
