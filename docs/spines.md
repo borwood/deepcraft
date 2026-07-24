@@ -4,9 +4,18 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: 2026-07-23 (S-9 verification: `column_summary`
-confirmed dormant and added to § 3; far-field cold/warm split confirmed real;
-`weather_behavior.rs` confirmed wired and wearing the north-star shape).*
+*Last `spine-audit` sweep: 2026-07-24 (the deep-time pass-runner batch —
+`passgraph.rs` confirmed a genuine shared kernel, both `pipeline::schedule`
+[require_creator=true] and `runner::DeepSchedule::new` [false] call it, A-4
+guarded; S-6's runner entry verified accurate. S17 keystone `FactLedger` now
+**consumed** by `collapse.rs` via the S18 weathering-front band — but that S18
+weathering is a **plumbing stub** (default off, corrections #46/#47), not a live
+behavior; no spine entry claims otherwise. § 3: occupancy row narrowed — the dev
+inspector now consumes `free_eighths`/`open_pores`; `fits_in_pores`, drainage
+`recv/area/lake`, `exhum/t_crust` exported planes, `Agent::Dissolution`, the S11
+water module, and `column_summary` all re-confirmed uncalled in production.)
+Previous: 2026-07-23 (`column_summary` confirmed dormant and added to § 3;
+far-field cold/warm split confirmed real; `weather_behavior.rs` confirmed wired).*
 
 ## What this file is, and how it differs from the others
 
@@ -291,7 +300,15 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     tier) 2026-07-24, journal/0088:** the deep-cell fact-ledger — `commit_chapter`
     diff-and-append (apply-time edge logging is the ratified fact source; each fact
     carries its `cause`), byte-identical under the identity default over 25,600 real
-    cells, provenance read = `base + facts`. The **runtime tier** (edits as facts over
+    cells, provenance read = `base + facts`. **CONSUMED 2026-07-24 (S18):**
+    `collapse.rs:1487` reads `FactLedger::weathering_product_m` (via
+    `field.rs::build_ledgers` → `weather_inventory::weather_column`) into a basal
+    weathering-front band — so the keystone is no longer tested-only; it has a
+    production consumer. But that consumer is **gated behind `--weather-inventory`
+    (default off, S-5 identity default → byte-identical)** and is a *one-shot
+    plumbing stub, not a live weathering behavior* (corrections #46/#47, stubs.md
+    #17) — the shape is proven end-to-end, the behavior is not yet real. The
+    **runtime tier** (edits as facts over
     the gen-derivable base; a break = a move-fact) is the same shape one tier down —
     designed (commit-as-facts), unbuilt; the inspector proved the runtime stores only
     `Block` and re-derives contents (the derivable base, edit-blind).
@@ -397,7 +414,7 @@ consumed it and when.
 | `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** (the module now *declares* its expected consumers in-code — journal/0078 — so an infiltration author finds it, but still nothing calls it) | **hydrology** (groundwater infiltration) + **diagenesis** (cement / ore deposition) — the transport-time depositing processes |
 | `recv` / `area` / `lake` — final drainage, populated in every world | `deeptime/field.rs` | **nothing** | water-table pinning; where diverted water goes; discharge (`area` *is* discharge) |
 | `exhum` / `t_crust` — populated since U8; the doc comment is now **honest** (states "consumed by nothing", cites this row — journal/0078; the 2026-07-22 audit's "claims the collapse tier reads them" quoted an already-corrected comment with its "WILL" dropped — corrections #40) | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs` — the unconsumed thing is the exported plane, not the value) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
-| occupancy primitives — `free_eighths`, `loose_eighths`, `bound_eighths`, `open_pores`, `is_occupancy_solid` | `dc-core/src/materials/contents.rs` | partially | the four consumers named at authorship: water fill, loose gravity, compaction, sim light |
+| occupancy primitives — `bound_eighths`, `is_occupancy_solid` (the two still uncalled; `free_eighths`/`open_pores` now read by the dev inspector `dc-api/src/payload.rs:367`, `loose_eighths` by `dc-client/src/meshing.rs:281` — 2026-07-24 sweep) | `dc-core/src/materials/contents.rs` | `bound_eighths`/`is_occupancy_solid`: **no production caller** | the four sim consumers named at authorship: water fill, loose gravity, compaction, sim light — none built yet (the inspector/meshing reads above are the dev HUD + render path, not those) |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
