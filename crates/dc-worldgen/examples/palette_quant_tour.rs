@@ -136,17 +136,18 @@ fn cell_class(field: &DeepField, pregen: &Pregen, idx: usize, conv: &Conv) -> Op
 
 /// One-letter glyph per class so a window's layout prints as a legible grid.
 fn glyph(class: &str) -> char {
+    // Class ids are hyphenated & namespaced, e.g. `dc:stratum/clastic-coarse`.
     match class {
-        c if c.contains("clastic_coarse") => 'S', // sandstone / tan
-        c if c.contains("clastic_fine") => 'm',   // mudstone / grey-brown
-        c if c.contains("igneous_intrusive") => 'G', // granite / grey
-        c if c.contains("igneous_extrusive") => 'B', // basalt / dark
-        c if c.contains("accessory_mafic") => 'M',
-        c if c.contains("organic_coal") => 'C', // coal / dark-speckled
-        c if c.contains("organic_peat") => 'P',
-        c if c.contains("organic_charcoal") => 'H',
-        c if c.contains("organic_soil") => 'o',
-        c if c.contains("ore_placer") => 'r',
+        c if c.contains("clastic-coarse") => 'S', // sandstone / tan
+        c if c.contains("clastic-fine") => 'm',   // mudstone / grey-brown
+        c if c.contains("igneous-intrusive") => 'G', // granite / grey
+        c if c.contains("igneous-extrusive") => 'B', // basalt / dark
+        c if c.contains("accessory-mafic") => 'M',
+        c if c.contains("organic-charcoal") => 'H',
+        c if c.contains("organic-coal") => 'C', // coal / dark-speckled
+        c if c.contains("organic-peat") => 'P',
+        c if c.contains("organic-soil") => 'o',
+        c if c.contains("ore-placer") => 'r',
         _ => '?',
     }
 }
@@ -209,7 +210,10 @@ fn window_score(cells: &[Option<&'static str>]) -> WinScore {
 
 fn main() {
     println!("=== palette-quant checkerboard exemplar finder (journal/0088) ===");
-    println!("seed {SEED}, extent {}, default deep overrides, N=2 ({VOXEL_M} m voxels)", EXTENT.label());
+    println!(
+        "seed {SEED}, extent {}, default deep overrides, N=2 ({VOXEL_M} m voxels)",
+        EXTENT.label()
+    );
 
     let pregen = Pregen::run_with(
         WorldParams {
@@ -258,7 +262,7 @@ fn main() {
         for gx in 0..w.saturating_sub(WIN - 1) {
             let (ccx, ccy) = (gx + WIN / 2, gy + WIN / 2);
             let (cx_m, cz_m) = conv.idx_to_world_m(ccx, ccy);
-            if cx_m < X_MIN_M || cx_m > X_MAX_M || cz_m < Z_MIN_M || cz_m > Z_MAX_M {
+            if !(X_MIN_M..=X_MAX_M).contains(&cx_m) || !(Z_MIN_M..=Z_MAX_M).contains(&cz_m) {
                 continue;
             }
             let mut grid = Vec::with_capacity(WIN * WIN);
@@ -313,17 +317,19 @@ fn main() {
 
     // Elevations for the picks come from the production near-field generator (the
     // true voxel surface, river carving + relief), not the coarse deep bilinear.
-    let mut gen = WorldGenerator::new(&pregen);
+    let mut wgen = WorldGenerator::new(&pregen);
 
     let alt = WIN as f64 * field.cell_m / (2.0 * (FOV_V / 2.0).tan());
     println!("--- ARGMAX and alternates (top-down, pitch -1.55, yaw 0) ---");
-    println!("camera altitude to frame a {WIN}x{WIN} tile window at π/4 FOV: {alt:.0} m above ground\n");
+    println!(
+        "camera altitude to frame a {WIN}x{WIN} tile window at π/4 FOV: {alt:.0} m above ground\n"
+    );
 
     for (rank, c) in picked.iter().enumerate() {
         let tag = if rank == 0 { "ARGMAX" } else { "ALT" };
         let (ccx, ccy) = (c.gx + WIN / 2, c.gy + WIN / 2);
         let (vx, vz) = conv.idx_to_voxel(ccx, ccy);
-        let surf = gen.surface_elev_m(vx, vz);
+        let surf = wgen.surface_elev_m(vx, vz);
         let deep_surf = field
             .surface_at_voxel(vx, vz)
             .unwrap_or(field.surf[ccy * w + ccx]);
@@ -335,7 +341,10 @@ fn main() {
             c.s.hnorm,
             c.s.coverage * 100.0
         );
-        println!("  window centre (world m): x {:.0}, z {:.0}", c.cx_m, c.cz_m);
+        println!(
+            "  window centre (world m): x {:.0}, z {:.0}",
+            c.cx_m, c.cz_m
+        );
         println!(
             "  near-field surface elev (worldgen frame): {surf:.1} m  (deep bilinear {deep_surf:.1} m)"
         );
@@ -378,7 +387,9 @@ fn main() {
     println!("--- glyph legend ---");
     println!("  S clastic_coarse (tan) | m clastic_fine (grey-brown) | G igneous_intrusive (grey)");
     println!("  B igneous_extrusive (dark) | M accessory_mafic | C organic_coal (dark-speckled)");
-    println!("  P peat | H charcoal | o organic_soil | r ore_placer | . none (wilds/water/basement-less)\n");
+    println!(
+        "  P peat | H charcoal | o organic_soil | r ore_placer | . none (wilds/water/basement-less)\n"
+    );
 
     if box_edge_hit {
         println!(
