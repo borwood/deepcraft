@@ -2093,9 +2093,10 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
 
 - **APPEARANCE WALKS OWED** (tracking, user: "we do that when able" — journal screenshots for
-  appearance-changing work). Owed, to co-walk when the user can launch: **(1)** the far-LOD
-  band-inversion fix (journal/0091 — the finest band no longer cold over resident warm data;
-  fullbright for the material continuity, lit for no poke-through, per the agent's pose note);
+  appearance-changing work). **(1)** ✅ **DONE — walk-confirmed 2026-07-24** (user, aerial
+  fullbright: *"I can now confirm the LOD is fixed!!"* — fine near field transitions cleanly into
+  the warm coarse far LOD, no cold-dither ring; screenshots `journal/assets/0091-lod-walk-*`).
+  The only residue is the poke-through geometry check on the lit pass — low priority. Still owed:
   **(2)** the S18 weathering band **once Movement 3 makes it ≥1 voxel** (the walk that failed
   sub-voxel this session); **(3)** the geotherm's coal-distribution shift when it lands (coal
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
