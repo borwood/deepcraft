@@ -7,6 +7,34 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-24 — **S18: the first real behavior — sum-agent weathering on the deep-cell
+  inventory** (journal/0089, `docs/spikes/S18-*-plan.md`; background implementation
+  agent, worktree for the integrator). **Consumes the S17 keystone** (`WorkingInventory`
+  / `FactLedger` went from tested-only to a production consumer — A-4 discharged). Weathering
+  now runs as a **cellular pass over the working inventory** (`deeptime/weather_inventory.rs`):
+  `rate = cover_taper × Σ_a (driver_a × susceptibility_{m,a})` — the **sum-agent** model
+  (chemical/biotic/frost), **not** S16's product (byte-identity with the legacy weather phase
+  deliberately retired, DECIDED 85eee85). One **cause-carrying fact per agent**, sourced from an
+  **apply-time edge log** (`InvCtx::ctx_for(chapter, cause)`; `diff_facts` demoted to a
+  `#[cfg(test)]` reconciliation check). `Fact::InPlace` gained `cause: Cause` (Chemical/Biotic/
+  Frost/Dissolution, room left for a present-tier `Actor`). **The consumer:** `DeepField` carries
+  a `Vec<FactLedger>` sidecar; `collapse.rs` folds `base + facts` into a **basal saprolite band**
+  below the recorded pile (not counted in `expressed_m`). **Bedrock materialized as a flat
+  `Structure` span** so the `Structure→Loose` edge has a source — **stubs.md #16**, heir = a
+  genesis/emplacement pass, loud code marker present. **Flag `weather_inventory` OFF by default ⇒
+  byte-identical production world** — gates green on merged main (fmt ✓, test ✓ `--workspace
+  --release`, `cargo clean -p dc-worldgen` first, `Compiling dc-worldgen` from main's tree):
+  `the_production_world_still_hashes_to_the_pre_slice_goldens ok`,
+  `identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical ok`, +
+  `one_fact_per_agent_and_shares_sum_to_the_move`, `frost_acts_even_where_biota_is_absent`,
+  `the_weathering_front_folds_into_a_basal_band`. Rides S-9/S-2/S-1/S-5; no dc-core touched.
+  **OWED: the flag-ON walk** (the saprolite band is an appearance flip, walk-gated — exemplar =
+  argmax `FactLedger::weathering_product_m`, cut down a scarp/gorge to the basement contact).
+  Rides-as-built (integrator-settled, no user call): the subaerial gate reads the *record* not
+  final `surf` (post-isostasy `surf ≈ −460 m` would weather nothing); the product class is a
+  fine-clastic saprolite stand-in under #16; one chapter only (multi-chapter feedback is the
+  §5 later refinement).
+
 - 2026-07-23 — **The per-task generator: neighbour fill and far derive leave the
   frame thread** (journal/0084; the filed follow-on to the async-offload slice
   journal/0083; background implementation agent, worktree for the integrator).
