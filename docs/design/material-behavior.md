@@ -87,9 +87,14 @@ not material, so a material change cannot rewrite it):
   stochastic, state-reading behaviors — not re-derivable without re-running the
   compile — so they *are* the compiled artifact; the working inventory is compiler
   scratch, re-derived from `base + facts` each chapter (S-2).
-- **`commit_chapter` = diff-and-append:** working-inventory vs the chapter-start
-  derived state → the deltas ARE the facts. **Empty delta ⇒ no facts ⇒ record
-  byte-identical** (the S17 identity default, already proven).
+- **The fact source is the applied-edge LOG (refined 2026-07-24), not a post-hoc
+  diff.** Each edge logs itself as `apply_edge` runs; **the logged edges ARE the
+  facts.** A diff of working-vs-baseline recovers the net delta — *equivalent for a
+  single edge*, but a multi-edge chapter has **no unique factorization**, so a diff
+  loses per-edge provenance. The log is the authority; the diff is only a validation
+  check. `commit_chapter` = collect the chapter's logged edges (coalescing identical
+  successive ones). **Empty log ⇒ no facts ⇒ record byte-identical** (the S17 identity
+  default). *(A2's S17 plea, ratified.)*
 - **A fact's shape:** `(chapter, edge, (from-mat, from-form) → (to-mat, to-form),
   fraction)` — carries material change, form-only change (crumbling), and dissolution
   (`→ void`). Ordered by chapter; within a chapter a commutative batch (one

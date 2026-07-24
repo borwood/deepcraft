@@ -2089,12 +2089,14 @@ see the question you are asking.
   inventory keystone** (Crux 1), NOT a standalone design pass. The 0010 dormant loose
   renderer and S8 mechanics are the substrate.
 - **Tectonics SPIKE** (per tectonics.md § SPIKE, architecture ratified
-  2026-07-20). **[VALIDATED as a FIELD pass, 2026-07-24 (north-star/material-
-  behavior): tectonics, erosion, drainage, climate, thermal are FIELD passes —
-  they compute+plant a field (native-core), and are explicitly NOT candidates for
-  the cellular/declarative agent treatment. Do NOT recast them as edges/agents; the
-  same stamp covers the erosion-supply calibration, 3e-2 C-refinement, and drainage
-  items below.]** implement `DeepConfig::tectonic_history` behind the flag and
+  2026-07-20). **[VALIDATED as FIELD-SOLVERS, 2026-07-24 (user-confirmed; north-star/
+  material-behavior): the SOLVER half — tectonic deformation/uplift, drainage,
+  climate, thermal — is a FIELD pass (compute+plant a field, native-core); do NOT
+  recast *that* as cellular. But each has a cellular EXPRESSION pass that reads the
+  field (ctx channel 2) and moves material — erosion/transport reads drainage; an
+  **upheaval** pass reads the tectonic field. That split IS the design (material-
+  behavior §5 dual-process split), NOT a recast. Same stamp covers erosion-supply,
+  3e-2, and drainage below.]** implement `DeepConfig::tectonic_history` behind the flag and
   produce the eight measurement groups (clamp stability under ramped
   repaints, recorder growth vs K, ritual wall/memory at 200/300/400 iters
   reporting tradeoffs not optimizing to a cap per amended U3, landform
@@ -2574,7 +2576,17 @@ before any code.
   agreement, never material identity (the S-9 violation). Root: two unreconciled eras
   (FF2a synth-dither vs FF2b reduce) made *visible* by the 0087 block-collapse; the
   176 m standoff was geometry-motivated and never meant to flip *material*.
-  **Planning HELD at the user's direction — diagnosis only.**
+  **FIX DIRECTION (user, 2026-07-24):** (1) *never cold over warm-capable data* — the
+  standoff is backwards; warm must reach the nearfield edge (loaded chunks → warm, no
+  cold shell). (2) Cold's dither must be **replaced with a continuous method** (it is
+  discontinuous with both the real chunks and the warm band). (3) The deeper truth:
+  **both warm and cold fail to represent MIXTURE** — the real fix is the
+  **blended-mixture-albedo cascade**: textured mixture (near) → averaged mixture
+  albedo, one blended colour per coarsened voxel (mid) → flat winning material (far),
+  pure mixed albedo becoming *necessary* the further out the band. This **converges
+  the distance-pyramid Sequenced item + the palette-quant station (T1) + the contents
+  inspector** into one mixture-representation arc — plan them together. Implementation
+  held pending that plan.
 
 - **Perf: throughput ceiling at terminal velocity** (user field report,
   2026-07-23, on the 0083/0084 offload). Noticeably improved — the drop reaches
