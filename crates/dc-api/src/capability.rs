@@ -111,6 +111,7 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
     Ok(match payload {
         Payload::SetBlock(p) => Requirement::WorldWrite(Volume::point(p.pos)),
         Payload::GetBlock(p) => Requirement::WorldRead(Volume::point(p.pos)),
+        Payload::GetContents(p) => Requirement::WorldRead(Volume::point(p.pos)),
         Payload::Fill(p) => Requirement::WorldWrite(Volume::new(p.min, p.max)),
         Payload::ScanRegion(p) => Requirement::WorldRead(Volume::new(p.min, p.max)),
         Payload::EntitySpawn(_) => Requirement::EntitySpawn,

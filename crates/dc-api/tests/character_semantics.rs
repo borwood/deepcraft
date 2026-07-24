@@ -377,6 +377,7 @@ fn senses_are_embodied_and_range_capped() {
             block: Some(block),
             normal: Some(n),
             distance_m: Some(d),
+            ..
         }) => {
             assert_eq!((v.x, v.y, v.z), (0, 2, -5));
             assert_eq!(block, "dc:stone");

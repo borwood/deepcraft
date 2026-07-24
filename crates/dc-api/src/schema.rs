@@ -745,6 +745,19 @@ commands! {
         ),
         complete: Some(Completer::World(complete_set_posture)),
     }
+    GetContents: Query {
+        id: WORLD_GET_CONTENTS = "dc:world/get_contents",
+        doc: "Read one voxel's WHOLE material composition — the full contents, \
+              not the single classified block name `get_block` returns: the \
+              structure / pore-fill / debris material multisets (slug + \
+              count-in-eighths), the structure shape and occupancy (solid / \
+              free / open-pore eighths), plus the classified winner block for \
+              reference. `has_contents` is false where no contents record \
+              backs the voxel (S1 terrain, legacy stubs).",
+        cap: "world.read covering pos",
+        schema: || s_obj("get_contents payload", &[("pos", s_vec3i("voxel to read"), true)]),
+        complete: None,
+    }
 }
 
 /// Look a spec up by command id.
@@ -877,6 +890,9 @@ mod tests {
                 crate::bodies::biped_clips()[0].clone(),
             )),
             Payload::DefineBodyPlan(payload::DefineBodyPlan(crate::bodies::biped_plan())),
+            Payload::GetContents(payload::GetContents {
+                pos: Vec3i::new(1, 2, 3),
+            }),
         ];
         assert_eq!(
             samples.len(),
@@ -1073,6 +1089,7 @@ mod tests {
         ];
         let no_source = [
             ids::WORLD_GET_BLOCK,
+            ids::WORLD_GET_CONTENTS,
             ids::WORLD_SCAN_REGION,
             ids::ENTITY_SPAWN,
             ids::ENTITY_QUERY,

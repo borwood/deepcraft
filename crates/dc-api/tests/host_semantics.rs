@@ -614,3 +614,157 @@ fn replay_determinism() {
     script(&mut w3);
     assert_ne!(w1.region_hash(region), w3.region_hash(region));
 }
+
+// ------------------------------------------------------------- get_contents --
+//
+// The look-at-voxel inspector's load-bearing query. It exposes the whole
+// `VoxelContents` (structure / pore-fill / debris multisets, shape, occupancy)
+// where `get_block` returns only the single classified name — the authority
+// beside the summary (S-3 in reverse). Contents reach the host through the
+// optional `set_contents_source` seam, parallel to the block generator.
+
+/// A contents source that plants one known mixed voxel at world (1,2,3) — a
+/// granite slab with an olivine pore inclusion and two eighths of loose sand —
+/// and leaves the rest of the chunk empty.
+fn planted_contents(pos: Vec3i) -> Option<dc_core::ContentsGrid> {
+    if dc_core::ChunkPos::from_world_voxel(pos.x, pos.y, pos.z) != dc_core::ChunkPos::new(0, 0, 0) {
+        return None;
+    }
+    let mut dense = vec![dc_core::VoxelContents::EMPTY; dc_core::CHUNK_VOLUME];
+    let mixed = dc_core::VoxelContents::new(
+        dc_core::StructureShape::Slab,
+        &[dc_core::MaterialId::GRANITE, dc_core::MaterialId::GRANITE],
+        &[dc_core::MaterialId::OLIVINE],
+        &[dc_core::MaterialId::SAND, dc_core::MaterialId::SAND],
+    )
+    .unwrap();
+    dense[dc_core::Chunk::index(1, 2, 3)] = mixed;
+    Some(dc_core::ContentsGrid::from_dense(&dense))
+}
+
+fn get_contents(world: &mut HostWorld, token: &CapabilityToken, pos: Vec3i) -> QueryData {
+    let src = ConsumerId::new(ConsumerKind::Plugin, "inspector");
+    let receipt = world.query(&envelope(
+        &src,
+        token,
+        Payload::GetContents(dc_api::payload::GetContents { pos }),
+    ));
+    match receipt.result {
+        QueryResult::Ok(data) => data,
+        other => panic!("get_contents failed: {other:?}"),
+    }
+}
+
+#[test]
+fn get_contents_unpacks_the_full_composition() {
+    let mut world = HostWorld::new(7);
+    world.set_contents_source(Box::new(planted_contents));
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    let token = all_powers();
+    let pos = v(1, 2, 3);
+    // Make the stored block agree with the contents (as real worldgen would).
+    world.submit(set_block(&src, &token, pos, "dc:granite")).unwrap();
+    world.tick();
+
+    match get_contents(&mut world, &token, pos) {
+        QueryData::Contents {
+            block,
+            classified,
+            has_contents,
+            contents,
+        } => {
+            assert!(has_contents);
+            assert_eq!(block, "dc:granite");
+            assert_eq!(classified, "dc:granite");
+            assert_eq!(contents.shape, "slab");
+            // 2 structure + 1 pore + 2 debris = 5 occupied eighths.
+            assert_eq!(contents.solid_eighths, 5);
+            assert_eq!(contents.free_eighths, 3);
+            assert_eq!(contents.open_pores, 1); // slab cap 4, 2 struct + 1 pore
+            assert_eq!(contents.free_debris_eighths, 2); // 8 - 4 reserved - 2 debris
+            assert_eq!(contents.structure.len(), 1);
+            assert_eq!(contents.structure[0].material, "dc:granite");
+            assert_eq!(contents.structure[0].eighths, 2);
+            assert_eq!(contents.pore_fill[0].material, "dc:olivine");
+            assert_eq!(contents.pore_fill[0].eighths, 1);
+            assert_eq!(contents.debris[0].material, "dc:sand");
+            assert_eq!(contents.debris[0].eighths, 2);
+        }
+        other => panic!("expected Contents, got {other:?}"),
+    }
+}
+
+#[test]
+fn get_contents_without_a_source_is_block_only() {
+    let mut world = HostWorld::new(7);
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    let token = all_powers();
+    let pos = v(5, 5, 5);
+    world.submit(set_block(&src, &token, pos, "dc:stone")).unwrap();
+    world.tick();
+
+    match get_contents(&mut world, &token, pos) {
+        QueryData::Contents {
+            block,
+            classified,
+            has_contents,
+            contents,
+        } => {
+            assert!(!has_contents, "no source installed");
+            assert_eq!(block, "dc:stone");
+            assert_eq!(classified, "dc:stone", "classified echoes the stored block");
+            assert_eq!(contents, dc_api::payload::ContentsView::default());
+        }
+        other => panic!("expected Contents, got {other:?}"),
+    }
+}
+
+#[test]
+fn get_contents_surfaces_edit_divergence() {
+    // An edit writes a block, never contents (the source is a pure function of
+    // pos, blind to edits). Breaking the granite to air must show block=air but
+    // the recorded contents still granite — the divergence made legible.
+    let mut world = HostWorld::new(7);
+    world.set_contents_source(Box::new(planted_contents));
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    let token = all_powers();
+    let pos = v(1, 2, 3);
+    world.submit(set_block(&src, &token, pos, "dc:air")).unwrap();
+    world.tick();
+
+    match get_contents(&mut world, &token, pos) {
+        QueryData::Contents {
+            block,
+            classified,
+            has_contents,
+            ..
+        } => {
+            assert!(has_contents);
+            assert_eq!(block, "dc:air", "the edit is authoritative");
+            assert_eq!(classified, "dc:granite", "contents still record granite");
+        }
+        other => panic!("expected Contents, got {other:?}"),
+    }
+}
+
+#[test]
+fn get_contents_requires_world_read() {
+    let mut world = HostWorld::new(7);
+    world.set_contents_source(Box::new(planted_contents));
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    // A token with no world.read grant.
+    let token = CapabilityToken::new(vec![Grant::EntitySpawn]);
+    let receipt = world.query(&envelope(
+        &src,
+        &token,
+        Payload::GetContents(dc_api::payload::GetContents { pos: v(1, 2, 3) }),
+    ));
+    assert!(
+        matches!(
+            receipt.result,
+            QueryResult::Rejected(RejectReason::MissingCapability { .. })
+        ),
+        "get_contents must be gated by world.read: {:?}",
+        receipt.result
+    );
+}
