@@ -157,7 +157,54 @@ first time the flux record has appeared in the residency table.
 Production world, seed 1337, `Extent::Medium`, production flags,
 `examples/flow_cost_probe.rs`, `weather_inventory` **ON**:
 
-NUMBERS_TABLE
+Both columns are **real runs of the same probe**, the pre-slice sources rebuilt
+and re-measured rather than quoted from S19.
+
+| | before (`Vec<Vec<Fact>>`) | after (CSR) |
+|---|---:|---:|
+| **`DeepField` total, flag ON** | **311.02 MiB** | **179.12 MiB** |
+| cost of turning the flag ON | **+161.81 MiB** | **+29.91 MiB** — **5.41× less** |
+| ledger heap | 155.01 MiB | **16.31 MiB** — **9.5×** |
+| — payload | 21.51 MiB (5.74 MiB of it `Vec` slack) | 15.77 MiB, **exact** |
+| — index / headers | 133.50 MiB (**86 %**) | **0.55 MiB** (**3.4 %**) |
+| ledger structs | 6.80 MiB (24 B × 297,025) | 13.60 MiB (48 B × 297,025) |
+| non-empty slots | 72,006 of 5,832,862 (**1.2 %**) | 72,006 rows, and nothing else |
+| **gen: build the flag-ON field** | **85.6 s** | **34.7 s** |
+
+The flag-OFF baseline both columns share is **149.21 MiB** — identical in both
+runs, byte for byte, which is the control that makes the ON comparison mean
+something. (Of it: strata heap 84.47 MiB, flux record 40.66 MiB.)
+
+**The index is 3.4 % of the ledger** — below `flux.rs`'s 5.6 % floor, because a
+row is paid only where facts exist. The payload is 97 % of the heap, which is
+the shape you want: a record whose size is its contents.
+
+The fact population is **unchanged to the fact**: 1,033,189 facts across 72,006
+slots in both runs. That is the byte-identity claim in its most direct form —
+not "the tests pass" but "the same one million facts, in the same slots".
+
+Two things in that table deserve to be said out loud rather than glossed.
+
+**The struct grew.** Per-cell `FactLedger` went 24 → 48 bytes (one `Vec` became
+two): **+6.80 MiB**. It is paid back twenty times over, but it is *exactly the
+same defect* this entry is about, one level up — a header per cell, paid whether
+or not the cell has anything. See the follow-up below.
+
+**Gen time went DOWN by 51 seconds, and that was not the goal.** Building the
+flag-ON field went 85.6 s → 34.7 s, ~2.5×. The compaction and the CSR inserts do
+add work, and they are swamped: `finalize_ledgers` used to allocate and zero
+**5.8 million `Vec` headers — 133 MiB of memory it then never wrote to**. Not
+paying for absence is not only a residency property. (Gen time is free by
+doctrine, so this is reported, not celebrated; but it is a useful reminder that
+"free" and "harmless" are different claims.)
+
+One footnote on provenance: S19 recorded the flag-ON cost as **+156.91 MiB**;
+today's like-for-like re-measurement of the same pre-slice code reads
+**+161.81 MiB**. The header term is identical (133.50 MiB) and the fact count is
+identical; the 4.9 MiB is inner-`Vec` capacity slack, which moved when the
+journal/0096 merger fold changed how facts are appended. The re-measured number
+is the one this entry uses — a stale baseline quoted from a document is exactly
+the sort of thing this project's corrections file is full of.
 
 The facts, `weathering_product_m`, the band and the world are **identical** —
 this was a pure layout change, and every existing test passed unmoved and by

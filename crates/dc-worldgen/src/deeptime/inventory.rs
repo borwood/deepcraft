@@ -1400,7 +1400,11 @@ mod tests {
 
         let s0 = ledger.facts_for(0);
         assert_eq!(s0.len(), 2, "one fact per cause on slot 0");
-        assert_eq!(s0[0].cause(), Cause::Chemical, "first-committed cause first");
+        assert_eq!(
+            s0[0].cause(),
+            Cause::Chemical,
+            "first-committed cause first"
+        );
         assert!(
             (s0[0].fraction_m() - 0.6).abs() < 1e-12,
             "the later chemical edge merged into the EARLIEST chemical fact"
@@ -1505,7 +1509,10 @@ mod tests {
         assert_eq!(before.len(), 3);
 
         let moved = acc.rekeyed(0, 7);
-        assert!(moved.facts_for(0).is_empty(), "the sentinel slot is vacated");
+        assert!(
+            moved.facts_for(0).is_empty(),
+            "the sentinel slot is vacated"
+        );
         assert_eq!(moved.facts_for(7), &before[..], "same facts, same order");
         assert_eq!(
             moved.footprint_bytes(),

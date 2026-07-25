@@ -7,6 +7,55 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-25 — **`FactLedger` gets the CSR layout `flux.rs` proves — a PURE LAYOUT CHANGE**
+  (journal/0100; background agent, worktree). The ledger was `Vec<Vec<Fact>>` keyed per
+  (cell, slot): **98.8 % of 5,832,862 inner `Vec`s EMPTY, 86–89 % of its ~150 MiB heap in their
+  headers** (S19 § 3b). It is now **flat exact-sized facts + a sparse `(slot, start)` CSR index**
+  emitted **only for slots that carry facts** — so an unweathered cell (the large majority)
+  allocates **nothing at all**.
+  - **MEASURED before/after, both real runs of `examples/flow_cost_probe.rs`** (seed 1337,
+    `Extent::Medium`, production flags; the pre-slice sources were rebuilt and re-measured, not
+    quoted): **flag ON `DeepField` 311.02 → 179.12 MiB**; the **cost of turning the flag on
+    falls +161.81 → +29.91 MiB (5.41×)**; **ledger heap 155.01 → 16.31 MiB (9.5×)**; index is
+    **0.55 MiB = 3.4 % of the ledger** (below `flux.rs`'s 5.6 % floor — a row is paid only where
+    facts exist); payload **15.77 MiB, exact-sized** (was 21.51 MiB, 5.74 MiB of it `Vec` slack).
+    The shared flag-OFF baseline is **149.21 MiB, identical in both runs** — the control.
+    *Struct cost went the other way and is reported: per-cell `FactLedger` 24 → 48 B = +6.80 MiB.*
+  - **BYTE-IDENTICAL, and in the strongest available form:** **1,033,189 facts across 72,006
+    slots in both runs** — the same million facts in the same slots, not merely a green suite.
+    Green **by name**, unmoved: `the_production_world_still_hashes_to_the_pre_slice_goldens`,
+    `identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical`,
+    `on_flag_is_purely_additive_record_and_surface_untouched`,
+    `a_weathered_cell_carries_one_fact_per_agent_per_chapter_and_accumulates`,
+    `production_scale_saprolite_band_reaches_at_least_one_voxel`, `one_fact_per_agent_per_firing`,
+    `bedrock_facts_key_stably_as_the_record_grows`.
+  - **THE TRAP WAS ORDER.** Fact order *within a slot* is observable — `commit_chapter` merges
+    into the **earliest** `(chapter, cause, from, to)` match and `compose_unit` folds in order
+    through a clamping `apply_move`. `append_merged` scans the slot's run in order and inserts a
+    new fact at the run's **end**, bumping later rows' offsets. New test states it directly:
+    `fact_order_within_a_slot_is_preserved_across_interleaved_slots`; plus
+    `the_ledger_costs_its_facts_not_its_slots` (a residency **bound**, not a snapshot) and
+    `rekeying_moves_a_run_and_leaves_it_exact_sized`.
+  - **A-4 DISCHARGED — ported, not designed** (spines.md § A-4). One reasoned divergence from
+    `flux.rs`, stated in code: `FluxRecord` can afford a **dense** offsets array because every
+    cell exists; the ledger cannot, because dense-offsets-per-slot **is** the rectangle being
+    avoided — so its rows carry their own slot key (doubly compressed).
+  - **GEN TIME FELL 85.6 → 34.7 s** for the flag-ON field (~2.5×), unasked-for: `finalize_ledgers`
+    used to allocate and zero 5.8 M `Vec` headers (133 MiB) it never wrote to. Reported, not
+    celebrated — gen time is free by doctrine.
+  - **DEFECT FOUND AND FIXED EN ROUTE (its own line, not incidental):** `examples/flow_cost_probe.rs`
+    **was broken on main** — `DeepField::resident_bytes()` gained `+ self.flux.resident_bytes()`
+    when FLOW slice 1 merged, but the probe's itemisation had no flux row, so its
+    `assert_eq!(itemised, resident_bytes())` panicked before printing a byte (113,820,517 vs
+    156,454,637). Invisible to the gate because **`cargo test --workspace` builds examples but
+    never runs them** — a runtime assertion in an example is unguarded. Row added; the flux record
+    now appears in the residency table (40.66 MiB, 27.25 % of the OFF field) for the first time.
+  - **OWED / next lever (filed, not done):** the per-cell `FactLedger` struct is still two `Vec`
+    headers × 297,025 cells = 13.60 MiB. The *full* `flux.rs` shape — **one** record for the whole
+    grid with the cell as the CSR row — collapses that too, but it moves `DeepField::ledgers` and
+    `ledger_at_voxel`, which sat in a sibling's write-set this cycle. Generalises: **any per-cell
+    owning container in a 297 k-cell field is a header × 297 k before it stores anything.**
+
 - 2026-07-25 — **FLOW slice 1: flux on FACES — the RECORDING half** (journal/0096; background
   agent, worktree; **the arc STAYS OPEN — continuation slot (a)–(e) intact**). The drainage
   solve's **output representation** is replaced; the solve itself (priority-flood → D8 route →
@@ -2351,7 +2400,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
 
-- **`FactLedger` IS 89 % EMPTY HEADERS — give it the CSR layout `flux.rs` already proves**
+- ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0100).** Measured result: flag-ON
+  `DeepField` **311.02 → 179.12 MiB**, the flag's own cost **+161.81 → +29.91 MiB (5.41×)**,
+  ledger heap **155.01 → 16.31 MiB (9.5×)**, index 3.4 % of the ledger, world byte-identical
+  (same 1,033,189 facts in the same 72,006 slots). *Entry kept below as shaped, for the record.*
+  **`FactLedger` IS 89 % EMPTY HEADERS — give it the CSR layout `flux.rs` already proves**
   (shaped 2026-07-25 at the user's direction; measured in `docs/spikes/S19-flow-record-cost-results.md`).
   - **WHAT.** `FactLedger` is `Vec<Vec<Fact>>` keyed per (cell, slot). Measured on a production
     world: **5,832,862 inner `Vec`s of which 5,760,856 (98.8 %) are EMPTY**; **89 % of its
