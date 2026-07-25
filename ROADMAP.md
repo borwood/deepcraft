@@ -2423,14 +2423,65 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   not an authority", S-3/S-9).
   - **WHAT.** The honest answer to "what is this voxel" is its full `VoxelContents`
     (up to 8 partials), never one arbitrary component. One **position-addressed**
-    function `identify(pos) -> { tier, payload }`, tier-flagged (S-9's "answer carries
-    its resolution"): **Near** = full contents · **Mid** = blended mixture (+ mixed
-    flag) · **Far** = dominant material (`classify`). It returns the finest answer
-    honestly resident at `pos` (tracks the pyramid rung rendered there), so "what I'm
-    looking at" matches what I see; a caller wanting more can force a deeper re-derive
-    (gen is pure-of-pos). Raycast composes it (`raycast(camera) → pos → identify`) — a
-    separate step, because "what is at X" is a world question, not a camera question.
-  - **TIER BOUNDARIES DERIVE FROM THE LOD LADDER — DECIDED 2026-07-25 (user):** *"the
+    function `identify(pos) -> payload`, where the payload is **uniformly a mixture**.
+    Raycast composes it (`raycast(camera) → pos → identify`) — a separate step, because
+    "what is at X" is a world question, not a camera question.
+  - **⚠ UNTIERED — DECIDED 2026-07-25 (user), SUPERSEDING the Near/Mid/Far tier design.**
+    This entry previously specified `identify(pos) -> { tier, payload }` with tiers
+    derived from the LOD ladder. **Retired.** The user's challenge: *"if this is a world
+    query then why tiered at all when we can inspect chunk and read the voxel?"* — and
+    the provenance matters: **the tiering was assistant-originated**, an artifact of one
+    request ("a way to get voxel composition by looking at it") being split into several
+    instruments, which then hardened into architecture without ever being re-challenged.
+    - **The defect it encoded: two different questions were CONFLATED.** *"What is at
+      world position X"* is a **world** question with one true answer, to which distance
+      is irrelevant. *"What is the renderer showing at X / which rung is resident"* is a
+      **render** question — legitimately per-viewer, legitimately vaguer, and the only
+      one with any business reading `LodLadder`. This entry's own line already said so
+      ("a world question, not a camera question") and then built a camera concept into
+      the world query anyway.
+    - **Cost was the strongest counter-argument, and it fails.** Gen is **pure-of-position**,
+      so the true answer is *always* derivable — there is no fundamental barrier, only a
+      latency one. Cost must change the **policy or the latency, never the ANSWER**;
+      returning a vaguer truth because the honest one was expensive is precisely the
+      summary-wearing-an-authority's-clothes this arc exists to retire.
+    - **THE SHAPE:** `identify(pos)` returns the honest full mixture at `pos`, **always** —
+      **resident chunk first (INCLUDING dirty/edited state)**, derived if absent,
+      **`UNRECORDED`** where no record backs it. **No tier flag, no `LodLadder` coupling,
+      no distance thresholds.** Dropping tiers also dissolves the "whose ladder?" problem
+      (per-viewer dc-client state vs a headless world query) — there was no good answer
+      because the question was malformed.
+    - **What survives unchanged:** payload is **uniformly a mixture** (so far-field
+      *speckle* falls out by construction — the renderer speckles, the query reports the
+      mixture; there is no far tier left to special-case), and **`UNRECORDED` as a
+      first-class answer** (corrections #49's measured 6.4 %).
+    - **"Reads the dirty rails edits too" (user) is the sharp half**, and it lands on a
+      known gap: contents are re-derived from worldgen and are **edit-blind** today
+      (journal/0088 — the runtime `Chunk` stores only the 1-byte `Block`, so a mixture does
+      not survive an edit). That *is* the **runtime edit-fact overlay** already in this
+      arc's CONTINUATION SLOT — contents as *derivable base + edit facts* — and it is what
+      makes "break gives you the real mixture" true.
+  - **THE F3 INSTRUMENT ALREADY EXISTS, and is fine as-is** (user, 2026-07-25). The
+    look-at contents HUD (`dc-client/src/inspector.rs`, journal/0088) fulfils some version
+    of the original request: *"I just use F3 to know what's in front of my face when doing
+    the walks."* It **rides the looking-at-voxel highlight box, so it has a limited range**
+    — and that is **honestly fine for now**. **NOT A PRIORITY (user, explicit):** when
+    `identify` is better, the HUD *could* raytrace and ride that too — which would mean
+    generating a chunk from a **LOD octree node intersection** and then finding the voxel
+    intersection from the same ray. Recorded so the idea is not re-derived; **do not
+    schedule it.** *(Note: this HUD carries the corrections #49 defect identically — its
+    correct "no contents record here" branch is unreachable — so the `UNRECORDED` fix
+    repairs it for free.)*
+  - **INFORMATION-AVAILABILITY IS A GAMEPLAY LAYER, NEVER A QUERY LIMITATION** (agreed
+    2026-07-25; **no plan, not scheduled**). If the game ever wants "you cannot identify
+    distant strata without a survey instrument", that rides **on top of** an honest query.
+    User: it *"would come through layers of honest obscurity due to how player perception
+    and knowledge will be modeled"* — i.e. it belongs to the (undesigned) perception /
+    knowledge model, **not** to the world query. Recorded specifically so nobody
+    re-derives distance-tiering later by mistaking a game rule for an engine constraint.
+  - **~~TIER BOUNDARIES DERIVE FROM THE LOD LADDER~~ — SUPERSEDED SAME DAY by the UNTIERED
+    decision above. Preserved because the reasoning is still load-bearing for the
+    *render-side* query, if one is ever wanted.** ~~DECIDED 2026-07-25 (user):~~ *"the
     boundaries should fall out of LOD bands, which already reduce material contents
     depth / honesty."* The tiers are **not a second, independently-tuned threshold set**
     — that would be A-4 (a mechanism beside the one we have) and would drift out of sync
