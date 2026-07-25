@@ -514,6 +514,21 @@ Do not build two systems and a coupling layer; build one quantity whose
   spring, a drip, absorption and waterlogging are all regime transitions
 - materials: **substance / form** — not recognised as the same shape until the
   user said *"materials are substance and not form"* (2026-07-22)
+  - **the transitions became DECLARED and COMPILE-ENFORCED 2026-07-25
+    (journal/0108, S20 option 2c).** If the transitions *are* the phenomena, then
+    the set of legal transitions is a thing the code should be able to state and
+    check — and until this slice it could not: a `Fact` stored four free endpoint
+    bytes, so it could name any `(material, form) → (material, form)` pair
+    whatsoever, including the null edge that moves nothing. It now stores an
+    `EdgeId`, whose **only** constructor is `EdgeId::declared`, which returns
+    `None` unless `is_declared_edge` holds (material-behavior.md §3's graph: 5
+    forms → 20 directed edges, plus the same-form material-change class; the null
+    edge and `Void → Void` are refused). A fact therefore **structurally cannot
+    name an undeclared transition** — and `InvCtx::apply_edge` refuses the move
+    outright rather than performing a change it could not honestly write down
+    (`an_undeclared_edge_does_not_run_at_all_not_merely_goes_unrecorded`). This is
+    also S-6's rule applied to a data axis rather than to pass order: what edges
+    exist is **declared**, never whatever a caller happened to pass.
 - terrain: committed / fluid (S-2)
 
 ## S-9. Derivable base + sparse committed facts + fallback query — up to observation-collapse
@@ -558,7 +573,22 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     materialized views" (`field.rs:575-591`) is therefore true of the *record* half
     only; M3 added inventory content no view reflects. Two derivations of one
     quantity that cannot agree is this section's own consistency law — the
-    unification is what closes it. The
+    unification is what closes it.
+    **The overlay's REPRESENTATION narrowed 2026-07-25 (journal/0108, S20 option
+    2c), and nothing was deleted.** The resident `Fact` went 16 B → **8 B with zero
+    padding** by two levers that only pay in company (an `EdgeId` for the four
+    endpoint bytes, `f32` for the fraction) — every axis survives: chapter (*when*),
+    cause (*who*), edge (*what*), fraction (*how much*). The compaction the residency
+    crisis invited was an **axis drop**, and an axis drop is A-1 wearing a fact's
+    paperwork (S20 § 6); this is the version of "make it smaller" that S-9 permits,
+    because the sparse overlay still carries every fact a derivation cannot predict.
+    The narrowing happens **exactly once, at persist**
+    (`LedgerField::from_accumulators`) — the gen-time `FactLedger` accumulator stays
+    `Fact<FracM>` at 16 B *precisely so* the per-epoch `*q += share` never rounds, so
+    the error is a single rounding (measured max relative 5.766e-8, at f32's own
+    2^-24) rather than an accumulating one. **The pager (S20 option 3) is the
+    reserved continuation** and moves the overlay off the resident side entirely;
+    this slice deliberately builds none of it. The
     **runtime tier** (edits as facts over
     the gen-derivable base; a break = a move-fact) is the same shape one tier down —
     designed (commit-as-facts), unbuilt; the inspector proved the runtime stores only
