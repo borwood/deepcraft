@@ -2508,7 +2508,10 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     already structured to become **in-game per-player perf settings**, so honesty
     automatically tracks the player's own quality setting — turn the view distance down
     and the answers get *honestly* coarser, with no second knob to forget.
-  - **⚠ OPEN, and it must be settled before dispatch — WHOSE ladder?** `LodLadder` is
+  - **~~⚠ OPEN, and it must be settled before dispatch — WHOSE ladder?~~ DISSOLVED
+    2026-07-25 with the tiers themselves** (there was no good answer because the
+    question was malformed — see the UNTIERED block above). Preserved only for the
+    *render-side* query, if one is ever wanted.** `LodLadder` is
     **dc-client** state and is **per-viewer**, but `identify(pos)` is a **world** question
     reachable headlessly (dc-api agents, mods, tests) where there is no camera and no
     ladder. So the signature cannot simply read ambient client state. Candidate
@@ -2551,9 +2554,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     (near/mid/far *are* the `identify` tiers) + **S-3** (`classify` demoted to a derived
     rung + the pyramid's coarsest tier, never a stored authority) + **S-9** (self-labeled
     honesty).
-  - **FIRST SLICE.** `identify(pos)` unifying the inspector's `world_get_contents` (Near)
-    with `classify` (Far) under one tier-flagged surface; drain the `Block`-token
-    consumers that can (recon list). Contents stay re-derivable (unedited).
+  - **FIRST SLICE — ✅ SHIPPED 2026-07-25 (journal/0101), see the slice block at the top
+    of this entry.** As dispatched: `identify(pos)` as one **untiered** surface behind
+    `world_get_contents` / `sense_raycast` / the F3 HUD, with `UNRECORDED` first-class.
+    **Not** done, and deliberately: draining the `Block`-token consumers (recon list) —
+    that moved to the continuation slot with the rest of the retire. Contents stay
+    re-derivable (unedited).
   - **CONTINUATION SLOT** (this is a slice OF *"the runtime canonical is contents, not a
     summary"*): after `identify`, the arc continues with the **storage/wire migration**
     (edited voxels carry contents/edit-facts, not a `Block`), the **runtime edit-fact
