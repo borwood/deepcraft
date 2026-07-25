@@ -288,6 +288,26 @@ pub struct DeepField {
     pub recv: Vec<i32>,
     pub area: Vec<f64>,
     pub lake: Vec<bool>,
+    /// **The face-flux record** (FLOW slice 1, `docs/design/flow.md` § 2 —
+    /// RATIFIED 2026-07-25): per-tectonic-chapter **flux on 3D faces**, the
+    /// representation that supersedes [`Self::recv`] above.
+    ///
+    /// `recv` is one out-edge per cell — a spanning tree, which can represent
+    /// convergence and **structurally cannot represent divergence at all** (no
+    /// distributaries, braids, fans or deltas), exported as *the last routing*
+    /// after two hundred epochs of the process were discarded. This keeps **every
+    /// chapter**, and keeps it on **shared faces**, so a refinement built on it
+    /// agrees from both sides of a cell boundary by construction.
+    ///
+    /// Empty when [`DeepConfig::flow_record`](super::grid::DeepConfig::flow_record)
+    /// is off. It is a pure sidecar — the surface planes and the strata record are
+    /// byte-identical with the flag either way — and it is the **largest thing the
+    /// ritual keeps**; see [`Self::resident_bytes`] and flow.md § 9.1.
+    ///
+    /// **Nothing at runtime expresses it yet, deliberately** (the slice is the
+    /// recording half only): the world stays honestly river-less rather than
+    /// gaining a second fake. `docs/spines.md` § 3 carries the row.
+    pub flux: super::flux::FluxRecord,
     /// **Exhumation** (m) and **crustal thickness** (m) per cell. Exported and,
     /// as of U8, populated in every production world. The **exported** planes are
     /// still read by no *collapse-tier* consumer (`docs/spines.md` § 3,
@@ -427,6 +447,7 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         recv,
         area,
         lake,
+        flux: run.flux,
         exhum,
         t_crust,
         geotherm,
@@ -596,6 +617,9 @@ impl DeepField {
                 .iter()
                 .map(FactLedger::footprint_bytes)
                 .sum::<usize>()
+            // FLOW slice 1: the face-flux record. Reported, never truncated —
+            // gen time is free, residency is not (flow.md § 9.1).
+            + self.flux.resident_bytes()
     }
 }
 

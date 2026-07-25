@@ -7,6 +7,87 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-25 — **FLOW slice 1: flux on FACES — the RECORDING half** (journal/0096; background
+  agent, worktree; **the arc STAYS OPEN — continuation slot (a)–(e) intact**). The drainage
+  solve's **output representation** is replaced; the solve itself (priority-flood → D8 route →
+  accumulate) is untouched, as flow.md § 7 requires. New `deeptime/flux.rs` + `dc:deep/flow_record`,
+  a declared pass on the runner (`reads [Routed, Energy]`, `writes [FlowFlux]` — a pure write axis
+  no in-epoch pass reads, exactly the geotherm/saprolite shape, so erosion is byte-unchanged).
+  - **ACCEPTANCE MET on the production world** (seed 1337, `Extent::Medium`, production flags,
+    `examples/flux_record_probe.rs`): **DIVERGENCE 175,320** `(cell,chapter)` junctions with ≥2
+    out-faces — **7.378 %** of all pairs, max 6 out-faces — against a receiver tree's *identically
+    zero, by construction, forever*. **CONVERGENCE 60,915** (2.564 %, max 8 in-faces).
+  - **WHERE THE DIVERGENCE COMES FROM — and it needed no new numerics.** A chapter is 25 epochs;
+    the terrain moves under the flow every one of them, so a cell's steepest-descent receiver
+    *switches*. Accumulating each epoch's discharge onto the face it crossed and totalling **per
+    chapter** records "this much left eastward AND this much left southward" — which is
+    **avulsion**, the physical origin of braid plains and fans. So the "keep every chapter" fix for
+    the deepest defect (*the process was run 200× and only the last frame kept*) **is** the
+    mechanism that produces divergence. Same fix, both problems.
+  - **MEASURED RESIDENCY** (gen is free, residency is not — flow.md § 9.1's open question, now
+    answered with a number): **40.66 MiB** = 2,590,372 entries × **16 B** + a 1.13 MiB CSR index;
+    **143.54 B/cell**, **17.94 B/cell/chapter**; **face sparsity 8.386 %** (13.627 % of the
+    lateral-only rectangle) — the number S19's cost model was missing. DeepField 162.57 → 203.23 MiB
+    (**1.25×**). Layout heeds S19: flat exact-sized arrays + CSR, **never** the `Vec<Vec<…>>` shape
+    the probe measured at 98.8 % empty inner Vecs.
+  - **OBSERVED / OWED — the one residency lever, sized but NOT pulled (the user's call):** **79.38 %
+    of entries (31.37 MiB) are marine sink faces carrying only the cell's own seeded `area = 1.0`**
+    — derivable from their own absence by the same S-2 argument that keeps the atmospheric *source*
+    out. Dropping them leaves **9.29 MiB** (5.7 % of the DeepField instead of 25 %). Not taken: it
+    changes what an *absent* entry MEANS, which future consumers must live with.
+  - **WHAT IS POPULATED vs HONESTLY EMPTY.** Lateral (494,997) and boundary ocean/base-level
+    (2,094,960 / 415) are real. **Vertical (slot↔slot) faces are structurally present and ZERO** —
+    this solve has no infiltration/percolation/Darcy term, so there is no honest number; heirs are
+    continuation (a) + (c). The atmospheric **source** is deliberately unstored (uniform seeded
+    `1.0`, exactly derivable — S-2); the atmospheric **sink** (endorheic evaporative termini)
+    measured **0** on this world. Of the atom, `load` is live (**494,296 entries = 99.86 % of
+    lateral**, 1,864.8 m total) but **bulk only** — composition is Movement 2b's seam; `form`/
+    `cause`/`fluid` are carried-but-constant (**new stub #18**, heirs (c)/(d)/Movement 2b).
+  - **THE SLOT IS DERIVED, NOT STORED (S-2) — and the measurement vindicated it.** `DepUnit` already
+    stamps the chapter and units never merge across one, so `flux::slot_for_chapter` derives it. On
+    the small world **six in seven chapter-fluxes have NO surviving stratum** (29,204 resolved vs
+    175,596 `None`): net-erosional chapters deposit no unit, and stripped units leave an
+    unconformity. A **stored** index would have gone stale and pointed at a stranger's stratum; and
+    a per-(cell,slot) archive would have silently dropped 86 % of the flux — the very defect this
+    arc exists to fix, re-committed one layer down.
+  - **PLEA — flow.md § 2.2 is SILENT on the slot-pairing rule, and the whole seamlessness claim
+    rests on it.** "A face is shared by construction" holds at the *cell-pair* level only; adjacent
+    columns have no aligned slot indices and § 1.2 forbids correlating by slot index (surfaces are
+    diachronous). Implemented and documented: **lateral faces pair by CHAPTER** (a global time
+    surface; each column then binds that chapter to its own slot independently — the § 1.2
+    discipline applied, not violated). **RESIDUAL, the user's to rule on:** the *bound* regime
+    likely pairs by **paleo-elevation**, not chapter (aquifers cross surface divides, § 2.4). Slice
+    1 records no bound flux so nothing is forced — but the rule must NOT be assumed to extend.
+    Filed with continuation (c).
+  - **A-4 DISCHARGED — the two fact-mergers folded to one.** `inventory.rs::commit_chapter` now
+    searches the slot instead of matching `facts.last_mut()`; `weather_inventory::coalesce_facts` is
+    **deleted**. Verified equivalent (the search merges into the *earliest* match = the post-hoc
+    sweep's first-occurrence order; `Σ fraction_m` is invariant), suites green **by name**. Takes an
+    O(slots) post-pass off a per-cell/per-epoch path.
+  - **BYTE-IDENTITY PROVEN BY NAME:** `the_production_world_still_hashes_to_the_pre_slice_goldens`
+    (the cross-commit golden, untouched) + `the_flow_record_is_a_sidecar_and_the_world_is_byte_identical`
+    (flag on vs off: `surf`/`regolith`/`area`/`exhum`/`t_crust`/`geotherm` bit-for-bit, `recv`/
+    `lake`/`strata` equal). New suite `tests/flux_record.rs`, **12/12 green**, incl.
+    `divergence_is_representable_which_a_receiver_tree_forbids`, `convergence_is_representable`,
+    `per_chapter_history_is_retained_not_just_the_final_epoch`,
+    `a_face_is_shared_so_bs_in_flux_is_exactly_as_stored`,
+    `vertical_faces_are_structurally_present_and_honestly_empty`,
+    `the_stratum_slot_is_derived_from_the_chapter_stamp`,
+    `the_receiver_export_agrees_with_the_final_chapters_faces` (pins `recv` as a **shadow**, not a
+    rival authority), `the_flow_record_is_deterministic_on_a_repeated_seed`,
+    `parallel_and_scalar_record_the_same_flux`, `a_flux_entry_is_sixteen_bytes`.
+  - **NOTHING IS EXPRESSED AT RUNTIME, deliberately.** `RiverSeg`/`carve_rivers`/`BANK`/
+    `RIVER_REACH`, `pregen/hydrology.rs`, `Cell::{flow_to,river,discharge}` all **untouched** — the
+    world stays honestly river-less rather than gaining a second fake. Their retirement is
+    continuation **(e)**. spines § 3: `recv`/`area`/`lake` row updated (superseded, heir named); new
+    row for `DeepField::flux` (**built, nothing calls it — on purpose**).
+  - Rides S-9, S-2, S-4, the § 5 field/cellular split, the north-star pass-runner (plain data +
+    opaque ids + bare `fn`; no closures cross the seam). Guards A-3 (acceptance is a divergence
+    count on a production world) and A-1 (the honest empties are asserted *as* empty, by name).
+  - Gates: `cargo test -p dc-worldgen --release` **34 targets, 0 failures**; fmt + clippy
+    (`-p dc-worldgen --all-targets -D warnings`) clean. **`--workspace` gate LEFT FOR THE
+    INTEGRATOR.**
+
 - 2026-07-24 — **Movement 3: weathering-as-a-PROCESS — the first CELLULAR pass, accumulating**
   (journal/0094; background agent, worktree; **discharges stub #17**). S18's post-hoc one-shot
   (`field.rs::build_ledgers`, **deleted**) is relocated into the deep-time loop as
@@ -2136,6 +2217,13 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     drainage is solved **every epoch and discarded** (`recv`/`area` are documented as "the
     **last** routing"): we run the process 200× and keep the final frame. Every paleo-flow
     signature the design wants was computed and thrown away.
+  - **STATUS 2026-07-25: the FIRST SLICE has SHIPPED (journal/0096) — the ARC STAYS OPEN.**
+    Divergence 175,320 / convergence 60,915 on the production world; record 40.66 MiB at 8.386 %
+    face sparsity. The continuation slot below is **untouched and still owed**; two things were
+    added to it by the build: the **slot-pairing rule for the BOUND regime** (see the § 2.2 plea in
+    the Shipped entry — free flow pairs by chapter; bound may need paleo-elevation, and that is the
+    user's call), and the **marine-sink residency lever** (79.38 % of entries, 31.37 MiB, sized and
+    deliberately not pulled).
   - **FIRST SLICE — the RECORDING half only.** Face flux per chapter in deeptime: replace
     the receiver output with **face-flux records** (3D faces), attach flow facts to unit
     slots, keep the existing priority-flood/route/accumulate **solve** (good numerics —

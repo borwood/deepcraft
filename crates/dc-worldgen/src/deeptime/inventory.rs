@@ -599,25 +599,38 @@ pub fn compose_bedrock(facts: &[Fact]) -> Vec<Portion> {
 /// The ledger is grown to cover every unit index the log touches (including the
 /// bedrock seam's `units.len()` slot).
 pub fn commit_chapter(inv: &mut WorkingInventory, ledger: &mut FactLedger) {
-    // Coalesce identical successive logged edges into one fact each.
+    // Coalesce logged edges into one fact per `(chapter, cause, from, to)`.
+    //
+    // **A-4 fold (FLOW slice 1, journal/0096).** This lookup used to match only
+    // `facts.last_mut()` — *consecutive* identical edges — and a second merger,
+    // `weather_inventory::coalesce_facts`, then re-swept every slot to catch the
+    // non-consecutive ones. Two mechanisms for one job. The generalized search is
+    // the merge both wanted: it preserves first-occurrence order (the merge lands
+    // on the *earliest* matching fact, exactly as a post-hoc sweep would), it is
+    // idempotent, and the composed band `Σ fraction_m` is invariant under it — so
+    // the post-hoc sweep it subsumes was deleted, not kept "just in case".
+    //
+    // Why it matters beyond tidiness: `weather_bedrock_epoch` fires three agents
+    // per epoch in rotation (chem, biotic, frost, chem, …), so *no* two successive
+    // edges on a slot ever matched, and last-only merging grew facts 3-per-firing
+    // — hundreds per cell — until the second merger reaped them. One merger that
+    // is right at the point of writing needs no reaper.
     for e in inv.log.drain(..) {
         let slot = e.unit_index;
         if ledger.facts.len() <= slot {
             ledger.facts.resize(slot + 1, Vec::new());
         }
         let facts = &mut ledger.facts[slot];
-        if let Some(Fact::InPlace {
-            chapter,
-            cause,
-            from,
-            to,
-            fraction_m,
-        }) = facts.last_mut()
-            && *chapter == e.chapter
-            && *cause == e.cause
-            && *from == e.from
-            && *to == e.to
-        {
+        if let Some(Fact::InPlace { fraction_m, .. }) = facts.iter_mut().find(|f| {
+            let Fact::InPlace {
+                chapter,
+                cause,
+                from,
+                to,
+                ..
+            } = f;
+            *chapter == e.chapter && *cause == e.cause && *from == e.from && *to == e.to
+        }) {
             *fraction_m += e.fraction_m;
             continue;
         }

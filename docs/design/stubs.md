@@ -471,6 +471,35 @@ until the heir lands, no weathering *behavior* is modeled; what exists is the ke
 it. *Loud: this stub IS the behavior, not a constant — the nightmare case (a bolted-on stub,
 believed, untracked) this inventory exists to prevent.*
 
+### 18. every-flow-is-free-fluvial-water — *added 2026-07-25 (FLOW slice 1, journal/0096)*
+`dc-worldgen/src/deeptime/flux.rs` (the `FluxEntry` atom): three of the six fields of
+flow.md § 1.3's atom are **carried but constant** in slice 1 — `form` is always
+`FlowForm::Free`, `cause` always `FlowCause::Fluvial`, `fluid` always
+`FluidId::WATER`. That is honest for what the solve *is* (surface water down a
+gravitational head, and nothing else runs), and the fields exist precisely so the
+shape does not have to move later — **but a reader must not mistake "one inhabited
+value" for "the model has one regime."** `FluidId` in particular is a stand-in: it is
+a small dense index with a single entry rather than a real fluid registry, because
+`dc_core::MaterialId` is the *granular* registry and water is not in it.
+**Heirs, all in the ratified FLOW continuation slot:** `form` → **(c)** the
+free/bound edge + void intervals (which is also what makes a spring a derived outlet
+and a cave free-phase flow); `cause` → **Movement 2b** material-aware transport
+(eolian/glacial/gravity/marine/hydrothermal already enumerated); `fluid` → **(d)**
+fluid identity with per-fluid competence curves, which is also the moment `FluidId`
+becomes a real registry handle or is deleted in favour of one. **Blast:** any query
+that filters the flow record by regime silently matches everything today; nothing
+expresses the record at runtime yet, so it is currently invisible in game.
+*Loud code markers at each field, naming the heir.*
+
+**Related but NOT a stub — the honest empties.** The **vertical faces**
+(`FaceKey::Down`/`Up`) and the **atmospheric source** half of the boundary face are
+structurally present and **zero**, because this solve has no infiltration term and
+its precipitation source is a uniform 1.0 the derivation can predict exactly (S-2).
+An empty field with a named heir is the S-5 identity floor, not a stand-in — there is
+no *value* here that could quietly become the definition. Asserted by name in
+`tests/flux_record.rs::vertical_faces_are_structurally_present_and_honestly_empty`,
+so the slice that populates them must come and delete that assertion on purpose.
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

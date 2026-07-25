@@ -42,6 +42,7 @@
 
 use super::biotic::BioticSim;
 use super::erosion::Erosion;
+use super::flux::FluxAccum;
 use super::grid::{DeepConfig, DeepGrid, sea_level_at};
 use super::inventory::FactLedger;
 use super::{TectonicSchedule, climate};
@@ -128,6 +129,14 @@ pub enum DeepAxis {
     /// folds it post-loop); a distinct token so the material-transformation pass
     /// declares an honest, orderable output without perturbing the erosion pipeline.
     Saprolite,
+    /// The **face-flux record sink** (FLOW slice 1, flow.md § 2) — the per-chapter
+    /// flux-on-faces archive the [`flow_record`](super::flux) pass accumulates from
+    /// the drainage solve's own outputs. Like [`Geotherm`] and [`Saprolite`] it is a
+    /// **pure write axis no in-epoch pass reads** (the record is the seam to the
+    /// *next* tier, not to this epoch), so declaring it cannot perturb erosion — and
+    /// it is what makes the recording an ordered, self-declaring pass rather than a
+    /// hook bolted onto the drainage solve.
+    FlowFlux,
 }
 
 /// Owned working state the epoch loop threads through its passes. Constructed
@@ -163,6 +172,11 @@ pub struct DeepStepCtx<'a> {
     /// Re-keyed onto the final record post-loop
     /// ([`finalize_ledgers`](super::weather_inventory::finalize_ledgers)).
     pub weather_ledgers: Vec<FactLedger>,
+    /// **The face-flux accumulator** (FLOW slice 1) — the `dc:deep/flow_record`
+    /// pass adds each epoch's routed discharge into it and it flushes to sparse
+    /// per-chapter entries at every chapter boundary. Inactive (and the pass
+    /// absent) when `flow_record` is off ⇒ byte-identical.
+    pub flux: FluxAccum,
 }
 
 /// One self-declaring deep-time pass: identity + declared reads/writes (the
@@ -345,6 +359,35 @@ fn weather_inventory_pass(ctx: &mut DeepStepCtx<'_>) {
     );
 }
 
+/// **The flow record — FLOW slice 1's recording half** (flow.md § 2). Add this
+/// epoch's drainage solve to the per-chapter **face-flux** archive: each cell's
+/// routed discharge is credited to the *face* it crossed (a D8 lateral face, or a
+/// boundary face at a sink), together with the suspended load that crossed with it.
+///
+/// It replaces the **output representation** of the solve, never the solve: it
+/// reads `recv`/`area`/`out_load`/the routed surface exactly as the sim computed
+/// them, and writes only its own record ([`DeepAxis::FlowFlux`], which nothing in
+/// the epoch reads) — so, like the geotherm and the inventory-weathering pass, it
+/// cannot perturb the erosion result.
+///
+/// Reading [`DeepAxis::Energy`] is what sequences it **after** `dc:deep/transport`,
+/// which is where the per-face load comes from; reading [`DeepAxis::Routed`] pins
+/// it after the drainage solve whose output it is recording. Declare what you
+/// read: it does not read the strata record, because the atom's stratum slot is
+/// *derived* from the chapter stamp rather than stored (`flux::slot_for_chapter`).
+fn flow_record_pass(ctx: &mut DeepStepCtx<'_>) {
+    let chapter = ctx.erosion.current_chapter();
+    let sea = ctx.sea_level;
+    ctx.flux.add_epoch(
+        chapter,
+        ctx.erosion.recv(),
+        ctx.erosion.area(),
+        ctx.erosion.out_load(),
+        ctx.erosion.routed_surface(),
+        sea,
+    );
+}
+
 // --- cfg-selected read slices for the terrain-revision pipeline -------------
 // The token a downstream pass consumes depends on which upstream stages exist
 // (isostasy only on the tectonic path, the agents only on `full_agents`), so a
@@ -492,6 +535,20 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         period: 1,
         body: transport_pass,
     });
+
+    // The flow record (FLOW slice 1): flux on faces, per chapter. Gated behind
+    // `flow_record` (absent = off), a pure sidecar over the drainage solve's own
+    // outputs — nothing in the epoch reads FlowFlux, so it never perturbs erosion.
+    if cfg.flow_record {
+        passes.push(DeepPass {
+            id: "dc:deep/flow_record",
+            reads: &[Routed, Energy],
+            writes: &[FlowFlux],
+            reads_prev: &[],
+            period: 1,
+            body: flow_record_pass,
+        });
+    }
 
     // Bedrock weathering (reads last epoch's biotic weathering multiplier).
     passes.push(DeepPass {
@@ -703,7 +760,7 @@ mod tests {
         }
     }
 
-    const PRODUCTION_ORDER: [&str; 15] = [
+    const PRODUCTION_ORDER: [&str; 16] = [
         "dc:deep/climate",
         "dc:deep/expose",
         "dc:deep/tectonics",
@@ -717,6 +774,12 @@ mod tests {
         // position never affects the erosion result.
         "dc:deep/geotherm",
         "dc:deep/transport",
+        // The flow record sorts in here: it becomes ready once `transport` has
+        // written Energy (and `drainage` Routed), and among the ready pool the
+        // id-tie-break places `dc:deep/flow_record` before `weather`. Like the
+        // geotherm it writes an axis no in-epoch pass reads, so its position
+        // never affects the erosion result.
+        "dc:deep/flow_record",
         "dc:deep/weather",
         "dc:deep/diffuse",
         "dc:deep/isostasy",
