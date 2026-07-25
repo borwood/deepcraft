@@ -21,8 +21,15 @@
 use dc_worldgen::deeptime::{DeepField, build_field};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
-/// The production golden world (matches `providers_golden.rs`: same seed,
-/// `Extent::Small`, `build_field` = full production config).
+/// The **golden fixture** world (matches `providers_golden.rs`: same seed,
+/// `Extent::Small`, `build_field` = full production *config*).
+///
+/// **NOT the world `dc-client` boots** — that is seed `1337` at `Extent::Medium`
+/// (`tests/geotherm.rs`). See **corrections #51** for what a "production"-named
+/// helper on a non-shipped world cost us. The claim proved below — that a derived
+/// view equals its stored plane — is genuinely seed-independent, so a fixed cheap
+/// world is the right fixture; only the *name* is misleading, and `golden_*` is
+/// the sequenced rename.
 const SEED: u64 = 0x0B0A_57EE_0059;
 
 fn production_field() -> DeepField {
