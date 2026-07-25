@@ -83,21 +83,40 @@ fn is_phantom_air_after(block: Block, id: &Identity) -> bool {
     block.is_solid() && !id.is_unrecorded() && id.classified() == Some(Block::Air)
 }
 
-fn main() {
-    println!("=== identify(pos) census — phantom air over solid ground, BEFORE vs AFTER ===");
-    println!("seed {SEED}, extent {}, voxel {VOXEL_M} m", EXTENT.label());
-    println!("flag-OFF control (DeepOverrides::default())\n");
+/// The census totals. **Shared by `main` (which prints) and the gate test below
+/// (which asserts)** — journal/0103: `cargo test` BUILDS examples but never RUNS
+/// them, so the `assert_eq!` this example used to carry in `main` was invisible
+/// to a 664-test workspace gate. The measurement now lives in one place and the
+/// gate can see it fail.
+#[derive(Default)]
+struct CensusTotals {
+    columns: u32,
+    solid: u64,
+    phantom_before: u64,
+    phantom_after: u64,
+    unrecorded_after: u64,
+    recorded_after: u64,
+    honest_no_record_before: u64,
+    cols_with_phantom_before: u32,
+    /// World positions still answering phantom-air AFTER, for the report.
+    disagreements: Vec<String>,
+    /// Per-column BEFORE-phantom counts, for the spread line.
+    per_column: HashMap<(i64, i64), u64>,
+}
 
+/// The client's own wiring (authority.rs § `new_worldgen`): one generator behind
+/// a `Mutex` serving both blocks and contents, with `identify` on top.
+fn wired_world(
+    extent: Extent,
+) -> (
+    HostWorld,
+    Arc<Mutex<WorldGenerator<'static>>>,
+) {
     let pregen = Arc::new(Pregen::run_with(
-        WorldParams {
-            seed: SEED,
-            extent: EXTENT,
-        },
+        WorldParams { seed: SEED, extent },
         &DeepOverrides::default(),
     ));
-    // The client's own wiring (authority.rs § new_worldgen): one generator
-    // behind a Mutex serving both blocks and contents.
-    let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen.clone())));
+    let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen)));
     let seam = generator.clone();
     let mut world = HostWorld::with_generator(
         SEED,
@@ -107,15 +126,76 @@ fn main() {
     world.set_contents_source(Box::new(move |pos: ChunkPos| {
         contents_gen.lock().expect("generator").chunk_contents(pos)
     }));
+    (world, generator)
+}
 
-    // The recorded surface voxel of a column — the same `column_record` the
-    // client's surface-scan ceiling reads.
-    let column_height = |vx: i64, vz: i64| -> i64 {
-        let mut g = generator.lock().expect("generator");
-        let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
-        let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
-        i64::from(g.column_record(cx, cz).heights[lz * 32 + lx])
-    };
+/// The recorded surface voxel of a column — the same `column_record` the
+/// client's surface-scan ceiling reads.
+fn column_height(generator: &Mutex<WorldGenerator<'static>>, vx: i64, vz: i64) -> i64 {
+    let mut g = generator.lock().expect("generator");
+    let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+    let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
+    i64::from(g.column_record(cx, cz).heights[lz * 32 + lx])
+}
+
+/// Ask the world both ways at every solid voxel of a lattice of columns.
+fn census(
+    world: &HostWorld,
+    generator: &Mutex<WorldGenerator<'static>>,
+    origin: (i64, i64),
+    step: i64,
+    span: i64,
+    depth: i64,
+) -> CensusTotals {
+    let mut t = CensusTotals::default();
+    for i in -span..=span {
+        for j in -span..=span {
+            let (cvx, cvz) = (origin.0 + i * step, origin.1 + j * step);
+            let ch = column_height(generator, cvx, cvz);
+            t.columns += 1;
+            let mut col_phantom = 0u64;
+            for vy in (ch - depth)..=ch {
+                let p = Vec3i::new(cvx, vy, cvz);
+                let block = world.block_at(p);
+                if !block.is_solid() {
+                    continue;
+                }
+                t.solid += 1;
+                let b = before(world, block, p);
+                let id = world.identify(p);
+                if is_phantom_air(block, &b) {
+                    t.phantom_before += 1;
+                    col_phantom += 1;
+                }
+                if is_phantom_air_after(block, &id) {
+                    t.phantom_after += 1;
+                    t.disagreements
+                        .push(format!("phantom after at ({cvx},{vy},{cvz})"));
+                }
+                if !b.has_contents {
+                    t.honest_no_record_before += 1;
+                }
+                match &id {
+                    Identity::Unrecorded => t.unrecorded_after += 1,
+                    Identity::Mixture(_) => t.recorded_after += 1,
+                }
+            }
+            if col_phantom > 0 {
+                t.cols_with_phantom_before += 1;
+                t.per_column.insert((cvx, cvz), col_phantom);
+            }
+        }
+    }
+    t
+}
+
+fn main() {
+    println!("=== identify(pos) census — phantom air over solid ground, BEFORE vs AFTER ===");
+    println!("seed {SEED}, extent {}, voxel {VOXEL_M} m", EXTENT.label());
+    println!("flag-OFF control (DeepOverrides::default())\n");
+
+    let (world, generator) = wired_world(EXTENT);
+    let column_height = |vx: i64, vz: i64| -> i64 { column_height(&generator, vx, vz) };
 
     // ---------------------------------------------------------------- station
     let (vx, vz) = (
@@ -170,54 +250,25 @@ fn main() {
         CENSUS_STEP_VOXELS,
         COLUMN_DEPTH + 1
     );
-    let mut solid = 0u64;
-    let mut phantom_before = 0u64;
-    let mut phantom_after = 0u64;
-    let mut unrecorded_after = 0u64;
-    let mut recorded_after = 0u64;
-    let mut honest_no_record_before = 0u64;
-    let mut cols_with_phantom_before = 0u32;
-    let mut columns = 0u32;
-    let mut disagreements: Vec<String> = Vec::new();
-    let mut per_column: HashMap<(i64, i64), u64> = HashMap::new();
-
-    for i in -CENSUS_SPAN..=CENSUS_SPAN {
-        for j in -CENSUS_SPAN..=CENSUS_SPAN {
-            let (cvx, cvz) = (vx + i * CENSUS_STEP_VOXELS, vz + j * CENSUS_STEP_VOXELS);
-            let ch = column_height(cvx, cvz);
-            columns += 1;
-            let mut col_phantom = 0u64;
-            for vy in (ch - COLUMN_DEPTH)..=ch {
-                let p = Vec3i::new(cvx, vy, cvz);
-                let block = world.block_at(p);
-                if !block.is_solid() {
-                    continue;
-                }
-                solid += 1;
-                let b = before(&world, block, p);
-                let id = world.identify(p);
-                if is_phantom_air(block, &b) {
-                    phantom_before += 1;
-                    col_phantom += 1;
-                }
-                if is_phantom_air_after(block, &id) {
-                    phantom_after += 1;
-                    disagreements.push(format!("phantom after at ({cvx},{vy},{cvz})"));
-                }
-                if !b.has_contents {
-                    honest_no_record_before += 1;
-                }
-                match &id {
-                    Identity::Unrecorded => unrecorded_after += 1,
-                    Identity::Mixture(_) => recorded_after += 1,
-                }
-            }
-            if col_phantom > 0 {
-                cols_with_phantom_before += 1;
-                per_column.insert((cvx, cvz), col_phantom);
-            }
-        }
-    }
+    let CensusTotals {
+        columns,
+        solid,
+        phantom_before,
+        phantom_after,
+        unrecorded_after,
+        recorded_after,
+        honest_no_record_before,
+        cols_with_phantom_before,
+        disagreements,
+        per_column,
+    } = census(
+        &world,
+        &generator,
+        (vx, vz),
+        CENSUS_STEP_VOXELS,
+        CENSUS_SPAN,
+        COLUMN_DEPTH,
+    );
 
     let pct = |n: u64| 100.0 * n as f64 / solid.max(1) as f64;
     println!("    columns examined                  : {columns}");
@@ -243,10 +294,18 @@ fn main() {
         "    AFTER  recorded mixture (solid)   : {recorded_after}  ({:.1} %)",
         pct(recorded_after)
     );
-    assert_eq!(
-        unrecorded_after,
-        phantom_before + honest_no_record_before,
-        "every BEFORE-phantom and every BEFORE-honest-no-record voxel must land in UNRECORDED"
+    // NOTE: this identity used to be an `assert_eq!` right here, in `main` —
+    // which the workspace gate could never run (journal/0103). It is now
+    // `every_before_phantom_and_no_record_voxel_lands_in_unrecorded` below, and
+    // the example only *reports* it.
+    println!(
+        "    IDENTITY  unrecorded_after == phantom_before + honest_no_record_before : \
+         {unrecorded_after} == {phantom_before} + {honest_no_record_before}  [{}]",
+        if unrecorded_after == phantom_before + honest_no_record_before {
+            "HOLDS"
+        } else {
+            "*** VIOLATED ***"
+        }
     );
     if !disagreements.is_empty() {
         println!("\n    !!! {} voxels still phantom:", disagreements.len());
@@ -263,4 +322,80 @@ fn main() {
         "\n    VERDICT: phantom air {phantom_before} -> {phantom_after}; \
          all of it now answers UNRECORDED, and sky/recorded rock are unmoved."
     );
+}
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// This example already carried a real `assert!` — in `main`, where no gate
+/// could reach it. `cargo test --workspace` BUILDS examples and never RUNS them,
+/// so journal/0101's acceptance has been sitting one `cargo run` away from
+/// nobody for a day. The same assertions, in `#[test]`s that share the census
+/// above.
+///
+/// Run at [`Extent::Small`]. `identify(pos)` is a **per-voxel** predicate over a
+/// per-voxel fact; whether it can confuse "no record here" with "air here" does
+/// not depend on how wide the deep grid is. The production census numbers
+/// (702 → 0 phantom voxels over 10 985 solid) are the example's job and stay at
+/// [`Extent::Medium`].
+#[cfg(test)]
+mod gate {
+    use super::*;
+
+    /// A lattice tight enough to sit inside the small world.
+    fn small_census() -> CensusTotals {
+        let (world, generator) = wired_world(Extent::Small);
+        let t = census(&world, &generator, (0, 0), 512, 5, COLUMN_DEPTH);
+        assert!(
+            t.solid > 500,
+            "only {} solid voxels examined over {} columns — too few for the null to \
+             mean anything",
+            t.solid,
+            t.columns
+        );
+        t
+    }
+
+    /// **The acceptance of journal/0101.** A solid voxel must never come back
+    /// claiming a record that classifies to air.
+    #[test]
+    fn identify_never_reports_air_over_solid_ground() {
+        let t = small_census();
+        assert_eq!(
+            t.phantom_after,
+            0,
+            "{} solid voxels still answer phantom-air through the real query path \
+             (first few: {:?}); BEFORE the fix this world had {}",
+            t.phantom_after,
+            t.disagreements.iter().take(5).collect::<Vec<_>>(),
+            t.phantom_before,
+        );
+    }
+
+    /// **The conservation half**, and the assertion this example used to make
+    /// where no gate could see it: the fix must *reclassify*, not delete. Every
+    /// voxel that was phantom-air, plus every voxel already honestly reported as
+    /// carrying no record, lands in `UNRECORDED` — and nothing else does.
+    #[test]
+    fn every_before_phantom_and_no_record_voxel_lands_in_unrecorded() {
+        let t = small_census();
+        assert_eq!(
+            t.unrecorded_after,
+            t.phantom_before + t.honest_no_record_before,
+            "UNRECORDED holds {} voxels but BEFORE had {} phantom + {} honest-no-record; \
+             the fix moved voxels it was not supposed to touch",
+            t.unrecorded_after,
+            t.phantom_before,
+            t.honest_no_record_before,
+        );
+        assert_eq!(
+            t.unrecorded_after + t.recorded_after,
+            t.solid,
+            "identify() answered neither Unrecorded nor Mixture for some solid voxel"
+        );
+        assert!(
+            t.recorded_after > 0,
+            "not one solid voxel came back with a real mixture — the contents source is \
+             answering nothing, and 'zero phantom air' would then be trivially true"
+        );
+    }
 }

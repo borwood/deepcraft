@@ -34,6 +34,33 @@ fn mib(bytes: usize) -> f64 {
     bytes as f64 / (1024.0 * 1024.0)
 }
 
+/// Count the record's vertical (slot↔slot) crossings, and the columns carrying
+/// any. **The** number this slice exists to move off zero — shared by `main`
+/// (which prints the production report) and the gate test below (journal/0103:
+/// `cargo test` builds examples but never runs them, so a claim only reaches the
+/// gate through a `#[test]` sharing the instrument's code).
+fn vertical_census(f: &DeepField) -> (usize, usize, usize) {
+    let cells = f.flux.census().cells;
+    let (mut down, mut up) = (0usize, 0usize);
+    let mut carrying = vec![false; cells];
+    for (i, c) in carrying.iter_mut().enumerate() {
+        for e in f.flux.entries_for(i) {
+            match e.face {
+                FaceKey::Down => {
+                    down += 1;
+                    *c = true;
+                }
+                FaceKey::Up => {
+                    up += 1;
+                    *c = true;
+                }
+                _ => {}
+            }
+        }
+    }
+    (down, up, carrying.iter().filter(|b| **b).count())
+}
+
 /// min / mean / p95 / max of a sample (sorted in place).
 fn dist(v: &mut [f64]) -> (f64, f64, f64, f64) {
     if v.is_empty() {
@@ -313,5 +340,77 @@ fn main() {
                 );
             }
         }
+    }
+}
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// journal/0098's whole claim is that the head field turned slice 1's honest
+/// structural zero into real vertical flux. The probe printed `*** FAIL ***` for
+/// the null and exited 0; a regression that unwired the head-field consumer would
+/// have restored the zero and passed the gate.
+///
+/// Run at [`Extent::Small`]. "Does anything at all cross a slot boundary?" is a
+/// question about whether the term is **wired to a consumer**, which is not a
+/// function of grid width. The production counts (307,364 crossings, the MiB) are
+/// the example's job and stay at [`Extent::Medium`].
+#[cfg(test)]
+mod gate {
+    use super::*;
+
+    fn small_field() -> DeepField {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: Extent::Small,
+        });
+        build_field_cfg(&pregen.grid, &production_config(&pregen.grid, SEED))
+    }
+
+    #[test]
+    fn the_head_field_fills_the_vertical_faces_slice_one_left_empty() {
+        let f = small_field();
+        let (down, up, carrying) = vertical_census(&f);
+        assert!(
+            down + up > 0,
+            "the vertical faces are STILL zero on {} cells — the head field computed a \
+             potential that nothing consumed, which is machinery built beside the hole it \
+             was meant to fill",
+            f.flux.census().cells,
+        );
+        assert!(
+            carrying > 0,
+            "vertical entries exist ({down} down, {up} up) but no column is marked as \
+             carrying them — the index and the entries disagree"
+        );
+    }
+
+    /// The A/B the cost report rests on: turning the head field off must
+    /// actually remove it. If `head_field: false` still built a head plane, every
+    /// "+X MiB for the head" number in the corpus would be measuring nothing.
+    #[test]
+    fn turning_the_head_field_off_removes_the_vertical_flux() {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: Extent::Small,
+        });
+        let cfg = production_config(&pregen.grid, SEED);
+        let bare = build_field_cfg(
+            &pregen.grid,
+            &DeepConfig {
+                head_field: false,
+                ..cfg
+            },
+        );
+        let (down, up, _) = vertical_census(&bare);
+        assert_eq!(
+            down + up,
+            0,
+            "head_field: false still recorded {down} down / {up} up vertical entries — \
+             the control is not a control, so every measured cost of the head field is wrong"
+        );
+        assert!(
+            bare.resident_bytes() < build_field_cfg(&pregen.grid, &cfg).resident_bytes(),
+            "the field without the head field is not smaller than the field with it"
+        );
     }
 }

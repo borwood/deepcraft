@@ -116,6 +116,97 @@ fn column_height(wg: &mut WorldGenerator<'static>, vx: i64, vz: i64) -> i64 {
     i64::from(wg.column_record(cx, cz).heights[lz * 32 + lx])
 }
 
+/// The census totals, as a value — so `main` can print them and the gate test
+/// below can assert on them without re-deriving anything (journal/0103:
+/// `cargo test` builds examples but never runs them, so a probe's claim only
+/// reaches the gate through a `#[test]` that shares the probe's code).
+struct ColumnRow {
+    vx: i64,
+    vz: i64,
+    h: i64,
+    solid: u64,
+    phantom: u64,
+    honest: u64,
+    recorded: u64,
+}
+
+#[derive(Default)]
+struct Census {
+    per_column: Vec<ColumnRow>,
+    columns: u32,
+    columns_with_phantom: u32,
+    solid: u64,
+    /// Solid, a record is claimed for it, and it classifies to **air**.
+    phantom: u64,
+    /// Solid and honestly reported as carrying no record.
+    honest: u64,
+    /// Solid and carrying a real, non-empty mixture.
+    recorded: u64,
+    /// **The generator-level invariant.** A solid voxel whose contents record is
+    /// non-empty and yet classifies to air would be a genuine hole in the world —
+    /// the thing journal/0097's walk feared. Every `phantom` voxel above is an
+    /// *empty* record (unrecorded basement reported at chunk granularity); this
+    /// counter is the different, load-bearing question, and it must stay zero.
+    solid_with_nonempty_record_classifying_air: u64,
+}
+
+/// Census a lattice of columns: for each, every solid voxel from `h` down to
+/// `h - depth` is classified the way `dc:world/get_contents` would have.
+fn census(
+    wg: &mut WorldGenerator<'static>,
+    cache: &mut ChunkCache,
+    origin: (i64, i64),
+    step: i64,
+    span: i64,
+    depth: i64,
+) -> Census {
+    let mut c = Census::default();
+    for i in -span..=span {
+        for j in -span..=span {
+            let (vx, vz) = (origin.0 + i * step, origin.1 + j * step);
+            let h = column_height(wg, vx, vz);
+            let mut row = ColumnRow {
+                vx,
+                vz,
+                h,
+                solid: 0,
+                phantom: 0,
+                honest: 0,
+                recorded: 0,
+            };
+            for vy in (h - depth)..=h {
+                let a = answer_at(wg, cache, vx, vy, vz);
+                if !a.block.is_solid() {
+                    continue;
+                }
+                row.solid += 1;
+                if a.contents.as_ref().is_some_and(|x| !x.is_empty())
+                    && a.classified() == Block::Air
+                {
+                    c.solid_with_nonempty_record_classifying_air += 1;
+                }
+                if a.is_phantom_air() {
+                    row.phantom += 1;
+                } else if a.is_honest_no_record() {
+                    row.honest += 1;
+                } else {
+                    row.recorded += 1;
+                }
+            }
+            c.columns += 1;
+            if row.phantom > 0 {
+                c.columns_with_phantom += 1;
+            }
+            c.solid += row.solid;
+            c.phantom += row.phantom;
+            c.honest += row.honest;
+            c.recorded += row.recorded;
+            c.per_column.push(row);
+        }
+    }
+    c
+}
+
 fn main() {
     println!("=== contents `dc:air` over SOLID ground — is it a record hole or a report? ===");
     println!("seed {SEED}, extent {}, voxel {VOXEL_M} m", EXTENT.label());
@@ -183,52 +274,41 @@ fn main() {
     println!("    for each column, every voxel from h down to h-64 is classified\n");
     println!("      column (voxel x,z) |    h | solid | phantom-air | honest-no-record | recorded");
     println!("    ---------------------+------+-------+-------------+------------------+---------");
-    let (mut tot_solid, mut tot_phantom, mut tot_honest, mut tot_rec) = (0u64, 0u64, 0u64, 0u64);
-    let mut columns_with_phantom = 0u32;
-    let mut columns = 0u32;
-    for i in -CENSUS_SPAN..=CENSUS_SPAN {
-        for j in -CENSUS_SPAN..=CENSUS_SPAN {
-            let (cvx, cvz) = (vx + i * CENSUS_STEP_VOXELS, vz + j * CENSUS_STEP_VOXELS);
-            let h = column_height(&mut wg, cvx, cvz);
-            let (mut solid, mut phantom, mut honest, mut rec) = (0u64, 0u64, 0u64, 0u64);
-            for vy in (h - 64)..=h {
-                let a = answer_at(&mut wg, &mut cache, cvx, vy, cvz);
-                if !a.block.is_solid() {
-                    continue;
-                }
-                solid += 1;
-                if a.is_phantom_air() {
-                    phantom += 1;
-                } else if a.is_honest_no_record() {
-                    honest += 1;
-                } else {
-                    rec += 1;
-                }
-            }
-            columns += 1;
-            if phantom > 0 {
-                columns_with_phantom += 1;
-            }
-            tot_solid += solid;
-            tot_phantom += phantom;
-            tot_honest += honest;
-            tot_rec += rec;
-            if i.abs() <= 1 && j.abs() <= 1 {
-                println!(
-                    "      {cvx:>9},{cvz:<9} | {h:>4} | {solid:>5} | {phantom:>11} | {honest:>16} | {rec:>8}"
-                );
-            }
-        }
+    let c = census(
+        &mut wg,
+        &mut cache,
+        (vx, vz),
+        CENSUS_STEP_VOXELS,
+        CENSUS_SPAN,
+        64,
+    );
+    for row in c.per_column.iter().filter(|r| {
+        (r.vx - vx).abs() <= CENSUS_STEP_VOXELS && (r.vz - vz).abs() <= CENSUS_STEP_VOXELS
+    }) {
+        println!(
+            "      {:>9},{:<9} | {:>4} | {:>5} | {:>11} | {:>16} | {:>8}",
+            row.vx, row.vz, row.h, row.solid, row.phantom, row.honest, row.recorded
+        );
     }
     println!(
-        "\n    TOTAL over {columns} columns x 65 voxels: solid {tot_solid}, \
-         PHANTOM-AIR {tot_phantom} ({:.1} %), honest-no-record {tot_honest} ({:.1} %), recorded {tot_rec} ({:.1} %)",
-        100.0 * tot_phantom as f64 / tot_solid.max(1) as f64,
-        100.0 * tot_honest as f64 / tot_solid.max(1) as f64,
-        100.0 * tot_rec as f64 / tot_solid.max(1) as f64,
+        "\n    TOTAL over {} columns x 65 voxels: solid {}, \
+         PHANTOM-AIR {} ({:.1} %), honest-no-record {} ({:.1} %), recorded {} ({:.1} %)",
+        c.columns,
+        c.solid,
+        c.phantom,
+        100.0 * c.phantom as f64 / c.solid.max(1) as f64,
+        c.honest,
+        100.0 * c.honest as f64 / c.solid.max(1) as f64,
+        c.recorded,
+        100.0 * c.recorded as f64 / c.solid.max(1) as f64,
     );
     println!(
-        "    columns showing at least one PHANTOM-AIR voxel: {columns_with_phantom} / {columns}"
+        "    columns showing at least one PHANTOM-AIR voxel: {} / {}",
+        c.columns_with_phantom, c.columns
+    );
+    println!(
+        "    solid voxels with a NON-EMPTY record that classify to AIR (a real hole): {}",
+        c.solid_with_nonempty_record_classifying_air
     );
     println!(
         "\n    Reading: PHANTOM-AIR and honest-no-record are the SAME physical voxel\n\
@@ -236,4 +316,86 @@ fn main() {
          \x20   a walker is told depends only on whether the 32^3 chunk happens to\n\
          \x20   contain any recorded voxel (MaterialChunk::is_all_empty, intern.rs:313)."
     );
+}
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// This probe's *original* subject — the chunk-granular `has_contents` — was
+/// fixed at the dc-api layer (journal/0101, corrections #49), and it is
+/// `dc-client/examples/identify_census.rs` that guards that fix through the real
+/// query path. What survives here is the **generator-level** claim underneath the
+/// whole diagnosis, and it is the one that would be a genuine world defect if it
+/// broke:
+///
+/// > *A solid voxel never carries a non-empty contents record that classifies to
+/// > **air**.*
+///
+/// Unrecorded basement is `Block::Stone` with an EMPTY record — honest, and what
+/// the fixed query reports as `UNRECORDED`. A **non-empty** record classifying to
+/// air would be a real hole under solid ground: `ColumnFill::build`'s
+/// `if cov <= 0.0 { break }` exists precisely to prevent it, and that guard has
+/// never had a test.
+///
+/// Run at [`Extent::Small`]. The invariant is per-voxel and holds pointwise, so
+/// grid width buys only more samples; the *production* census numbers stay in the
+/// example at [`Extent::Medium`].
+#[cfg(test)]
+mod gate {
+    use super::*;
+
+    #[test]
+    fn no_solid_voxel_carries_a_nonempty_record_that_classifies_to_air() {
+        let pregen = Arc::new(Pregen::run_with(
+            WorldParams {
+                seed: SEED,
+                extent: Extent::Small,
+            },
+            &DeepOverrides::default(),
+        ));
+        let mut wg = WorldGenerator::new_owned(pregen);
+        let mut cache: ChunkCache = HashMap::new();
+        // A lattice wide enough to cross provinces, sampled where the world is.
+        let c = census(&mut wg, &mut cache, (0, 0), 512, 5, 64);
+        assert!(
+            c.solid > 0,
+            "the census found no solid voxel at all over {} columns — the probe is \
+             looking at nothing and its null proves nothing",
+            c.columns
+        );
+        assert_eq!(
+            c.solid_with_nonempty_record_classifying_air, 0,
+            "{} solid voxels carry a NON-EMPTY contents record that classifies to AIR — \
+             a real hole under solid ground, not the chunk-granularity report artifact \
+             journal/0097 diagnosed (solid {}, recorded {})",
+            c.solid_with_nonempty_record_classifying_air, c.solid, c.recorded,
+        );
+    }
+
+    /// The other half of journal/0097's falsified premise (corrections #49): the
+    /// band the walk read as air is **solid stone with an empty record**, not a
+    /// gap. Stated as an identity so it cannot drift: every solid voxel is
+    /// exactly one of phantom / honest-no-record / recorded.
+    #[test]
+    fn every_solid_voxel_is_accounted_for_exactly_once() {
+        let pregen = Arc::new(Pregen::run_with(
+            WorldParams {
+                seed: SEED,
+                extent: Extent::Small,
+            },
+            &DeepOverrides::default(),
+        ));
+        let mut wg = WorldGenerator::new_owned(pregen);
+        let mut cache: ChunkCache = HashMap::new();
+        let c = census(&mut wg, &mut cache, (0, 0), 512, 5, 64);
+        assert_eq!(
+            c.phantom + c.honest + c.recorded,
+            c.solid,
+            "the three buckets do not partition the solid voxels"
+        );
+        assert!(
+            c.recorded > 0,
+            "not one solid voxel carries a real mixture — the contents path produced \
+             nothing, which no amount of 'no phantom air' makes acceptable"
+        );
+    }
 }
