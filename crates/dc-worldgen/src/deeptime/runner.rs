@@ -358,14 +358,28 @@ const BIO_READS_AGENTS: &[DeepAxis] = &[Routed, Frosted, Recorded, Settled];
 const BIO_READS_TEC: &[DeepAxis] = &[Routed, Frosted, Recorded, Compensated];
 const BIO_READS_LEG: &[DeepAxis] = &[Routed, Frosted, Recorded, Diffused];
 // The inventory-weathering pass reads the **contemporaneous** settled terrain (for
-// this-epoch regolith `H` cover-shielding), the frost multiplier, and the exposed
-// lithology — sequencing it after the erosion pipeline so `H` is this epoch's. The
+// this-epoch regolith `H` cover-shielding), the frost multiplier, and **this epoch's
+// BioMod** — sequencing it after the erosion pipeline so `H` is this epoch's. The
 // terrain revision it reads is the last one the active roster produces (Settled with
 // agents, Compensated on the bare tectonic path, Diffused legacy). Frosted exists
 // only with the agent roster, so it appears only in the agents slice.
-const WINV_READS_AGENTS: &[DeepAxis] = &[Settled, Frosted, Exposed];
-const WINV_READS_TEC: &[DeepAxis] = &[Compensated, Exposed];
-const WINV_READS_LEG: &[DeepAxis] = &[Diffused, Exposed];
+//
+// **`BioMod` is a WITHIN-EPOCH read, not loop-carried** (spine-audit 2026-07-25).
+// `weather_epoch` reads `grid.bio_weather`, which `dc:deep/biotic` overwrites *in
+// place* each epoch — so a `reads_prev` declaration was a fiction: with no edge
+// against `biotic`, which epoch's plane it saw was decided by the id-lexicographic
+// tie-break (`dc:deep/biotic` < `dc:deep/weather_inventory` ⇒ **this** epoch's).
+// Declaring it as a real `reads` makes the graph state what actually happens and
+// PINS the order instead of inheriting it from a tie-break. It adds only
+// `biotic → weather_inventory`, and nothing reads `Saprolite`, so there is no cycle.
+//
+// **`Exposed` is deliberately NOT declared**: susceptibility is a constant off
+// `BEDROCK_SEAM_MATERIAL` (stub #16's one flat granite basement), so this pass does
+// not read the outcropping lithology today. The genesis/emplacement heir that retires
+// #16 re-adds it — declare what you read, not what you intend to read.
+const WINV_READS_AGENTS: &[DeepAxis] = &[Settled, Frosted, BioMod];
+const WINV_READS_TEC: &[DeepAxis] = &[Compensated, BioMod];
+const WINV_READS_LEG: &[DeepAxis] = &[Diffused, BioMod];
 
 /// Build the active pass roster for a config. A phase gated off (`tectonic_
 /// history`, `full_agents`, `biotic`, `record`) is simply **absent** — the old
@@ -590,9 +604,11 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     // Inventory weathering (journal/0094): the first cellular material pass, gated
     // behind `weather_inventory` (absent = off, the old `if` as pass presence — so
     // the production world is byte-identical off, the S-5 identity default). Reads
-    // the contemporaneous terrain (for this-epoch regolith `H`), Frosted, Exposed,
-    // and — loop-carried, like `weather`/`diffuse` — last epoch's BioMod. Writes only
-    // the Saprolite ledger sink (no in-epoch reader), so it never perturbs erosion.
+    // the contemporaneous terrain (for this-epoch regolith `H`), Frosted, and **this
+    // epoch's BioMod as a real within-epoch read** (see WINV_READS_* — the former
+    // `reads_prev` was a fiction the tie-break decided; spine-audit 2026-07-25).
+    // Writes only the Saprolite ledger sink (no in-epoch reader), so it never
+    // perturbs erosion.
     if cfg.weather_inventory {
         let reads: &[DeepAxis] = if cfg.full_agents {
             WINV_READS_AGENTS
@@ -605,7 +621,7 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             id: "dc:deep/weather_inventory",
             reads,
             writes: &[Saprolite],
-            reads_prev: &[BioMod],
+            reads_prev: &[],
             period: 1,
             body: weather_inventory_pass,
         });
@@ -809,7 +825,7 @@ mod tests {
 
         // On: a declared cellular pass, period 1 (fires every epoch), writing only
         // the Saprolite sink and reading the settled terrain + frost (contemporaneous
-        // H), with BioMod loop-carried.
+        // H) + **this epoch's BioMod as a real within-epoch read**.
         let cfg = DeepConfig {
             weather_inventory: true,
             ..all_on()
@@ -820,10 +836,23 @@ mod tests {
             .find(|p| p.id == "dc:deep/weather_inventory")
             .expect("scheduled when flagged on");
         assert_eq!(w.writes, &[DeepAxis::Saprolite]);
-        assert_eq!(w.reads_prev, &[DeepAxis::BioMod]);
         assert!(w.reads.contains(&DeepAxis::Settled) && w.reads.contains(&DeepAxis::Frosted));
         assert_eq!(w.period, 1);
         assert!(w.fires(0) && w.fires(1));
+
+        // **The declaration must state what the pass DOES** (spine-audit 2026-07-25).
+        // `weather_epoch` reads `grid.bio_weather`, which `biotic` overwrites in place
+        // each epoch — so it observes THIS epoch's plane, and a `reads_prev` claim was
+        // a fiction the id-tie-break happened to satisfy. BioMod is a real within-epoch
+        // read; nothing is loop-carried here.
+        assert!(
+            w.reads.contains(&DeepAxis::BioMod),
+            "BioMod is a within-epoch read: the pass sees this epoch's plane"
+        );
+        assert_eq!(w.reads_prev, &[], "nothing is loop-carried on this pass");
+        // `Exposed` is NOT read: susceptibility is a constant off the stub-#16 bedrock
+        // seam. The genesis heir that retires #16 re-adds it.
+        assert!(!w.reads.contains(&DeepAxis::Exposed));
 
         // The schedule is valid with it, and it sorts AFTER the terrain settles and
         // biology runs (it reads Settled which wave writes, and it is the last thing
@@ -833,6 +862,12 @@ mod tests {
         let pos = |id: &str| order.iter().position(|&x| x == id).unwrap();
         assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/wave"));
         assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/frost"));
+        // **PINNED, not inherited from a tie-break.** Declaring BioMod as a real read
+        // adds the `biotic → weather_inventory` edge, so the order the pass actually
+        // depends on is now enforced by the graph. Before the fix this held only
+        // because `dc:deep/biotic` sorts lexicographically first among the ready pool
+        // — rename either pass and the physics would have changed silently.
+        assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/biotic"));
 
         // Off-flag order is exactly the production order (the pass added nothing).
         assert_eq!(
