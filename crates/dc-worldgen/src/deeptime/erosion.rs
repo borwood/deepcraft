@@ -2072,12 +2072,14 @@ mod mfd_tests {
     /// the thing it replaces as a limit, so "how much does MFD change the world"
     /// has a continuous answer instead of a discrete one.
     ///
-    /// It also pins the flow-path length: index 7 is a diagonal with a 4 m drop
-    /// over `√2` cells (slope 2.83), index 3 a cardinal with 3 m over one cell.
-    /// The **cardinal** must win, which a steepest-*drop* rule would get wrong.
+    /// Note what "large" has to mean, because it is the honest reading of the knob:
+    /// `p` acts on the **ratio** of slopes, so two neighbours within a few percent
+    /// of each other still share at `p = 16`. Collapse is a limit, not a threshold
+    /// — which is precisely why `p = 4` leaves gorges convergent (their sidewalls
+    /// are nowhere near the channel's slope) and delta tops divergent (theirs are).
     #[test]
-    fn a_large_exponent_collapses_the_partition_onto_the_steepest_slope() {
-        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 4.0]);
+    fn a_large_exponent_collapses_the_partition_onto_one_receiver() {
+        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 2.0]);
         let mut w_out = [0.0f64; MFD_DIRS];
         let best = partition_cell(c, 3, &surf, &filled, -1000.0, 16.0, Some(16), &mut w_out);
         assert!(best >= 0);
@@ -2087,7 +2089,26 @@ mod mfd_tests {
             "weights {w_out:?} did not collapse onto one receiver"
         );
         assert!((w_out[best as usize] - 1.0).abs() < 1e-12);
+        assert_eq!(best, 3);
+    }
+
+    /// **The partition follows SLOPE, not drop.** Index 7 is a diagonal with a 4 m
+    /// drop over `√2` cells (slope 2.83); index 3 a cardinal with 3 m over one cell
+    /// (slope 3.0). The cardinal must take the larger share — a steepest-*drop*
+    /// rule, which is what `route_cell` uses, picks the diagonal instead. Without
+    /// the true flow-path length every diagonal is over-weighted by `√2` and the
+    /// drainage net acquires a systematic X-bias.
+    #[test]
+    fn the_partition_follows_slope_not_drop() {
+        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 4.0]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
         assert_eq!(best, 3, "the diagonal's √2 path length was not applied");
+        assert!(w_out[3] > w_out[7]);
+        // The steepest-DROP rule would have said otherwise — pinned, so the
+        // difference between the two routings is a fact this file states rather
+        // than a claim the prose makes.
+        assert_eq!(route_cell(c, 3, &surf, &filled, -1000.0), 8);
     }
 
     /// **`p = 1` is maximally dispersive** (Quinn) and must genuinely spread:

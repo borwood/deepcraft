@@ -50,21 +50,56 @@ struct Counts {
     /// Most lateral out-faces any cell used in a single epoch.
     simul_max_faces: u32,
     /// `(cell, chapter)` pairs with ≥2 out-faces summed over the chapter — the
-    /// **temporal** kind, which the single-receiver solve already produced.
+    /// **temporal** kind, which the single-receiver solve already produced. This
+    /// is `census().divergent`, and it counts **every** face family.
     temporal_cell_chapters: u64,
+    /// The same count restricted to **lateral** faces. It exists because the
+    /// census's own number stopped being comparable to journal/0096's headline the
+    /// day FLOW (a) landed: a cell that routes east *and* infiltrates downward has
+    /// two out-faces and is counted as divergent, which is true of the record and
+    /// is **not** what "a distributary" means. Quoted separately rather than
+    /// silently.
+    temporal_lateral_only: u64,
     entries: usize,
+    /// Total suspended load carried across lateral faces, and how many faces carry
+    /// any — the `L` channel's liveness. A permanently-zero field looks identical
+    /// to an unwired one, and MFD rewrote how load is split.
+    load_faces: usize,
+    load_total: f64,
     record_bytes: usize,
     field_bytes: usize,
 }
 
 fn counts(f: &DeepField) -> Counts {
     let c = f.flux.census();
+    let mut lateral_only = 0u64;
+    for i in 0..f.flux.cells() {
+        for k in 0..f.flux.chapters {
+            if f.flux
+                .out_faces(i, k)
+                .filter(|e| e.face.is_lateral())
+                .count()
+                >= 2
+            {
+                lateral_only += 1;
+            }
+        }
+    }
+    let (load_faces, load_total) = f
+        .flux
+        .entries()
+        .iter()
+        .filter(|e| e.load > 0.0)
+        .fold((0usize, 0.0f64), |(n, s), e| (n + 1, s + f64::from(e.load)));
     Counts {
         simul_cell_epochs: f.flux.simultaneous.cell_epochs,
         simul_cell_chapters: f.flux.simultaneous.cell_chapters,
         simul_max_faces: f.flux.simultaneous.max_out_faces,
         temporal_cell_chapters: c.divergent as u64,
+        temporal_lateral_only: lateral_only,
         entries: c.entries,
+        load_faces,
+        load_total,
         record_bytes: f.flux.resident_bytes(),
         field_bytes: f.resident_bytes(),
     }
@@ -150,13 +185,19 @@ fn main() {
 
     println!("\n--- CONTROL: TEMPORAL divergence (avulsion, within a CHAPTER) ---");
     println!(
-        "(cell,chapter) pairs with >=2 faces   : {:>12} {:>13}",
+        "(cell,chapter) pairs, ALL faces       : {:>12} {:>13}",
         co.temporal_cell_chapters, cn.temporal_cell_chapters
     );
     println!(
-        "  ^ this is the number slice 1 was accepted on (175,320 on the shipped\n    \
-         world). It is NOT the same quantity as the row above it, and the whole\n    \
-         point of § 2.6 is that they must never be quoted as one."
+        "(cell,chapter) pairs, LATERAL only    : {:>12} {:>13}",
+        co.temporal_lateral_only, cn.temporal_lateral_only
+    );
+    println!(
+        "  ^ the LATERAL row is what journal/0096 reported as 175,320. The ALL row\n    \
+         grew when FLOW (a) landed, because a cell that routes east AND infiltrates\n    \
+         downward has two out-faces — true of the record, not what 'a distributary'\n    \
+         means. Neither is the same quantity as the SIMULTANEOUS block above, and\n    \
+         § 2.6 exists because they must never be quoted as one."
     );
 
     if co.simul_cell_epochs != 0 {
@@ -207,6 +248,14 @@ fn main() {
         mib(cn.field_bytes),
         mib(cn.field_bytes) - mib(co.field_bytes)
     );
+    println!(
+        "load-carrying faces     : OFF {:>12}   ON {:>12}",
+        co.load_faces, cn.load_faces
+    );
+    println!(
+        "total load on faces (m) : OFF {:>12.1}   ON {:>12.1}",
+        co.load_total, cn.load_total
+    );
 
     let (mo, lo_o, hi_o) = relief(&off.field);
     let (mn, lo_n, hi_n) = relief(&on.field);
@@ -234,6 +283,62 @@ fn main() {
         .sum::<f64>()
         / off.field.surf.len() as f64;
     println!("mean |Δ elevation|                  : {mad:.3} m");
+    // The elevation field is the *least* sensitive readout here, so the drainage
+    // network is reported beside it: incision magnitudes on this world are small
+    // against 600 m of uplift, but WHERE the water goes is the thing that moved.
+    let land = |f: &DeepField, i: usize| f.surf[i] > 0.0;
+    let mut land_cells = 0usize;
+    let mut recv_changed = 0usize;
+    let mut area_rel = 0.0f64;
+    let mut land_mad = 0.0f64;
+    for i in 0..off.field.surf.len() {
+        if !land(&off.field, i) {
+            continue;
+        }
+        land_cells += 1;
+        land_mad += (off.field.surf[i] - on.field.surf[i]).abs();
+        if off.field.recv[i] != on.field.recv[i] {
+            recv_changed += 1;
+        }
+        let (a, b) = (off.field.area[i], on.field.area[i]);
+        area_rel += (a - b).abs() / a.max(b).max(1.0);
+    }
+    let lc = land_cells.max(1) as f64;
+    println!("\nsubaerial cells                     : {land_cells}");
+    println!("  mean |Δ elevation| on land        : {:.3} m", land_mad / lc);
+    println!(
+        "  cells whose ARGMAX receiver moved : {recv_changed} ({:.2} % of land)",
+        recv_changed as f64 * 100.0 / lc
+    );
+    println!(
+        "  mean relative |Δ drainage area|   : {:.4}",
+        area_rel / lc
+    );
+    let peak_off = off.field.area.iter().cloned().fold(0.0f64, f64::max);
+    let peak_on = on.field.area.iter().cloned().fold(0.0f64, f64::max);
+    println!("  peak drainage area  OFF {peak_off:.0}  ON {peak_on:.0}");
+
+    // ---- the exponent sweep -------------------------------------------------
+    // `p` is the one knob, and its effect should be reported as a curve rather
+    // than asserted from a citation. p -> infinity is the OFF row by construction.
+    println!("\n--- CONVERGENCE EXPONENT SWEEP (production world) ---");
+    println!("     p    simul (cell,epoch)   simul (cell,chapter)   entries   record MiB   deep s");
+    for p in [1.0, 2.0, 4.0, 8.0] {
+        let m = measure(&pregen.grid, true, p);
+        let c = counts(&m.field);
+        println!(
+            "{p:>6.1} {:>20} {:>22} {:>10} {:>11.2} {:>8.1}",
+            c.simul_cell_epochs,
+            c.simul_cell_chapters,
+            c.entries,
+            mib(c.record_bytes),
+            m.deep_secs
+        );
+    }
+    println!(
+        "{:>6} {:>20} {:>22} {:>10} {:>11.2} {:>8.1}   <- single-receiver D8 (p -> inf)",
+        "off", co.simul_cell_epochs, 0, co.entries, mib(co.record_bytes), off.deep_secs
+    );
 
     // ---- the biggest simultaneous junction, so the number is not abstract ---
     // Re-found from the record: the (cell, chapter) with the most out-faces and
@@ -308,28 +413,10 @@ mod gate {
         assert!(on.simul_max_faces >= 2);
     }
 
-    /// **The two divergences are different quantities and the simultaneous one is
-    /// a subset.** This is the confusion § 2.6 exists to prevent, asserted rather
-    /// than narrated: a `(cell, chapter)` that diverged inside one epoch has, by
-    /// definition, diverged inside the chapter.
-    ///
-    /// Scale-free for the same reason: it is a set-inclusion between two counts
-    /// over the same keys, true cell by cell.
-    #[test]
-    fn the_simultaneous_set_is_a_subset_of_the_temporal_one() {
-        let pregen = Pregen::run(WorldParams {
-            seed: SEED,
-            extent: Extent::Small,
-        });
-        let on = counts(&build_field_cfg(&pregen.grid, &cfg(&pregen.grid, true, 4.0)));
-        assert!(on.temporal_cell_chapters > 0);
-        assert!(
-            on.simul_cell_chapters <= on.temporal_cell_chapters,
-            "{} simultaneous (cell,chapter) pairs but only {} temporal ones",
-            on.simul_cell_chapters,
-            on.temporal_cell_chapters
-        );
-    }
+    // (The simultaneous ⊆ temporal set-inclusion is asserted in
+    // `tests/mfd_routing.rs::temporal_divergence_survives_alongside_the_simultaneous_kind`
+    // and is deliberately not duplicated here — each Small deep run is ~4 s of
+    // gate, and a second copy of an assertion buys nothing but wall-clock.)
 
     /// **The exponent is a convergence knob, and the probe reports a monotone
     /// quantity.** A larger `p` concentrates flow, so it must produce *no more*

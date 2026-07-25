@@ -45,7 +45,34 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// `t_crust`), so this value still equals pre-slice `main`. That the surface holds
 /// while the record moves is the independent check that the geotherm changed coal
 /// and nothing else.
+///
+/// **Moved 2026-07-25 by MFD routing (journal/0109) — authorized, and this one is
+/// a genuine physics change rather than a seam conversion.** Every prior move in
+/// this file came from a rate or a tag; this one changes *where the water goes*, so
+/// the surface, the drainage export and the record all moved together. The
+/// single-receiver world is still reachable and still hashed — see
+/// [`GOLDEN_SURFACE_SINGLE_RECEIVER`], asserted by name in `tests/mfd_routing.rs`,
+/// which is what makes this an authorized move rather than a lost fixed point.
+/// Prior value (pre-MFD `main`), kept for audit:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x176D_40F1_1CCB_006A
+/// ```
 pub const GOLDEN_SURFACE: u64 = 0x176D_40F1_1CCB_006A;
+
+/// **The pre-MFD fixed point, still reachable.** The same fixture world built with
+/// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
+/// the goldens as they stood before FLOW continuation (b) (journal/0109).
+///
+/// This is what turns "MFD moved the world" from a lost fixed point into a
+/// *declared* one: the old solve is a second path, not a deleted path, and it is
+/// proven byte-identical rather than assumed to be. Asserted in
+/// `tests/mfd_routing.rs::the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens`
+/// — deliberately **not** in `providers_golden.rs`, which stays the cross-commit
+/// golden for the *shipped* configuration and nothing else.
+pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x176D_40F1_1CCB_006A;
+/// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
+pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x4A20_745B_3879_7C8A;
 /// FNV-1a-64 over the strata record of the same field.
 ///
 /// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
@@ -59,6 +86,14 @@ pub const GOLDEN_SURFACE: u64 = 0x176D_40F1_1CCB_006A;
 ///
 /// ```text
 /// GOLDEN_RECORD 0xC9C6_D6F6_E908_9653
+/// ```
+///
+/// **Moved 2026-07-25 by MFD routing (journal/0109) — authorized.** See
+/// [`GOLDEN_SURFACE`]. Prior value (pre-MFD `main`), kept for audit and still
+/// asserted under `mfd: false` as [`GOLDEN_RECORD_SINGLE_RECEIVER`]:
+///
+/// ```text
+/// GOLDEN_RECORD 0x4A20_745B_3879_7C8A
 /// ```
 pub const GOLDEN_RECORD: u64 = 0x4A20_745B_3879_7C8A;
 

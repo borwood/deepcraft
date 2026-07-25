@@ -24,6 +24,8 @@ use dc_worldgen::deeptime::{
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
+mod providers_common;
+
 const SEED: u64 = 0x0FD8_1337_0B0B;
 /// D8 direction table — the same order as `FaceKey::lateral` and the solve's own
 /// `NEIGH8`, so a face code indexes straight into it.
@@ -263,6 +265,43 @@ fn mfd_off_leaves_the_single_receiver_solve_untouched_and_on_moves_the_world() {
     assert_ne!(
         a.surf, on.surf,
         "MFD changed no elevation anywhere: it is not reaching the erosion pass"
+    );
+}
+
+/// **The pre-MFD fixed point is still reachable, and still exact.** MFD moved the
+/// shipped world — that is the slice's whole point and the goldens moved with it —
+/// but a moved golden is only an *authorized* move if the thing it used to
+/// describe is still there. So the fixture world built with `mfd: false` must
+/// reproduce the goldens as they stood on pre-MFD `main`, byte for byte, on both
+/// the surface planes and the strata record.
+///
+/// It lives here rather than in `providers_golden.rs` on purpose: that file is the
+/// cross-commit golden for the **shipped** configuration and its whole discipline
+/// is that no slice has a reason to open it. This is a different claim — "the path
+/// I did not take is unchanged" — and it belongs to the slice that introduced the
+/// fork.
+#[test]
+fn the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens() {
+    use providers_common::{
+        GOLDEN_RECORD_SINGLE_RECEIVER, GOLDEN_SURFACE_SINGLE_RECEIVER, SEED as GOLDEN_SEED,
+        production_pregen, record_fingerprint, surface_fingerprint,
+    };
+    let pregen = production_pregen();
+    let cfg = DeepConfig {
+        mfd: false,
+        ..production_config(&pregen.grid, GOLDEN_SEED)
+    };
+    let f = build_field_cfg(&pregen.grid, &cfg);
+    assert_eq!(
+        surface_fingerprint(&f),
+        GOLDEN_SURFACE_SINGLE_RECEIVER,
+        "the single-receiver surface no longer matches pre-MFD main — MFD did not \
+         merely add a path, it perturbed the old one"
+    );
+    assert_eq!(
+        record_fingerprint(&f),
+        GOLDEN_RECORD_SINGLE_RECEIVER,
+        "the single-receiver strata record no longer matches pre-MFD main"
     );
 }
 

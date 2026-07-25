@@ -265,6 +265,56 @@ whole point). **MFD is a SOLVE change and belongs with the potential/head field*
 (continuation (a)): a head field partitions flux across several receivers naturally,
 where steepest-descent cannot.
 
+#### 2.6.1 BUILT 2026-07-25 — continuation (b), the MFD solve (journal/0109)
+
+**Shipped, on by default** (`DeepConfig::mfd`, `mfd_exponent = 4.0`). The record's
+shape did not move a byte: what changed is that the solve now hands the recorder
+several non-zero out-faces per cell per epoch instead of one.
+
+- **The partition is Holmgren (1994) with Quinn's contour width**:
+  `wₖ ∝ Sₖᵖ · Lₖ`, `Sₖ = Δh / dₖ` along the **true flow-path length** (`1`/`√2`),
+  `Lₖ` the face's contour width (`1`/`1/√2`). `p` is the **convergence exponent**:
+  `p = 1` is Quinn's maximally dispersive form, `p → ∞` is single-receiver D8
+  exactly, so the old solve is a *limit* of the new one rather than a deleted
+  alternative.
+- **The field partitioned is the FREE-SURFACE potential** — the priority-flood
+  `filled` surface, which is `z_bed + depth`: bare ground where the land drains, a
+  flat water surface inside every depression. That **is** head for the free regime
+  (pressure head is zero at a free surface), so § 2.4's "flow descends potential"
+  is satisfied by the plane the solve already computes.
+  > **It is deliberately NOT `dc:field/head`, and the reason is § 2.4's own
+  > qualification.** That plane is the **bound** regime's potential and it is built
+  > to cross surface drainage divides (the Great Artesian Basin, karst piracy) —
+  > routing *free surface* water down it would make rivers cross divides too, which
+  > § 2.4 says binds the free regime. **Bound MFD — Darcy flux partitioned across
+  > faces on `dc:field/head` — is real and unbuilt; it belongs to continuation (c)
+  > with the free/bound edge.**
+- **A representational floor** (`MFD_MIN_WEIGHT = 1 %`) drops sub-percent shares and
+  renormalises. It is not physics: without it every land cell records an entry for
+  every downslope neighbour and the archive pays megabytes for noise. The steepest
+  share is ≥ 1/8 before the floor, so no cell is ever turned into a sink by it.
+- **What had to be re-derived for a DAG**, since the old chain assumed a *tree*:
+  - **The traversal order did not have to change**, and that is the finding. The
+    priority-flood pop order is strictly ascending in `filled`; every routed edge —
+    single or multi — descends `filled`; so the reversed order is a topological
+    order of the **DAG** for exactly the reason it was one of the tree. What
+    licensed the traversal was never the tree, it was the potential.
+  - **Mass** survives on one condition: the shares sum to the whole with **no
+    residue**. Normalised `f64` weights sum to `1 ± 1 ulp`, so the last weighted
+    direction takes `q − Σ(earlier shares)` instead of `w·q`.
+  - **The never-incise-below-the-receiver clamp** becomes *below the **lowest**
+    receiver* — the cell still drains as long as it stays above its lowest outlet.
+    In the single-receiver limit the D8 receiver **is** the lowest neighbour, so it
+    reduces to today's rule exactly.
+  - **The energy slope** becomes the share-weighted mean `Σ wₖ Sₖ`, which is not a
+    smoothing choice: stream power is `Q·S`, so the total power released by a split
+    discharge is `Σ Qₖ Sₖ = Q · Σ wₖ Sₖ`.
+- **`recv` changed kind.** It is now the **argmax share** — a projection of the
+  partition, not the routing. It is not meaningless (it still answers "which way
+  does most of the water go") but it can no longer be read as "where the water
+  went", and it is now a summary in ARCHITECTURE.md's sense. Continuation (e)
+  should retire it, not merely supersede it.
+
 **A gap in the § 5 cadence vocabulary, named here.** `material-behavior.md` § 5 gives
 the scheduler two axes — **ORDER** (topo-sort) and **RATE** (`period` + `dt`). It has
 **no name for the aggregation window**, yet that window is what decides the record's
