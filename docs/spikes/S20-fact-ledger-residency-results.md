@@ -13,6 +13,24 @@ pass are untouched. The alternative encodings are local candidate structs measur
 `size_of`; the paged prototype writes a geometry-faithful synthetic file to a temp
 directory and deletes it.
 
+> **DECIDED 2026-07-25 (user): option 3 + 2c.** *Resident fold + paged facts + compact
+> 8-byte facts.* **The 2c half SHIPPED the same day (journal/0108)** — `Fact` is now 8 B
+> with zero padding, every axis retained; the sentences above about `Fact`/`LedgerField`
+> being untouched describe the spike, not the tree. The **pager (option 3) is the reserved
+> continuation and is NOT built** — § 5 is its design problem, unchanged.
+>
+> **One correction the implementation forced, recorded here beside the claim it revises:
+> § 4.2's Class B table over-predicts by eight sites.** It lists **nine** assertions as
+> failing; **one** actually did. The table was computed against a model where `Fact` stores
+> `f32` *everywhere*. The shipped design narrows **only at persist** — the gen-time
+> `FactLedger` accumulator stays `Fact<FracM>` at f64 — so the eight sites that read an
+> accumulator are `f64` vs `f64` and never changed representation at all. The one that
+> moved is **`weather_inventory.rs:549`**, exactly the site § 4.3's final paragraph
+> predicted, and it moved in the direction that paragraph predicted (Class A → Class B).
+> The mechanism § 4.3 names — *where the narrowing happens decides which tests move class*
+> — is correct and is the whole explanation; what § 4.2's table failed to say is that its
+> own verdicts were **conditional on that placement**. See corrections #53.
+
 ---
 
 ## 0. The question, and why it has a clean answer shape
@@ -272,6 +290,14 @@ rounded values (and `2×` is exact in binary), so narrowing does not move the co
 **Class B — stored vs a freshly-computed f64 (or an f64 literal): fails.** The tolerance is
 being asked to certify agreement between two *different representations*, at a bound below
 the resolution of one of them.
+
+> **AS SHIPPED (journal/0108), eight of these nine rows do NOT fail.** Every row below whose
+> site reads a `FactLedger` reads the **gen-time accumulator**, which the shipped design
+> deliberately keeps at `f64` — so it is `f64` vs `f64`, not stored vs computed, and its
+> original `1e-12` is still the honest bound. The rows below are the verdicts for a *narrow
+> everywhere* design, which is not the one that shipped. The single real Class B site in the
+> tree is `weather_inventory.rs:549`, named in § 4.3's final paragraph and not in this table.
+> Corrections #53.
 
 | site | assertion | measured error | verdict |
 |---|---|---:|---|
