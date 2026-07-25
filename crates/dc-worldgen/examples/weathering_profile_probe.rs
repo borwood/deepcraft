@@ -137,7 +137,20 @@ struct ColumnMass {
     plan_clean_m: f64,
     /// `expressed_m` restricted to the same attributable voxels.
     expressed_clean_m: f64,
+    /// `plan_clean_m` restricted further to **`Mixed`-plan** voxels.
+    ///
+    /// A `Single` front voxel is not a draw at all: `contents_for_event` reads
+    /// the band's recorded eighths straight out and emits exactly that many, so
+    /// its error against the plan is identically zero and it only *dilutes* an
+    /// aggregate ratio. **Every stochastic decision in the front's expression
+    /// lives in the `Mixed` voxels** — `allocate_partial` splitting the voxel
+    /// between events, then `pore_rider_share` splitting the host's winnings
+    /// between parent and product. So this is where the estimator claim is
+    /// actually on trial.
+    plan_mixed_m: f64,
+    expressed_mixed_m: f64,
     front_voxels: usize,
+    mixed_voxels: usize,
     /// Front voxels dropped as unattributable.
     collision_voxels: usize,
 }
@@ -193,9 +206,12 @@ fn column_mass(pregen: &Pregen, cell: usize) -> Option<ColumnMass> {
     let mut grids: HashMap<i64, Option<dc_core::ContentsGrid>> = HashMap::new();
     let mut eighths = 0u32;
     let mut clean_eighths = 0u32;
+    let mut mixed_eighths = 0u32;
     let mut plan_m = 0.0f64;
     let mut plan_clean_m = 0.0f64;
+    let mut plan_mixed_m = 0.0f64;
     let mut front_voxels = 0usize;
+    let mut mixed_voxels = 0usize;
     let mut collision_voxels = 0usize;
     for p in 1..=fill.depth_count() {
         let plan = fill.plan(p as u32);
@@ -250,9 +266,17 @@ fn column_mass(pregen: &Pregen, cell: usize) -> Option<ColumnMass> {
             here += slots.iter().filter(|m| **m == product_mat).count() as u32;
         }
         eighths += here;
+        let is_mixed = matches!(plan, Some(Plan::Mixed(_)));
+        if is_mixed {
+            mixed_voxels += 1;
+        }
         if attributable {
             clean_eighths += here;
             plan_clean_m += this_plan_m;
+            if is_mixed {
+                mixed_eighths += here;
+                plan_mixed_m += this_plan_m;
+            }
         } else {
             collision_voxels += 1;
         }
@@ -263,7 +287,10 @@ fn column_mass(pregen: &Pregen, cell: usize) -> Option<ColumnMass> {
         expressed_m: f64::from(eighths) / 8.0 * VOXEL_M,
         plan_clean_m,
         expressed_clean_m: f64::from(clean_eighths) / 8.0 * VOXEL_M,
+        plan_mixed_m,
+        expressed_mixed_m: f64::from(mixed_eighths) / 8.0 * VOXEL_M,
         front_voxels,
+        mixed_voxels,
         collision_voxels,
     })
 }
@@ -310,6 +337,8 @@ struct MassCensus {
     sum_expressed: f64,
     sum_plan_clean: f64,
     sum_expressed_clean: f64,
+    sum_plan_mixed: f64,
+    sum_expressed_mixed: f64,
     collisions: usize,
 }
 
@@ -365,6 +394,8 @@ fn mass_census(pregen: &Pregen, banded: &[(usize, f64)], want: usize) -> MassCen
     let sum_expressed = columns.iter().map(|c| c.expressed_m).sum();
     let sum_plan_clean = columns.iter().map(|c| c.plan_clean_m).sum();
     let sum_expressed_clean = columns.iter().map(|c| c.expressed_clean_m).sum();
+    let sum_plan_mixed = columns.iter().map(|c| c.plan_mixed_m).sum();
+    let sum_expressed_mixed = columns.iter().map(|c| c.expressed_mixed_m).sum();
     let collisions = columns.iter().filter(|c| c.collision_voxels > 0).count();
     MassCensus {
         columns,
@@ -373,6 +404,8 @@ fn mass_census(pregen: &Pregen, banded: &[(usize, f64)], want: usize) -> MassCen
         sum_expressed,
         sum_plan_clean,
         sum_expressed_clean,
+        sum_plan_mixed,
+        sum_expressed_mixed,
         collisions,
     }
 }
@@ -685,6 +718,14 @@ fn report_census(c: &MassCensus) {
         c.collisions,
         c.n()
     );
+    println!(
+        "  MIXED-PLAN voxels only (the only voxels that contain a DRAW at all; a Single \
+         front voxel emits its band's recorded eighths exactly): geometry {:.3} m, \
+         voxels express {:.3} m ({:+.2} %)",
+        c.sum_plan_mixed,
+        c.sum_expressed_mixed,
+        100.0 * (c.sum_expressed_mixed - c.sum_plan_mixed) / c.sum_plan_mixed.max(1e-9),
+    );
     println!("\n  --- per-column relative error, by stage ---");
     print_dist(
         "TOTAL   record -> voxels (naive)",
@@ -740,11 +781,13 @@ fn report_census(c: &MassCensus) {
          is the voxel expression's own error.)"
     );
     println!(
-        "  front voxels per column: min {} max {}; unattributable front voxels {} of {}",
+        "  front voxels per column: min {} max {}; of {} front voxels, {} are Mixed \
+         (carry a draw) and {} are unattributable",
         c.columns.iter().map(|m| m.front_voxels).min().unwrap_or(0),
         c.columns.iter().map(|m| m.front_voxels).max().unwrap_or(0),
-        c.columns.iter().map(|m| m.collision_voxels).sum::<usize>(),
         c.columns.iter().map(|m| m.front_voxels).sum::<usize>(),
+        c.columns.iter().map(|m| m.mixed_voxels).sum::<usize>(),
+        c.columns.iter().map(|m| m.collision_voxels).sum::<usize>(),
     );
 }
 
