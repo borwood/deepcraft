@@ -43,6 +43,12 @@ test = true
 name = "contents_air_over_solid_probe"
 test = true
 
+# Only the census is gated here — the station search is a world-scale
+# recommendation judged by the eye. See the example's `mod gate` doc comment.
+[[example]]
+name = "coal_walk_tour"
+test = true
+
 # Only the ranking function is gated here — the world-scale station search is
 # deliberately left out (a station finder's output is a recommendation, judged by
 # the eye, not a claim). See the example's `mod gate` doc comment.
