@@ -262,8 +262,15 @@ count.
 deliberately NOT a record change. The record may only describe water the erosion
 pass actually moved (else the flux record and the mass budget disagree, which is § 3's
 whole point). **MFD is a SOLVE change and belongs with the potential/head field**
-(continuation (a)): a head field partitions flux across several receivers naturally,
-where steepest-descent cannot.
+(continuation (a)): ~~a head field partitions flux across several receivers naturally,
+where steepest-descent cannot.~~
+
+> **The first sentence shipped as written; the struck one is FALSIFIED —
+> corrections #54, 2026-07-25.** MFD is indeed a solve change and the record was
+> not touched. But it does **not** need `dc:field/head`: the free regime's
+> potential is the priority-flood `filled` surface, which was already computed,
+> and routing surface water on the *bound* regime's plane would have made rivers
+> cross their own drainage divides. See **§ 2.6.1** for what was actually built.
 
 #### 2.6.1 BUILT 2026-07-25 — continuation (b), the MFD solve (journal/0109)
 
@@ -505,7 +512,14 @@ faithful.
    the payload). Per-chapter cannot express *"the river moved at epoch 40"*, which
    was the framing that opened this arc. **User call, not yet made.**
 8. **Simultaneous divergence needs an MFD solve, not a record change** (§ 2.6).
-   Sequenced with the potential/head field (continuation (a)), never ahead of it.
+   ~~Sequenced with the potential/head field (continuation (a)), never ahead of it.~~
+   **ANSWERED 2026-07-25 — see § 2.6.1.** The first half was right and shipped. The
+   second half was **wrong and is corrections #54**: MFD needs *a* potential, and the
+   free regime's one (the priority-flood `filled` surface = `z_bed + depth`) was
+   already there. `dc:field/head` is the **bound** regime's plane and using it here
+   would have made rivers cross their own divides. (a) *was* correctly sequenced
+   before (b) — but because it made the record's **vertical** faces honest, not
+   because the numerics needed it.
 
 ---
 

@@ -81,10 +81,25 @@
 //!
 //! ## What is deliberately NOT here
 //!
-//! - **No change to lateral routing.** The drainage solve stays
-//!   steepest-descent-on-filled-elevation and the terrain is **byte-identical**
-//!   (`tests/head_field.rs`). A **multi-flow-direction** partition is what head
-//!   *unlocks* (flow.md § 2.6) and it is the next slice, not this one.
+//! - **No change to lateral routing.** *(True of this slice. The lateral solve
+//!   became multi-flow-direction on 2026-07-25 — flow.md § 2.6.1, journal/0109 —
+//!   and `tests/head_field.rs` compares MFD-to-MFD, so the byte-identity claim
+//!   still holds as written.)*
+//!
+//!   **The sentence that stood here — "a multi-flow-direction partition is what
+//!   head *unlocks*" — is FALSE, and is corrections #54.** MFD needs *a*
+//!   potential, and the **free** regime's potential was already there: the
+//!   priority-flood `filled` surface is `z_bed + depth` (bare ground where the
+//!   land drains, a flat spill-level water surface inside a depression), which is
+//!   free-surface head exactly. The shipped MFD partition descends `filled` and
+//!   **does not read this module at all**. Worse, reading it here would be
+//!   *wrong*: this plane is the **bound** regime's potential and it is built to
+//!   cross surface drainage divides (see
+//!   `bound_head_crosses_a_surface_drainage_divide` below) — routing surface water
+//!   down it would make rivers cross their own watersheds, which flow.md § 2.4
+//!   forbids for the free regime. **Bound MFD — Darcy flux partitioned across
+//!   faces on this plane — is real, unbuilt, and belongs to continuation (c) with
+//!   the free/bound edge.**
 //! - **No recharge source term.** `∇·(T∇h) = −R` needs `R/T` in real units, i.e. a
 //!   real conductivity **and** a real precipitation depth; `grid.precip` is
 //!   normalized 0..1 with no depth scale. So this is the **recharge-free steady
