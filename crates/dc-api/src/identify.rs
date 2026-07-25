@@ -148,7 +148,11 @@ mod tests {
         let id = Identity::resolve(Block::Stone, Some(VoxelContents::EMPTY));
         assert_eq!(id, Identity::Unrecorded);
         assert!(id.mixture().is_none());
-        assert_eq!(id.classified(), None, "classify must not run on a non-record");
+        assert_eq!(
+            id.classified(),
+            None,
+            "classify must not run on a non-record"
+        );
     }
 
     #[test]

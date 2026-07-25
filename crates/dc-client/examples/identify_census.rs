@@ -99,9 +99,10 @@ fn main() {
     // behind a Mutex serving both blocks and contents.
     let generator = Arc::new(Mutex::new(WorldGenerator::new_owned(pregen.clone())));
     let seam = generator.clone();
-    let mut world = HostWorld::with_generator(SEED, Box::new(move |pos| {
-        seam.lock().expect("generator").generate_chunk(pos)
-    }));
+    let mut world = HostWorld::with_generator(
+        SEED,
+        Box::new(move |pos| seam.lock().expect("generator").generate_chunk(pos)),
+    );
     let contents_gen = generator.clone();
     world.set_contents_source(Box::new(move |pos: ChunkPos| {
         contents_gen.lock().expect("generator").chunk_contents(pos)
@@ -163,7 +164,12 @@ fn main() {
     );
 
     // ----------------------------------------------------------------- census
-    println!("\n--- CENSUS: {} columns on a {} voxel lattice, top {COLUMN_DEPTH} voxels each\n", (2 * CENSUS_SPAN + 1) * (2 * CENSUS_SPAN + 1), CENSUS_STEP_VOXELS);
+    println!(
+        "\n--- CENSUS: {} columns on a {} voxel lattice, top {} voxels each (h-{COLUMN_DEPTH}..=h)\n",
+        (2 * CENSUS_SPAN + 1) * (2 * CENSUS_SPAN + 1),
+        CENSUS_STEP_VOXELS,
+        COLUMN_DEPTH + 1
+    );
     let mut solid = 0u64;
     let mut phantom_before = 0u64;
     let mut phantom_after = 0u64;

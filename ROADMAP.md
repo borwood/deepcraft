@@ -2432,7 +2432,9 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     dc-worldgen change was needed**. A *non-empty* record still wins outright, so
     the block/classified divergence that signals an edit stays legible. Census
     through the real query path (`dc-client/examples/identify_census.rs`): phantom
-    air **CENSUS_BEFORE → CENSUS_AFTER**. **Still owed by this arc:** everything in
+    air **702 → 0** (of 10 985 solid voxels over 169 columns; the 702 land in
+    `UNRECORDED` beside the 4 211 that were already honest, and the 6 072 recorded
+    mixtures do not move). **Still owed by this arc:** everything in
     the continuation slot below — nothing was drained, deleted, or migrated, and
     the path remains **edit-blind for composition** (an edit writes a `Block`; no
     mixture is stored, so none can move).
@@ -3172,8 +3174,11 @@ before any code.
   `character_sense_raycast` answers `None` (its documented promise) instead of `Some(<empty
   view>)`, and the F3 HUD's `(no contents record here)` branch is **reachable**. Census through
   the real query path (`dc-client/examples/identify_census.rs`, same lattice as the diagnosis
-  probe): phantom air **CENSUS_BEFORE → CENSUS_AFTER** of CENSUS_SOLID solid voxels; every
-  phantom voxel converted to `UNRECORDED`, recorded mixtures and sky unmoved. **Zero
+  probe): phantom air **702 → 0** of 10 985 solid voxels (6.4 % → 0.0 %), 39/169 columns →
+  0; every phantom voxel converted to `UNRECORDED` (4 913 = 702 + the 4 211 already honest),
+  recorded mixtures (6 072) and sky unmoved. At journal/0097's own station the band
+  288–299 now reads `UNRECORDED` and **agrees with 287**, which the chunk floor used to
+  split. **Zero
   dc-worldgen change** — the stored `Block` already disambiguates. *Entry kept, marked, because
   the numbers below are the measured baseline.*
 

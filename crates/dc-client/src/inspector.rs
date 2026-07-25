@@ -199,8 +199,8 @@ mod tests {
     /// A recorded mixture still prints its segments unchanged.
     #[test]
     fn a_recorded_mixture_still_prints_its_materials() {
-        let c = VoxelContents::new(StructureShape::Full, &[MaterialId::GRANITE; 8], &[], &[])
-            .unwrap();
+        let c =
+            VoxelContents::new(StructureShape::Full, &[MaterialId::GRANITE; 8], &[], &[]).unwrap();
         let s = format_readout(
             dc_api::Vec3i::new(1, 2, 3),
             "dc:granite",

@@ -350,7 +350,9 @@ impl HostWorld {
     /// the installed [`ContentsSource`], which is a pure function of position
     /// today. See [`crate::identify`] for the enabler that separates *"no
     /// record"* from *"nothing here"*, and for the edit-blindness seam.
-    pub fn identify(&self, p: Vec3i) -> Identity {
+    /// (`&mut` because the resident-first block read may have to generate and
+    /// cache the chunk — the same reason [`HostWorld::block_at`] takes it.)
+    pub fn identify(&mut self, p: Vec3i) -> Identity {
         Identity::resolve(self.block_at(p), self.contents_at(p))
     }
 

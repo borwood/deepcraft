@@ -191,14 +191,44 @@ At journal/0097's own station (world 84 185 m / 9 212 m → voxel 93 539 / 10 23
 surface `h = 300`):
 
 ```
-CENSUS_STATION
+  vy | block    | BEFORE has_contents / classified | AFTER identify
+-----+----------+----------------------------------+---------------------
+ 302 | dc:air   | true  / dc:air                   | mixture: EMPTY (air)
+ 301 | dc:air   | true  / dc:air                   | mixture: EMPTY (air)
+ 300 | dc:peat  | true  / dc:peat                  | mixture: dc:peat
+ 299 | dc:stone | true  / dc:air   <== phantom     | UNRECORDED
+  …                                (12 voxels)
+ 288 | dc:stone | true  / dc:air   <== phantom     | UNRECORDED
+ 287 | dc:stone | false / dc:stone                 | UNRECORDED
+ 286 | dc:stone | false / dc:stone                 | UNRECORDED
+
+station column: phantom-air BEFORE 12, AFTER 0
 ```
+
+The band is 288–299, the transition at the chunk floor `9 × 32`, exactly as
+journal/0097 reported it and the diagnosis reproduced it. Note the last two
+rows: 287 and 288 are the *same physical situation* — solid, unrecorded — and
+the old query gave them opposite answers because a chunk boundary ran between
+them. They now agree, which is the real repair.
 
 Across 169 columns on a 4 096-voxel lattice, top 65 voxels each:
 
 ```
-CENSUS_TOTALS
+columns examined                : 169
+solid voxels examined           : 10985
+BEFORE phantom air (the defect) : 702    (6.4 % of solid)
+BEFORE honest no-record         : 4211   (38.3 %)
+BEFORE columns with >=1 phantom : 39 / 169
+AFTER  phantom air              : 0      (0.0 %)
+AFTER  UNRECORDED (solid)       : 4913   (44.7 %)
+AFTER  recorded mixture (solid) : 6072   (55.3 %)
+BEFORE per-column phantom spread: 1..32
 ```
+
+`702 + 4211 = 4913`. The recorded-mixture count (6 072) is bit-for-bit the
+diagnosis probe's, and so are 702 / 10 985 / 39-of-169 — the same numbers from a
+different instrument, which is the closest thing to a control this measurement
+can have.
 
 The load-bearing assertion is not the zero — it is the accounting identity the
 example checks: **every** BEFORE-phantom voxel and **every** BEFORE-honest
