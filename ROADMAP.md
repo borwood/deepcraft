@@ -2569,10 +2569,16 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   shipped 2026-07-25) — the band is now a graded **19-voxel** front, ~**2.67×** deeper than the
   old slab, with **retained parent structure at the bottom contact** (7/8 parent + 1/8 product)
   instead of a hard perimeter; station world **(84185 m, 9212 m)**, voxels **y=299…281** — cut a
-  **bench** (not a pit), `--fullbright`, read with `world_get_contents`; **(3)** the geotherm's
-  coal-distribution shift when it lands (coal
-  moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
-  named for their entry.
+  **bench** (not a pit), `--fullbright`, read with `world_get_contents`; **(3)** ⚠️ **the
+  geotherm's coal-distribution shift — THE WALK IS A NULL AND NEEDS NO GAME TIME** (tour-mapped
+  2026-07-25, `examples/coal_walk_tour.rs`; corrections #51): **the shipped world has ZERO coal**,
+  so there is nothing to look at. The appearance question the user was going to be asked ("is this
+  seam thick enough?") is **replaced by a content question** — *"is a coal-free world acceptable
+  for now?"* — answerable at the desk, not in-game. **Do not spend a walk on it.** See the
+  🔴 Observed entry. *(A fallback peat station exists if the world is ever walked for organics
+  anyway: world −8266, −45533, surface 263.7 m, 2.7 m of peat outcropping at the surface — no
+  bench needed; nearest-to-Station-A alternative at 58867, −34963, 50.9 km away.)*
+  Screenshots to `journal/assets/` named for their entry.
 
 - ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0100).** Measured result: flag-ON
   `DeepField` **311.02 → 179.12 MiB**, the flag's own cost **+161.81 → +29.91 MiB (5.41×)**,
@@ -3456,6 +3462,35 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **🔴 THE SHIPPED WORLD HAS ZERO COAL — and the guard that should have caught it runs on a
+  different world** (measured 2026-07-25, `examples/coal_walk_tour.rs`; **corrections #51**).
+  **USER CALL REQUIRED — this is a world-content question, not a bug to quietly fix.**
+  - **The fact.** On the world `dc-client` boots (`BENCH_SEED = 1337`, `Extent::Medium`):
+    **0 coal units across all 297,025 deep cells**, against **27,134 peat units in 14,596 cells**.
+    The hottest coalification candidate is **15.4 °C** against `COAL_ONSET_C = 22 °C` — **6.6 °C
+    short**. Trial-onset curve on this world is a cliff: `4 °C → 87 %`, `8 °C → 31 %`,
+    `12 °C → 9 %`, **`16 °C+ → 0 %`**.
+  - **The instrument is proven, so the zero is real.** The same census over `0x0D5EED572026 /
+    Medium` — the world journal/0093's numbers came from — finds **1182 coal cells / 1834 runs**.
+    It sees coal when coal exists.
+  - **Why the guard missed it (the root defect).** `tests/geotherm.rs::production_field()` builds
+    **`seed 0x0B0A_57EE_0059, Extent::Small`** — *neither the production seed nor the production
+    extent*. A helper **named** `production_field` builds a world nobody ships, and the A-3 guard
+    `the_geotherm_coal_shift_is_plausible_not_degenerate` rests on it. Coal evidence is spread
+    across **three seeds, none of them the player's.**
+  - **The geotherm's physics is NOT at fault.** On a world with coal it followed the warm crust
+    exactly as claimed (coal cells mean gradient 41.9 °C/km vs peat-only 31.3; rift/arc ≥40 →
+    13.4 % coal, craton <20 → 0 %). **Seed 1337 has no warm crust with peat on it.**
+  - **OPTIONS (user's):** **(a)** accept a coal-free world for now — coal is a blessed placeholder
+    and biology will recalibrate it anyway; **(b)** lower `COAL_ONSET_C` toward the cliff's live
+    range (`≈8–12 °C` gives 31 %/9 % on this world) as an interim seat; **(c)** treat it as
+    evidence that a single global onset temperature is the wrong shape and let the
+    genesis-passes/property-driven arc subsume it; **(d)** change the shipped seed — **rejected by
+    the integrator as backwards**, tuning the world to fit a constant.
+  - **INDEPENDENT OF (a)–(d), and not a content question: FIX `production_field()`.** A helper
+    named for an environment must **be** that environment, or every future claim routed through it
+    inherits the same lie. Highest-leverage single line in this entry.
 
 - **⚠ A TIE-BREAK IS DECIDING PHYSICS AGAIN — `reads_prev` is documentation, not a
   mechanism** (spine-audit 2026-07-25; **the SECOND instance in two sweeps**, and the

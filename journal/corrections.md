@@ -1646,3 +1646,55 @@ attributable figure and they are systematically the *top contact* voxels, not a
 random tenth. This instrument cannot measure them at all. The conclusion rests on
 stage 1 covering **100 %** of voxels and coming out flat, plus the code-level
 proof that the draw is unbiased by construction. See journal/0103.
+
+## 51. "The geotherm's coal recalibration still leaves a diggable seam on Medium" (journal/0093 / ROADMAP, 2026-07-24 — falsified 2026-07-25)
+
+**The claim.** journal/0093 shipped the geotherm's coal recalibration (`COAL_ONSET_C 8 → 22 °C`)
+with: *"12 % → 60 % of peat candidates, relocated to warm crust, **still a diggable seam on
+Medium**"*, guarded by `the_geotherm_coal_shift_is_plausible_not_degenerate` and
+`MIN_DIGGABLE_COAL_VOX = 6`. The ROADMAP recorded it as **world-changing: coal moves**.
+
+**Falsified — the shipped world has NO COAL AT ALL.** On the world `dc-client` actually boots
+(`BENCH_SEED = 1337` at `dc-client/src/bench.rs:17`, `WORLDGEN_EXTENT = Extent::Medium` at
+`authority.rs:58`, passed to `Pregen::run_with` at `:209`): **0 coal units across all 297,025
+deep cells**, against **27,134 peat units in 14,596 cells**. Not a thin seam — **zero**. The
+hottest coalification candidate on the entire world is **15.4 °C**, i.e. **6.6 °C short of the
+22 °C onset**; candidate temperatures run `p05 3.4 / p50 6.2 / p95 13.2`. The trial-onset curve
+on this world is a cliff: `4 °C → 87 %`, `8 °C → 31 %`, `12 °C → 9 %`, **`16 °C and up → 0 %`**.
+
+**Why the guard did not catch it — the root defect, and it is a naming failure as much as a
+testing one.** `tests/geotherm.rs::production_field()` builds
+`seed 0x0B0A_57EE_0059, Extent::Small`. **That is neither the production seed nor the production
+extent.** A helper *named* `production_field` builds a world nobody ships, and every assertion
+resting on it — including the A-3 guard written specifically to stop a magnitude claim from being
+believed unverified — was measured on that world. A third seed (`0x0D5EED572026`) appears
+elsewhere in the coal corpus, so the coal evidence is spread across **three worlds, none of them
+the one the player walks.**
+
+**The instrument is proven, so the zero is real.** A zero from an unproven census is not evidence,
+so the probe (`examples/coal_walk_tour.rs`) ran the identical code over
+`0x0D5EED572026 / Medium` — the world journal/0093's numbers came from — and found **1182 coal
+cells / 1834 coal runs**, thickness p50 0.47 m / max 7.05 m. **The census sees coal when coal
+exists.** The production zero is a fact about the world, not about the tool.
+
+**The geotherm's physical claim is NOT falsified.** On a world that has coal, coal genuinely
+followed the warm crust: coal cells mean gradient **41.9 °C/km** vs peat-only **31.3**, mean
+surface T **22.9 °C** vs **11.4**; rift/arc ≥ 40 °C/km → **13.4 % coal**, craton < 20 → **0 %**.
+The mechanism works. **Seed 1337 simply has no warm crust with peat on it**, and a threshold
+calibrated on warm worlds fell off a cliff on a cold one.
+
+**Lessons.**
+1. **"Accept by OUTCOME, at production scale" means the world the PLAYER boots** — not a world
+   named "production". This is corrections #46 one turn deeper: there the A-3 guard was green on a
+   hand-fed magnitude; here it is green on a hand-picked *world*. **A guard is only evidence about
+   the world it actually ran.**
+2. **A helper named for an environment must BE that environment**, or it is a summary wearing an
+   authority's clothes at the harness level. `production_field()` is the single highest-leverage
+   line to fix, because every future coal/geotherm claim will route through it.
+3. **A threshold calibrated on one world needs its sensitivity reported, not just its value.** The
+   trial-onset curve (87 % → 31 % → 9 % → 0 %) shows `COAL_ONSET_C` sits on a cliff edge; that
+   curve was computable at calibration time and would have shown the risk immediately.
+4. Integrator note: the ROADMAP already carried *"don't over-calibrate a placeholder — it will just
+   be calibrated again"* (user, 2026-07-24). That was correct guidance about **effort**, and it is
+   **not** a licence for the calibration to go unverified on the shipped world. Cheap-to-check and
+   not-worth-tuning are different things.
