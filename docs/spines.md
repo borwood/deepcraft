@@ -678,6 +678,36 @@ so a sweep must ask "does the cited constraint still hold?"
   to re-derive. *Proposed:* the same one-line `> **SUPERSEDED 2026-07-25
   (journal/0100)** — the ledger is now flat facts + a sparse `SlotRun` CSR index; the
   shape below is the one the spike built and the one 0100 measured.*
+- **instance, and a variant worth naming (2026-07-25, journal/0105 — RETIRED in the
+  same commit): a justification that never had a premise to outlive.**
+  `collapse.rs`'s `pore_rider_share` documented its offset as *"a **low digit** of the
+  voxel's own fill draw, not its high bits: `allocate_partial` consumes the high end,
+  and reusing it here would correlate … into a visible pattern."* It was reusing them:
+  `(u * 4096.0) as u64 & 7` is bits 8–10 of the 20-bit offset `allocate_to` consumes,
+  so the pore offset was a **deterministic function** of the allocation offset —
+  measured at **100.00 % predictable** over 464,521 real decisions. The variant: this
+  is not a justification that expired, it is one that was **false when written and had
+  no way to be checked**, because a claim about bit ranges has no gate. The A-2 sweep
+  asks "does the cited constraint still hold?"; this one asks the prior question,
+  **"did it ever?"**, and the answer is only available by *computing* the claim. Two
+  lessons kept from the fix: the claim is now asserted (`fill.rs`
+  `no_window_of_the_fill_draw_predicts_the_pore_offset` — over *every* 3-bit window, not
+  the two the comment happened to name, so it cannot rot when a field widens), and the
+  disjointness is **structural** (own salt, `PoreDraw` newtype) rather than documented.
+  **And looking for the harm the comment named is what found the harm it did not**: one
+  `u` per voxel served every band in it, so sibling riders at a front rounded in lockstep
+  (`r = +0.4878`, 1.488× the variance independent roundings give). *A wrong justification
+  is worth chasing even when its stated consequence turns out to be nil.*
+  **The fix was not a better comment.** The user's escalation — *"every caller gets
+  allocated their own band of the hash … fix it with a construction guarantee"* —
+  turned it into a mechanism: `dc_sim::statistical::rng`'s `Domain`/`Draws` provider
+  and the `draw_domains!` list, where a duplicate salt is a `const` assertion failure
+  and a duplicate name is a duplicate type. **This is the general answer to A-2 for a
+  whole class of claims**: when a justification asserts a property the language could
+  enforce instead, the durable move is to make the property structural and delete the
+  claim. Twenty-six hand-rolled salts across three files and three invented numbering
+  prefixes (an **A-1** instance in its own right — three authors each building the
+  same registry beside the others') are now one list per crate.
 - not-an-instance (2026-07-23, journal/0078): the 2026-07-22 audit flagged the
   `exhum`/`t_crust` comment [#28] as an A-2 ("claims the collapse tier reads
   them"), but the comment already said "WILL read … currently consumed by

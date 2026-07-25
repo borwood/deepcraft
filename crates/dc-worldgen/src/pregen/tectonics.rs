@@ -8,9 +8,10 @@
 //! radius is forced oceanic, so every continent is finite and every margin is
 //! eventually passive. The trade-offs are discussed in the S7 results doc.
 
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
 
-use super::{Cell, CellGrid, Provenance, SALT_CELL, SALT_PLATE};
+use super::{Cell, CellGrid, Provenance};
+use crate::draws::{Cell as CellDomain, Plate as PlateDomain};
 
 struct Plate {
     x: f64,
@@ -33,13 +34,13 @@ pub fn build(seed: u64, w: i32) -> CellGrid {
     let plates: Vec<Plate> = (0..n_plates)
         .map(|p| {
             let p64 = p as u64;
-            let x = draw_f64(&[seed, SALT_PLATE, p64, 0]) * wf;
-            let y = draw_f64(&[seed, SALT_PLATE, p64, 1]) * wf;
-            let ang = draw_f64(&[seed, SALT_PLATE, p64, 2]) * std::f64::consts::TAU;
-            let speed = 0.4 + 0.6 * draw_f64(&[seed, SALT_PLATE, p64, 3]);
+            let x = Draws::of::<PlateDomain>(seed).unit(&[p64, 0]) * wf;
+            let y = Draws::of::<PlateDomain>(seed).unit(&[p64, 1]) * wf;
+            let ang = Draws::of::<PlateDomain>(seed).unit(&[p64, 2]) * std::f64::consts::TAU;
+            let speed = 0.4 + 0.6 * Draws::of::<PlateDomain>(seed).unit(&[p64, 3]);
             let r = ((x - center).powi(2) + (y - center).powi(2)).sqrt();
             let p_cont = if r < wf * 0.33 { 0.85 } else { 0.25 };
-            let continental = draw_f64(&[seed, SALT_PLATE, p64, 4]) < p_cont;
+            let continental = Draws::of::<PlateDomain>(seed).unit(&[p64, 4]) < p_cont;
             Plate {
                 x,
                 y,
@@ -67,7 +68,9 @@ pub fn build(seed: u64, w: i32) -> CellGrid {
                 }
             }
             let disc_d = ((cx - center).powi(2) + (cy - center).powi(2)).sqrt();
-            let noise = draw_f64(&[seed, SALT_CELL, gx as u64, gy as u64]).mul_add(2.0, -1.0);
+            let noise = Draws::of::<CellDomain>(seed)
+                .unit(&[gx as u64, gy as u64])
+                .mul_add(2.0, -1.0);
             let continental = plates[plate].continental && disc_d < ocean_r;
             let (mut elev, mut provenance) = if continental {
                 (260.0 + 140.0 * noise, Provenance::Craton)

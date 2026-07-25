@@ -99,6 +99,117 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
     rejection (`GraphError::ContradictoryLag`): against another writer it is a 2-cycle, but
     against itself the opposed edges cancel as a dropped self-edge and would pass silently.
     `pipeline.rs` hands `reads_prev: &[]` **structurally** — a one-shot DAG has no previous value.
+- 2026-07-25 — **Two draws, one number: a randomness PROVIDER, and every caller gets its own band
+  of the hash** (journal/0105; background agent, worktree). User-ratified twice — *"this needs
+  fixed either way. **Decorrelate**"*, then *"we could have some utility system that is a
+  **randomness provider** … ensuring that every caller gets allocated their own band of the hash …
+  it would be optimal to fix it with a **construction guarantee**."* Discharges the Observed loose
+  end journal/0103 filed against `pore_rider_share`'s comment, and retires the convention that
+  produced it.
+  - **THE MECHANISM.** `dc_sim::statistical::rng`: a `Domain` trait (one named purpose = one band),
+    a `Draws` stream (`Draws::of::<D>(seed).unit(&[addr…])`), and a `draw_domains!` macro declaring
+    a crate's whole set in one list. **Two ways to collide, both closed at compile time**: a
+    duplicate *salt* trips the `const _: () = assert!(all_salts_distinct(ALL_DOMAINS))` the macro
+    emits; a duplicate *name* is a duplicate type definition. A call site cannot reach a stream by
+    writing a number — `Draws::of` takes a **type**. Reuse stays available (two sites of one
+    conceptual draw *should* share a domain) but only by naming it.
+  - **Salt values are explicit, not ordinals** — deriving them from list position would make
+    duplicates structurally impossible but would **re-roll the planet whenever the list is
+    sorted**. These numbers are baked into every world ever generated. The compiler checks
+    distinctness instead.
+  - **ALL 26 HAND-ROLLED SALTS CONVERTED**, from three files under three unrelated prefixes
+    (`0x5700_*` `pregen/mod.rs`, `0x5900_*` `deeptime/grid.rs`, `0x5B00_*` `deeptime/biotic.rs` —
+    three authors each inventing a prefix and hoping) into one list per crate. dc-worldgen
+    (`src/draws.rs`, 20 domains): every call site in `pregen/{mod,tectonics,history}.rs`,
+    `geology.rs`, `collapse.rs`, `fill.rs`; `interp_select_draw` → `draws::interp_corner_field`.
+    dc-sim (`statistical/world.rs`, 6 domains): four call sites converted.
+  - **EVERY WORLD IS BYTE-IDENTICAL ACROSS THE CONVERSION.** `Draws::bits` folds
+    `(seed, salt, addr…)` through the same splitmix chain `mix(&[…])` did, so
+    `Draws::of::<Plate>(seed).unit(&[p, 0])` **is** `draw_f64(&[seed, SALT_PLATE, p, 0])` — and the
+    S7 / providers / contents goldens are the proof, unmoved.
+  - **THREE HOLES, NAMED IN CODE RATHER THAN PAPERED.** (1) *Tag space inside a domain is still
+    hand-laid* — `GeoSelect` tags 0–3, `GeoAccessory`'s `tag`/`tag + 1024`: hand-rolled
+    sub-domains, same failure mode, smaller scale. (2) *Two `dc-sim/engine.rs` draws address
+    `[seed, k, SALT, …]`* — the sample index before the domain, so converting them re-rolls every
+    world's history layer; deliberate, world-changing, sequenced on its own rather than smuggled
+    in here. The salt still has one spelling. (3) *A recorded salt is data*: `StrataEvent::sel_salt`
+    replays a past selection, so `Draws::from_recorded_salt` exists with a name long enough to be
+    friction. Plus `deeptime/`'s three domains are **registered** (so nothing can re-issue
+    `0x5900_0001`) while their call sites still spell the constant locally, with
+    `the_deeptime_constants_agree_with_their_registered_domains` holding the copy to the authority.
+  - **THE CORRELATION, QUANTIFIED.** `pore_rider_share` sliced its 3-bit offset out of the very
+    `fill_draw` `allocate_partial` consumes, under a comment claiming the two were disjoint. Over
+    **464,521 real rider decisions** (production world, seed 1337, Medium, 48 chunk-columns at the
+    strongest weathering cells): the pore offset was **100.00 % predictable** from bits 8–10 of the
+    allocation's 20-bit offset — a *deterministic function*, zero conditional entropy. After:
+    **no** 3-bit window of the allocation offset predicts it better than **12.57 %** (chance
+    12.50 %), across all eighteen windows.
+  - **AND THE COUPLING THE COMMENT FEARED MEASURED ZERO.** Residual-vs-residual `r = +0.0006`
+    (retired) / `+0.0012` (decorrelated); mutual information 0.0609 bits against a **measured
+    estimator floor of 0.0610**; the dither's entropy conditioned on `(band, allocation outcome)`
+    **2.999 of 3.000 bits** both ways. Mechanism: the allocation's decision is a *contiguous
+    interval* in its offset, bits 8–10 are a *fast sawtooth* across it (cycling every 2,048 of
+    1,048,576), so they alias to uniform unless a band's fractional remainder is under 0.2 % of an
+    eighth. **The comment was wrong about the mechanism and right about the outcome, for a reason
+    it did not know.**
+  - **THE DEFECT THAT WAS REAL IS A DIFFERENT ONE, and nobody had named it.** `mixed_at` drew `u`
+    **once per voxel** and handed the same three bits to **every** band in it. A weathering front
+    is many thin bands of one parent differing only in pore share (journal/0099 widened the merge
+    key precisely to keep them separate), so a contact voxel routinely carries several rider
+    decisions — **187,701 sibling pairs** in the sample. On a shared offset each is the same
+    monotone step function of it, so they rounded in lockstep: **`r = +0.4878`**, and a multi-band
+    voxel's total product carried **1.488× the second moment** independent roundings give. The
+    errors *added* instead of cancelling — under an estimator whose entire justification
+    (journal/0055, /0103) is that they cancel. After: `r = −0.0012`, ratio **0.999×**.
+  - **IS THE BANDING VISIBLE? NO — measured, not asserted.** Banding is spatial structure, so the
+    instrument measures spatial structure: one chunk-column's 32×32 contact plane, where all 1,024
+    voxel columns share **one record and one fill plan**, so the only thing varying is the draw.
+    Every autocorrelation at lags 1–4 in both axes is inside **±0.07** of zero, **before and
+    after** (retired lag-1 `+0.0005, −0.0261`; decorrelated `−0.0099, +0.0113`); mean same-sign run
+    along x **1.889 → 1.947** against 2.000 for no structure. *Structurally* absent, not merely
+    subtle: both offsets are functions of a position hash, so a dependency between two decisions
+    **at one voxel** cannot make structure **between** voxels. **"The fix was correct and the
+    artifact was imperceptible"** is the honest result, and it retires the fullbright-walk next
+    step Observed had filed.
+  - **THE FIX, in the form that is hard to un-do.** (1) `SALT_GEO_PORE` — domain separation by
+    salt, which stays disjoint whatever widths either offset grows into, where a bit-range
+    carve-out is only disjoint for the widths it was written against. (2) The **event index** in
+    the address — this is what fixes the defect that mattered. (3) `pore_rider_share` no longer
+    takes an `f64` but a **`PoreDraw`**, field private to `fill.rs`, sole constructor `pore_draw`,
+    sole mention of the salt: handing it the fill draw is now a **type error**. It also **moved
+    from `collapse.rs` into `fill.rs`**, beside `allocate_partial` — the two quantizers of one
+    voxel are checkable at a glance only on one screen. `fill_offset` / `FILL_OFFSET_BITS` exposed
+    so nothing keeps a *copy* of the allocation's offset expression in order to reason about it.
+  - **GATED THREE WAYS, and the gate carries its own control.**
+    `no_window_of_the_fill_draw_predicts_the_pore_offset` and
+    `two_bands_in_one_voxel_draw_independent_offsets` (fill.rs, 40,000 addresses),
+    `the_pore_rider_share_is_unbiased_over_its_offset` (enumerated, exact), and in the new gated
+    probe `the_pore_offset_is_no_longer_readable_out_of_the_fill_offset`,
+    `sibling_riders_in_one_voxel_round_independently`,
+    `the_decorrelation_moves_product_without_creating_it`. The probe reproduces the **retired**
+    formula and asserts it still scores **100 %** on the same data — a before/after inside one run,
+    so the control cannot silently stop being the control.
+  - **WHAT MOVED: NOTHING IN ANY GOLDEN — and the reason is worth more than the fix.**
+    `weather_inventory` is **off by default** (`grid.rs`: *"the production flip is the user's"*),
+    and the weathering front is the **only** producer of a *loose* pore rider. So the world every
+    golden hashes makes **no pore-rider decision at all**. **Measured, not inferred** (probe Part
+    5, same seed, same chunk-columns, flag off vs on): **0 decisions** on the shipped default,
+    **464,521** with `--weather-inventory`. This is corrections #51's shape a second time in two
+    days — *the guard runs on a world nobody ships*. **Habit worth keeping: when a slice moves
+    nothing, check whether the thing it moves exists in the default build before congratulating
+    yourself on byte identity.**
+  - **WHERE THE WORLD DOES MOVE** (behind `--weather-inventory`, which is where every weathering
+    number in the corpus was measured): **32.0 % of rider decisions** (148,590 of 464,521),
+    **45.5 % of rider voxels** (125,899 of 276,820) = **4.66 % of the 2,700,288 recorded voxels**
+    sampled. **Net +332 eighths over 464,521 decisions (+0.0007 each)** — a redistribution, not a
+    gain; `fill.rs` asserts the mean is `cnt·k8/8` by enumerating all eight offsets. **Visible
+    character: none** — one eighth of product moving between parent and product *inside* a contact
+    voxel, in a field that was white noise before and after.
+  - Files: `crates/dc-sim/src/statistical/{rng.rs,world.rs,engine.rs}`,
+    `crates/dc-worldgen/src/draws.rs` (new), `crates/dc-worldgen/src/{fill.rs,collapse.rs,
+    geology.rs,lib.rs,pregen/{mod,tectonics,history}.rs,deeptime/biotic.rs (visibility only)}`,
+    `crates/dc-worldgen/examples/pore_decorrelation_probe.rs` (new, `test = true`),
+    `crates/dc-worldgen/Cargo.toml`, `docs/spines.md` (A-2).
 
 - 2026-07-25 — **The per-cell ledger header collapses: ONE record for the grid, the cell as a CSR
   row** (journal/0102; background agent, worktree; **PURE LAYOUT CHANGE**). Discharges the OWED
@@ -2481,6 +2592,21 @@ see the question you are asking.
 
 ## Sequenced
 
+- **Finish the draw-domain conversion: the three residual hand-rolled sites** (opened 2026-07-25
+  by journal/0105, which converted 26 of them and named these). Small, and each is named in code
+  so it cannot be lost. **(a) `dc-sim/engine.rs`'s region-step and agent-step draws** address
+  `[seed, k, SALT, …]` — the sample index sits before the domain, so putting them on `Draws::of`
+  (which fixes the domain at slot 2) changes the key and **re-rolls every world's history layer**:
+  polities, sites, ruins. That is a real appearance change and wants its own slice with the
+  goldens re-baselined, not a footnote in someone else's. **(b) `deeptime/{grid,biotic}.rs`'s
+  three call sites** still spell `SALT_DT_ROUGH` / `SALT_BIO_FIRE` / `SALT_BIO_FLOOD` locally;
+  the domains are registered and an agreement test holds them, so this is byte-identical
+  housekeeping — three lines, owned by whoever holds those files. **(c) Tag space inside a
+  domain** (`GeoSelect`'s tags 0–3, `GeoAccessory`'s `tag` / `tag + 1024`) is hand-laid
+  sub-domaining with journal/0105's exact failure mode at smaller scale; a `Domain` per decision
+  fixes it and costs a longer list. Byte-identity impact: (b) none, (c) none if the tags are kept,
+  (a) every world.
+
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice
 was a slice OF. Each names WHAT, WHY, how it UNIFIES with the larger threads, its
@@ -3866,10 +3992,22 @@ before any code.
   says it avoided. **Measured consequence on mass: none detectable** (journal/0103's stage-2 figure
   is the joint case: −0.60 % aggregate, median −0.00 % over 247 columns), because each draw is
   marginally unbiased. The open question is the one the comment actually cared about: whether the
-  correlation is **visible** as a pattern at a contact. **Not touched** — re-addressing the rider's
-  draw moves every contact voxel in the world, which is an appearance change and the user's call.
-  Cheap next step: a fullbright walk along a strong front looking for banding correlated with the
-  parent's eighth, before any code moves.
+  correlation is **visible** as a pattern at a contact.
+  - **RESOLVED 2026-07-25 — decorrelated, and the visibility question answered NO** (journal/0105;
+    user-ratified *"this needs fixed either way. Decorrelate."*). Quantified before the fix: the
+    pore offset was not merely correlated with the allocation's offset, it was a **deterministic
+    function** of it — 100.00 % predictable from bits 8–10 of the 20-bit offset, over 464,521 real
+    decisions. But the coupling the comment feared measured **zero**: `r = +0.0006` between the two
+    roundings' residuals, mutual information on the estimator floor, and the dither's entropy given
+    everything the allocation decided still **2.999 of 3.000 bits** — bits 8–10 are a fast sawtooth
+    across the allocation's contiguous decision interval, so they alias to uniform. **No banding,
+    measured spatially**: on a 32×32 contact plane sharing one record and one fill plan, every
+    autocorrelation at lags 1–4 is inside ±0.07 before *and* after. **The defect that was real was
+    a different one**: `u` was drawn once per voxel and served **every** band in it, so a
+    multi-band front voxel's riders rounded in lockstep (`r = +0.4878` over 187,701 sibling pairs)
+    and their errors **added** — 1.488× the second moment independent roundings give. Fixed by
+    `SALT_GEO_PORE` + the event index + a `PoreDraw` newtype the fill draw cannot be passed to.
+    See Shipped.
 
 - **A front's parent alternates diorite/granite down a single column** (observed 2026-07-25 by the
   weathering-profile slice; **pre-existing, merely made visible**). `Single` voxels resolve their

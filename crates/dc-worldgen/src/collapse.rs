@@ -42,17 +42,15 @@ use dc_core::{
     Block, CHUNK_VOLUME, Chunk, ChunkPos, ContentsGrid, MaterialChunk, MixtureId, MixtureTable,
     StructureShape, VoxelContents, VoxelScale, classify,
 };
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
 
-use crate::fill::{ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents};
-use crate::geology::{
-    StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member, interp_select_draw,
+use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
+use crate::fill::{
+    ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
 };
+use crate::geology::{StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member};
 use crate::pipeline::PipelineError;
-use crate::pregen::{
-    CELL_VOXELS, Pregen, Provenance, SALT_ELEV, SALT_GEO_CLASS, SALT_GEO_SELECT, SALT_RUIN,
-    temp_sea_level,
-};
+use crate::pregen::{CELL_VOXELS, Pregen, Provenance, temp_sea_level};
 
 /// Lattice level whose spacing is one region (8 192 voxels, 7.37 km).
 pub const L_REGION: u8 = 1;
@@ -669,13 +667,16 @@ impl<'a> WorldGenerator<'a> {
                 // ledger conserves. Its share is **proportional** to the eighths
                 // its host actually won (unlike the `ore` rider above, whose
                 // `min` semantics are left exactly as they were: changing them
-                // would move every placer voxel in the world).
+                // would move every placer voxel in the world). It rounds on
+                // **its own** addressed draw, keyed by the event, so it is
+                // independent both of the allocation that produced `cnt` and of
+                // the sibling bands' riders in this same voxel (journal/0105).
                 //
                 // A *structural* accessory (the 1/8 igneous inclusion) is still
                 // dropped at contacts — the pre-0099 carve-out, kept so no
                 // existing world moves; filed as a loose end on stubs.md #20.
                 (_, Some((rider, k8))) if k8 > 0 && crate::fill::is_loose(&self.geology, rider) => {
-                    let g = pore_rider_share(cnt, k8, u);
+                    let g = pore_rider_share(cnt, k8, pore_draw(self.seed, vx, vy, vz, k));
                     if cnt > g {
                         parts.push((e.member, cnt - g));
                     }
@@ -864,7 +865,7 @@ impl<'a> WorldGenerator<'a> {
             let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
             let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
             let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
-            let u = interp_select_draw(self.seed, SALT_GEO_SELECT, 4, cx, cz, fx, fz);
+            let u = interp_corner_field(Draws::of::<GeoSelect>(self.seed), 4, cx, cz, fx, fz);
             let member = self.geology.select(class, &form, u).map(|(i, _)| i);
             let block = member
                 .map(|m| Block::Material(self.geology.member(m).material))
@@ -992,7 +993,7 @@ impl<'a> WorldGenerator<'a> {
                 let (ccx, ccz) = (vx.div_euclid(32), vz.div_euclid(32));
                 let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
                 let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
-                let u = interp_select_draw(self.seed, SALT_GEO_CLASS, 0, ccx, ccz, fx, fz);
+                let u = interp_corner_field(Draws::of::<GeoClass>(self.seed), 0, ccx, ccz, fx, fz);
                 return draw_class(&by_class, acc, u);
             }
         }
@@ -1158,7 +1159,8 @@ impl<'a> WorldGenerator<'a> {
                     ),
                 ),
             };
-            let u = draw_f64(&[self.seed, SALT_ELEV, u64::from(level), i as u64, j as u64])
+            let u = Draws::of::<Elev>(self.seed)
+                .unit(&[u64::from(level), i as u64, j as u64])
                 .mul_add(2.0, -1.0);
             (
                 parent.0 + u * parent.1 * AMP_DECAY.powi(i32::from(level)),
@@ -1587,14 +1589,14 @@ impl<'a> WorldGenerator<'a> {
                 continue;
             }
             for k in 0..10u64 {
-                let ang = draw_f64(&[self.seed, SALT_RUIN, u64::from(s.id), k, 0])
+                let ang = Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 0])
                     * std::f64::consts::TAU;
-                let r = 6.0 + 12.0 * draw_f64(&[self.seed, SALT_RUIN, u64::from(s.id), k, 1]);
+                let r = 6.0 + 12.0 * Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 1]);
                 let px = s.x + (r * ang.cos()) as i64;
                 let pz = s.z + (r * ang.sin()) as i64;
                 if px >= vx0 && px < vx0 + 32 && pz >= vz0 && pz < vz0 + 32 {
-                    let h =
-                        2 + (draw_f64(&[self.seed, SALT_RUIN, u64::from(s.id), k, 2]) * 2.0) as u8;
+                    let h = 2
+                        + (Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 2]) * 2.0) as u8;
                     posts.push(((px - vx0) as u8, (pz - vz0) as u8, h));
                 }
             }
@@ -1677,27 +1679,6 @@ fn wilds_regolith_voxels(precip: f64) -> u8 {
     } else {
         1
     }
-}
-
-/// A **pore rider's** whole eighths inside a host that won `cnt` of this voxel's
-/// eight: `cnt · k8 / 8`, stochastically rounded, so the rider's share of a
-/// contact voxel is *proportional* to its host's share of it.
-///
-/// Proportionality is what makes the weathering profile conserve mass through
-/// the contacts: over a neighbourhood the expected product eighths equal the
-/// recorded product fraction, exactly the unbiasedness argument
-/// [`crate::fill`]'s allocation rests on (journal/0055). Deterministic flooring
-/// would delete the deep front's 1/8 tail everywhere — the same bias that once
-/// deleted the world's thin beds.
-///
-/// The offset is a **low digit** of the voxel's own fill draw, not its high
-/// bits: [`crate::fill::allocate_partial`] consumes the high end, and reusing it
-/// here would correlate "this band won an extra eighth" with "the product won an
-/// extra eighth of it" into a visible pattern.
-fn pore_rider_share(cnt: u8, k8: u8, u: f64) -> u8 {
-    let uq = (u * 4096.0) as u64 & 7;
-    let n = (u64::from(cnt) * u64::from(k8.min(8)) + uq) / 8;
-    (n as u8).min(cnt)
 }
 
 /// Canonical voxel contents for one stratum event, given the **resolved host

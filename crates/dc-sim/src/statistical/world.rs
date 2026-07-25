@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::rng::{draw_f64, mix};
+use super::rng::Draws;
 
 pub type RegionId = u8;
 pub type AgentId = u16;
@@ -21,13 +21,27 @@ pub const NUM_AGENTS: u16 = 100;
 /// Hostile-mob pressure per region: 0 = calm, 1 = tense, 2 = raided.
 pub const MAX_PRESSURE: u8 = 2;
 
-// Salts separating the addressed-draw key spaces (see rng.rs).
-pub(crate) const SALT_HOME: u64 = 0x01;
-pub(crate) const SALT_DANGER: u64 = 0x02;
-pub(crate) const SALT_REGION_STEP: u64 = 0x03;
-pub(crate) const SALT_AGENT_STEP: u64 = 0x04;
-pub(crate) const SALT_FRONTIER_PRIOR: u64 = 0x05;
-pub(crate) const SALT_COLLAPSE: u64 = 0x06;
+/// **This crate's draw domains** (journal/0105). One list, one spelling of each
+/// salt, and a duplicate is a compile error — see [`crate::draw_domains`].
+///
+/// These were six hand-written `const`s in this file; the numbers are unchanged,
+/// so no world moves. What changed is that they can no longer collide silently.
+pub mod domains {
+    crate::draw_domains! {
+        /// Which region an agent calls home.
+        Home = 0x01;
+        /// Per-region hostile pressure.
+        Danger = 0x02;
+        /// One region's per-tick step.
+        RegionStep = 0x03;
+        /// One agent's per-tick step.
+        AgentStep = 0x04;
+        /// The frontier prior consulted at the collapse boundary.
+        FrontierPrior = 0x05;
+        /// Weight-proportional selection during collapse.
+        Collapse = 0x06;
+    }
+}
 
 /// What an agent is doing this tick.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -100,7 +114,10 @@ impl ToyWorld {
             neigh.sort_unstable();
         }
         let agent_home = (0..NUM_AGENTS)
-            .map(|a| (mix(&[seed, SALT_HOME, u64::from(a)]) % u64::from(NUM_REGIONS)) as RegionId)
+            .map(|a| {
+                (Draws::of::<domains::Home>(seed).bits(&[u64::from(a)]) % u64::from(NUM_REGIONS))
+                    as RegionId
+            })
             .collect();
         Self {
             seed,
@@ -212,7 +229,7 @@ impl ToyWorld {
 
     /// Per-region hostile-mob affinity in `[0, 0.5]`, fixed by the seed.
     pub fn base_danger(&self, r: RegionId) -> f64 {
-        (mix(&[self.seed, SALT_DANGER, u64::from(r)]) % 1000) as f64 / 1000.0 * 0.5
+        (Draws::of::<domains::Danger>(self.seed).bits(&[u64::from(r)]) % 1000) as f64 / 1000.0 * 0.5
     }
 
     /// Deterministic tick-0 pressure.
@@ -290,9 +307,7 @@ impl ToyWorld {
     /// so every consumer within one sample sees the same synthesised value.
     pub(crate) fn frontier_pressure(&self, sample: u64, region: RegionId, t: Tick) -> u8 {
         let w = self.prior_pressure_weights(region);
-        let r = draw_f64(&[
-            self.seed,
-            SALT_FRONTIER_PRIOR,
+        let r = Draws::of::<domains::FrontierPrior>(self.seed).unit(&[
             sample,
             u64::from(region),
             u64::from(t),

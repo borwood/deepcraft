@@ -32,6 +32,10 @@ name = "weathering_profile_probe"
 test = true
 
 [[example]]
+name = "pore_decorrelation_probe"
+test = true
+
+[[example]]
 name = "flux_record_probe"
 test = true
 
