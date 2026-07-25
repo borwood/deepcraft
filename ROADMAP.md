@@ -109,17 +109,29 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   pass READS `H` but WRITES ONLY the ledger sink (`DeepAxis::Saprolite`, no in-epoch reader, like
   the geotherm) — it never touches `R`/`H`, so the height-tier `dc:deep/weather` pass and the erosion
   result are **byte-unchanged** (`on_flag_is_purely_additive...`). **Production-scale band at argmax:
-  ≥1 voxel** (`production_scale_saprolite_band_reaches_at_least_one_voxel`, the A-3 guard — the S18
-  0.04 m sub-voxel miss redeemed). Tests by name: byte-identity off
+  6.09 m = 6.77 voxels @ 0.9 m (54 eighths), and 24.2 % of land (71,748 / 297,025 cells) carries
+  some band, mean 1.61 m over banded cells** — ~152× the S18 sub-voxel miss it redeems. *(Corrected
+  2026-07-25: this entry previously read "≥1 voxel", which is the **A-3 guard's threshold**
+  (`production_scale_saprolite_band_reaches_at_least_one_voxel`), **not the measured result** — the
+  integrator had verified 6.09 m independently and then wrote the assertion's floor into the map.
+  Caught by the walk, journal/0097. "Demand the load-bearing number" applies to the bookkeeping too,
+  not only to the agent report.)* Tests by name: byte-identity off
   (`the_production_world_still_hashes_to_the_pre_slice_goldens`,
   `identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical`),
   `weathering_accumulates_across_epochs`, `bedrock_facts_key_stably_as_the_record_grows`,
   `one_fact_per_agent_per_firing`, `dt_scales_the_share_linearly`,
   `weather_inventory_is_absent_off_and_a_declared_cellular_pass_on`. Rides S-1 (the LOOP is the
   relaxation), S-2/S-9/S-5; discharges A-4, guards A-3. **Loose product still inherits stub #16's
-  stand-in bedrock identity** (flat granite basement) — #16 NOT retired. **OWED: the flag-ON walk**
-  (the ≥1-voxel band is a walk-gated appearance flip — the user's to bless). Per-crate gates green
-  (dc-worldgen); **`--workspace` gate LEFT FOR THE INTEGRATOR** (the user's dc-client was live).
+  stand-in bedrock identity** (flat granite basement) — #16 NOT retired. Per-crate gates green
+  (dc-worldgen); **`--workspace` gate run by the integrator on merged main — green, 664 tests.**
+  **✅ WALK DONE & ACCEPTED 2026-07-25 (user; journal/0097, assets
+  `0094-weathering-band-flag-{on,off}.png` + `-pit-topdown-on.png`).** Same column, same seed, flag
+  flipped: **7 voxels ≈ 6.3 m of loose `dc:mudstone` at the basement contact** against a predicted
+  6.09 m, veneer above and basement below **unmoved** — the flag's product and only the flag's
+  product. **BUT accepted WITH a follow-up the walk found (see Sequenced "the weathering front needs
+  a PROFILE"): the band has a HARD PERIMETER** — pure 8/8 product abutting pristine bedrock, because
+  the collapse folds the scalar `weathering_product_m` into a **single stratum of one class**. A
+  scalar cannot carry a profile, and a front without a gradient is not a front. Not a blocker.
 
 - 2026-07-24 — **The geotherm — the FIRST field pass** (journal/0093; background agent,
   worktree; **world-changing: coal moves**). New `deeptime/geotherm.rs` + `dc:deep/geotherm`
@@ -2256,7 +2268,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     **(b) refinement as a boundary-value problem** — face fluxes as Dirichlet conditions,
     the load budget as mass, solved *inside* a cell, pure-of-position (never reading a
     neighbour's refined output, so the pure-fn chunk holds); **(c)** the **free/bound edge
-    + void intervals** (caves, conduits, springs, `Cause::Dissolution` switched on);
+    + void intervals** (caves, conduits, springs, `Cause::Dissolution` switched on) — **and the
+    CONDUIT PAIRING RULE** (ratified into (c) 2026-07-25): a karst conduit is confined by **its own
+    void geometry**, not by a depositional horizon nor a potential surface, so it pairs by **void
+    connectivity** — a **third mode** that flow.md §11.5's two-mode green explicitly does NOT cover.
+    So (c) ships **three** obligations, not two;
     **(d) fluid identity** (lava/ice/brine on the same atom, own competence curves);
     **(e)** retiring `pregen/hydrology.rs`, `RiverSeg`/`carve_rivers`, and
     `Cell::{flow_to,river,discharge}`. **Do not close the arc when the first slice lands.**
@@ -2324,12 +2340,48 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   fullbright: *"I can now confirm the LOD is fixed!!"* — fine near field transitions cleanly into
   the warm coarse far LOD, no cold-dither ring; screenshots `journal/assets/0091-lod-walk-*`).
   The only residue is the poke-through geometry check on the lit pass — low priority. Still owed:
-  **(2)** the weathering band walk — **Movement 3 (journal/0094) made it ≥1 voxel at production
-  scale**, so the flag-ON walk is now ready to bless (`--weather-inventory`; exemplar = argmax
-  `FactLedger::weathering_product_m`, cut to the basement contact); **(3)** the geotherm's
+  **(2)** ✅ **DONE — walk-confirmed & ACCEPTED 2026-07-25** (user; journal/0097). Flag-ON vs the
+  byte-identical flag-OFF control on the same column: **7 voxels ≈ 6.3 m** of loose product at the
+  basement contact (predicted 6.09 m), **24.2 % of land banded**, veneer and basement unmoved.
+  Instrument `--fullbright` (a material question). **Accepted with a follow-up, not a blocker** —
+  the band has a **hard perimeter** (see Sequenced "the weathering front needs a PROFILE"), and the
+  gradational-looking top contact is **boundary quantization, not weathering** (one voxel deep,
+  `mixed_voxel_contents`); **(3)** the geotherm's
   coal-distribution shift when it lands (coal
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
+
+- **THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB** (walk finding, user, 2026-07-25;
+  journal/0097). **WHAT.** Movement 3's band is correctly *magnituded* and wrongly *shaped*: the
+  collapse folds the scalar `FactLedger::weathering_product_m` into **one stratum of one class**
+  (`CLASS_CLASTIC_FINE`, `geology.rs::emplace_weathering_front`), so the record→voxel path expresses
+  a span that wholly contains a voxel as `Single` — **8/8 of one member**. Result: pure product
+  above, **pristine contents-free basement below, a hard perimeter on both faces.** User: *"the
+  layer of degraded bedrock has a hard perimeter and then pure bedrock, which does not make sense
+  for the natural process it claims to model… nature does not in-place degrade a bulk unit of rock
+  to another via weathering."*
+  - **WHY IT HAPPENS.** The inventory edge is honest at its own tier — `(GRANITE, Structure) →
+    (GRANITE, Loose)`, a **form** change on one material, mass-conserving, one fact per agent. The
+    loss is at the **fold**: `weathering_product_m` is a **scalar, and a scalar cannot carry a
+    profile.** What the model computed is a rate integrated over depth and time; what got emplaced
+    is a slab. The downward gradient — intact rock → corestones → grus → clay — *is* what makes
+    saprolite legible as saprolite, and it is exactly what the fold discards.
+  - **HEIR SHAPE (user-proposed, expressible in TODAY's vocabulary — which is what makes this a
+    follow-up and not a research project).** `structure → pore_fill` rather than
+    `structure → structure`: **retained parent structure with weathering product in its pores**, the
+    structure share falling with height through the front. `VoxelContents` already carries
+    `structure[]` / `pore_fill[]` / `open_pores` / `debris[]` in eighths — the walk read them
+    straight off `world_get_contents`. Today's band says `structure: []`, `debris: [mudstone 8/8]`:
+    **the parent rock is simply gone.**
+  - **COUPLES TO** stub #16 (a rind's *material identity* — the inventory says granite-loose while
+    the collapse expresses mudstone; the two disagree today and #16 owns that half) and to the
+    deep-cell inventory's **form vocabulary** (§2 forms / §3 transition graph — this is a
+    form-transition question, so it belongs to the same machine).
+  - **NOTE THE FLATTERING ARTIFACT (journal/0097, worth not re-deriving):** the band's *top* contact
+    already mixes and reads convincingly — but that is **boundary quantization**
+    (`mixed_voxel_contents` / `allocate_partial`, journal/0055), **exactly one voxel deep, wherever
+    any two units meet**, and would look identical at the contact of two units that never
+    interacted. It is not a weathering gradient and must not be mistaken for progress on this item.
 
 - **GEOTHERM: nonlinear / mantle-heat enrichment** (followup, user-directed 2026-07-24). The v1
   geotherm (material-behavior.md §14) is a per-cell **linear** gradient `T(depth) = surface_T +
@@ -2977,6 +3029,34 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **The contents record reads EMPTY over SOLID ground** (walk observation, 2026-07-25,
+  journal/0097; **reported, not diagnosed**). On an untouched column in the **flag-OFF control**,
+  `world_get_contents` returned `dc:air` for voxels 288–299 while `client_player_pose_set` reported
+  `eye_in_solid: true` at 296 and 291 — **~11 voxels where the record reads empty and the world is
+  solid**. Being in the *control* run, **Movement 3 did not cause it** (the ON band then fills that
+  same range with real recorded material, which is how it nearly got mis-credited to the flag —
+  a good A-5 catch by the walk). Adjacent to, but **not the same shape as**, the known bare-cell
+  fallback (*"a walker stood on paint over nothing"*, `record_hole_probe.rs`, below): that one is
+  paint over *stone*; this is the record reading *empty* over *solid*.
+  **INTEGRATOR CAVEAT before anyone diagnoses this:** `world_get_contents` returns a
+  **`has_contents` flag**, false wherever no contents record backs the voxel (S1 terrain, legacy
+  stubs). The walk's report does not say whether `has_contents` was checked — so the honest first
+  question is *"was it `air`, or was it `has_contents: false` read as air?"* Those are very
+  different defects and only one of them is a record hole. **Check that before measuring anything
+  else.**
+
+- **`world_scan_region` / `world_get_block` are structurally blind to stratigraphy** (walk
+  observation, 2026-07-25, journal/0097). Both answer with the stored **1-byte `Block` summary**,
+  which collapses mudstone, sandstone, siltstone, carbonaceous mudstone and granite alike into
+  `dc:stone` — so a column scan from veneer to basement returned `palette: ["dc:stone"]` and the
+  walk would have concluded *"no band"* from an instrument that **cannot see one**. `world_get_contents`
+  is the honest surface and showed all of it. This is ARCHITECTURE.md's *"a summary is not an
+  authority"* **caught in the field, by an agent using the tool wrong** — and it is a live argument
+  for the Sequenced **HONEST IDENTITY SURFACE / `identify(pos)`** arc: a tier-flagged answer is what
+  a walk needs, and the untiered `Block` token is a trap for exactly the reader who does not already
+  know it is one. *(CLAUDE.md § Agent walks updated in the same commit: use `world_get_contents`,
+  never `scan_region`, for any material question.)*
 
 - **✅ DONE 2026-07-25 — FREE WIN TAKEN: 54.02 MiB reclaimed, 33.2 % of all `DeepField`
   residency, zero behaviour change.** `build_field` now `shrink_to_fit`s every cell's

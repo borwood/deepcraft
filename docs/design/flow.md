@@ -497,8 +497,8 @@ self-declaring shape and tuned by data"* applied to the time axis.
 declared, then this is immaterial to the engine. it's a question of shipped default."*
 Once 11.1 lands, per-chapter vs per-epoch flow facts stop being an architecture
 question. **Default to the cheap end (coarser window) for dev-iteration speed; the knob
-is exposed for stress tests.** *(Integrator's reading of "keep it generally lower for
-dev iteration" — flagged here for correction if finer-by-default was the intent.)*
+is exposed for stress tests.** *(Reading CONFIRMED by the user 2026-07-25: "cheap end
+for dev iteration, precisely.")*
 
 ### 11.3 The record must SELF-DESCRIBE its completeness
 
@@ -535,9 +535,12 @@ derivable from the entry's own absence.
 things depending on how a world was generated. Hence § 11.3 — if the drop ever ships,
 **the record carries the mode.**
 
-**DEFAULT: KEEP.** 31 MiB against a 149 MiB field that is *already 13 MiB below where
-the session started*; the record is young and every consumer of it is unbuilt. The
-honest, complete default beats the clever one until a real consumer argues otherwise.
+**DEFAULT: KEEP — RATIFIED 2026-07-25 (user: "your recommendation appears sound to me,
+green").** 31 MiB against a 149 MiB field that is *already 13 MiB below where the
+session started*; the record is young and every consumer of it is unbuilt. The honest,
+complete default beats the clever one until a real consumer argues otherwise. **The
+drop is not forbidden — it is gated on § 11.3**: if it ever ships, the record carries
+the mode.
 
 ### 11.5 Pairing — the two-mode rule is GREEN; a THIRD mode is named and NOT covered
 
@@ -560,3 +563,6 @@ violated.
 > beds (a vadose shaft). It therefore pairs by **void connectivity** — a **third
 > mode**. It arrives with continuation **(c)** (the free/bound edge + void intervals)
 > and must be ruled on then. **Do not assume the two-mode rule extends to it.**
+> **ASSIGNED to continuation (c) — RATIFIED 2026-07-25** (user: *"great catch: agree on
+> add to c"*). (c) therefore ships **three** obligations, not two: the free/bound edge,
+> void intervals, **and the conduit pairing rule.**

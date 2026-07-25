@@ -127,8 +127,21 @@ cargo test --workspace --release
   unlit materials, pure vertex color — so lighting/tonemap output never
   masquerades as a geometry or data defect (journal/0004).
 - Check `eye_in_solid` in every pose response before trusting a screenshot;
-  use `pose_set { surface: true }` for walker-safe teleports. Pitch:
-  negative looks down.
+  use `pose_set { surface: true }` for walker-safe teleports. **`yaw`/`pitch` are
+  RADIANS** (not degrees — `-10.0` silently clamps to −1.55 rad ≈ straight down);
+  negative pitch looks down. **Units differ across the tools:** `pose_*` speaks
+  **metres**, while `world_fill`/`scan_region`/`get_contents` speak **voxels**
+  (`voxel_y ≈ metres / 0.9` at N=2) — mixing them probes tens of metres off target.
+- **For any MATERIAL question use `world_get_contents`, never `scan_region` /
+  `get_block`** (journal/0097). The latter answer with the stored 1-byte `Block`
+  summary, which collapses mudstone/sandstone/siltstone/granite alike into
+  `dc:stone` — a walk once read a whole column as `dc:stone` and nearly reported
+  "no band" from an instrument that structurally cannot see one. `get_contents`
+  returns the real mixture (and a `has_contents` flag — **check it**, since
+  contents-free voxels are not the same thing as air).
+- **Cutting a cross-section?** `world_fill` a **bench** (a wide shelf, ~20k voxels
+  of `dc:air`) rather than a narrow pit — a pit frames badly and a road-cut face
+  reads at a glance. Screenshot names must be a bare lowercase slug.
 - **dc-client's exit code is now honest** (journal/0054): `0` clean, `70`
   GPU device lost, `71` fatal render error, `101` a panic on any thread. The
   old "exit codes lie about GPU crashes" warning is retired *for dc-client*.
