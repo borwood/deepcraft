@@ -2704,9 +2704,43 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     with better camouflage (**A-1** with a disguise). It pops into Sequenced when:
     **(R1)** the **potential/head field** lands (flow continuation (a), in flight) and
     **(R2)** **vertical flux is real** rather than the honest zeros of flow slice 1 — i.e. there is
-    an infiltration/percolation term a per-depth rate can read. **(R3)** measure the cost first:
+    an infiltration/percolation term a per-depth rate can read. ~~**(R3)** measure the cost first:
     per-depth × per-cell × per-epoch over 297 k cells with multi-slot columns is far larger than
-    today's per-cell scalar, and the deep run is already 35–85 s.
+    today's per-cell scalar, and the deep run is already 35–85 s.~~
+  - **✅ R3 MET 2026-07-25 (journal/0106, `examples/perdepth_weathering_cost_probe.rs`) — and it
+    moved the blocker.** Measured on the shipped world (1337 / Medium, 297 025 cells, 200 epochs,
+    8 chapters), with the pass timed OFF vs ON so its own wall clock is a *difference*, not a share:
+    - **The multiplier is 59.5× in tuples and 5.6× in TIME.** A per-depth firing visits **59.5 slots
+      on average** (20 487 597 `(cell, slot, chapter)` visits against 344 410 `(cell, chapter)`
+      firings; epochs-per-chapter cancels, so this is the per-epoch multiplier too). But today's
+      firing is dominated by **fixed** cost — it re-derives a working inventory and drains a commit
+      log for a single span — so 552 ns → 3 066 ns. **The work that multiplies is the cheap work.**
+    - **The causal triangle is real and worth 38.7 %.** A slot deposited in chapter `c` cannot
+      weather before `c`; honouring that is 20.5 M visits instead of 33.4 M, and +20.7 s instead of
+      +37.8 s. It is **free** — a pass walking the live record gets it automatically, and you have to
+      work to lose it. **Say so in the design so nobody builds the rectangle.**
+    - **GEN TIME IS NOT THE BLOCKER.** The pass is 4.5 s of a 25.7 s deep run (17.6 %); per-depth
+      projects to 25.2 s, taking the run **25.7 s → 46.4 s**. Against the standing doctrine (*gen
+      time is not a constraint*) that is affordable.
+    - **🔴 RESIDENCY IS THE BLOCKER.** The `LedgerField` sidecar goes **17.45 MiB → 973 MiB**
+      (55.8×), and it is **resident** — it ships in the `DeepField`. 61.5 M facts = 20.5 M visited
+      slots × 3 agents × 16 B. The itemisation reconstructs today's measured footprint **exactly**,
+      so the projection scales a validated model.
+      - **The levers are axes, not micro-optimisations:** drop the **chapter** axis for weathering
+        facts (÷ ~4.8, the mean chapters-fired per weathering cell → ≈ 200 MiB); drop the **agent**
+        axis in the *persisted* form, keeping the sum (`Σ share_a = rate` by construction; a further
+        ÷ 3 → ≈ 68 MiB); or persist a **per-slot scalar** rather than facts, which is what the
+        collapse consumer actually reads (`weathering_product_m`) — and which is the *"a summary must
+        be derived from the authority, never become it"* question this project already has a doctrine
+        for. **This is a design decision the arc must answer before it is built, and it is a much more
+        tractable problem than "the deep run doubles".**
+    - Incidental re-confirmation: **72 006 of 297 025 cells (24.2 %) ever weather** — journal/0102's
+      75.8 %-never figure, re-measured from the other side; the CSR layout it motivated is why today's
+      sidecar is 17 MiB and not 31.
+    - **Nothing of the change was built.** The probe's "per-depth firing" is a cost model in
+      `examples/`, written against the substrate's existing public API. It prices the **cellular** half
+      only, which is correct: reactant transport is a *field* pass (§5's split, below), i.e. today's
+      per-cell-per-epoch cost class — it changes the constant, not the exponent.
   - **ONE CONSTRAINT ON "ONE PROCESS" (integrator, agreed at the same time):** *one process must
     NOT mean one pass.* §5's split still binds — reactant **transport is a FIELD**, the **edge is
     CELLULAR**. Collapsing them would rebuild the monolith the pass-runner exists to prevent.
@@ -3537,11 +3571,9 @@ before any code.
   - **The instrument is proven, so the zero is real.** The same census over `0x0D5EED572026 /
     Medium` — the world journal/0093's numbers came from — finds **1182 coal cells / 1834 runs**.
     It sees coal when coal exists.
-  - **Why the guard missed it (the root defect).** `tests/geotherm.rs::production_field()` builds
+  - ~~**Why the guard missed it (the root defect).** `tests/geotherm.rs::production_field()` builds
     **`seed 0x0B0A_57EE_0059, Extent::Small`** — *neither the production seed nor the production
-    extent*. A helper **named** `production_field` builds a world nobody ships, and the A-3 guard
-    `the_geotherm_coal_shift_is_plausible_not_degenerate` rests on it. Coal evidence is spread
-    across **three seeds, none of them the player's.**
+    extent*.~~ **✅ FIXED 2026-07-25 (journal/0106)** — see the closing bullet.
   - **The geotherm's physics is NOT at fault.** On a world with coal it followed the warm crust
     exactly as claimed (coal cells mean gradient 41.9 °C/km vs peat-only 31.3; rift/arc ≥40 →
     13.4 % coal, craton <20 → 0 %). **Seed 1337 has no warm crust with peat on it.**
@@ -3551,9 +3583,29 @@ before any code.
     evidence that a single global onset temperature is the wrong shape and let the
     genesis-passes/property-driven arc subsume it; **(d)** change the shipped seed — **rejected by
     the integrator as backwards**, tuning the world to fit a constant.
-  - **INDEPENDENT OF (a)–(d), and not a content question: FIX `production_field()`.** A helper
-    named for an environment must **be** that environment, or every future claim routed through it
-    inherits the same lie. Highest-leverage single line in this entry.
+  - **✅ DONE 2026-07-25 (journal/0106) — the half that was not a content question: `production_field()`
+    is now the shipped world.** `tests/geotherm.rs::production_field()` builds **seed 1337 at
+    `Extent::Medium`** (memoized per test binary), and the coal guard is **split in two**:
+    - `the_geotherm_rule_governs_coalification_on_the_production_world` — on 1337/Medium. Asserts the
+      `temperature` field is populated, that candidates exist (26 845 of them), and that **every
+      candidate's coal state agrees unit-for-unit with `T ≥ COAL_ONSET_C`** — "coalification responds
+      to the gradient field" in falsifiable form. It **requires no coal**, deliberately: the zero is
+      an open content question (a)–(d) below, and a guard must not be a hostage to it. It reprints the
+      onset sensitivity curve (`4 °C → 87 %` … `16 °C → 0 %`) every run, which is corrections #51
+      lesson 3 made permanent.
+    - `coal_follows_the_warm_crust_on_the_warm_reference_world` — on `warm_reference_field()`
+      (`0x0D5EED572026`, Medium), **named for what it is**. Asserts coal exists, is not degenerate, and
+      that coal units sit on **hotter crust** than the peat that stayed peat (measured 42.8 vs
+      31.7 °C/km). A non-production fixture is fine; a non-production fixture called production is not.
+    - `COAL_ONSET_C` untouched. **All three tests pass** (63 s; the Medium runs cost ~55 s more than the
+      old Small ones — the price of the guard being about the shipped world).
+    - Audit of siblings: `providers_common`/`rh_unification`'s `production_*` helpers name the same
+      non-shipped world, but their claims (golden byte-identity, derived-vs-scalar agreement) are
+      genuinely seed-independent, so they are **annotated, not re-seeded**; the `golden_*` rename ripples
+      into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced.
+      `s18_first_behavior_weathering::production_scale_saprolite_band_reaches_at_least_one_voxel` is
+      **honest** (1337/Medium) and is the shape to copy. `deeptime::production_config` /
+      `water::coarse::production()` name a *config*, not a world — legitimate.
 
 - **⚠ A TIE-BREAK IS DECIDING PHYSICS AGAIN — `reads_prev` is documentation, not a
   mechanism** (spine-audit 2026-07-25; **the SECOND instance in two sweeps**, and the

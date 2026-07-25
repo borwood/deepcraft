@@ -192,8 +192,19 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
     h.0
 }
 
-/// The production deep-time world at [`SEED`], `Extent::Small` — the world the
-/// goldens describe.
+/// The **golden fixture** world at [`SEED`], `Extent::Small`, built under the
+/// production *config* — the world the goldens describe.
+///
+/// **NOT the world `dc-client` boots** (that is seed `1337` at `Extent::Medium`;
+/// see `tests/geotherm.rs`). The name is historical and the distinction is
+/// load-bearing: **corrections #51** records a coal magnitude claim that went
+/// unfalsified for a day because an identically-named helper was mistaken for the
+/// shipped world. What lives here is legitimately seed-independent — byte-identity
+/// and derived-vs-scalar agreement hold on *any* fixed world — so this fixture is
+/// sound for the goldens and **must not be used to accept a magnitude, a count, or
+/// any claim about what a player will find**. `production_*` should be renamed
+/// `golden_*`; that rename ripples into `providers_golden.rs` and the comments in
+/// `flux_record.rs` / `head_field.rs`, so it is sequenced rather than done here.
 pub fn production_field() -> DeepField {
     let pregen = Pregen::run(WorldParams {
         seed: SEED,

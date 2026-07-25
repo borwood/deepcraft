@@ -56,6 +56,15 @@ test = true
 name = "palette_quant_tour"
 test = true
 
+# R3 of the "WEATHERING IS ONE PROCESS" arc — a cost PROJECTION, not an
+# implementation. The gate asserts only the scale-free self-consistency of the
+# model (the residency itemisation reconstructs its own measured total; the
+# causal-triangle count is bounded by the flat one); the production magnitudes
+# are `main`'s job. Runs at Extent::Small.
+[[example]]
+name = "perdepth_weathering_cost_probe"
+test = true
+
 [dev-dependencies]
 # S15 spike (measurement only — examples + tests, never a build dependency of
 # the library). The spike's whole point is to run against the REAL chunk store,

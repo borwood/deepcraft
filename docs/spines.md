@@ -680,6 +680,23 @@ optimizer).
   it into `tests/` — were both wrong; the second is A-1 wearing a lab coat).
   **The generalisation:** *a thing which can fail must be run by the gate, and
   "green" is only ever a claim about the code that actually ran.*
+- **instance (2026-07-25, corrections #51 / journal/0106): the guard ran on a world
+  nobody ships — and the helper that built it was *called* `production_field`.**
+  `tests/geotherm.rs::production_field()` built `seed 0x0B0A57EE0059, Extent::Small`;
+  `dc-client` boots `BENCH_SEED = 1337` at `Extent::Medium`. **Neither the seed nor
+  the extent matched.** The A-3 guard `the_geotherm_coal_shift_is_plausible_not_degenerate`
+  — written precisely to stop an unverified coal *magnitude* from being believed —
+  was green, correct, and about a different planet: the shipped world has **zero
+  coal** (0 units against 27 134 peat; hottest candidate 15.4 °C against a 22 °C
+  onset). This is A-3's **fixture** form, and it is nastier than the stale-artifact
+  form because the code genuinely ran and genuinely passed. **Check:** for any test
+  whose claim is a magnitude, a count, or "a player will find X", ask *which world
+  did it run on, and is that the world we ship?* — and **a helper named for an
+  environment must BE that environment**, because every future claim routed through
+  it inherits the lie. Closed by splitting the guard: a **production** test on
+  1337/Medium that asserts the rule governs and requires no coal, and a **mechanism**
+  test on an explicitly-named `warm_reference_field()`. *(A non-production fixture
+  is fine. A non-production fixture called production is not.)*
 - **its sibling, one layer up (same entry): a printed caption is a published claim
   no gate can check.** `flux_record_probe` printed *"vertical … honestly EMPTY
   (heirs: the head field …)"* beside a **non-zero** count for a day after that heir
