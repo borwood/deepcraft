@@ -261,9 +261,9 @@ pub fn fill_draw(seed: u64, vx: i64, vy: i64, vz: i64) -> f64 {
 
 /// **Width of the eighth-allocation offset**, in bits — how much of the fill
 /// draw [`allocate`] and [`allocate_partial`] consume. Public because the claim
-/// "the pore rider's offset is disjoint from this" was made in a comment for
-/// four days while being false, and the probe that keeps it honest has to know
-/// how wide the thing it must be disjoint from actually is.
+/// "the pore rider's offset is disjoint from this" sat in a comment being false
+/// for as long as it existed, and the probe that keeps it honest has to know how
+/// wide the thing it must be disjoint from actually is.
 pub const FILL_OFFSET_BITS: u32 = FRAC_BITS;
 
 /// The fill draw quantized to the offset the allocation actually consumes.
@@ -284,7 +284,7 @@ pub fn fill_offset(u: f64) -> u64 {
 /// constructor is [`pore_draw`], which is the only place `SALT_GEO_PORE` is
 /// spelled. Re-correlating the two draws now takes a deliberate edit to this
 /// file rather than an innocent one at the call site.
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PoreDraw(f64);
 
 impl PoreDraw {

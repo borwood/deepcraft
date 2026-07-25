@@ -479,24 +479,20 @@ fn measure(pregen: &Pregen, chunks: &[(i64, i64)]) -> Census {
         .copied()
         .filter(|v| v.riders.len() >= 2)
         .collect();
-    let var = |v: &[f64]| {
-        let n = v.len() as f64;
-        if n < 2.0 {
-            return 0.0;
-        }
-        let m = v.iter().sum::<f64>() / n;
-        v.iter().map(|x| (x - m) * (x - m)).sum::<f64>() / n
-    };
+    // **The error-cancellation ratio.** Both residuals are mean-zero over their
+    // offset by construction, so `Σ_voxels (Σ_riders r)²` is the voxel total's
+    // second moment and `Σ_voxels Σ_riders r²` is what it would be if the riders
+    // were independent. Independent decisions give 1.0; decisions that always
+    // round the same way give the band count. Written as a moment ratio rather
+    // than a variance ratio so voxels with different band counts compose.
     let var_ratio = |new: bool| -> f64 {
-        let totals: Vec<f64> = multi.iter().map(|v| v.total_residual(new)).collect();
-        let singles: Vec<f64> = multi
-            .iter()
-            .flat_map(|v| v.riders.iter().map(move |r| r.pore_residual(new)))
-            .collect();
-        let per = multi.iter().map(|v| v.riders.len()).sum::<usize>() as f64
-            / multi.len().max(1) as f64;
-        let denom = var(&singles) * per;
-        if denom <= 0.0 { 0.0 } else { var(&totals) / denom }
+        let mut joint = 0.0;
+        let mut apart = 0.0;
+        for v in &multi {
+            joint += v.total_residual(new).powi(2);
+            apart += v.riders.iter().map(|r| r.pore_residual(new).powi(2)).sum::<f64>();
+        }
+        if apart <= 0.0 { 0.0 } else { joint / apart }
     };
 
     // Part 4 — what moved.
@@ -772,7 +768,8 @@ fn main() {
     );
     let c = measure(&pregen, &chunks);
     report(&c);
-    report_plane(&pregen, chunks[0].0, chunks[0].1);
+    let p = plane(&pregen, chunks[0].0, chunks[0].1);
+    report_plane(&p, chunks[0].0, chunks[0].1);
     println!("\ntotal {:.1} s", t0.elapsed().as_secs_f64());
 }
 
