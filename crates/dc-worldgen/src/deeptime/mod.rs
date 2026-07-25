@@ -70,8 +70,9 @@ pub use inventory::{
     InvSpan, LedgerField, LedgerView, Portion, StoredFrac, UnitProvenance, WorkingInventory,
     build_identity, build_working, collapse_top_voxel, commit_chapter, compose_bedrock,
     compose_unit, derive_base, derive_bedrock, is_declared_edge, quantize_to_eighths,
-    structure_stock_m, surface_regolith_m,
+    stored_fold_tolerance, structure_stock_m, surface_regolith_m,
 };
+pub use inventory::{F32_RELATIVE_RESOLUTION, FOLD_DEPTH_HEADROOM, NEAR_ZERO_FLOOR};
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
     exposed_litho, exposed_shares, litho_of_tag, resistance_of_material, susceptibility_table,
@@ -85,8 +86,8 @@ pub use weather_behavior::{
     weather_one_cell,
 };
 pub use weather_inventory::{
-    WEATHERING_AGENTS, WeatherInputs, agent_share, susceptibility, weather_cell, weather_column,
-    weather_rate,
+    WEATHERING_AGENTS, WeatherInputs, agent_share, empty_accumulator, finalize_ledgers,
+    susceptibility, weather_bedrock_epoch, weather_cell, weather_column, weather_rate,
 };
 
 use crate::pregen::{CellGrid, Pregen};

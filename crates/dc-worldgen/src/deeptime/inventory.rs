@@ -69,6 +69,53 @@ pub type FracM = f64;
 /// deleted, so this is not A-1; the record remains the authority it was.
 pub type StoredFrac = f32;
 
+/// **f32's relative resolution**, `2^-24` — one unit in the last place of a 24-bit
+/// mantissa, and therefore the most a single round-to-nearest can move a value,
+/// relative to the value.
+pub const F32_RELATIVE_RESOLUTION: FracM = 5.960_464_477_539_063e-8;
+
+/// **Headroom for the depth of a fold**, in units of [`F32_RELATIVE_RESOLUTION`].
+///
+/// A fold of `n` independently-rounded summands accumulates at most `n` roundings
+/// in the worst case and `√n` in the statistical one. The deepest fold measured on
+/// the production world is **24 summands** (3 agents × 8 chapters, S20 § 4.1), and
+/// `√24 = 4.9`; **8** is the next power of two above it, so the bound survives folds
+/// four times deeper than anything the world produces today **without being
+/// re-tuned** — which is the property that keeps it evidence rather than a number
+/// someone nudged until a suite went green.
+pub const FOLD_DEPTH_HEADROOM: FracM = 8.0;
+
+/// The absolute floor, for comparisons whose magnitude is near zero (where a purely
+/// relative bound degenerates). This is f64's round-trip noise, which is what both
+/// sides of such a comparison still ride.
+pub const NEAR_ZERO_FLOOR: FracM = 1e-12;
+
+/// **The tolerance a `f32`-STORED / `f64`-SUMMED comparison deserves** — S20 § 4.3,
+/// adopted journal/0108.
+///
+/// ```text
+/// |a − b|  ≤  FOLD_DEPTH_HEADROOM · 2^-24 · max(|a|, |b|)  +  NEAR_ZERO_FLOOR
+///          =  4.8e-7 relative                              +  an absolute floor
+/// ```
+///
+/// **This is a DERIVATION, not a widening.** The bound is computed from the
+/// *storage's own stated resolution* ([`StoredFrac`] carries 24 bits of mantissa)
+/// times a depth headroom that is itself derived from the deepest measured fold —
+/// and then checked against the physical scale it must stay under. Use it **only**
+/// where one side of a comparison is a stored fraction and the other is a freshly
+/// computed `f64`; where **both** sides are stored, narrowing does not move the
+/// comparison at all and the original `1e-12` is still the honest bound.
+///
+/// **The physical cross-check.** The largest fold on the production world is 6.09 m,
+/// so this bound is at most `8 · 2^-24 · 6.09 = 2.9e-6 m` — **five orders of
+/// magnitude below one eighth of a voxel (0.1125 m)**, the smallest quantity that
+/// can change what a player sees. A disagreement this bound would forgive cannot
+/// reach the world.
+#[inline]
+pub fn stored_fold_tolerance(magnitude: FracM) -> FracM {
+    FOLD_DEPTH_HEADROOM * F32_RELATIVE_RESOLUTION * magnitude.abs() + NEAR_ZERO_FLOOR
+}
+
 /// The **form** a material-portion occupies volume in (material-behavior.md §2).
 ///
 /// `Structure`/`Loose`/`PoreFill`/`Fluid` are the storable roles. `Void` is **not
@@ -2124,7 +2171,10 @@ mod tests {
         assert_eq!(ledger.facts_for(deep.units.len()).len(), 3);
         // The bound: facts + one row, and nothing that scales with 10,000 slots.
         let expect = 3 * std::mem::size_of::<Fact<FracM>>() + std::mem::size_of::<u64>();
-        assert_eq!(ledger.payload_bytes(), 3 * std::mem::size_of::<Fact<FracM>>());
+        assert_eq!(
+            ledger.payload_bytes(),
+            3 * std::mem::size_of::<Fact<FracM>>()
+        );
         assert!(
             ledger.footprint_bytes() <= expect,
             "exact-sized: {} B > {expect} B",
@@ -2202,6 +2252,14 @@ mod tests {
         // of them empty (the production shape), each re-keyed onto a DIFFERENT slot —
         // and every cell's facts, their order and their slot must survive the
         // flattening exactly as the per-cell `rekeyed` produced them.
+        //
+        // **Since journal/0108 the flattening also NARROWS**, so the claim is stated
+        // against `Fact::narrowed` rather than weakened to a tolerance: this is still
+        // an EXACT equality, and it now also pins the narrowing to the one place it
+        // is allowed to happen. If a second narrowing appeared anywhere upstream,
+        // `want` would already be rounded and this would still pass — which is why
+        // `narrowing_costs_at_most_one_rounding_of_the_storage_resolution` above
+        // asserts the bound over the accumulator's own f64 values.
         let accs = vec![
             accumulator_with(&[], 0.0),
             accumulator_with(&[Cause::Chemical, Cause::Biotic, Cause::Frost], 0.25),
@@ -2217,9 +2275,15 @@ mod tests {
         for (i, acc) in accs.iter().enumerate() {
             let want = acc.rekeyed(0, to_slot(i));
             let got = field.get(i).expect("cell in range");
+            let want_resident: Vec<Fact> = want
+                .facts_for(to_slot(i))
+                .iter()
+                .copied()
+                .map(Fact::narrowed)
+                .collect();
             assert_eq!(
                 got.facts_for(to_slot(i)),
-                want.facts_for(to_slot(i)),
+                &want_resident[..],
                 "cell {i}: same facts, same ORDER"
             );
             assert_eq!(
@@ -2401,11 +2465,7 @@ mod tests {
             }
         }
         commit_chapter(&mut inv, &mut acc);
-        let exact = acc
-            .facts_for(0)
-            .iter()
-            .map(Fact::fraction_m)
-            .sum::<FracM>();
+        let exact = acc.facts_for(0).iter().map(Fact::fraction_m).sum::<FracM>();
         let field = LedgerField::from_accumulators(std::slice::from_ref(&acc), 0, |_| 0);
         let stored = field
             .get(0)
@@ -2462,7 +2522,10 @@ mod tests {
             .flat_map(|&a| forms.iter().map(move |&b| (a, b)))
             .filter(|&(a, b)| is_declared_edge((g, a), (g, b)))
             .count();
-        assert_eq!(form_edges, 20, "material-behavior.md §3: 5 forms → 20 edges");
+        assert_eq!(
+            form_edges, 20,
+            "material-behavior.md §3: 5 forms → 20 edges"
+        );
 
         // Every declared edge round-trips through the two packed bytes.
         for &a in &forms {
@@ -2548,7 +2611,11 @@ mod tests {
         };
         let err = shifted.validate().expect_err("a shifted id must be caught");
         assert_eq!(err.len(), 1);
-        assert_eq!(err[0].found, Some(e.id), "and it reports what the names mean now");
+        assert_eq!(
+            err[0].found,
+            Some(e.id),
+            "and it reports what the names mean now"
+        );
 
         // An empty world has an empty dictionary, and it costs nothing.
         assert!(LedgerField::default().edge_dictionary().is_empty());

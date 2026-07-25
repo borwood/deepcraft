@@ -19,12 +19,19 @@
 //! summary the authority, the exact defect the arc exists to kill
 //! (`ARCHITECTURE.md` § *"A summary is not an authority"*).
 //!
-//! **THIS PROBE BUILDS NO PART OF THE ARC AND CHANGES NOTHING SHIPPED.** It does
-//! not touch `Fact`, `FactLedger`, `LedgerField`, or any weathering pass. Every
-//! alternative encoding below is a **local candidate struct declared in this file**
-//! and measured with `size_of`; the paged prototype writes a **geometry-faithful
-//! synthetic file** to a temp directory and deletes it. Nothing here is wired into
-//! a run.
+//! **THE ENCODING HALF IS NOW SHIPPED** (journal/0108, S20 option 2c ratified
+//! 2026-07-25). `Fact` is 8 bytes: a declared [`EdgeId`](dc_worldgen::deeptime::EdgeId)
+//! and an `f32` fraction, with the narrowing done once at
+//! `LedgerField::from_accumulators`. So this probe's § 2 stopped being a menu of
+//! candidates and became a **guard on the shipped width**: the local shapes below
+//! are kept because they are what makes the § 3.1 finding — *an edge id ALONE saves
+//! nothing* — checkable, and that finding is now also asserted against a shipped
+//! type (the gen-time accumulator `Fact<FracM>`, which has the edge id, does not
+//! have the narrowing, and is still 16 B).
+//!
+//! **The paging arm builds no part of the arc and changes nothing shipped.** It
+//! writes a **geometry-faithful synthetic file** to a temp directory and deletes it;
+//! nothing here is wired into a run. The pager is the reserved continuation slice.
 //!
 //! # What is measured
 //!
@@ -32,16 +39,18 @@
 //!    itemisation is reconstructed byte-for-byte against the record's own measured
 //!    `footprint_bytes()`, then evaluated at the per-depth slot count using the
 //!    causal triangle (a slot deposited in chapter `c` cannot weather before `c`).
-//! 2. **Encoding** — `size_of` on five candidate fact layouts (shipped; edge-id
-//!    only; f32 only; both; both as struct-of-arrays), plus the measured distinct
-//!    `(from → to)` edge count on the production record.
+//! 2. **Encoding** — `size_of` on five fact layouts (the pre-slice one; edge-id
+//!    only; f32 only; both — which is what shipped; both as struct-of-arrays), plus
+//!    the **per-world edge dictionary** the production record actually inhabits.
 //! 3. **Paging** — a real file at the projected per-depth geometry, with page-in
 //!    latency measured **cold** (Windows `FILE_FLAG_NO_BUFFERING`, so the read goes
 //!    to the device and not to the OS page cache) and **warm** (buffered, cache
 //!    hot), over a scattered deterministic sample of cells.
-//! 4. **f32** — the fold error of storing `fraction_m` as f32 and widening on read,
-//!    measured over every weathered cell of the production record, against the
-//!    scale that matters: **one eighth of a voxel = 0.1125 m**.
+//! 4. **f32** — now that the record IS narrowed, two complementary things: the
+//!    **resolution bound** the stored values themselves imply, over every weathered
+//!    cell of the production record; and the **measured** accumulator→resident error
+//!    on a reproduction of the persist step at the production fold depth. Both
+//!    against the scale that matters: **one eighth of a voxel = 0.1125 m**.
 //! 5. **Axis-drops** — resident MiB for dropping the chapter axis, the agent axis,
 //!    or both, computed from the record's own measured multiplicities.
 //!
@@ -52,10 +61,13 @@ use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use dc_core::MaterialId;
-use dc_worldgen::deeptime::inventory::{BEDROCK_SEAM_MATERIAL, Fact, InvForm};
+use dc_worldgen::deeptime::inventory::{
+    BEDROCK_SEAM_MATERIAL, EdgeDict, F32_RELATIVE_RESOLUTION, Fact, FracM, InvForm,
+    stored_fold_tolerance,
+};
 use dc_worldgen::deeptime::{
-    DeepConfig, WEATHERING_AGENTS, WeatherInputs, agent_share, build_field_cfg, production_config,
+    DeepConfig, DeepStrata, WEATHERING_AGENTS, WeatherInputs, agent_share, build_field_cfg,
+    empty_accumulator, finalize_ledgers, production_config, weather_bedrock_epoch,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -149,22 +161,31 @@ struct Geometry {
     pd_facts_per_cell: Vec<u32>,
 
     // --- encoding ---
-    /// Distinct `(from, to)` `(MaterialId, InvForm)` pairs on the production
-    /// record — the size of the declared-edge dictionary an edge id would index.
-    distinct_edges: usize,
+    /// The **per-world edge dictionary** the production record inhabits — the thing
+    /// a persisted ledger ships beside its facts (S20 § 3.2), built by the shipped
+    /// `LedgerField::edge_dictionary`, not modelled here.
+    edge_dict: EdgeDict,
 
     // --- f32 ---
     f32: F32Error,
 }
 
-/// The measured cost of storing `fraction_m` as f32 and widening on read.
+/// The cost of storing `fraction_m` as f32 and widening on read, as the **bound the
+/// stored values themselves imply**.
+///
+/// The shipped record is already narrowed, so the f64 original is gone and a direct
+/// difference is not recoverable from it. The bound is: one round-to-nearest moves a
+/// value by at most `2^-24` of itself, and *widen on read, sum in f64* means a fold's
+/// total narrowing error is at most the SUM of its summands' roundings — never a
+/// product, and never compounding, because the accumulator never narrows. The
+/// **direct** measurement of the persist step is [`narrowing_audit`].
 #[derive(Clone, Copy, Default)]
 struct F32Error {
-    /// Cells whose fold was compared.
+    /// Cells whose fold was bounded.
     cells: usize,
-    /// Max / mean |f64 fold − f32-stored fold|, metres.
-    max_abs_m: f64,
-    mean_abs_m: f64,
+    /// Max / mean bound on |f64 fold − f32-stored fold|, metres.
+    max_bound_m: f64,
+    mean_bound_m: f64,
     /// The largest fold compared (metres) — the magnitude the error rides on.
     max_fold_m: f64,
     /// Max relative error over cells whose fold exceeds EPS.
@@ -197,7 +218,6 @@ fn measure_geometry(extent: Extent) -> Geometry {
     let mut pd_rows = 0usize;
     let mut weathering_cells = 0usize;
     let mut pd_facts_per_cell = vec![0u32; cells];
-    let mut edges: Vec<((MaterialId, InvForm), (MaterialId, InvForm))> = Vec::new();
     let mut f32err = F32Error {
         frac_min_m: f64::INFINITY,
         ..F32Error::default()
@@ -245,47 +265,35 @@ fn measure_geometry(extent: Extent) -> Geometry {
         // chapter — that is the CSR row count under per-depth.
         pd_rows += fired.last().map_or(0, |&c| slots_at(c));
 
-        // --- encoding: the distinct declared edges actually inhabited ---
-        for f in facts {
-            let e = (f.from(), f.to());
-            if !edges.contains(&e) {
-                edges.push(e);
-            }
-        }
-
-        // --- f32: the fold, exactly and as-if-stored-narrow ---
-        let mut e64 = 0.0f64;
-        let mut e32 = 0.0f64;
+        // --- f32: the bound the STORED values imply ---
+        let mut fold = 0.0f64;
+        let mut bound = 0.0f64;
         let mut summands = 0usize;
         for f in facts {
             let q = f.fraction_m();
             f32err.frac_min_m = f32err.frac_min_m.min(q);
             f32err.frac_max_m = f32err.frac_max_m.max(q);
             if f.to().1 == InvForm::Loose {
-                // Compute in f64, store f32, widen on read — the serialization
-                // choice under test. The error happens once at persist and never
-                // compounds, because the summation stays f64.
-                e64 += q;
-                e32 += f64::from(q as f32);
+                fold += q;
+                bound += q.abs() * F32_RELATIVE_RESOLUTION;
                 summands += 1;
             }
         }
         let consumer = view.weathering_product_m(bedrock_slot);
-        f32err.model_disagreement_m = f32err.model_disagreement_m.max((e64 - consumer).abs());
-        let err = (e64 - e32).abs();
+        f32err.model_disagreement_m = f32err.model_disagreement_m.max((fold - consumer).abs());
         f32err.cells += 1;
-        f32err.max_abs_m = f32err.max_abs_m.max(err);
-        err_sum += err;
-        f32err.max_fold_m = f32err.max_fold_m.max(e64);
+        f32err.max_bound_m = f32err.max_bound_m.max(bound);
+        err_sum += bound;
+        f32err.max_fold_m = f32err.max_fold_m.max(fold);
         f32err.max_summands = f32err.max_summands.max(summands);
-        if e64 > 1e-9 {
-            f32err.max_rel = f32err.max_rel.max(err / e64);
+        if fold > 1e-9 {
+            f32err.max_rel = f32err.max_rel.max(bound / fold);
         }
 
         pd_facts_per_cell[i] = u32::try_from(cell_visits).unwrap_or(u32::MAX);
     }
     if f32err.cells > 0 {
-        f32err.mean_abs_m = err_sum / f32err.cells as f64;
+        f32err.mean_bound_m = err_sum / f32err.cells as f64;
     }
     if !f32err.frac_min_m.is_finite() {
         f32err.frac_min_m = 0.0;
@@ -319,7 +327,7 @@ fn measure_geometry(extent: Extent) -> Geometry {
         pd_rows,
         pd_facts,
         pd_facts_per_cell,
-        distinct_edges: edges.len(),
+        edge_dict: field.ledgers.edge_dictionary(),
         f32: f32err,
     }
 }
@@ -363,10 +371,11 @@ impl Geometry {
 // 2. ENCODING — candidate fact layouts, measured with size_of
 // ===========================================================================
 
-/// The shipped shape, restated locally so `size_of` proves the width this probe
-/// projects against (and fails loudly if `Fact` moves under it).
+/// **The PRE-SLICE shape** (endpoints + f64) — what `Fact` was before journal/0108,
+/// restated locally so the reclaimed bytes are measured against something concrete
+/// rather than remembered.
 #[allow(dead_code)]
-struct ShippedShape {
+struct LegacyShape {
     chapter: u8,
     cause: u8,
     from: (u8, u8),
@@ -376,6 +385,11 @@ struct ShippedShape {
 
 /// **Edge id only.** `from`/`to` replaced by a `u16` index into the declared
 /// transition graph (S-8 / material-behavior §3). `fraction_m` stays f64.
+///
+/// **This is § 3.1's finding, and it is still true of a SHIPPED type**: the gen-time
+/// accumulator `Fact<FracM>` is exactly this — the declared edge id, without the
+/// narrowing — and it is 16 B, because the `f64`'s alignment pads the four reclaimed
+/// bytes straight back. The two levers only pay together.
 #[allow(dead_code)]
 struct EdgeIdShape {
     chapter: u8,
@@ -384,7 +398,9 @@ struct EdgeIdShape {
     fraction_m: f64,
 }
 
-/// **f32 only.** Endpoints kept; `fraction_m` narrowed.
+/// **f32 only.** Endpoints kept; `fraction_m` narrowed. 12 B — the other half of the
+/// "only together" finding: narrowing alone leaves the six endpoint bytes aligned to
+/// four and reclaims one word, not two.
 #[allow(dead_code)]
 struct F32Shape {
     chapter: u8,
@@ -394,7 +410,10 @@ struct F32Shape {
     fraction_m: f32,
 }
 
-/// **Both.** Edge id + f32.
+/// **Both — and this is what SHIPPED** (option 2c). Edge id + f32: 8 B, zero
+/// padding. [`gate`] asserts `size_of::<Fact>()` equals it, so this local model
+/// cannot quietly stop describing the real type (the `flow_cost_probe` failure mode,
+/// twice).
 #[allow(dead_code)]
 struct BothShape {
     chapter: u8,
@@ -418,8 +437,8 @@ struct Encoding {
 fn encodings() -> Vec<Encoding> {
     vec![
         Encoding {
-            label: "shipped (endpoints + f64)",
-            fact_bytes: std::mem::size_of::<ShippedShape>(),
+            label: "pre-0108 (endpoints + f64)",
+            fact_bytes: std::mem::size_of::<LegacyShape>(),
         },
         Encoding {
             label: "edge id only (u16 + f64)",
@@ -430,7 +449,7 @@ fn encodings() -> Vec<Encoding> {
             fact_bytes: std::mem::size_of::<F32Shape>(),
         },
         Encoding {
-            label: "edge id + f32 (AoS)",
+            label: "edge id + f32 (AoS)  <- SHIPPED",
             fact_bytes: std::mem::size_of::<BothShape>(),
         },
         Encoding {
@@ -758,12 +777,12 @@ fn report(geo: &Geometry, paging: &[Paging]) {
         geo.pd_facts, geo.pd_rows
     );
 
-    println!("\n--- 2. encoding: candidate fact widths ---");
-    let base = geo.per_depth(std::mem::size_of::<Fact>()).bytes();
+    println!("\n--- 2. encoding: fact widths (option 2c SHIPPED, journal/0108) ---");
+    let base = geo.per_depth(std::mem::size_of::<LegacyShape>()).bytes();
     for e in encodings() {
         let r = geo.per_depth(e.fact_bytes);
         println!(
-            "  {:<34} {:>2} B/fact   per-depth resident {:>8.2} MiB   ({:.0}% of shipped)",
+            "  {:<34} {:>2} B/fact   per-depth resident {:>8.2} MiB   ({:.0}% of pre-0108)",
             e.label,
             e.fact_bytes,
             mib(r.bytes()),
@@ -771,19 +790,45 @@ fn report(geo: &Geometry, paging: &[Paging]) {
         );
     }
     println!(
-        "  shipped `Fact` is {} B (local ShippedShape {} B — {})",
+        "  shipped `Fact` is {} B (local BothShape {} B — {}); the gen-time accumulator \
+         `Fact<FracM>` is {} B",
         std::mem::size_of::<Fact>(),
-        std::mem::size_of::<ShippedShape>(),
-        if std::mem::size_of::<Fact>() == std::mem::size_of::<ShippedShape>() {
+        std::mem::size_of::<BothShape>(),
+        if std::mem::size_of::<Fact>() == std::mem::size_of::<BothShape>() {
             "AGREE"
         } else {
             "DISAGREE — the projection's width model is wrong"
-        }
+        },
+        std::mem::size_of::<Fact<FracM>>()
     );
     println!(
-        "  distinct (from -> to) edges inhabited on this record: {}  \
-         (a u16 id has room for 65 536; a packed 11-bit id, 2 048)",
-        geo.distinct_edges
+        "  § 3.1 (an edge id ALONE saves nothing): EdgeIdShape {} B == pre-0108 {} B == the \
+         SHIPPED gen-time accumulator {} B",
+        std::mem::size_of::<EdgeIdShape>(),
+        std::mem::size_of::<LegacyShape>(),
+        std::mem::size_of::<Fact<FracM>>()
+    );
+    println!(
+        "  per-world EDGE DICTIONARY (LedgerField::edge_dictionary) — {} inhabited:",
+        geo.edge_dict.len()
+    );
+    for e in geo.edge_dict.entries() {
+        println!(
+            "     id {:#06x}   {} / {}  ->  {} / {}",
+            e.id.raw(),
+            e.from_material,
+            e.from_form.name(),
+            e.to_material,
+            e.to_form.name()
+        );
+    }
+    println!(
+        "     re-derives from its own material NAMES against the live registry: {}",
+        if geo.edge_dict.validate().is_ok() {
+            "OK (a registry change would be DETECTED, never silently reinterpreted)"
+        } else {
+            "MISMATCH"
+        }
     );
 
     println!("\n--- 3. paging: resident fold + facts on disk ---");
@@ -870,10 +915,10 @@ fn report(geo: &Geometry, paging: &[Paging]) {
         geo.pd_visits as f64 / geo.pd_rows.max(1) as f64
     );
 
-    println!("\n--- 5. f32: store narrow, widen on read ---");
+    println!("\n--- 5a. f32 storage: the bound the STORED record implies ---");
     let f = &geo.f32;
     println!(
-        "  folds compared {:>10}   deepest fold {} summands",
+        "  folds bounded {:>10}   deepest fold {} summands",
         f.cells, f.max_summands
     );
     println!(
@@ -881,56 +926,109 @@ fn report(geo: &Geometry, paging: &[Paging]) {
         f.frac_min_m, f.frac_max_m
     );
     println!(
-        "  fold error   max {:.6e} m   mean {:.6e} m   max relative {:.3e}",
-        f.max_abs_m, f.mean_abs_m, f.max_rel
+        "  narrowing bound   max {:.6e} m   mean {:.6e} m   max relative {:.3e}",
+        f.max_bound_m, f.mean_bound_m, f.max_rel
     );
     println!(
         "  largest fold {:.6} m; ONE EIGHTH OF A VOXEL = {EIGHTH_M} m",
         f.max_fold_m
     );
     println!(
-        "  => the worst error is {:.3e} of an eighth  (1 part in {:.3e})",
-        f.max_abs_m / EIGHTH_M,
-        EIGHTH_M / f.max_abs_m.max(f64::MIN_POSITIVE)
+        "  => the worst BOUND is {:.3e} of an eighth  (1 part in {:.3e})",
+        f.max_bound_m / EIGHTH_M,
+        EIGHTH_M / f.max_bound_m.max(f64::MIN_POSITIVE)
     );
     println!(
         "  cross-check: |simple sum - weathering_product_m| max {:.3e} m  (the simple sum IS the \
          consumer's fold)",
         f.model_disagreement_m
     );
-    println!("  f32 round-trip error of the literals the unit tests assert against:");
-    for v in [0.5f64, 1.5, 0.6, 0.3, 0.2, 0.4, 1.25] {
-        let e = (v - f64::from(v as f32)).abs();
-        println!(
-            "     {v:<6} -> err {e:.3e}   {}",
-            if e < 1e-12 {
-                "passes 1e-12"
-            } else {
-                "FAILS 1e-12"
-            }
-        );
-    }
+
+    println!("\n--- 5b. f32 storage: the MEASURED persist-step error ---");
+    narrowing_audit();
     tolerance_audit();
     println!();
 }
 
-/// **The tolerance audit** — pure arithmetic, no world.
+/// **The measured accumulator to resident error** — a direct reproduction of the one
+/// place in the tree that narrows (`LedgerField::from_accumulators`), at the
+/// production fold shape.
 ///
-/// The unit tests that read a *stored* `fraction_m` split into two classes, and the
-/// distinction is the whole answer to "did the tolerance fail or did the answer get
-/// worse":
+/// § 5a can only bound the error, because the shipped record no longer holds the f64
+/// original. This runs the real persist step on real accumulators: fire the shipped
+/// `weather_bedrock_epoch` across the production chapter count with the unit tests'
+/// own inputs, fold the f64 accumulator, `finalize_ledgers`, fold the narrowed
+/// resident view, and difference them. Pure arithmetic — no world, no I/O.
+fn narrowing_audit() {
+    let inp = WeatherInputs {
+        weathering: 0.02,
+        h_star: 2.0,
+        regolith_h: 1.0,
+        biotic: 1.5,
+        frost: 2.0,
+    };
+    println!(
+        "  agents {}, inputs = the weather_inventory unit tests' own",
+        WEATHERING_AGENTS.len()
+    );
+    for &(chapters, firings) in &[(1u8, 1u32), (1, 5), (8, 25), (8, 200)] {
+        let mut acc = empty_accumulator();
+        for e in 0..firings {
+            let chapter = (e % u32::from(chapters)) as u8;
+            weather_bedrock_epoch(&mut acc, chapter, &inp, 1.0);
+        }
+        let in_accumulator: FracM = acc
+            .facts_for(0)
+            .iter()
+            .filter(|f| f.to().1 == InvForm::Loose)
+            .map(Fact::fraction_m)
+            .sum();
+        let facts = acc.facts_for(0).len();
+        let empty = DeepStrata::default();
+        let resident = finalize_ledgers(vec![acc], std::slice::from_ref(&empty));
+        let after = resident
+            .get(0)
+            .expect("cell 0")
+            .weathering_product_m(empty.units.len());
+        let err = (after - in_accumulator).abs();
+        let tol = stored_fold_tolerance(after.max(in_accumulator));
+        println!(
+            "  {chapters} chapter(s) x {firings:>3} firings -> {facts:>2} facts, band {in_accumulator:.9} m; \
+             narrowing err {err:.3e} m   (1e-12 {}, derived bound {tol:.3e} {})",
+            if err < 1e-12 { "passes" } else { "FAILS" },
+            if err <= tol { "passes" } else { "FAILS" }
+        );
+    }
+    println!(
+        "  => against ONE EIGHTH OF A VOXEL ({EIGHTH_M} m), the derived bound is at most \
+         {:.3e} of an eighth at the largest production fold (6.09 m)",
+        stored_fold_tolerance(6.09) / EIGHTH_M
+    );
+}
+
+/// **The tolerance class map** — pure arithmetic, no world.
 ///
-/// - **stored vs stored** — e.g. `Σ facts` against `weathering_product_m`, or
-///   `acc_band(a2)` against `2 × acc_band(a1)`. Both sides ride the same rounded
-///   values, so the comparison is *unchanged* by narrowing (and `2×` is exact in
-///   binary). These pass at 1e-12 and would still be honest assertions.
-/// - **stored vs freshly-computed f64** — e.g. `f.fraction_m()` against the `moved`
-///   an `apply_edge` returned, or `Σ shares` against `weather_rate(...)`. Here the
-///   tolerance is being asked to certify agreement between two *different
-///   representations*, at a bound below the resolution of one of them.
+/// Every assertion in the tree that reads a stored `fraction_m` falls into one of two
+/// classes, and **which class it lands in is decided by WHERE the narrowing happens**
+/// (S20 § 4.3's final paragraph). Since journal/0108 narrows only at
+/// `LedgerField::from_accumulators`:
 ///
-/// This function measures the second class on the very inputs the unit tests use
-/// (`weather_inventory`'s `inputs()`), so the claim is a number and not an argument.
+/// - **stored vs stored — unaffected.** Both sides ride the same values, so narrowing
+///   does not move the comparison. This covers every assertion that reads a
+///   `FactLedger` (the gen-time accumulator is still `f64`, so those are *f64 vs
+///   f64* and did not even change representation), and every assertion that compares
+///   two quantities both read out of the resident `LedgerField`.
+/// - **stored vs freshly-computed f64 — one site in the tree**, and it is exactly the
+///   one § 4.3 predicted: `weather_inventory`'s
+///   `bedrock_facts_key_stably_as_the_record_grows`, which straddles the persist
+///   boundary. Its bound is re-derived from the storage's resolution
+///   (`inventory::stored_fold_tolerance`), not widened until green.
+///
+/// This function prints the arithmetic behind that classification so the claim is a
+/// number rather than an argument. The literals the unit tests assert against
+/// (`0.5`, `0.6`, `1.25`, …) are listed with their f32 round-trip error **and with
+/// the ledger they are actually read from**, because a value that never reaches the
+/// resident record is never narrowed and its `1e-12` bound is still honest.
 fn tolerance_audit() {
     let inp = WeatherInputs {
         weathering: 0.02,
@@ -946,21 +1044,43 @@ fn tolerance_audit() {
         .collect();
     let rate_f64: f64 = shares.iter().sum();
     let rate_stored: f64 = shares.iter().map(|&s| f64::from(s as f32)).sum();
-    let ten_f64 = rate_f64 * 10.0;
-    let ten_stored: f64 = shares.iter().map(|&s| f64::from((s * 10.0) as f32)).sum();
-    println!("  the unit tests' own rate (weather_inventory::tests::inputs):");
     println!(
-        "     one firing: rate {rate_f64:.9} m; stored-vs-computed err {:.3e}",
+        "  IF the accumulator narrowed too, one firing's rate {rate_f64:.9} m would already \
+         disagree by {:.3e} m -- it does not, because it does not narrow",
         (rate_f64 - rate_stored).abs()
     );
     println!(
-        "     ten firings: band {ten_f64:.9} m; stored-vs-computed err {:.3e}",
-        (ten_f64 - ten_stored).abs()
+        "  f32 has 24 bits of mantissa: relative resolution 2^-24 = {:.3e} (= {:.3e} in the \
+         library's F32_RELATIVE_RESOLUTION)",
+        f64::from(f32::EPSILON) / 2.0,
+        F32_RELATIVE_RESOLUTION
     );
-    println!(
-        "     f32 has 24 bits of mantissa: relative resolution 2^-24 = {:.3e}",
-        f64::from(f32::EPSILON) / 2.0
-    );
+    println!("  round-trip error of the literals the unit tests assert against, and the ledger");
+    println!("  they are read from (an accumulator read is never narrowed):");
+    for (v, from_accumulator) in [
+        (0.5f64, true),
+        (1.5, true),
+        (0.6, true),
+        (0.3, true),
+        (0.2, true),
+        (0.4, true),
+        (1.25, true),
+    ] {
+        let e = (v - f64::from(v as f32)).abs();
+        println!(
+            "     {v:<6} -> f32 round-trip err {e:.3e}   read from {}   {}",
+            if from_accumulator {
+                "FactLedger (f64)"
+            } else {
+                "LedgerField (f32)"
+            },
+            if from_accumulator {
+                "1e-12 still honest"
+            } else {
+                "needs stored_fold_tolerance"
+            }
+        );
+    }
 }
 
 fn main() {
@@ -1003,11 +1123,17 @@ mod gate {
         );
 
         // The local width model must agree with the shipped type, or the encoding
-        // table is fiction.
+        // table is fiction. Since journal/0108 the shipped `Fact` IS `BothShape`.
         assert_eq!(
             std::mem::size_of::<Fact>(),
-            std::mem::size_of::<ShippedShape>(),
-            "the local ShippedShape no longer models `Fact`"
+            std::mem::size_of::<BothShape>(),
+            "the local BothShape no longer models the shipped `Fact`"
+        );
+        // And the shipped fact carries NO padding: it is exactly its payload.
+        assert_eq!(
+            std::mem::size_of::<Fact>(),
+            std::mem::size_of::<u8>() * 2 + std::mem::size_of::<u16>() + std::mem::size_of::<f32>(),
+            "the shipped fact must be exactly its payload"
         );
 
         // The pass must have fired somewhere, or nothing below means anything.
@@ -1016,15 +1142,47 @@ mod gate {
         assert!(geo.pd_rows > 0 && geo.pd_facts > 0);
 
         // Narrowing must be strictly cheaper in bytes — half the encoding claim.
-        let shipped = geo.per_depth(std::mem::size_of::<ShippedShape>()).bytes();
+        let legacy = geo.per_depth(std::mem::size_of::<LegacyShape>()).bytes();
         let both = geo.per_depth(std::mem::size_of::<BothShape>()).bytes();
-        assert!(both < shipped, "edge id + f32 must be strictly smaller");
-        // The finding that matters: an edge id ALONE buys nothing in an array of
-        // structs, because f64 alignment pads the struct straight back to 16 B.
+        assert!(both < legacy, "edge id + f32 must be strictly smaller");
+        // **§ 3.1's finding, and it must stay live.** An edge id ALONE buys nothing
+        // in an array of structs, because f64 alignment pads the struct straight
+        // back. Asserted twice: against the local model, and against the SHIPPED
+        // gen-time accumulator, which is that model in real code — it carries the
+        // declared edge id and not the narrowing, and it is still the pre-slice
+        // width. The two levers only pay together.
         assert_eq!(
             std::mem::size_of::<EdgeIdShape>(),
-            std::mem::size_of::<ShippedShape>(),
-            "edge id alone was expected to be padded back to the shipped width"
+            std::mem::size_of::<LegacyShape>(),
+            "edge id alone was expected to be padded back to the pre-0108 width"
+        );
+        assert_eq!(
+            std::mem::size_of::<Fact<FracM>>(),
+            std::mem::size_of::<EdgeIdShape>(),
+            "the shipped accumulator IS the edge-id-only shape, and must still be padded back"
+        );
+        assert_eq!(
+            std::mem::size_of::<Fact<FracM>>(),
+            2 * std::mem::size_of::<Fact>(),
+            "the narrowing is the whole difference between accumulator and resident width"
+        );
+        // f32 alone does not reach 8 B either — the other half of "only together".
+        assert!(
+            std::mem::size_of::<F32Shape>() > std::mem::size_of::<BothShape>(),
+            "narrowing alone was expected to leave the endpoint bytes in place"
+        );
+
+        // The per-world edge dictionary must re-derive from its own material NAMES,
+        // or a persisted world would silently reinterpret a registry change.
+        assert!(!geo.edge_dict.is_empty(), "the record inhabits some edge");
+        assert!(
+            geo.edge_dict.validate().is_ok(),
+            "the edge dictionary does not re-derive from its own names"
+        );
+        // It is a DICTIONARY, not a per-fact cost: strictly fewer entries than facts.
+        assert!(
+            geo.edge_dict.len() < geo.today_facts,
+            "an edge dictionary with one entry per fact is not a dictionary"
         );
 
         // Every axis-drop is a strict reduction, and dropping both is the floor.
@@ -1044,13 +1202,60 @@ mod gate {
             geo.f32.model_disagreement_m
         );
 
-        // f32 storage must cost something (or the measurement is a no-op) and must
-        // cost far less than an eighth of a voxel (or the option is dead on arrival).
-        assert!(geo.f32.max_abs_m > 0.0, "no f32 error measured at all");
+        // f32 storage must cost far less than an eighth of a voxel, or the shipped
+        // encoding is unsound. Asserted on the BOUND the stored record implies, so
+        // this stays true of any world rather than of a sampled difference.
+        assert!(geo.f32.max_bound_m > 0.0, "no stored fraction at all");
         assert!(
-            geo.f32.max_abs_m < EIGHTH_M / 1000.0,
-            "f32 fold error {:.3e} m is within 3 orders of an eighth ({EIGHTH_M} m)",
-            geo.f32.max_abs_m
+            geo.f32.max_bound_m < EIGHTH_M / 1000.0,
+            "the f32 narrowing bound {:.3e} m is within 3 orders of an eighth ({EIGHTH_M} m)",
+            geo.f32.max_bound_m
+        );
+
+        // **The narrowing is REAL and it is bounded** — the persist step reproduced
+        // directly, at the production fold shape. It must (a) actually cost
+        // something, or the encoding claim is vacuous, and (b) stay inside the
+        // derived tolerance, or the tolerance is wrong. This is what makes
+        // `weather_inventory`'s re-derived bound evidence rather than a widening.
+        let mut acc = empty_accumulator();
+        for e in 0..200u32 {
+            weather_bedrock_epoch(
+                &mut acc,
+                (e % 8) as u8,
+                &WeatherInputs {
+                    weathering: 0.02,
+                    h_star: 2.0,
+                    regolith_h: 1.0,
+                    biotic: 1.5,
+                    frost: 2.0,
+                },
+                1.0,
+            );
+        }
+        let in_accumulator: FracM = acc
+            .facts_for(0)
+            .iter()
+            .filter(|f| f.to().1 == InvForm::Loose)
+            .map(Fact::fraction_m)
+            .sum();
+        let empty = DeepStrata::default();
+        let resident = finalize_ledgers(vec![acc], std::slice::from_ref(&empty));
+        let after = resident
+            .get(0)
+            .expect("cell 0")
+            .weathering_product_m(empty.units.len());
+        let err = (after - in_accumulator).abs();
+        assert!(
+            err > 0.0,
+            "the persist step did not narrow anything — the encoding claim is vacuous"
+        );
+        assert!(
+            err <= stored_fold_tolerance(after.max(in_accumulator)),
+            "narrowing error {err:.3e} m exceeds the derived tolerance"
+        );
+        assert!(
+            err < EIGHTH_M / 1000.0,
+            "narrowing error {err:.3e} m is within 3 orders of an eighth"
         );
 
         // The paged prototype must lay out and read back a real file.
