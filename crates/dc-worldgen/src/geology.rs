@@ -521,7 +521,8 @@ fn emplace_weathering_front(ctx: &mut StrataCtx) {
         precip: ctx.precip,
         depth_m,
     };
-    let draw = |tag: u64| interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
+    let draw =
+        |tag: u64| interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
     let Some((product, _)) = ctx
         .geology
         .select(CLASS_CLASTIC_FINE, &form, draw(FRONT_TAG_PRODUCT))

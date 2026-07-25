@@ -187,7 +187,9 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
         .first()
         .and_then(|&i| rec.strata.events[i].accessory)
         .map(|(m, _)| set.member(m).material);
-    let parent_mat = front.first().map(|&i| set.member(rec.strata.events[i].member).material);
+    let parent_mat = front
+        .first()
+        .map(|&i| set.member(rec.strata.events[i].member).material);
 
     println!("\n================ {label} ================");
     println!(
@@ -235,15 +237,13 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
                        vy: i64|
      -> VoxelContents {
         let cy = vy.div_euclid(32);
-        let grid = grids
-            .entry(cy)
-            .or_insert_with(|| {
-                generator.chunk_contents(ChunkPos {
-                    x: cx as i32,
-                    y: cy as i32,
-                    z: cz as i32,
-                })
-            });
+        let grid = grids.entry(cy).or_insert_with(|| {
+            generator.chunk_contents(ChunkPos {
+                x: cx as i32,
+                y: cy as i32,
+                z: cz as i32,
+            })
+        });
         grid.as_ref().map_or(VoxelContents::EMPTY, |g| {
             g.get(lx, vy.rem_euclid(32) as usize, lz)
         })
@@ -271,7 +271,9 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
         .unwrap_or(fill.depth_count());
     // Print from a few voxels above the front's top down to a few below its base.
     let lo = first_plan.saturating_sub(3).max(1);
-    let hi = (last_plan + 3).min(fill.depth_count());
+    // Two rows PAST the record on purpose: the bottom contact is the whole
+    // question, and "what does the front sit on" is not answerable from inside it.
+    let hi = last_plan + 2;
     let mut product_eighths = 0u32;
     let mut parent_eighths = 0u32;
     let mut rows: Vec<(i64, u8)> = Vec::new();
@@ -280,7 +282,7 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
         let plan = match fill.plan(p as u32) {
             Some(Plan::Single(_)) => "Single",
             Some(Plan::Mixed(_)) => "Mixed",
-            None => "-",
+            None => "basement",
         };
         let c = contents_at(&mut generator, &mut grids, vy);
         let is_front = p >= first_plan && p <= last_plan;
@@ -336,7 +338,10 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
 
 fn main() {
     println!("=== weathering-front PROFILE probe (journal/0099) ===");
-    println!("seed {SEED}, extent {}, weather_inventory ON\n", EXTENT.label());
+    println!(
+        "seed {SEED}, extent {}, weather_inventory ON\n",
+        EXTENT.label()
+    );
     let pregen = Pregen::run_with(
         WorldParams {
             seed: SEED,
@@ -349,11 +354,9 @@ fn main() {
     );
     let w = pregen.deep.w;
     let band = |i: usize| -> f64 {
-        pregen
-            .deep
-            .ledgers
-            .get(i)
-            .map_or(0.0, |l| l.weathering_product_m(pregen.deep.strata[i].units.len()))
+        pregen.deep.ledgers.get(i).map_or(0.0, |l| {
+            l.weathering_product_m(pregen.deep.strata[i].units.len())
+        })
     };
     let mut banded: Vec<(usize, f64)> = (0..w * w)
         .filter(|&i| interior(w, i) && band(i) > 1e-6)
