@@ -65,6 +65,7 @@ const LATERAL_OWNED_D8: usize = 4;
 ///     pairs across the face;
 ///   - **per-cell**: `2 ×` that (every cell stores all its directions, no sharing)
 ///     — assumes the pairing is resolved at read time by depth, not index.
+///
 /// The per-cell model is the safe upper bound; the shared model is the prize
 /// `flow.md` § 2.2 claims ("a face is shared … agree from both sides by
 /// construction").
@@ -227,6 +228,10 @@ struct Geom {
     marine_cells: usize,
     /// Cells whose flow record could only ever be a top/boundary face: no slots.
     empty_cells: usize,
+    /// `slot_chapters_causal` restricted to land cells (`surf > SEA_LEVEL_M`) —
+    /// the "record flow on land only" variant's multiplier.
+    slot_chapters_land: usize,
+    land_cells: usize,
 }
 
 /// One projected layout: a name, the total bytes, and the arithmetic that got
@@ -275,7 +280,10 @@ fn main() {
     let epochs = cfg.iterations as usize;
     println!("--- 1. measured grid geometry ---");
     println!("  deep grid            : {w} x {w} = {cells} cells");
-    println!("  cell edge            : {:.1} m (DEEP_CELL_M target)", field.cell_m);
+    println!(
+        "  cell edge            : {:.1} m (DEEP_CELL_M target)",
+        field.cell_m
+    );
     println!(
         "  covered extent       : {:.1} km per side",
         w as f64 * field.cell_m / 1000.0
@@ -286,7 +294,10 @@ fn main() {
         "  epochs per chapter   : {:.1}",
         epochs as f64 / chapters as f64
     );
-    println!("  sizeof(DepUnit)      : {} B", std::mem::size_of::<DepUnit>());
+    println!(
+        "  sizeof(DepUnit)      : {} B",
+        std::mem::size_of::<DepUnit>()
+    );
     println!(
         "  sizeof(DeepStrata)   : {} B\n",
         std::mem::size_of::<DeepStrata>()
@@ -298,21 +309,29 @@ fn main() {
     let mut marine: Vec<usize> = Vec::new();
     let mut chapter_hist = vec![0usize; 256];
     let mut slot_chapters_causal = 0usize;
+    let mut slot_chapters_land = 0usize;
     let mut empty_cells = 0usize;
+    let mut cap_units = 0usize;
     for i in 0..cells {
         let n = field.strata[i].units.len();
         all.push(n);
+        cap_units += field.strata[i].units.capacity();
         if n == 0 {
             empty_cells += 1;
         }
-        if field.surf[i] > SEA_LEVEL_M {
+        let is_land = field.surf[i] > SEA_LEVEL_M;
+        if is_land {
             land.push(n);
         } else {
             marine.push(n);
         }
         for u in &field.strata[i].units {
             chapter_hist[u.chapter as usize] += 1;
-            slot_chapters_causal += chapters.saturating_sub(u.chapter as usize);
+            let sc = chapters.saturating_sub(u.chapter as usize);
+            slot_chapters_causal += sc;
+            if is_land {
+                slot_chapters_land += sc;
+            }
         }
     }
     let d_all = dist(all);
@@ -345,8 +364,12 @@ fn main() {
     let slot_chapters_naive = d_all.total * chapters;
     println!(
         "  (slot, chapter) pairs  naive slots*K = {slot_chapters_naive}, \
-         causal Sum(K - chapter) = {slot_chapters_causal}  ({:.1}% of naive)\n",
+         causal Sum(K - chapter) = {slot_chapters_causal}  ({:.1}% of naive)",
         100.0 * slot_chapters_causal as f64 / slot_chapters_naive.max(1) as f64
+    );
+    println!(
+        "  causal (slot, chapter) pairs on LAND only = {slot_chapters_land} ({:.1}% of causal)\n",
+        100.0 * slot_chapters_land as f64 / slot_chapters_causal.max(1) as f64
     );
 
     let geom = Geom {
@@ -357,6 +380,8 @@ fn main() {
         slot_chapters_naive,
         marine_cells: d_marine.n,
         empty_cells,
+        slot_chapters_land,
+        land_cells: d_land.n,
     };
 
     // ---- 4. baseline residency -------------------------------------------
@@ -377,8 +402,22 @@ fn main() {
         );
     }
     println!(
-        "  {:<24} {:>12} B  {:>8.2} MiB  (DeepField::resident_bytes agrees)\n",
-        "TOTAL", base_total, mib(base_total as f64)
+        "  {:<24} {:>12} B  {:>8.2} MiB  (DeepField::resident_bytes agrees)",
+        "TOTAL",
+        base_total,
+        mib(base_total as f64)
+    );
+    // The strata heap is `capacity()`, not `len()` — Vec doubling slack is real
+    // resident memory. Any per-cell `Vec` the flow record uses inherits this.
+    let live_units_b = d_all.total * std::mem::size_of::<DepUnit>();
+    println!(
+        "  [strata heap detail: {} live units = {:.2} MiB; {cap_units} capacity slots = {:.2} MiB; \
+         Vec doubling slack = {:.2} MiB = {:.0}% of the heap]\n",
+        d_all.total,
+        mib(live_units_b as f64),
+        mib(base.strata_heap as f64),
+        mib((base.strata_heap - live_units_b) as f64),
+        100.0 * (base.strata_heap - live_units_b) as f64 / base.strata_heap as f64
     );
 
     let base_wi = Baseline::of(&field_wi);
@@ -394,6 +433,32 @@ fn main() {
             .map(FactLedger::total_facts)
             .sum::<usize>()
     );
+    // The ledger is `Vec<Vec<Fact>>` — one inner `Vec` header per slot, paid even
+    // when the slot holds no fact. This is the closest structural analogue of a
+    // per-(cell, slot) flow record, so the split between "header" and "payload"
+    // here is the most directly transferable number in this probe.
+    let inner_vecs: usize = field_wi.ledgers.iter().map(|l| l.facts.len()).sum();
+    let empty_inner: usize = field_wi
+        .ledgers
+        .iter()
+        .flat_map(|l| l.facts.iter())
+        .filter(|v| v.is_empty())
+        .count();
+    let header_b = inner_vecs * std::mem::size_of::<Vec<u8>>();
+    println!(
+        "  ledger layout: {inner_vecs} inner Vec<Fact> ({empty_inner} EMPTY = {:.1}%); \
+         headers alone = {:.2} MiB = {:.0}% of the ledger heap; payload = {:.2} MiB \
+         over {} facts",
+        100.0 * empty_inner as f64 / inner_vecs.max(1) as f64,
+        mib(header_b as f64),
+        100.0 * header_b as f64 / base_wi.ledger_heap.max(1) as f64,
+        mib((base_wi.ledger_heap.saturating_sub(header_b)) as f64),
+        field_wi
+            .ledgers
+            .iter()
+            .map(FactLedger::total_facts)
+            .sum::<usize>()
+    );
     println!(
         "  (the ledger is today's only fact-shaped record; it is the structural analogue \
          of the flow record)\n"
@@ -401,7 +466,10 @@ fn main() {
 
     // ---- 5. projections ---------------------------------------------------
     let layouts = project(&geom, base_total as f64);
-    println!("--- 5. projected flow-record cost (T = today's DeepField = {:.2} MiB) ---", mib(base_total as f64));
+    println!(
+        "--- 5. projected flow-record cost (T = today's DeepField = {:.2} MiB) ---",
+        mib(base_total as f64)
+    );
     println!(
         "  {:<58} {:>12}  {:>9}  {:>8}",
         "layout", "bytes", "MiB", "x today"
@@ -484,7 +552,8 @@ fn project(g: &Geom, _t: f64) -> Vec<Layout> {
     }
 
     // ---- L3: sparse (D8 per-cell face universe — the pessimistic universe) --
-    let universe = sc * (lateral_faces(LATERAL_OWNED_D8, false) + VERTICAL_PER_SLOT) as f64 + boundary;
+    let universe =
+        sc * (lateral_faces(LATERAL_OWNED_D8, false) + VERTICAL_PER_SLOT) as f64 + boundary;
     let csr = (g.cells * g.chapters * BYTES_CSR_ROW) as f64;
     for s in SPARSITY {
         let bytes = universe * s * BYTES_SPARSE_ENTRY as f64 + csr;
@@ -506,6 +575,26 @@ fn project(g: &Geom, _t: f64) -> Vec<Layout> {
             name: format!("L4 sparse + atom @ {:>4.0}% of faces", s * 100.0),
             bytes,
             arithmetic: format!("{universe:.0} faces x {s} x {per} B + CSR {csr:.0} B"),
+        });
+    }
+
+    // ---- LAND-ONLY variants (85% of cells are marine, 23% of the slots) ----
+    let sc_land = g.slot_chapters_land as f64;
+    let bnd_land = (g.land_cells * TOP_FACES_PER_CELL * g.chapters) as f64;
+    let uni_land =
+        sc_land * (lateral_faces(LATERAL_OWNED_D8, false) + VERTICAL_PER_SLOT) as f64 + bnd_land;
+    let csr_land = (g.land_cells * g.chapters * BYTES_CSR_ROW) as f64;
+    out.push(Layout {
+        name: "L2 land-only, D8 per-cell dense".to_string(),
+        bytes: uni_land * flux,
+        arithmetic: format!("{uni_land:.0} land faces x {flux} B"),
+    });
+    for s in [0.05, 0.20] {
+        let per = (BYTES_SPARSE_ENTRY + BYTES_ATOM_EXTRA) as f64;
+        out.push(Layout {
+            name: format!("L4 land-only sparse + atom @ {:>4.0}%", s * 100.0),
+            bytes: uni_land * s * per + csr_land,
+            arithmetic: format!("{uni_land:.0} land faces x {s} x {per} B + CSR {csr_land:.0} B"),
         });
     }
     out
@@ -551,8 +640,7 @@ fn knee_slots(g: &Geom, t: f64) {
     let causal_ratio = g.slot_chapters_causal as f64 / g.slot_chapters_naive.max(1) as f64;
     let per_slot_chapter =
         (lateral_faces(LATERAL_OWNED_D8, false) + VERTICAL_PER_SLOT) as f64 * BYTES_FLUX as f64;
-    let bytes_per_mean_unit =
-        g.cells as f64 * g.chapters as f64 * causal_ratio * per_slot_chapter;
+    let bytes_per_mean_unit = g.cells as f64 * g.chapters as f64 * causal_ratio * per_slot_chapter;
     let measured_mean = g.slots as f64 / g.cells as f64;
     print!("  mean units/cell crossing, L2 D8 per-cell dense:");
     for m in [1.0, 4.0, 10.0] {
@@ -571,5 +659,8 @@ fn knee_chapters(g: &Geom, t: f64) {
     for m in [1.0, 4.0, 10.0] {
         print!("  {m:.0}x: K = {:.1}", m * t / per_chapter_bytes);
     }
-    println!("   [measured K = {}, empty cells {}]", g.chapters, g.empty_cells);
+    println!(
+        "   [measured K = {}, empty cells {}]",
+        g.chapters, g.empty_cells
+    );
 }
