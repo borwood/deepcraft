@@ -396,7 +396,14 @@ fn relax_cell(
 ///   every cell erosion has since lowered as a lake, which is a whole world of
 ///   fictitious ponds. Both may be empty (the pre-loop seed, before any routing) —
 ///   then there is no standing water anywhere, which is the honest initial state.
-/// - `ground` — the ground surface `R + H`.
+/// - `ground` — the ground surface `R + H`. **In the loop this is the `Forced`
+///   revision** — the same terrain `build_surface` snapshotted `filled`/`routed`
+///   from, which is not a coincidence but a requirement: the seepage cap and the
+///   free-water anchors have to describe one landscape or they contradict each
+///   other. The runner pins that window with a declaration rather than leaving it
+///   to the pass order (journal/0107). (The finalize re-march hands a *later*
+///   ground with the *same* solve outputs on purpose — hence `filled − routed`
+///   above, which survives the mismatch where `filled` alone would not.)
 /// - `area` — this epoch's drainage area, for the stream anchors. Empty pre-loop.
 ///
 /// Returns the **final sweep's maximum |Δh|** (metres) — reported, never used to

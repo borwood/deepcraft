@@ -58,10 +58,31 @@ use crate::passgraph::{self, Decl, GraphError};
 /// terrain, then the wind/wave agents transform it further). A single shared
 /// "Terrain" axis cannot express that (the topo model orders a reader after *all*
 /// writers), so each terrain-transforming stage exposes its output as a distinct
-/// **revision** token the next stage consumes — `Forced → … → Weathered →
+/// **revision** token the next stage consumes — `Forced → Incised → Weathered →
 /// Diffused → Compensated → Windblown → Settled`. That is the honest declaration
 /// of a fixed-order relaxation pipeline, and it is what forces the topo-sort to
 /// reproduce the old loop's phase order.
+///
+/// ## Reading a revision, and the writer that supersedes it (journal/0107)
+/// A revision token orders a reader **after** the stage that produced it. It does
+/// **not**, on its own, order that reader **before** the next stage to overwrite
+/// the same plane — those are two different tokens, and the graph sees two
+/// different resources. For every pass in the erosion pipeline that has never
+/// mattered, because each one is pinned on the far side by a *forward* edge into
+/// the stages after it. A pure **sidecar** field pass has no such edge, and is
+/// therefore left floating: `dc:field/head` reads the ground surface `R+H` and
+/// hands its field to nothing the terrain consumes, so which revision it saw was
+/// decided by the id-lexicographic tie-break — the third instance of a tie-break
+/// deciding physics.
+///
+/// The fix is the pair, not the single read: **declare the revision you consume as
+/// a `reads`, and declare the next revision of the same plane as a
+/// [`DeepPass::reads_prev`]** — an anti-dependency onto its writer. That is the
+/// same shape `expose`/`frost` already use against [`Recorded`](DeepAxis::Recorded)
+/// (three writers, all this epoch, all of which they must precede), generalised to
+/// a plane with several revisions per epoch: lag against the revision whose writer
+/// comes **first** after your read point, and every later writer is covered
+/// transitively.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum DeepAxis {
     /// Precip/temperature fields on the current topography. `climate` writes;
@@ -90,6 +111,19 @@ pub enum DeepAxis {
     /// it. The creator→modifier→reader chain forces transport → weather/diffuse →
     /// deposition.
     DeltaH,
+    /// **Terrain after stream transport + bedrock incision** — the first terrain
+    /// revision *inside* the erosion pipeline. `transport` writes (it lowers `R`
+    /// by incision and moves `H` by entrainment/deposition, in place); `weather`
+    /// reads it, and `head` **lag-reads** it (journal/0107).
+    ///
+    /// It exists because `transport` mutated the terrain while declaring only its
+    /// [`Energy`](DeepAxis::Energy)/[`DeltaH`](DeepAxis::DeltaH) by-products, which
+    /// left a gap in the revision chain: nothing in the vocabulary named the moment
+    /// the ground surface changes between [`Forced`](DeepAxis::Forced) and
+    /// [`Weathered`](DeepAxis::Weathered), so a pass reading `R+H` there could not
+    /// say *when* it read. Declaring it closes the chain and gives the head field a
+    /// writer to be ordered ahead of.
+    Incised,
     /// Terrain after bedrock weathering. `weather` writes; `diffuse` reads.
     Weathered,
     /// Terrain after hillslope diffusion. `diffuse` writes; `isostasy` reads
@@ -429,11 +463,18 @@ fn flow_record_pass(ctx: &mut DeepStepCtx<'_>) {
 /// is artesian, and it is the thing the unconfined `H = y + sat` proxy cannot
 /// express.
 ///
-/// Like the geotherm it **plants a field and runs no edges** — it never touches
-/// `R`/`H`/the record — so the erosion result is byte-unchanged. It reads the
-/// drainage solve's filled surface (where free water stands) and drainage area
-/// (which channels are perennial), and the **start-of-epoch** record for the
-/// column's materials, exactly as `dc:deep/expose` does. A coarse-rate pass
+/// Like the geotherm it **plants a field and runs no edges** — it never *writes*
+/// `R`/`H`/the record — so the erosion result is byte-unchanged. But it **reads**
+/// all three, and the ground surface is a boundary condition, not a detail: it
+/// reads the drainage solve's filled surface (where free water stands) and drainage
+/// area (which channels are perennial), the **start-of-epoch** record for the
+/// column's materials exactly as `dc:deep/expose` does, and — via `grid.surf_at` —
+/// the **[`Forced`](DeepAxis::Forced) terrain revision those solve outputs were
+/// themselves built from. All four have to come from one moment: `filled`/`routed`
+/// place the free water, `ground` caps the seepage face, and a mismatch would put
+/// them on two different landscapes. That is why the declaration names both the
+/// revision it consumes and the writer that supersedes it (journal/0107). A
+/// coarse-rate pass
 /// ([`super::head::HEAD_PERIOD`]): groundwater equilibrates in millennia against a
 /// 2.5 Myr epoch, so the cadence samples the topography rather than relaxing the
 /// water.
@@ -532,19 +573,24 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         id: "dc:deep/climate",
         reads: &[],
         writes: &[Climate],
-        // **Under-declared, and provably harmless** (audited by journal/0104,
-        // filed as ROADMAP Owed): this pass really does lag-read the terrain (the
-        // start-of-epoch topography = last epoch's final surface), and does not
-        // say so. It is safe because the ordering it needs is pinned by a TRUE
-        // forward edge, not by the tie-break: `forcing` reads `Climate`, and every
-        // terrain writer in the roster is downstream of `forcing`, so climate is
-        // provably ahead of all of them and always samples the pre-forcing surface
-        // (byte-identical to the old loop's top-of-body `climate::march`).
-        // Declaring it would be free — the anti-dependency edge is already implied
-        // by the existing transitive closure, so it cannot move the schedule — but
-        // it needs one cfg-selected slice per terrain-revision roster
-        // (`Settled` / `Compensated` / `Diffused`).
-        reads_prev: &[],
+        // **The terrain lag, now declared** (journal/0107; owed by journal/0104).
+        // `climate::march` reads `grid.surf_at` — the start-of-epoch topography,
+        // i.e. last epoch's final surface — and used to say nothing about it.
+        //
+        // The honest declaration is an anti-dependency against the **first**
+        // revision of the terrain plane this epoch produces, `Forced`: climate must
+        // run before `forcing` touches it, and every later terrain writer
+        // (`transport` → `weather` → `diffuse` → `isostasy` → the agents) is
+        // downstream of `forcing`, so one token covers the whole chain
+        // transitively. Lagging against the *last* revision instead
+        // (`Settled`/`Compensated`/`Diffused`, one cfg-selected slice each) would
+        // be three declarations that pin strictly less — they would let climate
+        // slide past `forcing` and `transport`.
+        //
+        // **Schedule-neutral, provably**: the edge `climate → forcing` it adds is
+        // already in the graph as a true forward edge (`forcing` reads `Climate`),
+        // so it cannot move anything. It was safe before; it is *stated* now.
+        reads_prev: &[Forced],
         period: cfg.remarch_interval.max(1),
         body: climate_pass,
     });
@@ -616,11 +662,16 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         body: drainage_pass,
     });
 
-    // Transport + incision (one interleaved flux chain).
+    // Transport + incision (one interleaved flux chain). It **mutates the terrain**
+    // — bedrock incision lowers `R`, entrainment/deposition moves `H` — so it
+    // publishes the `Incised` revision alongside its Energy/DeltaH by-products
+    // (journal/0107). Before that the erosion pipeline's revision chain had a gap
+    // exactly where the ground surface first changes, and a sidecar reading `R+H`
+    // between `forcing` and `weather` had no writer to be ordered against.
     passes.push(DeepPass {
         id: "dc:deep/transport",
         reads: &[Routed, Exposed],
-        writes: &[Energy, DeltaH],
+        writes: &[Energy, DeltaH, Incised],
         reads_prev: &[],
         period: 1,
         body: transport_pass,
@@ -629,16 +680,37 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     // The head field (FLOW continuation (a)): the `head` condition-field, relaxed
     // over the live topography and the start-of-epoch record. Gated behind
     // `head_field` (absent = off ⇒ the planes stay empty ⇒ the flow record's
-    // vertical faces stay at slice 1's honest zero). Reads `Routed` (the filled
-    // surface and drainage area — where free water stands and runs) and the
-    // previous epoch's `Recorded` (what the column is made of), exactly as
-    // `dc:deep/expose` does; writes only `Head`.
+    // vertical faces stay at slice 1's honest zero). Writes only `Head`.
+    //
+    // **It reads the TERRAIN, and now says so** (journal/0107). The body builds
+    // `ground = R + H` via `grid.surf_at`, and the solve uses it as the seepage
+    // cap, the lake datum and the free-surface boundary — so the terrain is not
+    // incidental to this pass, it is one of its boundary conditions. The
+    // declaration used to name only `Routed`, which meant *which* revision of the
+    // terrain it saw was left to the id-lexicographic tie-break.
+    //
+    // The revision it reads is **`Forced`**, in every cfg path — determined from
+    // the code, not chosen: the only writers between `forcing` and `transport` are
+    // `drainage`/`frost`/`geotherm`, none of which touches `R`/`H`. And it is also
+    // the revision the pass *should* read, which is the stronger reason to pin it
+    // there: `filled`, `routed` and `area` are all snapshots the drainage solve
+    // took from the `Forced` terrain, so a `ground` from any later revision would
+    // put the seepage cap and the free-water anchors on two different landscapes.
+    // The four arguments have to come from one moment or the boundary conditions
+    // disagree with each other.
+    //
+    // Hence the **pair**: `reads: Forced` pins it after the forcing that produced
+    // that terrain, and `reads_prev: Incised` pins it before `transport`, the first
+    // pass to overwrite it. Neither alone is enough — `Forced` is a different
+    // resource from `Incised`, so reading it says nothing about who comes after.
+    // `reads_prev: Recorded` (the strata record `expose` also lag-reads) stays: it
+    // is true independently, and declare what you read.
     if cfg.head_field {
         passes.push(DeepPass {
             id: "dc:deep/head",
-            reads: &[Routed],
+            reads: &[Routed, Forced],
             writes: &[Head],
-            reads_prev: &[Recorded],
+            reads_prev: &[Recorded, Incised],
             period: super::head::HEAD_PERIOD,
             body: head_pass,
         });
@@ -667,10 +739,14 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         });
     }
 
-    // Bedrock weathering (reads last epoch's biotic weathering multiplier).
+    // Bedrock weathering (reads the incised terrain — cover thickness `H` and
+    // bedrock `R` as transport left them — and last epoch's biotic weathering
+    // multiplier). `Incised` states the terrain revision it consumes; the ordering
+    // it adds (`transport → weather`) was already carried by the DeltaH chain, so
+    // declaring it is schedule-neutral.
     passes.push(DeepPass {
         id: "dc:deep/weather",
-        reads: &[DeltaH, Exposed, Frosted],
+        reads: &[DeltaH, Exposed, Frosted, Incised],
         writes: &[DeltaH, Weathered],
         reads_prev: &[BioMod],
         period: 1,
@@ -894,12 +970,15 @@ mod tests {
         // before `transport`. It plants a field and has no in-epoch reader, so its
         // position never affects the erosion result.
         "dc:deep/geotherm",
-        // The head field sorts in here: it becomes ready once `drainage` has
-        // written Routed, and among the ready pool the id-tie-break places
-        // `dc:deep/head` after `geotherm` and before `transport`. Like the geotherm
-        // it plants a field and no *erosion* pass reads it, so its position never
-        // affects the terrain — only `dc:deep/flow_record` reads it, and that pass
-        // writes nothing the epoch consumes either.
+        // The head field sits here **because the graph puts it here**, not because
+        // the tie-break did (journal/0107). It reads `Forced`, so it cannot precede
+        // `forcing`; it lag-reads `Incised`, so it cannot follow `transport`. That
+        // window is exactly where its four boundary-condition inputs
+        // (`filled`/`routed`/`area`/`ground`) all describe the same landscape.
+        //
+        // The old note here — *"its position never affects the terrain"* — was true
+        // and was answering the wrong question: its position decides the head
+        // FIELD'S OWN VALUES, and therefore the vertical flux the record keeps.
         "dc:deep/head",
         "dc:deep/transport",
         // The flow record sorts in here: it becomes ready once `transport` has
@@ -1008,6 +1087,9 @@ mod tests {
         // rename chosen to lose the alphabet fight against that axis's writers.
         for (victim, hostile) in [
             ("dc:deep/head", "dc:deep/zzz_head"),
+            // journal/0107 added two more lagged readers of a terrain revision:
+            // `climate` (before `forcing`) and `head` (before `transport`).
+            ("dc:deep/climate", "dc:deep/zzz_climate"),
             ("dc:deep/expose", "dc:deep/zzz_expose"),
             ("dc:deep/frost", "dc:deep/zzz_frost"),
             ("dc:deep/weather", "dc:deep/zzz_weather"),
@@ -1139,8 +1221,8 @@ mod tests {
             .iter()
             .find(|p| p.id == "dc:deep/head")
             .expect("the head field pass is scheduled by default");
-        assert_eq!(head.reads, &[DeepAxis::Routed]);
-        assert_eq!(head.reads_prev, &[DeepAxis::Recorded]);
+        assert_eq!(head.reads, &[DeepAxis::Routed, DeepAxis::Forced]);
+        assert_eq!(head.reads_prev, &[DeepAxis::Recorded, DeepAxis::Incised]);
         assert_eq!(head.writes, &[DeepAxis::Head]);
         // Coarse rate — groundwater equilibrates in millennia against a 2.5 Myr
         // epoch, so this samples the topography rather than relaxing the water.
@@ -1163,6 +1245,124 @@ mod tests {
         let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
         assert!(at("dc:deep/head") < at("dc:deep/flow_record"));
         assert!(at("dc:deep/drainage") < at("dc:deep/head"));
+    }
+
+    /// **The under-declaration journal/0107 closed.** `dc:field/head` declared
+    /// `reads: [Routed]` while its body built the ground surface `R+H` through
+    /// `grid.surf_at` and handed it to the solve as the seepage cap, the lake datum
+    /// and the free-surface boundary. Which *revision* of the terrain that was —
+    /// pre- or post-incision — was decided by the id tie-break, exactly the
+    /// journal/0104 defect one level along, and the old defence (*"its position
+    /// never affects the terrain"*) answered a different question: it affects the
+    /// head field's own values, and the vertical flux recorded from them.
+    ///
+    /// The revision is `Forced`, and the pass is now pinned into that window from
+    /// **both** sides — `reads: Forced` after the writer that produced it,
+    /// `reads_prev: Incised` before the writer that supersedes it. One without the
+    /// other pins nothing: they are different resources to the graph.
+    #[test]
+    fn the_head_field_is_pinned_into_the_terrain_revision_it_reads() {
+        for cfg in [
+            all_on(),
+            DeepConfig {
+                full_agents: false,
+                ..all_on()
+            },
+            DeepConfig {
+                tectonic_history: false,
+                ..all_on()
+            },
+            DeepConfig {
+                flow_record: false,
+                ..all_on()
+            },
+        ] {
+            let order = DeepSchedule::new(deep_passes(&cfg))
+                .expect("valid roster")
+                .ordered_ids();
+            let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
+            assert!(
+                at("dc:deep/forcing") < at("dc:deep/head"),
+                "head reads the FORCED terrain: {order:?}"
+            );
+            assert!(
+                at("dc:deep/head") < at("dc:deep/transport"),
+                "head must read the terrain before transport incises it: {order:?}"
+            );
+        }
+
+        // Rename-proof on the `reads` side too: an id that would win the tie-break
+        // against `dc:deep/forcing` still cannot be scheduled ahead of it.
+        let mut passes = deep_passes(&all_on());
+        let hostile = "dc:deep/aaa_head";
+        assert!(hostile < "dc:deep/forcing", "the rename must be hostile");
+        for p in &mut passes {
+            if p.id == "dc:deep/head" {
+                p.id = hostile;
+            }
+        }
+        let order = DeepSchedule::new(passes).expect("schedulable").ordered_ids();
+        let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
+        assert!(at("dc:deep/forcing") < at(hostile), "{order:?}");
+        assert!(at(hostile) < at("dc:deep/transport"), "{order:?}");
+    }
+
+    /// **Neutrality, proven rather than asserted** (journal/0107). The slice added
+    /// four declarations — `climate.reads_prev = [Forced]`, `transport.writes +=
+    /// Incised`, `weather.reads += Incised`, and head's `Forced`/`Incised` pair.
+    /// Every edge they introduce was already implied by the existing transitive
+    /// closure, so the schedule cannot move. Rebuild each roster with the
+    /// **pre-slice** declarations and assert the order is identical — the direct
+    /// check, rather than an appeal to a golden hash computed elsewhere.
+    #[test]
+    fn the_terrain_revision_declarations_are_schedule_neutral() {
+        const PRE_TRANSPORT_WRITES: &[DeepAxis] = &[Energy, DeltaH];
+        const PRE_WEATHER_READS: &[DeepAxis] = &[DeltaH, Exposed, Frosted];
+        const PRE_HEAD_READS: &[DeepAxis] = &[Routed];
+        const PRE_HEAD_LAG: &[DeepAxis] = &[Recorded];
+        for cfg in [
+            all_on(),
+            DeepConfig {
+                weather_inventory: true,
+                ..all_on()
+            },
+            DeepConfig {
+                head_field: false,
+                ..all_on()
+            },
+            DeepConfig {
+                full_agents: false,
+                ..all_on()
+            },
+            DeepConfig {
+                tectonic_history: false,
+                ..all_on()
+            },
+        ] {
+            let after = DeepSchedule::new(deep_passes(&cfg))
+                .expect("valid roster")
+                .ordered_ids();
+            let mut passes = deep_passes(&cfg);
+            for p in &mut passes {
+                match p.id {
+                    "dc:deep/climate" => p.reads_prev = &[],
+                    "dc:deep/transport" => p.writes = PRE_TRANSPORT_WRITES,
+                    "dc:deep/weather" => p.reads = PRE_WEATHER_READS,
+                    "dc:deep/head" => {
+                        p.reads = PRE_HEAD_READS;
+                        p.reads_prev = PRE_HEAD_LAG;
+                    }
+                    _ => {}
+                }
+            }
+            let before = DeepSchedule::new(passes)
+                .expect("the pre-slice roster was also valid")
+                .ordered_ids();
+            assert_eq!(
+                before, after,
+                "declaring the terrain revisions must not move the schedule"
+            );
+        }
     }
 
     /// Off, the pass is **absent** — the old `if` as pass presence — so the head
@@ -1271,6 +1471,10 @@ mod tests {
         let passes = deep_passes(&all_on());
         let climate = passes.iter().find(|p| p.id == "dc:deep/climate").unwrap();
         assert!(climate.period > 1, "climate re-marches on a coarse cadence");
+        // It marches on the START-of-epoch topography, and says so (journal/0107):
+        // an anti-dependency against the first terrain revision of the epoch, which
+        // transitively covers every later terrain writer.
+        assert_eq!(climate.reads_prev, &[DeepAxis::Forced]);
         // Seeded before the loop, so it does not fire at epoch 0 in-loop, then
         // fires on its multiples — exactly the old `it > 0 && it % remarch == 0`.
         assert!(!climate.fires(0));
