@@ -1798,3 +1798,16 @@ the numerics.
 3. **The correction is now a mechanism, not a note:** flow.md § 2.6.1 states which field is
    partitioned and why, and names **bound MFD on `dc:field/head`** as the genuinely-unbuilt thing
    continuation (c) owes.
+
+**Struck at source, 2026-07-25** — because a correction that lives only in this file is a
+correction the next author does not meet: flow.md § 2.6 and § 9 item 8, `head.rs`'s "what is
+deliberately NOT here" bullet, and the `DeepField::head` row of spines § 3 all now carry the
+struck sentence with a pointer here and to § 2.6.1.
+
+**Two sites deliberately NOT struck.** `journal/0098` § "what this unlocks" and
+`journal/0096` both state it, and the journal is **append-only** — an entry records what was
+believed on the day it was written and rewriting it would destroy the very thing the journal is
+for. `docs/audits/2026-07-25-roadmap-staleness-sweep.md` is likewise a dated snapshot.
+**ROADMAP.md line ~2740 still carries it** (*"the head field is also what unlocks a
+multi-flow-direction solve"*) and is owned by the integrator, not by the slice — flagged in the
+slice's return rather than edited.
