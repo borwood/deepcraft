@@ -109,12 +109,46 @@ cargo test --workspace --release
   `examples/` and several carry `assert!`s. **The gate cannot see them fail.**
   `flow_cost_probe` was broken by the flow merge (its itemised baseline lost track
   of `resident_bytes`, off by the whole 42.6 MB flux record) and sat green through
-  a full 664-test workspace gate, because the gate never executed it. Two rules:
-  **(a)** an example that can **fail** belongs in the gate — put the assertion in a
-  real `#[test]` that shares the code, and let the example *print*; **(b)** until
-  that conversion happens, **re-run the probes by hand after any merge that changes
-  what they measure.** A probe nobody runs is a probe that is silently wrong, and
-  the numbers it produced are still sitting in the docs.
+  a full 664-test workspace gate, because the gate never executed it. The rule:
+  **an example that can fail belongs in the gate.** A probe nobody runs is a probe
+  that is silently wrong, and the numbers it produced are still sitting in the docs.
+  - **"Re-run the probes by hand after a merge" was tried here and FAILED IN ONE
+    DAY.** That advisory was added to this section on 2026-07-25; the next day
+    `flow_cost_probe` broke *again, identically* — a missing `head` row after
+    FLOW (a) merged. **The assertion caught it; the process did not.** Do not
+    answer "the gate cannot see X" with a rule asking people to remember X.
+    Retired in favour of the mechanism below (journal/0103).
+  - **The mechanism is `test = true` on the example's Cargo target** (journal/0103).
+    ```toml
+    [[example]]
+    name = "my_probe"
+    test = true
+    ```
+    Cargo then *additionally* builds that example with the libtest harness, so its
+    `#[test]`s run under `cargo test` — while `cargo run --example my_probe` still
+    executes `main` and prints the full report. **One file, one set of measurement
+    functions, two consumers.** Nothing moves to a library and nothing is
+    duplicated: factor the measurement into a function returning a struct, let
+    `main` print it and a `#[cfg(test)] mod gate` assert on it.
+  - **Size the test, not the report.** Several probes build the production world
+    (seed 1337, `Extent::Medium`) and take 20–90 s; a gate that grows five minutes
+    gets worked around. Run the *test* at the **smallest extent that still
+    exercises the invariant** — and say in the test's doc comment **why the
+    invariant is scale-free** (a per-voxel predicate, a per-column arithmetic, a
+    topological property). Keep `Medium` only where the claim is genuinely about
+    production scale. Probe conversions report their added gate wall-clock.
+    *Both `flow_cost_probe` failures were a **missing row in an itemisation** —
+    wrong at every world size. The defects probes catch are usually structural,
+    and structural is scale-free; the magnitudes are what the report is for.*
+    Measured: all seven converted probes add **35.0 s** to the gate (journal/0103).
+  - **Assert invariants, never snapshots.** An itemisation equal to its own total;
+    a bound; a ratio. **Not** a MiB figure — ledger residency moved twice in one
+    afternoon, and a test pinned to yesterday's number fails *because a colleague
+    improved memory*, which is worse than the defect it was guarding.
+  - **A printed caption is a published claim the gate cannot check.**
+    `flux_record_probe` printed *"honestly EMPTY … heirs: the head field"* beside a
+    non-zero count for a day after that heir landed. When a slice fills a hole a
+    probe narrates, the caption is part of the diff.
 - **And grep the build log for the crate you changed** (corrections #34) — with
   the right verb: `build`/`test` print **`Compiling dc-x`**, `clippy` prints
   **`Checking dc-x`**. **Do NOT anchor the pattern to line start** — cargo

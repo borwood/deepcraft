@@ -47,6 +47,15 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 # `tracing_subscriber`, so there is no version-split risk with LogPlugin.
 perf = ["bevy/trace"]
 
+# **An instrument the gate can see fail** (journal/0103, CLAUDE.md § Gates).
+# `cargo test` BUILDS examples but never RUNS them, so the `assert_eq!` this
+# example carried in `main` was invisible to the workspace gate. `test = true`
+# additionally builds it with the libtest harness, so its `#[test]`s run in
+# `cargo test`, while `cargo run --example` still prints the full census.
+[[example]]
+name = "identify_census"
+test = true
+
 [dev-dependencies]
 # The S4 cross-backend portability test additionally translates every pack
 # entry point to HLSL/SPIR-V/MSL (docs/rendering/PIPELINE.md § Portability).

@@ -408,3 +408,151 @@ fn main() {
         );
     }
 }
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// This tour is a **station finder**: its output is a place to stand and a camera
+/// to point, and the only judge of whether it found the right patch is the eye
+/// that looks at the frame. There is no world invariant it can assert, and the
+/// world-scale search takes tens of seconds — so **the search itself is
+/// deliberately NOT in the gate**, and that is recorded here rather than left as
+/// an omission (stubs.md doctrine: an unlisted loose end is the defect).
+///
+/// What *is* gated is the part that can be silently wrong without anyone
+/// noticing: the **ranking function**. `window_score` decides which patch the
+/// walk is sent to, and corrections #48 is the standing reminder of what a
+/// mis-aimed reference costs — a 39 km error produced four null frames and a
+/// confident wrong conclusion. These tests are fixtures over pure functions and
+/// build no world at all, so they cost the gate nothing measurable.
+#[cfg(test)]
+mod gate {
+    use super::*;
+
+    const SAND: &str = "dc:stratum/clastic-coarse";
+    const MUD: &str = "dc:stratum/clastic-fine";
+    const COAL: &str = "dc:stratum/organic-coal";
+    const GRAN: &str = "dc:stratum/igneous-intrusive";
+
+    /// The whole point of the score: a patch of several *distinct* classes must
+    /// outrank a uniform one. If this inverts, the tour sends the walk to the
+    /// blandest ground it can find and still prints a confident pose.
+    #[test]
+    fn a_multi_class_window_outranks_a_uniform_one() {
+        let uniform = window_score(&[Some(GRAN); 9]);
+        let mixed = window_score(&[
+            Some(SAND),
+            Some(MUD),
+            Some(COAL),
+            Some(GRAN),
+            Some(SAND),
+            Some(MUD),
+            Some(COAL),
+            Some(GRAN),
+            Some(SAND),
+        ]);
+        assert_eq!(uniform.n_distinct, 1);
+        assert_eq!(mixed.n_distinct, 4);
+        assert!(
+            mixed.score > uniform.score,
+            "a 4-class window scored {:.3} against a uniform window's {:.3} — the \
+             checkerboard finder now prefers uniform ground",
+            mixed.score,
+            uniform.score
+        );
+    }
+
+    /// Coverage weighting is what stops a window that is mostly ocean or wilds
+    /// from winning on two loud cells. Same classes, fewer present cells, lower
+    /// score — strictly.
+    #[test]
+    fn a_mostly_empty_window_cannot_win_on_a_couple_of_loud_cells() {
+        let full = window_score(&[
+            Some(SAND),
+            Some(MUD),
+            Some(COAL),
+            Some(SAND),
+            Some(MUD),
+            Some(COAL),
+            Some(SAND),
+            Some(MUD),
+            Some(COAL),
+        ]);
+        let sparse = window_score(&[
+            Some(SAND),
+            Some(MUD),
+            Some(COAL),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ]);
+        assert_eq!(full.n_distinct, sparse.n_distinct);
+        assert!(sparse.coverage < full.coverage);
+        assert!(
+            sparse.score < full.score,
+            "a 1/3-covered window scored {:.3} against a fully covered one's {:.3}",
+            sparse.score,
+            full.score
+        );
+    }
+
+    /// Balance breaks ties: eight sandstone cells and one mudstone is not the
+    /// reference frame's checkerboard, even though it holds two classes.
+    #[test]
+    fn balance_breaks_the_tie_between_two_class_windows() {
+        let lopsided = window_score(&[
+            Some(SAND),
+            Some(SAND),
+            Some(SAND),
+            Some(SAND),
+            Some(SAND),
+            Some(SAND),
+            Some(SAND),
+            Some(SAND),
+            Some(MUD),
+        ]);
+        let even = window_score(&[
+            Some(SAND),
+            Some(MUD),
+            Some(SAND),
+            Some(MUD),
+            Some(SAND),
+            Some(MUD),
+            Some(SAND),
+            Some(MUD),
+            Some(SAND),
+        ]);
+        assert_eq!(lopsided.n_distinct, even.n_distinct);
+        assert!(
+            even.hnorm > lopsided.hnorm && even.score > lopsided.score,
+            "balanced {:.3} (H {:.3}) did not outrank lopsided {:.3} (H {:.3})",
+            even.score,
+            even.hnorm,
+            lopsided.score,
+            lopsided.hnorm
+        );
+    }
+
+    /// A glyph is what a human reads the window layout from; an unmapped class
+    /// prints `?` and silently erases the very distinction the tour exists to
+    /// show. Every class the finder can actually produce must have one.
+    #[test]
+    fn every_reachable_class_has_a_glyph() {
+        for c in [
+            SAND,
+            MUD,
+            COAL,
+            GRAN,
+            "dc:stratum/igneous-extrusive",
+            "dc:stratum/organic-peat",
+            "dc:stratum/organic-soil",
+            "dc:stratum/organic-charcoal",
+            "dc:stratum/ore-placer",
+            "dc:stratum/accessory-mafic",
+        ] {
+            assert_ne!(glyph(c), '?', "class {c} has no glyph and prints as '?'");
+        }
+    }
+}

@@ -58,17 +58,32 @@ fn interior(w: usize, idx: usize) -> bool {
     gx >= EDGE_MARGIN && gy >= EDGE_MARGIN && gx < w - EDGE_MARGIN && gy < w - EDGE_MARGIN
 }
 
-fn main() {
-    println!("=== S18 weathering-band tour map (journal/0089) ===");
-    println!(
-        "seed {SEED}, extent {}, weather_inventory ON, N=2 ({VOXEL_M} m voxels)\n",
-        EXTENT.label()
-    );
+/// The tour's measurement, as a value — so `main` can print it and the gate test
+/// can assert on it without either re-deriving the other's numbers (CLAUDE.md
+/// § Gates, journal/0103: `cargo test` builds examples but never runs them, so an
+/// instrument's claim only reaches the gate if it lives in a `#[test]` that
+/// shares the instrument's code).
+struct TourStats {
+    total_cells: usize,
+    /// Interior cells carrying any weathering product, thickest first.
+    banded: Vec<(usize, f64)>,
+}
 
-    let pregen = Pregen::run(WorldParams {
-        seed: SEED,
-        extent: EXTENT,
-    });
+impl TourStats {
+    fn max_m(&self) -> f64 {
+        self.banded.first().map_or(0.0, |x| x.1)
+    }
+    fn mean_m(&self) -> f64 {
+        if self.banded.is_empty() {
+            return 0.0;
+        }
+        self.banded.iter().map(|x| x.1).sum::<f64>() / self.banded.len() as f64
+    }
+}
+
+/// Build the world with `weather_inventory` ON and census its weathering bands.
+fn tour(extent: Extent) -> (dc_worldgen::deeptime::DeepField, TourStats) {
+    let pregen = Pregen::run(WorldParams { seed: SEED, extent });
     let field = build_field_with(
         &pregen.grid,
         SEED,
@@ -77,31 +92,46 @@ fn main() {
             ..DeepOverrides::default()
         },
     );
-    let (w, wp) = (field.w, field.wp);
-    let conv = Conv { w, wp };
-
-    // Per-cell band thickness (metres) = the collapse's basal saprolite band.
+    let w = field.w;
     let band = |i: usize| -> f64 {
         field
             .ledgers
             .get(i)
             .map_or(0.0, |l| l.weathering_product_m(field.strata[i].units.len()))
     };
-
-    // Distribution over banded interior cells.
     let mut banded: Vec<(usize, f64)> = (0..w * w)
         .filter(|&i| interior(w, i) && band(i) > 1e-6)
         .map(|i| (i, band(i)))
         .collect();
     banded.sort_by(|a, b| b.1.total_cmp(&a.1));
-    let total_cells = w * w;
-    let n_band = banded.len();
-    let max = banded.first().map_or(0.0, |x| x.1);
-    let mean = if n_band > 0 {
-        banded.iter().map(|x| x.1).sum::<f64>() / n_band as f64
-    } else {
-        0.0
+    let stats = TourStats {
+        total_cells: w * w,
+        banded,
     };
+    (field, stats)
+}
+
+fn main() {
+    println!("=== S18 weathering-band tour map (journal/0089) ===");
+    println!(
+        "seed {SEED}, extent {}, weather_inventory ON, N=2 ({VOXEL_M} m voxels)\n",
+        EXTENT.label()
+    );
+
+    let (field, stats) = tour(EXTENT);
+    let (w, wp) = (field.w, field.wp);
+    let conv = Conv { w, wp };
+    let band = |i: usize| -> f64 {
+        field
+            .ledgers
+            .get(i)
+            .map_or(0.0, |l| l.weathering_product_m(field.strata[i].units.len()))
+    };
+    let banded = &stats.banded;
+    let total_cells = stats.total_cells;
+    let n_band = banded.len();
+    let max = stats.max_m();
+    let mean = stats.mean_m();
     println!("--- band statistics (interior) ---");
     println!(
         "  deep grid {w}x{w} @ {:.1} m/cell; pregen {wp}x{wp}",
@@ -131,7 +161,7 @@ fn main() {
         "--- STATIONS (teleport here, --fullbright, then dig down to the basement contact) ---"
     );
     let mut picked: Vec<usize> = Vec::new();
-    for &(i, thick) in &banded {
+    for &(i, thick) in banded {
         if picked.len() >= 5 {
             break;
         }
@@ -173,4 +203,43 @@ fn main() {
     println!("  {}", conv.line(scarp_i));
     println!("  surface elevation : {:.1} m", field.surf[scarp_i]);
     println!("  band thickness    : {:.2} m", band(scarp_i));
+}
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// The tour's whole reason to exist is the claim journal/0089 and journal/0094
+/// made and the corpus now quotes: *with `weather_inventory` ON the deep run
+/// leaves a weathering band on a real fraction of the world, and the strongest
+/// one reaches at least one voxel.* Until now that claim lived only in
+/// `println!`, so any change that silently zeroed the ledger would have printed
+/// `NULL:` into a log nobody reads and passed the gate.
+///
+/// Run at [`Extent::Small`]. The claim is about **the pass firing at all** and
+/// about a per-cell magnitude, neither of which is a function of grid width — a
+/// smaller grid is fewer samples of the same distribution, not a different one.
+/// The *production* numbers (which cells, how thick, where to stand) are the
+/// example's job and stay at [`Extent::Medium`].
+#[cfg(test)]
+mod gate {
+    use super::*;
+
+    #[test]
+    fn the_weather_inventory_flag_leaves_a_band_on_the_world() {
+        let (_, stats) = tour(Extent::Small);
+        assert!(
+            !stats.banded.is_empty(),
+            "weather_inventory ON produced NO weathering band anywhere on {} cells — \
+             the pass fired into nothing, which is exactly the null the tour exists to catch",
+            stats.total_cells
+        );
+        assert!(
+            stats.max_m() >= VOXEL_M,
+            "the strongest band is {:.3} m, under one {VOXEL_M} m voxel — journal/0094's \
+             accumulating pass is supposed to reach at least a voxel somewhere \
+             (banded cells: {} / {})",
+            stats.max_m(),
+            stats.banded.len(),
+            stats.total_cells
+        );
+    }
 }

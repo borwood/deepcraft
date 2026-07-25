@@ -27,16 +27,22 @@ fn mib(bytes: usize) -> f64 {
     bytes as f64 / (1024.0 * 1024.0)
 }
 
-fn main() {
+/// Build the deep field this probe reads. Shared by `main` (which prints the
+/// full report at production scale) and the gate test below (which asserts the
+/// acceptance claims at a small scale) — journal/0103: `cargo test` builds
+/// examples but never runs them, so an instrument's claim only reaches the gate
+/// if a `#[test]` shares the instrument's code.
+fn field(extent: Extent) -> (DeepField, std::time::Duration, std::time::Duration) {
     let t0 = Instant::now();
-    let pregen = Pregen::run(WorldParams {
-        seed: SEED,
-        extent: Extent::Medium,
-    });
+    let pregen = Pregen::run(WorldParams { seed: SEED, extent });
     let t_pregen = t0.elapsed();
     let t1 = Instant::now();
-    let f: DeepField = build_field(&pregen.grid, SEED);
-    let t_deep = t1.elapsed();
+    let f = build_field(&pregen.grid, SEED);
+    (f, t_pregen, t1.elapsed())
+}
+
+fn main() {
+    let (f, t_pregen, t_deep) = field(Extent::Medium);
 
     let rec = &f.flux;
     let c = rec.census();
@@ -95,9 +101,16 @@ fn main() {
         c.lateral,
         c.lateral as f64 * 100.0 / c.entries.max(1) as f64
     );
+    // **This caption was stale and the gate could not see it** (journal/0103).
+    // Slice 1 recorded these structurally and left them honestly zero; the named
+    // heir *landed* — `dc:field/head` (journal/0098), ON by default — so the
+    // probe was printing a non-zero count beside the word EMPTY. Nothing failed,
+    // because `cargo test` never runs an example. The remaining heir (the
+    // free/bound edge) is named as still-outstanding, which it is.
     println!(
-        "vertical (slot<->slot)      : {:>12}  <- structurally present, honestly EMPTY \
-         (no infiltration term in this solve; heirs: the head field + the free/bound edge)",
+        "vertical (slot<->slot)      : {:>12}  <- filled by the head field \
+         (dc:field/head, journal/0098); zero only under --no-head-field. \
+         Remaining heir: the free/bound edge.",
         c.vertical
     );
     println!("boundary  ocean (sea stand)  : {:>12}", c.boundary_ocean);
@@ -256,5 +269,80 @@ fn main() {
                 e.load
             );
         }
+    }
+}
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// The probe prints `*** FAIL ***` when divergence is zero and then exits 0, so
+/// the only reader that could ever act on it was a human scrolling a log. The
+/// same claim, as a test.
+///
+/// Run at [`Extent::Small`]. "Does the record hold a junction a receiver tree
+/// cannot represent?" is a question about the **primitive**, not about grid
+/// width: a tree's divergence count is identically zero at every scale, so any
+/// non-zero count falsifies "this is still a tree". The *production* magnitudes
+/// (how many junctions, how many MiB) are the example's job and stay at
+/// [`Extent::Medium`].
+#[cfg(test)]
+mod gate {
+    use super::*;
+    use std::sync::OnceLock;
+
+    /// **Built once for the whole binary** — both tests read one field.
+    fn small_field() -> &'static DeepField {
+        static FIELD: OnceLock<DeepField> = OnceLock::new();
+        FIELD.get_or_init(|| field(Extent::Small).0)
+    }
+
+    #[test]
+    fn the_flux_record_holds_junctions_a_receiver_tree_cannot() {
+        let f = small_field();
+        let c = f.flux.census();
+        assert!(
+            c.entries > 0,
+            "the flux record is EMPTY ({} cells x {} chapters) — nothing was recorded at all",
+            c.cells,
+            c.chapters
+        );
+        assert!(
+            c.divergent > 0,
+            "divergence count is ZERO over {} cells x {} chapters: every cell has at most \
+             one out-face per chapter, which is exactly what the receiver tree already did. \
+             max_out_faces = {}",
+            c.cells,
+            c.chapters,
+            c.max_out_faces
+        );
+        assert!(
+            c.convergent > 0,
+            "convergence count is ZERO — the half a tree could already do has been lost"
+        );
+        assert!(
+            c.max_out_faces >= 2,
+            "max_out_faces = {} — a divergent junction must show at least two out-faces",
+            c.max_out_faces
+        );
+    }
+
+    /// The record must stay **sparse**: the whole residency argument (flow.md
+    /// § 9.1) is that a `cells x chapters x FACE_SLOTS` rectangle is never
+    /// allocated. A regression that started recording dense faces would still
+    /// pass every correctness test and quietly multiply the field's heap.
+    #[test]
+    fn the_flux_record_stays_sparse_against_the_dense_rectangle() {
+        let f = small_field();
+        let c = f.flux.census();
+        let sparsity = c.face_sparsity();
+        assert!(
+            sparsity > 0.0 && sparsity < 0.25,
+            "face sparsity {:.4} % is outside the sparse regime the cost model assumes \
+             ({} entries over {} cells x {} chapters x {} faces)",
+            sparsity * 100.0,
+            c.entries,
+            c.cells,
+            c.chapters,
+            dc_worldgen::deeptime::FACE_SLOTS,
+        );
     }
 }

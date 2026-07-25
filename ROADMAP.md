@@ -69,6 +69,56 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   - **OWED / next lever (filed, not done):** `DeepField::strata` is the same shape and bigger —
     `Vec<DeepStrata>` is **9.06 MiB of 32-byte structs** (5.8 % of the flag-off field) over an
     84.47 MiB heap, with **33,680 cells (11.3 %) holding an empty record**. See Observed.
+- 2026-07-25 — **The measurement instruments are in the gate, and the front's mass claim is
+  settled** (journal/0103; background agent, worktree; corrections #50). Two halves of one thing:
+  a gate that could not see its instruments fail, and a mass number that was wrong because nobody
+  ran the instrument that produced it.
+  - **`cargo test` BUILDS examples and never RUNS them**, so every probe assertion in the repo was
+    unreachable — including a literal `assert_eq!` sitting in
+    `dc-client/examples/identify_census.rs`'s `main`, which was journal/0101's whole acceptance.
+    Fixed with **Cargo's `[[example]] test = true`**, which builds the example *twice*: normally,
+    so `cargo run --example` still prints the full report, and with the libtest harness, so its
+    `#[test]`s run in the gate. **One file, one set of measurement functions, two consumers** — no
+    library pollution, no duplicated copy to drift (A-1).
+  - **Now gated, 16 tests over 7 probes, green by name:** `weathering_profile_probe` (3 —
+    `the_fill_geometry_hands_the_front_the_metres_the_record_owes`,
+    `the_eighth_draw_does_not_delete_the_thin_front`,
+    `the_front_is_graded_over_many_voxels_and_never_pure_product`),
+    `contents_air_over_solid_probe` (2), `flux_record_probe` (2), `head_field_probe` (2),
+    `s18_weathering_tour` (1), `identify_census` (2), `palette_quant_tour` (4, pure-function only).
+  - **The advisory this replaces was falsified in ONE DAY.** After the first `flow_cost_probe`
+    break, CLAUDE.md gained *"re-run the probes by hand after any merge that changes what they
+    measure."* The next day the same probe broke the same way (a missing `head` row after FLOW (a)):
+    **the assertion caught it; the process did not.** Recorded in CLAUDE.md § Gates — *do not
+    answer "the gate cannot see X" with a rule asking people to remember X.*
+  - **Assert invariants, never snapshots.** Both `flow_cost_probe` failures were a *missing row in
+    an itemisation* — wrong at every world size, which is why `Extent::Small` catches this whole
+    class. And no converted test pins a MiB figure: ledger residency moved twice in one afternoon
+    (per-cell struct 13.60 MiB → 0), and a test pinned to yesterday's number would fail **because a
+    colleague improved memory**.
+  - **Added gate wall-clock: 35.0 s, measured** — dc-worldgen's six probes **25.1 s** (contents
+    2.71 · flux 5.34 · head 5.47 · palette 0.00 · s18 6.19 · weathering 3.64) and dc-client's
+    `identify_census` **9.9 s**. **Well under the ~2 min ceiling**, against a workspace gate where
+    dc-worldgen's suite alone is ~870 s. Every world-building test runs at
+    **`Extent::Small`** and states in its
+    doc comment **why the invariant is scale-free** (a per-voxel predicate; a per-column
+    arithmetic; a topological property of the primitive). Production magnitudes stay in the
+    examples at `Extent::Medium`. Each binary builds its world **once** behind a `OnceLock` shared
+    by its tests.
+  - **Deliberately NOT gated:** `palette_quant_tour`'s world-scale station search — a station
+    finder's output is a *recommendation judged by the eye*, not a claim. Its **ranking function**
+    is gated instead (four fixture tests, no world built, ~0 s), because a mis-aimed reference is
+    what corrections #48 cost us.
+  - **A stale caption caught in the wild, and it is the same blindness one layer up:**
+    `flux_record_probe` printed *"vertical … honestly EMPTY (heirs: the head field …)"* beside a
+    **non-zero** count for a day after that heir landed (journal/0098). No test asserts on a
+    `println!` and no gate runs an example. Rule added to CLAUDE.md § Gates: **when a slice fills a
+    hole a probe narrates, the caption is part of the diff.**
+  - **The mass verdict: NOISE** — see Observed → DIAGNOSED, and corrections #50. The
+    voxel-tier expression is unbiased (stage-1 −0.02 %, stage-2 −0.60 % over 247 columns); the
+    reported `+3.7 %` was a material census crediting an overlying mudstone bed to the front.
+    **Nothing was fixed and nothing needs to be** — but flow.md § 3's mass budget inherits a
+    requirement: *audit against the fill plan, never against a census of finished contents.*
 
 - 2026-07-25 — **A weathering front is a PROFILE, not a slab** (journal/0099; background agent,
   worktree; **collapse-tier only — `deeptime/` untouched, stub #16 NOT retired**). Closes the
@@ -3512,20 +3562,79 @@ before any code.
   (which, on the evidence of journal/0102, can be zero call-site churn if the view carries the
   same read surface). Same family as `Vec<Vec<Fact>>` and `Vec<FactLedger>`, one record over.
 
-- **Is the front's voxel-tier mass error SAMPLING NOISE or a real upward BIAS?** (integrator
-  review of journal/0099, 2026-07-25 — **the claim is undertested, not shown wrong**.) Record-tier
-  conservation is exact and asserted. At the voxel tier the slice reports **+3.7 % over 21 columns**
-  (56.14 m expressed vs 54.12 m owed) and calls it quantization noise under journal/0055's
-  **unbiased-estimator** doctrine. But an unbiased estimator has `E[expressed] = owed`, so a
-  population mean should trend to **zero**, not `+3.7 %` — and the **median column is `+16 %`**
-  (a whole front of only 12 eighths), which is the signature of a **floor effect**: a band thinner
-  than one eighth cannot express as less than one eighth without vanishing. If the addressed
-  rounding is genuinely stochastic-proportional the bias should wash out; if it rounds up at the
-  floor, it will not. **21 columns is far too small a sample to tell.** Cheap to settle: re-run the
-  probe over a few hundred columns and see whether the mean trends to zero. **Not a blocker** —
-  the worst single column is under two eighths (≈0.23 m) — but *"mass is conserved"* must not enter
-  the corpus as a stronger claim than the evidence supports, and a future conservation audit
-  (flow.md § 3's mass budget) would be built on top of it.
+- **✅ DIAGNOSED 2026-07-25 (journal/0103) — the front's voxel-tier mass error is NOISE, and the
+  `+3.7 %` was the INSTRUMENT** (opened by the integrator's review of journal/0099; corrections
+  #50). Re-run over **247 columns** (journal/0099 had 21), with the pipeline split into its **two
+  quantizers** — the fill geometry and the eighth draw are not the same kind of error and only the
+  second is an estimator — and with the census taught to exclude voxels it cannot attribute.
+  - **INTEGRATOR'S HYPOTHESIS WAS WRONG, and it is worth recording which half.** I challenged
+    journal/0099's *"unbiased estimator"* claim on the grounds that a `+3.7 %` mean and a `+16 %`
+    median were **the signature of a floor effect** (a band thinner than one eighth cannot express
+    as less than one eighth without vanishing). **The challenge was right and the hypothesis was
+    wrong.** The stratification really does trace a textbook floor-effect curve — but the cause is
+    **measurement contamination, not quantization**: the product is `CLASS_CLASTIC_FINE` and so is
+    much of the pile directly above it, **222 of 247 columns** have a front voxel whose plan also
+    holds a *non-front* event of the same material, and **voxel contents carry no provenance**, so
+    the naive census credited overlying mudstone to the front. The decay with magnitude was *the
+    contact voxel's share of the front shrinking as the front grows.* **journal/0055's doctrine is
+    CONFIRMED, not falsified** — `allocate_to` is Cranley–Patterson systematic sampling with
+    `P(extra) = remainder` exactly, and the one real floor (`clamp(1,7)`) cannot bite on a
+    `[7,5,4,3,2,1,1,1]` profile. corrections #50 falsifies **the number, not the doctrine**.
+  - **Second time today that asking the discriminating question mattered more than the hypothesis
+    attached to it** (corrections #49 was the first — *"was it air, or `has_contents:false` read as
+    air?"* offered two wrong answers and the truth was a third thing). Both times the *question*
+    forced the measurement that produced the real answer. **Demand the measurement; hold the
+    explanation loosely.**
+  - **Stage 1, record → fill geometry: aggregate −0.02 %, mean +0.03 %, median +0.00 %, p5 −1.22 %,
+    p95 +0.86 %.** The record-bottom round-to-nearest, which lands on the front *every time*
+    because the front is what sits at the record's bottom, is centred.
+  - **Stage 2, the draw over attributable voxels: aggregate −0.60 %, mean −0.10 %, median −0.00 %,
+    p5 −30.00 %, p95 +28.72 %** (Mixed-plan voxels only, the only ones carrying a draw: −0.84 %).
+    Symmetric about zero, spread **widening** as the front thins — which is what an unbiased
+    estimator over a one-eighth quantum does, not a floor.
+  - **Stratified by front magnitude the fake trend disappears.** Naive means run +76 % (2–4
+    eighths) → +31 % (4–8) → +11 % (8–24) → +4 % (≥24), a textbook floor-effect curve. Stage-2
+    means run +9.1 % → +2.9 % → −0.1 % → −0.7 %, no trend. The naive decay was **the contact
+    voxel's share of the front shrinking as the front grows**, not quantization.
+  - **The mechanism.** The product is `CLASS_CLASTIC_FINE` (mudstone) and so is much of the pile
+    directly above it; at the top contact they share a `Mixed` voxel and **voxel contents carry no
+    provenance**. **222 of 247** columns have a front voxel whose plan holds a non-front event made
+    of the product's own material, so a material census credited the neighbour's mudstone to the
+    front.
+  - **From the code** (asked for separately, and it holds independently of the data):
+    `fill::allocate_to` is systematic sampling / Cranley–Patterson with `P(extra) = remainder`
+    exactly; `allocate_partial` floors the **cumulative**, so errors cancel along the run;
+    `pore_rider_share`'s mean is exactly `cnt·k8/8`. **Genuinely stochastic-proportional; nothing
+    rounds up at the floor.** journal/0055's doctrine is **confirmed, not falsified**.
+  - **flow.md § 3's mass budget can build on this** — with one requirement that is the real
+    deliverable: *a conservation audit at the voxel tier must compare against the **fill plan**,
+    never against a census of the finished contents.* The plan knows which event owns which
+    fraction of which voxel; the voxel does not.
+  - **NOT fixed, and nothing to fix** — the expression is unbiased. **Residual, stated:** 222 of
+    2 077 front voxels (10.7 %) are unattributable and are systematically the *top contact*, not a
+    random tenth; this instrument cannot weigh them. The verdict rests on stage 1 covering 100 % of
+    voxels and on the code-level proof. **Loose end filed:** `pore_rider_share`'s comment claims its
+    offset is disjoint from `allocate_partial`'s ("a low digit… not its high bits"); the bits
+    overlap (bits 10–12 vs the top 20), so the two draws are correlated. Not a mass defect — each
+    is marginally unbiased and the measurement above is the joint case — but the comment is wrong
+    and changing the address would move every contact voxel in the world, so it is **the user's
+    call**.
+
+- **`pore_rider_share`'s offset is NOT disjoint from `allocate_partial`'s, but its comment says it
+  is** (found 2026-07-25 while diagnosing the mass claim, journal/0103; **not a mass defect**).
+  `collapse.rs`'s `pore_rider_share` documents its draw as *"a **low digit** of the voxel's own fill
+  draw, not its high bits: `allocate_partial` consumes the high end, and reusing it here would
+  correlate 'this band won an extra eighth' with 'the product won an extra eighth of it' into a
+  visible pattern."* The arithmetic does not deliver that: `(u * 4096.0) as u64 & 7` is **bits
+  10–12** of the fraction, and `allocate_to`'s `uq = (u * ONE) as u64` is the **top 20**. They
+  overlap, so `cnt` and the rider's offset **are** correlated — exactly the coupling the comment
+  says it avoided. **Measured consequence on mass: none detectable** (journal/0103's stage-2 figure
+  is the joint case: −0.60 % aggregate, median −0.00 % over 247 columns), because each draw is
+  marginally unbiased. The open question is the one the comment actually cared about: whether the
+  correlation is **visible** as a pattern at a contact. **Not touched** — re-addressing the rider's
+  draw moves every contact voxel in the world, which is an appearance change and the user's call.
+  Cheap next step: a fullbright walk along a strong front looking for banding correlated with the
+  parent's eighth, before any code moves.
 
 - **A front's parent alternates diorite/granite down a single column** (observed 2026-07-25 by the
   weathering-profile slice; **pre-existing, merely made visible**). `Single` voxels resolve their

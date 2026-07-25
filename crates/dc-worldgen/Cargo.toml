@@ -16,6 +16,40 @@ rayon.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 
+# **Instruments the gate can see fail** (journal/0103, CLAUDE.md § Gates).
+# `cargo test` BUILDS examples but never RUNS them, so an `assert!` in a probe is
+# invisible to the workspace gate — `flow_cost_probe` sat green through a
+# 664-test run while broken. `test = true` makes cargo build these examples with
+# the libtest harness as well, so their `#[test]`s run in `cargo test`, while
+# `cargo run --example` still executes `main` and prints the full report. One
+# file, one set of measurement functions, two consumers.
+[[example]]
+name = "s18_weathering_tour"
+test = true
+
+[[example]]
+name = "weathering_profile_probe"
+test = true
+
+[[example]]
+name = "flux_record_probe"
+test = true
+
+[[example]]
+name = "head_field_probe"
+test = true
+
+[[example]]
+name = "contents_air_over_solid_probe"
+test = true
+
+# Only the ranking function is gated here — the world-scale station search is
+# deliberately left out (a station finder's output is a recommendation, judged by
+# the eye, not a claim). See the example's `mod gate` doc comment.
+[[example]]
+name = "palette_quant_tour"
+test = true
+
 [dev-dependencies]
 # S15 spike (measurement only — examples + tests, never a build dependency of
 # the library). The spike's whole point is to run against the REAL chunk store,

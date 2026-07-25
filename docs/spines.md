@@ -637,6 +637,27 @@ optimizer).
 **Check:** verify by test **name and count**, never by `test result: ok`. Ask
 *"did it run?"* separately from *"did it pass?"*
 
+- **instance, and the purest form of it (2026-07-25, journal/0103):
+  `cargo test` BUILDS examples and never RUNS them.** Every measurement instrument
+  in this repo lives in `examples/` — the residency probes, the acceptance probes,
+  the tour maps — and one of them (`dc-client/examples/identify_census.rs`) carried
+  a literal `assert_eq!` **in `main`**, where no gate could reach it. `flow_cost_probe`
+  was broken by the FLOW merge (off by the whole 42.6 MB flux record) and sat green
+  through a **664-test** workspace gate. Not a lenient gate — a gate that never
+  executed the code. **Closed by `[[example]] test = true`**, which builds the
+  example twice: normally for `cargo run --example` (it still prints), and with the
+  libtest harness so its `#[test]`s run in the gate. One file, two consumers, no
+  copy to drift (which is why the obvious fixes — move it to the library, or clone
+  it into `tests/` — were both wrong; the second is A-1 wearing a lab coat).
+  **The generalisation:** *a thing which can fail must be run by the gate, and
+  "green" is only ever a claim about the code that actually ran.*
+- **its sibling, one layer up (same entry): a printed caption is a published claim
+  no gate can check.** `flux_record_probe` printed *"vertical … honestly EMPTY
+  (heirs: the head field …)"* beside a **non-zero** count for a day after that heir
+  landed (journal/0098). No test asserts on a `println!`. **Check:** when a slice
+  fills a hole that a probe narrates, the caption is part of the diff — and this is
+  A-2 in the probes rather than in the source.
+
 ## A-4. Built machinery with no consumer and no index
 
 See § 3. **This is the anti-shape this file exists for.** Its sibling failure — the

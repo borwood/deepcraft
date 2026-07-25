@@ -34,6 +34,47 @@ fn mib(bytes: usize) -> f64 {
     bytes as f64 / (1024.0 * 1024.0)
 }
 
+/// Count the record's vertical (slot↔slot) crossings, and the columns carrying
+/// any. **The** number this slice exists to move off zero — shared by `main`
+/// (which prints the production report) and the gate test below (journal/0103:
+/// `cargo test` builds examples but never runs them, so a claim only reaches the
+/// gate through a `#[test]` sharing the instrument's code).
+fn vertical_census(f: &DeepField) -> Vertical {
+    let cells = f.flux.census().cells;
+    let mut v = Vertical::default();
+    let mut carrying = vec![false; cells];
+    for (i, c) in carrying.iter_mut().enumerate() {
+        for e in f.flux.entries_for(i) {
+            match e.face {
+                FaceKey::Down => {
+                    v.down.push(f64::from(e.magnitude));
+                    *c = true;
+                }
+                FaceKey::Up => {
+                    v.up.push(f64::from(e.magnitude));
+                    *c = true;
+                }
+                _ => {}
+            }
+        }
+    }
+    v.columns = carrying.iter().filter(|b| **b).count();
+    v
+}
+
+#[derive(Default)]
+struct Vertical {
+    down: Vec<f64>,
+    up: Vec<f64>,
+    columns: usize,
+}
+
+impl Vertical {
+    fn n(&self) -> usize {
+        self.down.len() + self.up.len()
+    }
+}
+
 /// min / mean / p95 / max of a sample (sorted in place).
 fn dist(v: &mut [f64]) -> (f64, f64, f64, f64) {
     if v.is_empty() {
@@ -88,26 +129,9 @@ fn main() {
     );
 
     // ---- 1. the vertical faces ---------------------------------------------
-    let mut down_mags: Vec<f64> = Vec::new();
-    let mut up_mags: Vec<f64> = Vec::new();
-    let mut columns_with_vertical = vec![false; cells];
-    for (i, carries) in columns_with_vertical.iter_mut().enumerate() {
-        for e in rec.entries_for(i) {
-            match e.face {
-                FaceKey::Down => {
-                    down_mags.push(f64::from(e.magnitude));
-                    *carries = true;
-                }
-                FaceKey::Up => {
-                    up_mags.push(f64::from(e.magnitude));
-                    *carries = true;
-                }
-                _ => {}
-            }
-        }
-    }
-    let n_vertical = down_mags.len() + up_mags.len();
-    let carrying = columns_with_vertical.iter().filter(|b| **b).count();
+    let v = vertical_census(&f);
+    let (n_vertical, carrying) = (v.n(), v.columns);
+    let (mut down_mags, mut up_mags) = (v.down, v.up);
 
     println!("\n--- ACCEPTANCE 1: the vertical (slot<->slot) faces ---");
     println!(
@@ -313,5 +337,96 @@ fn main() {
                 );
             }
         }
+    }
+}
+
+/// **The gate's view of this instrument** (journal/0103).
+///
+/// journal/0098's whole claim is that the head field turned slice 1's honest
+/// structural zero into real vertical flux. The probe printed `*** FAIL ***` for
+/// the null and exited 0; a regression that unwired the head-field consumer would
+/// have restored the zero and passed the gate.
+///
+/// Run at [`Extent::Small`]. "Does anything at all cross a slot boundary?" is a
+/// question about whether the term is **wired to a consumer**, which is not a
+/// function of grid width. The production counts (307,364 crossings, the MiB) are
+/// the example's job and stay at [`Extent::Medium`].
+#[cfg(test)]
+mod gate {
+    use super::*;
+
+    use std::sync::OnceLock;
+
+    /// **Built once for the whole binary** — the two tests share the pregen, so
+    /// the gate pays for it a single time (sizing the gate is part of the
+    /// conversion, CLAUDE.md § Gates).
+    fn small_pregen() -> &'static Pregen {
+        static PREGEN: OnceLock<Pregen> = OnceLock::new();
+        PREGEN.get_or_init(|| {
+            Pregen::run(WorldParams {
+                seed: SEED,
+                extent: Extent::Small,
+            })
+        })
+    }
+
+    fn small_field() -> &'static DeepField {
+        static FIELD: OnceLock<DeepField> = OnceLock::new();
+        FIELD.get_or_init(|| {
+            let p = small_pregen();
+            build_field_cfg(&p.grid, &production_config(&p.grid, SEED))
+        })
+    }
+
+    #[test]
+    fn the_head_field_fills_the_vertical_faces_slice_one_left_empty() {
+        let f = small_field();
+        let v = vertical_census(f);
+        let (down, up, carrying) = (v.down.len(), v.up.len(), v.columns);
+        assert!(
+            down + up > 0,
+            "the vertical faces are STILL zero on {} cells — the head field computed a \
+             potential that nothing consumed, which is machinery built beside the hole it \
+             was meant to fill",
+            f.flux.census().cells,
+        );
+        assert!(
+            carrying > 0,
+            "vertical entries exist ({down} down, {up} up) but no column is marked as \
+             carrying them — the index and the entries disagree"
+        );
+    }
+
+    /// The A/B the cost report rests on: turning the head field off must
+    /// actually remove it. If `head_field: false` still built a head plane, every
+    /// "+X MiB for the head" number in the corpus would be measuring nothing.
+    #[test]
+    fn turning_the_head_field_off_removes_the_vertical_flux() {
+        let pregen = small_pregen();
+        let cfg = production_config(&pregen.grid, SEED);
+        let bare = build_field_cfg(
+            &pregen.grid,
+            &DeepConfig {
+                head_field: false,
+                ..cfg
+            },
+        );
+        let bv = vertical_census(&bare);
+        let (down, up) = (bv.down.len(), bv.up.len());
+        assert_eq!(
+            down + up,
+            0,
+            "head_field: false still recorded {down} down / {up} up vertical entries — \
+             the control is not a control, so every measured cost of the head field is wrong"
+        );
+        // Bound, not a baked figure: a sibling is moving ledger residency, and a
+        // probe must not be the thing that fails when memory improves.
+        assert!(
+            bare.resident_bytes() < small_field().resident_bytes(),
+            "the field without the head field ({} B) is not smaller than the field with it \
+             ({} B)",
+            bare.resident_bytes(),
+            small_field().resident_bytes(),
+        );
     }
 }
