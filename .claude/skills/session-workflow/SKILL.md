@@ -760,3 +760,32 @@ preserving current output would mean preserving correlated draws.
 **What still binds:** a *deliberate* output change is an **appearance change** — walk-gated,
 the user's to bless — and it is announced, never silent. This rule frees us from preserving
 accidents; it does not license unannounced ones.
+
+## An AUDIT's prescription is a hypothesis too (2026-07-25, confirmed the hard way)
+
+We already hold that *an agent's MECHANISM is a hypothesis; only its numbers are evidence.*
+This sharpens it to the case that is hardest to doubt: **an audit agent's prescribed FIX gets
+the same scepticism as any other agent's explanation** — and audits are the most persuasive
+thing we produce, because they cite `file:line` and are usually right.
+
+The spine-audit's prescription for `dc:field/head` was *"declaring `Forced` is **free, and it
+pins it**."* Its diagnosis was correct, its citations were correct, and its **fix was half
+wrong**: free, yes; **pins it, no.** The only reason it was caught is that the ROADMAP entry
+carried one clause — ***"verify that claim before trusting it"*** — into the brief.
+
+**The mechanism it missed, which is the durable lesson about revision-token schemes:** a
+`reads` edge on a revision token orders you **after that token's producer** and says *nothing*
+about the pass that next overwrites the same **plane**, because that pass writes a *different
+token* — a different resource as far as the graph is concerned. Ordinary pipeline passes
+survive this by accident: a forward edge into a later stage braces their far side. A
+**sidecar** (writes only its own field, its one reader downstream anyway) **has no brace and
+floats.**
+
+> **Where one plane carries several revisions per epoch, declaring the revision you consume
+> pins ONE SIDE ONLY. Pin the other side with an anti-dependency on the NEXT revision of that
+> plane — never the last.** Lagging against the *first* writer covers the whole chain
+> transitively; lagging against the *last* leaves you free to slide past everything before it.
+
+**Practice:** when an audit hands you a fix, put *"verify this claim"* in the brief that
+implements it, and require the agent to **re-derive the mechanism**, not just apply the
+patch. Two slices this session were saved by exactly that clause.
