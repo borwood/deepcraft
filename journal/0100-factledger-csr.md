@@ -198,6 +198,14 @@ paying for absence is not only a residency property. (Gen time is free by
 doctrine, so this is reported, not celebrated; but it is a useful reminder that
 "free" and "harmless" are different claims.)
 
+*Caveat on that timing, since it is the one number here that is not a byte
+count:* the two runs shared a machine with sibling agents, so treat ~2.5× as
+indicative rather than exact. Two things argue it is real anyway — the *flag-OFF*
+pregen in the same two runs differs by only 18 %, and in the **opposite**
+direction (28.6 s before, 33.7 s after), so load was if anything against the new
+code; and there is a mechanism, not just a stopwatch. The residency numbers are
+byte counts from `resident_bytes()` and carry no such caveat.
+
 One footnote on provenance: S19 recorded the flag-ON cost as **+156.91 MiB**;
 today's like-for-like re-measurement of the same pre-slice code reads
 **+161.81 MiB**. The header term is identical (133.50 MiB) and the fact count is
