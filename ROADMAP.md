@@ -2604,7 +2604,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   Instrument `--fullbright` (a material question). **Accepted with a follow-up, not a blocker** —
   the band has a **hard perimeter** (see Sequenced "the weathering front needs a PROFILE"), and the
   gradational-looking top contact is **boundary quantization, not weathering** (one voxel deep,
-  `mixed_voxel_contents`); **(4)** the **weathering-front PROFILE** flag-ON walk (journal/0099,
+  `mixed_voxel_contents`); **(4)** ✅ **DONE — WALK-CONFIRMED & PASSED 2026-07-25** (user, at the
+  station, `--weather-inventory --fullbright`, bench cut; assets
+  `0099-weathering-front-profile-bench.png`, `-full-section.png`): *"Success on the gradation!
+  Aesthetically, which is all I can judge here, this is a pass. **Our world just got far deeper and
+  more interesting to look at, just with this. The spawn area isn't a shallow pile of rubble over a
+  harsh boundary of uniform rock anymore.**"* Measured on the record **before** the screenshot so
+  the picture could not flatter it: product **6→5→4→3→1** eighths downward, parent structure
+  **4→5→7**, form flipping at 295/294 from debris to `structure`+`pore_fill`, deepest front voxel
+  **7/8 parent + 1/8 product**. The journal/0097 hard perimeter is gone at **both** faces.
+  *(Live bonus: `has_contents:false` on the basement below — journal/0101's `identify(pos)` fix
+  working in the field, where the query used to claim `dc:air` over solid stone.)*
+  ~~**(4)** the **weathering-front PROFILE** flag-ON walk~~ (journal/0099,
   shipped 2026-07-25) — the band is now a graded **19-voxel** front, ~**2.67×** deeper than the
   old slab, with **retained parent structure at the bottom contact** (7/8 parent + 1/8 product)
   instead of a hard perimeter; station world **(84185 m, 9212 m)**, voxels **y=299…281** — cut a
