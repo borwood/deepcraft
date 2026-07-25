@@ -545,9 +545,27 @@ mod tests {
         let cell0 = finalized.get(0).expect("cell 0 is in range");
         // The consumer reads the bedrock band at the FINAL record's bedrock slot.
         let band_after_finalize = cell0.weathering_product_m(grown.units.len());
+        // **The ONE assertion the compact fact moves class** (journal/0108, and S20
+        // § 4.3's final paragraph predicted exactly this one). `band_in_accumulator`
+        // is summed from the gen-time `FactLedger`, which stores `f64`;
+        // `band_after_finalize` is summed from the resident `LedgerField`, which
+        // stores `f32` — `finalize_ledgers` is the narrowing point. The two sides
+        // stopped sharing a representation here and only here, so this is the only
+        // stored-vs-computed comparison in the tree, and `1e-12` (an f64 round-trip
+        // bound) is a category error to demand of 24-bit storage.
+        //
+        // The replacement is DERIVED from that storage's resolution — see
+        // `inventory::stored_fold_tolerance`, whose docs carry the derivation and
+        // the physical cross-check (five orders below an eighth of a voxel). The
+        // claim being asserted is unchanged in substance: *the sentinel key is
+        // stable across the record's growth*. A key that had shifted would move the
+        // band by a whole unit's thickness, which is metres — not by 24 bits.
+        let tol = crate::deeptime::inventory::stored_fold_tolerance(
+            band_after_finalize.max(band_in_accumulator),
+        );
         assert!(
-            (band_after_finalize - band_in_accumulator).abs() < 1e-12,
-            "stable key: {band_after_finalize} != {band_in_accumulator}"
+            (band_after_finalize - band_in_accumulator).abs() <= tol,
+            "stable key: {band_after_finalize} != {band_in_accumulator} (tolerance {tol:.3e})"
         );
         // And it landed at the right slot (units.len()), not slot 0.
         assert!(

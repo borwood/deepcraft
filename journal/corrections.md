@@ -1748,3 +1748,47 @@ simply never checked.
 4. The durable fix was not a corrected comment but a **mechanism that makes the claim unnecessary**
    — the `Domain`/`Draws` provider, where disjointness is a compile-time property rather than an
    assertion in prose (journal/0105).
+
+## 53. "Nine test sites fail under f32 fact storage" (`docs/spikes/S20-*` § 4.2, 2026-07-25 — falsified the same day by journal/0108's implementation)
+
+**The claim.** S20 § 4.2 sorted every stored-value assertion in the tree into Class A ("stored vs
+stored — unaffected") and Class B ("stored vs a freshly-computed f64 — **fails**"), and published a
+nine-row Class B table with a measured error beside each row: `weather_inventory.rs:417, :482,
+:504`, `inventory.rs:1643, 1647, 1652, 1654`, `s17_deep_cell_inventory.rs:91, :100`. The § 7
+summary carried the count forward — *"it will be rejected for the nine test tolerances"* — and the
+brief that implemented 2c inherited "all nine Class B sites" as a deliverable.
+
+**What shipped.** **One** site moved class. The other eight pass **untouched, at their original
+`1e-12` / `1e-9` bounds**, in a green workspace gate.
+
+**The mechanism, which the spike itself named two subsections later.** § 4.2's verdicts were
+computed against a model where `Fact` stores `f32` *everywhere*. The design that shipped narrows
+**only at persist**: `LedgerField::from_accumulators` is the single narrowing point and the
+gen-time `FactLedger` accumulator stays `Fact<FracM>` at f64, precisely so the per-epoch `*q +=
+share` never rounds. Every one of the eight surviving sites reads a `FactLedger`. They are `f64`
+vs `f64` — not stored vs computed — and never changed representation at all.
+
+The one that did move is `weather_inventory.rs:549`
+(`bedrock_facts_key_stably_as_the_record_grows`), which compares a band summed from the accumulator
+against the same band summed from the finalized record — **the only assertion in the tree that
+straddles the persist boundary.** § 4.3's final paragraph predicted precisely that site, and
+predicted the direction (Class A → Class B). Its replacement bound is derived from the storage's
+own resolution and published beside the constant (`inventory::stored_fold_tolerance`).
+
+**Why this is worth recording rather than shrugging off.** The spike was *not* wrong about the
+physics, the error magnitudes, or the mechanism. It was wrong in a subtler and more contagious way:
+**a table stated verdicts without their condition**, while the condition sat in prose two
+subsections away. A reader — human or agent — who reads a table reads the table. "Nine sites fail"
+travelled into § 7's summary and into an implementation brief as a fact, and it would have
+travelled into a design decision ("is 2c worth nine broken tolerances?") that was being weighed on
+a blast radius **9× too large**.
+
+**Lessons.**
+1. **A verdict whose truth depends on a design choice belongs in the same cell as the choice.**
+   "Fails" should have read "fails *if the accumulator narrows too*". A conditional stated once, in
+   prose, in a different subsection, is not attached to the claim it qualifies.
+2. **Where an optimization is applied is part of the optimization.** "Store f32" is not a design;
+   "store f32 *at persist, once, widening on read*" is — and the two have different blast radii,
+   different error behaviour (single rounding vs compounding), and different test consequences.
+3. **Over-prediction is still a false number.** It is the flattering direction — the implementation
+   comes in "under budget" — which is exactly why nobody checks it.

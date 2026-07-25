@@ -104,6 +104,15 @@ not material, so a material change cannot rewrite it):
   agent's *share*, not the fact count (preserving "frost did 3, biotic did 2"). Carries
   material change, form-only change (crumbling), and dissolution (`→ void`). Ordered by
   chapter; within a chapter a commutative batch.
+  **In tree since 2026-07-25 (journal/0108) the endpoints are held as one `EdgeId`**
+  (§3), and the resident fact is **8 B with zero padding** — `chapter: u8`,
+  `cause: Cause`, `edge: EdgeId`, `fraction_m: f32`. **Every axis above survives**;
+  only the fraction's *representation* narrows, and it narrows **once, at persist**
+  (`LedgerField::from_accumulators`) — the gen-time accumulator stays `f64` so the
+  per-epoch add never rounds, and every read widens back. Measured cost: max relative
+  5.766e-8, at f32's own 2^-24, i.e. one part in 914 000 of an eighth of a voxel.
+  This is the shape's compaction lever; the axis-drops that would have bought more
+  bytes are the ones this section exists to forbid (S20 § 6, A-1).
 - **The fact is the seed; the story is derived-and-displayed** (S-2). The fact stores
   only the non-derivable core above. The **pass** (from `chapter` + `cause` + the static
   schedule — topo-validation forbids two passes writing one edge, so it is unique), the
@@ -204,6 +213,19 @@ fluid/pore-fill in the remaining pores — **soft-boundary caves fall out.**
 Crumbling rides the existing **genesis exemption** to `fits_in_pores`
 (materials.md): crumbling-in-place is formation, not infiltration, so a coarse
 stone may fill its own pores without meeting the grain rule.
+
+**IN TREE since 2026-07-25 (journal/0108) — this graph is now the compile-enforced
+authority for what a fact may say.** `inventory::is_declared_edge` is the predicate
+(complete by construction, as above; the **null edge** `from == to` and `Void → Void`
+are the only refusals — nothing moves, so there is no transformation to record).
+`EdgeId::declared` is its **only** constructor and a `Fact` can only be built from
+an `EdgeId`, so **a fact structurally cannot name a transition this section does not
+declare**. The strong form holds too: `InvCtx::apply_edge` on an undeclared edge
+returns 0 and touches nothing, rather than performing a move it could not honestly
+write down. The 20-edge count above is checked by the gate rather than quoted
+(`a_fact_cannot_name_an_undeclared_transition`). The id is two bytes — one per
+endpoint, mixed radix `material * 5 + form` — which is also what took the resident
+fact from 16 B to 8 B, but the bytes were the consequence and this was the reason.
 
 ---
 

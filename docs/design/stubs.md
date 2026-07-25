@@ -583,6 +583,51 @@ goldens), and the mass at stake is a mineral speck, not a modelled budget. It is
 listed here so "the mixed path is rider-complete" is never assumed; the heir is
 whichever slice next authorizes a golden move on the igneous contacts.
 
+### 21. the-edge-id-is-positional-mixed-radix — *added 2026-07-25 (journal/0108, S20 option 2c)*
+`dc-worldgen/src/deeptime/inventory.rs::EdgeId`: a `Fact`'s two endpoint bytes are
+each `material.raw() * FORM_COUNT + form.raw()` — a **mixed-radix packing over the
+material registry's POSITION**. Two consequences, and the first is loud by
+construction while the second is not:
+
+1. **A hard ceiling of `256 / FORM_COUNT = 51` materials** (26 today). It is a
+   `const _: () = assert!(...)` beside the type, so it fails at **compile** time
+   with a message naming this entry — it can never silently truncate. This is the
+   *good* half: a stand-in that cannot become the definition without a build error.
+2. **The id is only stable within one compiled binary.** Reorder or insert a
+   material and the same two bytes name a different edge. Nothing serializes a
+   ledger today (no `Serialize` on `Fact`/`FactLedger`/`LedgerField`/`DeepField`
+   anywhere in the tree), so this costs nothing *now* — but *"ready-made worlds
+   are the sanctioned answer"* means a ledger will be persisted, and a positional
+   id read back against a changed registry is **silently reinterpreted**: granite's
+   facts become diorite's and every test still passes.
+
+**The exposure is inherited, not created.** The pre-slice `Fact` stored `MaterialId`
+directly — the same positional `MatRepr` enum under the same `MATERIAL_COUNT == 26`
+compile-time assert. The id did not add the instability; it moved it two bytes to
+the left.
+
+**Mitigation already shipped:** `EdgeDict` — the per-world dictionary `id →
+(from-material-NAME, from-form, to-material-NAME, to-form)`, **derived** from the
+facts (`EdgeDict::of_facts`, never a stored second copy that could disagree) and
+carrying `validate()`, which re-resolves every row's id from its own *names* against
+the live registry. That turns a registry change from *silently reinterpreted* into
+**detected**. On the shipped world the dictionary has **one entry**
+(`dc:granite`/structure → `dc:granite`/loose); in any plausible future, a few dozen.
+
+**Heir:** the **interned** edge id — an `EdgeId` that indexes the per-world
+dictionary rather than encoding registry positions. It removes the 51-material
+ceiling entirely (65 536 inhabited edges regardless of registry width) and makes the
+dictionary the authority rather than the witness. It has to be built anyway the
+moment the ledger is first persisted, which is **the pager slice** (S20 option 3,
+the reserved continuation of this one) — so the heir is *sequenced*, not
+hypothetical. Until then `validate()` is the guard and nothing calls it in
+production, only in the gate and the probe.
+
+**Blast:** none today (in-process only, and the ceiling is a compile error). On the
+day a ledger is written to disk: every provenance answer in every ready-made world,
+silently, if the dictionary is not shipped and checked alongside it. *Loud marker at
+the type and at the assert, both naming this entry.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural
