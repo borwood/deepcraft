@@ -1570,6 +1570,14 @@ the right question and offered **two wrong answers**; the truth was a third thin
 (`has_contents: true` over an EMPTY composition). Asking the discriminating
 question mattered more than the hypotheses attached to it.
 
-**Fix:** not applied (diagnosis-only). It is the **`identify(pos)` arc's first
-concrete requirement**: a tier flag that can say **"unrecorded"** as a first-class
-answer, distinct from both "air" and "recorded".
+**Fix:** ~~not applied (diagnosis-only)~~ — **APPLIED 2026-07-25, journal/0101.**
+`HostWorld::identify(pos) -> Identity` (`dc-api/src/identify.rs`) is the honest,
+**untiered** surface, and `Identity::Unrecorded` is a first-class value distinct
+**in the type** from `Mixture(VoxelContents::EMPTY)`. `has_contents` is now a
+per-voxel fact, `classified` echoes the stored block where no record backs the
+voxel, `character_sense_raycast` answers `None` as its doc always promised, and
+the F3 HUD's `(no contents record here)` branch is reachable. The enabler was
+already in hand: the stored `Block` disambiguates (empty record + `Air` ⇒
+genuinely empty; empty record + anything else ⇒ unrecorded), so **no dc-worldgen
+change was needed**. Residual: the answer is still **edit-blind for composition**
+(the arc's runtime edit-fact overlay).

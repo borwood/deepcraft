@@ -2418,9 +2418,24 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   enrichment.
 
 - **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
-  `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md
+  `identify(pos)`** (arc opened 2026-07-24; priors: materials.md
   block-is-material DECIDED, the block-consumer recon, ARCHITECTURE § "a summary is
   not an authority", S-3/S-9).
+  - **✅ SLICE 1 SHIPPED 2026-07-25 — journal/0101. THE ARC STAYS OPEN.**
+    `HostWorld::identify(pos) -> Identity` (`dc-api/src/identify.rs`): untiered,
+    position-addressed, payload uniformly a mixture, with **`Identity::Unrecorded`
+    as a first-class value** distinct in the TYPE from `Mixture(EMPTY)`. Wired into
+    `dc:world/get_contents` (both lying fields fixed), `character_sense_raycast`,
+    and the F3 HUD (its `(no contents record here)` branch is now reachable).
+    Enabler: the stored `Block` already disambiguates — empty record + `Air` ⇒
+    genuinely empty, empty record + anything else ⇒ unrecorded — so **no
+    dc-worldgen change was needed**. A *non-empty* record still wins outright, so
+    the block/classified divergence that signals an edit stays legible. Census
+    through the real query path (`dc-client/examples/identify_census.rs`): phantom
+    air **CENSUS_BEFORE → CENSUS_AFTER**. **Still owed by this arc:** everything in
+    the continuation slot below — nothing was drained, deleted, or migrated, and
+    the path remains **edit-blind for composition** (an edit writes a `Block`; no
+    mixture is stored, so none can move).
   - **WHAT.** The honest answer to "what is this voxel" is its full `VoxelContents`
     (up to 8 partials), never one arbitrary component. One **position-addressed**
     function `identify(pos) -> payload`, where the payload is **uniformly a mixture**.
@@ -3150,6 +3165,17 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **✅ FIXED 2026-07-25 (journal/0101) — the query can now say `UNRECORDED`.** `identify(pos)`
+  landed as the arc's first slice: `has_contents` is a **per-voxel** fact, `classified` echoes
+  the stored block for an unrecorded voxel instead of naming a mixture that does not exist,
+  `character_sense_raycast` answers `None` (its documented promise) instead of `Some(<empty
+  view>)`, and the F3 HUD's `(no contents record here)` branch is **reachable**. Census through
+  the real query path (`dc-client/examples/identify_census.rs`, same lattice as the diagnosis
+  probe): phantom air **CENSUS_BEFORE → CENSUS_AFTER** of CENSUS_SOLID solid voxels; every
+  phantom voxel converted to `UNRECORDED`, recorded mixtures and sky unmoved. **Zero
+  dc-worldgen change** — the stored `Block` already disambiguates. *Entry kept, marked, because
+  the numbers below are the measured baseline.*
 
 - **DIAGNOSED 2026-07-25 — `world_get_contents` reports `dc:air` and `has_contents: true` over
   solid, correctly-unrecorded rock** (walk observation journal/0097; diagnosis
