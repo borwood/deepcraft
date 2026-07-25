@@ -83,10 +83,7 @@ impl TourStats {
 
 /// Build the world with `weather_inventory` ON and census its weathering bands.
 fn tour(extent: Extent) -> (dc_worldgen::deeptime::DeepField, TourStats) {
-    let pregen = Pregen::run(WorldParams {
-        seed: SEED,
-        extent,
-    });
+    let pregen = Pregen::run(WorldParams { seed: SEED, extent });
     let field = build_field_with(
         &pregen.grid,
         SEED,

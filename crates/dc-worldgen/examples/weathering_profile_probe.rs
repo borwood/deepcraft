@@ -429,10 +429,7 @@ fn banded_cells(pregen: &Pregen) -> Vec<(usize, f64)> {
 /// The production world this probe reads.
 fn production_world(extent: Extent) -> Pregen {
     Pregen::run_with(
-        WorldParams {
-            seed: SEED,
-            extent,
-        },
+        WorldParams { seed: SEED, extent },
         &DeepOverrides {
             weather_inventory: Some(true),
             ..DeepOverrides::default()
@@ -671,9 +668,16 @@ fn stratum_label(i: usize) -> String {
     match i {
         0 => "      < 1 eighth".into(),
         k if k <= STRATA_EDGES.len() - 1 => {
-            format!("{:>5.0} – {:<4.0} eighths", STRATA_EDGES[k - 1], STRATA_EDGES[k])
+            format!(
+                "{:>5.0} – {:<4.0} eighths",
+                STRATA_EDGES[k - 1],
+                STRATA_EDGES[k]
+            )
         }
-        _ => format!("     ≥ {:<4.0} eighths", STRATA_EDGES[STRATA_EDGES.len() - 1]),
+        _ => format!(
+            "     ≥ {:<4.0} eighths",
+            STRATA_EDGES[STRATA_EDGES.len() - 1]
+        ),
     }
 }
 
@@ -727,11 +731,11 @@ fn report_census(c: &MassCensus) {
         100.0 * (c.sum_expressed_mixed - c.sum_plan_mixed) / c.sum_plan_mixed.max(1e-9),
     );
     println!("\n  --- per-column relative error, by stage ---");
+    print_dist("TOTAL   record -> voxels (naive)", &err_dist(c.rel_total()));
     print_dist(
-        "TOTAL   record -> voxels (naive)",
-        &err_dist(c.rel_total()),
+        "stage 1 record -> fill geometry",
+        &err_dist(c.rel_geometry()),
     );
-    print_dist("stage 1 record -> fill geometry", &err_dist(c.rel_geometry()));
     print_dist("stage 2 draw, attributable only", &err_dist(c.rel_draw()));
 
     println!("\n  --- stratified by front magnitude (the floor-effect axis) ---");

@@ -106,12 +106,7 @@ struct CensusTotals {
 
 /// The client's own wiring (authority.rs § `new_worldgen`): one generator behind
 /// a `Mutex` serving both blocks and contents, with `identify` on top.
-fn wired_world(
-    extent: Extent,
-) -> (
-    HostWorld,
-    Arc<Mutex<WorldGenerator<'static>>>,
-) {
+fn wired_world(extent: Extent) -> (HostWorld, Arc<Mutex<WorldGenerator<'static>>>) {
     let pregen = Arc::new(Pregen::run_with(
         WorldParams { seed: SEED, extent },
         &DeepOverrides::default(),
@@ -355,7 +350,14 @@ mod gate {
             // trivially true. 9x9 columns at 4 096 voxels (~3.7 km) spans
             // ±14.7 km and crosses provinces.
             let (world, generator) = wired_world(Extent::Small);
-            let t = census(&world, &generator, (0, 0), CENSUS_STEP_VOXELS, 4, COLUMN_DEPTH);
+            let t = census(
+                &world,
+                &generator,
+                (0, 0),
+                CENSUS_STEP_VOXELS,
+                4,
+                COLUMN_DEPTH,
+            );
             assert!(
                 t.solid > 500,
                 "only {} solid voxels examined over {} columns — too few for the null to \
