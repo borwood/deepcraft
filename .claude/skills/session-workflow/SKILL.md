@@ -657,3 +657,19 @@ integrator waits for the lock and then resumes the agent**, rather than either n
 or abandoning it. And brief agents to **report what they have with the measurement
 outstanding** rather than parking silently: a partial report with the implementation
 committed beats silence.
+
+## Assign STUB numbers at dispatch too, not just journal numbers (2026-07-25)
+
+The "integrator assigns the journal number in the brief at dispatch" rule exists because
+two concurrent agents pick the same next-free number blind. **The identical collision then
+happened in `docs/design/stubs.md`**: the head-field slice and the weathering-profile slice
+both filed a **stub #19**, and the integrator only caught it while cleaning up the merge.
+
+**Any append-only numbered inventory has this hazard** — `stubs.md`, `corrections.md`,
+`journal/`, spike ids. So: **hold the next-free number for every numbered artifact a brief
+may produce, and hand each agent its own** — or brief slug-only and number at merge. The
+integrator's merge checklist gains one line: **grep for duplicate ordinals in every numbered
+doc the batch touched**, before the commit that folds it.
+
+Renumbering afterward is cheap but not free: references live in ROADMAP, journals, and
+in-code comments, so the fix is a corpus-wide grep, not a one-line edit.

@@ -179,6 +179,47 @@ Note the existing bound-water proxy `H = y + sat` is explicitly *unconfined, not
 Darcy solver* (hydrology-priors § 321) — confined/artesian behaviour is exactly
 what a real potential field adds.
 
+#### 2.4.1 The BOUNDARY CONDITIONS — a silence this document had, closed by the build
+
+**This section was under-written and the build had to supply it** (journal/0098, flagged
+honestly as *"the document is underneath the work, not wrong"*). § 2.4 said head is
+"elevation + pressure, plus buoyancy" and stopped — but **that formula is the easy half;
+every modelling judgement lives in what supplies the boundary conditions.** Recorded here
+so the design doc carries them rather than only `head.rs`:
+
+| where | condition |
+|---|---|
+| submerged cell, or the domain border | **Dirichlet** at the sea stand / base level |
+| **unconfined** cell holding free water (a lake, or a stream carrying ≥ `STREAM_ANCHOR_AREA` of drainage) | **Dirichlet** at that free-water elevation — the water table *outcrops* there |
+| **unconfined** cell elsewhere | free, but **capped at its own ground**: a water table cannot stand above the land, it discharges — a **seepage face** |
+| **confined** cell (a contiguous low-permeability cap over a permeable bed) | free, and **UNCAPPED** — the artesian degree of freedom |
+
+> **That last row is the whole point, and it is the shape to preserve: artesian is not a
+> special case in the code — it is the ABSENCE of a cap.** An unconfined cell is pinned or
+> capped by its own surface; a confined one is not, so its head is whatever the material
+> transmits to it from elsewhere.
+
+Solved as steady `∇·(T ∇h) = 0` by Gauss–Seidel with **alternating forward/reverse raster
+sweeps** — deterministic, and information crosses the whole grid in one sweep instead of
+diffusing a cell at a time.
+
+**Two traps this cost real work to find, recorded so they are not re-paid.** Both were
+false-positive artesian counts, and both were caught *only* because the invariant was
+written over a **whole world** rather than a constructed column — § 8's acceptance
+philosophy earning its keep:
+- **Lakes are not aquifers.** A lake cell is Dirichlet-pinned at its own water surface,
+  legitimately *above* its ground — **248 of an initial 308 "artesian" columns were lakes.**
+  Any artesian query must exclude them.
+- **Priority-flood dust.** A further 232 false positives were ponding of ~2.5 × 10⁻⁵ m; a
+  `PONDED_MIN_M` floor is required before "standing water" means anything.
+
+**Honest limit, and it matters downstream:** with **no recharge term** (`R = 0` in
+`∇·(T∇h) = −R`) artesian excesses come out in **metres**, not the hundreds a real Great
+Artesian Basin gives. That is **stubs #19 (the recharge-free water table)**, heir = a real
+water-balance climate. **Anything reading this field for reaction rates — notably the
+"weathering is one process" arc, whose requisite R2 this field is meant to satisfy — is
+reading gravity drainage with no real precipitation depth behind it, and must say so.**
+
 ### 2.5 The fluid has an IDENTITY (§ 5 foreclosure ③)
 
 The flow carries a **fluid material id**, not an assumption of water. Otherwise
