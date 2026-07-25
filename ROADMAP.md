@@ -31,7 +31,7 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   at the voxel tier the eighths are a *draw* (journal/0055's estimator doctrine) — see Observed.
   Flag-OFF **byte-identical, no golden edited** (`generated_world_is_byte_identical_to_the_pre_contract_goldens`,
   `geology_world_regenerates_byte_identically`, `the_production_world_still_hashes_to_the_pre_slice_goldens`).
-  Gates: 261 passed after `cargo clean -p dc-worldgen`. **Constants are a stand-in → stubs #19**
+  Gates: 261 passed after `cargo clean -p dc-worldgen`. **Constants are a stand-in → stubs #20**
   (decay length / the 7/8 cap / the 2.67× ratio are measured from nothing; heir = the deep tier
   carrying a depth-resolved term). **PLEA recorded, not acted on:** the ledger should eventually
   carry the profile, because the collapse can only impose a **universal** shape — granite under
@@ -2518,7 +2518,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     → saprolite → residual soil); modelling a stage as a mechanism is the same category error as
     S18's one-shot. **(2)** The gradation would become **emergent**: fronts are exponential
     *because* first-order kinetics consume a downward-advecting reactant, so modelling the cause
-    makes `WEATHERING_PROFILE` and **stubs #19 DELETED, not tuned** — the disposal the stub doctrine
+    makes `WEATHERING_PROFILE` and **stubs #20 DELETED, not tuned** — the disposal the stub doctrine
     wants. **(3)** The **7/8 cap is a definition wearing physics' clothes** — weathering does not
     halt at 7/8 retained fabric, so the cap makes complete weathering (laterite, oxisol, total
     crumbling) **unrepresentable**. Also: today the pass only weathers **bedrock**, because the
@@ -2541,7 +2541,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   - **ONE CONSTRAINT ON "ONE PROCESS" (integrator, agreed at the same time):** *one process must
     NOT mean one pass.* §5's split still binds — reactant **transport is a FIELD**, the **edge is
     CELLULAR**. Collapsing them would rebuild the monolith the pass-runner exists to prevent.
-  - **WHEN IT LANDS:** stubs **#19 deleted** (not tuned), the 7/8 cap gone, `WEATHERING_PROFILE`
+  - **WHEN IT LANDS:** stubs **#20 deleted** (not tuned), the 7/8 cap gone, `WEATHERING_PROFILE`
     deleted, the collapse fold demoted from *inventing* a distribution to *expressing* a recorded
     one, and the two-authorities split (material vs height) becomes derivable rather than
     maintained — which is Movement 2a's stated direction anyway.

@@ -551,7 +551,7 @@ each is stated with its reasoning at the constant. `PONDED_MIN_M` is neither: it
 **numerical guard** against priority-flood residue, and it exists because 2.5×10⁻⁵ m
 of dust manufactured 232 false artesian columns before it did.
 
-### 19. the-weathering-profile-is-a-fixed-shape — *added 2026-07-25 (journal/0099, the front-is-a-profile slice)*
+### 20. the-weathering-profile-is-a-fixed-shape — *added 2026-07-25 (journal/0099, the front-is-a-profile slice)*
 `dc-worldgen/src/geology.rs::WEATHERING_PROFILE` + `emplace_weathering_front`: the
 front's **magnitude** is the deep model's (`FactLedger::weathering_product_m`, a real
 time integral), but its **shape** is a constant — `round(7·exp(−j/3))` eighths of

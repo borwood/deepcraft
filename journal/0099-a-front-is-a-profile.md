@@ -142,7 +142,7 @@ of it" into a pattern). The existing `ore` rider keeps its historical `min`
 semantics untouched: changing them would move every placer voxel in the world.
 
 A *structural* accessory is still dropped at a contact. That residue is filed on
-stubs.md #19 rather than fixed, because fixing it moves the goldens for a mineral
+stubs.md #20 rather than fixed, because fixing it moves the goldens for a mineral
 speck.
 
 ## What it looks like
@@ -285,7 +285,7 @@ editing it concurrently, the same hazard 0097 recorded.)*
    use the per-voxel-column dither, `Mixed` voxels the canonical member; a front
    puts them adjacent and the parent rock alternates between two members of the
    same class down a column.
-4. **stubs.md #19** — the profile's *shape* (decay length, 7/8 cap, 2.67 ×
+4. **stubs.md #20** — the profile's *shape* (decay length, 7/8 cap, 2.67 ×
    thickness ratio) is a constant measured from nothing; heir is the deep tier
    carrying the front as a depth-resolved term instead of a scalar. Stub #16 is
    **untouched and not retired**: the rind's material *identity* still awaits the
