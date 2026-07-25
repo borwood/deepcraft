@@ -405,7 +405,9 @@ faithful.
 6. **S14 is superseded as posed.** It asked "can drainage refine under coarse
    boundary conditions?" Face flux answers the *seamlessness* half structurally;
    the open half is only how finely the interior may be expressed.
-7. **The aggregation window should be a declared third scheduler axis** (§ 2.6).
+7. **~~The aggregation window should be a declared third scheduler axis~~ — RATIFIED
+   2026-07-25 (user): DECLARE IT, never assume it.** See § 11.
+7b. *(original wording, kept for the reasoning)* The aggregation window as a third axis (§ 2.6).
    § 5 has ORDER and RATE but no name for "how many epochs sum into one record
    entry" — yet that window sets the record's time resolution. Related: whether
    flow facts stay per-**chapter** (25 epochs, today) or go per-**epoch** (~25×
@@ -462,3 +464,99 @@ laterally — a sand in A may be a mud in B at the same chapter: same time, **no
 same aquifer**. Get identity right and let the flux be **zero** where the contrast
 blocks it. Any attempt to make the pairing rule itself encode hydraulic connection
 will fuse two concerns into a rule nobody can reason about later.
+
+---
+
+## 11. DECIDED 2026-07-25 (user) — the declared window, the self-describing record, the pairing rule
+
+Four calls taken after the slice-1 measurement. Recorded here because § 2.6 proved
+that an *implicit* constant had silently become an acceptance number.
+
+### 11.1 The aggregation window is a DECLARED axis — never assumed
+
+**RATIFIED.** `material-behavior.md` § 5 gives the scheduler **ORDER** (topo-sort) and
+**RATE** (`period` + `dt`). It has no name for *"how many epochs sum into one record
+entry"* — yet that window sets the record's time resolution, and at slice 1 it was an
+implicit constant (one tectonic chapter = 25 epochs) that **produced the divergence
+count the slice was accepted on**.
+
+> **A window that decides an acceptance number must be declared, not assumed.**
+
+User's reasoning, recorded: *"freedom to future mods / ourselves (we are the first
+modders)."* A mod authoring a pass must be able to state its own record granularity
+the same way it states order and rate — **an undeclared constant is exactly the surface
+a third party cannot reach.** This is the north-star's *"authored in a uniform,
+self-declaring shape and tuned by data"* applied to the time axis.
+
+**Consequence for § 5:** the cadence model grows a third axis —
+**ORDER × RATE × WINDOW**. Sequenced, not built.
+
+### 11.2 Chapter-vs-epoch resolution is a shipped DEFAULT, not an engine property
+
+**RATIFIED** — *"if we have determined that this is tunable, with aggregation window
+declared, then this is immaterial to the engine. it's a question of shipped default."*
+Once 11.1 lands, per-chapter vs per-epoch flow facts stop being an architecture
+question. **Default to the cheap end (coarser window) for dev-iteration speed; the knob
+is exposed for stress tests.** *(Integrator's reading of "keep it generally lower for
+dev iteration" — flagged here for correction if finer-by-default was the intent.)*
+
+### 11.3 The record must SELF-DESCRIBE its completeness
+
+**Standing contract**, arising from the marine-sink lever (§ 11.4). Any mode that
+changes **what an absent entry means** must be **carried in the record**, never held as
+external knowledge. Otherwise absence is ambiguous across worlds, and every consumer
+must know how a world was generated in order to read it. **S-9 one level up** — *the
+answer carries its resolution.*
+
+### 11.4 The marine-sink lever — gamed out, and why the default is KEEP
+
+**79.38 % of slice-1 entries (31.37 MiB of 40.66 MiB)** are ocean-sink faces carrying
+only the cell's own seeded `1.0/epoch` source — nothing drained through them. Dropping
+them leaves **9.29 MiB**, and is *information-preserving today* because the value is
+derivable from the entry's own absence.
+
+**Two future consumers it problematizes:**
+
+1. **The marine transport pass** (turbidity currents, contourites, longshore drift —
+   all listed representable in § 5). Absence would encode *"1.0/epoch of **freshwater
+   runoff**"* — a **regime assumption**. Once marine flow is real (density-driven,
+   tidal, thermohaline) that default is not merely missing but **wrong**, and absence
+   can no longer distinguish **"no flow here"** from **"this regime is not modelled
+   here yet."** It fails *silently*, because absence looks identical either way.
+2. **The conservation audit, and any upstream walk** (the § 3 mass budget; § 13.8
+   provenance). Both must **re-derive** the dropped 79 % — two implementations of one
+   quantity that must agree forever, **with nothing able to fail when they drift**,
+   since no stored value exists to compare against. That is ARCHITECTURE.md's *"a
+   summary is not an authority"*: the derivation becomes the definition. A provenance
+   walk additionally terminates at a hole it must know to synthesize, so **every reader
+   inherits a shared secret.**
+
+**Why a bare flag would be the worst option:** it makes absence mean two different
+things depending on how a world was generated. Hence § 11.3 — if the drop ever ships,
+**the record carries the mode.**
+
+**DEFAULT: KEEP.** 31 MiB against a 149 MiB field that is *already 13 MiB below where
+the session started*; the record is young and every consumer of it is unbuilt. The
+honest, complete default beats the clever one until a real consumer argues otherwise.
+
+### 11.5 Pairing — the two-mode rule is GREEN; a THIRD mode is named and NOT covered
+
+**RATIFIED (user):** flow pairs by **what confines it** —
+
+- a **material horizon** (the contemporaneous land surface, or a permeable bed between
+  aquitards) pairs by **horizon identity ≈ chapter**;
+- a **potential surface that cuts across strata** (the water table, a head front) pairs
+  by **elevation/head at that chapter**.
+
+Slice 1 implements the first for lateral free-surface flux and records no bound flux,
+so nothing is forced. Chapter is a legitimate global time surface (tectonic,
+grid-wide), and each column binds it to its own slot independently — § 1.2 applied, not
+violated.
+
+> **NEWLY IDENTIFIED, AND NOT COVERED BY THAT GREEN — the conduit/void mode.** A
+> **karst conduit** crossing from cell A to cell B is confined by **neither** a
+> depositional horizon **nor** a potential surface: it is confined by **its own void
+> geometry**, carved by past flow, and it may follow a bedding plane *or* cut across
+> beds (a vadose shaft). It therefore pairs by **void connectivity** — a **third
+> mode**. It arrives with continuation **(c)** (the free/bound edge + void intervals)
+> and must be ruled on then. **Do not assume the two-mode rule extends to it.**
