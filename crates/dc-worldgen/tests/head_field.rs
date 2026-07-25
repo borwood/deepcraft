@@ -148,9 +148,10 @@ fn a_vertical_entry_binds_to_the_chapters_own_slot() {
 // The field is a POTENTIAL, not an elevation.
 
 /// **The invariant that makes "artesian" mean something.** Head may stand above the
-/// ground *only* where a bed confines it. An unconfined water table cannot — it
-/// discharges through a seepage face — so if the cap ever failed, an exceedance
-/// would be a bug with a good name rather than an aquifer.
+/// ground *only* where a bed confines it — or where a **lake** stands on it, which
+/// is the lake's own surface and is correct. Everywhere else an unconfined water
+/// table cannot exceed the ground: it discharges through a seepage face. If the cap
+/// ever failed, an exceedance would be a bug with a good name rather than an aquifer.
 ///
 /// This is asserted on a **whole real world** rather than a constructed column,
 /// because the cap is the kind of thing that holds in a fixture and leaks on a
@@ -176,25 +177,33 @@ fn an_unconfined_water_table_never_stands_above_its_own_ground() {
     assert!(!land.is_empty(), "the fixture world is entirely submerged");
     let mut below = 0usize;
     let mut artesian = 0usize;
+    let mut lakes = 0usize;
     for i in &land {
         let (h, s) = (f.head[*i], f.surf[*i]);
         if h < s - 1e-6 {
             below += 1;
         } else if h > s + 1e-6 {
+            // Standing water is pinned at its own surface, which is above the
+            // ground by construction. That is a lake, not an aquifer.
+            if f.lake.get(*i).copied().unwrap_or(false) {
+                lakes += 1;
+                continue;
+            }
             artesian += 1;
             let hydro = dc_worldgen::deeptime::column_hydro(&f.strata[*i]);
             assert!(
                 hydro.confined,
-                "cell {i} has head {h} above its ground {s} but is UNCONFINED — the \
-                 seepage cap failed, so this is a bug and not an aquifer"
+                "cell {i} has head {h} above its ground {s}, is not a lake, and is \
+                 UNCONFINED — the seepage cap failed, so this is a bug and not an \
+                 aquifer"
             );
         }
     }
     println!(
         "final sea stand {sea:.2} m · {} subaerial columns: water table BELOW \
-         ground {below}, at ground {}, ARTESIAN {artesian}",
+         ground {below}, at ground {}, lakes {lakes}, ARTESIAN {artesian}",
         land.len(),
-        land.len() - below - artesian
+        land.len() - below - artesian - lakes
     );
 }
 

@@ -2240,9 +2240,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     production world; record 40.66 MiB at 8.386 % face sparsity. **(a) the head field:** the
     `head` condition-field (`dc:field/head`) as the second §5 field pass, and its consumer —
     the **vertical faces slice 1 left honestly zero now carry 307,364 crossings** on 131,586
-    columns (44.3 % of cells), and **artesian occurs naturally**: 308 subaerial columns stand
-    their water above their own ground (max excess 2.94 m), which `H = y + sat` cannot express
-    at any resolution. Terrain byte-identical; +6.96 MiB (149.21 → 156.16), +0.7 s gen.
+    columns (44.3 % of cells), and **artesian occurs naturally**: 60 subaerial columns stand
+    their water above their own ground under a confining bed (max excess 2.94 m), which
+    `H = y + sat` cannot express at any resolution — and 24,935 more carry a water table
+    *below* ground, a depth-to-water derived from the rock rather than from present-day
+    precipitation. Terrain byte-identical; +6.96 MiB (149.21 → 156.16), +0.5 s gen.
     **(b)–(e) are untouched and still owed**, and three riders remain in the slot: the
     **slot-pairing rule for the BOUND regime** (free flow pairs by chapter; bound may need
     paleo-elevation — the user's call; **note (a) did NOT force it**, because vertical faces

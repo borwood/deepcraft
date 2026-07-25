@@ -513,9 +513,9 @@ own acceptance number (how far head stands above the ground) a tuning knob, whic
 the failure mode `no-bandaid-tuning` names.
 **What that costs, precisely:** with no recharge mounding the table beneath
 interfluves, the potential a confined column inherits is its *neighbours'*, not a
-distant highland's — so artesian excess heads come out in **metres** (max 2.94 m
-measured on the production world) where a real Great-Artesian-Basin geometry gives
-hundreds. The field is a genuine potential and the *mechanism* is right (confinement
+distant highland's — so artesian excess heads come out in **metres** (60 columns,
+max 2.94 m measured on the production world) where a real Great-Artesian-Basin
+geometry gives hundreds. The field is a genuine potential and the *mechanism* is right (confinement
 removes the seepage cap); the *magnitude* is a lower bound.
 **Heir:** a real water-balance climate — the same missing precipitation-depth scale
 that keeps the drainage solve's lateral source a uniform `1.0` per cell per epoch

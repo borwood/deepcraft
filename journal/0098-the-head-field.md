@@ -129,6 +129,16 @@ express (a voxel is 0.9 m) and far above the flood's residual.
 After all three: **219 of 269 subaerial columns with the table below ground, 50 at
 ground, 0 artesian on the fixture.** A real potential, and an honest zero.
 
+**And then a fourth, found only because the invariant was written as a test over a
+whole world rather than a constructed column.** A **lake** cell is pinned at its
+water *surface*, which stands above the ground by construction — that is the lake,
+and it is correct. So `head > ground` is not by itself artesian. On the production
+world that distinction is not cosmetic: it is the difference between **308** and
+**60**. The 248 lakes were being counted as aquifers by a comparison that could not
+tell them apart, and the fix is to ask `DeepField::lake`, which the flux slice
+already exports. The general lesson is the same one as defect 2 — *a comparison
+between two quantities is only as honest as the third thing it forgot to ask about.*
+
 ## What the production world actually has
 
 `examples/head_field_probe.rs`, seed 1337, `Extent::Medium`, production flags.
@@ -155,21 +165,29 @@ disappointment:
 subaerial columns                                            44,496
   CONFINED (>= 5 m low-k cap over a permeable bed)            1,044   (2.3 % of land)
   water table BELOW ground                                   24,935
-  ARTESIAN (head ABOVE the local ground)                        308
-excess head above ground (m)  min 0.002  mean 0.763  p95 1.922  max 2.935
+  holding a LAKE (above ground, and correct)                    248
+  ARTESIAN (head ABOVE the local ground)                         60
+excess head above ground (m)  min 0.002  mean 0.654  p95 2.105  max 2.935
 ```
 
-**It occurs naturally.** 308 columns, up to 2.94 m of excess head. The strongest:
+**It occurs naturally.** 60 columns, up to 2.94 m of excess head. The strongest:
 
 ```
 cell (368,317) ~(169.3 km, 145.8 km)  ground  -1.6 m  head   1.3 m  EXCESS 2.94 m  cap  6.7 m
-cell (340,307) ~(156.4 km, 141.2 km)  ground  75.4 m  head  78.3 m  EXCESS 2.91 m  cap 28.8 m
-cell (238,274) ~(109.5 km, 126.0 km)  ground 384.9 m  head 387.5 m  EXCESS 2.56 m  cap  8.8 m
+cell (332,303) ~(152.7 km, 139.4 km)  ground 120.2 m  head 122.3 m  EXCESS 2.16 m  cap 24.5 m
+cell (300,299) ~(138.0 km, 137.5 km)  ground 105.8 m  head 107.9 m  EXCESS 2.10 m  cap 14.5 m
 ```
 
 Not one of those is expressible under `H = y + sat`. The second is the textbook
-picture: seventy-five metres up, twenty-nine metres of mud over a sand bed, and the
-water in that bed standing three metres above the hillside. Drill it and it flows.
+picture: a hundred and twenty metres up, **twenty-four metres of mud over a sand
+bed**, and the water in that bed standing two metres above the hillside. Drill it
+and it flows.
+
+And the counterpart the same field gives for free — the deepest water table on the
+world, at cell (249, 239), 1169 m up: **the table sits 15.9 m below the ground**,
+in an unconfined 52-unit column, recharging downward at ~0.65 units every chapter
+for all eight. A depth to water that is *derived from the rock*, not from
+present-day precipitation. That is the number `y + sat` never had.
 
 The excesses are **metres, not the hundreds of metres of a Great Artesian Basin**,
 and I want to be precise about why rather than let the number imply more than it
@@ -258,7 +276,7 @@ DeepField without the head   149.21 MiB
 DeepField with    the head   156.16 MiB   = 1.0466x   (+6.96 MiB)
 flow record total             45.35 MiB   (was 40.66)
 face sparsity                  9.3806 %   (was 8.386 %)
-gen time                       +0.7 s on a 20 s deep-time run
+gen time                       +0.5 s on a 19.6 s deep-time run
 ```
 
 The denominator is exactly the 149.21 MiB the integrator re-measured on merged
@@ -281,7 +299,7 @@ term that fills them — and the edge is *declared*, not inherited from a tie-br
 (`dc:deep/flow_record` reads `Head`, pinned by a test, after the spine-audit lesson
 that an undeclared order is a comment rather than a guarantee).
 
-Guards **A-3** (the acceptance is 307,364 crossings and 308 artesian columns on a
+Guards **A-3** (the acceptance is 307,364 crossings and 60 artesian columns on a
 production world, not a green unit test) and **A-1** — the honest empties that
 remain are asserted *as* empty by name: vertical faces carry **no load**, because
 the bound phase carries solute and dissolution is dormant until (c). The slice that

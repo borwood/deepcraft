@@ -57,6 +57,13 @@
 //! transmits to it from elsewhere. **Artesian is not a special case in this code —
 //! it is the absence of a cap.**
 //!
+//! > **Reading the field for artesian: exclude lakes.** A **lake** cell is pinned at
+//! > its *water surface*, which stands above the ground by construction — that is
+//! > the lake, not an aquifer, and it is correct. So "head > ground" is artesian
+//! > only where no free water stands at the surface (`DeepField::lake`). The
+//! > distinction is invisible in the field itself, which is why it is stated here
+//! > and enforced in the test and the probe rather than left to a reader to notice.
+//!
 //! ## The currency, stated once
 //!
 //! The exchange rate this field drives ([`vertical_exchange`]) is dimensionless and

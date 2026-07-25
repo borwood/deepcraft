@@ -157,6 +157,7 @@ fn main() {
     let sea = dc_worldgen::deeptime::sea_level_at(&cfg, cfg.iterations.saturating_sub(1));
     let mut confined = 0usize;
     let mut land = 0usize;
+    let mut lakes = 0usize;
     let mut artesian: Vec<(usize, f64)> = Vec::new();
     let mut water_table_below = 0usize;
     for i in 0..cells {
@@ -170,7 +171,13 @@ fn main() {
         land += 1;
         let (h, s) = (f.head[i], f.surf[i]);
         if h > s + 1e-6 {
-            artesian.push((i, h - s));
+            // A lake is pinned at its own water surface, which stands above the
+            // ground by construction. That is the lake, not an aquifer.
+            if f.lake.get(i).copied().unwrap_or(false) {
+                lakes += 1;
+            } else {
+                artesian.push((i, h - s));
+            }
         } else if h < s - 1e-6 {
             water_table_below += 1;
         }
@@ -185,6 +192,7 @@ fn main() {
     println!(
         "subaerial columns with the water table BELOW ground                  : {water_table_below:>10}"
     );
+    println!("subaerial columns holding a LAKE (head above ground, and correct)    : {lakes:>10}");
     println!(
         "subaerial columns ARTESIAN (head ABOVE the local ground)             : {:>10}",
         artesian.len()
