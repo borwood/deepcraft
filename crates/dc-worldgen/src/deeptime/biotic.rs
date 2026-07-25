@@ -76,8 +76,13 @@ use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 /// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
 /// (`0x5700_*`) and deep-time erosion (`0x5900_*`) so the address spaces never
 /// collide.
-const SALT_BIO_FIRE: u64 = 0x5B00_0001;
-const SALT_BIO_FLOOD: u64 = 0x5B00_0002;
+// Registered as domains in `crate::draws` (journal/0105) so nothing can re-issue
+// these numbers; the call sites below still spell them locally, and
+// `draws::tests::the_deeptime_constants_agree_with_their_registered_domains`
+// keeps the two spellings in agreement. `pub(crate)` only so that test can see
+// them.
+pub(crate) const SALT_BIO_FIRE: u64 = 0x5B00_0001;
+pub(crate) const SALT_BIO_FLOOD: u64 = 0x5B00_0002;
 
 /// Legibility floor (metres) the read-quality scan uses for "a coal seam you
 /// could see in a cut face". A **reporting** threshold on seam thickness, not a

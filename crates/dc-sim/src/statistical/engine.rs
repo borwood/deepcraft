@@ -38,9 +38,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::ledger::{AppendOutcome, Aspect, Fact, Ledger, LedgerError, Subject, Value};
-use super::rng::{Pcg32, draw_f64, mix};
+use super::rng::{Domain, Draws, Pcg32, draw_f64};
 use super::world::{
-    AgentId, AgentState, RegionId, SALT_AGENT_STEP, SALT_COLLAPSE, SALT_REGION_STEP, Tick, ToyWorld,
+    AgentId, AgentState, RegionId, Tick, ToyWorld, domains,
 };
 
 /// Tuning knobs for a query/collapse.
@@ -323,7 +323,20 @@ fn simulate_sample(
                 weight *= mass;
             }
             let total: f64 = dist.iter().map(|(_, p)| p).sum();
-            let u = draw_f64(&[seed, k, SALT_REGION_STEP, u64::from(r), u64::from(t)]);
+            // **NOT YET ON THE PROVIDER** (journal/0105). This address puts the
+            // sample index `k` *before* the domain, so routing it through
+            // `Draws::of` — which fixes the domain at slot 2 — would change the
+            // key and re-roll every world's history layer. The salt still has
+            // exactly one spelling (the domain list); moving the two step draws
+            // onto `Draws` is a deliberate world-moving change, sequenced
+            // separately. See ROADMAP Sequenced.
+            let u = draw_f64(&[
+                seed,
+                k,
+                <domains::RegionStep as Domain>::SALT,
+                u64::from(r),
+                u64::from(t),
+            ]);
             next_levels.insert(r, sample_from(&dist, total, u));
         }
 
@@ -340,7 +353,14 @@ fn simulate_sample(
                 weight *= mass;
             }
             let total: f64 = dist.iter().map(|(_, p)| p).sum();
-            let u = draw_f64(&[seed, k, SALT_AGENT_STEP, u64::from(*a), u64::from(t)]);
+            // Same carve-out as the region step above (journal/0105).
+            let u = draw_f64(&[
+                seed,
+                k,
+                <domains::AgentStep as Domain>::SALT,
+                u64::from(*a),
+                u64::from(t),
+            ]);
             *state = sample_from(&dist, total, u);
         }
 
@@ -452,15 +472,13 @@ pub fn observe(
     }
     // Weight-proportional pick of one surviving history, seeded by the ledger
     // content so replays collapse identically.
-    let collapse_seed = mix(&[
-        world.seed,
-        SALT_COLLAPSE,
+    let collapse_seed = Draws::of::<domains::Collapse>(world.seed).bits(&[
         ledger.content_hash(),
         subject.key(),
         u64::from(time),
         aspect.key(),
     ]);
-    let u = Pcg32::new(collapse_seed, SALT_COLLAPSE).next_f64();
+    let u = Pcg32::new(collapse_seed, <domains::Collapse as Domain>::SALT).next_f64();
     let value = sample_from(&outcomes, report.total_weight, u);
     ledger.append(time, subject, aspect, value)?;
     Ok((value, report))

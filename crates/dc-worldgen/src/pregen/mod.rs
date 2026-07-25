@@ -28,8 +28,10 @@ pub mod history;
 pub mod hydrology;
 pub mod tectonics;
 
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
 use dc_sim::statistical::{Ledger, ToyWorld};
+
+use crate::draws::Wilds;
 use serde::{Deserialize, Serialize};
 
 pub use history::{SiteSummary, YEAR_ZERO_TICK};
@@ -39,58 +41,6 @@ pub const CELL_CHUNKS: i64 = 512;
 /// Voxels per coarse-cell edge (2^14).
 pub const CELL_VOXELS: i64 = CELL_CHUNKS * 32;
 
-// Address salts for worldgen's deterministic draws (dc-sim's rng primitives).
-pub(crate) const SALT_PLATE: u64 = 0x5700_0001;
-pub(crate) const SALT_CELL: u64 = 0x5700_0002;
-pub(crate) const SALT_WILDS: u64 = 0x5700_0003;
-pub(crate) const SALT_ELEV: u64 = 0x5700_0004;
-pub(crate) const SALT_SITE_POS: u64 = 0x5700_0005;
-pub(crate) const SALT_OVERLAY: u64 = 0x5700_0006;
-pub(crate) const SALT_EXPAND: u64 = 0x5700_0007;
-pub(crate) const SALT_SACK: u64 = 0x5700_0008;
-pub(crate) const SALT_RUIN: u64 = 0x5700_0009;
-// Geology strata passes (addressed member selection + thicknesses).
-pub(crate) const SALT_GEO_SELECT: u64 = 0x5700_000A;
-pub(crate) const SALT_GEO_THICK: u64 = 0x5700_000B;
-pub(crate) const SALT_GEO_ORE: u64 = 0x5700_000C;
-/// Accessory-inclusion presence gate + selection (3d pore partials).
-pub(crate) const SALT_GEO_ACC: u64 = 0x5700_000D;
-/// Deep-time-derived depositional strata: member selection draw (3e-1). Distinct
-/// tag space from the year-zero veneer's `SALT_GEO_SELECT` so the two never
-/// collide, and the per-voxel member dither addresses each deep unit uniquely.
-pub(crate) const SALT_GEO_DEEP: u64 = 0x5700_000E;
-/// **The eighth-allocation draw** for distribution-first strata expression
-/// (materials.md DECIDED 2026-07-21). Addressed by *world voxel position*, not
-/// by chunk or column: a voxel's composition must not depend on which chunk was
-/// generated first, on the chunk's `y`, or on any iteration order. One draw per
-/// mixed voxel decides which materials win the leftover eighths.
-pub(crate) const SALT_GEO_FILL: u64 = 0x5700_000F;
-/// **The surface-class membership dither** (audit B1, S-4 move B; journal/0073).
-/// The surface class is drawn from the record's top-window per-class metre
-/// shares, so the categorical class frontier between two 460 m deep cells
-/// becomes an interfingered gradient instead of a stepped line. The draw reads
-/// the *coherent* bilinear corner-hash field (`interp_select_draw`), NOT
-/// per-voxel white noise — because the far field point-samples this class at a
-/// wide stride and white noise aliases into a mesh-doubling speckle there
-/// (journal/0073). Distinct salt space from the eighth-allocation
-/// `SALT_GEO_FILL` and the member-selection `SALT_GEO_SELECT` / `SALT_GEO_DEEP`,
-/// so the class draw and the within-class member draw never share a value.
-pub(crate) const SALT_GEO_CLASS: u64 = 0x5700_0010;
-/// **The pore-rider rounding offset** (journal/0105). A weathering front's
-/// product rides in its host band's pore slots, and the whole eighths it wins
-/// inside a *contact* voxel are stochastically rounded from the host's own
-/// winnings (`fill::pore_rider_share`). That is a **second** decision in the same
-/// voxel as the eighth allocation, and it needs its **own** entropy.
-///
-/// It did not have any until 2026-07-25: it sliced bits 8–10 out of the very
-/// `SALT_GEO_FILL` draw `allocate_partial` consumes, so the pore offset was a
-/// *deterministic function* of the allocation offset — and every rider in a
-/// multi-band contact voxel shared one offset, so their rounding errors added
-/// instead of cancelling. The salt is the domain separation that makes the two
-/// draws independent **whatever bit widths either one grows into**; the event
-/// index in the address is what separates one band's decision from its
-/// neighbour's inside a single voxel.
-pub(crate) const SALT_GEO_PORE: u64 = 0x5700_0011;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -384,7 +334,7 @@ impl Pregen {
         // Border wilds: unbounded, hostile, historyless.
         let w = self.grid.w;
         let lat = latitude_deg(w, gy as f64 + 0.5);
-        let noise = draw_f64(&[self.seed, SALT_WILDS, gx as u64, gy as u64]);
+        let noise = Draws::of::<Wilds>(self.seed).unit(&[gx as u64, gy as u64]);
         if lat >= LAT_ICE {
             // Polar ice waste: land ice slightly above sea level.
             CellView {

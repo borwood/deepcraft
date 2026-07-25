@@ -161,11 +161,9 @@ fn interior(w: usize, idx: usize) -> bool {
 fn banded_cells(pregen: &Pregen) -> Vec<usize> {
     let w = pregen.deep.w;
     let band = |i: usize| -> f64 {
-        pregen
-            .deep
-            .ledgers
-            .get(i)
-            .map_or(0.0, |l| l.weathering_product_m(pregen.deep.strata[i].units.len()))
+        pregen.deep.ledgers.get(i).map_or(0.0, |l| {
+            l.weathering_product_m(pregen.deep.strata[i].units.len())
+        })
     };
     let mut banded: Vec<(usize, f64)> = (0..w * w)
         .filter(|&i| interior(w, i) && band(i) > 1e-6)
@@ -175,7 +173,9 @@ fn banded_cells(pregen: &Pregen) -> Vec<usize> {
     banded.into_iter().map(|(i, _)| i).collect()
 }
 
-/// The production world this probe reads.
+/// The production world this probe reads, with the weathering inventory **on** —
+/// the only thing in the world that emits a *loose* pore rider, and therefore the
+/// only thing that makes a pore-rider decision exist at all.
 fn production_world(extent: Extent) -> Pregen {
     Pregen::run_with(
         WorldParams { seed: SEED, extent },
@@ -184,6 +184,15 @@ fn production_world(extent: Extent) -> Pregen {
             ..DeepOverrides::default()
         },
     )
+}
+
+/// **The control that explains the goldens.** The same seed and extent with
+/// `DeepOverrides::default()` — i.e. `weather_inventory` **off**, which is the
+/// shipped default (`grid.rs`: *"the production flip is the user's"*). Measured
+/// at the very chunk-columns the flag-on run found its strongest fronts in, so
+/// the two numbers are about the same places.
+fn shipped_default_world(extent: Extent) -> Pregen {
+    Pregen::run(WorldParams { seed: SEED, extent })
 }
 
 /// **The reconstruction.** Every buried `Mixed` voxel of one chunk-column, with
@@ -280,10 +289,7 @@ fn pearson(xs: &[f64], ys: &[f64]) -> f64 {
     if n < 2.0 {
         return 0.0;
     }
-    let (mx, my) = (
-        xs.iter().sum::<f64>() / n,
-        ys.iter().sum::<f64>() / n,
-    );
+    let (mx, my) = (xs.iter().sum::<f64>() / n, ys.iter().sum::<f64>() / n);
     let mut sxy = 0.0;
     let mut sxx = 0.0;
     let mut syy = 0.0;
@@ -338,7 +344,10 @@ fn entropy(labels: &[usize]) -> f64 {
     for &l in labels {
         *counts.entry(l).or_default() += 1.0;
     }
-    -counts.values().map(|c| (c / n) * (c / n).log2()).sum::<f64>()
+    -counts
+        .values()
+        .map(|c| (c / n) * (c / n).log2())
+        .sum::<f64>()
 }
 
 /// Bin a residual in `(-1, 1)` into eight cells, for the MI estimate.
@@ -399,7 +408,10 @@ fn measure(pregen: &Pregen, chunks: &[(i64, i64)]) -> Census {
     let recorded_voxels = samples.iter().map(|s| s.recorded_voxels).sum();
     let mixed_voxels = samples.iter().map(|s| s.mixed_voxels).sum();
     let voxels: Vec<&VoxelSample> = samples.iter().flat_map(|s| s.voxels.iter()).collect();
-    let riders: Vec<Rider> = voxels.iter().flat_map(|v| v.riders.iter().copied()).collect();
+    let riders: Vec<Rider> = voxels
+        .iter()
+        .flat_map(|v| v.riders.iter().copied())
+        .collect();
 
     // Part 1 — predictability, over every window the fill offset has.
     let n = riders.len().max(1) as f64;
@@ -490,7 +502,11 @@ fn measure(pregen: &Pregen, chunks: &[(i64, i64)]) -> Census {
         let mut apart = 0.0;
         for v in &multi {
             joint += v.total_residual(new).powi(2);
-            apart += v.riders.iter().map(|r| r.pore_residual(new).powi(2)).sum::<f64>();
+            apart += v
+                .riders
+                .iter()
+                .map(|r| r.pore_residual(new).powi(2))
+                .sum::<f64>();
         }
         if apart <= 0.0 { 0.0 } else { joint / apart }
     };
@@ -647,7 +663,11 @@ fn report(c: &Census) {
     println!(
         "{} rider decisions in {} voxels ({} of them multi-band), over {} Mixed and {} recorded \
          voxels in {} chunk-columns",
-        c.decisions, c.rider_voxels, c.multi_rider_voxels, c.mixed_voxels, c.recorded_voxels,
+        c.decisions,
+        c.rider_voxels,
+        c.multi_rider_voxels,
+        c.mixed_voxels,
+        c.recorded_voxels,
         c.chunks
     );
     println!(
@@ -657,13 +677,13 @@ fn report(c: &Census) {
     println!("      shift   retired      decorrelated");
     for &(shift, o, n) in &c.windows {
         let flag = if o > 0.5 { "  <== the coupling" } else { "" };
-        println!("      {shift:>5}   {:>7.2} %   {:>10.2} %{flag}", 100.0 * o, 100.0 * n);
+        println!(
+            "      {shift:>5}   {:>7.2} %   {:>10.2} %{flag}",
+            100.0 * o,
+            100.0 * n
+        );
     }
-    let worst_new = c
-        .windows
-        .iter()
-        .map(|&(_, _, n)| n)
-        .fold(0.0f64, f64::max);
+    let worst_new = c.windows.iter().map(|&(_, _, n)| n).fold(0.0f64, f64::max);
     println!(
         "\n  retired: the pore offset is a DETERMINISTIC function of the fill offset — \
          100 % at shift {RETIRED_SHIFT}."
@@ -770,6 +790,27 @@ fn main() {
     report(&c);
     let p = plane(&pregen, chunks[0].0, chunks[0].1);
     report_plane(&p, chunks[0].0, chunks[0].1);
+
+    // Part 5 — why the goldens did not move.
+    let off = shipped_default_world(Extent::Medium);
+    let c_off = measure(&off, &chunks);
+    println!("\n=== PART 5 — the SHIPPED default world, same chunk-columns ===");
+    println!(
+        "weather_inventory OFF (DeepOverrides::default(), the shipped flip): \
+         {} pore-rider decisions in {} Mixed voxels of {} recorded.",
+        c_off.decisions, c_off.mixed_voxels, c_off.recorded_voxels
+    );
+    println!(
+        "weather_inventory ON  (this probe's world):                          \
+         {} pore-rider decisions in {} Mixed voxels of {} recorded.",
+        c.decisions, c.mixed_voxels, c.recorded_voxels
+    );
+    println!(
+        "\n  The weathering front is the only producer of a LOOSE pore rider, and it is off by\n  \
+         default. So the world every golden hashes has nothing for this slice to move — which is\n  \
+         why `contents_contract`'s fingerprints are byte-identical across it. The world that\n  \
+         moves is the one behind --weather-inventory, and Part 4 is its size."
+    );
     println!("\ntotal {:.1} s", t0.elapsed().as_secs_f64());
 }
 

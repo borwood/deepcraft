@@ -64,10 +64,10 @@ use dc_core::materials::geology::{
     GeoMemberIdx, GeologySet,
 };
 use dc_core::{StructureShape, VoxelContents};
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
 
 use crate::geology::StrataRec;
-use crate::pregen::{SALT_GEO_FILL, SALT_GEO_PORE};
+use crate::draws::{GeoFill, GeoPore};
 
 /// Eighths in a voxel.
 const EIGHTHS: u64 = 8;
@@ -256,7 +256,7 @@ pub fn share_eighths(w: u64) -> f64 {
 /// The addressed draw for one world voxel. Position only — no chunk identity,
 /// no generation order, no wall clock.
 pub fn fill_draw(seed: u64, vx: i64, vy: i64, vz: i64) -> f64 {
-    draw_f64(&[seed, SALT_GEO_FILL, vx as u64, vy as u64, vz as u64])
+    Draws::of::<GeoFill>(seed).unit(&[vx as u64, vy as u64, vz as u64])
 }
 
 /// **Width of the eighth-allocation offset**, in bits — how much of the fill
@@ -314,14 +314,7 @@ impl PoreDraw {
 /// `event` is the index into [`crate::StrataRec::events`] — the record's own
 /// canonical order, not an iteration order.
 pub fn pore_draw(seed: u64, vx: i64, vy: i64, vz: i64, event: usize) -> PoreDraw {
-    PoreDraw(draw_f64(&[
-        seed,
-        SALT_GEO_PORE,
-        vx as u64,
-        vy as u64,
-        vz as u64,
-        event as u64,
-    ]))
+    PoreDraw(Draws::of::<GeoPore>(seed).unit(&[vx as u64, vy as u64, vz as u64, event as u64]))
 }
 
 /// A **pore rider's** whole eighths inside a host that won `cnt` of this voxel's

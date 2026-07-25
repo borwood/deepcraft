@@ -18,13 +18,14 @@
 
 use std::collections::BTreeSet;
 
-use dc_sim::statistical::rng::{draw_f64, mix};
+use dc_sim::statistical::rng::Draws;
 use dc_sim::statistical::world::RegionId;
 use dc_sim::statistical::{
     Aspect, Ledger, Params, SiteEventKind, Subject, ToyWorld, Value, observe,
 };
 
-use super::{CellGrid, SALT_EXPAND, SALT_OVERLAY, SALT_SACK, SALT_SITE_POS};
+use super::CellGrid;
+use crate::draws::{Expand, Overlay, Sack, SitePos};
 
 /// Historical epochs simulated before year zero.
 pub const NUM_EPOCHS: u32 = 12;
@@ -78,9 +79,9 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
     let adjacency = slot_adjacency(&slots);
     // The overlay world needs >= 1 region; a dead world gets a placeholder.
     let overlay = if slots.is_empty() {
-        ToyWorld::with_graph(mix(&[seed, SALT_OVERLAY]), vec![vec![]], vec![])
+        ToyWorld::with_graph(Draws::of::<Overlay>(seed).bits(&[]), vec![vec![]], vec![])
     } else {
-        ToyWorld::with_graph(mix(&[seed, SALT_OVERLAY]), adjacency.clone(), vec![])
+        ToyWorld::with_graph(Draws::of::<Overlay>(seed).bits(&[]), adjacency.clone(), vec![])
     };
     let mut ledger = Ledger::new();
     let mut observe_count = 0u32;
@@ -162,7 +163,7 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
                 slots[a].score.total_cmp(&slots[b].score).then(b.cmp(&a)) // deterministic tie-break: lower index
             });
             if let Some(t) = target
-                && draw_f64(&[seed, SALT_EXPAND, p as u64, u64::from(epoch)]) < EXPAND_PROB
+                && Draws::of::<Expand>(seed).unit(&[p as u64, u64::from(epoch)]) < EXPAND_PROB
             {
                 found(
                     t,
@@ -214,7 +215,7 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
             };
             observe_count += 1;
             if value == Value::Pressure(2) && state.founded < epoch {
-                let doom = draw_f64(&[seed, SALT_SACK, s as u64, u64::from(epoch)]);
+                let doom = Draws::of::<Sack>(seed).unit(&[s as u64, u64::from(epoch)]);
                 let p_sack = if contested { 0.55 } else { 0.30 };
                 if doom < p_sack {
                     let subj = Subject::Site(s as u32);
@@ -332,10 +333,10 @@ fn plan_slots(seed: u64, grid: &CellGrid) -> Vec<SiteSlot> {
             continue;
         }
         let (cx, cz) = grid.cell_center_voxel(gx, gy);
-        let jx = (draw_f64(&[seed, SALT_SITE_POS, gx as u64, gy as u64, 0]) - 0.5)
+        let jx = (Draws::of::<SitePos>(seed).unit(&[gx as u64, gy as u64, 0]) - 0.5)
             * super::CELL_VOXELS as f64
             / 4.0;
-        let jz = (draw_f64(&[seed, SALT_SITE_POS, gx as u64, gy as u64, 1]) - 0.5)
+        let jz = (Draws::of::<SitePos>(seed).unit(&[gx as u64, gy as u64, 1]) - 0.5)
             * super::CELL_VOXELS as f64
             / 4.0;
         slots.push(SiteSlot {

@@ -7,10 +7,44 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
-- 2026-07-25 — **Two draws, one number: the pore rider gets its own entropy** (journal/0105;
-  background agent, worktree; **THE WORLD MOVES — goldens re-baselined deliberately**).
-  User-ratified: *"this needs fixed either way. **Decorrelate.**"* Discharges the Observed loose end
-  journal/0103 filed against `pore_rider_share`'s comment.
+- 2026-07-25 — **Two draws, one number: a randomness PROVIDER, and every caller gets its own band
+  of the hash** (journal/0105; background agent, worktree). User-ratified twice — *"this needs
+  fixed either way. **Decorrelate**"*, then *"we could have some utility system that is a
+  **randomness provider** … ensuring that every caller gets allocated their own band of the hash …
+  it would be optimal to fix it with a **construction guarantee**."* Discharges the Observed loose
+  end journal/0103 filed against `pore_rider_share`'s comment, and retires the convention that
+  produced it.
+  - **THE MECHANISM.** `dc_sim::statistical::rng`: a `Domain` trait (one named purpose = one band),
+    a `Draws` stream (`Draws::of::<D>(seed).unit(&[addr…])`), and a `draw_domains!` macro declaring
+    a crate's whole set in one list. **Two ways to collide, both closed at compile time**: a
+    duplicate *salt* trips the `const _: () = assert!(all_salts_distinct(ALL_DOMAINS))` the macro
+    emits; a duplicate *name* is a duplicate type definition. A call site cannot reach a stream by
+    writing a number — `Draws::of` takes a **type**. Reuse stays available (two sites of one
+    conceptual draw *should* share a domain) but only by naming it.
+  - **Salt values are explicit, not ordinals** — deriving them from list position would make
+    duplicates structurally impossible but would **re-roll the planet whenever the list is
+    sorted**. These numbers are baked into every world ever generated. The compiler checks
+    distinctness instead.
+  - **ALL 26 HAND-ROLLED SALTS CONVERTED**, from three files under three unrelated prefixes
+    (`0x5700_*` `pregen/mod.rs`, `0x5900_*` `deeptime/grid.rs`, `0x5B00_*` `deeptime/biotic.rs` —
+    three authors each inventing a prefix and hoping) into one list per crate. dc-worldgen
+    (`src/draws.rs`, 20 domains): every call site in `pregen/{mod,tectonics,history}.rs`,
+    `geology.rs`, `collapse.rs`, `fill.rs`; `interp_select_draw` → `draws::interp_corner_field`.
+    dc-sim (`statistical/world.rs`, 6 domains): four call sites converted.
+  - **EVERY WORLD IS BYTE-IDENTICAL ACROSS THE CONVERSION.** `Draws::bits` folds
+    `(seed, salt, addr…)` through the same splitmix chain `mix(&[…])` did, so
+    `Draws::of::<Plate>(seed).unit(&[p, 0])` **is** `draw_f64(&[seed, SALT_PLATE, p, 0])` — and the
+    S7 / providers / contents goldens are the proof, unmoved.
+  - **THREE HOLES, NAMED IN CODE RATHER THAN PAPERED.** (1) *Tag space inside a domain is still
+    hand-laid* — `GeoSelect` tags 0–3, `GeoAccessory`'s `tag`/`tag + 1024`: hand-rolled
+    sub-domains, same failure mode, smaller scale. (2) *Two `dc-sim/engine.rs` draws address
+    `[seed, k, SALT, …]`* — the sample index before the domain, so converting them re-rolls every
+    world's history layer; deliberate, world-changing, sequenced on its own rather than smuggled
+    in here. The salt still has one spelling. (3) *A recorded salt is data*: `StrataEvent::sel_salt`
+    replays a past selection, so `Draws::from_recorded_salt` exists with a name long enough to be
+    friction. Plus `deeptime/`'s three domains are **registered** (so nothing can re-issue
+    `0x5900_0001`) while their call sites still spell the constant locally, with
+    `the_deeptime_constants_agree_with_their_registered_domains` holding the copy to the authority.
   - **THE CORRELATION, QUANTIFIED.** `pore_rider_share` sliced its 3-bit offset out of the very
     `fill_draw` `allocate_partial` consumes, under a comment claiming the two were disjoint. Over
     **464,521 real rider decisions** (production world, seed 1337, Medium, 48 chunk-columns at the
@@ -63,11 +97,27 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
     `the_decorrelation_moves_product_without_creating_it`. The probe reproduces the **retired**
     formula and asserts it still scores **100 %** on the same data — a before/after inside one run,
     so the control cannot silently stop being the control.
-  - **WHAT MOVED.** GOLDEN_SUMMARY_PLACEHOLDER
-  - Files: `crates/dc-worldgen/src/{fill.rs,collapse.rs,pregen/mod.rs}`,
+  - **WHAT MOVED: NOTHING IN ANY GOLDEN — and the reason is worth more than the fix.**
+    `weather_inventory` is **off by default** (`grid.rs`: *"the production flip is the user's"*),
+    and the weathering front is the **only** producer of a *loose* pore rider. So the world every
+    golden hashes makes **no pore-rider decision at all**. **Measured, not inferred** (probe Part
+    5, same seed, same chunk-columns, flag off vs on): **0 decisions** on the shipped default,
+    **464,521** with `--weather-inventory`. This is corrections #51's shape a second time in two
+    days — *the guard runs on a world nobody ships*. **Habit worth keeping: when a slice moves
+    nothing, check whether the thing it moves exists in the default build before congratulating
+    yourself on byte identity.**
+  - **WHERE THE WORLD DOES MOVE** (behind `--weather-inventory`, which is where every weathering
+    number in the corpus was measured): **32.0 % of rider decisions** (148,590 of 464,521),
+    **45.5 % of rider voxels** (125,899 of 276,820) = **4.66 % of the 2,700,288 recorded voxels**
+    sampled. **Net +332 eighths over 464,521 decisions (+0.0007 each)** — a redistribution, not a
+    gain; `fill.rs` asserts the mean is `cnt·k8/8` by enumerating all eight offsets. **Visible
+    character: none** — one eighth of product moving between parent and product *inside* a contact
+    voxel, in a field that was white noise before and after.
+  - Files: `crates/dc-sim/src/statistical/{rng.rs,world.rs,engine.rs}`,
+    `crates/dc-worldgen/src/draws.rs` (new), `crates/dc-worldgen/src/{fill.rs,collapse.rs,
+    geology.rs,lib.rs,pregen/{mod,tectonics,history}.rs,deeptime/biotic.rs (visibility only)}`,
     `crates/dc-worldgen/examples/pore_decorrelation_probe.rs` (new, `test = true`),
-    `crates/dc-worldgen/tests/contents_contract.rs` (goldens), `crates/dc-worldgen/Cargo.toml`,
-    `docs/spines.md` (A-2).
+    `crates/dc-worldgen/Cargo.toml`, `docs/spines.md` (A-2).
 
 - 2026-07-25 — **The per-cell ledger header collapses: ONE record for the grid, the cell as a CSR
   row** (journal/0102; background agent, worktree; **PURE LAYOUT CHANGE**). Discharges the OWED
@@ -2449,6 +2499,21 @@ corrections #18 and #19 — both are about choosing an instrument that can
 see the question you are asking.
 
 ## Sequenced
+
+- **Finish the draw-domain conversion: the three residual hand-rolled sites** (opened 2026-07-25
+  by journal/0105, which converted 26 of them and named these). Small, and each is named in code
+  so it cannot be lost. **(a) `dc-sim/engine.rs`'s region-step and agent-step draws** address
+  `[seed, k, SALT, …]` — the sample index sits before the domain, so putting them on `Draws::of`
+  (which fixes the domain at slot 2) changes the key and **re-rolls every world's history layer**:
+  polities, sites, ruins. That is a real appearance change and wants its own slice with the
+  goldens re-baselined, not a footnote in someone else's. **(b) `deeptime/{grid,biotic}.rs`'s
+  three call sites** still spell `SALT_DT_ROUGH` / `SALT_BIO_FIRE` / `SALT_BIO_FLOOD` locally;
+  the domains are registered and an agreement test holds them, so this is byte-identical
+  housekeeping — three lines, owned by whoever holds those files. **(c) Tag space inside a
+  domain** (`GeoSelect`'s tags 0–3, `GeoAccessory`'s `tag` / `tag + 1024`) is hand-laid
+  sub-domaining with journal/0105's exact failure mode at smaller scale; a `Domain` per decision
+  fixes it and costs a longer list. Byte-identity impact: (b) none, (c) none if the tags are kept,
+  (a) every world.
 
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice

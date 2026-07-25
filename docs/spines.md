@@ -639,6 +639,16 @@ so a sweep must ask "does the cited constraint still hold?"
   `u` per voxel served every band in it, so sibling riders at a front rounded in lockstep
   (`r = +0.4878`, 1.488× the variance independent roundings give). *A wrong justification
   is worth chasing even when its stated consequence turns out to be nil.*
+  **The fix was not a better comment.** The user's escalation — *"every caller gets
+  allocated their own band of the hash … fix it with a construction guarantee"* —
+  turned it into a mechanism: `dc_sim::statistical::rng`'s `Domain`/`Draws` provider
+  and the `draw_domains!` list, where a duplicate salt is a `const` assertion failure
+  and a duplicate name is a duplicate type. **This is the general answer to A-2 for a
+  whole class of claims**: when a justification asserts a property the language could
+  enforce instead, the durable move is to make the property structural and delete the
+  claim. Twenty-six hand-rolled salts across three files and three invented numbering
+  prefixes (an **A-1** instance in its own right — three authors each building the
+  same registry beside the others') are now one list per crate.
 - not-an-instance (2026-07-23, journal/0078): the 2026-07-22 audit flagged the
   `exhum`/`t_crust` comment [#28] as an A-2 ("claims the collapse tier reads
   them"), but the comment already said "WILL read … currently consumed by

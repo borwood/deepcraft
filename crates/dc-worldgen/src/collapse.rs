@@ -42,17 +42,18 @@ use dc_core::{
     Block, CHUNK_VOLUME, Chunk, ChunkPos, ContentsGrid, MaterialChunk, MixtureId, MixtureTable,
     StructureShape, VoxelContents, VoxelScale, classify,
 };
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
 
+use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
 use crate::fill::{
     ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
 };
 use crate::geology::{
-    StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member, interp_select_draw,
+    StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member,
 };
 use crate::pipeline::PipelineError;
 use crate::pregen::{
-    CELL_VOXELS, Pregen, Provenance, SALT_ELEV, SALT_GEO_CLASS, SALT_GEO_SELECT, SALT_RUIN,
+    CELL_VOXELS, Pregen, Provenance,
     temp_sea_level,
 };
 
@@ -869,7 +870,7 @@ impl<'a> WorldGenerator<'a> {
             let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
             let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
             let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
-            let u = interp_select_draw(self.seed, SALT_GEO_SELECT, 4, cx, cz, fx, fz);
+            let u = interp_corner_field(Draws::of::<GeoSelect>(self.seed), 4, cx, cz, fx, fz);
             let member = self.geology.select(class, &form, u).map(|(i, _)| i);
             let block = member
                 .map(|m| Block::Material(self.geology.member(m).material))
@@ -997,7 +998,7 @@ impl<'a> WorldGenerator<'a> {
                 let (ccx, ccz) = (vx.div_euclid(32), vz.div_euclid(32));
                 let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
                 let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
-                let u = interp_select_draw(self.seed, SALT_GEO_CLASS, 0, ccx, ccz, fx, fz);
+                let u = interp_corner_field(Draws::of::<GeoClass>(self.seed), 0, ccx, ccz, fx, fz);
                 return draw_class(&by_class, acc, u);
             }
         }
@@ -1163,7 +1164,7 @@ impl<'a> WorldGenerator<'a> {
                     ),
                 ),
             };
-            let u = draw_f64(&[self.seed, SALT_ELEV, u64::from(level), i as u64, j as u64])
+            let u = Draws::of::<Elev>(self.seed).unit(&[u64::from(level), i as u64, j as u64])
                 .mul_add(2.0, -1.0);
             (
                 parent.0 + u * parent.1 * AMP_DECAY.powi(i32::from(level)),
@@ -1592,14 +1593,14 @@ impl<'a> WorldGenerator<'a> {
                 continue;
             }
             for k in 0..10u64 {
-                let ang = draw_f64(&[self.seed, SALT_RUIN, u64::from(s.id), k, 0])
+                let ang = Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 0])
                     * std::f64::consts::TAU;
-                let r = 6.0 + 12.0 * draw_f64(&[self.seed, SALT_RUIN, u64::from(s.id), k, 1]);
+                let r = 6.0 + 12.0 * Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 1]);
                 let px = s.x + (r * ang.cos()) as i64;
                 let pz = s.z + (r * ang.sin()) as i64;
                 if px >= vx0 && px < vx0 + 32 && pz >= vz0 && pz < vz0 + 32 {
                     let h =
-                        2 + (draw_f64(&[self.seed, SALT_RUIN, u64::from(s.id), k, 2]) * 2.0) as u8;
+                        2 + (Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 2]) * 2.0) as u8;
                     posts.push(((px - vx0) as u8, (pz - vz0) as u8, h));
                 }
             }
@@ -2099,7 +2100,8 @@ mod tests {
     ///    surface would make every column identical.
     #[test]
     fn surface_voxel_routes_through_columnfill_per_voxel() {
-        use crate::fill::{ColumnFill, Plan};
+        use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
+use crate::fill::{ColumnFill, Plan};
         use dc_core::VoxelContents;
         let pregen = Pregen::run(WorldParams {
             seed: 1337,
