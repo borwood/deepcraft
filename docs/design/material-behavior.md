@@ -312,9 +312,9 @@ Two questions hide in "agents as passes vs all-in-one":
 surface. So the default is **separate declared passes**; S16's fold lives *inside*
 each pass.
 
-### Cadence: order × rate — RECONCILED 2026-07-24 (promoting `ideas.md § Pass cadence`, user)
+### Cadence: order × rate × window — RECONCILED 2026-07-24 (promoting `ideas.md § Pass cadence`, user); **third axis added 2026-07-25** (transcribing `flow.md` § 11.1, RATIFIED)
 
-The scheduler has **two orthogonal axes**, and the runner declares **both** per pass:
+The scheduler has **three orthogonal axes**, and the runner declares **all three** per pass:
 
 - **ORDER** — derived from `{reads, writes}` by **topo-sort**; rejects cycles,
   conflicting writers, missing deps. This *replaces* a hand-declared "canonical
@@ -326,6 +326,43 @@ The scheduler has **two orthogonal axes**, and the runner declares **both** per 
   while a **low-rate** pass (tectonics ×1) runs once — the temporal-resolution knob
   topo-sort alone does **not** give. This is `ideas.md`'s fractional-phase sketch,
   reconciled: it is the RATE axis, *composed with* topo-sort, never replaced by it.
+- **WINDOW — the aggregation window: how many epochs sum into ONE record entry.**
+  RATE is a *sampling* rate (how often the pass fires); WINDOW is the record's *time
+  granularity* (how coarsely what it produced is stored). They are different knobs and
+  firing less often does not merge entries — it loses epochs. `flow.md` § 11.1 is the
+  ratifying decision and § 2.6 the measurement behind it:
+
+  > **A window that decides an acceptance number must be declared, not assumed.**
+
+  The case that forced it: the flow record's slice-1 divergence count (**175,320
+  divergent `(cell, chapter)` pairs, 7.378 %** — the number the slice was accepted on)
+  was a product of an **implicit** constant, one tectonic chapter = 25 epochs. At a
+  one-epoch window that count is **zero**, because within a single epoch the solve
+  returns one receiver per cell and the tree structure reasserts. Set the window and you
+  set the number.
+
+  **The user's reasoning, recorded:** *"freedom to future mods / ourselves (we are the
+  first modders)."* A mod authoring a pass must be able to state its own record
+  granularity the same way it states order and rate — **an undeclared constant is exactly
+  the surface a third party cannot reach.** This is the north star's *"authored in a
+  uniform, self-declaring, compiler-validated shape and tuned by data"* applied to the
+  **time** axis.
+
+  **Resolution is a shipped DEFAULT, not an engine property** (`flow.md` § 11.2, RATIFIED):
+  once the window is declarable, per-chapter vs per-epoch stops being an architecture
+  question. Default to the **cheap end** (the coarser window) for dev-iteration speed and
+  **expose the knob** for stress tests.
+
+  **RIDER — the self-describing-record contract** (`flow.md` § 11.3, a **standing** contract
+  on every future record, not a flow-only rule): *any mode that changes what an **absent**
+  entry means must be carried **in the record***, never held as external knowledge.
+  Otherwise absence is ambiguous across worlds and every consumer must know how a world was
+  generated in order to read it — **S-9 one level up: the answer carries its resolution.**
+  A window is exactly such a mode, which is why the two decisions arrived together.
+
+  **Status: declared here, not built** — no `Pass` carries a window field today, and today's
+  one aggregating record (`DeepField::flux`) buckets by chapter as an implicit constant.
+  Sequenced on the ROADMAP as *"THE AGGREGATION WINDOW IS A DECLARED AXIS"*.
 
 **`dt` = phase length is not new machinery** — it is exactly the `rate × dt` time-base
 S16's behavior model was already written against; today `dt` is pinned to `1.0`, and

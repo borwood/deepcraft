@@ -2825,9 +2825,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     the answer carries its resolution.** Its first customer is the **marine-sink lever** (79.38 %
     of slice-1 entries, 31.37 MiB, sized and deliberately not pulled — default KEEP): the drop is
     not forbidden, it is **gated on this contract**.
-  - **SPEC HOME.** `material-behavior.md` § 5 "Cadence: order × rate" is the spec of record for
-    the scheduler; it was amended 2026-07-25 to carry the third axis and to cross-reference
-    flow.md §§ 11.1 / 11.3. **Sequenced, not built** — no `Pass` declares a window today.
+  - **SPEC HOME.** `material-behavior.md` § 5 — now **"Cadence: order × rate × window"** — is the
+    spec of record for the scheduler; it was amended 2026-07-25 to carry the third axis and to
+    cross-reference flow.md §§ 11.1 / 11.3 (`ideas.md § Pass cadence`, the sketch it reconciles,
+    was corrected to match). **Sequenced, not built** — no `Pass` declares a window today, and
+    today's one aggregating record (`DeepField::flux`) buckets by chapter as an implicit constant.
 
 - **STRUCTURE-AWARE FINE EXPRESSION — the sub-resolution the collapse randomizes but
   physics structures** (filed 2026-07-24 at the user's direction; unifies the flow-biased-fill
