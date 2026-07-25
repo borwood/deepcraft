@@ -465,6 +465,49 @@ and a gorge as the control that must *not* have moved.
 > the top of this entry — a claim about *order* smuggled in as a claim about
 > *substance*. Twice in one slice.
 
+## The gate, and what it cost
+
+Full workspace gate, clean-built (`cargo clean -p dc-worldgen --release`) with the
+`Compiling` / `Checking` lines verified to name **this worktree's** checkout:
+
+- `cargo fmt --all --check` — clean, 0 diffs
+- `cargo clippy --workspace --all-targets --release -- -D warnings` — **exit 0**
+- `cargo test --workspace --release --no-fail-fast` — **exit 0, 78 binaries,
+  759 passed, 0 failed**, zero `FAILED` / `panicked` / `error` lines anywhere in
+  the log
+
+Against the pre-slice baseline of **742 passed / 76 binaries**, the delta
+reconciles exactly:
+
+| added | tests | where |
+|---|---|---|
+| `deeptime::erosion::mfd_tests` | 6 | lib unit (131 → 137) |
+| `tests/mfd_routing.rs` | 9 | new binary |
+| `examples/mfd_probe.rs` `mod gate` | 2 | new binary (`test = true`) |
+| | **+17** | **76 → 78 binaries, 742 → 759** |
+
+**Added gate wall-clock: 22.7 s** — `mfd_routing` 13.16 s + `mfd_probe` gate
+9.58 s; the six unit tests are on an 8-cell hand-built patch and are free. Both
+gate suites run at `Extent::Small`, and the doc comments say why each invariant is
+scale-free (a per-cell predicate; a set inclusion; an order-preserving
+transformation).
+
+**A build-hygiene note that cost an hour and is worth the next agent's time.**
+Two agents share one `CARGO_TARGET_DIR`, and cargo gives the *same* artifact hash
+to the same package in two different worktrees. A sibling rebuilt `dc-worldgen`
+from a branch without MFD while my run was in flight, and the result was a **false
+RED** with a *coherent-looking* signature: `providers_golden` reported
+`0x176D…006A != 0x6F83…8C36` — the **computed** value was the old one and the
+**constant** was the new one, i.e. the mismatch pointed *backwards*. That
+direction is the tell. A real golden move computes the new value and finds the old
+constant; a poisoned artifact computes the old value against your new constant.
+The other symptom was the probe failing to compile against a `DeepConfig` with no
+`mfd` field — in *my* file, at *my* line numbers.
+The cheap defence turned out to be structural rather than procedural: **include a
+test target that only exists on your branch** (`--test mfd_routing`). If it runs,
+the artifacts are yours. A file mutex that a sibling can overwrite is not a mutex;
+a target the sibling cannot possibly have is a proof.
+
 ## `recv` after MFD
 
 `recv` is on a retirement path already (continuation (e)), and MFD changes what it
