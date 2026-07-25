@@ -553,6 +553,17 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   coal (~surface-temp-thresholded); its real payoff is **metamorphism** (deep crust: `exhum` = P,
   geotherm = T → grade). **Appearance walk owed but low-priority** — coal is a user-blessed
   placeholder; don't over-calibrate (it recalibrates when biology lands).
+  - **⚠ CORRECTED 2026-07-25 (corrections #51; staleness sweep row S-6).** *"Still a diggable seam
+    on Medium"* was measured on the **warm reference** world `0x0D5EED572026`, **not** on the world
+    the client boots. On seed **1337 / Medium** the recalibration produces **zero coal — 0 units
+    across 297,025 cells**, the hottest peat candidate standing at **15.4 °C against a 22 °C
+    onset**, i.e. 6.6 °C short. The cited guard no longer exists under that name: `tests/geotherm.rs`
+    now carries `the_geotherm_rule_governs_coalification_on_the_production_world` (1337 / Medium,
+    which **requires no coal**) and `coal_follows_the_warm_crust_on_the_warm_reference_world`
+    (journal/0106). The recalibration itself stands; only the sentence about what a player would
+    find was wrong. The content question — (a) accept a coal-free world … (d) — is open in Observed,
+    and the appearance walk this entry owed is a **desk null**, not a walk (see APPEARANCE WALKS
+    OWED item (3)).
 
 - 2026-07-24 — **Movement 2a: R/H are derived views of the inventory** (journal/0092;
   background agent, worktree). The per-cell working inventory (== the strata record) is now the
@@ -2205,10 +2216,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   ~~profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
   killer list)~~ **LANDED 2026-07-23, journal/0080 (`perf` feature + self-time
   aggregating layer + `--perf-drop` capture; baseline artifact stubbed pending an
-  integrator GPU run)** · **async-offload slice is now the sequenced NEXT** (chunk
+  integrator GPU run)** · ~~**async-offload slice is now the sequenced NEXT** (chunk
   gen + far-mesh onto AsyncComputeTaskPool; the synchronous `stream_chunks`
   gen+mesh loop is the span-named suspect — `chunk.gen`/`chunk.contents`/
-  `neighbor_fill.gen`/`mesh_chunk` on the frame thread) · ~~erosion-budget dev flag
+  `neighbor_fill.gen`/`mesh_chunk` on the frame thread)~~ **LANDED 2026-07-23,
+  journal/0083 + journal/0084 — see § Shipped** (status drift only, corrected by the
+  2026-07-25 staleness sweep row S-9). *The live successors are the two Observed items
+  it left behind: the **throughput ceiling** and **per-thread attribution**.* · ~~erosion-budget dev flag
   (the walkable cranked world → the standing amplitude call)~~ **LANDED
   2026-07-22, journal/0076 (`--erosion-budget <mult>`)** · albedo-at-
   range once baseline numbers exist, carrying the ranges-as-player-config
@@ -2514,12 +2528,24 @@ unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test) ·
 below a cell's floor plane comes only from edits today, which is complete for a
 heightfield world and wrong the moment caves exist; the collapse tier's
 "recorded conduit capacity → void intervals per column" is the same axis, so
-decide it once in water.md rather than twice) · **re-run S15's natural-sill
+~~decide it once in water.md rather than twice~~ **— RESHAPED 2026-07-25 (sweep row
+R-2): its home moved out of `water.md`.** `flow.md` § 7 promotes the **interval-log
+fill contract** from *proposed* to **necessary** (voids/conduits are intervals, not a
+heightfield), and voids / conduits / springs are **FLOW continuation (c)**. Decide it
+there, once, with (c)) · **re-run S15's natural-sill
 falsifier when the cave families land** (not constructible today only because
-the world has no 3-D structure — corrections #31) · **when the store can fail
+the world has no 3-D structure — corrections #31; **the cave families now have a named
+owner — FLOW continuation (c)**, which as of 2026-07-25 carries **three** obligations,
+not two: the free/bound edge, void intervals, **and the conduit pairing rule** — a karst
+conduit pairs by **void connectivity**, a third mode flow.md § 11.5's two-mode green
+explicitly does not cover) · **when the store can fail
 to answer (async streaming / disk-backed regions), an absent chunk must read
 UNKNOWN, never solid**, or eviction manufactures false component boundaries in
-the connectivity index (corrections #31) · reconcile S15's cell-granularity body
+the connectivity index (corrections #31; **there is now an in-tree precedent to copy
+rather than re-invent — `Identity::Unrecorded`**, journal/0101: a "no record here"
+answer that is distinct in the **TYPE** from an empty value, not a sentinel inside the
+value. Copy that shape; a second, differently-spelled unknown would be an A-4) ·
+reconcile S15's cell-granularity body
 footprint with S11's air-component container (S15 design choice 2).
 
 **⚠ UNRATIFIED APPEARANCE CHANGE AWAITING THE USER'S EYE (2026-07-21):**
