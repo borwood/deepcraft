@@ -4,6 +4,8 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
+*Sweep IN PROGRESS: 2026-07-25 (post-FLOW-batch: journals 0096/0098/0099/0100/0101).*
+
 *Last `spine-audit` sweep: **2026-07-24 (post-Movement-3)** — the weathering-as-a-
 process merge (`7545643`) + the `palette_quant_tour` example (`0a8168d`/`4318463`).
 Verdicts: **stub #17 is discharged-with-a-residual** (the in-loop half landed; the
