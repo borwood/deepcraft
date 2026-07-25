@@ -404,7 +404,18 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
     let ledgers = run.weather_ledgers;
     // The regolith plane, carried (journal/0053) rather than summed away.
     let regolith = run.grid.h;
-    let strata = run.grid.strata;
+    // **Reclaim the growth slack** (S19, 2026-07-25). Each cell's `units` Vec grows by
+    // `push` across the epoch loop, so it carries allocator doubling slack: measured
+    // **live 84.47 MiB vs capacity 138.49 MiB on a production world — 54.02 MiB of pure
+    // waste, 39 % of the record heap and 33 % of ALL `DeepField` residency.** The record
+    // is append-only during the compile and **read-only forever after**, so the capacity
+    // is dead the moment the loop ends. Runtime residency is first-class (CLAUDE.md);
+    // gen time is free, so the one-time copy is the right trade. Asserted by
+    // `strata_is_shrunk_to_fit_after_the_compile`.
+    let mut strata = run.grid.strata;
+    for s in &mut strata {
+        s.units.shrink_to_fit();
+    }
     DeepField {
         w,
         wp: cells.w as usize,
@@ -604,4 +615,40 @@ fn bilinear(field: &[f64], w: usize, gx: f64, gy: f64) -> f64 {
     let a = at(x0, y0) * (1.0 - fx) + at(x1, y0) * fx;
     let b = at(x0, y1) * (1.0 - fx) + at(x1, y1) * fx;
     a * (1.0 - fy) + b * fy
+}
+
+#[cfg(test)]
+mod shrink_tests {
+    use super::*;
+    use crate::pregen::{Extent, Pregen, WorldParams};
+
+    /// **S19 free win (2026-07-25).** Every cell's `units` Vec grows by `push` across
+    /// the epoch loop and so carries allocator doubling slack; the record is read-only
+    /// after the compile, so that capacity is dead weight. Measured on a production
+    /// world: 54.02 MiB, **33 % of all `DeepField` residency**. `build_field` shrinks
+    /// each cell to fit — this asserts it actually happened (capacity == len for every
+    /// cell), which is what makes the reclaim real rather than intended.
+    #[test]
+    fn strata_is_shrunk_to_fit_after_the_compile() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        });
+        let field = DeepField::from_pregen(&pregen);
+        let slack: usize = field
+            .strata
+            .iter()
+            .map(|s| s.units.capacity() - s.units.len())
+            .sum();
+        let nonempty = field.strata.iter().filter(|s| !s.units.is_empty()).count();
+        assert!(
+            nonempty > 0,
+            "the world must actually have a record for this test to mean anything"
+        );
+        assert_eq!(
+            slack, 0,
+            "every cell's units Vec must be shrunk to fit after the compile \
+             ({nonempty} non-empty cells carried {slack} slack entries)"
+        );
+    }
 }

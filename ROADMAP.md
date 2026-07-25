@@ -2873,7 +2873,21 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **FREE WIN — `strata` Vec capacity doubling wastes 54.02 MiB: 39 % of the record heap
+- **✅ DONE 2026-07-25 — FREE WIN TAKEN: 54.02 MiB reclaimed, 33.2 % of all `DeepField`
+  residency, zero behaviour change.** `build_field` now `shrink_to_fit`s every cell's
+  `units` Vec at the end of the compile. **Measured before → after: 162.57 MiB → 108.55
+  MiB**, slack 54.02 MiB → **0.00 MiB (0 %)**, `DeepField::resident_bytes` agreeing;
+  asserted by `strata_is_shrunk_to_fit_after_the_compile` (capacity == len for every
+  cell, so the reclaim is enforced, not merely intended). The one-time copy is gen-time,
+  therefore free. *Note: `docs/spikes/S19-*` quotes the pre-fix 162.57 MiB baseline —
+  that figure is now historical; today's total is 108.55 MiB, which is the correct
+  denominator for the flow-record projections (every `× today` multiple in S19 is
+  correspondingly ~1.5× larger against the new baseline).* The sibling defect — the
+  `FactLedger` `Vec<Vec<Fact>>` at **98.8 % empty inner Vecs / 89 % of its heap in empty
+  headers (+156.91 MiB when `weather_inventory` is on)** — is NOT fixed by this and
+  remains the reason the flow record must be sparse/CSR.
+
+  *Original entry:* **`strata` Vec capacity doubling wastes 54.02 MiB: 39 % of the record heap
   and 33 % of ALL current `DeepField` residency** (measured 2026-07-25,
   `docs/spikes/S19-flow-record-cost-results.md`). Live 84.47 MiB vs capacity 138.49 MiB
   on a production world (seed 1337, Medium). Pure allocator slack from growth doubling —
