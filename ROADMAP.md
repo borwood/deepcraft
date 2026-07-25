@@ -27,8 +27,14 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   - **MEASURED RESIDENCY** (gen is free, residency is not — flow.md § 9.1's open question, now
     answered with a number): **40.66 MiB** = 2,590,372 entries × **16 B** + a 1.13 MiB CSR index;
     **143.54 B/cell**, **17.94 B/cell/chapter**; **face sparsity 8.386 %** (13.627 % of the
-    lateral-only rectangle) — the number S19's cost model was missing. DeepField 162.57 → 203.23 MiB
-    (**1.25×**). Layout heeds S19: flat exact-sized arrays + CSR, **never** the `Vec<Vec<…>>` shape
+    lateral-only rectangle) — the number S19's cost model was missing. **RE-MEASURED ON MERGED
+    MAIN 2026-07-25: DeepField 108.55 → 149.21 MiB (1.37×).** *(The slice reported 162.57 →
+    203.23 MiB / 1.25×; its worktree forked before the `shrink_to_fit` free win landed, so the
+    ratio was taken against the pre-shrink baseline. The record's own 40.66 MiB is unchanged —
+    only the denominator moved.)* **Net effect on the session: 162.57 → 149.21 MiB — residency
+    went DOWN 13.4 MiB while gaining a whole per-chapter flow record**, because the free win
+    (−54.02 MiB) more than paid for it. Layout heeds S19: flat exact-sized arrays + CSR,
+    **never** the `Vec<Vec<…>>` shape
     the probe measured at 98.8 % empty inner Vecs.
   - **OBSERVED / OWED — the one residency lever, sized but NOT pulled (the user's call):** **79.38 %
     of entries (31.37 MiB) are marine sink faces carrying only the cell's own seeded `area = 1.0`**

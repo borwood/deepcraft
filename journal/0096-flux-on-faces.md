@@ -261,6 +261,15 @@ DeepField without the record 162.57 MiB
 DeepField with    the record 203.23 MiB   = 1.25x
 ```
 
+> **Integrator note (re-measured on merged main, 2026-07-25).** The ratio above was
+> taken in a worktree that forked *before* the `shrink_to_fit` free win landed, so its
+> denominator is the pre-shrink baseline. On merged main: **108.55 → 149.21 MiB =
+> 1.37×**. The record's own **40.66 MiB is unchanged** — only the denominator moved,
+> which is exactly why a ratio should always be quoted with the absolute beside it.
+> **Net for the day: 162.57 → 149.21 MiB — residency fell 13.4 MiB while gaining the
+> entire per-chapter flow record**, because reclaiming the strata `Vec` slack
+> (−54.02 MiB) more than paid for it.
+
 **8.386 % face sparsity** is the number the S19 cost model was missing, and it is
 now measured rather than assumed. The record costs a quarter of the world's
 existing residency.
