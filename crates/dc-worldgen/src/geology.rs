@@ -43,10 +43,18 @@ use crate::pregen::{
 };
 
 /// One deposition event: the selected member, its per-column thickness, and
-/// the formation context it was deposited under. `ore` is a placer enrichment
-/// riding *inside* this stratum (grain habit): `(member, eighths per voxel)`;
-/// `accessory` is an igneous inclusion carried in the host rock's pore slots
-/// (`(member, eighths per voxel)`, 3d pore partials).
+/// the formation context it was deposited under. It carries two **riders** —
+/// second materials that occupy some of the host's own eighths rather than
+/// standing as strata of their own:
+///
+/// - `ore` — a **debris-slot** rider: a placer enrichment riding *inside* a
+///   loose stratum (grain habit), `(member, eighths per voxel)`.
+/// - `accessory` — a **pore-slot** rider: a second material carried in the host
+///   rock's pores, `(member, eighths per voxel)`, 3d pore partials. Two things
+///   ride here, and they are the same shape: the sparse igneous inclusion
+///   ([`emplace_accessory`], 1/8) and the **weathering product** of a
+///   weathering-front band ([`emplace_weathering_front`], 1/8 … 7/8) — degraded
+///   bedrock *is* parent structure with product in its pores.
 ///
 /// The context and selection address (`depth_m`, `sel_salt`, `sel_tag`) are
 /// recorded so the material tier can **re-resolve the host member per
@@ -176,6 +184,23 @@ impl<'a> StrataCtx<'a> {
     /// agreement with the dithered footprint at its centre.
     fn draw(&self, salt: u64, tag: u64) -> f64 {
         interp_select_draw(self.seed, salt, tag, self.cx, self.cz, 0.5, 0.5)
+    }
+
+    /// [`Self::push`] with a **pore-slot rider** attached (`StrataEvent::accessory`):
+    /// the host's structure with `eighths` of a second material in its pores.
+    fn push_with_pore_rider(
+        &mut self,
+        member: GeoMemberIdx,
+        thickness_m: f64,
+        salt: u64,
+        tag: u64,
+        depth_m: f64,
+        rider: (GeoMemberIdx, u8),
+    ) {
+        self.push(member, thickness_m, salt, tag, depth_m);
+        if let Some(e) = self.strata.events.last_mut() {
+            e.accessory = Some(rider);
+        }
     }
 
     fn push(&mut self, member: GeoMemberIdx, thickness_m: f64, salt: u64, tag: u64, depth_m: f64) {
@@ -384,39 +409,172 @@ pub fn deep_class(tag: DepTag) -> &'static str {
 /// formation-context depth axis is honest.
 const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 
-/// **Emplace the basal weathering-front band** — the collapse-tier consumer of the
+/// **The weathering-front profile**: the product's share of each band of the
+/// front, **top-down**, in eighths of a voxel.
+///
+/// `PROFILE[j] == round(FRONT_TOP_EIGHTHS · exp(−j / FRONT_DECAY_BANDS))`,
+/// truncated where it rounds to zero (`the_front_profile_is_the_exponential_decay`
+/// proves the array is exactly that function, so the shape is auditable and the
+/// hot path is a constant).
+///
+/// **Why an exponential.** A weathering front is a reaction front: the reactant
+/// (oxygenated, acidic meteoric water) arrives from above and is consumed as it
+/// goes down, so the *degree of alteration* decays with depth below the top of
+/// the front — the first-order-kinetics form every saprolite profile shows
+/// (intact rock → corestones → grus → clay, reading upward). Its length scale is
+/// the front's own thickness, which is why the profile is expressed as a
+/// **shape** here and scaled by the ledger's metres below: the fraction curve is
+/// scale-free and the magnitude is the model's.
+///
+/// The **top is 7/8, never 8/8** — deliberately. Saprolite is defined by
+/// retaining the parent's fabric; a voxel of pure product with no relict rock in
+/// it is mobile regolith, not a front, and "no bedrock anywhere in the band" is
+/// precisely the defect journal/0097 caught.
+///
+/// **STUB #19** (docs/design/stubs.md): the *magnitude* is the deep model's, but
+/// this *shape* — decay length, 7/8 cap, and hence the 8/3 thickness ratio — is a
+/// constant measured from nothing. In the field it is set by the balance of
+/// front descent against erosion rate, by fracture density and permeability, and
+/// by climate. **Heir:** the deep tier carrying the front as a depth-resolved
+/// term instead of one `FracM`, at which point this array is deleted, not tuned.
+const WEATHERING_PROFILE: [u8; 8] = [7, 5, 4, 3, 2, 1, 1, 1];
+/// Product share, eighths, of the front's topmost band. The array above is the
+/// authority on the generation path; this is the *spec* it is checked against.
+#[cfg(test)]
+const FRONT_TOP_EIGHTHS: f64 = 7.0;
+/// Decay length of the product share, **in bands** (the profile is scale-free;
+/// the band's metres come from the ledger).
+#[cfg(test)]
+const FRONT_DECAY_BANDS: f64 = 3.0;
+/// Σ [`WEATHERING_PROFILE`], eighths — the front's mass budget per band-metre.
+const WEATHERING_PROFILE_EIGHTHS: f64 = 24.0;
+/// Draw address of the front's **product** selection (distinct from every
+/// deep-unit tag, which are small indices).
+const FRONT_TAG_PRODUCT: u64 = u64::MAX;
+/// Draw address of the front's **parent rock** selection. Shared by every band,
+/// with one shared `depth_m`, so [`dithered_member`] resolves the same parent
+/// for the whole profile in a given voxel column — otherwise the per-band depth
+/// would let the parent flip between bands and stripe the front.
+const FRONT_TAG_PARENT: u64 = u64::MAX - 1;
+
+/// **Emplace the basal weathering front** — the collapse-tier consumer of the
 /// deep cell's weathering [`FactLedger`](crate::deeptime::FactLedger) (the
 /// first-real-behavior slice, material-behavior.md §4/§11). The deep sim weathered
-/// the bedrock `Structure` seam into `ctx.deep_weathering_m` metres of loose regolith
-/// at the basement contact; here that becomes a real stratum the player can dig,
-/// laid at the base of the recorded pile.
+/// the bedrock `Structure` seam into `ctx.deep_weathering_m` metres of loose
+/// product at the basement contact; here that becomes real material the player
+/// can dig, at the base of the recorded pile.
+///
+/// **A scalar cannot carry a profile — so the profile is imposed here**
+/// (journal/0099, the follow-up to 0097's walk). Until this slice the fold read
+/// the scalar and laid **one stratum of one class** at that thickness, which the
+/// record→voxel path expressed as `Single` — 8/8 of the product, pure, with a
+/// hard perimeter against contents-free basement below. That is not what a front
+/// is. What the deep model computed is a *rate integrated over depth and time*;
+/// what makes saprolite legible as saprolite is the downward gradient the fold
+/// was discarding.
+///
+/// So the same mass is emplaced as [`WEATHERING_PROFILE`]: eight bands of the
+/// **parent rock**, each carrying the product as a **pore-slot rider** whose share
+/// rises with height (1/8 at the base → 7/8 at the top). In today's forms
+/// vocabulary (material-behavior.md §2/§3) that is `structure → pore_fill`, not
+/// `structure → structure`: degraded bedrock is retained parent structure with
+/// weathering product in its pores.
+///
+/// **Mass is redistributed, never created.** Band thickness is set from the
+/// ledger so the product integrates back to exactly the metres the deep tier
+/// committed:
+///
+/// ```text
+/// band_m · Σ(PROFILE / 8) = deep_weathering_m
+/// ```
+///
+/// The *front* is therefore thicker than the product band was
+/// (`8 · 8/24 ≈ 2.67 ×`), which is physically the point: a front of that
+/// thickness has converted that much rock. It grows **downward** into the
+/// unrecorded basement — [`crate::fill::ColumnFill`] slices the record from the
+/// surface down — so nothing above the front moves.
 ///
 /// **The product's CLASS is a stand-in tied to STUB #16** (docs/design/stubs.md):
-/// the loose product inherits the *bedrock's identity*, but the deep tier's bedrock
-/// is one flat granite basement (stub #16), so this expresses the front as
-/// [`CLASS_CLASTIC_FINE`] — a clay-rich saprolite, the honest weathering product of
-/// most bedrock. When the genesis/emplacement heir supplies real per-column basement
-/// lithology, this class choice is replaced by that material's own weathering
-/// product; the fold itself (read `deep_weathering_m`, lay a basal band) is the
-/// durable part. No-op when `deep_weathering_m` rounds to nothing — the S-5 identity
-/// default keeps the world byte-identical with the flag off.
+/// the product should inherit the *bedrock's* identity, but the deep tier's bedrock
+/// is one flat granite basement (stub #16), so this expresses the product as
+/// [`CLASS_CLASTIC_FINE`] — clay-rich saprolite, the honest weathering product of
+/// most bedrock. (The inventory says *granite*-loose while the collapse expresses
+/// a clastic-fine product: that disagreement is #16's, and the same heir closes
+/// both.) The **retained parent**, by contrast, is not invented here — it is
+/// inherited from the basement body this column actually recorded, so the front
+/// is made of the rock beneath it. The **shape** of the profile is stubs.md #19.
+///
+/// No-op when `deep_weathering_m` rounds to nothing — the S-5 identity default
+/// keeps the world byte-identical with the flag off.
 fn emplace_weathering_front(ctx: &mut StrataCtx) {
     if ctx.deep_weathering_m <= 0.0 {
         return;
     }
-    // Below the whole recorded pile, at the basement contact.
+    // Below the whole recorded pile, at the basement contact. One formation
+    // depth for the entire front: it is one weathering environment, not eight
+    // burial depths (and a per-band depth would let the member dither flip the
+    // parent between bands).
     let record_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
     let depth_m = record_m + DEEP_VENEER_MARGIN_M;
-    // A stable draw address reserved for the weathering front (distinct tag).
-    let tag = u64::MAX;
     let form = FormationContext {
         temp_c: ctx.temp_c,
         precip: ctx.precip,
         depth_m,
     };
-    let draw = interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
-    if let Some((member, _)) = ctx.geology.select(CLASS_CLASTIC_FINE, &form, draw) {
-        ctx.push(member, ctx.deep_weathering_m, SALT_GEO_DEEP, tag, depth_m);
+    let draw =
+        |tag: u64| interp_select_draw(ctx.seed, SALT_GEO_DEEP, tag, ctx.cx, ctx.cz, 0.5, 0.5);
+    let Some((product, _)) = ctx
+        .geology
+        .select(CLASS_CLASTIC_FINE, &form, draw(FRONT_TAG_PRODUCT))
+    else {
+        return;
+    };
+    // **The parent rock is the rock the front is actually eating into.** This
+    // pass runs at the base of the sediment record but *after* igneous
+    // emplacement, so the last event laid so far is the top of the basement body
+    // — and inheriting its member AND its selection address means the front's
+    // retained structure is the same rock as the basement immediately below it,
+    // per voxel column, through the same [`dithered_member`] draw. That is what
+    // makes the bottom contact gradational rather than a second perimeter: the
+    // deepest front voxel is 7/8 the very rock underneath it.
+    //
+    // With no structural event below (no basement body in this province) there
+    // is nothing recorded to retain, so the parent falls back to the collapse
+    // tier's basement class — the deep tier asserts one flat granite basement
+    // everywhere anyway (stub #16). And with no basement class at all there is no
+    // profile to express: lay the pre-0099 slab rather than emplace nothing, so a
+    // reduced content set still gets its weathering mass.
+    let inherited = ctx
+        .strata
+        .events
+        .last()
+        .filter(|e| !crate::fill::is_loose(ctx.geology, e.member))
+        .map(|e| (e.member, e.sel_salt, e.sel_tag, f64::from(e.depth_m)));
+    let (parent, p_salt, p_tag, p_depth) = match inherited {
+        Some(p) => p,
+        None => match ctx
+            .geology
+            .select(CLASS_IGNEOUS_INTRUSIVE, &form, draw(FRONT_TAG_PARENT))
+        {
+            Some((m, _)) => (m, SALT_GEO_DEEP, FRONT_TAG_PARENT, depth_m),
+            None => {
+                ctx.push(
+                    product,
+                    ctx.deep_weathering_m,
+                    SALT_GEO_DEEP,
+                    FRONT_TAG_PRODUCT,
+                    depth_m,
+                );
+                return;
+            }
+        },
+    };
+    // The one arithmetic that matters: the mass budget divided by the profile's
+    // integral. Everything else is shape.
+    let band_m = ctx.deep_weathering_m * 8.0 / WEATHERING_PROFILE_EIGHTHS;
+    // Events are laid bottom-up, so the profile is walked deepest band first.
+    for &k in WEATHERING_PROFILE.iter().rev() {
+        ctx.push_with_pore_rider(parent, band_m, p_salt, p_tag, p_depth, (product, k));
     }
 }
 
@@ -825,7 +983,7 @@ mod tests {
 
     /// **The weathering fold, at the consumer boundary** (the first-real-behavior
     /// slice): `deposit_deep_history` reading `deep_weathering_m` (the deep cell's
-    /// `base + facts` product) emplaces a basal weathering-front band **below** the
+    /// `base + facts` product) emplaces a basal weathering **front** below the
     /// recorded pile — and with the identity `0.0` it lays exactly the pre-slice
     /// events (byte-identical, the S-5 floor).
     #[test]
@@ -838,20 +996,115 @@ mod tests {
         let off_expressed = deposit_deep_history(&mut off);
         assert_eq!(off.strata.events.len(), 1, "identity: only the record unit");
 
-        // With a weathering product, a basal band is prepended (event 0), the
+        // With a weathering product, the front is prepended (events 0..8), the
         // record unit stacks above it, and the return (expressed record metres) is
-        // UNCHANGED — the band is new bedrock-derived material, not part of H.
+        // UNCHANGED — the front is new bedrock-derived material, not part of H.
         let mut on = ctx_over(&units, &geo, Providers::default(), 9.0);
         on.deep_weathering_m = 1.3;
         let on_expressed = deposit_deep_history(&mut on);
-        assert_eq!(on_expressed, off_expressed, "the band is not counted in H");
-        assert_eq!(on.strata.events.len(), 2, "basal weathering front + record");
-        // The band is the deepest (first-laid) event, carrying the product metres.
-        assert!(
-            (f64::from(on.strata.events[0].thickness_m) - 1.3).abs() < 1e-5,
-            "the basal band carries the weathering-product metres"
+        assert_eq!(on_expressed, off_expressed, "the front is not counted in H");
+        assert_eq!(
+            on.strata.events.len(),
+            WEATHERING_PROFILE.len() + 1,
+            "one event per profile band + the record unit"
         );
         // The record unit is preserved above it, unchanged from the off case.
-        assert_eq!(on.strata.events[1].member, off.strata.events[0].member);
+        assert_eq!(
+            on.strata.events[WEATHERING_PROFILE.len()].member,
+            off.strata.events[0].member
+        );
+    }
+
+    /// **The profile constant IS the exponential** — the array is a cache of
+    /// `round(7·exp(−j/3))`, not a hand-drawn curve, so the shape stays auditable
+    /// (A-1: the gradient is a stated model, not decoration).
+    #[test]
+    fn the_front_profile_is_the_exponential_decay() {
+        let mut want: Vec<u8> = Vec::new();
+        for j in 0i32.. {
+            let k = (FRONT_TOP_EIGHTHS * (-f64::from(j) / FRONT_DECAY_BANDS).exp()).round();
+            if k < 1.0 {
+                break;
+            }
+            want.push(k as u8);
+        }
+        assert_eq!(want.as_slice(), &WEATHERING_PROFILE[..]);
+        assert_eq!(
+            f64::from(u32::from(WEATHERING_PROFILE.iter().sum::<u8>())),
+            WEATHERING_PROFILE_EIGHTHS,
+            "the mass-budget divisor is the profile's own integral"
+        );
+        assert!(
+            WEATHERING_PROFILE[0] < 8,
+            "the front's top keeps relict parent structure — never 8/8 product"
+        );
+    }
+
+    /// **MASS CONSERVATION, at the record tier.** The front redistributes the
+    /// ledger's product in depth; it never creates or destroys it. Σ over bands of
+    /// (band metres × its product share) is exactly `deep_weathering_m`, for any
+    /// magnitude.
+    #[test]
+    fn the_weathering_front_conserves_the_ledger_product_mass() {
+        let units = one_mineral_unit();
+        let geo = vanilla();
+        for &p in &[0.05, 0.4, 1.3, 6.09, 30.0] {
+            let mut ctx = ctx_over(&units, &geo, Providers::default(), 9.0);
+            ctx.deep_weathering_m = p;
+            deposit_deep_history(&mut ctx);
+            let product: f64 = ctx
+                .strata
+                .events
+                .iter()
+                .filter_map(|e| {
+                    e.accessory
+                        .map(|(_, k)| f64::from(e.thickness_m) * f64::from(k) / 8.0)
+                })
+                .sum();
+            assert!(
+                (product - p).abs() < 1e-5 * p.max(1.0),
+                "front product {product} != ledger product {p}"
+            );
+        }
+    }
+
+    /// **The gradient, and the bottom contact.** The front is a monotone rise in
+    /// product share with height over more than one band, its deepest band retains
+    /// 7/8 parent structure (so it does not abut contents-free basement as pure
+    /// product — the hard perimeter journal/0097 found), and every band names the
+    /// same parent member (so the dither cannot stripe it).
+    #[test]
+    fn the_front_grades_upward_and_its_base_retains_parent_structure() {
+        let units = one_mineral_unit();
+        let geo = vanilla();
+        let mut ctx = ctx_over(&units, &geo, Providers::default(), 9.0);
+        ctx.deep_weathering_m = 6.09;
+        deposit_deep_history(&mut ctx);
+        let front: Vec<(GeoMemberIdx, u8, f32)> = ctx
+            .strata
+            .events
+            .iter()
+            .filter_map(|e| e.accessory.map(|(_, k)| (e.member, k, e.thickness_m)))
+            .collect();
+        assert_eq!(front.len(), WEATHERING_PROFILE.len());
+        // Bottom-up: the product share never falls with height, and rises.
+        for w in front.windows(2) {
+            assert!(w[0].1 <= w[1].1, "product share must not fall with height");
+        }
+        assert!(front[0].1 < front[front.len() - 1].1, "a real gradient");
+        assert_eq!(front[0].1, 1, "the deepest band is 1/8 product");
+        assert_eq!(
+            geo.member(front[0].0).class.as_str(),
+            CLASS_IGNEOUS_INTRUSIVE,
+            "the retained parent is basement rock, not the product"
+        );
+        assert!(
+            front.iter().all(|f| f.0 == front[0].0),
+            "one parent member for the whole front"
+        );
+        // Front thickness = 8/3 × the product metres, and every band is the same
+        // slice of it (the profile carries the shape, not the thicknesses).
+        let t: f64 = front.iter().map(|f| f64::from(f.2)).sum();
+        assert!((t - 6.09 * 8.0 * 8.0 / WEATHERING_PROFILE_EIGHTHS).abs() < 1e-4);
     }
 }
