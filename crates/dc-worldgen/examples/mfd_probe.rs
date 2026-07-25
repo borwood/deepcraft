@@ -260,7 +260,10 @@ fn main() {
     let (mo, lo_o, hi_o) = relief(&off.field);
     let (mn, lo_n, hi_n) = relief(&on.field);
     println!("\n--- WHAT MOVED IN THE WORLD ---");
-    println!("mean surface  : OFF {mo:>9.2} m   ON {mn:>9.2} m   {:+.2} m", mn - mo);
+    println!(
+        "mean surface  : OFF {mo:>9.2} m   ON {mn:>9.2} m   {:+.2} m",
+        mn - mo
+    );
     println!("min surface   : OFF {lo_o:>9.2} m   ON {lo_n:>9.2} m");
     println!("max surface   : OFF {hi_o:>9.2} m   ON {hi_n:>9.2} m");
     let moved = off
@@ -305,15 +308,15 @@ fn main() {
     }
     let lc = land_cells.max(1) as f64;
     println!("\nsubaerial cells                     : {land_cells}");
-    println!("  mean |Δ elevation| on land        : {:.3} m", land_mad / lc);
+    println!(
+        "  mean |Δ elevation| on land        : {:.3} m",
+        land_mad / lc
+    );
     println!(
         "  cells whose ARGMAX receiver moved : {recv_changed} ({:.2} % of land)",
         recv_changed as f64 * 100.0 / lc
     );
-    println!(
-        "  mean relative |Δ drainage area|   : {:.4}",
-        area_rel / lc
-    );
+    println!("  mean relative |Δ drainage area|   : {:.4}", area_rel / lc);
     let peak_off = off.field.area.iter().cloned().fold(0.0f64, f64::max);
     let peak_on = on.field.area.iter().cloned().fold(0.0f64, f64::max);
     println!("  peak drainage area  OFF {peak_off:.0}  ON {peak_on:.0}");
@@ -337,7 +340,12 @@ fn main() {
     }
     println!(
         "{:>6} {:>20} {:>22} {:>10} {:>11.2} {:>8.1}   <- single-receiver D8 (p -> inf)",
-        "off", co.simul_cell_epochs, 0, co.entries, mib(co.record_bytes), off.deep_secs
+        "off",
+        co.simul_cell_epochs,
+        0,
+        co.entries,
+        mib(co.record_bytes),
+        off.deep_secs
     );
 
     // ---- the biggest simultaneous junction, so the number is not abstract ---
@@ -399,8 +407,14 @@ mod gate {
             seed: SEED,
             extent: Extent::Small,
         });
-        let off = counts(&build_field_cfg(&pregen.grid, &cfg(&pregen.grid, false, 0.0)));
-        let on = counts(&build_field_cfg(&pregen.grid, &cfg(&pregen.grid, true, 4.0)));
+        let off = counts(&build_field_cfg(
+            &pregen.grid,
+            &cfg(&pregen.grid, false, 0.0),
+        ));
+        let on = counts(&build_field_cfg(
+            &pregen.grid,
+            &cfg(&pregen.grid, true, 4.0),
+        ));
         assert_eq!(
             off.simul_cell_epochs, 0,
             "single-receiver routing cannot diverge within an epoch"
@@ -432,8 +446,14 @@ mod gate {
             seed: SEED,
             extent: Extent::Small,
         });
-        let disperse = counts(&build_field_cfg(&pregen.grid, &cfg(&pregen.grid, true, 1.0)));
-        let converge = counts(&build_field_cfg(&pregen.grid, &cfg(&pregen.grid, true, 8.0)));
+        let disperse = counts(&build_field_cfg(
+            &pregen.grid,
+            &cfg(&pregen.grid, true, 1.0),
+        ));
+        let converge = counts(&build_field_cfg(
+            &pregen.grid,
+            &cfg(&pregen.grid, true, 8.0),
+        ));
         assert!(
             converge.simul_cell_epochs <= disperse.simul_cell_epochs,
             "p=8 diverged MORE than p=1 ({} vs {}) — the exponent is inverted",

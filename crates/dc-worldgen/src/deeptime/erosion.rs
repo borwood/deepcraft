@@ -1594,7 +1594,11 @@ impl Erosion {
                 if wt <= 0.0 {
                     continue;
                 }
-                let share = if d == last { qs_out - given } else { wt * qs_out };
+                let share = if d == last {
+                    qs_out - given
+                } else {
+                    wt * qs_out
+                };
                 given += share;
                 let j = self.mfd_neighbour(c, d);
                 self.qs[j] += share;
@@ -2072,7 +2076,10 @@ mod mfd_tests {
             let mut w_out = [0.0f64; MFD_DIRS];
             let int_p = (p == p.round()).then_some(p as i32);
             let best = partition_cell(c, 3, &surf, &filled, -1000.0, p, int_p, &mut w_out);
-            assert!(best >= 0, "p={p}: a cell with downslope neighbours is a sink");
+            assert!(
+                best >= 0,
+                "p={p}: a cell with downslope neighbours is a sink"
+            );
             let sum: f64 = w_out.iter().sum();
             assert!(
                 (sum - 1.0).abs() < 1e-12,

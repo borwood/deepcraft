@@ -58,7 +58,7 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x176D_40F1_1CCB_006A
 /// ```
-pub const GOLDEN_SURFACE: u64 = 0x176D_40F1_1CCB_006A;
+pub const GOLDEN_SURFACE: u64 = 0x6F83_4D53_DB89_8C36;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -95,7 +95,7 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x4A20_745B_3879_7C8A;
 /// ```text
 /// GOLDEN_RECORD 0x4A20_745B_3879_7C8A
 /// ```
-pub const GOLDEN_RECORD: u64 = 0x4A20_745B_3879_7C8A;
+pub const GOLDEN_RECORD: u64 = 0x6CEB_947D_6207_3A1E;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on
