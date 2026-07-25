@@ -5442,7 +5442,78 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-24 BUILD-DAY close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-25 close (supersedes every earlier block)
+
+**Read first: `docs/design/flow.md`** (ratified this session, incl. §§ 10–11) + the 🔴 Observed
+coal entry + `docs/audits/2026-07-25-roadmap-staleness-sweep.md` (see *Running* below).
+
+### Shipped (journals 0094, 0096–0104, 0106–0107; corrections #48–#51)
+- **FLOW arc opened and two slices landed.** `flow.md` **ratified**: flow is one process, an atom
+  of *(cell, stratum-slot, faces, form, load, fluid, cause, chapter)*. **Slice 1** (0096) records
+  **flux on 3D FACES per chapter** — **divergence is representable** (175,320), which a receiver
+  tree forbids **by construction**. **(a) the head field** (0098) — `dc:field/head`, vertical flux
+  **0 → 307,364** across 44.3 % of cells, **artesian representable *and* occurring** (60 columns).
+- **Weathering became a PROCESS then a PROFILE.** 0094 put it in the loop (accumulating, ≥1 voxel);
+  **0099 graded it** — a 19-voxel front, `structure→pore_fill`, retained parent fabric at the
+  bottom contact — **and the user WALKED and PASSED it**.
+- **`identify(pos)`** (0101, UNTIERED) — `UNRECORDED` is a first-class answer; phantom air
+  **702 → 0**.
+- **Residency: down while gaining two records.** `strata` shrink (−54.02 MiB) + `FactLedger`
+  flat+CSR (0100) + one grid-wide record (0102): flag-ON **311.02 → 173.61 MiB**.
+- **Declarations now BIND.** `reads_prev` is enforced by real anti-dependency edges and is
+  **rename-proof** (0104); `dc:field/head` declares what it reads (0107).
+- **The gate can see its instruments** (0103) — 7 probes, 16 tests, +35 s.
+- **`production_field()` now IS production** (0106).
+
+### Ratified (user's terms)
+- **`identify(pos)` is UNTIERED** — *"if this is a world query then why tiered at all?"* The
+  tier design was **assistant-originated** and had hardened unchallenged. Payload is **uniformly a
+  mixture**, so far-field speckle falls out **by construction**.
+- **"WEATHERING IS ONE PROCESS, saprolite is a state along it"** — strong leaning, **R1/R2/R3 now
+  ALL MET**. Recalibrate after biology, **never by tweaking onset temp — real Earth numbers**.
+- **The aggregation window is DECLARED, never assumed** (*"we are the first modders"*); the
+  **record self-describes** its completeness; pairing is **two-mode green** + a conduit third mode
+  in (c).
+- **The world output is a SCRATCH PAD** — goldens are a regression detector, **not a target**;
+  *"we eat it if it changes the physics."*
+- **Claude drives the WHOLE walk loop** — launch, teleport, measure, screenshot, brief, pause.
+- Hash draws need a **construction guarantee**, not a convention.
+
+### Falsified — assistant's own first (#48–#51)
+`~110 km` station landmark, wrong by 39 km (#48) · `has_contents` per-chunk, a **reporting** hole
+not a record hole (#49) · the front's `+3.7 %` mass was **the instrument**, doctrine confirmed
+(#50) · **the shipped world has ZERO coal**, and the A-3 guard ran on a world nobody ships (#51).
+Also: my per-cell-container rule was **too broad** (the defect is *resident*, not per-cell); my
+floor-effect hypothesis was **wrong**; the spine-audit's own prescription was **half wrong**.
+
+### Running — CHECK, DO NOT TRUST
+1. **Hash-domain provider** (worktree `ab7399671e0e842f8`, holds journal **0105**, holds the build
+   lock legitimately). Upgraded mid-flight to the user's **construction-guarantee** framing. **Will
+   move goldens** — that is authorised; verify it *announced* what moved.
+2. **S20 spike — fact-ledger residency** (`a83b3917a1061f32c`). Feeds the per-depth weathering
+   decision: four options costed, incl. **paged facts**. **Spike only — it must not have changed
+   the shipped layout.**
+3. **ROADMAP staleness sweep** (`af90742ffeca1456c`) — answers *"do today's pieces need factoring
+   into older items?"* Read its audit **before** planning next session.
+
+### ⚠ OWED / unverified across the boundary
+- **A full `--workspace` gate has NOT run on current main.** dc-worldgen is verified on **merged
+  main** (307 by name, 0107's re-run); dc-api/dc-client unchanged since their last green (719 /
+  72 binaries). **Run the combined gate as STAGES** (clean+fmt+clippy, then test) — it now exceeds
+  one 10-minute call.
+- **Journal 0105 is reserved**, not missing.
+- **Coal: the user's call is (a) accept a coal-free world.** Do **not** tune `COAL_ONSET_C`.
+
+### First things next session
+1. **Integrate the three running agents**, then the staged gate.
+2. **The per-depth weathering arc** — gate open; the decision is **residency axes** (S20 informs).
+3. **Movement 2b — material-aware transport** (§13), the big appearance-changer.
+4. **MFD / simultaneous divergence** — unblocked by the head field; today's divergence is
+   **avulsion only** (aggregation-window), never concurrent distributaries.
+
+*(The 2026-07-24 BUILD-DAY block below is consumed; preserved as history.)*
+
+## NEXT SESSION — written at the 2026-07-24 BUILD-DAY close (SUPERSEDED by the 2026-07-25 close above)
 
 **Read first: `docs/design/material-behavior.md` §§12–14 + `north-star.md` § Deviations.** This
 session turned the north-star's content layer into a *running engine*: the pass-runner landed at
