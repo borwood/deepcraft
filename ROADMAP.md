@@ -3751,6 +3751,12 @@ implementation slice.)*
    What DOES reach the eye is organic **soil**: 185 km of surviving thickness,
    making carbonaceous mudstone the second most abundant rock in cut faces.
    That, not charcoal, is the appearance call to make.)*
+   **⚠ THE NUMBERS ABOVE ARE HISTORICAL — measured 2026-07-20, on the reference seed
+   (2026-07-25, sweep row S-8).** Coal has moved **twice** since they were taken: the
+   susceptibility blend made near-surface coal recessive (journal/0072), and the geotherm
+   re-sited it onto warm crust (journal/0093). On the world the client actually boots
+   (**1337 / Medium**) coal is now **0 % — 0 units across 297,025 cells** (corrections #51),
+   not 0.55 %. **Re-census before treating any of these four figures as an appearance call.**
 4. **The 7-species roster and ~25 rate constants** ride as
    plausible-not-tuned (no-bandaid: they are the mechanism's calibration,
    not a patch) — same status as S9's physics constants.
@@ -3789,6 +3795,15 @@ data never visits. The class's **depth axis is the rank axis** and the
 class-share invariant means members can be added later without moving an
 existing seam. Revisit when the record carries kilometres (3e-later / thicker
 basins).
+**⚠ RE-BLOCKED 2026-07-25 (sweep row S-5) — the stated blocker is no longer the real one.**
+Coalification moved onto a **temperature** axis when the geotherm landed (`COAL_ONSET_C`,
+journal/0093): `promote_coal` now reads the geotherm at seam mid-depth against an onset
+temperature, so *"the class's depth axis IS the rank axis"* is no longer the whole rule —
+P and T are separate axes and rank is the pair (same thermal-maturity ladder as metamorphic
+grade, S-8). And the harder half: on the shipped world (**1337 / Medium**) there is **0 coal**
+(corrections #51), so a rank ladder would have **nothing to discriminate on any world a player
+can open**. Revisit after the coal-content call (a)–(d) in Observed, not after the record
+carries kilometres.
 
 Also filed from S10 (not blocking): parent-material phosphorus from pregen
 provenance instead of a uniform pool; individual plant placement from the
@@ -3797,6 +3812,8 @@ terminus — note the community vector is currently **dropped** after the run,
 so C-refinement would have to re-derive it); vegetation → channel planform
 ("vegetation invented meandering rivers") needs 3e-2's finer corridor to
 have any planform to bend.
+
+**⚠ THREE CONTRADICTORY STAMPS — under active user decision 2026-07-25; see docs/audits/2026-07-25-roadmap-staleness-sweep.md row C-1.**
 
 **3e-2 — C refinement** (DECIDED 2026-07-19 — earth-processes.md § 3e-2
 decisions — and implementable): drainage coarse-at-A with the
@@ -3843,6 +3860,18 @@ note the spike found free water in equilibrium is **static data with a level**,
 which is what the notebook's "creates no new blocks so long as its outlet
 connects" predicted; sub-resolution water; capillary action; which cave family
 ships first; and where the deep-time water field lives.)*
+
+**⚠ READ `docs/design/flow.md` FIRST (ratified 2026-07-25) — this entry has been half
+delivered and half superseded (2026-07-25, sweep row S-4).** `water.md` itself now opens with
+a supersession banner. **The river / drainage / channel-expression half is superseded.** The
+**groundwater** half is **partly delivered at the DEEP tier** by `dc:field/head`
+(journal/0098): transmissivity, vertical conductivity and **confinement** are derived from the
+strata record's own permeabilities — *a marine mud over a fluvial sand **is** a confined
+aquifer, with no landform code path* — and **artesian occurs naturally** (60 columns, max
+excess 2.94 m). Recharge is still open as **stubs #19**, so those excesses are metres rather
+than the hundreds a real basin gives. **What this pass still owes is the PRESENT/RUNTIME
+tier:** visible and flowing water, ponds and sub-resolution water, speleogenesis, and the
+free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 **Water-model design pass** (ratified 2026-07-19, user; field-notebook
 first per the earth-processes method): groundwater as "another dimension
