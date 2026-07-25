@@ -104,6 +104,17 @@ cargo test --workspace --release
   pass?"
 - Capture `error` / `panicked` / `FAILED` lines, not only `test result:` lines
   — a compile failure is invisible to a test-result filter.
+- **`cargo test` BUILDS examples but never RUNS them** (found 2026-07-25). Our
+  measurement instruments — the residency probes, the tour maps — live in
+  `examples/` and several carry `assert!`s. **The gate cannot see them fail.**
+  `flow_cost_probe` was broken by the flow merge (its itemised baseline lost track
+  of `resident_bytes`, off by the whole 42.6 MB flux record) and sat green through
+  a full 664-test workspace gate, because the gate never executed it. Two rules:
+  **(a)** an example that can **fail** belongs in the gate — put the assertion in a
+  real `#[test]` that shares the code, and let the example *print*; **(b)** until
+  that conversion happens, **re-run the probes by hand after any merge that changes
+  what they measure.** A probe nobody runs is a probe that is silently wrong, and
+  the numbers it produced are still sitting in the docs.
 - **And grep the build log for the crate you changed** (corrections #34) — with
   the right verb: `build`/`test` print **`Compiling dc-x`**, `clippy` prints
   **`Checking dc-x`**. **Do NOT anchor the pattern to line start** — cargo
@@ -153,6 +164,14 @@ cargo test --workspace --release
   just the class — but it is no longer compensating for a broken signal.
 - Screenshots land in `journal/assets/` — name them `NNNN-description` for
   the journal entry they belong to.
+- **The moment a spot is called a REFERENCE, record its exact pose** — feet in
+  world metres, `yaw`, `pitch` — in the Observed/station entry, beside the asset
+  (corrections #48). *A prose landmark is not a pose.* The palette-quant station
+  was recorded as "the east coast, ~110 km east of spawn"; the real spot is
+  **~71 km**, and the 39 km error sent a reconstruction into grey single-class
+  coast that does not carry the signature at all — producing four null frames and
+  a confident wrong conclusion. This is "defer = write it now" applied to camera
+  poses.
 - **Pick the control that can SEE your question** (journal/0030,
   corrections #18/#19). The sun is FIXED (S4: a constant 0.35 time-of-day),
   so lit before/after comparisons across launches ARE valid.

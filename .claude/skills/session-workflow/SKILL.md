@@ -585,3 +585,75 @@ its real driver lands** (coal onset with no biology; a rate with no agent) needs
 **plausible-not-degenerate**, not a tuned seat. Seating a two-world calibration for a system
 with no real inputs yet is wasted effort (user, 2026-07-24: the geotherm's coal seat "will just
 be calibrated again"). Get it non-degenerate, flag it for the walk, move on.
+
+## Recording discipline: quote the MEASURE, never the threshold (2026-07-25)
+
+Two integrator failures on one day, same shape — the *bookkeeping* was less rigorous
+than the work it recorded.
+
+**Quote the measured number, never the assertion's floor.** The Movement 3 ROADMAP
+entry read *"Production-scale band at argmax: **≥1 voxel**"* — that is the **A-3
+guard's threshold** (`production_scale_saprolite_band_reaches_at_least_one_voxel`),
+not the result. The integrator had independently verified **6.09 m / 6.77 voxels**
+earlier the same day and then wrote the *assertion's floor* into the map, underselling
+the slice by most of an order of magnitude. Caught by a walk (journal/0097), not by
+review. **"Demand the load-bearing number" applies to what you WRITE DOWN, not only to
+what an agent reports.** A threshold answers "did it pass"; a map needs "what is it".
+
+**Quote the absolute beside every ratio.** The flow slice reported its record as
+`1.25×` — true in its worktree, stale by the time it merged, because the
+`shrink_to_fit` win had moved the denominator (162.57 → 108.55 MiB) after it forked.
+The record's own 40.66 MiB never changed; only the baseline did. **A ratio silently
+rots when its denominator moves, and an absolute cannot.** Any agent working in a
+worktree is measuring against a frozen baseline — so the integrator re-measures
+ratios on merged main before they enter a doc.
+
+## Provenance: mark what is ASSISTANT-ORIGINATED (2026-07-25, user-surfaced)
+
+The `identify(pos)` arc carried a Near/Mid/Far **tier** design for days. It was
+retired in one exchange once the user asked *"if this is a world query then why tiered
+at all?"* — and the decisive fact was its **provenance**: the tiering was
+**assistant-originated**, an artifact of one request ("a way to get voxel composition
+by looking at it") being split into several instruments, which the user *rolled with*,
+and which then hardened into architecture that shaped every downstream decision (LOD
+coupling, a "whose ladder?" problem, a tier flag in the payload) without ever being
+re-challenged.
+
+The ratification protocol prevents *unratified* assistant proposals from entering the
+docs. It does **not** catch the next failure along: a proposal the user accepted
+once, in passing, becoming load-bearing doctrine nobody revisits.
+
+**So: when a design element originates with the assistant, RECORD THAT ALONGSIDE IT.**
+One clause is enough — *"(assistant-proposed, user-accepted <date>)"*. Two payoffs:
+the next reader knows it carries less weight than a user-originated constraint, and it
+is a legitimate target for periodic re-challenge. **User-originated constraints are
+data; assistant-originated ones are hypotheses that happened to survive.** Where a
+retirement happens, keep the superseded reasoning struck through rather than deleted
+if it remains load-bearing elsewhere (the LOD-ladder logic survives for a possible
+*render-side* query even though it died for the world query).
+
+## Agents die mid-flight — commit WIP, and read the lock before nudging (2026-07-25)
+
+**Commit WIP early and often, because agents DIE, not merely because worktrees are
+auto-cleaned.** The existing rule ("commit something within your first few minutes")
+was justified by auto-cleanup. The sharper reason arrived when the head-field agent
+lost its connection to an **API error** with `head.rs`, a probe, a test file and five
+modified files **all uncommitted**. The work survived only because the worktree
+persisted. Put *"commit WIP early and often; an agent lost a connection mid-run with
+everything uncommitted"* in every implementation brief.
+
+**A dropped agent is not a failed slice — resume it, do not re-brief it.** Check the
+worktree for commits *and uncommitted changes* before concluding anything (`git -C
+<worktree> status --short`). Then `SendMessage` it: the verified machine state, an
+instruction to **commit first, before resuming work**, and a restatement of the RETURN
+spec so it need not re-read. Its context is intact and it lands the slice.
+
+**Before nudging a lock-blocked agent, establish whether the lock is LEGITIMATELY
+HELD.** The discriminating check is **live `cargo`/`rustc` + lock age**, not the lock's
+existence: a sibling holding it for 9 minutes with a live build is *correct* and the
+waiting agent is *right to wait* — nudging it would mean taking a lock someone owns.
+Only age > 40 min with no live compiler is stale. When the wait is legitimate, **the
+integrator waits for the lock and then resumes the agent**, rather than either nudging
+or abandoning it. And brief agents to **report what they have with the measurement
+outstanding** rather than parking silently: a partial report with the implementation
+committed beats silence.
