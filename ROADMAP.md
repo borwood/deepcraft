@@ -2351,6 +2351,33 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
 
+- **`FactLedger` IS 89 % EMPTY HEADERS — give it the CSR layout `flux.rs` already proves**
+  (shaped 2026-07-25 at the user's direction; measured in `docs/spikes/S19-flow-record-cost-results.md`).
+  - **WHAT.** `FactLedger` is `Vec<Vec<Fact>>` keyed per (cell, slot). Measured on a production
+    world: **5,832,862 inner `Vec`s of which 5,760,856 (98.8 %) are EMPTY**; **89 % of its
+    ~150 MiB heap is empty `Vec` headers**, against a real payload of **16.6 MiB over 1.03 M
+    facts**. Turning `weather_inventory` ON therefore costs **+156.91 MiB** — and after the
+    `shrink_to_fit` win that is **~1.4× the entire rest of the `DeepField`** (108.55 MiB bare).
+  - **WHY NOW.** The walk **blessed the band** (journal/0097), so the flag is on its way to
+    becoming a default rather than a dev toggle — and the moment it is, this is the single
+    largest residency item in the world. Runtime residency is first-class (CLAUDE.md); gen time
+    is free, so the conversion cost is free.
+  - **THE FIX IS ALREADY PROVEN IN-TREE — do not design a new one (A-4).** `deeptime/flux.rs`
+    (journal/0096) stores a far larger sparse per-(cell,chapter,face) record as **flat
+    exact-sized arrays + a CSR index**, and measured the index floor at **0.056× of total** —
+    i.e. *the index is free and the payload is the whole constraint*. Port that layout. Facts are
+    also **causally triangular** (a slot deposited in chapter `c` cannot carry a fact from before
+    `c` — 57.7 % of the naive rectangle, a free 1.73×), so never allocate the rectangle.
+  - **SCOPE.** `deeptime/inventory.rs` + its readers. **Pure layout change: byte-identical
+    world, identical facts, identical `weathering_product_m`** — the goldens and every
+    fact-count test must pass **unmoved and by name**. Acceptance = the measured before/after
+    residency with `weather_inventory` ON, plus byte-identity proven by test name.
+  - **BLOCKED-ON:** `inventory.rs` sits inside `deeptime/`, which the in-flight **head field**
+    slice owns. Launch when that lands, or carve `inventory.rs` out of its write-set explicitly.
+  - **NOTE THE SHAPE, not just the number:** this is the same defect the flow record was warned
+    off in-flight and avoided. Fixing it here closes the loop — the measurement that protected
+    the new record should also repair the old one.
+
 - **THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB** (walk finding, user, 2026-07-25;
   journal/0097). **WHAT.** Movement 3's band is correctly *magnituded* and wrongly *shaped*: the
   collapse folds the scalar `FactLedger::weathering_product_m` into **one stratum of one class**
@@ -2403,6 +2430,49 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     looking at" matches what I see; a caller wanting more can force a deeper re-derive
     (gen is pure-of-pos). Raycast composes it (`raycast(camera) → pos → identify`) — a
     separate step, because "what is at X" is a world question, not a camera question.
+  - **TIER BOUNDARIES DERIVE FROM THE LOD LADDER — DECIDED 2026-07-25 (user):** *"the
+    boundaries should fall out of LOD bands, which already reduce material contents
+    depth / honesty."* The tiers are **not a second, independently-tuned threshold set**
+    — that would be A-4 (a mechanism beside the one we have) and would drift out of sync
+    with what is actually on screen. `LodLadder` (`dc-client/src/farmesh.rs:126`,
+    journal/0091 — one ladder, all named knobs, every ring edge already **derived** from
+    it) is the authority; `identify`'s Near/Mid/Far read *it*. Payoff: the ladder is
+    already structured to become **in-game per-player perf settings**, so honesty
+    automatically tracks the player's own quality setting — turn the view distance down
+    and the answers get *honestly* coarser, with no second knob to forget.
+  - **⚠ OPEN, and it must be settled before dispatch — WHOSE ladder?** `LodLadder` is
+    **dc-client** state and is **per-viewer**, but `identify(pos)` is a **world** question
+    reachable headlessly (dc-api agents, mods, tests) where there is no camera and no
+    ladder. So the signature cannot simply read ambient client state. Candidate
+    resolutions (not chosen): **(i)** `identify` takes an explicit *tier/observer* argument
+    and the client passes the one its ladder implies — keeps the world query pure and makes
+    the client the only place that knows about cameras; **(ii)** it defaults to
+    **finest-resident** and the client narrows; **(iii)** the ladder (or a headless-safe
+    projection of it) moves somewhere both crates can see. **(i) is the integrator's lean**
+    — it preserves "what is at X is a world question, not a camera question", which this
+    very entry already asserts. User call at dispatch time.
+  - **THE FAR TIER'S PAYLOAD IS A MIXTURE, NOT A WINNER — DECIDED 2026-07-25 (user):** *"LOD may
+    be textured by a **speckled mix** in the future, not just single material as it is now. So
+    leave the seam for speckle — or better yet have it fall out by construction."* **It falls out
+    by construction, and that is the design:** make the payload **uniformly a mixture at every
+    tier**, so the tiers differ in **RESOLUTION** (how many components survive, at what precision),
+    **never in KIND**. A single dominant material is then just *a one-component mixture at 8/8* —
+    today's `classify` answer expressed in the general shape, with **no special case to migrate**
+    the day the far field goes speckled. Writing `Far = one MaterialId` would bake exactly the
+    "one arbitrary component" assumption this whole arc exists to retire (and would need an A-2
+    correction the moment speckle lands). **Corollary:** the same shape carries the **UNRECORDED**
+    answer below — an empty mixture is not the same value as a one-component `Air` mixture.
+    **Ties into** the far-field speckle direction the genesis-passes / octave arc is heading for,
+    and the LOD fix (b) cold/warm **material** agreement (S-9) still owed from journal/0091.
+  - **FIRST CONCRETE REQUIREMENT, now measured rather than argued (corrections #49,
+    2026-07-25):** the tier flag must be able to say **"UNRECORDED"** as a first-class
+    answer, distinct from both *"air"* and *"recorded"*. Today `has_contents` is answered
+    **per-chunk**, so an unrecorded basement voxel reports `has_contents: true` +
+    `classified: dc:air` **over solid stone** — **6.4 % of near-surface solid voxels**,
+    globally. `Option::None`, the only channel that could have meant "no record here", was
+    already spent on a whole-chunk condition inherited from the mesher. **A summary is not
+    an authority — including when it is a `bool` named after the thing it is not
+    measuring.**
   - **WHY.** "Nobody wants one arbitrary material component of a mixture" (user). The
     summary existed for the **surface-only** far field; the far field went **volumetric**
     (FF2b), so its justification **expired — A-2**. The renderer already re-derives full
