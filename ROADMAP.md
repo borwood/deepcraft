@@ -5504,8 +5504,24 @@ floor-effect hypothesis was **wrong**; the spine-audit's own prescription was **
 - **Journal 0105 is reserved**, not missing.
 - **Coal: the user's call is (a) accept a coal-free world.** Do **not** tune `COAL_ONSET_C`.
 
+### PROCESS ITEM the user opened at the close — the ROADMAP outgrew reading
+**~5,600 lines, and no session reads it end-to-end — it is *grepped*.** The user named the
+risk and it is real: *"things could go unnoticed."* **They do.** `DeepField::chapters` sat
+unlisted through **three** spine audits while sweeps added rows for its **immediate neighbours
+in the same struct**. Grep surfaces only what you already know to look for — never an item
+whose vocabulary drifted, one that now **contradicts** something just ratified, or one nobody
+has thought about in weeks. Those are precisely the ones that mislead.
+**Two controls, and the second matters more:** **(a)** archive by **STATUS, not age** —
+`Shipped` grows without bound, is least often needed live, and the **journal already holds its
+narrative**; moving old `Shipped` to a history file (journal number as the stable pointer)
+leaves `Sequenced` + `Observed` + the close block, which must stay readable. *Age is the wrong
+axis — an old `Observed` may be the most live thing on the board.* **(b) Make the staleness
+sweep RECURRING, like `spine-audit`** — shrinking the doc helps someone already looking and
+does nothing for what nobody thinks to look at. **Today's sweep had to be requested; that is
+the gap.** Design the archive scheme next session *before* it grows another thousand lines.
+
 ### First things next session
-1. **Integrate the three running agents**, then the staged gate.
+1. **Integrate the three running agents**, then the staged gate (`./scripts/gate.ps1`).
 2. **The per-depth weathering arc** — gate open; the decision is **residency axes** (S20 informs).
 3. **Movement 2b — material-aware transport** (§13), the big appearance-changer.
 4. **MFD / simultaneous divergence** — unblocked by the head field; today's divergence is
