@@ -583,6 +583,44 @@ goldens), and the mass at stake is a mineral speck, not a modelled budget. It is
 listed here so "the mixed path is rider-complete" is never assumed; the heir is
 whichever slice next authorizes a golden move on the igneous contacts.
 
+### 22. a-record-affordability-constant-that-changes-the-physics — *added 2026-07-25 (FLOW continuation (b), journal/0109)*
+`dc-worldgen/src/deeptime/erosion.rs::MFD_MIN_WEIGHT = 0.01`: the MFD partition drops
+any receiver allotted less than **1 %** of a cell's discharge and renormalises over
+the survivors. Its stated justification is about the **archive**, not the landscape —
+without it every land cell records an infinitesimal entry into every downslope
+neighbour and the flux record pays megabytes for shares no consumer can distinguish
+from zero.
+
+**Why it is a stub and not a knob.** Apply ARCHITECTURE.md's test — *if the record
+consumer disappeared tomorrow, would this constant exist in this shape?* **No.** And
+it is not confined to the recorder: the floor is applied **inside `partition_cell`,
+before renormalisation**, so the surviving receivers are handed the dropped share and
+the *solve* moves water it would not otherwise have moved. A requirement of the
+record has leaked into the physics — the exact shape "a summary is not an authority"
+names, arriving from the other direction.
+
+**What that costs, precisely.** It is a **hard threshold on a continuous partition**,
+and Holmgren's form has none. On very flat ground — precisely the braid-plain and
+delta-top regime the slice exists for — a cell with six near-equal downslope
+neighbours has shares near `1/6`, far above the floor, so nothing is dropped and the
+floor is inert. It bites in the *moderately* convergent regime, where a channel's
+sidewall neighbours sit in the 0.2–1 % band: those are zeroed and their water is
+handed to the channel. So the floor makes the drainage net **slightly more
+channelised than the exponent alone specifies**, and the size of that bias has been
+argued but **not measured**. The mass budget is untouched either way (renormalisation
+is exact, and the residual rule makes the split exact).
+
+**Heir:** the per-epoch aggregation-window decision (flow.md § 9, item 7b — still the
+user's call) and the marine-sink residency lever, both of which are about what the
+record can afford. Whoever settles the record's size budget should re-derive this
+number *from* that budget rather than inheriting `0.01`, and should say explicitly
+whether the solve is allowed to see it at all — the alternative shape is a floor
+applied **only when writing the record**, leaving the solve's partition untruncated,
+which costs an extra `n × 8` pass and decouples the two concerns properly.
+
+**Blast:** the shipped world. Changing or removing this constant moves the goldens.
+Nothing at runtime reads it. *Loud code marker at the constant.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

@@ -180,6 +180,21 @@ const MFD_CONTOUR: [f64; MFD_DIRS] = [
 /// archive pays megabytes to store noise that no consumer can distinguish from
 /// zero. The steepest receiver always carries at least `1/8` of the discharge, so
 /// a survivor always exists and no cell is ever turned into a sink by the floor.
+///
+/// **⚠ STUB #22 — a record-affordability constant that changes the physics.** The
+/// floor is applied *here*, before renormalisation, so the surviving receivers are
+/// handed the dropped share and the **solve** moves water it otherwise would not.
+/// A requirement of the *record* has leaked into the *landscape*: by
+/// ARCHITECTURE.md's test, if the record consumer vanished tomorrow this constant
+/// would not exist in this shape. It is inert on the near-flat ground the slice is
+/// for (shares near `1/6` there, far above the floor) and bites in the moderately
+/// convergent regime, making the net slightly more channelised than the exponent
+/// alone specifies — argued, **not measured**. Mass is unaffected: renormalisation
+/// is exact and the residual rule makes the split exact.
+/// **Heir:** whoever settles the record's size budget (flow.md § 9 item 7b, the
+/// aggregation window; the marine-sink lever) — and they should decide whether the
+/// solve may see this at all, the alternative being a floor applied only on the
+/// way into the record. See `docs/design/stubs.md` § 22.
 const MFD_MIN_WEIGHT: f64 = 0.01;
 
 /// D8 steepest-descent receiver of cell `i` on the filled surface (`-1` = sink).
