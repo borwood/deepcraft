@@ -65,11 +65,12 @@ pub use head::{
     permeability_of, vertical_exchange,
 };
 pub use inventory::{
-    BEDROCK_SEAM_MATERIAL, BEDROCK_SEAM_THICKNESS_M, Cause, Fact, FactLedger, FracM, Granularity,
-    InvCtx, InvForm, InvSpan, LedgerField, LedgerView, Portion, UnitProvenance, WorkingInventory,
+    BEDROCK_SEAM_MATERIAL, BEDROCK_SEAM_THICKNESS_M, Cause, EdgeDict, EdgeDictEntry,
+    EdgeDictMismatch, EdgeId, FORM_COUNT, Fact, FactLedger, FracM, Granularity, InvCtx, InvForm,
+    InvSpan, LedgerField, LedgerView, Portion, StoredFrac, UnitProvenance, WorkingInventory,
     build_identity, build_working, collapse_top_voxel, commit_chapter, compose_bedrock,
-    compose_unit, derive_base, derive_bedrock, quantize_to_eighths, structure_stock_m,
-    surface_regolith_m,
+    compose_unit, derive_base, derive_bedrock, is_declared_edge, quantize_to_eighths,
+    structure_stock_m, surface_regolith_m,
 };
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,

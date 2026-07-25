@@ -37,7 +37,7 @@
 //! read over the per-unit `base + facts` (DECIDED), so the fact ledger itself is
 //! per-unit — the commit path runs at per-stratum granularity.
 
-use dc_core::{MaterialId, VOXEL_EIGHTHS, VoxelContents};
+use dc_core::{MATERIAL_COUNT, MaterialId, VOXEL_EIGHTHS, VoxelContents};
 
 use super::lithology::litho_of_tag;
 use super::recorder::{DeepStrata, DepUnit};
@@ -51,6 +51,23 @@ const EPS: f64 = 1e-9;
 /// tier's native unit (`H` is metres; material-behavior.md §1 DECIDED). Eighths
 /// appear **only at collapse** ([`quantize_to_eighths`]).
 pub type FracM = f64;
+
+/// **The width a committed fraction is STORED at in the resident record** — f32
+/// (journal/0108, S20 § 4). Everything *computes* in [`FracM`]; the narrowing
+/// happens exactly once, at persist ([`LedgerField::from_accumulators`]), and every
+/// read widens back to `f64` and every sum stays `f64`, so the error happens once
+/// and never compounds.
+///
+/// **What it costs, measured on the production world** (S20 § 4.1): max fold error
+/// **1.2305e-7 m**, max *relative* **5.766e-8** — which sits *at* f32's own 2^-24
+/// resolution (5.960e-8), the signature of a single rounding rather than an
+/// accumulating one. Against the scale that can change what a player sees, one
+/// eighth of a voxel = **0.1125 m**, that is **one part in 914 000 of an eighth**.
+///
+/// **What it does NOT cost: any axis.** Chapter, agent (`cause`), edge and fraction
+/// all survive — only the *representation* of the fraction narrows. Nothing is
+/// deleted, so this is not A-1; the record remains the authority it was.
+pub type StoredFrac = f32;
 
 /// The **form** a material-portion occupies volume in (material-behavior.md §2).
 ///
@@ -73,6 +90,289 @@ pub enum InvForm {
     Fluid,
     /// The unoccupied complement — **edge endpoint only, never a stored portion**.
     Void,
+}
+
+/// The number of [`InvForm`] variants — material-behavior.md §3's *"5 forms → 20
+/// directed edges"*. It is the **radix** an [`EdgeId`] packs a form in, so it is a
+/// constant of the encoding and not just a count.
+pub const FORM_COUNT: u8 = 5;
+
+impl InvForm {
+    /// This form's position in the closed set, `0..FORM_COUNT`.
+    #[inline]
+    pub const fn raw(self) -> u8 {
+        match self {
+            InvForm::Structure => 0,
+            InvForm::Loose => 1,
+            InvForm::PoreFill => 2,
+            InvForm::Fluid => 3,
+            InvForm::Void => 4,
+        }
+    }
+
+    /// The form at position `raw`, or `None` when out of the closed set.
+    #[inline]
+    pub const fn from_raw(raw: u8) -> Option<InvForm> {
+        match raw {
+            0 => Some(InvForm::Structure),
+            1 => Some(InvForm::Loose),
+            2 => Some(InvForm::PoreFill),
+            3 => Some(InvForm::Fluid),
+            4 => Some(InvForm::Void),
+            _ => None,
+        }
+    }
+
+    /// Short name for the edge dictionary and for provenance output.
+    pub const fn name(self) -> &'static str {
+        match self {
+            InvForm::Structure => "structure",
+            InvForm::Loose => "loose",
+            InvForm::PoreFill => "pore-fill",
+            InvForm::Fluid => "fluid",
+            InvForm::Void => "void",
+        }
+    }
+}
+
+// ===========================================================================
+// The declared transition graph as the authority for what edges exist
+// (S-8; material-behavior.md §3) — journal/0108.
+// ===========================================================================
+
+/// **Is `from → to` a DECLARED transition?** — material-behavior.md §3.
+///
+/// §3's graph is *complete by construction and machine-provided*: every form→form
+/// transition exists, ungated, **5 forms → 20 directed edges** (the self-loops are
+/// excluded, because a form that does not change is not a form transition). On top
+/// of that §3 names a **material-change** class — same form, different material
+/// (diagenesis) — which the shipped [`Fact`] docs list as one of its three process
+/// classes. Together they are every edge that moves something.
+///
+/// What is therefore **not** declared, and what an [`EdgeId`] structurally cannot
+/// name:
+///
+/// - **the null edge** (`from == to`): nothing moves, so there is no transformation
+///   to record. [`InvCtx::apply_edge`] refuses it outright rather than performing a
+///   no-op it cannot honestly write down.
+/// - **`Void → Void`**: the unoccupied complement to itself. §2 is explicit that
+///   `Void` is *"not a storable role — it is the unoccupied complement"*; a move
+///   from nothing to nothing is not a process, it is an accounting artifact.
+///
+/// This predicate is the whole of the authority claim: [`EdgeId::declared`] is the
+/// only constructor of an [`EdgeId`], and a [`Fact`] can only be built from one — so
+/// **a fact structurally cannot name an undeclared transition.**
+#[inline]
+pub fn is_declared_edge(from: (MaterialId, InvForm), to: (MaterialId, InvForm)) -> bool {
+    from != to && !(from.1 == InvForm::Void && to.1 == InvForm::Void)
+}
+
+/// **An identifier of one declared `(material, form) → (material, form)` edge** —
+/// the two bytes a [`Fact`] stores instead of four endpoint bytes.
+///
+/// **Why this type exists is not the two bytes.** S20 § 3.1 measured that an edge id
+/// *alone* saves nothing: the `f64` it sat beside padded the reclaimed bytes straight
+/// back, and the shipped gen-time accumulator [`Fact<FracM>`] still demonstrates
+/// exactly that at 16 B. The id exists because it routes every fact through
+/// [`is_declared_edge`] — **the declared transition graph becomes the authority for
+/// what edges exist** (S-8, material-behavior.md §3), which is a validation gain
+/// independent of size. The bytes are the consequence, and they only pay in company
+/// with the `f32` narrowing ([`StoredFrac`]).
+///
+/// **The encoding.** Each endpoint is **one byte of mixed radix**,
+/// `material.raw() * FORM_COUNT + form.raw()`; the edge is `from << 8 | to`. Mixed
+/// radix rather than bit-packing because 5 is not a power of two: 3 bits of form
+/// would waste 3/8 of the endpoint's range and cap the registry at 32 materials,
+/// whereas the radix packing caps it at **51** (`256 / FORM_COUNT`) for the same two
+/// bytes. See the compile-time assert below and **STUB #21**.
+///
+/// **World-stability** (S20 § 3.2). The id is positional in the material registry,
+/// exactly as the endpoints it replaces already were — it *inherits* that exposure,
+/// it does not create it. Nothing in the tree serializes a ledger today, so any id
+/// stable within one compiled binary suffices now; for the moment one is persisted,
+/// [`EdgeDict`] is the per-world dictionary that turns a registry change from
+/// *silently reinterpreted* into *detected*.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub struct EdgeId(u16);
+
+// STUB #21 (docs/design/stubs.md) — the endpoint byte is mixed radix, so the
+// material registry has a hard ceiling of 256 / FORM_COUNT = 51 entries (26 today).
+// It fails at COMPILE time, never silently. Heir: the interned per-world edge
+// dictionary S20 § 3.2 describes — an `EdgeId` that indexes a table of inhabited
+// edges has room for 65 536 of them regardless of registry width, and it must
+// become the authority anyway when the ledger is first persisted (the pager slice).
+const _: () = assert!(
+    MATERIAL_COUNT * (FORM_COUNT as usize) <= 256,
+    "STUB #21: an EdgeId endpoint is one byte of mixed radix (material * FORM_COUNT \
+     + form). Past 51 materials the packing must become an interned per-world edge \
+     dictionary — see EdgeId's docs."
+);
+
+impl EdgeId {
+    /// One endpoint's byte: `material * FORM_COUNT + form`, always in `0..256` by
+    /// the compile-time assert above.
+    #[inline]
+    fn endpoint_code(endpoint: (MaterialId, InvForm)) -> u8 {
+        endpoint.0.raw() * FORM_COUNT + endpoint.1.raw()
+    }
+
+    /// Decode one endpoint byte, or `None` if it names no registered material.
+    #[inline]
+    fn decode_endpoint(code: u8) -> Option<(MaterialId, InvForm)> {
+        let material = MaterialId::from_raw(code / FORM_COUNT)?;
+        let form = InvForm::from_raw(code % FORM_COUNT)?;
+        Some((material, form))
+    }
+
+    /// **The only constructor** — `Some` iff [`is_declared_edge`] holds. Every
+    /// [`Fact`] is built from one of these, which is what makes "a fact cannot name
+    /// an undeclared transition" structural rather than a convention.
+    #[inline]
+    pub fn declared(from: (MaterialId, InvForm), to: (MaterialId, InvForm)) -> Option<EdgeId> {
+        if !is_declared_edge(from, to) {
+            return None;
+        }
+        Some(EdgeId(
+            (u16::from(Self::endpoint_code(from)) << 8) | u16::from(Self::endpoint_code(to)),
+        ))
+    }
+
+    /// Re-derive an id from **material NAMES** rather than registry positions — the
+    /// direction [`EdgeDict::validate`] reads, and the reason a persisted dictionary
+    /// detects a registry change instead of silently reinterpreting one.
+    pub fn from_names(
+        from_material: &str,
+        from_form: InvForm,
+        to_material: &str,
+        to_form: InvForm,
+    ) -> Option<EdgeId> {
+        let from = MaterialId::from_qualified_name(from_material)?;
+        let to = MaterialId::from_qualified_name(to_material)?;
+        EdgeId::declared((from, from_form), (to, to_form))
+    }
+
+    /// The raw two bytes — for a dictionary, a probe, or an eventual wire format.
+    #[inline]
+    pub const fn raw(self) -> u16 {
+        self.0
+    }
+
+    /// The source endpoint.
+    #[inline]
+    pub fn from(self) -> (MaterialId, InvForm) {
+        Self::decode_endpoint((self.0 >> 8) as u8).expect("an EdgeId decodes to a declared edge")
+    }
+
+    /// The destination endpoint.
+    #[inline]
+    pub fn to(self) -> (MaterialId, InvForm) {
+        Self::decode_endpoint((self.0 & 0xFF) as u8).expect("an EdgeId decodes to a declared edge")
+    }
+
+    /// The `(from-form, to-form)` pair — §3's form-transition graph edge.
+    #[inline]
+    pub fn forms(self) -> (InvForm, InvForm) {
+        (self.from().1, self.to().1)
+    }
+}
+
+/// One row of the **per-world edge dictionary**: an id, and the endpoints spelled by
+/// **material NAME** (`MaterialId::qualified_name`) rather than registry position.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EdgeDictEntry {
+    pub id: EdgeId,
+    pub from_material: &'static str,
+    pub from_form: InvForm,
+    pub to_material: &'static str,
+    pub to_form: InvForm,
+}
+
+/// **The per-world edge dictionary** — `id → (from-material-name, from-form,
+/// to-material-name, to-form)` for every edge a record actually inhabits (S20 § 3.2).
+///
+/// **Why a dictionary at all.** [`EdgeId`] is positional in the material registry,
+/// as the four endpoint bytes it replaces already were. Nothing serializes a ledger
+/// today — but *"ready-made worlds are the sanctioned answer"* means one will, and a
+/// positional id read back against a changed registry is **silently reinterpreted**:
+/// granite's facts become diorite's, and every test still passes. Shipping this
+/// dictionary beside the facts makes that a **detected** condition
+/// ([`Self::validate`]). On the shipped world it has exactly one entry; in any
+/// plausible future, a few dozen — a rounding error against the facts it guards.
+///
+/// **It is DERIVED, never stored** — the A-1 discipline applied to itself. A
+/// dictionary carried as a field beside the facts is a second copy of what the facts
+/// already say, and a second copy can disagree; built by a scan
+/// ([`Self::of_facts`]), it structurally cannot. It is wanted only at persist, which
+/// is not a clock anything here spends.
+#[derive(Clone, Default, PartialEq, Eq, Debug)]
+pub struct EdgeDict {
+    entries: Vec<EdgeDictEntry>,
+}
+
+/// A dictionary row whose id no longer re-derives from its own names — the registry
+/// changed under a persisted world.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct EdgeDictMismatch {
+    /// The row as the world recorded it.
+    pub entry: EdgeDictEntry,
+    /// What those names resolve to against the **current** registry (`None` when a
+    /// name is gone from the registry entirely).
+    pub found: Option<EdgeId>,
+}
+
+impl EdgeDict {
+    /// Build the dictionary of every distinct edge `facts` inhabits, ascending by id.
+    pub fn of_facts<Q: Copy>(facts: &[Fact<Q>]) -> Self {
+        let mut ids: Vec<EdgeId> = facts.iter().map(Fact::edge_id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        Self {
+            entries: ids
+                .into_iter()
+                .map(|id| {
+                    let (from, to) = (id.from(), id.to());
+                    EdgeDictEntry {
+                        id,
+                        from_material: from.0.qualified_name(),
+                        from_form: from.1,
+                        to_material: to.0.qualified_name(),
+                        to_form: to.1,
+                    }
+                })
+                .collect(),
+        }
+    }
+
+    /// The rows, ascending by id.
+    pub fn entries(&self) -> &[EdgeDictEntry] {
+        &self.entries
+    }
+
+    /// How many distinct edges the world inhabits.
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// True when no fact was ever committed (the identity default).
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// **The detection.** Re-derive every row's id from its own material *names*
+    /// against the current registry; any row that does not reproduce its stored id
+    /// is a registry change that would otherwise have been read as a different edge.
+    pub fn validate(&self) -> Result<(), Vec<EdgeDictMismatch>> {
+        let bad: Vec<EdgeDictMismatch> = self
+            .entries
+            .iter()
+            .filter_map(|e| {
+                let found =
+                    EdgeId::from_names(e.from_material, e.from_form, e.to_material, e.to_form);
+                (found != Some(e.id)).then_some(EdgeDictMismatch { entry: *e, found })
+            })
+            .collect();
+        if bad.is_empty() { Ok(()) } else { Err(bad) }
+    }
 }
 
 /// A `(MaterialId, Form)` **portion** with a fractional metre quantity — the exact
@@ -130,32 +430,58 @@ impl Cause {
 /// A **transformation fact** — the ratified persistent compiled artifact (DECIDED
 /// 2026-07-24). An enum so a portion-addressed `Move` variant can be added later
 /// without disturbing the in-place shape (the room the DECIDED asked to leave).
+///
+/// **`Q` is the width the fraction is STORED at, and it has exactly two inhabitants**
+/// (journal/0108):
+///
+/// | alias | `Q` | width | where it lives |
+/// |---|---|---|---|
+/// | `Fact` (the default) | [`StoredFrac`] = f32 | **8 B, zero padding** | [`LedgerField`] — the **resident** record |
+/// | `Fact<FracM>` | f64 | 16 B | [`FactLedger`] — the **gen-time accumulator** |
+///
+/// **The generic is not decoration; it is where the narrowing is allowed to happen.**
+/// The accumulator is appended-and-merged every epoch (`*q += share`, hundreds of
+/// times per cell over a run), so narrowing *there* would round on every add and the
+/// error would compound. Narrowing once, at [`LedgerField::from_accumulators`] — the
+/// "once at persist" S20 § 4 promises — is what makes the measured error a *single*
+/// rounding (max relative 5.766e-8, sitting exactly on f32's own 2^-24). One type
+/// with one type parameter says that in the type system instead of in a comment.
+///
+/// **Why the two widths differ by 8 B and not 4** (S20 § 3.1, and it is still true of
+/// the shipped types rather than of a probe's local structs): an edge id *alone*
+/// buys nothing, because the `f64` re-pads the struct — `Fact<FracM>` is 16 B, the
+/// pre-slice width, *with* the id. Only `EdgeId` **and** f32 together reach 8 B with
+/// zero padding. The two levers only pay in company.
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub enum Fact {
-    /// **In-place transformation** on a unit: `fraction_m` metres of `from`
-    /// `(material, form)` become `to` `(material, form)`, in tectonic `chapter`,
-    /// **driven by `cause`** (the responsible agent). One shape carries all three
-    /// §3 process classes:
+pub enum Fact<Q = StoredFrac> {
+    /// **In-place transformation** on a unit: `fraction_m` metres of the `edge`'s
+    /// source `(material, form)` become its destination `(material, form)`, in
+    /// tectonic `chapter`, **driven by `cause`** (the responsible agent). One shape
+    /// carries all three §3 process classes:
     /// - **material change** (`from.0 != to.0`) — e.g. diagenesis;
     /// - **form-only change** (`from.0 == to.0`) — crumbling `Structure→PoreFill`;
     /// - **dissolution** (`to.1 == InvForm::Void`) — the portion leaves to the
     ///   complement (no sink portion is created).
+    ///
+    /// The endpoints are held as an [`EdgeId`], so the fact **structurally cannot
+    /// name a transition the graph does not declare** (S-8, material-behavior.md §3).
     InPlace {
         chapter: u8,
         cause: Cause,
-        from: (MaterialId, InvForm),
-        to: (MaterialId, InvForm),
-        fraction_m: FracM,
+        edge: EdgeId,
+        fraction_m: Q,
     },
     // FORWARD-NOTE (DECIDED 2026-07-24, not built): a
     // `Move { chapter, from_addr, to_addr, portion }` sibling — "provenance
     // addresses the material portion's lineage, not the cell": a move is itself a
     // fact and the portion's fact-history travels with it (transport in deeptime;
     // pickup/deposit in the present). Appending this variant relocates the
-    // portion's address; the in-place shape above is untouched.
+    // portion's address; the in-place shape above is untouched. (It also mints a
+    // discriminant, which today's single-variant enum does not pay for — the 8 B
+    // above is the payload, not the payload plus a tag.)
 }
 
-impl Fact {
+impl<Q: Copy> Fact<Q> {
     /// The tectonic chapter this fact was committed in.
     #[inline]
     pub fn chapter(&self) -> u8 {
@@ -173,32 +499,64 @@ impl Fact {
         }
     }
 
+    /// The **declared edge** this fact rode — the id itself, for the dictionary and
+    /// for cheap equality (two facts merge iff their ids match, no endpoint compare).
+    #[inline]
+    pub fn edge_id(&self) -> EdgeId {
+        match self {
+            Fact::InPlace { edge, .. } => *edge,
+        }
+    }
+
     /// The `(from-form, to-form)` **edge** (§3) this fact rode.
     #[inline]
     pub fn edge(&self) -> (InvForm, InvForm) {
-        match self {
-            Fact::InPlace { from, to, .. } => (from.1, to.1),
-        }
+        self.edge_id().forms()
     }
 
     #[inline]
     pub fn from(&self) -> (MaterialId, InvForm) {
-        match self {
-            Fact::InPlace { from, .. } => *from,
-        }
+        self.edge_id().from()
     }
 
     #[inline]
     pub fn to(&self) -> (MaterialId, InvForm) {
-        match self {
-            Fact::InPlace { to, .. } => *to,
-        }
+        self.edge_id().to()
     }
+}
 
+impl<Q: Copy + Into<FracM>> Fact<Q> {
+    /// **The stored fraction, widened to [`FracM`]** — the *store narrow, widen on
+    /// read, sum in f64* discipline's read half. Every consumer sees `f64`, so no
+    /// summation anywhere in the tree runs at storage width.
     #[inline]
     pub fn fraction_m(&self) -> FracM {
         match self {
-            Fact::InPlace { fraction_m, .. } => *fraction_m,
+            Fact::InPlace { fraction_m, .. } => (*fraction_m).into(),
+        }
+    }
+}
+
+impl Fact<FracM> {
+    /// **Narrow to the resident width** — the single point in the tree where a
+    /// fraction loses precision (`LedgerField::from_accumulators` is its only
+    /// caller). Deliberately a named method rather than an inline `as f32`, so that
+    /// "where does the narrowing happen?" has exactly one grep answer.
+    #[inline]
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn narrowed(self) -> Fact<StoredFrac> {
+        match self {
+            Fact::InPlace {
+                chapter,
+                cause,
+                edge,
+                fraction_m,
+            } => Fact::InPlace {
+                chapter,
+                cause,
+                edge,
+                fraction_m: fraction_m as StoredFrac,
+            },
         }
     }
 }
@@ -243,10 +601,18 @@ impl Fact {
 /// keeps its mutable, append-and-merge nature because that is what the weathering
 /// pass needs every epoch (an insert into a grid-wide array would memmove a million
 /// facts); it is compacted into [`LedgerField`] once, at finalize.
+///
+/// **Its facts are [`Fact<FracM>`] — f64, deliberately** (journal/0108). This is the
+/// *accumulating* side: [`Self::append_merged`] does `*q += fraction_m` once per
+/// agent per firing, and a run fires every epoch, so a narrowed accumulator would
+/// round on every add and the error would compound over hundreds of adds. The
+/// narrowing belongs at the single persist step ([`LedgerField::from_accumulators`]),
+/// which is what makes the measured fold error a single rounding. This ledger is
+/// dropped when `finalize_ledgers` returns; it is never resident.
 #[derive(Clone, Default, PartialEq, Debug)]
 pub struct FactLedger {
     /// Every fact, grouped by slot (ascending) and append-ordered within a slot.
-    facts: Vec<Fact>,
+    facts: Vec<Fact<FracM>>,
     /// The CSR index — one row per **non-empty** slot, ascending by `slot`.
     rows: Vec<SlotRun>,
 }
@@ -320,7 +686,7 @@ impl FactLedger {
     /// CSR row lookup. Unchanged in signature, in contents and in **order** from
     /// the `Vec<Vec<Fact>>` era.
     #[inline]
-    pub fn facts_for(&self, i: usize) -> &[Fact] {
+    pub fn facts_for(&self, i: usize) -> &[Fact<FracM>] {
         let Ok(key) = u32::try_from(i) else {
             return &[];
         };
@@ -330,11 +696,18 @@ impl FactLedger {
         }
     }
 
+    /// The **per-world edge dictionary** of everything this accumulator inhabits —
+    /// see [`EdgeDict`].
+    pub fn edge_dictionary(&self) -> EdgeDict {
+        EdgeDict::of_facts(&self.facts)
+    }
+
     /// **Append a fact to `slot`, merging into the EARLIEST fact already there with
-    /// the same `(chapter, cause, from, to)` key** — the exact semantics
+    /// the same `(chapter, cause, edge)` key** — the exact semantics
     /// [`commit_chapter`] had against the per-slot `Vec`, preserved to the letter
     /// (see its docs for why the *earliest* match, and not the last, is the
-    /// load-bearing choice).
+    /// load-bearing choice). The key used to compare the four endpoint bytes; an
+    /// [`EdgeId`] is the same comparison in one `u16`.
     ///
     /// Opening a new slot, or appending to one that is not the last, shifts the
     /// tail of the flat array. That is an `O(facts after the slot)` memmove on a
@@ -345,16 +718,14 @@ impl FactLedger {
         slot: usize,
         chapter: u8,
         cause: Cause,
-        from: (MaterialId, InvForm),
-        to: (MaterialId, InvForm),
+        edge: EdgeId,
         fraction_m: FracM,
     ) {
         let key = u32::try_from(slot).expect("a slot index fits in u32");
         let new = Fact::InPlace {
             chapter,
             cause,
-            from,
-            to,
+            edge,
             fraction_m,
         };
         let (at, row_at) = match self.rows.binary_search_by_key(&key, |r| r.slot) {
@@ -365,11 +736,12 @@ impl FactLedger {
                     let Fact::InPlace {
                         chapter: c,
                         cause: ca,
-                        from: fr,
-                        to: t,
+                        edge: e,
                         fraction_m: q,
                     } = f;
-                    if *c == chapter && *ca == cause && *fr == from && *t == to {
+                    if *c == chapter && *ca == cause && *e == edge {
+                        // The accumulate stays in f64 — see the type docs: narrowing
+                        // here would round on every one of a run's hundreds of adds.
                         *q += fraction_m;
                         return;
                     }
@@ -446,9 +818,10 @@ impl FactLedger {
         self.rows.len()
     }
 
-    /// The **payload** half of the footprint (bytes): the facts themselves.
+    /// The **payload** half of the footprint (bytes): the facts themselves — at the
+    /// *accumulator's* f64 width, which is gen-time memory, not residency.
     pub fn payload_bytes(&self) -> usize {
-        self.facts.capacity() * std::mem::size_of::<Fact>()
+        self.facts.capacity() * std::mem::size_of::<Fact<FracM>>()
     }
 
     /// The **index** half of the footprint (bytes): the CSR rows. `flux.rs`
@@ -520,6 +893,19 @@ impl LedgerField {
     /// the accumulator only ever holds the sentinel slot.
     ///
     /// Every array is **exact-sized**: the compile is over, growing room is waste.
+    ///
+    /// **This is also THE narrowing point** (journal/0108). The accumulators carry
+    /// [`Fact<FracM>`]; the resident record carries [`Fact`] (f32). The `f64 → f32`
+    /// rounding happens here, **once per fact, for the life of the world** — the
+    /// "once at persist" S20 § 4 prices. Nothing downstream ever narrows again and
+    /// every read widens back, so the error is a single rounding rather than an
+    /// accumulating one (measured max relative 5.766e-8, *at* f32's own 2^-24).
+    ///
+    /// The one assertion this moves is `weather_inventory`'s
+    /// `bedrock_facts_key_stably_as_the_record_grows`, which compares a *finalized*
+    /// band against an *accumulator* band — the two sides stop sharing a
+    /// representation exactly here, and its tolerance is re-derived from this
+    /// storage's resolution rather than widened until green (S20 § 4.3).
     pub fn from_accumulators(
         accumulators: &[FactLedger],
         from_slot: usize,
@@ -530,7 +916,7 @@ impl LedgerField {
             return Self::default();
         }
         let runs = accumulators.iter().map(|a| a.facts_for(from_slot));
-        let total_facts: usize = runs.clone().map(<[Fact]>::len).sum();
+        let total_facts: usize = runs.clone().map(<[Fact<FracM>]>::len).sum();
         let total_rows: usize = runs.filter(|r| !r.is_empty()).count();
         let mut facts = Vec::with_capacity(total_facts);
         let mut rows = Vec::with_capacity(total_rows);
@@ -545,7 +931,8 @@ impl LedgerField {
                 slot: u32::try_from(to_slot(i)).expect("a slot index fits in u32"),
                 start: u32::try_from(facts.len()).expect("a fact index fits in u32"),
             });
-            facts.extend_from_slice(run);
+            // THE narrowing: f64 accumulator → f32 resident, once per fact.
+            facts.extend(run.iter().copied().map(Fact::narrowed));
         }
         cell_row_start.push(u32::try_from(rows.len()).expect("a row index fits in u32"));
         Self {
@@ -597,6 +984,18 @@ impl LedgerField {
         self.rows.len()
     }
 
+    /// **The per-world edge dictionary** — `id → (from-material-NAME, from-form,
+    /// to-material-NAME, to-form)` for every edge this world inhabits (S20 § 3.2).
+    /// The thing that ships beside the facts the moment a ledger is persisted, and
+    /// the thing that turns a registry change from *silently reinterpreted* into
+    /// *detected* ([`EdgeDict::validate`]).
+    ///
+    /// **Derived, not stored** — see [`EdgeDict`]. On the shipped world it has one
+    /// entry; the scan that builds it is over facts the caller already holds.
+    pub fn edge_dictionary(&self) -> EdgeDict {
+        EdgeDict::of_facts(&self.facts)
+    }
+
     /// The **payload** half of the footprint (bytes): the facts themselves.
     pub fn payload_bytes(&self) -> usize {
         self.facts.capacity() * std::mem::size_of::<Fact>()
@@ -644,7 +1043,8 @@ impl<'a> LedgerView<'a> {
     }
 
     /// The facts appended to unit `i` (empty slice when none / out of range) —
-    /// identical in contents and in **order** to [`FactLedger::facts_for`].
+    /// identical in contents and in **order** to [`FactLedger::facts_for`], at the
+    /// resident storage width ([`StoredFrac`]); `Fact::fraction_m` widens on read.
     #[inline]
     pub fn facts_for(&self, i: usize) -> &'a [Fact] {
         let Ok(key) = u32::try_from(i) else {
@@ -707,7 +1107,11 @@ pub fn derive_base(unit: &DepUnit) -> Vec<Portion> {
 /// reconstructs "started as X, then chapter-Z weathering did Y" from `base +
 /// facts`, and it is exactly the state a chapter's working inventory is built
 /// from.
-pub fn compose_unit(unit: &DepUnit, facts: &[Fact]) -> Vec<Portion> {
+/// Generic over the stored width so the *same* fold runs over the gen-time
+/// accumulator ([`Fact<FracM>`]) and the resident record ([`Fact`]) — one
+/// implementation, not two. Every summand widens to [`FracM`] first, so the fold
+/// itself is f64 whichever record it reads.
+pub fn compose_unit<Q: Copy + Into<FracM>>(unit: &DepUnit, facts: &[Fact<Q>]) -> Vec<Portion> {
     let mut portions = derive_base(unit);
     for f in facts {
         apply_move(&mut portions, f.from(), f.to(), f.fraction_m());
@@ -852,8 +1256,9 @@ struct LoggedEdge {
     unit_index: usize,
     chapter: u8,
     cause: Cause,
-    from: (MaterialId, InvForm),
-    to: (MaterialId, InvForm),
+    /// The **declared** edge — resolved at [`InvCtx::apply_edge`], so an undeclared
+    /// transition is refused where it is attempted, not silently dropped at commit.
+    edge: EdgeId,
     fraction_m: FracM,
 }
 
@@ -974,7 +1379,7 @@ pub fn derive_bedrock() -> Vec<Portion> {
 /// Compose the bedrock seam's current composition = [`derive_bedrock`] then fold
 /// its facts (the `Structure→Loose` weathering the pass committed). The `Loose`
 /// portion this yields is the weathering product the collapse expresses.
-pub fn compose_bedrock(facts: &[Fact]) -> Vec<Portion> {
+pub fn compose_bedrock<Q: Copy + Into<FracM>>(facts: &[Fact<Q>]) -> Vec<Portion> {
     let mut portions = derive_bedrock();
     for f in facts {
         apply_move(&mut portions, f.from(), f.to(), f.fraction_m());
@@ -1025,7 +1430,7 @@ pub fn commit_chapter(inv: &mut WorkingInventory, ledger: &mut FactLedger) {
     // exist first (there is no per-slot header to `resize` into being) — a row is
     // created lazily by the first fact that needs it.
     for e in inv.log.drain(..) {
-        ledger.append_merged(e.unit_index, e.chapter, e.cause, e.from, e.to, e.fraction_m);
+        ledger.append_merged(e.unit_index, e.chapter, e.cause, e.edge, e.fraction_m);
     }
 }
 
@@ -1035,7 +1440,7 @@ pub fn commit_chapter(inv: &mut WorkingInventory, ledger: &mut FactLedger) {
 /// diff loses provenance the log keeps, so this is a test aid, not the commit path.
 /// Returns the net-delta facts the diff produces for span `i`.
 #[cfg(test)]
-fn reconciles_with_diff(inv: &WorkingInventory, i: usize, chapter: u8) -> Vec<Fact> {
+fn reconciles_with_diff(inv: &WorkingInventory, i: usize, chapter: u8) -> Vec<Fact<FracM>> {
     diff_facts(&inv.baseline[i], &inv.spans[i].portions, chapter)
 }
 
@@ -1054,7 +1459,7 @@ fn reconciles_with_diff(inv: &WorkingInventory, i: usize, chapter: u8) -> Vec<Fa
 /// [`Cause::Chemical`] as a placeholder — the diff cannot know the cause, which is
 /// the whole reason the log supersedes it.
 #[cfg(test)]
-fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
+fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact<FracM>> {
     // Net delta per key, in canonical order.
     let mut keys: Vec<(MaterialId, InvForm)> = Vec::new();
     for p in before.iter().chain(after) {
@@ -1087,8 +1492,8 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
         facts.push(Fact::InPlace {
             chapter,
             cause: Cause::Chemical,
-            from: sources[si].0,
-            to: sinks[ki].0,
+            edge: EdgeId::declared(sources[si].0, sinks[ki].0)
+                .expect("a source and a sink differ, so the pairing is a declared edge"),
             fraction_m: q,
         });
         sources[si].1 -= q;
@@ -1106,8 +1511,8 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
             facts.push(Fact::InPlace {
                 chapter,
                 cause: Cause::Chemical,
-                from: *k,
-                to: (k.0, InvForm::Void),
+                edge: EdgeId::declared(*k, (k.0, InvForm::Void))
+                    .expect("a stored portion is never Void, so `-> Void` is declared"),
                 fraction_m: *rem,
             });
         }
@@ -1119,8 +1524,8 @@ fn diff_facts(before: &[Portion], after: &[Portion], chapter: u8) -> Vec<Fact> {
             facts.push(Fact::InPlace {
                 chapter,
                 cause: Cause::Chemical,
-                from: (k.0, InvForm::Void),
-                to: *k,
+                edge: EdgeId::declared((k.0, InvForm::Void), *k)
+                    .expect("a stored portion is never Void, so `Void ->` is declared"),
                 fraction_m: *rem,
             });
         }
@@ -1255,6 +1660,16 @@ impl InvCtx<'_> {
     /// **Logs the edge it actually moved** with this ctx's scope (`chapter`,
     /// `cause`) — the fact source `commit_chapter` drains (§1). A zero-move edge
     /// (nothing available) logs nothing.
+    ///
+    /// **An UNDECLARED edge is refused outright — it does not run** (journal/0108).
+    /// The declared transition graph (§3, [`is_declared_edge`]) is the authority for
+    /// what edges exist, and the strong form of that is *the transition cannot
+    /// happen*, not merely *it cannot be written down*. The alternative — apply it
+    /// and drop the fact — would leave the working inventory holding a change with
+    /// no provenance, which is the one state this whole substrate exists to prevent.
+    /// In practice the only undeclared edges are the null edge (`from == to`, which
+    /// moves nothing) and `Void → Void`, so refusing them changes no behavior; the
+    /// point is that a future agent cannot invent an edge the graph does not name.
     pub fn apply_edge(
         &mut self,
         span: usize,
@@ -1262,6 +1677,9 @@ impl InvCtx<'_> {
         to: (MaterialId, InvForm),
         qty: FracM,
     ) -> FracM {
+        let Some(edge) = EdgeId::declared(from, to) else {
+            return 0.0;
+        };
         let unit_index = self.inv.spans[span].unit_index;
         let moved = apply_move(&mut self.inv.spans[span].portions, from, to, qty);
         if moved > EPS {
@@ -1269,8 +1687,7 @@ impl InvCtx<'_> {
                 unit_index,
                 chapter: self.chapter,
                 cause: self.cause,
-                from,
-                to,
+                edge,
                 fraction_m: moved,
             });
         }
@@ -1296,7 +1713,7 @@ impl InvCtx<'_> {
 /// composition; [`Self::facts`] is the lineage read.
 pub struct UnitProvenance<'a> {
     pub base: &'a DepUnit,
-    pub facts: &'a [Fact],
+    pub facts: &'a [Fact<FracM>],
 }
 
 impl<'a> UnitProvenance<'a> {
@@ -1314,7 +1731,7 @@ impl<'a> UnitProvenance<'a> {
     }
 
     /// The lineage: the facts appended to this unit, chapter-ordered.
-    pub fn facts(&self) -> &[Fact] {
+    pub fn facts(&self) -> &[Fact<FracM>] {
         self.facts
     }
 }
@@ -1706,8 +2123,8 @@ mod tests {
         assert_eq!(ledger.slots_with_facts(), 1);
         assert_eq!(ledger.facts_for(deep.units.len()).len(), 3);
         // The bound: facts + one row, and nothing that scales with 10,000 slots.
-        let expect = 3 * std::mem::size_of::<Fact>() + std::mem::size_of::<u64>();
-        assert_eq!(ledger.payload_bytes(), 3 * std::mem::size_of::<Fact>());
+        let expect = 3 * std::mem::size_of::<Fact<FracM>>() + std::mem::size_of::<u64>();
+        assert_eq!(ledger.payload_bytes(), 3 * std::mem::size_of::<Fact<FracM>>());
         assert!(
             ledger.footprint_bytes() <= expect,
             "exact-sized: {} B > {expect} B",
@@ -1739,7 +2156,7 @@ mod tests {
             );
         }
         commit_chapter(&mut inv, &mut acc);
-        let before: Vec<Fact> = acc.facts_for(0).to_vec();
+        let before: Vec<Fact<FracM>> = acc.facts_for(0).to_vec();
         assert_eq!(before.len(), 3);
 
         let moved = acc.rekeyed(0, 7);
@@ -1750,7 +2167,7 @@ mod tests {
         assert_eq!(moved.facts_for(7), &before[..], "same facts, same order");
         assert_eq!(
             moved.footprint_bytes(),
-            3 * std::mem::size_of::<Fact>() + std::mem::size_of::<u64>(),
+            3 * std::mem::size_of::<Fact<FracM>>() + std::mem::size_of::<u64>(),
             "exact-sized, no doubling slack"
         );
         // An empty accumulator re-keys to a free ledger.
@@ -1881,10 +2298,266 @@ mod tests {
         assert!(off.get(0).is_none());
     }
 
+    // --- The compact fact (journal/0108, S20 option 2c) ----------------------
+
+    #[test]
+    fn the_resident_fact_is_eight_bytes_with_zero_padding_and_the_accumulator_is_not() {
+        // **S20 § 3.1's finding, kept alive as an assertion about SHIPPED types.**
+        // The two encoding levers only pay in company: an edge id alone is padded
+        // straight back by the f64 it sits beside — which is exactly what the
+        // gen-time accumulator `Fact<FracM>` still is, at the pre-slice width. Only
+        // `EdgeId` AND `StoredFrac` together reach 8 B.
+        //
+        // A BOUND, not a snapshot: each side is asserted equal to the sum of its own
+        // fields, so "zero padding" is checked rather than a byte count memorised.
+        let payload_8 = std::mem::size_of::<u8>()      // chapter
+            + std::mem::size_of::<Cause>()             // the agent axis
+            + std::mem::size_of::<EdgeId>()            // the declared edge
+            + std::mem::size_of::<StoredFrac>(); // the fraction, stored narrow
+        assert_eq!(
+            std::mem::size_of::<Fact>(),
+            payload_8,
+            "the resident fact must be exactly its payload — no padding"
+        );
+        assert_eq!(std::mem::size_of::<Fact>(), 8);
+
+        // The accumulator carries the SAME axes and the SAME edge id, and is twice
+        // the width — because f64 alignment pads the reclaimed endpoint bytes back.
+        let acc_payload = std::mem::size_of::<u8>()
+            + std::mem::size_of::<Cause>()
+            + std::mem::size_of::<EdgeId>()
+            + std::mem::size_of::<FracM>();
+        assert_eq!(std::mem::size_of::<Fact<FracM>>(), 16);
+        assert!(
+            std::mem::size_of::<Fact<FracM>>() > acc_payload,
+            "the edge-id-only shape is supposed to be PADDED back, not compact"
+        );
+        assert_eq!(
+            std::mem::size_of::<Fact<FracM>>(),
+            2 * std::mem::size_of::<Fact>(),
+            "the narrowing is the whole difference between the two widths"
+        );
+    }
+
+    #[test]
+    fn every_axis_survives_the_narrowing() {
+        // **The point of the option the user picked**: chapter, agent, edge and
+        // fraction all cross the persist boundary. Nothing is deleted, so this is
+        // not A-1 — only the fraction's REPRESENTATION narrows.
+        let empty = DeepStrata::default();
+        let mut acc = FactLedger::empty_with_bedrock(&empty);
+        let mut inv = build_working(&empty, &acc);
+        for (c, &cause) in [Cause::Chemical, Cause::Biotic, Cause::Frost]
+            .iter()
+            .enumerate()
+        {
+            inv.ctx_for(c as u8, cause).move_form(
+                0,
+                BEDROCK_SEAM_MATERIAL,
+                InvForm::Structure,
+                InvForm::Loose,
+                0.125,
+            );
+        }
+        commit_chapter(&mut inv, &mut acc);
+        let field = LedgerField::from_accumulators(std::slice::from_ref(&acc), 0, |_| 0);
+        let before = acc.facts_for(0);
+        let after = field.get(0).unwrap().facts_for(0);
+        assert_eq!(after.len(), before.len(), "no fact is dropped");
+        for (a, b) in before.iter().zip(after) {
+            assert_eq!(a.chapter(), b.chapter(), "the WHEN axis survives");
+            assert_eq!(a.cause(), b.cause(), "the WHO axis survives");
+            assert_eq!(a.edge_id(), b.edge_id(), "the EDGE axis survives");
+            assert_eq!(a.from(), b.from());
+            assert_eq!(a.to(), b.to());
+            // 0.125 is exactly representable, so this particular fraction survives
+            // bit-for-bit; the general claim is the bound, asserted below.
+            assert_eq!(a.fraction_m(), b.fraction_m());
+        }
+    }
+
+    #[test]
+    fn narrowing_costs_at_most_one_rounding_of_the_storage_resolution() {
+        // **A BOUND derived from the storage, not a snapshot.** f32 carries 24 bits
+        // of mantissa, so a single round-to-nearest moves a value by at most
+        // 2^-24 * |v| (half an ulp is 2^-25; 2^-24 is the conservative side). Store
+        // narrow / widen on read / sum in f64 means the fold's error is bounded by
+        // the SUM of the per-fact roundings — never by their product, and never
+        // compounding over the run, because the accumulator never narrows.
+        const F32_RES: f64 = 1.0 / 16_777_216.0; // 2^-24
+        let empty = DeepStrata::default();
+        let mut acc = FactLedger::empty_with_bedrock(&empty);
+        let mut inv = build_working(&empty, &acc);
+        // A deliberately un-representable quantity, three agents, ten firings.
+        for _ in 0..10 {
+            for &cause in &[Cause::Chemical, Cause::Biotic, Cause::Frost] {
+                inv.ctx_for(0, cause).move_form(
+                    0,
+                    BEDROCK_SEAM_MATERIAL,
+                    InvForm::Structure,
+                    InvForm::Loose,
+                    0.037_913_7,
+                );
+            }
+        }
+        commit_chapter(&mut inv, &mut acc);
+        let exact = acc
+            .facts_for(0)
+            .iter()
+            .map(Fact::fraction_m)
+            .sum::<FracM>();
+        let field = LedgerField::from_accumulators(std::slice::from_ref(&acc), 0, |_| 0);
+        let stored = field
+            .get(0)
+            .unwrap()
+            .facts_for(0)
+            .iter()
+            .map(Fact::fraction_m)
+            .sum::<FracM>();
+        let bound: f64 = acc
+            .facts_for(0)
+            .iter()
+            .map(|f| f.fraction_m().abs() * F32_RES)
+            .sum();
+        assert!(exact > 0.0 && bound > 0.0);
+        assert!(
+            (exact - stored).abs() <= bound,
+            "fold error {:.3e} exceeds the storage's own resolution bound {bound:.3e}",
+            (exact - stored).abs()
+        );
+        // And the bound itself is far below the only scale that can change what a
+        // player sees: one eighth of a voxel at 0.9 m/voxel = 0.1125 m.
+        assert!(
+            bound < 0.1125 / 1000.0,
+            "the narrowing bound {bound:.3e} m is within 3 orders of an eighth"
+        );
+    }
+
+    #[test]
+    fn a_fact_cannot_name_an_undeclared_transition() {
+        // **S-8 / material-behavior §3 made structural.** `EdgeId::declared` is the
+        // only constructor, and it is the only way to build a `Fact`.
+        let g = MaterialId::GRANITE;
+        let c = MaterialId::CLAY;
+        // Declared: form change, material change, dissolution, deposition.
+        assert!(EdgeId::declared((g, InvForm::Structure), (g, InvForm::Loose)).is_some());
+        assert!(EdgeId::declared((g, InvForm::Loose), (c, InvForm::Loose)).is_some());
+        assert!(EdgeId::declared((g, InvForm::Loose), (g, InvForm::Void)).is_some());
+        assert!(EdgeId::declared((g, InvForm::Void), (g, InvForm::Loose)).is_some());
+        // NOT declared: the null edge, and the complement to itself.
+        assert!(EdgeId::declared((g, InvForm::Loose), (g, InvForm::Loose)).is_none());
+        assert!(EdgeId::declared((g, InvForm::Void), (c, InvForm::Void)).is_none());
+
+        // §3's count, checked rather than quoted: 5 forms → 20 directed FORM edges.
+        let forms = [
+            InvForm::Structure,
+            InvForm::Loose,
+            InvForm::PoreFill,
+            InvForm::Fluid,
+            InvForm::Void,
+        ];
+        assert_eq!(forms.len(), FORM_COUNT as usize);
+        let form_edges = forms
+            .iter()
+            .flat_map(|&a| forms.iter().map(move |&b| (a, b)))
+            .filter(|&(a, b)| is_declared_edge((g, a), (g, b)))
+            .count();
+        assert_eq!(form_edges, 20, "material-behavior.md §3: 5 forms → 20 edges");
+
+        // Every declared edge round-trips through the two packed bytes.
+        for &a in &forms {
+            for &b in &forms {
+                for m in [g, c, MaterialId::SANDSTONE] {
+                    for n in [g, c, MaterialId::CHARCOAL] {
+                        if let Some(id) = EdgeId::declared((m, a), (n, b)) {
+                            assert_eq!(id.from(), (m, a));
+                            assert_eq!(id.to(), (n, b));
+                            assert_eq!(id.forms(), (a, b));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn an_undeclared_edge_does_not_run_at_all_not_merely_goes_unrecorded() {
+        // The strong form: refusing to record while letting the move happen would
+        // leave the inventory holding a change with no provenance. `apply_edge`
+        // returns 0 and touches nothing.
+        let rec = sample_record();
+        let ledger = FactLedger::empty_with_bedrock(&rec);
+        let mut inv = build_working(&rec, &ledger);
+        let m = inv.spans[0].portions[0].material;
+        let before = inv.spans[0].portions.clone();
+        let moved = inv.ctx_for(0, Cause::Chemical).apply_edge(
+            0,
+            (m, InvForm::Loose),
+            (m, InvForm::Loose),
+            0.5,
+        );
+        assert_eq!(moved, 0.0, "the null edge moves nothing");
+        assert_eq!(inv.spans[0].portions, before, "and changes nothing");
+        let mut ledger = ledger;
+        commit_chapter(&mut inv, &mut ledger);
+        assert!(ledger.is_empty(), "and records nothing");
+    }
+
+    #[test]
+    fn the_edge_dictionary_names_materials_and_detects_a_registry_shift() {
+        // **S20 § 3.2.** The dictionary is what a persisted world ships beside its
+        // facts so a registry change is DETECTED rather than silently reinterpreted.
+        let empty = DeepStrata::default();
+        let mut acc = FactLedger::empty_with_bedrock(&empty);
+        let mut inv = build_working(&empty, &acc);
+        for &cause in &[Cause::Chemical, Cause::Biotic, Cause::Frost] {
+            inv.ctx_for(0, cause).move_form(
+                0,
+                BEDROCK_SEAM_MATERIAL,
+                InvForm::Structure,
+                InvForm::Loose,
+                0.25,
+            );
+        }
+        commit_chapter(&mut inv, &mut acc);
+        let field = LedgerField::from_accumulators(std::slice::from_ref(&acc), 0, |_| 0);
+        let dict = field.edge_dictionary();
+
+        // Three facts, ONE edge — the shipped world's shape (S20 measured 1).
+        assert_eq!(field.total_facts(), 3);
+        assert_eq!(dict.len(), 1, "three agents ride one declared edge");
+        let e = dict.entries()[0];
+        assert_eq!(e.from_material, BEDROCK_SEAM_MATERIAL.qualified_name());
+        assert_eq!(e.from_form, InvForm::Structure);
+        assert_eq!(e.to_material, BEDROCK_SEAM_MATERIAL.qualified_name());
+        assert_eq!(e.to_form, InvForm::Loose);
+        // As shipped, every row re-derives from its own names.
+        assert!(dict.validate().is_ok());
+
+        // Simulate a registry change: the SAME names now resolve to a different
+        // position, so the stored id no longer re-derives. That is the detection.
+        let shifted = EdgeDict {
+            entries: vec![EdgeDictEntry {
+                id: EdgeId::declared(
+                    (MaterialId::BASALT, InvForm::Structure),
+                    (MaterialId::BASALT, InvForm::Loose),
+                )
+                .expect("declared"),
+                ..e
+            }],
+        };
+        let err = shifted.validate().expect_err("a shifted id must be caught");
+        assert_eq!(err.len(), 1);
+        assert_eq!(err[0].found, Some(e.id), "and it reports what the names mean now");
+
+        // An empty world has an empty dictionary, and it costs nothing.
+        assert!(LedgerField::default().edge_dictionary().is_empty());
+    }
+
     #[test]
     fn sizes_are_pinned() {
         assert_eq!(std::mem::size_of::<Portion>(), 16);
-        assert!(std::mem::size_of::<Fact>() <= 24);
+        assert_eq!(std::mem::size_of::<EdgeId>(), 2);
         // The CSR index row: two u32s. Residency is sacred and this one is paid
         // per non-empty slot across millions of cells.
         assert_eq!(std::mem::size_of::<SlotRun>(), 8);
