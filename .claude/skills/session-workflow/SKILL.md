@@ -728,3 +728,35 @@ The discipline that still binds: **byte-identity is the acceptance test for a co
 (a re-housing must not change behaviour), and any *deliberate* output change is an
 appearance change — walk-gated, the user's to bless. The rule above frees us from
 preserving accidents; it does not license unannounced ones.
+
+## Byte-identity can become a force for DISHONESTY — know which one you are doing (user, 2026-07-25)
+
+The user's standing caution, and it is sharper than the scratch-sheet rule it refines:
+
+> *"The default seed world is a scratch pad, so be aware of where and when a compromise on
+> byte identity is totally fine — **the effort to maintain it could be a pressure, under some
+> contexts, to make a system less honest in order to conform to the current state of the
+> scratch pad.**"*
+
+**Two uses of byte-identity, and only one of them is a virtue:**
+
+- **As a REGRESSION DETECTOR — always right.** *"This slice was supposed to be a re-housing /
+  a layout change / a declaration fix. Did it change behaviour?"* Here a moved hash is a bug
+  report, and the discipline is load-bearing (it caught a dropped sea-level assignment in
+  journal/0090).
+- **As a TARGET — a trap.** *"Choose the design that keeps the hash stable."* That silently
+  optimises for an **arbitrary output of an unfinished engine**, and it will happily buy you a
+  weaker declaration, a convenient-but-wrong constant, or a compatibility shim.
+
+**The test:** ask *"am I holding this still to detect a surprise, or to avoid one?"* Detecting
+is the job. Avoiding is how a scratch pad becomes a specification nobody voted for.
+
+**In practice.** When a fix is correct and moves the world: **take the fix, move the goldens,
+and say exactly what moved and why.** Never weaken the mechanism to keep a number. Two live
+examples: `dc:field/head` declaring its real terrain read (user: *"it should declare what it
+reads and **we eat it if it changes the physics**"*), and the hash-domain provider, where
+preserving current output would mean preserving correlated draws.
+
+**What still binds:** a *deliberate* output change is an **appearance change** — walk-gated,
+the user's to bless — and it is announced, never silent. This rule frees us from preserving
+accidents; it does not license unannounced ones.
