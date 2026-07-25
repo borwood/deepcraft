@@ -667,6 +667,16 @@ fn accessory_inclusions_ride_igneous_pores() {
                 if class == CLASS_IGNEOUS_INTRUSIVE || class == CLASS_IGNEOUS_EXTRUSIVE {
                     igneous_events += 1;
                     if let Some((acc, k)) = e.accessory {
+                        // **The pore slot carries two riders** (journal/0099).
+                        // A weathering-front band is an igneous-class event whose
+                        // rider is the LOOSE weathering product, up to 7/8 — not
+                        // an accessory mineral, and not what this test is about.
+                        // Unreachable here (this world runs `weather_inventory`
+                        // off, so no front is emplaced); the guard is so a
+                        // flag-on world fails somewhere honest instead of here.
+                        if set.member(acc).class == CLASS_CLASTIC_FINE {
+                            continue;
+                        }
                         assert_eq!(
                             set.member(acc).class,
                             CLASS_ACCESSORY_MAFIC,
