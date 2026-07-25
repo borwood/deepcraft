@@ -166,6 +166,11 @@ impl Pipeline {
                 id: p.id,
                 reads: p.reads,
                 writes: p.writes,
+                // Pregen is a one-shot DAG that builds state from nothing: there
+                // is no "previous value" for anything, so the anti-dependency edge
+                // kind is structurally empty here. The kernel is shared; only the
+                // loop tier has lagged reads to declare.
+                reads_prev: &[],
             })
             .collect();
         let scheduled = passgraph::schedule(&decls, true).map_err(map_graph_error)?;
@@ -270,6 +275,14 @@ fn map_graph_error(e: GraphError<Resource>) -> PipelineError {
             PipelineError::UnwrittenResource { resource, pass }
         }
         GraphError::Cycle(v) => PipelineError::Cycle(v),
+        // Structurally impossible at this tier: `Pipeline::new` hands the kernel
+        // `reads_prev: &[]` for every pass, and the pregen tier has no vocabulary
+        // for a lagged read (a one-shot DAG has no "previous value"). Loud rather
+        // than a silent catch-all, so a future pregen lag has to come here first.
+        GraphError::ContradictoryLag { resource, pass } => unreachable!(
+            "pregen declares no lagged reads, yet the kernel reported one on \
+             {pass} for {resource:?}"
+        ),
     }
 }
 

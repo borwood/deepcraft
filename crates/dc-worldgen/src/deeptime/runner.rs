@@ -16,8 +16,9 @@
 //! across epochs — so it calls the kernel in *loop mode* (`require_creator =
 //! false`: every axis is already present from the pre-loop seed or the previous
 //! turn), it has a **cadence/rate axis** (`pipeline` has none), and it carries
-//! **loop-carried edges** (the biology↔erosion lag) the within-epoch graph must
-//! not see as cycles.
+//! **loop-carried edges** (the biology↔erosion lag) that must not be read as
+//! within-epoch cycles — declared as [`DeepPass::reads_prev`] and handed to the
+//! kernel as reader-before-writer **anti-dependencies** (journal/0104).
 //!
 //! ## The two orthogonal axes (material-behavior.md §5 "order × rate")
 //! - **ORDER** — the topo-sort of `{reads, writes}`. Reproduces exactly the
@@ -203,11 +204,21 @@ pub struct DeepPass {
     /// Within-epoch reads — handed to the topo-sort as ordering inputs.
     pub reads: &'static [DeepAxis],
     pub writes: &'static [DeepAxis],
-    /// **Lagged** (previous-epoch) reads — documented on the pass, and
-    /// deliberately **NOT** handed to the topo-sort. A lagged read is a
-    /// back-edge in the epoch loop; declaring it here (not in `reads`) is how the
-    /// biology↔erosion feedback is expressed as a loop-carried edge instead of a
-    /// within-epoch cycle the runner would (correctly) reject.
+    /// **Lagged** (previous-epoch) reads — handed to the topo-sort as
+    /// **anti-dependency** edges: this pass is ordered **BEFORE** every pass that
+    /// writes these axes, so it provably observes the previous epoch's value
+    /// before the in-place write clobbers it (journal/0104).
+    ///
+    /// That reversed direction is why a lagged read is a separate field rather
+    /// than an entry in `reads`: moving it into `reads` would order this pass
+    /// *after* the writer — the opposite of what it needs — and, for the
+    /// biology↔erosion feedback, close a within-epoch cycle the runner would
+    /// (correctly) reject. Declared here it is a loop-carried edge instead.
+    ///
+    /// **This was documentation until journal/0104.** `passgraph` never received
+    /// it, so which epoch a lagged reader actually saw was an accident of the
+    /// id-lexicographic tie-break — rename a pass and the physics changed
+    /// silently. It is now enforced.
     pub reads_prev: &'static [DeepAxis],
     /// Cadence: the pass fires when `epoch % period == 0`. A `period > 1` pass is
     /// a coarse-rate pass — seeded before the loop and re-run every `period`
@@ -504,6 +515,15 @@ const WINV_READS_LEG: &[DeepAxis] = &[Diffused, BioMod];
 /// within-epoch cycle — the guarantee ecology.md wanted (a single-epoch pass
 /// graph would refuse the biology↔erosion cycle), now enforced by the runner.
 /// Proven in the tests.
+///
+/// And the lag itself is **enforced, not merely annotated** (journal/0104): each
+/// `reads_prev` becomes a reader→writer anti-dependency, so `weather`/`diffuse`/
+/// `eolian` are ordered before `biotic`, and the three passes that lag-read
+/// [`DeepAxis::Recorded`] (`expose`, `frost`, `head`) are ordered before
+/// `deposition`/`eolian`/`wave`. Those orderings held before this edge existed,
+/// but only as a by-product of the id-lexicographic tie-break; they are now
+/// rename-proof, which is what
+/// `a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename` proves.
 pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     let mut passes = Vec::new();
 
@@ -512,11 +532,18 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         id: "dc:deep/climate",
         reads: &[],
         writes: &[Climate],
-        // Reads the start-of-epoch topography (last epoch's final terrain) — a
-        // lagged read, not handed to the topo-sort. `forcing` reads `Climate`,
-        // which sequences the whole terrain-mutation chain *after* this pass, so
-        // climate always samples the pre-forcing surface (byte-identical to the
-        // old loop's top-of-body `climate::march`).
+        // **Under-declared, and provably harmless** (audited by journal/0104,
+        // filed as ROADMAP Owed): this pass really does lag-read the terrain (the
+        // start-of-epoch topography = last epoch's final surface), and does not
+        // say so. It is safe because the ordering it needs is pinned by a TRUE
+        // forward edge, not by the tie-break: `forcing` reads `Climate`, and every
+        // terrain writer in the roster is downstream of `forcing`, so climate is
+        // provably ahead of all of them and always samples the pre-forcing surface
+        // (byte-identical to the old loop's top-of-body `climate::march`).
+        // Declaring it would be free — the anti-dependency edge is already implied
+        // by the existing transitive closure, so it cannot move the schedule — but
+        // it needs one cfg-selected slice per terrain-revision roster
+        // (`Settled` / `Compensated` / `Diffused`).
         reads_prev: &[],
         period: cfg.remarch_interval.max(1),
         body: climate_pass,
@@ -787,8 +814,11 @@ pub struct DeepSchedule {
 
 impl DeepSchedule {
     /// Validate + topo-sort in **loop mode** (`require_creator = false`: state is
-    /// seeded before the loop). Lagged reads (`reads_prev`) are deliberately not
-    /// handed to the kernel.
+    /// seeded before the loop). **Both** edge kinds are handed to the kernel: the
+    /// live `reads` (writer → reader) and the lagged `reads_prev` as
+    /// reader → writer anti-dependencies (journal/0104). Handing the lag over is
+    /// what makes it a mechanism instead of a comment — before that, which epoch a
+    /// lagged reader saw was decided by the id-lexicographic tie-break.
     pub fn new(passes: Vec<DeepPass>) -> Result<Self, GraphError<DeepAxis>> {
         let decls: Vec<Decl<DeepAxis>> = passes
             .iter()
@@ -796,6 +826,7 @@ impl DeepSchedule {
                 id: p.id,
                 reads: p.reads,
                 writes: p.writes,
+                reads_prev: p.reads_prev,
             })
             .collect();
         let scheduled = passgraph::schedule(&decls, false)?;
@@ -933,6 +964,144 @@ mod tests {
         ];
         let err = DeepSchedule::new(passes).unwrap_err();
         assert!(matches!(err, GraphError::Cycle(_)), "{err:?}");
+
+        // Declared RIGHT, the same pair is schedulable — and the anti-dependency
+        // edge orders the lagged reader ahead of the writer, which is what makes
+        // "it reads LAST epoch's BioMod" true rather than hopeful (journal/0104).
+        let passes = vec![
+            DeepPass {
+                id: "dc:deep/erosion",
+                reads: &[],
+                writes: &[Routed],
+                reads_prev: &[BioMod],
+                period: 1,
+                body: transport_pass,
+            },
+            DeepPass {
+                id: "dc:deep/biotic",
+                reads: &[Routed],
+                writes: &[BioMod],
+                reads_prev: &[],
+                period: 1,
+                body: biotic_pass,
+            },
+        ];
+        assert_eq!(
+            DeepSchedule::new(passes).unwrap().ordered_ids(),
+            vec!["dc:deep/erosion", "dc:deep/biotic"],
+        );
+    }
+
+    /// **The point of journal/0104.** `reads_prev` used to be consumed by nothing,
+    /// so a lagged reader saw the previous epoch's plane only if the
+    /// id-lexicographic tie-break happened to park it ahead of the writer. Rename
+    /// the pass and the physics changed — silently, with every test still green.
+    ///
+    /// So: rename each lagged reader to an id that sorts **after** every writer of
+    /// the axis it lags on, and assert the schedule still puts it first. Under the
+    /// old kernel `dc:deep/zzz_head` would slide behind `dc:deep/deposition` and
+    /// start reading THIS epoch's strata record; here the anti-dependency edge
+    /// holds it in place and the tie-break never gets a say.
+    #[test]
+    fn a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename() {
+        // Every (lagged reader, lagged axis) pair in the production roster, with a
+        // rename chosen to lose the alphabet fight against that axis's writers.
+        for (victim, hostile) in [
+            ("dc:deep/head", "dc:deep/zzz_head"),
+            ("dc:deep/expose", "dc:deep/zzz_expose"),
+            ("dc:deep/frost", "dc:deep/zzz_frost"),
+            ("dc:deep/weather", "dc:deep/zzz_weather"),
+            ("dc:deep/diffuse", "dc:deep/zzz_diffuse"),
+            ("dc:deep/eolian", "dc:deep/zzz_eolian"),
+        ] {
+            let mut passes = deep_passes(&all_on());
+            let lagged: Vec<DeepAxis> = passes
+                .iter()
+                .find(|p| p.id == victim)
+                .unwrap_or_else(|| panic!("{victim} is in the production roster"))
+                .reads_prev
+                .to_vec();
+            assert!(!lagged.is_empty(), "{victim} declares a lagged read");
+            // Every pass that writes an axis the victim lag-reads.
+            let writers: Vec<&'static str> = passes
+                .iter()
+                .filter(|p| p.id != victim && p.writes.iter().any(|w| lagged.contains(w)))
+                .map(|p| p.id)
+                .collect();
+            assert!(!writers.is_empty(), "{victim}'s lagged axis has writers");
+            assert!(
+                writers.iter().all(|w| *w < hostile),
+                "the rename must lose the tie-break against {writers:?}, or this \
+                 test proves nothing"
+            );
+
+            for p in &mut passes {
+                if p.id == victim {
+                    p.id = hostile;
+                }
+            }
+            let order = DeepSchedule::new(passes)
+                .expect("the rename must not make the roster unschedulable")
+                .ordered_ids();
+            let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
+            for w in writers {
+                assert!(
+                    at(hostile) < at(w),
+                    "{hostile} lag-reads {lagged:?} and must stay ahead of its \
+                     writer {w}; got {order:?}"
+                );
+            }
+        }
+    }
+
+    /// The invariant the anti-dependency edge buys, checked across the whole
+    /// production roster rather than one pass: **no lagged reader is ever
+    /// scheduled after a writer of the axis it lags on.** Without the edge this is
+    /// merely true; with it, it is guaranteed.
+    #[test]
+    fn every_lagged_read_in_the_roster_is_ordered_before_its_writers() {
+        for cfg in [
+            all_on(),
+            DeepConfig {
+                weather_inventory: true,
+                ..all_on()
+            },
+            DeepConfig {
+                head_field: false,
+                ..all_on()
+            },
+            DeepConfig {
+                full_agents: false,
+                ..all_on()
+            },
+            DeepConfig {
+                tectonic_history: false,
+                ..all_on()
+            },
+        ] {
+            let passes = deep_passes(&cfg);
+            let order = DeepSchedule::new(deep_passes(&cfg))
+                .expect("valid roster")
+                .ordered_ids();
+            let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
+            for reader in &passes {
+                for axis in reader.reads_prev {
+                    // A lagged read is never also a live read of the same axis —
+                    // the two edge kinds point in opposite directions.
+                    assert!(!reader.reads.contains(axis), "{} {axis:?}", reader.id);
+                    for w in passes.iter().filter(|p| p.writes.contains(axis)) {
+                        if w.id != reader.id {
+                            assert!(
+                                at(reader.id) < at(w.id),
+                                "{} lag-reads {axis:?} but runs after its writer {}",
+                                reader.id,
+                                w.id
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]

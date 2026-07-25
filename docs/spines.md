@@ -20,7 +20,10 @@ the `R`/`H` views, `fits_in_pores`, `bound_eighths`/`is_occupancy_solid`,
 `Agent::Dissolution`, the S11 water module, `column_summary` and the 8-pass `Resource`
 vocabulary all re-confirmed. **Three findings:** `dc:deep/head` under-declares (S-6,
 below) and its `reads_prev` is pinned by nothing because **`reads_prev` is consumed by
-no mechanism at all** — it appears in `runner.rs` and nowhere else in `crates/`;
+no mechanism at all** — it appears in `runner.rs` and nowhere else in `crates/`
+(**that second finding is now CLOSED — journal/0104 gave the kernel the
+anti-dependency edge; the `dc:deep/head` under-declaration of its LIVE reads remains
+open**);
 `dc:deep/flow_record` by contrast is **honest**. An expired caption in
 `flux_record_probe.rs` (A-2). And, outside this file's remit but reported to the
 integrator: **all four in-code `stubs.md #19` markers are stale** — they were written
@@ -353,8 +356,10 @@ files.
   rate). Same topo-sort math as `pipeline.rs`, **extracted into the shared
   `passgraph` kernel and called by both — not a second runner beside it** (A-4
   guarded). The biology↔erosion one-epoch lag is a declared **loop-carried edge**
-  (`reads_prev`, not handed to the sort); declare it within-epoch and the runner
-  rejects the cycle. `climate`'s `remarch_interval` is a low-rate pass. Re-housing
+  (`reads_prev`, handed to the sort as a reader→writer **anti-dependency** since
+  journal/0104 — see the entry below; it was handed to nothing before that); declare it
+  within-epoch and the runner rejects the cycle. `climate`'s `remarch_interval` is a
+  low-rate pass. Re-housing
   is byte-identical (the production goldens are unmoved).
 - `dc:deep/weather_inventory` (journal/0094, 2026-07-24): the **first *cellular*
   pass** on that runner — declares `reads {Settled|Compensated|Diffused, Frosted,
@@ -410,22 +415,46 @@ files.
      (`runner.rs:859-865`). The comment's defence, "its position never affects the
      terrain", is true and is **not the question**: it affects the field's own values.
      Declaring `Forced` is free and pins it.
-  3. **The systemic hole: `reads_prev` is declared, typed, documented — and consumed
-     by nothing.** It appears in `runner.rs` and in **no other file in `crates/`**;
-     `passgraph.rs` never receives it (`runner.rs:199-204` says so on purpose — a
-     lagged read must not become a within-epoch edge). The consequence is that a
-     `reads_prev` claim is true only by accident of the rest of the graph.
-     `dc:deep/head`'s `reads_prev: [Recorded]` (`runner.rs:607`) is true **today**:
-     head is ready as soon as `drainage` writes `Routed`, while `deposition` waits on
-     `isostasy`, so head fires first and sees last epoch's record. But Kahn parks a
-     ready node until it wins the id sort (`passgraph.rs:151-153`), so **renaming the
-     pass to any id sorting after `dc:deep/deposition` — `dc:deep/hydraulic_head`,
-     say — silently flips it to reading THIS epoch's record.** Same defect class as
-     last sweep's `BioMod`, one level up: there the tie-break decided a read, here it
-     decides an *epoch*. The honest fix is a mechanism, not a comment: give the graph
-     the reader-before-writer (anti-dependency) edge `reads_prev` implies, at which
-     point the declaration becomes load-bearing instead of narrative. **Flagged to the
-     main session, not decided here.**
+  3. ~~**The systemic hole: `reads_prev` is declared, typed, documented — and consumed
+     by nothing.**~~ **CLOSED 2026-07-25 (journal/0104)** — the fix flagged here is the
+     one that shipped. It appeared in `runner.rs` and in no other file in `crates/`;
+     `passgraph.rs` never received it, so a `reads_prev` claim was true only by
+     accident of the rest of the graph, and renaming `dc:deep/head` to any id sorting
+     after `dc:deep/deposition` would have silently flipped it to reading THIS epoch's
+     record. Same defect class as the previous sweep's `BioMod`, one level up: there
+     the tie-break decided a *read*, here it decided an *epoch* — and unlike `BioMod`
+     it could **not** be fixed by declaring honestly, because a `reads` edge points
+     the wrong way (see the anti-dependency entry below).
+- **the anti-dependency edge — `reads_prev` is a MECHANISM** (journal/0104,
+  2026-07-25; user-ratified). `passgraph` now takes **two edge kinds**, and the
+  distinction is the spine stated in graph terms:
+  - `reads` — a **true dependency** (RAW). "I need the value this schedule produces":
+    every writer is ordered **before** the reader.
+  - `reads_prev` — an **anti-dependency** (WAR). "I need the value from *before* this
+    schedule ran". Because the deep-time planes are overwritten **in place**, that is
+    only true if the reader runs **before** the writer, so the edge points
+    **reader → writer** — the reverse direction.
+
+  Folding a lagged read into `reads` is therefore not a smaller fix, it is the wrong
+  one: it orders the reader *after* the writer (the value it explicitly did not want)
+  and closes the loop-carried feedback into a within-epoch cycle the kernel rejects.
+  Proven both ways in `passgraph::tests` —
+  `folding_a_lagged_read_into_reads_reverses_it_into_a_cycle` and
+  `a_lagged_read_outranks_the_id_tie_break` (which carries its own **negative
+  control**: the same roster with the lag undeclared schedules the wrong way round,
+  which is what the pre-slice behaviour was). The roster-level guarantee is
+  `runner::tests::a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename`:
+  every lagged reader renamed to an id that **provably loses** the tie-break against
+  its axis's writers, and still scheduled first. `reads ∩ reads_prev` on one node is a
+  named rejection (`GraphError::ContradictoryLag`) because against *itself* the two
+  opposed edges would cancel as a dropped self-edge and pass silently.
+  **The production order is byte-unmoved** — all twelve new edges (from six lagged
+  readers) pointed from a pass already ahead of its target, i.e. the physics was right
+  and merely unenforced, which is the outcome this spine exists to produce. `pipeline.rs` hands `reads_prev: &[]`
+  *structurally*, not as a placeholder: a one-shot DAG has no previous value.
+  **Residual (ROADMAP Owed):** `dc:deep/climate`'s lagged terrain read is still
+  undeclared — harmless, because a true forward edge (`forcing` reads `Climate`) already
+  pins it ahead of every terrain writer, but it is an under-declaration.
 - members canonically ordered by namespaced id (geology.md)
 - patch plugins: declared order, last-in-order wins, **recorded in world
   identity** (DECIDED 2026-07-22)
