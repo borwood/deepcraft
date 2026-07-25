@@ -137,10 +137,18 @@ struct CellHistory {
     /// Chapters (ascending, deduplicated) this cell committed weathering facts in.
     chapters: Vec<u8>,
     /// `slots_by_chapter[c]` = spans a per-depth firing in chapter `c` would visit
-    /// (units already deposited by `c`, plus the bedrock seam span).
-    slots_by_chapter: [usize; 256],
+    /// (units already deposited by `c`, plus the bedrock seam span). One entry per
+    /// tectonic chapter — eight of them, not a 256-wide table per cell.
+    slots_by_chapter: Vec<u32>,
     /// Spans at the end of the run (`units + bedrock seam`).
     slots_final: usize,
+}
+
+impl CellHistory {
+    fn slots_at(&self, chapter: u8) -> u128 {
+        let c = usize::from(chapter).min(self.slots_by_chapter.len().saturating_sub(1));
+        u128::from(self.slots_by_chapter[c])
+    }
 }
 
 struct Counts {
@@ -262,29 +270,32 @@ fn project(extent: Extent, measure_baseline: bool) -> Projection {
 
     // --- 1/2. tuple counts, straight out of the finished world -----------------
     let cells = field.strata.len();
+    let chapters = cfg.chapters.max(1);
     let mut hist: Vec<CellHistory> = Vec::with_capacity(cells);
     for (i, s) in field.strata.iter().enumerate() {
         let bedrock_slot = s.units.len();
-        let mut chapters: Vec<u8> = field
+        let mut fired: Vec<u8> = field
             .ledgers
             .get(i)
             .map(|v| v.facts_for(bedrock_slot).iter().map(Fact::chapter).collect())
             .unwrap_or_default();
-        chapters.sort_unstable();
-        chapters.dedup();
+        fired.sort_unstable();
+        fired.dedup();
         // Units are appended bottom-up, so `chapter` is non-decreasing along the
-        // record: the slots existing at chapter c are a prefix. +1 for the bedrock
-        // seam span, which exists from epoch 0.
-        let mut slots_by_chapter = [0usize; 256];
+        // record: the slots existing at chapter c are a PREFIX of the final record.
+        // +1 for the bedrock seam span, which exists from epoch 0. (Units later
+        // eroded away are gone from the final record, so this is a lower bound on
+        // the depth a firing actually saw — stated in the report.)
+        let mut slots_by_chapter = Vec::with_capacity(chapters as usize);
         let mut k = 0usize;
-        for c in 0..256usize {
-            while k < s.units.len() && usize::from(s.units[k].chapter) <= c {
+        for c in 0..chapters {
+            while k < s.units.len() && u32::from(s.units[k].chapter) <= c {
                 k += 1;
             }
-            slots_by_chapter[c] = k + 1;
+            slots_by_chapter.push(u32::try_from(k + 1).expect("slot count fits in u32"));
         }
         hist.push(CellHistory {
-            chapters,
+            chapters: fired,
             slots_by_chapter,
             slots_final: s.units.len() + 1,
         });
@@ -296,11 +307,10 @@ fn project(extent: Extent, measure_baseline: bool) -> Projection {
     for h in &hist {
         for &c in &h.chapters {
             cell_chapter_firings += 1;
-            slot_chapter_triangular += h.slots_by_chapter[usize::from(c)] as u128;
+            slot_chapter_triangular += h.slots_at(c);
             slot_chapter_flat += h.slots_final as u128;
         }
     }
-    let chapters = cfg.chapters.max(1);
     let counts = Counts {
         cells,
         epochs: cfg.iterations,
@@ -331,11 +341,7 @@ fn project(extent: Extent, measure_baseline: bool) -> Projection {
     };
     let per_depth_rows: usize = hist
         .iter()
-        .map(|h| {
-            h.chapters
-                .last()
-                .map_or(0, |&c| h.slots_by_chapter[usize::from(c)])
-        })
+        .map(|h| h.chapters.last().map_or(0, |&c| h.slots_at(c) as usize))
         .sum();
     let per_depth = Residency {
         cells,
@@ -349,7 +355,7 @@ fn project(extent: Extent, measure_baseline: bool) -> Projection {
         timing,
         deep_off_s,
         deep_on_s,
-        today: today,
+        today,
         today_measured_bytes: field.ledgers.footprint_bytes(),
         per_depth,
     }
