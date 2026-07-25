@@ -18,11 +18,26 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
     so `cargo run --example` still prints the full report, and with the libtest harness, so its
     `#[test]`s run in the gate. **One file, one set of measurement functions, two consumers** — no
     library pollution, no duplicated copy to drift (A-1).
-  - **Now gated, 13 tests over 7 probes:** `weathering_profile_probe` (3),
+  - **Now gated, 16 tests over 7 probes, green by name:** `weathering_profile_probe` (3 —
+    `the_fill_geometry_hands_the_front_the_metres_the_record_owes`,
+    `the_eighth_draw_does_not_delete_the_thin_front`,
+    `the_front_is_graded_over_many_voxels_and_never_pure_product`),
     `contents_air_over_solid_probe` (2), `flux_record_probe` (2), `head_field_probe` (2),
     `s18_weathering_tour` (1), `identify_census` (2), `palette_quant_tour` (4, pure-function only).
-  - **Added gate wall-clock: ⟨MEASURED-BELOW⟩**, against a workspace gate that already runs
-    several minutes (dc-worldgen's suite alone is ~870 s). Every world-building test runs at
+  - **The advisory this replaces was falsified in ONE DAY.** After the first `flow_cost_probe`
+    break, CLAUDE.md gained *"re-run the probes by hand after any merge that changes what they
+    measure."* The next day the same probe broke the same way (a missing `head` row after FLOW (a)):
+    **the assertion caught it; the process did not.** Recorded in CLAUDE.md § Gates — *do not
+    answer "the gate cannot see X" with a rule asking people to remember X.*
+  - **Assert invariants, never snapshots.** Both `flow_cost_probe` failures were a *missing row in
+    an itemisation* — wrong at every world size, which is why `Extent::Small` catches this whole
+    class. And no converted test pins a MiB figure: ledger residency moved twice in one afternoon
+    (per-cell struct 13.60 MiB → 0), and a test pinned to yesterday's number would fail **because a
+    colleague improved memory**.
+  - **Added gate wall-clock: 35.0 s, measured** — dc-worldgen's six probes **25.1 s** (contents
+    2.71 · flux 5.34 · head 5.47 · palette 0.00 · s18 6.19 · weathering 3.64) and dc-client's
+    `identify_census` **9.9 s**. **Well under the ~2 min ceiling**, against a workspace gate where
+    dc-worldgen's suite alone is ~870 s. Every world-building test runs at
     **`Extent::Small`** and states in its
     doc comment **why the invariant is scale-free** (a per-voxel predicate; a per-column
     arithmetic; a topological property of the primitive). Production magnitudes stay in the

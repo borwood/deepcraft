@@ -25,6 +25,29 @@ merge — its itemised residency baseline lost track of the flux record, off by
 42.6 MB — and sat green through a full 664-test workspace gate. Not because the
 gate was lenient. Because the gate never executed it.
 
+### The advisory rule was falsified in under 24 hours
+
+The first response to that discovery was an advisory added to CLAUDE.md § Gates:
+*"until that conversion happens, re-run the probes by hand after any merge that
+changes what they measure."* A reasonable-sounding stopgap. It is the kind of
+rule this project writes a lot of.
+
+**It failed the next day, on the same file, in the same way.** journal/0100 had
+caught `flow_cost_probe` missing a `flux` row in its itemisation; one day later —
+with the advisory in place and read — FLOW (a) merged and the probe was missing a
+**`head`** row. Identical defect class, identical blind spot, and the manual
+re-run the rule prescribed did not happen. The sibling who found it put it best:
+
+> **the assertion caught it; the process did not.**
+
+That is a much stronger argument than the original defect, and it is worth
+dwelling on, because "add a rule telling people to remember" is a *very* common
+first instinct and this is a clean controlled experiment against it. The
+assertion was already written. It was correct. It sat in a file the gate refused
+to execute, so the only thing standing between a wrong number and the docs was
+somebody choosing to run a binary. A process step that depends on remembering has
+a failure rate, and here we measured it: **one day.**
+
 The rule that follows is short: **an example that can fail belongs in the gate.**
 The interesting part is *how*, because the obvious answers are both bad. Moving
 the probe's logic into the library pollutes a shipping crate with measurement
@@ -68,6 +91,38 @@ the MiB — remain the example's job at `Extent::Medium`, where they belong. The
 gate checks the claim; the report carries the magnitude. That distinction is the
 whole trick, and it is the reason the conversion cost what it did rather than
 five minutes.
+
+**The `flow_cost_probe` evidence settles the cost objection outright.** Both of
+its failures were a **missing row in an itemisation** — which is wrong at *every*
+world size. Nothing about either defect needed a 25-second production `DeepField`
+to see. That generalises: the defects a probe actually catches are usually
+**structural** (a term dropped, a total that stopped agreeing with its parts, a
+count that went to zero), and structural defects are scale-free. The
+scale-*dependent* facts are the magnitudes, and magnitudes are what the report is
+for.
+
+So, stated explicitly, because "run it smaller" is exactly the kind of shortcut
+that quietly guts a gate:
+
+**Scale-free, and therefore gated at `Extent::Small`:**
+- an itemisation agreeing with its own total, and a bound or ratio on residency —
+  **never a snapshot figure** (a sibling moved the ledger's per-cell struct from
+  13.60 MiB to 0 the same afternoon; a test asserting yesterday's MiB would fail
+  *because a colleague improved memory*, which is a worse defect than the one
+  being fixed);
+- `identify(pos)` never reporting air over solid ground — a per-voxel predicate
+  over a per-voxel fact;
+- the flux record holding a junction a receiver tree cannot represent — a tree's
+  divergence count is identically zero at every scale;
+- the head field filling vertical faces *at all* — that is "is the term wired to a
+  consumer", not "how much";
+- the weathering front's mass identity — one column's arithmetic.
+
+**Production-scale, and therefore deliberately left to the example, named here so
+the omission is a decision and not an oversight:** the residency magnitudes, the
+station coordinates, the band distribution, and `palette_quant_tour`'s search.
+Those are re-run by hand, and when one of them lands in a doc it lands with the
+extent it was measured at.
 
 ### The first run caught something, and it was one of mine
 
@@ -303,6 +358,30 @@ unbiased, and the measurement below is the empirical answer for the joint case;
 but the comment claims a disjointness the arithmetic does not have. Filed rather
 than fixed: changing it moves every contact voxel in the world, and that is the
 user's call.
+
+## What it cost, measured
+
+**35.0 s** added to the gate, for 16 tests over 7 probes:
+
+```
+dc-worldgen examples                       25.1 s
+  contents_air_over_solid_probe   2 tests   2.71 s
+  flux_record_probe               2 tests   5.34 s
+  head_field_probe                2 tests   5.47 s
+  palette_quant_tour              4 tests   0.00 s   (pure functions, no world)
+  s18_weathering_tour             1 test    6.19 s
+  weathering_profile_probe        3 tests   3.64 s
+dc-client example                           9.9 s
+  identify_census                 2 tests   9.08 s
+```
+
+For scale: dc-worldgen's existing test suite alone runs ~870 s. Each binary
+builds its world **once**, behind a `OnceLock` shared by its tests — three tests
+sharing one small world instead of three worlds is most of why the weathering
+probe costs 3.64 s rather than 11.
+
+`cargo fmt --all --check` clean; `cargo clippy --workspace --all-targets --release
+-- -D warnings` clean.
 
 ## Shape compliance
 

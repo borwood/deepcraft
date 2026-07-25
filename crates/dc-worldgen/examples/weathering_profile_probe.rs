@@ -667,7 +667,7 @@ const STRATA_EDGES: [f64; 5] = [1.0, 2.0, 4.0, 8.0, 24.0];
 fn stratum_label(i: usize) -> String {
     match i {
         0 => "      < 1 eighth".into(),
-        k if k <= STRATA_EDGES.len() - 1 => {
+        k if k < STRATA_EDGES.len() => {
             format!(
                 "{:>5.0} – {:<4.0} eighths",
                 STRATA_EDGES[k - 1],

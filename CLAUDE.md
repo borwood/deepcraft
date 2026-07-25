@@ -112,6 +112,12 @@ cargo test --workspace --release
   a full 664-test workspace gate, because the gate never executed it. The rule:
   **an example that can fail belongs in the gate.** A probe nobody runs is a probe
   that is silently wrong, and the numbers it produced are still sitting in the docs.
+  - **"Re-run the probes by hand after a merge" was tried here and FAILED IN ONE
+    DAY.** That advisory was added to this section on 2026-07-25; the next day
+    `flow_cost_probe` broke *again, identically* — a missing `head` row after
+    FLOW (a) merged. **The assertion caught it; the process did not.** Do not
+    answer "the gate cannot see X" with a rule asking people to remember X.
+    Retired in favour of the mechanism below (journal/0103).
   - **The mechanism is `test = true` on the example's Cargo target** (journal/0103).
     ```toml
     [[example]]
@@ -131,6 +137,14 @@ cargo test --workspace --release
     invariant is scale-free** (a per-voxel predicate, a per-column arithmetic, a
     topological property). Keep `Medium` only where the claim is genuinely about
     production scale. Probe conversions report their added gate wall-clock.
+    *Both `flow_cost_probe` failures were a **missing row in an itemisation** —
+    wrong at every world size. The defects probes catch are usually structural,
+    and structural is scale-free; the magnitudes are what the report is for.*
+    Measured: all seven converted probes add **35.0 s** to the gate (journal/0103).
+  - **Assert invariants, never snapshots.** An itemisation equal to its own total;
+    a bound; a ratio. **Not** a MiB figure — ledger residency moved twice in one
+    afternoon, and a test pinned to yesterday's number fails *because a colleague
+    improved memory*, which is worse than the defect it was guarding.
   - **A printed caption is a published claim the gate cannot check.**
     `flux_record_probe` printed *"honestly EMPTY … heirs: the head field"* beside a
     non-zero count for a day after that heir landed. When a slice fills a hole a

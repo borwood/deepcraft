@@ -135,7 +135,7 @@ fn column_height(generator: &Mutex<WorldGenerator<'static>>, vx: i64, vz: i64) -
 
 /// Ask the world both ways at every solid voxel of a lattice of columns.
 fn census(
-    world: &HostWorld,
+    world: &mut HostWorld,
     generator: &Mutex<WorldGenerator<'static>>,
     origin: (i64, i64),
     step: i64,
@@ -189,7 +189,7 @@ fn main() {
     println!("seed {SEED}, extent {}, voxel {VOXEL_M} m", EXTENT.label());
     println!("flag-OFF control (DeepOverrides::default())\n");
 
-    let (world, generator) = wired_world(EXTENT);
+    let (mut world, generator) = wired_world(EXTENT);
     let column_height = |vx: i64, vz: i64| -> i64 { column_height(&generator, vx, vz) };
 
     // ---------------------------------------------------------------- station
@@ -257,7 +257,7 @@ fn main() {
         disagreements,
         per_column,
     } = census(
-        &world,
+        &mut world,
         &generator,
         (vx, vz),
         CENSUS_STEP_VOXELS,
@@ -349,9 +349,9 @@ mod gate {
             // deep-time record never touched, and then "zero phantom air" is
             // trivially true. 9x9 columns at 4 096 voxels (~3.7 km) spans
             // ±14.7 km and crosses provinces.
-            let (world, generator) = wired_world(Extent::Small);
+            let (mut world, generator) = wired_world(Extent::Small);
             let t = census(
-                &world,
+                &mut world,
                 &generator,
                 (0, 0),
                 CENSUS_STEP_VOXELS,
