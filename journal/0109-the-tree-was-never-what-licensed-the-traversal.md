@@ -261,6 +261,71 @@ does nothing.
 
 <!-- WORLD -->
 
+### The Earth mechanism, and the tier it is faithful at
+
+Flow divergence on a real landscape has **two** distinct origins, and until today
+this engine could only produce one of them:
+
+- **Avulsion** — a channel abandons its bed and takes a new one. Sequential, not
+  simultaneous: at any instant there is one channel; over a century there are
+  several beds. This is what builds an alluvial fan's radial pattern and a braid
+  plain's anastomosis, and the receiver tree already produced it, honestly, as an
+  artefact of the terrain moving under the flow between epochs.
+- **Distributary splitting** — the flow physically divides at a node and *both*
+  branches run at once. This is what a delta is. The Mississippi's birdsfoot, the
+  Okavango, the Ganges–Brahmaputra: several channels carrying water in the same
+  season. A single-receiver solve cannot produce it at any resolution, at any
+  cadence, with any threshold, because the primitive is one out-edge.
+
+MFD is the standard, decades-old answer, and the tier it is faithful at should be
+stated honestly: it is a **partition rule on a 460 m grid**, not a hydraulic
+solve. It does not know about levees, bed aggradation at the bifurcation node, or
+the discharge-ratio instability that makes real avulsions episodic rather than
+smooth. What it gets right is the thing the primitive was foreclosing: **where the
+slope field is nearly flat and multi-directional, the water goes several ways at
+once, and the sediment goes with it.** That is enough to make a delta a delta
+rather than a single channel that happens to wander.
+
+### The chain from routing to what you walk on
+
+Routing is upstream of erosion, so the change propagates through the whole
+deep-time ritual, in this order:
+
+1. **Drainage area** is now spread rather than concentrated. Downstream of every
+   near-flat junction, the trunk gets less and the neighbours get more.
+2. **Stream power** is `Q^m · S^n`, so a spread `Q` means **less incision per
+   channel** on the flats and — because the residual has to go somewhere —
+   incision that is *less* concentrated in a single thread.
+3. **Transport capacity** spreads with it, so suspended load is delivered across a
+   fan of cells rather than down one line. Deposition follows.
+4. The **strata record** therefore receives its clastic units over a wider
+   footprint, with more cells receiving *some* sediment and fewer receiving a
+   lot.
+5. **Vegetation** reads the drainage/moisture field, so the biotic layer's valley
+   test sees a different set of cells.
+
+### What a player sees, per axis
+
+- **Landforms.** The headline. Where a river meets a flat — a fan head at a
+  mountain front, the mouth of a valley, a coastal plain — the single incised
+  thread becomes **several shallower ones**. Gorges and mountain valleys should
+  look **unchanged**, and that is a prediction the exponent makes, not a hope:
+  at `p = 4` a 2:1 sidewall-to-channel slope ratio is a 16:1 share ratio, so a
+  gorge stays one thread. **If a walk finds gorges braiding, `p` is too low.**
+- **Strata.** Wider, thinner clastic sheets in the depositional lowlands instead
+  of narrower thicker ones; more cells with *a* fluvial unit in a given chapter.
+  A road-cut on a fan should read as more interbedding, less single-channel fill.
+- **Vegetation.** Follows moisture and valley position, so riparian bands should
+  **widen and fray** at fan and delta positions rather than tracking one line.
+- **Resources.** Placers and any transport-deposited concentration follow the
+  load, so they spread with it — which is the honest physical answer (a real fan
+  *does* scatter its heavy minerals) but it means a prospecting signature that
+  was a line becomes a field.
+
+**This is an appearance change and it is the user's to bless. It needs a walk**,
+and the walk wants a tour-map first: the strongest fan/delta exemplar under MFD,
+and a gorge as the control that must *not* have moved.
+
 ## `recv` after MFD
 
 `recv` is on a retirement path already (continuation (e)), and MFD changes what it
