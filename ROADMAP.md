@@ -3415,7 +3415,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   (a) chapters → strata dip/fold/fault expression in cut faces (the
   "coal seam dead-ends at a fault" line of things-that-will-happen);
   (b) `exhum`/`t_crust` → metamorphic-grade classes — **this half now has its own
-  Sequenced entry: see "METAMORPHISM — the grade axis" below** (one job, three homes;
+  Sequenced entry: see "METAMORPHISM — the grade axis" just above** (one job, three homes;
   consolidated 2026-07-25 by sweep row D-1);
   (c) drainage export (`recv`/`area`/`lake`) → the 3e-2 macro drainage
   consumers — **⚠ note 2026-07-25: those planes are now a DELETION target, not a
@@ -3429,7 +3429,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   Both consumers read the recorded plane; stubs.md § 3 retired whole.)*;
   (b) **consume `exhum`/`t_crust`**, which ship
   explicitly as "the metamorphic-grade axes the collapse tier reads" and are
-  read by nothing — **now owned by "METAMORPHISM — the grade axis" below**
+  read by nothing — **now owned by "METAMORPHISM — the grade axis" just above**
   (2026-07-25, sweep row D-1: this was one job with three ROADMAP homes and no
   Sequenced entry of its own); (c) **derive material FORM** (loose / pore-partial / whole /
   inclusion) from provenance rather than leaving it implicit — sub-voxel facies
