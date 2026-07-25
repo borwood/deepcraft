@@ -21,8 +21,9 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   - **Now gated, 13 tests over 7 probes:** `weathering_profile_probe` (3),
     `contents_air_over_solid_probe` (2), `flux_record_probe` (2), `head_field_probe` (2),
     `s18_weathering_tour` (1), `identify_census` (2), `palette_quant_tour` (4, pure-function only).
-  - **Added gate wall-clock: ≈ 50 s** (measured), against a 664-test workspace gate that already
-    runs several minutes. Every world-building test runs at **`Extent::Small`** and states in its
+  - **Added gate wall-clock: ⟨MEASURED-BELOW⟩**, against a workspace gate that already runs
+    several minutes (dc-worldgen's suite alone is ~870 s). Every world-building test runs at
+    **`Extent::Small`** and states in its
     doc comment **why the invariant is scale-free** (a per-voxel predicate; a per-column
     arithmetic; a topological property of the primitive). Production magnitudes stay in the
     examples at `Extent::Medium`. Each binary builds its world **once** behind a `OnceLock` shared
