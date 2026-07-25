@@ -565,6 +565,13 @@ const WINV_READS_LEG: &[DeepAxis] = &[Diffused, BioMod];
 /// but only as a by-product of the id-lexicographic tie-break; they are now
 /// rename-proof, which is what
 /// `a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename` proves.
+///
+/// **Two more lags are on the TERRAIN plane** (journal/0107), which — unlike
+/// `Recorded` — has several revisions per epoch: `climate` lag-reads
+/// [`DeepAxis::Forced`] (the start-of-epoch topography, before `forcing` touches
+/// it) and `head` lag-reads [`DeepAxis::Incised`] (before `transport` incises it).
+/// Both name the **first** revision after their read point, never the last, which
+/// is what makes one token cover the rest of the chain transitively.
 pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     let mut passes = Vec::new();
 
@@ -1301,7 +1308,9 @@ mod tests {
                 p.id = hostile;
             }
         }
-        let order = DeepSchedule::new(passes).expect("schedulable").ordered_ids();
+        let order = DeepSchedule::new(passes)
+            .expect("schedulable")
+            .ordered_ids();
         let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
         assert!(at("dc:deep/forcing") < at(hostile), "{order:?}");
         assert!(at(hostile) < at("dc:deep/transport"), "{order:?}");

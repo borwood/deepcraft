@@ -7,6 +7,60 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-25 — **`dc:field/head` declares the terrain it reads — the revision AND the writer
+  that supersedes it** (journal/0107; background agent, worktree; **USER-RATIFIED with the
+  consequence attached**: *"it should declare what it reads and we eat it if it changes the
+  physics. The world is a scratch pad right now."*). Closes the ⏳ second half of the Observed
+  entry *"A TIE-BREAK IS DECIDING PHYSICS AGAIN"* (journal/0104 closed the first).
+  `dc:field/head` declared `reads: [Routed]` while its body built the ground surface `R+H` via
+  `grid.surf_at` and handed it to the solve as its **seepage cap, lake datum and free-surface
+  boundary** — so which terrain revision it saw was the id tie-break's call, and the old
+  defence (*"its position never affects the terrain"*) answered the wrong question: it affects
+  **the head field's own values**, and the vertical flux recorded from them.
+  - **The revision is `Forced`, in every cfg path** — determined from the code: between
+    `forcing` and `transport` the roster runs only `drainage`/`frost`/`geotherm`, none of which
+    mutates `R`/`H` (on the tectonic path `apply_thickening` grows `t_crust` alone). It is also
+    the revision the pass **should** read: `filled`, `routed` and `area` are snapshots
+    `build_surface` took from that same terrain, so a later `ground` would put the seepage cap
+    and the free-water anchors on two different landscapes. No cfg-selected slices needed.
+  - **The audit's own prescription — *"declaring `Forced` is free, and it pins it"* — was HALF
+    WRONG, and the ROADMAP's *"verify that claim before trusting it"* is what caught it.** A
+    `reads` edge on a revision token orders you after its *producer* and says nothing about the
+    pass that overwrites the same plane next — that pass writes a **different token**. Every
+    erosion pass is braced on the far side by a forward edge into the stages after it; a
+    **sidecar** has none and floats.
+  - **The fix is the PAIR, plus the chain's missing link.** `dc:deep/transport` mutated `R`/`H`
+    while declaring only its `Energy`/`DeltaH` by-products, so nothing named the moment the
+    ground surface first changes each epoch. **`DeepAxis::Incised`** closes that hole
+    (`transport` writes, `weather` reads); `head` now declares `reads: [Routed, Forced]` **and**
+    `reads_prev: [Recorded, Incised]` — after the writer that produced its terrain, before the
+    writer that supersedes it. **Generalisation worth keeping:** where a plane has several
+    revisions per epoch, declaring the revision you consume pins **one side only**; pin the
+    other with an anti-dependency on the **next** revision (never the last).
+  - **`dc:deep/climate`'s terrain lag declared too** (owed by journal/0104): `reads_prev:
+    [Forced]` — the **first** revision of the epoch, ONE slice, no cfg selection. The obvious
+    three-slice version (`Settled`/`Compensated`/`Diffused`) would pin strictly less, leaving
+    climate free to slide past `forcing` and `transport`.
+  - **NOTHING MOVED, and the slice was authorised to move things.** Pass order byte-unmoved,
+    all 17: `climate · expose · tectonics · forcing · drainage · frost · geotherm · head ·
+    transport · flow_record · weather · diffuse · isostasy · deposition · eolian · wave ·
+    biotic`. Neutrality **proven directly, not by appeal to a hash** —
+    `the_terrain_revision_declarations_are_schedule_neutral` rebuilds five rosters with the
+    pre-slice declarations and asserts the order is identical. Vertical-flux record re-measured
+    against the journal/0098 baselines (`examples/head_field_probe.rs`, seed 1337,
+    `Extent::Medium`, run before and after within the hour): **307,364 entries · 306,227 DOWN /
+    1,137 UP · 131,586 columns (44.301 %) · magnitude mean 0.501013 / p95 0.720093 / max 10.0 ·
+    60 artesian (max excess 2.935 m) · 1,044 confined — every figure identical.** Terrain
+    byte-identity held.
+  - **The rename-proof guarantees.** `a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename`
+    picks up the `Incised` side (and `climate`, now a lagged reader too); the `Forced` side gets
+    its own — `dc:deep/aaa_head` would win the tie-break against `dc:deep/forcing` and still
+    cannot be scheduled ahead of it. Plus
+    `the_head_field_is_pinned_into_the_terrain_revision_it_reads` across four configs.
+  - **Why it is capabilities work:** a self-declaring pass's declaration is what a WASM sandbox
+    will be built out of — reads become the capability grant. A pass that can reach a plane it
+    never named has a hole in its sandbox, not a documentation defect.
+
 - 2026-07-25 — **`reads_prev` is a mechanism: the anti-dependency edge in `passgraph`**
   (journal/0104; background agent, worktree; **USER-RATIFIED** as option (a) of the Observed
   entry *"A TIE-BREAK IS DECIDING PHYSICS AGAIN"*, now struck through below). `DeepPass::reads_prev`
@@ -3502,7 +3556,17 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **OWED (small) — `dc:deep/climate`'s lagged terrain read is undeclared** (found by the
+- ~~**OWED (small) — `dc:deep/climate`'s lagged terrain read is undeclared**~~ **✅ DONE
+  2026-07-25 (journal/0107), in the head-declaration slice as predicted — *"worth doing the
+  next time that file is open"*.** Declared **`reads_prev: [Forced]`**, and the three
+  cfg-selected slices this entry expected turned out to be **the wrong shape**: lagging against
+  the *last* terrain revision (`Settled`/`Compensated`/`Diffused`) pins strictly **less** than
+  lagging against the **first**, because it would leave `climate` free to slide past `forcing`
+  and `transport`. One token, one slice, no cfg selection, and the whole chain covered
+  transitively. Schedule-neutral, proven by
+  `the_terrain_revision_declarations_are_schedule_neutral`. *(Original entry below, for the
+  record.)*
+- **OWED (small, as diagnosed) — `dc:deep/climate`'s lagged terrain read is undeclared** (found by the
   journal/0104 `reads_prev` audit, 2026-07-25; deliberately not changed by that slice, whose
   mandate was the mechanism, not the declarations). `climate` declares `reads_prev: &[]` while
   its own comment (`runner.rs`) says it reads the **start-of-epoch topography**. That is a real
@@ -3570,9 +3634,19 @@ before any code.
     is no declaration channel that binds. The honest fix is a **mechanism** — a
     reader-before-writer **anti-dependency edge** in `passgraph`, so a lagged read is
     ordered, not merely annotated.
-  - **⏳ STILL OPEN — second, smaller, and fixable today: `dc:field/head` UNDER-DECLARES.**
-    *(Deliberately NOT taken by the 0104 slice: it touches a default-on pass and can move
-    recorded output, which is its own slice with its own flux-record comparison.)* `reads:[Routed]`
+  - ~~**⏳ STILL OPEN — second, smaller, and fixable today: `dc:field/head` UNDER-DECLARES.**~~
+    **✅ DONE 2026-07-25 — journal/0107, user-ratified with the consequence attached.** The
+    revision is **`Forced`** in every cfg path, and declaring it turned out to be **only half
+    the fix**: a `reads` edge on a revision token pins you after its *producer* and says nothing
+    about the pass that overwrites the same plane next (a different token = a different
+    resource). So `dc:deep/transport`'s undeclared terrain mutation got its name
+    (`DeepAxis::Incised`) and `head` declares the **pair** — `reads: [Routed, Forced]` +
+    `reads_prev: [Recorded, Incised]`. **The auditor's *"declaring `Forced` is free, and it
+    pins it"* was half wrong, and the *"verify that claim before trusting it"* below is what
+    caught it.** Flux record byte-identical to journal/0098 on every figure; pass order
+    unmoved; `dc:deep/climate`'s lag declared in the same slice. Full detail in the Shipped
+    entry. *(The paragraph below is the original diagnosis, kept for the record.)*
+  - **The hole (as diagnosed).** `reads:[Routed]`
     (`runner.rs:605`) does not cover the ground surface `R+H`, which the body builds via
     `grid.surf_at` (`runner.rs:428-430`) and the solve uses as its **seepage cap, lake datum
     and free-surface boundary** (`head.rs:434-467`). Which terrain revision it sees is again
@@ -3583,8 +3657,6 @@ before any code.
     moves which revision it reads, the **recorded flux changes** and that is a world change
     needing a walk. Acceptance: declare it, prove the flux record byte-identical; **if it
     moves, STOP.**
-  - *Deliberately not dispatched while the user is away: it touches a default-on pass and
-    could move recorded output.*
 
 - **`DeepField::chapters` — built, exported, and called by nothing** (spine-audit
   2026-07-25; `field.rs:367`, populated `:421`). Its own doc comment has said *"today the

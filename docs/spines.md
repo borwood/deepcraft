@@ -21,9 +21,10 @@ the `R`/`H` views, `fits_in_pores`, `bound_eighths`/`is_occupancy_solid`,
 vocabulary all re-confirmed. **Three findings:** `dc:deep/head` under-declares (S-6,
 below) and its `reads_prev` is pinned by nothing because **`reads_prev` is consumed by
 no mechanism at all** — it appears in `runner.rs` and nowhere else in `crates/`
-(**that second finding is now CLOSED — journal/0104 gave the kernel the
-anti-dependency edge; the `dc:deep/head` under-declaration of its LIVE reads remains
-open**);
+(**both findings are now CLOSED — journal/0104 gave the kernel the anti-dependency
+edge, and journal/0107 closed the `dc:deep/head` under-declaration of its LIVE reads;
+note this sweep's own prescription for the latter, "declaring `Forced` is free and it
+pins it", was HALF WRONG — see S-6**);
 `dc:deep/flow_record` by contrast is **honest**. An expired caption in
 `flux_record_probe.rs` (A-2). And, outside this file's remit but reported to the
 integrator: **all four in-code `stubs.md #19` markers are stale** — they were written
@@ -404,17 +405,41 @@ files.
      `erosion.current_chapter()` is the chapter stamp `tectonics` writes
      (`DeepAxis::Forcing`) and no pass that reads it declares it. Transitively
      ordered, so not behavioural — but it is a project-wide idiom, not an exception.
-  2. **`dc:deep/head` UNDER-DECLARES its within-epoch reads.** `reads: [Routed]`
-     (`runner.rs:605`) covers `filled`/`routed_surface`/`area`. It does **not** cover
-     the ground surface `R + H`, which the body builds from `grid.surf_at`
-     (`runner.rs:428-430`) and the solve uses as its seepage cap, its lake datum and
-     its whole free-surface boundary (`head.rs:434-467`). *Which terrain revision it
-     sees* — `Forced`, today — is decided by where the id-tie-break drops it, and the
-     golden-order test says so in its own words: *"among the ready pool the
-     id-tie-break places `dc:deep/head` after `geotherm` and before `transport`"*
-     (`runner.rs:859-865`). The comment's defence, "its position never affects the
-     terrain", is true and is **not the question**: it affects the field's own values.
-     Declaring `Forced` is free and pins it.
+  2. ~~**`dc:deep/head` UNDER-DECLARES its within-epoch reads.**~~ **CLOSED
+     2026-07-25 (journal/0107), user-ratified with the consequence attached.**
+     `reads: [Routed]` covered `filled`/`routed_surface`/`area` and **not** the
+     ground surface `R + H`, which the body builds from `grid.surf_at` and the solve
+     uses as its seepage cap, its lake datum and its whole free-surface boundary
+     (`head.rs:434-467`). The comment's defence, *"its position never affects the
+     terrain"*, was true and was **not the question**: it affects the field's own
+     values, and the vertical flux recorded from them. **The revision is `Forced`,
+     in every cfg path** — nothing between `forcing` and `transport` mutates `R`/`H`
+     — and it is also the revision the pass *should* read, because `filled`,
+     `routed`, `area` and `ground` must describe one landscape or the seepage cap
+     and the free-water anchors sit on two.
+     - **This entry's own prescription — *"declaring `Forced` is free and pins
+       it"* — was HALF WRONG, and the ROADMAP's *"verify that claim before trusting
+       it"* is what caught it.** Free: yes. Pins it: **no.** A `reads` edge on a
+       revision token orders you after the pass that *produced* it and says nothing
+       about the pass that overwrites the same plane next, because that pass writes a
+       **different token** — a different resource to the graph. Every erosion pass
+       survives this because a forward edge into the stages after it braces the far
+       side; a **sidecar** (writes only its own field, its one reader downstream of
+       the terrain anyway) has no brace and floats.
+     - **The fix is the PAIR:** `reads: Forced` (after the writer that produced it)
+       **plus** `reads_prev: Incised` (before the writer that supersedes it). And a
+       new axis: `dc:deep/transport` mutated `R`/`H` while declaring only its
+       `Energy`/`DeltaH` by-products, leaving the revision chain with a hole exactly
+       where the ground surface first changes each epoch. `DeepAxis::Incised` closes
+       it (`transport` writes, `weather` reads, `head` lag-reads).
+     - **The generalisation:** where one plane has several revisions per epoch,
+       *declaring the revision you consume pins one side only*. Pin the other with an
+       anti-dependency on the **next** revision of that plane — the next, never the
+       last, or you leave yourself free to slide past every writer before it.
+     - **Schedule-neutral, proven directly** by
+       `the_terrain_revision_declarations_are_schedule_neutral` (five rosters rebuilt
+       with the pre-slice declarations, order identical), and the vertical-flux record
+       is unmoved to the entry: 307,364 entries, 44.301 % of cells, 60 artesian.
   3. ~~**The systemic hole: `reads_prev` is declared, typed, documented — and consumed
      by nothing.**~~ **CLOSED 2026-07-25 (journal/0104)** — the fix flagged here is the
      one that shipped. It appeared in `runner.rs` and in no other file in `crates/`;
@@ -452,9 +477,14 @@ files.
   readers) pointed from a pass already ahead of its target, i.e. the physics was right
   and merely unenforced, which is the outcome this spine exists to produce. `pipeline.rs` hands `reads_prev: &[]`
   *structurally*, not as a placeholder: a one-shot DAG has no previous value.
-  **Residual (ROADMAP Owed):** `dc:deep/climate`'s lagged terrain read is still
-  undeclared — harmless, because a true forward edge (`forcing` reads `Climate`) already
-  pins it ahead of every terrain writer, but it is an under-declaration.
+  ~~**Residual (ROADMAP Owed):** `dc:deep/climate`'s lagged terrain read is still
+  undeclared.~~ **CLOSED 2026-07-25 (journal/0107): `reads_prev: [Forced]`** — an
+  anti-dependency against the **first** terrain revision of the epoch, one slice, no
+  cfg selection. The obvious declaration (the *last* revision — `Settled` /
+  `Compensated` / `Diffused`, three cfg-selected slices) would pin strictly less: it
+  would leave `climate` free to slide past `forcing` and `transport`. Lag against the
+  first writer and the rest of the chain is covered transitively. Schedule-neutral by
+  construction (`climate → forcing` is already a true forward edge) and proven so.
 - members canonically ordered by namespaced id (geology.md)
 - patch plugins: declared order, last-in-order wins, **recorded in world
   identity** (DECIDED 2026-07-22)
