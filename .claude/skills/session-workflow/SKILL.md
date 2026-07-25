@@ -693,3 +693,38 @@ timeout is not a red gate, and must never be recorded as one, but it is equally 
 
 **Corollary:** never read a killed run as evidence in either direction. Check how far it got
 (the staged log makes this trivial), then finish the missing stage.
+
+## Walks: Claude drives the whole loop (user-directed, 2026-07-25, emphatic)
+
+Recorded in CLAUDE.md § Agent walks as the canonical loop; repeated here because this skill
+is what a session reads when planning a milestone. **The user does not launch the game and
+does not teleport themselves** — *"the tooling is very clunky / near impossible for a human
+right now."*
+
+**Claude launches → teleports → measures → screenshots → briefs → PAUSES for the user →
+moves to the next station on their word.** Never hand the user a command to run or
+coordinates to type. Offering ("I'm happy to drive") is not the same as doing; when a walk
+is owed and the user says go, **launch it**.
+
+**Tour-map before spending live time.** A headless probe that finds each signature's
+strongest exemplar and prints coordinates costs one background agent; a walk with nothing to
+look at costs the user's session. The 2026-07-25 coal walk was cancelled before launch
+because the tour map found **zero coal on the shipped world** — and that null was the most
+valuable result of the day (corrections #51). **Brief a null honestly; never launch anyway
+to have something to show.**
+
+## The current world output is a SCRATCH SHEET, not a target (user, 2026-07-25)
+
+*"We do not care about the current arbitrary state of the world, do not hold the current
+shape to a teleology. It is a scratch sheet while we build a world-building engine."*
+
+So: **a correct fix is not blocked by the fact that it moves every voxel.** Goldens are a
+**regression detector** — they answer *"did this change what I expected it to change?"* —
+and they are **not a specification of what the world should look like**. When a change is
+right, move the goldens and say what moved and why; do not preserve an arbitrary output for
+its own sake, and do not water down a fix to keep a hash stable.
+
+The discipline that still binds: **byte-identity is the acceptance test for a conversion**
+(a re-housing must not change behaviour), and any *deliberate* output change is an
+appearance change — walk-gated, the user's to bless. The rule above frees us from
+preserving accidents; it does not license unannounced ones.

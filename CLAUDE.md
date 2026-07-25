@@ -166,6 +166,37 @@ cargo test --workspace --release
 
 ## Agent walks
 
+### THE WALK LOOP — CLAUDE DRIVES, ALWAYS (user-directed, 2026-07-25, emphatic)
+
+**The user does NOT launch the game and does NOT teleport themselves.** *"The tooling is
+very clunky / near impossible for a human right now."* Never ask them to run a command,
+never hand them coordinates to type, never wait for them to get somewhere. **When it is
+walk time, Claude does all of it.** The loop, every time:
+
+1. **Claude launches the game** — `cargo run --release -p dc-client -- <flags>` from the
+   repo root, with the flags the question needs (`--fullbright` for material questions,
+   `--edges` for geometry legibility, plus any feature flag such as
+   `--weather-inventory`). Respect the one-cargo-at-a-time rule; take the build slot.
+2. **Claude teleports the player to station 1** (`client_player_pose_set`, `surface: true`
+   for walker-safe placement), and **checks `eye_in_solid` before trusting anything**.
+3. **Claude takes the objective measurements** if the station needs them —
+   `world_get_contents` (never `scan_region` for material questions), a bench cut via
+   `world_fill`, whatever the question requires.
+4. **Claude takes the screenshot** (`client_screenshot`, bare lowercase slug named for the
+   journal entry it belongs to).
+5. **Claude briefs the station and PAUSES** — what the sim did here, the number, the owning
+   knob, and what to look for. **Then it waits for the user to poke around and give a
+   verdict.** The user's live view is senior to the screenshot read.
+6. **On their word, move to the next station** and repeat. Record each verdict per station,
+   in the same session.
+
+**Tour-map first, always.** Before spending any of the user's game time, run a headless
+probe that finds the strongest exemplar of each signature and prints coordinates. A walk
+that turns out to have nothing to look at is a walk that should never have been launched —
+the 2026-07-25 coal walk was cancelled by a tour map that found **zero coal on the shipped
+world**, which cost one background probe instead of a live session (corrections #51).
+**A null from the tour map is a result; brief it honestly rather than launching anyway.**
+
 - Connect: run the game (`cargo run --release -p dc-client` from repo root),
   MCP at `http://127.0.0.1:7777/mcp` (streamable HTTP).
 - **Testing anything non-shader-related? Launch with `--fullbright`** —
