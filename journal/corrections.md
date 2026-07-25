@@ -1698,3 +1698,53 @@ calibrated on warm worlds fell off a cliff on a cold one.
    be calibrated again"* (user, 2026-07-24). That was correct guidance about **effort**, and it is
    **not** a licence for the calibration to go unverified on the shipped world. Cheap-to-check and
    not-worth-tuning are different things.
+
+## 52. "Reusing the fill draw's bits here would correlate the two decisions into a visible pattern" (`collapse.rs::pore_rider_share`, journal/0099 — falsified 2026-07-25, journal/0105)
+
+**The claim.** `pore_rider_share` justified its offset with: *"The offset is a **low digit** of the
+voxel's own fill draw, not its high bits: `allocate_partial` consumes the high end, and reusing it
+here would correlate 'this band won an extra eighth' with 'the product won an extra eighth of it'
+into a visible pattern."* journal/0103 falsified the **premise** (the "low digits" are inside the
+twenty bits the allocation consumes — ROADMAP Observed). This entry falsifies the **consequence**.
+
+**The coupling was total.** Over 464,521 real rider decisions on the production weathering world,
+the pore offset was **100.00 % predictable** from bits 8–10 of the allocation's offset — not
+correlated, a *deterministic function*, zero conditional entropy.
+
+**And it produced nothing the comment predicted.** Residual-vs-residual between the two decisions:
+`r = +0.0006`. Mutual information 0.0609 bits against a **measured** estimator floor of 0.0610.
+The dither's entropy conditioned on `(band, what the allocation did)`: **2.999 of 3.000 bits**.
+Spatially — the actual meaning of "a visible pattern" — a 32×32 contact plane sharing one record
+and one fill plan has **every** autocorrelation at lags 1–4 inside ±0.07 of zero, before and after
+the fix, and same-sign run lengths of 1.889 vs 1.947 against 2.000 for no structure.
+
+**The mechanism.** The allocation's decision is a *contiguous interval* in its 20-bit offset (a
+material wins an extra eighth when the offset lands inside a window as wide as its fractional
+remainder). Bits 8–10 are a **fast sawtooth** across that space, cycling all eight values every
+2,048 of 1,048,576 counts — so conditioning on the allocation's interval leaves the pore offset
+uniform unless a band's remainder is under 0.2 % of an eighth, which no real contact is. **The
+shared bits were the wrong bits to matter.** Additionally, two decisions at *one* voxel cannot make
+structure *between* voxels: both offsets are functions of a position hash, so both fields are white
+noise, and "banding" was never a shape this defect could take.
+
+**The harm was real and somewhere else.** The same `u` served **every band in the voxel**, and a
+weathering front puts several thin bands of one parent in one contact voxel. Sibling riders
+therefore rounded in lockstep — `r = +0.4878` over 187,701 pairs — and their errors **added**
+instead of cancelling: a multi-band voxel's total product carried **1.488×** the second moment
+independent roundings give. Nobody had written a comment about that, so nothing expired; it was
+simply never checked.
+
+**Lessons.**
+1. **A justification that names a consequence is a testable claim — test it, in both directions.**
+   This one was wrong about its mechanism and right about its outcome, which is the combination
+   most likely to survive review forever.
+2. **Chase a wrong justification even when its stated harm turns out to be nil.** Looking for the
+   harm the comment named is the only reason the harm it did not name was found.
+3. **"Visible" is a spatial claim and needs a spatial instrument.** ROADMAP had filed *"cheap next
+   step: a fullbright walk looking for banding"*; that walk would have returned a null from an eye
+   on a signature structurally incapable of existing, and a null from the wrong instrument proves
+   nothing (corrections #18/#19). An autocorrelation over a contact plane can distinguish "no
+   banding" from "banding I did not notice"; a screenshot cannot.
+4. The durable fix was not a corrected comment but a **mechanism that makes the claim unnecessary**
+   — the `Domain`/`Draws` provider, where disjointness is a compile-time property rather than an
+   assertion in prose (journal/0105).

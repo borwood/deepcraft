@@ -225,7 +225,10 @@ mod tests {
     fn a_stream_is_a_pure_function_of_seed_domain_and_address() {
         let a = Draws::of::<GeoFill>(9);
         assert_eq!(a.unit(&[1, 2, 3]), Draws::of::<GeoFill>(9).unit(&[1, 2, 3]));
-        assert_ne!(a.unit(&[1, 2, 3]), Draws::of::<GeoFill>(10).unit(&[1, 2, 3]));
+        assert_ne!(
+            a.unit(&[1, 2, 3]),
+            Draws::of::<GeoFill>(10).unit(&[1, 2, 3])
+        );
         assert_ne!(a.unit(&[1, 2, 3]), a.unit(&[1, 2, 4]));
     }
 }

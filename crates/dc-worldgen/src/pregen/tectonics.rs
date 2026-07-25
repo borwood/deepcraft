@@ -68,7 +68,9 @@ pub fn build(seed: u64, w: i32) -> CellGrid {
                 }
             }
             let disc_d = ((cx - center).powi(2) + (cy - center).powi(2)).sqrt();
-            let noise = Draws::of::<CellDomain>(seed).unit(&[gx as u64, gy as u64]).mul_add(2.0, -1.0);
+            let noise = Draws::of::<CellDomain>(seed)
+                .unit(&[gx as u64, gy as u64])
+                .mul_add(2.0, -1.0);
             let continental = plates[plate].continental && disc_d < ocean_r;
             let (mut elev, mut provenance) = if continental {
                 (260.0 + 140.0 * noise, Provenance::Craton)

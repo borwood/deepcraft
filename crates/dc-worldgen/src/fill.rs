@@ -66,8 +66,8 @@ use dc_core::materials::geology::{
 use dc_core::{StructureShape, VoxelContents};
 use dc_sim::statistical::rng::Draws;
 
-use crate::geology::StrataRec;
 use crate::draws::{GeoFill, GeoPore};
+use crate::geology::StrataRec;
 
 /// Eighths in a voxel.
 const EIGHTHS: u64 = 8;

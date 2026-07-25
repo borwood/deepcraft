@@ -833,14 +833,25 @@ mod gate {
 
     use std::sync::OnceLock;
 
-    const GATE_CHUNKS: usize = 8;
+    /// Four chunk-columns — 4,096 voxel columns, tens of thousands of
+    /// decisions. The claims are per-decision, so this is about having a
+    /// population, not about world scale.
+    const GATE_CHUNKS: usize = 4;
 
+    /// **[`Extent::Medium`], and `Small` was tried first.** CLAUDE.md § Gates
+    /// asks for the smallest extent that still exercises the invariant; here
+    /// that is Medium, **measured**: at `Extent::Small` this census finds
+    /// **zero** buried `Mixed` voxels carrying a loose pore rider (the small
+    /// world's fronts land in the surface partial or in `Single` voxels), and a
+    /// gate with no samples asserts nothing. The **invariant** is still
+    /// scale-free — every claim below is about one voxel's two draws — Small
+    /// simply cannot show it one.
     fn gate_census() -> &'static Census {
         static CENSUS: OnceLock<Census> = OnceLock::new();
         CENSUS.get_or_init(|| {
-            let pregen = production_world(Extent::Small);
+            let pregen = production_world(Extent::Medium);
             let chunks = census_chunks(&pregen, GATE_CHUNKS);
-            assert!(!chunks.is_empty(), "no banded cell on the small world");
+            assert!(!chunks.is_empty(), "no banded cell anywhere");
             let c = measure(&pregen, &chunks);
             assert!(
                 c.decisions >= 500,
@@ -896,8 +907,14 @@ mod gate {
              that this instrument cannot see the coupling it exists to bound",
             c.sibling_pairs
         );
+        // The control, not the claim: the retired formula must still show the
+        // coupling on this data, or the before/after is meaningless. The bound
+        // is loose on purpose — the exact figure depends on the sampled bands'
+        // `cnt·k8 mod 8` mix (0.465 at four chunk-columns, 0.488 at the
+        // production forty-eight) — but the *decorrelated* number is ~0.000, so
+        // anything in this neighbourhood distinguishes them decisively.
         assert!(
-            c.r_sibling_old > 0.5,
+            c.r_sibling_old > 0.3,
             "the retired formula correlates siblings at r = {:+.3} — the control this test \
              measures against has stopped reproducing it",
             c.r_sibling_old

@@ -48,14 +48,9 @@ use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
 use crate::fill::{
     ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
 };
-use crate::geology::{
-    StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member,
-};
+use crate::geology::{StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member};
 use crate::pipeline::PipelineError;
-use crate::pregen::{
-    CELL_VOXELS, Pregen, Provenance,
-    temp_sea_level,
-};
+use crate::pregen::{CELL_VOXELS, Pregen, Provenance, temp_sea_level};
 
 /// Lattice level whose spacing is one region (8 192 voxels, 7.37 km).
 pub const L_REGION: u8 = 1;
@@ -1164,7 +1159,8 @@ impl<'a> WorldGenerator<'a> {
                     ),
                 ),
             };
-            let u = Draws::of::<Elev>(self.seed).unit(&[u64::from(level), i as u64, j as u64])
+            let u = Draws::of::<Elev>(self.seed)
+                .unit(&[u64::from(level), i as u64, j as u64])
                 .mul_add(2.0, -1.0);
             (
                 parent.0 + u * parent.1 * AMP_DECAY.powi(i32::from(level)),
@@ -1599,8 +1595,8 @@ impl<'a> WorldGenerator<'a> {
                 let px = s.x + (r * ang.cos()) as i64;
                 let pz = s.z + (r * ang.sin()) as i64;
                 if px >= vx0 && px < vx0 + 32 && pz >= vz0 && pz < vz0 + 32 {
-                    let h =
-                        2 + (Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 2]) * 2.0) as u8;
+                    let h = 2
+                        + (Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 2]) * 2.0) as u8;
                     posts.push(((px - vx0) as u8, (pz - vz0) as u8, h));
                 }
             }
@@ -2100,8 +2096,7 @@ mod tests {
     ///    surface would make every column identical.
     #[test]
     fn surface_voxel_routes_through_columnfill_per_voxel() {
-        use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
-use crate::fill::{ColumnFill, Plan};
+        use crate::fill::{ColumnFill, Plan};
         use dc_core::VoxelContents;
         let pregen = Pregen::run(WorldParams {
             seed: 1337,

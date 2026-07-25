@@ -39,9 +39,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::ledger::{AppendOutcome, Aspect, Fact, Ledger, LedgerError, Subject, Value};
 use super::rng::{Domain, Draws, Pcg32, draw_f64};
-use super::world::{
-    AgentId, AgentState, RegionId, Tick, ToyWorld, domains,
-};
+use super::world::{AgentId, AgentState, RegionId, Tick, ToyWorld, domains};
 
 /// Tuning knobs for a query/collapse.
 #[derive(Debug, Clone, Copy)]

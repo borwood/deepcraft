@@ -276,7 +276,8 @@ error. And it **moved out of `collapse.rs` into `fill.rs`**, beside
 `allocate_partial` — the two quantizers of one voxel are checkable at a glance
 only when they are on one screen.
 
-The claims are now gated, and the gate carries its own control. In `draws.rs`:
+The claims are now gated, and the gate carries its own control (**+25.2 s of
+gate wall-clock**, four chunk-columns of a Medium world). In `draws.rs`:
 two domains at the same address correlate at `|r| < 0.03` and agree to three bits
 at chance. In `fill.rs`, over 40,000 real voxel addresses: **no** 3-bit window
 anywhere in the fill offset predicts the pore offset better than chance, and
@@ -328,8 +329,15 @@ the user's"*), and the weathering front is the only producer of a *loose* pore
 rider. So on the world every golden hashes there is **no pore-rider decision at
 all** — the arm never executes. Measured, not inferred, by running the same
 census on the same chunk-columns of the same seed with the flag off (Part 5 of
-the probe): the flag-on world makes 464,521 rider decisions there; the shipped
-default makes **zero**.
+the probe):
+
+```
+weather_inventory OFF (the shipped flip):        0 rider decisions in  54,272 Mixed voxels of 1,950,720 recorded
+weather_inventory ON  (this probe's world): 464,521 rider decisions in 314,368 Mixed voxels of 2,700,288 recorded
+```
+
+Fifty-four thousand contact voxels on the default world, and **not one of them**
+makes the decision this slice is about.
 
 This is corrections #51's shape again — *"the shipped world has ZERO coal; the
 guard runs on a world nobody ships"* — and it is now twice in two days that a
@@ -354,6 +362,23 @@ weathering number in the corpus was measured — the size of the move is:
   renderer already draws, at a contact it already drew, in a field that was white
   noise before and is white noise after. The world is not different to look at;
   it is differently right.
+
+## A note on the shared build cache, because it bit four times
+
+Every one of those runs happened in a worktree sharing one `CARGO_TARGET_DIR`
+with three sibling agents, and **four separate times** the example's test target
+compiled against a *sibling's* rlib rather than this worktree's — once resolving
+`dc_worldgen` against a stale sibling copy (the give-away was a compiler
+diagnostic pointing at `fill.rs:331`, a line number from a file where the item in
+question is at 421), and once, after a `cargo clean -p dc-worldgen`, resolving
+this worktree's `dc-worldgen` against a **sibling's `dc-sim`** — which of course
+does not contain `draw_domains!`, so thirty errors said the macro did not exist
+while it sat on screen. corrections #34 predicts exactly this; the operational
+lesson is sharper than the entry currently states: **`cargo clean -p` must name
+every crate in the changed dependency chain, not just the one you edited**, and a
+compiler error whose *line numbers do not match your file* is the signature to
+look for. Also: the file-mutex is real but not sufficient — a sibling clobbered
+the lock file mid-run at 09:22, which is why re-reading it is in CLAUDE.md.
 
 ## What this cost to find
 

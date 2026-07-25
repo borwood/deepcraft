@@ -41,7 +41,6 @@ pub const CELL_CHUNKS: i64 = 512;
 /// Voxels per coarse-cell edge (2^14).
 pub const CELL_VOXELS: i64 = CELL_CHUNKS * 32;
 
-
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Extent {

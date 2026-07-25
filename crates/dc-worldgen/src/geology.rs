@@ -38,9 +38,7 @@ use dc_sim::statistical::rng::{Domain, Draws};
 
 use crate::deeptime::providers::PaleoUnit;
 use crate::deeptime::recorder::{Aridity, Biofacies, DepEnv, DepTag, DepUnit, EnergyBand};
-use crate::pregen::{
-    Provenance,
-};
+use crate::pregen::Provenance;
 
 /// One deposition event: the selected member, its per-column thickness, and
 /// the formation context it was deposited under. It carries two **riders** —
@@ -294,7 +292,13 @@ pub fn igneous_pass(ctx: &mut StrataCtx) {
         )
     {
         let t = f64::from(INTRUSIVE_TOP_VOX) * ctx.voxel_m;
-        ctx.push(member, t, <crate::draws::GeoSelect as Domain>::SALT, 0, INTRUSIVE_DEPTH_M);
+        ctx.push(
+            member,
+            t,
+            <crate::draws::GeoSelect as Domain>::SALT,
+            0,
+            INTRUSIVE_DEPTH_M,
+        );
         let idx = ctx.strata.events.len() - 1;
         emplace_accessory(ctx, idx, INTRUSIVE_DEPTH_M, 0);
     }
@@ -305,8 +309,16 @@ pub fn igneous_pass(ctx: &mut StrataCtx) {
             ctx.draw(<crate::draws::GeoSelect as Domain>::SALT, 1),
         )
     {
-        let thickness = f64::from(2 + (ctx.draw(<crate::draws::GeoThick as Domain>::SALT, 1) * 3.0) as u8) * ctx.voxel_m;
-        ctx.push(member, thickness, <crate::draws::GeoSelect as Domain>::SALT, 1, 5.0);
+        let thickness =
+            f64::from(2 + (ctx.draw(<crate::draws::GeoThick as Domain>::SALT, 1) * 3.0) as u8)
+                * ctx.voxel_m;
+        ctx.push(
+            member,
+            thickness,
+            <crate::draws::GeoSelect as Domain>::SALT,
+            1,
+            5.0,
+        );
         let idx = ctx.strata.events.len() - 1;
         emplace_accessory(ctx, idx, 5.0, 1);
     }
@@ -519,8 +531,17 @@ fn emplace_weathering_front(ctx: &mut StrataCtx) {
         precip: ctx.precip,
         depth_m,
     };
-    let draw =
-        |tag: u64| interp_select_draw(ctx.seed, <crate::draws::GeoDeep as Domain>::SALT, tag, ctx.cx, ctx.cz, 0.5, 0.5);
+    let draw = |tag: u64| {
+        interp_select_draw(
+            ctx.seed,
+            <crate::draws::GeoDeep as Domain>::SALT,
+            tag,
+            ctx.cx,
+            ctx.cz,
+            0.5,
+            0.5,
+        )
+    };
     let Some((product, _)) = ctx
         .geology
         .select(CLASS_CLASTIC_FINE, &form, draw(FRONT_TAG_PRODUCT))
@@ -554,7 +575,12 @@ fn emplace_weathering_front(ctx: &mut StrataCtx) {
             .geology
             .select(CLASS_IGNEOUS_INTRUSIVE, &form, draw(FRONT_TAG_PARENT))
         {
-            Some((m, _)) => (m, <crate::draws::GeoDeep as Domain>::SALT, FRONT_TAG_PARENT, depth_m),
+            Some((m, _)) => (
+                m,
+                <crate::draws::GeoDeep as Domain>::SALT,
+                FRONT_TAG_PARENT,
+                depth_m,
+            ),
             None => {
                 ctx.push(
                     product,
@@ -662,7 +688,15 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
             depth_m,
         };
         let tag = k as u64;
-        let u_draw = interp_select_draw(ctx.seed, <crate::draws::GeoDeep as Domain>::SALT, tag, ctx.cx, ctx.cz, 0.5, 0.5);
+        let u_draw = interp_select_draw(
+            ctx.seed,
+            <crate::draws::GeoDeep as Domain>::SALT,
+            tag,
+            ctx.cx,
+            ctx.cz,
+            0.5,
+            0.5,
+        );
         if let Some((member, _)) = ctx.geology.select(class, &form, u_draw) {
             expressed_m += u.thickness_m;
             if let Some((idx, prev)) = last
@@ -782,7 +816,13 @@ pub fn clastic_pass(ctx: &mut StrataCtx) {
             ctx.draw(<crate::draws::GeoSelect as Domain>::SALT, 2),
         )
     {
-        ctx.push(member, coarse_m, <crate::draws::GeoSelect as Domain>::SALT, 2, 2.0);
+        ctx.push(
+            member,
+            coarse_m,
+            <crate::draws::GeoSelect as Domain>::SALT,
+            2,
+            2.0,
+        );
         ctx.alluvium = Some(AlluviumRec {
             event: ctx.strata.events.len() - 1,
             energy: ctx.flow_energy,
@@ -795,7 +835,13 @@ pub fn clastic_pass(ctx: &mut StrataCtx) {
             ctx.draw(<crate::draws::GeoSelect as Domain>::SALT, 3),
         )
     {
-        ctx.push(member, fine_m, <crate::draws::GeoSelect as Domain>::SALT, 3, 1.0);
+        ctx.push(
+            member,
+            fine_m,
+            <crate::draws::GeoSelect as Domain>::SALT,
+            3,
+            1.0,
+        );
     }
 }
 

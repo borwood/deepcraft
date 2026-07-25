@@ -114,7 +114,10 @@ impl ToyWorld {
             neigh.sort_unstable();
         }
         let agent_home = (0..NUM_AGENTS)
-            .map(|a| (Draws::of::<domains::Home>(seed).bits(&[u64::from(a)]) % u64::from(NUM_REGIONS)) as RegionId)
+            .map(|a| {
+                (Draws::of::<domains::Home>(seed).bits(&[u64::from(a)]) % u64::from(NUM_REGIONS))
+                    as RegionId
+            })
             .collect();
         Self {
             seed,
@@ -304,8 +307,11 @@ impl ToyWorld {
     /// so every consumer within one sample sees the same synthesised value.
     pub(crate) fn frontier_pressure(&self, sample: u64, region: RegionId, t: Tick) -> u8 {
         let w = self.prior_pressure_weights(region);
-        let r = Draws::of::<domains::FrontierPrior>(self.seed)
-            .unit(&[sample, u64::from(region), u64::from(t)]) * (w[0] + w[1] + w[2]);
+        let r = Draws::of::<domains::FrontierPrior>(self.seed).unit(&[
+            sample,
+            u64::from(region),
+            u64::from(t),
+        ]) * (w[0] + w[1] + w[2]);
         if r < w[0] {
             0
         } else if r < w[0] + w[1] {

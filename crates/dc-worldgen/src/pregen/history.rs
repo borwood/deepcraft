@@ -81,7 +81,11 @@ pub fn run(seed: u64, grid: &CellGrid) -> History {
     let overlay = if slots.is_empty() {
         ToyWorld::with_graph(Draws::of::<Overlay>(seed).bits(&[]), vec![vec![]], vec![])
     } else {
-        ToyWorld::with_graph(Draws::of::<Overlay>(seed).bits(&[]), adjacency.clone(), vec![])
+        ToyWorld::with_graph(
+            Draws::of::<Overlay>(seed).bits(&[]),
+            adjacency.clone(),
+            vec![],
+        )
     };
     let mut ledger = Ledger::new();
     let mut observe_count = 0u32;
