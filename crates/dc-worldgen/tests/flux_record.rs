@@ -201,31 +201,27 @@ fn a_face_is_shared_so_bs_in_flux_is_exactly_as_stored() {
 // ---------------------------------------------------------------------------
 // What is honestly EMPTY — asserted, so a later slice cannot populate it silently.
 
-/// Slice 1 records **lateral** and **boundary** faces and leaves the **vertical**
-/// faces structurally present and zero: today's solve is pure surface routing —
-/// no infiltration, no percolation, no Darcy term — so there is no honest number
-/// to write, and fabricating one would be worse than an empty field (A-1).
+/// **Slice 1's honest empty, deleted on purpose.** This test used to assert
+/// `census.vertical == 0` — the surface solve had no vertical term, so there was
+/// no number to write and fabricating one would have been worse than the zero
+/// (A-1). It was written to force the slice that filled them to come here and
+/// remove it deliberately; **continuation (a) is that slice**, and the head field
+/// (`dc:field/head`) is what made an honest number exist. The positive claim now
+/// lives in `tests/head_field.rs::the_vertical_faces_are_no_longer_zero`.
 ///
-/// This test is deliberately an assertion *of the emptiness*: the slice that adds
-/// the potential/head field (continuation (a)) or the free/bound edge
-/// (continuation (c)) must come here and delete it on purpose.
+/// What survives here is what did **not** change: the face vocabulary still spans
+/// all three families (flow.md § 2.3 foreclosure ①), and the atom's remaining
+/// seams are still exactly one fluid, one form and one mover — the head field
+/// records **free-phase** exchange across a column's top, and the free↔bound
+/// occupancy edge is still continuation (c)'s to switch on.
 #[test]
-fn vertical_faces_are_structurally_present_and_honestly_empty() {
+fn the_face_vocabulary_still_spans_three_families_and_the_atom_seams_are_intact() {
     let pregen = small_world();
     let cfg = cfg_for(&pregen.grid);
     let f = build_field_cfg(&pregen.grid, &cfg);
-    let census = f.flux.census();
-    assert_eq!(
-        census.vertical, 0,
-        "vertical (slot↔slot) flux appeared — slice 1's solve has no term that \
-         could produce it honestly"
-    );
-    // The vocabulary must still carry them, or the representation forecloses the
-    // whole vertical hydrosphere (flow.md § 2.3 foreclosure ①).
     assert!(FaceKey::Down.is_vertical() && FaceKey::Up.is_vertical());
-    assert!(f.flux.entries().iter().all(|e| !e.face.is_vertical()));
+    assert!(FaceKey::Ocean.is_boundary() && FaceKey::E.is_lateral());
 
-    // And the seams of the atom: one fluid, one form, one mover in slice 1.
     assert!(f.flux.entries().iter().all(|e| e.fluid == FluidId::WATER));
     assert!(f.flux.entries().iter().all(|e| e.form == FlowForm::Free));
     assert!(

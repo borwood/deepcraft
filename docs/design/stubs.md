@@ -508,14 +508,48 @@ that filters the flow record by regime silently matches everything today; nothin
 expresses the record at runtime yet, so it is currently invisible in game.
 *Loud code markers at each field, naming the heir.*
 
-**Related but NOT a stub — the honest empties.** The **vertical faces**
-(`FaceKey::Down`/`Up`) and the **atmospheric source** half of the boundary face are
-structurally present and **zero**, because this solve has no infiltration term and
-its precipitation source is a uniform 1.0 the derivation can predict exactly (S-2).
-An empty field with a named heir is the S-5 identity floor, not a stand-in — there is
-no *value* here that could quietly become the definition. Asserted by name in
-`tests/flux_record.rs::vertical_faces_are_structurally_present_and_honestly_empty`,
-so the slice that populates them must come and delete that assertion on purpose.
+**Related but NOT a stub — the honest empties.** The **atmospheric source** half of
+the boundary face is structurally present and **zero**, because this solve's
+precipitation source is a uniform 1.0 the derivation can predict exactly (S-2). An
+empty field with a named heir is the S-5 identity floor, not a stand-in — there is no
+*value* here that could quietly become the definition. The **vertical faces**
+(`FaceKey::Down`/`Up`) were the other one, and **continuation (a) filled them**
+(2026-07-25, journal/0098 — the head field); their emptiness assertion was deleted on
+purpose, which is what it was written for. The **`load` on a vertical face** is now
+the honest empty in that family — the bound phase carries solute, not suspended
+clastic load, and dissolution is dormant until (c) — asserted by name in
+`tests/head_field.rs::the_vertical_faces_are_no_longer_zero`.
+
+### 19. the recharge-free water table — *added 2026-07-25 (FLOW continuation (a), journal/0098)*
+`dc-worldgen/src/deeptime/head.rs`: the `head` condition-field (`dc:field/head`) solves
+`∇·(T∇h) = 0` — the **R = 0 steady limit**. The real equation is `∇·(T∇h) = −R`, and
+the recharge term is absent for a specific, stated reason: `R/T` needs a **real
+hydraulic conductivity and a real precipitation depth**, and `grid.precip` is
+normalized 0..1 with no depth scale. Inventing the scale would have made the slice's
+own acceptance number (how far head stands above the ground) a tuning knob, which is
+the failure mode `no-bandaid-tuning` names.
+**What that costs, precisely:** with no recharge mounding the table beneath
+interfluves, the potential a confined column inherits is its *neighbours'*, not a
+distant highland's — so artesian excess heads come out in **metres** (60 columns,
+max 2.94 m measured on the production world) where a real Great-Artesian-Basin
+geometry gives hundreds. The field is a genuine potential and the *mechanism* is right (confinement
+removes the seepage cap); the *magnitude* is a lower bound.
+**Heir:** a real water-balance climate — the same missing precipitation-depth scale
+that keeps the drainage solve's lateral source a uniform `1.0` per cell per epoch
+(journal/0096 already flagged that pairing). Both halves want the same number, and
+they must land **together** or the record's two halves disagree about what a unit is.
+**Blast:** nothing expresses head at runtime yet. When (b)/(c) read it, a consumer
+that treats `head` as "depth to water" gets a table that is systematically **too
+deep** under ridges and correct at discharge zones. *Loud code marker in the module
+docs § "What is deliberately NOT here".*
+
+**Related but NOT a stub — the calibrations.** `CONFINING_CAP_M` (5 m to seal),
+`STREAM_ANCHOR_AREA` (25 cells to be perennial) and `AQUIFER_K_MIN`/`AQUITARD_K_MAX`
+are **knobs of a real mechanism**, in the same plausible-not-tuned register as S9's
+physics constants — there is no measured Earth value at 460 m cells to defer to, and
+each is stated with its reasoning at the constant. `PONDED_MIN_M` is neither: it is a
+**numerical guard** against priority-flood residue, and it exists because 2.5×10⁻⁵ m
+of dust manufactured 232 false artesian columns before it did.
 
 ### 19. the-weathering-profile-is-a-fixed-shape — *added 2026-07-25 (journal/0099, the front-is-a-profile slice)*
 `dc-worldgen/src/geology.rs::WEATHERING_PROFILE` + `emplace_weathering_front`: the

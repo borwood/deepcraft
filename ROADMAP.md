@@ -2320,13 +2320,24 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     drainage is solved **every epoch and discarded** (`recv`/`area` are documented as "the
     **last** routing"): we run the process 200× and keep the final frame. Every paleo-flow
     signature the design wants was computed and thrown away.
-  - **STATUS 2026-07-25: the FIRST SLICE has SHIPPED (journal/0096) — the ARC STAYS OPEN.**
-    Divergence 175,320 / convergence 60,915 on the production world; record 40.66 MiB at 8.386 %
-    face sparsity. The continuation slot below is **untouched and still owed**; two things were
-    added to it by the build: the **slot-pairing rule for the BOUND regime** (see the § 2.2 plea in
-    the Shipped entry — free flow pairs by chapter; bound may need paleo-elevation, and that is the
-    user's call), and the **marine-sink residency lever** (79.38 % of entries, 31.37 MiB, sized and
-    deliberately not pulled).
+  - **STATUS 2026-07-25: slice 1 (journal/0096) and continuation (a) (journal/0098) have
+    SHIPPED — the ARC STAYS OPEN.** Slice 1: divergence 175,320 / convergence 60,915 on the
+    production world; record 40.66 MiB at 8.386 % face sparsity. **(a) the head field:** the
+    `head` condition-field (`dc:field/head`) as the second §5 field pass, and its consumer —
+    the **vertical faces slice 1 left honestly zero now carry 307,364 crossings** on 131,586
+    columns (44.3 % of cells), and **artesian occurs naturally**: 60 subaerial columns stand
+    their water above their own ground under a confining bed (max excess 2.94 m), which
+    `H = y + sat` cannot express at any resolution — and 24,935 more carry a water table
+    *below* ground, a depth-to-water derived from the rock rather than from present-day
+    precipitation. Terrain byte-identical; +6.96 MiB (149.21 → 156.16), +0.5 s gen.
+    **(b)–(e) are untouched and still owed**, and three riders remain in the slot: the
+    **slot-pairing rule for the BOUND regime** (free flow pairs by chapter; bound may need
+    paleo-elevation — the user's call; **note (a) did NOT force it**, because vertical faces
+    pair *within* a column), the **marine-sink residency lever** (79.38 % of entries,
+    31.37 MiB, sized and deliberately not pulled), and now the **recharge term** (a) left as a
+    seam — `∇·(T∇h) = −R` needs `R/T` in real units, which is the same missing
+    precipitation-depth scale that keeps the lateral source uniform, and it is why (a)'s
+    artesian excesses are metres rather than the hundreds of metres of a real basin.
   - **FIRST SLICE — the RECORDING half only.** Face flux per chapter in deeptime: replace
     the receiver output with **face-flux records** (3D faces), attach flow facts to unit
     slots, keep the existing priority-flood/route/accumulate **solve** (good numerics —
@@ -2336,20 +2347,30 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     tree cannot produce the latter), plus a **measured resident cost** (gen time is free;
     residency is not).
   - **CONTINUATION SLOT** (this is a slice OF *"flow is one process, faithfully recorded
-    and purely refined"*): after recording, the arc continues with **(a)** the
-    **potential/head field pass** (elevation + pressure → artesian, capillary, thermohaline,
-    density flows; the current `H = y + sat` is explicitly unconfined, not Darcy).
-    **⚠ USER DIRECTIVE 2026-07-25 — (a) IS THE NEXT PRIORITY AND EVERY SLICE BUILDS TOWARD
-    IT:** *"build assuming that we want the head field to exist soon — i.e. do not
-    foreclose, leave seams where possible, keep direction in mind."* So every intervening
-    slice must (i) treat "flow descends **potential**" as the target, never hard-code
-    elevation-descent, (ii) leave the **vertical faces** structurally present (they are the
-    infiltration/percolation channel the head field fills — slice 1 already keeps them,
-    honestly zero), and (iii) not bake the free/surface **no-divide-crossing** rule into
-    anything the bound regime will inherit (flow.md §2.4 — bound flow genuinely crosses
-    surface divides). **The head field is also what unlocks a multi-flow-direction solve**,
-    and therefore *simultaneous* divergence (flow.md §2.6) — today's divergence is
-    aggregation-window avulsion only;
+    and purely refined"*): after recording, the arc continues with **~~(a)~~ SHIPPED
+    2026-07-25 (journal/0098) — the potential/head field pass.** `dc:field/head` is the
+    second §5 field pass: it derives each column's transmissivity / vertical conductivity /
+    **confinement** from the strata record's own permeabilities (a marine mud over a fluvial
+    sand *is* a confined aquifer — no landform code path), relaxes `∇·(T∇h) = 0` under
+    Dirichlet conditions at the sea, lakes and perennial streams, and leaves **confined**
+    columns **uncapped** — which is the whole artesian mechanism, expressed as *the absence
+    of a seepage cap*. It fills the vertical faces (307,364 crossings; 1,137 of them
+    artesian **rise**). It leaves as named seams: **recharge** (`R/T` needs real units),
+    **precipitation weighting** (would desync the record's two halves, and the lateral half
+    moves terrain), **buoyancy/density** (ρ named and multiplied in, inert at 1.0 — heir is
+    (d)), and **unsaturated/transient Darcy** (capillary rise needs it). **It did NOT do
+    MFD** — deliberately, since that changes routing and therefore the world.
+    *The directive that governed it, kept for the intervening slices that still apply:*
+    **⚠ USER DIRECTIVE 2026-07-25:** *"build assuming that we want the head field to exist
+    soon — i.e. do not foreclose, leave seams where possible, keep direction in mind."* So
+    every slice must (i) treat "flow descends **potential**" as the target, never hard-code
+    elevation-descent, (ii) keep the **vertical faces** structurally present, and (iii) not
+    bake the free/surface **no-divide-crossing** rule into anything the bound regime will
+    inherit (flow.md §2.4 — bound flow genuinely crosses surface divides; (a)'s solve has no
+    divide term at all, pinned by `bound_head_crosses_a_surface_drainage_divide`).
+    **The head field is also what unlocks a multi-flow-direction solve**, and therefore
+    *simultaneous* divergence (flow.md §2.6) — today's divergence is still aggregation-window
+    avulsion only, and **MFD is now the nearest-term continuation**;
     **(b) refinement as a boundary-value problem** — face fluxes as Dirichlet conditions,
     the load budget as mass, solved *inside* a cell, pure-of-position (never reading a
     neighbour's refined output, so the pure-fn chunk holds); **(c)** the **free/bound edge
