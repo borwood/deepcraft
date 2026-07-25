@@ -430,6 +430,7 @@ fn head_pass(ctx: &mut DeepStepCtx<'_>) {
     super::head::march(
         &mut ctx.grid,
         ctx.erosion.filled(),
+        ctx.erosion.routed_surface(),
         &ground,
         ctx.erosion.area(),
         sea,

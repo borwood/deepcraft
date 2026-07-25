@@ -147,17 +147,25 @@ fn a_vertical_entry_binds_to_the_chapters_own_slot() {
 // ---------------------------------------------------------------------------
 // The field is a POTENTIAL, not an elevation.
 
-/// On a real world the head field must be **different from the topography that
-/// bounds it**. If `head == surf` everywhere it would be `y + sat` with extra
-/// steps — an elevation wearing a potential's clothes — and every artesian,
-/// capillary, thermohaline and density flow flow.md § 2.4 names would still be
-/// foreclosed.
+/// **The invariant that makes "artesian" mean something.** Head may stand above the
+/// ground *only* where a bed confines it. An unconfined water table cannot — it
+/// discharges through a seepage face — so if the cap ever failed, an exceedance
+/// would be a bug with a good name rather than an aquifer.
 ///
-/// Read on **subaerial** columns only. Under the sea the potential is pinned at the
-/// stand and standing above the seabed means nothing but "there is water above" —
-/// artesian is a statement about *land*.
+/// This is asserted on a **whole real world** rather than a constructed column,
+/// because the cap is the kind of thing that holds in a fixture and leaks on a
+/// landscape: the first run of this suite reported 232 "artesian" columns that were
+/// a 2.5×10⁻⁵ m priority-flood residue read as a pond ([`PONDED_MIN_M`] now floors
+/// it). Read on **subaerial** columns only: under the sea the potential is pinned at
+/// the stand, and standing above the seabed means only "there is water above".
+///
+/// Whether an artesian column *occurs* is a separate, empirical question this
+/// fixture is too small and too drowned to answer — that belongs to
+/// `examples/head_field_probe.rs` on the production world. That it is
+/// **representable** is proven by construction in
+/// `deeptime::head::tests::head_can_exceed_the_local_surface_which_is_artesian`.
 #[test]
-fn head_is_a_potential_and_not_a_copy_of_the_surface() {
+fn an_unconfined_water_table_never_stands_above_its_own_ground() {
     let pregen = small_world();
     let cfg = cfg_for(&pregen.grid);
     let f = build_field_cfg(&pregen.grid, &cfg);
@@ -166,37 +174,28 @@ fn head_is_a_potential_and_not_a_copy_of_the_surface() {
 
     let land: Vec<usize> = (0..f.head.len()).filter(|i| f.surf[*i] > sea).collect();
     assert!(!land.is_empty(), "the fixture world is entirely submerged");
-    let below = land
-        .iter()
-        .filter(|i| f.head[**i] < f.surf[**i] - 1e-6)
-        .count();
-    let above = land
-        .iter()
-        .filter(|i| f.head[**i] > f.surf[**i] + 1e-6)
-        .count();
-    println!(
-        "subaerial columns {}: water table BELOW ground {below}, ARTESIAN {above}",
-        land.len()
-    );
-    assert!(
-        below > 0,
-        "the water table stands at the ground in every subaerial cell — that is \
-         the `y + sat` proxy, not a potential"
-    );
-    // Head never exceeds the ground where the column is UNCONFINED: an unconfined
-    // water table discharges (a seepage face) rather than standing above the land.
-    // That the cap holds on land is what makes the confined exceedance meaningful.
-    for i in land {
-        if f.head[i] > f.surf[i] + 1e-6 {
-            let hydro = dc_worldgen::deeptime::column_hydro(&f.strata[i]);
+    let mut below = 0usize;
+    let mut artesian = 0usize;
+    for i in &land {
+        let (h, s) = (f.head[*i], f.surf[*i]);
+        if h < s - 1e-6 {
+            below += 1;
+        } else if h > s + 1e-6 {
+            artesian += 1;
+            let hydro = dc_worldgen::deeptime::column_hydro(&f.strata[*i]);
             assert!(
                 hydro.confined,
-                "cell {i} has head {} above its ground {} but is UNCONFINED — the \
-                 seepage cap failed",
-                f.head[i], f.surf[i]
+                "cell {i} has head {h} above its ground {s} but is UNCONFINED — the \
+                 seepage cap failed, so this is a bug and not an aquifer"
             );
         }
     }
+    println!(
+        "final sea stand {sea:.2} m · {} subaerial columns: water table BELOW \
+         ground {below}, at ground {}, ARTESIAN {artesian}",
+        land.len(),
+        land.len() - below - artesian
+    );
 }
 
 // ---------------------------------------------------------------------------

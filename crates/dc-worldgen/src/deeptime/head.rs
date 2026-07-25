@@ -165,6 +165,18 @@ pub const MIN_CONFINING_M: f64 = 1.0;
 /// and rejects further recharge, or as exactly at the surface rather than artesian.
 pub const HEAD_EPS_M: f64 = 1e-6;
 
+/// Minimum standing-water depth (metres) that counts as a **lake** for the purpose
+/// of pinning the water table above the ground.
+///
+/// Not a taste knob — a **guard against numerical dust**. The priority flood leaves
+/// residues of order 10⁻⁵ m on cells that are not ponded at all, and pinning the
+/// table at `ground + 2.5e-5` reads out as a column whose water stands above its own
+/// land. That is *artesian* by the letter of the comparison and nonsense by the
+/// metre, and it manufactured 232 false positives on the first small-world run
+/// before this floor existed. One centimetre is below anything the world expresses
+/// (a voxel is 0.9 m) and far above the flood's residual.
+pub const PONDED_MIN_M: f64 = 0.01;
+
 /// **The buoyancy/density seam** (flow.md § 2.4). `head = z + p/(ρg)`; with one
 /// fluid at one density the ratio is the identity and multiplying by it is
 /// provably inert (`x * 1.0 == x`). It is named and *applied* rather than folded
@@ -413,7 +425,13 @@ pub(crate) fn march(
         cap[i] = hydro.cap_m as f32;
 
         let g = ground[i];
-        let free = filled.get(i).copied().unwrap_or(g).max(sea_level);
+        // Standing water is `filled − routed`, both from ONE solve — never
+        // `filled` against a `ground` from a later moment (see the doc comment).
+        let ponded = match (filled.get(i), routed.get(i)) {
+            (Some(f), Some(r)) => (f - r).max(0.0),
+            _ => 0.0,
+        };
+        let is_lake = ponded > PONDED_MIN_M;
         let border = {
             let (gx, gy) = (i % w, i / w);
             gx == 0 || gy == 0 || gx == w - 1 || gy == w - 1
@@ -426,13 +444,17 @@ pub(crate) fn march(
             // The domain border is the model's base level.
             pinned[i] = true;
             h[i] = g.max(sea_level);
-        } else if !hydro.confined
-            && (free > g + HEAD_EPS_M || area.get(i).copied().unwrap_or(0.0) >= STREAM_ANCHOR_AREA)
-        {
-            // Free water stands here (a lake) or runs here (a perennial stream)
-            // AND the column is open to it: the water table outcrops.
+        } else if !hydro.confined && is_lake {
+            // Standing water, and the column is open to it: the table is the lake.
             pinned[i] = true;
-            h[i] = free.max(g);
+            h[i] = (g + ponded).max(sea_level);
+        } else if !hydro.confined
+            && area.get(i).copied().unwrap_or(0.0) >= STREAM_ANCHOR_AREA
+        {
+            // A perennial stream runs here and the column is open to it: the water
+            // table *outcrops* at the ground, exactly — never above it.
+            pinned[i] = true;
+            h[i] = g;
         } else {
             // Free to float. Start at the ground and relax downward; a confined
             // column may relax back *above* it, which is artesian.
@@ -575,7 +597,7 @@ mod tests {
         // Every cell carries a perennial stream, so the unconfined ones anchor at
         // their own ground and the confined column is the only free one.
         let area = vec![STREAM_ANCHOR_AREA; w * w];
-        let residual = march(&mut grid, &r, &r, &area, -1000.0);
+        let residual = march(&mut grid, &r, &r, &r, &area, -1000.0);
         assert!(residual < 1e-3, "the relaxation did not settle ({residual})");
 
         let i = 4 * w + 5; // mid-row, the confined column
@@ -634,7 +656,7 @@ mod tests {
             area[gy * w + 1] = STREAM_ANCHOR_AREA;
             area[gy * w + 7] = STREAM_ANCHOR_AREA;
         }
-        march(&mut grid, &r, &r, &area, -1000.0);
+        march(&mut grid, &r, &r, &r, &area, -1000.0);
 
         let row = 4 * w;
         let heads: Vec<f64> = (0..w).map(|x| grid.head[row + x]).collect();
@@ -677,7 +699,7 @@ mod tests {
             })
             .collect();
         let area = vec![0.0f64; w * w];
-        march(&mut grid, &r, &r, &area, 0.0);
+        march(&mut grid, &r, &r, &r, &area, 0.0);
         for i in 0..w * w {
             let hydro = column_hydro(&grid.strata[i]);
             let want = vertical_exchange(grid.head[i], r[i], 0.0, hydro) as f32;

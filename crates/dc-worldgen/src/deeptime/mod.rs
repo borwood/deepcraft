@@ -203,12 +203,12 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     if cfg.head_field {
         let n = grid.w * grid.w;
         let ground: Vec<f64> = (0..n).map(|i| grid.surf_at(i)).collect();
-        let no_area: Vec<f64> = Vec::new();
         head::march(
             &mut grid,
+            &[],
+            &[],
             &ground,
-            &ground,
-            &no_area,
+            &[],
             grid::sea_level_at(cfg, 0),
         );
     }
@@ -284,7 +284,14 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         let n = grid.w * grid.w;
         let ground: Vec<f64> = (0..n).map(|i| grid.surf_at(i)).collect();
         let sea = grid::sea_level_at(cfg, cfg.iterations.saturating_sub(1));
-        head::march(&mut grid, erosion.filled(), &ground, erosion.area(), sea);
+        head::march(
+            &mut grid,
+            erosion.filled(),
+            erosion.routed_surface(),
+            &ground,
+            erosion.area(),
+            sea,
+        );
     }
     // Re-key the accumulated saprolite ledgers onto the final record (bedrock facts
     // → `strata.units.len()`), so the collapse consumer reads them at the same slot
