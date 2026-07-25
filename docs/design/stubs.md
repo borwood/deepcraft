@@ -69,6 +69,19 @@ province. Those keep the year-zero rule **minus its Grass branch**, so the
 vocabulary is Dirt/Stone. Columns whose record rounds to nothing read as their
 **basement** — journal/0053's barest land now skins as Granite, not painted Dirt.
 
+**Absence-of-record is legitimate, but NO QUERY SURFACE CAN EXPRESS IT AT VOXEL
+RESOLUTION** (added 2026-07-25, corrections #49). The fallbacks above are correct;
+what is missing is any way to *say so* to a caller. `HostWorld::contents_at`
+(`host.rs:320-326`) answers a per-voxel question with a **per-chunk** presence test,
+so its `Option::None` — the only channel that could mean "no record here" — is
+already spent on a whole-32³-chunk condition inherited from the mesher's needs. An
+unrecorded basement voxel therefore reports `has_contents: true` with
+`classified: dc:air` **over solid stone** (6.4 % of near-surface solid voxels). Listed
+here because the stubs doctrine is that **an unlisted loose end is the defect, not a
+licence**: the *fallback* is sound, the *reportability* is not. **Heir:** the
+`identify(pos)` arc — a tier flag carrying **"unrecorded"** as a first-class answer,
+distinct from both "air" and "recorded".
+
 *Residual:* 91.4 % of land skinning to one block is the ledger's honest answer
 (the topmost deposition in most subaerial cells is low-energy hillslope creep →
 clastic-fine) but it is monotonous, and *material* diversity under it is much

@@ -137,8 +137,12 @@ cargo test --workspace --release
   summary, which collapses mudstone/sandstone/siltstone/granite alike into
   `dc:stone` — a walk once read a whole column as `dc:stone` and nearly reported
   "no band" from an instrument that structurally cannot see one. `get_contents`
-  returns the real mixture (and a `has_contents` flag — **check it**, since
-  contents-free voxels are not the same thing as air).
+  returns the real mixture. **Do NOT trust `has_contents` or `classified`
+  (corrections #49):** `has_contents` is answered per-CHUNK, so an *unrecorded*
+  basement voxel sharing a 32³ chunk with any recorded voxel reports
+  `has_contents: true` and `classified: dc:air` **over solid stone**. The
+  trustworthy field is **`block`** (it reads the same `block_at` as
+  `eye_in_solid`). ~6.4 % of solid voxels near the surface are affected.
 - **Cutting a cross-section?** `world_fill` a **bench** (a wide shelf, ~20k voxels
   of `dc:air`) rather than a narrow pit — a pit frames badly and a road-cut face
   reads at a glance. Screenshot names must be a bare lowercase slug.

@@ -1514,3 +1514,62 @@ the Observed entry in the same session, beside the asset. Corollary of the A-2 f
 cannot fail a build, and a landmark cannot be re-derived from a screenshot. **Fix:** the exact
 pose is now recorded in the ROADMAP station entry with this correction beside it; re-shoot that
 pose to compare before/after any palette-quant fix.
+
+## 49. "The contents record reads empty over solid ground" (walk observation, 2026-07-25 — a QUERY bug, not a world bug)
+
+**The claim** (journal/0097, filed honestly as *reported, not diagnosed*):
+`world_get_contents` returned `dc:air` for voxels 288–299 while
+`client_player_pose_set` reported `eye_in_solid: true` — read as ~11 voxels where
+**the record is empty and the world is solid**, a record hole adjacent to the
+bare-cell fallback.
+
+**Falsified.** The world was solid and correct there. Unrecorded basement is
+`Block::Stone` **by construction** (`collapse.rs:457-459`), and **no voxel below a
+column's height can be `Block::Air` at all** (`collapse.rs:434-436`) — a structural
+proof the column was never empty. `eye_in_solid` and `get_contents`'s **own `block`
+field** read the *same* `HostWorld::block_at` (`authority.rs:480-487`,
+`host.rs:1269`) and both correctly said stone. **They never disagreed.** What said
+`dc:air` was the *derived* `classified` field.
+
+**Mechanism.** `HostWorld::contents_at` (`host.rs:320-326`) answers a **per-voxel**
+question with a **per-chunk** presence test: `chunk_contents` returns `Some(grid)`
+if *any* voxel in the 32³ chunk is recorded (`collapse.rs:717-724`,
+`intern.rs:313-314`), and inside that grid an unrecorded voxel resolves to a
+perfectly ordinary `VoxelContents::EMPTY` (`intern.rs:101`, `:409-418`). So
+`has_contents` reports **`true`** (`host.rs:83`) — contradicting its own
+documentation in three places (`payload.rs:426-429`, `schema.rs:754-756`,
+CLAUDE.md) — and `classified` reports **`dc:air`**, which is `classify` applied to
+an unrecorded voxel: precisely the operation `classify.rs:31-45` forbids, naming
+*"the unrecorded basement below the deep-time record"* by name. **The band's extent
+(288–299) was set by the chunk floor at `9 × 32 = 288`, not by anything in the
+world** — reproduced to the voxel at journal/0097's own station.
+
+**Scope:** 702 / 10,985 solid voxels (**6.4 %**) in the top 65 of a column; **39 of
+169** sampled columns; global, worldgen authority only. The F3 HUD
+(`inspector.rs:125-133`) and `character_sense_raycast` (`host.rs:1424-1426`) carry
+the identical bug — and their correct *"no contents record here"* branch is
+**unreachable** in this case. The mesher (`meshing.rs:295-306`) and far field
+(`farfield.rs:134-152`) are **immune** (block gate + `!c.is_empty()`), which is
+exactly why it survived this long: **the only high-volume consumer is structurally
+immune, and the two misled surfaces are the diagnostic ones.**
+
+**Lesson — and it is the inverse of the one we already knew.** `Option::None` was
+the *only* channel that could say "no record here", and it had already been spent
+on a **whole-chunk** condition inherited from the **mesher's** needs. *A summary is
+not an authority* — **including when the summary is a `bool` named after the thing
+it is not measuring.** Where "block is a summary" is a voxel-level summary standing
+in for a mixture, this is a **chunk-level summary worn as a voxel-level authority**:
+the same defect, one tier up and inverted.
+
+**Two process notes.** (1) The walk was right to file this as an observation rather
+than a diagnosis (**A-5** honored) — its *instinct* that this differed from the
+bare-cell fallback was correct, while its *reasoning* for the distinction ("paint
+over stone vs record empty over solid") rested on the false premise. (2) The
+integrator's caveat — *"was it air, or `has_contents: false` read as air?"* — asked
+the right question and offered **two wrong answers**; the truth was a third thing
+(`has_contents: true` over an EMPTY composition). Asking the discriminating
+question mattered more than the hypotheses attached to it.
+
+**Fix:** not applied (diagnosis-only). It is the **`identify(pos)` arc's first
+concrete requirement**: a tier flag that can say **"unrecorded"** as a first-class
+answer, distinct from both "air" and "recorded".

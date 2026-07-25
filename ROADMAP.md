@@ -3030,21 +3030,37 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **The contents record reads EMPTY over SOLID ground** (walk observation, 2026-07-25,
-  journal/0097; **reported, not diagnosed**). On an untouched column in the **flag-OFF control**,
-  `world_get_contents` returned `dc:air` for voxels 288–299 while `client_player_pose_set` reported
-  `eye_in_solid: true` at 296 and 291 — **~11 voxels where the record reads empty and the world is
-  solid**. Being in the *control* run, **Movement 3 did not cause it** (the ON band then fills that
-  same range with real recorded material, which is how it nearly got mis-credited to the flag —
-  a good A-5 catch by the walk). Adjacent to, but **not the same shape as**, the known bare-cell
-  fallback (*"a walker stood on paint over nothing"*, `record_hole_probe.rs`, below): that one is
-  paint over *stone*; this is the record reading *empty* over *solid*.
-  **INTEGRATOR CAVEAT before anyone diagnoses this:** `world_get_contents` returns a
-  **`has_contents` flag**, false wherever no contents record backs the voxel (S1 terrain, legacy
-  stubs). The walk's report does not say whether `has_contents` was checked — so the honest first
-  question is *"was it `air`, or was it `has_contents: false` read as air?"* Those are very
-  different defects and only one of them is a record hole. **Check that before measuring anything
-  else.**
+- **DIAGNOSED 2026-07-25 — `world_get_contents` reports `dc:air` and `has_contents: true` over
+  solid, correctly-unrecorded rock** (walk observation journal/0097; diagnosis
+  `docs/audits/2026-07-25-contents-empty-over-solid-diagnosis.md`, probe
+  `dc-worldgen/examples/contents_air_over_solid_probe.rs`). **The original premise is falsified**
+  (corrections #49): the world was never empty there, and **`eye_in_solid` was the honest
+  instrument** — it and the query's own `block` field read the same `block_at` and both said
+  `dc:stone`. Unrecorded basement is `Block::Stone` by construction (`collapse.rs:457-459`) and no
+  voxel below a column's height can be `Block::Air` at all (`collapse.rs:434-436`).
+  **Mechanism — a dc-api query-surface defect:** `contents_at` answers a **per-voxel** question
+  with a **per-chunk** presence test (`host.rs:320-326`), so an *unrecorded* basement voxel sharing
+  a 32³ chunk with any recorded voxel returns `Some(VoxelContents::EMPTY)` — reported as
+  `has_contents: true` (`host.rs:83`, contradicting `payload.rs:426-429` / `schema.rs:754-756`)
+  with `classified: dc:air` (`host.rs:76-79`, the operation `classify.rs:31-45` explicitly
+  forbids). Reproduced **to the voxel** at journal/0097's own station: phantom band 288–299, honest
+  from 287 down — the transition is the **chunk floor `9×32`**, not anything in the world.
+  **Global:** 702/10,985 solid voxels (**6.4 %**) across 169 columns; 39/169 columns affected;
+  worldgen authority only. **Blast radius:** the F3 HUD (`inspector.rs:125-133`) and
+  `character_sense_raycast` (`host.rs:1424-1426`) carry it identically — their correct "no contents
+  record here" branch is **unreachable** in this case; the mesher (`meshing.rs:295-306`) and far
+  field (`farfield.rs:134-152`) are **immune**, which is why only the *diagnostic* surfaces ever
+  showed it. **NOT the bare-cell fallback** — that is a real thin-record *generation* artifact;
+  this is a *reporting* artifact over a healthy record. Both entries stay.
+  **OWED — and it is the `identify(pos)` arc's first concrete requirement:** a tier flag that can
+  say **"unrecorded"** as a first-class answer, distinct from both "air" and "recorded". Not fixed
+  here (diagnosis-only agent).
+
+- **A column expressing ONE recorded voxel over 64 unrecorded** (measured 2026-07-25 by the
+  contents probe at journal/0097's station: `dc:peat` at `y = 300`, unrecorded basement below).
+  The **thin-record** family — one notch less extreme than the bare-cell zero below, and unlike the
+  reporting defect above this one **is genuinely about the world**. Undiagnosed; likely the same
+  root as bare-cell (sub-voxel record thickness falling off the record path).
 
 - **`world_scan_region` / `world_get_block` are structurally blind to stratigraphy** (walk
   observation, 2026-07-25, journal/0097). Both answer with the stored **1-byte `Block` summary**,
