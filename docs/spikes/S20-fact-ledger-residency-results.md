@@ -494,3 +494,11 @@ reduction; the probe's fold agrees with `weathering_product_m`; the f32 error is
 more than three orders below an eighth; the paged prototype writes and reads back a file of
 exactly the projected geometry. **No assertion is pinned to a MiB figure or a microsecond
 count** — those are what `main` is for.
+
+**Measured gate cost: +6.6 s** (`gate::the_s20_residency_model_is_self_consistent`), against
+the 35.0 s the seven earlier converted probes add and the 8.8 s
+`perdepth_weathering_cost_probe` adds. The gate's paged prototype writes a Small-extent file
+(a few MiB) to the temp directory and deletes it.
+
+Full `dc-worldgen` gate after `cargo clean -p dc-worldgen --release`: `fmt --check` clean,
+`clippy --all-targets --release -D warnings` clean, **44 test binaries, all `ok`, 0 failed**.
