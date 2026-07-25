@@ -19,6 +19,25 @@ directory and deletes it.
 > being untouched describe the spike, not the tree. The **pager (option 3) is the reserved
 > continuation and is NOT built** — § 5 is its design problem, unchanged.
 >
+> **Re-measured after 2c, on the same world.** Every "TODAY = 17.45 MiB" below is now a
+> **historical** figure at the pre-0108 16-byte width. Measured today, from the shipped
+> types: **TODAY 9.57 MiB** (same 1 033 189 facts, same 72 006 rows; itemisation still
+> reconstructs `footprint_bytes()` exactly) and **PER-DEPTH 504.50 MiB**, which is § 3's
+> row 2c reproduced by real code rather than by a candidate struct. The per-world edge
+> dictionary has **one** entry — `dc:granite/structure → dc:granite/loose`, id `0x4647` —
+> exactly the single inhabited edge § 2 measured, and it re-derives from its own material
+> names against the live registry. The § 3 table's *option* rows are unchanged: they
+> price encodings, and the encodings did not move.
+>
+> **§ 4.1's measured fold error is no longer re-measurable and the probe no longer claims
+> it.** The shipped record does not keep the f64 original to difference against, so § 5a
+> now reports the **bound** the stored record implies (max **3.632e-7 m**, max relative
+> **5.960e-8** = 2^-24 exactly, worst case **3.229e-6 of an eighth**) rather than a
+> sampled difference. The direct persist-step error is measured separately, on real
+> accumulators (§ 5b): **5.860e-9 m** at 200 firings. The counterfactual § 4 argued for is
+> now a number — narrowing at every add instead of once at persist is **570.6× worse** at
+> the production epoch count.
+>
 > **One correction the implementation forced, recorded here beside the claim it revises:
 > § 4.2's Class B table over-predicts by eight sites.** It lists **nine** assertions as
 > failing; **one** actually did. The table was computed against a model where `Fact` stores

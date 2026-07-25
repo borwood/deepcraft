@@ -131,16 +131,33 @@ the single `as f32` in the tree and `LedgerField::from_accumulators` is its only
 caller, so *"where does precision get lost?"* has one grep answer. Every read
 widens back (`fraction_m() -> FracM`) and every sum stays `f64`.
 
-The measured consequence, from S20 § 4.1 on the production world: max fold error
-**1.2305e-7 m**, max relative **5.766e-8** — which sits *at* f32's own 2^-24
-resolution of 5.960e-8. That equality is the point: it is the signature of a
-**single** rounding, not an accumulating one. Against one eighth of a voxel
-(0.1125 m), the only quantity that can change what a player sees, that is **one
-part in 914 000**.
+The measured consequence, from S20 § 4.1 while both representations still
+existed side by side: max fold error **1.2305e-7 m**, max relative **5.766e-8** —
+which sits *at* f32's own 2^-24 resolution of 5.960e-8. That equality is the
+point: it is the signature of a **single** rounding, not an accumulating one.
+Against one eighth of a voxel (0.1125 m), the only quantity that can change what
+a player sees, that is **one part in 914 000**.
 
-The probe measures the counterfactual on the same shares, so the claim is a
-number rather than an argument: narrow-once versus narrow-at-every-add, at 1,
-10 and 200 firings.
+That figure cannot be re-measured now, and the probe says so rather than
+reprinting it: the shipped record **no longer holds the f64 original** to
+difference against. § 5a therefore reports the **bound the stored record
+implies** — max **3.632e-7 m**, max relative **5.960e-8**, which is exactly
+2^-24 because a bound built from per-fact roundings cannot be anything else. The
+worst bound is **3.229e-6 of an eighth, one part in 309 700**. A quantity you
+can still compute is worth more than a quantity you have to remember.
+
+And § 5b measures the **counterfactual** — the same shares, the same firings, the
+only difference being where the `as f32` sits:
+
+| firings | band | narrow ONCE (shipped) | narrow at EVERY add |
+|---:|---:|---:|---:|
+| 1 | 0.0191 m | 3.619e-10 m | 3.619e-10 m (1.0×) |
+| 10 | 0.1911 m | 1.038e-9 m | 6.413e-9 m (6.2×) |
+| 200 | 3.8211 m | 5.860e-9 m | **3.344e-6 m (570.6×)** |
+
+The error compounds with the firing count, exactly as feared — **570× worse at
+the production epoch count**. The generic `Fact<Q>` is not fussiness; it is the
+570.
 
 ## Nothing is deleted
 
@@ -244,6 +261,32 @@ asserting something real — *"the fact records exactly what the edge moved"* �
 and in the resident record that is now *"records what the edge moved, to 24
 bits"*. That is a true, tiny loss of information. The response is to write the
 weaker claim down, not to pretend the stronger one survived.
+
+## What it bought, measured on the shipped world
+
+Seed 1337, `Extent::Medium` — the world `dc-client` boots. **Absolutes, not
+ratios**: a ratio silently rots when its denominator moves.
+
+```
+TODAY, resident LedgerField::footprint_bytes()
+   before   17.45 MiB   (1 033 189 facts x 16 B + 72 006 rows x 8 B + 297 026 x 4 B)
+   after     9.57 MiB   (measured; the probe's itemisation reconstructs it EXACTLY)
+   reclaimed 7.88 MiB
+
+PER-DEPTH projection (the number the arc is blocked on)
+   before  973.40 MiB
+   after   504.50 MiB   <- S20 § 3 row 2c, reproduced by the shipped types
+
+the edge dictionary on this world: ONE entry
+   id 0x4647   dc:granite / structure  ->  dc:granite / loose
+   re-derives from its own material NAMES against the live registry: OK
+```
+
+**504.50 MiB is still half a gigabyte.** 2c makes the number smaller without
+changing its class — it was never going to be the answer on its own, which is
+why the user ratified 3 **+** 2c and not 2c alone. What it does buy is that the
+pager, when it comes, pages **half as many bytes**: option 3′ is 37.86 MiB
+resident against 468.91 MiB on disk instead of 937.85.
 
 ## Residue
 
