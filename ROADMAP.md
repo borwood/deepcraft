@@ -2773,12 +2773,16 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   - **WHY THEY ARE ONE ITEM.** Both are **S-4 "coarse cause → fine expression"** where the fine
     expression **randomizes where the physics would structure**. Same class, two axes (vertical
     bed order vs horizontal flow bias), same eventual home — the **forms / presentation pass**.
-    The fix reads a **structuring signal** (contact orientation for order; the flow field `recv`
-    + local topography for placement) instead of the current unbiased sieve.
-  - **INPUTS ALREADY EXIST.** Material-aware transport (§13) produces exactly what biased fill
-    needs — the cell's composition **and** its flow vector (`recv`) — so deferring the biased
-    expression loses nothing; the record just needs to also carry the within-voxel order the
-    sieve currently drops.
+    The fix reads a **structuring signal** (contact orientation for order; ~~the flow field `recv`~~
+    **the flux record** — `DeepField::flux`, per-chapter directed flux on faces, journal/0096 —
+    plus local topography for placement) instead of the current unbiased sieve.
+  - **INPUTS: the FLOW half already exists** (corrected 2026-07-25, sweep row S-3; was *"inputs
+    already exist"* naming `recv`). The flux record shipped 2026-07-25 and carries **direction and
+    magnitude per chapter**, which `recv` structurally never could — one out-edge cannot express a
+    fan, and `recv` is the spanning tree the FLOW arc retires (deletion is continuation (e)). So
+    **do not re-derive "we must wait for Movement 2b" for the flow half.** What still rides
+    Movement 2b is the **composition** half — the cell's material multiset that biased fill places.
+    The record also still needs to carry the within-voxel order the sieve currently drops.
   - **STATUS: non-blocking, and the two scales differ in value** (user, 2026-07-24). The
     within-VOXEL order loss is **ratified-acceptable** — "granted micro-scale lossiness, still
     reads realistic for most purposes"; **not a defect to fix.** The within-CELL flow-biased
@@ -2790,12 +2794,27 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
 - **MIGRATE EVERY "NOT REAL" FIELD INTO A REAL DECLARED FIELD PASS** (reminder, user-directed
   2026-07-24). As the §5 **field-pass half** lands (geotherm = the first, this session), the
   ad-hoc / stub / unconsumed proto-fields must each migrate into a **real declared field pass
-  writing to the condition-field vocabulary** — not stay ad-hoc planes: `exhum` + `t_crust`
-  exported planes (spines §3, unconsumed), the **degenerate `burial_temp_c` geotherm** (stubs.md
-  #14 — the real geotherm subsumes it, coal recalibration rides along), drainage `recv`/`area`/
-  `lake` (spines §3, unconsumed — the flow field material-aware transport consumes), and any
-  field computed inline that a formation predicate or cellular pass ought to read by id. **Each
-  migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
+  writing to the condition-field vocabulary** — not stay ad-hoc planes.
+  - **⚠ TARGET LIST REWRITTEN 2026-07-25 (sweep row S-1) — three of the four named targets moved,
+    and two of them are not migrations at all.** What survives as written: **`exhum` + `t_crust`
+    exported planes** (spines § 3, still unconsumed — their heir is **metamorphic grade**,
+    stubs #4; see the Metamorphism entry below). Plus any field computed inline that a formation
+    predicate or cellular pass ought to read by id.
+    - ~~the **degenerate `burial_temp_c` geotherm** (stubs.md #14)~~ — **STRUCK: retired
+      2026-07-24** by the real geotherm (journal/0093), which took it out of the provider set
+      entirely rather than migrating it. stubs #14 is headed RETIRED.
+    - ~~drainage `recv` / `area` / `lake`~~ — **STRUCK: these are a DELETION target, not a
+      migration target.** spines § 3 marks the row *"SUPERSEDED 2026-07-25 (journal/0096, FLOW
+      slice 1), retirement sequenced"*; the heir is **`DeepField::flux`** and the disposal is
+      **FLOW continuation (e)**. Migrating them into a declared field pass would be building a
+      declared home for a plane we have already agreed to delete.
+    - `dc:deep/drainage` has been **a declared pass since Movement 1** (journal/0090; it is named
+      in the 17-pass order in § Shipped) — the unconsumed thing is the exported **plane**, not the
+      pass. The entry's original framing conflated the two.
+    - **Vocabulary the migration did not have to open:** `dc:field/temperature` (0093) and
+      `dc:field/head` (0098) both landed as first-class field passes on their own arcs — two rows
+      this reminder can stop carrying.
+  **Each migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
   condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
   output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
 
@@ -2834,6 +2853,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   🔴 Observed entry. *(A fallback peat station exists if the world is ever walked for organics
   anyway: world −8266, −45533, surface 263.7 m, 2.7 m of peat outcropping at the surface — no
   bench needed; nearest-to-Station-A alternative at 58867, −34963, 50.9 km away.)*
+  **(5)** ~~the `pore_rider_share` **correlation** walk — a fullbright walk along a strong front
+  looking for banding correlated with the parent's eighth~~ **NEVER OWED — ANSWERED AT THE DESK
+  2026-07-25 (journal/0105).** Filed here 2026-07-25 by sweep row D-5, which correctly caught that
+  a proposed walk was living in an Observed entry and not in this tracker — but the walk had
+  already been retired by the hash-domain slice that merged the same day. It measured the question
+  spatially instead: on one 32×32 contact plane sharing one record and one fill plan, **every
+  autocorrelation at lags 1–4 in both axes is inside ±0.07 of zero, before *and* after** the fix.
+  Structurally absent, not merely subtle — both offsets are functions of a position hash, so a
+  dependency between two decisions **at one voxel** cannot make structure **between** voxels.
+  *Kept struck rather than deleted: the lesson is the tracker's, not the walk's — a walk proposed
+  in an Observed entry and not listed here is a loose end by stubs.md doctrine, whichever way it
+  later resolves.*
   Screenshots to `journal/assets/` named for their entry.
 
 - ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0100).** Measured result: flag-ON
@@ -2875,8 +2906,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
 
 - **WEATHERING IS ONE PROCESS — SAPROLITE IS A STATE ALONG IT, NOT A SLICE**
   (**USER'S STRONG LEANING on the destination, 2026-07-25** — *"strong enough that it should pop
-  into sequence when the requisites are met"*. Not scheduled; **gated on the requisites below, and
-  it enters Sequenced the moment they are met.**)
+  into sequence when the requisites are met"*. ~~Not scheduled; **gated on the requisites below, and
+  it enters Sequenced the moment they are met.**~~)
+  - **✅ REQUISITES MET 2026-07-25 — R1, R2 and R3 all (see the marked requisites below). THE GATE
+    IS OPEN AND THE BLOCKER MOVED: this is now a DESIGN question, not a prerequisite question.**
+    (Corrected 2026-07-25 by the staleness sweep, row S-2; the header still read "gated on the
+    requisites" after commit `160858b`'s own message said *"the gate is open, and the blocker
+    moved."*) Before it can be built, the arc must answer **what is persisted** — the **chapter**
+    axis, the **agent** axis, or a **per-slot scalar** (R3's three levers, below) — which is
+    exactly the *"a summary must be derived from the authority, never become it"* question this
+    project already has a doctrine for. The numbers that frame the call: **gen time is affordable
+    (25.7 s → 46.4 s); residency is not (`LedgerField` 17.45 MiB → 973 MiB, 55.8×, resident).**
+    The S20 spike costed four options for that decision, including paged facts.
   - **WHAT.** Retire saprolite as a bespoke thing. Weathering becomes **one declared process**
     acting on whatever is exposed to reactants at a rate set by *material susceptibility ×
     driver × access* — the gradation **emerging from the rate**, not imposed by a shape function.
@@ -2943,6 +2984,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
         be derived from the authority, never become it"* question this project already has a doctrine
         for. **This is a design decision the arc must answer before it is built, and it is a much more
         tractable problem than "the deep run doubles".**
+      - **CROSS-REF (added 2026-07-25, sweep row A-1): the `DeepField::strata` collapse is the next
+        lever on the SAME budget.** Observed *"the SAME lever, one record over: `DeepField::strata`
+        is `Vec<DeepStrata>`"* — **9.06 MiB of struct headers over an 84.47 MiB heap, 11.3 % of
+        cells holding an empty record**. It was filed as a residency item in its own right; R3 has
+        now put **residency, not gen time**, on this arc's critical path, so the two entries are
+        competing for one budget and should be read together.
     - Incidental re-confirmation: **72 006 of 297 025 cells (24.2 %) ever weather** — journal/0102's
       75.8 %-never figure, re-measured from the other side; the CSR layout it motivated is why today's
       sidecar is 17 MiB and not 31.
@@ -3104,7 +3151,13 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     projection of it) moves somewhere both crates can see. **(i) is the integrator's lean**
     — it preserves "what is at X is a world question, not a camera question", which this
     very entry already asserts. User call at dispatch time.
-  - **THE FAR TIER'S PAYLOAD IS A MIXTURE, NOT A WINNER — DECIDED 2026-07-25 (user):** *"LOD may
+  - **~~THE FAR TIER'S PAYLOAD IS A MIXTURE, NOT A WINNER~~ — PRESERVED FOR THE RENDER-SIDE QUERY,
+    like its two siblings above** (folded 2026-07-25, sweep row D-4). *This bullet is written in the
+    tier language the **UNTIERED** decision retired the same day, and its surviving content is
+    already stated up in that decision (**"payload is uniformly a mixture… there is no far tier left
+    to special-case"**). What is **unique** to it and still live: the **render-side speckle
+    direction**, and the cross-reference to the journal/0091 **LOD fix (b)** cold/warm material
+    agreement, both in its last two sentences.* **DECIDED 2026-07-25 (user):** *"LOD may
     be textured by a **speckled mix** in the future, not just single material as it is now. So
     leave the seam for speckle — or better yet have it fall out by construction."* **It falls out
     by construction, and that is the design:** make the payload **uniformly a mixture at every
@@ -3132,8 +3185,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     contents (`chunk_contents`) and splats them; the stored 1-byte `Block` is a
     storage/sim relic the render **bypasses**, and it loses the mixture on edit.
   - **UNIFIES.** = the block↔material collapse tail (storage palette · far-span ·
-    ~80 solidity · mesher layer pick · player-facing name) + the **distance pyramid**
-    (near/mid/far *are* the `identify` tiers) + **S-3** (`classify` demoted to a derived
+    ~80 solidity · mesher layer pick · player-facing name) + ~~the **distance pyramid**
+    (near/mid/far *are* the `identify` tiers)~~ **— CORRECTED 2026-07-25 (sweep row A-5): that
+    framing died with the tiers.** `identify(pos)` is **untiered**, so the pyramid does not "have"
+    the tiers; **the distance pyramid is a RENDER concern only**, and it is what the palette-quant
+    station and the far-LOD material split converge into. + **S-3** (`classify` demoted to a derived
     rung + the pyramid's coarsest tier, never a stored authority) + **S-9** (self-labeled
     honesty).
   - **FIRST SLICE — ✅ SHIPPED 2026-07-25 (journal/0101), see the slice block at the top
