@@ -3430,6 +3430,22 @@ before any code.
     and changing the address would move every contact voxel in the world, so it is **the user's
     call**.
 
+- **`pore_rider_share`'s offset is NOT disjoint from `allocate_partial`'s, but its comment says it
+  is** (found 2026-07-25 while diagnosing the mass claim, journal/0103; **not a mass defect**).
+  `collapse.rs`'s `pore_rider_share` documents its draw as *"a **low digit** of the voxel's own fill
+  draw, not its high bits: `allocate_partial` consumes the high end, and reusing it here would
+  correlate 'this band won an extra eighth' with 'the product won an extra eighth of it' into a
+  visible pattern."* The arithmetic does not deliver that: `(u * 4096.0) as u64 & 7` is **bits
+  10–12** of the fraction, and `allocate_to`'s `uq = (u * ONE) as u64` is the **top 20**. They
+  overlap, so `cnt` and the rider's offset **are** correlated — exactly the coupling the comment
+  says it avoided. **Measured consequence on mass: none detectable** (journal/0103's stage-2 figure
+  is the joint case: −0.60 % aggregate, median −0.00 % over 247 columns), because each draw is
+  marginally unbiased. The open question is the one the comment actually cared about: whether the
+  correlation is **visible** as a pattern at a contact. **Not touched** — re-addressing the rider's
+  draw moves every contact voxel in the world, which is an appearance change and the user's call.
+  Cheap next step: a fullbright walk along a strong front looking for banding correlated with the
+  parent's eighth, before any code moves.
+
 - **A front's parent alternates diorite/granite down a single column** (observed 2026-07-25 by the
   weathering-profile slice; **pre-existing, merely made visible**). `Single` voxels resolve their
   member through the per-voxel-column **member dither** while `Mixed` voxels use the **canonical**
