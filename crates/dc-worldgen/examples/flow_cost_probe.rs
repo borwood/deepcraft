@@ -165,6 +165,13 @@ struct Baseline {
     exhum: usize,
     t_crust: usize,
     geotherm: usize,
+    /// The `head` condition-field (FLOW continuation (a), journal/0098).
+    /// **Added 2026-07-25** for the same reason `flux` was: the head plane landed
+    /// after this probe was last touched, `DeepField::resident_bytes` grew a term,
+    /// and the agreement assertion below refused to run. `cargo test` builds
+    /// examples but never *runs* them (CLAUDE.md), so the gate could not see it —
+    /// twice now. The itemisation is only a view of the authority if it tracks it.
+    head: usize,
     recv: usize,
     lake: usize,
     strata_structs: usize,
@@ -189,6 +196,7 @@ impl Baseline {
             exhum: f.exhum.len() * f64s,
             t_crust: f.t_crust.len() * f64s,
             geotherm: f.geotherm.len() * f64s,
+            head: f.head.len() * f64s,
             recv: f.recv.len() * std::mem::size_of::<i32>(),
             lake: f.lake.len(),
             strata_structs: f.strata.len() * std::mem::size_of::<DeepStrata>(),
@@ -207,6 +215,7 @@ impl Baseline {
             ("exhum (f64/cell)", self.exhum),
             ("t_crust (f64/cell)", self.t_crust),
             ("geotherm (f64/cell)", self.geotherm),
+            ("head (f64/cell)", self.head),
             ("recv (i32/cell)", self.recv),
             ("lake (bool/cell)", self.lake),
             ("strata structs", self.strata_structs),
