@@ -76,6 +76,21 @@ pub(crate) const SALT_GEO_FILL: u64 = 0x5700_000F;
 /// `SALT_GEO_FILL` and the member-selection `SALT_GEO_SELECT` / `SALT_GEO_DEEP`,
 /// so the class draw and the within-class member draw never share a value.
 pub(crate) const SALT_GEO_CLASS: u64 = 0x5700_0010;
+/// **The pore-rider rounding offset** (journal/0105). A weathering front's
+/// product rides in its host band's pore slots, and the whole eighths it wins
+/// inside a *contact* voxel are stochastically rounded from the host's own
+/// winnings (`fill::pore_rider_share`). That is a **second** decision in the same
+/// voxel as the eighth allocation, and it needs its **own** entropy.
+///
+/// It did not have any until 2026-07-25: it sliced bits 8–10 out of the very
+/// `SALT_GEO_FILL` draw `allocate_partial` consumes, so the pore offset was a
+/// *deterministic function* of the allocation offset — and every rider in a
+/// multi-band contact voxel shared one offset, so their rounding errors added
+/// instead of cancelling. The salt is the domain separation that makes the two
+/// draws independent **whatever bit widths either one grows into**; the event
+/// index in the address is what separates one band's decision from its
+/// neighbour's inside a single voxel.
+pub(crate) const SALT_GEO_PORE: u64 = 0x5700_0011;
 
 /// The player-facing world-size knob: coarse cells per grid edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

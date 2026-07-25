@@ -44,7 +44,9 @@ use dc_core::{
 };
 use dc_sim::statistical::rng::draw_f64;
 
-use crate::fill::{ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents};
+use crate::fill::{
+    ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
+};
 use crate::geology::{
     StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member, interp_select_draw,
 };
@@ -669,13 +671,16 @@ impl<'a> WorldGenerator<'a> {
                 // ledger conserves. Its share is **proportional** to the eighths
                 // its host actually won (unlike the `ore` rider above, whose
                 // `min` semantics are left exactly as they were: changing them
-                // would move every placer voxel in the world).
+                // would move every placer voxel in the world). It rounds on
+                // **its own** addressed draw, keyed by the event, so it is
+                // independent both of the allocation that produced `cnt` and of
+                // the sibling bands' riders in this same voxel (journal/0105).
                 //
                 // A *structural* accessory (the 1/8 igneous inclusion) is still
                 // dropped at contacts — the pre-0099 carve-out, kept so no
                 // existing world moves; filed as a loose end on stubs.md #20.
                 (_, Some((rider, k8))) if k8 > 0 && crate::fill::is_loose(&self.geology, rider) => {
-                    let g = pore_rider_share(cnt, k8, u);
+                    let g = pore_rider_share(cnt, k8, pore_draw(self.seed, vx, vy, vz, k));
                     if cnt > g {
                         parts.push((e.member, cnt - g));
                     }
@@ -1677,27 +1682,6 @@ fn wilds_regolith_voxels(precip: f64) -> u8 {
     } else {
         1
     }
-}
-
-/// A **pore rider's** whole eighths inside a host that won `cnt` of this voxel's
-/// eight: `cnt · k8 / 8`, stochastically rounded, so the rider's share of a
-/// contact voxel is *proportional* to its host's share of it.
-///
-/// Proportionality is what makes the weathering profile conserve mass through
-/// the contacts: over a neighbourhood the expected product eighths equal the
-/// recorded product fraction, exactly the unbiasedness argument
-/// [`crate::fill`]'s allocation rests on (journal/0055). Deterministic flooring
-/// would delete the deep front's 1/8 tail everywhere — the same bias that once
-/// deleted the world's thin beds.
-///
-/// The offset is a **low digit** of the voxel's own fill draw, not its high
-/// bits: [`crate::fill::allocate_partial`] consumes the high end, and reusing it
-/// here would correlate "this band won an extra eighth" with "the product won an
-/// extra eighth of it" into a visible pattern.
-fn pore_rider_share(cnt: u8, k8: u8, u: f64) -> u8 {
-    let uq = (u * 4096.0) as u64 & 7;
-    let n = (u64::from(cnt) * u64::from(k8.min(8)) + uq) / 8;
-    (n as u8).min(cnt)
 }
 
 /// Canonical voxel contents for one stratum event, given the **resolved host

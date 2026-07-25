@@ -67,7 +67,7 @@ use dc_core::{StructureShape, VoxelContents};
 use dc_sim::statistical::rng::draw_f64;
 
 use crate::geology::StrataRec;
-use crate::pregen::SALT_GEO_FILL;
+use crate::pregen::{SALT_GEO_FILL, SALT_GEO_PORE};
 
 /// Eighths in a voxel.
 const EIGHTHS: u64 = 8;
@@ -230,7 +230,7 @@ fn fixed_weights(parts: &[(usize, f64)], cov: f64) -> Vec<(usize, u64)> {
 /// is the addressed draw. Returns whole eighths summing to exactly 8 (module
 /// docs for why that is an identity rather than a hope).
 pub fn allocate(weights: &[(usize, u64)], u: f64) -> Vec<(usize, u8)> {
-    let uq = ((u * ONE as f64) as u64).min(ONE - 1);
+    let uq = fill_offset(u);
     let mut out = Vec::with_capacity(weights.len());
     let mut c = 0u64;
     for &(idx, w) in weights {
@@ -257,6 +257,96 @@ pub fn share_eighths(w: u64) -> f64 {
 /// no generation order, no wall clock.
 pub fn fill_draw(seed: u64, vx: i64, vy: i64, vz: i64) -> f64 {
     draw_f64(&[seed, SALT_GEO_FILL, vx as u64, vy as u64, vz as u64])
+}
+
+/// **Width of the eighth-allocation offset**, in bits — how much of the fill
+/// draw [`allocate`] and [`allocate_partial`] consume. Public because the claim
+/// "the pore rider's offset is disjoint from this" was made in a comment for
+/// four days while being false, and the probe that keeps it honest has to know
+/// how wide the thing it must be disjoint from actually is.
+pub const FILL_OFFSET_BITS: u32 = FRAC_BITS;
+
+/// The fill draw quantized to the offset the allocation actually consumes.
+/// Exposed so nothing has to keep a *copy* of this expression in order to reason
+/// about what the allocation saw.
+pub fn fill_offset(u: f64) -> u64 {
+    ((u * ONE as f64) as u64).min(ONE - 1)
+}
+
+/// The offset for **one pore-rider rounding decision** — a draw of its own, from
+/// its own salt, for one `(voxel, recorded event)` pair.
+///
+/// This type exists to make a past defect **unrepresentable**. Until
+/// journal/0105 [`pore_rider_share`] took a bare `f64` and was handed
+/// [`fill_draw`]'s value, out of which it sliced three bits; the two decisions in
+/// a contact voxel were therefore drawn from one number. A `f64` will no longer
+/// type-check there, the field is private to this module, and the only
+/// constructor is [`pore_draw`], which is the only place `SALT_GEO_PORE` is
+/// spelled. Re-correlating the two draws now takes a deliberate edit to this
+/// file rather than an innocent one at the call site.
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct PoreDraw(f64);
+
+impl PoreDraw {
+    /// The draw quantized to the three bits [`pore_rider_share`] actually
+    /// consumes (`0..8`). Exposed for the decorrelation probe, which has to
+    /// compare this offset against every 3-bit window of the fill draw.
+    pub fn offset(self) -> u64 {
+        ((self.0 * EIGHTHS as f64) as u64).min(EIGHTHS - 1)
+    }
+}
+
+/// The pore-rider offset draw for one world voxel and one **recorded event**.
+///
+/// Two separations, both load-bearing (journal/0105):
+///
+/// - **`SALT_GEO_PORE` vs `SALT_GEO_FILL`** makes this independent of the
+///   eighth-allocation draw in the same voxel. Domain separation by salt rather
+///   than by bit range is the form that cannot rot: a bit-range carve-out is
+///   only disjoint for the widths it was written against, and
+///   [`allocate_partial`]'s offset is `FRAC_BITS` wide *today*.
+/// - **`event` in the address** makes each band's decision independent of its
+///   neighbours' *within the same voxel*. A weathering front is many thin bands
+///   of one parent member differing only in pore share, so one contact voxel
+///   routinely carries several rider decisions; on a shared offset they all
+///   round the same way and their errors add instead of cancelling.
+///
+/// `event` is the index into [`crate::StrataRec::events`] — the record's own
+/// canonical order, not an iteration order.
+pub fn pore_draw(seed: u64, vx: i64, vy: i64, vz: i64, event: usize) -> PoreDraw {
+    PoreDraw(draw_f64(&[
+        seed,
+        SALT_GEO_PORE,
+        vx as u64,
+        vy as u64,
+        vz as u64,
+        event as u64,
+    ]))
+}
+
+/// A **pore rider's** whole eighths inside a host that won `cnt` of this voxel's
+/// eight: `cnt · k8 / 8`, stochastically rounded, so the rider's share of a
+/// contact voxel is *proportional* to its host's share of it.
+///
+/// Proportionality is what makes the weathering profile conserve mass through
+/// the contacts: over a neighbourhood the expected product eighths equal the
+/// recorded product fraction, exactly the unbiasedness argument this module's
+/// allocation rests on (journal/0055). Deterministic flooring would delete the
+/// deep front's 1/8 tail everywhere — the same bias that once deleted the
+/// world's thin beds. The offset is uniform on `0..8`, so
+/// `E[share] = cnt · k8 / 8` exactly, which is the property that survived
+/// journal/0105's rewiring untouched.
+///
+/// The offset comes from [`pore_draw`] — **its own** addressed draw. It used to
+/// come from bits 8–10 of the voxel's [`fill_draw`], under a comment claiming
+/// that was "a low digit… not its high bits" and therefore disjoint from what
+/// [`allocate_partial`] consumes. It was not disjoint: `allocate_partial` takes
+/// the top `FRAC_BITS` = 20 bits, which contains bits 8–10, so the pore offset
+/// was a deterministic function of the allocation offset. See journal/0105 for
+/// what that was and was not worth.
+pub fn pore_rider_share(cnt: u8, k8: u8, d: PoreDraw) -> u8 {
+    let n = (u64::from(cnt) * u64::from(k8.min(8)) + d.offset()) / EIGHTHS;
+    (n as u8).min(cnt)
 }
 
 /// Canonical contents for a **mixed** voxel: the allocated eighths, split by
@@ -328,7 +418,7 @@ pub fn mixed_contents(set: &GeologySet, parts: &[(GeoMemberIdx, u8)]) -> VoxelCo
 /// must ride in the debris multiset the way a gold grain rides in gravel, not
 /// stand up as structure and claim the voxel's block identity through
 /// `classify`'s structure-first rule.
-pub(crate) fn is_loose(set: &GeologySet, m: GeoMemberIdx) -> bool {
+pub fn is_loose(set: &GeologySet, m: GeoMemberIdx) -> bool {
     let class = set.member(m).class.as_str();
     class == CLASS_CLASTIC_FINE
         || class == CLASS_CLASTIC_COARSE
@@ -372,7 +462,7 @@ pub fn allocate_partial(weights: &[(usize, u64)], u: f64, n: u8) -> Vec<(usize, 
 }
 
 fn allocate_to(weights: &[(usize, u64)], u: f64, total: u64) -> Vec<(usize, u8)> {
-    let uq = ((u * ONE as f64) as u64).min(ONE - 1);
+    let uq = fill_offset(u);
     debug_assert_eq!(weights.iter().map(|(_, w)| w).sum::<u64>(), total);
     let mut out = Vec::with_capacity(weights.len());
     let mut c = 0u64;
@@ -457,5 +547,93 @@ mod tests {
         assert_eq!(w, vec![(3, TOTAL)]);
         assert_eq!(allocate(&w, 0.0), vec![(3, 8)]);
         assert_eq!(allocate(&w, 0.999), vec![(3, 8)]);
+    }
+
+    /// Voxel addresses spread over a real slab of world, used by the
+    /// decorrelation tests below. Deterministic, so these tests are exact
+    /// statements about this hash rather than samples that might flake.
+    fn addresses() -> impl Iterator<Item = (i64, i64, i64)> {
+        (0..40).flat_map(|x| (0..40).flat_map(move |y| (0..25).map(move |z| (x, y, z - 200))))
+    }
+
+    /// **The disjointness the retired comment claimed, now asserted — in the one
+    /// form that cannot rot.**
+    ///
+    /// The defect journal/0105 fixed was not "the wrong three bits"; it was that
+    /// the pore offset was derived from the fill draw *at all*, so it could never
+    /// be independent of it however the bits were carved. The assertion is
+    /// therefore not "the bit ranges do not overlap" — that is a claim about
+    /// today's `FRAC_BITS` — but **no 3-bit window anywhere in the fill draw
+    /// predicts the pore offset better than chance**. Slice the fill offset every
+    /// way it can be sliced; each window must agree with the pore offset about
+    /// 1 time in 8. The old code scored 100 % at shift 8.
+    #[test]
+    fn no_window_of_the_fill_draw_predicts_the_pore_offset() {
+        let n = addresses().count() as f64;
+        for shift in 0..=(FILL_OFFSET_BITS - 3) {
+            let mut hits = 0usize;
+            for (vx, vy, vz) in addresses() {
+                let uq = fill_offset(fill_draw(7, vx, vy, vz));
+                if (uq >> shift) & 7 == pore_draw(7, vx, vy, vz, 0).offset() {
+                    hits += 1;
+                }
+            }
+            let rate = hits as f64 / n;
+            assert!(
+                (rate - 0.125).abs() < 0.015,
+                "the pore offset agrees with bits {shift}..{} of the fill offset \
+                 {:.2} % of the time (chance is 12.5 %) — the two draws in a contact \
+                 voxel have been re-coupled",
+                shift + 3,
+                100.0 * rate,
+            );
+        }
+    }
+
+    /// Two bands **in the same voxel** decide independently. A weathering front
+    /// is many thin bands of one parent differing only in pore share, so a
+    /// contact voxel routinely holds several rider decisions; when they shared an
+    /// offset they rounded in lockstep and their errors added rather than
+    /// cancelled. The event index in the address is what breaks that, and this is
+    /// the test that fails if it is ever dropped from the key.
+    #[test]
+    fn two_bands_in_one_voxel_draw_independent_offsets() {
+        let n = addresses().count() as f64;
+        let same = addresses()
+            .filter(|&(vx, vy, vz)| {
+                pore_draw(7, vx, vy, vz, 3).offset() == pore_draw(7, vx, vy, vz, 4).offset()
+            })
+            .count();
+        let rate = same as f64 / n;
+        assert!(
+            (rate - 0.125).abs() < 0.015,
+            "sibling bands in one voxel draw the same offset {:.2} % of the time \
+             (chance is 12.5 %) — the event index has fallen out of the pore address \
+             and every band in a contact voxel rounds in lockstep again",
+            100.0 * rate,
+        );
+    }
+
+    /// **The property the rewiring had to preserve**: averaged over the offset a
+    /// rider gets back exactly `cnt · k8 / 8` eighths. Enumerated, not sampled —
+    /// the offset has eight values and integer division makes the sum exact.
+    #[test]
+    fn the_pore_rider_share_is_unbiased_over_its_offset() {
+        for cnt in 0..=8u8 {
+            for k8 in 0..=8u8 {
+                let total: u32 = (0..EIGHTHS)
+                    .map(|i| {
+                        let d = PoreDraw((i as f64 + 0.5) / EIGHTHS as f64);
+                        assert_eq!(d.offset(), i);
+                        u32::from(pore_rider_share(cnt, k8, d))
+                    })
+                    .sum();
+                assert_eq!(
+                    total,
+                    u32::from(cnt) * u32::from(k8),
+                    "cnt {cnt}, k8 {k8}: the eight offsets must average to cnt·k8/8 exactly"
+                );
+            }
+        }
     }
 }
