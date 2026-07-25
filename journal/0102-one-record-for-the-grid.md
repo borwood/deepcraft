@@ -27,12 +27,17 @@ insight was found yesterday and deliberately left with an address.
 
 ## The number that makes it not a rounding error
 
-13.60 MiB against a 156 MiB flag-off field is 8.7 %. That alone would be worth
-doing and not worth writing about. What makes it worth writing about is the
-denominator on the *other* side: **225,019 of the 297,025 cells — 75.8 % — carry
-no fact at all.** They are marine, or they are border wilds, or they simply never
-stood above water long enough to weather. Every one of them was paying two `Vec`
-headers for the privilege of possibly having facts.
+13.60 MiB against a 173 MiB field is 7.8 %, which is worth doing and not worth
+writing about. But that is the wrong denominator. The right one is **what turning
+weathering on costs**: +29.91 MiB, of which **13.60 MiB — 45 % — was the struct**.
+Nearly half the price of the whole weathering feature was headers.
+
+And on the other side: **225,019 of the 297,025 cells — 75.8 % — carry no fact at
+all.** They are marine, or border wilds, or they simply never stood above water
+long enough to weather. Every one of them was paying two `Vec` headers for the
+privilege of possibly having facts. That is journal/0100's finding — *the record
+spent most of its residency on the absence of facts* — restated at the next
+granularity up, with a smaller multiplier and the same cause.
 
 So the shape of the waste is identical to journal/0100's, and it is worth stating
 in the form that outlives both structs:
@@ -83,8 +88,8 @@ array, this cell's rows, and the cell's end offset — with exactly the read sur
 the owned struct had: `facts_for`, `bedrock_composition`, `weathering_product_m`,
 `is_empty`, `total_facts`, `slots_with_facts`.
 
-The measure of whether that worked: **not one call site changed.** The collapse
-tier's
+The measure of whether that worked: **not one reader of the ledger changed.** The
+collapse tier's
 
 ```rust
 .ledger_at_voxel(cx * 32 + 16, cz * 32 + 16)
@@ -94,9 +99,13 @@ tier's
 compiles untouched, as does `field.ledgers.get(i).map_or(0.0, …)` in the tour and
 the profile probe, and `for (i, ledger) in field.ledgers.iter().enumerate()` in the
 S18 test — because `get` still returns an `Option` of something with the method,
-and `iter()` still yields one item per cell. The only edit outside the two owning
-files was three lines inside one test that wrote `finalized[0]`; a `Vec` can be
-indexed and a record that hands out views cannot. Same test, same name, same
+and `iter()` still yields one item per cell.
+
+The rest of the change is plumbing that had to move because it *names the type*:
+`finalize_ledgers`' return type, `DeepRun`/`DeepStepCtx`'s field, the re-export,
+and `resident_bytes`' accounting. The only **test** edit in the tree is three lines
+in `bedrock_facts_key_stably_as_the_record_grows` that wrote `finalized[0]`: a `Vec`
+can be indexed and a record that hands out views cannot. Same test, same name, same
 assertions.
 
 That is the honest test of a "pure layout change": if the read surface is really a

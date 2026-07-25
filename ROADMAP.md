@@ -41,13 +41,16 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
     boundary — the one place this could have been quietly wrong),
     `the_record_costs_its_facts_not_its_cells` (a residency **bound**, not a snapshot).
     283 tests, 35 suites, 0 failed.
-  - **NOT ONE CALL SITE CHANGED.** `ledger_at_voxel` returns a borrowed `LedgerView<'_>` with the
-    read surface the owned struct had, so `collapse.rs`, `examples/s18_weathering_tour.rs`,
-    `examples/weathering_profile_probe.rs` and `tests/s18_first_behavior_weathering.rs` all compile
-    untouched (`get(i)` still returns an `Option` of something with the method; `iter()` still
-    yields one item per cell). The only edit outside the two owning files is three lines in
+  - **NOT ONE READER OF THE LEDGER CHANGED.** `ledger_at_voxel` returns a borrowed
+    `LedgerView<'_>` with the read surface the owned struct had, so `collapse.rs`,
+    `examples/s18_weathering_tour.rs`, `examples/weathering_profile_probe.rs` and
+    `tests/s18_first_behavior_weathering.rs` all compile untouched (`get(i)` still returns an
+    `Option` of something with the method; `iter()` still yields one item per cell). The rest is
+    plumbing that *names the type* (`finalize_ledgers`' return, `DeepRun`/`DeepStepCtx`'s field,
+    the re-export, `resident_bytes`). The only **test** edit in the tree is three lines in
     `bedrock_facts_key_stably_as_the_record_grows` that wrote `finalized[0]` — a `Vec` indexes, a
     record that hands out views does not. Same test, same name, same assertions.
+    Files: `deeptime/{inventory,field,weather_inventory,mod,runner}.rs`, `examples/flow_cost_probe.rs`.
   - **THE PER-CELL CONTAINER IS STILL RIGHT AT GEN TIME, and that is the design.** `FactLedger`
     survives as the accumulator: the pass appends into one cell every epoch, and an insert into a
     grid-wide array would memmove every fact after that cell — up to a million, per firing. The
