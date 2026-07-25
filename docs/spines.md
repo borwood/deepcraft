@@ -150,10 +150,30 @@ A cheap answer written because a consumer cannot afford the real one must be
   identity split, S-9, is the same family, still open). Tail: the far-field span
   still carries a `Block` token (§ 3 migration tail, not yet a summary violation).
 
+- compliance (2026-07-25, journal/0101 — **the doctrine INVERTED, and the tier
+  nobody had audited**): `dc-api`'s `has_contents` was a **chunk-level** summary worn
+  as a **voxel-level** authority. `HostWorld::contents_at`'s `Option::None` — the only
+  channel that could mean *"no record for this voxel"* — had been spent on
+  `chunk_contents`'s whole-32³ condition, which exists because the **mesher** wants a
+  grid or nothing. The query inherited the mesher's shape and, silently, its
+  *meaning*: an unrecorded basement voxel reported `has_contents: true` +
+  `classified: dc:air` over solid stone (**6.4 %** of near-surface solid voxels,
+  corrections #49). The disappearing-consumer test names the culprit exactly — if the
+  mesher vanished, `contents_at` would not be shaped this way. Fixed by
+  `HostWorld::identify(pos) -> Identity` (`dc-api/src/identify.rs`): `contents_at` is
+  demoted **in its own doc** to the raw source, and every reporting surface derives
+  from `identify`. **Note the direction:** where the other S-3 instances are a
+  *summary* standing in for an *authority*'s content, this is a summary standing in
+  for an authority's **resolution** — same rule, and it is not enough to ask *"is
+  this derived from the authority?"* without also asking *"at what granularity was
+  the authority asked?"*
+
 **Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
 this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an
 authority"). Agreement is **exact** where expression is deterministic and
-**statistical** where quantization is deliberately unbiased (S-7).
+**statistical** where quantization is deliberately unbiased (S-7). And a summary
+can wear an authority's clothes by **resolution** as well as by content — ask
+both questions.
 
 ## S-4. Coarse cause, fine expression — and its mirror
 
@@ -420,6 +440,16 @@ Four shipped instances found in one audit: `surface_sample`'s branch,
 **Why the stub inventory misses it:** a stub *looks* like a fake — it says
 placeholder, it names an heir. A leaked requirement **looks like working code
 that passes tests**.
+
+- guarded (2026-07-25, journal/0101): *"empty"* had become the definition of
+  *"unrecorded"* at the query surface — `VoxelContents::EMPTY` was the only value
+  available for both, so the stand-in **was** the definition. `Identity::Unrecorded`
+  is now a distinct **value in the type**, not a convention about how to read a
+  `bool`. **And the overcorrection is the same anti-shape mirrored:** making air
+  `Unrecorded` too (defensible — the generator writes no record for air either) would
+  let *"unrecorded"* stand in for *"empty"*. Air is a positive, complete composition
+  statement derivable from the block alone, so it answers `Mixture(EMPTY)`. When
+  splitting a conflated value, check **both** directions before shipping the fix.
 
 ## A-2. A justification outlives its premise
 

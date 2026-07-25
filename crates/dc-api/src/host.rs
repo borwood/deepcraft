@@ -31,6 +31,7 @@ use crate::envelope::{
     QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick,
 };
 use crate::event::GameEvent;
+use crate::identify::Identity;
 use crate::payload::{ContentsView, EntityInfo, Payload, QueryData, Vec3i, Volume};
 use crate::schema::{CommandKind, spec};
 
@@ -70,18 +71,26 @@ pub fn block_name(block: Block) -> &'static str {
 
 /// Build the `dc:world/get_contents` result: the full composition (the
 /// authority) beside the stored, edit-aware `block` and the block the contents
-/// themselves classify to. For a voxel with no contents record the composition
-/// is empty and `classified` echoes the stored block.
-fn contents_query_data(block: Block, contents: Option<&dc_core::VoxelContents>) -> QueryData {
-    let classified = match contents {
-        Some(c) => block_name(dc_core::classify(c)),
+/// themselves classify to.
+///
+/// The composition comes from [`Identity`], **not** raw
+/// [`HostWorld::contents_at`] — so a voxel the world has no record for reports
+/// `has_contents: false` and a `classified` that echoes the stored block,
+/// instead of the pre-`identify` lie (`has_contents: true` +
+/// `classified: dc:air` over solid stone, corrections #49).
+fn contents_query_data(block: Block, identity: &Identity) -> QueryData {
+    let classified = match identity.classified() {
+        Some(b) => block_name(b),
+        // The absent-contents rule: `classify` never runs on a voxel that was
+        // never given a record — the stored block is all there is to report.
         None => block_name(block),
     };
     QueryData::Contents {
         block: block_name(block).to_string(),
         classified: classified.to_string(),
-        has_contents: contents.is_some(),
-        contents: contents
+        has_contents: !identity.is_unrecorded(),
+        contents: identity
+            .mixture()
             .map(ContentsView::from_contents)
             .unwrap_or_default(),
     }
@@ -312,17 +321,39 @@ impl HostWorld {
         self.contents_source = Some(source);
     }
 
-    /// The full [`dc_core::VoxelContents`] of a voxel, resolved through the
-    /// installed [`ContentsSource`]. `None` when no source is installed or the
-    /// source has no record for this chunk (S1 terrain, legacy stubs). Resolves
-    /// a whole chunk's contents grid and reads one voxel — a dev-query cost, off
-    /// every hot path (gen time is not a constraint).
+    /// The raw [`dc_core::VoxelContents`] a voxel's **chunk grid** carries, as
+    /// resolved through the installed [`ContentsSource`]. Resolves a whole
+    /// chunk's contents grid and reads one voxel — a dev-query cost, off every
+    /// hot path (gen time is not a constraint).
+    ///
+    /// **This is the source, not the answer.** Its `None` is a **chunk-level**
+    /// fact (no source installed, or the whole 32³ chunk is empty), so
+    /// `Some(VoxelContents::EMPTY)` conflates *"nothing is here"* with *"this
+    /// voxel was never given a record"* — the corrections #49 defect. Ask
+    /// [`HostWorld::identify`] for the honest per-voxel answer; reach for this
+    /// only when you want the grid's literal contents.
     pub fn contents_at(&self, p: Vec3i) -> Option<dc_core::VoxelContents> {
         let source = self.contents_source.as_ref()?;
         let cpos = ChunkPos::from_world_voxel(p.x, p.y, p.z);
         let (lx, ly, lz) = local_voxel(p.x, p.y, p.z);
         let grid = source(cpos)?;
         Some(grid.get(lx, ly, lz))
+    }
+
+    /// **The honest identity surface** (journal/0101): what this voxel is made
+    /// of, at one world position, untiered — or [`Identity::Unrecorded`] when
+    /// the world has no composition record for it.
+    ///
+    /// Resident-first, derived-if-absent: the block half is the stored,
+    /// edit-aware voxel ([`HostWorld::block_at`], which reads the resident
+    /// chunk and falls back to the generator); the composition half comes from
+    /// the installed [`ContentsSource`], which is a pure function of position
+    /// today. See [`crate::identify`] for the enabler that separates *"no
+    /// record"* from *"nothing here"*, and for the edit-blindness seam.
+    /// (`&mut` because the resident-first block read may have to generate and
+    /// cache the chunk — the same reason [`HostWorld::block_at`] takes it.)
+    pub fn identify(&mut self, p: Vec3i) -> Identity {
+        Identity::resolve(self.block_at(p), self.contents_at(p))
     }
 
     /// Last completed tick.
@@ -1267,8 +1298,7 @@ impl HostWorld {
             },
             Payload::GetContents(p) => {
                 let block = self.block_at(p.pos);
-                let contents = self.contents_at(p.pos);
-                contents_query_data(block, contents.as_ref())
+                contents_query_data(block, &self.identify(p.pos))
             }
             Payload::ScanRegion(p) => {
                 let vol = Volume::new(p.min, p.max);
@@ -1421,9 +1451,15 @@ impl HostWorld {
                             }
                         };
                         let block = block_name(self.block_at(voxel)).to_string();
+                        // `None` means *no record here* and nothing else — the
+                        // doc's promise, kept since `identify` (corrections
+                        // #49: this used to hand back `Some(<empty view>)` for
+                        // unrecorded rock, so a sensing character read a hit on
+                        // solid stone whose composition was nothing).
                         let contents = self
-                            .contents_at(voxel)
-                            .map(|c| ContentsView::from_contents(&c));
+                            .identify(voxel)
+                            .mixture()
+                            .map(ContentsView::from_contents);
                         QueryData::CharacterRaycast {
                             hit: true,
                             voxel: Some(voxel),

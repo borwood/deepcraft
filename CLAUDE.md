@@ -148,12 +148,13 @@ cargo test --workspace --release
   summary, which collapses mudstone/sandstone/siltstone/granite alike into
   `dc:stone` — a walk once read a whole column as `dc:stone` and nearly reported
   "no band" from an instrument that structurally cannot see one. `get_contents`
-  returns the real mixture. **Do NOT trust `has_contents` or `classified`
-  (corrections #49):** `has_contents` is answered per-CHUNK, so an *unrecorded*
-  basement voxel sharing a 32³ chunk with any recorded voxel reports
-  `has_contents: true` and `classified: dc:air` **over solid stone**. The
-  trustworthy field is **`block`** (it reads the same `block_at` as
-  `eye_in_solid`). ~6.4 % of solid voxels near the surface are affected.
+  returns the real mixture. **`has_contents` is now a PER-VOXEL fact and is
+  trustworthy** (fixed 2026-07-25, journal/0101; it used to be answered per-CHUNK —
+  corrections #49). Read it as: `has_contents: false` on a **solid** block means
+  *"no composition record here"* — the unrecorded basement, legacy soil, ocean
+  floor, border wilds — and **NOT air**; `classified` then just echoes `block`.
+  An air voxel honestly answers `has_contents: true` with an empty composition.
+  `block` remains the field that reads the same `block_at` as `eye_in_solid`.
 - **Cutting a cross-section?** `world_fill` a **bench** (a wide shelf, ~20k voxels
   of `dc:air`) rather than a narrow pit — a pit frames badly and a road-cut face
   reads at a glance. Screenshot names must be a bare lowercase slug.

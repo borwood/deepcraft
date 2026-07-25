@@ -799,3 +799,107 @@ fn stand_up_is_blocked_under_a_low_ceiling() {
         dc_api::Posture::Standing
     );
 }
+
+// ---------------------------------------------------------------------------
+// `identify` at the sense surface (journal/0101, corrections #49).
+//
+// `sense_raycast`'s `contents` is documented `None` for "no contents record".
+// Before `identify` it handed back `Some(<empty ContentsView>)` for unrecorded
+// rock — a sensing character read a hit on solid stone whose composition was
+// nothing — because the chunk-granular grid resolves an unrecorded voxel to an
+// ordinary empty composition.
+
+fn granite_full() -> dc_core::VoxelContents {
+    dc_core::VoxelContents::new(
+        dc_core::StructureShape::Full,
+        &[dc_core::MaterialId::GRANITE; 8],
+        &[],
+        &[],
+    )
+    .unwrap()
+}
+
+/// A contents source that records ONE voxel in the chunk holding (0, 2, -5)
+/// and leaves the rest of that chunk (the raycast's target included) empty —
+/// the exact shape of unrecorded basement sharing a chunk with a record.
+fn one_recorded_voxel_in_the_target_chunk(cpos: ChunkPos) -> Option<dc_core::ContentsGrid> {
+    if cpos != ChunkPos::from_world_voxel(0, 2, -5) {
+        return None;
+    }
+    let mut dense = vec![dc_core::VoxelContents::EMPTY; dc_core::CHUNK_VOLUME];
+    // Local (0, 2, 27) is the ray's target; record a DIFFERENT voxel so the
+    // chunk has a grid while the target voxel has no record.
+    dense[Chunk::index(5, 2, 27)] = granite_full();
+    Some(dc_core::ContentsGrid::from_dense(&dense))
+}
+
+/// The same chunk, but the ray's own target voxel is the recorded one.
+fn target_voxel_recorded(cpos: ChunkPos) -> Option<dc_core::ContentsGrid> {
+    if cpos != ChunkPos::from_world_voxel(0, 2, -5) {
+        return None;
+    }
+    let mut dense = vec![dc_core::VoxelContents::EMPTY; dc_core::CHUNK_VOLUME];
+    dense[Chunk::index(0, 2, 27)] = granite_full();
+    Some(dc_core::ContentsGrid::from_dense(&dense))
+}
+
+fn raycast_contents(world: &mut HostWorld) -> (bool, Option<dc_api::payload::ContentsView>) {
+    let session = session_source("scout");
+    let receipt = world.query(&env(
+        &session,
+        Payload::SenseRaycast(payload::SenseRaycast {
+            character: "scout".into(),
+            dir: None,
+            max_distance_m: None,
+        }),
+    ));
+    match receipt.result {
+        QueryResult::Ok(QueryData::CharacterRaycast { hit, contents, .. }) => (hit, contents),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// Set the wall the default gaze looks at, then raycast at it.
+fn wall_and_raycast(
+    world: &mut HostWorld,
+    block: &str,
+) -> (bool, Option<dc_api::payload::ContentsView>) {
+    spawn_scout(world, Vec3f::new(0.3, 0.0, 0.3));
+    let dev = dev_source();
+    let result = run(
+        world,
+        &dev,
+        Payload::SetBlock(payload::SetBlock {
+            pos: Vec3i::new(0, 2, -5),
+            block: block.into(),
+        }),
+    );
+    assert!(result.is_ok(), "{result:?}");
+    raycast_contents(world)
+}
+
+#[test]
+fn sense_raycast_reports_no_contents_for_unrecorded_rock() {
+    let mut world = slab_world(7);
+    world.set_contents_source(Box::new(one_recorded_voxel_in_the_target_chunk));
+    let (hit, contents) = wall_and_raycast(&mut world, "dc:stone");
+    assert!(hit);
+    assert_eq!(
+        contents, None,
+        "unrecorded rock must answer None, never an empty view"
+    );
+}
+
+#[test]
+fn sense_raycast_still_reports_contents_for_recorded_rock() {
+    // The non-regression twin: where a record DOES back the hit voxel, the
+    // composition still comes back.
+    let mut world = slab_world(7);
+    world.set_contents_source(Box::new(target_voxel_recorded));
+    let (hit, contents) = wall_and_raycast(&mut world, "dc:granite");
+    assert!(hit);
+    let view = contents.expect("a recorded voxel keeps its composition");
+    assert_eq!(view.structure.len(), 1);
+    assert_eq!(view.structure[0].material, "dc:granite");
+    assert_eq!(view.structure[0].eighths, 8);
+}

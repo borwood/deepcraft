@@ -2477,6 +2477,54 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     off in-flight and avoided. Fixing it here closes the loop — the measurement that protected
     the new record should also repair the old one.
 
+- **WEATHERING IS ONE PROCESS — SAPROLITE IS A STATE ALONG IT, NOT A SLICE**
+  (**USER'S STRONG LEANING on the destination, 2026-07-25** — *"strong enough that it should pop
+  into sequence when the requisites are met"*. Not scheduled; **gated on the requisites below, and
+  it enters Sequenced the moment they are met.**)
+  - **WHAT.** Retire saprolite as a bespoke thing. Weathering becomes **one declared process**
+    acting on whatever is exposed to reactants at a rate set by *material susceptibility ×
+    driver × access* — the gradation **emerging from the rate**, not imposed by a shape function.
+    Saprolite is then simply the region of the continuum where parent fabric is still recognisable.
+  - **WHY (the user's reasoning, recorded).** *"Saprolitification is a slice of a more general
+    process of weathering that ends in totally crumbling — are we splitting that one process
+    between multiple slice owners for any good reason?"* Today it **is** split three ways:
+    `dc:deep/weather_inventory` (declared, deep tier, produces a **scalar**) · `dc:deep/weather`
+    (the scalar `R`/`H` height authority, still unreconciled) · `geology.rs::emplace_weathering_front`
+    (**not declarative** — ordinary collapse code that *invents* the vertical distribution). Only
+    one of the three is authored in the shape everything is obligate to converge on.
+  - **THE THREE ARGUMENTS THAT CARRY IT.** **(1)** Nature has no saprolite *process* — it has
+    weathering, and saprolite is a **named state along a continuum** (intact → fractured → saprock
+    → saprolite → residual soil); modelling a stage as a mechanism is the same category error as
+    S18's one-shot. **(2)** The gradation would become **emergent**: fronts are exponential
+    *because* first-order kinetics consume a downward-advecting reactant, so modelling the cause
+    makes `WEATHERING_PROFILE` and **stubs #19 DELETED, not tuned** — the disposal the stub doctrine
+    wants. **(3)** The **7/8 cap is a definition wearing physics' clothes** — weathering does not
+    halt at 7/8 retained fabric, so the cap makes complete weathering (laterite, oxisol, total
+    crumbling) **unrepresentable**. Also: today the pass only weathers **bedrock**, because the
+    materialized seam is the only `Structure` in the inventory — nature weathers sediments, soils
+    and transported clasts too (that narrowing is stub #16's shadow, not a physical claim).
+  - **IT DISSOLVES THE PROFILE-vs-NORMALIZATION PROBLEM** (the user's own conclusion, and it is
+    right): *a scalar only needs a profile invented for it when the process forgot to record depth.*
+    This is the same finding as journal/0099's PLEA, reached from the other direction — the collapse
+    can only impose a **universal** shape while the physical controls already live in the deep sim.
+  - **⚠ REQUISITES — the honest reason this is not scheduled yet (the counter-case is about
+    ORDERING, not destination).** The exponential emerges from **reactant transport**, and we have
+    **no vertical fluid flux**. A depth-resolved weathering rate would have nothing honest to read,
+    so "emergent" gradation would emerge from a **fabricated depth term** — the same shape function
+    with better camouflage (**A-1** with a disguise). It pops into Sequenced when:
+    **(R1)** the **potential/head field** lands (flow continuation (a), in flight) and
+    **(R2)** **vertical flux is real** rather than the honest zeros of flow slice 1 — i.e. there is
+    an infiltration/percolation term a per-depth rate can read. **(R3)** measure the cost first:
+    per-depth × per-cell × per-epoch over 297 k cells with multi-slot columns is far larger than
+    today's per-cell scalar, and the deep run is already 35–85 s.
+  - **ONE CONSTRAINT ON "ONE PROCESS" (integrator, agreed at the same time):** *one process must
+    NOT mean one pass.* §5's split still binds — reactant **transport is a FIELD**, the **edge is
+    CELLULAR**. Collapsing them would rebuild the monolith the pass-runner exists to prevent.
+  - **WHEN IT LANDS:** stubs **#19 deleted** (not tuned), the 7/8 cap gone, `WEATHERING_PROFILE`
+    deleted, the collapse fold demoted from *inventing* a distribution to *expressing* a recorded
+    one, and the two-authorities split (material vs height) becomes derivable rather than
+    maintained — which is Movement 2a's stated direction anyway.
+
 - **✅ SHIPPED 2026-07-25 (journal/0099) — see § Shipped for the result.** *(Entry kept for its
   reasoning; the flag-ON walk it earned is now item (4) of APPEARANCE WALKS OWED.)*
   ~~THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB~~ (walk finding, user, 2026-07-25;
@@ -2519,9 +2567,26 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   enrichment.
 
 - **THE HONEST IDENTITY SURFACE — retire the stored `Block` summary; one
-  `identify(pos)` tiered by honesty** (arc opened 2026-07-24; priors: materials.md
+  `identify(pos)`** (arc opened 2026-07-24; priors: materials.md
   block-is-material DECIDED, the block-consumer recon, ARCHITECTURE § "a summary is
   not an authority", S-3/S-9).
+  - **✅ SLICE 1 SHIPPED 2026-07-25 — journal/0101. THE ARC STAYS OPEN.**
+    `HostWorld::identify(pos) -> Identity` (`dc-api/src/identify.rs`): untiered,
+    position-addressed, payload uniformly a mixture, with **`Identity::Unrecorded`
+    as a first-class value** distinct in the TYPE from `Mixture(EMPTY)`. Wired into
+    `dc:world/get_contents` (both lying fields fixed), `character_sense_raycast`,
+    and the F3 HUD (its `(no contents record here)` branch is now reachable).
+    Enabler: the stored `Block` already disambiguates — empty record + `Air` ⇒
+    genuinely empty, empty record + anything else ⇒ unrecorded — so **no
+    dc-worldgen change was needed**. A *non-empty* record still wins outright, so
+    the block/classified divergence that signals an edit stays legible. Census
+    through the real query path (`dc-client/examples/identify_census.rs`): phantom
+    air **702 → 0** (of 10 985 solid voxels over 169 columns; the 702 land in
+    `UNRECORDED` beside the 4 211 that were already honest, and the 6 072 recorded
+    mixtures do not move). **Still owed by this arc:** everything in
+    the continuation slot below — nothing was drained, deleted, or migrated, and
+    the path remains **edit-blind for composition** (an edit writes a `Block`; no
+    mixture is stored, so none can move).
   - **WHAT.** The honest answer to "what is this voxel" is its full `VoxelContents`
     (up to 8 partials), never one arbitrary component. One **position-addressed**
     function `identify(pos) -> payload`, where the payload is **uniformly a mixture**.
@@ -2592,7 +2657,10 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     already structured to become **in-game per-player perf settings**, so honesty
     automatically tracks the player's own quality setting — turn the view distance down
     and the answers get *honestly* coarser, with no second knob to forget.
-  - **⚠ OPEN, and it must be settled before dispatch — WHOSE ladder?** `LodLadder` is
+  - **~~⚠ OPEN, and it must be settled before dispatch — WHOSE ladder?~~ DISSOLVED
+    2026-07-25 with the tiers themselves** (there was no good answer because the
+    question was malformed — see the UNTIERED block above). Preserved only for the
+    *render-side* query, if one is ever wanted.** `LodLadder` is
     **dc-client** state and is **per-viewer**, but `identify(pos)` is a **world** question
     reachable headlessly (dc-api agents, mods, tests) where there is no camera and no
     ladder. So the signature cannot simply read ambient client state. Candidate
@@ -2635,9 +2703,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     (near/mid/far *are* the `identify` tiers) + **S-3** (`classify` demoted to a derived
     rung + the pyramid's coarsest tier, never a stored authority) + **S-9** (self-labeled
     honesty).
-  - **FIRST SLICE.** `identify(pos)` unifying the inspector's `world_get_contents` (Near)
-    with `classify` (Far) under one tier-flagged surface; drain the `Block`-token
-    consumers that can (recon list). Contents stay re-derivable (unedited).
+  - **FIRST SLICE — ✅ SHIPPED 2026-07-25 (journal/0101), see the slice block at the top
+    of this entry.** As dispatched: `identify(pos)` as one **untiered** surface behind
+    `world_get_contents` / `sense_raycast` / the F3 HUD, with `UNRECORDED` first-class.
+    **Not** done, and deliberately: draining the `Block`-token consumers (recon list) —
+    that moved to the continuation slot with the rest of the retire. Contents stay
+    re-derivable (unedited).
   - **CONTINUATION SLOT** (this is a slice OF *"the runtime canonical is contents, not a
     summary"*): after `identify`, the arc continues with the **storage/wire migration**
     (edited voxels carry contents/edit-facts, not a `Block`), the **runtime edit-fact
@@ -3285,6 +3356,19 @@ before any code.
   until a front produced many contact voxels in one column. Same family as the palette-quant
   member-stepping thread (a *within-class member* choice reaching the eye), and it belongs with the
   genesis-passes arc that retires class-member selection.
+- **✅ FIXED 2026-07-25 (journal/0101) — the query can now say `UNRECORDED`.** `identify(pos)`
+  landed as the arc's first slice: `has_contents` is a **per-voxel** fact, `classified` echoes
+  the stored block for an unrecorded voxel instead of naming a mixture that does not exist,
+  `character_sense_raycast` answers `None` (its documented promise) instead of `Some(<empty
+  view>)`, and the F3 HUD's `(no contents record here)` branch is **reachable**. Census through
+  the real query path (`dc-client/examples/identify_census.rs`, same lattice as the diagnosis
+  probe): phantom air **702 → 0** of 10 985 solid voxels (6.4 % → 0.0 %), 39/169 columns →
+  0; every phantom voxel converted to `UNRECORDED` (4 913 = 702 + the 4 211 already honest),
+  recorded mixtures (6 072) and sky unmoved. At journal/0097's own station the band
+  288–299 now reads `UNRECORDED` and **agrees with 287**, which the chunk floor used to
+  split. **Zero
+  dc-worldgen change** — the stored `Block` already disambiguates. *Entry kept, marked, because
+  the numbers below are the measured baseline.*
 
 - **DIAGNOSED 2026-07-25 — `world_get_contents` reports `dc:air` and `has_contents: true` over
   solid, correctly-unrecorded rock** (walk observation journal/0097; diagnosis

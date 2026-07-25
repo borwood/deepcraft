@@ -16,6 +16,7 @@
 //! — a question the classified name cannot see. This is that instrument.
 
 use bevy::prelude::*;
+use dc_api::Identity;
 use dc_api::payload::{ContentsView, MaterialCount};
 
 use crate::authority::Authority;
@@ -100,8 +101,13 @@ pub fn update_contents_hud(
             } else {
                 let pos = dc_api::Vec3i::new(key.0, key.1, key.2);
                 let block = dc_api::block_name(authority.world.block_at(pos));
-                let contents = authority.world.contents_at(pos);
-                let s = format_readout(pos, block, contents.as_ref());
+                // The honest per-voxel answer, not the chunk-granular grid
+                // read: `identify` is what makes the "(no contents record
+                // here)" branch below REACHABLE for the unrecorded basement
+                // (corrections #49 — it used to print `classified: dc:air`
+                // over solid stone instead).
+                let identity = authority.world.identify(pos);
+                let s = format_readout(pos, block, &identity);
                 *cache = Some((key, s.clone()));
                 s
             }
@@ -114,15 +120,11 @@ pub fn update_contents_hud(
 
 /// Format the readout: header + block/classified names + shape/occupancy + one
 /// line per non-empty role (structure / pore-fill / debris).
-fn format_readout(
-    pos: dc_api::Vec3i,
-    block: &str,
-    contents: Option<&dc_core::VoxelContents>,
-) -> String {
+fn format_readout(pos: dc_api::Vec3i, block: &str, identity: &Identity) -> String {
     use std::fmt::Write as _;
     let mut s = String::new();
     let _ = writeln!(s, "look-at contents (F3)  @ {},{},{}", pos.x, pos.y, pos.z);
-    let Some(c) = contents else {
+    let Some(c) = identity.mixture() else {
         let _ = write!(s, "block: {block}\n(no contents record here)");
         return s;
     };
@@ -156,4 +158,55 @@ fn write_segment(s: &mut String, label: &str, seg: &[MaterialCount]) {
         let _ = write!(s, "{} x{}", m.material, m.eighths);
     }
     let _ = writeln!(s);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dc_core::{MaterialId, StructureShape, VoxelContents};
+
+    /// The corrections #49 repair, at the HUD: an **unrecorded** voxel (solid
+    /// stone under a thin record, sharing its chunk with recorded voxels) must
+    /// reach the "(no contents record here)" branch — which was *unreachable*
+    /// while the HUD read `contents_at` directly, because the chunk-granular
+    /// grid handed it an ordinary empty composition and it printed
+    /// `classified: dc:air` over the stone instead.
+    #[test]
+    fn unrecorded_reaches_the_no_record_branch() {
+        let s = format_readout(
+            dc_api::Vec3i::new(93_539, 296, 10_236),
+            "dc:stone",
+            &Identity::Unrecorded,
+        );
+        assert!(s.contains("(no contents record here)"), "{s}");
+        assert!(!s.contains("dc:air"), "must not name air over stone: {s}");
+        assert!(!s.contains("classified:"), "classify never runs here: {s}");
+    }
+
+    /// Do not overcorrect: a genuinely empty voxel (air) is a *record* saying
+    /// nothing is here, and still reads as air.
+    #[test]
+    fn genuine_air_still_reads_as_air_in_the_hud() {
+        let s = format_readout(
+            dc_api::Vec3i::new(0, 400, 0),
+            "dc:air",
+            &Identity::Mixture(VoxelContents::EMPTY),
+        );
+        assert!(s.contains("classified: dc:air"), "{s}");
+        assert!(!s.contains("no contents record"), "{s}");
+    }
+
+    /// A recorded mixture still prints its segments unchanged.
+    #[test]
+    fn a_recorded_mixture_still_prints_its_materials() {
+        let c =
+            VoxelContents::new(StructureShape::Full, &[MaterialId::GRANITE; 8], &[], &[]).unwrap();
+        let s = format_readout(
+            dc_api::Vec3i::new(1, 2, 3),
+            "dc:granite",
+            &Identity::Mixture(c),
+        );
+        assert!(s.contains("structure: dc:granite x8"), "{s}");
+        assert!(s.contains("classified: dc:granite"), "{s}");
+    }
 }
