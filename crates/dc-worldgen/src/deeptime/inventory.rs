@@ -217,29 +217,68 @@ impl Fact {
 /// write-set disjoint (only `inventory.rs`) and the base byte-identical. The
 /// eventual home is a `RecordedUnit { base, facts }` on `DeepStrata`; that is the
 /// integration step, filed as a plea in `docs/spikes/S17-*`.
+///
+/// **Layout: flat facts + a sparse CSR index** (journal/0100, ported from
+/// [`flux.rs`](super::flux) — the in-tree precedent, not a second mechanism).
+/// This used to be `Vec<Vec<Fact>>`, one inner `Vec` per slot. Measured on a
+/// production world (`docs/spikes/S19-flow-record-cost-results.md` § 3b): **5.83 M
+/// inner `Vec`s of which 98.8 % were EMPTY, and 89 % of the ledger's ~150 MiB heap
+/// was empty `Vec` headers** — the record spent most of its residency on the
+/// *absence* of facts. The facts themselves were 16.6 MiB.
+///
+/// The CSR shape pays for presence only:
+/// - `facts` — every fact, grouped by slot in ascending slot order, and **within a
+///   slot in exactly the append order the old inner `Vec` had** (that order is
+///   observable: [`commit_chapter`] merges against the *earliest* match and
+///   [`compose_unit`] folds in order).
+/// - `rows` — one 8-byte `(slot, start)` entry per **non-empty** slot.
+///
+/// An empty ledger allocates **nothing at all**, which is what a never-weathered
+/// cell now costs.
 #[derive(Clone, Default, PartialEq, Debug)]
 pub struct FactLedger {
-    /// `facts[i]` = the facts appended to `units[i]`, chapter-ordered.
-    pub facts: Vec<Vec<Fact>>,
+    /// Every fact, grouped by slot (ascending) and append-ordered within a slot.
+    facts: Vec<Fact>,
+    /// The CSR index — one row per **non-empty** slot, ascending by `slot`.
+    rows: Vec<SlotRun>,
+}
+
+/// One **run of facts belonging to a single slot** — the CSR index entry. The run
+/// starts at `start` in the flat fact array and ends where the next row starts (or
+/// at the array's end for the last row).
+///
+/// Only slots that actually carry facts get a row. That is the whole point: a
+/// per-slot `Vec` header costs 24 bytes *whether or not the slot has anything in
+/// it*, and 98.8 % of slots have nothing.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+struct SlotRun {
+    /// The record-unit index (or the bedrock-seam sentinel) this run keys.
+    slot: u32,
+    /// Index of the run's first fact in `FactLedger::facts`.
+    start: u32,
 }
 
 impl FactLedger {
-    /// An empty ledger sized to a record's unit count (the identity default: every
-    /// unit starts with zero facts, so `base + facts` == `base`).
-    pub fn empty_for(strata: &DeepStrata) -> Self {
-        Self {
-            facts: vec![Vec::new(); strata.units.len()],
-        }
+    /// An empty ledger for a record (the identity default: every unit starts with
+    /// zero facts, so `base + facts` == `base`).
+    ///
+    /// **No longer sized to the unit count** — under the CSR layout a slot with no
+    /// facts has no row and no header, so there is nothing to pre-size. The
+    /// argument is kept so callers do not churn, and because the *conceptual*
+    /// contract ("this ledger belongs to this record") is unchanged.
+    pub fn empty_for(_strata: &DeepStrata) -> Self {
+        Self::default()
     }
 
-    /// An empty ledger sized to a record's unit count **plus one slot for the
-    /// bedrock `Structure` seam** (STUB #16, at index `units.len()` — the LAST
-    /// slot). This is the ledger [`build_working`] and the weathering pass expect,
-    /// so the `Structure→Loose` facts have somewhere to live.
-    pub fn empty_with_bedrock(strata: &DeepStrata) -> Self {
-        Self {
-            facts: vec![Vec::new(); strata.units.len() + 1],
-        }
+    /// An empty ledger for a record **plus its bedrock `Structure` seam slot**
+    /// (STUB #16, at index `units.len()` — the LAST slot). This is the ledger
+    /// [`build_working`] and the weathering pass expect, so the `Structure→Loose`
+    /// facts have somewhere to live.
+    ///
+    /// Like [`Self::empty_for`] this allocates nothing: the bedrock slot's row
+    /// appears the moment a fact is committed to it, and costs nothing until then.
+    pub fn empty_with_bedrock(_strata: &DeepStrata) -> Self {
+        Self::default()
     }
 
     /// The bedrock seam's composed portions from `unit_count` (= the record's unit
@@ -261,30 +300,159 @@ impl FactLedger {
             .sum()
     }
 
-    /// The facts appended to unit `i` (empty slice when none / out of range).
+    /// The end of row `k`'s run in `facts`.
+    #[inline]
+    fn row_end(&self, k: usize) -> usize {
+        self.rows
+            .get(k + 1)
+            .map_or(self.facts.len(), |r| r.start as usize)
+    }
+
+    /// The facts appended to unit `i` (empty slice when none / out of range) — the
+    /// CSR row lookup. Unchanged in signature, in contents and in **order** from
+    /// the `Vec<Vec<Fact>>` era.
     #[inline]
     pub fn facts_for(&self, i: usize) -> &[Fact] {
-        self.facts.get(i).map_or(&[], Vec::as_slice)
+        let Ok(key) = u32::try_from(i) else {
+            return &[];
+        };
+        match self.rows.binary_search_by_key(&key, |r| r.slot) {
+            Ok(k) => &self.facts[self.rows[k].start as usize..self.row_end(k)],
+            Err(_) => &[],
+        }
+    }
+
+    /// **Append a fact to `slot`, merging into the EARLIEST fact already there with
+    /// the same `(chapter, cause, from, to)` key** — the exact semantics
+    /// [`commit_chapter`] had against the per-slot `Vec`, preserved to the letter
+    /// (see its docs for why the *earliest* match, and not the last, is the
+    /// load-bearing choice).
+    ///
+    /// Opening a new slot, or appending to one that is not the last, shifts the
+    /// tail of the flat array. That is an `O(facts after the slot)` memmove on a
+    /// **per-cell** array of at most a few dozen facts, at **gen time** — the clock
+    /// this project spends freely. Runtime pays only the smaller residency.
+    fn append_merged(
+        &mut self,
+        slot: usize,
+        chapter: u8,
+        cause: Cause,
+        from: (MaterialId, InvForm),
+        to: (MaterialId, InvForm),
+        fraction_m: FracM,
+    ) {
+        let key = u32::try_from(slot).expect("a slot index fits in u32");
+        let new = Fact::InPlace {
+            chapter,
+            cause,
+            from,
+            to,
+            fraction_m,
+        };
+        let (at, row_at) = match self.rows.binary_search_by_key(&key, |r| r.slot) {
+            Ok(k) => {
+                let (start, end) = (self.rows[k].start as usize, self.row_end(k));
+                // Search this slot's run IN ORDER: the earliest match wins.
+                for f in &mut self.facts[start..end] {
+                    let Fact::InPlace {
+                        chapter: c,
+                        cause: ca,
+                        from: fr,
+                        to: t,
+                        fraction_m: q,
+                    } = f;
+                    if *c == chapter && *ca == cause && *fr == from && *t == to {
+                        *q += fraction_m;
+                        return;
+                    }
+                }
+                // No match: append at the END of this slot's run.
+                (end, k + 1)
+            }
+            // A slot with no facts yet: its run opens where the next row starts.
+            Err(k) => {
+                let at = self
+                    .rows
+                    .get(k)
+                    .map_or(self.facts.len(), |r| r.start as usize);
+                self.rows.insert(
+                    k,
+                    SlotRun {
+                        slot: key,
+                        start: at as u32,
+                    },
+                );
+                (at, k + 1)
+            }
+        };
+        self.facts.insert(at, new);
+        for r in &mut self.rows[row_at..] {
+            r.start += 1;
+        }
+    }
+
+    /// **Move the facts at `from_slot` onto `to_slot`, exact-sized** — the finalize
+    /// step ([`finalize_ledgers`](super::weather_inventory::finalize_ledgers)): the
+    /// in-loop accumulator keys its bedrock facts at a stable sentinel slot, and the
+    /// resident consumer reads them at the final record's bedrock index.
+    ///
+    /// Every allocation the returned ledger owns is **exactly the size of its
+    /// contents** — no `Vec` doubling slack. (Reclaiming that slack on `strata`
+    /// recovered 33 % of all `DeepField` residency, so it is not a rounding error;
+    /// and the compile is over, so growing room is pure waste.) Facts at other
+    /// slots are dropped, matching the pre-CSR `finalize_ledgers` exactly — the
+    /// accumulator only ever holds the sentinel slot.
+    pub fn rekeyed(&self, from_slot: usize, to_slot: usize) -> Self {
+        let facts = self.facts_for(from_slot);
+        if facts.is_empty() {
+            return Self::default();
+        }
+        Self {
+            facts: facts.to_vec(),
+            rows: vec![SlotRun {
+                slot: u32::try_from(to_slot).expect("a slot index fits in u32"),
+                start: 0,
+            }],
+        }
+    }
+
+    /// Release every byte of growth slack (the end-of-compile compaction).
+    pub fn compact(&mut self) {
+        self.facts.shrink_to_fit();
+        self.rows.shrink_to_fit();
     }
 
     /// True when no fact has been committed anywhere — the identity-default state.
     pub fn is_empty(&self) -> bool {
-        self.facts.iter().all(Vec::is_empty)
+        self.facts.is_empty()
     }
 
     /// Total facts across all units (a size metric).
     pub fn total_facts(&self) -> usize {
-        self.facts.iter().map(Vec::len).sum()
+        self.facts.len()
     }
 
-    /// Rough heap footprint (bytes): the outer vector plus every inner fact vector.
+    /// How many slots actually carry a fact — the CSR row count. The sparsity
+    /// numerator; every other slot is one the layout no longer pays for.
+    pub fn slots_with_facts(&self) -> usize {
+        self.rows.len()
+    }
+
+    /// The **payload** half of the footprint (bytes): the facts themselves.
+    pub fn payload_bytes(&self) -> usize {
+        self.facts.capacity() * std::mem::size_of::<Fact>()
+    }
+
+    /// The **index** half of the footprint (bytes): the CSR rows. `flux.rs`
+    /// measured its index floor at 0.056× of total; this one is smaller still,
+    /// because a row is paid only for a slot that has facts.
+    pub fn index_bytes(&self) -> usize {
+        self.rows.capacity() * std::mem::size_of::<SlotRun>()
+    }
+
+    /// Heap footprint (bytes): the flat fact array plus the CSR index.
     pub fn footprint_bytes(&self) -> usize {
-        self.facts.capacity() * std::mem::size_of::<Vec<Fact>>()
-            + self
-                .facts
-                .iter()
-                .map(|v| v.capacity() * std::mem::size_of::<Fact>())
-                .sum::<usize>()
+        self.payload_bytes() + self.index_bytes()
     }
 }
 
@@ -615,32 +783,15 @@ pub fn commit_chapter(inv: &mut WorkingInventory, ledger: &mut FactLedger) {
     // edges on a slot ever matched, and last-only merging grew facts 3-per-firing
     // — hundreds per cell — until the second merger reaped them. One merger that
     // is right at the point of writing needs no reaper.
+    // **The CSR port (journal/0100).** The merge-or-append above is now
+    // [`FactLedger::append_merged`], which does the same search over the same
+    // per-slot run — the run is a window into one flat array instead of its own
+    // `Vec`. Nothing about *which* fact a merge lands on, or where a new fact is
+    // appended, changed; only where the bytes live. The slot no longer has to
+    // exist first (there is no per-slot header to `resize` into being) — a row is
+    // created lazily by the first fact that needs it.
     for e in inv.log.drain(..) {
-        let slot = e.unit_index;
-        if ledger.facts.len() <= slot {
-            ledger.facts.resize(slot + 1, Vec::new());
-        }
-        let facts = &mut ledger.facts[slot];
-        if let Some(Fact::InPlace { fraction_m, .. }) = facts.iter_mut().find(|f| {
-            let Fact::InPlace {
-                chapter,
-                cause,
-                from,
-                to,
-                ..
-            } = f;
-            *chapter == e.chapter && *cause == e.cause && *from == e.from && *to == e.to
-        }) {
-            *fraction_m += e.fraction_m;
-            continue;
-        }
-        facts.push(Fact::InPlace {
-            chapter: e.chapter,
-            cause: e.cause,
-            from: e.from,
-            to: e.to,
-            fraction_m: e.fraction_m,
-        });
+        ledger.append_merged(e.unit_index, e.chapter, e.cause, e.from, e.to, e.fraction_m);
     }
 }
 
@@ -1223,10 +1374,157 @@ mod tests {
         assert!((structure_stock_m(column) - 5.0).abs() < 1e-12);
     }
 
+    // --- The CSR layout (journal/0100) ---------------------------------------
+
+    #[test]
+    fn fact_order_within_a_slot_is_preserved_across_interleaved_slots() {
+        // **The order trap.** `commit_chapter` merges an edge into the EARLIEST
+        // matching fact in its slot, and `compose_unit` folds facts in order — so
+        // per-slot order is observable, and a flat array that groups slots must
+        // preserve it exactly. Here two slots interleave in the log and one cause
+        // repeats non-consecutively; the merge must still land on the first
+        // chemical fact of that slot, and the biotic fact must stay behind it.
+        let strata = sample_record();
+        let mut ledger = FactLedger::empty_with_bedrock(&strata);
+        let mut inv = build_working(&strata, &ledger);
+        let m0 = inv.spans[0].portions[0].material;
+        let m1 = inv.spans[1].portions[0].material;
+        let f = InvForm::Fluid;
+        let l = InvForm::Loose;
+        inv.ctx_for(0, Cause::Chemical).move_form(0, m0, l, f, 0.1);
+        inv.ctx_for(0, Cause::Chemical).move_form(1, m1, l, f, 0.2);
+        inv.ctx_for(0, Cause::Biotic).move_form(0, m0, l, f, 0.3);
+        inv.ctx_for(0, Cause::Frost).move_form(1, m1, l, f, 0.4);
+        inv.ctx_for(0, Cause::Chemical).move_form(0, m0, l, f, 0.5);
+        commit_chapter(&mut inv, &mut ledger);
+
+        let s0 = ledger.facts_for(0);
+        assert_eq!(s0.len(), 2, "one fact per cause on slot 0");
+        assert_eq!(s0[0].cause(), Cause::Chemical, "first-committed cause first");
+        assert!(
+            (s0[0].fraction_m() - 0.6).abs() < 1e-12,
+            "the later chemical edge merged into the EARLIEST chemical fact"
+        );
+        assert_eq!(s0[1].cause(), Cause::Biotic);
+        assert!((s0[1].fraction_m() - 0.3).abs() < 1e-12);
+
+        let s1 = ledger.facts_for(1);
+        assert_eq!(s1.len(), 2, "slot 1's run is untouched by slot 0's growth");
+        assert_eq!(s1[0].cause(), Cause::Chemical);
+        assert!((s1[0].fraction_m() - 0.2).abs() < 1e-12);
+        assert_eq!(s1[1].cause(), Cause::Frost);
+        assert!((s1[1].fraction_m() - 0.4).abs() < 1e-12);
+
+        // Untouched slots read empty, in range or out of it.
+        assert!(ledger.facts_for(2).is_empty());
+        assert!(ledger.facts_for(9_999).is_empty());
+        assert_eq!(ledger.total_facts(), 4);
+        assert_eq!(ledger.slots_with_facts(), 2);
+    }
+
+    #[test]
+    fn the_ledger_costs_its_facts_not_its_slots() {
+        // **The measured defect this layout exists to kill** (journal/0100, S19 §3b):
+        // `Vec<Vec<Fact>>` paid a 24-byte header per slot whether or not the slot
+        // carried a fact, and 98.8 % of production slots carry none — 89 % of the
+        // ledger's heap was the absence of facts. A BOUND, not a snapshot: the cost
+        // of a ledger must be a function of its FACTS, not of its record's depth.
+        let mut deep = DeepStrata::default();
+        for i in 0..10_000 {
+            let energy = if i % 2 == 0 {
+                EnergyBand::High
+            } else {
+                EnergyBand::Low
+            };
+            deep.deposit(tag(DepEnv::Subaerial, energy), 0.5, 0);
+        }
+        assert_eq!(deep.units.len(), 10_000, "alternating tags never merge");
+        let old_shape = (deep.units.len() + 1) * std::mem::size_of::<Vec<Fact>>();
+
+        // An unweathered cell — the 75.8 % case — allocates NOTHING.
+        let mut ledger = FactLedger::empty_with_bedrock(&deep);
+        assert!(ledger.is_empty());
+        assert_eq!(
+            ledger.footprint_bytes(),
+            0,
+            "an unweathered ledger costs zero bytes ({old_shape} B under the old shape)"
+        );
+
+        // One weathered bedrock seam: three agent facts and ONE index row.
+        let mut inv = build_working(&deep, &ledger);
+        let bedrock = inv.spans.len() - 1;
+        for &cause in &[Cause::Chemical, Cause::Biotic, Cause::Frost] {
+            inv.ctx_for(0, cause).move_form(
+                bedrock,
+                BEDROCK_SEAM_MATERIAL,
+                InvForm::Structure,
+                InvForm::Loose,
+                0.25,
+            );
+        }
+        commit_chapter(&mut inv, &mut ledger);
+        ledger.compact();
+        assert_eq!(ledger.total_facts(), 3);
+        assert_eq!(ledger.slots_with_facts(), 1);
+        assert_eq!(ledger.facts_for(deep.units.len()).len(), 3);
+        // The bound: facts + one row, and nothing that scales with 10,000 slots.
+        let expect = 3 * std::mem::size_of::<Fact>() + std::mem::size_of::<u64>();
+        assert_eq!(ledger.payload_bytes(), 3 * std::mem::size_of::<Fact>());
+        assert!(
+            ledger.footprint_bytes() <= expect,
+            "exact-sized: {} B > {expect} B",
+            ledger.footprint_bytes()
+        );
+        assert!(
+            ledger.footprint_bytes() * 1_000 < old_shape,
+            "cost must not scale with slot count: {} B vs {old_shape} B of old headers",
+            ledger.footprint_bytes()
+        );
+    }
+
+    #[test]
+    fn rekeying_moves_a_run_and_leaves_it_exact_sized() {
+        // The finalize step: the accumulator keys bedrock at the stable sentinel
+        // slot 0, the consumer reads it at the final record's bedrock index. The
+        // facts — and their ORDER — must survive the move untouched, and the
+        // result must carry no growth slack.
+        let empty = DeepStrata::default();
+        let mut acc = FactLedger::empty_with_bedrock(&empty);
+        let mut inv = build_working(&empty, &acc);
+        for &cause in &[Cause::Chemical, Cause::Biotic, Cause::Frost] {
+            inv.ctx_for(0, cause).move_form(
+                0,
+                BEDROCK_SEAM_MATERIAL,
+                InvForm::Structure,
+                InvForm::Loose,
+                0.25,
+            );
+        }
+        commit_chapter(&mut inv, &mut acc);
+        let before: Vec<Fact> = acc.facts_for(0).to_vec();
+        assert_eq!(before.len(), 3);
+
+        let moved = acc.rekeyed(0, 7);
+        assert!(moved.facts_for(0).is_empty(), "the sentinel slot is vacated");
+        assert_eq!(moved.facts_for(7), &before[..], "same facts, same order");
+        assert_eq!(
+            moved.footprint_bytes(),
+            3 * std::mem::size_of::<Fact>() + std::mem::size_of::<u64>(),
+            "exact-sized, no doubling slack"
+        );
+        // An empty accumulator re-keys to a free ledger.
+        let none = FactLedger::default().rekeyed(0, 7);
+        assert!(none.is_empty());
+        assert_eq!(none.footprint_bytes(), 0);
+    }
+
     #[test]
     fn sizes_are_pinned() {
         assert_eq!(std::mem::size_of::<Portion>(), 16);
         assert!(std::mem::size_of::<Fact>() <= 24);
+        // The CSR index row: two u32s. Residency is sacred and this one is paid
+        // per non-empty slot across millions of cells.
+        assert_eq!(std::mem::size_of::<SlotRun>(), 8);
         let rec = sample_record();
         let ps = build_identity(&rec, Granularity::PerStratum);
         let pv = build_identity(&rec, Granularity::PerVoxel { voxel_m: 0.9 });
