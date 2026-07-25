@@ -69,6 +69,35 @@ gate checks the claim; the report carries the magnitude. That distinction is the
 whole trick, and it is the reason the conversion cost what it did rather than
 five minutes.
 
+### The first run caught something, and it was one of mine
+
+The very first `cargo test` that could see these tests failed — on
+`contents_air_over_solid_probe::gate::every_solid_voxel_is_accounted_for_exactly_once`,
+and specifically on this line:
+
+```rust
+assert!(
+    c.recorded > 0,
+    "not one solid voxel carries a real mixture — the contents path produced \
+     nothing, which no amount of 'no phantom air' makes acceptable"
+);
+```
+
+Shrinking the world to `Extent::Small` had also shrunk what my sampling lattice
+reached: ±2.3 km around the origin, entirely inside one province that carries no
+deep-time record. Every solid voxel there is honestly unrecorded, so
+`recorded == 0` — and the *interesting* assertion, "no solid voxel classifies to
+air", was **passing vacuously**. A test that can only pass is the same defect as a
+gate that cannot fail, one level down (A-3 again), and the only reason it was
+caught is that I had written the second assertion to make the first one mean
+something. Widened to a 9×9 lattice at 3.7 km spacing (±14.7 km), which crosses
+provinces.
+
+Worth recording because it is the failure mode of "run the test at a smaller
+extent": *scale-free* is a property of the **invariant**, not of the **sample**.
+The predicate really is per-voxel; the lattice that finds voxels worth testing is
+not.
+
 ### A caption is a published claim, and the gate cannot check it either
 
 While converting `flux_record_probe` the integrator caught a live specimen.

@@ -130,9 +130,8 @@ fn main() {
 
     // ---- 1. the vertical faces ---------------------------------------------
     let v = vertical_census(&f);
-    let (mut down_mags, mut up_mags) = (v.down.clone(), v.up.clone());
-    let n_vertical = v.n();
-    let carrying = v.columns;
+    let (n_vertical, carrying) = (v.n(), v.columns);
+    let (mut down_mags, mut up_mags) = (v.down, v.up);
 
     println!("\n--- ACCEPTANCE 1: the vertical (slot<->slot) faces ---");
     println!(
