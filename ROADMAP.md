@@ -2235,7 +2235,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   - **CONTINUATION SLOT** (this is a slice OF *"flow is one process, faithfully recorded
     and purely refined"*): after recording, the arc continues with **(a)** the
     **potential/head field pass** (elevation + pressure → artesian, capillary, thermohaline,
-    density flows; the current `H = y + sat` is explicitly unconfined, not Darcy);
+    density flows; the current `H = y + sat` is explicitly unconfined, not Darcy).
+    **⚠ USER DIRECTIVE 2026-07-25 — (a) IS THE NEXT PRIORITY AND EVERY SLICE BUILDS TOWARD
+    IT:** *"build assuming that we want the head field to exist soon — i.e. do not
+    foreclose, leave seams where possible, keep direction in mind."* So every intervening
+    slice must (i) treat "flow descends **potential**" as the target, never hard-code
+    elevation-descent, (ii) leave the **vertical faces** structurally present (they are the
+    infiltration/percolation channel the head field fills — slice 1 already keeps them,
+    honestly zero), and (iii) not bake the free/surface **no-divide-crossing** rule into
+    anything the bound regime will inherit (flow.md §2.4 — bound flow genuinely crosses
+    surface divides). **The head field is also what unlocks a multi-flow-direction solve**,
+    and therefore *simultaneous* divergence (flow.md §2.6) — today's divergence is
+    aggregation-window avulsion only;
     **(b) refinement as a boundary-value problem** — face fluxes as Dirichlet conditions,
     the load budget as mass, solved *inside* a cell, pure-of-position (never reading a
     neighbour's refined output, so the pure-fn chunk holds); **(c)** the **free/bound edge

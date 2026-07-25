@@ -186,6 +186,54 @@ The flow carries a **fluid material id**, not an assumption of water. Otherwise
 fluid = material; rheology = material properties (a glacier is a solid whose
 viscosity is ~10¹³ — flow, not a special case).
 
+### 2.6 Divergence: what is structural vs what is TUNABLE (2026-07-25, user-raised)
+
+The slice-1 measurement (175,320 divergent `(cell,chapter)` pairs, 7.378 %) mixes
+two claims that must be kept apart, because only one of them is a property of the
+design:
+
+**STRUCTURAL — true at any cadence, and the reason the receiver tree dies.** A
+receiver has **exactly one out-edge per cell**; a face record has **N**. The
+representation *admits* divergence unconditionally. No tuning makes a tree able to
+hold a delta, and none makes face flux unable to.
+
+**TUNABLE — the observed COUNT is a product of the aggregation window.** Two
+cadences exist and they are different knobs:
+
+| knob | what it is | today | effect on divergence |
+|---|---|---|---|
+| **pass `period`** (§5 RATE) | how often the pass FIRES — a *sampling* rate | `1` (every epoch: integrate, never sample) | none — firing less often would *lose* epochs, not merge them |
+| **the aggregation window** | how many epochs sum into one record entry — the record's *time granularity* | one tectonic **chapter** = 25 epochs | **this is the whole effect** |
+
+Within a single epoch the solve hands back **one receiver per cell**, so at a
+one-epoch window the divergence count is **zero** and the tree structure reasserts.
+Widen the window and divergence appears, because the terrain moves under the flow
+and the steepest-descent receiver **switches**. Set `K` (chapters) and you set the
+count.
+
+> **Therefore: every divergence currently in the record is TEMPORAL (avulsion),
+> never SIMULTANEOUS (concurrent distributaries).** Avulsion is the honest physical
+> origin of braid plains and fans, so recording it as divergence is faithful — but a
+> delta with two channels flowing *at once* is **not yet representable**, and no
+> cadence setting makes it so.
+
+**What would make it so: a multi-flow-direction (MFD) solve** — and that is
+deliberately NOT a record change. The record may only describe water the erosion
+pass actually moved (else the flux record and the mass budget disagree, which is § 3's
+whole point). **MFD is a SOLVE change and belongs with the potential/head field**
+(continuation (a)): a head field partitions flux across several receivers naturally,
+where steepest-descent cannot.
+
+**A gap in the § 5 cadence vocabulary, named here.** `material-behavior.md` § 5 gives
+the scheduler two axes — **ORDER** (topo-sort) and **RATE** (`period` + `dt`). It has
+**no name for the aggregation window**, yet that window is what decides the record's
+time resolution and, here, an acceptance number. `period=1` + chapter-bucketing is the
+correct pairing (integrate everything, aggregate at the record's own semantic
+granularity — chapters are real: `DepUnit::chapter` stamps units and units never merge
+across a chapter boundary). But the window deserves to be a **declared, first-class
+third axis** rather than an implicit constant, especially before episodic events (§ 5
+limit 2) force sub-chapter resolution. **Open — see § 9 Q7.**
+
 ---
 
 ## 3. The carve is a MASS BUDGET
@@ -357,3 +405,60 @@ faithful.
 6. **S14 is superseded as posed.** It asked "can drainage refine under coarse
    boundary conditions?" Face flux answers the *seamlessness* half structurally;
    the open half is only how finely the interior may be expressed.
+7. **The aggregation window should be a declared third scheduler axis** (§ 2.6).
+   § 5 has ORDER and RATE but no name for "how many epochs sum into one record
+   entry" — yet that window sets the record's time resolution. Related: whether
+   flow facts stay per-**chapter** (25 epochs, today) or go per-**epoch** (~25×
+   the payload). Per-chapter cannot express *"the river moved at epoch 40"*, which
+   was the framing that opened this arc. **User call, not yet made.**
+8. **Simultaneous divergence needs an MFD solve, not a record change** (§ 2.6).
+   Sequenced with the potential/head field (continuation (a)), never ahead of it.
+
+---
+
+## 10. Justifications that WILL expire (write them down now)
+
+Recorded 2026-07-25 at the user's direction — *"deformation/compaction is/are a
+beast that WILL exist, just a question of when."* These are **A-2 traps armed in
+advance**: rules that are correct today **only because a feature is unbuilt**, and
+that will fail silently rather than loudly when it lands. Prose cannot fail a build
+(corrections #29), so each names the trigger that invalidates it.
+
+### 10.1 Paleo-elevation pairing is trivial ONLY because strata are layer-cake
+
+**Expires when: structural deformation lands** (`stubs.md` sibling gap — *"every
+stratum lies horizontal regardless of history"*; the `unconformity` flag is the only
+deformation modelled).
+
+Pairing bound flow by elevation (§ 2.4) is easy today because a bed at depth *d* in
+cell A is at depth *d* in cell B — layers are flat, so elevation and bed identity
+coincide. **The moment beds tilt or fold they diverge**, and "same elevation" stops
+meaning "same aquifer." A **confined aquifer is a permeable bed between aquitards,
+and water flows ALONG the bed** — up-dip, down-dip, wherever it goes. So under
+deformation, confined flow must pair by **bed identity (≈ chapter)** and only
+*unconfined* water-table flow pairs by elevation. **The free/bound split is a proxy
+that fails on the confined case**; the real discriminator is *what confines the
+flow*: a **material horizon** (contemporaneous surface, or a bed) pairs by horizon
+identity; a **potential surface that cuts across strata** (the water table, a head
+front) pairs by elevation/head.
+
+### 10.2 Paleo-elevation is a running sum ONLY because nothing compacts
+
+**Expires when: compaction / lithification changes a unit's thickness over time.**
+
+Slot elevation at chapter `c` is currently `surface(c) − Σ(thickness above)`, a plain
+sum, because a `DepUnit`'s thickness never changes after deposition. Under compaction
+the sum is no longer valid — thickness becomes a function of burial depth and time,
+so **every paleo-elevation query becomes history-dependent**, and any cached or
+materialized elevation goes stale. Anything that stores derived elevation must be
+re-derivable, or it becomes a summary wearing an authority's clothes.
+
+### 10.3 Pairing is IDENTITY, never CONNECTIVITY — keep them apart
+
+Not an expiry but the rule that keeps 10.1/10.2 tractable, and it is easy to lose:
+**pairing decides which slots are ADJACENT; permeability decides whether flow
+PASSES.** Chapter-pairing correlates *contemporaneous* units, but facies change
+laterally — a sand in A may be a mud in B at the same chapter: same time, **not the
+same aquifer**. Get identity right and let the flux be **zero** where the contrast
+blocks it. Any attempt to make the pairing rule itself encode hydraulic connection
+will fuse two concerns into a rule nobody can reason about later.
