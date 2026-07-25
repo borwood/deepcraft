@@ -531,8 +531,31 @@ fn aligned_read(f: &mut File, raw: &mut [u8], off: u64, len: u64) -> std::io::Re
     f.read(&mut raw[base..base + span as usize])
 }
 
-fn measure_paging(geo: &Geometry, fact_bytes: usize) -> std::io::Result<Paging> {
-    let path = std::env::temp_dir().join(format!(
+/// The directories the paging arm is measured on. This machine has **two SSDs of
+/// different classes** (an NVMe system drive and a SATA data drive), and page-in
+/// latency is a property of the device, not of the design — so the answer is a
+/// bracket, not a single number. `CARGO_TARGET_DIR` (or the workspace `target/`)
+/// is the second location because it is on the repo's drive, which is where a
+/// world save would plausibly live.
+fn paging_dirs() -> Vec<PathBuf> {
+    let mut dirs = vec![std::env::temp_dir()];
+    let target = std::env::var_os("CARGO_TARGET_DIR").map_or_else(
+        || {
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("..")
+                .join("target")
+        },
+        PathBuf::from,
+    );
+    if target.is_dir() && !dirs.contains(&target) {
+        dirs.push(target);
+    }
+    dirs
+}
+
+fn measure_paging(geo: &Geometry, fact_bytes: usize, dir: &Path) -> std::io::Result<Paging> {
+    let path = dir.join(format!(
         "dc-s20-facts-{SEED}-{}.bin",
         geo.extent.label().replace(' ', "-")
     ));
@@ -675,7 +698,7 @@ fn mib64(bytes: u64) -> f64 {
     bytes as f64 / (1024.0 * 1024.0)
 }
 
-fn report(geo: &Geometry, paging: Option<&Paging>) {
+fn report(geo: &Geometry, paging: &[Paging]) {
     println!(
         "\n=== S20: fact-ledger residency (seed {SEED}, {}) ===\n",
         geo.extent.label()
@@ -746,48 +769,49 @@ fn report(geo: &Geometry, paging: Option<&Paging>) {
     );
 
     println!("\n--- 3. paging: resident fold + facts on disk ---");
-    match paging {
-        None => println!("  (skipped)"),
-        Some(p) => {
-            println!(
-                "  file {:>10.2} MiB written in {:.1} s   at {}",
-                mib64(p.file_bytes),
-                p.write_s,
-                p.path.display()
-            );
-            println!(
-                "  RESIDENT fold-only projection            {:>8.2} MiB  \
-                 (rows {} x 8 B + cell offsets + disk offsets)",
-                mib(p.resident_bytes),
-                geo.pd_rows
-            );
-            println!(
-                "  one cell's run: mean {:.0} B, max {} B   ({} cells sampled, scattered)",
-                p.mean_run_bytes, p.max_run_bytes, p.samples
-            );
-            match p.cold {
-                Some(c) => println!(
-                    "  COLD page-in (unbuffered, device)   mean {:>8.1} us  p50 {:>8.1}  \
-                     p95 {:>8.1}  max {:>8.1}",
-                    c.mean_us, c.p50_us, c.p95_us, c.max_us
-                ),
-                None => println!("  COLD page-in                        (not measurable here)"),
-            }
-            println!(
-                "  WARM page-in (buffered, cache hot)  mean {:>8.1} us  p50 {:>8.1}  \
-                 p95 {:>8.1}  max {:>8.1}",
-                p.warm.mean_us, p.warm.p50_us, p.warm.p95_us, p.warm.max_us
-            );
-            if let Some(c) = p.cold {
-                let budget_us = 1e6 / 60.0;
-                println!(
-                    "  => a 60 Hz frame is {budget_us:.0} us; a cold page-in p95 is {:.2}% of one \
-                     frame, {:.2}% of 10 ms",
-                    100.0 * c.p95_us / budget_us,
-                    100.0 * c.p95_us / 10_000.0
-                );
-            }
+    if paging.is_empty() {
+        println!("  (skipped)");
+    }
+    for p in paging {
+        println!(
+            "  file {:>10.2} MiB written in {:.1} s   at {}",
+            mib64(p.file_bytes),
+            p.write_s,
+            p.path.display()
+        );
+        println!(
+            "  RESIDENT fold-only projection            {:>8.2} MiB  \
+             (rows {} x 8 B + cell offsets + disk offsets)",
+            mib(p.resident_bytes),
+            geo.pd_rows
+        );
+        println!(
+            "  one cell's run: mean {:.0} B, max {} B   ({} cells sampled, scattered)",
+            p.mean_run_bytes, p.max_run_bytes, p.samples
+        );
+        match p.cold {
+            Some(c) => println!(
+                "  COLD page-in (unbuffered, device)   mean {:>8.1} us  p50 {:>8.1}  \
+                 p95 {:>8.1}  max {:>8.1}   (n={})",
+                c.mean_us, c.p50_us, c.p95_us, c.max_us, c.n
+            ),
+            None => println!("  COLD page-in                        (not measurable here)"),
         }
+        println!(
+            "  WARM page-in (buffered, cache hot)  mean {:>8.1} us  p50 {:>8.1}  \
+             p95 {:>8.1}  max {:>8.1}   (n={})",
+            p.warm.mean_us, p.warm.p50_us, p.warm.p95_us, p.warm.max_us, p.warm.n
+        );
+        if let Some(c) = p.cold {
+            let budget_us = 1e6 / 60.0;
+            println!(
+                "  => a 60 Hz frame is {budget_us:.0} us; a cold page-in p95 is {:.2}% of one \
+                 frame, {:.2}% of 10 ms",
+                100.0 * c.p95_us / budget_us,
+                100.0 * c.p95_us / 10_000.0
+            );
+        }
+        println!();
     }
 
     println!("\n--- 4. axis-drops (no disk) ---");
@@ -795,9 +819,18 @@ fn report(geo: &Geometry, paging: Option<&Paging>) {
     let agents = geo.facts_per_firing.round().max(1.0) as usize;
     for (label, r) in [
         ("all axes (chapter x agent)", geo.per_depth(w)),
-        ("drop CHAPTER (per agent)", geo.per_depth_at(geo.pd_rows * agents, w)),
-        ("drop AGENT (per chapter)", geo.per_depth_at(geo.pd_visits as usize, w)),
-        ("drop BOTH (one fact per slot)", geo.per_depth_at(geo.pd_rows, w)),
+        (
+            "drop CHAPTER (per agent)",
+            geo.per_depth_at(geo.pd_rows * agents, w),
+        ),
+        (
+            "drop AGENT (per chapter)",
+            geo.per_depth_at(geo.pd_visits as usize, w),
+        ),
+        (
+            "drop BOTH (one fact per slot)",
+            geo.per_depth_at(geo.pd_rows, w),
+        ),
     ] {
         println!(
             "  {:<32} facts {:>12}   {:>8.2} MiB   ({:.2}x today)",
@@ -859,9 +892,12 @@ fn report(geo: &Geometry, paging: Option<&Paging>) {
 fn main() {
     println!("measuring...");
     let geo = measure_geometry(EXTENT);
-    let paging = measure_paging(&geo, std::mem::size_of::<Fact>()).ok();
-    report(&geo, paging.as_ref());
-    if let Some(p) = &paging {
+    let paging: Vec<Paging> = paging_dirs()
+        .iter()
+        .filter_map(|d| measure_paging(&geo, std::mem::size_of::<Fact>(), d).ok())
+        .collect();
+    report(&geo, &paging);
+    for p in &paging {
         let _ = std::fs::remove_file(&p.path);
         println!("(removed {})", p.path.display());
     }
@@ -921,7 +957,10 @@ mod gate {
         let agents = geo.facts_per_firing.round().max(1.0) as usize;
         assert!(agents > 1, "the agent axis must have more than one value");
         assert!(geo.pd_rows * agents < geo.pd_facts, "drop-chapter reduces");
-        assert!((geo.pd_visits as usize) < geo.pd_facts, "drop-agent reduces");
+        assert!(
+            (geo.pd_visits as usize) < geo.pd_facts,
+            "drop-agent reduces"
+        );
 
         // The simple sum this probe folds IS the fold the collapse consumer reads —
         // if it drifts, the f32 error figure is about the wrong quantity.
@@ -941,7 +980,8 @@ mod gate {
         );
 
         // The paged prototype must lay out and read back a real file.
-        let paging = measure_paging(&geo, std::mem::size_of::<Fact>())
+        let dir = paging_dirs().remove(0);
+        let paging = measure_paging(&geo, std::mem::size_of::<Fact>(), &dir)
             .expect("the paged prototype writes and reads a file");
         assert_eq!(
             paging.file_bytes,
