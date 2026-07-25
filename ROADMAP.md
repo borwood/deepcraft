@@ -2751,10 +2751,71 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     river left → carbonate dissolved into a phreatic tube, now dry → collapse breccia on
     its floor → a spring line downslope.* Each is the same atom at a different slot.
     **If any of it needs a landform-specific code path, it is not faithful.**
+    **⚠ WHO OWNS CLASTIC FACIES — CONTRADICTED with the genesis-passes arc; under the user's call, see `docs/audits/2026-07-25-roadmap-staleness-sweep.md` row C-2.**
   - **NOT A CONSTRAINT (user, 2026-07-25, emphatic):** socia/civ/eco/bio consumers
     (settlement siting et al.) are **stubs and baggage to be replaced** — they do not
     exist as designed systems and **must not constrain the flow design at all**. Future
     designs compose with flow; flow does not bend around unavowed stubs.
+
+- **MOVEMENT 2b — MATERIAL-AWARE TRANSPORT** (material-behavior.md § 13, ratified 2026-07-24;
+  **RESHAPED 2026-07-25 by the FLOW arc — read `flow.md` first**). *Given a Sequenced home
+  2026-07-25 by the staleness sweep (row R-1): until today this arc existed **only inside a close
+  block**, so a wrap rewrite could have silently dropped the thing a whole session pointed at.*
+  The load multiset, Hjulström entrainment and settling deposition **stand**.
+  - **WHAT CHANGED.** § 13.1 routes transport *"in downstream order along the **pinned
+    receiver**"* — and that receiver is the spanning tree FLOW retires (flow.md § 2.1; deletion is
+    continuation (e)). Transport must instead walk the **face-flux record** (`DeepField::flux`),
+    which **can diverge**, and descend **potential** (`dc:field/head`), **not elevation**
+    (flow.md § 2.4). § 13.2's wind / ice / gravity family is the same thing FLOW calls
+    `Cause` = **the mover** (flow.md § 7), and 2b discharges **stub #18's constant `cause`
+    field**, which already names 2b as its heir. The **load-exchange half is explicitly claimed by
+    the FLOW arc's UNIFIES clause**, so the two are one design, not two.
+  - **SEQUENCING — DECIDED (user, 2026-07-25): 2b NOW, on today's faces. NOT after MFD.** The
+    sweep stated this as an open fork (*"2b after MFD, or 2b on the faces as they stand today?"*)
+    and the user closed it the same day.
+    - **The consequence, taken with eyes open:** 2b ships **unable to express *concurrent*
+      distributaries.** Every divergence in today's record is **temporal — avulsion**, produced by
+      the aggregation window (the terrain moves under the flow and the steepest-descent receiver
+      *switches*), never **simultaneous** (flow.md § 2.6). A delta with two channels flowing *at
+      once* is not representable at any cadence setting. Avulsion is the honest physical origin of
+      braid plains and fans, so what 2b can build on today is real, not a placeholder.
+    - **And it gains the rest for free when MFD lands.** MFD is a **SOLVE change, not a record
+      change** (flow.md § 2.6, § 9 Q8) — a head field partitions flux across several receivers
+      where steepest descent cannot. The record shape 2b consumes does not move, so simultaneous
+      divergence arrives as *more entries in the same faces*, with no migration on 2b's side.
+      That is precisely why "now, on today's faces" costs nothing later.
+  - **Provenance, stated because it matters for how much weight the reshape carries:** the
+    *diagnosis* (2b's ratified mechanism walks the structure FLOW retires) is **assistant-
+    originated** — the 2026-07-25 staleness sweep. The *sequencing call* is the user's.
+
+- **THE AGGREGATION WINDOW IS A DECLARED AXIS** (flow.md § 11.1, **RATIFIED by the user
+  2026-07-25**; given a Sequenced home 2026-07-25 by the staleness sweep, row D-3, which found it
+  **absent from this board entirely** — a ratified architectural decision living in one paragraph
+  of one design doc). § 5's cadence grows a third axis — **ORDER × RATE × WINDOW**.
+  - **A window that decides an acceptance number must be declared, not assumed.** Slice 1's
+    divergence count — **175,320 divergent `(cell, chapter)` pairs, 7.378 %**, the number the
+    slice was *accepted* on — was produced by an **implicit** 25-epoch chapter. At a one-epoch
+    window that count is **zero** and the tree structure reasserts; set `K` and you set the
+    count. The user's reasoning, recorded: *"freedom to future mods / ourselves (we are the first
+    modders)"* — a mod authoring a pass must be able to state its own record granularity the same
+    way it states order and rate, and **an undeclared constant is exactly the surface a third
+    party cannot reach.** This is the north-star's *"authored in a uniform, self-declaring shape
+    and tuned by data"* applied to the **time** axis.
+  - **Consequence (§ 11.2): chapter-vs-epoch resolution becomes a shipped DEFAULT, not an engine
+    property.** Once the axis is declared, per-chapter vs per-epoch flow facts stop being an
+    architecture question. **Default cheap** (the coarser window, for dev-iteration speed);
+    **expose the knob** for stress tests. *(User, confirmed: "cheap end for dev iteration,
+    precisely.")*
+  - **RIDER (§ 11.3) — the self-describing-record contract, a STANDING constraint on every future
+    record.** *Any mode that changes what an **absent** entry means must be carried in the
+    record*, never held as external knowledge — otherwise absence is ambiguous across worlds and
+    every consumer must know how a world was generated in order to read it. **S-9 one level up:
+    the answer carries its resolution.** Its first customer is the **marine-sink lever** (79.38 %
+    of slice-1 entries, 31.37 MiB, sized and deliberately not pulled — default KEEP): the drop is
+    not forbidden, it is **gated on this contract**.
+  - **SPEC HOME.** `material-behavior.md` § 5 "Cadence: order × rate" is the spec of record for
+    the scheduler; it was amended 2026-07-25 to carry the third axis and to cross-reference
+    flow.md §§ 11.1 / 11.3. **Sequenced, not built** — no `Pass` declares a window today.
 
 - **STRUCTURE-AWARE FINE EXPRESSION — the sub-resolution the collapse randomizes but
   physics structures** (filed 2026-07-24 at the user's direction; unifies the flow-biased-fill
@@ -3210,6 +3271,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   property-driven passes** (arc opened 2026-07-24; priors: materials.md "the class
   system's fixed-constant roster is scaffolding" + transformation-axes DECIDED, north-star
   declarative-materials, the entry-species probe, the seam-inventory `[S2]`).
+  - **⚠ WHO OWNS CLASTIC FACIES — CONTRADICTED, the user's call; see `docs/audits/2026-07-25-roadmap-staleness-sweep.md` row C-2.** *(Three ratified things claim one output: this entry's "physical facies", the FLOW arc's un-gameable facies acceptance test, and material-behavior.md § 13.7's "transport **IS** clastic sedimentary genesis". Probably complementary — genesis = which rock, flow/transport = where the clastics went — but nobody has said so, and this arc's first slice converts `deep_class`/`dithered_member`, the same seam transport would move.)*
   - **WHAT.** Retire the class-member-fitness abstraction. Rock **distribution + physical
     facies** come from **deeptime genesis passes** that select a **parent material**, march
     its **leaf** materials, and derive fitness **purely from properties stored on each
@@ -3311,6 +3373,22 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   file. *(**Separate hardening item — DeviceLost degrades loudly: SHIPPED**
   2026-07-21, journal/0054.)*
 
+- **METAMORPHISM — the grade axis: `exhum` = P, `dc:field/temperature` = T → grade**
+  (**UNBLOCKED 2026-07-24** by the geotherm, journal/0093; given its own Sequenced entry
+  2026-07-25 by the staleness sweep, row D-1). *One job that had **three** ROADMAP homes — the
+  layer-cake redemption's (b), consume-the-ledger's (b), and a close block — and whose only
+  "sequenced" home was **a close block a wrap rewrite was about to overwrite**. Both surviving
+  homes now point here.* The two axes exist and are read by nothing: **`exhum` is the pressure
+  axis** and **`dc:field/temperature` (the geotherm, journal/0093) is the temperature axis**; a
+  grade is the pair. Landing it **retires stubs #4** and **empties the `exhum` / `t_crust` row of
+  spines § 3 "Built, and nothing calls it"** — the planes ship in `DeepField` explicitly labelled
+  *"the metamorphic-grade axes the collapse tier reads"*, and have shipped unread since S12.
+  Two things worth carrying into the slice: the geotherm entry itself named metamorphism as its
+  **real payoff** (its effect on coal is ~surface-temp-thresholded, because burial is shallow —
+  the deep crust is where a `T(depth)` field earns its keep); and **coal rank and metamorphic
+  grade are one thermal-maturity ladder** (S-8, *one quantity, many names*), so this is the same
+  machine as the coal-rank item and should not grow a second one.
+
 - **Tectonic expression at the collapse tier — the layer-cake redemption**
   (promoted 2026-07-21 after the user's callout: dip/fold non-expression
   "slipped by without my understanding or ratification" — an integrator
@@ -3322,9 +3400,14 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   One family, one slice-group, all UNGATED as of the U8 flip (landed 2026-07-21):
   (a) chapters → strata dip/fold/fault expression in cut faces (the
   "coal seam dead-ends at a fault" line of things-that-will-happen);
-  (b) `exhum`/`t_crust` → metamorphic-grade classes;
+  (b) `exhum`/`t_crust` → metamorphic-grade classes — **this half now has its own
+  Sequenced entry: see "METAMORPHISM — the grade axis" below** (one job, three homes;
+  consolidated 2026-07-25 by sweep row D-1);
   (c) drainage export (`recv`/`area`/`lake`) → the 3e-2 macro drainage
-  consumers. Note: this is the CUT-FACE sin, not the silhouette sin — terrain
+  consumers — **⚠ note 2026-07-25: those planes are now a DELETION target, not a
+  consumption target** (FLOW slice 1 superseded them; heir `DeepField::flux`, disposal
+  continuation (e)). What survives here is the *expression* need, not the input.
+  Note: this is the CUT-FACE sin, not the silhouette sin — terrain
   shape flatness is the separate S13/roughness thread.
 - **Consume the ledger terms the runtime throws away** (geology.md § Expression
   of the ledger, DECIDED 2026-07-21). Four concrete, independently shippable
@@ -3332,7 +3415,9 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   Both consumers read the recorded plane; stubs.md § 3 retired whole.)*;
   (b) **consume `exhum`/`t_crust`**, which ship
   explicitly as "the metamorphic-grade axes the collapse tier reads" and are
-  read by nothing; (c) **derive material FORM** (loose / pore-partial / whole /
+  read by nothing — **now owned by "METAMORPHISM — the grade axis" below**
+  (2026-07-25, sweep row D-1: this was one job with three ROADMAP homes and no
+  Sequenced entry of its own); (c) **derive material FORM** (loose / pore-partial / whole /
   inclusion) from provenance rather than leaving it implicit — sub-voxel facies
   express as inclusions (the charcoal sieve: 0 of 158 310 beds survived 0.9 m).
   **(c) is now the priority piece and much larger than the charcoal framing
