@@ -359,8 +359,13 @@ mod gate {
             ));
             let mut wg = WorldGenerator::new_owned(pregen);
             let mut cache: ChunkCache = HashMap::new();
-            // A lattice wide enough to cross provinces, inside the small world.
-            census(&mut wg, &mut cache, (0, 0), 512, 5, 64)
+            // **Spread wide on purpose.** The small world is ~74 km across
+            // (±36.8 km); a tight lattice around the origin sampled a single
+            // province with no deep-time record on it at all, and the gate
+            // caught that on its first run — `recorded` was 0 and "no phantom
+            // air" was trivially true. 9x9 columns at 4 096 voxels (~3.7 km)
+            // spans ±14.7 km, which crosses provinces.
+            census(&mut wg, &mut cache, (0, 0), CENSUS_STEP_VOXELS, 4, 64)
         })
     }
 

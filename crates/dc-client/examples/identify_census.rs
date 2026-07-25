@@ -349,8 +349,13 @@ mod gate {
     fn small_census() -> &'static CensusTotals {
         static CENSUS: OnceLock<CensusTotals> = OnceLock::new();
         CENSUS.get_or_init(|| {
+            // **Spread wide on purpose.** The small world is ~74 km across; a
+            // tight lattice around the origin can sit entirely on ground the
+            // deep-time record never touched, and then "zero phantom air" is
+            // trivially true. 9x9 columns at 4 096 voxels (~3.7 km) spans
+            // ±14.7 km and crosses provinces.
             let (world, generator) = wired_world(Extent::Small);
-            let t = census(&world, &generator, (0, 0), 512, 5, COLUMN_DEPTH);
+            let t = census(&world, &generator, (0, 0), CENSUS_STEP_VOXELS, 4, COLUMN_DEPTH);
             assert!(
                 t.solid > 500,
                 "only {} solid voxels examined over {} columns — too few for the null to \
