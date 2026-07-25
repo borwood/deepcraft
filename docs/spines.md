@@ -4,9 +4,30 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Sweep IN PROGRESS: 2026-07-25 (post-FLOW-batch: journals 0096/0098/0099/0100/0101).*
+*Last `spine-audit` sweep: **2026-07-25 (post-FLOW batch)** — the five merges since
+the last sweep: FLOW slice 1 (`0096`), the weathering profile (`0099`), the `FactLedger`
+CSR (`0100`), FLOW (a) the head field (`0098`), and `identify(pos)` (`0101`).
+**Both findings of the 2026-07-24 sweep were applied** and verified in code: the
+`reads_prev: [BioMod]` fiction is now a real within-epoch `reads` with the reasoning
+at `runner.rs:460-467`, `Exposed` is un-declared with the heir named
+(`runner.rs:469-472`), and `BEDROCK_SEAM_THICKNESS_M`'s expired premise is rewritten
+verbatim as proposed (`inventory.rs:593-605`). **§ 3: no row emptied, three rows
+touched, ONE row ADDED** — `DeepField::chapters`, built since U8, self-documented as
+*"exported and read by nothing"* at `field.rs:359-366`, and **missed by every prior
+sweep** including the two that added rows for its neighbours `geotherm` and
+`exhum`/`t_crust`. `flux`/`head` re-confirmed unconsumed-on-purpose; `recv`/`area`/`lake`,
+the `R`/`H` views, `fits_in_pores`, `bound_eighths`/`is_occupancy_solid`,
+`Agent::Dissolution`, the S11 water module, `column_summary` and the 8-pass `Resource`
+vocabulary all re-confirmed. **Three findings:** `dc:deep/head` under-declares (S-6,
+below) and its `reads_prev` is pinned by nothing because **`reads_prev` is consumed by
+no mechanism at all** — it appears in `runner.rs` and nowhere else in `crates/`;
+`dc:deep/flow_record` by contrast is **honest**. An expired caption in
+`flux_record_probe.rs` (A-2). And, outside this file's remit but reported to the
+integrator: **all four in-code `stubs.md #19` markers are stale** — they were written
+by `8c08d43` before the collision renumber and now point at the water-table stub
+instead of the weathering-profile one.*
 
-*Last `spine-audit` sweep: **2026-07-24 (post-Movement-3)** — the weathering-as-a-
+*Previous: **2026-07-24 (post-Movement-3)** — the weathering-as-a-
 process merge (`7545643`) + the `palette_quant_tour` example (`0a8168d`/`4318463`).
 Verdicts: **stub #17 is discharged-with-a-residual** (the in-loop half landed; the
 "riding / unifying with the height-tier weathering" half of its own heir sentence is
@@ -101,6 +122,35 @@ immutable**; everything else is **fluid**, derived as a pure function of
   flat exact-sized facts + a sparse `(slot, start)` CSR index emitted only for
   slots that *have* facts, so an unweathered cell allocates **nothing**. The same
   rule that says "don't store the derivable value" says "don't store the slot".
+
+### S-2's storage corollary — **the house layout for sparse per-cell data**
+
+Named 2026-07-25 by the sweep, because it has now been reached for **three times in
+four days and never once designed** — and an unnamed pattern is one an author
+re-derives. It is recorded here rather than as its own spine because it *is* S-2's
+rule read as a layout ("don't store the slot" is "don't store the derivable value"),
+and splitting it out would split the rule. **Whether it earns its own S-number is a
+question for the main session, not the auditor** (§ 4 binds here too).
+
+**The shape:** a **flat, exact-sized payload array** + a **sparse index** — never
+`Vec<Vec<T>>` keyed per (cell, slot), and never the dense rectangle. Two variants,
+and which one is a *measured* choice, not a taste:
+
+| variant | index | use when | instance |
+|---|---|---|---|
+| **dense row-pointer** | `Vec<u32>` of length `n + 1`; row `i` is `start[i]..start[i+1]` | **every row exists** — the row key is the array position | `FluxRecord::{entries, cell_start}` (`deeptime/flux.rs:415-424`), keyed per cell |
+| **keyed rows** | `Vec<{key, start}>`, one entry per **non-empty** row, ascending | rows are themselves sparse — a dense pointer array *is* the rectangle you are avoiding | `FactLedger::{facts, rows: Vec<SlotRun>}` (`deeptime/inventory.rs:239-259`), keyed per stratum slot |
+
+**The numbers that make it a rule rather than a preference** (don't re-derive them):
+the CSR **index floor is 0.056× of total residency** (S19-flow-record-cost-results
+§ 3), so the index is never the constraint — the payload is; and the anti-pattern's
+cost is **98.8 % empty inner `Vec`s, 89 % of the record's heap in their headers**
+(journal/0100), 311.02 → 179.12 MiB when it was removed.
+
+**The check, and it is the A-4 check:** before designing a sparse layout, grep the
+tree for the one that already exists. The ledger conversion did exactly that and is
+recorded under A-4 as *discharge-by-porting*. A fourth author writing a fourth layout
+is the failure this row exists to prevent.
 
 **Rule:** *store only what the derivation cannot predict.*
 
@@ -325,6 +375,47 @@ files.
      comment at `runner.rs:363` asserting it reads "the exposed lithology" is simply
      untrue. It becomes true when stub #16's genesis heir gives bedrock a real
      per-column identity — until then, declare it or don't, but don't narrate it.
+- **the two FLOW passes (journal/0096 + 0098), audited 2026-07-25 — one honest, one
+  under-declared, and a systemic hole under both:**
+  1. **`dc:deep/flow_record` is HONEST** — verified line by line against its body
+     (`runner.rs:386-402`). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
+     `.area()`, `.routed_surface()` (the drainage solve → `Routed`), `.out_load()`
+     (transport → `Energy`) and `grid.head_exchange` (→ `Head`); `writes: [FlowFlux]`
+     covers `ctx.flux` and nothing else; and its claim not to read the strata record
+     (`runner.rs:384-385`) holds — `slot_for_chapter` runs at `finish`, outside the
+     pass. Reading `Head` is a **declared** edge, not a tie-break, which is the
+     correct form of exactly what the 2026-07-24 sweep caught being done wrong.
+     *Residue, shared with `dc:deep/weather_inventory` and pre-existing:*
+     `erosion.current_chapter()` is the chapter stamp `tectonics` writes
+     (`DeepAxis::Forcing`) and no pass that reads it declares it. Transitively
+     ordered, so not behavioural — but it is a project-wide idiom, not an exception.
+  2. **`dc:deep/head` UNDER-DECLARES its within-epoch reads.** `reads: [Routed]`
+     (`runner.rs:605`) covers `filled`/`routed_surface`/`area`. It does **not** cover
+     the ground surface `R + H`, which the body builds from `grid.surf_at`
+     (`runner.rs:428-430`) and the solve uses as its seepage cap, its lake datum and
+     its whole free-surface boundary (`head.rs:434-467`). *Which terrain revision it
+     sees* — `Forced`, today — is decided by where the id-tie-break drops it, and the
+     golden-order test says so in its own words: *"among the ready pool the
+     id-tie-break places `dc:deep/head` after `geotherm` and before `transport`"*
+     (`runner.rs:859-865`). The comment's defence, "its position never affects the
+     terrain", is true and is **not the question**: it affects the field's own values.
+     Declaring `Forced` is free and pins it.
+  3. **The systemic hole: `reads_prev` is declared, typed, documented — and consumed
+     by nothing.** It appears in `runner.rs` and in **no other file in `crates/`**;
+     `passgraph.rs` never receives it (`runner.rs:199-204` says so on purpose — a
+     lagged read must not become a within-epoch edge). The consequence is that a
+     `reads_prev` claim is true only by accident of the rest of the graph.
+     `dc:deep/head`'s `reads_prev: [Recorded]` (`runner.rs:607`) is true **today**:
+     head is ready as soon as `drainage` writes `Routed`, while `deposition` waits on
+     `isostasy`, so head fires first and sees last epoch's record. But Kahn parks a
+     ready node until it wins the id sort (`passgraph.rs:151-153`), so **renaming the
+     pass to any id sorting after `dc:deep/deposition` — `dc:deep/hydraulic_head`,
+     say — silently flips it to reading THIS epoch's record.** Same defect class as
+     last sweep's `BioMod`, one level up: there the tie-break decided a read, here it
+     decides an *epoch*. The honest fix is a mechanism, not a comment: give the graph
+     the reader-before-writer (anti-dependency) edge `reads_prev` implies, at which
+     point the declaration becomes load-bearing instead of narrative. **Flagged to the
+     main session, not decided here.**
 - members canonically ordered by namespaced id (geology.md)
 - patch plugins: declared order, last-in-order wins, **recorded in world
   identity** (DECIDED 2026-07-22)
@@ -391,11 +482,11 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     R/H unification"**, material-behavior.md §11 continuation slot + §13.6, and
     `docs/spikes/movement2a-rh-unification-plan.md` — but the split is **not yet the
     invariant the discharge note calls it**: `DeepField::derive_regolith_at`
-    (`field.rs:545-551`) materializes the "one authority" `H` view from
+    (`field.rs:598-606`, re-confirmed 2026-07-25) materializes the "one authority" `H` view from
     `FactLedger::empty_with_bedrock`, i.e. **with an empty ledger**, so the derived
     view structurally cannot see the 6.09 m of `Loose` the M3 process committed.
     Movement 2a's claim that "the inventory is the authority and `R`/`H` are its
-    materialized views" (`field.rs:521-537`) is therefore true of the *record* half
+    materialized views" (`field.rs:575-591`) is therefore true of the *record* half
     only; M3 added inventory content no view reflects. Two derivations of one
     quantity that cannot agree is this section's own consistency law — the
     unification is what closes it. The
@@ -443,6 +534,19 @@ Four shipped instances found in one audit: `surface_sample`'s branch,
 placeholder, it names an heir. A leaked requirement **looks like working code
 that passes tests**.
 
+- **blast radius widened, not a new instance (2026-07-25, journal/0098):**
+  `Litho::reference_material` — the six named rocks standing for every material in
+  the world, an A-1 instance since the first audit — **gained a whole new dependent**.
+  `head.rs::permeability_of` (`head.rs:198-201`) routes the head field's entire
+  hydraulic model through it, and the head field's own docs correctly cite S-2 for
+  doing so (*"Derived, never a second table … the same sheet
+  `resistance_of_material` reads for erodibility"*, `head.rs:196-197`). Both readings
+  are true and they point opposite ways: **not writing a second permeability table
+  was right**, and it means confinement, transmissivity and every artesian column in
+  the world now rest on a six-rock stand-in. Recorded so the day
+  `reference_material` is retired, hydrology is on the list of what moves — the
+  compliant choice deepened the dependency, which is the normal and easily-missed
+  price of S-2.
 - guarded (2026-07-25, journal/0101): *"empty"* had become the definition of
   *"unrecorded"* at the query surface — `VoxelContents::EMPTY` was the only value
   available for both, so the stand-in **was** the definition. `Identity::Unrecorded`
@@ -478,6 +582,33 @@ so a sweep must ask "does the cited constraint still hold?"
   production scale, journal/0094) — it is a **ceiling on saprolite depth**, not an
   inexhaustible source; the genesis/emplacement heir supplies a real per-column
   unroofing depth and retires it."*
+- **instance (2026-07-25, caught by the post-FLOW sweep): a measurement instrument
+  that prints a caption contradicting its own number.**
+  `dc-worldgen/examples/flux_record_probe.rs:98-101` prints the vertical-face count
+  labelled *"structurally present, honestly EMPTY (no infiltration term in this solve;
+  **heirs: the head field** + the free/bound edge)"*. That heir **landed the next day**
+  — `dc:deep/head` fills those faces with 307,364 crossings (journal/0098), the flag is
+  **on by default** (`grid.rs:279`), and the probe's own `c.vertical` now prints
+  non-zero directly beside the word EMPTY. Textbook A-2, with two aggravations worth
+  naming: the expired premise is on an **output line**, so it does not wait for a
+  reader of the source to notice — it is *published* into whatever doc quotes the
+  probe; and per CLAUDE.md's 2026-07-25 rule **`cargo test` builds examples but never
+  runs them**, so no gate can see it. *Proposed:* `"<- filled by the head field
+  (dc:field/head, journal/0098); zero only when --no-head-field"`. The sibling three
+  sites that describe the same history are **not** instances and were checked
+  individually — `field.rs:350`, `flux.rs:789` and `grid.rs:285` all say *"which FLOW
+  slice 1 **left** …"*, past tense, which is a true statement about a prior slice.
+- **staleness, adjacent to A-2 (2026-07-25): a spike result doc describing a layout
+  that no longer exists.** `docs/spikes/S17-deep-cell-inventory-results.md:284,293`
+  still states, present tense, *"`struct FactLedger { facts: Vec<Vec<Fact>> }`"* and
+  *"The ledger is a **sidecar** `Vec<Vec<Fact>>` keyed by unit index"* — converted to
+  flat + CSR by journal/0100. Its sibling `S19-flow-record-cost-results.md:152-158`
+  **did** get a `> RESOLVED 2026-07-25` note, which is exactly the right treatment and
+  is why the omission is visible. This matters more than an ordinary stale comment
+  because CLAUDE.md read-first item 5 tells readers spike results are the numbers not
+  to re-derive. *Proposed:* the same one-line `> **SUPERSEDED 2026-07-25
+  (journal/0100)** — the ledger is now flat facts + a sparse `SlotRun` CSR index; the
+  shape below is the one the spike built and the one 0100 measured.*
 - not-an-instance (2026-07-23, journal/0078): the 2026-07-22 audit flagged the
   `exhum`/`t_crust` comment [#28] as an A-2 ("claims the collapse tier reads
   them"), but the comment already said "WILL read … currently consumed by
@@ -573,13 +704,14 @@ consumed it and when.
 | what exists | where | called by | intended consumer |
 |---|---|---|---|
 | `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** (the module now *declares* its expected consumers in-code — journal/0078 — so an infiltration author finds it, but still nothing calls it) | **hydrology** (groundwater infiltration) + **diagenesis** (cement / ore deposition) — the transport-time depositing processes |
-| `recv` / `area` / `lake` — final drainage, populated in every world — **SUPERSEDED 2026-07-25 (journal/0096, FLOW slice 1)**, retirement sequenced | `deeptime/field.rs` | **still nothing in production**; `recv` now has one *test* consumer, the agreement check `flux_record.rs::the_receiver_export_agrees_with_the_final_chapters_faces`, which pins it as a shadow of the flux record rather than a rival authority | The intended consumers moved to the record that replaced it. `recv` is one out-edge per cell — a spanning tree that **cannot represent divergence at all** — and was "the *last* routing" after 200 discarded epochs. Its heir is `DeepField::flux` (row below). **Deletion of `recv`/`area`/`lake` and `Cell::{flow_to,river,discharge}` is continuation (e)** of the FLOW arc, not done here (this slice touched no expression) |
-| **`DeepField::flux` — the face-flux record** (FLOW slice 1, journal/0096): per-chapter directed flux on 3D faces, the representation that supersedes the receiver tree. **Row added the day it was built, deliberately** — the slice is the *recording* half only. **Its vertical (slot↔slot) faces, honestly zero at slice 1, were filled by continuation (a) 2026-07-25** (journal/0098 — 307,364 crossings from the head field); the record itself is still unconsumed in production | `deeptime/flux.rs`; `deeptime/field.rs` (`flux`); `dc:deep/flow_record` on the runner | **no production consumer, ON PURPOSE** — only `tests/flux_record.rs` and `examples/flux_record_probe.rs`. Expressing it now would mean a second fake river beside the honest absence of one, which is the exact thing flow.md § 3 forbids | **refinement as a boundary-value problem** (continuation (b): face fluxes as Dirichlet conditions, the load budget as mass, solved *inside* a cell) · §13.8's flow-biased sub-cell fill · the paleo-channel/layering read. The record is *"the rich thing others bias to, never a second geometry model"* |
+| `recv` / `area` / `lake` — final drainage, populated in every world — **SUPERSEDED 2026-07-25 (journal/0096, FLOW slice 1)**, retirement sequenced | `deeptime/field.rs` | **still nothing in production (re-confirmed 2026-07-25** — the only reads of the exported planes are `examples/tectonic_spike.rs:170` and `tests/tectonic_history.rs:336-343`. `head.rs`/`flux.rs` read `erosion.area()`/`erosion.recv()`, which is the *in-sim* value, not the export — the same distinction `exhum`/`t_crust` carries**)**; `recv` now has one *test* consumer, the agreement check `flux_record.rs::the_receiver_export_agrees_with_the_final_chapters_faces`, which pins it as a shadow of the flux record rather than a rival authority | The intended consumers moved to the record that replaced it. `recv` is one out-edge per cell — a spanning tree that **cannot represent divergence at all** — and was "the *last* routing" after 200 discarded epochs. Its heir is `DeepField::flux` (row below). **Deletion of `recv`/`area`/`lake` and `Cell::{flow_to,river,discharge}` is continuation (e)** of the FLOW arc, not done here (this slice touched no expression) |
+| **`DeepField::flux` — the face-flux record** (FLOW slice 1, journal/0096): per-chapter directed flux on 3D faces, the representation that supersedes the receiver tree. **Row added the day it was built, deliberately** — the slice is the *recording* half only. **Its vertical (slot↔slot) faces, honestly zero at slice 1, were filled by continuation (a) 2026-07-25** (journal/0098 — 307,364 crossings from the head field); the record itself is still unconsumed in production | `deeptime/flux.rs`; `deeptime/field.rs` (`flux`); `dc:deep/flow_record` on the runner | **no production consumer, ON PURPOSE** (re-confirmed 2026-07-25) — only `tests/flux_record.rs`, `tests/head_field.rs` and `examples/flux_record_probe.rs`. Expressing it now would mean a second fake river beside the honest absence of one, which is the exact thing flow.md § 3 forbids | **refinement as a boundary-value problem** (continuation (b): face fluxes as Dirichlet conditions, the load budget as mass, solved *inside* a cell) · §13.8's flow-biased sub-cell fill · the paleo-channel/layering read. The record is *"the rich thing others bias to, never a second geometry model"* |
 | **`DeepField::head` — the exported `head` condition-field** (`dc:field/head`, metres of hydraulic potential per cell), added 2026-07-25 by journal/0098 (FLOW continuation (a)). **Row added the day it was built, deliberately** — the same discipline the `flux` row above set | `deeptime/head.rs`; `deeptime/field.rs` (`head`); `dc:deep/head` on the runner | **no consumer of the exported plane** — only `tests/head_field.rs`, `examples/head_field_probe.rs` and `resident_bytes`. The **in-sim** field *is* consumed, and that is the point: `dc:deep/flow_record` reads it every epoch (a **declared** `reads: [Head]` edge, not a tie-break) to fill the vertical faces. Exactly the `geotherm` shape one row down, one field newer | **refinement as a boundary-value problem** (continuation (b) — head is the Dirichlet data *inside* a cell) · the **free/bound edge + void intervals** (continuation (c): a spring is where the potential meets the surface) · an **MFD solve** (flow.md § 2.6 — head is what lets flux partition across several receivers, and therefore what makes *simultaneous* divergence representable) · formation predicates over `dc:field/head` (§14) |
 | `exhum` / `t_crust` — populated since U8; the doc comment is now **honest** (states "consumed by nothing", cites this row — journal/0078; the 2026-07-22 audit's "claims the collapse tier reads them" quoted an already-corrected comment with its "WILL" dropped — corrections #40) | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs` — the unconsumed thing is the exported plane, not the value) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
 | occupancy primitives — `bound_eighths`, `is_occupancy_solid` (the two still uncalled; `free_eighths`/`open_pores` now read by the dev inspector `dc-api/src/payload.rs:367`, `loose_eighths` by `dc-client/src/meshing.rs:281` — 2026-07-24 sweep) | `dc-core/src/materials/contents.rs` | `bound_eighths`/`is_occupancy_solid`: **no production caller** | the four sim consumers named at authorship: water fill, loose gravity, compaction, sim light — none built yet (the inspector/meshing reads above are the dev HUD + render path, not those) |
-| **Movement 2a's derived `R`/`H` views** — `DeepField::derive_regolith_at` / `derive_bedrock_at`, `WorkingInventory::derived_regolith_m` / `derived_structure_stock_m`, `surface_regolith_m` / `structure_stock_m` (journal/0092, the positional cave-excluding §13.6 rule, 4 tests green) — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:545,560`; `deeptime/inventory.rs:764,776,787,807` | **no production caller** — only `tests/rh_unification.rs:52,79` (the byte-identity agreement tests). Production still reads the scalar `surf`/`regolith` planes; the views exist to *prove* the inventory is the authority, not yet to *be* it | **the R/H unification** (ROADMAP "Movement 2", material-behavior.md §13.6): retire the scalar planes into the inventory so `H`/`R` derive. Until then this is the authority-half of a two-authorities split (see S-9's M3 residual), and `derive_regolith_at` reads an **empty** ledger, so it cannot see `dc:deep/weather_inventory`'s facts |
+| **Movement 2a's derived `R`/`H` views** — `DeepField::derive_regolith_at` / `derive_bedrock_at`, `WorkingInventory::derived_regolith_m` / `derived_structure_stock_m`, `surface_regolith_m` / `structure_stock_m` (journal/0092, the positional cave-excluding §13.6 rule, 4 tests green) — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:600,615`; `deeptime/inventory.rs:936,948,959,979` (line refs refreshed 2026-07-25) | **no production caller** — only `tests/rh_unification.rs:52,79` (the byte-identity agreement tests). Production still reads the scalar `surf`/`regolith` planes; the views exist to *prove* the inventory is the authority, not yet to *be* it | **the R/H unification** (ROADMAP "Movement 2", material-behavior.md §13.6): retire the scalar planes into the inventory so `H`/`R` derive. Until then this is the authority-half of a two-authorities split (see S-9's M3 residual), and `derive_regolith_at` reads an **empty** ledger, so it cannot see `dc:deep/weather_inventory`'s facts |
 | `DeepField::geotherm` — the exported `temperature` condition-field plane (°C/m per cell), **added 2026-07-24 by journal/0093**; the field's doc already says so honestly (`field.rs:312-321`) but nothing pointed at this index — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:321` (cloned from `run.grid.geotherm`, `field.rs:382`) | **no consumer of the exported plane** — only `tests/geotherm.rs` and `resident_bytes`. The *in-sim* value **is** consumed: coal rank reads `grid.geotherm` at run finalize (`biotic.rs:765-775`). Exactly the `exhum`/`t_crust` shape, one field newer | **metamorphic grade** (`exhum` = P, this = T → schist/gneiss/marble; ROADMAP "Metamorphism — now UNBLOCKED by the geotherm") and the measurement probes |
+| **`DeepField::chapters` — the exported chapter table** (§ 8: plate state per chapter, `Vec<Vec<Plate>>`), populated since the tectonic-history slice. **Row added by the 2026-07-25 post-FLOW sweep — and it is the sweep's own indictment:** the field's doc comment has said *"today the table is exported and read by nothing"* (`field.rs:360-366`) for longer than this index has existed, and three sweeps added rows for its two immediate neighbours in the same struct (`geotherm`, `exhum`/`t_crust`) without noticing it. **A self-declaring comment is not an index** — that is the whole premise of § 3, demonstrated against § 3 | `deeptime/field.rs:367` (populated `field.rs:421` from `run.chapters`) | **no production caller** — only `tests/tectonic_history.rs:339,362`, `tests/deep_config_plumbing.rs:65,87,109,126,227`, and `tests/providers_common/mod.rs:169` (which hashes only its `.len()` into the fingerprint) | **per-unit deformation re-derived analytically at collapse resolution** — dip / provenance / fault traces in cut faces, the ~5 KB that replaces stored per-cell dip vectors (ROADMAP Sequenced, the collapse-tier slice; stubs.md "Sibling gap — layer-cake strata / no dip-fold" is the same absence seen from the other side) |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** in production (`examples/entry_species_probe.rs:325` is a probe; the *separate* `inventory::Cause::Dissolution` is deliberately excluded from `WEATHERING_AGENTS`, `weather_inventory.rs:61-63`) | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
