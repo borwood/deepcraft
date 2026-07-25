@@ -4373,6 +4373,11 @@ before any code.
 - **STATION — per-chunk material-palette quantization makes the chunk grid a
   visible checkerboard** (user field report + diagnostic station, 2026-07-24;
   `journal/assets/0088-palette-quantization-chunk-seams.png`).
+  **UNTOUCHED BY THE 2026-07-25 WORK, and the mixture-representation arc it converges into is
+  still held** (cross-ref added by sweep row A-5). One thing did move underneath it:
+  **`identify(pos)` is now UNTIERED** (journal/0101), so the old framing *"the distance pyramid —
+  near/mid/far **are** the `identify` tiers"* **no longer holds**. The pyramid is a **render**
+  concern only, which is the tier this station and the far-LOD material split both live at.
   **THE REFERENCE STATION — EXACT POSE, recorded 2026-07-24 (user-recovered).** This is
   the standing reference point for the palette-quantization issue; re-shoot it to compare
   before/after any fix:
@@ -5524,8 +5529,20 @@ before any code.
 - Sparse sidecar encoding for thin debris drapes (S8) — index array dominates.
 - Seed-stable worlds across releases: versioning policy undecided (S7).
 - HDR/exposure: v0 post grades LDR; sky-as-pass needs hook format 1 (S4).
-- S2 checkpoint facts (deep-time re-derivation cost) — design owed before
-  ledgers densify.
+- **S2 checkpoint facts (deep-time re-derivation cost) — ~~design owed before ledgers densify~~
+  🔔 TRIGGERED 2026-07-25.** *(Promoted from this one-line tail by the staleness sweep, row U-1:
+  the condition it was waiting on has occurred, and a line that fires its own trigger silently is
+  the exact failure the sweep exists to catch.)* **The ledgers densified — in one day.** The deep
+  record now carries three sparse per-cell records where it carried one: `LedgerField` holds
+  **1,033,189 facts across 72,006 slots** (journal/0102), `DeepField::flux` adds **2,590,372
+  entries / 40.66 MiB** (journal/0096), `dc:field/head` adds **6.96 MiB** (journal/0098) — and a
+  fourth is *projected at* **973 MiB** for a per-depth weathering ledger (the WEATHERING-IS-ONE-
+  PROCESS arc's R3). So the **re-derive-vs-persist** question this line reserved is live, and it
+  is the same question that now blocks that arc. **It does not start from nothing:** flow.md
+  § 11.3 gives it a **standing constraint, ratified 2026-07-25** — *any mode that changes what an
+  **absent** entry means must be carried in the record*, never held as external knowledge. A
+  checkpoint scheme that silently changes the meaning of a missing fact is forbidden by that
+  contract before it is designed.
 
 - *(**`client_player_pose_set` outside the one door: RATIFIED same day** —
   API.md Decisions log #5. Retirement = player controller through
@@ -5967,6 +5984,10 @@ in ROADMAP**, and material-behavior §5 is unamended — a ratified decision wit
 
 ### First things next session
 1. **Fold the staleness sweep**, then the staged gate (`./scripts/gate.ps1`).
+   ✅ **THE FOLD LANDED 2026-07-25** — all 22 rows applied or accounted for; the three missing
+   Sequenced entries (**Movement 2b**, **the aggregation window**, **metamorphism**) now exist,
+   material-behavior.md § 5 carries the WINDOW axis, and C-1 / C-2 / C-3 are marked but left for
+   the user. Still owed: the staged gate.
 2. **The per-depth weathering arc** — gate open; the decision is **residency axes** (S20 informs).
 3. **Movement 2b — material-aware transport** (§13), the big appearance-changer.
 4. **MFD / simultaneous divergence** — unblocked by the head field; today's divergence is
@@ -6028,10 +6049,13 @@ close, not an orphan.**
    entrainment, settling deposition → sorting/placers/provenance. Appearance-changer → user's eye.
 3. **Metamorphism — now UNBLOCKED by the geotherm:** `exhum` = P, geotherm = T → grade
    (schist/gneiss/marble). Where the tectonic gradient finally bites (deep crust). Retires stub #4.
+   *(2026-07-25: this now has a real Sequenced entry — **"METAMORPHISM — the grade axis"** — so it
+   no longer depends on a close block surviving a rewrite. Sweep row D-1.)*
 4. **Igneous emplacement + the formation-predicate evaluator** (F1 ratified): the
    predicate-as-data machinery + exhum-driven outcrop structure, retiring stubs #5/#16.
 
 ### Owed / carried
+**⚠ "geotherm coal" IS NOT A WALK — it is a desk null (corrections #51); see docs/audits/2026-07-25-roadmap-staleness-sweep.md row C-3. This superseded block must not be read as carrying it forward.**
 Appearance walks (S18 band once M3; geotherm coal — low-priority placeholder) · **field-pass
 migration** reminder (exhum/t_crust/drainage → real declared field passes) · geotherm
 nonlinear/mantle-heat · **LOD fix (b)** — cold/warm material S-9 agreement (mixture arc) ·
