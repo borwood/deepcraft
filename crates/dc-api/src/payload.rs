@@ -415,17 +415,29 @@ pub enum QueryData {
     /// themselves classify to — equal for an unedited recorded voxel, and
     /// diverging is the signal that the voxel was edited (an edit writes a
     /// block, not contents) or that no record backs it.
+    ///
+    /// Built from [`crate::identify::Identity`], so `has_contents` is a
+    /// **per-voxel** fact (journal/0101). Before that it was per-chunk, and an
+    /// unrecorded voxel sharing a chunk with a recorded one reported
+    /// `has_contents: true` + `classified: dc:air` over solid stone
+    /// (corrections #49).
     Contents {
         /// Authoritative stored block name (edit-aware).
         block: String,
         /// The block name `classify` derives from `contents`; equals `block`
         /// for an unedited recorded voxel. When `has_contents` is false this
-        /// echoes `block`.
+        /// echoes `block` — `classify` is never applied to a voxel that has no
+        /// record (`dc_core::classify`'s absent-contents rule).
         classified: String,
-        /// Whether a full contents record backs this voxel. `false` under the
-        /// S1 terrain authority, for legacy stubs, or when the world carries no
-        /// contents source — then only `block` is meaningful and `contents` is
-        /// the empty composition.
+        /// **Whether the world has a composition record for THIS voxel** — the
+        /// wire projection of [`crate::identify::Identity::Unrecorded`].
+        /// `false` for the unrecorded basement below the deep-time record, the
+        /// legacy soil band, ocean floor, the border wilds, ruin posts, the
+        /// whole S1 terrain authority, and any world with no contents source;
+        /// then only `block` is meaningful and `contents` is the empty
+        /// composition. **Air is not in that list**: an air voxel is honestly
+        /// empty, so it answers `true` with an empty composition — "nothing is
+        /// here" is a record, "no record" is not.
         has_contents: bool,
         contents: ContentsView,
     },
@@ -484,8 +496,10 @@ pub enum QueryData {
         distance_m: Option<f64>,
         /// The hit voxel's full material composition, when a contents record
         /// backs it (the same authority `dc:world/get_contents` returns). `None`
-        /// on a miss, or when the world carries no contents source (S1 terrain,
-        /// legacy stubs). Appended field; `serde(default)` decodes pre-contents
+        /// on a miss, and `None` when the voxel is **unrecorded** — no record
+        /// for it, no contents source, or S1 terrain. It is never
+        /// `Some(<empty view>)` for solid rock: that was the corrections #49
+        /// lie. Appended field; `serde(default)` decodes pre-contents
         /// streams to `None` (postcard is positional — this stays last).
         #[serde(default)]
         contents: Option<ContentsView>,

@@ -20,6 +20,8 @@
 //! - [`event`] — event kinds and delivery records
 //! - [`schema`] — the machine-readable command registry (consumers generate
 //!   from this; the MCP tool list is never hand-written)
+//! - [`identify`] — `identify(pos)`: the honest, untiered per-voxel identity
+//!   answer (a uniform mixture, or `Unrecorded`)
 //! - [`host`] — the reference in-process world implementing the surface's
 //!   semantics (tick quantization, total order, txn atomicity, enforcement)
 //! - [`abi`] — the WASM-boundary request/response shapes (postcard)
@@ -32,6 +34,7 @@ pub mod classes;
 pub mod envelope;
 pub mod event;
 pub mod host;
+pub mod identify;
 pub mod payload;
 pub mod schema;
 
@@ -46,6 +49,7 @@ pub use envelope::{
     EffectsSummary, QueryReceipt, QueryResult, ReceiptEntry, RejectReason, SubmitAck, Tick, TxnId,
 };
 pub use event::{EventKind, GameEvent};
+pub use identify::Identity;
 pub use host::{
     ChunkGenerator, ChunkResidency, ContentsSource, HostWorld, block_from_name, block_name,
 };

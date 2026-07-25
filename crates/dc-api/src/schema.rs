@@ -752,8 +752,13 @@ commands! {
               structure / pore-fill / debris material multisets (slug + \
               count-in-eighths), the structure shape and occupancy (solid / \
               free / open-pore eighths), plus the classified winner block for \
-              reference. `has_contents` is false where no contents record \
-              backs the voxel (S1 terrain, legacy stubs).",
+              reference. `has_contents` is a PER-VOXEL fact: false where the \
+              world has no composition record for this voxel (the unrecorded \
+              basement below the deep-time record, legacy soil, ocean floor, \
+              the border wilds, S1 terrain) — and then `classified` echoes the \
+              stored `block` rather than naming a mixture that does not exist. \
+              A solid block with `has_contents: false` is NOT air: it is rock \
+              whose composition the world cannot state.",
         cap: "world.read covering pos",
         schema: || s_obj("get_contents payload", &[("pos", s_vec3i("voxel to read"), true)]),
         complete: None,

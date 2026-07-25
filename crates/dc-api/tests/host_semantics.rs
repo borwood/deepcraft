@@ -774,3 +774,115 @@ fn get_contents_requires_world_read() {
         receipt.result
     );
 }
+
+// --- The honest identity surface (journal/0101, corrections #49) ------------
+//
+// `planted_contents` above is the defect's exact shape: chunk (0,0,0) carries
+// ONE recorded voxel, so `chunk_contents` hands back a grid for the whole 32³
+// chunk and every *other* voxel in it resolves to an ordinary
+// `VoxelContents::EMPTY`. Before `identify`, a solid voxel in that chunk was
+// reported `has_contents: true` + `classified: dc:air` — a chunk-level summary
+// worn as a voxel-level authority.
+
+#[test]
+fn unrecorded_rock_in_a_recorded_chunk_no_longer_reports_air() {
+    let mut world = HostWorld::new(7);
+    world.set_contents_source(Box::new(planted_contents));
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    let token = all_powers();
+    // A solid voxel one below the planted mixture: same chunk, no record.
+    let pos = v(1, 1, 3);
+    world
+        .submit(set_block(&src, &token, pos, "dc:stone"))
+        .unwrap();
+    world.tick();
+
+    match get_contents(&mut world, &token, pos) {
+        QueryData::Contents {
+            block,
+            classified,
+            has_contents,
+            contents,
+        } => {
+            assert_eq!(block, "dc:stone");
+            assert!(
+                !has_contents,
+                "no record backs this voxel — the chunk having one is not this voxel having one"
+            );
+            assert_eq!(
+                classified, "dc:stone",
+                "classify must not run on an unrecorded voxel; the stored block is echoed"
+            );
+            assert_eq!(contents, dc_api::payload::ContentsView::default());
+        }
+        other => panic!("expected Contents, got {other:?}"),
+    }
+}
+
+#[test]
+fn genuine_air_in_a_recorded_chunk_still_reports_air() {
+    // Do not overcorrect: an air voxel is honestly, positively empty — an
+    // empty mixture is a record saying "nothing is here".
+    let mut world = HostWorld::new(7);
+    world.set_contents_source(Box::new(planted_contents));
+    let token = all_powers();
+    let pos = v(4, 20, 4); // well above the hill-field: air
+
+    match get_contents(&mut world, &token, pos) {
+        QueryData::Contents {
+            block,
+            classified,
+            has_contents,
+            contents,
+        } => {
+            assert_eq!(block, "dc:air");
+            assert_eq!(classified, "dc:air", "sky is still air");
+            assert!(has_contents, "nothing-is-here IS an answer");
+            assert_eq!(contents.solid_eighths, 0);
+            assert_eq!(contents.free_eighths, 8);
+        }
+        other => panic!("expected Contents, got {other:?}"),
+    }
+}
+
+#[test]
+fn identify_separates_unrecorded_from_empty_and_from_a_mixture() {
+    use dc_api::Identity;
+    let mut world = HostWorld::new(7);
+    world.set_contents_source(Box::new(planted_contents));
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    let token = all_powers();
+    world
+        .submit(set_block(&src, &token, v(1, 1, 3), "dc:stone"))
+        .unwrap();
+    world.tick();
+
+    // Three different answers, three different values.
+    assert_eq!(world.identify(v(1, 1, 3)), Identity::Unrecorded);
+    assert_eq!(
+        world.identify(v(4, 20, 4)),
+        Identity::Mixture(dc_core::VoxelContents::EMPTY)
+    );
+    let mixture = world.identify(v(1, 2, 3));
+    assert_eq!(
+        mixture.classified(),
+        Some(dc_core::Block::Material(dc_core::MaterialId::GRANITE))
+    );
+    assert_ne!(world.identify(v(1, 1, 3)), world.identify(v(4, 20, 4)));
+}
+
+#[test]
+fn identify_without_a_contents_source_is_unrecorded_for_solids_and_empty_for_air() {
+    let mut world = HostWorld::new(7);
+    let src = ConsumerId::new(ConsumerKind::Plugin, "p");
+    let token = all_powers();
+    world
+        .submit(set_block(&src, &token, v(5, 5, 5), "dc:stone"))
+        .unwrap();
+    world.tick();
+    assert_eq!(world.identify(v(5, 5, 5)), dc_api::Identity::Unrecorded);
+    assert_eq!(
+        world.identify(v(5, 20, 5)),
+        dc_api::Identity::Mixture(dc_core::VoxelContents::EMPTY)
+    );
+}
