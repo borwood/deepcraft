@@ -1805,7 +1805,11 @@ mod tests {
                 want.facts_for(to_slot(i)),
                 "cell {i}: same facts, same ORDER"
             );
-            assert_eq!(got.total_facts(), want.total_facts(), "cell {i}: fact count");
+            assert_eq!(
+                got.total_facts(),
+                want.total_facts(),
+                "cell {i}: fact count"
+            );
             assert_eq!(got.slots_with_facts(), want.slots_with_facts());
             assert_eq!(got.is_empty(), want.is_empty());
             // The sentinel slot is vacated and no other slot answers.

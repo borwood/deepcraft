@@ -7,6 +7,66 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-25 — **The per-cell ledger header collapses: ONE record for the grid, the cell as a CSR
+  row** (journal/0102; background agent, worktree; **PURE LAYOUT CHANGE**). Discharges the OWED
+  lever journal/0100 filed against itself. `DeepField::ledgers` was `Vec<FactLedger>` — a per-cell
+  **owning container**, i.e. 48 B × 297,025 cells = **13.60 MiB paid before a single fact is
+  stored**, in a field where **225,019 cells (75.8 %) carry no fact at all**. It is now one
+  `LedgerField`: flat facts + journal/0100's sparse `(slot, start)` rows + a **dense
+  `cell_row_start`** over those rows (the `flux.rs` shape, now affordable because every *cell*
+  exists even though every *slot* does not — the outer index dense, the inner sparse, and the
+  reason stated in code).
+  - **MEASURED before/after, both real runs of `examples/flow_cost_probe.rs`** (seed 1337,
+    `Extent::Medium`, production flags, same machine within the hour): **flag ON `DeepField`
+    186.07 → 173.61 MiB**; **cost of turning the flag on +29.91 → +17.45 MiB (1.71× less)**;
+    **the struct-overhead line 13.60 MiB → 0 B** — there is no per-cell struct. Per-cell index
+    cost **48 B → 4 B (12×)**. Payload unchanged and exact at 15.77 MiB. *Reported honestly: the
+    ledger's own heap went 16.31 → 17.45 MiB and its index fraction 3.4 % → 9.6 %, because the
+    1.13 MiB of dense cell offsets moved INTO the heap from the 13.60 MiB that used to sit
+    outside it as "structs".*
+  - **The flag-OFF baseline is the same INTEGER in both runs — 163,748,661 B (156.16 MiB)** — the
+    control that makes the ON comparison mean something.
+  - **BYTE-IDENTICAL in the strongest form:** **1,033,189 facts across 72,006 non-empty slots,
+    before and after** — the same million facts in the same slots. Green **by name**, unmoved:
+    `the_production_world_still_hashes_to_the_pre_slice_goldens`,
+    `identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical`,
+    `on_flag_is_purely_additive_record_and_surface_untouched`,
+    `a_weathered_cell_carries_one_fact_per_agent_per_chapter_and_accumulates`,
+    `production_scale_saprolite_band_reaches_at_least_one_voxel`, `one_fact_per_agent_per_firing`,
+    `bedrock_facts_key_stably_as_the_record_grows`,
+    `fact_order_within_a_slot_is_preserved_across_interleaved_slots`,
+    `rekeying_moves_a_run_and_leaves_it_exact_sized`. New:
+    `the_grid_record_reproduces_every_cell_fact_for_fact_and_in_order`,
+    `a_cells_run_ends_at_its_own_boundary_not_the_next_cells` (absolute `start` across a **cell**
+    boundary — the one place this could have been quietly wrong),
+    `the_record_costs_its_facts_not_its_cells` (a residency **bound**, not a snapshot).
+    283 tests, 35 suites, 0 failed.
+  - **NOT ONE CALL SITE CHANGED.** `ledger_at_voxel` returns a borrowed `LedgerView<'_>` with the
+    read surface the owned struct had, so `collapse.rs`, `examples/s18_weathering_tour.rs`,
+    `examples/weathering_profile_probe.rs` and `tests/s18_first_behavior_weathering.rs` all compile
+    untouched (`get(i)` still returns an `Option` of something with the method; `iter()` still
+    yields one item per cell). The only edit outside the two owning files is three lines in
+    `bedrock_facts_key_stably_as_the_record_grows` that wrote `finalized[0]` — a `Vec` indexes, a
+    record that hands out views does not. Same test, same name, same assertions.
+  - **THE PER-CELL CONTAINER IS STILL RIGHT AT GEN TIME, and that is the design.** `FactLedger`
+    survives as the accumulator: the pass appends into one cell every epoch, and an insert into a
+    grid-wide array would memmove every fact after that cell — up to a million, per firing. The
+    split is by **clock**, not by structure. The defect was never "a per-cell owning container"; it
+    was a per-cell owning container that is **resident**.
+  - **GEN TIME: no measurable change** (flag-ON field 25.9 → 24.7 s, against a flag-OFF pregen that
+    moved 20.2 → 22.3 s the *other* way on the same runs — noise between sibling agents).
+  - **DEFECT FOUND AND FIXED EN ROUTE:** `examples/flow_cost_probe.rs` was broken **again**, the
+    same way, **one day later** — `resident_bytes()` gained a `head` term when FLOW continuation
+    (a) merged (journal/0098) and the itemisation had no row for it, so its agreement assertion
+    panicked before printing a byte. CLAUDE.md's "re-run the probes by hand after any merge that
+    changes what they measure" was already written *because of the flux-record instance* and did
+    not fire. **The assertion caught it; the rule did not.** Row added.
+  - **A-4 DISCHARGED BY PORTING** (spines.md § A-4 row extended): the shape was read out of
+    `flux.rs` and applied one level up, not designed.
+  - **OWED / next lever (filed, not done):** `DeepField::strata` is the same shape and bigger —
+    `Vec<DeepStrata>` is **9.06 MiB of 32-byte structs** (5.8 % of the flag-off field) over an
+    84.47 MiB heap, with **33,680 cells (11.3 %) holding an empty record**. See Observed.
+
 - 2026-07-25 — **A weathering front is a PROFILE, not a slab** (journal/0099; background agent,
   worktree; **collapse-tier only — `deeptime/` untouched, stub #16 NOT retired**). Closes the
   walk finding of journal/0097. The fold no longer emplaces the scalar
@@ -3344,16 +3404,31 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **OWED / next residency lever — a per-cell OWNING CONTAINER is a header × 297,025 before it
-  stores anything** (journal/0100, 2026-07-25). The CSR conversion cut the ledger heap 9.5×, but
-  the per-cell `FactLedger` **struct** grew 24 → 48 B (two `Vec` headers per cell) = **13.60 MiB
-  paid whether or not a cell has a single fact** — an honest regression the slice flagged itself.
-  The full `flux.rs` shape collapses it: **one record for the whole grid, with the cell as a CSR
-  row**. Deferred only because it moves `DeepField::ledgers` and `ledger_at_voxel`, which sat in a
-  live sibling's write-set. **The generalisation is the valuable part and applies far beyond this
-  struct:** *any per-cell owning container in a 297 k-cell field costs a header per cell before it
-  holds data* — so the default for anything per-cell is **one grid-wide record with CSR rows**,
-  never `Vec<Something>` per cell. Same family as the `Vec<Vec<Fact>>` defect, one level up.
+- ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0102).** *a per-cell OWNING CONTAINER is a
+  header × 297,025 before it stores anything* (filed by journal/0100 against itself). Measured
+  result: the struct-overhead line **13.60 MiB → 0 B**, per-cell index cost **48 B → 4 B (12×)**,
+  flag-ON `DeepField` **186.07 → 173.61 MiB**, cost of the flag **+29.91 → +17.45 MiB**; world
+  byte-identical (1,033,189 facts in 72,006 slots, before and after; flag-OFF baseline the same
+  integer, 163,748,661 B). **The generalisation survives the slice and is the valuable part:**
+  *any per-cell owning container in a 297 k-cell field costs a header per cell before it holds
+  data* — so the default for anything per-cell is **one grid-wide record with CSR rows**, never
+  `Vec<Something>` per cell. Refined by the slice: the defect is a per-cell owning container that
+  is **RESIDENT**; per-cell is the right *gen-time* shape (a grid-wide insert would memmove every
+  fact after the cell, every epoch), so compact at the seam where the compile ends — which already
+  exists in this codebase and is called `finalize_*`.
+
+- **OWED / the SAME lever, one record over: `DeepField::strata` is `Vec<DeepStrata>`**
+  (journal/0102, 2026-07-25 — the successor the ledger collapse names). Measured on the production
+  world: **9.06 MiB of 32-byte per-cell structs, 5.8 % of the whole flag-off field**, sitting on
+  an 84.47 MiB `DepUnit` heap — and **33,680 cells (11.3 %) hold an EMPTY record**, paying the
+  struct for nothing. The collapse is verbatim: one grid-wide `DepUnit` array with the cell as a
+  CSR row. **Bigger than the ledger slice was**, for two reasons that are both known, not
+  guesses: `DeepStrata` is written per-epoch during the compile (so it needs the same clock split
+  — `DeepStrata` stays the gen-time accumulator, the resident record is grid-wide, compacted at
+  the existing `shrink_to_fit` seam in `build_field_cfg`), and it is *read all over the collapse
+  tier*, so `record_at_voxel`'s consumers need the same view treatment `ledger_at_voxel` got
+  (which, on the evidence of journal/0102, can be zero call-site churn if the view carries the
+  same read surface). Same family as `Vec<Vec<Fact>>` and `Vec<FactLedger>`, one record over.
 
 - **Is the front's voxel-tier mass error SAMPLING NOISE or a real upward BIAS?** (integrator
   review of journal/0099, 2026-07-25 — **the claim is undertested, not shown wrong**.) Record-tier

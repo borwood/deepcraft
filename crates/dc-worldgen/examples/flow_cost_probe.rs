@@ -485,8 +485,7 @@ fn main() {
         std::mem::size_of::<FactLedger>(),
         mib(per_cell_structs as f64),
         cells_wi - field_wi.ledgers.iter().filter(|l| !l.is_empty()).count(),
-        100.0
-            * (cells_wi - field_wi.ledgers.iter().filter(|l| !l.is_empty()).count()) as f64
+        100.0 * (cells_wi - field_wi.ledgers.iter().filter(|l| !l.is_empty()).count()) as f64
             / cells_wi.max(1) as f64,
         std::mem::size_of::<u32>(),
         mib(((cells_wi + 1) * std::mem::size_of::<u32>()) as f64),
