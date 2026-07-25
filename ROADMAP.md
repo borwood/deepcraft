@@ -2654,9 +2654,43 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     with better camouflage (**A-1** with a disguise). It pops into Sequenced when:
     **(R1)** the **potential/head field** lands (flow continuation (a), in flight) and
     **(R2)** **vertical flux is real** rather than the honest zeros of flow slice 1 — i.e. there is
-    an infiltration/percolation term a per-depth rate can read. **(R3)** measure the cost first:
+    an infiltration/percolation term a per-depth rate can read. ~~**(R3)** measure the cost first:
     per-depth × per-cell × per-epoch over 297 k cells with multi-slot columns is far larger than
-    today's per-cell scalar, and the deep run is already 35–85 s.
+    today's per-cell scalar, and the deep run is already 35–85 s.~~
+  - **✅ R3 MET 2026-07-25 (journal/0106, `examples/perdepth_weathering_cost_probe.rs`) — and it
+    moved the blocker.** Measured on the shipped world (1337 / Medium, 297 025 cells, 200 epochs,
+    8 chapters), with the pass timed OFF vs ON so its own wall clock is a *difference*, not a share:
+    - **The multiplier is 59.5× in tuples and 5.6× in TIME.** A per-depth firing visits **59.5 slots
+      on average** (20 487 597 `(cell, slot, chapter)` visits against 344 410 `(cell, chapter)`
+      firings; epochs-per-chapter cancels, so this is the per-epoch multiplier too). But today's
+      firing is dominated by **fixed** cost — it re-derives a working inventory and drains a commit
+      log for a single span — so 552 ns → 3 066 ns. **The work that multiplies is the cheap work.**
+    - **The causal triangle is real and worth 38.7 %.** A slot deposited in chapter `c` cannot
+      weather before `c`; honouring that is 20.5 M visits instead of 33.4 M, and +20.7 s instead of
+      +37.8 s. It is **free** — a pass walking the live record gets it automatically, and you have to
+      work to lose it. **Say so in the design so nobody builds the rectangle.**
+    - **GEN TIME IS NOT THE BLOCKER.** The pass is 4.5 s of a 25.7 s deep run (17.6 %); per-depth
+      projects to 25.2 s, taking the run **25.7 s → 46.4 s**. Against the standing doctrine (*gen
+      time is not a constraint*) that is affordable.
+    - **🔴 RESIDENCY IS THE BLOCKER.** The `LedgerField` sidecar goes **17.45 MiB → 973 MiB**
+      (55.8×), and it is **resident** — it ships in the `DeepField`. 61.5 M facts = 20.5 M visited
+      slots × 3 agents × 16 B. The itemisation reconstructs today's measured footprint **exactly**,
+      so the projection scales a validated model.
+      - **The levers are axes, not micro-optimisations:** drop the **chapter** axis for weathering
+        facts (÷ ~4.8, the mean chapters-fired per weathering cell → ≈ 200 MiB); drop the **agent**
+        axis in the *persisted* form, keeping the sum (`Σ share_a = rate` by construction; a further
+        ÷ 3 → ≈ 68 MiB); or persist a **per-slot scalar** rather than facts, which is what the
+        collapse consumer actually reads (`weathering_product_m`) — and which is the *"a summary must
+        be derived from the authority, never become it"* question this project already has a doctrine
+        for. **This is a design decision the arc must answer before it is built, and it is a much more
+        tractable problem than "the deep run doubles".**
+    - Incidental re-confirmation: **72 006 of 297 025 cells (24.2 %) ever weather** — journal/0102's
+      75.8 %-never figure, re-measured from the other side; the CSR layout it motivated is why today's
+      sidecar is 17 MiB and not 31.
+    - **Nothing of the change was built.** The probe's "per-depth firing" is a cost model in
+      `examples/`, written against the substrate's existing public API. It prices the **cellular** half
+      only, which is correct: reactant transport is a *field* pass (§5's split, below), i.e. today's
+      per-cell-per-epoch cost class — it changes the constant, not the exponent.
   - **ONE CONSTRAINT ON "ONE PROCESS" (integrator, agreed at the same time):** *one process must
     NOT mean one pass.* §5's split still binds — reactant **transport is a FIELD**, the **edge is
     CELLULAR**. Collapsing them would rebuild the monolith the pass-runner exists to prevent.

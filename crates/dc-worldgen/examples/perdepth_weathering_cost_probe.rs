@@ -45,9 +45,7 @@
 use std::hint::black_box;
 use std::time::Instant;
 
-use dc_worldgen::deeptime::inventory::{
-    Fact, FactLedger, InvForm, build_working, commit_chapter,
-};
+use dc_worldgen::deeptime::inventory::{Fact, FactLedger, InvForm, build_working, commit_chapter};
 use dc_worldgen::deeptime::weather_inventory::{empty_accumulator, weather_bedrock_epoch};
 use dc_worldgen::deeptime::{
     DeepConfig, DeepStrata, WEATHERING_AGENTS, WeatherInputs, agent_share, build_field_cfg,
@@ -277,7 +275,12 @@ fn project(extent: Extent, measure_baseline: bool) -> Projection {
         let mut fired: Vec<u8> = field
             .ledgers
             .get(i)
-            .map(|v| v.facts_for(bedrock_slot).iter().map(Fact::chapter).collect())
+            .map(|v| {
+                v.facts_for(bedrock_slot)
+                    .iter()
+                    .map(Fact::chapter)
+                    .collect()
+            })
             .unwrap_or_default();
         fired.sort_unstable();
         fired.dedup();
@@ -487,8 +490,14 @@ fn report(p: &Projection) {
         100.0 * (1.0 - c.multiplier_triangular() / c.multiplier_flat())
     );
 
-    println!("\n--- 2. per-invocation wall clock ({} firings each) ---", p.timing.firings);
-    println!("  today (one bedrock span)          {:>9.0} ns", p.timing.today_ns);
+    println!(
+        "\n--- 2. per-invocation wall clock ({} firings each) ---",
+        p.timing.firings
+    );
+    println!(
+        "  today (one bedrock span)          {:>9.0} ns",
+        p.timing.today_ns
+    );
     println!(
         "  per-depth, triangular             {:>9.0} ns   ({:.1}x)",
         p.timing.per_depth_triangular_ns,

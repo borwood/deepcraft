@@ -231,7 +231,101 @@ final record. The per-depth pass at epoch `e` therefore sees a triangle, not a
 rectangle, and the probe counts the triangle exactly rather than assuming the
 rectangle.
 
-<!-- R3-NUMBERS -->
+### The numbers
+
+Production world, seed 1337, `Extent::Medium`, 297 025 deep cells, 200 epochs,
+8 tectonic chapters:
+
+```
+--- 1. the tuple counts ---
+  loop visits (cell x epoch, gate included)              59405000
+  TODAY  (cell, epoch) firings                             344410 .. 8610250 (lo/hi)
+  PER-DEPTH (cell, slot, chapter), triangular            20487597
+  PER-DEPTH (cell, slot, chapter), flat                  33415801
+  => MULTIPLIER  triangular 59.49x   flat 97.02x   (the causal triangle saves 38.7%)
+
+--- 2. per-invocation wall clock (240600 firings each) ---
+  today (one bedrock span)                552 ns
+  per-depth, triangular                  3066 ns   (5.6x)
+  per-depth, flat                        5150 ns   (9.3x)
+
+--- 3. gen time ---
+  deep run, pass ON                      25.7 s
+  deep run, pass OFF                     21.2 s
+  => the pass itself                      4.5 s  (17.6% of the run)
+  => per-depth (triangular)              25.2 s  (+20.7 s on the deep run, 25.7 s -> 46.4 s)
+  => per-depth (flat, no triangle)       42.4 s  (+37.8 s)
+
+--- 4. residency (the LedgerField sidecar) ---
+  today      facts    1033189  slot rows      72006  =    17.45 MiB  (measured 17.45 MiB, EXACT)
+  per-depth  facts   61460352  slot rows    4516541  =   973.40 MiB  (+955.95 MiB, 55.8x)
+```
+
+### Reading them
+
+**The multiplier is 59.5×, and it is not the cost multiplier.** That gap is the
+finding. A per-depth pass would visit **59.5 slots per firing on average** — the
+weathering cells' columns are deep, and the 25 epochs per chapter cancel out of the
+ratio exactly, so that number is not an artifact of chapter resolution. But the
+*wall clock* only goes up **5.6×**. Today's firing carries a large fixed cost — it
+re-derives a working inventory from `base + facts` and drains a commit log even
+though the inventory has exactly one span — and the marginal cost of a slot is
+small beside it. **A 59× increase in work is a 5.6× increase in time**, because the
+work being multiplied is the cheap part.
+
+That is the sort of thing that is only knowable by measuring. The R3 requisite was
+written expecting "far larger", and on the tuple axis it is; on the axis that
+actually matters for the gen clock it is an order of magnitude milder.
+
+**The causal triangle is worth 38.7 % of the tuples and 40 % of the time.** A slot
+deposited in chapter `c` is invisible to every firing before `c`, and honouring that
+is the difference between +20.7 s and +37.8 s. It is also free: the record already
+carries `DepUnit::chapter`, and a per-depth pass walking the live record at epoch
+`e` gets the triangle automatically — you have to work to *lose* it. Worth stating
+explicitly in the arc's design so nobody implements the rectangle.
+
+**Gen time is not the blocker.** The deep run goes 25.7 s → **46.4 s**. Under this
+project's standing doctrine — *gen time is not a constraint, ready-made worlds are
+the sanctioned answer; runtime is sacred* — that is a shrug. This probe expected to
+be the reason R3 gated the arc. It is not.
+
+**Residency is the blocker, and it is a big one.** The `LedgerField` sidecar goes
+**17.45 MiB → 973 MiB**, a 55.8× jump, and it is *resident*: it ships inside the
+`DeepField`. Nearly a gigabyte of weathering facts for a Medium world is not a cost
+to absorb; it is a design constraint the arc has to answer before it is built.
+
+The itemisation says exactly where it goes. Today the pass commits **3.0 facts per
+(cell, chapter) firing** — one per agent (chemical, biotic, frost), each 16 bytes,
+merged within the chapter by `commit_chapter`. Per-depth, that becomes 3 facts per
+**(cell, slot, chapter)**, and 61.5 M facts is simply 20.5 M visited slots × 3.
+So the levers are visible and they are axes, not micro-optimisations:
+
+- **drop the chapter axis** for weathering facts (merge a slot's whole history into
+  one fact per agent): ÷ ~4.8 (the mean chapters-fired per weathering cell) →
+  ≈ 200 MiB;
+- **drop the agent axis** in the persisted form (keep the sum; agents are a
+  gen-time decomposition, and `Σ share_a = rate` by construction): a further ÷ 3 →
+  ≈ 68 MiB;
+- **or persist a per-slot scalar rather than facts at all**, which is what the
+  collapse consumer actually reads (`weathering_product_m`) — and which is the same
+  "a summary must be derived from the authority, never become it" question the
+  project already has a doctrine for.
+
+None of those is a decision this probe gets to make. What it can say is: **R3's
+answer is that per-depth weathering is affordable in time and expensive in space,
+and the space cost is concentrated in the fact ledger's chapter × agent axes** —
+which is a much more tractable problem than "the deep run doubles".
+
+An honest residual on the residency figure: it assumes every visited slot ends up
+carrying facts. Slots that weather to below `EPS` commit nothing, so the real
+number is somewhat lower — but slots are visited *because* they are exposed to
+reactant, so the discount is not the order of magnitude that would change the
+conclusion.
+
+One incidental confirmation: **only 72 006 of 297 025 cells (24.2 %) ever weather**,
+which is journal/0102's 75.8 %-never-weather figure re-measured from the other
+direction, a year of slices later. The CSR layout it motivated is still earning its
+keep, and it is the reason today's sidecar is 17 MiB instead of 31.
 
 ### What the probe does not model, deliberately
 
@@ -273,3 +367,30 @@ not magnitudes:
 
 No assertion is pinned to a MiB figure or a nanosecond count. Those are what `main`
 is for.
+
+**Measured gate cost: +8.8 s** (`gate::the_perdepth_projection_is_self_consistent`),
+against the 35.0 s the seven existing converted probes add.
+
+---
+
+## The gate, by name
+
+```
+cargo fmt --all --check                                              clean
+cargo clippy -p dc-worldgen --all-targets --release -- -D warnings   clean
+cargo clean -p dc-worldgen --release   (then, so the run is honest)
+
+tests/geotherm.rs                                       3 passed, 1 ignored (55.8 s)
+  the_temperature_field_is_populated_and_varies
+  the_geotherm_rule_governs_coalification_on_the_production_world
+  coal_follows_the_warm_crust_on_the_warm_reference_world
+  warm_reference_onset_for_thick_coal                   (ignored, diagnostic)
+examples/perdepth_weathering_cost_probe.rs              1 passed (8.8 s)
+  gate::the_perdepth_projection_is_self_consistent
+tests/providers_golden.rs                               2 passed (6.9 s)
+tests/rh_unification.rs                                 2 passed (3.6 s)
+```
+
+The `cargo clean -p dc-worldgen --release` is not decoration — three siblings share
+this `CARGO_TARGET_DIR` today, and corrections #27's false green is exactly the
+failure this journal entry is otherwise about, one layer down.

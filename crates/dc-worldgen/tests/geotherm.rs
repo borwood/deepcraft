@@ -237,7 +237,10 @@ fn the_geotherm_rule_governs_coalification_on_the_production_world() {
 
     // The headroom, reported and not asserted: how far the shipped world's hottest
     // candidate sits from the onset. corrections #51 measured 15.4 C vs 22.0 C.
-    let hottest = cands.iter().map(|c| c.t_c).fold(f64::NEG_INFINITY, f64::max);
+    let hottest = cands
+        .iter()
+        .map(|c| c.t_c)
+        .fold(f64::NEG_INFINITY, f64::max);
     println!(
         "production headroom: hottest candidate {hottest:.1} C vs onset {COAL_ONSET_C} C \
          ({:+.1} C); coal units {coal} / {total} candidates",
@@ -293,8 +296,9 @@ fn coal_follows_the_warm_crust_on_the_warm_reference_world() {
         frac * 100.0
     );
 
-    let mean =
-        |v: &[&Candidate]| -> f64 { v.iter().map(|c| c.gradient_c_per_m).sum::<f64>() / v.len() as f64 };
+    let mean = |v: &[&Candidate]| -> f64 {
+        v.iter().map(|c| c.gradient_c_per_m).sum::<f64>() / v.len() as f64
+    };
     let (g_coal, g_peat) = (mean(&coal), mean(&peat));
     println!(
         "warm reference: coal-unit mean gradient {:.1} C/km vs peat-only {:.1} C/km \
