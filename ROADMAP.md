@@ -2702,9 +2702,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     **no vertical fluid flux**. A depth-resolved weathering rate would have nothing honest to read,
     so "emergent" gradation would emerge from a **fabricated depth term** — the same shape function
     with better camouflage (**A-1** with a disguise). It pops into Sequenced when:
-    **(R1)** the **potential/head field** lands (flow continuation (a), in flight) and
-    **(R2)** **vertical flux is real** rather than the honest zeros of flow slice 1 — i.e. there is
-    an infiltration/percolation term a per-depth rate can read. ~~**(R3)** measure the cost first:
+    ~~**(R1)** the **potential/head field** lands~~ **✅ MET 2026-07-25 (journal/0098)** and
+    ~~**(R2)** **vertical flux is real** rather than the honest zeros of flow slice 1~~
+    **✅ SUBSTANTIALLY MET 2026-07-25** — 307,364 vertical entries across 44.3 % of cells, **with
+    one honest caveat that survives into the arc**: that flux is **recharge-free** (stubs #19), so
+    a depth-resolved rate reading it reads **gravity drainage with no real precipitation depth
+    behind it** — relatively shaped, absolutely uncalibrated. ~~**(R3)** measure the cost first:
     per-depth × per-cell × per-epoch over 297 k cells with multi-slot columns is far larger than
     today's per-cell scalar, and the deep run is already 35–85 s.~~
   - **✅ R3 MET 2026-07-25 (journal/0106, `examples/perdepth_weathering_cost_probe.rs`) — and it
