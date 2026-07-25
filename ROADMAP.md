@@ -5624,15 +5624,42 @@ not a record hole (#49) · the front's `+3.7 %` mass was **the instrument**, doc
 Also: my per-cell-container rule was **too broad** (the defect is *resident*, not per-cell); my
 floor-effect hypothesis was **wrong**; the spine-audit's own prescription was **half wrong**.
 
-### Running — ALL LANDED AND MERGED (nothing is running)
-1. **Hash-domain provider** (worktree `ab7399671e0e842f8`, holds journal **0105**, holds the build
-   lock legitimately). Upgraded mid-flight to the user's **construction-guarantee** framing. **Will
-   move goldens** — that is authorised; verify it *announced* what moved.
-2. **S20 spike — fact-ledger residency** (`a83b3917a1061f32c`). Feeds the per-depth weathering
-   decision: four options costed, incl. **paged facts**. **Spike only — it must not have changed
-   the shipped layout.**
-3. **ROADMAP staleness sweep** (`af90742ffeca1456c`) — answers *"do today's pieces need factoring
-   into older items?"* Read its audit **before** planning next session.
+### Running — ONE AGENT STILL OUT (integrator error: an earlier draft of this block said "nothing is running")
+**✅ LANDED AND MERGED:** the hash-domain provider (journal/0105, corrections #52 — *nothing
+moved in the goldens, and that was the finding*) and the ROADMAP staleness sweep
+(`docs/audits/2026-07-25-roadmap-staleness-sweep.md`).
+
+**⏳ STILL OUT — the one thing to collect first next session:**
+- **S20 spike — fact-ledger residency** (worktree `a83b3917a1061f32c`, **still live at close**).
+  Feeds the per-depth weathering decision with four costed options incl. **paged facts**.
+  **Spike only — verify it did NOT change the shipped `FactLedger`/`LedgerField` layout**, and
+  that its probes are gated. Its worktree is intact; **check `git -C <worktree> status` and its
+  branch commits before concluding anything** — an empty worktree is not evidence of nothing, and
+  bare `git` pathspecs from inside a pruned worktree lie.
+
+### PROCESS THREAD the user opened at the close — gh issues alongside the ROADMAP
+*"We could leverage gh issues more… we do want to preserve whatever benefits we are getting from
+the roadmap doc, but we have other tools to explore to make our knowledge and planning and
+consistency and integration-over-time maximally effective with maximal agent experience."*
+**Not decided — next session's design pass.** The integrator's framing, recorded so it is not
+re-derived:
+- **The ROADMAP is doing FOUR jobs**, and only some suit a doc. **Shipped** = history (the journal
+  already holds the narrative — archive it). **Sequenced** = arcs whose value *is* long-form
+  reasoning (WHAT/WHY/UNIFIES/SLICE/CONTINUATION) — **keep as a doc**. **Observed** = an inbox of
+  discrete, statusful findings — **this is an issue tracker's native shape**, and it is the part
+  that demonstrably rots. **Close block** = handoff — stays.
+- **The hard constraint is AGENT EXPERIENCE, and it cuts toward in-repo.** Subagents work in
+  **worktrees**; every brief this session said *"read ROADMAP § X"*, which works because it is a
+  **file**. `gh issue view` needs auth + network inside a worktree — a real friction multiplier
+  across ~15 agents/day. Losing **atomicity** matters too: today a slice's commit updates ROADMAP
+  + stubs + spines + journal *together*; an issue closed separately can drift from the commit.
+- **What issues genuinely add:** status as a **first-class queryable field** (ours is prose —
+  ✅/⏳/strikethrough — which is exactly what rots), labels, and commit/PR auto-linking.
+- **A third option worth costing before choosing:** keep everything in-repo but make status
+  **machine-checkable** — one file per Observed item with frontmatter, or a small structured
+  index — which buys queryability **without** losing offline-readability or atomicity.
+- **Viable hybrid:** the *integrator* (networked) queries issues and **inlines** the relevant text
+  into each brief — which is exactly what already happens with ROADMAP quotes today.
 
 ### ⚠ OWED / unverified across the boundary
 - **A full `--workspace` gate has NOT run on current main.** dc-worldgen is verified on **merged
