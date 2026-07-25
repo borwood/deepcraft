@@ -3827,19 +3827,44 @@ so C-refinement would have to re-derive it); vegetation → channel planform
 ("vegetation invented meandering rivers") needs 3e-2's finer corridor to
 have any planform to bend.
 
-**⚠ THREE CONTRADICTORY STAMPS — under active user decision 2026-07-25; see docs/audits/2026-07-25-roadmap-staleness-sweep.md row C-1.**
-
 **3e-2 — C refinement** (DECIDED 2026-07-19 — earth-processes.md § 3e-2
-decisions — and implementable): drainage coarse-at-A with the
-river-conditioning mechanism (corridor wander toward refined lows +
-descent-along-flow as hard constraint, no divide-crossing); width cap
+decisions. **RECONCILED 2026-07-25 (user) — the three contradictory stamps on this
+entry were never actually fighting; they were stamps on different clauses. The
+record of decision is earth-processes.md § 3e-2's `⚠ SUPERSEDED IN PART` banner,
+which already said all of this; this board was the stale party.**): drainage
+coarse-at-A ~~with the river-conditioning mechanism (corridor wander toward refined
+lows + descent-along-flow as hard constraint, no divide-crossing)~~; width cap
 permanent; 0015-mechanism elevation stitch + interior-commit records over
 the 16–24-cell halo; proximity approach trigger, order-independent by
 construction; **contact-softening in scope per method rule 5** (no
 grid/analytic boundary reaches the eye); calibration RATIFIED — the
 Phanerozoic register (~500 Myr recorded span, basement ages procedural
-— "procedural hacks for the boring billion"; knob deferred). **Nothing
-open — implementable.**
+— "procedural hacks for the boring billion"; knob deferred).
+
+- **WHAT SURVIVES — decisions 2, 3, 4, 5 untouched, plus decision 1's FIRST
+  clause.** None of the width cap, the stitch, the approach trigger or the
+  calibration is about how a river is *made*, so FLOW does not reach them. And
+  *"drainage is advective and decided-once-coarse"* stands on the halo theorem
+  (corrections #8) — that is precisely the clause the **2026-07-24 sweep stamped
+  VALIDATED** (*"drainage is decided-once-coarse and is the sole advect"*).
+- **WHAT DIED — decision 1's SECOND clause, the river-conditioning mechanism.** The
+  wandering channel **line** with the refined surface **nudged** around it is a
+  *drawn* carve: an operator that deforms terrain to imitate a result. flow.md § 3
+  forbids exactly that — **the channel is what REMAINS when the material the erosion
+  passes actually moved is subtracted along the recorded path**, an expression of a
+  mass budget, never a deformation. (flow.md § 6 lists § 3e-2's expression half under
+  "What this retires".) Refinement must now get its channels from `DeepField::flux`.
+- **WHAT NARROWED — the no-divide-crossing rule binds the FREE/surface regime ONLY.**
+  Not a supersession but a correction: **bound (groundwater) flow genuinely crosses
+  surface divides** — artesian basins, karst piracy. Carried over unqualified the rule
+  **forecloses regional groundwater**. Also per flow.md § 2.4 the driving field is
+  **potential/head**, not elevation — and `dc:field/head` now exists (journal/0098).
+- **🔗 SEQUENCING FACT, recorded 2026-07-25 because it was written down NOWHERE: 3e-2
+  is now DOWNSTREAM of FLOW.** It was free-standing when ratified; it no longer is. It
+  cannot be dispatched until the flux record can supply channels at the refined tier,
+  which puts it behind MFD and Movement 2b. *The four surviving decisions remain
+  implementable in themselves — it is the drainage-expression half that has acquired a
+  dependency.* Do not dispatch this as "nothing open" work.
 
 **S11 follow-through — the water model's four open calls** *(the spike itself
 is SPIKE COMPLETE 2026-07-20, journal/0028 + docs/spikes/S11-results.md; it
