@@ -789,3 +789,19 @@ floats.**
 **Practice:** when an audit hands you a fix, put *"verify this claim"* in the brief that
 implements it, and require the agent to **re-derive the mechanism**, not just apply the
 patch. Two slices this session were saved by exactly that clause.
+
+## An empty `git` result from inside a worktree is not evidence of absence (2026-07-25)
+
+Bare pathspecs (`git ls-tree HEAD:journal`, `git grep -- ROADMAP.md`) resolve **relative to
+cwd**. Run from inside a worktree the integrator has since **pruned**, they silently look in
+the wrong subtree and print **nothing** — which reads exactly like "the file isn't there."
+Use root-relative pathspecs (`:/journal/`) when checking whether work landed.
+
+Same episode, same lesson one level up: an agent's gate printed `Compiling dc-worldgen` from
+**main's** path instead of its worktree's — the textbook corrections #34 signature. It
+**stopped and checked** instead of accepting the green, and found the benign cause: the
+integrator had merged the slice while its gate queued behind a sibling's lock, so the
+worktree was pruned and paths resolved to main. **Not a false green — the run had validated
+merged main, which is the stronger result.** Both halves are worth keeping: *investigate the
+#34 signature every time*, and *absence in a tool's output is a claim about the tool as much
+as about the world* (anti-shape A-5).
