@@ -2633,6 +2633,18 @@ see the question you are asking.
   fixes it and costs a longer list. Byte-identity impact: (b) none, (c) none if the tags are kept,
   (a) every world.
 
+- **Finish the `production_* → golden_*` rename** (opened 2026-07-25 by journal/0106; **given a real
+  entry 2026-07-25 by the staleness sweep, row D-2** — the fix note said the rename was *"left
+  sequenced"* and there was no Sequenced entry, which is exactly the doctrine gap that let the
+  `organic.rs` defect sit unlisted). Housekeeping, byte-identical, no user call. `providers_common`
+  and `rh_unification` still spell `production_*` for helpers that build **`0x0D5EED572026`, a world
+  nobody ships**; their claims *are* seed-independent (golden byte-identity, derived-vs-scalar
+  agreement), so they were annotated rather than re-seeded — but the **name still lies**, and it is
+  the name that misled the audit that missed row S-7. Rename to `golden_*` (a fixture for the
+  goldens, which is what it is), ripple into `providers_golden.rs` and the comments in
+  `flux_record.rs` / `head_field.rs`. Leave alone: `deeptime::production_config` and
+  `water::coarse::production()` name a **config**, not a world.
+
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice
 was a slice OF. Each names WHAT, WHY, how it UNIFIES with the larger threads, its
@@ -3991,10 +4003,32 @@ before any code.
     - Audit of siblings: `providers_common`/`rh_unification`'s `production_*` helpers name the same
       non-shipped world, but their claims (golden byte-identity, derived-vs-scalar agreement) are
       genuinely seed-independent, so they are **annotated, not re-seeded**; the `golden_*` rename ripples
-      into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced.
+      into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced —
+      **and as of 2026-07-25 it really is: see the Sequenced entry "Finish the `production_* → golden_*`
+      rename"** (sweep row D-2 caught that the word "sequenced" was doing the work of an entry that did
+      not exist — the same doctrine gap that hid row S-7 below).
       `s18_first_behavior_weathering::production_scale_saprolite_band_reaches_at_least_one_voxel` is
       **honest** (1337/Medium) and is the shape to copy. `deeptime::production_config` /
       `water::coarse::production()` name a *config*, not a world — legitimate.
+
+- **🔴 THE ONLY TEST DEFENDING "A PLAYER CAN FIND AND DIG A COAL SEAM" RUNS ON A WORLD NO PLAYER CAN
+  OPEN** (found 2026-07-25 by the ROADMAP staleness sweep, row S-7; **this is corrections #51 one file
+  over**). `crates/dc-worldgen/tests/organic.rs::the_measured_coal_seam_is_coal_a_player_can_dig`
+  builds `medium()` from **`const SEED: u64 = 0x0D5E_ED57_2026`** (`organic.rs:31`) — the warm
+  reference world. `dc-client` can only ever open **`BENCH_SEED = 1337`** (an `i32`), and the
+  reference seed **does not fit** it, so the world this guard measures is structurally unreachable
+  from the game. Its threshold `MIN_DIGGABLE_COAL_VOX` (`organic.rs:78`) has been re-baselined
+  **15 → 10 → 6**, twice under a **NEEDS RATIFICATION** flag, every time on that world.
+  - **Why journal/0106's sibling audit missed it** (the part worth keeping): that audit asked *"is
+    the claim seed-independent?"* and cleared `providers_common`, `rh_unification`,
+    `s18_first_behavior_weathering`, `deeptime::production_config` and `water::coarse::production()`
+    on that basis. `organic.rs` was **not on the list**, and unlike those its claim is emphatically
+    **not** seed-independent: it is a claim about *what a player finds*.
+  - **TWO HONEST OPTIONS, and they are the user's** — the same (a)–(d) content call corrections #51
+    already put in front of them. **(i)** re-seed to 1337 and watch it fail, which is the true
+    statement about the shipped world; **(ii)** rename it `..._on_the_warm_reference_world` and file
+    the shipped-world diggability claim as **unguarded**, the way `coal_follows_the_warm_crust_…`
+    was handled above. **Do not leave it named for a player.**
 
 - **⚠ A TIE-BREAK IS DECIDING PHYSICS AGAIN — `reads_prev` is documentation, not a
   mechanism** (spine-audit 2026-07-25; **the SECOND instance in two sweeps**, and the
