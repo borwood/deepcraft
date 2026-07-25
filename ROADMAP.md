@@ -2889,9 +2889,9 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     - **Vocabulary the migration did not have to open:** `dc:field/temperature` (0093) and
       `dc:field/head` (0098) both landed as first-class field passes on their own arcs — two rows
       this reminder can stop carrying.
-  **Each migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
-  condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
-  output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
+  - **Each migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
+    condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
+    output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
 
 - **APPEARANCE WALKS OWED** (tracking, user: "we do that when able" — journal screenshots for
   appearance-changing work). **(1)** ✅ **DONE — walk-confirmed 2026-07-24** (user, aerial
