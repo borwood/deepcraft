@@ -421,6 +421,40 @@ pub struct FluxRecord {
     /// `cell_start[i] .. cell_start[i + 1]` is cell `i`'s slice. Length `n + 1`,
     /// or empty when the record is empty.
     cell_start: Vec<u32>,
+    /// **The simultaneous-divergence counters** (flow.md § 2.6). See
+    /// [`SimulDivergence`] — 24 bytes, and the only thing in this struct that is
+    /// not a recorded fact.
+    pub simultaneous: SimulDivergence,
+}
+
+/// **The simultaneous-divergence instrument** (flow.md § 2.6, FLOW continuation
+/// (b)) — counters, deliberately **not** facts, carried on the record because the
+/// question they answer is not answerable from the record.
+///
+/// The record aggregates a chapter's 25 epochs into one entry per face, so
+/// `out_face_count(cell, chapter) >= 2` is **temporal** divergence: the cell's
+/// flow left by two faces *at some point during* the chapter, which is avulsion
+/// and which the single-receiver solve already produced. Whether two faces
+/// carried flux **in the same epoch** — a delta with two channels flowing at once
+/// — is a property of the *solve*, and it is erased by the aggregation before any
+/// reader sees the archive. So it is counted as it happens, once, here.
+///
+/// These are 24 bytes on a ~40 MiB record and they buy the one number that
+/// distinguishes MFD's claim from its predecessor's. They are **not** part of the
+/// § 1.3 atom, no consumer may treat them as one, and dropping the aggregation
+/// window to one epoch would make them redundant rather than wrong.
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+pub struct SimulDivergence {
+    /// `(cell, epoch)` pairs whose flux left through **two or more lateral faces
+    /// within that single epoch**. Structurally **zero** under single-receiver
+    /// routing, at any cadence and any aggregation window.
+    pub cell_epochs: u64,
+    /// Distinct `(cell, chapter)` pairs that had **at least one epoch** of
+    /// simultaneous divergence — the like-for-like comparand to the record's own
+    /// `census().divergent`, which counts the temporal kind over the same keys.
+    pub cell_chapters: u64,
+    /// The most lateral out-faces any one cell used in a single epoch.
+    pub max_out_faces: u32,
 }
 
 impl FluxRecord {
@@ -651,6 +685,12 @@ pub struct FluxAccum {
     /// Committed entries, chapter-major; sorted into cell-major by `finish`.
     pending_cell: Vec<u32>,
     pending: Vec<FluxEntry>,
+    /// The simultaneous-divergence instrument (see [`SimulDivergence`]), plus the
+    /// per-chapter "has this cell already diverged simultaneously?" bitset that
+    /// turns a per-epoch event into a distinct `(cell, chapter)` count. One bit per
+    /// cell — 36 KB at production scale — cleared at each chapter flush.
+    simul: SimulDivergence,
+    simul_seen: Vec<u64>,
 }
 
 impl FluxAccum {
@@ -666,6 +706,8 @@ impl FluxAccum {
             load: Vec::new(),
             pending_cell: Vec::new(),
             pending: Vec::new(),
+            simul: SimulDivergence::default(),
+            simul_seen: Vec::new(),
         }
     }
 
@@ -682,6 +724,8 @@ impl FluxAccum {
             load: vec![0.0; n * FACE_SLOTS],
             pending_cell: Vec::new(),
             pending: Vec::new(),
+            simul: SimulDivergence::default(),
+            simul_seen: vec![0u64; n.div_ceil(64)],
         }
     }
 
@@ -720,24 +764,35 @@ impl FluxAccum {
         }
         self.mag.iter_mut().for_each(|v| *v = 0.0);
         self.load.iter_mut().for_each(|v| *v = 0.0);
+        self.simul_seen.iter_mut().for_each(|v| *v = 0);
     }
 
     /// Add one epoch's routed discharge to the current chapter's faces.
     ///
-    /// `recv` / `area` / `out_load` / `routed_surf` are this epoch's drainage
-    /// solve exactly as it ran — the record is of what the sim *did*, never a
-    /// re-solve. Crossing a chapter boundary flushes the previous chapter first.
+    /// `out_area` / `out_face_load` are `n × LATERAL_FACES` planes written by the
+    /// drainage solve itself ([`super::erosion::Erosion::out_face_area`]) — **what
+    /// the solve actually moved across each face**, not a re-derivation from
+    /// weights. That is the § 3 discipline: one arithmetic, so the flux record and
+    /// the mass budget cannot drift apart. `area` and `routed_surf` supply the sink
+    /// case, where the discharge left the model through a boundary face and no
+    /// lateral face carries it. Crossing a chapter boundary flushes the previous
+    /// chapter first.
+    ///
+    /// A cell with **two or more non-zero lateral out-faces in this one call** is
+    /// *simultaneous* divergence (flow.md § 2.6) and is counted into
+    /// [`SimulDivergence`] here, because the per-chapter aggregation below is about
+    /// to erase the distinction forever.
     #[allow(clippy::too_many_arguments)]
     pub fn add_epoch(
         &mut self,
         chapter: u8,
-        recv: &[i32],
+        out_area: &[f32],
+        out_face_load: &[f32],
         area: &[f64],
-        out_load: &[f64],
         routed_surf: &[f64],
         sea_level: f64,
     ) {
-        if !self.active || recv.len() != self.n {
+        if !self.active || out_area.len() != self.n * LATERAL_FACES {
             return;
         }
         if chapter != self.cur_chapter {
@@ -747,40 +802,50 @@ impl FluxAccum {
         self.max_chapter = self.max_chapter.max(chapter);
         let w = self.w;
         for i in 0..self.n {
+            let base = i * LATERAL_FACES;
+            let mut out_faces = 0u32;
+            for d in 0..LATERAL_FACES {
+                let q = out_area[base + d];
+                if q <= 0.0 {
+                    continue;
+                }
+                out_faces += 1;
+                let idx = i * FACE_SLOTS + d;
+                self.mag[idx] += q;
+                self.load[idx] += out_face_load[base + d];
+            }
+            if out_faces >= 2 {
+                self.simul.cell_epochs += 1;
+                self.simul.max_out_faces = self.simul.max_out_faces.max(out_faces);
+                let (word, bit) = (i / 64, 1u64 << (i % 64));
+                if self.simul_seen[word] & bit == 0 {
+                    self.simul_seen[word] |= bit;
+                    self.simul.cell_chapters += 1;
+                }
+            }
+            if out_faces > 0 {
+                continue;
+            }
+            // A sink: no lateral face carried this cell's discharge, so it left
+            // the model through a boundary. Which one, mirroring `route_cell`'s
+            // own test order: sea stand first, then the domain border, then an
+            // interior closed basin.
             let q = area[i] as f32;
             if q <= 0.0 {
                 continue;
             }
-            let rc = recv[i];
-            let (slot, l) = if rc >= 0 {
-                let j = rc as usize;
-                let Some(face) = lateral_face_between(i, j, w) else {
-                    continue;
-                };
-                (
-                    face.code() as usize,
-                    out_load.get(i).copied().unwrap_or(0.0) as f32,
-                )
+            let face = if routed_surf[i] <= sea_level {
+                FaceKey::Ocean
+            } else if is_border(i, w) {
+                FaceKey::BaseLevel
             } else {
-                // A sink. Which boundary the flow left through, mirroring
-                // `route_cell`'s own test order: sea stand first, then the
-                // domain border, then an interior closed basin.
-                let face = if routed_surf[i] <= sea_level {
-                    FaceKey::Ocean
-                } else if is_border(i, w) {
-                    FaceKey::BaseLevel
-                } else {
-                    // Endorheic terminus: the solve's flow stops here, and the
-                    // only physical exit from a closed basin is evaporation.
-                    FaceKey::Atmosphere
-                };
-                // The transport pass settles the whole suspended load into a
-                // sink cell, so nothing crosses the boundary face with it.
-                (face.code() as usize, 0.0)
+                // Endorheic terminus: the solve's flow stops here, and the
+                // only physical exit from a closed basin is evaporation.
+                FaceKey::Atmosphere
             };
-            let idx = i * FACE_SLOTS + slot;
-            self.mag[idx] += q;
-            self.load[idx] += l;
+            // The transport pass settles the whole suspended load into a
+            // sink cell, so nothing crosses the boundary face with it.
+            self.mag[i * FACE_SLOTS + face.code() as usize] += q;
         }
     }
 
@@ -868,20 +933,9 @@ impl FluxAccum {
             chapters: self.max_chapter + 1,
             entries,
             cell_start,
+            simultaneous: self.simul,
         }
     }
-}
-
-/// The lateral face of cell `i` that leads to adjacent cell `j` (`None` when the
-/// two are not D8 neighbours).
-#[inline]
-fn lateral_face_between(i: usize, j: usize, w: usize) -> Option<FaceKey> {
-    let (ix, iy) = ((i % w) as i32, (i / w) as i32);
-    let (jx, jy) = ((j % w) as i32, (j / w) as i32);
-    let (dx, dy) = (jx - ix, jy - iy);
-    (0..LATERAL_FACES)
-        .map(|d| FaceKey::lateral(d).expect("lateral"))
-        .find(|f| f.delta() == Some((dx, dy)))
 }
 
 /// Border test, matching `erosion::is_border`.

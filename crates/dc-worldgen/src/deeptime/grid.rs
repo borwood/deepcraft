@@ -297,6 +297,40 @@ pub struct DeepConfig {
     /// switch: it buys the head plane plus the vertical flux entries in residency,
     /// and its relaxation sweeps in gen time. Appended last (wire discipline).
     pub head_field: bool,
+
+    /// **Multiple-flow-direction routing** (FLOW continuation (b),
+    /// `docs/design/flow.md` § 2.6 — the MFD *solve* change). **On by default.**
+    ///
+    /// With it **off**, the drainage solve routes each cell's whole discharge to
+    /// its single steepest-descent D8 receiver: within one epoch a cell has
+    /// **exactly one** out-face, so *simultaneous* divergence — a delta with two
+    /// channels flowing at once — is **structurally impossible**, and every
+    /// divergence in the flux record is **temporal** (avulsion across the chapter's
+    /// 25 epochs). With it **on**, each cell partitions its discharge across every
+    /// downslope neighbour on the free-surface potential, weighted by
+    /// [`DeepConfig::mfd_exponent`] — so concurrent distributaries become
+    /// representable *and* actually occur.
+    ///
+    /// Unlike the flow record and the head field this is **not** a sidecar: it
+    /// changes what the erosion pass moves, so the world moves with it. Off is the
+    /// **pre-MFD identity path**, byte-identical to the single-receiver solve
+    /// (asserted by name in `tests/mfd_routing.rs`). Appended last (wire discipline).
+    pub mfd: bool,
+
+    /// **The MFD convergence exponent `p`** (Holmgren 1994), read only when
+    /// [`DeepConfig::mfd`] is on. Each downslope neighbour `k` receives a share
+    /// `w_k ∝ S_k^p · L_k`, where `S_k` is the free-surface potential gradient
+    /// along the true flow-path length and `L_k` the face's contour width (Quinn
+    /// 1991: `1` cardinal, `1/√2` diagonal).
+    ///
+    /// **`p` is the degree to which flow concentrates.** `p = 1` is the maximally
+    /// dispersive Quinn form; `p → ∞` recovers single-receiver D8 exactly. The
+    /// default `4.0` sits in Holmgren's calibrated 4–6 band and has the property
+    /// the landscape needs: on steep ground a 2:1 slope ratio becomes a 16:1 share
+    /// ratio, so **gorges stay gorges**, while on the low-relief surfaces where
+    /// distributaries physically live — fans, braid plains, delta tops — the
+    /// near-equal slopes genuinely split. Appended last (wire discipline).
+    pub mfd_exponent: f64,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -354,6 +388,8 @@ impl Default for DeepConfig {
             weather_inventory: false,
             flow_record: true,
             head_field: true,
+            mfd: true,
+            mfd_exponent: 4.0,
             providers: super::providers::Providers::default(),
         }
     }
