@@ -4152,6 +4152,12 @@ before any code.
   tier*, so `record_at_voxel`'s consumers need the same view treatment `ledger_at_voxel` got
   (which, on the evidence of journal/0102, can be zero call-site churn if the view carries the
   same read surface). Same family as `Vec<Vec<Fact>>` and `Vec<FactLedger>`, one record over.
+  - **CROSS-REF added 2026-07-25 (sweep row A-1): this is now on the WEATHERING-IS-ONE-PROCESS
+    arc's critical path.** That arc's requisite R3 named **residency, not gen time**, as its
+    blocker (`LedgerField` 17.45 MiB → **973 MiB**, 55.8×, resident), so the strata collapse is the
+    next lever on **the same budget the weathering arc has to fit inside**. Read the two together;
+    freeing 9 MiB here is not decisive against 973 MiB, but the two entries are competing for one
+    number and neither should be planned alone.
 
 - **✅ DIAGNOSED 2026-07-25 (journal/0103) — the front's voxel-tier mass error is NOISE, and the
   `+3.7 %` was the INSTRUMENT** (opened by the integrator's review of journal/0099; corrections
@@ -4246,6 +4252,11 @@ before any code.
   until a front produced many contact voxels in one column. Same family as the palette-quant
   member-stepping thread (a *within-class member* choice reaching the eye), and it belongs with the
   genesis-passes arc that retires class-member selection.
+  **CROSS-REF (2026-07-25, sweep row A-4): this is the member-dither family's first *measured*
+  within-column instance**, and its untested-either-way twin is **"Mixed voxels carry no member
+  dither — watch for the chunk-line cutover"** further down this section. One is now observed and
+  one is still a hypothesis; they are the same mechanism seen from two sides, so a slice that
+  touches either should settle both.
 - **✅ FIXED 2026-07-25 (journal/0101) — the query can now say `UNRECORDED`.** `identify(pos)`
   landed as the arc's first slice: `has_contents` is a **per-voxel** fact, `classified` echoes
   the stored block for an unrecorded voxel instead of naming a mixture that does not exist,
@@ -4632,6 +4643,11 @@ before any code.
   selection**, i.e. the artifact 3c-2 was built to kill, confined to contacts.
   Nobody has looked. **Add it to the appearance walk**: stand at a cut face and
   check whether contact bands change member on chunk lines.
+  **CROSS-REF (2026-07-25, sweep row A-4): the twin is now MEASURED from the other side** — see
+  *"A front's parent alternates diorite/granite down a single column"*, where `Single` voxels take
+  the dither and `Mixed` voxels take the canonical member **in the same column**, made visible by
+  the weathering front producing many contact voxels at once. That entry is the observed half of
+  this hypothesis; this one is still the untested half.
 - **91.4 % of land skins to ONE block, and the diagnosis is not settled**
   (journal/0055, 2026-07-21). With the record deciding the surface, the
   world-wide skin goes Grass 81.8 % / Dirt 18.2 % → **Mudstone 91.4 %** /
@@ -4675,18 +4691,25 @@ before any code.
     material exists. Two stacked gaps — **no soil substance, and organics
     formed as structure** — and the fix order is substance first, then form
     from provenance (consume-the-ledger piece (c)).
-- **Caves ↔ hydrology integration thread captured** (2026-07-21, off-thread
-  session; full capture in water.md § Session capture 2026-07-21 — nothing
-  decided). The work-shaped findings: **two drainage opinions** (pregen cell
-  hydrology vs the deep tier's per-epoch drainage — subsumption candidate,
-  with a history-pass resequencing consequence); **deep drainage is computed
-  and discarded** (paleo-channel + per-chapter table recorder axis wanted for
-  erosional caves; cost unmeasured, eolian memory FLAG adjacent); the
-  **bounded-drainage-refinement spike question** that gates RiverSeg
-  retirement; the **column-as-interval-log target contract** proposal
-  (user-owned ARCHITECTURE call). Same session recorded the user's
+- **~~Caves ↔ hydrology integration thread captured~~ — SUBSUMED 2026-07-25 by the FLOW arc**
+  (sweep row B-1). All four of its work-shaped findings now have owners, and this entry is kept
+  only as the pointer:
+  - **two drainage opinions** → `flow.md` § 6 retires `pregen/hydrology.rs` **outright** —
+    *"wrong resolution, wrong time, wrong topology"* — so there is no subsumption to design;
+  - **"deep drainage is computed and discarded"**, wanting a per-chapter table recorder axis for
+    erosional caves → **that is `DeepField::flux`, and it shipped** (journal/0096: 2,590,372
+    entries, per chapter, 40.66 MiB, pinned by
+    `per_chapter_history_is_retained_not_just_the_final_epoch`);
+  - the **bounded-drainage-refinement spike question** that gated RiverSeg retirement → **S14 is
+    superseded as posed** (flow.md § 9.6; water.md's own banner), and RiverSeg retirement is FLOW
+    **continuation (e)**;
+  - the **column-as-interval-log target contract** → flow.md § 7 promotes it from *proposed* to
+    **necessary** (voids and conduits are intervals, not a heightfield).
+  **Cave-specific residue rides FLOW continuation (c)** (the free/bound edge, void intervals, and
+  the conduit pairing rule). *(Original capture, for the reasoning: full text in water.md § Session
+  capture 2026-07-21 — nothing was decided there. Same session recorded the user's
   water-rendering directive (partials/structure, placeholder texture, data
-  seams for flow/waves) in water.md.
+  seams for flow/waves) in water.md, which is NOT subsumed and still stands.)*
 - **The eolian strata record costs +92.76 MB at Medium** (journal/0047
   measurement, 2026-07-21; UNDIAGNOSED in detail). The roster flip took the
   kept `DeepField` 52.8 → 145.5 MB — the record roughly triples because wind
@@ -5078,7 +5101,14 @@ before any code.
   the natural vehicle for that measurement.
 
 - **Walk report (2026-07-20, journal/0027): coal renders as pure black in the
-  lit pass — a hole in the screen, not a rock.** Photographed at world voxel
+  lit pass — a hole in the screen, not a rock.**
+  **⚠ STILL A VALID LIGHTING/TONEMAP QUESTION, BUT UN-WALKABLE ON THE SHIPPED WORLD**
+  (2026-07-25, sweep row A-2): there is **no coal to photograph** — 0 units across 297,025 cells
+  on seed 1337 / Medium (corrections #51). The 2026-07-20 frames were shot on a world the client
+  can still open only because coal existed then; today a re-shoot would find nothing. **Do not
+  launch for it.** The defect is about the dark end of the lit path, not about coal, so it can be
+  re-photographed on any sufficiently dark material — or it waits on the coal-content call
+  (a)–(d). Photographed at world voxel
   (-76133, -80221) on the client's world: an 18-voxel seam four voxels under
   turf, cut to an open bench under full sky. `0027-coal-seam-cut-lit.png` shows
   grass / mudstone / carbonaceous mudstone and then black for the lower
