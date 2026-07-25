@@ -234,6 +234,7 @@ fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) 
 /// which the record already had) and simultaneous divergence (concurrent
 /// distributaries, which it structurally could not hold).
 #[inline]
+#[allow(clippy::too_many_arguments)]
 fn partition_cell(
     i: usize,
     w: usize,
@@ -1380,7 +1381,8 @@ impl Erosion {
                 }
                 let share = if d == last { a - given } else { wt * a };
                 given += share;
-                self.area[self.mfd_neighbour(i, d)] += share;
+                let j = self.mfd_neighbour(i, d);
+                self.area[j] += share;
                 if record {
                     self.out_area[base + d] = share as f32;
                 }
@@ -1549,14 +1551,14 @@ impl Erosion {
             let mut s_bar = 0.0;
             let mut floor = f64::INFINITY;
             let mut last = usize::MAX;
-            for d in 0..MFD_DIRS {
+            for (d, &dist) in MFD_DIST.iter().enumerate() {
                 let wt = self.mfd_w[base + d];
                 if wt <= 0.0 {
                     continue;
                 }
                 let j = self.mfd_neighbour(c, d);
                 let drop = (self.filled[c] - self.filled[j]).max(0.0);
-                s_bar += wt * (drop / (self.cell_m * MFD_DIST[d]));
+                s_bar += wt * (drop / (self.cell_m * dist));
                 floor = floor.min(grid.surf_at(j));
                 last = d;
             }
@@ -1579,7 +1581,8 @@ impl Erosion {
                 }
                 let share = if d == last { qs_out - given } else { wt * qs_out };
                 given += share;
-                self.qs[self.mfd_neighbour(c, d)] += share;
+                let j = self.mfd_neighbour(c, d);
+                self.qs[j] += share;
                 if record {
                     self.out_face_load[base + d] = share as f32;
                 }
@@ -2021,5 +2024,118 @@ impl Erosion {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod mfd_tests {
+    use super::*;
+
+    /// A 3×3 patch centred on cell 4, with the given drop (metres of filled
+    /// potential) to each of the eight neighbours in [`NEIGH8`] order. Everything
+    /// is far above the sea stand and the centre is interior.
+    fn patch(drops: [f64; 8]) -> (usize, Vec<f64>, Vec<f64>) {
+        let w = 3usize;
+        let c = 4usize;
+        let mut filled = vec![0.0; w * w];
+        filled[c] = 100.0;
+        for (d, (dx, dy)) in NEIGH8.into_iter().enumerate() {
+            let j = ((1 + dy) as usize) * w + ((1 + dx) as usize);
+            filled[j] = 100.0 - drops[d];
+        }
+        let surf = filled.clone();
+        (c, surf, filled)
+    }
+
+    /// The partition is a **probability**: one cell's shares sum to one. If they
+    /// did not, discharge would be created or destroyed at every junction and the
+    /// mass budget flow.md § 3 rests on would mean nothing.
+    #[test]
+    fn the_partition_weights_sum_to_one() {
+        for p in [1.0f64, 1.1, 2.0, 4.0, 6.0] {
+            let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.9, 0.25, 1.5, 4.0]);
+            let mut w_out = [0.0f64; MFD_DIRS];
+            let int_p = (p == p.round()).then_some(p as i32);
+            let best = partition_cell(c, 3, &surf, &filled, -1000.0, p, int_p, &mut w_out);
+            assert!(best >= 0, "p={p}: a cell with downslope neighbours is a sink");
+            let sum: f64 = w_out.iter().sum();
+            assert!(
+                (sum - 1.0).abs() < 1e-12,
+                "p={p}: weights sum to {sum}, not 1"
+            );
+            assert!(w_out.iter().all(|&v| v >= 0.0));
+        }
+    }
+
+    /// **`p → ∞` is single-receiver D8.** That property is what makes the exponent
+    /// a *convergence knob* rather than a different model: the partition contains
+    /// the thing it replaces as a limit, so "how much does MFD change the world"
+    /// has a continuous answer instead of a discrete one.
+    ///
+    /// It also pins the flow-path length: index 7 is a diagonal with a 4 m drop
+    /// over `√2` cells (slope 2.83), index 3 a cardinal with 3 m over one cell.
+    /// The **cardinal** must win, which a steepest-*drop* rule would get wrong.
+    #[test]
+    fn a_large_exponent_collapses_the_partition_onto_the_steepest_slope() {
+        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 4.0]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 16.0, Some(16), &mut w_out);
+        assert!(best >= 0);
+        assert_eq!(
+            w_out.iter().filter(|&&v| v > 0.0).count(),
+            1,
+            "weights {w_out:?} did not collapse onto one receiver"
+        );
+        assert!((w_out[best as usize] - 1.0).abs() < 1e-12);
+        assert_eq!(best, 3, "the diagonal's √2 path length was not applied");
+    }
+
+    /// **`p = 1` is maximally dispersive** (Quinn) and must genuinely spread:
+    /// every downslope neighbour above the representational floor keeps a share.
+    /// With equal drops all round, the cardinals win twice over — a shorter path
+    /// (steeper slope) *and* a wider contour — so their share is exactly `2×` a
+    /// diagonal's. That is the two `√2`s the partition carries, isolated.
+    #[test]
+    fn a_unit_exponent_spreads_across_every_downslope_neighbour() {
+        let (c, surf, filled) = patch([1.0; 8]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        partition_cell(c, 3, &surf, &filled, -1000.0, 1.0, Some(1), &mut w_out);
+        assert_eq!(w_out.iter().filter(|&&v| v > 0.0).count(), 8);
+        let ratio = w_out[1] / w_out[0];
+        assert!(
+            (ratio - 2.0).abs() < 1e-9,
+            "cardinal/diagonal share ratio is {ratio}, expected 2 (√2 slope × √2 contour)"
+        );
+    }
+
+    /// A cell with no downslope neighbour is a **sink** and every weight is zero —
+    /// the record then reads it as a boundary-face exit, the same convention the
+    /// single-receiver path used.
+    #[test]
+    fn a_cell_with_no_lower_neighbour_is_a_sink() {
+        let (c, surf, filled) = patch([-1.0; 8]);
+        let mut w_out = [1.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        assert_eq!(best, -1);
+        assert!(w_out.iter().all(|&v| v == 0.0));
+    }
+
+    /// The **representational floor** drops a share below [`MFD_MIN_WEIGHT`] and
+    /// renormalises the survivors, so the sum is still exactly one. Without the
+    /// renormalisation the floor would quietly delete discharge — a leak that would
+    /// show up in the mass budget as a mystery rather than as a rule.
+    #[test]
+    fn the_weight_floor_renormalises_rather_than_deleting_discharge() {
+        // One dominant cardinal and one very gentle one: at p = 4 the gentle
+        // neighbour's share falls under a percent and is dropped.
+        let (c, surf, filled) = patch([-1.0, -1.0, -1.0, 10.0, 0.3, -1.0, -1.0, -1.0]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        let sum: f64 = w_out.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-12, "sum {sum} after the floor");
+        assert!(
+            w_out.iter().all(|&v| v == 0.0 || v >= MFD_MIN_WEIGHT),
+            "a sub-floor weight survived: {w_out:?}"
+        );
     }
 }

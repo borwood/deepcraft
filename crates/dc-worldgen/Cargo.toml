@@ -43,6 +43,13 @@ test = true
 name = "head_field_probe"
 test = true
 
+# FLOW continuation (b) — the MFD solve. The acceptance is a before/after
+# simultaneous-divergence count, which is exactly the kind of claim a green unit
+# test cannot make (A-3), so the probe's assertions belong in the gate.
+[[example]]
+name = "mfd_probe"
+test = true
+
 [[example]]
 name = "contents_air_over_solid_probe"
 test = true
