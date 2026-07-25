@@ -474,12 +474,7 @@ fn main() {
     // The counterfactual: the pre-slice `Vec<Vec<Fact>>`, priced on this world.
     // One inner `Vec` per slot (units.len() + 1 per cell, the bedrock seam
     // included), 24 B of header each, plus the same facts as payload.
-    let old_inner: usize = field_wi
-        .ledgers
-        .iter()
-        .enumerate()
-        .map(|(i, _)| field_wi.strata[i].units.len() + 1)
-        .sum();
+    let old_inner: usize = field_wi.strata.iter().map(|s| s.units.len() + 1).sum();
     let old_headers = old_inner * std::mem::size_of::<Vec<u8>>();
     let old_heap = old_headers + facts * std::mem::size_of::<Fact>();
     println!(
