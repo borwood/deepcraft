@@ -305,23 +305,25 @@ pub fn weather_epoch(
 /// slot 0 → that slot, producing the index-parallel [`FactLedger`] sidecar the
 /// `DeepField` carries. Index-parallel to `strata`; a never-weathered cell yields an
 /// empty (identity) ledger, so the sidecar stays byte-identical where nothing fired.
+///
+/// **This is also the compaction step (journal/0100).** [`FactLedger::rekeyed`]
+/// builds the finalized ledger **exact-sized** — the accumulator's growth slack is
+/// dropped on the floor rather than carried resident for the life of the world.
+/// The compile is over at this point; growing room is pure waste.
 pub fn finalize_ledgers(accumulators: Vec<FactLedger>, strata: &[DeepStrata]) -> Vec<FactLedger> {
     accumulators
-        .into_iter()
+        .iter()
         .zip(strata)
-        .map(|(acc, s)| {
-            let mut ledger = FactLedger::empty_with_bedrock(s);
-            let bedrock_slot = s.units.len();
-            // The accumulator's slot 0 is the bedrock seam (empty-record build).
-            if let Some(bedrock_facts) = acc.facts.into_iter().next()
-                && !bedrock_facts.is_empty()
-            {
-                ledger.facts[bedrock_slot] = bedrock_facts;
-            }
-            ledger
-        })
+        // The accumulator's slot 0 is the bedrock seam (empty-record build); the
+        // consumer reads it at the final record's bedrock index.
+        .map(|(acc, s)| acc.rekeyed(SENTINEL_BEDROCK_SLOT, s.units.len()))
         .collect()
 }
+
+/// The **stable sentinel slot** the in-loop accumulator keys its bedrock facts at
+/// (see [`weather_bedrock_epoch`]): built against an empty record, the bedrock
+/// seam is span 0, and slot 0 does not move as the record grows.
+pub const SENTINEL_BEDROCK_SLOT: usize = 0;
 
 /// An empty per-cell **bedrock-only** saprolite accumulator — the stable-keyed
 /// ledger [`weather_bedrock_epoch`] accumulates into (bedrock seam at slot 0,

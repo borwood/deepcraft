@@ -43,6 +43,54 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   `--fullbright`, read with `world_get_contents`. **A flag-ON chunk-latency number was NOT
   taken — unmeasured** (flag-off is byte-identical ⇒ zero; flag-on adds 8 events per banded
   column and a 2.67× deeper record, nothing per-frame or per-tick).
+- 2026-07-25 — **`FactLedger` gets the CSR layout `flux.rs` proves — a PURE LAYOUT CHANGE**
+  (journal/0100; background agent, worktree). The ledger was `Vec<Vec<Fact>>` keyed per
+  (cell, slot): **98.8 % of 5,832,862 inner `Vec`s EMPTY, 86–89 % of its ~150 MiB heap in their
+  headers** (S19 § 3b). It is now **flat exact-sized facts + a sparse `(slot, start)` CSR index**
+  emitted **only for slots that carry facts** — so an unweathered cell (the large majority)
+  allocates **nothing at all**.
+  - **MEASURED before/after, both real runs of `examples/flow_cost_probe.rs`** (seed 1337,
+    `Extent::Medium`, production flags; the pre-slice sources were rebuilt and re-measured, not
+    quoted): **flag ON `DeepField` 311.02 → 179.12 MiB**; the **cost of turning the flag on
+    falls +161.81 → +29.91 MiB (5.41×)**; **ledger heap 155.01 → 16.31 MiB (9.5×)**; index is
+    **0.55 MiB = 3.4 % of the ledger** (below `flux.rs`'s 5.6 % floor — a row is paid only where
+    facts exist); payload **15.77 MiB, exact-sized** (was 21.51 MiB, 5.74 MiB of it `Vec` slack).
+    The shared flag-OFF baseline is **149.21 MiB, identical in both runs** — the control.
+    *Struct cost went the other way and is reported: per-cell `FactLedger` 24 → 48 B = +6.80 MiB.*
+  - **BYTE-IDENTICAL, and in the strongest available form:** **1,033,189 facts across 72,006
+    slots in both runs** — the same million facts in the same slots, not merely a green suite.
+    Green **by name**, unmoved: `the_production_world_still_hashes_to_the_pre_slice_goldens`,
+    `identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical`,
+    `on_flag_is_purely_additive_record_and_surface_untouched`,
+    `a_weathered_cell_carries_one_fact_per_agent_per_chapter_and_accumulates`,
+    `production_scale_saprolite_band_reaches_at_least_one_voxel`, `one_fact_per_agent_per_firing`,
+    `bedrock_facts_key_stably_as_the_record_grows`.
+  - **THE TRAP WAS ORDER.** Fact order *within a slot* is observable — `commit_chapter` merges
+    into the **earliest** `(chapter, cause, from, to)` match and `compose_unit` folds in order
+    through a clamping `apply_move`. `append_merged` scans the slot's run in order and inserts a
+    new fact at the run's **end**, bumping later rows' offsets. New test states it directly:
+    `fact_order_within_a_slot_is_preserved_across_interleaved_slots`; plus
+    `the_ledger_costs_its_facts_not_its_slots` (a residency **bound**, not a snapshot) and
+    `rekeying_moves_a_run_and_leaves_it_exact_sized`.
+  - **A-4 DISCHARGED — ported, not designed** (spines.md § A-4). One reasoned divergence from
+    `flux.rs`, stated in code: `FluxRecord` can afford a **dense** offsets array because every
+    cell exists; the ledger cannot, because dense-offsets-per-slot **is** the rectangle being
+    avoided — so its rows carry their own slot key (doubly compressed).
+  - **GEN TIME FELL 85.6 → 34.7 s** for the flag-ON field (~2.5×), unasked-for: `finalize_ledgers`
+    used to allocate and zero 5.8 M `Vec` headers (133 MiB) it never wrote to. Reported, not
+    celebrated — gen time is free by doctrine.
+  - **DEFECT FOUND AND FIXED EN ROUTE (its own line, not incidental):** `examples/flow_cost_probe.rs`
+    **was broken on main** — `DeepField::resident_bytes()` gained `+ self.flux.resident_bytes()`
+    when FLOW slice 1 merged, but the probe's itemisation had no flux row, so its
+    `assert_eq!(itemised, resident_bytes())` panicked before printing a byte (113,820,517 vs
+    156,454,637). Invisible to the gate because **`cargo test --workspace` builds examples but
+    never runs them** — a runtime assertion in an example is unguarded. Row added; the flux record
+    now appears in the residency table (40.66 MiB, 27.25 % of the OFF field) for the first time.
+  - **OWED / next lever (filed, not done):** the per-cell `FactLedger` struct is still two `Vec`
+    headers × 297,025 cells = 13.60 MiB. The *full* `flux.rs` shape — **one** record for the whole
+    grid with the cell as the CSR row — collapses that too, but it moves `DeepField::ledgers` and
+    `ledger_at_voxel`, which sat in a sibling's write-set this cycle. Generalises: **any per-cell
+    owning container in a 297 k-cell field is a header × 297 k before it stores anything.**
 
 - 2026-07-25 — **FLOW slice 1: flux on FACES — the RECORDING half** (journal/0096; background
   agent, worktree; **the arc STAYS OPEN — continuation slot (a)–(e) intact**). The drainage
@@ -2392,7 +2440,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
 
-- **`FactLedger` IS 89 % EMPTY HEADERS — give it the CSR layout `flux.rs` already proves**
+- ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0100).** Measured result: flag-ON
+  `DeepField` **311.02 → 179.12 MiB**, the flag's own cost **+161.81 → +29.91 MiB (5.41×)**,
+  ledger heap **155.01 → 16.31 MiB (9.5×)**, index 3.4 % of the ledger, world byte-identical
+  (same 1,033,189 facts in the same 72,006 slots). *Entry kept below as shaped, for the record.*
+  **`FactLedger` IS 89 % EMPTY HEADERS — give it the CSR layout `flux.rs` already proves**
   (shaped 2026-07-25 at the user's direction; measured in `docs/spikes/S19-flow-record-cost-results.md`).
   - **WHAT.** `FactLedger` is `Vec<Vec<Fact>>` keyed per (cell, slot). Measured on a production
     world: **5,832,862 inner `Vec`s of which 5,760,856 (98.8 %) are EMPTY**; **89 % of its
@@ -2409,6 +2461,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     i.e. *the index is free and the payload is the whole constraint*. Port that layout. Facts are
     also **causally triangular** (a slot deposited in chapter `c` cannot carry a fact from before
     `c` — 57.7 % of the naive rectangle, a free 1.73×), so never allocate the rectangle.
+    **⚠ CORRECTED BY THE BUILD (journal/0100):** the triangular exploit is **SUBSUMED, not
+    applied** — exact-sizing stores the **1,033,189 facts that actually exist**, which is **4 % of
+    even the causal ceiling**. Triangularity is a **budgeting tool for projecting an UNBUILT
+    record, never a sizing rule for a BUILT one**: once you can count the real entries, any
+    formula over the possible ones is a ceiling you have already beaten. Keep that distinction
+    when using S19's projections for the flow record's later slices.
   - **SCOPE.** `deeptime/inventory.rs` + its readers. **Pure layout change: byte-identical
     world, identical facts, identical `weathering_product_m`** — the goldens and every
     fact-count test must pass **unmoved and by name**. Acceptance = the measured before/after
@@ -3193,6 +3251,17 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **OWED / next residency lever — a per-cell OWNING CONTAINER is a header × 297,025 before it
+  stores anything** (journal/0100, 2026-07-25). The CSR conversion cut the ledger heap 9.5×, but
+  the per-cell `FactLedger` **struct** grew 24 → 48 B (two `Vec` headers per cell) = **13.60 MiB
+  paid whether or not a cell has a single fact** — an honest regression the slice flagged itself.
+  The full `flux.rs` shape collapses it: **one record for the whole grid, with the cell as a CSR
+  row**. Deferred only because it moves `DeepField::ledgers` and `ledger_at_voxel`, which sat in a
+  live sibling's write-set. **The generalisation is the valuable part and applies far beyond this
+  struct:** *any per-cell owning container in a 297 k-cell field costs a header per cell before it
+  holds data* — so the default for anything per-cell is **one grid-wide record with CSR rows**,
+  never `Vec<Something>` per cell. Same family as the `Vec<Vec<Fact>>` defect, one level up.
 
 - **Is the front's voxel-tier mass error SAMPLING NOISE or a real upward BIAS?** (integrator
   review of journal/0099, 2026-07-25 — **the claim is undertested, not shown wrong**.) Record-tier

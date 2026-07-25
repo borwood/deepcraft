@@ -27,7 +27,7 @@
 use std::time::Instant;
 
 use dc_worldgen::deeptime::{
-    DeepField, DeepOverrides, DeepStrata, DepUnit, FactLedger, SEA_LEVEL_M, build_field_with,
+    DeepField, DeepOverrides, DeepStrata, DepUnit, Fact, FactLedger, SEA_LEVEL_M, build_field_with,
     production_config,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
@@ -171,6 +171,12 @@ struct Baseline {
     strata_heap: usize,
     ledger_structs: usize,
     ledger_heap: usize,
+    /// FLOW slice 1's face-flux record (journal/0096). **Added 2026-07-25**: the
+    /// record landed after this probe was written, so the itemisation was missing
+    /// a row `DeepField::resident_bytes` already counted — and the agreement
+    /// assertion below (rightly) refused to run. An itemisation that silently
+    /// omitted it would have been worse.
+    flux: usize,
 }
 
 impl Baseline {
@@ -189,6 +195,7 @@ impl Baseline {
             strata_heap: f.strata.iter().map(DeepStrata::heap_bytes).sum(),
             ledger_structs: f.ledgers.len() * std::mem::size_of::<FactLedger>(),
             ledger_heap: f.ledgers.iter().map(FactLedger::footprint_bytes).sum(),
+            flux: f.flux.resident_bytes(),
         }
     }
 
@@ -206,6 +213,7 @@ impl Baseline {
             ("strata heap (DepUnit)", self.strata_heap),
             ("ledger structs", self.ledger_structs),
             ("ledger heap (Fact)", self.ledger_heap),
+            ("flux record (FLOW s1)", self.flux),
         ]
     }
 
@@ -433,31 +441,53 @@ fn main() {
             .map(FactLedger::total_facts)
             .sum::<usize>()
     );
-    // The ledger is `Vec<Vec<Fact>>` — one inner `Vec` header per slot, paid even
-    // when the slot holds no fact. This is the closest structural analogue of a
-    // per-(cell, slot) flow record, so the split between "header" and "payload"
-    // here is the most directly transferable number in this probe.
-    let inner_vecs: usize = field_wi.ledgers.iter().map(|l| l.facts.len()).sum();
-    let empty_inner: usize = field_wi
+    // **The ledger's own layout — payload vs index (journal/0100).** The ledger is
+    // today's only fact-shaped record, so this split is the most directly
+    // transferable number in the probe. It used to be `Vec<Vec<Fact>>` — one inner
+    // `Vec` header per slot, paid even when the slot held no fact — and that shape
+    // is what the CSR port replaced. The counterfactual below reprices the OLD
+    // shape from the SAME measured world, so the before/after is one run's
+    // arithmetic rather than two runs' memories.
+    let facts: usize = field_wi
         .ledgers
         .iter()
-        .flat_map(|l| l.facts.iter())
-        .filter(|v| v.is_empty())
-        .count();
-    let header_b = inner_vecs * std::mem::size_of::<Vec<u8>>();
+        .map(FactLedger::total_facts)
+        .sum::<usize>();
+    let payload: usize = field_wi.ledgers.iter().map(FactLedger::payload_bytes).sum();
+    let index: usize = field_wi.ledgers.iter().map(FactLedger::index_bytes).sum();
+    let rows: usize = field_wi
+        .ledgers
+        .iter()
+        .map(FactLedger::slots_with_facts)
+        .sum();
     println!(
-        "  ledger layout: {inner_vecs} inner Vec<Fact> ({empty_inner} EMPTY = {:.1}%); \
-         headers alone = {:.2} MiB = {:.0}% of the ledger heap; payload = {:.2} MiB \
-         over {} facts",
-        100.0 * empty_inner as f64 / inner_vecs.max(1) as f64,
-        mib(header_b as f64),
-        100.0 * header_b as f64 / base_wi.ledger_heap.max(1) as f64,
-        mib((base_wi.ledger_heap.saturating_sub(header_b)) as f64),
-        field_wi
-            .ledgers
-            .iter()
-            .map(FactLedger::total_facts)
-            .sum::<usize>()
+        "  ledger layout (CSR): {facts} facts in {rows} non-empty slots; \
+         payload {:.2} MiB + index {:.2} MiB = heap {:.2} MiB (index = {:.3}x of the ledger); \
+         structs {:.2} MiB ({} B each)",
+        mib(payload as f64),
+        mib(index as f64),
+        mib(base_wi.ledger_heap as f64),
+        index as f64 / (payload + index).max(1) as f64,
+        mib(base_wi.ledger_structs as f64),
+        std::mem::size_of::<FactLedger>()
+    );
+    // The counterfactual: the pre-slice `Vec<Vec<Fact>>`, priced on this world.
+    // One inner `Vec` per slot (units.len() + 1 per cell, the bedrock seam
+    // included), 24 B of header each, plus the same facts as payload.
+    let old_inner: usize = field_wi.strata.iter().map(|s| s.units.len() + 1).sum();
+    let old_headers = old_inner * std::mem::size_of::<Vec<u8>>();
+    let old_heap = old_headers + facts * std::mem::size_of::<Fact>();
+    println!(
+        "  [pre-CSR counterfactual on this same world: {old_inner} inner Vec<Fact> \
+         ({} EMPTY = {:.1}%), headers {:.2} MiB = {:.0}% of a {:.2} MiB heap. \
+         CSR heap is {:.2} MiB — a {:.1}x reduction on the ledger heap.]",
+        old_inner - rows,
+        100.0 * (old_inner - rows) as f64 / old_inner.max(1) as f64,
+        mib(old_headers as f64),
+        100.0 * old_headers as f64 / old_heap.max(1) as f64,
+        mib(old_heap as f64),
+        mib(base_wi.ledger_heap as f64),
+        old_heap as f64 / base_wi.ledger_heap.max(1) as f64
     );
     println!(
         "  (the ledger is today's only fact-shaped record; it is the structural analogue \

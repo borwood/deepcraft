@@ -149,6 +149,14 @@ a **1.96×**), and the ledger heap is 150.11 MiB. Decomposed:
 - **headers alone = 133.50 MiB = 89 % of the ledger heap**
 - payload = 16.61 MiB over **1,033,189 facts**
 
+> **RESOLVED 2026-07-25 (journal/0100).** This finding was acted on: `FactLedger`
+> was converted to the same flat-arrays + CSR-index layout `flux.rs` uses, so the
+> numbers in this subsection describe a shape that **no longer exists in the
+> tree**. They are kept verbatim because they are the *measurement that motivated
+> the conversion*, and because they remain the correct warning about
+> `Vec<Vec<T>>` keyed per (cell, slot) for anything built next. See journal/0100
+> for the before/after.
+
 This is the most directly transferable measurement in the probe, because
 `Vec<Vec<Fact>>` keyed by (cell, slot) is *precisely* the naive shape of a
 per-(cell, slot) flow record. Built that way, the flow record's dominant cost

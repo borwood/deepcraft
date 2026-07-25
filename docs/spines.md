@@ -90,6 +90,15 @@ immutable**; everything else is **fluid**, derived as a pure function of
 - water: persist bodies, derive voxels — 39 bytes rebuilt 38 358 wet voxels
   byte-identically (S11 scenario 7)
 - the resolved provider table in world identity (DECIDED 2026-07-22)
+- **the fact ledger's LAYOUT (journal/0100, 2026-07-25)** — the rule read as a
+  storage shape, not only as a data-model choice. `FactLedger` was `Vec<Vec<Fact>>`
+  keyed per (cell, slot): every slot paid a 24-byte `Vec` header to record that
+  nothing had happened to it — a statement `derive(base)` already makes for free.
+  Measured on the production world: **98.8 % of 5.83 M inner `Vec`s empty, 89 % of
+  the record's 150 MiB heap in their headers**, against 16.6 MiB of real facts. Now
+  flat exact-sized facts + a sparse `(slot, start)` CSR index emitted only for
+  slots that *have* facts, so an unweathered cell allocates **nothing**. The same
+  rule that says "don't store the derivable value" says "don't store the slot".
 
 **Rule:** *store only what the derivation cannot predict.*
 
@@ -485,6 +494,18 @@ written beside the one that already existed**:
   and mass-preserving), and it removes an O(slots) post-pass from a per-cell,
   per-epoch path. Caught while it was six lines old, which is the whole point of
   sweeping after a merge rather than a month later.
+- **discharge-by-porting (2026-07-25, journal/0100) — the shape working as
+  intended.** `FactLedger`'s residency defect wanted a sparse layout, and the
+  reflex is to design one. It was **not designed**: `deeptime/flux.rs`
+  (journal/0096) had shipped a larger sparse record as flat exact-sized arrays +
+  a CSR index *the day before*, with its index floor measured at 0.056× of total,
+  so the slice's whole job was to read that file and do the same thing. The one
+  deliberate divergence is stated where it lives (`flux.rs` can afford a *dense*
+  offsets array because every cell exists; the ledger cannot, because dense
+  offsets per slot **is** the rectangle it is avoiding — so its rows carry their
+  own slot key). Recorded here because A-4 is usually written up as a failure,
+  and "the in-tree precedent was found and copied" is the outcome it exists to
+  produce.
 - **not-an-instance, noted for the record:** `weather_epoch` open-codes
   `grid.r[i] + grid.h[i] <= sea_level` (`weather_inventory.rs:310`) where
   `DeepGrid::surf_at` (`grid.rs:412-413`) exists — but so do five other sites in
