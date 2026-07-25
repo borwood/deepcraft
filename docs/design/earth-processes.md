@@ -289,6 +289,18 @@ else in the catalog relaxes at 16–24 cells. Read-quality at 500 m already
 tells true stories (pulsed arid fans, transgressive couplets, condensed
 cyclic margins). **USER-RATIFIED for 3e (2026-07-19): A always-on + C refinement.**
 
+> **⚠ SUPERSEDED IN PART — 2026-07-25, see [`flow.md`](flow.md).** The
+> **expression half** of § 3e-2 (the channel-line corridor, the two-way negotiation,
+> the refinement operator, and anything implying a *drawn* carve) is **retired**: flow
+> is recorded as **flux on 3D faces + facts on strata**, and the channel is the
+> **expression of a mass budget**, never a deformation. Two specific corrections:
+> **(a)** decision 1's *"the corridor never crosses a drainage divide"* binds the
+> **FREE/surface regime ONLY** — bound (groundwater) flow genuinely crosses surface
+> divides (artesian basins, karst piracy), and carrying the rule over unqualified
+> forecloses regional groundwater; **(b)** the driving field is **potential/head**,
+> not elevation. What SURVIVES: drainage is advective and decided-once-coarse (the
+> halo argument, corrections #8), and descent-along-potential is a hard constraint.
+
 **3e-2 decisions (RATIFIED 2026-07-19, second session, unpacked walkthrough):**
 
 1. **Drainage handoff**: drainage and contributing area are decided ONCE at

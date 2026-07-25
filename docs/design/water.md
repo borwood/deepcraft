@@ -1,5 +1,17 @@
 # Water — the field notebook
 
+> **⚠ READ [`flow.md`](flow.md) FIRST (ratified 2026-07-25).** The **river /
+> drainage / channel-expression half** of this notebook is **superseded**: flow is
+> now one process recorded as **flux on 3D faces + facts on strata**, the receiver
+> tree is retired (it cannot represent divergence — no deltas), and the carve is a
+> **mass budget**, never a drawn shape. **What survives and is load-bearing:** the
+> DECIDED two-regime model (free/bound — now unified as an *occupancy*, i.e. an edge
+> on the form-transition graph), *persist bodies / derive voxels*, the measured S11
+> results, corrections #14 (**bodies-not-links; a spring is a derived outlet**), and
+> the § Session-capture karst analysis (**zero cave-specific code at the present
+> tier**). The **S14 spike is superseded as posed** — face flux answers its
+> seamlessness half structurally.
+
 Status: **OPEN FIELD NOTEBOOK, 2026-07-20.** Field-notebook first, per the
 earth-processes method (ROADMAP: "Design doc before any code"). Nothing
 here is decided unless it says DECIDED with a date. This file exists to

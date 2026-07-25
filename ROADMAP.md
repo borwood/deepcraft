@@ -2096,6 +2096,81 @@ slot each, per the user's "slice-of" principle: never lose what a completed slic
 was a slice OF. Each names WHAT, WHY, how it UNIFIES with the larger threads, its
 FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
 
+- **FLOW IS ONE PROCESS — flux on FACES, facts on STRATA; retire the receiver tree**
+  (arc opened + **RATIFIED 2026-07-25**, user "standing blessed"; design doc
+  **`docs/design/flow.md`**, reasoning **journal/0095**). *Supersedes the river half of
+  `water.md` and the **expression half** of `earth-processes.md` § 3e-2; § 3e-2's
+  constraint half survives **qualified** — the no-divide-crossing rule binds the FREE
+  regime only, or regional groundwater is foreclosed.*
+  - **WHAT.** One process — *matter moves down a **potential** gradient through a
+    resisting medium, carrying a load it exchanges with the substrate.* Recorded as one
+    atom: **at (cell, stratum-slot), flux crossed faces F with magnitude M, in form P
+    (free/bound), carrying load L of fluid f, under cause C, at chapter K.** Three
+    ratified collapses: **(1)** free/bound is an **occupancy** — Fluid is already a form,
+    so free↔bound is an **edge on the form graph (S-8)**, which makes a spring a derived
+    outlet, a cave free-phase flow below the surface, and karst the already-dormant
+    `Cause::Dissolution`; **(2)** in a stratigraphic record **depth IS time** (an
+    unconformity is a flow signature, not missing data); **(3)** flux lives on **FACES,
+    not cells** — lateral (cell↔cell per slot), **vertical (slot↔slot in a column)**, and
+    boundary (atmosphere/ocean).
+  - **WHY.** `flow_to: Option<u32>` is one out-edge per cell — a spanning tree. A tree
+    represents convergence and **cannot represent divergence at all**: no distributaries,
+    braids, fans or deltas. **The Mississippi delta is unrepresentable**, and no threshold
+    or grid change fixes a primitive. Today's carve is also **half-wired and invisible**
+    (`let (elev, _riverbed) = carve_rivers(…)` — riverbed discarded at both call sites) and
+    is routed at ~14.7 km on **pre-erosion** topography, i.e. across a landscape deep time
+    then destroys. And a **face is shared**, so refinement built on face data agrees from
+    both sides *by construction* — **the seamlessness requirement and the divergence
+    requirement have the same answer.**
+  - **UNIFIES.** = the paleo-channel/layering need · **§13.8 flow-biased sub-cell fill**
+    (which finally has a path to bias toward — the flux record is *the rich thing others
+    bias to*, never a second geometry model) · **Movement 2b material-aware transport**
+    (the load-exchange half; wind/ice/lava/turbidity are the same machinery per §13.2) ·
+    **karst/caves** (corrections #17: dissolution is a term on the weathering edge, not a
+    new incision model) · **S11's runtime** (bodies-not-links, `sat.rs`, zero cave-specific
+    code) · the **interval-log fill contract** (voids are intervals, not a heightfield) ·
+    **`identify(pos)`** (a voxel that is "air that is a cave that was a phreatic tube" is
+    exactly what a 1-byte summary cannot say).
+  - **THE DEEPEST DEFECT IT FIXES.** *The record is the ONLY seam between deeptime and
+    runtime — if refinement needs something, deeptime must have recorded it.* Today
+    drainage is solved **every epoch and discarded** (`recv`/`area` are documented as "the
+    **last** routing"): we run the process 200× and keep the final frame. Every paleo-flow
+    signature the design wants was computed and thrown away.
+  - **FIRST SLICE — the RECORDING half only.** Face flux per chapter in deeptime: replace
+    the receiver output with **face-flux records** (3D faces), attach flow facts to unit
+    slots, keep the existing priority-flood/route/accumulate **solve** (good numerics —
+    only its output representation changes). **Nothing expressed at runtime yet**; the
+    world stays honestly river-less rather than gaining a second fake. Acceptance =
+    a **convergence AND a divergence** present in the record on a production world (a
+    tree cannot produce the latter), plus a **measured resident cost** (gen time is free;
+    residency is not).
+  - **CONTINUATION SLOT** (this is a slice OF *"flow is one process, faithfully recorded
+    and purely refined"*): after recording, the arc continues with **(a)** the
+    **potential/head field pass** (elevation + pressure → artesian, capillary, thermohaline,
+    density flows; the current `H = y + sat` is explicitly unconfined, not Darcy);
+    **(b) refinement as a boundary-value problem** — face fluxes as Dirichlet conditions,
+    the load budget as mass, solved *inside* a cell, pure-of-position (never reading a
+    neighbour's refined output, so the pure-fn chunk holds); **(c)** the **free/bound edge
+    + void intervals** (caves, conduits, springs, `Cause::Dissolution` switched on);
+    **(d) fluid identity** (lava/ice/brine on the same atom, own competence curves);
+    **(e)** retiring `pregen/hydrology.rs`, `RiverSeg`/`carve_rivers`, and
+    `Cell::{flow_to,river,discharge}`. **Do not close the arc when the first slice lands.**
+  - **NAMED LIMITS (honest, from the 2026-07-25 foreclosure sweep — flow.md § 5):**
+    oscillatory/tidal flow nets to ≈0 and needs a **gross-energy** term · **episodic**
+    catastrophes (turbidite/jökulhlaup/lahar) average away inside a chapter though the
+    graded bed IS the signature · **sub-cell meander migration** is refinement-tier ·
+    **evaporites** precipitate because the *carrier left*, a distinct trigger from a
+    falling competence ceiling.
+  - **ACCEPTANCE (the prize, un-gameable by statistics):** cut a cliff face and read
+    *channel gravel with a placer streak → floodplain silt → an unconformity where the
+    river left → carbonate dissolved into a phreatic tube, now dry → collapse breccia on
+    its floor → a spring line downslope.* Each is the same atom at a different slot.
+    **If any of it needs a landform-specific code path, it is not faithful.**
+  - **NOT A CONSTRAINT (user, 2026-07-25, emphatic):** socia/civ/eco/bio consumers
+    (settlement siting et al.) are **stubs and baggage to be replaced** — they do not
+    exist as designed systems and **must not constrain the flow design at all**. Future
+    designs compose with flow; flow does not bend around unavowed stubs.
+
 - **STRUCTURE-AWARE FINE EXPRESSION — the sub-resolution the collapse randomizes but
   physics structures** (filed 2026-07-24 at the user's direction; unifies the flow-biased-fill
   deferral of material-behavior.md §13.8 with the journal/0055 + journal/0010 within-voxel
