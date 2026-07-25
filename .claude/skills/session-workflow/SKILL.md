@@ -805,3 +805,48 @@ worktree was pruned and paths resolved to main. **Not a false green — the run 
 merged main, which is the stronger result.** Both halves are worth keeping: *investigate the
 #34 signature every time*, and *absence in a tool's output is a claim about the tool as much
 as about the world* (anti-shape A-5).
+
+## Two brief-template clauses, earned 2026-07-25
+
+**1. When a brief implements an AUDIT's fix, require the agent to RE-DERIVE the mechanism.**
+Put the words *"verify this claim before building on it"* in the brief. An audit's *diagnosis*
+is usually right and its *prescription* is a hypothesis like any other — and audits are the
+most persuasive artifact we produce, because they cite `file:line`. Two slices were saved by
+that clause this session; the spine-audit's `dc:field/head` prescription (*"declaring `Forced`
+is free, and it pins it"*) was **half wrong** in the hardest way to catch.
+
+**2. RESERVE every numbered artifact at dispatch — and record the reservation.**
+Not just journals: `stubs.md`, `corrections.md`, spike ids — **any append-only numbered
+inventory** has the concurrent-collision hazard. Two agents both filed a **stub #19** this
+session. And a *reserved-but-unlanded* number looks identical to a *lost* one: journal **0105**
+was absent at wrap because its agent was still running. **Say so in the close block** — a gap
+nobody explained reads as a mistake. Merge checklist gains one line: **grep for duplicate
+ordinals in every numbered doc the batch touched**, and account for every gap.
+
+## The ROADMAP outgrew reading — and grep only finds what you already suspect
+
+**Named by the user at the 2026-07-25 close, and the honest answer is yes:** the ROADMAP is
+~5,600 lines and **no session reads it end-to-end.** It is *grepped*. So:
+
+> **Grep surfaces what you already know to look for.** It cannot surface an item whose
+> vocabulary has drifted, an item that now **contradicts** something ratified today, or an item
+> nobody has thought about in weeks. Those are exactly the items that mislead.
+
+**The evidence is on the record.** `DeepField::chapters` sat unlisted through **three** spine
+audits — its own doc comment said *"read by nothing"* since U8, and three consecutive sweeps
+added rows for its **immediate neighbours in the same struct** and walked past it. *A
+self-declaring comment is not an index, and neither is a document nobody reads whole.*
+
+**Two compensating controls, and the second matters more than the first:**
+
+- **Archive by STATUS, not by age.** `Shipped` grows without bound and is the least often
+  needed live — and the **journal already holds its narrative**, so ROADMAP `Shipped` is
+  partly duplicative. Moving older `Shipped` entries to a history file (keeping the journal
+  number as the stable pointer) shrinks the live board to `Sequenced` + `Observed` + the close
+  block — the parts that must stay readable. **Age alone is the wrong axis: a two-week-old
+  `Observed` may be the most live thing on the board.**
+- **Make the staleness sweep RECURRING, like `spine-audit`.** Shrinking the doc helps someone
+  who is already looking; it does nothing for the parts nobody thinks to look at. Only a
+  mechanism that *forces* a re-read finds those. Today's sweep had to be **requested** — that
+  is the gap. Run it after any batch of merges that ships a new arc, with the explicit job of
+  finding items that are **SUBSUMED / STALE / UNBLOCKED / CONTRADICTED** by the new work.
