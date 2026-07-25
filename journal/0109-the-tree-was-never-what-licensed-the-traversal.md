@@ -255,11 +255,135 @@ does nothing.
 
 ## The number
 
-<!-- NUMBERS -->
+Production world, seed 1337, `Extent::Medium`, 545×545 = 297,025 cells, 8 chapters,
+`p = 4`. Same pregen, two deep runs.
+
+**The acceptance — SIMULTANEOUS divergence, WITHIN ONE EPOCH:**
+
+| | MFD off | MFD on |
+|---|---|---|
+| `(cell, epoch)` pairs with ≥2 lateral out-faces | **0** | **7,548,646** |
+| distinct `(cell, chapter)` pairs with ≥1 such epoch | **0** | **395,452** (16.64 % of all pairs) |
+| most lateral out-faces in a single epoch | **0** | **8** |
+
+The zero is not a small number, it is a **structural** zero — a D8 receiver is one
+out-edge, so no world, no cadence and no threshold could have made it anything
+else. Concurrent distributaries are now not merely representable but present.
+
+**The control — TEMPORAL divergence (avulsion), WITHIN A CHAPTER**, which the
+receiver tree already produced and which must survive rather than be replaced:
+
+| | MFD off | MFD on |
+|---|---|---|
+| `(cell, chapter)` pairs, **all** face families | 337,554 | 418,911 |
+| `(cell, chapter)` pairs, **lateral** faces only | 56,281 | 397,520 |
+
+> **A caption here was wrong and is worth recording.** The probe printed *"the
+> LATERAL row is what journal/0096 reported as 175,320"*. It is not: measured with
+> MFD off, the lateral row is **56,281** and the all-faces row is **337,554**.
+> Neither is 175,320, and the number is **not recoverable** from either, because
+> two one-way changes happened underneath it — FLOW (a) added **vertical** faces
+> (inflating the all-faces row with infiltration that is not a distributary), and
+> 0096's count included **boundary** faces, which the lateral row excludes (a cell
+> that routes inland early in a chapter and into the sea late in it *did* diverge
+> and appears in neither row). The world has also moved twice since.
+> **This was a published claim the gate could not check**, printed beside the number
+> it contradicted — the exact failure mode CLAUDE.md names. The caption now prints
+> its own measured values and explicitly forbids quoting them as 0096 continued.
+
+**The exponent sweep, and a methodological finding.** `p` is swept on the same
+production world:
+
+| `p` | simul `(cell, epoch)` | simul `(cell, chapter)` | record entries | record MiB | deep s |
+|---|---|---|---|---|---|
+| 1.0 | 7,564,611 | 401,473 | 4,114,409 | 63.91 | 25.0 |
+| 2.0 | 7,561,298 | 400,191 | 3,978,535 | 61.84 | 25.2 |
+| **4.0** | **7,548,646** | **395,452** | **3,735,571** | **58.13** | **25.5** |
+| 8.0 | 7,513,387 | 383,531 | 3,479,103 | 54.22 | 25.3 |
+| off (`p → ∞`) | 0 | 0 | 2,897,736 | 45.35 | 21.2 |
+
+Monotone in the right direction, as the gate test demands — but **only barely**:
+0.7 % across `p ∈ [1, 8]`. That is a finding about the *instrument*, not about the
+knob. The acceptance counter is a **binary predicate** ("did this cell use ≥2
+faces"), and the 1 % floor guarantees a second receiver survives across almost the
+whole range, so the count is nearly saturated. The quantities that actually track
+`p` are **record entries** (−15 % from `p=1` to `p=8`) and **residency**. Anyone
+tuning `p` should watch those, not the headline.
+
+**Cost.** Deep run **21.18 s → 25.74 s, a difference of +4.56 s** (+21.5 %) on the
+production world; gen time is not a constraint and nothing here is on a runtime
+path. Record residency **45.35 → 58.13 MiB (+12.78)**; `DeepField` **156.16 →
+169.00 MiB (+12.84)**. Record entries ×1.29. Load-carrying faces 494,296 →
+1,364,127 (×2.76).
 
 ## What moved, and what a player will see
 
-<!-- WORLD -->
+**I wrote the section below before the production numbers came back, as a
+prediction. The measurement contradicted the important half of it, and the
+prediction is kept above the correction rather than quietly edited, because the
+gap between them is the most useful thing in this entry.**
+
+### What actually moved (measured)
+
+| | value |
+|---|---|
+| cells whose elevation moved by > 1 m | **1** (0.00 %) |
+| mean \|Δ elevation\|, whole grid | 0.006 m |
+| mean \|Δ elevation\|, **subaerial only** (44,264 cells) | **0.027 m** |
+| mean surface / min / max | **identical to 2 d.p.** |
+| land cells whose **argmax receiver** moved | **31,523 — 71.22 % of land** |
+| mean relative \|Δ drainage area\| | **0.3799** |
+| **peak drainage area** | **1,245 → 84 cells** |
+| total suspended load on faces | 1,864.8 → 1,564.2 (−16 %) |
+
+Read that table twice, because it says two opposite things at once.
+
+**The routing changed almost completely.** Seven land cells in ten now send most
+of their water somewhere different, and the average cell's catchment changed by
+38 %. **The landscape did not change at all.** Mean elevation is identical to two
+decimal places; exactly **one** cell in 297,025 moved by more than a metre.
+
+Both are true, and the reason is the regime: incision on this world is small
+against ~600 m of tectonic uplift, and only 44,264 of 297,025 cells are subaerial
+at all. The erosion pass is nowhere near being the thing that shapes this terrain.
+So MFD moved **where the water goes** — which is what it was for — and had almost
+no purchase on **what the ground looks like**.
+
+**So the goldens moved for a reason a player cannot see.** A 2.7 cm mean change
+on land is enough to flip a surface voxel here and there and to change which
+clastic unit lands in which cell, which is why every golden moved; it is nowhere
+near enough to change a silhouette. The honest statement is:
+
+> **This is an appearance change on paper and a null in the viewport.** It should
+> be announced, and it should **not** consume a walk unless a tour-map first finds
+> a station where something is visibly different. On these numbers I expect the
+> tour-map to return a null, and a null honestly reported is the result.
+
+### The one number that should worry a reader: peak drainage area 1,245 → 84
+
+This is the classic MFD artefact and it deserves to be named rather than buried.
+Dispersing at every cell compounds down a chain, so accumulated area never
+concentrates: the largest catchment on the world fell **15×**. The single-receiver
+world's biggest river drained 1,245 cells; the MFD world's biggest drains 84.
+
+That is *why* the terrain barely moved, and the two facts are one fact. Stream
+power is `Q^m·S^n`; MFD lowers **both** factors at every cell — `Q` because the
+area is shared, `S` because the energy slope is the share-weighted mean rather
+than the steepest. So **MFD at fixed coefficients is systematically less erosive
+than D8**, which is also why total suspended load fell 16 % while the number of
+load-carrying faces nearly tripled. Nothing leaked — `mass_is_conserved_with_mfd_on`
+holds over the whole run — **less material was mobilised**, which is a different
+statement.
+
+The standard answer in the literature is that pure MFD is used on **hillslopes**
+and something convergent is used in **channels**: `p` is made a function of
+accumulated area or slope, or the solve switches to single-receiver above a
+channel-initiation threshold. We have shipped **uniform `p` everywhere**, which is
+the simplest correct thing and is honestly the wrong long-run shape. It is flagged
+for ratification, not fixed here — and it interacts with `k_bedrock`/`k_transport`,
+which were calibrated against D8 and are now effectively weaker.
+
+### The prediction I wrote first, kept for the record
 
 ### The Earth mechanism, and the tier it is faithful at
 
@@ -325,6 +449,21 @@ deep-time ritual, in this order:
 **This is an appearance change and it is the user's to bless. It needs a walk**,
 and the walk wants a tour-map first: the strongest fan/delta exemplar under MFD,
 and a gorge as the control that must *not* have moved.
+
+> **How that prediction scored.** The *direction* was right and the *magnitude* was
+> wrong by orders. Routing did change on 71 % of land; drainage area did spread
+> (−38 % mean relative, and the peak catchment collapsed 15×). But every visible
+> consequence I listed — braided fan heads, wider riparian bands, thinner clastic
+> sheets — was predicated on the erosion pass being strong enough to *express* the
+> routing, and on this world it is not. I reasoned from the mechanism and never
+> asked how much authority the mechanism had over this particular terrain. The
+> table above is the answer, and it took one probe run to get.
+>
+> **The lesson generalises past this slice:** "routing is upstream of erosion, so
+> the world will move" is a *sequencing* argument, and sequencing arguments say
+> nothing about magnitude. It is the same shape as the "head unlocks MFD" error at
+> the top of this entry — a claim about *order* smuggled in as a claim about
+> *substance*. Twice in one slice.
 
 ## `recv` after MFD
 

@@ -193,11 +193,19 @@ fn main() {
         co.temporal_lateral_only, cn.temporal_lateral_only
     );
     println!(
-        "  ^ the LATERAL row is what journal/0096 reported as 175,320. The ALL row\n    \
-         grew when FLOW (a) landed, because a cell that routes east AND infiltrates\n    \
-         downward has two out-faces — true of the record, not what 'a distributary'\n    \
-         means. Neither is the same quantity as the SIMULTANEOUS block above, and\n    \
-         § 2.6 exists because they must never be quoted as one."
+        "  ^ NEITHER row reproduces journal/0096's headline 175,320, and the caption\n    \
+         that claimed the LATERAL row did was WRONG — measured 2026-07-25, MFD off:\n    \
+         ALL {} , LATERAL-only {}. Two things moved underneath that number and\n    \
+         both are one-way: FLOW (a) added VERTICAL faces (so ALL now counts a cell\n    \
+         that routes east AND infiltrates downward — true of the record, not what\n    \
+         'a distributary' means), and 0096's count included BOUNDARY faces, which\n    \
+         LATERAL-only excludes (a cell that routes inland early in a chapter and\n    \
+         into the sea late in it diverged, and is in neither row). The world has\n    \
+         also moved twice since. Quote these rows as measured here; do NOT quote\n    \
+         them as 0096's number continued.\n    \
+         Neither is the same quantity as the SIMULTANEOUS block above, and § 2.6\n    \
+         exists because they must never be quoted as one.",
+        co.temporal_cell_chapters, co.temporal_lateral_only
     );
 
     if co.simul_cell_epochs != 0 {
