@@ -53,8 +53,10 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use dc_core::MaterialId;
-use dc_worldgen::deeptime::inventory::{Fact, InvForm};
-use dc_worldgen::deeptime::{DeepConfig, build_field_cfg, production_config};
+use dc_worldgen::deeptime::inventory::{BEDROCK_SEAM_MATERIAL, Fact, InvForm};
+use dc_worldgen::deeptime::{
+    DeepConfig, WEATHERING_AGENTS, WeatherInputs, agent_share, build_field_cfg, production_config,
+};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 /// The world `dc-client` boots — `BENCH_SEED` (`dc-client/src/bench.rs`) at
@@ -449,22 +451,38 @@ struct Latency {
     p50_us: f64,
     p95_us: f64,
     max_us: f64,
+    /// **Which read was the slowest**, in issue order. A tail of one on an
+    /// otherwise tight distribution is a different fact depending on whether it is
+    /// read #0 (handle / device warm-up, paid once per session) or read #217 (a
+    /// stall any inspect can hit). Reporting the index is what makes the difference
+    /// observable instead of assumed.
+    max_at: usize,
+    /// The very first read's latency, for the same reason.
+    first_us: f64,
 }
 
 impl Latency {
-    fn of(mut samples: Vec<f64>) -> Self {
+    fn of(samples: &[f64]) -> Self {
         if samples.is_empty() {
             return Self::default();
         }
-        samples.sort_by(f64::total_cmp);
         let n = samples.len();
-        let pick = |q: f64| samples[((n as f64 * q) as usize).min(n - 1)];
+        let max_at = samples
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map_or(0, |(i, _)| i);
+        let mut sorted = samples.to_vec();
+        sorted.sort_by(f64::total_cmp);
+        let pick = |q: f64| sorted[((n as f64 * q) as usize).min(n - 1)];
         Self {
             n,
-            mean_us: samples.iter().sum::<f64>() / n as f64,
+            mean_us: sorted.iter().sum::<f64>() / n as f64,
             p50_us: pick(0.50),
             p95_us: pick(0.95),
-            max_us: samples[n - 1],
+            max_us: sorted[n - 1],
+            max_at,
+            first_us: samples[0],
         }
     }
 }
@@ -628,7 +646,7 @@ fn measure_paging(geo: &Geometry, fact_bytes: usize, dir: &Path) -> std::io::Res
             sink += n;
         }
         std::hint::black_box(sink);
-        Latency::of(us)
+        Latency::of(&us)
     });
 
     // --- WARM: buffered, cache hot (every sampled run pre-read once) ---
@@ -651,7 +669,7 @@ fn measure_paging(geo: &Geometry, fact_bytes: usize, dir: &Path) -> std::io::Res
             sink += n;
         }
         std::hint::black_box(sink);
-        Latency::of(us)
+        Latency::of(&us)
     };
 
     Ok(Paging {
@@ -792,15 +810,21 @@ fn report(geo: &Geometry, paging: &[Paging]) {
         match p.cold {
             Some(c) => println!(
                 "  COLD page-in (unbuffered, device)   mean {:>8.1} us  p50 {:>8.1}  \
-                 p95 {:>8.1}  max {:>8.1}   (n={})",
-                c.mean_us, c.p50_us, c.p95_us, c.max_us, c.n
+                 p95 {:>8.1}  max {:>8.1} (at read #{})  first {:.1}   (n={})",
+                c.mean_us, c.p50_us, c.p95_us, c.max_us, c.max_at, c.first_us, c.n
             ),
             None => println!("  COLD page-in                        (not measurable here)"),
         }
         println!(
             "  WARM page-in (buffered, cache hot)  mean {:>8.1} us  p50 {:>8.1}  \
-             p95 {:>8.1}  max {:>8.1}   (n={})",
-            p.warm.mean_us, p.warm.p50_us, p.warm.p95_us, p.warm.max_us, p.warm.n
+             p95 {:>8.1}  max {:>8.1} (at read #{})  first {:.1}   (n={})",
+            p.warm.mean_us,
+            p.warm.p50_us,
+            p.warm.p95_us,
+            p.warm.max_us,
+            p.warm.max_at,
+            p.warm.first_us,
+            p.warm.n
         );
         if let Some(c) = p.cold {
             let budget_us = 1e6 / 60.0;
@@ -886,7 +910,57 @@ fn report(geo: &Geometry, paging: &[Paging]) {
             }
         );
     }
+    tolerance_audit();
     println!();
+}
+
+/// **The tolerance audit** — pure arithmetic, no world.
+///
+/// The unit tests that read a *stored* `fraction_m` split into two classes, and the
+/// distinction is the whole answer to "did the tolerance fail or did the answer get
+/// worse":
+///
+/// - **stored vs stored** — e.g. `Σ facts` against `weathering_product_m`, or
+///   `acc_band(a2)` against `2 × acc_band(a1)`. Both sides ride the same rounded
+///   values, so the comparison is *unchanged* by narrowing (and `2×` is exact in
+///   binary). These pass at 1e-12 and would still be honest assertions.
+/// - **stored vs freshly-computed f64** — e.g. `f.fraction_m()` against the `moved`
+///   an `apply_edge` returned, or `Σ shares` against `weather_rate(...)`. Here the
+///   tolerance is being asked to certify agreement between two *different
+///   representations*, at a bound below the resolution of one of them.
+///
+/// This function measures the second class on the very inputs the unit tests use
+/// (`weather_inventory`'s `inputs()`), so the claim is a number and not an argument.
+fn tolerance_audit() {
+    let inp = WeatherInputs {
+        weathering: 0.02,
+        h_star: 2.0,
+        regolith_h: 1.0,
+        biotic: 1.5,
+        frost: 2.0,
+    };
+    let m = BEDROCK_SEAM_MATERIAL;
+    let shares: Vec<f64> = WEATHERING_AGENTS
+        .iter()
+        .map(|&a| agent_share(&inp, m, a))
+        .collect();
+    let rate_f64: f64 = shares.iter().sum();
+    let rate_stored: f64 = shares.iter().map(|&s| f64::from(s as f32)).sum();
+    let ten_f64 = rate_f64 * 10.0;
+    let ten_stored: f64 = shares.iter().map(|&s| f64::from((s * 10.0) as f32)).sum();
+    println!("  the unit tests' own rate (weather_inventory::tests::inputs):");
+    println!(
+        "     one firing: rate {rate_f64:.9} m; stored-vs-computed err {:.3e}",
+        (rate_f64 - rate_stored).abs()
+    );
+    println!(
+        "     ten firings: band {ten_f64:.9} m; stored-vs-computed err {:.3e}",
+        (ten_f64 - ten_stored).abs()
+    );
+    println!(
+        "     f32 has 24 bits of mantissa: relative resolution 2^-24 = {:.3e}",
+        f64::from(f32::EPSILON) / 2.0
+    );
 }
 
 fn main() {
