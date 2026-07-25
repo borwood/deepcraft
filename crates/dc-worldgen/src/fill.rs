@@ -145,15 +145,25 @@ impl ColumnFill {
                     continue;
                 }
                 cov += ov;
-                // Merge by member: two events of the same member competing
-                // separately for eighths would under-represent that member.
-                // Adjacent same-member runs are already coalesced in the
-                // recorder pass; this catches the interleaved case.
-                let member = rec.events[idx].member;
-                match parts
-                    .iter_mut()
-                    .find(|(j, _)| rec.events[*j].member == member)
-                {
+                // Merge events that would **express identically**: two events of
+                // the same member competing separately for eighths would
+                // under-represent that member. Adjacent same-member runs are
+                // already coalesced in the recorder pass; this catches the
+                // interleaved case.
+                //
+                // The **pore rider is part of the key** (journal/0099): a
+                // weathering front is eight bands of one parent member whose
+                // pore-slot product share *differs per band* — that difference is
+                // the whole gradient, and merging them would attribute the
+                // topmost band's share to every band's eighths. No two events in
+                // a pre-0099 column can share a member and differ in
+                // `accessory` (only the two igneous passes set one, and they
+                // select from different classes, hence different members), so
+                // widening the key here moves no existing world.
+                let ev = &rec.events[idx];
+                match parts.iter_mut().find(|(j, _)| {
+                    rec.events[*j].member == ev.member && rec.events[*j].accessory == ev.accessory
+                }) {
                     Some((_, w)) => *w += ov,
                     None => parts.push((idx, ov)),
                 }
@@ -263,12 +273,15 @@ pub fn fill_draw(seed: u64, vx: i64, vy: i64, vz: i64) -> f64 {
 /// - **loose-dominant**: all eight eighths as debris, rock fragments included —
 ///   which is what a basal conglomerate *is*: clasts in a sediment.
 ///
-/// A **placer ore** rider is carried in: it substitutes into its host event's
-/// own allocated eighths (see `WorldGenerator::mixed_at`), which is the same
-/// substitution `contents_for_event` performs and the reason a thin fluvial fan
-/// still pans gold. Igneous **accessory** pore fill is not: accessories ride the
-/// thick basement bodies, which are voxel-aligned and take the [`Plan::Single`]
-/// path where the unchanged per-event constructor handles them.
+/// **Riders** are carried in by substituting into their host event's own
+/// allocated eighths (see `WorldGenerator::mixed_at`), the same substitution
+/// `contents_for_event` performs: a **placer ore**, which is why a thin fluvial
+/// fan still pans gold, and a **loose pore rider**, which is why a weathering
+/// front's contact voxels still carry their product (journal/0099) instead of
+/// reading as pure parent rock. A *structural* accessory — the sparse 1/8
+/// igneous inclusion — is still not: it rides the thick basement bodies, which
+/// are voxel-aligned and take the [`Plan::Single`] path where the unchanged
+/// per-event constructor handles them (stubs.md #19 names the residue).
 /// **Partial fills are first-class here.** `parts` may total fewer than eight
 /// eighths — that is the top-of-column remainder (the surface voxel holds only
 /// the metres between the voxel floor and the actual ground surface). A loose
@@ -315,7 +328,7 @@ pub fn mixed_contents(set: &GeologySet, parts: &[(GeoMemberIdx, u8)]) -> VoxelCo
 /// must ride in the debris multiset the way a gold grain rides in gravel, not
 /// stand up as structure and claim the voxel's block identity through
 /// `classify`'s structure-first rule.
-fn is_loose(set: &GeologySet, m: GeoMemberIdx) -> bool {
+pub(crate) fn is_loose(set: &GeologySet, m: GeoMemberIdx) -> bool {
     let class = set.member(m).class.as_str();
     class == CLASS_CLASTIC_FINE
         || class == CLASS_CLASTIC_COARSE

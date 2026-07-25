@@ -500,6 +500,38 @@ no *value* here that could quietly become the definition. Asserted by name in
 `tests/flux_record.rs::vertical_faces_are_structurally_present_and_honestly_empty`,
 so the slice that populates them must come and delete that assertion on purpose.
 
+### 19. the-weathering-profile-is-a-fixed-shape — *added 2026-07-25 (journal/0099, the front-is-a-profile slice)*
+`dc-worldgen/src/geology.rs::WEATHERING_PROFILE` + `emplace_weathering_front`: the
+front's **magnitude** is the deep model's (`FactLedger::weathering_product_m`, a real
+time integral), but its **shape** is a constant — `round(7·exp(−j/3))` eighths of
+product per band, so every front in the world has the same normalized profile and a
+thickness of exactly `8/3 ×` its product metres. The exponential is the right *form*
+(a reaction front consuming a downward-advecting reactant), and expressing the shape
+scale-free is what lets one number set the depth — but the **decay length, the 7/8
+cap and the resulting 2.67× thickness ratio are not measured from anything.** In the
+field those are set by the balance of weathering-front descent against erosion rate,
+by fracture density and permeability, and by climate; a granite under a wet tropical
+saprolite and a granite under a stripped periglacial slope do not share a profile.
+**Heir:** the deep tier carrying the front as a **depth-resolved term** rather than a
+scalar — the ledger recording *where* in the column its product sits (the natural
+continuation of the deep-cell inventory: a vertical distribution over the bedrock
+seam, not one `FracM`), at which point this constant is deleted rather than tuned.
+Sequenced-adjacent: it wants the same per-column basement lithology stub #16's heir
+supplies, since the profile depends on the rock. **Blast:** the *look and dig* of
+every weathering front — how deep the graded zone reaches and how fast it grades. Not
+mass: the mass is conserved against the ledger whatever the shape
+(`the_weathering_front_conserves_the_ledger_product_mass`). *Loud marker at the
+constant, naming the heir.*
+
+**Residue carried by the same entry — the structural pore rider still drops at a
+contact.** `collapse.rs::mixed_at` now carries a **loose** pore rider through a mixed
+voxel (the front's product), but a **structural** one — the sparse 1/8 igneous
+accessory — is still dropped there, exactly as it was before 0099. That is deliberate
+and narrow: carrying it would move every igneous contact voxel in the world (the
+goldens), and the mass at stake is a mineral speck, not a modelled budget. It is
+listed here so "the mixed path is rider-complete" is never assumed; the heir is
+whichever slice next authorizes a golden move on the igneous contacts.
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

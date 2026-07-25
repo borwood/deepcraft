@@ -653,13 +653,37 @@ impl<'a> WorldGenerator<'a> {
             // share of this voxel the host event won. Without it a fluvial fan
             // thin enough to be a mixed voxel (which, since the veneer's residue
             // went to zero, is most of them) would pan no gold at all.
-            match e.ore {
-                Some((ore, k8)) if k8 > 0 => {
+            match (e.ore, e.accessory) {
+                (Some((ore, k8)), _) if k8 > 0 => {
                     let g = k8.min(cnt);
                     if cnt > g {
                         parts.push((e.member, cnt - g));
                     }
                     parts.push((ore, g));
+                }
+                // **A LOOSE pore rider rides through the contact too**
+                // (journal/0099). A weathering-front band is its parent rock
+                // with the product in its pores; dropping the rider here — which
+                // is what this path did until 0099 — would express the front's
+                // contact voxels as pure parent rock and lose the very mass the
+                // ledger conserves. Its share is **proportional** to the eighths
+                // its host actually won (unlike the `ore` rider above, whose
+                // `min` semantics are left exactly as they were: changing them
+                // would move every placer voxel in the world).
+                //
+                // A *structural* accessory (the 1/8 igneous inclusion) is still
+                // dropped at contacts — the pre-0099 carve-out, kept so no
+                // existing world moves; filed as a loose end on stubs.md #19.
+                (_, Some((rider, k8)))
+                    if k8 > 0 && crate::fill::is_loose(&self.geology, rider) =>
+                {
+                    let g = pore_rider_share(cnt, k8, u);
+                    if cnt > g {
+                        parts.push((e.member, cnt - g));
+                    }
+                    if g > 0 {
+                        parts.push((rider, g));
+                    }
                 }
                 _ => parts.push((e.member, cnt)),
             }
@@ -1657,6 +1681,27 @@ fn wilds_regolith_voxels(precip: f64) -> u8 {
     }
 }
 
+/// A **pore rider's** whole eighths inside a host that won `cnt` of this voxel's
+/// eight: `cnt · k8 / 8`, stochastically rounded, so the rider's share of a
+/// contact voxel is *proportional* to its host's share of it.
+///
+/// Proportionality is what makes the weathering profile conserve mass through
+/// the contacts: over a neighbourhood the expected product eighths equal the
+/// recorded product fraction, exactly the unbiasedness argument
+/// [`crate::fill`]'s allocation rests on (journal/0055). Deterministic flooring
+/// would delete the deep front's 1/8 tail everywhere — the same bias that once
+/// deleted the world's thin beds.
+///
+/// The offset is a **low digit** of the voxel's own fill draw, not its high
+/// bits: [`crate::fill::allocate_partial`] consumes the high end, and reusing it
+/// here would correlate "this band won an extra eighth" with "the product won an
+/// extra eighth of it" into a visible pattern.
+fn pore_rider_share(cnt: u8, k8: u8, u: f64) -> u8 {
+    let uq = (u * 4096.0) as u64 & 7;
+    let n = (u64::from(cnt) * u64::from(k8.min(8)) + uq) / 8;
+    (n as u8).min(cnt)
+}
+
 /// Canonical voxel contents for one stratum event, given the **resolved host
 /// member** for this voxel-column (the boundary dither picks it) — always
 /// through the [`VoxelContents`] constructors (canonical form is a hard
@@ -1678,18 +1723,34 @@ fn contents_for_event(set: &GeologySet, host: GeoMemberIdx, e: &StrataEvent) -> 
         }
         VoxelContents::debris_only(&debris).expect("8 debris eighths fit an open voxel")
     } else if let Some((acc_member, eighths)) = e.accessory {
-        // Host rock in the structure slots; accessory mineral in the pores.
         let k = eighths.clamp(1, 7);
         let acc = set.member(acc_member).material;
-        let structure = [host_mat; 8];
-        let pore = [acc; 8];
-        VoxelContents::new(
-            StructureShape::Full,
-            &structure[..usize::from(8 - k)],
-            &pore[..usize::from(k)],
-            &[],
-        )
-        .expect("host structure + accessory pore fill is canonical")
+        if k >= 5 && crate::fill::is_loose(set, acc_member) {
+            // **Loose-dominant pore rider** (journal/0099): past half a voxel of
+            // loose product there is no rock skeleton left to call structure —
+            // the parent survives as *clasts* in the product, which is what the
+            // top of a weathering front (grus, corestones in clay) is. This is
+            // the same ≥4/8 rule [`crate::fill::mixed_contents`] applies at a
+            // contact, so the two expression paths cannot disagree about the form
+            // of the same band. Unreachable before 0099: the only pore rider was
+            // the igneous accessory, always 1/8 and never loose.
+            let mut debris = [acc; 8];
+            for slot in debris.iter_mut().take(usize::from(8 - k)) {
+                *slot = host_mat;
+            }
+            VoxelContents::debris_only(&debris).expect("8 debris eighths fit an open voxel")
+        } else {
+            // Host rock in the structure slots; the rider in its pores.
+            let structure = [host_mat; 8];
+            let pore = [acc; 8];
+            VoxelContents::new(
+                StructureShape::Full,
+                &structure[..usize::from(8 - k)],
+                &pore[..usize::from(k)],
+                &[],
+            )
+            .expect("host structure + accessory pore fill is canonical")
+        }
     } else {
         VoxelContents::new(StructureShape::Full, &[host_mat; 8], &[], &[])
             .expect("full structural fill is canonical")
