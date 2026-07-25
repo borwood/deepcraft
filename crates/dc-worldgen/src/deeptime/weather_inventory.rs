@@ -53,7 +53,7 @@ use dc_core::materials::MaterialId;
 
 use super::grid::{DeepConfig, DeepGrid};
 use super::inventory::{
-    BEDROCK_SEAM_MATERIAL, Cause, Fact, FactLedger, InvForm, build_working, commit_chapter,
+    BEDROCK_SEAM_MATERIAL, Cause, FactLedger, InvForm, build_working, commit_chapter,
 };
 use super::recorder::DeepStrata;
 
@@ -244,40 +244,16 @@ pub fn weather_bedrock_epoch(
             share,
         );
     }
+    // **A-4 fold (journal/0096): the second merger is gone.** This used to be
+    // followed by a `coalesce_facts` sweep over every slot, because
+    // `commit_chapter` merged only *consecutive* identical edges while successive
+    // firings interleave the three agents (chem, biotic, frost, chem, …) — so
+    // nothing ever merged and the facts grew 3-per-firing until the sweep reaped
+    // them. `commit_chapter` now searches the slot, which is the same merge done
+    // once at the point of writing; the accumulator stays bounded at ≤ one fact
+    // per agent per chapter and the band (Σ fractions) is unchanged.
     commit_chapter(&mut inv, ledger);
-    // Keep the accumulator bounded across the many epochs sharing a chapter:
-    // `commit_chapter` merges only *consecutive* identical edges, but successive
-    // firings interleave the three agents (chem, biotic, frost, chem, …), so without
-    // this the facts would grow 3-per-firing (→ hundreds per cell, a slow
-    // collapse-time fold). Merging by (chapter, cause, edge) bounds it to ≤ one fact
-    // per agent per chapter; the band (Σ fractions) is invariant to the merge.
-    for slot in ledger.facts.iter_mut() {
-        coalesce_facts(slot);
-    }
     total
-}
-
-/// Merge a unit's facts that share the same `(chapter, cause, from, to)` into one,
-/// summing their fractions and preserving first-occurrence order. The band the facts
-/// compose to is unchanged; this only bounds the fact count as firings accumulate.
-fn coalesce_facts(facts: &mut Vec<Fact>) {
-    if facts.len() <= 1 {
-        return;
-    }
-    let mut out: Vec<Fact> = Vec::with_capacity(facts.len().min(WEATHERING_AGENTS.len()));
-    for f in facts.drain(..) {
-        let key = (f.chapter(), f.cause(), f.from(), f.to());
-        if let Some(g) = out
-            .iter_mut()
-            .find(|g| (g.chapter(), g.cause(), g.from(), g.to()) == key)
-        {
-            let Fact::InPlace { fraction_m, .. } = g;
-            *fraction_m += f.fraction_m();
-        } else {
-            out.push(f);
-        }
-    }
-    *facts = out;
 }
 
 /// **The `dc:deep/weather_inventory` pass body over the whole grid for one epoch.**

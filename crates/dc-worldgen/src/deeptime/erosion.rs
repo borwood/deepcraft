@@ -510,6 +510,14 @@ pub struct Erosion {
     cur_chapter: u8,
     forcing: Vec<f64>,
     r_snap: Vec<f64>,
+    /// **Per-cell suspended load leaving toward the receiver this epoch** (the
+    /// `qs_out` of [`Self::transport`]). Empty unless the flow record is on
+    /// ([`Self::set_flux_record`]) — and then it is a pure side-write off the
+    /// transport chain, so the erosion result is bit-for-bit unchanged either way.
+    /// It is the **L** of the flow atom (flow.md § 1.3): the only place the load
+    /// crossing a face is ever visible, because `qs` afterwards holds each cell's
+    /// *in*-load summed over contributors and cannot be factored back apart.
+    out_load: Vec<f64>,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -548,8 +556,26 @@ impl Erosion {
             cur_chapter: 0,
             forcing: Vec::new(),
             r_snap: Vec::new(),
+            out_load: Vec::new(),
             heap: BinaryHeap::new(),
         }
+    }
+
+    /// Turn the **flow record's** per-epoch out-load capture on. Off (the
+    /// default) the buffer stays empty and [`Self::transport`] never touches it,
+    /// so every direct caller of `step` keeps the byte-identical old behaviour.
+    pub fn set_flux_record(&mut self, on: bool) {
+        if on && self.out_load.len() != self.n {
+            self.out_load = vec![0.0; self.n];
+        } else if !on {
+            self.out_load = Vec::new();
+        }
+    }
+
+    /// The suspended load each cell handed to its receiver in the last
+    /// [`Self::transport`] (empty unless [`Self::set_flux_record`] is on).
+    pub fn out_load(&self) -> &[f64] {
+        &self.out_load
     }
 
     /// Set the tectonic chapter the recorder stamps and load this iteration's
@@ -1053,6 +1079,9 @@ impl Erosion {
         self.dh.iter_mut().for_each(|d| *d = 0.0);
         self.qs.iter_mut().for_each(|q| *q = 0.0);
         self.energy.iter_mut().for_each(|e| *e = 0.0);
+        // Flow-record side-buffer (empty ⇒ inert). Written, never read, by the
+        // transport chain — it cannot perturb an f64 anywhere.
+        self.out_load.iter_mut().for_each(|q| *q = 0.0);
         for k in (0..self.order.len()).rev() {
             let c = self.order[k] as usize;
             let rc = self.recv[c];
@@ -1125,6 +1154,12 @@ impl Erosion {
                 cap
             };
             self.qs[rc] += qs_out;
+            // The load crossing cell→receiver this epoch — the flow atom's `L`.
+            // Captured here because it is unrecoverable afterwards: `qs[rc]` is a
+            // sum over every contributor, with no unique factorization.
+            if !self.out_load.is_empty() {
+                self.out_load[c] = qs_out;
+            }
         }
     }
 

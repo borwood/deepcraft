@@ -25,6 +25,7 @@ pub mod biotic;
 pub mod climate;
 pub mod erosion;
 pub mod field;
+pub mod flux;
 pub mod geotherm;
 pub mod grid;
 pub mod inventory;
@@ -45,6 +46,10 @@ pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
     build_field_cfg, build_field_with, production_config, production_config_with,
+};
+pub use flux::{
+    FACE_SLOTS, FaceKey, FlowCause, FlowForm, FluidId, FluxAccum, FluxCensus, FluxEntry,
+    FluxRecord, LATERAL_FACES, slot_for_chapter,
 };
 pub use geotherm::{
     BurialColumn, DEFAULT_CONTINENTAL_GRADIENT_C_PER_M, FIELD_TEMPERATURE, GEOTHERM_PERIOD,
@@ -116,6 +121,10 @@ pub struct DeepRun {
     /// **Empty** when `weather_inventory` is off (byte-identical). Index-parallel to
     /// `grid.strata`; the `DeepField` carries them as its `ledgers` sidecar.
     pub weather_ledgers: Vec<FactLedger>,
+    /// **The face-flux record** (FLOW slice 1, flow.md § 2) — per-chapter flux on
+    /// 3D faces, the representation that replaces the exported receiver tree.
+    /// Empty when `flow_record` is off.
+    pub flux: flux::FluxRecord,
 }
 
 /// Sum of bedrock + alluvium over the whole grid (the conserved quantity, up
@@ -145,6 +154,9 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     let mut grid = build_cells(cells, cfg);
     let mut erosion = Erosion::new(&grid);
     erosion.set_parallel(parallel);
+    // FLOW slice 1: arm the transport pass's per-face load capture. Off ⇒ the
+    // buffer stays empty and transport never touches it (byte-identical).
+    erosion.set_flux_record(cfg.flow_record);
     let mass_before = total_mass(&grid);
 
     // --- pre-loop seeding (initial conditions the epoch loop reads) ---
@@ -194,6 +206,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         Vec::new()
     };
 
+    let grid_w = grid.w;
     let schedule = runner::DeepSchedule::new(runner::deep_passes(cfg))
         .expect("the deep-time pass graph is valid");
     let mut ctx = runner::DeepStepCtx {
@@ -210,6 +223,11 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         biotic_total: 0.0,
         thickening_total: 0.0,
         weather_ledgers,
+        flux: if cfg.flow_record {
+            flux::FluxAccum::new(grid_w)
+        } else {
+            flux::FluxAccum::inactive()
+        },
     };
     schedule.run(&mut ctx);
     let runner::DeepStepCtx {
@@ -221,8 +239,11 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         biotic_total,
         thickening_total,
         weather_ledgers,
+        flux: flux_accum,
         ..
     } = ctx;
+    // Close the final chapter and sort the archive into its cell-major index.
+    let flux = flux_accum.finish();
 
     // Burial diagenesis: buried thick peat becomes coal (post-loop, unchanged).
     if let Some(b) = biota.as_ref() {
@@ -251,6 +272,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         exhum_total,
         chapters: tec.table,
         weather_ledgers,
+        flux,
     }
 }
 

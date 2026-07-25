@@ -255,6 +255,26 @@ pub struct DeepConfig {
     /// every world made afterwards — the production flip is the user's, like the
     /// erodibility/biotic/tectonic-history flips. Appended last (wire discipline).
     pub weather_inventory: bool,
+
+    /// **The flow record** (FLOW slice 1, `docs/design/flow.md` § 2 — RATIFIED
+    /// 2026-07-25). **On by default.** With it on, the `dc:deep/flow_record` pass
+    /// runs every epoch and accumulates the routed discharge into **flux on
+    /// faces, per tectonic chapter** ([`super::flux::FluxRecord`]) — the
+    /// representation that replaces the exported receiver tree, which is one
+    /// out-edge per cell and therefore **cannot represent divergence at all**
+    /// (no distributaries, braids, fans or deltas).
+    ///
+    /// It is a **pure sidecar**: it reads the drainage solve's own outputs and
+    /// writes only its own record, never `R`/`H`/the strata — the same
+    /// two-authorities discipline the geotherm and the inventory-weathering pass
+    /// keep. So the collapsed world is **byte-identical with the flag either
+    /// way** (asserted by name in `tests/flux_record.rs`, and the production
+    /// goldens in `providers_golden.rs` are untouched). Off is therefore not an
+    /// identity-preserving *fallback* — it is the **residency** switch: the
+    /// record is the largest thing the ritual keeps, and flow.md § 9.1 explicitly
+    /// defers "what is resident vs re-derived" to measurement. Turn it off to run
+    /// the ritual at the pre-slice footprint. Appended last (wire discipline).
+    pub flow_record: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -310,6 +330,7 @@ impl Default for DeepConfig {
             flex_wavelength_km: 50.0,
             iso_rate: 0.5,
             weather_inventory: false,
+            flow_record: true,
             providers: super::providers::Providers::default(),
         }
     }
