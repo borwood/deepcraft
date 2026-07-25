@@ -673,3 +673,23 @@ doc the batch touched**, before the commit that folds it.
 
 Renumbering afterward is cheap but not free: references live in ROADMAP, journals, and
 in-code comments, so the fix is a corpus-wide grep, not a one-line edit.
+
+## The gate has outgrown one tool call — run it as STAGES (2026-07-25)
+
+The full gate now exceeds a single 10-minute invocation and was **killed mid-`test`**, which
+is the worst possible shape: `fmt` and `clippy` had passed and no test had failed, but the
+run produced **no verdict at all**. Two causes, both permanent: `cargo clean -p` across
+`dc-worldgen` + `dc-api` + `dc-client` forces a **Bevy** rebuild, and the suite itself has
+grown past ~870 s in `dc-worldgen` alone — plus the newly-gated probes.
+
+**Run it as separate invocations**, each with its own verdict:
+1. `clean -p <changed crates + any a live sibling changed>` **+ `fmt --all --check` + `clippy --workspace --all-targets --release -D warnings`** — the rebuild is paid here.
+2. `cargo test --workspace --release` — fast now, because stage 1 already built everything.
+
+A killed stage is then unambiguous: you know exactly which one lacks a verdict, and stage 2
+re-runs in a fraction of the time because the artifacts exist. **This is "did it run?" vs
+"did it pass?" arriving at the HARNESS level** rather than the shared-cache level — a
+timeout is not a red gate, and must never be recorded as one, but it is equally not a green.
+
+**Corollary:** never read a killed run as evidence in either direction. Check how far it got
+(the staged log makes this trivial), then finish the missing stage.
