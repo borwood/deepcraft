@@ -1581,3 +1581,68 @@ already in hand: the stored `Block` disambiguates (empty record + `Air` ⇒
 genuinely empty; empty record + anything else ⇒ unrecorded), so **no dc-worldgen
 change was needed**. Residual: the answer is still **edit-blind for composition**
 (the arc's runtime edit-fact overlay).
+
+## 50. "The weathering front's voxel tier expresses +3.7 % more product than the record owes" (journal/0099, 2026-07-25 — an instrument artifact, not a world bias)
+
+**The claim.** journal/0099 measured the front's voxel-tier mass over **21
+columns** at **+3.7 %** (56.14 m expressed vs 54.12 m owed), with a **+16 %
+median**, and called it quantization noise under journal/0055's unbiased-estimator
+doctrine. The integrator's review (ROADMAP Observed) correctly objected that an
+unbiased estimator's population mean trends to **zero**, and that a positive
+*median* is the signature of a **floor effect** — a band thinner than one eighth
+cannot express as less than one eighth without vanishing. Both readings assumed
+the measurement was sound.
+
+**Falsified — the measurement was not sound.** The probe counted **materials in
+the finished voxel**: every eighth of the product's material found in a front
+voxel was credited to the front. But the weathering product is
+`CLASS_CLASTIC_FINE` (mudstone in this world) and so is much of the sediment pile
+lying directly **on top of** the front, and at the top contact the two share a
+`Mixed` voxel. Over **247 production columns**, **222 of them** contain at least
+one front voxel whose fill plan holds a *non-front* event made of the product's
+own material. **Voxel contents carry no provenance** — a finished voxel is a
+multiset of materials and does not record which event contributed which eighth —
+so the census could not tell the front's mudstone from its neighbour's.
+
+**Mechanism of the fake trend.** Restricting the comparison to *attributable*
+voxels (both sides), and splitting the pipeline into its two quantizers, the
+aggregate error falls from **+6.76 % to −0.60 %** and the per-column distribution
+becomes symmetric about zero (mean **−0.10 %**, median **−0.00 %**, p5 −30.00 %,
+p95 +28.72 %, N=247):
+
+| stage | aggregate | mean | median |
+|---|---|---|---|
+| naive record → voxels | +6.76 % | +12.59 % | +6.01 % |
+| **stage 1** record → fill geometry | **−0.02 %** | +0.03 % | +0.00 % |
+| **stage 2** the draw, attributable | **−0.60 %** | −0.10 % | −0.00 % |
+
+The naive figure's beautiful monotone decay with front thickness (+76 % at 2–4
+eighths → +4 % at ≥24) was **not** a floor effect. It was the *contact voxel's
+share of the front* shrinking as the front grows: a thin front is mostly contact,
+a thick one mostly interior, so the one contaminated voxel dominated a thin
+front's count and barely touched a thick one's. Stage 2 shows no such trend —
+only a spread that widens as the front thins, which is exactly what an unbiased
+estimator over a one-eighth quantum does (a 2-eighth front cannot be wrong by less
+than ±50 %, and is wrong in **both** directions).
+
+**journal/0055's unbiased-estimator doctrine is NOT falsified — it is confirmed**,
+and confirmed from the code as well as the data: `fill::allocate_to` is systematic
+sampling (a Cranley–Patterson rotation) with `P(extra) = remainder` exactly;
+`allocate_partial`'s rescale floors the *cumulative*, so errors cancel along the
+run; `pore_rider_share`'s mean is exactly `cnt·k8/8`. **Nothing rounds up at the
+floor.** (The one real floor in the path, `contents_for_event`'s
+`eighths.clamp(1, 7)`, cannot bite on a profile that runs `[7,5,4,3,2,1,1,1]`.)
+
+**Lesson, and it outlives this front.** *A conservation audit at the voxel tier
+cannot work by counting materials.* The voxel does not know who put the material
+there; only the **fill plan** does. Any mass budget built on the voxel tier —
+flow.md § 3's, next — must compare against the plan, not against a census of the
+finished contents. Also: **21 columns is not a population.** The naive median was
++16 % at N=21 and +6.0 % at N=247; it was moving with `N` the entire time, which
+was itself the small-sample tell.
+
+**Residual, stated:** 222 of 2 077 front voxels (10.7 %) are excluded from the
+attributable figure and they are systematically the *top contact* voxels, not a
+random tenth. This instrument cannot measure them at all. The conclusion rests on
+stage 1 covering **100 %** of voxels and coming out flat, plus the code-level
+proof that the draw is unbiased by construction. See journal/0103.

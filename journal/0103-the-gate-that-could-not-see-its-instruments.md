@@ -138,7 +138,84 @@ product's own material. The probe now detects that per voxel and excludes those
 voxels from **both** sides of the comparison, so the remaining figure compares
 like with like.
 
-<!--NUMBERS-->
+### The verdict: **NOISE**, and the bias was in the instrument
+
+Production world, seed 1337, `Extent::Medium`, `weather_inventory` ON. **247
+columns** sampled across the whole band distribution (journal/0099 had 21), 2 077
+front voxels.
+
+```
+                                   aggregate      per column
+                                                mean    median      p5     p95
+naive  record -> voxels             +6.76 %   +12.59 %  +6.01 %  -13.80 %  +65.56 %
+stage 1  record -> fill geometry    -0.02 %    +0.03 %  +0.00 %   -1.22 %   +0.86 %
+stage 2  the draw, attributable     -0.60 %    -0.10 %  -0.00 %  -30.00 %  +28.72 %
+         (Mixed-plan voxels only)   -0.84 %
+```
+
+Stratified by front magnitude, in eighths of a voxel of owed product — the axis a
+floor effect must live on, because the floor *is* one eighth:
+
+```
+owed product        N    naive mean   stage-1 mean   stage-2 mean   stage-2 median
+  1 – 2 eighths     2      -43.57 %        +0.00 %       -43.57 %         +12.86 %
+  2 – 4 eighths    13      +76.14 %        +2.04 %        +9.08 %         +20.56 %
+  4 – 8 eighths    23      +30.64 %        -0.59 %        +2.88 %         -12.31 %
+  8 – 24 eighths   91      +10.79 %        -0.03 %        -0.07 %          +0.27 %
+    >= 24 eighths 118       +4.41 %        -0.02 %        -0.74 %          -0.43 %
+```
+
+Read the **naive** column and the floor-effect story is perfect: +76 % on the
+thinnest fronts decaying monotonically to +4 % on the thickest, exactly what a
+one-sided quantum would produce. Read **stage 2** — the same columns, with the
+overlying bed's mudstone no longer counted as the front's — and the trend is
+gone. What is left is a distribution centred on zero (mean −0.10 %, median
+−0.00 %) with a symmetric spread (p5 −30 %, p95 +29 %) that **widens** as the
+front thins, which is exactly what an unbiased estimator over a quantum of one
+eighth does: a front owing two eighths cannot be wrong by less than ±50 %, and it
+is wrong in **both** directions.
+
+The naive trend was not a floor effect. It was **the contact voxel's share of the
+front shrinking as the front grows**. A thin front is mostly contact; a thick one
+is mostly interior. The contaminated top voxel therefore contributed a large
+fraction of a thin front's count and a small fraction of a thick one's, and that
+produced a clean monotone curve in a quantity that had nothing to do with
+quantization.
+
+**So: noise, not bias.** journal/0055's unbiased-estimator doctrine is **not
+falsified** — it is confirmed, and the arithmetic below shows why it had to be.
+What is falsified is journal/0099's *number*: the front's voxel tier does not run
++3.7 % hot; over the 89 % of front voxels whose product can be attributed it runs
+**−0.6 %**, and the residual is the estimator's variance, not its mean. Recorded
+in corrections.md.
+
+Two honest limits on that:
+
+1. **10.7 % of front voxels (222 of 2 077) are excluded** from the attributable
+   figure, and they are not a random 10.7 % — they are systematically the *top
+   contact* voxels. Nothing in a finished voxel says which event put a mudstone
+   eighth there, so that share is not directly measurable by this instrument at
+   all. The inference rests on stage 1 covering **100 %** of voxels and coming
+   out flat, plus the code-level argument that the draw is unbiased by
+   construction.
+2. **The +16 % median that opened the question was a 21-column median.** At 247
+   columns the naive median is already +6.0 %. The number was moving with `N` the
+   whole time, which is itself the small-sample signature the review suspected.
+
+### The generalisation, and it matters for flow.md § 3
+
+**Voxel contents carry no provenance.** A finished voxel is a multiset of
+materials; it does not record which recorded event contributed which eighth. So
+*any* conservation audit at the voxel tier that works by counting materials is
+measuring "how much of material M is here", not "how much of material M did
+source S put here" — and those differ by exactly however much of M the
+neighbours are made of.
+
+flow.md § 3's mass budget is a conservation audit at the voxel tier. It can
+safely build on this front — the expression is unbiased — **provided it compares
+against the fill plan rather than against a material census.** The plan knows
+which event owns which fraction of which voxel; the voxel does not. Writing that
+down is worth more than the percentage.
 
 ## What the code actually says about the rounding
 
