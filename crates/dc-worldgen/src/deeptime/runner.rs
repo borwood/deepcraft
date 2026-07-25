@@ -397,7 +397,8 @@ fn flow_record_pass(ctx: &mut DeepStepCtx<'_>) {
     // FLOW continuation (a): the vertical (slot↔slot) faces slice 1 left honestly
     // zero, filled from the head field's exchange plane. A no-op — leaving them
     // zero exactly as before — when the head field is off and the plane is empty.
-    ctx.flux.add_epoch_vertical(chapter, &ctx.grid.head_exchange);
+    ctx.flux
+        .add_epoch_vertical(chapter, &ctx.grid.head_exchange);
 }
 
 /// **The head field — the §5 field pass that makes flow descend a POTENTIAL**

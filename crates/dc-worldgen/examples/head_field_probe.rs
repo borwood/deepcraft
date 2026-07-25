@@ -35,7 +35,7 @@ fn mib(bytes: usize) -> f64 {
 }
 
 /// min / mean / p95 / max of a sample (sorted in place).
-fn dist(v: &mut Vec<f64>) -> (f64, f64, f64, f64) {
+fn dist(v: &mut [f64]) -> (f64, f64, f64, f64) {
     if v.is_empty() {
         return (0.0, 0.0, 0.0, 0.0);
     }
@@ -91,16 +91,16 @@ fn main() {
     let mut down_mags: Vec<f64> = Vec::new();
     let mut up_mags: Vec<f64> = Vec::new();
     let mut columns_with_vertical = vec![false; cells];
-    for i in 0..cells {
+    for (i, carries) in columns_with_vertical.iter_mut().enumerate() {
         for e in rec.entries_for(i) {
             match e.face {
                 FaceKey::Down => {
                     down_mags.push(f64::from(e.magnitude));
-                    columns_with_vertical[i] = true;
+                    *carries = true;
                 }
                 FaceKey::Up => {
                     up_mags.push(f64::from(e.magnitude));
-                    columns_with_vertical[i] = true;
+                    *carries = true;
                 }
                 _ => {}
             }

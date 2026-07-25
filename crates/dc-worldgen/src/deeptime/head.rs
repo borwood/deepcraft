@@ -448,9 +448,7 @@ pub(crate) fn march(
             // Standing water, and the column is open to it: the table is the lake.
             pinned[i] = true;
             h[i] = (g + ponded).max(sea_level);
-        } else if !hydro.confined
-            && area.get(i).copied().unwrap_or(0.0) >= STREAM_ANCHOR_AREA
-        {
+        } else if !hydro.confined && area.get(i).copied().unwrap_or(0.0) >= STREAM_ANCHOR_AREA {
             // A perennial stream runs here and the column is open to it: the water
             // table *outcrops* at the ground, exactly — never above it.
             pinned[i] = true;
@@ -462,34 +460,36 @@ pub(crate) fn march(
         }
     }
 
+    // The cells the relaxation may move, in raster order — built once.
+    let free: Vec<usize> = (0..n).filter(|i| !pinned[*i]).collect();
     let mut residual = 0.0f64;
     for sweep in 0..HEAD_RELAX_SWEEPS {
         residual = 0.0;
+        // Alternating sweep direction: a reverse pass carries a boundary value
+        // across the whole grid in one go, where a forward-only sweep (or Jacobi)
+        // would need O(w²) iterations to diffuse it that far.
         if sweep % 2 == 0 {
-            for i in 0..n {
-                if !pinned[i] {
-                    residual = residual.max(relax_cell(i, w, &mut h, &t, &unconfined, ground));
-                }
+            for &i in &free {
+                residual = residual.max(relax_cell(i, w, &mut h, &t, &unconfined, ground));
             }
         } else {
-            for i in (0..n).rev() {
-                if !pinned[i] {
-                    residual = residual.max(relax_cell(i, w, &mut h, &t, &unconfined, ground));
-                }
+            for &i in free.iter().rev() {
+                residual = residual.max(relax_cell(i, w, &mut h, &t, &unconfined, ground));
             }
         }
     }
 
-    let mut exchange = vec![0.0f32; n];
-    for i in 0..n {
-        let hydro = ColumnHydro {
-            transmissivity: t[i],
-            k_vertical: f64::from(k_vert[i]),
-            cap_m: f64::from(cap[i]),
-            confined: !unconfined[i],
-        };
-        exchange[i] = vertical_exchange(h[i], ground[i], sea_level, hydro) as f32;
-    }
+    let exchange: Vec<f32> = (0..n)
+        .map(|i| {
+            let hydro = ColumnHydro {
+                transmissivity: t[i],
+                k_vertical: f64::from(k_vert[i]),
+                cap_m: f64::from(cap[i]),
+                confined: !unconfined[i],
+            };
+            vertical_exchange(h[i], ground[i], sea_level, hydro) as f32
+        })
+        .collect();
     grid.head = h;
     grid.head_exchange = exchange;
     residual
@@ -598,7 +598,10 @@ mod tests {
         // their own ground and the confined column is the only free one.
         let area = vec![STREAM_ANCHOR_AREA; w * w];
         let residual = march(&mut grid, &r, &r, &r, &area, -1000.0);
-        assert!(residual < 1e-3, "the relaxation did not settle ({residual})");
+        assert!(
+            residual < 1e-3,
+            "the relaxation did not settle ({residual})"
+        );
 
         let i = 4 * w + 5; // mid-row, the confined column
         let (head, ground) = (grid.head[i], r[i]);
@@ -700,9 +703,9 @@ mod tests {
             .collect();
         let area = vec![0.0f64; w * w];
         march(&mut grid, &r, &r, &r, &area, 0.0);
-        for i in 0..w * w {
+        for (i, ground) in r.iter().enumerate() {
             let hydro = column_hydro(&grid.strata[i]);
-            let want = vertical_exchange(grid.head[i], r[i], 0.0, hydro) as f32;
+            let want = vertical_exchange(grid.head[i], *ground, 0.0, hydro) as f32;
             assert_eq!(
                 grid.head_exchange[i], want,
                 "cell {i}: the cached exchange disagrees with the field"
@@ -721,7 +724,9 @@ mod tests {
         assert_eq!(vertical_exchange(50.0, -10.0, 0.0, hydro), 0.0);
         // Unsaturated: recharge at the unit gravity gradient — exactly k_vert.
         let q = vertical_exchange(40.0, 100.0, 0.0, hydro);
-        assert!((q - hydro.k_vertical).abs() < 1e-12, "recharge {q} != k_vert");
+        assert!(
+            (q - hydro.k_vertical).abs() < 1e-12,
+            "recharge {q} != k_vert"
+        );
     }
 }
-
