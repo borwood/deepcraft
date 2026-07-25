@@ -673,7 +673,7 @@ impl<'a> WorldGenerator<'a> {
                 //
                 // A *structural* accessory (the 1/8 igneous inclusion) is still
                 // dropped at contacts — the pre-0099 carve-out, kept so no
-                // existing world moves; filed as a loose end on stubs.md #19.
+                // existing world moves; filed as a loose end on stubs.md #20.
                 (_, Some((rider, k8))) if k8 > 0 && crate::fill::is_loose(&self.geology, rider) => {
                     let g = pore_rider_share(cnt, k8, u);
                     if cnt > g {

@@ -3344,6 +3344,45 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **⚠ A TIE-BREAK IS DECIDING PHYSICS AGAIN — `reads_prev` is documentation, not a
+  mechanism** (spine-audit 2026-07-25; **the SECOND instance in two sweeps**, and the
+  auditor's own words: *"this is the only fix that stops a third"*). **USER RATIFICATION
+  REQUIRED — not an agent's call.**
+  - **The hole.** `DeepPass::reads_prev` appears in `runner.rs` and **in no other file in
+    `crates/`** — `passgraph` never receives it (`runner.rs:199-204`, deliberately). So a
+    `reads_prev` declaration is **enforced by nothing**. `dc:field/head` declares
+    `reads_prev:[Recorded]` and that is *true today* only because Kahn parks a ready node
+    until it wins the id sort (`passgraph.rs:151-153`): head is ready once `drainage` writes
+    `Routed`, while `deposition` waits on `isostasy`. **Rename the pass to any id sorting
+    after `dc:deep/deposition` — `dc:deep/hydraulic_head`, say — and it silently starts
+    reading THIS epoch's record.**
+  - **Why this is the same defect one level up.** The last sweep caught a tie-break deciding
+    a *read* (`weather_inventory`'s `BioMod`, fixed by declaring it). This one has a
+    tie-break deciding **an epoch**, and it **cannot** be fixed the same way, because there
+    is no declaration channel that binds. The honest fix is a **mechanism** — a
+    reader-before-writer **anti-dependency edge** in `passgraph`, so a lagged read is
+    ordered, not merely annotated.
+  - **Second, smaller, and fixable today: `dc:field/head` UNDER-DECLARES.** `reads:[Routed]`
+    (`runner.rs:605`) does not cover the ground surface `R+H`, which the body builds via
+    `grid.surf_at` (`runner.rs:428-430`) and the solve uses as its **seepage cap, lake datum
+    and free-surface boundary** (`head.rs:434-467`). Which terrain revision it sees is again
+    the id tie-break. The golden-order test's defence — *"its position never affects the
+    terrain"* — is true and **is not the question**: it affects **the field's own values**.
+    The auditor judges declaring `Forced` *"free, and it pins it"*. **Verify that claim
+    before trusting it** — head is **ON by default** (`grid.rs:279`), so if the declaration
+    moves which revision it reads, the **recorded flux changes** and that is a world change
+    needing a walk. Acceptance: declare it, prove the flux record byte-identical; **if it
+    moves, STOP.**
+  - *Deliberately not dispatched while the user is away: it touches a default-on pass and
+    could move recorded output.*
+
+- **`DeepField::chapters` — built, exported, and called by nothing** (spine-audit
+  2026-07-25; `field.rs:367`, populated `:421`). Its own doc comment has said *"today the
+  table is exported and read by nothing"* since U8; readers are only tests. **Now listed in
+  spines § 3, where it belongs.** The lesson is the reason it is here: **three consecutive
+  sweeps added rows for its two immediate neighbours in the same struct and walked past
+  it** — *a self-declaring comment is not an index*, demonstrated against § 3 itself.
+
 - **OWED / next residency lever — a per-cell OWNING CONTAINER is a header × 297,025 before it
   stores anything** (journal/0100, 2026-07-25). The CSR conversion cut the ledger heap 9.5×, but
   the per-cell `FactLedger` **struct** grew 24 → 48 B (two `Vec` headers per cell) = **13.60 MiB

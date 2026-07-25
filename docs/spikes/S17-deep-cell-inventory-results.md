@@ -282,6 +282,7 @@ enum Fact {                              // the persistent compiled artifact
     // (reserved) Move { chapter, from_addr, to_addr, portion }  <- see 7.5
 }
 struct FactLedger { facts: Vec<Vec<Fact>> }   // facts[i] = facts on units[i]
+// ^ SUPERSEDED 2026-07-25 (journal/0100) — see the note below.
 ```
 
 `InvForm` gained a **`Void`** variant — *edge endpoint only, never a stored
@@ -290,6 +291,17 @@ portion* — so dissolution (`… → Void`) and deposition (`Void → …`) rid
 §3 process classes; `sizeof(Fact) ≤ 24 B`, `sizeof(InvSpan) = 32 B`.
 
 **Where it hangs (reported design choice — a plea, not a silent divergence).**
+> **⚠ SUPERSEDED 2026-07-25 — the `Vec<Vec<Fact>>` shape below is GONE** (journal/0100,
+> spine-audit). It was measured at **98.8 % empty inner `Vec`s, 89 % of its ~150 MiB heap
+> in empty headers**, and was replaced by the house **flat + CSR** layout
+> (`facts: Vec<Fact>` + `rows: Vec<SlotRun>`, non-empty slots only), cutting flag-ON
+> residency **311.02 → 179.12 MiB**. *The **semantics** described below — a sidecar keyed
+> by unit index, parallel to the record, order-observable within a slot — are unchanged and
+> still correct; only the storage is.* Flagged because CLAUDE.md read-first item 5 tells
+> readers that spike results are the numbers **not to re-derive**, which makes a stale one
+> actively misleading. (Its sibling `S19-flow-record-cost-results.md` got its RESOLVED note
+> at the time; this one was missed.)
+
 The ledger is a **sidecar** `Vec<Vec<Fact>>` keyed by unit index, *parallel to*
 `DeepStrata.units`, **not** a `facts` field grown onto `DepUnit`. `DepUnit` is
 `Copy` and read across the just-merged `collapse.rs` / `erosion.rs` / `biotic.rs`;

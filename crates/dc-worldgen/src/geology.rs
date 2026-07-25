@@ -431,7 +431,7 @@ const DEEP_VENEER_MARGIN_M: f64 = 2.0;
 /// it is mobile regolith, not a front, and "no bedrock anywhere in the band" is
 /// precisely the defect journal/0097 caught.
 ///
-/// **STUB #19** (docs/design/stubs.md): the *magnitude* is the deep model's, but
+/// **STUB #20** (docs/design/stubs.md): the *magnitude* is the deep model's, but
 /// this *shape* — decay length, 7/8 cap, and hence the 8/3 thickness ratio — is a
 /// constant measured from nothing. In the field it is set by the balance of
 /// front descent against erosion rate, by fracture density and permeability, and
@@ -502,7 +502,7 @@ const FRONT_TAG_PARENT: u64 = u64::MAX - 1;
 /// a clastic-fine product: that disagreement is #16's, and the same heir closes
 /// both.) The **retained parent**, by contrast, is not invented here — it is
 /// inherited from the basement body this column actually recorded, so the front
-/// is made of the rock beneath it. The **shape** of the profile is stubs.md #19.
+/// is made of the rock beneath it. The **shape** of the profile is stubs.md #20.
 ///
 /// No-op when `deep_weathering_m` rounds to nothing — the S-5 identity default
 /// keeps the world byte-identical with the flag off.

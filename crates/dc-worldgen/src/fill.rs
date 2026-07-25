@@ -281,7 +281,7 @@ pub fn fill_draw(seed: u64, vx: i64, vy: i64, vz: i64) -> f64 {
 /// reading as pure parent rock. A *structural* accessory — the sparse 1/8
 /// igneous inclusion — is still not: it rides the thick basement bodies, which
 /// are voxel-aligned and take the [`Plan::Single`] path where the unchanged
-/// per-event constructor handles them (stubs.md #19 names the residue).
+/// per-event constructor handles them (stubs.md #20 names the residue).
 /// **Partial fills are first-class here.** `parts` may total fewer than eight
 /// eighths — that is the top-of-column remainder (the surface voxel holds only
 /// the metres between the voxel floor and the actual ground surface). A loose
