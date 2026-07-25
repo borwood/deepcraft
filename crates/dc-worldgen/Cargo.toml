@@ -69,6 +69,16 @@ test = true
 name = "perdepth_weathering_cost_probe"
 test = true
 
+# S20 — the residency follow-on to R3: what should the fact ledger COST, and
+# where should it LIVE? A measurement + a paged prototype; it builds no part of
+# the arc and changes nothing shipped. The gate asserts only scale-free
+# self-consistency (the itemisation reconstructs its own measured total; the
+# local width model still models `Fact`; every axis-drop is a strict reduction;
+# the paged prototype writes and reads back a real file). Runs at Extent::Small.
+[[example]]
+name = "s20_ledger_residency_probe"
+test = true
+
 [dev-dependencies]
 # S15 spike (measurement only — examples + tests, never a build dependency of
 # the library). The spike's whole point is to run against the REAL chunk store,
