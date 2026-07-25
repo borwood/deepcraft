@@ -553,6 +553,17 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   coal (~surface-temp-thresholded); its real payoff is **metamorphism** (deep crust: `exhum` = P,
   geotherm = T → grade). **Appearance walk owed but low-priority** — coal is a user-blessed
   placeholder; don't over-calibrate (it recalibrates when biology lands).
+  - **⚠ CORRECTED 2026-07-25 (corrections #51; staleness sweep row S-6).** *"Still a diggable seam
+    on Medium"* was measured on the **warm reference** world `0x0D5EED572026`, **not** on the world
+    the client boots. On seed **1337 / Medium** the recalibration produces **zero coal — 0 units
+    across 297,025 cells**, the hottest peat candidate standing at **15.4 °C against a 22 °C
+    onset**, i.e. 6.6 °C short. The cited guard no longer exists under that name: `tests/geotherm.rs`
+    now carries `the_geotherm_rule_governs_coalification_on_the_production_world` (1337 / Medium,
+    which **requires no coal**) and `coal_follows_the_warm_crust_on_the_warm_reference_world`
+    (journal/0106). The recalibration itself stands; only the sentence about what a player would
+    find was wrong. The content question — (a) accept a coal-free world … (d) — is open in Observed,
+    and the appearance walk this entry owed is a **desk null**, not a walk (see APPEARANCE WALKS
+    OWED item (3)).
 
 - 2026-07-24 — **Movement 2a: R/H are derived views of the inventory** (journal/0092;
   background agent, worktree). The per-cell working inventory (== the strata record) is now the
@@ -2205,10 +2216,13 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   ~~profiling slice (Tracy/tracing spans + vertical-drop baseline → ranked
   killer list)~~ **LANDED 2026-07-23, journal/0080 (`perf` feature + self-time
   aggregating layer + `--perf-drop` capture; baseline artifact stubbed pending an
-  integrator GPU run)** · **async-offload slice is now the sequenced NEXT** (chunk
+  integrator GPU run)** · ~~**async-offload slice is now the sequenced NEXT** (chunk
   gen + far-mesh onto AsyncComputeTaskPool; the synchronous `stream_chunks`
   gen+mesh loop is the span-named suspect — `chunk.gen`/`chunk.contents`/
-  `neighbor_fill.gen`/`mesh_chunk` on the frame thread) · ~~erosion-budget dev flag
+  `neighbor_fill.gen`/`mesh_chunk` on the frame thread)~~ **LANDED 2026-07-23,
+  journal/0083 + journal/0084 — see § Shipped** (status drift only, corrected by the
+  2026-07-25 staleness sweep row S-9). *The live successors are the two Observed items
+  it left behind: the **throughput ceiling** and **per-thread attribution**.* · ~~erosion-budget dev flag
   (the walkable cranked world → the standing amplitude call)~~ **LANDED
   2026-07-22, journal/0076 (`--erosion-budget <mult>`)** · albedo-at-
   range once baseline numbers exist, carrying the ranges-as-player-config
@@ -2514,12 +2528,24 @@ unboundedly by design; ~640 MB per 10 000 edited chunks, asserted by test) ·
 below a cell's floor plane comes only from edits today, which is complete for a
 heightfield world and wrong the moment caves exist; the collapse tier's
 "recorded conduit capacity → void intervals per column" is the same axis, so
-decide it once in water.md rather than twice) · **re-run S15's natural-sill
+~~decide it once in water.md rather than twice~~ **— RESHAPED 2026-07-25 (sweep row
+R-2): its home moved out of `water.md`.** `flow.md` § 7 promotes the **interval-log
+fill contract** from *proposed* to **necessary** (voids/conduits are intervals, not a
+heightfield), and voids / conduits / springs are **FLOW continuation (c)**. Decide it
+there, once, with (c)) · **re-run S15's natural-sill
 falsifier when the cave families land** (not constructible today only because
-the world has no 3-D structure — corrections #31) · **when the store can fail
+the world has no 3-D structure — corrections #31; **the cave families now have a named
+owner — FLOW continuation (c)**, which as of 2026-07-25 carries **three** obligations,
+not two: the free/bound edge, void intervals, **and the conduit pairing rule** — a karst
+conduit pairs by **void connectivity**, a third mode flow.md § 11.5's two-mode green
+explicitly does not cover) · **when the store can fail
 to answer (async streaming / disk-backed regions), an absent chunk must read
 UNKNOWN, never solid**, or eviction manufactures false component boundaries in
-the connectivity index (corrections #31) · reconcile S15's cell-granularity body
+the connectivity index (corrections #31; **there is now an in-tree precedent to copy
+rather than re-invent — `Identity::Unrecorded`**, journal/0101: a "no record here"
+answer that is distinct in the **TYPE** from an empty value, not a sentinel inside the
+value. Copy that shape; a second, differently-spelled unknown would be an A-4) ·
+reconcile S15's cell-granularity body
 footprint with S11's air-component container (S15 design choice 2).
 
 **⚠ UNRATIFIED APPEARANCE CHANGE AWAITING THE USER'S EYE (2026-07-21):**
@@ -2606,6 +2632,18 @@ see the question you are asking.
   sub-domaining with journal/0105's exact failure mode at smaller scale; a `Domain` per decision
   fixes it and costs a longer list. Byte-identity impact: (b) none, (c) none if the tags are kept,
   (a) every world.
+
+- **Finish the `production_* → golden_*` rename** (opened 2026-07-25 by journal/0106; **given a real
+  entry 2026-07-25 by the staleness sweep, row D-2** — the fix note said the rename was *"left
+  sequenced"* and there was no Sequenced entry, which is exactly the doctrine gap that let the
+  `organic.rs` defect sit unlisted). Housekeeping, byte-identical, no user call. `providers_common`
+  and `rh_unification` still spell `production_*` for helpers that build **`0x0D5EED572026`, a world
+  nobody ships**; their claims *are* seed-independent (golden byte-identity, derived-vs-scalar
+  agreement), so they were annotated rather than re-seeded — but the **name still lies**, and it is
+  the name that misled the audit that missed row S-7. Rename to `golden_*` (a fixture for the
+  goldens, which is what it is), ripple into `providers_golden.rs` and the comments in
+  `flux_record.rs` / `head_field.rs`. Leave alone: `deeptime::production_config` and
+  `water::coarse::production()` name a **config**, not a world.
 
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice
@@ -2725,10 +2763,73 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     river left → carbonate dissolved into a phreatic tube, now dry → collapse breccia on
     its floor → a spring line downslope.* Each is the same atom at a different slot.
     **If any of it needs a landform-specific code path, it is not faithful.**
+    **⚠ WHO OWNS CLASTIC FACIES — CONTRADICTED with the genesis-passes arc; under the user's call, see `docs/audits/2026-07-25-roadmap-staleness-sweep.md` row C-2.**
   - **NOT A CONSTRAINT (user, 2026-07-25, emphatic):** socia/civ/eco/bio consumers
     (settlement siting et al.) are **stubs and baggage to be replaced** — they do not
     exist as designed systems and **must not constrain the flow design at all**. Future
     designs compose with flow; flow does not bend around unavowed stubs.
+
+- **MOVEMENT 2b — MATERIAL-AWARE TRANSPORT** (material-behavior.md § 13, ratified 2026-07-24;
+  **RESHAPED 2026-07-25 by the FLOW arc — read `flow.md` first**). *Given a Sequenced home
+  2026-07-25 by the staleness sweep (row R-1): until today this arc existed **only inside a close
+  block**, so a wrap rewrite could have silently dropped the thing a whole session pointed at.*
+  The load multiset, Hjulström entrainment and settling deposition **stand**.
+  - **WHAT CHANGED.** § 13.1 routes transport *"in downstream order along the **pinned
+    receiver**"* — and that receiver is the spanning tree FLOW retires (flow.md § 2.1; deletion is
+    continuation (e)). Transport must instead walk the **face-flux record** (`DeepField::flux`),
+    which **can diverge**, and descend **potential** (`dc:field/head`), **not elevation**
+    (flow.md § 2.4). § 13.2's wind / ice / gravity family is the same thing FLOW calls
+    `Cause` = **the mover** (flow.md § 7), and 2b discharges **stub #18's constant `cause`
+    field**, which already names 2b as its heir. The **load-exchange half is explicitly claimed by
+    the FLOW arc's UNIFIES clause**, so the two are one design, not two.
+  - **SEQUENCING — DECIDED (user, 2026-07-25): 2b NOW, on today's faces. NOT after MFD.** The
+    sweep stated this as an open fork (*"2b after MFD, or 2b on the faces as they stand today?"*)
+    and the user closed it the same day.
+    - **The consequence, taken with eyes open:** 2b ships **unable to express *concurrent*
+      distributaries.** Every divergence in today's record is **temporal — avulsion**, produced by
+      the aggregation window (the terrain moves under the flow and the steepest-descent receiver
+      *switches*), never **simultaneous** (flow.md § 2.6). A delta with two channels flowing *at
+      once* is not representable at any cadence setting. Avulsion is the honest physical origin of
+      braid plains and fans, so what 2b can build on today is real, not a placeholder.
+    - **And it gains the rest for free when MFD lands.** MFD is a **SOLVE change, not a record
+      change** (flow.md § 2.6, § 9 Q8) — a head field partitions flux across several receivers
+      where steepest descent cannot. The record shape 2b consumes does not move, so simultaneous
+      divergence arrives as *more entries in the same faces*, with no migration on 2b's side.
+      That is precisely why "now, on today's faces" costs nothing later.
+  - **Provenance, stated because it matters for how much weight the reshape carries:** the
+    *diagnosis* (2b's ratified mechanism walks the structure FLOW retires) is **assistant-
+    originated** — the 2026-07-25 staleness sweep. The *sequencing call* is the user's.
+
+- **THE AGGREGATION WINDOW IS A DECLARED AXIS** (flow.md § 11.1, **RATIFIED by the user
+  2026-07-25**; given a Sequenced home 2026-07-25 by the staleness sweep, row D-3, which found it
+  **absent from this board entirely** — a ratified architectural decision living in one paragraph
+  of one design doc). § 5's cadence grows a third axis — **ORDER × RATE × WINDOW**.
+  - **A window that decides an acceptance number must be declared, not assumed.** Slice 1's
+    divergence count — **175,320 divergent `(cell, chapter)` pairs, 7.378 %**, the number the
+    slice was *accepted* on — was produced by an **implicit** 25-epoch chapter. At a one-epoch
+    window that count is **zero** and the tree structure reasserts; set `K` and you set the
+    count. The user's reasoning, recorded: *"freedom to future mods / ourselves (we are the first
+    modders)"* — a mod authoring a pass must be able to state its own record granularity the same
+    way it states order and rate, and **an undeclared constant is exactly the surface a third
+    party cannot reach.** This is the north-star's *"authored in a uniform, self-declaring shape
+    and tuned by data"* applied to the **time** axis.
+  - **Consequence (§ 11.2): chapter-vs-epoch resolution becomes a shipped DEFAULT, not an engine
+    property.** Once the axis is declared, per-chapter vs per-epoch flow facts stop being an
+    architecture question. **Default cheap** (the coarser window, for dev-iteration speed);
+    **expose the knob** for stress tests. *(User, confirmed: "cheap end for dev iteration,
+    precisely.")*
+  - **RIDER (§ 11.3) — the self-describing-record contract, a STANDING constraint on every future
+    record.** *Any mode that changes what an **absent** entry means must be carried in the
+    record*, never held as external knowledge — otherwise absence is ambiguous across worlds and
+    every consumer must know how a world was generated in order to read it. **S-9 one level up:
+    the answer carries its resolution.** Its first customer is the **marine-sink lever** (79.38 %
+    of slice-1 entries, 31.37 MiB, sized and deliberately not pulled — default KEEP): the drop is
+    not forbidden, it is **gated on this contract**.
+  - **SPEC HOME.** `material-behavior.md` § 5 — now **"Cadence: order × rate × window"** — is the
+    spec of record for the scheduler; it was amended 2026-07-25 to carry the third axis and to
+    cross-reference flow.md §§ 11.1 / 11.3 (`ideas.md § Pass cadence`, the sketch it reconciles,
+    was corrected to match). **Sequenced, not built** — no `Pass` declares a window today, and
+    today's one aggregating record (`DeepField::flux`) buckets by chapter as an implicit constant.
 
 - **STRUCTURE-AWARE FINE EXPRESSION — the sub-resolution the collapse randomizes but
   physics structures** (filed 2026-07-24 at the user's direction; unifies the flow-biased-fill
@@ -2747,12 +2848,16 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   - **WHY THEY ARE ONE ITEM.** Both are **S-4 "coarse cause → fine expression"** where the fine
     expression **randomizes where the physics would structure**. Same class, two axes (vertical
     bed order vs horizontal flow bias), same eventual home — the **forms / presentation pass**.
-    The fix reads a **structuring signal** (contact orientation for order; the flow field `recv`
-    + local topography for placement) instead of the current unbiased sieve.
-  - **INPUTS ALREADY EXIST.** Material-aware transport (§13) produces exactly what biased fill
-    needs — the cell's composition **and** its flow vector (`recv`) — so deferring the biased
-    expression loses nothing; the record just needs to also carry the within-voxel order the
-    sieve currently drops.
+    The fix reads a **structuring signal** (contact orientation for order; ~~the flow field `recv`~~
+    **the flux record** — `DeepField::flux`, per-chapter directed flux on faces, journal/0096 —
+    plus local topography for placement) instead of the current unbiased sieve.
+  - **INPUTS: the FLOW half already exists** (corrected 2026-07-25, sweep row S-3; was *"inputs
+    already exist"* naming `recv`). The flux record shipped 2026-07-25 and carries **direction and
+    magnitude per chapter**, which `recv` structurally never could — one out-edge cannot express a
+    fan, and `recv` is the spanning tree the FLOW arc retires (deletion is continuation (e)). So
+    **do not re-derive "we must wait for Movement 2b" for the flow half.** What still rides
+    Movement 2b is the **composition** half — the cell's material multiset that biased fill places.
+    The record also still needs to carry the within-voxel order the sieve currently drops.
   - **STATUS: non-blocking, and the two scales differ in value** (user, 2026-07-24). The
     within-VOXEL order loss is **ratified-acceptable** — "granted micro-scale lossiness, still
     reads realistic for most purposes"; **not a defect to fix.** The within-CELL flow-biased
@@ -2764,14 +2869,29 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
 - **MIGRATE EVERY "NOT REAL" FIELD INTO A REAL DECLARED FIELD PASS** (reminder, user-directed
   2026-07-24). As the §5 **field-pass half** lands (geotherm = the first, this session), the
   ad-hoc / stub / unconsumed proto-fields must each migrate into a **real declared field pass
-  writing to the condition-field vocabulary** — not stay ad-hoc planes: `exhum` + `t_crust`
-  exported planes (spines §3, unconsumed), the **degenerate `burial_temp_c` geotherm** (stubs.md
-  #14 — the real geotherm subsumes it, coal recalibration rides along), drainage `recv`/`area`/
-  `lake` (spines §3, unconsumed — the flow field material-aware transport consumes), and any
-  field computed inline that a formation predicate or cellular pass ought to read by id. **Each
-  migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
-  condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
-  output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
+  writing to the condition-field vocabulary** — not stay ad-hoc planes.
+  - **⚠ TARGET LIST REWRITTEN 2026-07-25 (sweep row S-1) — three of the four named targets moved,
+    and two of them are not migrations at all.** What survives as written: **`exhum` + `t_crust`
+    exported planes** (spines § 3, still unconsumed — their heir is **metamorphic grade**,
+    stubs #4; see the Metamorphism entry below). Plus any field computed inline that a formation
+    predicate or cellular pass ought to read by id.
+    - ~~the **degenerate `burial_temp_c` geotherm** (stubs.md #14)~~ — **STRUCK: retired
+      2026-07-24** by the real geotherm (journal/0093), which took it out of the provider set
+      entirely rather than migrating it. stubs #14 is headed RETIRED.
+    - ~~drainage `recv` / `area` / `lake`~~ — **STRUCK: these are a DELETION target, not a
+      migration target.** spines § 3 marks the row *"SUPERSEDED 2026-07-25 (journal/0096, FLOW
+      slice 1), retirement sequenced"*; the heir is **`DeepField::flux`** and the disposal is
+      **FLOW continuation (e)**. Migrating them into a declared field pass would be building a
+      declared home for a plane we have already agreed to delete.
+    - `dc:deep/drainage` has been **a declared pass since Movement 1** (journal/0090; it is named
+      in the 17-pass order in § Shipped) — the unconsumed thing is the exported **plane**, not the
+      pass. The entry's original framing conflated the two.
+    - **Vocabulary the migration did not have to open:** `dc:field/temperature` (0093) and
+      `dc:field/head` (0098) both landed as first-class field passes on their own arcs — two rows
+      this reminder can stop carrying.
+  - **Each migration empties a §3 row and grows the SDK's condition-field vocabulary.** The
+    condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
+    output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
 
 - **APPEARANCE WALKS OWED** (tracking, user: "we do that when able" — journal screenshots for
   appearance-changing work). **(1)** ✅ **DONE — walk-confirmed 2026-07-24** (user, aerial
@@ -2808,6 +2928,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   🔴 Observed entry. *(A fallback peat station exists if the world is ever walked for organics
   anyway: world −8266, −45533, surface 263.7 m, 2.7 m of peat outcropping at the surface — no
   bench needed; nearest-to-Station-A alternative at 58867, −34963, 50.9 km away.)*
+  **(5)** ~~the `pore_rider_share` **correlation** walk — a fullbright walk along a strong front
+  looking for banding correlated with the parent's eighth~~ **NEVER OWED — ANSWERED AT THE DESK
+  2026-07-25 (journal/0105).** Filed here 2026-07-25 by sweep row D-5, which correctly caught that
+  a proposed walk was living in an Observed entry and not in this tracker — but the walk had
+  already been retired by the hash-domain slice that merged the same day. It measured the question
+  spatially instead: on one 32×32 contact plane sharing one record and one fill plan, **every
+  autocorrelation at lags 1–4 in both axes is inside ±0.07 of zero, before *and* after** the fix.
+  Structurally absent, not merely subtle — both offsets are functions of a position hash, so a
+  dependency between two decisions **at one voxel** cannot make structure **between** voxels.
+  *Kept struck rather than deleted: the lesson is the tracker's, not the walk's — a walk proposed
+  in an Observed entry and not listed here is a loose end by stubs.md doctrine, whichever way it
+  later resolves.*
   Screenshots to `journal/assets/` named for their entry.
 
 - ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0100).** Measured result: flag-ON
@@ -2849,8 +2981,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
 
 - **WEATHERING IS ONE PROCESS — SAPROLITE IS A STATE ALONG IT, NOT A SLICE**
   (**USER'S STRONG LEANING on the destination, 2026-07-25** — *"strong enough that it should pop
-  into sequence when the requisites are met"*. Not scheduled; **gated on the requisites below, and
-  it enters Sequenced the moment they are met.**)
+  into sequence when the requisites are met"*. ~~Not scheduled; **gated on the requisites below, and
+  it enters Sequenced the moment they are met.**~~)
+  - **✅ REQUISITES MET 2026-07-25 — R1, R2 and R3 all (see the marked requisites below). THE GATE
+    IS OPEN AND THE BLOCKER MOVED: this is now a DESIGN question, not a prerequisite question.**
+    (Corrected 2026-07-25 by the staleness sweep, row S-2; the header still read "gated on the
+    requisites" after commit `160858b`'s own message said *"the gate is open, and the blocker
+    moved."*) Before it can be built, the arc must answer **what is persisted** — the **chapter**
+    axis, the **agent** axis, or a **per-slot scalar** (R3's three levers, below) — which is
+    exactly the *"a summary must be derived from the authority, never become it"* question this
+    project already has a doctrine for. The numbers that frame the call: **gen time is affordable
+    (25.7 s → 46.4 s); residency is not (`LedgerField` 17.45 MiB → 973 MiB, 55.8×, resident).**
+    The S20 spike costed four options for that decision, including paged facts.
   - **WHAT.** Retire saprolite as a bespoke thing. Weathering becomes **one declared process**
     acting on whatever is exposed to reactants at a rate set by *material susceptibility ×
     driver × access* — the gradation **emerging from the rate**, not imposed by a shape function.
@@ -2917,6 +3059,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
         be derived from the authority, never become it"* question this project already has a doctrine
         for. **This is a design decision the arc must answer before it is built, and it is a much more
         tractable problem than "the deep run doubles".**
+      - **CROSS-REF (added 2026-07-25, sweep row A-1): the `DeepField::strata` collapse is the next
+        lever on the SAME budget.** Observed *"the SAME lever, one record over: `DeepField::strata`
+        is `Vec<DeepStrata>`"* — **9.06 MiB of struct headers over an 84.47 MiB heap, 11.3 % of
+        cells holding an empty record**. It was filed as a residency item in its own right; R3 has
+        now put **residency, not gen time**, on this arc's critical path, so the two entries are
+        competing for one budget and should be read together.
     - Incidental re-confirmation: **72 006 of 297 025 cells (24.2 %) ever weather** — journal/0102's
       75.8 %-never figure, re-measured from the other side; the CSR layout it motivated is why today's
       sidecar is 17 MiB and not 31.
@@ -3078,7 +3226,13 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     projection of it) moves somewhere both crates can see. **(i) is the integrator's lean**
     — it preserves "what is at X is a world question, not a camera question", which this
     very entry already asserts. User call at dispatch time.
-  - **THE FAR TIER'S PAYLOAD IS A MIXTURE, NOT A WINNER — DECIDED 2026-07-25 (user):** *"LOD may
+  - **~~THE FAR TIER'S PAYLOAD IS A MIXTURE, NOT A WINNER~~ — PRESERVED FOR THE RENDER-SIDE QUERY,
+    like its two siblings above** (folded 2026-07-25, sweep row D-4). *This bullet is written in the
+    tier language the **UNTIERED** decision retired the same day, and its surviving content is
+    already stated up in that decision (**"payload is uniformly a mixture… there is no far tier left
+    to special-case"**). What is **unique** to it and still live: the **render-side speckle
+    direction**, and the cross-reference to the journal/0091 **LOD fix (b)** cold/warm material
+    agreement, both in its last two sentences.* **DECIDED 2026-07-25 (user):** *"LOD may
     be textured by a **speckled mix** in the future, not just single material as it is now. So
     leave the seam for speckle — or better yet have it fall out by construction."* **It falls out
     by construction, and that is the design:** make the payload **uniformly a mixture at every
@@ -3106,8 +3260,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     contents (`chunk_contents`) and splats them; the stored 1-byte `Block` is a
     storage/sim relic the render **bypasses**, and it loses the mixture on edit.
   - **UNIFIES.** = the block↔material collapse tail (storage palette · far-span ·
-    ~80 solidity · mesher layer pick · player-facing name) + the **distance pyramid**
-    (near/mid/far *are* the `identify` tiers) + **S-3** (`classify` demoted to a derived
+    ~80 solidity · mesher layer pick · player-facing name) + ~~the **distance pyramid**
+    (near/mid/far *are* the `identify` tiers)~~ **— CORRECTED 2026-07-25 (sweep row A-5): that
+    framing died with the tiers.** `identify(pos)` is **untiered**, so the pyramid does not "have"
+    the tiers; **the distance pyramid is a RENDER concern only**, and it is what the palette-quant
+    station and the far-LOD material split converge into. + **S-3** (`classify` demoted to a derived
     rung + the pyramid's coarsest tier, never a stored authority) + **S-9** (self-labeled
     honesty).
   - **FIRST SLICE — ✅ SHIPPED 2026-07-25 (journal/0101), see the slice block at the top
@@ -3128,6 +3285,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   property-driven passes** (arc opened 2026-07-24; priors: materials.md "the class
   system's fixed-constant roster is scaffolding" + transformation-axes DECIDED, north-star
   declarative-materials, the entry-species probe, the seam-inventory `[S2]`).
+  - **⚠ WHO OWNS CLASTIC FACIES — CONTRADICTED, the user's call; see `docs/audits/2026-07-25-roadmap-staleness-sweep.md` row C-2.** *(Three ratified things claim one output: this entry's "physical facies", the FLOW arc's un-gameable facies acceptance test, and material-behavior.md § 13.7's "transport **IS** clastic sedimentary genesis". Probably complementary — genesis = which rock, flow/transport = where the clastics went — but nobody has said so, and this arc's first slice converts `deep_class`/`dithered_member`, the same seam transport would move.)*
   - **WHAT.** Retire the class-member-fitness abstraction. Rock **distribution + physical
     facies** come from **deeptime genesis passes** that select a **parent material**, march
     its **leaf** materials, and derive fitness **purely from properties stored on each
@@ -3229,6 +3387,22 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   file. *(**Separate hardening item — DeviceLost degrades loudly: SHIPPED**
   2026-07-21, journal/0054.)*
 
+- **METAMORPHISM — the grade axis: `exhum` = P, `dc:field/temperature` = T → grade**
+  (**UNBLOCKED 2026-07-24** by the geotherm, journal/0093; given its own Sequenced entry
+  2026-07-25 by the staleness sweep, row D-1). *One job that had **three** ROADMAP homes — the
+  layer-cake redemption's (b), consume-the-ledger's (b), and a close block — and whose only
+  "sequenced" home was **a close block a wrap rewrite was about to overwrite**. Both surviving
+  homes now point here.* The two axes exist and are read by nothing: **`exhum` is the pressure
+  axis** and **`dc:field/temperature` (the geotherm, journal/0093) is the temperature axis**; a
+  grade is the pair. Landing it **retires stubs #4** and **empties the `exhum` / `t_crust` row of
+  spines § 3 "Built, and nothing calls it"** — the planes ship in `DeepField` explicitly labelled
+  *"the metamorphic-grade axes the collapse tier reads"*, and have shipped unread since S12.
+  Two things worth carrying into the slice: the geotherm entry itself named metamorphism as its
+  **real payoff** (its effect on coal is ~surface-temp-thresholded, because burial is shallow —
+  the deep crust is where a `T(depth)` field earns its keep); and **coal rank and metamorphic
+  grade are one thermal-maturity ladder** (S-8, *one quantity, many names*), so this is the same
+  machine as the coal-rank item and should not grow a second one.
+
 - **Tectonic expression at the collapse tier — the layer-cake redemption**
   (promoted 2026-07-21 after the user's callout: dip/fold non-expression
   "slipped by without my understanding or ratification" — an integrator
@@ -3240,9 +3414,14 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   One family, one slice-group, all UNGATED as of the U8 flip (landed 2026-07-21):
   (a) chapters → strata dip/fold/fault expression in cut faces (the
   "coal seam dead-ends at a fault" line of things-that-will-happen);
-  (b) `exhum`/`t_crust` → metamorphic-grade classes;
+  (b) `exhum`/`t_crust` → metamorphic-grade classes — **this half now has its own
+  Sequenced entry: see "METAMORPHISM — the grade axis" just above** (one job, three homes;
+  consolidated 2026-07-25 by sweep row D-1);
   (c) drainage export (`recv`/`area`/`lake`) → the 3e-2 macro drainage
-  consumers. Note: this is the CUT-FACE sin, not the silhouette sin — terrain
+  consumers — **⚠ note 2026-07-25: those planes are now a DELETION target, not a
+  consumption target** (FLOW slice 1 superseded them; heir `DeepField::flux`, disposal
+  continuation (e)). What survives here is the *expression* need, not the input.
+  Note: this is the CUT-FACE sin, not the silhouette sin — terrain
   shape flatness is the separate S13/roughness thread.
 - **Consume the ledger terms the runtime throws away** (geology.md § Expression
   of the ledger, DECIDED 2026-07-21). Four concrete, independently shippable
@@ -3250,7 +3429,9 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   Both consumers read the recorded plane; stubs.md § 3 retired whole.)*;
   (b) **consume `exhum`/`t_crust`**, which ship
   explicitly as "the metamorphic-grade axes the collapse tier reads" and are
-  read by nothing; (c) **derive material FORM** (loose / pore-partial / whole /
+  read by nothing — **now owned by "METAMORPHISM — the grade axis" just above**
+  (2026-07-25, sweep row D-1: this was one job with three ROADMAP homes and no
+  Sequenced entry of its own); (c) **derive material FORM** (loose / pore-partial / whole /
   inclusion) from provenance rather than leaving it implicit — sub-voxel facies
   express as inclusions (the charcoal sieve: 0 of 158 310 beds survived 0.9 m).
   **(c) is now the priority piece and much larger than the charcoal framing
@@ -3584,6 +3765,12 @@ implementation slice.)*
    What DOES reach the eye is organic **soil**: 185 km of surviving thickness,
    making carbonaceous mudstone the second most abundant rock in cut faces.
    That, not charcoal, is the appearance call to make.)*
+   **⚠ THE NUMBERS ABOVE ARE HISTORICAL — measured 2026-07-20, on the reference seed
+   (2026-07-25, sweep row S-8).** Coal has moved **twice** since they were taken: the
+   susceptibility blend made near-surface coal recessive (journal/0072), and the geotherm
+   re-sited it onto warm crust (journal/0093). On the world the client actually boots
+   (**1337 / Medium**) coal is now **0 % — 0 units across 297,025 cells** (corrections #51),
+   not 0.55 %. **Re-census before treating any of these four figures as an appearance call.**
 4. **The 7-species roster and ~25 rate constants** ride as
    plausible-not-tuned (no-bandaid: they are the mechanism's calibration,
    not a patch) — same status as S9's physics constants.
@@ -3622,6 +3809,15 @@ data never visits. The class's **depth axis is the rank axis** and the
 class-share invariant means members can be added later without moving an
 existing seam. Revisit when the record carries kilometres (3e-later / thicker
 basins).
+**⚠ RE-BLOCKED 2026-07-25 (sweep row S-5) — the stated blocker is no longer the real one.**
+Coalification moved onto a **temperature** axis when the geotherm landed (`COAL_ONSET_C`,
+journal/0093): `promote_coal` now reads the geotherm at seam mid-depth against an onset
+temperature, so *"the class's depth axis IS the rank axis"* is no longer the whole rule —
+P and T are separate axes and rank is the pair (same thermal-maturity ladder as metamorphic
+grade, S-8). And the harder half: on the shipped world (**1337 / Medium**) there is **0 coal**
+(corrections #51), so a rank ladder would have **nothing to discriminate on any world a player
+can open**. Revisit after the coal-content call (a)–(d) in Observed, not after the record
+carries kilometres.
 
 Also filed from S10 (not blocking): parent-material phosphorus from pregen
 provenance instead of a uniform pool; individual plant placement from the
@@ -3632,16 +3828,43 @@ so C-refinement would have to re-derive it); vegetation → channel planform
 have any planform to bend.
 
 **3e-2 — C refinement** (DECIDED 2026-07-19 — earth-processes.md § 3e-2
-decisions — and implementable): drainage coarse-at-A with the
-river-conditioning mechanism (corridor wander toward refined lows +
-descent-along-flow as hard constraint, no divide-crossing); width cap
+decisions. **RECONCILED 2026-07-25 (user) — the three contradictory stamps on this
+entry were never actually fighting; they were stamps on different clauses. The
+record of decision is earth-processes.md § 3e-2's `⚠ SUPERSEDED IN PART` banner,
+which already said all of this; this board was the stale party.**): drainage
+coarse-at-A ~~with the river-conditioning mechanism (corridor wander toward refined
+lows + descent-along-flow as hard constraint, no divide-crossing)~~; width cap
 permanent; 0015-mechanism elevation stitch + interior-commit records over
 the 16–24-cell halo; proximity approach trigger, order-independent by
 construction; **contact-softening in scope per method rule 5** (no
 grid/analytic boundary reaches the eye); calibration RATIFIED — the
 Phanerozoic register (~500 Myr recorded span, basement ages procedural
-— "procedural hacks for the boring billion"; knob deferred). **Nothing
-open — implementable.**
+— "procedural hacks for the boring billion"; knob deferred).
+
+- **WHAT SURVIVES — decisions 2, 3, 4, 5 untouched, plus decision 1's FIRST
+  clause.** None of the width cap, the stitch, the approach trigger or the
+  calibration is about how a river is *made*, so FLOW does not reach them. And
+  *"drainage is advective and decided-once-coarse"* stands on the halo theorem
+  (corrections #8) — that is precisely the clause the **2026-07-24 sweep stamped
+  VALIDATED** (*"drainage is decided-once-coarse and is the sole advect"*).
+- **WHAT DIED — decision 1's SECOND clause, the river-conditioning mechanism.** The
+  wandering channel **line** with the refined surface **nudged** around it is a
+  *drawn* carve: an operator that deforms terrain to imitate a result. flow.md § 3
+  forbids exactly that — **the channel is what REMAINS when the material the erosion
+  passes actually moved is subtracted along the recorded path**, an expression of a
+  mass budget, never a deformation. (flow.md § 6 lists § 3e-2's expression half under
+  "What this retires".) Refinement must now get its channels from `DeepField::flux`.
+- **WHAT NARROWED — the no-divide-crossing rule binds the FREE/surface regime ONLY.**
+  Not a supersession but a correction: **bound (groundwater) flow genuinely crosses
+  surface divides** — artesian basins, karst piracy. Carried over unqualified the rule
+  **forecloses regional groundwater**. Also per flow.md § 2.4 the driving field is
+  **potential/head**, not elevation — and `dc:field/head` now exists (journal/0098).
+- **🔗 SEQUENCING FACT, recorded 2026-07-25 because it was written down NOWHERE: 3e-2
+  is now DOWNSTREAM of FLOW.** It was free-standing when ratified; it no longer is. It
+  cannot be dispatched until the flux record can supply channels at the refined tier,
+  which puts it behind MFD and Movement 2b. *The four surviving decisions remain
+  implementable in themselves — it is the drainage-expression half that has acquired a
+  dependency.* Do not dispatch this as "nothing open" work.
 
 **S11 follow-through — the water model's four open calls** *(the spike itself
 is SPIKE COMPLETE 2026-07-20, journal/0028 + docs/spikes/S11-results.md; it
@@ -3676,6 +3899,18 @@ note the spike found free water in equilibrium is **static data with a level**,
 which is what the notebook's "creates no new blocks so long as its outlet
 connects" predicted; sub-resolution water; capillary action; which cave family
 ships first; and where the deep-time water field lives.)*
+
+**⚠ READ `docs/design/flow.md` FIRST (ratified 2026-07-25) — this entry has been half
+delivered and half superseded (2026-07-25, sweep row S-4).** `water.md` itself now opens with
+a supersession banner. **The river / drainage / channel-expression half is superseded.** The
+**groundwater** half is **partly delivered at the DEEP tier** by `dc:field/head`
+(journal/0098): transmissivity, vertical conductivity and **confinement** are derived from the
+strata record's own permeabilities — *a marine mud over a fluvial sand **is** a confined
+aquifer, with no landform code path* — and **artesian occurs naturally** (60 columns, max
+excess 2.94 m). Recharge is still open as **stubs #19**, so those excesses are metres rather
+than the hundreds a real basin gives. **What this pass still owes is the PRESENT/RUNTIME
+tier:** visible and flowing water, ponds and sub-resolution water, speleogenesis, and the
+free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 **Water-model design pass** (ratified 2026-07-19, user; field-notebook
 first per the earth-processes method): groundwater as "another dimension
@@ -3795,10 +4030,32 @@ before any code.
     - Audit of siblings: `providers_common`/`rh_unification`'s `production_*` helpers name the same
       non-shipped world, but their claims (golden byte-identity, derived-vs-scalar agreement) are
       genuinely seed-independent, so they are **annotated, not re-seeded**; the `golden_*` rename ripples
-      into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced.
+      into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced —
+      **and as of 2026-07-25 it really is: see the Sequenced entry "Finish the `production_* → golden_*`
+      rename"** (sweep row D-2 caught that the word "sequenced" was doing the work of an entry that did
+      not exist — the same doctrine gap that hid row S-7 below).
       `s18_first_behavior_weathering::production_scale_saprolite_band_reaches_at_least_one_voxel` is
       **honest** (1337/Medium) and is the shape to copy. `deeptime::production_config` /
       `water::coarse::production()` name a *config*, not a world — legitimate.
+
+- **🔴 THE ONLY TEST DEFENDING "A PLAYER CAN FIND AND DIG A COAL SEAM" RUNS ON A WORLD NO PLAYER CAN
+  OPEN** (found 2026-07-25 by the ROADMAP staleness sweep, row S-7; **this is corrections #51 one file
+  over**). `crates/dc-worldgen/tests/organic.rs::the_measured_coal_seam_is_coal_a_player_can_dig`
+  builds `medium()` from **`const SEED: u64 = 0x0D5E_ED57_2026`** (`organic.rs:31`) — the warm
+  reference world. `dc-client` can only ever open **`BENCH_SEED = 1337`** (an `i32`), and the
+  reference seed **does not fit** it, so the world this guard measures is structurally unreachable
+  from the game. Its threshold `MIN_DIGGABLE_COAL_VOX` (`organic.rs:78`) has been re-baselined
+  **15 → 10 → 6**, twice under a **NEEDS RATIFICATION** flag, every time on that world.
+  - **Why journal/0106's sibling audit missed it** (the part worth keeping): that audit asked *"is
+    the claim seed-independent?"* and cleared `providers_common`, `rh_unification`,
+    `s18_first_behavior_weathering`, `deeptime::production_config` and `water::coarse::production()`
+    on that basis. `organic.rs` was **not on the list**, and unlike those its claim is emphatically
+    **not** seed-independent: it is a claim about *what a player finds*.
+  - **TWO HONEST OPTIONS, and they are the user's** — the same (a)–(d) content call corrections #51
+    already put in front of them. **(i)** re-seed to 1337 and watch it fail, which is the true
+    statement about the shipped world; **(ii)** rename it `..._on_the_warm_reference_world` and file
+    the shipped-world diggability claim as **unguarded**, the way `coal_follows_the_warm_crust_…`
+    was handled above. **Do not leave it named for a player.**
 
 - **⚠ A TIE-BREAK IS DECIDING PHYSICS AGAIN — `reads_prev` is documentation, not a
   mechanism** (spine-audit 2026-07-25; **the SECOND instance in two sweeps**, and the
@@ -3922,6 +4179,12 @@ before any code.
   tier*, so `record_at_voxel`'s consumers need the same view treatment `ledger_at_voxel` got
   (which, on the evidence of journal/0102, can be zero call-site churn if the view carries the
   same read surface). Same family as `Vec<Vec<Fact>>` and `Vec<FactLedger>`, one record over.
+  - **CROSS-REF added 2026-07-25 (sweep row A-1): this is now on the WEATHERING-IS-ONE-PROCESS
+    arc's critical path.** That arc's requisite R3 named **residency, not gen time**, as its
+    blocker (`LedgerField` 17.45 MiB → **973 MiB**, 55.8×, resident), so the strata collapse is the
+    next lever on **the same budget the weathering arc has to fit inside**. Read the two together;
+    freeing 9 MiB here is not decisive against 973 MiB, but the two entries are competing for one
+    number and neither should be planned alone.
 
 - **✅ DIAGNOSED 2026-07-25 (journal/0103) — the front's voxel-tier mass error is NOISE, and the
   `+3.7 %` was the INSTRUMENT** (opened by the integrator's review of journal/0099; corrections
@@ -4016,6 +4279,11 @@ before any code.
   until a front produced many contact voxels in one column. Same family as the palette-quant
   member-stepping thread (a *within-class member* choice reaching the eye), and it belongs with the
   genesis-passes arc that retires class-member selection.
+  **CROSS-REF (2026-07-25, sweep row A-4): this is the member-dither family's first *measured*
+  within-column instance**, and its untested-either-way twin is **"Mixed voxels carry no member
+  dither — watch for the chunk-line cutover"** further down this section. One is now observed and
+  one is still a hypothesis; they are the same mechanism seen from two sides, so a slice that
+  touches either should settle both.
 - **✅ FIXED 2026-07-25 (journal/0101) — the query can now say `UNRECORDED`.** `identify(pos)`
   landed as the arc's first slice: `has_contents` is a **per-voxel** fact, `classified` echoes
   the stored block for an unrecorded voxel instead of naming a mixture that does not exist,
@@ -4132,6 +4400,11 @@ before any code.
 - **STATION — per-chunk material-palette quantization makes the chunk grid a
   visible checkerboard** (user field report + diagnostic station, 2026-07-24;
   `journal/assets/0088-palette-quantization-chunk-seams.png`).
+  **UNTOUCHED BY THE 2026-07-25 WORK, and the mixture-representation arc it converges into is
+  still held** (cross-ref added by sweep row A-5). One thing did move underneath it:
+  **`identify(pos)` is now UNTIERED** (journal/0101), so the old framing *"the distance pyramid —
+  near/mid/far **are** the `identify` tiers"* **no longer holds**. The pyramid is a **render**
+  concern only, which is the tier this station and the far-LOD material split both live at.
   **THE REFERENCE STATION — EXACT POSE, recorded 2026-07-24 (user-recovered).** This is
   the standing reference point for the palette-quantization issue; re-shoot it to compare
   before/after any fix:
@@ -4402,6 +4675,11 @@ before any code.
   selection**, i.e. the artifact 3c-2 was built to kill, confined to contacts.
   Nobody has looked. **Add it to the appearance walk**: stand at a cut face and
   check whether contact bands change member on chunk lines.
+  **CROSS-REF (2026-07-25, sweep row A-4): the twin is now MEASURED from the other side** — see
+  *"A front's parent alternates diorite/granite down a single column"*, where `Single` voxels take
+  the dither and `Mixed` voxels take the canonical member **in the same column**, made visible by
+  the weathering front producing many contact voxels at once. That entry is the observed half of
+  this hypothesis; this one is still the untested half.
 - **91.4 % of land skins to ONE block, and the diagnosis is not settled**
   (journal/0055, 2026-07-21). With the record deciding the surface, the
   world-wide skin goes Grass 81.8 % / Dirt 18.2 % → **Mudstone 91.4 %** /
@@ -4445,18 +4723,25 @@ before any code.
     material exists. Two stacked gaps — **no soil substance, and organics
     formed as structure** — and the fix order is substance first, then form
     from provenance (consume-the-ledger piece (c)).
-- **Caves ↔ hydrology integration thread captured** (2026-07-21, off-thread
-  session; full capture in water.md § Session capture 2026-07-21 — nothing
-  decided). The work-shaped findings: **two drainage opinions** (pregen cell
-  hydrology vs the deep tier's per-epoch drainage — subsumption candidate,
-  with a history-pass resequencing consequence); **deep drainage is computed
-  and discarded** (paleo-channel + per-chapter table recorder axis wanted for
-  erosional caves; cost unmeasured, eolian memory FLAG adjacent); the
-  **bounded-drainage-refinement spike question** that gates RiverSeg
-  retirement; the **column-as-interval-log target contract** proposal
-  (user-owned ARCHITECTURE call). Same session recorded the user's
+- **~~Caves ↔ hydrology integration thread captured~~ — SUBSUMED 2026-07-25 by the FLOW arc**
+  (sweep row B-1). All four of its work-shaped findings now have owners, and this entry is kept
+  only as the pointer:
+  - **two drainage opinions** → `flow.md` § 6 retires `pregen/hydrology.rs` **outright** —
+    *"wrong resolution, wrong time, wrong topology"* — so there is no subsumption to design;
+  - **"deep drainage is computed and discarded"**, wanting a per-chapter table recorder axis for
+    erosional caves → **that is `DeepField::flux`, and it shipped** (journal/0096: 2,590,372
+    entries, per chapter, 40.66 MiB, pinned by
+    `per_chapter_history_is_retained_not_just_the_final_epoch`);
+  - the **bounded-drainage-refinement spike question** that gated RiverSeg retirement → **S14 is
+    superseded as posed** (flow.md § 9.6; water.md's own banner), and RiverSeg retirement is FLOW
+    **continuation (e)**;
+  - the **column-as-interval-log target contract** → flow.md § 7 promotes it from *proposed* to
+    **necessary** (voids and conduits are intervals, not a heightfield).
+  **Cave-specific residue rides FLOW continuation (c)** (the free/bound edge, void intervals, and
+  the conduit pairing rule). *(Original capture, for the reasoning: full text in water.md § Session
+  capture 2026-07-21 — nothing was decided there. Same session recorded the user's
   water-rendering directive (partials/structure, placeholder texture, data
-  seams for flow/waves) in water.md.
+  seams for flow/waves) in water.md, which is NOT subsumed and still stands.)*
 - **The eolian strata record costs +92.76 MB at Medium** (journal/0047
   measurement, 2026-07-21; UNDIAGNOSED in detail). The roster flip took the
   kept `DeepField` 52.8 → 145.5 MB — the record roughly triples because wind
@@ -4848,7 +5133,14 @@ before any code.
   the natural vehicle for that measurement.
 
 - **Walk report (2026-07-20, journal/0027): coal renders as pure black in the
-  lit pass — a hole in the screen, not a rock.** Photographed at world voxel
+  lit pass — a hole in the screen, not a rock.**
+  **⚠ STILL A VALID LIGHTING/TONEMAP QUESTION, BUT UN-WALKABLE ON THE SHIPPED WORLD**
+  (2026-07-25, sweep row A-2): there is **no coal to photograph** — 0 units across 297,025 cells
+  on seed 1337 / Medium (corrections #51). The 2026-07-20 frames were shot on a world the client
+  can still open only because coal existed then; today a re-shoot would find nothing. **Do not
+  launch for it.** The defect is about the dark end of the lit path, not about coal, so it can be
+  re-photographed on any sufficiently dark material — or it waits on the coal-content call
+  (a)–(d). Photographed at world voxel
   (-76133, -80221) on the client's world: an 18-voxel seam four voxels under
   turf, cut to an open bench under full sky. `0027-coal-seam-cut-lit.png` shows
   grass / mudstone / carbonaceous mudstone and then black for the lower
@@ -5264,8 +5556,20 @@ before any code.
 - Sparse sidecar encoding for thin debris drapes (S8) — index array dominates.
 - Seed-stable worlds across releases: versioning policy undecided (S7).
 - HDR/exposure: v0 post grades LDR; sky-as-pass needs hook format 1 (S4).
-- S2 checkpoint facts (deep-time re-derivation cost) — design owed before
-  ledgers densify.
+- **S2 checkpoint facts (deep-time re-derivation cost) — ~~design owed before ledgers densify~~
+  🔔 TRIGGERED 2026-07-25.** *(Promoted from this one-line tail by the staleness sweep, row U-1:
+  the condition it was waiting on has occurred, and a line that fires its own trigger silently is
+  the exact failure the sweep exists to catch.)* **The ledgers densified — in one day.** The deep
+  record now carries three sparse per-cell records where it carried one: `LedgerField` holds
+  **1,033,189 facts across 72,006 slots** (journal/0102), `DeepField::flux` adds **2,590,372
+  entries / 40.66 MiB** (journal/0096), `dc:field/head` adds **6.96 MiB** (journal/0098) — and a
+  fourth is *projected at* **973 MiB** for a per-depth weathering ledger (the WEATHERING-IS-ONE-
+  PROCESS arc's R3). So the **re-derive-vs-persist** question this line reserved is live, and it
+  is the same question that now blocks that arc. **It does not start from nothing:** flow.md
+  § 11.3 gives it a **standing constraint, ratified 2026-07-25** — *any mode that changes what an
+  **absent** entry means must be carried in the record*, never held as external knowledge. A
+  checkpoint scheme that silently changes the meaning of a missing fact is forbidden by that
+  contract before it is designed.
 
 - *(**`client_player_pose_set` outside the one door: RATIFIED same day** —
   API.md Decisions log #5. Retirement = player controller through
@@ -5707,6 +6011,10 @@ in ROADMAP**, and material-behavior §5 is unamended — a ratified decision wit
 
 ### First things next session
 1. **Fold the staleness sweep**, then the staged gate (`./scripts/gate.ps1`).
+   ✅ **THE FOLD LANDED 2026-07-25** — all 22 rows applied or accounted for; the three missing
+   Sequenced entries (**Movement 2b**, **the aggregation window**, **metamorphism**) now exist,
+   material-behavior.md § 5 carries the WINDOW axis, and C-1 / C-2 / C-3 are marked but left for
+   the user. Still owed: the staged gate.
 2. **The per-depth weathering arc** — gate open; the decision is **residency axes** (S20 informs).
 3. **Movement 2b — material-aware transport** (§13), the big appearance-changer.
 4. **MFD / simultaneous divergence** — unblocked by the head field; today's divergence is
@@ -5768,10 +6076,13 @@ close, not an orphan.**
    entrainment, settling deposition → sorting/placers/provenance. Appearance-changer → user's eye.
 3. **Metamorphism — now UNBLOCKED by the geotherm:** `exhum` = P, geotherm = T → grade
    (schist/gneiss/marble). Where the tectonic gradient finally bites (deep crust). Retires stub #4.
+   *(2026-07-25: this now has a real Sequenced entry — **"METAMORPHISM — the grade axis"** — so it
+   no longer depends on a close block surviving a rewrite. Sweep row D-1.)*
 4. **Igneous emplacement + the formation-predicate evaluator** (F1 ratified): the
    predicate-as-data machinery + exhum-driven outcrop structure, retiring stubs #5/#16.
 
 ### Owed / carried
+**⚠ "geotherm coal" IS NOT A WALK — it is a desk null (corrections #51); see docs/audits/2026-07-25-roadmap-staleness-sweep.md row C-3. This superseded block must not be read as carrying it forward.**
 Appearance walks (S18 band once M3; geotherm coal — low-priority placeholder) · **field-pass
 migration** reminder (exhum/t_crust/drainage → real declared field passes) · geotherm
 nonlinear/mantle-heat · **LOD fix (b)** — cold/warm material S-9 agreement (mixture arc) ·

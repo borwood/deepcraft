@@ -527,9 +527,12 @@ overlay is the named heir; do not build it now, but do not foreclose it.
 
 ## Pass cadence — the fractional-phase scheduler (user sketch, 2026-07-23)
 
-**RECONCILED 2026-07-24 → `material-behavior.md` §5 (Cadence: order × rate).** The
-scheduler is **two orthogonal axes**: topo-sorted **ORDER** (derived from a pass's
-reads/writes) × fractional-phase **RATE** (`dt` = phase length). This sketch is the
+**RECONCILED 2026-07-24 → `material-behavior.md` §5 (Cadence: order × rate × window).** The
+scheduler is ~~**two orthogonal axes**~~ **three** (a third was ratified 2026-07-25, below):
+topo-sorted **ORDER** (derived from a pass's
+reads/writes) × fractional-phase **RATE** (`dt` = phase length) × the aggregation **WINDOW**
+(how many epochs sum into one record entry — `flow.md` § 11.1, RATIFIED 2026-07-25; RATE is a
+*sampling* rate, WINDOW is the record's *time granularity*). This sketch is the
 **RATE** axis — it *composes with* topo-sort, is not replaced by it — and the
 sub-chapter multi-rate (weathering ×5 while tectonics ×1) is preserved as the whole
 point. `dt` = phase length is the `rate × dt` S16 already assumed. Sketch retained
