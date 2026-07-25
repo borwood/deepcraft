@@ -3407,6 +3407,23 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **A PROBE THAT CAN FAIL IS INVISIBLE TO THE GATE, AND THE ADVISORY RULE DID NOT HOLD FOR ONE
+  DAY** (journal/0102, 2026-07-25). `examples/flow_cost_probe.rs` asserts its itemised residency
+  equals `DeepField::resident_bytes()`. It broke when FLOW slice 1 added `flux` (caught
+  journal/0100, fixed, and CLAUDE.md gained the rule *"re-run the probes by hand after any merge
+  that changes what they measure"*). It broke **again the next day**, identically, when FLOW
+  continuation (a) added `head` — the rule was already written and still did not fire. **The
+  assertion caught it both times; the process caught it neither time.** CLAUDE.md's own remedy (a)
+  is the real fix — *"an example that can fail belongs in the gate: put the assertion in a real
+  `#[test]` that shares the code, and let the example print"* — and it is **not done**, because
+  the assertion needs a production `DeepField` (~25 s of pregen) and whether that belongs in
+  `cargo test --workspace` is a real cost call, not a mechanical port. **Scope fork, not decided
+  here.** Cheapest honest version if the full test is too slow: a `#[test]` over a *small* extent
+  that asserts the itemisation agrees — the term-drift this keeps catching is structural, not
+  scale-dependent, so a 60-cell world would have caught both instances. The same exposure applies
+  to every asserting example in `examples/` (`weathering_profile_probe`, `flux_record_probe`,
+  `head_field_probe`, `identify_census`), none of which the gate executes either.
+
 - ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0102).** *a per-cell OWNING CONTAINER is a
   header × 297,025 before it stores anything* (filed by journal/0100 against itself). Measured
   result: the struct-overhead line **13.60 MiB → 0 B**, per-cell index cost **48 B → 4 B (12×)**,
