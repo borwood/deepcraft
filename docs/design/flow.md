@@ -129,6 +129,20 @@ routing water across a landscape deep time subsequently destroys.
 - **Seamlessness as an invariant, not an achievement:** a face is **shared** —
   cell A's east face **is** cell B's west face. Refinement built on face data
   agrees from both sides *by construction*.
+
+  > **⚠ UNDER-SPECIFIED — the slot-pairing rule (S19, 2026-07-25).** "The face is
+  > shared" holds at the **cell-pair** level, but adjacent columns do **not** have
+  > aligned slot indices, so *which slot pairs with which* is a rule this document
+  > owes and does not yet state. **Pairing by slot index is silently wrong** — § 1.2
+  > already forbids index correlation, because surfaces are **diachronous**.
+  > Candidate rule, **NOT RATIFIED**: contemporaneous/**free** flow pairs by
+  > **chapter**; **bound** flow pairs by **paleo-elevation at that chapter** (water
+  > moves laterally through material at the same head, regardless of when that
+  > material was deposited). These are genuinely different rules and the split may
+  > be more than an early slice should carry. S19 also notes the pairing choice is
+  > uniformly a **2×** on cost — the same 2× as D4/D8 face counts, and easily
+  > confused with it. **Resolve before any refinement/expression slice; a slice that
+  > picks a rule must say so loudly rather than pick one silently.**
 - **3e-2's divide constraint becomes structural**: refinement may place a channel
   anywhere *inside* a cell, but it must enter and exit through the **recorded
   faces**. The rule stops being something to remember.
@@ -313,10 +327,26 @@ faithful.
 
 ## 9. Open questions (carried)
 
-1. **Cost.** Face flux × slots × chapters is unmeasured. Ratified stance (user,
-   2026-07-25): *"gen is free, cost taken as it comes, faithfulness above all."*
-   Resident memory is still sacred — measure, then decide what is resident vs
-   re-derived.
+1. **Cost — MEASURED 2026-07-25, `docs/spikes/S19-flow-record-cost-results.md`.**
+   Ratified stance (user): *"gen is free, cost taken as it comes, faithfulness above
+   all"* — but resident memory is still sacred. What S19 settled:
+   - Geometry: **297,025 cells @ 460 m, K = 8 chapters, 200 epochs**; land 14.9 % of
+     cells but **76.8 % of all stratum slots**. Units/cell is **strongly bimodal**
+     (land mean 96.0, marine mean 5.1, overall mean 18.64, median 5, max 478) — **any
+     allocation sized on the mean is wrong in both directions.**
+   - Baseline `DeepField` residency **T = 162.57 MiB**, of which the record is 90.8 %.
+   - **Flow facts are causally triangular**: a slot deposited in chapter `c` cannot
+     carry a fact from before `c`, so the real count is `Σ(K − chapter)` = **57.7 %**
+     of the naive `slots × K` — **a free 1.73×**. Never allocate the rectangle.
+   - **The dense/sparse fork is decisive**: dense layouts land at **1.9×–5.5× T**;
+     sparse-with-the-full-atom crosses **1× T at 4.30 % face-sparsity, 4× at 17.94 %**.
+     The CSR index floor is negligible (0.056× T) — **the payload is the whole
+     constraint.**
+   - **The measured anti-pattern to avoid:** `Vec<Vec<_>>` keyed per (cell, slot) —
+     today's `FactLedger` — is **98.8 % empty inner Vecs, 89 % of its heap being empty
+     headers** (+156.91 MiB, 1.96× T, when `weather_inventory` is on).
+   - **Residual unknown:** the actual non-zero face fraction, which cannot be known
+     before the recording slice's solve exists. That single number closes Q1.
 2. **Sub-face parallel channels.** One flux per face merges two parallel channels
    crossing the same face; refinement may re-split them from finer topography.
    Whether the *record* must distinguish them is deferred to measurement.

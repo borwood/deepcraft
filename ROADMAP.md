@@ -2873,6 +2873,21 @@ before any code.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **FREE WIN — `strata` Vec capacity doubling wastes 54.02 MiB: 39 % of the record heap
+  and 33 % of ALL current `DeepField` residency** (measured 2026-07-25,
+  `docs/spikes/S19-flow-record-cost-results.md`). Live 84.47 MiB vs capacity 138.49 MiB
+  on a production world (seed 1337, Medium). Pure allocator slack from growth doubling —
+  the record is built once per world and then read-only, so a `shrink_to_fit` (or an
+  exact-size second pass / arena) at the end of the deep-time compile should recover most
+  of it with **no behaviour change and no content cost**. This is the cheapest residency
+  win on the board and it is worth taking before the flow record adds a second large
+  store. **Runtime perf is first-class and this is pure waste** — but measure the actual
+  reclaim (and the one-time copy cost, which is gen-time, therefore free) rather than
+  assuming. *Related, same measurement:* `FactLedger`'s `Vec<Vec<Fact>>` is **98.8 % empty
+  inner Vecs, 89 % of its heap empty headers** (+156.91 MiB when `weather_inventory` is
+  on) — the same allocation-shape defect one level up, and the reason the flow record must
+  be sparse/CSR rather than per-(cell,slot) Vecs.
+
 - **`derive_regolith_at` derives `H` from an EMPTY ledger — Movement 2a's derived views
   cannot see `dc:deep/weather_inventory`'s facts** (spine-audit 2026-07-24, post-M3).
   `DeepField::derive_regolith_at` (`deeptime/field.rs:545`) builds its working inventory from
