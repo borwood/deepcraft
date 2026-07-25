@@ -171,6 +171,12 @@ struct Baseline {
     strata_heap: usize,
     ledger_structs: usize,
     ledger_heap: usize,
+    /// FLOW slice 1's face-flux record (journal/0096). **Added 2026-07-25**: the
+    /// record landed after this probe was written, so the itemisation was missing
+    /// a row `DeepField::resident_bytes` already counted — and the agreement
+    /// assertion below (rightly) refused to run. An itemisation that silently
+    /// omitted it would have been worse.
+    flux: usize,
 }
 
 impl Baseline {
@@ -189,6 +195,7 @@ impl Baseline {
             strata_heap: f.strata.iter().map(DeepStrata::heap_bytes).sum(),
             ledger_structs: f.ledgers.len() * std::mem::size_of::<FactLedger>(),
             ledger_heap: f.ledgers.iter().map(FactLedger::footprint_bytes).sum(),
+            flux: f.flux.resident_bytes(),
         }
     }
 
@@ -206,6 +213,7 @@ impl Baseline {
             ("strata heap (DepUnit)", self.strata_heap),
             ("ledger structs", self.ledger_structs),
             ("ledger heap (Fact)", self.ledger_heap),
+            ("flux record (FLOW s1)", self.flux),
         ]
     }
 
