@@ -7,6 +7,43 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-25 — **A weathering front is a PROFILE, not a slab** (journal/0099; background agent,
+  worktree; **collapse-tier only — `deeptime/` untouched, stub #16 NOT retired**). Closes the
+  walk finding of journal/0097. The fold no longer emplaces the scalar
+  `weathering_product_m` as **one stratum of one class**; it grades the **same mass budget**
+  down a front. At the production argmax cell (84185 m, 9212 m) the front is **8 bands ×
+  2.031 m = 16.25 m over 19 voxels**, product eighths top→bottom
+  `[4,7,6,5,5,4,4,4,3,2,2,2,1,1,1,1,1,1,1]`, and the **form flips at 295/294 from debris
+  (parent as clasts) to `structure` + `pore_fill`** — the user's proposed
+  `structure → pore_fill` shape. **The hard perimeter is gone at BOTH faces:** the deepest
+  front voxel is **7/8 parent structure + 1/8 product**, never 8/8 product against pristine
+  basement. Shape = `WEATHERING_PROFILE [7,5,4,3,2,1,1,1] == round(7·exp(−j/3))` — exponential
+  because a weathering front is a **reaction front** (downward-advecting reactant, first-order
+  kinetics), scale-free so the ledger sets only the size, capped at 7/8 because **saprolite is
+  *defined* by retained parent fabric**. The front grows **downward into unrecorded basement**
+  (nothing above moves) and is ~**2.67×** the product metres.
+  **Distinguished from the `mixed_voxel_contents` artifact by three separators** (the trap
+  journal/0097 warned about): 19 voxels not one · the ladder is read off **`Single`** plans
+  (voxels wholly inside one band — nothing to straddle) · and **it scales with the model** (the
+  median cell, 1.16 m, grades `[5,4,2,1]` over 4 voxels — quantization would be one voxel at
+  both magnitudes, a decorative gradient identical at both). Mass: **exact at the record tier**
+  (`the_weathering_front_conserves_the_ledger_product_mass`, five magnitudes over three orders);
+  at the voxel tier the eighths are a *draw* (journal/0055's estimator doctrine) — see Observed.
+  Flag-OFF **byte-identical, no golden edited** (`generated_world_is_byte_identical_to_the_pre_contract_goldens`,
+  `geology_world_regenerates_byte_identically`, `the_production_world_still_hashes_to_the_pre_slice_goldens`).
+  Gates: 261 passed after `cargo clean -p dc-worldgen`. **Constants are a stand-in → stubs #19**
+  (decay length / the 7/8 cap / the 2.67× ratio are measured from nothing; heir = the deep tier
+  carrying a depth-resolved term). **PLEA recorded, not acted on:** the ledger should eventually
+  carry the profile, because the collapse can only impose a **universal** shape — granite under
+  wet tropical saprolite and under a stripped periglacial slope get the same normalized curve,
+  while the physical controls (front-descent vs erosion rate, fracture density, climate) already
+  live in the deep sim. Follow-on slice; the fold shape and mass contract here survive it.
+  **OWED: the flag-ON appearance walk** — this is an appearance change and the picture is the
+  user's. Station: world (84185 m, 9212 m), front at voxels y=299…281; cut a **bench**,
+  `--fullbright`, read with `world_get_contents`. **A flag-ON chunk-latency number was NOT
+  taken — unmeasured** (flag-off is byte-identical ⇒ zero; flag-on adds 8 events per banded
+  column and a 2.67× deeper record, nothing per-frame or per-tick).
+
 - 2026-07-25 — **FLOW slice 1: flux on FACES — the RECORDING half** (journal/0096; background
   agent, worktree; **the arc STAYS OPEN — continuation slot (a)–(e) intact**). The drainage
   solve's **output representation** is replaced; the solve itself (priority-flood → D8 route →
@@ -2346,7 +2383,11 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   Instrument `--fullbright` (a material question). **Accepted with a follow-up, not a blocker** —
   the band has a **hard perimeter** (see Sequenced "the weathering front needs a PROFILE"), and the
   gradational-looking top contact is **boundary quantization, not weathering** (one voxel deep,
-  `mixed_voxel_contents`); **(3)** the geotherm's
+  `mixed_voxel_contents`); **(4)** the **weathering-front PROFILE** flag-ON walk (journal/0099,
+  shipped 2026-07-25) — the band is now a graded **19-voxel** front, ~**2.67×** deeper than the
+  old slab, with **retained parent structure at the bottom contact** (7/8 parent + 1/8 product)
+  instead of a hard perimeter; station world **(84185 m, 9212 m)**, voxels **y=299…281** — cut a
+  **bench** (not a pit), `--fullbright`, read with `world_get_contents`; **(3)** the geotherm's
   coal-distribution shift when it lands (coal
   moves as the real gradient replaces the degenerate stub). Screenshots to `journal/assets/`
   named for their entry.
@@ -2378,7 +2419,9 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     off in-flight and avoided. Fixing it here closes the loop — the measurement that protected
     the new record should also repair the old one.
 
-- **THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB** (walk finding, user, 2026-07-25;
+- **✅ SHIPPED 2026-07-25 (journal/0099) — see § Shipped for the result.** *(Entry kept for its
+  reasoning; the flag-ON walk it earned is now item (4) of APPEARANCE WALKS OWED.)*
+  ~~THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB~~ (walk finding, user, 2026-07-25;
   journal/0097). **WHAT.** Movement 3's band is correctly *magnituded* and wrongly *shaped*: the
   collapse folds the scalar `FactLedger::weathering_product_m` into **one stratum of one class**
   (`CLASS_CLASTIC_FINE`, `geology.rs::emplace_weathering_front`), so the record→voxel path expresses
@@ -3150,6 +3193,29 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **Is the front's voxel-tier mass error SAMPLING NOISE or a real upward BIAS?** (integrator
+  review of journal/0099, 2026-07-25 — **the claim is undertested, not shown wrong**.) Record-tier
+  conservation is exact and asserted. At the voxel tier the slice reports **+3.7 % over 21 columns**
+  (56.14 m expressed vs 54.12 m owed) and calls it quantization noise under journal/0055's
+  **unbiased-estimator** doctrine. But an unbiased estimator has `E[expressed] = owed`, so a
+  population mean should trend to **zero**, not `+3.7 %` — and the **median column is `+16 %`**
+  (a whole front of only 12 eighths), which is the signature of a **floor effect**: a band thinner
+  than one eighth cannot express as less than one eighth without vanishing. If the addressed
+  rounding is genuinely stochastic-proportional the bias should wash out; if it rounds up at the
+  floor, it will not. **21 columns is far too small a sample to tell.** Cheap to settle: re-run the
+  probe over a few hundred columns and see whether the mean trends to zero. **Not a blocker** —
+  the worst single column is under two eighths (≈0.23 m) — but *"mass is conserved"* must not enter
+  the corpus as a stronger claim than the evidence supports, and a future conservation audit
+  (flow.md § 3's mass budget) would be built on top of it.
+
+- **A front's parent alternates diorite/granite down a single column** (observed 2026-07-25 by the
+  weathering-profile slice; **pre-existing, merely made visible**). `Single` voxels resolve their
+  member through the per-voxel-column **member dither** while `Mixed` voxels use the **canonical**
+  member, so a column whose voxels alternate plan kinds also alternates rock identity. Invisible
+  until a front produced many contact voxels in one column. Same family as the palette-quant
+  member-stepping thread (a *within-class member* choice reaching the eye), and it belongs with the
+  genesis-passes arc that retires class-member selection.
 
 - **DIAGNOSED 2026-07-25 — `world_get_contents` reports `dc:air` and `has_contents: true` over
   solid, correctly-unrecorded rock** (walk observation journal/0097; diagnosis
