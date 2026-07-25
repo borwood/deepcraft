@@ -883,12 +883,18 @@ mod gate {
         );
     }
 
-    /// **Stage 2.** The eighth draw, over the voxels whose product can actually
-    /// be attributed to the front. The bound is deliberately one-sided-ish and
-    /// loose: this stage is a floor-limited quantizer, so a *positive* mean is
-    /// expected and is the diagnosis (journal/0103), while a strongly *negative*
-    /// mean is the regression that matters — it is journal/0055's deleted thin
-    /// bed, back again.
+    /// **Stage 2.** The eighth draw, over the `Mixed` voxels — the only ones that
+    /// contain a draw at all, since a `Single` front voxel emits its band's
+    /// recorded eighths exactly — and only where the product can be attributed to
+    /// the front rather than to an overlying bed of the same material.
+    ///
+    /// journal/0103 measured this at **−0.84 %** aggregate on the production
+    /// world, so the bounds are set loosely on both sides: this is an unbiased
+    /// estimator over a one-eighth quantum, and its *variance* on a small census
+    /// is real. What must never happen is a drift to strongly **negative** —
+    /// that is journal/0055's deleted thin bed coming back — or to strongly
+    /// **positive**, which would mean the rider's share stopped being
+    /// proportional to its host's winnings.
     #[test]
     fn the_eighth_draw_does_not_delete_the_thin_front() {
         let c = gate_census();
