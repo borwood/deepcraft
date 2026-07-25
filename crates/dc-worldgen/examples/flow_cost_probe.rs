@@ -27,8 +27,8 @@
 use std::time::Instant;
 
 use dc_worldgen::deeptime::{
-    DeepField, DeepOverrides, DeepStrata, DepUnit, Fact, FactLedger, SEA_LEVEL_M, build_field_with,
-    production_config,
+    DeepField, DeepOverrides, DeepStrata, DepUnit, Fact, FactLedger, FracM, SEA_LEVEL_M,
+    build_field_with, production_config,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -493,9 +493,15 @@ fn main() {
     // The counterfactual: the pre-slice `Vec<Vec<Fact>>`, priced on this world.
     // One inner `Vec` per slot (units.len() + 1 per cell, the bedrock seam
     // included), 24 B of header each, plus the same facts as payload.
+    //
+    // **The payload is priced at the width of THAT era, not today's** (journal/0108
+    // took the resident fact from 16 B to 8 B). `Fact<FracM>` — the gen-time
+    // accumulator, endpoints-or-edge-id beside an `f64` — is still exactly that
+    // width, so the historical figure stays a live type's `size_of` rather than a
+    // hardcoded 16 that nothing would ever re-check.
     let old_inner: usize = field_wi.strata.iter().map(|s| s.units.len() + 1).sum();
     let old_headers = old_inner * std::mem::size_of::<Vec<u8>>();
-    let old_heap = old_headers + facts * std::mem::size_of::<Fact>();
+    let old_heap = old_headers + facts * std::mem::size_of::<Fact<FracM>>();
     println!(
         "  [pre-CSR counterfactual on this same world: {old_inner} inner Vec<Fact> \
          ({} EMPTY = {:.1}%), headers {:.2} MiB = {:.0}% of a {:.2} MiB heap. \

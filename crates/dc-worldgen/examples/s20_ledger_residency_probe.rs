@@ -764,6 +764,21 @@ fn report(geo: &Geometry, paging: &[Paging]) {
             "MISMATCH"
         }
     );
+    // Before/after on the SAME measured world — one run's arithmetic, not two runs'
+    // memories, and stated as ABSOLUTES because a ratio rots when its denominator
+    // moves.
+    let today_legacy = Residency {
+        fact_bytes: std::mem::size_of::<LegacyShape>(),
+        ..geo.today()
+    };
+    println!(
+        "  TODAY at the PRE-0108 width ({} B/fact)          = {:>8.2} MiB   -> shipped 8 B/fact \
+         = {:>8.2} MiB   (reclaimed {:.2} MiB)",
+        std::mem::size_of::<LegacyShape>(),
+        mib(today_legacy.bytes()),
+        mib(geo.today().bytes()),
+        mib(today_legacy.bytes()) - mib(geo.today().bytes())
+    );
     println!(
         "  (cell, chapter) firings {:>12}   facts per firing {:.4}  (the agent count, measured)",
         geo.cell_chapter_firings, geo.facts_per_firing
@@ -1042,13 +1057,39 @@ fn tolerance_audit() {
         .iter()
         .map(|&a| agent_share(&inp, m, a))
         .collect();
-    let rate_f64: f64 = shares.iter().sum();
-    let rate_stored: f64 = shares.iter().map(|&s| f64::from(s as f32)).sum();
-    println!(
-        "  IF the accumulator narrowed too, one firing's rate {rate_f64:.9} m would already \
-         disagree by {:.3e} m -- it does not, because it does not narrow",
-        (rate_f64 - rate_stored).abs()
-    );
+
+    // **Why the accumulator must stay f64 — the counterfactual, measured.** If the
+    // narrowing happened at the accumulator instead of at persist, every one of a
+    // run's firings would round its own running total, and the error would COMPOUND
+    // with the firing count instead of happening once. Same shares, same firings,
+    // same final band; the only difference is where the `as f32` sits.
+    println!("  where the narrowing sits, measured on the same shares:");
+    for firings in [1u32, 10, 200] {
+        let exact: f64 = shares.iter().map(|&s| s * f64::from(firings)).sum();
+        // Narrow ONCE at persist (what ships): accumulate in f64, round at the end.
+        let once: f64 = shares
+            .iter()
+            .map(|&s| f64::from((s * f64::from(firings)) as f32))
+            .sum();
+        // Narrow at EVERY add (what a narrowed accumulator would do).
+        let every: f64 = shares
+            .iter()
+            .map(|&s| {
+                let mut q = 0.0f32;
+                for _ in 0..firings {
+                    q = (f64::from(q) + s) as f32;
+                }
+                f64::from(q)
+            })
+            .sum();
+        println!(
+            "     {firings:>3} firings, band {exact:.9} m: narrow-ONCE err {:.3e} m   \
+             narrow-at-EVERY-add err {:.3e} m   ({:.1}x worse)",
+            (exact - once).abs(),
+            (exact - every).abs(),
+            (exact - every).abs() / (exact - once).abs().max(f64::MIN_POSITIVE)
+        );
+    }
     println!(
         "  f32 has 24 bits of mantissa: relative resolution 2^-24 = {:.3e} (= {:.3e} in the \
          library's F32_RELATIVE_RESOLUTION)",
