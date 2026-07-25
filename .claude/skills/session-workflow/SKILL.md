@@ -850,3 +850,19 @@ self-declaring comment is not an index, and neither is a document nobody reads w
   mechanism that *forces* a re-read finds those. Today's sweep had to be **requested** — that
   is the gap. Run it after any batch of merges that ships a new arc, with the explicit job of
   finding items that are **SUBSUMED / STALE / UNBLOCKED / CONTRADICTED** by the new work.
+
+## `cargo clean -p` must name the whole CHANGED DEPENDENCY CHAIN (2026-07-25)
+
+Sharpening of corrections #21/#27/#34, earned the hard way: the shared `CARGO_TARGET_DIR`
+served a sibling's rlib **four times in one day**, including resolving a worktree's
+`dc-worldgen` against a **sibling's `dc-sim`** *after* a `cargo clean -p dc-worldgen` — thirty
+errors insisting a macro did not exist while it sat on screen.
+
+**The rule:** clean **every crate in the changed dependency chain**, not just the crate you
+edited and not just the crates a sibling edited. If you touched `dc-sim` and `dc-worldgen`,
+clean both — cleaning the leaf leaves the poisoned trunk in place.
+
+**The tell, and it is reliable:** *a compiler diagnostic whose line numbers do not match your
+file.* When the error cannot be true of the source in front of you, stop reading the source and
+suspect the artifact. Also seen this day: a sibling **clobbered the lock file mid-run** — so
+re-read the lock before every cargo call, never merely on acquire.

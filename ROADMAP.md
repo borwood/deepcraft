@@ -5624,7 +5624,7 @@ not a record hole (#49) · the front's `+3.7 %` mass was **the instrument**, doc
 Also: my per-cell-container rule was **too broad** (the defect is *resident*, not per-cell); my
 floor-effect hypothesis was **wrong**; the spine-audit's own prescription was **half wrong**.
 
-### Running — CHECK, DO NOT TRUST
+### Running — ALL LANDED AND MERGED (nothing is running)
 1. **Hash-domain provider** (worktree `ab7399671e0e842f8`, holds journal **0105**, holds the build
    lock legitimately). Upgraded mid-flight to the user's **construction-guarantee** framing. **Will
    move goldens** — that is authorised; verify it *announced* what moved.
@@ -5658,8 +5658,28 @@ sweep RECURRING, like `spine-audit`** — shrinking the doc helps someone alread
 does nothing for what nobody thinks to look at. **Today's sweep had to be requested; that is
 the gap.** Design the archive scheme next session *before* it grows another thousand lines.
 
+### 🔴 THE STALENESS SWEEP LANDED — read it before planning
+`docs/audits/2026-07-25-roadmap-staleness-sweep.md`, 22 rows. **All agents are in; nothing is
+running.** The three that would most mislead:
+1. **`3e-2 C refinement` carries THREE contradictory stamps** — Sequenced says *"Nothing open —
+   implementable"*, the FLOW entry ~1,000 lines earlier says its **expression half is
+   superseded**, and the 2026-07-24 sweep marked it **VALIDATED**. Two Sequenced entries give
+   **opposite dispatch advice**. *Does anything of 3e-2 remain dispatchable, or only the
+   qualified constraint?* **User call.**
+2. **Movement 2b has NO Sequenced entry** — it lives only in a close block, and its ratified
+   mechanism (§13.1, transport "along the **pinned receiver**") is **exactly the spanning tree
+   FLOW retires**. Ready-to-paste replacement is in the audit.
+3. **corrections #51, ONE FILE OVER, and journal/0106's audit missed it.**
+   `tests/organic.rs:31` runs `the_measured_coal_seam_is_coal_a_player_can_dig` on
+   `SEED = 0x0D5E_ED57_2026` — **a seed the client structurally cannot open** (it does not fit
+   `BENCH_SEED`'s `i32`). `MIN_DIGGABLE_COAL_VOX` was re-baselined **15→10→6** on that world,
+   twice under NEEDS RATIFICATION. Unlike the helpers 0106 *did* clear, **this claim is not
+   seed-independent.** Fix it the way `production_field()` was fixed.
+Also: **flow.md §11.1's ratified third scheduler axis (`ORDER × RATE × WINDOW`) appears NOWHERE
+in ROADMAP**, and material-behavior §5 is unamended — a ratified decision with no home.
+
 ### First things next session
-1. **Integrate the three running agents**, then the staged gate (`./scripts/gate.ps1`).
+1. **Fold the staleness sweep**, then the staged gate (`./scripts/gate.ps1`).
 2. **The per-depth weathering arc** — gate open; the decision is **residency axes** (S20 informs).
 3. **Movement 2b — material-aware transport** (§13), the big appearance-changer.
 4. **MFD / simultaneous divergence** — unblocked by the head field; today's divergence is
