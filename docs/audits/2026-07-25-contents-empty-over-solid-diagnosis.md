@@ -421,8 +421,10 @@ The honest one-line verdict: **not a record hole; a record *reporting* hole.**
 
 ---
 
-## 8. Recommended corrections (for the integrator — this agent wrote no
-non-audit files)
+## 8. Recommended corrections (for the integrator)
+
+*(This agent wrote no files outside `docs/audits/` and the probe under
+`crates/dc-worldgen/examples/`. Everything below is text to apply, not applied.)*
 
 ### 8.1 `journal/corrections.md` — ready to paste
 
