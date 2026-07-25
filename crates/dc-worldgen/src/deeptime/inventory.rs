@@ -235,6 +235,14 @@ impl Fact {
 ///
 /// An empty ledger allocates **nothing at all**, which is what a never-weathered
 /// cell now costs.
+///
+/// **Since journal/0102 this is the GEN-TIME ACCUMULATOR, not the resident shape.**
+/// One of these per cell is still two `Vec` headers × 297,025 = 13.60 MiB paid
+/// before a fact exists — the same defect one level up — so the *resident* record
+/// is [`LedgerField`], one grid-wide record with the cell as a CSR row. This struct
+/// keeps its mutable, append-and-merge nature because that is what the weathering
+/// pass needs every epoch (an insert into a grid-wide array would memmove a million
+/// facts); it is compacted into [`LedgerField`] once, at finalize.
 #[derive(Clone, Default, PartialEq, Debug)]
 pub struct FactLedger {
     /// Every fact, grouped by slot (ascending) and append-ordered within a slot.
@@ -453,6 +461,232 @@ impl FactLedger {
     /// Heap footprint (bytes): the flat fact array plus the CSR index.
     pub fn footprint_bytes(&self) -> usize {
         self.payload_bytes() + self.index_bytes()
+    }
+}
+
+// ===========================================================================
+// The grid-wide ledger record (journal/0102) — the cell as a CSR row.
+// ===========================================================================
+
+/// **One fact ledger for the WHOLE deep grid, with the CELL as a CSR row** — the
+/// resident shape [`DeepField::ledgers`](super::field::DeepField::ledgers) carries.
+///
+/// **The defect it exists to kill.** journal/0100 collapsed the *inner* dimension
+/// (`Vec<Vec<Fact>>` → flat facts + slot rows) and, in doing so, grew the per-cell
+/// [`FactLedger`] struct from 24 to 48 bytes — two `Vec` headers. Across a
+/// production grid of **297,025 cells** that is **13.60 MiB paid before a single
+/// fact is stored**, and 75.8 % of those cells never weather at all. The
+/// generalisation outlives this record and is the reason it is written down twice:
+///
+/// > *any per-cell OWNING CONTAINER in a 297 k-cell field costs a header per cell
+/// > before it holds data.* The default for anything per-cell is **one grid-wide
+/// > record with CSR rows**, never `Vec<Something>` per cell.
+///
+/// **The shape is [`flux.rs`](super::flux)'s, ported — not a second mechanism**
+/// (A-4). [`FluxRecord`](super::flux::FluxRecord) is flat `entries` + a dense
+/// `cell_start` offsets array; this is flat [`Fact`]s + the *slot* rows of
+/// journal/0100 + a dense `cell_row_start` over those rows. Two levels of CSR, the
+/// outer one dense (every cell exists and the offsets array *is* the addressing
+/// scheme — 4 B/cell = 1.13 MiB) and the inner one sparse (a slot row is paid only
+/// where facts exist).
+///
+/// A cell is read as a [`LedgerView`] — a borrowed window with exactly the read
+/// surface [`FactLedger`] had. [`FactLedger`] itself survives as the **gen-time
+/// accumulator**: the per-cell mutable scratch the weathering pass appends into
+/// every epoch, which is compacted into this record once, at finalize.
+#[derive(Clone, Default, PartialEq, Debug)]
+pub struct LedgerField {
+    /// Every fact in the world, grouped by cell (ascending), then by slot
+    /// (ascending), then in append order within a slot.
+    facts: Vec<Fact>,
+    /// Every non-empty slot's run, in the same cell-major order. `start` is an
+    /// **absolute** index into [`Self::facts`], so a row's end is the next row's
+    /// start — uniformly, including across a cell boundary.
+    rows: Vec<SlotRun>,
+    /// `cell_row_start[i] .. cell_row_start[i + 1]` is cell `i`'s slice of
+    /// [`Self::rows`]. Length `cells + 1`, or **empty when the record is empty**
+    /// (the flag is off) — the S-5 identity default, which then costs nothing.
+    cell_row_start: Vec<u32>,
+}
+
+impl LedgerField {
+    /// **Compact the per-cell gen-time accumulators into the resident record**,
+    /// re-keying each cell's `from_slot` run onto `to_slot(cell)`.
+    ///
+    /// This is [`FactLedger::rekeyed`] done once for the whole grid: the in-loop
+    /// accumulator keys its bedrock facts at a stable sentinel slot (journal/0094)
+    /// and the collapse consumer reads them at the final record's bedrock index.
+    /// Facts at any other slot are dropped, exactly as the per-cell `rekeyed` did —
+    /// the accumulator only ever holds the sentinel slot.
+    ///
+    /// Every array is **exact-sized**: the compile is over, growing room is waste.
+    pub fn from_accumulators(
+        accumulators: &[FactLedger],
+        from_slot: usize,
+        to_slot: impl Fn(usize) -> usize,
+    ) -> Self {
+        let cells = accumulators.len();
+        if cells == 0 {
+            return Self::default();
+        }
+        let runs = accumulators.iter().map(|a| a.facts_for(from_slot));
+        let total_facts: usize = runs.clone().map(<[Fact]>::len).sum();
+        let total_rows: usize = runs.filter(|r| !r.is_empty()).count();
+        let mut facts = Vec::with_capacity(total_facts);
+        let mut rows = Vec::with_capacity(total_rows);
+        let mut cell_row_start = Vec::with_capacity(cells + 1);
+        for (i, acc) in accumulators.iter().enumerate() {
+            cell_row_start.push(u32::try_from(rows.len()).expect("a row index fits in u32"));
+            let run = acc.facts_for(from_slot);
+            if run.is_empty() {
+                continue;
+            }
+            rows.push(SlotRun {
+                slot: u32::try_from(to_slot(i)).expect("a slot index fits in u32"),
+                start: u32::try_from(facts.len()).expect("a fact index fits in u32"),
+            });
+            facts.extend_from_slice(run);
+        }
+        cell_row_start.push(u32::try_from(rows.len()).expect("a row index fits in u32"));
+        Self {
+            facts,
+            rows,
+            cell_row_start,
+        }
+    }
+
+    /// The number of **cells** the record covers (`0` when the flag is off).
+    pub fn len(&self) -> usize {
+        self.cell_row_start.len().saturating_sub(1)
+    }
+
+    /// True when the record covers no cells — the flag-off identity default.
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// **Cell `i`'s ledger**, or `None` out of range. A borrowed window, not an
+    /// owned struct — the whole point.
+    pub fn get(&self, i: usize) -> Option<LedgerView<'_>> {
+        let a = *self.cell_row_start.get(i)? as usize;
+        let b = *self.cell_row_start.get(i + 1)? as usize;
+        let end = self
+            .rows
+            .get(b)
+            .map_or(self.facts.len(), |r| r.start as usize);
+        Some(LedgerView {
+            facts: &self.facts,
+            rows: &self.rows[a..b],
+            end: end as u32,
+        })
+    }
+
+    /// Every cell's ledger, in cell order.
+    pub fn iter(&self) -> impl Iterator<Item = LedgerView<'_>> {
+        (0..self.len()).map(|i| self.get(i).expect("cell index is in range"))
+    }
+
+    /// Total facts across the whole grid.
+    pub fn total_facts(&self) -> usize {
+        self.facts.len()
+    }
+
+    /// Non-empty `(cell, slot)` runs across the whole grid — the sparsity
+    /// numerator. Every other slot is one the layout no longer pays for.
+    pub fn slots_with_facts(&self) -> usize {
+        self.rows.len()
+    }
+
+    /// The **payload** half of the footprint (bytes): the facts themselves.
+    pub fn payload_bytes(&self) -> usize {
+        self.facts.capacity() * std::mem::size_of::<Fact>()
+    }
+
+    /// The **index** half of the footprint (bytes): the sparse slot rows plus the
+    /// dense per-cell row offsets. The dense half is 4 B/cell — against the
+    /// 48 B/cell of `Vec` headers it replaces.
+    pub fn index_bytes(&self) -> usize {
+        self.rows.capacity() * std::mem::size_of::<SlotRun>()
+            + self.cell_row_start.capacity() * std::mem::size_of::<u32>()
+    }
+
+    /// Heap footprint (bytes). There is **no per-cell struct term** — that is the
+    /// 13.60 MiB this shape removed.
+    pub fn footprint_bytes(&self) -> usize {
+        self.payload_bytes() + self.index_bytes()
+    }
+}
+
+/// **A borrowed view of one cell's ledger** — the read surface [`FactLedger`] had,
+/// over the grid-wide [`LedgerField`] instead of an owned per-cell struct.
+///
+/// `Copy` and two words plus a slice wide: it is created on demand at a call site
+/// that used to hold `&FactLedger`, and costs nothing resident.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct LedgerView<'a> {
+    /// The record's **whole** fact array — [`SlotRun::start`] is absolute.
+    facts: &'a [Fact],
+    /// This cell's slot rows, ascending by slot.
+    rows: &'a [SlotRun],
+    /// The absolute end of this cell's fact range (the next cell's first row's
+    /// start, or the array's end).
+    end: u32,
+}
+
+impl<'a> LedgerView<'a> {
+    /// The end of row `k`'s run. The last row of a cell ends at the cell's end;
+    /// every other row ends where the next begins.
+    #[inline]
+    fn row_end(&self, k: usize) -> usize {
+        self.rows
+            .get(k + 1)
+            .map_or(self.end as usize, |r| r.start as usize)
+    }
+
+    /// The facts appended to unit `i` (empty slice when none / out of range) —
+    /// identical in contents and in **order** to [`FactLedger::facts_for`].
+    #[inline]
+    pub fn facts_for(&self, i: usize) -> &'a [Fact] {
+        let Ok(key) = u32::try_from(i) else {
+            return &[];
+        };
+        match self.rows.binary_search_by_key(&key, |r| r.slot) {
+            Ok(k) => &self.facts[self.rows[k].start as usize..self.row_end(k)],
+            Err(_) => &[],
+        }
+    }
+
+    /// The bedrock seam's composed portions — see [`FactLedger::bedrock_composition`].
+    pub fn bedrock_composition(&self, unit_count: usize) -> Vec<Portion> {
+        compose_bedrock(self.facts_for(unit_count))
+    }
+
+    /// **The weathering product** (metres of `Loose` [`BEDROCK_SEAM_MATERIAL`]) —
+    /// the quantity the collapse expresses as a basal weathering-front band. See
+    /// [`FactLedger::weathering_product_m`].
+    pub fn weathering_product_m(&self, unit_count: usize) -> FracM {
+        self.bedrock_composition(unit_count)
+            .iter()
+            .filter(|p| p.form == InvForm::Loose)
+            .map(|p| p.quantity_m)
+            .sum()
+    }
+
+    /// True when this cell carries no fact at all (the 75.8 % case).
+    pub fn is_empty(&self) -> bool {
+        self.rows.is_empty()
+    }
+
+    /// Facts in this cell.
+    pub fn total_facts(&self) -> usize {
+        self.rows
+            .first()
+            .map_or(0, |r| self.end as usize - r.start as usize)
+    }
+
+    /// Slots in this cell that carry a fact.
+    pub fn slots_with_facts(&self) -> usize {
+        self.rows.len()
     }
 }
 
@@ -1523,6 +1757,124 @@ mod tests {
         let none = FactLedger::default().rekeyed(0, 7);
         assert!(none.is_empty());
         assert_eq!(none.footprint_bytes(), 0);
+    }
+
+    // --- The grid-wide record (journal/0102) ---------------------------------
+
+    /// Build a bedrock-only accumulator carrying `causes.len()` facts at slot 0.
+    fn accumulator_with(causes: &[Cause], qty: FracM) -> FactLedger {
+        let empty = DeepStrata::default();
+        let mut acc = FactLedger::empty_with_bedrock(&empty);
+        let mut inv = build_working(&empty, &acc);
+        for &cause in causes {
+            inv.ctx_for(0, cause).move_form(
+                0,
+                BEDROCK_SEAM_MATERIAL,
+                InvForm::Structure,
+                InvForm::Loose,
+                qty,
+            );
+        }
+        commit_chapter(&mut inv, &mut acc);
+        acc
+    }
+
+    #[test]
+    fn the_grid_record_reproduces_every_cell_fact_for_fact_and_in_order() {
+        // **The byte-identity claim in its most direct form.** A grid of cells, most
+        // of them empty (the production shape), each re-keyed onto a DIFFERENT slot —
+        // and every cell's facts, their order and their slot must survive the
+        // flattening exactly as the per-cell `rekeyed` produced them.
+        let accs = vec![
+            accumulator_with(&[], 0.0),
+            accumulator_with(&[Cause::Chemical, Cause::Biotic, Cause::Frost], 0.25),
+            accumulator_with(&[], 0.0),
+            accumulator_with(&[Cause::Frost, Cause::Chemical], 0.5),
+            accumulator_with(&[], 0.0),
+        ];
+        // Distinct per-cell bedrock slots, exactly as records of different depths give.
+        let to_slot = |i: usize| i * 3 + 1;
+        let field = LedgerField::from_accumulators(&accs, 0, to_slot);
+        assert_eq!(field.len(), accs.len());
+
+        for (i, acc) in accs.iter().enumerate() {
+            let want = acc.rekeyed(0, to_slot(i));
+            let got = field.get(i).expect("cell in range");
+            assert_eq!(
+                got.facts_for(to_slot(i)),
+                want.facts_for(to_slot(i)),
+                "cell {i}: same facts, same ORDER"
+            );
+            assert_eq!(got.total_facts(), want.total_facts(), "cell {i}: fact count");
+            assert_eq!(got.slots_with_facts(), want.slots_with_facts());
+            assert_eq!(got.is_empty(), want.is_empty());
+            // The sentinel slot is vacated and no other slot answers.
+            assert!(got.facts_for(0).is_empty() || to_slot(i) == 0);
+            assert!(got.facts_for(9_999).is_empty());
+        }
+        assert_eq!(field.total_facts(), 5, "3 + 2 facts across the grid");
+        assert_eq!(field.slots_with_facts(), 2, "two cells carry a row");
+        assert!(field.get(accs.len()).is_none(), "out of range");
+    }
+
+    #[test]
+    fn a_cells_run_ends_at_its_own_boundary_not_the_next_cells() {
+        // The CSR trap one level up: `start` is absolute and a row's end is the NEXT
+        // row's start, so a cell whose last row is followed by another CELL's row must
+        // still stop at its own boundary. Two adjacent non-empty cells is the case
+        // that catches an off-by-one here.
+        let accs = vec![
+            accumulator_with(&[Cause::Chemical], 0.25),
+            accumulator_with(&[Cause::Biotic, Cause::Frost], 0.5),
+        ];
+        let field = LedgerField::from_accumulators(&accs, 0, |_| 7);
+        let c0 = field.get(0).unwrap();
+        let c1 = field.get(1).unwrap();
+        assert_eq!(c0.facts_for(7).len(), 1, "cell 0 does not swallow cell 1");
+        assert_eq!(c0.facts_for(7)[0].cause(), Cause::Chemical);
+        assert_eq!(c1.facts_for(7).len(), 2);
+        assert_eq!(c1.facts_for(7)[0].cause(), Cause::Biotic);
+        assert_eq!(c1.facts_for(7)[1].cause(), Cause::Frost);
+        assert_eq!(field.total_facts(), 3);
+    }
+
+    #[test]
+    fn the_record_costs_its_facts_not_its_cells() {
+        // **The measured defect journal/0102 exists to kill**, stated as a BOUND. The
+        // per-cell owning container cost 48 B × 297,025 = 13.60 MiB before a single
+        // fact was stored, in a field where 75.8 % of cells never weather. A
+        // grid-wide record must cost its facts plus 4 B/cell of dense offsets, and
+        // NOTHING that scales with the per-cell struct.
+        const CELLS: usize = 100_000;
+        let mut accs = vec![FactLedger::default(); CELLS];
+        accs[7] = accumulator_with(&[Cause::Chemical, Cause::Biotic, Cause::Frost], 0.25);
+        let field = LedgerField::from_accumulators(&accs, 0, |_| 3);
+
+        let old_shape = CELLS * std::mem::size_of::<FactLedger>();
+        let want = 3 * std::mem::size_of::<Fact>()          // the facts
+            + std::mem::size_of::<u64>()                    // one SlotRun
+            + (CELLS + 1) * std::mem::size_of::<u32>(); // the dense cell offsets
+        assert_eq!(field.total_facts(), 3);
+        assert_eq!(field.slots_with_facts(), 1);
+        assert_eq!(field.payload_bytes(), 3 * std::mem::size_of::<Fact>());
+        assert_eq!(
+            field.footprint_bytes(),
+            want,
+            "exact-sized: facts + one row + 4 B/cell, and nothing else \
+             ({old_shape} B of per-cell structs under the old shape)"
+        );
+        // The dense half is the only per-cell term, and it is 12x smaller.
+        assert!(
+            field.footprint_bytes() * 4 < old_shape,
+            "{} B is not a fraction of {old_shape} B",
+            field.footprint_bytes()
+        );
+        // An empty grid costs literally nothing (the flag-off identity default).
+        let off = LedgerField::default();
+        assert!(off.is_empty());
+        assert_eq!(off.len(), 0);
+        assert_eq!(off.footprint_bytes(), 0);
+        assert!(off.get(0).is_none());
     }
 
     #[test]

@@ -33,7 +33,7 @@
 //! approached Large regions comes back. FLAGGED for the integrating session.
 
 use super::grid::DeepConfig;
-use super::inventory::{FactLedger, FracM, build_working};
+use super::inventory::{FactLedger, FracM, LedgerField, LedgerView, build_working};
 use super::recorder::DeepStrata;
 use super::tectonics::Plate;
 use crate::pregen::{CELL_VOXELS, CellGrid, Pregen};
@@ -263,21 +263,27 @@ pub struct DeepField {
     pub regolith: Vec<f64>,
     /// Per-cell strata record, bottom-up units tagged at deposition.
     pub strata: Vec<DeepStrata>,
-    /// **Per-cell transformation-fact ledger** (the first-real-behavior weathering
-    /// slice, material-behavior.md §1) — the S17 keystone
-    /// [`FactLedger`](super::inventory::FactLedger) made a **production** artifact.
-    /// Parallel to [`Self::strata`] (indexed by the same cell); each ledger's LAST
-    /// slot is the bedrock seam's `Structure→Loose` weathering facts, cause-carrying
-    /// (frost/biotic/chemical). **Empty (no entries) unless
+    /// **The grid-wide transformation-fact ledger** (the first-real-behavior
+    /// weathering slice, material-behavior.md §1) — the S17 keystone made a
+    /// **production** artifact. Indexed by the same cell as [`Self::strata`]; each
+    /// cell's LAST slot is the bedrock seam's `Structure→Loose` weathering facts,
+    /// cause-carrying (frost/biotic/chemical). **Empty unless
     /// [`DeepConfig::weather_inventory`](super::grid::DeepConfig::weather_inventory)
-    /// is on** — off, the field is byte-identical and this Vec is empty (the S-5
+    /// is on** — off, the field is byte-identical and this record is empty (the S-5
     /// identity default). The collapse folds `base + facts`
-    /// ([`FactLedger::weathering_product_m`]) into a basal weathering-front band.
+    /// ([`LedgerView::weathering_product_m`]) into a basal weathering-front band.
+    ///
+    /// **ONE record for the whole grid, with the cell as a CSR row** (journal/0102,
+    /// the [`flux`](super::flux) shape ported). This was `Vec<FactLedger>` — a
+    /// per-cell *owning container*, which is a header × 297,025 cells (13.60 MiB)
+    /// before it stores anything, in a field where 75.8 % of cells never weather.
+    /// Read a cell with [`LedgerField::get`] / [`Self::ledger_at_voxel`], both of
+    /// which hand back a borrowed [`LedgerView`].
     ///
     /// Sidecar rather than a `facts` field grown onto `DepUnit` (which is `Copy` and
     /// read across the merged collapse/erosion/biotic files); the eventual home is a
     /// `RecordedUnit { base, facts }` on `DeepStrata` (inventory.rs).
-    pub ledgers: Vec<FactLedger>,
+    pub ledgers: LedgerField,
     /// **Exported final drainage** (§ 7.3 — tectonic-history only; empty
     /// otherwise). `recv[i]` is the D8 receiver of the last routing (`-1` = sink),
     /// `area[i]` the contributing area / discharge, `lake[i]` a depression-filled
@@ -563,7 +569,11 @@ impl DeepField {
     /// Nearest, exactly like [`Self::record_at_voxel`] — the ledger is index-parallel
     /// to `strata`, so it steps at the same ~460 m deep-cell grid the record does.
     /// The collapse reads this to fold `base + facts` (the weathering-front band).
-    pub fn ledger_at_voxel(&self, vx: i64, vz: i64) -> Option<&FactLedger> {
+    ///
+    /// Returns a **borrowed [`LedgerView`]**, not `&FactLedger`: since journal/0102
+    /// there is no per-cell struct to hand out a reference to (that struct was the
+    /// 13.60 MiB of headers). The read surface is unchanged.
+    pub fn ledger_at_voxel(&self, vx: i64, vz: i64) -> Option<LedgerView<'_>> {
         if self.ledgers.is_empty() {
             return None;
         }
@@ -636,12 +646,9 @@ impl DeepField {
                 .iter()
                 .map(DeepStrata::heap_bytes)
                 .sum::<usize>()
-            + self.ledgers.len() * std::mem::size_of::<FactLedger>()
-            + self
-                .ledgers
-                .iter()
-                .map(FactLedger::footprint_bytes)
-                .sum::<usize>()
+            // The grid-wide fact ledger (journal/0102). **No per-cell struct term** —
+            // there is no per-cell struct any more; that was the 13.60 MiB.
+            + self.ledgers.footprint_bytes()
             // FLOW slice 1: the face-flux record. Reported, never truncated —
             // gen time is free, residency is not (flow.md § 9.1).
             + self.flux.resident_bytes()
