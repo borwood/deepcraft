@@ -821,24 +821,33 @@ fn report_census(c: &MassCensus) {
 mod gate {
     use super::*;
 
+    use std::sync::OnceLock;
+
     /// Columns the gate census samples. Enough that the geometry bound below is
     /// a real constraint rather than a coin flip.
     const GATE_COLUMNS: usize = 120;
 
-    fn gate_census() -> MassCensus {
-        let pregen = production_world(Extent::Small);
-        let banded = banded_cells(&pregen);
-        assert!(
-            !banded.is_empty(),
-            "no weathering band anywhere on the small world — nothing to weigh"
-        );
-        let c = mass_census(&pregen, &banded, GATE_COLUMNS);
-        assert!(
-            c.n() >= 20,
-            "only {} columns measured; the census is too thin to bound anything",
-            c.n()
-        );
-        c
+    /// **Built once for the whole binary.** Three tests share one world and one
+    /// census; libtest runs them on separate threads, so without this the gate
+    /// would pay for the small world three times over. Sizing the gate is part of
+    /// the conversion, not an afterthought (CLAUDE.md § Gates).
+    fn gate_census() -> &'static MassCensus {
+        static CENSUS: OnceLock<MassCensus> = OnceLock::new();
+        CENSUS.get_or_init(|| {
+            let pregen = production_world(Extent::Small);
+            let banded = banded_cells(&pregen);
+            assert!(
+                !banded.is_empty(),
+                "no weathering band anywhere on the small world — nothing to weigh"
+            );
+            let c = mass_census(&pregen, &banded, GATE_COLUMNS);
+            assert!(
+                c.n() >= 20,
+                "only {} columns measured; the census is too thin to bound anything",
+                c.n()
+            );
+            c
+        })
     }
 
     /// **Stage 1.** The record → fill-geometry step is a round-to-nearest on the
@@ -880,26 +889,27 @@ mod gate {
     fn the_eighth_draw_does_not_delete_the_thin_front() {
         let c = gate_census();
         assert!(
-            c.sum_plan_clean > 0.0,
-            "no attributable front voxel in the whole census — every front voxel shares \
-             its product's material with an overlying bed, so this instrument can no \
-             longer see what it measures"
+            c.sum_plan_mixed > 0.0,
+            "no attributable Mixed front voxel in the whole census — either every front \
+             voxel shares its product's material with an overlying bed, or the front no \
+             longer straddles a contact at all; either way this instrument can no longer \
+             see the draw it exists to weigh"
         );
-        let rel = (c.sum_expressed_clean - c.sum_plan_clean) / c.sum_plan_clean;
+        let rel = (c.sum_expressed_mixed - c.sum_plan_mixed) / c.sum_plan_mixed;
         assert!(
-            rel > -0.05,
-            "the eighth draw expresses {:.3} m where the geometry gives the front {:.3} m \
-             ({:+.2} %) — product is being DELETED at the voxel tier, which is exactly the \
-             biased-flooring failure journal/0055 replaced",
-            c.sum_expressed_clean,
-            c.sum_plan_clean,
+            rel > -0.15,
+            "over the Mixed (drawn) front voxels the expression is {:.3} m where the \
+             geometry gives {:.3} m ({:+.2} %) — product is being DELETED at the voxel \
+             tier, which is exactly the biased-flooring failure journal/0055 replaced",
+            c.sum_expressed_mixed,
+            c.sum_plan_mixed,
             100.0 * rel,
         );
         assert!(
-            rel < 0.60,
-            "the eighth draw expresses {:+.2} % more product than the geometry gives it — \
-             far past anything the one-eighth floor explains; the rider share has stopped \
-             being proportional",
+            rel < 0.30,
+            "the drawn front voxels express {:+.2} % more product than the geometry gives \
+             them — far past anything an eighth of quantization explains; the rider share \
+             has stopped being proportional to its host's winnings",
             100.0 * rel,
         );
     }

@@ -32,21 +32,17 @@ fn mib(bytes: usize) -> f64 {
 /// acceptance claims at a small scale) — journal/0103: `cargo test` builds
 /// examples but never runs them, so an instrument's claim only reaches the gate
 /// if a `#[test]` shares the instrument's code.
-fn field(extent: Extent) -> DeepField {
+fn field(extent: Extent) -> (DeepField, std::time::Duration, std::time::Duration) {
+    let t0 = Instant::now();
     let pregen = Pregen::run(WorldParams { seed: SEED, extent });
-    build_field(&pregen.grid, SEED)
+    let t_pregen = t0.elapsed();
+    let t1 = Instant::now();
+    let f = build_field(&pregen.grid, SEED);
+    (f, t_pregen, t1.elapsed())
 }
 
 fn main() {
-    let t0 = Instant::now();
-    let pregen = Pregen::run(WorldParams {
-        seed: SEED,
-        extent: Extent::Medium,
-    });
-    let t_pregen = t0.elapsed();
-    let t1 = Instant::now();
-    let f: DeepField = build_field(&pregen.grid, SEED);
-    let t_deep = t1.elapsed();
+    let (f, t_pregen, t_deep) = field(Extent::Medium);
 
     let rec = &f.flux;
     let c = rec.census();
@@ -291,10 +287,17 @@ fn main() {
 #[cfg(test)]
 mod gate {
     use super::*;
+    use std::sync::OnceLock;
+
+    /// **Built once for the whole binary** — both tests read one field.
+    fn small_field() -> &'static DeepField {
+        static FIELD: OnceLock<DeepField> = OnceLock::new();
+        FIELD.get_or_init(|| field(Extent::Small).0)
+    }
 
     #[test]
     fn the_flux_record_holds_junctions_a_receiver_tree_cannot() {
-        let f = field(Extent::Small);
+        let f = small_field();
         let c = f.flux.census();
         assert!(
             c.entries > 0,
@@ -328,7 +331,7 @@ mod gate {
     /// pass every correctness test and quietly multiply the field's heap.
     #[test]
     fn the_flux_record_stays_sparse_against_the_dense_rectangle() {
-        let f = field(Extent::Small);
+        let f = small_field();
         let c = f.flux.census();
         let sparsity = c.face_sparsity();
         assert!(

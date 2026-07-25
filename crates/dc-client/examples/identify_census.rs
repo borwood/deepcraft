@@ -341,18 +341,25 @@ fn main() {
 mod gate {
     use super::*;
 
-    /// A lattice tight enough to sit inside the small world.
-    fn small_census() -> CensusTotals {
-        let (world, generator) = wired_world(Extent::Small);
-        let t = census(&world, &generator, (0, 0), 512, 5, COLUMN_DEPTH);
-        assert!(
-            t.solid > 500,
-            "only {} solid voxels examined over {} columns — too few for the null to \
-             mean anything",
-            t.solid,
-            t.columns
-        );
-        t
+    use std::sync::OnceLock;
+
+    /// A lattice tight enough to sit inside the small world. **Built once for the
+    /// whole binary** — both tests share one world and one census, so the gate
+    /// pays for the pregen a single time.
+    fn small_census() -> &'static CensusTotals {
+        static CENSUS: OnceLock<CensusTotals> = OnceLock::new();
+        CENSUS.get_or_init(|| {
+            let (world, generator) = wired_world(Extent::Small);
+            let t = census(&world, &generator, (0, 0), 512, 5, COLUMN_DEPTH);
+            assert!(
+                t.solid > 500,
+                "only {} solid voxels examined over {} columns — too few for the null to \
+                 mean anything",
+                t.solid,
+                t.columns
+            );
+            t
+        })
     }
 
     /// **The acceptance of journal/0101.** A solid voxel must never come back

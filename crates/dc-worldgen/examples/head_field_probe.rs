@@ -39,26 +39,40 @@ fn mib(bytes: usize) -> f64 {
 /// (which prints the production report) and the gate test below (journal/0103:
 /// `cargo test` builds examples but never runs them, so a claim only reaches the
 /// gate through a `#[test]` sharing the instrument's code).
-fn vertical_census(f: &DeepField) -> (usize, usize, usize) {
+fn vertical_census(f: &DeepField) -> Vertical {
     let cells = f.flux.census().cells;
-    let (mut down, mut up) = (0usize, 0usize);
+    let mut v = Vertical::default();
     let mut carrying = vec![false; cells];
     for (i, c) in carrying.iter_mut().enumerate() {
         for e in f.flux.entries_for(i) {
             match e.face {
                 FaceKey::Down => {
-                    down += 1;
+                    v.down.push(f64::from(e.magnitude));
                     *c = true;
                 }
                 FaceKey::Up => {
-                    up += 1;
+                    v.up.push(f64::from(e.magnitude));
                     *c = true;
                 }
                 _ => {}
             }
         }
     }
-    (down, up, carrying.iter().filter(|b| **b).count())
+    v.columns = carrying.iter().filter(|b| **b).count();
+    v
+}
+
+#[derive(Default)]
+struct Vertical {
+    down: Vec<f64>,
+    up: Vec<f64>,
+    columns: usize,
+}
+
+impl Vertical {
+    fn n(&self) -> usize {
+        self.down.len() + self.up.len()
+    }
 }
 
 /// min / mean / p95 / max of a sample (sorted in place).
@@ -115,26 +129,10 @@ fn main() {
     );
 
     // ---- 1. the vertical faces ---------------------------------------------
-    let mut down_mags: Vec<f64> = Vec::new();
-    let mut up_mags: Vec<f64> = Vec::new();
-    let mut columns_with_vertical = vec![false; cells];
-    for (i, carries) in columns_with_vertical.iter_mut().enumerate() {
-        for e in rec.entries_for(i) {
-            match e.face {
-                FaceKey::Down => {
-                    down_mags.push(f64::from(e.magnitude));
-                    *carries = true;
-                }
-                FaceKey::Up => {
-                    up_mags.push(f64::from(e.magnitude));
-                    *carries = true;
-                }
-                _ => {}
-            }
-        }
-    }
-    let n_vertical = down_mags.len() + up_mags.len();
-    let carrying = columns_with_vertical.iter().filter(|b| **b).count();
+    let v = vertical_census(&f);
+    let (mut down_mags, mut up_mags) = (v.down.clone(), v.up.clone());
+    let n_vertical = v.n();
+    let carrying = v.columns;
 
     println!("\n--- ACCEPTANCE 1: the vertical (slot<->slot) faces ---");
     println!(
@@ -358,18 +356,34 @@ fn main() {
 mod gate {
     use super::*;
 
-    fn small_field() -> DeepField {
-        let pregen = Pregen::run(WorldParams {
-            seed: SEED,
-            extent: Extent::Small,
-        });
-        build_field_cfg(&pregen.grid, &production_config(&pregen.grid, SEED))
+    use std::sync::OnceLock;
+
+    /// **Built once for the whole binary** — the two tests share the pregen, so
+    /// the gate pays for it a single time (sizing the gate is part of the
+    /// conversion, CLAUDE.md § Gates).
+    fn small_pregen() -> &'static Pregen {
+        static PREGEN: OnceLock<Pregen> = OnceLock::new();
+        PREGEN.get_or_init(|| {
+            Pregen::run(WorldParams {
+                seed: SEED,
+                extent: Extent::Small,
+            })
+        })
+    }
+
+    fn small_field() -> &'static DeepField {
+        static FIELD: OnceLock<DeepField> = OnceLock::new();
+        FIELD.get_or_init(|| {
+            let p = small_pregen();
+            build_field_cfg(&p.grid, &production_config(&p.grid, SEED))
+        })
     }
 
     #[test]
     fn the_head_field_fills_the_vertical_faces_slice_one_left_empty() {
         let f = small_field();
-        let (down, up, carrying) = vertical_census(&f);
+        let v = vertical_census(f);
+        let (down, up, carrying) = (v.down.len(), v.up.len(), v.columns);
         assert!(
             down + up > 0,
             "the vertical faces are STILL zero on {} cells — the head field computed a \
@@ -389,10 +403,7 @@ mod gate {
     /// "+X MiB for the head" number in the corpus would be measuring nothing.
     #[test]
     fn turning_the_head_field_off_removes_the_vertical_flux() {
-        let pregen = Pregen::run(WorldParams {
-            seed: SEED,
-            extent: Extent::Small,
-        });
+        let pregen = small_pregen();
         let cfg = production_config(&pregen.grid, SEED);
         let bare = build_field_cfg(
             &pregen.grid,
@@ -401,16 +412,22 @@ mod gate {
                 ..cfg
             },
         );
-        let (down, up, _) = vertical_census(&bare);
+        let bv = vertical_census(&bare);
+        let (down, up) = (bv.down.len(), bv.up.len());
         assert_eq!(
             down + up,
             0,
             "head_field: false still recorded {down} down / {up} up vertical entries — \
              the control is not a control, so every measured cost of the head field is wrong"
         );
+        // Bound, not a baked figure: a sibling is moving ledger residency, and a
+        // probe must not be the thing that fails when memory improves.
         assert!(
-            bare.resident_bytes() < build_field_cfg(&pregen.grid, &cfg).resident_bytes(),
-            "the field without the head field is not smaller than the field with it"
+            bare.resident_bytes() < small_field().resident_bytes(),
+            "the field without the head field ({} B) is not smaller than the field with it \
+             ({} B)",
+            bare.resident_bytes(),
+            small_field().resident_bytes(),
         );
     }
 }

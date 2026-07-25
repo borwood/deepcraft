@@ -343,19 +343,30 @@ fn main() {
 mod gate {
     use super::*;
 
+    use std::sync::OnceLock;
+
+    /// **Built once for the whole binary** — both tests share one small world and
+    /// one census; sizing the gate is part of the conversion (CLAUDE.md § Gates).
+    fn small_census() -> &'static Census {
+        static CENSUS: OnceLock<Census> = OnceLock::new();
+        CENSUS.get_or_init(|| {
+            let pregen = Arc::new(Pregen::run_with(
+                WorldParams {
+                    seed: SEED,
+                    extent: Extent::Small,
+                },
+                &DeepOverrides::default(),
+            ));
+            let mut wg = WorldGenerator::new_owned(pregen);
+            let mut cache: ChunkCache = HashMap::new();
+            // A lattice wide enough to cross provinces, inside the small world.
+            census(&mut wg, &mut cache, (0, 0), 512, 5, 64)
+        })
+    }
+
     #[test]
     fn no_solid_voxel_carries_a_nonempty_record_that_classifies_to_air() {
-        let pregen = Arc::new(Pregen::run_with(
-            WorldParams {
-                seed: SEED,
-                extent: Extent::Small,
-            },
-            &DeepOverrides::default(),
-        ));
-        let mut wg = WorldGenerator::new_owned(pregen);
-        let mut cache: ChunkCache = HashMap::new();
-        // A lattice wide enough to cross provinces, sampled where the world is.
-        let c = census(&mut wg, &mut cache, (0, 0), 512, 5, 64);
+        let c = small_census();
         assert!(
             c.solid > 0,
             "the census found no solid voxel at all over {} columns — the probe is \
@@ -377,16 +388,7 @@ mod gate {
     /// exactly one of phantom / honest-no-record / recorded.
     #[test]
     fn every_solid_voxel_is_accounted_for_exactly_once() {
-        let pregen = Arc::new(Pregen::run_with(
-            WorldParams {
-                seed: SEED,
-                extent: Extent::Small,
-            },
-            &DeepOverrides::default(),
-        ));
-        let mut wg = WorldGenerator::new_owned(pregen);
-        let mut cache: ChunkCache = HashMap::new();
-        let c = census(&mut wg, &mut cache, (0, 0), 512, 5, 64);
+        let c = small_census();
         assert_eq!(
             c.phantom + c.honest + c.recorded,
             c.solid,
