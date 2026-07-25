@@ -122,6 +122,16 @@ immutable**; everything else is **fluid**, derived as a pure function of
   flat exact-sized facts + a sparse `(slot, start)` CSR index emitted only for
   slots that *have* facts, so an unweathered cell allocates **nothing**. The same
   rule that says "don't store the derivable value" says "don't store the slot".
+  **Extended one level up (journal/0102, 2026-07-25):** don't store the *cell*
+  either. The record was still `Vec<FactLedger>` — an owning struct per cell,
+  48 B × 297,025 = **13.60 MiB** to say nothing, with 75.8 % of cells saying it.
+  One grid-wide `LedgerField` with the cell as a CSR row; a cell is read as a
+  borrowed `LedgerView`, and no call site changed. The corollary the two slices
+  produce together, which is the transferable part: **a per-cell container is a
+  gen-time shape.** Per-cell is right *while compiling* (`FactLedger` is still the
+  accumulator — a grid-wide insert would memmove every fact after the cell, every
+  epoch); it is wrong the moment it *ships*. Compact at the seam where the compile
+  ends, which in this codebase already exists and is called `finalize_*`.
 
 ### S-2's storage corollary — **the house layout for sparse per-cell data**
 
@@ -669,6 +679,19 @@ written beside the one that already existed**:
   own slot key). Recorded here because A-4 is usually written up as a failure,
   and "the in-tree precedent was found and copied" is the outcome it exists to
   produce.
+- **the same discharge, one level up (2026-07-25, journal/0102) — and the
+  divergence expires.** `DeepField::ledgers` was `Vec<FactLedger>`, a per-cell
+  *owning container*: 48 B × 297,025 cells = **13.60 MiB before a fact is
+  stored**, in a field where 75.8 % of cells never weather. Ported again rather
+  than designed: `LedgerField` is flat facts + journal/0100's sparse slot rows +
+  **`flux.rs`'s dense `cell_row_start`**. Note what happened to the carve-out
+  above — at the *cell* level the dense offsets array is affordable again, because
+  every cell exists even though every slot does not. So the record now carries
+  **both** compressions, each where its premise holds, and the reason is stated in
+  `inventory.rs` beside the struct. *A justification that names its premise
+  (A-2) can be re-checked when the premise changes; this one was, one level up,
+  one day later.* Measured: struct-overhead line 13.60 MiB → 0, per-cell index
+  48 B → 4 B, world byte-identical (1,033,189 facts in 72,006 slots either way).
 - **not-an-instance, noted for the record:** `weather_epoch` open-codes
   `grid.r[i] + grid.h[i] <= sea_level` (`weather_inventory.rs:310`) where
   `DeepGrid::surf_at` (`grid.rs:412-413`) exists — but so do five other sites in

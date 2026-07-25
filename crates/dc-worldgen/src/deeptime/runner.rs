@@ -179,6 +179,13 @@ pub struct DeepStepCtx<'a> {
     /// **Empty** when `weather_inventory` is off (the pass is absent) ⇒ byte-identical.
     /// Re-keyed onto the final record post-loop
     /// ([`finalize_ledgers`](super::weather_inventory::finalize_ledgers)).
+    ///
+    /// **This is GEN-TIME scratch, and that is why it is still per-cell**
+    /// (journal/0102). The pass appends into one cell's ledger every epoch, and an
+    /// insert into a grid-wide array would memmove every fact after it — so the
+    /// growable per-cell container is the right shape *here*, and the wrong shape
+    /// for the record that ships. `finalize_ledgers` compacts these into one
+    /// [`LedgerField`](super::inventory::LedgerField) and they are dropped.
     pub weather_ledgers: Vec<FactLedger>,
     /// **The face-flux accumulator** (FLOW slice 1) — the `dc:deep/flow_record`
     /// pass adds each epoch's routed discharge into it and it flushes to sparse

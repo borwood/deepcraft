@@ -53,7 +53,7 @@ use dc_core::materials::MaterialId;
 
 use super::grid::{DeepConfig, DeepGrid};
 use super::inventory::{
-    BEDROCK_SEAM_MATERIAL, Cause, FactLedger, InvForm, build_working, commit_chapter,
+    BEDROCK_SEAM_MATERIAL, Cause, FactLedger, InvForm, LedgerField, build_working, commit_chapter,
 };
 use super::recorder::DeepStrata;
 
@@ -306,18 +306,26 @@ pub fn weather_epoch(
 /// `DeepField` carries. Index-parallel to `strata`; a never-weathered cell yields an
 /// empty (identity) ledger, so the sidecar stays byte-identical where nothing fired.
 ///
-/// **This is also the compaction step (journal/0100).** [`FactLedger::rekeyed`]
-/// builds the finalized ledger **exact-sized** — the accumulator's growth slack is
-/// dropped on the floor rather than carried resident for the life of the world.
-/// The compile is over at this point; growing room is pure waste.
-pub fn finalize_ledgers(accumulators: Vec<FactLedger>, strata: &[DeepStrata]) -> Vec<FactLedger> {
-    accumulators
-        .iter()
-        .zip(strata)
-        // The accumulator's slot 0 is the bedrock seam (empty-record build); the
-        // consumer reads it at the final record's bedrock index.
-        .map(|(acc, s)| acc.rekeyed(SENTINEL_BEDROCK_SLOT, s.units.len()))
-        .collect()
+/// **This is also the compaction step (journal/0100).** The finalized record is
+/// **exact-sized** — the accumulators' growth slack is dropped on the floor rather
+/// than carried resident for the life of the world. The compile is over at this
+/// point; growing room is pure waste.
+///
+/// **And since journal/0102 it is the COLLAPSE step too.** It used to return
+/// `Vec<FactLedger>` — one owning struct per cell, 48 B × 297,025 = 13.60 MiB of
+/// headers resident forever, in a field where 75.8 % of cells never weather. It now
+/// returns one [`LedgerField`] for the whole grid with the cell as a CSR row. The
+/// per-cell [`FactLedger`] survives on the *accumulating* side, where a growable
+/// per-cell container is what the pass actually needs; it simply stops being
+/// resident.
+pub fn finalize_ledgers(accumulators: Vec<FactLedger>, strata: &[DeepStrata]) -> LedgerField {
+    // Truncate to the shorter of the two, exactly as the previous `zip` did.
+    let cells = accumulators.len().min(strata.len());
+    // The accumulator's slot 0 is the bedrock seam (empty-record build); the
+    // consumer reads it at the final record's bedrock index.
+    LedgerField::from_accumulators(&accumulators[..cells], SENTINEL_BEDROCK_SLOT, |i| {
+        strata[i].units.len()
+    })
 }
 
 /// The **stable sentinel slot** the in-loop accumulator keys its bedrock facts at
@@ -532,17 +540,20 @@ mod tests {
             grown.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 0.6, 0);
         }
         let finalized = finalize_ledgers(vec![acc], std::slice::from_ref(&grown));
+        // journal/0102: `finalized` is one grid-wide record; cell 0 is a borrowed
+        // view of it, not an owned struct. Same reads, same assertions.
+        let cell0 = finalized.get(0).expect("cell 0 is in range");
         // The consumer reads the bedrock band at the FINAL record's bedrock slot.
-        let band_after_finalize = finalized[0].weathering_product_m(grown.units.len());
+        let band_after_finalize = cell0.weathering_product_m(grown.units.len());
         assert!(
             (band_after_finalize - band_in_accumulator).abs() < 1e-12,
             "stable key: {band_after_finalize} != {band_in_accumulator}"
         );
         // And it landed at the right slot (units.len()), not slot 0.
         assert!(
-            finalized[0].facts_for(0).is_empty(),
+            cell0.facts_for(0).is_empty(),
             "record unit 0 carries no bedrock facts"
         );
-        assert_eq!(finalized[0].facts_for(grown.units.len()).len(), 3);
+        assert_eq!(cell0.facts_for(grown.units.len()).len(), 3);
     }
 }

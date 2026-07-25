@@ -66,9 +66,10 @@ pub use head::{
 };
 pub use inventory::{
     BEDROCK_SEAM_MATERIAL, BEDROCK_SEAM_THICKNESS_M, Cause, Fact, FactLedger, FracM, Granularity,
-    InvCtx, InvForm, InvSpan, Portion, UnitProvenance, WorkingInventory, build_identity,
-    build_working, collapse_top_voxel, commit_chapter, compose_bedrock, compose_unit, derive_base,
-    derive_bedrock, quantize_to_eighths, structure_stock_m, surface_regolith_m,
+    InvCtx, InvForm, InvSpan, LedgerField, LedgerView, Portion, UnitProvenance, WorkingInventory,
+    build_identity, build_working, collapse_top_voxel, commit_chapter, compose_bedrock,
+    compose_unit, derive_base, derive_bedrock, quantize_to_eighths, structure_stock_m,
+    surface_regolith_m,
 };
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
@@ -121,12 +122,14 @@ pub struct DeepRun {
     /// Empty when tectonic history is off. ~5 KB — the entire tectonic history of
     /// a world, from which per-chapter deformation is re-derivable analytically.
     pub chapters: Vec<Vec<Plate>>,
-    /// **Per-cell inventory-weathering ledgers** (journal/0094) — the accumulating
+    /// **The inventory-weathering ledger record** (journal/0094) — the accumulating
     /// saprolite band the `dc:deep/weather_inventory` pass grew across the loop,
     /// re-keyed onto the final record (bedrock facts at `strata.units.len()`).
-    /// **Empty** when `weather_inventory` is off (byte-identical). Index-parallel to
-    /// `grid.strata`; the `DeepField` carries them as its `ledgers` sidecar.
-    pub weather_ledgers: Vec<FactLedger>,
+    /// **Empty** when `weather_inventory` is off (byte-identical). Indexed by the
+    /// same cell as `grid.strata`; the `DeepField` carries it as its `ledgers`
+    /// sidecar. One grid-wide record with the cell as a CSR row (journal/0102), not
+    /// a per-cell owning struct.
+    pub weather_ledgers: LedgerField,
     /// **The face-flux record** (FLOW slice 1, flow.md § 2) — per-chapter flux on
     /// 3D faces, the representation that replaces the exported receiver tree.
     /// Empty when `flow_record` is off.
@@ -301,7 +304,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     let weather_ledgers = if cfg.weather_inventory {
         weather_inventory::finalize_ledgers(weather_ledgers, &grid.strata)
     } else {
-        Vec::new()
+        LedgerField::default()
     };
     let exhum_total = grid.exhum.iter().sum::<f64>();
     DeepRun {
