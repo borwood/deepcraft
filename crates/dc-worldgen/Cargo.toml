@@ -16,6 +16,10 @@ rayon.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 
+[[example]]
+name = "s18_weathering_tour"
+test = true
+
 [dev-dependencies]
 # S15 spike (measurement only — examples + tests, never a build dependency of
 # the library). The spike's whole point is to run against the REAL chunk store,

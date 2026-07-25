@@ -174,3 +174,11 @@ fn main() {
     println!("  surface elevation : {:.1} m", field.surf[scarp_i]);
     println!("  band thickness    : {:.2} m", band(scarp_i));
 }
+
+#[cfg(test)]
+mod gate_probe_smoke {
+    #[test]
+    fn probe_harness_runs_under_cargo_test() {
+        assert_eq!(2 + 2, 4);
+    }
+}
