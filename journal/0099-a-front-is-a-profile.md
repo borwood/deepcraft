@@ -166,13 +166,22 @@ the same station 0097 walked. Voxel by voxel, top to bottom:
      289   Single  diorite 6/8      mudstone 2/8     -
      288    Mixed  granite 6/8      mudstone 2/8     -
      287   Single  diorite 7/8      mudstone 1/8     -
-     286…281 Single  diorite 7/8    mudstone 1/8     -
+   286…281 Single  diorite 7/8      mudstone 1/8     -
+     280 basement  -                -                -
+     279 basement  -                -                -
 ```
 
 Product eighths, top → bottom: `[4, 7, 6, 5, 5, 4, 4, 4, 3, 2, 2, 2, 1, 1, 1, 1,
 1, 1, 1]` over **19 voxels** (17.1 m), against a 6.09 m ledger band that the slab
 expressed as 6.77 voxels of pure mudstone. Product expressed: 55 eighths = 6.19 m
 against the ledger's 6.094 m, **+1.5 %**.
+
+**The bottom contact.** The deepest front voxel is 7/8 parent, 1/8 product — the
+old band's 8/8 product against contents-free basement is gone. At station A the
+record simply ends below it (contents-free basement, which is stub #16's half of
+the problem, untouched). At station B, where the column recorded a lava flow, the
+contact has ceased to exist at all: `andesite 7/8 + mudstone 1/8` sitting on
+`andesite 7/8 + olivine 1/8`.
 
 Note the form flip at 295/294. Above it the product exceeds half a voxel and the
 rock has no skeleton left to call structure — it expresses as **debris with
@@ -235,6 +244,22 @@ its voxels contacts and puts the two answers side by side. Left as-is (fixing it
 moves every mixed voxel in the world) and filed, but it is the visible edge of a
 real inconsistency: **two paths answer "which member?" differently for the same
 record.**
+
+**A sibling's `dc-worldgen` got linked into my probe.** Re-running the probe
+after a cosmetic edit printed **`0 front bands`** and a column of pure
+`mudstone 8/8` — the *pre-slice slab*, from source that no longer exists in this
+worktree. Two sibling agents were building concurrently on the shared
+`CARGO_TARGET_DIR`, and the example was linked against **their** `dc-worldgen`
+rlib. This is corrections #27 with the polarity that is hardest to catch: not a
+false green, but a **false red on the shipped behaviour** — the code was right,
+the gate had already proven it, and the instrument was reading someone else's
+build. The tell was that the run's own header contradicted itself (`ledger
+weathering_product_m = 6.094 m` alongside `0 front bands`); the fix was to wait
+for `Get-Process cargo,rustc` to be empty, `cargo clean -p dc-worldgen --release`,
+and rebuild. Worth recording because the lock discipline was followed and it
+happened anyway: a create-file mutex only protects the window you hold it, and a
+sibling can start a build the moment you release it and still be linking while
+your next command runs.
 
 ## What it costs
 
