@@ -339,6 +339,24 @@ pub struct DeepField {
     /// field, covered by its own tests, so the pre-existing planes' goldens are
     /// unaffected.
     pub geotherm: Vec<f64>,
+    /// **The `head` condition-field** (`dc:field/head`, §14; flow.md § 2.4) — the
+    /// per-cell **hydraulic potential** (metres) the head field pass planted
+    /// ([`super::head`]). *Elevation + pressure head*, **not** an elevation: where a
+    /// confining bed caps a permeable one it stands **above** the local ground, and
+    /// that is artesian — precisely the state the unconfined `H = y + sat` proxy
+    /// (`water.md`) cannot express.
+    ///
+    /// Its first consumer is **inside the run**: the flow record's vertical
+    /// (slot↔slot) faces, which FLOW slice 1 left structurally present and honestly
+    /// zero. It is exported here so `head` is a real read field for the measurement
+    /// probes and for the heirs that need the potential rather than its
+    /// consequences — refinement as a boundary-value problem (continuation (b)) and
+    /// the free/bound edge with void intervals (continuation (c)). Empty when
+    /// [`DeepConfig::head_field`](super::grid::DeepConfig::head_field) is off.
+    ///
+    /// **Not part of the surface fingerprint** — a new field, covered by its own
+    /// tests, so the pre-existing planes' goldens are unaffected.
+    pub head: Vec<f64>,
     /// **The chapter table** (§ 8): plate state per chapter. Per-unit deformation
     /// (dip, provenance, fault traces) is *intended* to re-derive analytically
     /// from it at collapse resolution — the ~5 KB that would replace stored
@@ -436,6 +454,10 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
     for s in &mut strata {
         s.units.shrink_to_fit();
     }
+    // The `head` condition-field, carried out of the run (its exchange companion is
+    // gen-time scratch and is dropped with the grid — it is a cache of the field,
+    // never an authority beside it). Empty when the head pass was absent.
+    let head = run.grid.head;
     DeepField {
         w,
         wp: cells.w as usize,
@@ -451,6 +473,7 @@ pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
         exhum,
         t_crust,
         geotherm,
+        head,
         chapters,
     }
 }
@@ -601,7 +624,9 @@ impl DeepField {
             + self.area.len()
             + self.exhum.len()
             + self.t_crust.len()
-            + self.geotherm.len())
+            + self.geotherm.len()
+            // FLOW continuation (a): the `head` condition-field.
+            + self.head.len())
             * std::mem::size_of::<f64>()
             + self.recv.len() * std::mem::size_of::<i32>()
             + self.lake.len()

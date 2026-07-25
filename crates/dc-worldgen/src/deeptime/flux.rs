@@ -42,19 +42,27 @@
 //! [`FaceKey`] spans all three families, because lateral-only forecloses most of
 //! the hydrosphere:
 //!
-//! | family | variants | slice 1 |
+//! | family | variants | today |
 //! |---|---|---|
 //! | **lateral** (cell ↔ cell) | [`FaceKey::Nw`] … [`FaceKey::Se`] | **populated** — the routed discharge |
-//! | **vertical** (slot ↔ slot in a column) | [`FaceKey::Down`], [`FaceKey::Up`] | **structurally present, always zero** |
+//! | **vertical** (slot ↔ slot in a column) | [`FaceKey::Down`], [`FaceKey::Up`] | **populated since continuation (a)** — the head field's exchange |
 //! | **boundary** | [`FaceKey::Ocean`], [`FaceKey::BaseLevel`], [`FaceKey::Atmosphere`] | **populated** (see below) |
 //!
-//! The vertical faces are the honest empty: today's solve is *purely surface
-//! routing* — there is no infiltration term, no percolation, no Darcy flux, so
-//! there is no number to write. Fabricating one would be worse than leaving it
-//! zero (A-1). Their heirs are named: the **potential/head field pass**
-//! (continuation (a)) and the **free↔bound form edge** (continuation (c)). The
-//! representation does not foreclose them — that is the point of carrying the
-//! variants now.
+//! **The vertical faces were slice 1's honest empty, and continuation (a) filled
+//! them.** That solve was purely surface routing — no infiltration, no percolation,
+//! no Darcy flux — so there was no number to write and fabricating one would have
+//! been worse than a zero (A-1). What writes them now is the **head field**
+//! ([`super::head`], `dc:field/head`): infiltration where the water table stands
+//! below the ground, **artesian rise** where a confined potential stands above it.
+//! Their remaining heir is the **free↔bound form edge** (continuation (c)), which
+//! turns the exchange into an occupancy transition with void intervals.
+//!
+//! **Magnitudes are in one currency across all three families**: one unit is one
+//! cell-epoch of the drainage solve's seeded source. That holds for the vertical
+//! faces without a conversion constant because gravity drainage through the vadose
+//! zone runs at a **unit hydraulic gradient** and the property sheet's
+//! `permeability` is already a relative 0..1 number — so no mode has to be carried
+//! in the record to say what a magnitude means (flow.md § 11.3).
 //!
 //! The boundary faces split by *what the flow left through*:
 //! - [`FaceKey::Ocean`] — the cell stood at or below the current sea stand.
@@ -150,14 +158,19 @@ pub enum FaceKey {
     S = 6,
     /// Lateral: +x, +y.
     Se = 7,
-    /// **Vertical**: this slot → the slot below it (infiltration, percolation,
-    /// karst capture). Structurally present, **zero in slice 1** — the surface
-    /// solve has no vertical term. Heirs: the potential/head field pass and the
-    /// free↔bound form edge.
+    /// **Vertical**: this slot → the slot below it — **infiltration /
+    /// percolation**. Populated by the head field (continuation (a)): recharge
+    /// runs at the vadose zone's unit gravity gradient, so its rate is the
+    /// column's vertical relative permeability, and it is **rejected** where the
+    /// water table already stands at the ground (saturation-excess). Karst
+    /// capture rides the same face once dissolution switches on (continuation
+    /// (c)).
     Down = 8,
-    /// **Vertical**: this slot → the slot above it (artesian rise, capillary
-    /// rise, a spring's last step). Structurally present, **zero in slice 1**;
-    /// same heirs as [`FaceKey::Down`].
+    /// **Vertical**: this slot → the slot above it — **artesian rise**, a
+    /// spring's last step. Populated by the head field (continuation (a)) wherever
+    /// a confining bed lets the potential stand *above* the local ground, which is
+    /// exactly what the unconfined `H = y + sat` proxy could not express.
+    /// Capillary rise is a further term (an unsaturated-flow seam, not built).
     Up = 9,
     /// **Boundary**: the top face, exchanging with the atmosphere. Populated in
     /// slice 1 only as an **evaporative sink** at closed-basin termini; the
@@ -360,11 +373,19 @@ pub struct FluxEntry {
     /// in the solve's own units: contributing cell-area per epoch (the same
     /// quantity the old `area` export called discharge), integrated. It is a
     /// *chapter integral*, not a rate: that is what a mass budget wants.
+    ///
+    /// **One currency across all three face families.** The vertical faces carry
+    /// the head field's exchange in the same unit — one cell-epoch of the seeded
+    /// source — because vadose recharge runs at a unit hydraulic gradient through a
+    /// relative permeability. See the module docs.
     pub magnitude: f32,
     /// **L** — the suspended load that crossed this face, summed over the
     /// chapter's epochs (metres of column thickness, the transport pass's own
     /// currency). Zero on boundary faces: at a sink the solve settles the whole
-    /// load into the cell, so nothing crosses out.
+    /// load into the cell, so nothing crosses out. Zero on **vertical** faces too,
+    /// and honestly so: the bound phase carries **solute**, not suspended clastic
+    /// load, and dissolution is dormant until continuation (c) — a fabricated
+    /// number here would be exactly the A-1 failure the vertical zeros avoided.
     ///
     /// **Bulk only.** The *composition* of the load — which materials, in what
     /// proportion, the thing a placer streak in channel gravel is made of — is a
@@ -760,6 +781,49 @@ impl FluxAccum {
             let idx = i * FACE_SLOTS + slot;
             self.mag[idx] += q;
             self.load[idx] += l;
+        }
+    }
+
+    /// **Add one epoch's VERTICAL (slot ↔ slot) exchange** — FLOW continuation
+    /// (a)'s consumer of the head field, and the term that fills the faces slice 1
+    /// left honestly zero.
+    ///
+    /// `exchange` is the head field's signed per-cell rate
+    /// ([`super::head::vertical_exchange`]): **positive = down** (infiltration /
+    /// percolation), **negative = up** (artesian rise, a spring's last step).
+    /// Magnitudes are in **the same currency as the lateral faces** — one unit is
+    /// one cell-epoch of the drainage solve's seeded source, because gravity
+    /// drainage runs at a unit hydraulic gradient and the property sheet's
+    /// `permeability` is already a relative 0..1 number. No mode flag is therefore
+    /// needed to say what a vertical magnitude means (flow.md § 11.3).
+    ///
+    /// **Which slot.** The entry binds to the chapter's slot exactly as every other
+    /// entry does ([`slot_for_chapter`]) — and that is not a convenience, it is the
+    /// right answer: during chapter `K`, chapter `K`'s unit *was* the contemporaneous
+    /// land surface, so the flux crossing its face is precisely the recharge (or the
+    /// discharge) of that moment. Vertical faces pair **within** a column, so the
+    /// lateral slot-pairing rule (§ 2.2 / § 11.5) is not touched and the conduit
+    /// third mode assigned to continuation (c) is not pre-empted.
+    ///
+    /// **Call it AFTER [`Self::add_epoch`] in the same epoch** — that call has
+    /// already flushed any chapter boundary, so this one adds into the open chapter.
+    /// A no-op when the head field is off (`exchange` empty), which is what keeps
+    /// the record byte-identical to slice 1's under the flag.
+    pub fn add_epoch_vertical(&mut self, chapter: u8, exchange: &[f32]) {
+        if !self.active || exchange.len() != self.n {
+            return;
+        }
+        if chapter != self.cur_chapter {
+            self.flush_chapter();
+            self.cur_chapter = chapter;
+        }
+        self.max_chapter = self.max_chapter.max(chapter);
+        for (i, &q) in exchange.iter().enumerate() {
+            if q == 0.0 {
+                continue;
+            }
+            let face = if q > 0.0 { FaceKey::Down } else { FaceKey::Up };
+            self.mag[i * FACE_SLOTS + face.code() as usize] += q.abs();
         }
     }
 

@@ -137,6 +137,14 @@ pub enum DeepAxis {
     /// it is what makes the recording an ordered, self-declaring pass rather than a
     /// hook bolted onto the drainage solve.
     FlowFlux,
+    /// The **`head` condition-field** (`dc:field/head`, §14; flow.md § 2.4) — the
+    /// per-cell hydraulic **potential** the [`head`](super::head) field pass
+    /// relaxes, plus its vertical-exchange companion. Unlike [`Geotherm`] this one
+    /// **is** read in-epoch: `dc:deep/flow_record` consumes it to fill the
+    /// vertical (slot↔slot) faces, which is the edge that orders the two. It is
+    /// still a pure sidecar — nothing in the erosion pipeline reads it, so it
+    /// cannot perturb the terrain.
+    Head,
 }
 
 /// Owned working state the epoch loop threads through its passes. Constructed
@@ -386,6 +394,46 @@ fn flow_record_pass(ctx: &mut DeepStepCtx<'_>) {
         ctx.erosion.routed_surface(),
         sea,
     );
+    // FLOW continuation (a): the vertical (slot↔slot) faces slice 1 left honestly
+    // zero, filled from the head field's exchange plane. A no-op — leaving them
+    // zero exactly as before — when the head field is off and the plane is empty.
+    ctx.flux.add_epoch_vertical(chapter, &ctx.grid.head_exchange);
+}
+
+/// **The head field — the §5 field pass that makes flow descend a POTENTIAL**
+/// (flow.md § 2.4, continuation (a)). Relax the `head` condition-field
+/// (`dc:field/head`) over the live topography and the live strata record: the
+/// column's transmissivity, vertical conductivity and confinement are *derived*
+/// from the units the recorder already stamped, and the potential is pinned at the
+/// free water (sea, lakes, perennial streams) and left free — **uncapped** —
+/// wherever a confining bed seals a permeable one. That uncapped degree of freedom
+/// is artesian, and it is the thing the unconfined `H = y + sat` proxy cannot
+/// express.
+///
+/// Like the geotherm it **plants a field and runs no edges** — it never touches
+/// `R`/`H`/the record — so the erosion result is byte-unchanged. It reads the
+/// drainage solve's filled surface (where free water stands) and drainage area
+/// (which channels are perennial), and the **start-of-epoch** record for the
+/// column's materials, exactly as `dc:deep/expose` does. A coarse-rate pass
+/// ([`super::head::HEAD_PERIOD`]): groundwater equilibrates in millennia against a
+/// 2.5 Myr epoch, so the cadence samples the topography rather than relaxing the
+/// water.
+fn head_pass(ctx: &mut DeepStepCtx<'_>) {
+    let sea = ctx.sea_level;
+    // Disjoint borrows: the erosion solve's planes (immutable) and the grid
+    // (mutable). The ground surface is `R + H`, rebuilt here rather than cached —
+    // flow.md § 10.2: nothing that stores a derived elevation may go stale when
+    // compaction lands.
+    let ground: Vec<f64> = (0..ctx.grid.w * ctx.grid.w)
+        .map(|i| ctx.grid.surf_at(i))
+        .collect();
+    super::head::march(
+        &mut ctx.grid,
+        ctx.erosion.filled(),
+        &ground,
+        ctx.erosion.area(),
+        sea,
+    );
 }
 
 // --- cfg-selected read slices for the terrain-revision pipeline -------------
@@ -420,6 +468,12 @@ const BIO_READS_LEG: &[DeepAxis] = &[Routed, Frosted, Recorded, Diffused];
 // `BEDROCK_SEAM_MATERIAL` (stub #16's one flat granite basement), so this pass does
 // not read the outcropping lithology today. The genesis/emplacement heir that retires
 // #16 re-adds it — declare what you read, not what you intend to read.
+// The flow record reads the head field only when the head pass is in the roster.
+// A read of an axis nobody writes is legal in loop mode, but declaring one the
+// roster cannot satisfy would state a dependency that does not exist — declare
+// what you read.
+const FLOW_READS_HEAD: &[DeepAxis] = &[Routed, Energy, Head];
+const FLOW_READS_BARE: &[DeepAxis] = &[Routed, Energy];
 const WINV_READS_AGENTS: &[DeepAxis] = &[Settled, Frosted, BioMod];
 const WINV_READS_TEC: &[DeepAxis] = &[Compensated, BioMod];
 const WINV_READS_LEG: &[DeepAxis] = &[Diffused, BioMod];
@@ -536,13 +590,40 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         body: transport_pass,
     });
 
-    // The flow record (FLOW slice 1): flux on faces, per chapter. Gated behind
-    // `flow_record` (absent = off), a pure sidecar over the drainage solve's own
-    // outputs — nothing in the epoch reads FlowFlux, so it never perturbs erosion.
+    // The head field (FLOW continuation (a)): the `head` condition-field, relaxed
+    // over the live topography and the start-of-epoch record. Gated behind
+    // `head_field` (absent = off ⇒ the planes stay empty ⇒ the flow record's
+    // vertical faces stay at slice 1's honest zero). Reads `Routed` (the filled
+    // surface and drainage area — where free water stands and runs) and the
+    // previous epoch's `Recorded` (what the column is made of), exactly as
+    // `dc:deep/expose` does; writes only `Head`.
+    if cfg.head_field {
+        passes.push(DeepPass {
+            id: "dc:deep/head",
+            reads: &[Routed],
+            writes: &[Head],
+            reads_prev: &[Recorded],
+            period: super::head::HEAD_PERIOD,
+            body: head_pass,
+        });
+    }
+
+    // The flow record (FLOW slice 1 + continuation (a)): flux on faces, per
+    // chapter. Gated behind `flow_record` (absent = off), a pure sidecar over the
+    // drainage solve's own outputs plus the head field — nothing in the epoch reads
+    // FlowFlux, so it never perturbs erosion. Reading `Head` is what orders it after
+    // the head field whose exchange fills its vertical faces; the read is declared
+    // even when `head_field` is off, because what the pass reads is a property of
+    // the pass, not of the roster (an absent writer is legal in loop mode — state
+    // is seeded before the loop).
     if cfg.flow_record {
         passes.push(DeepPass {
             id: "dc:deep/flow_record",
-            reads: &[Routed, Energy],
+            reads: if cfg.head_field {
+                FLOW_READS_HEAD
+            } else {
+                FLOW_READS_BARE
+            },
             writes: &[FlowFlux],
             reads_prev: &[],
             period: 1,
@@ -760,7 +841,7 @@ mod tests {
         }
     }
 
-    const PRODUCTION_ORDER: [&str; 16] = [
+    const PRODUCTION_ORDER: [&str; 17] = [
         "dc:deep/climate",
         "dc:deep/expose",
         "dc:deep/tectonics",
@@ -773,6 +854,13 @@ mod tests {
         // before `transport`. It plants a field and has no in-epoch reader, so its
         // position never affects the erosion result.
         "dc:deep/geotherm",
+        // The head field sorts in here: it becomes ready once `drainage` has
+        // written Routed, and among the ready pool the id-tie-break places
+        // `dc:deep/head` after `geotherm` and before `transport`. Like the geotherm
+        // it plants a field and no *erosion* pass reads it, so its position never
+        // affects the terrain — only `dc:deep/flow_record` reads it, and that pass
+        // writes nothing the epoch consumes either.
+        "dc:deep/head",
         "dc:deep/transport",
         // The flow record sorts in here: it becomes ready once `transport` has
         // written Energy (and `drainage` Routed), and among the ready pool the
@@ -858,6 +946,65 @@ mod tests {
         // The schedule as a whole is valid with the field pass in it.
         let sched = DeepSchedule::new(deep_passes(&all_on())).expect("valid with the geotherm");
         assert!(sched.ordered_ids().contains(&"dc:deep/geotherm"));
+    }
+
+    /// **The head field is a declared coarse-rate FIELD pass** (flow.md § 2.4,
+    /// material-behavior.md §5) — and, unlike the geotherm, it has a declared
+    /// in-epoch *reader*: `dc:deep/flow_record` reads `Head` to fill the vertical
+    /// faces, which is the edge that orders the two. That edge must be real, not a
+    /// tie-break, or "the record's vertical faces come from the head field" is a
+    /// comment rather than a guarantee (the spine-audit 2026-07-25 lesson).
+    #[test]
+    fn the_head_field_is_a_declared_field_pass_the_flow_record_reads() {
+        let passes = deep_passes(&all_on());
+        let head = passes
+            .iter()
+            .find(|p| p.id == "dc:deep/head")
+            .expect("the head field pass is scheduled by default");
+        assert_eq!(head.reads, &[DeepAxis::Routed]);
+        assert_eq!(head.reads_prev, &[DeepAxis::Recorded]);
+        assert_eq!(head.writes, &[DeepAxis::Head]);
+        // Coarse rate — groundwater equilibrates in millennia against a 2.5 Myr
+        // epoch, so this samples the topography rather than relaxing the water.
+        assert!(head.period > 1);
+        assert!(!head.fires(0), "seeded pre-loop, never fired at epoch 0");
+        assert!(head.fires(head.period));
+
+        let rec = passes
+            .iter()
+            .find(|p| p.id == "dc:deep/flow_record")
+            .expect("the flow record is on by default");
+        assert!(
+            rec.reads.contains(&DeepAxis::Head),
+            "the flow record must DECLARE the head field it consumes, so the order \
+             is pinned by the graph and not by the id tie-break"
+        );
+        let order = DeepSchedule::new(deep_passes(&all_on()))
+            .expect("valid with the head field")
+            .ordered_ids();
+        let at = |id: &str| order.iter().position(|x| *x == id).expect("scheduled");
+        assert!(at("dc:deep/head") < at("dc:deep/flow_record"));
+        assert!(at("dc:deep/drainage") < at("dc:deep/head"));
+    }
+
+    /// Off, the pass is **absent** — the old `if` as pass presence — so the head
+    /// planes stay empty and the flow record's vertical faces stay at FLOW slice
+    /// 1's honest zero. And the flow record must then stop declaring a read it no
+    /// longer has: declare what you read, not what you intend to read.
+    #[test]
+    fn the_head_field_is_absent_when_the_flag_is_off() {
+        let cfg = DeepConfig {
+            head_field: false,
+            ..all_on()
+        };
+        let passes = deep_passes(&cfg);
+        assert!(passes.iter().all(|p| p.id != "dc:deep/head"));
+        let rec = passes
+            .iter()
+            .find(|p| p.id == "dc:deep/flow_record")
+            .expect("the flow record is still on");
+        assert!(!rec.reads.contains(&DeepAxis::Head));
+        DeepSchedule::new(deep_passes(&cfg)).expect("valid without the head field");
     }
 
     #[test]

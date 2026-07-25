@@ -275,6 +275,28 @@ pub struct DeepConfig {
     /// defers "what is resident vs re-derived" to measurement. Turn it off to run
     /// the ritual at the pre-slice footprint. Appended last (wire discipline).
     pub flow_record: bool,
+
+    /// **The head field** (FLOW continuation (a), `docs/design/flow.md` § 2.4 —
+    /// RATIFIED 2026-07-25). **On by default.** With it on, the `dc:deep/head`
+    /// **field pass** relaxes the `head` condition-field (`dc:field/head`) — the
+    /// **potential** flow descends, `elevation + pressure head` — and its
+    /// vertical-exchange plane, from the live topography and the live strata
+    /// record. Its first consumer is the flux record's **vertical (slot↔slot)
+    /// faces**, which FLOW slice 1 left structurally present and honestly **zero**
+    /// because the surface solve had no vertical term.
+    ///
+    /// Like the geotherm and the flow record it is a **pure sidecar**: it plants a
+    /// field and runs no edges, never touching `R`/`H`/the strata, so the collapsed
+    /// world is **byte-identical with the flag either way** (asserted by name in
+    /// `tests/head_field.rs`; the production goldens are untouched). It does **not**
+    /// change lateral routing — the drainage solve stays
+    /// steepest-descent-on-filled-elevation, and a multi-flow-direction partition
+    /// (which head is what unlocks — flow.md § 2.6) is deliberately the NEXT slice.
+    ///
+    /// Off is therefore not an identity-preserving *fallback* but the **cost**
+    /// switch: it buys the head plane plus the vertical flux entries in residency,
+    /// and its relaxation sweeps in gen time. Appended last (wire discipline).
+    pub head_field: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -331,6 +353,7 @@ impl Default for DeepConfig {
             iso_rate: 0.5,
             weather_inventory: false,
             flow_record: true,
+            head_field: true,
             providers: super::providers::Providers::default(),
         }
     }
@@ -395,6 +418,25 @@ pub struct DeepGrid {
     /// Empty when tectonic history is off (no crustal state to solve over — coal
     /// then reads [`super::geotherm::DEFAULT_CONTINENTAL_GRADIENT_C_PER_M`]).
     pub geotherm: Vec<f64>,
+    /// **The `head` condition-field** (`dc:field/head`, §14; flow.md § 2.4): the
+    /// per-cell **hydraulic potential** (metres) the head field pass
+    /// ([`super::head`]) relaxes — *elevation + pressure head*, not an elevation.
+    /// Where a confining bed caps a permeable one this stands **above** the local
+    /// ground, which is artesian and which the unconfined `H = y + sat` proxy
+    /// cannot express. Empty when
+    /// [`DeepConfig::head_field`] is off (the pass is absent) ⇒ byte-identical.
+    pub head: Vec<f64>,
+    /// **The head field's vertical-exchange plane**: the signed per-epoch rate
+    /// across each column's top — **positive = down** (infiltration/recharge),
+    /// **negative = up** (artesian rise). In the flux record's own currency (one
+    /// unit = one cell-epoch of the seeded source; see [`super::head`]).
+    ///
+    /// A **cache of [`super::head::vertical_exchange`], never an authority**: it is
+    /// recomputed with the field at the field's own cadence and a test re-derives
+    /// it from `{head, ground, record}` and demands equality. It is gen-time only
+    /// — the `DeepField` keeps [`Self::head`] (the field) and the flux record (the
+    /// consequence), not this. Empty when the head field is off.
+    pub head_exchange: Vec<f32>,
     /// South→north latitude span the grid is compressed onto (pregen bands).
     lat_south: f64,
     lat_north: f64,
@@ -423,6 +465,8 @@ impl DeepGrid {
             crust_kind: Vec::new(),
             exhum: Vec::new(),
             geotherm: Vec::new(),
+            head: Vec::new(),
+            head_exchange: Vec::new(),
             lat_south: LAT_SOUTH,
             lat_north: LAT_NORTH,
         }
@@ -449,9 +493,13 @@ impl DeepGrid {
             + self.uplift.len()
             + self.t_crust.len()
             + self.exhum.len()
-            + self.geotherm.len())
+            + self.geotherm.len()
+            + self.head.len())
             * std::mem::size_of::<f64>()
-            + (self.precip.len() + self.bio_weather.len() + self.bio_resist.len())
+            + (self.precip.len()
+                + self.bio_weather.len()
+                + self.bio_resist.len()
+                + self.head_exchange.len())
                 * std::mem::size_of::<f32>()
             + self.crust_kind.len();
         let strata_structs = self.strata.len() * std::mem::size_of::<DeepStrata>();
@@ -549,6 +597,11 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
         crust_kind,
         exhum,
         geotherm,
+        // The head field is sized by its own pass on first march (and left empty
+        // when the flag is off, so the pass is absent and the run is
+        // byte-identical).
+        head: Vec::new(),
+        head_exchange: Vec::new(),
         lat_south: LAT_SOUTH,
         lat_north: LAT_NORTH,
     }

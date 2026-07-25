@@ -28,6 +28,7 @@ pub mod field;
 pub mod flux;
 pub mod geotherm;
 pub mod grid;
+pub mod head;
 pub mod inventory;
 pub mod isostasy;
 pub mod lithology;
@@ -57,6 +58,11 @@ pub use geotherm::{
 };
 pub use grid::{
     DeepConfig, DeepGrid, SEA_LEVEL_M, build, build_cells, provenance_uplift, sea_level_at,
+};
+pub use head::{
+    AQUIFER_K_MIN, AQUITARD_K_MAX, BASEMENT_AQUIFER_M, CONFINING_CAP_M, ColumnHydro, FIELD_HEAD,
+    FLUID_DENSITY_REL, HEAD_PERIOD, HEAD_RELAX_SWEEPS, STREAM_ANCHOR_AREA, column_hydro,
+    permeability_of, vertical_exchange,
 };
 pub use inventory::{
     BEDROCK_SEAM_MATERIAL, BEDROCK_SEAM_THICKNESS_M, Cause, Fact, FactLedger, FracM, Granularity,
@@ -189,6 +195,23 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
         let v_ref = tectonics::reference_velocity(cfg, extent_km);
         geotherm::march(&mut grid, tec.plates_at(0), v_ref, cfg);
     }
+    // The head field is likewise a **coarse-rate field pass**, so it is seeded here
+    // and re-relaxed on its cadence inside the loop. No routing has happened yet at
+    // epoch 0, so the seed reads the bare surface as its own free-water level and no
+    // stream anchors — the epoch-0 potential is therefore anchored by the sea and the
+    // border alone, which is the honest initial condition rather than a guess.
+    if cfg.head_field {
+        let n = grid.w * grid.w;
+        let ground: Vec<f64> = (0..n).map(|i| grid.surf_at(i)).collect();
+        let no_area: Vec<f64> = Vec::new();
+        head::march(
+            &mut grid,
+            &ground,
+            &ground,
+            &no_area,
+            grid::sea_level_at(cfg, 0),
+        );
+    }
 
     // --- the deep-time pass-runner drives the epoch loop (runner.rs) ---
     // The four phases the old hand-written loop ran — climate, tectonic forcing,
@@ -248,6 +271,20 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // Burial diagenesis: buried thick peat becomes coal (post-loop, unchanged).
     if let Some(b) = biota.as_ref() {
         b.finalize(&mut grid);
+    }
+    // **Re-relax the head field on the FINAL terrain.** It is a coarse-rate pass, so
+    // the plane the loop leaves behind was relaxed at its last firing — twenty epochs
+    // of uplift and incision before the surface the field actually ships. A consumer
+    // reading `head` beside `surf` must not have to know the cadence to know they are
+    // the same moment, so the field is planted once more here, exactly as coal
+    // promotion runs post-loop. This cannot perturb anything already decided: the flux
+    // record's vertical faces were accumulated per epoch against *contemporaneous*
+    // ground and the archive is already closed above.
+    if cfg.head_field {
+        let n = grid.w * grid.w;
+        let ground: Vec<f64> = (0..n).map(|i| grid.surf_at(i)).collect();
+        let sea = grid::sea_level_at(cfg, cfg.iterations.saturating_sub(1));
+        head::march(&mut grid, erosion.filled(), &ground, erosion.area(), sea);
     }
     // Re-key the accumulated saprolite ledgers onto the final record (bedrock facts
     // → `strata.units.len()`), so the collapse consumer reads them at the same slot
