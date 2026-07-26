@@ -459,10 +459,18 @@ fn main() {
         d.catchment_averaged,
         d.bedrock_erosion,
     );
+    // The limiting regime is a *reading of the ratio*, so it is chosen from the
+    // ratio rather than written beside it.
+    let shed = d.catchment_averaged / d.bedrock_erosion.max(1e-30);
     println!(
-        "  It also says the land is SUPPLY-limited, not transport-limited: {:.0} % of every\n  \
-         metre of bedrock converted or incised leaves the land system. Nothing is piling up.",
-        100.0 * d.catchment_averaged / d.bedrock_erosion.max(1e-30),
+        "  It also names the limiting regime: {:.0} % of every metre of bedrock this world\n  \
+         converts or incises LEAVES the land system, so the land is {}.",
+        100.0 * shed,
+        if shed > 0.9 {
+            "SUPPLY-limited — nothing is piling up, and the weathering\n  constant IS the denudation rate"
+        } else {
+            "TRANSPORT-limited — it is making regolith it\n  cannot move, and the cover taper will shut weathering down from underneath"
+        }
     );
 
     println!(
