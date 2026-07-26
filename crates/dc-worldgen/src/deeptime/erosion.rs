@@ -195,7 +195,140 @@ const MFD_CONTOUR: [f64; MFD_DIRS] = [
 /// aggregation window; the marine-sink lever) — and they should decide whether the
 /// solve may see this at all, the alternative being a floor applied only on the
 /// way into the record. See `docs/design/stubs.md` § 22.
-const MFD_MIN_WEIGHT: f64 = 0.01;
+///
+/// **2026-07-26 (hybrid `p`, journal/0113):** the floor became a *knob*
+/// ([`MfdParams::min_weight`], [`DeepConfig::mfd_min_weight`]) rather than a
+/// hard-coded constant, so its effect on the solve can be **measured end-to-end**
+/// instead of argued. The default is unchanged and the stub is unchanged — a knob
+/// is not an heir.
+pub const MFD_MIN_WEIGHT: f64 = 0.01;
+
+/// **The hybrid-`p` law — a spatially varying convergence exponent**
+/// (FLOW continuation (b'), journal/0113, `docs/design/flow.md` § 2.6.2).
+///
+/// journal/0109 shipped **one** exponent for the whole world, and that is
+/// physically wrong in a specific way: it applies **hillslope sheet-flow behaviour
+/// inside channels.** Real water spreads where it is unchannelised and stays in
+/// its banks once it is not, and a uniform `p` cannot say both. The measured cost
+/// was the peak catchment collapsing **1,245 → 84 cells**: dispersing at *every*
+/// cell compounds down the chain, so a trunk river never accumulates.
+///
+/// **The discriminator is channelisation, and the standard index for it is
+/// Montgomery & Dietrich (1988, 1992)'s `χ = A · S²`** — the drainage-area × slope
+/// product whose exceedance marks a channel head on a real landscape. `A` is the
+/// cell's drainage area in cells (**lagged one epoch** — see [`Erosion::route`])
+/// and `S` the steepest downslope gradient on the free-surface potential. The
+/// exponent ramps log-linearly in `χ` from [`Self::p_hill`] to [`Self::p_chan`]
+/// between [`Self::chi_lo`] and [`Self::chi_hi`].
+///
+/// **Why `A·S²` and not `A` alone, which is the obvious choice.** An area-only law
+/// destroys what the slice before this one bought. Deltas, alluvial-fan tops and
+/// braid plains are exactly the places with the *largest* `A`, so an area-only law
+/// would make them the most convergent ground on the world and concurrent
+/// distributaries would vanish. `A·S²` puts them back on the dispersive side for
+/// the physically correct reason: **a delta is where a channel loses its
+/// confinement.** Three regimes fall out of one law:
+///
+/// | regime | `A` | `S` | `χ` | `p` | behaviour |
+/// |---|---|---|---|---|---|
+/// | hillslope / interfluve | small | any | low | `p_hill` | sheet flow, spreads |
+/// | trunk river, gorge, incised valley | large | moderate–high | high | `p_chan` | stays in its banks |
+/// | delta top, fan, coastal plain | large | ≈0 | low | `p_hill` | splits — distributaries |
+///
+/// **Honest limit at this tier.** At 460 m a cell contains an entire
+/// hillslope-and-channel system, so this is not "is this cell a channel" but a
+/// **sub-grid parameterisation of how much of the cell's discharge is confined**.
+/// The thresholds are therefore calibrated against *this world's* own `χ`
+/// distribution (`examples/hybrid_p_probe.rs` prints it), never lifted from a
+/// field study at 10 m.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct MfdParams {
+    /// The convergence exponent where flow is **unchannelised**. Quinn (1991) /
+    /// Freeman (1991)'s dispersive limit is `1.0`.
+    ///
+    /// Holmgren's calibrated `4–6` band — journal/0109's uniform default — is the
+    /// *compromise* a single-exponent scheme is forced into, because one number
+    /// has to serve hillslope and channel alike. Once `p` varies, the endpoints
+    /// should be the endpoints and not the compromise.
+    pub p_hill: f64,
+    /// The convergence exponent where flow is **channelised**. Large, so a
+    /// channel's discharge follows the steepest line: at `p = 16` a neighbour at
+    /// 90 % of the maximum slope keeps 19 % of the steepest direction's weight and
+    /// one at 70 % keeps 0.3 %, which the representational floor then drops.
+    ///
+    /// `p_chan == p_hill` is **uniform `p`** — journal/0109's solve, recovered
+    /// exactly, with no ramp evaluated.
+    pub p_chan: f64,
+    /// `χ` at or below which the exponent is [`Self::p_hill`].
+    pub chi_lo: f64,
+    /// `χ` at or above which the exponent is [`Self::p_chan`].
+    pub chi_hi: f64,
+    /// [`MFD_MIN_WEIGHT`] as a knob — the representational floor on a share.
+    pub min_weight: f64,
+}
+
+impl MfdParams {
+    /// journal/0109's solve: one exponent everywhere. A named constructor because
+    /// it is the control every hybrid measurement is quoted against.
+    #[must_use]
+    pub fn uniform(p: f64) -> Self {
+        Self {
+            p_hill: p,
+            p_chan: p,
+            chi_lo: 1.0,
+            chi_hi: 1.0,
+            min_weight: MFD_MIN_WEIGHT,
+        }
+    }
+
+    /// Is this the uniform-`p` solve (no ramp)?
+    #[inline]
+    #[must_use]
+    pub fn is_uniform(&self) -> bool {
+        self.p_hill == self.p_chan
+    }
+
+    /// **The exponent at channelisation index `chi`.** `p_hill` at or below
+    /// `chi_lo`, `p_chan` at or above `chi_hi`, log-linear between — monotone
+    /// non-decreasing in `chi` by construction, which is the invariant the gate
+    /// pins (a law wired backwards would disperse channels and concentrate
+    /// hillslopes, and no absolute count could see it).
+    ///
+    /// The ramp is **rounded to an integer**, and that is a cost decision stated
+    /// rather than hidden: a fractional exponent forces `powf` on
+    /// `8 × cells × epochs` ≈ half a billion directions per production run, where
+    /// an integer goes through `powi` — a handful of multiplies. At a 460 m tier
+    /// where the exponent is a coarse sub-grid dial, the difference between
+    /// `p = 7` and `p = 7.3` is false precision; the difference in gen time is
+    /// not. Uniform mode does **not** round, so a probe may still sweep `p = 1.5`.
+    #[inline]
+    #[must_use]
+    pub fn exponent_at(&self, chi: f64) -> f64 {
+        if self.is_uniform() || chi <= self.chi_lo {
+            return self.p_hill;
+        }
+        if chi >= self.chi_hi {
+            return self.p_chan;
+        }
+        let t = (chi / self.chi_lo).ln() / (self.chi_hi / self.chi_lo).ln();
+        (self.p_hill + (self.p_chan - self.p_hill) * t).round()
+    }
+}
+
+impl Default for MfdParams {
+    /// The shipped hybrid law — see [`DeepConfig::mfd_exponent_channel`] and
+    /// siblings for where each number comes from. `chi_lo`/`chi_hi` are calibrated
+    /// against the shipped world's own `χ` distribution (journal/0113).
+    fn default() -> Self {
+        Self {
+            p_hill: 1.0,
+            p_chan: 16.0,
+            chi_lo: 1.0e-4,
+            chi_hi: 1.0e-2,
+            min_weight: MFD_MIN_WEIGHT,
+        }
+    }
+}
 
 /// The number of **species** the suspended load is resolved into — one per
 /// [`Litho`], which is the material granularity deep time can distinguish at all
@@ -296,21 +429,33 @@ fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) 
 /// ```
 ///
 /// `p` is the **convergence exponent**: `p = 1` is Quinn's maximally dispersive
-/// form, `p → ∞` is single-receiver D8. Nothing here is novel; what it buys over
-/// D8 is that a cell's discharge can leave through more than one face **within one
-/// epoch**, which is the entire difference between temporal divergence (avulsion,
-/// which the record already had) and simultaneous divergence (concurrent
-/// distributaries, which it structurally could not hold).
+/// form, large `p` is single-receiver steepest-slope. Nothing here is novel; what
+/// it buys over D8 is that a cell's discharge can leave through more than one face
+/// **within one epoch**, which is the entire difference between temporal
+/// divergence (avulsion, which the record already had) and simultaneous divergence
+/// (concurrent distributaries, which it structurally could not hold).
+///
+/// **`p` is SPATIALLY VARYING** (journal/0113). `area_i` is the cell's drainage
+/// area from the *previous* epoch; the exponent is [`MfdParams::exponent_at`] of
+/// the channelisation index `χ = area_i · S_max²`, so unchannelised ground
+/// disperses and channelised ground stays in its banks. `MfdParams::uniform`
+/// recovers journal/0109's single exponent with no ramp evaluated.
+///
+/// **The slopes are normalised by `S_max` before exponentiation.** Algebraically
+/// that is a no-op — the renormalisation at the end divides it straight back out —
+/// but it makes every base lie in `(0, 1]`, so a large `p_chan` can never underflow
+/// a whole partition to zero and turn a draining cell into a sink. Without it the
+/// safe exponent range is bounded by the world's smallest slope, which is a
+/// coupling nobody would remember.
 #[inline]
-#[allow(clippy::too_many_arguments)]
 fn partition_cell(
     i: usize,
     w: usize,
     surf: &[f64],
     filled: &[f64],
     sea_level: f64,
-    p: f64,
-    int_p: Option<i32>,
+    area_i: f64,
+    mp: &MfdParams,
     w_out: &mut [f64],
 ) -> i32 {
     w_out.iter_mut().for_each(|v| *v = 0.0);
@@ -319,7 +464,10 @@ fn partition_cell(
     }
     let (gx, gy) = coords_of(i, w);
     let fi = filled[i];
-    let mut sum = 0.0;
+    // Pass 1: the downslope gradients, and the steepest of them — which is both
+    // the normaliser and the `S` of the channelisation index.
+    let mut slope = [0.0f64; MFD_DIRS];
+    let mut s_max = 0.0f64;
     for (d, (dx, dy)) in NEIGH8.into_iter().enumerate() {
         let Some(j) = in_grid(gx + dx, gy + dy, w) else {
             continue;
@@ -329,12 +477,35 @@ fn partition_cell(
             continue;
         }
         let s = drop / MFD_DIST[d];
-        // Integer exponents go through `powi` — the default `p = 4` is three
-        // multiplies, where `powf` on 8 directions × 297k cells × 200 epochs is
-        // half a billion transcendental calls and would dominate the deep run.
+        slope[d] = s;
+        if s > s_max {
+            s_max = s;
+        }
+    }
+    if s_max <= 0.0 {
+        return -1;
+    }
+    // The channelisation index. `slope` here is a *rise over cell widths*, not
+    // over metres — `cell_m` is a constant factor over the whole grid and is
+    // folded into the calibration of `chi_lo`/`chi_hi` rather than carried here,
+    // which keeps the partition free of the cell size.
+    let p = mp.exponent_at(area_i * s_max * s_max);
+    // Integer exponents go through `powi` — the hybrid ramp is rounded so this is
+    // the taken branch on every cell of a production run, where `powf` on
+    // 8 directions × 297k cells × 200 epochs is half a billion transcendental
+    // calls and would dominate the deep run. `powf` survives for the fractional
+    // uniform exponents a probe may sweep.
+    let pr = p.round();
+    let int_p = (p == pr && (1.0..=64.0).contains(&pr)).then_some(pr as i32);
+    let mut sum = 0.0;
+    for (d, &s) in slope.iter().enumerate() {
+        if s <= 0.0 {
+            continue;
+        }
+        let base = s / s_max;
         let sp = match int_p {
-            Some(k) => s.powi(k),
-            None => s.powf(p),
+            Some(k) => base.powi(k),
+            None => base.powf(p),
         };
         let raw = sp * MFD_CONTOUR[d];
         w_out[d] = raw;
@@ -344,12 +515,13 @@ fn partition_cell(
         return -1;
     }
     // Normalise, then apply the representational floor and renormalise over the
-    // survivors. The largest share is at least `1/8` before the floor, so the
-    // survivor set is never empty and `sum2 > 0` always.
+    // survivors. The steepest direction's base is exactly `1`, so its raw weight is
+    // at least `1/√2` against a total of at most `8`; its share is therefore never
+    // below `1/12`, the survivor set is never empty and `sum2 > 0` always.
     let mut sum2 = 0.0;
     for v in w_out.iter_mut() {
         let n = *v / sum;
-        *v = if n >= MFD_MIN_WEIGHT { n } else { 0.0 };
+        *v = if n >= mp.min_weight { n } else { 0.0 };
         sum2 += *v;
     }
     let mut best = -1i32;
@@ -844,12 +1016,10 @@ pub struct Erosion {
     /// crossing a face is ever visible, because `qs` afterwards holds each cell's
     /// *in*-load summed over contributors and cannot be factored back apart.
     out_load: Vec<f64>,
-    /// **The MFD partition** (flow.md § 2.6). `Some(p)` ⇒ multi-receiver routing
-    /// at convergence exponent `p`; `None` ⇒ the single-receiver D8 path, which is
-    /// the pre-MFD solve byte for byte. `mfd_int_p` caches `p` when it is a small
-    /// integer so the hot inner loop uses `powi` instead of `powf`.
-    mfd: Option<f64>,
-    mfd_int_p: Option<i32>,
+    /// **The MFD partition** (flow.md § 2.6, § 2.6.2). `Some(params)` ⇒
+    /// multi-receiver routing under the hybrid-`p` law ([`MfdParams`]); `None` ⇒
+    /// the single-receiver D8 path, which is the pre-MFD solve byte for byte.
+    mfd: Option<MfdParams>,
     /// `n × 8` normalised out-weights, aligned to [`NEIGH8`] (and therefore to
     /// `FaceKey::lateral`). Empty when MFD is off.
     mfd_w: Vec<f64>,
@@ -971,7 +1141,6 @@ impl Erosion {
             r_snap: Vec::new(),
             out_load: Vec::new(),
             mfd: None,
-            mfd_int_p: None,
             mfd_w: Vec::new(),
             out_area: Vec::new(),
             out_face_load: Vec::new(),
@@ -1163,17 +1332,12 @@ impl Erosion {
         }
     }
 
-    /// Turn **multiple-flow-direction routing** on at convergence exponent `p`
-    /// (flow.md § 2.6). `None` is the single-receiver D8 path — the pre-MFD solve,
-    /// byte for byte, because nothing else in the class reads `mfd_w`.
-    pub fn set_mfd(&mut self, p: Option<f64>) {
+    /// Turn **multiple-flow-direction routing** on under the hybrid-`p` law
+    /// ([`MfdParams`], flow.md § 2.6/§ 2.6.2). `None` is the single-receiver D8
+    /// path — the pre-MFD solve, byte for byte, because nothing else in the class
+    /// reads `mfd_w`. [`MfdParams::uniform`] is journal/0109's one-exponent solve.
+    pub fn set_mfd(&mut self, p: Option<MfdParams>) {
         self.mfd = p;
-        self.mfd_int_p = p.and_then(|p| {
-            let r = p.round();
-            // `powi` is exact for the integer case and cheap; the guard keeps the
-            // fallback for the fractional exponents a probe may sweep.
-            (p == r && (1.0..=16.0).contains(&r)).then_some(r as i32)
-        });
         if p.is_some() {
             if self.mfd_w.len() != self.n * MFD_DIRS {
                 self.mfd_w = vec![0.0; self.n * MFD_DIRS];
@@ -1723,12 +1887,33 @@ impl Erosion {
     /// drainage network and the biotic layer still consume a single receiver. It is
     /// no longer the routing, and that is the interesting fact about it (see the
     /// [`Self::recv`] doc).
+    ///
+    /// ## The one-epoch lag on drainage area, and why it is not a cheat
+    ///
+    /// The hybrid-`p` law ([`MfdParams`]) needs the cell's drainage area to decide
+    /// how channelised it is — and drainage area is computed by
+    /// [`Self::accumulate_area`], which runs *after* this phase and *from* the
+    /// weights this phase writes. The dependency is genuinely circular, and there
+    /// is no fixed point to iterate to: a second accumulation pass would use an
+    /// area that its own weights then invalidate.
+    ///
+    /// So the exponent reads `self.area` as this phase finds it — **the previous
+    /// epoch's accumulation**. This is the same shape as the S10 biotic coupling
+    /// (`grid.bio_weather` is a lagged plane for exactly this reason) and it costs
+    /// nothing: no extra storage, no extra pass, and `accumulate_area` re-seeds
+    /// `area` to `1.0` at its own start so nothing stale survives into the sums.
+    ///
+    /// At epoch 0 the plane is all zeros, so `χ = 0`, the exponent is `p_hill`
+    /// everywhere and the first epoch is maximally dispersive. That is the honest
+    /// initial condition rather than a guess: nothing is channelised until water
+    /// has run once, which is also the physical statement.
     pub fn route(&mut self) {
         let (w, sea) = (self.w, self.sea_level);
-        let surf = &self.surf;
-        let filled = &self.filled;
-        let Some(p) = self.mfd else {
-            if self.par() {
+        let parallel = self.par();
+        let Some(mp) = self.mfd else {
+            let surf = &self.surf;
+            let filled = &self.filled;
+            if parallel {
                 self.recv
                     .par_iter_mut()
                     .enumerate()
@@ -1740,9 +1925,19 @@ impl Erosion {
             }
             return;
         };
-        let int_p = self.mfd_int_p;
+        // Disjoint field borrows: `area` is read-only here (so the parallel path
+        // stays byte-identical), `recv`/`mfd_w` are written per cell.
+        let Erosion {
+            surf,
+            filled,
+            area,
+            recv,
+            mfd_w,
+            ..
+        } = self;
+        let (surf, filled, area) = (&*surf, &*filled, &*area);
         let step = |i: usize, r: &mut i32, ws: &mut [f64]| {
-            let best = partition_cell(i, w, surf, filled, sea, p, int_p, ws);
+            let best = partition_cell(i, w, surf, filled, sea, area[i], &mp, ws);
             *r = if best < 0 {
                 -1
             } else {
@@ -1751,19 +1946,13 @@ impl Erosion {
                 in_grid(gx + dx, gy + dy, w).expect("a weighted direction is in-grid") as i32
             };
         };
-        if self.par() {
-            self.recv
-                .par_iter_mut()
-                .zip(self.mfd_w.par_chunks_mut(MFD_DIRS))
+        if parallel {
+            recv.par_iter_mut()
+                .zip(mfd_w.par_chunks_mut(MFD_DIRS))
                 .enumerate()
                 .for_each(|(i, (r, ws))| step(i, r, ws));
         } else {
-            for (i, (r, ws)) in self
-                .recv
-                .iter_mut()
-                .zip(self.mfd_w.chunks_mut(MFD_DIRS))
-                .enumerate()
-            {
+            for (i, (r, ws)) in recv.iter_mut().zip(mfd_w.chunks_mut(MFD_DIRS)).enumerate() {
                 step(i, r, ws);
             }
         }
@@ -2802,8 +2991,16 @@ mod mfd_tests {
         for p in [1.0f64, 1.1, 2.0, 4.0, 6.0] {
             let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.9, 0.25, 1.5, 4.0]);
             let mut w_out = [0.0f64; MFD_DIRS];
-            let int_p = (p == p.round()).then_some(p as i32);
-            let best = partition_cell(c, 3, &surf, &filled, -1000.0, p, int_p, &mut w_out);
+            let best = partition_cell(
+                c,
+                3,
+                &surf,
+                &filled,
+                -1000.0,
+                0.0,
+                &MfdParams::uniform(p),
+                &mut w_out,
+            );
             assert!(
                 best >= 0,
                 "p={p}: a cell with downslope neighbours is a sink"
@@ -2817,10 +3014,18 @@ mod mfd_tests {
         }
     }
 
-    /// **`p → ∞` is single-receiver D8.** That property is what makes the exponent
-    /// a *convergence knob* rather than a different model: the partition contains
-    /// the thing it replaces as a limit, so "how much does MFD change the world"
-    /// has a continuous answer instead of a discrete one.
+    /// **`p → ∞` is a SINGLE-RECEIVER limit.** That property is what makes the
+    /// exponent a *convergence knob* rather than a different model: the partition
+    /// contains the thing it replaces as a limit, so "how much does MFD change the
+    /// world" has a continuous answer instead of a discrete one.
+    ///
+    /// > **Not, however, `route_cell` — corrections #58.** journal/0109 and
+    /// > flow.md § 2.6.1 both say *"`p → ∞` is single-receiver D8 **exactly**"*, and
+    /// > it is not: the partition's limit is the steepest **slope** and `route_cell`
+    /// > takes the steepest **drop**, which differ on diagonals by the very `√2`
+    /// > path length that slice introduced. `the_partition_follows_slope_not_drop`
+    /// > below pins a case where the two pick *different* receivers. The limit is
+    /// > the physically correct one; it is the claim of identity that is wrong.
     ///
     /// Note what "large" has to mean, because it is the honest reading of the knob:
     /// `p` acts on the **ratio** of slopes, so two neighbours within a few percent
@@ -2831,7 +3036,16 @@ mod mfd_tests {
     fn a_large_exponent_collapses_the_partition_onto_one_receiver() {
         let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 2.0]);
         let mut w_out = [0.0f64; MFD_DIRS];
-        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 16.0, Some(16), &mut w_out);
+        let best = partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams::uniform(16.0),
+            &mut w_out,
+        );
         assert!(best >= 0);
         assert_eq!(
             w_out.iter().filter(|&&v| v > 0.0).count(),
@@ -2852,7 +3066,16 @@ mod mfd_tests {
     fn the_partition_follows_slope_not_drop() {
         let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 4.0]);
         let mut w_out = [0.0f64; MFD_DIRS];
-        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        let best = partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams::uniform(4.0),
+            &mut w_out,
+        );
         assert_eq!(best, 3, "the diagonal's √2 path length was not applied");
         assert!(w_out[3] > w_out[7]);
         // The steepest-DROP rule would have said otherwise — pinned, so the
@@ -2870,7 +3093,16 @@ mod mfd_tests {
     fn a_unit_exponent_spreads_across_every_downslope_neighbour() {
         let (c, surf, filled) = patch([1.0; 8]);
         let mut w_out = [0.0f64; MFD_DIRS];
-        partition_cell(c, 3, &surf, &filled, -1000.0, 1.0, Some(1), &mut w_out);
+        partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams::uniform(1.0),
+            &mut w_out,
+        );
         assert_eq!(w_out.iter().filter(|&&v| v > 0.0).count(), 8);
         let ratio = w_out[1] / w_out[0];
         assert!(
@@ -2886,7 +3118,16 @@ mod mfd_tests {
     fn a_cell_with_no_lower_neighbour_is_a_sink() {
         let (c, surf, filled) = patch([-1.0; 8]);
         let mut w_out = [1.0f64; MFD_DIRS];
-        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        let best = partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams::uniform(4.0),
+            &mut w_out,
+        );
         assert_eq!(best, -1);
         assert!(w_out.iter().all(|&v| v == 0.0));
     }
@@ -2901,12 +3142,162 @@ mod mfd_tests {
         // neighbour's share falls under a percent and is dropped.
         let (c, surf, filled) = patch([-1.0, -1.0, -1.0, 10.0, 0.3, -1.0, -1.0, -1.0]);
         let mut w_out = [0.0f64; MFD_DIRS];
-        partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams::uniform(4.0),
+            &mut w_out,
+        );
         let sum: f64 = w_out.iter().sum();
         assert!((sum - 1.0).abs() < 1e-12, "sum {sum} after the floor");
         assert!(
             w_out.iter().all(|&v| v == 0.0 || v >= MFD_MIN_WEIGHT),
             "a sub-floor weight survived: {w_out:?}"
         );
+    }
+
+    // ---- hybrid `p` (journal/0113) ----------------------------------------
+
+    /// **The ramp is monotone non-decreasing in the channelisation index**, and
+    /// hits its endpoints. This is the invariant that would catch a law wired
+    /// backwards — dispersing channels and concentrating hillslopes — which no
+    /// absolute count of anything could see, because both directions produce
+    /// plausible-looking numbers.
+    #[test]
+    fn the_exponent_ramps_monotonically_from_hillslope_to_channel() {
+        let mp = MfdParams::default();
+        assert_eq!(mp.exponent_at(0.0), mp.p_hill);
+        assert_eq!(mp.exponent_at(mp.chi_lo), mp.p_hill);
+        assert_eq!(mp.exponent_at(mp.chi_hi), mp.p_chan);
+        assert_eq!(mp.exponent_at(1.0e9), mp.p_chan);
+        let mut prev = mp.exponent_at(0.0);
+        for k in 0..400 {
+            // Sweep χ across six decades either side of the ramp.
+            let chi = 10f64.powf(-7.0 + 6.0 * f64::from(k) / 400.0);
+            let p = mp.exponent_at(chi);
+            assert!(p >= prev, "exponent fell from {prev} to {p} at chi={chi}");
+            assert!((mp.p_hill..=mp.p_chan).contains(&p));
+            prev = p;
+        }
+    }
+
+    /// **Uniform mode is the ramp's degenerate case and evaluates no ramp at all**
+    /// — `p_chan == p_hill` must return that exponent for every `χ`, including
+    /// fractional exponents a probe may sweep (which must NOT be rounded).
+    #[test]
+    fn a_uniform_law_ignores_the_channelisation_index() {
+        for p in [1.0f64, 1.5, 4.0, 7.25] {
+            let mp = MfdParams::uniform(p);
+            for chi in [0.0, 1e-9, 1e-3, 1.0, 1e6] {
+                assert_eq!(mp.exponent_at(chi), p, "uniform p={p} moved at chi={chi}");
+            }
+        }
+    }
+
+    /// **The same cell, routed two ways by its drainage area alone.** One patch,
+    /// one slope field — a moderately convergent junction with a clear steepest
+    /// line and two near-rivals. Given a hillslope's area it must spread; given a
+    /// trunk river's area it must not. That *is* the slice, isolated from the
+    /// world: the partition now depends on how channelised the flow is, and on
+    /// nothing else that changed.
+    #[test]
+    fn the_same_slope_field_disperses_on_a_hillslope_and_concentrates_in_a_channel() {
+        let mp = MfdParams::default();
+        let drops = [1.0, 2.0, 0.5, 2.6, 2.2, 0.25, 1.5, 1.0];
+        let (c, surf, filled) = patch(drops);
+        // S_max = 2.6 (cardinal), so chi = A · 6.76: A = 1 cell is far above
+        // chi_hi... which is exactly the resolution caveat the doc names — these
+        // are metres of drop per CELL WIDTH on a 3×3 toy, not a real gradient.
+        // Scale the patch down so the slopes are production-like (~1e-2).
+        let filled: Vec<f64> = filled.iter().map(|z| 100.0 + (z - 100.0) * 0.01).collect();
+        let surf = surf.iter().map(|z| 100.0 + (z - 100.0) * 0.01).collect::<Vec<_>>();
+        let mut hill = [0.0f64; MFD_DIRS];
+        let mut chan = [0.0f64; MFD_DIRS];
+        partition_cell(c, 3, &surf, &filled, -1000.0, 1.0, &mp, &mut hill);
+        partition_cell(c, 3, &surf, &filled, -1000.0, 4000.0, &mp, &mut chan);
+        let n_hill = hill.iter().filter(|&&v| v > 0.0).count();
+        let n_chan = chan.iter().filter(|&&v| v > 0.0).count();
+        assert!(
+            n_hill > n_chan,
+            "hillslope kept {n_hill} receivers, channel kept {n_chan} — the law did not vary"
+        );
+        let top_hill = hill.iter().cloned().fold(0.0f64, f64::max);
+        let top_chan = chan.iter().cloned().fold(0.0f64, f64::max);
+        assert!(
+            top_chan > top_hill,
+            "the channel's steepest share ({top_chan}) is no larger than the hillslope's \
+             ({top_hill})"
+        );
+        // Both are still probabilities — the ramp may not leak discharge.
+        for w in [&hill, &chan] {
+            let sum: f64 = w.iter().sum();
+            assert!((sum - 1.0).abs() < 1e-12, "weights sum to {sum}");
+        }
+    }
+
+    /// **A large channel exponent must never turn a draining cell into a sink.**
+    /// This is what the `S/S_max` normalisation buys: without it the raw weights
+    /// are `S^p`, and on the gentle gradients this world actually has
+    /// (`S ~ 1e-5` per cell width in places) a `p` of 64 underflows *every*
+    /// direction to zero, the partition sums to zero, and the cell is reported as
+    /// a sink — silently disconnecting a drainage network. Scale-free: it is a
+    /// statement about floating-point range, not about grid size.
+    #[test]
+    fn a_steep_exponent_on_a_gentle_slope_still_finds_a_receiver() {
+        let (c, surf, filled) = patch([1e-5, 2e-5, 5e-6, 3e-5, 9e-6, 2.5e-6, 1.5e-5, 4e-5]);
+        let mp = MfdParams {
+            p_hill: 64.0,
+            p_chan: 64.0,
+            ..MfdParams::default()
+        };
+        let mut w_out = [0.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 0.0, &mp, &mut w_out);
+        assert!(best >= 0, "a cell with eight downslope neighbours became a sink");
+        let sum: f64 = w_out.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-12, "weights sum to {sum}");
+    }
+
+    /// **The floor is a knob now, and `0.0` disables it** — the measurement stub #22
+    /// was owed. With the floor off, every downslope neighbour keeps its share no
+    /// matter how small; with it on, the sub-floor ones are dropped and the rest
+    /// renormalised. Both still sum to one.
+    #[test]
+    fn a_zero_floor_keeps_every_downslope_neighbour() {
+        let (c, surf, filled) = patch([-1.0, -1.0, -1.0, 10.0, 0.3, -1.0, -1.0, -1.0]);
+        let mut floored = [0.0f64; MFD_DIRS];
+        let mut open = [0.0f64; MFD_DIRS];
+        partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams::uniform(4.0),
+            &mut floored,
+        );
+        partition_cell(
+            c,
+            3,
+            &surf,
+            &filled,
+            -1000.0,
+            0.0,
+            &MfdParams {
+                min_weight: 0.0,
+                ..MfdParams::uniform(4.0)
+            },
+            &mut open,
+        );
+        assert_eq!(floored.iter().filter(|&&v| v > 0.0).count(), 1);
+        assert_eq!(open.iter().filter(|&&v| v > 0.0).count(), 2);
+        for w in [&floored, &open] {
+            let sum: f64 = w.iter().sum();
+            assert!((sum - 1.0).abs() < 1e-12, "weights sum to {sum}");
+        }
     }
 }
