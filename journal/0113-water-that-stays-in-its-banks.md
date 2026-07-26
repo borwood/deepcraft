@@ -371,6 +371,39 @@ faces per cell where the flow is confined, and genuinely split where it is not �
 which is exactly the Dirichlet data a boundary-value problem needs in order to
 have a channel as its solution.
 
+## The gate, and the goldens
+
+Full workspace gate on `main` merged in (`102e274`, material-aware creep), with
+`cargo clean -p dc-worldgen --release` first and the `Compiling` / `Checking`
+lines verified to name **this worktree's** checkout:
+
+- `cargo fmt --all --check` — clean
+- `cargo clippy --workspace --all-targets --release -- -D warnings` — **exit 0**
+- `cargo test --workspace --release --no-fail-fast` — **exit 0, 84 binaries,
+  801 passed, 0 failed, 3 ignored**, zero `FAILED` / `panicked` / `error` lines
+
+This slice adds **+7 tests in +1 binary**: five in `erosion::mfd_tests` (6 → 11)
+and two in a new `examples/hybrid_p_probe` gate target. **Added gate wall-clock:
+13.8 s** — the probe's gate suite is 13.75 s at `Extent::Small` and the five unit
+tests are on hand-built 3×3 patches, so they are free. Both gate assertions are
+**orderings between two solves on the same terrain**, never a magnitude: nothing
+in this slice pins a catchment figure, because a colleague calibrating this world
+should be free to move every number in the tables above.
+
+**Four golden sets, and only one of them moved.** That is the point of the section:
+
+| golden | moved? | why |
+|---|---|---|
+| `providers_golden` (the shipped world) | **moved** | authorized — the drainage network concentrates |
+| `contents_contract` world fingerprints | **moved** | same cause, one tier down |
+| `GOLDEN_*_SINGLE_RECEIVER` (`mfd: false`) | **held** | this slice never touches the D8 path |
+| `GOLDEN_*_SCALAR_LOAD` and the anonymous-creep pair | **held, bit for bit** | reached by pinning the flat ramp |
+
+The last row is the one that cost work, and it is described under the invariants:
+the first gate failed on it, and the fix — normalise only when the law is
+non-uniform — is what keeps three cross-commit fixed points reachable instead of
+approximately reachable.
+
 ## A correction found on the way
 
 journal/0109 wrote — and flow.md and `DeepConfig` repeated — that *"`p → ∞` is
