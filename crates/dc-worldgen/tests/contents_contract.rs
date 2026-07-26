@@ -395,25 +395,55 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0xEF92F1C63DFDD5E3  materials 0x5DDE4337F3524E35  table 0x04F98B720BBCFC5F
 //   medium 0x539           blocks 0xEE7C48C9609583E9  materials 0x78A554C9B2377421  table 0x03A23041441FD346
 //   small  0xC11A7E2026    blocks 0x24F1B1491662C29D  (materials/table unmoved)
+//
+// **Moved 2026-07-26 by the joint supply + transport calibration (journal/0114) —
+// authorized, and it is a different KIND of move from the four above.** Those four
+// changed a *rule*: where the water goes, what the load is made of, who gets the
+// credit for delivering it. This one changes **how fast the whole landscape runs**.
+// The four rate constants that together set the erosional clock — `weathering`,
+// `diffusion`, `k_transport`, `k_bedrock` — are multiplied by `EROSION_CALIBRATION`
+// (45), because journal/0111 measured this world denuding at 0.0110 m/Myr: **9x
+// slower than the slowest landscape ever measured on Earth**, stripping 5.48 m over
+// the ratified 500 Myr where a real craton strips 5-10 km.
+//
+// It is the first move in this file justified by an **external** anchor — a published
+// denudation band — rather than by an internal argument about correctness. The
+// pre-calibration world stays reachable (`DeepOverrides::calibrated_rates: Some(false)`,
+// the `--uncalibrated` launch flag) and is pinned by name in
+// `tests/calibrated_rates.rs`, which is what makes this an authorized move and not a
+// lost fixed point.
+//
+// **The Small row reads DIFFERENTLY this time, and the difference is informative.**
+// For MFD, 2b, 2b(b) and hybrid `p` it moved on `blocks` only. Here it moves on
+// `blocks` only *again* — `materials` and `table` byte-identical — even though the
+// calibration is the largest world change of the five. Same structural reason as
+// always (Small's sampled chunks carry no strata record, so their contents are the
+// unchanged year-zero fallback), and it is a useful negative control: a rate change
+// that reached the surface everywhere still cannot reach a record that is not there.
+// Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0xE19BA53B71A31DB4  materials 0xD5BA01C497D7870B  table 0xC4E449EDEF975AAC
+//   medium 0x539           blocks 0x5B7C3AFB9E855E98  materials 0x0C62936DAD80AFA4  table 0x091C7E292E6BA539
+//   small  0xC11A7E2026    blocks 0x4B407E53AB7DDCDC  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0xE19B_A53B_71A3_1DB4,
-        0xD5BA_01C4_97D7_870B,
-        0xC4E4_49ED_EF97_5AAC,
+        0xFDD1_F1F1_4F21_7F05,
+        0x3F8B_D692_F0A0_A6BB,
+        0x953F_D90B_A98F_155F,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x5B7C_3AFB_9E85_5E98,
-        0x0C62_936D_AD80_AFA4,
-        0x091C_7E29_2E6B_A539,
+        0x7AEC_0E24_AD94_8573,
+        0xD838_48C6_022B_B8F0,
+        0xAB0F_92D5_AF1D_DA27,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x4B40_7E53_AB7D_DCDC,
+        0x8D7D_D623_D8A1_1005,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

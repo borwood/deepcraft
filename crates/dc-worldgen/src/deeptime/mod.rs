@@ -47,7 +47,7 @@ pub use erosion::{
     Erosion, MfdParams, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled,
 };
 pub use field::{
-    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, EROSION_CALIBRATION, DeepField, DeepOverrides,
+    DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, EROSION_CALIBRATION,
     build_field, build_field_cfg, build_field_with, production_config, production_config_with,
     scale_erosion_rates,
 };

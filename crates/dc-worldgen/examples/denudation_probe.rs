@@ -370,8 +370,15 @@ const LADDER: [f64; 5] = [10.0, 45.0, 100.0, 300.0, 1000.0];
 
 fn main() {
     let ladder: Vec<f64> = {
-        let args: Vec<f64> = std::env::args().skip(1).filter_map(|a| a.parse().ok()).collect();
-        if args.is_empty() { LADDER.to_vec() } else { args }
+        let args: Vec<f64> = std::env::args()
+            .skip(1)
+            .filter_map(|a| a.parse().ok())
+            .collect();
+        if args.is_empty() {
+            LADDER.to_vec()
+        } else {
+            args
+        }
     };
     println!("=== denudation probe — seed {SEED}, Extent::Medium ===\n");
     let pregen = Pregen::run(WorldParams {
@@ -660,8 +667,16 @@ fn main() {
          quiet end to {} it at the active end. {} of the 9 printed percentiles are at or above it.",
         d.pct[3],
         d.max_cell,
-        if d.pct[3] >= CRATON_FLOOR { "above" } else { "below" },
-        if d.max_cell >= CRATON_FLOOR { "above" } else { "below" },
+        if d.pct[3] >= CRATON_FLOOR {
+            "above"
+        } else {
+            "below"
+        },
+        if d.max_cell >= CRATON_FLOOR {
+            "above"
+        } else {
+            "below"
+        },
         above_floor,
     );
 
@@ -704,7 +719,11 @@ fn main() {
     println!("\n  quantity                    uncalibrated        shipped");
     for (name, a, b) in [
         ("D1 catchment denudation", raw.catchment_averaged, d1),
-        ("D2 mean surface lowering", raw.mean_surface_lowering, d.mean_surface_lowering),
+        (
+            "D2 mean surface lowering",
+            raw.mean_surface_lowering,
+            d.mean_surface_lowering,
+        ),
         ("D3 bedrock erosion", raw.bedrock_erosion, d.bedrock_erosion),
         ("D4 rock uplift", raw.rock_uplift, d.rock_uplift),
         (
@@ -731,9 +750,8 @@ fn main() {
     // state denudes at U / that fraction. Computed from the isostasy module's own
     // densities, so it moves if they do — never transcribed.
     let rho_m = dc_worldgen::deeptime::isostasy::RHO_MANTLE;
-    let rho_c = dc_worldgen::deeptime::isostasy::rho_crust(
-        dc_worldgen::deeptime::CrustKind::Continental,
-    );
+    let rho_c =
+        dc_worldgen::deeptime::isostasy::rho_crust(dc_worldgen::deeptime::CrustKind::Continental);
     let f_airy = (rho_m - rho_c) / rho_m;
     let ceiling = raw.rock_uplift / f_airy;
     println!(
@@ -859,22 +877,40 @@ fn main() {
         "  1. SHAPE PRESERVED (the binding one)   relief {relief_pct:+.1} % vs pre-calibration   {}\n     \
          journal/0111's finding was \"the shape is right and the clock is wrong\", so a\n     \
          multiplier that moves the shape has stopped being a calibration. Bound: 5 %.",
-        if relief_pct.abs() <= 5.0 { "PASS" } else { "FAIL" }
+        if relief_pct.abs() <= 5.0 {
+            "PASS"
+        } else {
+            "FAIL"
+        }
     );
     println!(
         "  2. REGOLITH IN THE PUBLISHED SHIELD RANGE (30-60 m)   mean H {:.1} m   {}\n     \
          Deeply-weathered shield saprolite: Yilgarn, Guiana, Brazilian. Pre-calibration was\n     \
          {:.1} m, below even the TYPICAL shield range.",
         d.mean_h,
-        if (30.0..=60.0).contains(&d.mean_h) { "PASS" } else { "OUT OF RANGE" },
+        if (30.0..=60.0).contains(&d.mean_h) {
+            "PASS"
+        } else {
+            "OUT OF RANGE"
+        },
         raw.mean_h,
     );
     println!(
         "  3. DENUDATION INSIDE A PUBLISHED TERRESTRIAL BAND   D1 {d1:.4} m/Myr   {}\n     \
          The floor band 0.1-1 (McMurdo Dry Valleys, hyperarid Atacama). journal/0111's\n     \
          headline was that this world sat below EVERY published band. {}",
-        if (0.1..=1.0).contains(&d1) { "PASS (floor band)" } else if d1 > 1.0 { "PASS (craton band)" } else { "STILL BELOW EVERY BAND" },
-        if d1 >= 0.1 { "It no longer does." } else { "It still does." },
+        if (0.1..=1.0).contains(&d1) {
+            "PASS (floor band)"
+        } else if d1 > 1.0 {
+            "PASS (craton band)"
+        } else {
+            "STILL BELOW EVERY BAND"
+        },
+        if d1 >= 0.1 {
+            "It no longer does."
+        } else {
+            "It still does."
+        },
     );
     println!(
         "  4. APPROACHING TOPOGRAPHIC STEADY STATE   D1/D4 {:.2}   (was {:.3})\n     \
@@ -926,7 +962,10 @@ fn main() {
     let uniform_gain = d1 / raw.catchment_averaged.max(1e-30);
     println!(
         "  {:<30} {d1:>10.4}  {:>6.2}  {uniform_gain:>7.1}x   <-- SHIPPED",
-        format!("BOTH {:.0}x (uniform)", base_cfg.weathering / raw_cfg.weathering),
+        format!(
+            "BOTH {:.0}x (uniform)",
+            base_cfg.weathering / raw_cfg.weathering
+        ),
         d1 / d.bedrock_erosion.max(1e-30),
     );
     println!(
