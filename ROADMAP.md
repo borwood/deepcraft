@@ -11,7 +11,8 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
   (journal/0114). `EROSION_CALIBRATION = 45` behind **`DeepConfig::calibrated_rates`,
   default `false`**, identity path pinned by name. **Production is byte-identical.**
   - **⚠ THE AGENT REFUSED THE BRIEF'S "DEFAULT ON", AND WAS RIGHT TO.** It found
-    **stubs #29** (the incision clamp, Sequenced above) and would not ship 148 unfilled pits
+    **stubs #29** (Sequenced above; re-scoped 2026-07-26 — the real defect is grid
+    instability, and the true hollow count is **1,377**, not 148) and would not ship unfilled pits
     into the world on its own authority while the user was away, on a number that misses its
     target band. *Deviation is allowed; silence is not — the loud-plea doctrine working as
     designed.*
@@ -2800,20 +2801,64 @@ see the question you are asking.
 
 ## Sequenced
 
-- **🔴🔴🔴 THE INCISION CLAMP THAT WAS GREEN BECAUSE NOTHING ERODED — stubs #29, and it
-  BLOCKS the calibration below** (journal/0114, 2026-07-26). **Deep closed depressions open at
-  ANY erosional amplitude above 1×:** 0 pits deeper than 1 m at 1×, **44 at 5×** (deepest
-  45 m), 66 at 10×, **148 at 45×** (deepest 112 m). **Four phases run *after* incision and can
-  lower a cell past its clamped floor.**
-  - **This is a property of the SOLVE, not of any multiplier**, and it has been latent the
-    entire time — **invisible only because the world barely erodes.** The clamp's guard was
-    green for a reason unrelated to its claim.
-  - **Until this lands, the engine cannot run erosion at ANY realistic rate.** It gates
-    journal/0114's flag flip and every future calibration.
-  - *Recorded as a new **A-2 variant** in spines, and the variant is the transferable part: a
-    **test's unstated premise** — "erosion is fast enough for this to mean anything" — that was
-    false the whole time. **The added check: for a guard on a process, ask what MAGNITUDE of
-    that process the test actually exercises.***
+- **🔴🔴🔴 THE EROSIONAL SOLVE GOES GRID-UNSTABLE ABOVE 1× — stubs #29, RE-SCOPED
+  2026-07-26 by the walk (journal/0115, corrections #61/#62), and it BLOCKS the calibration
+  below.** *This entry previously read "THE INCISION CLAMP THAT WAS GREEN BECAUSE NOTHING
+  ERODED" and sized the defect at 148 pits. Both the name and the number were wrong; the
+  superseded framing is kept at the end because its mechanism is probably still real, just
+  not dominant.*
+  - **WHAT IS MEASURED (production-Medium, seed 1337, calibrated vs shipped as control).**
+    Deep-cell concavity — `mean(8 neighbours) − self`:
+
+    | | mean | p10 | p50 | p90 | p99 | >1 m | >20 m |
+    |---|---|---|---|---|---|---|---|
+    | shipped | −0.14 m | −0.3 | −0.1 | +0.1 | +0.3 | **0.0 %** | **0.0 %** |
+    | calibrated | +0.73 m | **−50.8** | −0.1 | **+52.8** | **+106.3** | **35.8 %** | **23.2 %** |
+
+    Closed hollows (`filled − routed`, the non-saturating census): **0 → 1,377 (3.1 % of
+    land), deepest 112.8 m, 5.4 km³ of fill.** Regionally **7.8 % within 10 km** of the walk
+    station — they cluster 2.5×.
+  - **THE HEADLINE, and it is one sentence: relief grew 4.6 %, cell-to-cell roughness grew
+    ~170×.** The shipped world's entire concavity distribution fits in ±0.3 m; the calibrated
+    world's decile spread is ±50 m with the **median unchanged**. The landscape's *shape* is
+    intact and the *grid* has become noise. Symmetric tails + untouched median = adjacent
+    cells oscillating against each other.
+  - **THE PITS ARE THE TAIL, NOT THE DEFECT.** A closed hollow is where the oscillation
+    happened to bottom out with no outlet. Fixing the clamp would clamp the tail and leave
+    23 % of cells 20 m off their neighbours — a slice that goes green and does not fix the
+    world. **Do not brief the clamp fix as the blocker.**
+  - **HYPOTHESIS (assistant, 2026-07-26 — NOT measured, and the brief must say so):** an
+    explicit scheme past its stability limit. It fits what journal/0114 already measured
+    without connecting it — creep's flux limiter binds on **89–96 %** of cells, so the
+    diffusion has saturated into *"move everything one cell downslope this epoch"*, and a
+    saturated explicit operator **overshoots**. **Two cheap discriminators, and the slice
+    should run them before writing any fix:** (a) sign-alternation / spatial autocorrelation
+    of the concavity field — a checkerboard is decisive; (b) **halve `myr_per_epoch` and
+    double the epoch count at fixed total time** — if it is a stability limit the roughness
+    collapses and the landscape does not move. *This is the same `cell_m / myr_per_epoch`
+    register that stubs #27's heir (b) turns on, so the two blockers may share one fix.*
+  - **Until this lands the engine cannot run erosion at ANY realistic rate.** Unchanged, and
+    now for a better-understood reason. It gates journal/0114's flag flip and every future
+    calibration.
+  - **⚠ THE ACCEPTANCE CRITERION THAT MISSED IT (corrections #61).** journal/0114's binding
+    criterion was *"relief within 5 %"*. Relief is `max − min` — a **global extremal**
+    statistic that is mathematically incapable of seeing spatial arrangement; you can shuffle
+    every interior cell and leave it unchanged. **Any future erosional slice pairs its
+    aggregate criterion with a neighbour-relative one** (Laplacian, gradient distribution,
+    autocorrelation), or it is measuring the axis that did not break.
+  - **⚠ AND THE GUARD CANNOT FAIL INFORMATIVELY (corrections #62).**
+    `mfd_routing::no_interior_cell_is_cut_below_all_of_its_neighbours` counts cells below
+    **all eight** neighbours — a winner-take-all predicate that **saturates**: as the defect
+    generalises, neighbours sink too and stop qualifying each other, so the count falls back
+    toward zero exactly when the damage becomes universal. Re-assert it on **fill depth and
+    concavity**. *Found by the user flying the terrain, after two probes and a gated assertion
+    all agreed with each other and were all wrong the same way.*
+  - *(SUPERSEDED FRAMING, kept because it is probably a real contributing mechanism: the
+    never-incise-below-the-lowest-receiver clamp is applied at incision, and weathering,
+    creep, wave and eolian all run **after** it in the same epoch and can lower a cell past
+    its floor. That predicts **isolated deep holes**, which is a subset of what the world
+    shows. Its A-2 variant in spines — a test's unstated premise, "erosion is fast enough for
+    this to mean anything" — stands on its own merits.)*
 
 - **🔴 THE TRANSPORT OPERATOR HAS A CEILING — stubs #27** (journal/0114). Six full 200-epoch
   worlds measured (1×, 10×, 45×, 100×, 300×, 1000×): **export is proportional to mean regolith
@@ -4414,6 +4459,53 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **🔴 FIELD REPORT (user, on the 2026-07-26 walk) — THE FAR TIER AND THE NEAR TIER DISAGREE
+  ABOUT WHAT THE ROCK IS, ON STEEP SLOPES.** *"The cold LOD is showing granite and diorite
+  textures, but in moving closer the surface is andesite and basalt. Maybe an artifact of the
+  slope here, since granite and diorite are beneath the surface. The surrounding pit edge of
+  sloping sandstone and conglomerate does not have this issue, also has a smoother slope."*
+  - **Pose** (corrections #48 — a prose landmark is not a pose): the calibrated world
+    (`dc-client --calibrated-rates`), seed 1337, `Extent::Medium`. Observed while flying
+    between the station-A pit at world **(41870, 12433)** and the station-A3 lake basin at
+    **(43709, 933)**. A later aerial from feet **(43709, 1180, 1420)**, yaw 0, pitch −0.62
+    caught it at scale: a **hard rectangular seam** with different rock on each side, too
+    straight-edged to be fog — `journal/assets/0115-station-a3-lake-basin.png`.
+  - **The user supplied the negative control in the same breath**, which is what makes this a
+    diagnosis-ready report rather than an impression: the *gentler* sandstone/conglomerate
+    slope beside it does **not** show the disagreement. Steepness is the candidate variable.
+  - **It is NOT `stubs.md` #15.** That stub (`far-node-synthesis-paints-the-column-with-the-
+    surface-block`) predicts a far mesa's flank wearing its **cap** material. This is the
+    opposite: the far tier showing the rock that lies **underneath** the near surface.
+  - **Candidate mechanism (assistant, unverified):** `coarse_surface` is a floor-quantized
+    summary; on a steep slope the quantized sample may land **below a thin cover** and report
+    basement, while the near ground expresses the record's real top span through `ColumnFill`.
+  - **Why it is more urgent than it was this morning.** `coarse_surface` is held to a
+    **statistical** agreement test against `ColumnFill` — and a statistical test passes
+    comfortably while a specific steep-slope class fails systematically (*"a summary is not an
+    authority"*, with slope as the term nobody checks). **And the erosional calibration
+    produces exactly the triggering geometry**: more relief, thinner cover on steeper ground.
+    A pre-existing defect the erosion arc will amplify.
+  - **First step:** re-observe under `--fullbright`, which is flat albedo with **no distance
+    fog at all** (journal/0031), so a tier disagreement shows as pure colour with no confound.
+    Deliberately not done during the walk — the user called the relaunch unnecessary.
+
+- **DESIGN QUESTION PARKED BY THE USER MID-WALK (2026-07-26), recorded here so it is not
+  lost — WHY DOES WEATHERING LOWER HEIGHT?** *"Wondering why weathering lowers height. What
+  operations does weathering do that are not transform in place? Are they something that
+  should happen prior to the river pass?"*
+  - **Not answered, not investigated.** Filed verbatim under *defer = write it now*; the user
+    explicitly deferred it to stay on the walk.
+  - **Why it is a good question and not a detail.** Weathering converting rock to regolith
+    *in place* should be mass-neutral in the column — it moves material between `R` and `H`,
+    not out of the cell. If it is lowering surface height it is doing something that is **not
+    a transform**, and that operation has a **phase-order** consequence: the re-scoped stubs
+    #29 turns precisely on which phases lower a cell **after** incision has clamped it, and
+    weathering is named as one of the four. **So this question sits directly inside the top
+    blocker**, and answering it may narrow the blocker's scope.
+  - **Related:** `material-behavior.md` § 12's transform/transport/genesis four-way test — a
+    lowering that is not a transform is either transport or an unrecorded loss, and the four-way
+    test is exactly the instrument for saying which.
 
 - ~~**OWED (small) — `dc:deep/climate`'s lagged terrain read is undeclared**~~ **✅ DONE
   2026-07-25 (journal/0107), in the head-declaration slice as predicted — *"worth doing the
@@ -6385,10 +6477,15 @@ cannot be *deposited* — §12's four-way test caught in the wild **hours after 
 **#59** `energy_band` was an absolute threshold **secretly keyed to `k_transport`**.
 
 ### ⛔ THE TWO BLOCKERS — read before planning anything erosional
-1. **stubs #29 — the incision clamp that was green because nothing eroded.** Deep closed
-   depressions at **any** amplitude above 1× (44 pits at 5×, **148 at 45×**, deepest 112 m);
-   four phases run *after* incision and can lower a cell past its clamped floor. **Until this
-   lands the engine cannot run erosion at any realistic rate.**
+1. **stubs #29 — ⚠ RE-SCOPED 2026-07-26 BY THE WALK (journal/0115, corrections #61/#62). It
+   is NOT "the incision clamp", and it was NOT 148 pits.** The solve goes **grid-unstable**
+   above 1×: **relief grew 4.6 %, cell-to-cell roughness grew ~170×** — shipped concavity fits
+   inside ±0.3 m, calibrated deciles are **±50 m** with the median unmoved, **23.2 %** of land
+   cells >20 m off their neighbours' mean. Closed hollows **0 → 1,377 (3.1 %), 5.4 km³**. The
+   pits are the *tail*, not the defect; clamping them would go green and fix nothing. **Until
+   this lands the engine cannot run erosion at any realistic rate.** *(The old framing — four
+   phases lower a cell past its clamped floor — is probably a real contributor and is kept in
+   the Sequenced entry.)*
 2. **stubs #27 — the transport operator has a ceiling.** Export ∝ mean regolith thickness, and
    creep's limiter **already binds on ~89 % of cells at shipped rates**. 100× on transport
    buys **1.6×**. *So journal/0111's "a calibration, not an architecture" was **half right**.*
@@ -6415,9 +6512,15 @@ verified by name, reconciling exactly across all five slices. Production is **by
   commits say `Claude Opus 5` (the model that did the work). **User's call which is canonical.**
 
 ### First things next session
-1. **stubs #29, the incision clamp** — it gates every erosional number.
-2. **stubs #27's heirs** — rivers that carry, or a non-capped creep operator.
-3. **The appearance walk** (creep), then flip `calibrated_rates` once #29 is fixed.
+1. **stubs #29 — the GRID-INSTABILITY blocker** (re-scoped 2026-07-26 by the walk; it is not
+   the clamp). It gates every erosional number. **Run the two discriminators first** —
+   concavity sign-alternation, and halved `myr_per_epoch` at doubled epochs — before writing
+   any fix.
+2. **stubs #27's heirs** — rivers that carry, or a non-capped creep operator. **Note #29's
+   second discriminator turns the same `cell_m / myr_per_epoch` register, so these two may
+   share one fix.**
+3. ~~The appearance walk (creep)~~ — **DONE 2026-07-26, journal/0115.** Flip
+   `calibrated_rates` once #29 is fixed.
 4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
 
 *(The 2026-07-25 block below is consumed; preserved as history.)*

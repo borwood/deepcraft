@@ -949,7 +949,60 @@ now *more* owed, not less, because the walk will be judging them against a lands
 moved underneath them. **Blast:** coastal cliff retreat, dune fields, the periglacial band.
 *Loud marker in `scale_erosion_rates`' doc comment, which names the exclusion and why.*
 
-### 29. the-clamp-that-was-green-because-nothing-eroded — *added 2026-07-26 (the joint supply+transport calibration, journal/0114)*
+### 29. the-solve-that-goes-grid-unstable-above-1× — *added 2026-07-26 (journal/0114); **RE-SCOPED AND RENAMED 2026-07-26 by the walk (journal/0115, corrections #61/#62)** — was "the-clamp-that-was-green-because-nothing-eroded"*
+
+**⚠ READ THIS BLOCK BEFORE THE ORIGINAL ENTRY BELOW.** The original sized this defect at
+**148 pits** using a *below-all-eight-neighbours* census, and diagnosed it as the incision
+clamp being defeated by the four phases that run after it. **The number was a severe
+undercount and the diagnosis is probably not the dominant mechanism.** Both were corrected
+by a live walk over the calibrated world.
+
+**The measurements that replace it** (production-Medium, seed 1337; shipped world as
+control). Deep-cell concavity, `mean(8 neighbours) − self`:
+
+| | mean | p10 | p50 | p90 | p99 | >1 m | >20 m |
+|---|---|---|---|---|---|---|---|
+| shipped | −0.14 m | −0.3 | −0.1 | +0.1 | +0.3 | **0.0 %** | **0.0 %** |
+| calibrated | +0.73 m | **−50.8** | −0.1 | **+52.8** | **+106.3** | **35.8 %** | **23.2 %** |
+
+Closed hollows by depression fill (`filled − routed`, which does **not** saturate):
+**0 → 1,377 (3.1 % of land), deepest 112.8 m, 5.4 km³.** Regional density within 10 km of
+the walk station: **7.8 %**, so they cluster ~2.5×.
+
+> **Relief grew 4.6 %. Cell-to-cell roughness grew ~170×.** The landscape's *shape* survived
+> the calibration exactly as journal/0114 claimed; the **grid** did not. Symmetric ±50 m
+> tails with an unmoved median is adjacent cells oscillating against each other, not terrain
+> becoming rugged.
+
+**So what is stood in for is bigger than a clamp.** The premise being substituted is that
+**the erosional solve produces drainable terrain at realistic rates**. It does not — above
+1× it produces grid-scale noise, of which the closed pits are the tail that happened to have
+no outlet.
+
+**Hypothesis, explicitly not measured:** an explicit scheme past its stability limit. Creep's
+flux limiter binds on 89–96 % of cells (stubs #27), so the diffusion has already saturated
+into *"move everything one cell downslope this epoch"*, and a saturated explicit operator
+overshoots. **Discriminators for the heir to run first:** (a) sign-alternation / spatial
+autocorrelation of the concavity field; (b) halve `myr_per_epoch` at doubled epoch count and
+fixed total time — if it is stability, roughness collapses and the landscape does not move.
+**(b) is the same `cell_m / myr_per_epoch` register as stubs #27's heir (b), so these two
+stubs may discharge together.**
+
+**Two instrument defects fall out of this and are part of the heir's scope:**
+- `mfd_routing::no_interior_cell_is_cut_below_all_of_its_neighbours` is a **winner-take-all
+  predicate that saturates** — as the defect generalises, neighbours sink too and stop
+  qualifying each other, so the count falls toward zero exactly when damage becomes total
+  (corrections #62). Re-assert on **fill depth and concavity**.
+- journal/0114's binding acceptance criterion, *relief within 5 %*, is a **global extremal
+  statistic** and cannot see spatial arrangement at all (corrections #61). Every erosional
+  criterion pairs an aggregate with a **neighbour-relative** measure.
+
+**Measured by:** `dc-worldgen/examples/walk_tour_0115.rs`.
+
+*Original entry follows, unedited — its mechanism is plausible and probably contributes; it
+predicts isolated deep holes, which is a subset of what the world shows.*
+
+### 29 (original). the-clamp-that-was-green-because-nothing-eroded — *added 2026-07-26 (the joint supply+transport calibration, journal/0114)*
 `erosion.rs`'s **never-incise-below-the-lowest-receiver clamp** is applied inside the
 transport phase, and **four later phases in the same epoch can lower a cell past it** —
 weathering, hillslope creep, wave attack and eolian deflation all run after incision.

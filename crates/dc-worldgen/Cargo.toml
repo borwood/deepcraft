@@ -123,3 +123,10 @@ test = true
 # path. dc-api does not depend on dc-worldgen, so this adds no cycle, and it is
 # headless/wasm-safe like the rest of the crate's tree.
 dc-api.workspace = true
+
+# Only the two CENSUSES are gated — the station search is a world-scale
+# recommendation judged by the eye, per coal_walk_tour / palette_quant_tour.
+# See the example's `mod gate` doc comment for why the invariants are scale-free.
+[[example]]
+name = "walk_tour_0115"
+test = true

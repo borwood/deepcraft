@@ -2208,3 +2208,99 @@ entry stands. What is withdrawn is only the claim that *two* instruments confirm
 
 **Heir:** a net (not gross) shoreline-export term, or a D1 that debits re-crossings. Until
 then the denudation figures are **upper bounds** and should be written as such.
+
+---
+
+## 61. "The calibration preserves the landscape's shape — relief within 5 %" (journal/0114 § *The number that was not chosen*, criterion 1, **the binding criterion**; propagated by the integrator into the ROADMAP 2026-07-26 close block — falsified 2026-07-26 by the walk, journal/0115)
+
+**The claim.** `EROSION_CALIBRATION = 45` was chosen against four criteria, and journal/0114
+named the first as load-bearing: *"journal/0111's conclusion was 'the shape is right and the
+clock is wrong', so a multiplier that moves the shape has stopped being a calibration and
+become a redesign. Relief within 5 %: **+4.6 %** at 45×… **This is the binding criterion**,
+and 45 is the largest measured row that clears it."*
+
+**It is true and it does not mean what it was used to mean.** Measured on the same seed and
+extent, deep-cell concavity — `mean(8 neighbours) − self`, the discrete Laplacian of the
+surface:
+
+| | mean | p10 | p50 | p90 | p99 | >1 m concave | >20 m concave |
+|---|---|---|---|---|---|---|---|
+| shipped | −0.14 m | −0.3 | −0.1 | +0.1 | +0.3 | **0.0 %** | **0.0 %** |
+| calibrated | +0.73 m | **−50.8** | −0.1 | **+52.8** | **+106.3** | **35.8 %** | **23.2 %** |
+
+> **Relief grew 4.6 %. Cell-to-cell roughness grew about 170×.**
+
+The shipped world's *entire* concavity distribution fits inside ±0.3 m. The calibrated
+world's tenth and ninetieth percentiles are −50.8 m and +52.8 m, with the **median
+unchanged**. Nearly a quarter of land cells sit more than 20 m off the mean of their own
+neighbours, tails symmetric. A landscape that becomes genuinely more rugged does so by
+growing its **relief**; this one grew its **grid noise** while its shape stood still.
+
+**The mechanism of the blindness, which is the transferable part.** Relief is
+`max(surf) − min(surf)`: a **global extremal** statistic over ~44,000 cells. It is
+mathematically incapable of detecting anything about the *spatial arrangement* between
+those extremes. You can shuffle every interior cell of a heightfield and leave relief
+exactly unchanged. So criterion 1 could not have failed for this reason **no matter how bad
+the grid got** — it was not a weak test of shape, it was not a test of shape at all.
+
+> **A criterion over a global aggregate cannot license a claim about local structure.**
+> "The shape is preserved" is a claim about arrangement; relief, mean, min and max are
+> claims about magnitude. Pair every aggregate criterion with a **neighbour-relative** one —
+> a Laplacian, a gradient distribution, a spatial autocorrelation — or the acceptance test
+> is measuring the axis that did not break.
+
+**What survives.** Everything journal/0114 concluded about the *rates*: the transport
+ceiling (stubs #27), export ∝ mean regolith thickness, the 100×-buys-1.6× measurement, and
+the decision to ship the flag **off** — which this strengthens rather than weakens. What is
+withdrawn is the licence criterion 1 was granting: **we did not know the shape was
+preserved, and it was not.**
+
+**Filed by the integrator against the integrator's own recording.** The close block
+reproduced criterion 1 as settled evidence without asking what the statistic could see.
+
+---
+
+## 62. "148 pits (530 on production-Medium) measures the severity of the incision-clamp defect" (`stubs.md` #29, `tests/mfd_routing.rs::no_interior_cell_is_cut_below_all_of_its_neighbours`, the ROADMAP blocker entry, and the walk's own first probe — falsified 2026-07-26 **by the user, in flight**, journal/0115)
+
+**The claim.** The clamp defect was sized by counting interior cells more than a metre below
+**every one** of their eight neighbours: 148 on `mfd_routing`'s small fixture, and 530 when
+the walk's tour map re-ran the identical census on production-Medium.
+
+**The falsifier was a live read.** Flying the region around the deepest pit, the user
+reported it *"absolutely pockmarked with similar pits — roughly every cell has a deep
+depression. Honeycombed landscape."* That is irreconcilable with 530 of 44,090 cells.
+
+**The mechanism: the census SATURATES.** "Below all eight neighbours" is a **winner-take-all**
+predicate. It scores a cell only if its neighbours are *higher* — so as the defect spreads,
+neighbouring cells sink too and **stop qualifying each other**. The count is maximised by
+*isolated* pits and falls back toward zero exactly as the damage becomes universal. It is
+structurally blind to the failure mode it was written to guard.
+
+**The non-saturating instrument was already in the tree** — the router's own depression
+fill, `filled[i] − routed[i]`, which measures the hollow at a cell regardless of what its
+neighbours do (it is the quantity `DeepField::lake` thresholds at zero):
+
+| | hollows >1 m | >10 m | >50 m | deepest | fill volume |
+|---|---|---|---|---|---|
+| shipped | **0** (0.0 %) | 0 | 0 | 0.0 m | 0.0 km³ |
+| calibrated | **1,377** (3.1 %) | 817 (1.9 %) | 97 | 112.8 m | **5.4 km³** |
+
+2.6× the saturating count, with a clean zero on the control. And **it still undercounts the
+observation**, because it too only sees *closed* hollows — a bowl with a spillway scores
+zero on both tests and looks identical from the air. Concavity (correction #61) is what
+finally sized it: 23.2 % of land cells more than 20 m off their neighbours' mean. Regional
+clustering accounts for the rest: **7.8 % closed hollows within 10 km of the station against
+3.1 % globally**.
+
+> **A guard built from a "more extreme than all of its neighbours" predicate degrades as the
+> defect generalises.** It is a *ranking* test wearing a *magnitude* test's clothes. When the
+> question is "how much of the world is broken", the predicate must be **absolute per cell**,
+> never **relative to the cells that are also broken.**
+
+**And note which instrument found it.** Two probes and a gated assertion agreed with each
+other and were all wrong for the same structural reason; a person flying over the terrain
+was right in one sentence. *The walk is not a formality after the measurement — here it was
+the only instrument in the room that could see the question.*
+
+**Heir:** `mfd_routing`'s guard should assert on **fill depth and concavity**, not on the
+below-all-neighbours count, which cannot fail informatively. Tracked in `stubs.md` #29.
