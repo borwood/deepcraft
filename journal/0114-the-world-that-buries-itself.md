@@ -329,6 +329,22 @@ snapshot and failed here; it has been **re-derived** to the size of the defect i
 names (independent rounding gives *exactly zero* mixed spans), rather than lowered until
 green — but the magnitude is recorded, because a walk should look at it.
 
+**Three falsifiers in other arcs had to be restated, and every one of them was a
+premise expiring rather than a defect appearing.** That is worth counting, because it is
+the same shape three times in one afternoon:
+
+| test | what expired | measured now |
+|---|---|---|
+| `distribution_fill` mixed spans | *"beds are thinner than a voxel"* — a bound taken from the old bedding thickness | 52 of 4943 (1.1 %), was >100 |
+| `geotherm` coal relocation | *"burial depth is effectively constant"* — so pooled gradient means were implicitly depth-controlled | 1.02× pooled, was 1.37× |
+| `head_field` seepage cap | *"the surface barely moves in 20 epochs"* — so a lagged head read as a current one | one cell, **1.07 cm** above its ground |
+
+None of the three was lowered until it passed. Each was re-derived to the size of the
+defect it names — independent rounding gives *exactly zero* mixed spans; a broken cap
+would leave heads tens of metres high, not centimetres — and where the restatement cost
+real guard strength (the geotherm's magnitude sensitivity) that loss is written down
+rather than absorbed.
+
 Every golden moved — the provider surface/record pair and all three contents-contract
 worlds — and the pre-calibration world stays reachable and pinned by name
 (`GOLDEN_SURFACE_UNCALIBRATED`, `tests/calibrated_rates.rs`, the `--uncalibrated` launch
