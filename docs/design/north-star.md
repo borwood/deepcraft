@@ -75,6 +75,60 @@ ships (the pass graph and `Providers`), not the invention of an interpreter.
   decay, cementation naturally live.
 - **world / epoch config** — data (below).
 
+### 🔴 THE REFINEMENT TIER IS IN NEITHER LIST — OPEN, named 2026-07-26 (user)
+
+**Neither column above mentions the refinement / collapse tier**, and it was never
+decided — it was arrived at *by default*. `flow.md` § 4 names it as one of four
+tiers and even gives it a contract (*"refinement operators — **may be clever**, must
+be a **pure fn of (record, shared face data, position)**"*), but this boundary does
+not know it exists. In code it is `collapse.rs`: **2,415 lines of ordinary engine
+code with essentially zero pass-shaped declaration.**
+
+**Why it matters, stated as the question the user asked:** *"how would a mod
+hand-roll emergent rivers on their own via the SDK, that are **visible**?"*
+
+Today, partially and then not at all. A mod can declare materials and a deeptime
+pass that moves mass; the mass movement lowers the rock/regolith heights, and the
+collapse tier turns heights into voxels — **so a mod gets emergent VALLEYS for
+free.** But a valley on a ~460 m cell is not a channel, and a channel is *sub-cell
+geometry*, which lives entirely in engine code. So:
+
+> **The engine hardcodes the VOCABULARY OF EXPRESSION.** A mod can add **materials**
+> (which ride existing material→voxel rules) and **move mass** (which rides the
+> height field). A mod **cannot add a new KIND of visible structure** — a channel
+> form, a cross-bed, a sorted lamination — because that needs new expression logic,
+> and expression logic is not authorable.
+
+**This also separates two nulls we had been treating as one.** Movement 2b's missing
+facies gradient is a **magnitude** problem (a strong signal *would* show, because it
+is material variation and materials have a path). The missing channel is a **path**
+problem — *no magnitude of flux record produces a channel*, because sub-cell geometry
+has no declarative route to a voxel at all.
+
+**Three candidate answers** *(assistant-framed 2026-07-26; the user has chosen the
+direction, not the mechanism — see ROADMAP § Sequenced "REFINEMENT PRIMITIVES"):*
+**(a)** engine owns refinement outright — mods reach the eye only via heights and
+materials, and could never ship a new landform *kind*; **(b)** refinement becomes
+fully declarative — maximally open, but refinement is on the **runtime** hot path and
+*runtime is sacred*; **(c)** **split it exactly as the field passes were split** —
+*refinement **primitives** are core* (the sub-cell boundary-value solver,
+position-addressed noise, interval fill) *the way `texture()` is core to a shader
+language*, and *refinement **operators** are content*.
+
+**(c) needs no new philosophy — it is this document's own 2026-07-23 move applied to
+a tier that got skipped**, and two things fit it unusually well:
+1. **The pure-fn constraint is already the sandbox contract.** Refinement must be a
+   pure fn of `(record, shared face data, position)` for **chunk determinism** — so a
+   chunk renders identically regardless of which neighbours are resident. That is
+   *also* exactly what makes something safely sandboxable in WASM: no ambient state,
+   no global reads, all inputs declared. **One constraint, two payoffs, already paid
+   for.**
+2. **Granularity is the perf question, and seam-first already answers it** — *"a
+   provider must never be called inside a hot loop to answer a question that does not
+   change inside that loop."* Refinement operators must be invoked **per-cell or
+   per-chunk, never per-voxel**. A sandboxed call per chunk is affordable; per voxel
+   is fatal. Worth stating **before** anyone builds it.
+
 ## Materials
 
 A material is **a property sheet (data) + behavior slots (functions) + a parent

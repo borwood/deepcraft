@@ -2703,6 +2703,68 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🔴 REFINEMENT PRIMITIVES — the tier nobody assigned an owner** (opened 2026-07-26 by the
+  user's question: *"who owns the **clever** refinement operators for presenting the
+  interpolated/upscaled runtime world? how would a mod hand-roll emergent rivers on their own
+  via the SDK, **that are visible**?"*). **Read `north-star.md` § "The refinement tier is in
+  neither list" first — the hole is recorded there in full.**
+  - **THE HOLE.** `north-star.md`'s core/plugin boundary enumerates both columns and **the
+    refinement tier is in neither.** It was never decided; it was arrived at *by default*.
+    `flow.md` § 4 names it as one of four tiers **and gives it a contract** (*pure fn of
+    (record, shared face data, position)*), while the ownership document does not know it
+    exists. In code it is `collapse.rs` — **2,415 lines, essentially zero declaration.**
+  - **THE CONSEQUENCE.** The engine hardcodes the **vocabulary of expression**. A mod gets
+    emergent **valleys** for free (mass moves → heights drop → collapse renders it) but can
+    **never** get a visible **channel**, because sub-cell geometry has no declarative route to
+    a voxel. And this **separates two nulls we had been treating as one**: 2b's facies null is
+    a **magnitude** problem (material variation *does* have a path); the missing channel is a
+    **path** problem (no magnitude of flux record can fix it).
+  - **DIRECTION — DECIDED 2026-07-26 (user):** *"visible river channels will be the first
+    built on refinement primitives, as you suggested"* — i.e. option **(c)**, the split that
+    mirrors the 2026-07-23 field-pass move: **refinement PRIMITIVES are core** (sub-cell
+    boundary-value solver, position-addressed noise, interval fill), **refinement OPERATORS
+    are content**. *The mechanism is not designed; the direction is set.*
+  - **FIRST SLICE — a DESIGN PASS, not code** (user: *"refinement primitives want a design
+    pass and then a decomp and port of existing collapse"*). Field-notebook-first per the
+    earth-processes method. It must answer: what is the primitive set · what the operator
+    contract is in SDK terms (the pure-fn constraint **is** the sandbox contract — one
+    constraint, two payoffs) · **invocation granularity** (per-cell or per-chunk, **never**
+    per-voxel — *runtime is sacred*, and seam-first already forbids a provider in a hot loop
+    answering a question that does not change inside it) · and how a **mod** authors a visible
+    channel end-to-end.
+  - **SECOND SLICE — the DECOMP AND PORT of `collapse.rs`** onto those primitives. Note this
+    is also the largest instance of the file-size problem below, so it discharges two chores at
+    once.
+  - **WHY IT LEADS.** `flow.md` § 4 already says refinement *"is not 'carving a shape' but
+    **solving a small boundary-value problem inside a cell**, with face fluxes as Dirichlet
+    conditions and the load budget as mass"* — and we now **have** the face fluxes (journal/0096,
+    0109). **The primitive the channel needs is the one FLOW spent three slices building.**
+    This is also FLOW continuation **(b′)** by another name; the two entries should be read
+    together.
+
+- **🔴 REQUIRED CHORE — FILE SIZE IS A CORRECTNESS PROBLEM IN AN AI-NATIVE WORKSPACE**
+  (user-directed, 2026-07-26). *"A file of that length is a red flag in an AI-native workspace —
+  Claude must grep through, never reading all, **missing context or reading too much irrelevant
+  context**. Same issue with ROADMAP and other docs."*
+  - **THE REASONING, recorded because the convention must be derived from it, not from taste.**
+    A file is a **unit of context**. Past a threshold an agent has only two options and **both
+    are lossy**: grep it (and see only what it already knew to look for — the failure mode the
+    2026-07-25 close block named, where `DeepField::chapters` sat unlisted through *three*
+    spine audits) or read it whole (and burn context on irrelevance, crowding out the files it
+    actually needed). **This is the same defect as "the ROADMAP outgrew reading", generalised
+    from one doc to the repo.**
+  - **THE MECHANISM (build it): a hook on file write that reminds, with an instruction to
+    restructure** — pull separate concerns into separate files. **Do not answer "the tool
+    cannot see X" with a rule asking people to remember X** — that was tried for probes and
+    **failed in one day** (CLAUDE.md § Gates). A reminder the harness issues is a mechanism; a
+    line in a doc is not.
+  - **ADOPTION (user's terms): immediate for NEW files; gradual refactor of old work WHEN IT IS
+    TOUCHED.** No big-bang rewrite.
+  - **OPEN — the conventions themselves.** Thresholds (source vs. doc vs. journal — a journal
+    entry is linear narrative and may legitimately be long; `ROADMAP.md` at ~6,200 lines and
+    `collapse.rs` at 2,415 are the two worst offenders), what "separate concerns" means per
+    file type, and the split conventions. **To be set, not guessed.**
+
 - **Finish the draw-domain conversion: the three residual hand-rolled sites** (opened 2026-07-25
   by journal/0105, which converted 26 of them and named these). Small, and each is named in code
   so it cannot be lost. **(a) `dc-sim/engine.rs`'s region-step and agent-step draws** address
