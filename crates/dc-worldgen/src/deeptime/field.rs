@@ -47,6 +47,116 @@ pub const DEEP_MAX_WIDTH: usize = 550;
 /// Fixed iteration schedule (S9's A — no convergence check in the sim logic).
 pub const DEEP_ITERATIONS: u32 = 200;
 
+/// **The erosional amplitude, and the four rates it is an amplitude *of***
+/// (journal/0114).
+///
+/// `weathering` makes regolith, `diffusion` creeps it downhill, `k_transport`
+/// carries it in water and `k_bedrock` cuts rock. Those four are **one clock**, and
+/// the reason they have to move together is measured, not asserted:
+/// journal/0111 swept them apart and found that **neither pays alone** — 100× the
+/// supply side bought 1.4×, 10× the transport side bought 1.7×, and together they
+/// bought 132×, which is 59× more than their separate gains multiplied.
+///
+/// The mechanism is the cover taper `exp(−H/H*)`. Raise supply alone and the
+/// regolith made **shields the rock that made it**; raise transport alone and there
+/// is nothing to carry. So they move together.
+///
+/// **What a uniform scaling does NOT buy, measured rather than hoped.** The
+/// hypothesis when this function was written was that scaling production and removal
+/// together would leave the steady-state cover `H` where it was — and therefore
+/// leave the taper, the only term carrying an absolute length, unengaged. It does
+/// not: the ladder in `examples/denudation_probe.rs` shows mean regolith going
+/// 4.6 m → 8.8 → 43.9 → 118.8 → 359 → 782 as the multiplier climbs. **The two levers
+/// are not symmetric, because transport has a ceiling supply does not.** Hillslope
+/// creep's flux limiter binds on ~89 % of the cells that HAVE regolith to move *at the
+/// shipped rates already*, so the pass is a one-cell-per-epoch conveyor and raising `diffusion`
+/// cannot make it faster (100× on transport alone buys 1.6×). That ceiling is what
+/// [`EROSION_CALIBRATION`] is calibrated *under*, and `stubs.md` § 27 carries it.
+///
+/// **This is the one place that scaling is written.** Two consumers call it — the
+/// shipped calibration ([`EROSION_CALIBRATION`], applied by [`production_config`])
+/// and the [`DeepOverrides::erosion_budget`] dev lever — so the knob and the
+/// default cannot drift into scaling different sets, which is the defect
+/// stubs.md § 24 recorded.
+///
+/// Not scaled, deliberately: `wave_erosion`, `eolian_deflation` and
+/// `frost_weathering_gain`. Those are the **agent magnitudes**, explicitly
+/// unratified appearance numbers the user judges live (`production_config` §
+/// full_agents), and each is a rate at a *place* (a shore, a dune field, a
+/// periglacial band) rather than a term in the land-wide budget. Folding them in
+/// here would smuggle four appearance calls into one calibration.
+pub fn scale_erosion_rates(cfg: &mut DeepConfig, mult: f64) {
+    cfg.weathering *= mult;
+    cfg.diffusion *= mult;
+    cfg.k_transport *= mult;
+    cfg.k_bedrock *= mult;
+}
+
+/// **The calibrated erosional amplitude** (journal/0114) — the multiplier
+/// [`scale_erosion_rates`] applies to the shipped world.
+///
+/// journal/0111 measured this world's catchment-averaged denudation at
+/// **0.0110 m/Myr** against the ratified 500 Myr Phanerozoic register: 9× below the
+/// slowest landscape ever measured on Earth (McMurdo Dry Valleys bedrock, ~0.19) and
+/// 493× below the global `10Be` outcrop median (Portenga & Bierman 2011). The
+/// **target** was the stable-craton band, **1–10 m/Myr**.
+///
+/// # ⚠ IT IS OFF, THE BAND WAS NOT REACHED, AND THAT IS THE RESULT
+///
+/// `45` is **not** the multiplier that lands in the craton band, and no multiplier is:
+/// the measured ladder (`examples/denudation_probe.rs`, journal/0114) reaches 1 m/Myr
+/// only past ~600×, and by then the world carries **hundreds of metres of mean
+/// regolith**. The world cannot be scaled into the band, and the reason is the finding:
+///
+/// > **Export is proportional to mean regolith thickness, because the only working
+/// > sediment router moves one cell per epoch and only the shoreline ring exports.**
+/// > Hillslope creep's flux limiter binds on ~89 % of the cells that have regolith to
+/// > move *already, at the shipped rates* — the pass is a conveyor, not a diffusion, and
+/// > no increase in `diffusion` speeds it up (100× on transport alone buys 1.6×). Raise
+/// > supply and the cover thickens until the taper `exp(−H/H*)` shuts the weathering
+/// > front off, so the landscape buys denudation by burying itself.
+///
+/// **And turning it on costs three measured things**, which is why
+/// [`production_config`] leaves `calibrated_rates` **false**:
+///
+/// 1. **Deep closed depressions at ANY multiplier above 1×** — 0 pits deeper than 1 m
+///    at 1×, **44 at 5×** (deepest 45 m), 66 at 10×, 148 at 45× (deepest 112 m). The
+///    never-incise-below-the-lowest-receiver clamp is defeated once erosion is fast
+///    enough for the phases that run *after* incision to lower a cell further in the
+///    same epoch. **A latent defect in the solve, not a property of this number** — it
+///    was invisible only because the world barely eroded, and it is what has to be
+///    fixed before the flag flips.
+/// 2. The geotherm's coal-relocation claim collapses from a 1.37× to a 1.02×
+///    separation, because 45× deposition makes burial depth rather than crustal
+///    gradient the dominant control on coalification.
+/// 3. Mean regolith reaches 43.9 m — the top of the published deeply-weathered-shield
+///    range, against 4.6 m shipped.
+///
+/// # Where 45 came from, so the flip has a number to flip to
+///
+/// It is the largest multiplier that keeps the world's **shape**: journal/0111's
+/// conclusion was *"the shape is right and the clock is wrong"*, so a multiplier that
+/// moves the shape has stopped being a calibration. Relief within 5 %: **+4.6 %** at
+/// 45×, +6.3 % at 50×. Three published bands corroborate it — mean regolith lands in
+/// the 30–60 m deeply-weathered-shield range (Yilgarn, Guiana, Brazilian shield);
+/// denudation enters the **0.1–1 m/Myr floor band** (McMurdo, Atacama), so the world
+/// stops being below *every* published band, which was journal/0111's headline; and
+/// `D1/D4`, erosion's authority over the topography, goes **0.027 → 0.91**.
+///
+/// The world's own Airy ceiling says the band was the right target even though it is out
+/// of reach: compensation returns `(ρ_m − ρ_c)/ρ_m = 15.2 %` of each eroded metre as a
+/// surface drop, so a steady-state landscape denudes at `U/0.152 ≈ 6.6 U`, and with the
+/// measured `U ≈ 0.41 m/Myr` that is **2.70 m/Myr** — inside the craton band, from two
+/// densities and a measured uplift that nobody chose for this purpose. **The rates can
+/// be raised to meet it; the router cannot carry it.**
+///
+/// **Heirs:** the pit defect above (blocking), then an efficient long-distance sediment
+/// router — rivers that actually carry (fluvial yield is 0.02 % of export), or a creep
+/// operator not capped at one cell per timestep. `stubs.md` § 27.
+///
+/// `1.0` reproduces the shipped world exactly (`x * 1.0 == x` for f64).
+pub const EROSION_CALIBRATION: f64 = 45.0;
+
 /// Gen-time overrides for the production [`DeepConfig`] flags a world can be
 /// booted with. Each field is an `Option`; `None` **inherits the production
 /// default** ([`production_config`]). An all-`None` (`Default`) `DeepOverrides`
@@ -74,25 +184,25 @@ pub struct DeepOverrides {
     /// Only bites when tectonic history is on. `None` = production default.
     pub thickening_scale: Option<f64>,
     /// **The erosion budget multiplier** (`erodibility_probe` experiment B):
-    /// scales the three global erosion rates — bedrock→regolith `weathering`,
-    /// stream-power `k_transport`, and bedrock incision `k_bedrock` — *together*
-    /// by this factor, so the **relative** rates (and therefore the differential-
-    /// erosion signal the erodibility coupling expresses) never change; only the
-    /// total amount of material erosion is allowed to move. This is the TERRAIN
-    /// (erosion) amplitude, distinct from `thickening_scale` above, which is the
-    /// TECTONIC (orogenic) amplitude — the term collision the corpus already had
+    /// scales the global erosion rates *together* by this factor via
+    /// [`scale_erosion_rates`], so the **relative** rates (and therefore the
+    /// differential-erosion signal the erodibility coupling expresses) never change;
+    /// only the total amount of material erosion is allowed to move. This is the
+    /// TERRAIN (erosion) amplitude, distinct from `thickening_scale` above, which is
+    /// the TECTONIC (orogenic) amplitude — the term collision the corpus already had
     /// to disambiguate (journal/0040, ROADMAP § the erodibility rider).
     ///
-    /// **STUB #24 — THIS KNOB CANNOT REACH THE PROCESS THAT DOES THE ERODING.**
-    /// It scales the three rates above and **not `diffusion`**, and hillslope creep
-    /// carries **96 %** of this world's denudation (journal/0111, corrections #56).
-    /// Measured: **100× moves catchment-averaged denudation by 1.4×.** Supply and
-    /// transport are coupled through the cover taper `exp(−H/H*)`, so neither pays
-    /// alone (100× budget → 1.4×; 10× creep → 1.7×) and together they pay 132×.
-    /// Do not "fix" this by adding `diffusion` to the list — the heir is the owed
-    /// `earth-processes.md` § 3e calibration of iteration↔Myr against a real orogen,
-    /// and the acceptance instrument is `examples/denudation_probe.rs`. The
-    /// resulting numbers are an **appearance-class, user-owned** call.
+    /// **STUB #24 CLOSED 2026-07-26 (journal/0114): it now scales `diffusion` too.**
+    /// It used to scale `weathering`, `k_transport` and `k_bedrock` and *not*
+    /// `diffusion` — the process carrying **96 %** of this world's denudation
+    /// (journal/0111, corrections #56) — so 100× moved catchment-averaged denudation
+    /// by 1.4× and the knob could not move the quantity it is named after. It goes
+    /// through the same [`scale_erosion_rates`] the shipped calibration does, which
+    /// is what stops the two from ever scaling different sets again.
+    ///
+    /// **It multiplies whatever the calibration left**, so `--erosion-budget 2` always
+    /// means "twice as much erosion as this world has" — before the calibration flag
+    /// flips and after it.
     ///
     /// `None` = production default (the shipped calibration, multiplier `1×`).
     /// `Some(1.0)` is **byte-identical** to `None` (`x * 1.0 == x` exactly), so
@@ -100,6 +210,26 @@ pub struct DeepOverrides {
     /// A dev launch flag (`--erosion-budget <mult>`) sets it; the walkable
     /// cranked world it enables is the standing "conservative amplitude" call.
     pub erosion_budget: Option<f64>,
+    /// Override [`DeepConfig::calibrated_rates`] — **the switch for the erosional
+    /// calibration** (journal/0114). `None` = production default (**OFF**);
+    /// `Some(true)` builds the world with all four erosion rate constants multiplied
+    /// by [`EROSION_CALIBRATION`].
+    ///
+    /// **It is off because of what turning it on measured**, not out of caution: the
+    /// published 1–10 m/Myr band is unreachable at any multiplier, and above 1× the
+    /// incision clamp starts leaving deep closed depressions (44 pits at 5×, 148 at
+    /// 45×, deepest 112 m) — a latent defect in the solve that only a world which
+    /// actually erodes could expose. See [`EROSION_CALIBRATION`].
+    ///
+    /// The on path is not merely reachable, it is **pinned by name**:
+    /// `tests/calibrated_rates.rs` asserts it reproduces `GOLDEN_SURFACE_CALIBRATED` /
+    /// `GOLDEN_RECORD_CALIBRATED` bit for bit. That is the mirror of the
+    /// single-receiver / scalar-load / anonymous-creep fixed points — those pin a past
+    /// that stays reachable, this pins a future that is already built, so the eventual
+    /// flip arrives as a diff rather than as an unmeasured surprise.
+    ///
+    /// A dev launch flag (`--calibrated-rates`) sets it.
+    pub calibrated_rates: Option<bool>,
     /// Override [`DeepConfig::weather_inventory`]: the in-loop, per-epoch
     /// **accumulating** inventory-weathering pass (journal/0094) that grows a basal
     /// saprolite band on each subaerial cell's working inventory across the deep-time
@@ -118,13 +248,28 @@ impl DeepOverrides {
             && self.thickening_scale.is_none()
             && self.erosion_budget.is_none()
             && self.weather_inventory.is_none()
+            && self.calibrated_rates.is_none()
     }
 }
 
 /// The production deep-time config for a given coarse grid: 460 m where it fits
 /// under [`DEEP_MAX_WIDTH`], coarser for very large extents. Recorder on; the
 /// sea-level/climate cycling defaults from [`DeepConfig`] drive read-quality.
+///
+/// **Byte-identical to `production_config_with(cells, seed, &Default::default())`
+/// by construction** — it *is* that call. The equality used to be a property two
+/// functions maintained in parallel (and a test asserted); since journal/0114 added
+/// a step that must run in both, it is a call graph instead. The test stays, because
+/// a structural guarantee that nobody checks is a comment.
 pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
+    production_config_with(cells, seed, &DeepOverrides::default())
+}
+
+/// The production config **before any override or calibration is applied** — the
+/// raw flag/rate literal. Private: every caller goes through
+/// [`production_config`] or [`production_config_with`], which is what guarantees
+/// nothing can obtain a config that skipped the calibration step.
+fn production_config_base(cells: &CellGrid, seed: u64) -> DeepConfig {
     let wp = cells.w as f64;
     let extent_m = wp * CELL_VOXELS as f64 * 0.9;
     let cell_m = (extent_m / DEEP_MAX_WIDTH as f64).max(DEEP_CELL_M);
@@ -191,16 +336,53 @@ pub fn production_config(cells: &CellGrid, seed: u64) -> DeepConfig {
         // flip ratifies turning the roster ON; the LIVE MAGNITUDES TOUR — not this
         // line — ratifies the numbers. Do not tune them here.
         full_agents: true,
+        // **The erosional calibration is BUILT AND OFF** (journal/0114), and the
+        // reason it is off is measured rather than cautious.
+        //
+        // journal/0111 found this world denuding at 0.0110 m/Myr — 9× slower than
+        // the slowest landscape ever measured on Earth — and the brief was to
+        // calibrate the four rate constants until denudation landed in the published
+        // 1–10 m/Myr stable-craton band. The whole mechanism for that is here and
+        // works: `EROSION_CALIBRATION`, one `scale_erosion_rates`, a pinned
+        // fixed point, a launch flag, and a probe that derives the multiplier. What
+        // the probe found is that **the band is not reachable at any multiplier**,
+        // and that turning the flag on costs three things the shipped world should
+        // not pay without the user seeing them:
+        //
+        // 1. **Deep closed depressions appear at ANY multiplier above 1×.** Measured
+        //    on the `mfd_routing` fixture: 0 pits at 1×, **44 at 5×** (deepest 45 m),
+        //    66 at 10×, 148 at 45× (deepest 112 m). The never-incise-below-the-lowest-
+        //    receiver clamp is defeated once erosion is fast enough for the phases
+        //    that run *after* incision to lower a cell further in the same epoch.
+        //    **That is a latent defect in the solve, not a consequence of the number**
+        //    — it was invisible only because the world barely eroded. It is the single
+        //    most important thing journal/0114 found and it wants its own slice.
+        // 2. The geotherm's central physical claim (coal relocates onto warm crust)
+        //    collapses from a 1.37× to a 1.02× separation, because 45× deposition
+        //    makes burial depth rather than crustal gradient the dominant control.
+        // 3. Mean regolith reaches 43.9 m, at the top of the published
+        //    deeply-weathered-shield range.
+        //
+        // So it ships **reachable and off**: `--calibrated-rates` sets
+        // `DeepOverrides::calibrated_rates: Some(true)`, the ON world is pinned by
+        // name (`tests/calibrated_rates.rs`), and flipping this line to `true` is the
+        // whole change once the pit defect is fixed. **This is an appearance-class,
+        // user-owned call and the evidence for it is journal/0114** — an agent
+        // landing 148 unfilled pits and a broken coal mechanism into the world the
+        // player walks, on its own authority and while the user was away, is not a
+        // calibration, it is a regression with a good story.
+        calibrated_rates: false,
         ..DeepConfig::default()
     }
 }
 
 /// The production config with gen-time [`DeepOverrides`] applied on top: start
-/// from [`production_config`], then overwrite each flag the caller set. Every
+/// from [`production_config_base`], then overwrite each flag the caller set. Every
 /// `None` override inherits, so `production_config_with(cells, seed,
 /// &DeepOverrides::default())` is **byte-identical** to `production_config(cells,
-/// seed)` (asserted in the tests). This is the single seam a launch flag reaches
-/// the deep-time run through.
+/// seed)` (asserted in the tests — and since journal/0114 the latter *is* this call
+/// with an empty override, so the identity is structural as well as tested). This
+/// is the single seam a launch flag reaches the deep-time run through.
 ///
 /// **Where the provider set is resolved.** [`DeepConfig::providers`] is fixed
 /// here, at world build, by [`production_config`]'s `..DeepConfig::default()` —
@@ -216,7 +398,20 @@ pub fn production_config_with(
     seed: u64,
     overrides: &DeepOverrides,
 ) -> DeepConfig {
-    let mut cfg = production_config(cells, seed);
+    let mut cfg = production_config_base(cells, seed);
+    // **The calibration is applied FIRST and the budget multiplies it**, which is
+    // what makes `--erosion-budget 2` mean "twice this world" rather than "twice
+    // some other world". It also makes one identity true bit-for-bit, and that
+    // identity is the derivation's own falsifier (`tests/calibrated_rates.rs`):
+    // `erosion_budget: Some(EROSION_CALIBRATION)` on the production config is the
+    // world `calibrated_rates: Some(true)` builds, because both paths run the same
+    // multiply on the same operands in the same order.
+    if let Some(v) = overrides.calibrated_rates {
+        cfg.calibrated_rates = v;
+    }
+    if cfg.calibrated_rates {
+        scale_erosion_rates(&mut cfg, EROSION_CALIBRATION);
+    }
     if let Some(v) = overrides.tectonic_history {
         cfg.tectonic_history = v;
     }
@@ -226,7 +421,7 @@ pub fn production_config_with(
     if let Some(v) = overrides.thickening_scale {
         cfg.thickening_scale = v;
     }
-    // Erosion budget: scale the three global erosion rates *together*
+    // Erosion budget: scale the global erosion rates *together*
     // (`erodibility_probe` experiment B), so the relative rates the erodibility
     // coupling reads never move — only the total amount of erosion does. A
     // multiplier of `1.0` leaves each rate bit-for-bit unchanged (`x * 1.0 == x`
@@ -234,10 +429,12 @@ pub fn production_config_with(
     // falsifier in the plumbing tests). The multiply is unconditional on
     // `erodibility`: these are the base rates the run uses either way, and the
     // coupling — when on — modulates around them without changing this scaling.
+    //
+    // It goes through the SAME `scale_erosion_rates` the calibration above uses
+    // (stubs #24, closed journal/0114): the knob's scope and the default's scope
+    // are one function, so they cannot drift apart again.
     if let Some(mult) = overrides.erosion_budget {
-        cfg.weathering *= mult;
-        cfg.k_transport *= mult;
-        cfg.k_bedrock *= mult;
+        scale_erosion_rates(&mut cfg, mult);
     }
     if let Some(v) = overrides.weather_inventory {
         cfg.weather_inventory = v;

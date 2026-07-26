@@ -107,7 +107,37 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x1A57_A522_C3BA_9F0C
 /// ```
+///
+/// **NOT moved by the joint supply + transport calibration (journal/0114), and that
+/// is the entry's headline.** The calibration is built, measured and **off**: the
+/// probe found the published 1–10 m/Myr craton band unreachable at any multiplier,
+/// and found that turning it on opens deep closed depressions the incision clamp does
+/// not hold — 0 pits at 1×, **44 at 5×**, 148 at 45×, deepest 112 m. That is a latent
+/// defect in the solve which only a world that actually erodes could expose, and it
+/// is not something to ship into the world the player walks on an agent's authority.
+/// The calibrated world is reachable and pinned by name as
+/// [`GOLDEN_SURFACE_CALIBRATED`], so the flip is one line once the pit defect is
+/// fixed.
 pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
+
+/// **The CALIBRATED world, reachable and pinned** (journal/0114). The same fixture
+/// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
+/// = `Some(true)` — all four erosion rate constants multiplied by
+/// `EROSION_CALIBRATION` (45).
+///
+/// It is the mirror of [`GOLDEN_SURFACE_SINGLE_RECEIVER`] and its siblings: those pin
+/// an **old** solve that is still reachable, this pins a **future** one that is
+/// already built. Asserted in
+/// `tests/calibrated_rates.rs::calibrated_rates_off_is_production_and_on_moves_it`,
+/// deliberately not here, which stays the cross-commit golden for the shipped
+/// configuration and nothing else.
+///
+/// Pinning it now is what makes the flip cheap and honest later: when the pit defect
+/// that keeps the flag off is fixed, this constant moves and the diff says so, rather
+/// than the calibrated world arriving unmeasured alongside the repair.
+pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x8020_8FAF_68F0_6CCD;
+/// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0xF17A_ABE0_FA95_9DC4;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -245,6 +275,8 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```text
 /// GOLDEN_RECORD 0x16EC_7D94_3A2E_D912
 /// ```
+/// **NOT moved by journal/0114** — see [`GOLDEN_SURFACE`]. The calibrated record is
+/// [`GOLDEN_RECORD_CALIBRATED`].
 pub const GOLDEN_RECORD: u64 = 0xACB6_1859_6AA3_F3A8;
 
 // ---------------------------------------------------------------------------

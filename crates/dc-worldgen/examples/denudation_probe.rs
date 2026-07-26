@@ -42,15 +42,40 @@
 //! linear in it) and the **land-area denominator** (~15 % of cells are subaerial;
 //! dividing by the whole grid understates the rate ~6×).
 //!
-//! ## What was NOT done
+//! ## And then it became the acceptance instrument (journal/0114)
 //!
-//! Nothing was tuned. No calibration constant was touched. The instrumentation is
-//! read-only with respect to the physics and sits behind
-//! [`DeepConfig::denudation_ledger`], off in production, and the gate asserts the
-//! surface plane is **bit-identical** with it on — which is what makes a number
-//! taken with the flag on a number about the *shipped* world.
+//! journal/0111 answered the fork — **the energy budget was broken** — and this
+//! probe's own sensitivity sweep found the shape of the repair: supply and
+//! transport are coupled through the cover taper, neither pays alone, and together
+//! they pay 59× more than their separate gains multiplied.
+//!
+//! So the probe now carries the **calibration's derivation**, and that is a change
+//! of role worth stating plainly. It measures three things in one run:
+//!
+//! 1. the **shipped** world, calibrated (the headline, everything above);
+//! 2. the **uncalibrated** world — the raw pre-2026-07-26 constants under *today's*
+//!    solve, so the before/after is one variable rather than a quote carried
+//!    forward across three merges;
+//! 3. the **derivation**: a ladder of uniform multipliers over the raw constants,
+//!    each a full 200-epoch world, printed with `D1` *and* the balance ratio
+//!    `D1/D3` — beside the world's own Airy steady-state ceiling, which is computed
+//!    from two densities and a measured uplift and lands in the published band
+//!    without being asked to.
+//!
+//! **What that does NOT license.** The multiplier is fitted to a *published band*
+//! (1–10 m/Myr, stable craton) and to a *balance ratio* near 1 — never to an
+//! appearance. Whether sand moves and whether a facies gradient appears are outputs
+//! this calibration is CHECKED against and never tuned toward; if they stay null
+//! they are reported null (CLAUDE.md § *a closed system cannot detect its own scale
+//! error*).
+//!
+//! The instrumentation itself is still read-only with respect to the physics and
+//! sits behind [`DeepConfig::denudation_ledger`], off in production, and the gate
+//! still asserts the surface plane is **bit-identical** with it on — which is what
+//! makes a number taken with the flag on a number about the *shipped* world.
 //!
 //! Run: `cargo run --release -p dc-worldgen --example denudation_probe`
+//! (optionally with an explicit ladder: `-- 100 300 1000`)
 
 use dc_worldgen::deeptime::erosion::TransportLedger;
 use dc_worldgen::deeptime::{
@@ -102,17 +127,33 @@ fn cfg(cells: &CellGrid) -> DeepConfig {
     }
 }
 
-/// The same, with the **shipped** `erosion_budget` override applied — the knob
-/// that scales `weathering`, `k_transport` and `k_bedrock` *together*, so the
-/// relative rates (and therefore the differential-erosion signal) never move.
+/// **The world behind the flag** — the calibrated rate constants
+/// (`DeepOverrides::calibrated_rates: Some(true)`), which is **not** what production
+/// builds. Everything else about the solve is identical, so the before/after in this
+/// report is a **single-variable** comparison and the baseline is re-measured in the
+/// same run rather than quoted from journal/0111 across three merges.
+fn cfg_calibrated(cells: &CellGrid) -> DeepConfig {
+    let o = DeepOverrides {
+        calibrated_rates: Some(true),
+        ..DeepOverrides::default()
+    };
+    DeepConfig {
+        denudation_ledger: true,
+        ..production_config_with(cells, SEED, &o)
+    }
+}
+
+/// **The derivation's own axis**: a uniform multiplier on the *raw* constants.
 ///
-/// This probe never *sets* that knob in production; it only sweeps it to measure
-/// **how the world responds**. That distinction matters: a landscape whose
-/// denudation is linear in the budget is supply-limited by a constant, and a
-/// landscape that saturates is limited by something structural. Those are the two
-/// halves of the fork this probe exists to settle, and guessing between them from
-/// a single data point is exactly how a constant gets fitted.
-fn cfg_budget(cells: &CellGrid, mult: f64) -> DeepConfig {
+/// Since journal/0114, `erosion_budget` goes through `scale_erosion_rates` and so
+/// covers `diffusion` as well — which is exactly what makes this one call able to
+/// express the hypothesis. Applied on top of `calibrated_rates: false`, `mult` is
+/// the whole erosional amplitude of the world, measured from the pre-calibration
+/// zero point, so the ladder below is directly readable as "what would
+/// `EROSION_CALIBRATION = mult` produce?" — and at `mult == EROSION_CALIBRATION`
+/// this config is **byte-identical to production** (asserted in
+/// `tests/calibrated_rates.rs`).
+fn cfg_uniform(cells: &CellGrid, mult: f64) -> DeepConfig {
     let o = DeepOverrides {
         erosion_budget: Some(mult),
         ..DeepOverrides::default()
@@ -173,6 +214,21 @@ struct Denudation {
     mean_surf: f64,
     max_surf: f64,
     relief: f64,
+    /// **Mean regolith thickness on land** — the state variable the whole coupling
+    /// turns on. The cover taper is `exp(−H/H*)`, so `H` is the one quantity that
+    /// can tell a uniform scaling (which should leave it alone) from a single-lever
+    /// one (which moves it and detunes the taper). Reported per row of the
+    /// derivation ladder for exactly that reason.
+    mean_h: f64,
+    /// **Wall time of this world's deep-time run**, seconds — the gen-time cost, so a
+    /// calibration reports its own like any other slice. Both arms are timed in the
+    /// same process on the same machine, so the *difference* is the claim and the
+    /// absolute is machine noise.
+    secs: f64,
+    /// **Total recorded units** across every cell — the residency proxy that moves
+    /// when a rate change alters how much is deposited and how often the merge key
+    /// changes. An absolute, per CLAUDE.md's residency rule.
+    units: usize,
 }
 
 /// Percentile of a sorted slice (nearest-rank).
@@ -190,11 +246,14 @@ fn measure(cells: &CellGrid) -> Denudation {
 
 fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
     let cfg = *cfg;
+    let t0 = std::time::Instant::now();
     // The *initial* grid, rebuilt from the same pure `(cells, cfg)` inputs — the
     // only way to get a "before" plane, since the run consumes its own grid.
     let before = build_cells(cells, &cfg);
     let run = run_cells(cells, &cfg, true);
+    let secs = t0.elapsed().as_secs_f64();
     let g = &run.grid;
+    let units: usize = g.strata.iter().map(|s| s.units.len()).sum();
     let n = g.w * g.w;
     let myr = MYR_PER_RUN;
     let ledger = run.erosion.transport_ledger();
@@ -229,6 +288,7 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
     let mut d_bedrock = 0.0;
     let mut exhumed = 0.0;
     let mut mean_surf = 0.0;
+    let mut mean_h = 0.0;
     let mut max_surf = f64::NEG_INFINITY;
     let mut min_surf = f64::INFINITY;
     let mut per_cell: Vec<f64> = Vec::with_capacity(land_cells);
@@ -242,10 +302,12 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
         exhumed += e;
         per_cell.push(e / myr);
         mean_surf += surf[i];
+        mean_h += g.h[i];
         max_surf = max_surf.max(surf[i]);
         min_surf = min_surf.min(surf[i]);
     }
     mean_surf /= nl;
+    mean_h /= nl;
 
     // The wave agent lowers `R` *after* `track_exhumation` runs, so its bedrock
     // quarry is missing from `exhum` and has to be added back. It is a whole-grid
@@ -304,10 +366,31 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
         mean_surf,
         max_surf,
         relief: max_surf - min_surf,
+        mean_h,
+        secs,
+        units,
     }
 }
 
+/// The uniform-multiplier ladder the derivation sweep walks by default. Roughly
+/// half-decade spacing across the two orders of magnitude between "the stopped
+/// clock" and "faster than this world's own steady-state ceiling", so the row that
+/// lands in the published band is bracketed on both sides rather than extrapolated
+/// to. Override from the command line: `--example denudation_probe -- 100 300 1000`.
+const LADDER: [f64; 5] = [10.0, 45.0, 100.0, 300.0, 1000.0];
+
 fn main() {
+    let ladder: Vec<f64> = {
+        let args: Vec<f64> = std::env::args()
+            .skip(1)
+            .filter_map(|a| a.parse().ok())
+            .collect();
+        if args.is_empty() {
+            LADDER.to_vec()
+        } else {
+            args
+        }
+    };
     println!("=== denudation probe — seed {SEED}, Extent::Medium ===\n");
     let pregen = Pregen::run(WorldParams {
         seed: SEED,
@@ -451,22 +534,45 @@ fn main() {
         d.land_dsurf_m - d.land_budget_m,
         100.0 * (d.land_dsurf_m - d.land_budget_m).abs() / d.ledger.exported_m().max(1e-30),
     );
+    // **The agreement is a MEASURED outcome, so the caption is chosen from it.**
+    // journal/0111 wrote "two independent instruments, one number" as flat prose
+    // because they agreed to 2.4 % at the uncalibrated rates. They do not agree at
+    // every rate (journal/0114 — see the calibration section), and a sentence that
+    // asserts agreement regardless of the two numbers printed beside it is exactly
+    // the `flux_record_probe` defect.
+    let gap = 100.0 * (d.catchment_averaged / d.bedrock_erosion.max(1e-30) - 1.0).abs();
     println!(
         "  WHICH IS WHY D3 MATTERS: bedrock erosion is a per-cell rock-removal plane with no\n  \
-         shoreline in it at all, and it agrees with the boundary-flux accounting to {:.1} %\n  \
-         (D1 {:.4} vs D3 {:.4}). Two independent instruments, one number.",
-        100.0 * (d.catchment_averaged / d.bedrock_erosion - 1.0).abs(),
-        d.catchment_averaged,
-        d.bedrock_erosion,
+         shoreline in it at all. D1 {:.4} vs D3 {:.4} — they differ by {gap:.1} %.",
+        d.catchment_averaged, d.bedrock_erosion,
+    );
+    println!(
+        "  {}",
+        if gap < 25.0 {
+            "Two independent instruments that share no arithmetic land on the same number, and\n  \
+             that is what licenses reporting it."
+        } else {
+            "THEY DO NOT AGREE, and the disagreement is the report rather than something to\n  \
+             average away. D1 is a GROSS land->sea boundary flux, and the shoreline migrates\n  \
+             through a +-35 m sea-level cycle four times over the run — so cover ferried across,\n  \
+             stranded by the next regression and ferried across again is counted each time.\n  \
+             D3 has no shoreline in it. Read D3 as the rate and D1 as an upper bound; the\n  \
+             calibration section itemises the arithmetic that fails to close."
+        }
     );
     // The limiting regime is a *reading of the ratio*, so it is chosen from the
     // ratio rather than written beside it.
     let shed = d.catchment_averaged / d.bedrock_erosion.max(1e-30);
     println!(
-        "  It also names the limiting regime: {:.0} % of every metre of bedrock this world\n  \
-         converts or incises LEAVES the land system, so the land is {}.",
+        "  It also names the limiting regime: the boundary flux is {:.0} % of the bedrock this\n  \
+         world converts or incises, so the land is {}.",
         100.0 * shed,
-        if shed > 0.9 {
+        if shed > 1.25 {
+            "reporting MORE leaving than it detaches — which is\n  \
+             not a regime at all but the gross-flux artifact just named. Take the regime from\n  \
+             the `mean H` trend in the calibration section instead: cover is THICKENING, so\n  \
+             this world is transport-limited"
+        } else if shed > 0.9 {
             "SUPPLY-limited — nothing is piling up, and the weathering\n  constant IS the denudation rate"
         } else {
             "TRANSPORT-limited — it is making regolith it\n  cannot move, and the cover taper will shut weathering down from underneath"
@@ -554,105 +660,305 @@ fn main() {
         d1 * d.myr,
         5000.0 / (d1 * d.myr).max(1e-30),
     );
+    // The uniformity caption is DERIVED from where the distribution actually sits,
+    // never written ahead of it. journal/0111's version said "the whole distribution
+    // is compressed into a band under the global floor" as flat prose; after a
+    // calibration that is a claim the report must re-earn every run, which is the
+    // `flux_record_probe` lesson (a printed caption is a published claim the gate
+    // cannot check).
     println!(
         "\n  Uniformity: max/median = {concentration:.1}x and the top decile carries {:.0} % of the\n  \
-         erosion (a perfectly uniform surface would give 10 %). So the world is NOT flat-dead —\n  \
-         it has a real, mild erosional structure, and that structure is worth keeping. But the\n  \
-         whole distribution is compressed into a band that lies under the global floor: the\n  \
-         difference between this world's quietest and busiest ground is a factor of {concentration:.0},\n  \
-         inside a range no instrument on Earth would call erosion at all.",
+         erosion (a perfectly uniform surface would give 10 %).",
         100.0 * d.top_decile_share
     );
+    let above_floor = d.pct.iter().filter(|&&v| v >= CRATON_FLOOR).count();
     println!(
-        "\n  NOTHING WAS TUNED. No calibration constant was touched, and the instrumentation\n  \
-         is asserted bit-identical to production. If the number is terrible it is the\n  \
-         world's number, not the probe's."
+        "  Where the DISTRIBUTION sits against the craton floor ({CRATON_FLOOR:.0} m/Myr): the median cell\n  \
+         is at {:.4} and the most active at {:.4}, so the land runs from {} the floor at the\n  \
+         quiet end to {} it at the active end. {} of the 9 printed percentiles are at or above it.",
+        d.pct[3],
+        d.max_cell,
+        if d.pct[3] >= CRATON_FLOOR {
+            "above"
+        } else {
+            "below"
+        },
+        if d.max_cell >= CRATON_FLOOR {
+            "above"
+        } else {
+            "below"
+        },
+        above_floor,
     );
 
-    // --- the fork: is the rate set by a CONSTANT or by a STRUCTURE? --------
-    println!("\n--- SENSITIVITY: what is actually limiting this? ---");
+    // -----------------------------------------------------------------------
+    // THE CALIBRATION (journal/0114) — built, measured, and OFF.
+    // -----------------------------------------------------------------------
+
+    let prod_cfg = cfg(&pregen.grid);
+    let cal_cfg = cfg_calibrated(&pregen.grid);
+    let cal = measure_cfg(&pregen.grid, &cal_cfg);
+    let mult = cal_cfg.weathering / prod_cfg.weathering;
+
+    println!("\n\n=== THE CALIBRATION (journal/0114) — BUILT AND OFF ===");
     println!(
-        "  Production is the 1x row and NOTHING BELOW CHANGES IT. These are hypothetical\n  \
-         configs built inside the probe to measure the world's RESPONSE, which is the only\n  \
-         way to tell a mis-set constant from a structural cap — and telling them apart is\n  \
-         the whole fork. A rate that is LINEAR in a knob is that knob; a rate that\n  \
-         SATURATES is being held by something the knob cannot reach.\n"
+        "  Everything above is the SHIPPED world, and the shipped world is UNCALIBRATED. The\n  \
+         calibration exists, is reachable (`--calibrated-rates`), is pinned by name, and is\n  \
+         switched OFF — because the acceptance below did not pass and because turning it on\n  \
+         opens a defect in the solve. Both worlds are measured here, in one run, so the\n  \
+         comparison is one variable rather than a number quoted across three merges.\n"
     );
+    println!("  rate                       production      calibrated     ratio");
+    for (name, a, b) in [
+        ("weathering", prod_cfg.weathering, cal_cfg.weathering),
+        ("diffusion", prod_cfg.diffusion, cal_cfg.diffusion),
+        ("k_transport", prod_cfg.k_transport, cal_cfg.k_transport),
+        ("k_bedrock", prod_cfg.k_bedrock, cal_cfg.k_bedrock),
+        // The unscaled neighbours, printed so the scope is visible rather than
+        // asserted: the cover length and an agent magnitude, neither of which moved.
+        ("h_star (NOT scaled)", prod_cfg.h_star, cal_cfg.h_star),
+        (
+            "wave_erosion (NOT scaled)",
+            prod_cfg.wave_erosion,
+            cal_cfg.wave_erosion,
+        ),
+    ] {
+        println!("  {name:<26} {a:>12.6} {b:>14.6}   {:>7.1}x", b / a);
+    }
+
+    println!("\n  quantity                       production      calibrated");
+    for (name, a, b) in [
+        ("D1 catchment denudation", d1, cal.catchment_averaged),
+        (
+            "D2 mean surface lowering",
+            d.mean_surface_lowering,
+            cal.mean_surface_lowering,
+        ),
+        ("D3 bedrock erosion", d.bedrock_erosion, cal.bedrock_erosion),
+        ("D4 rock uplift", d.rock_uplift, cal.rock_uplift),
+        (
+            "D1/D3 (the balance)",
+            d1 / d.bedrock_erosion.max(1e-30),
+            cal.catchment_averaged / cal.bedrock_erosion.max(1e-30),
+        ),
+        (
+            "D1/D4 (vs uplift)",
+            d1 / d.rock_uplift.max(1e-30),
+            cal.catchment_averaged / cal.rock_uplift.max(1e-30),
+        ),
+        ("mean land surface (m)", d.mean_surf, cal.mean_surf),
+        ("relief (m)", d.relief, cal.relief),
+        ("land cells", d.land_cells as f64, cal.land_cells as f64),
+        ("most active cell", d.max_cell, cal.max_cell),
+        ("mean regolith H (m)", d.mean_h, cal.mean_h),
+        ("recorded units", d.units as f64, cal.units as f64),
+        ("gen time, s (this run)", d.secs, cal.secs),
+    ] {
+        println!("  {name:<28} {a:>14.4} {b:>14.4}");
+    }
+
+    // --- the ceiling this world sets for itself ----------------------------
+    // Airy compensation returns (rho_m - rho_c)/rho_m of every eroded metre as a
+    // surface drop and rebounds the rest, so a landscape in topographic steady
+    // state denudes at U / that fraction. Computed from the isostasy module's own
+    // densities, so it moves if they do — never transcribed.
+    let rho_m = dc_worldgen::deeptime::isostasy::RHO_MANTLE;
+    let rho_c =
+        dc_worldgen::deeptime::isostasy::rho_crust(dc_worldgen::deeptime::CrustKind::Continental);
+    let f_airy = (rho_m - rho_c) / rho_m;
+    let ceiling = d.rock_uplift / f_airy;
     println!(
-        "  The shipped `erosion_budget` override scales weathering + k_transport + k_bedrock.\n  \
-         It does NOT scale `diffusion` — and hillslope creep is {:.0} % of this world's export,\n  \
-         so the last two rows raise creep by hand to see what the knob cannot.\n",
-        100.0 * l.creep_to_sea_m / l.exported_m().max(1e-30)
+        "\n--- THE CEILING THIS WORLD SETS FOR ITSELF ---\n  \
+         Airy compensation returns (rho_m - rho_c)/rho_m = {f_airy:.4} of each eroded metre as a\n  \
+         surface DROP and rebounds the other {:.1} %. A landscape in topographic steady state\n  \
+         therefore denudes at U / {f_airy:.4} = {:.1} x its tectonic rock uplift. With the\n  \
+         shipped world's measured D4 = {:.4} m/Myr that ceiling is {ceiling:.3} m/Myr.\n  \
+         THAT NUMBER WAS NOT CHOSEN. It falls out of two densities and a measured uplift, and\n  \
+         it lands inside the published stable-craton band (1-10) on its own — the independent\n  \
+         statement that the band is the right target for THIS world, even though the ladder\n  \
+         below shows the world cannot be scaled into it.",
+        100.0 * (1.0 - f_airy),
+        1.0 / f_airy,
+        d.rock_uplift,
     );
-    let base_cfg = cfg(&pregen.grid);
-    let with_diff = |budget: f64, diff_mult: f64| -> DeepConfig {
-        let mut c = cfg_budget(&pregen.grid, budget);
-        c.diffusion = base_cfg.diffusion * diff_mult;
-        c
+
+    // --- the measured response ---------------------------------------------
+    println!(
+        "\n--- THE MEASURED RESPONSE ---\n  \
+         A uniform multiplier on all four rates, applied to the production constants. Each row\n  \
+         is a full 200-epoch world; the row at {mult:.0}x IS the world behind the flag, bit for\n  \
+         bit (the same multiply on the same operands — asserted in tests/calibrated_rates.rs).\n\n  \
+         WHY UNIFORM, AND WHAT THE HYPOTHESIS GOT WRONG. journal/0111 measured that neither\n  \
+         lever pays alone, and the mechanism is the cover taper exp(-H/H*), H* = {:.1} m — the\n  \
+         only term in the system carrying an ABSOLUTE LENGTH. Raise supply alone and the\n  \
+         regolith made shields the rock that made it; raise transport alone and there is\n  \
+         nothing to carry.\n  \
+         The hypothesis was that scaling BOTH would leave the steady-state H where it was, so\n  \
+         the taper would never engage and export would follow the multiplier. READ THE `mean H`\n  \
+         COLUMN: IT DOES NOT. Cover thickens at every rung, which means the two levers are not\n  \
+         symmetric — transport has a ceiling supply does not. Creep's flux limiter already\n  \
+         binds on ~89 % of the cells that HAVE regolith to move at 1x (`creep-lim`), so the\n  \
+         pass is a ONE-CELL-PER-EPOCH CONVEYOR and no increase in `diffusion` makes it faster\n  \
+         (the contrast table below measures 1.6x for 100x transport). Export is then set by how\n  \
+         much cover the shoreline ring can hand over — i.e. by H — which is why D1 tracks\n  \
+         `mean H` and why reaching the craton band costs hundreds of metres of soil.\n",
+        prod_cfg.h_star,
+    );
+    let limited = |r: &Denudation| -> f64 {
+        100.0 * r.ledger.creep_limited_cell_epochs as f64
+            / (r.ledger.creep_cell_epochs.max(1)) as f64
     };
-    let scenarios: [(&str, Option<Denudation>); 6] = [
-        ("PRODUCTION (1x)", None),
-        (
-            "budget 10x",
-            Some(measure_cfg(&pregen.grid, &cfg_budget(&pregen.grid, 10.0))),
-        ),
-        (
-            "budget 100x",
-            Some(measure_cfg(&pregen.grid, &cfg_budget(&pregen.grid, 100.0))),
-        ),
-        (
-            "creep 10x only",
-            Some(measure_cfg(&pregen.grid, &with_diff(1.0, 10.0))),
-        ),
-        (
-            "budget 10x + creep 10x",
-            Some(measure_cfg(&pregen.grid, &with_diff(10.0, 10.0))),
-        ),
-        (
-            "budget 100x + creep 10x",
-            Some(measure_cfg(&pregen.grid, &with_diff(100.0, 10.0))),
-        ),
-    ];
+    let band = |v: f64| -> &'static str {
+        if (1.0..=10.0).contains(&v) {
+            "IN BAND"
+        } else if v < 1.0 {
+            "below"
+        } else {
+            "above"
+        }
+    };
     println!(
-        "  scenario                    D1 (m/Myr)   D3 bedrock   D1/D3   D1/D4   vs production"
+        "  uniform x        D1        D3    D1/D3  D1/D4  meansurf   relief   mean H    land  creep-lim  band?"
     );
-    for (name, m) in &scenarios {
-        let r = m.as_ref().unwrap_or(&d);
+    let row = |label: String, r: &Denudation| {
         println!(
-            "  {name:<26} {:>10.4}   {:>10.4}  {:>6.2}  {:>6.3}   {:>9.1}x",
+            "  {label:<10} {:>10.4} {:>10.4} {:>6.2} {:>6.2} {:>8.1} {:>8.1} {:>7.2} {:>7} {:>6.1} %  {}",
             r.catchment_averaged,
             r.bedrock_erosion,
             r.catchment_averaged / r.bedrock_erosion.max(1e-30),
             r.catchment_averaged / r.rock_uplift.max(1e-30),
-            r.catchment_averaged / d1,
+            r.mean_surf,
+            r.relief,
+            r.mean_h,
+            r.land_cells,
+            limited(r),
+            band(r.catchment_averaged),
+        );
+    };
+    row("1 SHIPPED".to_string(), &d);
+    for m in &ladder {
+        let r = measure_cfg(&pregen.grid, &cfg_uniform(&pregen.grid, *m));
+        row(format!("{m:.0}"), &r);
+    }
+
+    println!(
+        "\n  READ IT THIS WAY. `D1/D3` is the tell.\n    \
+         ~1.0  the land sheds everything it detaches — a landscape in balance.\n    \
+         <1.0  the land is making regolith it cannot move — TRANSPORT-limited.\n    \
+         >1.0  the land is exporting stored cover faster than it detaches new rock."
+    );
+    println!(
+        "\n  AND THE TWO INSTRUMENTS SEPARATE AS THE FLUXES GROW — say it rather than average it.\n  \
+         journal/0111 reported D1 as the headline because D1 and D3 agreed to 2.4 % at the\n  \
+         shipped rates. They do not stay agreed: the ratio tracks `mean H` up the ladder, and\n  \
+         the arithmetic does not close. At {mult:.0}x the run removes {:.1} m of bedrock per land\n  \
+         cell and stores {:+.1} m more regolith, yet D1 claims {:.1} m of export — which cannot\n  \
+         come out of the rock that was removed.\n  \
+         `creep_to_sea_m` is a GROSS land->sea edge flux. The sea stand cycles +-{:.0} m four\n  \
+         times over the run, so a shoreline cell's cover is carried across, stranded by a\n  \
+         regression and carried across again, and each crossing is counted. At 1x the fluxes\n  \
+         were too small for that to matter; at {mult:.0}x they are not.\n  \
+         So D3 is the sound instrument once the fluxes are large — a per-cell rock-removal\n  \
+         plane with no shoreline in it — and D1 is an upper bound.",
+        cal.bedrock_erosion * cal.myr,
+        cal.mean_h - d.mean_h,
+        cal.catchment_averaged * cal.myr,
+        prod_cfg.sea_level_amp,
+    );
+
+    // --- the acceptance, and why the flag is off ---------------------------
+    let relief_pct = 100.0 * (cal.relief / d.relief - 1.0);
+    println!(
+        "\n--- THE ACCEPTANCE: the target band was NOT reached ---\n  \
+         Target: 1-10 m/Myr, the published stable-craton band. Measured at {mult:.0}x: D1 {:.4}\n  \
+         (an upper bound), D3 {:.4} (the sound one). NO multiplier reaches the band with a\n  \
+         world left in it — the ladder above buries itself getting there.\n  \
+         What {mult:.0}x DOES buy, and it is not nothing: denudation {:.1}x, bedrock erosion\n  \
+         {:.1}x, and erosion's authority over the topography (D1/D4) {:.3} -> {:.2}.\n  \
+         journal/0111's sharpest sentence was that erosion removed 2.7 % of what uplift added;\n  \
+         at {mult:.0}x it is most of it, and the world leaves 'below every published terrestrial\n  \
+         band' to enter the 0.1-1 floor band (McMurdo, Atacama).",
+        cal.catchment_averaged,
+        cal.bedrock_erosion,
+        cal.catchment_averaged / d1.max(1e-30),
+        cal.bedrock_erosion / d.bedrock_erosion.max(1e-30),
+        d1 / d.rock_uplift.max(1e-30),
+        cal.catchment_averaged / cal.rock_uplift.max(1e-30),
+    );
+    println!(
+        "\n  AND WHY IT IS OFF — three costs, measured, none of them a matter of taste:\n  \
+         1. DEEP CLOSED DEPRESSIONS AT ANY MULTIPLIER ABOVE 1x. Measured on the `mfd_routing`\n     \
+            fixture: 0 pits deeper than 1 m at 1x, 44 at 5x (deepest 45 m), 66 at 10x, 148 at\n     \
+            {mult:.0}x (deepest 112 m). The never-incise-below-the-lowest-receiver clamp is\n     \
+            defeated once erosion is fast enough for the phases that run AFTER incision to\n     \
+            lower a cell further within the same epoch. THIS IS A LATENT DEFECT IN THE SOLVE,\n     \
+            NOT A PROPERTY OF THE NUMBER — it was invisible only because the world barely\n     \
+            eroded, and it is the most important thing this probe found.\n  \
+         2. The geotherm's coal-relocation claim collapses 1.37x -> 1.02x, because {mult:.0}x\n     \
+            deposition makes burial depth rather than crustal gradient the dominant control.\n  \
+         3. Mean regolith reaches {:.1} m, the top of the published deeply-weathered-shield\n     \
+            range (30-60 m), against {:.1} m shipped.\n  \
+         Relief moves {relief_pct:+.1} %, so the SHAPE survives — it is the pits and the coal\n  \
+         that do not.",
+        cal.mean_h, d.mean_h,
+    );
+
+    // --- the single-lever contrast, kept from journal/0111 -------------------
+    println!(
+        "\n--- THE CONTRAST: why not one lever (journal/0111's finding, re-measured) ---\n  \
+         Hillslope creep is {:.2} % of this world's export, and the old `erosion_budget` scope\n  \
+         (weathering + k_transport + k_bedrock, no diffusion) could not reach it. Both rows are\n  \
+         built by hand because that scope no longer exists as a knob (stubs #24, closed).\n",
+        100.0 * l.creep_to_sea_m / l.exported_m().max(1e-30)
+    );
+    let three_only = |m: f64| -> DeepConfig {
+        let mut c = prod_cfg;
+        c.denudation_ledger = true;
+        c.weathering *= m;
+        c.k_transport *= m;
+        c.k_bedrock *= m;
+        c
+    };
+    let creep_only = |m: f64| -> DeepConfig {
+        let mut c = prod_cfg;
+        c.denudation_ledger = true;
+        c.diffusion *= m;
+        c
+    };
+    println!("  scenario                       D1 (m/Myr)   D1/D3   vs shipped");
+    let mut gains = [1.0f64; 2];
+    for (k, (name, c)) in [
+        ("supply only 100x (old scope)", three_only(100.0)),
+        ("transport only 100x", creep_only(100.0)),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let r = measure_cfg(&pregen.grid, c);
+        gains[k] = r.catchment_averaged / d1.max(1e-30);
+        println!(
+            "  {name:<30} {:>10.4}  {:>6.2}  {:>7.1}x",
+            r.catchment_averaged,
+            r.catchment_averaged / r.bedrock_erosion.max(1e-30),
+            gains[k],
         );
     }
     println!(
-        "\n  READ IT THIS WAY. `D1/D3` is the tell.\n    \
-         ~1.0  the land sheds everything it detaches — SUPPLY-limited, and the weathering\n          \
-         constant IS the denudation rate.\n    \
-         <1.0  the land is making regolith it cannot move — TRANSPORT-limited. The cover\n          \
-         taper exp(-H/H*), H* = {:.1} m, then shuts weathering off from underneath: the\n          \
-         extra regolith shields the rock that made it. That taper is the structural cap.\n    \
-         >1.0  the land is exporting stored cover faster than it detaches new rock — a\n          \
-         TRANSIENT drawdown of the existing regolith, not a sustainable rate.",
-        base_cfg.h_star
+        "  {:<30} {:>10.4}  {:>6.2}  {:>7.1}x   <-- behind the flag",
+        format!("BOTH {mult:.0}x (uniform)"),
+        cal.catchment_averaged,
+        cal.catchment_averaged / cal.bedrock_erosion.max(1e-30),
+        cal.catchment_averaged / d1.max(1e-30),
     );
-    // Derived from the rows just measured, never written ahead of them.
-    let gain = |i: usize| {
-        scenarios[i]
-            .1
-            .as_ref()
-            .map_or(1.0, |r| r.catchment_averaged / d1)
-    };
-    let (budget_only, creep_only, both) = (gain(2), gain(3), gain(5));
     println!(
-        "\n  THE SHAPE OF THE ANSWER: neither lever pays alone — 100x the erosion budget buys\n  \
-         {budget_only:.1}x, 10x the creep buys {creep_only:.1}x — and together they buy {both:.0}x, which is \
-         {:.0}x more\n  than the two separate gains multiplied. Supply and transport are coupled through the\n  \
-         cover taper, so raising either alone just moves the bottleneck to the other. That is\n  \
-         journal/0108's shape a second time: TWO LEVERS THAT ONLY PAY TOGETHER.",
-        both / (budget_only * creep_only)
+        "\n  100x on supply alone buys {:.1}x; 100x on transport alone buys {:.1}x; the uniform\n  \
+         {mult:.0}x buys {:.0}x. Two levers that only pay together (journal/0108's shape, and\n  \
+         journal/0111's) — and the reason the fix is ONE multiplier over FOUR rates rather than\n  \
+         a fifth multiplicand in a list. What journal/0111 could not see is that they pay\n  \
+         together only up to a ceiling neither of them sets.",
+        gains[0],
+        gains[1],
+        cal.catchment_averaged / d1.max(1e-30),
     );
 }
 
@@ -709,6 +1015,59 @@ const BANDS: [(&str, f64, f64, &str); 6] = [
 #[cfg(test)]
 mod gate {
     use super::*;
+
+    /// **The calibration reaches the measured quantity, not just the config.**
+    ///
+    /// It measures the SHIPPED world against the world behind the flag. Production is
+    /// uncalibrated (journal/0114 — the flag is off), so `raw` here is what ships and
+    /// `cal` is what `--calibrated-rates` builds.
+    ///
+    /// `tests/calibrated_rates.rs` proves the four rate constants are exactly
+    /// `EROSION_CALIBRATION×` the raw ones, and that the world moved. Neither of
+    /// those says the thing this whole slice exists for actually happened: that
+    /// **denudation went up**. A calibration that multiplied four constants and left
+    /// the export ledger where it was would pass every test in that file.
+    ///
+    /// So this measures both worlds and compares them — a **ratio between two runs
+    /// in the same test**, never an absolute m/Myr figure. That distinction is the
+    /// doctrine (*assert invariants, never snapshots*): the absolute rate is exactly
+    /// what a colleague improving the sediment router should be free to move, and a
+    /// test pinned to today's 0.414 would fail *because someone fixed the transport
+    /// ceiling*, which is worse than the defect it guards.
+    ///
+    /// *Why it is scale-free.* It is a comparison of one world against the same
+    /// world with four constants scaled — the direction of the effect is a property
+    /// of the rate law, not of the landscape, so it holds at any extent. The bound
+    /// is deliberately loose: **5×**, against **37×** measured at production scale
+    /// (journal/0114). It is sized to catch a silent revert or a disconnected knob,
+    /// not to pin a tuning.
+    #[test]
+    fn the_calibration_actually_raises_the_measured_denudation() {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: Extent::Small,
+        });
+        let raw = measure_cfg(&pregen.grid, &cfg(&pregen.grid));
+        let cal = measure_cfg(&pregen.grid, &cfg_calibrated(&pregen.grid));
+        let gain = cal.catchment_averaged / raw.catchment_averaged.max(1e-30);
+        println!(
+            "uncalibrated D1 {:.6}, calibrated D1 {:.6}, gain {gain:.1}x",
+            raw.catchment_averaged, cal.catchment_averaged
+        );
+        assert!(
+            raw.catchment_averaged > 0.0,
+            "the uncalibrated world exported nothing, so the ratio below is vacuous"
+        );
+        assert!(
+            gain >= 5.0,
+            "the erosional calibration moved the rate constants but not the world: \
+             denudation went from {:.6} to {:.6} m/Myr, a gain of {gain:.2}x. Either \
+             EROSION_CALIBRATION has been reverted or the scaling no longer reaches \
+             the solve.",
+            raw.catchment_averaged,
+            cal.catchment_averaged
+        );
+    }
 
     /// **The instrument does not move the world.** The load-bearing test: a
     /// measurement taken with `denudation_ledger` on is only a measurement of the

@@ -466,6 +466,33 @@ pub struct DeepConfig {
     /// could be *measured* rather than argued, which is what stub #22 was owed.
     /// `0.0` disables it. Appended last (wire discipline).
     pub mfd_min_weight: f64,
+
+    /// **Do these rate constants carry the erosional calibration?** (journal/0114,
+    /// the joint supply + transport calibration.)
+    ///
+    /// It is a statement about the four fields above — [`Self::weathering`],
+    /// [`Self::diffusion`], [`Self::k_transport`], [`Self::k_bedrock`] — and not an
+    /// instruction to the solve: nothing in the run reads it. `true` means they have
+    /// been multiplied through
+    /// [`super::field::EROSION_CALIBRATION`](super::field::EROSION_CALIBRATION) by
+    /// [`super::field::production_config_with`] when the override asks for it;
+    /// `false` means they are the raw values, which is what both [`Default`] and
+    /// production hand out — a config nobody calibrated should not claim to be
+    /// calibrated.
+    ///
+    /// **Why a recorded fact rather than a branch.** The calibration is a *number*,
+    /// applied once at config build; a per-epoch flag read would be a second place
+    /// the amplitude lives. Turning it **on** is
+    /// [`super::field::DeepOverrides::calibrated_rates`], and the on path is pinned
+    /// by name (`tests/calibrated_rates.rs`, `GOLDEN_SURFACE_CALIBRATED`) so the
+    /// world behind the flag cannot drift unmeasured while it waits for its flip.
+    ///
+    /// **Production is `false`** — see [`super::field::EROSION_CALIBRATION`] for the
+    /// three measured costs that keep it there, the first of which is a latent defect
+    /// in the incision clamp that any multiplier above 1x exposes.
+    ///
+    /// Appended last (wire discipline).
+    pub calibrated_rates: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -536,6 +563,12 @@ impl Default for DeepConfig {
             material_transport: true,
             denudation_ledger: false,
             material_creep: true,
+            // **False, deliberately.** The four rate constants written above are the
+            // raw pre-calibration values; `production_config` is what multiplies them
+            // through `EROSION_CALIBRATION` and sets this to `true`. A `Default`
+            // config claiming to be calibrated while holding uncalibrated numbers
+            // would be a summary disagreeing with its authority.
+            calibrated_rates: false,
             providers: super::providers::Providers::default(),
         }
     }

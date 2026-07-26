@@ -847,12 +847,20 @@ solve byte for byte; the pre-2b goldens are still reachable and still asserted
   cell's own near-surface composition (the `outcrop_shares` seam — one window walk,
   now with two consumers), incision takes the composition of an **empty** section
   (which is how the pass asks "what is below the record" without naming a rock).
-- **Deposition is the falling ceiling.** Competence — `w_s > COMPETENCE_SCALE · cap`
-  — rains a species out wherever it is; capacity then draws the excess
-  **coarsest-first**. Nothing is sorted; the ceiling falls and the load is what is
-  under it. `COMPETENCE_SCALE = 420` is anchored on the *shipped* facies rule's own
-  Low/Medium capacity boundary (`energy_band`'s `0.002`) crossing coarse clastic's
-  `settle_energy` (`0.84`) — not a fit.
+- **Deposition is the falling ceiling.** Competence — `w_s > COMPETENCE_SCALE ·
+  (REFERENCE_KT / k_transport) · cap` — rains a species out wherever it is; capacity
+  then draws the excess **coarsest-first**. Nothing is sorted; the ceiling falls and
+  the load is what is under it. `COMPETENCE_SCALE = 420` is anchored on the *shipped*
+  facies rule's own Low/Medium capacity boundary (`energy_band`'s `0.002` at the
+  reference coefficient) crossing coarse clastic's `settle_energy` (`0.84`) — not a fit.
+  **The `REFERENCE_KT` term arrived 2026-07-26 (corrections #59, journal/0114) and the
+  ceiling it produces at the historical `k_transport` is bit-identical.** `cap` is
+  `k_transport · A^m · S^n`, so an *absolute* capacity threshold is a rate constant
+  times a position in the drainage network, not a physical statement about grains —
+  and the erosional calibration moves `k_transport`. Stated absolutely, it would have
+  classified every depositional site on the world as High energy and carried basement
+  to the sea. The thresholds describe **where in a network you are**, so they scale
+  with the coefficient.
 - **The sweep runs LAST**, on the load actually leaving, so the invariant is clean:
   *nothing leaves a cell that the cell could not carry*. A grain the cell prises
   loose and cannot lift goes straight back into ordinary loose cover — deliberately

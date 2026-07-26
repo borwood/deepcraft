@@ -117,13 +117,23 @@ fn main() -> std::process::ExitCode {
         //                      amplitude the tectonic forcing multiplies.
         // - `--erosion-budget <mult>`  the EROSION budget multiplier
         //                      (`erodibility_probe` experiment B): scales
-        //                      weathering / k_transport / k_bedrock TOGETHER by
-        //                      <mult>, so relative rates never move — only the
-        //                      total erosion does. Distinct from `--amplitude`
-        //                      (which is tectonic, journal/0040); `1.0` is
-        //                      byte-identical to omitting it. This is the dev
-        //                      lever that makes the cranked "conservative
-        //                      amplitude" world walkable (journal/0076).
+        //                      weathering / diffusion / k_transport / k_bedrock
+        //                      TOGETHER by <mult>, so relative rates never move —
+        //                      only the total erosion does. Distinct from
+        //                      `--amplitude` (which is tectonic, journal/0040);
+        //                      `1.0` is byte-identical to omitting it. This is the
+        //                      dev lever that makes the cranked "conservative
+        //                      amplitude" world walkable (journal/0076). It scales
+        //                      the CALIBRATED rates, so it means "n× this world".
+        // - `--calibrated-rates`  build the world with journal/0114's erosional
+        //                      calibration ON (all four rate constants x45).
+        //                      Denudation goes 0.011 -> 0.414 m/Myr and erosion
+        //                      finally has authority over the topography — but it
+        //                      also opens deep closed depressions the incision
+        //                      clamp does not hold (148 pits, deepest 112 m) and
+        //                      collapses the geotherm's coal relocation. OFF in
+        //                      production until that pit defect is fixed; this is
+        //                      the A/B partner for the walk that judges it.
         // - `--weather-inventory`  the S18 first-behavior weathering pass (one
         //                      chapter over each cell's working inventory). OFF
         //                      by default (S-5 identity floor); present ⇒ ON for
@@ -138,6 +148,9 @@ fn main() -> std::process::ExitCode {
         }
         if args.iter().any(|a| a == "--weather-inventory") {
             deep.weather_inventory = Some(true);
+        }
+        if args.iter().any(|a| a == "--calibrated-rates") {
+            deep.calibrated_rates = Some(true);
         }
         if let Some(v) = args.windows(2).find(|w| w[0] == "--amplitude") {
             match v[1].parse::<f64>() {

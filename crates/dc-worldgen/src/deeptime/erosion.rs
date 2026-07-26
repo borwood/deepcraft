@@ -378,47 +378,85 @@ const SPECIES: usize = Litho::COUNT;
 
 /// **The competence ceiling, per unit of transport capacity** — the one
 /// calibration constant material-aware transport adds, in
-/// `settle_energy`-units per (metre/iteration) of stream capacity.
+/// `settle_energy`-units per (metre/iteration) of stream capacity, **stated
+/// relative to `k_transport`**.
 ///
 /// `material-behavior.md` § 13.5: *"sorting is the falling ceiling; we write the
 /// ceiling, not the sort."* This is that ceiling. A flow of capacity `cap` can
 /// hold in suspension every species whose settling velocity is at most
-/// `COMPETENCE_SCALE · cap`; everything heavier rains out **wherever it is**,
-/// regardless of whether the flow still has capacity to spare. Capacity is the
-/// *total mass* limit and competence is the *size/density* limit, and § 13.5 is
-/// explicit that both are needed: without competence a flow with spare capacity
-/// carries boulders to the sea, and nothing ever fines downstream.
+/// `COMPETENCE_PER_KT · k_transport · cap`; everything heavier rains out
+/// **wherever it is**, regardless of whether the flow still has capacity to spare.
+/// Capacity is the *total mass* limit and competence is the *size/density* limit,
+/// and § 13.5 is explicit that both are needed: without competence a flow with
+/// spare capacity carries boulders to the sea, and nothing ever fines downstream.
 ///
-/// **Where the number comes from, and why it is not a tuning knob.** It is fixed
-/// by an anchor that already ships: [`energy_band`] calls a capacity of `0.002`
-/// the Low/Medium boundary, and `litho_of_tag` turns exactly that boundary into
-/// the coarse/fine clastic split — so `0.002` is *already* the world's stated
-/// "energy at which sand stops moving". `settle_energy` puts the coarse-clastic
-/// reference sheet at `≈0.84`, and `0.84 / 0.002 = 420`. The ceiling therefore
-/// crosses the coarse-clastic threshold at precisely the capacity the shipped
-/// facies rule already crosses it at, and the rest of the roster arranges itself
-/// around that: a trunk reach at `cap = 0.02` lifts everything the world has
-/// (ceiling `8.4`, against basement's `2.85`), and a distal reach at
-/// `cap = 2 × 10⁻⁴` cannot hold mud (ceiling `0.084`, against mudstone's `0.098`).
-/// The dynamic range is the roster's, not a fit.
+/// **Where the number comes from — and see corrections #59 for what was wrong with
+/// the way that used to be said.** The *ratio* is fixed by an anchor that already
+/// ships; the old doc comment stated that anchor as an **absolute capacity**, which
+/// silently held `k_transport = 0.0016` inside it and called itself "not a tuning
+/// knob" on the strength of a derivation from a constant that was itself about to
+/// be recalibrated. [`energy_band`] calls a capacity of
+/// `ENERGY_LOW_MED · k_transport / REFERENCE_KT` the Low/Medium boundary, and
+/// `litho_of_tag` turns exactly that boundary into the coarse/fine clastic split —
+/// so that boundary is *already* the world's stated "energy at which sand stops
+/// moving". `settle_energy` puts the coarse-clastic reference sheet at `≈0.84`, and
+/// at the historical `k_transport = 0.0016` the boundary is `0.002`, giving
+/// `0.84 / 0.002 = 420`. The ceiling therefore crosses the coarse-clastic threshold
+/// at precisely the capacity the shipped facies rule already crosses it at, and the
+/// rest of the roster arranges itself around that.
 ///
 /// It is **linear** in capacity because capacity is already a stream-power proxy
 /// (`k·A^m·S^n`) and competence in a real channel scales with a power of stream
 /// power; linear is the simplest form that spans the roster, in the same
 /// plausible-not-tuned register as S9's physics constants. Chosen and written
 /// **before** the outcome probe was run, and not revisited after.
+///
+/// **RE-EXPRESSED relative to `k_transport` 2026-07-26 (journal/0114), and the
+/// value it produces at the historical `k_transport` is unchanged to the bit.**
+/// `420` was `0.84 / 0.002`, and `0.002` was a boundary written in absolute
+/// capacity because `k_transport` had never moved. The joint calibration moves it,
+/// and left as an absolute this constant would have made every calibrated flow
+/// competent to carry basement — sorting would vanish, "does sand move" would read
+/// yes for a reason that is an artifact, and the facies gradient would be destroyed
+/// rather than measured. The relative form says what was always meant: the ceiling
+/// is a statement about **where in a drainage network you are**, not about the
+/// value of a rate constant.
 const COMPETENCE_SCALE: f64 = 420.0;
 
-/// **The competence ceiling of a flow with transport capacity `cap`** — the
-/// largest settling velocity ([`lithology::settling_table`]) it can hold in
-/// suspension. See [`COMPETENCE_SCALE`] for where the constant comes from.
+/// **The `k_transport` every threshold in this section was written against.**
+///
+/// `COMPETENCE_SCALE`, [`ENERGY_LOW_MED`] and [`ENERGY_MED_HIGH`] are numbers in
+/// units of `k_transport · A^m · S^n`, and they were chosen when `k_transport` was
+/// `0.0016` and had never moved. Naming that value is what lets the calibration
+/// scale the coefficient and carry the thresholds along instead of silently
+/// re-labelling the world.
+///
+/// **Every ratio below is formed as `k / REFERENCE_KT`, deliberately**: `x / x` is
+/// exactly `1.0` in IEEE-754, so at the historical coefficient each threshold is
+/// bit-identical to the absolute constant it replaced, and the pre-calibration
+/// world reproduces its goldens to the bit.
+const REFERENCE_KT: f64 = 0.0016;
+
+/// **The Low/Medium energy boundary** at [`REFERENCE_KT`] — the capacity at which
+/// the shipped facies rule says sand stops moving. Scaled with `k_transport` by
+/// [`energy_band`]; see [`REFERENCE_KT`].
+const ENERGY_LOW_MED: f64 = 0.002;
+/// **The Medium/High energy boundary** at [`REFERENCE_KT`] — the trunk threshold.
+/// See [`ENERGY_LOW_MED`].
+const ENERGY_MED_HIGH: f64 = 0.02;
+
+/// **The competence ceiling of a flow with transport capacity `cap`**, in a world
+/// whose stream-transport coefficient is `k_transport` — the largest settling
+/// velocity ([`lithology::settling_table`]) the flow can hold in suspension. See
+/// [`COMPETENCE_SCALE`] for where the constant comes from and [`REFERENCE_KT`] for
+/// why the second argument exists.
 ///
 /// Public because the invariant *"nothing leaves a cell that the cell could not
 /// carry"* is checked against it from outside, and a test that re-derived the
 /// ceiling would be checking its own arithmetic rather than the pass's.
 #[inline]
-pub fn competence_ceiling(cap: f64) -> f64 {
-    COMPETENCE_SCALE * cap
+pub fn competence_ceiling(cap: f64, k_transport: f64) -> f64 {
+    COMPETENCE_SCALE * (REFERENCE_KT / k_transport) * cap
 }
 
 /// **Split a bulk quantity into species by a composition, exactly** — the one
@@ -986,13 +1024,26 @@ pub fn flood_fill_tiled(w: usize, surf: &[f64], sea: f64, strips: usize) -> Vec<
     out
 }
 
-/// Map a stream transport capacity to a facies energy band. Thresholds are in
-/// the capacity units of the transport pass (metres/iteration); calibrated so
-/// headwater hillslopes read Low, trunk rivers read High.
-pub fn energy_band(cap: f64) -> EnergyBand {
-    if cap < 0.002 {
+/// Map a stream transport capacity to a facies energy band, in a world whose
+/// stream-transport coefficient is `k_transport`. Thresholds are in the capacity
+/// units of the transport pass (metres/iteration); calibrated so headwater
+/// hillslopes read Low, trunk rivers read High.
+///
+/// **The second argument arrived with the erosional calibration (journal/0114) and
+/// it is not a convenience.** `cap = k_transport · A^m · S^n`, so a bare capacity
+/// is `k_transport` times a position in the drainage network, and the boundaries
+/// below describe the *position*. Left absolute, a calibration that raised
+/// `k_transport` would have re-labelled essentially every depositional site on the
+/// world **High energy** — `litho_of_tag` would then have recorded coarse clastic
+/// everywhere, and the facies gradient the Movement 2b probes exist to measure
+/// would have been erased by the same commit that was supposed to make the world
+/// erode. Scaling with the reference keeps the classification invariant under a
+/// pure change of rate, which is what a calibration is.
+pub fn energy_band(cap: f64, k_transport: f64) -> EnergyBand {
+    let s = k_transport / REFERENCE_KT;
+    if cap < ENERGY_LOW_MED * s {
         EnergyBand::Low
-    } else if cap < 0.02 {
+    } else if cap < ENERGY_MED_HIGH * s {
         EnergyBand::Medium
     } else {
         EnergyBand::High
@@ -1002,7 +1053,7 @@ pub fn energy_band(cap: f64) -> EnergyBand {
 /// The measured depositional tag for a cell given its final surface, precip, and
 /// the transport capacity it saw this iteration.
 #[inline]
-fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64) -> DepTag {
+fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64, k_transport: f64) -> DepTag {
     let env = if surf_i <= sea_level {
         DepEnv::Subsea
     } else {
@@ -1013,7 +1064,7 @@ fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64) -> DepTag {
     } else {
         Aridity::Humid
     };
-    DepTag::mineral(env, aridity, energy_band(energy_i))
+    DepTag::mineral(env, aridity, energy_band(energy_i, k_transport))
 }
 
 /// Apply one cell's net thickness change to its strata record under `tag`,
@@ -1174,6 +1225,35 @@ pub struct TransportLedger {
     pub wave_bedrock_m: f64,
     /// Airborne **dust settling on the sea** during the eolian march.
     pub eolian_to_sea_m: f64,
+    /// **Cell-epochs in which the creep flux limiter bound** — the cell wanted to
+    /// shed more regolith than it had, so [`diffuse_scale_cell`] clamped its export
+    /// to its whole `H` (journal/0114).
+    ///
+    /// **This is the honesty check on the erosional calibration, and it measures a
+    /// discretisation limit rather than a physics one.** Hillslope diffusion is
+    /// explicit: a cell's potential outflow is `Σ_downhill diffusion · Δsurf`, and
+    /// once that exceeds the regolith present, the pass stops being a diffusion and
+    /// becomes *"move everything one cell downslope this epoch"*. At 460 m cells and
+    /// 2.5 Myr per epoch that conveyor is a creep velocity of ~0.18 mm/yr, which is
+    /// squarely inside the measured range for real soil creep — so the *rate* stays
+    /// honest even where the *operator* has degenerated. What is lost is sub-cell
+    /// structure, not magnitude.
+    ///
+    /// Reported so a calibration cannot quietly buy its denudation by pushing the
+    /// whole world into that regime. **Counts only cells that actually held
+    /// regolith** — see [`Self::creep_cell_epochs`]. Counted only when
+    /// [`DeepConfig::denudation_ledger`](super::grid::DeepConfig::denudation_ledger)
+    /// is on; zero, and not even summed, in production.
+    pub creep_limited_cell_epochs: u64,
+    /// Cell-epochs in which the diffusion pass ran **over a cell that had regolith
+    /// to move** — the denominator for [`Self::creep_limited_cell_epochs`].
+    ///
+    /// The `h > 0` restriction is load-bearing, not tidiness. The limiter's predicate
+    /// is `potential outflow > available cover`, which is *trivially* true at `h == 0`,
+    /// so counting every cell would score the bare ocean floor and every stripped ridge
+    /// as transport-limited and report a saturation that is really an absence. Same
+    /// gating.
+    pub creep_cell_epochs: u64,
 }
 
 impl TransportLedger {
@@ -1211,6 +1291,19 @@ pub struct Erosion {
     order: Vec<u32>,
     dh: Vec<f64>,
     energy: Vec<f64>,
+    /// **The stream-transport coefficient the last [`Self::transport`] ran with** —
+    /// the reference the energy bands and the competence ceiling are expressed
+    /// *relative to* (journal/0114).
+    ///
+    /// Transport capacity is `cap = k_transport · A^m · S^n`, so a capacity in
+    /// isolation is not a geomorphic quantity: it is `k_transport` multiplied by
+    /// one. The Low/Medium/High boundaries and [`COMPETENCE_PER_KT`] are statements
+    /// about **where in a drainage network you are** — `A^m·S^n` — and they were
+    /// written as absolute capacities only because `k_transport` had never moved.
+    /// Carrying the reference here is what lets the erosional calibration scale the
+    /// rate without re-labelling every depositional environment on the world as
+    /// high-energy.
+    k_transport: f64,
     scale: Vec<f64>,
     /// Diffusion gather scratch: per-cell net ΔH, applied after the gather.
     netdiff: Vec<f64>,
@@ -1398,6 +1491,10 @@ impl Erosion {
             order: Vec::with_capacity(n),
             dh: vec![0.0; n],
             energy: vec![0.0; n],
+            // Overwritten by every `transport` call before anything reads it; the
+            // seed value is `DeepConfig::default()`'s so a harness that classifies
+            // without ever transporting sees the historical thresholds.
+            k_transport: 0.0016,
             scale: vec![0.0; n],
             netdiff: vec![0.0; n],
             litho: Vec::new(),
@@ -2486,7 +2583,7 @@ impl Erosion {
                 }
             }
             if self.sorted {
-                self.settle_above_competence(grid, c, cap);
+                self.settle_above_competence(grid, c, cap, cfg.k_transport);
                 self.qs_sp[base..base + SPECIES].iter().sum()
             } else {
                 carried
@@ -2526,7 +2623,7 @@ impl Erosion {
                 grid.h[c] += placed;
                 self.dh[c] += placed;
                 self.ledger.deposited_by_capacity_m += placed;
-                self.settle_above_competence(grid, c, cap);
+                self.settle_above_competence(grid, c, cap, cfg.k_transport);
                 self.qs_sp[base..base + SPECIES].iter().sum()
             } else {
                 grid.h[c] += dep;
@@ -2559,8 +2656,8 @@ impl Erosion {
     /// cohesion-driven half of Hjulström's curve, which is what actually armours a
     /// bed — is § 13.4 and is deferred.)
     #[inline]
-    fn settle_above_competence(&mut self, grid: &mut DeepGrid, c: usize, cap: f64) {
-        let ceiling = COMPETENCE_SCALE * cap;
+    fn settle_above_competence(&mut self, grid: &mut DeepGrid, c: usize, cap: f64, k_t: f64) {
+        let ceiling = competence_ceiling(cap, k_t);
         let base = c * SPECIES;
         let mut rained = 0.0;
         for k in 0..SPECIES {
@@ -2611,6 +2708,9 @@ impl Erosion {
     /// it is the slope that keeps the cell's energy budget equal to the sum of the
     /// budgets of the flows leaving it.
     pub fn transport(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        // The coefficient this epoch's capacities are built from, kept so the
+        // recorder can classify them against the same reference (journal/0114).
+        self.k_transport = cfg.k_transport;
         self.dh.iter_mut().for_each(|d| *d = 0.0);
         self.qs.iter_mut().for_each(|q| *q = 0.0);
         self.energy.iter_mut().for_each(|e| *e = 0.0);
@@ -2983,6 +3083,25 @@ impl Erosion {
         // the gather is applied. Off ⇒ not even called.
         if self.denude {
             self.tally_creep_to_sea(grid, cfg);
+            // journal/0114: and how often the limiter bound — the discretisation
+            // honesty check on the calibration. `scale[i] < 1.0` is exactly "this
+            // cell wanted to shed more than it had".
+            //
+            // **Both counters skip cells with no regolith, and that is the whole
+            // point of the measurement.** `out > h` is trivially true at `h == 0`,
+            // so a denominator of every cell would score the bare ocean floor and
+            // every stripped ridge as "transport-limited" and report a saturation
+            // that is really just an absence. The question is *of the cells that had
+            // something to move, how many shipped all of it* — anything else is a
+            // statistic about emptiness.
+            for (i, sc) in self.scale.iter().enumerate() {
+                if grid.h[i] > 0.0 {
+                    self.ledger.creep_cell_epochs += 1;
+                    if *sc < 1.0 {
+                        self.ledger.creep_limited_cell_epochs += 1;
+                    }
+                }
+            }
         }
         // Pass 3 (Movement 2b continuation (b)): **the same fluxes, carrying
         // identity.** Runs only when creep carries material; the terrain below is
@@ -3093,6 +3212,10 @@ impl Erosion {
         let sea = self.sea_level;
         let chapter = self.cur_chapter;
         let (r, h, precip, energy) = (&grid.r, &grid.h, &grid.precip, &self.energy);
+        // The reference the energy bands are relative to — the coefficient the
+        // capacities in `energy` were actually produced with, carried from
+        // `transport` rather than re-read from a config this phase does not take.
+        let k_t = self.k_transport;
         let dh = &self.dh;
         let dep = &self.dep_sp;
         let creep = &self.creep_sp;
@@ -3112,12 +3235,12 @@ impl Erosion {
         };
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
-                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
+                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
                 record_cell(s, dh[i], tag, chapter, species_at(i, tag));
             });
         } else {
             for i in 0..self.n {
-                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
+                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
                 record_cell(&mut grid.strata[i], dh[i], tag, chapter, species_at(i, tag));
             }
         }

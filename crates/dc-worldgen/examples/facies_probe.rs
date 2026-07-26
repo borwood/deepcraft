@@ -246,7 +246,8 @@ struct Carrying {
 }
 
 fn carrying(cells: &CellGrid) -> Carrying {
-    let r = run_cells(cells, &cfg(cells, true), false);
+    let c = cfg(cells, true);
+    let r = run_cells(cells, &c, false);
     let w = settling_table();
     let energy = r.erosion.energy();
     let mut ceilings: Vec<f64> = Vec::new();
@@ -255,7 +256,7 @@ fn carrying(cells: &CellGrid) -> Carrying {
         if r.grid.r[i] + r.grid.h[i] <= SEA_LEVEL_M {
             continue;
         }
-        let ceil = competence_ceiling(*e);
+        let ceil = competence_ceiling(*e, c.k_transport);
         ceilings.push(ceil);
         for (k, ws) in w.iter().enumerate() {
             if ceil >= *ws {
@@ -467,18 +468,36 @@ fn main() {
             picked,
             led.diffused_m / picked.max(1.0)
         );
-        println!(
-            "    2. NO CELL ON THIS WORLD CAN CARRY SAND. The largest competence\n       \
-             ceiling anywhere is {:.4}; the coarse-clastic settling threshold is \
-             {:.3}.\n       The ceiling is anchored on the SHIPPED facies rule's own \
-             Low/Medium\n       capacity boundary (0.002), and the maximum capacity this \
-             world reaches is\n       {:.2e} — three times BELOW it. Two independent \
-             instruments agree that\n       this landscape has essentially no fluvial \
-             competence.",
-            c.max_ceiling,
-            w[Litho::ClasticCoarse.index()],
-            c.max_ceiling / 420.0
-        );
+        // **DERIVED, because it stopped being true.** journal/0110 printed "no cell
+        // on this world can carry sand" as flat prose, and it was right then. After
+        // the erosional calibration (journal/0114) the largest ceiling clears the
+        // coarse-clastic threshold on a small fraction of land, so the sentence has
+        // to be read off the numbers each run — a printed caption is a published
+        // claim the gate cannot check (CLAUDE.md § Gates).
+        let sand = c.can_carry[Litho::ClasticCoarse.index()];
+        let w_sand = w[Litho::ClasticCoarse.index()];
+        if sand <= 0.0 {
+            println!(
+                "    2. NO CELL ON THIS WORLD CAN CARRY SAND. The largest competence\n       \
+                 ceiling anywhere is {:.4}; the coarse-clastic settling threshold is \
+                 {w_sand:.3}.\n       Two independent instruments agree that this landscape \
+                 has essentially no\n       fluvial competence.",
+                c.max_ceiling,
+            );
+        } else {
+            println!(
+                "    2. SAND MOVES ON {:.3} % OF LAND, AND THAT IS ALL. The largest competence\n       \
+                 ceiling anywhere is {:.4}, against the coarse-clastic settling threshold\n       \
+                 {w_sand:.3} — so a few trunk cells clear it and the median cell ({:.4}) is \
+                 {:.0}x\n       below it. This is the register the fining ratio has to be read \
+                 in: the\n       competence gradient exists, on a set of cells too small to \
+                 reach the archive.",
+                100.0 * sand,
+                c.max_ceiling,
+                c.median_ceiling,
+                w_sand / c.median_ceiling.max(1e-30),
+            );
+        }
         println!(
             "    3. Downstream of both: journal/0109's uniform convergence exponent, \
              which\n       dropped peak catchment 1,245 -> 84 cells. Hybrid-`p` is the named \

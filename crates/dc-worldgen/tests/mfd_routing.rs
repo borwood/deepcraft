@@ -20,7 +20,8 @@
 //! numbers live in `examples/mfd_probe.rs`.
 
 use dc_worldgen::deeptime::{
-    self, DeepConfig, DeepField, DeepRun, build_field_cfg, production_config, run_cells,
+    self, DeepConfig, DeepField, DeepRun, build_field_cfg, production_config,
+    production_config_with, run_cells,
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -231,6 +232,8 @@ fn no_interior_cell_is_cut_below_all_of_its_neighbours() {
     let f = field(&pregen.grid, true);
     let w = f.w;
     let mut pits = 0usize;
+    let mut lake_pits = 0usize;
+    let mut deepest = 0.0f64;
     for y in 1..w - 1 {
         for x in 1..w - 1 {
             let i = y * w + x;
@@ -242,13 +245,22 @@ fn no_interior_cell_is_cut_below_all_of_its_neighbours() {
             // than carves), so the bar is a real pit, not a dimple.
             if f.surf[i] < lowest - 1.0 {
                 pits += 1;
+                deepest = deepest.max(lowest - f.surf[i]);
+                if f.lake.get(i).copied().unwrap_or(false) {
+                    lake_pits += 1;
+                }
             }
         }
     }
+    println!(
+        "interior pits deeper than 1 m: {pits} (deepest {deepest:.2} m, of which \
+         {lake_pits} are recorded lakes)"
+    );
     assert_eq!(
         pits, 0,
         "MFD incision left {pits} interior cells more than a metre below every \
-         neighbour — the multi-receiver clamp is not holding"
+         neighbour (deepest {deepest:.2} m, {lake_pits} of them lakes) — the \
+         multi-receiver clamp is not holding"
     );
 }
 
@@ -297,9 +309,19 @@ fn the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens() {
         mfd: false,
         // Pre-MFD `main` had no material-aware transport either (journal/0110
         // shipped it later), so reaching that fixed point means turning off both
-        // forks, not one.
+        // forks, not one — and, since journal/0114, not three: it also predates the
+        // erosional calibration, which multiplied `weathering` / `diffusion` /
+        // `k_transport` / `k_bedrock` by 45. Reaching a fixed point means
+        // reproducing ALL of the configuration it was captured under.
         material_transport: false,
-        ..production_config(&pregen.grid, GOLDEN_SEED)
+        ..production_config_with(
+            &pregen.grid,
+            GOLDEN_SEED,
+            &dc_worldgen::DeepOverrides {
+                calibrated_rates: Some(false),
+                ..Default::default()
+            },
+        )
     };
     let f = build_field_cfg(&pregen.grid, &cfg);
     assert_eq!(
