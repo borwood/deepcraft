@@ -383,6 +383,31 @@ pub struct DeepConfig {
     /// turns it on, and its gate asserts the surface plane is bit-identical
     /// either way.
     pub denudation_ledger: bool,
+    /// **Material-aware hillslope creep** (Movement 2b continuation (b),
+    /// `material-behavior.md` § 13.2, journal/0112) — the **gravity /
+    /// mass-wasting** member of the transport family, on the same load machinery
+    /// as the fluvial one and differing only in its driving field.
+    ///
+    /// It exists as its own flag because of a **measurement**, not a preference.
+    /// journal/0110 made the *fluvial* load material-aware and its acceptance probe
+    /// returned a null — identity reached 0.000006 % of the archive — and the
+    /// diagnosis (corrections #55) found why: over the run the rivers pick up
+    /// 659.5 m while creep moves **605,117 m**. Creep does 918× what the rivers do,
+    /// and until this flag it carried **no identity at all**. Splitting the two
+    /// members lets the probe say which one an outcome belongs to instead of
+    /// crediting the family.
+    ///
+    /// **Requires [`DeepConfig::material_transport`]**: what creep moves is the
+    /// near-surface composition the `outcrop_shares` seam already publishes for
+    /// entrainment, and taking a second composition walk beside it would be the
+    /// re-invention-next-door this project keeps catching (spines A-4). With
+    /// transport off this flag is inert.
+    ///
+    /// **Not a sidecar.** The identity feeds `outcrop_shares`, which feeds the
+    /// per-cell erodibility blend, so the world moves with it — the goldens for the
+    /// anonymous-creep path are still reachable and still asserted
+    /// (`tests/material_creep.rs`). Appended last (wire discipline).
+    pub material_creep: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -444,6 +469,7 @@ impl Default for DeepConfig {
             mfd_exponent: 4.0,
             material_transport: true,
             denudation_ledger: false,
+            material_creep: true,
             providers: super::providers::Providers::default(),
         }
     }

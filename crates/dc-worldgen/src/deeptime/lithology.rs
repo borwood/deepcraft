@@ -667,10 +667,35 @@ impl Litho {
     /// "coarse clastic", not "coarse clastic off basement". Carrying the parent
     /// through deposition is `material-behavior.md` § 13.8's **lineage history**
     /// (the `Move`-fact chain of custody), deferred with that layer.
+    ///
+    /// ## The in-place organics belong here for the identical reason
+    /// *(added 2026-07-26, journal/0112 — and surfaced by a magnitude, not by a
+    /// review; see corrections #57.)*
+    ///
+    /// [`Litho::OrganicPeat`], [`Litho::OrganicCoal`] and [`Litho::OrganicCharcoal`]
+    /// are not sediments that arrive. **Peat is made where it lies** — a bog, not a
+    /// delivery — coal is buried peat, and charcoal is a *fire event*, which this
+    /// enum's own doc calls a "thin event bed (capped at 0.04 m)". A mover that
+    /// picks any of them up is carrying **detrital organic matter**, and what it
+    /// sets down is carbonaceous mud with plant fragments in it: a
+    /// [`Litho::OrganicSoil`], which is exactly the "carbonaceous mudstone" slot.
+    /// It is not a peat bog, and it is emphatically not a three-metre seam of
+    /// charcoal.
+    ///
+    /// **Why this was latent until hillslope creep landed.** Movement 2b gave the
+    /// *fluvial* pass an identity, and the fluvial pass moves 0.109 % of this
+    /// world's sediment (corrections #55) — far too little for a transported
+    /// organic ever to win a cell's mixture argmax. Creep moves 918× more, and the
+    /// day it carried identity, `charcoal_reaches_the_voxel_as_an_inclusion_never
+    /// _as_a_stratum` found a voxel that was **8/8 charcoal**: thin fire beds
+    /// crept downslope, won the argmax at a low-deposition cell, and then *merged
+    /// across epochs* under one mineral tag into a stratum the cap exists to
+    /// forbid. The rule was always incomplete; only the magnitude was new.
     #[inline]
     pub fn as_deposited(self) -> Litho {
         match self {
             Litho::Basement => Litho::ClasticCoarse,
+            Litho::OrganicPeat | Litho::OrganicCoal | Litho::OrganicCharcoal => Litho::OrganicSoil,
             other => other,
         }
     }

@@ -733,6 +733,53 @@ the strata record, and every golden — the same event class as the erodibility,
 tectonic and full-agent flips. **This is an appearance-class, user-owned call and must
 not be taken by an agent.** *Loud markers at `erosion_budget` and at
 `DeepConfig::weathering` / `diffusion`.*
+### 25. the-record-knows-what-arrived-and-not-who-brought-it — *added 2026-07-26 (Movement 2b continuation (b), journal/0112)*
+`dc-worldgen/src/deeptime/recorder.rs::DepUnit`: a recorded unit now carries the
+**material that arrived** (`species`, journal/0110) and, since this slice, that
+material can have been delivered by either of two movers — the fluvial load or
+hillslope creep. It does **not** carry which. `erosion.rs::arriving_species` sums
+the two mixtures and takes one argmax, deliberately: a cell that receives half a
+metre of fine clastic from upstream and half a metre of the same rock off the slope
+above holds a metre of that rock, and ranking the movers against each other would
+make the answer depend on which agent was asked first.
+
+**What that costs.** *Colluvium and alluvium are not distinguishable by a label in
+the record.* They are distinguishable by **signature** — colluvium is locally
+derived and poorly sorted, alluvium far-travelled and sorted, and
+`examples/colluvium_probe.rs` measures exactly that, by drainage-area decile — but a
+consumer that wants to *ask* a unit "were you a debris apron or a point bar?" cannot.
+The two facies are also **genuinely different rocks to a geologist**, so this is a
+real gap and not a philosophical one.
+
+**Why it is a stub and not an omission.** The obvious fix is a `mover` byte, and it
+is **not free**: `DepUnit` is exactly 16 bytes with **zero padding left**
+(`tag` 5 + `thickness_m` 8 + `unconformity` 1 + `chapter` 1 + `species` 1), so a
+seventeenth byte becomes 24 — **+8 B across ~5.5 M units, roughly +42 MiB on the
+production world**, against a whole-field residency of ~169 MiB. That is a 25 %
+residency increase to add one axis, and it is exactly the trade the S20 ledger work
+refused (*"the compaction the residency crisis invited was an axis drop, and an axis
+drop is A-1 wearing a fact's paperwork"* — the mirror of it is a residency blowout
+wearing an axis's paperwork).
+
+**Heir:** the free version is a **packed provenance byte** — `Litho` has 7
+inhabitants (3 bits) and the mover vocabulary is `flux::FlowCause`'s 7 (3 bits), so
+`(species, mover)` fits one byte with two to spare and `size_of::<DepUnit>()` never
+moves. That is a representation change across ~38 read sites, which is its own slice
+and wants to land with **§ 13.8's lineage history** (the `Fact::Move` chain of
+custody), because a mover byte and a parent pointer are the same question asked at
+two depths. Until then the movers are separable only statistically.
+
+**Related, and measured rather than guessed:** the same `mover` axis would discharge
+**stub #18**'s constant `FluxEntry::cause` if creep wrote gravity-caused entries into
+the flow record. `colluvium_probe` prints what that would cost — the donor faces
+carrying creep in the final epoch, times the chapter count, times 16 B — so the
+affordability question has a number attached rather than a shrug. Nothing about this
+slice forecloses it; `FlowCause::Gravity` has been enumerated since FLOW slice 1.
+
+**Blast:** anything that wants to *query* facies by process — a geologist-facing
+inspector, an ore model that cares whether a gravel is alluvial or colluvial, the
+structure-aware fine expression's choice of fabric. Nothing expresses it at runtime
+today. *Loud marker at `DepUnit::species` and at `arriving_species`.*
 
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 

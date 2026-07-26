@@ -250,6 +250,44 @@ pub fn competence_ceiling(cap: f64) -> f64 {
     COMPETENCE_SCALE * cap
 }
 
+/// **Split a bulk quantity into species by a composition, exactly** — the one
+/// place a metre of *something* becomes metres of *named things* in this pass.
+///
+/// `shares` is a per-[`Litho`] composition (an [`outcrop_shares`] read, or the
+/// bedrock composition below the record). Normalised `f64` shares do not sum to
+/// `1` to the bit, so a plain `share × total` per species leaves a residue and the
+/// itemisation stops equalling its own total. **The last non-zero share takes
+/// `total − Σ(earlier)`** — journal/0109's residual rule, on the species axis.
+///
+/// **This is the anti-leak rule journal/0110 had to state twice, and it is why
+/// there is one function rather than three.** The tempting shortcut — split the
+/// total exactly *somewhere else*, then apportion species by fraction here —
+/// makes every species round against a shared denominator: the total stays
+/// perfect and each species drifts, invisibly and unattributably. Entrainment,
+/// incision and hillslope creep all route through this, so no caller can invent
+/// its own budget.
+///
+/// An all-zero composition returns all zeros: the caller moved bulk it has no
+/// identity for, and fabricating one would be worse than recording none.
+#[inline]
+fn split_by_shares(total: f64, shares: &[f64]) -> [f64; SPECIES] {
+    let mut out = [0.0; SPECIES];
+    let Some(last) = (0..SPECIES).rev().find(|&k| shares[k] > 0.0) else {
+        return out;
+    };
+    let mut given = 0.0;
+    for k in 0..SPECIES {
+        let sh = shares[k];
+        if sh <= 0.0 {
+            continue;
+        }
+        let v = if k == last { total - given } else { sh * total };
+        given += v;
+        out[k] = v;
+    }
+    out
+}
+
 /// D8 steepest-descent receiver of cell `i` on the filled surface (`-1` = sink).
 #[inline]
 fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) -> i32 {
@@ -461,6 +499,104 @@ fn diffuse_scale_cell(
     if out > h && out > 0.0 { h / out } else { 1.0 }
 }
 
+/// **Material-aware hillslope creep** (Movement 2b continuation (b),
+/// `material-behavior.md` § 13.2 — the **gravity / mass-wasting** member of the
+/// transport family). The per-species net thickness change at cell `i`, gathered
+/// from exactly the same four edges, with exactly the same fluxes, as
+/// [`diffuse_net_cell`].
+///
+/// **Colluvium is not sorted, and that is the point.** Creep is diffusive and
+/// gravity-driven: it has no competence ceiling, no settling draw, no
+/// coarsest-first. Every edge moves the **donor's whole composition in
+/// proportion** — the near-surface window the `outcrop_shares` seam already reads
+/// each epoch, which for a stripped column is honestly the bedrock beneath. So a
+/// colluvial apron is *locally derived and poorly sorted*, against a fluvial
+/// deposit's *far-travelled and sorted*, and that contrast is a real facies
+/// distinction rather than a second copy of the river's rule.
+///
+/// **Why this cannot leak.** The edge flux is antisymmetric to the bit — cell `i`
+/// computes `eff_diff(i)·(sᵢ − sⱼ)·scale[i]` and cell `j` computes
+/// `eff_diff(i)·−(sⱼ − sᵢ)·scale[i]`, and IEEE-754 subtraction is exactly
+/// antisymmetric — and **both endpoints split it by the same donor composition
+/// through the same [`split_by_shares`]**, so what leaves `i` of a species is bit
+/// for bit what arrives at `j`. No species is created or destroyed anywhere on the
+/// grid, which is the creep analogue of journal/0110's per-species junction test
+/// and is asserted as one.
+///
+/// **This is an attribution, never a mass authority.** The terrain still moves by
+/// the scalar [`diffuse_net_cell`], unchanged and byte-identical; this vector only
+/// says *what* the metres were made of. That separation is deliberate: identity
+/// riding a second arithmetic could not perturb `H` even if it were wrong.
+///
+/// **Returns the gross traffic** through the cell — the sum of every edge flux, in
+/// or out. That is the audit's denominator, and it has to be: a cell that sheds as
+/// much as it gains has a net near zero with real material moving through it, and
+/// dividing a rounding error by *that* would report a leak where there is only
+/// cancellation.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the diffusion kernel's own arity"
+)]
+#[inline]
+fn diffuse_species_cell(
+    i: usize,
+    w: usize,
+    surf: &[f64],
+    scale: &[f64],
+    diffusion: f64,
+    resist: &[f32],
+    sus: &[f64],
+    shares: &[f64],
+    out: &mut [f64],
+) -> f64 {
+    let (gx, gy) = coords_of(i, w);
+    let si = surf[i];
+    let mut gross = 0.0;
+    out.fill(0.0);
+    for (dx, dy) in NEIGH4 {
+        if let Some(j) = in_grid(gx + dx, gy + dy, w) {
+            let d = si - surf[j];
+            if d > 0.0 {
+                let f = eff_diff(diffusion, resist, sus, i) * d * scale[i];
+                let s = split_by_shares(f, &shares[i * SPECIES..(i + 1) * SPECIES]);
+                for k in 0..SPECIES {
+                    out[k] -= s[k];
+                }
+                gross += f;
+            } else if d < 0.0 {
+                let f = eff_diff(diffusion, resist, sus, j) * (-d) * scale[j];
+                let s = split_by_shares(f, &shares[j * SPECIES..(j + 1) * SPECIES]);
+                for k in 0..SPECIES {
+                    out[k] += s[k];
+                }
+                gross += f;
+            }
+        }
+    }
+    gross
+}
+
+/// The number of edges cell `i` **sends** creep across this epoch — the face count
+/// a gravity-caused [`super::flux::FluxEntry`] would need if the flow record grew
+/// the mass-wasting mover (stubs.md #18's `cause`). Counted rather than recorded,
+/// because the count is the cost estimate that decides whether recording it is
+/// affordable, and a probe that guessed it would be guessing the answer.
+#[inline]
+fn diffuse_outflux_faces(i: usize, w: usize, surf: &[f64], scale: &[f64]) -> usize {
+    let (gx, gy) = coords_of(i, w);
+    let si = surf[i];
+    let mut n = 0;
+    for (dx, dy) in NEIGH4 {
+        if let Some(j) = in_grid(gx + dx, gy + dy, w)
+            && si - surf[j] > 0.0
+            && scale[i] > 0.0
+        {
+            n += 1;
+        }
+    }
+    n
+}
+
 // The per-cell weathering kernel now lives in the north-star behavior shape
 // (`weather_behavior::weather_one_cell` / `WeatheringPass`, S16). The domain
 // narrative that used to sit here — **why it is the rate-limiting phase on
@@ -658,30 +794,64 @@ fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: L
 
 /// **Which material the unit arriving at this cell is made of** (Movement 2b).
 ///
-/// The cell's net gain has several sources and only one of them carried an
-/// identity here: the transport pass knows, per species, exactly what it set
-/// down (`dep`). Everything else in `dh` — bedrock weathered to regolith in
-/// place, cover crept in from a neighbour — is material that never rode a load,
-/// and it keeps the answer the record has always given, the tag's own lithology.
-/// So the unit's species is the **argmax of the whole mixture**: each transported
-/// species against the un-transported remainder, with ties going to the
-/// incumbent (a strict `>` over fixed index order, so it is deterministic).
+/// The cell's net gain has several sources, and **two of them now carry an
+/// identity**: the fluvial transport pass knows, per species, exactly what it set
+/// down (`dep`), and hillslope creep knows, per species, exactly what came down
+/// the slope into this cell (`creep`, Movement 2b continuation (b)). What is left
+/// in `dh` — bedrock weathered to regolith in place, wind and wave, the biotic
+/// layer — never rode any mover, and keeps the answer the record has always
+/// given: the tag's own lithology.
+///
+/// So the unit's species is the **argmax of the whole mixture**: each carried
+/// species against the un-carried remainder, with ties going to the incumbent (a
+/// strict `>` over fixed index order, so it is deterministic).
+///
+/// **The two movers are summed, not ranked.** A cell that receives half a metre of
+/// fine clastic from upstream and half a metre of the same rock off the slope
+/// above has a metre of that rock, and pretending the two halves compete would
+/// make the answer depend on which agent we asked first.
+///
+/// **STUB #25 — which *mover* delivered it is a different axis, and the record does
+/// not carry one.** Colluvium and alluvium are separable only by signature, not by
+/// label; the byte that would fix it costs ~42 MiB at today's `DepUnit` layout, and
+/// the free version is a packed `(species, mover)` byte. See `stubs.md` § 25 and
+/// `examples/colluvium_probe.rs`, which measures the signature the label is missing.
+///
+/// Only *gains* are candidates: a species creep took **away** from this cell is
+/// not something the cell can be made of, so the negative entries are clamped out
+/// of both the mixture and the remainder.
 ///
 /// This is deliberately *not* a threshold on "was most of this transported" —
 /// a threshold would be a second rule with a number in it. It is one comparison
-/// over one mixture, and it degenerates exactly to the old behaviour when the
-/// pass carried nothing here.
+/// over one mixture, and it degenerates exactly to the old behaviour when nothing
+/// was carried here.
 #[inline]
-fn arriving_species(dh: f64, dep: &[f64], tag_species: Litho) -> Litho {
+fn arriving_species(dh: f64, dep: &[f64], creep: &[f64], tag_species: Litho) -> Litho {
+    let mut mix = [0.0; SPECIES];
+    let mut carried = 0.0;
+    for k in 0..SPECIES {
+        let m = dep[k] + creep.get(k).copied().unwrap_or(0.0).max(0.0);
+        mix[k] = m;
+        carried += m;
+    }
     let mut best = tag_species;
-    let mut best_m = dh - dep.iter().sum::<f64>();
-    for (k, &m) in dep.iter().enumerate() {
+    let mut best_m = dh - carried;
+    let mut moved = false;
+    for (k, &m) in mix.iter().enumerate() {
         if m > best_m {
             best_m = m;
             best = Litho::ALL[k];
+            moved = true;
         }
     }
-    best.as_deposited()
+    // [`Litho::as_deposited`] answers *"what is this rock once a mover has set it
+    // down"*, so it applies to the **carried** winner and not to the tag's own
+    // default: the default was never carried anywhere and the record has always
+    // been allowed to say what it says. (On today's world the distinction is
+    // inert — the erosion recorder builds mineral tags only, and `litho_of_tag`
+    // maps those to clastics, which `as_deposited` leaves alone — but the rule
+    // should be right rather than accidentally right.)
+    if moved { best.as_deposited() } else { best }
 }
 
 /// **Where the transport pass picked material up and where it put it down**,
@@ -885,9 +1055,6 @@ pub struct Erosion {
     /// one day answer it differently per cell, at which point this becomes a plane
     /// rather than a constant.)
     bedrock_sp: [f64; SPECIES],
-    /// The index of the last non-zero entry of [`Self::bedrock_sp`] — the species
-    /// that takes the residual, so an incision split is exact by construction.
-    last_bedrock_species: usize,
     /// **The load itself** — `n × SPECIES` metres of suspended material, the
     /// multiset of § 13.3. Cell `c`'s slice holds its *in*-load while upstream
     /// cells are still contributing, and is rewritten in place by
@@ -909,6 +1076,41 @@ pub struct Erosion {
     /// epoch, per species. Read by [`Self::record`] to name the arriving unit, and
     /// by the outcome probe to measure the downstream fining gradient.
     dep_sp: Vec<f64>,
+    /// **Material-aware hillslope creep** (Movement 2b continuation (b)) — the
+    /// gravity/mass-wasting member of § 13.2's transport family. Off ⇒
+    /// [`Self::creep_sp`] is empty, [`Self::diffuse`] never runs its third pass,
+    /// and the record names the arriving unit exactly as the fluvial-only slice
+    /// did. Requires [`Self::sorted`], because the composition it moves is the
+    /// same `outcrop_shares` plane the load entrains from — one walk, now three
+    /// consumers.
+    creep_carries: bool,
+    /// `n × SPECIES` — the **net** metres of each species creep delivered to (or
+    /// took from) each cell this epoch. Signed: a hillslope cell loses species it
+    /// sheds and gains what came down from above.
+    ///
+    /// It is an **attribution, not a mass authority** — `grid.h` still moves by
+    /// the scalar `netdiff`, bit for bit as before. Read by [`Self::record`] to
+    /// name the arriving unit and by the outcome probe.
+    creep_sp: Vec<f64>,
+    /// `n` — the **gross** creep traffic through each cell this epoch (every edge
+    /// flux, in or out). The itemisation audit's denominator; see
+    /// [`diffuse_species_cell`].
+    creep_gross: Vec<f64>,
+    /// **The creep itemisation audit** — the largest relative gap, over every
+    /// (cell, epoch), between `Σ_species creep_sp[cell]` and the scalar `netdiff`
+    /// the terrain actually moved. The standing probe-defect shape in this repo is
+    /// *an itemisation that stops equalling its own total*, and this is that check
+    /// on the identity path, taken continuously rather than once.
+    creep_itemisation_residue: f64,
+    /// **The creep conservation audit** — the largest relative gap, over every
+    /// (species, epoch), between `Σ_cells creep_sp[·][s]` and **zero**. Creep only
+    /// *moves* material: whatever any cell gained of a species, some other cell
+    /// lost. This is the global half, and it is the one an antisymmetry mistake
+    /// would show up in.
+    creep_conservation_residue: f64,
+    /// How many (cell → neighbour) creep faces carried flux in the **last** epoch
+    /// — the cost input for stubs.md #18's gravity mover in the flow record.
+    creep_faces: usize,
     /// **The per-species split audit.** The largest *relative* discrepancy, over
     /// every `(cell, species, epoch)` of the run, between what a cell held of a
     /// species and the sum of what its receivers were handed of it.
@@ -979,10 +1181,15 @@ impl Erosion {
             w_settle: [0.0; SPECIES],
             ws_order: [0; SPECIES],
             bedrock_sp: [0.0; SPECIES],
-            last_bedrock_species: 0,
             qs_sp: Vec::new(),
             shares: Vec::new(),
             dep_sp: Vec::new(),
+            creep_carries: false,
+            creep_sp: Vec::new(),
+            creep_gross: Vec::new(),
+            creep_itemisation_residue: 0.0,
+            creep_conservation_residue: 0.0,
+            creep_faces: 0,
             split_residue: 0.0,
             ledger: TransportLedger::default(),
             denude: false,
@@ -1103,6 +1310,67 @@ impl Erosion {
     #[inline]
     pub fn is_material_transport(&self) -> bool {
         self.sorted
+    }
+
+    /// Turn **material-aware hillslope creep** on (Movement 2b continuation (b),
+    /// `material-behavior.md` § 13.2 — the gravity/mass-wasting member of the
+    /// transport family). Off is the anonymous-creep path, byte for byte, because
+    /// the species plane stays empty and [`Self::record`] falls back to the
+    /// fluvial-only mixture.
+    ///
+    /// **Gated on [`Self::set_material_transport`]**, and that is not a
+    /// convenience: what creep moves is the near-surface composition the
+    /// `outcrop_shares` seam publishes into [`Self::shares`], which only exists on
+    /// the material-aware path. Asking for creep identity without it would have to
+    /// take a *second* composition walk beside the one already running — the
+    /// re-invention-next-door this project keeps catching itself at (spines A-4).
+    pub fn set_material_creep(&mut self, on: bool) {
+        self.creep_carries = on && self.sorted;
+        if !self.creep_carries {
+            self.creep_sp = Vec::new();
+            self.creep_gross = Vec::new();
+            return;
+        }
+        if self.creep_sp.len() != self.n * SPECIES {
+            self.creep_sp = vec![0.0; self.n * SPECIES];
+            self.creep_gross = vec![0.0; self.n];
+        }
+    }
+
+    /// Whether material-aware hillslope creep is on.
+    #[inline]
+    pub fn is_material_creep(&self) -> bool {
+        self.creep_carries
+    }
+
+    /// **What hillslope creep delivered to each cell in the last epoch, per
+    /// species** (`n × SPECIES` metres, signed; empty when creep carries no
+    /// identity). The colluvial half of the mixture [`Self::record`] names the
+    /// arriving unit from.
+    pub fn creep_species(&self) -> &[f64] {
+        &self.creep_sp
+    }
+
+    /// **The largest relative gap between the creep itemisation and its own
+    /// total**, over every (cell, epoch) of the run. `0.0` when creep carries no
+    /// identity.
+    pub fn max_creep_itemisation_residue(&self) -> f64 {
+        self.creep_itemisation_residue
+    }
+
+    /// **The largest relative amount of any species creep created or destroyed**,
+    /// over every (species, epoch) of the run. `0.0` when creep carries no
+    /// identity. Creep only moves material, so the honest value is zero to
+    /// round-off.
+    pub fn max_creep_conservation_residue(&self) -> f64 {
+        self.creep_conservation_residue
+    }
+
+    /// How many donor→receiver creep faces carried flux in the last epoch — the
+    /// entry count a gravity-caused flow record would pay per chapter
+    /// (stubs.md #18).
+    pub fn creep_outflux_faces(&self) -> usize {
+        self.creep_faces
     }
 
     /// The settling velocity of each species, indexed by [`Litho::index`] (all
@@ -1268,7 +1536,9 @@ impl Erosion {
             + self.mfd_w.len()
             + self.qs_sp.len()
             + self.shares.len()
-            + self.dep_sp.len();
+            + self.dep_sp.len()
+            + self.creep_sp.len()
+            + self.creep_gross.len();
         f64s * 8
             + self.recv.len() * 4
             + self.order.capacity() * 4
@@ -1490,10 +1760,6 @@ impl Erosion {
             // What lies below the record, asked of the seam with an empty section.
             self.bedrock_sp
                 .copy_from_slice(cfg.providers.outcrop_shares(&[]).shares());
-            self.last_bedrock_species = (0..SPECIES)
-                .rev()
-                .find(|&k| self.bedrock_sp[k] > 0.0)
-                .unwrap_or(0);
             let strata = &grid.strata;
             let providers = cfg.providers;
             let compose = |i: usize, out: &mut [f64]| {
@@ -1933,18 +2199,9 @@ impl Erosion {
             // discipline the MFD face split needs, for the same reason.
             if self.sorted && ent > 0.0 {
                 self.ledger.entrained_m += ent;
-                let sb = base;
-                if let Some(last) = (0..SPECIES).rev().find(|&k| self.shares[sb + k] > 0.0) {
-                    let mut given = 0.0;
-                    for k in 0..SPECIES {
-                        let sh = self.shares[sb + k];
-                        if sh <= 0.0 {
-                            continue;
-                        }
-                        let add = if k == last { ent - given } else { sh * ent };
-                        given += add;
-                        self.qs_sp[base + k] += add;
-                    }
+                let add = split_by_shares(ent, &self.shares[base..base + SPECIES]);
+                for (k, a) in add.iter().enumerate() {
+                    self.qs_sp[base + k] += a;
                 }
             }
             let mut carried = qin + ent;
@@ -1967,16 +2224,9 @@ impl Erosion {
                 // rock rather than reworking cover puts gravel into the load.
                 if self.sorted && inc > 0.0 {
                     self.ledger.incised_m += inc;
-                    let mut given = 0.0;
-                    let last = self.last_bedrock_species;
-                    for k in 0..SPECIES {
-                        let sh = self.bedrock_sp[k];
-                        if sh <= 0.0 {
-                            continue;
-                        }
-                        let add = if k == last { inc - given } else { sh * inc };
-                        given += add;
-                        self.qs_sp[base + k] += add;
+                    let add = split_by_shares(inc, &self.bedrock_sp);
+                    for (k, a) in add.iter().enumerate() {
+                        self.qs_sp[base + k] += a;
                     }
                 }
             }
@@ -2479,6 +2729,37 @@ impl Erosion {
         if self.denude {
             self.tally_creep_to_sea(grid, cfg);
         }
+        // Pass 3 (Movement 2b continuation (b)): **the same fluxes, carrying
+        // identity.** Runs only when creep carries material; the terrain below is
+        // applied from `netdiff` either way, so this pass cannot move a metre of
+        // rock — it can only name the metres the pass above already moved.
+        if self.creep_carries {
+            let surf = &self.surf;
+            let scale = &self.scale;
+            let resist = &grid.bio_resist;
+            let sus = &self.sus_creep;
+            let shares = &self.shares;
+            let creep = &mut self.creep_sp;
+            let gross = &mut self.creep_gross;
+            if parallel {
+                creep
+                    .par_chunks_mut(SPECIES)
+                    .zip(gross.par_iter_mut())
+                    .enumerate()
+                    .for_each(|(i, (out, g))| {
+                        *g =
+                            diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
+                    });
+            } else {
+                for (i, (out, g)) in creep.chunks_mut(SPECIES).zip(gross.iter_mut()).enumerate() {
+                    *g = diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
+                }
+            }
+            self.audit_creep_species();
+            self.creep_faces = (0..self.n)
+                .map(|i| diffuse_outflux_faces(i, w, &self.surf, &self.scale))
+                .sum();
+        }
         // Apply: h += net, dh += net (disjoint per-cell writes).
         if parallel {
             grid.h
@@ -2497,6 +2778,56 @@ impl Erosion {
         }
     }
 
+    /// **The two creep-identity audits, taken every epoch** (Movement 2b
+    /// continuation (b)).
+    ///
+    /// 1. **The itemisation equals its own total.** `Σ_species creep_sp[cell]` must
+    ///    be the scalar `netdiff[cell]` the terrain moved. This is the check that
+    ///    catches the failure this repo keeps catching — *a missing row in an
+    ///    itemisation* — and it is the one that would fire if a species were ever
+    ///    dropped from a split. It cannot be bit-exact because the two sums visit
+    ///    the same terms in different orders (four edges of seven species against
+    ///    seven species of four edges), so it is relative, scaled by the traffic
+    ///    through the cell rather than by the net — a cell that gains as much as it
+    ///    sheds has a net near zero and real material moving through it.
+    /// 2. **No species is created or destroyed.** `Σ_cells creep_sp[·][s]` must be
+    ///    zero: creep only *moves*. This is the global half, and it is where an
+    ///    antisymmetry mistake between the two endpoints of an edge would land —
+    ///    the direct analogue of journal/0110's `no_species_leaks_at_its_own
+    ///    _junction`, taken over the whole grid because a diffusion junction has no
+    ///    downstream order to walk.
+    ///
+    /// Running maxima rather than stored planes, for journal/0110's reason: a leak
+    /// anywhere is a leak, and the per-cell per-species plane is not worth its
+    /// megabytes to assert a scalar.
+    fn audit_creep_species(&mut self) {
+        let mut sum_s = [0.0; SPECIES];
+        let mut abs_s = [0.0; SPECIES];
+        for (i, row) in self.creep_sp.chunks(SPECIES).enumerate() {
+            let mut net = 0.0;
+            for (k, &v) in row.iter().enumerate() {
+                net += v;
+                sum_s[k] += v;
+                abs_s[k] += v.abs();
+            }
+            let gross = self.creep_gross[i];
+            if gross > 0.0 {
+                let rel = (net - self.netdiff[i]).abs() / gross;
+                if rel > self.creep_itemisation_residue {
+                    self.creep_itemisation_residue = rel;
+                }
+            }
+        }
+        for k in 0..SPECIES {
+            if abs_s[k] > 0.0 {
+                let rel = sum_s[k].abs() / abs_s[k];
+                if rel > self.creep_conservation_residue {
+                    self.creep_conservation_residue = rel;
+                }
+            }
+        }
+    }
+
     // ---- phase 9: strata recorder (PARALLEL — per-cell independent) --------
 
     /// Record each cell's net thickness change this iteration under the tag
@@ -2509,11 +2840,17 @@ impl Erosion {
         let (r, h, precip, energy) = (&grid.r, &grid.h, &grid.precip, &self.energy);
         let dh = &self.dh;
         let dep = &self.dep_sp;
+        let creep = &self.creep_sp;
         let sorted = self.sorted;
         let species_at = |i: usize, tag: DepTag| {
             let t = lithology::litho_of_tag(tag);
             if sorted {
-                arriving_species(dh[i], &dep[i * SPECIES..(i + 1) * SPECIES], t)
+                let cr = if creep.is_empty() {
+                    &[][..]
+                } else {
+                    &creep[i * SPECIES..(i + 1) * SPECIES]
+                };
+                arriving_species(dh[i], &dep[i * SPECIES..(i + 1) * SPECIES], cr, t)
             } else {
                 t
             }
@@ -2908,5 +3245,120 @@ mod mfd_tests {
             w_out.iter().all(|&v| v == 0.0 || v >= MFD_MIN_WEIGHT),
             "a sub-floor weight survived: {w_out:?}"
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Movement 2b continuation (b) — the creep split. Its own module so the two
+// slices' unit tests do not share a namespace.
+
+#[cfg(test)]
+mod creep_tests {
+    use super::*;
+
+    /// **The split closes exactly.** `Σ_species` of a composition split is the
+    /// quantity that went in, to the bit — not to an epsilon. That is the whole
+    /// content of the residual rule, and it is what makes the itemisation audit's
+    /// tolerance a statement about *summation order* rather than about a leak we
+    /// decided to tolerate.
+    #[test]
+    fn a_composition_split_closes_to_the_bit() {
+        // Shares that do not sum to 1 in binary — the normal case for a
+        // normalised f64 composition, and the reason the rule exists.
+        let mut shares = [0.0; SPECIES];
+        for (k, v) in [0.17, 0.03, 0.31, 0.0, 0.29, 0.11, 0.09]
+            .into_iter()
+            .enumerate()
+        {
+            shares[k] = v;
+        }
+        for total in [1.0f64, 3.7e-5, 2.4e3, 9.81e-12, 0.0] {
+            let out = split_by_shares(total, &shares);
+            let sum: f64 = out.iter().sum();
+            assert_eq!(
+                sum, total,
+                "the split of {total} summed to {sum}; the last non-zero share is \
+                 not taking the residual"
+            );
+        }
+    }
+
+    /// **A species with a zero share receives nothing**, whatever the residual
+    /// rule does. A composition that says "there is no basement here" must not
+    /// have basement fall out of the arithmetic at the end.
+    #[test]
+    fn an_absent_species_stays_absent() {
+        let mut shares = [0.0; SPECIES];
+        shares[1] = 0.5;
+        shares[4] = 0.5;
+        let out = split_by_shares(7.0, &shares);
+        for (k, v) in out.iter().enumerate() {
+            if shares[k] == 0.0 {
+                assert_eq!(*v, 0.0, "species {k} materialised out of a zero share");
+            }
+        }
+    }
+
+    /// **An all-zero composition splits into nothing** — the honest answer when a
+    /// cell has no identity to give. The alternative (spreading the quantity
+    /// evenly, or handing it to species 0) would be fabricating provenance, which
+    /// is strictly worse than recording none.
+    #[test]
+    fn an_unknown_composition_fabricates_no_identity() {
+        let out = split_by_shares(42.0, &[0.0; SPECIES]);
+        assert!(out.iter().all(|v| *v == 0.0), "{out:?}");
+    }
+
+    /// **CREEP DOES NOT SORT — and this is the test that would catch it starting
+    /// to.**
+    ///
+    /// Colluvium is poorly sorted because gravity is not selective: a diffusive
+    /// flux moves the donor's whole composition in proportion, with no competence
+    /// ceiling and no settling draw. So the *only* thing that may decide how a
+    /// creep flux resolves into species is the composition — never the settling
+    /// velocity, never the grain size, never the quantity.
+    ///
+    /// Asserted as **scale invariance**: doubling the flux must double every
+    /// species' share, exactly. A competence ceiling or a coarsest-first draw is by
+    /// construction non-linear in the quantity (it thresholds, or it drains one
+    /// species before touching the next), so any sorting rule that crept into this
+    /// path would break this equality. It is arithmetic and therefore scale-free.
+    #[test]
+    fn the_creep_split_is_linear_in_the_quantity_so_nothing_is_sorted() {
+        let mut shares = [0.0; SPECIES];
+        for (k, v) in [0.4, 0.0, 0.05, 0.25, 0.2, 0.0, 0.1]
+            .into_iter()
+            .enumerate()
+        {
+            shares[k] = v;
+        }
+        let one = split_by_shares(1.0, &shares);
+        let many = split_by_shares(1024.0, &shares);
+        for k in 0..SPECIES {
+            assert_eq!(
+                many[k],
+                one[k] * 1024.0,
+                "species {k} did not scale with the flux — something in the creep \
+                 path is selecting by grain size"
+            );
+        }
+    }
+
+    /// **The two endpoints of a creep edge see the same flux, to the bit.** The
+    /// whole per-species conservation argument rests on IEEE-754 subtraction being
+    /// exactly antisymmetric, so the donor's `sᵢ − sⱼ` and the receiver's
+    /// `−(sⱼ − sᵢ)` are the same number and split the same way. If that ever
+    /// stopped holding, every species would leak at every junction.
+    #[test]
+    fn a_surface_difference_is_exactly_antisymmetric() {
+        for (a, b) in [
+            (1234.5678901234, 1234.5678901233),
+            (1e-300, 3e-300),
+            (0.1, 0.2),
+            (1e17, 1.0),
+            (-4321.9, 8765.1),
+        ] {
+            assert_eq!(a - b, -(b - a), "({a}, {b}) broke the antisymmetry");
+        }
     }
 }

@@ -54,6 +54,14 @@ test = true
 name = "facies_probe"
 test = true
 
+# Movement 2b (b) — the gravity/mass-wasting member. The acceptance is the
+# fraction of the archive carrying honest provenance, against the fluvial
+# slice's 0.000006 %; the gated half is the per-species creep mass budget,
+# which is edge arithmetic and therefore scale-free.
+[[example]]
+name = "colluvium_probe"
+test = true
+
 [[example]]
 name = "contents_air_over_solid_probe"
 test = true
