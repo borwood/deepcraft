@@ -814,14 +814,24 @@ numbers are not.** They were read off the `χ` percentiles of **one world** (see
 `Extent::Medium`, 460 m cells) printed by `examples/hybrid_p_probe.rs`, chosen so a
 plausible fraction of land sits at each end.
 
-**Why that is a stand-in and not a tuning knob.** `S` in this index is a rise per
-**cell width**, so `χ` carries the grid's resolution inside it: the same landscape at
-`Extent::Large` (coarser cells, `DEEP_MAX_WIDTH` coarsening) has systematically
-smaller `S` and therefore smaller `χ`, and the same two constants describe a
-*different* fraction of it as channelised. A genuinely mountainous world, or one whose
-erosion budget has been raised to a real denudation rate (stub #24), moves the whole
+**Why that is a stand-in and not a tuning knob.** `S` is dimensionless, but `A` is in
+**cells**, so `χ` still carries the grid's resolution: the same landscape at
+`Extent::Large` (coarser cells via `DEEP_MAX_WIDTH`) accumulates fewer cells of area
+for the same physical catchment, so the same two constants describe a *different*
+fraction of it as channelised. A genuinely mountainous world, or one whose erosion
+budget has been raised to a real denudation rate (stub #24), moves the whole
 distribution too. **The threshold is currently a property of the world it was fitted
 to, wearing the clothes of a property of landscapes.**
+
+**What the fit is defended by, so the next author does not redo it blind.** The probe
+sweeps `chi_hi` and reports the curve rather than the point, and the curve is not
+monotone: at `chi_hi = 3×10⁻²` (36 % of land channelised) the single largest catchment
+is the *biggest* of the four settings while **both** honest concentration measures are
+the *worst*, because thousands of parallel threads that never merge are not a drainage
+network. The shipped `1.2×10⁻¹` maximises p99 catchment **and** the top-1 % area share
+**and** retains the most simultaneous divergence of any concentrating setting. So it is
+a fitted constant with a measured defence — which is not the same thing as a derived
+one, and that gap is this entry.
 
 **Two heirs, and they are different fixes.** (a) The **joint supply+transport
 calibration** — once the engine's rates are anchored to the ratified 500 Myr register
