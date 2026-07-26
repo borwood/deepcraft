@@ -795,6 +795,40 @@ so a sweep must ask "does the cited constraint still hold?"
   #40. **The check works the other way too:** verify the *quotation*, not just the
   claim about it.
 
+- **instance (2026-07-26, caught while landing the erosional calibration —
+  corrections #59): `COMPETENCE_SCALE`'s anchor expired the moment `k_transport`
+  moved.** The constant was defended at length as *"not a tuning knob"* because it was
+  derived from `energy_band`'s Low/Medium boundary — *"`0.002` is **already the world's
+  stated 'energy at which sand stops moving'**"*. But transport capacity is
+  `cap = k_transport · A^m · S^n`, so `0.002` was never a physical statement: it was
+  `1.25 × k_transport`, and it read as one only because `k_transport` had not moved since
+  the day it was written. journal/0114 multiplies it by 45. Left absolute, the boundaries
+  would have relabelled **every** depositional site on the world High energy and the
+  facies gradient would have been erased by the commit meant to make the world erode.
+  Fixed by stating both thresholds relative to a named `REFERENCE_KT` (bit-identical at
+  the historical value, since `x / x` is exactly `1.0`).
+
+  **The variant worth naming, because § 5's check does not catch it as written.** The
+  check asks *"does the cited constraint still hold?"* — and here the *citation* was
+  fine and the **form** was wrong. The premise was not a decision elsewhere that
+  expired; it was **an unstated assumption that another constant in the same system
+  would never change**. This is journal/0111's *closed system cannot detect its own
+  scale error* one level down: **a constant checked against a number that was itself
+  unchecked.** *Added check:* when a threshold is defended by derivation, ask what the
+  thing it is derived FROM is anchored to — and if a threshold and the quantity it
+  thresholds carry different things inside them (an absolute rate vs a coefficient times
+  a dimensionless index), one of them is holding a constant it does not own.
+
+- **live risk, flagged rather than fixed (2026-07-26, journal/0114).** The
+  `BEDROCK_SEAM_THICKNESS_M` instance above named *"a cranked `--erosion-budget` walk"*
+  as where its 50 m ceiling would bite first. The erosional calibration is that crank,
+  made permanent: `weathering` is now **45×** what it was, and the measured saprolite
+  draw was 6.094 m of 50 m (12 %) at the old rate. The shipped world is unaffected —
+  `weather_inventory` is off in production — but **a `--weather-inventory` walk on the
+  calibrated world should be expected to hit the seam ceiling**, and the number that
+  comes back from one is no longer comparable to journal/0094's. Not re-measured here:
+  it is a flag-on path and re-deriving the seam depth is that arc's slice, not this one's.
+
 ## A-3. A test green for a reason unrelated to what it asserts
 
 corrections #27 (a stale artifact served as fresh: exit 0, every suite `ok`,
