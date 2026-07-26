@@ -132,9 +132,9 @@ fn percentile(sorted: &[f64], q: f64) -> f64 {
 
 fn structure(f: &DeepField, deep_secs: f64) -> Structure {
     let mut land: Vec<f64> = Vec::new();
-    for i in 0..f.surf.len() {
-        if f.surf[i] > 0.0 {
-            land.push(f.area[i]);
+    for (z, a) in f.surf.iter().zip(&f.area) {
+        if *z > 0.0 {
+            land.push(*a);
         }
     }
     land.sort_by(|a, b| a.partial_cmp(b).expect("finite areas"));
