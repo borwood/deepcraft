@@ -460,22 +460,19 @@ mod gate {
         assert!(hy.simul_max_faces >= 2);
     }
 
-    /// **The uniform solve is still reachable, exactly.** `p_chan == p_hill`
-    /// evaluates no ramp, so hybrid `p` is a *generalisation* of journal/0109's
-    /// solve rather than a replacement for it — which is what makes "how much did
-    /// the ramp change" answerable at all. Determinism is asserted in the same
-    /// breath because a lagged read (the exponent sees the previous epoch's
-    /// drainage area) is exactly the kind of coupling that could introduce one.
+    /// **Determinism under the lagged read.** The exponent sees the *previous*
+    /// epoch's drainage area, which is exactly the kind of loop-carried coupling
+    /// that can introduce an order dependence — and the routing phase is data-
+    /// parallel, so a read that were not genuinely read-only would show up here
+    /// and nowhere else. (`MfdParams::uniform`'s exact recovery of journal/0109's
+    /// solve is asserted in `erosion::mfd_tests` on a hand-built patch, where it
+    /// costs no deep run.)
     ///
     /// Scale-free: an equality between two runs of the same code on the same
     /// world.
     #[test]
-    fn a_flat_ramp_is_the_uniform_solve_and_the_hybrid_one_is_deterministic() {
+    fn the_hybrid_solve_is_deterministic_under_its_lagged_area_read() {
         let pregen = small();
-        let a = measure(&pregen.grid, &cfg_uniform(&pregen.grid, 4.0));
-        let b = measure(&pregen.grid, &cfg_uniform(&pregen.grid, 4.0));
-        assert_eq!(a.peak_catchment, b.peak_catchment);
-        assert_eq!(a.entries, b.entries);
         let h1 = measure(&pregen.grid, &cfg_hybrid(&pregen.grid));
         let h2 = measure(&pregen.grid, &cfg_hybrid(&pregen.grid));
         assert_eq!(
@@ -484,5 +481,6 @@ mod gate {
              introduced a dependency on something other than (cells, cfg)"
         );
         assert_eq!(h1.simul_cell_epochs, h2.simul_cell_epochs);
+        assert_eq!(h1.entries, h2.entries);
     }
 }

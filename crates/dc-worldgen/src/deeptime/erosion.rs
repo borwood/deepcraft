@@ -453,6 +453,7 @@ fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) 
 /// safe exponent range is bounded by the world's smallest slope, which is a
 /// coupling nobody would remember.
 #[inline]
+#[allow(clippy::too_many_arguments)]
 fn partition_cell(
     i: usize,
     w: usize,
