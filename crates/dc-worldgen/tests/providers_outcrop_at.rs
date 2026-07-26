@@ -27,6 +27,7 @@ fn unit(tag: DepTag, thickness_m: f64) -> DepUnit {
         thickness_m,
         unconformity: false,
         chapter: 0,
+        species: litho_of_tag(tag),
     }
 }
 

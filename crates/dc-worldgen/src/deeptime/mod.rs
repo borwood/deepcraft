@@ -171,6 +171,10 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // FLOW continuation (b): the MFD partition. `None` ⇒ the single-receiver D8
     // solve, byte for byte.
     erosion.set_mfd(cfg.mfd.then_some(cfg.mfd_exponent));
+    // Movement 2b: the load becomes a multiset of (lithology, quantity). Off ⇒
+    // every species vector stays empty and the pass carries a scalar mass, byte
+    // for byte.
+    erosion.set_material_transport(cfg.material_transport);
     let mass_before = total_mass(&grid);
 
     // --- pre-loop seeding (initial conditions the epoch loop reads) ---

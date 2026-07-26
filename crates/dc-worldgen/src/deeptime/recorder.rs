@@ -19,6 +19,7 @@
 //! by construction: the record mirrors every metre that entered or left `H`.
 
 use super::geotherm::{self, BurialColumn};
+use super::lithology::{Litho, litho_of_tag};
 
 /// Depositional environment, measured at the event (surface vs. sea level).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -236,6 +237,28 @@ pub struct DepUnit {
     /// Appended last (wire discipline — corrections #3): fits `DepUnit`'s
     /// existing 8-byte padding, so `sizeof` is unchanged (verified in the spike).
     pub chapter: u8,
+    /// **The material that actually arrived here** (Movement 2b, `material-behavior.md`
+    /// § 13.3/§ 13.7).
+    ///
+    /// Every other axis of a unit is a *measurement of the environment* at the
+    /// moment of deposition; this one is a measurement of **the load**. Before
+    /// material-aware transport the record had no such axis and every consumer
+    /// inferred the rock from the environment — [`litho_of_tag`], the
+    /// *"`DepTag → reference_material` shortcut"* § 13.7 says half-dissolves. The
+    /// inference is not wrong, it is just **blind to provenance**: it cannot know
+    /// that the flow reaching a distal cell has no gravel left to drop, because
+    /// the gravel rained out at the mountain front twenty cells upstream.
+    ///
+    /// With [`super::grid::DeepConfig::material_transport`] **off** this is
+    /// exactly `litho_of_tag(tag)` at every construction site — a pure function of
+    /// `tag`, so it adds nothing to the merge key and the record is byte-identical.
+    /// With it **on**, transport deposition overrides it with the argmax species of
+    /// what settled, and the unit's identity stops being derivable from its
+    /// environment.
+    ///
+    /// Appended last (wire discipline — corrections #3); it fills `DepUnit`'s
+    /// existing padding, so `size_of::<DepUnit>()` is unchanged (asserted).
+    pub species: Litho,
 }
 
 /// The ordered per-cell deposition log, bottom-up. `units[0]` is the deepest
@@ -266,10 +289,31 @@ impl DeepStrata {
     /// extra `top.chapter == chapter` guard is always satisfied and merging is
     /// byte-identical to before.
     pub fn deposit(&mut self, tag: DepTag, d: f64, chapter: u8) {
+        self.deposit_as(tag, d, chapter, litho_of_tag(tag));
+    }
+
+    /// [`Self::deposit`], but stating **which material arrived** rather than
+    /// letting it be inferred from the tag (Movement 2b, `material-behavior.md`
+    /// § 13.3).
+    ///
+    /// Only an agent that actually *carried* a load can answer that question, so
+    /// only the material-aware fluvial transport pass calls this; every other
+    /// depositor — the wind agent, the wave agent, the biotic layer, the tests —
+    /// goes through [`Self::deposit`] and gets the tag-derived default, which is
+    /// what the record has always said. (The **eolian** family genuinely has a load
+    /// too and would honestly travel its own identity; it is deferred with the rest
+    /// of § 13.2's wind/ice/gravity family and still reads its species off the tag.)
+    ///
+    /// `species` joins the merge key: two runs of the same environment that
+    /// delivered *different rock* are two units, not one. That is the whole point —
+    /// a sand sheet and the mud that followed it at the same tag are a contact you
+    /// can see in a cliff.
+    pub fn deposit_as(&mut self, tag: DepTag, d: f64, chapter: u8, species: Litho) {
         if !self.stripped
             && let Some(top) = self.units.last_mut()
             && top.tag == tag
             && top.chapter == chapter
+            && top.species == species
         {
             top.thickness_m += d;
             return;
@@ -279,6 +323,7 @@ impl DeepStrata {
             thickness_m: d,
             unconformity: self.stripped,
             chapter,
+            species,
         });
         self.stripped = false;
     }
@@ -310,6 +355,7 @@ impl DeepStrata {
                 thickness_m: extra,
                 unconformity: self.stripped,
                 chapter,
+                species: litho_of_tag(tag),
             });
             self.stripped = false;
             return;
@@ -318,11 +364,17 @@ impl DeepStrata {
         top.thickness_m += extra;
         top.tag = tag;
         top.chapter = chapter;
+        // Pedogenesis **alters the material in place** — the horizon a community
+        // built out of what was lying here is an organic soil whatever the flow
+        // delivered, so the overprint takes the tag's own species and the
+        // transported identity is genuinely overwritten rather than lost.
+        top.species = litho_of_tag(tag);
         // Merge down into an identically-tagged predecessor of the same chapter.
         let n = self.units.len();
         if n >= 2
             && self.units[n - 2].tag == tag
             && self.units[n - 2].chapter == chapter
+            && self.units[n - 2].species == litho_of_tag(tag)
             && !self.units[n - 1].unconformity
         {
             let t = self.units.pop().expect("non-empty").thickness_m;
@@ -456,6 +508,11 @@ impl DeepStrata {
                     geotherm::temperature_c(col.surface_temp_c, col.gradient_c_per_m, depth_m);
                 if t_c >= onset_c {
                     u.tag.biota = Biofacies::Coal;
+                    // Diagenesis is a **material transformation**: the unit stops
+                    // being peat, so its species follows its tag. (A peat unit's
+                    // species is always the tag-derived one — peat is laid by the
+                    // biotic layer, which does not carry a load.)
+                    u.species = litho_of_tag(u.tag);
                 }
             }
             overburden_m += u.thickness_m;

@@ -331,6 +331,32 @@ pub struct DeepConfig {
     /// distributaries physically live — fans, braid plains, delta tops — the
     /// near-equal slopes genuinely split. Appended last (wire discipline).
     pub mfd_exponent: f64,
+
+    /// **Material-aware transport** (Movement 2b first slice, `material-behavior.md`
+    /// § 13.3–13.6 — "identity travels + sorted deposition"). **On by default.**
+    ///
+    /// With it **off**, the transport pass carries a scalar mass: a cell entrains
+    /// `min(H, room)` metres of *something*, hands it downstream, and whatever
+    /// exceeds the next cell's capacity is deposited as *something else*. Nothing
+    /// about the material survives the journey, so the rock a unit is made of has
+    /// to be **inferred from the environment** at the receiver
+    /// ([`litho_of_tag`](super::lithology::litho_of_tag)).
+    ///
+    /// With it **on**, the load is a multiset of `(lithology, quantity)` — a
+    /// suspended inventory riding the chain — sorted by **settling velocity**
+    /// ([`settling_table`](super::lithology::settling_table)). Deposition is the
+    /// **falling competence ceiling**: a species whose settling velocity exceeds
+    /// what the cell's energy can hold rains out, coarsest first, and the fines
+    /// ride on. So a distal cell deposits mud not because it is a low-energy place
+    /// but because *there is no gravel left in the water*, which is the difference
+    /// between a facies model and a facies **consequence**.
+    ///
+    /// Like [`DeepConfig::mfd`] and unlike the record/head sidecars, this is **not**
+    /// a sidecar: the competence ceiling changes where mass is set down, so the
+    /// world moves with it. Off is the pre-2b identity path, byte-identical to the
+    /// scalar solve (asserted by name in `tests/material_transport.rs`). Appended
+    /// last (wire discipline).
+    pub material_transport: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -390,6 +416,7 @@ impl Default for DeepConfig {
             head_field: true,
             mfd: true,
             mfd_exponent: 4.0,
+            material_transport: true,
             providers: super::providers::Providers::default(),
         }
     }
