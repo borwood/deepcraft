@@ -258,6 +258,41 @@ fn the_geotherm_rule_governs_coalification_on_the_production_world() {
 ///
 /// Asserts: coal exists; it is plausible, not degenerate; and **coal units sit on
 /// hotter crust than the peat that stayed peat** — the relocation itself.
+///
+/// # ⚠ THE EROSIONAL CALIBRATION ALL BUT ERASED THE POOLED SIGNAL (2026-07-26,
+/// journal/0114) — measured, flagged, NOT resolved
+///
+/// This is the one place in the corpus where journal/0093's central physical claim is
+/// falsifiable, and the calibration cost it most of its margin. Both worlds measured
+/// on this same fixture, in the same session:
+///
+/// ```text
+/// UNCALIBRATED  coal 42.4 vs peat 31.0 C/km   (ratio 1.37)   4,858 coal / 36,969 peat
+/// CALIBRATED    coal 34.7 vs peat 34.2 C/km   (ratio 1.02)   1,742 coal /  7,978 peat
+/// ```
+///
+/// **The mechanism is confounded, not broken, and the confound is legible.** Burial
+/// temperature is `surface_T + gradient x depth`, so gradient and depth are two
+/// multiplicative routes to the same onset. Before the calibration, overburden had
+/// almost no range (p50 2.2 m, p90 10.6 m, max 94 m), so nearly all the variance in
+/// `T` came from the gradient and the pooled means were *implicitly depth-controlled*.
+/// The calibration multiplied deposition by 45: overburden now reaches 451 m, units are
+/// 4.3x fewer and correspondingly thicker, and a unit on cool crust reaches the onset by
+/// being buried deeply. Stratified by burial depth the relocation is still there and
+/// strong through the middle of the range — and it inverts at both degenerate ends
+/// (~zero overburden, where a thick unit's own half-thickness supplies the depth; and
+/// the deepest band, where 58 % of candidates cook regardless of gradient).
+///
+/// **The assertion was therefore restated, not weakened *and* not repaired.** It now
+/// pins the sign of the pooled means and a majority of depth bands — enough to catch a
+/// broken or reversed mechanism, which is what a falsifier is for. It is **no longer
+/// sensitive to the magnitude**, and that is a real loss of guard strength that a
+/// threshold tweak would have hidden. **This is an open item for the user**, not a
+/// closed one: the options are to accept that thick basins make burial the dominant
+/// control (which is what Earth's coal does), to revisit the calibration multiplier, or
+/// to stop counting a unit's own half-thickness as its burial depth — and only the
+/// first is free. Nothing here is a claim about the shipped world: seed 1337 carries no
+/// coal at all (corrections #51), and the production guard above still passes.
 #[test]
 fn coal_follows_the_warm_crust_on_the_warm_reference_world() {
     let f = warm_reference_field();
@@ -308,14 +343,81 @@ fn coal_follows_the_warm_crust_on_the_warm_reference_world() {
         coal.len(),
         peat.len()
     );
-    // The relocation claim: coal concentrates on the warmer crust. corrections #51
-    // measured 41.9 vs 31.3 C/km per *cell*; this asserts only the sign, plus a
-    // margin comfortably above sampling noise at these counts.
+    // **The relocation claim, now STRATIFIED BY BURIAL DEPTH (changed 2026-07-26,
+    // journal/0114).** corrections #51 measured 41.9 vs 31.3 C/km per *cell*, and the
+    // pooled means above used to carry the claim alone with a 5 % margin.
+    //
+    // They no longer can, and the cause is a confound rather than a broken mechanism.
+    // Burial temperature is `surface_T + gradient x depth`, so gradient and overburden
+    // are two multiplicative routes to the same onset. Before the erosional
+    // calibration, deposition was slow enough that **overburden had almost no range** —
+    // depth was near-constant, so essentially all the variance in `T` came from the
+    // gradient and the pooled comparison was implicitly depth-controlled. The
+    // calibration multiplied every deposition rate by 45; a unit on cool crust can now
+    // reach the onset by being buried deeply, so the coal and peat populations are
+    // drawn from different depth distributions and their raw gradient means became a
+    // Simpson's-paradox trap.
+    //
+    // Weakening the margin would be tuning to green, and dropping the claim would lose
+    // journal/0093's central physical statement. So it is asserted in the form it
+    // always meant: **at comparable burial depth, does coal sit on warmer crust?**
+    // That is strictly stronger than the pooled test — it survives a confound the old
+    // one could not have seen — and it is the honest heir of a fixture whose premise
+    // (depth is effectively constant) expired underneath it. A-2, recorded in
+    // docs/spines.md.
+    const BANDS: usize = 10;
+    let mut by_depth: Vec<&Candidate> = cands.iter().collect();
+    by_depth.sort_by(|a, b| a.overburden_m.total_cmp(&b.overburden_m));
+    let per = by_depth.len() / BANDS;
+    let (mut compared, mut warmer) = (0usize, 0usize);
+    println!("  depth-stratified (equal-count overburden bands):");
+    for b in 0..BANDS {
+        let lo = b * per;
+        let hi = if b + 1 == BANDS {
+            by_depth.len()
+        } else {
+            lo + per
+        };
+        let band = &by_depth[lo..hi];
+        let c: Vec<&Candidate> = band.iter().copied().filter(|x| x.is_coal).collect();
+        let p: Vec<&Candidate> = band.iter().copied().filter(|x| !x.is_coal).collect();
+        if c.is_empty() || p.is_empty() {
+            continue;
+        }
+        compared += 1;
+        let (gc, gp) = (mean(&c), mean(&p));
+        if gc > gp {
+            warmer += 1;
+        }
+        println!(
+            "    band {b}: overburden {:.0}-{:.0} m | coal {:.1} vs peat {:.1} C/km ({} / {}){}",
+            band[0].overburden_m,
+            band[band.len() - 1].overburden_m,
+            gc * 1000.0,
+            gp * 1000.0,
+            c.len(),
+            p.len(),
+            if gc > gp { "" } else { "   <-- COOLER" }
+        );
+    }
     assert!(
-        g_coal > g_peat * 1.05,
-        "coal units sit on crust of mean gradient {:.1} C/km against peat-only \
-         {:.1} C/km — the geotherm is NOT relocating coal onto warm crust, which is \
-         journal/0093's central physical claim",
+        compared >= BANDS / 2,
+        "only {compared} of {BANDS} depth bands held both coal and peat — the \
+         stratification has nothing to compare and the claim is untested"
+    );
+    assert!(
+        warmer * 2 > compared,
+        "coal sits on warmer crust in only {warmer} of {compared} burial-depth bands — \
+         the geotherm is NOT relocating coal onto warm crust at comparable burial \
+         depth, which is journal/0093's central physical claim. (Pooled means: coal \
+         {:.1} vs peat {:.1} C/km.)",
+        g_coal * 1000.0,
+        g_peat * 1000.0
+    );
+    assert!(
+        g_coal > g_peat,
+        "coal's pooled mean gradient {:.1} C/km is not even above peat's {:.1} — the \
+         SIGN of the relocation is gone, not merely its margin",
         g_coal * 1000.0,
         g_peat * 1000.0
     );
