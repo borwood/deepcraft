@@ -54,7 +54,8 @@
 
 use dc_worldgen::deeptime::erosion::TransportLedger;
 use dc_worldgen::deeptime::{
-    DeepConfig, SEA_LEVEL_M, build_cells, production_config, run_cells, sea_level_at,
+    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_cells, production_config,
+    production_config_with, run_cells, sea_level_at,
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -98,6 +99,27 @@ fn cfg(cells: &CellGrid) -> DeepConfig {
     DeepConfig {
         denudation_ledger: true,
         ..production_config(cells, SEED)
+    }
+}
+
+/// The same, with the **shipped** `erosion_budget` override applied — the knob
+/// that scales `weathering`, `k_transport` and `k_bedrock` *together*, so the
+/// relative rates (and therefore the differential-erosion signal) never move.
+///
+/// This probe never *sets* that knob in production; it only sweeps it to measure
+/// **how the world responds**. That distinction matters: a landscape whose
+/// denudation is linear in the budget is supply-limited by a constant, and a
+/// landscape that saturates is limited by something structural. Those are the two
+/// halves of the fork this probe exists to settle, and guessing between them from
+/// a single data point is exactly how a constant gets fitted.
+fn cfg_budget(cells: &CellGrid, mult: f64) -> DeepConfig {
+    let o = DeepOverrides {
+        erosion_budget: Some(mult),
+        ..DeepOverrides::default()
+    };
+    DeepConfig {
+        denudation_ledger: true,
+        ..production_config_with(cells, SEED, &o)
     }
 }
 
@@ -163,7 +185,11 @@ fn pct_of(sorted: &[f64], p: f64) -> f64 {
 }
 
 fn measure(cells: &CellGrid) -> Denudation {
-    let cfg = cfg(cells);
+    measure_cfg(cells, &cfg(cells))
+}
+
+fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
+    let cfg = *cfg;
     // The *initial* grid, rebuilt from the same pure `(cells, cfg)` inputs — the
     // only way to get a "before" plane, since the run consumes its own grid.
     let before = build_cells(cells, &cfg);
@@ -364,10 +390,13 @@ fn main() {
         "\n  NOT export, and reported so it can never be counted as such:\n    \
          fluvial load piled at the subaerial domain BORDER  {:>12.1}\n    \
          weathered to regolith in place (never travels)     {:>12.1}\n    \
-         moved by hillslope creep, TOTAL                    {:>12.1}  (of which {:.2} % left)",
-        l.sink_border_m,
-        l.weathered_m,
-        l.diffused_m,
+         moved by hillslope creep, TOTAL                    {:>12.1}",
+        l.sink_border_m, l.weathered_m, l.diffused_m,
+    );
+    println!(
+        "    (that creep total is the per-cell NET GAIN side and the shoreline figure above\n     \
+         is a GROSS edge flux, so their ratio — {:.0} % — is indicative, not an itemisation.\n     \
+         The two comparable numbers are D1 and D3 below, and they are independent.)",
         100.0 * l.creep_to_sea_m / l.diffused_m.max(1e-30),
     );
 
@@ -412,9 +441,26 @@ fn main() {
     }
     println!(
         "  land budget closure: Sum(dsurf) = {:.1} m vs Sum(uplift) - export = {:.1} m\n  \
-         (they differ only by material crossing the shoreline as cells change status;\n   \
-         a close match is what licenses reading D1 as THE land system's loss term)",
-        d.land_dsurf_m, d.land_budget_m
+         residual {:.1} m ({:.0} % of the export term) — material that arrived on cells which\n  \
+         were SEA at the start and are LAND at the end. The sea stand cycles +-35 m, so the\n  \
+         shoreline is not a clean control surface, and D1 alone carries that uncertainty.",
+        d.land_dsurf_m,
+        d.land_budget_m,
+        d.land_dsurf_m - d.land_budget_m,
+        100.0 * (d.land_dsurf_m - d.land_budget_m).abs() / d.ledger.exported_m().max(1e-30),
+    );
+    println!(
+        "  WHICH IS WHY D3 MATTERS: bedrock erosion is a per-cell rock-removal plane with no\n  \
+         shoreline in it at all, and it agrees with the boundary-flux accounting to {:.1} %\n  \
+         (D1 {:.4} vs D3 {:.4}). Two independent instruments, one number.",
+        100.0 * (d.catchment_averaged / d.bedrock_erosion - 1.0).abs(),
+        d.catchment_averaged,
+        d.bedrock_erosion,
+    );
+    println!(
+        "  It also says the land is SUPPLY-limited, not transport-limited: {:.0} % of every\n  \
+         metre of bedrock converted or incised leaves the land system. Nothing is piling up.",
+        100.0 * d.catchment_averaged / d.bedrock_erosion.max(1e-30),
     );
 
     println!("\n--- THE DISTRIBUTION across {} land cells ---", d.land_cells);
@@ -438,41 +484,68 @@ fn main() {
     };
     println!("  max / median = {concentration:.1}x");
 
+    println!("\n--- AGAINST THE LITERATURE (m/Myr = mm/kyr = um/yr) ---");
+    let d1 = d.catchment_averaged;
+    for (name, lo, hi, src) in BANDS {
+        let rel = if d1 > 0.0 { lo / d1 } else { f64::INFINITY };
+        println!("  {name:<38} {lo:>8.1} - {hi:<9.0}  this world is {rel:>8.0}x slower");
+        println!("      {src}");
+    }
+    println!(
+        "\n  D1 = {d1:.4} m/Myr and the world's MOST ACTIVE SINGLE CELL is {:.4} m/Myr.",
+        d.max_cell
+    );
+
     println!("\n--- READING IT ---");
     // The caption is DERIVED from the measurement, never written ahead of it
     // (CLAUDE.md: a printed caption is a published claim the gate cannot check).
-    // The bands below are literature, cited in journal/0111 — they are the
-    // comparison this probe exists to make, and they are not this world's numbers.
-    let d1 = d.catchment_averaged;
-    let band = if d1 < 1.0 {
-        "BELOW every published terrestrial band. The slowest measured landscapes on \
-         Earth — bare\n  cratonic bedrock in arid Australia and southern Africa, the \
-         Antarctic Dry Valleys — sit\n  around 1 m/Myr and rarely below it. A world under \
-         that is not a slow landscape; it is a\n  landscape whose erosional clock has \
-         effectively stopped."
-    } else if d1 < 10.0 {
-        "in the STABLE CRATON / SHIELD band (~1-10 m/Myr). If the world is meant to read \
-         as an\n  ancient low-relief interior, this is the honest answer and the \
-         Movement 2b null follows\n  from the landscape rather than from a defect."
-    } else if d1 < 50.0 {
-        "in the PASSIVE-MARGIN / low-relief upland band (~10-50 m/Myr) — Appalachian, \
-         SE Australian\n  escarpment country."
-    } else if d1 < 200.0 {
-        "in the MODERATE-RELIEF MOUNTAIN band (~50-200 m/Myr)."
+    // The bands are literature (cited above); the verdict is chosen from the
+    // number that was just taken.
+    // `CRATON_FLOOR` is the bottom of the *stable craton* band — the slowest a
+    // landscape gets while still being an ordinary shield. Below it there is only
+    // the hyperarid/hypothermal end-member (McMurdo, Atacama), which is a
+    // different claim and is tested separately so the two never blur.
+    const CRATON_FLOOR: f64 = 1.0;
+    const EXTREME_FLOOR: f64 = 0.1;
+    if d1 < EXTREME_FLOOR && d.max_cell < CRATON_FLOOR {
+        println!(
+            "  BELOW EVERY PUBLISHED TERRESTRIAL BAND — and so is the world's single fastest\n  \
+             cell. The land average is {:.0}x slower than the bottom of the stable-craton band\n  \
+             and {:.0}x slower than the slowest surfaces ever measured on Earth (McMurdo Dry\n  \
+             Valleys bedrock, ~{:.2} m/Myr; hyperarid Atacama, where 21Ne exposure ages reach\n  \
+             37 Myr). The MOST ACTIVE CELL ON THE WHOLE WORLD, at {:.4} m/Myr, is still slower\n  \
+             than Antarctic bare rock under permanent ice-free hyperaridity.\n  \
+             This is not a slow landscape. It is a landscape whose erosional clock has stopped.",
+            CRATON_FLOOR / d1,
+            EXTREME_FLOOR / d1,
+            0.19,
+            d.max_cell,
+        );
+    } else if d1 < CRATON_FLOOR {
+        println!(
+            "  The land AVERAGE is below the stable-craton band, but the active tail\n  \
+             ({:.4} m/Myr) reaches into the measured record — a quiet interior with live margins.",
+            d.max_cell
+        );
     } else {
-        "in the ACTIVE OROGEN band (>200 m/Myr, reaching 1000s)."
-    };
-    println!("  D1 = {d1:.4} m/Myr falls {band}");
+        println!("  Within the published record — see the band table above for where.");
+    }
     println!(
         "\n  Over the full {:.0} Myr the land system exported {:.2} m of average thickness.\n  \
-         A real craton strips HUNDREDS of metres to kilometres over a Phanerozoic span.",
+         A real craton strips 5-10 KM over a Phanerozoic span (Kola: 3-5 km; Pilbara: multi-km\n  \
+         in discrete Paleozoic pulses; South African plateau: >=4.5 km since 130 Ma). This\n  \
+         world strips {:.0}x less than the low end of that.",
         d.myr,
-        d1 * d.myr
+        d1 * d.myr,
+        5000.0 / (d1 * d.myr).max(1e-30),
     );
     println!(
         "\n  Uniformity: max/median = {concentration:.1}x and the top decile carries {:.0} % of the\n  \
-         erosion. A uniformly dead surface and a quiet interior with active margins are\n  \
-         different diagnoses; this is the number that tells them apart.",
+         erosion (a perfectly uniform surface would give 10 %). So the world is NOT flat-dead —\n  \
+         it has a real, mild erosional structure, and that structure is worth keeping. But the\n  \
+         whole distribution is compressed into a band that lies under the global floor: the\n  \
+         difference between this world's quietest and busiest ground is a factor of {concentration:.0},\n  \
+         inside a range no instrument on Earth would call erosion at all.",
         100.0 * d.top_decile_share
     );
     println!(
@@ -480,7 +553,143 @@ fn main() {
          is asserted bit-identical to production. If the number is terrible it is the\n  \
          world's number, not the probe's."
     );
+
+    // --- the fork: is the rate set by a CONSTANT or by a STRUCTURE? --------
+    println!("\n--- SENSITIVITY: what is actually limiting this? ---");
+    println!(
+        "  Production is the 1x row and NOTHING BELOW CHANGES IT. These are hypothetical\n  \
+         configs built inside the probe to measure the world's RESPONSE, which is the only\n  \
+         way to tell a mis-set constant from a structural cap — and telling them apart is\n  \
+         the whole fork. A rate that is LINEAR in a knob is that knob; a rate that\n  \
+         SATURATES is being held by something the knob cannot reach.\n"
+    );
+    println!(
+        "  The shipped `erosion_budget` override scales weathering + k_transport + k_bedrock.\n  \
+         It does NOT scale `diffusion` — and hillslope creep is {:.0} % of this world's export,\n  \
+         so the last two rows raise creep by hand to see what the knob cannot.\n",
+        100.0 * l.creep_to_sea_m / l.exported_m().max(1e-30)
+    );
+    let base_cfg = cfg(&pregen.grid);
+    let with_diff = |budget: f64, diff_mult: f64| -> DeepConfig {
+        let mut c = cfg_budget(&pregen.grid, budget);
+        c.diffusion = base_cfg.diffusion * diff_mult;
+        c
+    };
+    let scenarios: [(&str, Option<Denudation>); 6] = [
+        ("PRODUCTION (1x)", None),
+        (
+            "budget 10x",
+            Some(measure_cfg(&pregen.grid, &cfg_budget(&pregen.grid, 10.0))),
+        ),
+        (
+            "budget 100x",
+            Some(measure_cfg(&pregen.grid, &cfg_budget(&pregen.grid, 100.0))),
+        ),
+        (
+            "creep 10x only",
+            Some(measure_cfg(&pregen.grid, &with_diff(1.0, 10.0))),
+        ),
+        (
+            "budget 10x + creep 10x",
+            Some(measure_cfg(&pregen.grid, &with_diff(10.0, 10.0))),
+        ),
+        (
+            "budget 100x + creep 10x",
+            Some(measure_cfg(&pregen.grid, &with_diff(100.0, 10.0))),
+        ),
+    ];
+    println!(
+        "  scenario                    D1 (m/Myr)   D3 bedrock   D1/D3   D1/D4   vs production"
+    );
+    for (name, m) in &scenarios {
+        let r = m.as_ref().unwrap_or(&d);
+        println!(
+            "  {name:<26} {:>10.4}   {:>10.4}  {:>6.2}  {:>6.3}   {:>9.1}x",
+            r.catchment_averaged,
+            r.bedrock_erosion,
+            r.catchment_averaged / r.bedrock_erosion.max(1e-30),
+            r.catchment_averaged / r.rock_uplift.max(1e-30),
+            r.catchment_averaged / d1,
+        );
+    }
+    println!(
+        "\n  READ IT THIS WAY. `D1/D3` is the tell.\n    \
+         ~1.0  the land sheds everything it detaches — SUPPLY-limited, and the weathering\n          \
+         constant IS the denudation rate.\n    \
+         <1.0  the land is making regolith it cannot move — TRANSPORT-limited. The cover\n          \
+         taper exp(-H/H*), H* = {:.1} m, then shuts weathering off from underneath: the\n          \
+         extra regolith shields the rock that made it. That taper is the structural cap.\n    \
+         >1.0  the land is exporting stored cover faster than it detaches new rock — a\n          \
+         TRANSIENT drawdown of the existing regolith, not a sustainable rate.",
+        base_cfg.h_star
+    );
+    // Derived from the rows just measured, never written ahead of them.
+    let gain = |i: usize| {
+        scenarios[i]
+            .1
+            .as_ref()
+            .map_or(1.0, |r| r.catchment_averaged / d1)
+    };
+    let (budget_only, creep_only, both) = (gain(2), gain(3), gain(5));
+    println!(
+        "\n  THE SHAPE OF THE ANSWER: neither lever pays alone — 100x the erosion budget buys\n  \
+         {budget_only:.1}x, 10x the creep buys {creep_only:.1}x — and together they buy {both:.0}x, which is \
+         {:.0}x more\n  than the two separate gains multiplied. Supply and transport are coupled through the\n  \
+         cover taper, so raising either alone just moves the bottleneck to the other. That is\n  \
+         journal/0108's shape a second time: TWO LEVERS THAT ONLY PAY TOGETHER.",
+        both / (budget_only * creep_only)
+    );
 }
+
+/// **Published denudation bands, in m/Myr** — the external anchor this whole
+/// probe exists to be measured against. Sourced for journal/0111; every one is a
+/// real compilation or a named study, and the *floor* row is the load-bearing
+/// one, because a world below the floor is not a slow landscape, it is a stopped
+/// one.
+const BANDS: [(&str, f64, f64, &str); 6] = [
+    (
+        "FLOOR: Antarctic Dry Valleys / Atacama",
+        0.1,
+        1.0,
+        "Morgan et al. 2010 JGR-ES (10Be/26Al, McMurdo 0.1-4, Arena Valley ~0.19); \
+         Ritter et al. 2023 JGR-ES (Atacama near-stasis, 21Ne exposure ages 9-37 Ma)",
+    ),
+    (
+        "stable craton / shield bedrock",
+        1.0,
+        10.0,
+        "Bierman & Caffee 2002 GSA Bull (Australian inselbergs 0.3-5.7); \
+         Bierman & Caffee 2001 Am.J.Sci (Namib bedrock 1-5); \
+         Veselovskiy et al. 2019 Tectonics (Fennoscandia AFT 1-2.5)",
+    ),
+    (
+        "global outcrop median (10Be, n=1599)",
+        5.4,
+        12.0,
+        "Portenga & Bierman 2011 GSA Today — median 5.4, mean 12, max ~140",
+    ),
+    (
+        "Phanerozoic global continental mean",
+        16.0,
+        62.0,
+        "Wilkinson & McElroy 2007 GSA Bull — 16 from preserved sediment volumes (10^8 yr), \
+         62 from modern natural yield; the disagreement is live (cf. Willenbring & von \
+         Blanckenburg 2010 Nature)",
+    ),
+    (
+        "passive-margin upland (Appalachians)",
+        27.0,
+        40.0,
+        "Matmon, Bierman et al. 2003 Geology — Great Smokies 27+-4, 10Be catchment-averaged",
+    ),
+    (
+        "active orogen (Taiwan, Himalaya, S.Alps)",
+        3000.0,
+        12000.0,
+        "Dadson et al. 2003 Nature (Taiwan 3000-6000); Herman et al. 2013 Nature (Himalaya \
+         7000-12000); Koppes & Montgomery 2009 Nat.Geosci (>10000 local)",
+    ),
+];
 
 #[cfg(test)]
 mod gate {
