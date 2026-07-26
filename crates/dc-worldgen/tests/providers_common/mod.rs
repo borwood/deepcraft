@@ -107,7 +107,54 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x1A57_A522_C3BA_9F0C
 /// ```
+///
+/// **Moved 2026-07-26 by the joint supply + transport calibration (journal/0114) —
+/// authorized, and it is the largest world move in this file's history.** Every
+/// prior move changed a rule: where the water goes, what the load is made of, which
+/// mover gets the credit. This one changes **how fast the whole landscape runs**.
+/// The four rate constants that together set the erosional clock — `weathering`,
+/// `diffusion`, `k_transport`, `k_bedrock` — are multiplied through
+/// `EROSION_CALIBRATION`, because journal/0111 measured the world denuding at
+/// 0.0110 m/Myr: **9× slower than the slowest landscape ever measured on Earth**,
+/// stripping 5.48 m over the ratified 500 Myr where a real craton strips 5–10 km.
+///
+/// It is the first golden move in this repo made against an **external** anchor.
+/// The others were justified by an internal argument about correctness; this one is
+/// justified by a published band (stable craton, 1–10 m/Myr) that the simulation had
+/// never been held up against — see CLAUDE.md § *a closed system cannot detect its
+/// own scale error*. The pre-calibration world is still reachable and still hashed,
+/// as [`GOLDEN_SURFACE_UNCALIBRATED`], which is what makes this an authorized move
+/// rather than a lost one. Prior value (pre-calibration `main`), kept for audit —
+/// and note it is the *same* value, because the uncalibrated constant below is a
+/// copy of it rather than a re-derivation:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x260E_074F_211C_936D
+/// ```
 pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
+
+/// **The pre-calibration fixed point, still reachable.** The same fixture world
+/// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
+/// = `Some(false)` must reproduce the goldens as they stood before journal/0114 —
+/// the world every constant in this file described until that entry, and the world
+/// journal/0111 measured at 0.0110 m/Myr.
+///
+/// It is the fourth member of the family that includes
+/// [`GOLDEN_SURFACE_SINGLE_RECEIVER`], [`GOLDEN_SURFACE_SCALAR_LOAD`] and
+/// [`GOLDEN_SURFACE_ANONYMOUS_CREEP`]: an old solve kept as a second *path*, not a
+/// deleted one, and proven byte-identical rather than assumed to be. Asserted in
+/// `tests/calibrated_rates.rs::calibrated_rates_off_is_the_pre_calibration_world_and_on_moves_it`,
+/// deliberately not here, for the same reason as its three siblings.
+///
+/// **Unlike its three siblings this one is kept as evidence, not as an option.** The
+/// world it names is not an earlier defensible physics that a walk might prefer; it
+/// is a landscape whose erosional clock had stopped. It stays reachable so the
+/// calibration has a clean A/B and a one-line revert (`--uncalibrated`), and so the
+/// measurement that condemned it can be re-run at any time against the world it was
+/// taken on.
+pub const GOLDEN_SURFACE_UNCALIBRATED: u64 = 0x260E_074F_211C_936D;
+/// The strata-record half of [`GOLDEN_SURFACE_UNCALIBRATED`].
+pub const GOLDEN_RECORD_UNCALIBRATED: u64 = 0xACB6_1859_6AA3_F3A8;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -244,6 +291,18 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 ///
 /// ```text
 /// GOLDEN_RECORD 0x16EC_7D94_3A2E_D912
+/// ```
+/// **Moved 2026-07-26 by the joint supply + transport calibration (journal/0114) —
+/// authorized.** See [`GOLDEN_SURFACE`]. The record moves for the ordinary reason
+/// and for an extraordinary one: ordinarily, because the surface moved and the
+/// record is a log of what happened on it; extraordinarily, because at the
+/// calibrated rates the world deposits far more material over the same 200 epochs,
+/// so the archive is *thicker* as well as different. Prior value (pre-calibration
+/// `main`), kept for audit and still asserted under `calibrated_rates: Some(false)`
+/// as [`GOLDEN_RECORD_UNCALIBRATED`]:
+///
+/// ```text
+/// GOLDEN_RECORD 0xACB6_1859_6AA3_F3A8
 /// ```
 pub const GOLDEN_RECORD: u64 = 0xACB6_1859_6AA3_F3A8;
 
