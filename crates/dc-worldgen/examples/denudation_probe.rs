@@ -732,8 +732,19 @@ fn main() {
         base_cfg.weathering / raw_cfg.weathering,
         base_cfg.h_star,
     );
+    // The creep limiter's bind rate is printed beside every row, because a
+    // calibration that bought its denudation by pushing the whole world into the
+    // "move everything one cell downslope" regime would otherwise look identical to
+    // one that did not. See `TransportLedger::creep_limited_cell_epochs`: it is a
+    // discretisation limit (460 m cells, 2.5 Myr epochs), and at that geometry the
+    // saturated conveyor is still only ~0.18 mm/yr of creep, so the magnitude stays
+    // honest while sub-cell structure is lost.
+    let limited = |r: &Denudation| -> f64 {
+        100.0 * r.ledger.creep_limited_cell_epochs as f64
+            / (r.ledger.creep_cell_epochs.max(1)) as f64
+    };
     println!(
-        "  uniform x    D1 (m/Myr)   D3 bedrock   D1/D3   D1/D4    mean surf   relief    band?"
+        "  uniform x    D1 (m/Myr)   D3 bedrock   D1/D3   D1/D4    mean surf   relief   creep-lim   band?"
     );
     let band = |v: f64| -> &'static str {
         if (1.0..=10.0).contains(&v) {
@@ -744,31 +755,25 @@ fn main() {
             "above"
         }
     };
-    println!(
-        "  {:<10} {:>11.4}  {:>11.4}  {:>6.2}  {:>6.3}  {:>10.1} {:>8.1}   {}",
-        "1 (raw)",
-        raw.catchment_averaged,
-        raw.bedrock_erosion,
-        raw.catchment_averaged / raw.bedrock_erosion.max(1e-30),
-        raw.catchment_averaged / raw.rock_uplift.max(1e-30),
-        raw.mean_surf,
-        raw.relief,
-        band(raw.catchment_averaged),
-    );
-    for m in &ladder {
-        let r = measure_cfg(&pregen.grid, &cfg_uniform(&pregen.grid, *m));
+    let row = |label: String, r: &Denudation| {
         println!(
-            "  {:<10} {:>11.4}  {:>11.4}  {:>6.2}  {:>6.3}  {:>10.1} {:>8.1}   {}",
-            format!("{m:.0}"),
+            "  {label:<10} {:>11.4}  {:>11.4}  {:>6.2}  {:>6.3}  {:>10.1} {:>8.1}   {:>7.1} %   {}",
             r.catchment_averaged,
             r.bedrock_erosion,
             r.catchment_averaged / r.bedrock_erosion.max(1e-30),
             r.catchment_averaged / r.rock_uplift.max(1e-30),
             r.mean_surf,
             r.relief,
+            limited(r),
             band(r.catchment_averaged),
         );
+    };
+    row("1 (raw)".to_string(), &raw);
+    for m in &ladder {
+        let r = measure_cfg(&pregen.grid, &cfg_uniform(&pregen.grid, *m));
+        row(format!("{m:.0}"), &r);
     }
+    row("SHIPPED".to_string(), &d);
     println!(
         "\n  READ IT THIS WAY. `D1/D3` is the tell, and it is a SECOND target, not a curiosity.\n    \
          ~1.0  the land sheds everything it detaches — a landscape in balance.\n    \

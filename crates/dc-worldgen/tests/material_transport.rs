@@ -261,9 +261,13 @@ fn nothing_over_the_competence_ceiling_is_still_in_the_water() {
     let w = r.erosion.settling();
     let load = r.erosion.load_species();
     let energy = r.erosion.energy();
+    // The ceiling is stated relative to the world's own `k_transport`
+    // (journal/0114) — a capacity is that coefficient times a position in the
+    // drainage network, so the reference has to travel with it.
+    let k_t = cfg_for(&pregen.grid, true).k_transport;
     let mut offenders = 0usize;
     for (c, e) in energy.iter().enumerate() {
-        let ceiling = deeptime::competence_ceiling(*e);
+        let ceiling = deeptime::competence_ceiling(*e, k_t);
         for (k, ws) in w.iter().enumerate() {
             if load[c * w.len() + k] > 0.0 && *ws > ceiling {
                 offenders += 1;

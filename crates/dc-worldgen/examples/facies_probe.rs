@@ -246,7 +246,8 @@ struct Carrying {
 }
 
 fn carrying(cells: &CellGrid) -> Carrying {
-    let r = run_cells(cells, &cfg(cells, true), false);
+    let c = cfg(cells, true);
+    let r = run_cells(cells, &c, false);
     let w = settling_table();
     let energy = r.erosion.energy();
     let mut ceilings: Vec<f64> = Vec::new();
@@ -255,7 +256,7 @@ fn carrying(cells: &CellGrid) -> Carrying {
         if r.grid.r[i] + r.grid.h[i] <= SEA_LEVEL_M {
             continue;
         }
-        let ceil = competence_ceiling(*e);
+        let ceil = competence_ceiling(*e, c.k_transport);
         ceilings.push(ceil);
         for (k, ws) in w.iter().enumerate() {
             if ceil >= *ws {
