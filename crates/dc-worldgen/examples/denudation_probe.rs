@@ -54,8 +54,8 @@
 
 use dc_worldgen::deeptime::erosion::TransportLedger;
 use dc_worldgen::deeptime::{
-    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_cells, production_config,
-    production_config_with, run_cells, sea_level_at,
+    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_cells, production_config, production_config_with,
+    run_cells, sea_level_at,
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -77,7 +77,7 @@ const SEED: u64 = 1337;
 ///    register."* — and 8 × 62.5 = 500.
 ///
 /// So the run's [`DeepConfig::iterations`] (200) span 500 Myr, i.e.
-/// [`MYR_PER_EPOCH`] = **2.5 Myr per iteration**.
+/// [`myr_per_epoch`] = **2.5 Myr per iteration**.
 ///
 /// **Confidence: high on the intent, and the intent is all there is.** This is a
 /// *stipulated* register, not a fitted one — earth-processes.md § 3e's own owed
@@ -321,7 +321,9 @@ fn main() {
         "  recorded span            {:.0} Myr   (earth-processes.md § 3e-2 decision 5,",
         d.myr
     );
-    println!("                                       RATIFIED 2026-07-19: the Phanerozoic register;");
+    println!(
+        "                                       RATIFIED 2026-07-19: the Phanerozoic register;"
+    );
     println!(
         "                                       corroborated by DeepConfig::chapters — K={} x 62.5 Myr)",
         c.chapters
@@ -463,11 +465,16 @@ fn main() {
         100.0 * d.catchment_averaged / d.bedrock_erosion.max(1e-30),
     );
 
-    println!("\n--- THE DISTRIBUTION across {} land cells ---", d.land_cells);
+    println!(
+        "\n--- THE DISTRIBUTION across {} land cells ---",
+        d.land_cells
+    );
     println!("  bedrock erosion rate, m/Myr, per cell:");
-    for (name, v) in ["min", "p10", "p25", "MEDIAN", "p75", "p90", "p95", "p99", "p99.9"]
-        .iter()
-        .zip(d.pct.iter())
+    for (name, v) in [
+        "min", "p10", "p25", "MEDIAN", "p75", "p90", "p95", "p99", "p99.9",
+    ]
+    .iter()
+    .zip(d.pct.iter())
     {
         println!("    {name:<7} {v:>12.4}");
     }

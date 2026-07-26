@@ -148,8 +148,23 @@ pub struct DeepConfig {
     /// multiplied by `exp(-H / H*)`.
     pub h_star: f64,
     /// Hillslope diffusivity (dimensionless per iteration on the surface).
+    ///
+    /// **STUB #24 / corrections #56 — THIS IS THE PROCESS THAT ERODES THIS WORLD.**
+    /// Hillslope creep carries **96 %** of all export across the shoreline
+    /// (journal/0111); the rivers carry 0.02 %. It is also the one rate
+    /// [`super::field::DeepOverrides::erosion_budget`] does **not** scale, which is
+    /// why that knob moves denudation by 1.4× at 100×.
     pub diffusion: f64,
     /// Bedrock→regolith weathering rate (metres/iteration), tapered by cover.
+    ///
+    /// **STUB #24 / corrections #56 — UNCALIBRATED AGAINST THE RATIFIED CLOCK.**
+    /// At the Phanerozoic register (2.5 Myr/iteration, `earth-processes.md` § 3e-2
+    /// decision 5) this `0.02` is **8 mm/Myr**, and the world's measured
+    /// catchment-averaged denudation is **0.011 m/Myr** — 9× below the slowest
+    /// landscape ever measured on Earth and 493× below the global `10Be` median
+    /// (journal/0111). The shape of the landscape is right; only the rate is wrong.
+    /// **Do not adjust this alone** — it is coupled to `diffusion` through the cover
+    /// taper `exp(-H/h_star)`, and the pair is an appearance-class, user-owned call.
     pub weathering: f64,
     /// Initial-bedrock roughness jitter as a fraction of provenance roughness.
     pub rough_jitter: f64,

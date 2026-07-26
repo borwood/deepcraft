@@ -697,6 +697,43 @@ consumers read the same function, so changing it moves alluvial grain ordering a
 ore concentration in the same commit. That coupling is the reason to change it
 deliberately rather than opportunistically. *Loud marker at `settling_table`.*
 
+### 24. an-erosion-amplitude-that-cannot-reach-the-eroding-process — *added 2026-07-26 (the denudation measurement, journal/0111, corrections #56)*
+`DeepOverrides::erosion_budget` (`deeptime/field.rs`) is documented as *"the
+TERRAIN (erosion) amplitude"* — the one knob the project has for "more erosion",
+reached by the `--erosion-budget <mult>` dev flag and named in the ROADMAP as the
+lever behind the standing "conservative amplitude" call. It scales `weathering`,
+`k_transport` and `k_bedrock` together, deliberately, so the **relative** rates the
+erodibility coupling expresses never move.
+
+**It does not scale `diffusion`** — and hillslope creep carries **96 %** of this
+world's denudation (journal/0111). Measured, production untouched: at **100×** the
+knob moves catchment-averaged denudation by **1.4×**. A knob that cannot move the
+quantity it is named after is a stand-in for the calibration nobody has done.
+
+**Why raising `diffusion` inside it is not the fix either.** The measurement shows
+supply and transport are **coupled through the cover taper** `exp(−H/H*)`, `H* = 3 m`:
+raise supply alone and the regolith made shields the rock that made it
+(export/bedrock-erosion collapses 0.98 → 0.36); raise transport alone and there is
+nothing to carry (1.7×). Only **together** do they pay — 132× — which is 59× more than
+their separate gains multiplied. So a corrected budget is not one more multiplicand in
+the same list; it is a statement about which rates are jointly calibrated, and against
+**what clock** (corrections #56: the engine's metres-per-iteration constants have never
+been checked against the ratified 500 Myr Phanerozoic register, and land as a whole
+denudes ~10³× slower than any real landscape).
+
+**Heir:** the owed *"calibrate iteration↔Myr against a real orogen"* item that
+`earth-processes.md` § 3e has carried since 2026-07-19. That calibration is what turns
+this knob from a multiplier someone picks into a derived consequence of the register.
+The `denudation_probe` is the instrument that will judge it — its literature band table
+is the acceptance test, and the world should land in the **1–10 m/Myr** stable-craton
+band rather than at 0.011.
+
+**Blast:** every world made afterwards. Moving any of these rates moves terrain shape,
+the strata record, and every golden — the same event class as the erodibility, biotic,
+tectonic and full-agent flips. **This is an appearance-class, user-owned call and must
+not be taken by an agent.** *Loud markers at `erosion_budget` and at
+`DeepConfig::weathering` / `diffusion`.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

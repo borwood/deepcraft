@@ -1066,9 +1066,7 @@ impl Erosion {
                 }
                 let d = self.surf[i] - self.surf[j];
                 if d > 0.0 {
-                    sum += eff_diff(diff, &grid.bio_resist, &self.sus_creep, i)
-                        * d
-                        * self.scale[i];
+                    sum += eff_diff(diff, &grid.bio_resist, &self.sus_creep, i) * d * self.scale[i];
                 }
             }
         }

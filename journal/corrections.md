@@ -1902,3 +1902,88 @@ disguise: a claim about **naming** — *this is the transport pass, so it must b
 does the transporting* — read as a claim about **magnitude**. The defence is identical
 and cheap: **before believing a mechanism matters, measure how much authority it has
 over the thing you are claiming it changes.** One probe run.
+
+## 56. "The deep-time engine's erosion rates are calibrated to the Phanerozoic register" (implicit in `earth-processes.md` § 3e-2 decision 5 beside `DeepConfig`'s rate constants — falsified 2026-07-26 by journal/0111)
+
+**Never written as a sentence, and this time it could not have been checked from
+inside.** § 3e-2 decision 5 (RATIFIED 2026-07-19, user) stipulates the **Phanerozoic
+register**: *"the recorded span calibrates to ~500 Myr."* `DeepConfig::chapters` says
+the same from another direction (*"K=8 gives Earth-orogeny-length chapters
+(62.5 Myr)"*, and 8 × 62.5 = 500). Beside those sits a set of physical constants in
+**metres per iteration** — `weathering: 0.02`, `k_bedrock: 0.0011`, `k_transport:
+0.0016`, `diffusion: 0.12`, `uplift_scale: 3.0` — chosen by S9 so that *"orogenic belts
+build hundreds of metres of net relief … over a few hundred iterations."* Nobody ever
+divided one by the other. § 3e's own owed list still reads "calibrate iteration↔Myr
+against a real orogen."
+
+**Measured — seed 1337, `Extent::Medium`, 297,025 cells, 44,264 land cells, 200 epochs
+(`examples/denudation_probe.rs`):**
+
+| definition | m/Myr |
+|---|---|
+| **catchment-averaged denudation** (export from the land system / land area / time) | **0.0110** |
+| bedrock erosion (incision + weathering-front descent, `grid.exhum`) | 0.0112 |
+| rock uplift | 0.4095 |
+| mean surface lowering | **−0.4084** (the land is *building*) |
+
+Over the full 500 Myr the land system exports **5.48 m** of average thickness.
+
+**Against the published record.** The global `10Be` outcrop median is **5.4 m/Myr**
+(Portenga & Bierman 2011 *GSA Today*, n = 1599); stable-craton bedrock runs 1–10
+(Bierman & Caffee 2001/2002; Veselovskiy et al. 2019); the Phanerozoic global
+continental mean is 16 (Wilkinson & McElroy 2007). **The slowest surfaces ever
+measured on Earth** — McMurdo Dry Valley bedrock and the hyperarid Atacama — sit at
+**0.1–1 m/Myr** (Morgan et al. 2010 *JGR-ES*; Ritter et al. 2023 *JGR-ES*). This world
+is **9× slower than that floor**, 91× below the craton band, 493× below the global
+median. Real cratons strip **5–10 km** over a Phanerozoic span (Kola 3–5 km; Pilbara
+multi-km in Paleozoic pulses, Morón et al. 2020; South African plateau ≥4.5 km since
+130 Ma). This world strips **5.48 m** — about a thousandth.
+
+**And it is not a quiet interior with active margins.** Across 44,264 land cells the
+median bedrock erosion is 0.0104 m/Myr and **the single most active cell on the whole
+world is 0.1341** — still slower than bare Antarctic bedrock. The distribution has
+real structure (max/median 12.9×, top decile does 25.8 %) but the *entire* distribution
+lies under the global floor. Denudation is **2.7 %** of rock uplift, so the landscape
+has never approached topographic steady state.
+
+**Two independent instruments agree.** The boundary-flux accounting carries a real
+uncertainty — the ±35 m sea-level cycle shuffles cells across the shoreline, and the
+land budget closes only to ~90 % of the export term. The per-cell rock-removal plane
+(`grid.exhum`) has no shoreline in it at all. They agree **to 2.4 %**.
+
+**Why the model is NOT wrong — only the rate.** A weathering-limited landscape routed
+by hillslope creep, with minor rivers, regolith that armours its own weathering front,
+and erosion mildly concentrated on steep ground, is a *textbook* low-relief craton.
+Every qualitative statement journal/0110 made about this world holds. **The shape is
+right and the clock is wrong**, which is exactly the failure mode an internal audit
+cannot see: mass closes, goldens hold, passes are pure, and the simulation is perfectly
+self-consistent at the wrong scale. **A closed system cannot detect its own scale
+error.** It took an anchor from outside the corpus to see it.
+
+**Corollary, falsified in the same run: `DeepOverrides::erosion_budget` is not the
+erosion amplitude it is documented to be.** Its doc calls it *"the TERRAIN (erosion)
+amplitude"* and says it lets *"the total amount of material erosion"* move. It scales
+`weathering`, `k_transport` and `k_bedrock` — and **not `diffusion`**, which carries
+**96 %** of this world's export. Measured response, production untouched:
+
+| scenario | denudation m/Myr | vs production |
+|---|---|---|
+| production | 0.0110 | 1.0× |
+| **erosion_budget 100×** | 0.0149 | **1.4×** |
+| creep 10× only | 0.0181 | 1.7× |
+| **budget 100× + creep 10×** | **1.4474** | **132×** |
+
+**Neither lever pays alone and together they pay 59× more than their product.** The
+coupling is the cover taper `exp(−H/H*)`, `H* = 3 m`: raise supply alone and the
+regolith you make shields the rock that made it (export/bedrock-erosion falls
+0.98 → 0.36, i.e. supply-limited → transport-limited); raise transport alone and there
+is nothing to carry. journal/0108's shape a second time — **two levers that only pay
+together**. Filed as stubs #24.
+
+**Lesson.** journal/0109 twice mistook a claim about **order** for one about
+**substance**; corrections #55 mistook a claim about **naming** for one about
+**magnitude**. This is a claim about **units**. All three share a root — *a quantity
+believed because it was written down* — but only this one was invisible to every
+internal instrument the engine has. **Whenever a simulated quantity has a real
+published counterpart, measure it against the literature at least once.** Those are the
+only errors a perfect internal audit is structurally blind to.
