@@ -924,6 +924,32 @@ one — creep is what moves this world."* This is that slice.
   #25. `DepUnit` is 16 B with no padding left; the free version is a packed
   `(species, mover)` byte and it wants to land with § 13.8's lineage history.
 
+> **✅ THE OUTCOME, AND IT IS THE MIRROR OF § 13.8b's.** On the shipped world
+> (`examples/colluvium_probe.rs`, seed 1337, `Extent::Medium`), recorded mass whose
+> material disagrees with what its own environment would have implied goes from
+> **0.0259 m of 440,578 m (0.000006 %)** to **275,626.9 m of 422,703 m
+> (65.206 %)** — a factor of eleven million, from making the *other* member of the
+> family honest. **71.3 % of it sits in the lower five drainage deciles**, the
+> hillslopes, which is where colluvium belongs. The archive's composition moved with
+> it: 91 % fine clastic → **26 % fine / 36 % coarse / 38 % carbonaceous soil**,
+> because a hillslope no longer records *"mud, because this is a quiet place"* — it
+> records what came down onto it. Distinct species per hillslope column
+> **1.091 → 1.952**: the poorly-sorted signature, measured. Per-species mass closes
+> at **3.19 × 10⁻¹⁵** (itemisation vs the metres the terrain moved) and
+> **7.07 × 10⁻¹⁶** (any species created or destroyed), both f64 summation-order
+> noise. Cost: deep run **+1.38 s (+4.5 %)**, residency **+18.16 MiB (+10.7 %)**,
+> units **+21.5 %** — all merge key, because the axis finally varies.
+> **Nothing was tuned; there is no knob in this slice.**
+>
+> ⚠ **And it surfaced a latent defect by MAGNITUDE — corrections #57.**
+> `Litho::as_deposited` said the only lithology a deposit cannot be is basement.
+> Peat, coal and charcoal cannot be either (§ 12's four-way test: a *moved* material
+> is category 3, an in-place organic is 1/2), and at 0.109 % of sediment routing a
+> transported organic could never win a cell's argmax to prove it. At 918× it did,
+> within one run, producing a voxel that was 8/8 charcoal against a 0.04 m fire-bed
+> cap. **A rule can be wrong and unreachable at once, and "unreachable" is a
+> property of the current magnitudes.**
+
 ### 13.8 Three deferred layers (named, not this arc)
 - **3D volumetric flow** (underwater rivers, turbidity currents, cave streams): a richer
   *flow field* (the free-water body graph, §6/§7); transport-follows-the-field is unchanged.
