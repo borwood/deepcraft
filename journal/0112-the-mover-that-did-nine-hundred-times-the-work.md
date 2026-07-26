@@ -152,16 +152,200 @@ about it three times rather than by grepping, which is the honest way to report 
 
 ## The number this slice is accepted on
 
-NUMBERS_GO_HERE
+`examples/colluvium_probe.rs` builds the production world (seed 1337,
+`Extent::Medium`) twice — material-aware transport on in both arms, and **only** the
+gravity member moving — so the delta is attributable to creep and not credited to the
+family. The claim it answers is the one journal/0110 was accepted against and failed:
+*what fraction of the recorded archive carries a material its own environment would
+not have implied?*
+
+| | anonymous creep (journal/0110's world) | creep carries identity |
+|---|---|---|
+| recorded mass whose material disagrees with its environment | **0.0259 m** of 440,578 m | **275,626.9 m** of 422,703 m |
+| as a fraction of the archive | **0.000006 %** | **65.206 %** |
+
+**A factor of eleven million.** Two thirds of the archive now says what actually
+arrived instead of what the neighbourhood implied. The fluvial slice's mechanism was
+correct all along; it was attached to the wrong 0.1 % of the sediment.
+
+Where it sits is the second half of the claim, and it lands where colluvium belongs:
+**71.3 % of the provenance mass is in the lower five drainage deciles** — the
+hillslopes — and decile 0 alone holds 228,269 m of the 422,703 m archive at **69.03 %**
+provenance, the highest of any decile.
+
+### Are colluvium and alluvium distinguishable in the record?
+
+**Not by a label, and that is `stubs.md` #25.** `DepUnit` is sixteen bytes with no
+padding left, so a `mover` byte would cost roughly +42 MiB across 5.5 M units; the free
+version is a packed `(species, mover)` byte and it wants to land with § 13.8's lineage
+history. Today `arriving_species` sums the two mixtures and takes one argmax, which is
+the right answer to *"what is this made of"* and no answer at all to *"who brought
+it"*.
+
+**By signature, yes, and it is measured.** Sortedness is the discriminator, and the
+probe reports it as distinct species per recorded column, split hillslope/valley. The
+sharpest reading is decile 0 — the hillslopes — where it goes **1.091 → 1.952**: those
+columns were nearly single-species (a thin record of whatever the local environment
+implied) and are now genuinely mixed, which is exactly what *poorly sorted* means. The
+valley and trunk deciles move much less (3.2 → 3.4-ish), because they were already
+receiving several things. The contrast is the signal.
+
+And the composition of the whole archive moved, which is the same finding at grid
+scale:
+
+| species | anonymous | identity | delta |
+|---|---|---|---|
+| fine clastic | 401,892 m | 109,357 m | **−72.8 %** |
+| coarse clastic | 9,070 m | 151,423 m | **+1569.5 %** |
+| organic soil | 24,058 m | 158,723 m | **+559.7 %** |
+| peat | 5,353 m | 3,003 m | −43.9 % |
+| charcoal | 204 m | 197 m | −3.4 % |
+
+Under anonymous creep the record was 91 % fine clastic, because `litho_of_tag` reads a
+low-energy environment and answers "mud". It is a quiet place, so it must be mud. But
+a hillslope is not quiet *because nothing is happening* — it is quiet because what is
+happening is **creep**, and what creep delivers is whatever is upslope: basement
+detritus off a stripped ridge (coarse), reworked soil, and the mixture of everything
+that was already lying there. The old record was answering a question about **energy**
+with a claim about **material**, everywhere, for 91 % of the archive.
+
+### Mass, per species
+
+| audit | measured, over every cell/species/epoch of the run |
+|---|---|
+| creep itemisation vs the metres the terrain actually moved | **3.186 × 10⁻¹⁵** |
+| any species created or destroyed by creep | **7.066 × 10⁻¹⁶** |
+
+Both are at f64 summation-order noise, three orders under the 10⁻¹² gate, and the
+second one is the interesting one: it is not a tolerance the arithmetic happens to
+meet, it is the residue of *re-adding the same numbers in a different order*. The
+per-edge quantities cancel exactly.
+
+## The defect the magnitude surfaced
+
+The first production run with creep identity on failed
+`charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum` with a voxel that was
+**8/8 charcoal**. A fire bed is capped at 0.04 m — 0.356 of an eighth — so the
+expression path had produced a stratum of a thing that only exists as a lamina.
+
+The mechanism, once found, is embarrassing in the good way. Thin charcoal beds sit in
+the near-surface window, so `outcrop_shares` reports a charcoal share, so creep carries
+charcoal downslope — correctly; colluvium really does contain reworked charcoal. At a
+cell with little other deposition, that charcoal **wins the mixture argmax**, and the
+unit is recorded as `OrganicCharcoal`. Then the merge key (tag, chapter, species) is
+identical the next epoch, and the next, and thin laminae accrete into a three-metre
+seam of charcoal.
+
+`Litho::as_deposited` already existed to prevent exactly this class of thing, and its
+doc stated the rule in the singular: *"the one lithology that cannot be [a deposit] is
+`Litho::Basement`"*. It is not the one. **Peat is made where it lies, coal is peat
+cooked in place, and charcoal is a fire event** — a mover that picks any of them up is
+carrying *detrital organic matter*, and what it sets down is carbonaceous mud with
+plant fragments in it. That is `Litho::OrganicSoil`, which is what the slot is for.
+
+This is `material-behavior.md` § 12's four-way test caught in the wild, and it is its
+first live instance. Transported material answers **category 3, "that material,
+*moved*"**; an in-place organic is a **category 1/2** formation-or-transformation
+product. Filing a moved peat as a peat asserts that the peat *formed at the receiving
+cell*, which is one row from § 12's named pathology — a unit filed under the wrong
+category loses the edge, and with it the identity, mass and provenance chains the edge
+would have carried.
+
+**And the part worth carrying forward: it was surfaced by a magnitude, not by a test.**
+The rule was equally wrong the day Movement 2b shipped. Nothing caught it, because the
+fluvial pass moves 0.109 % of this world's sediment and a transported organic could
+never win an argmax at that scale. Creep moves 918× more and the false claim became
+reachable inside one run. So:
+
+> **A rule can be wrong and unreachable at the same time, and "unreachable" is a
+> property of the current magnitudes, not of the rule.** When a slice multiplies a
+> path's throughput by three orders of magnitude, every latent rule on that path goes
+> live at once — and the suite that was green yesterday only ever tested the reachable
+> half.
+
+That is corrections #57, and it is the third instance in three days of the same
+family: #51's guard that could not see the case, #55's claim nobody stated so nobody
+checked, and now an enumeration that was complete for the traffic it had.
 
 ## What a player sees
 
-PLAYER_GOES_HERE
+**This one is worth a walk, and it is the first slice in three that is.** journal/0109
+and journal/0110 both moved goldens and changed nothing visible; this changes the rock
+in most of the world.
+
+- **Strata — the big one.** A hillslope cliff face was 91 % mudstone, because the rule
+  was "quiet place, therefore mud". It is now a mixture dominated by coarse clastic and
+  carbonaceous soil: sandy and conglomeratic bands off the ridges above, dark
+  organic-rich bands where soil crept in, interbedded rather than uniform. Distinct
+  species per hillslope column nearly doubled. A road cut should read as *bedded* where
+  it used to read as *massive*.
+- **Landforms — essentially unmoved.** Mean surface elevation −1895.08 → −1895.09 m,
+  maximum 1286.8 → 1286.7 m. This is the same landscape made of different rock, which
+  is the correct signature for an identity change riding a mass-conserving pass.
+- **Resources — moved, and this needs eyes.** Peat mass in the archive fell 43.9 %, and
+  the coal-seam census test had to be re-baselined because the strongest diggable
+  low-energy seam is at a different site. Coal is *made* by the biotic layer and is not
+  directly touched, but where it survives depends on what is deposited over and around
+  it, and that changed everywhere.
+- **Vegetation — indirect and untested.** The biotic layer reads parent material
+  through the record; a hillslope whose parent is now coarse clastic rather than mud
+  has different phosphorus and different waterlogging. Nobody has looked.
+
+**Recommended walk stations:** a hillslope road cut (the interbedding), a scarp foot
+(a colluvial apron beside a channel deposit — the facies contrast this slice bought),
+and the re-baselined coal site. A tour map should run first; the strongest exemplar of
+the apron/channel contrast is a headless search, not a guess.
 
 ## What it cost
 
-COST_GOES_HERE
+| | anonymous | identity | delta |
+|---|---|---|---|
+| deep run (production world) | 30.48 s | 31.86 s | **+1.38 s (+4.5 %)** |
+| resident | 169.05 MiB | 187.21 MiB | **+18.16 MiB (+10.7 %)** |
+| recorded units | 5,542,653 | 6,732,988 | **+21.5 %** |
+
+The residency is the honest price and it is **all merge key**. `DepUnit` did not grow
+by a byte; there are simply more units, because the species now genuinely varies from
+epoch to epoch on a hillslope where it used to be a constant function of the tag.
+journal/0110 paid +0.04 MiB for the same axis because the fluvial identity almost never
+differed from the default — the axis was free precisely to the extent that it was
+saying nothing. Now it says something, and 18 MiB is what saying it costs. Interbedded
+colluvium is a real stratigraphic feature and the record is holding it.
+
+Gen time is not a constraint here and the +1.38 s is not the interesting number; the
+interesting number is that it is *small*. The species gather is a third pass over the
+same four edges with a seven-element split, fully parallel, and it costs 4.5 % of the
+deep run.
+
+**Not paid, and measured rather than assumed:** recording creep as a gravity-caused
+mover in the flow record — which would discharge `stubs.md` #18's constant `cause` —
+would cost **535,363 donor faces × 8 chapters = 4.28 M entries × 16 B = 65.4 MiB**, on
+a 187 MiB world. That is a third of the world's residency to inhabit a second enum
+value, and it is not this slice's trade to make. `FlowCause::Gravity` has been
+enumerated since FLOW slice 1 and nothing here forecloses it; the number is now on
+record so the decision has one.
 
 ## The thing this entry is really about
 
-TAIL_GOES_HERE
+Two slices ago the brief said *"this is the big appearance-changer"* about the fluvial
+transport pass, and it was wrong by a factor of nine hundred. The pass that moves this
+world's sediment was sitting in the same file the whole time, thirty lines further
+down, called `diffuse`, moving 605,117 m of rock a run with no name on any of it.
+
+Nobody was careless. **`diffuse` had never been asked what it was moving, because until
+Movement 2b there was no vocabulary in which the question could be posed.** A scalar
+has no composition to report. The instrument that could ask it was built by the slice
+that failed, and the failing slice's real output was the number that pointed here.
+
+So the shape of the last three days is: build the mechanism, measure it honestly, watch
+the measurement reroute the arc, and find that the reroute was cheap because the second
+member of a family costs almost nothing once the first one exists. Creep reused the
+species multiset, the composition seam, the diffusion fluxes and the mass budget. The
+only genuinely new thing it contributed is a **knob that is absent** — no competence
+ceiling — and that absence is the entire reason a colluvial apron looks different from
+a point bar.
+
+That is the argument for § 13.2's family framing, cashed out. Building creep as its own
+system would have had to *invent* the colluvium/alluvium contrast, and would probably
+have invented it as a sorting rule with a constant in it. Building it as a regime of
+one quantity got the contrast for free, from a term left out.
