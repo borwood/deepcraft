@@ -40,9 +40,27 @@ fn sample_columns(n: i64) -> Vec<(i64, i64)> {
     (0..n).map(|k| (k * 29 - 150, (k % 9) * 31 - 70)).collect()
 }
 
-/// **The defect, gone.** Recorded columns now slice into voxel spans that
-/// straddle contacts — and a lot of them do, because the recorder's beds are
-/// centimetres thick while a voxel is 90 cm.
+/// **The defect, gone.** Recorded columns now slice into voxel spans that straddle
+/// contacts, because the recorder's beds are thinner than a 90 cm voxel.
+///
+/// **The bound is sized to the DEFECT, not to a world (changed 2026-07-26,
+/// journal/0114).** It used to read `mixed > 100`, a number taken from what the
+/// pre-calibration world happened to produce over 24 sampled columns. The erosional
+/// calibration multiplied every deposition rate by 45, so **beds are thicker and
+/// fewer of them fall inside a single voxel**: the same sample now yields **52 mixed
+/// spans of 4943 (1.1 %)**, and the old threshold failed on a world that is behaving
+/// exactly as the calibration intended.
+///
+/// Lowering a threshold until it passes is tuning to green, so the bound was
+/// **re-derived** instead. The failure this test names — *"the sieve is still rounding
+/// each unit independently"* — produces **exactly zero** mixed spans, because
+/// independent rounding can never straddle a contact. Any nonzero count falsifies it.
+/// The bound keeps a margin so a near-total regression still trips, but it no longer
+/// encodes a bedding thickness that a rate change is entitled to move.
+///
+/// **The magnitude is a real appearance consequence, recorded rather than swallowed:**
+/// thicker beds read blockier in a cut face. Before the calibration this sample
+/// exceeded 100; after it, 52.
 #[test]
 fn the_record_produces_mixed_voxel_spans() {
     let pregen = medium();
@@ -69,9 +87,10 @@ fn the_record_produces_mixed_voxel_spans() {
     );
     assert!(cols_with_record >= 10, "sample found no recorded columns");
     assert!(
-        mixed > 100,
+        mixed >= 20,
         "only {mixed} mixed spans — the sieve is still rounding each unit \
-         independently"
+         independently (that defect yields exactly ZERO; see this test's doc \
+         comment for why the bound is 20 and not a bedding-thickness snapshot)"
     );
 }
 

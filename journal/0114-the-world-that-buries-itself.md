@@ -94,12 +94,12 @@ Seed 1337, `Extent::Medium`, 200 epochs, ~44 k land cells. Every row is a full w
 
 | uniform × | D1 | D3 | D1/D3 | D1/D4 | mean surf | relief | **mean H** | land | creep-lim |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 (raw) | 0.0110 | 0.0107 | 1.03 | 0.03 | 517.4 | 1286.7 | **4.62** | 44267 | 91.1 % |
-| 10 | 0.0765 | 0.0449 | 1.70 | 0.18 | 517.4 | 1288.5 | **8.81** | 44263 | 98.4 % |
-| **45 — SHIPPED** | **0.4142** | **0.1271** | 3.26 | 0.91 | 521.8 | 1346.4 | **43.87** | 44077 | 96.3 % |
-| 100 | 1.3377 | 0.2767 | 4.83 | 2.82 | 532.2 | 1522.0 | **118.79** | 43646 | 94.9 % |
-| 300 | 10.5825 | 0.7108 | 14.89 | 20.04 | 589.2 | 1961.5 | **359.47** | 40898 | 91.8 % |
-| 1000 | 57.1331 | 1.3857 | 41.23 | 92.58 | 712.5 | 2800.4 | **782.08** | 36511 | 85.3 % |
+| 1 (raw) | 0.0110 | 0.0107 | 1.03 | 0.03 | 517.4 | 1286.7 | **4.62** | 44267 | 88.7 % |
+| 10 | 0.0765 | 0.0449 | 1.70 | 0.18 | 517.4 | 1288.5 | **8.81** | 44263 | 98.5 % |
+| **45 — SHIPPED** | **0.4142** | **0.1271** | 3.26 | 0.91 | 521.8 | 1346.4 | **43.87** | 44077 | 96.0 % |
+| 100 | 1.3377 | 0.2767 | 4.83 | 2.82 | 532.2 | 1522.0 | **118.79** | 43646 | 94.5 % |
+| 300 | 10.5825 | 0.7108 | 14.89 | 20.04 | 589.2 | 1961.5 | **359.47** | 40898 | 92.5 % |
+| 1000 | 57.1331 | 1.3857 | 41.23 | 92.58 | 712.5 | 2800.4 | **782.08** | 36511 | 89.4 % |
 
 The row at 100× is *in the published craton band*. It is also carrying **119 metres of
 mean regolith** and has grown its relief by 18 %.
@@ -246,11 +246,28 @@ erosion has gone from 2.7 % of uplift's authority over the topography to 91 %, a
 land no longer sits below every erosion rate ever measured on Earth. It is still four
 times too slow, and now we know precisely what has to change for that to stop being true.
 
-## What it cost
+## What it cost, and the one thing it paid
+
+**Gen time: nothing.** Both arms timed in the same process, same machine: **32.91 s
+uncalibrated, 32.74 s calibrated** — a difference of −0.17 s, which is noise. The
+calibration multiplies constants; it adds no work.
+
+**Residency: it paid, and substantially.** Recorded units across the whole field went
+**6,695,982 → 2,750,828, a 59 % drop** — at 16 B per `DepUnit`, about **107 MiB → 44 MiB**.
+Thicker beds merge across epochs under the same tag and species, so the archive gets
+*shorter* as the world gets busier. That is a pleasant surprise and worth stating as a
+mechanism: **unit count is driven by how often the merge key changes, not by how much is
+deposited.**
+
+**And it has an appearance price on the same axis.** Fewer, thicker beds means fewer voxel
+spans straddle a contact: `distribution_fill`'s sample went from over 100 mixed spans to
+**52 of 4943 (1.1 %)**. Cut faces read blockier. That test's bound was a bedding-thickness
+snapshot and failed here; it has been **re-derived** to the size of the defect it actually
+names (independent rounding gives *exactly zero* mixed spans), rather than lowered until
+green — but the magnitude is recorded, because a walk should look at it.
 
 Every golden moved — the provider surface/record pair and all three contents-contract
 worlds — and the pre-calibration world stays reachable and pinned by name
 (`GOLDEN_SURFACE_UNCALIBRATED`, `tests/calibrated_rates.rs`, the `--uncalibrated` launch
-flag). Five new gate tests plus one in the probe. **An appearance walk is owed**, with a
-clean A/B available for the first time in a while: the same seed with and without one
-launch flag.
+flag). Five new gate tests plus one in the probe. **An appearance walk is owed**, and for
+once the A/B is a single launch flag on the same seed.
