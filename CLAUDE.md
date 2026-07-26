@@ -260,6 +260,29 @@ world**, which cost one background probe instead of a live session (corrections 
 
 ## Conventions
 
+- **A CLOSED SYSTEM CANNOT DETECT ITS OWN SCALE ERROR** (2026-07-26, journal/0111 —
+  and it cost us ~1000×). The deep sim was **perfectly self-consistent at the wrong
+  scale**: mass closed, every golden held, passes were pure, per-species budgets
+  balanced to 1e-12 — and the world was denuding **9× slower than the slowest
+  landscape ever measured on Earth**, stripping 5.48 m where a real craton strips
+  5–10 km. **No internal instrument could ever have seen it**, because every
+  internal instrument checks the sim against *itself*.
+  - **The rule: whenever a simulated quantity has a real, published counterpart,
+    measure it against the literature AT LEAST ONCE.** Denudation rates, erosion
+    rates, geothermal gradients, sediment yields, grain-settling velocities — these
+    are measured in the real world and the numbers are in the literature. **Those
+    are the only errors a perfect internal audit is structurally blind to.**
+  - **It also decides what a calibration may be fitted to.** A constant tuned until
+    an output "looks right" is *a number pretending to be a mechanism*; a constant
+    derived so a measured quantity lands in a **published band** is evidence. Same
+    rule as the tolerance doctrine in § Gates — *a bound with a derivation is
+    evidence; one chosen until green is not.*
+  - **Corollary for reading a null.** Movement 2b's facies null (journal/0110) was
+    honest about its mechanism and **wrong about its cause**: rivers do nothing —
+    true — but partly because *nothing* does anything, and that was never a fact
+    about rivers. Before concluding "system X is unimportant here", check that the
+    world is running at the right scale at all.
+
 - **Runtime perf is a first-class axis, and it is currently under-fought**
   (user, 2026-07-22): *"efficiency/perf at runtime while not compromising on
   content is extremely important… our game is getting slow and we've barely

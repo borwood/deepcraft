@@ -2703,6 +2703,56 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🔴🔴 CALIBRATE THE DEEP-TIME CLOCK — the largest measured defect on the board**
+  (journal/0111, corrections #56, stubs #24, 2026-07-26). **User-owned and appearance-class:
+  the multipliers are the user's to bless. Do NOT let an agent pick them by taste — the target
+  is a PUBLISHED BAND, and that is what makes this a derivation rather than a tuning.**
+  - **THE MEASUREMENT.** The shipped world denudes at **0.0110 m/Myr** catchment-averaged —
+    **9× slower than the slowest landscape ever measured on Earth** (McMurdo Dry Valleys /
+    hyperarid Atacama, 0.1–1), **493× below the global ¹⁰Be outcrop median** (5.4), stripping
+    **5.48 m** over the ratified 500 Myr where a real craton strips **5–10 km**. Denudation is
+    **2.7 % of uplift**; the land *builds* 204 m over the run. **The single most active cell of
+    44,264 (0.134 m/Myr) is still below the global floor** — so this is not "quiet interior,
+    active margins"; there are no active margins.
+  - **THE SHAPE IS RIGHT AND THE CLOCK IS WRONG**, and that distinction decides the repair. A
+    weathering-limited landscape routed by creep, with minor rivers, regolith armouring its own
+    weathering front and erosion mildly concentrated on steep ground, is a **textbook low-relief
+    craton**. Every qualitative statement journal/0110 made survives. **Only the magnitude is
+    wrong** — this is a calibration, not an architecture.
+  - **🔑 NEITHER LEVER PAYS ALONE — this is the finding that makes the slice tractable.**
+    Measured by sensitivity sweep, production untouched: **100× erosion budget → 1.4×**;
+    **10× creep → 1.7×**; **together → 132×**, which is **59× more than their product**. The
+    coupling is the cover taper `exp(−H/H*)`, `H* = 3 m`: raise **supply** alone and the
+    regolith you make **shields the rock that made it** (supply-limited → transport-limited,
+    ratio 0.98 → 0.36); raise **transport** alone and there is nothing to carry. **So it must
+    be a JOINT calibration of supply AND transport, or it will read as "the knob does
+    nothing."**
+  - **⚠ THE KNOB THAT EXISTS STRUCTURALLY CANNOT DO IT (stubs #24).**
+    `DeepOverrides::erosion_budget` is documented as *"**the** terrain (erosion) amplitude"* but
+    scales `weathering` / `k_transport` / `k_bedrock` and **NOT `diffusion`** — the process doing
+    **96 % of the eroding**. Fixing its scope is part of this slice.
+  - **EXPORT DECOMPOSITION, which re-ranks the whole material-behavior arc:** **96.0 % hillslope
+    creep across the shoreline · 3.7 % wave · 0.3 % eolian · 0.02 % FLUVIAL.** journal/0110 put
+    rivers at 0.109 % of *routing*; at the shoreline they are **0.02 % of yield**.
+  - **ACCEPTANCE INSTRUMENT EXISTS:** `examples/denudation_probe.rs` with its cited literature
+    table. **Target: the 1–10 m/Myr stable-craton band.** Behind `DeepConfig::denudation_ledger`,
+    off in production, gate-asserted bit-inert.
+  - **This moves EVERY golden** — same event class as the erodibility / biotic / tectonic /
+    full-agent flips. Announced, never silent.
+  - **Sequencing:** must land **after** material-aware creep (journal/0112) and hybrid-`p`
+    (journal/0113), because it calibrates whatever the final physics is. Hybrid-`p` is only
+    weakly coupled (it moves 0.02 % of the yield), but creep is 96 % and is being rewritten.
+  - **It also DEMOTES the rest of the material-behavior arc's urgency.** Making creep
+    material-aware is worth doing — but *a landscape moving a thousandth of the right amount of
+    sediment will still not show a facies gradient.* **The calibration should land first, or at
+    least alongside.**
+  - **⏳ The 500 Myr / 200 epochs = 2.5 Myr-per-iteration register is STIPULATED, never fitted**
+    (two independent corpus sources agree). `earth-processes.md` § 3e's oldest owed item —
+    *"calibrate iteration↔Myr against a real orogen"* — is now the **named heir of a measured
+    10³× error**, not a nicety. **No physical rate in this engine had ever been checked against
+    this clock.** The probe therefore also prints every rate per epoch, so a future session can
+    re-anchor either the clock or the rates.
+
 - **🔴 REFINEMENT PRIMITIVES — the tier nobody assigned an owner** (opened 2026-07-26 by the
   user's question: *"who owns the **clever** refinement operators for presenting the
   interpolated/upscaled runtime world? how would a mod hand-roll emergent rivers on their own
