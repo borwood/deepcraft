@@ -197,6 +197,59 @@ const MFD_CONTOUR: [f64; MFD_DIRS] = [
 /// way into the record. See `docs/design/stubs.md` § 22.
 const MFD_MIN_WEIGHT: f64 = 0.01;
 
+/// The number of **species** the suspended load is resolved into — one per
+/// [`Litho`], which is the material granularity deep time can distinguish at all
+/// (`lithology.rs`: *"not the material registry — the handful of classes the
+/// deep-time record can distinguish"*). Members within a class are chosen at
+/// collapse time, so resolving the load any finer than this would be inventing
+/// identity the tier does not have.
+const SPECIES: usize = Litho::COUNT;
+
+/// **The competence ceiling, per unit of transport capacity** — the one
+/// calibration constant material-aware transport adds, in
+/// `settle_energy`-units per (metre/iteration) of stream capacity.
+///
+/// `material-behavior.md` § 13.5: *"sorting is the falling ceiling; we write the
+/// ceiling, not the sort."* This is that ceiling. A flow of capacity `cap` can
+/// hold in suspension every species whose settling velocity is at most
+/// `COMPETENCE_SCALE · cap`; everything heavier rains out **wherever it is**,
+/// regardless of whether the flow still has capacity to spare. Capacity is the
+/// *total mass* limit and competence is the *size/density* limit, and § 13.5 is
+/// explicit that both are needed: without competence a flow with spare capacity
+/// carries boulders to the sea, and nothing ever fines downstream.
+///
+/// **Where the number comes from, and why it is not a tuning knob.** It is fixed
+/// by an anchor that already ships: [`energy_band`] calls a capacity of `0.002`
+/// the Low/Medium boundary, and `litho_of_tag` turns exactly that boundary into
+/// the coarse/fine clastic split — so `0.002` is *already* the world's stated
+/// "energy at which sand stops moving". `settle_energy` puts the coarse-clastic
+/// reference sheet at `≈0.84`, and `0.84 / 0.002 = 420`. The ceiling therefore
+/// crosses the coarse-clastic threshold at precisely the capacity the shipped
+/// facies rule already crosses it at, and the rest of the roster arranges itself
+/// around that: a trunk reach at `cap = 0.02` lifts everything the world has
+/// (ceiling `8.4`, against basement's `2.85`), and a distal reach at
+/// `cap = 2 × 10⁻⁴` cannot hold mud (ceiling `0.084`, against mudstone's `0.098`).
+/// The dynamic range is the roster's, not a fit.
+///
+/// It is **linear** in capacity because capacity is already a stream-power proxy
+/// (`k·A^m·S^n`) and competence in a real channel scales with a power of stream
+/// power; linear is the simplest form that spans the roster, in the same
+/// plausible-not-tuned register as S9's physics constants. Chosen and written
+/// **before** the outcome probe was run, and not revisited after.
+const COMPETENCE_SCALE: f64 = 420.0;
+
+/// **The competence ceiling of a flow with transport capacity `cap`** — the
+/// largest settling velocity ([`lithology::settling_table`]) it can hold in
+/// suspension. See [`COMPETENCE_SCALE`] for where the constant comes from.
+///
+/// Public because the invariant *"nothing leaves a cell that the cell could not
+/// carry"* is checked against it from outside, and a test that re-derived the
+/// ceiling would be checking its own arithmetic rather than the pass's.
+#[inline]
+pub fn competence_ceiling(cap: f64) -> f64 {
+    COMPETENCE_SCALE * cap
+}
+
 /// D8 steepest-descent receiver of cell `i` on the filled surface (`-1` = sink).
 #[inline]
 fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) -> i32 {
@@ -592,15 +645,87 @@ fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64) -> DepTag {
 /// Apply one cell's net thickness change to its strata record under `tag`,
 /// stamped with the current tectonic `chapter` (0 when tectonic history is off).
 #[inline]
-fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8) {
+fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: Litho) {
     if dh.abs() < 1e-9 {
         return;
     }
     if dh > 0.0 {
-        s.deposit(tag, dh, chapter);
+        s.deposit_as(tag, dh, chapter, species);
     } else {
         s.erode(-dh);
     }
+}
+
+/// **Which material the unit arriving at this cell is made of** (Movement 2b).
+///
+/// The cell's net gain has several sources and only one of them carried an
+/// identity here: the transport pass knows, per species, exactly what it set
+/// down (`dep`). Everything else in `dh` — bedrock weathered to regolith in
+/// place, cover crept in from a neighbour — is material that never rode a load,
+/// and it keeps the answer the record has always given, the tag's own lithology.
+/// So the unit's species is the **argmax of the whole mixture**: each transported
+/// species against the un-transported remainder, with ties going to the
+/// incumbent (a strict `>` over fixed index order, so it is deterministic).
+///
+/// This is deliberately *not* a threshold on "was most of this transported" —
+/// a threshold would be a second rule with a number in it. It is one comparison
+/// over one mixture, and it degenerates exactly to the old behaviour when the
+/// pass carried nothing here.
+#[inline]
+fn arriving_species(dh: f64, dep: &[f64], tag_species: Litho) -> Litho {
+    let mut best = tag_species;
+    let mut best_m = dh - dep.iter().sum::<f64>();
+    for (k, &m) in dep.iter().enumerate() {
+        if m > best_m {
+            best_m = m;
+            best = Litho::ALL[k];
+        }
+    }
+    best.as_deposited()
+}
+
+/// **Where the transport pass picked material up and where it put it down**,
+/// summed over a whole run in metres (Movement 2b). All zero when material-aware
+/// transport is off.
+///
+/// It exists because "the facies gradient did not express" is not one finding, it
+/// is three, with three different heirs:
+///
+/// - **nothing was picked up** — the pass is not the thing shaping this landscape,
+///   and the heir is the erosion budget, not the sorting rule;
+/// - **it was picked up and set straight back down** (`by_competence` ≈
+///   `entrained + incised`) — the flows cannot carry what the hillslopes supply,
+///   and the heir is the competence calibration or the discharge;
+/// - **it travelled and then fined** — the slice worked.
+///
+/// A single "did the gradient appear" number cannot tell those apart, and
+/// guessing between them is how a slice gets tuned in the wrong place.
+#[derive(Clone, Copy, Default, Debug)]
+pub struct TransportLedger {
+    /// Loose cover lifted into the load at its source (`loose→load`, § 13.6).
+    pub entrained_m: f64,
+    /// Bedrock detached into the load by incision.
+    pub incised_m: f64,
+    /// Set down because the flow ran out of **capacity** — the coarsest-first draw.
+    pub deposited_by_capacity_m: f64,
+    /// Set down because the flow ran out of **competence** — the falling ceiling.
+    pub deposited_by_competence_m: f64,
+    /// Set down at a sink (the sea, or the domain border), where everything
+    /// suspended settles regardless.
+    pub deposited_at_sink_m: f64,
+    /// **The control the whole diagnosis turns on:** bedrock converted to regolith
+    /// *in place* by the weathering phase, over the run. This material never enters
+    /// a load and never travels, and if it dwarfs `entrained_m` then the archive is
+    /// not a fluvial deposit at all and no amount of sorting can make it read like
+    /// one.
+    pub weathered_m: f64,
+    /// The other control: regolith moved by **hillslope diffusion**, summed as the
+    /// per-epoch gain side of the gather (so it is mass *moved*, not net change,
+    /// which is zero by construction). Creep is the § 13.2 gravity/mass-wasting
+    /// family — a transport agent this slice deliberately does not make
+    /// material-aware — so this number is how much of the world's sediment routing
+    /// the slice did **not** reach.
+    pub diffused_m: f64,
 }
 
 /// Reusable scratch for the erosion iteration (allocated once, reused every
@@ -690,6 +815,67 @@ pub struct Erosion {
     /// mass budget on different arithmetic.
     out_area: Vec<f32>,
     out_face_load: Vec<f32>,
+    /// **Material-aware transport** (Movement 2b). Off ⇒ every vector below is
+    /// empty, no branch in [`Self::exchange_cell`] fires, and the pass is the
+    /// scalar solve byte for byte.
+    sorted: bool,
+    /// The settling velocity of each species (`settling_table`), and the species
+    /// indices sorted **descending** by it — the order deposition draws in, which
+    /// is the only place "the load is kept sorted" is cashed out. Sorting a
+    /// seven-element array once per run is cheaper and more honest than keeping a
+    /// sorted structure per cell: the ordering is a property of the *materials*,
+    /// not of any particular load.
+    w_settle: [f64; SPECIES],
+    ws_order: [usize; SPECIES],
+    /// The composition of the material **below the record** — what incision
+    /// detaches. Asked of the *same* near-surface-composition seam every other
+    /// consumer uses, with an **empty section**: a window containing no recorded
+    /// units is entirely whatever lies beneath the pile. So the pass names no
+    /// lithology; it asks a question and the seam answers. (Refreshed each epoch
+    /// in [`Self::expose`], because the seam's heir — structural deformation — may
+    /// one day answer it differently per cell, at which point this becomes a plane
+    /// rather than a constant.)
+    bedrock_sp: [f64; SPECIES],
+    /// The index of the last non-zero entry of [`Self::bedrock_sp`] — the species
+    /// that takes the residual, so an incision split is exact by construction.
+    last_bedrock_species: usize,
+    /// **The load itself** — `n × SPECIES` metres of suspended material, the
+    /// multiset of § 13.3. Cell `c`'s slice holds its *in*-load while upstream
+    /// cells are still contributing, and is rewritten in place by
+    /// [`Self::exchange_cell`] to hold its *out*-load; the chain is strictly
+    /// downstream-ordered, so a cell's slice is never read after it is spent.
+    ///
+    /// **This vector is the mass authority when it is non-empty.** The scalar
+    /// `qs` plane is not maintained on the sorted path at all: `qin` is summed
+    /// from here and the per-face scalar written to the flux record is the sum of
+    /// the per-species shares — one arithmetic, so the record and the budget
+    /// cannot drift (flow.md § 3).
+    qs_sp: Vec<f64>,
+    /// `n × SPECIES` — the composition of the **surface loose** at each cell, from
+    /// the record's own near-surface window (the `outcrop_shares` seam). This is
+    /// the identity entrainment removes: a reach cutting a sandstone bench hands
+    /// the flow sand, and a stripped column hands it basement debris.
+    shares: Vec<f64>,
+    /// `n × SPECIES` — what the transport pass **set down** at each cell this
+    /// epoch, per species. Read by [`Self::record`] to name the arriving unit, and
+    /// by the outcome probe to measure the downstream fining gradient.
+    dep_sp: Vec<f64>,
+    /// **The per-species split audit.** The largest *relative* discrepancy, over
+    /// every `(cell, species, epoch)` of the run, between what a cell held of a
+    /// species and the sum of what its receivers were handed of it.
+    ///
+    /// It is a running maximum rather than a stored plane because that is all the
+    /// claim needs: a leak anywhere is a leak. journal/0109 proved the scalar split
+    /// with a per-cell residue test over a stored plane; the per-species plane
+    /// would be `n × 8 × 7` and is not worth 133 MB to assert a scalar.
+    split_residue: f64,
+    /// **The transport ledger** (Movement 2b instruments) — running totals over
+    /// the whole run, in metres, of what the pass picked up and where it put it
+    /// down. Gen-time only, five `f64`s, and they are what turns "the facies
+    /// gradient did not express" from a shrug into a diagnosis: a load that never
+    /// leaves its source cell and a load that is never picked up at all are very
+    /// different failures with very different heirs.
+    ledger: TransportLedger,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -734,8 +920,92 @@ impl Erosion {
             mfd_w: Vec::new(),
             out_area: Vec::new(),
             out_face_load: Vec::new(),
+            sorted: false,
+            w_settle: [0.0; SPECIES],
+            ws_order: [0; SPECIES],
+            bedrock_sp: [0.0; SPECIES],
+            last_bedrock_species: 0,
+            qs_sp: Vec::new(),
+            shares: Vec::new(),
+            dep_sp: Vec::new(),
+            split_residue: 0.0,
+            ledger: TransportLedger::default(),
             heap: BinaryHeap::new(),
         }
+    }
+
+    /// Turn **material-aware transport** on (Movement 2b, `material-behavior.md`
+    /// § 13.3–13.6). Off is the scalar-load solve, byte for byte, because every
+    /// species vector stays empty and every branch that reads one is skipped.
+    ///
+    /// The settling order is computed once here: a stable descending sort of the
+    /// species by [`lithology::settling_table`], ties broken by index so the draw
+    /// order is deterministic across platforms.
+    pub fn set_material_transport(&mut self, on: bool) {
+        self.sorted = on;
+        if !on {
+            self.qs_sp = Vec::new();
+            self.shares = Vec::new();
+            self.dep_sp = Vec::new();
+            return;
+        }
+        self.w_settle = lithology::settling_table();
+        let mut order: [usize; SPECIES] = std::array::from_fn(|i| i);
+        let w = self.w_settle;
+        order.sort_by(|&a, &b| w[b].total_cmp(&w[a]).then(a.cmp(&b)));
+        self.ws_order = order;
+        if self.qs_sp.len() != self.n * SPECIES {
+            self.qs_sp = vec![0.0; self.n * SPECIES];
+            self.dep_sp = vec![0.0; self.n * SPECIES];
+        }
+    }
+
+    /// Whether material-aware transport is on.
+    #[inline]
+    pub fn is_material_transport(&self) -> bool {
+        self.sorted
+    }
+
+    /// The settling velocity of each species, indexed by [`Litho::index`] (all
+    /// zero when material-aware transport is off).
+    pub fn settling(&self) -> &[f64; SPECIES] {
+        &self.w_settle
+    }
+
+    /// **The largest relative per-species split residue over the whole run**
+    /// (`0.0` when material-aware transport is off, or when every split was exact).
+    ///
+    /// This is the *local* half of the per-species mass proof, the direct analogue
+    /// of journal/0109's `the_partition_leaves_no_residue`: for every cell, every
+    /// species and every epoch, the shares handed to the receivers summed to what
+    /// the cell held. The *global* half — a share written to the record but never
+    /// added to a neighbour — is the whole-world `Δ(ΣR + ΣH) == uplift + biotic`
+    /// ledger, which this cannot see and which cannot see this.
+    pub fn max_species_split_residue(&self) -> f64 {
+        self.split_residue
+    }
+
+    /// **What the transport pass set down at each cell in the last epoch, per
+    /// species** (`n × SPECIES` metres; empty when material-aware transport is
+    /// off). The measurement surface for the downstream-fining gradient — and the
+    /// authority [`Self::record`] names the arriving unit from.
+    pub fn deposited_species(&self) -> &[f64] {
+        &self.dep_sp
+    }
+
+    /// **The suspended load still in flight after the last transport**
+    /// (`n × SPECIES` metres; empty when material-aware transport is off). Cell
+    /// `c`'s slice is what it handed onward — the quantity the competence
+    /// invariant is read against.
+    pub fn load_species(&self) -> &[f64] {
+        &self.qs_sp
+    }
+
+    /// The transport capacity seen at each cell in the last epoch (`cap`, the
+    /// stream-power budget) — the flow's own energy, which is what sets its
+    /// competence ceiling.
+    pub fn energy(&self) -> &[f64] {
+        &self.energy
     }
 
     /// Turn the **flow record's** per-epoch per-face capture on. Off (the
@@ -778,6 +1048,12 @@ impl Erosion {
     #[inline]
     pub fn is_mfd(&self) -> bool {
         self.mfd.is_some()
+    }
+
+    /// **The transport ledger over the whole run** (all zero when material-aware
+    /// transport is off). See [`TransportLedger`].
+    pub fn transport_ledger(&self) -> TransportLedger {
+        self.ledger
     }
 
     /// The suspended load each cell handed to its receivers in the last
@@ -850,7 +1126,10 @@ impl Erosion {
             + self.sus_flow.len()
             + self.sus_creep.len()
             + self.frost.len()
-            + self.mfd_w.len();
+            + self.mfd_w.len()
+            + self.qs_sp.len()
+            + self.shares.len()
+            + self.dep_sp.len();
         f64s * 8
             + self.recv.len() * 4
             + self.order.capacity() * 4
@@ -1060,6 +1339,39 @@ impl Erosion {
     /// Purely per-cell → byte-identical parallel. When the coupling is off this
     /// leaves the planes empty and every consumer reads the exact identity.
     pub fn expose(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
+        // Movement 2b: the same near-surface window, read for a different
+        // question — not "how fast does this cell erode" but "**what is it made
+        // of**", which is the identity entrainment lifts into the load. One walk,
+        // two consumers; the erodibility blend and the entrainment composition can
+        // never disagree about what is lying at the surface.
+        if self.sorted {
+            if self.shares.len() != self.n * SPECIES {
+                self.shares = vec![0.0; self.n * SPECIES];
+            }
+            // What lies below the record, asked of the seam with an empty section.
+            self.bedrock_sp
+                .copy_from_slice(cfg.providers.outcrop_shares(&[]).shares());
+            self.last_bedrock_species = (0..SPECIES)
+                .rev()
+                .find(|&k| self.bedrock_sp[k] > 0.0)
+                .unwrap_or(0);
+            let strata = &grid.strata;
+            let providers = cfg.providers;
+            let compose = |i: usize, out: &mut [f64]| {
+                let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+                out.copy_from_slice(providers.outcrop_shares(units).shares());
+            };
+            if self.par() {
+                self.shares
+                    .par_chunks_mut(SPECIES)
+                    .enumerate()
+                    .for_each(|(i, out)| compose(i, out));
+            } else {
+                for (i, out) in self.shares.chunks_mut(SPECIES).enumerate() {
+                    compose(i, out);
+                }
+            }
+        }
         if !cfg.erodibility {
             self.litho.clear();
             self.sus_flow.clear();
@@ -1441,6 +1753,7 @@ impl Erosion {
         // abrasion susceptibility of whatever lithology outcrops here.
         // Exactly `1.0` when the coupling is off.
         let sus = sus_at(&self.sus_flow, c);
+        let base = c * SPECIES;
         if qin <= cap {
             let mut room = cap - qin;
             // Entrain the exposed cover. Transport-limited, now scaled by
@@ -1457,10 +1770,44 @@ impl Erosion {
             // it. Over-entrainment also drives `room` negative, which skips
             // incision: a thick soft cover shields the bedrock beneath it,
             // which is correct.
-            let ent = grid.h[c].min(room * sus);
+            // `H` can carry a sub-ULP negative from round-off; on the scalar path
+            // that has always flowed straight through (and `x.max(0.0)` would not
+            // be byte-identical), but a *negative entrainment* would mean handing
+            // the load a negative quantity of a named material, which is not a
+            // thing. Floored only on the sorted path, where `avail` is otherwise
+            // the same expression bit for bit.
+            let avail = if self.sorted {
+                grid.h[c].max(0.0)
+            } else {
+                grid.h[c]
+            };
+            let ent = avail.min(room * sus);
             grid.h[c] -= ent;
             self.dh[c] -= ent;
             room -= ent;
+            // **Entrainment is where identity enters the load** (§ 13.6: the
+            // `loose→load` removal at the source). What comes off is what is lying
+            // here — the record's own near-surface composition — so a reach cutting
+            // a sandstone bench hands the flow sand and a stripped column hands it
+            // basement debris. The last non-zero share takes the residual, so the
+            // split is exact by construction rather than exact-to-an-ulp: the same
+            // discipline the MFD face split needs, for the same reason.
+            if self.sorted && ent > 0.0 {
+                self.ledger.entrained_m += ent;
+                let sb = base;
+                if let Some(last) = (0..SPECIES).rev().find(|&k| self.shares[sb + k] > 0.0) {
+                    let mut given = 0.0;
+                    for k in 0..SPECIES {
+                        let sh = self.shares[sb + k];
+                        if sh <= 0.0 {
+                            continue;
+                        }
+                        let add = if k == last { ent - given } else { sh * ent };
+                        given += add;
+                        self.qs_sp[base + k] += add;
+                    }
+                }
+            }
             let mut carried = qin + ent;
             // Then incise bedrock, shielded by remaining cover and scaled by
             // the same susceptibility. Where cover is thin enough for this
@@ -1473,14 +1820,119 @@ impl Erosion {
                 let inc = inc_pot.min(room).min(max_inc);
                 grid.r[c] -= inc;
                 carried += inc;
+                // Incision detaches material from **below the record**, and the
+                // composition seam answers that question too — an empty section is
+                // whatever lies beneath the pile (`bedrock_sp`). Nothing is named
+                // here; on today's world the answer comes back as the hardest,
+                // coarsest thing there is, which is why a headwater reach cutting
+                // rock rather than reworking cover puts gravel into the load.
+                if self.sorted && inc > 0.0 {
+                    self.ledger.incised_m += inc;
+                    let mut given = 0.0;
+                    let last = self.last_bedrock_species;
+                    for k in 0..SPECIES {
+                        let sh = self.bedrock_sp[k];
+                        if sh <= 0.0 {
+                            continue;
+                        }
+                        let add = if k == last { inc - given } else { sh * inc };
+                        given += add;
+                        self.qs_sp[base + k] += add;
+                    }
+                }
             }
-            carried
+            if self.sorted {
+                self.settle_above_competence(grid, c, cap);
+                self.qs_sp[base..base + SPECIES].iter().sum()
+            } else {
+                carried
+            }
         } else {
             // Over capacity: deposit the excess as alluvium.
             let dep = qin - cap;
-            grid.h[c] += dep;
-            self.dh[c] += dep;
-            cap
+            if self.sorted {
+                // **Coarsest first.** The load is drawn down in descending settling
+                // velocity, so the excess the flow cannot hold is paid for out of
+                // the heaviest fraction it is carrying — a bar of gravel and sand,
+                // not an average of everything in the water. The fines that survive
+                // this cell are what reaches the next one, and *that* is the
+                // downstream gradient: a distal cell deposits mud because there is
+                // nothing else left, not because it is a low-energy place.
+                let mut remaining = dep;
+                let mut placed = 0.0;
+                for &k in &self.ws_order {
+                    if remaining <= 0.0 {
+                        break;
+                    }
+                    let have = self.qs_sp[base + k];
+                    if have <= 0.0 {
+                        continue;
+                    }
+                    let take = if have <= remaining {
+                        self.qs_sp[base + k] = 0.0;
+                        have
+                    } else {
+                        self.qs_sp[base + k] = have - remaining;
+                        remaining
+                    };
+                    self.dep_sp[base + k] += take;
+                    placed += take;
+                    remaining -= take;
+                }
+                grid.h[c] += placed;
+                self.dh[c] += placed;
+                self.ledger.deposited_by_capacity_m += placed;
+                self.settle_above_competence(grid, c, cap);
+                self.qs_sp[base..base + SPECIES].iter().sum()
+            } else {
+                grid.h[c] += dep;
+                self.dh[c] += dep;
+                cap
+            }
+        }
+    }
+
+    /// **COMPETENCE — the falling ceiling** (Movement 2b, `material-behavior.md`
+    /// § 13.5). Every species in cell `c`'s outgoing load whose settling velocity
+    /// exceeds what a flow of capacity `cap` can hold is set down **here**, however
+    /// much capacity the flow has to spare.
+    ///
+    /// Capacity says *how much* a flow can carry; competence says *what*. Only the
+    /// second one produces a facies: without it a stream with spare capacity would
+    /// carry boulders to the sea and nothing would ever fine downstream. § 13.5's
+    /// instruction is exact — *"sorting is the falling ceiling; we write the
+    /// ceiling, not the sort"* — and this is the whole of the sort: no list is
+    /// reordered anywhere, the ceiling simply falls as energy falls and the load is
+    /// whatever is still under it.
+    ///
+    /// It runs **last**, on the load actually leaving, so it covers the material
+    /// this cell just entrained or incised as well as what arrived: a reach that
+    /// prises loose a grain size it cannot lift drops it straight back, which is
+    /// the honest outcome and keeps the invariant clean — **nothing leaves a cell
+    /// that the cell could not carry**. (That is deliberately *not* armouring: the
+    /// grain stays in the ordinary loose cover and is tried again next epoch, so no
+    /// permanent lag or pavement forms. Selective *entrainment* — the fine-side,
+    /// cohesion-driven half of Hjulström's curve, which is what actually armours a
+    /// bed — is § 13.4 and is deferred.)
+    #[inline]
+    fn settle_above_competence(&mut self, grid: &mut DeepGrid, c: usize, cap: f64) {
+        let ceiling = COMPETENCE_SCALE * cap;
+        let base = c * SPECIES;
+        let mut rained = 0.0;
+        for k in 0..SPECIES {
+            if self.w_settle[k] > ceiling {
+                let m = self.qs_sp[base + k];
+                if m > 0.0 {
+                    self.qs_sp[base + k] = 0.0;
+                    self.dep_sp[base + k] += m;
+                    rained += m;
+                }
+            }
+        }
+        if rained > 0.0 {
+            grid.h[c] += rained;
+            self.dh[c] += rained;
+            self.ledger.deposited_by_competence_m += rained;
         }
     }
 
@@ -1522,24 +1974,47 @@ impl Erosion {
         // transport chain — they cannot perturb an f64 anywhere.
         self.out_load.iter_mut().for_each(|q| *q = 0.0);
         self.out_face_load.iter_mut().for_each(|q| *q = 0.0);
+        self.qs_sp.iter_mut().for_each(|q| *q = 0.0);
+        self.dep_sp.iter_mut().for_each(|q| *q = 0.0);
         let record = !self.out_face_load.is_empty();
+        let sorted = self.sorted;
         if self.mfd.is_none() {
             for k in (0..self.order.len()).rev() {
                 let c = self.order[k] as usize;
                 let rc = self.recv[c];
-                let qin = self.qs[c];
+                let base = c * SPECIES;
+                let qin = if sorted {
+                    self.qs_sp[base..base + SPECIES].iter().sum()
+                } else {
+                    self.qs[c]
+                };
                 if rc < 0 {
                     // Sink: everything suspended settles here (marine / border).
                     grid.h[c] += qin;
                     self.dh[c] += qin;
                     self.energy[c] = 0.0;
+                    if sorted {
+                        for s in 0..SPECIES {
+                            self.dep_sp[base + s] += self.qs_sp[base + s];
+                            self.qs_sp[base + s] = 0.0;
+                        }
+                        self.ledger.deposited_at_sink_m += qin;
+                    }
                     continue;
                 }
                 let rc = rc as usize;
                 let s = ((self.filled[c] - self.filled[rc]).max(0.0)) / self.cell_m;
                 let floor = grid.surf_at(rc);
                 let qs_out = self.exchange_cell(grid, cfg, c, qin, s, floor);
-                self.qs[rc] += qs_out;
+                if sorted {
+                    // One receiver: the whole multiset moves, species by species.
+                    let rb = rc * SPECIES;
+                    for s in 0..SPECIES {
+                        self.qs_sp[rb + s] += self.qs_sp[base + s];
+                    }
+                } else {
+                    self.qs[rc] += qs_out;
+                }
                 // The load crossing cell→receiver this epoch — the flow atom's `L`.
                 // Captured here because it is unrecoverable afterwards: `qs[rc]` is a
                 // sum over every contributor, with no unique factorization.
@@ -1559,7 +2034,12 @@ impl Erosion {
         for k in (0..self.order.len()).rev() {
             let c = self.order[k] as usize;
             let base = c * MFD_DIRS;
-            let qin = self.qs[c];
+            let sbase = c * SPECIES;
+            let qin = if sorted {
+                self.qs_sp[sbase..sbase + SPECIES].iter().sum()
+            } else {
+                self.qs[c]
+            };
             // One sweep over the partition for the three things the exchange needs:
             // is there an outlet at all, what slope does the flow descend, and how
             // low may the bed be cut.
@@ -1582,28 +2062,90 @@ impl Erosion {
                 grid.h[c] += qin;
                 self.dh[c] += qin;
                 self.energy[c] = 0.0;
+                if sorted {
+                    for s in 0..SPECIES {
+                        self.dep_sp[sbase + s] += self.qs_sp[sbase + s];
+                        self.qs_sp[sbase + s] = 0.0;
+                    }
+                    self.ledger.deposited_at_sink_m += qin;
+                }
                 continue;
             }
             let qs_out = self.exchange_cell(grid, cfg, c, qin, s_bar, floor);
             if record {
                 self.out_load[c] = qs_out;
             }
-            let mut given = 0.0;
-            for d in 0..MFD_DIRS {
-                let wt = self.mfd_w[base + d];
-                if wt <= 0.0 {
+            if !sorted {
+                let mut given = 0.0;
+                for d in 0..MFD_DIRS {
+                    let wt = self.mfd_w[base + d];
+                    if wt <= 0.0 {
+                        continue;
+                    }
+                    let share = if d == last {
+                        qs_out - given
+                    } else {
+                        wt * qs_out
+                    };
+                    given += share;
+                    let j = self.mfd_neighbour(c, d);
+                    self.qs[j] += share;
+                    if record {
+                        self.out_face_load[base + d] = share as f32;
+                    }
+                }
+                continue;
+            }
+            // **The residual trick, PER SPECIES** — re-derived, not ported.
+            //
+            // journal/0109's scalar rule ("the last weighted direction takes
+            // `q − Σ(earlier)`") makes one split exact. The obvious generalisation
+            // — split the *total* exactly and then apportion each species by its
+            // fraction of the total — is **wrong**, and wrong in the silent
+            // direction: it re-derives the per-species amount from a shared
+            // quantity, so each species picks up its own rounding against a common
+            // denominator and the sum of a species over all its faces no longer
+            // equals what the cell held. The leak is per-species, invisible in the
+            // total, and unattributable afterwards because `qs_sp[j][s]` is a sum
+            // over contributors with no unique factorisation. So each species runs
+            // its **own** budget: for species `s`, the last weighted direction
+            // takes `q_s − Σ(earlier shares of s)`, and every species is exact on
+            // its own terms.
+            //
+            // The face scalar the flux record stores is then the **sum of the
+            // species shares on that face** — not a second split of the total. One
+            // arithmetic, so the record and the budget cannot disagree (flow.md
+            // § 3), exactly as 0109 required of the scalar version.
+            let mut face_total = [0.0f64; MFD_DIRS];
+            for s in 0..SPECIES {
+                let q_s = self.qs_sp[sbase + s];
+                if q_s <= 0.0 {
                     continue;
                 }
-                let share = if d == last {
-                    qs_out - given
-                } else {
-                    wt * qs_out
-                };
-                given += share;
-                let j = self.mfd_neighbour(c, d);
-                self.qs[j] += share;
-                if record {
-                    self.out_face_load[base + d] = share as f32;
+                let mut given = 0.0;
+                for (d, ft) in face_total.iter_mut().enumerate() {
+                    let wt = self.mfd_w[base + d];
+                    if wt <= 0.0 {
+                        continue;
+                    }
+                    let share = if d == last { q_s - given } else { wt * q_s };
+                    given += share;
+                    *ft += share;
+                    let j = self.mfd_neighbour(c, d);
+                    self.qs_sp[j * SPECIES + s] += share;
+                }
+                // The audit: what the receivers were handed, against what the cell
+                // held. Relative, because loads span many orders of magnitude.
+                let residue = ((given - q_s) / q_s).abs();
+                if residue > self.split_residue {
+                    self.split_residue = residue;
+                }
+            }
+            if record {
+                for (d, ft) in face_total.iter().enumerate() {
+                    if self.mfd_w[base + d] > 0.0 {
+                        self.out_face_load[base + d] = *ft as f32;
+                    }
                 }
             }
         }
@@ -1618,6 +2160,15 @@ impl Erosion {
     /// (journal/0034, empty and uniform `1.0` when the frost agent is off). Purely
     /// local per cell → byte-identical parallel.
     pub fn weather(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        // A Movement 2b **control**, not a term: how much regolith this world makes
+        // in place, against how much its rivers ever pick up (`TransportLedger`).
+        // Reading a plane cannot perturb it, and it is summed only when
+        // material-aware transport is on, so the scalar path is untouched.
+        let h_before = if self.sorted {
+            grid.h.iter().sum::<f64>()
+        } else {
+            0.0
+        };
         let parallel = self.par();
         let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
         let dh = &mut self.dh;
@@ -1671,6 +2222,9 @@ impl Erosion {
                     frost_at(frost, i),
                 );
             }
+        }
+        if self.sorted {
+            self.ledger.weathered_m += grid.h.iter().sum::<f64>() - h_before;
         }
     }
 
@@ -1772,6 +2326,12 @@ impl Erosion {
                 }
             }
         }
+        // The other Movement 2b control: how much regolith **creep** moves, against
+        // how much the rivers do. The gain side only — the net is zero by
+        // construction, so summing it would report nothing.
+        if self.sorted {
+            self.ledger.diffused_m += self.netdiff.iter().map(|v| v.max(0.0)).sum::<f64>();
+        }
         // Apply: h += net, dh += net (disjoint per-cell writes).
         if parallel {
             grid.h
@@ -1801,15 +2361,25 @@ impl Erosion {
         let chapter = self.cur_chapter;
         let (r, h, precip, energy) = (&grid.r, &grid.h, &grid.precip, &self.energy);
         let dh = &self.dh;
+        let dep = &self.dep_sp;
+        let sorted = self.sorted;
+        let species_at = |i: usize, tag: DepTag| {
+            let t = lithology::litho_of_tag(tag);
+            if sorted {
+                arriving_species(dh[i], &dep[i * SPECIES..(i + 1) * SPECIES], t)
+            } else {
+                t
+            }
+        };
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
                 let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
-                record_cell(s, dh[i], tag, chapter);
+                record_cell(s, dh[i], tag, chapter, species_at(i, tag));
             });
         } else {
             for i in 0..self.n {
                 let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea);
-                record_cell(&mut grid.strata[i], dh[i], tag, chapter);
+                record_cell(&mut grid.strata[i], dh[i], tag, chapter, species_at(i, tag));
             }
         }
     }

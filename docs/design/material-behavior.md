@@ -833,6 +833,51 @@ The genesis-passes arc therefore does not shrink — it **relocates**, from *"wh
 this facies"* to *"which rock was emplaced here in the first place"*, and it inherits
 **stubs #16** (bedrock materialized as one flat basement span) as its first real customer.
 
+### 13.8b BUILT 2026-07-26 — the first slice (journal/0110)
+
+**Shipped, on by default** (`DeepConfig::material_transport`). Off is the scalar-load
+solve byte for byte; the pre-2b goldens are still reachable and still asserted
+(`tests/material_transport.rs`).
+
+- **The load is a multiset of `(Litho, quantity)`** — seven species, which is the
+  material granularity deep time can distinguish at all (`lithology.rs`: *"not the
+  material registry — the handful of classes the record can distinguish"*).
+  Resolving it finer would be inventing identity the tier does not have.
+- **Identity travels**, § 13.6's scratch-first reconcile: entrainment takes the
+  cell's own near-surface composition (the `outcrop_shares` seam — one window walk,
+  now with two consumers), incision takes the composition of an **empty** section
+  (which is how the pass asks "what is below the record" without naming a rock).
+- **Deposition is the falling ceiling.** Competence — `w_s > COMPETENCE_SCALE · cap`
+  — rains a species out wherever it is; capacity then draws the excess
+  **coarsest-first**. Nothing is sorted; the ceiling falls and the load is what is
+  under it. `COMPETENCE_SCALE = 420` is anchored on the *shipped* facies rule's own
+  Low/Medium capacity boundary (`energy_band`'s `0.002`) crossing coarse clastic's
+  `settle_energy` (`0.84`) — not a fit.
+- **The sweep runs LAST**, on the load actually leaving, so the invariant is clean:
+  *nothing leaves a cell that the cell could not carry*. A grain the cell prises
+  loose and cannot lift goes straight back into ordinary loose cover — deliberately
+  **not** armouring, which needs § 13.4's selective entrainment.
+- **`DepUnit` carries `species`** — the material that arrived — and `litho_of_tag`
+  is demoted to the *default fill* for depositors that carry no load. Fits the
+  existing padding; the record costs nothing.
+- **Mass closes per species.** journal/0109's residual rule is applied **per
+  species independently**; splitting the total exactly and apportioning by fraction
+  leaks silently, because each species rounds against a shared denominator while the
+  total stays perfect. `exchange_cell` remains **one** function for both routing paths.
+
+> **⚠ THE OUTCOME IS A NULL, AND IT IS THE MOST USEFUL THING THE SLICE PRODUCED.**
+> On the shipped world the identity that travels reaches **0.025 m of a 440,595 m
+> archive (0.000006 %)** and the grain-size gradient is unchanged to four decimals.
+> Measured cause, in order of size: **fluvial transport is 0.109 % of this world's
+> sediment routing** (rivers pick up 659.5 m over 200 epochs; hillslope creep moves
+> 605,117 m — a factor of 918); **no cell anywhere can carry sand** (max competence
+> ceiling 0.283 against coarse clastic's 0.840, and the world's maximum transport
+> capacity is 6.74 × 10⁻⁴, *three times below* the shipped Low/Medium band boundary
+> it is anchored on); and downstream of both, journal/0109's uniform convergence
+> exponent. **Nothing was tuned.** The implication for this arc is that the next
+> slice with a visible payoff is the **gravity/mass-wasting** member of § 13.2's
+> family, not a refinement of the fluvial one — creep is what moves this world.
+
 ### 13.8 Three deferred layers (named, not this arc)
 - **3D volumetric flow** (underwater rivers, turbidity currents, cave streams): a richer
   *flow field* (the free-water body graph, §6/§7); transport-follows-the-field is unchanged.

@@ -15,7 +15,6 @@
 //!
 //! Run: `cargo run --release -p dc-worldgen --example outcrop_dominance_probe`
 
-use dc_worldgen::deeptime::litho_of_tag;
 use dc_worldgen::deeptime::lithology::{Litho, exposed_litho};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -32,7 +31,7 @@ fn pct(a: usize, b: usize) -> f64 {
 /// The pre-journal/0068 rule: the top unit's lithology, or basement if empty.
 fn old_rule(units: &[dc_worldgen::deeptime::DepUnit]) -> Litho {
     match units.last() {
-        Some(u) => litho_of_tag(u.tag),
+        Some(u) => u.species,
         None => Litho::Basement,
     }
 }

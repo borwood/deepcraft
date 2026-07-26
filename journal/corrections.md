@@ -1854,3 +1854,51 @@ for. `docs/audits/2026-07-25-roadmap-staleness-sweep.md` is likewise a dated sna
 **ROADMAP.md line ~2740 still carries it** (*"the head field is also what unlocks a
 multi-flow-direction solve"*) and is owned by the integrator, not by the slice — flagged in the
 slice's return rather than edited.
+
+## 55. "The fluvial transport pass is what moves this world's sediment" (implicit in `material-behavior.md` § 13, `flow.md` § 8, and the Movement 2b brief — falsified 2026-07-26 by journal/0110's own probe)
+
+**Never written as a sentence, which is why it survived.** `material-behavior.md`
+§ 13 opens with the cycle *"weather → entrain → carry → sort → deposit"* and builds a
+whole arc on making the **carry** step material-aware. `flow.md` § 8's acceptance test
+is a cross-section reading *channel gravel → floodplain silt*. The Movement 2b brief
+calls the slice *"the big appearance-changer."* All three take for granted that the
+pass which entrains and routes suspended load is the pass that puts the sediment where
+it ends up. Nobody stated it, so nobody checked it.
+
+**Measured — seed 1337, `Extent::Medium`, 297,025 cells, 200 epochs
+(`examples/facies_probe.rs`):**
+
+| where this world's sediment goes | metres |
+|---|---|
+| picked up by the flow (entrained + incised) | **659.5** |
+| weathered to regolith **in place** — never enters a load | **256,886** |
+| moved by **hillslope creep** (diffusion) | **605,117** |
+
+**Fluvial transport is 0.109 % of the sediment routing. Hillslope creep moves 918×
+more.** Against a 440,595 m archive, everything the rivers ever touched is 0.15 % of
+what the record holds.
+
+**Two corroborating reads, from independent instruments.** (a) The largest competence
+ceiling anywhere on the final epoch is **0.283**, against coarse clastic's settling
+threshold of **0.840** — no cell on the shipped world can carry sand. (b) The world's
+maximum transport capacity is **6.74 × 10⁻⁴**, **three times below** `energy_band`'s
+own Low/Medium boundary of `0.002`, which the competence ceiling is anchored on. *(That
+second read is the **final epoch only**; the full-run capacity distribution is
+unmeasured, so `energy_band`'s "calibrated so trunk rivers read High" is **flagged, not
+declared false** — see the slice's needs-measurement list.)*
+
+**Why this matters more than the null it explains.** Movement 2b is correct and had
+almost no effect, and without this number the natural diagnosis would have been "the
+sorting rule needs tuning" — producing a constant chosen to manufacture an outcome out
+of a thousandth of the sediment. The real reading is a **sequencing** one: the next
+slice of this arc with a visible payoff is the **gravity/mass-wasting** member of
+§ 13.2's transport family, not a refinement of the fluvial one. Creep is what moves
+this world, and creep carries no identity.
+
+**Lesson, and it is the third instance in two days.** journal/0109 twice mistook a
+claim about *order* for a claim about *substance* ("head unlocks MFD"; "routing is
+upstream of erosion, so the world will move"). This is the same error in a third
+disguise: a claim about **naming** — *this is the transport pass, so it must be what
+does the transporting* — read as a claim about **magnitude**. The defence is identical
+and cheap: **before believing a mechanism matters, measure how much authority it has
+over the thing you are claiming it changes.** One probe run.

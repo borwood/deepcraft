@@ -481,7 +481,12 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
         if u.thickness_m <= 0.0 {
             continue;
         }
-        let l = litho_of_tag(u.tag);
+        // **The unit's own species, not its tag's** (Movement 2b). With
+        // material-aware transport off `u.species == litho_of_tag(u.tag)` at every
+        // construction site, so this walk is byte-identical; with it on, a window
+        // full of sand that a river delivered to a low-energy cell reads as sand
+        // rather than as whatever its environment would have implied.
+        let l = u.species;
         let idx = l.index();
         if !seen[idx] {
             seen[idx] = true;
@@ -613,6 +618,62 @@ pub fn blend_susceptibility(shares: &WindowShares, sus_tab: &[f64; Litho::COUNT]
     // (journal/0075) — the operation is byte-identical to the dot this function
     // used to inline (same operands, same index-order fold).
     shares.blend_table(sus_tab)
+}
+
+/// **The settling-velocity ordering key, per lithology** — the number the
+/// material-aware transport pass sorts its suspended load by (Movement 2b,
+/// `material-behavior.md` § 13.5).
+///
+/// It is `dc_core`'s [`settle_energy`](dc_core::materials::geology::settle_energy),
+/// `sqrt(grain_size_mm × specific_gravity)`, read off the class's reference
+/// property sheet — **the machinery already in the tree**, not a second settling
+/// model: the same function the shipped S8 placer pass thresholds on
+/// (`crate::geology::member_settle_threshold`). It rises with grain size *and*
+/// density, which is the whole content of "sorting": as the flow's competence
+/// ceiling falls downstream the high-`w_s` species rain out first and the fines
+/// ride on.
+///
+/// **An honest limit of the proxy, recorded rather than patched.** `settle_energy`
+/// is *size-dominated*: it multiplies grain size by specific gravity instead of
+/// modelling buoyancy, so a low-density, coarse-"grained" species (peat, at 5 mm
+/// and 400 kg/m³) reads as settling faster than sand, where real peat floats. The
+/// heir is a better property-derived settling law (a Stokes/drag form carrying the
+/// fluid's own density — which arrives with `flow.md` § 2.5's fluid identity), not
+/// a material-named exception here; and it would move the shipped placer pass too,
+/// so it is a change to make deliberately and together. See `docs/design/stubs.md`
+/// § 23.
+///
+/// Built once per run and read per cell, like [`susceptibility_table`].
+pub fn settling_table() -> [f64; Litho::COUNT] {
+    let mut out = [0.0; Litho::COUNT];
+    for l in Litho::ALL {
+        out[l.index()] = dc_core::materials::geology::settle_energy(l.reference_material().props());
+    }
+    out
+}
+
+impl Litho {
+    /// **What this lithology IS once a flow has carried it and set it down.**
+    ///
+    /// Every recorded unit is a *deposit* — loose material that arrived — so the
+    /// one lithology that cannot be one is [`Litho::Basement`], which names the
+    /// unrecorded igneous/metamorphic rock *below* the pile. Basement a river
+    /// quarried and carried is coarse clastic detritus when it lands: a gravel, not
+    /// a granite. Recording it as basement would hand a loose bar the strength of
+    /// bedrock at the next epoch's [`exposed_shares`] read, which is exactly
+    /// backwards.
+    ///
+    /// This is where the deep tier's **provenance** is lost — the record keeps
+    /// "coarse clastic", not "coarse clastic off basement". Carrying the parent
+    /// through deposition is `material-behavior.md` § 13.8's **lineage history**
+    /// (the `Move`-fact chain of custody), deferred with that layer.
+    #[inline]
+    pub fn as_deposited(self) -> Litho {
+        match self {
+            Litho::Basement => Litho::ClasticCoarse,
+            other => other,
+        }
+    }
 }
 
 /// Per-lithology rate multipliers for one agent, as a dense table indexed by

@@ -36,6 +36,7 @@ use dc_core::materials::geology::{
 };
 use dc_sim::statistical::rng::{Domain, Draws};
 
+use crate::deeptime::lithology::Litho;
 use crate::deeptime::providers::PaleoUnit;
 use crate::deeptime::recorder::{Aridity, Biofacies, DepEnv, DepTag, DepUnit, EnergyBand};
 use crate::pregen::Provenance;
@@ -395,6 +396,33 @@ fn deep_precip(tag: DepTag) -> f64 {
 /// [`exposed_litho`](crate::deeptime::lithology::exposed_litho)'s dominance
 /// window, so both tiers can agree the fire bed is charcoal while it still never
 /// *outcrops* one (journal/0068).
+/// The content class a **recorded unit's own material** resolves to — the
+/// species-first routing Movement 2b introduced.
+///
+/// [`deep_class`] answers *"what rock does this environment imply"*; this answers
+/// *"what rock actually arrived"*, and with material-aware transport off the two
+/// are the same answer by construction (`unit.species == litho_of_tag(unit.tag)`,
+/// pinned over the whole tag space by
+/// `tests/erodibility.rs::litho_routing_matches_the_collapse_tier`). Kept
+/// immediately beside its sibling so the pair is read together and neither can
+/// drift into a third copy of the routing.
+///
+/// [`Litho::Basement`] is not a depositional lithology — a unit never carries it,
+/// because `Litho::as_deposited` turns quarried basement into the coarse clastic
+/// detritus it is once it lands — but the arm is written out rather than
+/// unreachable-panicking, because a total function is cheaper to reason about
+/// than a proof obligation.
+pub fn deep_class_of_species(species: Litho) -> &'static str {
+    match species {
+        Litho::ClasticFine => CLASS_CLASTIC_FINE,
+        Litho::ClasticCoarse | Litho::Basement => CLASS_CLASTIC_COARSE,
+        Litho::OrganicSoil => CLASS_ORGANIC_SOIL,
+        Litho::OrganicPeat => CLASS_ORGANIC_PEAT,
+        Litho::OrganicCoal => CLASS_ORGANIC_COAL,
+        Litho::OrganicCharcoal => CLASS_ORGANIC_CHARCOAL,
+    }
+}
+
 pub fn deep_class(tag: DepTag) -> &'static str {
     match tag.biota {
         Biofacies::Coal => CLASS_ORGANIC_COAL,
@@ -664,7 +692,7 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
         if u.thickness_m <= 0.0 {
             continue;
         }
-        let class = deep_class(u.tag);
+        let class = deep_class_of_species(u.species);
         let precip = deep_precip(u.tag);
         let depth_m = depth_above + DEEP_VENEER_MARGIN_M;
         // **At-deposition temperature — the `paleo_temperature` seam** (#11,
@@ -943,6 +971,7 @@ mod tests {
             thickness_m: 5.0,
             unconformity: false,
             chapter: 2,
+            species: Litho::ClasticCoarse,
         }]
     }
 

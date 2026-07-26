@@ -234,6 +234,23 @@ A cheap answer written because a consumer cannot afford the real one must be
   this derived from the authority?"* without also asking *"at what granularity was
   the authority asked?"*
 
+- compliance (2026-07-26, journal/0110 — Movement 2b): **`litho_of_tag` demoted
+  from authority to default.** A recorded unit's rock was *inferred from the
+  environment measured at deposition* — the `DepTag → reference_material` shortcut
+  `material-behavior.md` § 13.7 said would half-dissolve. The inference is not
+  wrong, it is **blind to provenance**: it structurally cannot know that a distal
+  cell has no gravel to drop because the gravel rained out upstream. `DepUnit` now
+  carries `species` — the material that actually arrived, written by the only agent
+  that can know it, the pass that carried it — and `litho_of_tag` survives as the
+  **default fill** for every depositor that carries no load (the wind and wave
+  agents, the biotic layer, pedogenic overprint, coalification). Off the flag the
+  default is used everywhere, so the demotion is byte-identical and the record's new
+  axis costs nothing (it fits `DepUnit`'s existing padding, asserted). Note what the
+  *measurement* then found: on the shipped world the identity that travels reaches
+  **0.025 m of a 440,595 m archive**, because fluvial transport is 0.109 % of this
+  world's sediment routing — the authority is now correctly shaped and has almost
+  nothing to say, which is a fact about the landscape and not about the shape.
+
 **Rule:** the doctrine test — *"if this consumer disappeared tomorrow, would
 this code still exist in this shape?"* (ARCHITECTURE.md § "A summary is not an
 authority"). Agreement is **exact** where expression is deterministic and
@@ -1016,6 +1033,28 @@ real rather than a slogan, since both were independently flagged by the seam
 inventory: `Litho::reference_material` (six named rocks standing for every
 material in the world) and `classify::block_twin` (fifteen named materials, with
 a `_ => Block::Stone` arm that silently swallows any pack's additions).
+
+**A worked instance of the diagnostic working *forwards*, 2026-07-26
+(journal/0110).** Movement 2b's material-aware transport pass needed three
+identities and named none of them, and the third is the one worth recording
+because the obvious answer was a constant:
+
+- *what a flow entrains* → the composition of the cell's own near-surface window,
+  through the `outcrop_shares` seam that already existed for the erodibility blend;
+- *how the load sorts* → `settle_energy` over the property sheet, the same function
+  the shipped placer pass already thresholds on;
+- *what incision detaches* → the first draft wrote `Litho::Basement`. Applying the
+  diagnostic — *what property of that content am I reaching for?* — the answer is
+  **"whatever lies below the record"**, and the composition seam already answers
+  exactly that question when handed an **empty section**: a window containing no
+  units is entirely the material beneath the pile. So the pass asks
+  `outcrop_shares(&[])` and the constant disappears. The day basement stops being
+  uniform, the seam's heir answers and the pass does not change.
+
+The one place the roster is still named is `Litho::as_deposited` — *basement is the
+one lithology a deposit cannot be* — which lives in the lithology **adapter**, not
+in a pass, and is a statement about the record's own vocabulary rather than about
+any pack's content.
 
 ---
 

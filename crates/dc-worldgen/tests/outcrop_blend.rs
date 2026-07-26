@@ -11,7 +11,7 @@
 
 use dc_worldgen::deeptime::lithology::{
     Agent, Litho, blend_susceptibility, dominant_litho, exposed_litho, exposed_shares,
-    susceptibility_table,
+    litho_of_tag, susceptibility_table,
 };
 use dc_worldgen::deeptime::{Aridity, Biofacies, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 
@@ -25,6 +25,10 @@ fn unit(tag: DepTag, thickness_m: f64) -> DepUnit {
         thickness_m,
         unconformity: false,
         chapter: 0,
+        // The tag-derived species — what a unit carries whenever nothing
+        // transported it (material-aware transport off, and every non-fluvial
+        // depositor). These suites are about the *window walk*, not the load.
+        species: litho_of_tag(tag),
     }
 }
 

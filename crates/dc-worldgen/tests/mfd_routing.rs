@@ -50,6 +50,12 @@ fn small_world() -> Pregen {
 fn cfg_for(cells: &CellGrid, mfd: bool) -> DeepConfig {
     DeepConfig {
         mfd,
+        // **Held scalar on purpose** (Movement 2b, journal/0110). This suite asks
+        // a question about *routing*; material-aware transport changes what the
+        // routing carries, and leaving it on would mean every number here moved
+        // for two reasons at once — including the pre-MFD fixed point below, which
+        // would stop being reachable at all.
+        material_transport: false,
         ..production_config(cells, SEED)
     }
 }
@@ -289,6 +295,10 @@ fn the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens() {
     let pregen = production_pregen();
     let cfg = DeepConfig {
         mfd: false,
+        // Pre-MFD `main` had no material-aware transport either (journal/0110
+        // shipped it later), so reaching that fixed point means turning off both
+        // forks, not one.
+        material_transport: false,
         ..production_config(&pregen.grid, GOLDEN_SEED)
     };
     let f = build_field_cfg(&pregen.grid, &cfg);

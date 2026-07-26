@@ -18,7 +18,7 @@
 
 use dc_worldgen::deeptime::{
     self, Cause, DeepField, FactLedger, Granularity, InvForm, InvSpan, UnitProvenance,
-    build_identity, build_working, commit_chapter, compose_unit, derive_base, litho_of_tag,
+    build_identity, build_working, commit_chapter, compose_unit, derive_base,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -66,7 +66,7 @@ fn non_identity_agreement_on_a_real_cell() {
         .expect("some cell has a unit thick enough to transform");
 
     let mut ledger = FactLedger::empty_with_bedrock(strata);
-    let base_mat = litho_of_tag(strata.units[0].tag).reference_material();
+    let base_mat = strata.units[0].species.reference_material();
     let sink = dc_core::MaterialId::CLAY;
 
     let mut inv = build_working(strata, &ledger);

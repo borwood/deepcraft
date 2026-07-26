@@ -39,7 +39,6 @@
 
 use dc_core::{MATERIAL_COUNT, MaterialId, VOXEL_EIGHTHS, VoxelContents};
 
-use super::lithology::litho_of_tag;
 use super::recorder::{DeepStrata, DepUnit};
 
 /// Floating tolerance below which a delta is treated as zero (no fact emitted /
@@ -1139,11 +1138,12 @@ impl<'a> LedgerView<'a> {
 
 /// The **depositional base composition** of a unit: exactly what `derive(DepTag)`
 /// yields before any fact — one `Loose` portion of the unit's reference material
-/// (`litho_of_tag(tag).reference_material()`, the same routing the collapse tier's
-/// `deep_class` uses), at the unit's full thickness.
+/// (`unit.species.reference_material()` — the material that actually arrived,
+/// the same routing the collapse tier's `deep_class_of_species` uses), at the
+/// unit's full thickness.
 pub fn derive_base(unit: &DepUnit) -> Vec<Portion> {
     vec![Portion {
-        material: litho_of_tag(unit.tag).reference_material(),
+        material: unit.species.reference_material(),
         form: InvForm::Loose,
         quantity_m: unit.thickness_m,
     }]
@@ -1864,7 +1864,7 @@ mod tests {
         for u in &rec.units {
             let base = derive_base(u);
             assert_eq!(base.len(), 1);
-            assert_eq!(base[0].material, litho_of_tag(u.tag).reference_material());
+            assert_eq!(base[0].material, u.species.reference_material());
             assert_eq!(base[0].form, InvForm::Loose);
             assert_eq!(base[0].quantity_m, u.thickness_m);
         }
@@ -1881,7 +1881,7 @@ mod tests {
             s
         };
         let mut ledger = FactLedger::empty_with_bedrock(&strata);
-        let base_mat = litho_of_tag(strata.units[0].tag).reference_material();
+        let base_mat = strata.units[0].species.reference_material();
         assert_eq!(base_mat, MaterialId::SANDSTONE);
 
         // Behavior: 0.5 m of SANDSTONE/Loose -> MUDSTONE/Loose (a material change),
@@ -1943,7 +1943,7 @@ mod tests {
             s
         };
         let mut ledger = FactLedger::empty_with_bedrock(&strata);
-        let mat = litho_of_tag(strata.units[0].tag).reference_material();
+        let mat = strata.units[0].species.reference_material();
         let mut inv = build_working(&strata, &ledger);
         inv.ctx_for(1, Cause::Dissolution).apply_edge(
             0,

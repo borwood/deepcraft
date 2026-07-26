@@ -51,6 +51,10 @@ name = "mfd_probe"
 test = true
 
 [[example]]
+name = "facies_probe"
+test = true
+
+[[example]]
 name = "contents_air_over_solid_probe"
 test = true
 

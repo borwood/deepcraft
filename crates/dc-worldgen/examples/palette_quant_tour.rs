@@ -30,7 +30,7 @@
 
 use dc_core::materials::geology::{CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE};
 use dc_worldgen::deeptime::{DeepField, DeepStrata};
-use dc_worldgen::geology::deep_class;
+use dc_worldgen::geology::deep_class_of_species;
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, Provenance, WorldParams};
 use dc_worldgen::{DeepOverrides, WorldGenerator};
 
@@ -99,7 +99,7 @@ fn dominant_sedimentary(strata: &DeepStrata) -> Option<&'static str> {
             continue;
         }
         acc += take;
-        let c = deep_class(u.tag);
+        let c = deep_class_of_species(u.species);
         match by_class.iter_mut().find(|(k, _)| *k == c) {
             Some((_, m)) => *m += take,
             None => by_class.push((c, take)),

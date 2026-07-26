@@ -22,7 +22,7 @@
 
 use dc_worldgen::deeptime::lithology::{Litho, exposed_litho};
 use dc_worldgen::deeptime::recorder::Biofacies;
-use dc_worldgen::deeptime::{self, DepUnit, litho_of_tag, production_config};
+use dc_worldgen::deeptime::{self, DepUnit, production_config};
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
 
 /// The client's `BENCH_SEED` (dc-client/src/bench.rs) — the world the walk
@@ -43,7 +43,7 @@ fn interior(w: usize, idx: usize) -> bool {
 /// The pre-journal/0068 rule: top unit's lithology, basement if empty.
 fn old_rule(units: &[DepUnit]) -> Litho {
     match units.last() {
-        Some(u) => litho_of_tag(u.tag),
+        Some(u) => u.species,
         None => Litho::Basement,
     }
 }

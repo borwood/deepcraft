@@ -48,7 +48,7 @@ use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
 use crate::fill::{
     ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
 };
-use crate::geology::{StrataCtx, StrataEvent, StrataRec, deep_class, dithered_member};
+use crate::geology::{StrataCtx, StrataEvent, StrataRec, deep_class_of_species, dithered_member};
 use crate::pipeline::PipelineError;
 use crate::pregen::{CELL_VOXELS, Pregen, Provenance, temp_sea_level};
 
@@ -954,7 +954,7 @@ impl<'a> WorldGenerator<'a> {
                     continue;
                 }
                 acc += take;
-                let c = deep_class(u.tag);
+                let c = deep_class_of_species(u.species);
                 match by_class.iter_mut().find(|(k, _)| *k == c) {
                     Some((_, m)) => *m += take,
                     None => by_class.push((c, take)),

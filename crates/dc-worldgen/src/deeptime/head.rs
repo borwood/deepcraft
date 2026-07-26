@@ -119,7 +119,7 @@
 //!   live record at its own cadence, so compaction lands without staling a cache.
 
 use super::grid::DeepGrid;
-use super::lithology::{Litho, litho_of_tag};
+use super::lithology::Litho;
 use super::recorder::DeepStrata;
 
 /// The opaque id of the **`head` condition-field** (§14) — the second member of
@@ -276,7 +276,7 @@ pub fn column_hydro(strata: &DeepStrata) -> ColumnHydro {
     // Series resistance Σ(t / k) — the harmonic-mean denominator.
     let mut resistance = 0.0f64;
     for u in &strata.units {
-        let k = permeability_of(litho_of_tag(u.tag)).max(HEAD_EPS_M);
+        let k = permeability_of(u.species).max(HEAD_EPS_M);
         transmissivity += u.thickness_m * k;
         thickness += u.thickness_m;
         resistance += u.thickness_m / k;
@@ -292,7 +292,7 @@ pub fn column_hydro(strata: &DeepStrata) -> ColumnHydro {
     let mut cap_m = 0.0f64;
     let mut seals_an_aquifer = false;
     for u in strata.units.iter().rev() {
-        let k = permeability_of(litho_of_tag(u.tag));
+        let k = permeability_of(u.species);
         if k <= AQUITARD_K_MAX {
             cap_m += u.thickness_m;
             continue;

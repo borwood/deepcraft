@@ -665,6 +665,38 @@ which costs an extra `n × 8` pass and decouples the two concerns properly.
 **Blast:** the shipped world. Changing or removing this constant moves the goldens.
 Nothing at runtime reads it. *Loud code marker at the constant.*
 
+### 23. a-settling-law-that-cannot-see-buoyancy — *added 2026-07-26 (Movement 2b, journal/0110)*
+`dc-core/src/materials/geology.rs::settle_energy` — `sqrt(grain_size_mm ×
+specific_gravity)` — is the ordering key Movement 2b's transport pass sorts its
+suspended load by (`deeptime::lithology::settling_table`), and the same function the
+shipped S8 placer pass has thresholded on since long before that. It is a good
+proxy for the property it was built for (which grain drops out first as flow energy
+falls) and it is **structurally unable to express buoyancy**, because it *multiplies*
+size by density instead of differencing the grain's density against the fluid's.
+
+**What that costs, in the one place it is visible today.** Peat's property sheet is
+5 mm at 400 kg/m³, so `settle_energy` reads **1.414** — the second-heaviest thing in
+the deep-time roster, above sandstone at 0.840. Real peat **floats**. Nothing in the
+shipped world currently notices (peat is laid by the biotic layer, which carries no
+load, and the transport pass never picks up enough of it to matter — measured at
+0.109 % of all sediment routing, journal/0110), but the day a flow does entrain
+organic material it will sink like gravel.
+
+**Why it is a stub and not a bug.** The right fix is a **better property-derived
+settling law** — a Stokes/drag form carrying `(ρ_grain − ρ_fluid)`, which needs the
+fluid's own density, which needs `flow.md` § 2.5's **fluid identity** to be stored
+rather than derived (`material-genesis-notebook.md` § 3, the live open edge). The
+wrong fix is a material-named exception in the pass, which would be a pass-purity
+violation and would still be wrong for the next low-density material a pack adds.
+
+**Heir:** fluid identity (flow.md § 2.5 / the genesis notebook's § 5 item 1), whose
+arrival makes `ρ_fluid` a real quantity a settling law can read.
+
+**Blast:** the shipped world *and* the shipped placer mechanism, together — both
+consumers read the same function, so changing it moves alluvial grain ordering and
+ore concentration in the same commit. That coupling is the reason to change it
+deliberately rather than opportunistically. *Loud marker at `settling_table`.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural
