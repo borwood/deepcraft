@@ -2168,3 +2168,43 @@ recalibration. The tell available at the time: the doc comment states the anchor
 *absolute capacity units* while the quantity it constrains is *defined* as a coefficient
 times a dimensionless index. **When a threshold and the quantity it thresholds carry
 different things inside them, one of them is holding a constant it does not own.**
+
+## 60. "Two independent instruments agree on the denudation total to 2.4 %, so the number is cross-checked" (journal/0111 § 6, and propagated by the integrator into the merge commit and ROADMAP, 2026-07-26 — falsified the same day by journal/0114, by pushing the fluxes up)
+
+**The claim**, and it is the sentence that made journal/0111's headline feel *confirmed*
+rather than merely measured:
+
+> *"Two independent instruments agree on the total: D1 (boundary-flux) and D3 (per-cell
+> `grid.exhum`, no shoreline in it at all) agree to 2.4 %."*
+
+I repeated it in the merge commit and treated it as a cross-check. It is not one.
+
+**The mechanism.** D1's `creep_to_sea_m` is a **gross land→sea edge flux**, summed per
+epoch. The paleo-sea-level sinusoid swings **±35 m and cycles four times** over the run,
+so the shoreline sweeps back and forth across the same low-relief coastal cells. Cover
+that creeps across the shoreline, is stranded by a falling stand, and creeps across again
+is **counted every time it crosses**. D1 is therefore an **upper bound on export**, not a
+measurement of it — and it becomes a *badly* loose one exactly when creep is fast.
+
+**The arithmetic does not close, and that is the falsifier.** Under journal/0114's 45×
+calibration: 63.6 m of bedrock removed + 39.2 m stored as regolith against **207.1 m of
+claimed export**. Mass is not being lost; the export term is being multiply-counted.
+
+**Why it looked like agreement.** At production rates the whole export is 5.48 m over
+500 Myr and the double-count is a small fraction of a small number, so two instruments
+with completely different failure modes landed within 2.4 % **by coincidence of
+smallness**. The agreement was a property of the world being nearly static — the very fact
+the measurement existed to report.
+
+> **A cross-check between two instruments is only evidence if it survives the regime it is
+> being used to license.** Ours was validated in the one regime where it could not
+> discriminate, and then used to license conclusions about a regime 100× away.
+
+**What survives, stated precisely so nobody over-corrects.** **D3 (per-cell `exhum`) is
+the sound instrument once fluxes are large**; D1 remains useful as a bound. The direction
+and the ~10³ magnitude of journal/0111's finding are **unaffected** — the world is still
+far slower than any landscape measured on Earth, and every literature comparison in that
+entry stands. What is withdrawn is only the claim that *two* instruments confirmed it.
+
+**Heir:** a net (not gross) shoreline-export term, or a D1 that debits re-crossings. Until
+then the denudation figures are **upper bounds** and should be written as such.

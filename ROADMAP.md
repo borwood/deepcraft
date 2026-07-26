@@ -6334,7 +6334,95 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-25 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-26 close (supersedes every earlier block)
+
+**Read first: `journal/0111` and `journal/0114`** — the world is ~10³× too slow, and the
+reason is now known to be **both** the constants *and* a capped transport operator. Then
+`docs/design/material-genesis-notebook.md` (opened today) and `north-star.md` §
+*"The refinement tier is in neither list"*.
+
+### Shipped (journals 0108–0114; corrections #53–#60; stubs #21–#29)
+- **The clock nobody checked (0111).** The world denudes at **0.0110 m/Myr** — **9× slower
+  than the slowest landscape ever measured on Earth**, stripping 5.48 m where a craton strips
+  5–10 km. *The single most active cell of 44,264 is still below the global floor.*
+- **Material-aware creep (0112)** — provenance in the archive **0.000006 % → 65.206 %**.
+  §13.2's gravity member is the fluvial one **with the competence curve removed**; that
+  absence *is* why colluvium is unsorted. Hillslope columns +64 % distinct species vs +11 % in
+  valleys — **the contrast landed six times harder where colluvium belongs**.
+- **Hybrid `p` (0113)** — peak catchment **84 → 298**, p99 **beating D8**, 95.8 % of
+  simultaneous divergence retained. *Under uniform `p` the world had **no trunk network at
+  all**: zero land cells draining >100.*
+- **The joint calibration (0114) — BUILT, MEASURED, AND OFF.** See the blockers below.
+- **S20 2c (0108)** — `Fact` 16 → 8 B, every axis kept; per-depth projection 973 → 504 MiB.
+- **MFD (0109)** — simultaneous divergence **0 → 7.5 M**; *the tree never licensed the
+  traversal, the potential did.*
+- **Movement 2b (0110)** — identity travels + sorted deposition; its null diagnosed the above.
+
+### Ratified (user's terms)
+- **The genesis discriminator is RESOLUTION, not phase** — *"can the prior be named as a
+  material we track?"* The material ontology is a **sieve**: some origins are transformations
+  of **molecular parts**, and we have no molecular parts. **That is the whole case for genesis
+  passes.** Four-way test, with **"transform whose driver isn't built yet"** as its own
+  category, and filing one of those as a genesis named as the **irreversible** error.
+- **Clastic facies settled:** genesis makes the *parent* honest · weathering the *loosening* ·
+  transport the *destination*.
+- **S20 option 3 + 2c** (paged facts + compact encoding). **2b now, on today's faces.**
+- **File size is a correctness problem** — *"Claude must grep, missing context or reading too
+  much irrelevant context"*. **Hook live and proven to fire.** Immediate for new files,
+  gradual for old when touched.
+- **Visible river channels are the first thing built on refinement primitives.**
+
+### Falsified — the assistant's own first (#53–#60)
+**Three of today's corrections are the integrator's own bookkeeping**, and two were
+propagated onto this board: **#58** — *"p → ∞ **is** D8 exactly"* (the limit takes steepest
+**slope**, `route_cell` takes steepest **drop**; it was the argument that `mfd:false` lives
+*inside* the model's family, and would have licensed **deleting a pinned path**). **#60** —
+*"two independent instruments agree to 2.4 %"* was a **low-flux coincidence, not a
+cross-check**; D1 double-counts cover that re-crosses a shoreline cycling ±35 m four times.
+Also: **#53** eight of S20's nine predicted tolerance breaks **did not happen**; **#55** the
+2b null was honest about mechanism and **wrong about cause**; **#57** peat/coal/charcoal
+cannot be *deposited* — §12's four-way test caught in the wild **hours after being written**;
+**#59** `energy_band` was an absolute threshold **secretly keyed to `k_transport`**.
+
+### ⛔ THE TWO BLOCKERS — read before planning anything erosional
+1. **stubs #29 — the incision clamp that was green because nothing eroded.** Deep closed
+   depressions at **any** amplitude above 1× (44 pits at 5×, **148 at 45×**, deepest 112 m);
+   four phases run *after* incision and can lower a cell past its clamped floor. **Until this
+   lands the engine cannot run erosion at any realistic rate.**
+2. **stubs #27 — the transport operator has a ceiling.** Export ∝ mean regolith thickness, and
+   creep's limiter **already binds on ~89 % of cells at shipped rates**. 100× on transport
+   buys **1.6×**. *So journal/0111's "a calibration, not an architecture" was **half right**.*
+
+### Running
+**Nothing. All agents in, all worktrees removed, all branches deleted, working tree clean.**
+
+### Gate
+**Green on merged main at `a05008f` — fmt 0, clippy 0, 807 passed / 0 failed / 85 binaries**,
+verified by name, reconciling exactly across all five slices. Production is **byte-identical**
+(`the_production_world_still_hashes_to_the_pre_slice_goldens`).
+
+### ⚠ Owed / unverified
+- **An appearance walk is owed** — creep's interbedded colluvium is the first thing in three
+  slices worth standing in front of. Tour-map first; stations: hillslope road cut, scarp-foot
+  apron beside a channel deposit, the re-baselined coal site. **Look at the pits first.**
+- **`erosion.rs` is ~4,000 lines** and hosts three separable concerns (drainage/MFD · fluvial
+  transport · diffusion+creep). Split **sequenced, not done** — deliberately, siblings were live.
+- **ROADMAP is ~6,850 lines** and the hook flags it on every edit. The archive-by-status
+  scheme is still undesigned.
+- **CI was deleted** (day-one scaffolding, 3-OS debug matrix, failing on Bevy's Linux deps and
+  burning 2.5 h Windows runs). If wanted, it needs designing, not resurrecting.
+- **Commit trailer mismatch:** CLAUDE.md § Conventions says `Claude Fable 5`; this session's
+  commits say `Claude Opus 5` (the model that did the work). **User's call which is canonical.**
+
+### First things next session
+1. **stubs #29, the incision clamp** — it gates every erosional number.
+2. **stubs #27's heirs** — rivers that carry, or a non-capped creep operator.
+3. **The appearance walk** (creep), then flip `calibrated_rates` once #29 is fixed.
+4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
+
+*(The 2026-07-25 block below is consumed; preserved as history.)*
+
+## NEXT SESSION — written at the 2026-07-25 close (SUPERSEDED by the 2026-07-26 close above)
 
 **Read first: `docs/design/flow.md`** (ratified this session, incl. §§ 10–11) + the 🔴 Observed
 coal entry + `docs/audits/2026-07-25-roadmap-staleness-sweep.md` (see *Running* below).
