@@ -2093,3 +2093,53 @@ ambiguous. The correction is a single word; the family is the one journal/0109 n
 against itself twice already — **a claim about shape smuggled in as a claim about
 identity.** Struck at all three sites, and the doc comment on the test that falsifies it
 now names this entry.
+
+---
+
+## 59. "The competence ceiling is fixed by an anchor that already ships, and is not a tuning knob" (`erosion.rs::COMPETENCE_SCALE` and `energy_band`, journal/0110, 2026-07-26 — falsified the same week by journal/0114, while calibrating the rate it was anchored to)
+
+**The claim**, from `COMPETENCE_SCALE`'s own doc comment, and it is the argument that kept
+Movement 2b's one new constant out of the tuning-knob category:
+
+> *"Where the number comes from, and why it is not a tuning knob. It is fixed by an
+> anchor that already ships: `energy_band` calls a capacity of `0.002` the Low/Medium
+> boundary, and `litho_of_tag` turns exactly that boundary into the coarse/fine clastic
+> split — so `0.002` is **already the world's stated 'energy at which sand stops
+> moving'**. `settle_energy` puts the coarse-clastic reference sheet at ≈0.84, and
+> 0.84 / 0.002 = 420."*
+
+**The ratio is right and the FORM is wrong, and the difference only became visible when
+something moved.** Transport capacity is `cap = k_transport · A^m · S^n`. A bare capacity
+is therefore not a geomorphic quantity at all — it is the rate constant `k_transport`
+multiplied by a **position in the drainage network**. `0.002` is not "the energy at which
+sand stops moving"; it is `1.25 × k_transport`, and it read as a physical statement only
+because `k_transport` had been `0.0016` since the day it was written and had never moved.
+The same is true of the Medium/High boundary at `0.02` and, through the quoted division,
+of `COMPETENCE_SCALE` itself.
+
+**What that would have cost.** journal/0114's calibration multiplies `k_transport` along
+with the other three erosion rates. Left absolute, the boundaries would have stayed put
+while every capacity on the world rose by the multiplier, so essentially **every
+depositional site would have classified as High energy** — `litho_of_tag` would have
+recorded coarse clastic everywhere, and the competence ceiling would have risen far
+enough to carry basement to the sea. The facies gradient the Movement 2b probes exist to
+measure would have been **erased by the same commit that was supposed to make the world
+erode**, and the erasure would have looked like a result: *"sand moves now."*
+
+**The fix is to say what was always meant.** The thresholds are stated relative to a named
+`REFERENCE_KT`, and `energy_band` / `competence_ceiling` take the world's own
+`k_transport`, so they classify positions in the network rather than absolute rates. Every
+ratio is formed as `k / REFERENCE_KT`, because `x / x` is exactly `1.0` in IEEE-754 — so
+at the historical coefficient every threshold is bit-identical to the constant it
+replaced, and the pre-calibration world still reproduces its goldens to the bit.
+
+**Mechanism, and it is the family this repo keeps catching.** A constant was defended by
+deriving it from *another constant in the same system* and calling that an anchor. It is
+the closed-system error of journal/0111 one level down: not "the world was never checked
+against the literature", but **"the constant was checked against a number that was itself
+unchecked"**. A derivation is only an anchor if the thing it is derived from cannot move —
+and `k_transport` was, at that moment, already named on the ROADMAP as due for
+recalibration. The tell available at the time: the doc comment states the anchor in
+*absolute capacity units* while the quantity it constrains is *defined* as a coefficient
+times a dimensionless index. **When a threshold and the quantity it thresholds carry
+different things inside them, one of them is holding a constant it does not own.**

@@ -390,9 +390,13 @@ const SPECIES: usize = Litho::COUNT;
 /// and § 13.5 is explicit that both are needed: without competence a flow with
 /// spare capacity carries boulders to the sea, and nothing ever fines downstream.
 ///
-/// **Where the number comes from, and why it is not a tuning knob.** It is fixed
-/// by an anchor that already ships: [`energy_band`] calls a capacity of
-/// `ENERGY_LOW_MED_PER_KT · k_transport` the Low/Medium boundary, and
+/// **Where the number comes from — and see corrections #59 for what was wrong with
+/// the way that used to be said.** The *ratio* is fixed by an anchor that already
+/// ships; the old doc comment stated that anchor as an **absolute capacity**, which
+/// silently held `k_transport = 0.0016` inside it and called itself "not a tuning
+/// knob" on the strength of a derivation from a constant that was itself about to
+/// be recalibrated. [`energy_band`] calls a capacity of
+/// `ENERGY_LOW_MED · k_transport / REFERENCE_KT` the Low/Medium boundary, and
 /// `litho_of_tag` turns exactly that boundary into the coarse/fine clastic split —
 /// so that boundary is *already* the world's stated "energy at which sand stops
 /// moving". `settle_energy` puts the coarse-clastic reference sheet at `≈0.84`, and
