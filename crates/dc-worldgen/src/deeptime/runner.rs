@@ -425,10 +425,14 @@ fn weather_inventory_pass(ctx: &mut DeepStepCtx<'_>) {
 /// boundary face at a sink), together with the suspended load that crossed with it.
 ///
 /// It replaces the **output representation** of the solve, never the solve: it
-/// reads `recv`/`area`/`out_load`/the routed surface exactly as the sim computed
-/// them, and writes only its own record ([`DeepAxis::FlowFlux`], which nothing in
-/// the epoch reads) — so, like the geotherm and the inventory-weathering pass, it
-/// cannot perturb the erosion result.
+/// reads the solve's own per-face outgoing discharge and load (plus `area`/the
+/// routed surface for the sink case) exactly as the sim computed them, and writes
+/// only its own record ([`DeepAxis::FlowFlux`], which nothing in the epoch reads)
+/// — so, like the geotherm and the inventory-weathering pass, it cannot perturb
+/// the erosion result. **Under MFD (flow.md § 2.6) those per-face planes carry
+/// several non-zero faces per cell per epoch**, which is where simultaneous
+/// divergence enters the archive; the pass itself did not have to change shape,
+/// because a record of faces was already the right shape for a partition.
 ///
 /// Reading [`DeepAxis::Energy`] is what sequences it **after** `dc:deep/transport`,
 /// which is where the per-face load comes from; reading [`DeepAxis::Routed`] pins
@@ -440,9 +444,9 @@ fn flow_record_pass(ctx: &mut DeepStepCtx<'_>) {
     let sea = ctx.sea_level;
     ctx.flux.add_epoch(
         chapter,
-        ctx.erosion.recv(),
+        ctx.erosion.out_face_area(),
+        ctx.erosion.out_face_load(),
         ctx.erosion.area(),
-        ctx.erosion.out_load(),
         ctx.erosion.routed_surface(),
         sea,
     );

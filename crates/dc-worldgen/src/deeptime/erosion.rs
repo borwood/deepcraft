@@ -142,6 +142,61 @@ fn is_border(i: usize, w: usize) -> bool {
     gx == 0 || gy == 0 || gx as usize == w - 1 || gy as usize == w - 1
 }
 
+/// **The MFD partition** — the number of D8 directions, and the two geometric
+/// constants a multi-receiver partition needs that a single-receiver one never
+/// had to name.
+///
+/// `MFD_DIST` is the true flow-path length in cell widths (`1` cardinal, `√2`
+/// diagonal): a steepest-*drop* rule can ignore it, a slope-weighted partition
+/// cannot, or every diagonal is over-weighted by `√2` and the drainage net
+/// acquires a systematic X-bias.
+///
+/// `MFD_CONTOUR` is Quinn (1991)'s **contour width** — the length of the cell
+/// boundary the flow crosses, normalised to the cardinal case (`0.5Δ` cardinal,
+/// `0.354Δ` diagonal ⇒ `1` and `1/√2`). It is the *width of the gate*, not the
+/// steepness of the drop, and it is why a diagonal neighbour receives less than a
+/// cardinal one at equal slope.
+const MFD_DIRS: usize = 8;
+const SQRT2: f64 = std::f64::consts::SQRT_2;
+const MFD_DIST: [f64; MFD_DIRS] = [SQRT2, 1.0, SQRT2, 1.0, 1.0, SQRT2, 1.0, SQRT2];
+const MFD_CONTOUR: [f64; MFD_DIRS] = [
+    std::f64::consts::FRAC_1_SQRT_2,
+    1.0,
+    std::f64::consts::FRAC_1_SQRT_2,
+    1.0,
+    1.0,
+    std::f64::consts::FRAC_1_SQRT_2,
+    1.0,
+    std::f64::consts::FRAC_1_SQRT_2,
+];
+
+/// **The representational floor on a partition share.** A neighbour allotted less
+/// than this fraction of the cell's discharge is dropped and the survivors
+/// renormalised.
+///
+/// It is not a physical parameter — it is what keeps the *record* honest and
+/// affordable. Without it every land cell dumps an infinitesimal trickle into
+/// every downslope neighbour, the flux record grows an entry for each, and the
+/// archive pays megabytes to store noise that no consumer can distinguish from
+/// zero. The steepest receiver always carries at least `1/8` of the discharge, so
+/// a survivor always exists and no cell is ever turned into a sink by the floor.
+///
+/// **⚠ STUB #22 — a record-affordability constant that changes the physics.** The
+/// floor is applied *here*, before renormalisation, so the surviving receivers are
+/// handed the dropped share and the **solve** moves water it otherwise would not.
+/// A requirement of the *record* has leaked into the *landscape*: by
+/// ARCHITECTURE.md's test, if the record consumer vanished tomorrow this constant
+/// would not exist in this shape. It is inert on the near-flat ground the slice is
+/// for (shares near `1/6` there, far above the floor) and bites in the moderately
+/// convergent regime, making the net slightly more channelised than the exponent
+/// alone specifies — argued, **not measured**. Mass is unaffected: renormalisation
+/// is exact and the residual rule makes the split exact.
+/// **Heir:** whoever settles the record's size budget (flow.md § 9 item 7b, the
+/// aggregation window; the marine-sink lever) — and they should decide whether the
+/// solve may see this at all, the alternative being a floor applied only on the
+/// way into the record. See `docs/design/stubs.md` § 22.
+const MFD_MIN_WEIGHT: f64 = 0.01;
+
 /// D8 steepest-descent receiver of cell `i` on the filled surface (`-1` = sink).
 #[inline]
 fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) -> i32 {
@@ -160,6 +215,103 @@ fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) 
         }
     }
     best.map_or(-1, |(_, j)| j as i32)
+}
+
+/// **The MFD partition of one cell's discharge** (flow.md § 2.6, § 2.4).
+///
+/// Writes the eight normalised out-weights of cell `i` into `w_out` (aligned to
+/// [`NEIGH8`], and therefore to `FaceKey::lateral`), and returns the direction
+/// carrying the largest share (`-1` when the cell is a sink and every weight is
+/// zero).
+///
+/// **The field partitioned is the FREE-SURFACE POTENTIAL, and that is the point.**
+/// `filled` is the priority-flood surface: bare ground where the land drains, and
+/// the *spill-level water surface* inside every depression. For free-phase flow
+/// that is `head = z_bed + depth` exactly — pressure head is zero at a free
+/// surface, so a lake's potential is flat and its bed's elevation is irrelevant.
+/// So the partition descends a potential rather than a topography, which is what
+/// flow.md § 2.4 asks of the free regime. (`dc:field/head` is the **bound**
+/// regime's potential — a water table that deliberately crosses surface divides.
+/// Routing free surface water down it would make rivers cross divides too, which
+/// § 2.4's own qualification forbids. Bound MFD is continuation (c)'s, not this
+/// pass's.)
+///
+/// The weight is **Holmgren (1994)** with Quinn's contour width:
+///
+/// ```text
+///   w_k  ∝  (Δh_k / d_k)^p · L_k          d_k = 1 or √2,  L_k = 1 or 1/√2
+/// ```
+///
+/// `p` is the **convergence exponent**: `p = 1` is Quinn's maximally dispersive
+/// form, `p → ∞` is single-receiver D8. Nothing here is novel; what it buys over
+/// D8 is that a cell's discharge can leave through more than one face **within one
+/// epoch**, which is the entire difference between temporal divergence (avulsion,
+/// which the record already had) and simultaneous divergence (concurrent
+/// distributaries, which it structurally could not hold).
+#[inline]
+#[allow(clippy::too_many_arguments)]
+fn partition_cell(
+    i: usize,
+    w: usize,
+    surf: &[f64],
+    filled: &[f64],
+    sea_level: f64,
+    p: f64,
+    int_p: Option<i32>,
+    w_out: &mut [f64],
+) -> i32 {
+    w_out.iter_mut().for_each(|v| *v = 0.0);
+    if surf[i] <= sea_level || is_border(i, w) {
+        return -1;
+    }
+    let (gx, gy) = coords_of(i, w);
+    let fi = filled[i];
+    let mut sum = 0.0;
+    for (d, (dx, dy)) in NEIGH8.into_iter().enumerate() {
+        let Some(j) = in_grid(gx + dx, gy + dy, w) else {
+            continue;
+        };
+        let drop = fi - filled[j];
+        if drop <= 0.0 {
+            continue;
+        }
+        let s = drop / MFD_DIST[d];
+        // Integer exponents go through `powi` — the default `p = 4` is three
+        // multiplies, where `powf` on 8 directions × 297k cells × 200 epochs is
+        // half a billion transcendental calls and would dominate the deep run.
+        let sp = match int_p {
+            Some(k) => s.powi(k),
+            None => s.powf(p),
+        };
+        let raw = sp * MFD_CONTOUR[d];
+        w_out[d] = raw;
+        sum += raw;
+    }
+    if sum <= 0.0 {
+        return -1;
+    }
+    // Normalise, then apply the representational floor and renormalise over the
+    // survivors. The largest share is at least `1/8` before the floor, so the
+    // survivor set is never empty and `sum2 > 0` always.
+    let mut sum2 = 0.0;
+    for v in w_out.iter_mut() {
+        let n = *v / sum;
+        *v = if n >= MFD_MIN_WEIGHT { n } else { 0.0 };
+        sum2 += *v;
+    }
+    let mut best = -1i32;
+    let mut best_w = 0.0;
+    for (d, v) in w_out.iter_mut().enumerate() {
+        if *v <= 0.0 {
+            continue;
+        }
+        *v /= sum2;
+        if *v > best_w {
+            best_w = *v;
+            best = d as i32;
+        }
+    }
+    best
 }
 
 /// A per-cell erodibility multiplier, or the exact identity `1.0` when the
@@ -518,6 +670,26 @@ pub struct Erosion {
     /// crossing a face is ever visible, because `qs` afterwards holds each cell's
     /// *in*-load summed over contributors and cannot be factored back apart.
     out_load: Vec<f64>,
+    /// **The MFD partition** (flow.md § 2.6). `Some(p)` ⇒ multi-receiver routing
+    /// at convergence exponent `p`; `None` ⇒ the single-receiver D8 path, which is
+    /// the pre-MFD solve byte for byte. `mfd_int_p` caches `p` when it is a small
+    /// integer so the hot inner loop uses `powi` instead of `powf`.
+    mfd: Option<f64>,
+    mfd_int_p: Option<i32>,
+    /// `n × 8` normalised out-weights, aligned to [`NEIGH8`] (and therefore to
+    /// `FaceKey::lateral`). Empty when MFD is off.
+    mfd_w: Vec<f64>,
+    /// **Per-face outgoing discharge and load** — `n × 8`, f32, gen-time scratch,
+    /// empty unless the flow record is on ([`Self::set_flux_record`]).
+    ///
+    /// This is *what the solve actually moved*, written by the phase that moved
+    /// it: `out_area` by [`Self::accumulate_area`], `out_face_load` by
+    /// [`Self::transport`]. The record reads these rather than re-deriving shares
+    /// from the weights — two derivations of one quantity is exactly the drift
+    /// flow.md § 3 exists to prevent, and it would put the flux record and the
+    /// mass budget on different arithmetic.
+    out_area: Vec<f32>,
+    out_face_load: Vec<f32>,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -557,25 +729,78 @@ impl Erosion {
             forcing: Vec::new(),
             r_snap: Vec::new(),
             out_load: Vec::new(),
+            mfd: None,
+            mfd_int_p: None,
+            mfd_w: Vec::new(),
+            out_area: Vec::new(),
+            out_face_load: Vec::new(),
             heap: BinaryHeap::new(),
         }
     }
 
-    /// Turn the **flow record's** per-epoch out-load capture on. Off (the
-    /// default) the buffer stays empty and [`Self::transport`] never touches it,
-    /// so every direct caller of `step` keeps the byte-identical old behaviour.
+    /// Turn the **flow record's** per-epoch per-face capture on. Off (the
+    /// default) the buffers stay empty and neither [`Self::accumulate_area`] nor
+    /// [`Self::transport`] touches them, so every direct caller of `step` keeps
+    /// the byte-identical old behaviour.
     pub fn set_flux_record(&mut self, on: bool) {
         if on && self.out_load.len() != self.n {
             self.out_load = vec![0.0; self.n];
+            self.out_area = vec![0.0; self.n * MFD_DIRS];
+            self.out_face_load = vec![0.0; self.n * MFD_DIRS];
         } else if !on {
             self.out_load = Vec::new();
+            self.out_area = Vec::new();
+            self.out_face_load = Vec::new();
         }
     }
 
-    /// The suspended load each cell handed to its receiver in the last
-    /// [`Self::transport`] (empty unless [`Self::set_flux_record`] is on).
+    /// Turn **multiple-flow-direction routing** on at convergence exponent `p`
+    /// (flow.md § 2.6). `None` is the single-receiver D8 path — the pre-MFD solve,
+    /// byte for byte, because nothing else in the class reads `mfd_w`.
+    pub fn set_mfd(&mut self, p: Option<f64>) {
+        self.mfd = p;
+        self.mfd_int_p = p.and_then(|p| {
+            let r = p.round();
+            // `powi` is exact for the integer case and cheap; the guard keeps the
+            // fallback for the fractional exponents a probe may sweep.
+            (p == r && (1.0..=16.0).contains(&r)).then_some(r as i32)
+        });
+        if p.is_some() {
+            if self.mfd_w.len() != self.n * MFD_DIRS {
+                self.mfd_w = vec![0.0; self.n * MFD_DIRS];
+            }
+        } else {
+            self.mfd_w = Vec::new();
+        }
+    }
+
+    /// Whether MFD routing is on.
+    #[inline]
+    pub fn is_mfd(&self) -> bool {
+        self.mfd.is_some()
+    }
+
+    /// The suspended load each cell handed to its receivers in the last
+    /// [`Self::transport`], **summed over faces** (empty unless
+    /// [`Self::set_flux_record`] is on).
     pub fn out_load(&self) -> &[f64] {
         &self.out_load
+    }
+
+    /// **The discharge that left each cell through each of its eight lateral
+    /// faces** this epoch (`n × 8`, aligned to `FaceKey::lateral`) — the flow
+    /// record's `M`. Empty unless [`Self::set_flux_record`] is on. A cell whose
+    /// eight entries are all zero is a **sink**: its discharge left through a
+    /// boundary face, which is the record's call to make, not the solve's.
+    pub fn out_face_area(&self) -> &[f32] {
+        &self.out_area
+    }
+
+    /// **The suspended load that crossed each of the eight lateral faces** this
+    /// epoch (`n × 8`) — the flow record's `L`, partitioned by exactly the same
+    /// shares as the discharge. Empty unless [`Self::set_flux_record`] is on.
+    pub fn out_face_load(&self) -> &[f32] {
+        &self.out_face_load
     }
 
     /// Set the tectonic chapter the recorder stamps and load this iteration's
@@ -624,12 +849,14 @@ impl Erosion {
             + self.netdiff.len()
             + self.sus_flow.len()
             + self.sus_creep.len()
-            + self.frost.len();
+            + self.frost.len()
+            + self.mfd_w.len();
         f64s * 8
             + self.recv.len() * 4
             + self.order.capacity() * 4
             + self.done.len()
             + self.litho.len()
+            + (self.out_area.len() + self.out_face_load.len()) * 4
     }
 
     /// The lithology outcropping at each cell as of the last [`Self::expose`]
@@ -1034,22 +1261,69 @@ impl Erosion {
 
     // ---- phase 4: D8 routing (PARALLEL — per-cell independent) -------------
 
-    /// D8 steepest-descent receivers on filled elevation. Sea and border cells
-    /// are sinks (`recv = -1`). Per-cell independent → byte-identical parallel.
+    /// Receivers on the filled free-surface potential. Sea and border cells are
+    /// sinks (`recv = -1`). Per-cell independent → byte-identical parallel.
+    ///
+    /// **Two routings, one phase.** With MFD off this is the historical D8
+    /// steepest-descent rule and `recv` *is* the routing. With MFD on the phase
+    /// computes the full eight-way partition into `mfd_w` — that is what the
+    /// accumulation and transport chains then read — and `recv` becomes the
+    /// **argmax share**: a projection of the partition, kept because the exported
+    /// drainage network and the biotic layer still consume a single receiver. It is
+    /// no longer the routing, and that is the interesting fact about it (see the
+    /// [`Self::recv`] doc).
     pub fn route(&mut self) {
         let (w, sea) = (self.w, self.sea_level);
         let surf = &self.surf;
         let filled = &self.filled;
+        let Some(p) = self.mfd else {
+            if self.par() {
+                self.recv
+                    .par_iter_mut()
+                    .enumerate()
+                    .for_each(|(i, r)| *r = route_cell(i, w, surf, filled, sea));
+            } else {
+                for i in 0..self.n {
+                    self.recv[i] = route_cell(i, w, surf, filled, sea);
+                }
+            }
+            return;
+        };
+        let int_p = self.mfd_int_p;
+        let step = |i: usize, r: &mut i32, ws: &mut [f64]| {
+            let best = partition_cell(i, w, surf, filled, sea, p, int_p, ws);
+            *r = if best < 0 {
+                -1
+            } else {
+                let (dx, dy) = NEIGH8[best as usize];
+                let (gx, gy) = coords_of(i, w);
+                in_grid(gx + dx, gy + dy, w).expect("a weighted direction is in-grid") as i32
+            };
+        };
         if self.par() {
             self.recv
                 .par_iter_mut()
+                .zip(self.mfd_w.par_chunks_mut(MFD_DIRS))
                 .enumerate()
-                .for_each(|(i, r)| *r = route_cell(i, w, surf, filled, sea));
+                .for_each(|(i, (r, ws))| step(i, r, ws));
         } else {
-            for i in 0..self.n {
-                self.recv[i] = route_cell(i, w, surf, filled, sea);
+            for (i, (r, ws)) in self
+                .recv
+                .iter_mut()
+                .zip(self.mfd_w.chunks_mut(MFD_DIRS))
+                .enumerate()
+            {
+                step(i, r, ws);
             }
         }
+    }
+
+    /// The neighbour cell index of direction `d` from cell `i`, valid only where
+    /// `mfd_w[i * 8 + d] > 0` (a weighted direction is in-grid by construction).
+    #[inline]
+    fn mfd_neighbour(&self, i: usize, d: usize) -> usize {
+        let (dx, dy) = NEIGH8[d];
+        (i as isize + dy as isize * self.w as isize + dx as isize) as usize
     }
 
     // ---- phase 5: drainage-area accumulation (SCALAR — flux chain) --------
@@ -1058,107 +1332,279 @@ impl Erosion {
     /// filled order. A receiver must see all upstream contributions before it is
     /// routed on — a serial dependency chain; a level-parallel gather would
     /// reorder the sums and break byte-identity.
+    ///
+    /// ## Why the priority-flood order is still a topological order under MFD
+    ///
+    /// This was the part MFD was expected to break, and it does not. `self.order`
+    /// is the priority-flood pop order, which is **strictly ascending in
+    /// `(filled, index)`**: each cell is pushed exactly once, with its final
+    /// `filled` value, and popped in heap order. Reversed, it is strictly
+    /// *descending*. Every routed edge — single-receiver or MFD — goes to a
+    /// neighbour with **strictly smaller `filled`** (`partition_cell` weights only
+    /// `drop > 0`). So every out-edge points to a cell that comes strictly later in
+    /// the reversed scan, and a cell is processed only after every contributor.
+    ///
+    /// The tree gave a *convenient* traversal; what actually licensed it was the
+    /// potential ordering, and that licenses the **DAG** identically. MFD needs no
+    /// new topological sort — it needs the observation that the old one was never
+    /// about the tree.
     pub fn accumulate_area(&mut self) {
         self.area.iter_mut().for_each(|a| *a = 1.0);
+        if self.mfd.is_none() {
+            let record = !self.out_area.is_empty();
+            if record {
+                self.out_area.iter_mut().for_each(|v| *v = 0.0);
+            }
+            for k in (0..self.order.len()).rev() {
+                let i = self.order[k] as usize;
+                let rc = self.recv[i];
+                if rc >= 0 {
+                    self.area[rc as usize] += self.area[i];
+                    if record {
+                        let (gx, gy) = coords_of(i, self.w);
+                        let (jx, jy) = coords_of(rc as usize, self.w);
+                        let d = NEIGH8
+                            .iter()
+                            .position(|&(dx, dy)| (gx + dx, gy + dy) == (jx, jy))
+                            .expect("the receiver is a D8 neighbour");
+                        self.out_area[i * MFD_DIRS + d] = self.area[i] as f32;
+                    }
+                }
+            }
+            return;
+        }
+        let record = !self.out_area.is_empty();
+        if record {
+            self.out_area.iter_mut().for_each(|v| *v = 0.0);
+        }
         for k in (0..self.order.len()).rev() {
             let i = self.order[k] as usize;
-            let rc = self.recv[i];
-            if rc >= 0 {
-                self.area[rc as usize] += self.area[i];
+            let base = i * MFD_DIRS;
+            let a = self.area[i];
+            // The last weighted direction takes the **residual**, so the shares sum
+            // to `a` exactly rather than to `a · Σw` with Σw off by an ulp. Mass
+            // conservation down a DAG is a chain of these; a per-hop rounding error
+            // would compound over a thousand hops and leak silently.
+            let Some(last) = (0..MFD_DIRS).rev().find(|&d| self.mfd_w[base + d] > 0.0) else {
+                continue;
+            };
+            let mut given = 0.0;
+            for d in 0..MFD_DIRS {
+                let wt = self.mfd_w[base + d];
+                if wt <= 0.0 {
+                    continue;
+                }
+                let share = if d == last { a - given } else { wt * a };
+                given += share;
+                let j = self.mfd_neighbour(i, d);
+                self.area[j] += share;
+                if record {
+                    self.out_area[base + d] = share as f32;
+                }
             }
         }
     }
 
     // ---- phase 6: stream-power transport (SCALAR — flux chain) ------------
 
+    /// The **per-cell load exchange** of the transport phase, factored out so the
+    /// single-receiver and MFD chains share one arithmetic (they must: two copies
+    /// of a mass budget is the drift flow.md § 3 exists to prevent).
+    ///
+    /// `s` is the energy slope the cell's flow descends and `floor` the elevation
+    /// its bedrock may not be cut below. Returns the load handed onward. Writes
+    /// `energy[c]` and `dh[c]` and mutates the cell's own `R`/`H` — never a
+    /// neighbour's, which is what leaves the *routing* of the result to the caller.
+    #[inline]
+    fn exchange_cell(
+        &mut self,
+        grid: &mut DeepGrid,
+        cfg: &DeepConfig,
+        c: usize,
+        qin: f64,
+        s: f64,
+        floor: f64,
+    ) -> f64 {
+        let ae = if (cfg.m_exp - 0.5).abs() < 1e-9 {
+            self.area[c].sqrt()
+        } else {
+            self.area[c].powf(cfg.m_exp)
+        };
+        let sn = if (cfg.n_exp - 1.0).abs() < 1e-9 {
+            s
+        } else {
+            s.powf(cfg.n_exp)
+        };
+        let cap = cfg.k_transport * ae * sn;
+        self.energy[c] = cap;
+        // The erodibility coupling's fluvial multiplier for this cell: the
+        // abrasion susceptibility of whatever lithology outcrops here.
+        // Exactly `1.0` when the coupling is off.
+        let sus = sus_at(&self.sus_flow, c);
+        if qin <= cap {
+            let mut room = cap - qin;
+            // Entrain the exposed cover. Transport-limited, now scaled by
+            // how detachable that rock is: a weak mudstone hands the flow
+            // everything it can carry, a competent sandstone hands over less
+            // than the flow has room for and the difference is what leaves a
+            // resistant bed standing proud. This is where bed-to-bed
+            // differential erosion lives (see `expose`).
+            //
+            // `sus > 1` (rock softer than the fine-clastic reference) can
+            // push entrainment past this cell's remaining capacity; that is
+            // physical and mass-safe — the excess is routed downstream as
+            // suspended load and the receiver, seeing `qin > cap`, deposits
+            // it. Over-entrainment also drives `room` negative, which skips
+            // incision: a thick soft cover shields the bedrock beneath it,
+            // which is correct.
+            let ent = grid.h[c].min(room * sus);
+            grid.h[c] -= ent;
+            self.dh[c] -= ent;
+            room -= ent;
+            let mut carried = qin + ent;
+            // Then incise bedrock, shielded by remaining cover and scaled by
+            // the same susceptibility. Where cover is thin enough for this
+            // term to matter at all, the outcropping lithology is what the
+            // flow is grinding — and on a stripped column that is basement.
+            if room > 0.0 {
+                let shield = (-grid.h[c] / cfg.h_star).exp();
+                let inc_pot = cfg.k_bedrock * ae * sn * shield * sus;
+                let max_inc = (grid.r[c] - floor).max(0.0);
+                let inc = inc_pot.min(room).min(max_inc);
+                grid.r[c] -= inc;
+                carried += inc;
+            }
+            carried
+        } else {
+            // Over capacity: deposit the excess as alluvium.
+            let dep = qin - cap;
+            grid.h[c] += dep;
+            self.dh[c] += dep;
+            cap
+        }
+    }
+
     /// Stream-power transport with cover shielding and explicit flux routing.
     /// Suspended load flows down the receiver chain (`qs[rc] += qs_out`), so a
     /// cell needs its full upstream load before it runs — a serial chain, kept
     /// scalar for byte-identity. Zeroes `dh` (the recorder's net-ΔH scratch).
+    ///
+    /// ## The two invariants MFD had to re-derive
+    ///
+    /// **Mass down a DAG.** The single-receiver chain conserved mass because each
+    /// cell's `qs_out` had exactly one destination. Under MFD it has several, and
+    /// the budget survives on one condition: **the shares sum to the whole, with no
+    /// residue.** Normalised `f64` weights do not sum to `1` to the bit, so the
+    /// last weighted direction takes `qs_out − Σ(earlier shares)` rather than
+    /// `w · qs_out`. That makes the split *exact* by construction rather than
+    /// exact-to-an-ulp per hop, and a per-hop ulp compounds down a thousand-cell
+    /// chain. Everything above the split — entrainment, incision, deposition — is
+    /// untouched, which is why one `exchange_cell` serves both paths.
+    ///
+    /// **The never-incise-below-the-receiver clamp** becomes *below the **lowest**
+    /// receiver*. The clamp exists so no runaway knickpoint digs a hole its own
+    /// outlet cannot drain — and with several outlets, the cell still drains as
+    /// long as it stays above the lowest of them. Cutting to the *highest* would be
+    /// arbitrarily stricter; cutting past the lowest makes the cell a pit. In the
+    /// single-receiver limit the D8 receiver **is** the lowest neighbour, so the
+    /// generalisation reduces to today's rule exactly rather than approximately.
+    ///
+    /// **The energy slope becomes the share-weighted mean** `Σ w_k · S_k`. Stream
+    /// power is `Q·S`; split the discharge and the total power released is
+    /// `Σ Q_k·S_k = Q·Σ w_k S_k`. So the weighted mean is not a smoothing choice —
+    /// it is the slope that keeps the cell's energy budget equal to the sum of the
+    /// budgets of the flows leaving it.
     pub fn transport(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
         self.dh.iter_mut().for_each(|d| *d = 0.0);
         self.qs.iter_mut().for_each(|q| *q = 0.0);
         self.energy.iter_mut().for_each(|e| *e = 0.0);
-        // Flow-record side-buffer (empty ⇒ inert). Written, never read, by the
-        // transport chain — it cannot perturb an f64 anywhere.
+        // Flow-record side-buffers (empty ⇒ inert). Written, never read, by the
+        // transport chain — they cannot perturb an f64 anywhere.
         self.out_load.iter_mut().for_each(|q| *q = 0.0);
+        self.out_face_load.iter_mut().for_each(|q| *q = 0.0);
+        let record = !self.out_face_load.is_empty();
+        if self.mfd.is_none() {
+            for k in (0..self.order.len()).rev() {
+                let c = self.order[k] as usize;
+                let rc = self.recv[c];
+                let qin = self.qs[c];
+                if rc < 0 {
+                    // Sink: everything suspended settles here (marine / border).
+                    grid.h[c] += qin;
+                    self.dh[c] += qin;
+                    self.energy[c] = 0.0;
+                    continue;
+                }
+                let rc = rc as usize;
+                let s = ((self.filled[c] - self.filled[rc]).max(0.0)) / self.cell_m;
+                let floor = grid.surf_at(rc);
+                let qs_out = self.exchange_cell(grid, cfg, c, qin, s, floor);
+                self.qs[rc] += qs_out;
+                // The load crossing cell→receiver this epoch — the flow atom's `L`.
+                // Captured here because it is unrecoverable afterwards: `qs[rc]` is a
+                // sum over every contributor, with no unique factorization.
+                if record {
+                    self.out_load[c] = qs_out;
+                    let (gx, gy) = coords_of(c, self.w);
+                    let (jx, jy) = coords_of(rc, self.w);
+                    let d = NEIGH8
+                        .iter()
+                        .position(|&(dx, dy)| (gx + dx, gy + dy) == (jx, jy))
+                        .expect("the receiver is a D8 neighbour");
+                    self.out_face_load[c * MFD_DIRS + d] = qs_out as f32;
+                }
+            }
+            return;
+        }
         for k in (0..self.order.len()).rev() {
             let c = self.order[k] as usize;
-            let rc = self.recv[c];
+            let base = c * MFD_DIRS;
             let qin = self.qs[c];
-            if rc < 0 {
+            // One sweep over the partition for the three things the exchange needs:
+            // is there an outlet at all, what slope does the flow descend, and how
+            // low may the bed be cut.
+            let mut s_bar = 0.0;
+            let mut floor = f64::INFINITY;
+            let mut last = usize::MAX;
+            for (d, &dist) in MFD_DIST.iter().enumerate() {
+                let wt = self.mfd_w[base + d];
+                if wt <= 0.0 {
+                    continue;
+                }
+                let j = self.mfd_neighbour(c, d);
+                let drop = (self.filled[c] - self.filled[j]).max(0.0);
+                s_bar += wt * (drop / (self.cell_m * dist));
+                floor = floor.min(grid.surf_at(j));
+                last = d;
+            }
+            if last == usize::MAX {
                 // Sink: everything suspended settles here (marine / border).
                 grid.h[c] += qin;
                 self.dh[c] += qin;
                 self.energy[c] = 0.0;
                 continue;
             }
-            let rc = rc as usize;
-            let s = ((self.filled[c] - self.filled[rc]).max(0.0)) / self.cell_m;
-            let ae = if (cfg.m_exp - 0.5).abs() < 1e-9 {
-                self.area[c].sqrt()
-            } else {
-                self.area[c].powf(cfg.m_exp)
-            };
-            let sn = if (cfg.n_exp - 1.0).abs() < 1e-9 {
-                s
-            } else {
-                s.powf(cfg.n_exp)
-            };
-            let cap = cfg.k_transport * ae * sn;
-            self.energy[c] = cap;
-            // The erodibility coupling's fluvial multiplier for this cell: the
-            // abrasion susceptibility of whatever lithology outcrops here.
-            // Exactly `1.0` when the coupling is off.
-            let sus = sus_at(&self.sus_flow, c);
-            let qs_out = if qin <= cap {
-                let mut room = cap - qin;
-                // Entrain the exposed cover. Transport-limited, now scaled by
-                // how detachable that rock is: a weak mudstone hands the flow
-                // everything it can carry, a competent sandstone hands over less
-                // than the flow has room for and the difference is what leaves a
-                // resistant bed standing proud. This is where bed-to-bed
-                // differential erosion lives (see `expose`).
-                //
-                // `sus > 1` (rock softer than the fine-clastic reference) can
-                // push entrainment past this cell's remaining capacity; that is
-                // physical and mass-safe — the excess is routed downstream as
-                // suspended load and the receiver, seeing `qin > cap`, deposits
-                // it. Over-entrainment also drives `room` negative, which skips
-                // incision: a thick soft cover shields the bedrock beneath it,
-                // which is correct.
-                let ent = grid.h[c].min(room * sus);
-                grid.h[c] -= ent;
-                self.dh[c] -= ent;
-                room -= ent;
-                let mut carried = qin + ent;
-                // Then incise bedrock, shielded by remaining cover and scaled by
-                // the same susceptibility. Where cover is thin enough for this
-                // term to matter at all, the outcropping lithology is what the
-                // flow is grinding — and on a stripped column that is basement.
-                if room > 0.0 {
-                    let shield = (-grid.h[c] / cfg.h_star).exp();
-                    let inc_pot = cfg.k_bedrock * ae * sn * shield * sus;
-                    let floor = grid.surf_at(rc);
-                    let max_inc = (grid.r[c] - floor).max(0.0);
-                    let inc = inc_pot.min(room).min(max_inc);
-                    grid.r[c] -= inc;
-                    carried += inc;
-                }
-                carried
-            } else {
-                // Over capacity: deposit the excess as alluvium.
-                let dep = qin - cap;
-                grid.h[c] += dep;
-                self.dh[c] += dep;
-                cap
-            };
-            self.qs[rc] += qs_out;
-            // The load crossing cell→receiver this epoch — the flow atom's `L`.
-            // Captured here because it is unrecoverable afterwards: `qs[rc]` is a
-            // sum over every contributor, with no unique factorization.
-            if !self.out_load.is_empty() {
+            let qs_out = self.exchange_cell(grid, cfg, c, qin, s_bar, floor);
+            if record {
                 self.out_load[c] = qs_out;
+            }
+            let mut given = 0.0;
+            for d in 0..MFD_DIRS {
+                let wt = self.mfd_w[base + d];
+                if wt <= 0.0 {
+                    continue;
+                }
+                let share = if d == last {
+                    qs_out - given
+                } else {
+                    wt * qs_out
+                };
+                given += share;
+                let j = self.mfd_neighbour(c, d);
+                self.qs[j] += share;
+                if record {
+                    self.out_face_load[base + d] = share as f32;
+                }
             }
         }
     }
@@ -1243,9 +1689,25 @@ impl Erosion {
         &self.frost
     }
 
-    /// The D8 receiver of each cell as of the last routing (`-1` = sink) — the
+    /// The single receiver of each cell as of the last routing (`-1` = sink) — the
     /// exported final drainage network (§ 7.3). This is the last iteration's
-    /// routing exactly (no recompute), so the export matches what the sim used.
+    /// routing exactly (no recompute).
+    ///
+    /// **Under MFD this is no longer the routing** (flow.md § 2.6). With MFD off it
+    /// is the D8 steepest-descent receiver and the solve genuinely sends the cell's
+    /// whole discharge there. With MFD on the solve sends the discharge to *several*
+    /// neighbours, and this plane holds the **argmax share** — a projection of the
+    /// partition, retained only because two consumers still want one arrow per cell
+    /// (the biotic layer's valley test and the `DeepField` drainage export).
+    ///
+    /// That is a change of *kind*, and it is worth stating for FLOW continuation
+    /// (e), the retirement slice: before MFD, `recv` was an authority the record
+    /// shadowed; after MFD it is a **summary of an authority** in the exact sense
+    /// ARCHITECTURE.md warns about — it would not exist in this shape if those two
+    /// consumers vanished. It is not *meaningless* (the argmax of a partition is a
+    /// well-defined thing and still answers "which way does most of the water go"),
+    /// but it can no longer be read as "where the water went", and every new
+    /// consumer should read the flux record instead.
     pub fn recv(&self) -> &[i32] {
         &self.recv
     }
@@ -1581,5 +2043,142 @@ impl Erosion {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod mfd_tests {
+    use super::*;
+
+    /// A 3×3 patch centred on cell 4, with the given drop (metres of filled
+    /// potential) to each of the eight neighbours in [`NEIGH8`] order. Everything
+    /// is far above the sea stand and the centre is interior.
+    fn patch(drops: [f64; 8]) -> (usize, Vec<f64>, Vec<f64>) {
+        let w = 3usize;
+        let c = 4usize;
+        let mut filled = vec![0.0; w * w];
+        filled[c] = 100.0;
+        for (d, (dx, dy)) in NEIGH8.into_iter().enumerate() {
+            let j = ((1 + dy) as usize) * w + ((1 + dx) as usize);
+            filled[j] = 100.0 - drops[d];
+        }
+        let surf = filled.clone();
+        (c, surf, filled)
+    }
+
+    /// The partition is a **probability**: one cell's shares sum to one. If they
+    /// did not, discharge would be created or destroyed at every junction and the
+    /// mass budget flow.md § 3 rests on would mean nothing.
+    #[test]
+    fn the_partition_weights_sum_to_one() {
+        for p in [1.0f64, 1.1, 2.0, 4.0, 6.0] {
+            let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.9, 0.25, 1.5, 4.0]);
+            let mut w_out = [0.0f64; MFD_DIRS];
+            let int_p = (p == p.round()).then_some(p as i32);
+            let best = partition_cell(c, 3, &surf, &filled, -1000.0, p, int_p, &mut w_out);
+            assert!(
+                best >= 0,
+                "p={p}: a cell with downslope neighbours is a sink"
+            );
+            let sum: f64 = w_out.iter().sum();
+            assert!(
+                (sum - 1.0).abs() < 1e-12,
+                "p={p}: weights sum to {sum}, not 1"
+            );
+            assert!(w_out.iter().all(|&v| v >= 0.0));
+        }
+    }
+
+    /// **`p → ∞` is single-receiver D8.** That property is what makes the exponent
+    /// a *convergence knob* rather than a different model: the partition contains
+    /// the thing it replaces as a limit, so "how much does MFD change the world"
+    /// has a continuous answer instead of a discrete one.
+    ///
+    /// Note what "large" has to mean, because it is the honest reading of the knob:
+    /// `p` acts on the **ratio** of slopes, so two neighbours within a few percent
+    /// of each other still share at `p = 16`. Collapse is a limit, not a threshold
+    /// — which is precisely why `p = 4` leaves gorges convergent (their sidewalls
+    /// are nowhere near the channel's slope) and delta tops divergent (theirs are).
+    #[test]
+    fn a_large_exponent_collapses_the_partition_onto_one_receiver() {
+        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 2.0]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 16.0, Some(16), &mut w_out);
+        assert!(best >= 0);
+        assert_eq!(
+            w_out.iter().filter(|&&v| v > 0.0).count(),
+            1,
+            "weights {w_out:?} did not collapse onto one receiver"
+        );
+        assert!((w_out[best as usize] - 1.0).abs() < 1e-12);
+        assert_eq!(best, 3);
+    }
+
+    /// **The partition follows SLOPE, not drop.** Index 7 is a diagonal with a 4 m
+    /// drop over `√2` cells (slope 2.83); index 3 a cardinal with 3 m over one cell
+    /// (slope 3.0). The cardinal must take the larger share — a steepest-*drop*
+    /// rule, which is what `route_cell` uses, picks the diagonal instead. Without
+    /// the true flow-path length every diagonal is over-weighted by `√2` and the
+    /// drainage net acquires a systematic X-bias.
+    #[test]
+    fn the_partition_follows_slope_not_drop() {
+        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 3.0, 0.1, 0.25, 1.5, 4.0]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        assert_eq!(best, 3, "the diagonal's √2 path length was not applied");
+        assert!(w_out[3] > w_out[7]);
+        // The steepest-DROP rule would have said otherwise — pinned, so the
+        // difference between the two routings is a fact this file states rather
+        // than a claim the prose makes.
+        assert_eq!(route_cell(c, 3, &surf, &filled, -1000.0), 8);
+    }
+
+    /// **`p = 1` is maximally dispersive** (Quinn) and must genuinely spread:
+    /// every downslope neighbour above the representational floor keeps a share.
+    /// With equal drops all round, the cardinals win twice over — a shorter path
+    /// (steeper slope) *and* a wider contour — so their share is exactly `2×` a
+    /// diagonal's. That is the two `√2`s the partition carries, isolated.
+    #[test]
+    fn a_unit_exponent_spreads_across_every_downslope_neighbour() {
+        let (c, surf, filled) = patch([1.0; 8]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        partition_cell(c, 3, &surf, &filled, -1000.0, 1.0, Some(1), &mut w_out);
+        assert_eq!(w_out.iter().filter(|&&v| v > 0.0).count(), 8);
+        let ratio = w_out[1] / w_out[0];
+        assert!(
+            (ratio - 2.0).abs() < 1e-9,
+            "cardinal/diagonal share ratio is {ratio}, expected 2 (√2 slope × √2 contour)"
+        );
+    }
+
+    /// A cell with no downslope neighbour is a **sink** and every weight is zero —
+    /// the record then reads it as a boundary-face exit, the same convention the
+    /// single-receiver path used.
+    #[test]
+    fn a_cell_with_no_lower_neighbour_is_a_sink() {
+        let (c, surf, filled) = patch([-1.0; 8]);
+        let mut w_out = [1.0f64; MFD_DIRS];
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        assert_eq!(best, -1);
+        assert!(w_out.iter().all(|&v| v == 0.0));
+    }
+
+    /// The **representational floor** drops a share below [`MFD_MIN_WEIGHT`] and
+    /// renormalises the survivors, so the sum is still exactly one. Without the
+    /// renormalisation the floor would quietly delete discharge — a leak that would
+    /// show up in the mass budget as a mystery rather than as a rule.
+    #[test]
+    fn the_weight_floor_renormalises_rather_than_deleting_discharge() {
+        // One dominant cardinal and one very gentle one: at p = 4 the gentle
+        // neighbour's share falls under a percent and is dropped.
+        let (c, surf, filled) = patch([-1.0, -1.0, -1.0, 10.0, 0.3, -1.0, -1.0, -1.0]);
+        let mut w_out = [0.0f64; MFD_DIRS];
+        partition_cell(c, 3, &surf, &filled, -1000.0, 4.0, Some(4), &mut w_out);
+        let sum: f64 = w_out.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-12, "sum {sum} after the floor");
+        assert!(
+            w_out.iter().all(|&v| v == 0.0 || v >= MFD_MIN_WEIGHT),
+            "a sub-floor weight survived: {w_out:?}"
+        );
     }
 }

@@ -168,6 +168,9 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // FLOW slice 1: arm the transport pass's per-face load capture. Off ⇒ the
     // buffer stays empty and transport never touches it (byte-identical).
     erosion.set_flux_record(cfg.flow_record);
+    // FLOW continuation (b): the MFD partition. `None` ⇒ the single-receiver D8
+    // solve, byte for byte.
+    erosion.set_mfd(cfg.mfd.then_some(cfg.mfd_exponent));
     let mass_before = total_mass(&grid);
 
     // --- pre-loop seeding (initial conditions the epoch loop reads) ---

@@ -1792,3 +1792,65 @@ a blast radius **9× too large**.
    different error behaviour (single rounding vs compounding), and different test consequences.
 3. **Over-prediction is still a false number.** It is the flattering direction — the implementation
    comes in "under budget" — which is exactly why nobody checks it.
+## 54. "MFD needs the head field — `dc:field/head` is what lets flux partition across several receivers" (flow.md § 2.6, spines § 3, `head.rs` docs, 2026-07-25 — falsified the same day by journal/0109)
+
+**The claim**, written in at least four places and never questioned because it sounded like a
+sequencing fact rather than a physical one:
+
+- flow.md § 2.6: *"MFD is a SOLVE change and **belongs with the potential/head field**
+  (continuation (a)): **a head field partitions flux across several receivers naturally**, where
+  steepest-descent cannot."*
+- flow.md § 9 Q8: *"Simultaneous divergence needs an MFD solve… **Sequenced with the potential/head
+  field (continuation (a)), never ahead of it.**"*
+- `head.rs` module docs: *"A **multi-flow-direction** partition is what head *unlocks*."*
+- spines § 3, the `DeepField::head` row: *"an **MFD solve** — head is what lets flux partition
+  across several receivers, and therefore what makes *simultaneous* divergence representable."*
+
+**Falsified: MFD needs a potential, and the free regime's potential was already there.** For
+free-phase flow, head is `z_bed + depth`, and *depth is zero on dry ground* — so the driving
+potential of overland and channel flow is the **free water surface**, which is exactly what the
+priority-flood `filled` array is (bare ground where the land drains, a flat spill-level water
+surface inside every depression). The MFD partition that shipped in journal/0109 descends `filled`,
+reads no new plane, adds no declaration, and produced 7.5 M simultaneous divergences on the shipped
+world. **`dc:field/head` is not in the call path at all.**
+
+**And the stronger half: using `dc:field/head` here would have been WRONG, by § 2.4's own
+qualification.** That plane is the **bound** regime's potential, and it is deliberately built to
+cross surface drainage divides — the module docs pin it with
+`bound_head_crosses_a_surface_drainage_divide`, because the Great Artesian Basin and karst piracy
+are real and a field that could not express them would foreclose them. § 2.4 then says in the same
+breath that *"3e-2 decision 1's 'never crosses a drainage divide' … **binds FREE/surface refinement
+only**"* — i.e. surface water **must not** cross divides. Partitioning surface discharge on the
+water-table potential would have made every river cross its own watershed. The document contained
+both halves and the sequencing note read only one of them.
+
+**What was actually true, and is worth keeping.** Continuation (a) was correctly sequenced *before*
+(b) — but for a different reason than the one written down: the head field is what made the record's
+**vertical** faces honest (journal/0098), which is what let (b) change the *lateral* solve without
+the record's other half still being a stub. The dependency was on the record's completeness, not on
+the numerics.
+
+**Lessons.**
+1. **"X unlocks Y" is a physical claim wearing a schedule's clothes.** It was recorded as a
+   sequencing constraint, which is the kind of statement nobody re-derives, and it survived four
+   rewrites of the surrounding text.
+2. **One word — *potential* — named two different fields.** The corpus had `head` meaning "the
+   groundwater plane `dc:field/head`" and `head` meaning "the potential any flow descends", and the
+   collision hid a category error. flow.md § 0's own table has *fluvial → head* and *solute →
+   head*, which is right in the second sense and reads as the first.
+3. **The correction is now a mechanism, not a note:** flow.md § 2.6.1 states which field is
+   partitioned and why, and names **bound MFD on `dc:field/head`** as the genuinely-unbuilt thing
+   continuation (c) owes.
+
+**Struck at source, 2026-07-25** — because a correction that lives only in this file is a
+correction the next author does not meet: flow.md § 2.6 and § 9 item 8, `head.rs`'s "what is
+deliberately NOT here" bullet, and the `DeepField::head` row of spines § 3 all now carry the
+struck sentence with a pointer here and to § 2.6.1.
+
+**Two sites deliberately NOT struck.** `journal/0098` § "what this unlocks" and
+`journal/0096` both state it, and the journal is **append-only** — an entry records what was
+believed on the day it was written and rewriting it would destroy the very thing the journal is
+for. `docs/audits/2026-07-25-roadmap-staleness-sweep.md` is likewise a dated snapshot.
+**ROADMAP.md line ~2740 still carries it** (*"the head field is also what unlocks a
+multi-flow-direction solve"*) and is owned by the integrator, not by the slice — flagged in the
+slice's return rather than edited.

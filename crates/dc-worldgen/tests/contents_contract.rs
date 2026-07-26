@@ -315,25 +315,47 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 // Previous values (surface-branch-removal tree, journal/0074), kept auditable:
 //   medium 0x0D5EED572026 blocks 0x4A36838BA76E3999
 //   medium 0x539          blocks 0x421C2B6824DCE4F7
+//
+// **Moved 2026-07-25 by MFD routing (journal/0109, FLOW continuation (b)) —
+// authorized, and it is a genuine PHYSICS move rather than a seam conversion.**
+// Every prior move in this file came from re-plumbing how a voxel is composed;
+// this one changes *where the water goes*, and routing is upstream of erosion, so
+// the terrain itself moved.
+//
+// **The Small world is the interesting row, and it is the confirmation.** Both
+// media moved on all three hashes, as expected. Small moved on **blocks only** —
+// its `materials` and `table` hashes are **byte-identical** to the pre-MFD
+// capture. That is precisely the signature a terrain change predicts and a record
+// change forbids: Small's sampled chunks carry **no strata record**, so their
+// contents are the unchanged year-zero fallback (see the doc comment above, and
+// journal/0074's diagnosis of the same blind spot) — but a record-less column's
+// *block* still comes from the surface height, and MFD moved the surface. So this
+// is the **first** slice to move Small's block hash while leaving its materials
+// untouched, and that asymmetry is independent evidence that what changed is the
+// landscape and not the archive. Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0x46250D80CAB250CA  materials 0xECBD087F1C41B0F3  table 0xE0255C0E5E6BBBBC
+//   medium 0x539           blocks 0x11C26F4F7FDC8E14  materials 0x7A269D592F98C6C4  table 0xC3B92A0BBCC37030
+//   small  0xC11A7E2026    blocks 0x83A4FD2811CBA19D  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x4625_0D80_CAB2_50CA,
-        0xECBD_087F_1C41_B0F3,
-        0xE025_5C0E_5E6B_BBBC,
+        0x324B_5794_DE97_0CE4,
+        0x066A_7463_EA77_9B1D,
+        0x7AE0_4323_CEE0_EDAA,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x11C2_6F4F_7FDC_8E14,
-        0x7A26_9D59_2F98_C6C4,
-        0xC3B9_2A0B_BCC3_7030,
+        0xF071_D5DC_154F_B2D4,
+        0xC1AA_8300_57B9_48FA,
+        0xFC50_2820_3EFC_F9D1,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x83A4_FD28_11CB_A19D,
+        0x6D12_F2FC_4240_638D,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),
