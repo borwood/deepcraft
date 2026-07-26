@@ -23,7 +23,7 @@
 
 use dc_worldgen::deeptime::lithology::{Litho, settling_table};
 use dc_worldgen::deeptime::{
-    self, DeepConfig, DeepField, DeepRun, build_field_cfg, litho_of_tag, production_config,
+    self, DeepConfig, DeepField, DeepRun, build_field_cfg, litho_of_tag, production_config_with,
     run_cells,
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
@@ -57,7 +57,20 @@ fn cfg_for(cells: &CellGrid, material_transport: bool) -> DeepConfig {
         // about anything.
         mfd_exponent: 4.0,
         mfd_exponent_channel: 4.0,
-        ..production_config(cells, SEED)
+        // **And the pre-calibration RATES** (journal/0114). The erosional calibration
+        // multiplied `weathering` / `diffusion` / `k_transport` / `k_bedrock` by 45;
+        // a fixed point captured before it is only reachable by reproducing that
+        // too — the same discipline as the `p = 4` pin above. Without this the
+        // constants would silently become "the old solve at the NEW erosional
+        // clock", which is a claim about no commit that ever existed.
+        ..production_config_with(
+            cells,
+            SEED,
+            &dc_worldgen::DeepOverrides {
+                calibrated_rates: Some(false),
+                ..Default::default()
+            },
+        )
     }
 }
 

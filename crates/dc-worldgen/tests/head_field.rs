@@ -178,7 +178,6 @@ fn an_unconfined_water_table_never_stands_above_its_own_ground() {
     let mut below = 0usize;
     let mut artesian = 0usize;
     let mut lakes = 0usize;
-    let mut stale_max = 0.0f64;
     for i in &land {
         let (h, s) = (f.head[*i], f.surf[*i]);
         if h < s - 1e-6 {
@@ -192,54 +191,19 @@ fn an_unconfined_water_table_never_stands_above_its_own_ground() {
             }
             artesian += 1;
             let hydro = dc_worldgen::deeptime::column_hydro(&f.strata[*i]);
-            if !hydro.confined {
-                // **A LAGGED READ, not a failed cap** (found 2026-07-26 by the
-                // erosional calibration, journal/0114; the family is journal/0107's).
-                // The solve enforces `v = v.min(ground)` for every unconfined cell —
-                // exactly, in one line — but the field is planted every
-                // `HEAD_PERIOD` (20) epochs, so the *exported* head is paired with a
-                // surface up to 19 epochs younger than the ground it was capped
-                // against. A cell that has lowered since, or that was submerged at
-                // the last plant and has since emerged (its head then Dirichlet-
-                // pinned at that epoch's sea stand), can sit slightly above its own
-                // ground while it drains. That is correct behaviour.
-                //
-                // The calibration made it visible for the first time by multiplying
-                // how far a surface moves in 19 epochs. It is not a new defect and
-                // it is not this suite's to repair; what the test can still do is
-                // separate the two explanations by **magnitude**, which is the
-                // honest invariant here:
-                //
-                //   * staleness is centimetres — measured max 1.07 cm on this
-                //     fixture at the shipped calibration;
-                //   * a cap that stopped running would leave unconfined heads at
-                //     whatever the neighbours transmit, which on this terrain is
-                //     tens to hundreds of metres.
-                //
-                // One metre sits far above the first and far below the second, so
-                // the assertion still falsifies the thing it is named for.
-                stale_max = stale_max.max(h - s);
-                assert!(
-                    h - s < 1.0,
-                    "cell {i} has head {h} standing {:.3} m above its ground {s}, is \
-                     not a lake, and is UNCONFINED. That is far more than the head \
-                     field's {}-epoch lag against the exported surface can explain, \
-                     so the seepage cap is not running — a bug, not an aquifer and \
-                     not staleness",
-                    h - s,
-                    dc_worldgen::deeptime::HEAD_PERIOD,
-                );
-            }
+            assert!(
+                hydro.confined,
+                "cell {i} has head {h} above its ground {s}, is not a lake, and is \
+                 UNCONFINED — the seepage cap failed, so this is a bug and not an \
+                 aquifer"
+            );
         }
     }
     println!(
         "final sea stand {sea:.2} m · {} subaerial columns: water table BELOW \
-         ground {below}, at ground {}, lakes {lakes}, ARTESIAN {artesian} \
-         (largest UNCONFINED exceedance {stale_max:.4} m — the head field's \
-         {}-epoch lag against the exported surface)",
+         ground {below}, at ground {}, lakes {lakes}, ARTESIAN {artesian}",
         land.len(),
-        land.len() - below - artesian - lakes,
-        dc_worldgen::deeptime::HEAD_PERIOD,
+        land.len() - below - artesian - lakes
     );
 }
 

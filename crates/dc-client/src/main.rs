@@ -125,13 +125,15 @@ fn main() -> std::process::ExitCode {
         //                      dev lever that makes the cranked "conservative
         //                      amplitude" world walkable (journal/0076). It scales
         //                      the CALIBRATED rates, so it means "n× this world".
-        // - `--uncalibrated`   build the world from the RAW pre-2026-07-26 erosion
-        //                      rates — the one-line revert for journal/0114's
-        //                      calibration, and the A/B partner for any walk that
-        //                      judges it. The world it makes denudes at
-        //                      0.011 m/Myr, which is 9× slower than the slowest
-        //                      landscape ever measured on Earth; it is kept
-        //                      reachable as evidence, not as an option.
+        // - `--calibrated-rates`  build the world with journal/0114's erosional
+        //                      calibration ON (all four rate constants x45).
+        //                      Denudation goes 0.011 -> 0.414 m/Myr and erosion
+        //                      finally has authority over the topography — but it
+        //                      also opens deep closed depressions the incision
+        //                      clamp does not hold (148 pits, deepest 112 m) and
+        //                      collapses the geotherm's coal relocation. OFF in
+        //                      production until that pit defect is fixed; this is
+        //                      the A/B partner for the walk that judges it.
         // - `--weather-inventory`  the S18 first-behavior weathering pass (one
         //                      chapter over each cell's working inventory). OFF
         //                      by default (S-5 identity floor); present ⇒ ON for
@@ -147,8 +149,8 @@ fn main() -> std::process::ExitCode {
         if args.iter().any(|a| a == "--weather-inventory") {
             deep.weather_inventory = Some(true);
         }
-        if args.iter().any(|a| a == "--uncalibrated") {
-            deep.calibrated_rates = Some(false);
+        if args.iter().any(|a| a == "--calibrated-rates") {
+            deep.calibrated_rates = Some(true);
         }
         if let Some(v) = args.windows(2).find(|w| w[0] == "--amplitude") {
             match v[1].parse::<f64>() {

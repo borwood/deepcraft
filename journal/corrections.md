@@ -1988,21 +1988,30 @@ internal instrument the engine has. **Whenever a simulated quantity has a real
 published counterpart, measure it against the literature at least once.** Those are the
 only errors a perfect internal audit is structurally blind to.
 
-**PARTIALLY RESOLVED 2026-07-26 (journal/0114), and the residue is the interesting
-half.** The rates are now calibrated — `EROSION_CALIBRATION = 45` on all four, through a
-single `scale_erosion_rates`, moving catchment-averaged denudation 0.0110 → **0.4142
-m/Myr** and bedrock erosion 0.0107 → **0.1271**. That clears the *"below every published
-terrestrial band"* headline: the world now sits inside the 0.1–1 floor band, and erosion's
-authority over the topography (`D1/D4`) went 0.027 → **0.91**.
+**STILL OPEN after journal/0114, and the reason is worth more than a fix would have
+been.** The calibration was built (`EROSION_CALIBRATION = 45`, one
+`scale_erosion_rates`, a launch flag, a pinned fixed point) and **left switched off**.
+Turned on it does move the number — catchment-averaged denudation 0.0110 → **0.4142
+m/Myr**, bedrock erosion 0.0107 → **0.1271**, erosion's authority over the topography
+(`D1/D4`) 0.027 → **0.91**, and the world leaves *"below every published terrestrial
+band"* for the 0.1–1 floor band. It does **not** reach the 1–10 craton band, and **no
+multiplier does**.
 
-**It does not reach the 1–10 craton band, and no multiplier does.** The entry above
-diagnosed a coupling between two levers; the calibration measured a **ceiling** underneath
-both. Hillslope creep's flux limiter binds on ~89 % of the cells that have regolith to
-move *at the uncalibrated rates already*, so the pass is a one-cell-per-epoch conveyor and
-raising `diffusion` cannot speed it up. Export ends up proportional to mean regolith
-thickness, so the band costs of order a hundred metres of cover. **So the sentence "two
-levers that only pay together" is true and incomplete: they pay together up to a cap that
-is set by neither of them.** stubs #27.
+Two things sit under it, and neither is a constant:
+
+* **A ceiling** (stubs #27). This entry diagnosed a coupling between two levers; the
+  calibration measured a cap underneath *both*. Creep's flux limiter binds on ~89 % of
+  the cells that have regolith to move *at the shipped rates already*, so the pass is a
+  one-cell-per-epoch conveyor and raising `diffusion` cannot speed it up. Export ends up
+  proportional to mean regolith thickness, so the band costs order a hundred metres of
+  cover. **"Two levers that only pay together" is true and incomplete: they pay together
+  up to a cap set by neither.**
+* **A defect** (stubs #29). The incision clamp leaves deep closed depressions at any
+  multiplier above 1× — 0 pits at 1×, **44 at 5×**, 148 at 45×, deepest 112 m — because
+  four phases run *after* incision and can lower a cell past the floor it was clamped to.
+  The shipped world scores zero only because it barely erodes. **That is this entry's own
+  lesson one level down: a system that has stopped cannot detect its own logic errors
+  either, because nothing exercises them.**
 
 ---
 

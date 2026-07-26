@@ -8,8 +8,11 @@
 > discovers that **the rates were never the binding constraint**. You can multiply every
 > erosion constant in the engine by a thousand and the landscape still will not reach the
 > published craton band; it will only bury itself under eight hundred metres of its own
-> weathering products. The interesting part is that the *measurement designed to accept a
-> calibration* is what refused it, and named the real cap instead.
+> weathering products. Then, on the way out, the calibration trips over something worse:
+> **a defect in the incision clamp that nothing could have found in a world which barely
+> erodes.** The interesting part is that the *measurement built to accept a calibration*
+> refused it — twice, for two different reasons — and that the slice ships anyway,
+> switched off, because a mechanism you can prove is not ready is still worth having.
 
 ## The brief, and the number it was aimed at
 
@@ -155,10 +158,12 @@ but of the ceiling on it. On Earth the long-distance sediment router is the chan
 network. Here it moves **0.02 %** of the yield, and the hillslope conveyor that moves the
 other 99.87 % cannot drain a continental interior.
 
-## The number that was not chosen
+## The number that was not chosen — and the switch that is off
 
 `EROSION_CALIBRATION = 45`, and it is picked by four criteria — three of them published
-bands — that all land together. None of them is an appearance.
+bands — that all land together. None of them is an appearance. **It ships behind a flag
+that is OFF**, for reasons two sections below; this section is why 45 is the number that
+flag will flip to.
 
 1. **The shape is preserved.** journal/0111's conclusion was *"the shape is right and the
    clock is wrong"*, so a multiplier that moves the shape has stopped being a calibration
@@ -181,6 +186,66 @@ as a surface drop and rebounds the rest, so a landscape in topographic steady st
 denudes at `U / 0.152 ≈ 6.6 U`; with the measured `U ≈ 0.41 m/Myr` that is **2.70 m/Myr** —
 inside the craton band, computed from two densities and a measured uplift that nobody
 chose for this purpose. **The rates can be raised to meet it. The router cannot carry it.**
+
+## And then the pits
+
+The last thing this slice did before it would have shipped was run the workspace gate,
+and `mfd_routing`'s clamp test failed:
+
+> **MFD incision left 148 interior cells more than a metre below every neighbour.**
+
+That test reads the final terrain and asserts no interior cell sits in a hole its own
+outlets cannot drain — the runaway knickpoint the never-incise-below-the-lowest-receiver
+clamp exists to forbid. The obvious reading is *"45× is too aggressive"*, so the
+multiplier was swept:
+
+| uniform × | pits deeper than 1 m | deepest |
+|---|---|---|
+| **1 (shipped)** | **0** | 0.00 m |
+| 5 | 44 | 44.85 m |
+| 10 | 66 | 55.13 m |
+| 20 | 87 | 124.56 m |
+| 45 | 148 | 111.81 m |
+
+**The pits appear the moment the multiplier leaves 1.** Forty-four of them at 5×, one
+forty-five metres deep. This is not a property of 45 and there is no safe multiplier
+underneath it — it is a **latent defect in the solve**, and the only reason it has never
+been seen is that the shipped world erodes too slowly for anything to be clamped at all.
+The clamp is applied at incision; weathering, creep, wave and wind all run *after* it in
+the same epoch and can lower a cell further, and over 200 epochs those metres compound
+into a hole.
+
+That is journal/0111's thesis arriving one level down and biting the entry acting on it.
+*A closed system cannot detect its own scale error* — and a system that has **stopped**
+cannot detect its own logic errors either, because nothing exercises them. The clamp was
+green for the same reason a brake is quiet on a parked car.
+
+## What shipped, and why the flag is off
+
+Everything except the flip. The scope fix, the single `scale_erosion_rates`, the
+`REFERENCE_KT` correction, the launch flag, the pinned fixed point, the probe's whole
+derivation, the constant itself. `production_config` sets `calibrated_rates: false`.
+
+The case for turning it on is real: denudation ×38, bedrock erosion ×12, and erosion's
+authority over the topography from **2.7 % to 91 %**. The case against is three measured
+things, and the first disqualifies on its own:
+
+1. **148 unfilled closed depressions, deepest 112 m**, from a clamp defect that any
+   multiplier above 1× exposes.
+2. The geotherm's coal-relocation claim collapses **1.37× → 1.02×**.
+3. Mean regolith reaches **43.9 m** against 4.6 m shipped.
+
+None of that is a reason to abandon the calibration; all of it is a reason not to put it
+into the world the player walks **on an agent's authority, while the user is away**, on
+the strength of a number that misses its own target band. The flag is the honest form of
+*here is the work, here is what it costs, here is the switch* — and the calibrated world
+is pinned by name (`GOLDEN_SURFACE_CALIBRATED`) precisely so it cannot drift unmeasured
+while it waits.
+
+**What has to happen before the flip:** fix the clamp so a cell cannot be left below its
+own outlets by the phases that run after incision. That is a well-specified slice, and it
+is now the most valuable one on the board — because until it lands, **this engine cannot
+run erosion at any realistic rate at all.** That sentence is what this entry is worth.
 
 ## The instrument that stopped agreeing with itself
 
@@ -329,24 +394,34 @@ snapshot and failed here; it has been **re-derived** to the size of the defect i
 names (independent rounding gives *exactly zero* mixed spans), rather than lowered until
 green — but the magnitude is recorded, because a walk should look at it.
 
-**Three falsifiers in other arcs had to be restated, and every one of them was a
-premise expiring rather than a defect appearing.** That is worth counting, because it is
-the same shape three times in one afternoon:
+**Five falsifiers in other arcs fired, and sorting them was most of the work.** Four were
+premises expiring; one was a real defect. That distinction is the whole reason the flag
+ended up off:
 
-| test | what expired | measured now |
+| test | what fired | verdict |
 |---|---|---|
-| `distribution_fill` mixed spans | *"beds are thinner than a voxel"* — a bound taken from the old bedding thickness | 52 of 4943 (1.1 %), was >100 |
-| `geotherm` coal relocation | *"burial depth is effectively constant"* — so pooled gradient means were implicitly depth-controlled | 1.02× pooled, was 1.37× |
-| `head_field` seepage cap | *"the surface barely moves in 20 epochs"* — so a lagged head read as a current one | one cell, **1.07 cm** above its ground |
+| `distribution_fill` mixed spans | 52 of 4943 (1.1 %), bound was >100 | premise expired — beds are thicker now |
+| `geotherm` coal relocation | pooled separation 1.37× → 1.02× | premise expired (burial depth was implicitly constant) — **and a real loss of signal** |
+| `head_field` seepage cap | one cell, **1.07 cm** above its ground | premise expired — a 20-epoch lagged read |
+| three sibling fixed points | single-receiver / scalar-load / anonymous-creep unreachable | premise expired — captured on uncalibrated rates |
+| **`mfd_routing` incision clamp** | **148 pits, deepest 112 m — and 44 at 5×** | **A REAL DEFECT** |
 
-None of the three was lowered until it passed. Each was re-derived to the size of the
-defect it names — independent rounding gives *exactly zero* mixed spans; a broken cap
-would leave heads tens of metres high, not centimetres — and where the restatement cost
-real guard strength (the geotherm's magnitude sensitivity) that loss is written down
-rather than absorbed.
+**Because the flag ships off, four of those five needed no change at all** — the shipped
+world is untouched, so every existing falsifier keeps its original bound and its original
+strength. That is the quiet argument for the off switch: a slice that had to weaken four
+falsifiers to go green would have been trading away exactly the machinery that caught the
+fifth. The three sibling fixed points *were* changed, and correctly — they now pin
+`calibrated_rates: Some(false)` explicitly, the discipline hybrid `p` used when it pinned
+`p_chan == p_hill == 4.0`: reaching a fixed point means reproducing **all** of the
+configuration it was captured under, not most of it.
 
-Every golden moved — the provider surface/record pair and all three contents-contract
-worlds — and the pre-calibration world stays reachable and pinned by name
-(`GOLDEN_SURFACE_UNCALIBRATED`, `tests/calibrated_rates.rs`, the `--uncalibrated` launch
-flag). Five new gate tests plus one in the probe. **An appearance walk is owed**, and for
-once the A/B is a single launch flag on the same seed.
+**No golden moved**, and that follows from the flag being off: the provider surface /
+record pair and all three contents-contract worlds are bit-identical to `main`. What is
+new is a golden pinning the world *behind* the flag — `GOLDEN_SURFACE_CALIBRATED` /
+`GOLDEN_RECORD_CALIBRATED` — the mirror of the single-receiver, scalar-load and
+anonymous-creep constants: those pin a past that stays reachable, this pins a future that
+is already built.
+
+Five new gate tests plus one in the probe. **An appearance walk is owed and is worth more
+than it was**, because for once the A/B is one launch flag on the same seed:
+`--calibrated-rates` against nothing. Whoever walks it should look at the pits first.

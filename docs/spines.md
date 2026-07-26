@@ -819,15 +819,34 @@ so a sweep must ask "does the cited constraint still hold?"
   thresholds carry different things inside them (an absolute rate vs a coefficient times
   a dimensionless index), one of them is holding a constant it does not own.
 
+- **instance (2026-07-26, journal/0114) — the sharpest one, and it is not about a
+  justification at all but about a TEST's unstated premise.** `mfd_routing`'s
+  incision-clamp falsifier (*"no interior cell more than a metre below every
+  neighbour"*) had been green since it was written. It is green because **the world does
+  not erode**: at the shipped rates the clamp is never stressed, and the moment the
+  erosional amplitude leaves 1× the assertion fails — **44 pits at 5×, 148 at 45×,
+  deepest 112 m** (stubs #29). Four phases run *after* incision and can lower a cell past
+  the floor it was clamped to.
+
+  **The A-2 shape is exact, with one twist: the premise — "erosion is fast enough for
+  this test to mean anything" — was never written down, and it was false the whole
+  time.** § 5's check (*does the cited constraint still hold?*) cannot catch that,
+  because nothing was cited. *Added check, and it generalises well past this file:*
+  **for a guard on a process, ask what magnitude of that process the test actually
+  exercises.** A green assertion over a quantity that is ~zero is not evidence — it is a
+  brake that is quiet because the car is parked. journal/0111 said *a closed system
+  cannot detect its own scale error*; this is its twin — **a system that has stopped
+  cannot detect its own logic errors either, because nothing exercises them.**
+
 - **live risk, flagged rather than fixed (2026-07-26, journal/0114).** The
   `BEDROCK_SEAM_THICKNESS_M` instance above named *"a cranked `--erosion-budget` walk"*
-  as where its 50 m ceiling would bite first. The erosional calibration is that crank,
-  made permanent: `weathering` is now **45×** what it was, and the measured saprolite
-  draw was 6.094 m of 50 m (12 %) at the old rate. The shipped world is unaffected —
-  `weather_inventory` is off in production — but **a `--weather-inventory` walk on the
-  calibrated world should be expected to hit the seam ceiling**, and the number that
-  comes back from one is no longer comparable to journal/0094's. Not re-measured here:
-  it is a flag-on path and re-deriving the seam depth is that arc's slice, not this one's.
+  as where its 50 m ceiling would bite first. `--calibrated-rates` is that crank in a
+  named form: `weathering` behind it is **45×** what it is, against a measured saprolite
+  draw of 6.094 m of 50 m (12 %) at the shipped rate. Production is unaffected twice over
+  — `weather_inventory` is off *and* the calibration is off — but **a
+  `--weather-inventory --calibrated-rates` walk should be expected to hit the seam
+  ceiling**, and a number from one is not comparable to journal/0094's. Not re-measured:
+  it is a two-flag path, and re-deriving the seam depth is that arc's slice.
 
 ## A-3. A test green for a reason unrelated to what it asserts
 

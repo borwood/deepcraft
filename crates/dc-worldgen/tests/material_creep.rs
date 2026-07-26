@@ -28,7 +28,8 @@
 //! honest provenance — live in `examples/colluvium_probe.rs`.
 
 use dc_worldgen::deeptime::{
-    self, DeepConfig, DeepField, DeepRun, build_field_cfg, production_config, run_cells,
+    self, DeepConfig, DeepField, DeepRun, build_field_cfg, production_config,
+    production_config_with, run_cells,
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -60,7 +61,23 @@ fn cfg_for(cells: &CellGrid, material_transport: bool, material_creep: bool) -> 
         // under post-b' routing", which is a claim about nothing.
         mfd_exponent: 4.0,
         mfd_exponent_channel: 4.0,
-        ..production_config(cells, SEED)
+        // **And the pre-calibration RATES** (journal/0114). The erosional
+        // calibration multiplied `weathering` / `diffusion` / `k_transport` /
+        // `k_bedrock` by 45; a fixed point captured before it is only reachable by
+        // reproducing that too. Same discipline as the `p = 4` pin below/above:
+        // reaching a fixed point means reproducing ALL of the configuration it was
+        // captured under, not most of it. Without this the constants would silently
+        // become "the old solve at the NEW erosional clock", which is a claim about
+        // no commit that ever existed.
+        ..production_config_with(cells, SEED, &uncalibrated())
+    }
+}
+
+/// The pre-calibration rate constants — see [`cfg_for`].
+fn uncalibrated() -> dc_worldgen::DeepOverrides {
+    dc_worldgen::DeepOverrides {
+        calibrated_rates: Some(false),
+        ..Default::default()
     }
 }
 

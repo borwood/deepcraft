@@ -720,7 +720,7 @@ consumers read the same function, so changing it moves alluvial grain ordering a
 ore concentration in the same commit. That coupling is the reason to change it
 deliberately rather than opportunistically. *Loud marker at `settling_table`.*
 
-### 24. an-erosion-amplitude-that-cannot-reach-the-eroding-process — **DISCHARGED 2026-07-26 (the joint supply+transport calibration, journal/0114)**
+### 24. an-erosion-amplitude-that-cannot-reach-the-eroding-process — **SCOPE FIXED 2026-07-26; the calibration itself is superseded by § 27 / § 29 (journal/0114)**
 `DeepOverrides::erosion_budget` (`deeptime/field.rs`) is documented as *"the
 TERRAIN (erosion) amplitude"* — the one knob the project has for "more erosion",
 reached by the `--erosion-budget <mult>` dev flag and named in the ROADMAP as the
@@ -771,21 +771,27 @@ warning — "do not fix this by adding `diffusion` to the list" — the fix is n
 multiplicand, it is the observation that the four are **one clock** and belong behind one
 name.*
 
-**(b) The calibration was taken, and it did NOT reach the target band.** The entry said
-the world should land in **1–10 m/Myr** and that this was a user-owned call. The user
-authorised it as a standing brief, so it rides **as-built and reviewable**, with the
-number derived rather than chosen: `EROSION_CALIBRATION = 45`, moving catchment-averaged
-denudation **0.0110 → 0.4142 m/Myr** and bedrock erosion **0.0107 → 0.1271**. That is
-inside the published **floor** band (0.1–1, McMurdo/Atacama) and still 2.4× below the
-craton floor.
+**(b) The calibration was BUILT, MEASURED and left OFF** — and that half is not
+discharged, it is **superseded by § 27 and § 29**. The entry said the world should land
+in **1–10 m/Myr**. It does not, at `EROSION_CALIBRATION = 45` or at any value:
+`calibrated_rates` moves catchment-averaged denudation **0.0110 → 0.4142 m/Myr** and
+bedrock erosion **0.0107 → 0.1271** (into the published *floor* band, 0.1–1, and out of
+"below every band"), and no multiplier reaches the craton band with a world left in it.
 
-**No multiplier reaches the craton band**, and *why* is the finding that replaces this
-stub: **export is proportional to mean regolith thickness**, because hillslope creep's
-flux limiter binds in **91 % of cell-epochs already at the uncalibrated rates** — the pass
-is a one-cell-per-epoch conveyor, raising `diffusion` cannot speed it up (100× buys 1.6×),
-and only the shoreline ring exports. Reaching 1 m/Myr costs ~150 m of mean cover; the
-measured ladder shows 118 m at 100× and 359 m at 300×, with relief +18 % and +52 %. The
-heir is therefore **not** a better constant. See **§ 27**.
+Two findings replace the "just calibrate it" expectation this entry carried:
+
+* **Export is proportional to mean regolith thickness** (§ 27), because hillslope creep's
+  flux limiter binds on ~89 % of the cells that have regolith to move *already, at the
+  shipped rates*. The pass is a one-cell-per-epoch conveyor; raising `diffusion` cannot
+  speed it up (100× buys 1.6×); only the shoreline ring exports. Reaching 1 m/Myr costs
+  order 100 m of mean cover — the ladder measures 118.8 m at 100× and 359 m at 300×.
+* **The incision clamp leaves deep closed depressions at any multiplier above 1×**
+  (§ 29) — 0 pits at 1×, **44 at 5×**, 148 at 45×, deepest 112 m. That is the blocker on
+  the flag, and it is a defect the slow world could never have exposed.
+
+So the knob's *scope* is fixed and the calibration's *value* is derived and pinned, but
+the flip itself is still owed. **It remains an appearance-class, user-owned call**, now
+with the evidence attached (journal/0114) instead of the guesswork this entry assumed.
 
 *Loud markers at `EROSION_CALIBRATION`, `scale_erosion_rates`, `erosion_budget` and
 `DeepConfig::calibrated_rates`.*
@@ -918,9 +924,10 @@ why the shipped world's shape survives the calibration.
    deliberately did not touch.
 
 **Blast:** the ceiling stands wherever the constants are set, so every future erosion
-calibration is bounded by it until an heir lands. Nothing at runtime reads the limiter.
-*Loud markers at `TransportLedger::creep_limited_cell_epochs`, `diffuse_scale_cell`, and
-`EROSION_CALIBRATION`.*
+calibration is bounded by it until an heir lands — and it is half of why
+`calibrated_rates` ships **off** (the other half is § 29). Nothing at runtime reads the
+limiter. *Loud markers at `TransportLedger::creep_limited_cell_epochs`,
+`diffuse_scale_cell`, and `EROSION_CALIBRATION`.*
 
 ### 28. the-agent-magnitudes-the-calibration-left-behind — *added 2026-07-26 (journal/0114)*
 `scale_erosion_rates` deliberately scales four rates and **not** `wave_erosion` (0.05 m
@@ -941,6 +948,45 @@ finding.
 now *more* owed, not less, because the walk will be judging them against a landscape that
 moved underneath them. **Blast:** coastal cliff retreat, dune fields, the periglacial band.
 *Loud marker in `scale_erosion_rates`' doc comment, which names the exclusion and why.*
+
+### 29. the-clamp-that-was-green-because-nothing-eroded — *added 2026-07-26 (the joint supply+transport calibration, journal/0114)*
+`erosion.rs`'s **never-incise-below-the-lowest-receiver clamp** is applied inside the
+transport phase, and **four later phases in the same epoch can lower a cell past it** —
+weathering, hillslope creep, wave attack and eolian deflation all run after incision.
+Over 200 epochs those metres compound, and the cell ends up in a hole its own outlets
+cannot drain: the runaway knickpoint the clamp exists to forbid, arrived by a route the
+clamp does not watch.
+
+**Measured, on `tests/mfd_routing.rs`'s fixture, by sweeping the erosional amplitude:**
+
+| uniform × | interior cells >1 m below every neighbour | deepest |
+|---|---|---|
+| **1 (shipped)** | **0** | 0.00 m |
+| 5 | 44 | 44.85 m |
+| 10 | 66 | 55.13 m |
+| 20 | 87 | 124.56 m |
+| 45 | 148 | 111.81 m |
+
+**It is not a property of the multiplier.** Pits appear as soon as the amplitude leaves
+1× and are already 45 m deep at 5×. The shipped world scores zero **because it barely
+erodes at all** — 0.011 m/Myr, 9× slower than the slowest landscape ever measured
+(journal/0111) — so there has never been enough motion for the clamp to be tested. This
+is the closed-system lesson one level down from journal/0111's: *a system that has stopped
+cannot detect its own logic errors either, because nothing exercises them.*
+
+**Why it is a stub and not a bug report.** The shipped world is unaffected and provably
+so (`pits == 0` is asserted, unchanged, on production). What is stood-in-for is the
+**premise** that the clamp is sufficient — a premise every future erosion calibration
+depends on, and the reason `DeepConfig::calibrated_rates` ships **off**.
+
+**Heir:** re-apply the floor after the last phase that can lower a cell, or make the
+lowering phases clamp-aware. That is a well-specified slice and it is **the blocking
+dependency for journal/0114's flag flip** — until it lands, this engine cannot run erosion
+at any realistic rate at all, which makes it the most valuable erosion work on the board.
+
+**Blast:** terrain shape everywhere, once the flag flips; nothing today.
+*Loud markers at `EROSION_CALIBRATION`, `DeepConfig::calibrated_rates`, and
+`tests/mfd_routing.rs::no_interior_cell_is_cut_below_all_of_its_neighbours`.*
 
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 

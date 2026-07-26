@@ -108,53 +108,36 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// GOLDEN_SURFACE 0x1A57_A522_C3BA_9F0C
 /// ```
 ///
-/// **Moved 2026-07-26 by the joint supply + transport calibration (journal/0114) —
-/// authorized, and it is the largest world move in this file's history.** Every
-/// prior move changed a rule: where the water goes, what the load is made of, which
-/// mover gets the credit. This one changes **how fast the whole landscape runs**.
-/// The four rate constants that together set the erosional clock — `weathering`,
-/// `diffusion`, `k_transport`, `k_bedrock` — are multiplied through
-/// `EROSION_CALIBRATION`, because journal/0111 measured the world denuding at
-/// 0.0110 m/Myr: **9× slower than the slowest landscape ever measured on Earth**,
-/// stripping 5.48 m over the ratified 500 Myr where a real craton strips 5–10 km.
-///
-/// It is the first golden move in this repo made against an **external** anchor.
-/// The others were justified by an internal argument about correctness; this one is
-/// justified by a published band (stable craton, 1–10 m/Myr) that the simulation had
-/// never been held up against — see CLAUDE.md § *a closed system cannot detect its
-/// own scale error*. The pre-calibration world is still reachable and still hashed,
-/// as [`GOLDEN_SURFACE_UNCALIBRATED`], which is what makes this an authorized move
-/// rather than a lost one. Prior value (pre-calibration `main`), kept for audit —
-/// and note it is the *same* value, because the uncalibrated constant below is a
-/// copy of it rather than a re-derivation:
-///
-/// ```text
-/// GOLDEN_SURFACE 0x260E_074F_211C_936D
-/// ```
-pub const GOLDEN_SURFACE: u64 = 0x8020_8FAF_68F0_6CCD;
+/// **NOT moved by the joint supply + transport calibration (journal/0114), and that
+/// is the entry's headline.** The calibration is built, measured and **off**: the
+/// probe found the published 1–10 m/Myr craton band unreachable at any multiplier,
+/// and found that turning it on opens deep closed depressions the incision clamp does
+/// not hold — 0 pits at 1×, **44 at 5×**, 148 at 45×, deepest 112 m. That is a latent
+/// defect in the solve which only a world that actually erodes could expose, and it
+/// is not something to ship into the world the player walks on an agent's authority.
+/// The calibrated world is reachable and pinned by name as
+/// [`GOLDEN_SURFACE_CALIBRATED`], so the flip is one line once the pit defect is
+/// fixed.
+pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
 
-/// **The pre-calibration fixed point, still reachable.** The same fixture world
+/// **The CALIBRATED world, reachable and pinned** (journal/0114). The same fixture
 /// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
-/// = `Some(false)` must reproduce the goldens as they stood before journal/0114 —
-/// the world every constant in this file described until that entry, and the world
-/// journal/0111 measured at 0.0110 m/Myr.
+/// = `Some(true)` — all four erosion rate constants multiplied by
+/// `EROSION_CALIBRATION` (45).
 ///
-/// It is the fourth member of the family that includes
-/// [`GOLDEN_SURFACE_SINGLE_RECEIVER`], [`GOLDEN_SURFACE_SCALAR_LOAD`] and
-/// [`GOLDEN_SURFACE_ANONYMOUS_CREEP`]: an old solve kept as a second *path*, not a
-/// deleted one, and proven byte-identical rather than assumed to be. Asserted in
-/// `tests/calibrated_rates.rs::calibrated_rates_off_is_the_pre_calibration_world_and_on_moves_it`,
-/// deliberately not here, for the same reason as its three siblings.
+/// It is the mirror of [`GOLDEN_SURFACE_SINGLE_RECEIVER`] and its siblings: those pin
+/// an **old** solve that is still reachable, this pins a **future** one that is
+/// already built. Asserted in
+/// `tests/calibrated_rates.rs::calibrated_rates_off_is_production_and_on_moves_it`,
+/// deliberately not here, which stays the cross-commit golden for the shipped
+/// configuration and nothing else.
 ///
-/// **Unlike its three siblings this one is kept as evidence, not as an option.** The
-/// world it names is not an earlier defensible physics that a walk might prefer; it
-/// is a landscape whose erosional clock had stopped. It stays reachable so the
-/// calibration has a clean A/B and a one-line revert (`--uncalibrated`), and so the
-/// measurement that condemned it can be re-run at any time against the world it was
-/// taken on.
-pub const GOLDEN_SURFACE_UNCALIBRATED: u64 = 0x260E_074F_211C_936D;
-/// The strata-record half of [`GOLDEN_SURFACE_UNCALIBRATED`].
-pub const GOLDEN_RECORD_UNCALIBRATED: u64 = 0xACB6_1859_6AA3_F3A8;
+/// Pinning it now is what makes the flip cheap and honest later: when the pit defect
+/// that keeps the flag off is fixed, this constant moves and the diff says so, rather
+/// than the calibrated world arriving unmeasured alongside the repair.
+pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x8020_8FAF_68F0_6CCD;
+/// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0xF17A_ABE0_FA95_9DC4;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -292,19 +275,9 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```text
 /// GOLDEN_RECORD 0x16EC_7D94_3A2E_D912
 /// ```
-/// **Moved 2026-07-26 by the joint supply + transport calibration (journal/0114) —
-/// authorized.** See [`GOLDEN_SURFACE`]. The record moves for the ordinary reason
-/// and for an extraordinary one: ordinarily, because the surface moved and the
-/// record is a log of what happened on it; extraordinarily, because at the
-/// calibrated rates the world deposits far more material over the same 200 epochs,
-/// so the archive is *thicker* as well as different. Prior value (pre-calibration
-/// `main`), kept for audit and still asserted under `calibrated_rates: Some(false)`
-/// as [`GOLDEN_RECORD_UNCALIBRATED`]:
-///
-/// ```text
-/// GOLDEN_RECORD 0xACB6_1859_6AA3_F3A8
-/// ```
-pub const GOLDEN_RECORD: u64 = 0xF17A_ABE0_FA95_9DC4;
+/// **NOT moved by journal/0114** — see [`GOLDEN_SURFACE`]. The calibrated record is
+/// [`GOLDEN_RECORD_CALIBRATED`].
+pub const GOLDEN_RECORD: u64 = 0xACB6_1859_6AA3_F3A8;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

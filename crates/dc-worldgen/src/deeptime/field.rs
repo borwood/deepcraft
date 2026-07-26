@@ -68,8 +68,8 @@ pub const DEEP_ITERATIONS: u32 = 200;
 /// not: the ladder in `examples/denudation_probe.rs` shows mean regolith going
 /// 4.6 m → 8.8 → 43.9 → 118.8 → 359 → 782 as the multiplier climbs. **The two levers
 /// are not symmetric, because transport has a ceiling supply does not.** Hillslope
-/// creep's flux limiter binds in ~91 % of cell-epochs *at the uncalibrated rates
-/// already*, so the pass is a one-cell-per-epoch conveyor and raising `diffusion`
+/// creep's flux limiter binds on ~89 % of the cells that HAVE regolith to move *at the
+/// shipped rates already*, so the pass is a one-cell-per-epoch conveyor and raising `diffusion`
 /// cannot make it faster (100× on transport alone buys 1.6×). That ceiling is what
 /// [`EROSION_CALIBRATION`] is calibrated *under*, and `stubs.md` § 27 carries it.
 ///
@@ -101,58 +101,60 @@ pub fn scale_erosion_rates(cfg: &mut DeepConfig, mult: f64) {
 /// 493× below the global `10Be` outcrop median (Portenga & Bierman 2011). The
 /// **target** was the stable-craton band, **1–10 m/Myr**.
 ///
-/// # ⚠ THE TARGET BAND WAS NOT REACHED, AND THAT IS THE RESULT
+/// # ⚠ IT IS OFF, THE BAND WAS NOT REACHED, AND THAT IS THE RESULT
 ///
-/// `45` is **not** the multiplier that lands in the craton band. No multiplier does:
-/// the measured ladder (`examples/denudation_probe.rs`, journal/0114) reaches
-/// 1 m/Myr only past ~600×, and by then the world carries **hundreds of metres of
-/// mean regolith** and its relief has grown by half. The world cannot be scaled into
-/// the band, and the reason it cannot is the finding:
+/// `45` is **not** the multiplier that lands in the craton band, and no multiplier is:
+/// the measured ladder (`examples/denudation_probe.rs`, journal/0114) reaches 1 m/Myr
+/// only past ~600×, and by then the world carries **hundreds of metres of mean
+/// regolith**. The world cannot be scaled into the band, and the reason is the finding:
 ///
 /// > **Export is proportional to mean regolith thickness, because the only working
 /// > sediment router moves one cell per epoch and only the shoreline ring exports.**
-/// > Hillslope creep's flux limiter binds in **91 %** of cell-epochs *already, at the
-/// > uncalibrated rates* — the pass is a conveyor, not a diffusion, and no increase
-/// > in `diffusion` speeds it up (100× on transport alone buys 1.6×). Raise supply
-/// > and the cover thickens until the taper `exp(−H/H*)` shuts the weathering front
-/// > off, so the landscape buys denudation by burying itself.
+/// > Hillslope creep's flux limiter binds on ~89 % of the cells that have regolith to
+/// > move *already, at the shipped rates* — the pass is a conveyor, not a diffusion, and
+/// > no increase in `diffusion` speeds it up (100× on transport alone buys 1.6×). Raise
+/// > supply and the cover thickens until the taper `exp(−H/H*)` shuts the weathering
+/// > front off, so the landscape buys denudation by burying itself.
 ///
-/// So this constant is a **calibration under a structural ceiling**, and it is
-/// chosen by four criteria that all land together — three of them published bands,
-/// none of them an appearance:
+/// **And turning it on costs three measured things**, which is why
+/// [`production_config`] leaves `calibrated_rates` **false**:
 ///
-/// 1. **The shape is preserved.** journal/0111's conclusion was *"the shape is right
-///    and the clock is wrong"*, so a multiplier that changes the shape has stopped
-///    being a calibration. Relief must stay within 5 % of the pre-calibration world:
-///    measured **+4.6 %** at 45×, +6.3 % at 50×. **This is the binding criterion**,
-///    and 45 is the largest measured row that satisfies it.
-/// 2. **Mean regolith lands in the published deeply-weathered-shield range,
-///    30–60 m** (Yilgarn, Guiana and Brazilian shield saprolite profiles): measured
-///    **43.9 m**. Above 45× it leaves that range; the pre-calibration 4.6 m was
-///    below even the *typical* shield range.
-/// 3. **Denudation enters a published terrestrial band.** D1 = **0.414 m/Myr**,
-///    inside the **0.1–1 floor band** (McMurdo Dry Valleys / hyperarid Atacama —
-///    Morgan et al. 2010, Ritter et al. 2023). The pre-calibration world was below
-///    *every* published band, which was journal/0111's headline; it no longer is.
-/// 4. **The landscape approaches topographic steady state.** `D1/D4` — export over
-///    rock uplift — is **0.91**, against **0.027** before. journal/0111's sharpest
-///    single sentence was that erosion removed 2.7 % of what uplift added and so had
-///    *no authority over the topography*; at 45× it has essentially all of it.
+/// 1. **Deep closed depressions at ANY multiplier above 1×** — 0 pits deeper than 1 m
+///    at 1×, **44 at 5×** (deepest 45 m), 66 at 10×, 148 at 45× (deepest 112 m). The
+///    never-incise-below-the-lowest-receiver clamp is defeated once erosion is fast
+///    enough for the phases that run *after* incision to lower a cell further in the
+///    same epoch. **A latent defect in the solve, not a property of this number** — it
+///    was invisible only because the world barely eroded, and it is what has to be
+///    fixed before the flag flips.
+/// 2. The geotherm's coal-relocation claim collapses from a 1.37× to a 1.02×
+///    separation, because 45× deposition makes burial depth rather than crustal
+///    gradient the dominant control on coalification.
+/// 3. Mean regolith reaches 43.9 m — the top of the published deeply-weathered-shield
+///    range, against 4.6 m shipped.
 ///
-/// The world's own Airy ceiling corroborates that the band was the right target even
-/// though it is out of reach: compensation returns `(ρ_m − ρ_c)/ρ_m = 15.2 %` of each
-/// eroded metre as a surface drop, so a steady-state landscape denudes at `U/0.152 ≈
-/// 6.6 U`, and with the measured `U ≈ 0.41 m/Myr` that is **2.70 m/Myr** — inside the
-/// craton band, from two densities and a measured uplift that nobody chose for this
-/// purpose. **The rates can be raised to meet it; the router cannot carry it.**
+/// # Where 45 came from, so the flip has a number to flip to
 ///
-/// **Heir:** an efficient long-distance sediment router — rivers that actually carry
-/// (fluvial yield is 0.02 % of export), or a creep operator that is not capped at one
-/// cell per timestep. Until then the ceiling stands wherever the constants are set.
-/// `stubs.md` § 27.
+/// It is the largest multiplier that keeps the world's **shape**: journal/0111's
+/// conclusion was *"the shape is right and the clock is wrong"*, so a multiplier that
+/// moves the shape has stopped being a calibration. Relief within 5 %: **+4.6 %** at
+/// 45×, +6.3 % at 50×. Three published bands corroborate it — mean regolith lands in
+/// the 30–60 m deeply-weathered-shield range (Yilgarn, Guiana, Brazilian shield);
+/// denudation enters the **0.1–1 m/Myr floor band** (McMurdo, Atacama), so the world
+/// stops being below *every* published band, which was journal/0111's headline; and
+/// `D1/D4`, erosion's authority over the topography, goes **0.027 → 0.91**.
 ///
-/// `1.0` reproduces the pre-calibration world exactly (`x * 1.0 == x` for f64),
-/// which is what [`DeepOverrides::calibrated_rates`] `Some(false)` reaches.
+/// The world's own Airy ceiling says the band was the right target even though it is out
+/// of reach: compensation returns `(ρ_m − ρ_c)/ρ_m = 15.2 %` of each eroded metre as a
+/// surface drop, so a steady-state landscape denudes at `U/0.152 ≈ 6.6 U`, and with the
+/// measured `U ≈ 0.41 m/Myr` that is **2.70 m/Myr** — inside the craton band, from two
+/// densities and a measured uplift that nobody chose for this purpose. **The rates can
+/// be raised to meet it; the router cannot carry it.**
+///
+/// **Heirs:** the pit defect above (blocking), then an efficient long-distance sediment
+/// router — rivers that actually carry (fluvial yield is 0.02 % of export), or a creep
+/// operator not capped at one cell per timestep. `stubs.md` § 27.
+///
+/// `1.0` reproduces the shipped world exactly (`x * 1.0 == x` for f64).
 pub const EROSION_CALIBRATION: f64 = 45.0;
 
 /// Gen-time overrides for the production [`DeepConfig`] flags a world can be
@@ -198,9 +200,9 @@ pub struct DeepOverrides {
     /// through the same [`scale_erosion_rates`] the shipped calibration does, which
     /// is what stops the two from ever scaling different sets again.
     ///
-    /// **It multiplies the CALIBRATED rates**, not the raw ones: it is an amplitude
-    /// *relative to* the shipped world, so `--erosion-budget 2` still means "twice
-    /// as much erosion as this world has" after the calibration as it did before.
+    /// **It multiplies whatever the calibration left**, so `--erosion-budget 2` always
+    /// means "twice as much erosion as this world has" — before the calibration flag
+    /// flips and after it.
     ///
     /// `None` = production default (the shipped calibration, multiplier `1×`).
     /// `Some(1.0)` is **byte-identical** to `None` (`x * 1.0 == x` exactly), so
@@ -208,18 +210,25 @@ pub struct DeepOverrides {
     /// A dev launch flag (`--erosion-budget <mult>`) sets it; the walkable
     /// cranked world it enables is the standing "conservative amplitude" call.
     pub erosion_budget: Option<f64>,
-    /// Override [`DeepConfig::calibrated_rates`] — **the one-line revert for the
-    /// erosional calibration** (journal/0114). `None` = production default (**on**);
-    /// `Some(false)` builds the world from the raw pre-2026-07-26 rate constants,
-    /// which is the world every golden in this repo described until that entry.
+    /// Override [`DeepConfig::calibrated_rates`] — **the switch for the erosional
+    /// calibration** (journal/0114). `None` = production default (**OFF**);
+    /// `Some(true)` builds the world with all four erosion rate constants multiplied
+    /// by [`EROSION_CALIBRATION`].
     ///
-    /// The off path is not merely reachable, it is **pinned by name**:
-    /// `tests/calibrated_rates.rs` asserts it reproduces `GOLDEN_SURFACE_UNCALIBRATED`
-    /// / `GOLDEN_RECORD_UNCALIBRATED` bit for bit — the same discipline the MFD,
-    /// material-transport and material-creep flips used, so the pre-calibration world
-    /// is a second *path* rather than a lost fixed point.
+    /// **It is off because of what turning it on measured**, not out of caution: the
+    /// published 1–10 m/Myr band is unreachable at any multiplier, and above 1× the
+    /// incision clamp starts leaving deep closed depressions (44 pits at 5×, 148 at
+    /// 45×, deepest 112 m) — a latent defect in the solve that only a world which
+    /// actually erodes could expose. See [`EROSION_CALIBRATION`].
     ///
-    /// A dev launch flag (`--uncalibrated`) sets it.
+    /// The on path is not merely reachable, it is **pinned by name**:
+    /// `tests/calibrated_rates.rs` asserts it reproduces `GOLDEN_SURFACE_CALIBRATED` /
+    /// `GOLDEN_RECORD_CALIBRATED` bit for bit. That is the mirror of the
+    /// single-receiver / scalar-load / anonymous-creep fixed points — those pin a past
+    /// that stays reachable, this pins a future that is already built, so the eventual
+    /// flip arrives as a diff rather than as an unmeasured surprise.
+    ///
+    /// A dev launch flag (`--calibrated-rates`) sets it.
     pub calibrated_rates: Option<bool>,
     /// Override [`DeepConfig::weather_inventory`]: the in-loop, per-epoch
     /// **accumulating** inventory-weathering pass (journal/0094) that grows a basal
@@ -327,23 +336,42 @@ fn production_config_base(cells: &CellGrid, seed: u64) -> DeepConfig {
         // flip ratifies turning the roster ON; the LIVE MAGNITUDES TOUR — not this
         // line — ratifies the numbers. Do not tune them here.
         full_agents: true,
-        // **The erosional calibration ON** (journal/0114). The four rate constants
-        // that together set this world's erosional clock — `weathering`,
-        // `diffusion`, `k_transport`, `k_bedrock` — are multiplied through
-        // `EROSION_CALIBRATION` below, because journal/0111 measured the
-        // uncalibrated world denuding at 0.0110 m/Myr: 9× slower than the slowest
-        // landscape ever measured on Earth, stripping 5.48 m over the ratified
-        // 500 Myr where a real craton strips 5–10 km.
+        // **The erosional calibration is BUILT AND OFF** (journal/0114), and the
+        // reason it is off is measured rather than cautious.
         //
-        // Same event class as the erodibility / biotic / tectonic / full-agent
-        // flips above: this CHANGES TERRAIN SHAPE for every world created from here
-        // on, and worlds made before it are not reproducible under it. Unlike those
-        // four, the number it rides on is **derived from a published band** rather
-        // than chosen — see `EROSION_CALIBRATION` for the derivation and
-        // `examples/denudation_probe.rs` for the acceptance instrument. The flag's
-        // off state is `DeepOverrides::calibrated_rates: Some(false)` and is pinned
-        // by name against the pre-calibration goldens.
-        calibrated_rates: true,
+        // journal/0111 found this world denuding at 0.0110 m/Myr — 9× slower than
+        // the slowest landscape ever measured on Earth — and the brief was to
+        // calibrate the four rate constants until denudation landed in the published
+        // 1–10 m/Myr stable-craton band. The whole mechanism for that is here and
+        // works: `EROSION_CALIBRATION`, one `scale_erosion_rates`, a pinned
+        // fixed point, a launch flag, and a probe that derives the multiplier. What
+        // the probe found is that **the band is not reachable at any multiplier**,
+        // and that turning the flag on costs three things the shipped world should
+        // not pay without the user seeing them:
+        //
+        // 1. **Deep closed depressions appear at ANY multiplier above 1×.** Measured
+        //    on the `mfd_routing` fixture: 0 pits at 1×, **44 at 5×** (deepest 45 m),
+        //    66 at 10×, 148 at 45× (deepest 112 m). The never-incise-below-the-lowest-
+        //    receiver clamp is defeated once erosion is fast enough for the phases
+        //    that run *after* incision to lower a cell further in the same epoch.
+        //    **That is a latent defect in the solve, not a consequence of the number**
+        //    — it was invisible only because the world barely eroded. It is the single
+        //    most important thing journal/0114 found and it wants its own slice.
+        // 2. The geotherm's central physical claim (coal relocates onto warm crust)
+        //    collapses from a 1.37× to a 1.02× separation, because 45× deposition
+        //    makes burial depth rather than crustal gradient the dominant control.
+        // 3. Mean regolith reaches 43.9 m, at the top of the published
+        //    deeply-weathered-shield range.
+        //
+        // So it ships **reachable and off**: `--calibrated-rates` sets
+        // `DeepOverrides::calibrated_rates: Some(true)`, the ON world is pinned by
+        // name (`tests/calibrated_rates.rs`), and flipping this line to `true` is the
+        // whole change once the pit defect is fixed. **This is an appearance-class,
+        // user-owned call and the evidence for it is journal/0114** — an agent
+        // landing 148 unfilled pits and a broken coal mechanism into the world the
+        // player walks, on its own authority and while the user was away, is not a
+        // calibration, it is a regression with a good story.
+        calibrated_rates: false,
         ..DeepConfig::default()
     }
 }
@@ -375,9 +403,9 @@ pub fn production_config_with(
     // what makes `--erosion-budget 2` mean "twice this world" rather than "twice
     // some other world". It also makes one identity true bit-for-bit, and that
     // identity is the derivation's own falsifier (`tests/calibrated_rates.rs`):
-    // `{calibrated_rates: false, erosion_budget: Some(EROSION_CALIBRATION)}` is the
-    // shipped world, because both paths run the same multiply on the same operands
-    // in the same order.
+    // `erosion_budget: Some(EROSION_CALIBRATION)` on the production config is the
+    // world `calibrated_rates: Some(true)` builds, because both paths run the same
+    // multiply on the same operands in the same order.
     if let Some(v) = overrides.calibrated_rates {
         cfg.calibrated_rates = v;
     }

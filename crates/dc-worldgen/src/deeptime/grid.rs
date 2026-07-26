@@ -475,18 +475,21 @@ pub struct DeepConfig {
     /// instruction to the solve: nothing in the run reads it. `true` means they have
     /// been multiplied through
     /// [`super::field::EROSION_CALIBRATION`](super::field::EROSION_CALIBRATION) by
-    /// [`super::field::production_config`]; `false` means they are the raw
-    /// pre-2026-07-26 values, which is what [`Default`] hands out and is why the
-    /// default is `false` — a config nobody calibrated should not claim to be
+    /// [`super::field::production_config_with`] when the override asks for it;
+    /// `false` means they are the raw values, which is what both [`Default`] and
+    /// production hand out — a config nobody calibrated should not claim to be
     /// calibrated.
     ///
     /// **Why a recorded fact rather than a branch.** The calibration is a *number*,
     /// applied once at config build; a per-epoch flag read would be a second place
-    /// the amplitude lives. Turning it off is
-    /// [`super::field::DeepOverrides::calibrated_rates`], and the off path is
-    /// pinned by name (`tests/calibrated_rates.rs`,
-    /// `GOLDEN_SURFACE_UNCALIBRATED`) so the pre-calibration world stays a
-    /// reachable second path rather than a lost fixed point.
+    /// the amplitude lives. Turning it **on** is
+    /// [`super::field::DeepOverrides::calibrated_rates`], and the on path is pinned
+    /// by name (`tests/calibrated_rates.rs`, `GOLDEN_SURFACE_CALIBRATED`) so the
+    /// world behind the flag cannot drift unmeasured while it waits for its flip.
+    ///
+    /// **Production is `false`** — see [`super::field::EROSION_CALIBRATION`] for the
+    /// three measured costs that keep it there, the first of which is a latent defect
+    /// in the incision clamp that any multiplier above 1x exposes.
     ///
     /// Appended last (wire discipline).
     pub calibrated_rates: bool,

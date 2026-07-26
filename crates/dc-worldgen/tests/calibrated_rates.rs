@@ -14,17 +14,26 @@
 //! absolute length: raise supply alone and the regolith made shields the rock that
 //! made it, raise transport alone and there is nothing to carry.
 //!
-//! This suite pins the four things that had to be true:
+//! **⚠ THE CALIBRATION IS BUILT AND OFF, and this suite is what keeps it honest.**
+//! `examples/denudation_probe.rs` found the published band unreachable at *any*
+//! multiplier, and found that turning the flag on opens deep closed depressions the
+//! incision clamp does not hold (0 pits at 1×, 44 at 5×, 148 at 45×). So the shipped
+//! world is untouched and the calibrated one is a **pinned, reachable second path** —
+//! the mirror of the single-receiver / scalar-load / anonymous-creep fixed points,
+//! except that those pin a past and this pins a future.
 //!
-//! 1. the **identity pair** — off is the pre-calibration world bit for bit, on
-//!    moves it;
-//! 2. the **derivation identity** — the shipped world *is* a uniform
+//! This suite pins the five things that had to be true:
+//!
+//! 1. the **identity pair** — off is the shipped world bit for bit, on moves it and
+//!    lands on its own pinned constants;
+//! 2. the **derivation identity** — the calibrated world *is* a uniform
 //!    [`EROSION_CALIBRATION`]× erosion budget on the raw constants, which is what
-//!    makes the probe's ladder a measurement OF the shipped world rather than a
-//!    measurement beside it;
+//!    makes the probe's ladder a measurement OF that world rather than beside it;
 //! 3. **`erosion_budget` reaches `diffusion`** — the stubs #24 falsifier, which
 //!    would have failed on every commit before this one;
-//! 4. the calibration moves **exactly** those four rates and nothing else.
+//! 4. the calibration moves **exactly** those four rates and nothing else;
+//! 5. production is honestly **uncalibrated**, so nobody flips the default without
+//!    noticing that a named test says it should not be flipped yet.
 //!
 //! Production-scale numbers — D1, D3, the balance ratio and the published band —
 //! live in `examples/denudation_probe.rs`, which is the acceptance instrument.
@@ -49,9 +58,9 @@ fn small_world() -> Pregen {
     })
 }
 
-fn uncalibrated() -> DeepOverrides {
+fn calibrated() -> DeepOverrides {
     DeepOverrides {
-        calibrated_rates: Some(false),
+        calibrated_rates: Some(true),
         ..DeepOverrides::default()
     }
 }
@@ -64,62 +73,57 @@ fn uncalibrated() -> DeepOverrides {
 /// nothing; a test that only asserted "on is different" would pass against one that
 /// broke something.
 ///
-/// The off-half is the same discipline the MFD, material-transport and
-/// material-creep flips used: the old solve is a second **path**, not a deleted one,
-/// and it is proven byte-identical rather than assumed to be. That matters more here
-/// than for any of those three, because this move is the largest single change to
-/// the shipped world's appearance the project has made — and the one-line revert has
-/// to be worth the name.
+/// Both halves are pinned to *named constants*, which is what makes this a
+/// cross-commit claim in both directions: the OFF half against the shipped goldens
+/// (the calibration must not have leaked into production), and the ON half against
+/// `GOLDEN_SURFACE_CALIBRATED` (the world behind the flag must not drift unmeasured
+/// while it waits for its flip).
 #[test]
-fn calibrated_rates_off_is_the_pre_calibration_world_and_on_moves_it() {
+fn calibrated_rates_off_is_production_and_on_moves_it() {
     let pregen = small_world();
-    let off = build_field_with(&pregen.grid, SEED, &uncalibrated());
-    let on = build_field(&pregen.grid, SEED);
+    let off = build_field(&pregen.grid, SEED);
+    let on = build_field_with(&pregen.grid, SEED, &calibrated());
 
     let off_surface = providers_common::surface_fingerprint(&off);
     let off_record = providers_common::record_fingerprint(&off);
-    println!("uncalibrated surface = {off_surface:#018X}");
-    println!("uncalibrated record  = {off_record:#018X}");
     assert_eq!(
         off_surface,
-        providers_common::GOLDEN_SURFACE_UNCALIBRATED,
-        "with the calibration OFF the surface must be the pre-calibration world: \
-         {off_surface:#018X}"
+        providers_common::GOLDEN_SURFACE,
+        "the calibration is OFF in production, so the shipped world must still be the \
+         shipped world: {off_surface:#018X}"
     );
-    assert_eq!(
-        off_record,
-        providers_common::GOLDEN_RECORD_UNCALIBRATED,
-        "with the calibration OFF the record must be the pre-calibration world: \
-         {off_record:#018X}"
-    );
+    assert_eq!(off_record, providers_common::GOLDEN_RECORD);
 
     let on_surface = providers_common::surface_fingerprint(&on);
     let on_record = providers_common::record_fingerprint(&on);
-    println!("shipped surface = {on_surface:#018X}");
-    println!("shipped record  = {on_record:#018X}");
+    println!("calibrated surface = {on_surface:#018X}");
+    println!("calibrated record  = {on_record:#018X}");
     assert_ne!(
         on_surface, off_surface,
         "the calibration did not move the surface — a {EROSION_CALIBRATION}x change to every \
          erosion rate in the engine reached no terrain, so it is not wired"
     );
-    assert_ne!(
-        on_record, off_record,
-        "the calibration did not move the strata record"
+    assert_eq!(
+        on_surface,
+        providers_common::GOLDEN_SURFACE_CALIBRATED,
+        "the CALIBRATED world moved without its constant moving: {on_surface:#018X}. \
+         It is pinned so the eventual flip is a diff and not a surprise."
     );
+    assert_eq!(on_record, providers_common::GOLDEN_RECORD_CALIBRATED);
 }
 
 // ---------------------------------------------------------------------------
 // 2. The derivation identity.
 
-/// **The shipped world IS a uniform erosion budget on the raw constants** — bit for
-/// bit, not approximately.
+/// **The calibrated world IS a uniform erosion budget on the raw constants** — bit
+/// for bit, not approximately.
 ///
 /// This is the load-bearing test of the whole slice, and it is load-bearing for a
 /// reason that is easy to miss. `examples/denudation_probe.rs` derives
-/// [`EROSION_CALIBRATION`] by sweeping a **uniform multiplier over the uncalibrated
-/// config** and reading which row lands in the published 1–10 m/Myr band with a
-/// balance ratio near 1. That sweep is only evidence about the *shipped* world if
-/// the row at `EROSION_CALIBRATION` and the shipped world are the same world.
+/// [`EROSION_CALIBRATION`] by sweeping a **uniform multiplier over the production
+/// config** and reading what each row does. That sweep is only evidence about the
+/// world behind the flag if the row at `EROSION_CALIBRATION` and that world are the
+/// same world.
 ///
 /// They are, structurally: `production_config_with` applies the calibration and then
 /// the budget, both through the same [`scale_erosion_rates`], so the two paths run
@@ -134,17 +138,17 @@ fn calibrated_rates_off_is_the_pre_calibration_world_and_on_moves_it() {
 /// not about a landscape: the same two multiplies happen per rate at any world size.
 /// The smallest world that runs every phase proves it.
 #[test]
-fn the_shipped_world_is_a_uniform_erosion_budget_on_the_raw_rates() {
+fn the_calibrated_world_is_a_uniform_erosion_budget_on_the_raw_rates() {
     let pregen = small_world();
 
     // First at the config level, where the claim is exact and legible.
-    let shipped = production_config(&pregen.grid, SEED);
+    let shipped = production_config_with(&pregen.grid, SEED, &calibrated());
     let rebuilt = production_config_with(
         &pregen.grid,
         SEED,
         &DeepOverrides {
             erosion_budget: Some(EROSION_CALIBRATION),
-            ..uncalibrated()
+            ..DeepOverrides::default()
         },
     );
     for (name, a, b) in [
@@ -158,18 +162,18 @@ fn the_shipped_world_is_a_uniform_erosion_budget_on_the_raw_rates() {
             b.to_bits(),
             "{name}: the shipped calibration ({a}) is not bit-identical to a uniform \
              {EROSION_CALIBRATION}x erosion budget on the raw rate ({b}) — the probe's \
-             derivation ladder no longer describes the shipped world"
+             derivation ladder no longer describes the world it claims to"
         );
     }
 
     // Then at the world level, which is what the probe actually measures.
-    let a = build_field(&pregen.grid, SEED);
+    let a = build_field_with(&pregen.grid, SEED, &calibrated());
     let b = build_field_with(
         &pregen.grid,
         SEED,
         &DeepOverrides {
             erosion_budget: Some(EROSION_CALIBRATION),
-            ..uncalibrated()
+            ..DeepOverrides::default()
         },
     );
     assert_eq!(
@@ -276,15 +280,20 @@ fn a_default_config_is_honestly_uncalibrated_and_production_is_not() {
         "DeepConfig::default() claims calibrated rates while holding the raw constants"
     );
     let prod = production_config(&pregen.grid, SEED);
-    assert!(prod.calibrated_rates, "production is not calibrated");
+    assert!(
+        !prod.calibrated_rates,
+        "the calibration is OFF in production until the pit defect it exposed is          fixed (journal/0114) — if this fires, that flip needs its own evidence"
+    );
+    let cal = production_config_with(&pregen.grid, SEED, &calibrated());
+    assert!(cal.calibrated_rates);
     assert_eq!(
         (raw.weathering * EROSION_CALIBRATION).to_bits(),
-        prod.weathering.to_bits(),
-        "production's weathering is not the raw default times EROSION_CALIBRATION"
+        cal.weathering.to_bits(),
+        "the calibrated weathering is not the raw default times EROSION_CALIBRATION"
     );
     assert_eq!(
         (raw.diffusion * EROSION_CALIBRATION).to_bits(),
-        prod.diffusion.to_bits(),
-        "production's diffusion is not the raw default times EROSION_CALIBRATION"
+        cal.diffusion.to_bits(),
+        "the calibrated diffusion is not the raw default times EROSION_CALIBRATION"
     );
 }
