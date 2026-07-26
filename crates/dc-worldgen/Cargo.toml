@@ -50,6 +50,14 @@ test = true
 name = "mfd_probe"
 test = true
 
+# FLOW continuation (b') — hybrid `p`. The acceptance is a before/after on flow
+# STRUCTURE (peak catchment, the catchment distribution, and the survival of
+# simultaneous divergence), which is exactly the kind of comparative claim a unit
+# test on a hand-built patch cannot make.
+[[example]]
+name = "hybrid_p_probe"
+test = true
+
 [[example]]
 name = "facies_probe"
 test = true

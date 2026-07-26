@@ -332,19 +332,27 @@ pub struct DeepConfig {
     /// (asserted by name in `tests/mfd_routing.rs`). Appended last (wire discipline).
     pub mfd: bool,
 
-    /// **The MFD convergence exponent `p`** (Holmgren 1994), read only when
-    /// [`DeepConfig::mfd`] is on. Each downslope neighbour `k` receives a share
-    /// `w_k ∝ S_k^p · L_k`, where `S_k` is the free-surface potential gradient
-    /// along the true flow-path length and `L_k` the face's contour width (Quinn
-    /// 1991: `1` cardinal, `1/√2` diagonal).
+    /// **The MFD convergence exponent `p` on UNCHANNELISED ground** (Holmgren
+    /// 1994), read only when [`DeepConfig::mfd`] is on. Each downslope neighbour
+    /// `k` receives a share `w_k ∝ S_k^p · L_k`, where `S_k` is the free-surface
+    /// potential gradient along the true flow-path length and `L_k` the face's
+    /// contour width (Quinn 1991: `1` cardinal, `1/√2` diagonal).
     ///
-    /// **`p` is the degree to which flow concentrates.** `p = 1` is the maximally
-    /// dispersive Quinn form; `p → ∞` recovers single-receiver D8 exactly. The
-    /// default `4.0` sits in Holmgren's calibrated 4–6 band and has the property
-    /// the landscape needs: on steep ground a 2:1 slope ratio becomes a 16:1 share
-    /// ratio, so **gorges stay gorges**, while on the low-relief surfaces where
-    /// distributaries physically live — fans, braid plains, delta tops — the
-    /// near-equal slopes genuinely split. Appended last (wire discipline).
+    /// **`p` is the degree to which flow concentrates**, and since journal/0113 it
+    /// is **spatially varying**: this field is the *hillslope* end of a ramp whose
+    /// channel end is [`DeepConfig::mfd_exponent_channel`]. `p = 1` is the
+    /// maximally dispersive Quinn/Freeman form — sheet flow, which is what
+    /// unchannelised overland flow is — and large `p` is single-receiver
+    /// **steepest-slope** (~~"D8 exactly"~~ — corrections #58: the partition's
+    /// limit takes the steepest *slope* and `route_cell` the steepest *drop*, and
+    /// they differ on diagonals).
+    ///
+    /// **The default moved `4.0 → 1.0` when the ramp landed**, and that is not a
+    /// retuning: `4.0` sat in Holmgren's calibrated 4–6 band because a *single*
+    /// exponent has to serve hillslope and channel with one number, and journal/0109
+    /// measured what that compromise costs (peak catchment 1,245 → 84 cells).
+    /// Setting `mfd_exponent_channel` equal to this restores the uniform solve.
+    /// Appended last (wire discipline).
     pub mfd_exponent: f64,
 
     /// **Material-aware transport** (Movement 2b first slice, `material-behavior.md`
@@ -408,6 +416,56 @@ pub struct DeepConfig {
     /// anonymous-creep path are still reachable and still asserted
     /// (`tests/material_creep.rs`). Appended last (wire discipline).
     pub material_creep: bool,
+
+    /// **The channelised convergence exponent** — the upper end of the hybrid-`p`
+    /// ramp (FLOW continuation (b'), journal/0113, flow.md § 2.6.2). Read only when
+    /// [`DeepConfig::mfd`] is on.
+    ///
+    /// [`DeepConfig::mfd_exponent`] is now the **hillslope** exponent and this is
+    /// the **channel** one; the solve interpolates between them on the
+    /// channelisation index `χ = A · S²`. Setting this *equal* to
+    /// `mfd_exponent` restores journal/0109's uniform-`p` solve exactly, with no
+    /// ramp evaluated — that is how the probes quote their control.
+    ///
+    /// `16.0` because a channel should follow the steepest line without the solve
+    /// having to special-case one: at `p = 16` a neighbour at 90 % of the steepest
+    /// slope keeps 19 % of its weight and one at 70 % keeps 0.3 %, which the
+    /// representational floor drops. Appended last (wire discipline).
+    pub mfd_exponent_channel: f64,
+
+    /// **The channelisation index at which the exponent leaves the hillslope
+    /// value.** `χ = A · S²` with `A` in cells (lagged one epoch) and `S` the
+    /// steepest **dimensionless** downslope gradient on the free-surface potential.
+    ///
+    /// Below `mfd_chi_lo` the flow is treated as entirely unchannelised and the
+    /// exponent is [`DeepConfig::mfd_exponent`].
+    ///
+    /// **⚠ STUB #26 — a channelisation threshold fitted to ONE world.** The *index*
+    /// is cited and general; **these two numbers are not.** They were read off the
+    /// `χ` percentiles of seed 1337 at `Extent::Medium` (`examples/hybrid_p_probe.rs`
+    /// prints them). `A` is in **cells**, so `χ` still carries the grid's resolution
+    /// inside it and a coarser extent describes a *different* fraction of the same
+    /// landscape as channelised. **Heirs:** the joint supply+transport
+    /// calibration (stub #24), which would give `χ` a physical scale to derive the
+    /// threshold from; or a dimensionless re-expression. See `docs/design/stubs.md`
+    /// § 26. Appended last (wire discipline).
+    pub mfd_chi_lo: f64,
+
+    /// **The channelisation index at or above which the exponent is fully
+    /// [`DeepConfig::mfd_exponent_channel`].** **⚠ STUB #26** — see
+    /// [`DeepConfig::mfd_chi_lo`]. Appended last (wire discipline).
+    pub mfd_chi_hi: f64,
+
+    /// **The representational floor on an MFD share** (`stubs.md` § 22). A
+    /// neighbour allotted less than this fraction of a cell's discharge is dropped
+    /// and the survivors renormalised, so the flux record does not pay for shares
+    /// no consumer can distinguish from zero.
+    ///
+    /// It was a hard-coded constant until journal/0113 made it a knob — **not to
+    /// change it** (the default is the same `0.01`) but so its effect on the solve
+    /// could be *measured* rather than argued, which is what stub #22 was owed.
+    /// `0.0` disables it. Appended last (wire discipline).
+    pub mfd_min_weight: f64,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -466,7 +524,15 @@ impl Default for DeepConfig {
             flow_record: true,
             head_field: true,
             mfd: true,
-            mfd_exponent: 4.0,
+            // The hybrid-`p` law (journal/0113): `mfd_exponent` is now the
+            // HILLSLOPE end and `1.0` is Quinn/Freeman's dispersive limit. The old
+            // uniform `4.0` was the compromise a single-exponent scheme is forced
+            // into; with a ramp, the endpoints should be the endpoints.
+            mfd_exponent: 1.0,
+            mfd_exponent_channel: 16.0,
+            mfd_chi_lo: 3.0e-2,
+            mfd_chi_hi: 1.2e-1,
+            mfd_min_weight: super::erosion::MFD_MIN_WEIGHT,
             material_transport: true,
             denudation_ledger: false,
             material_creep: true,

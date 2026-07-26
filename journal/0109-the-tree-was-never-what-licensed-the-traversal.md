@@ -112,10 +112,17 @@ Three pieces, each earning its place:
 concentrate flow*:
 
 - `p = 1` is Quinn's maximally dispersive form — a sheet-flow limit.
-- `p → ∞` is single-receiver D8, **exactly**. The old solve is a *limit* of the
-  new one, not a deleted alternative, which is what makes "how much does MFD
-  change the world" a continuous question with a `p`-sweep for an answer.
-- The default is **4.0**, in Holmgren's calibrated 4–6 band.
+- ~~`p → ∞` is single-receiver D8, **exactly**.~~ **STRUCK — corrections #58,
+  2026-07-26.** `p → ∞` is single-receiver **steepest-slope**; `route_cell` is
+  steepest-**drop**, and the two pick different receivers on diagonals — by
+  exactly the `√2` the bullet above this one introduces, and pinned by this very
+  slice's `the_partition_follows_slope_not_drop`. The old solve is a *near*-limit
+  of the new one, and `mfd: false` remains a separate pinned path rather than a
+  setting of `p`.
+- The default is **4.0**, in Holmgren's calibrated 4–6 band. **Superseded
+  2026-07-26 (journal/0113):** `p` is now spatially varying — `1.0` on
+  unchannelised ground, `16.0` in channels — because a single exponent is the
+  compromise this section is describing.
 
 What a reader should expect `p = 4` to do to the landscape, stated as a
 falsifiable prediction rather than a citation: on **steep** ground a 2:1 slope

@@ -1987,6 +1987,9 @@ believed because it was written down* — but only this one was invisible to eve
 internal instrument the engine has. **Whenever a simulated quantity has a real
 published counterpart, measure it against the literature at least once.** Those are the
 only errors a perfect internal audit is structurally blind to.
+
+---
+
 ## 57. "The one lithology a deposit cannot be is basement" (`lithology.rs::Litho::as_deposited`, journal/0110 — falsified 2026-07-26 by journal/0112, and it had been false since the function was written)
 
 `Litho::as_deposited` was introduced by Movement 2b to answer *"what is this rock once
@@ -2044,3 +2047,49 @@ tag's own default (a default was never carried anywhere). Asserted by name in
 `tests/material_creep.rs::no_deposited_unit_claims_to_be_an_in_place_organic`, over the
 whole record rather than at the site that found it — a stratum of charcoal is wrong
 wherever it appears.
+
+---
+
+## 58. "`p → ∞` is single-receiver D8 **exactly**" (journal/0109, flow.md § 2.6.1, `DeepConfig::mfd_exponent` docs, 2026-07-25 — falsified 2026-07-26 by the repo's own test, while building hybrid `p`)
+
+**The claim**, in three places and load-bearing in all of them, because it is what makes
+the exponent a *knob* rather than a second model:
+
+- journal/0109: *"`p → ∞` is single-receiver D8, **exactly**. The old solve is a limit of
+  the new one, not a deleted alternative."*
+- flow.md § 2.6.1: *"`p → ∞` is single-receiver D8 exactly, so the old solve is a *limit*
+  of the new one rather than a deleted alternative."*
+- `DeepConfig::mfd_exponent`: *"`p → ∞` recovers single-receiver D8 exactly."*
+
+**Falsified: the limit is the steepest *SLOPE*; `route_cell` — the D8 rule the sentence
+names — takes the steepest *DROP*.** They are not the same receiver. `partition_cell`
+weights `(Δh / dₖ)^p`, dividing by the true flow-path length; `route_cell` compares
+`filled[j]` and picks the lowest neighbour, with no `dₖ` anywhere. On a **diagonal** the
+two differ by exactly the `√2` that the same slice introduced — and journal/0109's *own*
+unit test pins a case where they disagree:
+
+> `the_partition_follows_slope_not_drop` — a 3 m cardinal drop (slope 3.0) against a 4 m
+> diagonal one (slope 2.83). The partition picks the **cardinal** (direction 3) at any
+> `p`; the assertion `assert_eq!(route_cell(...), 8)` two lines below says D8 picks the
+> **diagonal**. Raise `p` to infinity and the partition still picks the cardinal.
+
+So the entry that introduced the correct treatment of flow-path length also wrote down a
+limit claim that its own correction of D8 had just invalidated. **The two statements are
+in the same document, forty lines apart.**
+
+**Nothing shipped is wrong.** The limit the partition converges to is the *physically
+better* one — a steepest-drop rule over-weights diagonals by `√2` and gives the drainage
+net a systematic X-bias, which is exactly why the `dₖ` was added. What is wrong is the
+word **"exactly"**, and it matters because that sentence was doing real work: it is the
+argument that `mfd: false` lies *inside* the new model's family rather than beside it. It
+does not. `mfd: false` is a **separate, pinned, byte-identical path** — which is why it
+needs `the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens` — and reading it as
+"just `p = ∞`" would have been a licence to delete it.
+
+**Mechanism, and why it survived a slice looking straight at it:** a claim about a *limit*
+was checked against intuition ("a large exponent picks the steepest") instead of against
+the code, inside the one slice whose whole contribution was noticing that *steepest* is
+ambiguous. The correction is a single word; the family is the one journal/0109 named
+against itself twice already — **a claim about shape smuggled in as a claim about
+identity.** Struck at all three sites, and the doc comment on the test that falsifies it
+now names this entry.

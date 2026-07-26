@@ -384,25 +384,36 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0xABAFD31A268A41C9  materials 0xF55E9B53E7707DC9  table 0x1C1E2105F9B70B4B
 //   medium 0x539           blocks 0x3CBE180104171798  materials 0xA84E2386F89C48C3  table 0xE7B2211FF942A2D2
 //   small  0xC11A7E2026    blocks 0xDB4D1F79DE34197C  (materials/table unmoved)
+//
+// **Moved again 2026-07-26 by hybrid `p` (journal/0113)** — the MFD convergence
+// exponent became spatially varying, so the drainage network concentrates
+// (shipped peak catchment 84 → 265 cells) and the world moved with it, exactly as
+// it did for MFD itself. The Small row reads the same way it always has — blocks
+// only, `materials`/`table` byte-identical — for the same structural reason: its
+// sampled chunks carry no strata record. Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0xEF92F1C63DFDD5E3  materials 0x5DDE4337F3524E35  table 0x04F98B720BBCFC5F
+//   medium 0x539           blocks 0xEE7C48C9609583E9  materials 0x78A554C9B2377421  table 0x03A23041441FD346
+//   small  0xC11A7E2026    blocks 0x24F1B1491662C29D  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0xEF92_F1C6_3DFD_D5E3,
-        0x5DDE_4337_F352_4E35,
-        0x04F9_8B72_0BBC_FC5F,
+        0xE19B_A53B_71A3_1DB4,
+        0xD5BA_01C4_97D7_870B,
+        0xC4E4_49ED_EF97_5AAC,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xEE7C_48C9_6095_83E9,
-        0x78A5_54C9_B237_7421,
-        0x03A2_3041_441F_D346,
+        0x5B7C_3AFB_9E85_5E98,
+        0x0C62_936D_AD80_AFA4,
+        0x091C_7E29_2E6B_A539,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x24F1_B149_1662_C29D,
+        0x4B40_7E53_AB7D_DCDC,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

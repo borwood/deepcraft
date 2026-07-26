@@ -43,7 +43,9 @@ pub mod weather_inventory;
 pub use biotic::{
     BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
 };
-pub use erosion::{Erosion, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled};
+pub use erosion::{
+    Erosion, MfdParams, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled,
+};
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
     build_field_cfg, build_field_with, production_config, production_config_with,
@@ -169,9 +171,16 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // FLOW slice 1: arm the transport pass's per-face load capture. Off ⇒ the
     // buffer stays empty and transport never touches it (byte-identical).
     erosion.set_flux_record(cfg.flow_record);
-    // FLOW continuation (b): the MFD partition. `None` ⇒ the single-receiver D8
-    // solve, byte for byte.
-    erosion.set_mfd(cfg.mfd.then_some(cfg.mfd_exponent));
+    // FLOW continuation (b/b'): the MFD partition under the hybrid-`p` law.
+    // `None` ⇒ the single-receiver D8 solve, byte for byte;
+    // `mfd_exponent_channel == mfd_exponent` ⇒ journal/0109's uniform `p`.
+    erosion.set_mfd(cfg.mfd.then_some(MfdParams {
+        p_hill: cfg.mfd_exponent,
+        p_chan: cfg.mfd_exponent_channel,
+        chi_lo: cfg.mfd_chi_lo,
+        chi_hi: cfg.mfd_chi_hi,
+        min_weight: cfg.mfd_min_weight,
+    }));
     // Movement 2b: the load becomes a multiset of (lithology, quantity). Off ⇒
     // every species vector stays empty and the pass carries a scalar mass, byte
     // for byte.

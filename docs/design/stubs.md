@@ -651,8 +651,31 @@ floor is inert. It bites in the *moderately* convergent regime, where a channel'
 sidewall neighbours sit in the 0.2–1 % band: those are zeroed and their water is
 handed to the channel. So the floor makes the drainage net **slightly more
 channelised than the exponent alone specifies**, and the size of that bias has been
-argued but **not measured**. The mass budget is untouched either way (renormalisation
-is exact, and the residual rule makes the split exact).
+argued but ~~**not measured**~~ — **MEASURED 2026-07-26 (journal/0113)**. The mass
+budget is untouched either way (renormalisation is exact, and the residual rule makes
+the split exact).
+
+**MEASURED — the shipped world under hybrid `p`, floor at 1 % against floor off**
+(`examples/hybrid_p_probe.rs`, which turns it off through the new
+`DeepConfig::mfd_min_weight` knob):
+
+| | floor 1 % | floor off | delta |
+|---|---|---|---|
+| peak catchment | 298 | 305 | **−2.1 %** |
+| simultaneous `(cell, epoch)` divergence | 7,228,964 | 7,248,627 | **−0.3 %** |
+| record entries | 4,107,188 | 4,171,836 | −1.5 % |
+| record residency | 63.80 MiB | 64.79 MiB | −1.5 % |
+
+So the leak into the physics is **real, small, and in the opposite direction to the
+argument above**: the floor leaves the world slightly *less* concentrated, not more,
+because the shares it drops are on the dispersive side of a partition whose steepest
+direction was going to take them anyway. It buys **1.5 %** of the record for **2 %**
+of the peak catchment.
+
+**The constant is now a knob** (`DeepConfig::mfd_min_weight`, default unchanged at
+`0.01`) — not so that anyone moves it, but so this table can exist. **A knob is not
+an heir and this entry stays open**: the leak is still a record requirement applied
+inside the solve, and the alternative shape below is still the right one.
 
 **Heir:** the per-epoch aggregation-window decision (flow.md § 9, item 7b — still the
 user's call) and the marine-sink residency lever, both of which are about what the
@@ -780,6 +803,48 @@ slice forecloses it; `FlowCause::Gravity` has been enumerated since FLOW slice 1
 inspector, an ore model that cares whether a gravel is alluvial or colluvial, the
 structure-aware fine expression's choice of fabric. Nothing expresses it at runtime
 today. *Loud marker at `DepUnit::species` and at `arriving_species`.*
+
+### 26. a-channelisation-threshold-fitted-to-one-world — *added 2026-07-26 (FLOW continuation (b'), hybrid `p`, journal/0113)*
+`DeepConfig::mfd_chi_lo = 1e-4` / `mfd_chi_hi = 1e-2` are the ends of the ramp that
+carries the MFD convergence exponent from its hillslope value to its channel value.
+The **index** they threshold is real and cited — `χ = A · S²`, Montgomery & Dietrich
+(1988, 1992)'s channel-initiation criterion, which is why the law puts hillslopes,
+trunk rivers and delta tops in the right three places from one expression. **The two
+numbers are not.** They were read off the `χ` percentiles of **one world** (seed 1337,
+`Extent::Medium`, 460 m cells) printed by `examples/hybrid_p_probe.rs`, chosen so a
+plausible fraction of land sits at each end.
+
+**Why that is a stand-in and not a tuning knob.** `S` is dimensionless, but `A` is in
+**cells**, so `χ` still carries the grid's resolution: the same landscape at
+`Extent::Large` (coarser cells via `DEEP_MAX_WIDTH`) accumulates fewer cells of area
+for the same physical catchment, so the same two constants describe a *different*
+fraction of it as channelised. A genuinely mountainous world, or one whose erosion
+budget has been raised to a real denudation rate (stub #24), moves the whole
+distribution too. **The threshold is currently a property of the world it was fitted
+to, wearing the clothes of a property of landscapes.**
+
+**What the fit is defended by, so the next author does not redo it blind.** The probe
+sweeps `chi_hi` and reports the curve rather than the point, and the curve is not
+monotone: at `chi_hi = 3×10⁻²` (36 % of land channelised) the single largest catchment
+is the *biggest* of the four settings while **both** honest concentration measures are
+the *worst*, because thousands of parallel threads that never merge are not a drainage
+network. The shipped `1.2×10⁻¹` maximises p99 catchment **and** the top-1 % area share
+**and** retains the most simultaneous divergence of any concentrating setting. So it is
+a fitted constant with a measured defence — which is not the same thing as a derived
+one, and that gap is this entry.
+
+**Two heirs, and they are different fixes.** (a) The **joint supply+transport
+calibration** — once the engine's rates are anchored to the ratified 500 Myr register
+(stub #24, corrections #56), `χ` acquires a physical scale and the threshold can be
+*derived* from a channel-initiation stream power rather than fitted. (b) Failing that,
+a **dimensionless** form: normalise `S` by cell size in metres so the index stops
+carrying the grid, or express the threshold as a quantile of the world's own `χ`
+distribution (which is deterministic per world but makes the pass globally coupled,
+and that trade is the decision to take, not to assume).
+
+**Blast:** the shipped world's drainage network — moving either constant moves how
+much of the land is treated as channelised, and every golden with it. Nothing at
+runtime reads them. *Loud marker at both constants and at `MfdParams`.*
 
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
