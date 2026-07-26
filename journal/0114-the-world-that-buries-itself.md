@@ -225,6 +225,69 @@ drainage area in **cells** and a dimensionless slope, and neither carries `k_tra
 the calibration does not give `χ` the physical scale that entry hoped for. The debt is
 recorded, unchanged.
 
+## The thing it broke, and why it is in this entry rather than a footnote
+
+A calibration that only made numbers better would be suspicious. This one has a cost, it
+is the largest single cost, and it is not in the shipped world's appearance — it is in
+another arc's **falsifier**.
+
+`tests/geotherm.rs` carries journal/0093's central physical claim: *coal relocates onto
+warm crust*. It is measured on a deliberately non-production "warm reference" world,
+because the shipped world grows no coal at all (corrections #51). Both worlds, same
+fixture, same session:
+
+```text
+UNCALIBRATED  coal 42.4 vs peat 31.0 C/km   (ratio 1.37)   4,858 coal / 36,969 peat
+CALIBRATED    coal 34.7 vs peat 34.2 C/km   (ratio 1.02)   1,742 coal /  7,978 peat
+```
+
+**The mechanism is confounded, not broken, and the confound is exactly this slice's
+doing.** Burial temperature is `surface_T + gradient × depth`: gradient and depth are two
+multiplicative routes to the same onset. Before the calibration, overburden had almost no
+range — p50 2.2 m, p90 10.6 m, max 94 m — so essentially all the variance in `T` came
+from the gradient, and the pooled comparison was **implicitly depth-controlled without
+anyone choosing that**. Multiply deposition by 45 and overburden reaches 451 m; units
+become 4.3× fewer and correspondingly thicker; a unit on cool crust now reaches the onset
+by being buried deeply. The two populations stop being comparable and their raw means
+become a Simpson's-paradox trap.
+
+Stratified by burial depth, the relocation is still there — and where it fails is
+informative:
+
+| overburden band | coal | peat | |
+|---|---|---|---|
+| 0–0 m | 26.6 | 33.4 | inverted |
+| 0–0 m | 26.1 | 29.8 | inverted |
+| 0–1 m | 31.7 | 33.1 | inverted |
+| 1–2 m | 36.4 | 33.8 | holds |
+| 2–3 m | 37.0 | 36.0 | holds |
+| 3–4 m | 36.6 | 35.3 | holds |
+| 4–7 m | 41.3 | 37.2 | holds |
+| 7–21 m | 41.8 | 35.7 | holds |
+| 21–72 m | 35.8 | 33.2 | holds |
+| 72–451 m | 31.6 | 35.4 | inverted |
+
+Six for six through the middle. It inverts at both **degenerate** ends: at ~zero
+overburden, where a thick unit's own half-thickness is supplying the "depth" and burial
+is not really the variable; and in the deepest band, where 58 % of candidates cook
+whatever the gradient is and the survivors are selected by surface temperature instead.
+
+**What was done about it, and what deliberately was not.** The assertion was restated to
+the form it always meant — *at comparable burial depth, does coal sit on warmer crust?* —
+which is strictly stronger against a confound than the pooled means were. It pins the
+sign and a majority of depth bands. **It is no longer sensitive to the magnitude, and
+that is a real loss of guard strength.** Lowering the old 5 % margin until it passed
+would have hidden the same loss behind a smaller number, and that is the move this repo
+keeps catching, so the loss is written into the test's doc comment and into this entry
+instead.
+
+It is left **open for the user**, with three options and only one of them free: accept
+that thick basins make burial the dominant control on coal rank — which is what Earth's
+coal actually does; revisit the multiplier; or stop counting a unit's own half-thickness
+as its burial depth, which is a defect in the *candidate model* that only became visible
+once beds got thick. Nothing here touches the shipped world, whose production guard still
+passes and which has no coal to relocate.
+
 ## What this entry is really about
 
 The brief said *"this is a calibration, not an architecture"*, and it was right about the
