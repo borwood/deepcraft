@@ -2880,6 +2880,58 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     exist as designed systems and **must not constrain the flow design at all**. Future
     designs compose with flow; flow does not bend around unavowed stubs.
 
+- **🔴 SLICE (a) SHIPPED 2026-07-26 (journal/0110) AND ITS ACCEPTANCE PROBE RETURNED A NULL
+  THAT REROUTES THIS ARC — read before dispatching any continuation below.** The load is now a
+  multiset of `(lithology, quantity)`, identity travels source → receiver, deposition is a
+  falling competence ceiling, and `DepUnit` carries the material that **arrived** rather than
+  one looked up from a tag. Mass closes **per species** (0109's residual rule re-derived, with
+  the shared-total hazard pinned by a constructed falsifier — apportioning species from a
+  shared denominator leaks *per species*, invisibly, while the total stays perfect). Pass
+  purity: **zero exceptions**, and A-7's diagnostic dissolved the one constant the pass wanted.
+  - **THE FACIES GRADIENT DOES NOT EXPRESS.** Identity reaches **0.000006 %** of the archive;
+    headwater→trunk grain ratio is **0.921 before and after**, unchanged to four decimals.
+  - **The measured cause is bigger than hybrid-`p`, in three layers (corrections #55):**
+    **(1) fluvial transport is 0.109 % of this world's sediment routing** — rivers pick up
+    **659.5 m** over the run, in-place weathering makes **256,886 m**, and hillslope creep
+    moves **605,117 m**: **creep does 918× what the rivers do.** *A record built by in-place
+    weathering and creep has almost nothing for a river to have sorted — and that is equally
+    true of the scalar solve, so it is a fact about the landscape, not about the slice.*
+    **(2) No cell on this world can carry sand** — max competence ceiling **0.2832** against
+    coarse clastic's **0.840** threshold; 55.5 % of land holds mud, **0.0 %** holds sand;
+    **92.25 % of everything picked up is set straight back down in the cell it came from.**
+    Corroborated independently: the world's max transport capacity is **6.74 × 10⁻⁴**, *three
+    times below* the `energy_band` boundary `COMPETENCE_SCALE` is anchored on — **the
+    calibration anchor sits outside the range the world occupies.**
+    **(3) Then hybrid-`p`** — a real blocker, but **third**, because a term moving 0.1 % of the
+    sediment has no purchase on the archive even with channels restored.
+  - **Nothing was tuned.** Lowering `COMPETENCE_SCALE` until sand travelled would have worked
+    and would have been *a number pretending to be a mechanism*. The probe prints the anchor,
+    the world's actual maximum, and the refusal.
+  - **⚠ NEEDS RATIFICATION (user-owned):** `material_transport` **on by default** (it moves the
+    goldens — same class as the erodibility/tectonic/MFD flips); and **`COMPETENCE_SCALE = 420`**,
+    the knob deciding *which grain sizes this world can move at all*, whose measured answer today
+    is **"mud, sometimes."**
+  - **Appearance: announced, and a NULL IN THE VIEWPORT for the second slice running.** Surface
+    elevation identical to two decimals. **No walk is owed** — a tour-map would find nothing to
+    stand in front of.
+  - **🔀 THE CONTINUATION ORDER IS REROUTED BY MEASUREMENT, and this is the user's call.** The
+    corpus sequences fluvial refinements next; the numbers say otherwise:
+    **(b) the GRAVITY/MASS-WASTING member of § 13.2 — newly promoted to FIRST.** Creep routes
+    this world's sediment and **carries no identity**; making it material-aware is where a
+    visible facies signal actually lives.
+    **(c)** Hjulström's U-curve entrainment (§ 13.4) — armouring, desert pavement, cohesive
+    persistence, selective winnowing. **(d)** the eolian load — the wind agent has a genuine
+    load and still reads its species off the tag. **(e)** lineage/provenance (§ 13.8) —
+    `as_deposited` loses the parent at deposition. **(f)** solutes, **blocked** on `flow.md`
+    § 2.5 fluid identity (see `material-genesis-notebook.md` § 3).
+    **Cross-arc:** hybrid-`p` is FLOW's, and **whoever recalibrates `k_transport`/`k_bedrock`
+    should read corrections #55 first — it is the EROSION BUDGET that is small, not the
+    sorting rule.** **stubs #23** (the settling law that cannot see buoyancy) is new, with
+    fluid identity as its heir and the shipped placer pass as its co-consumer.
+  - *Also measured and worth knowing: **no dense-mineral species exists** in the 7-class
+    deep-time roster, so **placers cannot ride the load at this tier at all** — the gold-in-
+    gravel payoff § 13.5 promises is unreachable until the roster grows.*
+
 - **MOVEMENT 2b — MATERIAL-AWARE TRANSPORT** (material-behavior.md § 13, ratified 2026-07-24;
   **RESHAPED 2026-07-25 by the FLOW arc — read `flow.md` first**). *Given a Sequenced home
   2026-07-25 by the staleness sweep (row R-1): until today this arc existed **only inside a close
