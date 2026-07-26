@@ -684,6 +684,50 @@ fn arriving_species(dh: f64, dep: &[f64], tag_species: Litho) -> Litho {
     best.as_deposited()
 }
 
+/// **Where the transport pass picked material up and where it put it down**,
+/// summed over a whole run in metres (Movement 2b). All zero when material-aware
+/// transport is off.
+///
+/// It exists because "the facies gradient did not express" is not one finding, it
+/// is three, with three different heirs:
+///
+/// - **nothing was picked up** — the pass is not the thing shaping this landscape,
+///   and the heir is the erosion budget, not the sorting rule;
+/// - **it was picked up and set straight back down** (`by_competence` ≈
+///   `entrained + incised`) — the flows cannot carry what the hillslopes supply,
+///   and the heir is the competence calibration or the discharge;
+/// - **it travelled and then fined** — the slice worked.
+///
+/// A single "did the gradient appear" number cannot tell those apart, and
+/// guessing between them is how a slice gets tuned in the wrong place.
+#[derive(Clone, Copy, Default, Debug)]
+pub struct TransportLedger {
+    /// Loose cover lifted into the load at its source (`loose→load`, § 13.6).
+    pub entrained_m: f64,
+    /// Bedrock detached into the load by incision.
+    pub incised_m: f64,
+    /// Set down because the flow ran out of **capacity** — the coarsest-first draw.
+    pub deposited_by_capacity_m: f64,
+    /// Set down because the flow ran out of **competence** — the falling ceiling.
+    pub deposited_by_competence_m: f64,
+    /// Set down at a sink (the sea, or the domain border), where everything
+    /// suspended settles regardless.
+    pub deposited_at_sink_m: f64,
+    /// **The control the whole diagnosis turns on:** bedrock converted to regolith
+    /// *in place* by the weathering phase, over the run. This material never enters
+    /// a load and never travels, and if it dwarfs `entrained_m` then the archive is
+    /// not a fluvial deposit at all and no amount of sorting can make it read like
+    /// one.
+    pub weathered_m: f64,
+    /// The other control: regolith moved by **hillslope diffusion**, summed as the
+    /// per-epoch gain side of the gather (so it is mass *moved*, not net change,
+    /// which is zero by construction). Creep is the § 13.2 gravity/mass-wasting
+    /// family — a transport agent this slice deliberately does not make
+    /// material-aware — so this number is how much of the world's sediment routing
+    /// the slice did **not** reach.
+    pub diffused_m: f64,
+}
+
 /// Reusable scratch for the erosion iteration (allocated once, reused every
 /// step — the per-iteration working set the memory measurement counts).
 pub struct Erosion {
@@ -825,6 +869,13 @@ pub struct Erosion {
     /// with a per-cell residue test over a stored plane; the per-species plane
     /// would be `n × 8 × 7` and is not worth 133 MB to assert a scalar.
     split_residue: f64,
+    /// **The transport ledger** (Movement 2b instruments) — running totals over
+    /// the whole run, in metres, of what the pass picked up and where it put it
+    /// down. Gen-time only, five `f64`s, and they are what turns "the facies
+    /// gradient did not express" from a shrug into a diagnosis: a load that never
+    /// leaves its source cell and a load that is never picked up at all are very
+    /// different failures with very different heirs.
+    ledger: TransportLedger,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -878,6 +929,7 @@ impl Erosion {
             shares: Vec::new(),
             dep_sp: Vec::new(),
             split_residue: 0.0,
+            ledger: TransportLedger::default(),
             heap: BinaryHeap::new(),
         }
     }
@@ -996,6 +1048,12 @@ impl Erosion {
     #[inline]
     pub fn is_mfd(&self) -> bool {
         self.mfd.is_some()
+    }
+
+    /// **The transport ledger over the whole run** (all zero when material-aware
+    /// transport is off). See [`TransportLedger`].
+    pub fn transport_ledger(&self) -> TransportLedger {
+        self.ledger
     }
 
     /// The suspended load each cell handed to its receivers in the last
@@ -1735,6 +1793,7 @@ impl Erosion {
             // split is exact by construction rather than exact-to-an-ulp: the same
             // discipline the MFD face split needs, for the same reason.
             if self.sorted && ent > 0.0 {
+                self.ledger.entrained_m += ent;
                 let sb = base;
                 if let Some(last) = (0..SPECIES).rev().find(|&k| self.shares[sb + k] > 0.0) {
                     let mut given = 0.0;
@@ -1768,6 +1827,7 @@ impl Erosion {
                 // coarsest thing there is, which is why a headwater reach cutting
                 // rock rather than reworking cover puts gravel into the load.
                 if self.sorted && inc > 0.0 {
+                    self.ledger.incised_m += inc;
                     let mut given = 0.0;
                     let last = self.last_bedrock_species;
                     for k in 0..SPECIES {
@@ -1821,6 +1881,7 @@ impl Erosion {
                 }
                 grid.h[c] += placed;
                 self.dh[c] += placed;
+                self.ledger.deposited_by_capacity_m += placed;
                 self.settle_above_competence(grid, c, cap);
                 self.qs_sp[base..base + SPECIES].iter().sum()
             } else {
@@ -1871,6 +1932,7 @@ impl Erosion {
         if rained > 0.0 {
             grid.h[c] += rained;
             self.dh[c] += rained;
+            self.ledger.deposited_by_competence_m += rained;
         }
     }
 
@@ -1936,6 +1998,7 @@ impl Erosion {
                             self.dep_sp[base + s] += self.qs_sp[base + s];
                             self.qs_sp[base + s] = 0.0;
                         }
+                        self.ledger.deposited_at_sink_m += qin;
                     }
                     continue;
                 }
@@ -2004,6 +2067,7 @@ impl Erosion {
                         self.dep_sp[sbase + s] += self.qs_sp[sbase + s];
                         self.qs_sp[sbase + s] = 0.0;
                     }
+                    self.ledger.deposited_at_sink_m += qin;
                 }
                 continue;
             }
@@ -2096,6 +2160,15 @@ impl Erosion {
     /// (journal/0034, empty and uniform `1.0` when the frost agent is off). Purely
     /// local per cell → byte-identical parallel.
     pub fn weather(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+        // A Movement 2b **control**, not a term: how much regolith this world makes
+        // in place, against how much its rivers ever pick up (`TransportLedger`).
+        // Reading a plane cannot perturb it, and it is summed only when
+        // material-aware transport is on, so the scalar path is untouched.
+        let h_before = if self.sorted {
+            grid.h.iter().sum::<f64>()
+        } else {
+            0.0
+        };
         let parallel = self.par();
         let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
         let dh = &mut self.dh;
@@ -2149,6 +2222,9 @@ impl Erosion {
                     frost_at(frost, i),
                 );
             }
+        }
+        if self.sorted {
+            self.ledger.weathered_m += grid.h.iter().sum::<f64>() - h_before;
         }
     }
 
@@ -2249,6 +2325,12 @@ impl Erosion {
                     *nd = diffuse_net_cell(i, w, surf, scale, diff, resist, sus);
                 }
             }
+        }
+        // The other Movement 2b control: how much regolith **creep** moves, against
+        // how much the rivers do. The gain side only — the net is zero by
+        // construction, so summing it would report nothing.
+        if self.sorted {
+            self.ledger.diffused_m += self.netdiff.iter().map(|v| v.max(0.0)).sum::<f64>();
         }
         // Apply: h += net, dh += net (disjoint per-cell writes).
         if parallel {
