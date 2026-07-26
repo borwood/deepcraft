@@ -3286,6 +3286,23 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   system's fixed-constant roster is scaffolding" + transformation-axes DECIDED, north-star
   declarative-materials, the entry-species probe, the seam-inventory `[S2]`).
   - **⚠ WHO OWNS CLASTIC FACIES — CONTRADICTED, the user's call; see `docs/audits/2026-07-25-roadmap-staleness-sweep.md` row C-2.** *(Three ratified things claim one output: this entry's "physical facies", the FLOW arc's un-gameable facies acceptance test, and material-behavior.md § 13.7's "transport **IS** clastic sedimentary genesis". Probably complementary — genesis = which rock, flow/transport = where the clastics went — but nobody has said so, and this arc's first slice converts `deep_class`/`dithered_member`, the same seam transport would move.)*
+  - **🔖 OPEN EDGE — READ [`docs/design/material-genesis-notebook.md`](docs/design/material-genesis-notebook.md) BEFORE DISPATCHING THIS ARC.** A 2026-07-26 design
+    conversation put the arc's central noun in question. **Ratified out of it:** the
+    creation/transformation discriminator is **resolution, not phase** (*can the prior be
+    named as a material we track?* — the material ontology is a **sieve**, and that is the
+    whole case for genesis); a **four-way** test in which *"transform whose driver is not
+    built yet"* is its own category and **filing one of those as a genesis is
+    irreversible**; the **completeness test**; and — settling row C-2 — **genesis makes
+    the *parent* honest · weathering the *loosening* · transport the *destination***, so
+    clastic facies belong to transport and this arc **relocates** to *"which rock was
+    emplaced here in the first place"*, inheriting **stub #16** as its first customer.
+    **Left OPEN, and it bears on this entry's first slice:** if genesis is (a) a pre-loop
+    initial condition + (b) a name for a seamed driver + (c) folded competitive
+    precipitation, then *"genesis pass"* may not be a pass **type** at all. The user
+    ratified only that **pre-loop is not a pass**, was *"NOT sold"* that ongoing formation
+    is untractable as material-as-pass, and held **emplacement** open as possibly
+    *transform → transport → transform* with no genesis at all. **Do not re-derive this
+    conversation; read the notebook.**
   - **WHAT.** Retire the class-member-fitness abstraction. Rock **distribution + physical
     facies** come from **deeptime genesis passes** that select a **parent material**, march
     its **leaf** materials, and derive fitness **purely from properties stored on each

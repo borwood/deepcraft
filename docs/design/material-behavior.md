@@ -579,14 +579,128 @@ many-in-many-out), and forcing one API would bloat the edge with optional multi-
 fields — the *over*-unification version of the re-invent-next-door sin. Uniformity holds
 **within** each kind. *(framing.)*
 
-**The transform/formation discriminator** *(framing)*: is a **specific solid material
-consumed**, or does the product **precipitate from something diffuse**? clay→mica consumes
-a specific solid → **input-owned transform** (provenance stays on the material); emerald in
-a vein / cement in pores / primordial rock from melt come out of fluid/melt/diffuse
-conditions → **output-owned formation**. This already maps onto §3's edge types: **edges
-*from* fluid/void** (cementation, deposition, crystallization) are output-declared
-formation; **solid↔solid edges** (weathering, metamorphic replacement) are input-owned
-transforms. The graph's edge type already encodes which end owns it.
+### The transform/formation discriminator — DECIDED 2026-07-25 (user)
+
+> **🔖 OPEN EDGE — see [`material-genesis-notebook.md`](material-genesis-notebook.md).**
+> The conversation that produced this section ran on past it into **pass purity**,
+> **term-keyed edges**, **per-parameter shadowing**, and the **fluid/solute shape** — none
+> of which is decided, and one of which (fluid identity) would change how every
+> precipitation example is bound. The notebook is the dog-eared page.
+
+> **~~is a specific solid material consumed, or does the product precipitate from something
+> diffuse?~~** — **SUPERSEDED 2026-07-25.** The phase test was kept as long as it was because
+> it agrees with the resolution test on the examples originally chosen. It is retired as *the*
+> discriminator and survives only as a **heuristic**, because it makes a claim about **nature**
+> that is not true: the silica in pore cement is exactly as causal as the granite in a boulder,
+> and ion-scale processes are processes everywhere. It also cannot decide the case it most needs
+> to — metamorphic replacement is solid↔solid to us but molecular recrystallisation with ion
+> exchange in fact, so "did it come from a fluid?" has no clean answer.
+
+**THE DISCRIMINATOR IS RESOLUTION, NOT PHASE. Everything in the natural world is the result
+of process — there is an infinite regress of prior states of matter. A creation predicate is
+therefore never a claim that causation stopped; it is an honest admission that OUR MODEL
+bottoms out here.** *(user, 2026-07-25 — the reasoning is the user's; this section transcribes
+it.)*
+
+> **The test: can the prior be named as a material we track?**
+> Not *"is the prior diffuse"* — **"is the prior below the resolution of the material
+> ontology."** The material concept is itself a **sieve**: some origins genuinely ARE
+> transformations, but transformations of the **molecular parts** of materials, and our model
+> has no molecular or atomic parts. A crystalline inclusion in rock is not `rock→crystal`.
+> That, and not phase, is the whole case for genesis passes.
+
+**THE FOUR-WAY TEST.** Ask of any material: *what did it come from, **in the ontology we intend
+to have**?* There are exactly four answers, and the third and fourth are the ones people
+conflate:
+
+| | answer | shape | today's examples |
+|---|---|---|---|
+| **1** | "that material, transformed" — **driver exists** | **transform edge, input-owned** | bedrock→saprolite (S18) |
+| **2** | "that material, transformed" — **driver not built yet** | **transform edge with a SEAMED driver** — declare the edge *now*, socket the driver as a provider with an identity default and a named heir | peat→coal; quartz cement from solute |
+| **3** | "that material, **moved**" | **transport** (§13) | sand off a granite ridge |
+| **4** | "no material — it formed under conditions, from a sub-material prior environment" | **genesis / output-owned formation predicate** | the t=0 basement |
+
+**CATEGORY 2 IS THE ONE A PROJECT-IN-PROGRESS ACTUALLY LIVES IN, and omitting it is how the
+taxonomy goes wrong.** Not every transformation process is modelled yet — bio, solutions in
+fluids, volcanism/magma are all outstanding — and a stated intention to model the driver
+later means the thing is a **transformation with a seam**, *not* a genesis. We have inherited
+several (peat / coal / charcoal). *(user, 2026-07-25.)*
+
+> ### The pathology: filing a (2) as a (4). This is the irreversible one.
+> Writing *"coal forms when temperature > X"* as a **formation predicate** means the peat→coal
+> **edge does not exist** — and with it go the identity chain, the mass chain and the
+> provenance. You cannot later "add the driver", because there is no edge to drive; you would
+> have to re-derive what was never recorded. **This is A-1 in this domain** — a creation
+> predicate becoming the authority for something that is really an edge — and it is seductive
+> precisely because *"it forms under these conditions"* is unfalsifiable in a way *"it came
+> from that rock"* is not.
+>
+> **The discipline: when the prior is nameable but the driver is missing, DECLARE THE EDGE AND
+> SEAM THE DRIVER.** Never reach for a formation predicate to paper over an absent system.
+> This is just *"write the seam, not the value"* applied to the genesis/transform split, and it
+> pays the same dividend: the unbuilt system's obligations become readable at its call sites.
+
+**THE FLOOR MOVES — genesis is relative to a declared ontology, not permanent in general.**
+The floor sits wherever the material ontology bottoms out, and it **rises as systems land**.
+`flow.md` § 0's regime table already names **`solute`** and **`melt`** as loads in the flow
+family, and § 13.3's load is a multiset of `(material, quantity)` covering *"suspended/**dissolved**
+sediment"* — so **two of the three examples this section originally gave as formation (cement in
+pores, primordial rock from melt) are category 2, not category 4.** They are transformations
+whose driver is unbuilt.
+
+- **Drivers already declared intended are PRESUMED SEAMED** — solute, melt, biomass. If a
+  driver is on the books, the honest filing is a transform edge with a seam.
+- **It is still a per-pass conversation.** Each pass must honestly answer whether its prior can
+  be represented with a driver **we should model in the future**, or one **we do not intend to
+  model**. The presumption resolves the common case; the design pass resolves the rest.
+  *(user, 2026-07-25: recorded here **so a future session is not prompted into re-deriving it
+  every time.**)*
+- A category-4 pass should therefore **declare its floor and its conversion condition**, the way
+  a stub declares an heir — *"genesis relative to an ontology with no X; if X becomes tracked,
+  this becomes a transform edge."* **Unlike a stub, that conversion may legitimately never come,
+  and then it is not a debt** — it is a stated ontological boundary.
+
+**TWO KINDS OF GENESIS, and only one of them is permanent.**
+
+| | **temporal dropoff (t=0)** | **sub-material prior** |
+|---|---|---|
+| why it is honest | the prior is **pre-record** | the prior is **below the ontology** |
+| when it runs | once, at t=0 | throughout the ~500 Myr |
+| honesty requirement | **plausible and self-consistent** — it may be procedural, because there is no record to read | **must read recorded conditions** — a record exists, so a predicate that ignores it is a proxy |
+| permanent? | **yes, by construction** | **no — the floor moves** |
+
+This is why `stubs.md` § *"Genesis (permanently legitimate — affirmed, not defects)"* contains
+**only** t=0 and boundary items (basement + plate seeding, `corner0`, border wilds, the
+sea-level datum). That list is not missing its sub-material entries; it **correctly excludes
+them**, because only the temporal dropoff is permanent.
+
+**THE GUARD — genesis reads fields; a proxy reads tags.** A formation predicate consuming real
+recorded conditions (temperature, head, grade, host composition) is genesis. One consuming
+`earliest-chapter + Subsea + Craton` is **a stub wearing a formation predicate's paperwork** —
+which is what `ores.md` § 8 already says of banded iron in as many words (*"STUB for chemistry"*,
+heir = epoch-indexed paleo-ocean chemistry), while filing bog iron's microbial step as
+*"legitimately coarsened into the facies — heir: none needed for honesty."* **`ores.md` drew
+this line per-mechanism before it was a rule.**
+
+**THE COMPLETENESS TEST (RATIFIED 2026-07-25, user).** Every material in the world must be
+traceable to one of: **(a)** the t=0 inherited basement · **(b)** a formation predicate reading
+recorded conditions · **(c)** a chain of transforms and transports from (a) or (b) — where a
+link in that chain may be **seamed** (category 2) provided the *edge* is declared. **Anything
+else is a stub wearing genesis's clothes.** *Traceability is to be audited first; the four-way
+classification audit follows once the declarative-pass migration has moved the out-of-band
+cases (see below).*
+
+**AN ORTHOGONAL AXIS — do not confuse a migration with a defect.** Whether an origin is
+correctly *classified* is independent of whether it is correctly *shaped*. Peat / coal /
+charcoal are **correctly classified** as transformations but **live in out-of-band code**, not
+the declarative pass shape; their move is **north-star convergence work**, not a taxonomy
+problem. *A correctly-classified transformation in the wrong shape is a migration; a
+misclassified one is a defect.* *(user, 2026-07-25.)*
+
+**What the edge graph still gives you for free.** §3's edge types remain a fast structural
+hint — **edges *from* fluid/void** lean formation, **solid↔solid** edges lean transform — but
+the hint is now subordinate to the resolution test, and where they disagree the resolution test
+wins.
 
 **Scope now = geo, and geo is entirely on-material in two directions** *(framing, following
 the user's scope call)*: a geo material declares its **formation predicate** (output-owned)
@@ -705,6 +819,19 @@ Deposition-with-sorting is *how sedimentary material comes to be where it is*, s
 the `DepTag → reference_material` shortcut half-dissolves (deposited material = what was
 transported and sorted here, not a tag lookup). Weathering makes the *source* honest;
 transport makes the *deposited* material honest.
+
+**Extended one link back, which settles "who owns clastic facies" (DECIDED 2026-07-25, user).**
+On §12's four-way test, clastics answer **"that material, *moved*"** — sand is granite that
+went somewhere. So **transport owns clastics**, and genesis owns the **bedrock the sand came
+off**. The two arcs were never competing for one output; they sit at **different points in the
+same regress**:
+
+> **Genesis makes the *parent* honest · weathering makes the *loosening* honest · transport
+> makes the *destination* honest.**
+
+The genesis-passes arc therefore does not shrink — it **relocates**, from *"which rock is at
+this facies"* to *"which rock was emplaced here in the first place"*, and it inherits
+**stubs #16** (bedrock materialized as one flat basement span) as its first real customer.
 
 ### 13.8 Three deferred layers (named, not this arc)
 - **3D volumetric flow** (underwater rivers, turbidity currents, cave streams): a richer

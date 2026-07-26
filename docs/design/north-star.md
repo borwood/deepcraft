@@ -37,6 +37,17 @@ ships (the pass graph and `Providers`), not the invention of an interpreter.
 
 ## The core / plugin boundary
 
+> **🔖 OPEN EDGE — see [`material-genesis-notebook.md`](material-genesis-notebook.md) § 2.**
+> A 2026-07-26 design conversation re-derived much of this section from scratch and then
+> pushed past it. Three live threads land directly on this boundary: **pass purity**
+> (the content layer's *"select materials matching predicate P"* is already
+> material-agnostic — **and the running engine violates it**, measured); **term-keyed
+> edges** (a pass selects by the *terms* an edge carries, not a shared slot name — which
+> would make participation derive from declared properties); and **where "engine owns
+> primitives" actually cuts**. Also recorded there: *the plug-and-play mechanism is
+> **parent inheritance**, so the default pack's parent materials are a **product
+> surface**, not an implementation detail.*
+
 **Core** (irreducibly native, changes freely, private/closed-source):
 - **cell storage** + the **cell API** (know/change what a cell contains; hold
   state other passes stamped on it).

@@ -227,6 +227,16 @@ The flow carries a **fluid material id**, not an assumption of water. Otherwise
 fluid = material; rheology = material properties (a glacier is a solid whose
 viscosity is ~10¹³ — flow, not a special case).
 
+> **🔖 OPEN EDGE — see [`material-genesis-notebook.md`](material-genesis-notebook.md) § 3.**
+> This section **decided** that fluid is a *form of a material*. Two things it did not
+> settle, and both are load-bearing for genesis: the **inventory** still treats
+> `InvForm::Fluid` as *derived, never stored* (§12's own open list carries *"Fluid as a
+> stored role vs derived"*), and **solutes have no established shape at all** — the
+> working model is that a solution is *"the transport of loose in fluid"* (user,
+> 2026-07-26), i.e. the § 13.3 load multiset riding a fluid rather than a separate
+> concept. Every precipitation/crystallisation edge in the genesis conversation binds
+> through this, so it is the nearest blocker there.
+
 ### 2.6 Divergence: what is structural vs what is TUNABLE (2026-07-25, user-raised)
 
 The slice-1 measurement (175,320 divergent `(cell,chapter)` pairs, 7.378 %) mixes
