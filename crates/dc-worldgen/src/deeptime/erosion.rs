@@ -2061,8 +2061,8 @@ impl Erosion {
             if self.sorted && ent > 0.0 {
                 self.ledger.entrained_m += ent;
                 let add = split_by_shares(ent, &self.shares[base..base + SPECIES]);
-                for k in 0..SPECIES {
-                    self.qs_sp[base + k] += add[k];
+                for (k, a) in add.iter().enumerate() {
+                    self.qs_sp[base + k] += a;
                 }
             }
             let mut carried = qin + ent;
@@ -2086,8 +2086,8 @@ impl Erosion {
                 if self.sorted && inc > 0.0 {
                     self.ledger.incised_m += inc;
                     let add = split_by_shares(inc, &self.bedrock_sp);
-                    for k in 0..SPECIES {
-                        self.qs_sp[base + k] += add[k];
+                    for (k, a) in add.iter().enumerate() {
+                        self.qs_sp[base + k] += a;
                     }
                 }
             }
@@ -2600,7 +2600,8 @@ impl Erosion {
                     .zip(gross.par_iter_mut())
                     .enumerate()
                     .for_each(|(i, (out, g))| {
-                        *g = diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
+                        *g =
+                            diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
                     });
             } else {
                 for (i, (out, g)) in creep.chunks_mut(SPECIES).zip(gross.iter_mut()).enumerate() {
