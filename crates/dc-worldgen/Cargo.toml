@@ -58,6 +58,15 @@ test = true
 name = "contents_air_over_solid_probe"
 test = true
 
+# journal/0111 — the denudation measurement. The gate asserts three structural
+# invariants (the instrumentation is bit-inert; the sink itemisation re-sums; no
+# export term exceeds the flux it is a share of) and deliberately asserts NO
+# m/Myr figure: that number is exactly what a colleague fixing the erosion budget
+# should be free to move. Runs at Extent::Small.
+[[example]]
+name = "denudation_probe"
+test = true
+
 # Only the census is gated here — the station search is a world-scale
 # recommendation judged by the eye. See the example's `mod gate` doc comment.
 [[example]]

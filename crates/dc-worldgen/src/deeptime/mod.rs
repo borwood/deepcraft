@@ -176,6 +176,9 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // every species vector stays empty and the pass carries a scalar mass, byte
     // for byte.
     erosion.set_material_transport(cfg.material_transport);
+    // journal/0111: the read-only denudation counters. Off ⇒ no branch fires and
+    // the shoreline-creep sweep is never called — byte- and cost-identical.
+    erosion.set_denudation_ledger(cfg.denudation_ledger);
     let mass_before = total_mass(&grid);
 
     // --- pre-loop seeding (initial conditions the epoch loop reads) ---

@@ -340,6 +340,25 @@ cyclic margins). **USER-RATIFIED for 3e (2026-07-19): A always-on + C refinement
    eventual shape (sim-depth-knobs doctrine); ~500 Myr is the default.
    Must be labeled before persistence/knowledge commit ages as facts —
    after that, re-labeling is a compat break.
+
+   > **FLAG 2026-07-26 — the register is stipulated and the engine's rates do
+   > not honour it (journal/0111, corrections #56, stubs #24).** At 200 epochs
+   > this register means **2.5 Myr per iteration**, and nobody had ever divided
+   > the engine's metres-per-iteration constants by it. Measured on the shipped
+   > world: catchment-averaged denudation **0.0110 m/Myr** — **9× slower than
+   > the slowest surface ever measured on Earth** (McMurdo Dry Valleys /
+   > hyperarid Atacama, 0.1–1 m/Myr), 493× below the global `10Be` outcrop
+   > median (5.4, Portenga & Bierman 2011), and stripping **5.48 m** over the
+   > full span where a real craton strips **5–10 km**. Denudation is 2.7 % of
+   > rock uplift, so the landscape has never approached topographic steady
+   > state. The *shape* of the model is right — weathering-limited, creep-routed,
+   > rivers minor, regolith armouring its own front: a textbook low-relief
+   > craton — and only the **rate** is wrong. **This § 3e's own owed item,
+   > "calibrate iteration↔Myr against a real orogen", is the named heir**, and
+   > `examples/denudation_probe.rs` is its acceptance instrument (its literature
+   > band table is the test; the world should land in the 1–10 m/Myr
+   > stable-craton band). The resulting numbers are appearance-class and
+   > user-owned.
 **Recommendation: A always-on + C refinement — CONFIRMED by S9b
 (2026-07-19, docs/spikes/S9b-results.md, corrections #9): parallelism
 does NOT flip B on this hardware.** The determinism tax forecloses it:

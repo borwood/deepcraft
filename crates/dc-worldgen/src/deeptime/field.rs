@@ -83,6 +83,17 @@ pub struct DeepOverrides {
     /// TECTONIC (orogenic) amplitude — the term collision the corpus already had
     /// to disambiguate (journal/0040, ROADMAP § the erodibility rider).
     ///
+    /// **STUB #24 — THIS KNOB CANNOT REACH THE PROCESS THAT DOES THE ERODING.**
+    /// It scales the three rates above and **not `diffusion`**, and hillslope creep
+    /// carries **96 %** of this world's denudation (journal/0111, corrections #56).
+    /// Measured: **100× moves catchment-averaged denudation by 1.4×.** Supply and
+    /// transport are coupled through the cover taper `exp(−H/H*)`, so neither pays
+    /// alone (100× budget → 1.4×; 10× creep → 1.7×) and together they pay 132×.
+    /// Do not "fix" this by adding `diffusion` to the list — the heir is the owed
+    /// `earth-processes.md` § 3e calibration of iteration↔Myr against a real orogen,
+    /// and the acceptance instrument is `examples/denudation_probe.rs`. The
+    /// resulting numbers are an **appearance-class, user-owned** call.
+    ///
     /// `None` = production default (the shipped calibration, multiplier `1×`).
     /// `Some(1.0)` is **byte-identical** to `None` (`x * 1.0 == x` exactly), so
     /// the flag's off-state is provably inert (asserted in the plumbing tests).
