@@ -291,9 +291,15 @@ several non-zero out-faces per cell per epoch instead of one.
 - **The partition is Holmgren (1994) with Quinn's contour width**:
   `wₖ ∝ Sₖᵖ · Lₖ`, `Sₖ = Δh / dₖ` along the **true flow-path length** (`1`/`√2`),
   `Lₖ` the face's contour width (`1`/`1/√2`). `p` is the **convergence exponent**:
-  `p = 1` is Quinn's maximally dispersive form, `p → ∞` is single-receiver D8
-  exactly, so the old solve is a *limit* of the new one rather than a deleted
-  alternative.
+  `p = 1` is Quinn's maximally dispersive form, ~~`p → ∞` is single-receiver D8
+  exactly~~ **`p → ∞` is single-receiver *steepest-slope*** (**corrections #58**,
+  2026-07-26 — the codebase's own `the_partition_follows_slope_not_drop` pins a
+  case where the limit and `route_cell` choose **different** receivers, because
+  `route_cell` takes the steepest **drop** and the partition takes the steepest
+  **slope**; they differ on diagonals by the very `√2` this bullet introduces).
+  The old solve is still a *near*-limit of the new one rather than a deleted
+  alternative — the correction is to the word "exactly", not to the shape.
+  **Since 2026-07-26 `p` is spatially varying — see § 2.6.2.**
 - **The field partitioned is the FREE-SURFACE potential** — the priority-flood
   `filled` surface, which is `z_bed + depth`: bare ground where the land drains, a
   flat water surface inside every depression. That **is** head for the free regime
@@ -331,6 +337,81 @@ several non-zero out-faces per cell per epoch instead of one.
   does most of the water go") but it can no longer be read as "where the water
   went", and it is now a summary in ARCHITECTURE.md's sense. Continuation (e)
   should retire it, not merely supersede it.
+
+#### 2.6.2 BUILT 2026-07-26 — continuation (b'), hybrid `p` (journal/0113)
+
+§ 2.6.1 shipped **one exponent for the whole world**, and journal/0109 measured what
+that costs in the same breath as it shipped: the **peak catchment collapsed
+1,245 → 84 cells**. That number is not a tuning artefact, it is the statement that a
+trunk river never accumulates — because a uniform `p` disperses at *every* cell and
+the loss compounds down the chain. Named there as *"honestly the wrong long-run
+shape"*, and this is its continuation.
+
+**What was wrong is specific, and it is not "the number was too low."** Uniform `p`
+applies **hillslope sheet-flow behaviour inside channels.** Real water spreads on an
+unchannelised hillslope and **stays in its banks** once it is channelised, and one
+exponent cannot say both. Holmgren's calibrated 4–6 band is exactly the *compromise*
+a single-exponent scheme is forced into.
+
+**The law: `p` ramps on the channelisation index `χ = A · S²`** — Montgomery &
+Dietrich (1988, 1992)'s channel-initiation criterion — from `p_hill` at
+`χ ≤ chi_lo` to `p_chan` at `χ ≥ chi_hi`, log-linear between. `A` is the cell's
+drainage area **lagged one epoch** (see below) and `S` its steepest downslope
+gradient on the free-surface potential.
+
+> **Why `A·S²` and not `A` alone, which is the obvious choice and is also in the
+> literature.** An area-only law would destroy what § 2.6.1 bought. **Deltas,
+> alluvial-fan tops and braid plains are the places with the LARGEST `A`** — an
+> area-only law makes them the most convergent ground on the world, and concurrent
+> distributaries vanish. `A·S²` puts them back on the dispersive side, for the
+> physically correct reason: **a delta is where a channel loses its confinement.**
+> One law, three regimes:
+>
+> | regime | `A` | `S` | `χ` | `p` | behaviour |
+> |---|---|---|---|---|---|
+> | hillslope / interfluve | small | any | low | `p_hill` | sheet flow, spreads |
+> | trunk river, gorge, incised valley | large | moderate–high | high | `p_chan` | stays in its banks |
+> | delta top, fan, coastal plain | large | ≈ 0 | low | `p_hill` | splits — distributaries |
+
+**Three things the build had to settle, recorded because none is obvious:**
+
+- **The circularity, and the one-epoch lag.** `p` needs `A`; `A` is accumulated
+  *from* the weights `p` produces. There is no fixed point to iterate to — a second
+  accumulation pass uses an area its own weights then invalidate. So the exponent
+  reads the **previous epoch's** drainage plane, which is the same shape as the S10
+  biotic coupling and costs nothing (no extra storage, no extra pass). At epoch 0 the
+  plane is zero, so the first epoch is maximally dispersive — the honest initial
+  condition, and also the physical statement: *nothing is channelised until water has
+  run once.*
+- **Slopes are normalised by `S_max` before exponentiation.** Algebraically a no-op
+  (the renormalisation divides it back out), but it puts every base in `(0, 1]`, so a
+  large `p_chan` can never underflow a whole partition to zero and **report a
+  draining cell as a sink**. Without it the safe exponent range is silently bounded
+  by the world's smallest slope.
+- **The ramp is rounded to an integer.** A fractional exponent forces `powf` on
+  `8 × cells × epochs` ≈ half a billion directions per production run; an integer
+  goes through `powi`. At a 460 m tier where `p` is a coarse sub-grid dial, `7` vs
+  `7.3` is false precision and the gen-time difference is not. Uniform mode does not
+  round, so a probe may still sweep fractional `p`.
+
+**Honest limit at this tier.** At 460 m a cell contains an entire
+hillslope-and-channel system, so this is **not** "is this cell a channel" — it is a
+**sub-grid parameterisation of how much of the cell's discharge is confined**.
+`chi_lo`/`chi_hi` are therefore calibrated against *this world's own* `χ`
+distribution (printed by `examples/hybrid_p_probe.rs`), never lifted from a field
+study at 10 m. That calibration is **stub #26**.
+
+**What it does NOT do, stated so nobody measures for it.** journal/0111 measured this
+world exporting **0.02 %** of its denudation by rivers, at 0.0110 m/Myr overall.
+Hybrid `p` concentrates that 0.02 %. **It cannot move denudation, the facies
+gradient, or the appearance of the world**, and the joint supply+transport
+calibration that fixes the magnitude is a separate slice which must calibrate against
+*this* solve.
+
+**Who it is for.** `north-star.md`'s **refinement tier**, and specifically
+**visible river channels** — § 4 says refinement is *"solving a small
+boundary-value problem inside a cell, with face fluxes as Dirichlet conditions."*
+**A channel cannot be refined out of a flux record that never concentrates.**
 
 **A gap in the § 5 cadence vocabulary, named here.** `material-behavior.md` § 5 gives
 the scheduler two axes — **ORDER** (topo-sort) and **RATE** (`period` + `dt`). It has
