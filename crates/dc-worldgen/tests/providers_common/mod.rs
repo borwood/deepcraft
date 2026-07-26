@@ -70,7 +70,25 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x6F83_4D53_DB89_8C36
 /// ```
-pub const GOLDEN_SURFACE: u64 = 0x60F0_A669_F4B9_23BD;
+///
+/// **Moved 2026-07-26 by material-aware hillslope CREEP (journal/0112, Movement 2b
+/// continuation (b)) — authorized, and it is the largest-authority world move of
+/// the three above.** Movement 2b gave the *rivers* an identity and reached
+/// 0.000006 % of the archive, because fluvial transport is 0.109 % of this world's
+/// sediment routing (corrections #55). Creep moves 918× more and carried none;
+/// now it does, and 65.206 % of the archive records what actually arrived. The
+/// terrain moves because identity is not a sidecar: the record's rock is what
+/// `outcrop_shares` publishes, and that composition sets the erodibility blend, the
+/// frost multiplier, the eolian deflation susceptibility, the wave attack rate —
+/// and what the fluvial load entrains, which the competence ceiling then rains out.
+/// The fluvial-only world is still reachable and still hashed, as
+/// [`GOLDEN_SURFACE_ANONYMOUS_CREEP`]. Prior value (post-2b, pre-2b(b)), kept for
+/// audit:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x60F0_A669_F4B9_23BD
+/// ```
+pub const GOLDEN_SURFACE: u64 = 0x1A57_A522_C3BA_9F0C;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -100,6 +118,45 @@ pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x176D_40F1_1CCB_006A;
 pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0x6F83_4D53_DB89_8C36;
 /// The strata-record half of [`GOLDEN_SURFACE_SCALAR_LOAD`].
 pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x3940_3AD9_C3A8_FD83;
+
+/// **The fluvial-only fixed point, still reachable.** The same fixture world with
+/// [`DeepConfig::material_creep`](dc_worldgen::deeptime::DeepConfig) **off** must
+/// reproduce the goldens as they stood after Movement 2b's first slice
+/// (journal/0110) and before its continuation (b) (journal/0112) — the world where
+/// the *rivers* carried identity and the hillslopes did not.
+///
+/// This is the third member of the same family as
+/// [`GOLDEN_SURFACE_SINGLE_RECEIVER`] and [`GOLDEN_SURFACE_SCALAR_LOAD`]: an old
+/// solve kept as a second *path*, not a deleted one, and proven byte-identical
+/// rather than assumed to be. Asserted in
+/// `tests/material_creep.rs::material_creep_off_is_the_fluvial_only_world_and_on_moves_it`,
+/// deliberately not here, for the same reason as its two siblings.
+///
+/// **⚠ NOT the pre-slice constants, and the difference is the honest part.** The
+/// commit that added this pair also carries **corrections #57**: `Litho::as_deposited`
+/// used to say the only lithology a deposit cannot be is basement, and peat, coal and
+/// charcoal cannot be either — they are made *in place*, so a mover that picks one up
+/// is carrying detrital organic matter (`material-behavior.md` § 12's four-way test:
+/// a moved material is category 3, an in-place organic is 1/2). That fix applies to
+/// **any** mover, so it moves the fluvial-only world too, and this constant is
+/// therefore *"the fluvial-only world **plus** the organic-deposit correction"*.
+///
+/// **That the value moved at all is itself the evidence #57 was needed**: it means
+/// the fluvial pass really had been filing transported organics as in-place seams,
+/// rarely enough that no test could see it until creep multiplied the traffic by 918.
+/// Prior value (post-2b, before #57), kept for audit:
+///
+/// ```text
+/// GOLDEN_SURFACE_ANONYMOUS_CREEP 0x60F0_A669_F4B9_23BD
+/// GOLDEN_RECORD_ANONYMOUS_CREEP  0x9DEE_8FAE_4550_F2D0
+/// ```
+///
+/// The **scalar-load** pair above is unmoved by #57 and still asserted, which pins
+/// the fix's own off-switch: with `material_transport` off nothing is ever carried,
+/// so there is no carried winner for `as_deposited` to answer about.
+pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xDAB0_34AC_9984_209C;
+/// The strata-record half of [`GOLDEN_SURFACE_ANONYMOUS_CREEP`].
+pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x447D_E3D0_7675_8D21;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
 ///
 /// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**
@@ -150,7 +207,20 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```text
 /// GOLDEN_RECORD 0x6CEB_947D_6207_3A1E
 /// ```
-pub const GOLDEN_RECORD: u64 = 0x9DEE_8FAE_4550_F2D0;
+/// **Moved 2026-07-26 by material-aware hillslope creep (journal/0112) —
+/// authorized.** See [`GOLDEN_SURFACE`]. The record's *composition* moved further
+/// than any prior slice has moved it: 91 % fine clastic → 26 % fine / 36 % coarse /
+/// 38 % carbonaceous soil, because a hillslope no longer records "mud, because this
+/// is a quiet place" but whatever crept down onto it. Unit count +21.5 %, all merge
+/// key. The same commit carries **corrections #57**, which is a separate
+/// correctness fix and moves the fluvial path too — see
+/// [`GOLDEN_RECORD_ANONYMOUS_CREEP`], which is where the two are separated. Prior
+/// value (post-2b, pre-2b(b)), kept for audit:
+///
+/// ```text
+/// GOLDEN_RECORD 0x9DEE_8FAE_4550_F2D0
+/// ```
+pub const GOLDEN_RECORD: u64 = 0x16EC_7D94_3A2E_D912;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

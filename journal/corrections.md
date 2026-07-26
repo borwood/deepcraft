@@ -1990,6 +1990,66 @@ only errors a perfect internal audit is structurally blind to.
 
 ---
 
+## 57. "The one lithology a deposit cannot be is basement" (`lithology.rs::Litho::as_deposited`, journal/0110 — falsified 2026-07-26 by journal/0112, and it had been false since the function was written)
+
+`Litho::as_deposited` was introduced by Movement 2b to answer *"what is this rock once
+a flow has carried it and set it down"*, and its doc stated the rule in the singular:
+
+> *"Every recorded unit is a deposit — loose material that arrived — so **the one
+> lithology that cannot be one** is `Litho::Basement`."*
+
+The reasoning was right and the enumeration was incomplete. **Three more cannot be
+one**, for the identical reason:
+
+| species | why it cannot be a deposit |
+|---|---|
+| `OrganicPeat` | peat is **made where it lies** — a bog is not a delivery |
+| `OrganicCoal` | coal is peat cooked **in place** (`material-behavior.md` § 12, category 2) |
+| `OrganicCharcoal` | a **fire event**, and this enum's own doc calls it *"a thin event bed (capped at 0.04 m)"* |
+
+A mover that picks any of them up is carrying **detrital organic matter**, and what it
+sets down is carbonaceous mud with plant fragments in it — `Litho::OrganicSoil`, which
+is exactly what that slot is for. It is not a peat bog, and it is emphatically not a
+three-metre seam of charcoal.
+
+**Measured, on the shipped world:** with hillslope creep carrying identity for the
+first time, `charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum` found a
+voxel that was **8/8 charcoal** against a cap of 0.04 m — 0.356 of an eighth. Thin fire
+beds crept downslope, won the argmax at a low-deposition cell, and then **merged across
+epochs under one mineral tag** into a stratum the cap exists to forbid.
+
+**This is the genesis four-way test caught in the wild, and it is its first live
+instance.** § 12's discriminator asks *"what did it come from, in the ontology we
+intend to have?"*, and transported material answers **category 3 — "that material,
+*moved*"**. An in-place organic is a **category 1/2 formation-or-transformation
+product**. Recording a moved peat as a peat asserts that the peat *formed at the
+receiving cell*, which is § 12's named pathology one row over: a unit filed under the
+wrong category loses the edge, and with it the identity, mass and provenance chains
+that edge would have carried. The fix keeps the record in category 3 and says so.
+
+**The lesson, and it is the one worth carrying: the defect was surfaced by a
+MAGNITUDE, not by a test.** The rule was equally wrong the day 2b shipped. Nothing
+caught it, because the fluvial pass moves **0.109 %** of this world's sediment
+(corrections #55) and a transported organic could never win a cell's mixture argmax at
+that scale. Creep moves **918× more**, and the false claim became reachable within one
+run. That is the same shape as corrections #51 (a guard that could not see the case)
+and #55 (a claim nobody stated, so nobody checked it), with a new twist worth naming:
+
+> **A rule can be wrong and unreachable at the same time, and "unreachable" is a
+> property of the CURRENT magnitudes, not of the rule.** When a slice multiplies the
+> throughput of a path by three orders of magnitude, every latent rule on that path
+> becomes live at once. Re-read the enumerations that path depends on *before* trusting
+> the suite — the suite only ever tested the reachable half.
+
+**Fixed 2026-07-26 (journal/0112):** `as_deposited` remaps the three in-place organics
+to `OrganicSoil`, and it now applies **only to the carried winner** rather than to the
+tag's own default (a default was never carried anywhere). Asserted by name in
+`tests/material_creep.rs::no_deposited_unit_claims_to_be_an_in_place_organic`, over the
+whole record rather than at the site that found it — a stratum of charcoal is wrong
+wherever it appears.
+
+---
+
 ## 58. "`p → ∞` is single-receiver D8 **exactly**" (journal/0109, flow.md § 2.6.1, `DeepConfig::mfd_exponent` docs, 2026-07-25 — falsified 2026-07-26 by the repo's own test, while building hybrid `p`)
 
 **The claim**, in three places and load-bearing in all of them, because it is what makes

@@ -188,6 +188,11 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // journal/0111: the read-only denudation counters. Off ⇒ no branch fires and
     // the shoreline-creep sweep is never called — byte- and cost-identical.
     erosion.set_denudation_ledger(cfg.denudation_ledger);
+    // Movement 2b continuation (b): the gravity/mass-wasting member of the same
+    // family. **After** `set_material_transport`, which it is gated on — creep
+    // moves the composition that pass publishes. Off ⇒ the creep plane stays empty
+    // and the diffusion phase is anonymous again, byte for byte.
+    erosion.set_material_creep(cfg.material_creep);
     let mass_before = total_mass(&grid);
 
     // --- pre-loop seeding (initial conditions the epoch loop reads) ---
