@@ -7,11 +7,65 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-26 — **FLOW (b′): HYBRID `p` — water that stays in its banks** (journal/0113).
+  The MFD convergence exponent is now **spatially varying**: `p` ramps **1 → 16** on the
+  channelisation index **`χ = A·S²`** (Montgomery & Dietrich 1988/1992) and **switches to
+  single-receiver above `χ = 1.2e−1`**. Fixes journal/0109's measured defect — uniform `p`
+  applied *hillslope sheet-flow behaviour inside channels*.
+  - **THE NUMBERS.** Peak catchment **84 → 298** (3.5×). p99 land catchment **70 → 164 —
+    beating D8's 127**, because a tree is thin in the mid-range while dispersive hillslopes
+    feed each channel from a *fan* and the channel then keeps it. **Land cells with a
+    catchment > 100: 0 → 2,270** — *under uniform `p` the shipped world had **not one cell**
+    draining more than 100 cells; there was no trunk network at all.*
+  - **`A·S²` AND NOT `A` ALONE — the choice that saved the previous slice.** Deltas, fan tops
+    and braid plains have the **largest** area, so an area-only law makes them the *most
+    convergent* ground on the world and would have destroyed what journal/0109 bought.
+    `A·S²` returns them to the dispersive side for the right physical reason: **a delta is
+    where a channel loses its confinement.**
+  - **Simultaneous divergence SURVIVES — 95.8 % retained** (7.23 M of 7.55 M within-epoch
+    pairs), and the per-chapter count *rises*. Concentrating the trunk did not cost delta
+    representability.
+  - **The hard switch was MEASURED, not preferred:** `p = 16` everywhere lifts peak catchment
+    only 84 → 145, because a rival at 90 % of the steepest slope keeps 19 % of its weight at
+    `p = 16` and suppressing it needs `p > 44`. *A fifth per hop, down a fifty-hop chain, is
+    everything.* And `χ_hi` was fitted **by a swept curve**, not by eye — 1.2e−1 maximises p99
+    *and* top-1 % share *and* retained divergence; at 3e−2 the single peak is biggest while
+    both honest concentration measures are **worst** (*parallel threads that never merge are
+    not a network*).
+  - **stub #22 measured rather than argued:** the 1 % floor costs 2.1 % of peak catchment and
+    0.3 % of divergence, saves 1.5 % of record — and the leak is **opposite in sign to the
+    stub's own argument** (the floor leaves the world slightly *less* concentrated). A knob is
+    not an heir; **the stub stays open.** New **stubs #26** (thresholds fitted to one world).
+  - Gen time **+0.04 s** vs uniform (the integer-rounded ramp keeps `powi`; the channel switch
+    is *cheaper* than a partition). Record 58.13 → 63.80 MiB. Gate +13.8 s. Goldens moved on
+    the shipped world; **three fixed points held bit-exact**. **No walk owed** — the world is
+    ~1000× under-energetic until the calibration lands, and the visible null is not this
+    slice failing.
+  - **🔑 WHAT THE CALIBRATION SLICE MUST KNOW:** it must calibrate against **this** solve, not
+    0109's. `mfd_exponent` is now the **hillslope** end (default 4.0 → 1.0) — also read
+    `mfd_exponent_channel`, `mfd_chi_lo`, `mfd_chi_hi`. `k_bedrock`/`k_transport` were seated
+    against D8 and the discharge they now see is **3.5× more concentrated at the trunk**, so a
+    joint re-fit **will not scale linearly** from the 0109 numbers. And **stubs #26's
+    thresholds should be re-derived from the calibrated stream power rather than re-fitted by
+    eye.**
+  - **🔓 UNBLOCKS REFINEMENT PRIMITIVES / VISIBLE CHANNELS.** The substrate now concentrates:
+    the flux record hands refinement a trunk network with discharge on one or two faces per
+    confined cell, and genuinely split faces where flow is unconfined — **the Dirichlet data a
+    boundary-value problem needs in order to have a channel as its solution.** *A channel could
+    not have been refined out of the record as it stood yesterday.*
+
 - 2026-07-26 — **FLOW (b): MFD — *simultaneous* divergence becomes representable**
   (journal/0109; background agent, worktree). Holmgren (1994) × Quinn contour width on the
   **free-surface potential**, `p = 4`, **on by default**; `mfd: false` is the byte-identical
-  pre-MFD path, pinned by name. `p` is the **convergence exponent** and **p → ∞ *is* D8
-  exactly**, so the old solve is a **limit, not a deletion**.
+  pre-MFD path, pinned by name. `p` is the **convergence exponent** and ~~**p → ∞ *is* D8
+  exactly**, so the old solve is a **limit, not a deletion**~~ — **🔴 FALSIFIED 2026-07-26,
+  corrections #58 (journal/0113).** The limit of `p → ∞` selects the steepest **slope**;
+  `route_cell` selects the steepest **drop** — and journal/0109's own
+  `the_partition_follows_slope_not_drop` pins the disagreement. *The integrator propagated
+  this sentence into this entry from the slice report without testing it.* **It matters
+  structurally, not pedantically:** that sentence was the argument that `mfd: false` lives
+  *inside* the model's family, and reading it that way would have licensed **deleting a pinned
+  path**. The single-receiver path is a **separate, pinned control**, not a limiting case.
   - **THE NUMBER.** Simultaneous, **within one EPOCH**: **0 → 7,548,646** `(cell, epoch)`
     pairs carrying ≥2 lateral out-faces; **395,452** `(cell, chapter)` = **16.64 %**; max
     **8** faces. The zero before was **structural** — within one epoch the old solve returned
