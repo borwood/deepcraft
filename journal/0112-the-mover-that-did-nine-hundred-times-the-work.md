@@ -183,12 +183,20 @@ the right answer to *"what is this made of"* and no answer at all to *"who broug
 it"*.
 
 **By signature, yes, and it is measured.** Sortedness is the discriminator, and the
-probe reports it as distinct species per recorded column, split hillslope/valley. The
-sharpest reading is decile 0 — the hillslopes — where it goes **1.091 → 1.952**: those
-columns were nearly single-species (a thin record of whatever the local environment
-implied) and are now genuinely mixed, which is exactly what *poorly sorted* means. The
-valley and trunk deciles move much less (3.2 → 3.4-ish), because they were already
-receiving several things. The contrast is the signal.
+probe reports it as distinct species per recorded column, split hillslope/valley:
+
+| distinct species per recorded column | anonymous | identity |
+|---|---|---|
+| hillslope columns (deciles 0–4) | 1.256 | **2.061** (+64 %) |
+| valley + trunk columns (deciles 5–9) | 3.167 | **3.504** (+11 %) |
+| hillslope/valley sortedness ratio | 0.396 | **0.588** |
+
+The hillslopes are where the change lands, and by a factor of six against the valleys.
+Decile 0 alone goes **1.091 → 1.952**: those columns were nearly single-species — a
+thin record of whatever the local environment implied — and are now genuinely mixed,
+which is exactly what *poorly sorted* means. The valleys were already receiving several
+things, so they barely move. **That differential is the colluvium/alluvium contrast,
+and it is the thing the slice bought.**
 
 And the composition of the whole archive moved, which is the same finding at grid
 scale:
@@ -300,9 +308,15 @@ the apron/channel contrast is a headless search, not a guess.
 
 | | anonymous | identity | delta |
 |---|---|---|---|
-| deep run (production world) | 30.48 s | 31.86 s | **+1.38 s (+4.5 %)** |
+| deep run (production world) | 30.48 s / 33.12 s | 31.86 s / 30.48 s | **+1.38 s, then −2.65 s** |
 | resident | 169.05 MiB | 187.21 MiB | **+18.16 MiB (+10.7 %)** |
 | recorded units | 5,542,653 | 6,732,988 | **+21.5 %** |
+
+**The gen-time delta is under this machine's noise floor and is reported as two runs
+rather than one**, because the second run put it on the *other side of zero*. That is
+the honest answer — a third agent was building on the same box — and it is also the
+useful one: whatever the species gather costs, it is smaller than the variance of
+measuring it, on a ~31 s deep run.
 
 The residency is the honest price and it is **all merge key**. `DepUnit` did not grow
 by a byte; there are simply more units, because the species now genuinely varies from
@@ -312,10 +326,10 @@ differed from the default — the axis was free precisely to the extent that it 
 saying nothing. Now it says something, and 18 MiB is what saying it costs. Interbedded
 colluvium is a real stratigraphic feature and the record is holding it.
 
-Gen time is not a constraint here and the +1.38 s is not the interesting number; the
-interesting number is that it is *small*. The species gather is a third pass over the
-same four edges with a seven-element split, fully parallel, and it costs 4.5 % of the
-deep run.
+Gen time is not a constraint here, and the point is that the pass is cheap enough to
+disappear into the noise: the species gather is a third pass over the same four edges
+with a seven-element split, fully parallel, and it is not measurable against the
+run-to-run variance of the deep loop.
 
 **Not paid, and measured rather than assumed:** recording creep as a gravity-caused
 mover in the flow record — which would discharge `stubs.md` #18's constant `cause` —

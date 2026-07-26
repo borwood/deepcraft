@@ -934,11 +934,15 @@ one — creep is what moves this world."* This is that slice.
 > it: 91 % fine clastic → **26 % fine / 36 % coarse / 38 % carbonaceous soil**,
 > because a hillslope no longer records *"mud, because this is a quiet place"* — it
 > records what came down onto it. Distinct species per hillslope column
-> **1.091 → 1.952**: the poorly-sorted signature, measured. Per-species mass closes
+> **1.091 → 1.952** (hillslope 1.256 → 2.061 against valley 3.167 → 3.504, a
+> hillslope/valley sortedness ratio of 0.396 → 0.588): the poorly-sorted signature,
+> measured, and landing six times harder on the hillslopes than in the valleys — which
+> is the colluvium/alluvium contrast itself. Per-species mass closes
 > at **3.19 × 10⁻¹⁵** (itemisation vs the metres the terrain moved) and
 > **7.07 × 10⁻¹⁶** (any species created or destroyed), both f64 summation-order
-> noise. Cost: deep run **+1.38 s (+4.5 %)**, residency **+18.16 MiB (+10.7 %)**,
-> units **+21.5 %** — all merge key, because the axis finally varies.
+> noise. Cost: deep run **under this machine's noise floor** (two runs, +1.38 s then
+> −2.65 s on ~31 s), residency **+18.16 MiB (+10.7 %)**, units **+21.5 %** — all merge
+> key, because the axis finally varies.
 > **Nothing was tuned; there is no knob in this slice.**
 >
 > ⚠ **And it surfaced a latent defect by MAGNITUDE — corrections #57.**
