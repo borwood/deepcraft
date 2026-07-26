@@ -7,6 +7,91 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-26 — **FLOW (b): MFD — *simultaneous* divergence becomes representable**
+  (journal/0109; background agent, worktree). Holmgren (1994) × Quinn contour width on the
+  **free-surface potential**, `p = 4`, **on by default**; `mfd: false` is the byte-identical
+  pre-MFD path, pinned by name. `p` is the **convergence exponent** and **p → ∞ *is* D8
+  exactly**, so the old solve is a **limit, not a deletion**.
+  - **THE NUMBER.** Simultaneous, **within one EPOCH**: **0 → 7,548,646** `(cell, epoch)`
+    pairs carrying ≥2 lateral out-faces; **395,452** `(cell, chapter)` = **16.64 %**; max
+    **8** faces. The zero before was **structural** — within one epoch the old solve returned
+    exactly one receiver per cell, so **no cadence setting could ever have produced this**
+    (flow.md § 2.6). Temporal/avulsion divergence survives as the control (lateral
+    56,281 → 397,520). *Note the 175,320 from slice 1 does **not** reproduce and is not
+    recoverable from either row — (a) added vertical faces and 0096 counted boundary faces
+    that lateral-only excludes. The probe's caption claiming otherwise was a published claim
+    the gate could not check, and was fixed to print its own measured values.*
+  - **THE TRAVERSAL FINDING, which is the elegant part.** The priority-flood pop order
+    **did not need to change**: it is strictly ascending in `filled`, and every routed edge
+    descends `filled`, so reversed it is a topological order of the **DAG** for exactly the
+    reason it was one of the tree. **The tree was never what licensed the traversal — the
+    potential was.**
+  - **Mass on a DAG:** the **last weighted direction takes the residual**
+    (`share_last = q − Σ earlier`), exact by construction — normalised f64 weights sum to
+    `1 ± 1 ulp` and that error would compound unattributably over a thousand hops. **The
+    value written to the record is the same `share` variable added to the neighbour**, never
+    re-derived from weights: the **A-3 defence made structural**. The incision clamp
+    generalises to *below the **lowest** receiver* and **reduces exactly** to D8's rule in
+    the single-receiver limit. Energy slope is the share-weighted mean, because stream power
+    is `Q·S` and any other choice creates or destroys erosive work.
+  - **ALL GOLDENS MOVED — authorized, and it is a NULL IN THE VIEWPORT.** **71.22 %** of land
+    cells changed receiver; **1 cell of 297,025** moved > 1 m (mean **0.027 m**). Confirming
+    asymmetry: on the record-less Small world only `blocks` moved — `materials` and `table`
+    are byte-identical, the signature a *terrain* change predicts and a *record* change
+    forbids. **Do not spend a live walk on 2.7 cm**; tour-map first, and expect a null.
+  - **🔴 THE NUMBER THAT SHOULD WORRY A READER: peak catchment 1,245 → 84 cells.** Uniform
+    `p` **does not concentrate flow** — which is *why* the terrain barely moved. MFD lowers
+    both `Q` and `S` everywhere, so it is **systematically less erosive than D8 at fixed
+    coefficients** (total load −16 % while load-carrying faces ×2.76 — mass conserved, less
+    material *mobilised*). **Owed:** hybrid `p` (a function of area/slope, or single-receiver
+    above a channel threshold) and recalibration of `k_bedrock`/`k_transport`, which were
+    seated against D8. *The agent's verdict, and it is right: uniform `p` is the simplest
+    correct thing and the wrong long-run shape.*
+  - Landed with it: **corrections #54** (the *"head unlocks MFD"* claim, false, struck at all
+    four sources) and **stub #22** (`MFD_MIN_WEIGHT` is a **record**-affordability constant
+    applied **inside the solve** — filed as a **plea**, not assumed). **`recv()` upgraded
+    SUPERSEDED → A-1**: it is now the *argmax share*, a projection existing only because two
+    consumers want one arrow per cell — so **continuation (e) should DELETE, not supersede**,
+    and should expect `area` to be the harder problem now that it is a dispersed quantity.
+  - Gen **+4.56 s** (21.18 → 25.74), residency **+12.84 MiB**, gate **+22.7 s**.
+  - **The process lesson, kept because the agent kept its own wrong prediction above its
+    correction:** it wrote a confident forecast of braided fan heads and wider riparian bands
+    **before** measuring and was wrong by orders. *"Routing is upstream of erosion so the
+    world will move" is a **sequencing** argument, and sequencing arguments say nothing about
+    **magnitude**.* Same error shape as *"head unlocks MFD"* — twice in one slice.
+
+- 2026-07-26 — **S20 2c: the compact 8-byte fact** (journal/0108; background agent, worktree).
+  `Fact` **16 B → 8 B, zero padding, every axis retained**. Resident ledger on the shipped
+  world **17.45 → 9.57 MiB** measured; the per-depth projection **973.40 → 504.50 MiB**,
+  reproducing S20 § 3 row 2c exactly — now from **shipped types** rather than the spike's
+  candidate structs. **User-ratified as option 3 + 2c**; this is the 2c half, and the pager
+  is the reserved continuation.
+  - **The two levers only pay together, now a live assertion about a shipped type:** an edge
+    id alone reclaims four bytes the `f64`'s alignment pads straight back, which
+    `Fact<FracM>` still demonstrates at 16 B. **The edge id's real value is validation, not
+    bytes** — its only constructor is the declared-transition predicate, and `apply_edge`
+    refuses **the move**, not merely the record. **S-8 strengthened from a convention into a
+    compile-enforced authority.**
+  - **Eight of S20's nine predicted tolerance breaks did not happen** (corrections #53), and
+    the reason is the design rather than luck: § 4.2 assumed `Fact` stores f32 everywhere,
+    but the shipped design narrows **once at persist**, so the eight sites reading the f64
+    accumulator are f64-vs-f64 and pass **untouched at their original bounds**. That includes
+    **`weather_inventory.rs:504`** — the one site whose `1e-9` was a deliberately *physical*
+    bound and which the spike correctly named as the only defensible casualty. **It
+    survives.** The single tolerance that did move (`:549`, exactly as § 4.3 predicted) is
+    **re-derived, not widened**: `8 · 2^-24 · |x| + 1e-12`, derivation published beside the
+    constant. *Narrowing at every add instead of once at persist measures **570.6× worse** at
+    200 firings — the discipline earning its keep, measured.*
+  - **Per-world `EdgeDict`, derived by scan and never stored** (a second copy can disagree
+    with the record it describes). Turns a registry change from *silently reinterpreted* into
+    *detected*. **Exactly 1 entry** on the shipped world — and that dictionary is the
+    instrument that will show **stub #16** being discharged, because one entry is what a
+    single flat granite basement looks like.
+  - **A-1 guarded, and it is the crux:** the cheap compaction here was an **axis drop**, and
+    an axis drop is A-1 wearing a fact's paperwork. Nothing is deleted —
+    `every_axis_survives_the_narrowing`. **Stub #21** filed (positional mixed-radix edge id,
+    hard-capped at 51 materials by a compile-time assert).
+
 - 2026-07-25 — **`dc:field/head` declares the terrain it reads — the revision AND the writer
   that supersedes it** (journal/0107; background agent, worktree; **USER-RATIFIED with the
   consequence attached**: *"it should declare what it reads and we eat it if it changes the
@@ -2738,10 +2823,23 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     bake the free/surface **no-divide-crossing** rule into anything the bound regime will
     inherit (flow.md §2.4 — bound flow genuinely crosses surface divides; (a)'s solve has no
     divide term at all, pinned by `bound_head_crosses_a_surface_drainage_divide`).
-    **The head field is also what unlocks a multi-flow-direction solve**, and therefore
+    ~~**The head field is also what unlocks a multi-flow-direction solve**, and therefore
     *simultaneous* divergence (flow.md §2.6) — today's divergence is still aggregation-window
-    avulsion only, and **MFD is now the nearest-term continuation**;
-    **(b) refinement as a boundary-value problem** — face fluxes as Dirichlet conditions,
+    avulsion only, and **MFD is now the nearest-term continuation**~~ — **🔴 FALSIFIED
+    2026-07-25, corrections #54 (journal/0109).** MFD does **not** read `dc:field/head`. It
+    partitions the **free-surface potential** (the priority-flood `filled` array), which
+    already existed — and using the **bound** regime's plane would have made rivers cross
+    their own divides. The claim was written in **four** places and never questioned because
+    it sounded like a sequencing argument. **(a) was still correctly sequenced first** — but
+    because it made the record's vertical faces honest, *not* because the numerics needed it.
+    **✅ MFD SHIPPED 2026-07-25 as continuation (b′) — see the Shipped entry.**
+
+    **⚠ LETTER COLLISION, introduced 2026-07-25 and named here rather than silently
+    renumbered:** this list's **(b)** is *"refinement as a boundary-value problem"*, but the
+    MFD slice was **dispatched as (b)**. Both now exist. Until the arc's owner renumbers,
+    read **(b) = MFD (shipped)** and **(b′) = BVP refinement (unbuilt)**.
+
+    **(b′) refinement as a boundary-value problem** — face fluxes as Dirichlet conditions,
     the load budget as mass, solved *inside* a cell, pure-of-position (never reading a
     neighbour's refined output, so the pure-fn chunk holds); **(c)** the **free/bound edge
     + void intervals** (caves, conduits, springs, `Cause::Dissolution` switched on) — **and the
@@ -2751,7 +2849,20 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     So (c) ships **three** obligations, not two;
     **(d) fluid identity** (lava/ice/brine on the same atom, own competence curves);
     **(e)** retiring `pregen/hydrology.rs`, `RiverSeg`/`carve_rivers`, and
-    `Cell::{flow_to,river,discharge}`. **Do not close the arc when the first slice lands.**
+    `Cell::{flow_to,river,discharge}` — **and as of MFD this should DELETE, not supersede**:
+    `recv()` is now the *argmax share*, a projection that exists only because two consumers want
+    one arrow per cell, so its spines row was upgraded **SUPERSEDED → A-1**. Expect **`area` to be
+    the harder half**, since MFD makes exported drainage area a *dispersed* quantity whose peak is
+    15× smaller. **Do not close the arc when the first slice lands.**
+  - **🔴 OWED BY MFD, and it is the nearest-term thing on this arc (2026-07-26, journal/0109):**
+    **hybrid `p`**, plus **recalibrating `k_bedrock`/`k_transport`**. Uniform `p` **does not
+    concentrate flow** — peak catchment fell **1,245 → 84 cells** — because MFD lowers both `Q`
+    and `S` at every cell, making it **systematically less erosive than D8 at fixed coefficients**
+    (total load −16 % while load-carrying faces ×2.76). The literature's answer is `p` as a
+    function of area/slope, or single-receiver above a channel threshold. **This gates whether the
+    world ever SHOWS what the record now holds** — today the record carries 7.5 M simultaneous
+    divergences and the viewport carries 2.7 cm. *Uniform `p` was the simplest correct thing and
+    is the wrong long-run shape; that is the shipping agent's own verdict, not a later critique.*
   - **NAMED LIMITS (honest, from the 2026-07-25 foreclosure sweep — flow.md § 5):**
     oscillatory/tidal flow nets to ≈0 and needs a **gross-energy** term · **episodic**
     catastrophes (turbidite/jökulhlaup/lahar) average away inside a chapter though the
@@ -3051,14 +3162,46 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
       (55.8×), and it is **resident** — it ships in the `DeepField`. 61.5 M facts = 20.5 M visited
       slots × 3 agents × 16 B. The itemisation reconstructs today's measured footprint **exactly**,
       so the projection scales a validated model.
-      - **The levers are axes, not micro-optimisations:** drop the **chapter** axis for weathering
-        facts (÷ ~4.8, the mean chapters-fired per weathering cell → ≈ 200 MiB); drop the **agent**
-        axis in the *persisted* form, keeping the sum (`Σ share_a = rate` by construction; a further
-        ÷ 3 → ≈ 68 MiB); or persist a **per-slot scalar** rather than facts, which is what the
-        collapse consumer actually reads (`weathering_product_m`) — and which is the *"a summary must
-        be derived from the authority, never become it"* question this project already has a doctrine
-        for. **This is a design decision the arc must answer before it is built, and it is a much more
-        tractable problem than "the deep run doubles".**
+      - ~~**The levers are axes, not micro-optimisations:** drop the **chapter** axis (÷ ~4.8);
+        drop the **agent** axis in the persisted form (a further ÷ 3); or persist a **per-slot
+        scalar**~~ — **✅ ANSWERED 2026-07-25/26. The user chose S20 option 3 + 2c, and NO AXIS IS
+        DROPPED.** S20 priced all four families and the axis-drops lost on their own terms: the
+        cheapest (4c′, 70.05 MiB) is still **~2× option 3's resident footprint** *and* has thrown
+        away the provenance option 3 keeps, so **no axis-drop dominates paging on the numbers**.
+        Dropping chapter would have deleted the derived-story layer; dropping agent would have
+        retired, at the storage layer, the sum-not-product distinction ratified one day earlier.
+        Both irreversible — the facts are not re-derivable without re-running the compile.
+      - **✅ HALF BUILT (2026-07-26, journal/0108): the 2c encoding shipped.** `Fact` 16 B → 8 B,
+        every axis retained; resident **17.45 → 9.57 MiB**, per-depth projection **973.40 →
+        504.50 MiB**. **The blocker is halved but not cleared** — 504 MiB is still a resident
+        half-gigabyte on a Medium world.
+      - **🔒 RESERVED CONTINUATION — S20 OPTION 3, THE PAGER.** *This is what journal/0108 was a
+        slice OF.* Target: **37.86 MiB resident / 468.91 MiB on disk** (halved by 2c), every axis
+        retained, page-in **p50 ~100–220 µs cold, ~5 µs warm** — an inspect-one-voxel cost of 1–2 %
+        of a 60 Hz frame, and *faster than the chunk generation the same click may trigger*. It is
+        **S-9 with the overlay on disk**, so it is a shape already ratified rather than a new
+        mechanism. **What it owes, all still unpaid (S20 § 5):**
+        - an **injected `FactStore` port** — *not* `std::fs` in a headless crate. `dc-core`,
+          `dc-sim` and `dc-worldgen` still contain **zero** `std::fs`/`std::io`/`File::` in `src/`,
+          and a filesystem dependency there is a new capability class that is **easy to add and
+          very hard to remove**. The honest shape is a trait `dc-worldgen` defines and does not
+          implement.
+        - a **versioned derived artifact** keyed by `(seed, extent, deep config, worldgen version)`
+          with a **tested** staleness branch — a stale file paired with a fresh world produces
+          confident wrong provenance, which is **worse than none**.
+        - a **writer/reader split across process lifetimes**, and **two artifacts, not one**: the
+          fold must persist too, because a process that did not generate the world has no fold, and
+          rebuilding it from the paged facts means reading the whole file — the thing paging exists
+          to avoid.
+        - a **"provenance unavailable"** answer on S-9's resolution flag. The hot query is
+          unaffected (*"what is this rock?"* reads the fold); the cold one must be **allowed to say
+          nothing** — a shape we already own (journal/0101, `Identity::Unrecorded`).
+        - it also **discharges stub #21** (the positional mixed-radix edge id), which it must build
+          anyway the moment a ledger is written to disk.
+        - **One residual S20 named and did not price:** all 37.86 MiB is **addressing**, not
+          payload — 4.5 M CSR rows at 8 B. Coarsening the per-slot *fold* (fewer, thicker slots for
+          the fold than for the facts) would cut it further while the facts on disk keep full
+          resolution. **Nobody asked for this; recorded so it is not lost.**
       - **CROSS-REF (added 2026-07-25, sweep row A-1): the `DeepField::strata` collapse is the next
         lever on the SAME budget.** Observed *"the SAME lever, one record over: `DeepField::strata`
         is `Vec<DeepStrata>`"* — **9.06 MiB of struct headers over an 84.47 MiB heap, 11.3 % of
