@@ -119,6 +119,7 @@ struct Structure {
     record_bytes: usize,
     field_bytes: usize,
     land_cells: usize,
+    cells: usize,
     deep_secs: f64,
 }
 
@@ -163,6 +164,7 @@ fn structure(f: &DeepField, deep_secs: f64) -> Structure {
         record_bytes: f.flux.resident_bytes(),
         field_bytes: f.resident_bytes(),
         land_cells: n,
+        cells: f.surf.len(),
         deep_secs,
     }
 }
@@ -190,15 +192,13 @@ fn main() {
 
     println!("=== FLOW continuation (b') — HYBRID p, production world ===");
     println!(
-        "seed {SEED} · Extent::Medium · {} land cells of {} · pregen {t_pregen:.1} s",
-        hy.land_cells,
-        pregen.grid.w * pregen.grid.w
+        "seed {SEED} · Extent::Medium · {} deep cells, {} of them land · pregen {t_pregen:.1} s",
+        hy.cells, hy.land_cells
     );
     println!(
-        "law: p = {} on unchannelised ground, {} in channels, ramped log-linearly \n\
-         on chi = A*S^2 between {:.0e} and {:.0e}   (Montgomery & Dietrich channel \
-         initiation)",
-        dc.mfd_exponent, dc.mfd_exponent_channel, dc.mfd_chi_lo, dc.mfd_chi_hi
+        "law: p ramps {} -> {} over chi = A*S^2 in [{:.2e}, {:.2e}]; at {:.2e} the cell\n\
+         switches to SINGLE-RECEIVER   (Montgomery & Dietrich channel initiation)",
+        dc.mfd_exponent, dc.mfd_exponent_channel, dc.mfd_chi_lo, dc.mfd_chi_hi, dc.mfd_chi_hi
     );
 
     println!("\n--- ACCEPTANCE 1: PEAK CATCHMENT (cells) ---");
@@ -309,8 +309,11 @@ fn main() {
                 }
             }
             if s_max > 0.0 {
-                chis.push(area[i] * s_max * s_max);
-                smax_all.push(s_max);
+                // Dimensionless gradient — `s_max` above is a rise per CELL WIDTH,
+                // and `chi` is defined on the true gradient (see `partition_cell`).
+                let s_dim = s_max / run.grid.cell_m;
+                chis.push(area[i] * s_dim * s_dim);
+                smax_all.push(s_dim);
             }
         }
     }
@@ -336,6 +339,40 @@ fn main() {
         below as f64 * 100.0 / chis.len() as f64,
         (chis.len() - below - above) as f64 * 100.0 / chis.len() as f64,
         above as f64 * 100.0 / chis.len() as f64
+    );
+
+    // ---- the threshold sweep: the concentration/divergence trade, MEASURED --
+    // `chi_hi` is the one knob that decides how much of the land is treated as
+    // channelised, and it buys peak catchment with simultaneous divergence. That
+    // trade is the whole calibration, so it is reported as a curve rather than
+    // asserted from the single shipped point. `chi_lo` is held at `chi_hi / 4`
+    // so the ramp keeps its width and only the switch moves.
+    println!("\n--- THE TRADE: chi_hi sweep (chi_lo = chi_hi / 4) ---");
+    println!(
+        "   chi_hi   chanlsd %      peak     p99   top1%    simul (c,epoch)   entries   deep s"
+    );
+    for chi_hi in [3.0e-2, 6.0e-2, 1.2e-1, 2.4e-1] {
+        let c = DeepConfig {
+            mfd_chi_lo: chi_hi / 4.0,
+            mfd_chi_hi: chi_hi,
+            ..cfg_hybrid(&pregen.grid)
+        };
+        let m = measure(&pregen.grid, &c);
+        let chan = chis.iter().filter(|&&x| x >= chi_hi).count() as f64 * 100.0 / chis.len() as f64;
+        println!(
+            "{chi_hi:>9.2e} {chan:>10.2} {:>9.0} {:>7.1} {:>7.4} {:>18} {:>9} {:>8.1}",
+            m.peak_catchment,
+            m.pct[2],
+            m.top1_share,
+            m.simul_cell_epochs,
+            m.entries,
+            m.deep_secs
+        );
+    }
+    println!(
+        "  (the 'chanlsd %' column is the share of land above chi_hi in the SHIPPED\n   \
+         run's chi field, so it is a consistent yardstick across rows rather than\n   \
+         each row's own self-report.)"
     );
 
     // ---- stubs #22: what the representational floor actually costs ---------

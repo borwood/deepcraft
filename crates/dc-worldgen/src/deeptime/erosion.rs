@@ -256,17 +256,32 @@ pub struct MfdParams {
     /// has to serve hillslope and channel alike. Once `p` varies, the endpoints
     /// should be the endpoints and not the compromise.
     pub p_hill: f64,
-    /// The convergence exponent where flow is **channelised**. Large, so a
-    /// channel's discharge follows the steepest line: at `p = 16` a neighbour at
-    /// 90 % of the maximum slope keeps 19 % of the steepest direction's weight and
-    /// one at 70 % keeps 0.3 %, which the representational floor then drops.
+    /// The convergence exponent at the top of the ramp — the last value before
+    /// the cell is treated as fully channelised. At `p = 16` a neighbour at 90 %
+    /// of the maximum slope keeps 19 % of the steepest direction's weight and one
+    /// at 70 % keeps 0.3 %, which the representational floor then drops.
     ///
     /// `p_chan == p_hill` is **uniform `p`** — journal/0109's solve, recovered
-    /// exactly, with no ramp evaluated.
+    /// exactly, with no ramp and no switch evaluated.
     pub p_chan: f64,
     /// `χ` at or below which the exponent is [`Self::p_hill`].
     pub chi_lo: f64,
-    /// `χ` at or above which the exponent is [`Self::p_chan`].
+    /// **`χ` at or above which the cell routes SINGLE-RECEIVER, exactly** — the
+    /// hard switch, and it is a measured necessity rather than a stylistic choice.
+    ///
+    /// A smooth exponent cannot make a channel confined on terrain this smooth.
+    /// The partition's weights go as `(Sₖ/S_max)^p`, so a neighbour at 90 % of the
+    /// steepest slope still keeps 19 % at `p = 16` and 8 % at `p = 24`; suppressing
+    /// it below the representational floor needs `p > 44`, and a neighbour at 95 %
+    /// needs `p > 90`. **Measured on the shipped world: `p = 16` everywhere lifts
+    /// the peak catchment only 84 → 145 cells against D8's 1,175** — the trunk
+    /// still bleeds a fifth of its discharge at every hop, and a fifth per hop
+    /// down a fifty-hop chain is everything.
+    ///
+    /// So above `chi_hi` the solve routes the whole discharge down the steepest
+    /// slope: **once flow is channelised it is confined, and confined flow takes
+    /// one path.** The ramp below it is what keeps the transition continuous, so
+    /// the switch fires at `p = p_chan` rather than out of a dispersive state.
     pub chi_hi: f64,
     /// [`MFD_MIN_WEIGHT`] as a knob — the representational floor on a share.
     pub min_weight: f64,
@@ -293,11 +308,20 @@ impl MfdParams {
         self.p_hill == self.p_chan
     }
 
+    /// Is the flow at channelisation index `chi` confined — i.e. does this cell
+    /// route **single-receiver**? Always false for a uniform law.
+    #[inline]
+    #[must_use]
+    pub fn is_channel(&self, chi: f64) -> bool {
+        !self.is_uniform() && chi >= self.chi_hi
+    }
+
     /// **The exponent at channelisation index `chi`.** `p_hill` at or below
     /// `chi_lo`, `p_chan` at or above `chi_hi`, log-linear between — monotone
     /// non-decreasing in `chi` by construction, which is the invariant the gate
     /// pins (a law wired backwards would disperse channels and concentrate
-    /// hillslopes, and no absolute count could see it).
+    /// hillslopes, and no absolute count could see it). Above `chi_hi` the
+    /// exponent stops being consulted at all: see [`Self::is_channel`].
     ///
     /// The ramp is **rounded to an integer**, and that is a cost decision stated
     /// rather than hidden: a fractional exponent forces `powf` on
@@ -328,8 +352,8 @@ impl Default for MfdParams {
         Self {
             p_hill: 1.0,
             p_chan: 16.0,
-            chi_lo: 1.0e-4,
-            chi_hi: 1.0e-2,
+            chi_lo: 3.0e-2,
+            chi_hi: 1.2e-1,
             min_weight: MFD_MIN_WEIGHT,
         }
     }
@@ -461,6 +485,7 @@ fn partition_cell(
     filled: &[f64],
     sea_level: f64,
     area_i: f64,
+    cell_m: f64,
     mp: &MfdParams,
     w_out: &mut [f64],
 ) -> i32 {
@@ -471,9 +496,11 @@ fn partition_cell(
     let (gx, gy) = coords_of(i, w);
     let fi = filled[i];
     // Pass 1: the downslope gradients, and the steepest of them — which is both
-    // the normaliser and the `S` of the channelisation index.
+    // the normaliser and the `S` of the channelisation index. `steepest` is the
+    // direction that takes the whole discharge when the cell is channelised.
     let mut slope = [0.0f64; MFD_DIRS];
     let mut s_max = 0.0f64;
+    let mut steepest = -1i32;
     for (d, (dx, dy)) in NEIGH8.into_iter().enumerate() {
         let Some(j) = in_grid(gx + dx, gy + dy, w) else {
             continue;
@@ -486,16 +513,29 @@ fn partition_cell(
         slope[d] = s;
         if s > s_max {
             s_max = s;
+            steepest = d as i32;
         }
     }
     if s_max <= 0.0 {
         return -1;
     }
-    // The channelisation index. `slope` here is a *rise over cell widths*, not
-    // over metres — `cell_m` is a constant factor over the whole grid and is
-    // folded into the calibration of `chi_lo`/`chi_hi` rather than carried here,
-    // which keeps the partition free of the cell size.
-    let p = mp.exponent_at(area_i * s_max * s_max);
+    // The channelisation index. `s_max / cell_m` is the dimensionless gradient —
+    // `slope` above is a rise per **cell width**, and leaving the cell size inside
+    // `χ` would put a second, invisible resolution factor in a threshold that
+    // already carries one through `A` (stub #26 owns what remains).
+    let s_dim = s_max / cell_m;
+    let chi = area_i * s_dim * s_dim;
+    // **The channel switch.** Confined flow takes one path: the whole discharge
+    // goes down the steepest slope, exactly. This is a *routing* statement, not a
+    // large exponent — see `MfdParams::chi_hi` for why an exponent cannot do it.
+    // The mass rules are trivially satisfied (one weighted direction, so it is
+    // also the last, and it takes `q − 0`), and the traversal licence holds
+    // because the chosen direction has `drop > 0` like every other weighted one.
+    if mp.is_channel(chi) {
+        w_out[steepest as usize] = 1.0;
+        return steepest;
+    }
+    let p = mp.exponent_at(chi);
     // Integer exponents go through `powi` — the hybrid ramp is rounded so this is
     // the taken branch on every cell of a production run, where `powf` on
     // 8 directions × 297k cells × 200 epochs is half a billion transcendental
@@ -1914,7 +1954,7 @@ impl Erosion {
     /// initial condition rather than a guess: nothing is channelised until water
     /// has run once, which is also the physical statement.
     pub fn route(&mut self) {
-        let (w, sea) = (self.w, self.sea_level);
+        let (w, sea, cell_m) = (self.w, self.sea_level, self.cell_m);
         let parallel = self.par();
         let Some(mp) = self.mfd else {
             let surf = &self.surf;
@@ -1943,7 +1983,7 @@ impl Erosion {
         } = self;
         let (surf, filled, area) = (&*surf, &*filled, &*area);
         let step = |i: usize, r: &mut i32, ws: &mut [f64]| {
-            let best = partition_cell(i, w, surf, filled, sea, area[i], &mp, ws);
+            let best = partition_cell(i, w, surf, filled, sea, area[i], cell_m, &mp, ws);
             *r = if best < 0 {
                 -1
             } else {
@@ -3004,6 +3044,7 @@ mod mfd_tests {
                 &filled,
                 -1000.0,
                 0.0,
+                1.0,
                 &MfdParams::uniform(p),
                 &mut w_out,
             );
@@ -3049,6 +3090,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams::uniform(16.0),
             &mut w_out,
         );
@@ -3079,6 +3121,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams::uniform(4.0),
             &mut w_out,
         );
@@ -3106,6 +3149,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams::uniform(1.0),
             &mut w_out,
         );
@@ -3131,6 +3175,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams::uniform(4.0),
             &mut w_out,
         );
@@ -3155,6 +3200,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams::uniform(4.0),
             &mut w_out,
         );
@@ -3213,20 +3259,18 @@ mod mfd_tests {
     #[test]
     fn the_same_slope_field_disperses_on_a_hillslope_and_concentrates_in_a_channel() {
         let mp = MfdParams::default();
-        let drops = [1.0, 2.0, 0.5, 2.6, 2.2, 0.25, 1.5, 1.0];
-        let (c, surf, filled) = patch(drops);
-        // S_max = 2.6 (cardinal), so chi = A · 6.76: A = 1 cell is far above
-        // chi_hi... which is exactly the resolution caveat the doc names — these
-        // are metres of drop per CELL WIDTH on a 3×3 toy, not a real gradient.
-        // Scale the patch down so the slopes are production-like (~1e-2).
-        let filled: Vec<f64> = filled.iter().map(|z| 100.0 + (z - 100.0) * 0.01).collect();
-        let surf = surf.iter().map(|z| 100.0 + (z - 100.0) * 0.01).collect::<Vec<_>>();
+        let (c, surf, filled) = patch([1.0, 2.0, 0.5, 2.6, 2.2, 0.25, 1.5, 1.0]);
+        // `cell_m = 100` makes the steepest gradient `2.6/100 = 0.026`, a
+        // production-like value; `χ = A · 0.026²`, so `A = 1` is a hillslope
+        // (χ = 6.8e-4, below `chi_lo`) and `A = 4000` is a channel (χ = 2.7,
+        // above `chi_hi`). One slope field, two drainage areas.
         let mut hill = [0.0f64; MFD_DIRS];
         let mut chan = [0.0f64; MFD_DIRS];
-        partition_cell(c, 3, &surf, &filled, -1000.0, 1.0, &mp, &mut hill);
-        partition_cell(c, 3, &surf, &filled, -1000.0, 4000.0, &mp, &mut chan);
+        partition_cell(c, 3, &surf, &filled, -1000.0, 1.0, 100.0, &mp, &mut hill);
+        partition_cell(c, 3, &surf, &filled, -1000.0, 4000.0, 100.0, &mp, &mut chan);
         let n_hill = hill.iter().filter(|&&v| v > 0.0).count();
         let n_chan = chan.iter().filter(|&&v| v > 0.0).count();
+        assert_eq!(n_chan, 1, "a channelised cell must route single-receiver");
         assert!(
             n_hill > n_chan,
             "hillslope kept {n_hill} receivers, channel kept {n_chan} — the law did not vary"
@@ -3261,7 +3305,7 @@ mod mfd_tests {
             ..MfdParams::default()
         };
         let mut w_out = [0.0f64; MFD_DIRS];
-        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 0.0, &mp, &mut w_out);
+        let best = partition_cell(c, 3, &surf, &filled, -1000.0, 0.0, 1.0, &mp, &mut w_out);
         assert!(best >= 0, "a cell with eight downslope neighbours became a sink");
         let sum: f64 = w_out.iter().sum();
         assert!((sum - 1.0).abs() < 1e-12, "weights sum to {sum}");
@@ -3283,6 +3327,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams::uniform(4.0),
             &mut floored,
         );
@@ -3293,6 +3338,7 @@ mod mfd_tests {
             &filled,
             -1000.0,
             0.0,
+            1.0,
             &MfdParams {
                 min_weight: 0.0,
                 ..MfdParams::uniform(4.0)

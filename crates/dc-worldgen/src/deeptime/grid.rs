@@ -505,8 +505,8 @@ impl Default for DeepConfig {
             // into; with a ramp, the endpoints should be the endpoints.
             mfd_exponent: 1.0,
             mfd_exponent_channel: 16.0,
-            mfd_chi_lo: 1.0e-4,
-            mfd_chi_hi: 1.0e-2,
+            mfd_chi_lo: 3.0e-2,
+            mfd_chi_hi: 1.2e-1,
             mfd_min_weight: super::erosion::MFD_MIN_WEIGHT,
             material_transport: true,
             denudation_ledger: false,
