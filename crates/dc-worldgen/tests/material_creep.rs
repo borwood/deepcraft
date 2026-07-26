@@ -207,25 +207,97 @@ fn mass_is_conserved_with_material_creep_on() {
     );
 }
 
-/// **The terrain is moved by the scalar, and the identity is an attribution.**
+// ---------------------------------------------------------------------------
+// 4. What a mover is allowed to have delivered.
+
+/// **No unit a mover set down claims to be an in-place organic** — the rule
+/// `Litho::as_deposited` already made for basement, extended to peat, coal and
+/// charcoal because they are made where they lie rather than delivered
+/// (corrections #57, journal/0112).
 ///
-/// This is the separation the whole slice is built on and it is worth pinning
-/// directly: the per-species creep plane never touches `H`. `grid.h` still moves
-/// by `netdiff`, the same four-edge gather the anonymous path ran, so a defect in
-/// the identity arithmetic can produce a wrong *rock* but never a wrong
-/// *elevation*.
+/// This is the one behavioural surprise of the slice and it is worth a named
+/// guard. Charcoal is a **fire event**, capped at 0.04 m; the fluvial pass could
+/// always have picked one up and re-deposited it, but it moves 0.109 % of this
+/// world's sediment, so a transported organic never won a cell's mixture argmax.
+/// Creep moves 918× more — and the first production run with it on produced a
+/// voxel that was **8/8 charcoal**, because thin fire beds crept downslope, won
+/// the argmax at a low-deposition cell, and then merged across epochs under one
+/// mineral tag into a stratum the cap exists to forbid. The rule was always
+/// incomplete; only the magnitude was new.
 ///
-/// Proven by the one configuration where nothing else can differ: with the
-/// erodibility coupling **off**, the species a unit is made of has no path back
-/// into any rate, so the terrain must be identical with creep identity on and off.
-/// With the coupling on — the shipped configuration — it deliberately is not, and
-/// that is the previous test's `assert_ne`.
+/// Asserted over the whole record rather than at the site that found it, because
+/// "a stratum of charcoal" is wrong wherever it appears.
 #[test]
-fn creep_identity_cannot_move_the_terrain_on_its_own() {
+fn no_deposited_unit_claims_to_be_an_in_place_organic() {
+    use dc_worldgen::deeptime::lithology::Litho;
+    let pregen = small_world();
+    let f = field(&pregen.grid, true, true);
+    let mut offenders = 0usize;
+    let mut thickest = 0.0f64;
+    for u in f.strata.iter().flat_map(|s| s.units.iter()) {
+        // The *biotic* layer lays peat, coal and charcoal directly and honestly —
+        // it deposits in place and never through a load — and it stamps its own
+        // biofacies on the tag. What must not exist is a unit the **erosion
+        // recorder** built (a mineral tag) that nonetheless claims to be one of
+        // those in-place products.
+        if u.tag.biota.is_organic() {
+            continue;
+        }
+        if matches!(
+            u.species,
+            Litho::OrganicPeat | Litho::OrganicCoal | Litho::OrganicCharcoal
+        ) {
+            offenders += 1;
+            thickest = thickest.max(u.thickness_m);
+        }
+    }
+    assert_eq!(
+        offenders, 0,
+        "{offenders} mineral-tagged units claim to be an in-place organic \
+         (thickest {thickest:.3} m) — a mover carried a fire bed or a peat and the \
+         record called what landed a seam"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// 5. The identity is an attribution — and where it stops being one.
+
+/// **Within an epoch, creep identity cannot move a metre of terrain. Across
+/// epochs it moves the world, and by a named route.**
+///
+/// The separation this slice is built on is that the per-species creep plane never
+/// touches `H`: `grid.h` still moves by the scalar `netdiff`, the same four-edge
+/// gather the anonymous path ran, so a defect in the identity arithmetic can
+/// produce a wrong *rock* but never a wrong *elevation*. `record` reads the plane
+/// after `diffuse` has already applied the scalar, and nothing else does.
+///
+/// **A one-epoch run is the only place that is observable, and finding that out
+/// was the useful part of writing this test.** The first draft tried to isolate it
+/// by turning the erodibility coupling off, and the terrain moved anyway; then by
+/// turning `full_agents` off too (the frost multiplier, the eolian deflation
+/// susceptibility and the wave attack rate each read `outcrop_shares` as well),
+/// and it *still* moved. The last route is not a coupling that can be switched
+/// off at all: the record's rock is what `outcrop_shares` publishes, that
+/// composition is what the fluvial load **entrains**, and the competence ceiling
+/// rains a species out by its settling velocity — so changing what a hillslope is
+/// made of changes how much of it the river can hold. There is no configuration in
+/// which the identity exists and is inert, which is the strongest available
+/// statement that this is physics rather than bookkeeping.
+///
+/// So the claim is pinned where it is exactly true: **the first epoch, with the
+/// agent roster off**. Both arms enter with the same (empty) record, every phase
+/// runs on identical inputs, and the only thing that can differ is what `record`
+/// writes at the end. The roster has to go because the wind and wave agents run
+/// **after** the recorder — deliberately, so their own facies reach the record —
+/// and would read this epoch's freshly-written species back into a rate before the
+/// epoch is out.
+#[test]
+fn creep_identity_moves_no_terrain_in_the_epoch_it_is_measured_in() {
     let pregen = small_world();
     let base = DeepConfig {
         material_transport: true,
-        erodibility: false,
+        iterations: 1,
+        full_agents: false,
         ..production_config(&pregen.grid, SEED)
     };
     let off = build_field_cfg(
@@ -245,12 +317,13 @@ fn creep_identity_cannot_move_the_terrain_on_its_own() {
     assert_eq!(
         providers_common::surface_fingerprint(&off),
         providers_common::surface_fingerprint(&on),
-        "with erodibility off, creep identity has no path into a rate and must \
-         not have moved a metre of terrain"
+        "creep identity moved terrain inside the epoch that produced it — the \
+         species plane is supposed to be read only by the recorder"
     );
     assert_ne!(
         providers_common::record_fingerprint(&off),
         providers_common::record_fingerprint(&on),
-        "…and it must still have changed what the record says the rock IS"
+        "…and one epoch of creep must already have changed what the record says \
+         the rock IS, or the plane is not reaching the recorder at all"
     );
 }

@@ -357,25 +357,45 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0x324B5794DE970CE4  materials 0x066A7463EA779B1D  table 0x7AE04323CEE0EDAA
 //   medium 0x539           blocks 0xF071D5DC154FB2D4  materials 0xC1AA830057B948FA  table 0xFC5028203EFCF9D1
 //   small  0xC11A7E2026    blocks 0x6D12F2FC4240638D  (materials/table unmoved)
+//
+// **Moved 2026-07-26 by material-aware hillslope CREEP (journal/0112, Movement 2b
+// continuation (b)) — authorized, and the largest-authority physics move of the
+// three above.** journal/0110 gave the *rivers* an identity and measured the effect
+// at 0.000006 % of the archive, because fluvial transport is 0.109 % of this
+// world's sediment routing (corrections #55). Hillslope creep moves 918x more, and
+// it carried no identity at all. Now it does: every diffusive edge moves the
+// donor's whole near-surface composition, unsorted, and the receiving cell records
+// what actually came down the slope.
+//
+// **The Small row reads the same way it did for MFD and 2b** — blocks only, with
+// `materials` and `table` byte-identical — for the same reason: Small's sampled
+// chunks carry no strata record, so their contents are the unchanged year-zero
+// fallback while their block follows a surface that moved. Both media moved on all
+// three, and this time the archive move is the *point* rather than the side effect.
+// Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0xABAFD31A268A41C9  materials 0xF55E9B53E7707DC9  table 0x1C1E2105F9B70B4B
+//   medium 0x539           blocks 0x3CBE180104171798  materials 0xA84E2386F89C48C3  table 0xE7B2211FF942A2D2
+//   small  0xC11A7E2026    blocks 0xDB4D1F79DE34197C  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0xABAF_D31A_268A_41C9,
-        0xF55E_9B53_E770_7DC9,
-        0x1C1E_2105_F9B7_0B4B,
+        0x7DA5_DFD7_EE4F_4852,
+        0x40A2_68BB_71CE_60DF,
+        0xCD66_59EA_6ABF_E45D,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x3CBE_1801_0417_1798,
-        0xA84E_2386_F89C_48C3,
-        0xE7B2_211F_F942_A2D2,
+        0xADA0_D6B5_2BEF_FE52,
+        0xA530_7856_A753_6C46,
+        0x436C_793C_5766_E5A2,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0xDB4D_1F79_DE34_197C,
+        0xA5A0_AD99_4EBC_E045,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

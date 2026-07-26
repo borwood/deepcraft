@@ -878,6 +878,52 @@ solve byte for byte; the pre-2b goldens are still reachable and still asserted
 > slice with a visible payoff is the **gravity/mass-wasting** member of § 13.2's
 > family, not a refinement of the fluvial one — creep is what moves this world.
 
+### 13.8c BUILT 2026-07-26 — the second slice, the gravity member (journal/0112)
+
+**Shipped, on by default** (`DeepConfig::material_creep`, gated on
+`material_transport`). Off is the fluvial-only world byte for byte; those goldens
+are still reachable and still asserted (`tests/material_creep.rs`).
+
+§ 13.8b's own warning was the brief: *"the next slice with a visible payoff is the
+gravity/mass-wasting member of § 13.2's family, not a refinement of the fluvial
+one — creep is what moves this world."* This is that slice.
+
+- **Creep joins the family, and its competence curve is that there isn't one.**
+  § 13.2 says the members share the load machinery and differ in *field* and
+  *competence*. Gravity's field is the surface gradient the diffusion phase already
+  descends; its competence ceiling is **absent**, because creep is diffusive rather
+  than selective. So **identity travels and nothing is sorted** — every edge moves
+  the donor's whole composition in proportion.
+- **That is the point, not a shortcut.** Colluvium is *locally derived and poorly
+  sorted*; alluvium is *far-travelled and sorted*. Giving creep a ceiling to make
+  it look like the river would have erased the one contrast the slice buys.
+- **One composition seam, now three consumers.** What creep moves is the same
+  `outcrop_shares` near-surface window the erodibility blend and fluvial
+  entrainment already read — no second walk.
+- **One split function, three callers.** Entrainment, incision and creep all route
+  through `split_by_shares`, which applies journal/0109's residual rule on the
+  **species** axis (last non-zero share takes `total − Σ earlier`). journal/0110
+  had to state the anti-leak rule twice; now no caller can invent its own budget.
+- **The conservation proof is different in kind, because a diffusion junction has
+  no downstream order.** There is no "cell hands its load to its receivers"
+  moment to residue-check. What replaces it: each edge flux is **antisymmetric to
+  the bit** (IEEE-754 subtraction is exactly antisymmetric), and both endpoints
+  split that identical flux by the identical donor composition — so what leaves a
+  cell of a species is bit for bit what arrives next door. Asserted as two running
+  maxima over the whole run: `Σ_species` per cell equals the scalar metres the
+  terrain moved, and `Σ_cells` per species is zero.
+- **Identity is not a sidecar, and there is no configuration in which it is.**
+  The record's rock is what `outcrop_shares` publishes; that composition sets the
+  erodibility blend, the frost multiplier, the eolian deflation susceptibility, the
+  wave attack rate — *and* what the fluvial load entrains, which the competence
+  ceiling then rains out by settling velocity. So the goldens move. The claim is
+  pinned where it is exactly true: within the epoch that produces it, the identity
+  moves no terrain at all (`creep_identity_moves_no_terrain_in_the_epoch_it_is
+  _measured_in`).
+- **The record still says *what* arrived and not *who brought it*** — `stubs.md`
+  #25. `DepUnit` is 16 B with no padding left; the free version is a packed
+  `(species, mover)` byte and it wants to land with § 13.8's lineage history.
+
 ### 13.8 Three deferred layers (named, not this arc)
 - **3D volumetric flow** (underwater rivers, turbidity currents, cave streams): a richer
   *flow field* (the free-water body graph, §6/§7); transport-follows-the-field is unchanged.

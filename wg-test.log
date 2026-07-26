@@ -1,0 +1,587 @@
+   Compiling dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-acaaa9dbc6daaec5f\crates\dc-worldgen)
+    Finished `release` profile [optimized] target(s) in 15.26s
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_worldgen-1642dca5deb7af91.exe)
+
+running 148 tests
+test collapse::tests::classify_reproduces_the_retired_class_table ... ok
+test deeptime::erosion::creep_tests::a_composition_split_closes_to_the_bit ... ok
+test deeptime::erosion::creep_tests::a_surface_difference_is_exactly_antisymmetric ... ok
+test collapse::tests::draw_class_is_unbiased_over_the_draw ... ok
+test deeptime::erosion::creep_tests::an_absent_species_stays_absent ... ok
+test deeptime::erosion::creep_tests::an_unknown_composition_fabricates_no_identity ... ok
+test deeptime::erosion::creep_tests::the_creep_split_is_linear_in_the_quantity_so_nothing_is_sorted ... ok
+test deeptime::erosion::mfd_tests::a_cell_with_no_lower_neighbour_is_a_sink ... ok
+test deeptime::erosion::mfd_tests::the_partition_follows_slope_not_drop ... ok
+test deeptime::erosion::mfd_tests::the_partition_weights_sum_to_one ... ok
+test deeptime::erosion::mfd_tests::a_large_exponent_collapses_the_partition_onto_one_receiver ... ok
+test deeptime::erosion::mfd_tests::a_unit_exponent_spreads_across_every_downslope_neighbour ... ok
+test deeptime::flux::tests::a_flux_entry_is_sixteen_bytes ... ok
+test deeptime::flux::tests::face_codes_round_trip ... ok
+test deeptime::erosion::mfd_tests::the_weight_floor_renormalises_rather_than_deleting_discharge ... ok
+test deeptime::geotherm::tests::rift_is_hotter_than_craton_and_temperature_rises_with_depth ... ok
+test deeptime::flux::tests::the_lateral_faces_are_an_involution ... ok
+test deeptime::geotherm::tests::arc_is_hot_and_trench_is_cold ... ok
+test deeptime::geotherm::tests::the_gradient_is_clamped_to_a_plausible_band ... ok
+test deeptime::head::tests::bound_head_crosses_a_surface_drainage_divide ... ok
+test deeptime::head::tests::confinement_is_derived_from_the_record_never_stored ... ok
+test deeptime::head::tests::the_exchange_plane_agrees_with_the_field ... ok
+test deeptime::head::tests::the_reference_lithologies_straddle_the_aquifer_and_aquitard_thresholds ... ok
+test deeptime::head::tests::head_can_exceed_the_local_surface_which_is_artesian ... ok
+test deeptime::head::tests::saturated_and_submerged_columns_exchange_nothing ... ok
+test deeptime::inventory::tests::an_undeclared_edge_does_not_run_at_all_not_merely_goes_unrecorded ... ok
+test deeptime::inventory::tests::a_cells_run_ends_at_its_own_boundary_not_the_next_cells ... ok
+test deeptime::inventory::tests::a_fact_cannot_name_an_undeclared_transition ... ok
+test deeptime::inventory::tests::derived_regolith_is_the_whole_loose_cover_over_a_production_shaped_inventory ... ok
+test deeptime::inventory::tests::buried_loose_below_a_structure_is_excluded_from_surface_h ... ok
+test deeptime::inventory::tests::base_composition_matches_the_collapse_tier_routing ... ok
+test deeptime::inventory::tests::every_axis_survives_the_narrowing ... ok
+test deeptime::inventory::tests::dissolution_edge_commits_a_to_void_fact ... ok
+test deeptime::inventory::tests::eighths_appear_only_at_the_quantize_step ... ok
+test deeptime::inventory::tests::identity_default_commit_appends_no_facts_and_leaves_the_record ... ok
+test deeptime::inventory::tests::move_form_is_a_mass_neutral_read_modify_write_edge ... ok
+test deeptime::inventory::tests::narrowing_costs_at_most_one_rounding_of_the_storage_resolution ... ok
+test deeptime::inventory::tests::non_identity_a_known_edge_commits_a_fact_that_re_derives ... ok
+test deeptime::inventory::tests::fact_order_within_a_slot_is_preserved_across_interleaved_slots ... ok
+test deeptime::inventory::tests::rekeying_moves_a_run_and_leaves_it_exact_sized ... ok
+test deeptime::inventory::tests::sizes_are_pinned ... ok
+test deeptime::inventory::tests::substrate_accommodates_fluid_without_building_it ... ok
+test deeptime::inventory::tests::the_edge_dictionary_names_materials_and_detects_a_registry_shift ... ok
+test deeptime::inventory::tests::the_grid_record_reproduces_every_cell_fact_for_fact_and_in_order ... ok
+test deeptime::inventory::tests::the_ledger_costs_its_facts_not_its_slots ... ok
+test deeptime::lithology::tests::a_limestone_can_be_cliff_forming_and_cave_forming_at_once ... ok
+test deeptime::inventory::tests::the_record_costs_its_facts_not_its_cells ... ok
+test deeptime::inventory::tests::the_resident_fact_is_eight_bytes_with_zero_padding_and_the_accumulator_is_not ... ok
+test deeptime::lithology::tests::every_agent_has_an_axis_and_they_are_distinct_reads ... ok
+test deeptime::lithology::tests::frost_and_wave_rank_rocks_differently_from_abrasion ... ok
+test deeptime::lithology::tests::basement_is_the_most_abrasion_resistant_thing_in_the_world ... ok
+test deeptime::lithology::tests::the_cap_bounds_every_multiplier_both_ways ... ok
+test deeptime::lithology::tests::soft_rock_erodes_faster_than_hard_rock ... ok
+test deeptime::lithology::tests::nothing_in_the_roster_is_susceptible_to_dissolution ... ok
+test deeptime::lithology::tests::the_reference_lithology_is_exactly_neutral ... ok
+test deeptime::providers::depth_to_water::tests::the_wet_index_is_clamped_and_monotone ... ok
+test deeptime::providers::depth_to_water::tests::the_identity_depth_to_water_leaves_the_plane_empty ... ok
+test deeptime::providers::paleo_temperature::tests::the_identity_paleo_temp_is_the_present_temperature ... ok
+test deeptime::providers::parent_p::tests::the_identity_parent_p_is_uniform_one ... ok
+test deeptime::providers::depth_to_water::tests::wet_at_falls_through_to_the_proxy_only_when_the_plane_is_empty ... ok
+test deeptime::providers::paleo_temperature::tests::the_identity_depends_on_nothing_but_the_present_temperature ... ok
+test deeptime::providers::tests::a_swapped_slot_is_not_the_identity_set ... ok
+test deeptime::providers::tests::every_slot_is_enumerated_once_with_a_distinct_name ... ok
+test deeptime::providers::tests::explicitly_supplying_the_identity_function_still_counts_as_supplied ... ok
+test deeptime::providers::tests::the_default_set_is_the_identity_set ... ok
+test deeptime::providers::tests::the_none_path_is_the_identity_function ... ok
+test deeptime::providers::tests::the_report_names_exactly_the_swapped_slots ... ok
+test deeptime::runner::tests::climate_is_a_coarse_rate_pass_seeded_at_epoch_zero ... ok
+test deeptime::providers::wave_energy::tests::the_identity_wave_energy_is_the_configured_rate ... ok
+test deeptime::runner::tests::a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename ... ok
+test deeptime::runner::tests::order_ignores_registration_order ... ok
+test deeptime::runner::tests::order_reproduces_the_erosion_step_phase_order ... ok
+test deeptime::runner::tests::every_lagged_read_in_the_roster_is_ordered_before_its_writers ... ok
+test deeptime::runner::tests::the_biology_erosion_lag_must_be_loop_carried_or_the_runner_rejects_a_cycle ... ok
+test deeptime::runner::tests::the_geotherm_is_a_declared_coarse_rate_field_pass ... ok
+test deeptime::runner::tests::the_head_field_is_absent_when_the_flag_is_off ... ok
+test deeptime::runner::tests::the_head_field_is_pinned_into_the_terrain_revision_it_reads ... ok
+test deeptime::runner::tests::the_geotherm_is_absent_off_the_tectonic_path ... ok
+test deeptime::runner::tests::the_head_field_is_a_declared_field_pass_the_flow_record_reads ... ok
+test deeptime::runner::tests::the_terrain_revision_declarations_are_schedule_neutral ... ok
+test deeptime::weather_behavior::tests::dt_of_one_is_byte_transparent_and_grouping_is_pinned ... ok
+test deeptime::weather_behavior::tests::form_change_is_the_mass_neutral_r_to_h_transfer ... ok
+test deeptime::runner::tests::weather_inventory_is_absent_off_and_a_declared_cellular_pass_on ... ok
+test deeptime::weather_behavior::tests::the_gate_blocks_a_drowned_cell ... ok
+test deeptime::weather_behavior::tests::the_material_property_drives_the_rate_in_the_single_material_path ... ok
+test deeptime::weather_inventory::tests::empty_inputs_are_the_identity_floor ... ok
+test deeptime::weather_inventory::tests::frost_acts_even_where_biota_is_absent ... ok
+test deeptime::weather_inventory::tests::bedrock_facts_key_stably_as_the_record_grows ... ok
+test deeptime::weather_inventory::tests::dt_scales_the_share_linearly ... ok
+test deeptime::weather_inventory::tests::mass_conservation_bedrock_structure_to_loose ... ok
+test deeptime::weather_inventory::tests::one_fact_per_agent_and_shares_sum_to_the_move ... ok
+test deeptime::weather_inventory::tests::weathering_accumulates_across_epochs ... ok
+test draws::tests::a_stream_is_a_pure_function_of_seed_domain_and_address ... ok
+test deeptime::weather_inventory::tests::one_fact_per_agent_per_firing ... ok
+test deeptime::weather_inventory::tests::rate_is_the_sum_of_the_three_agent_shares ... ok
+test draws::tests::every_domain_is_listed_and_distinct ... ok
+test draws::tests::the_deeptime_constants_agree_with_their_registered_domains ... ok
+test draws::tests::two_domains_are_independent_at_the_same_address ... ok
+test collapse::tests::coarse_surface_matches_near_column_height ... ok
+test fill::tests::a_span_inside_one_event_is_single ... ok
+test fill::tests::allocation_always_totals_eight_eighths ... ok
+test fill::tests::allocation_is_unbiased_over_the_draw ... ok
+test fill::tests::no_window_of_the_fill_draw_predicts_the_pore_offset ... ok
+test fill::tests::the_pore_rider_share_is_unbiased_over_its_offset ... ok
+test fill::tests::two_bands_in_one_voxel_draw_independent_offsets ... ok
+test geology::tests::deposit_deep_history_records_the_paleo_temperature_providers_answer ... ok
+test geology::tests::the_front_grades_upward_and_its_base_retains_parent_structure ... ok
+test geology::tests::the_front_profile_is_the_exponential_decay ... ok
+test geology::tests::the_weathering_front_conserves_the_ledger_product_mass ... ok
+test geology::tests::the_weathering_front_folds_into_a_basal_band ... ok
+test passgraph::tests::a_lagged_read_of_an_unwritten_resource_is_inert ... ok
+test passgraph::tests::a_lagged_read_of_ones_own_write_is_not_a_cycle ... ok
+test passgraph::tests::a_lagged_read_outranks_the_id_tie_break ... ok
+test passgraph::tests::ambiguous_writers_rejected ... ok
+test passgraph::tests::creator_before_reader ... ok
+test passgraph::tests::cycle_is_rejected ... ok
+test passgraph::tests::folding_a_lagged_read_into_reads_reverses_it_into_a_cycle ... ok
+test passgraph::tests::multiple_creators_rejected ... ok
+test passgraph::tests::reads_and_reads_prev_of_the_same_resource_is_rejected ... ok
+test passgraph::tests::require_creator_is_the_loop_vs_dag_switch ... ok
+test pipeline::tests::an_empty_selected_class_is_rejected_with_the_culprits ... ok
+test pipeline::tests::cycles_are_rejected_with_names ... ok
+test pipeline::tests::double_creation_is_rejected ... ok
+test pipeline::tests::duplicate_ids_are_rejected ... ok
+test pipeline::tests::order_ignores_registration_order ... ok
+test pipeline::tests::reads_of_unwritten_resources_are_rejected ... ok
+test pipeline::tests::unordered_modifiers_are_rejected ... ok
+test pipeline::tests::vanilla_geology_set_satisfies_every_selecting_pass ... ok
+test pipeline::tests::vanilla_order_is_the_legacy_order_then_geology ... ok
+test pregen::climate::tests::calm_belts_bracket_the_band_boundaries ... ok
+test pregen::climate::tests::rainout_makes_the_thirty_belt_arid_and_the_equator_wet_on_flat_land ... ok
+test pregen::climate::tests::subsidence_peaks_at_thirty_and_spares_equator_and_front ... ok
+test pregen::climate::tests::zonal_wind_never_reverses_without_passing_through_zero ... ok
+test pregen::climate::tests::zonal_wind_signs_match_the_historical_bands ... ok
+test water::coarse::tests::an_edit_is_an_exact_integer_delta ... ok
+test water::coarse::tests::edit_order_is_irrelevant_to_the_summary ... ok
+test water::coarse::tests::flat_cell_capacity_is_area_times_depth ... ok
+test collapse::tests::coarse_surface_answers_in_the_border_wilds ... ok
+test deeptime::field::shrink_tests::strata_is_shrunk_to_fit_after_the_compile ... ok
+test collapse::tests::coarse_surface_is_seed_deterministic ... ok
+test collapse::tests::climate_at_reproduces_cells_own_climate_at_centre has been running for over 60 seconds
+test collapse::tests::coarse_surface_agrees_with_the_near_column_surface has been running for over 60 seconds
+test collapse::tests::coarse_surface_far_field_derivation_is_sub_second has been running for over 60 seconds
+test collapse::tests::far_surface_class_dither_splits_multiclass_deep_cells has been running for over 60 seconds
+test collapse::tests::surface_voxel_routes_through_columnfill_per_voxel has been running for over 60 seconds
+test far::tests::synthesis_is_deterministic has been running for over 60 seconds
+test far::tests::synthesized_node_agrees_with_reduced_children_statistically has been running for over 60 seconds
+test far::tests::synthesized_node_tops_equal_the_ff2a_surface has been running for over 60 seconds
+test far::tests::synthesized_node_tops_equal_the_ff2a_surface ... ok
+test far::tests::synthesis_is_deterministic ... ok
+test collapse::tests::surface_voxel_routes_through_columnfill_per_voxel ... ok
+test collapse::tests::far_surface_class_dither_splits_multiclass_deep_cells ... ok
+test collapse::tests::coarse_surface_far_field_derivation_is_sub_second ... ok
+test far::tests::synthesized_node_agrees_with_reduced_children_statistically ... ok
+test collapse::tests::climate_at_reproduces_cells_own_climate_at_centre ... ok
+test collapse::tests::coarse_surface_agrees_with_the_near_column_surface ... ok
+
+test result: ok. 148 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 156.34s
+
+     Running tests\biotic.rs (B:\repos\borwood\deepcraft\target\release\deps\biotic-4699093ca112ba0b.exe)
+
+running 10 tests
+test coal_promotion_reads_burial_depth_not_seam_thickness ... ok
+test the_living_surface_is_never_coal_whatever_the_threshold ... ok
+test biotic_off_leaves_the_record_purely_mineral ... ok
+test mass_ledger_accounts_for_biotic_carbon ... ok
+test recorder_total_equals_alluvium_with_biotic_on ... ok
+test biotic_same_seed_is_byte_identical_planes_and_records ... ok
+test biology_changes_the_landscape_it_grows_on ... ok
+test biotic_parallel_equals_scalar_byte_identical ... ok
+test a_different_seed_diverges_biotically ... ok
+test the_four_target_signals_reach_the_record has been running for over 60 seconds
+test the_four_target_signals_reach_the_record ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 74.26s
+
+     Running tests\contents_contract.rs (B:\repos\borwood\deepcraft\target\release\deps\contents_contract-708959734ad60fff.exe)
+
+running 3 tests
+test block_equals_classify_of_contents has been running for over 60 seconds
+test classification_does_not_depend_on_generator_state has been running for over 60 seconds
+test generated_world_is_byte_identical_to_the_pre_contract_goldens has been running for over 60 seconds
+test classification_does_not_depend_on_generator_state ... ok
+test block_equals_classify_of_contents ... ok
+test generated_world_is_byte_identical_to_the_pre_contract_goldens ... FAILED
+
+failures:
+
+---- generated_world_is_byte_identical_to_the_pre_contract_goldens stdout ----
+
+thread 'generated_world_is_byte_identical_to_the_pre_contract_goldens' (28960) panicked at crates\dc-worldgen\tests\contents_contract.rs:416:5:
+the generated world moved — if that is intended, a journal entry must authorize it and these become the new goldens:
+seed 0xd5eed572026 (medium): blocks 0x7DA5DFD7EE4F4852 (want 0xABAFD31A268A41C9), materials 0x40A268BB71CE60DF (want 0xF55E9B53E7707DC9), table 0xCD6659EA6ABFE45D (want 0x1C1E2105F9B70B4B)
+seed 0x539 (medium): blocks 0xADA0D6B52BEFFE52 (want 0x3CBE180104171798), materials 0xA5307856A7536C46 (want 0xA84E2386F89C48C3), table 0x436C793C5766E5A2 (want 0xE7B2211FF942A2D2)
+seed 0xc11a7e2026 (small): blocks 0xA5A0AD994EBCE045 (want 0xDB4D1F79DE34197C), materials 0x32227B8748CB0F75 (want 0x32227B8748CB0F75), table 0xD0A397186727310C (want 0xD0A397186727310C)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    generated_world_is_byte_identical_to_the_pre_contract_goldens
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 128.39s
+
+error: test failed, to rerun pass `-p dc-worldgen --test contents_contract`
+     Running tests\deep_config_plumbing.rs (B:\repos\borwood\deepcraft\target\release\deps\deep_config_plumbing-b281e93066169e46.exe)
+
+running 10 tests
+test deep_overrides_is_reexported_at_crate_root ... ok
+test extent_from_arg_round_trips_the_three_names_and_rejects_garbage ... ok
+test empty_overrides_yield_the_production_config ... ok
+test pregen_run_equals_run_with_default_overrides ... ok
+test full_agents_override_toggles_the_roster ... ok
+test empty_overrides_build_a_byte_identical_field ... ok
+test erosion_budget_ten_reaches_the_run ... ok
+test erosion_budget_one_is_byte_identical_to_no_flag ... ok
+test amplitude_override_rides_through_with_tectonics ... ok
+test tectonic_history_override_toggles_the_tectonic_exports ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.88s
+
+     Running tests\deeptime.rs (B:\repos\borwood\deepcraft\target\release\deps\deeptime-4fc7621906dd8523.exe)
+
+running 6 tests
+test mass_is_conserved_up_to_uplift ... ok
+test recorder_total_equals_alluvium_everywhere ... ok
+test erosion_actually_moves_material ... ok
+test same_seed_is_byte_identical_planes_and_records ... ok
+test a_different_seed_diverges ... ok
+test parallel_equals_scalar_byte_identical ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.29s
+
+     Running tests\deeptime_integration.rs (B:\repos\borwood\deepcraft\target\release\deps\deeptime_integration-efb448b4d1a8e537.exe)
+
+running 3 tests
+test integrated_deep_record_tells_true_stories ... ok
+test collapse_column_story_comes_from_the_deep_record has been running for over 60 seconds
+test integrated_deep_field_is_byte_identical_same_seed has been running for over 60 seconds
+test collapse_column_story_comes_from_the_deep_record ... ok
+test integrated_deep_field_is_byte_identical_same_seed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 167.46s
+
+     Running tests\distribution_fill.rs (B:\repos\borwood\deepcraft\target\release\deps\distribution_fill-28284d94474b6824.exe)
+
+running 3 tests
+test expected_composition_matches_the_recorded_composition has been running for over 60 seconds
+test fill_does_not_depend_on_generation_order has been running for over 60 seconds
+test the_record_produces_mixed_voxel_spans has been running for over 60 seconds
+test expected_composition_matches_the_recorded_composition ... ok
+test fill_does_not_depend_on_generation_order ... ok
+test the_record_produces_mixed_voxel_spans ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 104.14s
+
+     Running tests\erodibility.rs (B:\repos\borwood\deepcraft\target\release\deps\erodibility-b6a067611fa5f20f.exe)
+
+running 13 tests
+test a_future_agent_reads_its_own_axis ... ok
+test litho_routing_matches_the_collapse_tier ... ok
+test the_stability_clamp_bounds_every_lithology ... ok
+test mass_is_conserved_with_coupling_on ... ok
+test recorder_total_equals_alluvium_with_coupling_on ... ok
+test the_differential_erosion_feedback_neither_runs_away_nor_stalls ... ok
+test stripped_columns_expose_basement ... ok
+test coupled_runs_are_byte_identical_on_a_repeated_seed ... ok
+test coupling_on_actually_changes_the_world ... ok
+test a_neutral_coupling_is_byte_identical_to_no_coupling ... ok
+test a_neutral_coupling_is_byte_identical_with_biology_on ... ok
+test coupled_parallel_equals_scalar_with_biology_on_too ... ok
+test coupled_parallel_equals_coupled_scalar_byte_identical ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 42.62s
+
+     Running tests\flux_record.rs (B:\repos\borwood\deepcraft\target\release\deps\flux_record-bafc47e9d4dbce52.exe)
+
+running 12 tests
+test convergence_is_representable ... ok
+test divergence_is_representable_which_a_receiver_tree_forbids ... ok
+test the_receiver_export_agrees_with_the_final_chapters_faces ... ok
+test lateral_and_boundary_faces_are_populated ... ok
+test the_record_reports_its_own_resident_cost ... ok
+test the_face_vocabulary_still_spans_three_families_and_the_atom_seams_are_intact ... ok
+test the_stratum_slot_is_derived_from_the_chapter_stamp ... ok
+test per_chapter_history_is_retained_not_just_the_final_epoch ... ok
+test a_face_is_shared_so_bs_in_flux_is_exactly_as_stored ... ok
+test the_flow_record_is_a_sidecar_and_the_world_is_byte_identical ... ok
+test the_flow_record_is_deterministic_on_a_repeated_seed ... ok
+test parallel_and_scalar_record_the_same_flux ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.82s
+
+     Running tests\full_agents.rs (B:\repos\borwood\deepcraft\target\release\deps\full_agents-2b2e0a0bc02102af.exe)
+
+running 10 tests
+test recorder_total_equals_alluvium_with_full_agents_on ... ok
+test mass_is_conserved_with_full_agents_on ... ok
+test frost_enhances_regolith_production_in_the_periglacial_band ... ok
+test wind_deflates_the_arid_interior_and_lays_loess_downwind ... ok
+test full_agents_on_actually_changes_the_world ... ok
+test waves_cut_down_the_coastline ... ok
+test full_agents_runs_are_byte_identical_on_a_repeated_seed ... ok
+test neutral_full_agents_is_byte_identical_to_off ... ok
+test neutral_full_agents_is_byte_identical_with_biology_and_erodibility_on ... ok
+test full_agents_parallel_equals_scalar_byte_identical ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.11s
+
+     Running tests\geology.rs (B:\repos\borwood\deepcraft\target\release\deps\geology-2996ff0ea5b108c1.exe)
+
+running 8 tests
+test family_contacts_wander_off_the_chunk_grid ... ok
+test accessory_inclusions_ride_igneous_pores has been running for over 60 seconds
+test adding_a_member_diversifies_but_never_inflates_its_class has been running for over 60 seconds
+test class_registration_order_cannot_change_world_bytes has been running for over 60 seconds
+test geology_world_regenerates_byte_identically has been running for over 60 seconds
+test placer_follows_the_sorted_gradient has been running for over 60 seconds
+test render_contents_carry_the_placer_mixture has been running for over 60 seconds
+test strata_records_are_province_and_climate_driven has been running for over 60 seconds
+test render_contents_carry_the_placer_mixture ... ok
+test class_registration_order_cannot_change_world_bytes ... ok
+test placer_follows_the_sorted_gradient ... ok
+test strata_records_are_province_and_climate_driven ... ok
+test accessory_inclusions_ride_igneous_pores ... ok
+test adding_a_member_diversifies_but_never_inflates_its_class ... ok
+test geology_world_regenerates_byte_identically ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 198.02s
+
+     Running tests\geotherm.rs (B:\repos\borwood\deepcraft\target\release\deps\geotherm-fecdf6cd7368a385.exe)
+
+running 4 tests
+test warm_reference_onset_for_thick_coal ... ignored
+test coal_follows_the_warm_crust_on_the_warm_reference_world has been running for over 60 seconds
+test the_geotherm_rule_governs_coalification_on_the_production_world has been running for over 60 seconds
+test the_temperature_field_is_populated_and_varies has been running for over 60 seconds
+test the_temperature_field_is_populated_and_varies ... ok
+test the_geotherm_rule_governs_coalification_on_the_production_world ... ok
+test coal_follows_the_warm_crust_on_the_warm_reference_world ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 125.09s
+
+     Running tests\head_field.rs (B:\repos\borwood\deepcraft\target\release\deps\head_field-c0f10b8d03d7322f.exe)
+
+running 8 tests
+test with_the_head_field_off_the_vertical_faces_return_to_zero ... ok
+test a_vertical_entry_binds_to_the_chapters_own_slot ... ok
+test the_vertical_faces_are_no_longer_zero ... ok
+test an_unconfined_water_table_never_stands_above_its_own_ground ... ok
+test the_head_field_is_deterministic_on_a_repeated_seed ... ok
+test the_head_field_reports_its_own_resident_cost ... ok
+test the_head_field_is_a_sidecar_and_the_terrain_is_byte_identical ... ok
+test parallel_and_scalar_plant_the_same_head_field ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.21s
+
+     Running tests\material_creep.rs (B:\repos\borwood\deepcraft\target\release\deps\material_creep-da80bc569abf71bc.exe)
+
+running 5 tests
+test creep_identity_moves_no_terrain_in_the_epoch_it_is_measured_in ... ok
+test no_species_is_created_or_destroyed_by_creep ... ok
+test mass_is_conserved_with_material_creep_on ... ok
+test creep_identity_is_inert_without_material_transport ... ok
+test material_creep_off_is_the_fluvial_only_world_and_on_moves_it ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.64s
+
+     Running tests\material_transport.rs (B:\repos\borwood\deepcraft\target\release\deps\material_transport-0341c40158e918d7.exe)
+
+running 9 tests
+test a_shared_total_leaks_per_species_and_an_own_budget_does_not ... ok
+test the_settling_order_comes_out_of_the_property_sheet ... ok
+test the_species_axis_costs_the_record_nothing ... ok
+test no_species_leaks_at_its_own_junction ... ok
+test nothing_over_the_competence_ceiling_is_still_in_the_water ... ok
+test no_recorded_unit_claims_to_be_basement ... ok
+test mass_is_conserved_with_material_transport_on ... ok
+test a_recorded_unit_can_be_made_of_something_its_environment_would_not_imply ... ok
+test material_transport_off_is_the_pre_slice_world_and_on_moves_it ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.88s
+
+     Running tests\mfd_routing.rs (B:\repos\borwood\deepcraft\target\release\deps\mfd_routing-091b95ec19fc119e.exe)
+
+running 9 tests
+test the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens ... ok
+test the_receiver_projection_is_still_among_the_recorded_faces ... ok
+test no_interior_cell_is_cut_below_all_of_its_neighbours ... ok
+test mass_is_conserved_with_mfd_on ... ok
+test the_partition_leaves_no_residue ... ok
+test every_routed_edge_descends_the_free_surface_potential ... ok
+test temporal_divergence_survives_alongside_the_simultaneous_kind ... ok
+test simultaneous_divergence_is_zero_without_mfd_and_positive_with_it ... ok
+test mfd_off_leaves_the_single_receiver_solve_untouched_and_on_moves_the_world ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.17s
+
+     Running tests\organic.rs (B:\repos\borwood\deepcraft\target\release\deps\organic-2c6ef11069ac1660.exe)
+
+running 5 tests
+test production_config_runs_the_biotic_layer ... ok
+test every_biofacies_routes_to_a_class_the_vanilla_set_can_fill ... ok
+test organic_member_selection_is_registration_order_independent ... ok
+test the_measured_coal_seam_is_coal_a_player_can_dig ... FAILED
+test charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum ... FAILED
+
+failures:
+
+---- the_measured_coal_seam_is_coal_a_player_can_dig stdout ----
+[coal] 17 record candidates >3 m; top diggable seams (record_m, collapse_vox): [("3.6", 4), ("3.6", 4), ("3.2", 4), ("3.2", 4), ("3.2", 4), ("3.0", 3)]
+
+thread 'the_measured_coal_seam_is_coal_a_player_can_dig' (95064) panicked at crates\dc-worldgen\tests\organic.rs:331:10:
+no diggable low-energy coal seam survived collapse
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum stdout ----
+[charcoal] 2287 of 69137 recorded voxel spans carry charcoal (3.3079 %); most eighths in any one voxel: 8
+
+thread 'charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum' (115272) panicked at crates\dc-worldgen\tests\organic.rs:560:5:
+a charcoal lamina claimed 8/8 of a voxel; a fire bed is capped at 0.04 m (0.356 of an eighth), so the expression path invented mass
+
+
+failures:
+    charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum
+    the_measured_coal_seam_is_coal_a_player_can_dig
+
+test result: FAILED. 3 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 56.26s
+
+error: test failed, to rerun pass `-p dc-worldgen --test organic`
+     Running tests\outcrop_blend.rs (B:\repos\borwood\deepcraft\target\release\deps\outcrop_blend-66fe8a4e810672fd.exe)
+
+running 4 tests
+test a_mixed_window_blends_the_table_by_share ... ok
+test the_rate_is_continuous_across_the_old_flip ... ok
+test the_verdict_is_the_argmax_of_the_shares ... ok
+test a_uniform_window_is_the_argmax_lookup_bit_for_bit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_depth_to_water.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_depth_to_water-8e3ecd3ff8a03fbb.exe)
+
+running 4 tests
+test the_identity_water_table_slot_leaves_the_plane_empty ... ok
+test the_identity_water_table_plane_is_empty ... ok
+test the_materialized_proxy_plane_agrees_with_the_inline_proxy ... FAILED
+test a_non_identity_water_table_reaches_the_run ... ok
+
+failures:
+
+---- the_materialized_proxy_plane_agrees_with_the_inline_proxy stdout ----
+
+thread 'the_materialized_proxy_plane_agrees_with_the_inline_proxy' (91052) panicked at crates\dc-worldgen\tests\providers_depth_to_water.rs:74:5:
+assertion `left == right` failed: the materialized-plane path disagrees with the inline proxy (surface)
+  left: 10666036293177005198
+ right: 6985265996059190205
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    the_materialized_proxy_plane_agrees_with_the_inline_proxy
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.37s
+
+error: test failed, to rerun pass `-p dc-worldgen --test providers_depth_to_water`
+     Running tests\providers_golden.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_golden-01b7ed2343d70152.exe)
+
+running 2 tests
+test the_production_world_still_hashes_to_the_pre_slice_goldens ... FAILED
+test the_fingerprint_is_reproducible_within_a_build ... ok
+
+failures:
+
+---- the_production_world_still_hashes_to_the_pre_slice_goldens stdout ----
+surface fingerprint = 0x94055F7F603D548E
+record  fingerprint = 0x2A937E06EC16DD2F
+
+thread 'the_production_world_still_hashes_to_the_pre_slice_goldens' (39468) panicked at crates\dc-worldgen\tests\providers_golden.rs:67:5:
+assertion `left == right` failed: the surface planes moved: 0x94055F7F603D548E != 0x60F0A669F4B923BD (pre-slice main 2434f37)
+  left: 10666036293177005198
+ right: 6985265996059190205
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    the_production_world_still_hashes_to_the_pre_slice_goldens
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.20s
+
+error: test failed, to rerun pass `-p dc-worldgen --test providers_golden`
+     Running tests\providers_outcrop_at.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_outcrop_at-e0d2e2f9b2832652.exe)
+
+running 5 tests
+test a_lone_thin_unit_yields_to_the_basement_deficit ... ok
+test a_thin_lamina_does_not_define_the_outcrop ... ok
+test the_identity_outcrop_is_the_dominant_lithology ... ok
+test many_thin_units_of_one_litho_do_dominate ... ok
+test an_empty_record_is_basement ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_paleo_temperature.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_paleo_temperature-1abcc4267bd81696.exe)
+
+running 3 tests
+test explicitly_supplying_the_identity_paleo_temperature_still_counts_as_supplied ... ok
+test the_default_set_does_not_supply_paleo_temperature ... ok
+test the_report_names_paleo_temperature_when_swapped ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_parent_p.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_parent_p-c6cc4cd43e2c8331.exe)
+
+running 1 test
+test the_parent_phosphorus_plane_is_materialized_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.95s
+
+     Running tests\providers_ritual.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_ritual-27a808434e823502.exe)
+
+running 1 test
+test ritual_time_medium ... ignored, 17 s wall-clock measurement, not a correctness assertion
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_set.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_set-f3933dfa4f7529ab.exe)
+
+running 3 tests
+test a_default_set_that_cannot_be_constant_folded_still_reports_no_slots ... ok
+test the_default_providers_are_the_identity_functions ... ok
+test the_identity_report_names_no_slots_for_a_default_set ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_wave_energy.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_wave_energy-13ab802f1e3f83d5.exe)
+
+running 1 test
+test a_non_identity_wave_provider_reaches_the_run ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.94s
+
+     Running tests\rh_unification.rs (B:\repos\borwood\deepcraft\target\release\deps\rh_unification-b36380ce55aaf11c.exe)
+
+running 2 tests
+test derived_bedrock_agrees_with_the_scalar_r_plane_over_the_production_field ... ok
+test derived_regolith_agrees_with_the_scalar_h_plane_over_the_production_field ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.95s
+
+     Running tests\s17_deep_cell_inventory.rs (B:\repos\borwood\deepcraft\target\release\deps\s17_deep_cell_inventory-76d15cfdf910c762.exe)
+
+running 3 tests
+test identity_default_appends_no_facts_over_a_whole_field ... ok
+test memory_measurement_per_stratum_vs_per_voxel ... ok
+test non_identity_agreement_on_a_real_cell ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.63s
+
+     Running tests\s18_first_behavior_weathering.rs (B:\repos\borwood\deepcraft\target\release\deps\s18_first_behavior_weathering-35c2ebf51c2fff8a.exe)
+
+running 4 tests
+test identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical ... ok
+test a_weathered_cell_carries_one_fact_per_agent_per_chapter_and_accumulates ... ok
+test on_flag_is_purely_additive_record_and_surface_untouched ... ok
+test production_scale_saprolite_band_reaches_at_least_one_voxel has been running for over 60 seconds
+test production_scale_saprolite_band_reaches_at_least_one_voxel ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 87.74s
+
+     Running tests\s7_handoff.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_handoff-4e03f395853aa8d7.exe)
+
+running 2 tests
+test abandoned_site_fact_is_visible_in_ledger_and_terrain has been running for over 60 seconds
+test pregen_facts_constrain_live_statistical_queries has been running for over 60 seconds
+test abandoned_site_fact_is_visible_in_ledger_and_terrain ... ok
+test pregen_facts_constrain_live_statistical_queries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 62.50s
+
+     Running tests\s7_measurements.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_measurements-0377ffafaea62e3f.exe)
+
+running 2 tests
+test chunk_latency_cold_vs_warm has been running for over 60 seconds
+test pregen_time_vs_extent has been running for over 60 seconds

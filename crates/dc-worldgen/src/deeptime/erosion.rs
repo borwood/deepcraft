@@ -527,6 +527,12 @@ fn diffuse_scale_cell(
 /// the scalar [`diffuse_net_cell`], unchanged and byte-identical; this vector only
 /// says *what* the metres were made of. That separation is deliberate: identity
 /// riding a second arithmetic could not perturb `H` even if it were wrong.
+///
+/// **Returns the gross traffic** through the cell — the sum of every edge flux, in
+/// or out. That is the audit's denominator, and it has to be: a cell that sheds as
+/// much as it gains has a net near zero with real material moving through it, and
+/// dividing a rounding error by *that* would report a leak where there is only
+/// cancellation.
 #[expect(
     clippy::too_many_arguments,
     reason = "the diffusion kernel's own arity"
@@ -542,9 +548,10 @@ fn diffuse_species_cell(
     sus: &[f64],
     shares: &[f64],
     out: &mut [f64],
-) {
+) -> f64 {
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
+    let mut gross = 0.0;
     out.fill(0.0);
     for (dx, dy) in NEIGH4 {
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
@@ -555,15 +562,18 @@ fn diffuse_species_cell(
                 for k in 0..SPECIES {
                     out[k] -= s[k];
                 }
+                gross += f;
             } else if d < 0.0 {
                 let f = eff_diff(diffusion, resist, sus, j) * (-d) * scale[j];
                 let s = split_by_shares(f, &shares[j * SPECIES..(j + 1) * SPECIES]);
                 for k in 0..SPECIES {
                     out[k] += s[k];
                 }
+                gross += f;
             }
         }
     }
+    gross
 }
 
 /// The number of edges cell `i` **sends** creep across this epoch — the face count
@@ -799,9 +809,13 @@ fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: L
 /// **The two movers are summed, not ranked.** A cell that receives half a metre of
 /// fine clastic from upstream and half a metre of the same rock off the slope
 /// above has a metre of that rock, and pretending the two halves compete would
-/// make the answer depend on which agent we asked first. Which *mover* delivered
-/// it is a different axis, and the record does not carry one — see the note on
-/// [`Erosion::creep_species`] and stubs.md #25.
+/// make the answer depend on which agent we asked first.
+///
+/// **STUB #25 — which *mover* delivered it is a different axis, and the record does
+/// not carry one.** Colluvium and alluvium are separable only by signature, not by
+/// label; the byte that would fix it costs ~42 MiB at today's `DepUnit` layout, and
+/// the free version is a packed `(species, mover)` byte. See `stubs.md` § 25 and
+/// `examples/colluvium_probe.rs`, which measures the signature the label is missing.
 ///
 /// Only *gains* are candidates: a species creep took **away** from this cell is
 /// not something the cell can be made of, so the negative entries are clamped out
@@ -822,13 +836,22 @@ fn arriving_species(dh: f64, dep: &[f64], creep: &[f64], tag_species: Litho) -> 
     }
     let mut best = tag_species;
     let mut best_m = dh - carried;
+    let mut moved = false;
     for (k, &m) in mix.iter().enumerate() {
         if m > best_m {
             best_m = m;
             best = Litho::ALL[k];
+            moved = true;
         }
     }
-    best.as_deposited()
+    // [`Litho::as_deposited`] answers *"what is this rock once a mover has set it
+    // down"*, so it applies to the **carried** winner and not to the tag's own
+    // default: the default was never carried anywhere and the record has always
+    // been allowed to say what it says. (On today's world the distinction is
+    // inert — the erosion recorder builds mineral tags only, and `litho_of_tag`
+    // maps those to clastics, which `as_deposited` leaves alone — but the rule
+    // should be right rather than accidentally right.)
+    if moved { best.as_deposited() } else { best }
 }
 
 /// **Where the transport pass picked material up and where it put it down**,
@@ -1020,6 +1043,10 @@ pub struct Erosion {
     /// the scalar `netdiff`, bit for bit as before. Read by [`Self::record`] to
     /// name the arriving unit and by the outcome probe.
     creep_sp: Vec<f64>,
+    /// `n` — the **gross** creep traffic through each cell this epoch (every edge
+    /// flux, in or out). The itemisation audit's denominator; see
+    /// [`diffuse_species_cell`].
+    creep_gross: Vec<f64>,
     /// **The creep itemisation audit** — the largest relative gap, over every
     /// (cell, epoch), between `Σ_species creep_sp[cell]` and the scalar `netdiff`
     /// the terrain actually moved. The standing probe-defect shape in this repo is
@@ -1104,6 +1131,7 @@ impl Erosion {
             dep_sp: Vec::new(),
             creep_carries: false,
             creep_sp: Vec::new(),
+            creep_gross: Vec::new(),
             creep_itemisation_residue: 0.0,
             creep_conservation_residue: 0.0,
             creep_faces: 0,
@@ -1161,10 +1189,12 @@ impl Erosion {
         self.creep_carries = on && self.sorted;
         if !self.creep_carries {
             self.creep_sp = Vec::new();
+            self.creep_gross = Vec::new();
             return;
         }
         if self.creep_sp.len() != self.n * SPECIES {
             self.creep_sp = vec![0.0; self.n * SPECIES];
+            self.creep_gross = vec![0.0; self.n];
         }
     }
 
@@ -1368,7 +1398,8 @@ impl Erosion {
             + self.qs_sp.len()
             + self.shares.len()
             + self.dep_sp.len()
-            + self.creep_sp.len();
+            + self.creep_sp.len()
+            + self.creep_gross.len();
         f64s * 8
             + self.recv.len() * 4
             + self.order.capacity() * 4
@@ -2562,16 +2593,18 @@ impl Erosion {
             let sus = &self.sus_creep;
             let shares = &self.shares;
             let creep = &mut self.creep_sp;
+            let gross = &mut self.creep_gross;
             if parallel {
                 creep
                     .par_chunks_mut(SPECIES)
+                    .zip(gross.par_iter_mut())
                     .enumerate()
-                    .for_each(|(i, out)| {
-                        diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out)
+                    .for_each(|(i, (out, g))| {
+                        *g = diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
                     });
             } else {
-                for (i, out) in creep.chunks_mut(SPECIES).enumerate() {
-                    diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
+                for (i, (out, g)) in creep.chunks_mut(SPECIES).zip(gross.iter_mut()).enumerate() {
+                    *g = diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
                 }
             }
             self.audit_creep_species();
@@ -2624,13 +2657,12 @@ impl Erosion {
         let mut abs_s = [0.0; SPECIES];
         for (i, row) in self.creep_sp.chunks(SPECIES).enumerate() {
             let mut net = 0.0;
-            let mut gross = 0.0;
             for (k, &v) in row.iter().enumerate() {
                 net += v;
-                gross += v.abs();
                 sum_s[k] += v;
                 abs_s[k] += v.abs();
             }
+            let gross = self.creep_gross[i];
             if gross > 0.0 {
                 let rel = (net - self.netdiff[i]).abs() / gross;
                 if rel > self.creep_itemisation_residue {

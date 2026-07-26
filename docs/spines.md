@@ -546,6 +546,23 @@ Do not build two systems and a coupling layer; build one quantity whose
     (`an_undeclared_edge_does_not_run_at_all_not_merely_goes_unrecorded`). This is
     also S-6's rule applied to a data axis rather than to pass order: what edges
     exist is **declared**, never whatever a caller happened to pass.
+- **transport: one load, several movers** (material-behavior.md § 13.2, *"an agent
+  moves material along a driving field"* — water, wind, ice, gravity). Named as a
+  family in the design since 2026-07-24; **first cashed out as one 2026-07-26
+  (journal/0112)**, when hillslope creep became the second member on the *same*
+  species multiset, the *same* composition seam and the *same* `split_by_shares`
+  budget as the fluvial pass, differing only in its driving field and its
+  competence curve. **And the difference is the phenomenon, which is what makes it
+  this spine and not merely code reuse:** gravity's competence curve is that
+  **there isn't one**. Creep is diffusive rather than selective, so it moves the
+  donor's whole composition in proportion — and *that* is why a colluvial apron is
+  poorly sorted and locally derived while an alluvial bar is sorted and
+  far-travelled. Two facies out of one mechanism with one knob absent. Building
+  creep as a bespoke system would have had to *invent* the contrast; building it as
+  a regime got it for free. The remaining members (wind's low ceiling → loess and
+  dunes, ice's indiscriminate one → till) are the same shape with a third and
+  fourth curve, and the shipped eolian agent is still a bespoke system waiting to
+  be folded in.
 - terrain: committed / fluid (S-2)
 
 ## S-9. Derivable base + sparse committed facts + fallback query — up to observation-collapse
@@ -866,6 +883,24 @@ written beside the one that already existed**:
   (A-2) can be re-checked when the premise changes; this one was, one level up,
   one day later.* Measured: struct-overhead line 13.60 MiB → 0, per-cell index
   48 B → 4 B, world byte-identical (1,033,189 facts in 72,006 slots either way).
+- **discharge-by-extraction (2026-07-26, journal/0112) — the third mover of a
+  metre of rock, and the first not to write its own budget.** Movement 2b's
+  fluvial pass split a bulk quantity into named species in **two** places
+  (entrainment by the cell's `outcrop_shares` composition, incision by the
+  composition below the record), each open-coding journal/0109's residual rule:
+  find the last non-zero share, hand it `total − Σ earlier`. Material-aware creep
+  is a **third** such split, on a different driving field, and the reflex is to
+  write it inline a third time — at which point the rule that *"each species runs
+  its own budget"* would live in three copies and the next mover would make four.
+  It was extracted to one `split_by_shares(total, shares) -> [f64; SPECIES]`
+  instead, byte-identically (the two existing call sites' arithmetic is unchanged
+  term for term), and creep calls the same function. **The check the extraction
+  buys is not stylistic:** journal/0110 records that the *tempting* generalisation
+  of this rule leaks silently, so a fourth author re-deriving it is a fourth chance
+  to re-derive the wrong one. Now no caller can invent its own budget, and the
+  anti-leak unit tests (`a_composition_split_closes_to_the_bit`,
+  `the_creep_split_is_linear_in_the_quantity_so_nothing_is_sorted`) sit on the one
+  function all three movers route through.
 - **not-an-instance, noted for the record:** `weather_epoch` open-codes
   `grid.r[i] + grid.h[i] <= sea_level` (`weather_inventory.rs:310`) where
   `DeepGrid::surf_at` (`grid.rs:412-413`) exists — but so do five other sites in

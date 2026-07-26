@@ -252,9 +252,21 @@ pub struct DepUnit {
     /// With [`super::grid::DeepConfig::material_transport`] **off** this is
     /// exactly `litho_of_tag(tag)` at every construction site — a pure function of
     /// `tag`, so it adds nothing to the merge key and the record is byte-identical.
-    /// With it **on**, transport deposition overrides it with the argmax species of
-    /// what settled, and the unit's identity stops being derivable from its
-    /// environment.
+    /// With it **on**, the recorder overrides it with the argmax species of the
+    /// whole mixture that arrived — what the fluvial pass set down, plus (since
+    /// `material_creep`, journal/0112) what hillslope creep brought down the slope
+    /// — and the unit's identity stops being derivable from its environment.
+    ///
+    /// **STUB #25 — this axis says *what* arrived and not *who brought it*.**
+    /// Since Movement 2b continuation (b) (journal/0112) two movers can deliver
+    /// material here — the fluvial load and hillslope creep — and the record keeps
+    /// one mixture argmax over both. So **colluvium and alluvium are not
+    /// distinguishable by a label**, only by signature (locally derived and poorly
+    /// sorted against far-travelled and sorted; `examples/colluvium_probe.rs`
+    /// measures it by drainage-area decile). A `mover` byte is not free — this
+    /// struct is 16 B with **no padding left**, so a seventeenth byte is +8 B ×
+    /// ~5.5 M units ≈ +42 MiB. **Heir:** a packed `(species, mover)` byte (3 bits
+    /// each), landing with § 13.8's lineage history.
     ///
     /// Appended last (wire discipline — corrections #3); it fills `DepUnit`'s
     /// existing padding, so `size_of::<DepUnit>()` is unchanged (asserted).
@@ -297,12 +309,15 @@ impl DeepStrata {
     /// § 13.3).
     ///
     /// Only an agent that actually *carried* a load can answer that question, so
-    /// only the material-aware fluvial transport pass calls this; every other
-    /// depositor — the wind agent, the wave agent, the biotic layer, the tests —
-    /// goes through [`Self::deposit`] and gets the tag-derived default, which is
-    /// what the record has always said. (The **eolian** family genuinely has a load
-    /// too and would honestly travel its own identity; it is deferred with the rest
-    /// of § 13.2's wind/ice/gravity family and still reads its species off the tag.)
+    /// only the erosion recorder calls this — with the argmax of everything that
+    /// arrived at the cell: what the fluvial pass set down, plus what hillslope
+    /// creep brought down the slope (journal/0112, § 13.2's **gravity** member).
+    /// Every other depositor — the wind agent, the wave agent, the biotic layer,
+    /// the tests — goes through [`Self::deposit`] and gets the tag-derived default,
+    /// which is what the record has always said. (The **eolian** family genuinely
+    /// has a load too and would honestly travel its own identity; it is deferred
+    /// with the rest of § 13.2's wind/ice members and still reads its species off
+    /// the tag.)
     ///
     /// `species` joins the merge key: two runs of the same environment that
     /// delivered *different rock* are two units, not one. That is the whole point —
