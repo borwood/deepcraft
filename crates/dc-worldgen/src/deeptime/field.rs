@@ -59,11 +59,19 @@ pub const DEEP_ITERATIONS: u32 = 200;
 ///
 /// The mechanism is the cover taper `exp(−H/H*)`. Raise supply alone and the
 /// regolith made **shields the rock that made it**; raise transport alone and there
-/// is nothing to carry. Under a *uniform* scaling neither happens: production and
-/// removal of cover scale together, so the steady-state `H` — and therefore the
-/// taper, which is the only term in the system carrying an absolute length — is
-/// left where it was, and the whole landscape's export scales with the multiplier
-/// instead of fighting itself.
+/// is nothing to carry. So they move together.
+///
+/// **What a uniform scaling does NOT buy, measured rather than hoped.** The
+/// hypothesis when this function was written was that scaling production and removal
+/// together would leave the steady-state cover `H` where it was — and therefore
+/// leave the taper, the only term carrying an absolute length, unengaged. It does
+/// not: the ladder in `examples/denudation_probe.rs` shows mean regolith going
+/// 4.6 m → 8.8 → 43.9 → 118.8 → 359 → 782 as the multiplier climbs. **The two levers
+/// are not symmetric, because transport has a ceiling supply does not.** Hillslope
+/// creep's flux limiter binds in ~91 % of cell-epochs *at the uncalibrated rates
+/// already*, so the pass is a one-cell-per-epoch conveyor and raising `diffusion`
+/// cannot make it faster (100× on transport alone buys 1.6×). That ceiling is what
+/// [`EROSION_CALIBRATION`] is calibrated *under*, and `stubs.md` § 27 carries it.
 ///
 /// **This is the one place that scaling is written.** Two consumers call it — the
 /// shipped calibration ([`EROSION_CALIBRATION`], applied by [`production_config`])
@@ -87,31 +95,65 @@ pub fn scale_erosion_rates(cfg: &mut DeepConfig, mult: f64) {
 /// **The calibrated erosional amplitude** (journal/0114) — the multiplier
 /// [`scale_erosion_rates`] applies to the shipped world.
 ///
-/// **Derived from a published band, not from an appearance.** journal/0111
-/// measured this world's catchment-averaged denudation at **0.0110 m/Myr** against
-/// the ratified 500 Myr Phanerozoic register — 9× below the slowest landscape ever
-/// measured on Earth (McMurdo Dry Valleys bedrock, ~0.19) and 493× below the global
-/// `10Be` outcrop median (Portenga & Bierman 2011). The target is the **stable
-/// craton / shield band, 1–10 m/Myr**, which is the band a low-relief
-/// weathering-limited landscape routed by creep belongs in.
+/// journal/0111 measured this world's catchment-averaged denudation at
+/// **0.0110 m/Myr** against the ratified 500 Myr Phanerozoic register: 9× below the
+/// slowest landscape ever measured on Earth (McMurdo Dry Valleys bedrock, ~0.19) and
+/// 493× below the global `10Be` outcrop median (Portenga & Bierman 2011). The
+/// **target** was the stable-craton band, **1–10 m/Myr**.
 ///
-/// Two independent statements fix the value, and they agree, which is what makes it
-/// evidence rather than a fit:
+/// # ⚠ THE TARGET BAND WAS NOT REACHED, AND THAT IS THE RESULT
 ///
-/// 1. **The steady-state ceiling this world sets for itself.** Airy compensation
-///    returns `(ρ_m − ρ_c)/ρ_m = 500/3300 = 15.2 %` of every eroded metre as a
-///    surface drop and rebounds the rest, so a landscape in topographic steady
-///    state denudes at `U / 0.152 ≈ 6.6 U`. With the measured rock uplift
-///    `U ≈ 0.41 m/Myr` that ceiling is **≈ 2.7 m/Myr** — inside the craton band, in
-///    its lower half, from constants nobody chose for this purpose.
-/// 2. **The measured response.** `examples/denudation_probe.rs` sweeps the uniform
-///    multiplier over the *uncalibrated* constants and reports D1 and the balance
-///    ratio D1/D3 at each; the shipped value is the row that lands in band with the
-///    ratio nearest 1. See journal/0114 for the table.
+/// `45` is **not** the multiplier that lands in the craton band. No multiplier does:
+/// the measured ladder (`examples/denudation_probe.rs`, journal/0114) reaches
+/// 1 m/Myr only past ~600×, and by then the world carries **hundreds of metres of
+/// mean regolith** and its relief has grown by half. The world cannot be scaled into
+/// the band, and the reason it cannot is the finding:
+///
+/// > **Export is proportional to mean regolith thickness, because the only working
+/// > sediment router moves one cell per epoch and only the shoreline ring exports.**
+/// > Hillslope creep's flux limiter binds in **91 %** of cell-epochs *already, at the
+/// > uncalibrated rates* — the pass is a conveyor, not a diffusion, and no increase
+/// > in `diffusion` speeds it up (100× on transport alone buys 1.6×). Raise supply
+/// > and the cover thickens until the taper `exp(−H/H*)` shuts the weathering front
+/// > off, so the landscape buys denudation by burying itself.
+///
+/// So this constant is a **calibration under a structural ceiling**, and it is
+/// chosen by four criteria that all land together — three of them published bands,
+/// none of them an appearance:
+///
+/// 1. **The shape is preserved.** journal/0111's conclusion was *"the shape is right
+///    and the clock is wrong"*, so a multiplier that changes the shape has stopped
+///    being a calibration. Relief must stay within 5 % of the pre-calibration world:
+///    measured **+4.6 %** at 45×, +6.3 % at 50×. **This is the binding criterion**,
+///    and 45 is the largest measured row that satisfies it.
+/// 2. **Mean regolith lands in the published deeply-weathered-shield range,
+///    30–60 m** (Yilgarn, Guiana and Brazilian shield saprolite profiles): measured
+///    **43.9 m**. Above 45× it leaves that range; the pre-calibration 4.6 m was
+///    below even the *typical* shield range.
+/// 3. **Denudation enters a published terrestrial band.** D1 = **0.414 m/Myr**,
+///    inside the **0.1–1 floor band** (McMurdo Dry Valleys / hyperarid Atacama —
+///    Morgan et al. 2010, Ritter et al. 2023). The pre-calibration world was below
+///    *every* published band, which was journal/0111's headline; it no longer is.
+/// 4. **The landscape approaches topographic steady state.** `D1/D4` — export over
+///    rock uplift — is **0.91**, against **0.027** before. journal/0111's sharpest
+///    single sentence was that erosion removed 2.7 % of what uplift added and so had
+///    *no authority over the topography*; at 45× it has essentially all of it.
+///
+/// The world's own Airy ceiling corroborates that the band was the right target even
+/// though it is out of reach: compensation returns `(ρ_m − ρ_c)/ρ_m = 15.2 %` of each
+/// eroded metre as a surface drop, so a steady-state landscape denudes at `U/0.152 ≈
+/// 6.6 U`, and with the measured `U ≈ 0.41 m/Myr` that is **2.70 m/Myr** — inside the
+/// craton band, from two densities and a measured uplift that nobody chose for this
+/// purpose. **The rates can be raised to meet it; the router cannot carry it.**
+///
+/// **Heir:** an efficient long-distance sediment router — rivers that actually carry
+/// (fluvial yield is 0.02 % of export), or a creep operator that is not capped at one
+/// cell per timestep. Until then the ceiling stands wherever the constants are set.
+/// `stubs.md` § 27.
 ///
 /// `1.0` reproduces the pre-calibration world exactly (`x * 1.0 == x` for f64),
 /// which is what [`DeepOverrides::calibrated_rates`] `Some(false)` reaches.
-pub const EROSION_CALIBRATION: f64 = 1.0;
+pub const EROSION_CALIBRATION: f64 = 45.0;
 
 /// Gen-time overrides for the production [`DeepConfig`] flags a world can be
 /// booted with. Each field is an `Option`; `None` **inherits the production

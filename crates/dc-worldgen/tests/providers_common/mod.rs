@@ -131,7 +131,7 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x260E_074F_211C_936D
 /// ```
-pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
+pub const GOLDEN_SURFACE: u64 = 0x8020_8FAF_68F0_6CCD;
 
 /// **The pre-calibration fixed point, still reachable.** The same fixture world
 /// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
@@ -304,7 +304,7 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```text
 /// GOLDEN_RECORD 0xACB6_1859_6AA3_F3A8
 /// ```
-pub const GOLDEN_RECORD: u64 = 0xACB6_1859_6AA3_F3A8;
+pub const GOLDEN_RECORD: u64 = 0xF17A_ABE0_FA95_9DC4;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on
