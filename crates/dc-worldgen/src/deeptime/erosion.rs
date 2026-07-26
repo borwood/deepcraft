@@ -1240,12 +1240,19 @@ pub struct TransportLedger {
     /// structure, not magnitude.
     ///
     /// Reported so a calibration cannot quietly buy its denudation by pushing the
-    /// whole world into that regime. Counted only when
+    /// whole world into that regime. **Counts only cells that actually held
+    /// regolith** — see [`Self::creep_cell_epochs`]. Counted only when
     /// [`DeepConfig::denudation_ledger`](super::grid::DeepConfig::denudation_ledger)
     /// is on; zero, and not even summed, in production.
     pub creep_limited_cell_epochs: u64,
-    /// Total cell-epochs the diffusion pass ran, the denominator for
-    /// [`Self::creep_limited_cell_epochs`]. Same gating.
+    /// Cell-epochs in which the diffusion pass ran **over a cell that had regolith
+    /// to move** — the denominator for [`Self::creep_limited_cell_epochs`].
+    ///
+    /// The `h > 0` restriction is load-bearing, not tidiness. The limiter's predicate
+    /// is `potential outflow > available cover`, which is *trivially* true at `h == 0`,
+    /// so counting every cell would score the bare ocean floor and every stripped ridge
+    /// as transport-limited and report a saturation that is really an absence. Same
+    /// gating.
     pub creep_cell_epochs: u64,
 }
 
@@ -3079,9 +3086,22 @@ impl Erosion {
             // journal/0114: and how often the limiter bound — the discretisation
             // honesty check on the calibration. `scale[i] < 1.0` is exactly "this
             // cell wanted to shed more than it had".
-            self.ledger.creep_cell_epochs += self.n as u64;
-            self.ledger.creep_limited_cell_epochs +=
-                self.scale.iter().filter(|&&s| s < 1.0).count() as u64;
+            //
+            // **Both counters skip cells with no regolith, and that is the whole
+            // point of the measurement.** `out > h` is trivially true at `h == 0`,
+            // so a denominator of every cell would score the bare ocean floor and
+            // every stripped ridge as "transport-limited" and report a saturation
+            // that is really just an absence. The question is *of the cells that had
+            // something to move, how many shipped all of it* — anything else is a
+            // statistic about emptiness.
+            for (i, sc) in self.scale.iter().enumerate() {
+                if grid.h[i] > 0.0 {
+                    self.ledger.creep_cell_epochs += 1;
+                    if *sc < 1.0 {
+                        self.ledger.creep_limited_cell_epochs += 1;
+                    }
+                }
+            }
         }
         // Pass 3 (Movement 2b continuation (b)): **the same fluxes, carrying
         // identity.** Runs only when creep carries material; the terrain below is

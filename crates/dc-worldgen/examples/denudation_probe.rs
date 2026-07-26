@@ -223,6 +223,15 @@ struct Denudation {
     /// one (which moves it and detunes the taper). Reported per row of the
     /// derivation ladder for exactly that reason.
     mean_h: f64,
+    /// **Wall time of this world's deep-time run**, seconds — the gen-time cost, so a
+    /// calibration reports its own like any other slice. Both arms are timed in the
+    /// same process on the same machine, so the *difference* is the claim and the
+    /// absolute is machine noise.
+    secs: f64,
+    /// **Total recorded units** across every cell — the residency proxy that moves
+    /// when a rate change alters how much is deposited and how often the merge key
+    /// changes. An absolute, per CLAUDE.md's residency rule.
+    units: usize,
 }
 
 /// Percentile of a sorted slice (nearest-rank).
@@ -240,11 +249,14 @@ fn measure(cells: &CellGrid) -> Denudation {
 
 fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
     let cfg = *cfg;
+    let t0 = std::time::Instant::now();
     // The *initial* grid, rebuilt from the same pure `(cells, cfg)` inputs — the
     // only way to get a "before" plane, since the run consumes its own grid.
     let before = build_cells(cells, &cfg);
     let run = run_cells(cells, &cfg, true);
+    let secs = t0.elapsed().as_secs_f64();
     let g = &run.grid;
+    let units: usize = g.strata.iter().map(|s| s.units.len()).sum();
     let n = g.w * g.w;
     let myr = MYR_PER_RUN;
     let ledger = run.erosion.transport_ledger();
@@ -358,6 +370,8 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
         max_surf,
         relief: max_surf - min_surf,
         mean_h,
+        secs,
+        units,
     }
 }
 
@@ -740,6 +754,9 @@ fn main() {
         ("relief (m)", raw.relief, d.relief),
         ("land cells", raw.land_cells as f64, d.land_cells as f64),
         ("most active cell", raw.max_cell, d.max_cell),
+        ("mean regolith H (m)", raw.mean_h, d.mean_h),
+        ("recorded units", raw.units as f64, d.units as f64),
+        ("gen time, s (this run)", raw.secs, d.secs),
     ] {
         println!("  {name:<26} {a:>14.4} {b:>14.4}");
     }
