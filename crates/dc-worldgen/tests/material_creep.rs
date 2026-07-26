@@ -70,8 +70,11 @@ fn run(cells: &CellGrid, transport: bool, creep: bool) -> DeepRun {
 /// that does nothing; a test that only asserted "on is different" would pass
 /// against a flag that broke something.
 ///
-/// The off-half's constants are the goldens as they stood after Movement 2b's
-/// first slice and before this one, so it is a genuine cross-commit statement.
+/// The off-half's constants are the fluvial-only world — **plus corrections #57**,
+/// which rides in the same commit and applies to any mover, so it moves the
+/// fluvial path too. See [`providers_common::GOLDEN_SURFACE_ANONYMOUS_CREEP`],
+/// which carries that separation and the prior values; that the constant moved at
+/// all is the evidence #57 was needed.
 /// The on-half moves the *terrain* as well as the record, and that is expected
 /// rather than incidental: the species creep delivers is read back by
 /// `outcrop_shares`, which is what the per-cell erodibility blend is built from,

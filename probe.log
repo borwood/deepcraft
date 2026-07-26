@@ -1,0 +1,57 @@
+    Finished `release` profile [optimized] target(s) in 0.25s
+     Running `B:\repos\borwood\deepcraft\target\release\examples\colluvium_probe.exe`
+=== colluvium probe — Movement 2b (b), seed 1337, Extent::Medium ===
+
+--- THE NUMBER: honest provenance in the archive ---
+  anonymous creep (journal/0110's world):       0.0259 m of     440578 m  (0.000006 %)
+  creep carries identity:                  275626.9072 m of     422703 m  (65.205793 %)
+  delta: +275626.8813 m absolute, a factor of 11107157 on the fraction
+
+--- WHERE the provenance sits (decile 0 = hillslope, 9 = trunk) ---
+  decile   anonymous %      identity %     archive mass (m)   species/column
+     0      0.000006       69.034787             228269     1.091 -> 1.952
+     1      0.000001       50.941126              14264     3.223 -> 3.273
+     2      0.000003       54.023025              18190     3.244 -> 3.335
+     3      0.000010       56.198911              19141     3.308 -> 3.439
+     4      0.000009       58.300327              19043     3.445 -> 3.589
+     5      0.000024       63.537560              20626     3.419 -> 3.623
+     6      0.000002       64.419623              24371     3.203 -> 3.465
+     7      0.000003       62.552783              24739     3.214 -> 3.423
+     8      0.000003       62.637459              24577     3.100 -> 3.426
+     9      0.000002       65.852700              29483     2.917 -> 3.580
+
+--- what the record is MADE OF (metres of recorded thickness) ---
+  species             anonymous          identity        delta
+  fine                    401892          109357       -72.79%
+  coarse                    9070          151423     +1569.46%
+  soil                     24058          158723      +559.74%
+  peat                      5353            3003       -43.91%
+  coal                         0               0          NaN%
+  charcoal                   204             197        -3.36%
+  basement                     0               0          NaN%
+
+--- mass, per species, on the creep path ---
+  largest relative gap between the creep itemisation and the metres the
+  terrain actually moved (every cell, every epoch):        3.186e-15
+  largest relative amount of any species creep created or destroyed
+  (every species, every epoch):                            7.066e-16
+  creep moved 589811.4 m over the run; the rivers picked up 658.5 m
+
+--- cost and shape ---
+  deep run    30.48 s -> 31.86 s   (delta +1.38 s)
+  resident    169.05 MiB -> 187.21 MiB (delta +18.16 MiB)
+  units       5542653 -> 6732988   (+21.48 %)
+  surface     mean -1895.08 -> -1895.09 m   min -4235.1 -> -4235.1   max 1286.8 -> 1286.7
+
+--- what a GRAVITY mover would cost the flow record (stubs.md #18) ---
+  donor faces carrying creep in the final epoch: 535363 over 8 chapters
+  = 4282904 entries x 16 B = 65.4 MiB added to a 187.2 MiB world
+
+--- verdict ---
+  EXPRESSES. Honest provenance reached 65.2058 % of the archive (bar: 1 %),
+  against 0.000006 % when creep was anonymous. 71.3 % of it sits in the lower
+  five drainage deciles — the hillslopes, which is where colluvium belongs.
+  Colluvium is NOT sorted here and that is deliberate: creep is diffusive,
+  so every edge moves the donor's whole composition in proportion. No
+  competence ceiling, no settling draw. The contrast against alluvium is the
+  finding, not a defect.
