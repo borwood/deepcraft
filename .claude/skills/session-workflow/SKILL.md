@@ -564,6 +564,26 @@ parallel agents). Three recurring costs, codified so they stop recurring.
   2. **Process-not-snapshot:** for a slice modelling a natural **process**, *"does it run where
      and when the process runs (in the loop, over the span), or as a decoupled one-shot?"* A
      snapshot of a continuous process is a category error, not a simplification.
+  3. **NAME WHAT THE ACCEPTANCE CRITERION IS *NOT*** (added 2026-07-26). Stating the target is
+     not enough — **state the plausible wrong targets and forbid them.** Hybrid `p` was about
+     to be briefed against denudation and facies; a measurement landing an hour earlier showed
+     fluvial is **0.02 % of yield**, so concentrating it could not move either, and the slice
+     would have measured a **null that said nothing about its own work**. The brief that
+     shipped said, in as many words: *"hybrid `p` cannot move denudation, cannot move the
+     facies gradient, and cannot make the world look different — do not chase any of those."*
+     It came back with the right number. **A brief that names only the target invites an agent
+     to adopt the most famous nearby metric**, and famous metrics are usually the ones some
+     other slice owns.
+
+- **"I CANNOT ATTRIBUTE THIS" IS A FIRST-CLASS ANSWER — say so in the RETURN spec** (added
+  2026-07-26). Hybrid `p` measured 801/84 on its branch and could only account for 798/83, and
+  it reported *"+3 tests and +1 binary are not mine"* rather than inventing an explanation.
+  It was **right, and right for a structural reason**: it forked before a sibling merged, so
+  the residual was **unattributable from where it stood** — the integrator's combined gate on
+  merged main was the only vantage from which the arithmetic closes (it did, exactly). *This is
+  the whole case for the combined gate: **each branch is green about a tree nobody ships.***
+  Brief agents that a flagged, honestly-bounded unknown beats a confident reconciliation, and
+  that the integrator owns closing it.
 
 **Journal numbers for parallel dispatch.** Two concurrent agents pick the same next-free
 number blind (the 2026-07-24 `0091` collision). **The integrator assigns the journal number in
@@ -579,6 +599,33 @@ touch); (3) run `--workspace` fmt/clippy/test; (4) verify by test **name/count**
 `test result: ok` alone (a false green flatters); (5) confirm `Compiling <crate>` from
 **main's** path. **Defer overlapping gates** while a concurrent track shares the target dir —
 merge (git-only), run one clean combined gate when the slot frees.
+
+**An additive-looking CODE conflict still needs a brace check** (added 2026-07-26, a near-miss
+worth more than the merge it came from). Two slices landed in one file at one insertion point;
+every conflict region looked **purely additive**, and "keep both sides" was the correct
+instinct — but both sides had opened an `if` block, so keeping both left:
+
+```
+if self.denude {
+    self.tally_creep_to_sea(grid, cfg);
+// ... the entire creep species pass ...
+}
+```
+
+with **`if self.denude {` never closed**, swallowing the whole second block. Braces were
+unbalanced so it would have failed to build — **but had it balanced, `denude` defaults OFF
+while `material_creep` defaults ON, and material-aware creep would have been silently dead at
+runtime behind a GREEN GATE.**
+
+- **After resolving a conflict in code, check brace balance explicitly.** Do not let the
+  additive *shape* of a hunk stand in for the structural check.
+- **`rustfmt --edition <ed> --check <file>` parses the file without touching `target/`**, so
+  it catches syntax breakage **without taking the build slot** — usable while a sibling holds
+  the lock. It caught this one.
+- **The dangerous class is the one that compiles**: a resolution that changes which
+  *condition* guards a block. When both sides of a conflict are guards, ask which guard now
+  owns what — and check the **defaults**, because a feature nested under an off-by-default
+  flag is invisible until someone measures its absence.
 
 **Don't over-calibrate a placeholder.** A stub's number that will be **recalibrated the moment
 its real driver lands** (coal onset with no biology; a rate with no agent) needs only

@@ -149,6 +149,15 @@ cargo test --workspace --release
     `flux_record_probe` printed *"honestly EMPTY … heirs: the head field"* beside a
     non-zero count for a day after that heir landed. When a slice fills a hole a
     probe narrates, the caption is part of the diff.
+- **READ THE LOG THE GATE WROTE, NEVER THE CONSOLE CAPTURE** (2026-07-26). A gate piped
+  through anything that truncates — `| Select-Object -Last N`, `| tail` — writes the full
+  run to its `Tee-Object` file while the *console* keeps only the tail. Reading the wrong
+  one produced a **textbook false-green signature**: `test exit=0`, `STAGE2 EXIT=0`, **0
+  tests passed, 2 binaries**, against 742/76 an hour earlier. It reads exactly like
+  corrections #27 and it was pure instrumentation error. **Grep the Tee'd path**, and if a
+  count looks impossible, suspect your own pipeline before the artifacts. *The discipline
+  that caught it is the one that matters: "did it run?" is a separate question from "did it
+  pass?" — and it applies to the harness, not only the compiler.*
 - **And grep the build log for the crate you changed** (corrections #34) — with
   the right verb: `build`/`test` print **`Compiling dc-x`**, `clippy` prints
   **`Checking dc-x`**. **Do NOT anchor the pattern to line start** — cargo
@@ -306,4 +315,9 @@ world**, which cost one background probe instead of a live session (corrections 
 - Wire types: no `skip_serializing_if` (postcard is positional — corrections #3).
 - All entropy flows from seeds owned by the caller; no wall clock, no ambient
   randomness in sim/worldgen code.
-- Commits end with: Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+- Commits end with `Co-Authored-By: Claude <model> <noreply@anthropic.com>`, **naming the
+  model that actually did the work** — e.g. `Claude Opus 5`, `Claude Fable 5`. *This line
+  used to hardcode `Fable 5` and went stale the first time a session ran on another model
+  (caught 2026-07-26 by an agent that followed its brief, noticed the conflict with this
+  file, and reported it rather than picking one). The trailer is provenance: pinning one
+  name makes it a lie the moment the roster changes.*
