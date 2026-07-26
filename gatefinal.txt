@@ -1,0 +1,2 @@
+   Compiling dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a09d9c67c80c4ed20\crates\dc-worldgen)
+   Compiling dc-client v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a09d9c67c80c4ed20\crates\dc-client)

@@ -1988,6 +1988,22 @@ internal instrument the engine has. **Whenever a simulated quantity has a real
 published counterpart, measure it against the literature at least once.** Those are the
 only errors a perfect internal audit is structurally blind to.
 
+**PARTIALLY RESOLVED 2026-07-26 (journal/0114), and the residue is the interesting
+half.** The rates are now calibrated — `EROSION_CALIBRATION = 45` on all four, through a
+single `scale_erosion_rates`, moving catchment-averaged denudation 0.0110 → **0.4142
+m/Myr** and bedrock erosion 0.0107 → **0.1271**. That clears the *"below every published
+terrestrial band"* headline: the world now sits inside the 0.1–1 floor band, and erosion's
+authority over the topography (`D1/D4`) went 0.027 → **0.91**.
+
+**It does not reach the 1–10 craton band, and no multiplier does.** The entry above
+diagnosed a coupling between two levers; the calibration measured a **ceiling** underneath
+both. Hillslope creep's flux limiter binds on ~89 % of the cells that have regolith to
+move *at the uncalibrated rates already*, so the pass is a one-cell-per-epoch conveyor and
+raising `diffusion` cannot speed it up. Export ends up proportional to mean regolith
+thickness, so the band costs of order a hundred metres of cover. **So the sentence "two
+levers that only pay together" is true and incomplete: they pay together up to a cap that
+is set by neither of them.** stubs #27.
+
 ---
 
 ## 57. "The one lithology a deposit cannot be is basement" (`lithology.rs::Litho::as_deposited`, journal/0110 — falsified 2026-07-26 by journal/0112, and it had been false since the function was written)
