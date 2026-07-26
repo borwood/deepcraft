@@ -2123,14 +2123,14 @@ impl Erosion {
                     continue;
                 }
                 let mut given = 0.0;
-                for d in 0..MFD_DIRS {
+                for (d, ft) in face_total.iter_mut().enumerate() {
                     let wt = self.mfd_w[base + d];
                     if wt <= 0.0 {
                         continue;
                     }
                     let share = if d == last { q_s - given } else { wt * q_s };
                     given += share;
-                    face_total[d] += share;
+                    *ft += share;
                     let j = self.mfd_neighbour(c, d);
                     self.qs_sp[j * SPECIES + s] += share;
                 }
@@ -2142,9 +2142,9 @@ impl Erosion {
                 }
             }
             if record {
-                for d in 0..MFD_DIRS {
+                for (d, ft) in face_total.iter().enumerate() {
                     if self.mfd_w[base + d] > 0.0 {
-                        self.out_face_load[base + d] = face_total[d] as f32;
+                        self.out_face_load[base + d] = *ft as f32;
                     }
                 }
             }

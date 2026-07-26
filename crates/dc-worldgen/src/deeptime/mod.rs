@@ -43,9 +43,7 @@ pub mod weather_inventory;
 pub use biotic::{
     BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
 };
-pub use erosion::{
-    Erosion, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled,
-};
+pub use erosion::{Erosion, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled};
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
     build_field_cfg, build_field_with, production_config, production_config_with,

@@ -40,8 +40,8 @@
 
 use std::time::Instant;
 
-use dc_worldgen::deeptime::lithology::{Litho, settling_table};
 use dc_worldgen::deeptime::erosion::TransportLedger;
+use dc_worldgen::deeptime::lithology::{Litho, settling_table};
 use dc_worldgen::deeptime::{
     DeepConfig, EnergyBand, SEA_LEVEL_M, build_field_cfg, competence_ceiling, litho_of_tag,
     production_config, run_cells,
@@ -558,7 +558,8 @@ mod gate {
         });
         let f = measure(&pregen.grid, true);
         assert_eq!(
-            f.mass_by_species[Litho::Basement.index()], 0.0,
+            f.mass_by_species[Litho::Basement.index()],
+            0.0,
             "basement reached the record as basement"
         );
     }
