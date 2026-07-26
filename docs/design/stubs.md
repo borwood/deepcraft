@@ -651,8 +651,31 @@ floor is inert. It bites in the *moderately* convergent regime, where a channel'
 sidewall neighbours sit in the 0.2–1 % band: those are zeroed and their water is
 handed to the channel. So the floor makes the drainage net **slightly more
 channelised than the exponent alone specifies**, and the size of that bias has been
-argued but **not measured**. The mass budget is untouched either way (renormalisation
-is exact, and the residual rule makes the split exact).
+argued but ~~**not measured**~~ — **MEASURED 2026-07-26 (journal/0113)**. The mass
+budget is untouched either way (renormalisation is exact, and the residual rule makes
+the split exact).
+
+**MEASURED — the shipped world under hybrid `p`, floor at 1 % against floor off**
+(`examples/hybrid_p_probe.rs`, which turns it off through the new
+`DeepConfig::mfd_min_weight` knob):
+
+| | floor 1 % | floor off | delta |
+|---|---|---|---|
+| peak catchment | 298 | 305 | **−2.1 %** |
+| simultaneous `(cell, epoch)` divergence | 7,228,964 | 7,248,627 | **−0.3 %** |
+| record entries | 4,107,188 | 4,171,836 | −1.5 % |
+| record residency | 63.80 MiB | 64.79 MiB | −1.5 % |
+
+So the leak into the physics is **real, small, and in the opposite direction to the
+argument above**: the floor leaves the world slightly *less* concentrated, not more,
+because the shares it drops are on the dispersive side of a partition whose steepest
+direction was going to take them anyway. It buys **1.5 %** of the record for **2 %**
+of the peak catchment.
+
+**The constant is now a knob** (`DeepConfig::mfd_min_weight`, default unchanged at
+`0.01`) — not so that anyone moves it, but so this table can exist. **A knob is not
+an heir and this entry stays open**: the leak is still a record requirement applied
+inside the solve, and the alternative shape below is still the right one.
 
 **Heir:** the per-epoch aggregation-window decision (flow.md § 9, item 7b — still the
 user's call) and the marine-sink residency lever, both of which are about what the

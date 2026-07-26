@@ -88,7 +88,26 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x60F0_A669_F4B9_23BD
 /// ```
-pub const GOLDEN_SURFACE: u64 = 0x1A57_A522_C3BA_9F0C;
+/// **Moved 2026-07-26 by hybrid `p` (journal/0113) — authorized, and a physics
+/// change of the same class as MFD itself.** The convergence exponent became
+/// spatially varying: dispersive where flow is unchannelised, and single-receiver
+/// above a channel-initiation threshold on `χ = A·S²`. That changes where the
+/// water goes — the shipped world's peak catchment rises 84 → 265 cells — so the
+/// surface, the drainage export and the record all moved together.
+///
+/// Three fixed points are **deliberately untouched** by it, and that is what makes
+/// this an authorized move rather than a lost one: [`GOLDEN_SURFACE_SINGLE_RECEIVER`]
+/// (`mfd: false`), [`GOLDEN_SURFACE_SCALAR_LOAD`] and the anonymous-creep pair in
+/// `tests/material_creep.rs`. The latter two are reached by pinning the flat ramp
+/// `p_chan == p_hill == 4.0`, and they are **bit-identical** rather than merely
+/// close, because `partition_cell` skips its `S/S_max` normalisation for a uniform
+/// law precisely so that stays true. Prior value (pre-hybrid `main`), kept for
+/// audit:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x1A57_A522_C3BA_9F0C
+/// ```
+pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -220,7 +239,13 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```text
 /// GOLDEN_RECORD 0x9DEE_8FAE_4550_F2D0
 /// ```
-pub const GOLDEN_RECORD: u64 = 0x16EC_7D94_3A2E_D912;
+/// **Moved 2026-07-26 by hybrid `p` (journal/0113) — authorized.** See
+/// [`GOLDEN_SURFACE`]. Prior value (pre-hybrid `main`), kept for audit:
+///
+/// ```text
+/// GOLDEN_RECORD 0x16EC_7D94_3A2E_D912
+/// ```
+pub const GOLDEN_RECORD: u64 = 0xACB6_1859_6AA3_F3A8;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

@@ -174,7 +174,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     // FLOW continuation (b/b'): the MFD partition under the hybrid-`p` law.
     // `None` ⇒ the single-receiver D8 solve, byte for byte;
     // `mfd_exponent_channel == mfd_exponent` ⇒ journal/0109's uniform `p`.
-    erosion.set_mfd(cfg.mfd.then(|| MfdParams {
+    erosion.set_mfd(cfg.mfd.then_some(MfdParams {
         p_hill: cfg.mfd_exponent,
         p_chan: cfg.mfd_exponent_channel,
         chi_lo: cfg.mfd_chi_lo,

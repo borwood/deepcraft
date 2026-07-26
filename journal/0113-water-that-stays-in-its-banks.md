@@ -155,11 +155,195 @@ to derive the threshold *from*) or a dimensionless re-expression of the index.
 
 ## The numbers
 
-PLACEHOLDER-NUMBERS
+Seed 1337, `Extent::Medium`, 297,025 deep cells of which **44,264 are land**,
+200 epochs, shipped configuration otherwise. Three routings on the same pregen:
+**D8** (`mfd: false`), **uniform `p = 4`** (journal/0109's solve, reached by
+pinning `p_chan == p_hill`), and **hybrid**.
+
+### Acceptance 1 — peak catchment
+
+| | D8 | uniform `p = 4` | **hybrid** |
+|---|---|---|---|
+| peak catchment (cells) | 1,255 | **84** | **298** |
+| as a share of D8's peak | 100 % | 6.7 % | **23.8 %** |
+
+**84 → 298, a 3.5× recovery.** Not all the way back to D8, and it should not be:
+D8 is the sheet-flow-free extreme, and a landscape where nothing ever spreads is
+as wrong as one where everything does. (D8's peak reads 1,255 here against
+journal/0109's 1,245 — the same quantity on a world that has since gained
+material-aware transport and material-aware creep. The uniform-`p` figure, 84, is
+identical to the digit.)
+
+### Acceptance 2 — the catchment distribution
+
+The peak is one cell, and one cell is noise. The distribution is the claim:
+
+| land-cell catchment | D8 | uniform `p = 4` | **hybrid** |
+|---|---|---|---|
+| p50 | 20.0 | 27.8 | 23.0 |
+| p90 | 51.0 | 51.7 | **60.2** |
+| p99 | 127.0 | 70.0 | **164.4** |
+| p99.9 | 298.0 | 78.2 | 213.8 |
+| **top-1 % share of all land drainage area** | 0.0849 | 0.0248 | **0.0613** |
+| peak / mean catchment | 41.4 | 2.8 | **9.4** |
+| land cells with a catchment > 100 | 530 | **0** | **2,270** |
+
+Two rows are worth stopping on.
+
+**`land cells with A > 100` went 0 → 2,270.** Under uniform `p` the shipped world
+contained **not one cell** whose drainage exceeded a hundred cells. There was no
+trunk network at all — not a weak one, none.
+
+**At p99 the hybrid solve beats D8**: 164.4 against 127.0. That is not a rounding
+artefact and it is the most interesting number in the slice. A single-receiver
+network is a *tree*: every cell hands its water to exactly one parent, so the
+mid-range of the distribution is thin — area either sits in the trunk or it does
+not. The hybrid solve disperses on the hillslopes, so a channel collects from a
+*fan* of upslope cells instead of a single tributary line, and then keeps what it
+collected. The result is a network with **more** moderately large channels than
+D8 and a smaller single largest one. That is a better description of a real
+drainage basin than either extreme, and it fell out of the law rather than being
+aimed at.
+
+### Acceptance 3 — simultaneous divergence must survive, and it does
+
+| | D8 | uniform `p = 4` | **hybrid** |
+|---|---|---|---|
+| `(cell, epoch)` pairs with ≥2 lateral out-faces | **0** | 7,548,535 | **7,228,964** |
+| distinct `(cell, chapter)` pairs | **0** | 395,449 | **398,955** |
+| most lateral out-faces in one epoch | 0 | 8 | 8 |
+| temporal (avulsion) `(cell, chapter)` pairs | 337,406 | 418,889 | 417,981 |
+
+**95.8 % of the simultaneous divergence survives** — and the `(cell, chapter)`
+count is *higher* than uniform `p`'s. Concentrating the trunks cost the deltas
+almost nothing, which is the whole argument for `A·S²` over `A` alone, measured
+rather than asserted. The D8 column is still a structural zero and always will be.
+
+### Acceptance 4 — mass
+
+| | |
+|---|---|
+| `Δ(ΣR + ΣH) − uplift − biotic` | **+1.28 × 10⁻⁵ m** on a total mass of 5.63 × 10⁸ m — a relative residual of **2 × 10⁻¹⁴** |
+| worst **per-species** split residue over the whole run | **2.18 × 10⁻¹⁶** (relative; one ulp) |
+
+### The calibration, and the trade it hides
+
+The `χ` distribution over 44,204 draining land cells on the shipped world (`S`
+dimensionless):
+
+| | p1 | p10 | p50 | p75 | p90 | p99 | max |
+|---|---|---|---|---|---|---|---|
+| `χ = A·S²` | 6.3e−5 | 2.6e−3 | 2.0e−2 | 4.5e−2 | 1.07e−1 | 3.3e−1 | 5.8e−1 |
+| `S` | 4.1e−3 | 1.4e−2 | 3.3e−2 | 4.3e−2 | 4.9e−2 | 5.8e−2 | 6.2e−2 |
+
+At the shipped thresholds that puts **64.3 % of land dispersive, 26.8 % on the
+ramp, and 8.9 % channelised.**
+
+`chi_hi` is the knob that decides how much of the world is treated as confined,
+and it trades concentration against divergence. So it is reported as a **curve**,
+not defended as a point (`chi_lo` held at `chi_hi/4` so only the switch moves):
+
+| `chi_hi` | land channelised | peak | **p99** | **top-1 % share** | simultaneous `(cell,epoch)` |
+|---|---|---|---|---|---|
+| 3.0e−2 | 35.8 % | **355** | 115.5 | 0.0463 | 5,724,055 |
+| 6.0e−2 | 20.2 % | 251 | 150.2 | 0.0572 | 6,677,499 |
+| **1.2e−1 (shipped)** | **8.9 %** | 298 | **164.4** | **0.0613** | **7,228,964** |
+| 2.4e−1 | 3.2 % | 290 | 155.7 | 0.0588 | 7,491,081 |
+
+**Read the first row before assuming more channelisation is better.** At
+`chi_hi = 3e−2` the single largest catchment is the biggest of the four — 355 —
+and *both* proper concentration measures are the **worst** of the four (p99
+115.5, top-1 % 0.0463), while a fifth of the simultaneous divergence is gone.
+Channelising a third of the land does not build a drainage network; it builds
+thousands of parallel independent threads that never merge, which raises one
+extremum and flattens everything else. The shipped point maximises p99 *and* the
+top-1 % share *and* retains the most divergence of any concentrating setting. It
+was not chosen to; it is where the curve put it.
+
+### `MFD_MIN_WEIGHT` — stub #22, measured at last
+
+The stub said the floor's bias was *"argued, **not measured**"*. Now it is —
+hybrid `p` with the floor at 1 % against the floor **off**:
+
+| | floor 1 % | floor off | delta |
+|---|---|---|---|
+| peak catchment | 298 | 305 | **−2.1 %** |
+| simultaneous `(cell, epoch)` | 7,228,964 | 7,248,627 | **−0.3 %** |
+| record entries | 4,107,188 | 4,171,836 | −1.5 % |
+| record residency | 63.80 MiB | 64.79 MiB | −1.5 % |
+
+So the floor's effect on the *physics* is real but small — and it points the way
+the stub predicted, slightly **less** concentrated rather than more. It buys 1.5 %
+of the record for 2 % of the peak catchment. **The floor is now a knob**
+(`DeepConfig::mfd_min_weight`, default unchanged at `0.01`) — not in order to move
+it, but so that the number above exists at all. A knob is not an heir, and stub
+#22 stays open.
+
+### Cost
+
+| | D8 | uniform `p = 4` | hybrid |
+|---|---|---|---|
+| deep run | 26.87 s | 30.67 s | **30.71 s** |
+| record entries | 2,897,904 | 3,735,614 | 4,107,188 |
+| record residency | 45.35 MiB | 58.13 MiB | **63.80 MiB** |
+| `DeepField` residency | 174.35 MiB | 187.21 MiB | **192.32 MiB** |
+
+**Gen time against uniform `p`: +0.04 s, inside the noise.** The integer-rounded
+ramp keeps the partition on `powi`, and the channel switch is *cheaper* than a
+partition — one weight, no loop. Nothing here is on a runtime path. Residency
+against uniform `p` is **+5.67 MiB of record**, bought by the dispersive
+hillslopes: `p_hill = 1` keeps more sub-dominant receivers than `p = 4` did, and
+those are entries. That is the honest price of putting the endpoints at the
+endpoints.
 
 ## The invariants, verified rather than assumed
 
-PLACEHOLDER-INVARIANTS
+All four survive, and each was checked by something that could have failed rather
+than by reading the diff.
+
+**The traversal licence.** journal/0109's finding was that the priority-flood pop
+order is a topological order of the DAG *because every routed edge descends the
+potential* — the tree never licensed it, the potential did. Hybrid `p` reweights
+edges and, above `chi_hi`, deletes all but one; it never creates one. Both the
+ramp and the switch draw only from directions with `drop > 0` on `filled`, and the
+switch takes the **steepest** of exactly those. Verified by
+`mfd_routing.rs::every_routed_edge_descends_the_free_surface_potential`, which
+walks the live final epoch under the shipped law.
+
+**Mass with no residue.** Untouched — deliberately. The residual rule lives in
+`accumulate_area` and `transport`; this slice changed neither, only how `mfd_w` is
+*filled*. In the channelised case the rule is trivially exact: one weighted
+direction, which is therefore also the last, so it takes `q − 0`. Verified by
+`mass_is_conserved_with_mfd_on` and by the probe's whole-world ledger
+(2 × 10⁻¹⁴ relative).
+
+**Per-species budgets.** Also untouched, and also verified rather than reasoned:
+`the_partition_leaves_no_residue`, `no_species_leaks_at_its_own_junction`,
+`a_shared_total_leaks_per_species_and_an_own_budget_does_not`, and the probe's
+worst per-species split residue over a 200-epoch run — **2.18 × 10⁻¹⁶**, one ulp.
+
+**A-3, the live risk.** *The record may only describe water the solve actually
+moved*, and the value written must be the same `share` that was added to the
+neighbour, never re-derived from the weights. A variable exponent makes
+re-derivation tempting — the weights are right there. It was not done: the
+recorder's write sites are byte-for-byte the ones journal/0109 left, and this
+slice touched no line between a `share` and its `out_area` / `out_face_load`
+store. Checked by grepping those hunks back out of the creep merge intact, and
+guarded by `the_partition_leaves_no_residue`, which compares the **record's**
+per-face plane against the **solve's** accumulated area and fails the moment the
+two arithmetics diverge.
+
+**And one invariant that had to be restored rather than merely preserved.** The
+`S/S_max` normalisation changes the uniform path's last ulp, and the first gate
+caught what that costs: **three** cross-commit fixed points — the pre-MFD world,
+the pre-2b scalar-load world, and the anonymous-creep world — stopped being
+byte-reachable. They are not decoration; they are the evidence that each slice
+*added* a path rather than perturbing the old one. So the normalisation is applied
+**only when the law is non-uniform** (`x / 1.0` is exact, so a uniform law runs
+journal/0109's arithmetic bit for bit). The price, stated where a reader will meet
+it: a *uniform* law keeps 0109's exponent-range limit. Uniform `p` is a control,
+not a shipping mode, and the ramp — where the large exponents actually live — is
+normalised.
 
 ## What this is for, and what it is not for
 

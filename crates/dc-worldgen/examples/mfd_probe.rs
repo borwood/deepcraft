@@ -30,6 +30,12 @@ use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
 const SEED: u64 = 1337;
 
+/// The uniform exponent journal/0109 shipped, and this probe's subject. It is a
+/// local constant rather than `DeepConfig::default().mfd_exponent` because that
+/// field became the *hillslope* end of a ramp in journal/0113 — reading it here
+/// would silently re-point the probe at half of a different law.
+const P_UNIFORM: f64 = 4.0;
+
 fn mib(bytes: usize) -> f64 {
     bytes as f64 / (1024.0 * 1024.0)
 }
@@ -105,10 +111,19 @@ fn counts(f: &DeepField) -> Counts {
     }
 }
 
+/// **A UNIFORM-`p` configuration**, and the pin is load-bearing since
+/// journal/0113: the shipped law ramps `p` with the channelisation index, so
+/// setting `mfd_exponent` alone would leave `mfd_exponent_channel` at its default
+/// and this probe's "exponent sweep" would sweep only one end of a ramp. Pinning
+/// `p_chan == p_hill` short-circuits the ramp entirely, which is exactly
+/// journal/0109's solve — the thing this probe measures.
+///
+/// The hybrid law has its own probe: `examples/hybrid_p_probe.rs`.
 fn cfg(cells: &CellGrid, mfd: bool, p: f64) -> DeepConfig {
     DeepConfig {
         mfd,
         mfd_exponent: p,
+        mfd_exponent_channel: p,
         ..production_config(cells, SEED)
     }
 }
@@ -146,7 +161,7 @@ fn main() {
     let t_pregen = t0.elapsed().as_secs_f64();
 
     let off = measure(&pregen.grid, false, 0.0);
-    let on = measure(&pregen.grid, true, DeepConfig::default().mfd_exponent);
+    let on = measure(&pregen.grid, true, P_UNIFORM);
 
     let (co, cn) = (counts(&off.field), counts(&on.field));
     let cells = on.field.flux.cells();
@@ -161,9 +176,16 @@ fn main() {
         "pregen {t_pregen:.1} s · deep run OFF {:.1} s · deep run ON {:.1} s",
         off.deep_secs, on.deep_secs
     );
+    println!("convergence exponent p = {P_UNIFORM} (UNIFORM — journal/0109's solve)");
     println!(
-        "convergence exponent p = {}",
-        DeepConfig::default().mfd_exponent
+        "NOTE: the SHIPPED law is no longer uniform. Since journal/0113 `p` varies
+         with the channelisation index chi = A*S^2 ({} on unchannelised ground, {} at
+         the top of the ramp, single-receiver above chi = {:.2e}). Every number in this
+         report is the UNIFORM control, which is what this probe exists to measure;
+         the shipped world's flow structure lives in `examples/hybrid_p_probe.rs`.",
+        DeepConfig::default().mfd_exponent,
+        DeepConfig::default().mfd_exponent_channel,
+        DeepConfig::default().mfd_chi_hi
     );
 
     println!("\n--- ACCEPTANCE: SIMULTANEOUS divergence (within ONE epoch) ---");
@@ -421,7 +443,7 @@ mod gate {
         ));
         let on = counts(&build_field_cfg(
             &pregen.grid,
-            &cfg(&pregen.grid, true, 4.0),
+            &cfg(&pregen.grid, true, P_UNIFORM),
         ));
         assert_eq!(
             off.simul_cell_epochs, 0,

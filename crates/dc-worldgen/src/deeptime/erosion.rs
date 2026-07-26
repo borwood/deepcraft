@@ -289,7 +289,16 @@ pub struct MfdParams {
 
 impl MfdParams {
     /// journal/0109's solve: one exponent everywhere. A named constructor because
-    /// it is the control every hybrid measurement is quoted against.
+    /// it is the control every hybrid measurement is quoted against — and because
+    /// it is a **pinned identity path**: `partition_cell` skips the `S/S_max`
+    /// normalisation for a uniform law so the arithmetic is bit-for-bit 0109's,
+    /// which is what keeps the scalar-load and anonymous-creep goldens reachable.
+    ///
+    /// The price of that pin is that a uniform law inherits 0109's exponent-range
+    /// limit: raw `S^p` on the gentlest gradients this world carries underflows
+    /// somewhere past `p ≈ 40`, and a partition that underflows to zero reports a
+    /// draining cell as a sink. Uniform `p` is a *control*, not a shipping mode;
+    /// the ramp is where large exponents live and it is normalised.
     #[must_use]
     pub fn uniform(p: f64) -> Self {
         Self {
@@ -581,12 +590,23 @@ fn partition_cell(
     // uniform exponents a probe may sweep.
     let pr = p.round();
     let int_p = (p == pr && (1.0..=64.0).contains(&pr)).then_some(pr as i32);
+    // **Normalise by `S_max` — on the hybrid path only.** Algebraically the
+    // division is a no-op (the renormalisation below divides it straight back
+    // out), but it puts every base in `(0, 1]` so the ramp's large exponents
+    // cannot underflow a whole partition to zero and report a draining cell as a
+    // sink. It is *not* applied to a uniform law, and that is deliberate: `x/1.0`
+    // is exact, so journal/0109's arithmetic survives **bit for bit** and the
+    // uniform world stays a reachable cross-commit fixed point (the goldens in
+    // `material_transport.rs` and `material_creep.rs` are pinned there). The cost
+    // of that choice is that a *uniform* law keeps 0109's exponent-range limit —
+    // see [`MfdParams::uniform`].
+    let norm = if mp.is_uniform() { 1.0 } else { s_max };
     let mut sum = 0.0;
     for (d, &s) in slope.iter().enumerate() {
         if s <= 0.0 {
             continue;
         }
-        let base = s / s_max;
+        let base = s / norm;
         let sp = match int_p {
             Some(k) => base.powi(k),
             None => base.powf(p),
@@ -3636,14 +3656,20 @@ mod mfd_tests {
     #[test]
     fn a_steep_exponent_on_a_gentle_slope_still_finds_a_receiver() {
         let (c, surf, filled) = patch([1e-5, 2e-5, 5e-6, 3e-5, 9e-6, 2.5e-6, 1.5e-5, 4e-5]);
+        // A **hybrid** law: the normalisation is deliberately not applied to a
+        // uniform one (see `MfdParams::uniform`), so this pins the guarantee where
+        // it exists. `chi` is far below `chi_lo`, so the exponent is `p_hill`.
         let mp = MfdParams {
-            p_hill: 64.0,
+            p_hill: 63.0,
             p_chan: 64.0,
             ..MfdParams::default()
         };
         let mut w_out = [0.0f64; MFD_DIRS];
         let best = partition_cell(c, 3, &surf, &filled, -1000.0, 0.0, 1.0, &mp, &mut w_out);
-        assert!(best >= 0, "a cell with eight downslope neighbours became a sink");
+        assert!(
+            best >= 0,
+            "a cell with eight downslope neighbours became a sink"
+        );
         let sum: f64 = w_out.iter().sum();
         assert!((sum - 1.0).abs() < 1e-12, "weights sum to {sum}");
     }

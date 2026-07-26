@@ -271,7 +271,8 @@ fn main() {
     let t = Instant::now();
     let run = run_cells(&pregen.grid, &cfg_hybrid(&pregen.grid), false);
     let mass_secs = t.elapsed().as_secs_f64();
-    let residual = deeptime::total_mass(&run.grid) - run.mass_before - run.uplift_total - run.biotic_total;
+    let residual =
+        deeptime::total_mass(&run.grid) - run.mass_before - run.uplift_total - run.biotic_total;
     println!("\n--- ACCEPTANCE 4: MASS (hybrid p, scalar run, {mass_secs:.1} s) ---");
     println!(
         "d(sum R + sum H) - uplift - biotic = {residual:+.6e} m   \
@@ -291,7 +292,13 @@ fn main() {
     let w = run.grid.w;
     let filled = run.erosion.filled().to_vec();
     let area = run.erosion.area().to_vec();
-    let surf: Vec<f64> = run.grid.r.iter().zip(&run.grid.h).map(|(r, h)| r + h).collect();
+    let surf: Vec<f64> = run
+        .grid
+        .r
+        .iter()
+        .zip(&run.grid.h)
+        .map(|(r, h)| r + h)
+        .collect();
     let mut chis: Vec<f64> = Vec::new();
     let mut smax_all: Vec<f64> = Vec::new();
     for y in 1..w - 1 {
@@ -319,7 +326,10 @@ fn main() {
     }
     chis.sort_by(|a, b| a.partial_cmp(b).expect("finite"));
     smax_all.sort_by(|a, b| a.partial_cmp(b).expect("finite"));
-    println!("\n--- THE CALIBRATION: chi = A * S^2 over {} draining land cells ---", chis.len());
+    println!(
+        "\n--- THE CALIBRATION: chi = A * S^2 over {} draining land cells ---",
+        chis.len()
+    );
     println!("(final-epoch diagnostic; the solve reads a one-epoch-lagged area)");
     print!("chi   ");
     for q in [0.01, 0.10, 0.50, 0.75, 0.90, 0.99, 0.999] {
@@ -361,12 +371,7 @@ fn main() {
         let chan = chis.iter().filter(|&&x| x >= chi_hi).count() as f64 * 100.0 / chis.len() as f64;
         println!(
             "{chi_hi:>9.2e} {chan:>10.2} {:>9.0} {:>7.1} {:>7.4} {:>18} {:>9} {:>8.1}",
-            m.peak_catchment,
-            m.pct[2],
-            m.top1_share,
-            m.simul_cell_epochs,
-            m.entries,
-            m.deep_secs
+            m.peak_catchment, m.pct[2], m.top1_share, m.simul_cell_epochs, m.entries, m.deep_secs
         );
     }
     println!(

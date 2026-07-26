@@ -50,6 +50,16 @@ fn cfg_for(cells: &CellGrid, material_transport: bool, material_creep: bool) -> 
     DeepConfig {
         material_transport,
         material_creep,
+        // **The anonymous-creep world was routed by a UNIFORM `p = 4`**, and a
+        // fixed point is only reachable if *all* of the configuration it was
+        // captured under is reproduced, not most of it. Hybrid `p` (journal/0113)
+        // made the shipped exponent spatially varying the same day this fixture
+        // landed, so it pins the flat ramp `p_chan == p_hill == 4.0`, which
+        // `MfdParams::exponent_at` short-circuits (no ramp, no channel switch).
+        // Without this the constants below would quietly become "anonymous creep
+        // under post-b' routing", which is a claim about nothing.
+        mfd_exponent: 4.0,
+        mfd_exponent_channel: 4.0,
         ..production_config(cells, SEED)
     }
 }
