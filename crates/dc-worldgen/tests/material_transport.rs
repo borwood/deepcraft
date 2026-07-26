@@ -45,6 +45,18 @@ fn small_world() -> Pregen {
 fn cfg_for(cells: &CellGrid, material_transport: bool) -> DeepConfig {
     DeepConfig {
         material_transport,
+        // **The pre-2b world was routed by a UNIFORM `p = 4`**, and reaching a
+        // fixed point means reproducing all of the configuration it was captured
+        // under, not most of it (the same discipline `mfd_routing.rs` states when
+        // it turns off *both* forks to reach the pre-MFD goldens). Hybrid `p`
+        // (journal/0113) made the shipped exponent spatially varying, so this
+        // fixture pins the flat ramp `p_chan == p_hill == 4.0` — which
+        // `MfdParams::exponent_at` short-circuits, evaluating no ramp at all.
+        // Without this the scalar-load constants would silently become "pre-2b
+        // transport under post-b' routing", which is not a cross-commit claim
+        // about anything.
+        mfd_exponent: 4.0,
+        mfd_exponent_channel: 4.0,
         ..production_config(cells, SEED)
     }
 }
