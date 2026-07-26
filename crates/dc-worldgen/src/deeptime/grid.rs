@@ -357,6 +357,17 @@ pub struct DeepConfig {
     /// scalar solve (asserted by name in `tests/material_transport.rs`). Appended
     /// last (wire discipline).
     pub material_transport: bool,
+    /// **The denudation ledger** (journal/0111) — read-only export counters on
+    /// [`super::erosion::TransportLedger`]: fluvial yield to the sea, regolith
+    /// crept across the shoreline, wave-quarried rock sent offshore, dust settled
+    /// on water. **Off by default and off in production**, because the
+    /// shoreline-creep term costs a per-epoch sweep over every cell's edges for a
+    /// number no production consumer reads. With it off the counters are exactly
+    /// zero, no branch fires, and the run is byte- *and cost*-identical; the
+    /// measurement probe (`examples/denudation_probe.rs`) is the only caller that
+    /// turns it on, and its gate asserts the surface plane is bit-identical
+    /// either way.
+    pub denudation_ledger: bool,
 }
 
 /// The paleo-sea-level stand at iteration `it`: a deterministic sinusoid about
@@ -417,6 +428,7 @@ impl Default for DeepConfig {
             mfd: true,
             mfd_exponent: 4.0,
             material_transport: true,
+            denudation_ledger: false,
             providers: super::providers::Providers::default(),
         }
     }

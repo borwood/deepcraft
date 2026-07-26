@@ -726,6 +726,55 @@ pub struct TransportLedger {
     /// material-aware — so this number is how much of the world's sediment routing
     /// the slice did **not** reach.
     pub diffused_m: f64,
+
+    // ---- the DENUDATION itemisation (journal/0111) ------------------------
+    //
+    // Everything above measures material **moving inside** the landscape.
+    // Denudation is a different question: how much leaves the *land system*
+    // altogether. Weathering in place is not denudation; creeping one cell
+    // downslope is not denudation. Crossing the shoreline is.
+    //
+    // These are the complete set of ways mass crosses from a subaerial cell to a
+    // submerged one (or piles against the domain edge) in this engine, and they
+    // are accumulated **only when [`Erosion::set_denudation_ledger`] is on** —
+    // off, they are exactly zero, no branch fires, and the run is byte- *and
+    // cost*-identical to production. They are read-only with respect to the
+    // physics: every one is a `+=` on this struct.
+    /// Fluvial load deposited at a sink that is **submerged** at the epoch's sea
+    /// stand — sediment yield to the sea, the closest thing this engine has to
+    /// what a gauging station or a cosmogenic-nuclide catchment average measures.
+    pub sink_marine_m: f64,
+    /// Fluvial load deposited at a sink that is a **subaerial domain-border**
+    /// cell. Not denudation: it is still on land, piled against the edge of the
+    /// simulated box. Broken out so it can never be quietly counted as export.
+    /// `sink_marine_m + sink_border_m == deposited_at_sink_m` — the itemisation
+    /// the gate asserts.
+    pub sink_border_m: f64,
+    /// Regolith **crept across the shoreline** by hillslope diffusion — the
+    /// land→sea half of the gather's edge fluxes. Creep moves 918× the fluvial
+    /// load on this world (corrections #55), so this is the term that decides the
+    /// answer, and it is the one no prior instrument could see.
+    pub creep_to_sea_m: f64,
+    /// Shore material quarried by the **wave** agent and deposited offshore
+    /// (loose cover first, then bedrock). By construction the sink is submerged,
+    /// so all of it is export.
+    pub wave_offshore_m: f64,
+    /// The bedrock share of [`Self::wave_offshore_m`]. Wave attack lowers `R`
+    /// *after* [`Erosion::track_exhumation`] has run, so this material is
+    /// **missing from `grid.exhum`** and must be added back when bedrock erosion
+    /// is totalled.
+    pub wave_bedrock_m: f64,
+    /// Airborne **dust settling on the sea** during the eolian march.
+    pub eolian_to_sea_m: f64,
+}
+
+impl TransportLedger {
+    /// **Total export from the subaerial land system** over the run, in metres of
+    /// cell-thickness — the catchment-averaged denudation numerator. Border
+    /// accumulation is deliberately *excluded*: it never left the land.
+    pub fn exported_m(&self) -> f64 {
+        self.sink_marine_m + self.creep_to_sea_m + self.wave_offshore_m + self.eolian_to_sea_m
+    }
 }
 
 /// Reusable scratch for the erosion iteration (allocated once, reused every
@@ -876,6 +925,12 @@ pub struct Erosion {
     /// leaves its source cell and a load that is never picked up at all are very
     /// different failures with very different heirs.
     ledger: TransportLedger,
+    /// **The denudation ledger switch** (journal/0111). Off by default and off in
+    /// production: the five export counters on [`TransportLedger`] stay exactly
+    /// zero, the shoreline-creep sweep in [`Self::diffuse`] never runs, and the
+    /// solve is byte- and cost-identical. On, the phases additionally tally what
+    /// crosses out of the land system. Nothing it does writes to the grid.
+    denude: bool,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -930,8 +985,94 @@ impl Erosion {
             dep_sp: Vec::new(),
             split_residue: 0.0,
             ledger: TransportLedger::default(),
+            denude: false,
             heap: BinaryHeap::new(),
         }
+    }
+
+    /// Turn the **denudation ledger** on (journal/0111) — the five export
+    /// counters on [`TransportLedger`] that measure what leaves the *land system*
+    /// rather than what moves inside it.
+    ///
+    /// It is a flag rather than always-on for one reason: the shoreline-creep
+    /// term needs a per-epoch sweep over every cell's four edges, which is real
+    /// gen-time work for a number no production consumer reads. Off is therefore
+    /// the S-5 identity floor — zero counters, zero branches, zero cost — and the
+    /// measurement probe is the only caller that turns it on. **The gate asserts
+    /// the surface plane is bit-identical either way**, which is what makes a
+    /// number taken with the flag on a number about the shipped world.
+    pub fn set_denudation_ledger(&mut self, on: bool) {
+        self.denude = on;
+    }
+
+    /// Whether the denudation ledger is on.
+    #[inline]
+    pub fn is_denudation_ledger(&self) -> bool {
+        self.denude
+    }
+
+    /// Split a sink's arriving load into **export** and **edge pile-up**
+    /// (journal/0111). A sink is either a submerged cell — in which case the
+    /// sediment has left the land system and is the yield a real catchment study
+    /// would weigh — or a subaerial domain-border cell, in which case it has not
+    /// left anything and is an artifact of simulating a box. Conflating the two
+    /// would inflate denudation by whatever the border happens to catch, so the
+    /// two are counted apart and the gate asserts they re-sum to the total.
+    ///
+    /// Read-only: it inspects the grid and adds to the ledger. No-op when the
+    /// denudation ledger is off.
+    #[inline]
+    fn tally_sink(&mut self, grid: &DeepGrid, c: usize, qin: f64) {
+        if !self.denude {
+            return;
+        }
+        if grid.surf_at(c) <= self.sea_level {
+            self.ledger.sink_marine_m += qin;
+        } else {
+            self.ledger.sink_border_m += qin;
+        }
+    }
+
+    /// **How much regolith creeps across the shoreline this epoch** — the
+    /// land→sea half of the diffusion gather's edge fluxes (journal/0111).
+    ///
+    /// This is the term the answer turns on, because creep moves 918× what the
+    /// rivers pick up on this world (corrections #55) and no instrument before
+    /// this one could say how much of it actually *leaves*. It re-reads exactly
+    /// the influx expression [`diffuse_net_cell`] uses for a submerged cell `j`
+    /// from a higher subaerial neighbour `i` — the same donor scale, the same
+    /// effective diffusivity — so the number is a partition of a flux the solve
+    /// already computed, not a second model of it.
+    ///
+    /// Called after the gather's two passes and before they are applied, on the
+    /// same frozen surface, so it sees the epoch the flux belongs to.
+    fn tally_creep_to_sea(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
+        let (w, diff, sea) = (self.w, cfg.diffusion, self.sea_level);
+        let mut sum = 0.0;
+        for j in 0..self.n {
+            if self.surf[j] > sea {
+                continue; // the receiving cell must be under water
+            }
+            let (gx, gy) = coords_of(j, w);
+            for (dx, dy) in NEIGH4 {
+                let Some(i) = in_grid(gx + dx, gy + dy, w) else {
+                    continue;
+                };
+                // Only a *subaerial* donor standing above the water is denudation:
+                // a subsea→subsea edge is marine redistribution, and a downhill
+                // edge out of `j` is not influx at all.
+                if self.surf[i] <= sea {
+                    continue;
+                }
+                let d = self.surf[i] - self.surf[j];
+                if d > 0.0 {
+                    sum += eff_diff(diff, &grid.bio_resist, &self.sus_creep, i)
+                        * d
+                        * self.scale[i];
+                }
+            }
+        }
+        self.ledger.creep_to_sea_m += sum;
     }
 
     /// Turn **material-aware transport** on (Movement 2b, `material-behavior.md`
@@ -2000,6 +2141,7 @@ impl Erosion {
                         }
                         self.ledger.deposited_at_sink_m += qin;
                     }
+                    self.tally_sink(grid, c, qin);
                     continue;
                 }
                 let rc = rc as usize;
@@ -2069,6 +2211,7 @@ impl Erosion {
                     }
                     self.ledger.deposited_at_sink_m += qin;
                 }
+                self.tally_sink(grid, c, qin);
                 continue;
             }
             let qs_out = self.exchange_cell(grid, cfg, c, qin, s_bar, floor);
@@ -2332,6 +2475,12 @@ impl Erosion {
         if self.sorted {
             self.ledger.diffused_m += self.netdiff.iter().map(|v| v.max(0.0)).sum::<f64>();
         }
+        // journal/0111: of the creep above, how much crossed the shoreline and so
+        // actually LEFT the land. Read-only, on the same frozen surface, before
+        // the gather is applied. Off ⇒ not even called.
+        if self.denude {
+            self.tally_creep_to_sea(grid, cfg);
+        }
         // Apply: h += net, dh += net (disjoint per-cell writes).
         if parallel {
             grid.h
@@ -2442,6 +2591,10 @@ impl Erosion {
                 if surf <= sea {
                     // Over water: the airborne load settles out (dust on the sea).
                     if load > 0.0 {
+                        // journal/0111: dust that reaches the sea has left the land.
+                        if self.denude {
+                            self.ledger.eolian_to_sea_m += load;
+                        }
                         grid.h[i] += load;
                         if record {
                             let tag = DepTag {
@@ -2602,6 +2755,13 @@ impl Erosion {
             grid.h[i] -= removed_h;
             grid.r[i] -= cut - removed_h;
             grid.h[j] += cut;
+            // journal/0111: `j` is a subsea cell by construction, so every metre
+            // of this is export from the land system — and the bedrock share is
+            // exhumation `track_exhumation` cannot see, because wave runs after it.
+            if self.denude {
+                self.ledger.wave_offshore_m += cut;
+                self.ledger.wave_bedrock_m += cut - removed_h;
+            }
             if record {
                 if removed_h > 0.0 {
                     grid.strata[i].erode(removed_h);
