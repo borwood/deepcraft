@@ -337,25 +337,45 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0x46250D80CAB250CA  materials 0xECBD087F1C41B0F3  table 0xE0255C0E5E6BBBBC
 //   medium 0x539           blocks 0x11C26F4F7FDC8E14  materials 0x7A269D592F98C6C4  table 0xC3B92A0BBCC37030
 //   small  0xC11A7E2026    blocks 0x83A4FD2811CBA19D  (materials/table unmoved)
+//
+// **Moved 2026-07-26 by material-aware transport (journal/0110, Movement 2b) —
+// authorized, and a physics move of the same class as MFD above.** The suspended
+// load became a multiset of `(lithology, quantity)`; deposition became a falling
+// **competence ceiling**, so a grain is set down where the flow stops being able
+// to hold it rather than where the mass budget happens to overflow; and a recorded
+// unit now carries **the material that arrived** instead of the one its
+// environment implied. Terrain moved (the ceiling changes where mass lands) and
+// the archive moved with it.
+//
+// **The Small row reads the opposite way to MFD's, and that is the confirmation
+// this time.** Small moved on **blocks only** again — `materials` and `table` are
+// byte-identical — which says the same thing it said for MFD: Small's sampled
+// chunks carry no strata record, so their contents are the unchanged year-zero
+// fallback, while their block still follows a surface that moved. Both media moved
+// on all three. Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0x324B5794DE970CE4  materials 0x066A7463EA779B1D  table 0x7AE04323CEE0EDAA
+//   medium 0x539           blocks 0xF071D5DC154FB2D4  materials 0xC1AA830057B948FA  table 0xFC5028203EFCF9D1
+//   small  0xC11A7E2026    blocks 0x6D12F2FC4240638D  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x324B_5794_DE97_0CE4,
-        0x066A_7463_EA77_9B1D,
-        0x7AE0_4323_CEE0_EDAA,
+        0xABAF_D31A_268A_41C9,
+        0xF55E_9B53_E770_7DC9,
+        0x1C1E_2105_F9B7_0B4B,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xF071_D5DC_154F_B2D4,
-        0xC1AA_8300_57B9_48FA,
-        0xFC50_2820_3EFC_F9D1,
+        0x3CBE_1801_0417_1798,
+        0xA84E_2386_F89C_48C3,
+        0xE7B2_211F_F942_A2D2,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x6D12_F2FC_4240_638D,
+        0xDB4D_1F79_DE34_197C,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

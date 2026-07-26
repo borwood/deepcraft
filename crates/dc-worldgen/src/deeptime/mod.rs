@@ -43,7 +43,9 @@ pub mod weather_inventory;
 pub use biotic::{
     BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
 };
-pub use erosion::{Erosion, energy_band, flood_fill_serial, flood_fill_tiled};
+pub use erosion::{
+    Erosion, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled,
+};
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, build_field,
     build_field_cfg, build_field_with, production_config, production_config_with,
@@ -75,7 +77,8 @@ pub use inventory::{
 pub use inventory::{F32_RELATIVE_RESOLUTION, FOLD_DEPTH_HEADROOM, NEAR_ZERO_FLOOR};
 pub use lithology::{
     Agent, Litho, LithoResistance, REFERENCE_LITHO, blend_susceptibility, dominant_litho,
-    exposed_litho, exposed_shares, litho_of_tag, resistance_of_material, susceptibility_table,
+    exposed_litho, exposed_shares, litho_of_tag, resistance_of_material, settling_table,
+    susceptibility_table,
 };
 pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};

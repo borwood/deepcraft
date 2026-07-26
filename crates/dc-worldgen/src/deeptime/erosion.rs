@@ -238,6 +238,18 @@ const SPECIES: usize = Litho::COUNT;
 /// **before** the outcome probe was run, and not revisited after.
 const COMPETENCE_SCALE: f64 = 420.0;
 
+/// **The competence ceiling of a flow with transport capacity `cap`** — the
+/// largest settling velocity ([`lithology::settling_table`]) it can hold in
+/// suspension. See [`COMPETENCE_SCALE`] for where the constant comes from.
+///
+/// Public because the invariant *"nothing leaves a cell that the cell could not
+/// carry"* is checked against it from outside, and a test that re-derived the
+/// ceiling would be checking its own arithmetic rather than the pass's.
+#[inline]
+pub fn competence_ceiling(cap: f64) -> f64 {
+    COMPETENCE_SCALE * cap
+}
+
 /// D8 steepest-descent receiver of cell `i` on the filled surface (`-1` = sink).
 #[inline]
 fn route_cell(i: usize, w: usize, surf: &[f64], filled: &[f64], sea_level: f64) -> i32 {
@@ -804,6 +816,15 @@ pub struct Erosion {
     /// epoch, per species. Read by [`Self::record`] to name the arriving unit, and
     /// by the outcome probe to measure the downstream fining gradient.
     dep_sp: Vec<f64>,
+    /// **The per-species split audit.** The largest *relative* discrepancy, over
+    /// every `(cell, species, epoch)` of the run, between what a cell held of a
+    /// species and the sum of what its receivers were handed of it.
+    ///
+    /// It is a running maximum rather than a stored plane because that is all the
+    /// claim needs: a leak anywhere is a leak. journal/0109 proved the scalar split
+    /// with a per-cell residue test over a stored plane; the per-species plane
+    /// would be `n × 8 × 7` and is not worth 133 MB to assert a scalar.
+    split_residue: f64,
     heap: BinaryHeap<Reverse<Item>>,
 }
 
@@ -856,6 +877,7 @@ impl Erosion {
             qs_sp: Vec::new(),
             shares: Vec::new(),
             dep_sp: Vec::new(),
+            split_residue: 0.0,
             heap: BinaryHeap::new(),
         }
     }
@@ -898,12 +920,40 @@ impl Erosion {
         &self.w_settle
     }
 
+    /// **The largest relative per-species split residue over the whole run**
+    /// (`0.0` when material-aware transport is off, or when every split was exact).
+    ///
+    /// This is the *local* half of the per-species mass proof, the direct analogue
+    /// of journal/0109's `the_partition_leaves_no_residue`: for every cell, every
+    /// species and every epoch, the shares handed to the receivers summed to what
+    /// the cell held. The *global* half — a share written to the record but never
+    /// added to a neighbour — is the whole-world `Δ(ΣR + ΣH) == uplift + biotic`
+    /// ledger, which this cannot see and which cannot see this.
+    pub fn max_species_split_residue(&self) -> f64 {
+        self.split_residue
+    }
+
     /// **What the transport pass set down at each cell in the last epoch, per
     /// species** (`n × SPECIES` metres; empty when material-aware transport is
     /// off). The measurement surface for the downstream-fining gradient — and the
     /// authority [`Self::record`] names the arriving unit from.
     pub fn deposited_species(&self) -> &[f64] {
         &self.dep_sp
+    }
+
+    /// **The suspended load still in flight after the last transport**
+    /// (`n × SPECIES` metres; empty when material-aware transport is off). Cell
+    /// `c`'s slice is what it handed onward — the quantity the competence
+    /// invariant is read against.
+    pub fn load_species(&self) -> &[f64] {
+        &self.qs_sp
+    }
+
+    /// The transport capacity seen at each cell in the last epoch (`cap`, the
+    /// stream-power budget) — the flow's own energy, which is what sets its
+    /// competence ceiling.
+    pub fn energy(&self) -> &[f64] {
+        &self.energy
     }
 
     /// Turn the **flow record's** per-epoch per-face capture on. Off (the
@@ -1646,38 +1696,6 @@ impl Erosion {
         // Exactly `1.0` when the coupling is off.
         let sus = sus_at(&self.sus_flow, c);
         let base = c * SPECIES;
-        // ---- COMPETENCE: the falling ceiling (Movement 2b, § 13.5) ----------
-        //
-        // Capacity says how much the flow can hold; competence says **what**. A
-        // species whose settling velocity exceeds what this cell's energy can lift
-        // rains out here, whether or not the flow has capacity to spare — that is
-        // the difference between a mass budget and a facies, and it is the entire
-        // mechanism by which a load fines downstream. Nothing is sorted: the
-        // ceiling falls, and the load is what is left under it.
-        let qin = if self.sorted {
-            let ceiling = COMPETENCE_SCALE * cap;
-            let mut rained = 0.0;
-            for k in 0..SPECIES {
-                if self.w_settle[k] > ceiling {
-                    let m = self.qs_sp[base + k];
-                    if m > 0.0 {
-                        self.qs_sp[base + k] = 0.0;
-                        self.dep_sp[base + k] += m;
-                        rained += m;
-                    }
-                }
-            }
-            if rained > 0.0 {
-                grid.h[c] += rained;
-                self.dh[c] += rained;
-            }
-            // Re-summed rather than decremented: the species vector is the
-            // authority, so the scalar every downstream decision reads is *derived
-            // from it*, in fixed index order, and cannot drift away from it.
-            self.qs_sp[base..base + SPECIES].iter().sum()
-        } else {
-            qin
-        };
         if qin <= cap {
             let mut room = cap - qin;
             // Entrain the exposed cover. Transport-limited, now scaled by
@@ -1764,6 +1782,7 @@ impl Erosion {
                 }
             }
             if self.sorted {
+                self.settle_above_competence(grid, c, cap);
                 self.qs_sp[base..base + SPECIES].iter().sum()
             } else {
                 carried
@@ -1802,12 +1821,56 @@ impl Erosion {
                 }
                 grid.h[c] += placed;
                 self.dh[c] += placed;
+                self.settle_above_competence(grid, c, cap);
                 self.qs_sp[base..base + SPECIES].iter().sum()
             } else {
                 grid.h[c] += dep;
                 self.dh[c] += dep;
                 cap
             }
+        }
+    }
+
+    /// **COMPETENCE — the falling ceiling** (Movement 2b, `material-behavior.md`
+    /// § 13.5). Every species in cell `c`'s outgoing load whose settling velocity
+    /// exceeds what a flow of capacity `cap` can hold is set down **here**, however
+    /// much capacity the flow has to spare.
+    ///
+    /// Capacity says *how much* a flow can carry; competence says *what*. Only the
+    /// second one produces a facies: without it a stream with spare capacity would
+    /// carry boulders to the sea and nothing would ever fine downstream. § 13.5's
+    /// instruction is exact — *"sorting is the falling ceiling; we write the
+    /// ceiling, not the sort"* — and this is the whole of the sort: no list is
+    /// reordered anywhere, the ceiling simply falls as energy falls and the load is
+    /// whatever is still under it.
+    ///
+    /// It runs **last**, on the load actually leaving, so it covers the material
+    /// this cell just entrained or incised as well as what arrived: a reach that
+    /// prises loose a grain size it cannot lift drops it straight back, which is
+    /// the honest outcome and keeps the invariant clean — **nothing leaves a cell
+    /// that the cell could not carry**. (That is deliberately *not* armouring: the
+    /// grain stays in the ordinary loose cover and is tried again next epoch, so no
+    /// permanent lag or pavement forms. Selective *entrainment* — the fine-side,
+    /// cohesion-driven half of Hjulström's curve, which is what actually armours a
+    /// bed — is § 13.4 and is deferred.)
+    #[inline]
+    fn settle_above_competence(&mut self, grid: &mut DeepGrid, c: usize, cap: f64) {
+        let ceiling = COMPETENCE_SCALE * cap;
+        let base = c * SPECIES;
+        let mut rained = 0.0;
+        for k in 0..SPECIES {
+            if self.w_settle[k] > ceiling {
+                let m = self.qs_sp[base + k];
+                if m > 0.0 {
+                    self.qs_sp[base + k] = 0.0;
+                    self.dep_sp[base + k] += m;
+                    rained += m;
+                }
+            }
+        }
+        if rained > 0.0 {
+            grid.h[c] += rained;
+            self.dh[c] += rained;
         }
     }
 
@@ -2006,6 +2069,12 @@ impl Erosion {
                     face_total[d] += share;
                     let j = self.mfd_neighbour(c, d);
                     self.qs_sp[j * SPECIES + s] += share;
+                }
+                // The audit: what the receivers were handed, against what the cell
+                // held. Relative, because loads span many orders of magnitude.
+                let residue = ((given - q_s) / q_s).abs();
+                if residue > self.split_residue {
+                    self.split_residue = residue;
                 }
             }
             if record {

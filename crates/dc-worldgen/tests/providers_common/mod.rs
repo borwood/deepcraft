@@ -15,7 +15,7 @@
 #![allow(dead_code)]
 
 use dc_worldgen::deeptime::{
-    Aridity, Biofacies, DeepField, DepEnv, EnergyBand, Eolian, build_field,
+    Aridity, Biofacies, DeepField, DepEnv, EnergyBand, Eolian, Litho, build_field,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -58,7 +58,19 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x176D_40F1_1CCB_006A
 /// ```
-pub const GOLDEN_SURFACE: u64 = 0x6F83_4D53_DB89_8C36;
+/// **Moved 2026-07-26 by material-aware transport (journal/0110) — authorized,
+/// and, like MFD, a physics change rather than a seam conversion.** The suspended
+/// load became a multiset of `(lithology, quantity)` and deposition became a
+/// falling competence ceiling, so material the flow can no longer hold is set down
+/// where it stops being holdable rather than where the mass budget happens to
+/// overflow. The scalar-load world is still reachable and still hashed — see
+/// [`GOLDEN_SURFACE_SCALAR_LOAD`], asserted by name in
+/// `tests/material_transport.rs`. Prior value (pre-2b `main`), kept for audit:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x6F83_4D53_DB89_8C36
+/// ```
+pub const GOLDEN_SURFACE: u64 = 0x60F0_A669_F4B9_23BD;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -71,8 +83,36 @@ pub const GOLDEN_SURFACE: u64 = 0x6F83_4D53_DB89_8C36;
 /// — deliberately **not** in `providers_golden.rs`, which stays the cross-commit
 /// golden for the *shipped* configuration and nothing else.
 pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x176D_40F1_1CCB_006A;
+/// **The pre-2b fixed point, still reachable.** The same fixture world built with
+/// [`DeepConfig::material_transport`](dc_worldgen::deeptime::DeepConfig) **off**
+/// must reproduce the goldens as they stood before Movement 2b (journal/0110) —
+/// the scalar-load solve, which is a second path and not a deleted one.
+///
+/// Asserted in
+/// `tests/material_transport.rs::material_transport_off_is_the_pre_slice_world_and_on_moves_it`,
+/// deliberately not here, for the same reason as the single-receiver pair.
+///
+/// Note the record half is **not** the pre-2b `GOLDEN_RECORD` constant, and that
+/// is not a world change: `record_fingerprint` gained the unit's `species` byte
+/// in the same commit, so every record hash in this file was re-derived. With the
+/// flag off the species is `litho_of_tag(tag)` at every unit, so the *record* is
+/// byte-identical and only the *hash* moved.
+pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0x6F83_4D53_DB89_8C36;
+/// The strata-record half of [`GOLDEN_SURFACE_SCALAR_LOAD`].
+pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x3940_3AD9_C3A8_FD83;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
-pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x4A20_745B_3879_7C8A;
+///
+/// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**
+/// `record_fingerprint` gained the unit's `species` byte, so every record hash in
+/// this file changed; the single-receiver *record* is byte-identical to pre-MFD
+/// main as it always was (its surface half, which the new axis cannot reach, is
+/// untouched and still asserted against the original value — that pairing is the
+/// evidence). Prior value (before the species byte), kept for audit:
+///
+/// ```text
+/// GOLDEN_RECORD_SINGLE_RECEIVER 0x4A20_745B_3879_7C8A
+/// ```
+pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// FNV-1a-64 over the strata record of the same field.
 ///
 /// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
@@ -95,7 +135,22 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x4A20_745B_3879_7C8A;
 /// ```text
 /// GOLDEN_RECORD 0x4A20_745B_3879_7C8A
 /// ```
-pub const GOLDEN_RECORD: u64 = 0x6CEB_947D_6207_3A1E;
+/// **Moved 2026-07-26 by material-aware transport (journal/0110) — authorized,
+/// and this hash moved for TWO reasons at once, which is worth stating rather
+/// than blurring.** (1) The record gained an axis: `DepUnit::species`, the
+/// material that actually arrived, which this fingerprint now hashes — so even a
+/// byte-identical record hashes differently than it did yesterday. (2) The world
+/// itself moved, because the competence ceiling changes where mass is set down.
+/// The two are separated by [`GOLDEN_RECORD_SCALAR_LOAD`]: that constant is the
+/// pre-2b *record* under the post-2b *hash*, so the difference between it and the
+/// old value below is purely the new axis, and the difference between it and this
+/// one is purely the physics. Prior value (pre-2b `main`, without the species
+/// byte), kept for audit:
+///
+/// ```text
+/// GOLDEN_RECORD 0x6CEB_947D_6207_3A1E
+/// ```
+pub const GOLDEN_RECORD: u64 = 0x9DEE_8FAE_4550_F2D0;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on
@@ -161,6 +216,22 @@ fn biota_code(b: Biofacies) -> u8 {
         Biofacies::Retro => 5,
     }
 }
+/// The unit's **material** (Movement 2b) — an axis the record gained on
+/// 2026-07-26 and that the fingerprint must be able to see. With material-aware
+/// transport off it is a pure function of the tag, so it adds no information;
+/// with it on it is the whole point, and a fingerprint blind to it would let the
+/// slice move every rock in the world without moving a hash.
+fn species_code(l: Litho) -> u8 {
+    match l {
+        Litho::ClasticFine => 0,
+        Litho::ClasticCoarse => 1,
+        Litho::OrganicSoil => 2,
+        Litho::OrganicPeat => 3,
+        Litho::OrganicCoal => 4,
+        Litho::OrganicCharcoal => 5,
+        Litho::Basement => 6,
+    }
+}
 fn eolian_code(e: Eolian) -> u8 {
     match e {
         Eolian::None => 0,
@@ -222,6 +293,7 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
             h.f64(u.thickness_m);
             h.byte(u8::from(u.unconformity));
             h.byte(u.chapter);
+            h.byte(species_code(u.species));
         }
     }
     h.0
