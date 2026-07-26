@@ -7,6 +7,49 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-26 — **THE JOINT CALIBRATION: BUILT, MEASURED, AND DELIBERATELY OFF**
+  (journal/0114). `EROSION_CALIBRATION = 45` behind **`DeepConfig::calibrated_rates`,
+  default `false`**, identity path pinned by name. **Production is byte-identical.**
+  - **⚠ THE AGENT REFUSED THE BRIEF'S "DEFAULT ON", AND WAS RIGHT TO.** It found
+    **stubs #29** (the incision clamp, Sequenced above) and would not ship 148 unfilled pits
+    into the world on its own authority while the user was away, on a number that misses its
+    target band. *Deviation is allowed; silence is not — the loud-plea doctrine working as
+    designed.*
+  - **Behind the flag:** denudation **0.0110 → 0.4142 m/Myr** (D3 0.0107 → 0.1271),
+    **D1/D4 0.027 → 0.91**. It enters the published **floor band** (McMurdo/Atacama 0.1–1) —
+    so the world stops being below *every* landscape measured on Earth — **but the 1–10 craton
+    target was NOT reached, and is unreachable at any multiplier** (stubs #27).
+  - **The multiplier was DERIVED, not chosen:** four criteria against three published bands
+    (relief within 5 %; mean regolith inside the 30–60 m deeply-weathered-shield range; D1 in a
+    published band; D1/D4 → 0.91), **independently corroborated by the world's own Airy
+    ceiling**, `U/0.152 = 2.70 m/Myr`, from two densities and a measured uplift.
+  - **stubs #24 CLOSED.** `erosion_budget` now reaches all four rates **including
+    `diffusion`**, through one `scale_erosion_rates` with two consumers.
+    `the_erosion_budget_reaches_every_rate_including_diffusion` **would have failed on every
+    prior commit**, and `erosion_budget: Some(45)` is bit-identical to
+    `calibrated_rates: Some(true)`.
+  - **corrections #59 — a FORCED scope expansion, not an opportunistic one.** `energy_band`
+    and `competence_ceiling` were **absolute thresholds secretly keyed to `k_transport`'s
+    value**. Left alone, the calibration would have relabelled every site High-energy and
+    **erased the facies gradient**. Now relative to `REFERENCE_KT`, bit-identical at the
+    historical value.
+  - **🔴 IT ALSO FALSIFIED A CLAIM FROM journal/0111 THAT THE INTEGRATOR PROPAGATED.** D1's
+    `creep_to_sea_m` is a **gross** land→sea edge flux, and the ±35 m sea stand cycles four
+    times — so cover ferried across, stranded and ferried again is **counted every time**. The
+    arithmetic does not close (63.6 m bedrock + 39.2 m stored vs 207.1 m claimed export).
+    **D3 is the sound instrument once fluxes are large; D1 is an UPPER BOUND**, and
+    journal/0111's *"two independent instruments agree to 2.4 %"* was a **low-flux
+    coincidence, not a cross-check.** Candidate **corrections #60**. *The denudation numbers
+    above and in journal/0111 stand as an upper bound; the direction and the ~10³ magnitude of
+    the defect are unaffected.*
+  - Outputs **checked, never targeted**: sand now moves on **0.095 %** of land where it was
+    zero (and it came from the landscape — the competence ceiling is invariant under the
+    calibration by construction); the **facies gradient is still a NULL**, fining ratio
+    unmoved. Reported rather than chased.
+  - No golden moved; new `GOLDEN_*_CALIBRATED` pin the behind-the-flag world so it cannot drift
+    unmeasured. Gen time −0.17 s (noise). Behind the flag residency would **fall 59 %**
+    (107 → 44 MiB) because thicker beds merge. Gate +16 s.
+
 - 2026-07-26 — **FLOW (b′): HYBRID `p` — water that stays in its banks** (journal/0113).
   The MFD convergence exponent is now **spatially varying**: `p` ramps **1 → 16** on the
   channelisation index **`χ = A·S²`** (Montgomery & Dietrich 1988/1992) and **switches to
@@ -2757,7 +2800,36 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🔴🔴🔴 THE INCISION CLAMP THAT WAS GREEN BECAUSE NOTHING ERODED — stubs #29, and it
+  BLOCKS the calibration below** (journal/0114, 2026-07-26). **Deep closed depressions open at
+  ANY erosional amplitude above 1×:** 0 pits deeper than 1 m at 1×, **44 at 5×** (deepest
+  45 m), 66 at 10×, **148 at 45×** (deepest 112 m). **Four phases run *after* incision and can
+  lower a cell past its clamped floor.**
+  - **This is a property of the SOLVE, not of any multiplier**, and it has been latent the
+    entire time — **invisible only because the world barely erodes.** The clamp's guard was
+    green for a reason unrelated to its claim.
+  - **Until this lands, the engine cannot run erosion at ANY realistic rate.** It gates
+    journal/0114's flag flip and every future calibration.
+  - *Recorded as a new **A-2 variant** in spines, and the variant is the transferable part: a
+    **test's unstated premise** — "erosion is fast enough for this to mean anything" — that was
+    false the whole time. **The added check: for a guard on a process, ask what MAGNITUDE of
+    that process the test actually exercises.***
+
+- **🔴 THE TRANSPORT OPERATOR HAS A CEILING — stubs #27** (journal/0114). Six full 200-epoch
+  worlds measured (1×, 10×, 45×, 100×, 300×, 1000×): **export is proportional to mean regolith
+  thickness**, and **creep's flux limiter already binds on ~89 % of cells that have regolith to
+  move, at the SHIPPED rates.** The pass is a **one-cell-per-epoch conveyor**, so 100× on
+  transport alone buys **1.6×**, and reaching the craton band costs order **100 m of cover**.
+  - **This revises journal/0111's diagnosis.** *"A calibration, not an architecture"* was **half
+    right**: the constants are wrong **and** the transport operator is capped. Named heirs:
+    rivers that actually carry, or a non-capped creep operator.
+  - The uniform-scaling hypothesis was **falsified by a diagnostic the agent added because the
+    hypothesis needed a falsifier** — not by argument.
+
 - **🔴🔴 CALIBRATE THE DEEP-TIME CLOCK — the largest measured defect on the board**
+  **(⚠ PARTLY BUILT 2026-07-26, journal/0114 — see the Shipped entry. It is BUILT, MEASURED and
+  DELIBERATELY OFF, blocked on stubs #29 above. The band is NOT reachable at any multiplier;
+  read stubs #27 before assuming a bigger number fixes it.)**
   (journal/0111, corrections #56, stubs #24, 2026-07-26). **User-owned and appearance-class:
   the multipliers are the user's to bless. Do NOT let an agent pick them by taste — the target
   is a PUBLISHED BAND, and that is what makes this a derivation rather than a tuning.**
