@@ -116,10 +116,16 @@ two levers are not symmetric, and the asymmetry has a name:
 
 > **Transport has a ceiling that supply does not.**
 
-`diffuse_scale_cell` clamps a cell's outflow to the regolith it actually has. Look at the
-`creep-lim` column: that limiter binds in **91 % of cell-epochs at the uncalibrated
-rates** — before any calibration at all. The hillslope pass had already stopped being a
-diffusion and become *"move everything one cell downslope this epoch"* almost everywhere.
+`diffuse_scale_cell` clamps a cell's outflow to the regolith it actually has. The
+`creep-lim` column counts how often that clamp bound — **over cells that had regolith to
+move**, because the predicate `potential outflow > available cover` is trivially true at
+`H = 0` and a denominator of every cell would have scored the bare ocean floor as
+transport-limited and reported a saturation that was really an absence. *(The first draft
+of that counter did exactly that; it is the kind of thing this repo catches, and it caught
+itself.)* On the cells that matter it binds nearly always, **before any calibration at
+all**: the hillslope pass had already stopped being a diffusion and become *"move
+everything one cell downslope this epoch"*.
+
 Raising `diffusion` cannot make a conveyor go faster, which is exactly what the
 single-lever contrast measures: **100× on transport alone buys 1.6×**.
 
@@ -128,10 +134,16 @@ what it exports is whatever cover it is holding. So:
 
 > **Catchment export is proportional to mean regolith thickness.**
 
-Check it against the table: `D1 / mean H` is 0.0024, 0.0087, 0.0094, 0.0113, 0.0294,
-0.0730 — flat within a factor of a few over four orders of magnitude in the multiplier,
-while `D1` itself moves 5,000×. Reaching 1 m/Myr costs of order 150 m of mean cover.
-Reaching the middle of the craton band costs several hundred.
+Check it against the table. `D1 / mean H` reads 0.0024, 0.0087, 0.0094, 0.0113, 0.0294,
+0.0730 down the ladder. Across the four rungs that bracket the shipped value — 10× to
+100× — it is **0.0087 to 0.0113, flat within 30 %**, while `D1` itself moves **17×** over
+the same span. It drifts upward past 300× for a reason that is not a counterexample but
+another symptom: by then the land area has shrunk 8 % and relief has grown 52 %, so the
+shoreline ring is a larger share of a smaller, steeper continent.
+
+The price is legible straight off the table without extrapolating: **the first row inside
+the craton band is 100×, and it carries 119 m of mean cover.** The middle of the band
+costs several hundred.
 
 **That is not a landscape. It is a world burying itself in its own weathering products
 because it has no way to ship them out.**
