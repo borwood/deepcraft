@@ -100,6 +100,22 @@ pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x176D_40F1_1CCB_006A;
 pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0x6F83_4D53_DB89_8C36;
 /// The strata-record half of [`GOLDEN_SURFACE_SCALAR_LOAD`].
 pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x3940_3AD9_C3A8_FD83;
+
+/// **The fluvial-only fixed point, still reachable.** The same fixture world with
+/// [`DeepConfig::material_creep`](dc_worldgen::deeptime::DeepConfig) **off** must
+/// reproduce the goldens as they stood after Movement 2b's first slice
+/// (journal/0110) and before its continuation (b) (journal/0112) — the world where
+/// the *rivers* carried identity and the hillslopes did not.
+///
+/// This is the third member of the same family as
+/// [`GOLDEN_SURFACE_SINGLE_RECEIVER`] and [`GOLDEN_SURFACE_SCALAR_LOAD`]: an old
+/// solve kept as a second *path*, not a deleted one, and proven byte-identical
+/// rather than assumed to be. Asserted in
+/// `tests/material_creep.rs::material_creep_off_is_the_fluvial_only_world_and_on_moves_it`,
+/// deliberately not here, for the same reason as its two siblings.
+pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0x60F0_A669_F4B9_23BD;
+/// The strata-record half of [`GOLDEN_SURFACE_ANONYMOUS_CREEP`].
+pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x9DEE_8FAE_4550_F2D0;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
 ///
 /// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**

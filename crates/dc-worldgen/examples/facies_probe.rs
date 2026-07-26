@@ -57,6 +57,15 @@ fn mib(bytes: usize) -> f64 {
 fn cfg(cells: &CellGrid, material_transport: bool) -> DeepConfig {
     DeepConfig {
         material_transport,
+        // **Pinned OFF, and this is what keeps the instrument honest.** Movement 2b
+        // continuation (b) (journal/0112) made *hillslope creep* material-aware
+        // too, and it ships on. If this probe inherited that, its "material-aware"
+        // column would be the whole transport family and every number in
+        // journal/0110 would silently become a different measurement — the caption
+        // problem CLAUDE.md names, one level up from a caption. This probe is the
+        // **fluvial** member's instrument; the gravity member's own acceptance
+        // number lives in `colluvium_probe`, which pins the mirror of this line.
+        material_creep: false,
         ..production_config(cells, SEED)
     }
 }
