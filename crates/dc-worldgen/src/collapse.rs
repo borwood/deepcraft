@@ -2070,9 +2070,33 @@ mod tests {
         // Floor set from the measured agreement (journal/0074) with margin, so a
         // real drift between horizon and ground trips it. NOT a by-construction
         // equality any more — see the doc comment.
+        //
+        // **RE-DERIVED 2026-07-26 (journal/0112, material-aware hillslope creep):
+        // 0.88 → 0.80, measured 0.9171 → 0.8225.** Read the number before reading
+        // the change: both sides of this comparison are **unbiased draws from the
+        // same window shares**, so the agreement rate is bounded above by the
+        // window's own **homogeneity**, not by the quality of the summary. The old
+        // floor was set against a record that was **91 % fine clastic** — where two
+        // independent draws agree most of the time for free. Creep carrying
+        // identity redistributed the archive to 26 % fine / 36 % coarse / 38 %
+        // carbonaceous soil and nearly doubled the distinct species in a hillslope
+        // column (1.091 → 1.952), so the same mechanism now has real entropy to
+        // summarize. The collision floor for two *independent* draws on the new
+        // composition is ≈0.34; the measured 0.8225 is far above it, which is the
+        // evidence that the summary still tracks the ground rather than having
+        // drifted from it.
+        //
+        // **This is a snapshot masquerading as an invariant, and the heir should
+        // retire it** (CLAUDE.md: *assert invariants, never snapshots* — a test
+        // pinned to yesterday's number fails because a colleague changed the world,
+        // which is worse than the defect it guards). The honest assertion is
+        // **unbiasedness**: that the far draw's class distribution matches the
+        // near expression's, per class, rather than that they coincide per voxel.
+        // Filed as a needs-measurement item with journal/0112; the floor is kept
+        // meanwhile because a *biased* summary would collapse it far below 0.80.
         assert!(
-            frac >= 0.88,
-            "near/coarse surface agreement {frac:.4} below floor 0.88 — the far \
+            frac >= 0.80,
+            "near/coarse surface agreement {frac:.4} below floor 0.80 — the far \
              summary has drifted from the ground expression it summarizes"
         );
     }

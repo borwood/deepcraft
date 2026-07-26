@@ -646,6 +646,20 @@ must not contradict the base it refines or any prior pin** (the consistency law)
 A committed-fact or collapse system that does not route through this shape is
 reinventing it — the loud check.
 
+- **the record's provenance became REAL rather than nominal (2026-07-26,
+  journal/0112).** S-9's sparse-facts half has had a `DepUnit::species` axis since
+  journal/0110, and the honest reading of that slice is that the axis existed and
+  said almost nothing: **0.0259 m of a 440,578 m archive** disagreed with what its
+  own environment implied, because the only mover carrying identity was the fluvial
+  one and it moves 0.109 % of the sediment. Giving the **gravity** member the same
+  identity took that to **275,626.9 m of 422,703 m — 65.206 %**. The shape did not
+  change; the fraction of the world it describes went from six millionths of a
+  percent to two thirds. Recorded here because it is the cleanest instance of a
+  distinction this file keeps needing: **"the mechanism is right" and "the mechanism
+  has authority over the world" are different claims, and only the second one is a
+  measurement.** The price is `stubs.md` #25 (the record knows *what* arrived and not
+  *who brought it*) and +18.16 MiB of merge key — paid in units, not in `DepUnit`
+  width, because the axis finally varies.
 - **live violation (the law's motivating counterexample):** the far-field LOD
   reconstructs a coarse box's *material identity* differently on cold-synthesize
   vs warm-reduce (ROADMAP Observed, 2026-07-23) — two derivations of the same base

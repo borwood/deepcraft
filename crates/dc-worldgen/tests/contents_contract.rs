@@ -371,7 +371,14 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 // `materials` and `table` byte-identical — for the same reason: Small's sampled
 // chunks carry no strata record, so their contents are the unchanged year-zero
 // fallback while their block follows a surface that moved. Both media moved on all
-// three, and this time the archive move is the *point* rather than the side effect.
+// three, and this time the archive move is the *point* rather than the side effect:
+// the recorded composition went 91 % fine clastic to 26 % fine / 36 % coarse / 38 %
+// carbonaceous soil, because a hillslope no longer records "mud, because this is a
+// quiet place" but whatever crept down onto it.
+//
+// The same commit also carries **corrections #57** (`Litho::as_deposited` now refuses
+// to file a *moved* peat, coal or charcoal as the in-place product it cannot be), so
+// these hashes fold two changes; the intermediate state was never a shipped world.
 // Prior values, kept auditable:
 //
 //   medium 0x0D5EED572026  blocks 0xABAFD31A268A41C9  materials 0xF55E9B53E7707DC9  table 0x1C1E2105F9B70B4B
@@ -381,21 +388,21 @@ const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x7DA5_DFD7_EE4F_4852,
-        0x40A2_68BB_71CE_60DF,
-        0xCD66_59EA_6ABF_E45D,
+        0xEF92_F1C6_3DFD_D5E3,
+        0x5DDE_4337_F352_4E35,
+        0x04F9_8B72_0BBC_FC5F,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0xADA0_D6B5_2BEF_FE52,
-        0xA530_7856_A753_6C46,
-        0x436C_793C_5766_E5A2,
+        0xEE7C_48C9_6095_83E9,
+        0x78A5_54C9_B237_7421,
+        0x03A2_3041_441F_D346,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0xA5A0_AD99_4EBC_E045,
+        0x24F1_B149_1662_C29D,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),
