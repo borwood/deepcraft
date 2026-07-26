@@ -734,6 +734,38 @@ tectonic and full-agent flips. **This is an appearance-class, user-owned call an
 not be taken by an agent.** *Loud markers at `erosion_budget` and at
 `DeepConfig::weathering` / `diffusion`.*
 
+### 26. a-channelisation-threshold-fitted-to-one-world — *added 2026-07-26 (FLOW continuation (b'), hybrid `p`, journal/0113)*
+`DeepConfig::mfd_chi_lo = 1e-4` / `mfd_chi_hi = 1e-2` are the ends of the ramp that
+carries the MFD convergence exponent from its hillslope value to its channel value.
+The **index** they threshold is real and cited — `χ = A · S²`, Montgomery & Dietrich
+(1988, 1992)'s channel-initiation criterion, which is why the law puts hillslopes,
+trunk rivers and delta tops in the right three places from one expression. **The two
+numbers are not.** They were read off the `χ` percentiles of **one world** (seed 1337,
+`Extent::Medium`, 460 m cells) printed by `examples/hybrid_p_probe.rs`, chosen so a
+plausible fraction of land sits at each end.
+
+**Why that is a stand-in and not a tuning knob.** `S` in this index is a rise per
+**cell width**, so `χ` carries the grid's resolution inside it: the same landscape at
+`Extent::Large` (coarser cells, `DEEP_MAX_WIDTH` coarsening) has systematically
+smaller `S` and therefore smaller `χ`, and the same two constants describe a
+*different* fraction of it as channelised. A genuinely mountainous world, or one whose
+erosion budget has been raised to a real denudation rate (stub #24), moves the whole
+distribution too. **The threshold is currently a property of the world it was fitted
+to, wearing the clothes of a property of landscapes.**
+
+**Two heirs, and they are different fixes.** (a) The **joint supply+transport
+calibration** — once the engine's rates are anchored to the ratified 500 Myr register
+(stub #24, corrections #56), `χ` acquires a physical scale and the threshold can be
+*derived* from a channel-initiation stream power rather than fitted. (b) Failing that,
+a **dimensionless** form: normalise `S` by cell size in metres so the index stops
+carrying the grid, or express the threshold as a quantile of the world's own `χ`
+distribution (which is deterministic per world but makes the pass globally coupled,
+and that trade is the decision to take, not to assume).
+
+**Blast:** the shipped world's drainage network — moving either constant moves how
+much of the land is treated as channelised, and every golden with it. Nothing at
+runtime reads them. *Loud marker at both constants and at `MfdParams`.*
+
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 
 - **Layer-cake strata / no dip-fold.** Tectonic history is recorded; structural

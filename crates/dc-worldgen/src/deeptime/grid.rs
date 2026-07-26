@@ -343,7 +343,9 @@ pub struct DeepConfig {
     /// channel end is [`DeepConfig::mfd_exponent_channel`]. `p = 1` is the
     /// maximally dispersive Quinn/Freeman form — sheet flow, which is what
     /// unchannelised overland flow is — and large `p` is single-receiver
-    /// steepest-slope.
+    /// **steepest-slope** (~~"D8 exactly"~~ — corrections #58: the partition's
+    /// limit takes the steepest *slope* and `route_cell` the steepest *drop*, and
+    /// they differ on diagonals).
     ///
     /// **The default moved `4.0 → 1.0` when the ramp landed**, and that is not a
     /// retuning: `4.0` sat in Holmgren's calibrated 4–6 band because a *single*
@@ -411,15 +413,22 @@ pub struct DeepConfig {
     /// steepest downslope gradient per cell width on the free-surface potential.
     ///
     /// Below `mfd_chi_lo` the flow is treated as entirely unchannelised and the
-    /// exponent is [`DeepConfig::mfd_exponent`]. Calibrated against the shipped
-    /// world's own `χ` distribution rather than lifted from a field study at 10 m
-    /// resolution — see `examples/hybrid_p_probe.rs`, which prints the percentiles
-    /// the numbers were read off. Appended last (wire discipline).
+    /// exponent is [`DeepConfig::mfd_exponent`].
+    ///
+    /// **⚠ STUB #26 — a channelisation threshold fitted to ONE world.** The *index*
+    /// is cited and general; **these two numbers are not.** They were read off the
+    /// `χ` percentiles of seed 1337 at `Extent::Medium` (`examples/hybrid_p_probe.rs`
+    /// prints them). `S` here is a rise per **cell width**, so `χ` carries the grid's
+    /// resolution inside it and a coarser extent describes a *different* fraction of
+    /// the same landscape as channelised. **Heirs:** the joint supply+transport
+    /// calibration (stub #24), which would give `χ` a physical scale to derive the
+    /// threshold from; or a dimensionless re-expression. See `docs/design/stubs.md`
+    /// § 26. Appended last (wire discipline).
     pub mfd_chi_lo: f64,
 
     /// **The channelisation index at or above which the exponent is fully
-    /// [`DeepConfig::mfd_exponent_channel`].** See [`DeepConfig::mfd_chi_lo`].
-    /// Appended last (wire discipline).
+    /// [`DeepConfig::mfd_exponent_channel`].** **⚠ STUB #26** — see
+    /// [`DeepConfig::mfd_chi_lo`]. Appended last (wire discipline).
     pub mfd_chi_hi: f64,
 
     /// **The representational floor on an MFD share** (`stubs.md` § 22). A

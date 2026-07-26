@@ -241,6 +241,11 @@ pub const MFD_MIN_WEIGHT: f64 = 0.01;
 /// The thresholds are therefore calibrated against *this world's* own `χ`
 /// distribution (`examples/hybrid_p_probe.rs` prints it), never lifted from a
 /// field study at 10 m.
+///
+/// **⚠ STUB #26 — [`Self::chi_lo`] / [`Self::chi_hi`] are fitted to ONE world.**
+/// The index is cited and general; the two thresholds are a stand-in until either
+/// the joint supply+transport calibration gives `χ` a physical scale (stub #24) or
+/// the index is re-expressed dimensionlessly. See `docs/design/stubs.md` § 26.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct MfdParams {
     /// The convergence exponent where flow is **unchannelised**. Quinn (1991) /
