@@ -240,6 +240,38 @@ fn main() {
         );
     }
 
+    println!("\n--- CAN YOU TELL COLLUVIUM FROM ALLUVIUM? (the facies contrast) ---");
+    // The record carries no **mover** axis (stubs.md #25), so the two are not
+    // separable by a label. They are separable by **signature**, and the signature
+    // is sortedness: a colluvial column holds a mixture off the slope above, an
+    // alluvial one holds what the falling ceiling dropped here. Reported as the
+    // hillslope/valley split of distinct species per recorded column, before and
+    // after — a ratio, not a pinned number.
+    let mean = |v: &[f64], w: &[f64]| -> f64 {
+        let cols: f64 = w.iter().sum();
+        if cols > 0.0 {
+            v.iter().zip(w).map(|(s, c)| s * c).sum::<f64>() / cols
+        } else {
+            0.0
+        }
+    };
+    let (h_off, h_on) = (
+        mean(&off.species_per_column[..5], &off.columns_by_decile[..5]),
+        mean(&on.species_per_column[..5], &on.columns_by_decile[..5]),
+    );
+    let (v_off, v_on) = (
+        mean(&off.species_per_column[5..], &off.columns_by_decile[5..]),
+        mean(&on.species_per_column[5..], &on.columns_by_decile[5..]),
+    );
+    println!("  distinct species per recorded column      anonymous     identity");
+    println!("    hillslope columns (deciles 0-4)        {h_off:>10.3}   {h_on:>10.3}");
+    println!("    valley + trunk columns (deciles 5-9)   {v_off:>10.3}   {v_on:>10.3}");
+    println!(
+        "  hillslope/valley sortedness ratio          {:>10.3}   {:>10.3}",
+        h_off / v_off.max(f64::MIN_POSITIVE),
+        h_on / v_on.max(f64::MIN_POSITIVE)
+    );
+
     println!("\n--- what the record is MADE OF (metres of recorded thickness) ---");
     println!("  species             anonymous          identity        delta");
     for l in Litho::ALL {
