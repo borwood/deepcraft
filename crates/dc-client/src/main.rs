@@ -117,13 +117,21 @@ fn main() -> std::process::ExitCode {
         //                      amplitude the tectonic forcing multiplies.
         // - `--erosion-budget <mult>`  the EROSION budget multiplier
         //                      (`erodibility_probe` experiment B): scales
-        //                      weathering / k_transport / k_bedrock TOGETHER by
-        //                      <mult>, so relative rates never move — only the
-        //                      total erosion does. Distinct from `--amplitude`
-        //                      (which is tectonic, journal/0040); `1.0` is
-        //                      byte-identical to omitting it. This is the dev
-        //                      lever that makes the cranked "conservative
-        //                      amplitude" world walkable (journal/0076).
+        //                      weathering / diffusion / k_transport / k_bedrock
+        //                      TOGETHER by <mult>, so relative rates never move —
+        //                      only the total erosion does. Distinct from
+        //                      `--amplitude` (which is tectonic, journal/0040);
+        //                      `1.0` is byte-identical to omitting it. This is the
+        //                      dev lever that makes the cranked "conservative
+        //                      amplitude" world walkable (journal/0076). It scales
+        //                      the CALIBRATED rates, so it means "n× this world".
+        // - `--uncalibrated`   build the world from the RAW pre-2026-07-26 erosion
+        //                      rates — the one-line revert for journal/0114's
+        //                      calibration, and the A/B partner for any walk that
+        //                      judges it. The world it makes denudes at
+        //                      0.011 m/Myr, which is 9× slower than the slowest
+        //                      landscape ever measured on Earth; it is kept
+        //                      reachable as evidence, not as an option.
         // - `--weather-inventory`  the S18 first-behavior weathering pass (one
         //                      chapter over each cell's working inventory). OFF
         //                      by default (S-5 identity floor); present ⇒ ON for
@@ -138,6 +146,9 @@ fn main() -> std::process::ExitCode {
         }
         if args.iter().any(|a| a == "--weather-inventory") {
             deep.weather_inventory = Some(true);
+        }
+        if args.iter().any(|a| a == "--uncalibrated") {
+            deep.calibrated_rates = Some(false);
         }
         if let Some(v) = args.windows(2).find(|w| w[0] == "--amplitude") {
             match v[1].parse::<f64>() {

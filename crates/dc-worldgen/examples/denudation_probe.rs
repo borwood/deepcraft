@@ -42,15 +42,40 @@
 //! linear in it) and the **land-area denominator** (~15 % of cells are subaerial;
 //! dividing by the whole grid understates the rate ~6×).
 //!
-//! ## What was NOT done
+//! ## And then it became the acceptance instrument (journal/0114)
 //!
-//! Nothing was tuned. No calibration constant was touched. The instrumentation is
-//! read-only with respect to the physics and sits behind
-//! [`DeepConfig::denudation_ledger`], off in production, and the gate asserts the
-//! surface plane is **bit-identical** with it on — which is what makes a number
-//! taken with the flag on a number about the *shipped* world.
+//! journal/0111 answered the fork — **the energy budget was broken** — and this
+//! probe's own sensitivity sweep found the shape of the repair: supply and
+//! transport are coupled through the cover taper, neither pays alone, and together
+//! they pay 59× more than their separate gains multiplied.
+//!
+//! So the probe now carries the **calibration's derivation**, and that is a change
+//! of role worth stating plainly. It measures three things in one run:
+//!
+//! 1. the **shipped** world, calibrated (the headline, everything above);
+//! 2. the **uncalibrated** world — the raw pre-2026-07-26 constants under *today's*
+//!    solve, so the before/after is one variable rather than a quote carried
+//!    forward across three merges;
+//! 3. the **derivation**: a ladder of uniform multipliers over the raw constants,
+//!    each a full 200-epoch world, printed with `D1` *and* the balance ratio
+//!    `D1/D3` — beside the world's own Airy steady-state ceiling, which is computed
+//!    from two densities and a measured uplift and lands in the published band
+//!    without being asked to.
+//!
+//! **What that does NOT license.** The multiplier is fitted to a *published band*
+//! (1–10 m/Myr, stable craton) and to a *balance ratio* near 1 — never to an
+//! appearance. Whether sand moves and whether a facies gradient appears are outputs
+//! this calibration is CHECKED against and never tuned toward; if they stay null
+//! they are reported null (CLAUDE.md § *a closed system cannot detect its own scale
+//! error*).
+//!
+//! The instrumentation itself is still read-only with respect to the physics and
+//! sits behind [`DeepConfig::denudation_ledger`], off in production, and the gate
+//! still asserts the surface plane is **bit-identical** with it on — which is what
+//! makes a number taken with the flag on a number about the *shipped* world.
 //!
 //! Run: `cargo run --release -p dc-worldgen --example denudation_probe`
+//! (optionally with an explicit ladder: `-- 100 300 1000`)
 
 use dc_worldgen::deeptime::erosion::TransportLedger;
 use dc_worldgen::deeptime::{
@@ -102,18 +127,37 @@ fn cfg(cells: &CellGrid) -> DeepConfig {
     }
 }
 
-/// The same, with the **shipped** `erosion_budget` override applied — the knob
-/// that scales `weathering`, `k_transport` and `k_bedrock` *together*, so the
-/// relative rates (and therefore the differential-erosion signal) never move.
-///
-/// This probe never *sets* that knob in production; it only sweeps it to measure
-/// **how the world responds**. That distinction matters: a landscape whose
-/// denudation is linear in the budget is supply-limited by a constant, and a
-/// landscape that saturates is limited by something structural. Those are the two
-/// halves of the fork this probe exists to settle, and guessing between them from
-/// a single data point is exactly how a constant gets fitted.
-fn cfg_budget(cells: &CellGrid, mult: f64) -> DeepConfig {
+/// **The pre-calibration world** — the raw rate constants journal/0111 measured,
+/// reachable as a second path (`DeepOverrides::calibrated_rates: Some(false)`)
+/// rather than as a deleted one. Everything else about the solve is today's: hybrid
+/// `p`, material-aware transport, material-aware creep. That matters, because it
+/// makes the before/after in this report a **single-variable** comparison — the
+/// baseline is not journal/0111's printed number carried forward, it is re-measured
+/// under the current solve in the same run.
+fn cfg_uncalibrated(cells: &CellGrid) -> DeepConfig {
     let o = DeepOverrides {
+        calibrated_rates: Some(false),
+        ..DeepOverrides::default()
+    };
+    DeepConfig {
+        denudation_ledger: true,
+        ..production_config_with(cells, SEED, &o)
+    }
+}
+
+/// **The derivation's own axis**: a uniform multiplier on the *raw* constants.
+///
+/// Since journal/0114, `erosion_budget` goes through `scale_erosion_rates` and so
+/// covers `diffusion` as well — which is exactly what makes this one call able to
+/// express the hypothesis. Applied on top of `calibrated_rates: false`, `mult` is
+/// the whole erosional amplitude of the world, measured from the pre-calibration
+/// zero point, so the ladder below is directly readable as "what would
+/// `EROSION_CALIBRATION = mult` produce?" — and at `mult == EROSION_CALIBRATION`
+/// this config is **byte-identical to production** (asserted in
+/// `tests/calibrated_rates.rs`).
+fn cfg_uniform(cells: &CellGrid, mult: f64) -> DeepConfig {
+    let o = DeepOverrides {
+        calibrated_rates: Some(false),
         erosion_budget: Some(mult),
         ..DeepOverrides::default()
     };
@@ -307,7 +351,18 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
     }
 }
 
+/// The uniform-multiplier ladder the derivation sweep walks by default. Roughly
+/// half-decade spacing across the two orders of magnitude between "the stopped
+/// clock" and "faster than this world's own steady-state ceiling", so the row that
+/// lands in the published band is bracketed on both sides rather than extrapolated
+/// to. Override from the command line: `--example denudation_probe -- 100 300 1000`.
+const LADDER: [f64; 5] = [30.0, 100.0, 200.0, 300.0, 1000.0];
+
 fn main() {
+    let ladder: Vec<f64> = {
+        let args: Vec<f64> = std::env::args().skip(1).filter_map(|a| a.parse().ok()).collect();
+        if args.is_empty() { LADDER.to_vec() } else { args }
+    };
     println!("=== denudation probe — seed {SEED}, Extent::Medium ===\n");
     let pregen = Pregen::run(WorldParams {
         seed: SEED,
@@ -554,105 +609,231 @@ fn main() {
         d1 * d.myr,
         5000.0 / (d1 * d.myr).max(1e-30),
     );
+    // The uniformity caption is DERIVED from where the distribution actually sits,
+    // never written ahead of it. journal/0111's version said "the whole distribution
+    // is compressed into a band under the global floor" as flat prose; after a
+    // calibration that is a claim the report must re-earn every run, which is the
+    // `flux_record_probe` lesson (a printed caption is a published claim the gate
+    // cannot check).
     println!(
         "\n  Uniformity: max/median = {concentration:.1}x and the top decile carries {:.0} % of the\n  \
-         erosion (a perfectly uniform surface would give 10 %). So the world is NOT flat-dead —\n  \
-         it has a real, mild erosional structure, and that structure is worth keeping. But the\n  \
-         whole distribution is compressed into a band that lies under the global floor: the\n  \
-         difference between this world's quietest and busiest ground is a factor of {concentration:.0},\n  \
-         inside a range no instrument on Earth would call erosion at all.",
+         erosion (a perfectly uniform surface would give 10 %).",
         100.0 * d.top_decile_share
     );
+    let above_floor = d.pct.iter().filter(|&&v| v >= CRATON_FLOOR).count();
     println!(
-        "\n  NOTHING WAS TUNED. No calibration constant was touched, and the instrumentation\n  \
-         is asserted bit-identical to production. If the number is terrible it is the\n  \
-         world's number, not the probe's."
+        "  Where the DISTRIBUTION sits against the craton floor ({CRATON_FLOOR:.0} m/Myr): the median cell\n  \
+         is at {:.4} and the most active at {:.4}, so the land runs from {} the floor at the\n  \
+         quiet end to {} it at the active end. {} of the 9 printed percentiles are at or above it.",
+        d.pct[3],
+        d.max_cell,
+        if d.pct[3] >= CRATON_FLOOR { "above" } else { "below" },
+        if d.max_cell >= CRATON_FLOOR { "above" } else { "below" },
+        above_floor,
     );
 
-    // --- the fork: is the rate set by a CONSTANT or by a STRUCTURE? --------
-    println!("\n--- SENSITIVITY: what is actually limiting this? ---");
-    println!(
-        "  Production is the 1x row and NOTHING BELOW CHANGES IT. These are hypothetical\n  \
-         configs built inside the probe to measure the world's RESPONSE, which is the only\n  \
-         way to tell a mis-set constant from a structural cap — and telling them apart is\n  \
-         the whole fork. A rate that is LINEAR in a knob is that knob; a rate that\n  \
-         SATURATES is being held by something the knob cannot reach.\n"
-    );
-    println!(
-        "  The shipped `erosion_budget` override scales weathering + k_transport + k_bedrock.\n  \
-         It does NOT scale `diffusion` — and hillslope creep is {:.0} % of this world's export,\n  \
-         so the last two rows raise creep by hand to see what the knob cannot.\n",
-        100.0 * l.creep_to_sea_m / l.exported_m().max(1e-30)
-    );
+    // -----------------------------------------------------------------------
+    // THE CALIBRATION (journal/0114) — the before, the after, and the derivation.
+    // -----------------------------------------------------------------------
+
     let base_cfg = cfg(&pregen.grid);
-    let with_diff = |budget: f64, diff_mult: f64| -> DeepConfig {
-        let mut c = cfg_budget(&pregen.grid, budget);
-        c.diffusion = base_cfg.diffusion * diff_mult;
-        c
-    };
-    let scenarios: [(&str, Option<Denudation>); 6] = [
-        ("PRODUCTION (1x)", None),
-        (
-            "budget 10x",
-            Some(measure_cfg(&pregen.grid, &cfg_budget(&pregen.grid, 10.0))),
-        ),
-        (
-            "budget 100x",
-            Some(measure_cfg(&pregen.grid, &cfg_budget(&pregen.grid, 100.0))),
-        ),
-        (
-            "creep 10x only",
-            Some(measure_cfg(&pregen.grid, &with_diff(1.0, 10.0))),
-        ),
-        (
-            "budget 10x + creep 10x",
-            Some(measure_cfg(&pregen.grid, &with_diff(10.0, 10.0))),
-        ),
-        (
-            "budget 100x + creep 10x",
-            Some(measure_cfg(&pregen.grid, &with_diff(100.0, 10.0))),
-        ),
-    ];
+    let raw_cfg = cfg_uncalibrated(&pregen.grid);
+    let raw = measure_cfg(&pregen.grid, &raw_cfg);
+
+    println!("\n\n=== THE CALIBRATION (journal/0114) ===");
     println!(
-        "  scenario                    D1 (m/Myr)   D3 bedrock   D1/D3   D1/D4   vs production"
+        "  EROSION_CALIBRATION = {:.1}x, applied uniformly to the four rate constants that\n  \
+         together set this world's erosional clock. The `uncalibrated` row is the SAME solve\n  \
+         (hybrid p, material transport, material creep) on the RAW pre-2026-07-26 constants,\n  \
+         re-measured here rather than quoted from journal/0111 — so the difference below is\n  \
+         one variable and not a year of drift.\n",
+        base_cfg.weathering / raw_cfg.weathering,
     );
-    for (name, m) in &scenarios {
-        let r = m.as_ref().unwrap_or(&d);
+    println!("  rate           uncalibrated        shipped     ratio");
+    for (name, a, b) in [
+        ("weathering", raw_cfg.weathering, base_cfg.weathering),
+        ("diffusion", raw_cfg.diffusion, base_cfg.diffusion),
+        ("k_transport", raw_cfg.k_transport, base_cfg.k_transport),
+        ("k_bedrock", raw_cfg.k_bedrock, base_cfg.k_bedrock),
+        // The unscaled neighbours, printed so the scope is visible rather than
+        // asserted: these are the agent magnitudes and the cover length, and none
+        // of them moved.
+        ("h_star (NOT scaled)", raw_cfg.h_star, base_cfg.h_star),
+        (
+            "wave_erosion (NOT scaled)",
+            raw_cfg.wave_erosion,
+            base_cfg.wave_erosion,
+        ),
+    ] {
+        println!("  {name:<26} {a:>12.6} {b:>14.6}   {:>7.1}x", b / a);
+    }
+
+    println!("\n  quantity                    uncalibrated        shipped");
+    for (name, a, b) in [
+        ("D1 catchment denudation", raw.catchment_averaged, d1),
+        ("D2 mean surface lowering", raw.mean_surface_lowering, d.mean_surface_lowering),
+        ("D3 bedrock erosion", raw.bedrock_erosion, d.bedrock_erosion),
+        ("D4 rock uplift", raw.rock_uplift, d.rock_uplift),
+        (
+            "D1/D3 (the balance)",
+            raw.catchment_averaged / raw.bedrock_erosion.max(1e-30),
+            d1 / d.bedrock_erosion.max(1e-30),
+        ),
+        (
+            "D1/D4 (vs uplift)",
+            raw.catchment_averaged / raw.rock_uplift.max(1e-30),
+            d1 / d.rock_uplift.max(1e-30),
+        ),
+        ("mean land surface (m)", raw.mean_surf, d.mean_surf),
+        ("relief (m)", raw.relief, d.relief),
+        ("land cells", raw.land_cells as f64, d.land_cells as f64),
+        ("most active cell", raw.max_cell, d.max_cell),
+    ] {
+        println!("  {name:<26} {a:>14.4} {b:>14.4}");
+    }
+
+    // --- the ceiling this world sets for itself ----------------------------
+    // Airy compensation returns (rho_m - rho_c)/rho_m of every eroded metre as a
+    // surface drop and rebounds the rest, so a landscape in topographic steady
+    // state denudes at U / that fraction. Computed from the isostasy module's own
+    // densities, so it moves if they do — never transcribed.
+    let rho_m = dc_worldgen::deeptime::isostasy::RHO_MANTLE;
+    let rho_c = dc_worldgen::deeptime::isostasy::rho_crust(
+        dc_worldgen::deeptime::CrustKind::Continental,
+    );
+    let f_airy = (rho_m - rho_c) / rho_m;
+    let ceiling = raw.rock_uplift / f_airy;
+    println!(
+        "\n--- THE CEILING THIS WORLD SETS FOR ITSELF (the derivation's first half) ---\n  \
+         Airy compensation returns (rho_m - rho_c)/rho_m = {f_airy:.4} of each eroded metre as a\n  \
+         surface DROP and rebounds the other {:.1} %. A landscape in topographic steady state\n  \
+         therefore denudes at U / {f_airy:.4} = {:.1} x its tectonic rock uplift. With the\n  \
+         uncalibrated world's measured D4 = {:.4} m/Myr that ceiling is {ceiling:.3} m/Myr.\n  \
+         THAT NUMBER WAS NOT CHOSEN. It falls out of two densities and a measured uplift, and\n  \
+         it lands inside the published stable-craton band (1-10) on its own — which is the\n  \
+         independent statement that the band is the right target for THIS world.",
+        100.0 * (1.0 - f_airy),
+        1.0 / f_airy,
+        raw.rock_uplift,
+    );
+
+    // --- the measured response ---------------------------------------------
+    println!(
+        "\n--- THE MEASURED RESPONSE (the derivation's second half) ---\n  \
+         A uniform multiplier on the four rates, applied to the RAW constants. Each row is a\n  \
+         full 200-epoch world; the row at {:.1}x IS the shipped world, bit for bit (the same\n  \
+         multiply on the same operands — asserted in tests/calibrated_rates.rs).\n\n  \
+         WHY UNIFORM. journal/0111 measured that neither lever pays alone, and the mechanism is\n  \
+         the cover taper exp(-H/H*), H* = {:.1} m — the only term in the system carrying an\n  \
+         ABSOLUTE LENGTH. Raise supply alone and the regolith made shields the rock that made\n  \
+         it; raise transport alone and there is nothing to carry. Scale both and the\n  \
+         steady-state H is left where it was, so the taper never engages and the landscape's\n  \
+         export follows the multiplier instead of fighting itself.\n",
+        base_cfg.weathering / raw_cfg.weathering,
+        base_cfg.h_star,
+    );
+    println!(
+        "  uniform x    D1 (m/Myr)   D3 bedrock   D1/D3   D1/D4    mean surf   relief    band?"
+    );
+    let band = |v: f64| -> &'static str {
+        if (1.0..=10.0).contains(&v) {
+            "IN BAND"
+        } else if v < 1.0 {
+            "below"
+        } else {
+            "above"
+        }
+    };
+    println!(
+        "  {:<10} {:>11.4}  {:>11.4}  {:>6.2}  {:>6.3}  {:>10.1} {:>8.1}   {}",
+        "1 (raw)",
+        raw.catchment_averaged,
+        raw.bedrock_erosion,
+        raw.catchment_averaged / raw.bedrock_erosion.max(1e-30),
+        raw.catchment_averaged / raw.rock_uplift.max(1e-30),
+        raw.mean_surf,
+        raw.relief,
+        band(raw.catchment_averaged),
+    );
+    for m in &ladder {
+        let r = measure_cfg(&pregen.grid, &cfg_uniform(&pregen.grid, *m));
         println!(
-            "  {name:<26} {:>10.4}   {:>10.4}  {:>6.2}  {:>6.3}   {:>9.1}x",
+            "  {:<10} {:>11.4}  {:>11.4}  {:>6.2}  {:>6.3}  {:>10.1} {:>8.1}   {}",
+            format!("{m:.0}"),
             r.catchment_averaged,
             r.bedrock_erosion,
             r.catchment_averaged / r.bedrock_erosion.max(1e-30),
             r.catchment_averaged / r.rock_uplift.max(1e-30),
-            r.catchment_averaged / d1,
+            r.mean_surf,
+            r.relief,
+            band(r.catchment_averaged),
         );
     }
     println!(
-        "\n  READ IT THIS WAY. `D1/D3` is the tell.\n    \
-         ~1.0  the land sheds everything it detaches — SUPPLY-limited, and the weathering\n          \
-         constant IS the denudation rate.\n    \
+        "\n  READ IT THIS WAY. `D1/D3` is the tell, and it is a SECOND target, not a curiosity.\n    \
+         ~1.0  the land sheds everything it detaches — a landscape in balance.\n    \
          <1.0  the land is making regolith it cannot move — TRANSPORT-limited. The cover\n          \
-         taper exp(-H/H*), H* = {:.1} m, then shuts weathering off from underneath: the\n          \
-         extra regolith shields the rock that made it. That taper is the structural cap.\n    \
+         taper then shuts weathering off from underneath: the extra regolith shields the\n          \
+         rock that made it.\n    \
          >1.0  the land is exporting stored cover faster than it detaches new rock — a\n          \
-         TRANSIENT drawdown of the existing regolith, not a sustainable rate.",
-        base_cfg.h_star
+         TRANSIENT drawdown of the existing regolith, not a sustainable rate.\n  \
+         A row that lands in the band with D1/D3 far from 1 has hit the number and missed the\n  \
+         physics. The shipped multiplier is chosen for BOTH."
     );
-    // Derived from the rows just measured, never written ahead of them.
-    let gain = |i: usize| {
-        scenarios[i]
-            .1
-            .as_ref()
-            .map_or(1.0, |r| r.catchment_averaged / d1)
-    };
-    let (budget_only, creep_only, both) = (gain(2), gain(3), gain(5));
+
+    // --- the single-lever contrast, kept from journal/0111 -------------------
+    // `erosion_budget` no longer HAS the old three-rate scope (stubs #24 closed), so
+    // these two hypotheticals are built by hand. They are the evidence for the
+    // paragraph above and are re-measured rather than quoted.
     println!(
-        "\n  THE SHAPE OF THE ANSWER: neither lever pays alone — 100x the erosion budget buys\n  \
-         {budget_only:.1}x, 10x the creep buys {creep_only:.1}x — and together they buy {both:.0}x, which is \
-         {:.0}x more\n  than the two separate gains multiplied. Supply and transport are coupled through the\n  \
-         cover taper, so raising either alone just moves the bottleneck to the other. That is\n  \
-         journal/0108's shape a second time: TWO LEVERS THAT ONLY PAY TOGETHER.",
-        both / (budget_only * creep_only)
+        "\n--- THE CONTRAST: why not one lever (journal/0111's finding, re-measured) ---\n  \
+         Hillslope creep is {:.0} % of this world's export, and the old `erosion_budget` scope\n  \
+         (weathering + k_transport + k_bedrock, no diffusion) could not reach it. Both rows are\n  \
+         built by hand here because that scope no longer exists as a knob.\n",
+        100.0 * l.creep_to_sea_m / l.exported_m().max(1e-30)
+    );
+    let three_only = |m: f64| -> DeepConfig {
+        let mut c = raw_cfg;
+        c.weathering *= m;
+        c.k_transport *= m;
+        c.k_bedrock *= m;
+        c
+    };
+    let creep_only = |m: f64| -> DeepConfig {
+        let mut c = raw_cfg;
+        c.diffusion *= m;
+        c
+    };
+    let contrast: [(&str, DeepConfig); 2] = [
+        ("supply only 100x (old scope)", three_only(100.0)),
+        ("transport only 100x", creep_only(100.0)),
+    ];
+    println!("  scenario                       D1 (m/Myr)   D1/D3   vs raw");
+    let mut gains = [1.0f64; 2];
+    for (k, (name, c)) in contrast.iter().enumerate() {
+        let r = measure_cfg(&pregen.grid, c);
+        gains[k] = r.catchment_averaged / raw.catchment_averaged.max(1e-30);
+        println!(
+            "  {name:<30} {:>10.4}  {:>6.2}  {:>7.1}x",
+            r.catchment_averaged,
+            r.catchment_averaged / r.bedrock_erosion.max(1e-30),
+            gains[k],
+        );
+    }
+    let uniform_gain = d1 / raw.catchment_averaged.max(1e-30);
+    println!(
+        "  {:<30} {d1:>10.4}  {:>6.2}  {uniform_gain:>7.1}x   <-- SHIPPED",
+        format!("BOTH {:.0}x (uniform)", base_cfg.weathering / raw_cfg.weathering),
+        d1 / d.bedrock_erosion.max(1e-30),
+    );
+    println!(
+        "\n  100x on supply alone buys {:.1}x; 100x on transport alone buys {:.1}x; the uniform\n  \
+         {:.0}x buys {uniform_gain:.0}x. Two levers that only pay together (journal/0108's shape, and\n  \
+         journal/0111's) — and the reason the fix is ONE multiplier over FOUR rates rather than\n  \
+         a fifth multiplicand in a list.",
+        gains[0],
+        gains[1],
+        base_cfg.weathering / raw_cfg.weathering,
     );
 }
 
