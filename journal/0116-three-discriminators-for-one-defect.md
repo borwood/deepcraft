@@ -246,6 +246,33 @@ here in the same shape journal/0115 wrote *its* hypothesis, for the fix slice to
 because the entire value of this entry came from the previous one refusing to promote its own
 guess.
 
+## What went into the gate, and what deliberately did not
+
+The structural half of the pair now has a guard. `the_shipped_solve_has_no_grid_scale_
+oscillation` asserts the shipped concavity's lag-1 autocorrelation stays above −0.5 and its
+sign-alternation below 0.85, on both axes — **bounds taken from the closed-form references,
+not from yesterday's run**: −0.5 sits 3× past white noise's −1/6 and 2× short of a
+checkerboard's −1; 0.85 sits between white noise's 0.55 and a checkerboard's 1.00. That is
+corrections #61's *"pair every aggregate criterion with a neighbour-relative one"* stopping
+being advice in a doc.
+
+The both-arms test earns it: at `Extent::Small` the calibrated arm reports ACF(1)
+**−0.847 / −0.797** and sign-flip **0.619 / 0.626**, so the new guard is not vacuous at gate
+size. Total for the example's four tests: **10.7 s**, of which the new one is one extra Small
+census, ≈2.7 s.
+
+The **sweeps are not gated** and should not be — they are 12 and 5 minutes of production-Medium
+solves, and their output is a report to be read, not an invariant to be held. They live behind
+`--sweep` and `--fields` so the default report stays what it always was.
+
+One thing is worth flagging rather than quietly fixing: `walk_tour_0115.rs` is now **1,199
+lines**, well past the provisional 700-line threshold, and the file-size hook said so on every
+edit. The discriminators *are* a separable concern — but a Rust example is its own crate root,
+so a sibling example cannot call this one's `census()`. Splitting would mean either copying the
+census (anti-shape A-1, and the census is the exact thing three instruments already got wrong
+by copying in journal/0115) or moving it into `src/`, which this brief put out of scope.
+**Recorded as an open extraction, not resolved.**
+
 ## The thing this entry is really about
 
 Two mechanisms arrived from two different places, hours apart, both argued from the code,
