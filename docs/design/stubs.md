@@ -949,7 +949,7 @@ now *more* owed, not less, because the walk will be judging them against a lands
 moved underneath them. **Blast:** coastal cliff retreat, dune fields, the periglacial band.
 *Loud marker in `scale_erosion_rates`' doc comment, which names the exclusion and why.*
 
-### 29. the-solve-that-goes-grid-unstable-above-1× — *added 2026-07-26 (journal/0114); **RE-SCOPED AND RENAMED 2026-07-26 by the walk (journal/0115, corrections #61/#62)** — was "the-clamp-that-was-green-because-nothing-eroded"*
+### 29. the-hillslope-conveyor-that-checkerboards-the-regolith — *added 2026-07-26 (journal/0114); re-scoped by the walk (journal/0115, corrections #61/#62); **RENAMED AGAIN 2026-07-26 when the discriminators ran (journal/0116, corrections #63)** — was "the-clamp-that-was-green-because-nothing-eroded", then "the-solve-that-goes-grid-unstable-above-1×" (right about the symptom, wrong about the mechanism)*
 
 **⚠ READ THIS BLOCK BEFORE THE ORIGINAL ENTRY BELOW.** The original sized this defect at
 **148 pits** using a *below-all-eight-neighbours* census, and diagnosed it as the incision
@@ -979,14 +979,83 @@ the walk station: **7.8 %**, so they cluster ~2.5×.
 1× it produces grid-scale noise, of which the closed pits are the tail that happened to have
 no outlet.
 
-**Hypothesis, explicitly not measured:** an explicit scheme past its stability limit. Creep's
-flux limiter binds on 89–96 % of cells (stubs #27), so the diffusion has already saturated
-into *"move everything one cell downslope this epoch"*, and a saturated explicit operator
-overshoots. **Discriminators for the heir to run first:** (a) sign-alternation / spatial
-autocorrelation of the concavity field; (b) halve `myr_per_epoch` at doubled epoch count and
-fixed total time — if it is stability, roughness collapses and the landscape does not move.
-**(b) is the same `cell_m / myr_per_epoch` register as stubs #27's heir (b), so these two
-stubs may discharge together.**
+**~~Hypothesis, explicitly not measured:~~ THE DISCRIMINATORS WERE RUN 2026-07-26
+(journal/0116) AND THE HYPOTHESIS IS FALSIFIED.** The standing story was *an explicit scheme
+past its stability limit* — creep's flux limiter binds on 89–96 % of cells (stubs #27), so a
+saturated explicit operator overshoots. It was flagged as unmeasured, it was measured, and it
+is wrong. What the three discriminators returned, all on production-Medium with the shipped
+world as control:
+
+- **(a) IT IS A CHECKERBOARD — confirmed, decisively.** Concavity lag-1 autocorrelation
+  **+0.377 / +0.267 (shipped)** against **−0.867 / −0.912 (calibrated)**, with lag 2 back at
+  +0.56 / +0.71 and a first-difference ACF of −0.86. Reference values are derivable in closed
+  form: white noise is **−1/6**, a perfect checkerboard is **−1**. Both axes, so a true 2-D
+  Nyquist mode, not striping.
+- **(b) IT IS NOT A TIME-STEP LIMIT.** Refined 4× at fixed total simulated time (`k×` epochs,
+  `1/k×` every per-epoch rate) the concavity rms goes **40.46 → 45.29 → 38.76** — a 4 %
+  change under a 4× refinement, non-monotone — while the landscape holds (relief +3.9 %, mean
+  surface −0.3 %) and the shipped control reproduces itself to three digits. The checkerboard
+  gets **purer** as the step shrinks: ACF(1) −0.867 → −0.909 → **−0.947**. Closed hollows *do*
+  converge (1,377 → 955 → 280), so the **pits** are partly a step artefact and the
+  **oscillation is not**.
+- **(c) ISOSTASY IS THE DAMPER, NOT THE DRIVER** (a mechanism proposed mid-flight and worth
+  recording as killed). `iso_rate` 0.50 → 0.25 → 0.00 takes concavity rms **40.46 → 62.03 →
+  90.34** and closed hollows **1,377 → 2,150 → 13,012** — monotone in the *opposite*
+  direction. The clean point is 0.25 (relief moves 1 %, roughness worsens 53 %). And on the
+  **shipped** world `iso_rate = 0` takes concavity rms 0.22 → 19.71 m and closed hollows
+  **0 → 6,215**: the Airy relaxation toward a flexurally smoothed target is a strong
+  grid-scale low-pass filter and it is currently the only one. **Do not touch `iso_rate`.**
+
+**WHERE THE OSCILLATION LIVES — split `surf = r + h`, run the same Laplacian over each
+summand, and read the creep limiter's binding fraction off `TransportLedger`:**
+
+| | limiter bound | conc(**r**) rms · ACF(1) x/y | conc(**h**) rms · ACF(1) x/y | surf conc rms | mean h |
+|---|---|---|---|---|---|
+| shipped k=1 | 88.7 % | 3.42 m · −0.101 / −0.173 | 3.43 m · −0.102 / −0.183 | **0.22 m** | 4.58 m |
+| calibrated k=1 | **96.0 %** | 23.77 m · −0.546 / −0.508 | 61.95 m · −0.819 / −0.851 | 40.46 m | 41.41 m |
+| calibrated k=2 | **94.9 %** | 12.59 m · −0.344 / −0.219 | 55.21 m · −0.878 / −0.914 | 45.29 m | 36.59 m |
+| calibrated k=4 | **94.7 %** | **5.88 m · −0.108 / +0.069** | **42.43 m · −0.929 / −0.945** | 38.76 m | 24.45 m |
+
+- **The bedrock solve CONVERGES and was never the problem.** `conc(r)` goes 23.77 → 12.59 →
+  5.88 m under 4× refinement — nearly `1/k` — and its ACF walks back to −0.11 / +0.07. There
+  *is* a real time-step artefact in this world; it is in `r`, and D2 converged it away.
+- **The regolith does the opposite.** `conc(h)` falls only 32 % while its ACF goes **−0.819 →
+  −0.878 → −0.929**, toward a *pure* checkerboard. The 32 % is not convergence either — the
+  refinement does not hold the cover fixed (mean `h` 41.4 → 24.5 m: splitting error against the
+  nonlinear `exp(−H/h*)` weathering taper) — and normalised by the cover the operator actually
+  moves, roughness **grows**: `conc(h)/h̄` 1.50 → 1.51 → **1.74**, `rms(h−h̄)/h̄` 1.69 → 1.74 →
+  **2.06**.
+- **So the flat surface total was two defects cancelling**: a converging bedrock artefact plus
+  a sharpening regolith checkerboard. `corr(concavity, h − h̄) = −0.831` calibrated (+0.147
+  shipped), `rms(h − h̄)` **70.1 m vs 4.0 m** — the concavity field essentially *is* the
+  local-regolith-excess field.
+- **On the SHIPPED world `r` and `h` roughness ANTI-CORRELATE almost exactly**: 3.42 m and
+  3.43 m of grid-scale concavity summing to **0.22 m**. The blanket fills the bedrock's own
+  grid-scale hollows. **That compensation is what has broken**, and it is why neither component
+  was ever visible.
+
+**Why (b) returned a null — MEASURED, not inferred: the limiter is deaf to the step.** Binding
+fraction **96.0 % → 94.9 % → 94.7 %** across a 4× refinement. A limiter that caps export at
+*the cover the cell has* makes the transfer a function of **inventory, not of `rate × dt`**, so
+refining `dt` cannot reduce a transfer `dt` does not set.
+
+**And saturation alone is NOT sufficient — do not brief it as if it were.** The limiter already
+binds on **88.7 %** of *shipped* cells, whose `conc(h)` ACF is −0.10: no checkerboard at all.
+What the calibration adds is **cover** (mean regolith 4.58 → 41.41 m). *The oscillation
+amplitude scales with the inventory the limiter surrenders* — which is what "inventory, not
+`rate × dt`" predicts, and why this could only appear once the world was made to erode.
+
+**So the heir is a hillslope-transport slice — not a clamp slice, not a time-step slice.** The
+register is the **flux limiter / donor-cell partition in `erosion.rs::diffuse`**: an implicit
+or under-relaxed update, a limiter that cannot export more than *levels the pair*, or a
+symmetric two-pass exchange. **Hypothesis for the heir to test first, explicitly not measured**
+(same discipline as the block this replaces): a donor-cell scheme that moves everything
+downslope has a period-2 mode by construction — A gives all its cover to B, B is now higher and
+gives it back — a checkerboard in `h`, independent of `dt`, damped only by whatever low-pass
+sits downstream (here, isostasy). ~~`(b) is the same register as stubs #27's heir (b)`~~ —
+**withdrawn** (corrections #63): `myr_per_epoch` does not exist as a knob and the epoch length
+is measured *not* to be the register. #27 and #29 share the **limiter**, a stronger link than
+the clock was.
 
 **Two instrument defects fall out of this and are part of the heir's scope:**
 - `mfd_routing::no_interior_cell_is_cut_below_all_of_its_neighbours` is a **winner-take-all
@@ -997,7 +1066,13 @@ stubs may discharge together.**
   statistic** and cannot see spatial arrangement at all (corrections #61). Every erosional
   criterion pairs an aggregate with a **neighbour-relative** measure.
 
-**Measured by:** `dc-worldgen/examples/walk_tour_0115.rs`.
+**Also measured and null, recorded so nobody re-runs it:** `apply_thickening`'s 1000 m
+`t_crust` floor is engaged on **0.01 % of cells**, identically on every arm and at every
+`iso_rate`. It is not a nonlinearity here.
+
+**Measured by:** `dc-worldgen/examples/walk_tour_0115.rs` — `cargo run --release -p
+dc-worldgen --example walk_tour_0115 -- --sweep` (the three ladders, ~12 min at Medium) and
+`-- --fields` (which summand oscillates + the limiter's dt-response).
 
 *Original entry follows, unedited — its mechanism is plausible and probably contributes; it
 predicts isolated deep holes, which is a subset of what the world shows.*

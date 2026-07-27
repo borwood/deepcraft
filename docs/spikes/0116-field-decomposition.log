@@ -1,0 +1,38 @@
+=== walk tour: colluvium · alluvial contrast · the pits ===
+seed 1337, extent medium (~251 km), production config, N=2 (0.9 m voxels)
+
+pregen built in 35.1829794s
+
+=== WHICH FIELD OSCILLATES, AND IS THE LIMITER dt-DEPENDENT? ===
+(denudation_ledger armed; concavity columns must match the --sweep run)
+
+  shipped k=1            conc p10    -0.3  p90    +0.1  p99    +0.3  rms    0.22 | hollows     0 ( 0.0 %) deepest    0.0 m | relief   5521.9 m  mean surf   517.9 m | ACF_x(1) +0.377 flip_x 0.225 |  35.3 s
+               D1 conc rms   0.22 m | ACF(1..4) x +0.377 +0.446 +0.422 +0.407   y +0.267 +0.500 +0.455 +0.448
+                  sign-flip rate  x 0.225  y 0.249   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x +0.999 +0.999 +0.998 +0.997   y +1.000 +0.999 +0.999 +0.998   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean   4.58 m | rms(h−h̄)   4.00 m | corr(conc, h−h̄) +0.147 | corr(conc, h) +0.135 | t_crust at floor 0.01 %
+                  relief   5521.9 m | mean surface   517.9 m
+               WHICH FIELD  conc(r) rms   3.42 m ACF1 x -0.101 y -0.173  |  conc(h) rms   3.43 m ACF1 x -0.102 y -0.183  |  creep limiter bound  88.7 %
+  calibrated k=1         conc p10   -50.8  p90   +52.8  p99  +106.3  rms   40.46 | hollows  1377 ( 3.1 %) deepest  112.8 m | relief   5581.0 m  mean surf   520.4 m | ACF_x(1) -0.867 flip_x 0.678 |  32.8 s
+               D1 conc rms  40.46 m | ACF(1..4) x -0.867 +0.556 -0.189 -0.063   y -0.912 +0.706 -0.446 +0.238
+                  sign-flip rate  x 0.678  y 0.732   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.863 +0.597 -0.244 -0.003   y -0.860 +0.742 -0.446 +0.302   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  41.41 m | rms(h−h̄)  70.07 m | corr(conc, h−h̄) -0.831 | corr(conc, h) -0.813 | t_crust at floor 0.01 %
+                  relief   5581.0 m | mean surface   520.4 m
+               WHICH FIELD  conc(r) rms  23.77 m ACF1 x -0.546 y -0.508  |  conc(h) rms  61.95 m ACF1 x -0.819 y -0.851  |  creep limiter bound  96.0 %
+  calibrated k=2         conc p10   -56.6  p90   +61.2  p99  +118.1  rms   45.29 | hollows   955 ( 2.2 %) deepest  119.1 m | relief   5647.3 m  mean surf   520.2 m | ACF_x(1) -0.909 flip_x 0.752 |  65.8 s
+               D1 conc rms  45.29 m | ACF(1..4) x -0.909 +0.690 -0.391 +0.153   y -0.953 +0.840 -0.681 +0.539
+                  sign-flip rate  x 0.752  y 0.798   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.903 +0.711 -0.430 +0.192   y -0.908 +0.856 -0.665 +0.572   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  36.59 m | rms(h−h̄)  63.53 m | corr(conc, h−h̄) -0.821 | corr(conc, h) -0.807 | t_crust at floor 0.01 %
+                  relief   5647.3 m | mean surface   520.2 m
+               WHICH FIELD  conc(r) rms  12.59 m ACF1 x -0.344 y -0.219  |  conc(h) rms  55.21 m ACF1 x -0.878 y -0.914  |  creep limiter bound  94.9 %
+  calibrated k=4         conc p10   -42.3  p90   +49.1  p99  +111.8  rms   38.76 | hollows   280 ( 0.6 %) deepest   67.7 m | relief   5796.7 m  mean surf   518.7 m | ACF_x(1) -0.947 flip_x 0.596 | 133.3 s
+               D1 conc rms  38.76 m | ACF(1..4) x -0.947 +0.827 -0.645 +0.516   y -0.967 +0.903 -0.798 +0.721
+                  sign-flip rate  x 0.596  y 0.623   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.933 +0.846 -0.685 +0.559   y -0.904 +0.916 -0.762 +0.745   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  24.45 m | rms(h−h̄)  50.25 m | corr(conc, h−h̄) -0.763 | corr(conc, h) -0.759 | t_crust at floor 0.01 %
+                  relief   5796.7 m | mean surface   518.7 m
+               WHICH FIELD  conc(r) rms   5.88 m ACF1 x -0.108 y +0.069  |  conc(h) rms  42.43 m ACF1 x -0.929 y -0.945  |  creep limiter bound  94.7 %
+
+total fields wall-clock 302.3404415s

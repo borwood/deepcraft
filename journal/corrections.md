@@ -2304,6 +2304,87 @@ the only instrument in the room that could see the question.*
 
 **Heir:** `mfd_routing`'s guard should assert on **fill depth and concavity**, not on the
 below-all-neighbours count, which cannot fail informatively. Tracked in `stubs.md` #29.
+---
+
+## 63. "The erosional solve above 1× is an explicit scheme past its numerical stability limit, and halving `myr_per_epoch` is the discriminator — the same register stubs #27's heir turns" (journal/0115 § *What this does to the blocker*, `stubs.md` #29, and the ROADMAP blocker entry, 2026-07-26 — **flagged as a hypothesis by its own author and falsified the same day** by journal/0116)
+
+**The claim**, and journal/0115 deserves credit for the way it wrote it: *"The standing
+hypothesis is now numerical, and it is **flagged as a hypothesis in the entry that carries
+it**, because this session has already been burned twice by mechanisms that sounded right: an
+explicit scheme run past its stability limit… If it is stability, the roughness collapses and
+the landscape does not move. That second discriminator is the `cell_m / myr_per_epoch`
+register — **the same one stubs #27's heir (b) turns**."*
+
+**Three things in that are wrong, and the first is small but it is the tell.**
+
+**(i) `myr_per_epoch` does not exist.** There is no such knob anywhere in the tree. The
+register is `DeepConfig::iterations` (200) against a set of rates each stated *per iteration*,
+with the epoch length living only in doc comments as "2.5 Myr/iteration". A discriminator
+specified against a knob nobody has ever grepped for is a discriminator nobody has run.
+
+**(ii) The stability-limit hypothesis is falsified.** Refined **4×** at fixed total simulated
+time — `k×` epochs against `1/k×` every per-epoch rate, with the shipped arm carried as the
+operator's own falsifier and reproducing itself to three digits — concavity rms goes
+**40.46 → 45.29 → 38.76 m**. A 4 % change under a 4× refinement, non-monotone, while the
+landscape holds (relief +3.9 %, mean surface −0.3 %). A scheme past a CFL limit collapses
+roughly with the step; this does not move. And the oscillation gets **purer** as the step
+shrinks: lag-1 autocorrelation −0.867 → −0.909 → **−0.947**, with the full lag sequence
+converging on the textbook alternation of a Nyquist mode.
+
+**(iii) The shared register with stubs #27 is withdrawn.** They do not discharge together
+through the clock.
+
+**The mechanism of the error, and it is a family this repo has now caught three times.** The
+argument was: *the limiter binds on 89–96 % of cells, so the operator has saturated, and a
+saturated explicit operator overshoots.* Every clause is true and the conclusion does not
+follow. **A flux limiter that caps export at the cover the cell actually has makes the
+transfer a function of inventory, not of `rate × dt`** — so the saturated operator is
+**time-step-independent**, which is the precise opposite of a CFL condition. Measured, on the
+same ladder: the limiter's binding fraction is **96.0 % → 94.9 % → 94.7 %** across the 4×
+refinement. It barely notices.
+
+> **"The operator has saturated" and "the operator is unstable in time" are opposite
+> diagnoses, and saturation is the evidence *against* the second one.** Saturation is what
+> makes a scheme stop depending on its step size. The hypothesis took the single strongest
+> piece of evidence that the step is irrelevant and read it as evidence that the step is the
+> problem.
+
+**What is actually true, and it came out of the same solves.** Split `surf = r + h` and the
+two summands separate cleanly: the **bedrock converges** under refinement (concavity rms
+23.77 → 12.59 → 5.88 m, ~`1/k`, autocorrelation back to −0.11) — so there *is* a genuine
+time-step artefact in this world and D2 converged it away — while the **regolith sharpens**
+(ACF −0.819 → −0.878 → −0.929, and roughness normalised by the cover it moves *grows*, 1.50 →
+1.51 → 1.74). The flat surface total was **two defects cancelling**. The register is the
+**flux limiter / donor-cell partition in `erosion.rs::diffuse`**.
+
+**What survives, stated so nobody over-corrects.** journal/0115's *symptom* is entirely
+intact and was confirmed by a sharper instrument: it is a checkerboard, in both axes, and its
+own inference from "symmetric ±50 m tails with an unmoved median" was right. Its two
+corrections (#61, #62) stand. What is withdrawn is only the mechanism it explicitly declined
+to assert — **which is why this correction cost two probe runs instead of a fix slice.**
+
+## 63b. (recorded here rather than as a separate number, because it never entered the corpus) "Isostasy is a positive feedback whose gain is set by local regolith excess"
+
+Proposed mid-flight by the coordinator, explicitly labelled *"TREAT THIS AS A HYPOTHESIS…
+I would rather be wrong here than have you find a way to agree with me"*, and never written
+into a doc. It read `erosion.rs::isostasy` correctly — the Airy target *is* computed from
+flexurally smoothed loads and differenced against the cell's own unsmoothed surface — and got
+the **sign of the loop closure** backwards. The target is smooth and the cell is pulled
+*toward* it: it is a low-pass filter.
+
+Ablated on the calibrated arm, `iso_rate` 0.50 → 0.25 → 0.00 takes concavity rms **40.46 →
+62.03 → 90.34 m** and closed hollows **1,377 → 2,150 → 13,012**. On the **shipped** world —
+which has no defect — `iso_rate = 0` takes concavity rms 0.22 → 19.71 m and closed hollows
+**0 → 6,215**. `corr(concavity, h − h̄)` is **−0.831**, the opposite sign to the predicted
+feedback.
+
+> **Isostasy is the only grid-scale damper in this solve. A slice that "fixed" it would have
+> put six thousand holes in a world that currently has none.**
+
+Recorded because the *near-miss* is the useful artefact: two mechanisms arrived hours apart,
+both argued from the code, both specific, and they pointed in **opposite directions** — shrink
+the step, versus stop a pass from running. Neither was caught by argument. Both were caught by
+running the experiment on the arm nobody expected to be interesting.
 ## 64. "Converting `engine.rs`'s **two** step draws re-rolls every world's history layer: polities, sites, ruins" (`dc-sim/src/statistical/engine.rs:324-330` and `:354`, journal/0105 § "The three holes", ROADMAP Sequenced part (a), 2026-07-25 — falsified 2026-07-26 by a read-only trace taken while converting part (b))
 
 **The claim**, which is the entire justification for part (a) being a user-owned
