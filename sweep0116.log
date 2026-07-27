@@ -1,0 +1,60 @@
+=== walk tour: colluvium · alluvial contrast · the pits ===
+seed 1337, extent medium (~251 km), production config, N=2 (0.9 m voxels)
+
+pregen built in 35.9923383s
+
+=== D1 · IS IT A CHECKERBOARD? (both arms, one solve each) ===
+  shipped                conc p10    -0.3  p90    +0.1  p99    +0.3  rms    0.22 | hollows     0 ( 0.0 %) deepest    0.0 m | relief   5521.9 m  mean surf   517.9 m | ACF_x(1) +0.377 flip_x 0.225 |  39.8 s
+               D1 conc rms   0.22 m | ACF(1..4) x +0.377 +0.446 +0.422 +0.407   y +0.267 +0.500 +0.455 +0.448
+                  sign-flip rate  x 0.225  y 0.249   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x +0.999 +0.999 +0.998 +0.997   y +1.000 +0.999 +0.999 +0.998   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean   4.58 m | rms(h−h̄)   4.00 m | corr(conc, h−h̄) +0.147 | corr(conc, h) +0.135 | t_crust at floor 0.01 %
+                  relief   5521.9 m | mean surface   517.9 m
+  calibrated             conc p10   -50.8  p90   +52.8  p99  +106.3  rms   40.46 | hollows  1377 ( 3.1 %) deepest  112.8 m | relief   5581.0 m  mean surf   520.4 m | ACF_x(1) -0.867 flip_x 0.678 |  83.9 s
+               D1 conc rms  40.46 m | ACF(1..4) x -0.867 +0.556 -0.189 -0.063   y -0.912 +0.706 -0.446 +0.238
+                  sign-flip rate  x 0.678  y 0.732   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.863 +0.597 -0.244 -0.003   y -0.860 +0.742 -0.446 +0.302   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  41.41 m | rms(h−h̄)  70.07 m | corr(conc, h−h̄) -0.831 | corr(conc, h) -0.813 | t_crust at floor 0.01 %
+                  relief   5581.0 m | mean surface   520.4 m
+
+=== D3 · THE ISOSTASY ABLATION (calibrated arm; iso_rate 0.5 is production) ===
+  calibrated iso=0.25    conc p10   -80.2  p90   +82.6  p99  +134.2  rms   62.03 | hollows  2150 ( 4.9 %) deepest  154.5 m | relief   5636.7 m  mean surf   522.1 m | ACF_x(1) -0.876 flip_x 0.845 |  57.6 s
+               D1 conc rms  62.03 m | ACF(1..4) x -0.876 +0.586 -0.245 +0.008   y -0.919 +0.730 -0.493 +0.299
+                  sign-flip rate  x 0.845  y 0.896   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.883 +0.625 -0.308 +0.063   y -0.903 +0.760 -0.519 +0.347   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  56.90 m | rms(h−h̄)  80.45 m | corr(conc, h−h̄) -0.885 | corr(conc, h) -0.874 | t_crust at floor 0.01 %
+                  relief   5636.7 m | mean surface   522.1 m
+  calibrated iso=0.00    conc p10  -115.5  p90  +117.2  p99  +182.9  rms   90.34 | hollows 13012 ( 9.8 %) deepest  190.4 m | relief   3393.0 m  mean surf   477.0 m | ACF_x(1) -0.820 flip_x 0.833 |  55.6 s
+               D1 conc rms  90.34 m | ACF(1..4) x -0.820 +0.566 -0.277 +0.156   y -0.811 +0.545 -0.247 +0.128
+                  sign-flip rate  x 0.833  y 0.829   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.874 +0.630 -0.369 +0.188   y -0.866 +0.613 -0.341 +0.162   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  67.11 m | rms(h−h̄)  92.93 m | corr(conc, h−h̄) -0.885 | corr(conc, h) -0.879 | t_crust at floor 0.01 %
+                  relief   3393.0 m | mean surface   477.0 m
+  shipped iso=0.00       conc p10   -26.5  p90   +22.2  p99   +48.6  rms   19.71 | hollows  6215 ( 4.6 %) deepest   91.0 m | relief   3520.9 m  mean surf   484.1 m | ACF_x(1) -0.144 flip_x 0.506 |  56.9 s
+               D1 conc rms  19.71 m | ACF(1..4) x -0.144 +0.044 +0.006 +0.006   y -0.146 +0.046 +0.005 -0.005
+                  sign-flip rate  x 0.506  y 0.500   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.214 +0.163 +0.167 +0.165   y -0.158 +0.205 +0.206 +0.192   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean   5.21 m | rms(h−h̄)   8.13 m | corr(conc, h−h̄) +0.354 | corr(conc, h) +0.352 | t_crust at floor 0.01 %
+                  relief   3520.9 m | mean surface   484.1 m
+
+=== D2 · EPOCH REFINEMENT AT FIXED TOTAL TIME (calibrated arm; k× epochs, 1/k× rates) ===
+  calibrated k=2 (400 ep) conc p10   -56.6  p90   +61.2  p99  +118.1  rms   45.29 | hollows   955 ( 2.2 %) deepest  119.1 m | relief   5647.3 m  mean surf   520.2 m | ACF_x(1) -0.909 flip_x 0.752 |  94.5 s
+               D1 conc rms  45.29 m | ACF(1..4) x -0.909 +0.690 -0.391 +0.153   y -0.953 +0.840 -0.681 +0.539
+                  sign-flip rate  x 0.752  y 0.798   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.903 +0.711 -0.430 +0.192   y -0.908 +0.856 -0.665 +0.572   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  36.59 m | rms(h−h̄)  63.53 m | corr(conc, h−h̄) -0.821 | corr(conc, h) -0.807 | t_crust at floor 0.01 %
+                  relief   5647.3 m | mean surface   520.2 m
+  calibrated k=4 (800 ep) conc p10   -42.3  p90   +49.1  p99  +111.8  rms   38.76 | hollows   280 ( 0.6 %) deepest   67.7 m | relief   5796.7 m  mean surf   518.7 m | ACF_x(1) -0.947 flip_x 0.596 | 175.8 s
+               D1 conc rms  38.76 m | ACF(1..4) x -0.947 +0.827 -0.645 +0.516   y -0.967 +0.903 -0.798 +0.721
+                  sign-flip rate  x 0.596  y 0.623   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x -0.933 +0.846 -0.685 +0.559   y -0.904 +0.916 -0.762 +0.745   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean  24.45 m | rms(h−h̄)  50.25 m | corr(conc, h−h̄) -0.763 | corr(conc, h) -0.759 | t_crust at floor 0.01 %
+                  relief   5796.7 m | mean surface   518.7 m
+  shipped k=2 (control)  conc p10    -0.4  p90    +0.1  p99    +0.4  rms    0.23 | hollows     0 ( 0.0 %) deepest    0.0 m | relief   5520.7 m  mean surf   517.7 m | ACF_x(1) +0.297 flip_x 0.252 | 103.7 s
+               D1 conc rms   0.23 m | ACF(1..4) x +0.297 +0.375 +0.344 +0.334   y +0.150 +0.416 +0.381 +0.366
+                  sign-flip rate  x 0.252  y 0.285   [smooth→0.00, white noise 0.55, checkerboard 1.00]
+                  d(surf) ACF(1..4) x +0.999 +0.999 +0.998 +0.997   y +1.000 +0.999 +0.999 +0.998   [smooth>0, white −0.50, checkerboard −1.00]
+               D3 h mean   6.76 m | rms(h−h̄)   4.83 m | corr(conc, h−h̄) -0.004 | corr(conc, h) -0.006 | t_crust at floor 0.01 %
+                  relief   5520.7 m | mean surface   517.7 m
+
+total sweep wall-clock 703.7384419s
