@@ -371,7 +371,12 @@ fn main() {
 --- THE CENSUSES (shipped is the control) ---"
     );
     for (label, calibrated) in [("shipped", false), ("calibrated", true)] {
-        let c = census(&pregen.grid, &arm_cfg(&pregen.grid, calibrated), wp, STATION_A);
+        let c = census(
+            &pregen.grid,
+            &arm_cfg(&pregen.grid, calibrated),
+            wp,
+            STATION_A,
+        );
         println!(
             "  {label:11} land {:5} | hollows >1 m {:5} ({:4.1} %)  >10 m {:5}  >50 m {:4}               deepest {:6.1} m  fill {:5.1} km3",
             c.land,
@@ -818,7 +823,13 @@ fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> 
     out.crust_floor_pct = if run.grid.t_crust.is_empty() {
         f64::NAN
     } else {
-        100.0 * run.grid.t_crust.iter().filter(|t| **t <= 1000.0 + 1e-9).count() as f64
+        100.0
+            * run
+                .grid
+                .t_crust
+                .iter()
+                .filter(|t| **t <= 1000.0 + 1e-9)
+                .count() as f64
             / run.grid.t_crust.len() as f64
     };
 
@@ -910,15 +921,17 @@ fn print_structure(c: &Census) {
         "                  relief {:8.1} m | mean surface {:7.1} m",
         c.relief, c.surf_mean
     );
+    // The limiter column is only real when the config armed `denudation_ledger`. Say so
+    // rather than printing a bare `NaN` beside six live numbers — CLAUDE.md § Gates, "a
+    // printed caption is a published claim the gate cannot check".
+    let limiter = if c.creep_limited_pct.is_nan() {
+        "n/a (denudation_ledger off — run with `-- --fields`)".to_string()
+    } else {
+        format!("{:.1} %", c.creep_limited_pct)
+    };
     println!(
-        "               WHICH FIELD  conc(r) rms {:6.2} m ACF1 x {:+.3} y {:+.3}  |  conc(h) rms {:6.2} m ACF1 x {:+.3} y {:+.3}  |  creep limiter bound {:5.1} %",
-        c.conc_r_rms,
-        c.acf_r.0,
-        c.acf_r.1,
-        c.conc_h_rms,
-        c.acf_h.0,
-        c.acf_h.1,
-        c.creep_limited_pct
+        "               WHICH FIELD  conc(r) rms {:6.2} m ACF1 x {:+.3} y {:+.3}  |  conc(h) rms {:6.2} m ACF1 x {:+.3} y {:+.3}  |  creep limiter bound {limiter}",
+        c.conc_r_rms, c.acf_r.0, c.acf_r.1, c.conc_h_rms, c.acf_h.0, c.acf_h.1
     );
 }
 
@@ -959,9 +972,7 @@ fn run_sweep(pregen: &Pregen, t0: Instant) {
         print_structure(&c);
     }
 
-    println!(
-        "\n=== D3 · THE ISOSTASY ABLATION (calibrated arm; iso_rate 0.5 is production) ==="
-    );
+    println!("\n=== D3 · THE ISOSTASY ABLATION (calibrated arm; iso_rate 0.5 is production) ===");
     for rate in [0.25f64, 0.0] {
         let mut cfg = arm_cfg(cells, true);
         cfg.iso_rate = rate;
@@ -1099,7 +1110,47 @@ mod gate {
         );
     }
 
-    /// **THE OTHER ARM — without this the two guards above are unfalsifiable.**
+    /// **The neighbour-relative half of the pair — the guard corrections #61 asks for.**
+    ///
+    /// The two guards above are **magnitude** claims (a count, a percentile). corrections
+    /// #61's whole lesson is that a magnitude criterion cannot license a claim about
+    /// *arrangement*, and this defect is an arrangement: journal/0116 measured a concavity
+    /// lag-1 autocorrelation of **−0.87 / −0.91** on the calibrated world against
+    /// **+0.38 / +0.27** on the shipped one, with the calibrated first-difference ACF at
+    /// −0.86. So the pair is completed here rather than left as advice in a doc.
+    ///
+    /// **The bound is derived, and the derivation is the point** (the arithmetic is in
+    /// [`print_structure`]): the concavity of a **white-noise** surface has ACF(1) = −1/6,
+    /// and of a **perfect checkerboard** exactly −1. `−0.5` sits 3× past ordinary noise and
+    /// 2× short of a pure oscillation, so it cannot be tripped by a rough-but-honest
+    /// landscape and cannot miss grid instability. Same for the sign-flip ceiling: white
+    /// noise alternates 55 % of the time, a checkerboard 100 %, and `0.85` is between them.
+    ///
+    /// **Why it is scale-free**, per CLAUDE.md § Gates: an autocorrelation at lag 1 is a
+    /// statement about *pairs of adjacent cells*. It has no world-extent term in it — a
+    /// bigger world supplies more pairs, not different ones.
+    #[test]
+    fn the_shipped_solve_has_no_grid_scale_oscillation() {
+        let p = small();
+        let c = census(&p.grid, &arm_cfg(&p.grid, false), p.deep.wp, STATION_A);
+        assert!(
+            c.acf_x[0] > -0.5 && c.acf_y[0] > -0.5,
+            "concavity lag-1 autocorrelation x {:+.3} / y {:+.3} is past −0.5, heading for a \
+             checkerboard's −1 (white noise is −0.167). Adjacent cells are oscillating \
+             against each other — see stubs #29 and journal/0116.",
+            c.acf_x[0],
+            c.acf_y[0]
+        );
+        assert!(
+            c.flip_x < 0.85 && c.flip_y < 0.85,
+            "concavity sign-alternation x {:.3} / y {:.3} exceeds 0.85, approaching a \
+             checkerboard's 1.00 (white noise is 0.55) — see journal/0116.",
+            c.flip_x,
+            c.flip_y
+        );
+    }
+
+    /// **THE OTHER ARM — without this the three guards above are unfalsifiable.**
     ///
     /// They pass on the shipped world. That is only evidence if the *same instrument at
     /// the same size* can still **see** the defect — otherwise a green pair proves the
@@ -1129,10 +1180,20 @@ mod gate {
              this size and must move to Medium",
             c.p99
         );
+        assert!(
+            c.acf_x[0] < -0.5 || c.acf_y[0] < -0.5,
+            "the calibrated arm's concavity lag-1 autocorrelation is only x {:+.3} / \
+             y {:+.3} at Extent::Small — above the −0.5 bound the shipped guard asserts, so \
+             `the_shipped_solve_has_no_grid_scale_oscillation` cannot discriminate at this \
+             size and must move to Medium",
+            c.acf_x[0],
+            c.acf_y[0]
+        );
         println!(
             "calibrated @ Small: {} hollows (deepest {:.1} m), concavity p10 {:+.1} / \
-             p99 {:+.1} — the defect is visible at this size",
-            c.hollow_1, c.deepest, c.p10, c.p99
+             p99 {:+.1}, ACF(1) x {:+.3} / y {:+.3}, sign-flip x {:.3} / y {:.3} — the \
+             defect is visible at this size, in magnitude AND in structure",
+            c.hollow_1, c.deepest, c.p10, c.p99, c.acf_x[0], c.acf_y[0], c.flip_x, c.flip_y
         );
     }
 }

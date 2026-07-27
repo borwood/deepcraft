@@ -168,31 +168,83 @@ The crustal floor check (D3c) is a flat null worth recording so nobody re-runs i
 of cells sit on `apply_thickening`'s 1000 m floor, identically on every arm and at every
 `iso_rate`.** It is not engaged and it is not a nonlinearity here.
 
+## The follow-up, because a null is only worth something if you can say why the knob was wrong
+
+D2 said the step is not the register. That is a real result and it is also an unsatisfying
+one, because it leaves the *reason* unstated — and an unstated reason is how the last two
+mechanisms got written into the corpus. So two more measurements, one solve each: split
+`surf = r + h` and run the same Laplacian over each summand, and read the **creep flux
+limiter's binding fraction** off `TransportLedger` (which needs only `denudation_ledger`
+armed). The concavity columns reproduce the sweep's to every printed digit, which
+incidentally confirms that ledger really is read-only rather than merely documented as such.
+
+| | limiter bound | conc(**r**) rms · ACF(1) x/y | conc(**h**) rms · ACF(1) x/y | surf conc rms |
+|---|---|---|---|---|
+| shipped k=1 | 88.7 % | 3.42 m · −0.101 / −0.173 | 3.43 m · −0.102 / −0.183 | **0.22 m** |
+| calibrated k=1 | **96.0 %** | 23.77 m · −0.546 / −0.508 | 61.95 m · −0.819 / −0.851 | 40.46 m |
+| calibrated k=2 | **94.9 %** | 12.59 m · −0.344 / −0.219 | 55.21 m · −0.878 / −0.914 | 45.29 m |
+| calibrated k=4 | **94.7 %** | **5.88 m · −0.108 / +0.069** | **42.43 m · −0.929 / −0.945** | 38.76 m |
+
+Three things fall out, and the third is the answer.
+
+**The shipped row is the one to read first, again.** Bedrock and regolith each carry ~3.4 m of
+grid-scale concavity — and their sum carries **0.22 m**. They are almost exactly
+anti-correlated: *the regolith blanket fills the bedrock's grid-scale hollows.* The mantle
+compensates the solve's own noise, which is both physically right and the reason nobody has
+ever seen this. On the calibrated world that compensation has broken down: 23.77 and 61.95
+leave a coherent 40.46 m residual with a *sharper* checkerboard than either summand.
+
+**The bedrock solve converges. It was never the problem.** Under 4× refinement `conc(r)` goes
+**23.77 → 12.59 → 5.88 m** — very nearly `1/k` — and its autocorrelation walks back from
+−0.55 to −0.11 / +0.07, i.e. to no oscillation at all. That is exactly what a well-posed
+explicit scheme does when you refine its step. **There *is* a genuine time-step artefact in
+this world, it is in the bedrock, and D2 converged it away.**
+
+**The regolith does the opposite.** `conc(h)` falls only 61.95 → 42.43 m, and its
+autocorrelation goes **−0.819 → −0.878 → −0.929** — *toward* a pure checkerboard. And even the
+32 % amplitude drop is not convergence: the refinement does not hold the cover fixed (mean
+regolith falls 41.41 → 36.59 → 24.45 m, because refining changes the splitting error against
+the nonlinear `exp(−H/h*)` weathering taper). Normalise by the cover the operator is actually
+moving and the roughness **grows monotonically**: `conc(h)/h̄` = 1.50 → 1.51 → 1.74, and
+`rms(h − h̄)/h̄` = 1.69 → 1.74 → 2.06.
+
+> The surface total looked flat under refinement (40.5 → 45.3 → 38.8) because it is the sum of
+> a converging bedrock artefact and a sharpening regolith checkerboard. **Two defects were
+> hiding inside one statistic, and one of them was cancelling the other's convergence.**
+
+**And the limiter is measured, not inferred, to be deaf to the step: 96.0 % → 94.9 % →
+94.7 %.** A 4× refinement of the time step moves the binding fraction by 1.3 points. That is
+the mechanism the null was asking for, stated as a measurement:
+
+> **A flux limiter that caps export at *the cover the cell has* makes the transfer a function
+> of inventory, not of `rate × dt`.** Refining `dt` cannot reduce a transfer that `dt` does
+> not set. D2 turned the one knob the defect is structurally deaf to — and the same
+> measurement shows the knob working perfectly on the part of the solve that *is* a function
+> of `dt`.
+
 ## What actually survives
 
-Three arms, and the surviving statement is not any of the three hypotheses:
+**The defect is structural, it is in the hillslope-transport pass, and the register is the
+flux limiter — not the clamp, not the clock, and not isostasy.**
 
-> **The oscillation is in the regolith, not in the bedrock solve, and it is not a function of
-> the time step.**
+One qualification the data insists on, because it is the difference between a mechanism and a
+slogan: **saturation alone is not sufficient.** The limiter already binds on **88.7 %** of the
+*shipped* world's cells, and the shipped world's `conc(h)` autocorrelation is −0.10 — no
+checkerboard at all. What the calibration adds is not saturation, it is **cover**: mean
+regolith 4.58 → 41.41 m. A saturated conveyor handing over 4.6 m of blanket produces a ±3.4 m
+wobble the surface absorbs; the same conveyor handing over 41 m produces a ±62 m one it does
+not. **The oscillation amplitude scales with the inventory the limiter surrenders**, which is
+precisely what "inventory, not `rate × dt`" predicts, and it is why this could only ever have
+appeared once the world was made to erode.
 
-Which retroactively explains D2's null instead of leaving it a mystery, and the explanation
-was already printed in journal/0114 and not connected. The creep flux limiter caps a cell's
-export at *the regolith it actually has*. Once it binds, the amount moved is set by
-**inventory, not by rate × dt** — so halving the epoch length does not halve the transfer.
-**A saturated flux limiter makes the diffusion operator time-step-independent**, and a
-time-step-independent operator cannot be converged by refining the time step. D2 turned the
-one knob the defect is structurally deaf to.
-
-And a donor-cell scheme that moves *everything* downslope has an obvious period-2 mode: A is
-higher, so A gives all its cover to B; now B is higher, so B gives it all back. That is a
-checkerboard in `h`, sustained indefinitely, independent of `dt`, and damped only by whatever
-low-pass filter is downstream of it — which, on this world, is isostasy. Every measurement
-above is consistent with that, including the ones that killed the other two stories.
-
-*The last paragraph is the strongest reading of the data, not a measurement.* It is written
-here as a hypothesis for the fix slice to test first, in the same shape journal/0115 wrote
-its own — because the lesson of this entry is that the shape was right and it saved a slice
-from being built on a mechanism that does not exist.
+*The period-2 reading is the strongest interpretation of the data, and it is still an
+interpretation:* a donor-cell scheme that moves *everything* downslope must flip-flop — A
+gives all its cover to B, B is now higher and gives it back — which is a checkerboard in `h`,
+independent of `dt`, damped only by whatever low-pass sits downstream, which on this world is
+isostasy. Every number above is consistent with it and none of them isolates it. It is written
+here in the same shape journal/0115 wrote *its* hypothesis, for the fix slice to test first —
+because the entire value of this entry came from the previous one refusing to promote its own
+guess.
 
 ## The thing this entry is really about
 
@@ -205,9 +257,19 @@ currently has none.
 
 Neither was caught by argument. Both were caught by the same cheap thing: **running the
 experiment on the arm you expect to be boring.** The shipped control is what proved the
-refinement operator sound, what proved isostasy a damper rather than a driver, and what gave
-D1 its calibrated reference. Three of the four load-bearing facts in this entry come from the
-control row, and every one of them was expected to be a formality.
+refinement operator sound; what proved isostasy a damper rather than a driver (0 → 6,215
+hollows on a world with no defect); what gave D1 its calibrated reference; and — the one
+nobody would have predicted — what revealed that bedrock and regolith roughness normally
+*cancel*, which is the fact that makes the calibrated arm legible at all. Four of the five
+load-bearing facts here come from the row that was expected to be a formality.
 
 > *A discriminator that only runs on the broken arm can tell you the defect is there. It
 > takes the boring arm to tell you what it is.*
+
+And a smaller one, from D2, which is the part I would put in a brief template:
+
+> *A null from a well-built experiment is not "no information". It is a constraint on where
+> the mechanism can live — but only if you go on to ask why the knob you turned was the
+> wrong knob.* Stopping at "refining the step did nothing" would have left this entry with
+> one dead hypothesis and no successor. Two more solves, on a counter that had been printing
+> the answer since journal/0114, turned it into a named register.

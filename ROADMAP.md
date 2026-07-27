@@ -2801,10 +2801,13 @@ see the question you are asking.
 
 ## Sequenced
 
-- **🔴🔴🔴 THE EROSIONAL SOLVE GOES GRID-UNSTABLE ABOVE 1× — stubs #29, RE-SCOPED
-  2026-07-26 by the walk (journal/0115, corrections #61/#62), and it BLOCKS the calibration
-  below.** *This entry previously read "THE INCISION CLAMP THAT WAS GREEN BECAUSE NOTHING
-  ERODED" and sized the defect at 148 pits. Both the name and the number were wrong; the
+- **🔴🔴🔴 THE HILLSLOPE CONVEYOR CHECKERBOARDS THE REGOLITH ABOVE 1× — stubs #29,
+  RE-SCOPED 2026-07-26 by the walk (journal/0115, corrections #61/#62) and then
+  **DIAGNOSED 2026-07-26 by journal/0116 (corrections #63)**, and it BLOCKS the calibration
+  below.** *This entry has been renamed twice. It read "THE INCISION CLAMP THAT WAS GREEN
+  BECAUSE NOTHING ERODED" (sized at 148 pits — both wrong), then "THE EROSIONAL SOLVE GOES
+  GRID-UNSTABLE ABOVE 1×" (right about the symptom, wrong about the mechanism: the
+  discriminators say it is **not** a stability limit). The name now says where it is. The
   superseded framing is kept at the end because its mechanism is probably still real, just
   not dominant.*
   - **WHAT IS MEASURED (production-Medium, seed 1337, calibrated vs shipped as control).**
@@ -2827,16 +2830,59 @@ see the question you are asking.
     happened to bottom out with no outlet. Fixing the clamp would clamp the tail and leave
     23 % of cells 20 m off their neighbours — a slice that goes green and does not fix the
     world. **Do not brief the clamp fix as the blocker.**
-  - **HYPOTHESIS (assistant, 2026-07-26 — NOT measured, and the brief must say so):** an
-    explicit scheme past its stability limit. It fits what journal/0114 already measured
-    without connecting it — creep's flux limiter binds on **89–96 %** of cells, so the
-    diffusion has saturated into *"move everything one cell downslope this epoch"*, and a
-    saturated explicit operator **overshoots**. **Two cheap discriminators, and the slice
-    should run them before writing any fix:** (a) sign-alternation / spatial autocorrelation
-    of the concavity field — a checkerboard is decisive; (b) **halve `myr_per_epoch` and
-    double the epoch count at fixed total time** — if it is a stability limit the roughness
-    collapses and the landscape does not move. *This is the same `cell_m / myr_per_epoch`
-    register that stubs #27's heir (b) turns on, so the two blockers may share one fix.*
+  - **~~HYPOTHESIS~~ — THE DISCRIMINATORS RAN 2026-07-26 (journal/0116). THE STABILITY-LIMIT
+    STORY IS FALSIFIED; THE DEFECT IS STRUCTURAL AND IT IS IN THE REGOLITH.** The standing
+    hypothesis was *an explicit scheme past its stability limit*; it was flagged unmeasured,
+    it was measured, and it is wrong.
+    - **(a) It IS a checkerboard.** Concavity lag-1 autocorrelation **+0.377 / +0.267
+      (shipped)** vs **−0.867 / −0.912 (calibrated)**, lag 2 back at +0.56 / +0.71,
+      first-difference ACF −0.86. The three reference values are derivable in closed form —
+      white noise **−1/6**, perfect checkerboard **−1** — so the discriminator is not "is it
+      negative" but *how far past −1/6*. Both axes: a true 2-D Nyquist mode.
+    - **(b) It is NOT a time-step limit.** Refined **4×** at fixed total simulated time
+      (`k×` epochs, `1/k×` every per-epoch rate), concavity rms goes **40.46 → 45.29 →
+      38.76** — 4 % under a 4× refinement, non-monotone — while the landscape holds (relief
+      +3.9 %, mean surface −0.3 %) and the shipped control reproduces to three digits. The
+      checkerboard gets **purer**: ACF(1) −0.867 → −0.909 → **−0.947**. Closed hollows *do*
+      converge (1,377 → 955 → 280), so the **pits** are partly a step artefact and the
+      **oscillation is not**. *`myr_per_epoch` does not exist as a knob; the register is
+      `iterations` against per-epoch rates. The claimed shared register with stubs #27's
+      heir (b) is **withdrawn** — they share the limiter, not the clock.*
+    - **(c) ISOSTASY IS THE DAMPER, NOT THE DRIVER** (mechanism proposed mid-flight, killed).
+      `iso_rate` 0.50 → 0.25 → 0.00 takes concavity rms **40.46 → 62.03 → 90.34** and hollows
+      **1,377 → 2,150 → 13,012**. On the **shipped** world `iso_rate = 0` takes rms 0.22 →
+      19.71 and hollows **0 → 6,215**. **Do not touch `iso_rate`** — it is the only
+      grid-scale low-pass in the solve.
+  - **WHERE IT LIVES — split `surf = r + h` and this is what the fix slice is briefed
+    against.** Same Laplacian over each summand, plus the creep limiter's binding fraction:
+
+    | | limiter bound | conc(**r**) rms · ACF(1) | conc(**h**) rms · ACF(1) | surf rms | mean h |
+    |---|---|---|---|---|---|
+    | shipped k=1 | 88.7 % | 3.42 m · −0.10 | 3.43 m · −0.10 | **0.22 m** | 4.58 m |
+    | calibrated k=1 | **96.0 %** | 23.77 m · −0.55 | 61.95 m · −0.82 | 40.46 m | 41.41 m |
+    | calibrated k=2 | **94.9 %** | 12.59 m · −0.34 | 55.21 m · −0.88 | 45.29 m | 36.59 m |
+    | calibrated k=4 | **94.7 %** | **5.88 m · −0.11** | **42.43 m · −0.93** | 38.76 m | 24.45 m |
+
+    - **The BEDROCK solve converges** (23.77 → 5.88 m, ~`1/k`, ACF back to −0.11): there is a
+      real time-step artefact in this world, it is in `r`, and D2 converged it away.
+    - **The REGOLITH does not.** `conc(h)` falls 32 % while its ACF sharpens to **−0.93**, and
+      the refinement does not hold the cover fixed (mean `h` 41.4 → 24.5 m), so normalised by
+      what the operator moves the roughness **grows**: `conc(h)/h̄` 1.50 → 1.51 → **1.74**.
+      **The flat surface total was two defects cancelling.**
+    - **The limiter is deaf to the step: 96.0 → 94.9 → 94.7 %.** Measured, not inferred. It
+      caps export at *the cover the cell has*, so the transfer is a function of **inventory,
+      not `rate × dt`** — which is why refining `dt` did nothing.
+    - **Saturation alone is NOT sufficient — do not brief it as if it were.** The limiter
+      binds on **88.7 %** of *shipped* cells and their `conc(h)` ACF is −0.10. What the
+      calibration adds is **cover** (4.58 → 41.41 m mean regolith).
+    - `corr(concavity, h − h̄) = −0.831` calibrated (+0.147 shipped); `rms(h − h̄)` 70.1 vs
+      4.0 m. On the shipped world `r` and `h` roughness **anti-correlate almost exactly** —
+      3.42 + 3.43 m of component concavity summing to 0.22 m. **That compensation is what
+      broke.**
+    - **Register: the flux limiter / donor-cell partition in `erosion.rs::diffuse`.**
+      **Hypothesis for the slice to test first, explicitly not measured:** a donor-cell scheme
+      that moves everything downslope has a period-2 mode by construction (A gives all its
+      cover to B; B is now higher and gives it back), damped only by isostasy downstream.
   - **Until this lands the engine cannot run erosion at ANY realistic rate.** Unchanged, and
     now for a better-understood reason. It gates journal/0114's flag flip and every future
     calibration.
@@ -6477,15 +6523,20 @@ cannot be *deposited* — §12's four-way test caught in the wild **hours after 
 **#59** `energy_band` was an absolute threshold **secretly keyed to `k_transport`**.
 
 ### ⛔ THE TWO BLOCKERS — read before planning anything erosional
-1. **stubs #29 — ⚠ RE-SCOPED 2026-07-26 BY THE WALK (journal/0115, corrections #61/#62). It
-   is NOT "the incision clamp", and it was NOT 148 pits.** The solve goes **grid-unstable**
-   above 1×: **relief grew 4.6 %, cell-to-cell roughness grew ~170×** — shipped concavity fits
-   inside ±0.3 m, calibrated deciles are **±50 m** with the median unmoved, **23.2 %** of land
-   cells >20 m off their neighbours' mean. Closed hollows **0 → 1,377 (3.1 %), 5.4 km³**. The
-   pits are the *tail*, not the defect; clamping them would go green and fix nothing. **Until
-   this lands the engine cannot run erosion at any realistic rate.** *(The old framing — four
-   phases lower a cell past its clamped floor — is probably a real contributor and is kept in
-   the Sequenced entry.)*
+1. **stubs #29 — ⚠ RE-SCOPED BY THE WALK (journal/0115) AND DIAGNOSED BY THE
+   DISCRIMINATORS (journal/0116, corrections #63). It is NOT "the incision clamp", it was NOT
+   148 pits, and it is NOT a time-step stability limit.** Above 1× the surface carries a
+   **checkerboard** — concavity lag-1 autocorrelation **+0.38 (shipped) → −0.87
+   (calibrated)**, against derivable references of −1/6 for white noise and −1 for a pure
+   oscillation. **Relief grew 4.6 %, cell-to-cell roughness ~170×**; closed hollows
+   **0 → 1,377 (3.1 %), 5.4 km³**. Split `surf = r + h` and the two summands separate: the
+   **bedrock converges under 4× time-step refinement** (23.8 → 5.9 m) while the **regolith
+   sharpens** (ACF −0.82 → −0.93), because the creep flux limiter is **deaf to the step**
+   (96.0 → 94.7 % binding) — it caps export at *inventory*, not at `rate × dt`. **The register
+   is the flux limiter / donor-cell partition in `erosion.rs::diffuse`.** Do **not** brief a
+   clamp fix, a time-step fix, or anything touching `iso_rate` (isostasy is the only
+   grid-scale damper in the solve; turning it off puts **6,215 hollows in the SHIPPED
+   world**). **Until this lands the engine cannot run erosion at any realistic rate.**
 2. **stubs #27 — the transport operator has a ceiling.** Export ∝ mean regolith thickness, and
    creep's limiter **already binds on ~89 % of cells at shipped rates**. 100× on transport
    buys **1.6×**. *So journal/0111's "a calibration, not an architecture" was **half right**.*
@@ -6512,13 +6563,15 @@ verified by name, reconciling exactly across all five slices. Production is **by
   commits say `Claude Opus 5` (the model that did the work). **User's call which is canonical.**
 
 ### First things next session
-1. **stubs #29 — the GRID-INSTABILITY blocker** (re-scoped 2026-07-26 by the walk; it is not
-   the clamp). It gates every erosional number. **Run the two discriminators first** —
-   concavity sign-alternation, and halved `myr_per_epoch` at doubled epochs — before writing
-   any fix.
-2. **stubs #27's heirs** — rivers that carry, or a non-capped creep operator. **Note #29's
-   second discriminator turns the same `cell_m / myr_per_epoch` register, so these two may
-   share one fix.**
+1. **stubs #29 — the REGOLITH-CHECKERBOARD blocker** (re-scoped by the walk 2026-07-26; then
+   **diagnosed the same day, journal/0116, corrections #63 — the discriminators are RUN and
+   the stability-limit hypothesis is dead**). It gates every erosional number. Brief the fix
+   against the **flux limiter / donor-cell partition in `erosion.rs::diffuse`** — *not* the
+   clamp, *not* the time step, and **not `iso_rate`**.
+2. **stubs #27's heirs** — rivers that carry, or a non-capped creep operator. **These two
+   share the LIMITER, not the clock** — #29's "same `cell_m / myr_per_epoch` register" claim
+   is withdrawn (corrections #63; the knob does not exist and the epoch length is measured not
+   to be the register). A non-capped creep operator is now plausibly **one slice for both**.
 3. ~~The appearance walk (creep)~~ — **DONE 2026-07-26, journal/0115.** Flip
    `calibrated_rates` once #29 is fixed.
 4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
