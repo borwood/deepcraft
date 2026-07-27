@@ -7,6 +7,32 @@ diagnosis measures); only diagnosed work gets **Sequenced**.
 
 ## Shipped
 
+- 2026-07-26 — **`production_* → golden_*`: the fixture helpers now say which world they
+  build** (opened by journal/0106, sequenced by the staleness sweep row D-2). Pure
+  housekeeping, **byte-identical, no golden moved**. `providers_common::production_field` →
+  `golden_field`, `production_pregen` → `golden_pregen`, `rh_unification::production_field` →
+  `golden_field`; the two `rh_unification` tests are now `..._over_the_golden_field`, and
+  **`providers_golden::the_production_world_still_hashes_to_the_pre_slice_goldens` is now
+  `the_golden_world_still_hashes_to_the_pre_slice_goldens`** — every citation of the old name
+  in `journal/` and in the Shipped lines below refers to this test, and the rename is recorded
+  in its own doc comment so a grep of the old name lands somewhere.
+  - **Left alone, deliberately:** `deeptime::production_config` / `production_config_with`,
+    `water::coarse::CapSummary::production()`, `tests/geotherm.rs::production_field()` (that
+    one really *is* seed 1337 / Medium since 0106), and
+    `s18…::production_scale_saprolite_band_reaches_at_least_one_voxel` (honest, 1337/Medium).
+    A **config** named production is not a **world** named production.
+  - **⚠ The Sequenced entry named the wrong seed.** It said the misnamed helpers build
+    `0x0D5EED572026`; they build **`0x0B0A_57EE_0059`** (journal/0106's audit table has it
+    right). `0x0D5EED572026` is the *warm reference* world — geotherm's
+    `warm_reference_field()`, `organic.rs`, and `s17_deep_cell_inventory.rs`. Both are worlds
+    nobody ships, so the item's conclusion stood, but the transcription conflated two
+    different non-shipped fixtures.
+  - **Two prose-only residuals, NOT renamed** (no `production_*` symbol, outside the item):
+    `s17_deep_cell_inventory.rs`'s *"over a real production `DeepField`"* (it is
+    `0x0D5EED572026`/Small) and `s18_first_behavior_weathering.rs`'s *"the canonical
+    production golden world"* (it is `0x0B0A57EE0059`/Small). Both helpers are honestly named
+    `small_field` / `small_pregen`; only the module doc overreaches.
+
 - 2026-07-26 — **THE JOINT CALIBRATION: BUILT, MEASURED, AND DELIBERATELY OFF**
   (journal/0114). `EROSION_CALIBRATION = 45` behind **`DeepConfig::calibrated_rates`,
   default `false`**, identity path pinned by name. **Production is byte-identical.**
@@ -3028,17 +3054,8 @@ see the question you are asking.
   - Byte-identity impact: **(b) none (measured)**, (c) none if the tags are kept, (a) **the
     region-step draw moves every world's ruin posts; the agent-step draw moves nothing**.
 
-- **Finish the `production_* → golden_*` rename** (opened 2026-07-25 by journal/0106; **given a real
-  entry 2026-07-25 by the staleness sweep, row D-2** — the fix note said the rename was *"left
-  sequenced"* and there was no Sequenced entry, which is exactly the doctrine gap that let the
-  `organic.rs` defect sit unlisted). Housekeeping, byte-identical, no user call. `providers_common`
-  and `rh_unification` still spell `production_*` for helpers that build **`0x0D5EED572026`, a world
-  nobody ships**; their claims *are* seed-independent (golden byte-identity, derived-vs-scalar
-  agreement), so they were annotated rather than re-seeded — but the **name still lies**, and it is
-  the name that misled the audit that missed row S-7. Rename to `golden_*` (a fixture for the
-  goldens, which is what it is), ripple into `providers_golden.rs` and the comments in
-  `flux_record.rs` / `head_field.rs`. Leave alone: `deeptime::production_config` and
-  `water::coarse::production()` name a **config**, not a world.
+*(The `production_* → golden_*` rename that stood here — opened 2026-07-25 by journal/0106,
+given a real entry by the staleness sweep row D-2 — **shipped 2026-07-26**; see Shipped.)*
 
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice
@@ -4600,9 +4617,10 @@ before any code.
       non-shipped world, but their claims (golden byte-identity, derived-vs-scalar agreement) are
       genuinely seed-independent, so they are **annotated, not re-seeded**; the `golden_*` rename ripples
       into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced —
-      **and as of 2026-07-25 it really is: see the Sequenced entry "Finish the `production_* → golden_*`
-      rename"** (sweep row D-2 caught that the word "sequenced" was doing the work of an entry that did
-      not exist — the same doctrine gap that hid row S-7 below).
+      **and as of 2026-07-25 it really was** (sweep row D-2 caught that the word "sequenced" was doing
+      the work of an entry that did not exist — the same doctrine gap that hid row S-7 below).
+      **✅ The rename SHIPPED 2026-07-26 — see Shipped**; the helpers are `golden_field` /
+      `golden_pregen` and the golden test is `the_golden_world_still_hashes_to_the_pre_slice_goldens`.
       `s18_first_behavior_weathering::production_scale_saprolite_band_reaches_at_least_one_voxel` is
       **honest** (1337/Medium) and is the shape to copy. `deeptime::production_config` /
       `water::coarse::production()` name a *config*, not a world — legitimate.

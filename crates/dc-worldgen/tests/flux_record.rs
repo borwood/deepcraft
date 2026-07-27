@@ -299,7 +299,7 @@ fn the_receiver_export_agrees_with_the_final_chapters_faces() {
 /// must be **bit-for-bit** the same.
 ///
 /// (The cross-commit golden proof is separate and untouched:
-/// `providers_golden.rs::the_production_world_still_hashes_to_the_pre_slice_goldens`.)
+/// `providers_golden.rs::the_golden_world_still_hashes_to_the_pre_slice_goldens`.)
 #[test]
 fn the_flow_record_is_a_sidecar_and_the_world_is_byte_identical() {
     let pregen = small_world();

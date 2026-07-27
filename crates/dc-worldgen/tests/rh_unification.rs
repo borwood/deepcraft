@@ -3,8 +3,8 @@
 //! material-behavior.md §13.6 (ratified): the deep-cell working material inventory
 //! is the **authority** for surface material; the scalar `R`/`H` planes are its
 //! **materialized views**. This suite proves the derivation reproduces the planes
-//! over a *real production `DeepField`* — the load-bearing acceptance instrument,
-//! not a unit fixture.
+//! over a *real `DeepField` built under the full production config* — the
+//! load-bearing acceptance instrument, not a unit fixture.
 //!
 //! The honest byte-identical landing is **scratch-first reconcile**: the erosion
 //! loop runs untouched on the scalar planes (so the goldens do not move — see
@@ -28,11 +28,11 @@ use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 /// (`tests/geotherm.rs`). See **corrections #51** for what a "production"-named
 /// helper on a non-shipped world cost us. The claim proved below — that a derived
 /// view equals its stored plane — is genuinely seed-independent, so a fixed cheap
-/// world is the right fixture; only the *name* is misleading, and `golden_*` is
-/// the sequenced rename.
+/// world is the right fixture; the misleading `production_*` name was retired for
+/// `golden_*` on 2026-07-26.
 const SEED: u64 = 0x0B0A_57EE_0059;
 
-fn production_field() -> DeepField {
+fn golden_field() -> DeepField {
     let pregen = Pregen::run(WorldParams {
         seed: SEED,
         extent: Extent::Small,
@@ -47,12 +47,9 @@ fn production_field() -> DeepField {
 const TOL_M: f64 = 1e-6;
 
 #[test]
-fn derived_regolith_agrees_with_the_scalar_h_plane_over_the_production_field() {
-    let f = production_field();
-    assert!(
-        !f.regolith.is_empty(),
-        "production field carries the H plane"
-    );
+fn derived_regolith_agrees_with_the_scalar_h_plane_over_the_golden_field() {
+    let f = golden_field();
+    assert!(!f.regolith.is_empty(), "golden field carries the H plane");
     let mut max_res = 0.0f64;
     let mut worst = 0usize;
     for (i, &scalar_h) in f.regolith.iter().enumerate() {
@@ -74,8 +71,8 @@ fn derived_regolith_agrees_with_the_scalar_h_plane_over_the_production_field() {
 }
 
 #[test]
-fn derived_bedrock_agrees_with_the_scalar_r_plane_over_the_production_field() {
-    let f = production_field();
+fn derived_bedrock_agrees_with_the_scalar_r_plane_over_the_golden_field() {
+    let f = golden_field();
     // The scalar `R` plane is `grid.r` = bedrock-top elevation. The field keeps
     // `surf = r + h` and `regolith = h`, so the pre-slice scalar R is exactly
     // `surf - regolith` per cell. The derived R is `surf - H_derived`.

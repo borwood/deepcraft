@@ -2,7 +2,7 @@
 //! (journal/0061): both arms of the seam, on the real production grid.
 
 mod providers_common;
-use providers_common::{GOLDEN_RECORD, GOLDEN_SURFACE, SEED, production_pregen};
+use providers_common::{GOLDEN_RECORD, GOLDEN_SURFACE, SEED, golden_pregen};
 use providers_common::{record_fingerprint, surface_fingerprint};
 
 /// The identity `depth_to_water` leaves the plane empty — the empty-plane +
@@ -60,7 +60,7 @@ fn the_materialized_proxy_plane_agrees_with_the_inline_proxy() {
             ));
         }
     }
-    let pregen = production_pregen();
+    let pregen = golden_pregen();
     let mut cfg = deeptime::production_config(&pregen.grid, SEED);
     cfg.providers = Providers {
         depth_to_water: Some(proxy_plane),
@@ -96,7 +96,7 @@ fn a_non_identity_water_table_reaches_the_run() {
         out.clear();
         out.resize(pass.w * pass.w, 1.0);
     }
-    let pregen = production_pregen();
+    let pregen = golden_pregen();
     let base = deeptime::production_config(&pregen.grid, SEED);
     let mut swapped = base;
     swapped.providers = Providers {
@@ -125,7 +125,7 @@ fn a_non_identity_water_table_reaches_the_run() {
 #[test]
 fn the_identity_water_table_plane_is_empty() {
     use dc_worldgen::deeptime::{BioticSim, DeepConfig, build_cells};
-    let pregen = production_pregen();
+    let pregen = golden_pregen();
     let cfg = DeepConfig {
         seed: SEED,
         cell_m: 4000.0,

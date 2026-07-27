@@ -1,7 +1,7 @@
 //! **Slot `wave_energy`** — falsifiers for the littoral seam (journal/0060).
 
 mod providers_common;
-use providers_common::{production_pregen, surface_fingerprint};
+use providers_common::{golden_pregen, surface_fingerprint};
 
 /// A **non-identity** provider actually reaches the run — the seam is a seam,
 /// not decoration. Halving the littoral rate everywhere must move the surface.
@@ -14,7 +14,7 @@ fn a_non_identity_wave_provider_reaches_the_run() {
     fn half(c: WaveCell) -> f64 {
         c.base_rate * 0.5
     }
-    let pregen = production_pregen();
+    let pregen = golden_pregen();
     let base = deeptime::production_config(&pregen.grid, providers_common::SEED);
     let mut swapped = base;
     swapped.providers = Providers {
