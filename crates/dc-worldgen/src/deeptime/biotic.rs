@@ -65,7 +65,9 @@
 //! drivers produce byte-identical output, exactly as the erosion per-cell phases
 //! do (S9b).
 
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
+
+use crate::draws::{BioticFire, BioticFlood};
 
 use super::erosion::Erosion;
 use super::geotherm::{self, BurialColumn};
@@ -73,16 +75,19 @@ use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
 use super::providers::{ParentCell, Providers, WaterPass, wet_at};
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
 
-/// Addressed-draw salts for the biotic layer. Distinct high byte from pregen
-/// (`0x5700_*`) and deep-time erosion (`0x5900_*`) so the address spaces never
-/// collide.
-// Registered as domains in `crate::draws` (journal/0105) so nothing can re-issue
-// these numbers; the call sites below still spell them locally, and
-// `draws::tests::the_deeptime_constants_agree_with_their_registered_domains`
-// keeps the two spellings in agreement. `pub(crate)` only so that test can see
-// them.
-pub(crate) const SALT_BIO_FIRE: u64 = 0x5B00_0001;
-pub(crate) const SALT_BIO_FLOOD: u64 = 0x5B00_0002;
+// **The biotic layer's two salts are gone from this file** (2026-07-26,
+// journal/0105 hole 2). They used to be `SALT_BIO_FIRE = 0x5B00_0001` and
+// `SALT_BIO_FLOOD = 0x5B00_0002`, spelled here and read by the ignition and
+// flood rolls in `step_cell`. Both rolls now open [`BioticFire`] /
+// [`BioticFlood`] through [`Draws::of`], so `crate::draws` is the **only**
+// spelling of either number and the compile-time uniqueness check is the whole
+// guarantee — there is no copy left to drift.
+//
+// The agreement test that used to guard the copies went with them, and that is
+// the point rather than a loss: an agreement test whose "authority" and "copy"
+// are the same constant asserts nothing. `SALT_DT_ROUGH` in `grid.rs` still has
+// a genuine second reader (`refine.rs`) and so keeps both its constant and its
+// assertion.
 
 /// Legibility floor (metres) the read-quality scan uses for "a coal seam you
 /// could see in a cut face". A **reporting** threshold on seam thickness, not a
@@ -1110,7 +1115,7 @@ fn step_cell(
     // Fire: deterministic addressed ignition, likelier with more (dry) fuel.
     if eff_fuel > FUEL_MIN {
         let ignition_p = f64::from((eff_fuel - FUEL_MIN) * (0.3 + 0.7 * dryness)) * IGNITION_SCALE;
-        let roll = draw_f64(&[seed, SALT_BIO_FIRE, gx as u64, gy as u64, u64::from(epoch)]);
+        let roll = Draws::of::<BioticFire>(seed).unit(&[gx as u64, gy as u64, u64::from(epoch)]);
         if roll < ignition_p {
             // Standing organic proxy = soil organic near the surface; a fraction
             // chars into the record, the rest is lost to the atmosphere.
@@ -1137,7 +1142,7 @@ fn step_cell(
 
     // Flood: valley cells with large drainage area get bioturbated / reset.
     if area[i] > FLOOD_AREA {
-        let roll = draw_f64(&[seed, SALT_BIO_FLOOD, gx as u64, gy as u64, u64::from(epoch)]);
+        let roll = Draws::of::<BioticFlood>(seed).unit(&[gx as u64, gy as u64, u64::from(epoch)]);
         if roll < 0.15 {
             for s in 0..ROSTER {
                 cell.cover[s] *= 0.6;

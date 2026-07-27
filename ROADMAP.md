@@ -2986,20 +2986,47 @@ see the question you are asking.
     `collapse.rs` at 2,415 are the two worst offenders), what "separate concerns" means per
     file type, and the split conventions. **To be set, not guessed.**
 
-- **Finish the draw-domain conversion: the three residual hand-rolled sites** (opened 2026-07-25
+- **Finish the draw-domain conversion: the residual hand-rolled sites** (opened 2026-07-25
   by journal/0105, which converted 26 of them and named these). Small, and each is named in code
-  so it cannot be lost. **(a) `dc-sim/engine.rs`'s region-step and agent-step draws** address
-  `[seed, k, SALT, …]` — the sample index sits before the domain, so putting them on `Draws::of`
-  (which fixes the domain at slot 2) changes the key and **re-rolls every world's history layer**:
-  polities, sites, ruins. That is a real appearance change and wants its own slice with the
-  goldens re-baselined, not a footnote in someone else's. **(b) `deeptime/{grid,biotic}.rs`'s
-  three call sites** still spell `SALT_DT_ROUGH` / `SALT_BIO_FIRE` / `SALT_BIO_FLOOD` locally;
-  the domains are registered and an agreement test holds them, so this is byte-identical
-  housekeeping — three lines, owned by whoever holds those files. **(c) Tag space inside a
-  domain** (`GeoSelect`'s tags 0–3, `GeoAccessory`'s `tag` / `tag + 1024`) is hand-laid
-  sub-domaining with journal/0105's exact failure mode at smaller scale; a `Domain` per decision
-  fixes it and costs a longer list. Byte-identity impact: (b) none, (c) none if the tags are kept,
-  (a) every world.
+  so it cannot be lost. **(b) is DONE 2026-07-26** and its rider **re-measured (a)'s blast radius,
+  which was overstated — see below**.
+  - **(a) `dc-sim/engine.rs`'s region-step and agent-step draws** address `[seed, k, SALT, …]` —
+    the sample index sits before the domain, so putting them on `Draws::of` (which fixes the
+    domain at slot 2) changes the key. **Still a user-owned appearance slice, but a smaller and
+    differently-shaped one than this entry claimed** (corrections #64, a read-only trace taken
+    2026-07-26 during (b); **not re-scoped by that agent — the integrator's and the user's call**):
+    - **The region-step draw (`engine.rs:331`) is the real one, and it IS visible.** Collapsed
+      pressure → the sack roll (`pregen/history.rs:221`) → `abandoned` → `Pregen.sites` →
+      `collapse.rs:1588`'s ruin posts → `Block::Wood` in `generate_chunk` (`collapse.rs:483-488`)
+      → meshed (`dc-client/src/meshing.rs:214`). **No flag anywhere** — the history pass is an
+      unconditional `vanilla_passes()` member (`pipeline.rs:359-366`).
+    - **The agent-step draw (`engine.rs:355`) re-rolls NOTHING.** The pregen overlay is built with
+      an empty agent roster (`history.rs:82`/`:84-88` pass `vec![]` as `with_graph`'s `agent_home`),
+      so the loop never executes outside dc-sim's own tests. **That half is byte-identical
+      housekeeping and could ride with anything.**
+    - **"Polities" is not re-rolled.** The count is fixed at epoch 0 (`history.rs:134-149`);
+      `PolityExtent` facts move but live only in `Pregen.ledger`, which **nothing in production
+      reads** (`pregen/mod.rs:300-304`; sole non-test reader `approx_resident_bytes`,
+      `mod.rs:367`) — a spines § 3 "built, and nothing calls it" cluster.
+    - **Goldens that would move:** `contents_contract.rs:70-86`, `s7_walk.rs:32-40`,
+      `geology.rs:32` (all hash `generate_chunk` blocks, structurally downstream of the posts),
+      and `s7_handoff.rs:118`, which pins a **seed-specific sack** and is the likeliest break.
+      `GOLDEN_SURFACE` / `GOLDEN_RECORD` are **not** downstream (deep-time field only).
+  - **(b) `deeptime/{grid,biotic}.rs`'s three call sites — ✅ DONE 2026-07-26, byte-identical**
+    (journal/0118, which also carries the rider above).
+    They now open `DeepTimeRoughness` / `BioticFire` / `BioticFlood` through `Draws::of`. Two
+    side-effects worth knowing: `SALT_BIO_FIRE` / `SALT_BIO_FLOOD` were **deleted** — with no
+    production reader left they were copies of an authority nothing else consulted, so the
+    agreement test guarding them asserted nothing (clippy's dead-code error is what surfaced it);
+    and `SALT_DT_ROUGH` **stays**, because `deeptime/refine.rs` has a **fourth** roughness-jitter
+    call site journal/0105's "three" did not count. **Owed: convert `refine.rs:155` and the
+    constant and its agreement test can both retire** — left to that file's owner (a sibling held
+    it during the (b) slice).
+  - **(c) Tag space inside a domain** (`GeoSelect`'s tags 0–3, `GeoAccessory`'s `tag` /
+    `tag + 1024`) is hand-laid sub-domaining with journal/0105's exact failure mode at smaller
+    scale; a `Domain` per decision fixes it and costs a longer list.
+  - Byte-identity impact: **(b) none (measured)**, (c) none if the tags are kept, (a) **the
+    region-step draw moves every world's ruin posts; the agent-step draw moves nothing**.
 
 - **Finish the `production_* → golden_*` rename** (opened 2026-07-25 by journal/0106; **given a real
   entry 2026-07-25 by the staleness sweep, row D-2** — the fix note said the rename was *"left
