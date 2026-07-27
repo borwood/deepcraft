@@ -22,9 +22,22 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
    justified against these shapes**; a deviation is loud, discussed in main
    session, ratified by the user, and recorded in its § 4. Update it in the
    same commit as work that adds an instance or empties a row of § 3.
-1. **[`ROADMAP.md`](ROADMAP.md)** — the living sequence (Shipped / In flight /
-   Sequenced / Observed). Read before proposing work; update it in the same
-   commit as any journal entry.
+1. **[`ROADMAP.md`](ROADMAP.md)** — the living sequence (In flight / Sequenced /
+   Observed + the current close block). Read before proposing work; update it in
+   the same commit as any journal entry. **Completed work and superseded close
+   blocks live in [`ROADMAP-history.md`](ROADMAP-history.md)** — archived
+   2026-07-26 **by status, not age**; each Shipped entry keeps its **journal
+   number** as the stable pointer. *Archive an item when its status stops
+   requiring it to be read live, never when it gets old.*
+1b. **The corpus is checked against ITSELF, not only against the code.**
+   `spine-audit` compares docs to code; the staleness sweep compares entries to
+   newer work; **[`doc-topology`](.claude/skills/doc-topology/SKILL.md)** compares
+   docs to **each other** — a decision superseded in one doc and still asserted in
+   another, a claim refuted in its own neighbourhood, a user design reconciled away
+   in a doc its author does not read. Added 2026-07-26 after a claim and its own
+   refutation sat 400 lines apart for three days and cost an architecture
+   (corrections #65, journal/0119). Run it after any batch of merges that ships an
+   arc.
 2. **[`docs/design/things-that-will-happen.md`](docs/design/things-that-will-happen.md)**
    — one-line concrete examples of what this game IS. Read before the design
    docs; it loads the mental model fastest. Append to it whenever a genuinely

@@ -1,0 +1,92 @@
+---
+name: doc-topology
+description: Sweep the .md corpus for claims that CONTRADICT other claims in the corpus - a decision superseded in one doc and still asserted in another, a number restated three ways, a design reconciled away in a doc its author does not read, a refutation sitting in the same entry as the claim. Fills the gap between spine-audit (docs vs CODE) and the staleness sweep (docs vs NEWER WORK): nothing else checks the docs against EACH OTHER. Run after any batch of merges that ships an arc, and whenever a design thread reopens something old.
+---
+
+# doc-topology — check the corpus against itself
+
+**The two existing sweeps both compare the corpus to something outside it.** `spine-audit`
+checks `spines.md` against the **code**. The staleness sweep checks entries against **newer
+work**. **Nothing checks the docs against each other** — so a claim and its own refutation
+can coexist indefinitely, in two files, or in one paragraph, and no process will ever put
+them side by side.
+
+*Earned 2026-07-26 (journal/0119, corrections #65). `material-behavior.md` § 5 asserted that
+deep-time phase order "falls out of the declared reads/writes"; `journal/0090` said, two
+sentences into the entry that celebrated it, that a relaxation pipeline "does **not** fall
+out of a dataflow graph for free — you have to name each revision as a distinct resource for
+the topo-sort to reproduce a fixed sequence." Both true statements, 400 lines apart, one
+literally the other's counterexample. They sat there for three days and cost an
+architecture. **Every piece was in the corpus and findable by grep; what failed is that no
+reader ever had all of them in view at once.***
+
+## Why grep cannot do this
+
+Grep returns what you already suspected. A contradiction between two documents is exactly
+the thing nobody suspects — if anyone had, it would already be resolved. **This sweep must
+READ, not search**, and its unit of work is a *pair* of statements, not a file.
+
+## What to look for — five shapes, in value order
+
+1. **Superseded-but-still-asserted.** A decision changed in doc A; doc B still states the old
+   one as current. *The highest-frequency shape and the most expensive, because doc B reads as
+   authoritative.* Check every `DECIDED` / `RATIFIED` / `SUPERSEDED` entry against everything
+   that cites the same noun.
+2. **A claim refuted in its own neighbourhood.** The corrections #65 shape. Read whole
+   entries, especially the celebratory summary of an implementation slice — that is where a
+   caveat gets stated honestly and then not propagated to the doc it invalidates.
+3. **A user-originated design reconciled away.** Grep `ideas.md` and every "user sketch" /
+   "user's reasoning, recorded" block, then check whether each half **survived**, was
+   **contested**, or was quietly **replaced** in a design doc. A replacement with no recorded
+   argument is a finding. *(CLAUDE.md: a user-originated design may not be superseded by an
+   implementation slice.)*
+4. **One number, several values.** The same measurement quoted differently in two places —
+   usually because one is a *threshold* and the other a *result*, or one came from a
+   **fixture** and the other is claimed as **production**. Both happened this project. Quote
+   the measure, never the bound; name the world every number came from.
+5. **A justification whose constraint expired** (anti-shape A-2) where the *expiry* is
+   recorded in a different file than the *justification*.
+
+## Rules
+
+- **Read whole sections. Do not grep-and-conclude.** If you find yourself confirming
+  something you already believed, you are running the wrong instrument.
+- **Prioritise by BLAST RADIUS, not by age.** A contradiction in `north-star.md`,
+  `ARCHITECTURE.md`, `CLAUDE.md` or this skill set propagates into every future session and
+  every agent brief; one in a journal entry is history and mostly harmless.
+- **Report pairs with file:line on BOTH sides.** A finding that quotes one side is an
+  opinion.
+- **Do not resolve a contradiction you find.** Which side wins is frequently a **user call**
+  — that is precisely why it survived. Report it, ranked, with a recommendation labelled as
+  one.
+- **Provenance decides weight.** *"User-originated constraints are data; assistant-originated
+  ones are hypotheses that happened to survive."* When two claims conflict and one is
+  user-originated, that is not a tie.
+- **A null is a result**, but a null from this sweep is *suspicious* — say how much you
+  actually read, and which docs you did **not** open.
+
+## Scope, and how to keep it finite
+
+The `.md` corpus is large and this sweep cannot read all of it every time. Pick a spine and
+follow it:
+
+- **After a batch of merges:** every noun the batch touched. Start from the merged journal
+  entries' own claims and walk outward to every doc citing the same noun.
+- **When a design thread reopens something old:** that thread's nouns, exhaustively, across
+  every doc — this is the corpus-sweep the session workflow already requires at the start of
+  a design pass, run as an audit rather than a lookup.
+- **Periodically, unprompted:** the read-first set only — `CLAUDE.md`, `north-star.md`,
+  `spines.md`, `ARCHITECTURE.md`, `ROADMAP.md`'s live board, and this skill set. Highest
+  blast radius, smallest page count.
+
+## Deliverable
+
+`docs/audits/<date>-doc-topology-sweep.md`: a ranked table of contradiction **pairs**, each
+with both `file:line` citations, the two conflicting statements quoted, which side is
+user-originated (if either), the blast radius, and a labelled recommendation. Then file the
+falsified half in `journal/corrections.md` **only where a claim is actually falsified** —
+a contradiction is not automatically a correction; sometimes both statements are true of
+different things and what is missing is the sentence saying so.
+
+Delegate to a background agent (read-only except its own audit doc), and hold its
+corrections number at dispatch like any other numbered artifact.
