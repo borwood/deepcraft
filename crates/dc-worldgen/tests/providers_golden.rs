@@ -48,18 +48,23 @@
 //! waterlogging thresholds.
 
 mod providers_common;
-use providers_common::{GOLDEN_RECORD, GOLDEN_SURFACE, production_field};
+use providers_common::{GOLDEN_RECORD, GOLDEN_SURFACE, golden_field};
 use providers_common::{record_fingerprint, surface_fingerprint};
 
-/// **The byte-identity acceptance test for the provider slice.** The production
-/// world at [`SEED`] must hash to the values captured from pre-slice `main`.
+/// **The byte-identity acceptance test for the provider slice.** The golden
+/// fixture world at [`SEED`] must hash to the values captured from pre-slice
+/// `main`.
 ///
 /// This is the only test in the suite that can fail *because* a provider seam
 /// was introduced: everything else the slice touches is either a compile-time
 /// shape or a self-comparison.
+///
+/// Named `the_production_world_still_hashes_to_the_pre_slice_goldens` until
+/// 2026-07-26 — historical citations of that name across `journal/` and the
+/// ROADMAP's Shipped lines refer to this test.
 #[test]
-fn the_production_world_still_hashes_to_the_pre_slice_goldens() {
-    let f = production_field();
+fn the_golden_world_still_hashes_to_the_pre_slice_goldens() {
+    let f = golden_field();
     let surface = surface_fingerprint(&f);
     let record = record_fingerprint(&f);
     println!("surface fingerprint = {surface:#018X}");
@@ -80,8 +85,8 @@ fn the_production_world_still_hashes_to_the_pre_slice_goldens() {
 /// mismatch above means the world moved and not that the hash is unstable.
 #[test]
 fn the_fingerprint_is_reproducible_within_a_build() {
-    let a = production_field();
-    let b = production_field();
+    let a = golden_field();
+    let b = golden_field();
     assert_eq!(surface_fingerprint(&a), surface_fingerprint(&b));
     assert_eq!(record_fingerprint(&a), record_fingerprint(&b));
 }

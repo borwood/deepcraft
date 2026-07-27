@@ -22,7 +22,7 @@ use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 /// The seed the goldens were captured at.
 pub const SEED: u64 = 0x0B0A_57EE_0059;
 
-/// FNV-1a-64 over the surface planes of a production `DeepField`.
+/// FNV-1a-64 over the surface planes of the golden fixture `DeepField`.
 ///
 /// **Moved 2026-07-22 by the share-weighted susceptibility blend (journal/0072) —
 /// authorized (audit site A1).** Erosion stopped mapping the outcrop *verdict* to
@@ -430,16 +430,17 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
 /// production *config* — the world the goldens describe.
 ///
 /// **NOT the world `dc-client` boots** (that is seed `1337` at `Extent::Medium`;
-/// see `tests/geotherm.rs`). The name is historical and the distinction is
-/// load-bearing: **corrections #51** records a coal magnitude claim that went
-/// unfalsified for a day because an identically-named helper was mistaken for the
-/// shipped world. What lives here is legitimately seed-independent — byte-identity
+/// see `tests/geotherm.rs`). The distinction is load-bearing: **corrections #51**
+/// records a coal magnitude claim that went unfalsified for a day because a helper
+/// named `production_field` was mistaken for the shipped world. What lives here is
+/// legitimately seed-independent — byte-identity
 /// and derived-vs-scalar agreement hold on *any* fixed world — so this fixture is
 /// sound for the goldens and **must not be used to accept a magnitude, a count, or
-/// any claim about what a player will find**. `production_*` should be renamed
-/// `golden_*`; that rename ripples into `providers_golden.rs` and the comments in
-/// `flux_record.rs` / `head_field.rs`, so it is sequenced rather than done here.
-pub fn production_field() -> DeepField {
+/// any claim about what a player will find**.
+///
+/// It was called `production_field` until 2026-07-26; the name is what misled the
+/// audit that missed the `organic.rs` defect, so it now says what it is.
+pub fn golden_field() -> DeepField {
     let pregen = Pregen::run(WorldParams {
         seed: SEED,
         extent: Extent::Small,
@@ -449,7 +450,10 @@ pub fn production_field() -> DeepField {
 
 /// The pregen grid the deep run is built from, for suites that need to swap a
 /// provider into `production_config` rather than take the default world.
-pub fn production_pregen() -> Pregen {
+///
+/// Same fixture world as [`golden_field`] — see its doc comment for what this
+/// world is and, more importantly, what it is not.
+pub fn golden_pregen() -> Pregen {
     Pregen::run(WorldParams {
         seed: SEED,
         extent: Extent::Small,

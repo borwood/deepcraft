@@ -218,7 +218,7 @@ fn an_unconfined_water_table_never_stands_above_its_own_ground() {
 /// slice, not this one.
 ///
 /// (The cross-commit golden proof is separate and untouched:
-/// `providers_golden.rs::the_production_world_still_hashes_to_the_pre_slice_goldens`.)
+/// `providers_golden.rs::the_golden_world_still_hashes_to_the_pre_slice_goldens`.)
 #[test]
 fn the_head_field_is_a_sidecar_and_the_terrain_is_byte_identical() {
     let pregen = small_world();

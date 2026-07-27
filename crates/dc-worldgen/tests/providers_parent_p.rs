@@ -2,7 +2,7 @@
 //! (journal/0060), including the pass-level granularity claim.
 
 mod providers_common;
-use providers_common::{SEED, production_pregen};
+use providers_common::{SEED, golden_pregen};
 
 /// The `parent_p` seam is **pass-level**: the plane is materialized once at
 /// `BioticSim::new` and read by index, never called per cell inside the epoch
@@ -10,7 +10,7 @@ use providers_common::{SEED, production_pregen};
 #[test]
 fn the_parent_phosphorus_plane_is_materialized_once() {
     use dc_worldgen::deeptime::{BioticSim, DeepConfig, build_cells};
-    let pregen = production_pregen();
+    let pregen = golden_pregen();
     let cfg = DeepConfig {
         seed: SEED,
         cell_m: 4000.0,

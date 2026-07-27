@@ -302,9 +302,9 @@ fn mfd_off_leaves_the_single_receiver_solve_untouched_and_on_moves_the_world() {
 fn the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens() {
     use providers_common::{
         GOLDEN_RECORD_SINGLE_RECEIVER, GOLDEN_SURFACE_SINGLE_RECEIVER, SEED as GOLDEN_SEED,
-        production_pregen, record_fingerprint, surface_fingerprint,
+        golden_pregen, record_fingerprint, surface_fingerprint,
     };
-    let pregen = production_pregen();
+    let pregen = golden_pregen();
     let cfg = DeepConfig {
         mfd: false,
         // Pre-MFD `main` had no material-aware transport either (journal/0110
