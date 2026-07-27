@@ -482,3 +482,87 @@ are visible at its call sites. Derived from the 34-seam inventory
 `wave_energy`, `parent_p`) deliberately builds the struct and the identity
 defaults ONLY — no registry, no loader, no declaration/validation machinery.
 Those are to be designed from what the conversions teach.
+
+---
+
+## The engine is plugin-agnostic, and pass ORDER is authored — DECIDED 2026-07-26 (user)
+
+> *"Our passes are PLUGINS. Our passes should be viewed through the lens of THIRD PARTY
+> MODS. We are our own first modders. **THE ENGINE MUST BE MOD/PLUGIN AGNOSTIC,
+> FULLSTOP, EMPHATICALLY.**"* — user
+
+**The product this serves**, stated by the user the same day and recorded because every
+argument below descends from it: *a highly customizable voxel-based crafting-game
+**generator** — plugin based, each world able to be its own unique sim composed from
+declared plugins built on engine primitives*, whose **first plugin pack** is the
+earth-like world generator we are building. The engine is not "our simulation with a mod
+API bolted on." The default pack is one pack.
+
+### What this indicts today
+
+`deeptime::runner::DeepAxis` is a **closed enum inside `dc-worldgen` whose variants are
+the names of our own pipeline stages** — `Forced`, `Incised`, `Weathered`, `Diffused`,
+`Compensated`, `Windblown`, `Settled`. The engine knows the default pack's pass roster by
+name. That is the violation, and it is not incidental: it is the *consequence* of choosing
+to **derive** pass order from declarations rather than **accept** it as data.
+
+### The two models, and why the second one wins
+
+- **Derive-and-reject (today).** The kernel infers an order from `{reads, writes}` and
+  rejects `AmbiguousWriters` — two writers the declarations leave unordered. N passes that
+  transform one shared `TERRAIN` in place are therefore *unschedulable*, so each stage must
+  write a distinct token naming its output, and the chain of tokens **is** the order.
+- **Author-and-validate (DECIDED).** Order is **data on the world** — chosen per world,
+  alongside seed and epoch count. `{reads, writes}` stop being the ordering input and become
+  the **validator**: a pass reading a resource nothing writes, a read satisfied only by a
+  later pass (a lag — make it explicit), a genuine cycle.
+
+**Author-and-validate is strictly more expressive.** "Ambiguity" is only a defect when the
+engine is trying to infer a sequence; given an authored one it is just the sequence, and
+the rejection that forces revision tokens **disappears**. Derivation buys exactly one
+thing — the author need not state an order — and costs the ability to *have* one, which is
+the premise of worlds being unique sims.
+
+**And an engine cannot derive a third party's intended order.** Requiring it to try means
+the declarations must encode that order, and encoding it in engine-owned resource names is
+precisely how `DeepAxis` came to exist. The mechanism and the violation are the same
+choice.
+
+### The claim that was replaced, and the sentence that refutes it
+
+`material-behavior.md` §5 recorded ORDER as *"derived from `{reads, writes}` by topo-sort…
+**This replaces a hand-declared 'canonical order'**"*. That is now **superseded**, and it
+was never true in the strong sense it was written: journal/0090's own summary says a
+linear relaxation pipeline *"does **not** fall out of a dataflow graph for free… you have
+to **name each revision as a distinct resource** for the topo-sort to reproduce a fixed
+sequence."* **The order does not fall out of the declarations; it is fed into them.**
+Filed as corrections #65.
+
+### What is engine-owned and what is not
+
+- **Engine:** the pass-graph kernel (validate an authored order), the epoch/sub-turn clock
+  and `dt`, field-**solver primitives**, the cell/record storage, refinement primitives
+  (north-star § the refinement tier).
+- **Content:** passes, their order, their cadence, the **fields themselves** (a field is a
+  declarative plugin over solver primitives — no engine-baked field vocabulary), materials,
+  and their behaviours.
+
+**Corollary — resource ids are opaque and open.** The kernel is already generic over
+`Axis: Copy + Ord`; the closed enum is a caller's choice, not a kernel constraint. A pack
+declares its own resource ids. Where the default pack exposes ids a third party may depend
+on, that is a **pack** surface with the ordinary obligations of one — not an engine ABI.
+
+### RATE — ratified 2026-07-24, never built, and now first in line
+
+`material-behavior.md` §5's RATE axis (a pass's phase length; `dt` scaling its
+transformations; a high-rate pass running several sub-turns while a low-rate one runs once)
+was ratified from the user's 2026-07-23 sketch **and never built** — `dt` is pinned to
+`1.0` and no transform scales by it.
+
+**The 2026-07-26 blocker is what its absence produces.** `erosion.rs::diffuse_scale_cell`
+caps a cell's export at its **entire regolith inventory**, with no `dt` in the expression,
+so the operator has a period-2 mode independent of timestep (journal/0116) — measured
+concavity ACF(1) **−0.87 / −0.91** against a shipped world's **+0.38**. The heir's own
+prescription is *"a hillslope operator whose transfer stays a function of `rate × dt`."*
+**That is the RATE axis.** So the fix is not a patch beside the architecture; it is the
+architecture's first real consumer, and the world becoming stable is its acceptance test.

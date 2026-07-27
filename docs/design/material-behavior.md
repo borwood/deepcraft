@@ -338,10 +338,29 @@ each pass.
 
 The scheduler has **three orthogonal axes**, and the runner declares **all three** per pass:
 
-- **ORDER** — derived from `{reads, writes}` by **topo-sort**; rejects cycles,
+- **ORDER** — ~~derived from `{reads, writes}` by **topo-sort**; rejects cycles,
   conflicting writers, missing deps. This *replaces* a hand-declared "canonical
   order": the order falls out of the declared dependencies and an illegal schedule
-  is **caught**, not trusted.
+  is **caught**, not trusted.~~
+  **🔴 SUPERSEDED 2026-07-26 (user) — ORDER IS AUTHORED, PER WORLD.** See
+  `ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is authored*
+  (DECIDED) and **corrections #65**. The struck clause is kept rather than deleted
+  because it is cited elsewhere and because **its falsity is the instructive part**:
+  the order never did fall out of the declarations. journal/0090's own summary says a
+  linear relaxation pipeline *"does **not** fall out of a dataflow graph for free —
+  you have to name each **revision** as a distinct resource for the topo-sort to
+  reproduce a fixed sequence."* Those seven revision tokens **are** the hand-declared
+  canonical order, re-encoded so the graph appears to compute it — and re-encoding it
+  in an engine-owned enum (`DeepAxis`) is what put the default pack's pass roster
+  inside the engine.
+  - **The replacement:** order is **data on the world**, chosen per world beside seed
+    and epoch count. `{reads, writes}` become the **validator**, not the generator —
+    unwritten resources, reads satisfied only by a later pass (an implicit lag, to be
+    made explicit), genuine cycles. Every rejection class in `passgraph.rs` survives;
+    only the claim that order is *derived* is withdrawn.
+  - **This restores the user's 2026-07-23 sketch** (`ideas.md` § *Pass cadence*), whose
+    ORDER half — *"a canonical start order (tectonics → hydro → weathering)"* — was
+    reconciled away rather than contested. RATE, below, was the half that survived.
 - **RATE** — the **fractional-phase phase length**: how many sub-turns a pass takes
   per chapter, and the **`dt`** that scales its transformations. A chapter subdivides
   into sub-turns; a **high-rate** pass (weathering ×5) sees mid-chapter state evolve

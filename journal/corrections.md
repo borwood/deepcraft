@@ -2444,3 +2444,58 @@ re-baselined — `contents_contract.rs:70-86`, `s7_walk.rs:32-40` and `geology.r
 hash `generate_chunk` blocks and are structurally downstream of the posts — plus
 `s7_handoff.rs:118`, which pins a seed-specific sack and is the test most likely to break.
 **The re-scoping is the integrator's and the user's call, not this correction's.**
+
+---
+
+## 65. "The deep-time phase ORDER falls out of the declared reads/writes, and this replaces a hand-declared canonical order" (`material-behavior.md` § 5 *Cadence: order × rate × window*, RECONCILED 2026-07-24; `journal/0090`; `north-star.md` § Passes — falsified 2026-07-26 by journal/0090's own summary paragraph, on the user's challenge)
+
+**The claim.** §5 records the scheduler's ORDER axis as *"derived from `{reads, writes}` by
+**topo-sort**; rejects cycles, conflicting writers, missing deps. **This *replaces* a
+hand-declared 'canonical order'**: the order falls out of the declared dependencies and an
+illegal schedule is **caught**, not trusted."* It was written as the reconciliation of the
+user's 2026-07-23 fractional-phase sketch, whose ORDER half was an **authored** canonical
+start order (*"tectonics → hydro → weathering"*).
+
+**The refutation was already in the corpus, two sentences into the entry that celebrated
+the replacement.** journal/0090:
+
+> *"a genuinely linear relaxation pipeline (transport → weather → diffuse → …) does **not**
+> fall out of a dataflow graph for free: the terrain is read, transformed, read again — and
+> **you have to name each revision as a distinct resource for the topo-sort to reproduce a
+> fixed sequence.**"*
+
+**So the order does not fall out of the declarations. It is fed into them.**
+`DeepAxis::{Forced, Incised, Weathered, Diffused, Compensated, Windblown, Settled}` are
+seven synthetic resources whose only purpose is to encode the sequence someone already
+chose. The topo-sort then "derives" that sequence — from an input constructed to produce
+it. **It is the hand-declared canonical order, re-encoded in a form that makes the graph
+appear to compute it**, and the re-encoding is what put the default pack's pass roster
+inside an engine enum.
+
+**What the argument actually established, and it is narrower than what it was used for.**
+journal/0090's case is about **checkability**: *"an illegal schedule becomes a build-time
+rejection instead of a silent bug."* True, and worth having — but it argues against
+**unchecked** order, which nobody proposed. *Author-and-validate* is equally checkable: the
+declarations validate the authored order instead of generating it. The argument was
+answering a position that was not on the table.
+
+> **A derivation whose inputs were constructed to produce the desired output is not a
+> derivation. Ask what the mechanism would produce if you had NOT known the answer in
+> advance** — here, nothing: without the revision chain the kernel rejects the schedule
+> outright (`AmbiguousWriters`).
+
+**And the process failure is the more transferable half.** The sketch was **user-originated**
+and was recorded as *"carried forward to compare against the actual deep-sim loop and
+discuss next session."* The comparison then happened **inside an implementation slice**, and
+its ORDER half was superseded in a single clause of a design doc the user does not read.
+The ratification protocol forbids recording *unratified assistant proposals*; it had nothing
+to say about **an assistant reconciliation quietly superseding a ratified user design**.
+That gap is what cost three days and produced `DeepAxis`. New rule in CLAUDE.md: a
+user-originated design element may not be superseded by an implementation slice.
+
+**What survives.** The pass-graph kernel, `reads`/`reads_prev` and the WAR/RAW distinction
+(journal/0104), and every rejection class are all **kept** — they become the validator
+rather than the generator. What is withdrawn is only the claim that the order is *derived*.
+
+**Superseded by:** `ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is
+authored* — DECIDED 2026-07-26 (user).

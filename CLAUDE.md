@@ -292,6 +292,41 @@ world**, which cost one background probe instead of a live session (corrections 
     about rivers. Before concluding "system X is unimportant here", check that the
     world is running at the right scale at all.
 
+- **EXISTENCE IS NOT STANDING** (user, 2026-07-26). *"This is a case of seeing that
+  something exists and assuming that it should… a curse brought on from early bootstrap
+  where content was added without ratification."* An agent tracing a call chain proves the
+  code **runs**; it proves nothing about whether it **should**. Both halves cost real work
+  the day this was written: a rider traced ruin-placement all the way into `generate_chunk`
+  and the integrator converted "it renders" into "it is a constraint", then proposed
+  *counting* the ruins — which already concedes that some number would matter. It would not.
+  Unratified bootstrap content has **no standing at any magnitude**.
+  - **The test:** *if this did not exist, would we build it today, in this shape?* If no, it
+    is baggage, and the honest disposal is removal — not preservation, not measurement, not
+    a golden protecting it.
+  - Distinct from [[placeholder-state-is-not-intent]], which says *do not argue from current
+    constants*. This says *do not argue from current **content***.
+  - **We have no evo / ecology / socia / civ modelling even at the design stage.** Anything
+    in the tree that looks like one is early-bootstrap fabrication awaiting wholesale
+    replacement. The project is working on **earth processes**, and fighting the unratified
+    shapes left behind by bring-up.
+
+- **A USER-ORIGINATED DESIGN MAY NOT BE SUPERSEDED BY AN IMPLEMENTATION SLICE** (2026-07-26,
+  corrections #65 — the gap that cost three days and produced `DeepAxis`). The ratification
+  protocol forbids *recording an unratified assistant proposal*. It said nothing about the
+  mirror: **an assistant reconciliation quietly overwriting a design the user authored.**
+  The user's fractional-phase scheduler sketch was filed as *"carried forward to… discuss
+  next session"*; the comparison then happened **inside an implementation slice**, and its
+  ORDER half died in a single clause of a design doc the user does not read. It was never
+  contested — only reconciled.
+  - **The rule:** when a slice's reconciliation contradicts, narrows, or replaces something
+    user-originated, that is a **loud plea to main session**, exactly like a spine deviation.
+    Never a doc edit. Mark it `⚠ CONTESTS <the user thing>` in the report and stop.
+  - **Integrator half:** a design doc's clause that supersedes a user sketch needs the same
+    ratification the sketch got. Grep for the sketch before writing the reconciliation.
+  - *Note which way this cuts: the reconciliation was **defensible engineering** and the
+    author believed it. The defect is not that it was wrong — it is that it was **unilateral
+    and invisible**.*
+
 - **Runtime perf is a first-class axis, and it is currently under-fought**
   (user, 2026-07-22): *"efficiency/perf at runtime while not compromising on
   content is extremely important… our game is getting slow and we've barely

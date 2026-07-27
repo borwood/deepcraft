@@ -2827,6 +2827,76 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🔴🔴🔴 THE PASS ARCHITECTURE — AUTHORED ORDER, OPEN VOCABULARY, AND THE RATE AXIS BUILT**
+  (**DECIDED 2026-07-26, user**; record of decision `ARCHITECTURE.md` § *The engine is
+  plugin-agnostic, and pass ORDER is authored*; corrections **#65**; the user's original
+  shape `ideas.md` § *Pass cadence*, 2026-07-23).
+  - **WHAT.** Three changes, one arc. **(1) ORDER becomes data on the world**, chosen per
+    world beside seed and epoch count; `{reads, writes}` become the **validator**, not the
+    generator. **(2) The resource vocabulary opens** — `DeepAxis` retires as a closed
+    engine-owned enum; a pack declares its own ids (the kernel is *already* generic over
+    `Axis: Copy + Ord`, so the enum is a caller's choice, not a kernel constraint).
+    **(3) RATE gets built** — per-pass phase length, sub-turns per epoch, and a real `dt`
+    that scales transformations (`dt` is pinned to `1.0` today and nothing scales by it).
+  - **WHY.** *"Our passes are PLUGINS… THE ENGINE MUST BE MOD/PLUGIN AGNOSTIC, FULLSTOP,
+    EMPHATICALLY"* (user). An engine cannot derive a third party's intended order; requiring
+    it to try forces the order into the declarations, and encoding it in engine-owned
+    resource names **is** how `DeepAxis` came to hold the default pack's pass roster. The
+    seven revision tokens are the hand-declared canonical order wearing a derivation's
+    clothes — journal/0090 says so in its own summary, which is corrections #65.
+  - **UNIFIES.** The north-star's crossing constraint (*opaque ids*) · the genesis notebook
+    § 2.2 **term-keyed edges** (*adding a material never changes any pass's read-set* — the
+    same openness on the material axis) · fields-as-plugins (`dc:field/temperature` and
+    `dc:field/head` are already declared passes; the **vocabulary** is what is still closed)
+    · and the erosion blocker below, which is what RATE's absence produces.
+  - **🔑 FIRST SLICE — RATE, WITH THE CREEP LIMITER AS ITS ACCEPTANCE TEST.** Do **not**
+    build this as a patch beside the architecture. journal/0116's prescription for the
+    blocker is *"a hillslope operator whose transfer stays a function of `rate × dt`"* —
+    **that is the RATE axis**, so the blocker's fix is the axis's first real consumer and
+    *the world becoming grid-stable is the acceptance test*. Acceptance pairs an aggregate
+    with a **neighbour-relative** measure (corrections #61): concavity ACF(1) returning
+    toward the shipped world's **+0.38** with closed hollows at **zero**, not relief holding.
+  - **CONTINUATION SLOT** (this is a slice OF *"passes are plugins and the engine is
+    agnostic"*): after RATE — **(b)** authored order + the validator (and with it the
+    retirement of the revision chain); **(c)** the open resource vocabulary, `DeepAxis`
+    deleted; **(d)** epochs declared with pass members + chapter count **or a terminating
+    condition** (the sketch's other half, never built); **(e)** the vocabulary split
+    question — whether schedule coordinates and world resources need to be different
+    *kinds*, or whether authored order dissolves the distinction entirely. **Do not close
+    the arc when RATE lands.**
+  - **⚠ THE PROCESS FAILURE IS PART OF THE RECORD.** The user's sketch was **reconciled, not
+    contested** — its ORDER half died inside an implementation slice, in one clause of a doc
+    the user does not read. New CLAUDE.md rule: *a user-originated design may not be
+    superseded by an implementation slice.*
+
+- **🔴 REMOVE THE BOOTSTRAP HISTORY CONTENT — polities, sites, ruins, the history pass**
+  (**DECIDED 2026-07-26, user**). *"They are unratified zealous fabrications from the early
+  bootstrapping of the project and I DO NOT care about them, they WILL be wholesale
+  replaced, they should just be removed. We do NOT have any form of evo/socia/civ modeling
+  even at the design stage: they are NOTHING."*
+  - **WHY IT IS A REMOVAL AND NOT A MIGRATION.** There is no design, no model, and no
+    plugin-pack intent behind any of it. It is not built on the SDK pass shape and could not
+    be — **we have never designed a mechanism for declaring structures/blueprints and
+    spawning them in the world at all**. Keeping it means keeping goldens that protect
+    content nobody voted for.
+  - **THE CONSUMER GRAPH IS ALREADY TRACED** (journal/0118's rider, corrections #64): the
+    history pass is an unconditional `vanilla_passes()` member; ruins reach the screen via
+    `collapse.rs::ruin_posts` → `Block::Wood` in `generate_chunk`; and
+    `Pregen.{ledger, overlay, n_polities, observe_count}` have **exactly one non-test reader
+    in the workspace** — `approx_resident_bytes`, which only measures their size.
+  - **SCOPE:** `pregen/history.rs`, `Pregen.sites` and the four fields above,
+    `collapse.rs::ruin_posts` + its `Block::Wood` emission, dc-sim's region/agent-step draws,
+    and the pass's `vanilla_passes()` membership. **The goldens will move and that is
+    correct** — the scratch-pad rule applies exactly (*byte-identity is a regression
+    detector, not a specification*).
+  - **IT ALSO DISCHARGES draw-domain part (a)**, which was sequenced as a user-owned
+    appearance slice solely to protect this content. With the content gone the residual
+    `engine.rs` draw has nothing to re-roll.
+  - **⚠ EXISTENCE IS NOT STANDING** (CLAUDE.md § Conventions, added the same day): the
+    integrator proposed *counting* the ruins before the user's direction landed, which
+    already concedes that some number would matter. It would not.
+
+
 - **🔴🔴🔴 THE HILLSLOPE CONVEYOR CHECKERBOARDS THE REGOLITH ABOVE 1× — stubs #29,
   RE-SCOPED 2026-07-26 by the walk (journal/0115, corrections #61/#62) and then
   **DIAGNOSED 2026-07-26 by journal/0116 (corrections #63)**, and it BLOCKS the calibration
