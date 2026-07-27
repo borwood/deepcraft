@@ -848,6 +848,36 @@ so a sweep must ask "does the cited constraint still hold?"
   ceiling**, and a number from one is not comparable to journal/0094's. Not re-measured:
   it is a two-flag path, and re-deriving the seam depth is that arc's slice.
 
+- **instance — a THIRD variant: a justification assembled by SYMMETRY (2026-07-26,
+  journal/0118, corrections #64).** The ROADMAP defended part (a) of the draw-domain
+  conversion as *"converting **them** changes the key and re-rolls every world's history
+  layer: polities, sites, ruins"*. The load-bearing half is true — the region-step draw
+  reaches `Block::Wood` ruin posts inside `generate_chunk` behind no flag. But **"two
+  draws" is false**: the agent-step draw beside it re-rolls nothing, because the pregen
+  overlay is built with an empty `agent_home` (`pregen/history.rs:82`, `:84-88`), so its
+  loop never executes outside dc-sim's tests. And **"polities" is false**: the count is
+  fixed at epoch 0 and the extents live only in a ledger nothing reads (new § 3 row).
+  The variant matters because the **remedy differs**. A-2 proper is found by re-checking
+  a cited premise; the "never true" variant (the pore-rider comment above) is found by
+  *computing* the claim. This one has **no premise to check and nothing to compute** — the
+  sentence generalised over two call sites that *looked* alike (same address shape, same
+  loop, same subsystem name) and reached for that subsystem's nouns. It is found only by
+  **tracing what a shipped world executes**. The give-away was already written down and
+  went unread: `dc-sim/src/statistical/world.rs:132` says *"Agents are optional — an empty
+  `agent_home` gives a pressure-field-only world"*, and the caller passes `vec![]` twice on
+  adjacent lines. *Sibling call sites are not evidence about each other.*
+
+- **not-an-instance, and the good version of the shape (2026-07-26, journal/0118).**
+  Finishing journal/0105's hole 2 deleted an agreement test — `SALT_BIO_FIRE` /
+  `SALT_BIO_FLOOD` had no production reader once their call sites reached `Draws::of`, so
+  the test compared a constant to itself under another name and kept it alive to do so.
+  That is **not** a justification expiring; it is **S-3 scaffolding retiring on success**.
+  When "a summary is not an authority" is applied to a duplicate *spelling* rather than a
+  cheaper *derivation*, the goal state is the duplicate's deletion and the test's with it —
+  a copy that does not exist cannot drift. Worth recording so a later audit does not read
+  the deletion as a lost guard. (Noted: **the assertion did not catch this — the dead-code
+  lint did.**)
+
 ## A-3. A test green for a reason unrelated to what it asserts
 
 corrections #27 (a stale artifact served as fresh: exit 0, every suite `ok`,
@@ -1015,6 +1045,7 @@ consumed it and when.
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
 | `column_summary` / `open_air_below` / `ColumnSummaries` — the S3 skylight query (S-9 deterministic-derive), built + 6 tests green | `dc-core/src/column.rs` | **no production caller** — only the `--bench-storage` timing harness (`dc-client/src/bench_storage.rs`); `docs/API.md` lists a `world.column_summary` query but **no dc-api handler exists** for it (2026-07-23 sweep) | **sim-light / skylight** — the "is this column under open sky" query; the lighting/sim-light consumer is unbuilt |
+| **the S7 pregen history handoff — `Pregen.ledger`, `.overlay`, `.n_polities`, `.observe_count`** (the S2 statistical tier's whole output, populated in every world, no flag). **Row added 2026-07-26 by journal/0118's rider**, which went looking for something else; it had never been listed, and a ROADMAP justification was quoting it as a *visible* blast radius (corrections #64) | `dc-worldgen/src/pregen/mod.rs:300-304`, produced by `pregen/history.rs` | **exactly one non-test reader between all four: `approx_resident_bytes` (`pregen/mod.rs:367`)** — i.e. the only production code that touches the ledger is the code that measures how much memory it costs. Everything else is `tests/s7_pregen.rs`, `tests/s7_handoff.rs`. **The one thing that DOES escape is `Pregen.sites`**, and only through its `abandoned` flag: `collapse.rs:1588` → `Block::Wood` ruin posts. `polity` and `founded` are read by nobody outside tests | the social sim / civilization history (stubs.md § 1 — `ruin_posts` is the loud stand-in). Until then, **a slice that cites "the history layer" as a blast radius is citing this row**: the facts are computed, chronicled, and dropped |
 
 **Departed (the good event):**
 

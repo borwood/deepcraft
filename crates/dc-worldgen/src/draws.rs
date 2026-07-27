@@ -30,7 +30,7 @@
 //! the numbers are written out and the compiler — not the reader — checks that
 //! they are distinct.
 //!
-//! ## The two honest holes, both named
+//! ## The one honest hole left, and the residue of the other
 //!
 //! 1. **Tag space inside a domain is still hand-laid.** `GeoSelect` addresses
 //!    four different veneer passes as tags 0–3, and `GeoAccessory` uses
@@ -38,13 +38,26 @@
 //!    hand-rolled sub-domains with the same failure mode at smaller scale. The
 //!    provider does not solve them; a `Domain` per decision would, and the cost
 //!    is a longer list.
-//! 2. **`deeptime/`'s three domains are registered here but their call sites
-//!    still spell the constant locally** — `SALT_DT_ROUGH` in `deeptime/grid.rs`,
-//!    `SALT_BIO_FIRE`/`SALT_BIO_FLOOD` in `deeptime/biotic.rs`. Registering them
-//!    is what makes the uniqueness check total (nothing can now re-issue
-//!    `0x5900_0001`), and `the_deeptime_constants_agree_with_their_registered_domains`
-//!    keeps the two spellings in agreement. Converting the call sites is a
-//!    three-line follow-on, left to whoever holds those files.
+//! 2. **`deeptime/`'s call sites are converted** (2026-07-26, the three-line
+//!    follow-on journal/0105 left for whoever held those files):
+//!    `deeptime/grid.rs`'s bedrock jitter now opens [`DeepTimeRoughness`] and
+//!    `deeptime/biotic.rs`'s ignition and flood rolls open [`BioticFire`] and
+//!    [`BioticFlood`], all through `Draws::of`. Byte-identical — `Draws::bits`
+//!    folds `(seed, salt, addr…)` through exactly the chain `draw_f64(&[seed,
+//!    SALT, addr…])` did.
+//!
+//!    **Two of the three local `const SALT_*` are gone with their call sites.**
+//!    Once `biotic.rs`'s two rolls opened their domains, `SALT_BIO_FIRE` /
+//!    `SALT_BIO_FLOOD` had no reader but the agreement test itself — a copy
+//!    guarded against an authority nothing else consulted, which asserts nothing
+//!    — so they were deleted and the two assertions with them. The domains above
+//!    are now the sole spelling of those numbers.
+//!
+//!    `SALT_DT_ROUGH` survives, and honestly: `deeptime/refine.rs` has a
+//!    **second** roughness-jitter site — a fourth call site journal/0105's
+//!    "three" did not count — which still reads the constant. It was left to its
+//!    owner rather than converted from outside, so the constant stays a real copy
+//!    with a real reader and keeps its agreement assertion.
 
 use dc_sim::statistical::rng::Draws;
 
@@ -147,24 +160,31 @@ mod tests {
     use super::*;
     use dc_sim::statistical::rng::Domain;
 
-    /// The registry is total: `deeptime/`'s locally-spelled constants are the
-    /// same numbers as their registered domains, so the compile-time uniqueness
-    /// check actually covers them. **This is the agreement test the "a summary
-    /// is not an authority" rule asks for** — the list is the authority, the
-    /// local `const` is the copy, and they must not drift.
+    /// The registry is total: `deeptime/`'s remaining locally-spelled constant is
+    /// the same number as its registered domain, so the compile-time uniqueness
+    /// check actually covers it. **This is the agreement test the "a summary is
+    /// not an authority" rule asks for** — the list is the authority, the local
+    /// `const` is the copy, and they must not drift.
+    ///
+    /// **It used to hold three pairs and now holds one, and the shrink is the
+    /// deliverable** (2026-07-26). The biotic pair went when `biotic.rs`'s call
+    /// sites converted: with no production reader left, `SALT_BIO_FIRE` /
+    /// `SALT_BIO_FLOOD` were copies of an authority that nothing else read, and
+    /// an agreement test between a constant and *itself under another name*
+    /// asserts nothing. They were deleted rather than kept alive with an
+    /// `#[allow(dead_code)]`; [`BioticFire`] / [`BioticFlood`] above are now the
+    /// only spelling of those numbers, which is a stronger guarantee than any
+    /// test — a copy that does not exist cannot drift.
+    ///
+    /// `SALT_DT_ROUGH` stays because it still has a genuine second reader that is
+    /// **not** this test: `deeptime/refine.rs`'s roughness jitter, a fourth
+    /// call site journal/0105's "three" did not count. Converting that one is
+    /// what would let this test retire entirely.
     #[test]
     fn the_deeptime_constants_agree_with_their_registered_domains() {
         assert_eq!(
             crate::deeptime::grid::SALT_DT_ROUGH,
             <DeepTimeRoughness as Domain>::SALT
-        );
-        assert_eq!(
-            crate::deeptime::biotic::SALT_BIO_FIRE,
-            <BioticFire as Domain>::SALT
-        );
-        assert_eq!(
-            crate::deeptime::biotic::SALT_BIO_FLOOD,
-            <BioticFlood as Domain>::SALT
         );
     }
 

@@ -11,8 +11,9 @@
 //! is an addressed roughness jitter on the initial bedrock (a new SALT), so the
 //! deep-time run is deterministic and seed-sensitive like the rest of worldgen.
 
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::Draws;
 
+use crate::draws::DeepTimeRoughness;
 use crate::pregen::{
     CELL_VOXELS, CellGrid, LAT_NORTH, LAT_SOUTH, Pregen, Provenance, provenance_roughness,
 };
@@ -22,6 +23,14 @@ use super::recorder::DeepStrata;
 /// Addressed-draw salt for the deep-time initial-bedrock roughness jitter.
 /// Distinct high byte from the pregen salts (`0x5700_*`) so the address spaces
 /// never collide.
+///
+/// **The number itself now lives in [`crate::draws::DeepTimeRoughness`]** — this
+/// `const` is the *copy*, retained for two readers only: `deeptime/refine.rs`'s
+/// second jitter site (owned elsewhere, not converted here) and the agreement
+/// test `draws::tests::the_deeptime_constants_agree_with_their_registered_domains`,
+/// which is what stops the copy drifting from the authority ("a summary is not an
+/// authority", CLAUDE.md § Conventions). The build site below reaches its stream
+/// through [`Draws::of`] and does not read this constant.
 pub(crate) const SALT_DT_ROUGH: u64 = 0x5900_0001;
 
 /// Sea level, metres. Matches pregen (`elev_m > 0` is land).
@@ -772,7 +781,9 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
             let rough = bilinear(&src_rough, wp, px, py);
             let up = bilinear(&src_uplift, wp, px, py);
             let i = gy * w + gx;
-            let jitter = (draw_f64(&[cfg.seed, SALT_DT_ROUGH, gx as u64, gy as u64]) * 2.0 - 1.0)
+            let jitter = (Draws::of::<DeepTimeRoughness>(cfg.seed).unit(&[gx as u64, gy as u64])
+                * 2.0
+                - 1.0)
                 * rough
                 * cfg.rough_jitter;
             r[i] = elev + jitter;

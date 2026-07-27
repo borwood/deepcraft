@@ -2208,3 +2208,63 @@ entry stands. What is withdrawn is only the claim that *two* instruments confirm
 
 **Heir:** a net (not gross) shoreline-export term, or a D1 that debits re-crossings. Until
 then the denudation figures are **upper bounds** and should be written as such.
+
+## 64. "Converting `engine.rs`'s **two** step draws re-rolls every world's history layer: polities, sites, ruins" (`dc-sim/src/statistical/engine.rs:324-330` and `:354`, journal/0105 § "The three holes", ROADMAP Sequenced part (a), 2026-07-25 — falsified 2026-07-26 by a read-only trace taken while converting part (b))
+
+**The claim**, which is the entire justification for part (a) being a user-owned
+appearance slice rather than housekeeping:
+
+> *"Two `dc-sim/engine.rs` draws are not on the provider. Their address is
+> `[seed, k, SALT, r, t]` … converting them changes the key and re-rolls every world's
+> history layer: polities, sites, ruins. That is a real appearance change and wants its
+> own slice with the goldens re-baselined."*
+
+**The load-bearing half is TRUE and should not be over-corrected.** The **region-step**
+draw (`engine.rs:331`) does reach voxels a player can see, by a chain with no flag on it
+anywhere: the collapsed pressure value is read at `pregen/history.rs:221`, a
+`Value::Pressure(2)` opens the sack roll, `history.rs:237` sets `abandoned`, that survives
+into `SiteSummary` (`history.rs:280-293`) and `Pregen.sites` (`pregen/mod.rs:302`), and
+`collapse.rs:1588` gates ruin posts on exactly that flag — which `collapse.rs:483-488`
+writes as `Block::Wood` inside `generate_chunk`, meshed at `dc-client/src/meshing.rs:214`.
+The history pass is an unconditional member of `vanilla_passes()`
+(`pipeline.rs:359-366`); there is no CLI flag and no config knob. **Ruins are in the
+shipped world, standing up out of the ground, and re-addressing that draw moves them.**
+
+**What is false is the word "two", and it halves the slice.** The **agent-step** draw
+(`engine.rs:355`) re-rolls *nothing at all* in any world this project ships. The pregen
+overlay is constructed with an empty agent roster — `history.rs:82` and `:84-88` both pass
+`vec![]` as `ToyWorld::with_graph`'s third parameter, which is `agent_home`
+(`dc-sim/src/statistical/world.rs:138`, doc'd at `:132-133`: *"Agents are optional — an
+empty `agent_home` gives a pressure-field-only world"*). So `num_agents()` is 0
+(`world.rs:175`), `build_scope`'s agent vector is empty (`engine.rs:183-185`), and the
+loop at `engine.rs:342-363` **never executes** outside `dc-sim`'s own `s2_torture` /
+`s2_measurements` suites. Converting that draw is byte-identical for every world and moves
+only two dc-sim tests.
+
+**"Polities" is false too, in a way worth stating precisely** because it is the noun that
+makes the claim sound largest. The polity *count* is fixed at epoch 0 from slot count
+(`history.rs:134-149`) and no draw touches it afterwards — no polity is ever founded,
+merged or destroyed. `PolityExtent` facts do move (`history.rs:244-255`), but they are
+written into `Pregen.ledger`, and **nothing in production reads the ledger**:
+`Pregen.ledger` / `.overlay` / `.n_polities` / `.observe_count` (`pregen/mod.rs:300-304`)
+have exactly one non-test reader between them, `approx_resident_bytes` at `mod.rs:367`.
+That is a spines § 3 "built, and nothing calls it" cluster wearing an appearance claim's
+clothes. Sites move for real — a sack removes a site from `polity_sites`
+(`history.rs:238`), which changes the expansion frontier (`history.rs:158-181`) and hence
+which slots are ever founded — but a site is *only* visible through its ruin posts.
+
+**The mechanism of the error**, and it is the ordinary one: the sentence was written from
+the *shape of the code* — two draws side by side in one loop, both addressed
+`[seed, k, SALT, …]`, both feeding a subsystem named "history" — and never from a trace of
+what a shipped world actually executes. It is A-2's neighbour: not a justification that
+outlived its constraint, but one **assembled by symmetry** and never checked, exactly like
+journal/0105's own pore-rider comment. The file even says the right thing in the right
+place (`world.rs:132`) and no one followed the parameter.
+
+**What this changes for part (a).** It is one draw, not two; one visible artifact class
+(ruin posts) rather than a "history layer"; and the ledger half of the blast radius is
+unread. It is still a **user-owned appearance change** and still wants the goldens
+re-baselined — `contents_contract.rs:70-86`, `s7_walk.rs:32-40` and `geology.rs:32` all
+hash `generate_chunk` blocks and are structurally downstream of the posts — plus
+`s7_handoff.rs:118`, which pins a seed-specific sack and is the test most likely to break.
+**The re-scoping is the integrator's and the user's call, not this correction's.**
