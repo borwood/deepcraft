@@ -1342,10 +1342,52 @@ see the question you are asking.
     line in a doc is not.
   - **ADOPTION (user's terms): immediate for NEW files; gradual refactor of old work WHEN IT IS
     TOUCHED.** No big-bang rewrite.
-  - **OPEN — the conventions themselves.** Thresholds (source vs. doc vs. journal — a journal
-    entry is linear narrative and may legitimately be long; `ROADMAP.md` at ~6,200 lines and
-    `collapse.rs` at 2,415 are the two worst offenders), what "separate concerns" means per
-    file type, and the split conventions. **To be set, not guessed.**
+  - **✅ CONVENTIONS DECIDED 2026-07-28 (user)** — was *"to be set, not guessed."* Set from the
+    corpus measurement rather than taste, and **shipped in `scripts/filesize_hook.py`**, whose
+    module docstring is now the record (the hook is the only mechanically-enforced corpus
+    control, so the convention lives where it is enforced).
+    - **THE SPLIT AXIS IS LIVENESS, NEVER TOPIC.** Every split moves out the **cold half** —
+      still true, still cited, no longer read to do today's work. **Both real conversions
+      already did this and neither was by topic:** `ROADMAP → ROADMAP-history` split by
+      **status**, `notebook → evidence` split by **read pattern**. The convention is the axis
+      those two taught, not a new invention — which is what `stubs.md:22` requires.
+    - **WHY TOPIC-SPLITTING IS DISALLOWED, and it is the non-obvious half.** Contradiction here
+      is produced by **addition** (design docs delete 2–4 % of what they add), and every
+      expensive failure was a claim sitting near its own refutation — two sentences apart
+      (#65), forty lines (#58), two subsections (#53), 400 lines (journal/0119). **Topic-
+      splitting a live doc converts an in-file contradiction into a cross-file one**, reachable
+      only by the `doc-topology` sweep — five of whose top eight findings were unsuspected by
+      construction. **That trades VOLUME (third in value) for TOPOLOGY (the one that cost an
+      architecture).** *Stated at honest strength: co-location did not prevent those
+      contradictions — access was never the problem. The claim is the weaker, sufficient one:
+      topic-splitting costs the one condition under which a reader could notice and buys only
+      line count. Liveness-splitting cannot do this, because the cold half has stopped
+      accreting.*
+    - **THE THRESHOLD APPLIES TO THE HOT FILE ONLY** — archives and evidence files are exempt
+      by designation. *The old hook flagged `ROADMAP-history.md` for being exactly what it was
+      built to be: crying wolf on a file doing its job, with no correct action available.*
+    - **THREE CLASSES OF `.md`, by READ PATTERN** — **NARRATIVE** (journals, audits, spikes:
+      written once, read whole, never revised) **exempt**, and splitting one is *harmful*
+      (measured: 120 entries, median **177** lines, max 536) · **REGISTRY** (`ROADMAP`,
+      `corrections`, `spines`, `stubs`: looked up by ordinal, not read) **2,500**, split =
+      **archive resolved entries** · **ARGUMENT** (`docs/design/*`, skills: read in sections,
+      actively revised) **1,000** — the only class where the threshold bites and the only class
+      where topology failures happen.
+    - **Verified on the real corpus:** flags `ROADMAP` (5,120) and `corrections` (2,681) as
+      registries with a real action, and `material-behavior` (1,036) as an argument doc; silent
+      on `ROADMAP-history`, the evidence file, every journal entry, every spike, and `spines`
+      (1,283, under the registry bar). **Signal went from "everything large" to three files with
+      a correct move each.**
+    - **DELIBERATELY NOT BUILT:** no taxonomy registry, no frontmatter marking file class, no
+      validator. **Two conversions is below this project's own bar** (`stubs.md:22`;
+      session-workflow § Seam-first #6). Class is derived from path, which suffices until the
+      next two or three splits teach more.
+    - **⚠ HONEST LIMIT, recorded so this is not oversold:** volume is the **third** most
+      valuable of the three docs-ops failures and the archive *"would not have prevented
+      journal/0119."* **This buys agent context efficiency; it is not a correctness fix.** The
+      open **corpus-addressability** thread may subsume part of it — *a file addressable by
+      section may not need to be small* — so the ARGUMENT threshold is the negotiable number if
+      that lands.
 
 - **Finish the draw-domain conversion: the residual hand-rolled sites** (opened 2026-07-25
   by journal/0105, which converted 26 of them and named these). Small, and each is named in code
@@ -2838,6 +2880,35 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **🟠 THE GATE CANNOT SEE BROKEN DOC LINKS — and doc comments are how this repo routes readers
+  to its own doctrine** (surfaced 2026-07-28, **booked for a design conversation with the user**;
+  recorded now rather than remembered, per *defer = write it now*).
+  - **The observation.** `rustdoc::broken_intra_doc_links` is a **rustdoc** lint. `fmt`, `clippy`
+    and `test` never run rustdoc, so **no gate stage can see it** — it is not a false green, it is
+    a register the gate does not have. Found while verifying a doc comment written the same day:
+    `cargo doc -p dc-sim` reports **two unresolved `[`draw_domains!`]` links at
+    `crates/dc-sim/src/statistical/rng.rs:89`** (the macro exists in the crate but is not in scope
+    at the link site). **Pre-existing, unrelated to the change that found it, and left in place**
+    — it is a warning by default, so nothing has ever failed on it.
+  - **Why it is more than lint hygiene here, which is the part worth the conversation.** This
+    project deliberately puts **load-bearing doctrine in doc comments** — the module note that
+    keeps the S2 tier from being deleted or adopted, `spines.md` § 3's *"record what consumed
+    it"*, the seam-first practice of *"a doc comment naming its heir"* (**651 `heir` uses**). A
+    doc comment is a **pointer meant to be followed by a cold reader**. A link in one that
+    silently does not resolve is **the same defect class as the one-directional pointer decided
+    today** — the reader arrives and the edge is not there — except this one is *mechanically
+    detectable* and currently undetected.
+  - **⚠ Do NOT treat "add `cargo doc` to the gate" as the decided answer.** It is the obvious
+    move and it is not obviously right: the gate already runs in stages because it outgrew one
+    tool call, rustdoc would rebuild documentation for the workspace, and **CLAUDE.md § Gates'
+    own rule is that a probe nobody runs is silently wrong** — so the question is which register
+    is missing and what the cheapest honest instrument is, not whether to bolt a fourth stage on.
+    *There may also be a wider version of the question: how many other advisory-by-default
+    diagnostics is the gate structurally blind to?*
+  - **Blast radius: none today.** No behaviour, no world output. The cost is a cold reader
+    following a pointer that goes nowhere, which is exactly the failure the corpus spent this
+    week measuring.
 
 - **🔴 FIELD REPORT (user, on the 2026-07-26 walk) — THE FAR TIER AND THE NEAR TIER DISAGREE
   ABOUT WHAT THE ROCK IS, ON STEEP SLOPES.** *"The cold LOD is showing granite and diorite

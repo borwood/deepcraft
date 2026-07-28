@@ -23,25 +23,138 @@ when it is touched.** So firing on an existing oversized file is not noise — i
 the trigger doing its job. Output goes to the model as `additionalContext`, not to
 the user as a `systemMessage`, so it guides without nagging.
 
-⚠ THE THRESHOLDS BELOW ARE PROVISIONAL. The conventions themselves are an open
-question (ROADMAP § Sequenced, "FILE SIZE IS A CORRECTNESS PROBLEM"): what the
-limits should be per file type, what "separate concerns" means for each, and the
-split conventions. These are a starting point to be *set*, not guessed at forever.
+
+CONVENTIONS — DECIDED 2026-07-28 (user). These are no longer provisional.
+=========================================================================
+
+**THE SPLIT AXIS IS LIVENESS, NEVER TOPIC.** Every split moves out the *cold*
+half — content that is still true and still cited but is no longer read to do
+today's work. Both real conversions in this repo already did exactly that, and
+neither was by topic:
+
+    ROADMAP.md  -> ROADMAP-history.md    split by STATUS ("still read live?"),
+                                          explicitly NOT by age
+    ...notebook -> ...-evidence.md       split by READ PATTERN ("read once,
+                                          cited often" vs the live argument)
+
+**Why topic-splitting is disallowed, from this repo's own measurements.**
+Contradiction here is produced by ADDITION, not replacement — design docs delete
+only 2-4 % of what they add. The expensive failures were all a claim sitting near
+its own refutation: two sentences apart (corrections #65), forty lines (#58), two
+subsections (#53), 400 lines (journal/0119). Splitting a *live* doc by topic takes
+two claims that were forty lines apart and puts them in separate files, where only
+the `doc-topology` sweep can reach them — and five of that sweep's top eight
+findings were unsuspected by construction. **That trades the cheapest of the three
+docs-ops failures (VOLUME, "third in value") for the most expensive one
+(TOPOLOGY, "the one that cost an architecture").**
+
+Stated at its honest strength: co-location did *not* prevent those contradictions
+— the evidence is explicit that access was never the problem. The claim is the
+weaker, sufficient one: **topic-splitting costs the one condition under which a
+reader could notice, and buys only line count.** Liveness-splitting has no such
+cost, because the cold half **has stopped accreting** — you cannot author a new
+contradiction into a file nobody writes to.
+
+**THE THRESHOLD APPLIES TO THE HOT FILE ONLY.** An archive or evidence file is
+exempt by designation: nobody reads it whole, by design, and it is not growing.
+(Before this, the hook flagged `ROADMAP-history.md` for being precisely what it
+was built to be — crying wolf on a file doing its job, with no correct action
+available.)
+
+**THREE CLASSES OF .md, because they have different READ PATTERNS:**
+
+  NARRATIVE  journal entries, audits, spike results. Written once, read whole or
+             not at all, never revised. EXEMPT. Splitting one is actively harmful
+             — a narrative cut in half is two things nobody can follow.
+             (Measured: 120 entries, median 177 lines, max 536.)
+
+  REGISTRY   corrections.md, stubs.md, spines.md, ROADMAP.md. Entry-addressable
+             and append-only: you look up #66, you do not read the file.
+             High threshold; the split is ARCHIVING RESOLVED ENTRIES, as
+             ROADMAP-history.md already does.
+
+  ARGUMENT   docs/design/*.md, docs/*.md, skills. Read in sections to understand a
+             system, and actively revised. The only class where the threshold
+             really bites, and the only class where topology failures happen.
+
+**WHAT IS DELIBERATELY NOT BUILT:** no taxonomy registry, no frontmatter marking a
+file's class, no validator. Two conversions is below this project's own bar —
+`stubs.md:22` and session-workflow § Seam-first #6 both forbid designing the
+general mechanism before several real conversions have taught the shape. Class is
+derived from path below, which is enough until the next two or three splits.
+
+**HONEST LIMIT:** volume is the *third* most valuable of the three docs-ops
+failures, and the ROADMAP archive "would not have prevented journal/0119." This
+hook buys agent context efficiency. It is not a correctness fix, and the
+still-open corpus-addressability thread may subsume part of it — a file that is
+addressable by section may not need to be small.
 """
 
 import json
 import os
 import sys
 
-# Provisional. Source is tightest because code has the most separable concerns and
-# is the most expensive to read irrelevantly.
+# Source thresholds. Source is tightest because code has the most separable
+# concerns and is the most expensive to read irrelevantly. (Note: the liveness
+# rule above is about DOCUMENTS; code splits on ordinary module boundaries.)
 THRESHOLDS = {".rs": 700, ".md": 1000, ".toml": 400, ".py": 500, ".ps1": 400}
 DEFAULT_THRESHOLD = 800  # applies to any extension not listed above
 
-# Journal entries are linear narrative, written once to be read start-to-finish by
-# a human, and append-only. Length there is not a context defect. Same for lock and
-# generated files.
-EXEMPT_SUBSTRINGS = ("/journal/0", "\\journal\\0", "Cargo.lock", "/target/", "\\target\\")
+# --- .md document classes (DECIDED 2026-07-28) -------------------------------
+# Matched against the forward-slash-normalised path, first hit wins.
+
+# NARRATIVE — written once, read whole, never revised. Splitting is harmful.
+NARRATIVE_PATTERNS = ("/journal/0", "/docs/audits/", "/docs/spikes/")
+
+# ARCHIVE / EVIDENCE — the designated COLD half of an already-performed split.
+# Exempt: it is not read whole and it is not accreting.
+ARCHIVE_PATTERNS = ("-history.md", "-evidence.md", "/archive/")
+
+# REGISTRY — entry-addressable, append-only, looked up by ordinal.
+REGISTRY_PATTERNS = (
+    "/roadmap.md",
+    "/corrections.md",
+    "/spines.md",
+    "/stubs.md",
+)
+REGISTRY_THRESHOLD = 2500
+
+# Non-.md exemptions.
+EXEMPT_SUBSTRINGS = ("Cargo.lock", "/target/", "\\target\\")
+
+
+def classify_md(norm_lower: str):
+    """Return (class_name, threshold) or (class_name, None) if exempt."""
+    if any(p in norm_lower for p in NARRATIVE_PATTERNS):
+        return "NARRATIVE", None
+    if any(p in norm_lower for p in ARCHIVE_PATTERNS):
+        return "ARCHIVE", None
+    if any(p in norm_lower for p in REGISTRY_PATTERNS):
+        return "REGISTRY", REGISTRY_THRESHOLD
+    return "ARGUMENT", THRESHOLDS[".md"]
+
+
+def remedy(cls: str) -> str:
+    if cls == "REGISTRY":
+        return (
+            "THIS IS A REGISTRY (entry-addressable, append-only — read by ordinal, not read "
+            "whole). The split for a registry is ARCHIVING RESOLVED ENTRIES into a designated "
+            "cold file, exactly as ROADMAP-history.md already does; entries keep their stable "
+            "number as the pointer. Archive by STATUS, never by age — a two-week-old live entry "
+            "may be the most important thing on the board."
+        )
+    return (
+        "THE SPLIT AXIS IS LIVENESS, NEVER TOPIC (DECIDED 2026-07-28). ASK NOW: has this file "
+        "accumulated a COLD HALF — content still true and still cited, but no longer read to do "
+        "today's work (shipped/resolved entries, evidence tables, dated measurement records)? If "
+        "so, move THAT out and leave the live argument whole. Do NOT split by topic: this corpus "
+        "produces contradictions by ADDITION (design docs delete 2-4% of what they add), and the "
+        "expensive failures were all a claim sitting near its own refutation — two sentences "
+        "apart, forty lines, two subsections. Topic-splitting converts an in-file contradiction "
+        "into a cross-file one, trading the cheapest docs-ops failure (volume) for the most "
+        "expensive (topology). Propose the extraction to the user rather than doing it silently "
+        "mid-task."
+    )
 
 
 def main() -> int:
@@ -61,7 +174,13 @@ def main() -> int:
         return 0
 
     ext = os.path.splitext(path)[1].lower()
-    threshold = THRESHOLDS.get(ext, DEFAULT_THRESHOLD)
+
+    if ext == ".md":
+        cls, threshold = classify_md(norm.lower())
+        if threshold is None:
+            return 0  # NARRATIVE and ARCHIVE are exempt by class
+    else:
+        cls, threshold = "SOURCE", THRESHOLDS.get(ext, DEFAULT_THRESHOLD)
 
     try:
         with open(path, "r", encoding="utf-8", errors="replace") as fh:
@@ -75,20 +194,17 @@ def main() -> int:
     name = os.path.basename(path)
     over = lines / threshold
     context = (
-        f"FILE SIZE — {name} is {lines} lines against a provisional {threshold}-line "
-        f"threshold for {ext or 'this type'} ({over:.1f}x).\n"
+        f"FILE SIZE — {name} is {lines} lines against the {threshold}-line threshold "
+        f"for class {cls} ({over:.1f}x).\n"
         "A file is a unit of context. Past this, an agent must either grep it (and see "
         "only what it already knew to look for) or read it whole (and burn context on "
         "irrelevance). Both are lossy, and this repo has the receipts: DeepField::chapters "
         "sat unlisted through three spine audits, and the ROADMAP is grepped rather than "
         "read.\n"
-        "ASK NOW: is what you just wrote a SEPARABLE CONCERN that belongs in its own file? "
-        "New files should land under the threshold. For an existing oversized file this is "
-        "the gradual-refactor trigger (adoption is: immediate for new work, gradual for old "
-        "when touched) — if the concern you touched is cleanly extractable, propose the "
-        "extraction to the user rather than doing it silently mid-task.\n"
-        "Thresholds and split conventions are still OPEN — see ROADMAP § Sequenced, "
-        '"FILE SIZE IS A CORRECTNESS PROBLEM IN AN AI-NATIVE WORKSPACE".'
+        f"{remedy(cls)}\n"
+        "Adoption: immediate for new files, gradual for old work when touched. Conventions "
+        "DECIDED 2026-07-28 — see scripts/filesize_hook.py's module docstring for the axis, "
+        "the three .md classes, and why topic-splitting is disallowed."
     )
 
     json.dump(
