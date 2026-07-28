@@ -551,6 +551,87 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🔴 USER DECISIONS OWED — five calls surfaced 2026-07-28, NONE of them the integrator's**
+  (user-directed the same day: *"keep the user owed part durable with pointer to its necessary
+  context… I won't muddy waters by addressing that in this conversation"*). **Deliberately parked
+  by the user, not forgotten.** Consolidated into ONE live entry because the alternative — leaving
+  them inside a `✅ DONE` block and a notebook — is the buried-in-a-closed-artifact failure this
+  session spent the day measuring. **Context is inline, not merely pointed at**, so this entry is
+  actionable cold.
+  **Sources:** `journal/0121` (the removal's narrative) · `journal/corrections.md` **#66** ·
+  [`docs/design/corpus-knowledge-notebook.md`](docs/design/corpus-knowledge-notebook.md) §§ 4–5 ·
+  [`corpus-knowledge-evidence.md`](docs/design/corpus-knowledge-evidence.md) §§ 3.6g/3.6j/3.6k ·
+  the `✅ DONE` removal entry below, which points here.
+
+  1. **APPEARANCE — the shipped world lost 102 wood posts at four sites** (seed 1337,
+     `Extent::Medium`). Verified gone: the 12 chunks that carried every post read **102
+     `Block::Wood` → 0**, and a 200-chunk box around all four former clusters reads **0**.
+     **No before/after screenshot pair is possible** — the "after" is ordinary ground — so this is
+     a **notification for the record**, not a walk. Nothing else visible changed and **no golden
+     moved** (corrections #66). *Why it is yours: an appearance change is ratified by the user's
+     eye, and removal from what a player could walk into is an appearance change even when there
+     is nothing to photograph.*
+
+  2. **DESIGN-DOC RULING — three live docs still describe civ/history as a real pipeline stage,
+     contradicting the 2026-07-26 ruling.**
+     - `docs/design/worldgen.md` § *"Below the region scale"* item 4: *"**History** — peoples,
+       polities, trade, wars, migrations: dc-sim's coarse tier run over pre-player millennia."*
+     - `docs/design/things-that-will-happen.md:126` — the sword looted from a ruin.
+     - `docs/design/ideas.md:384`.
+     Against the user's *"we do NOT have any form of evo/socia/civ modeling **even at the design
+     stage**: they are NOTHING."* **The removal slice deliberately did not touch any of them** and
+     was right not to: it could not distinguish a ratified user design from bootstrap text, and
+     editing a design doc from inside an implementation slice is **corrections #65's exact failure
+     mode**. *Why it is yours: which side of a user-vs-user contradiction wins is the one thing a
+     sweeper is forbidden to decide (`doc-topology` § Rules).*
+
+  3. **SCOPE — dc-sim's entire S2 statistical tier now has ZERO production callers.**
+     `pregen/history.rs` was its only one; removing it left `engine::{query, observe, force_fact}`,
+     `Ledger` and `ToyWorld` reached by nothing but their own `s2_torture` / `s2_measurements`
+     suites (new `spines.md` § 3 row). **The removal entry's scope line said *"dc-sim's
+     region/agent-step draws"*, but those draws ARE `simulate_sample`** — so following the scope
+     literally deletes `engine.rs` (528 lines), `world.rs`, both suites, and the artifacts
+     `docs/spikes/S2-results.md` reports on. **The slice filed a DEVIATION PLEA instead**, which
+     is the correct move. **The call:** keep the tier as a shape reference, or dispose of it as
+     the same class of thing as the content it served? *(Note `S2-results.md` carries **no
+     supersession marker at all** — the spike whose implementation just died has nothing on it.)*
+
+  4. **SCHEMA — delete dc-sim's settlement/civ types, or keep them?**
+     `Subject::{Site, Polity}` · `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` ·
+     `SiteEventKind` · `Value::{Exists, PolityRef, Event, Extent}`. **Producer-less since the
+     removal.** Left in place and marked in-code as *not a schema to build on*, because deleting
+     variants of a `Serialize` enum is wider than a content removal's scope. *Why it is yours:
+     same doctrine as item 3 — unratified bootstrap schema has no standing, but the disposal is a
+     scope fork.*
+
+  5. **POLICY COLLISION — is a spike-results doc immutable testimony, or live authority?**
+     `corrections #12` states the policy: *"`S10-results.md` is **left unamended** — a spike result
+     is a dated record of what was measured; **this entry is the pointer**."* `CLAUDE.md`
+     read-first item 5 states the opposite: *"Spike results live in `docs/spikes/S*-results.md` —
+     **measured numbers, don't re-guess them**."* **Both are reasonable, they are incompatible,
+     they live in different files, and nothing has ever reconciled them.** The concrete cost is on
+     record: `S10`'s cost table is **~2× the real production cost** (25.19 s claimed vs 13.79 s
+     measured — the spike drove the *scalar* path, production takes the *parallel* one), **a user
+     ratified a ship decision on it**, and `S10` holds no reference to its own correction.
+     Measured corpus-wide: **8 of 15** full-path correction→file edges are one-directional, and
+     **14 of 30** audit/spike files carry no staleness marker of any kind. *Why it is yours: this
+     is a choice between two ratified-feeling policies, and it changes what read-first means.*
+
+  **Also surfaced, NOT user-owned — recorded so they are not lost with the above:**
+  - **`spine-audit/SKILL.md:47` tells every future auditor to grep `JUSTIFIED-BY`** — a marker with
+    **3 occurrences and 0 in `crates/`**. `spines.md` § 5 flagged exactly this on 2026-07-24 and
+    left it as *"a flag to the main session, not a unilateral rewrite"*; the instruction is still
+    there. **Main session owes: does the marker earn its first real uses, or does § 5 get rewritten
+    around the prose form actually in use?**
+  - **`session-workflow/SKILL.md:889-894` still presents archive-by-status as a future proposal**
+    (*"**Moving** older Shipped entries… **would** shrink the live board"*) — it shipped
+    2026-07-26. Integrator fix, no ruling needed.
+  - **New Observed candidate:** `approx_resident_bytes` is **non-monotone in extent** (Medium
+    **377 MB** > Large **213 MB**) because the deep grid is width-capped
+    (`cell_m = max(extent_m/DEEP_MAX_WIDTH, DEEP_CELL_M)`) and record size is
+    deposition-dependent. A reader of `s7_measurements`' table has no note to reach. *Not caused
+    by the removal.*
+
 - **🟠 DOC-TOPOLOGY RESIDUALS — the 19 findings not actioned 2026-07-26** (full audit:
   `docs/audits/2026-07-26-doc-topology-sweep.md`). Six were actioned the same day (the
   ecology carve-out, the field-solver framing, the two ORDER strikes, the S-/A- undercount,
@@ -824,23 +905,15 @@ see the question you are asking.
     statement about the call graph; whether a fingerprint moves is a statement about which chunks
     the sampler visits" — the same reflex produced both halves, six lines apart, in the entry that
     named the reflex.*
-  - **🔴 OPEN, USER-OWNED: `pregen/history.rs` was the ONLY production caller of dc-sim's entire
-    S2 statistical tier.** `engine::{query, observe, force_fact}`, `Ledger` and `ToyWorld` now
-    have **zero production callers workspace-wide** — a ratified subsystem reached by nothing but
-    its own `s2_*` suites (new `spines.md` § 3 row). **The slice filed a DEVIATION PLEA rather
-    than delete it**, correctly: this entry's scope line said *"dc-sim's region/agent-step
-    draws"*, but those draws *are* `simulate_sample`, so following the scope literally deletes
-    528 lines of `engine.rs`, `world.rs`, the `s2_torture`/`s2_measurements` suites and the
-    artifacts `docs/spikes/S2-results.md` reports on. **That is a separately-ratifiable removal
-    and it is the user's call:** keep the tier as a shape reference, or dispose of it as the same
-    class of thing? *(`S2-results.md` carries no marker at all — see the residuals entry.)*
-  - **⚠ ALSO USER-OWNED, and deliberately NOT touched by the slice** (editing it would be
-    corrections #65's exact failure — an implementation slice superseding a design doc):
-    **`docs/design/worldgen.md` § "Below the region scale" item 4 still lists *"History — peoples,
-    polities, trade, wars, migrations: dc-sim's coarse tier run over pre-player millennia"* as a
-    live pipeline stage.** Same question for `things-that-will-happen.md:126` (the sword looted
-    from a ruin) and `ideas.md:384`. The slice could not tell ratified design from bootstrap text.
-    **Main session owes the ruling.**
+  - **🔴 FOUR OF THIS SLICE'S FINDINGS ARE USER DECISIONS AND LIVE IN ONE PLACE:
+    § Sequenced → "USER DECISIONS OWED"** (items 1–4: the 102-post appearance notification · the
+    three design docs that still describe civ/history as a live pipeline stage · dc-sim's S2 tier
+    now having zero production callers, with the slice's deviation plea · the producer-less
+    settlement/civ schema). **Consolidated there rather than duplicated here**, because a live
+    decision buried inside a `✅ DONE` block reads as closed — and because two copies of a
+    decision are two things to drift. *This pointer is deliberately reciprocal: that entry names
+    this one. Written this way on purpose — the session that wrote it had just measured that **8 of
+    15** correction→file edges in this corpus exist only at one end.*
   - **Rides as built:** `Block::Wood` stays with no worldgen emitter (removing the variant would
     renumber block ordinals and move every golden — destroying the attribution this slice was able
     to make); five retired draw salts leave a **deliberate hole** at `0x5700_0005`…`0x5700_0009`
