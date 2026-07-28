@@ -644,6 +644,87 @@ see the question you are asking.
   - **CROSS-REF:** it subsumes part of the still-open **file-size conventions** item — a file
     that is addressable by section may not need to be small — and it is the third leg of the
     docs-ops triad beside the archive and the sweep.
+  - **🟢 READING PASS DONE 2026-07-28 — [`corpus-knowledge-notebook.md`](docs/design/corpus-knowledge-notebook.md)
+    (the argument) + [`corpus-knowledge-evidence.md`](docs/design/corpus-knowledge-evidence.md)
+    (the reading).** User-directed: *no design opinions until the systematic deep reading is done
+    personally*, and *"a theory that does not habitually cycle through empiricism fails this
+    task."* **The design conversation is still open and still the user's**; what is settled is the
+    *characterisation*. Headline results, because each constrains the ontology and two contradict
+    the sketch's framing:
+    - **The corpus is amended IN PLACE, AT THE CLAIM SITE, ALMOST PURELY BY ADDITION.** Design
+      docs delete **2–4 %** of what they add (`flow` 3 %, `material-behavior` 3 %, `north-star`
+      4 %, `ideas` 2 %, `session-workflow` 2 %); only `ROADMAP.md` is genuinely revised (**49 %**).
+      Hunk positions spread through the body (mean 0.41–0.81; `spines`/`CLAUDE`/`ROADMAP` put only
+      **3–9 %** of hunks in the final tenth). **Consequence, mechanical: `doc-topology` shape 6's
+      own check — *"diff the paraphrase against its source"* — STRUCTURALLY CANNOT FIRE, because
+      the source still literally contains the sentence the paraphrase was made from.**
+    - **Where the falsifier actually was, all 65 corrections:** MEASUREMENT **46 %** · CODE
+      **22 %** · THE USER **12 %** · SAME-ARTIFACT **11 %** · **DISTANT DOC 5 %** · LITERATURE
+      2 %. **A "surface the related documents" mechanism targets the 5 % band**, the smallest
+      measured. In every SAME-ARTIFACT case the refuting text was already on the author's screen
+      (#58 forty lines · #65 two sentences · #53 two subsections · #19 the author's own quotation
+      from hours earlier). **What was missing was not access; it was an obligation to reconcile
+      before writing.**
+    - **⚠ THE ADOPTION LAW, after the assistant falsified its own first version.** *"Adopted iff a
+      machine consumes it"* is **false** — five documented conventions with no consumer sit at
+      97–100 % (journal filenames **118/118**, screenshot names **153/155**, `blogworthy`
+      **117/118**, `Co-Authored-By` **753/776**, `heir` **651 uses**). What survives: **a
+      convention is adopted when it is inseparable from an act the author must perform anyway, or
+      is the natural expression of the thought they are already having; it dies when it asks them
+      to RESTATE in a second notation something already said in prose.** `JUSTIFIED-BY` —
+      documented in `spines.md` § 5 *and* `spine-audit` check #4, with a promised sweep — got **3
+      occurrences, 0 in `crates/`**. Cleanest test, relation held constant: **`heir` 651 vs
+      `HEIR:` 48 = 7.4 %.**
+    - **⚠ THE CORPUS ALREADY AUTHORS THE GRAPH; NOTHING READS IT.** 651 `heir` obligations · 525
+      `RATIFIED` · 418 `DECIDED` · 154 `falsified` · 118 `HYPOTHESIS` · 92 `SUPERSEDED` · ~5,000
+      stable-id citations against only **154** whole-document citations (**~35:1** sub-document) ·
+      a hand-applied 4-field schema over 29 stub nodes · and an **append-only node-versioning
+      idiom converged on independently in FOUR files and never named** (`### 29 (original)`;
+      inline strikethrough + dated blockquote; `🔴 SUPERSEDED <date> (user)`). **The authoring
+      problem is solved. Extraction and discharge are untouched.**
+    - **⚠ NEW STRUCTURAL TYPE — THE ONE-DIRECTIONAL EDGE. Two live instances, both read-first.**
+      (i) `north-star.md` § Deviations #2 declares the capability-tiering in three *named* sibling
+      sections *"EXPLICITLY NOT THE MODEL"* — and § Passes still reads *"trusted … first-party"*,
+      unstruck and unmarked. (ii) **`corrections #12` declares itself *"the pointer"* for
+      `S10-results.md`'s ~2×-wrong cost table — the number a user ratified a ship decision on —
+      and `S10` holds no reference to it**, while `CLAUDE.md` read-first item 5 sends every session
+      to the spikes saying *"measured numbers, don't re-guess them."* **A one-directional pointer
+      is not a pointer; it is a note to whoever already found the answer** — and it is the
+      mechanical cause of the *chains of authority* problem, since a chain cannot be walked from
+      the stale end if the stale end holds no link. *Also a live POLICY COLLISION: corrections
+      treats a spike as immutable testimony, read-first treats it as live authority — both
+      reasonable, in different files, never reconciled.*
+    - **⚠ NO ENUMERATION IS CHECKED FOR COMPLETENESS — three instances, three tiers.**
+      `stubs.md` #29's four post-incision phases (one **impossible**, a fifth — **isostasy** —
+      **missing**) · `north-star.md`'s two-column core/plugin boundary (**an entire tier absent**,
+      *"never decided, arrived at by default"*) · a pass's `reads` set (`Exposed` **declared and
+      never read**; `current_chapter()` **read and never declared** — *"a project-wide idiom, not
+      an exception"*). **All three found by a human noticing. The asymmetry is damning: the CODE
+      layer already has this control** — `build_checked` refuses to build a world if a class a pass
+      selects from has zero members, which `north-star.md` § *Validation by construction* calls the
+      entire meaning of the phrase — **and it has never been applied to the documents that specify
+      the code.**
+    - **OBLIGATION IS AT LEAST SEVEN KINDS, and exactly one has a ledger with a denominator:**
+      heir · **indictment** (`### What this indicts today` → `DeepAxis` still present) ·
+      **ratified-but-unbuilt** (RATE) · **co-retirement** (*"an heir that lands one without the
+      other is a world-scale defect"*) · **guard against the obvious fix** (*"before fixing
+      nearest→bilinear, read `field.rs:374-383`"*) · **void heir** (stub #1's heir is the social
+      sim, ruled NOTHING) · **negative decision** (no representation at all — #35). The one that
+      works: `spines.md` S-5's *"34 seams inventoried; **5 converted**."*
+    - **C3 IS PROVEN HERE SIX TIMES, and the corpus names it *"structural, not disciplinary"***
+      (S-4): `Option<f64>` · `Option<fn>` · `Identity::Unrecorded` · `Domain`/`Draws` ·
+      **`CoarseField<T>`** (raw read does not type-check, `compile_fail` doctest) ·
+      **`EdgeId::declared`** (an undeclared transition is *unnameable*). **The last is the closest
+      in-repo precedent to anything a knowledge layer needs** — we already built *"you cannot
+      assert an undeclared relation"*, for material transitions and nothing else.
+    - **THE DOCTRINE GOVERNING THIS THREAD IS ALREADY RATIFIED:** `stubs.md:22` — *"the general
+      registry is **deliberately unbuilt** — four conversions is not enough to design one from"*;
+      `session-workflow` § Seam-first #6 — *"**do not build the general mechanism first**… a
+      registry designed before its callers exist is the same mistake in a new coat."* **So the
+      ontology may not be designed up front.**
+    - **Falsifiers run:** T4 **falsified**; T2 **sharpened, not falsified**. **Still owed:** the
+      65 re-coded at § granularity, and a **second reader** re-running the 3.5c coding rule — it is
+      single-coded by the assistant whose errors most of the entries record.
 
 
 - **✅ DONE 2026-07-26 — THE DOC-TOPOLOGY SWEEP + THE ROADMAP ARCHIVE** (user-directed at the
@@ -724,6 +805,58 @@ see the question you are asking.
     contested** — its ORDER half died inside an implementation slice, in one clause of a doc
     the user does not read. New CLAUDE.md rule: *a user-originated design may not be
     superseded by an implementation slice.*
+
+- **✅ DONE 2026-07-28 — THE BOOTSTRAP HISTORY CONTENT IS REMOVED** (journal/0121,
+  **corrections #66**; merged and gate-verified on main: fmt 0, clippy 0, **85 binaries / 808
+  passed / 0 failed / 3 ignored**, reconciling exactly against the 86/811 baseline — −1 binary
+  (`s7_handoff.rs`) and −3 tests, **all three named and confirmed absent**). Net **−713** Rust
+  lines. *Entry kept below for its reasoning; two findings that OUTRANK the removal are recorded
+  here because neither was suspected:*
+  - **⚠ NOT ONE GOLDEN MOVED — corrections #66.** This entry said *"The goldens will move and
+    that is correct"*, and corrections #64 said the fingerprints are *"structurally downstream of
+    the posts"*. **Both false, and falsified by measurement, not argument:** 0 wood voxels in
+    `contents_contract`'s sample set pre-removal, and `geology`'s sampler covers `cz ∈ [−20, 24]`
+    while the nearest post sits at `cz = −727`. All four byte-identity goldens ran and passed
+    **by name** on merged main. **The transferable lesson: *a pre-authorised golden move is
+    indistinguishable from an unexplained one, which is the opposite of caution.*** A new A-2
+    sub-shape — not a justification outliving its premise, but a **permission** outliving its
+    justification, and never true. *`spines.md` A-2 records it: "structurally downstream is a
+    statement about the call graph; whether a fingerprint moves is a statement about which chunks
+    the sampler visits" — the same reflex produced both halves, six lines apart, in the entry that
+    named the reflex.*
+  - **🔴 OPEN, USER-OWNED: `pregen/history.rs` was the ONLY production caller of dc-sim's entire
+    S2 statistical tier.** `engine::{query, observe, force_fact}`, `Ledger` and `ToyWorld` now
+    have **zero production callers workspace-wide** — a ratified subsystem reached by nothing but
+    its own `s2_*` suites (new `spines.md` § 3 row). **The slice filed a DEVIATION PLEA rather
+    than delete it**, correctly: this entry's scope line said *"dc-sim's region/agent-step
+    draws"*, but those draws *are* `simulate_sample`, so following the scope literally deletes
+    528 lines of `engine.rs`, `world.rs`, the `s2_torture`/`s2_measurements` suites and the
+    artifacts `docs/spikes/S2-results.md` reports on. **That is a separately-ratifiable removal
+    and it is the user's call:** keep the tier as a shape reference, or dispose of it as the same
+    class of thing? *(`S2-results.md` carries no marker at all — see the residuals entry.)*
+  - **⚠ ALSO USER-OWNED, and deliberately NOT touched by the slice** (editing it would be
+    corrections #65's exact failure — an implementation slice superseding a design doc):
+    **`docs/design/worldgen.md` § "Below the region scale" item 4 still lists *"History — peoples,
+    polities, trade, wars, migrations: dc-sim's coarse tier run over pre-player millennia"* as a
+    live pipeline stage.** Same question for `things-that-will-happen.md:126` (the sword looted
+    from a ruin) and `ideas.md:384`. The slice could not tell ratified design from bootstrap text.
+    **Main session owes the ruling.**
+  - **Rides as built:** `Block::Wood` stays with no worldgen emitter (removing the variant would
+    renumber block ordinals and move every golden — destroying the attribution this slice was able
+    to make); five retired draw salts leave a **deliberate hole** at `0x5700_0005`…`0x5700_0009`
+    with an in-code rule *take the next unused value, never fill a hole*; `stubs.md` #1 resolved
+    by deletion, #10's blast radius restated as zero; **draw-domain part (a) is discharged** by
+    removal rather than conversion.
+  - **Accept-by-outcome, not by gate:** the 12 chunks that carried every post go **102
+    `Block::Wood` → 0**, and a 200-chunk box around all four former clusters reads **0**.
+  - **Residency, absolute:** the whole recorded settlement history — 153 facts, 13 sites, 2
+    polities, 90 collapses — cost **5,520 bytes of 377,364,589** (0.0015 %), and the only
+    production code that ever read it was the function measuring its size.
+  - **New Observed item, not caused by this slice:** `approx_resident_bytes` is **non-monotone in
+    extent** (Medium **377 MB** > Large **213 MB**) because the deep grid is width-capped
+    (`cell_m = max(extent_m/DEEP_MAX_WIDTH, DEEP_CELL_M)`) and record size is deposition-dependent.
+    A reader of `s7_measurements`' table would find that puzzling and has no note to reach.
+  - *Original entry, preserved:*
 
 - **🔴 REMOVE THE BOOTSTRAP HISTORY CONTENT — polities, sites, ruins, the history pass**
   (**DECIDED 2026-07-26, user**). *"They are unratified zealous fabrications from the early
