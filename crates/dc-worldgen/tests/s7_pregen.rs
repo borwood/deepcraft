@@ -1,9 +1,11 @@
 //! S7 pregen pipeline properties: topology, tectonics, climate, hydrology
-//! (rivers provably reach the sea over the whole map), history causal
-//! ordering, and pregen determinism.
+//! (rivers provably reach the sea over the whole map), and pregen determinism.
+//!
+//! **`history_facts_are_causally_ordered` lived here until 2026-07-28** and was
+//! deleted with its subject (journal/0121): it asserted the causal ordering of
+//! site/polity facts committed by the bootstrap settlement-history pass. It is
+//! not replaced — there is no settlement model to assert about.
 
-use dc_sim::statistical::{Aspect, Subject, Value};
-use dc_worldgen::pregen::history::NUM_EPOCHS;
 use dc_worldgen::{Extent, Pregen, Provenance, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
@@ -165,70 +167,13 @@ fn every_river_reaches_the_sea_by_construction() {
 }
 
 #[test]
-fn history_facts_are_causally_ordered() {
-    let p = pregen(Extent::Medium);
-    assert!(!p.sites.is_empty(), "medium world produced no history");
-    assert!(p.n_polities >= 2, "need at least two polities for conflict");
-    for s in &p.sites {
-        // Abandonment strictly postdates founding.
-        if let Some(ab) = s.abandoned {
-            assert!(
-                ab > s.founded,
-                "site {} abandoned at {} but founded at {}",
-                s.slot,
-                ab,
-                s.founded
-            );
-        }
-        // The ledger agrees with the summary.
-        let subj = Subject::Site(s.slot);
-        let founded = p.ledger.get(subj, s.founded, Aspect::SiteExists);
-        assert_eq!(founded.map(|f| f.value), Some(Value::Exists(true)));
-        if let Some(ab) = s.abandoned {
-            let gone = p.ledger.get(subj, ab, Aspect::SiteExists);
-            assert_eq!(gone.map(|f| f.value), Some(Value::Exists(false)));
-        }
-    }
-    // Polity extents were chronicled.
-    assert!(
-        p.ledger
-            .facts()
-            .iter()
-            .any(|f| f.aspect == Aspect::PolityExtent),
-        "no polity extent facts"
-    );
-    // The history pass really ran collapses through the S2 engine.
-    assert!(p.observe_count > 0, "history never used engine::observe");
-    let pressure_facts = p
-        .ledger
-        .facts()
-        .iter()
-        .filter(|f| f.aspect == Aspect::RegionPressure)
-        .count();
-    assert!(pressure_facts > 0, "no committed pressure facts");
-    // All fact times lie in the pregen era.
-    for f in p.ledger.facts() {
-        assert!(f.time <= NUM_EPOCHS, "fact beyond year zero: {f:?}");
-    }
-}
-
-#[test]
 fn pregen_is_deterministic_and_seed_sensitive() {
     let a = pregen(Extent::Medium);
     let b = pregen(Extent::Medium);
     assert_eq!(a.grid, b.grid, "grid must replay identically");
-    assert_eq!(a.sites, b.sites, "history must replay identically");
-    assert_eq!(
-        a.ledger.content_hash(),
-        b.ledger.content_hash(),
-        "ledger must replay identically"
-    );
     let c = Pregen::run(WorldParams {
         seed: SEED + 1,
         extent: Extent::Medium,
     });
-    assert!(
-        a.grid != c.grid || a.ledger.content_hash() != c.ledger.content_hash(),
-        "different seeds must differ"
-    );
+    assert_ne!(a.grid, c.grid, "different seeds must differ");
 }

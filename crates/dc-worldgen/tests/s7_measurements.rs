@@ -1,6 +1,11 @@
-//! S7 measurements: pregen wall time / memory / fact count vs extent (the
-//! honest labels for the world-size knob), and chunk-generation latency
-//! through the full pyramid, cold vs warm parent caches.
+//! S7 measurements: pregen wall time / memory vs extent (the honest labels for
+//! the world-size knob), and chunk-generation latency through the full pyramid,
+//! cold vs warm parent caches.
+//!
+//! **Four columns left the table 2026-07-28** (journal/0121) — facts, sites,
+//! polities, observes — with the bootstrap settlement-history pass that produced
+//! them. On production-Medium they were 153 facts / 13 sites / 2 polities / 90
+//! collapses, contributing **5,520 bytes of 377,364,589** to the memory column.
 //!
 //! Run with `-- --nocapture` to see the tables.
 
@@ -13,21 +18,17 @@ const SEED: u64 = 0x0D5E_ED57_2026;
 
 #[test]
 fn pregen_time_vs_extent() {
-    println!("| extent | cells | wall ms | facts | sites | polities | observes | approx bytes |");
-    println!("|---|---|---|---|---|---|---|---|");
+    println!("| extent | cells | wall ms | approx bytes |");
+    println!("|---|---|---|---|");
     for extent in [Extent::Small, Extent::Medium, Extent::Large] {
         let t0 = Instant::now();
         let p = Pregen::run(WorldParams { seed: SEED, extent });
         let ms = t0.elapsed().as_secs_f64() * 1000.0;
         println!(
-            "| {} | {}x{} | {ms:.1} | {} | {} | {} | {} | {} |",
+            "| {} | {}x{} | {ms:.1} | {} |",
             extent.label(),
             p.grid.w,
             p.grid.w,
-            p.ledger.len(),
-            p.sites.len(),
-            p.n_polities,
-            p.observe_count,
             p.approx_resident_bytes(),
         );
         // Sanity: the pause must stay a ritual, not a wait.

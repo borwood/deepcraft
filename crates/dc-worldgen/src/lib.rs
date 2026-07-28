@@ -2,9 +2,8 @@
 //!
 //! "Theoretically infinite, globally aware" is resolved by hierarchy with
 //! bounded neighborhoods (docs/design/worldgen.md): a finite coarse world is
-//! **pregenerated** — tectonics, climate, drainage, and a thin forward-run
-//! settlement history whose outcomes are committed facts in the S2 constraint
-//! ledger — and everything below the region scale **collapses lazily on
+//! **pregenerated** — tectonics, climate, drainage, and the deep-time erosional
+//! history — and everything below the region scale **collapses lazily on
 //! approach** under one rule: collapsed(cell) = f(base(cell), 1-ring
 //! neighbour base summary, collapsed(parent)). Rivers are planned at
 //! region-graph scale before any chunk materializes; no level ever needs
@@ -20,15 +19,20 @@
 //! | chunk-column | 28.8 m (footprint) | lazy                              |
 //! | chunk        | 28.8 m cube        | lazy (dc-core `Chunk` of blocks)  |
 //!
-//! Deep-time history is dc-sim's statistical tier run over pre-player epochs:
-//! the history pass collapses events through `engine::observe` and the live
-//! sim keeps querying the same overlay world and ledger after year zero —
-//! worldgen history and live far-simulation are one system, not two.
+//! **Deep-time history means the EROSIONAL history** ([`deeptime`]): the
+//! two-plane tectonics/erosion/weathering sim over the coarse grid, whose
+//! eroded surface and per-cell strata record drive the collapse tier.
+//! *It used to mean something else too.* A thin settlement / expansion /
+//! conflict sim once ran here over 12 pre-player epochs, committing site and
+//! polity facts into dc-sim's S2 constraint ledger and expressing them as wood
+//! ruin posts; it was **removed 2026-07-28** (journal/0121) as unratified
+//! early-bootstrap fabrication with no evo/socia/civ design behind it.
+//! There is no settlement, culture or civilization modelling in this crate,
+//! and the absence is deliberate rather than pending.
 //!
 //! The world is bounded in extent (a player knob, [`Extent`]) but its borders
 //! are unbounded hostile wilds: beyond the pregen grid the same lazy pyramid
-//! runs on synthesized coarse cells forever — abyssal ocean, polar ice, no
-//! history layer.
+//! runs on synthesized coarse cells forever — abyssal ocean, polar ice.
 //!
 //! Rules: headless, deterministic (all entropy flows from the world seed).
 
@@ -51,8 +55,7 @@ pub use fill::{ColumnFill, Plan};
 pub use geology::{AlluviumRec, StrataCtx, StrataEvent, StrataRec};
 pub use pipeline::{Pass, PassBody, Phase, Pipeline, PipelineError, PregenCtx, Resource};
 pub use pregen::{
-    CELL_CHUNKS, CELL_VOXELS, Cell, CellGrid, CellView, Extent, Pregen, Provenance, SiteSummary,
-    WorldParams, YEAR_ZERO_TICK,
+    CELL_CHUNKS, CELL_VOXELS, Cell, CellGrid, CellView, Extent, Pregen, Provenance, WorldParams,
 };
 
 pub const CRATE_ROLE: &str = "hierarchical lazy worldgen + deep-time history";

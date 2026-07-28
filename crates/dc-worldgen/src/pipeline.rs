@@ -9,10 +9,12 @@
 //! geology→soil→ecology coupling-order problem becomes a graph problem
 //! instead of a hand-maintained list.
 //!
-//! The S7 stages (tectonics, climate, hydrology, history) are the first four
+//! The S7 stages (tectonics, climate, hydrology) are the first three
 //! registered passes; their declared reads/writes force exactly the order
 //! `Pregen::run` used to hand-maintain, so the refactor is output-preserving
-//! by construction (and the S7 byte-identical tests prove it).
+//! by construction (and the S7 byte-identical tests prove it). *There was a
+//! fourth, `dc:pass/history`, removed 2026-07-28 (journal/0121); it was the
+//! only writer of a `Resource::History` axis, which went with it.*
 //!
 //! **Write semantics.** For each resource: the pass that writes without
 //! reading is its *creator* (at most one); passes that read *and* write are
@@ -28,7 +30,7 @@ use dc_core::materials::geology::GeologySet;
 use crate::deeptime::{DeepField, DeepOverrides};
 use crate::geology::StrataCtx;
 use crate::passgraph::{self, Decl, GraphError};
-use crate::pregen::{CellGrid, history};
+use crate::pregen::CellGrid;
 
 /// When a pass runs.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -53,8 +55,6 @@ pub enum Resource {
     Climate,
     /// Filled elevations, flow graph, discharge, rivers, lakes.
     Hydrology,
-    /// Settlement history: ledger, overlay, sites.
-    History,
     /// The deep-time eroded surface (the A-tier final elevation field). Created
     /// by the deep-time pass; the collapse elevation lattice reads it.
     DeepElevation,
@@ -76,7 +76,6 @@ pub struct PregenCtx {
     /// Grid edge in cells.
     pub w: i32,
     pub grid: Option<CellGrid>,
-    pub history: Option<history::History>,
     /// The deep-time field, filled by the deep-time pass (creator of
     /// [`Resource::DeepElevation`] + [`Resource::DeepStrata`]).
     pub deep: Option<DeepField>,
@@ -200,8 +199,8 @@ impl Pipeline {
         })
     }
 
-    /// The vanilla pass graph: the four S7 stages plus the v1 geology
-    /// passes, ordered purely by their declarations.
+    /// The vanilla pass graph: the three S7 stages plus the deep-time pass and
+    /// the v1 geology passes, ordered purely by their declarations.
     pub fn vanilla() -> Result<Self, PipelineError> {
         Self::new(vanilla_passes())
     }
@@ -300,11 +299,6 @@ fn hydrology_pass(ctx: &mut PregenCtx) {
     crate::pregen::hydrology::apply(ctx.grid.as_mut().expect("tectonics ran (declared read)"));
 }
 
-fn history_pass(ctx: &mut PregenCtx) {
-    let grid = ctx.grid.as_ref().expect("tectonics ran (declared read)");
-    ctx.history = Some(history::run(ctx.seed, grid));
-}
-
 /// The always-on deep-time A tier (3e-1): run the two-plane erosion sim over
 /// the coarse grid and keep its eroded surface + strata record. Reads
 /// Elevation/Provenance/Climate (bilinear-resampled to the deep grid), creates
@@ -318,7 +312,7 @@ fn deep_time_pass(ctx: &mut PregenCtx) {
     ));
 }
 
-/// The vanilla pass roster with honest read/write declarations. The four S7
+/// The vanilla pass roster with honest read/write declarations. The three S7
 /// stages' declarations force the exact legacy order; the geology passes
 /// slot in behind them: igneous creates the strata record, clastic deposits
 /// on top of it (modifier) and creates the alluvium state, the placer
@@ -355,14 +349,6 @@ pub fn vanilla_passes() -> Vec<Pass> {
             writes: &[Hydrology],
             selects: &[],
             body: PassBody::Pregen(hydrology_pass),
-        },
-        Pass {
-            id: "dc:pass/history",
-            phase: Phase::Pregen,
-            reads: &[Elevation, Climate, Hydrology],
-            writes: &[History],
-            selects: &[],
-            body: PassBody::Pregen(history_pass),
         },
         Pass {
             id: "dc:pass/deep-time",
@@ -474,7 +460,6 @@ mod tests {
                 // hydrology/igneous ties.
                 "dc:pass/deep-time",
                 "dc:pass/hydrology",
-                "dc:pass/history",
                 "dc:pass/igneous-emplacement",
                 "dc:pass/clastic-deposition",
                 "dc:pass/placer",
@@ -541,8 +526,8 @@ mod tests {
 
     #[test]
     fn reads_of_unwritten_resources_are_rejected() {
-        use Resource::History;
-        let err = Pipeline::new(vec![pass("t:a", &[History], &[])]).unwrap_err();
+        use Resource::Hydrology;
+        let err = Pipeline::new(vec![pass("t:a", &[Hydrology], &[])]).unwrap_err();
         assert!(
             matches!(err, PipelineError::UnwrittenResource { .. }),
             "{err}"
