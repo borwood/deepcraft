@@ -128,6 +128,47 @@ and the corpus itself says so, in one sentence, at `spines.md:69-72`:
 > failures are overwhelmingly UNPAID OBLIGATIONS, not unfindable facts — and the obligations
 > are already written down, in prose, in the same sentences that create them.**
 
+### 4.0a ⚠⚠ THE RESULT THAT RE-AIMS EVERYTHING — staleness is ~8 %
+
+Added 2026-07-28 after § 3.5g, which asked the sharper question: **for a watcher to fire, a change
+event must exist — so did each claim *become* false, or was it false the day it was written?**
+
+| | share |
+|---|---|
+| **BORN-FALSE, and checkable at the time** | **~85 %** (~55 / 65) |
+| **BORN-FALSE but unreachable until a magnitude changed** | ~8 % (#29, #57, #60, `mfd_routing`'s guard, #51's guard) |
+| **GENUINELY STALE** — true when written, later falsified | **~8 %** (#35, #11, #42, #59, #7) |
+
+> **A staleness watcher has an ~8 % ceiling in this corpus, by construction — not because it
+> would be badly built, but because for 85 % of these failures THERE IS NO CHANGE EVENT TO WATCH.**
+
+**This is a second, independent reason `JUSTIFIED-BY` was never worth adopting**, and it converges
+with § 3.5c from the other direction: that coding found the refuting text was already on the
+author's screen (SAME-ARTIFACT 11 %, CODE 22 %); this one finds it was *already true* on the day.
+**Two codings, two questions, one conclusion: the binding failure is at the moment of ASSERTION,
+not at the moment of DECAY.**
+
+**And it explains the shape of every control that has actually worked here.** All six C3 instances
+(§ 4.2b) are **write-time impossibilities, not staleness alarms**: once `Identity::Unrecorded`
+exists you cannot *write* `has_contents` as a chunk fact; once `draw_domains!` exists you cannot
+*write* a duplicate salt; once `EdgeId::declared` exists you cannot *write* an undeclared
+transition. **The project has been solving the 85 % all along — in code, and never once in the
+corpus.**
+
+**The corpus does, however, already have one write-time control for CLAIMS, and there is measured
+evidence it works.** Marking a claim's epistemic status: `HYPOTHESIS` **118** uses / 33 files ·
+`NEEDS RATIFICATION` 40 · `DEFERRED` 114 · `assistant-originated` 12. The proof is correction
+**#63**, which credits its own author for it: *"flagged as a hypothesis by its own author and
+falsified the same day… **which is why this correction cost two probe runs instead of a fix
+slice**."* And **#63b never entered a doc at all** because it was labelled a hypothesis in
+conversation. **A claim that carries its own epistemic status costs less when it turns out to be
+wrong — measured, twice, in one day.** It is applied entirely by hand and entirely unevenly.
+
+**⚠ Load-bearing and single-coded.** § 3.5g is coded by the assistant who wrote most of the
+falsified claims. An **independent re-coding was dispatched 2026-07-28** with the two forbidden
+files named so it could not anchor. **If it returns materially different totals, this section is
+what changes.**
+
 **The § 3.5c bands map onto the layers exactly, which is the test of this framing:**
 
 - **DISTANT DOC ≈ 5 %** → layer 2 residue. Findability. The smallest band.
@@ -443,6 +484,44 @@ deliverable:
   does adding one cost enough to trip T4′?
 - **What is the right response to a detected gap?** Governance says the sweeper may **not**
   adjudicate (§ 3.5e, three independent statements). So the output is a *list*, not an edit.
+
+### 5.2b ⚠ What § 4.0a does to this proposal — it SURVIVES, and for a better reason than I had
+
+The born-false result (~85 %) looks at first like it kills the reciprocity check along with
+staleness detection. It does not, and the distinction matters:
+
+> **Reciprocity is not a staleness mechanism. It is a PROPAGATION mechanism.**
+
+The `#12 → S10-results.md` case is the proof. `S10`'s cost table was **born-false** — it never
+named the code path that produced it. Nothing changed; nothing decayed. What is missing is that
+**a known, correct, already-written falsification never reached the artifact carrying the false
+claim.** That is orthogonal to stale-vs-born-false, and it is *strengthened* by the 85 % result:
+**if most claims are born false, then corrections are the primary knowledge artifact in this
+corpus, and getting them to reach their sites is the primary need.**
+
+**And it is precisely the user's own word for what they want.** *"Percolation of updated
+concepts"* — reciprocity **is** percolation, measured: 58 of 67 corrections are cited from
+somewhere, and **8 of 15** full-path edges are one-directional, meaning **the correction knows its
+site and the site does not know its correction.**
+
+**So the seam is re-aimed, not replaced:** it is not *"detect stale refs"* (8 % ceiling) but
+*"a falsification must reach every site it names"* (the 85 %'s only cheap remedy).
+
+### 5.2c The 85 % — what the evidence supports, and what I do not have
+
+**Supported by measurement:** the one write-time control the corpus already applies to *claims* is
+**epistemic status**, and correction #63 credits it with converting a fix slice into two probe runs
+(§ 4.0a). It is authored in the natural expression (`HYPOTHESIS` 118 · `DEFERRED` 114 ·
+`NEEDS RATIFICATION` 40), so it satisfies T4′(b) — **which is exactly why it has adoption and
+`JUSTIFIED-BY` has none.**
+
+**What I do not have, stated plainly rather than papered over:** a mechanism that *checks* it. The
+detectable form of *"this claim carries no epistemic status"* requires knowing what the claims
+**are**, and prose does not delimit them. **This is the hardest open problem in the field.** The
+honest position is that the corpus has a *working, adopted, cost-reducing convention* with **no
+denominator** — the same condition as six of the seven obligation kinds (§ 4.1b), and the one
+property that separates them from `S-5`'s *"34 seams, 5 converted."* **Finding a denominator for
+epistemic status is a better problem than designing a tag vocabulary, and I cannot yet say how.**
 
 ### 5.3 The second candidate, if the first teaches well
 

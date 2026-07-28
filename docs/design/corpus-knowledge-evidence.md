@@ -681,6 +681,54 @@ The bootstrap-content removal produced three findings that bear directly on this
   trace never named also read all four. *An aggregate statement about a set read as a statement
   about each member* — a small, clean instance of correction #61's shape.
 
+### 3.5g ⚠⚠ THE DECIDING MEASUREMENT, TAKE TWO — was the claim STALE, or FALSE WHEN WRITTEN?
+
+§ 3.5c asked *where the falsifier was*. This asks the sharper question, the one that decides
+whether a **staleness** mechanism is the right instrument at all: **for a watcher to fire, some
+change event must exist.** So — did each claim *become* false, or was it false the day it was
+recorded?
+
+**Coding rule:** a claim is **STALE** only if it was *true when written* and a later change made
+it false. If nothing changed and it was simply wrong, it is **BORN-FALSE** — and no staleness
+watcher can ever fire on it, because there is no event.
+
+| class | meaning | entries | share |
+|---|---|---|---|
+| **BORN-FALSE, and checkable at the time** | wrong when recorded; the refuting fact already existed | #1–#6, #8–#10, #12–#28, #30–#34, #36–#41, #43–#56, #58, #61–#65, #63b | **~55 / 65 ≈ 85 %** |
+| **BORN-FALSE but UNREACHABLE** | wrong when written *and* unexercisable; a magnitude change made it *reachable*, not false | **#29** (partial-height culling was block-tier boolean all along; deposition made it visible) · **#57** (*"a rule can be wrong and unreachable at the same time, and unreachable is a property of the CURRENT magnitudes"*) · **#60** (two instruments agreed *"by coincidence of smallness"*) · the `mfd_routing` guard (*"green because the world does not erode"*) · **#51**'s guard | **~5 / 65 ≈ 8 %** |
+| **GENUINELY STALE** | true when written, a later change falsified it | **#35** (*"the comment was still perfectly argued **the day it became false**"* — partial voxels) · **#11** (true of a volumetric far mesh; false the moment it became a hollow sheet) · **#42** (*"reasoned against a mental model the code had already outrun"*) · **#59** (`k_transport` moved) · **#7** (`env!` path, true until worktrees) | **~5 / 65 ≈ 8 %** |
+
+> ### ⚠ STALENESS IS ~8 % OF OUR DIAGNOSED FAILURES. ~85 % WERE FALSE ON THE DAY THEY WERE WRITTEN.
+
+**This is the sharpest constraint the corpus puts on the whole design field, and it compounds with
+§ 3.5c rather than repeating it:**
+
+- **A staleness watcher — the `flag stale refs` half of the sketch — has an ~8 % ceiling by
+  construction.** Not because it would be badly built, but because **for 85 % of these there is no
+  change event to watch.** `JUSTIFIED-BY`'s promised sweep would have had that ceiling too, which
+  is a second, independent reason it was never worth adopting.
+- **The 85 % needs a WRITE-TIME check, not a watcher.** And that is exactly what § 3.5c's
+  SAME-ARTIFACT band (11 %) and CODE band (22 %) were pointing at from the other direction: the
+  refuting text was already on the author's screen. **Two independent codings converge on the same
+  conclusion — the binding failure is at the moment of assertion, not at the moment of decay.**
+- **It also explains why the corpus's most effective controls are the shape they are.** Every one
+  of the six C3 instances (§ 3.6i) is a **write-time** impossibility, not a staleness alarm:
+  you cannot *write* `has_contents` as a chunk fact once `Identity::Unrecorded` exists; you cannot
+  *write* a duplicate salt once `draw_domains!` exists; you cannot *write* an undeclared transition
+  once `EdgeId::declared` exists. **The project has been solving the 85 % all along, in code, and
+  never once in the corpus.**
+- **And the 8 % STALE band is not thereby worthless** — #35 and #59 were both expensive, and #35's
+  own lesson is the one that names the ontology hole (*"a decision not to build gets a paragraph in
+  a doc comment and no watcher"*). **But it is a small, cheap, well-defined problem, and it is not
+  the one the corpus is dying of.**
+
+**⚠ Limitation, and it now carries real weight.** Assigning *born-false* versus *stale* requires
+judgement about what was knowable on a given day, and this is **single-coded by the same assistant
+who wrote most of the falsified claims** — the most obvious conflict of interest in the notebook.
+The coding rule is stated above so it is re-runnable. **An independent re-coding is dispatched
+(2026-07-28) precisely because this number is now load-bearing**, and if it comes back materially
+different, § 4 changes and this row is the reason.
+
 ### 3.6 ⚠ THE ADOPTION LAW — three natural experiments already run in this repo
 
 The single most useful thing found. Same question (does a convention get adopted?), three
