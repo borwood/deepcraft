@@ -27,9 +27,17 @@ use super::world::{AgentId, AgentState, Behavior, RegionId, Tick};
 
 /// What a fact is about.
 ///
-/// `Agent`/`Region` are the S2 toy-world subjects. `Site`/`Polity` were added
-/// by S7: deep-time worldgen (dc-worldgen) commits settlement history into the
-/// same ledger the live sim reads — one system, no seam at year zero.
+/// `Agent`/`Region` are the S2 toy-world subjects.
+///
+/// **`Site`/`Polity` HAVE NO PRODUCER SINCE 2026-07-28** (journal/0121). They
+/// were added by S7 so dc-worldgen's settlement-history pass could commit
+/// pregen facts into the same ledger the live sim reads — "one system, no seam
+/// at year zero". That pass was **removed** as unratified bootstrap content
+/// (there is no evo/socia/civ model behind it, even at the design stage), and
+/// nothing else ever constructed these variants outside tests. They are kept
+/// only because deleting a serialized enum's variants is a wider change than
+/// that removal was scoped for; **do not read this as a live schema**, and see
+/// spines § 3 for the standing question of whether they survive at all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Subject {
     Agent(AgentId),

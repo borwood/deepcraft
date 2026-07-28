@@ -2233,7 +2233,8 @@ mod tests {
         });
         let mut g = WorldGenerator::new(&pregen);
         // The surfaced material's content class — NOT the Air/Dirt/Stone fallback
-        // vocabulary, NOT ruin Wood. Intra-cell variation among these classes is
+        // vocabulary. (It used to say "NOT ruin Wood" too; there are no ruin
+        // posts since journal/0121.) Intra-cell variation among these classes is
         // the class dither (member variation within one class is NOT).
         let geo_class = |b: Block| -> Option<u8> {
             let Block::Material(m) = b else { return None };

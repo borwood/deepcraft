@@ -72,8 +72,9 @@ use dc_core::{Block, VoxelContents};
 /// 1. `Unrecorded` — **no composition record backs this voxel.** The stored
 ///    block is all that is known. This is normal and not a defect: the
 ///    unrecorded basement below the deep-time record, the legacy soil band,
-///    ocean floor, the border wilds, ruin posts, and the whole S1 terrain
-///    authority all live here.
+///    ocean floor, the border wilds, and the whole S1 terrain authority all
+///    live here. (Ruin posts were on this list until 2026-07-28,
+///    journal/0121, which deleted them.)
 /// 2. `Mixture(EMPTY)` — **a record, and it says nothing is here.** Open air.
 /// 3. `Mixture(c)` — the honest full composition.
 #[derive(Clone, PartialEq, Debug)]

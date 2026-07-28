@@ -35,13 +35,14 @@
 //! with nothing in it is air *as far as contents go* — but the generator does
 //! not apply `classify` to voxels it never gave a contents record: the surface
 //! veneer (a stub, docs/design/stubs.md § 2), the legacy soil band and the
-//! unrecorded basement below the deep-time record, ocean floor, the border
-//! wilds, and ruin posts all keep their legacy blocks. So the enforced
-//! invariant is scoped:
+//! unrecorded basement below the deep-time record, ocean floor, and the border
+//! wilds all keep their legacy blocks. So the enforced invariant is scoped:
 //!
 //! > for every voxel with **non-empty** contents, `block == classify(contents)`
 //!
 //! and the exception shrinks on its own as those stubs acquire real records.
+//! *One case left the list by deletion rather than by acquiring a record: the
+//! ruin posts, removed 2026-07-28 (journal/0121).*
 
 use crate::materials::MaterialId;
 use crate::materials::contents::VoxelContents;

@@ -10,7 +10,7 @@
 //! 1. **The invariant**, over several seeds and many chunks: every voxel whose
 //!    contents are non-empty must carry exactly `classify(contents)`. Voxels
 //!    with no contents record (air, the surface veneer stub, the legacy soil
-//!    band, unrecorded basement, ruin posts) are outside the contract by the
+//!    band, unrecorded basement) are outside the contract by the
 //!    absent-contents rule — asserted here too, so that exception cannot widen
 //!    silently.
 //!

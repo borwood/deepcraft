@@ -10,8 +10,11 @@
 //!
 //! `Stone`/`Dirt`/`Grass`/`Wood` remain as **legacy S1 tokens** — the walking-
 //! skeleton terrain (dc-client `TerrainGen`), the legacy soil band / unrecorded
-//! basement / ocean floor / border wilds / ruin posts (dc-worldgen `collapse`),
-//! and the `dc:*` edit palette still emit them. They have no material twin and
+//! basement / ocean floor / border wilds (dc-worldgen `collapse`), and the
+//! `dc:*` edit palette still emit them. **`Wood` no longer has a worldgen
+//! emitter at all** since 2026-07-28 (journal/0121 removed the ruin posts, its
+//! only one); it survives on the edit palette and the dc-api host-generator
+//! path, which is a weaker claim to standing than the other three have. They have no material twin and
 //! are the sole reason the atom is not yet the literal two-variant
 //! `{ Air, Material }`; retiring them (re-pointing those paths at real worldgen)
 //! is the *next* ratified slice (Crux 2). Until then they ride here as peers.
@@ -43,7 +46,9 @@ pub enum Block {
     Dirt,
     /// Legacy S1 grass surface. No material twin.
     Grass,
-    /// Legacy S1 wood (ruin posts). No material twin.
+    /// Legacy S1 wood. No material twin, and — since 2026-07-28
+    /// (journal/0121) — **no worldgen emitter**: its one producer was the
+    /// bootstrap ruin posts. Reachable only through the edit palette.
     Wood,
 }
 
