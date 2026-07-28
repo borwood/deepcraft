@@ -318,10 +318,22 @@ world**, which cost one background probe instead of a live session (corrections 
     a golden protecting it.
   - Distinct from [[placeholder-state-is-not-intent]], which says *do not argue from current
     constants*. This says *do not argue from current **content***.
-  - **We have no evo / ecology / socia / civ modelling even at the design stage.** Anything
-    in the tree that looks like one is early-bootstrap fabrication awaiting wholesale
-    replacement. The project is working on **earth processes**, and fighting the unratified
-    shapes left behind by bring-up.
+  - **We have no evo / socia / civ modelling even at the design stage** (user's words:
+    *"we do NOT have any form of evo/socia/civ modeling even at the design stage: they are
+    NOTHING"*, and *"we have not moved on to bio/evo/socia/civ… just open edge gestures so
+    far"*). Anything in the tree that looks like one is early-bootstrap fabrication awaiting
+    wholesale replacement. The project is working on **earth processes**, and fighting the
+    unratified shapes left behind by bring-up.
+    - **⚠ THIS DOES NOT REACH `docs/design/ecology.md`, AND AN EARLIER DRAFT OF THIS LINE
+      WRONGLY SAID IT DID.** The word *"ecology"* was **not** the user's — it was inserted by
+      the assistant transcribing the directive, and it unmoored a doc whose own header reads
+      *"substrate **RATIFIED** 2026-07-19 (user: 'this reads absolutely right'); the evolution
+      architecture below is **the USER'S DESIGN**"*. Four live `stubs.md` entries name ecology
+      as their heir. Caught by the first `doc-topology` sweep, hours after the line was
+      written — **by the very rule two bullets above this one.** The doctrine targets
+      **unratified bootstrap CONTENT**; it has no authority over a ratified design doc.
+      *That an assistant widened a user directive by one word, in a file every session and
+      every agent loads, is the sharpest available illustration of why that rule exists.*
 
 - **A USER-ORIGINATED DESIGN MAY NOT BE SUPERSEDED BY AN IMPLEMENTATION SLICE** (2026-07-26,
   corrections #65 — the gap that cost three days and produced `DeepAxis`). The ratification
