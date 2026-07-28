@@ -739,13 +739,35 @@ see the question you are asking.
       **3–9 %** of hunks in the final tenth). **Consequence, mechanical: `doc-topology` shape 6's
       own check — *"diff the paraphrase against its source"* — STRUCTURALLY CANNOT FIRE, because
       the source still literally contains the sentence the paraphrase was made from.**
-    - **Where the falsifier actually was, all 65 corrections:** MEASUREMENT **46 %** · CODE
-      **22 %** · THE USER **12 %** · SAME-ARTIFACT **11 %** · **DISTANT DOC 5 %** · LITERATURE
-      2 %. **A "surface the related documents" mechanism targets the 5 % band**, the smallest
-      measured. In every SAME-ARTIFACT case the refuting text was already on the author's screen
-      (#58 forty lines · #65 two sentences · #53 two subsections · #19 the author's own quotation
-      from hours earlier). **What was missing was not access; it was an obligation to reconcile
-      before writing.**
+    - **Where the falsifier actually was — TWO INDEPENDENT CODINGS, quoted as bands** *(the
+      second agent was forbidden to read the first analysis; audit
+      `docs/audits/2026-07-28-corrections-recoding.md`)*: MEASUREMENT **37–46 %** · CODE
+      **22–36 %** · THE USER 9–12 % · SAME-ARTIFACT 9–11 % · **DISTANT DOC 1.5–5 %** ·
+      LITERATURE 2–7.5 %. The independent coder derives that **46–66 % needed no experiment at
+      all** — the falsifier was already in the repo — and puts **DISTANT DOC at ONE entry, calling
+      even that a bad fit**. **So "surface the related documents" targets the smallest band either
+      coder found**, and the direction is agreed even where the magnitudes differ by ~2×.
+      In every SAME-ARTIFACT case the refuting text was already on the author's screen (#58 forty
+      lines · #65 two sentences · #53 two subsections · #19 the author's own quotation from hours
+      earlier). **What was missing was not access; it was an obligation to reconcile before
+      writing.**
+      *⚠ **29 of 67 entries (43 %) were coin-flips for both coders**, so these are bands and not
+      measurements. This bullet quoted the single-coded figures as settled for several hours after
+      the re-coding revised them — **the "summary that outran its source" shape, committed by the
+      author of the finding, in the live board.** Fixed at the wrap; recorded rather than quietly
+      corrected, because it is the cheapest possible demonstration that the shape does not care
+      how well you understand it.*
+    - **⚠⚠ STALENESS IS 3–8 % OF OUR RECORDED FAILURES; ~85–91 % WERE WRONG THE DAY THEY WERE
+      WRITTEN.** The sharper question — *for a watcher to fire, a change event must exist, so did
+      the claim BECOME false or was it born false?* — was coded twice: **GENUINELY STALE 2 (3.0 %)
+      independently, ~5 (8 %) by me** (my overcount, in the direction that flatters tooling; it
+      kept only #11 and #35, both git-verified, and documented a **no-true-era** for #7, #12, #27,
+      #32, #42, #57, #66). **So a stale-ref detector has a single-digit ceiling BY CONSTRUCTION —
+      for ~90 % of these there is nothing to watch.** The binding failure is at the moment of
+      **assertion**, not decay. *And it explains every control that has worked here: all six
+      "make-the-illegal-state-unrepresentable" instances are **write-time impossibilities**, not
+      alarms. The project has been solving the 85 % all along, in code, and never once in the
+      corpus.*
     - **⚠ THE ADOPTION LAW, after the assistant falsified its own first version.** *"Adopted iff a
       machine consumes it"* is **false** — five documented conventions with no consumer sit at
       97–100 % (journal filenames **118/118**, screenshot names **153/155**, `blogworthy`
@@ -4650,7 +4672,105 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-27 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-28 close (supersedes every earlier block)
+
+**Read first: `.claude/skills/doc-topology/SKILL.md`'s opening stop-block** (new, and it is the
+door to everything below), then `docs/design/corpus-knowledge-notebook.md` §§ 4–5, then
+`corrections.md` **#66 and #67**.
+
+### The one sentence that matters
+**We spent the session measuring our own docs problem and it is not the problem we thought.**
+**Staleness is 3–8 % of our recorded failures; ~85–91 % of them were wrong the day they were
+written.** So a stale-ref detector has a single-digit ceiling *by construction*, and the target is
+**assertion-time, not decay**. Two independent codings agree on every direction and differ on
+magnitudes by ~2×, with **43 % of entries ambiguous** — so every number is a band.
+
+### Shipped
+- **The bootstrap history content is REMOVED** (journal/0121, −713 Rust lines). Gate green on
+  merged main, **85 binaries / 808 passed / 0 failed**, reconciling exactly against 86/811 with all
+  three dropped tests named and confirmed absent.
+- **44 dangling cross-file pointers fixed** (the audit had estimated ~25 — it undercounted by 18,
+  and 4 were already wrong *before* the archive split).
+- **`corrections #67` — the first entry filed against another entry.** #40 was itself a
+  misdiagnosis.
+- **Three process fixes + the discoverability fix** (below), and the **push** standing instruction.
+
+### Ratified (user's terms)
+- **Keep `origin/main` up to date from here out** — *"push it and we'll continue to keep the remote
+  up to date from here out."* Standing authorisation; folded into `session-workflow` § Integration
+  and `wrap` § 10. *`origin` had sat 45 commits behind, 19 of them from before this session.*
+- **The docs diagnosis must be discoverable from a SKILL, not from CLAUDE.md** — *"if i tell an
+  agent the docs are a mess… this ought to be discoverable near immediately, in our process, likely
+  via an appropriate sounding skill that may already exist."* Done: `doc-topology`'s description now
+  names the trigger phrasings and its body opens with the four results. **CLAUDE.md deliberately
+  unchanged.**
+- **The five user-owed decisions are PARKED, not forgotten** — *"i won't muddy waters by addressing
+  that in this conversation."* § Sequenced → **USER DECISIONS OWED**, context inline.
+
+### Falsified — the assistant's own first
+- **My adoption law, falsified by me mid-session.** *"A convention is adopted iff a machine consumes
+  it"* — **false**: five documented conventions with **no** consumer sit at 97–100 %. What survives:
+  *a convention is adopted only if it is inseparable from something the author must do anyway, or is
+  the natural way to say the thing.* `JUSTIFIED-BY` (3 uses, 0 in `crates/`) vs `heir` (651).
+- **My staleness count was an overcount** — I said ~8 %, the independent re-coder found **3.0 %**,
+  in the direction that flatters tooling.
+- **My first reciprocity instrument reported `0/67`, which is impossible** (`\b` in a POSIX-ERE
+  grep). A 0 % that flattered the thesis was one publication away.
+- **I quoted my own single-coded figures as settled in this board for several hours after the
+  re-coding revised them** — the *summary-that-outran-its-source* shape, committed by the author of
+  the finding. Fixed at the wrap.
+- **`corrections #40`** (assistant, 2026-07-23): the seam audit did not paraphrase; it quoted the
+  comment *as it stood the day before*. **A stale READ, not a stale claim.** → #67.
+- **`corrections #66`** (the removal): *"the goldens will move and that is correct"* — **not one
+  moved.** *A pre-authorised golden move is indistinguishable from an unexplained one.*
+- **`#56` asserted, unstruck, exactly what `#60` withdraws**, 220 lines away, with **no `#60` token
+  anywhere in the file.** In the artifact whose whole job is recording falsified claims.
+
+### First things next session
+1. **RATE, with the creep limiter as its acceptance test** — unchanged and still the 🔴🔴🔴 top
+   blocker. Acceptance: concavity ACF(1) back toward **+0.38** with closed hollows at **zero**,
+   paired with a neighbour-relative measure (corrections #61). Brief must **name what the criterion
+   is NOT**. *It is also a live specimen of the "ratified-but-unbuilt" obligation class — authored
+   in prose, consequence named, untracked for four days while its absence produced the blocker.*
+2. **A decision on the knowledge layer, not more analysis.** Notebook § 5 proposes a **reciprocity
+   check** (assistant-originated, unratified): *does every artifact that supersedes another by name
+   carry a back-pointer?* Zero new authoring, 8 known failures. Or park it. **`stubs.md:22` forbids
+   designing the general mechanism first, and that binds this thread.**
+3. **A `doc-topology` sweep is due** — an arc shipped today and the skill's shape-6 check changed.
+
+### Gate
+**Green on merged main at `a378d47`** — fmt 0, clippy 0, **85 binaries (78 + 7 doc-tests) / 808
+passed / 0 failed / 3 ignored**, 0 errors/panics/FAILED, all four byte-identity goldens present by
+name and `ok`, `Checking`/`Compiling dc-worldgen` from **main's** path. Commits after it are
+docs-only.
+
+### ⚠ Owed / unverified
+- **I dispatched two agents WITHOUT `isolation: "worktree"`** — both ended up in the main checkout
+  and one nearly swept an untracked notebook into its commit. My error, twice. Pass `isolation`
+  explicitly.
+- **One re-coding claim I did NOT verify myself:** that #60's falsifier sits two sentences above the
+  claim in `journal/0111:119-129`. Four of its five I verified directly; this one rides on its
+  citation.
+- **The removal agent's gate/probe logs died with its worktree.** The numbers are in journal/0121
+  and the merge commit; the logs are not recoverable.
+- **Still not read, declared:** `north-star.md` bodies beyond §§ boundary→Deviations,
+  `material-behavior.md` § 5 at source, the domain-doc bodies, spikes, `ROADMAP-history.md`, and
+  individual journal entries other than 0119.
+- **Owed on the analysis:** a second reader on the § 3.5c coding rule *(one done — a third would
+  settle the 43 % ambiguity)*, and the 65 re-coded at § granularity.
+- **`JUSTIFIED-BY`'s fate is a main-session call** — `spines.md` § 5 left it there 2026-07-24 and
+  `spine-audit` check #4 still tells auditors to grep it. Today's number (3 uses, 0 in `crates/`)
+  argues for rewriting § 5 around the prose form, but § 4's rule binds me as much as an auditor.
+- **`erosion.rs` ~4,000 lines**, split sequenced not done. **File-size thresholds still the hook's
+  guesses.** **CI remains deleted.**
+
+### Running
+**Nothing.** All agents in, all worktrees removed, all branches deleted, working tree clean,
+**pushed — `main` == `origin/main`**, no held lock, port 7777 free.
+
+---
+
+## NEXT SESSION — written at the 2026-07-27 close (SUPERSEDED by the block above)
 
 **Read first: `journal/0116` and `journal/0119`.** The erosion blocker is localised, and the
 pass architecture changed underneath it. Then `ARCHITECTURE.md` § *The engine is
