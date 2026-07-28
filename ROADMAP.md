@@ -556,11 +556,29 @@ see the question you are asking.
   ecology carve-out, the field-solver framing, the two ORDER strikes, the S-/A- undercount,
   the CLAUDE.md trust-tier line). **The rest are owed, and are recorded here rather than
   left in an audit nobody re-opens:**
-  - **Mechanical, no user call:** ~25 dangling cross-file pointers created by the
-    ROADMAP/history split (16 `"see § Shipped"` in `ROADMAP.md`, 9 the other way, plus one
-    orphan pointing "above" at a block 3,800 lines below it). *Caused by this session; not
-    cleaned by it.*
-  - **`flow.md:715` puts a RATIFIED stamp on a scheduler model that was retired** 2026-07-26.
+  - **✅ DONE 2026-07-28 — the dangling cross-file pointers.** The audit estimated *"~25"*;
+    the real count is **43 pointers at 42 sites**, all fixed. **22** `"see § Shipped"` in
+    `ROADMAP.md` (audit said 16) · **19** the other way in `ROADMAP-history.md` (audit said 9,
+    and three of them — the `NEEDS RATIFICATION (below, § Sequenced)` markers on the
+    2026-07-20 erodibility / water / biotic entries — were already directionally wrong
+    *before* the split) · the `:515` orphan · plus one the audit did not list, `:3421`'s
+    *"Sequenced below"* read from inside § Observed. **The audit undercounted by 17.**
+    - The `:515` orphan is *attributed*, not guessed: the block it meant was the **2026-07-21
+      close block** (verified at `34d88f2`, where it sat 19 lines above), and that block was
+      consumed by its successors rather than archived — so it exists nowhere, and the line now
+      says so instead of pointing at a block 3,800 lines the other way.
+    - **The retargets are addresses only.** No claim was resolved and no contradiction
+      adjudicated. Where a Shipped entry has a **journal number** it is kept as the stable
+      pointer, per the archive's own design.
+  - **✅ DONE 2026-07-28 — `flow.md:715`'s RATIFIED stamp.** The stamp is legitimate for
+    § 11's WINDOW decision (DECIDED 2026-07-25, user); what wrongly inherited it was the
+    *setup sentence* characterising the other two axes. The ORDER half is now **struck and
+    marked SUPERSEDED 2026-07-26**, in the shape `material-behavior.md` § 5's ORDER bullet
+    already uses, with a note on why § 11.1's argument survives the strike (it needs only
+    that the scheduler had **no name for the window**, which holds either way).
+    *Still open from the same finding (#15), deliberately not taken here:* `flow.md:459` and
+    `material-behavior.md:367-369` carry the same `ORDER (topo-sort)` framing **without** a
+    ratification stamp.
   - **`spines.md:1048` + `stubs.md:30-40` still schedule heirs for the bootstrap content the
     user decided to REMOVE.** These should resolve into the removal slice, not survive it.
   - **The ABI spike is described as "locking the SDK shape"** — contested by north-star

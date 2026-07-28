@@ -492,8 +492,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
     `flux.rs` and applied one level up, not designed.
   - **OWED / next lever (filed, not done):** `DeepField::strata` is the same shape and bigger —
     `Vec<DeepStrata>` is **9.06 MiB of 32-byte structs** (5.8 % of the flag-off field) over an
-    84.47 MiB heap, with **33,680 cells (11.3 %) holding an empty record**. See `ROADMAP.md`
-    § Observed, *"the SAME lever, one record over"*.
+    84.47 MiB heap, with **33,680 cells (11.3 %) holding an empty record**. See `ROADMAP.md` § Observed, *"the SAME lever, one record over"*.
 - 2026-07-25 — **The measurement instruments are in the gate, and the front's mass claim is
   settled** (journal/0103; background agent, worktree; corrections #50). Two halves of one thing:
   a gate that could not see its instruments fail, and a mass number that was wrong because nobody
@@ -1629,8 +1628,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   signature/hint/live-completion verified working (driven via OS keystroke
   injection — the console has no MCP door, only real KeyboardInput);
   `--edges` re-confirmed moiré-free at range; circulation surfaced the
-  finding now in `ROADMAP.md` § Observed (corrections #22 — the Hadley
-  desert-belt entry). Six assets `0038-*`.
+  finding now in `ROADMAP.md` § Observed (corrections #22). Six assets `0038-*`.
 
 - 2026-07-20 — **Zonal circulation profile** (journal/0037, session-4
   background agent; gates green on merged main). The `wind_dx` sign bit is
