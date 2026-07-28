@@ -274,7 +274,8 @@ none is zero — given time, the least-impossible move accumulates and a path op
 ## 5. Passes — two shapes: cellular and field
 
 A pass declares itself (`{reads, writes}`, cadence, epoch) and runs through the
-pass-runner (topo-sorted, cycles rejected). Two shapes:
+pass-runner (~~topo-sorted~~ **authored order, validated** — superseded 2026-07-26,
+see § 5's ORDER bullet and corrections #65; cycles still rejected). Two shapes:
 
 - **Cellular passes RUN EDGES** — move material between forms in the inventory.
   Output = **changed material state**. Local (bounded halo). **Agents fold into

@@ -21,8 +21,12 @@ read live, never when it gets old.**
 
 - **THE NORTH STAR — the engine shape everything converges to (RATIFIED
   2026-07-23; `docs/design/north-star.md`; now CLAUDE.md read-first item 0).**
-  A **native** engine whose core is only cell storage + a pass-runner + native
-  field-solvers + a stable API surface; materials (sheet + behavior slots +
+  A **native** engine whose core is only cell storage + a pass-runner +
+  field-solver **primitives** + a stable API surface — *every pass is content,
+  including tectonics and erosion*, and **pass ORDER is authored per world**
+  (`ARCHITECTURE.md`, DECIDED 2026-07-26). *(This line read "native
+  field-solvers" until 2026-07-26; that framing was retired 2026-07-23 and the
+  copy here outlived it — doc-topology finding #2.)* Materials (sheet + behavior slots +
   parent-shadowing hierarchy + slug→assets — the `Providers` pattern dropped to
   material level), their behavior, and the passes over them are **authored in a
   uniform, self-declaring, compiler-validated shape and tuned by data**. Behavior

@@ -1,5 +1,19 @@
 # Ecology, organisms, and evolution
 
+> **⚠ DORMANT SINCE AUTHORING — REVISIT BEFORE BUILDING ON THIS (2026-07-26, user).**
+> This remains a **ratified user design**; `CLAUDE.md`'s *existence-is-not-standing*
+> doctrine targets **unratified bootstrap content** and has **no authority here**. (An
+> earlier draft of that doctrine wrongly listed "ecology" among the things we have no
+> design for — an assistant insertion, corrected the same day.) But the conversation has
+> been **dormant since 2026-07-19 and is at risk of going stale**: the project is not
+> aiming at it while it solves **non-bio earth processes**, and the architecture has moved
+> substantially underneath it — the north star ratified 2026-07-23, the material/behaviour
+> substrate, and **2026-07-26's plugin-agnostic + authored-order decision**, which changes
+> what "a pass" even is. **The design should be revisited in light of those evolutions, and
+> is open to reconsideration by the user as the project's philosophy has matured.** Four
+> `stubs.md` entries name ecology as their heir; they are not invalidated, but they inherit
+> this caveat.
+
 Status: substrate RATIFIED 2026-07-19 (user: "this reads absolutely
 right"); the evolution architecture below is the USER'S DESIGN, recorded
 2026-07-19 as the frame to build toward (not v1, but v1 must not foreclose

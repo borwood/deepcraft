@@ -6,11 +6,16 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
 
 0. **[`docs/design/north-star.md`](docs/design/north-star.md)** — the **engine
    shape everything converges to** (ratified 2026-07-23): a native engine whose
-   core is cell storage + a pass-runner + native field-solvers + a stable API,
-   with materials, their behavior, and the passes over them **authored in a
+   core is cell storage + a pass-runner + field-solver **primitives** + a stable
+   API, with materials, their behavior, and the passes over them **authored in a
    uniform, self-declaring, compiler-validated shape and tuned by data** —
-   plugin-first, safely moddable by untrusted third parties (native `abi_stable`
-   for trusted, WASM sandbox for untrusted, **one authoring shape**). It is the
+   plugin-first and moddable by third parties, **one authoring shape**. *Every
+   pass is content, including tectonics and erosion*; **pass ORDER is authored
+   per world** (ARCHITECTURE.md, DECIDED 2026-07-26). **The trusted/untrusted
+   split and the ABI/WASM backend tiering are DEFERRED** — north-star §
+   Deviations 1, *"paused until we are anywhere near having modders"*; there is
+   **no difference in permission between native and WASM**, so never justify a
+   core/content placement by trust. It is the
    *destination*, pursued **evolutionarily** via seam-first conversions. **All
    design flows through it; divergence is a loud plea, never silent** (§
    Compliance). It is the strategic companion to spines — read both first.

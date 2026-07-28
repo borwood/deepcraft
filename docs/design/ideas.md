@@ -529,14 +529,30 @@ overlay is the named heir; do not build it now, but do not foreclose it.
 
 **RECONCILED 2026-07-24 → `material-behavior.md` §5 (Cadence: order × rate × window).** The
 scheduler is ~~**two orthogonal axes**~~ **three** (a third was ratified 2026-07-25, below):
-topo-sorted **ORDER** (derived from a pass's
-reads/writes) × fractional-phase **RATE** (`dt` = phase length) × the aggregation **WINDOW**
+~~topo-sorted **ORDER** (derived from a pass's reads/writes)~~ **ORDER — AUTHORED,
+PER WORLD** × fractional-phase **RATE** (`dt` = phase length) × the aggregation **WINDOW**
 (how many epochs sum into one record entry — `flow.md` § 11.1, RATIFIED 2026-07-25; RATE is a
 *sampling* rate, WINDOW is the record's *time granularity*). This sketch is the
-**RATE** axis — it *composes with* topo-sort, is not replaced by it — and the
+**RATE** axis — and the
 sub-chapter multi-rate (weathering ×5 while tectonics ×1) is preserved as the whole
 point. `dt` = phase length is the `rate × dt` S16 already assumed. Sketch retained
 below as the origin.
+
+> **⚠ THE ORDER HALF OF THIS SKETCH WAS RESTORED 2026-07-26** (user; `ARCHITECTURE.md`
+> § *The engine is plugin-agnostic, and pass ORDER is authored*; **corrections #65**).
+> The 2026-07-24 reconciliation replaced this sketch's *"canonical start order"* with a
+> topo-sort — **and that was a reconciliation, never a contested decision.** It was
+> falsified by `journal/0090`'s own summary: a linear relaxation pipeline *"does **not**
+> fall out of a dataflow graph for free — you have to name each revision as a distinct
+> resource."* **The order never fell out of the declarations; it was fed in**, as the seven
+> `DeepAxis` revision tokens. `{reads, writes}` are now the **validator**, not the
+> generator. **RATE was the half that survived reconciliation** — ratified, still unbuilt,
+> and now the lead sequenced item with the erosion blocker as its first consumer.
+> **WINDOW is unaffected.**
+>
+> *This note was written only after the user confirmed the wording: correcting the doc that
+> holds the user's own design is itself the move the new supersession rule guards against,
+> which is why the sweep flagged it rather than fixing it.*
 
 Carried forward to compare against the actual deep-sim loop and discuss next
 session; ~~not yet reconciled with how deeptime runs today~~ (reconciled, above). For

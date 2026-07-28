@@ -17,11 +17,29 @@ never silent** (§ Compliance). It is the strategic companion to
 
 ## The one-sentence shape
 
-A **native** engine whose core is only **cell storage + a pass-runner + a small
-set of native field-solvers + a stable API surface**; everything else —
+A **native** engine whose core is only **cell storage + a pass-runner +
+~~a small set of native field-solvers~~ field-solver PRIMITIVES + a stable API
+surface**; everything else —
 materials, their behavior, and the passes that manipulate them — is **authored in
 a uniform, self-declaring, compiler-validated shape and tuned by data.** Utterly
-consistent, plugin-first, and safely moddable by *untrusted* third parties.
+consistent, plugin-first, and safely moddable by third parties.
+
+> **⚠ "NATIVE FIELD-SOLVERS ARE CORE" WAS RETIRED 2026-07-23** by § *The core/plugin
+> boundary*, which says so twice — *"that sentence conflated compute shape with trust
+> tier"* — and **this opening line was never updated to match**, so two read-first surfaces
+> copied the retired version forward (caught by the first `doc-topology` sweep, 2026-07-26).
+> **The retirement became load-bearing on 2026-07-26** (user; `ARCHITECTURE.md` § *The
+> engine is plugin-agnostic, and pass ORDER is authored*): **plugin-agnostic is the start
+> and end of the conversation, and tectonics and erosion come from PLUGINS.** The core holds
+> **primitives, not solvers** — the numerical kernels are core; every pass that calls them,
+> including tectonics and erosion, is **content**.
+>
+> **A field pass may execute through a native backend for PERFORMANCE.** That is a
+> **compute-shape** choice and **not a permission tier**: *there is no difference in
+> permission between native and WASM* (user, 2026-07-26), and the **trust mechanism and
+> boundary are DEFERRED** — § *Deviations* 1, *"paused until we are anywhere near having
+> modders."* Do not justify a core/content placement by trust; that is the exact conflation
+> the 2026-07-23 retirement removed.
 
 ## Native, not interpreted — the medium is not the shape
 
@@ -153,7 +171,11 @@ pointer + a slug**:
 
 A pass **declares itself**: `{reads, writes}` over the cell/world/material API,
 its **cadence** (runs per unit of deep-time), its **epoch**, and a `run(ctx)`
-body. The runner topo-sorts by declared reads/writes and rejects conflicts.
+body. ~~The runner topo-sorts by declared reads/writes and rejects conflicts.~~
+**SUPERSEDED 2026-07-26 (user) — ORDER IS AUTHORED, PER WORLD**; `{reads, writes}`
+became the **validator**, not the generator (`ARCHITECTURE.md` § *The engine is
+plugin-agnostic, and pass ORDER is authored*; **corrections #65**, which names *this
+section* as one of three sites of the falsified claim).
 
 Two **shapes**, one interface — **both are content** (2026-07-23 refinement):
 - **cellular passes** — per-cell select-and-transform ("select materials
