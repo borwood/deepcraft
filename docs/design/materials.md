@@ -341,7 +341,8 @@ ARCHITECTURE.md states the invariant for "every voxel". As built it is scoped:
 Voxels the generator never gave a contents record are **unclassified, not
 classified as Air**: air above the surface, the surface-veneer stub block
 (stubs.md § 2), the legacy soil band and unrecorded basement below the
-deep-time record, ocean floor, the border wilds, and ruin posts. `classify`
+deep-time record, ocean floor, and the border wilds ~~, and ruin posts~~ (**the
+ruin posts were deleted 2026-07-28**, journal/0121). `classify`
 does answer `Block::Air` for empty contents, but the generator does not apply
 it there. The exception is *enumerated and pinned by test* — a geology block
 appearing without a record fails the suite — so it can only shrink, and it

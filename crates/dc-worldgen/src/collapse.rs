@@ -10,7 +10,9 @@
 //! Two instantiations of the rule live here:
 //!
 //! - **Semantic records** ([`RegionRec`], [`LocaleRec`], [`ColumnRec`]):
-//!   rivers, sites/ruins, the civilized-fringe flag. Each record is built
+//!   rivers and the civilized-fringe flag. *Settlement sites and their ruin
+//!   posts also rode these records until 2026-07-28 (journal/0121), when the
+//!   bootstrap history content was removed; nothing stands in for them.* Each record is built
 //!   from its own base state, a summary over its 1-ring neighbours' base
 //!   states, and its collapsed parent (regions parent to pregen cells).
 //! - **The elevation lattice**: midpoint-displacement refinement over
@@ -27,7 +29,7 @@
 //! independent of position, extent, and cache warmth.
 //!
 //! **Border wilds**: outside the pregen grid the pyramid keeps running on
-//! synthesized cell views ([`Pregen::cell_view`]) — no history, hostile
+//! synthesized cell views ([`Pregen::cell_view`]) — hostile
 //! parameters, forever. There is no separate wilds code path below the cell
 //! level; that is the point.
 
@@ -44,7 +46,7 @@ use dc_core::{
 };
 use dc_sim::statistical::rng::Draws;
 
-use crate::draws::{Elev, GeoClass, GeoSelect, Ruin, interp_corner_field};
+use crate::draws::{Elev, GeoClass, GeoSelect, interp_corner_field};
 use crate::fill::{
     ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
 };
@@ -154,21 +156,11 @@ const BANK: f64 = 16.0;
 /// Maximum horizontal reach of a river's influence (voxels).
 const RIVER_REACH: f64 = 40.0 + BANK;
 
-/// A settlement footprint the lazy layer can see (position + fate).
-#[derive(Debug, Clone, Copy, PartialEq)]
-struct SiteSpot {
-    id: u32,
-    x: i64,
-    z: i64,
-    abandoned: bool,
-}
-
 /// Base state of a region: a pure function of (seed, coords, parent cell
 /// neighbourhood). No recursion into other regions.
 struct RegionBase {
     civilized: bool,
     segs: Vec<RiverSeg>,
-    site: Option<SiteSpot>,
 }
 
 /// Collapsed region: base + 1-ring base summary + parent (pregen cell).
@@ -176,25 +168,21 @@ pub struct RegionRec {
     /// Civilized region bordering the wilds (from the 1-ring base summary).
     fringe: bool,
     segs: Vec<RiverSeg>,
-    site: Option<SiteSpot>,
 }
 
 struct LocaleBase {
     fringe: bool,
     segs: Vec<RiverSeg>,
-    sites: Vec<SiteSpot>,
 }
 
-/// Collapsed locale: base + 1-ring base summary (neighbouring locales'
-/// sites, whose footprints may cross the boundary) + parent region.
+/// Collapsed locale: base + 1-ring base summary + parent region.
 pub struct LocaleRec {
     fringe: bool,
     segs: Vec<RiverSeg>,
-    sites: Vec<SiteSpot>,
 }
 
 /// Collapsed chunk-column: the 32×32 voxel-column surface of one chunk
-/// footprint — heights, surface blocks, soil depth, ruin posts.
+/// footprint — heights, surface blocks, soil depth.
 pub struct ColumnRec {
     /// Surface voxel y per voxel column, indexed `z * 32 + x`.
     pub heights: Vec<i32>,
@@ -204,8 +192,6 @@ pub struct ColumnRec {
     /// precip rule). Applies where no strata pass deposited (ocean, wilds);
     /// **may be 0**, which is a column with bedrock at the surface.
     pub soil: u8,
-    /// Ruin posts: (local x, local z, post height in voxels).
-    pub posts: Vec<(u8, u8, u8)>,
     /// True when generated beyond the pregen grid (border wilds).
     pub wilds: bool,
     /// The ordered deposition log (geology strata passes). Empty where no
@@ -285,7 +271,6 @@ pub struct WorldGenerator<'a> {
     /// Region-scale mixture intern table (S8 `materials/mixtures-v0` path);
     /// ids are first-intern order, deterministic given generation order.
     materials: MixtureTable,
-    sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>>,
     lattice_memo: HashMap<(u8, i64, i64), (f64, f64)>,
     region_cache: HashMap<(i64, i64), Arc<RegionRec>>,
     locale_cache: HashMap<(i64, i64), Arc<LocaleRec>>,
@@ -357,18 +342,6 @@ impl<'a> WorldGenerator<'a> {
 
     fn assemble(pregen: PregenSource<'a>, geology: GeologySet) -> Self {
         let scale = VoxelScale::from_player_height(1.8, 2); // N=2: 0.9 m voxels
-        let mut sites_by_cell: HashMap<(i32, i32), Vec<SiteSpot>> = HashMap::new();
-        for s in &pregen.sites {
-            sites_by_cell.entry(s.cell).or_default().push(SiteSpot {
-                id: s.slot,
-                x: s.pos.0,
-                z: s.pos.1,
-                abandoned: s.abandoned.is_some(),
-            });
-        }
-        for spots in sites_by_cell.values_mut() {
-            spots.sort_by_key(|s| s.id);
-        }
         let seed = pregen.seed;
         Self {
             pregen,
@@ -377,7 +350,6 @@ impl<'a> WorldGenerator<'a> {
             geology,
             providers: crate::deeptime::providers::Providers::default(),
             materials: MixtureTable::new(),
-            sites_by_cell,
             lattice_memo: HashMap::new(),
             region_cache: HashMap::new(),
             locale_cache: HashMap::new(),
@@ -471,21 +443,6 @@ impl<'a> WorldGenerator<'a> {
                     if b != Block::Air {
                         chunk.set(x, y, z, b);
                     }
-                }
-            }
-        }
-        for &(px, pz, ph) in &col.posts {
-            let i = usize::from(pz) * 32 + usize::from(px);
-            let h = i64::from(col.heights[i]);
-            for dy in 1..=i64::from(ph) {
-                let vy = h + dy;
-                if vy >= base_y && vy < base_y + 32 {
-                    chunk.set(
-                        usize::from(px),
-                        (vy - base_y) as usize,
-                        usize::from(pz),
-                        Block::Wood,
-                    );
                 }
             }
         }
@@ -1271,7 +1228,6 @@ impl<'a> WorldGenerator<'a> {
         let rec = Arc::new(RegionRec {
             fringe: base.civilized && wilds_adjacent,
             segs,
-            site: base.site,
         });
         self.region_cache.insert((rx, rz), rec.clone());
         rec
@@ -1323,23 +1279,7 @@ impl<'a> WorldGenerator<'a> {
                 });
             }
         }
-        // The parent cell's site, if its centre falls inside this region.
-        let site = (i32::try_from(gx).ok())
-            .zip(i32::try_from(gy).ok())
-            .and_then(|key| self.sites_by_cell.get(&key))
-            .and_then(|spots| {
-                spots
-                    .iter()
-                    .find(|s| {
-                        s.x >= vx0 && s.x < vx0 + region_vox && s.z >= vz0 && s.z < vz0 + region_vox
-                    })
-                    .copied()
-            });
-        RegionBase {
-            civilized,
-            segs,
-            site,
-        }
+        RegionBase { civilized, segs }
     }
 
     fn locale(&mut self, lx: i64, lz: i64) -> Arc<LocaleRec> {
@@ -1348,26 +1288,9 @@ impl<'a> WorldGenerator<'a> {
             return l.clone();
         }
         let base = self.locale_base(lx, lz);
-        // 1-ring base summary: neighbouring locales' sites whose footprints
-        // may cross into this locale.
-        let mut sites = base.sites;
-        for dz in -1i64..=1 {
-            for dx in -1i64..=1 {
-                if dx == 0 && dz == 0 {
-                    continue;
-                }
-                for s in self.locale_base(lx + dx, lz + dz).sites {
-                    if !sites.iter().any(|t| t.id == s.id) {
-                        sites.push(s);
-                    }
-                }
-            }
-        }
-        sites.sort_by_key(|s| s.id);
         let rec = Arc::new(LocaleRec {
             fringe: base.fringe,
             segs: base.segs,
-            sites,
         });
         self.locale_cache.insert((lx, lz), rec.clone());
         rec
@@ -1387,22 +1310,9 @@ impl<'a> WorldGenerator<'a> {
             .filter(|s| seg_point_dist(s, cx, cz) <= 362.0 + RIVER_REACH + 12.0)
             .copied()
             .collect();
-        let margin = 64i64;
-        let sites = parent
-            .site
-            .iter()
-            .filter(|s| {
-                s.x >= vx0 - margin
-                    && s.x < vx0 + 512 + margin
-                    && s.z >= vz0 - margin
-                    && s.z < vz0 + 512 + margin
-            })
-            .copied()
-            .collect();
         LocaleBase {
             fringe: parent.fringe,
             segs,
-            sites,
         }
     }
 
@@ -1466,8 +1376,6 @@ impl<'a> WorldGenerator<'a> {
                 surface_eighths[i] = (frac * 8.0).ceil().clamp(1.0, 8.0) as u8;
             }
         }
-        let posts = self.ruin_posts(cx, cz, &locale);
-
         // ---- geology strata passes (collapse phase, bounded context) ----
         // Provenance of the parent cell (already in this column's 1-ring
         // climate consult set; traced for the lookahead instrumentation).
@@ -1562,46 +1470,12 @@ impl<'a> WorldGenerator<'a> {
             heights,
             surface,
             soil,
-            posts,
             wilds,
             strata,
             surface_eighths,
         });
         self.column_cache.insert((cx, cz), rec.clone());
         rec
-    }
-
-    /// Ruin posts from abandoned sites: committed pregen history, visible in
-    /// the terrain. Each post is a point, so it lands in exactly one column.
-    ///
-    /// **STUB (docs/design/stubs.md § 1 — LOUDLY TEMPORARY).** The
-    /// *abandonment fact* is real ledger; the *posts* are a rule-of-thumb
-    /// stand-in for what an abandoned settlement leaves behind. Heir: the
-    /// social sim + ecology (dwarf-fortress-class civilization history — a
-    /// post gets there because someone put it there). Culture-related
-    /// artifacts are placeholder wholesale; do not bandaid, do not extend,
-    /// until ecology lands and the social sim gets its design pass.
-    fn ruin_posts(&self, cx: i64, cz: i64, locale: &LocaleRec) -> Vec<(u8, u8, u8)> {
-        let (vx0, vz0) = (cx * 32, cz * 32);
-        let mut posts = Vec::new();
-        for s in &locale.sites {
-            if !s.abandoned {
-                continue;
-            }
-            for k in 0..10u64 {
-                let ang = Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 0])
-                    * std::f64::consts::TAU;
-                let r = 6.0 + 12.0 * Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 1]);
-                let px = s.x + (r * ang.cos()) as i64;
-                let pz = s.z + (r * ang.sin()) as i64;
-                if px >= vx0 && px < vx0 + 32 && pz >= vz0 && pz < vz0 + 32 {
-                    let h = 2
-                        + (Draws::of::<Ruin>(self.seed).unit(&[u64::from(s.id), k, 2]) * 2.0) as u8;
-                    posts.push(((px - vx0) as u8, (pz - vz0) as u8, h));
-                }
-            }
-        }
-        posts
     }
 }
 
@@ -2359,7 +2233,8 @@ mod tests {
         });
         let mut g = WorldGenerator::new(&pregen);
         // The surfaced material's content class — NOT the Air/Dirt/Stone fallback
-        // vocabulary, NOT ruin Wood. Intra-cell variation among these classes is
+        // vocabulary. (It used to say "NOT ruin Wood" too; there are no ruin
+        // posts since journal/0121.) Intra-cell variation among these classes is
         // the class dither (member variation within one class is NOT).
         let geo_class = |b: Block| -> Option<u8> {
             let Block::Material(m) = b else { return None };

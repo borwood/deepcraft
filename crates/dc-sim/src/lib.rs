@@ -14,8 +14,13 @@
 //!   synthesized boundary conditions at the frontier (no global cascades).
 //!
 //! Rules: headless, deterministic (no wall clock, no ambient randomness — all
-//! entropy flows from seeds owned by the caller). Deep-time worldgen history is
-//! this same crate run over pre-player time, driven by dc-worldgen.
+//! entropy flows from seeds owned by the caller).
+//!
+//! **The statistical tier has no production consumer** (2026-07-28,
+//! journal/0121, spines § 3). It used to have exactly one: dc-worldgen ran this
+//! crate over pre-player time to forward-simulate a settlement history, which
+//! was removed as unratified bootstrap content. What dc-worldgen still uses from
+//! here is [`statistical::rng`] — the draw provider — and nothing else.
 
 pub const CRATE_ROLE: &str = "tiered simulation + constraint ledger";
 

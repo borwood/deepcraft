@@ -7,11 +7,16 @@
 //! 2. [`climate`] — latitude bands, prevailing winds, orographic
 //!    precipitation and rain shadow;
 //! 3. [`hydrology`] — priority-flood depression filling, flow graph,
-//!    discharge accumulation; every river reaches the sea *by construction*;
-//! 4. [`history`] — a thin settlement/expansion/conflict sim over
-//!    [`history::NUM_EPOCHS`] epochs, run against dc-sim's statistical tier
-//!    (site pressures are collapsed via `engine::observe`) and committed as
-//!    facts into the S2 constraint ledger.
+//!    discharge accumulation; every river reaches the sea *by construction*.
+//!
+//! **There used to be a fourth stage** — a thin settlement / expansion /
+//! conflict sim over 12 epochs, committing site and polity facts into the S2
+//! constraint ledger, expressed in the world as scattered wood ruin posts.
+//! It was **removed 2026-07-28** (journal/0121, DECIDED 2026-07-26 by the
+//! user): unratified early-bootstrap fabrication, with no evo/socia/civ model
+//! behind it even at the design stage, awaiting wholesale replacement.
+//! *Existence is not standing* (CLAUDE.md § Conventions). Nothing here stands
+//! in for it — the absence is the honest state.
 //!
 //! **Topology: continent-disc in a world-ocean** (the S7 recommendation, see
 //! docs/spikes/S7-results.md for the rationale). The square cell grid is
@@ -24,17 +29,13 @@
 //! entropy, no iteration-order dependence.
 
 pub mod climate;
-pub mod history;
 pub mod hydrology;
 pub mod tectonics;
 
 use dc_sim::statistical::rng::Draws;
-use dc_sim::statistical::{Ledger, ToyWorld};
 
 use crate::draws::Wilds;
 use serde::{Deserialize, Serialize};
-
-pub use history::{SiteSummary, YEAR_ZERO_TICK};
 
 /// Chunks per coarse-cell edge: 512 · 28.8 m = 14.7456 km.
 pub const CELL_CHUNKS: i64 = 512;
@@ -228,8 +229,8 @@ pub fn temp_sea_level(lat_deg: f64) -> f64 {
 
 /// What the lazy pyramid needs to know about any cell coordinate — a real
 /// pregenerated cell inside the grid, or a synthesized border-wilds cell
-/// outside it. Wilds cells have no history and hostile parameters; they are a
-/// pure function of `(seed, coords)` and extend forever.
+/// outside it. Wilds cells carry hostile parameters; they are a pure function
+/// of `(seed, coords)` and extend forever.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CellView {
     pub elev_m: f64,
@@ -240,19 +241,12 @@ pub struct CellView {
     pub wilds: bool,
 }
 
-/// Everything world creation produced: the coarse grid, the committed-fact
-/// ledger (settlement history), the statistical-tier overlay world the live
-/// sim keeps querying after year zero, and site summaries for the lazy layer.
+/// Everything world creation produced: the coarse grid, the validated pass
+/// graph, and the deep-time field.
 pub struct Pregen {
     pub seed: u64,
     pub extent: Extent,
     pub grid: CellGrid,
-    pub ledger: Ledger,
-    pub overlay: ToyWorld,
-    pub sites: Vec<SiteSummary>,
-    pub n_polities: u32,
-    /// Number of `engine::observe` collapses the history pass performed.
-    pub observe_count: u32,
     /// The validated pass graph this world was built with; the lazy layer
     /// runs its collapse-phase (strata) passes per column.
     pub pipeline: crate::pipeline::Pipeline,
@@ -268,7 +262,7 @@ impl Pregen {
     /// The pregen stages are no longer a hand-ordered list: the vanilla
     /// pass graph ([`crate::pipeline::Pipeline::vanilla`]) topo-sorts them
     /// from their declared reads/writes; the declarations force exactly the
-    /// legacy tectonics → climate → hydrology → history order, so this is
+    /// legacy tectonics → climate → hydrology order, so this is
     /// output-preserving (S7 byte-identity tests prove it).
     pub fn run(params: WorldParams) -> Self {
         Self::run_with(params, &crate::deeptime::DeepOverrides::default())
@@ -285,31 +279,19 @@ impl Pregen {
             seed: params.seed,
             w: params.extent.cells(),
             grid: None,
-            history: None,
             deep: None,
             deep_overrides: *overrides,
         };
         pipeline.run_pregen(&mut ctx);
         let grid = ctx.grid.expect("tectonics pass creates the grid");
-        let history = ctx.history.expect("history pass runs");
         let deep = ctx.deep.expect("deep-time pass runs");
         Self {
             seed: params.seed,
             extent: params.extent,
             grid,
-            ledger: history.ledger,
-            overlay: history.overlay,
-            sites: history.sites,
-            n_polities: history.n_polities,
-            observe_count: history.observe_count,
             pipeline,
             deep,
         }
-    }
-
-    /// The sim tick at which pregenerated history ends and live play begins.
-    pub fn year_zero(&self) -> u32 {
-        YEAR_ZERO_TICK
     }
 
     /// The cell view for any cell coordinate — pregen inside the grid, wilds
@@ -330,7 +312,7 @@ impl Pregen {
                 wilds: false,
             };
         }
-        // Border wilds: unbounded, hostile, historyless.
+        // Border wilds: unbounded and hostile.
         let w = self.grid.w;
         let lat = latitude_deg(w, gy as f64 + 0.5);
         let noise = Draws::of::<Wilds>(self.seed).unit(&[gx as u64, gy as u64]);
@@ -362,10 +344,14 @@ impl Pregen {
 
     /// Rough resident footprint of the pregen output (struct payloads only;
     /// the honest "what the pause bought you" number for the size knob).
+    ///
+    /// **Two terms left 2026-07-28** with the history pass (journal/0121): the
+    /// fact ledger and the site summaries. On production-Medium they were
+    /// 4,896 + 624 = **5,520 bytes of 377,364,589** — 0.0015 %. The measurement
+    /// is unchanged in every digit that mattered, which is itself the finding:
+    /// this function was the *only* production reader of the ledger, and what it
+    /// read was the ledger's size.
     pub fn approx_resident_bytes(&self) -> usize {
-        self.grid.cells.len() * std::mem::size_of::<Cell>()
-            + self.ledger.len() * std::mem::size_of::<dc_sim::statistical::Fact>()
-            + self.sites.len() * std::mem::size_of::<SiteSummary>()
-            + self.deep.resident_bytes()
+        self.grid.cells.len() * std::mem::size_of::<Cell>() + self.deep.resident_bytes()
     }
 }

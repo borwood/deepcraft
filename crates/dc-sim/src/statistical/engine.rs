@@ -324,10 +324,18 @@ fn simulate_sample(
             // **NOT YET ON THE PROVIDER** (journal/0105). This address puts the
             // sample index `k` *before* the domain, so routing it through
             // `Draws::of` — which fixes the domain at slot 2 — would change the
-            // key and re-roll every world's history layer. The salt still has
-            // exactly one spelling (the domain list); moving the two step draws
-            // onto `Draws` is a deliberate world-moving change, sequenced
-            // separately. See ROADMAP Sequenced.
+            // key. The salt still has exactly one spelling (the domain list).
+            //
+            // **The reason this was a world-MOVING change expired 2026-07-28**
+            // (journal/0121). It used to read "would re-roll every world's
+            // history layer", and that was true: the only production caller of
+            // this engine was dc-worldgen's bootstrap settlement-history pass,
+            // whose sacked sites reached the screen as wood ruin posts. That
+            // pass and its content are **removed**. Nothing in production calls
+            // `observe`/`query` any more (spines § 3), so re-addressing these two
+            // draws now moves **no world and no golden** — only this crate's own
+            // s2 suites. Converting them is free housekeeping whenever someone
+            // holds this file; it is no longer a user-owned appearance slice.
             let u = draw_f64(&[
                 seed,
                 k,
@@ -351,7 +359,10 @@ fn simulate_sample(
                 weight *= mass;
             }
             let total: f64 = dist.iter().map(|(_, p)| p).sum();
-            // Same carve-out as the region step above (journal/0105).
+            // Same carve-out as the region step above (journal/0105) — and this
+            // one never re-rolled anything even before 2026-07-28: the pregen
+            // overlay was built with an empty `agent_home`, so this loop only
+            // ever executed inside this crate's tests (corrections #64).
             let u = draw_f64(&[
                 seed,
                 k,

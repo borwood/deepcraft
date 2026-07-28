@@ -8,6 +8,13 @@
 //! with frontier synthesis — are the deliverable; the toy world itself is
 //! disposable.
 //!
+//! **Nothing in production calls this module's engine** (2026-07-28,
+//! journal/0121). Its one caller — dc-worldgen's bootstrap settlement-history
+//! pass — was removed as unratified content, and the S2 *shapes* named above are
+//! instanced elsewhere in the tree (spines § S-2, § S-9) rather than here. The
+//! sibling [`rng`] module is a different matter entirely: it is the workspace's
+//! draw provider and is on every worldgen path.
+//!
 //! Entry points:
 //! - [`world::ToyWorld`]: region graph + agents + transition model.
 //! - [`ledger::Ledger`]: append-only committed facts.

@@ -10,6 +10,16 @@ an answer some other system will eventually own?"*
 
 **Count**: 34 seams. 9 confirmed from the seed set, 25 found by sweep.
 
+> **⚠ FOUR OF THE FIVE "SOCIAL SIM" SEAMS NO LONGER EXIST (2026-07-28,
+> journal/0121).** Seams **30, 31, 34** and the whole of § 4's premise were sites
+> inside `pregen/history.rs` / `collapse.rs::ruin_posts`, **removed** on the
+> user's 2026-07-26 direction as unratified bootstrap content. Seams **32** and
+> **33** still exist as code but are inside dc-sim's S2 statistical tier, which
+> now has **zero production consumers** (spines § 3). **This audit is a dated
+> snapshot and is not renumbered** — later docs cite "34 seams" and that count is
+> this audit's, not today's. Live seams: **31**, not 34. § 4 is now 1 nominal seam
+> (33's `base_danger`, unreached) rather than 5.
+
 **Vocabulary used below**
 - *granularity* **pass-level** = a whole field/plane; fits the existing
   `pipeline::Resource` vocabulary (`crates/dc-worldgen/src/pipeline.rs:47-79`).
@@ -190,11 +200,11 @@ an answer some other system will eventually own?"*
 
 | # | id | site | today | owed by | identity fallback | byte-id | gran. | blast |
 |---|---|---|---|---|---|---|---|---|
-| 30 | `habitability(cell)` | `pregen/history.rs:302-347` (`plan_slots`) | `score = 2.2·precip + comfort + 0.8·river + 0.5·coast − elev/3000`, gated by `temp ∈ (−3, 32)` and `precip ≥ 0.10`; `comfort = 1 − \|T−14\|/30` | **social sim** (dwarf-fortress-class settlement logic) | the closed form — **ARBITRARY** throughout (7 magic weights) | provable | value-level | where every settlement in the world is. Not in stubs.md. |
-| 31 | `sack_probability` / `expand_probability` | `history.rs:36` `EXPAND_PROB = 0.7`; `:219` `p_sack = if contested { 0.55 } else { 0.30 }`; adjacency radius `:352-364` (Chebyshev ≤ 3); founding wave `:127` (`slots.len()/8` clamped 2..20) | polity dynamics as four constants | **social sim** | **ARBITRARY** | provable | value-level | the entire pregen history and every ruin in the world. |
-| 32 | `prior_pressure_weights(region)` | `crates/dc-sim/src/statistical/world.rs:280-287`; consumer `frontier_pressure` `:290-307` | `[0.60−0.50d, remainder, 0.15+0.70d]`. **Self-described**: "In the real system this would come from the statistical tier's cached summaries; here it is a closed-form stand-in" | **the statistical tier's own cached summaries (S2)** | **ARBITRARY** | provable | value-level | edge-region history synthesis. *stubs.md § 10.* |
-| 33 | `base_danger(region)` / `agent_transition` | `dc-sim/statistical/world.rs:214-216` (`base_danger` = a pure hash of the seed, `[0, 0.5]`); `:245-274` (`pressure_transition`, 6 magic coefficients); `:311-330` (`agent_transition`, `p_die = [0.002, 0.012, 0.06]`, behaviour weights per pressure) | the entire agent/pressure model is hash-and-table | **social sim** | **ARBITRARY** throughout | provable | value-level | all pregen history; all live far-sim. The `ToyWorld` name is honest about it. |
-| 34 | `ruin_form(site)` | `crates/dc-worldgen/src/collapse.rs:1381-1402` (`ruin_posts`) | ≤10 wood posts, 2–4 voxels tall, hashed angle 0..τ and radius 6..18 | **social sim + ecology** | the posts — **ARBITRARY** | provable (empty vec) | value-level | the only world-visible form of settlement history. *stubs.md § 1;* carries a loud in-code marker at `:1374-1380`. |
+| ~~30~~ **VOID 2026-07-28** | `habitability(cell)` | ~~`pregen/history.rs:302-347` (`plan_slots`)~~ **file deleted** | `score = 2.2·precip + comfort + 0.8·river + 0.5·coast − elev/3000`, gated by `temp ∈ (−3, 32)` and `precip ≥ 0.10`; `comfort = 1 − \|T−14\|/30` | **social sim** (dwarf-fortress-class settlement logic) | the closed form — **ARBITRARY** throughout (7 magic weights) | provable | value-level | where every settlement in the world is. Not in stubs.md. |
+| ~~31~~ **VOID 2026-07-28** | `sack_probability` / `expand_probability` | ~~`history.rs:36` `EXPAND_PROB = 0.7`; `:219` `p_sack = if contested { 0.55 } else { 0.30 }`; adjacency radius `:352-364` (Chebyshev ≤ 3); founding wave `:127` (`slots.len()/8` clamped 2..20)~~ **file deleted** | polity dynamics as four constants | **social sim** | **ARBITRARY** | provable | value-level | the entire pregen history and every ruin in the world. |
+| 32 **unreached since 2026-07-28** | `prior_pressure_weights(region)` | `crates/dc-sim/src/statistical/world.rs:280-287`; consumer `frontier_pressure` `:290-307` | `[0.60−0.50d, remainder, 0.15+0.70d]`. **Self-described**: "In the real system this would come from the statistical tier's cached summaries; here it is a closed-form stand-in" | **the statistical tier's own cached summaries (S2)** | **ARBITRARY** | provable | value-level | edge-region history synthesis. *stubs.md § 10.* |
+| 33 **unreached since 2026-07-28** | `base_danger(region)` / `agent_transition` | `dc-sim/statistical/world.rs:214-216` (`base_danger` = a pure hash of the seed, `[0, 0.5]`); `:245-274` (`pressure_transition`, 6 magic coefficients); `:311-330` (`agent_transition`, `p_die = [0.002, 0.012, 0.06]`, behaviour weights per pressure) | the entire agent/pressure model is hash-and-table | **social sim** | **ARBITRARY** throughout | provable | value-level | all pregen history; all live far-sim. The `ToyWorld` name is honest about it. |
+| ~~34~~ **VOID 2026-07-28** | `ruin_form(site)` | ~~`crates/dc-worldgen/src/collapse.rs:1381-1402` (`ruin_posts`)~~ **function deleted** | ≤10 wood posts, 2–4 voxels tall, hashed angle 0..τ and radius 6..18 | **social sim + ecology** | the posts — **ARBITRARY** | provable (empty vec) | value-level | the only world-visible form of settlement history. *stubs.md § 1;* carries a loud in-code marker at `:1374-1380`. |
 
 ### dc-core — `materials/`
 
@@ -273,7 +283,7 @@ property sheet does not have** — `MaterialProps` carries `grain_size_mm`,
 `density_kg_m3`, `cohesion`, `permeability`, `solubility`, damage resistances,
 but no `form` and no `friction`.
 
-### 4. SOCIAL SIM — 5 seams
+### 4. SOCIAL SIM — ~~5 seams~~ **1 nominal, 0 reachable (2026-07-28)**
 
 ```rust
 fn habitability(cell) -> f64                 // identity: the 7-weight score  [30] ARBITRARY

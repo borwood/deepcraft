@@ -2499,3 +2499,71 @@ rather than the generator. What is withdrawn is only the claim that the order is
 
 **Superseded by:** `ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is
 authored* — DECIDED 2026-07-26 (user).
+
+---
+
+## 66. "The goldens will move and that is correct" / "`contents_contract`, `s7_walk` and `geology` all hash `generate_chunk` blocks and are **structurally downstream** of the posts" (ROADMAP Sequenced, the bootstrap-history removal entry; corrections #64's closing paragraph, 2026-07-26 — falsified 2026-07-28 by running the removal, journal/0121)
+
+**The claim.** Two sentences, written two days apart, both saying the same thing:
+the ruin posts are `generate_chunk` output, the byte-identity goldens hash
+`generate_chunk` output, therefore deleting the posts re-baselines the goldens.
+#64 named the files and even ranked them by risk: *"plus `s7_handoff.rs:118`,
+which pins a seed-specific sack and is the test most likely to break."*
+
+**Measured: NOT ONE GOLDEN MOVED.** The removal went in, and
+`contents_contract::generated_world_is_byte_identical_to_the_pre_contract_goldens`,
+`geology::{geology_world_regenerates_byte_identically,
+class_registration_order_cannot_change_world_bytes}` and
+`providers_golden::the_golden_world_still_hashes_to_the_pre_slice_goldens` all
+passed **by name, unchanged**, against a tree that had just deleted 102
+`Block::Wood` voxels from the shipped world.
+
+**The mechanism, and it is arithmetic rather than architecture.** On
+production-Medium (seed `0x0D5EED572026`) the pass abandoned **4 of 13 sites**,
+and their posts landed in exactly **12 chunks**, at
+`cx ∈ {−2805, −2804, −1840, −1839, −785, 234, 235}` with
+`cz ∈ {−2871, −2870, −2805, −2804, −1336, −1335, −728, −727}` — the **nearest**
+post to the origin is 727 chunks (≈ 20.9 km) off the `cz = 0` line. The samplers
+walk fixed,
+origin-clustered sets:
+
+| sampler | chunk set | reaches a post-bearing chunk? |
+|---|---|---|
+| `contents_contract` | `(k·13 − 200, (k%7)·17 − 60)`, k<40 → `cx ∈ [−200, 307]`, `cz ∈ [−60, 42]` | no — measured directly on the *pre-removal* tree: **0 wood in the sample set** |
+| `geology` | `(k·7 − 160, (k%5)·11 − 20)`, k<48 → `cx ∈ [−160, 169]`, `cz ∈ [−20, 24]` | no — `cz` cannot reach −727 |
+| `providers_golden` | fingerprints the `DeepField`, not chunk blocks | no — upstream of the collapse tier entirely |
+| `s7_walk` | the `z = 0` row, `cx ∈ [0, 9999]` — **and it is not a stored golden at all**: `sample_hashes` is compared against a *re-generation of the same world in the same run* | structurally cannot move |
+
+Four cell interiors' worth of scattered posts, against samplers that hug the
+origin and one axis. The two sets simply do not intersect.
+
+**Why this is worth a number rather than a shrug.** "The goldens will move and
+that is correct" reads like caution, and it is the opposite: it *pre-authorises* a
+hash change, which is the one thing a byte-identity golden exists to make
+expensive. Had the goldens moved for some **unrelated** reason — a sibling's stale
+artifact, a merge that folded two changes — the prediction would have been sitting
+there ready to absorb the movement as expected. **A pre-authorised golden move
+cannot be distinguished from an unexplained one.** The honest form is a
+*prediction with a mechanism*: which sampler, which chunks, why. That form is
+falsifiable in advance, and this one would have been falsified in advance by two
+lines of arithmetic on the sampler's own `for` loop.
+
+**The mechanism of the error is #64's own, recurring inside #64.** That entry
+exists to name *"a justification assembled by symmetry"* — a sentence generalised
+over call sites that looked alike, found only by tracing what a shipped world
+executes. Six lines after naming it, its closing paragraph does it again: the
+inference *"hashes `generate_chunk` blocks" ⇒ "downstream of the posts" ⇒ "will
+move"* is reasoning from the shape of the call graph, where the question was
+**which chunks the sampler actually visits**. Structural downstreamness is
+necessary and nowhere near sufficient.
+
+**What was true.** `s7_handoff.rs` *was* the most affected test — it was deleted,
+along with `s7_pregen::history_facts_are_causally_ordered` and four columns of
+`s7_measurements`'s table. #64's *ranking* was right; its *class* of consequence
+was wrong. A test that names the removed subject dies; a fingerprint over
+unrelated ground does not notice.
+
+**Transferable rule.** *Byte-identity is a regression detector, not a
+specification* — so when a slice expects to move one, it owes **which fingerprint,
+by what path, over which samples**, and the honest answer is sometimes "none of
+them, and here is the arithmetic". Never a blanket licence.

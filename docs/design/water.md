@@ -457,11 +457,15 @@ DECIDED**; user-owned calls are flagged.
    tier's per-epoch drainage compute the same physical thing at two
    resolutions — the same disease as two water tables, one level up.
    Proposed: deep drainage becomes *the* spine, cell graph derived or
-   demoted to initialization. Consequence with teeth: the history pass
+   demoted to initialization. ~~Consequence with teeth: the history pass
    sites settlements against pregen rivers (order: tectonics → climate →
    hydrology → history → deep-time), so it would need **resequencing
-   after deep time** to site against the final eroded world's drainage.
-   Pipeline surgery — decide deliberately, not mid-karst-slice.
+   after deep time** to site against the final eroded world's drainage.~~
+   **That consequence is VOID as of 2026-07-28** (journal/0121): the history pass
+   is deleted, and with it the only pregen consumer that had to be sequenced
+   against `Hydrology` for a *reason other than physics*. The proposal is now
+   strictly easier than it was written — still pipeline surgery, but with one
+   fewer constraint. Decide deliberately, not mid-karst-slice.
 2. **The deep sim's per-epoch drainage is computed and discarded**
    (`DeepField` keeps only `surf` + `strata`). Paleo-channels are the
    erosional-cave feedstock ("possibly derivable from data already held",

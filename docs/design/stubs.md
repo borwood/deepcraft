@@ -27,7 +27,29 @@ design one from.
 
 ## Active stubs
 
-### 1. ruin-posts — **was UNDOCUMENTED until this audit**
+### 1. ruin-posts — **RESOLVED BY DELETION 2026-07-28 (journal/0121); no heir was ever built and none is owed**
+
+**A stub whose subject no longer exists does not survive the removal of its
+subject.** `collapse.rs::ruin_posts`, `Pregen.sites`, `Pregen.{ledger, overlay,
+n_polities, observe_count}`, `pregen/history.rs` and the `dc:pass/history` pass
+are gone (DECIDED 2026-07-26, user: *"they are unratified zealous fabrications
+from the early bootstrapping of the project and I DO NOT care about them, they
+WILL be wholesale replaced, they should just be removed. We do NOT have any form
+of evo/socia/civ modeling even at the design stage: they are NOTHING"*).
+Measured outcome: **102 `Block::Wood` post voxels on production-Medium → 0.**
+
+**This entry is the cleanest illustration in the file of a stub-inventory failure
+mode, so read the two sentences below before writing another heir line.** The
+entry did its job perfectly for a week — loud, listed, honest about the
+rule-of-thumb, naming an heir — and *every one of those virtues argued for
+keeping the content.* An heir is a promise that the thing being stood in for is
+wanted; **"what expresses this better?" silently presumes it should be
+expressed.** The question the inventory never asked is CLAUDE.md § *Existence is
+not standing*: **if this did not exist, would we build it today, in this shape?**
+For settlement ruins the answer was no, and had been no the whole time. *A stub
+entry is not neutral about its subject's standing — it asserts it.*
+
+*Original entry, preserved:*
 `collapse.rs::ruin_posts` (~997), rendered ~400.
 An abandoned pregen site expresses as ≤10 procedurally-scattered wood posts,
 2–4 voxels tall, at hashed angle/radius. The *abandonment fact* is genuine
@@ -38,6 +60,13 @@ bandaid, do not think about, until ecology is done and the social sim gets its
 design pass (the big one: NPCs and all — priors exist in the corpus). **Blast:**
 the only world-visible form of settlement history. *Loud code marker added
 2026-07-21.*
+
+> **⚠ The heir sentence above says "until ecology lands".** That phrasing is why
+> this entry is **NOT** evidence that `docs/design/ecology.md` owes anything to a
+> civilization model. Ecology is a ratified user design about earth processes; the
+> social-sim half of that sentence names a thing that does not exist even at the
+> design stage, and it is not owed. See CLAUDE.md § Conventions, the ⚠ under
+> *Existence is not standing*.
 
 ### 2. surface-veneer-block-rule — **RETIRED WHERE A RECORD EXISTS, 2026-07-21 (journal/0055)**
 *Was:* `collapse.rs::surface_sample`: Grass/Dirt/Stone from year-zero climate,
@@ -246,11 +275,18 @@ unit's subsea/subaerial tag. **Heir:** epoch-indexed pregen curves
 deep record — large, but *inside* the ledger (it is history the runtime then
 faithfully expresses).
 
-### 10. frontier-pressure closed-form
+### 10. frontier-pressure closed-form — **BLAST RADIUS IS NOW ZERO, 2026-07-28**
 `dc-sim/statistical/world.rs::prior_pressure_weights` (~280): frontier
 boundary conditions from a closed-form of danger, self-described stand-in.
-**Heir:** the statistical tier's real cached summaries (S2). **Blast:** low,
-indirect (edge-region history synthesis).
+**Heir:** the statistical tier's real cached summaries (S2). **Blast:** ~~low,
+indirect (edge-region history synthesis)~~ — **none.** The "edge-region history
+synthesis" it fed was the bootstrap settlement-history pass, removed 2026-07-28
+(journal/0121, entry § 1 above). The stand-in still exists and is still honest
+about being one, but **nothing in production reaches it**: it is now inside the
+S2 engine's zero-consumer boundary (spines § 3). Retained as a live entry rather
+than resolved, because the shape it stands in for — synthesized frontier
+conditions for a bounded collapse — is S-1, the actual spine of this engine, and
+will need an answer the first time anything collapses again.
 
 ### 11. placer-presence-is-source-blind — *added 2026-07-21 by the ores design pass*
 `geology.rs` placer pass: gold-dust *presence* in a river is a function of

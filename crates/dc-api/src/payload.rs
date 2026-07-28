@@ -432,8 +432,8 @@ pub enum QueryData {
         /// **Whether the world has a composition record for THIS voxel** — the
         /// wire projection of [`crate::identify::Identity::Unrecorded`].
         /// `false` for the unrecorded basement below the deep-time record, the
-        /// legacy soil band, ocean floor, the border wilds, ruin posts, the
-        /// whole S1 terrain authority, and any world with no contents source;
+        /// legacy soil band, ocean floor, the border wilds, the whole S1
+        /// terrain authority, and any world with no contents source;
         /// then only `block` is meaningful and `contents` is the empty
         /// composition. **Air is not in that list**: an air voxel is honestly
         /// empty, so it answers `true` with an empty composition — "nothing is

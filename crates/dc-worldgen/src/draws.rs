@@ -70,16 +70,14 @@ dc_sim::draw_domains! {
     Wilds = 0x5700_0003;
     /// The multi-level elevation cascade.
     Elev = 0x5700_0004;
-    /// Within-cell site jitter.
-    SitePos = 0x5700_0005;
-    /// The seed handed to the statistical overlay world.
-    Overlay = 0x5700_0006;
-    /// Polity expansion.
-    Expand = 0x5700_0007;
-    /// Site sacking.
-    Sack = 0x5700_0008;
-    /// Ruin layout.
-    Ruin = 0x5700_0009;
+    // 0x5700_0005 .. 0x5700_0009 were `SitePos` / `Overlay` / `Expand` / `Sack`
+    // / `Ruin` — the bootstrap settlement-history and ruin-post domains, removed
+    // 2026-07-28 (journal/0121) with the content that opened them. **The gap is
+    // deliberate and the numbers are retired, not free.** A salt is baked into
+    // every world ever generated from it, so re-issuing one of these to a new
+    // decision would silently make two unrelated decisions share a stream across
+    // every saved world and every old journal capture. Take the next unused
+    // value; never fill a hole.
     /// Year-zero veneer strata: which member fills the class a pass selected.
     /// Tags 0–3 address the four veneer passes (see hole 1 in the module docs).
     GeoSelect = 0x5700_000A;
@@ -193,7 +191,7 @@ mod tests {
     /// duplicate check cannot see.
     #[test]
     fn every_domain_is_listed_and_distinct() {
-        assert_eq!(ALL_DOMAINS.len(), 20, "a domain was added without a test");
+        assert_eq!(ALL_DOMAINS.len(), 15, "a domain was added without a test");
         let mut salts: Vec<u64> = ALL_DOMAINS.iter().map(|(_, s)| *s).collect();
         salts.sort_unstable();
         let n = salts.len();

@@ -253,7 +253,10 @@ A voxel with no contents record is **unclassified — not classified as Air**.
 `classify` does answer `Block::Air` for empty contents, but the generator does
 not apply it where it never wrote a record: the surface veneer (stubs.md § 2),
 the legacy soil band and the unrecorded basement below the deep-time record,
-ocean floor, the border wilds, and ruin posts all keep their legacy blocks. The
+ocean floor, and the border wilds ~~, and ruin posts~~ all keep their legacy
+blocks. (**Ruin posts left the list 2026-07-28 by deletion** — journal/0121, the
+bootstrap-history removal — not by acquiring a record. Wording only; the decision
+is unchanged.) The
 exception is **enumerated and pinned by test** — a geology block appearing
 without a record fails the suite — so it can only shrink, and it shrinks by
 itself as each stub acquires its heir. Wording corrected by the integrator; the
