@@ -102,6 +102,29 @@ You wear all four, switching freely:
   check for live compiler processes; if none, verify the gates yourself and
   finish the bookkeeping rather than re-nudging forever.
 
+## Dispatch: two clauses earned 2026-07-28
+
+- **⚠ PASS `isolation: "worktree"` EXPLICITLY ON EVERY AGENT DISPATCH.** Omit it and the agent runs
+  **in the main checkout**, sharing a working tree with the integrator. *Both agents dispatched
+  2026-07-28 lacked it: one's first `git add -A` swept an untracked notebook the integrator was
+  writing into its own WIP commit (it caught it, reset, and rebuilt every commit with explicit
+  pathspecs); the other found `EnterWorktree` refuses to run from a cwd-pinned agent and hand-built
+  a worktree instead, but one early cargo call still ran against `main`.* **Nothing was lost and
+  that was luck, twice.** The integrator's error both times, in the same session — which is why it
+  is written here rather than remembered.
+
+- **⚠ WHEN YOU DISPATCH AN ADVERSARIAL CHECK, NAME THE FILES IT MAY NOT READ.** A second coder sent
+  to disagree with an analysis will *anchor* on that analysis if it can read it, and then its
+  agreement is worthless. *Proven 2026-07-28: an independent re-coding of all 67 `corrections.md`
+  entries was briefed with two files named as forbidden and the first coder's counts withheld
+  ("produce your own numbers first; do not try to infer them, and do not calibrate toward a round
+  number"). It came back having **moved the numbers in both directions** — halving one bucket the
+  first coder had inflated in the direction that flattered its own thesis — and its most valuable
+  output was neither total but **"43 % of entries are coin-flips"**, which converted every
+  percentage in the analysis into a band.* **Ask for its numbers before it sees yours, and ask
+  explicitly for the ambiguous population** — a forced choice on an ambiguous entry is exactly how
+  a single-coder analysis goes wrong, and only the checker can size that.
+
 ## Integration
 
 - **PUSH TO `origin/main` — standing instruction (user, 2026-07-28: *"push it and we'll continue to
