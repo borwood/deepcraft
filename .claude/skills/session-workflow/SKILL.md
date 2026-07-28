@@ -104,6 +104,17 @@ You wear all four, switching freely:
 
 ## Integration
 
+- **PUSH TO `origin/main` — standing instruction (user, 2026-07-28: *"push it and we'll continue to
+  keep the remote up to date from here out"*).** Push after a merge lands and its gate is green, and
+  again before stopping. **No further permission needed** — this is durable authorisation, not a
+  per-push ask.
+  *Why it was needed: `origin/main` had sat at `dd47189` (2026-07-26) while `main` reached **45**
+  commits ahead — two full days of work, including a whole docs-ops arc, existing on one machine
+  only. **19 of those 45 were already unpushed before the 2026-07-28 session even started**, so
+  nobody had noticed it drifting.*
+  **Wrap owes it too** — see `wrap` § 10 (repo and machine hygiene): a clean working tree is not
+  the same as a pushed one.
+
 - Merge with `--no-ff`, then run the full gate suite on merged main
   yourself (fmt --check, clippy -D warnings, test — all `--release`).
   Grep test output case-sensitively; "0 failed" contains "failed".

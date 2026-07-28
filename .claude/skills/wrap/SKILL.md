@@ -89,6 +89,14 @@ Merged worktrees removed and branches deleted; unmerged ones named with what
 they hold. No orphaned `dc-client`, no held `.agent-build.lock`, no process
 sitting on port 7777. Working tree clean.
 
+**And PUSHED** — `git status --branch` must show no `[ahead N]` (user, 2026-07-28: *"we'll continue
+to keep the remote up to date from here out"*; standing authorisation, no per-push ask).
+*Earned the same day: `origin/main` had sat at `dd47189` (2026-07-26) while `main` reached **45**
+commits ahead — two days of work, a whole docs-ops arc among it, on one machine only. **19 of those
+45 predated the session that noticed**, so every wrap in between had reported a clean tree and
+stopped there.* **A clean working tree is not a pushed one, and this checklist only ever asked for
+the first.**
+
 ## 11. The gate actually passed
 
 Main green, verified by **test name and count**, with `cargo clean` covering
