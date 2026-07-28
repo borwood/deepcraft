@@ -1,0 +1,261 @@
+   Compiling dc-core v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-core)
+   Compiling dc-api v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-api)
+   Compiling dc-sim v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-sim)
+   Compiling dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-worldgen)
+   Compiling dc-mcp-dev v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-mcp-dev)
+   Compiling dc-physics v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-physics)
+   Compiling dc-host v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-host)
+   Compiling dc-client v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-client)
+    Finished `release` profile [optimized] target(s) in 2m 22s
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_api-9d27f100509a6a4a.exe)
+
+running 47 tests
+test abi::tests::postcard_roundtrips_receipts_with_sparse_effects ... ok
+test abi::tests::ptr_len_roundtrip ... ok
+test bodies::tests::bad_clip_times_reject ... ok
+test bodies::tests::bad_parent_rejects ... ok
+test bodies::tests::clip_animating_unknown_joint_rejects ... ok
+test bodies::tests::parent_cycle_rejects ... ok
+test bodies::tests::missing_required_slot_rejects ... ok
+test capability::tests::character_control_scopes_to_one_name_and_never_widens ... ok
+test bodies::tests::vanilla_biped_is_well_formed ... ok
+test capability::tests::attenuation_narrows_but_never_widens ... ok
+test bodies::tests::unknown_verb_rejects ... ok
+test capability::tests::covers_token_is_the_boundary_check ... ok
+test bodies::tests::slot_binding_missing_clip_rejects ... ok
+test capability::tests::empty_token_denies_everything ... ok
+test capability::tests::namespace_grant_is_exact ... ok
+test capability::tests::requirement_for_rejects_malformed_item_names ... ok
+test capability::tests::unbounded_read_covers_anywhere_bounded_does_not ... ok
+test capability::tests::volume_scoped_write_covers_inside_only ... ok
+test character::tests::airborne_jump_request_is_dropped ... ok
+test character::tests::character_names_are_bare_slugs ... ok
+test character::tests::falls_settles_walks_and_jumps ... ok
+test character::tests::view_dir_matches_convention ... ok
+test character::tests::walls_block_and_slide ... ok
+test classes::tests::geology_contract_validates_its_own_vanilla_members ... ok
+test classes::tests::igneous_contract_omits_the_weather_axes ... ok
+test classes::tests::a_pack_declaring_an_empty_class_is_rejected_by_name ... ok
+test classes::tests::validate_params_enforces_the_contract ... ok
+test identify::tests::a_nonempty_record_wins_over_the_block_so_edits_stay_legible ... ok
+test classes::tests::vanilla_pack_round_trips_into_the_typed_vanilla_set ... ok
+test identify::tests::absent_grid_under_a_solid_block_is_unrecorded ... ok
+test identify::tests::air_is_a_recorded_empty_mixture_not_unrecorded ... ok
+test identify::tests::an_unrecorded_answer_is_not_an_empty_mixture ... ok
+test identify::tests::empty_record_under_a_solid_block_is_unrecorded_not_air ... ok
+test payload::tests::floor_voxel_handles_negatives ... ok
+test payload::tests::payload_ids_match_convention ... ok
+test payload::tests::volume_containment_is_inclusive ... ok
+test payload::tests::volume_normalizes_and_contains ... ok
+test schema::tests::block_completion_offers_known_names_filtered ... ok
+test schema::tests::class_completion_reads_registered_classes ... ok
+test schema::tests::completion_hook_presence_matches_intent ... ok
+test schema::tests::decode_rejects_malformed_payloads ... ok
+test schema::tests::character_completion_reads_live_world ... ok
+test schema::tests::event_kinds_completion_is_static_and_filtered ... ok
+test schema::tests::ids_are_unique_and_mcp_names_are_valid_and_unique ... ok
+test schema::tests::set_posture_completes_both_character_and_static_posture ... ok
+test schema::tests::macro_table_is_internally_consistent ... ok
+test schema::tests::registry_covers_every_payload_variant ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\bodies.rs (B:\repos\borwood\deepcraft\target\release\deps\bodies-64b52c9496e89035.exe)
+
+running 7 tests
+test plan_before_its_clips_is_rejected ... ok
+test slot_bound_to_missing_clip_rejects ... ok
+test bad_parent_rejects_at_define_time ... ok
+test missing_required_slot_rejects_at_define_time ... ok
+test vanilla_pack_defines_through_the_door ... ok
+test body_defs_are_namespace_owned ... ok
+test a_new_verb_needs_zero_new_payload_variants ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\character_semantics.rs (B:\repos\borwood\deepcraft\target\release\deps\character_semantics-64038fe2336f10c4.exe)
+
+running 10 tests
+test pose_echoes_feet_voxel_and_posture ... ok
+test spawned_character_falls_walks_and_jumps_with_real_collision ... ok
+test spawn_validates_names_and_uniqueness ... ok
+test posture_transitions_replay_identically ... ok
+test character_session_grant_is_a_cage ... ok
+test stand_up_is_blocked_under_a_low_ceiling ... ok
+test senses_are_embodied_and_range_capped ... ok
+test scripted_movement_session_replays_to_identical_pose ... ok
+test sense_raycast_reports_no_contents_for_unrecorded_rock ... ok
+test sense_raycast_still_reports_contents_for_recorded_rock ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\chunk_eviction.rs (B:\repos\borwood\deepcraft\target\release\deps\chunk_eviction-91309c8f8c9c6c12.exe)
+
+running 6 tests
+test a_no_op_write_does_not_pin_a_chunk ... ok
+test the_builtin_world_evicts_too ... ok
+test edited_chunks_accumulate_beyond_the_budget ... ok
+test region_hash_is_independent_of_the_budget ... ok
+test an_edited_chunk_survives_eviction_pressure ... ok
+test evicted_chunks_regenerate_byte_identically ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests\content_classes.rs (B:\repos\borwood\deepcraft\target\release\deps\content_classes-4a2345f961bd9a91.exe)
+
+running 5 tests
+test malformed_class_contracts_are_rejected ... ok
+test member_defines_are_schema_validated_at_define_time ... ok
+test class_and_member_defines_are_namespace_owned ... ok
+test vanilla_pack_applies_and_bridges_to_the_typed_set ... ok
+test member_registration_order_does_not_change_the_compiled_set ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\host_generator.rs (B:\repos\borwood\deepcraft\target\release\deps\host_generator-37884ef2c4309e1e.exe)
+
+running 1 test
+test generator_terrain_is_served_and_edits_layer_on_top ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\host_semantics.rs (B:\repos\borwood\deepcraft\target\release\deps\host_semantics-c2279a60c0f7053e.exe)
+
+running 19 tests
+test get_contents_requires_world_read ... ok
+test deny_by_default_and_volume_scoped_writes ... ok
+test commands_are_tick_quantized ... ok
+test get_contents_without_a_source_is_block_only ... ok
+test events_flow_filter_and_drain ... ok
+test namespace_ownership_is_enforced ... ok
+test identify_without_a_contents_source_is_unrecorded_for_solids_and_empty_for_air ... ok
+test queries_read_last_completed_tick_and_never_mutate ... ok
+test same_class_consumers_order_by_id_then_seq ... ok
+test scan_region_palette_is_first_appearance_order ... ok
+test target_tick_defers_and_past_targets_reject ... ok
+test total_order_is_priority_then_consumer_then_seq ... ok
+test transactions_are_all_or_nothing ... ok
+test get_contents_surfaces_edit_divergence ... ok
+test get_contents_unpacks_the_full_composition ... ok
+test genuine_air_in_a_recorded_chunk_still_reports_air ... ok
+test unrecorded_rock_in_a_recorded_chunk_no_longer_reports_air ... ok
+test replay_determinism ... ok
+test identify_separates_unrecorded_from_empty_and_from_a_mixture ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src\main.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_client-e440d97168df237b.exe)
+
+running 123 tests
+test app::tests::spawn_search_finds_open_ground_off_the_chasm_floor ... ok
+test authority::tests::dirty_set_interior_border_and_corner ... ok
+test authority::tests::cache_application_updates_loaded_chunks_and_skips_unloaded ... ok
+test authority::tests::pose_reply_echoes_feet_voxel_in_get_block_frame ... ok
+test authority::tests::host_chunk_serves_terrain_plus_edits ... ok
+test authority::tests::freeze_zeroes_move_intent_and_body_rests ... ok
+test authority::tests::attach_rejects_embedded_allows_clear_and_snaps_to_surface ... ok
+test authority::tests::character_session_replays_identically_and_stays_caged ... ok
+test authority::tests::edit_session_parity_direct_vs_mcp_tool_layer ... ok
+test body::tests::advance_history_replays_identically ... ok
+test body::tests::angles_are_quantized ... ok
+test body::tests::ik_clamps_reach_and_never_nans ... ok
+test body::tests::ik_is_deterministic_for_fixed_inputs ... ok
+test body::tests::ik_reconstructs_reachable_targets_with_a_forward_knee ... ok
+test body::tests::looping_wraps_deterministically ... ok
+test body::tests::orientation_is_stepped_and_splits_look_from_trunk ... ok
+test body::tests::sampler_is_deterministic_for_fixed_time ... ok
+test body::tests::steer_faces_travel_holds_when_stopped_and_replays ... ok
+test body::tests::time_is_stepped_to_twelve_fps ... ok
+test body::tests::walk_starts_and_stops_by_speed ... ok
+test console::core::tests::active_arg_key_tracks_the_value_token ... ok
+test console::core::tests::arg_help_line_carries_type_required_desc_and_examples ... ok
+test console::core::tests::assemble_client_tool_bool_and_nested ... ok
+test console::core::tests::assemble_expands_dotted_paths_and_coerces ... ok
+test console::core::tests::assemble_rejects_unknown_key_of_closed_object ... ok
+test console::core::tests::complete_command_names_by_prefix ... ok
+test console::core::tests::complete_help_argument_is_command_names ... ok
+test console::core::tests::complete_param_keys_after_command ... ok
+test console::core::tests::every_registry_command_renders_signature_example_and_arg_help ... ok
+test console::core::tests::example_invocation_uses_placeholders_and_description_hints ... ok
+test console::core::tests::help_command_handles_no_params ... ok
+test authority::tests::surface_teleport_reply_reports_snapped_on_success_and_miss ... ok
+test console::core::tests::help_command_renders_params_types_and_requiredness ... ok
+test console::core::tests::no_value_completion_after_equals ... ok
+test console::core::tests::help_overview_lists_every_command ... ok
+test console::core::tests::param_paths_flattens_nested_and_marks_required ... ok
+test console::core::tests::parse_blank_is_none_and_bad_arg_errors ... ok
+test console::core::tests::parse_splits_command_and_kv ... ok
+test console::core::tests::registry_is_fully_surfaced ... ok
+test console::core::tests::value_completion_replaces_only_the_value_and_finds_common_prefix ... ok
+test console::core::tests::signature_marks_required_and_brackets_optional ... ok
+test console::core::tests::value_context_finds_the_value_half ... ok
+test devicelost::tests::a_healthy_lock_is_unaffected ... ok
+test devicelost::tests::the_exit_code_never_lies_about_a_lost_device ... ok
+test devicelost::tests::a_poisoned_lock_still_hands_back_its_value ... ok
+test farmesh::tests::coarse_scale_doubles_per_level ... ok
+test farmesh::tests::default_ring_edges_match_the_shipped_constants ... ok
+test farmesh::tests::every_lod_range_derives_from_the_one_ladder ... ok
+test farmesh::tests::a_stretched_horizon_opens_no_new_sky_holes ... ok
+test farmesh::tests::far_columns_quantize_the_near_ground_below_it ... ok
+test farmesh::tests::far_tile_is_stepped_voxel_columns_not_a_smooth_sheet ... ok
+test farmesh::tests::far_tiles_cover_the_rings_without_seams ... ok
+test farmesh::tests::horizon_stretches_only_the_outer_ring ... ok
+test farmesh::tests::far_horizon_heights_agree_with_the_near_ground ... ok
+test farmesh::tests::near_coverage_culls_far_columns_instead_of_burying_them ... ok
+test farmesh::tests::offloaded_far_derive_matches_on_thread ... ok
+test farmesh::tests::reduction_used_where_resident_and_floored_under_the_near_surface ... ok
+test farmesh::tests::ring_selection_by_distance ... ok
+test farmesh::tests::stacked_columns_mesh_overhangs_with_bottom_faces ... ok
+test farmesh::tests::uniform_push_keeps_same_level_seams_watertight_in_world_space ... ok
+test farmesh::tests::wanted_far_tiles_are_ring_shaped_and_deterministic ... ok
+test farmesh::tests::wanted_positions_are_ring_shaped_and_deterministic ... ok
+test farmesh::tests::warm_reduce_is_floored_geometry_safe ... ok
+test farpyramid::tests::eviction_falls_back_to_synthesis_and_keeps_the_nearest ... ok
+test farpyramid::tests::partial_subtrees_synthesize_rather_than_reading_air ... ok
+test inspector::tests::a_recorded_mixture_still_prints_its_materials ... ok
+test inspector::tests::genuine_air_still_reads_as_air_in_the_hud ... ok
+test inspector::tests::unrecorded_reaches_the_no_record_branch ... ok
+test mcp::tests::mcp_http_session_edits_scan_and_hash_parity ... ok
+test mcp::tests::options_parse_flags ... ok
+test mcp::tests::screenshot_names_are_bare_slugs_only ... ok
+test mcp_character::tests::character_session_is_embodied_and_attenuated ... ok
+test mcp_character::tests::dropping_an_attached_session_emits_a_freeze ... ok
+test mcp_character::tests::dropping_an_unattached_session_is_silent ... ok
+test meshing::tests::a_full_voxel_shows_its_underside_over_a_partial ... ok
+test meshing::tests::atlas_layers_are_distinct_and_in_range ... ok
+test meshing::tests::border_faces_consult_neighbor_query_in_world_coords ... ok
+test meshing::tests::cross_chunk_border_culls_against_a_taller_or_full_neighbor ... ok
+test meshing::tests::cross_chunk_border_emits_the_band_a_shorter_partial_leaves ... ok
+test meshing::tests::full_chunk_with_solid_neighbors_emits_nothing ... ok
+test meshing::tests::interior_faces_are_culled ... ok
+test meshing::tests::loose_only_contents_render_partial_height_with_an_exposed_top ... ok
+test meshing::tests::material_block_layer_agrees_with_direct_material_layer ... ok
+test meshing::tests::mixed_contents_are_a_single_quad_with_splat_weights ... ok
+test meshing::tests::over_n_constituents_selected_by_seed_deterministically ... ok
+test meshing::tests::partial_beside_a_full_voxel_culls_its_side_completely ... ok
+test meshing::tests::partial_beside_air_emits_its_full_side_face ... ok
+test meshing::tests::partial_tops_triangle_cost_vs_block_tier_culling ... ok
+test meshing::tests::perf_mixed_heavy_vs_uniform_triangle_counts ... ok
+test meshing::tests::plan_backed_mesh_equals_direct_mesh ... ok
+test meshing::tests::shell_backed_mesh_equals_direct_mesh ... ok
+test meshing::tests::single_voxel_emits_six_faces_with_uvs_and_layers ... ok
+test meshing::tests::taller_partial_beside_shorter_partial_emits_the_exposed_band ... ok
+test meshing::tests::top_splat_is_world_anchored_and_deterministic ... ok
+test meshing::tests::uniform_contents_sample_their_material_layer ... ok
+test meshing::tests::uvs_are_world_anchored_and_continuous_across_voxels ... ok
+test shaderpack::tests::broken_wgsl_is_rejected ... ok
+test shaderpack::tests::builtin_default_is_valid ... ok
+test shaderpack::tests::in_tree_packs_load_and_validate ... ok
+test shaderpack::tests::manifest_without_stages_falls_back_to_default_post ... ok
+test shaderpack::tests::missing_stage_function_is_rejected ... ok
+test shaderpack::tests::portability::every_pack_stage_translates_to_all_backends ... ok
+test shaderpack::tests::unknown_stage_name_is_rejected ... ok
+test shaderpack::tests::wrong_format_is_rejected ... ok
+test terrain_material::tests::fallback_layers_are_the_right_size ... ok
+test terrain_material::tests::fullbright_palette_is_registry_albedo ... ok
+test terrain_material::tests::layer_slugs_cover_every_atlas_layer_in_order ... ok
+test terrain_material::tests::palette_len_matches_atlas ... ok
+test worldgen::tests::block_at_matches_generate_chunk ... ok
+test worldgen::tests::chasm_region_exists_and_is_deep ... ok
+test worldgen::tests::same_seed_same_terrain ... ok
+test worldgen::tests::surface_height_m_underreports_true_voxel_surface ... ok

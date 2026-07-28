@@ -456,11 +456,15 @@ corrections #20: *"the rivers **carved into the world** at collapse come from
 **pregen** `Cell.river`/`flow_to`/`discharge`, computed on the PRE-erosion coarse
 surface — a second, older hydrology painted over terrain the deep sim has since
 reshaped."* The Session capture escalates it: *"the same disease as two water
-tables, one level up."* And the consequence with teeth: **the history pass sites
+tables, one level up."* ~~And the consequence with teeth: **the history pass sites
 settlements against pregen rivers** (order: tectonics → climate → hydrology →
 history → deep-time), so making deep drainage the spine *"would need resequencing
-after deep time."* Flagged as **pipeline surgery — decide deliberately, not
-mid-karst-slice.**
+after deep time."*~~ **That consequence is VOID as of 2026-07-28** (journal/0121):
+the history pass is deleted, so no pregen pass is sequenced against `Hydrology`
+for a non-physical reason. The two-drainage-opinions finding itself stands
+untouched — only this named consequence of fixing it is gone, and the fix is
+strictly cheaper than this audit priced it. Still **pipeline surgery — decide
+deliberately, not mid-karst-slice.**
 
 ### C10. The user has already pre-conceded lossiness — so an evaporation/mass-cycle argument must not be sold as a correctness requirement.
 
