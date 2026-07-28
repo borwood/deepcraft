@@ -190,6 +190,22 @@ ruling, in their terms:
 plugin shape → **ecology** → **social concepts** (of which history is one).
 Ecology precedes anything social; nothing social is considered before it.
 
+**⚠ WHAT THE GATE DOES TO THE BIOTIC LAYER ALREADY SHIPPING** (user, 2026-07-28,
+resolving a contradiction between this ruling and `ecology.md`'s 2026-07-20 GO):
+the deep-time biotic layer — plants as a **rock-making agent**: coal seams,
+paleosols, charcoal bands, biotic weathering — is **ON in production** and
+**stays on**. It is **seamed, with a named heir**. But:
+
+> **We are not building bio-based rock formation any longer until the bio/eco
+> work, which waits on the rest of the non-bio earth science plus the engine
+> capabilities.**
+
+So the two decisions were never in conflict about *what runs* — only about *what
+gets built next*. **The existing layer rides as-built; no NEW bio-driven
+rock-formation work is opened before the gate.** *It is a seam holding a place,
+not a system under development — and per the standing rule, an interim mechanism
+rides as-built rather than being tuned in the meantime.*
+
 **The engine shape that must hold first** (user, same ruling — and note it
 partially answers the open boundary question in
 [`north-star.md`](north-star.md) § *The core/plugin boundary*):

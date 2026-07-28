@@ -1,5 +1,35 @@
 # Ores — the v1 ore materials design pass
 
+> ## 🔴 A LOAD-BEARING PREMISE OF THIS DOCUMENT IS WRONG — user, 2026-07-28
+>
+> **This document repeatedly gates ore designs on whether erosion has EXPOSED the ore.**
+> That premise is rejected:
+>
+> > *"We do not need to have ore 'exposed' — the default plugin pack will ship a voxel game
+> > **with digging**, which spiritually inherits from Minecraft. Absolutely no reason to treat
+> > it like everything needs to be discoverable on the surface. Weird and misconceived and
+> > likely very relatively old."*
+>
+> **What this kills.** Every *"illegible until exhumation increases"* / *"the gate may barely
+> discriminate"* / *"defer until the erosion-supply calibration lands"* caveat built on surface
+> discoverability — including the **lode-gold A/B fork** (§ 8.1) and its `probe 3` condition.
+> **The fork is not blocked, and the probe measures the wrong thing.** Deep ore is not a
+> problem to be solved; **depth is the point** — the player digs to it.
+>
+> **⚠ What this does NOT touch.** Exhumation and `exhum`/`t_crust` remain real and useful for
+> *genesis honesty* — where an ore forms, under what pressure and temperature history. The
+> error is treating exposure as a **precondition for shipping** an ore, not the geology itself.
+>
+> **This document is conceptually behind its siblings.** The user: *"other treatment of ores
+> etc, probably in `materials.md` and elsewhere, are more up to date conceptually."* Read
+> [`materials.md`](materials.md) and [`material-behavior.md`](material-behavior.md) first;
+> **where they disagree with this file, they win.** A revisit is owed and is not scheduled here.
+>
+> *How it survived: the assumption was never stated as a design decision, so nothing ever
+> pointed at it to challenge it. It rode inside measurement caveats — which read as evidence,
+> not as premises — and a NEEDS-RATIFICATION fork sat closed on it for a week. Recorded because
+> "a caveat is where an unexamined premise hides" is the transferable part.*
+
 > **DRAFT — NOTHING RATIFIED.** Produced 2026-07-21 by a dispatched design
 > agent on the user's order ("design the v1 ore materials"), as the
 > user-owned content design pass slated 2026-07-20 (ROADMAP, earth-processes

@@ -39,8 +39,16 @@ description: Sweep the .md corpus for claims that CONTRADICT other claims in the
 > would have prevented journal/0119.**
 >
 > **The one open proposal** is § 5 of the notebook — a *reciprocity* check, marked
-> assistant-originated and unratified. **And `stubs.md:22` forbids designing the general mechanism
-> before several real conversions have taught the shape.** That binds this thread too.
+> assistant-originated and unratified. ~~**And `stubs.md:22` forbids designing the general
+> mechanism before several real conversions have taught the shape.** That binds this thread
+> too.~~ **STRUCK 2026-07-28 (user).** `stubs.md:22` is about **plugin-authorable engine
+> sockets** — declaring provider slots as *data* so a mod can add one without recompiling. It
+> shares **no mechanism** with a documents problem, and citing it here stretched an analogy past
+> its domain. *(The user, reading that clause: "I honestly don't understand what the registry is
+> supposed to be except for a list which we can extend" — correct about what exists, and the
+> reason it should never have been a veto on this thread.)* **What still binds is
+> `session-workflow` § Seam-first #6** — convert the cheapest cold seam and let it teach the
+> shape — which is a rule about how to build anything, not a claim about this domain.
 
 > **⚠ COUNTS IN THIS FILE WENT STALE ON 2026-07-28 AND ARE CORRECTED HERE, NOT ABOVE.**
 > There are now **three** sweeps, not two — `staleness-sweep` was packaged as a skill that day,

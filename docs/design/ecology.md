@@ -259,6 +259,22 @@ The GO/NO-GO and five ratification calls are the user's — ROADMAP
 
 ## DECIDED 2026-07-20 (user) — S10 GO, biology ships
 
+> **⚠ SCOPED 2026-07-28 (user) — this GO is about what RUNS, not about what gets BUILT.**
+> The biotic layer stays ON in production and rides as-built. But: *"we aren't building
+> bio-based rock formation any longer until bio/eco stuff, which is waiting on the rest of the
+> non-bio earth science stuff + engine capabilities."* **It is a seam with a named heir, not a
+> system under development.** No new bio-driven rock-formation work opens before the gate in
+> [`worldgen.md`](worldgen.md) § *Sequencing*.
+> *Why this needed saying: read alone, "biology is a shipped part of world generation" and the
+> 2026-07-28 ordering (non-bio earth science → **then** ecology) look like a straight
+> contradiction — two user decisions eight days apart, reconciled in neither doc, found by the
+> baseline sweep. They were never actually in conflict; the missing word was **building**.*
+>
+> **⚠ And the cost quoted below is the withdrawn number.** *"The 25 s ritual"* was measured at
+> **13.79 s** on the shipped path (`corrections.md` #12; `S10-results.md` now carries a banner,
+> and this citation of it did not). **The decision stands — it is cheaper than what was
+> approved** — but do not quote 25 s from here.
+
 - **GO on the biotic layer.** `production_config`'s `biotic` flag is flipped
   ON; biology is a shipped part of world generation, not an experiment.
 - **The 25 s ritual is acceptable** — explicitly, with headroom: the user's

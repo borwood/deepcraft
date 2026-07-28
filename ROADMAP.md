@@ -727,7 +727,39 @@ see the question you are asking.
   watermark `f652b60`). **The audits ARE the record; this entry is the index.** Applied at
   baseline: only the integrator's own same-day stalenesses + the `ARCHITECTURE.md` ON-HOLD
   banner. *Everything below is real, cited `file:line` on both sides, and NOT yet fixed.*
-  - **🔴 USER-OWNED — four calls, none the integrator's:**
+  - **✅ ALL FOUR USER CALLS RULED 2026-07-28** (unpacking session; applied to
+    `ores.md`, `worldgen.md` § Sequencing, `ecology.md`, `stubs.md`):
+    1. **BIOLOGY — the two decisions were never in conflict; the missing word was *building*.**
+       The deep-time biotic layer stays **ON** and rides as-built — *"biology in this sense is
+       seamed with heir"* — but *"**we aren't building bio-based rock formation any longer**
+       until bio/eco stuff, which is waiting on the rest of the non-bio earth science stuff +
+       engine capabilities."* **No new bio-driven rock-formation work opens before the gate.**
+    2. **🔴 ORES — A LOAD-BEARING PREMISE IS REJECTED, and this is the biggest of the four.**
+       *"We do not need to have ore 'exposed' — the default plugin pack will ship a voxel game
+       **with digging**… absolutely no reason to treat it like everything needs to be
+       discoverable on the surface. Weird and misconceived and likely very relatively old."*
+       **Kills every "illegible until exhumation increases" caveat, the lode-gold A/B fork, and
+       `probe 3` — the probe measured the wrong thing and is NOT owed.** *Exhumation stays real
+       for **genesis honesty** (where an ore forms); what dies is exposure as a precondition for
+       shipping one.* `ores.md` is **conceptually behind `materials.md` / `material-behavior.md`,
+       which win on disagreement**; a revisit is owed and unscheduled. **⚠ Note how it survived:
+       the assumption was never stated as a decision — it rode inside *measurement caveats*,
+       which read as evidence rather than as premises, and held a user fork shut for a week.**
+    3. **`material_transport` — RATIFIED as-is.** The user is already running a string of work
+       on it and confirmed `COMPETENCE_SCALE`'s *"mud, sometimes"* is **not** to be treated as a
+       knob to tune (it is downstream of the denudation rate; tuning it would be a number
+       pretending to be a mechanism).
+    4. **THE REGISTRY CLAUSE WAS BADLY WORDED, NOT MERELY STALE** — surfaced by the user asking
+       *"I honestly don't understand what the registry is supposed to be except for a list which
+       we can extend."* **That reading is correct about what exists**: `Providers` is named
+       struct fields, extending it is cheap and encouraged, and `providers/mod.rs:41` already
+       says *"this is **not** a registry."* **The unbuilt thing is slots declared as DATA so a
+       PLUGIN can add one without recompiling** — the north-star shape applied to seams. So the
+       question is *"do we understand how slots VARY well enough to design a third-party
+       declaration?"*, never a count. **Count fixed (five), and the clause must stop being cited
+       against the corpus-addressability thread — that analogy has no shared mechanism.**
+
+  - *Original framing of the four calls, kept for the reasoning:*
     1. **`ecology.md:262-263` (DECIDED 07-20, user) vs `worldgen.md:189-191` (DECIDED 07-28,
        user)** — biology is *"a shipped part of world generation"* (confirmed live,
        `deeptime/field.rs:288`) vs *"engine + non-bio earth science → **then** ecology"*.

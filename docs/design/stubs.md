@@ -17,11 +17,43 @@ and not merely an entry. A **provider slot** is a plain `fn` pointer in
 `deeptime::providers::Providers` — resolved once at world build, carried in
 `DeepConfig`, default-identity — that names the question, names its heir, and
 holds the constant as an explicitly registered *identity* rather than as the
-rule. Four exist (stubs 7b, 8 and 13, and the layer-cake sibling gap). A slot
-does not retire a stub; it stops the stub from silently becoming the definition,
-which is ARCHITECTURE.md § *A summary is not an authority* made structural. The
-general registry is deliberately unbuilt — four conversions is not enough to
-design one from.
+rule. **Five exist** — `outcrop_at`, `wave_energy`, `parent_p`, `depth_to_water`
+and `paleo_temperature` (stubs 7b, 8, 13, the layer-cake sibling gap, and #6
+via journal/0078). A slot does not retire a stub; it stops the stub from
+silently becoming the definition, which is ARCHITECTURE.md § *A summary is not
+an authority* made structural.
+
+> **⚠ WHAT "THE GENERAL REGISTRY" MEANS — clarified 2026-07-28 after the user
+> read this clause and said, reasonably, *"I honestly don't understand what the
+> registry is supposed to be except for a list which we can extend."*** That
+> reading is **correct about what exists**, and the old wording invited it.
+>
+> **What exists today IS a list you extend**, and extending it is cheap and
+> encouraged: `Providers` is **named struct fields** holding `Option<fn>`, one
+> module per slot, `None` *is* the identity. Adding one is a new file plus a
+> compile error at every site that must answer for it. `providers/mod.rs:41`
+> says so outright: *"This is **not** a registry, a plugin loader, or a
+> declaration/validation system."* **Nothing here discourages a sixth slot.**
+>
+> **The unbuilt "registry" is a different thing entirely: slots declared as
+> DATA rather than as compiled-in fields**, so a **plugin** can add one without
+> recompiling the engine — validated at load instead of by `rustc`. That is the
+> north-star plugin shape applied to provider seams, and it is the only thing
+> the deferral was ever about.
+>
+> **So the real question was never "how many conversions do we have."** It is:
+> *do we understand how these slots VARY well enough to design a declaration a
+> third party could author against?* **Restate it that way** — the count was a
+> proxy, it read as a veto on extending the list, and it went stale anyway
+> (this clause said "four" for four days after the fifth landed).
+>
+> **⚠ AND IT DOES NOT GOVERN THE CORPUS-KNOWLEDGE THREAD.** This clause is
+> quoted in `doc-topology/SKILL.md`, the corpus notebook and its evidence file
+> as the reason not to design the addressability layer yet. **That is an
+> analogy stretched past its domain** — this is about plugin-authorable engine
+> sockets; that is about documents, and shares no mechanism with it. The
+> *session-workflow* seam-first rule may still bear on that thread; **this
+> sentence does not**, and should stop being cited there.
 
 ---
 

@@ -941,8 +941,20 @@ not retire a stub; it stops the stub from silently becoming the definition, whic
 ARCHITECTURE.md § *A summary is not an authority* **made structural**. **The general registry is
 deliberately unbuilt — four conversions is not enough to design one from.**"*
 
-That is **ratified project doctrine directly governing how this very design pass must proceed**,
-and it is echoed verbatim in `session-workflow` § Seam-first practice 6: *"**Do not build the
+> **⚠ HALF OF THIS WAS WITHDRAWN 2026-07-28 (user).** The `stubs.md:22` sentence **does not
+> govern this design pass**: it is about **plugin-authorable engine sockets** — declaring
+> provider slots as *data* so a mod can add one without recompiling — and shares **no mechanism**
+> with a documents problem. Reading it as binding here was an analogy stretched past its domain.
+> Two further corrections to the quotation above: the count is **five**, not four, and the number
+> was always a proxy for the real question (*do we understand how slots VARY well enough to design
+> a third-party declaration?*). *The user, on being shown the clause: "I honestly don't understand
+> what the registry is supposed to be except for a list which we can extend" — which is correct
+> about what exists, and is why it should never have been a veto here.*
+> **`session-workflow` § Seam-first #6 below still binds** — it is a rule about how to build
+> anything, not a claim about this domain.
+
+~~That is **ratified project doctrine directly governing how this very design pass must
+proceed**~~ *(struck above)*, and it is echoed in `session-workflow` § Seam-first practice 6: *"**Do not build the
 general mechanism first.** Convert the cheapest cold seam, let it teach the shape, convert three
 more, *then* generalize. **A registry designed before its callers exist is the same mistake in a
 new coat.**"* It is the project's own answer to *"we don't know what we need to know yet."*
