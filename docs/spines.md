@@ -99,7 +99,11 @@ at the frontier rather than recursing.
   and **never re-routes** (3e-2 decision 1, RATIFIED 2026-07-19)
 - S2 collapse: bounded to depth N, frontier conditions synthesized from the
   statistical tier — *"observing one mind must not collapse the planet"*
-  (ARCHITECTURE.md § Simulation: tiers)
+  (ARCHITECTURE.md § Simulation: tiers). **The shape is ratified; the running
+  instance is not currently running** — the toy engine's last production caller
+  went with the bootstrap history pass on 2026-07-28 (§ 3, journal/0121). Cited
+  here as the *shape* the live sim's far tiers will re-instance, not as code on a
+  path today
 - erosion halos 16–24 cells (S9); bound-water halo 4–11 cells (S11)
 
 **Rule:** every system declares its halo, and **where there's a cell range,
@@ -111,7 +115,9 @@ One quantity of truth: facts that leaked to an observer are **committed and
 immutable**; everything else is **fluid**, derived as a pure function of
 `(seed, position-or-subject, committed facts, time)`, replaying identically.
 
-- the constraint ledger (ARCHITECTURE.md, S2)
+- the constraint ledger (ARCHITECTURE.md, S2) — the **rule**; its S2 toy
+  implementation has had no production producer or consumer since 2026-07-28
+  (§ 3). The rule's live instances are the four bullets below
 - **the chunk store, unnamed**: `HostWorld` pins *edited* chunks and evicts
   *untouched* ones because they re-derive byte-identically (journal/0051)
 - water: persist bodies, derive voxels — 39 bytes rebuilt 38 358 wet voxels
@@ -866,6 +872,19 @@ so a sweep must ask "does the cited constraint still hold?"
   went unread: `dc-sim/src/statistical/world.rs:132` says *"Agents are optional — an empty
   `agent_home` gives a pressure-field-only world"*, and the caller passes `vec![]` twice on
   adjacent lines. *Sibling call sites are not evidence about each other.*
+  - **DISCHARGED 2026-07-28 (journal/0121), and by removal rather than by correction.**
+    The carve-out comment on `engine.rs`'s two step draws named the thing it would
+    re-roll — *"every world's history layer"* — and that thing no longer exists, so the
+    premise expired in the most literal available way. Both draws are now free to move
+    onto the provider at zero world cost. **The tail of the same error is worth keeping:**
+    corrections #64 went on to predict the removal would need `contents_contract`,
+    `s7_walk` and `geology` re-baselined because they *"all hash `generate_chunk` blocks
+    and are structurally downstream of the posts"*. **Not one golden moved** (corrections
+    #66). Structurally downstream is a statement about the call graph; whether a
+    fingerprint moves is a statement about which chunks the sampler visits, and the
+    samplers visit none of the twelve that carried posts. *The same reflex — reasoning
+    from the shape of the code instead of from what it executes — produced both halves,
+    six lines apart, in the entry that named the reflex.*
 
 - **not-an-instance, and the good version of the shape (2026-07-26, journal/0118).**
   Finishing journal/0105's hole 2 deleted an agreement test — `SALT_BIO_FIRE` /
@@ -1043,12 +1062,26 @@ consumed it and when.
 | **`DeepField::chapters` — the exported chapter table** (§ 8: plate state per chapter, `Vec<Vec<Plate>>`), populated since the tectonic-history slice. **Row added by the 2026-07-25 post-FLOW sweep — and it is the sweep's own indictment:** the field's doc comment has said *"today the table is exported and read by nothing"* (`field.rs:360-366`) for longer than this index has existed, and three sweeps added rows for its two immediate neighbours in the same struct (`geotherm`, `exhum`/`t_crust`) without noticing it. **A self-declaring comment is not an index** — that is the whole premise of § 3, demonstrated against § 3 | `deeptime/field.rs:367` (populated `field.rs:421` from `run.chapters`) | **no production caller** — only `tests/tectonic_history.rs:339,362`, `tests/deep_config_plumbing.rs:65,87,109,126,227`, and `tests/providers_common/mod.rs:169` (which hashes only its `.len()` into the fingerprint) | **per-unit deformation re-derived analytically at collapse resolution** — dip / provenance / fault traces in cut faces, the ~5 KB that replaces stored per-cell dip vectors (ROADMAP Sequenced, the collapse-tier slice; stubs.md "Sibling gap — layer-cake strata / no dip-fold" is the same absence seen from the other side) |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** in production (`examples/entry_species_probe.rs:325` is a probe; the *separate* `inventory::Cause::Dissolution` is deliberately excluded from `WEATHERING_AGENTS`, `weather_inventory.rs:61-63`) | karst — hard-gated on a carbonate that does not exist |
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
-| pass-graph `Resource` vocabulary | `pipeline.rs` | 8 passes | 26 of 34 inventoried seams are **value-level and invisible to it** |
+| pass-graph `Resource` vocabulary | `pipeline.rs` | 7 passes (was 8; `dc:pass/history` and its `History` axis were deleted 2026-07-28, journal/0121) | 26 of 34 inventoried seams are **value-level and invisible to it** |
 | `column_summary` / `open_air_below` / `ColumnSummaries` — the S3 skylight query (S-9 deterministic-derive), built + 6 tests green | `dc-core/src/column.rs` | **no production caller** — only the `--bench-storage` timing harness (`dc-client/src/bench_storage.rs`); `docs/API.md` lists a `world.column_summary` query but **no dc-api handler exists** for it (2026-07-23 sweep) | **sim-light / skylight** — the "is this column under open sky" query; the lighting/sim-light consumer is unbuilt |
-| **the S7 pregen history handoff — `Pregen.ledger`, `.overlay`, `.n_polities`, `.observe_count`** (the S2 statistical tier's whole output, populated in every world, no flag). **Row added 2026-07-26 by journal/0118's rider**, which went looking for something else; it had never been listed, and a ROADMAP justification was quoting it as a *visible* blast radius (corrections #64) | `dc-worldgen/src/pregen/mod.rs:300-304`, produced by `pregen/history.rs` | **exactly one non-test reader between all four: `approx_resident_bytes` (`pregen/mod.rs:367`)** — i.e. the only production code that touches the ledger is the code that measures how much memory it costs. Everything else is `tests/s7_pregen.rs`, `tests/s7_handoff.rs`. **The one thing that DOES escape is `Pregen.sites`**, and only through its `abandoned` flag: `collapse.rs:1588` → `Block::Wood` ruin posts. `polity` and `founded` are read by nobody outside tests | the social sim / civilization history (stubs.md § 1 — `ruin_posts` is the loud stand-in). Until then, **a slice that cites "the history layer" as a blast radius is citing this row**: the facts are computed, chronicled, and dropped |
+| **the whole S2 statistical tier — `engine::{query, observe, force_fact}`, `Ledger`, `ToyWorld`** (`dc-sim/src/statistical/`, minus `rng`). **Row added 2026-07-28 by journal/0121, on the day its last consumer was deleted** — the honest successor to the S7 row that departed below | `dc-sim/src/statistical/{engine,ledger,world}.rs` | **zero production callers workspace-wide.** Its one caller was `pregen/history.rs`, removed as unratified bootstrap content; everything left is `dc-sim`'s own `s2_torture` / `s2_measurements` suites. What dc-worldgen still uses from this module is the sibling `rng` (the draw provider), which is on every worldgen path and is **not** in this row | the live sim's far tiers — S2's *shapes* are ratified and instanced all over the tree (§ S-1's bounded collapse, § S-2's committed facts, § S-9's fallback query); what has no consumer is this **toy implementation**, whose own module doc calls the toy world "disposable". **The standing question this row exists to keep open:** the `Subject::{Site, Polity}` / `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` / `SiteEventKind` / `Value::{Exists, PolityRef, Event, Extent}` vocabulary is **settlement/civ schema with no producer** and was deliberately left in place by journal/0121 (deleting variants of a `Serialize` enum is wider than that removal's scope). It is a candidate for the same disposal — **not a schema to build on** |
 
 **Departed (the good event):**
 
+- **the S7 pregen history handoff — `Pregen.ledger`, `.overlay`, `.n_polities`,
+  `.observe_count`** — **DELETED 2026-07-28** (journal/0121), two days after this
+  index first listed it. Not consumed: *removed*, with `pregen/history.rs`,
+  `Pregen.sites`, `collapse.rs::ruin_posts` and the `dc:pass/history` pass, on the
+  user's 2026-07-26 direction. **This is the second way a § 3 row leaves, and the
+  index had only ever recorded the first.** The header says *"record what consumed
+  it and when"* — but the honest disposal of built-and-unconsumed machinery is
+  sometimes that nothing ever should consume it. Reading the row as *"find this a
+  consumer"* is the A-4 mirror image of A-1: instead of a stand-in becoming the
+  definition, an **artifact becomes a requirement** because it was written down.
+  The test is CLAUDE.md § *Existence is not standing*, and § 3 rows are exactly
+  where it wants asking. *The row's own measurement is what made the deletion
+  cheap: it had already established there was one non-test reader and that all it
+  read was the size.*
 - `MixtureDownsampleRule` / `derive_material_lod_chunk` — **consumed
   2026-07-22 by FF2b-minimal** (journal/0070): the client's far pyramid
   (`dc-client/src/farpyramid.rs`) derives coarse material chunks through it

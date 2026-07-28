@@ -1,0 +1,75 @@
+   Compiling dc-core v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-core)
+   Compiling dc-sim v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-sim)
+   Compiling dc-api v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-api)
+   Compiling dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-worldgen)
+    Finished `release` profile [optimized] target(s) in 17.69s
+     Running tests\contents_contract.rs (B:\repos\borwood\deepcraft\target\release\deps\contents_contract-708959734ad60fff.exe)
+
+running 3 tests
+test classification_does_not_depend_on_generator_state ... ok
+test block_equals_classify_of_contents has been running for over 60 seconds
+test generated_world_is_byte_identical_to_the_pre_contract_goldens has been running for over 60 seconds
+test generated_world_is_byte_identical_to_the_pre_contract_goldens ... ok
+block == classify(contents): 3717321 contents-bearing voxels of 7864320; absent-contents blocks {0: 2050224, 1: 2096775}
+test block_equals_classify_of_contents ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 102.12s
+
+     Running tests\geology.rs (B:\repos\borwood\deepcraft\target\release\deps\geology-2996ff0ea5b108c1.exe)
+
+running 8 tests
+test family_contacts_wander_off_the_chunk_grid ... ok
+test accessory_inclusions_ride_igneous_pores has been running for over 60 seconds
+test adding_a_member_diversifies_but_never_inflates_its_class has been running for over 60 seconds
+test class_registration_order_cannot_change_world_bytes has been running for over 60 seconds
+test geology_world_regenerates_byte_identically has been running for over 60 seconds
+test placer_follows_the_sorted_gradient has been running for over 60 seconds
+test render_contents_carry_the_placer_mixture has been running for over 60 seconds
+test strata_records_are_province_and_climate_driven has been running for over 60 seconds
+test class_registration_order_cannot_change_world_bytes ... ok
+test render_contents_carry_the_placer_mixture ... ok
+test placer_follows_the_sorted_gradient ... ok
+test accessory_inclusions_ride_igneous_pores ... ok
+test adding_a_member_diversifies_but_never_inflates_its_class ... ok
+land columns 1600: 1600 with a clastic veneer, 0 bare
+test strata_records_are_province_and_climate_driven ... ok
+test geology_world_regenerates_byte_identically ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 155.33s
+
+     Running tests\providers_golden.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_golden-01b7ed2343d70152.exe)
+
+running 2 tests
+surface fingerprint = 0x260E074F211C936D
+record  fingerprint = 0xACB618596AA3F3A8
+test the_golden_world_still_hashes_to_the_pre_slice_goldens ... ok
+test the_fingerprint_is_reproducible_within_a_build ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.58s
+
+     Running tests\s7_pregen.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_pregen-87dbadb83f94495c.exe)
+
+running 5 tests
+test climate_latitude_gradient_and_rain_shadow has been running for over 60 seconds
+test every_river_reaches_the_sea_by_construction has been running for over 60 seconds
+test pregen_is_deterministic_and_seed_sensitive has been running for over 60 seconds
+test tectonics_produces_provenance_diversity has been running for over 60 seconds
+test topology_world_ocean_ring_closes_the_disc has been running for over 60 seconds
+test climate_latitude_gradient_and_rain_shadow ... ok
+test tectonics_produces_provenance_diversity ... ok
+test topology_world_ocean_ring_closes_the_disc ... ok
+test every_river_reaches_the_sea_by_construction ... ok
+test pregen_is_deterministic_and_seed_sensitive ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 150.77s
+
+     Running tests\s7_walk.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_walk-1ed05374f7de7996.exe)
+
+running 2 tests
+test vertical_generation_is_unbounded_downward ... ok
+test walk_10k_chunks_across_the_civilized_boundary has been running for over 60 seconds
+walk: max interior step 7, max border step 7 voxels; lookahead maxima: cells 36 regions 9 locales 1 columns 1 lattice 1468
+test walk_10k_chunks_across_the_civilized_boundary ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 128.12s
+
