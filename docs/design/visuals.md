@@ -486,11 +486,17 @@ facts that result.
 
 **Sharpening (assistant, PROPOSAL):** the delta stream has two sources with
 different shapes. A **player edit** is directly renderable — geometry changed,
-the summary re-derives. A **collapsed sim fact** is not: "this settlement was
-sacked in year 340" must pass through an *expresser* before it is visible at
-5 km. That is the ledger-expression problem (geology.md § Expression of the
-ledger) arriving at distance, and it is why ruin-posts is a stub rather than a
-feature.
+the summary re-derives. A **collapsed sim fact** is not: a fact like "this front
+weathered through in chapter 7" must pass through an *expresser* before it is
+visible at 5 km. That is the ledger-expression problem (geology.md § Expression
+of the ledger) arriving at distance.
+
+*The original sentence used "this settlement was sacked in year 340" as the
+example and closed "…and it is why ruin-posts is a stub rather than a feature".
+Both halves were removed 2026-07-28 (journal/0121): the ruin posts are deleted
+and stubs.md § 1 is resolved by deletion. **The argument is untouched** — it was
+never about settlements, and the deep-cell fact ledger supplies better examples.
+Kept visible because "ruin-posts is a stub" was a live cross-reference.*
 
 **The property that falls out:** if the far field is a function of committed
 history only, it is a **pure function of (seed + ledger + edit log)** —

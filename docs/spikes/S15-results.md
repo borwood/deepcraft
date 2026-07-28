@@ -206,7 +206,8 @@ separated by a sill that a rising water level would overtop. Result:
 
 The mechanism is not subtle. `WorldGenerator::generate_chunk` fills solid below
 the column's surface height and air above it — **the world is a pure heightfield
-with no caves and no overhangs** (ruin posts are the only exception, and they
+with no caves and no overhangs** (ruin posts are the only exception — **deleted
+2026-07-28, journal/0121**, so as measured here the exception no longer exists — and they
 are above ground). So at any level, all the sub-level air of a drainage basin is
 a single component *by construction*. Disconnected same-level containers require
 3-D structure.

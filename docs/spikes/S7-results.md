@@ -6,6 +6,18 @@ the finite deep-time pipeline, `collapse.rs` = the lazy pyramid); tests in
 changes to `dc-sim` are listed at the end. Numbers below from the Windows dev
 box, release profile, seed `0x0D5E_ED57_2026`.
 
+> **⚠ THE SETTLEMENT-HISTORY HALF OF THIS SPIKE NO LONGER EXISTS (2026-07-28,
+> journal/0121).** `pregen/history.rs`, `Pregen.{ledger, overlay, sites,
+> n_polities, observe_count}`, `collapse.rs::ruin_posts`, the `dc:pass/history`
+> pass and `tests/s7_handoff.rs` were **removed** on the user's direction
+> (2026-07-26): unratified early-bootstrap content, no evo/socia/civ model behind
+> it even at the design stage. **This document is preserved as the measurement
+> record it is** — the numbers below were really measured and are not being revised —
+> but every sentence about sites, polities, sacks, ruin posts, the year-zero
+> ledger handoff and the `Site`/`Polity` fact kinds describes code that is gone.
+> The rest of the spike (topology, the pyramid, the wilds, the lookahead bounds,
+> chunk latency) is live and unaffected.
+
 ## Topology recommendation: continent-disc in a world-ocean
 
 The design doc left east–west wrap vs continent-disc open. **Recommendation:
