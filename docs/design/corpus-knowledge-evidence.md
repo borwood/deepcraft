@@ -729,6 +729,110 @@ The coding rule is stated above so it is re-runnable. **An independent re-coding
 (2026-07-28) precisely because this number is now load-bearing**, and if it comes back materially
 different, § 4 changes and this row is the reason.
 
+### 3.5h ⚠⚠ THE INDEPENDENT RE-CODING — full audit `docs/audits/2026-07-28-corrections-recoding.md`
+
+Dispatched 2026-07-28 with **this file and the notebook named as forbidden reading** so it could
+not anchor, and my counts withheld. It confirmed it opened neither. **It moved my numbers in both
+directions and its most valuable output is neither total.**
+
+**First: my denominator was wrong.** The file has **67** rows (66 numbered + `#63b`), not 66 —
+`#66` landed mid-session (`0f5bd34`) and postdates my coding.
+
+#### Rule 2 (stale vs born-false) — CONFIRMED, and pushed FURTHER than I had it
+
+| | mine | independent |
+|---|---|---|
+| GENUINELY STALE | ~5 (8 %) | **2 (3.0 %)** |
+| BORN-FALSE, unreachable | ~5 (8 %) | 3 (4.5 %) |
+| BORN-FALSE, checkable | ~55 (85 %) | **61 (91.0 %)** |
+| cannot attribute | 0 | 1 |
+
+**It kept only #11 (`c087d39`) and #35 (`f286893`), both git-verified, and documented a
+NO-TRUE-ERA for #7, #12, #27, #32, #42, #57 and #66** — several of which I had assigned to
+STALE. **My staleness count was an overcount, in the direction that flatters tooling, and an
+independent check pushed it down.** That is precisely what the check was for, and the conclusion
+in § 4.0a is *strengthened*: **the staleness ceiling is 3–8 %, not 8 %.**
+
+#### Rule 1 (falsifier location) — MATERIALLY DIFFERENT, and mostly in my favour
+
+| bucket | mine | independent |
+|---|---|---|
+| MEASUREMENT | 46 % | **37.3 % (25)** |
+| CODE | 22 % | **35.8 % (24)** |
+| SAME-ARTIFACT | 11 % | 9.0 % (6) |
+| THE USER | 12 % | 9.0 % (6) |
+| LITERATURE | 2 % | 7.5 % (5) |
+| **DISTANT DOC** | 5 % (3) | **1.5 % — ONE entry, "and that one is a bad fit"** |
+
+Its derived figure is stronger than mine: **46.3 % (31/67) needed no experiment at all — the
+falsifier was in the repo; 65.7 % (44/67) counting secondaries**, against my ~33 %. **So it
+believes MORE was catchable from the repo and LESS required instrumentation.** Both codings
+therefore agree on every load-bearing direction — retrieval is the smallest band, assertion-time
+is the binding failure — while disagreeing on magnitude by up to ~2×.
+
+#### ⚠ THE MOST IMPORTANT RESULT: 29 of 67 entries (43 %) ARE COIN-FLIPS
+
+20 rule-1 ambiguous, 10 rule-2, one both. And: *"the BF-U/BF-C line alone, drawn one plausible
+notch differently, **doubles the UNREACHABLE count**."*
+
+> **Both codings are soft on nearly half the file. The DIRECTIONS are robust to that; the
+> PERCENTAGES are not.** Every number in § 4 must therefore be read as a band, and this is
+> *"quote the measure, never the threshold"* (§ recording discipline) applied one level up — to
+> my own analysis rather than to a slice's.
+
+#### Five entries that misdescribe themselves — four verified by me directly
+
+1. **⚠ #40 IS ITSELF A MISDIAGNOSIS → filed as corrections #67.** It accuses the 2026-07-22 seam
+   audit of *paraphrasing* a comment and thereby *"manufacturing the defect it reports"*, and
+   concludes *"the A-2 was never live."* **Verified: `git show 11d4385 -- …/field.rs` removes the
+   line *"grade axes the collapse tier **reads**"*, and that commit's own message says it
+   *"**Fixed the lying field.rs doc-comments that claimed the collapse tier 'reads' these
+   axes**."*** `11d4385` is **2026-07-21**; the audit is **2026-07-22**. The audit quoted the
+   comment **character-for-character as it stood the day before.** The A-2 was live; #40's author
+   read the *current* text and inferred a paraphrase. **A stale READ, not a stale claim** — the
+   cross-worktree hazard in the document layer, where no compiler notices. Propagated to
+   `stubs.md` § 4 and `spines.md` A-2 + § 3; all three amended 2026-07-28.
+2. **#60's falsifier was two sentences above the claim** (`journal/0111:119-129` states the ±35 m
+   double-count, then concludes *"that is what licenses reporting it"*). Its header credits
+   journal/0114 instead. **SAME-ARTIFACT mis-filed as MEASUREMENT** — an independent instance of
+   the class § 4.3 rests on.
+3. **⚠ #56 still asserted, unstruck, exactly what #60 withdraws** (`corrections.md:1949-1952`),
+   and **verified: no `#60` token existed anywhere in the file.** So the artifact whose entire
+   purpose is recording falsified claims carried an unstruck falsified claim **220 lines from its
+   own withdrawal, with no link in either direction, for two days.** Struck + reciprocally linked
+   2026-07-28. **This is the sharpest available instance of the one-directional edge (§ 4.1c) and
+   it is inside `corrections.md`.**
+4. **#35's "eleven days earlier" is one day** — `75445f2` (07-20) → `f286893` (07-21), entry dated
+   07-22. Verified. **The correction sharpens the entry:** a justification that went stale within
+   24 hours in a comment nobody re-read is worse than one that took a fortnight.
+5. **#63's "`myr_per_epoch` does not exist … nobody has ever grepped for it"** — verified false of
+   the *string*: `denudation_probe.rs:105, :117, :417`, **in the probe its own author was using.**
+   Defensible about the *knob* (no `DeepConfig` field), so **narrowed, not corrected.** Sibling of
+   #67: *a quotation needs a revision; **an absence needs its pathspec.***
+
+#### Shapes neither coding rule captures — its answer to "your buckets are wrong"
+
+- **⚠ ARMCHAIR DERIVATION.** *"7–8 of the 25 MEASUREMENT rows were refutable with a pencil"* —
+  #39, #61, #63, #66, #34, #25/#26, #59 — *"rule 1 credits instrumentation it did not need."*
+  **This shrinks the genuinely-unreachable band further and strengthens the write-time thesis**:
+  relief cannot see spatial arrangement (#61) is a fact about the statistic, available before any
+  probe ran.
+- **The author's own same-session output** (#19) — neither SAME-ARTIFACT nor DISTANT DOC. A
+  category of one, and it is the entry whose lesson is *"check new claims against what you wrote
+  today."*
+- **A stale READ is not a stale CLAIM** (#40) — see above; no bucket held it.
+- **⚠ CLAIMS WITH NO ARTIFACT AT ALL** — #31, #55, #56, #63b. *"No differ can fire, and #56 is the
+  most expensive entry in the file."* **This is B4 (§ 3.1) confirmed as structural rather than
+  incidental: an implicit premise has no address, so NO mechanism of any kind — tag, version,
+  watcher, differ — can attach to it.**
+- **Instrument defects, not world defects** — ~1/3 of the file, *"invisible to every corpus
+  watcher."*
+- **Severity is absent from both taxonomies**, and **so is who held the belief.** Neither coding
+  distinguishes a correction that cost an afternoon from one that cost an architecture.
+
+**Two correction candidates it handed up rather than filing:** the #56/#60 contradiction (repaired)
+and #40's mechanism (filed as **#67**). **It filed nothing itself**, as briefed.
+
 ### 3.6 ⚠ THE ADOPTION LAW — three natural experiments already run in this repo
 
 The single most useful thing found. Same question (does a convention get adopted?), three

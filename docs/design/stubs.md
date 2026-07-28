@@ -167,9 +167,17 @@ budget to zero at every named site without deleting it.
 `field.rs`: shipped and populated since U8, **read by no downstream consumer**.
 The in-code comment is honest about this — it says the collapse tier *WILL* read
 these and that they are *currently consumed by nothing*, and as of journal/0078
-cites `spines.md` § 3. (The 2026-07-22 audit called the comment an A-2
+cites `spines.md` § 3. ~~(The 2026-07-22 audit called the comment an A-2
 overstatement by quoting it with its "WILL" dropped; corrections #40 records that
-the comment was already correct.) **Heir:** a metamorphism pass reading the
+the comment was already correct.)~~
+**⚠ AMENDED 2026-07-28 — corrections #67.** The audit did **not** drop a `WILL`: it quoted the
+comment **exactly as it stood the day before**. `11d4385` (**2026-07-21**) replaced
+*"the collapse tier **reads**"* with *"**WILL** read … currently consumed by nothing"*, and that
+commit's own message says it *"**Fixed the lying field.rs doc-comments that claimed the collapse
+tier 'reads' these axes**."* The audit ran **2026-07-22**. **So the A-2 was real and live**, and
+`11d4385` had already fixed it — the audit was right about the defect and one day behind the
+tree. *#40's author read the current comment and inferred a paraphrase; a quotation without a
+revision cannot distinguish the two.* **Heir:** a metamorphism pass reading the
 P/T path into grade classes (schist/slate/gneiss roster, geology.md) — with a
 named arrival address, the `providers::burial_temp_c` geotherm (journal/0067).
 **Blast:** zero today; lands the day a cut face should show an aureole and

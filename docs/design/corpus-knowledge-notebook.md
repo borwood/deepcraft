@@ -164,10 +164,41 @@ slice**."* And **#63b never entered a doc at all** because it was labelled a hyp
 conversation. **A claim that carries its own epistemic status costs less when it turns out to be
 wrong — measured, twice, in one day.** It is applied entirely by hand and entirely unevenly.
 
-**⚠ Load-bearing and single-coded.** § 3.5g is coded by the assistant who wrote most of the
-falsified claims. An **independent re-coding was dispatched 2026-07-28** with the two forbidden
-files named so it could not anchor. **If it returns materially different totals, this section is
-what changes.**
+**⚠ INDEPENDENTLY RE-CODED 2026-07-28 — and it moved my numbers against me** (§ 3.5h; full audit
+`docs/audits/2026-07-28-corrections-recoding.md`). Dispatched with this file and the evidence
+ledger named as **forbidden reading**, my counts withheld; it confirmed it opened neither.
+
+- **Rule 2 CONFIRMED and pushed further:** it found **GENUINELY STALE = 2 (3.0 %)**, not my ~5
+  (8 %), keeping only #11 and #35 — both git-verified — and documenting a **no-true-era** for
+  #7, #12, #27, #32, #42, #57, #66, several of which I had called stale. **My staleness count was
+  an overcount in the direction that flatters tooling.** The ceiling is **3–8 %**, not 8 %.
+- **Rule 1 differs materially, mostly in my favour:** **DISTANT DOC is ONE entry, and it calls
+  even that a bad fit** (I had 3). CODE **36 %** vs my 22 %; MEASUREMENT **37 %** vs my 46 %; and
+  it derives **46.3 % primary / 65.7 % with secondaries needed no experiment at all**, against my
+  ~33 %. **It believes MORE was catchable from the repo than I did.**
+- **⚠ AND 29 OF 67 ENTRIES (43 %) ARE COIN-FLIPS.** The BF-U/BF-C line *"drawn one plausible notch
+  differently **doubles the UNREACHABLE count**."*
+
+> **Both codings agree on every load-bearing DIRECTION and disagree on MAGNITUDE by up to ~2×,
+> with 43 % of the file ambiguous. So: the directions are robust; the percentages are not.**
+> Every figure in § 4 is a band. *This is "quote the measure, never the threshold" applied to my
+> own analysis rather than to a slice's — and the honest form of that discipline here is to say
+> the numbers cannot bear more weight than a direction.*
+
+**It also found five entries that misdescribe themselves, four of which I verified directly** —
+including that **corrections #40 is itself a misdiagnosis**, now filed as **corrections #67**: the
+seam audit quoted the comment *character-for-character as it stood the day before* (`11d4385`,
+whose own message calls the prior text *"lying"*), so the A-2 **was live** and #40's author had
+read a *later* revision. **A stale READ, not a stale claim.** And **#56 still asserted, unstruck,
+exactly what #60 withdraws, with no `#60` token anywhere in the file** — the sharpest instance of
+§ 4.1c's one-directional edge, inside `corrections.md` itself. Both repaired 2026-07-28.
+
+**And it named a shape neither rule captures that matters more than either total: CLAIMS WITH NO
+ARTIFACT** (#31, #55, #56, #63b) — *"no differ can fire, and #56 is the most expensive entry in
+the file."* **This is B4 confirmed as structural: an implicit premise has no address, so NO
+mechanism — tag, version, watcher, differ — can ever attach to it.** Plus **ARMCHAIR DERIVATION**
+(7–8 of 25 MEASUREMENT rows were refutable with a pencil), which shrinks the unreachable band
+again; and the absence of **severity** and **belief-holder** from both taxonomies.
 
 **The § 3.5c bands map onto the layers exactly, which is the test of this framing:**
 

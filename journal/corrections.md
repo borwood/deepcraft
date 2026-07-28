@@ -1127,8 +1127,18 @@ generator asks the question **once per voxel span**, by unbiased **addressed
 stochastic rounding**: a 2.9 cm bed claims `8 × 0.0289 / 0.9 ≈ 0.257` of an
 eighth and therefore wins a whole eighth about a quarter of the times it is
 asked. The mechanism the comment described as the honest answer and filed as
-unbuilt had been built eleven days earlier, by a slice aimed at something else
+unbuilt had been built ~~eleven days~~ **one day** earlier, by a slice aimed at something else
 entirely, and nobody went back to re-read the filings.
+
+> **⚠ INTERVAL CORRECTED 2026-07-28** (independent re-coding, git-verified). The comment shipped
+> in `75445f2` (**2026-07-20**, journal/0026); the addressed-stochastic-rounding mechanism shipped
+> in `f286893` (**2026-07-21**, journal/0055); this entry is dated **2026-07-22**. The gap was
+> **one day**, not eleven. **This sharpens the entry rather than weakening it** — a justification
+> that went stale within twenty-four hours, in a doc comment nobody re-read, is a worse result
+> than one that took a fortnight, and *"nobody went back to re-read the filings"* is
+> correspondingly stronger. *Recorded because this entry's whole argument rests on the interval,
+> and because an unsourced duration is the same defect as an unsourced coordinate (#28) or an
+> unsourced quotation (#67).*
 
 **Measured after routing charcoal to its own class:** 0.39 % of recorded voxel
 spans carry at least one charcoal eighth; 0.0495 % of all allocated eighths in
@@ -1946,10 +1956,23 @@ real structure (max/median 12.9×, top decile does 25.8 %) but the *entire* dist
 lies under the global floor. Denudation is **2.7 %** of rock uplift, so the landscape
 has never approached topographic steady state.
 
-**Two independent instruments agree.** The boundary-flux accounting carries a real
+~~**Two independent instruments agree.** The boundary-flux accounting carries a real
 uncertainty — the ±35 m sea-level cycle shuffles cells across the shoreline, and the
 land budget closes only to ~90 % of the export term. The per-cell rock-removal plane
-(`grid.exhum`) has no shoreline in it at all. They agree **to 2.4 %**.
+(`grid.exhum`) has no shoreline in it at all. They agree **to 2.4 %**.~~
+
+> **🔴 WITHDRAWN — see #60 (2026-07-26).** The two instruments agreed *"by coincidence of
+> smallness"*: D1 is a **gross** land→sea edge flux and the ±35 m sinusoid sweeps the shoreline
+> four times, so cover that crosses, is stranded, and crosses again is **counted every time**.
+> D1 is an **upper bound**, not a measurement, and it becomes a loose one exactly when creep is
+> fast. **A cross-check is only evidence if it survives the regime it is being used to license.**
+> **What survives untouched:** the direction and the ~10³ magnitude of this entry's finding, and
+> every literature comparison in it. D3 (`grid.exhum`) is the sound instrument once fluxes are
+> large. *Struck here 2026-07-28, not 2026-07-26: #60 named this entry and this entry never
+> named #60, so for two days `corrections.md` — the file whose whole purpose is recording
+> falsified claims — carried an unstruck falsified claim 220 lines from its own withdrawal, with
+> **no `#60` token anywhere in the file**. Found by an independent re-coding, not by a sweep.
+> The repair is deliberately reciprocal.*
 
 **Why the model is NOT wrong — only the rate.** A weathering-limited landscape routed
 by hillslope creep, with minor rivers, regolith that armours its own weathering front,
@@ -2322,6 +2345,20 @@ register is `DeepConfig::iterations` (200) against a set of rates each stated *p
 with the epoch length living only in doc comments as "2.5 Myr/iteration". A discriminator
 specified against a knob nobody has ever grepped for is a discriminator nobody has run.
 
+> **⚠ NARROWED 2026-07-28** (independent re-coding, verified). **The load-bearing half stands:
+> there is no `myr_per_epoch` KNOB** — no `DeepConfig` field, nothing tunable, and the
+> discriminator specified against one was indeed unrunnable as written. **What is wrong is the
+> absolute phrasing.** The *identifier* exists: `crates/dc-worldgen/examples/denudation_probe.rs`
+> declares `fn myr_per_epoch(cfg: &DeepConfig) -> f64` at `:117`, documents it at `:105`, and
+> calls it at `:417` — **in the probe this entry's own author was working with.** So *"does not
+> exist anywhere in the tree"* is false of the string, and *"a knob nobody has ever grepped for"*
+> is false twice over: it had been written, documented and called. *Kept as a narrowing rather
+> than a correction because the diagnosis and the conclusion are both unaffected — but the tell
+> this entry called "small but it is the tell" was itself imprecise, which is the same class of
+> error one level down: **a claim about absence is a claim about a search, and the search was
+> never stated.*** (Sibling of #67: a quotation needs a revision; **an absence needs its
+> pathspec.**)
+
 **(ii) The stability-limit hypothesis is falsified.** Refined **4×** at fixed total simulated
 time — `k×` epochs against `1/k×` every per-epoch rate, with the shipped arm carried as the
 operator's own falsifier and reproducing itself to three digits — concavity rms goes
@@ -2567,3 +2604,58 @@ unrelated ground does not notice.
 specification* — so when a slice expects to move one, it owes **which fingerprint,
 by what path, over which samples**, and the honest answer is sometimes "none of
 them, and here is the arithmetic". Never a blanket licence.
+
+---
+
+## 67. "The 2026-07-22 seam audit misquoted the `exhum`/`t_crust` comment, so its A-2 was never live" (`journal/corrections.md` #40, `docs/design/stubs.md` § 4, `journal/0078`, 2026-07-23 — falsified 2026-07-28 by an independent re-coding of this file, git-verified)
+
+**The claim.** #40 records that the seam inventory flagged the `exhum`/`t_crust` doc comment
+as an A-2 instance by quoting it as *"the metamorphic-grade axes the collapse tier **reads**"*
+— dropping a `WILL` and a *"currently consumed by nothing"* clause — and concludes:
+*"A comment that already states 'consumed by nothing' is not a justification outliving its
+premise; **the A-2 was never live**."* Its standing lesson: *"When a sweep reports 'the comment
+says X and X is false', **re-read the comment before believing the sweep**."*
+
+**Falsified: the audit did not paraphrase. It quoted the comment exactly as it stood the day
+before.** `git show 11d4385 -- crates/dc-worldgen/src/deeptime/field.rs` removes the line
+
+> `/// grade axes the collapse tier reads (§ 6.4). Empty when tectonic history is`
+
+and replaces it with
+
+> `/// grade axes the collapse tier WILL read (§ 6.4): exported and, as of U8,`
+> `/// populated in every production world, but currently consumed by nothing.`
+
+**And the commit says so in its own message:** *"**Fixed the lying field.rs doc-comments that
+claimed the collapse tier "reads" these axes** (stubs.md section 4)."* `11d4385` is
+**2026-07-21**; the seam inventory is **2026-07-22**. So the A-2 **was live** — from whenever
+that comment was written until the day before the audit — and the commit that ended it calls
+the prior text *lying*, which is the same verdict the audit reached.
+
+**The mechanism, and it is the one #40 itself warned about, inverted.** #40's author read the
+**current** comment, found it honest, and inferred that the audit must have mangled it. The
+audit had quoted a **prior revision**. Neither party was careless about the text; they were
+looking at the same file **at two different times**, and nothing in either artifact carried a
+timestamp for the quotation. *#40 told the next reader to re-read the comment before believing
+the sweep. The missing half is:* ***re-read it AS OF WHEN THE SWEEP RAN.*** A quotation without
+a revision is not a quotation — the corpus already knows this about coordinates (#28: *"a bare
+number pair is not an address"*) and it is the same defect one layer up.
+
+**This is a stale READ, not a stale claim** — CLAUDE.md's cross-worktree hazard (#21/#27/#37)
+appearing in the **document** layer, where there is no compiler to notice.
+
+**Consequences, all propagation rather than code.**
+- `stubs.md` § 4's parenthetical said *"corrections #40 records that the comment was already
+  correct."* It was correct **as of 2026-07-21**, one day before the audit. Amended in place.
+- **The `exhum`/`t_crust` A-2 is restored to the record as a real, since-fixed instance.** No
+  code changes: `11d4385` already fixed it, and journal/0078's tightening still stands as polish.
+- `spines.md` A-2's *"not-an-instance"* row is the same reading and is amended with a pointer.
+
+**Two lessons, and the second is worth more than this entry.**
+1. **A quotation needs a revision, not just a source.** Every `file:line` citation in this corpus
+   is implicitly *"as of some unstated commit"*, and 808 of them exist.
+2. ***A correction can be wrong, and nothing in this project was checking.*** This is the first
+   entry filed against another entry. It was found by an **independent re-coding dispatched
+   specifically to disagree**, told which two files it was forbidden to read so it could not
+   anchor — not by any sweep, and not by the author of either artifact. **`corrections.md` had
+   no more immunity than the documents it audits.**
