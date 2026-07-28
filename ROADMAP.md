@@ -557,13 +557,18 @@ see the question you are asking.
   the CLAUDE.md trust-tier line). **The rest are owed, and are recorded here rather than
   left in an audit nobody re-opens:**
   - **✅ DONE 2026-07-28 — the dangling cross-file pointers.** The audit estimated *"~25"*;
-    the real count is **43 pointers at 42 sites**, all fixed. **22** `"see § Shipped"` in
-    `ROADMAP.md` (audit said 16) · **19** the other way in `ROADMAP-history.md` (audit said 9,
-    and three of them — the `NEEDS RATIFICATION (below, § Sequenced)` markers on the
-    2026-07-20 erodibility / water / biotic entries — were already directionally wrong
-    *before* the split) · the `:515` orphan · plus one the audit did not list, `:3421`'s
-    *"Sequenced below"* read from inside § Observed. **The audit undercounted by 17.**
-    - The `:515` orphan is *attributed*, not guessed: the block it meant was the **2026-07-21
+    the real count is **44 pointers at 43 sites**, all fixed. **The audit undercounted by 18.**
+    - **23 in `ROADMAP.md` pointing at the archive** (audit said 16): 22 of the
+      `"see § Shipped"` form, plus the last line of the 2026-07-26 morning close block —
+      *"the 2026-07-25 block **below**"*, which was one of the six archived, so the live
+      board's own close block pointed past its own end.
+    - **19 in `ROADMAP-history.md` pointing back at the live board** (audit said 9).
+    - **4 were already directionally wrong BEFORE the split** and are now doubly wrong: the
+      roughness-decay entry's *"Sequenced below"* read from inside § Observed, and the three
+      `NEEDS RATIFICATION (below, § Sequenced)` markers on the 2026-07-20 erodibility / water
+      / biotic Shipped entries. *§ Sequenced has sat **above** § Shipped since at least
+      `34d88f2`; these predate the archive, which merely made them unresolvable.*
+    - **The `:515` orphan — *attributed*, not guessed.** The block it meant was the **2026-07-21
       close block** (verified at `34d88f2`, where it sat 19 lines above), and that block was
       consumed by its successors rather than archived — so it exists nowhere, and the line now
       says so instead of pointing at a block 3,800 lines the other way.
@@ -4618,6 +4623,8 @@ verified by name, reconciling exactly across all five slices. Production is **by
    `calibrated_rates` once #29 is fixed.
 4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
 
-*(The 2026-07-25 block below is consumed; preserved as history.)*
+*(The 2026-07-25 block is consumed; preserved as history — **archived 2026-07-26 to
+`ROADMAP-history.md`**, where it is the first of the six superseded close blocks. It used to
+sit directly below this line.)*
 
 
