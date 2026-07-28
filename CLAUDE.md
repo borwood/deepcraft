@@ -14,8 +14,8 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
    *destination*, pursued **evolutionarily** via seam-first conversions. **All
    design flows through it; divergence is a loud plea, never silent** (§
    Compliance). It is the strategic companion to spines — read both first.
-0b. **[`docs/spines.md`](docs/spines.md)** — the recurring **shapes** (S-1…S-8),
-   the **anti-shapes** (A-1…A-6), and the index of **machinery that exists and
+0b. **[`docs/spines.md`](docs/spines.md)** — the recurring **shapes** (S-1…S-9),
+   the **anti-shapes** (A-1…A-7), and the index of **machinery that exists and
    nothing calls**. spines names the shapes of the code *as it is today*; the
    north star names where it is *going*. This project's characteristic failure is
    re-inventing a mechanism *next to* the one it already built. **Work is

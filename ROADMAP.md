@@ -542,6 +542,38 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🔴 CORPUS ADDRESSABILITY — FRONTMATTER, TAGS, QUERY SCRIPTS, AND VERSIONED STANDING
+  MODELS** (user, 2026-07-26 close — **a design conversation booked for next session**, not a
+  build). *"A way of adding frontmatter, tags, and scripts for querying the corpus that raise
+  related docs, open designs, etc. We should be versioning our standing models and always
+  referring to versions when cross-referencing… I think this could be strong for wrangling
+  this beast before we're further dug in."*
+  - **WHY IT IS THE RIGHT NEXT MOVE ON DOCS OPS, stated from measurement rather than taste.**
+    Today's two docs-ops shipments addressed **volume** (the archive) and **topology** (the
+    `doc-topology` sweep). Neither makes the corpus *addressable*: a reader still cannot ask
+    *"what else bears on this noun?"* or *"which version of the pass model is this doc written
+    against?"* except by knowing to grep for it. **The first sweep found 19 contradiction
+    pairs and five of its top eight were unsuspected** — i.e. unreachable by grep by
+    construction. A sweep is a periodic human-scale control; addressability is the mechanism
+    that would make most of those findings impossible to author in the first place.
+  - **VERSIONED STANDING MODELS is the load-bearing half.** Today's failures were *not* stale
+    facts — they were docs written against **superseded versions of a model** while reading as
+    current: `north-star.md`'s own line 21 against its § core/plugin boundary; `ideas.md`'s
+    ORDER clause against `ARCHITECTURE.md`'s authored-order decision; the coal evidence base
+    labelled *"the production world"* against a fixture. **A cross-reference that named a
+    model version would have made all three self-diagnosing** — and would give the
+    `doc-topology` sweep a mechanical target instead of a reading task.
+  - **OPEN, and deliberately not pre-designed** (this is the user's thread; recorded so it is
+    not lost, not to constrain it): what carries a version (a doc? a § ? a decision?) · how a
+    version is bumped and who may bump it · whether tags are free-form or a closed vocabulary
+    (the same open-vs-closed question the pass-resource vocabulary just answered) · what the
+    query surface is (script, hook, skill) · and how it degrades when a doc is *not* tagged,
+    since partial adoption is the only realistic path.
+  - **CROSS-REF:** it subsumes part of the still-open **file-size conventions** item — a file
+    that is addressable by section may not need to be small — and it is the third leg of the
+    docs-ops triad beside the archive and the sweep.
+
+
 - **✅ DONE 2026-07-26 — THE DOC-TOPOLOGY SWEEP + THE ROADMAP ARCHIVE** (user-directed at the
   close: *"our docs ops past critical mass, causing information loop to fail to close often"*
   — sequenced and executed the same session). *Entry kept for its reasoning, because the

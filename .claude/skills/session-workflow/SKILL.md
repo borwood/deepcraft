@@ -366,8 +366,8 @@ is supposed to supply"* (user).
 
 ## Shape compliance — the closed loop (user-directed, 2026-07-22)
 
-`docs/spines.md` names the recurring shapes (S-1…S-8), the anti-shapes
-(A-1…A-6), and the index of machinery that exists and nothing calls. It is
+`docs/spines.md` names the recurring shapes (S-1…S-9), the anti-shapes
+(A-1…A-7), and the index of machinery that exists and nothing calls. It is
 read-first in CLAUDE.md. This section is how it stays true instead of becoming
 another document nobody consults.
 
