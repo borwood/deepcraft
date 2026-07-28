@@ -5056,7 +5056,90 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-28 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-28 EVENING close (supersedes every earlier block)
+
+**A `SessionStart` hook will already have told you which sweeps are DUE. Run them first** — that
+is now the standing rule (user). Then read `corrections.md` **#68–#70**, then this block.
+
+### The one sentence that matters
+**The corpus got its first 100 % sweep and its first unprompted trigger — but the board's
+*pickup* problem is untouched, and today's own work proves it: ~9 hours of shipped work had no
+path into a cold session until this block was written.**
+
+### Ratified (user's terms)
+- **File-size conventions — SPLIT BY LIVENESS, NEVER BY TOPIC.** Move out the *cold* half; the
+  threshold applies to the **hot** file. Three `.md` classes: **NARRATIVE** exempt (splitting a
+  journal entry is harmful), **REGISTRY** 2,500 (split = archive resolved entries), **ARGUMENT**
+  1,000. *Topic-splitting is disallowed because it trades the cheapest docs-ops failure (volume)
+  for the most expensive (topology).*
+- **Sweeps run FIRST THING**, incrementally from a watermark, FULL when the reference side moved.
+- **Spike/audit docs: IMMUTABLE BODY, MUTABLE HEADER** — never rewrite a measurement; the
+  **correction's author** stamps a banner on its target **in the same commit**.
+- **Bio-based rock formation: no NEW work until the bio/eco gate.** The shipped biotic layer is a
+  **seam with an heir** and rides as-built. Gate order: engine + all non-bio earth science in the
+  ratified SDK-plugin shape → ecology → social. ***"Sufficiently complete" is a USER call*** — no
+  checkable test, and **progress on earth science does not entitle anyone to open it.**
+- **ORE DOES NOT NEED TO BE EXPOSED** — *"a voxel game **with digging**… no reason to treat it
+  like everything needs to be discoverable on the surface."* Kills the lode-gold fork's blocker
+  and `probe 3`. `ores.md` is **conceptually behind `materials.md`/`material-behavior.md`**.
+- **`material_transport` ratified as-is**; `COMPETENCE_SCALE`'s *"mud, sometimes"* is **not** a
+  knob to tune.
+- **There is NO "general registry"** — deleted, not reworded. **A seam's success condition is that
+  it DISAPPEARS.**
+- **Refinement tier → candidate (c)**: engine owns primitives (field **and refinement** kernels)
+  + runner; plugins declare all content. **The user flagged the list as non-exhaustive.**
+
+### Falsified — the assistant's own first (#68–#70)
+- **#68 — the recalibration rule I shipped and briefed was wrong within hours.** `calibrated_rates`
+  is **OFF in production**; a recalibration nobody enabled voids nothing. **The hypothesis was in
+  the brief going out, not in the report coming back.**
+- **#69 — "the general registry" never existed**, and I then got the withdrawal wrong **twice**
+  from the same ambiguous north-star sentence.
+- **#70 — ore-exposure was an unstated premise riding inside measurement caveats.** ***A caveat is
+  where an unexamined premise hides**, and none of the three sweeps look inside one.*
+- **Four stalenesses I created during the session itself**, all caught by readers running against a
+  frozen worktree. **The corpus goes stale from the inside, during the work.**
+
+### First things next session
+1. **`spine-audit` — the one sweep the baseline did NOT satisfy** (its watermark is `null` on
+   purpose; all nine slices were docs-vs-docs). It has a finding already waiting: **`spines.md`
+   § S-6 still teaches order-derived-by-topo-sort as the exemplary compliant shape**, with no
+   strike anywhere — in read-first item 0b, against which every brief justifies itself.
+2. **The erosion axis is marked settled and is not** — `ROADMAP:2513-2533`. Its null came from a
+   probe **blind to `diffusion`** (96 % of export). ⚠ **Do NOT restate it as "supply-limited
+   today"** — that holds only of the *calibrated* world, which does not ship. **This is engine
+   work and it is the highest-value thing on the board.**
+3. **The bulk-mechanical backlog**, if you want cheap wins: **37 Observed entries (29 %) already
+   say ✅ DONE in their own bodies** — a pure archive job with no judgement calls; **8 spike/audit
+   files need supersession banners** (drafted).
+
+### ⚠ Owed / unverified — deliberately not done
+- **~75 baseline findings are FILED, NOT APPLIED** (`docs/audits/baseline-2026-07-28/`, 9 audits,
+  ~3,900 lines, ranked in § Sequenced). Only the integrator's own same-day stalenesses and the
+  `ARCHITECTURE.md` banner were applied.
+- **The two `sweep_due_hook.py` thresholds are UNVERIFIED GUESSES** made this afternoon:
+  `STALE_AFTER_COMMITS = 25`, and a **keyword match on commit bodies** for "recalibrat". **The
+  keyword rule already false-positived** — this session's commits *discuss* a recalibration and
+  read identically to one that *performs* one. Tune from experience, not taste.
+- **`ores.md` needs a conceptual revisit** against `materials.md` / `material-behavior.md` —
+  **owed, unscheduled**, and larger than the one premise struck today.
+- **`journal/0059` is a LOST entry** (orphaned assets, a substantive walk surviving only as
+  `ROADMAP:4811-4830`); **journals 0110/0111/0112 have no archive entry at all**, including
+  **0111, the scale recalibration.**
+- **`flow_cost_probe` was never converted to `test = true`** — the probe the entire rule was
+  earned on. A live defect, candidate corrections entry.
+- **18 broken rustdoc links across two crates**; the gate is structurally blind to them. **Booked
+  for a design conversation** — *"add `cargo doc` to the gate" is NOT the decided answer.*
+- **The full test suite was NOT run today** and is **not claimed green**. The only Rust changes
+  were doc comments; `fmt` + `clippy --all-targets --release -D warnings` covered them.
+
+### Running
+**Nothing.** All nine sweep agents in, worktrees removed, branches deleted, tree clean, pushed,
+no lock, port 7777 free.
+
+---
+
+## NEXT SESSION — written at the 2026-07-28 MORNING close (SUPERSEDED by the block above)
 
 **Read first: `.claude/skills/doc-topology/SKILL.md`'s opening stop-block** (new, and it is the
 door to everything below), then `docs/design/corpus-knowledge-notebook.md` §§ 4–5, then

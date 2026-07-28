@@ -2679,3 +2679,114 @@ appearing in the **document** layer, where there is no compiler to notice.
    specifically to disagree**, told which two files it was forbidden to read so it could not
    anchor — not by any sweep, and not by the author of either artifact. **`corrections.md` had
    no more immunity than the documents it audits.**
+
+## 68. "journal/0111's recalibration invalidates a whole cohort of pre-0111 observations" (assistant, 2026-07-28 — written into `staleness-sweep/SKILL.md` and falsified the same afternoon by the first agent run under it)
+
+**Claimed** (`.claude/skills/staleness-sweep/SKILL.md`, the section headed *"THE RECALIBRATION
+TRAP — the highest-value thing this sweep can catch"*): that the ~1000× denudation
+recalibration means *"every Observed entry recorded before that about a magnitude, a rate, or
+'system X doesn't seem to matter here' may be **an artifact of the wrong scale rather than a
+real defect**"*, and that a whole cohort can be invalidated by one commit. The claim was then
+**written into a dispatch brief** for the baseline sweep's § Observed reader.
+
+**Falsified by that reader, same day.** It classified all **129** Observed entries and found
+**exactly one** 0111-sensitive. The mechanism it returned:
+
+> **`calibrated_rates` was built, measured, and left OFF.** Production ships it false —
+> `crates/dc-worldgen/examples/walk_tour_0115.rs:150` asserts *"production must still ship
+> `calibrated_rates` OFF"*; `denudation_probe.rs:131` says `Some(true)` is *"**not** what
+> production"* uses; `dc-client` enables it only behind an explicit `--calibrated-rates` flag.
+> **The shipped world still runs at the old rate**, so observations *of the shipped world* were
+> never artifacts of a calibration nobody enabled.
+
+**The corrected rule:** a recalibration voids prior observations **only if it is ENABLED in the
+config those observations were made under.** A constant behind an off-by-default flag changes
+nothing about what anyone saw. Both the skill and `scripts/sweep_due_hook.py` now carry the
+qualifier.
+
+**And the distinction the episode forced, which is the part worth keeping.** The same sweep
+produced one finding of each kind, needing **opposite** verdicts:
+- a **METHODOLOGICAL** defect invalidates a null **regardless of calibration** —
+  `journal/0079`'s erosion null came from a probe blind to `diffusion`, the term doing 96 % of
+  export, so *"nothing further to ratify on the erosion axis"* is unsound today;
+- a **MAGNITUDE** claim only moves when the magnitude actually moved — and it did not.
+
+Collapsing those two turns "the erosion block is stale" into the *wrong* stronger claim *"the
+landscape is supply-limited today"*, which holds only of the calibrated world.
+
+**Why it is filed rather than quietly edited:** *an agent's MECHANISM is a hypothesis; only its
+numbers are evidence* has always been aimed at reports coming **back**. This is the mirror —
+**the hypothesis was in the brief going OUT**, asserted by the integrator, from a skill shipped
+hours earlier. The agent measured and said no. **A brief is an artifact that can be wrong**, and
+briefing a hypothesis *as* a hypothesis is what made the disagreement possible.
+
+## 69. "The general registry is deliberately unbuilt — four conversions is not enough to design one from" (`stubs.md:22`, ~2026-07-22 — withdrawn by the user 2026-07-28; there was never a registry)
+
+**Claimed**, and quoted as **ratified project doctrine** in at least six places
+(`doc-topology/SKILL.md`, `corpus-knowledge-notebook.md` ×2, `corpus-knowledge-evidence.md`,
+`ROADMAP.md` ×3): that a *general provider registry* exists as deferred future work, gated on a
+conversion count. It was the standing argument for **not designing the corpus
+knowledge/addressability layer** — a live, user-owned design thread.
+
+**Falsified by the user**, reading the clause: *"I honestly don't understand what the registry is
+supposed to be except for a list which we can extend."* **Correct — and nobody had ever proposed
+one.** The clause was an *inference* that hardened into doctrine.
+
+**Mechanism — one ambiguous sentence.** `north-star.md:189-191` described material behavior slots
+as *"the **`Providers` pattern** (`Option<fn>` slots with an identity fallback) **generalized from
+world-level to material-level**."* True of the **code shape**. Read as the world-level provider
+**system** being promoted into the SDK — at which point a "general registry" is the obvious next
+inference. **"Slot" was doing two unrelated jobs:**
+- **provider seams** (world-level, `deeptime/providers/`) — holes for systems that do not exist
+  yet. **Scaffolding, and their success condition is to DISAPPEAR.**
+- **material behavior slots** (`north-star.md` § Materials) — what a content author writes. **The
+  SDK surface. Permanent.**
+
+**The evidence that seams are meant to vanish was in the code the whole time.** Of six slots ever
+created, one has had its heir arrive: `burial_temp_c`'s heir turned out to be a *field*, so it
+**retired as a field pass and left the file** (journal/0093). `providers/mod.rs` states the lesson
+outright — *"the answer was 'this is not a provider at all — it is a field.'"* `depth_to_water` is
+documented as heading the same way.
+
+**Not a defect in anything shipped** — no code changed, extending the list was always cheap. It
+cost a live design thread a phantom veto, and it is filed because **the corpus implied work nobody
+had asked for**, which is the documents-side of *existence is not standing*.
+
+**⚠ The assistant then got the withdrawal wrong TWICE**, in two files, hours apart, both times
+justifying it as *"`stubs.md:22` is about plugin-authorable engine sockets"* — the same misreading
+of the same north-star sentence, committed **while correcting it**. Left visible in
+`doc-topology/SKILL.md`. **Being wrong twice from one sentence is the argument for disambiguating
+the sentence**, which `north-star.md` now does in place.
+
+## 70. "Ore must be EXPOSED by erosion to be legible, so exhumed-core ore is illegible until the erosion calibration lands" (`ores.md`, 2026-07-21 — rejected by the user 2026-07-28)
+
+**Claimed**, threaded through `ores.md` as measurement caveats: because a spike measured
+exhumation at **metre-scale**, exhumed-core signals are *"illegible at any amplitude"*, the
+`exhum` gate *"may barely discriminate"*, and the **lode-gold A/B fork must wait** *"until the
+erosion-supply calibration lands."*
+
+**Rejected by the user:**
+
+> *"We do not need to have ore 'exposed' — the default plugin pack will ship a voxel game **with
+> digging**, which spiritually inherits from Minecraft. Absolutely no reason to treat it like
+> everything needs to be discoverable on the surface. Weird and misconceived and likely very
+> relatively old."*
+
+**Mechanism: an unstated premise riding inside measurements.** The numbers were never wrong —
+exhumation *is* metre-scale. What was wrong is the buried assumption that **surface discoverability
+is a precondition for shipping an ore.** In a game whose core verb is *digging*, **depth is the
+feature.** The premise was never written as a design decision, so nothing ever pointed at it.
+
+**What it cost:** a **user-owned** `NEEDS RATIFICATION` fork sat closed for a week on an
+assistant-side caveat, and an assistant later offered to run `probe 3` to resolve it — a
+measurement of the wrong quantity. Withdrawn.
+
+**What survives:** `exhum`/`t_crust` remain real and useful for **genesis honesty** — where an ore
+forms, under what pressure–temperature history. Only *exposure-as-precondition* dies.
+
+**The transferable lesson, and the reason this is filed:** ***a caveat is where an unexamined
+premise hides.*** A caveat reads as **evidence** — it cites a measurement — so reviewers check the
+number and never the claim wrapped around it. All three sweeps (`spine-audit`, `doc-topology`,
+staleness) compare **stated claims**; none of them look inside a caveat for a premise that was
+never stated. `ores.md` is now marked as conceptually behind `materials.md` /
+`material-behavior.md`, which win on disagreement.
