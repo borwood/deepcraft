@@ -48,7 +48,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   (journal/0114). `EROSION_CALIBRATION = 45` behind **`DeepConfig::calibrated_rates`,
   default `false`**, identity path pinned by name. **Production is byte-identical.**
   - **⚠ THE AGENT REFUSED THE BRIEF'S "DEFAULT ON", AND WAS RIGHT TO.** It found
-    **stubs #29** (Sequenced above; re-scoped 2026-07-26 — the real defect is grid
+    **stubs #29** (`ROADMAP.md` § Sequenced; re-scoped 2026-07-26 — the real defect is grid
     instability, and the true hollow count is **1,377**, not 148) and would not ship unfilled pits
     into the world on its own authority while the user was away, on a number that misses its
     target band. *Deviation is allowed; silence is not — the loud-plea doctrine working as
@@ -283,7 +283,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
 
 - 2026-07-25 — **`reads_prev` is a mechanism: the anti-dependency edge in `passgraph`**
   (journal/0104; background agent, worktree; **USER-RATIFIED** as option (a) of the Observed
-  entry *"A TIE-BREAK IS DECIDING PHYSICS AGAIN"*, now struck through below). `DeepPass::reads_prev`
+  entry *"A TIE-BREAK IS DECIDING PHYSICS AGAIN"*, now struck through in `ROADMAP.md` § Observed). `DeepPass::reads_prev`
   declared *"I read LAST epoch's value"* and was **handed to nothing** — it appeared in `runner.rs`
   and in no other file under `crates/`. Since the deep-time planes are overwritten **in place**,
   whether a lagged reader actually saw last epoch's value came down to whether it ran before or
@@ -492,7 +492,8 @@ on the board; a Shipped entry from this morning is already history. Archive when
     `flux.rs` and applied one level up, not designed.
   - **OWED / next lever (filed, not done):** `DeepField::strata` is the same shape and bigger —
     `Vec<DeepStrata>` is **9.06 MiB of 32-byte structs** (5.8 % of the flag-off field) over an
-    84.47 MiB heap, with **33,680 cells (11.3 %) holding an empty record**. See Observed.
+    84.47 MiB heap, with **33,680 cells (11.3 %) holding an empty record**. See `ROADMAP.md`
+    § Observed, *"the SAME lever, one record over"*.
 - 2026-07-25 — **The measurement instruments are in the gate, and the front's mass claim is
   settled** (journal/0103; background agent, worktree; corrections #50). Two halves of one thing:
   a gate that could not see its instruments fail, and a mass number that was wrong because nobody
@@ -538,7 +539,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
     **non-zero** count for a day after that heir landed (journal/0098). No test asserts on a
     `println!` and no gate runs an example. Rule added to CLAUDE.md § Gates: **when a slice fills a
     hole a probe narrates, the caption is part of the diff.**
-  - **The mass verdict: NOISE** — see Observed → DIAGNOSED, and corrections #50. The
+  - **The mass verdict: NOISE** — see `ROADMAP.md` § Observed → DIAGNOSED (journal/0103), and corrections #50. The
     voxel-tier expression is unbiased (stage-1 −0.02 %, stage-2 −0.60 % over 247 columns); the
     reported `+3.7 %` was a material census crediting an overlying mudstone bed to the front.
     **Nothing was fixed and nothing needs to be** — but flow.md § 3's mass budget inherits a
@@ -565,7 +566,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   median cell, 1.16 m, grades `[5,4,2,1]` over 4 voxels — quantization would be one voxel at
   both magnitudes, a decorative gradient identical at both). Mass: **exact at the record tier**
   (`the_weathering_front_conserves_the_ledger_product_mass`, five magnitudes over three orders);
-  at the voxel tier the eighths are a *draw* (journal/0055's estimator doctrine) — see Observed.
+  at the voxel tier the eighths are a *draw* (journal/0055's estimator doctrine) — see `ROADMAP.md` § Observed.
   Flag-OFF **byte-identical, no golden edited** (`generated_world_is_byte_identical_to_the_pre_contract_goldens`,
   `geology_world_regenerates_byte_identically`, `the_production_world_still_hashes_to_the_pre_slice_goldens`).
   Gates: 261 passed after `cargo clean -p dc-worldgen`. **Constants are a stand-in → stubs #20**
@@ -750,8 +751,8 @@ on the board; a Shipped entry from this morning is already history. Archive when
   `0094-weathering-band-flag-{on,off}.png` + `-pit-topdown-on.png`).** Same column, same seed, flag
   flipped: **7 voxels ≈ 6.3 m of loose `dc:mudstone` at the basement contact** against a predicted
   6.09 m, veneer above and basement below **unmoved** — the flag's product and only the flag's
-  product. **BUT accepted WITH a follow-up the walk found (see Sequenced "the weathering front needs
-  a PROFILE"): the band has a HARD PERIMETER** — pure 8/8 product abutting pristine bedrock, because
+  product. **BUT accepted WITH a follow-up the walk found (see `ROADMAP.md` § Sequenced, "the
+  weathering front needs a PROFILE"): the band has a HARD PERIMETER** — pure 8/8 product abutting pristine bedrock, because
   the collapse folds the scalar `weathering_product_m` into a **single stratum of one class**. A
   scalar cannot carry a profile, and a front without a gradient is not a front. Not a blocker.
 
@@ -781,9 +782,9 @@ on the board; a Shipped entry from this morning is already history. Archive when
     now carries `the_geotherm_rule_governs_coalification_on_the_production_world` (1337 / Medium,
     which **requires no coal**) and `coal_follows_the_warm_crust_on_the_warm_reference_world`
     (journal/0106). The recalibration itself stands; only the sentence about what a player would
-    find was wrong. The content question — (a) accept a coal-free world … (d) — is open in Observed,
-    and the appearance walk this entry owed is a **desk null**, not a walk (see APPEARANCE WALKS
-    OWED item (3)).
+    find was wrong. The content question — (a) accept a coal-free world … (d) — is open in
+    `ROADMAP.md` § Observed, and the appearance walk this entry owed is a **desk null**, not a
+    walk (see `ROADMAP.md` § Sequenced, APPEARANCE WALKS OWED item (3)).
 
 - 2026-07-24 — **Movement 2a: R/H are derived views of the inventory** (journal/0092;
   background agent, worktree). The per-cell working inventory (== the strata record) is now the
@@ -1417,7 +1418,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   `{Air, Stone, Dirt}` → `{Air, Stone}`. Regression caught by an existing test
   and fixed in-slice: with the residue at zero the veneer *is* the fluvial fan,
   and whole-voxel rounding made **every placer in the world vanish**.
-  **⚠ APPEARANCE: unratified, world-wide — see Observed.**
+  **⚠ APPEARANCE: unratified, world-wide — see `ROADMAP.md` § Observed.**
 
 - 2026-07-21 — **HostWorld chunk eviction — the RAM march is flat**
   (journal/0051; fixes the 0050 diagnosis). `HostWorld.chunks` is now a
@@ -1438,7 +1439,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   (`crates/dc-api/tests/chunk_eviction.rs`). 0050's "~33 KB/chunk" corrected:
   `Block` is `repr(u16)`, so a chunk is **64 KB** and the fill rate is
   ~335 chunks/jump. **Pooling: measured and deliberately NOT built** — see
-  Observed. No user-visible change (no appearance, feel, or frame-rate
+  `ROADMAP.md` § Observed. No user-visible change (no appearance, feel, or frame-rate
   difference; mesh build rate unchanged across the A/B).
 
 - 2026-07-21 — **The first guided tour — five stations, five verdicts**
@@ -1471,7 +1472,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   otherwise)**. Two re-baselines, 0030-discipline (the coal-seam pick went
   degenerate under redistribution; world still grows 7647 seams >3 m,
   strongest diggable renders 19 voxels — no floor loosened). Cost: ritual
-  +2.5 s; **resident +92.76 MB — see Observed**.
+  +2.5 s; **resident +92.76 MB — see `ROADMAP.md` § Observed**.
 
 - 2026-07-21 — **Ore texture redo — substances, not portraits** (journal/0048;
   correcting journal/0045 same-day after the user's review: the first pass
@@ -1532,7 +1533,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
 
 - 2026-07-21 — **Climate registration fix** (journal/0043; gates green on
   merged main, 46 suites 0 failed). The S13 parity flag was a real bug — see
-  the resolved Observed line. Every climate-keyed read (veneer, soil tier,
+  the resolved line in `ROADMAP.md` § Observed. Every climate-keyed read (veneer, soil tier,
   strata formation context) now lands on the terrain it describes.
 
 - 2026-07-21 — **S13 — where the roughness goes: 5 % of the budget reaches the
@@ -1628,7 +1629,8 @@ on the board; a Shipped entry from this morning is already history. Archive when
   signature/hint/live-completion verified working (driven via OS keystroke
   injection — the console has no MCP door, only real KeyboardInput);
   `--edges` re-confirmed moiré-free at range; circulation surfaced the
-  finding below (Observed / corrections #22). Six assets `0038-*`.
+  finding now in `ROADMAP.md` § Observed (corrections #22 — the Hadley
+  desert-belt entry). Six assets `0038-*`.
 
 - 2026-07-20 — **Zonal circulation profile** (journal/0037, session-4
   background agent; gates green on merged main). The `wind_dx` sign bit is
@@ -1662,8 +1664,8 @@ on the board; a Shipped entry from this morning is already history. Archive when
   deviations recorded in S12 (two exact ledgers, Eulerian advection).
   **Pending user: U7 amplitude from walk renders (80 vs 160), U8 flip.**
   **New finding: exhumation is metre-scale at shipped erosion rates**, so
-  exhumed cores/forelands are illegible at ANY amplitude — see Sequenced
-  (erosion-supply calibration).
+  exhumed cores/forelands are illegible at ANY amplitude — see `ROADMAP.md`
+  § Sequenced (erosion-supply calibration).
 
 - 2026-07-20 — **Pore packability rule** (dc-core `packing.rs`,
   materials.md DECIDED entry is the record — deliberately no journal
@@ -1848,7 +1850,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   registration-order independence inherited (the coupling rides inside
   `dc:pass/deep-time`, adds no pass). Knobs: `erodibility`,
   `erodibility_contrast` (2.5), `erodibility_diffusion_contrast` (1.0),
-  `erodibility_max` (5×). **NEEDS RATIFICATION** (below, § Sequenced). Files:
+  `erodibility_max` (5×). **NEEDS RATIFICATION** (`ROADMAP.md` § Sequenced). Files:
   `deeptime/lithology.rs` + `tests/erodibility.rs` + `examples/erodibility_probe.rs`
   (new); `materials/mod.rs` (`solubility` axis); `deeptime/{erosion,grid,mod}.rs`
   (the `expose` phase, config knobs, exports); `geology.rs` (`deep_class` made
@@ -1909,7 +1911,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   non-associative float addition across several `RegimeCross` on one body. Both
   fixed; **256 shuffled orders byte-identical**, double-run and edit-order
   identical too. Test-suite delta **+0.24 s** (12 new tests); no `--ignored`
-  gating. **NEEDS RATIFICATION** (four calls, below in § Sequenced). Files:
+  gating. **NEEDS RATIFICATION** (four calls, in `ROADMAP.md` § Sequenced). Files:
   `water/{mod,vox,sat,conn,body}.rs`, `examples/water_spike.rs`,
   `tests/water.rs` (all new); `Cargo.toml` (+postcard), `lib.rs` (module).
 
@@ -1978,7 +1980,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   world voxel (-22983, 24546) on the client's seed carries 16 voxels of peat over
   1 of coal over carbonaceous mudstone, all three new materials in one section
   (`0027-peat-coal-mudstone-section-lit.png`). Note the sites are re-derived on
-  **seed 1337** — see the Observed item on the client's fixed seed.
+  **seed 1337** — see the item on the client's fixed seed in `ROADMAP.md` § Observed.
 
 - 2026-07-20 — **S10 — the biotic layer on the deep-time A-tier** (journal/0025,
   docs/spikes/S10-results.md; background agent, worktree branch for the
@@ -2024,7 +2026,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   it. **The honest gap: the record contains coal, the world does not** — an
   organic unit still collapses as ordinary clastic (`deep_class` reads only
   env/energy, and there is no coal material), so a player cannot yet mine that
-  24 m seam. **NEEDS RATIFICATION** (below, § Sequenced). Files: `biotic.rs`
+  24 m seam. **NEEDS RATIFICATION** (`ROADMAP.md` § Sequenced). Files: `biotic.rs`
   (new), `recorder.rs` (`Biofacies` + `overprint_top` + signal queries),
   `grid.rs`/`erosion.rs`/`mod.rs` (modifier planes + lagged step order),
   `examples/biotic_spike.rs` + `tests/biotic.rs` (new).
@@ -2141,7 +2143,7 @@ on the board; a Shipped entry from this morning is already history. Archive when
   the far LOD rings, and the legacy S1 terrain — with no seam. `--fullbright`
   path unchanged: the same mesh carries both vertex color and splat data, and
   the streamer picks the unlit `StandardMaterial` under the flag — but walk 14
-  found mixed-face *appearance* changed (speckle loss, Observed below). Directional sun + hemispherical ambient only (PBR-2 owns shadows,
+  found mixed-face *appearance* changed (speckle loss — `ROADMAP.md` § Observed, Walk 14). Directional sun + hemispherical ambient only (PBR-2 owns shadows,
   point lights, tonemap/HDR, POM, water; never GI). Placeholder packs regenerated
   21 → 26 to cover the full `MaterialId` registry (the 3d roster widening:
   siltstone/conglomerate/diorite/andesite/olivine got packs). **NEEDS
