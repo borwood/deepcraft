@@ -5113,6 +5113,23 @@ path into a cold session until this block was written.**
    say ✅ DONE in their own bodies** — a pure archive job with no judgement calls; **8 spike/audit
    files need supersession banners** (drafted).
 
+### 👁 OLDEST UNTOUCHED USER FIELD REPORTS — 8 days, and nothing schedules them
+*New close-block line, 2026-07-28. **The sweeps keep the board accurate; nothing converts an
+accurate open item into work.** Only the close block does — so it now carries the age of the
+oldest thing the user personally saw and reported. **23 of 33 user field reports are open**;
+these four are the oldest, all from **2026-07-20**:*
+- *"Our dismal mountains"* (`ROADMAP:~4100`) — DIAGNOSED, four causes, unfixed.
+- *"Thick units render as flawless monoliths"*
+- *"Loose materials do not exist in the world yet"* — ⚠ **premise half-falsified**: journal/0055
+  made sub-8 loose voxels world-wide, so the *renderer* half is live and **the user's actual ask
+  is untouched.**
+- *"The sim must know about light"*
+
+**None may be closed on reasoning alone** — only on evidence the world changed. *A wrong
+"resolved" on a user field report is the worst outcome a sweep can produce, which is why the
+baseline reader refused to close the razor-straight grass/dirt frontier and asked for a re-shoot
+instead.*
+
 ### ⚠ Owed / unverified — deliberately not done
 - **~75 baseline findings are FILED, NOT APPLIED** (`docs/audits/baseline-2026-07-28/`, 9 audits,
   ~3,900 lines, ranked in § Sequenced). Only the integrator's own same-day stalenesses and the

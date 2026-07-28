@@ -139,6 +139,32 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
      correction→file edges are one-directional. **A one-directional pointer is not a pointer;
      it is a note to whoever already found the answer.**
 
+7. **A PREMISE HIDING INSIDE A CAVEAT** — *added 2026-07-28 after `corrections #70`, which the
+   first full-corpus sweep did **not** catch even while reading the file in full.* Shapes 1–6 all
+   compare **stated claims**. This one is about a claim that was **never stated**: an assumption
+   riding inside a *measurement caveat*, where it reads as evidence rather than as a premise.
+   - **The instance.** `ores.md` gated a **user-owned** ratification fork on *"exhumation comes
+     out metre-scale at shipped erosion rates, so exhumed-core signals are illegible… until the
+     erosion-supply calibration lands."* **The number was correct.** The buried premise —
+     *ore must be surface-discoverable to be worth shipping* — was never written as a decision
+     anywhere, and is **false**: the game's core verb is **digging**, so depth is the feature.
+     The user, on being shown it: *"weird and misconceived and likely very relatively old."* It
+     held the fork shut for a week and an assistant offered to run a probe measuring the wrong
+     quantity.
+   - **Why every other shape is blind to it.** There is **no second site to pair with** — a
+     premise nobody wrote down cannot contradict anything. Nothing is superseded, no number
+     disagrees, no pointer is one-directional. **It is invisible to a pair-based sweep by
+     construction**, which is why it needs its own shape rather than a note under another.
+   - **How to actually find it.** For every caveat, gate, deferral or *"until X lands"* clause:
+     separate the **measurement** from the **claim wrapped around it**, and ask *"what would have
+     to be true about the GAME for this number to matter?"* Then check whether that thing is
+     written down anywhere as a decision. **If it is not, it is a candidate — report the caveat
+     and the unstated premise, and do not resolve it.** *Premises about what the player does are
+     the user's, always.*
+   - **Cheapest place to look:** clauses blocking something **user-owned**. A caveat that closes
+     a `NEEDS RATIFICATION` fork is doing the most damage per word, and it is the one nobody
+     re-reads — because a *blocked* item looks handled.
+
 ## Rules
 
 - **Read whole sections. Do not grep-and-conclude.** If you find yourself confirming

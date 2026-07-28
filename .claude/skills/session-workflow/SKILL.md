@@ -326,6 +326,25 @@ it at session start, leave it true at session end.
   corrections #26. A brief inherits claims from the corpus, and the corpus can
   be wrong — say "the corpus says X; verify before relying on it" rather than
   stating X as fact, and an agent will check it instead of building on it.
+  - **⚠ SECOND INSTANCE, 2026-07-28 (corrections #68) — and the twist is that the
+    premise came from a doc the integrator had written HOURS EARLIER.** The
+    baseline sweep's § Observed brief asserted that journal/0111's recalibration
+    made the pre-0111 cohort suspect, quoting a skill shipped that afternoon. The
+    agent read all 129 entries, found **one**, and returned the mechanism:
+    `calibrated_rates` was built, measured and left **OFF**. **This rule's existing
+    wording — *"the corpus can be wrong"* — is easy to accept about old text and
+    almost impossible to apply to your own.** So: **the newer the source, the more
+    explicitly it must be briefed as a hypothesis**, because nothing has had time
+    to falsify it and you are its author.
+  - **The failure was survivable only because the brief said "check this" rather
+    than "given this."** It cost one agent-run to overturn a rule that would
+    otherwise have mis-aimed every future sweep.
+  - *Recorded here rather than as a new rule: the wrap that found it was about to
+    propose "state the brief's premise as a hypothesis" as a fresh fingerprint —
+    **re-inventing a rule that has existed since 2026-07-21**, which is this
+    project's characteristic failure committed inside the ritual that reports it.
+    **Check whether the rule exists before proposing it. The defect was compliance,
+    not coverage.***
 
 ## Seam-first: the process half of "a summary is not an authority"
 
