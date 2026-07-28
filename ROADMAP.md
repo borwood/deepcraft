@@ -722,6 +722,74 @@ see the question you are asking.
     deposition-dependent. A reader of `s7_measurements`' table has no note to reach. *Not caused
     by the removal.*
 
+- **🔴 THE BASELINE SWEEP'S FINDINGS — ~80 pairs, 100 % corpus coverage, RANKED AND MOSTLY
+  UNAPPLIED** (2026-07-28, `docs/audits/baseline-2026-07-28/` — nine audits, ~3,900 lines,
+  watermark `f652b60`). **The audits ARE the record; this entry is the index.** Applied at
+  baseline: only the integrator's own same-day stalenesses + the `ARCHITECTURE.md` ON-HOLD
+  banner. *Everything below is real, cited `file:line` on both sides, and NOT yet fixed.*
+  - **🔴 USER-OWNED — four calls, none the integrator's:**
+    1. **`ecology.md:262-263` (DECIDED 07-20, user) vs `worldgen.md:189-191` (DECIDED 07-28,
+       user)** — biology is *"a shipped part of world generation"* (confirmed live,
+       `deeptime/field.rs:288`) vs *"engine + non-bio earth science → **then** ecology"*.
+       **Both yours, eight days apart, reconciled nowhere.** Likely resolution: the S10
+       deep-time biotic pass ≠ the ecology *design* pass — **but that sentence is written in
+       neither doc, and it is not the assistant's to write** (corrections #65).
+    2. **`ores.md`'s lode-gold NEEDS-RATIFICATION fork is held shut by an expired caveat** —
+       *"until the erosion-supply calibration lands"*; **it landed 2026-07-26** (corrections
+       #56, journal/0114). *A user decision has been available for two days and the doc says
+       it is blocked.*
+    3. **`material_transport: true` is the shipped default with no ratification record found**
+       — not in the archive, the close blocks, or journals 0110–0112, while the board flags it
+       `NEEDS RATIFICATION (user-owned)`.
+    4. **`stubs.md:20-24` says "four conversions is not enough to design a registry from"; a
+       fifth landed** (`:196-201`, journal/0078). That clause is quoted as binding doctrine in
+       three places **including the argument for not designing the knowledge layer yet**, so
+       whether five changes the judgement is a user call.
+  - **🔴 HIGHEST BLAST RADIUS, integrator-applicable:**
+    - **`spines.md` § S-6 still teaches order-derived-by-topo-sort as the exemplary compliant
+      shape** across 148 lines, and does **not mention the 2026-07-26 authored-order decision
+      anywhere** — no strike, no banner, no § 4 entry (verified by pathspec). **Read-first item
+      0b; every brief that "names its shapes" has been naming a retired one.** *corrections
+      #65's geometry, recurring inside the index built to prevent it.*
+    - **The erosion axis is marked settled and is not.** `ROADMAP.md:2513-2533`, live
+      `NEEDS RATIFICATION`, no banner: *"nothing further to ratify on the erosion axis."* Its
+      null came from a probe **blind to `diffusion`** — 96 % of export (journal/0111:256-260,
+      corrections #56) — so **the methodology is defective regardless of calibration**, and
+      journal/0114 measures relief **+18 % at 100×**. ⚠ **But do NOT restate it as "the
+      landscape is supply-limited today"**: that holds for the *calibrated* world, and
+      `calibrated_rates` ships **OFF** (`walk_tour_0115.rs:150` asserts it). *Two agents each
+      had half of this; the split matters.*
+    - **`tectonics.md` (953 lines, largest design doc) carries NO staleness banner** and its
+      § 7.3 still specifies the retired receiver tree as *"the carving source, one authority"*.
+    - **`spines.md`'s "34 seams inventoried; 5 converted" is wrong — the inventory says 31**,
+      and that figure is promoted as *the only obligation ledger with a denominator* in the
+      docs-ops argument.
+    - **ROADMAP's FIRST BULLET (`:33-38`) asserts the trusted/untrusted backend tiering** that
+      north-star § Deviations 2 calls *"EXPLICITLY NOT THE MODEL"*.
+  - **🟠 STRUCTURAL — the dominant failure mode, now measured rather than suspected:** **every
+    enumeration checked came back short.** corrections #65 names 3 superseded topo-sort sites
+    (`geology.md:29-32` is a 4th) · north-star Deviations #2 names 3 voided sections (**6** are
+    live, incl. its own opening blurb) · `stubs.md` "four" (5) · `CLAUDE.md` "four" ecology
+    heirs (**2**) · `doc-topology`'s own "three confirmed-live pointers" (**2 repaired**).
+    **The code layer has had this control for months** (`build_checked` refusing a class with
+    zero members); the docs never got it. *Five instances in one afternoon promotes this from
+    "recorded as a pattern" to the thing most worth fixing.*
+  - **🟠 BULK, mechanical:** **37 Observed entries (29 %) already say ✅ DONE in their own
+    bodies** — a pure archive job, no judgement. **8 spike/audit files need supersession
+    banners** (5 have, 24 correctly need none, each with its reason recorded). **`journal/0059`
+    is a LOST entry** — orphaned assets, a substantive walk surviving only as
+    `ROADMAP.md:4811-4830`, never in any deliberate-gap list. **journals 0110/0111/0112 have no
+    archive entry at all**, including **0111, the scale recalibration**.
+  - **🟠 A LIVE DEFECT, not a staleness:** **`flow_cost_probe` — the probe the entire
+    `test = true` rule was earned on, named twice in `dc-worldgen/Cargo.toml:21` as the
+    cautionary tale — was never converted.** `examples/flow_cost_probe.rs:412` still holds a
+    bare `assert_eq!` in `main`, no `#[test]`, no `[[example]]` block. **The remedy's own
+    motivating case is unremediated.** Candidate corrections entry.
+  - **⚠ NOT COVERED BY THIS BASELINE: `spine-audit`'s question.** All nine slices were
+    docs-vs-docs. **Nothing checked `spines.md` against the CODE**, which is why its watermark
+    is deliberately `null`. *That is the next sweep, and it is the one with a live finding
+    already waiting for it (S-6 above).*
+
 - **✅ SWEEPS RUN FIRST THING, INCREMENTALLY, AND THE HARNESS SAYS WHICH ARE DUE**
   (**DECIDED 2026-07-28, user**: *"sweeps should probably run first thing… additional sweeps
   should be able to focus mainly on new stuff since last time, or full audit if the underlying
@@ -5081,7 +5149,14 @@ because a cmdlet ended the pipeline, and the lock was gone because `;` is uncond
 - **`ROADMAP` § Observed (~1,970 lines)** is the largest unswept surface — next sweep's spine.
 - **File-size thresholds are still the hook's provisional guesses**, not the user's numbers.
 - **CI remains deleted**; if wanted it needs designing, not resurrecting.
-- **journal/0117 and 0120 are deliberate gaps** — the rename slice and the sweep each judged
+- **journal/0117 is a deliberate gap. ~~and 0120~~ — 0120 WAS WRITTEN 2026-07-28** (the five
+  user decisions), which is exactly what the sweep reserved it for. **And the real gap is
+  `journal/0059`** — found by the baseline sweep: three orphaned assets
+  (`journal/assets/0059-dune-field-*`, `0059-loess-margin-*`), a substantive walk with a
+  user-diagnosed defect surviving only as `ROADMAP.md:4811-4830`, and **nobody ever decided to
+  skip it.** *A reserved number and a lost number look identical from the outside; that is why
+  gaps get accounted for in the close block — and 0059 slipped through the accounting that was
+  built to catch it.* — the rename slice and the sweep each judged
   a narrative entry unwarranted and said so. Not lost entries.
 
 ### Running

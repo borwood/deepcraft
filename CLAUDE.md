@@ -385,8 +385,14 @@ world**, which cost one background probe instead of a live session (corrections 
       WRONGLY SAID IT DID.** The word *"ecology"* was **not** the user's — it was inserted by
       the assistant transcribing the directive, and it unmoored a doc whose own header reads
       *"substrate **RATIFIED** 2026-07-19 (user: 'this reads absolutely right'); the evolution
-      architecture below is **the USER'S DESIGN**"*. Four live `stubs.md` entries name ecology
-      as their heir. Caught by the first `doc-topology` sweep, hours after the line was
+      architecture below is **the USER'S DESIGN**"*. **Two** live `stubs.md` entries name ecology
+      as their heir (**#2** `stubs.md:123-124`, **#7** `:214-215`). *This sentence said "four"
+      until 2026-07-28: entry #1 was **resolved by deletion** that morning and carries an explicit
+      note at `stubs.md:64-65` saying it is **NOT** evidence for this clause — so the count went
+      stale inside the very argument it supports, on the same day, and was caught by the baseline
+      sweep hours later. **The conclusion is unaffected and the correction strengthens it.**
+      Recorded rather than silently repaired because a wrong count in a read-first justification
+      is exactly what an enumeration-completeness check would catch, and we still have none.* Caught by the first `doc-topology` sweep, hours after the line was
       written — **by the very rule two bullets above this one.** The doctrine targets
       **unratified bootstrap CONTENT**; it has no authority over a ratified design doc.
       *That an assistant widened a user directive by one word, in a file every session and

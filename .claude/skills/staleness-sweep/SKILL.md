@@ -63,19 +63,43 @@ A sweep's incremental mode holds only while its **reference side** is unchanged.
 - **`spine-audit` goes full whenever `spines.md` itself changed** — every prior "this
   instance is fine" verdict was made against a different rule.
 
-## ⚠ THE RECALIBRATION TRAP — the highest-value thing this sweep can catch
+## ⚠ THE RECALIBRATION TRAP — and the qualifier that makes it usable
 
-**`journal/0111`: the world was running ~1000× too slow on denudation and was
-recalibrated.** Every Observed entry recorded *before* that about a magnitude, a rate, or
-"system X doesn't seem to matter here" may be **an artifact of the wrong scale rather than
-a real defect**. `journal/0110`'s facies null is the known case — *honest about its
-mechanism and wrong about its cause: rivers did nothing, but partly because nothing did
-anything.*
+**The trap.** `journal/0111`: the world was found to be running ~1000× too slow on
+denudation. A finding like that can invalidate a **whole cohort** of observations at once
+— every entry recorded before it about a magnitude, a rate, or "system X doesn't seem to
+matter here" — and **no amount of per-entry reading finds that.** You have to know the
+recalibration happened and re-read the cohort through it. So: **check the delta for
+recalibrations FIRST**, before walking entries.
 
-So a whole cohort of observations can be invalidated by one commit, and **no amount of
-per-entry reading finds that** — you have to know the recalibration happened and then
-re-read the cohort through it. **Check the delta for recalibrations FIRST**, before
-walking entries.
+> ### ⚠⚠ BUT: A RECALIBRATION ONLY VOIDS OBSERVATIONS MADE UNDER A CONFIG IT IS ENABLED IN.
+>
+> **This qualifier was missing when this skill shipped 2026-07-28, and the first sweep run
+> under it falsified the general form the same afternoon.** The baseline S6 reader was
+> briefed that the pre-0111 Observed cohort was suspect; it read all 129 entries and came
+> back with **exactly one** 0111-sensitive entry, plus the mechanism:
+>
+> **`calibrated_rates` was built, measured, and left OFF.** Production ships it false —
+> `crates/dc-worldgen/examples/walk_tour_0115.rs:150` asserts *"production must still ship
+> `calibrated_rates` OFF"*, `denudation_probe.rs:131` says `Some(true)` is *"**not** what
+> production"* uses, and `dc-client` only enables it behind an explicit
+> `--calibrated-rates` flag. **The shipped world still runs at the old rate**, so
+> observations of the shipped world were never artifacts of a calibration nobody enabled.
+>
+> **The rule, corrected:** before treating a recalibration as a cohort-voider, **check
+> whether it is ON in the config the observations were made under.** A constant that exists
+> behind an off-by-default flag changes nothing about what anyone saw.
+>
+> *Keep the distinction sharp, because the two halves fail differently: a **methodological**
+> defect (an instrument blind to the dominant term) invalidates a null **regardless** of
+> calibration — see `journal/0079`, whose probe could not see `diffusion`, the term doing
+> 96 % of export. A **magnitude** claim only moves when the magnitude actually moved. The
+> baseline sweep produced one of each and they needed opposite verdicts.*
+>
+> **Recorded rather than quietly edited, because it is this skill's own first field test
+> falsifying its own strongest rule** — and because "an agent's MECHANISM is a hypothesis;
+> only its numbers are evidence" applies to the briefs we write as much as to the reports
+> we get back. The brief asserted the cohort was suspect; the agent measured and said no.
 
 ## What to look for, in value order
 

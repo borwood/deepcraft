@@ -1,16 +1,18 @@
 {
   "_doc": "Last commit each corpus sweep covered. Written by the sweep itself, in the same commit as its audit doc — never as a separate step. `git log <watermark>..HEAD` is that sweep's delta. See .claude/skills/staleness-sweep/SKILL.md.",
   "_full_run_triggers": {
-    "staleness": "board restructured, a recalibration landed (see journal/0111), or watermark older than ~5 active days",
+    "staleness": "board restructured, or a recalibration landed AND IS ENABLED BY DEFAULT (see journal/0111 + the qualifier in staleness-sweep/SKILL.md — an off-by-default recalibration voids nothing), or watermark older than ~5 active days",
     "spine-audit": "any edit to docs/spines.md — every prior verdict was made against a different rule",
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
-  "staleness": null,
+  "staleness": "f652b60",
   "spine-audit": null,
   "doc-topology": "f652b60",
   "_baseline": {
     "commit": "f652b60",
     "date": "2026-07-28",
-    "note": "First full-corpus baseline: 9 parallel readers over all 62,264 lines. Audits in docs/audits/baseline-2026-07-28/. Before this, doc-topology had covered ~9% of the corpus in one run and spine-audit had left no artifacts at all."
+    "coverage": "100% of the 62,264-line corpus — 9 parallel opus readers, ~3,900 lines of audit in docs/audits/baseline-2026-07-28/",
+    "note": "First full-corpus baseline. Before it, doc-topology had covered ~9% in one run and spine-audit had left no artifacts at all. The staleness watermark is set because S5+S6 read all of ROADMAP Sequenced and Observed against newer work; doc-topology is set because S1-S4+S7-S9 covered the rest. spine-audit stays null ON PURPOSE — this baseline was docs-vs-docs and never checked spines.md against the CODE, which is the one question spine-audit answers.",
+    "findings": "~80 pairs. Applied at baseline: the integrator's own same-day stalenesses + the ARCHITECTURE.md ON-HOLD banner. The remainder is filed as a ROADMAP entry, ranked, with the audits as the record."
   }
 }

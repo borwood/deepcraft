@@ -42,6 +42,18 @@ description: Sweep the .md corpus for claims that CONTRADICT other claims in the
 > assistant-originated and unratified. **And `stubs.md:22` forbids designing the general mechanism
 > before several real conversions have taught the shape.** That binds this thread too.
 
+> **⚠ COUNTS IN THIS FILE WENT STALE ON 2026-07-28 AND ARE CORRECTED HERE, NOT ABOVE.**
+> There are now **three** sweeps, not two — `staleness-sweep` was packaged as a skill that day,
+> so "the two existing sweeps" below and "four docs-ops interventions" in the description are
+> both one short (there are **six**: the archive, this sweep, the authority rule, the filesize
+> hook, the staleness skill, and the SessionStart due-hook). And of the **three** one-directional
+> pointers the block above calls *"confirmed live"*, **two were repaired the same day**:
+> `corrections #56` now strikes and names `#60`, and `S10-results.md` now carries its banner.
+> *Left standing rather than rewritten, because the block's ARGUMENT is unaffected and because
+> this is the fourth enumeration in the corpus found stale in one afternoon — the pattern is
+> worth more than a tidy number. A sweeper inheriting that list must re-verify each item before
+> reporting it, which is `corrections #67`'s rule applied to this file.*
+
 **The two existing sweeps both compare the corpus to something outside it.** `spine-audit`
 checks `spines.md` against the **code**. The staleness sweep checks entries against **newer
 work**. **Nothing checks the docs against each other** — so a claim and its own refutation

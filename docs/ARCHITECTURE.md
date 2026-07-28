@@ -165,6 +165,22 @@ Deep-time history (geological, then social/territorial) = dc-sim's coarse and
 statistical tiers run over pre-player time. Worldgen history and live
 far-simulation are one system, not two.
 
+> **⏸ THE SOCIAL/TERRITORIAL HALF IS ON HOLD — user, 2026-07-28.** The **geological** half
+> is live and shipping. The **social/territorial** half describes an intention, not a
+> pipeline: its implementation was unratified bootstrap content and was removed
+> (`journal/0121`), leaving dc-sim's statistical tier with **zero production callers**
+> (`spines.md` § 3). *"We do want these systems **eventually**: they are effectively on
+> hold."* The one-system/no-seam property is the requirement worth preserving and is the
+> first thing to re-derive when the layer is designed for real.
+> **Gate:** engine + all non-bio earth science in the ratified SDK-plugin shape → ecology →
+> social. *"Sufficiently complete" is a **USER call**;* see
+> [`design/worldgen.md`](design/worldgen.md) § *Sequencing*.
+>
+> *This banner was owed on 2026-07-28 and missed: the ruling said "mark ON HOLD, not strike"
+> and named `worldgen.md` as the template, and the template was applied to exactly one
+> document. Found by the baseline sweep the same day. **The sibling sites — `:105-107`,
+> `:153-154`, `:164-166` — carry the same status and are covered by this banner.***
+
 ## One world-answer surface (2026-07-19, RATIFIED 2026-07-19)
 
 Drafted by the S1-fallback sweep (journal/0017); user-ratified same day.

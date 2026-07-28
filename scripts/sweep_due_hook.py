@@ -111,13 +111,27 @@ def main() -> int:
                 full = True
                 reasons.append(f"**{ref_label} itself changed → FULL re-run**")
 
-        # A recalibration invalidates a whole cohort of prior observations at once,
-        # and no amount of per-entry reading finds that. See journal/0111.
+        # A recalibration CAN invalidate a whole cohort of prior observations at
+        # once, and no amount of per-entry reading finds that (journal/0111).
+        #
+        # ⚠ But only if it is ENABLED in the config those observations were made
+        # under. Falsified 2026-07-28, the day this shipped: `calibrated_rates` was
+        # built, measured and left OFF -- production asserts it false
+        # (walk_tour_0115.rs:150) -- so the pre-0111 cohort was never artifactual,
+        # and a full-corpus read of all 129 Observed entries found exactly ONE
+        # sensitive entry against a brief that predicted many.
+        #
+        # So this flags for ATTENTION; it does not assert the cohort is void. The
+        # sweep must check the flag's default before re-reading anything.
         if key == "staleness":
             body = git(repo, "log", f"{mark}..HEAD", "--format=%s%n%b")
             if body and any(w in body.lower() for w in ("recalibrat", "calibrat")):
                 full = True
-                reasons.append("**a recalibration landed → FULL re-run** (it can turn old observations into artifacts, journal/0111)")
+                reasons.append(
+                    "**a recalibration landed → FULL re-run** — but FIRST check whether it is "
+                    "ENABLED by default; one left off-by-default voids nothing (journal/0111, "
+                    "`calibrated_rates`)"
+                )
 
         if full and "FULL" not in " ".join(reasons):
             reasons.append(f"**≥{STALE_AFTER_COMMITS} commits → FULL re-run**")
