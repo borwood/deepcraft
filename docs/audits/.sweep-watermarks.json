@@ -1,0 +1,16 @@
+{
+  "_doc": "Last commit each corpus sweep covered. Written by the sweep itself, in the same commit as its audit doc — never as a separate step. `git log <watermark>..HEAD` is that sweep's delta. See .claude/skills/staleness-sweep/SKILL.md.",
+  "_full_run_triggers": {
+    "staleness": "board restructured, a recalibration landed (see journal/0111), or watermark older than ~5 active days",
+    "spine-audit": "any edit to docs/spines.md — every prior verdict was made against a different rule",
+    "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
+  },
+  "staleness": null,
+  "spine-audit": null,
+  "doc-topology": "f652b60",
+  "_baseline": {
+    "commit": "f652b60",
+    "date": "2026-07-28",
+    "note": "First full-corpus baseline: 9 parallel readers over all 62,264 lines. Audits in docs/audits/baseline-2026-07-28/. Before this, doc-topology had covered ~9% of the corpus in one run and spine-audit had left no artifacts at all."
+  }
+}

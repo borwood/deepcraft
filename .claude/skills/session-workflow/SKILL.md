@@ -944,7 +944,27 @@ self-declaring comment is not an index, and neither is a document nobody reads w
   must stay readable. **Age alone is the wrong axis: a two-week-old `Observed` may be the most
   live thing on the board.** **Its honest limit, measured:** 4,410 lines is still past reading
   whole, and **neither half of it would have prevented journal/0119.**
-- **Make the staleness sweep RECURRING, like `spine-audit`.** Shrinking the doc helps someone
+> **✅ RESOLVED 2026-07-28 — and the bullet below was RIGHT about the gap and WRONG about the
+> fix.** *"Make it recurring **like `spine-audit`**"* assumed skill-packaging produces
+> recurrence. **It does not, and `spine-audit` is the disproof:** it has been a skill the whole
+> time, its own description says *"run periodically, a few times a day on active days"*, and over
+> **eleven active days it left ZERO artifacts.** `doc-topology` has been a skill since 2026-07-26
+> and has run **once** — the day it was created. The staleness sweep, which was *not* a skill,
+> ran **twice**. **A skill still waits to be invoked; the trigger was always the main session's
+> attention, which is the resource under the most pressure.**
+> **What shipped instead:** the sweep is now a skill (`staleness-sweep`) *and* a `SessionStart`
+> hook (`scripts/sweep_due_hook.py`) states which sweeps are **DUE**, in which **mode**, and
+> **why** — computed from `docs/audits/.sweep-watermarks.json`, not remembered. **Run sweeps
+> FIRST THING** (user): findings are only actionable if they arrive with a session left to act on
+> them, which is the argument against wrap-time. **Incremental by default from the watermark;
+> FULL when the sweep's REFERENCE side moved** — `spines.md` changing voids every prior
+> spine-audit verdict, a recalibration voids a cohort of observations (journal/0111). The hook
+> **reports and does not dispatch** — spend is the session's and the user's call.
+> *Note which rule this was violating: CLAUDE.md § Gates — **"do not answer 'the gate cannot see
+> X' with a rule asking people to remember X."** The remedy for "the board depends on memory" was
+> itself a bullet depending on memory, sitting in the file that states the rule.*
+
+- ~~**Make the staleness sweep RECURRING, like `spine-audit`.**~~ *(superseded above.)* Shrinking the doc helps someone
   who is already looking; it does nothing for the parts nobody thinks to look at. Only a
   mechanism that *forces* a re-read finds those. Today's sweep had to be **requested** — that
   is the gap. Run it after any batch of merges that ships a new arc, with the explicit job of

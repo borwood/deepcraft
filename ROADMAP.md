@@ -722,6 +722,45 @@ see the question you are asking.
     deposition-dependent. A reader of `s7_measurements`' table has no note to reach. *Not caused
     by the removal.*
 
+- **✅ SWEEPS RUN FIRST THING, INCREMENTALLY, AND THE HARNESS SAYS WHICH ARE DUE**
+  (**DECIDED 2026-07-28, user**: *"sweeps should probably run first thing… additional sweeps
+  should be able to focus mainly on new stuff since last time, or full audit if the underlying
+  source has moved (update to spines, etc)"*).
+  - **THE DIAGNOSIS THAT PRODUCED IT.** This repo has four corpus controls and **three share one
+    trigger: the main session remembering.** Measured over eleven active days — `spine-audit`
+    left **zero** artifacts despite its own *"run a few times a day"*; `doc-topology` ran **once**,
+    the day it was created; the staleness sweep ran **twice** and was never even a skill. **The
+    filesize hook is the only control not gated on memory, and the only one that fires
+    reliably.** *And the remedy on file — "make the staleness sweep recurring **like
+    spine-audit**" — was wrong in an instructive way: it assumed skill-packaging produces
+    recurrence, and `spine-audit` is the disproof. **A skill still waits to be invoked.***
+  - **SHIPPED (a): `staleness-sweep` skill** — the procedure existed since 2026-07-24 with two
+    worked audits; this is packaging, and packaging alone was explicitly **not** the fix.
+  - **SHIPPED (b): `SessionStart` hook** (`scripts/sweep_due_hook.py`) — states which sweeps are
+    **DUE**, in which **MODE**, and **WHY**, computed from `docs/audits/.sweep-watermarks.json`.
+    **This is the half that satisfies CLAUDE.md § Gates' rule** — *do not answer "the gate cannot
+    see X" with a rule asking people to remember X.* **It reports; it does not dispatch** — an
+    agent cannot self-dispatch and the spend is the session's and the user's call.
+  - **THE RULE THE USER'S TWO HALVES IMPLY, stated so it is checkable:** a sweep's **incremental**
+    mode is valid only while its **REFERENCE side** is unchanged; when the reference moves, every
+    prior verdict was made against a different rule → **FULL**. `spine-audit`'s reference is
+    `spines.md` (mechanical: does the diff touch it). The staleness sweep is *inherently*
+    incremental — but goes full when a **recalibration** lands, because one commit can turn a
+    whole cohort of old observations into artifacts (journal/0111) and no per-entry reading finds
+    that. **`doc-topology` has NO reference side** and its unit is a *pair*, so incremental there
+    is **new × ALL**, not new × new — done as: read changed docs in full, then let **their nouns**
+    drive the search across everything else. *That inverts grep's known weakness — the search
+    terms come from the diff rather than from the reader's suspicion.*
+  - **The watermark is written BY the sweep, in the same commit as its audit** — never a separate
+    step. Chosen from the measured adoption law: a convention survives when it is inseparable
+    from an act the author must perform anyway (`JUSTIFIED-BY`, which asked for a restatement,
+    got **3 uses, 0 in `crates/`**).
+  - **⚠ HONEST LIMIT:** staleness is **3–8 %** of recorded failures; ~91 % were wrong the day
+    they were written. **A green sweep must never read as "the corpus is sound."**
+  - **Deliberately NOT built:** no claims index / knowledge graph — the noun-driven incremental
+    mode needs no durable artifact, and *"the corpus already authors the graph; nothing reads
+    it"* plus "don't build the general mechanism first" both bind here.
+
 - **🟠 THE SUPERSESSION-BANNER BACKLOG — the policy shipped, the sweep did not** (created
   2026-07-28 by the decision-5 ruling; **not** a defect, a deliberately-bounded scope).
   **Immutable body, mutable header** is now doctrine (CLAUDE.md read-first item 5), and it was
