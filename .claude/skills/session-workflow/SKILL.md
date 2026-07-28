@@ -872,6 +872,17 @@ ordinals in every numbered doc the batch touched**, and account for every gap.
 
 ## The ROADMAP outgrew reading — and grep only finds what you already suspect
 
+> **🛑 IF THE COMPLAINT IS ABOUT THE DOCS OR THE PROCESS ITSELF** — *"the docs are a mess"*,
+> *"what's wrong with our process"*, *"I thought we already fixed this"*, *"the information loop
+> keeps failing to close"* — **or if anyone is about to propose tags, frontmatter, doc versions,
+> stale-link detection or a knowledge graph: STOP AND READ `.claude/skills/doc-topology/SKILL.md`'s
+> opening block first.** The field was measured 2026-07-28 and independently re-coded, and the
+> headline is counter-intuitive enough to change the proposal: **staleness is 3–8 % of our recorded
+> failures and ~91 % were wrong the day they were written**, so the target is **assertion-time, not
+> decay**. A tagging convention has already been tried here and got **~0 %** adoption. Full argument:
+> `docs/design/corpus-knowledge-notebook.md`. **Everything below in this section is still true and
+> is now the *smallest* of the three failures.**
+
 **Named by the user at the 2026-07-25 close, and the honest answer is yes:** the ROADMAP is
 ~5,600 lines and **no session reads it end-to-end.** It is *grepped*. So:
 

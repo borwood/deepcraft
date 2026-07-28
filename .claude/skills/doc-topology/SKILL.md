@@ -1,9 +1,46 @@
 ---
 name: doc-topology
-description: Sweep the .md corpus for claims that CONTRADICT other claims in the corpus - a decision superseded in one doc and still asserted in another, a number restated three ways, a design reconciled away in a doc its author does not read, a refutation sitting in the same entry as the claim. Fills the gap between spine-audit (docs vs CODE) and the staleness sweep (docs vs NEWER WORK): nothing else checks the docs against EACH OTHER. Run after any batch of merges that ships an arc, and whenever a design thread reopens something old.
+description: Sweep the .md corpus for claims that CONTRADICT other claims in the corpus - a decision superseded in one doc and still asserted in another, a number restated three ways, a design reconciled away in a doc its author does not read, a refutation sitting in the same entry as the claim. Fills the gap between spine-audit (docs vs CODE) and the staleness sweep (docs vs NEWER WORK): nothing else checks the docs against EACH OTHER. Run after any batch of merges that ships an arc, and whenever a design thread reopens something old. ALSO the door to the measured DIAGNOSIS of our docs-ops problem - read the top of this file before proposing any fix when the complaint is "the docs are a mess", "our knowledge base is drifting", "what is wrong with our process", "I thought we already fixed this", "the information loop keeps failing to close", or anyone proposes tags, frontmatter, doc version numbers, stale-link detection or a knowledge graph. Four docs-ops interventions have already shipped and the field has been measured; do not re-derive it.
 ---
 
 # doc-topology — check the corpus against itself
+
+> ## 🛑 SENT HERE BECAUSE "THE DOCS ARE A MESS"? READ THIS FIRST.
+>
+> **The field has been measured. Do not re-derive it, and do not propose a fix before reading
+> [`docs/design/corpus-knowledge-notebook.md`](../../../docs/design/corpus-knowledge-notebook.md)**
+> (the argument, ~500 lines) — evidence in
+> [`corpus-knowledge-evidence.md`](../../../docs/design/corpus-knowledge-evidence.md).
+> Measured 2026-07-28 over all 67 `corrections.md` entries, 776 commits and 193 `.md` files, and
+> **independently re-coded by a second agent that was forbidden to read the first analysis**
+> (`docs/audits/2026-07-28-corrections-recoding.md`). Directions are robust; every percentage is a
+> band, because **43 % of entries were coin-flips for both coders.**
+>
+> **The four results that will change what you propose:**
+> 1. **Staleness is 3–8 % of our recorded failures. ~91 % were WRONG THE DAY THEY WERE WRITTEN.**
+>    For most of them *there is no change event to watch*, so a stale-ref detector has a single-digit
+>    ceiling **by construction**. The binding failure is at the moment of **assertion**, not decay.
+> 2. **"Surface the related docs" targets the smallest band measured — 1–5 %.** In the expensive
+>    cases the refutation was already on the author's screen: forty lines away, two sentences away,
+>    two subsections away, or in their own output from the same session. **Access was never the
+>    problem.**
+> 3. **A tagging convention has already been tried here and got ~0 % adoption.** `JUSTIFIED-BY`
+>    had a documented convention, a stated validator, and a named sweep in *this* skill's sibling —
+>    **3 occurrences, 0 in `crates/`**. Meanwhile `heir`, the bare word, has **651**. The law:
+>    **a convention survives only if it is inseparable from something the author must do anyway, or
+>    is the natural way to say the thing. It dies if it asks them to restate in a second notation.**
+> 4. **The corpus already writes the graph; nothing reads it.** 651 `heir`, 525 `RATIFIED`,
+>    418 `DECIDED`, ~5,000 stable-id citations against 154 whole-doc ones. **Authoring is solved.
+>    Extraction and discharge are not.**
+>
+> **What is already shipped, so you do not propose it again:** the `ROADMAP-history.md` archive
+> (volume) · this sweep (topology) · the *"a user design may not be superseded by an implementation
+> slice"* rule (authority) · the filesize hook. **Their honest limit is on the record: none of them
+> would have prevented journal/0119.**
+>
+> **The one open proposal** is § 5 of the notebook — a *reciprocity* check, marked
+> assistant-originated and unratified. **And `stubs.md:22` forbids designing the general mechanism
+> before several real conversions have taught the shape.** That binds this thread too.
 
 **The two existing sweeps both compare the corpus to something outside it.** `spine-audit`
 checks `spines.md` against the **code**. The staleness sweep checks entries against **newer
