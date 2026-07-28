@@ -1,5 +1,35 @@
 # S10 results — the biotic layer on the deep-time A-tier
 
+> ## ⚠ SUPERSEDED IN PART — READ BEFORE USING ANY COST NUMBER BELOW
+>
+> **The § Cost table is ~2× the real production cost. Falsified by
+> [`journal/corrections.md` #12](../../journal/corrections.md).**
+>
+> | | This doc claims | Measured on the shipped path |
+> |---|---|---|
+> | Ritual, biology **off** | 15.17 s | — |
+> | Ritual, biology **on** | **25.19 s** | **13.79 s** |
+> | Biology's marginal cost | **+10 s (1.66×)** | **+2.6 s (1.24×)** |
+>
+> **Mechanism:** the table came from `examples/biotic_spike.rs`, which calls
+> `deeptime::run` → the **scalar** path. Production calls `deeptime::build_field`,
+> which takes the **byte-identical parallel** path S9b proved. The spike measured the
+> scalar worst case; nothing in this doc said which driver produced the table.
+>
+> **Not a defect and not a regression** — the shipped world is *cheaper* than promised
+> and byte-identical either way. It matters because **a user ratified the GO decision on
+> the 25.19 s figure**, and because the same trap waits for the next spike: *say which
+> driver produced a cost table.*
+>
+> **Everything else in this document stands**, including the four read-quality verdicts,
+> which are what the spike existed to answer.
+>
+> *Banner added 2026-07-28 under the **immutable body, mutable header** policy
+> (CLAUDE.md read-first item 5). The measurements below are left exactly as recorded on
+> 2026-07-20 — a spike is testimony about a day, and testimony is not edited. This
+> pointer is what was missing for eight days: **corrections #12 knew about this file;
+> this file did not know about corrections #12.***
+
 Status: spike complete, 2026-07-20. Code in `crates/dc-worldgen/src/deeptime/biotic.rs`
 (plus the `Biofacies` axis and pedogenic overprint in `recorder.rs`, two biotic
 modifier planes in `grid.rs`, their consumption in `erosion.rs`, and the lagged

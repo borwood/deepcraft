@@ -93,7 +93,39 @@ ships (the pass graph and `Providers`), not the invention of an interpreter.
   decay, cementation naturally live.
 - **world / epoch config** — data (below).
 
-### 🔴 THE REFINEMENT TIER IS IN NEITHER LIST — OPEN, named 2026-07-26 (user)
+### ✅ THE REFINEMENT TIER — **RESOLVED TO (c), user, 2026-07-28**
+
+> **DECIDED (user, 2026-07-28).** The boundary is stated, and it is **candidate (c)
+> below** — the 2026-07-23 field-pass split applied to this tier:
+>
+> - **Engine owns the PRIMITIVES — field kernels *and* refinement kernels — plus
+>   the RUNNER.**
+> - **Plugins declare all content: fields · field passes and cell passes · pass
+>   ORDER and RATE · materials · REFINEMENT · etc.**
+>
+> **⚠ The user stated that list is NOT exhaustive** (*"this list may not be
+> exhaustive"*). It is the *shape*, not the inventory — do not cite it as a closed
+> enumeration, and treat an absent item as **unlisted**, not as **excluded**. *This
+> section is itself the corpus's headline example of an enumeration nobody checked
+> for completeness; the fix is not to pretend the new one is complete.*
+>
+> **⚠ PROVENANCE, stated because it changes how much weight this carries.** The
+> user gave this while ruling on **when bio/social work may begin**
+> ([`worldgen.md`](worldgen.md) § *Sequencing*) — i.e. as a statement of the engine
+> shape that must hold *first*, not as a deliberate adjudication of the three
+> candidates below. It matches **(c)** exactly and (c) was already the direction of
+> travel, so it is recorded as the ruling. **If a narrower reading was meant, this
+> is the line to contest** — recorded this way rather than silently, per
+> corrections #65.
+>
+> **What is still open:** the *mechanism* — which kernels are primitives, what the
+> operator authoring shape is, and how the pure-fn contract is enforced across the
+> backends. **The boundary is decided; the surface is not.** ROADMAP § Sequenced
+> "REFINEMENT PRIMITIVES" still owns that work.
+
+*The original framing is kept below unstruck, because its argument is what makes
+the ruling legible — and because the "vocabulary of expression" problem it names is
+**not** solved by deciding the boundary; it is solved by building the operators.*
 
 **Neither column above mentions the refinement / collapse tier**, and it was never
 decided — it was arrived at *by default*. `flow.md` § 4 names it as one of four

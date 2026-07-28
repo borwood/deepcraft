@@ -284,6 +284,26 @@ before quoting the number as the user-visible cost. S10-results.md is left
 unamended — a spike result is a dated record of what was measured; this entry is
 the pointer.
 
+> **⚠ THE LAST SENTENCE'S POLICY WAS HALF-SUPERSEDED, 2026-07-28 (user).** *"A spike
+> result is a dated record"* is **upheld** and is now doctrine. *"This entry is the
+> pointer"* is **not enough** — and this entry is the case that proved it.
+>
+> For eight days this correction knew about `S10-results.md` and **`S10-results.md` did
+> not know about this correction**, while `CLAUDE.md` read-first item 5 sent every cold
+> session to the spikes saying *"measured numbers, don't re-guess them."* The two rules
+> were a live, unreconciled **policy collision** in two different files; the user ruled
+> on it 2026-07-28.
+>
+> **The policy is now: IMMUTABLE BODY, MUTABLE HEADER.** The measurements are never
+> rewritten; the results doc **must carry a top-of-file banner pointing at whatever
+> refuted it**, and **writing that banner is the correction author's obligation, in the
+> same commit.** `S10-results.md` now carries one. *A one-directional pointer is not a
+> pointer — it is a note to whoever already found the answer, and the stale end is
+> exactly where a cold reader enters.* Full rule: CLAUDE.md read-first item 5.
+>
+> *This paragraph is an addition, not an edit: the entry above stands as written on
+> 2026-07-20, including the sentence now superseded.*
+
 ## 13. Misattributed user quote: "truly i don't think any darkness" (2026-07-20)
 
 **Claim** (docs/design/visuals.md § PBR-1 walk-14 ratifications, added

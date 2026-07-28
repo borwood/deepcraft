@@ -1056,8 +1056,24 @@ outcome leads to. If they are the same action, it is theatre.
 # 3. Built, and nothing calls it
 
 The index A-4 exists for. **Audit this against the codebase regularly** — see
-the `spine-audit` skill. Leaving this list is a *good* event: record what
-consumed it and when.
+the `spine-audit` skill.
+
+**A row leaves this list THREE ways, and only the first is what the index was
+originally built to expect.** Getting this wrong turns the index into an argument
+for its own contents — *an artifact becoming a requirement because somebody wrote
+it down*, which is A-1 read backwards.
+
+1. **CONSUMED** — something calls it. The good exit. Record what consumed it and when.
+2. **DELETED** — nobody voted for it, and the honest disposal is removal
+   (journal/0121: the settlement-history pass and its ruin posts). **A zero-consumer
+   row is not automatically a backlog item.** Ask the standing question — *if this did
+   not exist, would we build it today, in this shape?* — before the design question.
+3. **HELD AS A CANDIDATE** — ratified as *wanted* but with no requirements to judge it
+   against yet, so it is neither owed a consumer nor eligible for deletion (added
+   2026-07-28 by the user's S2 ruling, the row below). **A row in this state must say
+   so explicitly, and must name what unblocks the judgement**, because it is otherwise
+   indistinguishable from state 1 waiting to happen — and a reader who assumes 1 will
+   go looking for a consumer that is not wanted yet.
 
 | what exists | where | called by | intended consumer |
 |---|---|---|---|
@@ -1074,7 +1090,7 @@ consumed it and when.
 | the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 7 passes (was 8; `dc:pass/history` and its `History` axis were deleted 2026-07-28, journal/0121) | 26 of 34 inventoried seams are **value-level and invisible to it** |
 | `column_summary` / `open_air_below` / `ColumnSummaries` — the S3 skylight query (S-9 deterministic-derive), built + 6 tests green | `dc-core/src/column.rs` | **no production caller** — only the `--bench-storage` timing harness (`dc-client/src/bench_storage.rs`); `docs/API.md` lists a `world.column_summary` query but **no dc-api handler exists** for it (2026-07-23 sweep) | **sim-light / skylight** — the "is this column under open sky" query; the lighting/sim-light consumer is unbuilt |
-| **the whole S2 statistical tier — `engine::{query, observe, force_fact}`, `Ledger`, `ToyWorld`** (`dc-sim/src/statistical/`, minus `rng`). **Row added 2026-07-28 by journal/0121, on the day its last consumer was deleted** — the honest successor to the S7 row that departed below | `dc-sim/src/statistical/{engine,ledger,world}.rs` | **zero production callers workspace-wide.** Its one caller was `pregen/history.rs`, removed as unratified bootstrap content; everything left is `dc-sim`'s own `s2_torture` / `s2_measurements` suites. What dc-worldgen still uses from this module is the sibling `rng` (the draw provider), which is on every worldgen path and is **not** in this row | the live sim's far tiers — S2's *shapes* are ratified and instanced all over the tree (§ S-1's bounded collapse, § S-2's committed facts, § S-9's fallback query); what has no consumer is this **toy implementation**, whose own module doc calls the toy world "disposable". **The standing question this row exists to keep open:** the `Subject::{Site, Polity}` / `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` / `SiteEventKind` / `Value::{Exists, PolityRef, Event, Extent}` vocabulary is **settlement/civ schema with no producer** and was deliberately left in place by journal/0121 (deleting variants of a `Serialize` enum is wider than that removal's scope). It is a candidate for the same disposal — **not a schema to build on** |
+| **the whole S2 statistical tier — `engine::{query, observe, force_fact}`, `Ledger`, `ToyWorld`** (`dc-sim/src/statistical/`, minus `rng`). **Row added 2026-07-28 by journal/0121, on the day its last consumer was deleted** — the honest successor to the S7 row that departed below | `dc-sim/src/statistical/{engine,ledger,world}.rs` | **zero production callers workspace-wide.** Its one caller was `pregen/history.rs`, removed as unratified bootstrap content; everything left is `dc-sim`'s own `s2_torture` / `s2_measurements` suites. What dc-worldgen still uses from this module is the sibling `rng` (the draw provider), which is on every worldgen path and is **not** in this row | the live sim's far tiers — S2's *shapes* are ratified and instanced all over the tree (§ S-1's bounded collapse, § S-2's committed facts, § S-9's fallback query); what has no consumer is this **toy implementation**, whose own module doc calls the toy world "disposable". **✅ RULED 2026-07-28 (user) — KEEP, and this row does NOT want a consumer found for it.** *"The statistical system is genuinely intended, though I can't say whether as-is it will fit the desired shape when we actually do move on to implementing the civ/socia part of the default pack and the engine affordances."* Both the primitive and the toy stay, **as a candidate to be re-checked against requirements that do not exist yet** — not as work owed. The `Subject::{Site, Polity}` / `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` / `SiteEventKind` / `Value::{Exists, PolityRef, Event, Extent}` vocabulary stays too, as **producer-less example vocabulary, NOT a schema to build on**. **Its exit condition is neither of § 3's two normal ones:** it leaves this index when the user opens the eco/socia/civ thread and the shape is judged against real requirements — gated per `worldgen.md` § *Sequencing* (all non-bio earth science in the ratified SDK-plugin shape → ecology → social), and *"much work and reflection will be done before the **USER** decides it is time."* **⚠ Do not read this row as a backlog item, and do not infer the gate is met from progress on earth science** |
 
 **Departed (the good event):**
 

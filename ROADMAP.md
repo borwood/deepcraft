@@ -551,7 +551,18 @@ see the question you are asking.
 
 ## Sequenced
 
-- **🔴 USER DECISIONS OWED — five calls surfaced 2026-07-28, NONE of them the integrator's**
+- **✅ ALL FIVE USER DECISIONS RULED 2026-07-28 — journal/0120.** Surfaced, parked, and then
+  taken in a dedicated unpacking session the same day. **Rulings are inline against each item
+  below; the context is kept because the reasoning is what makes each ruling legible.**
+  **What shipped from these rulings:** `worldgen.md`'s ON-HOLD banner + new § *Sequencing* ·
+  `north-star.md` § *The core/plugin boundary* — **the refinement tier RESOLVED to (c)** ·
+  CLAUDE.md's *recorded ambition vs unratified content* clause and the **immutable body,
+  mutable header** spike policy (read-first item 5) · banners on `S10-results.md` and
+  `S2-results.md` · `spines.md` § 3's **third exit** (held-as-candidate) · corrections #12's
+  supersession note. **Nothing here is owed.** *Two follow-ups the rulings created are filed
+  as their own entries below — the unswept-banner backlog and the completeness-check gap.*
+
+  *Original framing, kept: five calls surfaced 2026-07-28, NONE of them the integrator's*
   (user-directed the same day: *"keep the user owed part durable with pointer to its necessary
   context… I won't muddy waters by addressing that in this conversation"*). **Deliberately parked
   by the user, not forgotten.** Consolidated into ONE live entry because the alternative — leaving
@@ -571,6 +582,18 @@ see the question you are asking.
      moved** (corrections #66). *Why it is yours: an appearance change is ratified by the user's
      eye, and removal from what a player could walk into is an appearance change even when there
      is nothing to photograph.*
+     - **✅ RULED — ACCEPTED (user, 2026-07-28).** *"That's fine and it's what I wanted. That
+       system was not designed — it will have a designed successor at one point, but I had
+       nothing to do with it. Came entirely from Claude bootstrapping the project, attempting
+       to satisfy the list of things I mentioned that I would like to be in it **eventually**."*
+     - **⚠ AND THE FACT THAT CLOSES IT, from the user:** *"I never once saw a wooden post in
+       the world and no images were captured — it predates journals and our walk protocols."*
+       **So the missing before/after pair was never a limitation of the removal.** The content
+       was **never observed by the one eye that ratifies appearance**, across its entire life.
+       *This is the sharpest available statement of "existence is not standing": a thing can
+       render in the shipped world for a week, be defended by three independent instruments,
+       and still have no witness. Appearance content that no one has ever seen has not
+       accrued standing by surviving — it has only accrued inertia.*
 
   2. **DESIGN-DOC RULING — three live docs still describe civ/history as a real pipeline stage,
      contradicting the 2026-07-26 ruling.**
@@ -584,6 +607,31 @@ see the question you are asking.
      editing a design doc from inside an implementation slice is **corrections #65's exact failure
      mode**. *Why it is yours: which side of a user-vs-user contradiction wins is the one thing a
      sweeper is forbidden to decide (`doc-topology` § Rules).*
+     - **✅ RULED — SPLIT THE THREE, and the split is a doctrine, not a tidy (user, 2026-07-28).**
+       - **`worldgen.md` → ON HOLD, not struck.** *"History is coming, eventually, for the
+         reasons worldgen states (not exhaustive)."* Shipped: a top banner, six marked sites,
+         and a new § *Sequencing*. **The doc had understated the problem** — history is that
+         document's *thesis*, not one bullet: its title, its core decision, its extent knob
+         and its borders contrast all rest on it. **And one leg of the boundedness argument
+         is the history requirement**, so § *The core decision* now records that **closure**
+         is what carries boundedness today (the other leg is pure earth science and is live).
+         Left unmarked, that is a ratified decision visibly resting on a suspended premise —
+         A-2 waiting to be "discovered".
+       - **`things-that-will-happen.md` → UNTOUCHED, and the doc's standing recorded.** *"Things
+         that will happen is correctly 'what kind of engine this WILL BE and what kind of
+         experience the default pack WILL BE'. The ambitions there are recorded with a high
+         amount of user involvement and are **not claims about what we currently have built**
+         as content or can support as an engine."* The looted-sword line **stays**.
+       - **`ideas.md:384` → UNTOUCHED.** A mood line in a bullet about visual language.
+       - **THE GENERAL RULE, now in CLAUDE.md:** the doctrine governs **unratified bootstrap
+         CONTENT**, never **RECORDED AMBITION**. *The tell: does it RUN, or does it PROMISE?*
+         Striking a future-tense user-authored line **retires a goal**, which no sweeper and no
+         slice may do. **This is the second time in three days that this directive was about to
+         over-reach by one word** — the first was `ecology.md`. Both were caught by the rule the
+         directive itself sits next to.
+       - **⚠ AND THE STATUS IS *ON HOLD*, NOT *NEVER*.** *"We do want these systems
+         **eventually**: they are effectively on hold."* Read *"they are NOTHING"* as a claim
+         about **what exists**, never about **what is wanted**.
 
   3. **SCOPE — dc-sim's entire S2 statistical tier now has ZERO production callers.**
      `pregen/history.rs` was its only one; removing it left `engine::{query, observe, force_fact}`,
@@ -595,6 +643,23 @@ see the question you are asking.
      is the correct move. **The call:** keep the tier as a shape reference, or dispose of it as
      the same class of thing as the content it served? *(Note `S2-results.md` carries **no
      supersession marker at all** — the spike whose implementation just died has nothing on it.)*
+     - **✅ RULED — KEEP BOTH THE PRIMITIVE AND THE TOY (user, 2026-07-28).** *"I didn't even
+       know this system existed… The statistical system is genuinely intended, though I can't
+       say whether as-is it will fit the desired shape when we actually do move on to
+       implementing the civ/socia part of the default pack and the engine affordances."*
+     - **The ruling's operative half is the NOTE, not the keep.** Whoever stumbles on this
+       module — or is sent looking — must read: **the code that read it is gone · the primitive
+       is the deliverable · it is a CANDIDATE to be re-checked against requirements that do not
+       exist yet, never adopted on sight · and when that thread may open is a USER CALL.**
+       Landed in all three places a reader actually arrives: the module doc
+       (`dc-sim/src/statistical/mod.rs`), `S2-results.md`'s banner, and the `spines.md` § 3 row.
+     - **`spines.md` § 3 gained a THIRD EXIT because of this.** The index knew *consumed* (the
+       good exit) and, since journal/0121, *deleted*. This row is neither: **HELD AS A
+       CANDIDATE** — ratified as wanted, with nothing yet to judge it against, so it is neither
+       owed a consumer nor eligible for disposal. *Without the third state a reader assumes the
+       first and goes hunting for a consumer nobody wants found.*
+     - **`S2-results.md` now carries its banner** — which is also the first application of the
+       decision-5 policy below.
 
   4. **SCHEMA — delete dc-sim's settlement/civ types, or keep them?**
      `Subject::{Site, Polity}` · `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` ·
@@ -603,6 +668,12 @@ see the question you are asking.
      variants of a `Serialize` enum is wider than a content removal's scope. *Why it is yours:
      same doctrine as item 3 — unratified bootstrap schema has no standing, but the disposal is a
      scope fork.*
+     - **✅ RULED — KEEP, with item 3 (user, 2026-07-28).** It rides the same ruling: the tier
+       stays as a candidate, and its vocabulary stays with it. **But the in-code marking is what
+       carries the standing** — it is **producer-less example vocabulary, NOT a schema to build
+       on**, kept because deleting `Serialize` variants exceeded the removal's scope, *not*
+       because anyone ratified it as a design. Re-stated in the module doc and the § 3 row so
+       the distinction survives without this ROADMAP entry.
 
   5. **POLICY COLLISION — is a spike-results doc immutable testimony, or live authority?**
      `corrections #12` states the policy: *"`S10-results.md` is **left unamended** — a spike result
@@ -616,6 +687,25 @@ see the question you are asking.
      Measured corpus-wide: **8 of 15** full-path correction→file edges are one-directional, and
      **14 of 30** audit/spike files carry no staleness marker of any kind. *Why it is yours: this
      is a choice between two ratified-feeling policies, and it changes what read-first means.*
+     - **✅ RULED — IMMUTABLE BODY, MUTABLE HEADER (user, 2026-07-28).** A spike's measurements
+       are **never rewritten** — testimony about a day is not edited — but a results doc **must
+       carry a top-of-file banner pointing at whatever refuted, superseded or re-scoped it.**
+       Recorded in **CLAUDE.md read-first item 5** (the site that asserted the losing half) and
+       as a supersession note on **corrections #12** (the site that asserted the other half).
+       Neither is rewritten; both now agree.
+     - **The obligation lands on the WRITER OF THE CORRECTION, in the same commit.** *That is
+       the property doing the work, and it is chosen from measurement rather than taste: a
+       convention survives when it is inseparable from an act the author must perform anyway,
+       and dies when it asks them to restate something in a second notation. Stamping the target
+       happens while both files are already open. The counter-example is on the record —
+       `JUSTIFIED-BY`, documented in two places with a promised sweep, got **3 uses, 0 in
+       `crates/`**.*
+     - **Applied where a refutation is already known:** `S10-results.md` (→ corrections #12, the
+       ~2× cost table a **user ratified a ship decision on**) and `S2-results.md` (→ the item-3
+       ruling). **Not a sweep** — see the backlog entry below.
+     - **What it actually fixes is structural:** *a one-directional pointer is not a pointer.*
+       The stale end is exactly where a cold session enters, and a chain of authority cannot be
+       walked from an end that holds no link.
 
   **Also surfaced, NOT user-owned — recorded so they are not lost with the above:**
   - **`spine-audit/SKILL.md:47` tells every future auditor to grep `JUSTIFIED-BY`** — a marker with
@@ -631,6 +721,44 @@ see the question you are asking.
     (`cell_m = max(extent_m/DEEP_MAX_WIDTH, DEEP_CELL_M)`) and record size is
     deposition-dependent. A reader of `s7_measurements`' table has no note to reach. *Not caused
     by the removal.*
+
+- **🟠 THE SUPERSESSION-BANNER BACKLOG — the policy shipped, the sweep did not** (created
+  2026-07-28 by the decision-5 ruling; **not** a defect, a deliberately-bounded scope).
+  **Immutable body, mutable header** is now doctrine (CLAUDE.md read-first item 5), and it was
+  applied only where a refutation was *already known*: `S10-results.md` and `S2-results.md`.
+  **The corpus was never swept.** Measured baseline: **14 of 30** audit/spike files carry no
+  staleness marker of any kind, and **8 of 15** full-path correction→file edges are
+  one-directional. *Those numbers are the size of the hole, not a list of defects — a file with
+  no banner is only wrong if something actually refuted it.*
+  - **The sweep is mechanical on one side and a reading task on the other.** Every
+    `corrections.md` entry that names a `docs/spikes/` or `docs/audits/` path is a candidate
+    edge, and whether the named file already points back is a grep. **What is not mechanical**
+    is a refutation that never cited its target by path.
+  - **Do it as a `doc-topology` pass, not a new instrument** — this is exactly that skill's
+    job (docs vs *each other*), and it already forbids the sweeper from resolving what it
+    finds. **The banner text is a claim about what was refuted; it is not a sweeper's to
+    author** where the refutation is contested.
+  - **⚠ The policy's real test is the NEXT correction written, not this backlog.** If the
+    same-commit obligation holds, the hole stops growing and the backlog is finite. If it does
+    not, sweeping is treating a symptom — *and we would know within a week, which is the
+    cheapest possible falsifier.* **Watch that before investing in the sweep.**
+
+- **🟠 NO ENUMERATION IN THE DOCS IS CHECKED FOR COMPLETENESS — and 2026-07-28 added a fourth
+  instance while RESOLVING one** (sharpened by the refinement-tier ruling). The user's
+  engine/plugin split closed north-star's *"an entire tier absent, never decided, arrived at by
+  default"* — **and the user flagged the replacement as non-exhaustive in the same breath**
+  (*"this list may not be exhaustive"*). So the boundary is decided and its inventory still is
+  not; both docs now say so explicitly rather than reading as closed.
+  - **The asymmetry is the finding, and it is damning:** the **code** layer already has this
+    control — `build_checked` refuses to build a world if a class a pass selects from has zero
+    members, which north-star § *Validation by construction* calls the entire meaning of the
+    phrase — **and it has never been applied to the documents that specify the code.** Every
+    known instance (stubs #29's four post-incision phases with isostasy missing; the
+    core/plugin boundary; a pass's `reads` set) was **found by a human noticing.**
+  - **Not sequenced as a build.** The doctrine that governs it is already ratified — *"the
+    general registry is deliberately unbuilt — four conversions is not enough to design one
+    from"*. **Four hand-found instances is the same evidence base.** Recorded so the fifth
+    instance lands against a named pattern instead of being re-discovered.
 
 - **🟠 DOC-TOPOLOGY RESIDUALS — the 19 findings not actioned 2026-07-26** (full audit:
   `docs/audits/2026-07-26-doc-topology-sweep.md`). Six were actioned the same day (the
@@ -665,8 +793,15 @@ see the question you are asking.
     *Still open from the same finding (#15), deliberately not taken here:* `flow.md:459` and
     `material-behavior.md:367-369` carry the same `ORDER (topo-sort)` framing **without** a
     ratification stamp.
-  - **`spines.md:1048` + `stubs.md:30-40` still schedule heirs for the bootstrap content the
-    user decided to REMOVE.** These should resolve into the removal slice, not survive it.
+  - **✅ DONE — `spines.md` + `stubs.md` scheduling heirs for the removed bootstrap content.**
+    Both resolved *into* the removal rather than surviving it, as this finding asked.
+    `stubs.md` § 1 is now **RESOLVED BY DELETION** (journal/0121) and — the more useful half —
+    was rewritten to carry the doctrine it cost: *a stub entry is not neutral about its
+    subject's standing, it **asserts** it; ask the standing question before writing an heir.*
+    `spines.md` § 3's row was replaced by the S2-tier row and, on 2026-07-28, given the user's
+    **held-as-candidate** ruling plus the § 3 intro's **third exit**. *Note the shape: the
+    finding asked for two deletions and what shipped was two doctrine changes — the heir lines
+    were correct on their own terms, and the defect was the inventory's grammar, not the rows.*
   - **The ABI spike is described as "locking the SDK shape"** — contested by north-star
     § Deviations 1, which defers the whole trust/backend question.
   - **⚠ THE COAL EVIDENCE BASE IS LABELLED "THE PRODUCTION WORLD" IN FOUR LIVE DOCS**

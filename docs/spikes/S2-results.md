@@ -1,5 +1,44 @@
 # S2 results — constraint ledger prototype
 
+> ## ⚠ THIS SPIKE'S IMPLEMENTATION HAS NO PRODUCTION CALLER — and is **KEPT DELIBERATELY**
+>
+> **Status 2026-07-28 (user ruling).** The measurements and shapes below stand as
+> recorded. What changed is *around* them: **the only production caller of this tier is
+> gone.** `dc-worldgen`'s bootstrap settlement-history pass — unratified content
+> fabricated during bring-up — was removed 2026-07-28 (`journal/0121`), leaving
+> `engine::{query, observe, force_fact}`, `Ledger` and `ToyWorld` reached by nothing but
+> their own `s2_torture` / `s2_measurements` suites (`spines.md` § 3).
+>
+> **THE RULING: KEEP BOTH THE PRIMITIVE AND THE TOY.** *"The statistical system is
+> genuinely intended, though I can't say whether as-is it will fit the desired shape when
+> we actually do move on to implementing the civ/socia part of the default pack and the
+> engine affordances"* (user).
+>
+> **So read this document as a CANDIDATE, not a commitment:**
+> - **The primitive is the deliverable** — the append-only `Ledger` of committed facts,
+>   fluid state as a pure function of `(seed, time, ledger)`, depth-bounded collapse with
+>   frontier synthesis, and above all **addressed rather than streamed randomness**.
+> - **The code that consumed it is gone**, and its removal implies nothing about the
+>   shapes here. They are instanced elsewhere in the tree (`spines.md` § S-1, § S-2, § S-9).
+> - **It is meant to be VISITED AGAIN and CHECKED AGAINST REQUIREMENTS** — not adopted on
+>   sight. Whether this shape fits is an open question that cannot be answered until the
+>   requirements exist.
+>
+> **When that happens is gated and the gate is a USER CALL** — see
+> [`worldgen.md` § *Sequencing*](../design/worldgen.md#sequencing--when-the-history-layer-may-be-taken-up-decided-2026-07-28-user).
+> In short: engine + all non-bio earth science first, in the ratified SDK-plugin shape,
+> respecting the plugin-agnostic engine shape → **then ecology** → **then social
+> concepts**, and *"much work and reflection will be done before the **USER** decides it is
+> time."* **Do not open this thread by inferring the gate is met.**
+>
+> **Also kept, by the same ruling:** `dc-sim`'s `Subject::{Site, Polity}` /
+> `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` / `SiteEventKind` /
+> `Value::{Exists, PolityRef, Event, Extent}` vocabulary — **producer-less, and marked
+> in-code as not a schema to build on.** It is example vocabulary, not a design.
+>
+> *Banner added under the **immutable body, mutable header** policy (CLAUDE.md read-first
+> item 5). Nothing below is edited.*
+
 Status: spike complete, 2026-07-18. Code lives in `crates/dc-sim/src/statistical/`
 (toy world, disposable; the *shapes* below are the deliverable), torture tests in
 `crates/dc-sim/tests/s2_torture.rs`, measurements in

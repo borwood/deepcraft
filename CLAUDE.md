@@ -51,8 +51,35 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
    then `docs/API.md`, `docs/design/*.md`, `docs/rendering/PIPELINE.md`.
 4. **[`journal/corrections.md`](journal/corrections.md)** — claims already
    falsified, with mechanisms. Check before re-deriving.
-5. Spike results live in `docs/spikes/S*-results.md` — measured numbers,
-   don't re-guess them.
+5. **Spike results live in `docs/spikes/S*-results.md` — measured numbers, don't
+   re-guess them. IMMUTABLE BODY, MUTABLE HEADER (DECIDED 2026-07-28, user).**
+   A spike's measurements are **a dated record of what was measured on the day** and
+   are **never rewritten** — not to correct them, not to update them. But a results
+   doc **must carry, at its top, a pointer to anything that later refuted, superseded
+   or re-scoped it.** *The testimony is frozen; the banner is not.*
+   - **Why the rule exists — this collision was live for eight days and cost a
+     ratification.** `corrections.md` #12 declared *"a spike result is a dated record…
+     **this entry is the pointer**"*; this item said *go read the spike, trust its
+     numbers*. Both reasonable, in different files, never reconciled. Meanwhile
+     `S10-results.md`'s cost table reads **25.19 s** where production measures
+     **13.79 s** (the spike drove the *scalar* path, production takes the *parallel*
+     one) — **a user ratified a ship decision on the wrong number, and `S10` held no
+     reference to its own correction.**
+   - **The mechanism it fixes is structural, not clerical: a ONE-DIRECTIONAL POINTER
+     IS NOT A POINTER.** It is a note to whoever already found the answer. Measured
+     corpus-wide: **8 of 15** correction→file edges are one-directional and **14 of
+     30** audit/spike files carry no staleness marker at all. A chain of authority
+     cannot be walked from the stale end if the stale end holds no link — and the
+     stale end is exactly where a cold session enters.
+   - **The obligation lands on the WRITER OF THE CORRECTION**, in the same commit,
+     while both documents are already open. *This is the one property that makes it
+     likely to stick: stamping the target is part of the act of writing the
+     correction, not a second notation to remember later. Conventions that ask an
+     author to restate something die — `JUSTIFIED-BY` was documented in two places
+     with a promised sweep and got 3 uses, 0 in `crates/`.*
+   - **Applies to any dated-measurement artifact**: `docs/spikes/`, `docs/audits/`,
+     probe reports. **Backlog:** the corpus was never swept for missing banners; only
+     known refutations are stamped so far.
 6. **"What did we leave dangling here?"** — the loose-ends lookup, three loci,
    all surfaced by the corpus-grep that opens every design thread (session-workflow
    § "Sweep the corpus BEFORE opening a design pass"):
@@ -329,6 +356,31 @@ world**, which cost one background probe instead of a live session (corrections 
     far"*). Anything in the tree that looks like one is early-bootstrap fabrication awaiting
     wholesale replacement. The project is working on **earth processes**, and fighting the
     unratified shapes left behind by bring-up.
+    - **⚠ THE STATUS IS *ON HOLD*, NOT *NEVER* — and the difference is load-bearing** (user,
+      2026-07-28, ruling on the removal's fallout). *"History is coming, eventually, for the
+      reasons worldgen states (not exhaustive)… we do want these systems **eventually**: they
+      are effectively **on hold**."* Read *"they are NOTHING"* as a statement about **what
+      exists**, never about **what is wanted**.
+    - **⚠ AND IT GOVERNS UNRATIFIED CONTENT, NEVER RECORDED AMBITION.** The two are easy to
+      confuse and the cost lands in opposite directions:
+      - **Unratified bootstrap CONTENT** — code and world content fabricated during bring-up
+        that nobody voted for. *No standing at any magnitude; the honest disposal is removal.*
+        The settlement-history pass was exactly this, and it went (journal/0121).
+      - **RECORDED AMBITION** — a user-authored statement of what the engine and the default
+        pack **will be**. `docs/design/things-that-will-happen.md` is *entirely* this by
+        charter (user, 2026-07-28: *"correctly 'what kind of engine this WILL BE and what kind
+        of experience the default pack WILL BE'… recorded with a high amount of user
+        involvement and are **not claims about what we currently have built** as content or
+        can support as an engine"*). **It is not fabrication and must not be swept.** Its
+        looted-sword-from-a-ruin line names a civ system that does not exist, and **stays.**
+      - **The tell, when they are hard to tell apart:** *does it RUN, or does it PROMISE?* A
+        thing in the tree asserts it exists — challenge it. A thing in a design doc written in
+        the future tense asserts we want it — that is a user-owned claim, and striking it
+        **retires a goal**, which no sweeper and no slice may do.
+      - **Where a doc did assert a live pipeline stage** (`worldgen.md` § *Above the region
+        scale* item 4), the fix ruled by the user was **mark ON HOLD, not strike** — the
+        implementation claim is corrected, the ambition is preserved. That doc's banner and its
+        § *Sequencing* are the template.
     - **⚠ THIS DOES NOT REACH `docs/design/ecology.md`, AND AN EARLIER DRAFT OF THIS LINE
       WRONGLY SAID IT DID.** The word *"ecology"* was **not** the user's — it was inserted by
       the assistant transcribing the directive, and it unmoored a doc whose own header reads
