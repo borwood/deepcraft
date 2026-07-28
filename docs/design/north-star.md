@@ -187,9 +187,21 @@ pointer + a slug**:
   resistances… (already `MaterialProps`).
 - **Behavior slots:** `can_combust?`, `combust_rate`, `combust→`, `weather→`,
   … — functions taking cell context, returning predicates / quantities /
-  transforms. This is the [`Providers`](../../crates/dc-worldgen/src/deeptime/providers/)
-  pattern (`Option<fn>` slots with an identity fallback) **generalized from
-  world-level to material-level.**
+  transforms. This borrows the **code shape** of
+  [`Providers`](../../crates/dc-worldgen/src/deeptime/providers/)
+  (`Option<fn>` slots with an identity fallback), applied at material level.
+  > **⚠ THE SHAPE ONLY — clarified 2026-07-28 (user).** This bullet used to read
+  > *"the `Providers` pattern **generalized from world-level to material-level**"*,
+  > which is true of the shape and **was read as the world-level provider SYSTEM
+  > being promoted into the SDK.** It was not, and that misreading is where a
+  > phantom "general registry" came from. **The two are unrelated in purpose:**
+  > *material* behavior slots are **what a content author writes — this IS the SDK
+  > surface, and it is permanent**; *world-level* provider seams
+  > (`deeptime/providers/`) are **scaffolding for systems that do not exist yet,
+  > and their success condition is to DISAPPEAR** (`burial_temp_c`'s heir turned
+  > out to be a field, so it left as a field pass — journal/0093). **Where
+  > world-level seams land after the engine/plugin split is undiscussed and
+  > deliberately undecided; no decision is owed.** See `stubs.md` § *Slots*.
 - **Parent pointer + shadowing:** to answer `combust→` for `oak`, walk up the
   parent chain (`oak → wood → organic`) and use the first ancestor that supplies
   it. Children shadow parents. Categories are the upper levels of this hierarchy;

@@ -23,37 +23,52 @@ via journal/0078). A slot does not retire a stub; it stops the stub from
 silently becoming the definition, which is ARCHITECTURE.md § *A summary is not
 an authority* made structural.
 
-> **⚠ WHAT "THE GENERAL REGISTRY" MEANS — clarified 2026-07-28 after the user
-> read this clause and said, reasonably, *"I honestly don't understand what the
-> registry is supposed to be except for a list which we can extend."*** That
-> reading is **correct about what exists**, and the old wording invited it.
+> ### ⚠ THERE IS NO "GENERAL REGISTRY", AND THERE IS NOT GOING TO BE ONE
+> **Struck 2026-07-28 (user).** This clause used to end *"the general registry is
+> deliberately unbuilt — four conversions is not enough to design one from"*,
+> which implied a future mechanism somebody was going to build. **Nobody ever
+> proposed one.** It was an inference, it read as a veto on extending the list,
+> and it went stale anyway (it said "four" for four days after the fifth landed).
+>
+> **A seam's success condition is that it DISAPPEARS.** When the heir arrives it
+> replaces the slot with a real mechanism; it does not "fill" it forever.
+> **The worked example is the only completed case we have:** `burial_temp_c`
+> asked *"how hot is it at this burial depth?"*, and when the geotherm landed the
+> answer turned out to be **a field, not a value a provider `fn` can hold** — so
+> it retired as a **field pass** and left the file entirely (journal/0093).
+> `providers/mod.rs` records the lesson: *"the answer was 'this is not a provider
+> at all — it is a field.'"* `depth_to_water` is documented as heading the same
+> way. **So the exit is: slot → heir arrives → slot dissolves into a field or a
+> pass.** You do not design a third-party declaration for a pattern whose job is
+> to vanish.
 >
 > **What exists today IS a list you extend**, and extending it is cheap and
-> encouraged: `Providers` is **named struct fields** holding `Option<fn>`, one
-> module per slot, `None` *is* the identity. Adding one is a new file plus a
-> compile error at every site that must answer for it. `providers/mod.rs:41`
-> says so outright: *"This is **not** a registry, a plugin loader, or a
-> declaration/validation system."* **Nothing here discourages a sixth slot.**
+> encouraged — `Providers` is named struct fields holding `Option<fn>`, one
+> module per slot, `None` *is* the identity, and adding one is a new file plus a
+> compile error at every site that must answer for it. **Nothing here discourages
+> a sixth slot.**
 >
-> **The unbuilt "registry" is a different thing entirely: slots declared as
-> DATA rather than as compiled-in fields**, so a **plugin** can add one without
-> recompiling the engine — validated at load instead of by `rustc`. That is the
-> north-star plugin shape applied to provider seams, and it is the only thing
-> the deferral was ever about.
+> **⚠ AND "SLOT" MEANS TWO UNRELATED THINGS — this is the actual source of the
+> confusion.** They share a code shape (`Option<fn>` + identity fallback) and
+> nothing else:
+> - **Provider seams** (*world-level*, this file, `deeptime/providers/`) — holes
+>   for systems **that do not exist yet**. Scaffolding. **Temporary by design.**
+> - **Material behavior slots** (*material-level*, `north-star.md` § Materials —
+>   `can_combust?`, `combust_rate`, `weather→`) — **what a material author
+>   writes.** This *is* the SDK content surface, ratified 2026-07-23, and
+>   **permanent by design.**
 >
-> **So the real question was never "how many conversions do we have."** It is:
-> *do we understand how these slots VARY well enough to design a declaration a
-> third party could author against?* **Restate it that way** — the count was a
-> proxy, it read as a veto on extending the list, and it went stale anyway
-> (this clause said "four" for four days after the fifth landed).
+> `north-star.md:189-191` calls the material version *"the `Providers` pattern
+> generalized from world-level to material-level"* — true of the **shape**, and
+> easy to misread as the world-level *system* being promoted into the SDK.
+> **That misreading is where "the general registry" came from.**
 >
-> **⚠ AND IT DOES NOT GOVERN THE CORPUS-KNOWLEDGE THREAD.** This clause is
-> quoted in `doc-topology/SKILL.md`, the corpus notebook and its evidence file
-> as the reason not to design the addressability layer yet. **That is an
-> analogy stretched past its domain** — this is about plugin-authorable engine
-> sockets; that is about documents, and shares no mechanism with it. The
-> *session-workflow* seam-first rule may still bear on that thread; **this
-> sentence does not**, and should stop being cited there.
+> **Where world-level seams land after the engine/plugin split is UNDISCUSSED and
+> deliberately UNDECIDED** (user, 2026-07-28: *"I genuinely don't know… I don't
+> think anyone has had a direct conversation about it… I don't want to burden us
+> with more half-baked designs."*). **No decision is owed.** The one completed
+> case resolved itself; the next can too. Do not open this without a seam
+> actually forcing it.
 
 ---
 

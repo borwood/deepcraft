@@ -41,14 +41,21 @@ description: Sweep the .md corpus for claims that CONTRADICT other claims in the
 > **The one open proposal** is § 5 of the notebook — a *reciprocity* check, marked
 > assistant-originated and unratified. ~~**And `stubs.md:22` forbids designing the general
 > mechanism before several real conversions have taught the shape.** That binds this thread
-> too.~~ **STRUCK 2026-07-28 (user).** `stubs.md:22` is about **plugin-authorable engine
-> sockets** — declaring provider slots as *data* so a mod can add one without recompiling. It
-> shares **no mechanism** with a documents problem, and citing it here stretched an analogy past
-> its domain. *(The user, reading that clause: "I honestly don't understand what the registry is
-> supposed to be except for a list which we can extend" — correct about what exists, and the
-> reason it should never have been a veto on this thread.)* **What still binds is
+> too.~~ **STRUCK 2026-07-28 (user) — and the clause it cited no longer exists.** `stubs.md`'s
+> *"the general registry is deliberately unbuilt"* has been **removed**: nobody ever proposed a
+> registry, and a **provider seam's success condition is that it DISAPPEARS** (its heir replaces
+> it with a field or a pass — `burial_temp_c`, journal/0093). There was never a deferred
+> mechanism for a conversion count to gate. *(The user, reading the clause: "I honestly don't
+> understand what the registry is supposed to be except for a list which we can extend" —
+> correct, and the reason it should never have been a veto here.)* **What still binds is
 > `session-workflow` § Seam-first #6** — convert the cheapest cold seam and let it teach the
-> shape — which is a rule about how to build anything, not a claim about this domain.
+> shape — a rule about how to build anything, not a claim about this domain.
+> *⚠ An earlier version of this strike (written hours before, same day) justified it as
+> "`stubs.md:22` is about plugin-authorable engine sockets." **That was also wrong**, and from
+> the same root: `north-star.md` calls material behavior slots "the `Providers` pattern
+> generalized", which reads as the world-level seam system being promoted into the SDK. It was
+> not. Left visible because being wrong twice from one ambiguous sentence is the argument for
+> disambiguating it, which north-star now does.*
 
 > **⚠ COUNTS IN THIS FILE WENT STALE ON 2026-07-28 AND ARE CORRECTED HERE, NOT ABOVE.**
 > There are now **three** sweeps, not two — `staleness-sweep` was packaged as a skill that day,

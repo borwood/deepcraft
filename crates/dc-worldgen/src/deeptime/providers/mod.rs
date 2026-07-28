@@ -39,9 +39,31 @@
 //! This is **not** a registry, a plugin loader, or a declaration/validation
 //! system. The slots are named fields, and adding one is
 //! a compile error at every site that has to answer for it — which is the same
-//! structural guarantee [`Agent`](super::lithology::Agent) relies on. The
-//! general mechanism is deliberately deferred until enough seams exist to design
-//! it *from* rather than *for*.
+//! structural guarantee [`Agent`](super::lithology::Agent) relies on.
+//!
+//! **And there is no "general mechanism" coming** (user, 2026-07-28; this line
+//! used to say one was "deferred until enough seams exist to design it from").
+//! **A seam's success condition is that it DISAPPEARS.** The heir does not fill
+//! the slot forever — it *replaces* it. The only completed case in this file is
+//! `burial_temp_c` below: its heir turned out to be a field, so it left as a
+//! **field pass**, not as a provider. `depth_to_water`'s heir is documented as a
+//! field too. **The exit is: slot → heir arrives → slot dissolves into a field
+//! or a pass.** Extending the list is cheap and encouraged; designing a
+//! declaration format for it is not, because the pattern's job is to vanish.
+//!
+//! **⚠ "SLOT" MEANS TWO UNRELATED THINGS in this codebase**, sharing a code
+//! shape (`Option<fn>` + identity fallback) and nothing else:
+//! - **provider seams** — *this file*: holes for systems that do not exist yet.
+//!   **Temporary.**
+//! - **material behavior slots** — `docs/design/north-star.md` § Materials
+//!   (`can_combust?`, `combust_rate`, `weather→`): what a material author
+//!   writes. **The SDK content surface. Permanent.**
+//!
+//! north-star calls the latter *"the `Providers` pattern generalized from
+//! world-level to material-level"* — true of the **shape**, and easy to misread
+//! as this system being promoted into the SDK. It was not. **Where world-level
+//! seams land after the engine/plugin split is undiscussed and deliberately
+//! undecided; no decision is owed until a seam forces one.**
 //!
 //! ## The file layout, and why the grouping is load-bearing
 //!
@@ -282,7 +304,8 @@ pub struct Providers {
     ///   0061), and the heir's answer varies per unit because each unit records a
     ///   different epoch. Materializing once per column would collapse exactly
     ///   that epoch variation. The same shape, for the same reason, as
-    ///   [`burial_temp_c`](Self::burial_temp_c()).
+    ///   `burial_temp_c` — *retired, journal/0093; see this module's header.*
+    ///   (Plain text, not a link: the slot no longer exists, which is the point.)
     pub paleo_temperature: Option<fn(PaleoUnit) -> f64>,
 }
 

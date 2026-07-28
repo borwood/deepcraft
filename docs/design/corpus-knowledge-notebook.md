@@ -237,8 +237,12 @@ extraction and discharge, not authoring.**
 Not my opinion — ratified, and it is the direct answer to *"we don't know what we need to know
 yet"*:
 
-- `stubs.md:22-24` — *"**The general registry is deliberately unbuilt** — four conversions is
-  not enough to design one from."*
+- ~~`stubs.md:22-24` — *"**The general registry is deliberately unbuilt** — four conversions is
+  not enough to design one from."*~~ **WITHDRAWN 2026-07-28 (user) — the clause was removed from
+  `stubs.md` and never governed this thread.** Nobody proposed a registry; it was an inference,
+  and a **provider seam's success condition is that it DISAPPEARS** (the heir replaces it with a
+  field or a pass — `burial_temp_c`, journal/0093, the only completed case). *So one of the two
+  pillars § 4.0b rested on is gone.* **The other stands and is sufficient** — see below.
 - `session-workflow` § Seam-first, practice 6 — *"**Do not build the general mechanism
   first.** Convert the cheapest cold seam, let it teach the shape, convert three more, *then*
   generalize. **A registry designed before its callers exist is the same mistake in a new
@@ -467,8 +471,10 @@ that the failure is real, recurring, and mechanically detectable — not its exa
 
 Marked per the provenance rule: **user-originated constraints are data; assistant-originated ones
 are hypotheses that happened to survive.** This is a hypothesis. It is deliberately **not an
-ontology**, because `stubs.md:22` and `session-workflow` § Seam-first #6 forbid designing the
-general mechanism first, and § 4.0b takes that as binding on this thread.
+ontology**, because ~~`stubs.md:22` and~~ `session-workflow` § Seam-first #6 forbids designing
+the general mechanism first, and § 4.0b takes that as binding on this thread.
+*(`stubs.md:22` **withdrawn 2026-07-28** — it never governed this thread; see § 4.0b. The
+seam-first rule alone is sufficient and is the one that was always doing the work.)*
 
 ### 5.1 The user's sketch, re-aimed by the evidence — component by component
 

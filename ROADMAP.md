@@ -27,8 +27,10 @@ read live, never when it gets old.**
   (`ARCHITECTURE.md`, DECIDED 2026-07-26). *(This line read "native
   field-solvers" until 2026-07-26; that framing was retired 2026-07-23 and the
   copy here outlived it — doc-topology finding #2.)* Materials (sheet + behavior slots +
-  parent-shadowing hierarchy + slug→assets — the `Providers` pattern dropped to
-  material level), their behavior, and the passes over them are **authored in a
+  parent-shadowing hierarchy + slug→assets — the `Providers` **code shape** dropped
+  to material level; *not* the world-level seam system, which is scaffolding and
+  is meant to disappear — disambiguated 2026-07-28, `north-star.md` § Materials),
+  their behavior, and the passes over them are **authored in a
   uniform, self-declaring, compiler-validated shape and tuned by data**. Behavior
   is code, tuning is data. **Plugin-first, closed-source-OK, untrusted-third-party
   safe** via a tiered backend behind ONE authoring shape: native `abi_stable` for
@@ -749,15 +751,36 @@ see the question you are asking.
        on it and confirmed `COMPETENCE_SCALE`'s *"mud, sometimes"* is **not** to be treated as a
        knob to tune (it is downstream of the denudation rate; tuning it would be a number
        pretending to be a mechanism).
-    4. **THE REGISTRY CLAUSE WAS BADLY WORDED, NOT MERELY STALE** — surfaced by the user asking
-       *"I honestly don't understand what the registry is supposed to be except for a list which
-       we can extend."* **That reading is correct about what exists**: `Providers` is named
-       struct fields, extending it is cheap and encouraged, and `providers/mod.rs:41` already
-       says *"this is **not** a registry."* **The unbuilt thing is slots declared as DATA so a
-       PLUGIN can add one without recompiling** — the north-star shape applied to seams. So the
-       question is *"do we understand how slots VARY well enough to design a third-party
-       declaration?"*, never a count. **Count fixed (five), and the clause must stop being cited
-       against the corpus-addressability thread — that analogy has no shared mechanism.**
+    4. **THERE IS NO "GENERAL REGISTRY" AND THERE NEVER WAS — the clause is DELETED, not
+       reworded.** Surfaced by the user asking *"I honestly don't understand what the registry is
+       supposed to be except for a list which we can extend."* **Correct — and nobody ever
+       proposed one.** It was an inference that implied future work.
+       - **A seam's success condition is that it DISAPPEARS.** The heir *replaces* the slot; it
+         does not fill it forever. **Only completed case:** `burial_temp_c`'s heir turned out to
+         be a **field**, so it retired as a **field pass** and left the file (journal/0093) —
+         *"the answer was 'this is not a provider at all — it is a field.'"* `depth_to_water` is
+         documented as heading the same way. **You do not design a third-party declaration for a
+         pattern whose job is to vanish.**
+       - **⚠ THE ROOT CAUSE — "slot" means two unrelated things**, sharing a code shape
+         (`Option<fn>` + identity) and nothing else: **provider seams** (world-level, scaffolding,
+         *temporary*) vs **material behavior slots** (`north-star.md` § Materials — what a
+         content author writes, **the SDK surface, permanent**). north-star called the latter
+         *"the `Providers` pattern **generalized** from world-level to material-level"* — true of
+         the shape, **and read as the world-level SYSTEM being promoted into the SDK.** That
+         misreading produced the phantom. **north-star now disambiguates it in place.**
+       - **Where world-level seams land post-split is UNDISCUSSED and deliberately UNDECIDED**
+         (user: *"I genuinely don't know… I don't think anyone has had a direct conversation about
+         it… I don't want to burden us with more half-baked designs"*). **No decision is owed.**
+       - *The assistant proposed a "policy injection" counter-argument and it is **dropped, not
+         recorded** — neither party could name an instance, and writing down a hypothetical that
+         shapes future thinking is the thing being avoided.*
+       - **⚠ The integrator's OWN first two fixes of this were also wrong**, both from the same
+         ambiguous north-star sentence (*"plugin-authorable engine sockets"*). Left visible at
+         `doc-topology/SKILL.md` because being wrong twice from one sentence is the argument for
+         disambiguating it. **Propagated to all six citation sites** — `stubs.md`,
+         `providers/mod.rs`, `north-star.md`, `doc-topology/SKILL.md`,
+         `corpus-knowledge-notebook.md`, `corpus-knowledge-evidence.md`. Journals **0060** and
+         **0120** quote the old clause and are **left untouched: dated testimony, immutable body.**
 
   - *Original framing of the four calls, kept for the reasoning:*
     1. **`ecology.md:262-263` (DECIDED 07-20, user) vs `worldgen.md:189-191` (DECIDED 07-28,
@@ -894,10 +917,13 @@ see the question you are asking.
     phrase — **and it has never been applied to the documents that specify the code.** Every
     known instance (stubs #29's four post-incision phases with isostasy missing; the
     core/plugin boundary; a pass's `reads` set) was **found by a human noticing.**
-  - **Not sequenced as a build.** The doctrine that governs it is already ratified — *"the
-    general registry is deliberately unbuilt — four conversions is not enough to design one
-    from"*. **Four hand-found instances is the same evidence base.** Recorded so the fifth
-    instance lands against a named pattern instead of being re-discovered.
+  - **Not sequenced as a build.** The doctrine that governs it is already ratified —
+    `session-workflow` § Seam-first #6, *"do not build the general mechanism first: convert the
+    cheapest cold seam, let it teach the shape."* **Four hand-found instances is a thin evidence
+    base.** Recorded so the fifth instance lands against a named pattern instead of being
+    re-discovered. *(This bullet previously cited `stubs.md:22`'s "general registry… four
+    conversions" clause — **withdrawn 2026-07-28**, there was never a registry. The seam-first
+    rule alone was always the one doing the work here.)*
 
 - **🟠 DOC-TOPOLOGY RESIDUALS — the 19 findings not actioned 2026-07-26** (full audit:
   `docs/audits/2026-07-26-doc-topology-sweep.md`). Six were actioned the same day (the
@@ -1094,11 +1120,13 @@ see the question you are asking.
       **`EdgeId::declared`** (an undeclared transition is *unnameable*). **The last is the closest
       in-repo precedent to anything a knowledge layer needs** — we already built *"you cannot
       assert an undeclared relation"*, for material transitions and nothing else.
-    - **THE DOCTRINE GOVERNING THIS THREAD IS ALREADY RATIFIED:** `stubs.md:22` — *"the general
-      registry is **deliberately unbuilt** — four conversions is not enough to design one from"*;
-      `session-workflow` § Seam-first #6 — *"**do not build the general mechanism first**… a
-      registry designed before its callers exist is the same mistake in a new coat."* **So the
-      ontology may not be designed up front.**
+    - **THE DOCTRINE GOVERNING THIS THREAD IS ALREADY RATIFIED:** `session-workflow` § Seam-first
+      #6 — *"**do not build the general mechanism first**… a registry designed before its callers
+      exist is the same mistake in a new coat."* **So the ontology may not be designed up front.**
+      *(This bullet also cited `stubs.md:22`'s "general registry… four conversions" — **withdrawn
+      2026-07-28 (user)**: nobody ever proposed a registry, and a provider seam's success condition
+      is that it **disappears**. It never governed this thread. **One pillar removed; the
+      seam-first rule stands and is sufficient.**)*
     - **Falsifiers run:** T4 **falsified**; T2 **sharpened, not falsified**. **Still owed:** the
       65 re-coded at § granularity, and a **second reader** re-running the 3.5c coding rule — it is
       single-coded by the assistant whose errors most of the entries record.
@@ -3030,6 +3058,17 @@ before any code.
     `crates/dc-sim/src/statistical/rng.rs:89`** (the macro exists in the crate but is not in scope
     at the link site). **Pre-existing, unrelated to the change that found it, and left in place**
     — it is a warning by default, so nothing has ever failed on it.
+  - **⚠ SIZED 2026-07-28, and it is bigger than two:** `cargo doc -p dc-worldgen --no-deps` with
+    the lint promoted reports **16 unresolved links** in that crate alone (`Litho`, `DepUnit`,
+    `InvCtx`, `litho_of_tag`, `Fact::Move`, …). **Two crates checked so far, 18 broken pointers.**
+    *One was instructive enough to fix on sight:* `providers/mod.rs:307` linked
+    `Self::burial_temp_c` — **the seam that RETIRED into a field pass.** The doc rot is the
+    seam-dissolution story leaving a dangling pointer behind, in the paragraph explaining the
+    dissolution. **That is the failure mode in miniature: a pointer survives the thing it points
+    at, and no gate can see it.**
+  - *Method note for whoever takes this: a naive `cargo doc … | Select-String` reports **exit 0**
+    while printing errors — the pipeline swallows cargo's code. Capture the exit status
+    separately. Same "did it run?" vs "did it pass?" trap as the Tee'd-log rule.*
   - **Why it is more than lint hygiene here, which is the part worth the conversation.** This
     project deliberately puts **load-bearing doctrine in doc comments** — the module note that
     keeps the S2 tier from being deleted or adopted, `spines.md` § 3's *"record what consumed
@@ -5079,8 +5118,11 @@ magnitudes by ~2×, with **43 % of entries ambiguous** — so every number is a 
    in prose, consequence named, untracked for four days while its absence produced the blocker.*
 2. **A decision on the knowledge layer, not more analysis.** Notebook § 5 proposes a **reciprocity
    check** (assistant-originated, unratified): *does every artifact that supersedes another by name
-   carry a back-pointer?* Zero new authoring, 8 known failures. Or park it. **`stubs.md:22` forbids
-   designing the general mechanism first, and that binds this thread.**
+   carry a back-pointer?* Zero new authoring, 8 known failures. Or park it. ~~**`stubs.md:22`
+   forbids designing the general mechanism first, and that binds this thread.**~~ **WITHDRAWN
+   2026-07-28 (user)** — there was never a registry to defer, and that clause never governed this
+   thread. **`session-workflow` § Seam-first #6 still binds** and says the same thing about how to
+   build anything.
 3. **A `doc-topology` sweep is due** — an arc shipped today and the skill's shape-6 check changed.
 
 ### Gate

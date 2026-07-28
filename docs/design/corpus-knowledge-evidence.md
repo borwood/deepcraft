@@ -941,17 +941,16 @@ not retire a stub; it stops the stub from silently becoming the definition, whic
 ARCHITECTURE.md § *A summary is not an authority* **made structural**. **The general registry is
 deliberately unbuilt — four conversions is not enough to design one from.**"*
 
-> **⚠ HALF OF THIS WAS WITHDRAWN 2026-07-28 (user).** The `stubs.md:22` sentence **does not
-> govern this design pass**: it is about **plugin-authorable engine sockets** — declaring
-> provider slots as *data* so a mod can add one without recompiling — and shares **no mechanism**
-> with a documents problem. Reading it as binding here was an analogy stretched past its domain.
-> Two further corrections to the quotation above: the count is **five**, not four, and the number
-> was always a proxy for the real question (*do we understand how slots VARY well enough to design
-> a third-party declaration?*). *The user, on being shown the clause: "I honestly don't understand
-> what the registry is supposed to be except for a list which we can extend" — which is correct
-> about what exists, and is why it should never have been a veto here.*
-> **`session-workflow` § Seam-first #6 below still binds** — it is a rule about how to build
-> anything, not a claim about this domain.
+> **⚠ THE QUOTED CLAUSE HAS BEEN REMOVED FROM `stubs.md` — 2026-07-28 (user).** *"The general
+> registry is deliberately unbuilt — four conversions is not enough to design one from"* is gone,
+> because **nobody ever proposed a registry.** It was an inference, and a **provider seam's
+> success condition is that it DISAPPEARS**: the heir replaces the slot with a field or a pass
+> (`burial_temp_c`, journal/0093 — the only completed case). There was no deferred mechanism for
+> a conversion count to gate, so **it never governed this design pass.** *The user, on being shown
+> it: "I honestly don't understand what the registry is supposed to be except for a list which we
+> can extend."*
+> **`session-workflow` § Seam-first #6 below still binds** — a rule about how to build anything,
+> not a claim about this domain.
 
 ~~That is **ratified project doctrine directly governing how this very design pass must
 proceed**~~ *(struck above)*, and it is echoed in `session-workflow` § Seam-first practice 6: *"**Do not build the
