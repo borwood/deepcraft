@@ -712,11 +712,22 @@ that an *implicit* constant had silently become an acceptance number.
 
 ### 11.1 The aggregation window is a DECLARED axis — never assumed
 
-**RATIFIED.** `material-behavior.md` § 5 gives the scheduler **ORDER** (topo-sort) and
+**RATIFIED** — *the WINDOW axis. The characterisation of the other two axes below was
+setup, never part of what the user ratified, and its ORDER half has since been retired.*
+
+`material-behavior.md` § 5 gives the scheduler ~~**ORDER** (topo-sort)~~ and
 **RATE** (`period` + `dt`). It has no name for *"how many epochs sum into one record
 entry"* — yet that window sets the record's time resolution, and at slice 1 it was an
 implicit constant (one tectonic chapter = 25 epochs) that **produced the divergence
 count the slice was accepted on**.
+
+**🔴 THE STRUCK HALF — SUPERSEDED 2026-07-26 (user): ORDER IS AUTHORED, PER WORLD**, and
+`{reads, writes}` became the **validator**, not the generator. See `ARCHITECTURE.md`
+§ *The engine is plugin-agnostic, and pass ORDER is authored* (DECIDED 2026-07-26),
+`material-behavior.md` § 5's ORDER bullet (struck the same day), and **corrections #65**.
+*Struck rather than deleted because this section's argument rests on it: § 5 had names for
+the axes it did have and **no name for the window** — which holds whichever way ORDER is
+decided, so nothing in § 11.1 falls with the strike.*
 
 > **A window that decides an acceptance number must be declared, not assumed.**
 

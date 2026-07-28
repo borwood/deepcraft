@@ -148,7 +148,7 @@ read live, never when it gets old.**
   gen + far-mesh onto AsyncComputeTaskPool; the synchronous `stream_chunks`
   gen+mesh loop is the span-named suspect — `chunk.gen`/`chunk.contents`/
   `neighbor_fill.gen`/`mesh_chunk` on the frame thread)~~ **LANDED 2026-07-23,
-  journal/0083 + journal/0084 — see § Shipped** (status drift only, corrected by the
+  journal/0083 + journal/0084 — see `ROADMAP-history.md` § Shipped** (status drift only, corrected by the
   2026-07-25 staleness sweep row S-9). *The live successors are the two Observed items
   it left behind: the **throughput ceiling** and **per-thread attribution**.* · ~~erosion-budget dev flag
   (the walkable cranked world → the standing amplitude call)~~ **LANDED
@@ -512,7 +512,12 @@ Use the LIT pass — this is a dig-depth/section question:
   and the best cut face available. *(Verified headlessly in journal/0058 — the
   "only 3 voxels here" alarm was the integrator standing 8.6 km away.)*
 
-*(Superseded by the session-close block above; kept for the record.)*
+*(Superseded by a session-close block; kept for the record. **The pointer used to read
+"above" and no longer resolves:** the block that superseded this was the 2026-07-21 one,
+written when close blocks sat at the top of the board — it was consumed by its successors
+and is not retained anywhere. The surviving blocks are § **NEXT SESSION** **below**
+(2026-07-27, and the 2026-07-26 morning block under it) plus the six archived in
+`ROADMAP-history.md`.)*
 **RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
 **answered: neither 80 nor 160** (corrections #23) — `thickening_scale` acts
 at ~25 km and above and buys *zero* sub-km relief, so it cannot fix dismal
@@ -551,11 +556,34 @@ see the question you are asking.
   ecology carve-out, the field-solver framing, the two ORDER strikes, the S-/A- undercount,
   the CLAUDE.md trust-tier line). **The rest are owed, and are recorded here rather than
   left in an audit nobody re-opens:**
-  - **Mechanical, no user call:** ~25 dangling cross-file pointers created by the
-    ROADMAP/history split (16 `"see § Shipped"` in `ROADMAP.md`, 9 the other way, plus one
-    orphan pointing "above" at a block 3,800 lines below it). *Caused by this session; not
-    cleaned by it.*
-  - **`flow.md:715` puts a RATIFIED stamp on a scheduler model that was retired** 2026-07-26.
+  - **✅ DONE 2026-07-28 — the dangling cross-file pointers.** The audit estimated *"~25"*;
+    the real count is **44 pointers at 43 sites**, all fixed. **The audit undercounted by 18.**
+    - **23 in `ROADMAP.md` pointing at the archive** (audit said 16): 22 of the
+      `"see § Shipped"` form, plus the last line of the 2026-07-26 morning close block —
+      *"the 2026-07-25 block **below**"*, which was one of the six archived, so the live
+      board's own close block pointed past its own end.
+    - **19 in `ROADMAP-history.md` pointing back at the live board** (audit said 9).
+    - **4 were already directionally wrong BEFORE the split** and are now doubly wrong: the
+      roughness-decay entry's *"Sequenced below"* read from inside § Observed, and the three
+      `NEEDS RATIFICATION (below, § Sequenced)` markers on the 2026-07-20 erodibility / water
+      / biotic Shipped entries. *§ Sequenced has sat **above** § Shipped since at least
+      `34d88f2`; these predate the archive, which merely made them unresolvable.*
+    - **The `:515` orphan — *attributed*, not guessed.** The block it meant was the **2026-07-21
+      close block** (verified at `34d88f2`, where it sat 19 lines above), and that block was
+      consumed by its successors rather than archived — so it exists nowhere, and the line now
+      says so instead of pointing at a block 3,800 lines the other way.
+    - **The retargets are addresses only.** No claim was resolved and no contradiction
+      adjudicated. Where a Shipped entry has a **journal number** it is kept as the stable
+      pointer, per the archive's own design.
+  - **✅ DONE 2026-07-28 — `flow.md:715`'s RATIFIED stamp.** The stamp is legitimate for
+    § 11's WINDOW decision (DECIDED 2026-07-25, user); what wrongly inherited it was the
+    *setup sentence* characterising the other two axes. The ORDER half is now **struck and
+    marked SUPERSEDED 2026-07-26**, in the shape `material-behavior.md` § 5's ORDER bullet
+    already uses, with a note on why § 11.1's argument survives the strike (it needs only
+    that the scheduler had **no name for the window**, which holds either way).
+    *Still open from the same finding (#15), deliberately not taken here:* `flow.md:459` and
+    `material-behavior.md:367-369` carry the same `ORDER (topo-sort)` framing **without** a
+    ratification stamp.
   - **`spines.md:1048` + `stubs.md:30-40` still schedule heirs for the bootstrap content the
     user decided to REMOVE.** These should resolve into the removal slice, not survive it.
   - **The ABI spike is described as "locking the SDK shape"** — contested by north-star
@@ -842,7 +870,7 @@ see the question you are asking.
     hypothesis needed a falsifier** — not by argument.
 
 - **🔴🔴 CALIBRATE THE DEEP-TIME CLOCK — the largest measured defect on the board**
-  **(⚠ PARTLY BUILT 2026-07-26, journal/0114 — see the Shipped entry. It is BUILT, MEASURED and
+  **(⚠ PARTLY BUILT 2026-07-26, journal/0114 — see `ROADMAP-history.md` § Shipped. It is BUILT, MEASURED and
   DELIBERATELY OFF, blocked on stubs #29 above. The band is NOT reachable at any multiplier;
   read stubs #27 before assuming a bigger number fixes it.)**
   (journal/0111, corrections #56, stubs #24, 2026-07-26). **User-owned and appearance-class:
@@ -999,7 +1027,7 @@ see the question you are asking.
     region-step draw moves every world's ruin posts; the agent-step draw moves nothing**.
 
 *(The `production_* → golden_*` rename that stood here — opened 2026-07-25 by journal/0106,
-given a real entry by the staleness sweep row D-2 — **shipped 2026-07-26**; see Shipped.)*
+given a real entry by the staleness sweep row D-2 — **shipped 2026-07-26**; see `ROADMAP-history.md` § Shipped.)*
 
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice
@@ -1103,7 +1131,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     their own divides. The claim was written in **four** places and never questioned because
     it sounded like a sequencing argument. **(a) was still correctly sequenced first** — but
     because it made the record's vertical faces honest, *not* because the numerics needed it.
-    **✅ MFD SHIPPED 2026-07-25 as continuation (b′) — see the Shipped entry.**
+    **✅ MFD SHIPPED 2026-07-25 as continuation (b′) — see `ROADMAP-history.md` § Shipped, journal/0109.**
 
     **⚠ LETTER COLLISION, introduced 2026-07-25 and named here rather than silently
     renumbered:** this list's **(b)** is *"refinement as a boundary-value problem"*, but the
@@ -1318,7 +1346,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
       **FLOW continuation (e)**. Migrating them into a declared field pass would be building a
       declared home for a plane we have already agreed to delete.
     - `dc:deep/drainage` has been **a declared pass since Movement 1** (journal/0090; it is named
-      in the 17-pass order in § Shipped) — the unconsumed thing is the exported **plane**, not the
+      in the 17-pass order in `ROADMAP-history.md` § Shipped, journal/0104) — the unconsumed thing is the exported **plane**, not the
       pass. The entry's original framing conflated the two.
     - **Vocabulary the migration did not have to open:** `dc:field/temperature` (0093) and
       `dc:field/head` (0098) both landed as first-class field passes on their own arcs — two rows
@@ -1376,7 +1404,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   later resolves.*
   Screenshots to `journal/assets/` named for their entry.
 
-- ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0100).** Measured result: flag-ON
+- ✅ **DONE 2026-07-25 — shipped, see `ROADMAP-history.md` § Shipped (journal/0100).** Measured result: flag-ON
   `DeepField` **311.02 → 179.12 MiB**, the flag's own cost **+161.81 → +29.91 MiB (5.41×)**,
   ledger heap **155.01 → 16.31 MiB (9.5×)**, index 3.4 % of the ledger, world byte-identical
   (same 1,033,189 facts in the same 72,006 slots). *Entry kept below as shaped, for the record.*
@@ -1546,7 +1574,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     one, and the two-authorities split (material vs height) becomes derivable rather than
     maintained — which is Movement 2a's stated direction anyway.
 
-- **✅ SHIPPED 2026-07-25 (journal/0099) — see § Shipped for the result.** *(Entry kept for its
+- **✅ SHIPPED 2026-07-25 (journal/0099) — see `ROADMAP-history.md` § Shipped, journal/0099, for the result.** *(Entry kept for its
   reasoning; the flag-ON walk it earned is now item (4) of APPEARANCE WALKS OWED.)*
   ~~THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB~~ (walk finding, user, 2026-07-25;
   journal/0097). **WHAT.** Movement 3's band is correctly *magnituded* and wrongly *shaped*: the
@@ -1908,7 +1936,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   shape flatness is the separate S13/roughness thread.
 - **Consume the ledger terms the runtime throws away** (geology.md § Expression
   of the ledger, DECIDED 2026-07-21). Four concrete, independently shippable
-  pieces: (a) *(**carry `H`: SHIPPED** 2026-07-21, journal/0053 — see Shipped.
+  pieces: (a) *(**carry `H`: SHIPPED** 2026-07-21, journal/0053 — see `ROADMAP-history.md` § Shipped.
   Both consumers read the recorded plane; stubs.md § 3 retired whole.)*;
   (b) **consume `exhum`/`t_crust`**, which ship
   explicitly as "the metamorphic-grade axes the collapse tier reads" and are
@@ -1955,7 +1983,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   A and B garnish the ground; only C touches the 460 m–7.4 km band the `L_DEEP`
   override discards. Sequence the steep-site re-walk FIRST so the pick is made
   against the world's real terrain.
-- *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — see Shipped.
+- *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — see `ROADMAP-history.md` § Shipped.
   `--horizon <km>`, default provably unchanged, measured to 10 km.)*
 - **A 5th/6th far LOD level — for horizons past ~10 km** (found by the
   journal/0042 measurements, 2026-07-21). The 4-level ring scheme's honest
@@ -1995,9 +2023,9 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   re-sequenced amplitude call, drainage-export fidelity). **Dispatch after
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
 - *(**Zonal circulation profile: SHIPPED** 2026-07-20, journal/0037 — see
-  Shipped.)*
+  `ROADMAP-history.md` § Shipped.)*
 - *(**Deep-config flag plumbing: SHIPPED** 2026-07-20, journal/0039 — see
-  Shipped. The four launch flags (`--tectonics`, `--full-agents`,
+  `ROADMAP-history.md` § Shipped. The four launch flags (`--tectonics`, `--full-agents`,
   `--amplitude`, `--extent`) boot a flagged world; the combined amplitude /
   tectonic / full_agents walk is unblocked. The override channel is
   `DeepOverrides` on top of `production_config`, NOT a `WorldParams` field —
@@ -2025,7 +2053,7 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   `mcp.rs` and `player.rs`, both in those agents' write-sets.
 
 *(**FF2a — voxel-language far field: SHIPPED** 2026-07-19, journal/0023 — see
-Shipped. Stepped columns retired the smooth TIN; step 0 empirically confirmed
+`ROADMAP-history.md` § Shipped. Stepped columns retired the smooth TIN; step 0 empirically confirmed
 Bevy 0.19's GPU-driven multidraw engages for our custom material
 (`mode=Culling`, 74 draws → 1 multidraw set); the buried-sheet and tile-crack
 field reports are resolved, below.)* **FF2b — coarse volumetric
@@ -2038,7 +2066,7 @@ edit-tracked LOD store stay drop-in).
 
 
 *(**Erodibility coupling — lithology-aware erosion: SHIPPED** 2026-07-20,
-journal/0029 — see Shipped. Cause 1 of the dismal mountains is closed:
+journal/0029 — see `ROADMAP-history.md` § Shipped. Cause 1 of the dismal mountains is closed:
 erosion is lithology-aware, off by default, byte-identical when off,
 agent-specific resistance so karst/glacial/littoral stay implementable.
 What remains is **user decisions**.)*
@@ -2266,7 +2294,7 @@ implementation slice.)*
    DF-like seed policy) or accept landform drift.
 
 *(**Collapse-tier organic materials + the production flip: SHIPPED**
-2026-07-20, journal/0026 — see Shipped. The `Biofacies` → class routing is in,
+2026-07-20, journal/0026 — see `ROADMAP-history.md` § Shipped. The `Biofacies` → class routing is in,
 coal/peat/carbonaceous-mudstone exist, and the 24 m seam at world voxel
 (107338, 58787) is diggable. Two follow-ons fell out of it, both
 measurement-backed:)*
@@ -2563,7 +2591,7 @@ before any code.
       into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced —
       **and as of 2026-07-25 it really was** (sweep row D-2 caught that the word "sequenced" was doing
       the work of an entry that did not exist — the same doctrine gap that hid row S-7 below).
-      **✅ The rename SHIPPED 2026-07-26 — see Shipped**; the helpers are `golden_field` /
+      **✅ The rename SHIPPED 2026-07-26 — see `ROADMAP-history.md` § Shipped**; the helpers are `golden_field` /
       `golden_pregen` and the golden test is `the_golden_world_still_hashes_to_the_pre_slice_goldens`.
       `s18_first_behavior_weathering::production_scale_saprolite_band_reaches_at_least_one_voxel` is
       **honest** (1337/Medium) and is the shape to copy. `deeptime::production_config` /
@@ -2624,8 +2652,8 @@ before any code.
     `reads_prev: [Recorded, Incised]`. **The auditor's *"declaring `Forced` is free, and it
     pins it"* was half wrong, and the *"verify that claim before trusting it"* below is what
     caught it.** Flux record byte-identical to journal/0098 on every figure; pass order
-    unmoved; `dc:deep/climate`'s lag declared in the same slice. Full detail in the Shipped
-    entry. *(The paragraph below is the original diagnosis, kept for the record.)*
+    unmoved; `dc:deep/climate`'s lag declared in the same slice. Full detail in
+    `ROADMAP-history.md` § Shipped, journal/0107. *(The paragraph below is the original diagnosis, kept for the record.)*
   - **The hole (as diagnosed).** `reads:[Routed]`
     (`runner.rs:605`) does not cover the ground surface `R+H`, which the body builds via
     `grid.surf_at` (`runner.rs:428-430`) and the solve uses as its **seepage cap, lake datum
@@ -2685,7 +2713,7 @@ before any code.
   to every asserting example in `examples/` (`weathering_profile_probe`, `flux_record_probe`,
   `head_field_probe`, `identify_census`), none of which the gate executes either.
 
-- ✅ **DONE 2026-07-25 — shipped, see Shipped (journal/0102).** *a per-cell OWNING CONTAINER is a
+- ✅ **DONE 2026-07-25 — shipped, see `ROADMAP-history.md` § Shipped (journal/0102).** *a per-cell OWNING CONTAINER is a
   header × 297,025 before it stores anything* (filed by journal/0100 against itself). Measured
   result: the struct-overhead line **13.60 MiB → 0 B**, per-cell index cost **48 B → 4 B (12×)**,
   flag-ON `DeepField` **186.07 → 173.61 MiB**, cost of the flag **+29.91 → +17.45 MiB**; world
@@ -2801,7 +2829,7 @@ before any code.
     multi-band front voxel's riders rounded in lockstep (`r = +0.4878` over 187,701 sibling pairs)
     and their errors **added** — 1.488× the second moment independent roundings give. Fixed by
     `SALT_GEO_PORE` + the event index + a `PoreDraw` newtype the fill draw cannot be passed to.
-    See Shipped.
+    See `ROADMAP-history.md` § Shipped, journal/0105.
 
 - **A front's parent alternates diorite/granite down a single column** (observed 2026-07-25 by the
   weathering-profile slice; **pre-existing, merely made visible**). `Single` voxels resolve their
@@ -3337,7 +3365,7 @@ before any code.
   collapse caches' `coarse_surface` / `column_record` paths never trigger
   `evict()` — position-keyed and horizon-independent, exactly this shape).
 - **FIXED 2026-07-21 (journal/0051): eviction landed, the march is flat
-  (+27.4 → 0.00 MB/jump). See Shipped. Two numbers from this diagnosis were
+  (+27.4 → 0.00 MB/jump). See `ROADMAP-history.md` § Shipped. Two numbers from this diagnosis were
   corrected on the way: a chunk is 64 KB, not ~33 KB (`Block` is `repr(u16)`),
   so the fill rate is ~335 chunks/jump, not ~750.** Original diagnosis below.
 - **DIAGNOSED 2026-07-21 (journal/0050): the leak is host-RAM, not the GPU
@@ -3411,9 +3439,9 @@ before any code.
   exhum/t_crust when nothing does — do not trust it.
 
 - *(**Sub-km relief / roughness decay: MEASURED** 2026-07-21, S13 + journal/0041
-  — see Shipped. Decay confirmed (5 % survives), bilinear falsified (#24), and
+  — see `ROADMAP-history.md` § Shipped. Decay confirmed (5 % survives), bilinear falsified (#24), and
   the walk's own sampling corrected (#25). The remaining OPEN part is which
-  recalibration to take — Sequenced below, awaiting a user picture-pick.)*
+  recalibration to take — § Sequenced **above**, awaiting a user picture-pick.)*
 - *(**`climate_at` half-cell offset: CONFIRMED BUG, FIXED** 2026-07-21,
   journal/0043 — climate sat exactly 7 372.8 m north-east of the terrain it
   tinted, live at every preset (all odd `w`). One-expression fix,
@@ -3457,7 +3485,7 @@ before any code.
   sub-km-relief finding (Observed above) and the material-mock question are the
   same defect. Wants a priors-first design notebook before any work.
 - *(**Console v1 field report: FIXED same day** — console v2 shipped, see
-  Shipped / journal 0035. Original report:)* **"still unusable" (user,
+  `ROADMAP-history.md` § Shipped / journal 0035. Original report:)* **"still unusable" (user,
   2026-07-20, first test drive).** Two defects, both discoverability-of-what-exists rather
   than missing data: (a) the arg surface is invisible in practice — no
   per-arg help while typing, no visible arg shapes/expected inputs, so a
@@ -3914,8 +3942,9 @@ before any code.
   - Specular **porosity/emission channels are sampled but wetness is not wired**
     (no weather → no sim-driven porosity darkening yet; PBR-2 + materials sim).
   - Placeholder packs widened **21 → 26**; the historical placeholder-textures
-    Shipped line still reads "21 deterministic packs" (not amended — dated
-    record).
+    Shipped line (`ROADMAP-history.md` § Shipped, "2026-07-19 — Placeholder LabPBR
+    texture packs") still reads "21 deterministic 16×16 three-texture sets" (not
+    amended — dated record).
   - `MeshData` now carries UV + splat attributes on **every** chunk (far field
     and benches included), a small per-vertex memory bump over block-only meshes;
     accepted (the far field is getting subsumed anyway).
@@ -4594,6 +4623,8 @@ verified by name, reconciling exactly across all five slices. Production is **by
    `calibrated_rates` once #29 is fixed.
 4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
 
-*(The 2026-07-25 block below is consumed; preserved as history.)*
+*(The 2026-07-25 block is consumed; preserved as history — **archived 2026-07-26 to
+`ROADMAP-history.md`**, where it is the first of the six superseded close blocks. It used to
+sit directly below this line.)*
 
 
