@@ -886,12 +886,19 @@ self-declaring comment is not an index, and neither is a document nobody reads w
 
 **Two compensating controls, and the second matters more than the first:**
 
-- **Archive by STATUS, not by age.** `Shipped` grows without bound and is the least often
-  needed live — and the **journal already holds its narrative**, so ROADMAP `Shipped` is
-  partly duplicative. Moving older `Shipped` entries to a history file (keeping the journal
-  number as the stable pointer) shrinks the live board to `Sequenced` + `Observed` + the close
-  block — the parts that must stay readable. **Age alone is the wrong axis: a two-week-old
-  `Observed` may be the most live thing on the board.**
+- **Archive by STATUS, not by age. — ✅ SHIPPED 2026-07-26 as `ROADMAP-history.md`**, not a
+  proposal. *(This bullet read as a future proposal until 2026-07-28 — four days after it
+  landed — because this skill is organised as **dated strata** that nothing ever revisits.
+  Caught by the corpus-knowledge reading pass, which measured that this file deletes **2 %** of
+  what it adds and puts **48 %** of its edits in its final tenth: pure accretion. Recorded rather
+  than silently fixed, because the structural cause matters more than the sentence.)*
+  `Shipped` grows without bound and is the least often needed live — and the **journal already
+  holds its narrative**, so ROADMAP `Shipped` was partly duplicative. Moving older `Shipped`
+  entries to a history file (keeping the journal number as the stable pointer) shrank the live
+  board **7,210 → 4,410** and left `Sequenced` + `Observed` + the close block — the parts that
+  must stay readable. **Age alone is the wrong axis: a two-week-old `Observed` may be the most
+  live thing on the board.** **Its honest limit, measured:** 4,410 lines is still past reading
+  whole, and **neither half of it would have prevented journal/0119.**
 - **Make the staleness sweep RECURRING, like `spine-audit`.** Shrinking the doc helps someone
   who is already looking; it does nothing for the parts nobody thinks to look at. Only a
   mechanism that *forces* a re-read finds those. Today's sweep had to be **requested** — that

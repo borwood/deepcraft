@@ -53,10 +53,27 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
    X is later amended **in place**; Y is not. **Structurally different from shape 1**,
    because *the summary was never wrong when it was written and no decision was ever
    reversed* — which is exactly why nobody catches it, and why grep cannot: both halves use
-   the same words in the same order. The procedure is finite and mechanical: **for each
-   read-first doc, list what it paraphrases from elsewhere, and diff the paraphrase against
-   its source.** (`north-star.md`'s own opening line survived its § core/plugin boundary
-   retiring it — twice, in the same file.)
+   the same words in the same order. (`north-star.md`'s own opening line survived its
+   § core/plugin boundary retiring it — twice, in the same file.)
+   - **⚠ ITS PRESCRIBED CHECK CANNOT FIRE — measured 2026-07-28.** This shape used to end
+     *"the procedure is finite and mechanical: **diff the paraphrase against its source**."*
+     **That check is structurally dead in this corpus.** Measured across every design doc:
+     they delete **2–4 %** of what they add and amend **in place, at the claim site** (hunk
+     mean position 0.41–0.81). So an author supersedes a claim by adding a strikethrough or a
+     dated note *beside* it — and **the superseded sentence stays in the file.** The diff
+     therefore *succeeds*: doc Y's paraphrase still matches text that is still literally
+     present in doc X. **Do not run it and read a null as clean.**
+   - **What to do instead — check RECIPROCITY, not paraphrase-equality.** The failure that is
+     actually detectable is the **one-directional edge**: an artifact that declares it
+     corrects / supersedes / voids another *by name*, where the named artifact carries no
+     back-pointer. Three confirmed live instances, all in read-first surfaces:
+     `north-star.md` § Deviations #2 voids the capability-tiering in three *named* sibling
+     sections and § Passes still reads *"trusted … first-party"*, unstruck · `corrections #12`
+     declares itself *"the pointer"* for `S10-results.md`'s ~2×-wrong cost table and `S10`
+     never names it · and **`corrections.md` #56 asserted, unstruck, exactly what #60
+     withdraws, with no `#60` token anywhere in the file.** Measured: **8 of 15** full-path
+     correction→file edges are one-directional. **A one-directional pointer is not a pointer;
+     it is a note to whoever already found the answer.**
 
 ## Rules
 
@@ -76,6 +93,20 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
 - **Re-read both sides AT SOURCE before publishing a pair.** Run one did, and it changed a
   verdict. A quote carried forward from an earlier step of your own sweep is a summary, and
   this sweep exists because summaries drift.
+- **⚠ RECORD THE COMMIT BESIDE EVERY QUOTATION — a quotation without a revision is not a
+  quotation** (added 2026-07-28, **corrections #67**, which cost a filed correction to learn).
+  The 2026-07-22 seam audit quoted a doc comment accurately; `11d4385` had rewritten that
+  comment **the day before**; corrections #40 then read the *current* text, concluded the audit
+  had paraphrased, and recorded *"the A-2 was never live."* **It was live, and #40 was wrong.**
+  Neither party misread anything — they were looking at the same file **at two different
+  times**, and nothing in either artifact carried a revision for its quote.
+  **So: when you quote source, cite `file:line` AND the commit you read it at** (`git rev-parse
+  --short HEAD` is one call, and this sweep is already running git). This corpus holds **808**
+  `file:line` citations, every one of them implicitly *"as of some unstated commit"*. **A stale
+  READ is indistinguishable from a paraphrase, and only one of them is a finding.**
+  *Corollary earned the same day: **an absence needs its pathspec.*** Correction #63 asserted
+  a symbol *"does not exist anywhere in the tree"*; it existed in the very probe its author was
+  using. State the search, not just the verdict.
 - **A null is a result**, but a null from this sweep is *suspicious* — say how much you
   actually read, and which docs you did **not** open.
 

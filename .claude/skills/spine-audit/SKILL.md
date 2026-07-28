@@ -64,6 +64,18 @@ sharpen. The file earns its read-first slot or it loses it.
 - **Cite `file:line` for every claim**, and distinguish what the code does from
   what a doc says it does. Where they disagree, say so loudly — that
   disagreement is the most valuable output.
+- **⚠ AND CITE THE COMMIT YOU READ IT AT** (added 2026-07-28, **corrections #67**, which cost a
+  filed correction to learn). **This sweep's own 2026-07-22 run is the cautionary case.** It
+  quoted a doc comment accurately; `11d4385` had rewritten that comment **the day before**;
+  corrections #40 then read the *current* text, concluded this sweep had paraphrased, and
+  recorded *"the A-2 was never live."* **It was live, and #40 was wrong** — and the wrong verdict
+  propagated into `stubs.md` § 4 and two rows of `spines.md`. **A quotation without a revision
+  cannot distinguish a paraphrase from a stale read**, and this corpus holds **808** `file:line`
+  citations, all implicitly *"as of some unstated commit."* `git rev-parse --short HEAD` is one
+  call and you are already running git.
+  *Corollary: **an absence needs its pathspec.*** Correction #63 asserted a symbol *"does not
+  exist anywhere in the tree"*; it existed in the very probe its author was using. When you
+  report that something is uncalled or absent, **state the search you ran.**
 - **Do not add a spine on your own authority.** A genuinely new recurring shape
   is a *proposal* to the main session; name it and let the user ratify. The
   file's own § 4 rule binds the auditor too.
