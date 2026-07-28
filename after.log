@@ -1,0 +1,24 @@
+   Compiling dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\remove-bootstrap-history\crates\dc-worldgen)
+    Finished `release` profile [optimized] target(s) in 9.16s
+     Running tests\zz_removal_baseline.rs (B:\repos\borwood\deepcraft\target\release\deps\zz_removal_baseline-d9f17bd840540449.exe)
+
+running 2 tests
+test nor_anywhere_near_where_they_stood ... WOOD over 200 chunks around the four former clusters = 0
+ok
+test the_ruin_posts_are_gone_from_the_world ... (-2805,-49,-728): was 13, now 0
+(-2805,-49,-727): was 5, now 0
+(-2804,-49,-727): was 6, now 0
+(-785,-5,-2871): was 10, now 0
+(-785,-5,-2870): was 17, now 0
+(-1840,-30,-1336): was 11, now 0
+(-1839,-30,-1336): was 9, now 0
+(-1840,-30,-1335): was 5, now 0
+(-1839,-30,-1335): was 2, now 0
+(235,20,-2805): was 6, now 0
+(234,20,-2804): was 3, now 0
+(235,20,-2804): was 15, now 0
+WOOD over the 12 formerly-wood-bearing chunks = 0 (was 102)
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 75.95s
+
