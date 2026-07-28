@@ -354,6 +354,131 @@ what edges exist is **declared**, never whatever a caller happened to pass."* Th
 already built *"you cannot assert an undeclared relation"* — **for material transitions, and for
 nothing else.**
 
+### 4.3b ⚠ RECIPROCITY, MEASURED — and my first instrument was broken
+
+Because 4.1c claims the one-directional edge is the mechanical cause of the chains-of-authority
+problem, that claim is measurable. **First attempt reported `0/67` corrections cited from
+anywhere else, which is impossible** — `spines.md` and `CLAUDE.md` visibly cite corrections by
+number. Cause: `\b` in a `git grep -E` pattern, which POSIX ERE does not support. **Recorded
+because it is this notebook's own subject matter: absence in a tool's output is a claim about
+the tool** (anti-shape A-5), and a 0 % that flattered the thesis was one publication away.
+
+**Corrected measurement (2026-07-28, tracked files):**
+
+| | |
+|---|---|
+| distinct correction numbers cited from **outside** `corrections.md` | **58 of 67** |
+| edges where a correction names a file **by full path** | 15 |
+| …**reciprocated** (that file cites the correction back) | **7 (47 %)** |
+| …**one-directional** | **8 (53 %)** |
+
+**The corpus back-links well in aggregate — 58/67 — so the strike-at-source practice works.**
+What fails is the specific case: **where a correction names a particular file by path, about half
+of those files never name it back.** In full:
+
+`#12 → docs/spikes/S10-results.md` · `#19 → light.md` · `#20 → tectonics.md` ·
+`#24 → roughness_probe.rs` · `#24 → S13-results.md` · `#25 → S13-results.md` ·
+`#36 → stubs.md` · `#54 → 2026-07-25-roadmap-staleness-sweep.md`
+
+**`#12 → S10-results.md` is the instance § 3.6j found by reading**, reproduced by an independent
+instrument — the ~2×-wrong cost table a user ratified a ship decision on, whose correction
+declares itself *"the pointer"* while the spike holds no reference to it.
+
+**⚠ Denominator honesty:** 15 is small because most corrections cite by *bare name*
+(`erosion.rs`, `flow.md § 2.6`) rather than full path, so this covers only the full-path subset.
+The 53 % is a rate over that subset, not over the corpus. **What the measurement establishes is
+that the failure is real, recurring, and mechanically detectable — not its exact frequency.**
+
+---
+
+## 5. First proposal — ⚠ ASSISTANT-ORIGINATED, 2026-07-28, unratified
+
+Marked per the provenance rule: **user-originated constraints are data; assistant-originated ones
+are hypotheses that happened to survive.** This is a hypothesis. It is deliberately **not an
+ontology**, because `stubs.md:22` and `session-workflow` § Seam-first #6 forbid designing the
+general mechanism first, and § 4.0b takes that as binding on this thread.
+
+### 5.1 The user's sketch, re-aimed by the evidence — component by component
+
+| the sketch says | the evidence says |
+|---|---|
+| **versioned nodes** | The version already exists and is a **date** (1,462 stamps). The unit that goes stale is a **claim**, not a document — and a document-level version would bump on every append (T1′, 97 % additive), producing a signal that saturates: **correction #62's failure mode, in metadata.** *Contested.* |
+| **record ref versions at write/edit** | T4′ kills the hand-written form (`heir` 651 vs `HEIR:` 48). **But it survives if DERIVED: git already knows the exact version of every file at every commit.** We never needed authors to write it down; we needed something to read it. *Survives, re-aimed.* |
+| **validation on tags** | `JUSTIFIED-BY` had a documented convention, a stated validator, and a named sweep → **3 occurrences, 0 in `crates/`**. Validation is not what drives adoption. *Contested.* |
+| **flag stale refs at write/edit/read** | The **mechanically detectable subset is reciprocity** (§ 4.3b), computable today from existing citations with zero new authoring. *Survives, narrowed.* |
+| **periodic coherence sweeps** | Already exists (`doc-topology`) — and its shape-6 check **cannot fire** because T1′ leaves the paraphrased sentence in place. *Survives; needs a different predicate.* |
+| **chains of authority / percolation to core ancestors** | **The strongest half, and the one-directional edge is exactly why the chain cannot be walked** — a chain has no link at the stale end. *Survives; this is the prize.* |
+| **"automatically aware of what bears on it"** | Targets the **5 %** DISTANT-DOC band. *Demoted, not dismissed.* |
+
+### 5.2 The cheapest cold seam — the reciprocity check
+
+**One check, over text that already exists, with a denominator. Not a graph, not a schema, not a
+tag.**
+
+> For every artifact that declares it **corrects / supersedes / voids / retires** another *by
+> name*: does the named artifact carry a back-pointer?
+
+**Why this one first, argued from the findings rather than from taste:**
+1. **It requires zero new authoring** — the sole thing T4′ predicts will actually survive. Both
+   ends of the sentence are already written; only the *reciprocity* is unchecked.
+2. **It attacks the layer the evidence indicts** — obligation (§ 4.0), not retrieval (5 %).
+3. **It is the mechanical cause of the user's own stated goal.** *"I should know the tree, and
+   when I arrive at the core ancestors…"* — you cannot walk a tree whose edges exist only at one
+   end.
+4. **It has a denominator**, which is the single property that distinguishes the one obligation
+   class that works (`S-5`: *"34 seams inventoried; 5 converted"*) from the six that don't.
+5. **It already has 8 known failures** (§ 4.3b) including one where a user ratified a ship
+   decision on a number the correcting entry knew was wrong.
+6. **It fits the in-repo C3 precedent.** `EdgeId::declared` made an undeclared transition
+   *unnameable*; the analogue is not "tag your refs" but *"a supersession that names a target the
+   target does not acknowledge is an **unreciprocated edge**, and the check counts them."*
+
+**What it must teach before anything general is built** — this is the seam's job, not a
+deliverable:
+- Is the right **granularity** the file, the `§`, or a stable entry id? (§ 3.5 says the corpus
+  cites sub-document ~35:1, so the file is probably wrong.)
+- Does the predicate need the **kind** of edge? *corrects* / *supersedes* / *voids* / *heir* /
+  *co-retires* behave differently (§ 4.1b lists seven), and one arrow will flatten them.
+- Can the **amendment idiom** (§ 3.6d, converged in four files) carry a back-pointer cheaply, or
+  does adding one cost enough to trip T4′?
+- **What is the right response to a detected gap?** Governance says the sweeper may **not**
+  adjudicate (§ 3.5e, three independent statements). So the output is a *list*, not an edit.
+
+### 5.3 The second candidate, if the first teaches well
+
+**The completeness check on enumerations** (T6, three instances, § 4.1c) — because the in-repo
+precedent is unusually exact: **`build_checked` already refuses to build a world if a class a pass
+selects from has zero members**, and `north-star.md` § *Validation by construction* calls that the
+entire meaning of the phrase. Applying the project's own existence-check to the documents that
+specify the code needs no new philosophy at all.
+
+### 5.4 What I would NOT build first, and why
+
+- **A retrieval / related-docs surfacer** — the 5 % band (§ 3.5c). It is the most *appealing*
+  mechanism and the smallest measured payoff.
+- **A tag vocabulary with a validator** — `JUSTIFIED-BY` is the experiment, already run, 0 %.
+- **A general node/edge schema** — forbidden by ratified doctrine until several real conversions
+  have taught the shape, and § 3.6c is explicit that *four* was judged not enough.
+- **A doc-level version number** — T1′ + T2′ make it a saturating signal.
+
+### 5.5 ⚠ What contests this proposal
+
+Stated because a proposal without its own falsifiers is the thing this notebook exists to stop.
+- **The reciprocity denominator is 15.** If the full-path subset is unrepresentative, the check's
+  yield may be much smaller than the reading suggests.
+- **Reciprocity is a syntactic proxy for an epistemic property.** A back-pointer proves an edge
+  was acknowledged, **not** that the stale claim was fixed. It could become a box-ticking ritual —
+  the exact shape of a summary wearing an authority's clothes.
+- **It does nothing for the 46 % MEASUREMENT band**, which is the largest. The candidate there is
+  recording *which instrument licensed a claim and what it is blind to*, and that is **not**
+  derivable from existing text — so T4′ predicts it will fail as an authoring convention. **This
+  is the hardest open problem in the field and I do not have a mechanism for it.**
+- **The user's sketch may be right and my re-aiming wrong**, in one specific way worth naming: if
+  the corpus is about to grow another 5× — which at 776 commits in 11 days is plausible — the
+  DISTANT-DOC band may be 5 % *because* the corpus is currently small enough to hold in a few
+  heads. **That is an argument from the design-target regime rather than from bring-up
+  constants**, which this project takes seriously, and it would promote retrieval.
+
 ### 4.4 How to falsify this theory (required — it must keep cycling through evidence)
 
 - **T1 falsified if** a per-section churn measurement shows design docs are substantially
