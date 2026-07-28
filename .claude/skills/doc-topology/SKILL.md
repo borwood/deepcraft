@@ -26,7 +26,7 @@ Grep returns what you already suspected. A contradiction between two documents i
 the thing nobody suspects — if anyone had, it would already be resolved. **This sweep must
 READ, not search**, and its unit of work is a *pair* of statements, not a file.
 
-## What to look for — five shapes, in value order
+## What to look for — six shapes, in value order
 
 1. **Superseded-but-still-asserted.** A decision changed in doc A; doc B still states the old
    one as current. *The highest-frequency shape and the most expensive, because doc B reads as
@@ -35,7 +35,9 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
 2. **A claim refuted in its own neighbourhood.** The corrections #65 shape. Read whole
    entries, especially the celebratory summary of an implementation slice — that is where a
    caveat gets stated honestly and then not propagated to the doc it invalidates.
-3. **A user-originated design reconciled away.** Grep `ideas.md` and every "user sketch" /
+3. **A user-originated design reconciled away.** *(**Grep IS correct for this one shape** —
+   the exception to the rule above, because the target is a known marker rather than an
+   unsuspected pair.)* Grep `ideas.md` and every "user sketch" /
    "user's reasoning, recorded" block, then check whether each half **survived**, was
    **contested**, or was quietly **replaced** in a design doc. A replacement with no recorded
    argument is a finding. *(CLAUDE.md: a user-originated design may not be superseded by an
@@ -46,6 +48,15 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
    the measure, never the bound; name the world every number came from.
 5. **A justification whose constraint expired** (anti-shape A-2) where the *expiry* is
    recorded in a different file than the *justification*.
+6. **A SUMMARY THAT OUTRAN ITS SOURCE** — *added 2026-07-26 after the first run, which found
+   four instances of it and ranked two of them in its top three.* Doc Y paraphrases doc X;
+   X is later amended **in place**; Y is not. **Structurally different from shape 1**,
+   because *the summary was never wrong when it was written and no decision was ever
+   reversed* — which is exactly why nobody catches it, and why grep cannot: both halves use
+   the same words in the same order. The procedure is finite and mechanical: **for each
+   read-first doc, list what it paraphrases from elsewhere, and diff the paraphrase against
+   its source.** (`north-star.md`'s own opening line survived its § core/plugin boundary
+   retiring it — twice, in the same file.)
 
 ## Rules
 
@@ -62,6 +73,9 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
 - **Provenance decides weight.** *"User-originated constraints are data; assistant-originated
   ones are hypotheses that happened to survive."* When two claims conflict and one is
   user-originated, that is not a tie.
+- **Re-read both sides AT SOURCE before publishing a pair.** Run one did, and it changed a
+  verdict. A quote carried forward from an earlier step of your own sweep is a summary, and
+  this sweep exists because summaries drift.
 - **A null is a result**, but a null from this sweep is *suspicious* — say how much you
   actually read, and which docs you did **not** open.
 
@@ -70,8 +84,14 @@ READ, not search**, and its unit of work is a *pair* of statements, not a file.
 The `.md` corpus is large and this sweep cannot read all of it every time. Pick a spine and
 follow it:
 
-- **After a batch of merges:** every noun the batch touched. Start from the merged journal
-  entries' own claims and walk outward to every doc citing the same noun.
+- **After a batch of merges — BOUND BY ARTIFACT COUNT, NOT BY NOUN** (*corrected
+  2026-07-26 after run one: "every noun the batch touched" is not finite and cannot be
+  planned*). The countable spine is: **the read-first set (6 files) + the batch's own
+  journal entries + every doc they cite by name.** That is knowable in advance, so the sweep
+  can be sized before it starts.
+- **ALWAYS include `ROADMAP.md`'s current close block, checked against itself.** It is the
+  highest-traffic artifact in the corpus, it is audited by nothing, and run one found **five
+  findings inside that one artifact** — including four shipped things still reported as owed.
 - **When a design thread reopens something old:** that thread's nouns, exhaustively, across
   every doc — this is the corpus-sweep the session workflow already requires at the start of
   a design pass, run as an audit rather than a lookup.

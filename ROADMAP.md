@@ -546,6 +546,46 @@ see the question you are asking.
 
 ## Sequenced
 
+- **🟠 DOC-TOPOLOGY RESIDUALS — the 19 findings not actioned 2026-07-26** (full audit:
+  `docs/audits/2026-07-26-doc-topology-sweep.md`). Six were actioned the same day (the
+  ecology carve-out, the field-solver framing, the two ORDER strikes, the S-/A- undercount,
+  the CLAUDE.md trust-tier line). **The rest are owed, and are recorded here rather than
+  left in an audit nobody re-opens:**
+  - **Mechanical, no user call:** ~25 dangling cross-file pointers created by the
+    ROADMAP/history split (16 `"see § Shipped"` in `ROADMAP.md`, 9 the other way, plus one
+    orphan pointing "above" at a block 3,800 lines below it). *Caused by this session; not
+    cleaned by it.*
+  - **`flow.md:715` puts a RATIFIED stamp on a scheduler model that was retired** 2026-07-26.
+  - **`spines.md:1048` + `stubs.md:30-40` still schedule heirs for the bootstrap content the
+    user decided to REMOVE.** These should resolve into the removal slice, not survive it.
+  - **The ABI spike is described as "locking the SDK shape"** — contested by north-star
+    § Deviations 1, which defers the whole trust/backend question.
+  - **⚠ THE COAL EVIDENCE BASE IS LABELLED "THE PRODUCTION WORLD" IN FOUR LIVE DOCS**
+    (`stubs.md:348-351`/`:360-362` — the sentence justifying `COAL_BURIAL_M = 8.0` —
+    plus `corrections.md:1164`, `ROADMAP-history.md:1228/1234`, `journal/0066:43`;
+    `geology.md:163` carries the number with **no world label at all**). It is the **warm
+    reference** fixture `0x0D5E_ED57_2026`, and the shipped world has **zero coal**
+    (corrections #51). **The label is wrong with certainty; the correct VALUES are unknown**
+    — they predate the geotherm recalibration — so this needs a **measurement**, not an edit.
+    *A user ratification sits directly on top of it (`stubs.md:378-379`).*
+  - **NEXT SWEEP'S SPINE: `ROADMAP.md` § Observed (~1,970 lines)** — the largest unswept
+    surface in the corpus, and the section the archive structurally could not reduce.
+
+- **🟠 THE COAL CANDIDATE COUNTS ITS OWN HALF-THICKNESS AS BURIAL DEPTH** (defect, surfaced
+  by journal/0114's confound analysis; **user ruled 2026-07-26** that burial-dominant coal
+  rank is correct physics — *"of course we want to do what Earth's coal does"* — which
+  leaves this as the one genuine defect in that thread rather than one option among three).
+  - A bed is not buried by itself. At the shipped world's ~2 m overburden the half-thickness
+    term was noise; at the calibrated world's 451 m it **dominates**, which is why the
+    geotherm's coal-relocation separation collapsed 1.37× → 1.02× and its guard had to be
+    restated as a depth-stratified claim (a real loss of magnitude sensitivity, recorded in
+    the test's doc comment).
+  - **The integrator originally listed this as one of three OPTIONS.** It is not an option;
+    it is a defect, and the user said so. *Recorded because the framing error is instructive:
+    a defect surfaced inside a decision inherits the decision's framing.*
+  - **Blast:** coal rank everywhere once `calibrated_rates` flips; nothing today.
+
+
 - **🔴 CORPUS ADDRESSABILITY — FRONTMATTER, TAGS, QUERY SCRIPTS, AND VERSIONED STANDING
   MODELS** (user, 2026-07-26 close — **a design conversation booked for next session**, not a
   build). *"A way of adding frontmatter, tags, and scripts for querying the corpus that raise
@@ -4375,7 +4415,82 @@ before any code.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-26 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-27 close (supersedes every earlier block)
+
+**Read first: `journal/0116` and `journal/0119`.** The erosion blocker is localised, and the
+pass architecture changed underneath it. Then `ARCHITECTURE.md` § *The engine is
+plugin-agnostic, and pass ORDER is authored*, and `corrections.md` **#61–#65**.
+
+### The one sentence that matters
+**The blocker is `erosion.rs::diffuse_scale_cell`** — it caps a cell's hillslope export at
+its **entire regolith inventory**, with **no `dt` in the expression**. A donor-cell scheme
+that moves everything downslope has a **period-2 mode by construction** (A gives all its
+cover to B; B is now higher and gives it back), independent of step size. Measured concavity
+ACF(1) **−0.87 / −0.91** against the shipped world's **+0.38**. **It is not the incision
+clamp, not the timestep, and not isostasy** — all three were tested and killed (journal/0116).
+
+### Ratified (user's terms)
+- **THE ENGINE MUST BE MOD/PLUGIN AGNOSTIC, FULLSTOP, EMPHATICALLY.** Passes are **plugins**,
+  viewed through the lens of third-party mods; *we are our own first modders*. **ORDER is
+  authored per world**; `{reads, writes}` become the **validator**, not the generator.
+  `DeepAxis` is the named violation.
+- **The product:** a voxel crafting-game **generator**, each world its own sim composed from
+  declared plugins, whose **first pack** is the earth-like generator.
+- **Remove the bootstrap history content** (polities/sites/ruins) — *"unratified zealous
+  fabrications… they are NOTHING."* **Existence is not standing.**
+- **Trust is DEFERRED** — no difference in permission between native and WASM; do not
+  justify a core/content placement by trust.
+- **`ecology.md` stays a ratified user design**, but is dormant and open to reconsideration.
+- **Burial-dominant coal rank is correct physics**; the half-thickness term is a **defect**.
+
+### Falsified — the assistant's own first (#61–#65)
+**#61** a *global aggregate* ("relief within 5 %") cannot license a claim about *local
+structure* — relief +4.6 % while cell-to-cell roughness went **×170**. **#62** the pit census
+**saturates**: "below all eight neighbours" is a ranking test wearing a magnitude test's
+clothes, and it undercounted 2.6× — **caught by the user flying the terrain**, after three
+instruments agreed because they were the same instrument. **#63** the stability hypothesis,
+specified against `myr_per_epoch`, *a knob that does not exist*. **#63b** isostasy is the
+only grid-scale **damper**, not the driver. **#64** part (a)'s blast radius was assembled by
+symmetry. **#65** the phase order never "fell out of the declarations" — it was **fed in**.
+
+### First things next session
+1. **RATE, with the creep limiter as its acceptance test.** *Not* a patch beside the
+   architecture — journal/0116's prescription is *"a transfer that stays a function of
+   `rate × dt`"*, which **is** the RATE axis (ratified 2026-07-24, never built, `dt` pinned
+   to 1.0). Acceptance pairs an aggregate with a **neighbour-relative** measure: concavity
+   ACF(1) back toward **+0.38** with hollows at **zero**.
+2. **The corpus-addressability design pass** — frontmatter, tags, query scripts, and
+   **versioned standing models**, booked by the user. Third leg of docs ops beside the
+   archive and the sweep.
+3. **The bootstrap-content removal** (also discharges draw-domain part (a)).
+4. **Doc-topology residuals** — ~25 dangling cross-refs from the split, and the coal
+   evidence base mislabelled "the production world" in four docs (needs a **measurement**).
+
+### Gate
+**Green on merged main at `8bcca7b`** — fmt 0, clippy 0, **86 binaries / 811 passed / 0
+failed**, verified by name, reconciling exactly across all four merges (+1 binary and +4
+tests are the discriminators'). *The first attempt reported "exit 0" while having run **10
+binaries of 86** — the harness exit was the task's not cargo's, `$LASTEXITCODE` was empty
+because a cmdlet ended the pipeline, and the lock was gone because `;` is unconditional.
+**Only the impossible count caught it.***
+
+### ⚠ Owed / unverified
+- **The live-magnitudes tour** is more owed than before (stubs #28: wave/wind/frost are 45×
+  weaker relative to the landscape than the day their numbers were chosen).
+- **`erosion.rs` ~4,000 lines**, three separable concerns; split sequenced, not done.
+- **`ROADMAP` § Observed (~1,970 lines)** is the largest unswept surface — next sweep's spine.
+- **File-size thresholds are still the hook's provisional guesses**, not the user's numbers.
+- **CI remains deleted**; if wanted it needs designing, not resurrecting.
+- **journal/0117 and 0120 are deliberate gaps** — the rename slice and the sweep each judged
+  a narrative entry unwarranted and said so. Not lost entries.
+
+### Running
+**Nothing.** All agents in, all worktrees removed, all branches deleted, working tree clean,
+no held lock, port 7777 free.
+
+---
+
+## NEXT SESSION — written at the 2026-07-26 MORNING close (SUPERSEDED by the block above)
 
 **Read first: `journal/0111` and `journal/0114`** — the world is ~10³× too slow, and the
 reason is now known to be **both** the constants *and* a capped transport operator. Then
@@ -4480,4 +4595,5 @@ verified by name, reconciling exactly across all five slices. Production is **by
 4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
 
 *(The 2026-07-25 block below is consumed; preserved as history.)*
+
 
