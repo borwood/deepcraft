@@ -4,7 +4,51 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: **2026-07-29, at `96ab14b`** — the first sweep with a recorded
+*Last `spine-audit` sweep: **2026-07-29 (evening), at `72fbe86`** — a **FULL** re-check, because
+**the reference side moved**: `docs/spines.md` itself changed in ten commits since the `96ab14b`
+watermark, so every prior verdict was void by the watermark file's own `_full_run_triggers` rule.
+Delta: the RATE slice (journal/0123), the SCHEDULE slice (journal/0124), the member-#0 far slice
+(journal/0125), the artifact-tripwire net (journal/0126), the `runner.rs` history extraction, and
+the two applied-sweep commits. Audit: `docs/audits/2026-07-29-spine-audit-full.md`. **Findings:**
+1. **NEW § 3 ROW — the RATE AUTHORING PATH has no production authorer.** Every production path
+   hands `CadenceTable::empty()` (`field.rs:608`, `mod.rs:175`, `runner.rs:619`); the authoring
+   verbs `CadenceTable::{with, unmatched}`, `Cadence::sub_turned` and `Schedule::integrated_dt`
+   have **zero production callers** at `72fbe86`. `mod.rs:186-190` says so itself — *"the
+   parameter exists and the loader does not."* **The discipline was applied one commit later and
+   not here:** journal/0124 added a row for `Schedule::Seed` *the day it was built*; journal/0123
+   added none for its own unconsumed half. Row added below.
+2. **A citation-accuracy claim falsified BY ITS OWN COMMIT.** The `CoarseField` row's `where`
+   cell reads *"verified at those exact lines 2026-07-29 at `96ab14b`; **the adoption did not
+   move them**"* — written **in `0dcdadb`, the adoption commit, which moved two of the five**
+   (`sample_dithered` 479→498, `summarize` 515→534). Corrected in place. This is A-2's
+   *"did it ever?"* variant landing on a sentence whose whole subject is citation accuracy, in
+   the same diff — the sharpest available argument for the skill's *"cite the commit you read it
+   at"* rule, since a stamped commit is exactly what makes the error visible.
+3. **Two of the three A-2 instances the `96ab14b` sweep filed are FIXED, and both entries still
+   read as live** — `draws.rs`'s completeness overclaim (fixed `f10dc03`) and `Erosion::diffuse`'s
+   *"the entire shipped configuration"* clause (fixed, `erosion.rs:3150-3160`, with a standing
+   check `the_shipped_world_has_cells_past_the_bound`). Stamped below. *This is the third
+   consecutive sweep to find this same failure mode in this file — see the 2026-07-29 morning
+   block's finding #2. A sweep that writes a finding is writing a claim that will be fixed; it
+   owes the entry a shape that can be stamped, and "NEW instance" is not that shape.*
+4. **And the `draws.rs` fix is SHORT BY ONE SALT.** The sweep's finding named four surviving
+   hand-rolled salts; the applied correction's residue 3 names only the three `SALT_TEC_*`.
+   **`SALT_DT_PERTURB` (`refine.rs:29`, live call site `:180`) is named nowhere in `draws.rs`** —
+   verified at `72fbe86` by `grep -rn "SALT_" --include=*.rs crates/dc-worldgen/src`. Reported,
+   not applied (source file).
+5. **`runner.rs`'s narrative citations have RE-DRIFTED WHOLESALE, eight hours after being
+   refreshed.** The morning slice verified every non-§3 citation at `ec9858e`; the Schedule slice
+   then moved `runner.rs` again (+824 lines net across the batch). Every S-6 line ref is off by
+   20–60 lines. Refreshed here at `72fbe86` — **and the honest lesson is that refreshing them is
+   not a durable act**: this file's `runner.rs` refs have now been refreshed three times in eight
+   days and were stale within one merge each time.
+6. **S-6 never listed the SCHEDULE axis** (journal/0124) — a ratified sum type on the pass
+   declaration, and the axis that deleted the *"pre-loop, then skip epoch 0"* rule. Only § 3's
+   row mentioned it. Added as an instance below.
+7. **§ 3: no row removed. One row added** (finding 1). All fourteen prior rows re-confirmed
+   uncalled in production at `72fbe86`; searches recorded per row.*
+
+*Previous: **2026-07-29 (morning), at `96ab14b`** — the first sweep with a recorded
 watermark (`docs/audits/.sweep-watermarks.json`; the key was `null` until this run, so this was
 a **full pass**, not a delta). Delta since the previous sweep's tree: journal/0108–0122 plus the
 2026-07-28 baseline batch and the 2026-07-28 bootstrap-content removal. **§ 3: no row added, no
