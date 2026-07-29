@@ -1,7 +1,23 @@
 # Refinement — the presentation layer
 
-**Status: PROPOSED (drafted 2026-07-29, the E5 design pass). Nothing below is ratified
-until the user says so; sections carry their provenance individually.** The tier's
+**Status: ~~PROPOSED~~ CAUTIOUSLY RATIFIED — user, 2026-07-29, same day.** The ruling,
+with its two qualifiers carried verbatim because they govern all downstream work:
+
+> *"refinement draft is cautiously ratified. first members will require their own
+> dedicated design attention (coarsefield, fluvial etc) built on the refinement bones
+> you propose and maybe showing us we need additional machinery. **they should be
+> revisited in light of this design, not taken as wherever they landed prior to
+> this.**"*
+
+**What "cautiously" binds:** the bones (§§ 3–6) are the ratified shape; **§ 7's members
+are directions, not build orders.** Each member gets its **own design pass against this
+document** before any build — and a member's prior plan (P4's adoption plan, any earlier
+channel sketch) is **superseded as a plan**: re-derive it here, don't inherit it. A
+member design pass that finds these bones missing machinery reports that loudly — that
+is the "cautiously," working as intended.
+
+*(Original draft status, kept for the record: PROPOSED, drafted 2026-07-29, the E5
+design pass; sections carry their provenance individually.)* The tier's
 *boundary* is already DECIDED — north-star § refinement resolved to **(c)** (user,
 2026-07-28: engine owns the primitives + the runner; plugins declare the content) and
 its *definition* is ruled (user, 2026-07-29, `ARCHITECTURE.md`: *"any primitive
@@ -221,6 +237,11 @@ expressor is *inert, loud* (the plug-and-play mirror — notebook § 2.5a).
   generalises here.
 
 ## 7. First members
+
+> **⚠ RULED 2026-07-29 (user, at ratification): each member below requires its own
+> dedicated design pass built on these bones, and is revisited in light of this design —
+> never taken as wherever it landed prior.** The listings below are the *candidates and
+> their evidence*, not specs.
 
 0. **`CoarseField<T>`** — built 2026-07-22, ratified in the strongest language in
    its thread, **zero production callers for seven days** (spines § 3). It is the

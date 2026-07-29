@@ -5018,6 +5018,123 @@ S10 ratification calls 1 and 2, both struck and done. **Call 1 carries a correct
    2026-07-20 (journal/0026). Biology runs in every new world; the `DeepField`
    changed for every world created from here.
 
+
+### Struck by the user, 2026-07-29 EVENING — five entries (classification pass, docs/audits/2026-07-29-roadmap-classification.md)
+
+The five STRIKE-CANDIDATE entries from the 2026-07-29 classification pass, each put to
+the user with its evidence line and struck by ruling: *"strike all five."* Three are
+from § In flight, two from § Observed. Entries verbatim; a struck report is an
+observation the user has ruled no longer describes the world, not a resolved defect.
+
+#### Ores R1-R8 (both halves: the numbered item and the parenthetical)
+
+**STRUCK (user, 2026-07-29 evening).** The 2026-07-28 ruling (*"we do not need to have ore exposed"*) rejected a load-bearing premise, killing the lode-gold fork and probe 3. The surviving obligation is `ores.md`'s conceptual revisit, carried by `docs/dependency-graph.md` (owed, genuinely unscheduled) — not this entry.
+
+*(**Ore design pass: DRAFT LANDED** 2026-07-21, `docs/design/ores.md` —
+engineering pass over the DECIDED 2026-07-20 roster; R1–R7 awaiting the user.
+Two collisions reported for the record: the ratified lode-gold flagship vs
+S12's metre-scale exhumation (probe-conditioned in R1), and BIF vs the
+Phanerozoic register (reconciled in R3). Placer source-blindness filed as
+stubs.md § 11.)*
+
+
+#### WALK THE NEW WORLD
+
+**STRUCK (user, 2026-07-29 evening).** Overtaken: journal/0122 moved mean regolith 4.57 -> 3.91 m after these stations were mapped, and the pre-flip appearance hold was released by the user the same day (*"I do not care about my previous ratification on looks there"*). The *"revertible: one merge commit each"* claim was also false at strike time (~70 merges since).
+
+1b. **WALK THE NEW WORLD — the biggest unratified appearance change this
+   project has made.** Two merges changed every surface and every dig depth
+   (journal/0053 carry-`H`, journal/0055 the record-skinned surface) and the
+   user has seen neither. The tour map for 0053 is below; for 0055 the sites
+   to add are the **bare granite shoulder** (101663, 5073 — basement at grade,
+   with a horizon that agrees), the **dune field** (107183, 9672 — nine mixed
+   spans where there were zero), and **any cut face** for the new contact
+   voxels. LIT pass for shape and depth; `--fullbright` for the material
+   question specifically. Both are revertible: one merge commit each.
+2. **Ores R1–R8** (ores.md draft).
+
+#### UNRATIFIED APPEARANCE CHANGE (carry-H) + its tour map
+
+**STRUCK (user, 2026-07-29 evening).** Same grounds as WALK THE NEW WORLD above: the station `H` values and the *"deeper on average rather than barer"* claim predate journal/0122's recalibration, and the hold itself was withdrawn by its own author. The units warning (corrections #28) stays live in corrections.md, not here.
+
+**⚠ UNRATIFIED APPEARANCE CHANGE AWAITING THE USER'S EYE (2026-07-21):**
+carry-`H` (journal/0053) changed dig depth across the whole world and the
+user has not seen it. Arid basins and dune fields went from 1–3 voxels of
+dirt over stone to 8–12 voxels of loose fill; 0.2 % of land is now bare rock
+at grade (e.g. 101663, 5073 — basalt, no soil). Soil depth now correlates
+with erosion history instead of rainfall, which is the ratified *direction*,
+but the magnitude and the fact that the world got **deeper on average rather
+than barer** is the opposite of what the tour verdict anticipated. **Walk it
+before ratifying** — it is one merge commit and trivially revertible.
+
+*Tour map for that walk* (seed 1337 / Medium; regenerate with
+`cargo run --release -p dc-worldgen --example soil_depth_probe`).
+
+**⚠ UNITS — read before teleporting (corrections #28).** The station
+coordinates below are **world METRES**, which is what `pose_set` takes, so pass
+them **directly**. `soil_depth_probe::STATIONS` holds metres and *divides* by
+0.9 to reach voxels; the integrator multiplied instead and walked every station
+of the 2026-07-21 live tour **8.6 km off target**, then "verified" it by
+confirming `pos_voxel` matched what he aimed at — a check that could not tell
+the two hypotheses apart. The voxel address of a station is `metres / 0.9`
+(loess margin = voxel 91 496, 27 101).
+
+Use the LIT pass — this is a dig-depth/section question:
+- **(101663, 5073) m — bare rock at grade**, `H` 0.17 m. The new extreme:
+  basement at the surface, no soil at all. Did not exist before this slice.
+  *Start here.*
+- **(5993, 14732) m — tour station 1**, `H` 10.66 m. The station that motivated
+  carry-`H` and moved the opposite way (corrections #26).
+- **(107183, 9672) m — tour station 2 dune field**, `H` 7.99 m; the record
+  holds 379 units that expressed as *zero* whole-voxel strata before
+  journal/0055. Best place to see what the sieve was eating.
+- **(82346, 24391) m — loess margin**, `H` 80.49 m → **188 voxel spans, 76 of
+  them mixed, ~90 sediment blocks**. The deepest, richest section in the world
+  and the best cut face available. *(Verified headlessly in journal/0058 — the
+  "only 3 voxels here" alarm was the integrator standing 8.6 km away.)*
+
+
+#### Material placement rules are climate mocks
+
+**STRUCK (user, 2026-07-29 evening).** Its mechanism is `surface_sample` picking Grass/Dirt/Stone, and the user's 2026-07-29 morning ruling on a sibling governs: *"grass and dirt are not generated in the current shape of the default plugin pack."* The two facts this entry also carried survive elsewhere: `exhum`/`t_crust` unconsumed = dependency-graph **P7**; no form-from-provenance rule = **P8** / stubs § 12.
+
+- **Material placement rules are climate mocks, and below ~460 m there is no
+  history to read** (user design observation + integrator analysis,
+  2026-07-21 — NOT yet a design pass, nothing ratified). The surface veneer
+  rule (`collapse.rs::surface_sample`) picks Grass/Dirt/Stone from year-zero
+  climate + a 6.5 °C/km lapse against a −4 °C threshold — no slope term, no
+  consultation of the record. geology.md § formation context already ratified
+  that year-zero climate is legitimate **only** for the surficial veneer, so
+  this is the documented last holdout of a dead shim. Two further gaps found in
+  the same sweep: `exhum`/`t_crust` ship in `DeepField` explicitly as "the
+  metamorphic-grade axes the collapse tier reads" and **nothing consumes them**;
+  and there is **no rule deriving material *form*** (loose / pore-partial /
+  whole block) from provenance, though the representation exists (S8 mixtures,
+  pore partials). **Integrator's framing, unratified:** the collapse layer
+  *samples and dresses* rather than re-simulating — shape below the 460 m deep
+  cell is lattice jitter and material below it is member dither, so the
+  sub-km-relief finding (Observed above) and the material-mock question are the
+  same defect. Wants a priors-first design notebook before any work.
+
+#### Circulation is fidelity-correct but surface-invisible
+
+**STRUCK (user, 2026-07-29 evening).** USER-OWNED appearance call, ruled. The `> blogworthy:` line (*"a climate the map can't see"*) travels with the entry, preserved below per the verbatim rule.
+
+- **Circulation is fidelity-correct but surface-invisible** (journal/0038
+  record-walk, corrections #22). The ~30° Hadley desert belt is arid in the
+  data (precip ~0.2–0.3, past the 0.32 biome threshold) but `collapse.rs`
+  only bares the surface below precip 0.10, so it renders as grass — the
+  eye reads elevation/temperature, and 30° is the greenest band. Small
+  reconciliation slice, USER-OWNED appearance: decide how bare a subtropical
+  desert should read (lower the bare threshold in the subsidence band, or
+  raise subsidence magnitude, or add a distinct arid surface material short
+  of full bare Dirt). Pairs with the amplitude walk once flag-plumbing
+  lands — until then no flagged gen feature is walkable anyway.
+  > blogworthy: "a climate the map can't see" — the gap between a
+  simulation being correct and being legible.
+
+
+
 # Superseded close blocks
 
 

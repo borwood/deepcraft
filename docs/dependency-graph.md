@@ -48,7 +48,7 @@ that exists here.
 | **E2** | **cell / record storage** | **BUILT** | — |
 | **E3** | **RATE — per-pass cadence + a real `dt`** | **BUILT 2026-07-29** (journal/0123). Cadence is authored data (`CadenceTable`), sub-turns execute, `dt` is live in creep/uplift/thickening/inventory-weathering. Empty table = shipped world, hash-identical. **Follow-on RATIFIED 2026-07-29, unbuilt: `Schedule` sum type** (`ARCHITECTURE.md` § Schedule; ROADMAP arc slot (f)) — seed = initial condition, epoch 0 fires for all, skip rule deleted; queued behind the `runner.rs` extraction (same file) | ~~E4's first extraction~~ **unblocked** · every pass that wants a phase length |
 | **E4** | **field-solver primitives** — the S-10 gather; **the kernel owns its own stability bound** | **SHAPE NAMED 2026-07-29 (S-10), 2 instances, NOT EXTRACTED** | every future diffusing pass |
-| **E5** | **refinement primitives** — coarse→fine reconstruction; **the presentation layer** | **DESIGN DRAFTED 2026-07-29, awaiting ratification** — `docs/design/refinement.md` (PROPOSED: record families + term-keyed operators + three laws; evidence base `docs/audits/2026-07-29-refinement-coupling-priors.md`). Members named: #0 CoarseField (=P4), #1 channel, #2 coal partings. **Live blocker: flow.md's face-pairing rule, unratified** | the whole appearance cluster · `collapse.rs` decomp |
+| **E5** | **refinement primitives** — coarse→fine reconstruction; **the presentation layer** | **CAUTIOUSLY RATIFIED 2026-07-29 (user)** — `docs/design/refinement.md` (record families + term-keyed operators + three laws; evidence `docs/audits/2026-07-29-refinement-coupling-priors.md`). **Members are directions, not build orders: each needs its OWN design pass against the bones, and prior member plans are superseded AS PLANS** (user, at ratification). #0 CoarseField design revisit dispatched 2026-07-29. **Live blocker for #1: flow.md's face-pairing rule, unratified** | the whole appearance cluster · `collapse.rs` decomp |
 | **E6** | **open resource vocabulary** — `DeepAxis` retires; packs declare their own ids | **UNBLOCKED 2026-07-29** (E3 landed); sequenced | third-party packs |
 | **E7** | **authored order + the validator** | **UNBLOCKED 2026-07-29** (E3 landed); sequenced. **It brings the per-world manifest**, which is the loader `CadenceTable` was shaped for | plugin-agnosticism |
 | **E8** | **S2 statistical tier** | **HELD** — probable future primitive, zero consumers, *do not find it one* | nothing. **Gated on bio/eco, a USER call** |
@@ -69,7 +69,7 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 | **P1** | hillslope creep / erosion operator | **FIXED 2026-07-29** (journal/0122). Takes `dt` from RATE since journal/0123; still sub-cycles **in the pass** — `stubs.md` § 30's remaining half, heir **E4** |
 | **P2** | `EROSION_CALIBRATION` re-pick + flag flip | **SEQUENCED.** 45 was fitted to the broken solve and inverts under the fixed one |
 | **P3** | flow / hydrology — face-flux record, head field | **BUILT AND IDLE.** Zero production consumers, *on purpose* |
-| **P4** | CoarseField **adoption** (U22 + U3) | **REVIVED 2026-07-29.** Extraction shipped 2026-07-22; adoption never happened |
+| **P4** | CoarseField **adoption** (U22 + U3) | **ROUTED THROUGH E5 member #0, 2026-07-29** (see § 3) — design revisit dispatched; the prior adoption plan is superseded as a plan |
 | **P5** | genesis passes / **facies driver** | ratified concept, gated behind an `🔖 OPEN EDGE` |
 | **P6** | **octaves** as a `DitherSource` impl | not built |
 | **P7** | metamorphism (grade from `exhum`/`t_crust`) | unblocked by the geotherm; unstarted |
@@ -103,10 +103,14 @@ sitting idle.** This is the strongest ready-now signal on the board.
 **E5 → `collapse.rs` decomp → the file-size chore.** 2,415 lines, *essentially zero
 declaration*. One slice discharges two obligations.
 
-**P4 is INDEPENDENT of E5.** CoarseField adoption is ratified, built, and fixes two live user
-reports **without** waiting for the refinement design pass. Seam-first, which is the north
-star's own method. *Cost, chosen knowingly: `collapse.rs` gets touched twice — once now, once
-in the port.*
+**P4 is ~~INDEPENDENT of E5~~ NOW ROUTED THROUGH E5 — superseded 2026-07-29 by the
+refinement ratification.** The user's ruling at ratification: first members *"should be
+revisited in light of this design, not taken as wherever they landed prior."* CoarseField
+IS member #0, so its adoption plan is superseded *as a plan*: the member-#0 design pass
+(dispatched 2026-07-29) re-derives it against the bones — likely reaching the same two
+user-report fixes, but that is its finding to make, not this file's to assume. The old
+independence argument (seam-first, touch `collapse.rs` twice) is preserved as input to
+that pass.
 
 **P4 → P6.** Octaves are a legal `DitherSource` impl. The socket already exists; the octaves
 supply the **source**, `sample_dithered` supplies the **draw**, `summarize` retires the
