@@ -818,6 +818,35 @@ or abandoning it. And brief agents to **report what they have with the measureme
 outstanding** rather than parking silently: a partial report with the implementation
 committed beats silence.
 
+**HARVEST BEFORE RE-DISPATCHING — an API death loses the REPORT, not the work
+(2026-07-29, twice in one evening, greenlit fingerprint).** Two agents were killed by
+server-side 5xx errors with their slices **complete on disk**: one mid-final-gate (the
+cargo run had finished; the Tee'd log held the full result), one mid-wait. In both cases
+the recovery was reading the machine, not re-running the slice: `git -C <worktree> status`
+for the work, the Tee'd gate log for the verification — "did it run" and "did it pass" are
+both answerable from the file after the agent is gone. The main session then commits on
+the agent's behalf (say so in the commit body), merges, and verifies **by test name from
+the log**. Re-dispatching before harvesting would have re-spent a full slice both times.
+*Corollary: when the API is actively shedding load (repeat 5xx), stop feeding it new
+agents — mechanical completions move to the main session.*
+
+## Never dispatch INTO a file another agent's UNMERGED branch touches (2026-07-29, cost a full redo; greenlit fingerprint)
+
+The `runner.rs` history extraction was dispatched while the E3/RATE agent's unmerged
+branch held a ~300-line rewrite of the same file. The extraction agent did everything
+right — and produced comment moves and a citation refresh computed against a tree the
+pending merge then invalidated. **The whole slice was redone from scratch on top of the
+merged main.** The queueing instinct existed (the Schedule slice was correctly queued
+behind the extraction *"same file"*) but only one hop deep.
+
+**The rule: before dispatching an implementation agent, list the files it will touch
+against every unmerged agent branch (and every in-flight agent's known scope). Overlap →
+serialize: queue the new slice behind the merge, or fold the change into the in-flight
+agent's brief via `SendMessage`** (that is what the one-line `erosion.rs` fix did,
+correctly, the same day). Docs like ROADMAP/spines that *every* slice touches are exempt —
+they conflict shallowly and merge-resolve cheaply; the rule is for source files, where an
+auto-merge across a comment-move and a code rewrite is quiet damage.
+
 ## Assign STUB numbers at dispatch too, not just journal numbers (2026-07-25)
 
 The "integrator assigns the journal number in the brief at dispatch" rule exists because

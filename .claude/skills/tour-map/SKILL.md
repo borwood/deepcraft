@@ -43,6 +43,13 @@ optionally a note under `docs/audits/`). Require:
 
 - **Use the world the player actually boots** — `BENCH_SEED` (1337) at the shipped extent.
   A tour of a convenient fixture world is worse than no tour (corrections #51).
+- **Score what the walk will SEE, not what the record HOLDS** (2026-07-29, greenlit
+  fingerprint). A station for an appearance walk must be filtered — or at minimum
+  flagged — by the expression path that will actually render it: **`elev < sea level` is
+  the known trap** (the far-frontier tour's top station scored a 4-class record whose
+  surface renders as unrecorded ocean-floor stone; scrapped mid-walk by
+  `world_get_contents`). The record and its expression are different instruments, and a
+  walk views the expression.
 - **Pick the instrument that can see the question** (CLAUDE.md § Agent walks): material
   questions → `--fullbright` + `world_get_contents`; shape → the lit pass; **never**
   `scan_region` for material.

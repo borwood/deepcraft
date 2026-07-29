@@ -88,6 +88,14 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
    - **Applies to any dated-measurement artifact**: `docs/spikes/`, `docs/audits/`,
      probe reports. **Backlog:** the corpus was never swept for missing banners; only
      known refutations are stamped so far.
+   - **AND TO CLOSE BLOCKS (2026-07-29, corrections #73, greenlit fingerprint): a close
+     block recording a RESOLUTION ("settled — X") is a correction-shaped act and owes the
+     asking document its banner in the same commit.** The 460-vs-28.8 answer lived only in
+     a close block for five days; the audit that asked it was never stamped; a design
+     agent then re-derived the question and a main session propagated the re-derivation —
+     caught only by the user's memory. A close block is a handoff that gets archived, and
+     it cuts both ways: nobody re-reading the question's doc can find an answer recorded
+     only there.
 6. **"What did we leave dangling here?"** — the loose-ends lookup, three loci,
    all surfaced by the corpus-grep that opens every design thread (session-workflow
    § "Sweep the corpus BEFORE opening a design pass"):
