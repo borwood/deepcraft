@@ -3302,6 +3302,112 @@ moved by status, not by age).
     wrong at play, the lever is calibration (contrast/cap or coal's property
     sheet), never the blend.
 
+### Resolved 2026-07-29 (journal/0126) — the shipped-artifact tripwire sweep, both halves
+
+Archived on the day it resolved, by STATUS: the enumeration ran and the answer is recorded
+here rather than left on the live board declaring itself ✅ DONE — which is the exact
+condition 37 of this section's other entries were archived for.
+
+**Two entries, filed hours apart by two agents from opposite sides of the collapse tier, and
+they closed in one commit** — the record-side question journal/0124 filed, and the
+expression-side 🔴 the member-#0 far slice (journal/0125) found. Both are reproduced below,
+both resolved. Their common sentence: *what is not fingerprinted cannot have an authorized
+move.*
+
+- **✅ RESOLVED 2026-07-29 (journal/0126) — WHICH SHIPPED ARTIFACTS HAVE NO GOLDEN? The
+  enumeration ran, and every shipped artifact now carries a tripwire.** Filed by
+  journal/0124, which added `GOLDEN_FLUX` after the `Schedule` slice moved the **flow
+  record** and a full 834-test gate did not notice — the record is a pure sidecar to both
+  existing goldens (`GOLDEN_SURFACE` = terrain, `GOLDEN_RECORD` = strata), so neither could
+  ever see it, and the move had to be measured with a throwaway harness run twice across a
+  `git stash`.
+  - **The generalisation this was filed for:** *an artifact the ritual ships with no tripwire
+    on it cannot have an **authorized** move, because nobody can see it move.* The whole
+    golden discipline rests on telling an explained move from an unexplained one, and that
+    distinction is unavailable for anything ungoverned.
+  - **The result — 16 `DeepField` members: 12 covered, 3 newly goldened, 1 not shipped.**
+    `tests/artifact_tripwires.rs` — one shared fixture build behind a `OnceLock`, five tests,
+    **+6.45 s** of gate wall-clock measured.
+    - **COVERED (12).** `w`/`wp`/`cell_m` (the shape header), `surf`/`regolith`
+      (`GOLDEN_SURFACE`), `strata` (`GOLDEN_RECORD`), `recv`/`area`/`lake` and
+      `exhum`/`t_crust` (all inside `surface_fingerprint`), `flux` (`GOLDEN_FLUX`, on
+      `flux_record.rs`'s own fixture).
+    - **Newly goldened (3), one constant each so a move NAMES its artifact:**
+      `GOLDEN_GEOTHERM`, `GOLDEN_HEAD`, `GOLDEN_CHAPTERS`. One blob hash would have said
+      *"something moved"*, which is the throwaway-harness bisection journal/0124 had to do
+      by hand.
+    - **`chapters` is the one the enumeration nearly missed, and the lesson is portable.**
+      `surface_fingerprint` hashes `chapters.len()`, which *reads* as coverage and is not:
+      the chapter count is a config constant, so that byte pins the config and says nothing
+      about plate positions, velocities or continentality. **A hashed length is not a hashed
+      artifact** — asserted, not asserted-in-prose, by
+      `the_chapter_length_byte_is_blind_to_what_the_chapter_table_says`. This is the same
+      trap as `has_contents` answering per-CHUNK (corrections #49): a real number, about the
+      wrong thing.
+    - **The candidate list this entry shipped with was wrong about `exhum`/`t_crust`** —
+      both **are** inside `surface_fingerprint`, and have been since before the flow record
+      existed. Recorded because the list was written from the `spines.md` § 3 rows (exported,
+      unread) and *unread* was silently read as *unguarded*; the two are independent axes,
+      and this slice is the evidence.
+    - **`ledgers` is NOT SHIPPED and is deliberately not goldened**: `weather_inventory` is
+      off in every world a player gets, so the artifact is empty. Its emptiness is the
+      tripwire, asserted in the enumeration test — **and the commit that flips the flag on
+      owes a `GOLDEN_LEDGER` in the same diff**, because from that moment it is a shipped
+      artifact with none. (Live residue, on the board.)
+    - **`recv`/`area`/`lake` are the corpus's only DERIVED case** (`recv` is documented as
+      the argmax of the MFD partition, i.e. a summary of `flux`). They are hashed by
+      `surface_fingerprint` *and* their authority by `GOLDEN_FLUX` — a pre-existing
+      double-pin, not one this slice introduced, and it survives only until FLOW
+      continuation (e) deletes them.
+  - **The enumeration is enforced by the compiler, not by a comment.** The test destructures
+    `DeepField` exhaustively, so adding a member **stops it compiling** and the author must
+    classify it. CLAUDE.md's read-first item on the stale ecology count observes that a wrong
+    count in a justification is *"exactly what an enumeration-completeness check would catch,
+    and we still have none"* — this is one, for the artifact inventory.
+  - **Residue, not owed to this slice** (kept live in `ROADMAP.md` § Observed): `Pregen::grid`
+    and `Pregen::pipeline` were not walked.
+
+- **✅ RESOLVED 2026-07-29 (journal/0126) — 🔴 NO GOLDEN HASHES THE FAR FIELD — found
+  2026-07-29 by an acceptance criterion that could not fire (journal/0125).** Member #0's
+  slice brief said *"goldens move — re-capture with the why"*, which was the right instinct:
+  it changed the far surface class draw twice over (nearest-cell → membership-dither, and a
+  canonical class order change). **Not one hash in the workspace moved**, and the run
+  confirmed it: `generated_world_is_byte_identical_to_the_pre_contract_goldens` passed
+  untouched.
+  - **The reason is structural.** `contents_contract`'s `world_fingerprint` hashes
+    `generate_chunk_with_materials` only, and `generate_chunk` has not consulted
+    `surface_class` since journal/0074. `providers_golden` / `rate_axis` / `creep_operator`
+    hash the deep-time surface planes and strata record, upstream of the collapse tier.
+    **`coarse_surface` — every metre of ground beyond the loaded radius — is fingerprinted
+    by nothing.**
+  - **Why it stayed invisible:** the far field has *behavioural* tests (a class-split
+    floor, the near/far statistical agreement test, the far-tile mesh budget) and a
+    behavioural test cannot notice that no fingerprint exists. The slice's own gate was
+    green on the goldens **and** would have been green had it broken the far field
+    outright.
+  - **✅ CLOSED by `GOLDEN_FAR_SURFACE`** (`tests/artifact_tripwires.rs`, journal/0126) —
+    36,864 columns of `(height, block)` from `WorldGenerator::coarse_surface` on a **509**-
+    voxel stride, 192 per axis, ±48,864 voxels: the whole civilized extent plus ~7 km of
+    border wilds, where the pyramid runs forever and the record does not. The stride is
+    **prime on purpose** — the coarse cell (16,384) and the chunk (32) are both powers of
+    two, so a power-of-two stride would put every sample on one phase of both lattices and
+    the golden would be blind to exactly the seam artifacts this half of the world is prone
+    to. It shares the record side's `Pregen`, so it costs **no extra world build**.
+  - **⚠ AND THE COVERAGE IT BUYS IS PARTIAL, MEASURED, AND WRITTEN ON THE CONSTANT.** The
+    `providers_common` fixture turns out to be an almost entirely submarine world: over the
+    36,864 sampled columns the height runs **−2,642 … −3** and only **160 (0.43 %)** front
+    with anything but the ocean block; the highest ground in a ±56,000-voxel scan is **+7
+    voxels**. So the **height** field is exercised completely — it is the far field's
+    dominant output — while the **surface-class draw, the thing journal/0125 actually
+    changed, is exercised by 160 columns.** It would still trip; it is not the instrument a
+    land-bearing world would give.
+  - **Residue (live on the board): a far-field golden on a fixture with real continent.**
+    Its home is `contents_contract.rs`, whose Medium seeds are the worlds with land — which
+    is where this entry's own heir spec put it before the tripwire suite took it.
+    *The first draft of the sample (stride 2039 × 48) caught **six** non-ocean columns and
+    would have shipped looking identical. The difference between the two drafts is one
+    printed histogram — which is the same lesson as the parent entry, one level down.*
+
 ## In flight · Sequenced · Observed — archived 2026-07-29 (pass 2)
 
 **Archived from `ROADMAP.md` on 2026-07-29, by STATUS, not by age** — the same rule
