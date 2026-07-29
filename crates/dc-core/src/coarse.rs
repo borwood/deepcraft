@@ -468,8 +468,27 @@ impl<const N: usize> CoarseField<ShareVec<N>> {
     ///    (`salt_membership`) inverse-CDF-selects *which* cell's shares to draw
     ///    from. Near a boundary the weights are ~½/½, so minority phases from
     ///    each cell surface stochastically across the perimeter — the fence
-    ///    dissolves into interfingering. Away from a boundary one weight ≈ 1, so
-    ///    it reduces to the containing cell's own shares.
+    ///    dissolves into interfingering. At a cell **centre** one weight is
+    ///    exactly 1, so it reduces to the containing cell's own shares.
+    ///
+    ///    **⚠ THIS IS A CELL-WIDE BLEND, NOT A PERIMETER TREATMENT, AND THE
+    ///    SENTENCE ABOVE HAS BEEN MISREAD ONCE ALREADY** (journal/0124, the first
+    ///    adoption). "One weight ≈ 1 away from a boundary" is true *pointwise* and
+    ///    badly misleading *in aggregate* — the reduction holds only in a small
+    ///    neighbourhood of the centre. Integrated over a cell, the weight on the
+    ///    home cell is
+    ///
+    ///    ```text
+    ///    E[w_home] = 4·(∫₀^½ (1 − x) dx)²  =  4·(3/8)²  =  9/16  =  0.5625
+    ///    ```
+    ///
+    ///    so **~44 % of fine samples read a NEIGHBOURING cell's shares, everywhere
+    ///    in the field**, not just near a frontier. That is the intended
+    ///    behaviour — a categorical field that varies continuously in *expectation*
+    ///    is the whole point — but a consumer sizing its effect, or comparing this
+    ///    field against a nearest-cell reader, must budget for 9/16 and not for
+    ///    "≈ 1". The first adopter budgeted for "≈ 1", and a near/far agreement
+    ///    test was the only thing that noticed.
     /// 2. **Class draw within that cell** (`salt_class`): [`ShareVec::draw`],
     ///    inverse-CDF over the chosen cell's shares.
     ///
@@ -768,29 +787,47 @@ mod tests {
 
     #[test]
     fn the_draw_is_unbiased_over_the_uniform() {
-        // Same proof shape as fill::allocation_is_unbiased_over_the_draw and
-        // collapse::draw_class_is_unbiased_over_the_draw: averaged over the draw,
-        // P(class i) = share_i to 1e-2.
-        let sv = ShareVec::from_shares([0.55, 0.45, 0.0, 0.0]);
-        const M: usize = 20000;
-        let mut count = [0u64; 4];
-        for k in 0..M {
-            let u = (k as f64 + 0.5) / M as f64;
-            if let Some(i) = sv.draw(u) {
-                count[i] += 1;
+        // Same proof shape as fill::allocation_is_unbiased_over_the_draw:
+        // averaged over the draw, P(class i) = share_i / total to 1e-2.
+        //
+        // **The three cases are `collapse::draw_class`'s, ported here when that
+        // hand-rolled twin retired into this function (journal/0124, member #0).**
+        // The retiring test asserted exactly this bound over exactly these
+        // vectors, and two of them say something the original single case did
+        // not: a THREE-class split (a CDF with an interior step, not just a
+        // boundary), and an **un-normalized** vector whose shares are metres
+        // rather than fractions — which is what a `ShareVec` built from a
+        // record's top-window thicknesses actually holds. `draw` computes its own
+        // `total`, so the metres case is the one that proves the normalisation is
+        // the type's job and not the caller's.
+        const M: usize = 20_000;
+        let cases = [
+            ShareVec::from_shares([0.55, 0.45, 0.0, 0.0]),
+            ShareVec::from_shares([0.50, 0.30, 0.20, 0.0]),
+            // metres, summing to 0.90 — the top-of-record window, un-normalized
+            ShareVec::from_shares([0.09, 0.81, 0.0, 0.0]),
+        ];
+        for sv in cases {
+            let mut count = [0u64; 4];
+            for k in 0..M {
+                let u = (k as f64 + 0.5) / M as f64;
+                if let Some(i) = sv.draw(u) {
+                    count[i] += 1;
+                }
+            }
+            let total = sv.total();
+            for (i, (&cnt, &share)) in count.iter().zip(sv.shares().iter()).enumerate() {
+                let got = cnt as f64 / M as f64;
+                let want = share / total;
+                assert!(
+                    (got - want).abs() < 1e-2,
+                    "class {i}: drew {got}, share {want}"
+                );
+                if share <= 0.0 {
+                    assert_eq!(cnt, 0, "a zero-share class is never drawn");
+                }
             }
         }
-        let total = sv.total();
-        for (i, (&cnt, &share)) in count.iter().zip(sv.shares().iter()).enumerate() {
-            let got = cnt as f64 / M as f64;
-            let want = share / total;
-            assert!(
-                (got - want).abs() < 1e-2,
-                "class {i}: drew {got}, share {want}"
-            );
-        }
-        assert_eq!(count[2], 0, "a zero-share class is never drawn");
-        assert_eq!(count[3], 0);
     }
 
     // ─────────────── Cake law: minority crosses a synthetic boundary ─────────

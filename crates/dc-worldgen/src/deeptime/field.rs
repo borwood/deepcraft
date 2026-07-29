@@ -712,12 +712,56 @@ impl DeepField {
         build_field(&pregen.grid, pregen.seed)
     }
 
+    /// **The deep grid's [`Registration`] — the affine half of
+    /// [`Self::deep_coords`], IN VOXELS.**
+    ///
+    /// Handed out so a consumer building a [`CoarseField`](dc_core::coarse::CoarseField)
+    /// over these cells registers it the way this field actually samples, instead
+    /// of reconstructing the pitch from a constant.
+    ///
+    /// ## ⚠ UNITS: VOXELS, and the pitch is NOT `DEEP_CELL_M`
+    ///
+    /// `cell_size` is `CELL_VOXELS · wp / w` **voxels** — the sampling pitch
+    /// `deep_coords` implies, not a metre figure. Two traps it exists to close
+    /// (member-#0 design pass, MM-6):
+    ///
+    /// - [`DEEP_CELL_M`] is **metres** (460.0). A voxel is 0.9 m at the N=2 player
+    ///   scale, so reading 460 as a voxel count is an **11 % registration error**
+    ///   — and `Registration`'s own doc-test in `dc-core` models 460 as voxels,
+    ///   which is exactly how that mistake gets made.
+    /// - Even `DEEP_CELL_M / 0.9` is wrong in general: `w` is **capped** at
+    ///   [`DEEP_MAX_WIDTH`], so at [`Extent::Large`](crate::pregen::Extent::Large)
+    ///   the real cell is ~1.8 km, and even below the cap `w` is a rounded cell
+    ///   count, so the true pitch is `extent / w` rather than the target 460 m.
+    ///   **Derive it from the grid, never from the constant.**
+    ///
+    /// Multiply `cell_size` by the voxel edge to get metres.
+    ///
+    /// This is a *derived view* of [`Self::deep_coords`], which stays the
+    /// authority (it also carries the extent test this affine map does not — see
+    /// there). Their agreement is pinned by
+    /// `registration_agrees_with_deep_coords`.
+    pub fn registration(&self) -> dc_core::coarse::Registration {
+        // `deep_coords`, unfolded: gx = vx·w/(CELL_VOXELS·wp) + (wp/2)·w/wp − 0.5.
+        // The constant term uses INTEGER `wp/2`, exactly as `deep_coords` does —
+        // it is not `w/2` when `wp` is odd.
+        let cell_size = CELL_VOXELS as f64 * self.wp as f64 / self.w as f64;
+        let half = (self.wp / 2) as f64;
+        let origin = -(half * self.w as f64 / self.wp as f64 - 0.5) * cell_size;
+        dc_core::coarse::Registration::new(origin, origin, cell_size)
+    }
+
     /// Continuous deep-grid coordinates (cell centres at integer coords) for a
     /// world voxel, or `None` when the voxel lies outside the civilized pregen
     /// extent (the border wilds have no deep-time history — the collapse layer
     /// falls back to the analytic elevation there).
+    ///
+    /// **The authority for this grid's registration**, and the `None` is half of
+    /// what it says: [`Self::registration`] is the affine map alone and cannot
+    /// answer "is this voxel inside the record at all", so a consumer that needs
+    /// both asks here first.
     #[inline]
-    fn deep_coords(&self, vx: i64, vz: i64) -> Option<(f64, f64)> {
+    pub fn deep_coords(&self, vx: i64, vz: i64) -> Option<(f64, f64)> {
         let half = (self.wp / 2) as f64;
         // Continuous pregen-cell coordinate (integer = cell centre), matching
         // the collapse layer's `climate_at` convention.
@@ -783,6 +827,30 @@ impl DeepField {
         let (gx, gy) = self.deep_coords(vx, vz)?;
         let ix = (gx.round() as i64).clamp(0, self.w as i64 - 1) as usize;
         let iy = (gy.round() as i64).clamp(0, self.w as i64 - 1) as usize;
+        self.strata.get(iy * self.w + ix)
+    }
+
+    /// The strata record of deep cell `(ix, iy)`, **edge-clamped** to the grid —
+    /// the *producer-side* enumeration a
+    /// [`CoarseField`](dc_core::coarse::CoarseField) is constructed from.
+    ///
+    /// [`Self::record_at_voxel`] is the fine read and answers a world position;
+    /// this answers a **cell index**, which is what filling a window of cells
+    /// needs. It is not the raw per-cell read `CoarseField` forbids: that ban is on
+    /// the *expression* side (a fine consumer fetching one cell's verdict and
+    /// painting it across a span). Here the caller is assembling the field the
+    /// consumer will then sample legally — the sanctioned construction path.
+    ///
+    /// The clamp is the same edge extension `record_at_voxel` applies after
+    /// rounding, and the same one `CoarseField`'s bilinear stencil applies at its
+    /// rim, so a window that reaches past the grid reads the rim cell rather than
+    /// nothing.
+    pub fn record_at_cell(&self, ix: i64, iy: i64) -> Option<&DeepStrata> {
+        if self.strata.is_empty() {
+            return None;
+        }
+        let ix = ix.clamp(0, self.w as i64 - 1) as usize;
+        let iy = iy.clamp(0, self.w as i64 - 1) as usize;
         self.strata.get(iy * self.w + ix)
     }
 
@@ -896,7 +964,7 @@ fn bilinear(field: &[f64], w: usize, gx: f64, gy: f64) -> f64 {
 }
 
 #[cfg(test)]
-mod shrink_tests {
+mod tests {
     use super::*;
     use crate::pregen::{Extent, Pregen, WorldParams};
 
@@ -928,5 +996,95 @@ mod shrink_tests {
             "every cell's units Vec must be shrunk to fit after the compile \
              ({nonempty} non-empty cells carried {slack} slack entries)"
         );
+    }
+
+    /// **The summary agrees with the authority** (CLAUDE.md § "a summary is not an
+    /// authority"): [`DeepField::registration`] is a *derived view* of
+    /// [`DeepField::deep_coords`], which stays the one place the grid's
+    /// registration is computed. A drift between them is a silent 11 %-class
+    /// sampling error — precisely the MM-6 hazard the accessor exists to close —
+    /// so it gets an agreement test rather than a comment.
+    ///
+    /// Tolerance, not bit-equality, and deliberately: the two evaluate the same
+    /// affine map in a different operation order (`deep_coords` folds through the
+    /// pregen coordinate; the registration divides once), so they agree to f64
+    /// rounding rather than bit-for-bit. `1e-9` **cell widths** is ~4 µm of world
+    /// at the shipped pitch — orders below any consequence, and tight enough that
+    /// a real registration mistake (a half-cell shift, an odd-`wp` off-by-one, a
+    /// metres/voxels confusion) fails by many orders.
+    #[test]
+    fn registration_agrees_with_deep_coords() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        });
+        let field = DeepField::from_pregen(&pregen);
+        let reg = field.registration();
+        let mut checked = 0usize;
+        for vx in [-300_000i64, -12_345, -1, 0, 1, 7_777, 250_000] {
+            for vz in [-260_000i64, -9_001, 0, 3, 40_000, 310_000] {
+                let Some((gx, gy)) = field.deep_coords(vx, vz) else {
+                    continue;
+                };
+                let (rx, ry) = reg.cell_coords(vx as f64, vz as f64);
+                assert!(
+                    (gx - rx).abs() < 1e-9 && (gy - ry).abs() < 1e-9,
+                    "registration disagrees at ({vx},{vz}): deep_coords ({gx},{gy}) \
+                     vs registration ({rx},{ry})"
+                );
+                checked += 1;
+            }
+        }
+        assert!(
+            checked > 4,
+            "only {checked} voxels landed inside the extent"
+        );
+        // And the units are VOXELS: the pitch times the voxel edge is the metre
+        // cell, which is at least the target and generally not equal to it.
+        let cell_m = reg.cell_size * 0.9;
+        assert!(
+            cell_m >= DEEP_CELL_M - 1e-6,
+            "the derived cell is {cell_m} m, under the {DEEP_CELL_M} m target — \
+             the registration is probably in metres, not voxels"
+        );
+    }
+
+    /// [`DeepField::record_at_cell`] is the producer-side twin of
+    /// [`DeepField::record_at_voxel`]: at the cell a voxel rounds to, the two must
+    /// hand back the *same record*, or a `CoarseField` assembled from cell indices
+    /// would be registered one cell off from the field it is meant to reconstruct.
+    /// Pointer identity, because that is the strongest available statement.
+    #[test]
+    fn record_at_cell_is_the_producer_side_of_record_at_voxel() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        });
+        let field = DeepField::from_pregen(&pregen);
+        let mut checked = 0usize;
+        for vx in [-90_000i64, -4_321, 0, 5, 61_000] {
+            for vz in [-70_000i64, -37, 0, 12_345] {
+                let Some((gx, gy)) = field.deep_coords(vx, vz) else {
+                    continue;
+                };
+                let by_voxel = field.record_at_voxel(vx, vz).expect("inside the extent");
+                let by_cell = field
+                    .record_at_cell(gx.round() as i64, gy.round() as i64)
+                    .expect("the same cell");
+                assert!(
+                    std::ptr::eq(by_voxel, by_cell),
+                    "record_at_cell disagrees with record_at_voxel at ({vx},{vz})"
+                );
+                checked += 1;
+            }
+        }
+        assert!(
+            checked > 2,
+            "only {checked} voxels landed inside the extent"
+        );
+        // The clamp is edge extension, not a `None`: a window that overhangs the
+        // grid reads the rim cell, exactly as the bilinear stencil does.
+        let rim = field.record_at_cell(-4, -4).expect("clamped to the rim");
+        assert!(std::ptr::eq(rim, field.record_at_cell(0, 0).unwrap()));
     }
 }
