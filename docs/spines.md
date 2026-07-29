@@ -702,6 +702,46 @@ reinventing it — the loud check.
 
 ---
 
+## S-10. The frozen-snapshot, doubly-limited gather — *RATIFIED 2026-07-29 (user)*
+
+**A field relaxes toward its neighbours by reading a frozen snapshot of the previous state,
+computing an antisymmetric per-edge flux, and limiting that flux twice — once by what the donor
+actually has, once by what the exchange would overshoot.** Mass-exactness and
+order-independence fall out of the construction rather than being tested for: the snapshot makes
+the gather order-free, and the antisymmetric edge flux makes every unit that leaves one cell
+arrive in exactly one other.
+
+**Instances (2):**
+- `dc-worldgen/src/deeptime/sat.rs` — bound water. Permeability-limited lateral redistribution
+  on head `H = y + sat`; its own header claims mass-exact and order-independent *by
+  construction*, and that claim is the shape stated in the code before it was named here.
+- `dc-worldgen/src/erosion.rs::diffuse` — hillslope creep (journal/0122). The inner step
+  **already was** this shape, which is why mass-exactness and order-independence came free when
+  the operator was rebuilt.
+
+**⚠ THE SUB-CYCLE IS NOT PART OF THIS SPINE — user ruling, 2026-07-29, given while ratifying it:
+*"the sub-cycle part belongs with RATE."*** Stability substepping is a **timestep** concern,
+owned by the engine clock, not a property of the solver shape. A reader must not conclude that
+implementing S-10 makes a pass stable. **It does not**, and the two instances prove it from
+opposite sides: `sat.rs` is stable only because `lateral_c = 0.25` happens to sit inside its own
+von Neumann bound **by parameter choice**, and `erosion.rs` was **2.1× past that bound on the
+shipped world** — same shape, one accidentally safe, one silently not, for weeks, with every
+golden green. The missing half is `stubs.md` § 30, heir **RATE**.
+
+**Why it is a spine and not a utility.** It is the concrete shape behind
+`material-behavior.md` § 6's ratified *"bounded local relaxation attenuated by a per-material
+property"* — permeability for water, erodibility for creep. `flow.md` reports head, saturation
+and temperature as **one shape, proven by the geotherm**; this names the *computational* form
+those three share. It is therefore the leading candidate for the **first engine field-solver
+primitive** under the north star's (c) split, and the reason a third bespoke instance should not
+be written. *Light is correctly **out**: its relaxation is max-plus, not diffusive, and it is
+ruled derived-never-stored (`light.md`, narrowed 2026-07-29).*
+
+**What a future instance must not do:** re-derive the limiter pair. The overshoot limit is what
+kills the period-2 mode; the inventory limit alone produces a conveyor (`stubs.md` § 27) and a
+finite limit cycle that is **deaf to `dt`** and therefore invisible to timestep refinement —
+the defect that cost journal/0114 through 0116 and corrections #61, #62, #63, #72.
+
 # 2. The anti-shapes
 
 ## A-1. A stand-in becomes the definition

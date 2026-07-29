@@ -1051,6 +1051,25 @@ limiter. *Loud markers at `TransportLedger::creep_limited_cell_epochs`,
 `diffuse_scale_cell`, and `EROSION_CALIBRATION`.*
 
 ### 28. the-agent-magnitudes-the-calibration-left-behind — *added 2026-07-26 (journal/0114)*
+
+> **✅ DISSOLVED 2026-07-29 — USER RULING, and the user WITHDREW THEIR OWN PRIOR
+> RATIFICATION to do it.** *"I do not care if frost/wind magnitudes increase 45×, do not try
+> for byte identicality on `calibrated_rates`, I do not care about my previous ratification on
+> looks there. We just need to move fast."*
+> **Scale the three excluded agents with everything else.** The exclusion's reasoning was
+> sound and is now moot: it protected three appearance numbers the user judged live, and the
+> user has released them. **This is not a stub any more and it is not a blocker on the flag
+> flip** — it was filed as a *pre-flip* blocker precisely so it would be visible before
+> `calibrated_rates` flipped, and it was, and the answer was "don't care".
+> - **Byte-identicality on the calibrated arm is explicitly NOT wanted.** Do not spend a slice
+>   preserving it. The shipped arm's goldens are a separate question and still hold.
+> - **The live magnitudes tour is no longer owed as a gate on this.** It may still be wanted
+>   as a walk; it is not a dependency.
+> - *Recorded at length because a user withdrawing their own ratification is exactly the event
+>   the corpus is worst at: the ratification is written down and the withdrawal usually is not,
+>   so the stale ratification outlives it and blocks work nobody is blocked on. See
+>   `earth-processes.md`, which carried this as a live constraint.*
+
 `scale_erosion_rates` deliberately scales four rates and **not** `wave_erosion` (0.05 m
 /epoch), `eolian_deflation` (0.02) or `frost_weathering_gain` (1.5). The reason is sound —
 those are the **agent magnitudes**, explicitly unratified appearance numbers the user
@@ -1249,6 +1268,41 @@ at any realistic rate at all, which makes it the most valuable erosion work on t
 **Blast:** terrain shape everywhere, once the flag flips; nothing today.
 *Loud markers at `EROSION_CALIBRATION`, `DeepConfig::calibrated_rates`, and
 `tests/mfd_routing.rs::no_interior_cell_is_cut_below_all_of_its_neighbours`.*
+
+### 30. a-pass-that-hand-rolled-its-own-timestep — *added 2026-07-29 (journal/0122); **heir named by the user in the same breath as the spine that excludes it***
+
+`Erosion::diffuse` sub-cycles itself: `n = ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)`,
+with `n = 1` bit-identical to the pre-slice operator. It is correct, it is derived (from the
+von Neumann bound `a = 1/8`, not fitted), and it is the reason the calibrated solve no longer
+oscillates. **It is also a `dt`, computed inside a pass, because the engine does not have one.**
+
+**What it stands in for: RATE.** Ratified 2026-07-24 from the user's 2026-07-23 sketch — a
+pass's phase length, `dt` scaling its transformations, a high-rate pass running several
+sub-turns while a low-rate one runs once — and **never built**; `dt` is pinned to `1.0` and no
+transform scales by it. `ARCHITECTURE.md` had already argued that **this blocker is what RATE's
+absence produces**. That argument is now confirmed from the other side: the pass, given no
+engine clock, grew its own.
+
+**The user's ruling, 2026-07-29 — and it is a decomposition, not just a filing.** Ratifying the
+new shape as **S-10**, the user cut it: *"the sub-cycle part belongs with RATE."* So the
+**gather** is the field-solver spine and the **sub-cycle is not part of it** — substepping for
+stability is a *timestep* concern owned by the engine's clock, not a property of the solver
+shape. `sat.rs`, the other S-10 instance, needs no sub-cycle only because `lateral_c = 0.25`
+happens to sit inside its own stability bound by parameter choice — **an accident of tuning, not
+a design**, and precisely the kind of latent trap S-10-without-RATE leaves for the next author.
+
+**⚠ This expands RATE's ratified scope.** RATE was sketched as *authored cadence* (how often a
+pass runs). This adds **derived, stability-driven substepping** (how finely it must run to stay
+in its own bound) — the engine computing `n` from the pass's declared coefficient and the
+solver's known limit. Same machinery, and the second half is the one with a falsifiable
+criterion. **Flagged, not assumed:** the user ruled the *placement*, not the scope expansion.
+
+**Blast radius:** every future field pass that diffuses anything. Right now the only defence
+against shipping past a stability bound is that one author did the analysis once, in one pass —
+and the shipped world sat **2.1× past that bound** for weeks with every golden green.
+**Heir:** RATE (`material-behavior.md` §5; ROADMAP § Sequenced, now sequenced ahead of the
+refinement design pass by the same ruling). *Loud marker owed in `diffuse`'s doc comment naming
+RATE as the heir.*
 
 ## Sibling gap (not a substitution — an unexpressed ledger term)
 

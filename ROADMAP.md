@@ -1218,13 +1218,32 @@ see the question you are asking.
     same openness on the material axis) · fields-as-plugins (`dc:field/temperature` and
     `dc:field/head` are already declared passes; the **vocabulary** is what is still closed)
     · and the erosion blocker below, which is what RATE's absence produces.
-  - **🔑 FIRST SLICE — RATE, WITH THE CREEP LIMITER AS ITS ACCEPTANCE TEST.** Do **not**
-    build this as a patch beside the architecture. journal/0116's prescription for the
-    blocker is *"a hillslope operator whose transfer stays a function of `rate × dt`"* —
-    **that is the RATE axis**, so the blocker's fix is the axis's first real consumer and
-    *the world becoming grid-stable is the acceptance test*. Acceptance pairs an aggregate
-    with a **neighbour-relative** measure (corrections #61): concavity ACF(1) returning
-    toward the shipped world's **+0.38** with closed hollows at **zero**, not relief holding.
+  - **🔑 FIRST SLICE — RATE. ✅ SEQUENCED AHEAD OF THE REFINEMENT DESIGN PASS (user,
+    2026-07-29).** ~~with the creep limiter as its acceptance test~~ — **the acceptance test
+    was met on 2026-07-29 by a stand-in, and that changes the slice for the better.**
+    - **What happened.** journal/0122 fixed the creep blocker by **sub-cycling inside the
+      pass**: `n = ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)`, derived from the von
+      Neumann bound `a = 1/8`. Grid-scale oscillation is gone (surface concavity ACF(1)
+      **−0.867 → +0.185** calibrated; closed hollows past 10 m **818 → 12**; five safe
+      multipliers where journal/0114 found none). **The acceptance criterion above is
+      discharged — by a `dt` the pass computed for itself because the engine has none.**
+    - **So the slice is now sharper, not gone: replace the hand-rolled sub-cycle with the
+      engine axis, and hold the goldens.** This is strictly better than the original framing
+      — the axis now lands against a **known-good fixed point** instead of against a defect,
+      so "did RATE reproduce it" is a hash comparison rather than a judgement call.
+      `stubs.md` § 30 carries the stand-in with RATE named as its heir.
+    - **⚠ SCOPE EXPANSION, FLAGGED NOT ASSUMED.** RATE was sketched as **authored cadence**
+      (how often a pass runs). The stand-in adds **derived, stability-driven substepping**
+      (how finely it *must* run to stay inside its own bound) — the engine computing `n` from
+      a pass's declared coefficient and the solver's known limit. The user ruled the
+      **placement** (*"the sub-cycle part belongs with RATE"*, 2026-07-29, while ratifying
+      S-10) — **not** this scope expansion. Confirm before building the second half.
+    - **WHY IT NOW LEADS.** The shipped world sat **2.1× past its own stability bound** for
+      weeks with every golden green, and the only thing that caught it was one author doing
+      the analysis once, in one pass. **Every future field pass that diffuses anything has
+      the same trap and no defence.** That is an engine-shaped hole, and `spines.md` § S-10
+      names the shape it belongs to — with the sub-cycle explicitly excluded from the spine
+      *because* it belongs here.
   - **CONTINUATION SLOT** (this is a slice OF *"passes are plugins and the engine is
     agnostic"*): after RATE — **(b)** authored order + the validator (and with it the
     retirement of the revision chain); **(c)** the open resource vocabulary, `DeepAxis`
@@ -1472,6 +1491,31 @@ see the question you are asking.
     its floor. That predicts **isolated deep holes**, which is a subset of what the world
     shows. Its A-2 variant in spines — a test's unstated premise, "erosion is fast enough for
     this to mean anything" — stands on its own merits.)*
+
+- **🔴 RE-PICK `EROSION_CALIBRATION` AGAINST THE FIXED OPERATOR — and flip the flag**
+  (sequenced 2026-07-29, user: *"yes"*; journal/0122). **The constant was fitted to a broken
+  solve and does not survive its repair.**
+  - **What moved.** `EROSION_CALIBRATION = 45` was derived on the capped operator. With the
+    cap gone, 45× strips the world to **1.40 m** mean regolith — *below* the shipped world's
+    4.57 m — and the ladder **inverts journal/0114's headline finding**: cover now **thins**
+    with the multiplier (3.91 → 4.40 → 3.02 → 2.18 → 1.65 → 1.40) where it used to thicken
+    (4.6 → … → 782 m). **Transport now outruns supply**; the joint balance point has moved.
+  - **How to pick it — the ONLY legal method.** Against the **published literature**, not
+    against a look. `CLAUDE.md` § *a closed system cannot detect its own scale error*: a
+    constant tuned until an output looks right is a number pretending to be a mechanism; one
+    derived so a measured quantity lands in a published band is evidence. The target is the
+    craton denudation band journal/0111 established. **Do not re-fit to internal consistency
+    — every internal instrument was green at 1000× wrong.**
+  - **✅ THE PRE-FLIP BLOCKER IS DISSOLVED (user, 2026-07-29).** The three excluded agent
+    magnitudes (`wave_erosion`, `eolian_deflation`, `frost_weathering_gain`) **scale with
+    everything else now** — *"I do not care if frost/wind magnitudes increase 45×… I do not
+    care about my previous ratification on looks there."* **Byte-identicality on the
+    calibrated arm is explicitly NOT wanted; do not spend a slice on it.** `stubs.md` § 28
+    dissolved, `earth-processes.md` § 4 stamped.
+  - **Acceptance** pairs an aggregate with a **neighbour-relative** measure (corrections #61)
+    and re-asserts the three pit guards (corrections #62, discharged by journal/0122). The
+    ladder from journal/0122 is handed forward as **input, not as a recommendation** — the
+    agent that measured it deliberately did not act on it, which was correct.
 
 - **🔴 THE TRANSPORT OPERATOR HAS A CEILING — stubs #27** (journal/0114). Six full 200-epoch
   worlds measured (1×, 10×, 45×, 100×, 300×, 1000×): **export is proportional to mean regolith

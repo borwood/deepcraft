@@ -204,6 +204,26 @@ numbers. The knobs, by name and current default: `eolian_deflation` 0.02,
 `eolian_arid_precip` 0.32, `eolian_deposit_frac` 0.25, `frost_weathering_gain`
 1.5, `frost_band_width_c` 12.0, `wave_erosion` 0.05, `wave_band_m` 30.0.
 
+> **⚠ THE APPEARANCE HOLD ON THESE NUMBERS IS RELEASED — user, 2026-07-29.** *"I do not
+> care if frost/wind magnitudes increase 45×, do not try for byte identicality on
+> `calibrated_rates`, I do not care about my previous ratification on looks there. We just
+> need to move fast."*
+> **`scale_erosion_rates` may now scale `wave_erosion`, `eolian_deflation` and
+> `frost_weathering_gain` with everything else.** The exclusion existed to protect three
+> appearance calls the user judged live; the user has released them, **withdrawing their own
+> prior ratification to do it**. Byte-identicality on the calibrated arm is explicitly
+> **not wanted** — do not spend a slice preserving it.
+> - **The live magnitudes tour is no longer a gate.** It may still be a walk worth taking; it
+>   blocks nothing.
+> - The paragraph above stands as the **dated record of why they were excluded** — that
+>   reasoning was sound and is simply moot now. `stubs.md` § 28 is dissolved; it had recorded
+>   that the calibration moved four core rates 45× and left these three behind, making them
+>   45× weaker **relative to the landscape they act on** (wave quarry 0.10 % of export, eolian
+>   dust 0.01 %).
+> - *Recorded loudly because a withdrawn ratification is the corpus's worst-kept event: the
+>   ratification is written down and the withdrawal usually is not, so a stale hold outlives
+>   its own reason and blocks work nobody is blocked on.*
+
 ### 5. Burial, diagenesis, metamorphism
 Reality: pressure/temperature over time lithify sediment and transform
 rock along P/T paths (shale→slate→schist→gneiss); exhumation exposes it.
