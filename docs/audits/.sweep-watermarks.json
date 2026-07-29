@@ -5,7 +5,7 @@
     "spine-audit": "any edit to docs/spines.md — every prior verdict was made against a different rule",
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
-  "staleness": "f652b60",
+  "staleness": "72fbe86",
   "spine-audit": "96ab14b",
   "doc-topology": "f652b60",
   "_baseline": {
