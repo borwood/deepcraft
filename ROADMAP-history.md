@@ -3795,23 +3795,25 @@ measurement-backed:)*
 
 **ARCHIVED 2026-07-29 — the entry's own body already declared it closed** (moved by status, not by age; reproduced verbatim).
 
-`✅ BOTH FIXED -- verified at source 2026-07-29` (S6 finding F2). (a) shipped as the honest fix -- `BioMod` moved into the within-epoch `reads` roster; (b) fixed by **deletion**, which is the honest disposal -- `Exposed` is no longer declared, and `runner.rs:1454-1456` asserts it stays undeclared.
+`✅ BOTH FIXED -- verified at source 2026-07-29` (S6 finding F2). (a) shipped as the honest fix -- `BioMod` moved into the within-epoch `reads` roster; (b) fixed by **deletion**, which is the honest disposal -- `Exposed` is no longer declared, and `runner.rs:1497-1499` asserts it stays undeclared.
 
 - ~~**Two declaration defects on the new `dc:deep/weather_inventory` pass**~~ **✅ BOTH FIXED —
   verified at source 2026-07-29** (S6 finding F2). This entry read as owed work and was not.
-  - **(a) shipped as the honest fix, exactly as diagnosed.** `crates/dc-worldgen/src/deeptime/runner.rs:542-544`
+  - **(a) shipped as the honest fix, exactly as diagnosed.** `crates/dc-worldgen/src/deeptime/runner.rs:579-581`
     now carries `BioMod` in the within-epoch **`reads`** rosters (`WINV_READS_AGENTS` /
-    `_TEC` / `_LEG`), the pass declares `reads_prev: &[]` (`:889`), and the module comment at
-    `:523-530` states the reasoning verbatim — *"a `reads_prev` declaration was a fiction …
+    `_TEC` / `_LEG`), the pass declares `reads_prev: &[]` (`:933`), and the module comment at
+    `:560-567` states the reasoning verbatim — *"a `reads_prev` declaration was a fiction …
     Declaring it as a real `reads` makes the graph state what actually happens and PINS the order
     instead of inheriting it from a tie-break."* Shipped by the spine-audit follow-through,
     2026-07-25.
   - **(b) fixed by DELETION, which is the honest disposal.** `Exposed` is no longer declared at
-    all; `runner.rs:532-535` says so out loud — *"**`Exposed` is deliberately NOT declared**:
+    all; `runner.rs:569-572` says so out loud — *"**`Exposed` is deliberately NOT declared**:
     susceptibility is a constant off `BEDROCK_SEAM_MATERIAL` … declare what you read, not what you
-    intend to read"* — and `:1454-1456` **asserts** it (`assert!(!w.reads.contains(&DeepAxis::Exposed))`).
+    intend to read"* — and `:1497-1499` **asserts** it (`assert!(!w.reads.contains(&DeepAxis::Exposed))`).
     The false declaration was removed rather than made true, and there is now a test that fails if
-    anyone re-adds it without the genesis heir. *(Original diagnosis below, kept for the record.)*
+    anyone re-adds it without the genesis heir. *(Line refs re-verified 2026-07-29 at the
+    `docs/design/pass-declaration-history.md` extraction, post-E3 — the mover stamps the citing
+    doc. Original diagnosis below, kept for the record.)*
   - **(a) `reads_prev: &[BioMod]` is not what happens.** The pass reads `grid.bio_weather`, which
     `dc:deep/biotic` overwrites **in place** each epoch; no edge is declared against `biotic`, so
     which epoch's plane it sees is decided by `passgraph`'s id-lexicographic tie-break

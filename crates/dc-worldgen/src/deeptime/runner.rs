@@ -32,8 +32,6 @@
 //!   is **live** in the passes converted to read it. An empty table reproduces
 //!   the shipped schedule bit for bit, and `dt = 1.0` there, so the axis landed
 //!   against journal/0122's known-good fixed point without moving a golden.
-//!   *(Movement 1 of journal/0090 pinned this axis and threaded `dt` inert; that
-//!   sentence is what this one replaces.)*
 //!
 //! ## Byte-identity
 //! Each pass body is *literally the same call* the old loop made, in the same
@@ -45,6 +43,16 @@
 //! slices) + a bare `fn` pointer body — **no closures cross the pass seam**. The
 //! rich state lives on the runner's side in [`DeepStepCtx`]; the declaration a
 //! future SDK / WASM backend would marshal is the plain-data part.
+//!
+//! ## Where the declaration HISTORY lives
+//! **`docs/design/pass-declaration-history.md`** — extracted 2026-07-29 under the
+//! file-size doctrine (*split by LIVENESS, never topic*). It holds the archaeology:
+//! how `reads_prev` came to be enforced (journal/0104), how the terrain-revision
+//! chain grew its `Incised` link and why the `dc:deep/head` sidecar was floating
+//! (journal/0107), the superseded defences that were answering the wrong question,
+//! and the slice-neutrality arguments a test now proves. **What stays in this file
+//! is the CONTRACT** — why each read is or is not declared, stated at the site it
+//! governs.
 
 use super::biotic::BioticSim;
 use super::cadence::{Cadence, CadenceTable};
@@ -69,26 +77,22 @@ use crate::passgraph::{self, Decl, GraphError};
 /// of a fixed-order relaxation pipeline, and it is what forces the topo-sort to
 /// reproduce the old loop's phase order.
 ///
-/// ## Reading a revision, and the writer that supersedes it (journal/0107)
+/// ## Reading a revision, and the writer that supersedes it
 /// A revision token orders a reader **after** the stage that produced it. It does
 /// **not**, on its own, order that reader **before** the next stage to overwrite
 /// the same plane — those are two different tokens, and the graph sees two
-/// different resources. For every pass in the erosion pipeline that has never
-/// mattered, because each one is pinned on the far side by a *forward* edge into
-/// the stages after it. A pure **sidecar** field pass has no such edge, and is
-/// therefore left floating: `dc:field/head` reads the ground surface `R+H` and
-/// hands its field to nothing the terrain consumes, so which revision it saw was
-/// decided by the id-lexicographic tie-break — the third instance of a tie-break
-/// deciding physics.
+/// different resources. Inside the erosion pipeline that never matters, because
+/// each stage is braced on its far side by a *forward* edge into the stages after
+/// it. A pure **sidecar** field pass has no such brace and floats.
 ///
-/// The fix is the pair, not the single read: **declare the revision you consume as
-/// a `reads`, and declare the next revision of the same plane as a
-/// [`DeepPass::reads_prev`]** — an anti-dependency onto its writer. That is the
-/// same shape `expose`/`frost` already use against [`Recorded`](DeepAxis::Recorded)
-/// (three writers, all this epoch, all of which they must precede), generalised to
-/// a plane with several revisions per epoch: lag against the revision whose writer
-/// comes **first** after your read point, and every later writer is covered
-/// transitively.
+/// So the declaration is the **pair**, never the single read: **declare the
+/// revision you consume as a `reads`, and declare the next revision of the same
+/// plane as a [`DeepPass::reads_prev`]** — an anti-dependency onto its writer. Lag
+/// against the revision whose writer comes **first** after your read point, never
+/// the last, and every later writer is covered transitively. It is the same shape
+/// `expose`/`frost` use against [`Recorded`](DeepAxis::Recorded) (three writers,
+/// all this epoch, all of which they must precede), generalised to a plane with
+/// several revisions per epoch.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum DeepAxis {
     /// Precip/temperature fields on the current topography. `climate` writes;
@@ -120,15 +124,10 @@ pub enum DeepAxis {
     /// **Terrain after stream transport + bedrock incision** — the first terrain
     /// revision *inside* the erosion pipeline. `transport` writes (it lowers `R`
     /// by incision and moves `H` by entrainment/deposition, in place); `weather`
-    /// reads it, and `head` **lag-reads** it (journal/0107).
-    ///
-    /// It exists because `transport` mutated the terrain while declaring only its
-    /// [`Energy`](DeepAxis::Energy)/[`DeltaH`](DeepAxis::DeltaH) by-products, which
-    /// left a gap in the revision chain: nothing in the vocabulary named the moment
+    /// reads it, and `head` **lag-reads** it. It is the link that names the moment
     /// the ground surface changes between [`Forced`](DeepAxis::Forced) and
-    /// [`Weathered`](DeepAxis::Weathered), so a pass reading `R+H` there could not
-    /// say *when* it read. Declaring it closes the chain and gives the head field a
-    /// writer to be ordered ahead of.
+    /// [`Weathered`](DeepAxis::Weathered), so a pass reading `R+H` there can say
+    /// *when* it read and has a writer to be ordered ahead of.
     Incised,
     /// Terrain after bedrock weathering. `weather` writes; `diffuse` reads.
     Weathered,
@@ -268,10 +267,7 @@ pub struct DeepPass {
     /// biology↔erosion feedback, close a within-epoch cycle the runner would
     /// (correctly) reject. Declared here it is a loop-carried edge instead.
     ///
-    /// **This was documentation until journal/0104.** `passgraph` never received
-    /// it, so which epoch a lagged reader actually saw was an accident of the
-    /// id-lexicographic tie-break — rename a pass and the physics changed
-    /// silently. It is now enforced.
+    /// **The kernel enforces this** — it is not an annotation (journal/0104).
     pub reads_prev: &'static [DeepAxis],
     /// **The RATE axis** ([`super::cadence`]): how often this pass fires
     /// (`period`), how many turns it takes per firing (`sub_turns`), and the
@@ -602,16 +598,14 @@ const WINV_READS_LEG: &[DeepAxis] = &[Diffused, BioMod];
 /// graph would refuse the biology↔erosion cycle), now enforced by the runner.
 /// Proven in the tests.
 ///
-/// And the lag itself is **enforced, not merely annotated** (journal/0104): each
-/// `reads_prev` becomes a reader→writer anti-dependency, so `weather`/`diffuse`/
-/// `eolian` are ordered before `biotic`, and the three passes that lag-read
+/// And the lag itself is **enforced, not merely annotated**: each `reads_prev`
+/// becomes a reader→writer anti-dependency, so `weather`/`diffuse`/`eolian` are
+/// ordered before `biotic`, and the three passes that lag-read
 /// [`DeepAxis::Recorded`] (`expose`, `frost`, `head`) are ordered before
-/// `deposition`/`eolian`/`wave`. Those orderings held before this edge existed,
-/// but only as a by-product of the id-lexicographic tie-break; they are now
-/// rename-proof, which is what
+/// `deposition`/`eolian`/`wave`. Rename-proof, which is what
 /// `a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename` proves.
 ///
-/// **Two more lags are on the TERRAIN plane** (journal/0107), which — unlike
+/// **Two more lags are on the TERRAIN plane**, which — unlike
 /// `Recorded` — has several revisions per epoch: `climate` lag-reads
 /// [`DeepAxis::Forced`] (the start-of-epoch topography, before `forcing` touches
 /// it) and `head` lag-reads [`DeepAxis::Incised`] (before `transport` incises it).
@@ -655,23 +649,17 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         id: "dc:deep/climate",
         reads: &[],
         writes: &[Climate],
-        // **The terrain lag, now declared** (journal/0107; owed by journal/0104).
-        // `climate::march` reads `grid.surf_at` — the start-of-epoch topography,
-        // i.e. last epoch's final surface — and used to say nothing about it.
-        //
-        // The honest declaration is an anti-dependency against the **first**
-        // revision of the terrain plane this epoch produces, `Forced`: climate must
-        // run before `forcing` touches it, and every later terrain writer
-        // (`transport` → `weather` → `diffuse` → `isostasy` → the agents) is
-        // downstream of `forcing`, so one token covers the whole chain
-        // transitively. Lagging against the *last* revision instead
-        // (`Settled`/`Compensated`/`Diffused`, one cfg-selected slice each) would
-        // be three declarations that pin strictly less — they would let climate
-        // slide past `forcing` and `transport`.
-        //
-        // **Schedule-neutral, provably**: the edge `climate → forcing` it adds is
-        // already in the graph as a true forward edge (`forcing` reads `Climate`),
-        // so it cannot move anything. It was safe before; it is *stated* now.
+        // **The terrain lag.** `climate::march` reads `grid.surf_at` — the
+        // start-of-epoch topography, i.e. last epoch's final surface. The honest
+        // declaration is an anti-dependency against the **first** revision of the
+        // terrain plane this epoch produces, `Forced`: climate must run before
+        // `forcing` touches it, and every later terrain writer (`transport` →
+        // `weather` → `diffuse` → `isostasy` → the agents) is downstream of
+        // `forcing`, so one token covers the whole chain transitively. Lagging
+        // against the *last* revision instead (`Settled`/`Compensated`/`Diffused`,
+        // one cfg-selected slice each) would be three declarations that pin
+        // strictly less — they would let climate slide past `forcing` and
+        // `transport`.
         reads_prev: &[Forced],
         cadence: Cadence::every(cfg.remarch_interval),
         body: climate_pass,
@@ -746,10 +734,9 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
 
     // Transport + incision (one interleaved flux chain). It **mutates the terrain**
     // — bedrock incision lowers `R`, entrainment/deposition moves `H` — so it
-    // publishes the `Incised` revision alongside its Energy/DeltaH by-products
-    // (journal/0107). Before that the erosion pipeline's revision chain had a gap
-    // exactly where the ground surface first changes, and a sidecar reading `R+H`
-    // between `forcing` and `weather` had no writer to be ordered against.
+    // publishes the `Incised` revision alongside its Energy/DeltaH by-products.
+    // That token is what a sidecar reading `R+H` between `forcing` and `weather`
+    // is ordered against.
     passes.push(DeepPass {
         id: "dc:deep/transport",
         reads: &[Routed, Exposed],
@@ -764,22 +751,15 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     // `head_field` (absent = off ⇒ the planes stay empty ⇒ the flow record's
     // vertical faces stay at slice 1's honest zero). Writes only `Head`.
     //
-    // **It reads the TERRAIN, and now says so** (journal/0107). The body builds
-    // `ground = R + H` via `grid.surf_at`, and the solve uses it as the seepage
-    // cap, the lake datum and the free-surface boundary — so the terrain is not
-    // incidental to this pass, it is one of its boundary conditions. The
-    // declaration used to name only `Routed`, which meant *which* revision of the
-    // terrain it saw was left to the id-lexicographic tie-break.
-    //
-    // The revision it reads is **`Forced`**, in every cfg path — determined from
-    // the code, not chosen: the only writers between `forcing` and `transport` are
-    // `drainage`/`frost`/`geotherm`, none of which touches `R`/`H`. And it is also
-    // the revision the pass *should* read, which is the stronger reason to pin it
-    // there: `filled`, `routed` and `area` are all snapshots the drainage solve
-    // took from the `Forced` terrain, so a `ground` from any later revision would
-    // put the seepage cap and the free-water anchors on two different landscapes.
-    // The four arguments have to come from one moment or the boundary conditions
-    // disagree with each other.
+    // **It reads the TERRAIN, and says so** — the ground surface is one of the
+    // solve's boundary conditions, not a detail (see [`head_pass`]). The revision is
+    // **`Forced`**, in every cfg path, determined from the code rather than chosen:
+    // the only writers between `forcing` and `transport` are `drainage`/`frost`/
+    // `geotherm`, none of which touches `R`/`H`. It is also the revision the pass
+    // *should* read, which is the stronger reason to pin it there — `filled`,
+    // `routed` and `area` are all snapshots the drainage solve took from the
+    // `Forced` terrain, so a `ground` from any later revision would put the seepage
+    // cap and the free-water anchors on two different landscapes.
     //
     // Hence the **pair**: `reads: Forced` pins it after the forcing that produced
     // that terrain, and `reads_prev: Incised` pins it before `transport`, the first
@@ -823,9 +803,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
 
     // Bedrock weathering (reads the incised terrain — cover thickness `H` and
     // bedrock `R` as transport left them — and last epoch's biotic weathering
-    // multiplier). `Incised` states the terrain revision it consumes; the ordering
-    // it adds (`transport → weather`) was already carried by the DeltaH chain, so
-    // declaring it is schedule-neutral.
+    // multiplier). `Incised` states the terrain revision it consumes.
     passes.push(DeepPass {
         id: "dc:deep/weather",
         reads: &[DeltaH, Exposed, Frosted, Incised],
@@ -937,8 +915,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     // behind `weather_inventory` (absent = off, the old `if` as pass presence — so
     // the production world is byte-identical off, the S-5 identity default). Reads
     // the contemporaneous terrain (for this-epoch regolith `H`), Frosted, and **this
-    // epoch's BioMod as a real within-epoch read** (see WINV_READS_* — the former
-    // `reads_prev` was a fiction the tie-break decided; spine-audit 2026-07-25).
+    // epoch's BioMod as a real within-epoch read** (reasoning at WINV_READS_*).
     // Writes only the Saprolite ledger sink (no in-epoch reader), so it never
     // perturbs erosion.
     if cfg.weather_inventory {
@@ -974,9 +951,8 @@ impl DeepSchedule {
     /// Validate + topo-sort in **loop mode** (`require_creator = false`: state is
     /// seeded before the loop). **Both** edge kinds are handed to the kernel: the
     /// live `reads` (writer → reader) and the lagged `reads_prev` as
-    /// reader → writer anti-dependencies (journal/0104). Handing the lag over is
-    /// what makes it a mechanism instead of a comment — before that, which epoch a
-    /// lagged reader saw was decided by the id-lexicographic tie-break.
+    /// reader → writer anti-dependencies. Handing the lag over is what makes it a
+    /// mechanism instead of a comment.
     pub fn new(passes: Vec<DeepPass>) -> Result<Self, GraphError<DeepAxis>> {
         let decls: Vec<Decl<DeepAxis>> = passes
             .iter()
@@ -1063,14 +1039,12 @@ mod tests {
         // position never affects the erosion result.
         "dc:deep/geotherm",
         // The head field sits here **because the graph puts it here**, not because
-        // the tie-break did (journal/0107). It reads `Forced`, so it cannot precede
-        // `forcing`; it lag-reads `Incised`, so it cannot follow `transport`. That
-        // window is exactly where its four boundary-condition inputs
-        // (`filled`/`routed`/`area`/`ground`) all describe the same landscape.
-        //
-        // The old note here — *"its position never affects the terrain"* — was true
-        // and was answering the wrong question: its position decides the head
-        // FIELD'S OWN VALUES, and therefore the vertical flux the record keeps.
+        // the tie-break did. It reads `Forced`, so it cannot precede `forcing`; it
+        // lag-reads `Incised`, so it cannot follow `transport`. That window is
+        // exactly where its four boundary-condition inputs
+        // (`filled`/`routed`/`area`/`ground`) all describe the same landscape — and
+        // its position decides the head FIELD'S OWN VALUES, and therefore the
+        // vertical flux the record keeps.
         "dc:deep/head",
         "dc:deep/transport",
         // The flow record sorts in here: it becomes ready once `transport` has
@@ -1163,16 +1137,11 @@ mod tests {
         );
     }
 
-    /// **The point of journal/0104.** `reads_prev` used to be consumed by nothing,
-    /// so a lagged reader saw the previous epoch's plane only if the
-    /// id-lexicographic tie-break happened to park it ahead of the writer. Rename
-    /// the pass and the physics changed — silently, with every test still green.
-    ///
-    /// So: rename each lagged reader to an id that sorts **after** every writer of
-    /// the axis it lags on, and assert the schedule still puts it first. Under the
-    /// old kernel `dc:deep/zzz_head` would slide behind `dc:deep/deposition` and
-    /// start reading THIS epoch's strata record; here the anti-dependency edge
-    /// holds it in place and the tie-break never gets a say.
+    /// **The lag must survive a hostile rename.** Rename each lagged reader to an
+    /// id that sorts **after** every writer of the axis it lags on, and assert the
+    /// schedule still puts it first: the anti-dependency edge holds it in place and
+    /// the id-lexicographic tie-break never gets a say. (Why this test exists —
+    /// `docs/design/pass-declaration-history.md` § 2.)
     #[test]
     fn a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename() {
         // Every (lagged reader, lagged axis) pair in the production roster, with a
@@ -1339,19 +1308,13 @@ mod tests {
         assert!(at("dc:deep/drainage") < at("dc:deep/head"));
     }
 
-    /// **The under-declaration journal/0107 closed.** `dc:field/head` declared
-    /// `reads: [Routed]` while its body built the ground surface `R+H` through
-    /// `grid.surf_at` and handed it to the solve as the seepage cap, the lake datum
-    /// and the free-surface boundary. Which *revision* of the terrain that was —
-    /// pre- or post-incision — was decided by the id tie-break, exactly the
-    /// journal/0104 defect one level along, and the old defence (*"its position
-    /// never affects the terrain"*) answered a different question: it affects the
-    /// head field's own values, and the vertical flux recorded from them.
-    ///
-    /// The revision is `Forced`, and the pass is now pinned into that window from
-    /// **both** sides — `reads: Forced` after the writer that produced it,
-    /// `reads_prev: Incised` before the writer that supersedes it. One without the
-    /// other pins nothing: they are different resources to the graph.
+    /// **The head field is pinned by the PAIR, not by one read.** The revision its
+    /// four boundary-condition inputs all come from is `Forced`, and the pass is
+    /// held in that window from **both** sides — `reads: Forced` after the writer
+    /// that produced it, `reads_prev: Incised` before the writer that supersedes
+    /// it. One without the other pins nothing: they are different resources to the
+    /// graph. (The under-declaration this closed —
+    /// `docs/design/pass-declaration-history.md` § 4.)
     #[test]
     fn the_head_field_is_pinned_into_the_terrain_revision_it_reads() {
         for cfg in [
@@ -1401,13 +1364,13 @@ mod tests {
         assert!(at(hostile) < at("dc:deep/transport"), "{order:?}");
     }
 
-    /// **Neutrality, proven rather than asserted** (journal/0107). The slice added
-    /// four declarations — `climate.reads_prev = [Forced]`, `transport.writes +=
-    /// Incised`, `weather.reads += Incised`, and head's `Forced`/`Incised` pair.
-    /// Every edge they introduce was already implied by the existing transitive
-    /// closure, so the schedule cannot move. Rebuild each roster with the
-    /// **pre-slice** declarations and assert the order is identical — the direct
-    /// check, rather than an appeal to a golden hash computed elsewhere.
+    /// **Neutrality, proven rather than asserted.** The four terrain-revision
+    /// declarations — `climate.reads_prev = [Forced]`, `transport.writes +=
+    /// Incised`, `weather.reads += Incised`, and head's `Forced`/`Incised` pair —
+    /// introduce only edges already implied by the existing transitive closure, so
+    /// the schedule cannot move. Rebuild each roster with the **pre-slice**
+    /// declarations and assert the order is identical: the direct check, rather
+    /// than an appeal to a golden hash computed elsewhere.
     #[test]
     fn the_terrain_revision_declarations_are_schedule_neutral() {
         const PRE_TRANSPORT_WRITES: &[DeepAxis] = &[Energy, DeltaH];
@@ -1522,11 +1485,10 @@ mod tests {
         assert_eq!(w.cadence, Cadence::EVERY_EPOCH);
         assert!(w.fires(0) && w.fires(1));
 
-        // **The declaration must state what the pass DOES** (spine-audit 2026-07-25).
-        // `weather_epoch` reads `grid.bio_weather`, which `biotic` overwrites in place
-        // each epoch — so it observes THIS epoch's plane, and a `reads_prev` claim was
-        // a fiction the id-tie-break happened to satisfy. BioMod is a real within-epoch
-        // read; nothing is loop-carried here.
+        // **The declaration must state what the pass DOES.** `weather_epoch` reads
+        // `grid.bio_weather`, which `biotic` overwrites in place each epoch — so it
+        // observes THIS epoch's plane. BioMod is a real within-epoch read; nothing is
+        // loop-carried here. (Reasoning in full at the `WINV_READS_*` const block.)
         assert!(
             w.reads.contains(&DeepAxis::BioMod),
             "BioMod is a within-epoch read: the pass sees this epoch's plane"
@@ -1546,9 +1508,7 @@ mod tests {
         assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/frost"));
         // **PINNED, not inherited from a tie-break.** Declaring BioMod as a real read
         // adds the `biotic → weather_inventory` edge, so the order the pass actually
-        // depends on is now enforced by the graph. Before the fix this held only
-        // because `dc:deep/biotic` sorts lexicographically first among the ready pool
-        // — rename either pass and the physics would have changed silently.
+        // depends on is enforced by the graph and survives a rename of either pass.
         assert!(pos("dc:deep/weather_inventory") > pos("dc:deep/biotic"));
 
         // Off-flag order is exactly the production order (the pass added nothing).

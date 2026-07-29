@@ -4,6 +4,12 @@
 ROADMAP-history`). Board size at that commit: **4,897 lines** against the class-REGISTRY
 threshold of 2,500.
 
+> **⚠ Line refs quoted from entries below are as-of that commit and some have drifted.** Row
+> **O-1**'s `runner.rs:542-544` / `:889` / `:532-535` / `:1454-1456` were invalidated the same
+> day by the `docs/design/pass-declaration-history.md` extraction (comment-only; the live values
+> are `:579-581`, `:933`, `:569-572`, `:1497-1499`, refreshed in `ROADMAP-history.md` where that
+> entry now lives). **Locate by content, never by number.**
+
 **What this audit is.** The two mechanical classes were already taken on 2026-07-29: the 37
 self-declared-resolved § Observed entries + 8 user strikes (morning, `scripts/roadmap_archive.py`,
 sourced from `docs/audits/baseline-2026-07-28/S6-roadmap-observed.md`), and the four superseded
