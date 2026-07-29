@@ -509,9 +509,18 @@ place — against an authored order there is nothing left for a tie-break to dec
   within-epoch and the runner rejects the cycle. `climate`'s `remarch_interval` is a
   low-rate pass. Re-housing
   is byte-identical (the production goldens are unmoved).
+  - **The RATE half is real since 2026-07-29** (journal/0123): cadence is **authored data**
+    (`deeptime/cadence.rs`'s `CadenceTable`, applied over each pass's declared default by
+    `deep_passes_with`), a firing pass takes its declared **sub-turns** with state carried
+    between them, and `dt` is consumed by the rate-shaped passes rather than assigned and
+    ignored. Still byte-identical under an empty table — the goldens are *still* unmoved, which
+    is what let the axis land against journal/0122's fixed point as a hash comparison.
+    *`declared_passes` is the one place the table is applied, so a new pass cannot be added past
+    it.*
 - `dc:deep/weather_inventory` (journal/0094, 2026-07-24): the **first *cellular*
   pass** on that runner — declares `reads {Settled|Compensated|Diffused, Frosted,
-  Exposed}`, `writes {Saprolite}`, `period = 1`, body a bare `fn`. The crossing
+  Exposed}`, `writes {Saprolite}`, `cadence: Cadence::EVERY_EPOCH` (`period = 1` until
+  journal/0123), body a bare `fn`. The crossing
   constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
   pointer, `runner.rs:881-888` — no closure crosses the seam), and `Saprolite` is an
   honest pure-write sink token in the `Geotherm` mould, so the pass is orderable
@@ -848,6 +857,12 @@ takes `dt` from outside and calcs its own internal multiplier in addition to tha
 bounds?"* **Yes — and that is the better placement.**
 **The kernel takes `dt` from outside and sub-divides internally to stay inside its own bound.**
 RATE stays exactly as ratified (authored cadence + a real `dt`); it is **not** expanded.
+
+**✅ The outside half exists now** (journal/0123): `Erosion::diffuse` reads
+`let rate = cfg.diffusion * dt;` — authored, from the runner — four lines above
+`let diff_sub = rate / f64::from(n_sub);` — derived, its own. **The extraction target for this
+spine is therefore a concrete pattern in a named function, not a sketch**, and the two divisions
+are already in the order and the ownership the ruling above requires.
 
 **Why the kernel and not the clock — ownership of knowledge.** Four inputs set the threshold and
 they have four different owners: the **stencil** (4- vs 8-neighbour → a different constant) is

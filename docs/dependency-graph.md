@@ -46,11 +46,11 @@ that exists here.
 |---|---|---|---|
 | **E1** | **pass-graph kernel** — today **derives** order from `{reads, writes}` (Kahn + tie-break); validating an *authored* order is **E7** | **BUILT** (7 passes) | — |
 | **E2** | **cell / record storage** | **BUILT** | — |
-| **E3** | **RATE — per-pass cadence + a real `dt`** | **RATIFIED 2026-07-24, NEVER BUILT.** `dt` pinned to `1.0`; nothing scales by it | E4's first extraction · every pass that wants a phase length |
+| **E3** | **RATE — per-pass cadence + a real `dt`** | **BUILT 2026-07-29** (journal/0123). Cadence is authored data (`CadenceTable`), sub-turns execute, `dt` is live in creep/uplift/thickening/inventory-weathering. Empty table = shipped world, hash-identical | ~~E4's first extraction~~ **unblocked** · every pass that wants a phase length |
 | **E4** | **field-solver primitives** — the S-10 gather; **the kernel owns its own stability bound** | **SHAPE NAMED 2026-07-29 (S-10), 2 instances, NOT EXTRACTED** | every future diffusing pass |
 | **E5** | **refinement primitives** — coarse→fine reconstruction | **DECIDED 2026-07-28 (tier) + 2026-07-29 (definition). ZERO MEMBERS. Undesigned.** First slice is a **design pass, not code** | the whole appearance cluster · `collapse.rs` decomp |
-| **E6** | **open resource vocabulary** — `DeepAxis` retires; packs declare their own ids | sequenced, after E3 | third-party packs |
-| **E7** | **authored order + the validator** | sequenced, after E3 | plugin-agnosticism |
+| **E6** | **open resource vocabulary** — `DeepAxis` retires; packs declare their own ids | **UNBLOCKED 2026-07-29** (E3 landed); sequenced | third-party packs |
+| **E7** | **authored order + the validator** | **UNBLOCKED 2026-07-29** (E3 landed); sequenced. **It brings the per-world manifest**, which is the loader `CadenceTable` was shaped for | plugin-agnosticism |
 | **E8** | **S2 statistical tier** | **HELD** — probable future primitive, zero consumers, *do not find it one* | nothing. **Gated on bio/eco, a USER call** |
 
 **E4's rule, and it is the whole reason it is engine-side:** four inputs set the stability
@@ -66,7 +66,7 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 
 | # | thing | state |
 |---|---|---|
-| **P1** | hillslope creep / erosion operator | **FIXED 2026-07-29** (journal/0122). Sub-cycles via a **stand-in** `dt` — `stubs.md` § 30, heir **E4** |
+| **P1** | hillslope creep / erosion operator | **FIXED 2026-07-29** (journal/0122). Takes `dt` from RATE since journal/0123; still sub-cycles **in the pass** — `stubs.md` § 30's remaining half, heir **E4** |
 | **P2** | `EROSION_CALIBRATION` re-pick + flag flip | **SEQUENCED.** 45 was fitted to the broken solve and inverts under the fixed one |
 | **P3** | flow / hydrology — face-flux record, head field | **BUILT AND IDLE.** Zero production consumers, *on purpose* |
 | **P4** | CoarseField **adoption** (U22 + U3) | **REVIVED 2026-07-29.** Extraction shipped 2026-07-22; adoption never happened |
@@ -80,11 +80,18 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 
 ## 3. The edges that actually decide the order
 
-**E3 (RATE) → P1.** `ARCHITECTURE.md` argued the creep blocker was *what RATE's absence
-produces*; on 2026-07-29 the pass, given no engine clock, **grew its own** `dt`. The argument
-is now confirmed from both sides. **E3's acceptance test is already discharged by the
-stand-in** — which makes the slice *sharper*: the axis lands against a known-good fixed point,
-so "did RATE reproduce it" is a hash comparison, not a judgement call.
+**E3 (RATE) → P1. ✅ DISCHARGED 2026-07-29 (journal/0123).** `ARCHITECTURE.md` argued the
+creep blocker was *what RATE's absence produces*; the pass, given no engine clock, **grew its
+own** `dt`, confirming it from both sides. RATE landed against that known-good fixed point and
+the hash comparison came back **identical** — `GOLDEN_SURFACE 0x15A6_B756_7A84_29FB` /
+`GOLDEN_RECORD 0x820B_A198_49DD_234A`, `tests/rate_axis.rs`. The pass now takes its phase
+length from the engine; **only the derived sub-step count stays inside it**, which is E4's half.
+
+**E3 → E4, the edge the slice sharpened.** RATE deliberately does **not** own stability
+substepping (user ruling, 2026-07-29). So the two divisions now sit four lines apart in
+`Erosion::diffuse` — *authored* `dt` from outside, *derived* `n_sub` inside — which is exactly
+the shape E4 has to hoist into the kernel. **E4's target is now a concrete two-line pattern in
+one function rather than a design sketch**, and `sat.rs` is its second instance.
 
 **P1 + `sat.rs` → E4.** Extraction needs two instances and a ruling on who owns the stability
 bound. **Both landed 2026-07-29.** E4 is ready to design.
@@ -117,8 +124,9 @@ re-picked, and it must be picked **against the published literature**, never aga
 
 ## 4. Ready to start today, in order
 
-1. **E3 — RATE.** Smallest it has ever been (the stand-in did the hard part), and it is the
-   only thing gating E6/E7.
+1. ~~**E3 — RATE.**~~ **✅ SHIPPED 2026-07-29 (journal/0123)** — hash-identical, and E6/E7 are
+   unblocked. *The rest of this list is unchanged in order; E3 leaving the top does not promote
+   anything past what already justified it.*
 2. **E5 — the refinement design pass.** A whole tier with zero members that the north star
    requires for plugin-agnosticism, with its inputs already built and idle.
 3. **P4 — CoarseField adoption.** Ratified, built, blocked by nothing, fixes two live user
@@ -126,6 +134,12 @@ re-picked, and it must be picked **against the published literature**, never aga
 4. **P2 — the calibration re-pick.** Needs a literature pass, not an engineering one.
 5. *(cheap, rides alongside anything)* the **cold-tier appearance probe** — render a cold tile
    and the same ground loaded, diff them. Never once run.
+6. *(owed by E3, small, and NOT a blocker)* **the remaining `dt` conversions** — stream
+   transport, bedrock weathering, the wind and wave agents still assume `dt = 1.0` in their
+   magnitudes. Each needs a **modelling** call, not a mechanical one (weathering is an
+   exponential approach: `1 − exp(−k·dt)`, not `k·dt`), and picking one silently re-tunes a
+   constant **P2 is about to re-pick anyway**. *Do these WITH P2, against the literature — not
+   before it.*
 
 **Blocked or deliberately parked:** P9 (user gate) · E8 (held) · P5 (OPEN EDGE) · `ores.md`'s
 conceptual revisit (owed, genuinely unscheduled).

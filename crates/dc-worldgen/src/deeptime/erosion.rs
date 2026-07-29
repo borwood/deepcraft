@@ -1965,11 +1965,15 @@ impl Erosion {
         // Phase 1: the external forcing. Legacy path adds a constant uplift plane
         // to bedrock; tectonic-history path adds the analytic thickening rate to
         // the crustal columns (elevation is then *derived* by isostasy, phase 8b).
+        // `step` is the one-epoch driver (profiling harnesses + the erodibility /
+        // deeptime tests still call it), so its phase length is one epoch: `dt =
+        // 1.0`. The runner drives the same phase methods at the cadence the world
+        // authored — this is the constant the RATE axis replaced there.
         let legacy_uplift = if cfg.tectonic_history {
-            self.apply_thickening(grid);
+            self.apply_thickening(grid, 1.0);
             0.0
         } else {
-            self.apply_uplift(grid)
+            self.apply_uplift(grid, 1.0)
         };
         self.expose(grid, cfg);
         self.periglacial(grid, cfg);
@@ -1982,7 +1986,7 @@ impl Erosion {
         }
         self.transport(grid, cfg);
         self.weather(grid, cfg);
-        self.diffuse(grid, cfg);
+        self.diffuse(grid, cfg, 1.0);
         // Phase 8b: exhumation bookkeeping + isostasy. The R-lowering the erosion
         // phases just did decrements `t_crust` and grows `exhum`; then Airy
         // compensation of the smoothed load derives the new bedrock surface. The
@@ -2016,7 +2020,11 @@ impl Erosion {
     /// (rift/trench/ridge); `t_crust` is floored so a column cannot thin to
     /// nothing. Purely per-cell → byte-identical parallel. Elevation is untouched
     /// here — that is isostasy's job.
-    pub fn apply_thickening(&mut self, grid: &mut DeepGrid) {
+    ///
+    /// **`dt` is the phase length** (RATE, journal/0123): the forcing plane is a
+    /// thickening *rate* per epoch, so a turn covering `dt` epochs adds `f × dt`.
+    /// `dt = 1.0` is bit-identical to the pre-RATE pass.
+    pub fn apply_thickening(&mut self, grid: &mut DeepGrid, dt: f64) {
         let forcing = &self.forcing;
         if forcing.is_empty() {
             return;
@@ -2025,10 +2033,10 @@ impl Erosion {
             grid.t_crust
                 .par_iter_mut()
                 .zip(forcing.par_iter())
-                .for_each(|(t, f)| *t = (*t + *f).max(1000.0));
+                .for_each(|(t, f)| *t = (*t + *f * dt).max(1000.0));
         } else {
             for (t, f) in grid.t_crust.iter_mut().zip(forcing.iter()) {
-                *t = (*t + *f).max(1000.0);
+                *t = (*t + *f * dt).max(1000.0);
             }
         }
     }
@@ -2101,19 +2109,25 @@ impl Erosion {
 
     // ---- phase 1: uplift into bedrock -------------------------------------
 
-    /// Add the per-cell uplift into bedrock. Returns the (constant) total.
-    pub fn apply_uplift(&mut self, grid: &mut DeepGrid) -> f64 {
+    /// Add the per-cell uplift into bedrock. Returns the total added.
+    ///
+    /// **`dt` is the phase length** (RATE, journal/0123): `grid.uplift` is metres
+    /// *per epoch*, so a turn covering `dt` epochs adds `u × dt` — and the ledger
+    /// total it returns scales with it, or the mass-conservation check would be
+    /// reading a different amount of time than the grid got. `dt = 1.0` is
+    /// bit-identical to the pre-RATE pass.
+    pub fn apply_uplift(&mut self, grid: &mut DeepGrid, dt: f64) -> f64 {
         if self.par() {
             grid.r
                 .par_iter_mut()
                 .zip(grid.uplift.par_iter())
-                .for_each(|(r, u)| *r += *u);
+                .for_each(|(r, u)| *r += *u * dt);
         } else {
             for i in 0..self.n {
-                grid.r[i] += grid.uplift[i];
+                grid.r[i] += grid.uplift[i] * dt;
             }
         }
-        self.uplift_sum
+        self.uplift_sum * dt
     }
 
     // ---- phase 1b: expose lithology (PARALLEL — per-cell independent) ------
@@ -3131,12 +3145,25 @@ impl Erosion {
     ///
     /// `n = 1` reproduces the previous operator **bit for bit** (`x / 1.0 == x`),
     /// so every world whose peak effective diffusivity already sat inside the
-    /// bound is untouched — which is the entire shipped configuration.
+    /// bound is untouched.
+    ///
+    /// **The shipped configuration is NOT such a world** — and the sentence that
+    /// used to end this paragraph said it was (anti-shape A-2, caught by the
+    /// 2026-07-29 spine-audit). journal/0122 measured the shipped world at **2.1×
+    /// past** the bound; it takes **`n = 2`**, `DeepConfig::creep_substep` defaults
+    /// **on**, and **its goldens moved with the fix**. A reader of this file alone
+    /// would have concluded that no golden could have moved, which is exactly
+    /// backwards. The reachable `n = 1` fixed point is
+    /// `creep_substep: false` — asserted by name in `tests/creep_operator.rs`
+    /// against `GOLDEN_SURFACE_UNBOUNDED_CREEP` / `GOLDEN_RECORD_UNBOUNDED_CREEP` —
+    /// and `the_shipped_world_has_cells_past_the_bound` in the same file is the
+    /// standing check that the claim above stays true.
     ///
     /// **Stability is therefore independent of the rate the caller states**, which
     /// is the property the brief asked for: the operator does not require a small
     /// `dt` to behave, because it no longer takes the caller's `dt` as its
-    /// integration step. The cost is `n×` the pass, paid at gen time, where this
+    /// integration step — it takes `dt` as the *amount of world time to integrate*
+    /// (RATE, journal/0123) and picks its own step inside it. The cost is `n×` the pass, paid at gen time, where this
     /// project's doctrine is explicit that time is not the constraint and
     /// simulation is never cheapened to save it.
     ///
@@ -3145,11 +3172,33 @@ impl Erosion {
     /// peat-dominated cell can carry several times the config rate, and it is the
     /// worst cell that decides whether *any* cell may oscillate. `f64::max` is
     /// order-independent, so the reduction cannot make the run non-deterministic.
-    pub fn diffuse(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
-        if cfg.diffusion <= 0.0 {
+    pub fn diffuse(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, dt: f64) {
+        // **`dt` from outside; the sub-cycle from inside** (RATE, journal/0123).
+        // `cfg.diffusion` is a rate *per epoch*; the phase length the runner hands
+        // this pass says how many epochs this turn covers, so the diffusivity the
+        // turn actually applies is the product. Then — and only then — the
+        // stability sub-cycle below divides that down to the von Neumann bound.
+        //
+        // The two divisions are NOT the same knob and must stay in this order:
+        // `dt` is **authored** (how much world time passed, a modelling choice),
+        // `n_sub` is **derived** (how finely this operator must integrate it to
+        // stay monotone, a numerical fact only the operator knows). That is the
+        // split the user ruled on 2026-07-29 when RATE was nearly widened to own
+        // substepping: *"couldn't substepping be solved within the field instead,
+        // where it takes `dt` from outside and calcs its own internal multiplier?"*
+        // Yes — and this is what that looks like. `stubs.md` § 30's remaining half
+        // is hoisting the derived multiplier into the S-10 field-solver kernel so
+        // no future pass author has to write the analysis; the authored half is
+        // discharged here.
+        //
+        // `dt = 1.0` (the shipped roster) is bit-identical to the pre-RATE
+        // operator: `x * 1.0 == x` exactly for f64, so `rate == cfg.diffusion` and
+        // every quantity below is the same bit pattern it was.
+        let rate = cfg.diffusion * dt;
+        if rate <= 0.0 {
             return;
         }
-        let d_max = self.max_eff_creep(grid, cfg.diffusion);
+        let d_max = self.max_eff_creep(grid, rate);
         let n_sub = if !cfg.creep_substep {
             // The pre-journal/0122 operator, bit for bit: one raw step at whatever
             // coefficient the config states. Kept reachable so the goldens captured
@@ -3164,7 +3213,7 @@ impl Erosion {
         };
         self.creep_substeps = n_sub;
         self.creep_peak_coeff = d_max;
-        let diff_sub = cfg.diffusion / f64::from(n_sub);
+        let diff_sub = rate / f64::from(n_sub);
         // The species itemisation is audited against the epoch's TOTAL ΔH, so a
         // sub-cycled epoch needs somewhere to accumulate it. Allocated only when
         // both sub-cycling and identity-carrying creep are live, so the shipped
@@ -4241,6 +4290,96 @@ mod hillslope_operator_tests {
         acc / n as f64
     }
 
+    /// **`dt` IS A TRUE MULTIPLIER OF THE RATE, TO THE BIT** (RATE, journal/0123).
+    ///
+    /// The claim the axis rests on is that a phase length is *time*: half the rate
+    /// for twice as long is the same amount of creep. Asserted as **bit equality**
+    /// rather than a tolerance, because it is not an approximation — `rate =
+    /// cfg.diffusion × dt` is one multiply, and doubling is exact in binary
+    /// floating point, so `0.12 × 2.0` and `0.24 × 1.0` are the same `f64`. A
+    /// tolerance here would hide the interesting failure: the operator quietly
+    /// dividing by `dt` somewhere else as well.
+    ///
+    /// Scale-free: a per-cell arithmetic identity, with no length in it.
+    #[test]
+    fn dt_scales_the_creep_rate_and_zero_stops_it() {
+        let cover = 4.0;
+        // Same product, stated two ways: an authored phase length of 2 epochs at
+        // half the per-epoch rate, against one epoch at the whole rate.
+        let mut slow = checkerboard(24, cover);
+        let mut long_step = Erosion::new(&slow);
+        long_step.diffuse(&mut slow, &creep_cfg(0.12), 2.0);
+
+        let mut fast = checkerboard(24, cover);
+        let mut one_epoch = Erosion::new(&fast);
+        one_epoch.diffuse(&mut fast, &creep_cfg(0.24), 1.0);
+
+        for (i, (a, b)) in slow.h.iter().zip(fast.h.iter()).enumerate() {
+            assert_eq!(
+                a.to_bits(),
+                b.to_bits(),
+                "cell {i}: half the rate for twice the phase length must be the \
+                 same creep ({a} != {b}) — `dt` is not scaling the rate"
+            );
+        }
+        // And the sub-cycle count follows the *scaled* rate, not the config one:
+        // a longer phase is a bigger step and needs finer integration, which is
+        // the whole reason the two divisions have to compose.
+        assert_eq!(long_step.creep_substeps(), one_epoch.creep_substeps());
+        assert_eq!(
+            long_step.creep_peak_coeff().to_bits(),
+            one_epoch.creep_peak_coeff().to_bits()
+        );
+
+        // A zero-length phase moves nothing — the degenerate case that proves the
+        // pass is reading `dt` at all rather than ignoring it in the common path.
+        let mut still = checkerboard(24, cover);
+        let before = still.h.clone();
+        Erosion::new(&still).diffuse(&mut still, &creep_cfg(0.24), 0.0);
+        assert_eq!(still.h, before, "a zero-length phase eroded something");
+    }
+
+    /// **The forcing passes are rate-shaped too**, and their `dt` scaling is exact
+    /// for the same reason: one multiply against a per-epoch plane. The ledger
+    /// total must scale with the grid, or the mass-conservation falsifier would be
+    /// accounting for a different amount of time than the world got.
+    #[test]
+    fn dt_scales_the_uplift_plane_and_its_ledger_together() {
+        // A grid with a non-uniform uplift plane and a flat bedrock datum.
+        fn uplifting(w: usize) -> DeepGrid {
+            let mut g = checkerboard(w, 0.0);
+            g.uplift = (0..w * w).map(|i| 0.25 + i as f64 * 0.001).collect();
+            g
+        }
+        let w = 16;
+        let plane = uplifting(w).uplift;
+        let expect: f64 = plane.iter().sum();
+
+        let mut doubled = uplifting(w);
+        let mut er = Erosion::new(&doubled);
+        let ledger = er.apply_uplift(&mut doubled, 2.0);
+        for (i, u) in plane.iter().enumerate() {
+            assert_eq!(
+                doubled.r[i].to_bits(),
+                (*u * 2.0).to_bits(),
+                "cell {i}: uplift did not scale by the phase length"
+            );
+        }
+        assert_eq!(
+            ledger.to_bits(),
+            (expect * 2.0).to_bits(),
+            "the ledger must account for the same phase length the grid got"
+        );
+
+        let mut zero = uplifting(w);
+        let mut er = Erosion::new(&zero);
+        assert_eq!(er.apply_uplift(&mut zero, 0.0), 0.0);
+        assert!(
+            zero.r.iter().all(|r| *r == 0.0),
+            "a zero-length phase uplifted something"
+        );
+    }
+
     /// **THE HYPOTHESIS, ISOLATED.** journal/0116 wrote it and explicitly declined
     /// to promote it: *"a donor-cell scheme that moves everything downslope has a
     /// period-2 mode by construction — A gives all its cover to B, B is now higher
@@ -4298,7 +4437,7 @@ mod hillslope_operator_tests {
         // --- the sub-cycled operator, same rate, same initial condition --------
         let mut grid = checkerboard(32, cover);
         let mut er = Erosion::new(&grid);
-        er.diffuse(&mut grid, &cfg);
+        er.diffuse(&mut grid, &cfg, 1.0);
         assert_eq!(
             er.creep_substeps(),
             (calibrated / CREEP_MAX_EDGE_COEFF).ceil() as u32,
@@ -4321,7 +4460,7 @@ mod hillslope_operator_tests {
                 a.abs() < a0 * 1e-3,
                 "step {step}: the checkerboard is still here, {a} of {a0}"
             );
-            er.diffuse(&mut grid, &cfg);
+            er.diffuse(&mut grid, &cfg, 1.0);
         }
     }
 
@@ -4340,7 +4479,7 @@ mod hillslope_operator_tests {
         let mut er = Erosion::new(&grid);
         let mut prev = signed_amplitude(&grid);
         for step in 0..8 {
-            er.diffuse(&mut grid, &cfg);
+            er.diffuse(&mut grid, &cfg, 1.0);
             assert_eq!(
                 er.creep_substeps(),
                 1,
@@ -4379,7 +4518,7 @@ mod hillslope_operator_tests {
             let before: f64 = grid.h.iter().sum();
             let mut er = Erosion::new(&grid);
             for _ in 0..20 {
-                er.diffuse(&mut grid, &cfg);
+                er.diffuse(&mut grid, &cfg, 1.0);
                 assert!(
                     grid.h.iter().all(|v| *v >= -1e-9),
                     "rate {rate}: regolith went negative"
@@ -4409,8 +4548,8 @@ mod hillslope_operator_tests {
         ea.set_parallel(false);
         eb.set_parallel(true);
         for _ in 0..4 {
-            ea.diffuse(&mut a, &cfg);
-            eb.diffuse(&mut b, &cfg);
+            ea.diffuse(&mut a, &cfg, 1.0);
+            eb.diffuse(&mut b, &cfg, 1.0);
         }
         assert_eq!(a.h, b.h, "scalar and parallel sub-cycling disagree");
     }
@@ -4426,7 +4565,7 @@ mod hillslope_operator_tests {
         let mut ea = Erosion::new(&a);
         let mut eb = Erosion::new(&b);
         for _ in 0..5 {
-            ea.diffuse(&mut a, &cfg);
+            ea.diffuse(&mut a, &cfg, 1.0);
             eb.diffuse_step(&mut b, &cfg, 0.12, false);
         }
         assert_eq!(a.h, b.h);

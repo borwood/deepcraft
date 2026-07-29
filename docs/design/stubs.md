@@ -1271,6 +1271,23 @@ at any realistic rate at all, which makes it the most valuable erosion work on t
 
 ### 30. a-pass-that-hand-rolled-its-own-timestep — *added 2026-07-29 (journal/0122); **heir named by the user in the same breath as the spine that excludes it***
 
+> **🟡 HALF DISCHARGED 2026-07-29 (journal/0123) — the AUTHORED half.** RATE is built. The pass
+> no longer assumes `dt = 1.0`: it takes its phase length from the runner
+> (`Erosion::diffuse(grid, cfg, dt)`, `rate = cfg.diffusion * dt`) and the shipped world is
+> **hash-identical** through it (`tests/rate_axis.rs`, `GOLDEN_SURFACE 0x15A6_B756_7A84_29FB` /
+> `GOLDEN_RECORD 0x820B_A198_49DD_234A`).
+>
+> **STILL OWED — the DERIVED half, and it is the whole reason this entry exists.** The
+> sub-cycle is still hand-rolled *inside this one pass*: `n = ceil(max_cell eff_diff /
+> CREEP_MAX_EDGE_COEFF)`, four lines below the `dt` multiply. **Heir unchanged: E4, the S-10
+> field-solver primitive.** The blast radius below is unchanged too — every future field pass
+> that diffuses anything still has no defence, because the analysis still lives in one author's
+> head and one function's body.
+>
+> *What the RATE slice bought E4, beyond unblocking it: the two divisions now sit four lines
+> apart in the order they have to be in — authored `dt` in, derived `n_sub` inside — so the
+> extraction target is a concrete pattern in a named function rather than a design sketch.*
+
 `Erosion::diffuse` sub-cycles itself: `n = ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)`,
 with `n = 1` bit-identical to the pre-slice operator. It is correct, it is derived (from the
 von Neumann bound `a = 1/8`, not fitted), and it is the reason the calibrated solve no longer
@@ -1278,8 +1295,9 @@ oscillates. **It is also a `dt`, computed inside a pass, because the engine does
 
 **What it stands in for: RATE.** Ratified 2026-07-24 from the user's 2026-07-23 sketch — a
 pass's phase length, `dt` scaling its transformations, a high-rate pass running several
-sub-turns while a low-rate one runs once — and **never built**; `dt` is pinned to `1.0` and no
-transform scales by it. `ARCHITECTURE.md` had already argued that **this blocker is what RATE's
+sub-turns while a low-rate one runs once — and ~~**never built**; `dt` is pinned to `1.0` and no
+transform scales by it~~ **built 2026-07-29, journal/0123** (the struck clause is what was true
+when this entry was written, hours earlier). `ARCHITECTURE.md` had already argued that **this blocker is what RATE's
 absence produces**. That argument is now confirmed from the other side: the pass, given no
 engine clock, grew its own.
 
