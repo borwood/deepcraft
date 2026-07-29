@@ -270,6 +270,27 @@ API.md, materials, worldgen, visuals, and the idea inventory all came from)
 → integrate on landing → journal → next. Sequence lives in ROADMAP; consult
 it at session start, leave it true at session end.
 
+**And the graph lives in [`docs/dependency-graph.md`](../../../docs/dependency-graph.md)**
+(added 2026-07-29, user: *"fold in graph-building to the main session's process,
+checking it at start and end of session and updating it throughout"*). ROADMAP
+says *what order we chose*; the graph says *why that order is forced* and what
+is startable **today**.
+
+- **START** — read it beside the ROADMAP close block. It answers *"what can I
+  begin right now, and what is it downstream of?"* faster than anything else in
+  the corpus, and it carries the **engine/SDK ↔ default-pack partition** so that
+  question stops being answered from memory.
+- **THROUGHOUT** — a slice that moves a state or reveals an edge updates the
+  graph **in the same commit**, exactly like ROADMAP. *An edge discovered and not
+  written down is the failure the file was built to stop.*
+- **END** — `wrap` § 9 reconciles it.
+
+**Why it exists, in one line:** a cold session called the highest-value item on
+the board *"engine work"* because the previous night's close block said so, while
+read-first item 0 refuted it **by name** (corrections #71) — *a close block is a
+handoff, not an authority.* The graph is the durable answer that a close block
+was being asked to carry and could not.
+
 ## Proven practice additions (2026-07-21, session 5)
 
 - **The live guided-tour ratification** (journal/0049, user-directed): for

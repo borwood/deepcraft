@@ -1283,19 +1283,29 @@ transform scales by it. `ARCHITECTURE.md` had already argued that **this blocker
 absence produces**. That argument is now confirmed from the other side: the pass, given no
 engine clock, grew its own.
 
-**The user's ruling, 2026-07-29 — and it is a decomposition, not just a filing.** Ratifying the
-new shape as **S-10**, the user cut it: *"the sub-cycle part belongs with RATE."* So the
-**gather** is the field-solver spine and the **sub-cycle is not part of it** — substepping for
-stability is a *timestep* concern owned by the engine's clock, not a property of the solver
-shape. `sat.rs`, the other S-10 instance, needs no sub-cycle only because `lateral_c = 0.25`
-happens to sit inside its own stability bound by parameter choice — **an accident of tuning, not
-a design**, and precisely the kind of latent trap S-10-without-RATE leaves for the next author.
+**HEIR — RE-POINTED 2026-07-29 (user), the same day it was first assigned.** The first ruling
+sent the sub-cycle to **RATE** (*"the sub-cycle part belongs with RATE"*). The user re-opened it
+rather than let RATE grow — *"I really hate to make RATE more complex now. Couldn't substepping
+be solved within the field instead, where it takes `dt` from outside and calcs its own internal
+multiplier in addition to that to stay within bounds?"* — and that is the better placement.
+**Heir: the S-10 field-solver primitive itself.** The kernel takes `dt` from outside and
+sub-divides internally to stay inside its own bound. **RATE is NOT expanded** and stays as
+ratified: authored cadence plus a real `dt`. *The scope-expansion flag this entry carried for a
+few hours is withdrawn — RATE is untouched.*
 
-**⚠ This expands RATE's ratified scope.** RATE was sketched as *authored cadence* (how often a
-pass runs). This adds **derived, stability-driven substepping** (how finely it must run to stay
-in its own bound) — the engine computing `n` from the pass's declared coefficient and the
-solver's known limit. Same machinery, and the second half is the one with a falsifiable
-criterion. **Flagged, not assumed:** the user ruled the *placement*, not the scope expansion.
+**Why the kernel owns it.** Four inputs set the threshold, four owners: the **stencil** (a
+different constant for a 4- vs 8-neighbour Laplacian) is the *kernel's*; **`dx`** and **`dt`**
+are the *engine's*; the **coefficient field** is *content*. Only the kernel can know its own
+constant. Housed anywhere else, every plugin author needs a von Neumann analysis before writing
+a diffusion pass — the exact prerequisite plugin-agnosticism forbids.
+
+**And the bound is NOT material availability.** That is the *inventory* limiter, a different
+mechanism; the stability bound is **numerical** and would exist if every cell held infinite
+material. The inventory limiter **masks** it — capping the flipped mode at what the cell holds
+turns a blow-up into a finite limit cycle, which reads as stable and is deaf to `dt`. `sat.rs`
+needs no sub-cycle only because `lateral_c = 0.25` happens to sit inside its bound **by
+parameter choice** — an accident of tuning, not a design, and precisely the trap the next author
+inherits if the bound does not live with the kernel.
 
 **Blast radius:** every future field pass that diffuses anything. Right now the only defence
 against shipping past a stability bound is that one author did the analysis once, in one pass —

@@ -719,14 +719,51 @@ arrive in exactly one other.
   **already was** this shape, which is why mass-exactness and order-independence came free when
   the operator was rebuilt.
 
-**⚠ THE SUB-CYCLE IS NOT PART OF THIS SPINE — user ruling, 2026-07-29, given while ratifying it:
-*"the sub-cycle part belongs with RATE."*** Stability substepping is a **timestep** concern,
-owned by the engine clock, not a property of the solver shape. A reader must not conclude that
-implementing S-10 makes a pass stable. **It does not**, and the two instances prove it from
-opposite sides: `sat.rs` is stable only because `lateral_c = 0.25` happens to sit inside its own
-von Neumann bound **by parameter choice**, and `erosion.rs` was **2.1× past that bound on the
-shipped world** — same shape, one accidentally safe, one silently not, for weeks, with every
-golden green. The missing half is `stubs.md` § 30, heir **RATE**.
+**⚠ STABILITY IS THE KERNEL'S OWN BUSINESS — REVISED 2026-07-29 (user), superseding the same
+day's first ruling.** The first cut placed substepping with **RATE** (*"the sub-cycle part
+belongs with RATE"*). The user then re-opened it rather than let RATE grow: *"I really hate to
+make RATE more complex now. Couldn't substepping be solved within the field instead, where it
+takes `dt` from outside and calcs its own internal multiplier in addition to that to stay within
+bounds?"* **Yes — and that is the better placement.**
+**The kernel takes `dt` from outside and sub-divides internally to stay inside its own bound.**
+RATE stays exactly as ratified (authored cadence + a real `dt`); it is **not** expanded.
+
+**Why the kernel and not the clock — ownership of knowledge.** Four inputs set the threshold and
+they have four different owners: the **stencil** (4- vs 8-neighbour → a different constant) is
+the *kernel's*; **`dx`** and **`dt`** are the *engine's*; the **coefficient field** is *content*.
+Only the kernel knows the constant, because it is a property of the discretisation the kernel
+implements. Put it anywhere else and every plugin author inherits a von Neumann analysis as a
+prerequisite for writing a diffusion pass — which is exactly the plugin-agnosticism the north
+star forbids trading away. Housed in the kernel, the unsafe call is **inexpressible**: the same
+move as `CoarseField` making the raw per-cell read unsayable.
+
+**⚠ AND THE BOUND IS NOT ABOUT HAVING ENOUGH MATERIAL.** Three limits live in this shape and
+conflating them is what hid the defect: **inventory** (don't ship more than you hold — physical,
+prevents negative mass) · **overshoot** (don't ship more than would level the pair — physical,
+kills the period-2 flip) · **stability** (`a ≤ 1/8` — **numerical**, a property of the
+discretisation that would exist if every cell held infinite material). *The inventory limiter
+MASKS a stability violation*: the coefficient makes the grid mode flip sign, the limiter caps
+the flip at the cell's inventory, and a blow-up becomes a **finite limit cycle**. A bounded wrong
+answer reads as a stable one — and that is also why refining `dt` did nothing.
+
+**So: implementing S-10 does NOT by itself make a pass stable — the kernel must carry its own
+bound.** The two instances prove it from opposite sides: `sat.rs` is stable only because
+`lateral_c = 0.25` happens to sit inside its bound **by parameter choice**, and `erosion.rs` was
+**2.1× past that bound on the shipped world** — same shape, one accidentally safe, one silently
+not, for weeks, with every golden green. Stand-in: `stubs.md` § 30, heir **this primitive**.
+
+**Two properties the first cut must have, and one it must not.**
+- **Report the sub-step count.** Calibrated, `n = 100`. **The cost is gen-time, which is free by
+  doctrine** — *"gen time is not a constraint; ready-made worlds are the sanctioned answer"* —
+  so this is a **diagnostic**, not a perf guard, and must not be argued as one. *(An earlier
+  draft of this reasoning invoked "runtime is sacred", which governs the **gameplay** clock and
+  has no authority over deeptime. User-corrected 2026-07-29 before it reached a doc.)*
+- **`n` is set by the max cell over the whole grid** — one hot coefficient sub-divides
+  everywhere, which is why the calibrated cost is 6.9× rather than proportional to the affected
+  area.
+- **Do NOT make substepping locally adaptive in the first cut.** It is the obvious optimisation
+  and it **breaks order-independence** unless sub-domains are handled with care — and
+  order-independence is half of what makes this a spine.
 
 **Why it is a spine and not a utility.** It is the concrete shape behind
 `material-behavior.md` § 6's ratified *"bounded local relaxation attenuated by a per-material

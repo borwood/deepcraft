@@ -43,6 +43,14 @@ Voxel game, bespoke Rust/Bevy stack. Internal codename; public name TBD.
    refutation sat 400 lines apart for three days and cost an architecture
    (corrections #65, journal/0119). Run it after any batch of merges that ships an
    arc.
+1c. **[`docs/dependency-graph.md`](docs/dependency-graph.md)** — **what blocks what**, and the
+   **engine/SDK ↔ default-pack partition** stated once so it stops being answered from memory.
+   ROADMAP holds *what order we chose*; this holds *why that order is forced* and what is
+   genuinely startable today. **Read at session start, update in the same commit as any slice
+   that moves a state or reveals an edge, checked by `wrap` at the end** (user, 2026-07-29).
+   *Added after a cold session classified the highest-value item on the board as "engine work"
+   because the previous night's close block said so, while read-first item 0 refuted it **by
+   name** — corrections #71. **Every pass is content, including tectonics and erosion.***
 2. **[`docs/design/things-that-will-happen.md`](docs/design/things-that-will-happen.md)**
    — one-line concrete examples of what this game IS. Read before the design
    docs; it loads the mental model fastest. Append to it whenever a genuinely

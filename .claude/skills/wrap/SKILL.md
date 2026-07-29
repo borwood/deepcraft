@@ -99,6 +99,22 @@ marked superseded**; decisions recorded in the design doc that owns them, not
 only in conversation; `things-that-will-happen.md` fed if a genuinely
 informative example surfaced.
 
+**And [`docs/dependency-graph.md`](../../../docs/dependency-graph.md) reconciled**
+(added 2026-07-29, user). For every slice that shipped this session: did it move
+a row's state, retire an edge, or reveal one? **A slice that shipped and left a
+row stale is an unclosed loop** — the graph is the artifact a cold session reads
+to answer *"what can I start right now"*, so a wrong row misdirects the next
+session's first hour.
+
+Two specific checks, both from failures already observed here:
+- **Did anything become built-and-idle?** That is an **edge, not a rest state** —
+  it is either about to be consumed or about to be deleted, and the graph must
+  say which. `sample_dithered` sat built, uncalled, and absent from all three
+  loose-end loci for seven days.
+- **Did any placement get ruled** (engine vs pack, primitive vs content)? Record
+  it **with where it was ruled**. A placement whose provenance is lost gets
+  re-derived from memory, and that is exactly how corrections #71 happened.
+
 ## 10. Repo and machine hygiene
 
 Merged worktrees removed and branches deleted; unmerged ones named with what

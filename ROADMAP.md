@@ -1232,12 +1232,20 @@ see the question you are asking.
       — the axis now lands against a **known-good fixed point** instead of against a defect,
       so "did RATE reproduce it" is a hash comparison rather than a judgement call.
       `stubs.md` § 30 carries the stand-in with RATE named as its heir.
-    - **⚠ SCOPE EXPANSION, FLAGGED NOT ASSUMED.** RATE was sketched as **authored cadence**
-      (how often a pass runs). The stand-in adds **derived, stability-driven substepping**
-      (how finely it *must* run to stay inside its own bound) — the engine computing `n` from
-      a pass's declared coefficient and the solver's known limit. The user ruled the
-      **placement** (*"the sub-cycle part belongs with RATE"*, 2026-07-29, while ratifying
-      S-10) — **not** this scope expansion. Confirm before building the second half.
+    - **✅ RATE IS NOT EXPANDED — scope-expansion flag WITHDRAWN 2026-07-29, same day, by the
+      user.** For a few hours this entry said the stand-in widened RATE from *authored cadence*
+      to *derived stability substepping*. The user rejected the widening rather than accept it
+      — *"I really hate to make RATE more complex now. Couldn't substepping be solved within
+      the field instead, where it takes `dt` from outside and calcs its own internal multiplier
+      to stay within bounds?"* **Yes.** Stability substepping now belongs to the **S-10
+      field-solver primitive** (`spines.md` § S-10; `stubs.md` § 30's heir re-pointed there).
+      **RATE stays exactly as ratified 2026-07-24: authored cadence and a real `dt`.**
+      *Reason: only the kernel knows its own stability constant — it is a property of the
+      discretisation. In RATE, every plugin author inherits a von Neumann analysis as a
+      prerequisite for writing a diffusion pass; in the kernel, the unsafe call is
+      inexpressible.*
+    - **RATE still supplies the `dt` the kernel sub-divides**, so this slice is unchanged in
+      substance and smaller in scope than it was this morning.
     - **WHY IT NOW LEADS.** The shipped world sat **2.1× past its own stability bound** for
       weeks with every golden green, and the only thing that caught it was one author doing
       the analysis once, in one pass. **Every future field pass that diffuses anything has
