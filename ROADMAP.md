@@ -4766,7 +4766,83 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-28 EVENING close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-29 close (supersedes every earlier block)
+
+**Sweeps first** (the `SessionStart` hook says which are due), then **[`docs/dependency-graph.md`](docs/dependency-graph.md)**
+— new today, read-first item 1c — then this block. Then `corrections.md` **#71–#72**.
+
+### The one sentence that matters
+**The top blocker is gone** — journal/0122 fixed the hillslope operator, discharging *"until this
+lands the engine cannot run erosion at ANY realistic rate"* — **and the two things it taught are
+worth more than the fix: the shipped world had been 2.1× past its own numerical stability bound
+for weeks with every golden green, and the pass hand-rolled a `dt` because the engine has none.**
+
+### Ratified (user's terms)
+- **Refinement primitives, DEFINED** — *"any primitive responsible for the way things are actually
+  drawn in the runtime game where we interpolate/upscale fine chunks from coarse cells… **totally
+  necessary for a plugin-agnostic engine**."* Zero members exist; the tier's first member is unscoped.
+- **S-10 ratified** — the frozen-snapshot doubly-limited gather (2 instances: `sat.rs`, creep).
+- **Stability belongs to the KERNEL, not RATE** — ruled, then **re-ruled the same day**: *"I really
+  hate to make RATE more complex now. Couldn't substepping be solved within the field instead, where
+  it takes `dt` from outside and calcs its own internal multiplier?"* **RATE is NOT expanded.**
+- **RATE sequenced ahead of the refinement design pass.**
+- **The pre-flip appearance hold is RELEASED, by the user withdrawing their own ratification** —
+  *"I do not care if frost/wind magnitudes increase 45×, do not try for byte identicality on
+  `calibrated_rates`, I do not care about my previous ratification on looks there."*
+- **8 user field reports struck** as stale-by-moved-implementation; **U16 struck** on the grounds that
+  grass/dirt are not generated in the current pack shape.
+- **The S2 statistical tier is HELD** — probable future primitive; **do not find it a consumer**.
+- **Graph-building folded into the session process** — start / throughout / `wrap` § 9.
+
+### Falsified — the assistant's own first
+- **#71 — "the erosion axis is engine work."** I read the newest artifact in the corpus (last
+  night's close block) and repeated its side **while holding `CLAUDE.md` in context**, which says
+  *every pass is content, including tectonics and erosion* **by name**. Second instance of #68's
+  mechanism, source-vs-source. **A close block is a HANDOFF, not an authority.**
+- **#72 — "the stability-limit story is falsified"** (#63 ii) is itself falsified. journal/0116's 4×
+  refinement moved 100.8× past the bound to **25.2× past it** — its null was a statement about the
+  number 4. Coefficient and limiter were never rival diagnoses: **the limiter MASKS the instability**,
+  capping a flipped mode into a finite limit cycle that reads as stable and is deaf to `dt`.
+- **I claimed `spines.md` § 3 lacked a third exit and wrote it into `ARCHITECTURE.md`.** It had all
+  three, a day earlier. Corrected in place.
+- **I imported the wrong clock** — argued substep cost under *"runtime is sacred"*, which governs the
+  **gameplay** clock; gen time is free by doctrine. User-caught before it reached a doc.
+- **I miscounted the open field reports** (15, actually 16) inside the brief that dispatched the work.
+
+### First things next session
+1. **`spine-audit` — still never run**, and now more owed: today added **S-10** and a **CoarseField
+   § 3 row**. Its waiting finding is unchanged: **`spines.md` § S-6 still teaches order-derived-by-
+   topo-sort as the exemplary compliant shape**, in the doc every brief justifies itself against.
+2. **RATE** (`docs/dependency-graph.md` E3) — smallest it has ever been, because the stand-in already
+   did the hard part and left a **known-good fixed point** to hash against.
+3. **The refinement design pass** (E5) — its inputs (flux record, head field) are **built and idle**.
+
+### ⚠ Owed / unverified — deliberately not done
+- **17 escalations** from the corpus agent, filed and unactioned — `north-star.md` Deviation 2's
+  enumeration (⚠ contests a user block), `ARCHITECTURE.md`'s social/history pipeline needing
+  **ON HOLD not strike**, `ores.md` R8 naming (⚠ contests `geology.md`), **`journal/0059` the lost
+  entry**. Each carries its own disposition line in `docs/audits/baseline-2026-07-28/`.
+- **16 user field reports open**, each with an evidence line. **Two are ripe for your word: U2**
+  (journal/0119 shows weathering is mass-neutral **to the bit** — the answer is *"it doesn't"*) and
+  **U26** (premise falsified — `Quarter`/`Slab` *are* emitted — but the design ask is untouched).
+- **`EROSION_CALIBRATION` re-pick is sequenced, not done.** 45 was fitted to the broken solve and
+  **inverts** under the fixed one (cover now *thins* with the multiplier). `calibrated_rates` ships
+  **false**. Pick against the **published band**, never a look.
+- **`flow_cost_probe` still not `test = true`** — the probe the whole rule was earned on. Mechanical.
+- **`journal/0117` does not exist** — skipped number or lost entry; nobody has checked.
+- **`ROADMAP.md` is 5,176 lines** against 2,500 even after archiving 45 today.
+  `scripts/roadmap_archive.py` does the mechanical half (**hardcoded path — edit before use**).
+- **The two `sweep_due_hook.py` thresholds are still unverified guesses.**
+
+### Running
+**Nothing.** All three agents in, worktrees removed, branches deleted, tree clean, pushed, no lock,
+port 7777 free. Gate verified on main at `8987944` — **822 tests, 0 failed**, `Compiling dc-worldgen`
+from main's checkout after `cargo clean -p`, five new gate tests confirmed **by name**. No Rust has
+changed since.
+
+---
+
+## NEXT SESSION — written at the 2026-07-28 EVENING close (SUPERSEDED by the block above)
 
 **A `SessionStart` hook will already have told you which sweeps are DUE. Run them first** — that
 is now the standing rule (user). Then read `corrections.md` **#68–#70**, then this block.
