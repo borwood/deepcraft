@@ -4,7 +4,42 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: **2026-07-25 (post-FLOW batch)** — the five merges since
+*Last `spine-audit` sweep: **2026-07-29, at `96ab14b`** — the first sweep with a recorded
+watermark (`docs/audits/.sweep-watermarks.json`; the key was `null` until this run, so this was
+a **full pass**, not a delta). Delta since the previous sweep's tree: journal/0108–0122 plus the
+2026-07-28 baseline batch and the 2026-07-28 bootstrap-content removal. **§ 3: no row added, no
+row removed — all thirteen re-confirmed uncalled in production at `96ab14b`** (searches recorded
+per row below; each is a `grep -rn --include=*.rs crates/` for the symbol with the defining file
+excluded). **Findings:**
+1. **S-10's first instance cited a path that does not exist** — `deeptime/sat.rs`; the file is
+   `dc-worldgen/src/water/sat.rs`. Fixed below, **and the correction matters more than the
+   typo**: the corrected path lands inside the S11 water module, which § 3 lists as *"not on
+   the production path"*. The spine's exemplar instance is **unconsumed machinery**, and the
+   entry's own argument (*`sat.rs` is stable only because `lateral_c = 0.25` happens to sit
+   inside its bound*, verified `water/sat.rs:82`) is therefore a statement about code no world
+   runs. That does not weaken the spine — two instances is still two — but a reader picking an
+   exemplar to copy should know which one ships.
+2. **Four `spines.md` entries still read as LIVE defects that were fixed days ago** — S-6's two
+   `weather_inventory` declaration defects, A-2's `BEDROCK_SEAM_THICKNESS_M`, A-2's
+   `flux_record_probe` caption, A-2's `S17` layout staleness. **The file's own header said all
+   four were applied; the bodies did not.** This is CLAUDE.md read-first item 5's
+   *one-directional pointer* failure committed inside the doc that indexes it — a cold reader
+   enters at the section, not at the header. All four stamped in place this sweep.
+3. **NEW A-2 instance: `draws.rs`'s completeness claim is false** (`crates/dc-worldgen/src/draws.rs:23`,
+   *"There is no expression anywhere in worldgen that turns a number into randomness"*).
+   Four hand-rolled salts survive with eight live `draw_f64` call sites; its § *"The one honest
+   hole left, and the residue of the other"* names only one of them. See A-2.
+4. **NEW finding in a file changed the day before this sweep: `Erosion::diffuse`'s doc comment
+   contradicts its own journal entry** — see A-2.
+5. **Line-reference drift is now the doc's largest correctness liability.** `field.rs`,
+   `inventory.rs` and `runner.rs` have each moved by hundreds of lines since their citations
+   were written (`FactLedger` cited at `inventory.rs:239-259`, actually `:659`;
+   `derive_regolith_at` cited at `field.rs:598-606`, actually `:818`; `chapters` cited at
+   `field.rs:367`, actually `:581`). **§ 3's refs are refreshed at `96ab14b`; the narrative
+   sections' are NOT** — refreshing ~90 citations is a slice, not a sweep, and every one of them
+   is a `git log -S` away for whoever needs it. Recorded as owed rather than silently half-done.*
+
+*Previous: **2026-07-25 (post-FLOW batch)** — the five merges since
 the last sweep: FLOW slice 1 (`0096`), the weathering profile (`0099`), the `FactLedger`
 CSR (`0100`), FLOW (a) the head field (`0098`), and `identify(pos)` (`0101`).
 **Both findings of the 2026-07-24 sweep were applied** and verified in code: the
@@ -419,8 +454,16 @@ files.
   constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
   pointer, `runner.rs:596-604` — no closure crosses the seam), and `Saprolite` is an
   honest pure-write sink token in the `Geotherm` mould, so the pass is orderable
-  without perturbing the erosion pipeline. **Two declaration defects found by this
-  sweep, both cheap to fix and neither behavioural today:**
+  without perturbing the erosion pipeline. **✅ BOTH DECLARATION DEFECTS BELOW ARE CLOSED —
+  verified in code 2026-07-29 at `96ab14b`** (they were fixed 2026-07-25 and this section never
+  said so; the file header did, ~400 lines up, which is the one-directional pointer failure).
+  `runner.rs:525-530` now carries the reasoning verbatim — *"a `reads_prev` declaration was a
+  fiction: with no edge … `biotic → weather_inventory`, and nothing reads `Saprolite`, so there
+  is no cycle"* — and `runner.rs:532` states *"**`Exposed` is deliberately NOT declared**:
+  susceptibility is a constant off …"*. **The two entries below are preserved as the record of
+  what was found and why; neither is a live defect.** *(Line refs inside them are as-of
+  2026-07-24 and have drifted — `runner.rs` has moved by ~130 lines.)* **Two declaration defects
+  found by the 2026-07-24 sweep, both cheap to fix and neither behavioural then:**
   1. **`reads_prev: &[BioMod]` is not what happens** (`runner.rs:601`, comment
      `runner.rs:592-593` — *"loop-carried, like `weather`/`diffuse` — last epoch's
      BioMod"*). `weather_epoch` reads `grid.bio_weather`
@@ -712,10 +755,17 @@ the gather order-free, and the antisymmetric edge flux makes every unit that lea
 arrive in exactly one other.
 
 **Instances (2):**
-- `dc-worldgen/src/deeptime/sat.rs` — bound water. Permeability-limited lateral redistribution
-  on head `H = y + sat`; its own header claims mass-exact and order-independent *by
-  construction*, and that claim is the shape stated in the code before it was named here.
-- `dc-worldgen/src/erosion.rs::diffuse` — hillslope creep (journal/0122). The inner step
+- `dc-worldgen/src/water/sat.rs` — bound water. Permeability-limited lateral redistribution
+  on head `H = y + sat`; its own header (`water/sat.rs:9-14`) claims mass-exact and
+  order-independent *by construction*, and that claim is the shape stated in the code before it
+  was named here. **⚠ Path corrected 2026-07-29 (spine-audit at `96ab14b`) — this entry read
+  `deeptime/sat.rs`, which does not exist — and the correction carries a fact worth having:
+  the real path is inside the S11 water module, which § 3 lists as *"not on the production
+  path"*. This exemplar is UNCONSUMED machinery.** Its `lateral_c = 0.25` (`water/sat.rs:82`,
+  read at `96ab14b`) is the "safe by parameter choice" the section below argues from — safe in
+  a module no world runs.
+- `dc-worldgen/src/deeptime/erosion.rs::diffuse` (`erosion.rs:3148` at `96ab14b`) — hillslope
+  creep (journal/0122). The inner step
   **already was** this shape, which is why mass-exactness and order-independence came free when
   the operator was rebuilt.
 
@@ -832,7 +882,12 @@ so a sweep must ask "does the cited constraint still hold?"
 
 - **instance (2026-07-24, caught by the post-M3 sweep):
   `BEDROCK_SEAM_THICKNESS_M`'s justification expired the day Movement 3 merged.**
-  `inventory.rs:425-429` still reads *"a made-up depth chosen only to be an
+  **✅ APPLIED — verified 2026-07-29 at `96ab14b`: the proposed wording is in the tree, at
+  `inventory.rs:1278-1290`** (the constant moved from `:425` to `:1290`), and it goes further
+  than proposed — it keeps an explicit `**A-2 correction (spine-audit 2026-07-24)**` paragraph
+  naming the retired claim, which is the shape every A-2 fix should take. *Preserved below as
+  the finding; the "still reads" is a statement about 2026-07-24, not about today.*
+  `inventory.rs:425-429` then read *"a made-up depth chosen only to be an
   **effectively-inexhaustible** `Structure→Loose` source **over the one chapter this
   slice weathers**"*. Weathering is no longer one chapter: `dc:deep/weather_inventory`
   fires every epoch for the whole run and **accumulates**, and the measured
@@ -847,7 +902,11 @@ so a sweep must ask "does the cited constraint still hold?"
   inexhaustible source; the genesis/emplacement heir supplies a real per-column
   unroofing depth and retires it."*
 - **instance (2026-07-25, caught by the post-FLOW sweep): a measurement instrument
-  that prints a caption contradicting its own number.**
+  that prints a caption contradicting its own number. ✅ FIXED — verified 2026-07-29 at
+  `96ab14b`:** `flux_record_probe.rs:111` now prints `"<- filled by the head field"`, and
+  `:105-107` carries a comment recording *why* the caption was wrong (*"the named … probe was
+  printing a non-zero count beside the word EMPTY. Nothing failed"*). The proposed wording
+  shipped essentially verbatim.
   `dc-worldgen/examples/flux_record_probe.rs:98-101` prints the vertical-face count
   labelled *"structurally present, honestly EMPTY (no infiltration term in this solve;
   **heirs: the head field** + the free/bound edge)"*. That heir **landed the next day**
@@ -863,7 +922,13 @@ so a sweep must ask "does the cited constraint still hold?"
   individually — `field.rs:350`, `flux.rs:789` and `grid.rs:285` all say *"which FLOW
   slice 1 **left** …"*, past tense, which is a true statement about a prior slice.
 - **staleness, adjacent to A-2 (2026-07-25): a spike result doc describing a layout
-  that no longer exists.** `docs/spikes/S17-deep-cell-inventory-results.md:284,293`
+  that no longer exists. ✅ APPLIED — verified 2026-07-29 at `96ab14b`:**
+  `S17-deep-cell-inventory-results.md:285` carries an inline `// ^ SUPERSEDED 2026-07-25
+  (journal/0100)` **inside the code block itself**, and `:294-298` the full banner. Note the
+  inline marker: the body stayed immutable and the *pointer* went where the wrong shape is
+  actually read — the letter of read-first item 5's "immutable body, mutable header", applied
+  mid-document. Original finding preserved:
+  `docs/spikes/S17-deep-cell-inventory-results.md:284,293`
   still states, present tense, *"`struct FactLedger { facts: Vec<Vec<Fact>> }`"* and
   *"The ledger is a **sidecar** `Vec<Vec<Fact>>` keyed by unit index"* — converted to
   flat + CSR by journal/0100. Its sibling `S19-flow-record-cost-results.md:152-158`
@@ -1007,6 +1072,54 @@ so a sweep must ask "does the cited constraint still hold?"
     from the shape of the code instead of from what it executes — produced both halves,
     six lines apart, in the entry that named the reflex.*
 
+- **NEW instance (found 2026-07-29 by the first watermarked sweep, read at `96ab14b`) — a
+  completeness claim that was FALSE WHEN WRITTEN, in the file whose whole purpose is
+  completeness.** `crates/dc-worldgen/src/draws.rs:23` asserts *"There is no expression anywhere
+  in worldgen that turns a number into randomness"*, and its § *"The one honest hole left, and
+  the residue of the other"* (`:32-60`) inventories the residue: tag space inside a domain, and
+  `SALT_DT_ROUGH` surviving for `deeptime/refine.rs`'s fourth call site. **The inventory is
+  short by four salts and eight call sites.** Live at `96ab14b`, all reached through
+  `dc_sim::statistical::rng::draw_f64` directly:
+  - `deeptime/tectonics.rs:51-53` — `SALT_TEC_POS` / `SALT_TEC_VEL` / `SALT_TEC_CRUST`, under a
+    **third** numbering prefix (`0x5D00_*`), with seven call sites at `:115-121` and `:409`.
+    These are plate seeding and crustal jitter — not a spike, the shipped tectonic history.
+  - `deeptime/refine.rs:29` — `SALT_DT_PERTURB` (`0x5900_0002`), call site `:180`.
+
+  **The claim is not merely stale — `draws.rs` landed 2026-07-26 (journal/0105/0118) and
+  `tectonics.rs`'s three constants predate it.** So this is the *"did it ever?"* variant the
+  pore-rider entry above named, and it arrived by the same mechanism as corrections #64's
+  *"two draws"*: the author enumerated the sites the conversion **touched** and generalised to
+  the sites that **exist**. Note where it lands — the paragraph immediately above this one, and
+  A-2's own `pore_rider_share` entry, both celebrate this conversion as *"twenty-six hand-rolled
+  salts across three files and three invented numbering prefixes … now one list per crate."*
+  **This file was repeating the overclaim.** *Nothing is known to be wrong with the world:*
+  the surviving salts are distinct from each other and from the `draw_domains!` values, so
+  no stream collides — the defect is that **the property is asserted rather than enforced**
+  for those four, which is exactly the state journal/0105 said it had left. **Not fixed here
+  (read-only sweep); the honest fixes are to convert the four call sites, or to correct the
+  claim to name them.** A `const` assertion covering only the converted set cannot see them.
+- **NEW instance (found 2026-07-29, in a file changed the day before): `Erosion::diffuse`'s
+  doc comment contradicts its own journal entry, about which worlds it changes.**
+  `crates/dc-worldgen/src/deeptime/erosion.rs:3132-3134` (at `96ab14b`) reads: *"`n = 1`
+  reproduces the previous operator **bit for bit** … so every world whose peak effective
+  diffusivity already sat inside the bound is untouched — **which is the entire shipped
+  configuration**."* The trailing clause is false. journal/0122's own table (`journal/0122…:72`)
+  measures the **shipped** world at peak `eff_diff` **0.261 against a 0.125 bound — 2.1× past**;
+  `journal/0122:189` states it plainly: *"the shipped world takes **two** sub-steps and its
+  goldens moved."* And `grid.rs:563` defaults `creep_substep: true`, so the sub-cycle is on.
+  **The shipped configuration is precisely the case the sentence says is untouched.**
+  - *What the sentence is probably reaching for* is the true and much better claim one line up:
+    `n = 1` is bit-identical **where** the bound already held — a statement about a **predicate
+    over worlds**, which the clause then collapses into a **claim about one world**, and picks
+    the wrong one.
+  - **Why it belongs to A-2 rather than to ordinary staleness:** the premise it rests on is
+    *"our rate sits inside the bound"*, and that premise was **falsified by the very measurement
+    that motivated the slice** — the same document, ~120 lines apart. It is journal/0111's
+    closed-system lesson in miniature: the operator's doc comment is checking the operator
+    against itself.
+  - **This is also A-3-adjacent and worth saying so:** a moved golden is the loudest available
+    signal, `journal/0122:195` calls re-baselining *"the discipline that makes a moved golden an
+    argument"* — and a reader of `erosion.rs` alone would conclude no golden could have moved.
 - **not-an-instance, and the good version of the shape (2026-07-26, journal/0118).**
   Finishing journal/0105's hole 2 deleted an agreement test — `SALT_BIO_FIRE` /
   `SALT_BIO_FLOOD` had no production reader once their call sites reached `Draws::of`, so
@@ -1186,6 +1299,14 @@ it down*, which is A-1 read backwards.
    indistinguishable from state 1 waiting to happen — and a reader who assumes 1 will
    go looking for a consumer that is not wanted yet.
 
+**All thirteen rows re-confirmed uncalled in production 2026-07-29 at `96ab14b`**, by the first
+sweep with a recorded watermark. The searches were `grep -rn --include=*.rs crates/` for each
+row's symbol with its defining file excluded; where a row's "called by" cell already names its
+test/example/probe readers, that set was re-checked and is unchanged unless the cell says
+otherwise. **Line references in the `where` column are refreshed to `96ab14b`** — `field.rs`,
+`inventory.rs` and `contents.rs` had drifted by 200–450 lines, which for an index whose whole
+job is to be *followed* is the difference between a pointer and a decoration.
+
 | what exists | where | called by | intended consumer |
 |---|---|---|---|
 | `fits_in_pores` / `K_PORE` — DECIDED, built, 7 tests green | `dc-core/src/materials/packing.rs` | **no production caller** (the module now *declares* its expected consumers in-code — journal/0078 — so an infiltration author finds it, but still nothing calls it) | **hydrology** (groundwater infiltration) + **diagenesis** (cement / ore deposition) — the transport-time depositing processes |
@@ -1193,17 +1314,17 @@ it down*, which is A-1 read backwards.
 | **`DeepField::flux` — the face-flux record** (FLOW slice 1, journal/0096): per-chapter directed flux on 3D faces, the representation that supersedes the receiver tree. **Row added the day it was built, deliberately** — the slice is the *recording* half only. **Its vertical (slot↔slot) faces, honestly zero at slice 1, were filled by continuation (a) 2026-07-25** (journal/0098 — 307,364 crossings from the head field); the record itself is still unconsumed in production | `deeptime/flux.rs`; `deeptime/field.rs` (`flux`); `dc:deep/flow_record` on the runner | **no production consumer, ON PURPOSE** (re-confirmed 2026-07-25) — only `tests/flux_record.rs`, `tests/head_field.rs` and `examples/flux_record_probe.rs`. Expressing it now would mean a second fake river beside the honest absence of one, which is the exact thing flow.md § 3 forbids | **refinement as a boundary-value problem** (continuation (b): face fluxes as Dirichlet conditions, the load budget as mass, solved *inside* a cell) · §13.8's flow-biased sub-cell fill · the paleo-channel/layering read. The record is *"the rich thing others bias to, never a second geometry model"* |
 | **`DeepField::head` — the exported `head` condition-field** (`dc:field/head`, metres of hydraulic potential per cell), added 2026-07-25 by journal/0098 (FLOW continuation (a)). **Row added the day it was built, deliberately** — the same discipline the `flux` row above set | `deeptime/head.rs`; `deeptime/field.rs` (`head`); `dc:deep/head` on the runner | **no consumer of the exported plane** — only `tests/head_field.rs`, `examples/head_field_probe.rs` and `resident_bytes`. The **in-sim** field *is* consumed, and that is the point: `dc:deep/flow_record` reads it every epoch (a **declared** `reads: [Head]` edge, not a tie-break) to fill the vertical faces. Exactly the `geotherm` shape one row down, one field newer | **refinement as a boundary-value problem** (continuation (b) — head is the Dirichlet data *inside* a cell) · the **free/bound edge + void intervals** (continuation (c): a spring is where the potential meets the surface) · ~~an **MFD solve** (flow.md § 2.6 — head is what lets flux partition across several receivers, and therefore what makes *simultaneous* divergence representable)~~ **STRUCK 2026-07-25 — corrections #54.** MFD shipped that day (journal/0109) and **does not read this plane at all**: it partitions the *free*-surface potential (the priority-flood `filled` array, `z_bed + depth`), which was already computed. Using this plane would have been actively wrong — it is the **bound** regime's potential and is built to cross surface divides, so surface water routed on it would cross its own watersheds. The genuine unbuilt heir is **bound MFD** — Darcy flux partitioned across faces on `dc:field/head` — which belongs to continuation (c) with the free/bound edge · formation predicates over `dc:field/head` (§14) |
 | `exhum` / `t_crust` — populated since U8; the doc comment is now **honest** (states "consumed by nothing", cites this row — journal/0078; ~~the 2026-07-22 audit's "claims the collapse tier reads them" quoted an already-corrected comment with its "WILL" dropped — corrections #40~~ **corrected 2026-07-28, corrections #67: the audit quoted the comment exactly as it stood the day before — `11d4385` (07-21) fixed what its own message calls the "lying" doc-comment, the audit ran 07-22, so the A-2 was live and the audit was one day behind the tree**) | `deeptime/field.rs` | **no consumer of the exported plane** (`t_crust` *is* read inside the sim by `isostasy()`, `erosion.rs` — the unconsumed thing is the exported plane, not the value) | metamorphic grade (stubs.md § 4) — and, since 2026-07-22, a **named socket** to arrive through: the geotherm heir of `providers::burial_temp_c` reads crustal heat flow (journal/0067). Still unconsumed; it now has an address |
-| occupancy primitives — `bound_eighths`, `is_occupancy_solid` (the two still uncalled; `free_eighths`/`open_pores` now read by the dev inspector `dc-api/src/payload.rs:367`, `loose_eighths` by `dc-client/src/meshing.rs:281` — 2026-07-24 sweep) | `dc-core/src/materials/contents.rs` | `bound_eighths`/`is_occupancy_solid`: **no production caller** | the four sim consumers named at authorship: water fill, loose gravity, compaction, sim light — none built yet (the inspector/meshing reads above are the dev HUD + render path, not those) |
-| **Movement 2a's derived `R`/`H` views** — `DeepField::derive_regolith_at` / `derive_bedrock_at`, `WorkingInventory::derived_regolith_m` / `derived_structure_stock_m`, `surface_regolith_m` / `structure_stock_m` (journal/0092, the positional cave-excluding §13.6 rule, 4 tests green) — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:600,615`; `deeptime/inventory.rs:936,948,959,979` (line refs refreshed 2026-07-25) | **no production caller** — only `tests/rh_unification.rs:52,79` (the byte-identity agreement tests). Production still reads the scalar `surf`/`regolith` planes; the views exist to *prove* the inventory is the authority, not yet to *be* it | **the R/H unification** (ROADMAP "Movement 2", material-behavior.md §13.6): retire the scalar planes into the inventory so `H`/`R` derive. Until then this is the authority-half of a two-authorities split (see S-9's M3 residual), and `derive_regolith_at` reads an **empty** ledger, so it cannot see `dc:deep/weather_inventory`'s facts |
-| `DeepField::geotherm` — the exported `temperature` condition-field plane (°C/m per cell), **added 2026-07-24 by journal/0093**; the field's doc already says so honestly (`field.rs:312-321`) but nothing pointed at this index — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:321` (cloned from `run.grid.geotherm`, `field.rs:382`) | **no consumer of the exported plane** — only `tests/geotherm.rs` and `resident_bytes`. The *in-sim* value **is** consumed: coal rank reads `grid.geotherm` at run finalize (`biotic.rs:765-775`). Exactly the `exhum`/`t_crust` shape, one field newer | **metamorphic grade** (`exhum` = P, this = T → schist/gneiss/marble; ROADMAP "Metamorphism — now UNBLOCKED by the geotherm") and the measurement probes |
-| **`DeepField::chapters` — the exported chapter table** (§ 8: plate state per chapter, `Vec<Vec<Plate>>`), populated since the tectonic-history slice. **Row added by the 2026-07-25 post-FLOW sweep — and it is the sweep's own indictment:** the field's doc comment has said *"today the table is exported and read by nothing"* (`field.rs:360-366`) for longer than this index has existed, and three sweeps added rows for its two immediate neighbours in the same struct (`geotherm`, `exhum`/`t_crust`) without noticing it. **A self-declaring comment is not an index** — that is the whole premise of § 3, demonstrated against § 3 | `deeptime/field.rs:367` (populated `field.rs:421` from `run.chapters`) | **no production caller** — only `tests/tectonic_history.rs:339,362`, `tests/deep_config_plumbing.rs:65,87,109,126,227`, and `tests/providers_common/mod.rs:169` (which hashes only its `.len()` into the fingerprint) | **per-unit deformation re-derived analytically at collapse resolution** — dip / provenance / fault traces in cut faces, the ~5 KB that replaces stored per-cell dip vectors (ROADMAP Sequenced, the collapse-tier slice; stubs.md "Sibling gap — layer-cake strata / no dip-fold" is the same absence seen from the other side) |
+| occupancy primitives — `bound_eighths`, `is_occupancy_solid` (the two still uncalled; `free_eighths`/`open_pores` now read by the dev inspector `dc-api/src/payload.rs:367-368`, `loose_eighths` by `dc-client/src/meshing.rs:281` — 2026-07-24 sweep, **both re-verified at those exact lines 2026-07-29 at `96ab14b`**) | `dc-core/src/materials/contents.rs:286` (`bound_eighths`), `:307` (`is_occupancy_solid`) | `bound_eighths`/`is_occupancy_solid`: **no production caller — re-confirmed 2026-07-29 at `96ab14b`; the search was `grep -rn "bound_eighths\|is_occupancy_solid" --include=*.rs crates/`, whose ONLY hits outside `contents.rs` are that file's own doc-comment cross-references (`:38`, `:250`, `:252`) — zero call sites of any kind, test or production** | the four sim consumers named at authorship: water fill, loose gravity, compaction, sim light — none built yet (the inspector/meshing reads above are the dev HUD + render path, not those) |
+| **Movement 2a's derived `R`/`H` views** — `DeepField::derive_regolith_at` / `derive_bedrock_at`, `WorkingInventory::derived_regolith_m` / `derived_structure_stock_m`, `surface_regolith_m` / `structure_stock_m` (journal/0092, the positional cave-excluding §13.6 rule, 4 tests green) — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:818,833`; `deeptime/inventory.rs:1622,1634,1645,1665` (**refreshed 2026-07-29 at `96ab14b`** — the 2026-07-25 refs `field.rs:600,615` / `inventory.rs:936,948,959,979` had drifted by ~220 and ~690 lines) | **no production caller — re-confirmed 2026-07-29 at `96ab14b`** — only `tests/rh_unification.rs:56,83` (the byte-identity agreement tests). Production still reads the scalar `surf`/`regolith` planes; the views exist to *prove* the inventory is the authority, not yet to *be* it | **the R/H unification** (ROADMAP "Movement 2", material-behavior.md §13.6): retire the scalar planes into the inventory so `H`/`R` derive. Until then this is the authority-half of a two-authorities split (see S-9's M3 residual), and `derive_regolith_at` reads an **empty** ledger, so it cannot see `dc:deep/weather_inventory`'s facts |
+| `DeepField::geotherm` — the exported `temperature` condition-field plane (°C/m per cell), **added 2026-07-24 by journal/0093**; the field's doc already says so honestly but nothing pointed at this index — **row added by the 2026-07-24 post-M3 sweep** | `deeptime/field.rs:555` (declaration; cloned from `run.grid.geotherm` at `field.rs:634`) — **refreshed 2026-07-29 at `96ab14b`**, was `:321`/`:382` | **no consumer of the exported plane — re-confirmed 2026-07-29 at `96ab14b`** — only `tests/geotherm.rs`, `tests/flux_record.rs:326` / `tests/head_field.rs:244` (byte-identity guards), `examples/coal_walk_tour.rs`, `examples/flow_cost_probe.rs` and `resident_bytes`. The *in-sim* value **is** consumed: coal rank reads `grid.geotherm` at run finalize (`biotic.rs:765-775`). Exactly the `exhum`/`t_crust` shape, one field newer | **metamorphic grade** (`exhum` = P, this = T → schist/gneiss/marble; ROADMAP "Metamorphism — now UNBLOCKED by the geotherm") and the measurement probes |
+| **`DeepField::chapters` — the exported chapter table** (§ 8: plate state per chapter, `Vec<Vec<Plate>>`), populated since the tectonic-history slice. **Row added by the 2026-07-25 post-FLOW sweep — and it is the sweep's own indictment:** the field's doc comment has said *"today the table is exported and read by nothing"* (`field.rs:574-580`, **re-read verbatim 2026-07-29 at `96ab14b`**; cited as `:360-366` when the row was written) for longer than this index has existed, and three sweeps added rows for its two immediate neighbours in the same struct (`geotherm`, `exhum`/`t_crust`) without noticing it. **A self-declaring comment is not an index** — that is the whole premise of § 3, demonstrated against § 3 | `deeptime/field.rs:581` (declaration), populated from `run.chapters` — **refreshed 2026-07-29 at `96ab14b`**, was `:367`/`:421` | **no production caller — re-confirmed 2026-07-29 at `96ab14b`** — only `tests/tectonic_history.rs:339,362`, `tests/deep_config_plumbing.rs:65,87,109,126,227`, and `tests/providers_common/mod.rs:169` (which hashes only its `.len()` into the fingerprint) | **per-unit deformation re-derived analytically at collapse resolution** — dip / provenance / fault traces in cut faces, the ~5 KB that replaces stored per-cell dip vectors (ROADMAP Sequenced, the collapse-tier slice; stubs.md "Sibling gap — layer-cake strata / no dip-fold" is the same absence seen from the other side) |
 | `Agent::Dissolution` + `LithoResistance.dissolution` | `deeptime/lithology.rs` | **zero call sites** in production (`examples/entry_species_probe.rs:325` is a probe; the *separate* `inventory::Cause::Dissolution` is deliberately excluded from `WEATHERING_AGENTS`, `weather_inventory.rs:61-63`) | karst — hard-gated on a carbonate that does not exist |
-| the S11 water module | `dc-worldgen/src/water/` | **not on the production path** | free/bound water |
+| the S11 water module | `dc-worldgen/src/water/` (exported `lib.rs:48`) | **not on the production path — re-confirmed 2026-07-29 at `96ab14b`**: every reader of `dc_worldgen::water::*` outside the module is a test or example (`tests/water.rs`, `tests/water_coarse.rs`, `examples/water_spike.rs`, `examples/water_coarse_spike.rs`). *The `providers/depth_to_water.rs` re-export at `providers/mod.rs:142` is a **different** module and is not evidence of consumption.* **⚠ `water/sat.rs` is one of S-10's two named instances** (2026-07-29) — the spine's exemplar lives in this row | free/bound water |
 | pass-graph `Resource` vocabulary | `pipeline.rs` | 7 passes (was 8; `dc:pass/history` and its `History` axis were deleted 2026-07-28, journal/0121) | 26 of 34 inventoried seams are **value-level and invisible to it** |
 | `column_summary` / `open_air_below` / `ColumnSummaries` — the S3 skylight query (S-9 deterministic-derive), built + 6 tests green | `dc-core/src/column.rs` | **no production caller** — only the `--bench-storage` timing harness (`dc-client/src/bench_storage.rs`); `docs/API.md` lists a `world.column_summary` query but **no dc-api handler exists** for it (2026-07-23 sweep) | **sim-light / skylight** — the "is this column under open sky" query; the lighting/sim-light consumer is unbuilt |
 | **the whole S2 statistical tier — `engine::{query, observe, force_fact}`, `Ledger`, `ToyWorld`** (`dc-sim/src/statistical/`, minus `rng`). **Row added 2026-07-28 by journal/0121, on the day its last consumer was deleted** — the honest successor to the S7 row that departed below | `dc-sim/src/statistical/{engine,ledger,world}.rs` | **zero production callers workspace-wide.** Its one caller was `pregen/history.rs`, removed as unratified bootstrap content; everything left is `dc-sim`'s own `s2_torture` / `s2_measurements` suites. What dc-worldgen still uses from this module is the sibling `rng` (the draw provider), which is on every worldgen path and is **not** in this row | the live sim's far tiers — S2's *shapes* are ratified and instanced all over the tree (§ S-1's bounded collapse, § S-2's committed facts, § S-9's fallback query); what has no consumer is this **toy implementation**, whose own module doc calls the toy world "disposable". **✅ RULED 2026-07-28 (user) — KEEP, and this row does NOT want a consumer found for it.** *"The statistical system is genuinely intended, though I can't say whether as-is it will fit the desired shape when we actually do move on to implementing the civ/socia part of the default pack and the engine affordances."* Both the primitive and the toy stay, **as a candidate to be re-checked against requirements that do not exist yet** — not as work owed. The `Subject::{Site, Polity}` / `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` / `SiteEventKind` / `Value::{Exists, PolityRef, Event, Extent}` vocabulary stays too, as **producer-less example vocabulary, NOT a schema to build on**. **Its exit condition is neither of § 3's two normal ones:** it leaves this index when the user opens the eco/socia/civ thread and the shape is judged against real requirements — gated per `worldgen.md` § *Sequencing* (all non-bio earth science in the ratified SDK-plugin shape → ecology → social), and *"much work and reflection will be done before the **USER** decides it is time."* **⚠ Do not read this row as a backlog item, and do not infer the gate is met from progress on earth science** |
 
-| **the whole `CoarseField<T>` boundary API — `sample`, `sample_dithered`, `summarize`, the `DitherSource` trait, and `CoarseField<T>` itself.** **Row added 2026-07-29, and it is § 3's second self-indictment after `chapters`:** this is the **largest built-and-unconsumed mechanism in the palette-quant thread**, it shipped **2026-07-22**, and it was absent from *all three* loose-end loci — this index, `stubs.md`, and ROADMAP — for **seven days**. Read-first item 6 is explicit that an unlisted loose end is *the defect, not a licence*. **The mechanism that hid it is worth more than the row:** § S-4 records this as the *"Ratified end-state — **EXTRACTED**"*, and **extraction is not adoption** — a status word that names the half that shipped reads as *done* to every subsequent sweep | `dc-core/src/coarse.rs` (`:353` the struct, `:446` `sample`, `:479` `sample_dithered`, `:515` `summarize`) | **zero production callers workspace-wide** — only `coarse.rs`'s own tests (`:822`, `:879`, `:917`). `DitherSource` has **zero production impls**; journal/0075's *"dc-worldgen wraps its own `draw_f64`"* is a **plan, not code**. The one piece that did land is the sibling `ShareVec<N>`, which **is** consumed (`lithology.rs:551,565`, `providers/`) and is **not** in this row. `collapse.rs:949` still defers to *"the `CoarseField<T>` extraction (audit Part 2)"* as though it were pending — the extraction is done; the **adoption** is not | **U22 (the cake law, far field) + U3 (the per-chunk palette checkerboard, near field)** — two sites of one root (`record_at_voxel` reads NEAREST at the ~460 m deep cell). Ratified 2026-07-22 in the strongest language in the thread — *"we finish this today"*, *"this is foundational"*, end-state ***"solved by construction, approximately once."*** journal/0075 § *What was NOT done* assigned adoption to *"those owners"* and **those owners were never named**; an assistant clause then handed apparent ownership of the palette-quant fix to the genesis-passes arc (struck 2026-07-29). **Now owned by ROADMAP § Sequenced "COARSEFIELD ADOPTION — the ratified cure that lost its entry."** Note `summarize` carries a *second* intended consumer: it is corrections #39's named honest heir for the coherent source's majority-amplification |
+| **the whole `CoarseField<T>` boundary API — `sample`, `sample_dithered`, `summarize`, the `DitherSource` trait, and `CoarseField<T>` itself.** **Row added 2026-07-29, and it is § 3's second self-indictment after `chapters`:** this is the **largest built-and-unconsumed mechanism in the palette-quant thread**, it shipped **2026-07-22**, and it was absent from *all three* loose-end loci — this index, `stubs.md`, and ROADMAP — for **seven days**. Read-first item 6 is explicit that an unlisted loose end is *the defect, not a licence*. **The mechanism that hid it is worth more than the row:** § S-4 records this as the *"Ratified end-state — **EXTRACTED**"*, and **extraction is not adoption** — a status word that names the half that shipped reads as *done* to every subsequent sweep | `dc-core/src/coarse.rs` (`:353` the struct, `:446` `sample`, `:479` `sample_dithered`, `:515` `summarize`, `:296` the `DitherSource` trait) — **all five verified at those exact lines 2026-07-29 at `96ab14b`; this row's citations are the doc's most accurate and it is also its newest, which is the whole argument for refreshing the rest** | **zero production callers workspace-wide — re-confirmed 2026-07-29 at `96ab14b`.** The search was `grep -rn "CoarseField\|DitherSource\|sample_dithered" --include=*.rs crates/` excluding `coarse.rs`: **eleven hits, every one of them prose** — seven doc comments that describe the extraction (`collapse.rs:890,949`, `lithology.rs:555,592,614`, `providers/mod.rs:109,152,264,418`, `providers/outcrop_shares.rs:29`) and one test comment (`tests/outcrop_blend.rs:72`). *Not one line of code names the type.* — only `coarse.rs`'s own tests (`:822`, `:879`, `:917`). `DitherSource` has **zero production impls**; journal/0075's *"dc-worldgen wraps its own `draw_f64`"* is a **plan, not code**. The one piece that did land is the sibling `ShareVec<N>`, which **is** consumed (`lithology.rs:551,565`, `providers/`) and is **not** in this row. `collapse.rs:949` still defers to *"the `CoarseField<T>` extraction (audit Part 2)"* as though it were pending — the extraction is done; the **adoption** is not | **U22 (the cake law, far field) + U3 (the per-chunk palette checkerboard, near field)** — two sites of one root (`record_at_voxel` reads NEAREST at the ~460 m deep cell). Ratified 2026-07-22 in the strongest language in the thread — *"we finish this today"*, *"this is foundational"*, end-state ***"solved by construction, approximately once."*** journal/0075 § *What was NOT done* assigned adoption to *"those owners"* and **those owners were never named**; an assistant clause then handed apparent ownership of the palette-quant fix to the genesis-passes arc (struck 2026-07-29). **Now owned by ROADMAP § Sequenced "COARSEFIELD ADOPTION — the ratified cure that lost its entry."** Note `summarize` carries a *second* intended consumer: it is corrections #39's named honest heir for the coherent source's majority-amplification |
 
 **Departed (the good event):**
 
