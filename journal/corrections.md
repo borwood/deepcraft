@@ -1299,6 +1299,17 @@ control is blind to when citing its stillness.
 
 ## 39. "The coherent bilinear source biases the class split toward 50/50" (2026-07-22)
 
+> **⚠ STILL `NEEDS RATIFICATION` (7 days) — AND DELIBERATELY DECOUPLED FROM THE USER'S
+> APPEARANCE COMPLAINT, 2026-07-29.** This entry is about the **bias sign** of the coherent
+> source: does the draw reproduce the true share? The user's 2026-07-29 field report — *"the
+> bilinear noise does not actually approximate what loaded chunks look like well, it sticks out
+> poorly"* — is about **spatial structure**, and **this correction's two named heirs
+> (far-`summarize`, a CDF-corrected source) do not address it.** A perfectly unbiased draw with
+> the wrong structure still fails to predict the near field. **Statistical agreement is not
+> visual agreement.** Ratify or reject this entry on its own merits; it must not carry the
+> appearance observation in as a rider. That observation is its own ROADMAP § Observed entry.
+> *Scope: far/cold tier only — journal/0074 removed the near ground's class consult.*
+
 **The claim** (journal/0073 § "The wrong turn"; spines § 4 carve-out 1): the
 coherent (interpolated-uniform) surface-class draw carries *"a small toward-50/50
 bias (interpolated uniforms are middle-heavy)"* and *"flattens mixes slightly …

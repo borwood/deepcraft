@@ -631,12 +631,17 @@ primitive awaiting a consumer*. **Hold — do not dispose, do not find it a cons
 reopen the discussion until bio/eco readiness** (which is itself a user call; progress on earth
 science does not entitle anyone to open it).
 
-> **This gives `spines.md` § 3 a third exit, and the section header only knows one.** That
-> header says *"leaving this list is a good event: record what consumed it and when"* —
-> consumption. journal/0121 added a second: *no standing → delete.* This is the third:
-> **held, with a named trigger.** The distinction is load-bearing, because a zero-consumer row
-> read as a backlog item demanding a consumer is precisely the misreading that nearly
-> preserved the history content.
+> **This is `spines.md` § 3's third exit — HELD AS A CANDIDATE — and § 3 already documents it**
+> (added 2026-07-28, journal/0120, by this same ruling; the S2 row is its worked example).
+> The three exits are **consumed** · **deleted** (no standing — journal/0121) · **held**. The
+> distinction is load-bearing, because a zero-consumer row read as a backlog item demanding a
+> consumer is precisely the misreading that nearly preserved the history content. § 3's own
+> rule for this state: **a held row must say so explicitly and name what unblocks the
+> judgement**, or it is indistinguishable from a consumed-row-waiting-to-happen.
+>
+> *(An earlier version of this note said § 3 "only knows one" exit. It knew all three, a day
+> before I wrote that. Corrected 2026-07-29 — asserting a corpus gap without opening the file
+> is the exact failure this session has been cataloguing, and it landed in `ARCHITECTURE.md`.)*
 
 **Corollary — resource ids are opaque and open.** The kernel is already generic over
 `Axis: Copy + Ord`; the closed enum is a caller's choice, not a kernel constraint. A pack

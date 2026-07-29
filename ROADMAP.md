@@ -1483,6 +1483,49 @@ see the question you are asking.
     this clock.** The probe therefore also prints every rate per epoch, so a future session can
     re-anchor either the clock or the rates.
 
+- **🔴 COARSEFIELD ADOPTION — the ratified cure that lost its entry** (revived 2026-07-29 by
+  user ruling: *"i think we revive it too"*). **This is the fix for U22 (the cake law) and U3
+  (the per-chunk palette checkerboard), and it has had no owner since 2026-07-24.**
+  - **WHAT WAS RATIFIED**, 2026-07-22, in the strongest language in this thread: `CoarseField<T>`
+    as a **boundary type** whose only fine accessors are two legal moves (`sample` /
+    `sample_dithered`), making the raw per-cell read **inexpressible**. The user: *"we finish
+    this today"*; *"there are things i'd rather do but this is foundational."* End state:
+    ***"solved by construction, approximately once."***
+  - **WHAT HAPPENED.** The extraction **shipped** (journal/0075) and was then never **adopted**.
+    journal/0075 § "What was NOT done" assigned adoption to *"those owners"* — **and those owners
+    were never named.** Two days later an assistant clause handed apparent ownership of the
+    palette-quant fix to the genesis-passes arc (struck above), and the real cure stopped having
+    a home. It survives only as a trailing half-sentence at `ROADMAP.md:~179` (*"remaining
+    CoarseField migration follows the type freeze"*).
+  - **BUILT, AND NOTHING CALLS IT — the whole API.** Verified workspace-wide at `ae4bb29`:
+    `sample_dithered`, `sample`, `summarize`, `DitherSource` (trait, **zero production impls**)
+    and `CoarseField<T>` itself all have **zero callers outside `dc-core`**. Only `ShareVec<N>`
+    landed. `collapse.rs:949` still defers to *"the `CoarseField<T>` extraction (audit Part 2)"*
+    as though it were pending — **the extraction is done; the adoption is not.**
+  - **⚠ AND IT IS INVISIBLE TO ALL THREE LOOSE-END LOCI.** It is in **neither** `spines.md` § 3
+    "Built, and nothing calls it" (12 rows, no CoarseField row) **nor** `stubs.md` **nor** — until
+    now — ROADMAP. `spines.md` § S-4 calls it the *"Ratified end-state — **EXTRACTED**"*, which
+    reads as **done**. Per read-first item 6 an unlisted loose end is *the defect, not a licence*:
+    the largest built-and-unconsumed mechanism in this thread was hidden from the lookup that
+    exists to find exactly this. **Add the § 3 row in the same commit as the first adoption slice.**
+  - **THE TWO SITES ARE ONE ROOT, AND A FIX TO ONE DOES NOT FIX THE OTHER.** The root is
+    `DeepField::record_at_voxel` reading **NEAREST** at the ~460 m deep cell — its own doc comment
+    flags it (*"a variable-length unit sequence cannot be interpolated, so the facies story steps
+    at the ~460 m deep-cell grid — FLAGGED sampling choice"*, `field.rs:758-772`). Two expressions:
+    **U22 / far field** at `collapse.rs::surface_class` (the class draw's *shares* are still
+    nearest-per-cell, so minority phases die at the 460 m line), and **U3 / near field** at
+    `collapse.rs:1409` (one point-sample per chunk shared across all 1024 columns). The 2026-07-24
+    diagnosis audit § 5 already drew this line and nobody has read it since: *"**One mechanism at
+    the level of root cause; distinct at the level of site.** A fix targeting one site would not
+    automatically fix the other."*
+  - **⚠ DO NOT INHERIT journal/0088's HEADLINE.** *"Three or four separate-looking bugs turned out
+    to be one"* is **overstated relative to the audit it summarises, published the same day** —
+    doc-topology shape 6, a summary outrunning its source, and the probable origin of a week of
+    user uncertainty about what they had ratified. The honest count: **U22 + U3 are two sites of
+    one root; U4 is a different bug** (a static `REDUCTION_STANDOFF_M` distance gate, geometry half
+    shipped in journal/0091, material half still owed); **the 16-voxel member squares are a fourth
+    thing**, one stage downstream, that no fix to the root will touch and that cannot touch the root.
+
 - **🔴 REFINEMENT PRIMITIVES — the tier nobody assigned an owner** (opened 2026-07-26 by the
   user's question: *"who owns the **clever** refinement operators for presenting the
   interpolated/upscaled runtime world? how would a mod hand-roll emergent rivers on their own
@@ -1516,10 +1559,34 @@ see the question you are asking.
     pass and then a decomp and port of existing collapse"*). Field-notebook-first per the
     earth-processes method. It must answer: what is the primitive set · what the operator
     contract is in SDK terms (the pure-fn constraint **is** the sandbox contract — one
-    constraint, two payoffs) · **invocation granularity** (per-cell or per-chunk, **never**
-    per-voxel — *runtime is sacred*, and seam-first already forbids a provider in a hot loop
-    answering a question that does not change inside it) · and how a **mod** authors a visible
-    channel end-to-end.
+    constraint, two payoffs) · **invocation granularity** (see the amendment
+    below) · and how a **mod** authors a visible channel end-to-end.
+    - ~~per-cell or per-chunk, **never** per-voxel — *runtime is sacred*, and seam-first
+      already forbids a provider in a hot loop answering a question that does not change
+      inside it~~
+    - **⚠ AMENDED 2026-07-29 (user) — NARROWED TO ITS OWN RATIONALE, not overruled.** Read the
+      struck wording against the reason it gives: it forbids a provider in a hot loop answering
+      **a question that does not change inside the voxel**. That is a ban on *redundant*
+      invocation, not on per-voxel granularity as such — and the octave dither's answer **does**
+      change per voxel, which is its entire purpose. **The stated reason permits exactly what
+      the stated rule forbade.** Taken literally the old wording silently forbade the port of
+      `sample_dithered` and `interp_select_draw`, both per-voxel-column today, and per-voxel is
+      precisely what makes them C0-continuous and square-free.
+    - **The rule now: invoke each question at the granularity at which its ANSWER changes.**
+      The tiers **layer** (user, 2026-07-29) — the expensive coarse work runs coarse, the cheap
+      evaluation runs per-voxel:
+
+      | granularity | what runs there | side |
+      |---|---|---|
+      | **per-cell** (~460 m) | the facies driver — a smooth field from a field pass | **content** |
+      | **spanning** | the octaves — bridging cell → chunk → voxel; this is what an octave decomposition *is* | **engine primitive** |
+      | **per-voxel** | the draw (`sample_dithered`) — cheap, and *must* vary here or it reads as a grid | **engine primitive** |
+
+    - **There was never a measurement behind the ban.** The only number nearby is B1's — white
+      noise doubled the far-tile mesh (**21.5 → 43.5 MiB**) — and that measures source
+      **coherence**, not invocation **granularity**. It is an argument *for* octaves, not
+      against per-voxel. *A bound with a derivation is evidence; one chosen until it reads well
+      is not* (§ Gates tolerance doctrine, and the closed-system rule).
   - **SECOND SLICE — the DECOMP AND PORT of `collapse.rs`** onto those primitives. Note this
     is also the largest instance of the file-size problem below, so it discharges two chores at
     once.
@@ -2466,10 +2533,27 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   - **UNIFIES.** This **IS the member-selection/octave arc done right**: the genesis pass
     produces the distribution (property-derived, physical), the octave dither materialises
     it — so "retire class-member", "fix the member squares", and "physical facies from
-    passes" are **one arc**, and it fixes the palette-quant + LOD root cause (coarse facies
-    *point-sampled*) by driving distribution from a smooth physical field + octaves instead
-    of a chunk-grid dither. Rides the material-behavior model (cellular passes, edges,
+    passes" are **one arc**. Rides the material-behavior model (cellular passes, edges,
     agents, hierarchy).
+    - **⚠ STRUCK 2026-07-29 — this bullet also claimed it *"fixes the palette-quant + LOD
+      root cause (coarse facies point-sampled)"*. It structurally cannot, and the claim was
+      never ratified.** Verified in code, not from either doc: `interp_select_draw` selects a
+      **member** *after* `run_strata` has already fixed the chunk's **class stack** from
+      `record_at_voxel(cx*32+16, cz*32+16)` (`collapse.rs:1409`). Octaves applied to the member
+      dither run **downstream** of the class boundary the deep sample drew and cannot move it.
+      The same-day audit said so plainly and nobody reconciled the two:
+      `docs/audits/2026-07-24-palette-quant-generation-diagnosis.md` § 2 — *"the per-voxel
+      dither only walks the member around **inside the class the chunk already fixed**; it
+      cannot cross the class boundary the deep sample drew."*
+    - **The damage was OWNERSHIP, not just accuracy.** This clause made the genesis arc the
+      sole apparent owner of the palette-quant fix, and the cure the user actually ratified —
+      the CoarseField adoption, *"solved by construction, approximately once"*, *"this is
+      foundational"* — was left with **no live entry, no owner, no slice**. Revived as its own
+      § Sequenced entry, 2026-07-29. **The facies-driver half of this arc is still correct and
+      still belongs here**; it is genuine content work (a declared field pass). Only the claim
+      to discharge palette-quant is withdrawn. *corrections #65 shape: an assistant
+      reconciliation narrowed a ratified user-facing cure into a clause of an entry the user
+      does not re-read.*
   - **STEELMAN (recorded so it isn't re-lost):** keep the **distribution concept** (a rock
     unit *is* a mix of related materials — honest, housed in the hierarchy); class-fitness
     is a genesis **model** the pass *formalises*, not deletes; the **richness lives in the
@@ -3171,6 +3255,35 @@ bodies already declared them ✅ DONE / RESOLVED / FIXED** and were kept live an
 **status, not age**; every entry moved **verbatim**, poses and assets with it. One entry was
 *added*: a "no volcanism" observation that had been sitting inside another entry with no header
 of its own since 2026-07-20 (S6 finding F5).
+
+- **👁 THE COLD TIER DOES NOT LOOK LIKE WHAT LOADS IN — and unbiasedness is not the axis**
+  (**user field report, 2026-07-29**). *"The bilinear noise does not actually approximate what
+  loaded chunks look like well, it sticks out poorly. So there's a more foundational issue to
+  that."*
+  - **WHY THIS IS ITS OWN ENTRY AND NOT PART OF corrections #39.** #39 corrects the **bias sign**
+    of the coherent bilinear source — the claim was it pushes class splits *toward* 50/50; the
+    measured truth is it pushes them *away* (a 0.6 majority renders ≈ 0.67; the source
+    **sharpens** the mix). Its two named heirs — far-`summarize` and a CDF-corrected source —
+    are both answers to *"does the draw reproduce the true share?"*. **The user is asking a
+    different question:** even a perfectly unbiased draw with the wrong **spatial structure**
+    does not look like the near field it is standing in for. The cold tier's job is to *predict
+    the near tier's appearance*, and **statistical agreement is not visual agreement.**
+  - **Consequence for the board: ratifying or rejecting #39 does not touch this.** #39 is a
+    correct correction to a question the user is not asking, and it must not be allowed to carry
+    this observation into a ratification as a rider. *(#39 has sat `NEEDS RATIFICATION` for 7
+    days; it stays open **and decoupled**.)*
+  - **This is the octaves argument arriving from the other side.** Structure at every scale is
+    exactly what a single-wavelength bilinear source cannot give, at any bias. Couples to the
+    CoarseField adoption entry and to the refinement-primitive design pass (§ Sequenced), and
+    corroborates the user's own 2026-07-24 design (journal/0088): *"a finer grid just makes
+    smaller squares."*
+  - **Scope check — this is FAR/COLD ONLY, and that is load-bearing.** journal/0074 removed the
+    near ground's class consult (`collapse.rs:881-883`), so the surface-class draw #39 corrects
+    is far-field exclusively. **Do not conflate with U3**, the near-field per-chunk checkerboard
+    at `collapse.rs:1409` — different site, different tier, same root.
+  - **UNMEASURED, and deliberately so.** No probe has compared a cold tile against the same
+    ground loaded. That comparison **is** the instrument this entry wants, and it is cheap:
+    render both, diff. *Do not close this on reasoning.*
 
 Source: [`docs/audits/baseline-2026-07-28/S6-roadmap-observed.md`](docs/audits/baseline-2026-07-28/S6-roadmap-observed.md)
 — every finding re-verified at source before it was applied, because *an audit finding is a
