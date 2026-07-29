@@ -22,6 +22,7 @@
 //! machinery and the decay-length measurement.
 
 pub mod biotic;
+pub mod cadence;
 pub mod census;
 pub mod climate;
 pub mod erosion;
@@ -44,14 +45,15 @@ pub mod weather_inventory;
 pub use biotic::{
     BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
 };
+pub use cadence::{Cadence, CadenceTable};
 pub use erosion::{
     CREEP_MAX_EDGE_COEFF, Erosion, MfdParams, competence_ceiling, energy_band, flood_fill_serial,
     flood_fill_tiled,
 };
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, EROSION_CALIBRATION,
-    build_field, build_field_cfg, build_field_with, production_config, production_config_with,
-    scale_erosion_rates,
+    build_field, build_field_cfg, build_field_cfg_cadence, build_field_with, production_config,
+    production_config_with, scale_erosion_rates,
 };
 pub use flux::{
     FACE_SLOTS, FaceKey, FlowCause, FlowForm, FluidId, FluxAccum, FluxCensus, FluxEntry,
@@ -168,6 +170,28 @@ pub fn run_with(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> DeepRun {
 /// whole [`Pregen`] exists). Same fixed iteration schedule, deterministic in
 /// `(cells, cfg)`.
 pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun {
+    run_cells_with_cadence(cells, cfg, parallel, &cadence::CadenceTable::empty())
+}
+
+/// [`run_cells`] with the world's **authored pass cadence** (the RATE axis,
+/// `material-behavior.md` § 5; journal/0123).
+///
+/// An empty table — what [`run_cells`] passes — means every pass keeps the
+/// cadence it declared, which is the shipped schedule, bit for bit. A non-empty
+/// one is a world stating *"weathering ×5 while tectonics ×1"*, and the runner
+/// executes it without deriving anything.
+///
+/// **This is the seam, not the format.** When authored ORDER lands (the pass
+/// architecture's continuation slot (b)) it brings a per-world manifest with it,
+/// and the manifest's cadence section constructs the [`CadenceTable`] handed
+/// here. Inventing that format now would be building the general mechanism ahead
+/// of its caller, so the parameter exists and the loader does not.
+pub fn run_cells_with_cadence(
+    cells: &CellGrid,
+    cfg: &DeepConfig,
+    parallel: bool,
+    cadence: &cadence::CadenceTable,
+) -> DeepRun {
     let mut grid = build_cells(cells, cfg);
     let mut erosion = Erosion::new(&grid);
     erosion.set_parallel(parallel);
@@ -263,7 +287,7 @@ pub fn run_cells(cells: &CellGrid, cfg: &DeepConfig, parallel: bool) -> DeepRun 
     };
 
     let grid_w = grid.w;
-    let schedule = runner::DeepSchedule::new(runner::deep_passes(cfg))
+    let schedule = runner::DeepSchedule::new(runner::deep_passes_with(cfg, cadence))
         .expect("the deep-time pass graph is valid");
     let mut ctx = runner::DeepStepCtx {
         cfg,

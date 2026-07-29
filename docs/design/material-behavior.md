@@ -362,7 +362,21 @@ The scheduler has **three orthogonal axes**, and the runner declares **all three
   - **This restores the user's 2026-07-23 sketch** (`ideas.md` § *Pass cadence*), whose
     ORDER half — *"a canonical start order (tectonics → hydro → weathering)"* — was
     reconciled away rather than contested. RATE, below, was the half that survived.
-- **RATE** — the **fractional-phase phase length**: how many sub-turns a pass takes
+- **RATE — ✅ BUILT 2026-07-29 (journal/0123; `dependency-graph.md` E3).** The one axis of the
+  three that is no longer a declaration. Cadence is **authored data** (a `CadenceTable` keyed by
+  pass id, applied over each pass's declared default by `deep_passes_with`); a firing pass takes
+  its declared **sub-turns**, each handed `dt = period / sub_turns` and each seeing the cell
+  state the previous turn left; and `dt` is **live** in the rate-shaped passes converted so far
+  (hillslope creep, uplift, crustal thickening, inventory weathering). An **empty** table is the
+  shipped schedule and the world is hash-identical through it. Still owed: the remaining `dt`
+  conversions (stream transport, bedrock weathering, wind, wave) — each a modelling call rather
+  than a mechanical one, sequenced **with** the `EROSION_CALIBRATION` re-pick.
+  - **It does NOT own stability substepping** (user, 2026-07-29). A field solver takes `dt` from
+    RATE and sub-divides it *internally* to stay inside its own von Neumann bound — only the
+    kernel knows its own stability constant. `stubs.md` § 30's remaining half.
+
+  *The definition as ratified 2026-07-24, retained verbatim because it is what got built:*
+  the **fractional-phase phase length**: how many sub-turns a pass takes
   per chapter, and the **`dt`** that scales its transformations. A chapter subdivides
   into sub-turns; a **high-rate** pass (weathering ×5) sees mid-chapter state evolve
   while a **low-rate** pass (tectonics ×1) runs once — the temporal-resolution knob
@@ -413,8 +427,10 @@ The scheduler has **three orthogonal axes**, and the runner declares **all three
   Sequenced on the ROADMAP as *"THE AGGREGATION WINDOW IS A DECLARED AXIS"*.
 
 **`dt` = phase length is not new machinery** — it is exactly the `rate × dt` time-base
-S16's behavior model was already written against; today `dt` is pinned to `1.0`, and
-the fractional-phase clock makes it a real **per-pass** knob. So "raise a pass's rate
+S16's behavior model was already written against; ~~today `dt` is pinned to `1.0`, and~~
+**since journal/0123 (2026-07-29)** the fractional-phase clock makes it a real **per-pass**
+knob. *(`dt` was pinned to `1.0` and read by exactly one pass until that slice; the struck
+clause is kept because the ROADMAP entry and `ARCHITECTURE.md` § RATE both quote it.)* So "raise a pass's rate
 for finer feedback" is the concrete form of the "own cadence" this section already
 endorsed, and the alternative to **fusing** coupled passes (a fused pair is only the
 right answer when their coupling is finer than the *finest* rate available).

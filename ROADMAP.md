@@ -1206,7 +1206,9 @@ see the question you are asking.
     engine-owned enum; a pack declares its own ids (the kernel is *already* generic over
     `Axis: Copy + Ord`, so the enum is a caller's choice, not a kernel constraint).
     **(3) RATE gets built** — per-pass phase length, sub-turns per epoch, and a real `dt`
-    that scales transformations (`dt` is pinned to `1.0` today and nothing scales by it).
+    that scales transformations ~~(`dt` is pinned to `1.0` today and nothing scales by it)~~.
+    **✅ (3) SHIPPED 2026-07-29, journal/0123** — see the FIRST SLICE block below. **(1) and (2)
+    are still owed and this arc is still open.**
   - **WHY.** *"Our passes are PLUGINS… THE ENGINE MUST BE MOD/PLUGIN AGNOSTIC, FULLSTOP,
     EMPHATICALLY"* (user). An engine cannot derive a third party's intended order; requiring
     it to try forces the order into the declarations, and encoding it in engine-owned
@@ -1218,9 +1220,53 @@ see the question you are asking.
     same openness on the material axis) · fields-as-plugins (`dc:field/temperature` and
     `dc:field/head` are already declared passes; the **vocabulary** is what is still closed)
     · and the erosion blocker below, which is what RATE's absence produces.
-  - **🔑 FIRST SLICE — RATE. ✅ SEQUENCED AHEAD OF THE REFINEMENT DESIGN PASS (user,
-    2026-07-29).** ~~with the creep limiter as its acceptance test~~ — **the acceptance test
-    was met on 2026-07-29 by a stand-in, and that changes the slice for the better.**
+  - **🔑 FIRST SLICE — RATE. ✅ SHIPPED 2026-07-29 (journal/0123).** *The arc stays OPEN — see
+    the continuation slot below; three of four parts are still owed.*
+    - **WHAT LANDED.** `crates/dc-worldgen/src/deeptime/cadence.rs` (new): `Cadence { period,
+      sub_turns }`, both `NonZeroU32` so a zero cadence is **inexpressible** rather than
+      validated, plus `dt = period / sub_turns` — epochs of world time per turn. `CadenceTable`
+      is the **authored data**: keyed by pass id, applied over each pass's *declared default* by
+      `runner::deep_passes_with`, reaching a world through
+      `deeptime::run_cells_with_cadence` / `build_field_cfg_cadence`. The runner takes the
+      declared **sub-turns** with the cell state carried between them (the sketch's *"a phase is
+      handed the cell state at its start"*). `dt` is **live** in the rate-shaped passes
+      converted so far — hillslope creep, uplift + its ledger, crustal thickening, and
+      inventory weathering, which already read it.
+    - **THE ACCEPTANCE TEST WAS A HASH COMPARISON AND IT CAME BACK IDENTICAL.**
+      `crates/dc-worldgen/tests/rate_axis.rs`: an empty cadence table reproduces
+      `GOLDEN_SURFACE 0x15A6_B756_7A84_29FB` and `GOLDEN_RECORD 0x820B_A198_49DD_234A`, through
+      the same distillation path the goldens were captured through. **And the mirror half**,
+      which is the one that is easy to skip: an authored cadence *moves the world* (creep
+      sub-turned ×2; the eolian agent at period 3), still closes `Δ(ΣR+ΣH) = uplift + biotic`,
+      and leaves the un-authored forcing pass's integrated time **bit-identical** — a table that
+      changed nothing would have satisfied the golden test perfectly and been a decoration.
+    - **STILL OWED, and deliberately NOT done here:** stream transport, bedrock weathering, and
+      the wind/wave agents still assume `dt = 1.0` in their magnitudes. Each needs a **modelling**
+      call rather than a mechanical one — bedrock weathering is an exponential approach, so its
+      honest form is `1 − exp(−k·dt)` and not `k·dt` — and choosing silently re-tunes a constant
+      the `EROSION_CALIBRATION` re-pick is about to pick against the literature. **Sequenced
+      WITH that re-pick** (`dependency-graph.md` § 4 item 6, P2).
+    - **THREE PASSES HONESTLY IGNORE `dt`, and the axis is what made that visible:** the climate
+      march, the geotherm and the head field are **relaxations toward an equilibrium set by the
+      current state**, not rates integrated over an interval. Their coarse `period` says *when to
+      resample*; there is nothing for a duration to scale. Recorded because "pass X does not use
+      `dt`" now reads as a claim rather than an omission.
+    - **⚠ ONE FORK THE DOCS DO NOT SETTLE — NEEDS RATIFICATION.** *"A coarse-rate pass does not
+      fire at epoch 0"* is a property of the **runner**, not of any declaration. It was written
+      for the three passes that genuinely **are** seeded before the loop (`climate`, `geotherm`,
+      `head`), where firing at epoch 0 would redo the seed. Now that a world can author a coarse
+      period onto **any** pass, that rule silently also says *"and your re-rated erosion pass
+      does not run in epoch 0"* — which nobody decided. The likely fix is a declared `seeded`
+      flag beside the cadence. **Kept exactly as it was**, because changing it moves the shipped
+      world; marked in `runner.rs::DeepPass::fires`.
+    - **⚠ EXTRACTION CANDIDATE, NOT TAKEN (user call).** `runner.rs` is **1,694 lines** against
+      the 700-line threshold (2.4×) and this slice added to it. The cold half is the
+      journal/0090/0104/0107 declaration-history commentary; the live half is the roster + the
+      loop. *Not split mid-slice, per the hook's own instruction to propose rather than do.*
+
+    *Record of how the slice was framed before it shipped, kept because the sequencing argument
+    is the reusable part:* ~~with the creep limiter as its acceptance test~~ — **the acceptance
+    test was met on 2026-07-29 by a stand-in, and that changed the slice for the better.**
     - **What happened.** journal/0122 fixed the creep blocker by **sub-cycling inside the
       pass**: `n = ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)`, derived from the von
       Neumann bound `a = 1/8`. Grid-scale oscillation is gone (surface concavity ACF(1)
@@ -1245,7 +1291,10 @@ see the question you are asking.
       prerequisite for writing a diffusion pass; in the kernel, the unsafe call is
       inexpressible.*
     - **RATE still supplies the `dt` the kernel sub-divides**, so this slice is unchanged in
-      substance and smaller in scope than it was this morning.
+      substance and smaller in scope than it was this morning. **✅ And that is exactly how it
+      was built** — `Erosion::diffuse` now reads `let rate = cfg.diffusion * dt;` (authored, from
+      outside) four lines above `let diff_sub = rate / f64::from(n_sub);` (derived, inside). The
+      ruling turned out to cost one line and to name the E4 extraction target precisely.
     - **WHY IT NOW LEADS.** The shipped world sat **2.1× past its own stability bound** for
       weeks with every golden green, and the only thing that caught it was one author doing
       the analysis once, in one pass. **Every future field pass that diffuses anything has

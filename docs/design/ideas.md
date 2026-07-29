@@ -536,6 +536,21 @@ overlay is the named heir; do not build it now, but do not foreclose it.
 
 ## Pass cadence — the fractional-phase scheduler (user sketch, 2026-07-23)
 
+> **✅ THE RATE HALF OF THIS SKETCH IS BUILT — 2026-07-29, journal/0123.** Both directions of it:
+> the coarse one (`period`, epochs between firings) and the **fine** one (`sub_turns`, several
+> turns per firing, each handed the state the previous one left) — the *"tectonics ×1 →
+> hydro ×1 → weathering ×3"* half that had never been expressible. `dt = period / sub_turns` is
+> the *"duration is a scalar on its transformations"* of the third bullet below, and it is now
+> consumed rather than assigned and ignored. The cadence numbers are **data** a world authors
+> (`deeptime::CadenceTable`), not constants in the pass bodies.
+>
+> **Nothing in this sketch was reconciled away by that slice, and two of its questions are still
+> open and still the user's**: the ORDER half (restored 2026-07-26, still unbuilt), the
+> **epochs** half below (*"declared with pass members + a chapter count OR a terminating
+> condition"* — never built), and the *sharp open fork* at the end (**one weathering pass at one
+> cadence, or one pass per agent at its own?**) — which the axis now makes answerable in code
+> for the first time, and which remains a design question nobody has answered.
+
 **RECONCILED 2026-07-24 → `material-behavior.md` §5 (Cadence: order × rate × window).** The
 scheduler is ~~**two orthogonal axes**~~ **three** (a third was ratified 2026-07-25, below):
 ~~topo-sorted **ORDER** (derived from a pass's reads/writes)~~ **ORDER — AUTHORED,

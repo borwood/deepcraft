@@ -1,5 +1,14 @@
 # S1 — the core doctrine spine
 
+> ## ⚠ ONE CITED FACT WENT STALE — stamped 2026-07-29 by journal/0123 (RATE)
+>
+> Finding **116** (`:406`) records *"RATE was ratified 2026-07-24 and never built (`dt` pinned to
+> 1.0)"*. **RATE is BUILT as of 2026-07-29** — journal/0123, `dependency-graph.md` E3. The
+> observation was true when this audit ran and its *body is not rewritten*; the argument it
+> supports (a ratified-but-unbuilt decision with no watcher) is unaffected, and if anything is
+> sharpened — the item was retired by a slice, never by a watcher. **The erosion measurements
+> quoted alongside it are journal/0116's and stand.**
+
 > ## 📋 DISPOSITION — applied 2026-07-29. Read this before acting on any finding below.
 >
 > | # | subject | state |

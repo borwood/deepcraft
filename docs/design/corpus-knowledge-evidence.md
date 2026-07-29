@@ -1062,7 +1062,10 @@ serves"** (the root premise *"because every argument below descends from it"*) �
 
 **Two of those fields are forward OBLIGATIONS, authored in prose and watched by nothing:**
 *"what this indicts today"* names `DeepAxis` as the violation — **still present** — and
-*"ratified, never built"* names RATE — **still unbuilt**. This is correction #35's complaint
+*"ratified, never built"* names RATE — ~~**still unbuilt**~~ **BUILT 2026-07-29, journal/0123**
+(so the heading this row quotes now reads *"BUILT 2026-07-29"*). *The finding is unaffected and
+is arguably strengthened: the phrase sat unwatched for five days and was retired by a slice, not
+by the watcher this row says we do not have.* This is correction #35's complaint
 answered halfway: the decision *does* carry its obligation list; nothing discharges it.
 
 ### 3.6f `ROADMAP.md` § Observed — characterised quantitatively rather than read (1,970 lines)

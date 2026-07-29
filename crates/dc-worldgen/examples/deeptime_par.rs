@@ -91,7 +91,7 @@ fn profile(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> Profile {
             }};
         }
         timed!(0, {
-            ero.apply_uplift(&mut grid);
+            ero.apply_uplift(&mut grid, 1.0);
         });
         timed!(1, ero.build_surface(&grid));
         timed!(2, ero.flood());
@@ -99,7 +99,7 @@ fn profile(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> Profile {
         timed!(4, ero.accumulate_area());
         timed!(5, ero.transport(&mut grid, cfg));
         timed!(6, ero.weather(&mut grid, cfg));
-        timed!(7, ero.diffuse(&mut grid, cfg));
+        timed!(7, ero.diffuse(&mut grid, cfg, 1.0));
         if cfg.record {
             timed!(8, ero.record(&mut grid));
         }

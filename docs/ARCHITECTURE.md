@@ -648,7 +648,21 @@ science does not entitle anyone to open it).
 declares its own resource ids. Where the default pack exposes ids a third party may depend
 on, that is a **pack** surface with the ordinary obligations of one — not an engine ABI.
 
-### RATE — ratified 2026-07-24, never built, and now first in line
+### RATE — ratified 2026-07-24, ~~never built, and now first in line~~ **BUILT 2026-07-29**
+
+> **✅ BUILT 2026-07-29 — journal/0123, `dependency-graph.md` E3.** Cadence is authored data
+> (`CadenceTable` over each pass's declared default), sub-turns execute with the cell state
+> carried between them, and `dt` is live in the rate-shaped passes converted so far. The
+> acceptance test below was met as a **hash comparison**: an empty cadence table reproduces the
+> shipped world bit for bit (`GOLDEN_SURFACE 0x15A6_B756_7A84_29FB` / `GOLDEN_RECORD
+> 0x820B_A198_49DD_234A`, `crates/dc-worldgen/tests/rate_axis.rs`).
+>
+> **RATE does NOT own stability substepping** (user ruling, 2026-07-29) — that is the S-10
+> field-solver kernel's, and `stubs.md` § 30's remaining half. **And the arc does not close
+> here:** authored ORDER, the open vocabulary, and declared epochs are still owed.
+>
+> *The section below is kept as written because it is the argument that sequenced the slice,
+> and because its central claim was confirmed from the other side rather than superseded.*
 
 `material-behavior.md` §5's RATE axis (a pass's phase length; `dt` scaling its
 transformations; a high-rate pass running several sub-turns while a low-rate one runs once)
@@ -662,3 +676,13 @@ concavity ACF(1) **−0.87 / −0.91** against a shipped world's **+0.38**. The 
 prescription is *"a hillslope operator whose transfer stays a function of `rate × dt`."*
 **That is the RATE axis.** So the fix is not a patch beside the architecture; it is the
 architecture's first real consumer, and the world becoming stable is its acceptance test.
+
+**How it actually resolved, 2026-07-29, and the resolution sharpens the argument.** The
+operator was fixed *first* (journal/0122) by sub-cycling **inside the pass** — the pass, given
+no engine clock, grew its own — which confirmed *"this blocker is what RATE's absence
+produces"* from the other side. RATE then landed against the resulting known-good fixed point,
+so its acceptance test was a hash comparison rather than a judgement about whether a landscape
+looked right. **The prescription split in two along the ownership line:** `rate × dt` is the
+engine's (authored, RATE) and the stability sub-division is the *kernel's* (derived, E4). Both
+now sit four lines apart in `Erosion::diffuse`, which is where E4 will lift the second one
+from.

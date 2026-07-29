@@ -605,7 +605,21 @@ pub fn build_field_with(cells: &CellGrid, seed: u64, overrides: &DeepOverrides) 
 /// populated; off, they are empty (and `surf`/`strata` are byte-identical to
 /// [`build_field`]). Uses the byte-identical parallel path.
 pub fn build_field_cfg(cells: &CellGrid, cfg: &DeepConfig) -> DeepField {
-    let run = super::run_cells(cells, cfg, true);
+    build_field_cfg_cadence(cells, cfg, &super::cadence::CadenceTable::empty())
+}
+
+/// [`build_field_cfg`] with the world's **authored pass cadence** (the RATE axis,
+/// journal/0123). An empty table is [`build_field_cfg`] exactly — same runner,
+/// same schedule, same bits — which is what lets the RATE acceptance test compare
+/// against the shipped goldens through the *same* distillation the goldens were
+/// captured through, rather than through a second path that would have to be
+/// argued equivalent.
+pub fn build_field_cfg_cadence(
+    cells: &CellGrid,
+    cfg: &DeepConfig,
+    cadence: &super::cadence::CadenceTable,
+) -> DeepField {
+    let run = super::run_cells_with_cadence(cells, cfg, true, cadence);
     let w = run.grid.w;
     let cell_m = run.grid.cell_m;
     let surf: Vec<f64> = run
