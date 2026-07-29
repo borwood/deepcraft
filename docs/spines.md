@@ -1838,6 +1838,24 @@ the authority; several now carry supersession banners of their own — read the 
   lines. **Findings carry an application state** (`✅ APPLIED` / `⚠ ESCALATED` /
   `❌ FINDING WRONG`) as of 2026-07-29; read the state before acting on a finding.
 
+**⚠ AND IT FELL FIVE BEHIND AGAIN WITHIN A DAY OF THE BACKFILL** — caught 2026-07-29 (evening) by
+the FULL spine-audit. *The backfill above was the fix for being eleven behind; four audits written
+the same day and one written that evening were unlisted when it landed. **A backfill is not a
+watcher** — the rule needs the mechanism it asks for, and § 5's dead `JUSTIFIED-BY` marker is the
+standing evidence that a convention asking an author to remember something dies. The candidate
+mechanism is the one A-3 above just praised: the enumeration a compiler (or a sweep with a
+directory listing) checks, not a list a human appends to.* Listed, one line each:
+
+- **`2026-07-29-roadmap-classification.md`** — the 59 verified archive ops + the 5 for the user.
+- **`2026-07-29-refinement-coupling-priors.md`** — the coupling-priors research behind
+  `refinement.md` (PROPOSED → cautiously ratified with the members qualifier).
+- **`2026-07-29-member0-coarsefield-design.md`** — E5 member #0's design pass (MM-1…MM-4; MM-4 is
+  the ruling that sent `summarize` to the octree node contract, cited by § 3's `CoarseField` row).
+- **`2026-07-29-far-frontier-tourmap.md`** — the tour map for the member-#0 far walk.
+- **`2026-07-29-spine-audit-full.md`** — this sweep. The **first `spine-audit` artifact under
+  `docs/audits/`**: every prior run wrote only the header block above, which is why the baseline
+  note recorded *"spine-audit had left no artifacts at all."*
+
 **These were nearly lost.** They lived in a session scratchpad and were cited
 all day; nothing in the corpus pointed at them. That is **A-4 committed on the
 day A-4 was written** — proof that an index only helps if the artifacts it
