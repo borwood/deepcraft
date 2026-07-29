@@ -32,10 +32,21 @@ read live, never when it gets old.**
   is meant to disappear — disambiguated 2026-07-28, `north-star.md` § Materials),
   their behavior, and the passes over them are **authored in a
   uniform, self-declaring, compiler-validated shape and tuned by data**. Behavior
-  is code, tuning is data. **Plugin-first, closed-source-OK, untrusted-third-party
+  is code, tuning is data. **Plugin-first, closed-source-OK,** ~~untrusted-third-party
   safe** via a tiered backend behind ONE authoring shape: native `abi_stable` for
   trusted/first-party (incl. runtime), WASM sandbox for untrusted (gen-tier — the
-  two-clock reconciliation; the Minecraft-space one-better). The crossing
+  two-clock reconciliation; the Minecraft-space one-better).~~
+  **🔴 THE TIERING IS RETIRED — struck 2026-07-29 (baseline sweep S5/F1).** `north-star.md`
+  § Deviations **2** (user, emphatic): *"There is no trusted or untrusted until such a time as
+  we need to"*; the capability tiering *"is **EXPLICITLY NOT THE MODEL** and must not shape any
+  design."* `CLAUDE.md` read-first item 0 carries it: *"the trusted/untrusted split and the
+  ABI/WASM backend tiering are **DEFERRED** … there is **no difference in permission between
+  native and WASM**, so never justify a core/content placement by trust."* **ONE authoring
+  shape survives; the two tiers do not.** *This bullet is the first thing a cold session reads
+  after the read-first set, and it was handing over a retired trust model as the north star's
+  live shape — the paraphrase outran its source and was never re-struck when Deviation 2
+  landed, two lines below where the same entry already marks the "native field-solvers"
+  correction.* The crossing
   constraint (plain-data + handles, no rich Rust across the seam) taxes the SDK
   *surface we design*, never the content author's expressiveness. Pursued
   **evolutionarily** — the seam-first march IS the path (~70% embryonic in-tree:
@@ -715,9 +726,15 @@ see the question you are asking.
     left it as *"a flag to the main session, not a unilateral rewrite"*; the instruction is still
     there. **Main session owes: does the marker earn its first real uses, or does § 5 get rewritten
     around the prose form actually in use?**
-  - **`session-workflow/SKILL.md:889-894` still presents archive-by-status as a future proposal**
+  - ~~**`session-workflow/SKILL.md:889-894` still presents archive-by-status as a future proposal**
     (*"**Moving** older Shipped entries… **would** shrink the live board"*) — it shipped
-    2026-07-26. Integrator fix, no ruling needed.
+    2026-07-26. Integrator fix, no ruling needed.~~
+    **✅ ALREADY FIXED — struck 2026-07-29 (baseline sweep S5/F8).** `session-workflow/SKILL.md`
+    now reads *"**Archive by STATUS, not by age. — ✅ SHIPPED 2026-07-26 as
+    `ROADMAP-history.md`**"*, and the quoted text is not in the file
+    (`grep -n "would shrink the live board\|Moving.*older Shipped"` → nothing). This row was the
+    only thing still claiming otherwise. *The fix landed with no back-pointer to the row that
+    asked for it — the same one-directional shape the row itself was reporting.*
   - **New Observed candidate:** `approx_resident_bytes` is **non-monotone in extent** (Medium
     **377 MB** > Large **213 MB**) because the deep grid is width-capped
     (`cell_m = max(extent_m/DEEP_MAX_WIDTH, DEEP_CELL_M)`) and record size is
@@ -970,13 +987,23 @@ see the question you are asking.
   - **The ABI spike is described as "locking the SDK shape"** — contested by north-star
     § Deviations 1, which defers the whole trust/backend question.
   - **⚠ THE COAL EVIDENCE BASE IS LABELLED "THE PRODUCTION WORLD" IN FOUR LIVE DOCS**
-    (`stubs.md:348-351`/`:360-362` — the sentence justifying `COAL_BURIAL_M = 8.0` —
-    plus `corrections.md:1164`, `ROADMAP-history.md:1228/1234`, `journal/0066:43`;
-    `geology.md:163` carries the number with **no world label at all**). It is the **warm
-    reference** fixture `0x0D5E_ED57_2026`, and the shipped world has **zero coal**
+    (~~`stubs.md:348-351`/`:360-362` — the sentence justifying `COAL_BURIAL_M = 8.0` —
+    plus `corrections.md:1164`~~; `ROADMAP-history.md:1228/1234`, `journal/0066:43`;
+    `geology.md:163` carries the number with **no world label at all**).
+    **⚠ ADDRESSES REPAIRED 2026-07-29 (baseline sweep S5/F7) — locate these by CONTENT, not by
+    line.** `COAL_BURIAL_M = 8.0` is in `docs/design/stubs.md` § 13/§ 14 (`deeptime/biotic.rs`
+    reference) and the *"production world"* label is the *"of 35 382 peat-derived units in the
+    production world exactly 13"* sentence in the **same entry**, not at `:348-362` (which is
+    the **wave-climate** stub). The `stubs.md:378-379` *"user ratification directly on top"*
+    citation addressed a **section heading**. In `journal/corrections.md` the surviving
+    *"production world"* uses are in the charcoal, residency and `exhum`/`t_crust` entries, not
+    at `:1164`. *This is corrections #67's shape exactly — every one of these was accurate when
+    written and now addresses different text, indistinguishable from a paraphrase.*
+    **The FINDING is unaffected and still live:** it is the **warm reference** fixture
+    `0x0D5E_ED57_2026`, and the shipped world has **zero coal**
     (corrections #51). **The label is wrong with certainty; the correct VALUES are unknown**
     — they predate the geotherm recalibration — so this needs a **measurement**, not an edit.
-    *A user ratification sits directly on top of it (`stubs.md:378-379`).*
+    Only the addresses rotted.
   - **NEXT SWEEP'S SPINE: `ROADMAP.md` § Observed (~1,970 lines)** — the largest unswept
     surface in the corpus, and the section the archive structurally could not reduce.
 
@@ -1230,7 +1257,11 @@ see the question you are asking.
     the sampler visits" — the same reflex produced both halves, six lines apart, in the entry that
     named the reflex.*
   - **🔴 FOUR OF THIS SLICE'S FINDINGS ARE USER DECISIONS AND LIVE IN ONE PLACE:
-    § Sequenced → "USER DECISIONS OWED"** (items 1–4: the 102-post appearance notification · the
+    § Sequenced → ~~"USER DECISIONS OWED"~~ **"✅ ALL FIVE USER DECISIONS RULED 2026-07-28"**
+    *(pointer repaired 2026-07-29, baseline sweep S5/F9: no heading named "USER DECISIONS
+    OWED" has ever existed, so a reader greping the quoted string found only the two pointers
+    and never the target — and the target is now RULED, not owed)*
+    (items 1–4: the 102-post appearance notification · the
     three design docs that still describe civ/history as a live pipeline stage · dc-sim's S2 tier
     now having zero production callers, with the slice's deviation plea · the producer-less
     settlement/civ schema). **Consolidated there rather than duplicated here**, because a live
@@ -1457,8 +1488,16 @@ see the question you are asking.
   interpolated/upscaled runtime world? how would a mod hand-roll emergent rivers on their own
   via the SDK, **that are visible**?"*). **Read `north-star.md` § "The refinement tier is in
   neither list" first — the hole is recorded there in full.**
-  - **THE HOLE.** `north-star.md`'s core/plugin boundary enumerates both columns and **the
-    refinement tier is in neither.** It was never decided; it was arrived at *by default*.
+  - **THE HOLE — ✅ THE OWNERSHIP HALF IS CLOSED (2026-07-28); the CONTRACT half may still be
+    live.** *Marked 2026-07-29 (baseline sweep S5/F3).* `north-star.md` now carries
+    **`### ✅ THE REFINEMENT TIER — RESOLVED TO (c), user, 2026-07-28`**, and this document
+    records the same resolution twice more — in the § Sequenced entry above and, **twelve lines
+    below inside this very bullet**, as *"DIRECTION — DECIDED 2026-07-26 (user)… option (c)."*
+    **So the entry recorded the decision and still opened by saying it was never made** — the
+    corrections #65 shape at 12 lines instead of 400. Read the rest of this bullet as the
+    *record of the hole*, not as an open question:
+    ~~`north-star.md`'s core/plugin boundary enumerates both columns and **the
+    refinement tier is in neither.** It was never decided; it was arrived at *by default*.~~
     `flow.md` § 4 names it as one of four tiers **and gives it a contract** (*pure fn of
     (record, shared face data, position)*), while the ownership document does not know it
     exists. In code it is `collapse.rs` — **2,415 lines, essentially zero declaration.**
@@ -1562,8 +1601,21 @@ see the question you are asking.
   which was overstated — see below**.
   - **(a) `dc-sim/engine.rs`'s region-step and agent-step draws** address `[seed, k, SALT, …]` —
     the sample index sits before the domain, so putting them on `Draws::of` (which fixes the
-    domain at slot 2) changes the key. **Still a user-owned appearance slice, but a smaller and
-    differently-shaped one than this entry claimed** (corrections #64, a read-only trace taken
+    domain at slot 2) changes the key. ~~**Still a user-owned appearance slice, but a smaller and
+    differently-shaped one than this entry claimed**~~
+    **🔴 NO LONGER AN APPEARANCE SLICE AND NO LONGER THE USER'S — corrected 2026-07-29
+    (baseline sweep S5/F2).** The whole visible consumer chain below was **deleted 2026-07-28**
+    with the bootstrap history content (`journal/0121`, corrections #66, −713 Rust lines).
+    Re-verified at source 2026-07-29: `grep -rn "ruin_posts\|Pregen.sites\|pregen/history"
+    crates/ --include=*.rs` → **no matches**. This document already says so 500 lines above
+    (*"draw-domain part (a) is **discharged by removal** rather than conversion"*).
+    **What remains is real and unbuilt:** the two hand-rolled draws still sit in
+    `dc-sim/src/statistical/engine.rs` and still want `Draws::of`. But there are no ruin posts
+    to move, so — exactly as this entry already says of the agent-step half — **both halves are
+    now byte-identical housekeeping.** *Dispatched as previously written, a slice would have
+    gone looking for `collapse.rs::ruin_posts` and waited on a user ratification that cannot be
+    owed.* Read the trace below as the 2026-07-26 record it is:
+    (corrections #64, a read-only trace taken
     2026-07-26 during (b); **not re-scoped by that agent — the integrator's and the user's call**):
     - **The region-step draw (`engine.rs:331`) is the real one, and it IS visible.** Collapsed
       pressure → the sack roll (`pregen/history.rs:221`) → `abandoned` → `Pregen.sites` →
@@ -1725,8 +1777,18 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     one arrow per cell, so its spines row was upgraded **SUPERSEDED → A-1**. Expect **`area` to be
     the harder half**, since MFD makes exported drainage area a *dispersed* quantity whose peak is
     15× smaller. **Do not close the arc when the first slice lands.**
-  - **🔴 OWED BY MFD, and it is the nearest-term thing on this arc (2026-07-26, journal/0109):**
-    **hybrid `p`**, plus **recalibrating `k_bedrock`/`k_transport`**. Uniform `p` **does not
+  - ~~**🔴 OWED BY MFD, and it is the nearest-term thing on this arc (2026-07-26, journal/0109):**~~
+    **✅ SHIPPED 2026-07-26 — struck 2026-07-29 (baseline sweep S5/F4). Both terms are stale.**
+    **Hybrid `p` shipped** as FLOW (b′) (`journal/0113`, `ROADMAP-history.md`; peak catchment
+    84 → 298) and is **the shipped default** — `crates/dc-worldgen/src/deeptime/grid.rs` sets
+    `mfd_exponent: 1.0` / `mfd_exponent_channel: 16.0` with `mfd_chi_lo`/`mfd_chi_hi`,
+    doc-commented *"the hybrid-`p` law (journal/0113)"*. **The `k_bedrock`/`k_transport`
+    recalibration** is at least partly discharged by the joint calibration
+    (`journal/0114`, `EROSION_CALIBRATION = 45` — which this same entry acknowledges elsewhere),
+    though that ships **behind `calibrated_rates`, OFF**. *This document cites hybrid `p` as a
+    **completed predecessor** two hundred lines above while flagging it 🔴 OWED here.*
+    Original text, kept as the record of what was owed:
+    ~~**hybrid `p`**, plus **recalibrating `k_bedrock`/`k_transport`**.~~ Uniform `p` **does not
     concentrate flow** — peak catchment fell **1,245 → 84 cells** — because MFD lowers both `Q`
     and `S` at every cell, making it **systematically less erosive than D8 at fixed coefficients**
     (total load −16 % while load-carrying faces ×2.76). The literature's answer is `p` as a
@@ -1780,16 +1842,35 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     the world's actual maximum, and the refusal.
   - **⚠ NEEDS RATIFICATION (user-owned):** `material_transport` **on by default** (it moves the
     goldens — same class as the erodibility/tectonic/MFD flips); and **`COMPETENCE_SCALE = 420`**,
-    the knob deciding *which grain sizes this world can move at all*, whose measured answer today
-    is **"mud, sometimes."**
+    the knob deciding *which grain sizes this world can move at all*, ~~whose measured answer today
+    is **"mud, sometimes."**~~
+    **⚠ THE RATIFICATION MAY STILL BE OWED; ITS SUPPORTING TEXT IS NOT CURRENT — annotated
+    2026-07-29 (baseline sweep S5/F6). Nothing is decided here.** Two of the three sentences
+    have moved under it:
+    (i) `material_transport: true` is **already the shipped default**
+    (`crates/dc-worldgen/src/deeptime/grid.rs`), so this asks the user to ratify a flag that is
+    on — *and no ratification record for it exists in `ROADMAP-history.md`, the close blocks, or
+    journal/0110–0112, so either it shipped default-on ahead of its ratification or the record
+    is somewhere unread.* **Worth putting to the user as such.**
+    (ii) *"mud, sometimes"* is superseded: under the joint calibration **sand now moves on
+    0.095 % of land where it was zero** (`journal/0114`).
+    (iii) `journal/corrections.md` **#59** falsified *"the competence ceiling is fixed by an
+    anchor that already ships, and is not a tuning knob"* — `energy_band`/`competence_ceiling`
+    are now relative to `REFERENCE_KT`.
   - **Appearance: announced, and a NULL IN THE VIEWPORT for the second slice running.** Surface
     elevation identical to two decimals. **No walk is owed** — a tour-map would find nothing to
     stand in front of.
   - **🔀 THE CONTINUATION ORDER IS REROUTED BY MEASUREMENT, and this is the user's call.** The
     corpus sequences fluvial refinements next; the numbers say otherwise:
-    **(b) the GRAVITY/MASS-WASTING member of § 13.2 — newly promoted to FIRST.** Creep routes
+    ~~**(b) the GRAVITY/MASS-WASTING member of § 13.2 — newly promoted to FIRST.** Creep routes
     this world's sediment and **carries no identity**; making it material-aware is where a
-    visible facies signal actually lives.
+    visible facies signal actually lives.~~
+    **✅ (b) SHIPPED 2026-07-26 as `journal/0112` — "Movement 2b, continuation (b) —
+    material-aware hillslope creep". Struck 2026-07-29 (baseline sweep S5/F5.)** It is the
+    shipped default (`grid.rs`: `material_creep: true`), and this document elsewhere cites it
+    as done (*"provenance in the archive 0.000006 % → 65.206 %"*). **It is not an open user
+    call.** The reroute *judgement* below stands as the record of why (c)–(f) are ordered as
+    they are.
     **(c)** Hjulström's U-curve entrainment (§ 13.4) — armouring, desert pavement, cohesive
     persistence, selective winnowing. **(d)** the eolian load — the wind agent has a genuine
     load and still reads its species off the tag. **(e)** lineage/provenance (§ 13.8) —
@@ -2677,6 +2758,38 @@ What remains is **user decisions**.)*
    is the erosion budget only; `erodibility_contrast` was left for a later slice
    (the budget alone is what experiment B moved). The DECISION is still the
    user's; this slice only makes it seeable.**
+   > ## 🔴 THE BLOCK BELOW IS THE LOSING SIDE OF A MEASUREMENT AND IS STILL MARKED SETTLED
+   >
+   > *Banner added 2026-07-29 (baseline sweep S9/S9-1). **Nothing below is deleted** — its
+   > sweep is empirically reproducible on the shipped world, and journal/0079's probe was
+   > faithful to the launch path it tested. What it was **blind to** is `diffusion`.*
+   >
+   > **`journal/0111` (2026-07-26) measured the opposite on three load-bearing halves:**
+   > 1. *"graded to base level … **neither supply-limited**"* → 0111: *"98 % of every metre of
+   >    bedrock this world detaches leaves the land system… **at the shipped calibration the
+   >    landscape is supply-limited** — the weathering constant *is* the denudation rate."*
+   > 2. *"the rate only sets approach-to-grade"* → 0111's sweep: budget 100× **+ creep 10×**
+   >    buys **132×**, *"59× more than their separate gains multiplied."* **`erosion_budget`
+   >    scales `weathering`, `k_transport` and `k_bedrock` — it does NOT scale `diffusion`**,
+   >    and creep does **918×** what the rivers do. *0079's null was an artifact of the knob's
+   >    reach, not of grade.* **"A knob that cannot move the thing it is named after"** —
+   >    corrections #56, `stubs.md` #24.
+   > 3. *"relief is bottlenecked on the GENERATING side — not erosion"* → `journal/0114`
+   >    measures relief **+4.6 % at 45×, +18 % at 100×, +52 % at 300×**. Erosion moves relief;
+   >    it was never allowed to.
+   >
+   > **⚠ AND DO NOT RESTATE IT AS "SUPPLY-LIMITED TODAY."** 0111's finding holds of the
+   > **calibrated** world; `EROSION_CALIBRATION = 45` sits behind `calibrated_rates`, **OFF in
+   > production**, blocked on the incision clamp (`journal/0116`, `stubs.md` §§ 27/29).
+   > `journal/0114` then refines 0111 in turn: *"the rates were never the binding constraint."*
+   >
+   > **WHAT THIS BANNER DOES NOT DO: reopen the axis.** That is a **user call**. What it
+   > withdraws is only the closing clause — see the strike at the end of this item. *0079
+   > opens by invoking the journal/0030 trap — "a null from an instrument that cannot see the
+   > question is worth nothing" — and CLAUDE.md's "corollary for reading a null", written for
+   > `journal/0110`, fits 0079 word for word and had never been applied to it. See also
+   > `journal/corrections.md` #41, which carries 0079's mechanism.*
+
    **ANSWERED — NOT BY A WALK — 2026-07-23 (journal/0079; RATIFIED). The
    erosion budget is not the amplitude lever.** A faithful probe (1× asserted
    byte-identical to shipped `build_field`) swept `--erosion-budget` 1×/3×/10×/30×
@@ -2697,7 +2810,9 @@ What remains is **user decisions**.)*
    relief-generation problem** (couples to S13's owed 100–500 m landform band and
    the plateau) — its own design pass, Sequenced below. Instruments committed:
    `examples/amplitude_tour.rs`, `examples/amplitude_mechanism.rs`.
-   corrections #41. **Nothing further to ratify on the erosion axis.**
+   corrections #41. ~~**Nothing further to ratify on the erosion axis.**~~ **🔴 WITHDRAWN
+   2026-07-29 (baseline sweep S9/S9-1) — see the banner at the head of this item. Whether the
+   axis reopens, and on what terms, is the USER'S call and is not presumed here.**
 3. **The four rate coefficients** in `resistance_of_material` (how smash /
    solubility / permeability / cohesion map to each agent's resistance) and the
    contrast/clamp defaults ride **plausible-not-tuned**, same status as S9's
@@ -4483,8 +4598,12 @@ path into a cold session until this block was written.**
    strike anywhere — in read-first item 0b, against which every brief justifies itself.
 2. **The erosion axis is marked settled and is not** — `ROADMAP:2513-2533`. Its null came from a
    probe **blind to `diffusion`** (96 % of export). ⚠ **Do NOT restate it as "supply-limited
-   today"** — that holds only of the *calibrated* world, which does not ship. **This is engine
-   work and it is the highest-value thing on the board.**
+   today"** — that holds only of the *calibrated* world, which does not ship. ~~**This is engine
+   work and it is the highest-value thing on the board.**~~ **CORRECTED 2026-07-29 (user ruling;
+   `journal/corrections.md` #71): erosion is DEFAULT-PLUGIN-PACK work, not engine work.**
+   Read-first item 0 says it by name — *"every pass is content, including tectonics and
+   erosion"* — and this close block contradicted it. It remains **the highest-value thing on
+   the board**; only its side of the engine/content cut was wrong.
 3. **The bulk-mechanical backlog**, if you want cheap wins: **37 Observed entries (29 %) already
    say ✅ DONE in their own bodies** — a pure archive job with no judgement calls; **8 spike/audit
    files need supersession banners** (drafted).
@@ -4565,7 +4684,9 @@ magnitudes by ~2×, with **43 % of entries ambiguous** — so every number is a 
   names the trigger phrasings and its body opens with the four results. **CLAUDE.md deliberately
   unchanged.**
 - **The five user-owed decisions are PARKED, not forgotten** — *"i won't muddy waters by addressing
-  that in this conversation."* § Sequenced → **USER DECISIONS OWED**, context inline.
+  that in this conversation."* § Sequenced → ~~**USER DECISIONS OWED**~~ **"✅ ALL FIVE USER
+  DECISIONS RULED 2026-07-28"** (pointer repaired 2026-07-29 — no such heading existed; and
+  they are ruled, not parked), context inline.
 
 ### Falsified — the assistant's own first
 - **My adoption law, falsified by me mid-session.** *"A convention is adopted iff a machine consumes

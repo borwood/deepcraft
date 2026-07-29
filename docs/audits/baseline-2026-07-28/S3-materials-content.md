@@ -1,5 +1,30 @@
 # S3 — Materials & Content (baseline doc-topology sweep, 2026-07-28)
 
+> ## 📋 DISPOSITION — applied 2026-07-29.
+>
+> | # | state |
+> |---|---|
+> | **1** biotic shipped-ON vs `worldgen.md` sequencing | **✅ ALREADY FIXED before this pass** — `ecology.md` now carries the reconciliation and credits this sweep: *"It is a seam with a named heir, not a system under development… the missing word was **building**."* No action taken. |
+> | **2** `materials.md` § AS BUILT describes `block_twin` in the present tense | **✅ APPLIED** — pointer added: the mechanism was deleted 2026-07-23 (journal/0087); read the paragraph for its **argument**, not its API. |
+> | **3** RATE bullet still says "composed with topo-sort" | **✅ APPLIED** — struck (the last un-struck `topo-sort` in that section, 23 lines below its own SUPERSEDED banner, reported two days earlier and unfixed). `flow.md:459`'s *"ORDER (topo-sort)"*, flagged here for another slice, is **also fixed**. corrections #65's site list amended. |
+> | **4** `S16` names two spikes | **⚠ ESCALATED** — the finding says *"User/integrator call; I am not resolving it."* Renaming the water-side reference (id-free) vs renumbering a live id cited ~1,130 times is a real trade-off. |
+> | **5** lode gold's heir 2 = a calibration `stubs.md` records as blocked | **❌ FINDING OVERTAKEN — see the note below the table.** |
+> | **6** formation predicates: plain data (DECIDED) vs functions (open edge) | **✅ PARTIAL** — the **reciprocity gap is closed** (§ 14 now points at the notebook's § 2.4 and states the available reconciliation, marked *not settled*). **The recommended `🔖 OPEN EDGE` banner on a DECIDED clause is ⚠ ESCALATED** — changing a decided section's status is not a sweeper's call. |
+> | **7** ecology.md's 25 s ratification | **✅ ALREADY FIXED before this pass** — `ecology.md` carries *"⚠ And the cost quoted below is the withdrawn number… measured at 13.79 s."* No action taken. |
+> | **8** `ores.md` § 8 reports a doc-hygiene defect since fixed | **✅ APPLIED** — struck; `geology.md`'s annotation verified present. |
+> | **9** roster tables vs R8's member naming | **✅ PARTIAL** — the **one-directional pointer is fixed**: § 2.1's table now carries a ⚠ naming R8, the substance-vs-deposit conflict, and the redone texture pass. **The amendment itself remains ⚠ ESCALATED — it is explicitly the user's call.** |
+>
+> **On finding 5 — the audit was overtaken by a user ruling it could not have seen.** It reads
+> the metre-scale-exhumation caveat as a live blocker whose shape changed. **On 2026-07-28 the
+> user rejected the caveat outright** (`journal/corrections.md` **#70**): *"We do not need to
+> have ore 'exposed' — the default plugin pack will ship a voxel game **with digging**…
+> Absolutely no reason to treat it like everything needs to be discoverable on the surface."*
+> `ores.md` gained a top-of-file 🔴 banner the same day. **What this pass did:** struck the
+> four caveat sites the banner named and left unstruck (§ 1 flagship warning, § 2.1 heir 2,
+> § 6 R1's *"probe 3 measures this first"*, § 8.1's collision), each pointing at #70. **The
+> same correction supersedes S8's contradiction C1**, which recommended surfacing the caveat
+> to the user as a blocked ratification — it is not blocked; the premise is dead.
+
 **Watermark commit: `f652b60`.** Every `file:line` below was read at `f652b60`; a quotation
 without a revision is not a quotation (skill rule, corrections #67).
 

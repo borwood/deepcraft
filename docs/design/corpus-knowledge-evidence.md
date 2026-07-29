@@ -935,6 +935,16 @@ What it already does that any proposal must account for:
   civ modelling exists *"even at the design stage: they are NOTHING."* **A dangling heir is a
   new failure mode this inventory has no state for** — the sibling removal slice is resolving
   this one by hand.
+  > **⚠ CORRECTED 2026-07-29 (baseline sweep S4/F6): "void" is the wrong state; it is
+  > DEFERRED.** The user narrowed the ruling 2026-07-28 — *"**THE STATUS IS ON HOLD, NOT
+  > NEVER**… we do want these systems **eventually**… Read *'they are NOTHING'* as a statement
+  > about **what exists**, never about what is wanted"* (`CLAUDE.md` § Conventions), and
+  > `stubs.md:64-69` already carries the correct reading. **The observation that the inventory
+  > has no state for a dangling heir survives and is the durable half** — but the instance is
+  > a *deferred* heir, not a void one, and the genuinely dangling case found since is a
+  > **re-homed address** (`stubs.md` #4 named `providers::burial_temp_c`, a slot deleted
+  > 2026-07-24). *A dated reading, corrected by a later user ruling — the row is annotated,
+  > not rewritten.*
 
 **⚠ AND THE MOST IMPORTANT SENTENCE IN THE FILE, for this notebook** (`:22-24`): *"A slot does
 not retire a stub; it stops the stub from silently becoming the definition, which is

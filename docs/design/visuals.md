@@ -426,8 +426,15 @@ So the proposal's three bands map onto machinery that mostly exists:
 | far | the winning material only, one flat colour | `dominant_material` / `classify` (journal/0052) |
 
 **What is missing is the renderer consuming the pyramid at distance bands**, not
-the pyramid. Today's far field is a top-surface *heightfield of Blocks*
-(journal/0022), coloured per block.
+the pyramid. ~~Today's far field is a top-surface *heightfield of Blocks*
+(journal/0022), coloured per block.~~ **⚠ SUPERSEDED — marked 2026-07-29 (baseline sweep
+S4/F8).** True of FF2a's hollow stepped sheet when written (2026-07-21); **FF2b node
+synthesis then filled the columns**. Per `stubs.md` #15 (2026-07-22, journal/0070): a
+synthesized far node *"**fills each column solid** up to the FF2a floor-quantized surface,
+and every voxel of that fill carries the **surface** block… in node form it is now data that
+**claims** the column."* *This block is headed "PRIORS THE SWEEP FOUND (do not re-derive)",
+so a slice planning the unbuilt LOD-band work would have taken it at its word and planned
+against a far field that no longer exists in that shape.*
 
 **The perf instinct is supported by measurement.** journal/0010 measured a
 fully-mixed chunk at **16× the triangles** of a uniform one (196 608 vs 12 288)

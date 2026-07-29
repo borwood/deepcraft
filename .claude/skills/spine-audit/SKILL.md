@@ -41,8 +41,14 @@ entry or file a correction if the *claim* was wrong.
 Prioritise files changed since the last audit (`git log --since`, `git diff`).
 For each: does it add a new instance of a spine that should be listed? Does it
 hit an anti-shape — a stand-in hardening into a definition (A-1), a summary
-standing beside an authority rather than deriving from it (A-3), a check that
+standing beside an authority rather than deriving from it (**~~A-3~~ this is a
+SPINE, `S-3`, violated — not an anti-shape**), a check that
 cannot fail for the reason it claims (A-3)?
+*(Corrected 2026-07-29, baseline sweep S7/F5: the first label was wrong twice — wrong number
+**and** wrong class. `spines.md` `S-3` is "a summary is derived from the authority, never
+beside it"; `A-3` is "a test green for a reason unrelated to what it asserts". Because this
+skill files its findings **into `spines.md`**, an auditor following this check was filing
+S-3 violations under the A-3 heading, where the genuine A-3 instances live.)*
 
 **4. Do cited justifications still hold?** Grep `JUSTIFIED-BY:` and, more
 broadly, comments justifying a design by citing a constraint ("so that a pack

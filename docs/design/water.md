@@ -160,6 +160,19 @@ as one quantity they are the same transition read in different settings.
    saturation field. This is why S9 could classify it as a *bounded
    relaxation* (haloable, C-refinable) rather than an advective field: it
    equilibrates locally and never has to be traced from a source.
+   > **⚠ TIER QUALIFIER ADDED 2026-07-29 (baseline sweep S2/F5) — this consequence binds the
+   > PRESENT TIER only.** The user-ratified decision above (*"one quantity, two regimes"*) is
+   > untouched; what needed a scope was this assistant-derived consequence, which carries no
+   > tier marker and therefore reads across both.
+   > - **Present tier (`sat.rs`, S11's 4–11 cell halo): the claim holds intact.**
+   > - **Deep tier: falsified three ways** by `flow.md` § 2.4.1 (RATIFIED 2026-07-25) and
+   >   `journal/0098`. The potential **is stored** — `DeepField::head`, exported as
+   >   `dc:field/head`, metres of hydraulic potential per cell. It **is** traced from
+   >   sources — Dirichlet at sea stand, lakes, and streams above `STREAM_ANCHOR_AREA`. And
+   >   confined flow is explicitly **non-local**: solved as steady `∇·(T ∇h) = 0` by
+   >   Gauss–Seidel, *"information crosses the whole grid in one sweep"*, with confined cells
+   >   **uncapped** — regional aquifers and karst conduits **do** cross surface drainage
+   >   divides (§ 3e-2 decision 1 is thereby qualified to FREE/surface refinement only).
 2. **Vadose vs phreatic falls out for free**, and with it cave
    morphology. Below the water table is phreatic (saturated — where
    dissolution happens, the orogeny-proven karst regime). Above it is
@@ -400,6 +413,12 @@ is known rather than re-deriving it.
   abandoned conduit is a former channel the water table later dropped
   below. Possibly derivable from data already held (the same shape as S10's
   coal: already in the record before the world could contain it).
+  **⚠ RIGHT CONCLUSION, TWICE-CHANGED PREMISE — pointer added 2026-07-29 (S2/F9).** When
+  written this was **false**: § *Session capture* below (*"The deep sim's per-epoch drainage
+  is **computed and discarded**"* — `DeepField` kept only `surf` + `strata`) refutes it by
+  name, and `tectonics.md` § 7.1 confirms it independently. **It has since become true again
+  for a different reason:** `flow.md` § 2 shipped the **flux record**, which is exactly the
+  recorder axis the refutation asked for. Read the conclusion, not this premise.
 - **Bulk-flow octrees may share substrate with FF2b's volumetric summary
   octrees** (SVDAG/Aokana candidate) — ROADMAP already pairs FF2b with "the
   caves/underground thread of the water design pass", but the shared
@@ -598,8 +617,13 @@ spine question first or the spike measures the wrong field.
    pores are settled material-tier machinery; the octree is the open half.)
 4. Does the near-field flow network persist, or re-derive from the water
    table on load? (Same family as the owed far-field summary persistence.)
-5. Where does the deep-time water field live relative to the A/C tiers —
-   given S9 says it *relaxes* and is therefore haloable?
+5. ~~Where does the deep-time water field live relative to the A/C tiers —
+   given S9 says it *relaxes* and is therefore haloable?~~
+   **✅ ANSWERED 2026-07-25 by `journal/0098` (marked here 2026-07-29).** It lives on the
+   **A tier as a `DeepField` plane** — `DeepField::head`, exported as the condition-field
+   `dc:field/head`. See `flow.md` § 2.4.1 for its boundary conditions and `spines.md` § 3.
+   *Note it answers "haloable" the other way for the confined regime: the deep solve is
+   global, not local.*
 6. **Which cave family ships first**, and does it wait on carbonate?
    (Karst is orogeny-proven but carbonate-gated; erosional may be nearly
    free; littoral needs wave energy; glacial needs ice as an agent.)

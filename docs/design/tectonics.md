@@ -1,5 +1,45 @@
 # Tectonics — the moving world
 
+> ## ⚠ READ [`flow.md`](flow.md) FIRST — and note the erosion-rate FLAG below
+>
+> *Banner added 2026-07-29 (baseline sweep S2/F2, S2/F4). This doc is 950+ lines, it
+> shipped, and until now it was the **only** one of the three deep-process docs carrying no
+> supersession pointer — `water.md` and `earth-processes.md` both have one. Nothing in the
+> body below is rewritten.*
+>
+> **1. § 7.3's drainage-export shape is superseded.** `flow.md` (RATIFIED 2026-07-25, user,
+> *"standing blessed"*) replaced the **D8 receiver tree** with a **face-flux record**: one
+> out-edge per cell can represent convergence but **structurally cannot represent
+> divergence** — *"not 'poorly modeled' — unrepresentable"* (`flow.md` § 2.1). Consequently:
+> - **`recv` changed kind.** It is now the **argmax share**, a *summary* in
+>   ARCHITECTURE.md's sense; it can no longer be read as "where the water went", and
+>   `flow.md` continuation **(e)** retires it. The code says so:
+>   `deeptime/field.rs` documents the flux record as *"the representation that supersedes
+>   `Self::recv`"*.
+> - **There is no separate "carving."** *"Any mechanism that draws a channel instead of
+>   spending a budget is a second model of the carve and is forbidden"* (`flow.md` § 1). So
+>   § 7.3's *"the collapse **carving source**, one authority"* names a role that no longer
+>   exists in that form.
+> - `flow.md` § 6 additionally retires `RiverSeg`/`carve_rivers`, `Cell::{flow_to, river,
+>   discharge}`, and `earth-processes.md` § 3e-2's **expression** half.
+>
+> **What survives untouched:** chapters and the chapter table, crustal columns, isostasy and
+> flexure, punctuation, § 8 events, and — importantly — **§ 7.1's diagnosis** that the
+> exported network was stale pregen chords at 14.7 km on the pre-erosion surface. That
+> diagnosis is *why* `flow.md` exists and is still cited.
+>
+> **2. ⚠ THE PHANEROZOIC REGISTER IS RATIFIED; THE ENGINE DOES NOT HONOUR IT.** § 0's
+> *"one iteration ≈ 2.5 Myr"* prior is a **stipulation**, and every downstream number in
+> this document that reasons from an iteration↔Myr mapping (the ~6.7 m exhumation
+> multiplier at § 5, the *"relief persists for hundreds of Myr"* criterion at § 13, the
+> chapter age-labelling at § 3) inherits the gap. See the FLAG at
+> `earth-processes.md` § 3e-2 (2026-07-26): measured catchment-averaged denudation is
+> **0.0110 m/Myr**, ~10³ below the register's implied band and **9× slower than the slowest
+> surface ever measured on Earth** (`journal/0111`, corrections **#56**, `stubs.md` #24).
+> **The shape is right; only the rate is wrong.** The recalibration
+> (`journal/0114`, `EROSION_CALIBRATION = 45`) ships **OFF** behind `calibrated_rates`,
+> blocked on the incision-clamp defect (`journal/0116`, `stubs.md` §§ 27/29).
+
 > **RATIFIED 2026-07-20 (user)** — architecture and all eight user
 > decisions accepted in session 4, same day as the draft. U1 (plate_scale_km
 > = 65 knob), U2 (K = 8, knob), U4 (W ≈ 25 km, arc gap ≈ 50 km, judged from
@@ -52,12 +92,25 @@ not authored features**.
   the parallel path is the per-cell phases only (corrections #9).
 - **The ritual budget as shipped**: `field.rs` caps the deep grid at
   `DEEP_MAX_WIDTH = 550` (~300 k cells at every extent; Large gets
-  ~1.85 km cells), 200 iterations, ~13.8–14.4 s measured on the production
+  ~1.85 km cells), 200 iterations,
+  *(`550` is the **cap**, not the instance: `cell_m = (extent_m /
+  DEEP_MAX_WIDTH).max(DEEP_CELL_M)`, so Medium/seed 1337 lands on **545² =
+  297,025** cells — the figure S19 and `flow.md` § 12 quote. Verified in
+  `crates/dc-worldgen/src/deeptime/field.rs`, 2026-07-29. The § 5.1 / § 11 per-cell budgets
+  below are scaled on `550²` and are therefore ~1.8 % conservative, which is correct for a
+  budget.)* ~13.8–14.4 s measured on the production
   parallel path with biology + erodibility on (corrections #12,
   journal/0029/0030).
 - **Calibration (RATIFIED 2026-07-19)**: the Phanerozoic register — the
   recorded span is ~500 Myr, so at 200 iterations one iteration ≈ 2.5 Myr.
   Ages must be labeled before persistence/knowledge commits them as facts.
+  **⚠ STIPULATED, NOT HONOURED — see the FLAG at `earth-processes.md` § 3e-2
+  (2026-07-26) and this doc's top banner.** The register is ratified; nobody had
+  divided the engine's metres-per-iteration constants by it. Measured denudation is
+  **0.0110 m/Myr** against a 1–10 m/Myr target band (`journal/0111`, corrections #56).
+  **Do not re-derive from this prior without carrying the flag** — this bullet sits in a
+  section labelled *"swept before writing — do not re-derive"*, which is the highest-risk
+  possible framing for a number that moved.
 - **The stability machinery that must survive** (erosion.rs): mass ledger
   `Δ(ΣR+ΣH) == uplift_total + biotic_total`; *never incise below the
   receiver*; the erodibility feedback clamp `[1/erodibility_max,
@@ -381,7 +434,11 @@ Per deep cell, three new planes beside `r`, `h`, `uplift`(→ thickening):
 | `crust_kind` | u8 | Continental / Oceanic / Transitional (shelf) — sets density ρc ∈ {2800, 2950, 2870} | 0.30 MB |
 | `exhum` | f64 | cumulative bedrock exhumed (Σ of R-lowering by incision + weathering), m | 2.42 MB |
 
-Total **≈ 5.1 MB** against the 52 MiB run — noise. (Density as a per-kind
+Total **≈ 5.1 MB** against the ~~52 MiB~~ **measured 162.57 MiB** baseline `DeepField`
+residency (S19, 2026-07-25 — `flow.md` § 12; of which the flux record is 90.8 %) — noise.
+*The `52 MiB` was S9's correct 2026-07-19 measurement and had been carried forward as a
+live denominator; it is off by 3.1×. The conclusion is unaffected — 5.1 MB is noise against
+either — but the number a future decision inherits is the measured one.* (Density as a per-kind
 constant, not a per-cell plane: no consumer needs per-cell density
 variation that composition kind doesn't already carry. Rejected per-cell
 composition vectors in § 13.)
@@ -746,7 +803,8 @@ rituals are sanctioned — but this is a real tradeoff and it is
 **user-owned**: the spike reports relief-per-chapter at 200/300/400 so
 the user chooses a biography length with the price tag visible. Memory:
 +~10 MB working, +~8 MB resident (`exhum` + drainage export + masks) —
-noise against 52 MiB.
+noise against ~~52 MiB~~ **the measured 162.57 MiB baseline** (S19, `flow.md` § 12; see § 5.1's
+note — `52 MiB` is S9's 2026-07-19 figure and is 3.1× low as a live denominator).
 
 ## 12. Byte-identity and the flip strategy
 

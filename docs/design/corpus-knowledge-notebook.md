@@ -384,7 +384,7 @@ a scheme with one arrow will catch one of these:
 | **ratified-but-unbuilt** | `### RATE — ratified 2026-07-24, never built` | RATE, **still unbuilt** |
 | **co-retirement** — two things that must discharge *together* | prose: *"pin the two halves as retiring **together** — an heir that lands one without the other is a **world-scale defect**"* | `spines.md` S-5 (`COAL_ONSET_C` + its identity) |
 | **guard on an obligation** — a warning against its own obvious fix | *"**Before "fixing" nearest→bilinear, read `field.rs:374-383`**: nearest is a forced trade-off"* | `spines.md` S-4 live violation |
-| **void heir** — an obligation whose successor was ruled out of existence | nothing; found by hand | `stubs.md` #1's heir was *"the social sim + ecology"*, and the user ruled those **NOTHING** 2026-07-26 |
+| **void heir** — an obligation whose successor was ruled out of existence | nothing; found by hand | ~~`stubs.md` #1's heir was *"the social sim + ecology"*, and the user ruled those **NOTHING** 2026-07-26~~ **⚠ THE SOLE INSTANCE IS NOT AN INSTANCE — corrected 2026-07-29 (baseline sweep S4/F6).** `CLAUDE.md` (user, 2026-07-28): *"**THE STATUS IS ON HOLD, NOT NEVER**… we do want these systems **eventually**… Read 'they are NOTHING' as a statement about **what exists**, never about what is wanted."* `stubs.md:64-69` already carries the correct reading. So this row's **successor is DEFERRED, not void**, and this obligation kind may have **zero** instances — while **S4/F4's re-homed-address kind** (`stubs.md` #4's heir named a provider slot that was deleted) has at least one and is not in this inventory at all. *This matters because the row is one of seven kinds § 5's reciprocity proposal argues from.* |
 | **negative decision** — a reasoned choice *not* to build | nothing. #35: *"a stub gets an inventory entry and an heir; **a decision not to build gets a paragraph in a doc comment and no watcher**"* | charcoal's *"cannot exist"*, false for 11 days |
 
 **And exactly one of the seven has a working ledger with a denominator:** `spines.md` S-5 —
@@ -616,6 +616,17 @@ Stated because a proposal without its own falsifiers is the thing this notebook 
 
 ---
 
-## 4. Theory
+## 4. Theory *(duplicate heading — see the LIVE § 4 above)*
 
-**EMPTY BY DESIGN.** Do not write here until § 3 coverage is declared complete.
+~~**EMPTY BY DESIGN.** Do not write here until § 3 coverage is declared complete.~~
+
+**⚠ OVERTAKEN BY THE WORK, marked 2026-07-29 (baseline sweep S4/F7).** There are **two
+headings named `## 4. Theory` in this file**, ~500 lines apart, in contradictory states: the
+one above carries ~360 lines of theory marked *"Status: PROVISIONAL after pass 1"*, and § 5
+sits *above* § 4.4, so the file no longer reads in its own declared order. The gate this stub
+names — *"§ 3 coverage declared complete"* — is **still not met**
+(`corpus-knowledge-evidence.md` § coverage: *"Still not opened: `north-star.md` bodies,
+`PIPELINE.md`, all `docs/spikes/*`…"*), so the instruction was never wrong; it was simply never
+retracted when the work outran it. **Neither side is being resolved here** — which § 4 governs,
+and whether the provisional theory should have been written before the gate, is a call for main
+session. *This is T1′ (accretion without retraction) inside the document that measured T1′.*

@@ -284,7 +284,11 @@ where steepest-descent cannot.~~
 
 #### 2.6.1 BUILT 2026-07-25 — continuation (b), the MFD solve (journal/0109)
 
-**Shipped, on by default** (`DeepConfig::mfd`, `mfd_exponent = 4.0`). The record's
+**Shipped, on by default** (`DeepConfig::mfd`, `mfd_exponent = 4.0`).
+**⚠ If you arrived here by grepping `mfd_exponent`, read § 2.6.2 next:** uniform `p = 4` was
+superseded by the **hybrid χ law** (shipped `p_hill = 1`, `p_chan = 16`), and § 2.6.2 states
+that *"uniform `p` is a control, not a shipping mode."* This dated `BUILT 2026-07-25` block
+is correct about its own day. The record's
 shape did not move a byte: what changed is that the solve now hands the recorder
 several non-zero out-faces per cell per epoch instead of one.
 
@@ -428,6 +432,11 @@ study at 10 m. That calibration is **stub #26**.
 | | D8 | uniform `p = 4` | **hybrid** |
 |---|---|---|---|
 | peak catchment (cells) | 1,255 | **84** | **298** |
+<!-- D8's peak reads 1,255 here against the 1,245 quoted in § 2.6.2 above (from
+journal/0109) — the SAME quantity on a world that has since gained material-aware creep
+and the 0114 recalibration path. Neither number is wrong; the reconciling sentence lived
+only in journal/0113 and is carried here 2026-07-29 (baseline sweep S2/F7). -->
+
 | p99 land catchment | 127.0 | 70.0 | **164.4** |
 | top-1 % share of land drainage area | 0.0849 | 0.0248 | **0.0613** |
 | land cells with catchment > 100 | 530 | **0** | **2,270** |
@@ -456,7 +465,8 @@ boundary-value problem inside a cell, with face fluxes as Dirichlet conditions."
 **A channel cannot be refined out of a flux record that never concentrates.**
 
 **A gap in the § 5 cadence vocabulary, named here.** `material-behavior.md` § 5 gives
-the scheduler two axes — **ORDER** (topo-sort) and **RATE** (`period` + `dt`). It has
+the scheduler two axes — **ORDER** (~~topo-sort~~ **authored per world, validated by
+`{reads, writes}`** — superseded 2026-07-26, corrections #65) and **RATE** (`period` + `dt`). It has
 **no name for the aggregation window**, yet that window is what decides the record's
 time resolution and, here, an acceptance number. `period=1` + chapter-bucketing is the
 correct pairing (integrate everything, aggregate at the record's own semantic

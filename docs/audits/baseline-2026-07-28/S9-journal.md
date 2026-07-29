@@ -1,5 +1,21 @@
 # S9 — the journal (`journal/0000`–`0121`)
 
+> ## 📋 DISPOSITION — applied 2026-07-29. **No journal entry was edited** (append-only), per
+> this slice's own governing constraint.
+>
+> | # | state |
+> |---|---|
+> | **S9-1** the erosion axis is marked settled and is not | **✅ APPLIED — the highest-value item in the whole baseline.** A 🔴 banner now heads the `NEEDS RATIFICATION` block in `ROADMAP.md`, quoting journal/0111 and 0114 on all three falsified halves, carrying the *do NOT restate it as "supply-limited today"* caveat, and stating that **reopening the axis is a user call this banner does not presume**. The clause *"Nothing further to ratify on the erosion axis"* is **struck**, per the recommendation. **`journal/corrections.md` #41 — which carries 0079's mechanism — was stamped reciprocally** with the same finding. **`ROADMAP-history.md:2686`, the second live site, is ⚠ REFERRED to the sibling agent who owns that file.** |
+> | **S9-2** `earth-processes.md` sequences a wave retune the user struck | **✅ APPLIED** — the *"retune slice Sequenced (~10–40×)"* clause struck and replaced with the user's own sentence (*"that would be a **bandaid**"*) plus the heir; the heir-mechanism sentence beneath it survives untouched, as recommended. |
+> | **S9-3** agent magnitudes 45× weaker, only `stubs.md` knows | **✅ APPLIED AS A BACK-POINTER ONLY** — exactly as instructed: *"Do not restate or reinterpret the user's ratification."* The ratification block is untouched; a preceding ⚠ names `stubs.md` § 28 and journal/0114, states that the calibration ships **OFF** so this is a **pre-flip blocker not a live defect**, and says the flip's effect on the ratification is the user's call. |
+> | **S9-4** `ROADMAP.md` calls journal/0120 a deliberate gap | **❌ NO LONGER APPLIES** — the close block was rewritten; `grep -n "deliberate gaps" ROADMAP.md` → **nothing**. |
+> | **S9-5** journal/0059 is a lost entry with three orphaned assets | **⚠ ESCALATED** — the slice says *"this is a **user call**, not an agent's"*: write the entry retrospectively (the journal/0000 precedent) or add 0059 to the deliberate-gap list. **It must not be re-discovered by a third sweep.** |
+> | **O-1 / O-2 / O-3** three owed items living only in journals | **⚠ ESCALATED / REFERRED.** O-2 (720p console-panel overflow) and O-3 (the ~60° poleward wettening appearance call, Δ ≈ +0.05, **user-owned**) belong in **ROADMAP § Observed**, which a sibling agent owns exclusively. O-1 (`walk_tour_0115.rs` at 1,199 lines, a named A-1 risk the entry declined to resolve) belongs in ROADMAP Owed. **Filing a new owed item is not a mechanical application**, so all three are handed up rather than written in. |
+> | **P-1** 0079 vs 0111 on *supply-limited* | **✅ ADDRESSED VIA S9-1** — the missing reconciling sentence now exists in the ROADMAP banner and in corrections #41, which distinguish *the knob's reach* from *the world's state*. No journal entry touched. |
+> | cross-slice referral: `geology.md` topo-sort | **✅ APPLIED** by slice S2/F1. |
+> | cross-slice referral: `material-behavior.md:369-370` RATE | **✅ APPLIED** by slice S3/F3. |
+> | cross-slice referral: `mfd_probe.rs:372`'s printed caption | **⚠ ESCALATED — Rust, out of scope.** A fourth site of the `p → ∞` claim corrections #58 falsified, in a **printed caption the gate cannot check** (CLAUDE.md § Gates). Should go to `spine-audit` or a code slice. |
+
 **Baseline `doc-topology` sweep, slice 9 of 9. Watermark commit `f652b60`.**
 **Every quotation below was read at `f652b60`** (doc-topology § Rules, corrections #67).
 

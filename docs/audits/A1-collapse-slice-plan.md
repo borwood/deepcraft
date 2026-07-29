@@ -1,5 +1,15 @@
 # A1 slice plan — block↔material collapse (present tier)
 
+> ## ✅ EXECUTED 2026-07-23 — journal/0087. This is a historical plan, not a to-do list.
+>
+> Every step below shipped: `Block` is `{ Air, Material(MaterialId) }`, `block_twin` and
+> the `block_layer` geology arms are gone, solidity checks ride the occupancy primitives.
+> See `docs/spines.md` § compliance (2026-07-23) and `ROADMAP-history.md`. The branch and
+> base commit named below are dead references. **Preserved as the record of what was
+> planned and in what order; do not act on it.**
+>
+> *Banner added 2026-07-29 (baseline sweep S8/B4).*
+
 Branch: worktree-agent-a63c85f041dedde50. Started from 606f17a.
 
 ## Steps

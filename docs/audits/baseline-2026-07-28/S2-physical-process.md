@@ -1,5 +1,23 @@
 # S2 — Physical process design set (doc-topology baseline sweep)
 
+> ## 📋 DISPOSITION — applied 2026-07-29. **12 of 12 applied; 0 escalated.** This was the
+> cleanest slice of the nine.
+>
+> | # | state |
+> |---|---|
+> | **F1** `geology.md` 4th topo-sort site | **✅ APPLIED** — struck with pointer; **corrections #65's site list amended** to name `geology.md`, `material-behavior.md` § 5 RATE and `flow.md` § 11.1 (it enumerated three sites and there were five). |
+> | **F2** `tectonics.md` has no banner | **✅ APPLIED** — `⚠ READ flow.md FIRST` banner at the head, naming what § 7.3 lost (`recv`'s kind, the corridor mechanism, "the collapse carving source") and what survives. **§ 7.3's body is not rewritten**, per the recommendation. |
+> | **F3** `geology.md` "no geotherm in this project" | **✅ APPLIED** — dated banner on the SHIP UPDATE block; all three false claims named; the measurement untouched. |
+> | **F4** Phanerozoic register unflagged in `tectonics.md` § 0 | **✅ APPLIED** — mirrored **by pointer**, in the § 0 prior *and* the top banner (the prior sits under "do not re-derive", the highest-risk framing). |
+> | **F5** `water.md` consequence 1 has no tier qualifier | **✅ APPLIED** — tier qualifier added beneath the consequence (present tier holds; deep tier falsified three ways). **The user-ratified DECIDED above it is untouched.** Open question 5 marked answered by journal/0098. |
+> | **F6** `52 MiB` live denominator | **✅ APPLIED** — both sites restated against the measured **162.57 MiB** (S19), with the S9 provenance kept. The `:48` S9 measurement itself is untouched. |
+> | **F7** 1,245 vs 1,255 | **✅ APPLIED** — journal/0113's reconciling parenthetical carried into `flow.md` beside the table. |
+> | **F8** `light.md` poses a DECIDED question as open | **✅ APPLIED — and this was the brief's flagged live item.** § 5's structural note and § 10 item 3 both narrowed: saturation + temperature are one machinery (condition-fields, DECIDED 2026-07-24); **light specifically is still open**, and the narrowing names *why* (max-plus, not diffusive; derived-never-stored). Verified at `material-behavior.md` § 14 and `flow.md` § 7 at source. |
+> | **F9** `water.md` paleo-channels | **✅ APPLIED** — back-pointer at `:398` to its own refutation and to `flow.md` § 2, stating that the conclusion became true again for a different reason. |
+> | **F10** 0.85 vs 0.8× rebound | **✅ APPLIED** — `earth-processes.md` now cites `tectonics.md`'s derivation and states the 34 % swing. |
+> | **F11** `mfd_exponent = 4.0` "shipped, on by default" | **✅ APPLIED** — grep-arriver pointer to § 2.6.2. |
+> | **F12** `550²` vs `297,025` — *"I cannot attribute this"* | **✅ RESOLVED AT SOURCE** — read `crates/dc-worldgen/src/deeptime/field.rs`: `DEEP_MAX_WIDTH = 550` is a **cap** (`cell_m = (extent_m / DEEP_MAX_WIDTH).max(DEEP_CELL_M)`), so Medium lands on 545² = 297,025. Both numbers correct; reconciling clause added. |
+
 **Watermark commit:** `f652b60`. **Every `file:line` below was read at `f652b60`**, in the
 worktree `.claude/worktrees/agent-a06bb62264eaface5`. Code citations are at the same commit.
 

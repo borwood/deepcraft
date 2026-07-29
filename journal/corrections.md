@@ -653,6 +653,17 @@ falsifiable predictions and walk them.
 
 ## 23. "The model is not the bottleneck, the amplitude is" (2026-07-21)
 
+> **⚠ THIS ENTRY'S *MECHANISM* HALF WAS FALSIFIED BY #24; its CONCLUSION stands.** Reciprocal
+> pointer added 2026-07-29 (baseline sweep S7/F9) — **#24 named this entry and this entry
+> named nothing back.** The *"460 m bilinear sample low-passes detail"* hypothesis — which
+> this entry correctly flagged **"HYPOTHESIS, not yet measured … needs measurement before it
+> is believed"** — was measured by S13: the level-5 lattice reproduces the raw deep grid's
+> relief to within **0.4 %**; *nothing is smoothed away below 460 m because the source holds
+> nothing below 460 m.* The real cause is named in #24 (`AMP_DECAY^L_DEEP`).
+> **The conclusion — `thickening_scale` is a lift-the-continent knob — is untouched and live.**
+> *Listed low in the census because the entry did the right thing: it flagged its own
+> hypothesis, and the falsification arrived.*
+
 **Claim** (journal/0029 § headroom, carried into journal/0030's appraisal and
 then into ROADMAP as the standing sequence item *"the amplitude call — the
 last live cause of dismal mountains"*): the erosion/tectonics model is
@@ -1173,6 +1184,23 @@ comment was still perfectly argued the day it became false.
 
 ## 36. "`promote_coal` promotes on seam thickness where burial diagenesis is a function of depth — it is a stub on the wrong axis" (2026-07-22)
 
+> **⚠ TWO STANDING CLAIMS IN THIS ENTRY ARE FALSE TODAY — stamped 2026-07-29 (baseline sweep
+> S7/F7). The MEASUREMENTS below are a dated record and stand untouched** (12,892 → 2,216
+> coal-bearing cells; 13 of 35,382 peat units under 50 m).
+> - ***"There is no geotherm in the project — the only temperature anywhere in the sim is
+>   surface air temperature"*** — **false since 2026-07-24.** `deeptime/geotherm.rs` is the
+>   first §5 field pass and writes `dc:field/temperature`
+>   (`material-behavior.md` § 14, DECIDED 2026-07-24).
+> - ***"listed in `stubs.md` § 14 with a geotherm as its heir"*** — **the heir landed.**
+>   § 14 is **RETIRED 2026-07-24 (journal/0093)**, and coalification is now temperature-gated
+>   at `COAL_ONSET_C = 22.0` °C. See **#51**, which measures the gradients (coal cells
+>   **41.9 °C/km** vs peat-only **31.3**).
+>
+> **So *"rank is inexpressible"* is no longer true for the stated reason.** It remains true
+> for a *different* one — the record still tops out far short of the ~1–2 km burial that
+> discriminates lignite→anthracite. *Same one-directional shape as #40: `stubs.md` § 14 named
+> its own retirement; this entry never learned of it.*
+
 **Claimed** in ROADMAP (journal/0060's carried findings) and restated as the
 brief for journal/0063. The diagnosis is right; one *implied* consequence in the
 brief was wrong, and it is worth pinning because it is the kind of thing an
@@ -1311,6 +1339,25 @@ inverse-CDF flips the intuition.
 
 ## 40. "#28's `exhum`/`t_crust` comment claims 'the collapse tier reads them'" — the audit misquoted an already-honest comment (2026-07-23)
 
+> **🔴 THIS ENTRY'S VERDICT IS ITSELF FALSIFIED — by #67 (2026-07-28). Struck here 2026-07-29
+> (baseline sweep S7/F1); the body below is untouched, per the #56 repair shape.**
+>
+> **#40 concluded *"the A-2 was never live."* It was live.** #67 is git-verified
+> (`git show 11d4385 -- .../field.rs`, both revisions quoted): **the audit did not paraphrase
+> — it quoted the comment exactly as it stood the day before**, and the commit that changed
+> the text calls the prior wording *"lying"*, which is the same verdict the audit reached.
+> The audit was right about the defect and **one day behind the tree**.
+>
+> **#40's standing lesson — *"re-read the comment before believing the sweep"* — is therefore
+> only half a rule, and #67 supplies the other half: *a quotation without a revision is not a
+> quotation.*** A reader who cannot date the quote cannot distinguish a paraphrase from a
+> stale read, and #40's author inferred the wrong one.
+>
+> `docs/design/stubs.md` § 4 and `docs/spines.md` A-2 were already amended per #67's own
+> consequences list. **Only the correction itself was left** — for six days, in the file whose
+> entire purpose is recording falsified claims, **1,300 lines from its own withdrawal.** The
+> project applied exactly this repair to #56 on 2026-07-28 and did not carry it here.
+
 The 2026-07-22 seam inventory listed seam #28 (`exhum`/`t_crust`) as an A-2
 instance: *"documented in-code as 'the metamorphic-grade axes the collapse tier
 reads' — and nothing reads them"* — a false-constraint comment (prose cannot
@@ -1344,6 +1391,27 @@ is indistinguishable, in a summary, from a live defect — and only one of them 
 worth a slice.
 
 ## 41. "Raising the erosion budget will raise the world's relief" (2026-07-23)
+
+> **🔴 THE ORIGINAL CLAIM WAS RIGHT AFTER ALL; THIS ENTRY'S FALSIFIER WAS BLIND —
+> stamped 2026-07-29 (baseline sweep S9/S9-1). Nothing below is rewritten.**
+>
+> The journal/0079 probe was faithful to the launch path it swept and **blind to
+> `diffusion`**, which carries **96 %** of this world's export (creep does **918×** what the
+> rivers do). `erosion_budget` scales `weathering`/`k_transport`/`k_bedrock` and **does not
+> scale `diffusion`** — *"a knob that cannot move the thing it is named after"*
+> (`journal/0111`, corrections **#56**, `stubs.md` #24). Measured since: budget 100× **+ creep
+> 10×** buys **132×**, and `journal/0114` measures relief **+4.6 % at 45×, +18 % at 100×,
+> +52 % at 300×**. **Erosion does move relief.**
+>
+> **What survives, and it is the entry's real value:** the *equilibrium/graded-to-base-level*
+> mechanism is still the correct account of what the swept knob does, and the discipline it
+> teaches — *the falsifier here is a measurement, not an argument* — is untouched. **What is
+> withdrawn is the conclusion "relief is bottlenecked on the generating side, not erosion."**
+> ⚠ **Do not restate the world as "supply-limited today"**: that holds of the *calibrated*
+> world, and `EROSION_CALIBRATION = 45` ships **OFF**.
+>
+> *This is CLAUDE.md's own "corollary for reading a null" — written for journal/0110 — landing
+> on journal/0079 word for word, three days late.*
 
 **The claim.** Standing since journal/0029 and framed as the path forward in
 journal/0076: the erodibility contrast is modest because the world "barely erodes
@@ -2557,6 +2625,25 @@ rather than the generator. What is withdrawn is only the claim that the order is
 **Superseded by:** `ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is
 authored* — DECIDED 2026-07-26 (user).
 
+**⚠ SITE LIST AMENDED 2026-07-29 — this entry named THREE sites and there were FIVE.** The
+baseline `doc-topology` sweep found two more, both unstruck for three days, both phrased
+differently enough that a grep for the struck sentence never reached them. Both are now
+struck in place:
+- **`docs/design/geology.md` § *Backbone: everything is a pack*** — *"Declared reads/writes
+  let the pipeline **topo-sort** passes and detect cycles — the coupling-order problem
+  becomes a graph problem **instead of a hand-maintained list**."* That last clause is
+  precisely the falsified half, in a design-backbone doc, written 2026-07-18. (Baseline S2/F1.)
+- **`docs/design/material-behavior.md` § 5, the RATE bullet** — *"the RATE axis, **composed
+  with** topo-sort, never replaced by it"*, twenty-three lines *below* the same section's
+  own `🔴 SUPERSEDED` banner. Reported by the 2026-07-26 `doc-topology` sweep (its finding
+  15), unfixed for three days while its two sibling bullets were fixed. (Baseline S3/F3.)
+- **`docs/design/flow.md` § 11.1** carried *"ORDER (topo-sort)"* in a second, un-struck
+  place; also fixed 2026-07-29.
+
+*The lesson this adds to the entry: an enumeration of sites is itself an unchecked
+enumeration. Strike by MEANING, not by string — and say in the correction which pathspec you
+searched, so the next reader knows what your grep could not have caught.*
+
 ---
 
 ## 66. "The goldens will move and that is correct" / "`contents_contract`, `s7_walk` and `geology` all hash `generate_chunk` blocks and are **structurally downstream** of the posts" (ROADMAP Sequenced, the bootstrap-history removal entry; corrections #64's closing paragraph, 2026-07-26 — falsified 2026-07-28 by running the removal, journal/0121)
@@ -2790,3 +2877,39 @@ number and never the claim wrapped around it. All three sweeps (`spine-audit`, `
 staleness) compare **stated claims**; none of them look inside a caveat for a premise that was
 never stated. `ores.md` is now marked as conceptually behind `materials.md` /
 `material-behavior.md`, which win on disagreement.
+
+## 71. "The erosion axis is engine work" (`ROADMAP.md`, 2026-07-28 evening close block — corrected by the user 2026-07-29)
+
+**Claimed**, in the close block's *First things next session* item 2: *"The erosion axis is
+marked settled and is not … **This is engine work and it is the highest-value thing on the
+board.**"*
+
+**Falsified by read-first item 0, by name.** `CLAUDE.md`'s first paragraph — the north-star
+summary every session and every agent loads — reads *"**Every pass is content, including
+tectonics and erosion**; pass ORDER is authored per world (ARCHITECTURE.md, DECIDED
+2026-07-26)."* Erosion is **default-plugin-pack work**, not engine work. Ruled by the user
+2026-07-29. The *priority* half of the claim is untouched: the erosion axis is still the
+highest-value thing on the board.
+
+**Mechanism — and it is the second instance of #68's, one layer up.** #68 recorded that *the
+newer the source, the more explicitly it must be briefed as a hypothesis*, **within a single
+session**: a claim written that afternoon was inherited as settled by the next agent. **This is
+the same mechanism SOURCE-vs-SOURCE.** A cold session read the close block — the newest thing
+in the corpus, and the thing written to be read first — and repeated its side of a question
+`CLAUDE.md` had already ruled, **while holding `CLAUDE.md` in context**. Recency beat
+authority; the two documents were never put side by side. The close block is structurally the
+**most likely artifact to be wrong** (written last, unreviewed, at the end of a long session)
+and structurally the **most likely to be believed** (it is what the next session opens).
+
+**The transferable rule: a close block is a HANDOFF, not an authority.** It may summarise,
+sequence and prioritise. It may not silently rule on anything read-first already settles, and
+where it does, read-first wins. This is filed as a correction rather than repaired quietly
+because a close block that can overturn `CLAUDE.md` without anyone noticing makes `CLAUDE.md`
+unciteable — and the cost is paid by whoever reads the close block next, which is *always* a
+cold session with no way to know.
+
+**Where the fix lives.** Struck in place at `ROADMAP.md` § *First things next session* item 2,
+with the ruling and this number beside it; the priority claim is left standing. **No other site
+carried the miscoding** — pathspec:
+`grep -rniE "erosion[^.]{0,40}engine work|engine work[^.]{0,40}erosion"` over the repo returns
+only that clause.

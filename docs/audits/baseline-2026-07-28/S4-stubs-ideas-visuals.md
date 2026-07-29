@@ -1,5 +1,20 @@
 # S4 — stubs / corpus-knowledge / ideas / visuals / PIPELINE
 
+> ## 📋 DISPOSITION — applied 2026-07-29.
+>
+> | # | state |
+> |---|---|
+> | **F1** CLAUDE.md counts FOUR ecology-heir stubs; `stubs.md` has TWO | **✅ ALREADY FIXED before this pass** — `CLAUDE.md` now reads **"Two"** and records *why* the count went stale, in the argument it supports. (`CLAUDE.md` is out of this agent's scope in any case.) |
+> | **F2** `stubs.md` header says FOUR provider slots, there are FIVE | **✅ ALREADY FIXED before this pass** — the header now reads *"**Five exist** — `outcrop_at`, `wave_energy`, `parent_p`, `depth_to_water` and `paleo_temperature`"*, and the *"four conversions is not enough"* clause was **withdrawn entirely by the user** (corrections #69 — there was never a registry). |
+> | **F3** `stubs.md` #27 asserts the epoch clock IS the register; #29 withdrew it | **✅ APPLIED** — #27(b) struck in place, naming #29, corrections #63, and the three measurements. *Anyone opening #27 was reading a live instruction to re-anchor a clock that is not the lever.* |
+> | **F4** `stubs.md` #4's heir names an address #14 deleted | **✅ APPLIED** — address corrected to the `dc:field/temperature` geotherm **field pass**; the deletion of the `burial_temp_c` slot and its mechanism recorded. |
+> | **F5** `heir` 654 vs 651; 192 vs 193 files | **⚠ ESCALATED** — the finding itself says *"better-supported side: undetermined"* and that neither figure carries its pathspec. **Settling it needs a fresh census**, which is a new measurement, not an application. |
+> | **F6** the sole "void heir" is void on grounds the user narrowed to ON HOLD | **✅ APPLIED** — both corpus-knowledge sites annotated with the 2026-07-28 user ruling. **Also recorded the consequence the finding drew:** the kind may have zero instances, while F4's *re-homed address* kind has at least one and is not in the inventory. Rows annotated, not rewritten. |
+> | **F7** § 4 is written, and the file says twice § 4 must stay empty | **✅ APPLIED AS A MARKER ONLY** — the trailing duplicate `## 4. Theory / EMPTY BY DESIGN` now says it was overtaken, names the live § 4, and confirms the gate it cites is **still unmet**. **Which § 4 governs is explicitly left to main session.** |
+> | **F8** `visuals.md` "do not re-derive" priors describe a superseded far field | **✅ APPLIED** — struck with the `stubs.md` #15 / FF2b quotation; the honest caveat (true when written of FF2a's hollow sheet) preserved. |
+> | **F9** a ratified item sits in the "NOT decisions" doc unmarked | **✅ APPLIED** — status marker added, using the convention the file already uses twice. The sketch text is kept as the origin record. |
+> | *nulls* | The declared nulls (PIPELINE × visuals; the civ/socia sketches; epoch arithmetic) were **not** revisited — a declared null with its reasoning is a result. |
+
 Baseline `doc-topology` sweep, slice 4 of 9. **Watermark commit `f652b60`; every quotation
 below was read at `f652b60`** (per the skill's revision rule, corrections #67).
 

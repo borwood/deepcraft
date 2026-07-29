@@ -345,7 +345,13 @@ and a doc comment naming its **heir**.
   `full_agents`, `tectonic_history` — each an empty plane plus an identity
   accessor, each with its own byte-identity proof
 - named: `deeptime/providers/` (ARCHITECTURE.md § "Provider seams")
-- 34 seams inventoried; **5 converted** — `outcrop_at`, `wave_energy`,
+- ~~34 seams inventoried~~ **31 LIVE, of 34 inventoried** *(corrected 2026-07-29, baseline
+  sweep S8/C2 — the seam inventory retracted its own count on 2026-07-28:*
+  `docs/audits/2026-07-22-seam-inventory.md` *banner, "later docs cite '34 seams' and that
+  count is this audit's, not today's. **Live seams: 31, not 34.**" The banner on the cold end
+  could not reach the docs that quote it, and this is the read-first one.
+  **The `5 converted` numerator was NOT re-verified against `crates/` and is carried
+  forward as-is** — quote it as this file's, not as a fresh count)*; **5 converted** — `outcrop_at`, `wave_energy`,
   `parent_p`, `depth_to_water`, and `burial_temp_c` (journal/0067: the
   coalification threshold, whose heir is a geotherm)
 
@@ -367,6 +373,28 @@ as retiring **together** — an heir that lands one without the other is a
 world-scale defect, not a drift.
 
 ## S-6. Declared relations, never incidental order
+
+> ## ⚠ THE GENERATOR HALF OF THIS SECTION WAS RETIRED BY A USER DECISION — 2026-07-26
+>
+> *Pointer added 2026-07-29 (baseline sweep S1/#1). **This is a pointer, not a
+> reconciliation** — rewriting S-6's argument is owed to main session and is deliberately
+> NOT done here.*
+>
+> **`ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is authored*
+> (DECIDED 2026-07-26, user) chose AUTHOR-AND-VALIDATE over DERIVE-AND-REJECT.** Order is
+> **data on the world**; `{reads, writes}` became the **validator**, not the ordering input.
+> Filed as `journal/corrections.md` **#65**, `journal/0119`.
+>
+> **What that means for reading the section below.** Its thesis — *order must be declared
+> data, never incidental* — **survives intact and is the whole point.** What did **not**
+> survive is the mechanism it exhibits as the exemplary compliant shape: *"Kahn's algorithm"*
+> deriving the sequence from declarations. In the decision's own reading, the revision tokens
+> this section celebrates as its hardest-won compliance (`Forced`/`Incised`, the `reads_prev`
+> anti-dependency) are the **artifact** of derive-and-reject — the same pressure that produced
+> `DeepAxis`, which `ARCHITECTURE.md` names as **"the violation."**
+>
+> **Do not justify a new derive-and-reject design against this section.** Until the wording
+> is reconciled in main session, a brief that cites S-6 must cite the decision too.
 
 Order exists; it must be **data**, never an artifact of how a loader enumerated
 files.
@@ -716,7 +744,13 @@ Charcoal excluded because no bed survived whole-voxel quantization — true unti
 partial voxels. `reference_material` fixed so packs could not move terrain —
 true until the content-set freeze, **the same day**.
 
-**Check:** § 5's convention. Note that decisions expire premises *elsewhere*,
+**Check:** ~~§ 5's convention.~~ **⚠ § 5's convention FINDS NOTHING — do not route a sweep
+through it** *(pointer added 2026-07-29, baseline sweep S1/#7; § 5's own drift note has said
+so since 2026-07-24, ~450 lines below this line, and the flag it raised was never
+discharged)*. The `JUSTIFIED-BY` marker has **3 occurrences corpus-wide and 0 in `crates/`**,
+measured 2026-07-28 (`.claude/skills/doc-topology/SKILL.md`), and *"every A-2 caught so far
+was caught by **reading**, not grepping."* **The real check is reading the justification and
+asking whether its premise still holds.** Note that decisions expire premises *elsewhere*,
 so a sweep must ask "does the cited constraint still hold?"
 
 - **instance (2026-07-24, caught by the post-M3 sweep):
@@ -1255,7 +1289,9 @@ any pack's content.
 Standing inventories, produced by read-only sweeps. Like `docs/spikes/*`, they
 hold **measured numbers and file:line citations** — consult before re-deriving.
 
-- **`2026-07-22-seam-inventory.md`** — all **34 seams**: what each stands in
+- **`2026-07-22-seam-inventory.md`** — all **34 seams** *(as inventoried on the day;* **31
+  are live today** *— that audit's own 2026-07-28 banner; corrected here 2026-07-29. Every
+  ratio below is over the audit's 34 and is left as the audit stated it)*: what each stands in
   for, the owing system, the identity fallback (**19 of 34 are arbitrary, not
   identities** — flagged individually), pass-level vs value-level granularity,
   blast radius, and a ranked shortlist of 12. Also the finding that
@@ -1276,8 +1312,34 @@ hold **measured numbers and file:line citations** — consult before re-deriving
   sequencing, and the finding that it and the octree node payload's sampling
   vocabulary should be ONE type.
 
+**⚠ THE FOUR ENTRIES ABOVE ARE THE 2026-07-22 COHORT AND THIS INDEX FELL ELEVEN BEHIND ITS
+OWN RULE.** Caught 2026-07-29 (baseline sweep S1/#11) — *an index that states its own
+maintenance rule and does not follow it is self-refuting in exactly the A-4 sense the section
+below names.* Backfilled by listing, **each with a one-line role only** (their own headers are
+the authority; several now carry supersession banners of their own — read the banner first):
+
+- **`A1-collapse-slice-plan.md`** — the block↔material collapse plan. ✅ executed 2026-07-23
+  (journal/0087); historical, not a to-do list.
+- **`2026-07-23-block-consumer-inventory.md`** — the pre-collapse `Block` consumer census
+  (135 sites / 31 files). ⚠ every count and address is pre-collapse.
+- **`2026-07-23-perf-baseline-vertical-drop.md`** — the vertical-drop perf baseline.
+- **`2026-07-22-entry-species-probe.md`** — the entry-species probe.
+- **`2026-07-24-lod-pre-post-visit-diagnosis.md`** · **`2026-07-24-palette-quant-generation-diagnosis.md`**
+  — two rendering/LOD diagnoses.
+- **`2026-07-25-contents-empty-over-solid-diagnosis.md`** — the `has_contents` instrument
+  diagnosis. ✅ fixed the same day (journal/0101, corrections #49); banner on the file.
+- **`2026-07-24-roadmap-staleness-sweep.md`** · **`2026-07-25-roadmap-staleness-sweep.md`**
+  — dated board snapshots; the 2026-07-25 one is named as a snapshot by corrections #55.
+- **`2026-07-26-doc-topology-sweep.md`** — the first docs-vs-docs sweep (19 findings).
+- **`2026-07-28-corrections-recoding.md`** — the adversarial re-coding of `corrections.md`
+  (the measurement behind *staleness is 3–8 %; most failures were wrong when written*).
+- **`baseline-2026-07-28/S1–S9`** — the nine-slice baseline `doc-topology` sweep, ~3,900
+  lines. **Findings carry an application state** (`✅ APPLIED` / `⚠ ESCALATED` /
+  `❌ FINDING WRONG`) as of 2026-07-29; read the state before acting on a finding.
+
 **These were nearly lost.** They lived in a session scratchpad and were cited
 all day; nothing in the corpus pointed at them. That is **A-4 committed on the
 day A-4 was written** — proof that an index only helps if the artifacts it
 indexes are *in the repo*. Any future sweep lands here, in the same commit as
-the work that used it.
+the work that used it. *(And the rule needs a watcher: it was stated here on 2026-07-22 and
+was eleven entries behind it six days later.)*

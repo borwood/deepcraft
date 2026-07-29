@@ -366,8 +366,14 @@ The scheduler has **three orthogonal axes**, and the runner declares **all three
   per chapter, and the **`dt`** that scales its transformations. A chapter subdivides
   into sub-turns; a **high-rate** pass (weathering ×5) sees mid-chapter state evolve
   while a **low-rate** pass (tectonics ×1) runs once — the temporal-resolution knob
-  topo-sort alone does **not** give. This is `ideas.md`'s fractional-phase sketch,
-  reconciled: it is the RATE axis, *composed with* topo-sort, never replaced by it.
+  ~~topo-sort~~ **the ORDER axis** alone does **not** give. This is `ideas.md`'s
+  fractional-phase sketch, reconciled: it is the RATE axis, *composed with* ~~topo-sort~~
+  **the authored ORDER**, never replaced by it.
+  *(Struck 2026-07-29 — the last un-struck `topo-sort` in this section, twenty-three lines
+  below its own `🔴 SUPERSEDED` banner at § ORDER. Reported by the 2026-07-26 doc-topology
+  sweep as its finding 15, and again by the baseline sweep S3/F3; corrections #65's site
+  list is amended. **RATE itself is untouched and survives** — it was always the half that
+  survived the reconciliation.)*
 - **WINDOW — the aggregation window: how many epochs sum into ONE record entry.**
   RATE is a *sampling* rate (how often the pass fires); WINDOW is the record's *time
   granularity* (how coarsely what it produced is stored). They are different knobs and
@@ -1012,6 +1018,16 @@ pass grows the vocabulary; the migration of today's ad-hoc/stub proto-fields int
 declared field passes is ROADMAP-tracked.
 
 **Formation predicates are plain data over field-ids** (§12: formation is output-owned). A
+<!-- Reciprocal pointer added 2026-07-29 (baseline sweep S3/F6): `material-genesis-notebook.md`
+§ 2.4 (PROPOSED, 2026-07-26) argues the opposite for TERMS — "terms should stay FUNCTIONS, not
+a closed formula vocabulary" — because a liquidus temperature is pressure-dependent, so the
+ordering key must be a function evaluated at the cell. That notebook lists §12 as its inbound
+link and NOT §14, and §14 pointed nowhere. The reconciling reading is available in neither doc:
+predicates are DECLARATIONS (plain data), while terms inside a pass BODY are backend-compiled
+code (north-star § The crossing constraint). WHETHER THAT RECONCILIATION IS RIGHT IS NOT
+SETTLED HERE — the notebook is an open edge and this clause is DECIDED; the edge is flagged,
+not resolved. -->
+A
 predicate is a conjunction of `(field_id, comparator, range)` conditions the engine evaluates
 against local field values — **no code crosses the SDK; the fields are the interface**
 (crossing constraint met by construction). **This is a general engine primitive** (user):

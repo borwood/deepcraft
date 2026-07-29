@@ -1,5 +1,16 @@
 # ROADMAP staleness sweep — the 2026-07-25 FLOW / identify / residency reconciliation
 
+> ## ⚠ A DATED SNAPSHOT — named as such by `journal/corrections.md` #55 (2026-07-26).
+>
+> This sweep's verdicts describe the board **as of 2026-07-25**, before the deep-time
+> scale finding (`journal/0111`, corrections #56), the erosion recalibration (`journal/0114`)
+> and the bootstrap-content removal (`journal/0121`). **Its "STALE" and "UNAFFECTED" columns
+> are not current.** Later staleness sweeps supersede it item-by-item; this one is kept so a
+> reader can see what was true on the day and what the next sweep did not have to re-walk
+> (§ *Checked and found genuinely current*).
+>
+> *Banner added 2026-07-29 (baseline sweep S8/B7).*
+
 **Read-only audit, 2026-07-25.** Sweeps the whole board — Shipped `OWED` clauses,
 In flight, Sequenced (~2482–3604), Observed (~3605–5444) and the still-live
 **2026-07-24 BUILD-DAY close block** (~5445–5510) — against what shipped today:

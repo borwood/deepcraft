@@ -1,9 +1,31 @@
 # deepcraft architecture
 
-Status: pre-spike sketch, 2026-07-18. Everything here is a working hypothesis
-until the spike named next to it lands (see SPIKES.md).
+Status: ~~pre-spike sketch, 2026-07-18. Everything here is a working hypothesis
+until the spike named next to it lands (see SPIKES.md).~~
+**⚠ THAT STATUS LINE IS RETIRED — corrected 2026-07-29 (baseline sweep S1/#4).** It was true
+the day it was written and no decision reversed it; it simply **stopped describing the file.**
+This document now carries **twelve dated DECIDED / RATIFIED blocks, eight of them marked
+`(user)`** — including the 2026-07-26 plugin-agnostic / authored-ORDER ruling that is the
+newest architectural decision in the corpus. Both read-first surfaces already state the
+corrected reading (`CLAUDE.md` item 3, *"decisions with dates"*; `spines.md` § file roles,
+*"what we **decided**, and why, with dates"*); only this file did not.
+
+**Read it as:** *the sketch that was written 2026-07-18, then amended in place by dated
+decisions.* **A block marked DECIDED or RATIFIED with a date is settled and is NOT provisional**
+— unmarked prose from the original sketch still is. *(This mattered: line 3 told a cold agent
+that user ratifications recorded here were hypotheses.)*
+
+*See also `SPIKES.md`, which the retired line deferred to for "has the spike landed?" —
+it has no completion state and cannot answer; its own banner now says so.*
 
 ## Shape of the system
+
+*The diagram below names five crates. **`ls crates/` holds eight:** it omits **`dc-host`**
+(the headless wasm plugin host — `crates/dc-host/{src/lib.rs, tests/wasm_plugin.rs,
+tests/parity.rs}`), **`dc-mcp-dev`**, and **`dc-physics`** (which this document discusses in
+prose but never draws). Verified 2026-07-29 (baseline sweep S1/#13). No decision rests on the
+omission; recorded because this roster and `CLAUDE.md`'s headless-crates list disagree with
+each other as well as with the tree.*
 
 ```
                 ┌─────────────────────────────────────────────┐
@@ -468,6 +490,22 @@ are visible at its call sites. Derived from the 34-seam inventory
   softer than the pass graph's fail-closed rule for two creators of one
   resource, because the user, not the engine, should own which of two mods
   wins.
+  > **⚠ TWO PREMISES IN THESE TWO BULLETS EXPIRED — cross-reference added 2026-07-29
+  > (baseline sweep S1/#8, S1/#9). Both DECISIONS survive; both stated JUSTIFICATIONS were
+  > written in derive-and-reject terms**, and § *The engine is plugin-agnostic, and pass ORDER
+  > is authored* (DECIDED 2026-07-26, user) — **seventy lines below, with no cross-reference
+  > either way** — retires that frame:
+  > - *"the **topo-sort** is silently wrong"* — under author-and-validate there **is no
+  >   topo-sort** to be silently wrong. The requirement to declare effective reads is
+  >   **unchanged**; it is now a **validation** input rather than an ordering input.
+  > - *"deliberately softer than the pass graph's **fail-closed rule for two creators of one
+  >   resource**"* — that section states *"the rejection that forces revision tokens
+  >   **disappears**"* once the order is authored, so the contrast case carrying this
+  >   argument is the thing being retired. **The user-owns-the-conflict conclusion is
+  >   unaffected and is the part that was decided.**
+  >
+  > *This is spines A-2 (a justification outliving its premise) with the unusual property
+  > that the expiry and the justification are in ONE document.*
 
 - **The resolved provider table is part of world identity** (DECIDED
   2026-07-22, user). A world generated with a provider and one generated with

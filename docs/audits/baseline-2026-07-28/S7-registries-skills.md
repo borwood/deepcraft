@@ -1,5 +1,23 @@
 # S7 — registries & skills (baseline doc-topology sweep, 2026-07-28)
 
+> ## 📋 DISPOSITION — applied 2026-07-29.
+>
+> | # | state |
+> |---|---|
+> | **F1** `corrections.md` #40 stands unstruck against #67 | **✅ APPLIED** — the #56-shaped reciprocal banner added to #40. **Addition only; no body edit.** |
+> | **F2** the dispatch rule pins a model name | **✅ APPLIED** — the Fable binding replaced with *"whatever the main session is running"*, citing CLAUDE.md's identical fix to the commit trailer. The user-ratified rule and the budget constraint are untouched. *(This slice's own falsifier: the sweep ran on Opus 5.)* |
+> | **F3** doc-topology's "three confirmed live" instances, two repaired | **✅ ALREADY FIXED before this pass** — the skill carries a *"⚠ COUNTS IN THIS FILE WENT STALE ON 2026-07-28"* block correcting exactly this, and deliberately leaves the original standing. No action taken. |
+> | **F4** `session-workflow` files the staleness sweep as the open gap | **✅ ALREADY FIXED before this pass** — that bullet now reads *"~~Make the staleness sweep RECURRING~~ (superseded above)"*, and the same ⚠ block in doc-topology corrects the "four interventions" / "two sweeps" counts. No action taken. |
+> | **F5** `spine-audit` gives one anti-shape number to two shapes | **✅ APPLIED** — the first label corrected from `A-3` to **`S-3` (a spine, violated)**, with the consequence named: this skill files into `spines.md`, so the mislabel routed S-3 violations into the A-3 heading. *The highest value-per-line fix in the slice, as the finding said.* |
+> | **F6** CLAUDE.md § Gates vs the staged gate | **⚠ REFERRED — out of scope.** The fix belongs in `CLAUDE.md`, which this agent may not edit. **This one is worth raising**: an agent running § Gates verbatim gets the failure mode `session-workflow` was written about — a killed run with **no verdict**, which is neither a red nor a green. |
+> | **F7** `corrections #36` asserts "there is no geotherm" as current state | **✅ APPLIED** — reciprocal banner naming the retirement of `stubs.md` § 14, `geotherm.rs`, `COAL_ONSET_C = 22.0`, and #51's gradients. **The measurements stand untouched**; what is marked is the standing current-state claim. |
+> | **F8** neither filing checklist carries the banner obligation | **✅ APPLIED to both** — `wrap/SKILL.md` § 7 and `doc-topology/SKILL.md`'s filing step now carry *stamp the target, same commit, immutable body / mutable header*, each stating **why it rides on the act rather than sitting on a later list** (the `JUSTIFIED-BY` failure mode). |
+> | **F9** #23's mechanism half falsified by #24, no back-pointer | **✅ APPLIED** — pointer added; the entry's conclusion and its honest self-flagging are preserved and credited. |
+> | **M1** "67 entries" vs 68 numbered bodies | **✅ APPLIED** — noted inline at the measurement banner; the `/67` denominator left as measured. |
+> | **M2** *"Exit codes lie about GPU crashes"* as a lead phrase | **✅ NO ACTION** — verified the retraction is already inline on the same bullet and both bodies agree. Negligible radius, as the finding says. |
+> | **M3** `tour-map`'s conditional "gate the probe **if**" | **✅ APPLIED** — modality raised to match CLAUDE.md § Gates' imperative, with the reason (`cargo test` builds examples and never runs them). |
+> | **M4** reciprocity **successes** | **✅ NO ACTION — and worth preserving.** A null on this axis would be suspicious; the finding records four working reciprocal pairs. |
+
 **Watermark commit:** `f652b60`. **Every `file:line` below was read at `f652b60`** in the worktree
 `.claude/worktrees/agent-a8385ea45d85f32af`, except where a citation is explicitly marked
 *(main checkout, read 2026-07-28)* — those name files that do not exist at `f652b60` and the
