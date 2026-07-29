@@ -56,8 +56,9 @@ above), the two items that sweep was not permitted to apply:*
    that file is in flight elsewhere.*
 
 *Previous: **2026-07-25 (post-FLOW batch)** — **line refs in this block are as-of 2026-07-25
-and have all drifted** (re-checked `ec9858e`: the `BioMod` reasoning is `runner.rs:525-530`, the
-un-declared `Exposed` note `:532`, `BEDROCK_SEAM_THICKNESS_M` `inventory.rs:1278-1290`,
+and have all drifted** (re-checked at the `pass-declaration-history.md` extraction: the `BioMod`
+reasoning is `runner.rs:560-567`, the
+un-declared `Exposed` note `:569`, `BEDROCK_SEAM_THICKNESS_M` `inventory.rs:1278-1290`,
 `DeepField::chapters` `field.rs:575-581`); left as written because this is a dated sweep record,
 not a live pointer — the five merges since
 the last sweep: FLOW slice 1 (`0096`), the weathering profile (`0099`), the `FactLedger`
@@ -471,8 +472,8 @@ resource ids is **E6**, sequenced with it. Until those land, read the instances 
 design.
 
 **The exemplar, reframed.** The deep-time runner's revision tokens — `Forced → Incised →
-Weathered → Diffused → Compensated → Windblown → Settled` (`runner.rs:55-86`, the enum at
-`:87`) — were cited here as this section's hardest-won compliance. They are the **artifact
+Weathered → Diffused → Compensated → Windblown → Settled` (`runner.rs:66-95`, the enum at
+`:97`) — were cited here as this section's hardest-won compliance. They are the **artifact
 of derivation.** N passes that transform one shared terrain *in place* are unschedulable
 under `AmbiguousWriters`, so each stage must write a distinct token naming its output, and
 **the chain of tokens IS the order**. Ask the graph why weathering runs after incision and
@@ -517,24 +518,35 @@ place — against an authored order there is nothing left for a tie-break to dec
     is what let the axis land against journal/0122's fixed point as a hash comparison.
     *`declared_passes` is the one place the table is applied, so a new pass cannot be added past
     it.*
+  - **The declaration ARCHAEOLOGY now lives in `docs/design/pass-declaration-history.md`**
+    (extracted 2026-07-29 under the file-size doctrine — `runner.rs` was **1,694 lines**,
+    2.4× the 700-line source threshold, and its cold half was 0090/0104/0107 narrative).
+    **The CONTRACT text this section quotes stayed in the code**, at the declaration sites
+    it governs; what moved is the defect walkthroughs, the superseded defences and the
+    slice-neutrality arguments a test now proves. **journal/0123's RATE commentary is live
+    contract and was left whole.** Line refs below are refreshed to that extraction commit.
+    *Honest limit: the file is **still** 2.4× over (1,654 lines, of which **927 are code**)
+    — comment extraction cannot fix its size, and the remedy left on the table is an
+    ordinary module split. Not sequenced.*
 - `dc:deep/weather_inventory` (journal/0094, 2026-07-24): the **first *cellular*
   pass** on that runner — declares `reads {Settled|Compensated|Diffused, Frosted,
   Exposed}`, `writes {Saprolite}`, `cadence: Cadence::EVERY_EPOCH` (`period = 1` until
   journal/0123), body a bare `fn`. The crossing
   constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
-  pointer, `runner.rs:881-888` — no closure crosses the seam), and `Saprolite` is an
+  pointer, `runner.rs:929-936` — no closure crosses the seam), and `Saprolite` is an
   honest pure-write sink token in the `Geotherm` mould, so the pass is orderable
   without perturbing the erosion pipeline. **✅ BOTH DECLARATION DEFECTS BELOW ARE CLOSED —
   verified in code 2026-07-29 at `96ab14b`** (they were fixed 2026-07-25 and this section never
   said so; the file header did, ~400 lines up, which is the one-directional pointer failure).
-  `runner.rs:525-530` now carries the reasoning verbatim — *"a `reads_prev` declaration was a
+  `runner.rs:560-567` now carries the reasoning verbatim — *"a `reads_prev` declaration was a
   fiction: with no edge … `biotic → weather_inventory`, and nothing reads `Saprolite`, so there
-  is no cycle"* — and `runner.rs:532` states *"**`Exposed` is deliberately NOT declared**:
+  is no cycle"* — and `runner.rs:569` states *"**`Exposed` is deliberately NOT declared**:
   susceptibility is a constant off …"*. **The two entries below are preserved as the record of
   what was found and why; neither is a live defect.** *(**Line refs inside the two entries
-  below are as-of 2026-07-24 and have ALL drifted** — re-checked 2026-07-29 at `ec9858e`:
+  below are as-of 2026-07-24 and have ALL drifted** — re-checked 2026-07-29, latterly at the
+  `pass-declaration-history.md` extraction (post-E3):
   `runner.rs` has moved by hundreds of lines (the `weather_inventory` declaration is now
-  `:881-888`, its reasoning `:525-532`, the `Exposed` axis `:94-99`); `passgraph.rs`'s
+  `:929-936`, its reasoning `:560-572`, the `Exposed` axis `:107-109`); `passgraph.rs`'s
   tie-break is now `:230-231`, not `:152-153`; `weather_epoch`'s `grid.bio_weather` read is
   `weather_inventory.rs:283` and `biotic`'s in-place overwrite is `biotic.rs:727`. Left
   unrefreshed on purpose — this is dated testimony about what was found, not a live
@@ -564,11 +576,11 @@ place — against an authored order there is nothing left for a tie-break to dec
 - **the two FLOW passes (journal/0096 + 0098), audited 2026-07-25 — one honest, one
   under-declared, and a systemic hole under both:**
   1. **`dc:deep/flow_record` is HONEST** — verified line by line against its body
-     (`runner.rs:442-458`; the declaration `:738-751`). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
+     (`runner.rs:479-495`; the declaration `:789-802`). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
      `.area()`, `.routed_surface()` (the drainage solve → `Routed`), `.out_load()`
      (transport → `Energy`) and `grid.head_exchange` (→ `Head`); `writes: [FlowFlux]`
      covers `ctx.flux` and nothing else; and its claim not to read the strata record
-     (`runner.rs:440-441`) holds — `slot_for_chapter` runs at `finish`, outside the
+     (`runner.rs:476-478`) holds — `slot_for_chapter` runs at `finish`, outside the
      pass. Reading `Head` is a **declared** edge, not a tie-break, which is the
      correct form of exactly what the 2026-07-24 sweep caught being done wrong.
      *Residue, shared with `dc:deep/weather_inventory` and pre-existing:*
@@ -580,7 +592,7 @@ place — against an authored order there is nothing left for a tie-break to dec
      `reads: [Routed]` covered `filled`/`routed_surface`/`area` and **not** the
      ground surface `R + H`, which the body builds from `grid.surf_at` and the solve
      uses as its seepage cap, its lake datum and its whole free-surface boundary
-     (built at `runner.rs:488-492`, consumed at `head.rs:456-485`). The comment's defence, *"its position never affects the
+     (built at `runner.rs:524-530`, consumed at `head.rs:456-485`). The comment's defence, *"its position never affects the
      terrain"*, was true and was **not the question**: it affects the field's own
      values, and the vertical flux recorded from them. **The revision is `Forced`,
      in every cfg path** — nothing between `forcing` and `transport` mutates `R`/`H`
