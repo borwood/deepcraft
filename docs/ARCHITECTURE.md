@@ -604,6 +604,40 @@ Filed as corrections #65.
   declarative plugin over solver primitives — no engine-baked field vocabulary), materials,
   and their behaviours.
 
+**What a REFINEMENT PRIMITIVE is — DECIDED 2026-07-29 (user).** The tier was posed but never
+defined, so it sat in the list above as a name with no content. The user's definition:
+
+> *"basically any primitive responsible for the way things are actually drawn in the runtime
+> game where we interpolate/upscale fine chunks from coarse cells; plugins will be able to
+> define this behavior using refinement primitives exposed by the SDK. **Totally necessary for
+> a plugin-agnostic engine.**"*
+
+So the tier owns the **coarse → fine reconstruction**, and it is engine-owned for the same
+reason the solver primitives are: a pack that cannot author how its own materials are
+upscaled is not a pack, it is a carve-out. **The engine currently has ZERO refinement
+primitives** — the tier is decided and undesigned, and its first member is unscoped. Read the
+list of engine-owned items above as **non-exhaustive** (user, flagged twice).
+
+*Candidate first members, not yet ruled:* `dc-core`'s `sample_dithered` (the cake law, built
+and called by nothing) and an octaves/facies-driven design the user recalls ratifying — under
+investigation 2026-07-29, because the corpus may hold **several contradictory ratified designs
+for one problem**.
+
+**The S2 statistical tier is HELD as a probable future primitive — DECIDED 2026-07-29 (user).**
+journal/0121 removed the bootstrap history content and thereby left `engine::{query, observe,
+force_fact}`, `Ledger` and `ToyWorld` with **zero production consumers workspace-wide** — the
+largest `spines.md` § 3 row in the file, created by that slice. The ruling: it is *likely a
+primitive awaiting a consumer*. **Hold — do not dispose, do not find it a consumer, and do not
+reopen the discussion until bio/eco readiness** (which is itself a user call; progress on earth
+science does not entitle anyone to open it).
+
+> **This gives `spines.md` § 3 a third exit, and the section header only knows one.** That
+> header says *"leaving this list is a good event: record what consumed it and when"* —
+> consumption. journal/0121 added a second: *no standing → delete.* This is the third:
+> **held, with a named trigger.** The distinction is load-bearing, because a zero-consumer row
+> read as a backlog item demanding a consumer is precisely the misreading that nearly
+> preserved the history content.
+
 **Corollary — resource ids are opaque and open.** The kernel is already generic over
 `Axis: Copy + Ord`; the closed enum is a caller's choice, not a kernel constraint. A pack
 declares its own resource ids. Where the default pack exposes ids a third party may depend
