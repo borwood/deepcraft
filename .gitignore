@@ -7,3 +7,5 @@
 # Background-agent worktrees (created/removed by the session workflow; a
 # stale one here once got committed as a gitlink — see journal/0006 era).
 /.claude/worktrees
+
+.agent-build.lock
