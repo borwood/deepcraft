@@ -307,6 +307,16 @@ in two steps:
    material id. Both the canonical segment sort and the tie-break make this
    order-independent by construction.
 
+> **⚠ `block_twin` NO LONGER EXISTS — deleted 2026-07-23 (journal/0087, the block↔material
+> collapse).** Pointer added 2026-07-29 (baseline sweep S3/F2). This § *AS BUILT* block is an
+> engineering record of **2026-07-21** written in the present tense; § *ONE NAMESPACE: BLOCK IS
+> MATERIAL* below (DECIDED 2026-07-22, user) says so explicitly — *"the fifteen-name
+> `block_twin` match and its `_ => Stone` arm die; no twin field is ever built"* — and
+> `crates/dc-core/src/classify.rs` now states *"there is no `block_twin` re-translation any
+> more."* **Read the paragraph below for its ARGUMENT, not its API:** it is the only place in
+> the corpus that explains *why two members of one content class summarise to one name*, and
+> that reasoning survives the deletion intact.
+
 Then `block_twin(material) -> Block`, a **material→block table**, not a
 class→block table. That relocation is the load-bearing bit: two members of one
 content class (mudstone/siltstone, sandstone/conglomerate) summarize to the

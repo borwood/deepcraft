@@ -1,5 +1,30 @@
 # Spike backlog
 
+> ## ⚠ THIS IS THE ORIGINAL 2026-07-18 BACKLOG AND IT HAS NO COMPLETION STATE
+>
+> *Banner added 2026-07-29 (baseline sweep S1/#6). Nothing below is edited.*
+>
+> **Do not read an open `Exit:` line here as "this spike has not landed."** No entry below
+> carries a landed/superseded marker, so this file **structurally cannot answer** the
+> question — which matters because `ARCHITECTURE.md`'s retired status line used to defer to
+> it for exactly that (*"a working hypothesis until the spike named next to it lands (see
+> SPIKES.md)"*). **Findings S1/#4 and S1/#6 are one defect read from two ends.**
+>
+> **The authority on whether a spike landed is `docs/spikes/` and the dated DECIDED blocks
+> in `ARCHITECTURE.md`.** At 2026-07-29 `docs/spikes/` holds results for **S1–S13, S15–S20,
+> and S9b** — i.e. the project ran **twelve spikes past this file's enumeration**. Several of
+> the exits below are discharged and recorded elsewhere: S1's scale (`ARCHITECTURE.md`
+> *DECIDED 2026-07-18 (S1 feel pass)*: player height 2 voxels, voxel 0.9 m), S4's pipeline
+> (*DECIDED by S4*: clustered forward), S5's conventions doc (`docs/API.md`, which S5 revised
+> in place), and more.
+>
+> **Two dependency gates below name landed work as if pending:** the *"deliberately not
+> spiked yet"* multiplayer item gated *"post-S5"*, and the in-game-editor item's
+> *"depends on S1 (scale), S5 (api)"*. **Both dependencies have landed.**
+>
+> **Kept** as the record of what was judged risky first, and in what order — which is
+> genuinely useful and is not recoverable from `docs/spikes/`.
+
 Ordered by risk: the things most likely to invalidate architecture come first.
 Each spike has an exit criterion — a decision recorded in ARCHITECTURE.md (or a
 short ADR in docs/), not just "it works." Throwaway code is allowed; conclusions

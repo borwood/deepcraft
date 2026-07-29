@@ -1,5 +1,19 @@
 # "The contents record reads EMPTY over SOLID ground" — diagnosis
 
+> ## ✅ FIXED THE SAME DAY — journal/0101, corrections #49. The instrument described below
+> ## no longer behaves this way.
+>
+> `has_contents` is now a **per-voxel** fact and is trustworthy. It used to be answered
+> per-CHUNK, which is the defect this document diagnoses. `identify(pos)` is untiered and
+> `UNRECORDED` is first-class. **CLAUDE.md § Agent walks carries the current reading rule
+> — use that, not § 1 below, when interpreting a live probe.**
+>
+> § 8's recommended corrections were all filed (corrections #49; ROADMAP Observed).
+> **Kept for its § 2 end-to-end mechanism trace**, which is still the clearest account of
+> how contents, solidity and `dc:air` relate in the query path.
+>
+> *Banner added 2026-07-29 (baseline sweep S8/B6).*
+
 **Date:** 2026-07-25
 **Mode:** DIAGNOSIS ONLY (read-only on `src/`; no fix, no plan). Every claim carries
 `file:line`. A final section separates **PROVEN** (static from the code, plus the

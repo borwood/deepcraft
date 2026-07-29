@@ -226,7 +226,14 @@ tier 'reads' these axes**."* The audit ran **2026-07-22**. **So the A-2 was real
 tree. *#40's author read the current comment and inferred a paraphrase; a quotation without a
 revision cannot distinguish the two.* **Heir:** a metamorphism pass reading the
 P/T path into grade classes (schist/slate/gneiss roster, geology.md) — with a
-named arrival address, the `providers::burial_temp_c` geotherm (journal/0067).
+named arrival address, ~~the `providers::burial_temp_c` geotherm (journal/0067)~~
+**the `dc:field/temperature` geotherm FIELD PASS (`deeptime/geotherm.rs`,
+journal/0093)**. *Address corrected 2026-07-29 (baseline sweep S4/F4): § 14 below
+**removed the `burial_temp_c` provider slot entirely** on 2026-07-24 — a real
+`T(depth)` is a **field**, not a value a stateless `fn(unit)` slot could hold — so
+this heir named an arrival address that no longer exists. This entry was itself
+amended 2026-07-28 (corrections #67), four days after the address was gone, and the
+heir sentence was not revisited.*
 **Blast:** zero today; lands the day a cut face should show an aureole and
 shows plain basement. *Only populated in tectonic-history worlds (U8 gates
 the payoff).* Note `t_crust` *is* read inside the sim by `isostasy()`; the
@@ -1010,9 +1017,19 @@ why the shipped world's shape survives the calibration.
 (b) **A creep operator that is not capped at one cell per timestep** — sub-stepping, an
    implicit solve, or a finer deep cell. Note this is the same owed item as
    `earth-processes.md` § 3e's *"calibrate iteration↔Myr against a real orogen"* seen from
-   the other end: the cap is `cell_m / myr_per_epoch`, so it is a statement about the
+   the other end: ~~the cap is `cell_m / myr_per_epoch`, so it is a statement about the
    **register**, and re-anchoring the clock is a **user-owned** call this slice
-   deliberately did not touch.
+   deliberately did not touch.~~
+   **🔴 WITHDRAWN 2026-07-26 (corrections #63) — marked here 2026-07-29 (baseline sweep
+   S4/F3).** § 29 below withdrew exactly this link and states the measurement three ways:
+   *"`myr_per_epoch` does not exist as a knob and **the epoch length is measured NOT to be
+   the register**"*; *"**(b) IT IS NOT A TIME-STEP LIMIT**"*; the limiter *"makes the
+   transfer a function of **inventory, not of `rate × dt`**, so refining `dt` cannot reduce
+   a transfer `dt` does not set."* **#27 and #29 share the LIMITER, a stronger link than
+   the clock was.** *The withdrawal reached the entry that made the claim (#29) and never
+   reached the entry it was a claim about (#27) — the corpus's own named failure mode, in
+   its own registry. Anyone opening #27 read a live instruction to go re-anchor a clock
+   that is not the lever.*
 
 **Blast:** the ceiling stands wherever the constants are set, so every future erosion
 calibration is bounded by it until an heir lands — and it is half of why

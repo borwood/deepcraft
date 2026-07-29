@@ -1,5 +1,23 @@
 # S1 — the core doctrine spine
 
+> ## 📋 DISPOSITION — applied 2026-07-29. Read this before acting on any finding below.
+>
+> | # | subject | state |
+> |---|---|---|
+> | 1 | `spines.md` § S-6 teaches order-derived-by-topo-sort | **⚠ PARTIAL / ESCALATED** — a **pointer banner** was added at S-6's head naming the DECIDED 2026-07-26 supersession and corrections #65, and saying *do not justify a derive-and-reject design against this section*. **The reconciliation of S-6's argument is NOT done and is owed to main session**, per the finding's own recommendation. |
+> | 2 | north-star § Deviations 2 enumerates 3 of ≥6 tiering sites | **⚠ ESCALATED** — amending a user-authored, emphatic deviation block (and deciding which further sections it voids) is the user's. The unnamed sites are `north-star.md` §§ *Runtime*, *One authoring shape two execution backends*, *The triangle you cannot fully close*, and **the doc's own `blogworthy` header**. |
+> | 3 | `ARCHITECTURE.md` asserts the social/history pipeline as live | **⚠ ESCALATED** — the finding says *"flag, do not apply"*, and CLAUDE.md's ruled fix is **mark ON HOLD, not strike**, on a user-ruled matter. `worldgen.md` is the template; ARCHITECTURE.md is its obvious second target. |
+> | 4 | `ARCHITECTURE.md:3-4` demotes every decision to a hypothesis | **✅ APPLIED** — status line retired in place, with the DECIDED/RATIFIED reading stated. |
+> | 5 | `API.md:3-4` calls itself pre-S5 | **✅ APPLIED** — status line retired; S5's exit criterion was performed in place. |
+> | 6 | `SPIKES.md` has no completion state | **✅ APPLIED** — banner added: it cannot answer "has this landed", `docs/spikes/` and ARCHITECTURE.md's dated blocks can; the two named dependency gates are discharged. Verified against `ls docs/spikes/`. |
+> | 7 | A-2 routes readers to § 5's `JUSTIFIED-BY`, refuted 450 lines later | **✅ APPLIED** — A-2's **Check:** now says the convention finds nothing and names the real check. |
+> | 8 | fail-closed contrast premise expired | **✅ APPLIED** — cross-reference added at § Provider seams; both decisions survive, both justifications are marked. |
+> | 9 | "effective reads" harm stated in derive-and-reject terms | **✅ APPLIED** — folded into the same block as #8. |
+> | 10 | `API.md` advertises `world.column_summary`, no handler | **✅ APPLIED** — reciprocal ⚠ added at the domain table. **Re-verified at source:** `column_summary` exists in `dc-core/src/column.rs`; `grep -rn column_summary crates/dc-api` → nothing. |
+> | 11 | `spines.md` § 6 lists 4 audits, `docs/audits/` holds 15+ | **✅ APPLIED** — index backfilled by listing (role line only), plus the baseline sweep itself. |
+> | 12 | `wasmtime` deferred vs shipped | **⚠ ESCALATED** — the finding explicitly declines to attribute it. Needs someone who knows which seam `north-star.md` Deviation 1 means. |
+> | 13 | crate roster omits `dc-host` / `dc-mcp-dev` | **✅ APPLIED (in scope half)** — note added at `ARCHITECTURE.md` § Shape of the system. **`CLAUDE.md`'s headless-crates list is out of this agent's scope and still omits them.** |
+
 `doc-topology` BASELINE SWEEP, slice 1 of 9. **All quotations read at commit `f652b60`**
 (working tree identical to `f652b60` for every file cited; the only diff is this file).
 

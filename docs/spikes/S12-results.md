@@ -1,5 +1,35 @@
 # S12 results — tectonic history (uplift(t), analytic forcing, crustal columns, isostasy)
 
+> ## ⚠ THE ERODING-RATE PREMISE UNDER § GROUP 7 AND THE EXHUMATION FINDING HAS BEEN RECALIBRATED
+>
+> **Read the relief table (§ Group 7) and the exhumation finding (§ Group 4, "max 11 m,
+> land-mean 4 m") as measurements of the PRE-CALIBRATION engine.** On 2026-07-26 the deep
+> sim was measured against the published literature for the first time
+> (`journal/0111`, `journal/corrections.md` #56) and found to be denuding **~10³ times too
+> slowly** — 5.48 m over a Phanerozoic span where a real craton strips 5–10 km. The rate
+> constants were recalibrated in `journal/0114` (`EROSION_CALIBRATION = 45`), which ships
+> **behind `calibrated_rates`, OFF in production**, blocked on the incision-clamp defect
+> (`journal/0116`, `docs/design/stubs.md` §§ 27/29).
+>
+> **This document anticipated it.** § *"Exhumation is real but metre-scale"* states that
+> exhuming orogenic roots "needs the denudation rate … turned up too". That has now
+> happened in the lab; the magnitudes below have not been re-measured under the new constants.
+>
+> **What still stands, untouched:** every determinism, byte-identity, clamp and
+> mass-balance result (Groups 1, 2, 5, 6, 8), the *shape* of the amplitude response
+> (monotonic in `thickening_scale`), and the isostasy-caps-elevation mechanism.
+>
+> **What must NOT be quoted as current:** the absolute exhumation magnitude and the
+> Group 7 elevation columns.
+>
+> **⚠ And do not re-import this finding as an ore blocker.** `journal/corrections.md` **#70**
+> (user, 2026-07-28) rejected the premise that ore must be surface-EXPOSED to be legible;
+> `docs/design/ores.md` carries the ruling as a top-of-file banner. The metre-scale exhumation
+> number was never wrong — the *caveat wrapped around it* was.
+>
+> *Banner added 2026-07-29 under the immutable body / mutable header policy (CLAUDE.md
+> read-first item 5). Nothing below is edited.*
+
 Status: spike complete, 2026-07-20. Code behind `DeepConfig::tectonic_history`
 in `crates/dc-worldgen/src/deeptime/` (`tectonics.rs`, `isostasy.rs`, and phases
 threaded into `erosion.rs`/`grid.rs`/`recorder.rs`/`field.rs`/`mod.rs`). The

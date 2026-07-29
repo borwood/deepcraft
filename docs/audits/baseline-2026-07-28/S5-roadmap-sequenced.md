@@ -1,5 +1,22 @@
 # S5 — `ROADMAP.md` § In flight + § Sequenced (lines 1–2881)
 
+> ## 📋 DISPOSITION — applied 2026-07-29. **Locate by content; the line numbers below have
+> drifted and the entries have grown.**
+>
+> | # | state |
+> |---|---|
+> | **F1** § In flight asserts the trusted/untrusted backend tiering | **✅ APPLIED** — struck with north-star § Deviations 2 quoted and CLAUDE.md read-first item 0 named. *The first bullet a cold session reads was handing over a retired trust model.* |
+> | **F2** draw-domain (a) briefed over code that no longer exists | **✅ APPLIED** — re-verified at source (`grep -rn "ruin_posts\|Pregen.sites\|pregen/history" crates/ --include=*.rs` → **no matches**), marked no-longer-an-appearance-slice and no-longer-the-user's; the residual `engine.rs` work is preserved. |
+> | **F3** "the refinement tier was never decided" | **✅ APPLIED** — ownership half marked ✅ RESOLVED (north-star, user, 2026-07-28); the contract half left open; the entry's internal self-contradiction named. |
+> | **F4** hybrid `p` marked 🔴 OWED | **✅ APPLIED** — struck; journal/0113 + `grid.rs` defaults cited; the `k_bedrock`/`k_transport` half marked partly discharged by 0114 (which ships OFF). |
+> | **F5** Movement 2b (b) presented as an open user call | **✅ APPLIED** — struck; shipped as journal/0112, `material_creep: true` is the default. **The secondary observation — journal/0110/0111/0112 have no `ROADMAP-history.md` Shipped entry — is ⚠ REFERRED: `ROADMAP-history.md` belongs to a sibling agent.** |
+> | **F6** NEEDS RATIFICATION on stale support | **✅ APPLIED AS AN ANNOTATION ONLY** — the ratification ask is untouched (*"genuinely a user call"*); its three supporting sentences are marked: the flag already ships on, *"mud, sometimes"* is superseded by 0114's 0.095 %, and corrections #59 falsified the anchor claim. **The audit's open question — whether `material_transport: true` was ever ratified — is carried into the annotation for the user.** |
+> | **F7** coal-evidence-base residual: every pointer rotted | **✅ APPLIED** — each address re-checked and corrected to *locate by content*; the finding itself is unaffected and still needs a **measurement**. |
+> | **F8** an "integrator fix" already fixed | **✅ APPLIED** — struck; `session-workflow` verified to carry ✅ SHIPPED 2026-07-26. |
+> | **F9** dangling `§ Sequenced → "USER DECISIONS OWED"` pointer | **✅ APPLIED at both sites** — repointed to *"✅ ALL FIVE USER DECISIONS RULED 2026-07-28"*; no such heading ever existed. **The two-competing-owed-lists half is ⚠ ESCALATED** — consolidating them is a structure call, and the audit verified the older list (the soil gap, `MaterialId::LOAM` in no geology class member) is **genuinely still live**. |
+> | **F10** file-size thresholds: DECIDED vs "still the hook's guesses" | **❌ FINDING NO LONGER APPLIES** — the close block was rewritten (commit `dfe8d03` and the 2026-07-28 evening wrap); `grep -n "still the hook's guesses" ROADMAP.md` → **nothing**. |
+> | **F11** enumeration bullet lists a resolved instance | **✅ NO ACTION NEEDED** — the finding itself rules it *"listed for completeness, not for action"*; the live entry already states the resolution and `:936` is a dated record of a reading pass. |
+
 **Baseline `doc-topology` sweep, slice 5 of 9. Watermark / read commit: `f652b60`.**
 Every `file:line` below was read at `f652b60` (per `doc-topology` § Rules, corrections #67 —
 a quotation without a revision is not a quotation).

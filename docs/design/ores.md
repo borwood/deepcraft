@@ -171,10 +171,16 @@ measured all of it. The design below is constrained by every line here.
   cut faces, the 3e-2 drainage consumers — are Sequenced ("tectonic
   expression at the collapse tier") and **unbuilt**.
 - **A measured warning on the flagship** — ROADMAP/S12 (2026-07-20):
-  **exhumation comes out metre-scale at shipped erosion rates**, so
+  **exhumation comes out metre-scale at shipped erosion rates**, ~~so
   exhumed-core signals are illegible at any amplitude until the
-  erosion-supply calibration (Sequenced) lands. § 8 discusses what this
-  does to orogenic gold.
+  erosion-supply calibration (Sequenced) lands.~~ **🔴 THE CONSEQUENCE IS
+  REJECTED — user, 2026-07-28; see this document's top banner and
+  `journal/corrections.md` #70.** The measurement stands; the inference
+  from it does not, because it rides an unstated premise that ore must be
+  surface-*exposed* to be legible. **The player digs.** § 8 discusses what
+  this does to orogenic gold — read § 8 with the banner. *(Struck in place
+  2026-07-29 by the baseline sweep; the banner named this site and it was
+  left unstruck.)*
 - **Class satisfiability** (API.md): every class a pass selects from must
   have a member or the world refuses to build, naming pass and class; a
   pass that introduces a class registers its fallback member in the same
@@ -199,6 +205,15 @@ class documents its future-discriminating axis without shipping a ladder
 the data cannot back.
 
 ### 2.1 The roster table
+
+> **⚠ THE MEMBER NAMES IN THIS TABLE ARE CONTESTED BY § R8 — read it before implementing
+> from here.** R8 (integrator, 2026-07-21, **awaiting the user**) records that these members
+> are named as **DEPOSITS** (`gold-quartz`, `redbed-copper`, `bog-iron`) while
+> `geology.md` § Ore (DECIDED 2026-07-20, user) ratifies ore as a **SUBSTANCE inside a
+> HOST**; the proposed amendment renames them to substances (`native-gold`, `malachite`,
+> `limonite`). **This has already cost one redone texture pass** (journal/0048).
+> *Reciprocal pointer added 2026-07-29 (baseline sweep S3/F9): R8 is the last section of a
+> 600-line draft and the five tables an implementer actually reads carried no marker.*
 
 | ore | class (new unless noted) | vanilla member | genesis vector | expresser status | form(s) | the player read |
 |---|---|---|---|---|---|---|
@@ -315,7 +330,7 @@ heir (stubs.md).
 |---|---|---|---|---|
 | placer gold | settle-energy sorting in graded alluvium | **BUILT** (0007) | ships as is | — (mechanism is real) |
 | placer gold — *presence* | "is there gold in this river's sediment supply at all?" | **STUB** — today every discharge-qualified river carries gold; presence is field-blind | ride as-built, **listed in stubs.md** (owed — § 7) | heir: upstream-endowment conditioning — scale placer eighths by lode fertility integrated over the upstream catchment (drainage export `recv`/`area`, post-U8). Buys: the upstream walk is *true*; barren rivers exist; "famously rich gold country" becomes geography |
-| lode gold | exhumed metamorphic core hosting | **PARTIAL** — `exhum`/`t_crust`/chapter table populated (U8); no collapse consumer; metamorphic-grade classes unbuilt | § 6 R1 fork: disseminated-inclusion form gated on `exhum` + orogenic history now, or defer to the metamorphic slice | heir 1: metamorphic-grade classes (Sequenced) — the host *rock* becomes schist/gneiss, so gold country looks like gold country; heir 2: erosion-supply calibration — gives `exhum` legible dynamic range (§ 8.1) |
+| lode gold | exhumed metamorphic core hosting | **PARTIAL** — `exhum`/`t_crust`/chapter table populated (U8); no collapse consumer; metamorphic-grade classes unbuilt | § 6 R1 fork: disseminated-inclusion form gated on `exhum` + orogenic history now, or defer to the metamorphic slice | heir 1: metamorphic-grade classes (Sequenced) — the host *rock* becomes schist/gneiss, so gold country looks like gold country; ~~heir 2: erosion-supply calibration — gives `exhum` legible dynamic range (§ 8.1)~~ **heir 2 WITHDRAWN 2026-07-28 (user, corrections #70): legibility never required exposure. `exhum` remains a genesis-honesty input, not a visibility gate** |
 | lode gold — vein *geometry* | fracture networks in the deforming core | **STUB** — no deformation expression at collapse (layer-cake) | not faked: v1 form is disseminated pore partials (grade zonation without planar veins); no painted vein shapes | heir: tectonic expression slice (a) — dip/fold/fault at collapse; veins become planar features along the derived structural grain; the fault-offset lode-reading puzzle arrives with it |
 | bog iron | wetland+biotic precipitation | **BUILT as routing** — `Biofacies::Peat` (and waterlogged organic soil) is the recorded cause; the microbial oxidation step is legitimately coarsened *into* the facies (coarsen the cause) | ships, pending the § 5 census | heir: none needed for honesty; a future groundwater/seep sim would refine *within-wetland* placement |
 | banded iron | marine chemical precipitation from an iron-rich early ocean | **STUB for chemistry**, BUILT for the gate axes (chapter/env/province) | earliest-chapter+Subsea+Craton proxy gate, loudly documented; § 8.3 reports the register collision | heir: epoch-indexed paleo-ocean chemistry (same family as the sea-level-sinusoid stub #9) — the gate stops being a proxy and becomes a read of a recorded curve |
@@ -410,9 +425,12 @@ metamorphic slice?**
   class whose member is emplaced as pore partials in basement, gated on
   the U8 axes (`exhum`, orogenic chapter history) — the olivine machinery
   reading real recorded causes. No vein shapes (that expresser is a stub).
-  Caveat: S12 measured metre-scale exhumation, so until the
+  ~~Caveat: S12 measured metre-scale exhumation, so until the
   erosion-supply calibration lands the gate may barely discriminate
-  (§ 8.1) — probe 3 measures this first.
+  (§ 8.1) — probe 3 measures this first.~~ **🔴 WITHDRAWN — user,
+  2026-07-28 (corrections #70): the fork is NOT blocked and probe 3
+  measures the wrong thing.** Struck 2026-07-29 by the baseline sweep; the
+  top banner named this fork by name.
 - *Option B — defer:* gold exists only as placer until the
   metamorphic-grade slice ships; the upstream walk dead-ends (loudly
   documented).
@@ -538,11 +556,20 @@ endowment census (6, feeds R6).
 1. **Ratified flagship vs measured exhumation.** geology.md (2026-07-20)
    ratifies orogenic gold as "veins in exhumed metamorphic cores → placer
    downstream," the v1 flagship. S12 (same week) measured **metre-scale
-   exhumation at shipped erosion rates** — the exhumed-core signal the
+   exhumation at shipped erosion rates** — ~~the exhumed-core signal the
    lode gate must read may have almost no dynamic range until the
    erosion-supply calibration (Sequenced) lands. The roster decision does
    not reference the finding; R1 is written to absorb it (probe first),
-   but the tension is the user's to see.
+   but the tension is the user's to see.~~ **🔴 RESOLVED, AND NOT THE WAY
+   THIS ENTRY EXPECTED — user, 2026-07-28 (corrections #70).** There was no
+   collision: the *measurement* was never in tension with the roster; the
+   **caveat wrapped around it** was, and the caveat is withdrawn. Ore does
+   not need to be exposed. `exhum`/`t_crust` survive for **genesis
+   honesty** — where an ore forms, under what P/T history. *Struck
+   2026-07-29 by the baseline sweep. Filed as the exemplar of #70's lesson:
+   **a caveat is where an unexamined premise hides** — this entry reported
+   the collision honestly for a week and still never questioned the
+   premise, because the premise was never stated as a claim.*
 2. **things-that-will-happen vs the shipped placer.** "The vein they
    eroded out of is somewhere upstream — so you read the river, and walk
    upstream" — but the shipped placer is source-blind (gold in every
@@ -563,9 +590,15 @@ endowment census (6, feeds R6).
    geometry — *more* likely than Earth-intuition suggests. Probe 2 will
    quantify it; flagged so nobody later "fixes" the aridity tag and
    silently kills the copper without noticing the coupling.
-5. **Doc hygiene**: geology.md § v1 content (DECIDED 2026-07-18) still
+5. **Doc hygiene**: ~~geology.md § v1 content (DECIDED 2026-07-18) still
    says v1 has "one ore vector (placer)"; the 2026-07-20 ore decision
-   supersedes it but the older line was never annotated. Also the
+   supersedes it but the older line was never annotated.~~ **✅ FIXED —
+   `geology.md` § v1 content now carries the annotation** (*"Superseded on
+   the ore axis by § Ore — DECIDED 2026-07-20 … This paragraph's 'one ore
+   vector' was the geology-backbone scope, not the ore roster's."*). Struck
+   here 2026-07-29 (baseline sweep S3/F8); *the fix closed with no
+   back-pointer to the report that asked for it, which is the shape this
+   whole section exists to catch.* Also the
    ratified roster calls evaporites an "ore" while the backbone's
    candidate-class roster files evaporite under chemical sediment — this
    pass uses `dc:stratum/evaporite` (it is a rock you quarry, like coal),

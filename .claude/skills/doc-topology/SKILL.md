@@ -11,7 +11,11 @@ description: Sweep the .md corpus for claims that CONTRADICT other claims in the
 > [`docs/design/corpus-knowledge-notebook.md`](../../../docs/design/corpus-knowledge-notebook.md)**
 > (the argument, ~500 lines) — evidence in
 > [`corpus-knowledge-evidence.md`](../../../docs/design/corpus-knowledge-evidence.md).
-> Measured 2026-07-28 over all 67 `corrections.md` entries, 776 commits and 193 `.md` files, and
+> Measured 2026-07-28 over all 67 `corrections.md` entries *(a recount lands on **68** numbered
+> bodies — `#63b` is a deliberate sub-number, "recorded here rather than as a separate number,
+> because it never entered the corpus". The `/67` denominator below is left as measured; noted
+> 2026-07-29, baseline sweep S7/M1, so an independent recount is not read as a discrepancy)*,
+> 776 commits and 193 `.md` files, and
 > **independently re-coded by a second agent that was forbidden to read the first analysis**
 > (`docs/audits/2026-07-28-corrections-recoding.md`). Directions are robust; every percentage is a
 > band, because **43 % of entries were coin-flips for both coders.**
@@ -228,6 +232,15 @@ user-originated (if either), the blast radius, and a labelled recommendation. Th
 falsified half in `journal/corrections.md` **only where a claim is actually falsified** —
 a contradiction is not automatically a correction; sometimes both statements are true of
 different things and what is missing is the sentence saying so.
+
+**AND WHEN YOU DO FILE ONE, STAMP ITS TARGET IN THE SAME COMMIT** (DECIDED 2026-07-28, user;
+added here 2026-07-29, baseline sweep S7/F8). If the correction refutes, supersedes or
+re-scopes a dated-measurement artifact — `docs/spikes/`, `docs/audits/`, a probe report —
+**that artifact gains a top-of-file banner pointing back**, while both files are open.
+**Immutable body, mutable header.** The obligation lands on the writer of the correction
+precisely because it is inseparable from the act; a checklist item asking someone to
+remember it later is the shape that produced `JUSTIFIED-BY`'s 3 uses. *This sweep exists to
+find one-directional edges — it must not create them.*
 
 Delegate to a background agent (read-only except its own audit doc), and hold its
 corrections number at dispatch like any other numbered artifact.

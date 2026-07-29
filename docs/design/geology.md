@@ -27,9 +27,19 @@ first geology pack.
 - **Processes are plugins too.** A creation vector (glacial till, evaporite
   basin, ley-line crystallization) registers as a pass declaring: phase
   (pregen epoch / lazy-collapse contributor / runtime-derived), what it
-  READS, what it WRITES. Declared reads/writes let the pipeline topo-sort
+  READS, what it WRITES. ~~Declared reads/writes let the pipeline topo-sort
   passes and detect cycles — the geology→soil→ecology→history coupling-order
-  problem becomes a graph problem instead of a hand-maintained list.
+  problem becomes a graph problem instead of a hand-maintained list.~~
+  **🔴 SUPERSEDED 2026-07-26 (user) — ORDER IS AUTHORED, PER WORLD.** The
+  declarations do not *generate* the order; the order is **data on the
+  world** and `{reads, writes}` became the **validator**. See
+  `ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is
+  authored* (DECIDED) and **`journal/corrections.md` #65**. *Declaring
+  reads/writes survives intact — only the topo-sort-as-generator half died,
+  and "instead of a hand-maintained list" is exactly the falsified half:
+  the list is authored, per world.* **(Fourth site, struck 2026-07-29 by
+  the baseline sweep; #65 enumerated three and this one was phrased
+  differently enough that a grep for the struck sentence never found it.)**
 - **Context vocabulary**: the queryable axes class conditions bind to —
   depth, T/P history, climate-at-deposition, tectonic province, fault
   proximity, host class (S7 already produces several). OPEN: plugin-published
@@ -162,6 +172,26 @@ not ossify:
 > own overburden. The ladder still cannot be built — there is **no geotherm** in
 > this project, and 13 of 35 382 peat-derived units lie under 50 m of section —
 > so `stubs.md` § 14 carries the threshold with a geotherm as its heir.
+>
+> > **⚠ THE HEIR LANDED — 2026-07-24 (journal/0093). Read the block above as testimony
+> > about 2026-07-22, not as current state** (banner added 2026-07-29; the measurements
+> > are untouched). Three of its standing claims are now false:
+> > 1. ***"there is no geotherm in this project"*** — there is:
+> >    `crates/dc-worldgen/src/deeptime/geotherm.rs`, **the first §5 field pass**, writing
+> >    `dc:field/temperature` (`material-behavior.md` § 14, DECIDED 2026-07-24).
+> > 2. ***"it now promotes on each unit's own overburden"*** — `promote_coal` is now
+> >    **temperature**-gated: `COAL_ONSET_C = 22.0` °C (`deeptime/biotic.rs`), *"now a real
+> >    °C, no longer this depth wearing degrees"*. Recalibrated in the same slice; see
+> >    `journal/corrections.md` #51 for the measured gradients (coal cells 41.9 °C/km).
+> > 3. ***"`stubs.md` § 14 carries the threshold"*** — § 14 is **RETIRED 2026-07-24**, and
+> >    the `providers::burial_temp_c` slot it named was **removed entirely** (a real
+> >    `T(depth)` is a *field*, not a stateless `fn(unit)` slot).
+> >
+> > *What survives and is why the block is kept:* the diagnosis that the class documented
+> > depth-is-rank while nothing read depth, and the precedent one paragraph up — *a
+> > resolution argument is a claim about the quantizer, and quantizers change.* **Coal rank
+> > still has no ladder** (our record still tops out far short of the ~1–2 km burial that
+> > discriminates lignite→anthracite); that half is unaffected.
 
 ## Roster, inclusions, and unfilled slots — DECIDED 2026-07-19
 

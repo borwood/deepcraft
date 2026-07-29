@@ -68,6 +68,22 @@ number.
 Including — especially — the assistant's own, and any of the project's own
 shipped numbers that turned out to be phase, luck, or a stale premise.
 
+**AND STAMP THE TARGET, IN THE SAME COMMIT** (DECIDED 2026-07-28, user — CLAUDE.md read-first
+item 5; added here 2026-07-29, baseline sweep S7/F8). **Writing the correction is only half the
+act.** If it refutes, supersedes or re-scopes a dated-measurement artifact — anything under
+`docs/spikes/`, `docs/audits/`, or a probe report — that artifact **must gain a top-of-file
+banner pointing back**, now, while both documents are open. **Immutable body, mutable header:**
+never rewrite the measurement; only add the pointer.
+
+*Why it lands here and not on a later checklist: **a one-directional pointer is not a
+pointer** — it is a note to whoever already found the answer, and the stale end is exactly
+where a cold session enters. Measured corpus-wide: **8 of 15** correction→file edges were
+one-directional and **14 of 30** audit/spike files carried no staleness marker. And the
+survival condition is stated in the decision itself — conventions that ask an author to
+restate something in a second notation die (`JUSTIFIED-BY`: documented twice, a promised
+sweep, **3 uses, 0 in `crates/`**). This is inseparable from the act it rides on, which is
+why it is a line in this section rather than a section of its own.*
+
 ## 8. Spines and the deferred-thread sweep
 
 - `spines.md`: new instances added, anti-shapes caught in the wild recorded,

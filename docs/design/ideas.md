@@ -292,6 +292,15 @@ all. The user's direction reframes it:
 
 ## Entering a world without generating one (user, re-raised 2026-07-20)
 
+> **✅ STATUS: THIS ONE IS DECIDED, not a sketch — marked 2026-07-29 (baseline sweep S4/F9).**
+> *"Ready-made worlds are the sanctioned answer"* is stated as project doctrine in `CLAUDE.md`
+> § Conventions (beside *"gen time is not a constraint"*), and `stubs.md` #21 uses it as a
+> load-bearing premise for a sequenced heir (*"means a ledger **will** be persisted"*). This
+> file's charter — *"sketches, NOT decisions"* — was still labelling it *"not final"*. The
+> convention for this exists here already (cf. *ratified direction 2026-07-23* and
+> *RECONCILED → material-behavior.md §5* elsewhere in this file) and was simply not applied.
+> **The sketch text is kept as the origin record; only its status is marked.**
+
 Raised again while ratifying S10's 25 s ritual — the point being that
 generation cost should be answered by *offering a way around it*, not by
 capping simulation depth:

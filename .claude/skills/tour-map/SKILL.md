@@ -48,7 +48,11 @@ optionally a note under `docs/audits/`). Require:
   `scan_region` for material.
 - **Do not tune anything.** The probe's job is coordinates and counts. A tour map that
   "improves" the thing it was sent to look at has destroyed the walk's evidence.
-- Gate the probe if it carries assertions (`[[example]] test = true`, journal/0103).
+- **Gate the probe — ~~if~~ WHENEVER it carries assertions** (`[[example]] test = true`,
+  journal/0103). *Modality corrected 2026-07-29 (baseline sweep S7/M3) to match CLAUDE.md
+  § Gates, which is imperative: **"an example that can fail belongs in the gate."** `cargo
+  test` builds examples and never runs them, so an ungated probe with an `assert!` is a probe
+  that is silently wrong — and the numbers it produced are still sitting in the docs.*
 
 ## Then
 

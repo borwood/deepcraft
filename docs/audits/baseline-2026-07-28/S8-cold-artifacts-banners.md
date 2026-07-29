@@ -1,5 +1,25 @@
 # S8 — cold artifacts: the supersession-banner backlog + contradictions
 
+> ## 📋 DISPOSITION — applied 2026-07-29. **All seven drafted banners are now ON their files.**
+>
+> | # | file | state |
+> |---|---|---|
+> | **B1** | `docs/spikes/S12-results.md` | **✅ APPLIED, with one deliberate departure from the draft.** The draft's closing paragraph said `ores.md` § 6 R1's *"until the erosion-supply calibration lands"* condition **has landed** and *"probe 3 is now runnable."* **That is wrong as of `journal/corrections.md` #70** (user, 2026-07-28), which rejected the exposure premise outright — *the fork is not blocked and probe 3 measures the wrong thing.* The banner as applied says so instead, and adds that the calibration ships **OFF** behind `calibrated_rates`. |
+> | **B2** | `docs/spikes/S18-first-behavior-weathering-plan.md` | **✅ APPLIED** as drafted. |
+> | **B3** | `docs/spikes/S9-results.md` | **✅ APPLIED** as drafted. |
+> | **B4** | `docs/audits/A1-collapse-slice-plan.md` | **✅ APPLIED** as drafted. |
+> | **B5** | `docs/audits/2026-07-23-block-consumer-inventory.md` | **✅ APPLIED** as drafted. |
+> | **B6** | `docs/audits/2026-07-25-contents-empty-over-solid-diagnosis.md` | **✅ APPLIED** as drafted. |
+> | **B7** | `docs/audits/2026-07-25-roadmap-staleness-sweep.md` | **✅ APPLIED** as drafted. |
+> | **B8** | `docs/spikes/S19-flow-record-cost-results.md` | **⚠ ESCALATED** — the slice flags rather than asserts it and says settling it means running `flow_cost_probe` once. **A measurement, not an application.** |
+>
+> | contradiction | state |
+> |---|---|
+> | **C1** a user-owned ratification gated on a met condition | **❌ FINDING SUPERSEDED — and in the opposite direction.** C1 reasons that the *blocker landed*, so probe 3 should be run before § 6 R1 goes back to the user. On **2026-07-28** the user rejected the whole caveat (`corrections.md` **#70**): ore does not need to be surface-**exposed**; the fork was never blocked; **probe 3 measures the wrong quantity.** `ores.md` gained a 🔴 top-of-file banner the same day. **What this pass did instead:** struck the four caveat sites that banner named and left unstruck. *C1's instinct — that a stale assistant-side caveat was suppressing a user decision — was exactly right; only its remedy is dead.* |
+> | **C2** `spines.md` publishes a retracted denominator | **✅ APPLIED at the read-first sites** — `spines.md` § S-5 and § 6 now read **31 live of 34 inventoried**, citing the seam inventory's own 2026-07-28 retraction. **The `5 converted` numerator was NOT re-verified against `crates/`** (the slice did not verify it either) and is explicitly carried forward as this file's number. **The corpus-knowledge sites were deliberately left alone**: they quote the string *as evidence that an obligation ledger has a denominator*, and that argument is unaffected by its value — rewriting a dated evidence reading is the wrong instrument. |
+> | **C3** two spikes are both S16 | **⚠ ESCALATED** — *"User/integrator call; I am not resolving it."* |
+> | **C4** `material-behavior.md` cites S18 as a live instance | **⚠ ESCALATED** — the slice calls it *"a proposal, not an edit"* because it touches a ratified design doc. **Its reciprocal half is closed regardless: B2 is on S18.** |
+
 *Baseline `doc-topology` sweep, slice 8 of 9. **All quotations read at commit `f652b60`.***
 *Read-only pass over `docs/spikes/*.md` (21 files), `docs/audits/*.md` (15 files at that
 directory's root — the `baseline-2026-07-28/` subdirectory is this fan-out's own output and

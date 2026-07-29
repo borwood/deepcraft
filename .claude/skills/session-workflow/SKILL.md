@@ -81,11 +81,21 @@ You wear all four, switching freely:
   **every agent gets `model: "opus"` by default — including Explore/recon
   agents — AND every `agent()` call inside a Workflow script** (learned
   the expensive way same day: a stock deep-research workflow inherits the
-  main session's Fable into every fan-out agent; stock/named workflows
+  **main session's model** into every fan-out agent; stock/named workflows
   must be re-authored with explicit `model: 'opus'` before launch, never
-  run as-is). Fable is the MAIN SESSION's model only; passing no model
-  override inherits Fable and burns the usage budget (it cut into the week
-  once — that's why this rule exists). **Scale is part of the same rule
+  run as-is). ~~Fable is the MAIN SESSION's model only; passing no model
+  override inherits Fable and burns the usage budget~~ **Passing no model
+  override inherits WHATEVER THE MAIN SESSION IS RUNNING, which may be the
+  expensive one, and burns the usage budget** (it cut into the week
+  once — that's why this rule exists).
+  **⚠ DO NOT PIN A MODEL NAME HERE — corrected 2026-07-29 (baseline sweep S7/F2).** This
+  bullet named **Fable** as *the* main-session model, and `CLAUDE.md` § Conventions records
+  the identical defect being fixed in the commit trailer on 2026-07-26: *"This line used to
+  hardcode `Fable 5` and went stale the first time a session ran on another model…* ***The
+  trailer is provenance: pinning one name makes it a lie the moment the roster changes.***"
+  It was already false — **the sweep that found this ran on Opus 5** — and an agent reasoning
+  *"no override ⇒ Fable ⇒ budget burn"* is reasoning from a false premise about its own
+  environment. **The rule is user-ratified and untouched; only its mechanism was stale.** **Scale is part of the same rule
   (user, 2026-07-19: "usage is a concern" — a ~100-agent research run
   for mod documentation was "unfathomable overkill for what a handful of
   articles could have told us"): before launching ANY fan-out, state the
@@ -94,7 +104,8 @@ You wear all four, switching freely:
   per-claim adversarial panels. Full-width research harnesses are for
   genuinely contested claims, by explicit agreement.** The sole exception: an agent doing
   genuinely deep design work (novel algorithms, undecided architecture,
-  spike-class uncertainty) may get Fable by deliberate, stated choice.
+  spike-class uncertainty) may get **the heavier model** (Fable, where it is the
+  main-session model) by deliberate, stated choice.
   Design conversation, integration judgment, and walk interpretation stay
   in the main session regardless.
 - Agents sometimes stop while waiting on background builds and their

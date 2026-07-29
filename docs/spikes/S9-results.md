@@ -1,5 +1,28 @@
 # S9 results — the deep-time tier (two-plane erosion + strata recorder)
 
+> ## ⚠ THE FLIP CONDITION IN § Recommendation WAS TESTED AND FAILED — see S9b
+>
+> **The verdict stands: A always-on + C refinement.** What did not survive is the
+> *"UNLESS the erosion engine parallelizes"* escape hatch below.
+>
+> **Falsified by [`S9b-results.md`](S9b-results.md) and
+> [`journal/corrections.md` #9](../../journal/corrections.md).** The priority-flood is
+> 65–72 % of the step (98.5 % at B scale) and has **no byte-identical parallel form**;
+> whole-step speedup is 1.18–1.26×, so realistic parallel B is **15–70 min**, not the
+> ~2 min this document projected. The question reopens only on ~32-core hardware with a
+> deterministic parallel flood — `examples/deeptime_par.rs --full-b` re-measures it.
+>
+> **One measurement below is also corrected:** the recorder empty-header estimate of
+> **648 MiB** measured at **833 MiB**.
+>
+> **Everything else stands**, including the A/B/C cost and read-quality comparison that
+> the spike existed to make. See also the erosion-rate recalibration —
+> `journal/0111` / corrections #56, calibration `journal/0114` — which re-scopes the
+> *magnitudes* this tier produces without touching its architecture verdict.
+>
+> *Banner added 2026-07-29 under the immutable body / mutable header policy (CLAUDE.md
+> read-first item 5). Nothing below is edited.*
+
 Status: spike complete, 2026-07-19. Code in `crates/dc-worldgen/src/deeptime/`
 (`grid.rs`, `erosion.rs`, `climate.rs`, `recorder.rs`, `refine.rs`); the
 measurement harness is `examples/deeptime_spike.rs`; invariants in

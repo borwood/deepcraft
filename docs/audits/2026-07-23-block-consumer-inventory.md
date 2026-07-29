@@ -1,5 +1,16 @@
 # The `Block` consumer inventory — for the block↔material collapse (Crux 1)
 
+> ## ⚠ PRE-COLLAPSE CENSUS — the collapse it grounds SHIPPED 2026-07-23 (journal/0087)
+>
+> Every count and `file:line` below is addressed to the tree **before** the
+> block↔material collapse. `block_twin` is gone, `classify` returns the material, and the
+> render path's re-translation arms were deleted. **The counts (135 sites / 31 files;
+> 146 raw hits / 34 files) are this audit's, not today's** — re-grep before quoting one.
+> The categorization (solidity-shaped vs identity-shaped) is what has aged well and is
+> why the document is kept.
+>
+> *Banner added 2026-07-29 (baseline sweep S8/B5).*
+
 Read-only recon, 2026-07-23 (rescued from the session that shaped journal/0081).
 Grounds the block↔material collapse (materials.md DECIDED 2026-07-22; north-star
 step 1). **The collapse is ~80% already done at the core**; this names the tail.

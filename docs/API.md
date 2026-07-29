@@ -1,7 +1,15 @@
 # dc-api command surface — v0 design
 
-Status: pre-S5 design, 2026-07-18. S5 implements a thin slice of this and its
-exit criterion is revising this doc into the v0 conventions spec. Prior art
+Status: ~~pre-S5 design, 2026-07-18. S5 implements a thin slice of this and its
+exit criterion is revising this doc into the v0 conventions spec.~~
+**⚠ RETIRED — corrected 2026-07-29 (baseline sweep S1/#5). S5's exit criterion was
+PERFORMED, in place, and the status line was never touched.** This doc's body records S5's
+results as normative: *"the consumer-id tie-break (**added by S5**)"*, *"**Normative as of
+S5.**"*, *"**DECIDED by S5 measurement** … measured at ~21× the bytes"*, *"**v0 implementation
+notes (adopted from S5**, details in `docs/spikes/S5-results.md`)"*, and *"the host owns token
+contents … (**proven**: contraband defines leave zero trace)"*. **This IS the v0 conventions
+spec.** The old line invited readers to discount § *v0 implementation notes* as speculation
+when it is measured spike output. Prior art
 deliberately mined: the author's Minecraft MCP mod (block/entity/level/events/
 structure/schedule tool families) — a field-tested answer to what agent
 consumers actually need.
@@ -59,7 +67,16 @@ CommandEnvelope {
 
 | Domain | Commands (mutate) | Queries (read) | Events |
 |---|---|---|---|
-| `world` | set_block, fill, clone_region, stamp_structure | get_block, scan_region, raycast, column_summary, region_snapshot | block_changed, chunk_loaded/unloaded |
+| `world` | set_block, fill, clone_region, stamp_structure | get_block, scan_region, raycast, column_summary ⚠, region_snapshot | block_changed, chunk_loaded/unloaded |
+
+> **⚠ `world.column_summary` is ADVERTISED HERE AND HAS NO dc-api HANDLER.** Recorded by the
+> 2026-07-23 `spine-audit` sweep at `docs/spines.md` § 3, one-directionally; the reciprocal
+> pointer was added here 2026-07-29 (baseline sweep S1/#10). **Re-verified at source
+> 2026-07-29:** `column_summary` exists as a `dc-core` function
+> (`crates/dc-core/src/column.rs`, exported from `lib.rs`) and is consumed internally, but
+> `grep -rn column_summary crates/dc-api` returns **nothing** — there is no command handler.
+> *A doc-advertised command with no handler is exactly the shape read-first item 5 governs:
+> the stale end held no link, and the stale end is where a cold session enters.*
 | `entity` | spawn, despawn, set_components, apply_effect, teleport | query (by volume/tag/component), get | spawned, died, entered_volume |
 | `inventory` | set_slot, swap, transfer | get, count | changed |
 | `registry` | define/update/retire: block_type, item, model, animation, blueprint, biome, feature | get_def, list(namespace) | def_changed (hot reload signal) |

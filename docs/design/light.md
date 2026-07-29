@@ -150,6 +150,19 @@ The user's decomposition, and the key to affordability:
   with sources and sinks. S11 measured its locality at a 4–11 cell halo.
   **Check whether one machinery serves all three before building two of
   them.**
+  - **✅ ANSWERED FOR TWO OF THE THREE — 2026-07-29 (reconciliation, not a new decision).**
+    **Saturation and temperature already share one machinery**: they are
+    **condition-fields** — named per-cell quantities with opaque ids, produced by field
+    passes and read by cellular passes and formation predicates — **DECIDED 2026-07-24**
+    (`docs/design/material-behavior.md` § 14), and `docs/design/flow.md` § *What survives*
+    records it as settled: *"head, saturation, temperature are one shape; the geotherm
+    proved it."* The vocabulary is explicitly **extensible**, and there are **no
+    capability tiers** on field passes.
+  - **What is still genuinely open is LIGHT specifically** — whether the condition-field /
+    field-pass shape extends to a **max-plus** relaxation (light is not a diffusive or
+    Laplacian solve, and § 2 item 1 rules it **derived, never stored**, which is the
+    opposite storage posture from a `DeepField` plane). That is the live question; do not
+    re-derive the saturation/temperature half.
 
 ## 6. Colour, and creatures that see bands we do not — OPEN, recommendation recorded
 
@@ -235,8 +248,15 @@ twice.
 2. **Order-independence by construction** — byte-identical results under
    shuffled update order, double-run, and scalar↔parallel (the S9b/S11
    method). This is a proof, not a benchmark.
-3. **Whether one relaxation machinery serves light and bound water** (§ 5)
-   — or an honest statement of why not.
+3. ~~**Whether one relaxation machinery serves light and bound water**~~ —
+   **NARROWED 2026-07-29.** Bound water and temperature are already one
+   machinery: **condition-fields, DECIDED 2026-07-24**
+   (`material-behavior.md` § 14; `flow.md` § *What survives*). What this
+   spike must measure is narrower — **whether the condition-field /
+   field-pass shape extends to LIGHT**, whose relaxation is **max-plus**
+   rather than diffusive and which § 2 item 1 rules **derived, never
+   stored** — or an honest statement of why not. *A spike dispatched off
+   the un-narrowed wording would re-derive a decided result.*
 4. **The direct-light query cost** against the S3 contract, including the
    unresolved/optimistic-sky path.
 5. **Halo/locality**: light's bound is analytic, so *verify* it rather than

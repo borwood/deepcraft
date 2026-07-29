@@ -79,7 +79,11 @@ data model:
    crustal thickening; the physics runs on column integrals, never voxels.
 4. **Isostasy + flexure** — the missing engine (this doc had eight and not
    this one): crust floats, so erosion unloads and the root rebounds
-   (~0.8×), which is how relief persists for hundreds of Myr and how
+   (~0.8× — **use `tectonics.md` § 5.2's derived ρc/ρm ≈ 2800/3300 ≈ 0.85**, which
+   carries its densities; this doc's round number is a gloss and the 0.80/0.85 choice
+   swings the exhumation multiplier 5.0×↔6.7×, a 34 % move in the headline number of
+   that argument — cross-reference added 2026-07-29, baseline sweep S2/F10), which is
+   how relief persists for hundreds of Myr and how
    deep-formed rock is exhumed to the surface (metamorphic cores). Flexure
    bows crust down beside loads → foreland basins, the sediment trap next
    to every belt. Requires exactly the crustal columns above. This is also
@@ -395,6 +399,20 @@ player who understands it can find?
 pass can't answer in those terms, it isn't ready to be declared in the
 graph.
 
+> **⚠ BACK-POINTER ADDED 2026-07-29 (baseline sweep S9/S9-3) — the ratification below is
+> UNTOUCHED; this is the missing edge, not a reinterpretation.** `docs/design/stubs.md` § 28
+> (*the-agent-magnitudes-the-calibration-left-behind*, added by `journal/0114`) records a
+> consequence and says it *"is not recorded anywhere else"* — correct, and this is the site
+> where it was missing: the erosion calibration moved the four core rates **45×** and left
+> the wave/wind/frost agents where they were, so **relative to the landscape they act on
+> they would be ~45× weaker than the day these magnitudes were judged.**
+> **This is a PRE-FLIP blocker, not a live defect:** `EROSION_CALIBRATION = 45` sits behind
+> `calibrated_rates`, **OFF in production** (`deeptime/field.rs`), so today's shipped world
+> is the world these magnitudes were ratified against. **Whether the ratification survives
+> the flip is the USER'S call and nothing here presumes it** — flagged so it is visible at
+> the ratification site *before* the flag flips. See also `ROADMAP.md`: the live-magnitudes
+> tour is more owed than before.
+
 > **Magnitude ratification — DECIDED 2026-07-21 (user, live guided tour,
 > journal/0049).** The wind and frost magnitudes are RATIFIED as-built
 > (`eolian_deflation` 0.02, `eolian_arid_precip` 0.32, `eolian_deposit_frac`
@@ -403,9 +421,20 @@ graph.
 > veneer/carry-H/partials work, not these knobs. The WAVE magnitudes are
 > NOT ratified: station 5 confirmed the null (0.68 m total at the world's
 > most-attacked coast) and the user directed "more dramatic by default" —
-> retune slice Sequenced (target class: cuts that survive the 0.9 m voxel
+> ~~retune slice Sequenced (target class: cuts that survive the 0.9 m voxel
 > and read as platforms/notches, ~10–40× with `wave_band_m` widened for
-> stranded terraces from the sea-level cycles). **Heir mechanism (user,
+> stranded terraces from the sea-level cycles)~~ **🔴 THE RETUNE WAS STRUCK BY THE USER THE
+> SAME DAY (2026-07-21) — there is no retune slice.** Marked here 2026-07-29 (baseline sweep
+> S9/S9-2); the strike has been on the board at `ROADMAP.md` § *Wave-magnitude retune* since
+> the day this paragraph was written, and both sides cite journal/0049.
+> > *"That whole mechanism changes after water machinery. that would be a **bandaid**,
+> > against our standing rule against bandaids. can revisit later."* (user)
+>
+> **The confirmed null rides as-built** until the fetch model lands: **wave expression is a
+> consumer of the water design pass, not a tuning slice.** *Note this doc still named a
+> numeric target (`~10–40×`) for a slice the user refused as a bandaid — which is exactly
+> what [[no-bandaid-tuning]] exists to prevent, sitting in the doc that owns the decision.*
+> **Heir mechanism (user,
 > same session): wave energy as a fact about the water body — fetch from
 > S11's body graph × the 0037 wind field, evolving over the run — replaces
 > the global constant when built.**
