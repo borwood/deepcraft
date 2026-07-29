@@ -1,5 +1,41 @@
 # S6 — `ROADMAP.md` § Observed: the first complete read
 
+> ## ✅ APPLIED 2026-07-29 — read this banner before trusting any `file:line` below
+>
+> This audit was written against a frozen worktree at watermark `f652b60`. **Every line number in
+> it has since drifted, and the section it describes no longer exists in that shape.** Locate
+> entries by CONTENT, never by line number.
+>
+> **What was applied** (all findings re-verified at source first — an audit finding is a
+> hypothesis, not an authority):
+> - **8 user field reports STRUCK by the user, 2026-07-29** — U11, U14, U16, U19, U24, U27, U28,
+>   U31 → `ROADMAP-history.md` § Observed — archived. **U16's kill is the user's own and is
+>   stronger than this audit's:** *grass and dirt are not generated in the current shape of the
+>   default plugin pack, so the observation itself is stale.* **⚠ This audit's recommended
+>   re-shoot of `0024-fb-ne.png` is CANCELLED — do not re-derive it.**
+> - **All 37 `RIP` entries archived** to the same place, verbatim.
+> - **F1–F8 applied**; F2, F3, F5 verified correct and actioned; F6, F7, F8 re-verified
+>   STILL-OPEN and annotated in place so the next reader need not re-check.
+> - **§ 2's top five and § 3 applied too**, because archiving the `RIP` mass removed the in-file
+>   refutations that were the only thing discharging § 2 #1 and #5.
+> - **§ 4's remaining 16 open field reports** were evidence-gathered for the user; **nothing was
+>   closed on reasoning alone.**
+>
+> **Two counting errors found in this audit, both minor and neither changing a conclusion —
+> recorded because an unrecorded count error inside a justification is exactly what we keep
+> paying for:**
+> 1. **§ 4's prose says *"31 rows covering 33 entries"* and *"5 entries are resolved-in-place
+>    archive candidates"*.** The five are U21, U29 and U30's three — correct — but that makes
+>    the rows-to-entries arithmetic 31 → 33 only if U30's three are counted once. Harmless.
+> 2. **The count of still-open field reports after the strikes is 16, not 15.** The 23 the audit
+>    calls STILL-OPEN minus the 7 struck from that set (U16 was `CD`, not in the 23) leaves
+>    **U1, U2, U3, U4, U5, U6, U8, U9, U10, U12, U15, U17, U22, U23, U25, U26 — sixteen.**
+>
+> **The audit's substance held up under verification.** Every `file:line` claim in §§ 2, 3 and 5
+> that was re-checked was **correct on the merits** at the drifted address, including the two it
+> flagged as the highest-value: `flow_cost_probe` really is still the one probe the gate cannot
+> see fail, and F5's orphan really had no header.
+
 **Baseline sweep, slice 6 of 9.** Watermark commit `f652b60`; every `file:line` and every
 source quotation below was read at that commit.
 
@@ -55,7 +91,8 @@ the brief's hypothesis.
 
 Ranked by cost of a cold reader believing them.
 
-### 1. `ROADMAP.md:4530` — "The embedded HostWorld never evicts chunks"
+### 1. ✅ APPLIED — "The embedded HostWorld never evicts chunks"
+**Verified 2026-07-29** (`host.rs:524`). Discharged in place; its refutation was archived, so leaving the claim standing would have been strictly worse.
 > *"The embedded HostWorld never evicts chunks (~64 KiB per chunk ever streamed/edited);
 > never-edited chunks are pure generator output and could be dropped freely (journal/0002)."*
 
@@ -71,7 +108,8 @@ generated-untouched-vs-edited split the entry asks for.**
 MB/jump)."* This is the corrections-#65 shape — a claim and its own refutation coexisting in
 one artifact — occurring **inside the artifact read at the start of every session.**
 
-### 2. `ROADMAP.md:4790` — "The `history.rs` reject-don't-crash skip is SILENT"
+### 2. ✅ APPLIED — "The `history.rs` reject-don't-crash skip is SILENT"
+**Verified 2026-07-29**: the file does not exist. Discharged in place, with the API.md loud-degradation doctrine explicitly preserved.
 > *"A skipped world-history collapse currently emits nothing; it owes a named warning. Small."*
 
 `history.rs` does not exist. `ls crates/dc-worldgen/src/pregen/history.rs` → *No such file or
@@ -79,7 +117,7 @@ directory*; `grep -rn "RegionId" --include=*.rs crates/dc-worldgen/` → **zero 
 bootstrap history content was removed 2026-07-28 (journal/0121, −713 Rust lines;
 `ROADMAP.md:4895`). The entry files an owed warning on a code path that no longer exists.
 
-### 3. `ROADMAP.md:3865` — "ruin-posts was UNDOCUMENTED … a loud code comment is owed at `collapse.rs::ruin_posts`"
+### 3. ✅ APPLIED — "ruin-posts was UNDOCUMENTED … a loud code comment is owed at `collapse.rs::ruin_posts`"
 `ruin_posts` is deleted. `docs/design/stubs.md:30`: *"### 1. ruin-posts — **RESOLVED BY
 DELETION 2026-07-28 (journal/0121); no heir was ever built and none is owed**"*, and
 `stubs.md:53` names `collapse.rs::ruin_posts` (~997 lines) among what went. The only
@@ -87,13 +125,14 @@ surviving `ruin` tokens in `collapse.rs` are a module-doc mention (`:13`) and a 
 reading *"there are no ruin…"* (`:2236`). **The entry's one "genuine discovery" is an owed
 comment on a deleted function.**
 
-### 4. `ROADMAP.md:4548` — "Site cap 240 (u8 `RegionId`) — concrete instance of S2's ledger-scale question (S7)"
+### 4. ✅ APPLIED — "Site cap 240 (u8 `RegionId`) — concrete instance of S2's ledger-scale question (S7)"
 Same deletion. `grep -rn "RegionId" --include=*.rs crates/dc-worldgen/` → **zero**; `sites` is
 absent from `crates/dc-worldgen/src/pregen/mod.rs`. A constraint on content that no longer
 exists, still filed as a live scale question. *(The `RegionId` hits that do remain are in
 `crates/dc-sim/src/statistical/engine.rs:42` — an unrelated toy-world type.)*
 
-### 5. `ROADMAP.md:4601` — "We cannot see where runtime goes"
+### 5. ✅ APPLIED — "We cannot see where runtime goes"
+**Verified 2026-07-29** (`perf.rs`). Discharged in place, with the live residual (per-thread-role attribution) named as the entry that actually carries it.
 > *"the project … has **NO** runtime frame/tick observability: no span-level profiling, no
 > tick-time breakdown"*
 
@@ -107,7 +146,11 @@ exist.** The live gap is per-thread-role attribution, not the absence of profili
 
 ---
 
-## 3. The finding that is NOT a staleness — a live defect the section's own text hides
+## 3. ✅ APPLIED — RE-VERIFIED AND STILL TRUE, 2026-07-29
+
+`crates/dc-worldgen/Cargo.toml` now lists **sixteen** `[[example]]` targets and `flow_cost_probe` is **not** one of them; the file holds **zero** `#[test]`, no `mod gate`, and a bare `assert_eq!` in `main` at `:412`. The entry has been updated to say so. **Highest-value single action left in the section.**
+
+### The finding that is NOT a staleness — a live defect the section's own text hides
 
 **`ROADMAP.md:3133` — "A PROBE THAT CAN FAIL IS INVISIBLE TO THE GATE … CLAUDE.md's own
 remedy (a) is the real fix … and it is *not done*" — is stale for the family and TRUE for its
@@ -184,7 +227,7 @@ mechanism but keeps its observation.** No user field report is closed on reasoni
 
 ## 5. Additional findings worth the integrator's time
 
-**F1 — Two "UNWALKED" tags were discharged by walk 0059 and never updated.**
+**✅ F1 APPLIED — Two "UNWALKED" tags were discharged by walk 0059 and never updated.**
 `ROADMAP.md:3610`: *"**UNWALKED** — nobody has seen the holes gone"*; `:3655`: *"**Unwalked**
 — the fix landed after the user's session closed, so nobody has seen the patches gone."* Both
 were walked. `ROADMAP.md:4814-4817`: *"**no sky-holes** at two partial-rich stations
@@ -192,7 +235,7 @@ were walked. `ROADMAP.md:4814-4817`: *"**no sky-holes** at two partial-rich stat
 shows organic blobs with wandering contacts (journal/0058 confirmed)."* Three entries, one
 section; the confirmation sits ~1,160 lines below the tags it discharges.
 
-**F2 — `ROADMAP.md:3379`, "Two declaration defects on `dc:deep/weather_inventory`" — BOTH
+**✅ F2 APPLIED (verified at source: `runner.rs:523-535`, `:542-544`, `:889`, `:1454-1456`) — `ROADMAP.md:3379`, "Two declaration defects on `dc:deep/weather_inventory`" — BOTH
 FIXED, verified at source.**
 (a) `crates/dc-worldgen/src/deeptime/runner.rs:869-870`: *"epoch's BioMod as a real
 within-epoch read** (see `WINV_READS_*` — the former `reads_prev` was a fiction the tie-break
@@ -202,7 +245,7 @@ decided; spine-audit 2026-07-25)"*, with `WINV_READS_AGENTS` at `:542` carrying 
 was removed rather than made true, which is the honest disposal.
 The entry still reads as owed work.
 
-**F3 — `ROADMAP.md:4861`, "Charcoal's premise expired and the code still encodes the
+**✅ F3 APPLIED (verified: `materials/mod.rs:133,213,686`; `geology.rs:364,422,430`; `fill.rs:408-419`) — `ROADMAP.md:4861`, "Charcoal's premise expired and the code still encodes the
 conclusion" — the code no longer encodes it.** The entry's two stated blockers were *"**no
 charcoal material is registered at all**"* and *"`deep_class` routes a charcoal-tagged unit
 to its mineral host"*. Both false now: `crates/dc-core/src/materials/mod.rs:133` defines
@@ -212,12 +255,12 @@ and the token `"dc:charcoal"` at `:213`; `crates/dc-worldgen/src/geology.rs:364`
 at `:430`; and it is now loose-formed at `crates/dc-worldgen/src/fill.rs:419`. Shipped by
 journal/0063.
 
-**F4 — `ROADMAP.md:3053`, the `reads_prev`-tie-break entry, is fully discharged.** Both halves
+**✅ F4 APPLIED — archived with the `RIP` mass — `ROADMAP.md:3053`, the `reads_prev`-tie-break entry, is fully discharged.** Both halves
 carry ✅ inline (`:3057` option (a) shipped journal/0104; `:3079` head's under-declaration
 shipped journal/0107) and only the "kept for the record" diagnoses remain. At 50 lines it is
 one of the section's larger dead weights.
 
-**F5 — an orphaned paragraph, and the only structural defect I found.**
+**✅ F5 APPLIED — the orphan now has its own bullet, *"NO VOLCANISM — no constructive edifices anywhere in the world"*, with a note recording that it had no header for nine days and was never counted. — an orphaned paragraph, and the only structural defect I found.**
 `ROADMAP.md:4721-4728` — *"earth-processes § 2 (Igneous) is a sketch; nothing is built.
 Arc/rift provenance raises elevation but builds no edifices… the fastest legal
 short-gradation mountain on Earth (a stratovolcano is ~3 km of relief in a ~20 km
@@ -226,7 +269,7 @@ own. It is plainly the body of a separate "no volcanism / no constructive edific
 observation whose header was lost in an edit. It is currently invisible to anyone scanning
 entry headers, and it is not counted among the 129. **Recommend: give it its own bullet.**
 
-**F6 — two entries confirmed STILL-OPEN at source**, so the integrator need not re-check
+**✅ F6 APPLIED — re-verified 2026-07-29 (`field.rs:473` still `Vec<DeepStrata>`; `field.rs:822` still `empty_with_bedrock`, moved from `:545`) and annotated in both entries. — two entries confirmed STILL-OPEN at source**, so the integrator need not re-check
 them. `ROADMAP.md:3163` — `DeepField::strata` is still `Vec<DeepStrata>`
 (`crates/dc-worldgen/src/deeptime/field.rs:473`); the CSR collapse is **not** done.
 `ROADMAP.md:3367` — `derive_regolith_at` still builds from
@@ -234,12 +277,12 @@ them. `ROADMAP.md:3163` — `DeepField::strata` is still `Vec<DeepStrata>`
 `weather_inventory`'s facts. Both are on the weathering arc's critical path and both are
 cross-referenced from `ROADMAP.md:3175` as competing for one residency budget.
 
-**F7 — `ROADMAP.md:4179`, "the client can only ever open seed 1337", is STILL TRUE.**
+**✅ F7 APPLIED — re-verified 2026-07-29 (`bench.rs:17`; no `--seed` anywhere in `crates/dc-client/src/`) and annotated. — `ROADMAP.md:4179`, "the client can only ever open seed 1337", is STILL TRUE.**
 `crates/dc-client/src/bench.rs:17` — `pub const BENCH_SEED: i32 = 1337;` — consumed at
 `app.rs:196`, `:206`, `:691`; no `--seed` argument exists. This underpins both open coal
 entries (`:2983`, `:3034`), so it matters that it has not quietly changed.
 
-**F8 — `ROADMAP.md:4399`'s "still open" half is genuinely live.** Sealing `TerrainGen` behind
+**✅ F8 APPLIED — re-verified 2026-07-29 (`worldgen.rs:27` still `pub struct TerrainGen`) and annotated. — `ROADMAP.md:4399`'s "still open" half is genuinely live.** Sealing `TerrainGen` behind
 `pub(in crate::authority)` has not happened: `crates/dc-client/src/worldgen.rs:27` is
 `pub struct TerrainGen`. The entry is right, and it is right for the reason it gives (keys
 3/4 still name it). Kept as OPEN rather than RIP for that reason.

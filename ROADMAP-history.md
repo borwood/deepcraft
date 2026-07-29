@@ -2,12 +2,14 @@
 
 **Archived from `ROADMAP.md` on 2026-07-26, by STATUS, not by age.** The live board is
 `ROADMAP.md`: *Sequenced* + *Observed* + *In flight* + the current close block — the parts
-that must stay readable. This file holds the two parts that are least often needed live and
+that must stay readable. This file holds the parts that are least often needed live and
 whose narrative is already carried elsewhere:
 
 1. **Shipped** — every entry keeps its **journal number**, which is the stable pointer. The
    journal holds the story; this holds the ledger.
-2. **Superseded close blocks** — each was consumed by the one after it.
+2. **Observed — archived** — § Observed entries that stopped requiring a live read: user field
+   reports the user has **struck**, and entries whose own bodies already declared them closed.
+3. **Superseded close blocks** — each was consumed by the one after it.
 
 **Age is deliberately NOT the axis.** A two-week-old `Observed` may be the liveliest thing
 on the board; a Shipped entry from this morning is already history. Archive when an item's
@@ -2315,6 +2317,987 @@ on the board; a Shipped entry from this morning is already history. Archive when
 
 
 ---
+
+## Observed — archived
+
+**Archived from `ROADMAP.md` § Observed on 2026-07-29**, by STATUS, not by age — the
+same rule as § Shipped above. Sourced from the complete classification in
+[`docs/audits/baseline-2026-07-28/S6-roadmap-observed.md`](docs/audits/baseline-2026-07-28/S6-roadmap-observed.md),
+with every finding re-verified at source before the move.
+
+**Entries are reproduced VERBATIM.** Recorded camera poses, world coordinates and asset
+filenames travel with them (corrections #48 — *a prose landmark is not a pose*); nothing
+was summarised away and nothing was deleted. Each entry keeps its **journal number**, which
+is the stable pointer.
+
+### Struck by the user, 2026-07-29 — eight field reports
+
+The user reviewed the open field reports on 2026-07-29 and struck these eight. Their stated
+general reason, which is the frame for all eight:
+
+> *"plenty of these are going to be stale and were made in the context of old
+> implementations and we didn't close the loop as the project moved on."*
+
+These are **user field reports** and the audit trail matters, so they are struck here rather
+than deleted. A struck report is **not** a resolved defect — it is an observation the user
+has ruled no longer describes the world. Do not re-derive them.
+
+**STRUCK (user, 2026-07-29)** — The (a)-(d) world-content call is **withdrawn**. Made against
+an old implementation and the loop was never closed as the project moved on. *Its sibling entry
+— "the only test defending 'a player can find and dig a coal seam' runs on a world no player
+can open" — was NOT struck and stays live in `ROADMAP.md` § Observed.*
+
+- **🔴 THE SHIPPED WORLD HAS ZERO COAL — and the guard that should have caught it runs on a
+  different world** (measured 2026-07-25, `examples/coal_walk_tour.rs`; **corrections #51**).
+  **USER CALL REQUIRED — this is a world-content question, not a bug to quietly fix.**
+  - **The fact.** On the world `dc-client` boots (`BENCH_SEED = 1337`, `Extent::Medium`):
+    **0 coal units across all 297,025 deep cells**, against **27,134 peat units in 14,596 cells**.
+    The hottest coalification candidate is **15.4 °C** against `COAL_ONSET_C = 22 °C` — **6.6 °C
+    short**. Trial-onset curve on this world is a cliff: `4 °C → 87 %`, `8 °C → 31 %`,
+    `12 °C → 9 %`, **`16 °C+ → 0 %`**.
+  - **The instrument is proven, so the zero is real.** The same census over `0x0D5EED572026 /
+    Medium` — the world journal/0093's numbers came from — finds **1182 coal cells / 1834 runs**.
+    It sees coal when coal exists.
+  - ~~**Why the guard missed it (the root defect).** `tests/geotherm.rs::production_field()` builds
+    **`seed 0x0B0A_57EE_0059, Extent::Small`** — *neither the production seed nor the production
+    extent*.~~ **✅ FIXED 2026-07-25 (journal/0106)** — see the closing bullet.
+  - **The geotherm's physics is NOT at fault.** On a world with coal it followed the warm crust
+    exactly as claimed (coal cells mean gradient 41.9 °C/km vs peat-only 31.3; rift/arc ≥40 →
+    13.4 % coal, craton <20 → 0 %). **Seed 1337 has no warm crust with peat on it.**
+  - **OPTIONS (user's):** **(a)** accept a coal-free world for now — coal is a blessed placeholder
+    and biology will recalibrate it anyway; **(b)** lower `COAL_ONSET_C` toward the cliff's live
+    range (`≈8–12 °C` gives 31 %/9 % on this world) as an interim seat; **(c)** treat it as
+    evidence that a single global onset temperature is the wrong shape and let the
+    genesis-passes/property-driven arc subsume it; **(d)** change the shipped seed — **rejected by
+    the integrator as backwards**, tuning the world to fit a constant.
+  - **✅ DONE 2026-07-25 (journal/0106) — the half that was not a content question: `production_field()`
+    is now the shipped world.** `tests/geotherm.rs::production_field()` builds **seed 1337 at
+    `Extent::Medium`** (memoized per test binary), and the coal guard is **split in two**:
+    - `the_geotherm_rule_governs_coalification_on_the_production_world` — on 1337/Medium. Asserts the
+      `temperature` field is populated, that candidates exist (26 845 of them), and that **every
+      candidate's coal state agrees unit-for-unit with `T ≥ COAL_ONSET_C`** — "coalification responds
+      to the gradient field" in falsifiable form. It **requires no coal**, deliberately: the zero is
+      an open content question (a)–(d) below, and a guard must not be a hostage to it. It reprints the
+      onset sensitivity curve (`4 °C → 87 %` … `16 °C → 0 %`) every run, which is corrections #51
+      lesson 3 made permanent.
+    - `coal_follows_the_warm_crust_on_the_warm_reference_world` — on `warm_reference_field()`
+      (`0x0D5EED572026`, Medium), **named for what it is**. Asserts coal exists, is not degenerate, and
+      that coal units sit on **hotter crust** than the peat that stayed peat (measured 42.8 vs
+      31.7 °C/km). A non-production fixture is fine; a non-production fixture called production is not.
+    - `COAL_ONSET_C` untouched. **All three tests pass** (63 s; the Medium runs cost ~55 s more than the
+      old Small ones — the price of the guard being about the shipped world).
+    - Audit of siblings: `providers_common`/`rh_unification`'s `production_*` helpers name the same
+      non-shipped world, but their claims (golden byte-identity, derived-vs-scalar agreement) are
+      genuinely seed-independent, so they are **annotated, not re-seeded**; the `golden_*` rename ripples
+      into `providers_golden.rs` + comments in `flux_record.rs`/`head_field.rs` and is left sequenced —
+      **and as of 2026-07-25 it really was** (sweep row D-2 caught that the word "sequenced" was doing
+      the work of an entry that did not exist — the same doctrine gap that hid row S-7 below).
+      **✅ The rename SHIPPED 2026-07-26 — see `ROADMAP-history.md` § Shipped**; the helpers are `golden_field` /
+      `golden_pregen` and the golden test is `the_golden_world_still_hashes_to_the_pre_slice_goldens`.
+      `s18_first_behavior_weathering::production_scale_saprolite_band_reaches_at_least_one_voxel` is
+      **honest** (1337/Medium) and is the shape to copy. `deeptime::production_config` /
+      `water::coarse::production()` name a *config*, not a world — legitimate.
+
+**STRUCK (user, 2026-07-29)** — Stale. Its own premise was already half-falsified (journal/0055
+falsified *"worldgen does not yet emit sub-8 loose voxels"* world-wide, `ROADMAP.md` § Observed
+"HOLES IN THE GROUND"), and the report as written describes an implementation the project has
+moved past.
+
+- **Loose materials do not exist in the world yet** (user, 2026-07-20:
+  "needed — even if they don't fall with gravity yet"). The RENDERER is
+  already waiting: partial-height loose rendering shipped built-but-dormant
+  in 3c-2 (journal/0010) because loose deposition never emits sub-8
+  columns. Missing half is content/simulation. User direction for when it
+  lands: loose materials should **spread on being dropped** (granularity +
+  fall height → partials displaced into surrounding empties) — angle of
+  repose from the partials model rather than a physics solver. Sketch in
+  ideas.md.
+
+**STRUCK (user, 2026-07-29)** — Stale. Already annotated un-walkable on the shipped world (zero
+coal, corrections #51) and now withdrawn outright. The **lighting/tonemap** question it raised
+— no floor under the dark end of the lit path — is not carried by this entry; it belongs to
+PBR-2's shadow work, which owns it.
+
+- **Walk report (2026-07-20, journal/0027): coal renders as pure black in the
+  lit pass — a hole in the screen, not a rock.**
+  **⚠ STILL A VALID LIGHTING/TONEMAP QUESTION, BUT UN-WALKABLE ON THE SHIPPED WORLD**
+  (2026-07-25, sweep row A-2): there is **no coal to photograph** — 0 units across 297,025 cells
+  on seed 1337 / Medium (corrections #51). The 2026-07-20 frames were shot on a world the client
+  can still open only because coal existed then; today a re-shoot would find nothing. **Do not
+  launch for it.** The defect is about the dark end of the lit path, not about coal, so it can be
+  re-photographed on any sufficiently dark material — or it waits on the coal-content call
+  (a)–(d). Photographed at world voxel
+  (-76133, -80221) on the client's world: an 18-voxel seam four voxels under
+  turf, cut to an open bench under full sky. `0027-coal-seam-cut-lit.png` shows
+  grass / mudstone / carbonaceous mudstone and then black for the lower
+  two-thirds of the frame — including the **bench floor**, which is an up-facing
+  sunlit surface, so this is not shadowing. **The fullbright control
+  (`0027-coal-seam-cut-fullbright.png`) shows coal as an ordinary mid-dark grey**,
+  so the block, the atlas and the 29-layer palette are all correct. Mechanism:
+  `meshing.rs` gives `Block::Coal` a vertex colour of `[0.07, 0.065, 0.06]` —
+  7 % linear, ≈ 0.29 sRGB, which is exactly what fullbright draws. The lit path
+  multiplies that by the directional term and tonemaps, and 7 % albedo has
+  nowhere to go but zero. **The number is physically right** (real coal is
+  0.04–0.08) — the defect is that the lit path has **no floor under the dark
+  end**, so a correct dark material becomes an absence of image. **Do not fix by
+  brightening coal.** This is a lighting/tonemap question (an ambient/sky floor,
+  or a tonemap that preserves shadow separation), and it belongs with PBR-2's
+  shadow work. Second-order finding, **CORRECTED by the user 2026-07-20** — the
+  walk's "excavation interiors receive no light" reading (and the integrator's
+  "the underground is unlookable-at" amplification of it) was WRONG. The user:
+  *"underground is lit by global sun right now, depending which way the face
+  faces it has one of six levels of face light... one block face is dark (idk if
+  it's N, S, E, or W) whether on the surface or deep in a hole - the others are
+  degrees of well lit."* So the real shape of the defect is:
+  **(a) ONE face orientation is black everywhere** — on an open plain exactly as
+  much as at the bottom of a shaft — because the face pointing away from the
+  directional sun has no ambient floor under it; and
+  **(b) there is NO DARKNESS UNDERGROUND AT ALL** — depth does not attenuate
+  anything, because nothing occludes. `0027-pit-interior-unlit-lit.png` was
+  photographing (a), not a property of pits. Being underground is currently
+  *lit exactly like being outside*, which is the deeper problem and the one the
+  darkness decision (visuals.md) is about.
+
+**STRUCK (user, 2026-07-29)** — Stale. A user sketch (*"not the only possible answer, just a
+thought"*) filed against the 2026-07-22 render shape; withdrawn.
+
+- **Material identity is illegible under splat blending — heightmap SHAPE as
+  a fix candidate** (user, walk 0071, station 4, 2026-07-22): the charcoal
+  specks pass their regression check but are hard to *identify* because
+  "everything is honestly so blended." The user's sketch: most material
+  heightmaps are currently a random scramble; if each material's heightmap
+  carried a **characteristic shape**, heightmap-based splat blending would
+  let the eye decode *which* materials were blended, not just that blending
+  happened. Explicitly "not the only possible answer, just a thought" — a
+  visuals/materials design thread, not a decision. Couples to the
+  form-dependent-texture visuals decision already accepted as deferred cost
+  in the fill contract (loose vs structural clastic indistinguishable).
+
+**STRUCK (user, 2026-07-29)** — Stale. Filed 2026-07-20 against the then-current accessory
+roster; withdrawn.
+
+- **Olivine reads as exceedingly common and surface-visible (user field
+  report, 2026-07-20, during the ore conversation).** Olivine is the SOLE
+  accessory-inclusion member (CLASS_ACCESSORY_MAFIC's only entry), so every
+  igneous accessory event in the world is olivine — mono-culture by roster,
+  not by mechanism. Its presence gate + fixed pore-eighths
+  (`emplace_accessory`, geology.rs ~207) and any-depth formation window are
+  the tuning surface; whether "exceedingly common" is a gate constant, the
+  sole-member effect, or surface exposure bias of extrusives is UNDIAGNOSED
+  — measure before touching. The ore work (geology.md § ore DECIDED) will
+  both diversify the inclusion roster and make grade meaningful, which may
+  resolve the perception without a tuning bandaid.
+
+**STRUCK (user, 2026-07-29)** — Stale. **Its two YES answers are load-bearing and are preserved
+here**: *no sky-holes* at two partial-rich stations (journal/0057 confirmed by eye) and *no
+28.8 m chunk patches* (journal/0058 confirmed) — this entry is what discharges the two
+**UNWALKED** tags still carried live in `ROADMAP.md` § Observed, which now cross-reference it
+here. Assets `0059-*`.
+
+- **Walk 0059 — the holes and the chunk patches are gone; the skin is still
+  two flat colours** (2026-07-22, live walk at `--horizon 3 --fullbright
+  --edges`; assets `0059-*`). Two of the session-close checklist's five
+  questions answered YES: **no sky-holes** at two partial-rich stations
+  (journal/0057 confirmed by eye), and **no 28.8 m chunk patches** — a 120 m
+  top-down frame shows organic blobs with wandering contacts (journal/0058
+  confirmed). The third answer is the defect: the surface reads as **exactly
+  two flat colours with a hard one-voxel contact**, no mixed voxel anywhere on
+  the skin. Cause (user-diagnosed, integrator-confirmed in code): the surface
+  voxel is **not sliced from the column at all** — `ColumnFill::build`
+  (`fill.rs:115`) lays the record's top at the surface voxel's *floor*, so
+  plans[0] is the voxel *below* it, and `surface_class` (`collapse.rs:786`)
+  paints the surface voxel with the **dominant class of that lower voxel**,
+  dithered to one member and emitted as a one-element `mixed_contents` call.
+  journal/0055 changed the surface's *source* and kept its *branch*. Fix shape:
+  `ColumnFill::build` takes the top partial, depth 0 covers record metres
+  `[0, frac)`, `allocate_partial` (already exists, `fill.rs:329`) fills its `n`
+  eighths from the units actually overlapping. Golden fingerprints move — that
+  is the slice's deliverable, as already filed. **HELD** pending the seam-first
+  cleanup, at the user's direction: the branch is a leaked LOD requirement and
+  wants a declared provision, not another bespoke call.
+
+**STRUCK (user, 2026-07-29)** — Stale. Coordinates preserved below (deep cell (488, 278), world
+metres (106 938, 9 953)) and the falsified wind-banding hypothesis with them.
+
+- **The bare-cell fallback: a walker stood on paint over nothing**
+  (2026-07-22, `record_hole_probe.rs`, uncommitted). At deep cell (488, 278)
+  — world metres (106 938, 9 953) — the column reads **one voxel of
+  `dc:dirt` over 49+ voxels of `dc:stone`**. `dc:dirt` twins only `LOAM`,
+  which is registered in **no** class, so it cannot come from the record: it is
+  the year-zero fallback, i.e. veneer paint, still under the player. `dc:stone`
+  there is *contents-free* (granite/basalt/mudstone/sandstone/coal/peat/carb-
+  mudstone all have their own blocks), i.e. unrecorded basement. The cell is
+  real but thin: `H 0.25 m · 7 units`, beside a neighbour at **8.0 m / 379
+  units**. Census: **0.2 % of land (91 of 44 265 cells) expresses 0 voxels**;
+  **0.03 % of adjacent pairs (23 of 87 962)** are bare-beside-≥4-voxels. The
+  user walked onto one on the first walk. **Hypothesis FALSIFIED in the same
+  probe**: the integrator predicted north-south banding from `wind`'s per-row
+  1-D transport lanes (`erosion.rs`: `load` is declared inside the `gy` loop
+  and never crosses rows). Measured anisotropy **1.08× ON / 1.06× OFF** — the
+  null. Wind does raise overall roughness ~29 % and *halves* the bare count
+  (428 → 91) by depositing into scoured cells. Two real defects remain, both
+  expression: (a) `regolith_at_voxel` samples **NEAREST** cell while
+  `surface_at_voxel` beside it is **bilinear**, so soil depth is a hard-edged
+  460 m Voronoi mosaic under smooth terrain — the DECIDED "no simulation-
+  resolution edge may reach the eye" doctrine; (b) a column under half a voxel
+  of record falls off the record path entirely into fallback paint, so the rare
+  scoured cell renders as dirt-over-nothing rather than as honestly thin
+  ground. The fractional-top slice fixes (b) by construction. Open design
+  tension: `H` is a scalar and interpolable, the **record is not** (a
+  variable-length unit list has no midpoint — the documented reason nearest
+  was chosen).
+
+**STRUCK (user, 2026-07-29)** — **The user's own reasoning, and it is the stronger kill:**
+*grass and dirt are not generated in the current shape of the default plugin pack, so the
+observation itself is stale.* Not merely that the named mechanism retired — the thing observed
+is not produced by the world any more.
+  **⚠ The S6 audit's recommended re-shoot of `0024-fb-ne.png`'s framing is CANCELLED** by this
+  ruling. Do not re-derive it: there is nothing at that vantage to re-photograph. Assets
+  `0024-after-ne.png` / `0024-fb-ne.png` kept for the record.
+
+- **User field report (2026-07-20, filed at the FF2a/0024 ratification): a
+  razor-straight, kilometer-scale grass/dirt frontier cuts the far field**
+  (visible in `0024-after-ne.png` / `0024-fb-ne.png`; present in fullbright,
+  so it is surface-block DATA, not a seam or lighting). The user identifies
+  this as **the original cause of the walk-8 complaint** — material families
+  "appearing to change immediately across some kind of boundary" — now
+  legible at full extent because the far field renders the surface rule at
+  km scale: "obviously bad / not natural appearing." **DIAGNOSED
+  2026-07-20 (read from source, not yet fixed)** — and it is NOT the
+  quantization class this entry first guessed. `collapse.rs`
+  `surface_sample`: `let bare = riverbed || precip < 0.10 || (fringe &&
+  precip < 0.35)` — a **hard binary threshold on a very smooth field**.
+  `climate_at` bilinearly interpolates precip between climate-cell centres,
+  and a cell is `CELL_VOXELS` = 16 384 voxels ≈ **14.7 km** at N=2, so over
+  any near-field view the field is essentially locally linear: its 0.10
+  isoline is a geometrically straight line running for kilometres, and the
+  threshold gives it **zero transition width**. Two independent defects
+  (both must be fixed): (1) *no transition* — grass/dirt needs a
+  probabilistic/fractional band around the threshold, not a step; (2) *no
+  detail in the boundary itself* — even a soft edge would be a smooth
+  km-scale arc, so the isoline wants domain warp / octave noise on precip
+  (or on the threshold) to make the frontier wander at 10–100 m scale.
+  The 3d member-contact dither is the material-tier precedent; surface
+  BLOCK selection has no analogue. **Any fix must live inside
+  `surface_sample`**, which near and far provably share (journal/0022), so
+  the horizon heals with the ground. Related: walk-8 "material families cut
+  hard on chunk lines" — the user identifies THIS as that complaint's
+  origin (a different mechanism from the walk-10 per-chunk flow_energy
+  rounding, which stays open separately). Couples to the biotic layer: the
+  real cure may be that ground cover stops being a paint decision at all
+  (see docs/design/ideas.md § the bio slot).
+
+### Resolved in place — 37 entries whose own bodies already said DONE
+
+The S6 baseline sweep found **37 of 129** § Observed entries (29 %) already declaring
+themselves ✅ DONE / RESOLVED / FIXED in their own text, kept live "for the record". They are
+moved here whole. This is the archive-by-status rule applied mechanically: **no judgement
+call, no information loss.** Where an archived entry carries a *measurement*, that
+measurement is a **dated record** — it was not re-measured by this pass and must not be
+propagated without checking (§ Read first item 5, immutable body / mutable header).
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- ~~**OWED (small) — `dc:deep/climate`'s lagged terrain read is undeclared**~~ **✅ DONE
+  2026-07-25 (journal/0107), in the head-declaration slice as predicted — *"worth doing the
+  next time that file is open"*.** Declared **`reads_prev: [Forced]`**, and the three
+  cfg-selected slices this entry expected turned out to be **the wrong shape**: lagging against
+  the *last* terrain revision (`Settled`/`Compensated`/`Diffused`) pins strictly **less** than
+  lagging against the **first**, because it would leave `climate` free to slide past `forcing`
+  and `transport`. One token, one slice, no cfg selection, and the whole chain covered
+  transitively. Schedule-neutral, proven by
+  `the_terrain_revision_declarations_are_schedule_neutral`. *(Original entry below, for the
+  record.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **OWED (small, as diagnosed) — `dc:deep/climate`'s lagged terrain read is undeclared** (found by the
+  journal/0104 `reads_prev` audit, 2026-07-25; deliberately not changed by that slice, whose
+  mandate was the mechanism, not the declarations). `climate` declares `reads_prev: &[]` while
+  its own comment (`runner.rs`) says it reads the **start-of-epoch topography**. That is a real
+  lagged read of the terrain, undeclared. **It is not dangerous**, and that is the whole
+  distinction the anti-dependency edge exists to draw: the ordering it needs is already pinned by
+  a **true forward edge** — `dc:deep/forcing` reads `Climate`, and every terrain writer in the
+  roster is downstream of `forcing` — so climate is provably ahead of all of them by the graph,
+  not by the tie-break. Declaring it is **free and provably cannot move the schedule** (the edge
+  is already implied by the existing transitive closure), but it needs three cfg-selected slices
+  for the three terrain-revision rosters (`Settled` / `Compensated` / `Diffused`). Worth doing
+  the next time that file is open; not worth a slice of its own.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+S6 finding **F4**, verified 2026-07-29: both halves carry ✅ inline (option (a) shipped
+journal/0104; head's under-declaration shipped journal/0107) and only the kept-for-the-record
+diagnoses remained.
+
+- **⚠ A TIE-BREAK IS DECIDING PHYSICS AGAIN — `reads_prev` is documentation, not a
+  mechanism** (spine-audit 2026-07-25; **the SECOND instance in two sweeps**, and the
+  auditor's own words: *"this is the only fix that stops a third"*). **USER RATIFICATION
+  REQUIRED — not an agent's call.**
+  - ~~**The hole.**~~ **✅ DONE 2026-07-25 — option (a) shipped, journal/0104.** `passgraph`
+    now takes a second edge kind: a `reads_prev` declaration is a reader-before-writer
+    **anti-dependency**, so a lagged read is *ordered*, not annotated. **Production order
+    byte-unmoved** (all six new edges pointed from a pass already ahead of its target — the
+    physics was right and merely unenforced), goldens green by name, and the guarantee is
+    `a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename`. Full detail in the
+    Shipped entry. *(The paragraph below is the original diagnosis, kept for the record.)*
+  - **The hole (as diagnosed).** `DeepPass::reads_prev` appears in `runner.rs` and **in no
+    other file in `crates/`** — `passgraph` never receives it (`runner.rs:199-204`,
+    deliberately). So a
+    `reads_prev` declaration is **enforced by nothing**. `dc:field/head` declares
+    `reads_prev:[Recorded]` and that is *true today* only because Kahn parks a ready node
+    until it wins the id sort (`passgraph.rs:151-153`): head is ready once `drainage` writes
+    `Routed`, while `deposition` waits on `isostasy`. **Rename the pass to any id sorting
+    after `dc:deep/deposition` — `dc:deep/hydraulic_head`, say — and it silently starts
+    reading THIS epoch's record.**
+  - **Why this is the same defect one level up.** The last sweep caught a tie-break deciding
+    a *read* (`weather_inventory`'s `BioMod`, fixed by declaring it). This one has a
+    tie-break deciding **an epoch**, and it **cannot** be fixed the same way, because there
+    is no declaration channel that binds. The honest fix is a **mechanism** — a
+    reader-before-writer **anti-dependency edge** in `passgraph`, so a lagged read is
+    ordered, not merely annotated.
+  - ~~**⏳ STILL OPEN — second, smaller, and fixable today: `dc:field/head` UNDER-DECLARES.**~~
+    **✅ DONE 2026-07-25 — journal/0107, user-ratified with the consequence attached.** The
+    revision is **`Forced`** in every cfg path, and declaring it turned out to be **only half
+    the fix**: a `reads` edge on a revision token pins you after its *producer* and says nothing
+    about the pass that overwrites the same plane next (a different token = a different
+    resource). So `dc:deep/transport`'s undeclared terrain mutation got its name
+    (`DeepAxis::Incised`) and `head` declares the **pair** — `reads: [Routed, Forced]` +
+    `reads_prev: [Recorded, Incised]`. **The auditor's *"declaring `Forced` is free, and it
+    pins it"* was half wrong, and the *"verify that claim before trusting it"* below is what
+    caught it.** Flux record byte-identical to journal/0098 on every figure; pass order
+    unmoved; `dc:deep/climate`'s lag declared in the same slice. Full detail in
+    `ROADMAP-history.md` § Shipped, journal/0107. *(The paragraph below is the original diagnosis, kept for the record.)*
+  - **The hole (as diagnosed).** `reads:[Routed]`
+    (`runner.rs:605`) does not cover the ground surface `R+H`, which the body builds via
+    `grid.surf_at` (`runner.rs:428-430`) and the solve uses as its **seepage cap, lake datum
+    and free-surface boundary** (`head.rs:434-467`). Which terrain revision it sees is again
+    the id tie-break. The golden-order test's defence — *"its position never affects the
+    terrain"* — is true and **is not the question**: it affects **the field's own values**.
+    The auditor judges declaring `Forced` *"free, and it pins it"*. **Verify that claim
+    before trusting it** — head is **ON by default** (`grid.rs:279`), so if the declaration
+    moves which revision it reads, the **recorded flux changes** and that is a world change
+    needing a walk. Acceptance: declare it, prove the flux record byte-identical; **if it
+    moves, STOP.**
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **OWED / next residency lever — a per-cell OWNING CONTAINER is a header × 297,025 before it
+  stores anything** (journal/0100, 2026-07-25). The CSR conversion cut the ledger heap 9.5×, but
+  the per-cell `FactLedger` **struct** grew 24 → 48 B (two `Vec` headers per cell) = **13.60 MiB
+  paid whether or not a cell has a single fact** — an honest regression the slice flagged itself.
+  The full `flux.rs` shape collapses it: **one record for the whole grid, with the cell as a CSR
+  row**. Deferred only because it moves `DeepField::ledgers` and `ledger_at_voxel`, which sat in a
+  live sibling's write-set. **The generalisation is the valuable part and applies far beyond this
+  struct:** *any per-cell owning container in a 297 k-cell field costs a header per cell before it
+  holds data* — so the default for anything per-cell is **one grid-wide record with CSR rows**,
+  never `Vec<Something>` per cell. Same family as the `Vec<Vec<Fact>>` defect, one level up.
+  **✅ DONE 2026-07-25 (journal/0102): struct overhead 13.60 MiB → 0, per-cell index 48 B → 4 B,
+  flag-ON `DeepField` 186.07 → 173.61 MiB, flag-OFF identical to the byte, 1,033,189 facts across
+  72,006 slots before and after, and no reader changed (`ledger_at_voxel` returns a borrowed
+  `LedgerView<'_>`).**
+  **⚠ MY GENERALISATION ABOVE WAS TOO BROAD — corrected by the build.** The defect is **not**
+  "a per-cell owning container"; it is **one that is RESIDENT**. `FactLedger` **survives as the
+  gen-time accumulator**, and must: a grid-wide insert would memmove every fact after the cell,
+  every epoch. **The split is by CLOCK, not by shape** — grow per-cell while compiling (gen time
+  is free), compact to one grid-wide record for residency (runtime is sacred). Read the rule that
+  way, or it forbids the very structure the compile needs. *(Related expiry, also from the build:
+  journal/0100's carve-out — "dense offsets are unaffordable for the ledger" — **expires at the
+  CELL level**, because every cell exists even though every slot does not. The record now carries
+  **both** compressions, each where its premise holds: dense cell offsets + keyed slot rows.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- ✅ **DONE 2026-07-25 — shipped, see `ROADMAP-history.md` § Shipped (journal/0102).** *a per-cell OWNING CONTAINER is a
+  header × 297,025 before it stores anything* (filed by journal/0100 against itself). Measured
+  result: the struct-overhead line **13.60 MiB → 0 B**, per-cell index cost **48 B → 4 B (12×)**,
+  flag-ON `DeepField` **186.07 → 173.61 MiB**, cost of the flag **+29.91 → +17.45 MiB**; world
+  byte-identical (1,033,189 facts in 72,006 slots, before and after; flag-OFF baseline the same
+  integer, 163,748,661 B). **The generalisation survives the slice and is the valuable part:**
+  *any per-cell owning container in a 297 k-cell field costs a header per cell before it holds
+  data* — so the default for anything per-cell is **one grid-wide record with CSR rows**, never
+  `Vec<Something>` per cell. Refined by the slice: the defect is a per-cell owning container that
+  is **RESIDENT**; per-cell is the right *gen-time* shape (a grid-wide insert would memmove every
+  fact after the cell, every epoch), so compact at the seam where the compile ends — which already
+  exists in this codebase and is called `finalize_*`.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **✅ DIAGNOSED 2026-07-25 (journal/0103) — the front's voxel-tier mass error is NOISE, and the
+  `+3.7 %` was the INSTRUMENT** (opened by the integrator's review of journal/0099; corrections
+  #50). Re-run over **247 columns** (journal/0099 had 21), with the pipeline split into its **two
+  quantizers** — the fill geometry and the eighth draw are not the same kind of error and only the
+  second is an estimator — and with the census taught to exclude voxels it cannot attribute.
+  - **INTEGRATOR'S HYPOTHESIS WAS WRONG, and it is worth recording which half.** I challenged
+    journal/0099's *"unbiased estimator"* claim on the grounds that a `+3.7 %` mean and a `+16 %`
+    median were **the signature of a floor effect** (a band thinner than one eighth cannot express
+    as less than one eighth without vanishing). **The challenge was right and the hypothesis was
+    wrong.** The stratification really does trace a textbook floor-effect curve — but the cause is
+    **measurement contamination, not quantization**: the product is `CLASS_CLASTIC_FINE` and so is
+    much of the pile directly above it, **222 of 247 columns** have a front voxel whose plan also
+    holds a *non-front* event of the same material, and **voxel contents carry no provenance**, so
+    the naive census credited overlying mudstone to the front. The decay with magnitude was *the
+    contact voxel's share of the front shrinking as the front grows.* **journal/0055's doctrine is
+    CONFIRMED, not falsified** — `allocate_to` is Cranley–Patterson systematic sampling with
+    `P(extra) = remainder` exactly, and the one real floor (`clamp(1,7)`) cannot bite on a
+    `[7,5,4,3,2,1,1,1]` profile. corrections #50 falsifies **the number, not the doctrine**.
+  - **Second time today that asking the discriminating question mattered more than the hypothesis
+    attached to it** (corrections #49 was the first — *"was it air, or `has_contents:false` read as
+    air?"* offered two wrong answers and the truth was a third thing). Both times the *question*
+    forced the measurement that produced the real answer. **Demand the measurement; hold the
+    explanation loosely.**
+  - **Stage 1, record → fill geometry: aggregate −0.02 %, mean +0.03 %, median +0.00 %, p5 −1.22 %,
+    p95 +0.86 %.** The record-bottom round-to-nearest, which lands on the front *every time*
+    because the front is what sits at the record's bottom, is centred.
+  - **Stage 2, the draw over attributable voxels: aggregate −0.60 %, mean −0.10 %, median −0.00 %,
+    p5 −30.00 %, p95 +28.72 %** (Mixed-plan voxels only, the only ones carrying a draw: −0.84 %).
+    Symmetric about zero, spread **widening** as the front thins — which is what an unbiased
+    estimator over a one-eighth quantum does, not a floor.
+  - **Stratified by front magnitude the fake trend disappears.** Naive means run +76 % (2–4
+    eighths) → +31 % (4–8) → +11 % (8–24) → +4 % (≥24), a textbook floor-effect curve. Stage-2
+    means run +9.1 % → +2.9 % → −0.1 % → −0.7 %, no trend. The naive decay was **the contact
+    voxel's share of the front shrinking as the front grows**, not quantization.
+  - **The mechanism.** The product is `CLASS_CLASTIC_FINE` (mudstone) and so is much of the pile
+    directly above it; at the top contact they share a `Mixed` voxel and **voxel contents carry no
+    provenance**. **222 of 247** columns have a front voxel whose plan holds a non-front event made
+    of the product's own material, so a material census credited the neighbour's mudstone to the
+    front.
+  - **From the code** (asked for separately, and it holds independently of the data):
+    `fill::allocate_to` is systematic sampling / Cranley–Patterson with `P(extra) = remainder`
+    exactly; `allocate_partial` floors the **cumulative**, so errors cancel along the run;
+    `pore_rider_share`'s mean is exactly `cnt·k8/8`. **Genuinely stochastic-proportional; nothing
+    rounds up at the floor.** journal/0055's doctrine is **confirmed, not falsified**.
+  - **flow.md § 3's mass budget can build on this** — with one requirement that is the real
+    deliverable: *a conservation audit at the voxel tier must compare against the **fill plan**,
+    never against a census of the finished contents.* The plan knows which event owns which
+    fraction of which voxel; the voxel does not.
+  - **NOT fixed, and nothing to fix** — the expression is unbiased. **Residual, stated:** 222 of
+    2 077 front voxels (10.7 %) are unattributable and are systematically the *top contact*, not a
+    random tenth; this instrument cannot weigh them. The verdict rests on stage 1 covering 100 % of
+    voxels and on the code-level proof. **Loose end filed:** `pore_rider_share`'s comment claims its
+    offset is disjoint from `allocate_partial`'s ("a low digit… not its high bits"); the bits
+    overlap (bits 10–12 vs the top 20), so the two draws are correlated. Not a mass defect — each
+    is marginally unbiased and the measurement above is the joint case — but the comment is wrong
+    and changing the address would move every contact voxel in the world, so it is **the user's
+    call**.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **`pore_rider_share`'s offset is NOT disjoint from `allocate_partial`'s, but its comment says it
+  is** (found 2026-07-25 while diagnosing the mass claim, journal/0103; **not a mass defect**).
+  `collapse.rs`'s `pore_rider_share` documents its draw as *"a **low digit** of the voxel's own fill
+  draw, not its high bits: `allocate_partial` consumes the high end, and reusing it here would
+  correlate 'this band won an extra eighth' with 'the product won an extra eighth of it' into a
+  visible pattern."* The arithmetic does not deliver that: `(u * 4096.0) as u64 & 7` is **bits
+  10–12** of the fraction, and `allocate_to`'s `uq = (u * ONE) as u64` is the **top 20**. They
+  overlap, so `cnt` and the rider's offset **are** correlated — exactly the coupling the comment
+  says it avoided. **Measured consequence on mass: none detectable** (journal/0103's stage-2 figure
+  is the joint case: −0.60 % aggregate, median −0.00 % over 247 columns), because each draw is
+  marginally unbiased. The open question is the one the comment actually cared about: whether the
+  correlation is **visible** as a pattern at a contact.
+  - **RESOLVED 2026-07-25 — decorrelated, and the visibility question answered NO** (journal/0105;
+    user-ratified *"this needs fixed either way. Decorrelate."*). Quantified before the fix: the
+    pore offset was not merely correlated with the allocation's offset, it was a **deterministic
+    function** of it — 100.00 % predictable from bits 8–10 of the 20-bit offset, over 464,521 real
+    decisions. But the coupling the comment feared measured **zero**: `r = +0.0006` between the two
+    roundings' residuals, mutual information on the estimator floor, and the dither's entropy given
+    everything the allocation decided still **2.999 of 3.000 bits** — bits 8–10 are a fast sawtooth
+    across the allocation's contiguous decision interval, so they alias to uniform. **No banding,
+    measured spatially**: on a 32×32 contact plane sharing one record and one fill plan, every
+    autocorrelation at lags 1–4 is inside ±0.07 before *and* after. **The defect that was real was
+    a different one**: `u` was drawn once per voxel and served **every** band in it, so a
+    multi-band front voxel's riders rounded in lockstep (`r = +0.4878` over 187,701 sibling pairs)
+    and their errors **added** — 1.488× the second moment independent roundings give. Fixed by
+    `SALT_GEO_PORE` + the event index + a `PoreDraw` newtype the fill draw cannot be passed to.
+    See `ROADMAP-history.md` § Shipped, journal/0105.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **✅ FIXED 2026-07-25 (journal/0101) — the query can now say `UNRECORDED`.** `identify(pos)`
+  landed as the arc's first slice: `has_contents` is a **per-voxel** fact, `classified` echoes
+  the stored block for an unrecorded voxel instead of naming a mixture that does not exist,
+  `character_sense_raycast` answers `None` (its documented promise) instead of `Some(<empty
+  view>)`, and the F3 HUD's `(no contents record here)` branch is **reachable**. Census through
+  the real query path (`dc-client/examples/identify_census.rs`, same lattice as the diagnosis
+  probe): phantom air **702 → 0** of 10 985 solid voxels (6.4 % → 0.0 %), 39/169 columns →
+  0; every phantom voxel converted to `UNRECORDED` (4 913 = 702 + the 4 211 already honest),
+  recorded mixtures (6 072) and sky unmoved. At journal/0097's own station the band
+  288–299 now reads `UNRECORDED` and **agrees with 287**, which the chunk floor used to
+  split. **Zero
+  dc-worldgen change** — the stored `Block` already disambiguates. *Entry kept, marked, because
+  the numbers below are the measured baseline.*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+⚠ **Dated denominators inside — do not propagate.** This entry's *"today's total is 108.55
+MiB"* and its `S19` note are 2026-07-25 figures taken **before** journal/0102's ledger collapse
+moved `DeepField` residency again the same afternoon. The archived text is the dated record;
+the numbers were **not** re-measured by this archive pass. Its closing claim that the
+`FactLedger` `Vec<Vec<Fact>>` sibling defect *"is NOT fixed by this and remains"* was
+**superseded hours later** by journal/0102 (archived above).
+
+- **✅ DONE 2026-07-25 — FREE WIN TAKEN: 54.02 MiB reclaimed, 33.2 % of all `DeepField`
+  residency, zero behaviour change.** `build_field` now `shrink_to_fit`s every cell's
+  `units` Vec at the end of the compile. **Measured before → after: 162.57 MiB → 108.55
+  MiB**, slack 54.02 MiB → **0.00 MiB (0 %)**, `DeepField::resident_bytes` agreeing;
+  asserted by `strata_is_shrunk_to_fit_after_the_compile` (capacity == len for every
+  cell, so the reclaim is enforced, not merely intended). The one-time copy is gen-time,
+  therefore free. *Note: `docs/spikes/S19-*` quotes the pre-fix 162.57 MiB baseline —
+  that figure is now historical; today's total is 108.55 MiB, which is the correct
+  denominator for the flow-record projections (every `× today` multiple in S19 is
+  correspondingly ~1.5× larger against the new baseline).* The sibling defect — the
+  `FactLedger` `Vec<Vec<Fact>>` at **98.8 % empty inner Vecs / 89 % of its heap in empty
+  headers (+156.91 MiB when `weather_inventory` is on)** — is NOT fixed by this and
+  remains the reason the flow record must be sparse/CSR.
+
+  *Original entry:* **`strata` Vec capacity doubling wastes 54.02 MiB: 39 % of the record heap
+  and 33 % of ALL current `DeepField` residency** (measured 2026-07-25,
+  `docs/spikes/S19-flow-record-cost-results.md`). Live 84.47 MiB vs capacity 138.49 MiB
+  on a production world (seed 1337, Medium). Pure allocator slack from growth doubling —
+  the record is built once per world and then read-only, so a `shrink_to_fit` (or an
+  exact-size second pass / arena) at the end of the deep-time compile should recover most
+  of it with **no behaviour change and no content cost**. This is the cheapest residency
+  win on the board and it is worth taking before the flow record adds a second large
+  store. **Runtime perf is first-class and this is pure waste** — but measure the actual
+  reclaim (and the one-time copy cost, which is gen-time, therefore free) rather than
+  assuming. *Related, same measurement:* `FactLedger`'s `Vec<Vec<Fact>>` is **98.8 % empty
+  inner Vecs, 89 % of its heap empty headers** (+156.91 MiB when `weather_inventory` is
+  on) — the same allocation-shape defect one level up, and the reason the flow record must
+  be sparse/CSR rather than per-(cell,slot) Vecs.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **Dev slice — look-at-voxel contents inspector — SHIPPED 2026-07-24**
+  (`f594580`, journal/0088; `world_get_contents` + `character_sense_raycast` contents
+  + F3 HUD; `ContentsSource` seam re-derives contents since the runtime stores only
+  `Block`). *(Original ask, for the record:)* (user-requested 2026-07-24;
+  enabling the palette-quantization measurement above AND a standing dev tool):
+  *"check the contents of a voxel just by looking at it."* Two parts: (a) a
+  **full-contents query** returning a voxel's whole `VoxelContents` mixture —
+  materials, forms, weights — NOT the classified `Block` (`get_block` returns only
+  the winner, which is exactly what hides T1-vs-T2); (b) a **look-at readout** —
+  `character_sense_raycast` already returns the hit voxel + face but only the block
+  name, so extend it to contents and surface it as an on-screen HUD. Small (dc-api
+  query + dc-client HUD/raycast), dual-use: it makes the T1/T2 measurement doable
+  live and gives every future material diagnosis a direct instrument. **Sequence it
+  ahead of the palette-quantization diagnosis — it is that diagnosis's instrument.**
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**Deep-cell-square surface-material frontiers checker the far field:
+  RESOLVED** 2026-07-22, journal/0073 — the B1 shape-teacher. `surface_class`
+  now dithers class membership from the top-window metre shares (S-4 move B), so
+  the 460 m class frontier is a statistical gradient, not a razor-straight
+  square. The record stays a non-interpolable unit list read NEAREST — the fix
+  routed *around* interpolation exactly as spines S-4 flagged, by dithering
+  membership rather than bilinear-ing the record. Re-shot at the `0070-*`
+  vantages as `0073-*`; verdict in the entry.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**"The world systematically under-expresses `H`": RETRACTED** 2026-07-21,
+  same day it was filed — corrections #28, journal/0058. The alarm was the
+  integrator's metres/voxels inversion, not a defect. Verified headlessly:
+  the generated column matches `round(H/0.9)` with an error of **0 or +1
+  everywhere, never negative**, the +1 being the top-of-column partial voxel
+  that a *block* scan must count whole. The client world is also byte-identical
+  to the probe world, proven block-for-block at four addresses — the
+  stop-the-world hypothesis is dead.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **~~Caves ↔ hydrology integration thread captured~~ — SUBSUMED 2026-07-25 by the FLOW arc**
+  (sweep row B-1). All four of its work-shaped findings now have owners, and this entry is kept
+  only as the pointer:
+  - **two drainage opinions** → `flow.md` § 6 retires `pregen/hydrology.rs` **outright** —
+    *"wrong resolution, wrong time, wrong topology"* — so there is no subsumption to design;
+  - **"deep drainage is computed and discarded"**, wanting a per-chapter table recorder axis for
+    erosional caves → **that is `DeepField::flux`, and it shipped** (journal/0096: 2,590,372
+    entries, per chapter, 40.66 MiB, pinned by
+    `per_chapter_history_is_retained_not_just_the_final_epoch`);
+  - the **bounded-drainage-refinement spike question** that gated RiverSeg retirement → **S14 is
+    superseded as posed** (flow.md § 9.6; water.md's own banner), and RiverSeg retirement is FLOW
+    **continuation (e)**;
+  - the **column-as-interval-log target contract** → flow.md § 7 promotes it from *proposed* to
+    **necessary** (voids and conduits are intervals, not a heightfield).
+  **Cave-specific residue rides FLOW continuation (c)** (the free/bound edge, void intervals, and
+  the conduit pairing rule). *(Original capture, for the reasoning: full text in water.md § Session
+  capture 2026-07-21 — nothing was decided there. Same session recorded the user's
+  water-rendering directive (partials/structure, placeholder texture, data
+  seams for flow/waves) in water.md, which is NOT subsumed and still stands.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **UPDATE 2026-07-21 (second occurrence): the teleport-storm hypothesis is
+  FALSIFIED as the trigger.** A `--horizon 6` session crashed with the
+  IDENTICAL signature (DeviceLost 10:20:59 → buffer-map panic → cluster
+  PoisonError) while **completely idle** — booted, streamed its field, sat
+  untouched ~4.5 min, died. Two for two at `--horizon 6` (~10 min with
+  activity, ~4.5 min idle); default-horizon sessions historically run long.
+  Revised suspicion: resource/VRAM accumulation in the wide-horizon far-field
+  path (or a driver interaction it provokes) — a leak-shaped bug, not a
+  burst-load bug. Repro is now cheap: boot `--horizon 6`, wait five minutes.
+  Diagnosis slice should instrument GPU memory over idle time. Until fixed,
+  walks run `--horizon 3` (stations are close-range reads; only skyline
+  vistas need 6+). **THIRD SYMPTOM (journal/0049 tour): texture SMEARING
+  visible to the human eye after heavy teleporting at `--horizon 3`** —
+  user field report, live session. The leak is not horizon-6-exclusive,
+  just slower; smearing may be the pre-crash state. Strengthens the
+  resource-accumulation hypothesis; the diagnosis slice should reproduce
+  via teleport churn while instrumenting GPU memory AND watching for
+  texture degradation as the early warning. **Lifetime bound (same day):
+  the smearing `--horizon 3` session ran ~44 min through the whole tour and
+  exited CLEANLY (verified: no DeviceLost in the log), vs 4.5–10 min to
+  death at `--horizon 6` — accumulation scales with far-field size, and
+  smearing is the degraded-but-alive state well before the cliff.**
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **CONFIRMED AT HORIZON 6, 2026-07-21 (journal/0065): the fix holds at the
+  width that used to kill it, and the residual is horizon-independent.**
+  Storm and idle regimes, alternated 6/3/6/3. Storm slope +0.542/+0.529
+  MB/jump at 6 vs +0.531/+0.542 at 3 (200 jumps each, RSS high-water 1.10 GB,
+  `host_chunks` 2 108–2 332 against `host_budget=2360`, ~19 000 evictions per
+  run). Idle at 6: every probe count frozen, RSS drift < 7 MB in 7 min, at the
+  full 704-tile far field. All exits **0**, no `DeviceLost`/panic/`ERROR`.
+  Two findings ride along: (a) **the teleport storm is nearly blind to
+  `--horizon`** — the field never fills under motion (`far_tiles` oscillates
+  2–40 at *either* width), which is the mechanism behind 0050's unexplained
+  "h3 and h6 slopes are near-identical", so idle is the only regime where the
+  horizon is a real variable; (b) **`Authority::chunk_budget_for` does not
+  scale with the horizon** — it derives from the *near*-field constant
+  `UNLOAD_RADIUS_M`, resolving to 2 360 at every width (correct, but the
+  opposite of what the brief assumed).
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **RESOLVED IN THE SAME ENTRY: the "+0.54 MB/jump residual" was a windowing
+  artifact.** A single **700-jump / 23-minute** horizon-6 session shows RSS
+  **sawtoothing** in a ~980–1 170 MB band — climb ~250 jumps, drop 120–180 MB,
+  repeat. Full-run slope **+0.113 MB/jump** (jumps 50–700), **+0.074** over the
+  last 300; every 200-jump window sat inside one tooth and read ~+0.54.
+  0051's 0.00 and 0065's 0.54 are the same oscillation at different phases.
+  Methodological rule now: **measure ≥ 250 jumps or you are measuring a
+  tooth.** Final state 71 928 evictions, `host_chunks=2224/2360`, high-water
+  1 166 MB, exit 0. The ~0.1 MB/jump that survives is plausibly allocator
+  hysteresis; if anyone chases it, 0050's open gap is the candidate (the
+  collapse caches' `coarse_surface` / `column_record` paths never trigger
+  `evict()` — position-keyed and horizon-independent, exactly this shape).
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **FIXED 2026-07-21 (journal/0051): eviction landed, the march is flat
+  (+27.4 → 0.00 MB/jump). See `ROADMAP-history.md` § Shipped. Two numbers from this diagnosis were
+  corrected on the way: a chunk is 64 KB, not ~33 KB (`Block` is `repr(u16)`),
+  so the fill rate is ~335 chunks/jump, not ~750.** Original diagnosis below.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **DIAGNOSED 2026-07-21 (journal/0050): the leak is host-RAM, not the GPU
+  and not the far-field pooling.** Instrumented our own allocation counts
+  (`DC_MEM_PROBE` plugin, merged) beside external RSS + VRAM sampling.
+  Findings, all measured: (1) **idle `--horizon 6` does NOT leak** — every
+  count flat, RSS ~978 MB, VRAM ~3158 MB, survived 6.5 min (the "idle 4.5 min
+  death" did not reproduce; the leak is motion-driven, not time-driven).
+  (2) A **teleport storm to fresh distant coords leaks RSS linearly, ~25 MB/
+  jump (~13 MB/s), unbounded**, while VRAM stays flat AND our render counts
+  (meshes/entities/far_tiles) only oscillate, never grow — so the far-field
+  pooling and wgpu/VRAM are NOT the site (pooling-doctrine failure-class
+  hypothesis FALSIFIED). (3) The decisive cut: the same storm cycling **four
+  FIXED coords keeps RSS flat within 4 MB for 142 jumps** — the leak is keyed
+  by world *position*, not by render churn. Mechanism (as corrected at
+  integration — the draft's "two unbounded caches" died against
+  `collapse.rs`): **`HostWorld.chunks` is the one genuinely unbounded store**
+  (`dc-api/src/host.rs:178`, materialized `chunk_at` `:367–373`: every chunk
+  any query touches, retained forever, ~33 KB each). The `WorldGenerator`
+  collapse caches are **bounded** by `evict()` caps (`collapse.rs:609–624`,
+  fired per `generate_chunk`) and contribute steady-state footprint, with one
+  real gap: far-field-only sampling paths (`coarse_surface`/`column_record`)
+  never trigger `evict`. h3 and h6 jump slopes are near-identical (streaming
+  budget caps new-world-per-jump); the horizon-scaled *lifetime* the tour saw
+  is a steady-state-footprint + continuous-far-field-sweep effect. Fix =
+  eviction on `HostWorld.chunks`, which must distinguish generated-untouched
+  (droppable — "store only what the derivation cannot predict", the S11
+  doctrine) from edited (persist/spill to the save layer); generator-cache
+  work is residual (close the coarse_surface gap, distance-aware caps if
+  measured). *(**Secondary defect RESOLVED** 2026-07-21, journal/0054 —
+  DeviceLost now degrades loudly; the poison cascade is gone at source and
+  the exit code no longer lies.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**Sub-km relief / roughness decay: MEASURED** 2026-07-21, S13 + journal/0041
+  — see `ROADMAP-history.md` § Shipped. Decay confirmed (5 % survives), bilinear falsified (#24), and
+  the walk's own sampling corrected (#25). The remaining OPEN part is which
+  recalibration to take — § Sequenced **above**, awaiting a user picture-pick.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**`climate_at` half-cell offset: CONFIRMED BUG, FIXED** 2026-07-21,
+  journal/0043 — climate sat exactly 7 372.8 m north-east of the terrain it
+  tinted, live at every preset (all odd `w`). One-expression fix,
+  regression-guarded at Small+Medium; 7 surface columns flip Stone→Dirt in the
+  22–33° band (the rock line was 7.4 km off). Heights are climate-independent,
+  so all 0040/S13 elevation numbers stand. No prior conclusion falsified —
+  the 0038 desert-null mechanism (corrections #22) is registration-independent.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**The far field cuts off at 1.2 km**: FIXED 2026-07-21, journal/0042 —
+  `--horizon <km>`. Original report: user, 2026-07-21, "the cutoff is still too
+  near, can't see macro shape of landscape".)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**Material placement rules are climate mocks: DECIDED 2026-07-21** — see
+  geology.md § Expression of the ledger, ecology.md § DECIDED 2026-07-21, and
+  ARCHITECTURE.md § Modularity and performance. Runtime gen is refinement over
+  the ledger; everything recorded must be expressed; unexpressed only where the
+  expresser is unbuilt, loudly temporary. The veneer rule is a placeholder —
+  DO NOT BANDAID. Remaining OPEN engineering, now Sequenced: consume `exhum`/
+  `t_crust`, carry the discarded `H` regolith plane, derive form from
+  provenance, and the per-voxel provenance query. Original observation:)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**Console v1 field report: FIXED same day** — console v2 shipped, see
+  `ROADMAP-history.md` § Shipped / journal 0035. Original report:)* **"still unusable" (user,
+  2026-07-20, first test drive).** Two defects, both discoverability-of-what-exists rather
+  than missing data: (a) the arg surface is invisible in practice — no
+  per-arg help while typing, no visible arg shapes/expected inputs, so a
+  user cannot form a valid command without already knowing it; (b) the
+  output pane cannot scroll. DIAGNOSED at dispatch (same day): v0 rendered
+  help only on explicit `help <cmd>` and completion stopped at param keys;
+  the fix is presentational (inline signature + per-arg hints from the
+  schemas already carried) plus wiring the merged `Completer` hook
+  (decision #6) for value completion. Console-v2 agent dispatched — see In
+  flight.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**INSTRUMENT: "lit before/after is invalid because the sun moves" —
+  RETRACTED same day**, corrections #18/#19. The sun is FIXED (S4: constant
+  0.35 time-of-day); no day/night cycle exists, which is exactly why the
+  sim-light design had to invent heavenly-body paths. The lit pass was the
+  trustworthy register all along. The real defect was the opposite one, and
+  is recorded below.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**User field report (2026-07-20, post-FF2a): thin bright seams between far
+  patches — RESOLVED** 2026-07-20, journal/0024, fix cycle, background agent;
+  worktree branch for the integrator; gates green. Mechanism confirmed
+  (corrections #11): the anti-z-fight push translated adjacent same-level tiles
+  along their *own* center→viewer directions, differing by the tiles' angular
+  separation, so mesh-space-watertight seams reopened at the TRANSFORM stage as
+  0.08–0.9 m (L1→L4) world-space slots — see-through once the far field became a
+  hollow top-surface sheet (0022/FF2a). Fix: **per-level UNIFORM push** — one
+  shared vector per LOD level per frame, along the camera-forward axis, magnitude
+  unchanged (`DEPTH_PUSH_FRAC × coarse voxel`). Every tile of a level undergoes
+  the identical rigid translation, so shared edges cannot separate *by
+  construction*; magnitude differs per level, so overlapping ring pairs still
+  separate in the lap band (corrections #1 honored — a true world-space offset,
+  never a bias). Applied to BOTH far paths (S1 chunks + FF2a tiles). World-space
+  seam proof past the transform: `uniform_push_keeps_same_level_seams_watertight_in_world_space`
+  (exact-zero shared-edge gap for a nasty off-axis high vantage; the retired
+  radial scheme fails the same check). Walk-verified live (lit + fullbright, high
+  vantage −45° yaw sweep): far field continuous, no bright light-through slivers
+  anywhere; no z-fight at lap bands or the near/far boundary at grazing or
+  top-down angles. Assets `0024-after-{ne,se}`, `0024-fb-ne`,
+  `0024-fb-zfight-graze`, `0024-zfight-topdown`.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**User field report: the far LOD sheet is buried under the near field —
+  RESOLVED** 2026-07-19, FF2a journal/0023. Mechanism confirmed: the walk-17
+  one-tile inner lap slid the L1 far sheet under the near field (from ~54 m),
+  sunk half a coarse voxel — present but hidden, so digging exposed a phantom
+  floor. Fix: **coverage logic, not buried geometry** — a far column the near
+  volumetric field covers (`near_covers`, altitude-aware 3-D distance < 112 m)
+  is CULLED, so a fully-covered tile meshes to *nothing*. Floor-quantized far
+  tops (≤ near surface) let the near field win the thin [112, 128] m occluded
+  overlap with no sink. Dig test photographed: only real near geology, no
+  phantom floor (`0023-fb-dig-no-phantom-floor`); headless proof: fully-covered
+  tile meshes empty.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**User field report: clear pixel gaps between far-field tiles — RESOLVED**
+  2026-07-19, FF2a journal/0023. The prediction held: voxelization cures the
+  crack class **inherently**. Stepped prisms share face planes; a step's side
+  face is emitted once by the taller column only, and a tile samples its
+  neighbours' shared boundary columns, so same-level tile seams are watertight
+  with no skirt (grazing-angle fullbright shot `0023-fb-grazing-horizon`: no
+  cracks). Only differing-stride ring-to-ring edges and the near/far coverage
+  boundary get a modest 2-coarse-voxel skirt — "skirt only what remains." The
+  faint one-sided-normal stitch *lines* (cosmetic, haze-hidden) stay filed
+  below, unchanged.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- Walk 17 (journal/0022 § walk 17 + § the holes were a partition): **far
+  sheet parallelogram sky holes — RESOLVED** 2026-07-19 (fix cycle,
+  worktree branch). Mechanism: a level's far tiles *partition* the ground
+  plane (no overlap), so a point has exactly one tile per level; center-
+  distance ring assignment let an inter-ring boundary cell be rejected by
+  BOTH the finer ring (center past its outer edge) and the coarser ring
+  (center short of its inner edge), punching a fixed-position sky hole with
+  no fallback tile. NOT winding, NOT a missing index. Fix: each ring laps
+  its inner edge one own-tile inward (`far_tile_in_ring`), restoring
+  between-ring redundancy; the same lap under the near field also cured the
+  **grazing-angle near/far slivers**. Headless proof:
+  `far_tiles_cover_the_rings_without_seams` (88 463 uncovered points
+  pre-fix → 0). Verified live hole-free at both walk-17 vantages + 3 yaw
+  sweeps (fullbright). *(Phantom old world + empty horizon: RESOLVED
+  earlier, verified at the 0018 framings.)* **Left filed:** faint
+  tile-edge stitch lines (one-sided-normal seam) — cosmetic, haze-hidden;
+  a cross-tile normal halo is deferred polish.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- Walk 16 (journal/0021 § walk 16): **the lit path erases low-fraction
+  mixtures** — DIAGNOSED by same-framing lit/fullbright pair
+  (0021-mixture-* assets): olivine wins whole cells in fullbright, zero
+  pixels in lit; same splat attributes, so the heightlerp buries it
+  (elevation = weight + texture height; a 1/8 accessory can't out-elevate
+  a 7/8 host anywhere). Contradicts the ratified "grains poke through"
+  intent. RESOLVED 2026-07-19: amplitude-by-rarity + jitter shipped and
+  photographically verified (0021-*-v2 pair — olivine visible lit,
+  statistical agreement with fullbright; amp constant is the tuning knob
+  if ore should read louder). Cell quantization was rejected (grids shear
+  authored features). Residual note:
+  the houndstooth fix's narrowed albedo spread (0.17→0.11) reduced
+  constituent contrast in the lit path generally.
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **Walk 12's "blocking regression" was a misdiagnosis** (corrections #10,
+  journal/0016): a pose in meters cross-checked against block queries in
+  voxels. `true_surface_m` was already deep-time-aware (its ceiling reads
+  `ColumnRec`). The investigation still paid: `eye_in_solid` was answering
+  from the legacy S1 world on any ChunkMap miss, and a failed surface scan
+  silently returned `analytic − 220 m`. Both fixed (merge `81a87b8`;
+  `Option`-typed misses, authoritative solidity).
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **Instrument fix: pose replies echo the voxel coordinate — DONE**
+  (journal/0021, instrument batch, awaiting integration). `client_player_pose_
+  {get,set}` and `dc:character/pose` now carry `pos_voxel` (feet, active-scale
+  voxels via the authority's own `scale.voxel_at`) beside the meters `pos` —
+  the walker's two languages both labelled, no mental unit conversion (the
+  corrections #10 misread that cost a full agent cycle).
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- Walk 13 (journal/0018): *(**`surface_snapped` absent on the `surface:true`
+  success path: RESOLVED** — journal/0021, instrument batch. The flag is now
+  ALWAYS present in a `surface:true` reply: true when the scan seated the feet,
+  false on a miss (position left as requested, `surface_error` string). Both
+  paths leave through one `surface_teleport_reply` helper, so the flag can't be
+  set on only one branch again.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- Walk 5 (journal/0005, character surface): characters have **no auto
+  step-up** — a one-voxel rise halts a grounded walker until it jumps
+  *(DECIDED 2026-07-19: stays jump-required; mover-feature vs
+  controller-skill is the NPC-intelligence design's question)*.
+  *(Disconnect policy: DECIDED 2026-07-19 — freeze for v1, NPC-tier
+  degradation as a later controller binding; API.md § Characters,
+  bodies.md formerly-open Q3. Attach placement guard: fixed,
+  journal/0006.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**~2/3 of far-mesh triangles were sealed cave surfaces (S3): RESOLVED for
+  the worldgen far field** — journal/0022. The worldgen horizon is a **top-surface
+  heightfield** (2048 tris/tile, no interiors), not a volumetric shell. The S1 far
+  mesh on keys 3/4 is unchanged / still volumetric.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**`client_player_pose_set` outside the one door: RATIFIED same day** —
+  API.md Decisions log #5. Retirement = player controller through
+  controller-verb commands; sequenced after the session-4 agents land,
+  since it rewrites files they are touching. See Sequenced.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- *(**Console follow-ups: RATIFIED same day** — API.md Decisions log #6
+  (`completions` hook) and #7 (registry macro/derive). Dispatched as a
+  session-4 background agent — see In flight.)*
+
+**ARCHIVED 2026-07-29 — resolved in place** (the entry's own body already declared it closed;
+moved by status, not by age).
+
+- **The dominance flip quantizes smooth gradients — a potential S-4 edge**
+  (user, walk 0071, 2026-07-22) — **RESOLVED by the susceptibility blend
+  (journal/0072), shipped 2026-07-22.** The candidate continuous variant is
+  now the mechanism: erosion's four consumption sites blend the per-agent
+  susceptibility table by the near-surface window's per-`Litho` *shares*
+  (`providers::outcrop_shares`) instead of argmax-then-lookup, so the rate
+  field is continuous where the plurality crossover stepped it — argmax is
+  its limiting case (a uniform window blends to that rock's rate bit for bit).
+  Measured (`examples/outcrop_blend_probe.rs`, Medium): ~18 k former-flip
+  adjacencies dropped into the sub-0.1 rate-jump buckets while genuine
+  basement↔sediment contacts stay sharp; per-epoch refresh +6 % (negligible).
+  Goldens re-baselined (all Medium hashes + the Small block hash, geometry
+  only). Audit site A1, shape-teacher #1 of the threshold-quantization
+  migration.
+  - **NEEDS RATIFICATION (world-scale gameplay consequence):** coal
+    diggability fell. A coaly near-surface window is now recessive (coal is
+    the softest rock, so its *share* pulls the blended rate up, where the old
+    argmax handed a coal-minority window the dominant rock's slower rate), so
+    near-surface coal is preferentially stripped. Medium seed
+    `0x0D5EED572026` census dropped from 88 record seams over 3 m (strongest
+    16 diggable) to **10 record seams over 3 m, strongest 11 diggable
+    collapse-voxels** (≈ 10 m — still eminently diggable; the walk-0071 seam
+    the user cut and called "looks great" was 3). `MIN_DIGGABLE_COAL_VOX`
+    re-baselined 15 → 10 with the census printed (organic.rs), not slid
+    silently. The mechanism rides as-built (no-bandaid); this flags the
+    reduced-coal *appearance* for the user's blessing.
+    **RATIFIED AS-BUILT (user, 2026-07-22, live session: "bless coal
+    as-built").** Exposed coal is genuinely recessive; scarcity reads as
+    value; deep coal below the window is untouched. If scarcity ever feels
+    wrong at play, the lever is calibration (contrast/cap or coal's property
+    sheet), never the blend.
 
 # Superseded close blocks
 
