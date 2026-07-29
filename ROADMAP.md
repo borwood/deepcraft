@@ -3537,6 +3537,40 @@ second file.
 
 ## NEXT SESSION — written at the 2026-07-29 EVENING close (supersedes every earlier block)
 
+### ⚠ LATE-NIGHT ADDENDUM (2026-07-29, the 529 session — read this first, block below still stands)
+
+**The API shed load and the session paused with nothing merged.** All four dispatched opus
+agents — the three FULL sweeps AND the octaves/near-path build pair — were killed by
+server-side 529s within minutes; **zero work produced, zero harvest loss** (verified: no
+worktrees, no branches, no commits). Machine clean, lock free, journal **0128/0129 were
+reserved but never used** — next-free is still 0128. **All three sweeps remain DUE (FULL)**;
+the hook will re-report. The member-#0 continuation-pair brief was written and is sound —
+re-dispatch it next session (its content: octaves `DitherSource` second impl per corrections
+#45's "fix = octaves, not resolution", then MM-1 + MM-3 + the § 2b near-path restructure from
+`docs/audits/2026-07-29-member0-coarsefield-design.md`, sequenced in ONE worktree because B
+consumes A and they share files).
+
+**The fluvial member (#1) design pass was OPENED in main session** (priors sweep done) and
+three rulings landed (user, 2026-07-29 late, via decision prompt):
+
+1. **Face-pairing is RE-OPENED** — argued fresh in the design pass, NOT inherited. The priors
+   sweep found the corpus holds its status in four places that disagree: `flow.md` § 2.2 flag
+   (*"NOT RATIFIED, resolve before any refinement/expression slice"*) · `flow.md` § 11.5
+   (*"RATIFIED (user): flow pairs by what confines it"* — the two-mode rule, 360 lines below
+   the flag, never cross-stamped) · `flux.rs` module docs (*"this slice pairs lateral faces by
+   CHAPTER… the design document is silent"*; bound residual explicitly a user call filed with
+   continuation (c)) · `refinement.md` § 8 + coupling-priors audit #6 (*"under-specified, not
+   ratified — live blocker"*). The fresh argument decides which site is right and stamps the
+   others; whether a corrections entry is owed falls out of that.
+2. **Record terms FIRST**: deeptime records **grain distribution + mobility hint** before any
+   channel operator builds; the operator then expresses the full § 7.1 assemblage in one
+   slice. Today `FluxEntry.load` is **bulk only** (composition's named heir: material-aware
+   transport) and no mobility term exists anywhere.
+3. **Design now, BUILD AFTER P2**: the operator can only express recorded magnitudes (Law 1),
+   and this world exports 0.02 % of denudation by rivers — a walk on the member is
+   meaningless until the P2 literature re-pick lands. The design pass proceeds and should
+   tell P2 which quantities matter.
+
 **Sweeps first** (the `SessionStart` hook says which are due — spine-audit ran today and its
 findings were APPLIED, which is now the standing rule for all sweeps), then
 **`docs/dependency-graph.md`**, then this block. Then `corrections.md` **#73** and
