@@ -1307,7 +1307,14 @@ see the question you are asking.
     deleted; **(d)** epochs declared with pass members + chapter count **or a terminating
     condition** (the sketch's other half, never built); **(e)** the vocabulary split
     question — whether schedule coordinates and world resources need to be different
-    *kinds*, or whether authored order dissolves the distinction entirely. **Do not close
+    *kinds*, or whether authored order dissolves the distinction entirely; **(f) ✅ RATIFIED
+    2026-07-29 (user), unbuilt — `Schedule` sum type** (`Seed`/`Step`/`SeedAndStep`;
+    `ARCHITECTURE.md` § Schedule): a seed is an **initial condition** integrating zero
+    time, **epoch 0 fires for everyone, the implicit skip rule is deleted**, and each of
+    the three pre-loop incumbents gets audited (honest seed vs first-step-in-disguise) —
+    hash moves fall under the scratch-pad rule, re-capture with the why. Includes the
+    equal-integrated-`dt` gate invariant. Queued behind the `runner.rs` extraction (same
+    file). Heir of `Seed`: (d)'s setup epoch. **Do not close
     the arc when RATE lands.**
   - **⚠ THE PROCESS FAILURE IS PART OF THE RECORD.** The user's sketch was **reconciled, not
     contested** — its ORDER half died inside an implementation slice, in one clause of a doc

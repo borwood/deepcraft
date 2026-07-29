@@ -322,6 +322,16 @@ world**, which cost one background probe instead of a live session (corrections 
 
 ## Conventions
 
+- **THE TESTING WORLD IS A SCRATCH PAD** (user; promoted here 2026-07-29 because it kept
+  getting lost — it lived in `session-workflow` § scratch-pad doctrine, and a fresh ruling
+  got drafted from scratch in ARCHITECTURE.md by a session that could not see it. *"There
+  is absolutely no inherent reason to think its current state at any point is intended."*).
+  **Goldens are regression tripwires, never ratified intent.** An *unexplained* hash move
+  is a defect to chase; a hash move produced by *ratified semantics* re-captures the
+  goldens **with the why recorded** — it owes no byte-identicality and no ratification
+  loop on the new bytes. Never argue a design or a hold from the fixture's current bytes
+  (the fixture-state sibling of [[placeholder-state-is-not-intent]]).
+
 - **A CLOSED SYSTEM CANNOT DETECT ITS OWN SCALE ERROR** (2026-07-26, journal/0111 —
   and it cost us ~1000×). The deep sim was **perfectly self-consistent at the wrong
   scale**: mass closed, every golden held, passes were pure, per-species budgets

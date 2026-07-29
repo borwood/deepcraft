@@ -660,6 +660,34 @@ on, that is a **pack** surface with the ordinary obligations of one — not an e
 > **RATE does NOT own stability substepping** (user ruling, 2026-07-29) — that is the S-10
 > field-solver kernel's, and `stubs.md` § 30's remaining half. **And the arc does not close
 > here:** authored ORDER, the open vocabulary, and declared epochs are still owed.
+
+### Schedule — DECIDED 2026-07-29 (user): seed is an initial condition, and epoch 0 fires for everyone
+
+The E3 slice surfaced an inherited runner rule — *"a coarse-rate pass does not fire at
+epoch 0"* — written for the three passes seeded before the loop and now silently inherited
+by any pass a world authors a coarse period onto. The ratified fix, reached by elimination
+(a `seeded: bool` cannot express *run-once-only*; a `rate: 0` sentinel cannot express
+*seed-then-step*, and re-opens the zero `Cadence`'s `NonZeroU32` deliberately closed):
+
+- **A sum type, not a flag beside a number:** `Schedule::Seed` (pre-loop once, never
+  in-loop) · `Step(Cadence)` (in-loop only) · `SeedAndStep(Cadence)`.
+- **A seed is an INITIAL CONDITION** — it establishes t=0 state and integrates **zero
+  time**. A pass whose "seed" is really its step body run early is not seeded; it declares
+  `Step`, and its pre-loop special-casing dies.
+- **Epoch 0 fires for everyone, no exceptions; the skip rule is DELETED.** The skip was
+  unstated repair for seeds that were first-steps in disguise, and under honest seeds it is
+  a silent clock desync — the seeded pass experiences less world time than its neighbours.
+- **The invariant this buys, assertable only since E3 made `dt` real:** every pass's
+  integrated `dt` over a run equals the world's elapsed time. Same clock for everyone —
+  a gate test, not a narration.
+- Heir, named so the stand-in stays honest: **declared epochs** (the 2026-07-23 sketch's
+  unbuilt half — ROADMAP continuation slot (d)). `Seed` is "member of the setup epoch"
+  said small, and converts mechanically when epochs become authored data.
+
+If the audit of the three incumbents moves hashes, the **scratch-pad rule** applies as
+recorded (**CLAUDE.md § Conventions**, promoted there during this ratification;
+`session-workflow` § the scratch-pad doctrine; journal/0107): goldens are a regression
+detector, not a target — re-capture with the *why*, no byte-identicality owed.
 >
 > *The section below is kept as written because it is the argument that sequenced the slice,
 > and because its central claim was confirmed from the other side rather than superseded.*
