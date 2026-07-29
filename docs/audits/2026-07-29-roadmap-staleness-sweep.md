@@ -12,3 +12,12 @@
   watermark key are the only writes.
 
 *(body follows)*
+
+<!-- WIP: full board read complete (In flight 20-356, Sequenced 357-2373, Observed 2374-3535,
+close block 3538-3645). Candidates under verification: C1 runner.rs 1,694 lines; C2 CoarseField
+"nothing calls it"; C6 spine-audit-null bullet; C7 "Observed is the largest unswept surface";
+C9 refinement design-pass FIRST SLICE shipped; C13 banner policy's week-long test has data;
+C15 cold-tier pair unlinked; C16 flow_cost_probe; C20 "the band is NOT reachable at any
+multiplier" under the fixed operator; C23 tectonics.rs salt / refine.rs:155; C25 tour-map
+land filter. -->
+
