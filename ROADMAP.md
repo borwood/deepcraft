@@ -3535,76 +3535,76 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-07-29 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-07-29 EVENING close (supersedes every earlier block)
 
-**Sweeps first** (the `SessionStart` hook says which are due), then **[`docs/dependency-graph.md`](docs/dependency-graph.md)**
-— new today, read-first item 1c — then this block. Then `corrections.md` **#71–#72**.
+**Sweeps first** (the `SessionStart` hook says which are due — spine-audit ran today and its
+findings were APPLIED, which is now the standing rule for all sweeps), then
+**`docs/dependency-graph.md`**, then this block. Then `corrections.md` **#73** and
+`journal/0127` (the day's narrative).
 
-### The one sentence that matters
-**The top blocker is gone** — journal/0122 fixed the hillslope operator, discharging *"until this
-lands the engine cannot run erosion at ANY realistic rate"* — **and the two things it taught are
-worth more than the fix: the shipped world had been 2.1× past its own numerical stability bound
-for weeks with every golden green, and the pass hand-rolled a `dt` because the engine has none.**
+### The one paragraph that matters
+**The pass architecture gained its clock and its schedule (E3 RATE + Schedule, both built,
+hash-verified), the refinement tier went from zero design to a cautiously-RATIFIED doc
+(`docs/design/refinement.md` - record families, term-keyed operators, three laws) with its
+first member BUILT and WALKED the same day** - and the walk returned a split verdict that
+sets the next arc: *the 460 m cell lines are gone by eye* (U22 discharged), *but the
+cell-wide blend "swirled the whole cake"* and rides only as an interim. Its named heir is
+the user's own sketch: a far register derived from refinement-operator budgets (S Observed
+field report, recorded verbatim).
 
-### Ratified (user's terms)
-- **Refinement primitives, DEFINED** — *"any primitive responsible for the way things are actually
-  drawn in the runtime game where we interpolate/upscale fine chunks from coarse cells… **totally
-  necessary for a plugin-agnostic engine**."* Zero members exist; the tier's first member is unscoped.
-- **S-10 ratified** — the frozen-snapshot doubly-limited gather (2 instances: `sat.rs`, creep).
-- **Stability belongs to the KERNEL, not RATE** — ruled, then **re-ruled the same day**: *"I really
-  hate to make RATE more complex now. Couldn't substepping be solved within the field instead, where
-  it takes `dt` from outside and calcs its own internal multiplier?"* **RATE is NOT expanded.**
-- **RATE sequenced ahead of the refinement design pass.**
-- **The pre-flip appearance hold is RELEASED, by the user withdrawing their own ratification** —
-  *"I do not care if frost/wind magnitudes increase 45×, do not try for byte identicality on
-  `calibrated_rates`, I do not care about my previous ratification on looks there."*
-- **8 user field reports struck** as stale-by-moved-implementation; **U16 struck** on the grounds that
-  grass/dirt are not generated in the current pack shape.
-- **The S2 statistical tier is HELD** — probable future primitive; **do not find it a consumer**.
-- **Graph-building folded into the session process** — start / throughout / `wrap` § 9.
+### Ratified today (user's terms - full records in ARCHITECTURE.md/refinement.md/audit headers)
+- **refinement.md CAUTIOUSLY RATIFIED**: bones only; *"first members... revisited in light
+  of this design, not taken as wherever they landed prior."* Members are directions, not
+  build orders.
+- **Schedule**: seed = initial condition, epoch 0 fires for everyone, skip rule deleted.
+  All three incumbents audited to `Step` - the seeds were repair for the skip
+  (journal/0124).
+- **Member #0 = K1 only**; `summarize` -> octree contract (*"LOD machinery stays engine...
+  goes to octree"*); per-voxel stays engine-executed, packs SELECT sources by id.
+- **Sweep findings are APPLIED, not filed** (spine-audit skill amended); **scratch-pad
+  doctrine promoted to CLAUDE.md** S Conventions; **five strikes** executed on the
+  classifier's candidates; **the testing world is a scratch pad** reaffirmed.
+- **Walk ruling**: the far blend rides as interim, *"replaced eventually"*.
 
-### Falsified — the assistant's own first
-- **#71 — "the erosion axis is engine work."** I read the newest artifact in the corpus (last
-  night's close block) and repeated its side **while holding `CLAUDE.md` in context**, which says
-  *every pass is content, including tectonics and erosion* **by name**. Second instance of #68's
-  mechanism, source-vs-source. **A close block is a HANDOFF, not an authority.**
-- **#72 — "the stability-limit story is falsified"** (#63 ii) is itself falsified. journal/0116's 4×
-  refinement moved 100.8× past the bound to **25.2× past it** — its null was a statement about the
-  number 4. Coefficient and limiter were never rival diagnoses: **the limiter MASKS the instability**,
-  capping a flipped mode into a finite limit cycle that reads as stable and is deaf to `dt`.
-- **I claimed `spines.md` § 3 lacked a third exit and wrote it into `ARCHITECTURE.md`.** It had all
-  three, a day earlier. Corrected in place.
-- **I imported the wrong clock** — argued substep cost under *"runtime is sacred"*, which governs the
-  **gameplay** clock; gen time is free by doctrine. User-caught before it reached a doc.
-- **I miscounted the open field reports** (15, actually 16) inside the brief that dispatched the work.
+### Falsified - the assistant's own first
+- **#73**: "the 460-vs-28.8 checkerboard was never probed" - it was SETTLED 2026-07-24
+  (member stepping; corrections #45) and the answer lived only in a close block; a design
+  agent re-derived the question and the main session propagated it into a banner. **The
+  user's memory caught it.** Both targets stamped.
+- The E1 graph row overclaimed (kernel "validates an authored order" - it derives; E7
+  validates), and P6 sat on both sides of the engine/pack partition four rows apart. Both
+  fixed same-day, both found by agents reading fresh.
+
+### Shipped today (journal 0122 was yesterday; today: 0123-0127)
+RATE (0123) - Schedule (0124) - member-#0 far slice (0125) - artifact tripwires (0126,
+**7 goldens + compiler-enforced DeepField enumeration; nothing ships unfingerprinted**) -
+the day narrative + walk (0127). Plus: spine-audit (first ever) fully applied - S-6
+reconciled, 88 citations verified; runner.rs history extraction; ROADMAP 5,309 -> ~3,600
+lines (structural lever still open - no honest classification reaches 2,500).
 
 ### First things next session
-1. **`spine-audit` — still never run**, and now more owed: today added **S-10** and a **CoarseField
-   § 3 row**. Its waiting finding is unchanged: **`spines.md` § S-6 still teaches order-derived-by-
-   topo-sort as the exemplary compliant shape**, in the doc every brief justifies itself against.
-2. **RATE** (`docs/dependency-graph.md` E3) — smallest it has ever been, because the stand-in already
-   did the hard part and left a **known-good fixed point** to hash against.
-3. **The refinement design pass** (E5) — its inputs (flux record, head field) are **built and idle**.
+1. **The member-#0 continuation pair that clears U3**: the **octaves `DitherSource`**
+   (settled as the dominant visible fix 2026-07-24 - corrections #45) + the **near-path
+   restructure** (needs MM-1 separately-callable membership dither + MM-3 the working-state
+   type). Both scoped in `docs/audits/2026-07-29-member0-coarsefield-design.md`.
+2. **E7 authored order + validator** (with E6 DeepAxis retirement) - unblocked, and the
+   tripwire net now catches what their hash-identity promises miss.
+3. **P2 erosion calibration re-pick** - STILL the standing red: `calibrated_rates` ships
+   FALSE. Literature pass; good background-agent work.
+4. Waiting on user calls: fluvial member design pass (face-pairing rule must be picked
+   LOUDLY); runner.rs module split (927 code lines); ROADMAP structural lever.
 
-### ⚠ Owed / unverified — deliberately not done
-- **17 escalations** from the corpus agent, filed and unactioned — `north-star.md` Deviation 2's
-  enumeration (⚠ contests a user block), `ARCHITECTURE.md`'s social/history pipeline needing
-  **ON HOLD not strike**, `ores.md` R8 naming (⚠ contests `geology.md`), **`journal/0059` the lost
-  entry**. Each carries its own disposition line in `docs/audits/baseline-2026-07-28/`.
-- **16 user field reports open**, each with an evidence line. **Two are ripe for your word: U2**
-  (journal/0119 shows weathering is mass-neutral **to the bit** — the answer is *"it doesn't"*) and
-  **U26** (premise falsified — `Quarter`/`Slab` *are* emitted — but the design ask is untouched).
-- **`EROSION_CALIBRATION` re-pick is sequenced, not done.** 45 was fitted to the broken solve and
-  **inverts** under the fixed one (cover now *thins* with the multiplier). `calibrated_rates` ships
-  **false**. Pick against the **published band**, never a look.
-- **`flow_cost_probe` still not `test = true`** — the probe the whole rule was earned on. Mechanical.
-- **`journal/0117` does not exist** — skipped number or lost entry; nobody has checked.
-- **`ROADMAP.md` is 5,176 lines** against 2,500 even after archiving 45 today.
-  `scripts/roadmap_archive.py` does the mechanical half (**hardcoded path — edit before use**).
-- **The two `sweep_due_hook.py` thresholds are still unverified guesses.**
+### Owed / unverified - deliberately not done
+- **GOLDEN_FAR_SURFACE is captured on a 99.6%-ocean fixture** (Observed, orange-flagged) -
+  a land-bearing far golden is owed.
+- **Walk stations 3/4 unwalked** (same signature as the verdict station; poses in
+  `docs/audits/2026-07-29-far-frontier-tourmap.md`) - and the tour instrument needs a
+  LAND FILTER (station 1 scored a below-sea-level basin; finding recorded in that audit).
+- **tectonics.rs salt conversion** (draws.rs residue 3) - owed to the file owner.
+- The 17 baseline-sweep escalations and 15 open user field reports carry over unchanged.
 
 ### Running
-**Nothing.** All three agents in, worktrees removed, branches deleted, tree clean, pushed, no lock,
-port 7777 free. Gate verified on main at `8987944` — **822 tests, 0 failed**, `Compiling dc-worldgen`
-from main's checkout after `cargo clean -p`, five new gate tests confirmed **by name**. No Rust has
-changed since.
+**Nothing.** All agents in or dead-and-harvested (two API-5xx casualties, work recovered
+from disk both times), worktrees removed, lock free, port 7777 free, game closed. Gate
+state: main's Rust last verified at the tripwire merge - **90 units / 857 passed / 0
+failed**, by name from the Tee'd log; docs-only commits since.
