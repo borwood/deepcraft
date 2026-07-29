@@ -207,47 +207,6 @@ read live, never when it gets old.**
   / octree node = held for their owners. User's framing on the record: "there are
   things i'd rather do but this is foundational."
 
-- **The octree substrate — DESIGN PASS OPENED, D1–D3 DECIDED** (2026-07-22,
-  live session; `docs/design/octree-substrate.md`). The water.md leaning is
-  resolved: **one substrate = the existing S3 chunk pyramid**, named and given
-  a payload contract (node = `(level, ChunkPos)`; first two consumers —
-  renderer, water — define the payload; statistical/social recorded as
-  intended extension). **First build slice ratified: FF2b-minimal** — the two
-  existing reduction pyramids (block + `MixtureDownsampleRule`, spines § 3
-  row 1) through FF2a's stepped mesher, coarse volumetric far chunks replacing
-  the top-sheet-only far field; persistence + dirty-rail is the follow-on
-  slice. **Stepped all the way** ratified for the far register (alternatives
-  recorded in the doc § 5; vista-as-augury is complementary — it governs far
-  *live* state, not terrain). This supersedes FF2b's earlier pairing with the
-  caves/underground water thread for the *minimal* slice — the node contract's
-  water stratum stays requirements-only and the hydrology pause holds. **Node
-  contract v0.1 RATIFIED** (same session — the gap-hunt added two-sided
-  derivation: reduce upward where children exist, synthesize top-down from
-  the worldgen authority where they don't, statistical agreement where they
-  meet; ungenerated ≠ empty; strata independent; seeded synthesis).
-  Narrative: journal/0069. **FF2b-minimal LANDED** (2026-07-22, background
-  agent, worktree branch — journal/0070): the two-sided derivation is real.
-  `dc_core::farfield` carries the span-stack payload (`ColumnSpan` gains
-  `bottom`; `quantize_top` moves to dc-core so synthesis and the streamer
-  share ONE quantization); `dc-worldgen/src/far.rs` synthesizes nodes
-  top-down from `coarse_surface` (seeded); the client's `FarPyramid` feeds
-  every streamed chunk up the block + `MixtureDownsampleRule` pyramids
-  (**spines § 3 row 1 consumed** — far spans render `classify` of reduced
-  mixtures) and the FF2a mesher now speaks span stacks (bottom faces,
-  interval walls) with an A-5 guard (`subtree_fully_inserted`) and a
-  reduction standoff inside the near field's draw radius. Agreement measured:
-  n=8192 columns, mean(reduced−synth)=+0.938 coarse voxels, 100 % within 1
-  (the majority-vote-rounds-up vs floor mechanism, journal/0070). Tripwire at
-  10 km (stretched L4): 1 648 tiles / ~168 MiB / ~4.9 ms per tile — mesh path
-  nowhere near the Aokana wire; past ~10 km the answer stays "more rings"
-  (journal/0042). Follow-ons unchanged: persistence + dirty-rail (far edits),
-  synthesized sub-surface strata (the `surface_sample` summarization-half
-  home), partial-coverage composition, deep-span greedy merge.
-  **MERGED TO MAIN + LOOK RATIFIED AS-BUILT** (2026-07-22, integrator merge;
-  user, from the 0070 screenshot set: "visually indistinguishable from the
-  previous version, for me. which is good!" — the reduced-tile patches ride;
-  the 10 km checkerboard is pre-existing, filed in Observed, and is B1's
-  cure to claim; merged-main gate evidence in the merge-gate-0070 log).
 
 - **The forms/partials fill contract — DESIGN PASS RATIFIED, FOUNDATION
   DISPATCHED** (2026-07-21, live session; ARCHITECTURE.md § "The fill
@@ -300,8 +259,11 @@ read live, never when it gets old.**
     a pack binding a material into a class whose block disagrees with the
     material's own nature (e.g. `PEAT` registered as clastic-fine), where the
     material is now authoritative. Flagged for the user, not blocking.
-  - **NEXT SLICE — the fractional top, and it is BLOCKED on a user-owned
-    decision.** The eolian remainder is real ledger (2.09 m / 0.9 m → 2 voxels
+  - **NEXT SLICE — the fractional top. ~~BLOCKED on a user-owned decision~~ —
+    UNBLOCKED, and this line was stale for eight days** (found by the 2026-07-29
+    classification pass): the blocking decision — the veneer retirement — is recorded
+    **DONE 2026-07-21 (journal/0055)** ~150 lines below in this same section. The slice
+    is startable and unowned.** The eolian remainder is real ledger (2.09 m / 0.9 m → 2 voxels
     + ~2.6 eighths discarded at `.round()`), but a partial voxel with solid
     material above it is a void underground: the only honest home for a
     fraction is the top of the column, and that voxel is the **surface-veneer
@@ -313,29 +275,6 @@ read live, never when it gets old.**
     emits the real remainder as `debris_only` — a quantity change on one
     voxel, since clastic strata are *already* emitted loose. The golden
     fingerprints move in that slice, and that move is its deliverable.
-- *(**Tectonics architecture RATIFIED 2026-07-20** — all of U1–U8, with
-  U3 amended (ritual ceiling relaxed to "5 min if that's what it takes");
-  see the tectonics.md banner. The SPIKE is next — sequenced below, behind
-  the eolian agent's landing: both write `deeptime/erosion.rs`.)*
-- **Tectonic design pass — DRAFT LANDED (historical entry)**
-  (docs/design/tectonics.md, merged 2026-07-20; Fable design agent). The
-  inversion: surface uplift stops being the input — plate kinematics
-  (advected Voronoi seeds, K~8 chapters) drive analytic boundary forcing →
-  crustal-column thickening → smoothed-load Airy isostasy derives
-  elevation, buying rebound/exhumation/forelands from one mechanism.
-  Deformation re-derived analytically at collapse resolution (no per-cell
-  event storage); sparse event list for what kinematics can't re-derive
-  (unblocks the § 2 igneous flag). Eight user decisions U1–U8 pending
-  (plate-scale knob, chapter count, ritual-length fork, orogen widths,
-  advection scale, punctuation budgets, amplitude re-sequencing, flip).
-  § 14 corrections verified by integrator (corrections #20; Erosion::new
-  uplift_sum cache; Large-extent province-density inversion). Next:
-  user ratifies architecture → SPIKE per its § SPIKE.
-- **Zonal circulation profile** — dispatched same moment (write-set
-  disjoint from spike: climate.rs only). Smooth wind magnitude + subsidence
-  aridity; kills the band-flip line and puts a desert belt at ~30° for the
-  true reason. Changes every new world's climate — integrator presents the
-  measured shift for the user's eye.
 
 *(**Ore design pass: DRAFT LANDED** 2026-07-21, `docs/design/ores.md` —
 engineering pass over the DECIDED 2026-07-20 roster; R1–R7 awaiting the user.
@@ -351,64 +290,6 @@ user-owned content design pass (earth-processes § "payoff layer") to be run
 as main-session design conversation; impact structures ride punctuation
 hooks.
 
-**Session 3 shipped, all gates green on merged main:** FF2a voxel far field
-(0023) · far-seam uniform-push fix (0024) · S10 biotic layer (0025) ·
-organic materials + biotic flip (0026) · organics photo walk (0027) ·
-S11 water locality + body graph (0028) · erodibility coupling (0029) ·
-erodibility production flip + walk (0030). Eight journal entries; seven
-corrections filed (#11–#19, two of them the assistant's own).
-
-**Session 5 shipped (2026-07-21, journal/0039–0049, corrections #23–#25),
-all gates green on merged main:** deep-config plumbing (0039) · walk 0040 +
-the amplitude answer "neither" (#23) · S13 roughness measurement (0041,
-#24/#25) · `--horizon` knob (0042) · climate registration fix (0043) · **U8
-tectonic flip (0044)** · ore textures (0045) + substance redo (0048) · steep
-walk 0046 · **full_agents flip + tour map (0047)** · **the first live
-guided-tour ratification (0049)**. Doctrine: ledger-expression + enhancement
-+ perf-first + genesis/stubs (stubs.md, 11 entries). Ore design pass drafted
-(ores.md R1–R8 pending).
-
-**(SUPERSEDED by the 2026-07-22 close at the end of this file.)** NEXT SESSION — rewritten at the 2026-07-21 session close, AFTER the live
-walk (supersedes every earlier same-day block). Read first:**
-**journal/0050–0058** — the leak, the eviction, the fill contract, carry-`H`,
-DeviceLost, distribution-first, the holes, the eight-kilometre typo — and
-**corrections #26–#29**, three of which are the integrator's own errors.
-`docs/design/stubs.md` for the doctrine registry.
-**Walk wiring:** game MCP is a checked-in `.mcp.json`; launch the game FIRST
-(`cargo run --release -p dc-client -- --horizon 3`), then `/mcp` reconnect.
-
-> **⚠ THE FIRST THING TO DO IS WALK.** Six merges today changed what the world
-> is made of, how deep it digs, and what its surface looks like — and **the two
-> most visible fixes (surface dither, the holes) landed after the user's
-> session closed, so nobody has seen them.** Everything below is downstream of
-> that walk. **Station coordinates are METRES** — pass them to `pose_set`
-> directly; the integrator multiplied by 0.9 and spent an afternoon 8.6 km from
-> every station (corrections #28).
->
-> What to check, in order: (1) are the sky-holes gone (`--fullbright --edges`,
-> re-walk `journal/assets/0056-holes-after-settle.png`'s view; if bands persist,
-> distrust journal/0057 first); (2) are the chunk-shaped surface patches gone
-> (compare against `0056-surface-quantized-per-chunk.png`); (3) does the
-> **loess margin (82346, 24391) m** — the deepest section in the world, ~90
-> sediment blocks, 76 mixed spans — read as *sediment* or as noise; (4) do
-> contact bands change material on chunk lines (the boundary-dither loose end,
-> still open for **mixed** voxels); (5) a long `--horizon 6` session — **DONE
-> 2026-07-21, journal/0065: it survives.**
-
-**Wide horizons: the blocker is GONE and now PROVEN at 6** (journal/0065,
-2026-07-21). The DeviceLost crashes were host-RAM exhaustion from an unbounded
-chunk store, now evicting (journal/0051, flat over 210 teleports at
-`--horizon 3`). Re-measured at 6, in both regimes, alternated 6/3/6/3 against
-machine drift: **teleport storm +0.542 / +0.529 MB/jump at horizon 6 versus
-+0.531 / +0.542 at horizon 3** — the horizon signal is zero — and **idle at
-horizon 6 drifts under 7 MB in seven minutes** with every probe count frozen,
-which is the regime that used to die at ~4.5 min. Plus one unbroken
-**700-jump / 23-minute** horizon-6 session: RSS sawtooths in a ~980–1 170 MB
-band, long-run slope **+0.11 MB/jump**, 71 928 evictions, exit 0. All runs
-exited **0**, no `DeviceLost`, no panic, no `ERROR`. Horizon 6's real cost is a **constant**
-~155 MB / 704 resident far tiles (vs 288 at horizon 3), paid once at fill.
-**Wide-horizon walks are unblocked**; 8–10 should hold, and the number to
-watch there is `far_tiles` at fill, not slope.
 
 **Decisions waiting on the user (nothing else is blocked on them):**
 0. **THE SOIL GAP — the biggest design hole the walk exposed.** The user, in
@@ -525,48 +406,19 @@ Use the LIT pass — this is a dig-depth/section question:
   and the best cut face available. *(Verified headlessly in journal/0058 — the
   "only 3 voxels here" alarm was the integrator standing 8.6 km away.)*
 
-*(Superseded by a session-close block; kept for the record. **The pointer used to read
-"above" and no longer resolves:** the block that superseded this was the 2026-07-21 one,
-written when close blocks sat at the top of the board — it was consumed by its successors
-and is not retained anywhere. The surviving blocks are § **NEXT SESSION** **below**
-(2026-07-27, and the 2026-07-26 morning block under it) plus the six archived in
-`ROADMAP-history.md`.)*
-**RE-SEQUENCED 2026-07-21 by the journal/0040 walk.** The amplitude call is
-**answered: neither 80 nor 160** (corrections #23) — `thickening_scale` acts
-at ~25 km and above and buys *zero* sub-km relief, so it cannot fix dismal
-mountains and no longer blocks anything. The order that replaces it:
-
-1. *(**Roughness decay: MEASURED** 2026-07-21, S13/journal/0041. What remains
-   is the **user's pick between three costed candidates** — see Sequenced.)*
-0. *(**Steep-site re-walk: DONE** 2026-07-21, journal/0046 — the #25 debt
-   paid, on a stock post-U8 production world. The scarp is legible (terraced
-   stone basin at −77 m, dirt shoreline stripe, green rim; ~80 m/km of real
-   deep-field relief); the crest is still the 0040 prairie from a 6 km
-   horizon — both halves of #25 confirmed by eye. The distant lapse-rate
-   banding (green→brown→stone) is visible at the horizon for the first time.
-   The recalibration pick now has its context pictures: A/B would texture a
-   plateau that has no shape to reveal; C is the only candidate that changes
-   which landforms exist in the 460 m–7.4 km band.)*
-2. *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — the
-   landform-shape walk is now possible and is owed: re-walk the amplitude
-   vantages at `--horizon 6` on the LIT pass.)*
-3. **Erosion-supply calibration** (Sequenced) — S12's metre-scale exhumation
-   finding, now co-equal with (1) as a relief-generating lever.
-4. **The amplitude value itself** — deferrable. Rides as-built at 80 until
-   (1) and (3) change what the knob is multiplying.
-5. **Sim light SPIKE** — design pass is done (`docs/design/light.md`);
-   § 10 of that doc states exactly what the spike must measure.
-
-**Read first next session:** `docs/design/things-that-will-happen.md` (new
-this session, and now item 2 in CLAUDE.md's read-first), then
-corrections #18 and #19 — both are about choosing an instrument that can
-see the question you are asking.
 
 ## Sequenced
+
+- **Octree-substrate follow-ons (re-filed 2026-07-29 — the parent entry moved to history
+  with journal number intact; these four were live inside it and stay owed):**
+  persistence + the dirty-rail · synthesized sub-surface strata · partial-coverage
+  composition · deep-span greedy merge. Unowned, unsequenced relative to each other;
+  see the archived entry for each one's reasoning.
 
 - **✅ ALL FIVE USER DECISIONS RULED 2026-07-28 — journal/0120.** Surfaced, parked, and then
   taken in a dedicated unpacking session the same day. **Rulings are inline against each item
   below; the context is kept because the reasoning is what makes each ruling legible.**
+  **⬇ The five rulings and their reasoning moved to [`ROADMAP-history.md`](ROADMAP-history.md) on 2026-07-29 — nothing there is owed. What stays live here is the *not user-owned* tail below.**
   **What shipped from these rulings:** `worldgen.md`'s ON-HOLD banner + new § *Sequencing* ·
   `north-star.md` § *The core/plugin boundary* — **the refinement tier RESOLVED to (c)** ·
   CLAUDE.md's *recorded ambition vs unratified content* clause and the **immutable body,
@@ -575,150 +427,6 @@ see the question you are asking.
   supersession note. **Nothing here is owed.** *Two follow-ups the rulings created are filed
   as their own entries below — the unswept-banner backlog and the completeness-check gap.*
 
-  *Original framing, kept: five calls surfaced 2026-07-28, NONE of them the integrator's*
-  (user-directed the same day: *"keep the user owed part durable with pointer to its necessary
-  context… I won't muddy waters by addressing that in this conversation"*). **Deliberately parked
-  by the user, not forgotten.** Consolidated into ONE live entry because the alternative — leaving
-  them inside a `✅ DONE` block and a notebook — is the buried-in-a-closed-artifact failure this
-  session spent the day measuring. **Context is inline, not merely pointed at**, so this entry is
-  actionable cold.
-  **Sources:** `journal/0121` (the removal's narrative) · `journal/corrections.md` **#66** ·
-  [`docs/design/corpus-knowledge-notebook.md`](docs/design/corpus-knowledge-notebook.md) §§ 4–5 ·
-  [`corpus-knowledge-evidence.md`](docs/design/corpus-knowledge-evidence.md) §§ 3.6g/3.6j/3.6k ·
-  the `✅ DONE` removal entry below, which points here.
-
-  1. **APPEARANCE — the shipped world lost 102 wood posts at four sites** (seed 1337,
-     `Extent::Medium`). Verified gone: the 12 chunks that carried every post read **102
-     `Block::Wood` → 0**, and a 200-chunk box around all four former clusters reads **0**.
-     **No before/after screenshot pair is possible** — the "after" is ordinary ground — so this is
-     a **notification for the record**, not a walk. Nothing else visible changed and **no golden
-     moved** (corrections #66). *Why it is yours: an appearance change is ratified by the user's
-     eye, and removal from what a player could walk into is an appearance change even when there
-     is nothing to photograph.*
-     - **✅ RULED — ACCEPTED (user, 2026-07-28).** *"That's fine and it's what I wanted. That
-       system was not designed — it will have a designed successor at one point, but I had
-       nothing to do with it. Came entirely from Claude bootstrapping the project, attempting
-       to satisfy the list of things I mentioned that I would like to be in it **eventually**."*
-     - **⚠ AND THE FACT THAT CLOSES IT, from the user:** *"I never once saw a wooden post in
-       the world and no images were captured — it predates journals and our walk protocols."*
-       **So the missing before/after pair was never a limitation of the removal.** The content
-       was **never observed by the one eye that ratifies appearance**, across its entire life.
-       *This is the sharpest available statement of "existence is not standing": a thing can
-       render in the shipped world for a week, be defended by three independent instruments,
-       and still have no witness. Appearance content that no one has ever seen has not
-       accrued standing by surviving — it has only accrued inertia.*
-
-  2. **DESIGN-DOC RULING — three live docs still describe civ/history as a real pipeline stage,
-     contradicting the 2026-07-26 ruling.**
-     - `docs/design/worldgen.md` § *"Below the region scale"* item 4: *"**History** — peoples,
-       polities, trade, wars, migrations: dc-sim's coarse tier run over pre-player millennia."*
-     - `docs/design/things-that-will-happen.md:126` — the sword looted from a ruin.
-     - `docs/design/ideas.md:384`.
-     Against the user's *"we do NOT have any form of evo/socia/civ modeling **even at the design
-     stage**: they are NOTHING."* **The removal slice deliberately did not touch any of them** and
-     was right not to: it could not distinguish a ratified user design from bootstrap text, and
-     editing a design doc from inside an implementation slice is **corrections #65's exact failure
-     mode**. *Why it is yours: which side of a user-vs-user contradiction wins is the one thing a
-     sweeper is forbidden to decide (`doc-topology` § Rules).*
-     - **✅ RULED — SPLIT THE THREE, and the split is a doctrine, not a tidy (user, 2026-07-28).**
-       - **`worldgen.md` → ON HOLD, not struck.** *"History is coming, eventually, for the
-         reasons worldgen states (not exhaustive)."* Shipped: a top banner, six marked sites,
-         and a new § *Sequencing*. **The doc had understated the problem** — history is that
-         document's *thesis*, not one bullet: its title, its core decision, its extent knob
-         and its borders contrast all rest on it. **And one leg of the boundedness argument
-         is the history requirement**, so § *The core decision* now records that **closure**
-         is what carries boundedness today (the other leg is pure earth science and is live).
-         Left unmarked, that is a ratified decision visibly resting on a suspended premise —
-         A-2 waiting to be "discovered".
-       - **`things-that-will-happen.md` → UNTOUCHED, and the doc's standing recorded.** *"Things
-         that will happen is correctly 'what kind of engine this WILL BE and what kind of
-         experience the default pack WILL BE'. The ambitions there are recorded with a high
-         amount of user involvement and are **not claims about what we currently have built**
-         as content or can support as an engine."* The looted-sword line **stays**.
-       - **`ideas.md:384` → UNTOUCHED.** A mood line in a bullet about visual language.
-       - **THE GENERAL RULE, now in CLAUDE.md:** the doctrine governs **unratified bootstrap
-         CONTENT**, never **RECORDED AMBITION**. *The tell: does it RUN, or does it PROMISE?*
-         Striking a future-tense user-authored line **retires a goal**, which no sweeper and no
-         slice may do. **This is the second time in three days that this directive was about to
-         over-reach by one word** — the first was `ecology.md`. Both were caught by the rule the
-         directive itself sits next to.
-       - **⚠ AND THE STATUS IS *ON HOLD*, NOT *NEVER*.** *"We do want these systems
-         **eventually**: they are effectively on hold."* Read *"they are NOTHING"* as a claim
-         about **what exists**, never about **what is wanted**.
-
-  3. **SCOPE — dc-sim's entire S2 statistical tier now has ZERO production callers.**
-     `pregen/history.rs` was its only one; removing it left `engine::{query, observe, force_fact}`,
-     `Ledger` and `ToyWorld` reached by nothing but their own `s2_torture` / `s2_measurements`
-     suites (new `spines.md` § 3 row). **The removal entry's scope line said *"dc-sim's
-     region/agent-step draws"*, but those draws ARE `simulate_sample`** — so following the scope
-     literally deletes `engine.rs` (528 lines), `world.rs`, both suites, and the artifacts
-     `docs/spikes/S2-results.md` reports on. **The slice filed a DEVIATION PLEA instead**, which
-     is the correct move. **The call:** keep the tier as a shape reference, or dispose of it as
-     the same class of thing as the content it served? *(Note `S2-results.md` carries **no
-     supersession marker at all** — the spike whose implementation just died has nothing on it.)*
-     - **✅ RULED — KEEP BOTH THE PRIMITIVE AND THE TOY (user, 2026-07-28).** *"I didn't even
-       know this system existed… The statistical system is genuinely intended, though I can't
-       say whether as-is it will fit the desired shape when we actually do move on to
-       implementing the civ/socia part of the default pack and the engine affordances."*
-     - **The ruling's operative half is the NOTE, not the keep.** Whoever stumbles on this
-       module — or is sent looking — must read: **the code that read it is gone · the primitive
-       is the deliverable · it is a CANDIDATE to be re-checked against requirements that do not
-       exist yet, never adopted on sight · and when that thread may open is a USER CALL.**
-       Landed in all three places a reader actually arrives: the module doc
-       (`dc-sim/src/statistical/mod.rs`), `S2-results.md`'s banner, and the `spines.md` § 3 row.
-     - **`spines.md` § 3 gained a THIRD EXIT because of this.** The index knew *consumed* (the
-       good exit) and, since journal/0121, *deleted*. This row is neither: **HELD AS A
-       CANDIDATE** — ratified as wanted, with nothing yet to judge it against, so it is neither
-       owed a consumer nor eligible for disposal. *Without the third state a reader assumes the
-       first and goes hunting for a consumer nobody wants found.*
-     - **`S2-results.md` now carries its banner** — which is also the first application of the
-       decision-5 policy below.
-
-  4. **SCHEMA — delete dc-sim's settlement/civ types, or keep them?**
-     `Subject::{Site, Polity}` · `Aspect::{SiteExists, SitePolity, SiteEvent, PolityExtent}` ·
-     `SiteEventKind` · `Value::{Exists, PolityRef, Event, Extent}`. **Producer-less since the
-     removal.** Left in place and marked in-code as *not a schema to build on*, because deleting
-     variants of a `Serialize` enum is wider than a content removal's scope. *Why it is yours:
-     same doctrine as item 3 — unratified bootstrap schema has no standing, but the disposal is a
-     scope fork.*
-     - **✅ RULED — KEEP, with item 3 (user, 2026-07-28).** It rides the same ruling: the tier
-       stays as a candidate, and its vocabulary stays with it. **But the in-code marking is what
-       carries the standing** — it is **producer-less example vocabulary, NOT a schema to build
-       on**, kept because deleting `Serialize` variants exceeded the removal's scope, *not*
-       because anyone ratified it as a design. Re-stated in the module doc and the § 3 row so
-       the distinction survives without this ROADMAP entry.
-
-  5. **POLICY COLLISION — is a spike-results doc immutable testimony, or live authority?**
-     `corrections #12` states the policy: *"`S10-results.md` is **left unamended** — a spike result
-     is a dated record of what was measured; **this entry is the pointer**."* `CLAUDE.md`
-     read-first item 5 states the opposite: *"Spike results live in `docs/spikes/S*-results.md` —
-     **measured numbers, don't re-guess them**."* **Both are reasonable, they are incompatible,
-     they live in different files, and nothing has ever reconciled them.** The concrete cost is on
-     record: `S10`'s cost table is **~2× the real production cost** (25.19 s claimed vs 13.79 s
-     measured — the spike drove the *scalar* path, production takes the *parallel* one), **a user
-     ratified a ship decision on it**, and `S10` holds no reference to its own correction.
-     Measured corpus-wide: **8 of 15** full-path correction→file edges are one-directional, and
-     **14 of 30** audit/spike files carry no staleness marker of any kind. *Why it is yours: this
-     is a choice between two ratified-feeling policies, and it changes what read-first means.*
-     - **✅ RULED — IMMUTABLE BODY, MUTABLE HEADER (user, 2026-07-28).** A spike's measurements
-       are **never rewritten** — testimony about a day is not edited — but a results doc **must
-       carry a top-of-file banner pointing at whatever refuted, superseded or re-scoped it.**
-       Recorded in **CLAUDE.md read-first item 5** (the site that asserted the losing half) and
-       as a supersession note on **corrections #12** (the site that asserted the other half).
-       Neither is rewritten; both now agree.
-     - **The obligation lands on the WRITER OF THE CORRECTION, in the same commit.** *That is
-       the property doing the work, and it is chosen from measurement rather than taste: a
-       convention survives when it is inseparable from an act the author must perform anyway,
-       and dies when it asks them to restate something in a second notation. Stamping the target
-       happens while both files are already open. The counter-example is on the record —
-       `JUSTIFIED-BY`, documented in two places with a promised sweep, got **3 uses, 0 in
-       `crates/`**.*
-     - **Applied where a refutation is already known:** `S10-results.md` (→ corrections #12, the
-       ~2× cost table a **user ratified a ship decision on**) and `S2-results.md` (→ the item-3
-       ruling). **Not a sweep** — see the backlog entry below.
-     - **What it actually fixes is structural:** *a one-directional pointer is not a pointer.*
-       The stale end is exactly where a cold session enters, and a chain of authority cannot be
-       walked from an end that holds no link.
 
   **Also surfaced, NOT user-owned — recorded so they are not lost with the above:**
   - **`spine-audit/SKILL.md:47` tells every future auditor to grep `JUSTIFIED-BY`** — a marker with
@@ -742,102 +450,11 @@ see the question you are asking.
     by the removal.*
 
 - **🔴 THE BASELINE SWEEP'S FINDINGS — ~80 pairs, 100 % corpus coverage, RANKED AND MOSTLY
-  UNAPPLIED** (2026-07-28, `docs/audits/baseline-2026-07-28/` — nine audits, ~3,900 lines,
+  UNAPPLIED**, *and now largely APPLIED — the four user calls and all five highest-blast-radius
+  items were ruled or applied and moved to [`ROADMAP-history.md`](ROADMAP-history.md) on 2026-07-29* (2026-07-28, `docs/audits/baseline-2026-07-28/` — nine audits, ~3,900 lines,
   watermark `f652b60`). **The audits ARE the record; this entry is the index.** Applied at
   baseline: only the integrator's own same-day stalenesses + the `ARCHITECTURE.md` ON-HOLD
   banner. *Everything below is real, cited `file:line` on both sides, and NOT yet fixed.*
-  - **✅ ALL FOUR USER CALLS RULED 2026-07-28** (unpacking session; applied to
-    `ores.md`, `worldgen.md` § Sequencing, `ecology.md`, `stubs.md`):
-    1. **BIOLOGY — the two decisions were never in conflict; the missing word was *building*.**
-       The deep-time biotic layer stays **ON** and rides as-built — *"biology in this sense is
-       seamed with heir"* — but *"**we aren't building bio-based rock formation any longer**
-       until bio/eco stuff, which is waiting on the rest of the non-bio earth science stuff +
-       engine capabilities."* **No new bio-driven rock-formation work opens before the gate.**
-    2. **🔴 ORES — A LOAD-BEARING PREMISE IS REJECTED, and this is the biggest of the four.**
-       *"We do not need to have ore 'exposed' — the default plugin pack will ship a voxel game
-       **with digging**… absolutely no reason to treat it like everything needs to be
-       discoverable on the surface. Weird and misconceived and likely very relatively old."*
-       **Kills every "illegible until exhumation increases" caveat, the lode-gold A/B fork, and
-       `probe 3` — the probe measured the wrong thing and is NOT owed.** *Exhumation stays real
-       for **genesis honesty** (where an ore forms); what dies is exposure as a precondition for
-       shipping one.* `ores.md` is **conceptually behind `materials.md` / `material-behavior.md`,
-       which win on disagreement**; a revisit is owed and unscheduled. **⚠ Note how it survived:
-       the assumption was never stated as a decision — it rode inside *measurement caveats*,
-       which read as evidence rather than as premises, and held a user fork shut for a week.**
-    3. **`material_transport` — RATIFIED as-is.** The user is already running a string of work
-       on it and confirmed `COMPETENCE_SCALE`'s *"mud, sometimes"* is **not** to be treated as a
-       knob to tune (it is downstream of the denudation rate; tuning it would be a number
-       pretending to be a mechanism).
-    4. **THERE IS NO "GENERAL REGISTRY" AND THERE NEVER WAS — the clause is DELETED, not
-       reworded.** Surfaced by the user asking *"I honestly don't understand what the registry is
-       supposed to be except for a list which we can extend."* **Correct — and nobody ever
-       proposed one.** It was an inference that implied future work.
-       - **A seam's success condition is that it DISAPPEARS.** The heir *replaces* the slot; it
-         does not fill it forever. **Only completed case:** `burial_temp_c`'s heir turned out to
-         be a **field**, so it retired as a **field pass** and left the file (journal/0093) —
-         *"the answer was 'this is not a provider at all — it is a field.'"* `depth_to_water` is
-         documented as heading the same way. **You do not design a third-party declaration for a
-         pattern whose job is to vanish.**
-       - **⚠ THE ROOT CAUSE — "slot" means two unrelated things**, sharing a code shape
-         (`Option<fn>` + identity) and nothing else: **provider seams** (world-level, scaffolding,
-         *temporary*) vs **material behavior slots** (`north-star.md` § Materials — what a
-         content author writes, **the SDK surface, permanent**). north-star called the latter
-         *"the `Providers` pattern **generalized** from world-level to material-level"* — true of
-         the shape, **and read as the world-level SYSTEM being promoted into the SDK.** That
-         misreading produced the phantom. **north-star now disambiguates it in place.**
-       - **Where world-level seams land post-split is UNDISCUSSED and deliberately UNDECIDED**
-         (user: *"I genuinely don't know… I don't think anyone has had a direct conversation about
-         it… I don't want to burden us with more half-baked designs"*). **No decision is owed.**
-       - *The assistant proposed a "policy injection" counter-argument and it is **dropped, not
-         recorded** — neither party could name an instance, and writing down a hypothetical that
-         shapes future thinking is the thing being avoided.*
-       - **⚠ The integrator's OWN first two fixes of this were also wrong**, both from the same
-         ambiguous north-star sentence (*"plugin-authorable engine sockets"*). Left visible at
-         `doc-topology/SKILL.md` because being wrong twice from one sentence is the argument for
-         disambiguating it. **Propagated to all six citation sites** — `stubs.md`,
-         `providers/mod.rs`, `north-star.md`, `doc-topology/SKILL.md`,
-         `corpus-knowledge-notebook.md`, `corpus-knowledge-evidence.md`. Journals **0060** and
-         **0120** quote the old clause and are **left untouched: dated testimony, immutable body.**
-
-  - *Original framing of the four calls, kept for the reasoning:*
-    1. **`ecology.md:262-263` (DECIDED 07-20, user) vs `worldgen.md:189-191` (DECIDED 07-28,
-       user)** — biology is *"a shipped part of world generation"* (confirmed live,
-       `deeptime/field.rs:288`) vs *"engine + non-bio earth science → **then** ecology"*.
-       **Both yours, eight days apart, reconciled nowhere.** Likely resolution: the S10
-       deep-time biotic pass ≠ the ecology *design* pass — **but that sentence is written in
-       neither doc, and it is not the assistant's to write** (corrections #65).
-    2. **`ores.md`'s lode-gold NEEDS-RATIFICATION fork is held shut by an expired caveat** —
-       *"until the erosion-supply calibration lands"*; **it landed 2026-07-26** (corrections
-       #56, journal/0114). *A user decision has been available for two days and the doc says
-       it is blocked.*
-    3. **`material_transport: true` is the shipped default with no ratification record found**
-       — not in the archive, the close blocks, or journals 0110–0112, while the board flags it
-       `NEEDS RATIFICATION (user-owned)`.
-    4. **`stubs.md:20-24` says "four conversions is not enough to design a registry from"; a
-       fifth landed** (`:196-201`, journal/0078). That clause is quoted as binding doctrine in
-       three places **including the argument for not designing the knowledge layer yet**, so
-       whether five changes the judgement is a user call.
-  - **🔴 HIGHEST BLAST RADIUS, integrator-applicable:**
-    - **`spines.md` § S-6 still teaches order-derived-by-topo-sort as the exemplary compliant
-      shape** across 148 lines, and does **not mention the 2026-07-26 authored-order decision
-      anywhere** — no strike, no banner, no § 4 entry (verified by pathspec). **Read-first item
-      0b; every brief that "names its shapes" has been naming a retired one.** *corrections
-      #65's geometry, recurring inside the index built to prevent it.*
-    - **The erosion axis is marked settled and is not.** `ROADMAP.md:2513-2533`, live
-      `NEEDS RATIFICATION`, no banner: *"nothing further to ratify on the erosion axis."* Its
-      null came from a probe **blind to `diffusion`** — 96 % of export (journal/0111:256-260,
-      corrections #56) — so **the methodology is defective regardless of calibration**, and
-      journal/0114 measures relief **+18 % at 100×**. ⚠ **But do NOT restate it as "the
-      landscape is supply-limited today"**: that holds for the *calibrated* world, and
-      `calibrated_rates` ships **OFF** (`walk_tour_0115.rs:150` asserts it). *Two agents each
-      had half of this; the split matters.*
-    - **`tectonics.md` (953 lines, largest design doc) carries NO staleness banner** and its
-      § 7.3 still specifies the retired receiver tree as *"the carving source, one authority"*.
-    - **`spines.md`'s "34 seams inventoried; 5 converted" is wrong — the inventory says 31**,
-      and that figure is promoted as *the only obligation ledger with a denominator* in the
-      docs-ops argument.
-    - **ROADMAP's FIRST BULLET (`:33-38`) asserts the trusted/untrusted backend tiering** that
-      north-star § Deviations 2 calls *"EXPLICITLY NOT THE MODEL"*.
   - **🟠 STRUCTURAL — the dominant failure mode, now measured rather than suspected:** **every
     enumeration checked came back short.** corrections #65 names 3 superseded topo-sort sites
     (`geology.md:29-32` is a 4th) · north-star Deviations #2 names 3 voided sections (**6** are
@@ -862,44 +479,6 @@ see the question you are asking.
     is deliberately `null`. *That is the next sweep, and it is the one with a live finding
     already waiting for it (S-6 above).*
 
-- **✅ SWEEPS RUN FIRST THING, INCREMENTALLY, AND THE HARNESS SAYS WHICH ARE DUE**
-  (**DECIDED 2026-07-28, user**: *"sweeps should probably run first thing… additional sweeps
-  should be able to focus mainly on new stuff since last time, or full audit if the underlying
-  source has moved (update to spines, etc)"*).
-  - **THE DIAGNOSIS THAT PRODUCED IT.** This repo has four corpus controls and **three share one
-    trigger: the main session remembering.** Measured over eleven active days — `spine-audit`
-    left **zero** artifacts despite its own *"run a few times a day"*; `doc-topology` ran **once**,
-    the day it was created; the staleness sweep ran **twice** and was never even a skill. **The
-    filesize hook is the only control not gated on memory, and the only one that fires
-    reliably.** *And the remedy on file — "make the staleness sweep recurring **like
-    spine-audit**" — was wrong in an instructive way: it assumed skill-packaging produces
-    recurrence, and `spine-audit` is the disproof. **A skill still waits to be invoked.***
-  - **SHIPPED (a): `staleness-sweep` skill** — the procedure existed since 2026-07-24 with two
-    worked audits; this is packaging, and packaging alone was explicitly **not** the fix.
-  - **SHIPPED (b): `SessionStart` hook** (`scripts/sweep_due_hook.py`) — states which sweeps are
-    **DUE**, in which **MODE**, and **WHY**, computed from `docs/audits/.sweep-watermarks.json`.
-    **This is the half that satisfies CLAUDE.md § Gates' rule** — *do not answer "the gate cannot
-    see X" with a rule asking people to remember X.* **It reports; it does not dispatch** — an
-    agent cannot self-dispatch and the spend is the session's and the user's call.
-  - **THE RULE THE USER'S TWO HALVES IMPLY, stated so it is checkable:** a sweep's **incremental**
-    mode is valid only while its **REFERENCE side** is unchanged; when the reference moves, every
-    prior verdict was made against a different rule → **FULL**. `spine-audit`'s reference is
-    `spines.md` (mechanical: does the diff touch it). The staleness sweep is *inherently*
-    incremental — but goes full when a **recalibration** lands, because one commit can turn a
-    whole cohort of old observations into artifacts (journal/0111) and no per-entry reading finds
-    that. **`doc-topology` has NO reference side** and its unit is a *pair*, so incremental there
-    is **new × ALL**, not new × new — done as: read changed docs in full, then let **their nouns**
-    drive the search across everything else. *That inverts grep's known weakness — the search
-    terms come from the diff rather than from the reader's suspicion.*
-  - **The watermark is written BY the sweep, in the same commit as its audit** — never a separate
-    step. Chosen from the measured adoption law: a convention survives when it is inseparable
-    from an act the author must perform anyway (`JUSTIFIED-BY`, which asked for a restatement,
-    got **3 uses, 0 in `crates/`**).
-  - **⚠ HONEST LIMIT:** staleness is **3–8 %** of recorded failures; ~91 % were wrong the day
-    they were written. **A green sweep must never read as "the corpus is sound."**
-  - **Deliberately NOT built:** no claims index / knowledge graph — the noun-driven incremental
-    mode needs no durable artifact, and *"the corpus already authors the graph; nothing reads
-    it"* plus "don't build the general mechanism first" both bind here.
 
 - **🟠 THE SUPERSESSION-BANNER BACKLOG — the policy shipped, the sweep did not** (created
   2026-07-28 by the decision-5 ruling; **not** a defect, a deliberately-bounded scope).
@@ -947,43 +526,6 @@ see the question you are asking.
   ecology carve-out, the field-solver framing, the two ORDER strikes, the S-/A- undercount,
   the CLAUDE.md trust-tier line). **The rest are owed, and are recorded here rather than
   left in an audit nobody re-opens:**
-  - **✅ DONE 2026-07-28 — the dangling cross-file pointers.** The audit estimated *"~25"*;
-    the real count is **44 pointers at 43 sites**, all fixed. **The audit undercounted by 18.**
-    - **23 in `ROADMAP.md` pointing at the archive** (audit said 16): 22 of the
-      `"see § Shipped"` form, plus the last line of the 2026-07-26 morning close block —
-      *"the 2026-07-25 block **below**"*, which was one of the six archived, so the live
-      board's own close block pointed past its own end.
-    - **19 in `ROADMAP-history.md` pointing back at the live board** (audit said 9).
-    - **4 were already directionally wrong BEFORE the split** and are now doubly wrong: the
-      roughness-decay entry's *"Sequenced below"* read from inside § Observed, and the three
-      `NEEDS RATIFICATION (below, § Sequenced)` markers on the 2026-07-20 erodibility / water
-      / biotic Shipped entries. *§ Sequenced has sat **above** § Shipped since at least
-      `34d88f2`; these predate the archive, which merely made them unresolvable.*
-    - **The `:515` orphan — *attributed*, not guessed.** The block it meant was the **2026-07-21
-      close block** (verified at `34d88f2`, where it sat 19 lines above), and that block was
-      consumed by its successors rather than archived — so it exists nowhere, and the line now
-      says so instead of pointing at a block 3,800 lines the other way.
-    - **The retargets are addresses only.** No claim was resolved and no contradiction
-      adjudicated. Where a Shipped entry has a **journal number** it is kept as the stable
-      pointer, per the archive's own design.
-  - **✅ DONE 2026-07-28 — `flow.md:715`'s RATIFIED stamp.** The stamp is legitimate for
-    § 11's WINDOW decision (DECIDED 2026-07-25, user); what wrongly inherited it was the
-    *setup sentence* characterising the other two axes. The ORDER half is now **struck and
-    marked SUPERSEDED 2026-07-26**, in the shape `material-behavior.md` § 5's ORDER bullet
-    already uses, with a note on why § 11.1's argument survives the strike (it needs only
-    that the scheduler had **no name for the window**, which holds either way).
-    *Still open from the same finding (#15), deliberately not taken here:* `flow.md:459` and
-    `material-behavior.md:367-369` carry the same `ORDER (topo-sort)` framing **without** a
-    ratification stamp.
-  - **✅ DONE — `spines.md` + `stubs.md` scheduling heirs for the removed bootstrap content.**
-    Both resolved *into* the removal rather than surviving it, as this finding asked.
-    `stubs.md` § 1 is now **RESOLVED BY DELETION** (journal/0121) and — the more useful half —
-    was rewritten to carry the doctrine it cost: *a stub entry is not neutral about its
-    subject's standing, it **asserts** it; ask the standing question before writing an heir.*
-    `spines.md` § 3's row was replaced by the S2-tier row and, on 2026-07-28, given the user's
-    **held-as-candidate** ruling plus the § 3 intro's **third exit**. *Note the shape: the
-    finding asked for two deletions and what shipped was two doctrine changes — the heir lines
-    were correct on their own terms, and the defect was the inventory's grammar, not the rows.*
   - **The ABI spike is described as "locking the SDK shape"** — contested by north-star
     § Deviations 1, which defers the whole trust/backend question.
   - **⚠ THE COAL EVIDENCE BASE IS LABELLED "THE PRODUCTION WORLD" IN FOUR LIVE DOCS**
@@ -1159,43 +701,6 @@ see the question you are asking.
       single-coded by the assistant whose errors most of the entries record.
 
 
-- **✅ DONE 2026-07-26 — THE DOC-TOPOLOGY SWEEP + THE ROADMAP ARCHIVE** (user-directed at the
-  close: *"our docs ops past critical mass, causing information loop to fail to close often"*
-  — sequenced and executed the same session). *Entry kept for its reasoning, because the
-  reasoning is what makes the sweep recurring rather than a one-off tidy.*
-  - **THE DIAGNOSIS SEPARATES THREE FAILURES THAT LOOK LIKE ONE.** journal/0119's collapse
-    was **not** a volume failure: the sketch (`ideas.md`), the reconciliation
-    (`material-behavior.md` § 5), the refutation (`journal/0090`) and the unbuilt RATE axis
-    were **all in the corpus, all findable by grep**. What failed is that **no reader ever
-    had all four in view at once**, because the connections run *between* documents.
-    - **VOLUME** — the board is grepped, not read, and grep returns only what you already
-      suspected (`DeepField::chapters`, three spine audits). *Real, and third in value.*
-    - **TOPOLOGY** — nothing compares docs to *each other*. `spine-audit` checks docs vs
-      **code**; the staleness sweep checks entries vs **newer work**. **A claim and its own
-      refutation can coexist forever.** *This is the one that cost an architecture.*
-    - **AUTHORITY** — an assistant reconciliation could silently supersede a ratified user
-      design. **Fixed the same day** by one CLAUDE.md rule; cheapest and highest-value of the
-      three.
-  - **SHIPPED (a): `.claude/skills/doc-topology/SKILL.md`** — five contradiction shapes in
-    value order, prioritised by **blast radius not age**, requires `file:line` on **both**
-    sides of a pair, and forbids the sweeper from resolving what it finds (which side wins is
-    frequently a user call — that is *why* it survived). Provenance breaks ties:
-    *user-originated constraints are data; assistant-originated ones are hypotheses that
-    happened to survive.* **Run after any batch of merges that ships an arc**, and whenever a
-    design thread reopens something old.
-  - **SHIPPED (b): `ROADMAP-history.md`** — archived **by STATUS, not age**. Shipped (2,297
-    lines) + six superseded close blocks moved out; the live board went **7,210 → 4,410**.
-    Each Shipped entry keeps its **journal number** as the stable pointer, and the journal
-    already holds the narrative. *Age is the wrong axis: a two-week-old `Observed` may be the
-    liveliest thing on the board.*
-  - **⚠ HONEST LIMIT — the archive buys less than it looks like it does.** 4,410 lines is
-    still past reading whole, and **neither half of it would have prevented journal/0119**.
-    The remaining volume lever is `Observed` (1,969 lines), which is *not* archivable by
-    status — an Observed entry is live by definition. **Left open deliberately**: the
-    thresholds and the split conventions are the user's to set, not the hook's provisional
-    guesses.
-
-
 - **🔴🔴🔴 THE PASS ARCHITECTURE — AUTHORED ORDER, OPEN VOCABULARY, AND THE RATE AXIS BUILT**
   (**DECIDED 2026-07-26, user**; record of decision `ARCHITECTURE.md` § *The engine is
   plugin-agnostic, and pass ORDER is authored*; corrections **#65**; the user's original
@@ -1264,20 +769,6 @@ see the question you are asking.
       journal/0090/0104/0107 declaration-history commentary; the live half is the roster + the
       loop. *Not split mid-slice, per the hook's own instruction to propose rather than do.*
 
-    *Record of how the slice was framed before it shipped, kept because the sequencing argument
-    is the reusable part:* ~~with the creep limiter as its acceptance test~~ — **the acceptance
-    test was met on 2026-07-29 by a stand-in, and that changed the slice for the better.**
-    - **What happened.** journal/0122 fixed the creep blocker by **sub-cycling inside the
-      pass**: `n = ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)`, derived from the von
-      Neumann bound `a = 1/8`. Grid-scale oscillation is gone (surface concavity ACF(1)
-      **−0.867 → +0.185** calibrated; closed hollows past 10 m **818 → 12**; five safe
-      multipliers where journal/0114 found none). **The acceptance criterion above is
-      discharged — by a `dt` the pass computed for itself because the engine has none.**
-    - **So the slice is now sharper, not gone: replace the hand-rolled sub-cycle with the
-      engine axis, and hold the goldens.** This is strictly better than the original framing
-      — the axis now lands against a **known-good fixed point** instead of against a defect,
-      so "did RATE reproduce it" is a hash comparison rather than a judgement call.
-      `stubs.md` § 30 carries the stand-in with RATE named as its heir.
     - **✅ RATE IS NOT EXPANDED — scope-expansion flag WITHDRAWN 2026-07-29, same day, by the
       user.** For a few hours this entry said the stand-in widened RATE from *authored cadence*
       to *derived stability substepping*. The user rejected the widening rather than accept it
@@ -1321,84 +812,9 @@ see the question you are asking.
     the user does not read. New CLAUDE.md rule: *a user-originated design may not be
     superseded by an implementation slice.*
 
-- **✅ DONE 2026-07-28 — THE BOOTSTRAP HISTORY CONTENT IS REMOVED** (journal/0121,
-  **corrections #66**; merged and gate-verified on main: fmt 0, clippy 0, **85 binaries / 808
-  passed / 0 failed / 3 ignored**, reconciling exactly against the 86/811 baseline — −1 binary
-  (`s7_handoff.rs`) and −3 tests, **all three named and confirmed absent**). Net **−713** Rust
-  lines. *Entry kept below for its reasoning; two findings that OUTRANK the removal are recorded
-  here because neither was suspected:*
-  - **⚠ NOT ONE GOLDEN MOVED — corrections #66.** This entry said *"The goldens will move and
-    that is correct"*, and corrections #64 said the fingerprints are *"structurally downstream of
-    the posts"*. **Both false, and falsified by measurement, not argument:** 0 wood voxels in
-    `contents_contract`'s sample set pre-removal, and `geology`'s sampler covers `cz ∈ [−20, 24]`
-    while the nearest post sits at `cz = −727`. All four byte-identity goldens ran and passed
-    **by name** on merged main. **The transferable lesson: *a pre-authorised golden move is
-    indistinguishable from an unexplained one, which is the opposite of caution.*** A new A-2
-    sub-shape — not a justification outliving its premise, but a **permission** outliving its
-    justification, and never true. *`spines.md` A-2 records it: "structurally downstream is a
-    statement about the call graph; whether a fingerprint moves is a statement about which chunks
-    the sampler visits" — the same reflex produced both halves, six lines apart, in the entry that
-    named the reflex.*
-  - **🔴 FOUR OF THIS SLICE'S FINDINGS ARE USER DECISIONS AND LIVE IN ONE PLACE:
-    § Sequenced → ~~"USER DECISIONS OWED"~~ **"✅ ALL FIVE USER DECISIONS RULED 2026-07-28"**
-    *(pointer repaired 2026-07-29, baseline sweep S5/F9: no heading named "USER DECISIONS
-    OWED" has ever existed, so a reader greping the quoted string found only the two pointers
-    and never the target — and the target is now RULED, not owed)*
-    (items 1–4: the 102-post appearance notification · the
-    three design docs that still describe civ/history as a live pipeline stage · dc-sim's S2 tier
-    now having zero production callers, with the slice's deviation plea · the producer-less
-    settlement/civ schema). **Consolidated there rather than duplicated here**, because a live
-    decision buried inside a `✅ DONE` block reads as closed — and because two copies of a
-    decision are two things to drift. *This pointer is deliberately reciprocal: that entry names
-    this one. Written this way on purpose — the session that wrote it had just measured that **8 of
-    15** correction→file edges in this corpus exist only at one end.*
-  - **Rides as built:** `Block::Wood` stays with no worldgen emitter (removing the variant would
-    renumber block ordinals and move every golden — destroying the attribution this slice was able
-    to make); five retired draw salts leave a **deliberate hole** at `0x5700_0005`…`0x5700_0009`
-    with an in-code rule *take the next unused value, never fill a hole*; `stubs.md` #1 resolved
-    by deletion, #10's blast radius restated as zero; **draw-domain part (a) is discharged** by
-    removal rather than conversion.
-  - **Accept-by-outcome, not by gate:** the 12 chunks that carried every post go **102
-    `Block::Wood` → 0**, and a 200-chunk box around all four former clusters reads **0**.
-  - **Residency, absolute:** the whole recorded settlement history — 153 facts, 13 sites, 2
-    polities, 90 collapses — cost **5,520 bytes of 377,364,589** (0.0015 %), and the only
-    production code that ever read it was the function measuring its size.
-  - **New Observed item, not caused by this slice:** `approx_resident_bytes` is **non-monotone in
-    extent** (Medium **377 MB** > Large **213 MB**) because the deep grid is width-capped
-    (`cell_m = max(extent_m/DEEP_MAX_WIDTH, DEEP_CELL_M)`) and record size is deposition-dependent.
-    A reader of `s7_measurements`' table would find that puzzling and has no note to reach.
-  - *Original entry, preserved:*
-
-- **🔴 REMOVE THE BOOTSTRAP HISTORY CONTENT — polities, sites, ruins, the history pass**
-  (**DECIDED 2026-07-26, user**). *"They are unratified zealous fabrications from the early
-  bootstrapping of the project and I DO NOT care about them, they WILL be wholesale
-  replaced, they should just be removed. We do NOT have any form of evo/socia/civ modeling
-  even at the design stage: they are NOTHING."*
-  - **WHY IT IS A REMOVAL AND NOT A MIGRATION.** There is no design, no model, and no
-    plugin-pack intent behind any of it. It is not built on the SDK pass shape and could not
-    be — **we have never designed a mechanism for declaring structures/blueprints and
-    spawning them in the world at all**. Keeping it means keeping goldens that protect
-    content nobody voted for.
-  - **THE CONSUMER GRAPH IS ALREADY TRACED** (journal/0118's rider, corrections #64): the
-    history pass is an unconditional `vanilla_passes()` member; ruins reach the screen via
-    `collapse.rs::ruin_posts` → `Block::Wood` in `generate_chunk`; and
-    `Pregen.{ledger, overlay, n_polities, observe_count}` have **exactly one non-test reader
-    in the workspace** — `approx_resident_bytes`, which only measures their size.
-  - **SCOPE:** `pregen/history.rs`, `Pregen.sites` and the four fields above,
-    `collapse.rs::ruin_posts` + its `Block::Wood` emission, dc-sim's region/agent-step draws,
-    and the pass's `vanilla_passes()` membership. **The goldens will move and that is
-    correct** — the scratch-pad rule applies exactly (*byte-identity is a regression
-    detector, not a specification*).
-  - **IT ALSO DISCHARGES draw-domain part (a)**, which was sequenced as a user-owned
-    appearance slice solely to protect this content. With the content gone the residual
-    `engine.rs` draw has nothing to re-roll.
-  - **⚠ EXISTENCE IS NOT STANDING** (CLAUDE.md § Conventions, added the same day): the
-    integrator proposed *counting* the ruins before the user's direction landed, which
-    already concedes that some number would matter. It would not.
-
 
 - **✅ THE HILLSLOPE OPERATOR IS FIXED — SHIPPED 2026-07-29 (journal/0122).** The blocker
-  below is discharged; it is kept live only because **one inference in it is falsified and one
+  — **archived 2026-07-29 to [`ROADMAP-history.md`](ROADMAP-history.md)** — is discharged; it is kept live only because **one inference in it is falsified and one
   new item falls out of it**, and both need reading before anyone touches the calibration.
   - **THE MECHANISM, isolated rather than argued.** The pass is an explicit four-neighbour
     Laplacian; its grid-scale mode decays only below a per-edge coefficient of **1/8**
@@ -1410,11 +826,11 @@ see the question you are asking.
     confirmed on the world by a **temporal** discriminator with opposite predictions:
     `corr(conc_h[N], conc_h[N+1])` = **−0.90 calibrated** against **+0.76 shipped**.
     journal/0116's period-2 hypothesis was right as written.
-  - **⚠ CORRECTIONS #72 — the (b) block below is WRONG and #63 (ii) with it.** It *was* a
+  - **⚠ CORRECTIONS #72 — the (b) block of the archived conveyor entry (`ROADMAP-history.md`) is WRONG and #63 (ii) with it.** It *was* a
     stability limit. journal/0116's 4× refinement took the calibrated arm from 100.8× past the
     bound to **25.2× past it**, so its null was a statement about the number 4. Every
     measurement in that entry stands; one inference does not. **Do not cite "not a time-step
-    limit" from below without reading #72.**
+    limit" from that archived entry without reading #72.**
   - **THE FIX.** `Erosion::diffuse` sub-cycles each epoch into
     `ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)` steps. `n = 1` is the old operator bit for
     bit. Not implicit (the `h ≥ 0` obstacle plus exact mass through an iterative solve costs
@@ -1451,110 +867,6 @@ see the question you are asking.
     all, bounded at −0.5 from the closed-form references). The four census primitives moved to
     `deeptime::census`, closing journal/0116's open extraction.
 
-- **~~🔴🔴🔴~~ ✅ FIXED — THE HILLSLOPE CONVEYOR CHECKERBOARDED THE REGOLITH ABOVE 1× — stubs #29,
-  RE-SCOPED 2026-07-26 by the walk (journal/0115, corrections #61/#62) and then
-  **DIAGNOSED 2026-07-26 by journal/0116 (corrections #63)**, and it BLOCKS the calibration
-  below.** *This entry has been renamed twice. It read "THE INCISION CLAMP THAT WAS GREEN
-  BECAUSE NOTHING ERODED" (sized at 148 pits — both wrong), then "THE EROSIONAL SOLVE GOES
-  GRID-UNSTABLE ABOVE 1×" (right about the symptom, wrong about the mechanism: the
-  discriminators say it is **not** a stability limit). The name now says where it is. The
-  superseded framing is kept at the end because its mechanism is probably still real, just
-  not dominant.*
-  - **WHAT IS MEASURED (production-Medium, seed 1337, calibrated vs shipped as control).**
-    Deep-cell concavity — `mean(8 neighbours) − self`:
-
-    | | mean | p10 | p50 | p90 | p99 | >1 m | >20 m |
-    |---|---|---|---|---|---|---|---|
-    | shipped | −0.14 m | −0.3 | −0.1 | +0.1 | +0.3 | **0.0 %** | **0.0 %** |
-    | calibrated | +0.73 m | **−50.8** | −0.1 | **+52.8** | **+106.3** | **35.8 %** | **23.2 %** |
-
-    Closed hollows (`filled − routed`, the non-saturating census): **0 → 1,377 (3.1 % of
-    land), deepest 112.8 m, 5.4 km³ of fill.** Regionally **7.8 % within 10 km** of the walk
-    station — they cluster 2.5×.
-  - **THE HEADLINE, and it is one sentence: relief grew 4.6 %, cell-to-cell roughness grew
-    ~170×.** The shipped world's entire concavity distribution fits in ±0.3 m; the calibrated
-    world's decile spread is ±50 m with the **median unchanged**. The landscape's *shape* is
-    intact and the *grid* has become noise. Symmetric tails + untouched median = adjacent
-    cells oscillating against each other.
-  - **THE PITS ARE THE TAIL, NOT THE DEFECT.** A closed hollow is where the oscillation
-    happened to bottom out with no outlet. Fixing the clamp would clamp the tail and leave
-    23 % of cells 20 m off their neighbours — a slice that goes green and does not fix the
-    world. **Do not brief the clamp fix as the blocker.**
-  - **~~HYPOTHESIS~~ — THE DISCRIMINATORS RAN 2026-07-26 (journal/0116). THE STABILITY-LIMIT
-    STORY IS FALSIFIED; THE DEFECT IS STRUCTURAL AND IT IS IN THE REGOLITH.** The standing
-    hypothesis was *an explicit scheme past its stability limit*; it was flagged unmeasured,
-    it was measured, and it is wrong.
-    - **(a) It IS a checkerboard.** Concavity lag-1 autocorrelation **+0.377 / +0.267
-      (shipped)** vs **−0.867 / −0.912 (calibrated)**, lag 2 back at +0.56 / +0.71,
-      first-difference ACF −0.86. The three reference values are derivable in closed form —
-      white noise **−1/6**, perfect checkerboard **−1** — so the discriminator is not "is it
-      negative" but *how far past −1/6*. Both axes: a true 2-D Nyquist mode.
-    - **(b) It is NOT a time-step limit.** Refined **4×** at fixed total simulated time
-      (`k×` epochs, `1/k×` every per-epoch rate), concavity rms goes **40.46 → 45.29 →
-      38.76** — 4 % under a 4× refinement, non-monotone — while the landscape holds (relief
-      +3.9 %, mean surface −0.3 %) and the shipped control reproduces to three digits. The
-      checkerboard gets **purer**: ACF(1) −0.867 → −0.909 → **−0.947**. Closed hollows *do*
-      converge (1,377 → 955 → 280), so the **pits** are partly a step artefact and the
-      **oscillation is not**. *`myr_per_epoch` does not exist as a knob; the register is
-      `iterations` against per-epoch rates. The claimed shared register with stubs #27's
-      heir (b) is **withdrawn** — they share the limiter, not the clock.*
-    - **(c) ISOSTASY IS THE DAMPER, NOT THE DRIVER** (mechanism proposed mid-flight, killed).
-      `iso_rate` 0.50 → 0.25 → 0.00 takes concavity rms **40.46 → 62.03 → 90.34** and hollows
-      **1,377 → 2,150 → 13,012**. On the **shipped** world `iso_rate = 0` takes rms 0.22 →
-      19.71 and hollows **0 → 6,215**. **Do not touch `iso_rate`** — it is the only
-      grid-scale low-pass in the solve.
-  - **WHERE IT LIVES — split `surf = r + h` and this is what the fix slice is briefed
-    against.** Same Laplacian over each summand, plus the creep limiter's binding fraction:
-
-    | | limiter bound | conc(**r**) rms · ACF(1) | conc(**h**) rms · ACF(1) | surf rms | mean h |
-    |---|---|---|---|---|---|
-    | shipped k=1 | 88.7 % | 3.42 m · −0.10 | 3.43 m · −0.10 | **0.22 m** | 4.58 m |
-    | calibrated k=1 | **96.0 %** | 23.77 m · −0.55 | 61.95 m · −0.82 | 40.46 m | 41.41 m |
-    | calibrated k=2 | **94.9 %** | 12.59 m · −0.34 | 55.21 m · −0.88 | 45.29 m | 36.59 m |
-    | calibrated k=4 | **94.7 %** | **5.88 m · −0.11** | **42.43 m · −0.93** | 38.76 m | 24.45 m |
-
-    - **The BEDROCK solve converges** (23.77 → 5.88 m, ~`1/k`, ACF back to −0.11): there is a
-      real time-step artefact in this world, it is in `r`, and D2 converged it away.
-    - **The REGOLITH does not.** `conc(h)` falls 32 % while its ACF sharpens to **−0.93**, and
-      the refinement does not hold the cover fixed (mean `h` 41.4 → 24.5 m), so normalised by
-      what the operator moves the roughness **grows**: `conc(h)/h̄` 1.50 → 1.51 → **1.74**.
-      **The flat surface total was two defects cancelling.**
-    - **The limiter is deaf to the step: 96.0 → 94.9 → 94.7 %.** Measured, not inferred. It
-      caps export at *the cover the cell has*, so the transfer is a function of **inventory,
-      not `rate × dt`** — which is why refining `dt` did nothing.
-    - **Saturation alone is NOT sufficient — do not brief it as if it were.** The limiter
-      binds on **88.7 %** of *shipped* cells and their `conc(h)` ACF is −0.10. What the
-      calibration adds is **cover** (4.58 → 41.41 m mean regolith).
-    - `corr(concavity, h − h̄) = −0.831` calibrated (+0.147 shipped); `rms(h − h̄)` 70.1 vs
-      4.0 m. On the shipped world `r` and `h` roughness **anti-correlate almost exactly** —
-      3.42 + 3.43 m of component concavity summing to 0.22 m. **That compensation is what
-      broke.**
-    - **Register: the flux limiter / donor-cell partition in `erosion.rs::diffuse`.**
-      **Hypothesis for the slice to test first, explicitly not measured:** a donor-cell scheme
-      that moves everything downslope has a period-2 mode by construction (A gives all its
-      cover to B; B is now higher and gives it back), damped only by isostasy downstream.
-  - **Until this lands the engine cannot run erosion at ANY realistic rate.** Unchanged, and
-    now for a better-understood reason. It gates journal/0114's flag flip and every future
-    calibration.
-  - **⚠ THE ACCEPTANCE CRITERION THAT MISSED IT (corrections #61).** journal/0114's binding
-    criterion was *"relief within 5 %"*. Relief is `max − min` — a **global extremal**
-    statistic that is mathematically incapable of seeing spatial arrangement; you can shuffle
-    every interior cell and leave it unchanged. **Any future erosional slice pairs its
-    aggregate criterion with a neighbour-relative one** (Laplacian, gradient distribution,
-    autocorrelation), or it is measuring the axis that did not break.
-  - **⚠ AND THE GUARD CANNOT FAIL INFORMATIVELY (corrections #62).**
-    `mfd_routing::no_interior_cell_is_cut_below_all_of_its_neighbours` counts cells below
-    **all eight** neighbours — a winner-take-all predicate that **saturates**: as the defect
-    generalises, neighbours sink too and stop qualifying each other, so the count falls back
-    toward zero exactly when the damage becomes universal. Re-assert it on **fill depth and
-    concavity**. *Found by the user flying the terrain, after two probes and a gated assertion
-    all agreed with each other and were all wrong the same way.*
-  - *(SUPERSEDED FRAMING, kept because it is probably a real contributing mechanism: the
-    never-incise-below-the-lowest-receiver clamp is applied at incision, and weathering,
-    creep, wave and eolian all run **after** it in the same epoch and can lower a cell past
-    its floor. That predicts **isolated deep holes**, which is a subset of what the world
-    shows. Its A-2 variant in spines — a test's unstated premise, "erosion is fast enough for
-    this to mean anything" — stands on its own merits.)*
 
 - **🔴 RE-PICK `EROSION_CALIBRATION` AGAINST THE FIXED OPERATOR — and flip the flag**
   (sequenced 2026-07-29, user: *"yes"*; journal/0122). **The constant was fitted to a broken
@@ -1581,20 +893,10 @@ see the question you are asking.
     ladder from journal/0122 is handed forward as **input, not as a recommendation** — the
     agent that measured it deliberately did not act on it, which was correct.
 
-- **🔴 THE TRANSPORT OPERATOR HAS A CEILING — stubs #27** (journal/0114). Six full 200-epoch
-  worlds measured (1×, 10×, 45×, 100×, 300×, 1000×): **export is proportional to mean regolith
-  thickness**, and **creep's flux limiter already binds on ~89 % of cells that have regolith to
-  move, at the SHIPPED rates.** The pass is a **one-cell-per-epoch conveyor**, so 100× on
-  transport alone buys **1.6×**, and reaching the craton band costs order **100 m of cover**.
-  - **This revises journal/0111's diagnosis.** *"A calibration, not an architecture"* was **half
-    right**: the constants are wrong **and** the transport operator is capped. Named heirs:
-    rivers that actually carry, or a non-capped creep operator.
-  - The uniform-scaling hypothesis was **falsified by a diagnostic the agent added because the
-    hypothesis needed a falsifier** — not by argument.
 
 - **🔴🔴 CALIBRATE THE DEEP-TIME CLOCK — the largest measured defect on the board**
   **(⚠ PARTLY BUILT 2026-07-26, journal/0114 — see `ROADMAP-history.md` § Shipped. It is BUILT, MEASURED and
-  DELIBERATELY OFF, blocked on stubs #29 above. The band is NOT reachable at any multiplier;
+  DELIBERATELY OFF, blocked on stubs #29 — **discharged 2026-07-29 by journal/0122; that entry is now in `ROADMAP-history.md`**. The band is NOT reachable at any multiplier;
   read stubs #27 before assuming a bigger number fixes it.)**
   (journal/0111, corrections #56, stubs #24, 2026-07-26). **User-owned and appearance-class:
   the multipliers are the user's to bless. Do NOT let an agent pick them by taste — the target
@@ -1777,52 +1079,6 @@ see the question you are asking.
     line in a doc is not.
   - **ADOPTION (user's terms): immediate for NEW files; gradual refactor of old work WHEN IT IS
     TOUCHED.** No big-bang rewrite.
-  - **✅ CONVENTIONS DECIDED 2026-07-28 (user)** — was *"to be set, not guessed."* Set from the
-    corpus measurement rather than taste, and **shipped in `scripts/filesize_hook.py`**, whose
-    module docstring is now the record (the hook is the only mechanically-enforced corpus
-    control, so the convention lives where it is enforced).
-    - **THE SPLIT AXIS IS LIVENESS, NEVER TOPIC.** Every split moves out the **cold half** —
-      still true, still cited, no longer read to do today's work. **Both real conversions
-      already did this and neither was by topic:** `ROADMAP → ROADMAP-history` split by
-      **status**, `notebook → evidence` split by **read pattern**. The convention is the axis
-      those two taught, not a new invention — which is what `stubs.md:22` requires.
-    - **WHY TOPIC-SPLITTING IS DISALLOWED, and it is the non-obvious half.** Contradiction here
-      is produced by **addition** (design docs delete 2–4 % of what they add), and every
-      expensive failure was a claim sitting near its own refutation — two sentences apart
-      (#65), forty lines (#58), two subsections (#53), 400 lines (journal/0119). **Topic-
-      splitting a live doc converts an in-file contradiction into a cross-file one**, reachable
-      only by the `doc-topology` sweep — five of whose top eight findings were unsuspected by
-      construction. **That trades VOLUME (third in value) for TOPOLOGY (the one that cost an
-      architecture).** *Stated at honest strength: co-location did not prevent those
-      contradictions — access was never the problem. The claim is the weaker, sufficient one:
-      topic-splitting costs the one condition under which a reader could notice and buys only
-      line count. Liveness-splitting cannot do this, because the cold half has stopped
-      accreting.*
-    - **THE THRESHOLD APPLIES TO THE HOT FILE ONLY** — archives and evidence files are exempt
-      by designation. *The old hook flagged `ROADMAP-history.md` for being exactly what it was
-      built to be: crying wolf on a file doing its job, with no correct action available.*
-    - **THREE CLASSES OF `.md`, by READ PATTERN** — **NARRATIVE** (journals, audits, spikes:
-      written once, read whole, never revised) **exempt**, and splitting one is *harmful*
-      (measured: 120 entries, median **177** lines, max 536) · **REGISTRY** (`ROADMAP`,
-      `corrections`, `spines`, `stubs`: looked up by ordinal, not read) **2,500**, split =
-      **archive resolved entries** · **ARGUMENT** (`docs/design/*`, skills: read in sections,
-      actively revised) **1,000** — the only class where the threshold bites and the only class
-      where topology failures happen.
-    - **Verified on the real corpus:** flags `ROADMAP` (5,120) and `corrections` (2,681) as
-      registries with a real action, and `material-behavior` (1,036) as an argument doc; silent
-      on `ROADMAP-history`, the evidence file, every journal entry, every spike, and `spines`
-      (1,283, under the registry bar). **Signal went from "everything large" to three files with
-      a correct move each.**
-    - **DELIBERATELY NOT BUILT:** no taxonomy registry, no frontmatter marking file class, no
-      validator. **Two conversions is below this project's own bar** (`stubs.md:22`;
-      session-workflow § Seam-first #6). Class is derived from path, which suffices until the
-      next two or three splits teach more.
-    - **⚠ HONEST LIMIT, recorded so this is not oversold:** volume is the **third** most
-      valuable of the three docs-ops failures and the archive *"would not have prevented
-      journal/0119."* **This buys agent context efficiency; it is not a correctness fix.** The
-      open **corpus-addressability** thread may subsume part of it — *a file addressable by
-      section may not need to be small* — so the ARGUMENT threshold is the negotiable number if
-      that lands.
 
 - **Finish the draw-domain conversion: the residual hand-rolled sites** (opened 2026-07-25
   by journal/0105, which converted 26 of them and named these). Small, and each is named in code
@@ -1844,25 +1100,6 @@ see the question you are asking.
     now byte-identical housekeeping.** *Dispatched as previously written, a slice would have
     gone looking for `collapse.rs::ruin_posts` and waited on a user ratification that cannot be
     owed.* Read the trace below as the 2026-07-26 record it is:
-    (corrections #64, a read-only trace taken
-    2026-07-26 during (b); **not re-scoped by that agent — the integrator's and the user's call**):
-    - **The region-step draw (`engine.rs:331`) is the real one, and it IS visible.** Collapsed
-      pressure → the sack roll (`pregen/history.rs:221`) → `abandoned` → `Pregen.sites` →
-      `collapse.rs:1588`'s ruin posts → `Block::Wood` in `generate_chunk` (`collapse.rs:483-488`)
-      → meshed (`dc-client/src/meshing.rs:214`). **No flag anywhere** — the history pass is an
-      unconditional `vanilla_passes()` member (`pipeline.rs:359-366`).
-    - **The agent-step draw (`engine.rs:355`) re-rolls NOTHING.** The pregen overlay is built with
-      an empty agent roster (`history.rs:82`/`:84-88` pass `vec![]` as `with_graph`'s `agent_home`),
-      so the loop never executes outside dc-sim's own tests. **That half is byte-identical
-      housekeeping and could ride with anything.**
-    - **"Polities" is not re-rolled.** The count is fixed at epoch 0 (`history.rs:134-149`);
-      `PolityExtent` facts move but live only in `Pregen.ledger`, which **nothing in production
-      reads** (`pregen/mod.rs:300-304`; sole non-test reader `approx_resident_bytes`,
-      `mod.rs:367`) — a spines § 3 "built, and nothing calls it" cluster.
-    - **Goldens that would move:** `contents_contract.rs:70-86`, `s7_walk.rs:32-40`,
-      `geology.rs:32` (all hash `generate_chunk` blocks, structurally downstream of the posts),
-      and `s7_handoff.rs:118`, which pins a **seed-specific sack** and is the likeliest break.
-      `GOLDEN_SURFACE` / `GOLDEN_RECORD` are **not** downstream (deep-time field only).
   - **(b) `deeptime/{grid,biotic}.rs`'s three call sites — ✅ DONE 2026-07-26, byte-identical**
     (journal/0118, which also carries the rider above).
     They now open `DeepTimeRoughness` / `BioticFire` / `BioticFlood` through `Draws::of`. Two
@@ -1879,8 +1116,6 @@ see the question you are asking.
   - Byte-identity impact: **(b) none (measured)**, (c) none if the tags are kept, (a) **the
     region-step draw moves every world's ruin posts; the agent-step draw moves nothing**.
 
-*(The `production_* → golden_*` rename that stood here — opened 2026-07-25 by journal/0106,
-given a real entry by the staleness sweep row D-2 — **shipped 2026-07-26**; see `ROADMAP-history.md` § Shipped.)*
 
 <!-- Two arcs sequenced 2026-07-24 with full reasoning + a reserved continuation
 slot each, per the user's "slice-of" principle: never lose what a completed slice
@@ -2006,25 +1241,6 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     one arrow per cell, so its spines row was upgraded **SUPERSEDED → A-1**. Expect **`area` to be
     the harder half**, since MFD makes exported drainage area a *dispersed* quantity whose peak is
     15× smaller. **Do not close the arc when the first slice lands.**
-  - ~~**🔴 OWED BY MFD, and it is the nearest-term thing on this arc (2026-07-26, journal/0109):**~~
-    **✅ SHIPPED 2026-07-26 — struck 2026-07-29 (baseline sweep S5/F4). Both terms are stale.**
-    **Hybrid `p` shipped** as FLOW (b′) (`journal/0113`, `ROADMAP-history.md`; peak catchment
-    84 → 298) and is **the shipped default** — `crates/dc-worldgen/src/deeptime/grid.rs` sets
-    `mfd_exponent: 1.0` / `mfd_exponent_channel: 16.0` with `mfd_chi_lo`/`mfd_chi_hi`,
-    doc-commented *"the hybrid-`p` law (journal/0113)"*. **The `k_bedrock`/`k_transport`
-    recalibration** is at least partly discharged by the joint calibration
-    (`journal/0114`, `EROSION_CALIBRATION = 45` — which this same entry acknowledges elsewhere),
-    though that ships **behind `calibrated_rates`, OFF**. *This document cites hybrid `p` as a
-    **completed predecessor** two hundred lines above while flagging it 🔴 OWED here.*
-    Original text, kept as the record of what was owed:
-    ~~**hybrid `p`**, plus **recalibrating `k_bedrock`/`k_transport`**.~~ Uniform `p` **does not
-    concentrate flow** — peak catchment fell **1,245 → 84 cells** — because MFD lowers both `Q`
-    and `S` at every cell, making it **systematically less erosive than D8 at fixed coefficients**
-    (total load −16 % while load-carrying faces ×2.76). The literature's answer is `p` as a
-    function of area/slope, or single-receiver above a channel threshold. **This gates whether the
-    world ever SHOWS what the record now holds** — today the record carries 7.5 M simultaneous
-    divergences and the viewport carries 2.7 cm. *Uniform `p` was the simplest correct thing and
-    is the wrong long-run shape; that is the shipping agent's own verdict, not a later critique.*
   - **NAMED LIMITS (honest, from the 2026-07-25 foreclosure sweep — flow.md § 5):**
     oscillatory/tidal flow nets to ≈0 and needs a **gross-energy** term · **episodic**
     catastrophes (turbidite/jökulhlaup/lahar) average away inside a chapter though the
@@ -2237,91 +1453,6 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     condition-field vocabulary IS the formation-predicate SDK surface (§12 formation is
     output-owned; the predicate is plain data over field-ids — crossing constraint satisfied).
 
-- **APPEARANCE WALKS OWED** (tracking, user: "we do that when able" — journal screenshots for
-  appearance-changing work). **(1)** ✅ **DONE — walk-confirmed 2026-07-24** (user, aerial
-  fullbright: *"I can now confirm the LOD is fixed!!"* — fine near field transitions cleanly into
-  the warm coarse far LOD, no cold-dither ring; screenshots `journal/assets/0091-lod-walk-*`).
-  The only residue is the poke-through geometry check on the lit pass — low priority. Still owed:
-  **(2)** ✅ **DONE — walk-confirmed & ACCEPTED 2026-07-25** (user; journal/0097). Flag-ON vs the
-  byte-identical flag-OFF control on the same column: **7 voxels ≈ 6.3 m** of loose product at the
-  basement contact (predicted 6.09 m), **24.2 % of land banded**, veneer and basement unmoved.
-  Instrument `--fullbright` (a material question). **Accepted with a follow-up, not a blocker** —
-  the band has a **hard perimeter** (see Sequenced "the weathering front needs a PROFILE"), and the
-  gradational-looking top contact is **boundary quantization, not weathering** (one voxel deep,
-  `mixed_voxel_contents`); **(4)** ✅ **DONE — WALK-CONFIRMED & PASSED 2026-07-25** (user, at the
-  station, `--weather-inventory --fullbright`, bench cut; assets
-  `0099-weathering-front-profile-bench.png`, `-full-section.png`): *"Success on the gradation!
-  Aesthetically, which is all I can judge here, this is a pass. **Our world just got far deeper and
-  more interesting to look at, just with this. The spawn area isn't a shallow pile of rubble over a
-  harsh boundary of uniform rock anymore.**"* Measured on the record **before** the screenshot so
-  the picture could not flatter it: product **6→5→4→3→1** eighths downward, parent structure
-  **4→5→7**, form flipping at 295/294 from debris to `structure`+`pore_fill`, deepest front voxel
-  **7/8 parent + 1/8 product**. The journal/0097 hard perimeter is gone at **both** faces.
-  *(Live bonus: `has_contents:false` on the basement below — journal/0101's `identify(pos)` fix
-  working in the field, where the query used to claim `dc:air` over solid stone.)*
-  ~~**(4)** the **weathering-front PROFILE** flag-ON walk~~ (journal/0099,
-  shipped 2026-07-25) — the band is now a graded **19-voxel** front, ~**2.67×** deeper than the
-  old slab, with **retained parent structure at the bottom contact** (7/8 parent + 1/8 product)
-  instead of a hard perimeter; station world **(84185 m, 9212 m)**, voxels **y=299…281** — cut a
-  **bench** (not a pit), `--fullbright`, read with `world_get_contents`; **(3)** ⚠️ **the
-  geotherm's coal-distribution shift — THE WALK IS A NULL AND NEEDS NO GAME TIME** (tour-mapped
-  2026-07-25, `examples/coal_walk_tour.rs`; corrections #51): **the shipped world has ZERO coal**,
-  so there is nothing to look at. The appearance question the user was going to be asked ("is this
-  seam thick enough?") is **replaced by a content question** — *"is a coal-free world acceptable
-  for now?"* — answerable at the desk, not in-game. **Do not spend a walk on it.** See the
-  🔴 Observed entry. *(A fallback peat station exists if the world is ever walked for organics
-  anyway: world −8266, −45533, surface 263.7 m, 2.7 m of peat outcropping at the surface — no
-  bench needed; nearest-to-Station-A alternative at 58867, −34963, 50.9 km away.)*
-  **(5)** ~~the `pore_rider_share` **correlation** walk — a fullbright walk along a strong front
-  looking for banding correlated with the parent's eighth~~ **NEVER OWED — ANSWERED AT THE DESK
-  2026-07-25 (journal/0105).** Filed here 2026-07-25 by sweep row D-5, which correctly caught that
-  a proposed walk was living in an Observed entry and not in this tracker — but the walk had
-  already been retired by the hash-domain slice that merged the same day. It measured the question
-  spatially instead: on one 32×32 contact plane sharing one record and one fill plan, **every
-  autocorrelation at lags 1–4 in both axes is inside ±0.07 of zero, before *and* after** the fix.
-  Structurally absent, not merely subtle — both offsets are functions of a position hash, so a
-  dependency between two decisions **at one voxel** cannot make structure **between** voxels.
-  *Kept struck rather than deleted: the lesson is the tracker's, not the walk's — a walk proposed
-  in an Observed entry and not listed here is a loose end by stubs.md doctrine, whichever way it
-  later resolves.*
-  Screenshots to `journal/assets/` named for their entry.
-
-- ✅ **DONE 2026-07-25 — shipped, see `ROADMAP-history.md` § Shipped (journal/0100).** Measured result: flag-ON
-  `DeepField` **311.02 → 179.12 MiB**, the flag's own cost **+161.81 → +29.91 MiB (5.41×)**,
-  ledger heap **155.01 → 16.31 MiB (9.5×)**, index 3.4 % of the ledger, world byte-identical
-  (same 1,033,189 facts in the same 72,006 slots). *Entry kept below as shaped, for the record.*
-  **`FactLedger` IS 89 % EMPTY HEADERS — give it the CSR layout `flux.rs` already proves**
-  (shaped 2026-07-25 at the user's direction; measured in `docs/spikes/S19-flow-record-cost-results.md`).
-  - **WHAT.** `FactLedger` is `Vec<Vec<Fact>>` keyed per (cell, slot). Measured on a production
-    world: **5,832,862 inner `Vec`s of which 5,760,856 (98.8 %) are EMPTY**; **89 % of its
-    ~150 MiB heap is empty `Vec` headers**, against a real payload of **16.6 MiB over 1.03 M
-    facts**. Turning `weather_inventory` ON therefore costs **+156.91 MiB** — and after the
-    `shrink_to_fit` win that is **~1.4× the entire rest of the `DeepField`** (108.55 MiB bare).
-  - **WHY NOW.** The walk **blessed the band** (journal/0097), so the flag is on its way to
-    becoming a default rather than a dev toggle — and the moment it is, this is the single
-    largest residency item in the world. Runtime residency is first-class (CLAUDE.md); gen time
-    is free, so the conversion cost is free.
-  - **THE FIX IS ALREADY PROVEN IN-TREE — do not design a new one (A-4).** `deeptime/flux.rs`
-    (journal/0096) stores a far larger sparse per-(cell,chapter,face) record as **flat
-    exact-sized arrays + a CSR index**, and measured the index floor at **0.056× of total** —
-    i.e. *the index is free and the payload is the whole constraint*. Port that layout. Facts are
-    also **causally triangular** (a slot deposited in chapter `c` cannot carry a fact from before
-    `c` — 57.7 % of the naive rectangle, a free 1.73×), so never allocate the rectangle.
-    **⚠ CORRECTED BY THE BUILD (journal/0100):** the triangular exploit is **SUBSUMED, not
-    applied** — exact-sizing stores the **1,033,189 facts that actually exist**, which is **4 % of
-    even the causal ceiling**. Triangularity is a **budgeting tool for projecting an UNBUILT
-    record, never a sizing rule for a BUILT one**: once you can count the real entries, any
-    formula over the possible ones is a ceiling you have already beaten. Keep that distinction
-    when using S19's projections for the flow record's later slices.
-  - **SCOPE.** `deeptime/inventory.rs` + its readers. **Pure layout change: byte-identical
-    world, identical facts, identical `weathering_product_m`** — the goldens and every
-    fact-count test must pass **unmoved and by name**. Acceptance = the measured before/after
-    residency with `weather_inventory` ON, plus byte-identity proven by test name.
-  - **BLOCKED-ON:** `inventory.rs` sits inside `deeptime/`, which the in-flight **head field**
-    slice owns. Launch when that lands, or carve `inventory.rs` out of its write-set explicitly.
-  - **NOTE THE SHAPE, not just the number:** this is the same defect the flow record was warned
-    off in-flight and avoided. Fixing it here closes the loop — the measurement that protected
-    the new record should also repair the old one.
 
 - **WEATHERING IS ONE PROCESS — SAPROLITE IS A STATE ALONG IT, NOT A SLICE**
   (**USER'S STRONG LEANING on the destination, 2026-07-25** — *"strong enough that it should pop
@@ -2456,39 +1587,6 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     one, and the two-authorities split (material vs height) becomes derivable rather than
     maintained — which is Movement 2a's stated direction anyway.
 
-- **✅ SHIPPED 2026-07-25 (journal/0099) — see `ROADMAP-history.md` § Shipped, journal/0099, for the result.** *(Entry kept for its
-  reasoning; the flag-ON walk it earned is now item (4) of APPEARANCE WALKS OWED.)*
-  ~~THE WEATHERING FRONT NEEDS A PROFILE, NOT A SLAB~~ (walk finding, user, 2026-07-25;
-  journal/0097). **WHAT.** Movement 3's band is correctly *magnituded* and wrongly *shaped*: the
-  collapse folds the scalar `FactLedger::weathering_product_m` into **one stratum of one class**
-  (`CLASS_CLASTIC_FINE`, `geology.rs::emplace_weathering_front`), so the record→voxel path expresses
-  a span that wholly contains a voxel as `Single` — **8/8 of one member**. Result: pure product
-  above, **pristine contents-free basement below, a hard perimeter on both faces.** User: *"the
-  layer of degraded bedrock has a hard perimeter and then pure bedrock, which does not make sense
-  for the natural process it claims to model… nature does not in-place degrade a bulk unit of rock
-  to another via weathering."*
-  - **WHY IT HAPPENS.** The inventory edge is honest at its own tier — `(GRANITE, Structure) →
-    (GRANITE, Loose)`, a **form** change on one material, mass-conserving, one fact per agent. The
-    loss is at the **fold**: `weathering_product_m` is a **scalar, and a scalar cannot carry a
-    profile.** What the model computed is a rate integrated over depth and time; what got emplaced
-    is a slab. The downward gradient — intact rock → corestones → grus → clay — *is* what makes
-    saprolite legible as saprolite, and it is exactly what the fold discards.
-  - **HEIR SHAPE (user-proposed, expressible in TODAY's vocabulary — which is what makes this a
-    follow-up and not a research project).** `structure → pore_fill` rather than
-    `structure → structure`: **retained parent structure with weathering product in its pores**, the
-    structure share falling with height through the front. `VoxelContents` already carries
-    `structure[]` / `pore_fill[]` / `open_pores` / `debris[]` in eighths — the walk read them
-    straight off `world_get_contents`. Today's band says `structure: []`, `debris: [mudstone 8/8]`:
-    **the parent rock is simply gone.**
-  - **COUPLES TO** stub #16 (a rind's *material identity* — the inventory says granite-loose while
-    the collapse expresses mudstone; the two disagree today and #16 owns that half) and to the
-    deep-cell inventory's **form vocabulary** (§2 forms / §3 transition graph — this is a
-    form-transition question, so it belongs to the same machine).
-  - **NOTE THE FLATTERING ARTIFACT (journal/0097, worth not re-deriving):** the band's *top* contact
-    already mixes and reads convincingly — but that is **boundary quantization**
-    (`mixed_voxel_contents` / `allocate_partial`, journal/0055), **exactly one voxel deep, wherever
-    any two units meet**, and would look identical at the contact of two units that never
-    interacted. It is not a weathering gradient and must not be mistaken for progress on this item.
 
 - **GEOTHERM: nonlinear / mantle-heat enrichment** (followup, user-directed 2026-07-24). The v1
   geotherm (material-behavior.md §14) is a per-cell **linear** gradient `T(depth) = surface_T +
@@ -2576,51 +1674,6 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
     and knowledge will be modeled"* — i.e. it belongs to the (undesigned) perception /
     knowledge model, **not** to the world query. Recorded specifically so nobody
     re-derives distance-tiering later by mistaking a game rule for an engine constraint.
-  - **~~TIER BOUNDARIES DERIVE FROM THE LOD LADDER~~ — SUPERSEDED SAME DAY by the UNTIERED
-    decision above. Preserved because the reasoning is still load-bearing for the
-    *render-side* query, if one is ever wanted.** ~~DECIDED 2026-07-25 (user):~~ *"the
-    boundaries should fall out of LOD bands, which already reduce material contents
-    depth / honesty."* The tiers are **not a second, independently-tuned threshold set**
-    — that would be A-4 (a mechanism beside the one we have) and would drift out of sync
-    with what is actually on screen. `LodLadder` (`dc-client/src/farmesh.rs:126`,
-    journal/0091 — one ladder, all named knobs, every ring edge already **derived** from
-    it) is the authority; `identify`'s Near/Mid/Far read *it*. Payoff: the ladder is
-    already structured to become **in-game per-player perf settings**, so honesty
-    automatically tracks the player's own quality setting — turn the view distance down
-    and the answers get *honestly* coarser, with no second knob to forget.
-  - **~~⚠ OPEN, and it must be settled before dispatch — WHOSE ladder?~~ DISSOLVED
-    2026-07-25 with the tiers themselves** (there was no good answer because the
-    question was malformed — see the UNTIERED block above). Preserved only for the
-    *render-side* query, if one is ever wanted.** `LodLadder` is
-    **dc-client** state and is **per-viewer**, but `identify(pos)` is a **world** question
-    reachable headlessly (dc-api agents, mods, tests) where there is no camera and no
-    ladder. So the signature cannot simply read ambient client state. Candidate
-    resolutions (not chosen): **(i)** `identify` takes an explicit *tier/observer* argument
-    and the client passes the one its ladder implies — keeps the world query pure and makes
-    the client the only place that knows about cameras; **(ii)** it defaults to
-    **finest-resident** and the client narrows; **(iii)** the ladder (or a headless-safe
-    projection of it) moves somewhere both crates can see. **(i) is the integrator's lean**
-    — it preserves "what is at X is a world question, not a camera question", which this
-    very entry already asserts. User call at dispatch time.
-  - **~~THE FAR TIER'S PAYLOAD IS A MIXTURE, NOT A WINNER~~ — PRESERVED FOR THE RENDER-SIDE QUERY,
-    like its two siblings above** (folded 2026-07-25, sweep row D-4). *This bullet is written in the
-    tier language the **UNTIERED** decision retired the same day, and its surviving content is
-    already stated up in that decision (**"payload is uniformly a mixture… there is no far tier left
-    to special-case"**). What is **unique** to it and still live: the **render-side speckle
-    direction**, and the cross-reference to the journal/0091 **LOD fix (b)** cold/warm material
-    agreement, both in its last two sentences.* **DECIDED 2026-07-25 (user):** *"LOD may
-    be textured by a **speckled mix** in the future, not just single material as it is now. So
-    leave the seam for speckle — or better yet have it fall out by construction."* **It falls out
-    by construction, and that is the design:** make the payload **uniformly a mixture at every
-    tier**, so the tiers differ in **RESOLUTION** (how many components survive, at what precision),
-    **never in KIND**. A single dominant material is then just *a one-component mixture at 8/8* —
-    today's `classify` answer expressed in the general shape, with **no special case to migrate**
-    the day the far field goes speckled. Writing `Far = one MaterialId` would bake exactly the
-    "one arbitrary component" assumption this whole arc exists to retire (and would need an A-2
-    correction the moment speckle lands). **Corollary:** the same shape carries the **UNRECORDED**
-    answer below — an empty mixture is not the same value as a one-component `Air` mixture.
-    **Ties into** the far-field speckle direction the genesis-passes / octave arc is heading for,
-    and the LOD fix (b) cold/warm **material** agreement (S-9) still owed from journal/0091.
   - **FIRST CONCRETE REQUIREMENT, now measured rather than argued (corrections #49,
     2026-07-25):** the tier flag must be able to say **"UNRECORDED"** as a first-class
     answer, distinct from both *"air"* and *"recorded"*. Today `has_contents` is answered
@@ -2787,15 +1840,6 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   above). Not now — a knob to add later; couples to the LOD warm-cache lifetime the
   haunted-LOD diagnosis flagged as a needs-live-probe.
 
-- **Collapse-cache `evict()` is unreachable from far-field-only sampling**
-  (diagnosed 2026-07-21, journal/0050; `evict()` fires only from
-  `generate_chunk`, so a `coarse_surface`/`column_record` sweep can grow
-  `lattice_memo`/`locale_cache`/`region_cache` between chunk generations).
-  Bounded in normal play (a storm generates chunks constantly) — not the RAM
-  march, which was `HostWorld.chunks` and is now fixed. **Reassigned
-  2026-07-21** to the forms/partials `collapse.rs` rewrite, which owns that
-  file. *(**Separate hardening item — DeviceLost degrades loudly: SHIPPED**
-  2026-07-21, journal/0054.)*
 
 - **METAMORPHISM — the grade axis: `exhum` = P, `dc:field/temperature` = T → grade**
   (**UNBLOCKED 2026-07-24** by the geotherm, journal/0093; given its own Sequenced entry
@@ -2882,21 +1926,12 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   A and B garnish the ground; only C touches the 460 m–7.4 km band the `L_DEEP`
   override discards. Sequence the steep-site re-walk FIRST so the pick is made
   against the world's real terrain.
-- *(**Far-field horizon knob: SHIPPED** 2026-07-21, journal/0042 — see `ROADMAP-history.md` § Shipped.
-  `--horizon <km>`, default provably unchanged, measured to 10 km.)*
 - **A 5th/6th far LOD level — for horizons past ~10 km** (found by the
   journal/0042 measurements, 2026-07-21). The 4-level ring scheme's honest
   ceiling is ~10 km / 172 MiB / 13.7 s to fill, because cost is quadratic
   inside the stretched L4. Journal/0023 already named the right answer — *add
   rings*, don't lengthen the last one. Only worth doing if the design target
   wants vistas past 10 km; note the haze limit below may bind first.
-- **Wave-magnitude retune — STRUCK 2026-07-21 (user): no retune.** "That
-  whole mechanism changes after water machinery. that would be a bandaid,
-  against our standing rule against bandaids. can revisit later." The
-  confirmed null (0.68 m, journal/0049 station 5) rides as-built until the
-  fetch model (wave energy from S11 body size/shape/depth × the 0037 wind
-  field) replaces the constant outright — wave expression is a consumer of
-  the water design pass now, not a tuning slice.
 - **The forms/partials EMISSION slice** (user directive, journal/0049 station
   2; materials.md DECIDED 2026-07-21). **The forms DESIGN is now done —
   `material-behavior.md` §§ 2–3 IS that pass** (the closed form set structure/loose/
@@ -2921,28 +1956,6 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   the 50 km artifact, byte-identity off, relief distributions for the
   re-sequenced amplitude call, drainage-export fidelity). **Dispatch after
   the eolian agent merges** — write-sets collide in `deeptime/erosion.rs`.
-- *(**Zonal circulation profile: SHIPPED** 2026-07-20, journal/0037 — see
-  `ROADMAP-history.md` § Shipped.)*
-- *(**Deep-config flag plumbing: SHIPPED** 2026-07-20, journal/0039 — see
-  `ROADMAP-history.md` § Shipped. The four launch flags (`--tectonics`, `--full-agents`,
-  `--amplitude`, `--extent`) boot a flagged world; the combined amplitude /
-  tectonic / full_agents walk is unblocked. The override channel is
-  `DeepOverrides` on top of `production_config`, NOT a `WorldParams` field —
-  the ~30 `{ seed, extent }` call sites were left untouched.)*
-- **Erosion-supply calibration** (from the S12 spike's new finding,
-  2026-07-20): exhumation comes out metre-scale at shipped erosion rates,
-  gating exhumed-core/foreland legibility independent of amplitude — the
-  S9 calibration loose end, now load-bearing. Needs-measurement class:
-  compare model denudation against real orogen rates, propose 2–3
-  calibrations, render each — the user then chooses between pictures, not
-  rate constants. Dispatch after the combined walk settles amplitude.
-- **Tectonic uplift-plane redesign — DESIGN PASS (superseded — done)** (direction ratified
-  2026-07-20, earth-processes.md § 1 DECIDED entry): tectonic history
-  (uplift(t), plate advection, chaptered boundary re-classification) +
-  analytic boundary forcing (uplift from exact bisector distance at deep-grid
-  resolution). Spike-class; upstream of dip/fold, volcanism, and the
-  amplitude call. Includes the plate-count/scale-compression knob decision
-  (user-owned).
 
 - **Retire `client_player_pose_set` into `dc:character/pose`** (API.md
   Decisions #5, ratified 2026-07-20): make the player a dc-api character
@@ -2951,34 +1964,8 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
   sequenced AFTER the session-4 console and edges agents merge: it rewrites
   `mcp.rs` and `player.rs`, both in those agents' write-sets.
 
-*(**FF2a — voxel-language far field: SHIPPED** 2026-07-19, journal/0023 — see
-`ROADMAP-history.md` § Shipped. Stepped columns retired the smooth TIN; step 0 empirically confirmed
-Bevy 0.19's GPU-driven multidraw engages for our custom material
-(`mode=Culling`, 74 draws → 1 multidraw set); the buried-sheet and tile-crack
-field reports are resolved, below.)* **FF2b — coarse volumetric
-summaries** paired with the caves/underground thread of the water design
-pass (when overhangs exist, the summary goes 3D; couples to S3 region
-storage). FF2a left the extension point ready: the per-column payload is a
-`ColumnSpan` the mesher already treats as one of a potential stack, and the
-tile mesher is a pure function of plain span data (async-meshing / persistent
-edit-tracked LOD store stay drop-in).
-
-
-*(**Erodibility coupling — lithology-aware erosion: SHIPPED** 2026-07-20,
-journal/0029 — see `ROADMAP-history.md` § Shipped. Cause 1 of the dismal mountains is closed:
-erosion is lithology-aware, off by default, byte-identical when off,
-agent-specific resistance so karst/glacial/littoral stay implementable.
-What remains is **user decisions**.)*
 
 **NEEDS RATIFICATION (user-owned — this CHANGES TERRAIN SHAPE):**
-1. ~~**Flipping `production_config`'s `erodibility` to true**~~ **RATIFIED AND
-   DONE 2026-07-20** (user: "flip it, i want to see"; journal/0030). It is on;
-   every new world has a different shape. The appearance answer came back
-   **negative** — the ground-level surface is measurably re-terraced, but the
-   predicted ledges/benches at hard beds and the resistant basement core are real
-   in the data and **absent on screen** at the shipped amplitude (summit
-   silhouette identical; 5 km lattice ±2 m; the ground dropped one voxel). Which
-   makes item 2 below the live question, not a footnote.
 2. **The contrast is currently modest at the shipped erosion amplitude** (relief
    +2 m aggregate) because the world barely erodes against its uplift; the
    headroom test shows the model produces real cliffs (44.7 m) the moment erosion
@@ -3065,14 +2052,6 @@ What remains is **user decisions**.)*
    physics constants and S10's rate constants (no-bandaid). Engineering, rides
    as-built unless the user wants a different look.
 
-Original charter (for the record):
-The gap was `erosion.rs` incising bedrock with a single global `k_bedrock` —
-granite and mudstone eroded identically, so the world had no differential
-erosion anywhere. The data already existed (the recorder knew the exposed unit
-per cell per epoch); erosion never asked. Design notes honoured: agent-specific
-resistance (NOT a scalar — the limestone cliffs-vs-caves trap); composition order
-with `resist`/`wmult` stated; basement/shield prediction checked and holds;
-feedback stability clamped; off-by-default and byte-identical.
 
 **Far-field range knobs** (user-requested 2026-07-20 at the FF2a
 ratification): expose the draw-distance geometry as adjustable settings —
@@ -3191,14 +2170,6 @@ answered the gate question — all four signals present and legible, cost
 implementation slice.)*
 
 **NEEDS RATIFICATION (user-owned, from S10-results.md § Recommendation):**
-1. ~~**The world-creation ritual grows 15 s → 25 s (+66 %)**~~ — **RATIFIED
-   2026-07-20, and the number was pessimistic**: measured on the shipped path
-   the ritual is **13.79 s** (biology's marginal cost +2.6 s, not +10 s). The
-   25 s figure came from the spike harness's *scalar* driver; production takes
-   S9b's byte-identical parallel path — **corrections #12**, journal/0026.
-2. ~~**Flipping `production_config`'s `biotic` to true**~~ — **DONE**
-   2026-07-20 (journal/0026). Biology runs in every new world; the `DeepField`
-   changed for every world created from here.
 3. **Signal abundance is aesthetic, not correctness**: coal 0.55 % of
    columns, paleosols 22.9 %, charcoal 20.2 %, retrogression 23.5 %. Is a
    fifth of the world carrying a fire record the texture we want?
@@ -3226,24 +2197,6 @@ implementation slice.)*
    world creation (pack-add affects ungenerated regions only, matching the
    DF-like seed policy) or accept landform drift.
 
-*(**Collapse-tier organic materials + the production flip: SHIPPED**
-2026-07-20, journal/0026 — see `ROADMAP-history.md` § Shipped. The `Biofacies` → class routing is in,
-coal/peat/carbonaceous-mudstone exist, and the 24 m seam at world voxel
-(107338, 58787) is diggable. Two follow-ons fell out of it, both
-measurement-backed:)*
-
-**Charcoal as an inclusion, not a band** (journal/0026, measured): the fire
-record is the third most numerous facies (158 310 beds) and **none of it
-survives the collapse tier** — mean bed ~3.5 cm against a 0.9 m voxel, 0 of
-158 310 kept. A charcoal *band* is therefore impossible at this voxel scale, so
-no charcoal material was shipped. The honest representation is the one geology.md
-§ inclusions already ratified: a few dark eighths riding inside the host stratum
-above the burn, exactly as the placer puts gold in gravel and 3d puts olivine in
-basalt. Blocked on a mechanism, not a decision — `deposit_deep_history` currently
-*drops* sub-voxel units, so this needs a redistribute-into-host rule that touches
-every dropped unit (mineral ones included) plus an inclusion channel on
-`StrataEvent` distinct from the placer's `ore`. Its own slice, with its own
-invariant work.
 
 **Coal rank when burial deepens** (journal/0026): `dc:stratum/organic-coal`
 ships one member because rank transitions (lignite → sub-bituminous →
@@ -3356,15 +2309,6 @@ than the hundreds a real basin gives. **What this pass still owes is the PRESENT
 tier:** visible and flowing water, ponds and sub-resolution water, speleogenesis, and the
 free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
-**Water-model design pass** (ratified 2026-07-19, user; field-notebook
-first per the earth-processes method): groundwater as "another dimension
-for the flow to go" — water table / aquifers (S8 per-voxel porosity is
-the waiting substrate), ponds and sub-resolution water (procedural-tricks
-tail), visible/flowing water (couples to PBR-2 water), lakes/inland seas
-already implicit as deep-tier flooded basins (spill levels known).
-**Groundwater ↔ CAVES coupling flagged by the user** — speleogenesis as
-the eventual cave story (today's caves are S1 noise carving). Design doc
-before any code.
 
 3a. Form archetypes + drop distributions (materials.md § forms) — implement
    with the first inventory/interaction milestone.
@@ -3408,6 +2352,11 @@ before any code.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **Poke-through geometry check (re-filed 2026-07-29 — the APPEARANCE WALKS OWED parent
+  moved to history; this residue was live inside it):** whether near-field geometry pokes
+  through the far sheet at tier boundaries has never been visually checked; ride it along
+  the next appearance walk's stations rather than launching for it alone.
 
 **⬇ 129 → 85 entries, 2026-07-29.** Forty-five entries left this section for
 [`ROADMAP-history.md`](ROADMAP-history.md) **§ Observed — archived**: **8 user field reports the
@@ -3646,31 +2595,6 @@ second file.
   dither — watch for the chunk-line cutover"** further down this section. One is now observed and
   one is still a hypothesis; they are the same mechanism seen from two sides, so a slice that
   touches either should settle both.
-- **DIAGNOSED 2026-07-25 — `world_get_contents` reports `dc:air` and `has_contents: true` over
-  solid, correctly-unrecorded rock** (walk observation journal/0097; diagnosis
-  `docs/audits/2026-07-25-contents-empty-over-solid-diagnosis.md`, probe
-  `dc-worldgen/examples/contents_air_over_solid_probe.rs`). **The original premise is falsified**
-  (corrections #49): the world was never empty there, and **`eye_in_solid` was the honest
-  instrument** — it and the query's own `block` field read the same `block_at` and both said
-  `dc:stone`. Unrecorded basement is `Block::Stone` by construction (`collapse.rs:457-459`) and no
-  voxel below a column's height can be `Block::Air` at all (`collapse.rs:434-436`).
-  **Mechanism — a dc-api query-surface defect:** `contents_at` answers a **per-voxel** question
-  with a **per-chunk** presence test (`host.rs:320-326`), so an *unrecorded* basement voxel sharing
-  a 32³ chunk with any recorded voxel returns `Some(VoxelContents::EMPTY)` — reported as
-  `has_contents: true` (`host.rs:83`, contradicting `payload.rs:426-429` / `schema.rs:754-756`)
-  with `classified: dc:air` (`host.rs:76-79`, the operation `classify.rs:31-45` explicitly
-  forbids). Reproduced **to the voxel** at journal/0097's own station: phantom band 288–299, honest
-  from 287 down — the transition is the **chunk floor `9×32`**, not anything in the world.
-  **Global:** 702/10,985 solid voxels (**6.4 %**) across 169 columns; 39/169 columns affected;
-  worldgen authority only. **Blast radius:** the F3 HUD (`inspector.rs:125-133`) and
-  `character_sense_raycast` (`host.rs:1424-1426`) carry it identically — their correct "no contents
-  record here" branch is **unreachable** in this case; the mesher (`meshing.rs:295-306`) and far
-  field (`farfield.rs:134-152`) are **immune**, which is why only the *diagnostic* surfaces ever
-  showed it. **NOT the bare-cell fallback** — that is a real thin-record *generation* artifact;
-  this is a *reporting* artifact over a healthy record. Both entries stay.
-  **OWED — and it is the `identify(pos)` arc's first concrete requirement:** a tier flag that can
-  say **"unrecorded"** as a first-class answer, distinct from both "air" and "recorded". Not fixed
-  here (diagnosis-only agent).
 
 - **A column expressing ONE recorded voxel over 64 unrecorded** (measured 2026-07-25 by the
   contents probe at journal/0097's station: `dc:peat` at `y = 300`, unrecorded basement below).
@@ -3707,32 +2631,6 @@ second file.
   cannot see `weather_inventory`'s facts. Both F6 entries are on the weathering arc's critical path
   and compete for one residency budget — read them together.
 
-- ~~**Two declaration defects on the new `dc:deep/weather_inventory` pass**~~ **✅ BOTH FIXED —
-  verified at source 2026-07-29** (S6 finding F2). This entry read as owed work and was not.
-  - **(a) shipped as the honest fix, exactly as diagnosed.** `crates/dc-worldgen/src/deeptime/runner.rs:542-544`
-    now carries `BioMod` in the within-epoch **`reads`** rosters (`WINV_READS_AGENTS` /
-    `_TEC` / `_LEG`), the pass declares `reads_prev: &[]` (`:889`), and the module comment at
-    `:523-530` states the reasoning verbatim — *"a `reads_prev` declaration was a fiction …
-    Declaring it as a real `reads` makes the graph state what actually happens and PINS the order
-    instead of inheriting it from a tie-break."* Shipped by the spine-audit follow-through,
-    2026-07-25.
-  - **(b) fixed by DELETION, which is the honest disposal.** `Exposed` is no longer declared at
-    all; `runner.rs:532-535` says so out loud — *"**`Exposed` is deliberately NOT declared**:
-    susceptibility is a constant off `BEDROCK_SEAM_MATERIAL` … declare what you read, not what you
-    intend to read"* — and `:1454-1456` **asserts** it (`assert!(!w.reads.contains(&DeepAxis::Exposed))`).
-    The false declaration was removed rather than made true, and there is now a test that fails if
-    anyone re-adds it without the genesis heir. *(Original diagnosis below, kept for the record.)*
-  - **(a) `reads_prev: &[BioMod]` is not what happens.** The pass reads `grid.bio_weather`, which
-    `dc:deep/biotic` overwrites **in place** each epoch; no edge is declared against `biotic`, so
-    which epoch's plane it sees is decided by `passgraph`'s id-lexicographic tie-break
-    (`dc:deep/biotic` < `dc:deep/weather_inventory` ⇒ it reads **this** epoch's, not last's).
-    *Rename the pass and the physics changes* — the declaration is a fiction the graph does not
-    enforce. Honest fix is free: move `BioMod` into within-epoch `reads` (adds only
-    `biotic → weather_inventory`; nothing reads `Saprolite`, so no cycle). Note
-    `weather_inventory_is_absent_off_and_a_declared_cellular_pass_on` asserts the **declaration**,
-    not the behaviour — green about the wrong thing (**A-3** shape). **(b) `Exposed` is declared
-    but never read** (susceptibility is a constant off `BEDROCK_SEAM_MATERIAL` until stub #16's
-    genesis heir lands); the comment claiming it reads "the exposed lithology" is untrue today.
 
 - **STATION — per-chunk material-palette quantization makes the chunk grid a
   visible checkerboard** (user field report + diagnostic station, 2026-07-24;
@@ -3916,29 +2814,6 @@ second file.
   sequenced work**: consume-the-ledger piece (c), *derive material FORM from
   provenance* rather than from class. This is that item's first concrete,
   visible symptom.
-- *(**HOLES IN THE GROUND: FIXED** 2026-07-21, journal/0057 + corrections #29.
-  Culling is now **occupancy-aware**: the neighbour predicate returns `f32`
-  coverage and faces resolve **by span** — emit the band `[cover, frac]`, cull
-  only when `cover >= frac`, so exactly one side owns each band and nothing is
-  coplanar-doubled. Bottom faces get the mirrored fix. `height_frac` had been
-  re-deriving loose-only privately, so the mesher was holding **the very second
-  opinion the fill contract exists to prevent**; one `cover_frac` rule now
-  serves both the interior path and the cross-chunk closure. Cost **+30 %
-  triangles on a synthetic worst case** (randomised loose depth per column) —
-  an upper bound, since real depths are spatially correlated and equal-height
-  pairs still cull. Seven tests by name including both border cases.
-  ~~**UNWALKED** — nobody has seen the holes gone; re-walk
-  `0056-holes-after-settle.png`'s coordinates, and if bands persist, distrust
-  journal/0057 first.~~
-  **✅ WALKED AND CONFIRMED — the tag was discharged on 2026-07-22 and nobody
-  updated it** (S6 finding F1, applied 2026-07-29). The walk-0059 session at
-  `--horizon 3 --fullbright --edges` answered it YES by eye: **no sky-holes** at
-  two partial-rich stations, journal/0057 confirmed. The confirming entry sat
-  ~1,160 lines below this tag in the same section for seven days and was never
-  read back against it — the closure-in-the-wrong-place shape, inside the one
-  file every session opens. **It is now in `ROADMAP-history.md` § Observed —
-  archived** (struck by the user 2026-07-29 for its *third*, still-open answer;
-  the two YES answers are preserved there verbatim). Assets `0059-*`.)*
 - **Two more assumptions the partials-first world falsified** (journal/0057
   § i, recorded so nobody re-derives them as bugs). **(1)** Partial-height
   expression is now silently conditional on *which block the record produced*:
@@ -3950,39 +2825,6 @@ second file.
   draws every column full-height while the near field draws partial tops — a
   systematic sub-voxel step at the LOD boundary. Same root as the "far field is
   boxier" item; the distance-pyramid slice is where both get answered.
-- **HOLES IN THE GROUND — partial voxels are missing side faces** (found in
-  the live walk 2026-07-21, **diagnosed by the user**; FIXED — see above).
-  Symptom: sky-blue bands straight through the terrain in a rectilinear
-  pattern, persistent (identical screenshots 20 s apart — not a streaming
-  transient). Assets `0056-nearfar-check-after-3km.png`,
-  `0056-holes-after-settle.png`. The user's read, confirmed against the code:
-  *"the bands you see are missing side faces. these partials mostly have no
-  side faces - some of them do, following no apparent pattern."*
-  **Mechanism:** `meshing.rs` culls side faces on a **block-tier boolean**
-  (`neighbor_solid: &dyn Fn(..) -> bool`), so a 5/8 partial beside a 3/8
-  partial has its whole face culled and the exposed 2/8 band is drawn by
-  nobody. Its own header states the assumption that made this safe —
-  *"Worldgen does not yet emit sub-8 loose voxels"* — which journal/0055
-  falsified world-wide this morning. The dc-core occupancy primitives added by
-  journal/0052 exist precisely for this. **The wider lesson:** journal/0010
-  shipped partial-height rendering dormant and predicted it would "light up
-  for free the day deposition produces its first sub-full column". It lit up
-  and did not work, because the assumption it rested on lived in a doc comment
-  nobody re-read when the world changed underneath it.
-- *(**"Surface material is quantized per chunk": FIXED** 2026-07-21,
-  journal/0058 — the member is now drawn per voxel column inside the shared
-  `surface_sample` kernel. Chunk footprints expressing more than one surface
-  member went **0/169 → 147/169**. Block fingerprints unchanged in both
-  recorded worlds, which is within-class invariance confirmed by an 80-chunk
-  fingerprint that knows nothing about the argument. ~~**Unwalked** — the fix
-  landed after the user's session closed, so nobody has seen the patches
-  gone.~~
-  **✅ WALKED AND CONFIRMED — the tag was discharged on 2026-07-22 and nobody
-  updated it** (S6 finding F1, applied 2026-07-29). Walk 0059: **no 28.8 m chunk
-  patches** — a 120 m top-down frame shows organic blobs with wandering
-  contacts, journal/0058 confirmed. Same seven-day gap as the sky-holes tag
-  above, discharged by the same entry, now in `ROADMAP-history.md` § Observed —
-  archived.)*
 - **Mixed voxels carry no member dither — watch for the chunk-line cutover
   coming back** (journal/0055 judgment call 2, 2026-07-21; UNTESTED either
   way). The 3c-2 boundary dither (`dithered_member`) exists to wander material
@@ -4070,36 +2912,7 @@ second file.
   session before the merge gate, and verify by test name/count rather than by
   `test result: ok`. Undiagnosed in detail (which fingerprint input goes
   stale); see corrections #27.
-- **GPU DeviceLost crash under a teleport storm at `--horizon 6`**
-  (2026-07-21, live session, user present). ~65 s after a 10-jump ~28 km
-  teleport sequence: `DeviceLost ("driver implementation is at fault")` →
-  swap-chain loss → wgpu buffer-map panic → bevy_pbr cluster PoisonError
-  cascade. Suspicion (UNDIAGNOSED — needs reproduction, not a bandaid):
-  far-field rebuild churn — each long jump rebuilds toward a ~900-tile field
-  plus near chunks/colliders — hitting either a Windows TDR (one >2 s GPU
-  frame) or VRAM/allocator exhaustion. This is the failure class the
-  perf-first doctrine (ARCHITECTURE.md § Modularity and performance,
-  DECIDED 2026-07-21) exists for: pooling/recycling of far tiles and chunk
-  meshes is the designed answer; voxy-dh-recon's pooled-vertex-buffer row is
-  the prior art. Note the process exit code was 0 — the crash is invisible
-  to exit-code monitoring; the panic cascade also poisons instead of
-  degrading loudly. Secondary defect either way: a DeviceLost should not
-  cascade into unwrap panics. Repro suggestion: scripted teleport storm via
-  MCP at `--horizon 6+`, watched with GPU memory instrumentation.
 
-- **Stub inventory filed** (`docs/design/stubs.md`, 2026-07-21, read-only audit
-  agent + integrator). Ten active stubs, each with its heir. One genuine
-  discovery: **ruin-posts was UNDOCUMENTED** — the only world-visible
-  substitution with no placeholder marker anywhere; ~~a loud code comment is
-  owed at `collapse.rs::ruin_posts`~~ **— ✅ VOID 2026-07-29: `ruin_posts` is DELETED**
-  (S6 audit § 2 #3). `grep -rn "ruin_posts" --include=*.rs crates/` returns **zero hits**;
-  `docs/design/stubs.md` #1 reads *"ruin-posts — RESOLVED BY DELETION 2026-07-28 (journal/0121); no
-  heir was ever built and none is owed"*. The entry's one genuine discovery was an owed comment on
-  a function that no longer exists. *(Note: `stubs.md:64-65` records explicitly that this deletion
-  is **not** evidence for the ecology clause in CLAUDE.md — do not cite it that way.)* Two audit additions to the decision's holdout list:
-  igneous emplacement-depth constants and paleo-temp-is-present-day. Also
-  flagged: the `field.rs` doc-comment claims the collapse tier "reads"
-  exhum/t_crust when nothing does — do not trust it.
 
 - **The haze curve, not geometry, limits the usable vista** (journal/0042
   measurement, 2026-07-21). With `--horizon 8` the outer third of the field
@@ -4154,61 +2967,6 @@ second file.
   it" — then deferred telling it ("it'll cloud your context"). Recorded so
   the thread is not lost: it belongs in
   `docs/design/things-that-will-happen.md` when told.
-
-
-- **`--fullbright` is blind to geometry, and that cost a walk its conclusion**
-  (2026-07-20, journal/0030 + corrections #18). DIAGNOSED, not yet fixed. In
-  fullbright every face of a block is one flat vertex colour, so on terrain made
-  of a single material there is no cue distinguishing a top face from a side
-  face: `0030-flank-before-fullbright.png` renders an entire terraced hillside as
-  a **featureless grey field** while the lit frame of the same geometry shows
-  every step. The pass that correctly proved a *material* claim in 0027 silently
-  answered "no change" to a *geometry* question in 0030.
-  **User proposal, 2026-07-20: give block faces dark borders in fullbright** —
-  "would give you more sense of dimension and help distinguish block positions."
-  Agreed, and it is the direct fix for the failure above. Design notes from the
-  agent that hit it:
-  1. Prefer **crease/silhouette edges** (outline depth- and normal-discontinuities)
-     over per-cube wireframe. What makes a bench legible is the *step*, not the
-     grid, and per-voxel outlines at 3.5 km would alias into moiré where a voxel
-     is sub-pixel. Fade the edge term out with distance.
-  2. Ship it as a **separate flag** (e.g. `--fullbright --edges`) so the pure
-     "colour in = colour out" control that 0027 depends on still exists unmodified;
-     borders are a renderer-added signal and the data pass should stay data.
-  Two adjacent asks from the same walk, both cheap and both currently blocking
-  landform photography: **(a) `--fullbright` should also disable distance fog** —
-  the 3.5 km summit vista washed to near-white in *both* passes, so silhouette
-  work at landform scale is presently impossible; **(b)** nothing is needed for
-  sun determinism — confirmed with the user that the sun is static, which is what
-  makes the lit pass trustworthy for before/after diffing after all.
-
-- **INSTRUMENT: `--fullbright` is BLIND TO SHAPE** (journal/0030,
-  corrections #18). It renders unlit pure vertex colour, so every face of a
-  block is the same colour — on single-material terrain a fully terraced
-  hillside renders as a **featureless grey field**
-  (`0030-flank-before-fullbright.png`, whose every step is plainly visible
-  in the lit frame of identical geometry). A near-zero fullbright pixel-diff
-  therefore does **not** mean "the shape did not change"; it means this
-  control cannot see shape. **Choose the control that can see the question**:
-  lit for shape/relief, fullbright for material/data. Proposed fix, filed
-  not built: **crease/silhouette edge outlining under a separate flag**
-  (`--fullbright --edges`) — outline depth and normal discontinuities only,
-  distance-faded, never per-cube (per-voxel outlines alias into moiré where
-  a voxel is sub-pixel at km range); separate flag so the pure
-  colour-in-colour-out control that the 0027 coal diagnosis depended on
-  survives unmodified.
-
-- **INSTRUMENT: `--fullbright` does not disable distance fog** (journal/0030).
-  The 3.5 km massif vista washed to near-white in *both* passes, so
-  landform-scale silhouette assessment is currently impossible — fog, not
-  lighting, destroyed the frame (`0030-massif-*-fullbright.png`). Since
-  fullbright exists to be a pure-data diagnostic register, atmospheric
-  haze does not belong in it. Cheap fix; blocks silhouette work, which is
-  exactly what the dismal-mountains thread needs.
-  *(Related walk suggestion, not filed as a defect: crease-aware dark face
-  borders under a separate flag — outlining silhouette/depth-discontinuity
-  edges only, distance-faded, never per-cube, which would alias at range.
-  Kept separate from `--fullbright` so the pure-data control survives.)*
 
 
 - **"Our dismal mountains"** (user, 2026-07-20) — DIAGNOSED, four causes,
@@ -4284,22 +3042,6 @@ second file.
   shape (bounded local relaxation attenuated by a per-material property),
   so S11's locality result may transfer. Undesigned.
 
-
-- **No pooling/reuse of chunk or far-tile GPU resources** (user question,
-  2026-07-20; read from source, not measured). Every chunk load
-  `commands.spawn`s a fresh entity with `meshes.add(to_bevy_mesh(..))` — a
-  newly allocated `Mesh` asset — and every unload `despawn()`s it, freeing
-  the asset. Far tiles (`LoadedFarTile`) follow the same churn. Partly
-  mitigated for free: Bevy's `MeshAllocator` slab-allocates vertex buffers
-  (FF2a step 0 found our custom attributes only *select* a slab), and the
-  ECS recycles entity ids — so the unmitigated cost is CPU-side `Vec` +
-  `Mesh` asset churn on every chunk-boundary crossing. **Filed prior**:
-  voxy-dh-recon transfer map already lists "persistently-mapped pooled
-  vertex buffers (AZDO) → far-tile buffer management when tiles churn."
-  **Unmeasured.** Per placeholder-state-is-not-intent, measure at the
-  design-target scale (10 km field, hundreds of tiles churning while
-  walking), not at today's 1.2 km — the far-field range knobs milestone is
-  the natural vehicle for that measurement.
 
 - **Walk report (2026-07-20, journal/0027): peat and carbonaceous mudstone are
   nearly the same colour.** `[0.24, 0.17, 0.11]` vs `[0.21, 0.18, 0.15]` — a
@@ -4503,17 +3245,6 @@ second file.
   (dev affordance; not slated). `jump` remains a fallback pose, not an
   authored clip. Plans/clips are define-only (no get/list queries yet).
 
-- Walk 7 loose ends (journal/0008): **unloaded-neighbour and far-mesh
-  fallbacks still sample S1 `TerrainGen`** — near-field loaded chunks are
-  worldgen, but the far LOD rings and load-radius border faces show the old
-  hill-field; user-sighted in walk 8 as a *phantom old world ~500 m below*
-  the real terrain that dissolves on approach. A visible artifact until the
-  far field becomes worldgen/summary-shaped (pairs with the existing
-  far-mesh Observed items). Single-material
-  faces under fullbright are featureless color fields — information arrives
-  with the 3c-2 dither and later the splat pipeline. The `Terrain` resource
-  is retained solely as the 3/4-key legacy fallback. *(Scale-3 boot default:
-  fixed in 3c-1; freeze wire-drop path: proven live in walk 7.)*
 
 - Walk 6 loose ends (journal/0006): the surface scan window is
   S1-terrain-sized (8 m headroom / 220 m depth) — structures stacked >8 m
@@ -4533,19 +3264,6 @@ second file.
   *(`surface_height_m` under-report: diagnosed and fixed, journal/0006 —
   the "missing octave" hypothesis falsified, corrections #5.)*
 
-- ~~The embedded HostWorld never evicts chunks (~64 KiB per chunk ever
-  streamed/edited); never-edited chunks are pure generator output and could
-  be dropped freely (journal/0002).~~
-  **✅ IT EVICTS — verified at source 2026-07-29** (S6 audit § 2 #1).
-  `crates/dc-api/src/host.rs:524` is `fn enforce_chunk_budget(&mut self, protect: Option<ChunkPos>)`,
-  a bounded LRU with hysteresis, called from `set_chunk_budget` and from the materialize path;
-  `:246-250` documents it as a bounded LRU in which **edited entries are protected** — exactly the
-  generated-untouched-vs-edited split this entry asked for. Shipped 2026-07-21 by journal/0051.
-  **The refutation was 700+ lines above this line, in this same section, for eight days** (*"FIXED
-  2026-07-21 (journal/0051): eviction landed, the march is flat (+27.4 → 0.00 MB/jump)"* — now in
-  `ROADMAP-history.md` § Observed — archived). A claim and its own refutation coexisting in the one
-  artifact every session opens: the corrections #65 shape. Discharged here so archiving the
-  refutation does not leave the claim standing alone.
 - Far field doesn't see edits — the worldgen far field is a coarse *summary*
   (not a cache), so a broken block un-breaks beyond the full-detail radius; a
   summary that tracks edits is a follow-on (journal/0002, 0022). (Same for the
@@ -4557,14 +3275,6 @@ second file.
 - Rivers are straight cell-chords (S7); course refinement needs the 2-ring
   argument re-proved at finer levels.
 - Terrain amplitude conservative — no voxel-scale cliffs (S7).
-- ~~Site cap 240 (u8 RegionId) — concrete instance of S2's ledger-scale
-  question (S7).~~ **✅ THE SUBJECT IS GONE — verified 2026-07-29** (S6 audit § 2 #4).
-  `grep -rn "RegionId" --include=*.rs crates/dc-worldgen/` returns **zero hits** and `sites` is
-  absent from `crates/dc-worldgen/src/pregen/mod.rs`; the bootstrap settlement-history content was
-  removed 2026-07-28 (journal/0121). This was a scale constraint on content that no longer exists.
-  *(The surviving `RegionId` hits in the tree are `crates/dc-sim/src/statistical/engine.rs` — an
-  unrelated toy-world type.)* **S2's ledger-scale question itself is live and is not this entry** —
-  it is the 🔔 TRIGGERED S2-checkpoint-facts entry below.
 - Sparse sidecar encoding for thin debris drapes (S8) — index array dominates.
 - Seed-stable worlds across releases: versioning policy undecided (S7).
 - HDR/exposure: v0 post grades LDR; sky-as-pass needs hook format 1 (S4).
@@ -4607,51 +3317,6 @@ second file.
   horizon. Filed as a constraint on the albedo slice and on all future
   far-field work: ranges arrive as config, not constants.
 
-- ~~**We cannot see where runtime goes — the perf observability gap**~~ **✅ ANSWERED AS POSED —
-  verified at source 2026-07-29** (S6 audit § 2 #5). The instrument exists:
-  `crates/dc-client/src/perf.rs` — `:26` documents that *"under `--features perf` it expands to a
-  real `bevy::log::info_span!(..)"*, `:40` is the expansion, `:68-69` pulls in
-  `bevy::log::tracing::{Subscriber, span::Id}` for a custom collector. So the entry's flat claim of
-  *"**NO** runtime frame/tick observability"* is false today.
-  **The live residual is already its own entry, above:** *"the perf instrument can't show the
-  frame-thread envelope"* — `PerfAggregate` sums self-time across the frame thread AND the
-  task-pool threads, so per-thread-role attribution is what is actually missing. **A complaint
-  about an instrument is not evidence the instrument is absent**, and the two entries sat ~1,000
-  lines apart never referencing each other. *(Original entry below, for the record.)* (user,
-  2026-07-22: "it's not easy for us to target where the perf killers are";
-  same conversation as the CLAUDE.md runtime-is-sacred convention). The
-  project measures gen-time rigorously (spike results, ritual A/Bs, budget
-  counters) but has NO runtime frame/tick observability: no span-level
-  profiling, no tick-time breakdown, no way to attribute the chunk-drop
-  chop (Observed above) to gen vs meshing vs tick contention. **Enabling
-  slice filed: wire `tracing` spans through the hot paths (chunk gen,
-  meshing, collider tiles, far-field derive, sim tick) with Bevy's Tracy
-  integration (`trace_tracy`), then capture a BASELINE profile of the
-  known-bad scenario (vertical drop) into `docs/audits/` as the first
-  ranked perf-killer list.** Instrument-must-see-the-question applied to
-  time. Sequenced after FF2b-minimal merges (dc-client write-set overlap);
-  pairs naturally with the erosion-budget flag slice already queued there.
-
-- **Chunk gen time is now noticeable in vertical streaming** (user field
-  report, walk 0071, 2026-07-22): dropping from height — so the adaptive
-  load volume streams chunks *below* — gets so choppy that "time appears to
-  slow to a crawl, sometimes." Observation only, no diagnosis: the symptom
-  (sim time dilating, not just frame hitching) suggests generation work is
-  contending with the tick rather than merely the renderer, but that is a
-  hypothesis to test, not a finding. *(Sharpened same day with a prime
-  suspect: `dc-client/src/streaming.rs:42` — `LOAD_BUDGET_PER_FRAME = 8`,
-  generated SYNCHRONOUSLY on the main schedule; no AsyncComputeTaskPool
-  anywhere in streaming. Far-mesh is the same pattern (2 tiles/frame,
-  main-thread; journal/0023 filed "async is a drop-in", unclaimed). Chunk
-  gen is a pure seeded function, so task-pool offload does not threaten
-  determinism. Still profile before building — but the profiling slice and
-  the async-offload slice are now an obvious pair, and the client runtime
-  is otherwise nearly single-threaded against a deep sim that already
-  proved byte-identical rayon parallelism.)* Distinct from the pregen-time
-  non-constraint (that covenant covers world *creation*; this is runtime
-  streaming). Couples forward to the octree substrate (coarse-below is
-  exactly what FF2b-class nodes eventually provide while true chunks
-  generate) — but likely wants profiling before any architecture is blamed.
 
 - **The cake observation: minority phases guillotine at cell perimeters
   under the coherent draw** (user, 2026-07-22, on ratifying B1's look —
@@ -4761,19 +3426,6 @@ second file.
   horizons) and what the deep-time/collapse seam is. Pairs with the
   sub-460 m process band and the pore-packability rule (materials.md).
 
-- ~~**The `history.rs` reject-don't-crash skip is SILENT**~~ **✅ THE FILE IS DELETED — verified
-  2026-07-29** (S6 audit § 2 #2). `crates/dc-worldgen/src/pregen/history.rs` does not exist and
-  `RegionId` has zero hits in `dc-worldgen`; the bootstrap history content went 2026-07-28
-  (journal/0121, −713 Rust lines) under *existence is not standing*. This entry filed an owed
-  warning on a code path that no longer exists. **The pack-degradation doctrine it invoked (API.md:
-  degradation must be LOUD) is untouched and still binds** — only this instance of it is void.
-  *(Original entry below, for the record.)* (2026-07-20,
-  from the circulation merge). When a relocated-settlement graph
-  over-constrains the S2 pressure collapse, `history.rs` now skips the
-  observation instead of panicking (integrator-approved) — but the
-  pack-degradation doctrine (API.md) says degradation must be LOUD. A
-  skipped world-history collapse currently emits nothing; it owes a named
-  warning. Small.
 
 - **Circulation is fidelity-correct but surface-invisible** (journal/0038
   record-walk, corrections #22). The ~30° Hadley desert belt is arid in the
