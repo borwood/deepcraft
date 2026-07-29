@@ -118,7 +118,44 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// The calibrated world is reachable and pinned by name as
 /// [`GOLDEN_SURFACE_CALIBRATED`], so the flip is one line once the pit defect is
 /// fixed.
-pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
+///
+/// **Moved 2026-07-29 by the sub-cycled hillslope operator (journal/0122) —
+/// authorized, and it is a correctness fix rather than a capability.** The
+/// transport pass is an explicit Laplacian, and an explicit Laplacian has a
+/// period-2 grid-scale mode whenever its per-edge coefficient exceeds `1/8`; its
+/// flux limiter, capping export at the cell's whole inventory rather than at the
+/// amount that would level the pair, turned that divergence into an exactly
+/// amplitude-preserving flip-flop (isolated in
+/// `erosion.rs::hillslope_operator_tests`). The pass now splits each epoch into
+/// `ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)` steps.
+///
+/// **The shipped world moves only a little, and it moves for a reason worth
+/// stating.** `diffusion = 0.12` sits *inside* the bound, so the config rate was
+/// never past it — but `eff_diff` folds in the lithology's creep susceptibility,
+/// and the shipped world's peak effective diffusivity is **0.261**, so it takes
+/// two sub-steps. Measured on production-Medium: mean regolith 4.57 → 3.91 m,
+/// relief 5521.9 → 5521.0 m, mean surface 515.2 → 515.0 m, closed hollows 0 → 0.
+/// The unbounded world is still reachable and still hashed as
+/// [`GOLDEN_SURFACE_UNBOUNDED_CREEP`], asserted by name in
+/// `tests/creep_operator.rs`. Prior value (pre-0122 `main`), kept for audit:
+///
+/// ```text
+/// GOLDEN_SURFACE 0x260E_074F_211C_936D
+/// ```
+pub const GOLDEN_SURFACE: u64 = 0x15A6_B756_7A84_29FB;
+
+/// **The pre-journal/0122 hillslope operator, reachable and pinned.** The same
+/// production fixture built with `DeepConfig::creep_substep = false`: one raw
+/// explicit step per epoch at whatever per-edge coefficient the config states,
+/// which is what every world before 2026-07-29 was generated with.
+///
+/// It is the same shape as [`GOLDEN_SURFACE_SINGLE_RECEIVER`],
+/// [`GOLDEN_SURFACE_SCALAR_LOAD`] and [`GOLDEN_SURFACE_ANONYMOUS_CREEP`]: an old
+/// solve that is still reachable, so a moved shipped golden is an authorized move
+/// rather than a lost fixed point.
+pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0x260E_074F_211C_936D;
+/// The strata-record half of [`GOLDEN_SURFACE_UNBOUNDED_CREEP`].
+pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xACB6_1859_6AA3_F3A8;
 
 /// **The CALIBRATED world, reachable and pinned** (journal/0114). The same fixture
 /// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
@@ -135,9 +172,30 @@ pub const GOLDEN_SURFACE: u64 = 0x260E_074F_211C_936D;
 /// Pinning it now is what makes the flip cheap and honest later: when the pit defect
 /// that keeps the flag off is fixed, this constant moves and the diff says so, rather
 /// than the calibrated world arriving unmeasured alongside the repair.
-pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x8020_8FAF_68F0_6CCD;
+///
+/// **Moved 2026-07-29 by the sub-cycled hillslope operator (journal/0122), and this
+/// is the constant it moved *most* — which is the pinning doing exactly its job.**
+/// At 45× the pass takes **100 sub-steps** where the shipped world takes 2, so the
+/// calibrated world is the one the fix actually reshapes: its regolith concavity rms
+/// goes **62.42 → 2.66 m**, its lag-1 autocorrelation **−0.821 → +0.001**, the
+/// surface's concavity rms **40.42 → 0.30 m** and closed hollows past 10 m
+/// **818 → 12**. Prior value (the world 45× built under the unbounded operator), kept
+/// for audit:
+///
+/// ```text
+/// GOLDEN_SURFACE_CALIBRATED 0x8020_8FAF_68F0_6CCD
+/// GOLDEN_RECORD_CALIBRATED  0xF17A_ABE0_FA95_9DC4
+/// ```
+///
+/// **⚠ And the number 45 itself is now in question** — it was fitted against the
+/// capped operator (journal/0114 measured 100× on transport buying 1.6×, because the
+/// limiter had turned the pass into a one-cell-per-epoch conveyor). With the cap gone
+/// the same multiplier strips the world to 1.40 m of mean regolith. So this constant
+/// still pins "the world `calibrated_rates: Some(true)` builds", which is what it is
+/// for; it no longer pins "the world we intend to ship when the flag flips".
+pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x53AD_BCCE_B157_09A8;
 /// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
-pub const GOLDEN_RECORD_CALIBRATED: u64 = 0xF17A_ABE0_FA95_9DC4;
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x830E_768D_3D1D_866B;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -277,7 +335,16 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```
 /// **NOT moved by journal/0114** — see [`GOLDEN_SURFACE`]. The calibrated record is
 /// [`GOLDEN_RECORD_CALIBRATED`].
-pub const GOLDEN_RECORD: u64 = 0xACB6_1859_6AA3_F3A8;
+///
+/// **Moved 2026-07-29 by the sub-cycled hillslope operator (journal/0122) —
+/// authorized.** See [`GOLDEN_SURFACE`]. Prior value (pre-0122 `main`), kept for
+/// audit and still asserted under `creep_substep: false` as
+/// [`GOLDEN_RECORD_UNBOUNDED_CREEP`]:
+///
+/// ```text
+/// GOLDEN_RECORD 0xACB6_1859_6AA3_F3A8
+/// ```
+pub const GOLDEN_RECORD: u64 = 0x820B_A198_49DD_234A;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

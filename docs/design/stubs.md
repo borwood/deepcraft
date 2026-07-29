@@ -984,6 +984,19 @@ much of the land is treated as channelised, and every golden with it. Nothing at
 runtime reads them. *Loud marker at both constants and at `MfdParams`.*
 
 ### 27. the-one-cell-per-epoch-conveyor — *added 2026-07-26 (the joint supply+transport calibration, journal/0114)*
+
+**⚠ THE CONVEYOR IS GONE 2026-07-29 (journal/0122) — and the calibration fitted on top of it
+does not survive.** The cap was a symptom of the same defect as § 29: `diffuse` ran one
+explicit step per epoch at a per-edge coefficient **100.8×** past the 1/8 monotonicity bound,
+and the inventory limiter is what stopped that from blowing up — by making every saturated
+cell ship exactly one cell's worth downslope. Sub-cycling to the bound removes both at once:
+the limiter's binding fraction falls **96.0 → 77.5 %** calibrated and **88.7 → 79.1 %**
+shipped, and transport is no longer capped. **But everything below about what a multiplier
+buys was measured against the capped operator and is now wrong in the other direction**: at
+45× the fixed pass strips the world to **1.40 m** of mean regolith rather than thickening it
+to 43.9 m. The heir named here — *"a creep operator not capped at one cell per timestep"* — is
+**built**; what is now owed is a re-derivation of `EROSION_CALIBRATION` against it, which is
+user-owned and appearance-class.
 `erosion.rs::diffuse` is the **only working long-distance sediment router this world
 has**: hillslope creep carries **99.87 %** of everything that leaves the land, against
 the fluvial pass's **0.02 %** (measured on the calibrated world; the shares are
@@ -1058,6 +1071,19 @@ moved underneath them. **Blast:** coastal cliff retreat, dune fields, the perigl
 *Loud marker in `scale_erosion_rates`' doc comment, which names the exclusion and why.*
 
 ### 29. the-hillslope-conveyor-that-checkerboards-the-regolith — *added 2026-07-26 (journal/0114); re-scoped by the walk (journal/0115, corrections #61/#62); **RENAMED AGAIN 2026-07-26 when the discriminators ran (journal/0116, corrections #63)** — was "the-clamp-that-was-green-because-nothing-eroded", then "the-solve-that-goes-grid-unstable-above-1×" (right about the symptom, wrong about the mechanism)*
+
+**⚠ DISCHARGED 2026-07-29 (journal/0122) — the operator is fixed, and one inference below is
+falsified (corrections #72).** The pass now sub-cycles each epoch to keep its per-edge
+coefficient inside `CREEP_MAX_EDGE_COEFF = 1/8`, the bound below which an explicit
+four-neighbour Laplacian cannot flip the grid-scale mode. **The (b) block below is wrong**:
+this *was* a stability limit, and the 4× refinement was ~25× short of reaching it (peak
+effective coefficient **12.60** calibrated against a 1/8 bound). Measured after the fix, on
+production-Medium: calibrated `conc(h)` rms **62.42 → 2.66 m**, its ACF(1) **−0.821 → +0.001**,
+the surface's concavity rms **40.42 → 0.30 m** and its ACF(1) **−0.867 → +0.185**, closed
+hollows past 10 m **818 → 12**. **What is NOT discharged and is now the live item: the
+multiplier itself.** `EROSION_CALIBRATION = 45` was fitted against the capped conveyor; with
+the cap gone the same multiplier strips the world to 1.40 m of mean regolith. See § 27 and the
+ROADMAP.
 
 **⚠ READ THIS BLOCK BEFORE THE ORIGINAL ENTRY BELOW.** The original sized this defect at
 **148 pits** using a *below-all-eight-neighbours* census, and diagnosed it as the incision

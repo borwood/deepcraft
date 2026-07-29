@@ -130,3 +130,13 @@ dc-api.workspace = true
 [[example]]
 name = "walk_tour_0115"
 test = true
+
+# journal/0122 — the hillslope-transport fix. The gated half is the guard the
+# blocker was missing: the CALIBRATED world's regolith must carry no grid-scale
+# oscillation, judged against the closed-form ACF references rather than against
+# a previous run, plus the sub-cycle count following from the rate. Both are
+# scale-free (a statement about adjacent samples and about one arithmetic), so
+# they run at Extent::Small.
+[[example]]
+name = "creep_operator_probe"
+test = true

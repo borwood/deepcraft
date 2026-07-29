@@ -1,3 +1,13 @@
+!!! BANNER (added 2026-07-29, journal/0122 — the body below is the dated record and is unedited)
+!!! The D2 arm's NULL WAS READ WRONG. corrections #72: the hillslope pass IS past a stability
+!!! limit — an explicit 4-neighbour Laplacian stops flipping its grid-scale mode only below a
+!!! per-edge coefficient of 1/8, and this world's peak effective coefficient is 0.261 shipped
+!!! and 12.60 calibrated (2.1x and 100.8x past it). The 4x refinement recorded below left the
+!!! calibrated arm 25.2x past the bound, so its null was a statement about the number 4.
+!!! Every measurement here stands; the inference drawn from D2 does not. The operator was
+!!! fixed 2026-07-29 (Erosion::diffuse sub-cycles to CREEP_MAX_EDGE_COEFF); the world's
+!!! after-numbers are in journal/0122 and examples/creep_operator_probe.rs.
+
 === walk tour: colluvium · alluvial contrast · the pits ===
 seed 1337, extent medium (~251 km), production config, N=2 (0.9 m voxels)
 

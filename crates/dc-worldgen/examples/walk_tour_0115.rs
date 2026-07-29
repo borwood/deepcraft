@@ -44,7 +44,7 @@ use std::time::Instant;
 
 use dc_worldgen::deeptime::lithology::Litho;
 use dc_worldgen::deeptime::{
-    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_field_with, isostasy, litho_of_tag,
+    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_field_with, census, isostasy, litho_of_tag,
     production_config, production_config_with, run_cells, scale_erosion_rates,
 };
 use dc_worldgen::pregen::{CELL_VOXELS, CellGrid, Extent, Pregen, WorldParams};
@@ -417,6 +417,13 @@ const STATION_A: (f64, f64) = (41870.0, 12433.0);
 
 /// Both censuses over one solve. **Neither is a "below all its neighbours" test**,
 /// and that is the whole point — see `mod gate`.
+/// The four census PRIMITIVES this struct is built from — `laplacian8`, `pearson`, `acf4`,
+/// `flip_rate` — moved to `dc_worldgen::deeptime::census` on 2026-07-29 (journal/0122). This
+/// entry recorded the extraction as open and out of scope for the honest reason that a Rust
+/// example is its own crate root and cannot call a sibling's census; the fix slice needed the
+/// same four functions and the alternative was **copying** them, which is anti-shape A-1 on the
+/// exact code path where journal/0115 found three instruments agreeing because they were the
+/// same instrument copied three times.
 struct Census {
     land: usize,
     /// Closed hollows by the router's own depression fill (`filled − routed`), which
@@ -485,25 +492,6 @@ struct Census {
     /// flux limiter bound — `TransportLedger::creep_limited_cell_epochs`. `NaN`
     /// unless the config armed `denudation_ledger`.
     creep_limited_pct: f64,
-}
-
-/// The discrete Laplacian `mean(8 neighbours) − self` of a plane, over the whole
-/// grid; `NaN` on the border ring where the stencil does not fit. The eight
-/// neighbours are taken unconditionally — a land cell's concavity is measured
-/// against its actual surroundings, sea or not.
-fn laplacian(plane: &[f64], w: usize) -> Vec<f64> {
-    let mut out = vec![f64::NAN; w * w];
-    for y in 1..w - 1 {
-        for x in 1..w - 1 {
-            let i = y * w + x;
-            let mut sum = 0.0;
-            for (dx, dy) in NEIGH8 {
-                sum += plane[(y as i32 + dy) as usize * w + (x as i32 + dx) as usize];
-            }
-            out[i] = sum / 8.0 - plane[i];
-        }
-    }
-    out
 }
 
 /// The arm's config: the shipped production config with the calibration on or off.
@@ -575,76 +563,6 @@ fn refine_epochs(cfg: &mut DeepConfig, k: u32) {
     cfg.remarch_interval *= k;
     cfg.iso_rate = 1.0 - (1.0 - cfg.iso_rate).powf(1.0 / kf);
     cfg.eolian_deposit_frac = 1.0 - (1.0 - cfg.eolian_deposit_frac).powf(1.0 / kf);
-}
-
-/// Pearson correlation over an explicit pair list. `NaN` when either member is
-/// constant — printed as such rather than silently reported as zero.
-fn pearson(pairs: &[(f64, f64)]) -> f64 {
-    let n = pairs.len() as f64;
-    if n < 2.0 {
-        return f64::NAN;
-    }
-    let (sa, sb) = pairs
-        .iter()
-        .fold((0.0, 0.0), |(sa, sb), (a, b)| (sa + a, sb + b));
-    let (ma, mb) = (sa / n, sb / n);
-    let (mut caa, mut cbb, mut cab) = (0.0f64, 0.0f64, 0.0f64);
-    for &(a, b) in pairs {
-        let (da, db) = (a - ma, b - mb);
-        caa += da * da;
-        cbb += db * db;
-        cab += da * db;
-    }
-    if caa <= 0.0 || cbb <= 0.0 {
-        return f64::NAN;
-    }
-    cab / (caa * cbb).sqrt()
-}
-
-/// Autocorrelation of a masked `w × w` field at lags 1..4 along one axis.
-/// `stride` is `1` for +x and `w` for +y; `run_len` bounds the offset so a +x lag
-/// cannot wrap onto the next row.
-fn acf4(field: &[f64], ok: &[bool], w: usize, along_x: bool) -> [f64; 4] {
-    let mut out = [f64::NAN; 4];
-    for (l, slot) in out.iter_mut().enumerate() {
-        let lag = l + 1;
-        let mut pairs: Vec<(f64, f64)> = Vec::new();
-        for y in 0..w {
-            for x in 0..w {
-                let (x2, y2) = if along_x { (x + lag, y) } else { (x, y + lag) };
-                if x2 >= w || y2 >= w {
-                    continue;
-                }
-                let (i, j) = (y * w + x, y2 * w + x2);
-                if ok[i] && ok[j] {
-                    pairs.push((field[i], field[j]));
-                }
-            }
-        }
-        *slot = pearson(&pairs);
-    }
-    out
-}
-
-/// Fraction of adjacent valid pairs whose values have **strictly opposite sign**.
-fn flip_rate(field: &[f64], ok: &[bool], w: usize, along_x: bool) -> f64 {
-    let (mut hit, mut tot) = (0usize, 0usize);
-    for y in 0..w {
-        for x in 0..w {
-            let (x2, y2) = if along_x { (x + 1, y) } else { (x, y + 1) };
-            if x2 >= w || y2 >= w {
-                continue;
-            }
-            let (i, j) = (y * w + x, y2 * w + x2);
-            if ok[i] && ok[j] {
-                tot += 1;
-                if field[i] * field[j] < 0.0 {
-                    hit += 1;
-                }
-            }
-        }
-    }
-    hit as f64 / tot.max(1) as f64
 }
 
 fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> Census {
@@ -768,10 +686,10 @@ fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> 
         - surf.iter().copied().fold(f64::INFINITY, f64::min);
 
     // ---- D1 ---------------------------------------------------------------
-    out.acf_x = acf4(&cgrid, &ok, w, true);
-    out.acf_y = acf4(&cgrid, &ok, w, false);
-    out.flip_x = flip_rate(&cgrid, &ok, w, true);
-    out.flip_y = flip_rate(&cgrid, &ok, w, false);
+    out.acf_x = census::acf4(&cgrid, &ok, w, true);
+    out.acf_y = census::acf4(&cgrid, &ok, w, false);
+    out.flip_x = census::flip_rate(&cgrid, &ok, w, true);
+    out.flip_y = census::flip_rate(&cgrid, &ok, w, false);
     // The surface's first difference, on the same mask. Its lag-1 autocorrelation
     // separates the same three worlds as the concavity's does but through a
     // *different* operator, so agreement between them is not a property of the
@@ -791,8 +709,8 @@ fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> 
             }
         }
     }
-    out.dacf_x = acf4(&dx, &dxok, w, true);
-    out.dacf_y = acf4(&dy, &dyok, w, false);
+    out.dacf_x = census::acf4(&dx, &dxok, w, true);
+    out.dacf_y = census::acf4(&dy, &dyok, w, false);
 
     // ---- D3 ---------------------------------------------------------------
     // `isostasy` computes its Airy target from the flexurally SMOOTHED loads and
@@ -816,8 +734,8 @@ fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> 
     }
     out.h_mean = h_sum / n;
     out.h_excess_rms = (hx_sq / n).sqrt();
-    out.r_conc_hexcess = pearson(&hx_pairs);
-    out.r_conc_h = pearson(&h_pairs);
+    out.r_conc_hexcess = census::pearson(&hx_pairs);
+    out.r_conc_h = census::pearson(&h_pairs);
     // D3(c): `apply_thickening` floors `t_crust` at 1000 m. A clamped cell beside
     // an unclamped one is a cell-to-cell discontinuity in the isostatic target.
     out.crust_floor_pct = if run.grid.t_crust.is_empty() {
@@ -837,8 +755,8 @@ fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> 
     // surface is a checkerboard in the bedrock top, in the regolith blanket, or in
     // both. The same Laplacian on the same mask, run over each summand separately,
     // says which — and that is what decides where a fix has to go.
-    let lr = laplacian(&run.grid.r, w);
-    let lh = laplacian(&run.grid.h, w);
+    let lr = census::laplacian8(&run.grid.r, w);
+    let lh = census::laplacian8(&run.grid.h, w);
     let rms = |f: &[f64]| -> f64 {
         let (mut s, mut c) = (0.0f64, 0usize);
         for i in 0..n_all {
@@ -851,8 +769,14 @@ fn census(cells: &CellGrid, cfg: &DeepConfig, wp: usize, target: (f64, f64)) -> 
     };
     out.conc_r_rms = rms(&lr);
     out.conc_h_rms = rms(&lh);
-    out.acf_r = (acf4(&lr, &ok, w, true)[0], acf4(&lr, &ok, w, false)[0]);
-    out.acf_h = (acf4(&lh, &ok, w, true)[0], acf4(&lh, &ok, w, false)[0]);
+    out.acf_r = (
+        census::acf4(&lr, &ok, w, true)[0],
+        census::acf4(&lr, &ok, w, false)[0],
+    );
+    out.acf_h = (
+        census::acf4(&lh, &ok, w, true)[0],
+        census::acf4(&lh, &ok, w, false)[0],
+    );
 
     // The creep flux limiter's binding fraction — the counter journal/0114 measured
     // at 89–96 % and did not connect to the roughness. Only armed when the config
@@ -1164,25 +1088,44 @@ mod gate {
     /// production and the defect must still be plainly visible there. If this test ever
     /// fails, the honest conclusion is *"the invariant is NOT scale-free and the guards
     /// above must move to Medium"* — **not** that the calibration got better.
+    ///
+    /// # ⚠ Where the positive control moved, 2026-07-29 (journal/0122)
+    ///
+    /// It used to be the **calibrated** arm, because the calibrated arm was broken. The
+    /// operator is fixed, so that arm no longer carries the defect — and this test
+    /// promptly failed, which is the test working: it said *"I can no longer see the
+    /// thing I exist to be able to see."*
+    ///
+    /// The right answer is **not** to loosen it. The defect is still reachable by
+    /// design, as `DeepConfig::creep_substep: false` — the pre-0122 operator, kept as a
+    /// fixed point — so the positive control moves there and this test keeps asserting
+    /// exactly what it always did: *the same instrument at the same size can still see
+    /// a world with the defect in it.* Named
+    /// `the_calibrated_solve_still_shows_the_defect_at_this_size` until then;
+    /// journal/0116 cites the old name.
     #[test]
-    fn the_calibrated_solve_still_shows_the_defect_at_this_size() {
+    fn the_unbounded_operator_still_shows_the_defect_at_this_size() {
         let p = small();
-        let c = census(&p.grid, &arm_cfg(&p.grid, true), p.deep.wp, STATION_A);
+        let cfg = DeepConfig {
+            creep_substep: false,
+            ..arm_cfg(&p.grid, true)
+        };
+        let c = census(&p.grid, &cfg, p.deep.wp, STATION_A);
         assert!(
             c.hollow_1 > 0,
-            "the calibrated arm produced NO closed hollows at Extent::Small, so the two \
+            "the unbounded arm produced NO closed hollows at Extent::Small, so the two \
              shipped-world guards here are vacuous at this size — move them to Medium"
         );
         assert!(
             c.p99 > 5.0,
-            "the calibrated arm's concavity p99 is only {:+.1} m at Extent::Small, below \
+            "the unbounded calibrated arm's concavity p99 is only {:+.1} m at Extent::Small, below \
              the ±5 m bound the shipped guard asserts — the guard cannot discriminate at \
              this size and must move to Medium",
             c.p99
         );
         assert!(
             c.acf_x[0] < -0.5 || c.acf_y[0] < -0.5,
-            "the calibrated arm's concavity lag-1 autocorrelation is only x {:+.3} / \
+            "the unbounded calibrated arm's concavity lag-1 autocorrelation is only x {:+.3} / \
              y {:+.3} at Extent::Small — above the −0.5 bound the shipped guard asserts, so \
              `the_shipped_solve_has_no_grid_scale_oscillation` cannot discriminate at this \
              size and must move to Medium",

@@ -226,6 +226,25 @@ fn mass_is_conserved_with_mfd_on() {
 ///
 /// Read off the final terrain: no interior cell may sit more than a metre below
 /// **every** one of its eight neighbours.
+///
+/// # ⚠ THIS PREDICATE SATURATES, AND THAT IS WHY IT IS NO LONGER ALONE
+///
+/// `corrections.md` **#62**, found by the user flying the terrain after this test,
+/// a probe and `stubs.md` #29 had all agreed with each other and were all wrong the
+/// same way. *"Is this cell more than a metre below **every one** of its eight
+/// neighbours"* is **winner-take-all**: it scores a cell only when its neighbours
+/// are higher, so as the defect generalises **neighbouring cells sink too and stop
+/// qualifying each other**, and the count falls back toward zero exactly as the
+/// damage becomes universal. It is maximised by *isolated* pits and is structurally
+/// blind to a pockmarked landscape.
+///
+/// It is kept — an isolated deep pit is still a real failure and this is still the
+/// cheapest way to see one — but it is now the *first* of three, beside
+/// [`no_interior_cell_carries_a_closed_hollow`] (fill depth, which measures the
+/// hollow at a cell **regardless of what its neighbours do**) and
+/// [`the_surface_carries_no_grid_scale_oscillation`] (concavity autocorrelation,
+/// which is neighbour-relative and cannot saturate at all). A guard that cannot
+/// fail informatively for the failure mode it names is not a guard.
 #[test]
 fn no_interior_cell_is_cut_below_all_of_its_neighbours() {
     let pregen = small_world();
@@ -261,6 +280,108 @@ fn no_interior_cell_is_cut_below_all_of_its_neighbours() {
         "MFD incision left {pits} interior cells more than a metre below every \
          neighbour (deepest {deepest:.2} m, {lake_pits} of them lakes) — the \
          multi-receiver clamp is not holding"
+    );
+}
+
+/// **The non-saturating half of the clamp guard** (`corrections.md` #62,
+/// journal/0122). The router's own depression fill, `filled[i] − routed[i]`,
+/// measures the hollow at a cell **regardless of what its neighbours are doing**,
+/// so unlike the predicate above it cannot fall toward zero as the damage becomes
+/// universal. On the walk world it read **2.6×** the saturating count and a clean
+/// zero on the control, which is what made the whole defect attributable to the
+/// amplitude and nothing else.
+///
+/// **Where the bar comes from, since a bound with a derivation is evidence and one
+/// chosen until green is not.** It has to separate two *measured* scales:
+///
+/// - the **dimple**, at ~1 m. Priority-flood fills rather than carves, and four
+///   phases run after incision in the same epoch and can each lower a cell a
+///   little more; the shipped fixture carries **3 interior cells between 1.0 and
+///   1.72 m** and always has. That is the floor of the instrument, not a defect,
+///   and it is why the sibling test above allows a metre too.
+/// - the **failure**, at ~45 m and up. journal/0114 measured the clamp actually
+///   breaking: 44 pits at 5×, **deepest 45 m**; 148 at 45×, **deepest 112 m**.
+///
+/// **10 m** sits an order of magnitude above the first and 4.5× below the second,
+/// so it cannot be reached by dimple accumulation and cannot be missed by a real
+/// clamp failure. The shallow count is printed rather than asserted, deliberately:
+/// it is a legitimate landform population (a shallow closed basin on a flat is a
+/// pan, not damage) and pinning it would be pinning a snapshot.
+///
+/// journal/0122's ladder is the evidence that this is not a vacuous bar: under the
+/// fixed operator it holds at 1× / 3× / 5× / 10× / 20× and **first fails at 45×**,
+/// where twelve cells cross it.
+#[test]
+fn no_interior_cell_carries_a_closed_hollow() {
+    let pregen = small_world();
+    let r = run(&pregen.grid, true);
+    let w = r.grid.w;
+    let (filled, routed) = (r.erosion.filled(), r.erosion.routed_surface());
+    let (mut hollows, mut deep) = (0usize, 0usize);
+    let mut deepest = 0.0f64;
+    let mut volume = 0.0f64;
+    for y in 1..w - 1 {
+        for x in 1..w - 1 {
+            let i = y * w + x;
+            let d = filled[i] - routed[i];
+            if d > 1.0 {
+                hollows += 1;
+                deepest = deepest.max(d);
+                volume += d;
+            }
+            if d > 10.0 {
+                deep += 1;
+            }
+        }
+    }
+    println!(
+        "closed hollows deeper than 1 m: {hollows} (>10 m: {deep}, deepest \
+         {deepest:.2} m, fill volume {volume:.1} m·cell)"
+    );
+    assert_eq!(
+        deep, 0,
+        "the solve left {deep} interior cells holding a closed hollow deeper than \
+         10 m (deepest {deepest:.2} m; {hollows} cells past the 1 m dimple floor) — \
+         the incision clamp is not holding, and unlike the eight-neighbour \
+         predicate this count RISES as the defect generalises"
+    );
+}
+
+/// **And the neighbour-relative half** (`corrections.md` #61 and #62 together).
+/// Both tests above are *counts of cells past a threshold*; neither can see a
+/// landscape whose every cell is a little wrong, which is precisely what
+/// journal/0115's user report ("roughly every cell has a deep depression") turned
+/// out to be. The concavity autocorrelation can, and it cannot saturate: it is a
+/// correlation, so it has no threshold to fall off.
+///
+/// The bound comes from the closed form (journal/0116 § D1, `deeptime::census`):
+/// the concavity operator `mean(8) − self` reads **−1/6** over white noise and
+/// **−1** over a perfect checkerboard. `−0.5` sits 3× past the first and 2× short
+/// of the second. **A bound with a derivation is evidence; one chosen until green
+/// is not.**
+#[test]
+fn the_surface_carries_no_grid_scale_oscillation() {
+    use dc_worldgen::deeptime::census;
+    let pregen = small_world();
+    let r = run(&pregen.grid, true);
+    let w = r.grid.w;
+    let n = w * w;
+    let surf: Vec<f64> = (0..n).map(|i| r.grid.surf_at(i)).collect();
+    let conc = census::laplacian8(&surf, w);
+    let ok: Vec<bool> = conc.iter().map(|v| v.is_finite()).collect();
+    let (ax, ay) = (
+        census::acf4(&conc, &ok, w, true)[0],
+        census::acf4(&conc, &ok, w, false)[0],
+    );
+    println!(
+        "surface concavity ACF(1): {ax:+.3} / {ay:+.3} (rms {:.3} m)",
+        census::rms(&conc, &ok)
+    );
+    assert!(
+        ax > -0.5 && ay > -0.5,
+        "the surface is oscillating at the grid scale: concavity ACF(1) {ax:+.3} / \
+         {ay:+.3}, against a white-noise reference of −0.167 and a perfect \
+         checkerboard's −1"
     );
 }
 
@@ -312,8 +433,11 @@ fn the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens() {
         // forks, not one — and, since journal/0114, not three: it also predates the
         // erosional calibration, which multiplied `weathering` / `diffusion` /
         // `k_transport` / `k_bedrock` by 45. Reaching a fixed point means
-        // reproducing ALL of the configuration it was captured under.
+        // reproducing ALL of the configuration it was captured under. And, since
+        // journal/0122, not four: it also predates the sub-cycled hillslope
+        // operator, so the raw single-step integrator has to be reproduced too.
         material_transport: false,
+        creep_substep: false,
         ..production_config_with(
             &pregen.grid,
             GOLDEN_SEED,

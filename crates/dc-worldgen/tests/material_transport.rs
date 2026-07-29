@@ -57,6 +57,15 @@ fn cfg_for(cells: &CellGrid, material_transport: bool) -> DeepConfig {
         // about anything.
         mfd_exponent: 4.0,
         mfd_exponent_channel: 4.0,
+        // **And the UNBOUNDED hillslope operator** (journal/0122). The transport
+        // pass now sub-cycles each epoch to keep its per-edge coefficient inside
+        // `CREEP_MAX_EDGE_COEFF`; every fixed point below was captured before it,
+        // under a single raw step. Same discipline as the two pins above —
+        // reaching a fixed point means reproducing ALL of the configuration it was
+        // captured under. Without this the constants would silently become "the
+        // old solve under the NEW integrator", which is a claim about no commit
+        // that ever existed.
+        creep_substep: false,
         // **And the pre-calibration RATES** (journal/0114). The erosional calibration
         // multiplied `weathering` / `diffusion` / `k_transport` / `k_bedrock` by 45;
         // a fixed point captured before it is only reachable by reproducing that

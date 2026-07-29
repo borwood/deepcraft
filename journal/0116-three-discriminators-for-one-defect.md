@@ -3,6 +3,16 @@
 *2026-07-26 · running the tests journal/0115 wrote into the blocker instead of building on
 the hypothesis it left there*
 
+> **⚠ ITS D2 NULL WAS READ WRONG — corrections #72 (2026-07-29, journal/0122).** Every
+> measurement in this entry stands and none is withdrawn. **One inference does not:** that a 4×
+> time-step refinement failing to collapse the oscillation rules out a stability limit. It does
+> not, because the hillslope pass's per-edge coefficient is **100.8× past** the 1/8 bound at
+> which an explicit four-neighbour Laplacian stops flipping the grid-scale mode, and a 4×
+> refinement leaves it 25.2× past. The period-2 mode this entry hypothesised and honourably
+> declined to promote is **real, and now isolated** on a bare grid
+> (`erosion.rs::hillslope_operator_tests`) — its register (the flux limiter / donor-cell
+> partition in `erosion.rs::diffuse`) was correct. See journal/0122.
+
 > blogworthy: **lens 1 (AI-native development)** and **lens 3 (reflexions in a deepsim
 > codebase)**. A brief arrived carrying a mechanism. A mid-flight amendment arrived carrying
 > a better one. Both were wrong, and they were wrong in *opposite directions* — one said the
