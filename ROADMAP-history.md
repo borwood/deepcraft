@@ -3301,6 +3301,419 @@ moved by status, not by age).
 
 # Superseded close blocks
 
+
+<!-- archived 2026-07-29 (second pass): four blocks moved verbatim -->
+
+## NEXT SESSION — written at the 2026-07-28 EVENING close (SUPERSEDED by the block above)
+
+**A `SessionStart` hook will already have told you which sweeps are DUE. Run them first** — that
+is now the standing rule (user). Then read `corrections.md` **#68–#70**, then this block.
+
+### The one sentence that matters
+**The corpus got its first 100 % sweep and its first unprompted trigger — but the board's
+*pickup* problem is untouched, and today's own work proves it: ~9 hours of shipped work had no
+path into a cold session until this block was written.**
+
+### Ratified (user's terms)
+- **File-size conventions — SPLIT BY LIVENESS, NEVER BY TOPIC.** Move out the *cold* half; the
+  threshold applies to the **hot** file. Three `.md` classes: **NARRATIVE** exempt (splitting a
+  journal entry is harmful), **REGISTRY** 2,500 (split = archive resolved entries), **ARGUMENT**
+  1,000. *Topic-splitting is disallowed because it trades the cheapest docs-ops failure (volume)
+  for the most expensive (topology).*
+- **Sweeps run FIRST THING**, incrementally from a watermark, FULL when the reference side moved.
+- **Spike/audit docs: IMMUTABLE BODY, MUTABLE HEADER** — never rewrite a measurement; the
+  **correction's author** stamps a banner on its target **in the same commit**.
+- **Bio-based rock formation: no NEW work until the bio/eco gate.** The shipped biotic layer is a
+  **seam with an heir** and rides as-built. Gate order: engine + all non-bio earth science in the
+  ratified SDK-plugin shape → ecology → social. ***"Sufficiently complete" is a USER call*** — no
+  checkable test, and **progress on earth science does not entitle anyone to open it.**
+- **ORE DOES NOT NEED TO BE EXPOSED** — *"a voxel game **with digging**… no reason to treat it
+  like everything needs to be discoverable on the surface."* Kills the lode-gold fork's blocker
+  and `probe 3`. `ores.md` is **conceptually behind `materials.md`/`material-behavior.md`**.
+- **`material_transport` ratified as-is**; `COMPETENCE_SCALE`'s *"mud, sometimes"* is **not** a
+  knob to tune.
+- **There is NO "general registry"** — deleted, not reworded. **A seam's success condition is that
+  it DISAPPEARS.**
+- **Refinement tier → candidate (c)**: engine owns primitives (field **and refinement** kernels)
+  + runner; plugins declare all content. **The user flagged the list as non-exhaustive.**
+
+### Falsified — the assistant's own first (#68–#70)
+- **#68 — the recalibration rule I shipped and briefed was wrong within hours.** `calibrated_rates`
+  is **OFF in production**; a recalibration nobody enabled voids nothing. **The hypothesis was in
+  the brief going out, not in the report coming back.**
+- **#69 — "the general registry" never existed**, and I then got the withdrawal wrong **twice**
+  from the same ambiguous north-star sentence.
+- **#70 — ore-exposure was an unstated premise riding inside measurement caveats.** ***A caveat is
+  where an unexamined premise hides**, and none of the three sweeps look inside one.*
+- **Four stalenesses I created during the session itself**, all caught by readers running against a
+  frozen worktree. **The corpus goes stale from the inside, during the work.**
+
+### First things next session
+1. **`spine-audit` — the one sweep the baseline did NOT satisfy** (its watermark is `null` on
+   purpose; all nine slices were docs-vs-docs). It has a finding already waiting: **`spines.md`
+   § S-6 still teaches order-derived-by-topo-sort as the exemplary compliant shape**, with no
+   strike anywhere — in read-first item 0b, against which every brief justifies itself.
+2. **The erosion axis is marked settled and is not** — `ROADMAP:2513-2533`. Its null came from a
+   probe **blind to `diffusion`** (96 % of export). ⚠ **Do NOT restate it as "supply-limited
+   today"** — that holds only of the *calibrated* world, which does not ship. ~~**This is engine
+   work and it is the highest-value thing on the board.**~~ **CORRECTED 2026-07-29 (user ruling;
+   `journal/corrections.md` #71): erosion is DEFAULT-PLUGIN-PACK work, not engine work.**
+   Read-first item 0 says it by name — *"every pass is content, including tectonics and
+   erosion"* — and this close block contradicted it. It remains **the highest-value thing on
+   the board**; only its side of the engine/content cut was wrong.
+   - **✅ ITS BLOCKER IS GONE 2026-07-29 (journal/0122).** The hillslope operator that
+     checkerboarded the regolith (stubs #29, the 🔴🔴🔴 item) is fixed: `diffuse` sub-cycles to
+     the 1/8 monotonicity bound, the calibrated world's surface concavity rms goes **40.42 →
+     0.30 m** and its ACF(1) **−0.867 → +0.185**, and closed hollows past 10 m go **818 → 12**.
+     **What is now in front of the axis is a NUMBER, not a defect:** `EROSION_CALIBRATION = 45`
+     was fitted against the capped operator and does not survive fixing it (45× now strips the
+     world to 1.40 m of mean regolith). The ladder in journal/0122 is the input; **the
+     multiplier is user-owned and appearance-class** and `calibrated_rates` still ships false.
+     Also falsified in passing: `corrections.md` **#72** — journal/0116's "not a stability
+     limit" was a 4× refinement against a register 100.8× away.
+3. **The bulk-mechanical backlog**, if you want cheap wins: **37 Observed entries (29 %) already
+   say ✅ DONE in their own bodies** — a pure archive job with no judgement calls; **8 spike/audit
+   files need supersession banners** (drafted).
+
+### 👁 OLDEST UNTOUCHED USER FIELD REPORTS — 8 days, and nothing schedules them
+*New close-block line, 2026-07-28. **The sweeps keep the board accurate; nothing converts an
+accurate open item into work.** Only the close block does — so it now carries the age of the
+oldest thing the user personally saw and reported. **23 of 33 user field reports are open**;
+these four are the oldest, all from **2026-07-20**:*
+- *"Our dismal mountains"* (`ROADMAP:~4100`) — DIAGNOSED, four causes, unfixed.
+- *"Thick units render as flawless monoliths"*
+- *"Loose materials do not exist in the world yet"* — ⚠ **premise half-falsified**: journal/0055
+  made sub-8 loose voxels world-wide, so the *renderer* half is live and **the user's actual ask
+  is untouched.**
+- *"The sim must know about light"*
+
+**None may be closed on reasoning alone** — only on evidence the world changed. *A wrong
+"resolved" on a user field report is the worst outcome a sweep can produce, which is why the
+baseline reader refused to close the razor-straight grass/dirt frontier and asked for a re-shoot
+instead.*
+
+### ⚠ Owed / unverified — deliberately not done
+- **~75 baseline findings are FILED, NOT APPLIED** (`docs/audits/baseline-2026-07-28/`, 9 audits,
+  ~3,900 lines, ranked in § Sequenced). Only the integrator's own same-day stalenesses and the
+  `ARCHITECTURE.md` banner were applied.
+- **The two `sweep_due_hook.py` thresholds are UNVERIFIED GUESSES** made this afternoon:
+  `STALE_AFTER_COMMITS = 25`, and a **keyword match on commit bodies** for "recalibrat". **The
+  keyword rule already false-positived** — this session's commits *discuss* a recalibration and
+  read identically to one that *performs* one. Tune from experience, not taste.
+- **`ores.md` needs a conceptual revisit** against `materials.md` / `material-behavior.md` —
+  **owed, unscheduled**, and larger than the one premise struck today.
+- **`journal/0059` is a LOST entry** (orphaned assets, a substantive walk surviving only as
+  `ROADMAP:4811-4830`); **journals 0110/0111/0112 have no archive entry at all**, including
+  **0111, the scale recalibration.**
+- **`flow_cost_probe` was never converted to `test = true`** — the probe the entire rule was
+  earned on. A live defect, candidate corrections entry.
+- **18 broken rustdoc links across two crates**; the gate is structurally blind to them. **Booked
+  for a design conversation** — *"add `cargo doc` to the gate" is NOT the decided answer.*
+- **The full test suite was NOT run today** and is **not claimed green**. The only Rust changes
+  were doc comments; `fmt` + `clippy --all-targets --release -D warnings` covered them.
+
+### Running
+**Nothing.** All nine sweep agents in, worktrees removed, branches deleted, tree clean, pushed,
+no lock, port 7777 free.
+
+---
+
+## NEXT SESSION — written at the 2026-07-28 MORNING close (SUPERSEDED by the block above)
+
+**Read first: `.claude/skills/doc-topology/SKILL.md`'s opening stop-block** (new, and it is the
+door to everything below), then `docs/design/corpus-knowledge-notebook.md` §§ 4–5, then
+`corrections.md` **#66 and #67**.
+
+### The one sentence that matters
+**We spent the session measuring our own docs problem and it is not the problem we thought.**
+**Staleness is 3–8 % of our recorded failures; ~85–91 % of them were wrong the day they were
+written.** So a stale-ref detector has a single-digit ceiling *by construction*, and the target is
+**assertion-time, not decay**. Two independent codings agree on every direction and differ on
+magnitudes by ~2×, with **43 % of entries ambiguous** — so every number is a band.
+
+### Shipped
+- **The bootstrap history content is REMOVED** (journal/0121, −713 Rust lines). Gate green on
+  merged main, **85 binaries / 808 passed / 0 failed**, reconciling exactly against 86/811 with all
+  three dropped tests named and confirmed absent.
+- **44 dangling cross-file pointers fixed** (the audit had estimated ~25 — it undercounted by 18,
+  and 4 were already wrong *before* the archive split).
+- **`corrections #67` — the first entry filed against another entry.** #40 was itself a
+  misdiagnosis.
+- **Three process fixes + the discoverability fix** (below), and the **push** standing instruction.
+
+### Ratified (user's terms)
+- **Keep `origin/main` up to date from here out** — *"push it and we'll continue to keep the remote
+  up to date from here out."* Standing authorisation; folded into `session-workflow` § Integration
+  and `wrap` § 10. *`origin` had sat 45 commits behind, 19 of them from before this session.*
+- **The docs diagnosis must be discoverable from a SKILL, not from CLAUDE.md** — *"if i tell an
+  agent the docs are a mess… this ought to be discoverable near immediately, in our process, likely
+  via an appropriate sounding skill that may already exist."* Done: `doc-topology`'s description now
+  names the trigger phrasings and its body opens with the four results. **CLAUDE.md deliberately
+  unchanged.**
+- **The five user-owed decisions are PARKED, not forgotten** — *"i won't muddy waters by addressing
+  that in this conversation."* § Sequenced → ~~**USER DECISIONS OWED**~~ **"✅ ALL FIVE USER
+  DECISIONS RULED 2026-07-28"** (pointer repaired 2026-07-29 — no such heading existed; and
+  they are ruled, not parked), context inline.
+
+### Falsified — the assistant's own first
+- **My adoption law, falsified by me mid-session.** *"A convention is adopted iff a machine consumes
+  it"* — **false**: five documented conventions with **no** consumer sit at 97–100 %. What survives:
+  *a convention is adopted only if it is inseparable from something the author must do anyway, or is
+  the natural way to say the thing.* `JUSTIFIED-BY` (3 uses, 0 in `crates/`) vs `heir` (651).
+- **My staleness count was an overcount** — I said ~8 %, the independent re-coder found **3.0 %**,
+  in the direction that flatters tooling.
+- **My first reciprocity instrument reported `0/67`, which is impossible** (`\b` in a POSIX-ERE
+  grep). A 0 % that flattered the thesis was one publication away.
+- **I quoted my own single-coded figures as settled in this board for several hours after the
+  re-coding revised them** — the *summary-that-outran-its-source* shape, committed by the author of
+  the finding. Fixed at the wrap.
+- **`corrections #40`** (assistant, 2026-07-23): the seam audit did not paraphrase; it quoted the
+  comment *as it stood the day before*. **A stale READ, not a stale claim.** → #67.
+- **`corrections #66`** (the removal): *"the goldens will move and that is correct"* — **not one
+  moved.** *A pre-authorised golden move is indistinguishable from an unexplained one.*
+- **`#56` asserted, unstruck, exactly what `#60` withdraws**, 220 lines away, with **no `#60` token
+  anywhere in the file.** In the artifact whose whole job is recording falsified claims.
+
+### First things next session
+1. **RATE, with the creep limiter as its acceptance test** — unchanged and still the 🔴🔴🔴 top
+   blocker. Acceptance: concavity ACF(1) back toward **+0.38** with closed hollows at **zero**,
+   paired with a neighbour-relative measure (corrections #61). Brief must **name what the criterion
+   is NOT**. *It is also a live specimen of the "ratified-but-unbuilt" obligation class — authored
+   in prose, consequence named, untracked for four days while its absence produced the blocker.*
+2. **A decision on the knowledge layer, not more analysis.** Notebook § 5 proposes a **reciprocity
+   check** (assistant-originated, unratified): *does every artifact that supersedes another by name
+   carry a back-pointer?* Zero new authoring, 8 known failures. Or park it. ~~**`stubs.md:22`
+   forbids designing the general mechanism first, and that binds this thread.**~~ **WITHDRAWN
+   2026-07-28 (user)** — there was never a registry to defer, and that clause never governed this
+   thread. **`session-workflow` § Seam-first #6 still binds** and says the same thing about how to
+   build anything.
+3. **A `doc-topology` sweep is due** — an arc shipped today and the skill's shape-6 check changed.
+
+### Gate
+**Green on merged main at `a378d47`** — fmt 0, clippy 0, **85 binaries (78 + 7 doc-tests) / 808
+passed / 0 failed / 3 ignored**, 0 errors/panics/FAILED, all four byte-identity goldens present by
+name and `ok`, `Checking`/`Compiling dc-worldgen` from **main's** path. Commits after it are
+docs-only.
+
+### ⚠ Owed / unverified
+- **I dispatched two agents WITHOUT `isolation: "worktree"`** — both ended up in the main checkout
+  and one nearly swept an untracked notebook into its commit. My error, twice. Pass `isolation`
+  explicitly.
+- **One re-coding claim I did NOT verify myself:** that #60's falsifier sits two sentences above the
+  claim in `journal/0111:119-129`. Four of its five I verified directly; this one rides on its
+  citation.
+- **The removal agent's gate/probe logs died with its worktree.** The numbers are in journal/0121
+  and the merge commit; the logs are not recoverable.
+- **Still not read, declared:** `north-star.md` bodies beyond §§ boundary→Deviations,
+  `material-behavior.md` § 5 at source, the domain-doc bodies, spikes, `ROADMAP-history.md`, and
+  individual journal entries other than 0119.
+- **Owed on the analysis:** a second reader on the § 3.5c coding rule *(one done — a third would
+  settle the 43 % ambiguity)*, and the 65 re-coded at § granularity.
+- **`JUSTIFIED-BY`'s fate is a main-session call** — `spines.md` § 5 left it there 2026-07-24 and
+  `spine-audit` check #4 still tells auditors to grep it. Today's number (3 uses, 0 in `crates/`)
+  argues for rewriting § 5 around the prose form, but § 4's rule binds me as much as an auditor.
+- **`erosion.rs` ~4,000 lines**, split sequenced not done. **File-size thresholds still the hook's
+  guesses.** **CI remains deleted.**
+
+### Running
+**Nothing.** All agents in, all worktrees removed, all branches deleted, working tree clean,
+**pushed — `main` == `origin/main`**, no held lock, port 7777 free.
+
+---
+
+## NEXT SESSION — written at the 2026-07-27 close (SUPERSEDED by the block above)
+
+**Read first: `journal/0116` and `journal/0119`.** The erosion blocker is localised, and the
+pass architecture changed underneath it. Then `ARCHITECTURE.md` § *The engine is
+plugin-agnostic, and pass ORDER is authored*, and `corrections.md` **#61–#65**.
+
+### The one sentence that matters
+**The blocker is `erosion.rs::diffuse_scale_cell`** — it caps a cell's hillslope export at
+its **entire regolith inventory**, with **no `dt` in the expression**. A donor-cell scheme
+that moves everything downslope has a **period-2 mode by construction** (A gives all its
+cover to B; B is now higher and gives it back), independent of step size. Measured concavity
+ACF(1) **−0.87 / −0.91** against the shipped world's **+0.38**. **It is not the incision
+clamp, not the timestep, and not isostasy** — all three were tested and killed (journal/0116).
+
+### Ratified (user's terms)
+- **THE ENGINE MUST BE MOD/PLUGIN AGNOSTIC, FULLSTOP, EMPHATICALLY.** Passes are **plugins**,
+  viewed through the lens of third-party mods; *we are our own first modders*. **ORDER is
+  authored per world**; `{reads, writes}` become the **validator**, not the generator.
+  `DeepAxis` is the named violation.
+- **The product:** a voxel crafting-game **generator**, each world its own sim composed from
+  declared plugins, whose **first pack** is the earth-like generator.
+- **Remove the bootstrap history content** (polities/sites/ruins) — *"unratified zealous
+  fabrications… they are NOTHING."* **Existence is not standing.**
+- **Trust is DEFERRED** — no difference in permission between native and WASM; do not
+  justify a core/content placement by trust.
+- **`ecology.md` stays a ratified user design**, but is dormant and open to reconsideration.
+- **Burial-dominant coal rank is correct physics**; the half-thickness term is a **defect**.
+
+### Falsified — the assistant's own first (#61–#65)
+**#61** a *global aggregate* ("relief within 5 %") cannot license a claim about *local
+structure* — relief +4.6 % while cell-to-cell roughness went **×170**. **#62** the pit census
+**saturates**: "below all eight neighbours" is a ranking test wearing a magnitude test's
+clothes, and it undercounted 2.6× — **caught by the user flying the terrain**, after three
+instruments agreed because they were the same instrument. **#63** the stability hypothesis,
+specified against `myr_per_epoch`, *a knob that does not exist*. **#63b** isostasy is the
+only grid-scale **damper**, not the driver. **#64** part (a)'s blast radius was assembled by
+symmetry. **#65** the phase order never "fell out of the declarations" — it was **fed in**.
+
+### First things next session
+1. **RATE, with the creep limiter as its acceptance test.** *Not* a patch beside the
+   architecture — journal/0116's prescription is *"a transfer that stays a function of
+   `rate × dt`"*, which **is** the RATE axis (ratified 2026-07-24, never built, `dt` pinned
+   to 1.0). Acceptance pairs an aggregate with a **neighbour-relative** measure: concavity
+   ACF(1) back toward **+0.38** with hollows at **zero**.
+2. **The corpus-addressability design pass** — frontmatter, tags, query scripts, and
+   **versioned standing models**, booked by the user. Third leg of docs ops beside the
+   archive and the sweep.
+3. **The bootstrap-content removal** (also discharges draw-domain part (a)).
+4. **Doc-topology residuals** — ~25 dangling cross-refs from the split, and the coal
+   evidence base mislabelled "the production world" in four docs (needs a **measurement**).
+
+### Gate
+**Green on merged main at `8bcca7b`** — fmt 0, clippy 0, **86 binaries / 811 passed / 0
+failed**, verified by name, reconciling exactly across all four merges (+1 binary and +4
+tests are the discriminators'). *The first attempt reported "exit 0" while having run **10
+binaries of 86** — the harness exit was the task's not cargo's, `$LASTEXITCODE` was empty
+because a cmdlet ended the pipeline, and the lock was gone because `;` is unconditional.
+**Only the impossible count caught it.***
+
+### ⚠ Owed / unverified
+- **The live-magnitudes tour** is more owed than before (stubs #28: wave/wind/frost are 45×
+  weaker relative to the landscape than the day their numbers were chosen).
+- **`erosion.rs` ~4,000 lines**, three separable concerns; split sequenced, not done.
+- **`ROADMAP` § Observed (~1,970 lines)** is the largest unswept surface — next sweep's spine.
+- **File-size thresholds are still the hook's provisional guesses**, not the user's numbers.
+- **CI remains deleted**; if wanted it needs designing, not resurrecting.
+- **journal/0117 is a deliberate gap. ~~and 0120~~ — 0120 WAS WRITTEN 2026-07-28** (the five
+  user decisions), which is exactly what the sweep reserved it for. **And the real gap is
+  `journal/0059`** — found by the baseline sweep: three orphaned assets
+  (`journal/assets/0059-dune-field-*`, `0059-loess-margin-*`), a substantive walk with a
+  user-diagnosed defect surviving only as `ROADMAP.md:4811-4830`, and **nobody ever decided to
+  skip it.** *A reserved number and a lost number look identical from the outside; that is why
+  gaps get accounted for in the close block — and 0059 slipped through the accounting that was
+  built to catch it.* — the rename slice and the sweep each judged
+  a narrative entry unwarranted and said so. Not lost entries.
+
+### Running
+**Nothing.** All agents in, all worktrees removed, all branches deleted, working tree clean,
+no held lock, port 7777 free.
+
+---
+
+## NEXT SESSION — written at the 2026-07-26 MORNING close (SUPERSEDED by the block above)
+
+**Read first: `journal/0111` and `journal/0114`** — the world is ~10³× too slow, and the
+reason is now known to be **both** the constants *and* a capped transport operator. Then
+`docs/design/material-genesis-notebook.md` (opened today) and `north-star.md` §
+*"The refinement tier is in neither list"*.
+
+### Shipped (journals 0108–0114; corrections #53–#60; stubs #21–#29)
+- **The clock nobody checked (0111).** The world denudes at **0.0110 m/Myr** — **9× slower
+  than the slowest landscape ever measured on Earth**, stripping 5.48 m where a craton strips
+  5–10 km. *The single most active cell of 44,264 is still below the global floor.*
+- **Material-aware creep (0112)** — provenance in the archive **0.000006 % → 65.206 %**.
+  §13.2's gravity member is the fluvial one **with the competence curve removed**; that
+  absence *is* why colluvium is unsorted. Hillslope columns +64 % distinct species vs +11 % in
+  valleys — **the contrast landed six times harder where colluvium belongs**.
+- **Hybrid `p` (0113)** — peak catchment **84 → 298**, p99 **beating D8**, 95.8 % of
+  simultaneous divergence retained. *Under uniform `p` the world had **no trunk network at
+  all**: zero land cells draining >100.*
+- **The joint calibration (0114) — BUILT, MEASURED, AND OFF.** See the blockers below.
+- **S20 2c (0108)** — `Fact` 16 → 8 B, every axis kept; per-depth projection 973 → 504 MiB.
+- **MFD (0109)** — simultaneous divergence **0 → 7.5 M**; *the tree never licensed the
+  traversal, the potential did.*
+- **Movement 2b (0110)** — identity travels + sorted deposition; its null diagnosed the above.
+
+### Ratified (user's terms)
+- **The genesis discriminator is RESOLUTION, not phase** — *"can the prior be named as a
+  material we track?"* The material ontology is a **sieve**: some origins are transformations
+  of **molecular parts**, and we have no molecular parts. **That is the whole case for genesis
+  passes.** Four-way test, with **"transform whose driver isn't built yet"** as its own
+  category, and filing one of those as a genesis named as the **irreversible** error.
+- **Clastic facies settled:** genesis makes the *parent* honest · weathering the *loosening* ·
+  transport the *destination*.
+- **S20 option 3 + 2c** (paged facts + compact encoding). **2b now, on today's faces.**
+- **File size is a correctness problem** — *"Claude must grep, missing context or reading too
+  much irrelevant context"*. **Hook live and proven to fire.** Immediate for new files,
+  gradual for old when touched.
+- **Visible river channels are the first thing built on refinement primitives.**
+
+### Falsified — the assistant's own first (#53–#60)
+**Three of today's corrections are the integrator's own bookkeeping**, and two were
+propagated onto this board: **#58** — *"p → ∞ **is** D8 exactly"* (the limit takes steepest
+**slope**, `route_cell` takes steepest **drop**; it was the argument that `mfd:false` lives
+*inside* the model's family, and would have licensed **deleting a pinned path**). **#60** —
+*"two independent instruments agree to 2.4 %"* was a **low-flux coincidence, not a
+cross-check**; D1 double-counts cover that re-crosses a shoreline cycling ±35 m four times.
+Also: **#53** eight of S20's nine predicted tolerance breaks **did not happen**; **#55** the
+2b null was honest about mechanism and **wrong about cause**; **#57** peat/coal/charcoal
+cannot be *deposited* — §12's four-way test caught in the wild **hours after being written**;
+**#59** `energy_band` was an absolute threshold **secretly keyed to `k_transport`**.
+
+### ⛔ THE TWO BLOCKERS — read before planning anything erosional
+1. **stubs #29 — ⚠ RE-SCOPED BY THE WALK (journal/0115) AND DIAGNOSED BY THE
+   DISCRIMINATORS (journal/0116, corrections #63). It is NOT "the incision clamp", it was NOT
+   148 pits, and it is NOT a time-step stability limit.** Above 1× the surface carries a
+   **checkerboard** — concavity lag-1 autocorrelation **+0.38 (shipped) → −0.87
+   (calibrated)**, against derivable references of −1/6 for white noise and −1 for a pure
+   oscillation. **Relief grew 4.6 %, cell-to-cell roughness ~170×**; closed hollows
+   **0 → 1,377 (3.1 %), 5.4 km³**. Split `surf = r + h` and the two summands separate: the
+   **bedrock converges under 4× time-step refinement** (23.8 → 5.9 m) while the **regolith
+   sharpens** (ACF −0.82 → −0.93), because the creep flux limiter is **deaf to the step**
+   (96.0 → 94.7 % binding) — it caps export at *inventory*, not at `rate × dt`. **The register
+   is the flux limiter / donor-cell partition in `erosion.rs::diffuse`.** Do **not** brief a
+   clamp fix, a time-step fix, or anything touching `iso_rate` (isostasy is the only
+   grid-scale damper in the solve; turning it off puts **6,215 hollows in the SHIPPED
+   world**). **Until this lands the engine cannot run erosion at any realistic rate.**
+2. **stubs #27 — the transport operator has a ceiling.** Export ∝ mean regolith thickness, and
+   creep's limiter **already binds on ~89 % of cells at shipped rates**. 100× on transport
+   buys **1.6×**. *So journal/0111's "a calibration, not an architecture" was **half right**.*
+
+### Running
+**Nothing. All agents in, all worktrees removed, all branches deleted, working tree clean.**
+
+### Gate
+**Green on merged main at `a05008f` — fmt 0, clippy 0, 807 passed / 0 failed / 85 binaries**,
+verified by name, reconciling exactly across all five slices. Production is **byte-identical**
+(`the_production_world_still_hashes_to_the_pre_slice_goldens`).
+
+### ⚠ Owed / unverified
+- **An appearance walk is owed** — creep's interbedded colluvium is the first thing in three
+  slices worth standing in front of. Tour-map first; stations: hillslope road cut, scarp-foot
+  apron beside a channel deposit, the re-baselined coal site. **Look at the pits first.**
+- **`erosion.rs` is ~4,000 lines** and hosts three separable concerns (drainage/MFD · fluvial
+  transport · diffusion+creep). Split **sequenced, not done** — deliberately, siblings were live.
+- **ROADMAP is ~6,850 lines** and the hook flags it on every edit. The archive-by-status
+  scheme is still undesigned.
+- **CI was deleted** (day-one scaffolding, 3-OS debug matrix, failing on Bevy's Linux deps and
+  burning 2.5 h Windows runs). If wanted, it needs designing, not resurrecting.
+- **Commit trailer mismatch:** CLAUDE.md § Conventions says `Claude Fable 5`; this session's
+  commits say `Claude Opus 5` (the model that did the work). **User's call which is canonical.**
+
+### First things next session
+1. **stubs #29 — the REGOLITH-CHECKERBOARD blocker** (re-scoped by the walk 2026-07-26; then
+   **diagnosed the same day, journal/0116, corrections #63 — the discriminators are RUN and
+   the stability-limit hypothesis is dead**). It gates every erosional number. Brief the fix
+   against the **flux limiter / donor-cell partition in `erosion.rs::diffuse`** — *not* the
+   clamp, *not* the time step, and **not `iso_rate`**.
+2. **stubs #27's heirs** — rivers that carry, or a non-capped creep operator. **These two
+   share the LIMITER, not the clock** — #29's "same `cell_m / myr_per_epoch` register" claim
+   is withdrawn (corrections #63; the knob does not exist and the epoch length is measured not
+   to be the register). A non-capped creep operator is now plausibly **one slice for both**.
+3. ~~The appearance walk (creep)~~ — **DONE 2026-07-26, journal/0115.** Flip
+   `calibrated_rates` once #29 is fixed.
+4. **Refinement primitives design pass** — unblocked by hybrid `p`; visible channels.
+
+*(The 2026-07-25 block is consumed; preserved as history — **archived 2026-07-26 to
+`ROADMAP-history.md`**, where it is the first of the six superseded close blocks. It used to
+sit directly below this line.)*
+
+
+
+
 ## NEXT SESSION — written at the 2026-07-25 close (SUPERSEDED by the 2026-07-26 close above)
 
 **Read first: `docs/design/flow.md`** (ratified this session, incl. §§ 10–11) + the 🔴 Observed
