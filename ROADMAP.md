@@ -2373,53 +2373,31 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **⚠ WHICH SHIPPED ARTIFACTS HAVE NO GOLDEN? Asked once, about one artifact, on
-  2026-07-29 (journal/0124) — never asked of the corpus.** The `Schedule` slice moved the
-  **flow record** and a full 834-test gate did not notice, because the flow record is a pure
-  sidecar to both existing goldens (`GOLDEN_SURFACE` = terrain, `GOLDEN_RECORD` = strata) and
-  neither can ever see it. The move had to be measured with a throwaway harness, run twice
-  across a `git stash`. `GOLDEN_FLUX` was added in that slice and closes **that** hole only.
-  - **The generalisation, which is the reason this is filed:** *an artifact the ritual ships
-    with no tripwire on it cannot have an **authorized** move, because nobody can see it
-    move.* The whole golden discipline rests on telling an explained move from an unexplained
-    one, and that distinction is unavailable for anything ungoverned.
-  - **What is owed is an enumeration, not a fix**: walk `DeepField`'s exported members (and
-    the ritual's other outputs) and say, per member, which golden would catch a change in it.
-    Cheap. `DeepField::head`, `geotherm`, `chapters`, `ledgers`, `exhum`/`t_crust` are the
-    obvious candidates — several are already `spines.md` § 3 rows, i.e. **exported, unread,
-    and now also possibly unguarded**, which is a different and worse combination than either
-    alone. Note some are covered indirectly: `flux_record.rs` / `head_field.rs` assert
-    `geotherm` byte-identity as *flag-independence* guards, which is not the same as a fixed
-    point across commits.
-  - *This is the same shape as the corpus-wide staleness-banner sweep in CLAUDE.md read-first
-    item 5: a rule established from one instance, with the sweep for the rest left undone.*
-  - **The record-side half of this enumeration is IN FLIGHT** (tripwire agent, dispatched
-    2026-07-29 evening); the entry below is the expression-side instance the member-#0 far
-    slice found the same evening, **folded into the same agent's scope at wake-up** — the
-    two entries are one finding meeting itself from both sides of the collapse tier.
-
-- **🔴 NO GOLDEN HASHES THE FAR FIELD — found 2026-07-29 by an acceptance criterion that
-  could not fire (journal/0125).** Member #0's slice brief said *"goldens move — re-capture
-  with the why"*, which was the right instinct: it changed the far surface class draw twice
-  over (nearest-cell → membership-dither, and a canonical class order change). **Not one
-  hash in the workspace moved**, and the run confirmed it:
-  `generated_world_is_byte_identical_to_the_pre_contract_goldens` passed untouched.
-  - **The reason is structural.** `contents_contract`'s `world_fingerprint` hashes
-    `generate_chunk_with_materials` only, and `generate_chunk` has not consulted
-    `surface_class` since journal/0074. `providers_golden` / `rate_axis` / `creep_operator`
-    hash the deep-time surface planes and strata record, upstream of the collapse tier.
-    **`coarse_surface` — every metre of ground beyond the loaded radius — is fingerprinted
-    by nothing.**
-  - **Why it stayed invisible:** the far field has *behavioural* tests (a class-split
-    floor, the near/far statistical agreement test, the far-tile mesh budget) and a
-    behavioural test cannot notice that no fingerprint exists. The slice's own gate was
-    green on the goldens **and** would have been green had it broken the far field
-    outright.
-  - **Heir: a far-field fingerprint** — hash `coarse_surface` over a fixed strided sample,
-    beside the three chunk hashes, same file, same authorize-with-a-journal-entry
-    discipline. A new instrument, not a line of member #0, which is why it is filed here
-    rather than done there. *Cheap, and it is the only thing that would make "goldens
-    move" answerable for this half of the world.*
+- **The tripwire sweep's residues** — the two parents are ✅ RESOLVED 2026-07-29 by
+  journal/0126 and archived verbatim to [`ROADMAP-history.md`](ROADMAP-history.md)
+  § *Observed — archived*: *"which shipped artifacts have no golden?"* (filed by
+  journal/0124, record-side) and **🔴 *"no golden hashes the far field"*** (found by
+  journal/0125's member-#0 slice, expression-side). **They were one finding meeting itself
+  from both sides of the collapse tier, and they closed together** — 17 artifacts, 12
+  covered / 4 newly goldened / 1 not shipped, `tests/artifact_tripwires.rs`. What is
+  genuinely still open is only this:
+  - **🟠 A FAR-FIELD GOLDEN ON A WORLD WITH LAND.** `GOLDEN_FAR_SURFACE` is captured on the
+    `providers_common` fixture, and that fixture is **99.6 % ocean**: of 36,864 sampled
+    columns, **160** front with anything but the ocean block, and the highest ground in a
+    ±56,000-voxel scan is **+7 voxels**. So the far *height* field is fully pinned while the
+    far *surface-class draw* — the thing journal/0125 changed, and the reason the hole was
+    found — is pinned by 0.43 % of the sample. Home: `contents_contract.rs`, whose Medium
+    seeds are the worlds with land. Cheap; it is a second capture, not a second instrument.
+  - **`Pregen::grid` and `Pregen::pipeline` were not walked.** The sweep enumerated
+    `DeepField` exhaustively and added the far surface; nobody has yet said, per member,
+    which golden catches a change in the *coarse* grid the deep run is built from. Same
+    enumeration, one tier up, and the same cost (cheap).
+  - **The `GOLDEN_LEDGER` debt is armed, not owed.** `DeepField::ledgers` is empty in every
+    shipped world (`weather_inventory` off), so it has nothing to hash; the commit that flips
+    the flag on owes the golden in the same diff. That obligation is carried where it will be
+    read — the failing assertion in
+    `artifact_tripwires.rs::every_deepfield_member_is_classified` says it — rather than only
+    here, per read-first item 5's *a one-directional pointer is not a pointer*.
 
 - **Poke-through geometry check (re-filed 2026-07-29 — the APPEARANCE WALKS OWED parent
   moved to history; this residue was live inside it):** whether near-field geometry pokes

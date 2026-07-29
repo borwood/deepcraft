@@ -1,4 +1,4 @@
-# 0124 — The type that was its own first customer
+# 0125 — The type that was its own first customer
 
 *2026-07-29. E5 member #0, first build slice: the far site. `docs/dependency-graph.md`
 E5 / P4 / P6.*
