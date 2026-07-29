@@ -20,8 +20,12 @@
 //! Now: the salt is spelled **once**, here; a duplicate value fails to compile
 //! (the `const` assertion `draw_domains!` generates); a duplicate name fails to
 //! compile (it is a duplicate type); and a call site reaches a stream only by
-//! naming a domain. There is no expression anywhere in worldgen that turns a
-//! number into randomness.
+//! naming a domain — **everywhere the conversion reached.** This paragraph
+//! claimed "no expression anywhere in worldgen turns a number into randomness"
+//! from 2026-07-26 to 2026-07-29, and it was **false when written**:
+//! `deeptime/tectonics.rs` predates the conversion and never entered it (residue
+//! 3 below). The claim enumerated what the conversion touched and generalised to
+//! what exists — the corrections #64 mechanism, caught by the first spine-audit.
 //!
 //! ## Values are explicit, and that is deliberate
 //!
@@ -30,7 +34,7 @@
 //! the numbers are written out and the compiler — not the reader — checks that
 //! they are distinct.
 //!
-//! ## The one honest hole left, and the residue of the other
+//! ## The one honest hole left, and the residues of the other
 //!
 //! 1. **Tag space inside a domain is still hand-laid.** `GeoSelect` addresses
 //!    four different veneer passes as tags 0–3, and `GeoAccessory` uses
@@ -58,6 +62,17 @@
 //!    "three" did not count — which still reads the constant. It was left to its
 //!    owner rather than converted from outside, so the constant stays a real copy
 //!    with a real reader and keeps its agreement assertion.
+//!
+//! 3. **`deeptime/tectonics.rs` never entered the conversion at all** (found by
+//!    the 2026-07-29 spine-audit). `SALT_TEC_POS` / `SALT_TEC_VEL` /
+//!    `SALT_TEC_CRUST` (`tectonics.rs:51-53`) are a **third** numbering prefix
+//!    (`0x5D00_*`) with seven live `draw_f64` sites (`:115-121`, `:409`) —
+//!    shipped plate seeding and crust jitter, not a spike. No world is wrong
+//!    (the prefixes cannot collide), but for these salts the
+//!    duplicate-fails-to-compile property is asserted by prose, not enforced by
+//!    the macro. Conversion is owed to this file's owner, byte-identical the
+//!    same way `grid.rs`'s was: `Draws::bits` folds `(seed, salt, addr…)`
+//!    through exactly the chain `draw_f64(&[seed, SALT, addr…])` does.
 
 use dc_sim::statistical::rng::Draws;
 

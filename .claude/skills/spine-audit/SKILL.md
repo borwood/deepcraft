@@ -63,8 +63,22 @@ sharpen. The file earns its read-first slot or it loses it.
 
 ## Rules for the auditing agent
 
-- **Read-only over the codebase.** No source edits, no refactors, no "while I
-  was in there". If you find a bug, report it; do not fix it.
+- **APPLY mechanical findings; report the rest** (user, 2026-07-29: *"we need
+  the sweep findings applied"* — findings filed in a doc nobody reads are not a
+  product, and the auditor has the correct context to apply them without
+  blocking the main session). The tiers:
+  - **Apply in your branch:** corrections of claims your sweep falsified —
+    doc-comment text, doc prose, stale `file:line` citations, a caption that
+    states the opposite of what the code beside it does. These change no
+    behavior and the evidence is already in your hands.
+  - **Report, never apply:** anything that changes code behavior (a refactor, a
+    call-site conversion, a golden); anything **contested** (a finding that
+    challenges a user-ratified claim gets a `⚠ CONTESTS` flag, per
+    corrections #65); anything needing ratification; and any file the
+    dispatching session names as **in flight** with another agent — route those
+    findings to main session, which forwards them to the owning agent.
+  - No refactors, no "while I was in there" — the apply tier is *corrections of
+    false statements*, never improvements.
 - **Do not run cargo.** This is a reading task, and the build slot belongs to
   implementers. `git log`/`git show`/`git grep` are fine.
 - **Cite `file:line` for every claim**, and distinguish what the code does from
