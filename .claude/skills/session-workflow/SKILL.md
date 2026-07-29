@@ -291,6 +291,34 @@ read-first item 0 refuted it **by name** (corrections #71) — *a close block is
 handoff, not an authority.* The graph is the durable answer that a close block
 was being asked to carry and could not.
 
+### A summary that names a finished half must name the unfinished half
+
+*Added 2026-07-29 (user greenlit). Three costs in one day, all the same shape.*
+
+**A status word or headline that names one half of a thing gets read as the
+whole.** Not by careless readers — by every reader, because that is what a
+summary is *for*.
+
+| the summary | what it was read as | what was actually true |
+|---|---|---|
+| `spines.md` § S-4: *"Ratified end-state — **EXTRACTED**"* | done | extracted, **never adopted** — zero callers for **7 days**, and invisible to all three loose-end loci |
+| journal/0088: *"three or four separate-looking bugs turned out to be **one**"* | one problem | **one root, three sites, plus a fourth unrelated bug** — the user carried the wrong model for a week |
+| a close block: *"**this is engine work**"* | settled placement | contradicted read-first item 0 **by name** (corrections #71) |
+
+**The rule: name the incomplete half in the same breath.** *"EXTRACTED, not
+adopted."* *"One root, two sites."* *"Engine-shaped, pack-owned."* It costs a
+clause and it **fails loudly instead of silently** — a reader who disagrees can
+see what to disagree with, and a sweep has a second site to pair against.
+
+**Why this and not "write better summaries":** a summary naming only its finished
+half is **indistinguishable from a correct one** at the point of reading. There is
+no local check that catches it, which is why all three survived their own review.
+The fix has to be in the writing, because it cannot be in the reading.
+
+*Note which way this cuts: all three summaries were **written by someone who knew
+the truth** and were accurate about what they asserted. The defect is what they
+**omitted**, and omission is invisible to every instrument we have.*
+
 ## Proven practice additions (2026-07-21, session 5)
 
 - **The live guided-tour ratification** (journal/0049, user-directed): for
