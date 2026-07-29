@@ -44,7 +44,7 @@ that exists here.
 
 | # | thing | state | blocks |
 |---|---|---|---|
-| **E1** | **pass-graph kernel** — validates an authored order | **BUILT** (7 passes) | — |
+| **E1** | **pass-graph kernel** — today **derives** order from `{reads, writes}` (Kahn + tie-break); validating an *authored* order is **E7** | **BUILT** (7 passes) | — |
 | **E2** | **cell / record storage** | **BUILT** | — |
 | **E3** | **RATE — per-pass cadence + a real `dt`** | **RATIFIED 2026-07-24, NEVER BUILT.** `dt` pinned to `1.0`; nothing scales by it | E4's first extraction · every pass that wants a phase length |
 | **E4** | **field-solver primitives** — the S-10 gather; **the kernel owns its own stability bound** | **SHAPE NAMED 2026-07-29 (S-10), 2 instances, NOT EXTRACTED** | every future diffusing pass |
