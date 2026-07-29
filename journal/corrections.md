@@ -1309,6 +1309,19 @@ control is blind to when citing its stillness.
 > visual agreement.** Ratify or reject this entry on its own merits; it must not carry the
 > appearance observation in as a rider. That observation is its own ROADMAP § Observed entry.
 > *Scope: far/cold tier only — journal/0074 removed the near ground's class consult.*
+>
+> **⚠ ONE OF THIS ENTRY'S TWO NAMED HEIRS LEFT THE TIER, 2026-07-29 (E5 member #0,
+> journal/0124).** "The far-`summarize` register" is no longer a refinement item: the user
+> ruled `CoarseField::summarize` to **the octree node contract** (LOD machinery stays
+> engine, and the far/LOD synthesizer is a second executor `refinement.md` does not model —
+> member-#0 MM-4). The same slice adopted `sample_dithered` at the far site, so **the
+> coherent source and this bias are now shipped through the type rather than a hand-rolled
+> draw — and at TWO salts, not one**: the cake-law membership draw reads the same coherent
+> field, deliberately (a white-noise membership draw speckles *which cell* each far sample
+> reads from, which is journal/0073's aliasing one level up). *The bias is unchanged in
+> kind and its remaining heir is a CDF-corrected source.* The body below still says
+> `draw_class`; that function is retired — read it as `ShareVec::draw`, which is the same
+> arithmetic.
 
 **The claim** (journal/0073 § "The wrong turn"; spines § 4 carve-out 1): the
 coherent (interpolated-uniform) surface-class draw carries *"a small toward-50/50

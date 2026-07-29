@@ -1,5 +1,17 @@
 # Threshold-quantization audit — the S-4 "square verdict" sweep
 
+> **⚠ STALENESS BANNER — stamped 2026-07-29 (E5 member #0, journal/0124). Immutable body,
+> mutable header.** This document's **Part 2** ("the type extraction") shipped
+> 2026-07-22 as `dc_core::coarse` (journal/0075) and then had **zero production callers for
+> seven days**. The first adoption landed 2026-07-29 at **site B1 only** —
+> `collapse.rs::surface_class`, the far field — through a design pass that **re-derived the
+> adoption plan rather than inheriting it** (`docs/audits/2026-07-29-member0-coarsefield-design.md`,
+> ratified by the user as E5 member #0). Read Part 2 as the origin of the type, not as a
+> live plan: it fused three separable kernels (fine read · `summarize` · midpoint jitter),
+> and the 2026-07-29 pass split them — `summarize` was ruled to **the octree node
+> contract**, and the midpoint jitter was named **move C**, a third coarse→fine move this
+> audit's two-move vocabulary cannot express. Site A1's blend is still a plain function.
+
 *2026-07-22. Read-only sweep of `dc-worldgen` (exhaustive over deeptime + pregen
 + fill + collapse) and `dc-core` where the seam reaches it. No source changed.
 Measured numbers and file:line citations in the `docs/audits/` register; this

@@ -48,7 +48,7 @@ that exists here.
 | **E2** | **cell / record storage** | **BUILT** | — |
 | **E3** | **RATE — per-pass cadence + a real `dt`** | **BUILT 2026-07-29** (journal/0123). Cadence is authored data (`CadenceTable`), sub-turns execute, `dt` is live in creep/uplift/thickening/inventory-weathering. Empty table = shipped world, hash-identical. **Follow-on RATIFIED 2026-07-29, unbuilt: `Schedule` sum type** (`ARCHITECTURE.md` § Schedule; ROADMAP arc slot (f)) — seed = initial condition, epoch 0 fires for all, skip rule deleted; queued behind the `runner.rs` extraction (same file) | ~~E4's first extraction~~ **unblocked** · every pass that wants a phase length |
 | **E4** | **field-solver primitives** — the S-10 gather; **the kernel owns its own stability bound** | **SHAPE NAMED 2026-07-29 (S-10), 2 instances, NOT EXTRACTED** | every future diffusing pass |
-| **E5** | **refinement primitives** — coarse→fine reconstruction; **the presentation layer** | **CAUTIOUSLY RATIFIED 2026-07-29 (user)** — `docs/design/refinement.md` (record families + term-keyed operators + three laws; evidence `docs/audits/2026-07-29-refinement-coupling-priors.md`). **Members are directions, not build orders: each needs its OWN design pass against the bones, and prior member plans are superseded AS PLANS** (user, at ratification). #0 CoarseField design revisit dispatched 2026-07-29. **Live blocker for #1: flow.md's face-pairing rule, unratified** | the whole appearance cluster · `collapse.rs` decomp |
+| **E5** | **refinement primitives** — coarse→fine reconstruction; **the presentation layer** | **CAUTIOUSLY RATIFIED 2026-07-29 (user)** — `docs/design/refinement.md` (record families + term-keyed operators + three laws; evidence `docs/audits/2026-07-29-refinement-coupling-priors.md`). **Members are directions, not build orders: each needs its OWN design pass against the bones, and prior member plans are superseded AS PLANS** (user, at ratification). **#0 has its design pass (`docs/audits/2026-07-29-member0-coarsefield-design.md`, rulings in its header) and its FIRST BUILD SLICE SHIPPED 2026-07-29 (journal/0124)** — the far site, K1 only; `summarize` ruled to the octree contract, move C (midpoint jitter) filed with an heir. Continuation slot: (a) the octaves `DitherSource` (co-requisite of U3, socket now worked), (b) MM-1 + MM-3 + the near-path restructure. **Live blocker for #1: flow.md's face-pairing rule, unratified** | the whole appearance cluster · `collapse.rs` decomp |
 | **E6** | **open resource vocabulary** — `DeepAxis` retires; packs declare their own ids | **UNBLOCKED 2026-07-29** (E3 landed); sequenced | third-party packs |
 | **E7** | **authored order + the validator** | **UNBLOCKED 2026-07-29** (E3 landed); sequenced. **It brings the per-world manifest**, which is the loader `CadenceTable` was shaped for | plugin-agnosticism |
 | **E8** | **S2 statistical tier** | **HELD** — probable future primitive, zero consumers, *do not find it one* | nothing. **Gated on bio/eco, a USER call** |
@@ -69,9 +69,9 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 | **P1** | hillslope creep / erosion operator | **FIXED 2026-07-29** (journal/0122). Takes `dt` from RATE since journal/0123; still sub-cycles **in the pass** — `stubs.md` § 30's remaining half, heir **E4** |
 | **P2** | `EROSION_CALIBRATION` re-pick + flag flip | **SEQUENCED.** 45 was fitted to the broken solve and inverts under the fixed one |
 | **P3** | flow / hydrology — face-flux record, head field | **BUILT AND IDLE.** Zero production consumers, *on purpose* |
-| **P4** | CoarseField **adoption** (U22 + U3) | **ROUTED THROUGH E5 member #0, 2026-07-29** (see § 3) — design revisit dispatched; the prior adoption plan is superseded as a plan |
+| **P4** | CoarseField **adoption** (U22 + U3) | **HALF SHIPPED 2026-07-29 (journal/0124), and the halves are now separately blocked.** Routed through E5 member #0; the design pass re-derived the plan and the first build slice landed the **FAR site**: `collapse.rs::surface_class` is a `CoarseField<ShareVec<6>>` window drawn through `sample_dithered`, `DitherSource` has its first production impl (`draws.rs::Coherent`), **U22 (the cake law) is discharged with a world-scale test**. ⚠ **U3 / the near site is NOT started and is no longer just "the other half"** — it needs MM-1 (a separately callable membership dither), MM-3 (the working sub-cell state, which has no declared type), and it is **co-requisite with the octaves source** — the U3 squares' dominant signal was settled 2026-07-24 as the single-octave member dither (corrections #45), so the near fix alone does not clear them |
 | **P5** | genesis passes / **facies driver** | ratified concept, gated behind an `🔖 OPEN EDGE` |
-| ~~**P6**~~ | ~~**octaves** as a `DitherSource` impl~~ **MOVED TO ENGINE 2026-07-29 → E5 member #0** — this row and § 3's "P6 is engine" said opposite things four rows apart (caught by the member-#0 design pass). `DitherSource` runs per voxel (granularity table: per-voxel draw = engine primitive) and is a crate-layering seam, not a plugin seam: **a pack SELECTS a source by id, never supplies one** | — |
+| ~~**P6**~~ | ~~**octaves** as a `DitherSource` impl~~ **MOVED TO ENGINE 2026-07-29 → E5 member #0** — this row and § 3's "P6 is engine" said opposite things four rows apart (caught by the member-#0 design pass). `DitherSource` runs per voxel (granularity table: per-voxel draw = engine primitive) and is a crate-layering seam, not a plugin seam: **a pack SELECTS a source by id, never supplies one**. **The socket is now occupied 2026-07-29 (journal/0124): `draws.rs::Coherent` is the first impl**, and it fixed the API friction the design pass flagged — one salt dimension maps to `(domain fixed at construction, salt = tag)`. Octaves are the second impl and slot in beside it, unblocked | the U3 / near-site half of P4 (co-requisite) |
 | **P7** | metamorphism (grade from `exhum`/`t_crust`) | unblocked by the geotherm; unstarted |
 | **P8** | material **FORM** from provenance | `stubs.md` § 12 — the sub-voxel sieve deletes ~75 % of the sediment pile |
 | **P9** | bio / eco / socia / civ | **NOTHING EXISTS. ON HOLD, not never.** Gate is a **USER call**; earth-science progress does not open it |
@@ -112,10 +112,17 @@ user-report fixes, but that is its finding to make, not this file's to assume. T
 independence argument (seam-first, touch `collapse.rs` twice) is preserved as input to
 that pass.
 
-**P4 → P6.** Octaves are a legal `DitherSource` impl. The socket already exists; the octaves
-supply the **source**, `sample_dithered` supplies the **draw**, `summarize` retires the
-residual bias. **They are not rivals — they compose**, and nothing in the corpus said so,
-which is why two ratified designs read as contradictory for a week.
+**P4 → P6. ✅ HALF DISCHARGED 2026-07-29 (journal/0124).** Octaves are a legal `DitherSource`
+impl. The socket already exists; the octaves supply the **source**, `sample_dithered` supplies
+the **draw**, `summarize` retires the residual bias. **They are not rivals — they compose**,
+and nothing in the corpus said so, which is why two ratified designs read as contradictory for
+a week. The far slice occupied the socket with a *coherent* impl and proved the composition
+concretely; **two of the three parts moved and the third did not.** `summarize` is now ruled
+OUT of this tier (→ octree node contract), so **the residual majority-amplification bias is
+not retiring here** — it rides in the shipped far field, at both salts, exactly as it did
+before. The edge that remains is **P6 → the U3 half of P4**, and it now runs the other way
+from what this heading implies: the near-path fix alone will not clear the checkerboard, so
+the octaves source is a **co-requisite of U3**, not a follow-on of P4.
 
 **P5 is content, P6 is engine.** The user's remembered design splits cleanly across the
 boundary already ratified: **facies driver → a declared field pass (content)**; **octaves +
@@ -133,8 +140,13 @@ re-picked, and it must be picked **against the published literature**, never aga
    anything past what already justified it.*
 2. **E5 — the refinement design pass.** A whole tier with zero members that the north star
    requires for plugin-agnosticism, with its inputs already built and idle.
-3. **P4 — CoarseField adoption.** Ratified, built, blocked by nothing, fixes two live user
-   reports.
+3. ~~**P4 — CoarseField adoption.**~~ **HALF SHIPPED 2026-07-29 (journal/0124)** — the far
+   site landed and U22 is discharged. What is left of P4 is **U3 / the near site, and it is
+   no longer "blocked by nothing"**: it needs MM-1 + MM-3, and the **octaves `DitherSource`
+   is a co-requisite** — the U3 checkerboard's dominant signal was settled 2026-07-24 as the
+   **single-octave member dither**, so the near-path fix alone leaves the squares on screen
+   (ROADMAP § Observed; corrections #45). Octaves are now the cheaper of the two and have a
+   worked socket to land in.
 4. **P2 — the calibration re-pick.** Needs a literature pass, not an engineering one.
 5. *(cheap, rides alongside anything)* the **cold-tier appearance probe** — render a cold tile
    and the same ground loaded, diff them. Never once run.

@@ -21,10 +21,28 @@
 //! It prints the argmax window centre in WORLD METRES, the class layout, and a
 //! top-down camera pose, plus runner-up windows.
 //!
-//! Nothing here is on a generation path. The dominant class is read the same way
-//! the collapse's `surface_class` reads it — the top `VOXEL_M` of
-//! `DeepField::record_at_voxel` grouped by `geology::deep_class` — but taking the
-//! plurality (the tint) rather than the probabilistic per-chunk draw.
+//! Nothing here is on a generation path. The dominant class is a deep cell's own
+//! plurality: the top `VOXEL_M` of its record, grouped by
+//! `geology::deep_class_of_species`, argmax.
+//!
+//! **⚠ That is no longer how `surface_class` reads it** (member #0, journal/0124).
+//! This caption used to say "read the same way the collapse's `surface_class`
+//! reads it", and until 2026-07-29 that was exact — both took the NEAREST deep
+//! cell's top-`VOXEL_M` shares. `surface_class` now samples a
+//! `CoarseField<ShareVec<6>>` through `sample_dithered`, which **dithers which of
+//! the four surrounding cells** supplies the shares before drawing a class. So:
+//!
+//! - the per-cell tint this binary prints is still the right thing to score a
+//!   checkerboard by — it is the cell's own composition, which is what a tile of
+//!   ground reads as at a distance — but it is now the cell's **centre** answer;
+//! - the ~460 m frontier between two tints is **no longer a step**. Expect the
+//!   scored windows to be there and the *lines between them* to be interfingered
+//!   rather than straight. A frame that still shows a razor-straight 460 m edge
+//!   after this is a regression, not the signature.
+//!
+//! The NEAR-field mechanism this binary was written to localise (a chunk's whole
+//! strata composition point-sampled at the chunk centre — the paragraph above) is
+//! **untouched** by member #0's far-site slice and is still exactly as described.
 //!
 //! `cargo run --release -p dc-worldgen --example palette_quant_tour`
 

@@ -894,9 +894,50 @@ footprint with S11's air-component container (S15 design choice 2).
     this clock.** The probe therefore also prints every rate per epoch, so a future session can
     re-anchor either the clock or the rates.
 
-- **🔴 COARSEFIELD ADOPTION — the ratified cure that lost its entry** (revived 2026-07-29 by
+- **🟡 COARSEFIELD ADOPTION — the ratified cure that lost its entry** (revived 2026-07-29 by
   user ruling: *"i think we revive it too"*). **This is the fix for U22 (the cake law) and U3
-  (the per-chunk palette checkerboard), and it has had no owner since 2026-07-24.**
+  (the per-chunk palette checkerboard), and it had no owner from 2026-07-24 to 2026-07-29.**
+  - **✅ THE FAR HALF SHIPPED 2026-07-29 — E5 member #0, first build slice (journal/0124).**
+    `collapse.rs::surface_class` now samples a `CoarseField<ShareVec<6>>` window through
+    `sample_dithered`; `DitherSource` has its first production impl (`draws.rs::Coherent`);
+    `draw_class` and its unbiasedness test retired into `ShareVec::draw`; `DeepField` hands out
+    its own `Registration` (**in voxels** — the MM-6 units trap) and a producer-side
+    `record_at_cell`. **U22 is discharged**, with a world-scale acceptance test beside
+    `coarse.rs`'s synthetic one. Design + rulings:
+    `docs/audits/2026-07-29-member0-coarsefield-design.md`.
+  - **⚠ A MEASURED CONSEQUENCE THE USER MAY WANT TO WEIGH — the membership dither is a
+    CELL-WIDE BLEND, not a perimeter treatment.** `coarse.rs`'s doc comment says *"away
+    from a boundary one weight ≈ 1, so it reduces to the containing cell's own shares"*,
+    which is true only **at the cell centre**. Averaged over a cell the weight on the home
+    cell is `4·(∫₀^½(1−x)dx)² = 9/16`, so **~44 % of far voxels draw a NEIGHBOURING deep
+    cell's shares, everywhere** — not just near a 460 m frontier. Measured from the side:
+    near/far agreement fell **0.8225 → 0.7922** and tripped its floor, which is the whole
+    44 % effect. *Defensible — real facies contacts are gradational and the record's hard
+    cell edges are a resolution artifact, not a fact about the ground — but it is a bigger
+    claim than "the frontiers got softer" and it was not what the slice's brief described.*
+    The floor was **re-derived from the mechanism, not lowered to fit**: 0.80 → 0.70, where
+    0.611 is what independent neighbours would give and 0.7922 back-solves to a
+    neighbour-cell coincidence of 0.753 (journal/0124).
+  - **⚠ WHAT THE FAR HALF DID *NOT* FIX, stated so it is not inherited as done:**
+    (1) **U3 / the near site** — untouched, and the design pass found its plan does not survive
+    contact with the record: it needs **MM-1** (the membership dither, separately callable and
+    generic in `T`) and **MM-3** (the working sub-cell state, which has no declared type), and
+    every golden moves when it lands. (2) **The coherent source's majority-amplification bias**
+    (corrections #39) — its named heir was `summarize`, which the same day was **ruled to the
+    octree node contract** (MM-4), so the bias now rides the shipped far field with **no heir
+    inside this tier**. (3) **The member-dither guillotine** (`geology.rs::dithered_member`
+    under chunk-centre formation context) — U22's named sibling, different site, still
+    unexamined. (4) **`coarse_surface`'s `level_stride` footprint** — one `Block` painted
+    across 1.8–14.4 m, the smaller square left standing; owned by MM-4.
+  - **THE NEAR PATH IS NOT SUFFICIENT ON ITS OWN, and that is settled, not suspected.** See
+    § Observed *"The U3 checkerboard's dominant signal is the 28.8 m MEMBER STEPPING, settled
+    2026-07-24"*: the dominant signal is the **single-octave member dither**, so a perfect
+    near-path fix leaves the squares on screen. **The octaves `DitherSource` is a co-requisite
+    of U3, not a follow-on** — and its socket now exists and has a worked example in it
+    (`draws.rs::Coherent`), which is the cheapest this co-requisite will ever be. *Do not
+    re-derive this as "unprobed"; the member-#0 design pass did, and only the user's memory
+    caught it.* Residue: a confirm re-shoot at U3's reference pose rides the next appearance
+    walk.
   - **WHAT WAS RATIFIED**, 2026-07-22, in the strongest language in this thread: `CoarseField<T>`
     as a **boundary type** whose only fine accessors are two legal moves (`sample` /
     `sample_dithered`), making the raw per-cell read **inexpressible**. The user: *"we finish
@@ -2299,6 +2340,29 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **🔴 NO GOLDEN HASHES THE FAR FIELD — found 2026-07-29 by an acceptance criterion that
+  could not fire (journal/0124).** Member #0's slice brief said *"goldens move — re-capture
+  with the why"*, which was the right instinct: it changed the far surface class draw twice
+  over (nearest-cell → membership-dither, and a canonical class order change). **Not one
+  hash in the workspace moved**, and the run confirmed it:
+  `generated_world_is_byte_identical_to_the_pre_contract_goldens` passed untouched.
+  - **The reason is structural.** `contents_contract`'s `world_fingerprint` hashes
+    `generate_chunk_with_materials` only, and `generate_chunk` has not consulted
+    `surface_class` since journal/0074. `providers_golden` / `rate_axis` / `creep_operator`
+    hash the deep-time surface planes and strata record, upstream of the collapse tier.
+    **`coarse_surface` — every metre of ground beyond the loaded radius — is fingerprinted
+    by nothing.**
+  - **Why it stayed invisible:** the far field has *behavioural* tests (a class-split
+    floor, the near/far statistical agreement test, the far-tile mesh budget) and a
+    behavioural test cannot notice that no fingerprint exists. The slice's own gate was
+    green on the goldens **and** would have been green had it broken the far field
+    outright.
+  - **Heir: a far-field fingerprint** — hash `coarse_surface` over a fixed strided sample,
+    beside the three chunk hashes, same file, same authorize-with-a-journal-entry
+    discipline. A new instrument, not a line of member #0, which is why it is filed here
+    rather than done there. *Cheap, and it is the only thing that would make "goldens
+    move" answerable for this half of the world.*
 
 - **Poke-through geometry check (re-filed 2026-07-29 — the APPEARANCE WALKS OWED parent
   moved to history; this residue was live inside it):** whether near-field geometry pokes

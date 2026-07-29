@@ -16,6 +16,33 @@ callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 > 2. **`summarize` → the octree node contract. LOD machinery stays engine**, not
 >    plugin-owned, for now ("goes to octree"). MM-4 is thereby ruled.
 > 3. **First build slice (far site) approved** ("sure") — dispatched same evening.
+>    **✅ BUILT 2026-07-29 — journal/0124.** § 5 shipped as specified; three things the
+>    build decided that this document left open, recorded here because § 5 reads as the
+>    spec and a reader must not have to diff the code to find them:
+>    - **`DitherSource`'s one salt dimension maps to `(domain, tag)` as: domain fixed at
+>      construction, `salt` → `tag`.** A domain is a *type* (`draw_domains!`) and cannot be
+>      picked by a runtime `u64`, so this was the only honest mapping. It inherits — does
+>      not cure — `draws.rs`'s hole 1 (hand-laid tag space inside a domain).
+>    - **A deep cell with less than half a voxel of record contributes `ShareVec::zero()`**,
+>      so the bare-rock branch is reached through `sample_dithered` returning `None` and the
+>      bare/covered contact obeys the cake law too. The alternative — gate on the NEAREST
+>      cell, dither only the class — is the mixed nearest/interpolated shape § 6's Law-3
+>      warning is about.
+>    - **Two accessors this document did not enumerate:** `DeepField::record_at_cell`
+>      (producer-side, cell-indexed, edge-clamped — a `CoarseField` is built from cells, not
+>      from voxels) and `deep_coords` promoted to `pub`, because `registration()` is the
+>      affine map alone and cannot answer the extent test the wilds fallback needs.
+>
+>    **Two things § 5 predicted that the build MEASURED differently:**
+>    - **"goldens move" did not happen** — no golden in the workspace hashes the far
+>      field. A coverage finding, not a null result (journal/0124).
+>    - **§ 2a's "cost neutral … shares from ONE cell" understates the change.** Shares do
+>      come from one cell *per voxel*, but WHICH cell is dithered across the whole cell,
+>      not only at its perimeter: `E[weight on the home cell] = 9/16`, so **~44 % of far
+>      voxels read a neighbouring deep cell's shares everywhere**. Measured through the
+>      near/far agreement test, which fell 0.8225 → 0.7922 and had its floor **re-derived
+>      from that mechanism** (0.80 → 0.70; independent neighbours would give 0.611).
+>      *Cost was indeed neutral; the SEMANTICS were not as local as this section reads.*
 > 4. **Per-voxel stays engine-executed; content decides through data** — the pack selects
 >    a `DitherSource` by id and parameters, never supplies per-voxel code. Ruled after a
 >    full unpacking (speed toll per seam-crossing; the crossing-constraint seam can never

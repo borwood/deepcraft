@@ -36,8 +36,10 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
+use dc_core::coarse::{CoarseField, Registration, ShareVec};
 use dc_core::materials::geology::{
     CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE,
+    CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL, CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL,
     FormationContext, GeoMemberIdx, GeologySet,
 };
 use dc_core::{
@@ -46,11 +48,14 @@ use dc_core::{
 };
 use dc_sim::statistical::rng::Draws;
 
-use crate::draws::{Elev, GeoClass, GeoSelect, interp_corner_field};
+use crate::deeptime::DeepField;
+use crate::deeptime::lithology::Litho;
+use crate::deeptime::recorder::DeepStrata;
+use crate::draws::{Coherent, Elev, GeoClass, GeoSelect, interp_corner_field};
 use crate::fill::{
     ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
 };
-use crate::geology::{StrataCtx, StrataEvent, StrataRec, deep_class_of_species, dithered_member};
+use crate::geology::{StrataCtx, StrataEvent, StrataRec, dithered_member};
 use crate::pipeline::PipelineError;
 use crate::pregen::{CELL_VOXELS, Pregen, Provenance, temp_sea_level};
 
@@ -275,6 +280,12 @@ pub struct WorldGenerator<'a> {
     region_cache: HashMap<(i64, i64), Arc<RegionRec>>,
     locale_cache: HashMap<(i64, i64), Arc<LocaleRec>>,
     column_cache: HashMap<(i64, i64), Arc<ColumnRec>>,
+    /// The far field's local class window (member #0, journal/0124) — **one**
+    /// `CLASS_WINDOW`² field of deep-cell class shares, rebuilt when the sampled
+    /// voxel leaves the deep cell it was cut for. 768 B; deliberately not a
+    /// resident global field (the member-#0 design pass, MM-2: no borrowed or
+    /// lazy `CoarseField` variant until a second consumer asks for one).
+    class_window: Option<ClassWindow>,
     trace: Trace,
     last_stats: ChunkStats,
 }
@@ -354,6 +365,7 @@ impl<'a> WorldGenerator<'a> {
             region_cache: HashMap::new(),
             locale_cache: HashMap::new(),
             column_cache: HashMap::new(),
+            class_window: None,
             trace: Trace::default(),
             last_stats: ChunkStats::default(),
         }
@@ -887,9 +899,44 @@ impl<'a> WorldGenerator<'a> {
     /// bilinear value is not uniform — corrections #39 corrected the sign from
     /// the earlier "toward 50/50" reading), the same bias the member dither
     /// accepts; the unbiased end-state is the far field *summarizing* the shares,
-    /// which the `CoarseField<T>` extraction owns. The **member within** the drawn
-    /// class is dithered separately by the caller; this draw picks the class, that
-    /// one picks the member, distinct salts throughout.
+    /// which now belongs to the octree node contract (ruled 2026-07-29, MM-4).
+    /// The **member within** the drawn class is dithered separately by the caller;
+    /// this draw picks the class, that one picks the member, distinct salts
+    /// throughout.
+    ///
+    /// ## Adopted here: `CoarseField::sample_dithered` (member #0, journal/0124)
+    ///
+    /// This function used to *be* `ShareVec::draw` written by hand over a NEAREST
+    /// cell, and the comment below used to defer the fix to "the `CoarseField<T>`
+    /// extraction". The extraction shipped 2026-07-22 and sat uncalled for seven
+    /// days; this is the site it was extracted from, calling it. The shares now
+    /// come from a [`CoarseField<ShareVec<DEEP_CLASSES>>`] window
+    /// ([`Self::class_window`]) and the draw is the type's two-step move B:
+    ///
+    /// 1. **the cake law** (U22, user 2026-07-22) — one uniform picks WHICH of the
+    ///    four surrounding cells' shares to draw from, weighted bilinearly. Near a
+    ///    460 m frontier the weights are ~½/½, so each cell's minority phases
+    ///    surface stochastically on *both* sides of the line and the fence
+    ///    dissolves into interfingering. Away from a frontier one weight ≈ 1 and
+    ///    it reduces exactly to the containing cell's own shares — which is why
+    ///    the far field's interiors are unchanged in character.
+    /// 2. **the class draw** — [`ShareVec::draw`], the inverse-CDF this function's
+    ///    retired `draw_class` was.
+    ///
+    /// The world moves, and the two mechanisms that move it are worth naming
+    /// separately: the new membership draw, and a **canonical order change** — the
+    /// CDF used to be indexed by class *name* (alphabetical); a `ShareVec` slot is
+    /// [`deep_class_slot`], i.e. `Litho` declaration order. Both orders are
+    /// recorder-order-independent, which is the property that mattered; neither is
+    /// more correct, and the same shares are drawn from either way.
+    ///
+    /// **A cell with less than half a voxel of record contributes
+    /// [`ShareVec::zero`]**, so `sample_dithered` returns `None` there and the
+    /// bare-rock branch below runs. That means the bare/covered contact is dithered
+    /// by the same law as every other contact rather than stepping at the cell
+    /// line — the alternative (gate on the nearest cell, dither the class) mixes a
+    /// NEAREST decision into an interpolated one, which is the shape § 6's Law-3
+    /// warning is about.
     ///
     /// When the record runs out before half a voxel (the 0.2 % bare-rock case
     /// journal/0053 bought), the surface voxel is basement, and the class is the
@@ -898,61 +945,25 @@ impl<'a> WorldGenerator<'a> {
     /// all name the same rock. With no igneous province either, there is no
     /// record to read and the fallback applies.
     fn surface_class(&mut self, vx: i64, vz: i64) -> Option<&'static str> {
-        let voxel_m = self.voxel_m;
-        let mut acc = 0.0f64;
-        if let Some(rec) = self.pregen.deep.record_at_voxel(vx, vz) {
-            let mut by_class: Vec<(&'static str, f64)> = Vec::new();
-            for u in rec.units.iter().rev() {
-                if acc >= voxel_m {
-                    break;
-                }
-                let take = u.thickness_m.min(voxel_m - acc);
-                if take <= 0.0 {
-                    continue;
-                }
-                acc += take;
-                let c = deep_class_of_species(u.species);
-                match by_class.iter_mut().find(|(k, _)| *k == c) {
-                    Some((_, m)) => *m += take,
-                    None => by_class.push((c, take)),
-                }
-            }
-            if acc >= voxel_m / 2.0 {
-                // Canonical class order so the CDF the draw indexes is
-                // independent of the order the recorder laid the units — the same
-                // order-independence the retired plurality got from its `c < bc`
-                // tie-break. `acc` is the sum of the shares, so `m / acc` is each
-                // class's probability and the draw is the inverse-CDF sample.
-                // Ties need no special case.
-                by_class.sort_unstable_by(|a, b| a.0.cmp(b.0));
-                // **A COHERENT draw, not per-voxel white noise** (journal/0073;
-                // NEEDS RATIFICATION — deviates from the audit's white-noise-à-la-
-                // SALT_GEO_FILL prescription). It is the *same* bilinear
-                // corner-hash field the surface MEMBER dither uses (journal/0058),
-                // at a DISTINCT salt. Why coherent, measured: the far field
-                // POINT-SAMPLES this class through `coarse_surface` at a wide
-                // stride, and per-voxel white noise aliases into coarse speckle —
-                // it doubled the 1.2 km far-tile mesh (21.5 → 43.5 MiB, over the
-                // per-tile budget). The bilinear field instead varies over a
-                // chunk, so the class forms sub-chunk patches whose *composition*
-                // shifts across the 460 m frontier: the checkerboard dissolves
-                // into an interfingered gradient that meshes cheaply at every
-                // scale. (Before journal/0074 this drove the near ground too, so
-                // near and far were EXACTLY equal; now it is the far summary only
-                // and near/far agreement is statistical.) Cost of coherence: the
-                // bilinear value is not uniform, so the split is biased to
-                // **amplify the majority** class (corrections #39 corrected the
-                // sign from the earlier "toward 50/50") — the identical bias the
-                // member dither already lives with (0058). Unbiased white noise is
-                // the correct end-state once the far field *summarizes* the share
-                // vector instead of point-sampling it — that lives in the
-                // `CoarseField<T>` extraction (audit Part 2).
-                let (ccx, ccz) = (vx.div_euclid(32), vz.div_euclid(32));
-                let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
-                let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
-                let u = interp_corner_field(Draws::of::<GeoClass>(self.seed), 0, ccx, ccz, fx, fz);
-                return draw_class(&by_class, acc, u);
-            }
+        // **A COHERENT source, not per-voxel white noise** (journal/0073). The far
+        // field POINT-SAMPLES this class through `coarse_surface` at a wide
+        // stride, and per-voxel white noise aliases into coarse speckle — it
+        // doubled the 1.2 km far-tile mesh (21.5 → 43.5 MiB, over the per-tile
+        // budget). The bilinear field instead varies over a chunk, so the class
+        // forms sub-chunk patches whose *composition* shifts across the 460 m
+        // frontier. Cost of coherence: the bilinear value is not uniform, so the
+        // split is biased to **amplify the majority** class (corrections #39
+        // corrected the sign from the earlier "toward 50/50") — the identical bias
+        // the member dither already lives with (0058). Both salts read the same
+        // source, so the membership draw inherits the same coherence for the same
+        // reason: a white-noise membership draw would speckle *which cell* every
+        // far sample reads from, which is the aliasing 0073 measured, one level up.
+        let src = Coherent::new(Draws::of::<GeoClass>(self.seed), CLASS_DITHER_STRIDE);
+        let drawn = self
+            .class_window(vx, vz)
+            .and_then(|f| f.sample_dithered((vx, vz), &src, TAG_CLASS_MEMBERSHIP, TAG_CLASS_DRAW));
+        if let Some(slot) = drawn {
+            return Some(DEEP_CLASS_ORDER[slot]);
         }
         // Bare rock: basement, named the way the igneous pass names it.
         let (gx, gy) = self.pregen.grid.cell_of_voxel(vx, vz);
@@ -965,6 +976,42 @@ impl<'a> WorldGenerator<'a> {
             Provenance::Rift => Some(CLASS_IGNEOUS_EXTRUSIVE),
             _ => None,
         }
+    }
+
+    /// **The local class field** — a `CLASS_WINDOW`² [`CoarseField`] of deep-cell
+    /// top-voxel class shares, positioned so the bilinear stencil at `(vx, vz)` is
+    /// interior. `None` in the border wilds (no deep record to read) or when the
+    /// world carries no record grid at all.
+    ///
+    /// **Why a local window and not one resident field** (member-#0 design pass,
+    /// MM-2): `CoarseField<T>` is eager and owning, and a global field of the
+    /// production grid's ~300 k cells would be ~14 MiB of `ShareVec<6>` resident
+    /// for a summary that is cheap to recompute. The window is **768 B**, and the
+    /// escape is deliberately the cheap one — do NOT grow a borrowed or lazy
+    /// `CoarseField` variant until a second consumer demands it (A-4).
+    ///
+    /// **Why 4 cells and not 2.** The stencil needs 2×2. The extra ring is margin,
+    /// and it buys two things: a whole chunk's worth of voxels around the window's
+    /// base cell keeps its stencil interior (so a chunk-ordered sweep rebuilds
+    /// once per deep cell, not once per boundary voxel), and **no clamp ever
+    /// fires**, so the weights are the weights a global field would have computed.
+    /// Off by a rounding of the origin shift, and harmlessly: the only position
+    /// where the two could disagree is an exact cell centre, where the disagreeing
+    /// stencils are `[0,1,0,0]` and `[1,0,0,0]` over the same cell — the same
+    /// answer from either.
+    ///
+    /// At the grid rim the window overhangs, and [`DeepField::record_at_cell`]
+    /// edge-extends exactly as `record_at_voxel`'s clamp and the stencil's own
+    /// clamp do, so the rim cell is repeated rather than missing.
+    fn class_window(&mut self, vx: i64, vz: i64) -> Option<&CoarseField<ShareVec<DEEP_CLASSES>>> {
+        // `deep_coords` is the authority, and its `None` is the extent test the
+        // registration alone cannot make.
+        let (gx, gz) = self.pregen.deep.deep_coords(vx, vz)?;
+        let base = (gx.floor() as i64, gz.floor() as i64);
+        if self.class_window.as_ref().map(|w| w.base) != Some(base) {
+            self.class_window = build_class_window(&self.pregen.deep, self.voxel_m, base);
+        }
+        self.class_window.as_ref().map(|w| &w.field)
     }
 
     /// The block a content class fronts with when no member draw resolved, via
@@ -1483,29 +1530,138 @@ fn avg2(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
 
-/// **The S-4 move-B membership draw** (audit B1): pick one class from the
-/// surface window's per-class metre shares by inverse-CDF against one addressed
-/// uniform `u ∈ [0, 1)`. `shares` must already be in canonical (class-id) order
-/// so the CDF is independent of recorder order; `total` is `Σ shares` (the
-/// caller's `acc`), so `m / total` is each class's probability. Returns `None`
-/// only for an empty slice — the caller never calls it in that case.
+// ─────────── the far field's class window (member #0, journal/0124) ──────────
+//
+// `draw_class` — the hand-rolled inverse-CDF that used to live here — RETIRED
+// into `dc_core::coarse::ShareVec::draw`, whose unbiasedness test absorbed this
+// one's three cases verbatim. It was `ShareVec::draw` in every respect except
+// that it carried its own `total` and keyed the CDF by class name; the type
+// computes the total and keys by slot. Nothing about the draw's argument changed:
+// averaged over the uniform, class `i` is chosen with probability exactly
+// `shareᵢ / Σ share`, so a neighbourhood's expected composition equals the
+// recorded composition — the property that made a dither the honest replacement
+// for the plurality, which gave a whole cell to one winner and stepped hard at
+// the neighbour that voted the other way.
+
+/// Number of classes a **recorded unit's species** can resolve to — the width of
+/// the far field's [`ShareVec`]. Six, not the ten of
+/// `geology::v1_classes`: the igneous and ore classes are never *deposited*, so
+/// no unit ever carries them (they reach the far field through the bare-rock
+/// province branch instead).
+const DEEP_CLASSES: usize = 6;
+
+/// The classes of [`DEEP_CLASS_ORDER`]'s slots, in `Litho` declaration order —
+/// exactly [`crate::geology::deep_class_of_species`]'s arms, with `Basement`
+/// folded into coarse clastics the way that function folds it.
 ///
-/// Unbiased by the same argument `crate::fill::allocate` rests on: averaged over
-/// the draw, class `i` is chosen with probability exactly `share_i`, so a
-/// neighbourhood's expected class composition equals the recorded composition.
-/// The plurality it replaces was a biased estimator that gave the whole cell to
-/// one winner and stepped hard at the neighbour that voted the other way.
-fn draw_class(shares: &[(&'static str, f64)], total: f64, u: f64) -> Option<&'static str> {
-    let mut cum = 0.0f64;
-    for &(c, m) in shares {
-        cum += m / total;
-        if u < cum {
-            return Some(c);
+/// This ordering is the [`ShareVec`] CDF's index order, so it is world identity:
+/// changing it re-rolls which class a given uniform draws. The property it must
+/// have is only that it is **independent of the order the recorder laid the
+/// units** — the same property the retired name-sorted order had, and the reason
+/// ties need no special case. `deep_class_slot_matches_deep_class_of_species`
+/// pins the two together so the fold cannot drift.
+const DEEP_CLASS_ORDER: [&str; DEEP_CLASSES] = [
+    CLASS_CLASTIC_FINE,
+    CLASS_CLASTIC_COARSE,
+    CLASS_ORGANIC_SOIL,
+    CLASS_ORGANIC_PEAT,
+    CLASS_ORGANIC_COAL,
+    CLASS_ORGANIC_CHARCOAL,
+];
+
+/// The [`DEEP_CLASS_ORDER`] slot a recorded unit's species contributes to.
+fn deep_class_slot(species: Litho) -> usize {
+    match species {
+        Litho::ClasticFine => 0,
+        Litho::ClasticCoarse | Litho::Basement => 1,
+        Litho::OrganicSoil => 2,
+        Litho::OrganicPeat => 3,
+        Litho::OrganicCoal => 4,
+        Litho::OrganicCharcoal => 5,
+    }
+}
+
+/// Edge of the far field's local class window, in deep cells (see
+/// [`WorldGenerator::class_window`] for why it is 4 and not 2).
+const CLASS_WINDOW: usize = 4;
+
+/// Field-cell edge of the coherent dither source, **voxels** — one chunk, the
+/// scale journal/0073 measured the far mesher can point-sample without aliasing.
+const CLASS_DITHER_STRIDE: i64 = 32;
+
+/// Tag of the class draw inside the [`GeoClass`] domain. **Zero, and it must
+/// stay zero**: this is the tag the shipped class dither has read since
+/// journal/0073, so keeping it makes the *class* uniform at a given voxel
+/// bit-identical across the member-#0 adoption. Only the shares it indexes and
+/// the cell they come from changed.
+const TAG_CLASS_DRAW: u64 = 0;
+/// Tag of the cake-law membership draw inside [`GeoClass`] — new with member #0.
+/// Independence from [`TAG_CLASS_DRAW`] is measured
+/// (`draws::two_salts_of_the_coherent_source_are_independent`), not assumed.
+const TAG_CLASS_MEMBERSHIP: u64 = 1;
+
+/// The local class field, with the deep cell it was cut for.
+struct ClassWindow {
+    /// Base cell of the bilinear stencil this window was built around; the
+    /// window's own cell `(0, 0)` is `base - (1, 1)`.
+    base: (i64, i64),
+    field: CoarseField<ShareVec<DEEP_CLASSES>>,
+}
+
+/// **The per-class metre shares of one deep cell's top voxel** — the quantity the
+/// far field draws its surface class from, and the payload
+/// [`CoarseField::sample_dithered`] reads.
+///
+/// Metres, not units — a voxel whose top 0.9 m is 40 laminae of silt and 3 of
+/// sand is weighted by the silt, regardless of how the bed *count* falls.
+///
+/// **[`ShareVec::zero`] when the record runs out before half a voxel.** An empty
+/// share vector draws to `None`, which is how the bare-rock branch stays
+/// reachable through the field — and it makes the bare/covered contact obey the
+/// same cake law as every other contact.
+fn top_voxel_shares(rec: &DeepStrata, voxel_m: f64) -> ShareVec<DEEP_CLASSES> {
+    let mut shares = [0.0f64; DEEP_CLASSES];
+    let mut acc = 0.0f64;
+    for u in rec.units.iter().rev() {
+        if acc >= voxel_m {
+            break;
+        }
+        let take = u.thickness_m.min(voxel_m - acc);
+        if take <= 0.0 {
+            continue;
+        }
+        acc += take;
+        shares[deep_class_slot(u.species)] += take;
+    }
+    if acc < voxel_m / 2.0 {
+        return ShareVec::zero();
+    }
+    ShareVec::from_shares(shares)
+}
+
+/// Build the [`ClassWindow`] around deep-cell `base`, registered in the deep
+/// grid's own [`Registration`] (voxels — see [`DeepField::registration`], and do
+/// not reconstruct the pitch from `DEEP_CELL_M`).
+fn build_class_window(deep: &DeepField, voxel_m: f64, base: (i64, i64)) -> Option<ClassWindow> {
+    let reg = deep.registration();
+    let (ox, oz) = (base.0 - 1, base.1 - 1);
+    let mut cells = Vec::with_capacity(CLASS_WINDOW * CLASS_WINDOW);
+    for j in 0..CLASS_WINDOW as i64 {
+        for i in 0..CLASS_WINDOW as i64 {
+            // `None` only when the world has no record grid at all.
+            let rec = deep.record_at_cell(ox + i, oz + j)?;
+            cells.push(top_voxel_shares(rec, voxel_m));
         }
     }
-    // The shares sum to 1 by construction; a floating-point residue at the very
-    // top of the unit interval lands on the last class.
-    shares.last().map(|(c, _)| *c)
+    let local = Registration::new(
+        reg.origin_x + ox as f64 * reg.cell_size,
+        reg.origin_z + oz as f64 * reg.cell_size,
+        reg.cell_size,
+    );
+    Some(ClassWindow {
+        base,
+        field: CoarseField::from_cells(CLASS_WINDOW, CLASS_WINDOW, local, cells),
+    })
 }
 
 /// **The quantization rule for the carried regolith plane** (journal/0053).
@@ -1667,7 +1823,8 @@ mod tests {
 
     use super::contents_for_event;
     use crate::WorldGenerator;
-    use crate::geology::StrataEvent;
+    use crate::deeptime::lithology::Litho;
+    use crate::geology::{StrataEvent, deep_class_of_species};
     use crate::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams, temp_sea_level};
 
     /// The block a member's event must classify to: since the block↔material
@@ -1966,12 +2123,52 @@ mod tests {
         // which is worse than the defect it guards). The honest assertion is
         // **unbiasedness**: that the far draw's class distribution matches the
         // near expression's, per class, rather than that they coincide per voxel.
-        // Filed as a needs-measurement item with journal/0112; the floor is kept
-        // meanwhile because a *biased* summary would collapse it far below 0.80.
+        // Filed as a needs-measurement item with journal/0112.
+        //
+        // ── RE-DERIVED 2026-07-29 (journal/0124, member #0): 0.80 → 0.70,
+        //    measured 0.8225 → 0.7922. THE FLOOR MOVED BECAUSE THE MECHANISM DID,
+        //    AND THE NEW NUMBER IS PREDICTED BEFORE IT IS MEASURED. ──
+        //
+        // The far field now draws its shares through `CoarseField::sample_dithered`,
+        // whose step 1 picks WHICH of the four surrounding deep cells supplies them,
+        // with probability equal to that cell's bilinear weight. The near column
+        // still reads its own (nearest) cell. So per-voxel coincidence *must* fall,
+        // and by a computable amount:
+        //
+        //   E[weight on the home cell] over a uniform position in the cell
+        //     = 4·(∫₀^½ (1−x) dx)²  =  4·(3/8)²  =  **9/16 = 0.5625**, exactly.
+        //
+        // ⚠ Note what that number says, because the type's own doc comment invites
+        // the wrong reading (*"away from a boundary one weight ≈ 1"* — true only AT
+        // the centre): the membership dither is a **cell-wide continuous blend**,
+        // not a perimeter treatment. About **44 % of far voxels draw a neighbouring
+        // cell's shares**, everywhere, not just near a frontier.
+        //
+        // Two bracketing predictions from that, using journal/0112's two measured
+        // rates on this same world — same-cell coincidence 0.8225, and the
+        // **independent-cell collision floor ≈ 0.34**:
+        //
+        //   · neighbours statistically INDEPENDENT of the home cell (the degenerate
+        //     case — a mis-registered window, a broken stencil, a biased draw):
+        //       0.5625·0.8225 + 0.4375·0.34  =  **0.611**
+        //   · neighbours IDENTICAL to the home cell (a perfectly uniform world):
+        //       **0.8225**, unchanged
+        //
+        // Measured: **0.7922**, which back-solves to a neighbour-cell coincidence of
+        // 0.753 — i.e. adjacent 460 m cells agree nearly as often as a cell agrees
+        // with itself, which is what a spatially autocorrelated facies field looks
+        // like and is independent evidence the window is registered correctly.
+        //
+        // **The floor is 0.70: below the measurement by 0.09 and above the
+        // independent-neighbour prediction by 0.09.** It is not "the measured number
+        // minus a margin" — it is the line under which the neighbouring cells are
+        // contributing no more agreement than randomly chosen cells would, which is
+        // exactly the failure this test exists to catch.
         assert!(
-            frac >= 0.80,
-            "near/coarse surface agreement {frac:.4} below floor 0.80 — the far \
-             summary has drifted from the ground expression it summarizes"
+            frac >= 0.70,
+            "near/coarse surface agreement {frac:.4} below floor 0.70 — neighbouring \
+             deep cells are contributing no more agreement than random ones, so the \
+             far summary has drifted from the ground expression it summarizes"
         );
     }
 
@@ -2173,39 +2370,173 @@ mod tests {
         assert!(h.abs() < 1_000_000, "wilds height {h} is finite and sane");
     }
 
-    /// **Move B is unbiased** (audit B1, journal/0073): the class-membership
-    /// draw, averaged over the addressed uniform, chooses each class with
-    /// frequency equal to its recorded metre share. Same proof shape as
-    /// `fill::allocation_is_unbiased_over_the_draw` — this is the whole argument
-    /// for a dither over the retired plurality, which gave a 55/45 window's
-    /// entire 460 m cell to the 55 % class and stepped hard at its neighbour.
+    /// **Move B is unbiased** — the proof now lives in
+    /// `dc_core::coarse::the_draw_is_unbiased_over_the_uniform`, which absorbed
+    /// this file's retired `draw_class_is_unbiased_over_the_draw` **including its
+    /// three share vectors** when `draw_class` retired into `ShareVec::draw`
+    /// (member #0, journal/0124). What is left here is the half that test cannot
+    /// see: that the *slots* the shares are filed into agree with the routing the
+    /// rest of the tier reads.
+    ///
+    /// `DEEP_CLASS_ORDER[deep_class_slot(s)]` must equal
+    /// `deep_class_of_species(s)` for **every** `Litho`, `Basement` included —
+    /// a total check, so a new lithology cannot land in the wrong CDF slot (which
+    /// would surface the wrong rock at the wrong share, silently, in the far field
+    /// only). This is the same agreement discipline `draws.rs`'s registry test
+    /// keeps between the salt list and its remaining local copy: the routing
+    /// function is the authority, the slot table is the copy.
     #[test]
-    fn draw_class_is_unbiased_over_the_draw() {
-        use std::collections::HashMap;
-        // `total` is `Σ shares` (the caller's `acc`); the third case is
-        // un-normalized (metres, not fractions) to exercise `m / total`.
-        let cases: Vec<(Vec<(&'static str, f64)>, f64)> = vec![
-            (vec![("a", 0.55), ("b", 0.45)], 1.0),
-            (vec![("a", 0.50), ("b", 0.30), ("c", 0.20)], 1.0),
-            (vec![("a", 0.09), ("b", 0.81)], 0.90),
-        ];
-        for (shares, total) in &cases {
-            const N: usize = 20_000;
-            let mut hits: HashMap<&str, usize> = HashMap::new();
-            for k in 0..N {
-                let u = (k as f64 + 0.5) / N as f64;
-                let c = super::draw_class(shares, *total, u).expect("non-empty window");
-                *hits.entry(c).or_default() += 1;
-            }
-            for &(c, m) in shares {
-                let freq = *hits.get(c).unwrap_or(&0) as f64 / N as f64;
-                let want = m / total;
-                assert!(
-                    (freq - want).abs() < 1e-2,
-                    "class {c}: chosen {freq} of the time, recorded share {want}"
+    fn deep_class_slot_matches_deep_class_of_species() {
+        for species in Litho::ALL {
+            let slot = super::deep_class_slot(species);
+            assert_eq!(
+                super::DEEP_CLASS_ORDER[slot],
+                deep_class_of_species(species),
+                "{species:?} files into slot {slot}, which names a different class"
+            );
+        }
+        // And the table is exactly as wide as the routing's image — a slot no
+        // species reaches would be a share that can never be drawn.
+        let reached: std::collections::HashSet<usize> = Litho::ALL
+            .iter()
+            .map(|s| super::deep_class_slot(*s))
+            .collect();
+        assert_eq!(
+            reached.len(),
+            super::DEEP_CLASSES,
+            "some DEEP_CLASS_ORDER slot is unreachable from any Litho"
+        );
+    }
+
+    /// **The cake law, at world scale** (U22, user 2026-07-22) — the acceptance
+    /// test for member #0, and the world-scale sibling of
+    /// `dc_core::coarse::cake_law_a_minority_phase_interfingers_across_a_cell_boundary`.
+    ///
+    /// The sibling proves the *type* interfingers over a synthetic two-cell field.
+    /// This proves the **shipped far field** does it over a real deep-cell
+    /// frontier: find two adjacent deep cells whose top-voxel records have
+    /// *different plurality winners* and each of which carries the other's winner
+    /// as a minority, then sample `surface_class` in a band on each side of the
+    /// line between them. Under the retired plurality the line is a fence — the
+    /// winner fills its cell to the grid line and stops. Under the cake law each
+    /// cell's minority appears on BOTH sides, and the mixing fraction shifts
+    /// monotonically across.
+    ///
+    /// **Scale-free, and run at the smallest extent that carries the signature.**
+    /// The claim is a property of ONE frontier — a per-voxel predicate over the
+    /// bilinear membership weights of two cells. A bigger world contains more
+    /// frontiers; it does not contain a *better* one, and it cannot make a fence
+    /// interfinger. So the test needs exactly one qualifying pair to exist, which
+    /// `Extent::Small` supplies; the number of such frontiers is a magnitude for a
+    /// report, not the invariant.
+    #[test]
+    fn far_class_dither_interfingers_across_a_real_deep_cell_frontier() {
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Small,
+        });
+        let deep = &pregen.deep;
+        let reg = deep.registration();
+        let w = deep.w as i64;
+        let voxel_m = 0.9;
+
+        // A qualifying frontier: cells (i, j) and (i+1, j) with different
+        // plurality winners, each holding the other's winner as a real minority.
+        // `MIN_SHARE` keeps the test off pairs whose minority is a rounding crumb,
+        // where a few thousand samples could legitimately draw none.
+        const MIN_SHARE: f64 = 0.08;
+        // The perimeter between cells i and i+1 sits at cell coordinate i + 0.5;
+        // rows are centred on cell row j so the z stencil weight stays ~0.9 on
+        // this pair rather than mixing in the row above or below.
+        let band = (reg.cell_size / 8.0) as i64;
+        let voxel_of = |i: i64, j: i64| {
+            (
+                (reg.origin_x + (i as f64 + 0.5) * reg.cell_size).round() as i64,
+                (reg.origin_z + j as f64 * reg.cell_size).round() as i64,
+            )
+        };
+        let mut frontier = None;
+        'search: for j in 1..w - 1 {
+            for i in 1..w - 2 {
+                let (a, b) = (
+                    super::top_voxel_shares(deep.record_at_cell(i, j).unwrap(), voxel_m),
+                    super::top_voxel_shares(deep.record_at_cell(i + 1, j).unwrap(), voxel_m),
                 );
+                let (Some(wa), Some(wb)) = (a.argmax(), b.argmax()) else {
+                    continue;
+                };
+                if wa == wb {
+                    continue;
+                }
+                let a_frac = a.shares()[wb] / a.total();
+                let b_frac = b.shares()[wa] / b.total();
+                if a_frac < MIN_SHARE || b_frac < MIN_SHARE {
+                    continue;
+                }
+                // …and the whole sampling box must lie inside the civilized
+                // extent, or the wilds fallback answers instead of the record.
+                let (bx, bz) = voxel_of(i, j);
+                let inside = deep.deep_coords(bx - band, bz - band).is_some()
+                    && deep.deep_coords(bx + band, bz + band).is_some();
+                if inside {
+                    frontier = Some((i, j, wa, wb));
+                    break 'search;
+                }
             }
         }
+        let (i, j, wa, wb) = frontier.expect(
+            "no deep-cell frontier with opposed plurality winners and mutual minorities — \
+             this world cannot exercise the cake law at all",
+        );
+        let (boundary, row) = voxel_of(i, j);
+        let mut g = WorldGenerator::new(&pregen);
+        let count = |g: &mut WorldGenerator<'_>, lo: i64, hi: i64| {
+            let mut c = [0u64; super::DEEP_CLASSES];
+            for vx in lo..hi {
+                for vz in (row - band)..(row + band) {
+                    let Some(class) = g.surface_class(vx, vz) else {
+                        continue;
+                    };
+                    if let Some(s) = super::DEEP_CLASS_ORDER.iter().position(|k| *k == class) {
+                        c[s] += 1;
+                    }
+                }
+            }
+            c
+        };
+        let left = count(&mut g, boundary - band, boundary);
+        let right = count(&mut g, boundary, boundary + band);
+        println!(
+            "cake tripwire: frontier at deep cell ({i},{j})→({}, {j}), winners {} | {}; \
+             left {:?} right {:?}",
+            i + 1,
+            super::DEEP_CLASS_ORDER[wa],
+            super::DEEP_CLASS_ORDER[wb],
+            left,
+            right
+        );
+
+        // Each cell's MINORITY appears on its own side of the line — under a
+        // plurality verdict both of these are exactly 0.
+        assert!(
+            left[wb] > 0,
+            "the left cell's minority ({}) never surfaces on its own side — a fence",
+            super::DEEP_CLASS_ORDER[wb]
+        );
+        assert!(
+            right[wa] > 0,
+            "the right cell's minority ({}) never surfaces on its own side — a fence",
+            super::DEEP_CLASS_ORDER[wa]
+        );
+        // And the mix shifts across the line rather than stepping or muddling to a
+        // uniform average: the right cell's winner is commoner on the right.
+        let frac = |c: [u64; super::DEEP_CLASSES]| c[wb] as f64 / (c[wa] + c[wb]).max(1) as f64;
+        let (fl, fr) = (frac(left), frac(right));
+        assert!(
+            fr > fl,
+            "the {} fraction must rise across the frontier: left {fl:.3}, right {fr:.3}",
+            super::DEEP_CLASS_ORDER[wb]
+        );
     }
 
     /// **The class-membership dither (`draw_class`) is live in the far summary**

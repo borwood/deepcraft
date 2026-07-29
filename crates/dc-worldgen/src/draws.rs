@@ -168,6 +168,63 @@ pub(crate) fn interp_corner_field(
     (a * (1.0 - fz) + b * fz).clamp(0.0, 1.0 - f64::EPSILON)
 }
 
+/// **The coherent [`DitherSource`]** — dc-worldgen's production impl of dc-core's
+/// caller-owned-entropy seam, wrapping [`interp_corner_field`] (member #0,
+/// journal/0124).
+///
+/// dc-core is headless and holds no RNG, so `CoarseField::sample_dithered` takes
+/// its addressed uniform through a trait and the *implementation* IS the SOURCE
+/// axis (`coarse.rs` § "the source axis"). This is the **coherent** end of that
+/// axis: a bilinear corner-hash field over `stride`-voxel cells, low-frequency
+/// enough that a coarse consumer can point-sample it. It is the same field the
+/// class dither has read since journal/0073 — the far field point-samples the
+/// surface class at a wide stride and white noise aliases there into a
+/// mesh-doubling speckle. Its cost is the dice-sum CDF distortion, which
+/// **amplifies the majority** class (corrections #39 fixed the sign); the honest
+/// heir for that is the far field summarizing shares at its own resolution, which
+/// belongs to the octree node contract (ruled 2026-07-29).
+///
+/// ## The salt mapping: `salt` → **tag**, inside a domain fixed at construction
+///
+/// `DitherSource::uniform` has ONE salt dimension; this crate's entropy is
+/// addressed by **(domain, tag, address)**. A domain is a *type* (`draw_domains!`)
+/// and cannot be selected by a runtime `u64`, so the only honest mapping is:
+///
+/// - the **domain** is chosen by whoever constructs the source (`Draws::of::<D>`),
+///   which is also where the seed enters;
+/// - the caller's **`salt` becomes the `tag`** within that domain.
+///
+/// So one `Coherent` is one domain's coherent field, and a consumer that wants two
+/// independent draws at the same position passes two salts — exactly what
+/// `sample_dithered` does (membership, then class). This inherits **hole 1** of
+/// this module's docs (hand-laid tag space inside a domain) rather than curing it:
+/// the tags a `Coherent` hands out are as hand-laid as [`GeoSelect`]'s 0–3, and the
+/// compile-time duplicate check does not see them. The cure is a `Domain` per
+/// decision, and it is the same cure hole 1 already names.
+pub(crate) struct Coherent {
+    draws: Draws,
+    stride: i64,
+}
+
+impl Coherent {
+    /// A coherent source over `draws`'s domain, with a `stride`-voxel field cell.
+    pub(crate) fn new(draws: Draws, stride: i64) -> Self {
+        debug_assert!(stride > 0, "a coherent field cell must be at least 1 voxel");
+        Coherent { draws, stride }
+    }
+}
+
+impl dc_core::coarse::DitherSource for Coherent {
+    #[inline]
+    fn uniform(&self, wx: i64, wz: i64, salt: u64) -> f64 {
+        let cx = wx.div_euclid(self.stride);
+        let cz = wz.div_euclid(self.stride);
+        let fx = (wx.rem_euclid(self.stride) as f64 + 0.5) / self.stride as f64;
+        let fz = (wz.rem_euclid(self.stride) as f64 + 0.5) / self.stride as f64;
+        interp_corner_field(self.draws, salt, cx, cz, fx, fz)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -249,6 +306,43 @@ mod tests {
             (rate - 0.125).abs() < 0.02,
             "two domains agree to three bits {:.2} % of the time (chance 12.5 %)",
             100.0 * rate
+        );
+    }
+
+    /// **Two salts of one [`Coherent`] source are independent.**
+    ///
+    /// `CoarseField::sample_dithered` takes TWO salts at one position — one picks
+    /// which cell's shares to draw from (the cake law), one draws the class within
+    /// it — and the unbiasedness argument assumes they are independent draws. Under
+    /// the salt→tag mapping they are two tags of one domain, so this is the
+    /// tag-space sibling of [`two_domains_are_independent_at_the_same_address`],
+    /// measured through the *interpolated* field rather than the raw stream:
+    /// coherence within one tag must not become correlation across two.
+    ///
+    /// The bound is looser than the raw-stream test's 0.03 on purpose — each value
+    /// here is a bilinear blend of four corner draws, so 20,000 sample positions
+    /// are drawn from far fewer independent corners and the sample correlation has
+    /// a correspondingly wider null distribution.
+    #[test]
+    fn two_salts_of_the_coherent_source_are_independent() {
+        use dc_core::coarse::DitherSource;
+        let src = Coherent::new(Draws::of::<GeoClass>(1337), 32);
+        let n = 20_000usize;
+        let (mut sx, mut sy, mut sxy, mut sxx, mut syy) = (0.0, 0.0, 0.0, 0.0, 0.0);
+        for i in 0..n {
+            let (wx, wz) = ((i as i64 % 137) * 13 - 800, (i as i64 / 137) * 11 - 700);
+            let (x, y) = (src.uniform(wx, wz, 0), src.uniform(wx, wz, 1));
+            sx += x;
+            sy += y;
+            sxy += x * y;
+            sxx += x * x;
+            syy += y * y;
+        }
+        let nf = n as f64;
+        let r = (sxy - sx * sy / nf) / ((sxx - sx * sx / nf) * (syy - sy * sy / nf)).sqrt();
+        assert!(
+            r.abs() < 0.08,
+            "the membership and class salts correlate at r = {r:+.4}"
         );
     }
 

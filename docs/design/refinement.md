@@ -256,7 +256,26 @@ expressor is *inert, loud* (the plug-and-play mirror — notebook § 2.5a).
    base reconstruction and the two legal coarse→fine moves; adoption (P4) is the
    tier consuming its member #0, and the octaves slot in as a `DitherSource`
    (P6 — the graph already reconciled them: octaves supply the source,
-   `sample_dithered` the draw, `summarize` retires the residual bias).
+   `sample_dithered` the draw, ~~`summarize` retires the residual bias~~ —
+   **`summarize` was ruled OUT of this tier at member #0's design pass**, so the
+   residual bias has no heir inside refinement).
+   - **✅ DESIGN PASS DONE + FIRST BUILD SLICE SHIPPED, 2026-07-29** —
+     `docs/audits/2026-07-29-member0-coarsefield-design.md` (rulings in its mutable
+     header), built in journal/0124. **The far site only**, and the member is
+     **K1 only**: `sample`/`sample_dithered` + `DitherSource`. The design pass
+     found the fused "base reconstruction" is *three* separable kernels and split
+     them — K2 `summarize` → the octree node contract, K3 (`collapse.rs::lattice`'s
+     midpoint jitter, the oldest coarse→fine move in the tree and **not expressible
+     in this document's two-move vocabulary**) filed as **move C — bounded
+     stochastic detail synthesis**, with a named heir and no owner yet. *All
+     sub-460 m relief in the shipped world comes from move C, which § 3's kernel
+     list does not name.*
+   - **What the slice proved about these bones, honestly:** the base-reconstruction
+     step ran with **no runner** — which is the seam-first order working, and also
+     evidence that "initialized by the base reconstruction" (§ 3) is currently a
+     description of one call site rather than of a runner. **MM-3 (the working
+     sub-cell state has no declared type) is still owed and is now the near site's
+     blocker**, exactly as the design pass predicted.
 1. **The channel operator** — the worked acceptance example. Inputs: the
    face-flux record + head field (P3 — built and idle *on purpose*, "the
    primitive the channel needs is the one FLOW spent three slices building"),

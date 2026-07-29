@@ -22,6 +22,18 @@
 > failure here is the one-directional pointer, and the 2026-07-29 design pass re-derived
 > the question because this doc held no link to its own answer. User memory caught it.*
 > See `docs/audits/2026-07-29-member0-coarsefield-design.md` § 3 + header rulings.
+>
+> **⚠ THE FAR-FIELD HALF OF THIS DOC'S MECHANISM IS SUPERSEDED IN CODE, 2026-07-29
+> (journal/0124).** Every `surface_class` → `draw_class` chain this body describes
+> (`§ 4`, `§ 5`, `§ 6`) is gone: `draw_class` retired into
+> `dc_core::coarse::ShareVec::draw`, and `surface_class` now samples a
+> `CoarseField<ShareVec<6>>` window through `sample_dithered`, which **dithers which of
+> the four surrounding deep cells supplies the shares** before drawing. So the far
+> field's *"reads `record_at_voxel` NEAREST at the ~460 m grid"* is **no longer true**
+> and the 460 m frontier is no longer a step there. **The NEAR path this doc is actually
+> about — one chunk-centre point sample shared by 1024 columns — is UNCHANGED**, and so
+> is everything in § 0's TL;DR. Read the body as accurate about the near field and
+> historical about the far one.
 
 **Date:** 2026-07-24
 **Mode:** DIAGNOSIS ONLY (read-only on code; no fix, no plan). Every claim carries
