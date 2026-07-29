@@ -421,10 +421,10 @@ footprint with S11's air-component container (S15 design choice 2).
     cautionary tale — was never converted.** `examples/flow_cost_probe.rs:412` still holds a
     bare `assert_eq!` in `main`, no `#[test]`, no `[[example]]` block. **The remedy's own
     motivating case is unremediated.** Candidate corrections entry.
-  - **⚠ NOT COVERED BY THIS BASELINE: `spine-audit`'s question.** All nine slices were
-    docs-vs-docs. **Nothing checked `spines.md` against the CODE**, which is why its watermark
-    is deliberately `null`. *That is the next sweep, and it is the one with a live finding
-    already waiting for it (S-6 above).*
+  - ~~**⚠ NOT COVERED BY THIS BASELINE: `spine-audit`'s question.**~~ **DISCHARGED 2026-07-29:
+    the first spine-audit ran (`ec9858e`), its watermark is set (`96ab14b`), and the S-6
+    finding it was waiting on was APPLIED (`e568c5b`).** *(Staleness sweep 2026-07-29 F7 —
+    three clauses of this bullet had gone stale in one day.)*
 
 
 - **🟠 THE SUPERSESSION-BANNER BACKLOG — the policy shipped, the sweep did not** (created
@@ -447,6 +447,15 @@ footprint with S11's air-component container (S15 design choice 2).
     same-commit obligation holds, the hole stops growing and the backlog is finite. If it does
     not, sweeping is treating a symptom — *and we would know within a week, which is the
     cheapest possible falsifier.* **Watch that before investing in the sweep.**
+    - **✅ THE FALSIFIER RAN TWICE AND THE POLICY HELD — sweep UNBLOCKED (staleness sweep
+      2026-07-29 F10):** corrections #72 stamped journal/0116 (verified at source), #73
+      stamped both its targets. The backlog is finite; the banner sweep is now a justified
+      spend. **With one sharpening from the same sweep's meta-observation: the obligation
+      holds where the target is a spike or journal, and FAILS where the target is a ROADMAP
+      body entry** — six of its eleven findings were answers recorded in `spines.md` / the
+      graph / a journal / the close block and never written back into the asking ROADMAP
+      entry, twice inside entries an author had open for a different edit. The sweep covers
+      spike/audit banners; the ROADMAP-body variant has no mechanism yet.
 
 - **🟠 NO ENUMERATION IN THE DOCS IS CHECKED FOR COMPLETENESS — and 2026-07-28 added a fourth
   instance while RESOLVING one** (sharpened by the refinement-tier ruling). The user's
@@ -493,8 +502,10 @@ footprint with S11's air-component container (S15 design choice 2).
     (corrections #51). **The label is wrong with certainty; the correct VALUES are unknown**
     — they predate the geotherm recalibration — so this needs a **measurement**, not an edit.
     Only the addresses rotted.
-  - **NEXT SWEEP'S SPINE: `ROADMAP.md` § Observed (~1,970 lines)** — the largest unswept
-    surface in the corpus, and the section the archive structurally could not reduce.
+  - ~~**NEXT SWEEP'S SPINE: `ROADMAP.md` § Observed (~1,970 lines)**~~ **DONE 2026-07-29:
+    swept (`d69cdb3`) and reduced to 1,162 lines by archive pass 2 (`610d2b5`)** — the
+    "structurally could not reduce" claim did not survive the by-status archive.
+    *(Staleness sweep 2026-07-29 F8.)*
 
 - **🟠 THE COAL CANDIDATE COUNTS ITS OWN HALF-THICKNESS AS BURIAL DEPTH** (defect, surfaced
   by journal/0114's confound analysis; **user ruled 2026-07-26** that burial-dominant coal
@@ -713,10 +724,12 @@ footprint with S11's air-component container (S15 design choice 2).
       deleted.** *The guess in this entry was wrong in an instructive way: a declared `seeded`
       flag beside the cadence cannot express `run-once-only`, which is why the ratified answer
       is a sum type and not a bool.*
-    - **⚠ EXTRACTION CANDIDATE, NOT TAKEN (user call).** `runner.rs` is **1,694 lines** against
-      the 700-line threshold (2.4×) and this slice added to it. The cold half is the
-      journal/0090/0104/0107 declaration-history commentary; the live half is the roster + the
-      loop. *Not split mid-slice, per the hook's own instruction to propose rather than do.*
+    - **⚠ EXTRACTION TAKEN AND MEASURED INSUFFICIENT — module split still a user call.**
+      ~~1,694 lines, not taken~~ the history extraction landed (`02aa81a`) and the file is
+      **1,908 lines today** — the commentary was not the weight; **927 CODE lines** remain,
+      so the remaining lever is the module split the close block already files as waiting on
+      the user. *(Staleness sweep 2026-07-29 F9 — both the number and the disposition had
+      moved.)*
 
     - **✅ RATE IS NOT EXPANDED — scope-expansion flag WITHDRAWN 2026-07-29, same day, by the
       user.** For a few hours this entry said the stand-in widened RATE from *authored cadence*
@@ -875,8 +888,12 @@ footprint with S11's air-component container (S15 design choice 2).
 
 - **🔴🔴 CALIBRATE THE DEEP-TIME CLOCK — the largest measured defect on the board**
   **(⚠ PARTLY BUILT 2026-07-26, journal/0114 — see `ROADMAP-history.md` § Shipped. It is BUILT, MEASURED and
-  DELIBERATELY OFF, blocked on stubs #29 — **discharged 2026-07-29 by journal/0122; that entry is now in `ROADMAP-history.md`**. The band is NOT reachable at any multiplier;
-  read stubs #27 before assuming a bigger number fixes it.)**
+  DELIBERATELY OFF, blocked on stubs #29 — **discharged 2026-07-29 by journal/0122; that entry is now in `ROADMAP-history.md`**. ~~The band is NOT reachable at any multiplier;
+  read stubs #27 before assuming a bigger number fixes it.~~ **⚠ CONTRADICTED 2026-07-29
+  (staleness sweep F1): journal/0122 inverted 0114's ladder on the default-on operator —
+  "no safe multiplier" became "there are five." The evidence base for the struck claim is
+  VOIDED; reachability needs RE-MEASUREMENT under the fixed operator, and neither the old
+  claim nor its inverse should be asserted until then.)**
   (journal/0111, corrections #56, stubs #24, 2026-07-26). **User-owned and appearance-class:
   the multipliers are the user's to bless. Do NOT let an agent pick them by taste — the target
   is a PUBLISHED BAND, and that is what makes this a derivation rather than a tuning.**
@@ -981,17 +998,23 @@ footprint with S11's air-component container (S15 design choice 2).
     palette-quant fix to the genesis-passes arc (struck above), and the real cure stopped having
     a home. It survives only as a trailing half-sentence at `ROADMAP.md:~179` (*"remaining
     CoarseField migration follows the type freeze"*).
-  - **BUILT, AND NOTHING CALLS IT — the whole API.** Verified workspace-wide at `ae4bb29`:
+  - **BUILT, AND NOTHING CALLS IT — the whole API** *(historical testimony, true at `ae4bb29`;
+    **RESOLVED 2026-07-29, journal/0125** — `sample_dithered`, `sample` and `DitherSource` now
+    have production callers, per `spines.md` § 3's CoarseField row; staleness sweep F2)*.
+    Verified workspace-wide at `ae4bb29`:
     `sample_dithered`, `sample`, `summarize`, `DitherSource` (trait, **zero production impls**)
-    and `CoarseField<T>` itself all have **zero callers outside `dc-core`**. Only `ShareVec<N>`
-    landed. `collapse.rs:949` still defers to *"the `CoarseField<T>` extraction (audit Part 2)"*
-    as though it were pending — **the extraction is done; the adoption is not.**
-  - **⚠ AND IT IS INVISIBLE TO ALL THREE LOOSE-END LOCI.** It is in **neither** `spines.md` § 3
-    "Built, and nothing calls it" (12 rows, no CoarseField row) **nor** `stubs.md` **nor** — until
-    now — ROADMAP. `spines.md` § S-4 calls it the *"Ratified end-state — **EXTRACTED**"*, which
+    and `CoarseField<T>` itself all had **zero callers outside `dc-core`**. Only `ShareVec<N>`
+    landed. ~~`collapse.rs:949` still defers to *"the `CoarseField<T>` extraction (audit Part 2)"*
+    as though it were pending~~ *(that comment text is gone from the tree as of 2026-07-29 —
+    whether answered or merely deleted was NOT determined; staleness sweep F4)* — **the
+    extraction is done; the adoption is half-done (far ✅, near owed).**
+  - **⚠ AND IT WAS INVISIBLE TO ALL THREE LOOSE-END LOCI** *(historical; **DISCHARGED** — the
+    `spines.md` § 3 row exists, `spines.md:1474`; staleness sweep F3)*. It was in **neither**
+    `spines.md` § 3 "Built, and nothing calls it" **nor** `stubs.md` **nor** — until
+    then — ROADMAP. `spines.md` § S-4 called it the *"Ratified end-state — **EXTRACTED**"*, which
     reads as **done**. Per read-first item 6 an unlisted loose end is *the defect, not a licence*:
     the largest built-and-unconsumed mechanism in this thread was hidden from the lookup that
-    exists to find exactly this. **Add the § 3 row in the same commit as the first adoption slice.**
+    exists to find exactly this.
   - **THE TWO SITES ARE ONE ROOT, AND A FIX TO ONE DOES NOT FIX THE OTHER.** The root is
     `DeepField::record_at_voxel` reading **NEAREST** at the ~460 m deep cell — its own doc comment
     flags it (*"a variable-length unit sequence cannot be interpolated, so the facies story steps
@@ -1040,8 +1063,11 @@ footprint with S11's air-component container (S15 design choice 2).
     boundary-value solver, position-addressed noise, interval fill), **refinement OPERATORS
     are content**. *The mechanism is not designed; the direction is set.*
   - **FIRST SLICE — a DESIGN PASS, not code** (user: *"refinement primitives want a design
-    pass and then a decomp and port of existing collapse"*). Field-notebook-first per the
-    earth-processes method. It must answer: what is the primitive set · what the operator
+    pass and then a decomp and port of existing collapse"*). **✅ DONE AND RATIFIED 2026-07-29:
+    `docs/design/refinement.md` (CAUTIOUSLY RATIFIED — bones only; members need their own
+    passes) answers every question this bullet posed** *(staleness sweep F5 — all four ROADMAP
+    mentions of this were previously inside the close block only)*. Field-notebook-first per the
+    earth-processes method. It answered: what is the primitive set · what the operator
     contract is in SDK terms (the pure-fn constraint **is** the sandbox contract — one
     constraint, two payoffs) · **invocation granularity** (see the amendment
     below) · and how a **mod** authors a visible channel end-to-end.
@@ -3394,19 +3420,33 @@ second file.
 
 - **The cake observation: minority phases guillotine at cell perimeters
   under the coherent draw** (user, 2026-07-22, on ratifying B1's look —
-  the swirl-cake-slice metaphor). B1's dither made the SOURCE continuous
-  but the SHARES it thresholds are still nearest-per-cell, so minority
-  swirls die at the 460 m line while shared majorities flow through —
-  the S-4 sharpening catching the residual half of its own fix (the cause
-  is still cell-quantized; only the expression got smooth). Suspected
-  harder-to-see sibling: the journal/0058 MEMBER dither should guillotine
-  minority members identically at perimeters (unexamined — check when the
-  cure lands). Cure named, assigned to the CoarseField extraction: near
-  boundaries, seeded membership dither of the SOURCE CELL (bilinearly
-  weighted), then draw within that cell's shares — the residue-(b) paired
-  pattern at the surface. Also owed there: the toward-50/50 bias of
-  interpolated-uniform noise (dice-sum CDF distortion) — either a
-  CDF-corrected coherent source or the far-summarize register retires it.
+  the swirl-cake-slice metaphor). **✅ ANSWERED 2026-07-29 — journal/0127 is
+  titled "the cake observation, answered": U22 discharged, the 460 m cell
+  lines confirmed gone BY EYE** *(staleness sweep F6 — the answer sat 1,000+
+  lines away in the close block with no banner here)*. B1's dither made the
+  SOURCE continuous
+  but the SHARES it thresholds were still nearest-per-cell, so minority
+  swirls died at the 460 m line while shared majorities flowed through —
+  the S-4 sharpening catching the residual half of its own fix. The cure the
+  entry named (seeded membership dither of the SOURCE CELL, bilinearly
+  weighted) is exactly what shipped (`sample_dithered`, journal/0125).
+  **STILL LIVE, do not inherit as done:** (1) the **member-dither sibling** —
+  `geology.rs::dithered_member` under chunk-centre formation context, U22's
+  named sibling, different site, **still unexamined** (member-#0 audit § 3
+  confirms 2a does NOT fix it); (2) the **toward-50/50 bias** of
+  interpolated-uniform noise — its named heir was the far-summarize register,
+  which was **ruled out of the refinement tier** (→ octree contract), so the
+  bias now rides the shipped far field with **no heir**.
+
+- **`tectonics.rs` salt conversion owed** (draws.rs residue 3, 2026-07-29; promoted from the
+  close block to a body entry by staleness sweep F11 — a close block is a handoff that gets
+  archived, not a residence). Owed to the file owner when next touched.
+
+- **The tour-map instrument needs a LAND FILTER** (found 2026-07-29 during the far-frontier
+  tour-map: station 1 scored a below-sea-level basin; full finding in
+  `docs/audits/2026-07-29-far-frontier-tourmap.md`. Promoted from the close block by
+  staleness sweep F11). Walk stations 3/4 of that map remain unwalked; poses in the same
+  audit.
 
 - **Texel-edge dither bands on close-pressed walls, anisotropic** (user field
   report, walk 0071, 2026-07-22; asset
