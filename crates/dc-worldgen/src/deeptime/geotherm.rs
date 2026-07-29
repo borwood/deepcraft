@@ -134,8 +134,10 @@ pub struct BurialColumn {
 /// no-op when there is no crustal state (`t_crust` empty — tectonic history off),
 /// which is why the pass is only scheduled on the tectonic-history path.
 ///
-/// Called by the runner's `geotherm` pass at its cadence, and once pre-loop as
-/// the coarse-rate seed (like the climate march).
+/// Called by the runner's `geotherm` pass at its cadence — **and by nothing
+/// else**. It was also run once pre-loop as a coarse-rate seed until 2026-07-29;
+/// deleting the runner's epoch-0 skip rule made the pass fire at epoch 0 and the
+/// seed a write nothing observed (journal/0124, `deeptime::schedule`).
 pub(crate) fn march(
     grid: &mut DeepGrid,
     plates: &[super::tectonics::Plate],

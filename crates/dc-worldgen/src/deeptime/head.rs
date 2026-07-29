@@ -409,8 +409,12 @@ fn relax_cell(
 ///   that stays meaningful when it is carried onto a `ground` from a later moment
 ///   (the finalize re-march). Using `filled` directly against a newer ground reads
 ///   every cell erosion has since lowered as a lake, which is a whole world of
-///   fictitious ponds. Both may be empty (the pre-loop seed, before any routing) —
-///   then there is no standing water anywhere, which is the honest initial state.
+///   fictitious ponds. Both may be empty — then there is no standing water
+///   anywhere. **No caller passes them empty any more**: the pre-loop seed that
+///   did was deleted 2026-07-29 (journal/0124) when `dc:deep/head` became a plain
+///   `Step` firing at epoch 0, with the drainage solve already run. The empty case
+///   is kept working rather than asserted away, because it is the honest answer
+///   for a caller that genuinely has no routing.
 /// - `ground` — the ground surface `R + H`. **In the loop this is the `Forced`
 ///   revision** — the same terrain `build_surface` snapshotted `filled`/`routed`
 ///   from, which is not a coincidence but a requirement: the seepage cap and the
@@ -419,7 +423,8 @@ fn relax_cell(
 ///   to the pass order (journal/0107). (The finalize re-march hands a *later*
 ///   ground with the *same* solve outputs on purpose — hence `filled − routed`
 ///   above, which survives the mismatch where `filled` alone would not.)
-/// - `area` — this epoch's drainage area, for the stream anchors. Empty pre-loop.
+/// - `area` — this epoch's drainage area, for the stream anchors. May be empty;
+///   see `filled`/`routed` above for why nothing passes it so today.
 ///
 /// Returns the **final sweep's maximum |Δh|** (metres) — reported, never used to
 /// stop (see [`HEAD_RELAX_SWEEPS`]).

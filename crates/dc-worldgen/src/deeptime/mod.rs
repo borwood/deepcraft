@@ -38,6 +38,7 @@ pub mod providers;
 pub mod recorder;
 pub mod refine;
 pub mod runner;
+pub mod schedule;
 pub mod tectonics;
 pub mod weather_behavior;
 pub mod weather_inventory;
@@ -88,6 +89,7 @@ pub use lithology::{
 pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
 pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
+pub use schedule::Schedule;
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
 pub use weather_behavior::{
     BedrockWeather, Form, Transform, Weather, WeatherAxis, WeatherCtx, WeatheringPass,
@@ -222,16 +224,28 @@ pub fn run_cells_with_cadence(
     erosion.set_material_creep(cfg.material_creep);
     let mass_before = total_mass(&grid);
 
-    // --- pre-loop seeding (initial conditions the epoch loop reads) ---
-    // The epoch-0 climate march, the biotic-layer init (which turns on the grid's
-    // biotic modifier planes at their identity values, so iteration 0's erosion is
-    // byte-identical to a biology-free run — the lagged coupling), and the
-    // precomputed tectonic-history schedule (§ 3: the chapter table + one analytic
-    // thickening plane per chapter geometry, blended per iteration across the
-    // chapter ramp; off → empty, byte-identical legacy path). The climate pass is
-    // a coarse-rate pass **seeded here** and re-marched inside the loop every
-    // `remarch_interval` epochs (runner.rs).
-    climate::march(&mut grid, grid::sea_level_at(cfg, 0));
+    // --- pre-loop construction (owned state the epoch loop threads) ---
+    // The biotic-layer init (which turns on the grid's biotic modifier planes at
+    // their identity values, so iteration 0's erosion is byte-identical to a
+    // biology-free run — the lagged coupling), and the precomputed
+    // tectonic-history schedule (§ 3: the chapter table + one analytic thickening
+    // plane per chapter geometry, blended per iteration across the chapter ramp;
+    // off → empty, byte-identical legacy path).
+    //
+    // **THREE PRE-LOOP PASS SEEDS USED TO SIT HERE, AND THEY ARE GONE**
+    // (journal/0124; `ARCHITECTURE.md` § *Schedule — DECIDED 2026-07-29*). The
+    // climate march, the geotherm and the head field were each run once here and
+    // then skipped at epoch 0 by the runner. Deleting the skip rule deleted their
+    // reason to exist: each of the three re-establishes its whole field from the
+    // current state, and each now does so *inside* epoch 0, ahead of its own only
+    // reader — so the pre-loop copy was a write nothing observed. **The seeds were
+    // repair for the skip, not initial conditions**, and the audit that found so
+    // is in journal/0124, per pass.
+    //
+    // What remains below is genuinely different in kind: it **constructs owned
+    // state** that the ctx carries, rather than writing a grid plane a pass will
+    // overwrite. When declared epochs land (ROADMAP slot (d)) this is the material
+    // for a real `Schedule::Seed` roster; today it is not pass-shaped.
     let biota = if cfg.biotic {
         Some(BioticSim::new(&mut grid, cfg, parallel))
     } else {
@@ -243,32 +257,6 @@ pub fn run_cells_with_cadence(
     } else {
         Vec::new()
     };
-    // The geotherm is a **coarse-rate field pass** (runner.rs), so — like the
-    // climate march above — it is seeded here before the loop and re-marched on
-    // its cadence inside it. Off the tectonic path there is no crustal state, so
-    // the seed is a no-op and the `temperature` field stays empty.
-    if cfg.tectonic_history {
-        let extent_km = grid.w as f64 * grid.cell_m / 1000.0;
-        let v_ref = tectonics::reference_velocity(cfg, extent_km);
-        geotherm::march(&mut grid, tec.plates_at(0), v_ref, cfg);
-    }
-    // The head field is likewise a **coarse-rate field pass**, so it is seeded here
-    // and re-relaxed on its cadence inside the loop. No routing has happened yet at
-    // epoch 0, so the seed reads the bare surface as its own free-water level and no
-    // stream anchors — the epoch-0 potential is therefore anchored by the sea and the
-    // border alone, which is the honest initial condition rather than a guess.
-    if cfg.head_field {
-        let n = grid.w * grid.w;
-        let ground: Vec<f64> = (0..n).map(|i| grid.surf_at(i)).collect();
-        head::march(
-            &mut grid,
-            &[],
-            &[],
-            &ground,
-            &[],
-            grid::sea_level_at(cfg, 0),
-        );
-    }
 
     // --- the deep-time pass-runner drives the epoch loop (runner.rs) ---
     // The four phases the old hand-written loop ran — climate, tectonic forcing,

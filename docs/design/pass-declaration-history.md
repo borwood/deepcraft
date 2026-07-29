@@ -1,5 +1,22 @@
 # The deep-time pass declarations: how they got this way
 
+> **⚠ BANNER, stamped 2026-07-29 by journal/0124 (the `Schedule` slice), same commit — the
+> obligation is the correction-writer's, CLAUDE.md read-first item 5.** Two claims below about
+> what is *live in the code* have been superseded; the **body is not rewritten**, per this
+> file's own header.
+>
+> 1. **`DeepPass::fires` and its "ratification flag" no longer exist.** The paragraph under
+>    *"journal/0123's RATE commentary is not history"* lists `the `fires` ratification flag`
+>    among the live obligations left in `runner.rs`. That flag was ratified (`ARCHITECTURE.md`
+>    § *Schedule*) and built the same day: the `epoch > 0` skip rule is **deleted**, firing is
+>    `epoch % period == 0` and nothing else, and `DeepPass::fires` itself was removed once
+>    `DeepSchedule::run` began driving itself through `DeepSchedule::plan`.
+> 2. **`DeepPass::cadence` is now `DeepPass::schedule`**, a `Schedule` sum type carrying the
+>    `Cadence`. RATE is unchanged; a third axis sits above it.
+>
+> Nothing in § 1–§ 4 below is affected — the archaeology is about `reads`/`reads_prev`/the
+> revision chain, which this slice did not touch.
+
 **Extracted testimony, 2026-07-29.** This file is the **cold half** of
 `crates/dc-worldgen/src/deeptime/runner.rs` — the narrative of how that file's pass
 declarations reached their present shape. It was carved out under the file-size doctrine

@@ -821,8 +821,10 @@ pub fn build_cells(cells: &CellGrid, cfg: &DeepConfig) -> DeepGrid {
     // byte-identical to the pre-tectonic-history engine.
     let (t_crust, crust_kind, exhum, geotherm) = if cfg.tectonic_history {
         let (t, k) = super::tectonics::seed_columns(cfg, w, cfg.cell_m);
-        // `geotherm` is sized here and filled by the field pass's pre-loop seed;
-        // empty off the tectonic path, where the field has no crustal state.
+        // `geotherm` is sized here and filled by the field pass's first firing,
+        // at epoch 0 (journal/0124 — it had a pre-loop seed until the skip rule
+        // was deleted). Empty off the tectonic path, where the field has no
+        // crustal state; `march` is a no-op there and would re-size it anyway.
         (t, k, vec![0.0f64; n], vec![0.0f64; n])
     } else {
         (Vec::new(), Vec::new(), Vec::new(), Vec::new())
