@@ -2430,6 +2430,18 @@ below-all-neighbours count, which cannot fail informatively. Tracked in `stubs.m
 
 ## 63. "The erosional solve above 1× is an explicit scheme past its numerical stability limit, and halving `myr_per_epoch` is the discriminator — the same register stubs #27's heir turns" (journal/0115 § *What this does to the blocker*, `stubs.md` #29, and the ROADMAP blocker entry, 2026-07-26 — **flagged as a hypothesis by its own author and falsified the same day** by journal/0116)
 
+> **⚠ FALSIFIED 2026-07-29 — corrections #72, by journal/0122, which fixed the operator.**
+> **It IS a stability limit; the 4× refinement was ~25× short of reaching it.** The pass is an
+> explicit four-neighbour Laplacian, whose grid-scale mode decays only below a per-edge
+> coefficient of **1/8**. The world's peak effective coefficient is **0.261 shipped and 12.60
+> calibrated** — 2.1× and **100.8×** past that bound — so a 4× refinement left the calibrated
+> arm still 25.2× past it. The experiment below is sound and its measurements all stand; the
+> distance to the bound was simply never computed. **And section (ii)'s "opposite diagnoses"
+> framing is backwards:** the *coefficient* makes the mode flip sign, the *limiter* caps the
+> flip at the cell's inventory — so saturation is not evidence against instability, it is the
+> reason the instability was a survivable finite-amplitude flip-flop instead of a blow-up.
+> §§ (i) and (iii) are untouched. **Read #72 before acting on anything below.**
+
 **The claim**, and journal/0115 deserves credit for the way it wrote it: *"The standing
 hypothesis is now numerical, and it is **flagged as a hypothesis in the entry that carries
 it**, because this session has already been burned twice by mechanisms that sounded right: an
@@ -2924,3 +2936,76 @@ with the ruling and this number beside it; the priority claim is left standing. 
 carried the miscoding** — pathspec:
 `grep -rniE "erosion[^.]{0,40}engine work|engine work[^.]{0,40}erosion"` over the repo returns
 only that clause.
+
+
+## 72. "The stability-limit story is falsified — this is not an explicit scheme past its numerical stability limit" (`journal/corrections.md` #63 (ii), journal/0116 § D2, `stubs.md` #29, the ROADMAP blocker entry, 2026-07-26 — falsified 2026-07-29 by journal/0122, which fixed the operator)
+
+**The claim.** journal/0116 refined the time step **4×** at fixed total simulated time and
+found the concavity rms moving 40.46 → 45.29 → 38.76 m — 4 % under a 4× refinement,
+non-monotone — while the checkerboard got *purer*. It concluded, and #63 recorded, that *"a
+scheme past a CFL limit collapses roughly with the step; this does not move"*, and that the
+defect is therefore structural rather than numerical.
+
+**It is numerical, and the refinement was ~25× too small to see it.**
+
+The hillslope pass is an explicit four-neighbour Laplacian. Its von Neumann amplification
+factor is `g(k) = 1 − 2a(2 − cos k_x − cos k_y)` for a per-edge coefficient `a`, so the
+grid-scale (Nyquist) mode is **reflected with its amplitude intact at `a = 1/4`** and **decays
+monotonically only below `a = 1/8`**. The world's actual coefficients, measured:
+
+| | `diffusion` | peak `eff_diff` (with lithic susceptibility) | multiple of the 1/8 bound |
+|---|---|---|---|
+| shipped | 0.12 | **0.261** | 2.1× |
+| calibrated (45×) | 5.4 | **12.60** | **100.8×** |
+
+A 4× refinement takes the calibrated arm from 100.8× past the bound to **25.2× past it**. Of
+course nothing collapsed. **The experiment was sound, well-controlled, and an order of
+magnitude short of its own register** — and nothing in it could have said so, because the
+distance to the bound was never computed. The bound is two lines of arithmetic on a constant
+that was sitting in the config.
+
+**And the two diagnoses #63 called opposites are the same mechanism, composed.** #63's
+sharpest line was:
+
+> *"'The operator has saturated' and 'the operator is unstable in time' are opposite
+> diagnoses, and saturation is the evidence against the second one."*
+
+They are not opposites; they are the two halves of one behaviour, and each explains what the
+other could not:
+
+- the **coefficient** decides that the grid-scale mode changes sign every step — that is the
+  instability, and it is why the field is a checkerboard;
+- the **limiter** decides how big the flip is: capping export at the cell's whole inventory
+  turns what would be an exponential blow-up into a **finite-amplitude period-2 limit cycle**
+  whose amplitude is set by the cover, not by the rate.
+
+So the limiter is exactly why the defect is deaf to `dt` (#63's real finding, and it stands)
+**and** exactly why it never blew up to infinity and got noticed years ago. Saturation was not
+evidence against instability; it was the reason the instability was survivable enough to ship.
+
+**Isolated, not argued** (`erosion.rs::hillslope_operator_tests`): flat bedrock, a
+checkerboard of cover, the creep pass and nothing else, at the calibrated rate. The two
+populations swap **to the bit, forever**, with the amplitude conserved to 1e-9 — the exact
+period-2 mode journal/0116 hypothesised and explicitly declined to promote. At the shipped
+rate on the same fixture the same initial condition decays monotonically.
+
+**What survives, stated so nobody over-corrects.** journal/0116's measurements are all intact
+and none is withdrawn — the checkerboard (D1), isostasy as the damper rather than the driver
+(D3), the bedrock/regolith split, the limiter's binding fractions, and the qualification that
+*saturation alone is not sufficient* (which is now derived rather than observed: the shipped
+world saturates at 88.7 % and sits only 2.1× past the bound, so its flip is small and its
+cover is thin). Its **register is also correct** — the fix is in the flux limiter / donor-cell
+partition in `erosion.rs::diffuse`, exactly where it said. What is withdrawn is one inference:
+that a null from a 4× refinement rules out a stability limit.
+
+> **A refinement experiment measures nothing unless you know how far the thing you are
+> refining has to travel.** "We refined by 4× and it did not collapse" is a statement about
+> the *number 4*, not about the scheme, until it is put beside the distance to the bound. This
+> is the same shape as [[measure-against-the-literature]] one level in: the sim was checked
+> against itself — against its own value at a different step — when the answer was a closed-form
+> property of the stencil that no amount of internal refinement could reveal.
+
+**Where the fix lives.** `erosion.rs::CREEP_MAX_EDGE_COEFF` and the sub-cycled
+`Erosion::diffuse`; journal/0122. Banners stamped in the same commit on #63 above,
+`journal/0116`, `docs/design/stubs.md` § 29 and the ROADMAP blocker entry — the four sites
+that carry the falsified inference.

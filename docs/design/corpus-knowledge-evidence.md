@@ -923,7 +923,13 @@ What it already does that any proposal must account for:
   eroded"* → *"the-solve-that-goes-grid-unstable-above-1×"* → *"the-hillslope-conveyor-that-
   checkerboards-the-regolith"*, and the heading records the whole chain plus *"right about the
   symptom, wrong about the mechanism"*. **The number held identity while the name churned** —
-  a direct, in-repo argument for opaque stable ids over slugs.
+  a direct, in-repo argument for opaque stable ids over slugs. *(Four renames, as of
+  2026-07-29: the fix landed under the name "checkerboards the regolith", and it turned out the
+  **second** name — "goes grid-unstable above 1×" — had been right all along and was retired on
+  a null that was 25× short of its own register, corrections #72. **The slug churn was tracking
+  a genuinely moving belief, and one of the moves was backwards.** The number held through all
+  four, which is the point, but it is worth noting that a reader who trusted the *newest* name
+  would have been misled at exactly the moment the corpus was most confident.)*
 - **It has FOUR node states, not one:** `## Active stubs` · `## Sibling gap (not a substitution
   — an unexpressed ledger term)` · `## Genesis (permanently legitimate — affirmed, not defects)`
   · `## Audited and rejected (real mechanisms or ratified decisions, not stubs)`. **That last

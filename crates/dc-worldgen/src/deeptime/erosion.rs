@@ -749,6 +749,45 @@ fn diffuse_net_cell(
     net
 }
 
+/// **The per-edge coefficient at which an explicit 4-neighbour Laplacian stops
+/// oscillating** — the bound the hillslope-transport operator sub-cycles to
+/// respect (journal/0122).
+///
+/// # Where 1/8 comes from — derived, never tuned
+///
+/// Write one epoch of hillslope diffusion on the frozen surface as
+/// `h_i ← h_i + a·Σ_j (s_j − s_i)` over the four cardinal neighbours, with `a`
+/// the per-edge coefficient ([`eff_diff`]). The von Neumann amplification factor
+/// is `g(k) = 1 − 2a(2 − cos k_x − cos k_y)`, so:
+///
+/// - `a ≤ 1/4` ⇒ `g ≥ −1`: **stable**, but the grid-scale (Nyquist) mode is
+///   reflected with its amplitude intact — `g(π,π) = −1` is a period-2
+///   flip-flop that never decays.
+/// - `a ≤ 1/8` ⇒ `g ≥ 0`: **monotone**. No mode may change sign, so a
+///   checkerboard cannot survive a step, let alone be created by one.
+///
+/// **What the shipped world actually sits at, since the config rate is not the
+/// whole story.** `diffusion = 0.12` is 4 % *inside* this bound — but [`eff_diff`]
+/// folds in the lithology's creep susceptibility, and peat is the softest thing in
+/// the world, so the shipped grid's **peak effective coefficient is 0.261**: 2.1×
+/// past. Under the calibration it is **12.60**, or **100.8× past**. That gap is the
+/// whole defect: a 2.1× excursion on a handful of soft cells carrying 4.6 m of cover
+/// produces a wobble the surface absorbs (shipped `conc(h)` ACF −0.10, no
+/// checkerboard), while a 100.8× excursion everywhere carrying 41 m produces
+/// −0.82 and a 40 m grid-scale residual.
+///
+/// *The two facts journal/0116 could not reconcile — "saturation alone is not
+/// sufficient" and "the limiter is deaf to the step" — are the same fact read from
+/// either side of this constant.* The coefficient decides that the grid-scale mode
+/// flips sign; the limiter decides how far, by capping the export at the cell's
+/// inventory, which is what turns a divergence into a finite period-2 limit cycle.
+///
+/// **This is why journal/0116's 4× time-step refinement read as a null.** It took
+/// the coefficient 5.4 → 1.35, which is still **11× past the bound**; the
+/// experiment was sound and the refinement was an order of magnitude too small to
+/// reach the register it was testing. See `corrections.md` #72.
+pub const CREEP_MAX_EDGE_COEFF: f64 = 0.125;
+
 /// Per-cell diffusion outflux sum → limiter scale on the frozen surface (using
 /// the donor cell's biotic-reduced effective diffusivity).
 #[inline]
@@ -824,11 +863,14 @@ fn diffuse_species_cell(
     sus: &[f64],
     shares: &[f64],
     out: &mut [f64],
+    accumulate: bool,
 ) -> f64 {
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
     let mut gross = 0.0;
-    out.fill(0.0);
+    if !accumulate {
+        out.fill(0.0);
+    }
     for (dx, dy) in NEIGH4 {
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
             let d = si - surf[j];
@@ -1253,6 +1295,13 @@ pub struct TransportLedger {
     /// so counting every cell would score the bare ocean floor and every stripped ridge
     /// as transport-limited and report a saturation that is really an absence. Same
     /// gating.
+    ///
+    /// **Since journal/0122 the unit is a cell-SUB-STEP**, because the pass sub-cycles
+    /// (`DeepConfig::creep_substep`). Both this and
+    /// [`Self::creep_limited_cell_epochs`] count every sub-step, so the *ratio* — which
+    /// is the only thing anyone reads — is unchanged in meaning, and identical in value
+    /// on any world that takes one sub-step. Named `_cell_epochs` still, because
+    /// renaming a counter whose ratio is quoted in four journal entries buys nothing.
     pub creep_cell_epochs: u64,
 }
 
@@ -1307,6 +1356,24 @@ pub struct Erosion {
     scale: Vec<f64>,
     /// Diffusion gather scratch: per-cell net ΔH, applied after the gather.
     netdiff: Vec<f64>,
+    /// **The epoch's TOTAL diffusion ΔH when the pass sub-cycles** (journal/0122).
+    /// Empty — and never touched — when `creep_substeps == 1` or creep carries no
+    /// identity, so the shipped configuration's scratch residency is unmoved. It
+    /// exists solely so the species itemisation is audited against the sum of the
+    /// sub-steps rather than against the last one.
+    netdiff_acc: Vec<f64>,
+    /// **How many sub-steps the last [`Erosion::diffuse`] took** to keep its
+    /// per-edge coefficient inside [`CREEP_MAX_EDGE_COEFF`]. `1` on every world
+    /// whose peak effective creep diffusivity already sits inside the bound.
+    creep_substeps: u32,
+    /// The peak effective creep diffusivity the last [`Erosion::diffuse`] actually
+    /// reduced — the numerator of its sub-step count. Held because
+    /// [`Erosion::max_eff_creep`] re-derived after the run answers about a
+    /// **different epoch**: the biotic pass rewrites `bio_resist` *after* erosion
+    /// (the lagged coupling), so the post-run planes are one epoch ahead of the ones
+    /// the last diffusion saw. A gate that compares the count to a re-derivation is
+    /// comparing across that lag; this is the epoch-matched value.
+    creep_peak_coeff: f64,
     /// **Erodibility coupling planes** (empty when `cfg.erodibility` is off, and
     /// then read as the exact identity `1.0`).
     ///
@@ -1497,6 +1564,9 @@ impl Erosion {
             k_transport: 0.0016,
             scale: vec![0.0; n],
             netdiff: vec![0.0; n],
+            netdiff_acc: Vec::new(),
+            creep_substeps: 1,
+            creep_peak_coeff: 0.0,
             litho: Vec::new(),
             sus_flow: Vec::new(),
             sus_creep: Vec::new(),
@@ -1585,8 +1655,8 @@ impl Erosion {
     ///
     /// Called after the gather's two passes and before they are applied, on the
     /// same frozen surface, so it sees the epoch the flux belongs to.
-    fn tally_creep_to_sea(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
-        let (w, diff, sea) = (self.w, cfg.diffusion, self.sea_level);
+    fn tally_creep_to_sea(&mut self, grid: &DeepGrid, _cfg: &DeepConfig, diff: f64) {
+        let (w, sea) = (self.w, self.sea_level);
         let mut sum = 0.0;
         for j in 0..self.n {
             if self.surf[j] > sea {
@@ -1857,6 +1927,7 @@ impl Erosion {
             + self.energy.len()
             + self.scale.len()
             + self.netdiff.len()
+            + self.netdiff_acc.len()
             + self.sus_flow.len()
             + self.sus_creep.len()
             + self.frost.len()
@@ -3025,17 +3096,138 @@ impl Erosion {
 
     // ---- phase 8: hillslope diffusion (PARALLEL — gather form) ------------
 
-    /// Flux-limited hillslope diffusion of the regolith along the surface
-    /// gradient, in **gather** form: fluxes are computed from a frozen surface
-    /// and a frozen per-cell limiter, then each cell sums its own in/out edges.
-    /// Conserves `ΣH` exactly (each edge's flux is referenced identically from
-    /// both endpoints) and is byte-identical scalar↔parallel.
+    /// **Flux-limited hillslope diffusion of the regolith, sub-cycled to the
+    /// monotonicity bound** (journal/0122).
+    ///
+    /// The inner step is unchanged and is the gather form: fluxes are computed
+    /// from a frozen surface and a frozen per-cell limiter, then each cell sums
+    /// its own in/out edges. It conserves `ΣH` exactly (each edge's flux is
+    /// referenced identically from both endpoints) and is byte-identical
+    /// scalar↔parallel.
+    ///
+    /// # What was wrong, and what the sub-cycle fixes
+    ///
+    /// The step above is an **explicit** Laplacian, and an explicit Laplacian has
+    /// a period-2 grid-scale mode whenever its per-edge coefficient exceeds
+    /// [`CREEP_MAX_EDGE_COEFF`]. At `diffusion = 5.4` (the shipped rate under
+    /// `EROSION_CALIBRATION`) the coefficient is **43× past** that bound, and the
+    /// flux limiter — which caps a cell's export at its *entire inventory* rather
+    /// than at the amount that would level the pair — turns the divergence into a
+    /// **saturated flip-flop**: cell A hands B all of its cover, B is now higher
+    /// and hands it back, forever, at an amplitude set by the cover rather than by
+    /// the rate. That is exactly why journal/0116 measured the limiter to be
+    /// *deaf to the time step* (96.0 → 94.7 % binding under a 4× refinement) while
+    /// the regolith checkerboard *sharpened* (ACF −0.82 → −0.93).
+    ///
+    /// So the fix is **not** a smaller `dt` asked of the caller, and it is not a
+    /// cap on the rate either — capping would reinstate the one-cell-per-epoch
+    /// conveyor that `stubs.md` #27 is about. The pass takes the epoch it is given
+    /// and **splits it internally** into `n` steps each of which respects the
+    /// bound, with `n` derived from the rate the config actually states:
+    ///
+    /// ```text
+    /// n = ceil( max_cell eff_diff / CREEP_MAX_EDGE_COEFF )
+    /// ```
+    ///
+    /// `n = 1` reproduces the previous operator **bit for bit** (`x / 1.0 == x`),
+    /// so every world whose peak effective diffusivity already sat inside the
+    /// bound is untouched — which is the entire shipped configuration.
+    ///
+    /// **Stability is therefore independent of the rate the caller states**, which
+    /// is the property the brief asked for: the operator does not require a small
+    /// `dt` to behave, because it no longer takes the caller's `dt` as its
+    /// integration step. The cost is `n×` the pass, paid at gen time, where this
+    /// project's doctrine is explicit that time is not the constraint and
+    /// simulation is never cheapened to save it.
+    ///
+    /// **The max is over cells, not over the config**, because [`eff_diff`] folds
+    /// in biotic root cohesion and the lithology's creep susceptibility — a
+    /// peat-dominated cell can carry several times the config rate, and it is the
+    /// worst cell that decides whether *any* cell may oscillate. `f64::max` is
+    /// order-independent, so the reduction cannot make the run non-deterministic.
     pub fn diffuse(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
         if cfg.diffusion <= 0.0 {
             return;
         }
+        let d_max = self.max_eff_creep(grid, cfg.diffusion);
+        let n_sub = if !cfg.creep_substep {
+            // The pre-journal/0122 operator, bit for bit: one raw step at whatever
+            // coefficient the config states. Kept reachable so the goldens captured
+            // under it stay fixed points (`DeepConfig::creep_substep`).
+            1
+        } else if d_max > CREEP_MAX_EDGE_COEFF {
+            // `ceil` of a finite positive ratio; the `max(1)` is belt-and-braces
+            // against a denormal reduction, not a live case.
+            ((d_max / CREEP_MAX_EDGE_COEFF).ceil() as u32).max(1)
+        } else {
+            1
+        };
+        self.creep_substeps = n_sub;
+        self.creep_peak_coeff = d_max;
+        let diff_sub = cfg.diffusion / f64::from(n_sub);
+        // The species itemisation is audited against the epoch's TOTAL ΔH, so a
+        // sub-cycled epoch needs somewhere to accumulate it. Allocated only when
+        // both sub-cycling and identity-carrying creep are live, so the shipped
+        // (n = 1) configuration's scratch residency does not move.
+        let accumulate = n_sub > 1 && self.creep_carries;
+        if accumulate {
+            if self.netdiff_acc.len() == self.n {
+                self.netdiff_acc.fill(0.0);
+            } else {
+                self.netdiff_acc = vec![0.0; self.n];
+            }
+        }
+        self.creep_faces = 0;
+        for s in 0..n_sub {
+            self.diffuse_step(grid, cfg, diff_sub, s > 0);
+            if accumulate {
+                for (a, nd) in self.netdiff_acc.iter_mut().zip(self.netdiff.iter()) {
+                    *a += *nd;
+                }
+            }
+        }
+        if self.creep_carries {
+            self.audit_creep_species(accumulate);
+        }
+    }
+
+    /// **The largest effective creep diffusivity anywhere on the grid** — the
+    /// quantity [`diffuse`](Self::diffuse) divides by [`CREEP_MAX_EDGE_COEFF`] to
+    /// pick its sub-cycle count. Read by the operator probe so the report can say
+    /// *which* cells forced the count.
+    pub fn max_eff_creep(&self, grid: &DeepGrid, diffusion: f64) -> f64 {
+        let (resist, sus) = (&grid.bio_resist, &self.sus_creep);
+        (0..self.n)
+            .map(|i| eff_diff(diffusion, resist, sus, i))
+            .fold(0.0f64, f64::max)
+    }
+
+    /// **How many sub-steps the last [`diffuse`](Self::diffuse) took.** `1` means
+    /// the epoch's stated rate already sat inside [`CREEP_MAX_EDGE_COEFF`] and the
+    /// operator was the pre-journal/0122 one bit for bit.
+    #[inline]
+    pub fn creep_substeps(&self) -> u32 {
+        self.creep_substeps
+    }
+
+    /// **The peak effective creep diffusivity the last [`Self::diffuse`] divided
+    /// down**, on the planes that epoch actually held. Use this, never a post-run
+    /// [`Self::max_eff_creep`], to check the sub-step count against its own input:
+    /// the biotic layer rewrites `bio_resist` after erosion, so a re-derivation is
+    /// one epoch out of phase and disagrees by a few per cent.
+    #[inline]
+    pub fn creep_peak_coeff(&self) -> f64 {
+        self.creep_peak_coeff
+    }
+
+    /// One sub-step of the hillslope gather, at the sub-step diffusivity
+    /// `diff`. `carry_on` is set for every sub-step after the first: the species
+    /// itemisation then *accumulates* rather than overwrites, so the epoch's
+    /// creep plane is the sum of its sub-steps and [`Self::record`] still reads
+    /// one epoch's worth of arriving colluvium.
+    fn diffuse_step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, diff: f64, carry_on: bool) {
         let parallel = self.par();
-        let (w, diff) = (self.w, cfg.diffusion);
+        let w = self.w;
         // Freeze the surface.
         self.build_surface(grid);
         // Pass 1: per-cell limiter scale on the frozen surface.
@@ -3082,7 +3274,7 @@ impl Erosion {
         // actually LEFT the land. Read-only, on the same frozen surface, before
         // the gather is applied. Off ⇒ not even called.
         if self.denude {
-            self.tally_creep_to_sea(grid, cfg);
+            self.tally_creep_to_sea(grid, cfg, diff);
             // journal/0114: and how often the limiter bound — the discretisation
             // honesty check on the calibration. `scale[i] < 1.0` is exactly "this
             // cell wanted to shed more than it had".
@@ -3121,18 +3313,33 @@ impl Erosion {
                     .zip(gross.par_iter_mut())
                     .enumerate()
                     .for_each(|(i, (out, g))| {
-                        *g =
-                            diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
+                        let f = diffuse_species_cell(
+                            i, w, surf, scale, diff, resist, sus, shares, out, carry_on,
+                        );
+                        if carry_on {
+                            *g += f;
+                        } else {
+                            *g = f;
+                        }
                     });
             } else {
                 for (i, (out, g)) in creep.chunks_mut(SPECIES).zip(gross.iter_mut()).enumerate() {
-                    *g = diffuse_species_cell(i, w, surf, scale, diff, resist, sus, shares, out);
+                    let f = diffuse_species_cell(
+                        i, w, surf, scale, diff, resist, sus, shares, out, carry_on,
+                    );
+                    if carry_on {
+                        *g += f;
+                    } else {
+                        *g = f;
+                    }
                 }
             }
-            self.audit_creep_species();
-            self.creep_faces = (0..self.n)
+            // Summed across sub-steps on purpose: a gravity-caused flow record
+            // would pay one entry per face **per sub-step**, so the cost estimate
+            // this counter exists to be (stubs.md #18) has to count them all.
+            self.creep_faces += (0..self.n)
                 .map(|i| diffuse_outflux_faces(i, w, &self.surf, &self.scale))
-                .sum();
+                .sum::<usize>();
         }
         // Apply: h += net, dh += net (disjoint per-cell writes).
         if parallel {
@@ -3174,9 +3381,19 @@ impl Erosion {
     /// Running maxima rather than stored planes, for journal/0110's reason: a leak
     /// anywhere is a leak, and the per-cell per-species plane is not worth its
     /// megabytes to assert a scalar.
-    fn audit_creep_species(&mut self) {
+    fn audit_creep_species(&mut self, sub_cycled: bool) {
+        // The total the itemisation must equal. A sub-cycled epoch's creep plane
+        // is the sum of its sub-steps, so it is audited against the summed ΔH —
+        // never against the last sub-step's, which would report a leak of
+        // everything the earlier sub-steps moved.
+        let net_total: &[f64] = if sub_cycled {
+            &self.netdiff_acc
+        } else {
+            &self.netdiff
+        };
         let mut sum_s = [0.0; SPECIES];
         let mut abs_s = [0.0; SPECIES];
+        let mut worst_item = self.creep_itemisation_residue;
         for (i, row) in self.creep_sp.chunks(SPECIES).enumerate() {
             let mut net = 0.0;
             for (k, &v) in row.iter().enumerate() {
@@ -3186,12 +3403,13 @@ impl Erosion {
             }
             let gross = self.creep_gross[i];
             if gross > 0.0 {
-                let rel = (net - self.netdiff[i]).abs() / gross;
-                if rel > self.creep_itemisation_residue {
-                    self.creep_itemisation_residue = rel;
+                let rel = (net - net_total[i]).abs() / gross;
+                if rel > worst_item {
+                    worst_item = rel;
                 }
             }
         }
+        self.creep_itemisation_residue = worst_item;
         for k in 0..SPECIES {
             if abs_s[k] > 0.0 {
                 let rel = sum_s[k].abs() / abs_s[k];
@@ -3952,5 +4170,265 @@ mod creep_tests {
         ] {
             assert_eq!(a - b, -(b - a), "({a}, {b}) broke the antisymmetry");
         }
+    }
+}
+
+#[cfg(test)]
+mod hillslope_operator_tests {
+    use super::*;
+
+    /// A bare grid with flat bedrock and a **checkerboard regolith cover** — the
+    /// smallest world on which the hypothesis journal/0116 refused to promote can
+    /// be settled. Nothing here is stochastic and nothing is seeded: the whole
+    /// experiment is arithmetic on one initial condition.
+    fn checkerboard(w: usize, cover: f64) -> DeepGrid {
+        let n = w * w;
+        let mut grid = DeepGrid::from_parts(w, 460.0, vec![0.0; n], vec![0.0; n]);
+        for i in 0..n {
+            let (x, y) = (i % w, i / w);
+            grid.h[i] = if (x + y) % 2 == 0 { cover } else { 0.0 };
+        }
+        grid
+    }
+
+    /// A config that carries **nothing but the diffusion coefficient** — every
+    /// other phase is irrelevant because the test calls `diffuse` directly.
+    fn creep_cfg(diffusion: f64) -> DeepConfig {
+        DeepConfig {
+            diffusion,
+            erodibility: false,
+            biotic: false,
+            ..DeepConfig::default()
+        }
+    }
+
+    /// The amplitude of the grid-scale mode over a window `margin` cells in from
+    /// the border, signed by the parity that started high. Positive ⇒ still in
+    /// phase with the initial condition; negative ⇒ **flipped**.
+    ///
+    /// **The margin is load-bearing, not tidiness.** A border cell has three
+    /// neighbours (a corner two), so its amplification factor is not the interior
+    /// one and its deviation contaminates any window it is in. That contamination
+    /// spreads inward exactly one cell per step, so a window `margin` cells in is
+    /// clean for `margin` steps — which is how many every test below takes. An
+    /// earlier draft of this helper measured the whole interior and reported a
+    /// *sign flip* on the shipped arm, which is the defect these tests exist to
+    /// detect: the instrument was manufacturing the signature.
+    const MARGIN: usize = 8;
+    fn signed_amplitude(grid: &DeepGrid) -> f64 {
+        let w = grid.w;
+        let (lo, hi) = (MARGIN, w - MARGIN);
+        // The window is even in both axes, so it holds equal counts of the two
+        // parities and the window mean of an undisturbed checkerboard is exactly
+        // `cover / 2` — no bias enters through the reference.
+        debug_assert_eq!((hi - lo) % 2, 0);
+        let mut sum = 0.0;
+        let mut n = 0usize;
+        for y in lo..hi {
+            for x in lo..hi {
+                sum += grid.h[y * w + x];
+                n += 1;
+            }
+        }
+        let mean = sum / n as f64;
+        let mut acc = 0.0;
+        for y in lo..hi {
+            for x in lo..hi {
+                let sign = if (x + y) % 2 == 0 { 1.0 } else { -1.0 };
+                acc += sign * (grid.h[y * w + x] - mean);
+            }
+        }
+        acc / n as f64
+    }
+
+    /// **THE HYPOTHESIS, ISOLATED.** journal/0116 wrote it and explicitly declined
+    /// to promote it: *"a donor-cell scheme that moves everything downslope has a
+    /// period-2 mode by construction — A gives all its cover to B, B is now higher
+    /// and gives it back."* Every number in that entry was *consistent* with it and
+    /// none of them isolated it, because every number came from a world in which
+    /// eight other passes were also running.
+    ///
+    /// This is the isolation. Flat bedrock, a checkerboard of cover, the creep
+    /// pass and nothing else, at the **calibrated** rate (`0.12 × 45`). The
+    /// pre-journal/0122 operator's arithmetic is exact and can be read off by
+    /// hand: a high cell's requested outflux is `4 × 5.4 × cover`, i.e. `21.6×` its
+    /// own inventory, so the limiter binds and it ships **all** of it, `cover/4`
+    /// per edge; each low cell has four high neighbours and therefore receives
+    /// exactly `cover`. **The two populations swap, to the bit, forever.**
+    ///
+    /// Run under the sub-cycled operator the same initial condition decays
+    /// monotonically and never changes sign — which is the other half of the
+    /// claim: it is the *coefficient*, not the geometry, that made a checkerboard
+    /// a fixed point of the pass.
+    ///
+    /// Scale-free: the argument is a two-population recurrence with no length in
+    /// it, so a 12×12 grid tests it as completely as a 288×288 one.
+    #[test]
+    fn the_calibrated_rate_has_an_exact_period_2_mode_and_the_bound_removes_it() {
+        let cover = 40.0;
+        let calibrated = 0.12 * 45.0;
+        let cfg = creep_cfg(calibrated);
+
+        // --- the operator as it stood: one raw step at the stated rate ---------
+        let mut grid = checkerboard(32, cover);
+        let mut er = Erosion::new(&grid);
+        let a0 = signed_amplitude(&grid);
+        let mut legacy = Vec::new();
+        for _ in 0..6 {
+            er.diffuse_step(&mut grid, &cfg, calibrated, false);
+            legacy.push(signed_amplitude(&grid));
+        }
+        // Period 2: strict sign alternation with the amplitude *conserved* rather
+        // than decaying. Both halves matter — a decaying alternation would just be
+        // a stable scheme resolving a rough initial condition.
+        for (k, a) in legacy.iter().enumerate() {
+            assert_eq!(
+                a.is_sign_negative(),
+                k % 2 == 0,
+                "step {k}: the legacy operator did not alternate (amplitudes {legacy:?})"
+            );
+            assert!(
+                (a.abs() - a0.abs()).abs() < 1e-9,
+                "step {k}: amplitude {a} is not the initial {a0} — inside the clean \
+                 window the flip-flop is exactly amplitude-preserving, which is what \
+                 makes it a *mode* rather than a transient"
+            );
+        }
+
+        // --- the sub-cycled operator, same rate, same initial condition --------
+        let mut grid = checkerboard(32, cover);
+        let mut er = Erosion::new(&grid);
+        er.diffuse(&mut grid, &cfg);
+        assert_eq!(
+            er.creep_substeps(),
+            (calibrated / CREEP_MAX_EDGE_COEFF).ceil() as u32,
+            "the sub-cycle count must follow from the rate, not from a table"
+        );
+        // 44 sub-steps at a per-edge coefficient of 5.4/44 = 0.1227 give the
+        // grid-scale mode an amplification of `(1 − 8a)^44 = 0.0182^44`, i.e. it is
+        // annihilated inside the first epoch rather than flipped. What the loop
+        // then asserts is that it **stays** annihilated and never changes sign —
+        // the residual is border relaxation diffusing inward, six orders of
+        // magnitude below the mode it replaced.
+        for step in 0..6 {
+            let a = signed_amplitude(&grid);
+            assert!(
+                a > -a0 * 1e-6,
+                "step {step}: the sub-cycled operator flipped the grid-scale mode \
+                 ({a} against an initial {a0}) — the monotonicity bound is not holding"
+            );
+            assert!(
+                a.abs() < a0 * 1e-3,
+                "step {step}: the checkerboard is still here, {a} of {a0}"
+            );
+            er.diffuse(&mut grid, &cfg);
+        }
+    }
+
+    /// **And the shipped rate was never oscillating** — the fact that makes
+    /// journal/0116's *"saturation alone is not sufficient"* qualification and this
+    /// operator's bound the same statement. At `diffusion = 0.12` the limiter still
+    /// binds (a cell with 4.6 m of cover on a steep edge wants to shed more than it
+    /// has), but `0.12 < 1/8`, so the mode decays instead of flipping and the pass
+    /// takes exactly one sub-step.
+    #[test]
+    fn the_shipped_rate_sits_inside_the_bound_and_decays() {
+        let shipped = 0.12;
+        assert!(shipped < CREEP_MAX_EDGE_COEFF);
+        let cfg = creep_cfg(shipped);
+        let mut grid = checkerboard(32, 4.6);
+        let mut er = Erosion::new(&grid);
+        let mut prev = signed_amplitude(&grid);
+        for step in 0..8 {
+            er.diffuse(&mut grid, &cfg);
+            assert_eq!(
+                er.creep_substeps(),
+                1,
+                "step {step} sub-cycled at the shipped rate"
+            );
+            let a = signed_amplitude(&grid);
+            assert!(
+                a >= 0.0 && a < prev,
+                "step {step}: {prev} → {a} is not a decay"
+            );
+            prev = a;
+        }
+    }
+
+    /// **Mass is exact and nothing goes negative**, at any rate, sub-cycled or
+    /// not. Non-negotiable, and scale-free: a per-cell predicate and a grid-wide
+    /// sum, neither of which knows how big the world is.
+    #[test]
+    fn the_operator_conserves_mass_exactly_and_never_goes_negative() {
+        for rate in [0.12, 1.0, 5.4, 40.0] {
+            let cfg = creep_cfg(rate);
+            // Rough bedrock the cover has to chase, so the limiter is genuinely
+            // engaged rather than the flat case conserving mass trivially.
+            let w = 16;
+            let n = w * w;
+            let r: Vec<f64> = (0..n)
+                .map(|i| {
+                    let (x, y) = ((i % w) as f64, (i / w) as f64);
+                    100.0 - 3.0 * x + 7.0 * ((x * 0.7).sin() + (y * 1.3).cos())
+                })
+                .collect();
+            let mut grid = DeepGrid::from_parts(w, 460.0, r, vec![0.0; n]);
+            for i in 0..n {
+                grid.h[i] = if i % 3 == 0 { 30.0 } else { 2.0 };
+            }
+            let before: f64 = grid.h.iter().sum();
+            let mut er = Erosion::new(&grid);
+            for _ in 0..20 {
+                er.diffuse(&mut grid, &cfg);
+                assert!(
+                    grid.h.iter().all(|v| *v >= -1e-9),
+                    "rate {rate}: regolith went negative"
+                );
+            }
+            let after: f64 = grid.h.iter().sum();
+            assert!(
+                (after - before).abs() / before < 1e-12,
+                "rate {rate}: ΣH moved {before} → {after}"
+            );
+        }
+    }
+
+    /// **Order independence** — the property `water/sat.rs` gets "by construction"
+    /// and this pass gets the same way: every flux is a pure function of a frozen
+    /// surface and a frozen per-cell limiter, so the scalar and the data-parallel
+    /// drivers must agree **bit for bit**, including across sub-steps, where a
+    /// mistake in the accumulation would show up as a drift rather than as a
+    /// wrong answer.
+    #[test]
+    fn the_sub_cycled_operator_is_bit_identical_scalar_and_parallel() {
+        let cfg = creep_cfg(5.4);
+        let mut a = checkerboard(64, 40.0);
+        let mut b = checkerboard(64, 40.0);
+        let mut ea = Erosion::new(&a);
+        let mut eb = Erosion::new(&b);
+        ea.set_parallel(false);
+        eb.set_parallel(true);
+        for _ in 0..4 {
+            ea.diffuse(&mut a, &cfg);
+            eb.diffuse(&mut b, &cfg);
+        }
+        assert_eq!(a.h, b.h, "scalar and parallel sub-cycling disagree");
+    }
+
+    /// **`n = 1` is the old operator, bit for bit.** The claim that the shipped
+    /// world is untouched rests entirely on `x / 1.0 == x`, so it is asserted
+    /// rather than argued.
+    #[test]
+    fn inside_the_bound_the_driver_is_the_raw_step() {
+        let cfg = creep_cfg(0.12);
+        let mut a = checkerboard(32, 4.6);
+        let mut b = checkerboard(32, 4.6);
+        let mut ea = Erosion::new(&a);
+        let mut eb = Erosion::new(&b);
+        for _ in 0..5 {
+            ea.diffuse(&mut a, &cfg);
+            eb.diffuse_step(&mut b, &cfg, 0.12, false);
+        }
+        assert_eq!(a.h, b.h);
     }
 }

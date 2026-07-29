@@ -1314,7 +1314,61 @@ see the question you are asking.
     already concedes that some number would matter. It would not.
 
 
-- **🔴🔴🔴 THE HILLSLOPE CONVEYOR CHECKERBOARDS THE REGOLITH ABOVE 1× — stubs #29,
+- **✅ THE HILLSLOPE OPERATOR IS FIXED — SHIPPED 2026-07-29 (journal/0122).** The blocker
+  below is discharged; it is kept live only because **one inference in it is falsified and one
+  new item falls out of it**, and both need reading before anyone touches the calibration.
+  - **THE MECHANISM, isolated rather than argued.** The pass is an explicit four-neighbour
+    Laplacian; its grid-scale mode decays only below a per-edge coefficient of **1/8**
+    (`g = 1 − 8a`). The world's peak effective coefficient is **0.261 shipped** and **12.60
+    calibrated** — 2.1× and **100.8×** past that bound. The flux limiter then caps the export
+    at the cell's whole inventory, which converts the divergence into an exactly
+    amplitude-preserving **period-2 limit cycle**. Isolated on a bare grid
+    (`erosion.rs::hillslope_operator_tests`, the two populations swap to the bit) and
+    confirmed on the world by a **temporal** discriminator with opposite predictions:
+    `corr(conc_h[N], conc_h[N+1])` = **−0.90 calibrated** against **+0.76 shipped**.
+    journal/0116's period-2 hypothesis was right as written.
+  - **⚠ CORRECTIONS #72 — the (b) block below is WRONG and #63 (ii) with it.** It *was* a
+    stability limit. journal/0116's 4× refinement took the calibrated arm from 100.8× past the
+    bound to **25.2× past it**, so its null was a statement about the number 4. Every
+    measurement in that entry stands; one inference does not. **Do not cite "not a time-step
+    limit" from below without reading #72.**
+  - **THE FIX.** `Erosion::diffuse` sub-cycles each epoch into
+    `ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)` steps. `n = 1` is the old operator bit for
+    bit. Not implicit (the `h ≥ 0` obstacle plus exact mass through an iterative solve costs
+    more than it buys at ~5 cells of diffusion length) and **not a cap** (capping would
+    reinstate stubs #27's conveyor). Measured on production-Medium:
+
+    | arm | sub | conc(h) rms | ACF(1) x/y | surf conc rms | surf ACF(1) | hollows >10 m | deepest | mean h | gen |
+    |---|---|---|---|---|---|---|---|---|---|
+    | calibrated, before | 1 | 62.42 | −0.821 / −0.853 | **40.42** | −0.867 / −0.912 | **818** | 112.8 m | 43.72 | 34.7 s |
+    | calibrated, after | 100 | **2.66** | **+0.001 / +0.887** | **0.30** | **+0.185 / +0.105** | **12** | **15.8 m** | 1.40 | 238.9 s |
+    | shipped, before | 1 | 3.42 | −0.102 / −0.182 | 0.21 | +0.380 / +0.269 | 0 | 0.0 m | 4.57 | 33.9 s |
+    | shipped, after | 2 | 2.87 | −0.098 / −0.142 | 0.21 | +0.414 / +0.317 | 0 | 0.0 m | 3.91 | 37.6 s |
+
+  - **THE SHIPPED GOLDENS MOVED, and only a little.** `diffusion = 0.12` is inside the bound,
+    but `eff_diff` folds in the lithology's creep susceptibility and peat is the softest thing
+    in the world, so the shipped peak is 0.261 and the shipped world takes **two** sub-steps:
+    mean regolith 4.57 → 3.91 m, relief −0.9 m, mean surface −0.2 m, closed hollows 0 → 0.
+    The unbounded operator stays reachable and hashed (`DeepConfig::creep_substep`,
+    `GOLDEN_SURFACE_UNBOUNDED_CREEP`, `tests/creep_operator.rs`).
+  - **⚠ THE HEIR, AND IT IS USER-OWNED: `EROSION_CALIBRATION = 45` WAS FITTED AGAINST THE
+    BROKEN OPERATOR.** journal/0114 measured that raising `diffusion` bought almost nothing
+    (100× on transport → 1.6×) and concluded the pass was a one-cell-per-epoch conveyor — true
+    *of the capped operator*. With the cap gone the same multiplier strips the world: **mean
+    regolith 1.40 m**, below the *shipped* world's 4.57 m, and 16,347 cells carrying >1 m of
+    closed-hollow fill on a surface whose concavity rms is 0.30 m — broad shallow basins on
+    scraped bedrock, not pits. **A constant fitted against a broken operator does not survive
+    fixing the operator.** `calibrated_rates` still ships **false**; it is no longer blocked on
+    a defect, it is blocked on a number, and journal/0122's ladder is the input.
+  - **THE GUARDS ARE RE-ASSERTED (corrections #62, in scope and done).**
+    `no_interior_cell_is_cut_below_all_of_its_neighbours` is kept and is now the first of
+    three: `no_interior_cell_carries_a_closed_hollow` (fill depth — **rises** as the defect
+    generalises, bar derived from the clamp's own statement) and
+    `the_surface_carries_no_grid_scale_oscillation` (concavity ACF, which cannot saturate at
+    all, bounded at −0.5 from the closed-form references). The four census primitives moved to
+    `deeptime::census`, closing journal/0116's open extraction.
+
+- **~~🔴🔴🔴~~ ✅ FIXED — THE HILLSLOPE CONVEYOR CHECKERBOARDED THE REGOLITH ABOVE 1× — stubs #29,
   RE-SCOPED 2026-07-26 by the walk (journal/0115, corrections #61/#62) and then
   **DIAGNOSED 2026-07-26 by journal/0116 (corrections #63)**, and it BLOCKS the calibration
   below.** *This entry has been renamed twice. It read "THE INCISION CLAMP THAT WAS GREEN
@@ -4717,6 +4771,16 @@ path into a cold session until this block was written.**
    Read-first item 0 says it by name — *"every pass is content, including tectonics and
    erosion"* — and this close block contradicted it. It remains **the highest-value thing on
    the board**; only its side of the engine/content cut was wrong.
+   - **✅ ITS BLOCKER IS GONE 2026-07-29 (journal/0122).** The hillslope operator that
+     checkerboarded the regolith (stubs #29, the 🔴🔴🔴 item) is fixed: `diffuse` sub-cycles to
+     the 1/8 monotonicity bound, the calibrated world's surface concavity rms goes **40.42 →
+     0.30 m** and its ACF(1) **−0.867 → +0.185**, and closed hollows past 10 m go **818 → 12**.
+     **What is now in front of the axis is a NUMBER, not a defect:** `EROSION_CALIBRATION = 45`
+     was fitted against the capped operator and does not survive fixing it (45× now strips the
+     world to 1.40 m of mean regolith). The ladder in journal/0122 is the input; **the
+     multiplier is user-owned and appearance-class** and `calibrated_rates` still ships false.
+     Also falsified in passing: `corrections.md` **#72** — journal/0116's "not a stability
+     limit" was a 4× refinement against a register 100.8× away.
 3. **The bulk-mechanical backlog**, if you want cheap wins: **37 Observed entries (29 %) already
    say ✅ DONE in their own bodies** — a pure archive job with no judgement calls; **8 spike/audit
    files need supersession banners** (drafted).

@@ -22,6 +22,7 @@
 //! machinery and the decay-length measurement.
 
 pub mod biotic;
+pub mod census;
 pub mod climate;
 pub mod erosion;
 pub mod field;
@@ -44,7 +45,8 @@ pub use biotic::{
     BioticSim, COAL_BURIAL_M, COAL_MIN_M, COAL_ONSET_C, CellBiota, ROSTER, species_name,
 };
 pub use erosion::{
-    Erosion, MfdParams, competence_ceiling, energy_band, flood_fill_serial, flood_fill_tiled,
+    CREEP_MAX_EDGE_COEFF, Erosion, MfdParams, competence_ceiling, energy_band, flood_fill_serial,
+    flood_fill_tiled,
 };
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, EROSION_CALIBRATION,

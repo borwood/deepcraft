@@ -395,25 +395,44 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0xEF92F1C63DFDD5E3  materials 0x5DDE4337F3524E35  table 0x04F98B720BBCFC5F
 //   medium 0x539           blocks 0xEE7C48C9609583E9  materials 0x78A554C9B2377421  table 0x03A23041441FD346
 //   small  0xC11A7E2026    blocks 0x24F1B1491662C29D  (materials/table unmoved)
+//
+// **Moved 2026-07-29 by the sub-cycled hillslope operator (journal/0122) —
+// authorized, and it is a correctness fix rather than a capability.** The hillslope
+// pass is an explicit Laplacian; above a per-edge coefficient of `1/8` its
+// grid-scale mode flips sign every step, and the flux limiter — capping export at
+// the cell's whole inventory — turned that into an exactly amplitude-preserving
+// period-2 flip-flop. The pass now sub-cycles each epoch to stay inside the bound.
+// The shipped world only takes **two** sub-steps (its config rate, 0.12, is inside
+// the bound; its peak *effective* rate, 0.261, is not — peat is soft), so it moves
+// a little: mean regolith 4.57 → 3.91 m, relief −0.9 m, closed hollows 0 → 0. The
+// Small row reads the same way it has for MFD, 2b and hybrid `p` — blocks only,
+// `materials`/`table` byte-identical — for the same structural reason: its sampled
+// chunks carry no strata record. The unbounded operator stays reachable
+// (`DeepConfig::creep_substep`, `tests/creep_operator.rs`). Prior values, kept
+// auditable:
+//
+//   medium 0x0D5EED572026  blocks 0xE19BA53B71A31DB4  materials 0xD5BA01C497D7870B  table 0xC4E449EDEF975AAC
+//   medium 0x539           blocks 0x5B7C3AFB9E855E98  materials 0x0C62936DAD80AFA4  table 0x091C7E292E6BA539
+//   small  0xC11A7E2026    blocks 0x4B407E53AB7DDCDC  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0xE19B_A53B_71A3_1DB4,
-        0xD5BA_01C4_97D7_870B,
-        0xC4E4_49ED_EF97_5AAC,
+        0xBA49_FA73_8F5B_C724,
+        0x9BB3_D698_0783_9519,
+        0x97C6_E0D8_0524_F29C,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x5B7C_3AFB_9E85_5E98,
-        0x0C62_936D_AD80_AFA4,
-        0x091C_7E29_2E6B_A539,
+        0x1CF9_5D90_81B5_1CB8,
+        0x54F0_706D_5B37_92A0,
+        0xB89B_D3D3_BAB4_485D,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x4B40_7E53_AB7D_DCDC,
+        0x3DE2_E091_D05C_F7CD,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

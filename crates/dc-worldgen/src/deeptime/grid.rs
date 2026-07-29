@@ -164,6 +164,24 @@ pub struct DeepConfig {
     /// [`super::field::DeepOverrides::erosion_budget`] does **not** scale, which is
     /// why that knob moves denudation by 1.4× at 100×.
     pub diffusion: f64,
+    /// **Sub-cycle the hillslope-transport pass to its monotonicity bound**
+    /// (journal/0122). On ⇒ [`super::erosion::Erosion::diffuse`] splits each epoch
+    /// into `ceil(max_cell eff_diff / CREEP_MAX_EDGE_COEFF)` steps, so no cell's
+    /// per-edge coefficient may exceed `1/8` and the explicit Laplacian cannot
+    /// change the sign of any mode.
+    ///
+    /// **Off is the pre-journal/0122 operator, bit for bit** — a single raw step at
+    /// whatever coefficient the config states, which above `1/8` has an exactly
+    /// amplitude-preserving period-2 grid-scale mode (isolated in
+    /// `erosion.rs::hillslope_operator_tests`). It is kept reachable for the same
+    /// reason `mfd: false` and `material_transport: false` are: the goldens
+    /// captured under it are fixed points, and reaching a fixed point means
+    /// reproducing **all** of the configuration it was captured under.
+    ///
+    /// Not scaled by anything and not a rate — it is a statement about the
+    /// integrator, not about the physics, which is exactly why it is a `bool` and
+    /// not a number somebody could tune.
+    pub creep_substep: bool,
     /// Bedrock→regolith weathering rate (metres/iteration), tapered by cover.
     ///
     /// **STUB #24 / corrections #56 — UNCALIBRATED AGAINST THE RATIFIED CLOCK.**
@@ -542,6 +560,7 @@ impl Default for DeepConfig {
             n_exp: 1.0,
             h_star: 3.0,
             diffusion: 0.12,
+            creep_substep: true,
             weathering: 0.02,
             rough_jitter: 0.18,
             sea_level_amp: 35.0,
