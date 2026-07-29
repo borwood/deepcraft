@@ -7,12 +7,20 @@
   },
   "staleness": "72fbe86",
   "spine-audit": "96ab14b",
-  "doc-topology": "f652b60",
+  "doc-topology": "72fbe86",
   "_baseline": {
     "commit": "f652b60",
     "date": "2026-07-28",
     "coverage": "100% of the 62,264-line corpus — 9 parallel opus readers, ~3,900 lines of audit in docs/audits/baseline-2026-07-28/",
     "note": "First full-corpus baseline. Before it, doc-topology had covered ~9% in one run and spine-audit had left no artifacts at all. The staleness watermark is set because S5+S6 read all of ROADMAP Sequenced and Observed against newer work; doc-topology is set because S1-S4+S7-S9 covered the rest. spine-audit stayed null ON PURPOSE — this baseline was docs-vs-docs and never checked spines.md against the CODE, which is the one question spine-audit answers. RESOLVED 2026-07-29: spine-audit ran its own full pass at 96ab14b (docs/spines.md header) and set its watermark; the null is no longer outstanding.",
     "findings": "~80 pairs. Applied at baseline: the integrator's own same-day stalenesses + the ARCHITECTURE.md ON-HOLD banner. The remainder is filed as a ROADMAP entry, ranked, with the audits as the record."
+  },
+  "_doc_topology_last_run": {
+    "commit": "72fbe86",
+    "date": "2026-07-29",
+    "mode": "FULL (76 commits since f652b60)",
+    "audit": "docs/audits/2026-07-29-doc-topology-sweep.md",
+    "coverage": "SPINE-FOLLOWING, not 100%. Read-first set + the refinement-ratification arc + RATE/Schedule + corrections #71-73 + the face-pairing sites. The audit's section 0 lists exactly what was NOT opened; a null over those files is not a result.",
+    "findings": "10 contradiction pairs (F1-F10) + 7 one-directional pointers (P1-P7). Zero corrections.md entries proposed - every pair is banner/strike work. ONE process amendment proposed: CLAUDE.md read-first item 5's close-block clause is carried by no ritual (wrap SKILL section 9). NOT APPLIED - reported for the integrator per the 2026-07-29 standing rule."
   }
 }
