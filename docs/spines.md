@@ -37,9 +37,29 @@ excluded). **Findings:**
    `derive_regolith_at` cited at `field.rs:598-606`, actually `:818`; `chapters` cited at
    `field.rs:367`, actually `:581`). **§ 3's refs are refreshed at `96ab14b`; the narrative
    sections' are NOT** — refreshing ~90 citations is a slice, not a sweep, and every one of them
-   is a `git log -S` away for whoever needs it. Recorded as owed rather than silently half-done.*
+   is a `git log -S` away for whoever needs it. Recorded as owed rather than silently half-done.
+   **✅ DISCHARGED the same day — see the applied block immediately below.***
 
-*Previous: **2026-07-25 (post-FLOW batch)** — the five merges since
+*Applied 2026-07-29 (a slice, not a sweep — verified at **`ec9858e`**, the merge of the sweep
+above), the two items that sweep was not permitted to apply:*
+1. ***S-6's argument is rewritten*** *— the pointer banner is folded into the section body.
+   Its title's thesis (order is DATA) is unchanged; the section now teaches
+   **author-and-validate** (`ARCHITECTURE.md`, DECIDED 2026-07-26) while stating plainly that
+   the in-tree mechanism is still **derive-and-reject** and that authored order is
+   `dependency-graph.md` **E7**, sequenced after E3/RATE.*
+2. ***Every `file:line` citation OUTSIDE § 3 was verified against `ec9858e`*** *— **68 checked**
+   (54 file-qualified, 14 bare-`:line` continuations), **20 refreshed**, **16 left as dated
+   as-of testimony** with the drift now named in the entry that carries them.
+   **One cited file no longer exists at all:** `pregen/history.rs` (`:82`, `:84-88`), deleted by
+   journal/0121; the A-2 entry citing it is annotated in place rather than retargeted.
+   `erosion.rs` refs (`:3132-3134`, `:3148`) were verified against MAIN as of `ec9858e` only —
+   that file is in flight elsewhere.*
+
+*Previous: **2026-07-25 (post-FLOW batch)** — **line refs in this block are as-of 2026-07-25
+and have all drifted** (re-checked `ec9858e`: the `BioMod` reasoning is `runner.rs:525-530`, the
+un-declared `Exposed` note `:532`, `BEDROCK_SEAM_THICKNESS_M` `inventory.rs:1278-1290`,
+`DeepField::chapters` `field.rs:575-581`); left as written because this is a dated sweep record,
+not a live pointer — the five merges since
 the last sweep: FLOW slice 1 (`0096`), the weathering profile (`0099`), the `FactLedger`
 CSR (`0100`), FLOW (a) the head field (`0098`), and `identify(pos)` (`0101`).
 **Both findings of the 2026-07-24 sweep were applied** and verified in code: the
@@ -194,7 +214,7 @@ and which one is a *measured* choice, not a taste:
 | variant | index | use when | instance |
 |---|---|---|---|
 | **dense row-pointer** | `Vec<u32>` of length `n + 1`; row `i` is `start[i]..start[i+1]` | **every row exists** — the row key is the array position | `FluxRecord::{entries, cell_start}` (`deeptime/flux.rs:415-424`), keyed per cell |
-| **keyed rows** | `Vec<{key, start}>`, one entry per **non-empty** row, ascending | rows are themselves sparse — a dense pointer array *is* the rectangle you are avoiding | `FactLedger::{facts, rows: Vec<SlotRun>}` (`deeptime/inventory.rs:239-259`), keyed per stratum slot |
+| **keyed rows** | `Vec<{key, start}>`, one entry per **non-empty** row, ascending | rows are themselves sparse — a dense pointer array *is* the rectangle you are avoiding | `FactLedger::{facts, rows: Vec<SlotRun>}` (`deeptime/inventory.rs:659-664`, `SlotRun` at `:674-679`), keyed per stratum slot |
 
 **The numbers that make it a rule rather than a preference** (don't re-derive them):
 the CSR **index floor is 0.056× of total residency** (S19-flow-record-cost-results
@@ -365,7 +385,7 @@ witness the type will be extracted from.
 **Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
 `surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
 mosaic under smooth terrain (ROADMAP Observed, 2026-07-22). *Before "fixing"
-nearest→bilinear, read `field.rs:374-383`: nearest is a forced trade-off —
+nearest→bilinear, read `field.rs:735-744`: nearest is a forced trade-off —
 the record is a non-interpolable variable-length unit list and bilinear would
 break mass conservation. The fix must route around that, not through it
 (2026-07-22 audit).*
@@ -409,33 +429,74 @@ world-scale defect, not a drift.
 
 ## S-6. Declared relations, never incidental order
 
-> ## ⚠ THE GENERATOR HALF OF THIS SECTION WAS RETIRED BY A USER DECISION — 2026-07-26
->
-> *Pointer added 2026-07-29 (baseline sweep S1/#1). **This is a pointer, not a
-> reconciliation** — rewriting S-6's argument is owed to main session and is deliberately
-> NOT done here.*
->
-> **`ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is authored*
-> (DECIDED 2026-07-26, user) chose AUTHOR-AND-VALIDATE over DERIVE-AND-REJECT.** Order is
-> **data on the world**; `{reads, writes}` became the **validator**, not the ordering input.
-> Filed as `journal/corrections.md` **#65**, `journal/0119`.
->
-> **What that means for reading the section below.** Its thesis — *order must be declared
-> data, never incidental* — **survives intact and is the whole point.** What did **not**
-> survive is the mechanism it exhibits as the exemplary compliant shape: *"Kahn's algorithm"*
-> deriving the sequence from declarations. In the decision's own reading, the revision tokens
-> this section celebrates as its hardest-won compliance (`Forced`/`Incised`, the `reads_prev`
-> anti-dependency) are the **artifact** of derive-and-reject — the same pressure that produced
-> `DeepAxis`, which `ARCHITECTURE.md` names as **"the violation."**
->
-> **Do not justify a new derive-and-reject design against this section.** Until the wording
-> is reconciled in main session, a brief that cites S-6 must cite the decision too.
+*Argument rewritten 2026-07-29 to state the ratified shape (the 2026-07-29 baseline sweep
+left a pointer here and flagged the rewrite as owed; this is that rewrite, applying a
+decision already made — not making one).*
 
 Order exists; it must be **data**, never an artifact of how a loader enumerated
-files.
+files. **Since 2026-07-26 it must be data on the WORLD** — authored, not inferred.
 
-- `pipeline.rs`: passes declare reads/writes; Kahn's algorithm with a
-  lexicographic tie-break; *"never of registration order"*
+`ARCHITECTURE.md` § *The engine is plugin-agnostic, and pass ORDER is authored*
+(DECIDED 2026-07-26, user) chose **AUTHOR-AND-VALIDATE** over **DERIVE-AND-REJECT**.
+Order is chosen per world, alongside seed and epoch count; `{reads, writes}` stop being
+the **ordering input** and become the **validator** — a pass reading a resource nothing
+writes, a read satisfied only by a later pass (a lag: make it explicit), a genuine cycle.
+Filed as `journal/corrections.md` **#65**, narrated in `journal/0119`.
+
+The section's title survives that decision intact and is the reason for it: **order is
+data.** What the decision withdraws is the claim that the *kernel* is where that data comes
+from. ARCHITECTURE.md's own two sentences carry it: *"an engine cannot derive a third
+party's intended order"*, and requiring it to try *"means the declarations must encode that
+order, and encoding it in engine-owned resource names is precisely how `DeepAxis` came to
+exist. The mechanism and the violation are the same choice."*
+
+**⚠ The mechanism IN THE TREE is still derive-and-reject** — this section describes real
+code, and the code predates the decision:
+
+- `passgraph.rs`, the shared kernel: classify each resource's writers, build the edges,
+  and **topo-sort by Kahn's algorithm with a lexicographic-id tie-break, *"never
+  registration order"*** (`passgraph.rs:1-20`; the tie-break is `ready.sort_by_key(id)`
+  + `ready.remove(0)` at `passgraph.rs:230-231`) — rejecting duplicate ids, multiple
+  creators, cycles, and **writer pairs the declarations leave unordered**
+  (`GraphError::AmbiguousWriters`, `passgraph.rs:88`).
+- `pipeline.rs` (the pregen DAG, `require_creator = true`, *"never of registration
+  order"* at `pipeline.rs:25`) and `deeptime/runner.rs` (the epoch loop,
+  `require_creator = false`) **both call that one kernel** — not a second runner beside
+  it (A-4 guarded).
+
+Authoring the order is **E7** in `docs/dependency-graph.md` (*"authored order + the
+validator"*), **sequenced after E3/RATE**; retiring `DeepAxis` so packs declare their own
+resource ids is **E6**, sequenced with it. Until those land, read the instances below as
+*the best available compliance under derivation* — **not** as the shape to copy into new
+design.
+
+**The exemplar, reframed.** The deep-time runner's revision tokens — `Forced → Incised →
+Weathered → Diffused → Compensated → Windblown → Settled` (`runner.rs:55-86`, the enum at
+`:87`) — were cited here as this section's hardest-won compliance. They are the **artifact
+of derivation.** N passes that transform one shared terrain *in place* are unschedulable
+under `AmbiguousWriters`, so each stage must write a distinct token naming its output, and
+**the chain of tokens IS the order**. Ask the graph why weathering runs after incision and
+it answers *because `Weathered` consumes `Incised`* — and that token exists **because
+weathering ran after incision** (journal/0119). It is the hand-declared canonical order
+re-encoded so the graph appears to compute it, and the re-encoding is what put the default
+pack's pass roster inside an engine enum: `DeepAxis`, which ARCHITECTURE.md names **"the
+violation."** The id-lexicographic tie-break is the same pressure one level down — an
+ordering decision the *kernel* had to invent because no author had made it, which is how a
+pass **rename** came to be able to change the physics (the three audits below).
+
+**What survives, and it is most of this section.** Under author-and-validate the
+declarations **validate an authored order instead of generating one**, and *a validator
+needs honest declarations exactly as much as a generator did*. corrections #65 says which
+parts are kept: the pass-graph kernel, `reads`/`reads_prev`, the WAR/RAW distinction
+(journal/0104) and **every rejection class** — *"they become the validator rather than the
+generator"*; only the claim that the order is *derived* is withdrawn. So the
+anti-dependency mechanism below and every declaration-honesty audit in it stay live: an
+under-declared read, an over-declared read, and a lag nothing consumes are defects against
+a validator too. What does **not** survive is *"the tie-break settled it"* as a resting
+place — against an authored order there is nothing left for a tie-break to decide.
+
+**Instances — declaration honesty, live under either model:**
+
 - `deeptime/runner.rs` (journal/0090, 2026-07-24): the **deep-time pass-runner** —
   the epoch loop's phases (climate, tectonics, and the decomposed erosion
   sub-passes weather/transport/diffuse/agents/deposition, plus biotic) declare
@@ -452,7 +513,7 @@ files.
   pass** on that runner — declares `reads {Settled|Compensated|Diffused, Frosted,
   Exposed}`, `writes {Saprolite}`, `period = 1`, body a bare `fn`. The crossing
   constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
-  pointer, `runner.rs:596-604` — no closure crosses the seam), and `Saprolite` is an
+  pointer, `runner.rs:881-888` — no closure crosses the seam), and `Saprolite` is an
   honest pure-write sink token in the `Geotherm` mould, so the pass is orderable
   without perturbing the erosion pipeline. **✅ BOTH DECLARATION DEFECTS BELOW ARE CLOSED —
   verified in code 2026-07-29 at `96ab14b`** (they were fixed 2026-07-25 and this section never
@@ -461,8 +522,14 @@ files.
   fiction: with no edge … `biotic → weather_inventory`, and nothing reads `Saprolite`, so there
   is no cycle"* — and `runner.rs:532` states *"**`Exposed` is deliberately NOT declared**:
   susceptibility is a constant off …"*. **The two entries below are preserved as the record of
-  what was found and why; neither is a live defect.** *(Line refs inside them are as-of
-  2026-07-24 and have drifted — `runner.rs` has moved by ~130 lines.)* **Two declaration defects
+  what was found and why; neither is a live defect.** *(**Line refs inside the two entries
+  below are as-of 2026-07-24 and have ALL drifted** — re-checked 2026-07-29 at `ec9858e`:
+  `runner.rs` has moved by hundreds of lines (the `weather_inventory` declaration is now
+  `:881-888`, its reasoning `:525-532`, the `Exposed` axis `:94-99`); `passgraph.rs`'s
+  tie-break is now `:230-231`, not `:152-153`; `weather_epoch`'s `grid.bio_weather` read is
+  `weather_inventory.rs:283` and `biotic`'s in-place overwrite is `biotic.rs:727`. Left
+  unrefreshed on purpose — this is dated testimony about what was found, not a live
+  pointer.)* **Two declaration defects
   found by the 2026-07-24 sweep, both cheap to fix and neither behavioural then:**
   1. **`reads_prev: &[BioMod]` is not what happens** (`runner.rs:601`, comment
      `runner.rs:592-593` — *"loop-carried, like `weather`/`diffuse` — last epoch's
@@ -488,11 +555,11 @@ files.
 - **the two FLOW passes (journal/0096 + 0098), audited 2026-07-25 — one honest, one
   under-declared, and a systemic hole under both:**
   1. **`dc:deep/flow_record` is HONEST** — verified line by line against its body
-     (`runner.rs:386-402`). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
+     (`runner.rs:442-458`; the declaration `:738-751`). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
      `.area()`, `.routed_surface()` (the drainage solve → `Routed`), `.out_load()`
      (transport → `Energy`) and `grid.head_exchange` (→ `Head`); `writes: [FlowFlux]`
      covers `ctx.flux` and nothing else; and its claim not to read the strata record
-     (`runner.rs:384-385`) holds — `slot_for_chapter` runs at `finish`, outside the
+     (`runner.rs:440-441`) holds — `slot_for_chapter` runs at `finish`, outside the
      pass. Reading `Head` is a **declared** edge, not a tie-break, which is the
      correct form of exactly what the 2026-07-24 sweep caught being done wrong.
      *Residue, shared with `dc:deep/weather_inventory` and pre-existing:*
@@ -504,7 +571,7 @@ files.
      `reads: [Routed]` covered `filled`/`routed_surface`/`area` and **not** the
      ground surface `R + H`, which the body builds from `grid.surf_at` and the solve
      uses as its seepage cap, its lake datum and its whole free-surface boundary
-     (`head.rs:434-467`). The comment's defence, *"its position never affects the
+     (built at `runner.rs:488-492`, consumed at `head.rs:456-485`). The comment's defence, *"its position never affects the
      terrain"*, was true and was **not the question**: it affects the field's own
      values, and the vertical flux recorded from them. **The revision is `Forced`,
      in every cfg path** — nothing between `forcing` and `transport` mutates `R`/`H`
@@ -584,8 +651,12 @@ files.
   identity** (DECIDED 2026-07-22)
 - effective reads = a pass's declared reads **∪** its providers' reads
 
-**Rule:** incidental order is forbidden; declared order is fine. Naming that
-distinction is what freed last-in-order-wins without touching determinism.
+**Rule:** incidental order is forbidden — that has never changed, and naming the
+distinction is what freed last-in-order-wins without touching determinism. What changed on
+2026-07-26 is **where declared order comes from**: **authored, per world, and validated**
+by `{reads, writes}` — never inferred from them. **A brief citing S-6 to justify a new
+derive-and-reject design is citing it wrong**, and must cite `ARCHITECTURE.md` § *The
+engine is plugin-agnostic, and pass ORDER is authored* alongside it.
 
 ## S-7. Distribution-first quantization
 
@@ -659,7 +730,7 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     diff-and-append (apply-time edge logging is the ratified fact source; each fact
     carries its `cause`), byte-identical under the identity default over 25,600 real
     cells, provenance read = `base + facts`. **CONSUMED as a LIVE PROCESS 2026-07-24
-    (S18 → Movement 3, journal/0094):** `collapse.rs:1487` reads
+    (S18 → Movement 3, journal/0094):** `collapse.rs:1417-1420` reads
     `FactLedger::weathering_product_m` into a basal weathering-front band, and the
     facts are now grown by the **`dc:deep/weather_inventory` runner pass running
     inside the deep-time loop, every epoch, accumulating** on each epoch's live
@@ -677,11 +748,11 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     R/H unification"**, material-behavior.md §11 continuation slot + §13.6, and
     `docs/spikes/movement2a-rh-unification-plan.md` — but the split is **not yet the
     invariant the discharge note calls it**: `DeepField::derive_regolith_at`
-    (`field.rs:598-606`, re-confirmed 2026-07-25) materializes the "one authority" `H` view from
+    (`field.rs:818-824`, re-checked 2026-07-29 at `ec9858e`) materializes the "one authority" `H` view from
     `FactLedger::empty_with_bedrock`, i.e. **with an empty ledger**, so the derived
     view structurally cannot see the 6.09 m of `Loose` the M3 process committed.
     Movement 2a's claim that "the inventory is the authority and `R`/`H` are its
-    materialized views" (`field.rs:575-591`) is therefore true of the *record* half
+    materialized views" (`field.rs:796-810`) is therefore true of the *record* half
     only; M3 added inventory content no view reflects. Two derivations of one
     quantity that cannot agree is this section's own consistency law — the
     unification is what closes it.
@@ -845,10 +916,10 @@ that passes tests**.
 - **blast radius widened, not a new instance (2026-07-25, journal/0098):**
   `Litho::reference_material` — the six named rocks standing for every material in
   the world, an A-1 instance since the first audit — **gained a whole new dependent**.
-  `head.rs::permeability_of` (`head.rs:198-201`) routes the head field's entire
+  `head.rs::permeability_of` (`head.rs:214-216`) routes the head field's entire
   hydraulic model through it, and the head field's own docs correctly cite S-2 for
   doing so (*"Derived, never a second table … the same sheet
-  `resistance_of_material` reads for erodibility"*, `head.rs:196-197`). Both readings
+  `resistance_of_material` reads for erodibility"*, `head.rs:210-212`). Both readings
   are true and they point opposite ways: **not writing a second permeability table
   was right**, and it means confinement, transmissivity and every artesian column in
   the world now rest on a six-rock stand-in. Recorded so the day
@@ -904,14 +975,16 @@ so a sweep must ask "does the cited constraint still hold?"
 - **instance (2026-07-25, caught by the post-FLOW sweep): a measurement instrument
   that prints a caption contradicting its own number. ✅ FIXED — verified 2026-07-29 at
   `96ab14b`:** `flux_record_probe.rs:111` now prints `"<- filled by the head field"`, and
-  `:105-107` carries a comment recording *why* the caption was wrong (*"the named … probe was
+  `:104-109` carries a comment recording *why* the caption was wrong (*"the named … probe was
   printing a non-zero count beside the word EMPTY. Nothing failed"*). The proposed wording
   shipped essentially verbatim.
-  `dc-worldgen/examples/flux_record_probe.rs:98-101` prints the vertical-face count
+  `dc-worldgen/examples/flux_record_probe.rs:98-101` *(as-of 2026-07-25; the vertical row
+  is now the corrected `:110-115`)* printed the vertical-face count
   labelled *"structurally present, honestly EMPTY (no infiltration term in this solve;
   **heirs: the head field** + the free/bound edge)"*. That heir **landed the next day**
   — `dc:deep/head` fills those faces with 307,364 crossings (journal/0098), the flag is
-  **on by default** (`grid.rs:279`), and the probe's own `c.vertical` now prints
+  **on by default** (`DeepConfig::head_field`, `grid.rs:341`; `head_field: true` at
+  `grid.rs:580`), and the probe's own `c.vertical` now prints
   non-zero directly beside the word EMPTY. Textbook A-2, with two aggravations worth
   naming: the expired premise is on an **output line**, so it does not wait for a
   reader of the source to notice — it is *published* into whatever doc quotes the
@@ -919,8 +992,10 @@ so a sweep must ask "does the cited constraint still hold?"
   runs them**, so no gate can see it. *Proposed:* `"<- filled by the head field
   (dc:field/head, journal/0098); zero only when --no-head-field"`. The sibling three
   sites that describe the same history are **not** instances and were checked
-  individually — `field.rs:350`, `flux.rs:789` and `grid.rs:285` all say *"which FLOW
-  slice 1 **left** …"*, past tense, which is a true statement about a prior slice.
+  individually — `field.rs:564`, `flux.rs:48-53` and `grid.rs:327` (refs refreshed
+  2026-07-29 at `ec9858e`) all speak in the past tense (*"which FLOW slice 1 **left** …"*,
+  *"the vertical faces **were** slice 1's honest empty, and continuation (a) filled …"*),
+  which is a true statement about a prior slice.
 - **staleness, adjacent to A-2 (2026-07-25): a spike result doc describing a layout
   that no longer exists. ✅ APPLIED — verified 2026-07-29 at `96ab14b`:**
   `S17-deep-cell-inventory-results.md:285` carries an inline `// ^ SUPERSEDED 2026-07-25
@@ -928,7 +1003,7 @@ so a sweep must ask "does the cited constraint still hold?"
   inline marker: the body stayed immutable and the *pointer* went where the wrong shape is
   actually read — the letter of read-first item 5's "immutable body, mutable header", applied
   mid-document. Original finding preserved:
-  `docs/spikes/S17-deep-cell-inventory-results.md:284,293`
+  `docs/spikes/S17-deep-cell-inventory-results.md:284,305`
   still states, present tense, *"`struct FactLedger { facts: Vec<Vec<Fact>> }`"* and
   *"The ledger is a **sidecar** `Vec<Vec<Fact>>` keyed by unit index"* — converted to
   flat + CSR by journal/0100. Its sibling `S19-flow-record-cost-results.md:152-158`
@@ -1046,7 +1121,9 @@ so a sweep must ask "does the cited constraint still hold?"
   layer: polities, sites, ruins"*. The load-bearing half is true — the region-step draw
   reaches `Block::Wood` ruin posts inside `generate_chunk` behind no flag. But **"two
   draws" is false**: the agent-step draw beside it re-rolls nothing, because the pregen
-  overlay is built with an empty `agent_home` (`pregen/history.rs:82`, `:84-88`), so its
+  overlay is built with an empty `agent_home` (`pregen/history.rs:82`, `:84-88` — **that
+  file no longer exists; journal/0121 deleted it, and these refs are frozen as-of
+  2026-07-26**), so its
   loop never executes outside dc-sim's tests. And **"polities" is false**: the count is
   fixed at epoch 0 and the extents live only in a ledger nothing reads (new § 3 row).
   The variant matters because the **remedy differs**. A-2 proper is found by re-checking
@@ -1118,8 +1195,9 @@ so a sweep must ask "does the cited constraint still hold?"
     closed-system lesson in miniature: the operator's doc comment is checking the operator
     against itself.
   - **This is also A-3-adjacent and worth saying so:** a moved golden is the loudest available
-    signal, `journal/0122:195` calls re-baselining *"the discipline that makes a moved golden an
-    argument"* — and a reader of `erosion.rs` alone would conclude no golden could have moved.
+    signal, and `journal/0122:194-195` calls re-baselining *"the discipline that makes a moved
+    golden an **authorized** move rather than a lost fixed point"* — while a reader of
+    `erosion.rs` alone would conclude no golden could have moved.
 - **not-an-instance, and the good version of the shape (2026-07-26, journal/0118).**
   Finishing journal/0105's hole 2 deleted an agreement test — `SALT_BIO_FIRE` /
   `SALT_BIO_FLOOD` had no production reader once their call sites reached `Draws::of`, so
@@ -1252,8 +1330,8 @@ written beside the one that already existed**:
   `the_creep_split_is_linear_in_the_quantity_so_nothing_is_sorted`) sit on the one
   function all three movers route through.
 - **not-an-instance, noted for the record:** `weather_epoch` open-codes
-  `grid.r[i] + grid.h[i] <= sea_level` (`weather_inventory.rs:310`) where
-  `DeepGrid::surf_at` (`grid.rs:412-413`) exists — but so do five other sites in
+  `grid.r[i] + grid.h[i] <= sea_level` (`weather_inventory.rs:286`) where
+  `DeepGrid::surf_at` (`grid.rs:718-722`) exists — but so do five other sites in
   `erosion.rs`. That is a pre-existing idiom, not a new mechanism; it belongs to
   whoever next touches `erosion.rs`, not to M3.
 
