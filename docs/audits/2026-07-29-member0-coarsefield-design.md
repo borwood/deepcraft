@@ -33,6 +33,13 @@ callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 >      from voxels) and `deep_coords` promoted to `pub`, because `registration()` is the
 >      affine map alone and cannot answer the extent test the wilds fallback needs.
 >
+>    **WALK VERDICT on the cell-wide blend (user, 2026-07-29 evening, station 2 —
+>    the ROADMAP § Observed field report is the full record):** the 460 m lines are
+>    **gone, confirmed by eye**; the blend's *semantics* are **rejected** — the far
+>    interior's interleaving does not resemble near-ground or the warm LOD (*"the whole
+>    cake is swirled now"*). Rides as the interim; replaced eventually by a far register
+>    **derived from refinement-operator budgets** (user sketch, recorded in the report).
+>
 >    **Two things § 5 predicted that the build MEASURED differently:**
 >    - **"goldens move" did not happen** — no golden in the workspace hashes the far
 >      field. A coverage finding, not a null result (journal/0125).

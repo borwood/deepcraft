@@ -2373,6 +2373,39 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🔴 USER FIELD REPORT + RULING, walk 2026-07-29 evening (station 2 of the member-#0
+  far-slice walk): THE CELL LINES ARE GONE, AND THE WHOLE CAKE IS SWIRLED.** Reference
+  poses (corrections #48 — a prose landmark is not a pose): ground **feet (106263, 21.85,
+  −5506), yaw 0, pitch −0.05**; top-down **feet (106263, 1686, −5506), yaw 0, pitch
+  −1.55**. Assets `0127-station2-alt2-topdown.png`, `0127-station2-ground-north.png`.
+  Surface voxel ground-truthed: recorded sandstone+siltstone+carbonaceous-mudstone mix.
+  - **(a) CONFIRMED BY EYE: no 460 m cell lines anywhere** — *"welp, there are certainly
+    no cell lines anymore."* U22's line criterion is discharged and stays discharged.
+  - **(b) REJECTED BY EYE: the cell-wide blend's SEMANTICS.** *"the slice of
+    chocolate cake in the middle of the vanilla cake is gone. the whole cake is swirled
+    now… the interleaved fingers like this, while being organic-ish and no longer having
+    square boundaries, do not resemble the material distribution of nearground chunk
+    rendering (which doesn't do the bilinear interleaving thing)."* The near ground skins
+    from the record's per-voxel mixture + member dither; the far interior now interleaves
+    *neighbour cells* everywhere (the E[w_home]=9/16 finding journal/0125 flagged — the
+    eye and the near/far agreement drop 0.8225 → 0.7922 point the same direction).
+    It also does not resemble the warm-derived LOD.
+  - **(c) RULING: the far draw's blend rides for now and is REPLACED EVENTUALLY** —
+    *"that's going to have to be replaced eventually and has been discussed before. i let
+    this continue since you said we'll use this for more than just LOD"* — i.e. member #0
+    (the K1 fine-read kernel) stands; the far field's *use* of it as a cell-wide blend is
+    the interim.
+  - **(d) USER DESIGN SKETCH, recorded verbatim and NOT reconciled (corrections #65):**
+    *"once we have the refinement layer declarable operators over primitives, we should
+    maybe be able to know what the "budget" of materials per operator is, and coarsely how
+    the operators will shape the far field - we may be able to place textures more
+    faithfully to the near field. perhaps."* The direction this names: the far register
+    becomes a **summary derived from the refinement operators' budgets** (S-3: derived
+    from the authority, never beside it), instead of an independent draw over shares. Kin:
+    `summarize`'s octree-contract home (member-#0 MM-4 ruling) and corrections #39's
+    honest-heir note. **Heir: the refinement arc, post-operators — a design conversation,
+    not a slice.**
+
 - **The tripwire sweep's residues** — the two parents are ✅ RESOLVED 2026-07-29 by
   journal/0126 and archived verbatim to [`ROADMAP-history.md`](ROADMAP-history.md)
   § *Observed — archived*: *"which shipped artifacts have no golden?"* (filed by
