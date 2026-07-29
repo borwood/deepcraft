@@ -27,6 +27,9 @@ work**, while the contracts it grew out of are read every time someone adds a pa
 **Measured, so the next reader is not misled about what this bought.** `runner.rs` was
 **1,694 lines** (2.4× the 700-line source threshold), of which **686 were comment**. The
 extraction removed **128** comment lines and rewrote **88**, landing the file at **1,654**
+*(dated figure, true at the extraction commit; the Schedule slice then grew it — **1,908 at
+`96778eb`**, doc-topology F4 2026-07-29 — so any pending size ruling should re-count, not
+quote this line)*
 (comment 686 → 646). That is the honest size of the cold half: the remaining comment volume
 is *contract at its declaration site*, and the file is **still 2.4× over threshold because
 927 of its lines are code**. **Comment extraction cannot fix this file's size** — the remedy

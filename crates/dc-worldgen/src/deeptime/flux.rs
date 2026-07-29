@@ -110,10 +110,19 @@
 //! **The residual is loud and unbuilt.** The *bound* regime almost certainly needs
 //! a different pairing — an aquifer's flux crosses a cell boundary at a
 //! **paleo-elevation**, not at "the same chapter's stratum", and regional
-//! groundwater genuinely crosses surface divides (§ 2.4). Slice 1 records no bound
-//! flux at all, so the question is not yet forced; **it is a design decision the
+//! groundwater genuinely crosses surface divides (§ 2.4). No entry carries
+//! `FlowForm::Bound` (the head field's vertical exchange is recorded on vertical
+//! faces, form `Free`, and vertical faces pair within a column — no cross-column
+//! choice arises), so the question is not yet forced; **it is a design decision the
 //! user owns**, filed with continuation (c) (the free/bound edge), and this rule
 //! must not be assumed to extend there by default.
+//!
+//! **RATIFIED 2026-07-29 (flow.md § 11.5 banner, the three-mode confinement rule):**
+//! this module's chapter pairing IS mode 1, blessed; modes 2 (elevation/head) and
+//! 3 (void connectivity) arrive with continuation (c). The paragraph above
+//! previously opened with "Slice 1 records no bound flux at all" — literally true
+//! of the `form` tag but misleading once continuation (a) populated the vertical
+//! faces; reworded 2026-07-29 (doc-topology F3) with the conclusion unchanged.
 //!
 //! ## What is NOT stored, on purpose
 //!

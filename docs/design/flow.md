@@ -143,6 +143,13 @@ routing water across a landscape deep time subsequently destroys.
   > uniformly a **2×** on cost — the same 2× as D4/D8 face counts, and easily
   > confused with it. **Resolve before any refinement/expression slice; a slice that
   > picks a rule must say so loudly rather than pick one silently.**
+  >
+  > **✅ RESOLVED — § 11.5 ratified the principle THE SAME DAY this flag was written,
+  > and the rule was RE-ARGUED FRESH and CAUTIOUSLY RATIFIED 2026-07-29 (see the
+  > banner in § 11.5).** This flag was never stamped when § 11.5 landed 360 lines
+  > below it, and three 2026-07-29 documents propagated "not ratified" from here —
+  > corrections **#75**. The 2× note is also not the pairing's cost: it is
+  > gross-vs-net (both directed halves kept), decided and shipped in the record.
 - **3e-2's divide constraint becomes structural**: refinement may place a channel
   anywhere *inside* a cell, but it must enter and exit through the **recorded
   faces**. The rule stops being something to remember.
@@ -825,3 +832,23 @@ violated.
 > **ASSIGNED to continuation (c) — RATIFIED 2026-07-25** (user: *"great catch: agree on
 > add to c"*). (c) therefore ships **three** obligations, not two: the free/bound edge,
 > void intervals, **and the conduit pairing rule.**
+
+> **✅ RE-ARGUED FRESH AND CAUTIOUSLY RATIFIED 2026-07-29 (user, at the fluvial member
+> design pass — the tier's first concrete consumer).** Re-derived against the channel
+> operator rather than inherited, per the member-pass doctrine; it lands where this
+> section landed, now stated as the **THREE-MODE CONFINEMENT RULE**: a flux fact pairs
+> across a face by *what confines the flow* — **mode 1**, material horizon → by
+> **chapter** (slot derived per column, never stored); **mode 2**, potential surface →
+> by **elevation/head at that chapter** (carrying § 10.1's expiry: under deformation,
+> confined-bed flow re-pairs by bed identity and only true water-table flow stays
+> elevation-paired); **mode 3**, void conduit → by **void connectivity**. Three
+> sharpenings from the re-argument:
+> 1. **Eroding cells:** flux at chapter K attaches to the **surface as of K** — in an
+>    eroding column that is an older unit's exposed top. A young fact on old rock is
+>    cross-cutting (§ 1.2), correct and required, not a defect.
+> 2. **Within-chapter resolution is the WINDOW axis (§ 11.1)**, not a pairing question.
+> 3. **The "2×" in § 2.2's flag is gross-vs-net, not a pairing cost** — already decided,
+>    already in the shipped record.
+> **Mode 1 is built (`flux.rs`, lateral free flux) and the fluvial member rides it
+> exclusively, stated loudly. "Cautiously" binds as in `refinement.md`: modes 2–3 are
+> directions, ruled properly when continuation (c) forces them.**

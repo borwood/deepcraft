@@ -610,12 +610,18 @@ place — against an authored order there is nothing left for a tie-break to dec
     it governs; what moved is the defect walkthroughs, the superseded defences and the
     slice-neutrality arguments a test now proves. **journal/0123's RATE commentary is live
     contract and was left whole.** Line refs below are refreshed to that extraction commit.
-    *Honest limit: the file is **still** 2.4× over (1,654 lines, of which **927 are code**)
+    *Honest limit: the file is **still** 2.7× over (**1,908 lines at `96778eb`**, raw count —
+    the integrator first "arbitrated" two sweeps' 1,654-vs-1,908 disagreement with a
+    blank-skipping counter and got 1,818; the doc-topology figure was right all along and
+    the stale 1,654 predates the Schedule slice; the **927 code lines** figure also dates
+    from the extraction commit)
     — comment extraction cannot fix its size, and the remedy left on the table is an
     ordinary module split. Not sequenced.*
 - `dc:deep/weather_inventory` (journal/0094, 2026-07-24): the **first *cellular*
   pass** on that runner — declares `reads {Settled|Compensated|Diffused, Frosted,
-  Exposed}`, `writes {Saprolite}`, `cadence: Cadence::EVERY_EPOCH` (`period = 1` until
+  Exposed}`, `writes {Saprolite}`, `schedule: Schedule::EVERY_EPOCH` *(field renamed
+  `cadence` → `schedule` by journal/0124; quote refreshed 2026-07-29, doc-topology F5 —
+  the same-day citation refresh caught line numbers and missed the rename)* (`period = 1` until
   journal/0123), body a bare `fn`. The crossing
   constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
   pointer, `runner.rs:963-971` — **refreshed 2026-07-29 evening at `72fbe86`**, was `:929-936` at

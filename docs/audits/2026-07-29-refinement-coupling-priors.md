@@ -3,8 +3,13 @@
 **Read at `dc96b4d`.** Produced by a read-only research agent for the E5 design pass, on
 the user's direction: *"find prior plans, unratified or not, that exist on materials,
 material behaviors, and flux, and beyond — places you or i have overlooked or forgotten."*
-Consumed by [`docs/design/refinement.md`](../design/refinement.md) (PROPOSED), whose § 4/§ 5
-are the synthesis of what is below. **This is a dated research artifact** — quotations were
+Consumed by [`docs/design/refinement.md`](../design/refinement.md) (~~PROPOSED~~ **CAUTIOUSLY
+RATIFIED 2026-07-29, same day** — header updated per the mutable-header rule; doc-topology
+F10), whose § 4/§ 5 are the synthesis of what is below. **Its § 5 item 6 (the face-pairing
+"live blocker") is RESOLVED 2026-07-29 — re-argued fresh and cautiously ratified as the
+three-mode confinement rule (`flow.md` § 11.5 banner; corrections #75: the "not ratified"
+status this file relayed was stale at assertion — § 11.5 had ratified the principle
+2026-07-25 and the flag it cites was never stamped).** **This is a dated research artifact** — quotations were
 verified at `dc96b4d` and are not re-verified by later readers of this file; the immutable
 body / mutable header rule applies.
 

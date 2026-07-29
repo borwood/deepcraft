@@ -11,7 +11,9 @@ never silent** (§ Compliance). It is the strategic companion to
 > blogworthy (lenses: AI-native development; deepsim-reflexions): the engine
 > whose extension model is designed for AI-authored content, and which solves —
 > one better than its ancestral space — the untrusted-mod problem with a
-> sandbox tier behind a single authoring shape.
+> sandbox tier behind a single authoring shape. *(⚠ the sandbox-tier half is
+> DEFERRED per § Deviations 1 — there are no trust tiers until there are modders;
+> the angle survives as ambition, not as current architecture.)*
 
 ---
 
@@ -118,10 +120,16 @@ ships (the pass graph and `Providers`), not the invention of an interpreter.
 > is the line to contest** — recorded this way rather than silently, per
 > corrections #65.
 >
-> **What is still open:** the *mechanism* — which kernels are primitives, what the
+> ~~**What is still open:** the *mechanism* — which kernels are primitives, what the
 > operator authoring shape is, and how the pure-fn contract is enforced across the
 > backends. **The boundary is decided; the surface is not.** ROADMAP § Sequenced
-> "REFINEMENT PRIMITIVES" still owns that work.
+> "REFINEMENT PRIMITIVES" still owns that work.~~
+> **✅ THE SURFACE IS DESIGNED — [`refinement.md`](refinement.md), CAUTIOUSLY RATIFIED
+> 2026-07-29 (user):** record families, term-keyed operators, three laws; member #0's
+> first slice shipped and walked the same day. The caution binds members, not the bones
+> — each first member gets its own design pass. *(Stamped 2026-07-29 by the doc-topology
+> sweep, F1: this read-first doc still routed the tier's work to an entry that was
+> superseded the day before — corrections #73's mechanism at full scale.)*
 
 *The original framing is kept below unstruck, because its argument is what makes
 the ruling legible — and because the "vocabulary of expression" problem it names is
@@ -227,8 +235,9 @@ Two **shapes**, one interface — **both are content** (2026-07-23 refinement):
   (combustion, weathering, diagenesis, decay, cementation).
 - **field passes** — declare reads/writes over fields; the body is arbitrary
   computation calling **core solver primitives**. Tectonics/hydrology/climate/
-  thermal. Native-backend and first-party — because they are trusted and hot,
-  *not* because they are core.
+  thermal. Native-backend and first-party — because they are ~~trusted and~~ hot,
+  *not* because they are core. *(⚠ "trusted" struck per § Deviations 1: there is
+  no permission difference between native and WASM today.)*
 
 **The `ctx` is a capability, not a god-object.** A pass can only touch the state
 it *declared* — the `ctx` it is handed exposes nothing else, enforced by the
@@ -247,19 +256,23 @@ storage + cell/space API · the pass-runner · the event ledger · the field-sol
 primitives · the data-model APIs (materials / items-recipes / blueprints /
 bodies) · the stable SDK surface.** *Every pass is content* — including tectonics
 and erosion. A field pass is thin orchestration over core kernels; it runs native
-because it is trusted and hot, not because it is part of the core. (This retires
+because it is ~~trusted and~~ hot, not because it is part of the core. (This retires
 the earlier "native field-solvers are core" framing — that sentence conflated
-compute shape with trust tier.)
+compute shape with trust tier. *⚠ And "trusted" is itself struck per § Deviations 1;
+never justify a placement by trust.*)
 
 **Passes come in two shapes** (§ Passes): **cellular** (per-cell
 select-and-transform) and **field** (global solve over the grid). For the *cell
 world* there is no third.
 
-**Capability, not core, gates the tiers.** What a tier may author is a capability
+~~**Capability, not core, gates the tiers.** What a tier may author is a capability
 set, matching "`ctx` is a capability, not a god-object": the untrusted tier gets
 material declarations + cellular passes + data; registering a new field pass (a
 global solver) is a trusted-tier capability. Same authoring shape, different
-granted powers.
+granted powers.~~ *(⚠ VOIDED by § Deviations 1–2, stamped 2026-07-29 (doc-topology F8):
+no capability walls, no trust tiers — a mod can author anything a default can,
+including a field pass. The `ctx`-as-capability discipline survives; the TIERING does
+not.)*
 
 **Deeptime compiles; the present executes.** The two clocks are two *runtimes
 over one set of declarations*: **deeptime is an ahead-of-time compiler** for the
@@ -338,9 +351,10 @@ internally and speaks to the world in plain data.
 **The triangle you cannot fully close:** native speed + untrusted code + full
 safety — pick two. Native modules are arbitrary machine code and cannot be
 sandboxed; "untrusted native" is only safe if made *accountable* (curation /
-signing), never *contained*. The tier system means we never need that corner: we
-never run untrusted native. (Same limit as the Minecraft modding space; the WASM
-tier is the one-better.)
+signing), never *contained*. ~~The tier system means we never need that corner: we
+never run untrusted native.~~ *(⚠ there IS no tier system today — § Deviations 1;
+the triangle analysis stays valid for the day tiers arrive.)* (Same limit as the
+Minecraft modding space; the WASM tier is the one-better.)
 
 **Validation + hosting** (a trustworthy-mod store, signing) is later product
 infra; the architectural hook is that **mods are versioned artifacts declaring

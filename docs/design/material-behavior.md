@@ -365,8 +365,10 @@ is dated provenance for WINDOW, not a running count.)*
   - **This restores the user's 2026-07-23 sketch** (`ideas.md` § *Pass cadence*), whose
     ORDER half — *"a canonical start order (tectonics → hydro → weathering)"* — was
     reconciled away rather than contested. RATE, below, was the half that survived.
-- **RATE — ✅ BUILT 2026-07-29 (journal/0123; `dependency-graph.md` E3).** The one axis of the
-  three that is no longer a declaration. Cadence is **authored data** (a `CadenceTable` keyed by
+- **RATE — ✅ BUILT 2026-07-29 (journal/0123; `dependency-graph.md` E3).** ~~The one axis of the
+  three that is no longer a declaration.~~ *(With SCHEDULE also built the same day, TWO of the
+  FOUR axes are no longer declarations — this clause and the "four orthogonal axes" heading
+  28 lines up were written in the same edit and disagreed; doc-topology F7, 2026-07-29.)* Cadence is **authored data** (a `CadenceTable` keyed by
   pass id, applied over each pass's declared default by `deep_passes_with`); a firing pass takes
   its declared **sub-turns**, each handed `dt = period / sub_turns` and each seeing the cell
   state the previous turn left; and `dt` is **live** in the rate-shaped passes converted so far

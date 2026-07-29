@@ -296,10 +296,17 @@ expressor is *inert, loud* (the plug-and-play mirror — notebook § 2.5a).
 
 ## 8. Blockers and sequencing honesty
 
-- **The face-pairing rule** (`flow.md` § 2 flag): under-specified, not ratified,
+- ~~**The face-pairing rule** (`flow.md` § 2 flag): under-specified, not ratified,
   a uniform 2× on record cost, and *"resolve before any refinement/expression
   slice; a slice that picks a rule must say so loudly."* This document does not
-  pick it; the channel slice must, loudly, as its first act.
+  pick it; the channel slice must, loudly, as its first act.~~
+  **✅ RESOLVED 2026-07-29 — and this bullet was STALE AT ASSERTION (corrections #75):**
+  the principle had been ratified 2026-07-25 (`flow.md` § 11.5, 360 lines below the
+  flag this bullet echoed, never cross-stamped), mode 1 was already built, and the
+  2× belongs to gross-vs-net, not pairing. Re-argued fresh at the fluvial member
+  design pass and **CAUTIOUSLY RATIFIED as the three-mode confinement rule** —
+  full record in `flow.md` § 11.5's banner. The channel slice rides **mode 1
+  (chapter pairing)** and states so loudly; nothing is left for it to pick.
 - **Mover attribution** (stubs #25: the record says *what* arrived, not *who*
   brought it): v1 spends the **total** export budget along the flux path;
   the packed `(species, mover)` byte is the named successor when budgets must

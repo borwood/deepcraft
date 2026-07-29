@@ -1,5 +1,12 @@
 # S19 — the flow-record cost probe: measured results
 
+> **⚠ STALENESS BANNER (stamped 2026-07-29, corrections #75).** This spike's slot-pairing
+> note was cited by `flow.md` § 2.2's flag as an open question with a uniform 2× cost; the
+> pairing principle was ratified the same day it was flagged (`flow.md` § 11.5) and
+> **re-ratified fresh 2026-07-29 as the three-mode confinement rule** (§ 11.5 banner). The
+> 2× is the gross-vs-net choice (both directed halves kept), which shipped; it is not a
+> cost the pairing rule adds. The measurements below are untouched and correct for their day.
+
 **Measured 2026-07-25.** Probe: `crates/dc-worldgen/examples/flow_cost_probe.rs`
 (`cargo run --release -p dc-worldgen --example flow_cost_probe`). Wall clock
 **45.6 s** for the whole probe: 19.1 s for `Pregen::run` at seed 1337 /

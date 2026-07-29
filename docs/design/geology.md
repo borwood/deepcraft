@@ -370,6 +370,11 @@ Two requirements make an enhancement honest:
    (user: "i do not know in what sense they must agree, but on a high level
    that appears clear to me") — recorded as the guiding constraint, to be
    sharpened slice by slice rather than resolved here.
+   *(→ **`refinement.md` §§ 4–5 (CAUTIOUSLY RATIFIED 2026-07-29) PROPOSES the answer**:
+   agreement = expression varies only with recorded continuous quantities (Law 1), through
+   a declared family's terms (§ 4), conserving the recorded totals (Law 3). Pointer added
+   2026-07-29, doc-topology F9 — this question was the user's and stays formally theirs to
+   close; the refinement doc is where the sharpening landed.)*
 
 Consequence for any sub-deep-cell detail (the S13 recalibration included): a
 local rule is honest **to the degree it is conditioned on the field** — jitter

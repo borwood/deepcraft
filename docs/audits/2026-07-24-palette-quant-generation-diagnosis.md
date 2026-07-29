@@ -20,7 +20,9 @@
 > *The first stamping of this banner said "unprobed for five days" — wrong: the resolution
 > existed and lived only in a close block, which is a handoff, not an authority. The
 > failure here is the one-directional pointer, and the 2026-07-29 design pass re-derived
-> the question because this doc held no link to its own answer. User memory caught it.*
+> the question because this doc held no link to its own answer. User memory caught it —
+> **filed as corrections #73** (ordinal added 2026-07-29, doc-topology P2: both of #73's
+> targets carried the narrative but neither named the entry).*
 > See `docs/audits/2026-07-29-member0-coarsefield-design.md` § 3 + header rulings.
 >
 > **⚠ THE FAR-FIELD HALF OF THIS DOC'S MECHANISM IS SUPERSEDED IN CODE, 2026-07-29

@@ -4554,9 +4554,11 @@ mod hillslope_operator_tests {
         assert_eq!(a.h, b.h, "scalar and parallel sub-cycling disagree");
     }
 
-    /// **`n = 1` is the old operator, bit for bit.** The claim that the shipped
-    /// world is untouched rests entirely on `x / 1.0 == x`, so it is asserted
-    /// rather than argued.
+    /// **`n = 1` is the old operator, bit for bit** — `x / 1.0 == x`, asserted
+    /// rather than argued. (This once read "the shipped world is untouched";
+    /// that claim retired when `creep_substep` went default-ON with 2 sub-steps
+    /// and the goldens moved. The predicate this test pins is unchanged —
+    /// spine-audit residue fix, 2026-07-29.)
     #[test]
     fn inside_the_bound_the_driver_is_the_raw_step() {
         let cfg = creep_cfg(0.12);

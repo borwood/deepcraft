@@ -3059,3 +3059,48 @@ near-path fix alone will not clear the checkerboard; the octaves source is a co-
 the octaves lineage is stitched across its 2026-07-24 origin and both 2026-07-29
 re-derivations. What was NOT wrong: the design agent's *consequence* — a perfect near fix
 leaves the checkerboard on screen — survives falsification of its premise, strengthened.
+
+## 74. "Verified at those exact lines; the adoption did not move them" (`docs/spines.md` CoarseField row, 2026-07-29 — falsified by the very commit that carried it; caught by the same day's FULL spine-audit)
+
+The claim rode the member-#0 far-slice merge (`0dcdadb`) — and that commit itself moved
+`sample_dithered` 479→498 and `summarize` 515→534, via the doc paragraph the slice added to
+`coarse.rs` *because the type's old prose had misled its first adopter*. So the row asserted
+citation accuracy about a tree its own commit was changing, and was wrong the moment it
+landed.
+
+**Mechanism:** a citation-accuracy claim is a claim about the tree you COMMIT, not the tree
+you read. Anything that verifies line numbers must re-verify after the same change-set's
+edits are complete — or cite by symbol, which cannot rot this way. This is corrections #67's
+citation-rot class compressed to zero days, and the enumerate-what-you-touched failure shape
+(the writer enumerated the files *checked*, not the files *the commit touched*).
+
+**Corrected in place** by the 2026-07-29 FULL spine-audit (refs refreshed, the row's claim
+rewritten); recorded here because the shape — *a self-refuting same-commit claim* — will
+recur wherever a doc asserts freshness inside the change that stales it.
+
+## 75. "The face-pairing rule is under-specified, not ratified — a live blocker on the tier's first slice" (`refinement.md` § 8, the coupling-priors audit § 5 item 6, `dependency-graph.md` E5 row — all 2026-07-29; stale AT ASSERTION: the ratification had existed since 2026-07-25, 360 lines below the flag every one of them cited)
+
+`flow.md` § 2.2's flag (written with S19, 2026-07-25) asked the slot-pairing question and
+named a candidate rule "NOT RATIFIED." **The same file's § 11.5, written later the same
+day, ratified the principle** (pair by what confines the flow), and `flux.rs` shipped
+chapter pairing for lateral free flux with the bound residual explicitly deferred. The flag
+was never stamped. Three 2026-07-29 documents then read the unstamped flag and propagated
+"unratified" — the coupling-priors agent even listed the § 2.2-vs-§ 11.5 pair as a noticed
+contradiction (§ 5 item 6) *without resolving which side was current*, and `refinement.md`
+§ 8 turned it into a build-order blocker.
+
+**The honest half:** the BOUND mode genuinely was — and remains — unforced (no entry
+carries `FlowForm::Bound`), and the conduit mode is real and assigned to continuation (c).
+The claim was wrong only about the mode the channel operator actually needs.
+
+**Mechanism:** a one-directional pointer inside ONE FILE — the founding doc-topology
+pattern (corrections #65's claim-and-refutation 400 lines apart) at 360 lines. The flag was
+the natural landing point for every later reader; the ratification lived below where no
+grep for "face-pairing" reaches (§ 11.5 says "pairing," not "face-pairing").
+
+**Resolution:** re-argued fresh against the channel operator at the user's direction
+(re-opened rather than inherited) and **CAUTIOUSLY RATIFIED 2026-07-29 as the three-mode
+confinement rule** — record in `flow.md` § 11.5's banner, with three sharpenings
+(eroding-cell attachment; window-vs-pairing; the 2× is gross-vs-net). All five sites
+stamped in the same commit as this entry: `flow.md` § 2.2, `refinement.md` § 8, the
+coupling-priors header, `dependency-graph.md` E5, `S19-flow-record-cost-results.md`.

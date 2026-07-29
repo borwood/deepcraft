@@ -60,7 +60,8 @@ callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 > claim is wrong — the 460-vs-28.8 question was **settled 2026-07-24 as member stepping**
 > (corrections #45 + the haunting diagnosis: *"fix = octaves, not resolution"*); the
 > resolution lived in a close block and never reached the audit, so this pass re-derived
-> the question. **User memory caught it.** Consequence stands and sharpens: the near-path
+> the question. **User memory caught it — filed as corrections #73** *(ordinal added
+> 2026-07-29, doc-topology P2)*. Consequence stands and sharpens: the near-path
 > fix alone will not clear the checkerboard; the octaves source is a co-requisite.
 > **Lineage, stitched because it was re-derived twice:** the octaves + facies-driver plan
 > originates 2026-07-24 (haunting diagnosis / corrections #45 / "octave materialisation IS

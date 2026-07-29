@@ -6007,6 +6007,11 @@ name/count), tree clean, no lock, no port-7777 process.
 3. **Owed:** a **spine-audit** (much shape landed live this session); the LOD **cold-over-warm**
    correctness fix (warm to the nearfield edge) when the mixture arc opens; the LOD **warm-cache
    lifetime** live-probe residue (the palette-quant 460-vs-28.8 was settled — member stepping).
+   *(→ That parenthetical resolution is the one **corrections #73** is about: it lived only
+   here, in an archived close block, while the asking audit went unstamped and the question
+   was re-derived 2026-07-29. Pointer added 2026-07-29, doc-topology P3 — the archived end
+   of the edge now links its correction: `journal/corrections.md` #73 and the stamped banner
+   in `docs/audits/2026-07-24-palette-quant-generation-diagnosis.md`.)*
 
 *(The 2026-07-23 close below is consumed; preserved as history.)*
 

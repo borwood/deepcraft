@@ -99,6 +99,14 @@ marked superseded**; decisions recorded in the design doc that owns them, not
 only in conversation; `things-that-will-happen.md` fed if a genuinely
 informative example surfaced.
 
+**A close block recording a RESOLUTION ("settled — X") owes the ASKING document its
+banner in the same commit** (CLAUDE.md read-first item 5's close-block clause, corrections
+#73 — added here 2026-07-29 because the obligation lived in no ritual: F1 and P3 of the
+2026-07-29 doc-topology sweep were both created or left standing *after* the clause was
+written). Before writing "settled" into the block, ask *which document asked this
+question* and stamp it now — a close block is a handoff that gets archived, and the
+archived end of the edge is exactly where a cold session cannot find the answer.
+
 **And [`docs/dependency-graph.md`](../../../docs/dependency-graph.md) reconciled**
 (added 2026-07-29, user). For every slice that shipped this session: did it move
 a row's state, retire an edge, or reveal one? **A slice that shipped and left a

@@ -614,14 +614,21 @@ defined, so it sat in the list above as a name with no content. The user's defin
 
 So the tier owns the **coarse → fine reconstruction**, and it is engine-owned for the same
 reason the solver primitives are: a pack that cannot author how its own materials are
-upscaled is not a pack, it is a carve-out. **The engine currently has ZERO refinement
-primitives** — the tier is decided and undesigned, and its first member is unscoped. Read the
+upscaled is not a pack, it is a carve-out. ~~**The engine currently has ZERO refinement
+primitives** — the tier is decided and undesigned, and its first member is unscoped.~~
+**✅ SUPERSEDED THE SAME DAY IT WAS WRITTEN — the tier is DESIGNED and its first member
+SHIPPED: [`docs/design/refinement.md`](design/refinement.md) CAUTIOUSLY RATIFIED 2026-07-29
+(user); member #0 = K1 (`sample`/`sample_dithered` + `DitherSource`), far slice built
+(journal/0125) and walked.** Read the
 list of engine-owned items above as **non-exhaustive** (user, flagged twice).
 
-*Candidate first members, not yet ruled:* `dc-core`'s `sample_dithered` (the cake law, built
+~~*Candidate first members, not yet ruled:* `dc-core`'s `sample_dithered` (the cake law, built
 and called by nothing) and an octaves/facies-driven design the user recalls ratifying — under
 investigation 2026-07-29, because the corpus may hold **several contradictory ratified designs
-for one problem**.
+for one problem**.~~ *(Ruled, same day: `sample_dithered` **is** member #0 and now has
+production callers; the "contradictory designs" resolved as **composition, not rivalry** —
+octaves supply the source, `sample_dithered` the draw; `dependency-graph.md` § 3 "P4 → P6"
+holds the reconciliation. Stamped 2026-07-29, doc-topology F1.)*
 
 **The S2 statistical tier is HELD as a probable future primitive — DECIDED 2026-07-29 (user).**
 journal/0121 removed the bootstrap history content and thereby left `engine::{query, observe,

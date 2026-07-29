@@ -1061,7 +1061,10 @@ footprint with S11's air-component container (S15 design choice 2).
     built on refinement primitives, as you suggested"* — i.e. option **(c)**, the split that
     mirrors the 2026-07-23 field-pass move: **refinement PRIMITIVES are core** (sub-cell
     boundary-value solver, position-addressed noise, interval fill), **refinement OPERATORS
-    are content**. *The mechanism is not designed; the direction is set.*
+    are content**. ~~*The mechanism is not designed; the direction is set.*~~ **✅ The
+    mechanism IS designed: `docs/design/refinement.md`, CAUTIOUSLY RATIFIED 2026-07-29**
+    *(doc-topology F1 — north-star routed readers here while this line still said
+    undesigned)*.
   - **FIRST SLICE — a DESIGN PASS, not code** (user: *"refinement primitives want a design
     pass and then a decomp and port of existing collapse"*). **✅ DONE AND RATIFIED 2026-07-29:
     `docs/design/refinement.md` (CAUTIOUSLY RATIFIED — bones only; members need their own
@@ -2807,11 +2810,13 @@ second file.
   blobs are the **same coarse ~460 m NEAREST deep-facies field point-sampled instead of
   interpolated/area-summarized**, at a different site (near `record_at_voxel`→
   `run_strata`; far `surface_class`→`draw_class`) — one phenomenon family, two tiers.
-  It is the **S-4 rule unmet**. **One live-probe question left:** are the visible squares
-  the 460 m deep cells or the 28.8 m chunk staircase — settle by reading dominant surface
-  material per chunk across an east-coast patch (`world_get_block` / the inbound
-  inspector: change every 28.8 m ⇒ member stepping; only at ~460 m ⇒ deep-cell tiles).
-  **Planning held.** **DIAGNOSTIC STATION — return here to
+  It is the **S-4 rule unmet**. ~~**One live-probe question left:** are the visible squares
+  the 460 m deep cells or the 28.8 m chunk staircase~~ **✅ SETTLED 2026-07-24 — the dominant
+  signal is the 28.8 m MEMBER STEPPING (single-octave member dither; corrections #45,
+  "fix = octaves, not resolution"). Do NOT re-derive this as unprobed — that already happened
+  once (corrections #73) and this clause was the stale end both times** *(struck 2026-07-29,
+  doc-topology F2: the answer sat 345 lines up in this same file while this entry still said
+  "planning held")*. **DIAGNOSTIC STATION — return here to
   check any fix:** feet `pos {x: 71291.7, y: 372.1, z: -2420.9}` / voxel
   `{x: 79213, y: 413, z: -2690}`, `yaw 21.9968`, `pitch -1.5475` (looking ~straight
   down), fly on. A correct fix dissolves the chunk-square tint grid into continuous
@@ -3442,6 +3447,22 @@ second file.
   close block to a body entry by staleness sweep F11 — a close block is a handoff that gets
   archived, not a residence). Owed to the file owner when next touched.
 
+- **`SALT_DT_PERTURB` is a FIFTH surviving hand-rolled salt, missed by the draws.rs residue
+  enumeration** (FULL spine-audit 2026-07-29, proposed correction 1): the `f10dc03` fix
+  named three surviving salts; the finding it corrected named four; **`refine.rs:29` (live
+  call site `:180`) appears in neither** — the enumerate-what-you-touched mechanism the
+  paragraph was written to retire. Preferred fix: **convert, don't document** — one call
+  site, byte-identical, and `refine.rs` then holds zero hand-rolled salts. **QUEUED behind
+  the in-flight member-#0 build pair's merge** (its worktree owns the draws.rs
+  neighbourhood; never dispatch into a file an unmerged branch touches).
+
+- **The spines § 6 audit index has no completeness check — it fell five behind ONE DAY
+  after the backfill that fixed eleven** (FULL spine-audit 2026-07-29, process finding).
+  A backfill is not a watcher; the fix is an enumeration something CHECKS (the
+  `every_deepfield_member_is_classified` shape, applied to a doc index), not a list a
+  human appends to. Sibling of the "no enumeration in the docs is checked for
+  completeness" entry above — this is its fifth hand-found instance.
+
 - **The tour-map instrument needs a LAND FILTER** (found 2026-07-29 during the far-frontier
   tour-map: station 1 scored a below-sea-level basin; full finding in
   `docs/audits/2026-07-29-far-frontier-tourmap.md`. Promoted from the close block by
@@ -3602,6 +3623,12 @@ three rulings landed (user, 2026-07-29 late, via decision prompt):
    continuation (c)) · `refinement.md` § 8 + coupling-priors audit #6 (*"under-specified, not
    ratified — live blocker"*). The fresh argument decides which site is right and stamps the
    others; whether a corrections entry is owed falls out of that.
+   **✅ RESOLVED, same session: re-argued fresh against the channel operator and CAUTIOUSLY
+   RATIFIED (user) as the THREE-MODE CONFINEMENT RULE** — full record in `flow.md` § 11.5's
+   banner (three sharpenings: eroding-cell attachment to the surface-as-of-K; within-chapter
+   resolution is the WINDOW axis; the 2× is gross-vs-net, already spent). All five sites
+   stamped; **corrections #75** filed for the stale-at-assertion "unratified" claim. The
+   fluvial slice rides mode 1 and says so loudly.
 2. **Record terms FIRST**: deeptime records **grain distribution + mobility hint** before any
    channel operator builds; the operator then expresses the full § 7.1 assemblage in one
    slice. Today `FluxEntry.load` is **bulk only** (composition's named heir: material-aware
