@@ -32,6 +32,83 @@ fn cfg_for(cells: &CellGrid) -> DeepConfig {
 }
 
 // ---------------------------------------------------------------------------
+// The record's own fixed point.
+
+/// **The flux record's golden** — an FNV-1a over every entry's `(magnitude, load)`
+/// in stored order, on this suite's world.
+///
+/// **Added 2026-07-29 (journal/0124) because the record had none, and the slice
+/// that added it is the slice that discovered why that mattered.** The `Schedule`
+/// audit gave `dc:deep/head` a real solve at epoch 0 in place of a bare-surface
+/// pre-loop seed, and the record moved with it — **and a full 834-test gate did
+/// not notice**, because `GOLDEN_SURFACE` / `GOLDEN_RECORD` describe the terrain
+/// and the strata, and the flow record is a pure sidecar to both. The move had to
+/// be measured with a throwaway harness. *An artifact the ritual ships with no
+/// tripwire on it cannot have an "authorized move", because nobody can see it
+/// move.*
+///
+/// **What moved, measured on two worlds.** On this suite's world the entry count
+/// went 297,720 → **291,663**. On the `providers_common` golden fixture (seed
+/// `0x0B0A_57EE_0059`, `Extent::Small`) it went 315,320 → 314,070, and the whole
+/// −1,250 sat in the **vertical** face family (24,668 → 23,418): lateral 98,747,
+/// boundary-ocean 190,399, boundary-base 1,506, divergent 26,209 and convergent
+/// 26,091 were **bit-identical**. That localisation is the evidence the mechanism
+/// is the head field and nothing else — vertical faces are the only family fed
+/// from `grid.head_exchange`. Total magnitude rose (7,396,442.96 →
+/// 7,397,344.27): the bare-surface seed had no lakes and no perennial streams to
+/// anchor the potential, so it spread a weak exchange across cells the real solve
+/// does not recharge at all.
+///
+/// Prior value (pre-0124 `main`, kept for audit):
+///
+/// ```text
+/// GOLDEN_FLUX 0xCA5B_050A_BDC5_9D6E
+/// ```
+const GOLDEN_FLUX: u64 = 0x493B_9649_9E14_DC2E;
+
+fn flux_fingerprint(r: &dc_worldgen::deeptime::FluxRecord) -> u64 {
+    fn byte(b: u8, h: &mut u64) {
+        *h ^= u64::from(b);
+        *h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for e in r.entries() {
+        for b in e.magnitude.to_bits().to_le_bytes() {
+            byte(b, &mut h);
+        }
+        for b in e.load.to_bits().to_le_bytes() {
+            byte(b, &mut h);
+        }
+    }
+    h
+}
+
+/// **The record is a fixed point, and moving it is a decision.** The same
+/// discipline `providers_golden.rs` keeps for the terrain and the strata, for the
+/// third shipped artifact — the one that was unguarded until journal/0124.
+///
+/// A failure here is not automatically a defect: *"the testing world is a scratch
+/// pad"* (CLAUDE.md § Conventions), and a move produced by ratified semantics is
+/// re-captured with the *why* recorded above. But an **unexplained** move is a
+/// defect, and until this constant existed there was no way to tell the two apart.
+#[test]
+fn the_flux_record_is_a_fixed_point() {
+    let pregen = small_world();
+    let cfg = cfg_for(&pregen.grid);
+    let run = run_cells(&pregen.grid, &cfg, true);
+    let print = flux_fingerprint(&run.flux);
+    println!(
+        "flux fingerprint = {print:#018X}  ({} entries)",
+        run.flux.len()
+    );
+    assert_eq!(
+        print, GOLDEN_FLUX,
+        "the flux record moved: {print:#018X} != {GOLDEN_FLUX:#018X} — authorize \
+         it with a journal entry naming the mechanism, then re-capture"
+    );
+}
+
+// ---------------------------------------------------------------------------
 // The load-bearing pair: divergence and convergence.
 
 /// **THE test of the slice.** A cell whose flux left through **two or more

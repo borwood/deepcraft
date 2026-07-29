@@ -756,14 +756,16 @@ Use the LIT pass — this is a dig-depth/section question:
       current state**, not rates integrated over an interval. Their coarse `period` says *when to
       resample*; there is nothing for a duration to scale. Recorded because "pass X does not use
       `dt`" now reads as a claim rather than an omission.
-    - **⚠ ONE FORK THE DOCS DO NOT SETTLE — NEEDS RATIFICATION.** *"A coarse-rate pass does not
-      fire at epoch 0"* is a property of the **runner**, not of any declaration. It was written
-      for the three passes that genuinely **are** seeded before the loop (`climate`, `geotherm`,
-      `head`), where firing at epoch 0 would redo the seed. Now that a world can author a coarse
-      period onto **any** pass, that rule silently also says *"and your re-rated erosion pass
-      does not run in epoch 0"* — which nobody decided. The likely fix is a declared `seeded`
-      flag beside the cadence. **Kept exactly as it was**, because changing it moves the shipped
-      world; marked in `runner.rs::DeepPass::fires`.
+    - **~~⚠ ONE FORK THE DOCS DO NOT SETTLE — NEEDS RATIFICATION.~~ ✅ RATIFIED AND BUILT
+      2026-07-29 (journal/0124) — see continuation slot (f) below.** *"A coarse-rate pass does
+      not fire at epoch 0"* was a property of the **runner**, not of any declaration. It was
+      written for the three passes seeded before the loop (`climate`, `geotherm`, `head`), where
+      firing at epoch 0 would redo the seed; once a world could author a coarse period onto
+      **any** pass it silently also said *"and your re-rated erosion pass does not run in epoch
+      0"* — which nobody decided. **The `Schedule` sum type replaced it and the skip rule is
+      deleted.** *The guess in this entry was wrong in an instructive way: a declared `seeded`
+      flag beside the cadence cannot express `run-once-only`, which is why the ratified answer
+      is a sum type and not a bool.*
     - **⚠ EXTRACTION CANDIDATE, NOT TAKEN (user call).** `runner.rs` is **1,694 lines** against
       the 700-line threshold (2.4×) and this slice added to it. The cold half is the
       journal/0090/0104/0107 declaration-history commentary; the live half is the roster + the
@@ -799,14 +801,44 @@ Use the LIT pass — this is a dig-depth/section question:
     condition** (the sketch's other half, never built); **(e)** the vocabulary split
     question — whether schedule coordinates and world resources need to be different
     *kinds*, or whether authored order dissolves the distinction entirely; **(f) ✅ RATIFIED
-    2026-07-29 (user), unbuilt — `Schedule` sum type** (`Seed`/`Step`/`SeedAndStep`;
-    `ARCHITECTURE.md` § Schedule): a seed is an **initial condition** integrating zero
-    time, **epoch 0 fires for everyone, the implicit skip rule is deleted**, and each of
-    the three pre-loop incumbents gets audited (honest seed vs first-step-in-disguise) —
-    hash moves fall under the scratch-pad rule, re-capture with the why. Includes the
-    equal-integrated-`dt` gate invariant. Queued behind the `runner.rs` extraction (same
-    file). Heir of `Seed`: (d)'s setup epoch. **Do not close
-    the arc when RATE lands.**
+    2026-07-29 (user) — ✅ BUILT 2026-07-29 (journal/0124): the `Schedule` sum type**
+    (`Seed`/`Step`/`SeedAndStep`; `ARCHITECTURE.md` § Schedule, `deeptime::schedule`). Heir
+    of `Seed`: (d)'s setup epoch, named in the variant's doc comment. **Do not close the arc
+    when RATE lands.**
+    - **THE AUDIT'S VERDICT: ALL THREE PRE-LOOP INCUMBENTS WERE `Step`, AND ALL THREE
+      PRE-LOOP BLOCKS ARE GONE.** The discriminator that decided it, once the skip rule was
+      deleted: *a seed is an initial condition only if something OBSERVES it before the pass
+      itself first steps* — and under "epoch 0 fires for everyone" each of the three first
+      steps inside epoch 0, ahead of its own only reader. `climate` and `geotherm` were
+      *literally the same call* pre-loop and in-loop; `head`'s seed was a **degraded copy** of
+      its step, relaxed over a bare surface because no drainage had run yet. **The seeds were
+      repair for the skip, not initial conditions**, and they died with it.
+    - **HASHES: exactly one artifact moved, and it is a fix.** `GOLDEN_SURFACE` /
+      `GOLDEN_RECORD` held (`providers_golden.rs`, `rate_axis.rs` green), and `grid.precip`,
+      `grid.geotherm`, `grid.head` are bit-identical. The **flow record** moved: on the golden
+      fixture 315,320 → 314,070 entries, the whole −1,250 in the **vertical** family (24,668 →
+      23,418), lateral/boundary/divergent/convergent bit-identical. Chapter 0's vertical faces
+      used to be integrated from a head field solved on a landscape with **no drainage at
+      all**; they now come from the real epoch-0 solve.
+    - **⚠ AND THE FLOW RECORD HAD NO GOLDEN — a 834-test gate could not see it move.** It is
+      a pure sidecar to both existing goldens, so nothing guarded the largest thing the ritual
+      keeps; the move had to be measured with a throwaway harness. **`GOLDEN_FLUX` added in
+      the same slice** (`tests/flux_record.rs`), with the move recorded on the constant.
+      *An artifact with no tripwire cannot have an "authorized move", because nobody can see
+      it move.*
+    - **The gate invariant landed as a tiling claim, which is stronger than the sentence that
+      ratified it.** `tests/schedule_axis.rs`: a firing at epoch `e` opens a phase covering
+      `[e, e+period)`, firings land on the multiples of `period` **from zero**, so the phases
+      tile `[0, iterations)` exactly once — `Schedule::integrated_dt(N) == N` for every pass,
+      every period, every run length, clipped only where the world ends mid-phase. Σ`dt` = N
+      exactly is the corollary when the period divides the run (it does: 20 and 40 into 200).
+      **The old skip rule lost exactly one period** — 180 epochs of world time against its
+      neighbours' 200. Asserted at zero world-build cost: when a pass runs is a property of
+      the roster, not the terrain.
+    - **`Seed` / `SeedAndStep` ship with no production declarer** — `spines.md` § 3 row. They
+      are executed and tested (`DeepSchedule::plan(None)`), not decorative. The deep-time
+      roster's genuine setup work — the biotic layer's identity planes, the tectonic chapter
+      table — is *not pass-shaped yet*; that conversion is (d).
   - **⚠ THE PROCESS FAILURE IS PART OF THE RECORD.** The user's sketch was **reconciled, not
     contested** — its ORDER half died inside an implementation slice, in one clause of a doc
     the user does not read. New CLAUDE.md rule: *a user-originated design may not be
@@ -2352,6 +2384,27 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **⚠ WHICH SHIPPED ARTIFACTS HAVE NO GOLDEN? Asked once, about one artifact, on
+  2026-07-29 (journal/0124) — never asked of the corpus.** The `Schedule` slice moved the
+  **flow record** and a full 834-test gate did not notice, because the flow record is a pure
+  sidecar to both existing goldens (`GOLDEN_SURFACE` = terrain, `GOLDEN_RECORD` = strata) and
+  neither can ever see it. The move had to be measured with a throwaway harness, run twice
+  across a `git stash`. `GOLDEN_FLUX` was added in that slice and closes **that** hole only.
+  - **The generalisation, which is the reason this is filed:** *an artifact the ritual ships
+    with no tripwire on it cannot have an **authorized** move, because nobody can see it
+    move.* The whole golden discipline rests on telling an explained move from an unexplained
+    one, and that distinction is unavailable for anything ungoverned.
+  - **What is owed is an enumeration, not a fix**: walk `DeepField`'s exported members (and
+    the ritual's other outputs) and say, per member, which golden would catch a change in it.
+    Cheap. `DeepField::head`, `geotherm`, `chapters`, `ledgers`, `exhum`/`t_crust` are the
+    obvious candidates — several are already `spines.md` § 3 rows, i.e. **exported, unread,
+    and now also possibly unguarded**, which is a different and worse combination than either
+    alone. Note some are covered indirectly: `flux_record.rs` / `head_field.rs` assert
+    `geotherm` byte-identity as *flag-independence* guards, which is not the same as a fixed
+    point across commits.
+  - *This is the same shape as the corpus-wide staleness-banner sweep in CLAUDE.md read-first
+    item 5: a rule established from one instance, with the sweep for the rest left undone.*
 
 - **Poke-through geometry check (re-filed 2026-07-29 — the APPEARANCE WALKS OWED parent
   moved to history; this residue was live inside it):** whether near-field geometry pokes

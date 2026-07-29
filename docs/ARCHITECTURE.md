@@ -663,6 +663,39 @@ on, that is a **pack** surface with the ordinary obligations of one — not an e
 
 ### Schedule — DECIDED 2026-07-29 (user): seed is an initial condition, and epoch 0 fires for everyone
 
+> **✅ BUILT 2026-07-29 — journal/0124, `deeptime::schedule`, ROADMAP arc slot (f).** The sum
+> type ships as decided; the skip rule is deleted; `tests/schedule_axis.rs` carries the clock
+> invariant. *This section is a decision record, so the outcome is appended and nothing below
+> is rewritten.*
+>
+> **The audit came back unanimous, and that is the part worth carrying forward: all three
+> pre-loop incumbents were `Step`.** The discriminator that decided it is sharper than the one
+> this section names, and it is the one to reuse: *a seed is an initial condition only if
+> something **observes** it before the pass itself first steps.* Once epoch 0 fires for
+> everyone, each of the three first steps inside epoch 0 **ahead of its own only reader** — so
+> the pre-loop copy was a write nothing observed. `climate` and `geotherm` were literally the
+> same call in both places; `head`'s seed was a *degraded* copy of its step, relaxed over a
+> bare surface because no drainage had run. **The seeds were repair for the skip**, exactly as
+> the third bullet below suspected, and they died with it.
+>
+> **Consequence to keep honest:** `Seed` and `SeedAndStep` therefore ship with **no production
+> declarer** (`spines.md` § 3). They are executed and tested, not decorative — and the reading
+> is not "the variants were unnecessary" but "the deep-time roster's genuine setup work is not
+> pass-shaped yet". That conversion is the heir already named: declared epochs.
+>
+> **And the invariant landed stronger than it was stated.** *"Every pass's integrated `dt`
+> equals the world's elapsed time"* is exactly true when the period divides the run; the
+> general form is a **tiling** — a firing at `e` covers `[e, e+period)`, firings land on the
+> multiples of `period` from zero, so the phases tile `[0, iterations)` exactly once, clipped
+> only where the world ends mid-phase. Under the skip rule the **first tile was missing**: a
+> period-20 pass in a 200-epoch world integrated 180.
+>
+> **One artifact moved, under the scratch-pad rule, and it exposed a second hole.** The flow
+> record's **vertical** faces changed (315,320 → 314,070 entries on the golden fixture, the
+> whole difference in that one family); terrain, strata, `precip`, `geotherm` and the final
+> `head` plane did not. **The flow record had no golden at all**, so an 834-test gate could not
+> see it move — `GOLDEN_FLUX` was added in the same slice.
+
 The E3 slice surfaced an inherited runner rule — *"a coarse-rate pass does not fire at
 epoch 0"* — written for the three passes seeded before the loop and now silently inherited
 by any pass a world authors a coarse period onto. The ratified fix, reached by elimination

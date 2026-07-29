@@ -337,7 +337,10 @@ each pass.
 
 ### Cadence: order × rate × window — RECONCILED 2026-07-24 (promoting `ideas.md § Pass cadence`, user); **third axis added 2026-07-25** (transcribing `flow.md` § 11.1, RATIFIED)
 
-The scheduler has **three orthogonal axes**, and the runner declares **all three** per pass:
+The scheduler has **four orthogonal axes**, and the runner declares **all four** per pass.
+*(Three until 2026-07-29; SCHEDULE was ratified and built that day — `ARCHITECTURE.md` §
+*Schedule*, journal/0124. The heading above still says "third axis added 2026-07-25" because it
+is dated provenance for WINDOW, not a running count.)*
 
 - **ORDER** — ~~derived from `{reads, writes}` by **topo-sort**; rejects cycles,
   conflicting writers, missing deps. This *replaces* a hand-declared "canonical
@@ -388,6 +391,23 @@ The scheduler has **three orthogonal axes**, and the runner declares **all three
   sweep as its finding 15, and again by the baseline sweep S3/F3; corrections #65's site
   list is amended. **RATE itself is untouched and survives** — it was always the half that
   survived the reconciliation.)*
+- **SCHEDULE — ✅ RATIFIED AND BUILT 2026-07-29 (user; `ARCHITECTURE.md` § *Schedule*,
+  journal/0124).** The axis *underneath* RATE: **does this pass step at all, and does anything
+  establish its state before the loop opens?** A sum type — `Seed` (pre-loop once, never
+  in-loop) · `Step(Cadence)` · `SeedAndStep(Cadence)` — because a `seeded: bool` beside a
+  cadence cannot express *run-once-only* and a `rate: 0` sentinel cannot express
+  *seed-then-step*.
+  - **A seed is an INITIAL CONDITION**: it establishes t=0 state and integrates **zero** time.
+    The runner enforces the second half by handing a seeding body `dt = 0.0`, so every
+    rate-shaped term in it multiplies out.
+  - **Epoch 0 fires for everyone.** It replaced an unstated runner rule — *"a coarse-rate pass
+    does not fire at epoch 0"* — which RATE had silently extended to any pass a world re-rated.
+    The rule was a **clock desync**: firings tile the epoch axis from zero, so skipping the one
+    at 0 deleted the first tile and a period-20 pass integrated 180 epochs of a 200-epoch world.
+    The invariant that replaces it — *every pass integrates exactly the run's elapsed time* — is
+    a gate test (`tests/schedule_axis.rs`), assertable only because RATE made `dt` real.
+  - **Heir: declared epochs** (the 2026-07-23 sketch's unbuilt half). `Seed` is *"member of the
+    setup epoch"* said small, and converts mechanically when epochs become authored data.
 - **WINDOW — the aggregation window: how many epochs sum into ONE record entry.**
   RATE is a *sampling* rate (how often the pass fires); WINDOW is the record's *time
   granularity* (how coarsely what it produced is stored). They are different knobs and

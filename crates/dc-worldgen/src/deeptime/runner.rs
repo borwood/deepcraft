@@ -20,23 +20,36 @@
 //! within-epoch cycles — declared as [`DeepPass::reads_prev`] and handed to the
 //! kernel as reader-before-writer **anti-dependencies** (journal/0104).
 //!
-//! ## The two orthogonal axes (material-behavior.md §5 "order × rate")
+//! ## The three orthogonal axes (material-behavior.md §5 "order × rate")
 //! - **ORDER** — the topo-sort of `{reads, writes}`. Reproduces exactly the
 //!   hand-written phase order of the old loop, and would *reject* an illegal one.
-//! - **RATE** — each pass's [`DeepPass::cadence`] ([`super::cadence::Cadence`]:
-//!   epochs per firing × turns per firing) and the `dt` = phase length it is
-//!   handed. **BUILT 2026-07-29** (journal/0123, `docs/dependency-graph.md` E3):
-//!   the cadence numbers are **authored data** ([`CadenceTable`], applied in
-//!   [`deep_passes_with`]) over each pass's declared default, a firing pass takes
-//!   its declared **sub-turns** with the cell state carried between them, and `dt`
-//!   is **live** in the passes converted to read it. An empty table reproduces
-//!   the shipped schedule bit for bit, and `dt = 1.0` there, so the axis landed
-//!   against journal/0122's known-good fixed point without moving a golden.
+//! - **RATE** — each pass's [`super::cadence::Cadence`] (epochs per firing × turns
+//!   per firing) and the `dt` = phase length it is handed. **BUILT 2026-07-29**
+//!   (journal/0123, `docs/dependency-graph.md` E3): the cadence numbers are
+//!   **authored data** ([`CadenceTable`], applied in [`deep_passes_with`]) over
+//!   each pass's declared default, a firing pass takes its declared **sub-turns**
+//!   with the cell state carried between them, and `dt` is **live** in the passes
+//!   converted to read it. An empty table reproduces the shipped schedule bit for
+//!   bit, and `dt = 1.0` there, so the axis landed against journal/0122's
+//!   known-good fixed point without moving a golden.
+//! - **SCHEDULE** — [`DeepPass::schedule`] ([`super::schedule::Schedule`]:
+//!   `Seed` · `Step(Cadence)` · `SeedAndStep(Cadence)`). **BUILT 2026-07-29**
+//!   (journal/0124). RATE says *how often*; this says *whether it steps at all,
+//!   and whether anything establishes its state before the loop opens*. It
+//!   replaced the runner's inherited *"a coarse-rate pass does not fire at epoch
+//!   0"* rule, which is **deleted**: [`DeepSchedule::run`] seeds once, then fires
+//!   every pass whose period divides the epoch, **including epoch 0**.
 //!
 //! ## Byte-identity
 //! Each pass body is *literally the same call* the old loop made, in the same
 //! order the topo-sort reproduces, with the same arguments — so the production
 //! world hashes to the same goldens. This is a re-housing, not a rewrite.
+//!
+//! **One authorized exception, journal/0124:** deleting the skip rule gave the
+//! head field a real solve at epoch 0 in place of a bare-surface placeholder, and
+//! the vertical flux entries for chapter 0 moved with it. Terrain and strata —
+//! `GOLDEN_SURFACE` / `GOLDEN_RECORD` — did not move, and could not: the head
+//! field is a pure sidecar.
 //!
 //! ## The crossing constraint (north-star)
 //! A [`DeepPass`] is plain data + opaque ids (`&'static str`, `&[DeepAxis]`
@@ -55,11 +68,12 @@
 //! governs.
 
 use super::biotic::BioticSim;
-use super::cadence::{Cadence, CadenceTable};
+use super::cadence::CadenceTable;
 use super::erosion::Erosion;
 use super::flux::FluxAccum;
 use super::grid::{DeepConfig, DeepGrid, sea_level_at};
 use super::inventory::FactLedger;
+use super::schedule::Schedule;
 use super::{TectonicSchedule, climate};
 use crate::passgraph::{self, Decl, GraphError};
 
@@ -188,8 +202,9 @@ pub enum DeepAxis {
 }
 
 /// Owned working state the epoch loop threads through its passes. Constructed
-/// once (from the seeded grid + the pre-loop climate march + biota init +
-/// tectonic schedule), driven for `cfg.iterations` epochs, then destructured
+/// once (from the built grid + biota init + the tectonic schedule), driven
+/// through [`DeepSchedule::run`]'s setup pass and then `cfg.iterations` epochs,
+/// then destructured
 /// into the [`super::DeepRun`]. It is the runner-side rich state the crossing
 /// constraint keeps *off* the declaration seam.
 pub struct DeepStepCtx<'a> {
@@ -219,6 +234,11 @@ pub struct DeepStepCtx<'a> {
     /// interval, so their coarse period says *when to resample* and there is
     /// nothing for a duration to scale. Rate-shaped transformations — uplift,
     /// crustal thickening, hillslope creep, inventory weathering — do scale.
+    ///
+    /// **A seeding pass is handed `0.0`** ([`DeepSchedule::plan`]`(None)`) — a seed
+    /// establishes t=0 state and integrates zero time, so every rate-shaped term
+    /// in its body multiplies out. That is the SCHEDULE axis's half of the
+    /// contract, and it is enforced rather than requested.
     pub dt: f64,
     // --- ledger accumulators (the old loop's running sums) ---
     pub uplift_total: f64,
@@ -269,36 +289,20 @@ pub struct DeepPass {
     ///
     /// **The kernel enforces this** — it is not an annotation (journal/0104).
     pub reads_prev: &'static [DeepAxis],
-    /// **The RATE axis** ([`super::cadence`]): how often this pass fires
-    /// (`period`), how many turns it takes per firing (`sub_turns`), and the
-    /// `dt` = phase length the runner hands it. The value here is the pass's
-    /// **declared default** — the pack author's opinion about its own process;
-    /// a world may author a different one through a [`CadenceTable`], which is
-    /// applied in [`deep_passes_with`].
-    pub cadence: Cadence,
-    pub body: for<'a> fn(&mut DeepStepCtx<'a>),
-}
-
-impl DeepPass {
-    /// Whether this pass fires on `epoch`. Period 1 fires every epoch; a
-    /// coarse-rate pass fires on its multiples but not epoch 0 (seeded).
+    /// **The SCHEDULE and RATE axes together** ([`super::schedule`],
+    /// [`super::cadence`]): whether this pass runs before the loop, inside it, or
+    /// both — and, when it steps, how often (`period`), how many turns per firing
+    /// (`sub_turns`), and the `dt` = phase length the runner hands it. The value
+    /// here is the pass's **declared default** — the pack author's opinion about
+    /// its own process; a world may author a different **cadence** through a
+    /// [`CadenceTable`], applied in [`deep_passes_with`], which never changes the
+    /// [`Schedule`] variant.
     ///
-    /// **⚠ `epoch 0 is seeded` is a property of the RUNNER, not of the
-    /// declaration — and RATE made that visible without settling it**
-    /// (journal/0123, flagged for ratification). It was written for the three
-    /// passes that genuinely *are* seeded before the loop (`climate`, `geotherm`,
-    /// `head` — see `deeptime::run_cells_with_cadence`'s pre-loop block), where a
-    /// firing at epoch 0 would redo the seed. Now that a **world** can author a
-    /// coarse period onto any pass, the same rule silently says *"and your
-    /// re-rated erosion pass does not run in epoch 0 either"*, which nobody
-    /// decided. The honest fix is probably a declared `seeded` flag beside the
-    /// cadence; it is not this slice's to invent. **Kept exactly as it was**,
-    /// because changing it would move the shipped world.
-    #[inline]
-    fn fires(&self, epoch: u32) -> bool {
-        let period = self.cadence.period();
-        epoch.is_multiple_of(period) && (period == 1 || epoch > 0)
-    }
+    /// **Every pass in the shipped roster is [`Schedule::Step`]** — the three that
+    /// were seeded before the loop were audited on the day the axis landed and all
+    /// three turned out to be first-steps in disguise (journal/0124).
+    pub schedule: Schedule,
+    pub body: for<'a> fn(&mut DeepStepCtx<'a>),
 }
 
 // -------------------------------------------------------------- the passes --
@@ -628,11 +632,18 @@ pub fn deep_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
 /// rejected — the roster's own `if` guards already mean "this world has no such
 /// pass"; [`CadenceTable::unmatched`] is there for a caller that wants to be
 /// strict about a typo.
+///
+/// **The table re-rates; it never re-schedules.** [`Schedule::with_cadence`]
+/// preserves the variant, and a [`Schedule::Seed`] has no cadence to author — a
+/// world may say how often a pass steps, but handing a step to a pass that
+/// declares none is a *declared-epochs* question, not a rate one.
 pub fn deep_passes_with(cfg: &DeepConfig, cadence: &CadenceTable) -> Vec<DeepPass> {
     let mut passes = declared_passes(cfg);
     if !cadence.is_empty() {
         for p in &mut passes {
-            p.cadence = cadence.resolve(p.id, p.cadence);
+            if let Some(declared) = p.schedule.cadence() {
+                p.schedule = p.schedule.with_cadence(cadence.resolve(p.id, declared));
+            }
         }
     }
     passes
@@ -645,6 +656,14 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     let mut passes = Vec::new();
 
     // Climate — the one coarse-rate pass already in the loop.
+    //
+    // **It used to be seeded pre-loop (mod.rs) and skipped at epoch 0; it is now a
+    // plain `Step` and there is no pre-loop block** (journal/0124). The audit was
+    // decided by the bodies being *the same call*: `climate::march` is a pure
+    // function of `(surface, sea level)` writing `grid.precip`, and this pass is
+    // first in the order, so the epoch-0 firing recomputes exactly what the seed
+    // wrote from exactly the same inputs. The seed was its first step, run twenty
+    // epochs early to fill the hole the skip made.
     passes.push(DeepPass {
         id: "dc:deep/climate",
         reads: &[],
@@ -661,7 +680,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         // strictly less — they would let climate slide past `forcing` and
         // `transport`.
         reads_prev: &[Forced],
-        cadence: Cadence::every(cfg.remarch_interval),
+        schedule: Schedule::every(cfg.remarch_interval),
         body: climate_pass,
     });
 
@@ -672,7 +691,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads: &[],
             writes: &[Forcing],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: tectonics_pass,
         });
     }
@@ -686,7 +705,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads: &[Climate, Forcing],
             writes: &[Forced, CrustThick],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: forcing_tectonic_pass,
         }
     } else {
@@ -695,7 +714,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads: &[Climate],
             writes: &[Forced],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: forcing_legacy_pass,
         }
     });
@@ -706,7 +725,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         reads: &[],
         writes: &[Exposed],
         reads_prev: &[Recorded],
-        cadence: Cadence::EVERY_EPOCH,
+        schedule: Schedule::EVERY_EPOCH,
         body: expose_pass,
     });
 
@@ -717,7 +736,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads: &[Forced],
             writes: &[Frosted],
             reads_prev: &[Recorded],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: frost_pass,
         });
     }
@@ -728,7 +747,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         reads: &[Forced],
         writes: &[Routed],
         reads_prev: &[],
-        cadence: Cadence::EVERY_EPOCH,
+        schedule: Schedule::EVERY_EPOCH,
         body: drainage_pass,
     });
 
@@ -742,7 +761,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         reads: &[Routed, Exposed],
         writes: &[Energy, DeltaH, Incised],
         reads_prev: &[],
-        cadence: Cadence::EVERY_EPOCH,
+        schedule: Schedule::EVERY_EPOCH,
         body: transport_pass,
     });
 
@@ -767,13 +786,22 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     // resource from `Incised`, so reading it says nothing about who comes after.
     // `reads_prev: Recorded` (the strata record `expose` also lag-reads) stays: it
     // is true independently, and declare what you read.
+    //
+    // **It used to be seeded pre-loop (mod.rs) and skipped at epoch 0; it is now a
+    // plain `Step`** (journal/0124), and this is the one incumbent whose
+    // reclassification moved bytes. That seed relaxed the potential over the BARE
+    // surface — no `filled`, no `routed`, no `area`, because no drainage had run —
+    // and epoch 0's flow record read it. Now epoch 0 fires the real solve, in its
+    // pinned window, from all four boundary conditions on one landscape. The seed
+    // was not an initial condition but a **degraded copy of the step**, kept alive
+    // only by the skip it was written to repair.
     if cfg.head_field {
         passes.push(DeepPass {
             id: "dc:deep/head",
             reads: &[Routed, Forced],
             writes: &[Head],
             reads_prev: &[Recorded, Incised],
-            cadence: Cadence::every(super::head::HEAD_PERIOD),
+            schedule: Schedule::every(super::head::HEAD_PERIOD),
             body: head_pass,
         });
     }
@@ -796,7 +824,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             },
             writes: &[FlowFlux],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: flow_record_pass,
         });
     }
@@ -809,7 +837,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         reads: &[DeltaH, Exposed, Frosted, Incised],
         writes: &[DeltaH, Weathered],
         reads_prev: &[BioMod],
-        cadence: Cadence::EVERY_EPOCH,
+        schedule: Schedule::EVERY_EPOCH,
         body: weather_pass,
     });
 
@@ -819,7 +847,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
         reads: &[Weathered, Exposed, DeltaH],
         writes: &[DeltaH, Diffused],
         reads_prev: &[BioMod],
-        cadence: Cadence::EVERY_EPOCH,
+        schedule: Schedule::EVERY_EPOCH,
         body: diffuse_pass,
     });
 
@@ -830,7 +858,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads: &[Diffused, CrustThick],
             writes: &[Compensated],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: isostasy_pass,
         });
     }
@@ -839,15 +867,21 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
     // and only on the tectonic path — it solves over the crustal columns, which
     // exist only there. Reads Climate (surface temperature, the field's boundary
     // condition) and CrustThick (the crustal thickness the gradient reads); writes
-    // the Geotherm axis, read by no in-epoch pass. Seeded pre-loop (mod.rs), like
-    // the climate march.
+    // the Geotherm axis, read by no in-epoch pass.
+    //
+    // **It used to be seeded pre-loop (mod.rs) and skipped at epoch 0; it is now a
+    // plain `Step` and there is no pre-loop block** (journal/0124). The seed was an
+    // overwrite of a plane nothing reads until this pass next fires — a write into
+    // the void the moment epoch 0 stopped being skipped. `geotherm::march` is a
+    // pure recompute from the current crustal state, so the value that survives the
+    // run is the last firing's either way, and the shipped world did not move.
     if cfg.tectonic_history {
         passes.push(DeepPass {
             id: "dc:deep/geotherm",
             reads: &[Climate, CrustThick],
             writes: &[Geotherm],
             reads_prev: &[],
-            cadence: Cadence::every(super::geotherm::GEOTHERM_PERIOD),
+            schedule: Schedule::every(super::geotherm::GEOTHERM_PERIOD),
             body: geotherm_pass,
         });
     }
@@ -863,7 +897,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             },
             writes: &[Recorded],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: deposition_pass,
         });
     }
@@ -879,7 +913,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             },
             writes: &[Recorded, Windblown],
             reads_prev: &[BioMod],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: eolian_pass,
         });
         passes.push(DeepPass {
@@ -887,7 +921,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads: &[Exposed, Recorded, Windblown],
             writes: &[Recorded, Settled],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: wave_pass,
         });
     }
@@ -906,7 +940,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads,
             writes: &[BioMod, BioRecorded],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: biotic_pass,
         });
     }
@@ -931,7 +965,7 @@ fn declared_passes(cfg: &DeepConfig) -> Vec<DeepPass> {
             reads,
             writes: &[Saprolite],
             reads_prev: &[],
-            cadence: Cadence::EVERY_EPOCH,
+            schedule: Schedule::EVERY_EPOCH,
             body: weather_inventory_pass,
         });
     }
@@ -975,18 +1009,37 @@ impl DeepSchedule {
         self.order.iter().map(|&i| self.passes[i].id).collect()
     }
 
-    /// Drive the epoch loop: for each epoch, set the per-epoch state, then run
-    /// every pass in topo order that fires this epoch, handing it its `dt`. This
-    /// is the whole scheduler — order from the topo-sort, rate from the cadence.
+    /// **Seed, then step.** Run every seeding pass once in topo order, then drive
+    /// the epoch loop: for each epoch, set the per-epoch state and run every pass
+    /// in topo order that fires this epoch, handing it its `dt`. This is the whole
+    /// scheduler — order from the topo-sort, rate from the cadence, and
+    /// pre-loop-vs-in-loop from the schedule.
     ///
     /// **The RATE axis is here, and it is two lines.** A firing pass takes
-    /// [`Cadence::sub_turns`] turns, each handed [`Cadence::dt`] as its phase
-    /// length, and **each turn sees the cell state the previous one left** — that
-    /// is the whole of the user's fractional-phase sketch (*"a phase is handed the
-    /// cell state at its start… duration is a scalar on its transformations"*).
-    /// One sub-turn is the shipped default, so the loop below is bit-identical to
-    /// the pre-RATE one on every world already created.
+    /// [`Cadence::sub_turns`](super::cadence::Cadence::sub_turns) turns, each
+    /// handed [`Cadence::dt`](super::cadence::Cadence::dt) as its phase length,
+    /// and **each turn sees the cell state the previous one left** — that is the
+    /// whole of the user's fractional-phase sketch (*"a phase is handed the cell
+    /// state at its start… duration is a scalar on its transformations"*). One
+    /// sub-turn is the shipped default, so the loop below is bit-identical to the
+    /// pre-RATE one on every world already created.
+    ///
+    /// **The SCHEDULE axis is the loop around it** (journal/0124). There is **no
+    /// epoch-0 exception**: [`Schedule::firing`] is `epoch % period == 0` and
+    /// nothing else, so a period-20 pass fires at 0, 20, 40 … and integrates
+    /// exactly as many epochs of world time as the run lasts. The shipped roster
+    /// declares no seeder, so the setup loop below runs zero passes on it — but it
+    /// runs zero passes *by roster*, not by omission.
     pub fn run(&self, ctx: &mut DeepStepCtx<'_>) {
+        // --- the setup epoch: every seeding pass, once, at dt = 0 ---
+        ctx.epoch = 0;
+        ctx.sea_level = sea_level_at(ctx.cfg, 0);
+        ctx.erosion.set_sea_level(ctx.sea_level);
+        for t in self.plan(None) {
+            ctx.dt = t.dt;
+            (self.passes[t.index].body)(ctx);
+        }
+
         for it in 0..ctx.cfg.iterations {
             ctx.epoch = it;
             ctx.sea_level = sea_level_at(ctx.cfg, it);
@@ -996,21 +1049,75 @@ impl DeepSchedule {
             // is load-bearing for byte-identity (the sinusoidal stand drives the
             // shoreline, marine deposition, and the wave agent).
             ctx.erosion.set_sea_level(ctx.sea_level);
-            for &i in &self.order {
-                let p = &self.passes[i];
-                if p.fires(it) {
-                    ctx.dt = p.cadence.dt();
-                    for _ in 0..p.cadence.sub_turns() {
-                        (p.body)(ctx);
-                    }
+            for t in self.plan(Some(it)) {
+                ctx.dt = t.dt;
+                for _ in 0..t.turns {
+                    (self.passes[t.index].body)(ctx);
                 }
             }
         }
     }
+
+    /// **The scheduler's decision, separated from its execution.** `epoch = None`
+    /// is the **setup epoch** — the [`Schedule::Seed`] / [`Schedule::SeedAndStep`]
+    /// passes, once each, at `dt = 0`; `Some(e)` is the passes that step on epoch
+    /// `e`, with the `dt` and turn count each is handed. Both in topo order.
+    ///
+    /// **[`Self::run`] drives itself through this**, which is the point: a test
+    /// that reads the plan is reading the decision the world is generated from,
+    /// not a restatement of it beside it (`spines.md` A-1). Building a world to
+    /// observe *when a pass runs* would also be measuring the wrong thing — the
+    /// answer is a property of the roster, not of the terrain.
+    ///
+    /// **`dt = 0.0` for a seed is the mechanism, not a convention.** A seed
+    /// establishes t=0 state and integrates none, so every rate-shaped
+    /// transformation in its body multiplies out. A pass whose "seed" is really
+    /// its first step cannot survive that — the discrimination the 2026-07-29
+    /// audit of the three pre-loop incumbents had to make by hand, and all three
+    /// failed it (journal/0124).
+    #[must_use]
+    pub fn plan(&self, epoch: Option<u32>) -> Vec<Turn> {
+        self.order
+            .iter()
+            .filter_map(|&index| {
+                let p = &self.passes[index];
+                match epoch {
+                    None => p.schedule.seeds().then_some(Turn {
+                        id: p.id,
+                        index,
+                        dt: 0.0,
+                        turns: 1,
+                    }),
+                    Some(e) => p.schedule.firing(e).map(|c| Turn {
+                        id: p.id,
+                        index,
+                        dt: c.dt(),
+                        turns: c.sub_turns(),
+                    }),
+                }
+            })
+            .collect()
+    }
+}
+
+/// One entry of a [`DeepSchedule::plan`]: a pass that runs, the phase length it is
+/// handed, and how many turns it takes at that length.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Turn {
+    pub id: &'static str,
+    /// Index into the schedule's pass table — how [`DeepSchedule::run`] reaches
+    /// the body without a second lookup.
+    pub index: usize,
+    /// [`Cadence::dt`](super::cadence::Cadence::dt), or `0.0` for a seed.
+    pub dt: f64,
+    /// [`Cadence::sub_turns`](super::cadence::Cadence::sub_turns), or `1` for a
+    /// seed — sub-turning is a subdivision of a phase, and a seed has none.
+    pub turns: u32,
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::cadence::Cadence;
     use super::*;
 
     fn all_on() -> DeepConfig {
@@ -1095,7 +1202,7 @@ mod tests {
                 reads: &[BioMod], // WRONG: should be reads_prev
                 writes: &[Routed],
                 reads_prev: &[],
-                cadence: Cadence::EVERY_EPOCH,
+                schedule: Schedule::EVERY_EPOCH,
                 body: transport_pass,
             },
             DeepPass {
@@ -1103,7 +1210,7 @@ mod tests {
                 reads: &[Routed],
                 writes: &[BioMod],
                 reads_prev: &[],
-                cadence: Cadence::EVERY_EPOCH,
+                schedule: Schedule::EVERY_EPOCH,
                 body: biotic_pass,
             },
         ];
@@ -1119,7 +1226,7 @@ mod tests {
                 reads: &[],
                 writes: &[Routed],
                 reads_prev: &[BioMod],
-                cadence: Cadence::EVERY_EPOCH,
+                schedule: Schedule::EVERY_EPOCH,
                 body: transport_pass,
             },
             DeepPass {
@@ -1127,7 +1234,7 @@ mod tests {
                 reads: &[Routed],
                 writes: &[BioMod],
                 reads_prev: &[],
-                cadence: Cadence::EVERY_EPOCH,
+                schedule: Schedule::EVERY_EPOCH,
                 body: biotic_pass,
             },
         ];
@@ -1259,11 +1366,17 @@ mod tests {
         // CrustThick), and writes the temperature field.
         assert_eq!(geo.reads, &[DeepAxis::Climate, DeepAxis::CrustThick]);
         assert_eq!(geo.writes, &[DeepAxis::Geotherm]);
-        // Coarse rate — heat flow evolves slowly, so it re-marches on a cadence
-        // and, like climate, is seeded before the loop (never fires at epoch 0).
-        assert!(geo.cadence.period() > 1);
-        assert!(!geo.fires(0));
-        assert!(geo.fires(geo.cadence.period()));
+        // Coarse rate — heat flow evolves slowly, so it re-marches on a cadence.
+        // **And it fires at epoch 0**, like everything else (journal/0124): the
+        // pre-loop seed it used to skip for is gone.
+        let geo_c = geo.schedule.cadence().expect("a stepping pass");
+        assert!(geo_c.period() > 1);
+        assert!(geo.schedule.fires(0));
+        assert!(geo.schedule.fires(geo_c.period()));
+        assert!(
+            !geo.schedule.seeds(),
+            "the pre-loop geotherm seed is retired"
+        );
         // The schedule as a whole is valid with the field pass in it.
         let sched = DeepSchedule::new(deep_passes(&all_on())).expect("valid with the geotherm");
         assert!(sched.ordered_ids().contains(&"dc:deep/geotherm"));
@@ -1287,9 +1400,17 @@ mod tests {
         assert_eq!(head.writes, &[DeepAxis::Head]);
         // Coarse rate — groundwater equilibrates in millennia against a 2.5 Myr
         // epoch, so this samples the topography rather than relaxing the water.
-        assert!(head.cadence.period() > 1);
-        assert!(!head.fires(0), "seeded pre-loop, never fired at epoch 0");
-        assert!(head.fires(head.cadence.period()));
+        let head_c = head.schedule.cadence().expect("a stepping pass");
+        assert!(head_c.period() > 1);
+        assert!(
+            head.schedule.fires(0),
+            "epoch 0 fires for everyone (journal/0124)"
+        );
+        assert!(head.schedule.fires(head_c.period()));
+        assert!(
+            !head.schedule.seeds(),
+            "the bare-surface pre-loop head seed is retired"
+        );
 
         let rec = passes
             .iter()
@@ -1482,8 +1603,8 @@ mod tests {
             .expect("scheduled when flagged on");
         assert_eq!(w.writes, &[DeepAxis::Saprolite]);
         assert!(w.reads.contains(&DeepAxis::Settled) && w.reads.contains(&DeepAxis::Frosted));
-        assert_eq!(w.cadence, Cadence::EVERY_EPOCH);
-        assert!(w.fires(0) && w.fires(1));
+        assert_eq!(w.schedule, Schedule::EVERY_EPOCH);
+        assert!(w.schedule.fires(0) && w.schedule.fires(1));
 
         // **The declaration must state what the pass DOES.** `weather_epoch` reads
         // `grid.bio_weather`, which `biotic` overwrites in place each epoch — so it
@@ -1539,30 +1660,61 @@ mod tests {
         assert_eq!(declared.len(), empty.len());
         for (a, b) in declared.iter().zip(empty.iter()) {
             assert_eq!(a.id, b.id);
-            assert_eq!(a.cadence, b.cadence, "{}", a.id);
+            assert_eq!(a.schedule, b.schedule, "{}", a.id);
         }
         // And the declared cadences are the pre-RATE constants: three coarse-rate
         // passes at their own periods, everything else every epoch, one turn.
-        let at = |id: &str| declared.iter().find(|p| p.id == id).unwrap().cadence;
-        assert_eq!(at("dc:deep/climate"), Cadence::every(cfg.remarch_interval));
+        let at = |id: &str| declared.iter().find(|p| p.id == id).unwrap().schedule;
+        assert_eq!(at("dc:deep/climate"), Schedule::every(cfg.remarch_interval));
         assert_eq!(
             at("dc:deep/geotherm"),
-            Cadence::every(super::super::geotherm::GEOTHERM_PERIOD)
+            Schedule::every(super::super::geotherm::GEOTHERM_PERIOD)
         );
         assert_eq!(
             at("dc:deep/head"),
-            Cadence::every(super::super::head::HEAD_PERIOD)
+            Schedule::every(super::super::head::HEAD_PERIOD)
         );
         for p in &declared {
+            let c = p.schedule.cadence().expect("every shipped pass steps");
             assert_eq!(
-                p.cadence.sub_turns(),
+                c.sub_turns(),
                 1,
                 "{} declares sub-turns; the shipped roster takes exactly one turn \
                  per firing and the goldens depend on it",
                 p.id
             );
             if !["dc:deep/climate", "dc:deep/geotherm", "dc:deep/head"].contains(&p.id) {
-                assert_eq!(p.cadence, Cadence::EVERY_EPOCH, "{}", p.id);
+                assert_eq!(p.schedule, Schedule::EVERY_EPOCH, "{}", p.id);
+            }
+        }
+    }
+
+    /// **The shipped roster declares no seeder, and that is a finding, not a
+    /// default** (journal/0124). Three passes were seeded before the loop until
+    /// 2026-07-29; the audit that came with the `Schedule` ruling found all three
+    /// to be first-steps in disguise and deleted their pre-loop blocks. Asserted so
+    /// that re-introducing a seed is a deliberate act with a test to update.
+    #[test]
+    fn no_shipped_pass_seeds_and_every_one_of_them_fires_at_epoch_zero() {
+        for cfg in [
+            all_on(),
+            DeepConfig {
+                weather_inventory: true,
+                ..all_on()
+            },
+            DeepConfig::default(),
+        ] {
+            for p in deep_passes(&cfg) {
+                assert!(
+                    !p.schedule.seeds(),
+                    "{} declares a pre-loop seed; the shipped roster has none",
+                    p.id
+                );
+                assert!(
+                    p.schedule.fires(0),
+                    "{} does not fire at epoch 0 — the skip rule is deleted",
+                    p.id
+                );
             }
         }
     }
@@ -1580,7 +1732,15 @@ mod tests {
             // A pass this roster gated off: ignored, not rejected.
             .with("dc:deep/nonexistent", Cadence::every(3));
         let passes = deep_passes_with(&cfg, &table);
-        let at = |id: &str| passes.iter().find(|p| p.id == id).unwrap().cadence;
+        let at = |id: &str| {
+            passes
+                .iter()
+                .find(|p| p.id == id)
+                .unwrap()
+                .schedule
+                .cadence()
+                .expect("a stepping pass")
+        };
 
         assert_eq!(at("dc:deep/weather").sub_turns(), 5);
         assert_eq!(at("dc:deep/weather").period(), 1);
@@ -1619,36 +1779,130 @@ mod tests {
             .iter()
             .find(|p| p.id == "dc:deep/transport")
             .expect("scheduled");
-        // Declared EVERY_EPOCH — it fired at 0, 1, 2 before the table.
-        assert!(
-            !t.fires(0),
-            "a coarse-rate pass is seeded, not fired, at epoch 0"
-        );
-        assert!(!t.fires(1));
-        assert!(!t.fires(2));
-        assert!(t.fires(3));
-        assert!(t.fires(6));
+        // Declared EVERY_EPOCH — it fired at 0, 1, 2 before the table. Re-rated to
+        // period 3 it fires at 0, 3, 6: the authored period spaces the firings and
+        // **does not remove the one at epoch 0**. Under the deleted skip rule this
+        // assertion read `!t.schedule.fires(0)` — a world that authored a period silently
+        // lost its pass's first phase, which is the semantics nobody decided
+        // (journal/0123's flag, journal/0124's fix).
+        assert!(t.schedule.fires(0), "epoch 0 fires for everyone");
+        assert!(!t.schedule.fires(1));
+        assert!(!t.schedule.fires(2));
+        assert!(t.schedule.fires(3));
+        assert!(t.schedule.fires(6));
     }
 
     #[test]
-    fn climate_is_a_coarse_rate_pass_seeded_at_epoch_zero() {
+    fn climate_is_a_coarse_rate_pass_that_fires_at_epoch_zero() {
         let passes = deep_passes(&all_on());
         let climate = passes.iter().find(|p| p.id == "dc:deep/climate").unwrap();
-        assert!(
-            climate.cadence.period() > 1,
-            "climate re-marches on a coarse cadence"
-        );
+        let c = climate.schedule.cadence().expect("a stepping pass");
+        assert!(c.period() > 1, "climate re-marches on a coarse cadence");
         // It marches on the START-of-epoch topography, and says so (journal/0107):
         // an anti-dependency against the first terrain revision of the epoch, which
         // transitively covers every later terrain writer.
         assert_eq!(climate.reads_prev, &[DeepAxis::Forced]);
-        // Seeded before the loop, so it does not fire at epoch 0 in-loop, then
-        // fires on its multiples — exactly the old `it > 0 && it % remarch == 0`.
-        assert!(!climate.fires(0));
-        assert!(climate.fires(climate.cadence.period()));
-        assert!(!climate.fires(1));
+        // It fires at 0 and on its multiples. The pre-loop march it used to be
+        // seeded by was the same call on the same inputs, and is gone
+        // (journal/0124).
+        assert!(climate.schedule.fires(0));
+        assert!(climate.schedule.fires(c.period()));
+        assert!(!climate.schedule.fires(1));
+        assert!(!climate.schedule.seeds());
         // the erosion sub-passes are rate-1: fire every epoch including 0.
         let transport = passes.iter().find(|p| p.id == "dc:deep/transport").unwrap();
-        assert!(transport.fires(0) && transport.fires(1));
+        assert!(transport.schedule.fires(0) && transport.schedule.fires(1));
+    }
+
+    // -------------------------------------------------------- SCHEDULE ------
+    // journal/0124. `schedule.rs` proves the arithmetic and
+    // `tests/schedule_axis.rs` the whole-world clock; this proves the runner
+    // actually honours the axis — that a `Seed` runs once, before the loop, at
+    // `dt = 0`, and that a `SeedAndStep` does both.
+
+    /// A roster the shipped one cannot provide: one pure seed, one seed-and-step,
+    /// one ordinary per-epoch pass. Bodies are no-ops — every claim below is about
+    /// the *schedule*, and [`DeepSchedule::plan`] is the decision the runner
+    /// itself executes, so reading it is reading the real thing.
+    fn synthetic_roster() -> DeepSchedule {
+        fn nop(_ctx: &mut DeepStepCtx<'_>) {}
+        DeepSchedule::new(vec![
+            DeepPass {
+                id: "dc:test/seed",
+                reads: &[],
+                writes: &[Climate],
+                reads_prev: &[],
+                schedule: Schedule::Seed,
+                body: nop,
+            },
+            DeepPass {
+                id: "dc:test/both",
+                reads: &[Climate],
+                writes: &[Forced],
+                reads_prev: &[],
+                schedule: Schedule::SeedAndStep(Cadence::every(4)),
+                body: nop,
+            },
+            DeepPass {
+                id: "dc:test/step",
+                reads: &[Forced],
+                writes: &[Routed],
+                reads_prev: &[],
+                schedule: Schedule::EVERY_EPOCH,
+                body: nop,
+            },
+        ])
+        .expect("valid synthetic roster")
+    }
+
+    /// **`Seed` is executed, not decorative.** The shipped roster declares no
+    /// seeder, so without this the variant would be a type with no behaviour.
+    #[test]
+    fn the_runner_seeds_before_it_steps_and_a_seed_integrates_no_time() {
+        let sched = synthetic_roster();
+
+        let setup = sched.plan(None);
+        assert_eq!(
+            setup.iter().map(|t| t.id).collect::<Vec<_>>(),
+            vec!["dc:test/seed", "dc:test/both"],
+            "the setup epoch runs the seeders, in the loop's own topo order"
+        );
+        for t in &setup {
+            assert_eq!(t.dt, 0.0, "{} seeded with a non-zero dt", t.id);
+            assert_eq!(t.turns, 1, "a seed runs once; sub-turns are a step's axis");
+        }
+    }
+
+    /// **The in-loop half: epoch 0 fires everyone, and a period spaces the rest.**
+    #[test]
+    fn the_loop_fires_every_pass_at_epoch_zero_and_a_pure_seed_never() {
+        let sched = synthetic_roster();
+
+        assert_eq!(
+            sched.plan(Some(0)).iter().map(|t| t.id).collect::<Vec<_>>(),
+            vec!["dc:test/both", "dc:test/step"],
+            "epoch 0 fires the period-4 pass too; the pure seed never steps"
+        );
+        for e in [1u32, 2, 3] {
+            assert_eq!(
+                sched.plan(Some(e)).iter().map(|t| t.id).collect::<Vec<_>>(),
+                vec!["dc:test/step"],
+                "only the period-1 pass fires at epoch {e}"
+            );
+        }
+        assert_eq!(
+            sched.plan(Some(4)).iter().map(|t| t.id).collect::<Vec<_>>(),
+            vec!["dc:test/both", "dc:test/step"]
+        );
+        // Over 8 epochs: the seeder once, the seed-and-step 1 + 2, the stepper 8.
+        let count = |id: &str| {
+            usize::from(sched.plan(None).iter().any(|t| t.id == id))
+                + (0..8)
+                    .filter(|&e| sched.plan(Some(e)).iter().any(|t| t.id == id))
+                    .count()
+        };
+        assert_eq!(count("dc:test/seed"), 1);
+        assert_eq!(count("dc:test/both"), 3);
+        assert_eq!(count("dc:test/step"), 8);
     }
 }
