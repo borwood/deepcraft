@@ -929,7 +929,7 @@ footprint with S11's air-component container (S15 design choice 2).
 - **🟡 COARSEFIELD ADOPTION — the ratified cure that lost its entry** (revived 2026-07-29 by
   user ruling: *"i think we revive it too"*). **This is the fix for U22 (the cake law) and U3
   (the per-chunk palette checkerboard), and it had no owner from 2026-07-24 to 2026-07-29.**
-  - **✅ THE FAR HALF SHIPPED 2026-07-29 — E5 member #0, first build slice (journal/0124).**
+  - **✅ THE FAR HALF SHIPPED 2026-07-29 — E5 member #0, first build slice (journal/0125).**
     `collapse.rs::surface_class` now samples a `CoarseField<ShareVec<6>>` window through
     `sample_dithered`; `DitherSource` has its first production impl (`draws.rs::Coherent`);
     `draw_class` and its unbiasedness test retired into `ShareVec::draw`; `DeepField` hands out
@@ -949,7 +949,7 @@ footprint with S11's air-component container (S15 design choice 2).
     claim than "the frontiers got softer" and it was not what the slice's brief described.*
     The floor was **re-derived from the mechanism, not lowered to fit**: 0.80 → 0.70, where
     0.611 is what independent neighbours would give and 0.7922 back-solves to a
-    neighbour-cell coincidence of 0.753 (journal/0124).
+    neighbour-cell coincidence of 0.753 (journal/0125).
   - **⚠ WHAT THE FAR HALF DID *NOT* FIX, stated so it is not inherited as done:**
     (1) **U3 / the near site** — untouched, and the design pass found its plan does not survive
     contact with the record: it needs **MM-1** (the membership dither, separately callable and
@@ -2399,7 +2399,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     two entries are one finding meeting itself from both sides of the collapse tier.
 
 - **🔴 NO GOLDEN HASHES THE FAR FIELD — found 2026-07-29 by an acceptance criterion that
-  could not fire (journal/0124).** Member #0's slice brief said *"goldens move — re-capture
+  could not fire (journal/0125).** Member #0's slice brief said *"goldens move — re-capture
   with the why"*, which was the right instinct: it changed the far surface class draw twice
   over (nearest-cell → membership-dither, and a canonical class order change). **Not one
   hash in the workspace moved**, and the run confirmed it:

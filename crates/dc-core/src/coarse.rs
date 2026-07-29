@@ -472,7 +472,7 @@ impl<const N: usize> CoarseField<ShareVec<N>> {
     ///    exactly 1, so it reduces to the containing cell's own shares.
     ///
     ///    **⚠ THIS IS A CELL-WIDE BLEND, NOT A PERIMETER TREATMENT, AND THE
-    ///    SENTENCE ABOVE HAS BEEN MISREAD ONCE ALREADY** (journal/0124, the first
+    ///    SENTENCE ABOVE HAS BEEN MISREAD ONCE ALREADY** (journal/0125, the first
     ///    adoption). "One weight ≈ 1 away from a boundary" is true *pointwise* and
     ///    badly misleading *in aggregate* — the reduction holds only in a small
     ///    neighbourhood of the centre. Integrated over a cell, the weight on the
@@ -791,7 +791,7 @@ mod tests {
         // averaged over the draw, P(class i) = share_i / total to 1e-2.
         //
         // **The three cases are `collapse::draw_class`'s, ported here when that
-        // hand-rolled twin retired into this function (journal/0124, member #0).**
+        // hand-rolled twin retired into this function (journal/0125, member #0).**
         // The retiring test asserted exactly this bound over exactly these
         // vectors, and two of them say something the original single case did
         // not: a THREE-class split (a CDF with an interior step, not just a

@@ -170,7 +170,7 @@ pub(crate) fn interp_corner_field(
 
 /// **The coherent [`DitherSource`]** — dc-worldgen's production impl of dc-core's
 /// caller-owned-entropy seam, wrapping [`interp_corner_field`] (member #0,
-/// journal/0124).
+/// journal/0125).
 ///
 /// dc-core is headless and holds no RNG, so `CoarseField::sample_dithered` takes
 /// its addressed uniform through a trait and the *implementation* IS the SOURCE

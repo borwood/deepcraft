@@ -261,7 +261,7 @@ expressor is *inert, loud* (the plug-and-play mirror — notebook § 2.5a).
    residual bias has no heir inside refinement).
    - **✅ DESIGN PASS DONE + FIRST BUILD SLICE SHIPPED, 2026-07-29** —
      `docs/audits/2026-07-29-member0-coarsefield-design.md` (rulings in its mutable
-     header), built in journal/0124. **The far site only**, and the member is
+     header), built in journal/0125. **The far site only**, and the member is
      **K1 only**: `sample`/`sample_dithered` + `DitherSource`. The design pass
      found the fused "base reconstruction" is *three* separable kernels and split
      them — K2 `summarize` → the octree node contract, K3 (`collapse.rs::lattice`'s

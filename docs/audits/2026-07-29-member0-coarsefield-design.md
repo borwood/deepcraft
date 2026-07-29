@@ -16,7 +16,7 @@ callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 > 2. **`summarize` → the octree node contract. LOD machinery stays engine**, not
 >    plugin-owned, for now ("goes to octree"). MM-4 is thereby ruled.
 > 3. **First build slice (far site) approved** ("sure") — dispatched same evening.
->    **✅ BUILT 2026-07-29 — journal/0124.** § 5 shipped as specified; three things the
+>    **✅ BUILT 2026-07-29 — journal/0125.** § 5 shipped as specified; three things the
 >    build decided that this document left open, recorded here because § 5 reads as the
 >    spec and a reader must not have to diff the code to find them:
 >    - **`DitherSource`'s one salt dimension maps to `(domain, tag)` as: domain fixed at
@@ -35,7 +35,7 @@ callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 >
 >    **Two things § 5 predicted that the build MEASURED differently:**
 >    - **"goldens move" did not happen** — no golden in the workspace hashes the far
->      field. A coverage finding, not a null result (journal/0124).
+>      field. A coverage finding, not a null result (journal/0125).
 >    - **§ 2a's "cost neutral … shares from ONE cell" understates the change.** Shares do
 >      come from one cell *per voxel*, but WHICH cell is dithered across the whole cell,
 >      not only at its perimeter: `E[weight on the home cell] = 9/16`, so **~44 % of far

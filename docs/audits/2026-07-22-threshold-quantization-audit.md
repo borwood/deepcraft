@@ -1,6 +1,6 @@
 # Threshold-quantization audit — the S-4 "square verdict" sweep
 
-> **⚠ STALENESS BANNER — stamped 2026-07-29 (E5 member #0, journal/0124). Immutable body,
+> **⚠ STALENESS BANNER — stamped 2026-07-29 (E5 member #0, journal/0125). Immutable body,
 > mutable header.** This document's **Part 2** ("the type extraction") shipped
 > 2026-07-22 as `dc_core::coarse` (journal/0075) and then had **zero production callers for
 > seven days**. The first adoption landed 2026-07-29 at **site B1 only** —

@@ -25,7 +25,7 @@
 //! plurality: the top `VOXEL_M` of its record, grouped by
 //! `geology::deep_class_of_species`, argmax.
 //!
-//! **⚠ That is no longer how `surface_class` reads it** (member #0, journal/0124).
+//! **⚠ That is no longer how `surface_class` reads it** (member #0, journal/0125).
 //! This caption used to say "read the same way the collapse's `surface_class`
 //! reads it", and until 2026-07-29 that was exact — both took the NEAREST deep
 //! cell's top-`VOXEL_M` shares. `surface_class` now samples a

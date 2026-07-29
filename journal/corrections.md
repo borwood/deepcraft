@@ -1311,7 +1311,7 @@ control is blind to when citing its stillness.
 > *Scope: far/cold tier only — journal/0074 removed the near ground's class consult.*
 >
 > **⚠ ONE OF THIS ENTRY'S TWO NAMED HEIRS LEFT THE TIER, 2026-07-29 (E5 member #0,
-> journal/0124).** "The far-`summarize` register" is no longer a refinement item: the user
+> journal/0125).** "The far-`summarize` register" is no longer a refinement item: the user
 > ruled `CoarseField::summarize` to **the octree node contract** (LOD machinery stays
 > engine, and the far/LOD synthesizer is a second executor `refinement.md` does not model —
 > member-#0 MM-4). The same slice adopted `sample_dithered` at the far site, so **the

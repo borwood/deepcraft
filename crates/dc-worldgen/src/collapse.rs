@@ -280,7 +280,7 @@ pub struct WorldGenerator<'a> {
     region_cache: HashMap<(i64, i64), Arc<RegionRec>>,
     locale_cache: HashMap<(i64, i64), Arc<LocaleRec>>,
     column_cache: HashMap<(i64, i64), Arc<ColumnRec>>,
-    /// The far field's local class window (member #0, journal/0124) — **one**
+    /// The far field's local class window (member #0, journal/0125) — **one**
     /// `CLASS_WINDOW`² field of deep-cell class shares, rebuilt when the sampled
     /// voxel leaves the deep cell it was cut for. 768 B; deliberately not a
     /// resident global field (the member-#0 design pass, MM-2: no borrowed or
@@ -904,7 +904,7 @@ impl<'a> WorldGenerator<'a> {
     /// this draw picks the class, that one picks the member, distinct salts
     /// throughout.
     ///
-    /// ## Adopted here: `CoarseField::sample_dithered` (member #0, journal/0124)
+    /// ## Adopted here: `CoarseField::sample_dithered` (member #0, journal/0125)
     ///
     /// This function used to *be* `ShareVec::draw` written by hand over a NEAREST
     /// cell, and the comment below used to defer the fix to "the `CoarseField<T>`
@@ -1530,7 +1530,7 @@ fn avg2(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     ((a.0 + b.0) / 2.0, (a.1 + b.1) / 2.0)
 }
 
-// ─────────── the far field's class window (member #0, journal/0124) ──────────
+// ─────────── the far field's class window (member #0, journal/0125) ──────────
 //
 // `draw_class` — the hand-rolled inverse-CDF that used to live here — RETIRED
 // into `dc_core::coarse::ShareVec::draw`, whose unbiasedness test absorbed this
@@ -2125,7 +2125,7 @@ mod tests {
         // near expression's, per class, rather than that they coincide per voxel.
         // Filed as a needs-measurement item with journal/0112.
         //
-        // ── RE-DERIVED 2026-07-29 (journal/0124, member #0): 0.80 → 0.70,
+        // ── RE-DERIVED 2026-07-29 (journal/0125, member #0): 0.80 → 0.70,
         //    measured 0.8225 → 0.7922. THE FLOOR MOVED BECAUSE THE MECHANISM DID,
         //    AND THE NEW NUMBER IS PREDICTED BEFORE IT IS MEASURED. ──
         //
@@ -2374,7 +2374,7 @@ mod tests {
     /// `dc_core::coarse::the_draw_is_unbiased_over_the_uniform`, which absorbed
     /// this file's retired `draw_class_is_unbiased_over_the_draw` **including its
     /// three share vectors** when `draw_class` retired into `ShareVec::draw`
-    /// (member #0, journal/0124). What is left here is the half that test cannot
+    /// (member #0, journal/0125). What is left here is the half that test cannot
     /// see: that the *slots* the shares are filed into agree with the routing the
     /// rest of the tier reads.
     ///

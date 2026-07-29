@@ -24,7 +24,7 @@
 > See `docs/audits/2026-07-29-member0-coarsefield-design.md` § 3 + header rulings.
 >
 > **⚠ THE FAR-FIELD HALF OF THIS DOC'S MECHANISM IS SUPERSEDED IN CODE, 2026-07-29
-> (journal/0124).** Every `surface_class` → `draw_class` chain this body describes
+> (journal/0125).** Every `surface_class` → `draw_class` chain this body describes
 > (`§ 4`, `§ 5`, `§ 6`) is gone: `draw_class` retired into
 > `dc_core::coarse::ShareVec::draw`, and `surface_class` now samples a
 > `CoarseField<ShareVec<6>>` window through `sample_dithered`, which **dithers which of
