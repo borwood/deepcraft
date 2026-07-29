@@ -1,5 +1,15 @@
 # Near-field per-chunk material-palette quantization — generation diagnosis
 
+> **⚠ STALENESS BANNER — stamped 2026-07-29 by the member-#0 design pass** (immutable
+> body, mutable header; this doc had no banner and its `file:line` citations have all
+> drifted — e.g. `collapse.rs:1474` → `:1406`, `field.rs:442-450` → `:779-787`. **The
+> substance was re-verified correct at the drifted addresses at `4f773cc`.**) Its § 7
+> INFERRED question — are the visible squares the **460 m deep-cell tiles or the 28.8 m
+> member-fitness stepping?** — sat unprobed for five days while being **load-bearing for
+> U3's acceptance test**; it is now filed in ROADMAP § Observed (2026-07-29) and gates the
+> scoping of the near-path slice. See
+> `docs/audits/2026-07-29-member0-coarsefield-design.md` § 3.
+
 **Date:** 2026-07-24
 **Mode:** DIAGNOSIS ONLY (read-only on code; no fix, no plan). Every claim carries
 `file:line`. A final section separates **PROVEN** (static from the code) from

@@ -71,7 +71,7 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 | **P3** | flow / hydrology — face-flux record, head field | **BUILT AND IDLE.** Zero production consumers, *on purpose* |
 | **P4** | CoarseField **adoption** (U22 + U3) | **ROUTED THROUGH E5 member #0, 2026-07-29** (see § 3) — design revisit dispatched; the prior adoption plan is superseded as a plan |
 | **P5** | genesis passes / **facies driver** | ratified concept, gated behind an `🔖 OPEN EDGE` |
-| **P6** | **octaves** as a `DitherSource` impl | not built |
+| ~~**P6**~~ | ~~**octaves** as a `DitherSource` impl~~ **MOVED TO ENGINE 2026-07-29 → E5 member #0** — this row and § 3's "P6 is engine" said opposite things four rows apart (caught by the member-#0 design pass). `DitherSource` runs per voxel (granularity table: per-voxel draw = engine primitive) and is a crate-layering seam, not a plugin seam: **a pack SELECTS a source by id, never supplies one** | — |
 | **P7** | metamorphism (grade from `exhum`/`t_crust`) | unblocked by the geotherm; unstarted |
 | **P8** | material **FORM** from provenance | `stubs.md` § 12 — the sub-voxel sieve deletes ~75 % of the sediment pile |
 | **P9** | bio / eco / socia / civ | **NOTHING EXISTS. ON HOLD, not never.** Gate is a **USER call**; earth-science progress does not open it |

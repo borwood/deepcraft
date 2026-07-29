@@ -2305,6 +2305,16 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   through the far sheet at tier boundaries has never been visually checked; ride it along
   the next appearance walk's stations rather than launching for it alone.
 
+- **Which checkerboard does the eye actually see — 460 m tiles or 28.8 m member-fitness
+  stepping? (re-filed 2026-07-29 from the 2026-07-24 palette-quant audit § 7 INFERRED,
+  where it sat unprobed for five days while being load-bearing for U3's acceptance
+  test.)** If the dominant visible signal is the 28.8 m formation-context stepping
+  (`dithered_member` under chunk-centre `temp_c/precip/depth_m`), a perfect near-path fix
+  dissolves the 460 m tiles and **leaves the checkerboard on screen**. Probe BEFORE
+  scoping the near slice: `examples/palette_quant_tour.rs` (already `test = true`) is the
+  instrument, one flag away. Reference pose on the U3 history entry. Gates member #0's
+  continuation slot (b).
+
 **⬇ 129 → 85 entries, 2026-07-29.** Forty-five entries left this section for
 [`ROADMAP-history.md`](ROADMAP-history.md) **§ Observed — archived**: **8 user field reports the
 user personally struck** (*"plenty of these are going to be stale and were made in the context of
