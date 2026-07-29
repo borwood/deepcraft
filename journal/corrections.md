@@ -3022,3 +3022,40 @@ that a null from a 4× refinement rules out a stability limit.
 `Erosion::diffuse`; journal/0122. Banners stamped in the same commit on #63 above,
 `journal/0116`, `docs/design/stubs.md` § 29 and the ROADMAP blocker entry — the four sites
 that carry the falsified inference.
+
+## 73. "The 460 m-vs-28.8 m checkerboard question has never been probed" (the member-#0 design pass, 2026-07-29 — propagated into a banner and a ROADMAP entry by the main session the same hour; falsified the same evening by the user's memory)
+
+**The claim.** The member-#0 design agent, reading the 2026-07-24 palette-quant audit,
+reported its § 7 INFERRED question — are U3's visible squares the 460 m deep-cell tiles or
+the 28.8 m member-fitness stepping? — as *"never probed"*, five days old, and load-bearing
+for U3's acceptance test. The main session accepted it, stamped it into the audit's first
+staleness banner ("sat unprobed for five days"), and filed a probe-first item in
+ROADMAP § Observed.
+
+**The falsification.** The user: *"i already believed palette quant was from member fitness
+stepping... that conversation is what lead to the whole octaves and facies driver
+planning."* Checked against the record: the 2026-07-24 close block says outright
+*"the palette-quant 460-vs-28.8 was settled — member stepping"*, resting on primary
+evidence that was in the corpus all along — corrections **#45** (the member dither is
+world-anchored and C0-continuous; the defect is **single-octave**) and the same-day
+haunting diagnosis (*"the member squares are one octave of value noise at chunk
+wavelength — fix = octaves, not resolution"*). The question was answered **the same day it
+was asked**.
+
+**The mechanism, and it is the sharpest instance yet of the one-directional pointer.** The
+resolution lived in a close block and nowhere else; the audit that asked the question never
+received it. A close block is a handoff, not an authority (#71) — which cuts BOTH ways:
+nobody re-reading the audit could find the answer, and nobody should have had to trust the
+close block if they had. Read-first item 5's rule (the correction's author stamps the
+target, same commit) was written for exactly this, eight months of subjective time before
+it happened again: **an answer that is not stamped onto its question will be re-derived,
+and the re-derivation will be believed** — this time by two readers in sequence, an agent
+reading the audit and a main session reading the agent, hours after that same main session
+had corrected an identical shape (the "unprobed" phrasing) in a different file.
+
+**Repairs, same evening:** the audit's banner now carries the answer and the correction's
+history; the ROADMAP entry converted from probe-first to settled-with-consequence (the
+near-path fix alone will not clear the checkerboard; the octaves source is a co-requisite);
+the octaves lineage is stitched across its 2026-07-24 origin and both 2026-07-29
+re-derivations. What was NOT wrong: the design agent's *consequence* — a perfect near fix
+leaves the checkerboard on screen — survives falsification of its premise, strengthened.
