@@ -11,6 +11,28 @@ Null re-verified at `4f773cc`: `grep -rn "CoarseField|DitherSource|sample_dither
 --include=*.rs crates/` excluding `coarse.rs` → 12 hits, all prose. Zero production
 callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 
+> **RULINGS — user, 2026-07-29 evening (mutable header; body below is the dated report):**
+> 1. **Member #0 = K1 only** ("ok") — move C filed with an heir, not swallowed.
+> 2. **`summarize` → the octree node contract. LOD machinery stays engine**, not
+>    plugin-owned, for now ("goes to octree"). MM-4 is thereby ruled.
+> 3. **First build slice (far site) approved** ("sure") — dispatched same evening.
+> 4. **Per-voxel stays engine-executed; content decides through data** — the pack selects
+>    a `DitherSource` by id and parameters, never supplies per-voxel code. Ruled after a
+>    full unpacking (speed toll per seam-crossing; the crossing-constraint seam can never
+>    make a per-voxel call cheap; binds first-party identically, so not a Deviation-2
+>    wall; escape valve = a member design pass flags MISSING MACHINERY on a concrete case).
+>
+> **CORRECTION to § 3's U3 bullet (body preserved as written):** the "never probed"
+> claim is wrong — the 460-vs-28.8 question was **settled 2026-07-24 as member stepping**
+> (corrections #45 + the haunting diagnosis: *"fix = octaves, not resolution"*); the
+> resolution lived in a close block and never reached the audit, so this pass re-derived
+> the question. **User memory caught it.** Consequence stands and sharpens: the near-path
+> fix alone will not clear the checkerboard; the octaves source is a co-requisite.
+> **Lineage, stitched because it was re-derived twice:** the octaves + facies-driver plan
+> originates 2026-07-24 (haunting diagnosis / corrections #45 / "octave materialisation IS
+> the member-squares fix"); the 2026-07-29 granularity-table amendment and the graph's
+> octaves-compose-with-dither edge re-derived it independently, neither citing the origin.
+
 ---
 
 ## 1. What member #0 IS — three kernels, not one

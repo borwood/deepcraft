@@ -1,14 +1,27 @@
 # Near-field per-chunk material-palette quantization — generation diagnosis
 
-> **⚠ STALENESS BANNER — stamped 2026-07-29 by the member-#0 design pass** (immutable
-> body, mutable header; this doc had no banner and its `file:line` citations have all
-> drifted — e.g. `collapse.rs:1474` → `:1406`, `field.rs:442-450` → `:779-787`. **The
-> substance was re-verified correct at the drifted addresses at `4f773cc`.**) Its § 7
-> INFERRED question — are the visible squares the **460 m deep-cell tiles or the 28.8 m
-> member-fitness stepping?** — sat unprobed for five days while being **load-bearing for
-> U3's acceptance test**; it is now filed in ROADMAP § Observed (2026-07-29) and gates the
-> scoping of the near-path slice. See
-> `docs/audits/2026-07-29-member0-coarsefield-design.md` § 3.
+> **⚠ STALENESS BANNER — stamped 2026-07-29 by the member-#0 design pass; CORRECTED the
+> same evening.** (Immutable body, mutable header; this doc had no banner and its
+> `file:line` citations have all drifted — e.g. `collapse.rs:1474` → `:1406`,
+> `field.rs:442-450` → `:779-787`. **The substance was re-verified correct at the drifted
+> addresses at `4f773cc`.**)
+>
+> **Its § 7 INFERRED question — 460 m tiles or 28.8 m member-fitness stepping? — was
+> ANSWERED THE SAME DAY it was asked and this doc never learned.** The 2026-07-24 close
+> ruled it *"settled — member stepping"*; the primary evidence is **corrections #45** (the
+> member dither is world-anchored and C0-continuous; the defect is **single-octave**, not
+> anchoring) and the same-day haunting diagnosis (*"the member squares are one octave of
+> value noise at chunk wavelength — **fix = octaves, not resolution**"*). Both defects are
+> real — the 460 m facies point-sampling AND the single-octave member dither — but the
+> **dominant visible signal is the member stepping**, so the near-path fix alone will not
+> clear the checkerboard; **the octaves `DitherSource` is a co-requisite** (now E5
+> member #0's own socket).
+>
+> *The first stamping of this banner said "unprobed for five days" — wrong: the resolution
+> existed and lived only in a close block, which is a handoff, not an authority. The
+> failure here is the one-directional pointer, and the 2026-07-29 design pass re-derived
+> the question because this doc held no link to its own answer. User memory caught it.*
+> See `docs/audits/2026-07-29-member0-coarsefield-design.md` § 3 + header rulings.
 
 **Date:** 2026-07-24
 **Mode:** DIAGNOSIS ONLY (read-only on code; no fix, no plan). Every claim carries

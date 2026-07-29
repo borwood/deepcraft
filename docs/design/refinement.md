@@ -108,8 +108,16 @@ operators did *within the chunk's own cells* (that is within-cell composition,
 which purity permits; cross-cell coupling remains faces-only).
 
 **Engine-owned kernels** (the `texture()` analogy — candidates, first members in
-§ 7): `CoarseField::sample` / `sample_dithered` / `summarize` + `DitherSource` ·
-the sub-cell boundary-value solver · position-addressed noise · interval fill.
+§ 7): `CoarseField::sample` / `sample_dithered` + `DitherSource` ·
+~~`summarize`~~ **RULED OUT of this tier 2026-07-29 (user): `summarize` belongs to the
+octree node contract — LOD machinery stays engine, not plugin-owned, and the far/LOD
+synthesizer is a different executor this document does not model** (member-#0 pass,
+MM-4) · the sub-cell boundary-value solver · position-addressed noise · interval fill.
+**`DitherSource` is engine-internal with engine impls; a pack SELECTS a source by id and
+parameters, never supplies per-voxel code** (user, 2026-07-29, after full unpacking —
+the per-voxel loop is engine-executed for first-party and packs alike; the octaves
+source's lineage runs to the 2026-07-24 member-stepping diagnosis, *"fix = octaves,
+not resolution"*).
 The kernel owns its own stability/validity bounds (the E4 rule, applied to this
 tier from birth rather than retrofitted).
 
