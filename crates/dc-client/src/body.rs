@@ -602,10 +602,17 @@ pub struct FrameRow {
     pub legs: Vec<LegSample>,
 }
 
-/// What the retargeting glue actually achieves for one (plan, clip, ground) triple
-/// — **the instrument for bodies.md's IK claim** ("one clip serves every mutation
-/// of a plan … across differing proportions") and, since journal/0130, for the
-/// prior question of whether the foot IK ever runs to completion at all.
+/// What the retargeting glue actually achieves for one (plan, clip, ground,
+/// posture) case — **the instrument for bodies.md's IK claim** ("one clip serves
+/// every mutation of a plan … across differing proportions") and, since
+/// journal/0130, for the prior question of whether the foot IK ever runs to
+/// completion at all.
+///
+/// **Foot placement has TWO independent gates and the probe reports both.** A
+/// correction happens only if the ground is inside the **half-voxel window**
+/// (`refused` counts the failures) *and* the sole target is inside the leg's
+/// **annulus** (`clamped_beyond_reach` counts those). Nothing reconciles the two,
+/// and no plan yet passes both in every posture.
 ///
 /// Every figure is in **metres**, measured over the clip's *stepped* frames (the
 /// 12 fps grid the renderer actually samples), for every leg the plan declares.
@@ -622,7 +629,14 @@ pub struct RetargetReport {
     pub clip: String,
     /// Which ground the body stood on.
     pub ground: String,
-    /// Hip height above the feet, metres (the plan's trunk pivot + hip offset).
+    /// How far the cosmetic root was sunk, metres — `0` standing,
+    /// [`CROUCH_ROOT_DROP_M`] crouching. **A fourth absolute-metres constant** in a
+    /// pipeline whose premise is that proportions vary (bodies.md § IK names three
+    /// and misses this one): 0.45 m is 50% of the biped's hip height and **97.8% of
+    /// the stout's**.
+    pub root_drop_m: f64,
+    /// Hip height above the feet, metres (the plan's trunk pivot + hip offset), as
+    /// authored — *before* the crouch drop. See [`RetargetReport::hip_eff_m`].
     pub hip_m: f64,
     /// Total leg reach `l1 + l2`, metres — the IK's outer annulus.
     pub reach_m: f64,
@@ -664,12 +678,21 @@ impl RetargetReport {
     pub fn inside_window(&self) -> usize {
         self.corrected + self.clamped_beyond_reach
     }
+
+    /// The hip height the solver actually works against: the authored hip minus the
+    /// crouch drop. **This, not `hip_m`, is what `reach_m` has to beat** — which is
+    /// why the stock biped's IK engages while crouching and never while standing.
+    pub fn hip_eff_m(&self) -> f64 {
+        self.hip_m - self.root_drop_m
+    }
 }
 
-/// Measure one plan against one clip on one ground. `voxel_size_m` is the active
-/// scale's voxel edge — the foot-IK correction window is **half a voxel**, an
-/// absolute length, which is precisely the kind of constant a second plan exists
-/// to interrogate.
+/// Measure one plan against one clip on one ground, in one posture.
+/// `voxel_size_m` is the active scale's voxel edge — the foot-IK correction window
+/// is **half a voxel**, an absolute length, which is precisely the kind of constant
+/// a second plan exists to interrogate. `root_drop_m` is the cosmetic crouch sink
+/// (`0` standing, [`CROUCH_ROOT_DROP_M`] crouching), which is the *other* absolute
+/// length that decides reachability.
 ///
 /// This deliberately **re-implements** the renderer's foot-placement decision
 /// (`character.rs`: correct only inside the half-voxel window, then snap the
@@ -692,6 +715,7 @@ pub fn retarget_report(
     clip: &AnimClip,
     voxel_size_m: f64,
     ground: GroundCase,
+    root_drop_m: f64,
 ) -> Option<RetargetReport> {
     let legs = leg_rigs(plan);
     let first = legs.first()?;
@@ -700,6 +724,7 @@ pub fn retarget_report(
         plan: plan.name.clone(),
         clip: clip.name.clone(),
         ground: ground.label(),
+        root_drop_m,
         hip_m: first.hip_local[1],
         reach_m: first.l1 + first.l2,
         frames: Vec::new(),
@@ -729,9 +754,10 @@ pub fn retarget_report(
             let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
             let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
             let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
-            // The hip rides at hip_local.y plus the clip's bob; the root is where
-            // the collider bottom is, and terrain never moves it.
-            let hip_y = leg.hip_local[1] + pose.root_bob_m;
+            // The hip rides at hip_local.y plus the clip's bob, minus the crouch
+            // sink; the root is where the collider bottom is, and terrain never
+            // moves it (character.rs applies exactly these three terms).
+            let hip_y = leg.hip_local[1] + pose.root_bob_m - root_drop_m;
             let clip_sole = hip_y + fy;
             let g = ground.ground_m(leg);
             r.samples += 1;
@@ -1002,13 +1028,21 @@ mod tests {
     /// in the numbers — so every frame gets a line and both feet are on it.
     fn print_series(r: &RetargetReport) {
         println!(
-            "\n  -- {} / {} / {} -- hip {:.3} reach {:.3} (slack {:+.3})",
+            "\n  -- {} / {} / {} / {} -- hip {:.3} - drop {:.3} = effective {:.3} \
+             | reach {:.3} (slack {:+.3})",
             r.plan.trim_start_matches("dc:body/"),
             r.clip.trim_start_matches("dc:anim/biped_"),
             r.ground,
+            if r.root_drop_m > 0.0 {
+                "crouch"
+            } else {
+                "stand"
+            },
             r.hip_m,
+            r.root_drop_m,
+            r.hip_eff_m(),
             r.reach_m,
-            r.reach_m - r.hip_m,
+            r.reach_m - r.hip_eff_m(),
         );
         let mut head = format!("     {:>2} {:>6} {:>7}", "f", "t(s)", "bob");
         for l in &r.frames[0].legs {
@@ -1055,7 +1089,7 @@ mod tests {
     }
 
     /// **The measurement.** Prints the full per-frame series for every
-    /// (plan × ground × clip)
+    /// (plan × ground × posture × clip)
     /// (`cargo test -p dc-client --release foot_placement -- --nocapture`) and
     /// asserts only what must hold **by derivation**:
     ///
@@ -1071,11 +1105,13 @@ mod tests {
     ///    rotation quantum's arc at full extension (`reach × ROT_QUANTUM_RAD`) —
     ///    a *derived* bound, so it stays honest at any proportion, and it is what
     ///    would catch a solver regression rather than a colleague's re-authoring;
-    /// 5. **the sign law**: on flat ground a plan whose `reach ≤ hip` can never
-    ///    correct a single frame (the sole target is outside the annulus before
-    ///    animation runs — journal/0130's refutation, restated as the derivation
-    ///    rather than as today's count), and a plan whose `reach > hip` must
-    ///    correct at least one frame and must bend a knee;
+    /// 5. **the sign law**, against the **effective** hip (`hip − crouch drop`): a
+    ///    plan whose `reach ≤ hip_eff` can never correct a single frame on flat
+    ///    ground (the sole target is outside the annulus before animation runs —
+    ///    journal/0130's refutation, restated as the derivation rather than as
+    ///    today's count); a plan whose `reach > hip_eff` **and** whose window let the
+    ///    solver run must solve and must bend a knee. Both gates are load-bearing:
+    ///    `longleg` crouching passes the annulus and is refused by the window;
     /// 6. **the one-voxel-step law**: the correction window is half a voxel, so a
     ///    step of one whole voxel — the smallest relief real terrain can have at
     ///    *any* scale N — can never fit inside it. Every raised-foot sample is
@@ -1093,27 +1129,32 @@ mod tests {
         ];
         let vs = boot_voxel_size_m();
         let half_voxel = vs * 0.5;
-        // Flat is the degenerate case (both feet want the same answer). The
-        // synthetic 0.30 m step is inside the window and asks whether foot
-        // placement engages at all on uneven ground; the one-voxel step is the
+        // Four cases. Flat/standing is the degenerate one journal/0130 measured
+        // (both feet want the same answer). Flat/CROUCHING is the same ground with
+        // the root sunk `CROUCH_ROOT_DROP_M`, which moves the hip *toward* the
+        // ground and is therefore the one posture where the stock biped's target is
+        // reachable. The synthetic 0.30 m step is inside the window and asks whether
+        // foot placement engages on uneven ground; the one-voxel step is the
         // smallest offset real terrain can produce.
-        let grounds = [
-            GroundCase::Flat,
-            GroundCase::Step { rise_m: 0.30 },
-            GroundCase::Step { rise_m: vs },
+        let cases = [
+            (GroundCase::Flat, 0.0),
+            (GroundCase::Flat, CROUCH_ROOT_DROP_M),
+            (GroundCase::Step { rise_m: 0.30 }, 0.0),
+            (GroundCase::Step { rise_m: vs }, 0.0),
         ];
         println!(
             "\nfoot-placement + retargeting report — N=2 (voxel {vs:.3} m, IK window \
-             +/-{half_voxel:.3} m). Ground cases: flat; a SYNTHETIC +0.300 m step \
-             (inside the window, unrealizable at N=2); one whole voxel +{vs:.3} m \
-             (the smallest REAL step)."
+             +/-{half_voxel:.3} m). Cases: flat standing; flat CROUCHING (root sunk \
+             {CROUCH_ROOT_DROP_M:.3} m); a SYNTHETIC +0.300 m step (inside the \
+             window, unrealizable at N=2); one whole voxel +{vs:.3} m (the smallest \
+             REAL step)."
         );
         let mut reach = Vec::new();
         for plan in &plans {
-            for ground in grounds {
+            for (ground, drop) in cases {
                 for clip in &clips {
-                    let r =
-                        retarget_report(plan, clip, vs, ground).expect("every plan here has legs");
+                    let r = retarget_report(plan, clip, vs, ground, drop)
+                        .expect("every plan here has legs");
                     print_series(&r);
 
                     // (1) the itemisation closes on its own total, both levels.
@@ -1177,26 +1218,37 @@ mod tests {
                     );
 
                     if ground == GroundCase::Flat {
-                        // (5) the sign law. Derived, not snapshotted: it is a
-                        // statement about `reach` vs `hip`, so it stays true (or
-                        // vacuous) if anybody re-authors a plan.
-                        if r.reach_m <= r.hip_m {
+                        // (5) the sign law, against the EFFECTIVE hip (the crouch
+                        // sink moves it). Derived, not snapshotted: a statement about
+                        // `reach` vs `hip - drop`, so it stays true (or vacuous) if
+                        // anybody re-authors a plan or the drop.
+                        if r.reach_m <= r.hip_eff_m() {
                             assert_eq!(
-                                r.corrected, 0,
-                                "{} / {}: reach {:.3} <= hip {:.3}, so a sole at ground \
-                                 level is OUTSIDE the annulus and the IK cannot reach \
-                                 (journal/0130); got {} corrected frames",
-                                r.plan, r.clip, r.reach_m, r.hip_m, r.corrected
-                            );
-                        } else {
-                            assert!(
-                                r.corrected > 0,
-                                "{} / {}: reach {:.3} > hip {:.3}, so at least one sole \
-                                 target is inside the annulus and the IK must solve",
+                                r.corrected,
+                                0,
+                                "{} / {}: reach {:.3} <= effective hip {:.3}, so a sole \
+                                 at ground level is OUTSIDE the annulus and the IK \
+                                 cannot reach (journal/0130); got {} corrected",
                                 r.plan,
                                 r.clip,
                                 r.reach_m,
-                                r.hip_m
+                                r.hip_eff_m(),
+                                r.corrected
+                            );
+                        } else if r.inside_window() > 0 {
+                            // The annulus admits it AND the window let the renderer
+                            // try. BOTH gates are needed — `longleg` crouching passes
+                            // the annulus and is refused by the window, which is the
+                            // sharpest statement that nothing reconciles the two.
+                            assert!(
+                                r.corrected > 0,
+                                "{} / {}: reach {:.3} > effective hip {:.3} and {} \
+                                 samples reached the solver, so it must solve",
+                                r.plan,
+                                r.clip,
+                                r.reach_m,
+                                r.hip_eff_m(),
+                                r.inside_window()
                             );
                             assert!(
                                 r.knee_bend_max_deg > 20.0,
@@ -1206,7 +1258,7 @@ mod tests {
                                 r.knee_bend_max_deg
                             );
                         }
-                        if r.clip == "dc:anim/biped_walk" {
+                        if r.clip == "dc:anim/biped_walk" && r.root_drop_m == 0.0 {
                             reach.push((r.plan.clone(), r.reach_m, r.hip_m));
                         }
                     }
@@ -1269,6 +1321,16 @@ mod tests {
             "  one-voxel step {vs:.3} m / IK window {half_voxel:.3} m = {:.1}x — \
              scale-FREE, so no real terrain step ever fits the window at any N",
             vs / half_voxel
+        );
+        // The FOURTH absolute-metres constant, and bodies.md's units banner names
+        // only three (hip height, the clips' root bob, the IK window).
+        println!(
+            "  CROUCH_ROOT_DROP_M {CROUCH_ROOT_DROP_M:.3} m = {:.1}% of the biped's \
+             hip height, {:.1}% of the stout's, {:.1}% of the longleg's — a fourth \
+             absolute length bodies.md's units banner does not name",
+            100.0 * CROUCH_ROOT_DROP_M / biped.2,
+            100.0 * CROUCH_ROOT_DROP_M / stout.2,
+            100.0 * CROUCH_ROOT_DROP_M / long.2,
         );
         for (name, bob) in [("walk", 0.04_f64), ("jump", 0.12_f64)] {
             println!(
