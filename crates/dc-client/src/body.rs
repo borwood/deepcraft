@@ -556,11 +556,6 @@ pub enum Placement {
 
 #[cfg(test)]
 impl Placement {
-    /// The renderer attempted a correction (the IK ran), reached or not.
-    fn inside_window(self) -> bool {
-        matches!(self, Placement::Corrected | Placement::ClampedBeyondReach)
-    }
-
     fn code(self) -> &'static str {
         match self {
             Placement::Seated => "seat",
