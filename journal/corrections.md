@@ -3104,3 +3104,47 @@ confinement rule** — record in `flow.md` § 11.5's banner, with three sharpeni
 (eroding-cell attachment; window-vs-pairing; the 2× is gross-vs-net). All five sites
 stamped in the same commit as this entry: `flow.md` § 2.2, `refinement.md` § 8, the
 coupling-priors header, `dependency-graph.md` E5, `S19-flow-record-cost-results.md`.
+
+## 76. "The foot-float defect is sub-perceptual, so it is a design decision rather than a fire" (2026-07-29, the integrator's own, falsified within the hour by the user)
+
+**The claim.** Having driven the two-body-plan walk (journal/0130) and read four
+screenshots, the integrator reported the measured 20 mm foot float as **not visible
+by eye**, and drew a priority conclusion from it: *"the defect is real, measured, and
+currently sub-perceptual. That argues it's a design decision to make deliberately
+rather than a fire to fight."*
+
+**Falsified by the user, immediately, from having watched the body move:**
+
+> *"the hover looks bad. i do not like the body hover, the body is oscillating gently
+> up and down. it's not a bob, it's a hover, because as you said, the feet don't touch
+> the ground… note the defects are sub-perceptual to claude who can only look at
+> screenshots, but human can see the problems jumping out and just hasn't bothered with
+> it because there's a lot else going on in this repo."*
+
+**Mechanism — a still frame is structurally blind to a temporal artifact.** The float
+is near-constant *within* any single frame, so a screenshot carries the offset and
+**cannot carry the oscillation**. The visible defect is the oscillation. No number of
+frames fixes this; it is the medium, not the sample size.
+
+**The number was already in hand and was misread.** The probe reported `idle` sole
+height as the range **`[+0.020, +0.035] m`**. That is a **15 mm amplitude** with the
+feet never planted — the hover, quantified. The integrator read a range as a
+*tolerance* (an error bar on a static offset) rather than as an *amplitude* (a time
+series), and then let the blind instrument overrule the sighted one.
+
+**Why this is not merely a repeat of #18/#19.** Those established *pick the control
+that can SEE your question* for the **lighting mode** — lit for shape, fullbright for
+material — and that discipline was followed correctly here (the walk used the lit pass
+precisely because fullbright flattens body cuboids). The unasked question was whether
+the **medium** could see it. **For a motion question the screenshot is the blind
+control, and its null proves nothing.** The instrument that could see it existed in
+the same report: a per-frame trace of the quantity.
+
+**Corollary, and it is the durable half:** the user's live view is senior to the
+integrator's screenshot read — already doctrine — but the *reason* matters, because it
+tells you when to insist. It is senior **specifically for anything temporal**:
+oscillation, skate, pop, jitter, easing, stutter. Where the question is motion, do not
+report a visual verdict from frames at all; report the trace, or record the screen.
+
+**Stamped in the same commit** (read-first item 5): journal/0130 § "The walk, and the
+instrument that could not see the defect" carries the pointer back here.

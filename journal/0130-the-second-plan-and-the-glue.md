@@ -325,3 +325,62 @@ printed report and in this entry, where a human reads them.
 > a *scale-free* authored quantity (an angle) meeting an *absolute* engine
 > constant (a metre) with nothing reconciling them, and that seam is invisible
 > until two bodies of different size stand on it.
+
+---
+
+## The walk, and the instrument that could not see the defect
+
+The slice landed with an honest caveat: *"I have not seen either body rendered."*
+So the integrator drove the game — built from the worktree, launched with `--edges`
+on the **lit** pass (never `--fullbright`: body segment materials take
+`unlit: fullbright.0`, so fullbright flattens every cuboid face to one colour and
+the shape question dies), spawned one character in each plan, and looked.
+
+Four frames: `0130-two-plans-idle` (both at rest, stout left), `0130-two-plans-walk`
+(both mid-stride), `0130-two-plans-rest-reframed` (the stout's arm hanging nearly
+to its feet), `0130-two-plans-jump` (both airborne). Two frames came back **empty**
+— the pair walked out of shot before the stop command landed, then a wrong yaw
+missed them entirely. Both were the driver's framing errors, not results, and are
+recorded as such because a null frame that is really a mis-aimed camera is exactly
+the thing that gets published as a finding.
+
+**The first half of the claim confirmed by eye, not only by arithmetic.** The stout
+reads as a deliberate creature — a stocky, big-headed, long-armed hominid — with
+coherent joints, no detached or inverted segments, a correct turn-to-face-travel,
+and a real stride. One clip set, two bodies, no new keyframes.
+
+**And then the integrator got the important thing wrong.** Reading the frames, it
+reported the 20 mm float as *sub-perceptual* and recommended treating the defect as
+a design decision rather than a fire. The user, who has watched this body actually
+move, answered:
+
+> *"the hover looks bad. i do not like the body hover, the body is oscillating
+> gently up and down. it's not a bob, it's a hover, because as you said, the feet
+> don't touch the ground… note the defects are sub-perceptual to claude who can
+> only look at screenshots, but human can see the problems jumping out."*
+
+The number was already in the report. `idle`'s sole height ranges
+**`[+0.020, +0.035] m`** — that is not an error bar, it is a **15 mm vertical
+oscillation with the feet never planted**, which is the definition of a hover. The
+integrator read a range as a tolerance instead of as an amplitude, and then let a
+still frame overrule it.
+
+**A still frame is structurally blind to a temporal artifact.** The float is
+near-constant within any one frame, so the *hover* — the thing a human sees
+instantly — is precisely the component no screenshot can carry. This is
+`journal/0030`'s lesson (corrections #18/#19) arriving on a new axis: we knew to ask
+whether the *lighting mode* could see the question, and not to ask whether the
+*medium* could. For a motion question the screenshot is the blind control, and its
+null proves nothing. `corrections.md` #76 carries it.
+
+The right instrument was sitting in the same report: a **per-frame trace** of the
+quantity, which the probe prints. Motion questions want a time series or a
+recording, never a frame.
+
+## What the walk therefore leaves owed
+
+The user's next question is the good one — *"it would be interesting to see what it
+looked like if the feet DID touch the ground and bend at the knee."* That is the
+experiment this one earns: give the annulus room to exist, let the solver actually
+solve, and watch a knee absorb the difference. Nobody has ever seen this rig bend a
+joint under IK, because on flat ground the target has always been out of reach.

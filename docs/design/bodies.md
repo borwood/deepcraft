@@ -57,6 +57,42 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 
 ## IK — DECIDED 2026-07-19 (role, not solver choice)
 
+> **⚠ MEASURED 2026-07-29 (journal/0130) — THIS SECTION IS HALF-CONFIRMED AND HALF-REFUTED.**
+> **Confirmed:** the retargeting role is real. One unmodified clip set drives
+> `dc:body/biped` and `dc:body/stout` (legs 0.50x, arms 1.60x) with no new keyframes;
+> the derived leg rig comes out at exactly 0.500x, `idle` poses are byte-identical
+> across the two plans, and the walk's artifacts *shrink* in metres (0.102 -> 0.068 m).
+> No new kind of artifact appeared, and the second body reads as a coherent creature.
+> **Refuted: "feet to actual ground" has never happened, for ANY plan.** 176/176 sampled
+> frames are beyond the leg's reach and clamp to full extension. The biped's hip sits at
+> **0.900 m** while its legs reach **0.880 m** (0.45 + 0.43), so a sole at y=0 is
+> **geometrically unreachable before any animation runs** — a 20 mm gap present since
+> `biped_plan()` was written. The rendered result is a **hover**: `idle` sole height
+> oscillates over `[+0.020, +0.035] m`, feet never planted (user, on seeing it move:
+> *"the hover looks bad… it is not a bob, it is a hover"*).
+>
+> **The mechanism generalises past IK and is the reason this matters to
+> § "Plan parameters":** three quantities are **absolute metres** in a pipeline whose
+> premise is that proportions vary — hip height, the clips' **root bob** (jump 0.120 m =
+> 13% of the biped's hip height and **26%** of the stout's; both bodies' feet peak at
+> *exactly* +0.125 m), and the **foot-IK correction window**, which is **half a voxel**
+> (0.450 m at N=2 = **1.02x the stout's entire leg**) — a tolerance derived from voxel
+> resolution wearing the clothes of one about anatomy. **With exactly one body plan a
+> length IS a ratio**, which is why none of it was visible: anti-shape **A-1**, a stand-in
+> becoming the definition, sitting under the body builder's foundation.
+>
+> **Consequence for authoring: every plan parameter must declare its UNITS**
+> (ratio-of-plan vs absolute-metres) as well as which side of the determinism firewall it
+> touches. The units axis is undetectable while there is one plan and load-bearing the
+> instant there are two.
+>
+> **⚠ USER CALL, unresolved:** whether the 20 mm gap is intentional (feet visually
+> clearing terrain seams) or an off-by-a-half-thickness in `l2`. It decides whether these
+> three constants become **ratios of the plan** (an engine change that invalidates the
+> authored clip bobs and moves how every body looks) or whether *"feet to actual ground"*
+> is **retired from this section** as never-intended. **Nothing downstream may assume
+> ground contact until it lands.**
+
 Two-bone IK for limbs + neck look-at is the **retargeting glue** that makes
 one clip serve every mutation of a plan: feet to actual ground, hands to
 actual socket transforms, across differing proportions. Solver technique is
