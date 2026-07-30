@@ -1,5 +1,28 @@
 # Near-field per-chunk material-palette quantization — generation diagnosis
 
+> **⚠ THE DOMINANT HALF OF THIS DOC'S DEFECT IS FIXED IN CODE, 2026-07-29
+> (journal/0128 + journal/0129).** The **28.8 m member stepping** — the signal the
+> banner below names as dominant, and the one whose fix this doc's § 7 asked about —
+> is gone: the within-class member dither no longer reads a single bilinear octave at
+> chunk wavelength but `draws::Octaves`, a normal-score-transformed fBm over a
+> pairwise-coprime prime stride ladder. Measured across the swap, the fraction of the
+> selection field's curvature sitting on the 28.8 m lattice went from **all of it**
+> (on/off ratio ~1e14 — a bilinear field is *linear inside its cell*, so it has no
+> curvature anywhere else) to **none in particular** (ratio ~1.4).
+>
+> **THE ~460 m RECORD TILE — this doc's § 4/§ 5 near-field mechanism — IS STILL EXACT.**
+> A chunk's whole strata composition is still ONE point sample of the deep record at the
+> chunk centre, NEAREST at the deep-cell grid. Its fix (per-column membership dither over
+> the touched cells) is sequenced, not shipped; both of its named blockers are discharged
+> (**MM-1** `CoarseField::sample_source_cell`, shipped with a caller; **MM-3** the
+> working-state type, designed and awaiting ratification with its restructure).
+> **Measured correction to the design pass's estimate of that work:** the blast radius is
+> **13 files / ~40 sites**, not the six generation-path functions it listed — eight example
+> probes and five test files read `ColumnRec.strata` as *the* record of a chunk.
+>
+> *An appearance verdict on any of this is the user's and has not been given: journal/0129
+> feeds a walk, it does not replace one.*
+
 > **⚠ STALENESS BANNER — stamped 2026-07-29 by the member-#0 design pass; CORRECTED the
 > same evening.** (Immutable body, mutable header; this doc had no banner and its
 > `file:line` citations have all drifted — e.g. `collapse.rs:1474` → `:1406`,

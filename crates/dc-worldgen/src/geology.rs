@@ -28,6 +28,7 @@
 //! iteration-order entropy anywhere, and registration order cannot change a
 //! single byte of the world (proven in tests/geology.rs).
 
+use dc_core::coarse::DitherSource;
 use dc_core::materials::geology::{
     CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
     CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL,
@@ -176,13 +177,20 @@ impl<'a> StrataCtx<'a> {
         }
     }
 
-    /// Selection draw at the chunk-column **centre**, read from the smooth
-    /// bilinear field the material tier reuses per voxel-column
-    /// ([`interp_select_draw`]). Sampling the interpolated field (not a single
-    /// per-chunk hash) is what keeps the record's representative member in
-    /// agreement with the dithered footprint at its centre.
+    /// Selection draw at the chunk-column **centre voxel**, read from the same
+    /// [`selection_field`] the material tier samples per voxel column.
+    ///
+    /// Sampling one shared field (not a per-chunk hash) is what keeps the record's
+    /// *representative* member in agreement with the dithered footprint — the
+    /// record picks at the centre, expression picks per column, one field. Since
+    /// journal/0129 the agreement is **exact at that column** rather than
+    /// approximate: the old form asked for the geometric chunk centre
+    /// (`fx = fz = 0.5`) while the per-column form asks for `(x + 0.5)/32`, which
+    /// is 0.515 at `x = 16` — close, never equal. Both now name the same **voxel
+    /// address**, `cx·32 + 16`, which is the chunk-centre convention the rest of
+    /// the collapse already uses (`climate_at`, `record_at_voxel`).
     fn draw(&self, salt: u64, tag: u64) -> f64 {
-        interp_select_draw(self.seed, salt, tag, self.cx, self.cz, 0.5, 0.5)
+        selection_field(self.seed, salt).uniform(self.cx * 32 + 16, self.cz * 32 + 16, tag)
     }
 
     /// [`Self::push`] with a **pore-slot rider** attached (`StrataEvent::accessory`):
@@ -217,29 +225,37 @@ impl<'a> StrataCtx<'a> {
     }
 }
 
-/// Bilinear interpolation of the per-chunk-column selection hash to a
-/// fractional position `(fx, fz)` inside the chunk. The four samples are the
-/// chunk-column **corner** hashes, so neighbouring chunks share edge values and
-/// the field is C0-continuous across chunk borders: a class's member-partition
-/// boundary becomes a smooth curve that wanders like a facies contact instead
-/// of snapping to the 28.8 m chunk grid (the chunk-line family cutover fix).
+/// **The member-selection field** — one world-anchored field, sampled at the
+/// chunk centre by the record and per voxel column by expression.
 ///
-/// Pure in `(seed, salt, tag, coords)` — no iteration-order entropy,
+/// It is [`crate::draws::Octaves`], and until journal/0129 it was a **single**
+/// bilinear octave at chunk wavelength (`interp_select_draw`, retired into this).
+/// That field was world-anchored and C0-continuous — corrections #45 falsified the
+/// "it snaps at chunk lines" reading by reading the function — and it was still
+/// the visible defect, because **a bilinear field is linear inside its cell, so
+/// all of its curvature sits on one lattice**, and that lattice was the 28.8 m
+/// chunk. Every member patch was chunk-sized and every contact kinked on the grid:
+/// the U3 checkerboard, whose dominant signal was settled that same day as this
+/// stepping (*"fix = octaves, not resolution"* — a finer single octave just makes
+/// smaller squares).
+///
+/// Measured across the swap (`draws.rs`'s law tests): on/off-lattice curvature
+/// ratio at the 32-voxel scale **1.0e14 → 1.36**, and the variogram stops
+/// saturating at the chunk scale. The octaves source is additionally the first
+/// **unbiased** coherent source here, which matters at this joint specifically:
+/// `geology.select` is an inverse-CDF over member fitness, so a majority-amplifying
+/// source (corrections #39, `Coherent`'s measured cost) would suppress exactly the
+/// minority members this dither exists to surface.
+///
+/// `salt` arrives here as **recorded data** from the one caller that replays a
+/// `StrataEvent::sel_salt`; everyone else passes a domain's own salt (see
+/// `Draws::from_recorded_salt`, journal/0105).
+///
+/// Pure in `(seed, salt, tag, voxel)` — no iteration-order entropy,
 /// registration-order independent, and it consults no cells or columns, so the
 /// lookahead bounds are untouched.
-pub(crate) fn interp_select_draw(
-    seed: u64,
-    salt: u64,
-    tag: u64,
-    cx: i64,
-    cz: i64,
-    fx: f64,
-    fz: f64,
-) -> f64 {
-    // `salt` arrives here as **recorded data** in the one caller that replays a
-    // `StrataEvent::sel_salt`; everyone else passes a domain's own salt. See
-    // `Draws::from_recorded_salt` (journal/0105).
-    crate::draws::interp_corner_field(Draws::from_recorded_salt(seed, salt), tag, cx, cz, fx, fz)
+pub fn selection_field(seed: u64, salt: u64) -> crate::draws::Octaves {
+    crate::draws::Octaves::member(Draws::from_recorded_salt(seed, salt))
 }
 
 /// Fraction of an igneous column that carries an accessory inclusion (sparse
@@ -559,17 +575,7 @@ fn emplace_weathering_front(ctx: &mut StrataCtx) {
         precip: ctx.precip,
         depth_m,
     };
-    let draw = |tag: u64| {
-        interp_select_draw(
-            ctx.seed,
-            <crate::draws::GeoDeep as Domain>::SALT,
-            tag,
-            ctx.cx,
-            ctx.cz,
-            0.5,
-            0.5,
-        )
-    };
+    let draw = |tag: u64| ctx.draw(<crate::draws::GeoDeep as Domain>::SALT, tag);
     let Some((product, _)) = ctx
         .geology
         .select(CLASS_CLASTIC_FINE, &form, draw(FRONT_TAG_PRODUCT))
@@ -716,15 +722,7 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
             depth_m,
         };
         let tag = k as u64;
-        let u_draw = interp_select_draw(
-            ctx.seed,
-            <crate::draws::GeoDeep as Domain>::SALT,
-            tag,
-            ctx.cx,
-            ctx.cz,
-            0.5,
-            0.5,
-        );
+        let u_draw = ctx.draw(<crate::draws::GeoDeep as Domain>::SALT, tag);
         if let Some((member, _)) = ctx.geology.select(class, &form, u_draw) {
             expressed_m += u.thickness_m;
             if let Some((idx, prev)) = last
@@ -924,28 +922,73 @@ pub fn placer_pass(ctx: &mut StrataCtx) {
     }
 }
 
-/// Resolve the **host member** of one event for a single voxel-column,
-/// dithering the class selection across the chunk footprint (the material-tier
-/// smoothing of the chunk-line family cutover). At the chunk centre this
-/// reproduces `event.member`; away from it the interpolated selection field
-/// ([`interp_select_draw`]) re-picks within the event's class under the
-/// recorded formation context, so the contact between two members of a class
-/// wanders like a facies boundary instead of snapping to chunk lines. The
-/// block tier is unaffected (both members share a class, hence a block); only
-/// the material albedo the mesher dithers changes.
+/// Resolve the **host member** of one event for a single voxel column, dithering
+/// the class selection across the chunk footprint (the material-tier smoothing of
+/// the chunk-line family cutover).
+///
+/// At the chunk-centre column this reproduces `event.member` exactly — same field,
+/// same voxel address ([`StrataCtx::draw`]). Away from it the
+/// [`selection_field`] re-picks within the event's class under the recorded
+/// formation context, so the contact between two members of a class wanders like a
+/// facies boundary. The block tier is unaffected (both members share a class,
+/// hence a block); only the material albedo the mesher dithers changes.
+///
+/// **Addressed by the absolute voxel, not by `(chunk, offset)`** (journal/0129).
+/// The two are arithmetically the same address and the split form was a leftover
+/// from when the field was defined *over chunk corners*; passing `(cx, cz, x, z)`
+/// invited every caller to reconstruct it, and `surface_voxel_contents` was
+/// already un-reconstructing a `(vx, vz)` it had in hand.
+///
+/// ## ⚠ What this does NOT fix: the formation context is still the CHUNK's
+///
+/// The `u` this draws is now multi-scale, but `event.temp_c` / `precip` /
+/// `depth_m` were recorded **once per chunk**, sampled at the chunk centre
+/// (`collapse.rs::column` reads `climate_at(cx·32+16, …)`). So the *fitness
+/// landscape* the draw indexes into still steps at 28.8 m even though the draw no
+/// longer does. That is U22's named sibling — the member-dither guillotine — and
+/// it is a **different defect at the same site**, unexamined since 2026-07-22 and
+/// deliberately not touched here (`journal/0129`; ROADMAP § Observed).
+/// A step in the *thresholds* is a much weaker signal than a step in the
+/// *draw* (the classes' fitnesses vary slowly with climate, and the draw is what
+/// the eye reads as a patch), but it is not zero and it is not fixed.
 pub fn dithered_member(
     geology: &GeologySet,
     seed: u64,
     event: &StrataEvent,
-    cx: i64,
-    cz: i64,
-    x: usize,
-    z: usize,
+    vx: i64,
+    vz: i64,
+) -> GeoMemberIdx {
+    dithered_member_with(
+        geology,
+        event,
+        &selection_field(seed, event.sel_salt),
+        vx,
+        vz,
+    )
+}
+
+/// [`dithered_member`] over an explicit source — **the A/B seam**, and the only
+/// reason it is public.
+///
+/// A probe can reconstruct the pre-journal/0129 member field exactly by passing
+/// `draws::Coherent::new(Draws::from_recorded_salt(seed, event.sel_salt), 32)`
+/// (proven bit-identical to the retired chunk-addressed field in
+/// `draws::tests::a_stride_32_coherent_is_the_retired_chunk_addressed_selection_field`),
+/// so the before/after comparison runs **in one binary** rather than across two
+/// builds and two machine states — journal/0125's measurement shape.
+///
+/// It is *not* a content seam: a pack selects a source by id and parameters and
+/// never supplies one (ruled 2026-07-29). Production always goes through
+/// [`selection_field`].
+pub fn dithered_member_with(
+    geology: &GeologySet,
+    event: &StrataEvent,
+    src: &(impl dc_core::coarse::DitherSource + ?Sized),
+    vx: i64,
+    vz: i64,
 ) -> GeoMemberIdx {
     let class = geology.member(event.member).class.as_str();
-    let fx = (x as f64 + 0.5) / 32.0;
-    let fz = (z as f64 + 0.5) / 32.0;
-    let u = interp_select_draw(seed, event.sel_salt, event.sel_tag, cx, cz, fx, fz);
+    let u = src.uniform(vx, vz, event.sel_tag);
     let ctx = FormationContext {
         temp_c: f64::from(event.temp_c),
         precip: f64::from(event.precip),

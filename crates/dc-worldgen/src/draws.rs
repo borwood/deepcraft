@@ -201,14 +201,14 @@ pub(crate) fn interp_corner_field(
 /// the tags a `Coherent` hands out are as hand-laid as [`GeoSelect`]'s 0–3, and the
 /// compile-time duplicate check does not see them. The cure is a `Domain` per
 /// decision, and it is the same cure hole 1 already names.
-pub(crate) struct Coherent {
+pub struct Coherent {
     draws: Draws,
     stride: i64,
 }
 
 impl Coherent {
     /// A coherent source over `draws`'s domain, with a `stride`-voxel field cell.
-    pub(crate) fn new(draws: Draws, stride: i64) -> Self {
+    pub fn new(draws: Draws, stride: i64) -> Self {
         debug_assert!(stride > 0, "a coherent field cell must be at least 1 voxel");
         Coherent { draws, stride }
     }
@@ -222,6 +222,374 @@ impl dc_core::coarse::DitherSource for Coherent {
         let fx = (wx.rem_euclid(self.stride) as f64 + 0.5) / self.stride as f64;
         let fz = (wz.rem_euclid(self.stride) as f64 + 0.5) / self.stride as f64;
         interp_corner_field(self.draws, salt, cx, cz, fx, fz)
+    }
+}
+
+// ───────────────────────── the octaves DitherSource ──────────────────────────
+
+/// **Field-cell edges of the octave ladder, in VOXELS — pairwise-coprime primes,
+/// and that is the whole point.**
+///
+/// A single-octave corner field is *linear along x inside a cell*, so all of its
+/// curvature — every kink in every contact it draws — lives exactly on the cell
+/// lattice. That is the mechanism behind the squares: `interp_select_draw` ran at
+/// **one** wavelength, the 32-voxel chunk, so every patch was chunk-sized and
+/// every kink sat on the 28.8 m grid (corrections #45: *world-anchored and
+/// C0-continuous, and the defect is single-octave*; the same day's diagnosis:
+/// *"fix = octaves, not resolution"* — a finer single octave just makes smaller
+/// squares).
+///
+/// Powers of two would put every coarse octave's kinks **on top of** the fine
+/// ones, so a dyadic ladder starting at 512 still has a 32-voxel lattice in it.
+/// Distinct primes share no common multiple below their product, so no lattice
+/// survives at any scale a player can see — measured by
+/// [`tests::the_octave_field_has_no_kink_lattice_at_the_chunk_scale`].
+///
+/// Ratios are ≈ 2 (1.98, 2.02, 2.08, 1.97, 2.38, 1.86, 2.33), so the ladder is a
+/// lacunarity-2 fBm in everything but the exact alignment. The head of it,
+/// **509 voxels = 458.1 m at the N=2 player scale, is the ~460 m deep cell** —
+/// the coarsest scale the *record* itself resolves, so the selection field varies
+/// at the scale of the thing it is selecting within, and below.
+const OCTAVE_STRIDES: [i64; MAX_OCTAVES] = [509, 257, 127, 61, 31, 13, 7, 3];
+
+/// Per-octave lattice offsets, voxels. The strides alone are coprime, but every
+/// lattice still passes through the origin, so without an offset all octaves
+/// share a kink at `(0, 0)` and its multiples of the stride product. Arbitrary
+/// fixed numbers (they are baked into world identity like any salt); their only
+/// requirement is that they are not multiples of their octave's stride.
+const OCTAVE_OFFSETS: [(i64, i64); MAX_OCTAVES] = [
+    (0, 0),
+    (73, 149),
+    (211, 37),
+    (19, 97),
+    (7, 23),
+    (5, 11),
+    (3, 2),
+    (1, 1),
+];
+
+/// Ceiling on the ladder — the length of [`OCTAVE_STRIDES`].
+pub const MAX_OCTAVES: usize = 8;
+
+/// **The octaves [`DitherSource`]** — a *normal-score-transformed* fractional
+/// Brownian value-noise field, and the second production impl of dc-core's
+/// caller-owned-entropy seam (E5 member #0, continuation slot (a)).
+///
+/// It exists because [`Coherent`] has exactly one wavelength. Where the *shares*
+/// a draw indexes vary at 460 m and the *voxels* are 0.9 m, a single-wavelength
+/// source can only express one patch size, and the corpus has watched that read
+/// as a grid twice: the near field's 28.8 m member squares (U3, corrections #45)
+/// and the user's 2026-07-29 field report on the cold tier (*"the bilinear noise
+/// does not actually approximate what loaded chunks look like well, it sticks
+/// out poorly"*). **Structure at every scale is the thing a single octave cannot
+/// give at any bias.**
+///
+/// ## Why it is not just a sum of octaves — the sum is unusable
+///
+/// The obvious construction (add `L` corner fields with amplitudes `pᵏ`, divide
+/// by `Σ p^k`) is **catastrophically wrong for a source feeding an inverse-CDF
+/// draw**, and the arithmetic says so before any world is built. A normalised
+/// sum of 6 octaves of bilinear uniforms is a sum of 24 independent uniforms
+/// with weights ≤ 0.13; its standard deviation is
+/// `sqrt(Σ aₖ²·Σⱼwⱼ² / 12) / Σaₖ ≈ 0.085`. It is a narrow bell around ½ that
+/// essentially never leaves `[0.25, 0.75]` — so **any class whose CDF band lies
+/// outside the middle half is never drawn at all.** That is the dice-sum
+/// distortion (spines § 4 carve-out 1, corrections #39) magnified until it stops
+/// being a bias and becomes a truncation. Adding octaves makes it *worse*, never
+/// better: independent summands multiply the density's Fourier coefficients
+/// toward a Gaussian, and a Gaussian on a unit interval is the opposite of
+/// uniform.
+///
+/// ## The construction, and why the marginal is uniform BY CONSTRUCTION
+///
+/// The cure is to stop fighting the Gaussianity and use it. **Draw the corner
+/// values from a unit normal instead of a uniform.** A bilinear blend of
+/// independent normals *is* normal — exactly, not approximately — and so is a
+/// weighted sum of those blends, with a variance that is a closed form of the
+/// interpolation weights:
+///
+/// ```text
+/// S(p)  = Σₖ aₖ · Σⱼ wₖⱼ(p)·gₖⱼ ,   gₖⱼ ~ N(0,1) iid
+/// σ²(p) = Σₖ aₖ² · Σⱼ wₖⱼ(p)²  =  Σₖ aₖ² · sx·sz ,  sx = (1−fx)² + fx²
+/// u(p)  = Φ( S(p) / σ(p) )
+/// ```
+///
+/// `S/σ` is standard normal at **every** position, so `u` is **uniform on
+/// `[0,1)` at every position** — the unbiasedness a `ShareVec::draw` consumer
+/// needs is a property of the construction rather than a measured tolerance.
+/// This is the standard geostatistical **truncated-Gaussian facies simulation**
+/// move (thresholding a Gaussian random field at the quantiles of the target
+/// proportions), arriving here from the other direction: the record supplies the
+/// proportions, `ShareVec::draw` supplies the thresholds, and this supplies the
+/// field. It makes `Octaves` the **first unbiased coherent source in the tree**
+/// — corrections #39's majority amplification is a property of [`Coherent`],
+/// not of coherence (measured side by side in
+/// [`tests::the_octave_source_is_unbiased_where_the_coherent_source_amplifies`]).
+///
+/// Two approximations remain, both bounded and both measured rather than
+/// asserted: the corner normals come from a 1024-entry midpoint-quantile table
+/// (so each corner is a 1024-level discretisation of `N(0,1)`, renormalised to
+/// exactly unit variance), and `Φ` is Abramowitz & Stegun 7.1.26
+/// (`|ε| ≤ 1.5e-7`). `the_octave_field_marginal_is_uniform` measures the
+/// end-to-end deviation against a Kolmogorov–Smirnov bound.
+///
+/// ## Persistence is derived, not tuned
+///
+/// `persistence` sets the spectrum: amplitude `aₖ = persistenceᵏ` over a
+/// lacunarity-2 ladder is an fBm of Hurst exponent `H = −log₂(persistence)`, and
+/// the **level sets of a 2D fBm have fractal dimension `2 − H`** — level sets
+/// being exactly what this field's contacts are. Published fractal dimensions
+/// for traced geological boundaries (facies contacts, coastlines, outcrop
+/// margins) cluster at **D ≈ 1.2–1.3**, so [`MEMBER_PERSISTENCE`] `= 0.6` gives
+/// `H = 0.737` and `D ≈ 1.26` — inside the published band. It is a plausibility
+/// anchor from the literature rather than a fit to a deepcraft measurement, and
+/// it is named as one; what matters is that it is **not** a number chosen
+/// because a frame looked right (CLAUDE.md § *a closed system cannot detect its
+/// own scale error*).
+///
+/// ## Cost
+///
+/// `octaves` × 4 hashes per call, against [`Coherent`]'s 4, plus ~10 flops per
+/// octave and one `exp`. That is the whole reason the near path's member dither
+/// was hoisted to **once per voxel column per event** instead of once per voxel
+/// in the same slice (journal/0129): the hoist is worth ~32× and pays for the
+/// ladder several times over.
+pub struct Octaves {
+    draws: Draws,
+    octaves: usize,
+    persistence: f64,
+}
+
+/// Octave count for the near path's member dither: `509 … 13` voxels, i.e.
+/// **458 m down to 11.7 m**. The floor is deliberate — a "member" patch thinner
+/// than about ten voxels is not a rock body, it is per-voxel speckle, and the
+/// sub-voxel scale already belongs to the eighths-allocation draw
+/// (`GeoFill`). The head is the deep cell (see [`OCTAVE_STRIDES`]).
+pub const MEMBER_OCTAVES: usize = 6;
+
+/// Persistence for the near path's member dither — `H = 0.737`, contact-trace
+/// fractal dimension `D ≈ 1.26`, inside the published 1.2–1.3 band for traced
+/// geological boundaries. See [`Octaves`] § *Persistence is derived, not tuned*.
+pub const MEMBER_PERSISTENCE: f64 = 0.6;
+
+impl Octaves {
+    /// An octaves source over `draws`'s domain. `octaves` selects how many rungs
+    /// of [`OCTAVE_STRIDES`] to sum, from the coarsest; `persistence` is the
+    /// per-octave amplitude ratio (see the type docs — it is an fBm Hurst
+    /// exponent in disguise).
+    ///
+    /// **This is the whole authoring surface a pack gets** (ruled 2026-07-29:
+    /// *per-voxel stays engine-executed; content decides through data*) — select
+    /// the source by id, hand it these two numbers, never a per-voxel body.
+    pub fn new(draws: Draws, octaves: usize, persistence: f64) -> Self {
+        assert!(
+            (1..=MAX_OCTAVES).contains(&octaves),
+            "octaves must be 1..={MAX_OCTAVES}, got {octaves}"
+        );
+        assert!(
+            persistence > 0.0 && persistence <= 1.0,
+            "persistence must be in (0, 1], got {persistence}"
+        );
+        Octaves {
+            draws,
+            octaves,
+            persistence,
+        }
+    }
+
+    /// The source the near path's member dither runs on: [`MEMBER_OCTAVES`]
+    /// rungs at [`MEMBER_PERSISTENCE`].
+    pub fn member(draws: Draws) -> Self {
+        Self::new(draws, MEMBER_OCTAVES, MEMBER_PERSISTENCE)
+    }
+}
+
+impl dc_core::coarse::DitherSource for Octaves {
+    fn uniform(&self, wx: i64, wz: i64, salt: u64) -> f64 {
+        let mut sum = 0.0f64;
+        let mut var = 0.0f64;
+        let mut amp = 1.0f64;
+        for k in 0..self.octaves {
+            let stride = OCTAVE_STRIDES[k];
+            let (offx, offz) = OCTAVE_OFFSETS[k];
+            let (ox, oz) = (wx + offx, wz + offz);
+            let cx = ox.div_euclid(stride);
+            let cz = oz.div_euclid(stride);
+            let fx = (ox.rem_euclid(stride) as f64 + 0.5) / stride as f64;
+            let fz = (oz.rem_euclid(stride) as f64 + 0.5) / stride as f64;
+            // The octave index is IN THE ADDRESS. Without it two octaves whose
+            // cell coordinates happen to coincide numerically would hash to the
+            // same corner value and stop being independent — which would break
+            // both the variance formula and the uniformity that rests on it.
+            let g = |dx: i64, dz: i64| {
+                gauss::corner_normal(self.draws, salt, k as u64, cx + dx, cz + dz)
+            };
+            let top = g(0, 0) * (1.0 - fx) + g(1, 0) * fx;
+            let bot = g(0, 1) * (1.0 - fx) + g(1, 1) * fx;
+            sum += amp * (top * (1.0 - fz) + bot * fz);
+            // Σⱼ wⱼ² factorises: ((1−fx)² + fx²)·((1−fz)² + fz²).
+            let sx = (1.0 - fx) * (1.0 - fx) + fx * fx;
+            let sz = (1.0 - fz) * (1.0 - fz) + fz * fz;
+            var += amp * amp * sx * sz;
+            amp *= self.persistence;
+        }
+        // `var` is bounded below by the coarsest octave's 0.25 (amp = 1, sx and
+        // sz ≥ ½ each), so this never divides by zero.
+        gauss::phi(sum / var.sqrt()).clamp(0.0, 1.0 - f64::EPSILON)
+    }
+}
+
+/// **The normal-score machinery [`Octaves`] rests on**, kept private and local.
+///
+/// These are general statistics and they would sit more naturally in
+/// `dc_sim::statistical`. They are here because there is exactly **one**
+/// consumer: promoting a utility to a shared crate before a second caller exists
+/// is anti-shape A-4 (build beside the thing that needs it, move it when
+/// something else asks). If a second consumer appears, this module is what
+/// moves.
+mod gauss {
+    use dc_sim::statistical::rng::Draws;
+    use std::sync::LazyLock;
+
+    /// Quantile table resolution. 1024 midpoint quantiles of `N(0,1)`, so a
+    /// corner value is a 1024-level discretisation — the outermost levels sit at
+    /// `Φ⁻¹(1/2048) ≈ ∓3.48σ`, which is deep enough that the truncation is
+    /// invisible once four corners of six octaves are summed.
+    const LEVELS: usize = 1024;
+
+    /// Midpoint quantiles of the standard normal, **renormalised to exactly unit
+    /// variance** for this discrete distribution.
+    ///
+    /// The renormalisation is not cosmetic: [`super::Octaves`]'s variance formula
+    /// assumes `Var(gₖⱼ) = 1` exactly, and the table's raw second moment is
+    /// slightly below 1 (a midpoint rule under-weights the tails it truncates).
+    /// Dividing by its own RMS makes the assumption true of the numbers actually
+    /// used, so the uniformity of `Φ(S/σ)` does not inherit a quantisation bias.
+    /// The mean is exactly zero by the symmetry of midpoint quantiles.
+    static NORMAL_Q: LazyLock<[f64; LEVELS]> = LazyLock::new(|| {
+        let mut q = [0.0f64; LEVELS];
+        for (i, slot) in q.iter_mut().enumerate() {
+            *slot = inv_phi((i as f64 + 0.5) / LEVELS as f64);
+        }
+        let rms = (q.iter().map(|v| v * v).sum::<f64>() / LEVELS as f64).sqrt();
+        for slot in q.iter_mut() {
+            *slot /= rms;
+        }
+        q
+    });
+
+    /// One octave corner's unit-normal value, addressed by
+    /// `(domain, salt→tag, octave, cell)`. Ten bits of the hash index the
+    /// quantile table; the remaining bits are unused, which is fine — the
+    /// coherence, not the entropy per corner, is what this field is short of.
+    #[inline]
+    pub(super) fn corner_normal(draws: Draws, salt: u64, octave: u64, cx: i64, cz: i64) -> f64 {
+        let bits = draws.bits(&[salt, octave, cx as u64, cz as u64]);
+        NORMAL_Q[(bits >> 54) as usize]
+    }
+
+    /// The standard normal CDF, from Abramowitz & Stegun 7.1.26's `erf`
+    /// (`|ε| ≤ 1.5e-7` on `erf`, hence on `Φ`). Deterministic in the same sense
+    /// the rest of the generator is: pure arithmetic plus `exp`, which the
+    /// collapse tier already depends on for world identity
+    /// (`collapse.rs`'s flow-energy decay, `geology.rs`'s soft fitness).
+    #[inline]
+    pub(super) fn phi(z: f64) -> f64 {
+        0.5 * (1.0 + erf(z * std::f64::consts::FRAC_1_SQRT_2))
+    }
+
+    #[inline]
+    fn erf(x: f64) -> f64 {
+        let sign = if x < 0.0 { -1.0 } else { 1.0 };
+        let x = x.abs();
+        let t = 1.0 / (1.0 + 0.327_591_1 * x);
+        let poly = t
+            * (0.254_829_592
+                + t * (-0.284_496_736
+                    + t * (1.421_413_741 + t * (-1.453_152_027 + t * 1.061_405_429))));
+        sign * (1.0 - poly * (-x * x).exp())
+    }
+
+    /// Inverse standard normal CDF — Peter Acklam's rational approximation
+    /// (relative error < 1.15e-9). Used **once**, to build [`NORMAL_Q`]; it is
+    /// not on any per-voxel path.
+    fn inv_phi(p: f64) -> f64 {
+        const A: [f64; 6] = [
+            -3.969_683_028_665_376e1,
+            2.209_460_984_245_205e2,
+            -2.759_285_104_469_687e2,
+            1.383_577_518_672_69e2,
+            -3.066_479_806_614_716e1,
+            2.506_628_277_459_239e0,
+        ];
+        const B: [f64; 5] = [
+            -5.447_609_879_822_406e1,
+            1.615_858_368_580_409e2,
+            -1.556_989_798_598_866e2,
+            6.680_131_188_771_972e1,
+            -1.328_068_155_288_572e1,
+        ];
+        const C: [f64; 6] = [
+            -7.784_894_002_430_293e-3,
+            -3.223_964_580_411_365e-1,
+            -2.400_758_277_161_838e0,
+            -2.549_732_539_343_734e0,
+            4.374_664_141_464_968e0,
+            2.938_163_982_698_783e0,
+        ];
+        const D: [f64; 4] = [
+            7.784_695_709_041_462e-3,
+            3.224_671_290_700_398e-1,
+            2.445_134_137_142_996e0,
+            3.754_408_661_907_416e0,
+        ];
+        const P_LOW: f64 = 0.024_25;
+        if p < P_LOW {
+            let q = (-2.0 * p.ln()).sqrt();
+            (((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q + C[5])
+                / ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q + 1.0)
+        } else if p <= 1.0 - P_LOW {
+            let q = p - 0.5;
+            let r = q * q;
+            (((((A[0] * r + A[1]) * r + A[2]) * r + A[3]) * r + A[4]) * r + A[5]) * q
+                / (((((B[0] * r + B[1]) * r + B[2]) * r + B[3]) * r + B[4]) * r + 1.0)
+        } else {
+            let q = (-2.0 * (1.0 - p).ln()).sqrt();
+            -(((((C[0] * q + C[1]) * q + C[2]) * q + C[3]) * q + C[4]) * q + C[5])
+                / ((((D[0] * q + D[1]) * q + D[2]) * q + D[3]) * q + 1.0)
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        /// `Φ` and `Φ⁻¹` must actually be inverses, or the table is a table of
+        /// the wrong numbers and every claim above it is void.
+        #[test]
+        fn phi_and_inv_phi_round_trip() {
+            for i in 1..200 {
+                let p = i as f64 / 200.0;
+                let z = inv_phi(p);
+                assert!(
+                    (phi(z) - p).abs() < 2e-7,
+                    "Φ(Φ⁻¹({p})) = {} — off by more than A&S's own error",
+                    phi(z)
+                );
+            }
+        }
+
+        /// The table is what makes `Var(g) = 1` true rather than assumed. If this
+        /// drifts, [`super::super::Octaves`]'s `σ²` is wrong and the marginal
+        /// stops being uniform — silently, and everywhere.
+        #[test]
+        fn the_quantile_table_has_unit_variance_and_zero_mean() {
+            let q = &*NORMAL_Q;
+            let mean = q.iter().sum::<f64>() / LEVELS as f64;
+            let var = q.iter().map(|v| v * v).sum::<f64>() / LEVELS as f64;
+            assert!(mean.abs() < 1e-12, "table mean {mean} is not zero");
+            assert!((var - 1.0).abs() < 1e-12, "table variance {var} is not one");
+        }
     }
 }
 
@@ -344,6 +712,292 @@ mod tests {
             r.abs() < 0.08,
             "the membership and class salts correlate at r = {r:+.4}"
         );
+    }
+
+    // ─────────────────────── the octaves source (member #0) ──────────────────
+    //
+    // The law tests [`Coherent`]'s mirror, plus the two this source exists for:
+    // a uniform marginal (which `Coherent` does NOT have) and no kink lattice at
+    // the chunk scale (which is the whole of corrections #45).
+
+    /// Determinism first, because everything else is a property of a function
+    /// that must BE one: same seed, same domain, same address, same value; a
+    /// different seed, salt, or position moves it. No wall clock, no ambient
+    /// entropy, no dependence on evaluation order.
+    #[test]
+    fn the_octave_source_is_a_pure_function_of_seed_domain_and_address() {
+        use dc_core::coarse::DitherSource;
+        let a = Octaves::member(Draws::of::<GeoDeep>(1337));
+        let b = Octaves::member(Draws::of::<GeoDeep>(1337));
+        for (wx, wz) in [(0i64, 0i64), (12_345, -6_789), (-1, 1), (71_000, -2_700)] {
+            assert_eq!(a.uniform(wx, wz, 3), b.uniform(wx, wz, 3));
+        }
+        let other_seed = Octaves::member(Draws::of::<GeoDeep>(1338));
+        let other_domain = Octaves::member(Draws::of::<GeoFill>(1337));
+        assert_ne!(a.uniform(10, 10, 0), other_seed.uniform(10, 10, 0));
+        assert_ne!(a.uniform(10, 10, 0), other_domain.uniform(10, 10, 0));
+        assert_ne!(a.uniform(10, 10, 0), a.uniform(10, 10, 1));
+        assert_ne!(a.uniform(10, 10, 0), a.uniform(11, 10, 0));
+    }
+
+    /// **The marginal is uniform — the property the construction exists for.**
+    ///
+    /// `S/σ` is standard normal at every position by the algebra in [`Octaves`]'s
+    /// docs, so `Φ(S/σ)` is `U[0,1)` there. This measures the end-to-end
+    /// deviation, which carries the two bounded approximations (the 1024-level
+    /// corner table and A&S's `Φ`) plus sampling noise.
+    ///
+    /// **Positions are deliberately far apart and mutually prime-strided.** A
+    /// contiguous window would be dominated by the coarsest octave — 509 voxels
+    /// wide, so a 200-voxel window holds a *fraction* of one independent draw and
+    /// the empirical CDF would measure that draw, not the marginal. At a 1031/1033
+    /// pitch every sample is past every octave's correlation length.
+    ///
+    /// The bound is **derived, not fitted**: the Kolmogorov–Smirnov 99 % critical
+    /// value at `n = 10_000` is `1.63/√n = 0.0163`, and the approximation error
+    /// contributes ~1e-3, so 0.02 is the honest line. A failure here means the
+    /// variance formula and the field have stopped agreeing.
+    #[test]
+    fn the_octave_field_marginal_is_uniform() {
+        use dc_core::coarse::DitherSource;
+        let src = Octaves::member(Draws::of::<GeoDeep>(1337));
+        let mut vals = Vec::with_capacity(10_000);
+        for i in 0..100i64 {
+            for j in 0..100i64 {
+                vals.push(src.uniform(i * 1031 - 50_000, j * 1033 - 50_000, 0));
+            }
+        }
+        vals.sort_by(f64::total_cmp);
+        let n = vals.len() as f64;
+        let mut worst = 0.0f64;
+        for (i, &v) in vals.iter().enumerate() {
+            worst = worst.max((v - i as f64 / n).abs());
+        }
+        assert!(
+            worst < 0.02,
+            "octave marginal deviates from uniform by {worst:.4} (KS 99 % at n=10000 is 0.0163)"
+        );
+    }
+
+    /// **The unbiasedness the far site had to live without.**
+    ///
+    /// `coarse.rs`'s own law test measures [`Coherent`] rendering a 0.6 majority
+    /// at **> 0.63** — the dice-sum distortion, whose sign corrections #39 had to
+    /// correct once already. Through this source the same share vector renders at
+    /// 0.6, because the marginal is uniform. Same instrument, side by side, so the
+    /// comparison is not across two test fixtures' assumptions.
+    ///
+    /// This is what makes the octaves source safe for the *member* dither in a
+    /// way a plain octave sum would not have been: a source that pushed splits
+    /// toward the majority would erase exactly the minority members the near-path
+    /// slice exists to let through.
+    #[test]
+    fn the_octave_source_is_unbiased_where_the_coherent_source_amplifies() {
+        use dc_core::coarse::{CoarseField, Registration, ShareVec};
+        let sv = ShareVec::from_shares([0.6, 0.4]);
+        let field = CoarseField::from_cells(1, 1, Registration::new(0.0, 0.0, 1.0), vec![sv]);
+        // Positions past every correlation length, so each is an independent draw
+        // of the marginal (see `the_octave_field_marginal_is_uniform`).
+        let measure = |src: &dyn dc_core::coarse::DitherSource| -> f64 {
+            let mut c = [0u64; 2];
+            for i in 0..100i64 {
+                for j in 0..100i64 {
+                    let (wx, wz) = (i * 1031 - 50_000, j * 1033 - 50_000);
+                    if let Some(k) = field.sample_dithered((wx, wz), src, 5, 6) {
+                        c[k] += 1;
+                    }
+                }
+            }
+            c[0] as f64 / (c[0] + c[1]) as f64
+        };
+        let coherent = measure(&Coherent::new(Draws::of::<GeoDeep>(1337), 32));
+        let octaves = measure(&Octaves::member(Draws::of::<GeoDeep>(1337)));
+        eprintln!(
+            "a 0.6/0.4 share vector renders as: coherent {coherent:.4}, octaves {octaves:.4} \
+             (recorded share 0.6)"
+        );
+        // 3σ of a binomial at n = 10_000, p = 0.6 is 0.0147.
+        assert!(
+            (octaves - 0.6).abs() < 0.015,
+            "octaves rendered the 0.6 majority at {octaves:.4} — the marginal is not uniform"
+        );
+        assert!(
+            coherent > 0.63,
+            "the coherent source is supposed to amplify the majority past 0.63 (it measured \
+             {coherent:.4}); if that has changed, corrections #39 and this comparison both move"
+        );
+    }
+
+    /// **No kink lattice at the chunk scale — corrections #45, as a gate.**
+    ///
+    /// A bilinear corner field is *linear along x inside a cell*, so its second
+    /// difference along x is **exactly zero** everywhere except on the cell
+    /// lattice, where the slope changes. That is the squares: all of a
+    /// single-octave field's structure is concentrated on one grid, and for the
+    /// member dither that grid was the 32-voxel chunk. The measurement is the
+    /// ratio of mean `|Δ²u|` on the 32-lattice to mean `|Δ²u|` off it.
+    ///
+    /// - [`Coherent`] at stride 32: off-lattice curvature is **identically 0**, so
+    ///   the ratio is infinite. Asserted as the exact zero it is, because that is
+    ///   the mechanism, not a magnitude.
+    /// - [`Octaves`]: no rung is 32 or a divisor of it (all strides are distinct
+    ///   primes), so the 32-lattice is not special and the ratio is ~1.
+    ///
+    /// **Scale-free:** a second difference at three adjacent voxels is a local
+    /// arithmetic property of the field, identical at any world size or extent —
+    /// nothing about it depends on how much world exists around it.
+    #[test]
+    fn the_octave_field_has_no_kink_lattice_at_the_chunk_scale() {
+        use dc_core::coarse::DitherSource;
+        let curvature = |src: &dyn DitherSource| -> (f64, f64) {
+            let (mut on, mut on_n, mut off, mut off_n) = (0.0f64, 0u64, 0.0f64, 0u64);
+            for z in 0..64i64 {
+                for x in 200i64..1_200 {
+                    let d2 = (src.uniform(x - 1, z, 0) - 2.0 * src.uniform(x, z, 0)
+                        + src.uniform(x + 1, z, 0))
+                    .abs();
+                    // "On the lattice" is *the three-point window straddling a
+                    // 32-voxel line*, which is phases 0 and 31 — not phase 0
+                    // alone. Getting that wrong put a chunk-line kink into the
+                    // off-lattice bucket and made a stride-32 field look as if it
+                    // had interior curvature (2.7e-4 instead of 1e-17).
+                    if (x - 1).div_euclid(32) != (x + 1).div_euclid(32) {
+                        on += d2;
+                        on_n += 1;
+                    } else {
+                        off += d2;
+                        off_n += 1;
+                    }
+                }
+            }
+            (on / on_n as f64, off / off_n as f64)
+        };
+        let (c_on, c_off) = curvature(&Coherent::new(Draws::of::<GeoDeep>(1337), 32));
+        eprintln!("coherent(32): |Δ²u| on-lattice {c_on:.3e}, off-lattice {c_off:.3e}");
+        // Off-lattice curvature is zero in exact arithmetic and float rounding
+        // residue in practice, so the assertion is on the ORDER: the lattice
+        // carries the structure by ten-plus decimal digits.
+        assert!(
+            c_off < 1e-15 && c_on / c_off > 1e9,
+            "a stride-32 bilinear field must have essentially NO curvature off the 32-lattice \
+             (on {c_on:.3e}, off {c_off:.3e}) — that concentration is the mechanism behind the \
+             28.8 m squares"
+        );
+        let (o_on, o_off) = curvature(&Octaves::member(Draws::of::<GeoDeep>(1337)));
+        eprintln!("octaves: |Δ²u| on-lattice {o_on:.3e}, off-lattice {o_off:.3e}");
+        let ratio = o_on / o_off;
+        assert!(
+            (0.5..2.0).contains(&ratio),
+            "the octave field's 32-voxel lattice is still special: |Δ²u| on-lattice {o_on:.3e} \
+             vs off-lattice {o_off:.3e} (ratio {ratio:.2})"
+        );
+    }
+
+    /// **Power at every scale, measured as a variogram.**
+    ///
+    /// `V(L) = E[(u(p+L) − u(p))²]`. A single-octave field **saturates at its own
+    /// stride** — past one cell the corner draws are independent, so `V(32)` and
+    /// `V(512)` are the same number and the field has exactly one characteristic
+    /// length. That single length is what the eye reads as a patch size. The
+    /// octave ladder is still climbing at 512 because its coarsest rung is 509.
+    ///
+    /// **Scale-free:** a lag-differenced second moment over a fixed lag set is a
+    /// per-pair arithmetic property of the field; the world's extent does not
+    /// enter it.
+    #[test]
+    fn the_octave_field_carries_variance_at_every_scale_where_one_octave_saturates() {
+        use dc_core::coarse::DitherSource;
+        let vario = |src: &dyn DitherSource, lag: i64| -> f64 {
+            let mut acc = 0.0f64;
+            let mut n = 0u64;
+            for z in 0..48i64 {
+                for x in 0..48i64 {
+                    let (px, pz) = (x * 37 - 800, z * 41 - 900);
+                    let d = src.uniform(px + lag, pz, 0) - src.uniform(px, pz, 0);
+                    acc += d * d;
+                    n += 1;
+                }
+            }
+            acc / n as f64
+        };
+        let coh = Coherent::new(Draws::of::<GeoDeep>(1337), 32);
+        let oct = Octaves::member(Draws::of::<GeoDeep>(1337));
+        for lag in [1i64, 4, 16, 32, 64, 128, 512] {
+            eprintln!(
+                "V({lag:>3})  coherent(32) {:.5}   octaves {:.5}",
+                vario(&coh, lag),
+                vario(&oct, lag)
+            );
+        }
+        // Saturation is at TWO strides, not one: at lag 32 exactly, `u(x)` and
+        // `u(x+32)` still share the cell corner between them, so they are not yet
+        // independent. Past 64 the single octave has nothing left to say.
+        let (c64, c512) = (vario(&coh, 64), vario(&coh, 512));
+        assert!(
+            (c512 / c64 - 1.0).abs() < 0.15,
+            "the single octave must be saturated past two strides: V(64) {c64:.4}, V(512) {c512:.4}"
+        );
+        let (o32, o512) = (vario(&oct, 32), vario(&oct, 512));
+        assert!(
+            o512 / o32 > 1.3,
+            "the octave ladder must still be climbing past the chunk scale: V(32) {o32:.4}, \
+             V(512) {o512:.4} (ratio {:.2})",
+            o512 / o32
+        );
+    }
+
+    /// Two salts of one octaves source are independent — the tag-space sibling of
+    /// [`two_salts_of_the_coherent_source_are_independent`], and the same
+    /// assumption `sample_dithered`'s two draws rest on. The bound is that test's,
+    /// for the same reason (each value is a blend of many corner draws, so the
+    /// null distribution of the sample correlation is wider than a raw stream's).
+    #[test]
+    fn two_salts_of_the_octaves_source_are_independent() {
+        use dc_core::coarse::DitherSource;
+        let src = Octaves::member(Draws::of::<GeoDeep>(1337));
+        let n = 20_000usize;
+        let (mut sx, mut sy, mut sxy, mut sxx, mut syy) = (0.0, 0.0, 0.0, 0.0, 0.0);
+        for i in 0..n {
+            let (wx, wz) = ((i as i64 % 137) * 71 - 4_000, (i as i64 / 137) * 73 - 5_000);
+            let (x, y) = (src.uniform(wx, wz, 0), src.uniform(wx, wz, 1));
+            sx += x;
+            sy += y;
+            sxy += x * y;
+            sxx += x * x;
+            syy += y * y;
+        }
+        let nf = n as f64;
+        let r = (sxy - sx * sy / nf) / ((sxx - sx * sx / nf) * (syy - sy * sy / nf)).sqrt();
+        assert!(r.abs() < 0.08, "two octave salts correlate at r = {r:+.4}");
+    }
+
+    /// **The retirement receipt for `geology::interp_select_draw`** (journal/0129).
+    ///
+    /// The near path's member dither used to call a chunk-addressed helper —
+    /// `interp_select_draw(seed, salt, tag, cx, cz, fx, fz)` with
+    /// `fx = (x + 0.5)/32` — and that helper is bit-for-bit a stride-32
+    /// [`Coherent`] read at the absolute voxel. Only the *address arithmetic*
+    /// could differ, so that is what this pins: the retirement moved the call to a
+    /// `DitherSource`, and the field it was reading is unchanged. It is also what
+    /// lets the A/B probe reconstruct the pre-slice member field exactly, in the
+    /// same binary as the new one (journal/0125's one-binary comparison shape).
+    #[test]
+    fn a_stride_32_coherent_is_the_retired_chunk_addressed_selection_field() {
+        use dc_core::coarse::DitherSource;
+        let draws = Draws::from_recorded_salt(1337, 0x5700_000E);
+        let src = Coherent::new(draws, 32);
+        for (cx, cz) in [(0i64, 0i64), (3, -7), (-12, 40)] {
+            for (x, z) in [(0usize, 0usize), (5, 31), (16, 16), (31, 0)] {
+                let fx = (x as f64 + 0.5) / 32.0;
+                let fz = (z as f64 + 0.5) / 32.0;
+                assert_eq!(
+                    interp_corner_field(draws, 2, cx, cz, fx, fz),
+                    src.uniform(cx * 32 + x as i64, cz * 32 + z as i64, 2),
+                    "the retired chunk-addressed field and a stride-32 Coherent must agree \
+                     bit-for-bit at ({cx},{cz})+({x},{z})"
+                );
+            }
+        }
     }
 
     /// Determinism, which the whole tier rests on: same seed, same domain, same

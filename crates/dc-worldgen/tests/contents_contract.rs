@@ -414,20 +414,49 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0xE19BA53B71A31DB4  materials 0xD5BA01C497D7870B  table 0xC4E449EDEF975AAC
 //   medium 0x539           blocks 0x5B7C3AFB9E855E98  materials 0x0C62936DAD80AFA4  table 0x091C7E292E6BA539
 //   small  0xC11A7E2026    blocks 0x4B407E53AB7DDCDC  (materials/table unmoved)
+// **Moved 2026-07-29 by the octaves member dither (journal/0128 + journal/0129) —
+// authorized, and it is a semantics change the user ratifies from a WALK, not from
+// these bytes** (CLAUDE.md § Conventions: the testing world is a scratch pad;
+// goldens are tripwires, never ratified intent).
+//
+// Two mechanisms, both of which move which *member* of a content class a voxel
+// shows, and neither of which can move its *class*:
+//
+//  1. The within-class member dither read a **single bilinear octave at chunk
+//     wavelength** and now reads `draws::Octaves` — a normal-score-transformed fBm
+//     over a pairwise-coprime prime stride ladder. Measured at U3's reference pose:
+//     the fraction of the selection field's curvature sitting on the 28.8 m lattice
+//     went from **all of it** (on/off ratio 1.2e14) to **none in particular**
+//     (1.07), and the majority member's share of a window fell 0.662 → 0.575
+//     because the new source's marginal is uniform where the old one amplified the
+//     majority (corrections #39, measured 0.6829 for a recorded 0.6).
+//  2. `StrataCtx::draw` — the record's own *representative* member pick — moved to
+//     the same field at the same voxel address, because the record picking from one
+//     field while expression picks from another would make two opinions independent
+//     rather than merely divergent away from the chunk centre.
+//
+// The **Small row is byte-identical**, the same way it has been for MFD, 2b, hybrid
+// `p` and creep, and for the same structural reason this file's header states: its
+// sampled chunks carry no strata record, so there is no member to dither. Prior
+// values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0xBA49FA738F5BC724  materials 0x9BB3D69807839519  table 0x97C6E0D80524F29C
+//   medium 0x539           blocks 0x1CF95D9081B51CB8  materials 0x54F0706D5B3792A0  table 0xB89BD3D3BAB4485D
+//   small  0xC11A7E2026    (unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0xBA49_FA73_8F5B_C724,
-        0x9BB3_D698_0783_9519,
-        0x97C6_E0D8_0524_F29C,
+        0x7F53_3829_5019_FD72,
+        0xB1A8_93E1_4112_FF92,
+        0xDC14_B424_893E_9099,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x1CF9_5D90_81B5_1CB8,
-        0x54F0_706D_5B37_92A0,
-        0xB89B_D3D3_BAB4_485D,
+        0x6594_FCBA_B5C3_4D07,
+        0x2687_D8A3_3291_BD0E,
+        0x10F4_9A39_D3F4_B531,
     ),
     (
         0x0000_00C1_1A7E_2026,
