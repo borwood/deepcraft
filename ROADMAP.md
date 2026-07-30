@@ -970,6 +970,37 @@ footprint with S11's air-component container (S15 design choice 2).
     re-derive this as "unprobed"; the member-#0 design pass did, and only the user's memory
     caught it.* Residue: a confirm re-shoot at U3's reference pose rides the next appearance
     walk.
+  - **✅ THE CO-REQUISITE SHIPPED 2026-07-29 — the octaves `DitherSource` (journal/0128),
+    slot (a) of the continuation pair.** `draws.rs::Octaves`: a **normal-score-transformed
+    fBm** over a **pairwise-coprime prime** stride ladder (509 … 13 voxels; the head, 509
+    voxels = 458 m, is the deep cell itself). Two things no prior plan had, both found by
+    doing the arithmetic before writing the code:
+    - **The obvious fBm SUM is unusable for a source that feeds an inverse-CDF draw.**
+      Normalised, six octaves of bilinear uniforms is a bell with **σ ≈ 0.085 around ½** —
+      any class whose CDF band lies outside the middle half of the interval would **never be
+      drawn at all**. Adding octaves makes it monotonically worse. So the corners are drawn
+      **normal**, not uniform, and the output is `Φ(S/σ)` with `σ²` a closed form of the
+      interpolation weights: a bilinear blend of normals *is* normal, so the marginal is
+      **uniform by construction**. That is the geostatisticians' **truncated-Gaussian facies
+      simulation**, arrived at from the wrong end.
+    - **Prime strides, not dyadic.** A dyadic ladder from 512 keeps a 32-voxel kink lattice
+      (every coarse octave's kinks land on the fine ones). Measured: on/off-lattice curvature
+      ratio at the chunk scale **1.36** for `Octaves` against **1.0e14** for the shipped
+      `Coherent` — because a bilinear field is *linear inside a cell*, so **all** of its
+      curvature sits on one grid. That 10¹⁴ **is** the 28.8 m square-edge signature, and it is
+      now a gate test.
+    - **Consequence for corrections #39, which had lost its heir:** `Octaves` renders a 0.6/0.4
+      share vector at **0.60** where `Coherent` renders it at **0.66**. The majority
+      amplification is a property of `Coherent`, **not of coherence** — so the near path gets
+      an unbiased coherent source, and #39's "CDF-corrected source" heir exists for the far
+      register whenever its own semantics are re-decided.
+    - **Persistence 0.6 is derived, not tuned:** `H = 0.737`, and 2D-fBm level sets (which is
+      what a contact is) have fractal dimension `2 − H ≈ 1.26` — inside the published 1.2–1.3
+      band for traced geological boundaries. A literature anchor, named as one.
+    - **It shipped with NO visible outcome and was labelled so.** Its consumer is the
+      near-path restructure (journal/0129), same worktree, same evening — the pair was kept a
+      pair precisely so this did not become a second `CoarseField` sitting uncalled for seven
+      days.
   - **WHAT WAS RATIFIED**, 2026-07-22, in the strongest language in this thread: `CoarseField<T>`
     as a **boundary type** whose only fine accessors are two legal moves (`sample` /
     `sample_dithered`), making the raw per-cell read **inexpressible**. The user: *"we finish
