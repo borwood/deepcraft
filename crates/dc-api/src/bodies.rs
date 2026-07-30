@@ -709,7 +709,7 @@ pub fn stout_plan() -> BodyPlan {
 /// stride extremes saturate the clamp again, and there is no slack at all that
 /// covers every frame without pushing the *resting* knee past a squat:
 ///
-/// | slack | resting knee bend | frames still beyond reach (of 88) |
+/// | slack | resting knee bend | samples still beyond reach (of 88) |
 /// |-------|-------------------|-----------------------------------|
 /// | −0.020 (today's biped) | 0.0° (clamped straight) | **88** — every one |
 /// | +0.030 | 29.2° | 32 |

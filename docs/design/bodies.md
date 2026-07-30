@@ -100,14 +100,16 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 > hip), riding the same three unmodified clips, in `experiment_body_pack()` — **no engine
 > constant was touched, and no part of the call above is answered here.** With the sole
 > target inside the annulus the closed-form IK solves on the first frame it is asked:
-> **86 of 88 sampled frames plant, and the knee bends to −56.2°.** The two failures are
-> `walk`'s stride extremes, which need `hypot(hip, stride_forward)` of reach, not `hip`.
+> **86 of 88 samples plant** (a sample is one foot on one stepped frame; 88 per plan,
+> which is exactly half of journal/0130's 176 across two plans), **and the knee bends
+> to −56.2°.** The two failures are `walk`'s stride extremes, which need
+> `hypot(hip, stride_forward)` of reach, not `hip`.
 >
 > **The new fact, and it constrains the call:** the resting knee bend and the stride
 > coverage are **locked together** and trade against each other. Measured over the
 > authored clip set — `idle` 24 frames, `walk` 12, `jump` 8, both legs, at the 12 fps grid:
 >
-> | leg slack (reach − hip) | resting knee bend | frames still beyond reach (of 88) |
+> | leg slack (reach − hip) | resting knee bend | samples still beyond reach (of 88) |
 > |-------------------------|-------------------|-----------------------------------|
 > | −0.020 m (today's biped) | 0.0° — clamped straight | **88**, every one |
 > | +0.030 m | 29.2° | 32 |

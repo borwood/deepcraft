@@ -86,7 +86,7 @@ Sweeping the authored clip set (idle 24 frames, walk 12, jump 8, both legs, at t
 renderer's 12 fps grid) puts the fixed point just above **0.102 m**, and exposes a
 trade nobody had seen because nobody had ever had a plan on the reachable side of it:
 
-| leg slack | resting knee bend | frames still beyond reach (of 88) |
+| leg slack | resting knee bend | samples still beyond reach (of 88) |
 |---|---|---|
 | −0.020 m (today's biped) | 0.0° — clamped dead straight | **88**, every one |
 | +0.030 m | 29.2° | 32 |
