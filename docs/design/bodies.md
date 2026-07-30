@@ -123,7 +123,34 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 > *upward* where a walk needs the pelvis to *drop* on the stance leg. That observation is
 > offered as evidence for the call, not as a resolution of it.
 >
-> **⚠ AND A SECOND, INDEPENDENT REFUSAL, SCALE-FREE:** the correction window is **half a
+> **⚠ THE UNITS LIST ABOVE IS SHORT BY ONE: there are FOUR absolute-metres constants,
+> not three.** The paragraph beginning *"three quantities are absolute metres"* names hip
+> height, the clips' root bob, and the foot-IK window. It misses
+> **`CROUCH_ROOT_DROP_M` = 0.45 m** (dc-client `body.rs`) — which is **50.0% of the
+> biped's hip height and 97.8% of the stout's**, so a crouching `dc:body/stout` puts its
+> hip at **0.010 m** and folds its knee to a degenerate **180°**. That constant is not a
+> footnote to the others: because it moves the hip *toward* the ground, it is **the one
+> posture in which the stock biped's foot IK has always worked** — 88/88 samples
+> corrected, knee bending to 123.7°. journal/0130's *"never engaged"* is true of
+> **standing**, and was never true of crouching. (Corollary in CLAUDE.md § reading a
+> null, landing on the entry that established it.)
+>
+> **⚠ AND FOOT PLACEMENT HAS TWO INDEPENDENT GATES, WHICH NOTHING RECONCILES.** A
+> correction happens only if the ground is inside the **half-voxel window** *and* the
+> sole target is inside the **annulus** `[|l1−l2|, l1+l2]`. The three plans fail
+> different gates in different postures, and **no plan passes both in every posture**:
+>
+> | | flat, standing | flat, crouching | +0.30 m step (synthetic) | one-voxel step |
+> |---|---|---|---|---|
+> | `biped` | annulus refuses, 0/88 | **88/88 plant**, knee 123.7° | uphill foot plants, knee 90° | window refuses raised foot |
+> | `stout` | annulus refuses, 0/88 | 88/88 plant, knee **180°** (degenerate) | uphill foot plants, knee 135° | window refuses raised foot |
+> | `longleg` | **86/88 plant**, knee 56.2° | **window refuses, 4/88** | 87/88 plant | window refuses raised foot |
+>
+> `longleg` standing works and crouching does not; `biped` crouching works and standing
+> does not. That complementarity is the sharpest available statement that the window
+> (voxel-derived) and the geometry (plan-derived) were never reconciled.
+>
+> **⚠ AND A THIRD, INDEPENDENT REFUSAL, SCALE-FREE:** the correction window is **half a
 > voxel** and the smallest relief real terrain can have is **one whole voxel**, at *every*
 > scale N — the ratio is fixed at **2:1 by construction**. So **no real terrain step ever
 > fits inside the window**: on a one-voxel step every raised-foot sample is refused, on all
