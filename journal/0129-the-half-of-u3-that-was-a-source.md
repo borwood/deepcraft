@@ -343,6 +343,27 @@ No other golden in the workspace moved: `GOLDEN_FAR_SURFACE` reads the far tier
 (`providers_golden`, `rate_axis`, `creep_operator`, `GOLDEN_GEOTHERM`,
 `GOLDEN_HEAD`, `GOLDEN_CHAPTERS`) sit upstream of the collapse tier entirely.
 
+## Gate
+
+`cargo test --workspace --release`, exit 0, read from the Tee'd log rather than the
+console: **90 units / 869 passed / 0 failed**, against the pre-pair baseline of
+**90 units / 857 passed**. The +12 is exactly the twelve tests these two entries
+added, each confirmed by name in the log: seven in `draws::` (octaves determinism,
+uniform marginal, unbiasedness beside `Coherent`, no kink lattice, unsaturated
+variogram, two-salt independence, and the retirement receipt), two in
+`draws::gauss::`, two in `dc-core`'s `coarse::` (the membership-dither law and the
+`sample_dithered` agreement) and one in `palette_quant_tour`'s gate. `fmt --check`
+and `clippy --workspace --all-targets --release -D warnings` clean, and the
+`Compiling dc-core` / `Compiling dc-worldgen` lines cite this worktree's path
+(corrections #34).
+
+One number the gate has and this entry does not: `coarse_surface_agrees_with_the_
+near_column_surface` **passed its 0.70 floor**, but libtest swallows its `println!`
+without `--nocapture`, so the agreement *value* is not in the log. Predicted before
+the run and not contradicted by it: the near path's member dither is within-class
+and that test compares at **content-class** granularity, so it should not move at
+all. Left as a bounded unknown rather than a number nobody measured.
+
 ## The shape worth keeping
 
 **A defect with two signals needs two verdicts, and the cheap one is not always the
