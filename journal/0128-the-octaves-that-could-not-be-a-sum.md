@@ -128,8 +128,8 @@ positions:
 
 | source | renders a 0.6/0.4 share vector as | marginal KS deviation |
 |---|---|---|
-| `Coherent` (shipped) | **⟨MEASURE⟩** | — |
-| `Octaves` (this slice) | **0.60** ± 0.015 | **< 0.02** |
+| `Coherent` (shipped) | **0.6829** | — |
+| `Octaves` (this slice) | **0.6053** | **< 0.02** |
 
 So `Octaves` is the **first unbiased coherent source in the tree**, and
 corrections #39's majority amplification turns out to be a property of

@@ -990,7 +990,7 @@ footprint with S11's air-component container (S15 design choice 2).
       curvature sits on one grid. That 10¹⁴ **is** the 28.8 m square-edge signature, and it is
       now a gate test.
     - **Consequence for corrections #39, which had lost its heir:** `Octaves` renders a 0.6/0.4
-      share vector at **0.60** where `Coherent` renders it at **0.66**. The majority
+      share vector at **0.6053** where `Coherent` renders it at **0.6829**. The majority
       amplification is a property of `Coherent`, **not of coherence** — so the near path gets
       an unbiased coherent source, and #39's "CDF-corrected source" heir exists for the far
       register whenever its own semantics are re-decided.
@@ -1001,6 +1001,51 @@ footprint with S11's air-component container (S15 design choice 2).
       near-path restructure (journal/0129), same worktree, same evening — the pair was kept a
       pair precisely so this did not become a second `CoarseField` sitting uncalled for seven
       days.
+  - **✅ AND ITS ADOPTION AT THE NEAR MEMBER DITHER SHIPPED 2026-07-29 (journal/0129),
+    WITH MM-1 — but slot (b) is only PART done and the rest is named here.**
+    - **Shipped:** `geology::interp_select_draw` retired into `selection_field` =
+      `Octaves`; the member dither *and* the record's own representative pick now read
+      ONE field at ONE voxel address (their agreement at the centre column went from
+      approximate — `fx = 0.5` vs `0.515` — to exact). **MM-1 discharged:**
+      `CoarseField::sample_source_cell`, with `sample_dithered` **rewritten in terms of
+      it**, so there is one membership dither in the tree and the new call has a
+      production caller the hour it landed. Its law had never been tested and now is
+      (home cell 9/16 of its own cell exactly; at a corner all four answer ¼ and the five
+      outside the stencil never; white source on purpose — a coherent source's finite
+      window measures its own autocorrelation, not the draw).
+    - **Perf, because chunk load is a hot path:** the dither was **hoisted from per-VOXEL
+      to per-(voxel column, event)** — it was always a pure function of that pair and was
+      being called up to 2 × 32 768 times per chunk. That is what pays for the octaves' 6×
+      hashes: measured `contents_contract` (240 chunk generations) **103.72 s → 102.43 s,
+      −1.2 %, no measurable cost.**
+    - **Goldens: 2 of `contents_contract`'s 3 triples moved, mechanism recorded beside the
+      constants**; the Small row is byte-identical for the reason its header already states
+      (its sampled chunks carry no strata record). No other workspace golden moved.
+    - **⚠ NOT SHIPPED — the near-path RECORD restructure (U3's 460 m half).** Blast radius
+      **MEASURED at 13 files / ~40 sites** against the design pass's six generation-path
+      functions: `ColumnRec.strata` is a `pub` field read directly by **8 example probes
+      and 5 test files** as *the* record of a chunk, which is what stops existing when a
+      chunk-column holds up to nine. **MM-3's type was written and deliberately
+      WITHDRAWN** — a declared type with no consumer is `CoarseField` on 2026-07-22, the
+      exact failure this arc teaches; it ships with its restructure or not at all (the
+      proposal is in the slice report, awaiting ratification).
+    - **⚠ AND THE COST QUESTION THAT SLICE OWES IS WORSE THAN THE DESIGN PASS SAID.**
+      *"≤ 9 touched cells, typically 1"* reads the stencil as *"cells the chunk
+      overlaps"*. The bilinear stencil is **always 2×2**, so a chunk in a cell's interior
+      touches **four** cells, and with 1024 columns drawing, even a weight of 0.001 is
+      realised somewhere in the chunk. **Typically 4, up to 9, and ~1 only within half a
+      metre of a cell-centre line** — so `run_strata` per chunk goes 1 → ~4. It is the
+      same *"one weight ≈ 1 away from a boundary"* misreading that cost journal/0125 a
+      failing gate, in its third outfit.
+    - **⚠ Still unfixed at the same site, and neither is a consequence of this slice:**
+      (a) `dithered_member`'s **formation context is still the chunk's** — the draw is
+      multi-scale now but `event.temp_c`/`precip`/`depth_m` were recorded once per chunk at
+      the chunk centre, so the *fitness landscape* the draw indexes still steps at 28.8 m
+      (U22's named sibling, the member-dither guillotine, unexamined since 2026-07-22);
+      (b) the **FAR summary's member dither is still the single octave**, deliberately —
+      same defect, other tier, and the far register's semantics were rejected the same
+      evening, so changing its appearance would answer a question nobody asked (annotated
+      at the call site).
   - **WHAT WAS RATIFIED**, 2026-07-22, in the strongest language in this thread: `CoarseField<T>`
     as a **boundary type** whose only fine accessors are two legal moves (`sample` /
     `sample_dithered`), making the raw per-cell read **inexpressible**. The user: *"we finish
@@ -2468,10 +2513,40 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   through the far sheet at tier boundaries has never been visually checked; ride it along
   the next appearance walk's stations rather than launching for it alone.
 
+- **⚠ THE "MEMBER STEPPING DOMINATES U3" CLAIM DOES NOT SURVIVE THE SITE — measured
+  2026-07-29 (journal/0129), and this is the third time this question has been answered
+  with a different answer.** The entry below is preserved because its *stepping* half is
+  now shipped and measured; what is refuted is the word **dominant**. Three measurements
+  at U3's own reference pose (`palette_quant_tour`, extended):
+  1. **The vanilla set caps the member dither at a coin flip in 4 of 10 classes**, and
+     nobody had ever printed the census. `clastic-fine`, `clastic-coarse`,
+     `igneous-intrusive`, `igneous-extrusive` have **exactly two** members; the other six
+     (every organic class, ore, accessory) have **one** — a constant field under any
+     source. The loudest thing a member dither can draw is mudstone-vs-siltstone or
+     granite-vs-diorite: **within-class pairs of similar albedo.** U3 was recorded as
+     *"tan / grey / red-brown / dark-speckled"* squares — those are **classes**, which no
+     member dither can produce.
+  2. **At the pose the dither is inert for the surface anyway:** the surface top span is
+     `Mixed` for all 1024 columns and `mixed_at` uses the **undithered** `event.member` by
+     design; the topmost event's class (`organic-soil`) has one member.
+  3. **The obvious replacement hypothesis also died in the same run.** A chunk's whole
+     record comes from ONE `run_strata` over chunk-*centre* context, so it could step at
+     chunk lines independently of any dither — measured, **0 of 56 adjacent chunk pairs
+     differ in surface-class mix** over a 230 m block. Every chunk reads `o:0.80,S:0.10`.
+  **Verdict: the 28.8 m stepping defect was real and is now measurably gone (on/off-lattice
+  curvature 1.2e14 → 1.07); whether it was ever U3's DOMINANT signal is UNSETTLED, and the
+  recorded pose cannot settle it because nothing there steps at 28.8 m today.** The fourth
+  possibility is corrections #48's own hazard: **the pose is from 2026-07-24 and the world
+  is not** — journal/0111's 1000× denudation recalibration and 0112's material creep both
+  landed after it and both rewrote that surface. **Owed before any game time: a tour map
+  that finds a chunk whose surface top span is `Single` in a two-member class.** Nothing has
+  ever searched for that, and it is the only station where this fix is visible.
+
 - **The U3 checkerboard's dominant signal is the 28.8 m MEMBER STEPPING, settled
   2026-07-24 — and the answer never flowed back into the audit that asked it** (corrected
   2026-07-29, after the member-#0 design pass re-derived the question from the audit's
   never-updated INFERRED section and the **user's memory** caught the re-derivation).
+  **⚠ ITS "DOMINANT" HALF IS NOW REFUTED — see the entry immediately above.**
   Primary evidence, cited because a close block is a handoff not an authority:
   **corrections #45** (member dither is world-anchored, C0-continuous; defect =
   **single-octave**) + the 2026-07-24 haunting diagnosis (*"fix = octaves, not

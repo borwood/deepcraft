@@ -69,7 +69,99 @@ exact, which nobody had noticed was approximate.
 
 ## The number that replaced the adjective
 
-⟨MEASUREMENTS⟩
+Measured at U3's reference pose (`palette_quant_tour`, extended rather than
+duplicated; feet `71291.7, 372.1, −2420.9`, seed 1337, `Extent::Medium`), both
+arms in **one binary** — the "before" arm is a stride-32 `Coherent`, which is
+bit-for-bit the retired chunk-addressed field.
+
+**The square-edge signature** — mean `|Δ²u|` where a three-voxel window straddles
+a 28.8 m chunk line, against everywhere else:
+
+| | on the lattice | off it | ratio |
+|---|---|---|---|
+| BEFORE (single octave) | 8.553e-3 | 7.119e-17 | **1.201e14** |
+| AFTER (octaves) | 5.323e-4 | 4.975e-4 | **1.07** |
+
+**The member field's autocorrelation**, `P(m(p) == m(p+lag))` over a 230 m window:
+
+| lag | 0.9 m | 3.6 m | 14.4 m | **28.8 m** | 57.6 m | 115 m |
+|---|---|---|---|---|---|---|
+| BEFORE | 0.9831 | 0.9333 | 0.7688 | **0.6124** | 0.6180 | 0.5289 |
+| AFTER | 0.9938 | 0.9754 | 0.9106 | **0.8445** | 0.8073 | 0.7396 |
+
+Read the BEFORE row's middle: it falls to 0.6124 at 28.8 m and then **rises** to
+0.6180 at 57.6 m. That plateau *is* the chunk — the field has one characteristic
+length, it equals the chunk footprint, and past it the corner draws are
+independent (the 2-member collision floor for that window's 0.662/0.338 mix is
+0.553, and lag 115 m measures 0.5289). The AFTER row decays monotonically and is
+still falling at 115 m: no characteristic length at 28.8 m, which is the whole
+claim.
+
+**And the mix moved, which is corrections #39 arriving at this joint.** The
+majority member's share of the window fell **0.662 → 0.575**. The old source
+amplified it: measured in the fixture, `Coherent` renders a recorded 0.6 as
+**0.6829** while `Octaves` renders it as **0.6053**. A source biased toward the
+majority was suppressing exactly the minority members this dither exists to
+surface — the bias was pointing *against* the mechanism's purpose, not merely
+sideways.
+
+**One number went the "wrong" way and the caption predicted it.** The fraction of
+aligned chunk footprints holding exactly one member rose **0.281 → 0.656**. That
+is not a regression; it is what having power at 460 m *means* — the ground is now
+genuinely uniform over more than a chunk in places, so a chunk often sits inside
+one patch. Read alone it looks like more squares; read with the autocorrelation it
+says the patches stopped *being* chunk-sized. The probe's own caption says so,
+written before the number was known, because a printed caption is a published
+claim.
+
+## ⚠ And the corpus claim it was built on does not survive the site
+
+The brief for this pair said, on the corpus's authority, that U3's dominant signal
+is the 28.8 m member stepping — settled 2026-07-24, corrections #45 — and told me
+to verify it against the site before relying on it. **It does not verify.** Three
+measurements, in order of how much they hurt:
+
+1. **The vanilla set caps the member dither at a coin flip, in 4 of 10 classes.**
+   Nobody had printed this census. `clastic-fine`, `clastic-coarse`,
+   `igneous-intrusive` and `igneous-extrusive` have **exactly two** members each;
+   the other six — including every organic class, the ore and the accessory — have
+   **one**, and a single-member class is a constant field under any source. So the
+   loudest thing a member dither can ever draw is mudstone-vs-siltstone or
+   granite-vs-diorite: **within-class pairs, chosen to be lithologically adjacent,
+   hence of similar albedo.** The U3 observation was *"each square a distinctly
+   different overall material tint — tan / grey / red-brown / dark-speckled"*.
+   Those are **classes**, and no member dither can produce them.
+2. **At the reference pose the dither is inert for the surface anyway.** The
+   surface voxel's top span is `Mixed` for all 1024 columns of that chunk, and
+   `mixed_at` uses the **undithered** `event.member` by deliberate design (the
+   comment explaining why has been there since journal/0055). The topmost *event*
+   is `carbonaceous-mudstone`, whose class `organic-soil` has one member. The first
+   event down whose class can express anything at all is a buried sandstone — which
+   is what the table above had to be measured on.
+3. **My own replacement hypothesis died too, in the same run.** If not the member
+   dither, the obvious candidate for a 28.8 m tint lattice is that a chunk's whole
+   `StrataRec` comes from **one `run_strata` per chunk** over context sampled at the
+   chunk *centre* — climate, mean elevation, flow energy, provenance — so the record
+   itself could step at chunk lines independently of any dither and independently of
+   the 460 m grid. Measured over an 8×8 block of chunks at the pose: **0 of 56
+   horizontally adjacent chunk pairs differ in their surface-class mix**, and 0
+   disagree on the dominant class. Every chunk reads `o:0.80, S:0.10`. Refuted at
+   this site.
+
+So: **the 28.8 m stepping defect was real and is now measurably gone (1.2e14 →
+1.07), and whether it was ever U3's dominant signal is unsettled — the recorded
+reference pose cannot settle it, because today nothing at that pose steps at 28.8
+m at all.** The honest fourth possibility is the one corrections #48 exists to
+warn about: **the pose is from 2026-07-24 and the world is not.** journal/0111's
+1000× denudation recalibration and journal/0112's material creep both landed
+after it and both rewrote what is at the surface there. A stale reference pose
+producing null frames is exactly the failure that cost four frames and a confident
+wrong conclusion once already.
+
+**What this means for the walk this feeds:** do **not** judge this fix at the U3
+pose. The station has to be a chunk whose surface top span is `Single` in a
+two-member class — a criterion a tour map can search for in one pass and nothing
+has ever searched for. That is cheap, and it is owed before any game time is spent.
 
 ## The hoist that paid for the ladder
 
@@ -84,7 +176,24 @@ voxel whose span resolves to a single event. Hoisting it to once per
 `(column, event)` — a small `Vec<Option<GeoMemberIdx>>` cleared per column — is
 ~32× fewer calls for a handful of distinct events per column.
 
-⟨COST⟩
+The arithmetic, which is the honest form of this measurement because the two arms
+cannot both be production: before, one call per buried single-plan **voxel**, in
+each of two paths — up to 2 × 32 768 per chunk, at 4 corner hashes each. After, one
+call per `(column, distinct event touched)` — at most 2 × 1024 × (events a 32-voxel
+column crosses, a handful), at 24 corner hashes each. The hash count therefore
+*falls* for any column crossing fewer than eight events, which is every column in
+the shipped world.
+
+Measured on the chunk-generating suite, same machine, same day:
+**`contents_contract` 103.72 s before → 102.43 s after.** That suite is
+**240 `generate_chunk_with_materials` calls** (80 sampled chunk positions × 3
+worlds) on top of three `Pregen::run`s, so roughly two thirds of its wall clock is
+chunk generation — sensitive enough to see a real regression in a per-voxel call.
+**−1.2 %, i.e. no measurable cost.** Honest caveat: the "before" ran inside a full
+workspace test where sibling suites competed for cores and the "after" ran
+standalone, so the comparison bounds the change at a few per cent rather than at
+one. It does not resolve a 1 % effect and does not need to; a 6× per-call cost
+without the hoist would have been visible.
 
 That is the shape the design bones already asked for, arriving at a different
 joint: **the expensive thing runs at the granularity its answer changes at, and
@@ -195,7 +304,30 @@ Also not fixed, and neither is a consequence of this slice:
 
 ## Goldens
 
-⟨GOLDENS⟩
+Two of `contents_contract`'s three triples moved; the third is byte-identical.
+
+| world | blocks | materials | table |
+|---|---|---|---|
+| medium `0x0D5EED572026` | `0xBA49…C724` → `0x7F53…FD72` | `0x9BB3…9519` → `0xB1A8…FF92` | `0x97C6…F29C` → `0xDC14…9099` |
+| medium `0x539` (1337) | `0x1CF9…1CB8` → `0x6594…4D07` | `0x54F0…92A0` → `0x2687…BD0E` | `0xB89B…485D` → `0x10F4…B531` |
+| small `0xC11A7E2026` | **unmoved** | **unmoved** | **unmoved** |
+
+The mechanism, recorded in the test file beside the constants rather than only
+here: the within-class member dither changed source, and `StrataCtx::draw` — the
+record's own representative pick — moved to the same field at the same voxel
+address. Both move which *member* of a class a voxel shows; neither can move its
+*class*, which is why `coarse_surface_agrees_with_the_near_column_surface` (a
+class-granularity comparison) does not budge.
+
+**The Small row holding is a prediction of this file's own header coming true**:
+its sampled chunks carry no strata record, so there is no member to dither — the
+same structural reason it held for MFD, movement 2b, hybrid `p` and creep. A row
+that keeps not moving for a stated reason is worth more than a row that moves.
+
+No other golden in the workspace moved: `GOLDEN_FAR_SURFACE` reads the far tier
+(deliberately unconverted, above), and the deep-time fingerprints
+(`providers_golden`, `rate_axis`, `creep_operator`, `GOLDEN_GEOTHERM`,
+`GOLDEN_HEAD`, `GOLDEN_CHAPTERS`) sit upstream of the collapse tier entirely.
 
 ## The shape worth keeping
 

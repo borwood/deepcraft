@@ -592,33 +592,95 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
         U3_FEET_M.0, U3_FEET_M.1, U3_FEET_M.2
     );
     let col = g.column_record(cx, cz);
-    let Some(event) = col.strata.events.last().copied() else {
+    let set = dc_core::materials::geology::vanilla();
+
+    // ── The ceiling on what a WITHIN-CLASS member dither can express at all ──
+    //
+    // This census is the first thing to read, and nobody had ever printed it. The
+    // member dither re-picks *within* an event's content class, so its expressive
+    // range is bounded by that class's member count — a single-member class is a
+    // constant field no matter what source drives it.
+    println!("\n-- vanilla member census (the dither's ceiling) --");
+    let mut multi = 0usize;
+    let mut total_classes = 0usize;
+    for class in dc_core::materials::geology::v1_classes() {
+        let n = set.class(class).map_or(0, |c| c.members().len());
+        total_classes += 1;
+        if n > 1 {
+            multi += 1;
+        }
+        println!("   {n} member(s)  {class}");
+    }
+    println!(
+        "   → {multi} of {total_classes} classes can express ANY within-class variation; \
+         the rest are constant fields under any dither."
+    );
+
+    // ── What the SURFACE at this chunk is actually made of, and whether the
+    //    member dither can move it ──
+    let fill = &col.strata;
+    let mut single_movable = 0usize;
+    let mut single_frozen = 0usize;
+    let mut mixed = 0usize;
+    {
+        use dc_worldgen::{ColumnFill, Plan};
+        let cf = ColumnFill::build(fill, VOXEL_M);
+        match cf.plan(1) {
+            None => println!("\nthe surface voxel has no record top span here (fallback column)"),
+            Some(Plan::Mixed(_)) => mixed = 1024,
+            Some(Plan::Single(k)) => {
+                let e = fill.events[*k];
+                let c = set.member(e.member).class.as_str();
+                if set.class(c).map_or(0, |cl| cl.members().len()) > 1 {
+                    single_movable = 1024;
+                } else {
+                    single_frozen = 1024;
+                }
+            }
+        }
+    }
+    println!(
+        "\nsurface top span at chunk ({cx},{cz}): mixed {mixed} / single-movable \
+         {single_movable} / single-frozen {single_frozen} columns (of 1024)"
+    );
+    if mixed == 1024 {
         println!(
-            "NULL: the chunk-column at the U3 pose carries no strata record — nothing to \
-             measure. (Ocean, wilds, or bare province: pick another station rather than \
-             reporting a null as a result.)"
+            "   ⚠ MIXED top span: `mixed_at` uses the UNDITHERED `event.member` by design, so \
+             the member dither does not touch this chunk's surface material AT ALL — the \
+             per-voxel eighth allocation is what varies it."
+        );
+    }
+
+    // ── Pick an event whose class can actually express, so the A/B has content ──
+    let Some(event) = col
+        .strata
+        .events
+        .iter()
+        .rev()
+        .find(|e| {
+            let c = set.member(e.member).class.as_str();
+            set.class(c).map_or(0, |cl| cl.members().len()) > 1
+        })
+        .copied()
+    else {
+        println!(
+            "\nNULL AT THE REFERENCE POSE: not one of this chunk-column's {} recorded events \
+             belongs to a multi-member class, so the within-class member dither is INERT here \
+             under any source. That is a result about U3, not a failed measurement — see \
+             journal/0129.",
+            col.strata.events.len()
         );
         return;
     };
-    let set = dc_core::materials::geology::vanilla();
     let class = set.member(event.member).class.as_str();
     let n_members = set.class(class).map_or(0, |c| c.members().len());
     println!(
-        "top recorded event: member {} (class {class}, {n_members} members in that class), \
-         salt {:#x}, tag {}",
+        "\nmeasuring on the topmost event whose class can express: member {} \
+         (class {class}, {n_members} members), salt {:#x}, tag {}",
         set.member(event.member).id,
         event.sel_salt,
         event.sel_tag
     );
-    if n_members < 2 {
-        println!(
-            "NULL: that class has {n_members} member(s), so no within-class dither can \
-             express anything here. The measurement below would be a constant field."
-        );
-        return;
-    }
-    let _ = pregen;
-
     let before = Coherent::new(Draws::from_recorded_salt(SEED, event.sel_salt), 32);
     let after = Octaves::member(Draws::from_recorded_salt(SEED, event.sel_salt));
 
@@ -655,6 +717,78 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
         a_top,
         single_member_chunk_fraction(&fa)
     );
+    // ── The OTHER 28.8 m mechanism, measured because the census above says the
+    //    member dither cannot be the whole story at this pose ──
+    //
+    // A chunk's whole `StrataRec` is produced by ONE `run_strata` per chunk, from
+    // context sampled at the chunk CENTRE: climate, mean elevation, flow energy,
+    // provenance. So the *record itself* — which classes surface and in what
+    // proportion — is chunk-quantized, independently of any dither and independently
+    // of the 460 m deep-cell grid. A class change is a large tint change (tan vs
+    // grey vs dark); a within-class member change is a small one. This counts how
+    // often adjacent chunks disagree about their surface class mix.
+    println!("\n-- the record itself is per-CHUNK: do neighbours disagree? --");
+    let mut sigs: Vec<(i64, i64, String)> = Vec::new();
+    for dz in 0..8i64 {
+        for dx in 0..8i64 {
+            let c = g.column_record(cx + dx, cz + dz);
+            let mut top: Vec<(&str, f64)> = Vec::new();
+            let mut acc = 0.0f64;
+            for e in c.strata.events.iter().rev() {
+                if acc >= VOXEL_M {
+                    break;
+                }
+                let take = f64::from(e.thickness_m).min(VOXEL_M - acc);
+                if take <= 0.0 {
+                    continue;
+                }
+                acc += take;
+                let cl = set.member(e.member).class.as_str();
+                match top.iter_mut().find(|(k, _)| *k == cl) {
+                    Some((_, m)) => *m += take,
+                    None => top.push((cl, take)),
+                }
+            }
+            top.sort_by(|a, b| b.1.total_cmp(&a.1).then(a.0.cmp(b.0)));
+            let sig = top
+                .iter()
+                .map(|(k, m)| format!("{}:{:.2}", glyph(k), m))
+                .collect::<Vec<_>>()
+                .join(",");
+            sigs.push((cx + dx, cz + dz, sig));
+        }
+    }
+    let mut differ = 0usize;
+    let mut pairs = 0usize;
+    let mut dominant_differ = 0usize;
+    for i in 0..8usize {
+        for j in 0..7usize {
+            let a = &sigs[i * 8 + j];
+            let b = &sigs[i * 8 + j + 1];
+            pairs += 1;
+            if a.2 != b.2 {
+                differ += 1;
+            }
+            if a.2.chars().next() != b.2.chars().next() {
+                dominant_differ += 1;
+            }
+        }
+    }
+    println!(
+        "   over an 8×8 block of chunks (230 m), {differ}/{pairs} horizontally adjacent \
+         chunk pairs have a DIFFERENT surface-class mix, and {dominant_differ}/{pairs} \
+         disagree on the DOMINANT class."
+    );
+    println!("   first row of signatures (glyph:metres in the top 0.9 m):");
+    for j in 0..8usize {
+        println!("     chunk ({},{})  {}", sigs[j].0, sigs[j].1, sigs[j].2);
+    }
+    println!(
+        "   ⚠ Whatever these numbers are, they are NOT moved by this slice and NOT moved by \
+         the 460 m record-membership restructure either: the fix for a chunk-quantized \
+         RECORD is per-column formation context, a third mechanism at this site."
+    );
+
     println!(
         "\nRead it this way: the BEFORE ratio is the mechanism (a bilinear field has NO \n\
          curvature except on its own grid, so the number is a float-residue division), and \n\

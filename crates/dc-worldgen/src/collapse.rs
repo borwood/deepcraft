@@ -534,8 +534,7 @@ impl<'a> WorldGenerator<'a> {
                     let id = match plan {
                         Plan::Single(k) => {
                             let event = col.strata.events[*k];
-                            let host =
-                                dithered_member(&self.geology, self.seed, &event, vx, vz);
+                            let host = dithered_member(&self.geology, self.seed, &event, vx, vz);
                             *memo.entry((*k, host, n)).or_insert_with(|| {
                                 self.materials
                                     .intern(mixed_contents(&self.geology, &[(host, n)]))

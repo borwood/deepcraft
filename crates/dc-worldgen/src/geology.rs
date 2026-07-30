@@ -28,13 +28,13 @@
 //! iteration-order entropy anywhere, and registration order cannot change a
 //! single byte of the world (proven in tests/geology.rs).
 
+use dc_core::coarse::DitherSource;
 use dc_core::materials::geology::{
     CLASS_ACCESSORY_MAFIC, CLASS_CLASTIC_COARSE, CLASS_CLASTIC_FINE, CLASS_IGNEOUS_EXTRUSIVE,
     CLASS_IGNEOUS_INTRUSIVE, CLASS_ORE_PLACER, CLASS_ORGANIC_CHARCOAL, CLASS_ORGANIC_COAL,
     CLASS_ORGANIC_PEAT, CLASS_ORGANIC_SOIL, FormationContext, GeoMemberIdx, GeologySet,
     settle_energy,
 };
-use dc_core::coarse::DitherSource;
 use dc_sim::statistical::rng::{Domain, Draws};
 
 use crate::deeptime::lithology::Litho;
