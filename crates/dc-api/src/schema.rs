@@ -1104,7 +1104,7 @@ mod tests {
 
     /// `spawn_character`'s `body_plan` completes from the plans a pack actually
     /// registered — empty on a bare world (genuinely dynamic, not a fixed list),
-    /// and both vanilla plans once the bodies pack has been applied.
+    /// and both registered plans once the body packs have been applied.
     #[test]
     fn body_plan_completion_reads_registered_plans() {
         let Some(Completer::World(f)) = spec(ids::CHARACTER_SPAWN).unwrap().completions else {

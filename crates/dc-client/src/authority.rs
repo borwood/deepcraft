@@ -291,7 +291,7 @@ impl Authority {
     /// **nothing but a dc-api unit test had ever called it** — the renderer
     /// reached for `biped_plan()`/`biped_clips()` as compiled-in Rust, so the
     /// door was built and never travelled (spines.md § A-4). This is the
-    /// traversal: the clips and both plans arrive as `DefineAnimClip` /
+    /// traversal: the clips and the biped plan arrive as `DefineAnimClip` /
     /// `DefineBodyPlan` commands under a `registry.define(dc)` grant, and
     /// `character.rs` reads the resulting registry. First-party content ships
     /// through the same surface a third party would use — north-star
