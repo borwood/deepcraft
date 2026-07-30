@@ -34,25 +34,34 @@
 //! pose. The sim sees the swept-AABB mover (`crate::character`) and parametric
 //! posture only; animation is cosmetic.
 //!
-//! **The vanilla biped** ([`biped_plan`], [`biped_clips`]) is the in-repo
+//! **The default biped** ([`biped_plan`], [`biped_clips`]) is the in-repo
 //! authored source — the default content, compiled in so it is deterministic
-//! without a data load. [`vanilla_body_pack`] emits that same content as a
-//! recorded command batch ("vanilla is the first pack"), generated *from* the
-//! authored source so pack and typed model cannot drift. **The client renderer
-//! reads the REGISTRY**, not the authored source: the pack is submitted through
-//! the one door at world construction (dc-client `authority.rs`), so the vanilla
-//! biped is genuinely loaded as the first pack rather than compiled into the
-//! renderer (journal: "the second plan and the glue"). The authored functions
+//! without a data load. [`default_body_pack`] emits that same content as a
+//! recorded command batch (the default pack is the first pack), generated *from*
+//! the authored source so pack and typed model cannot drift. **The client
+//! renderer reads the REGISTRY**, not the authored source: the pack is submitted
+//! through the one door at world construction (dc-client `authority.rs`), so the
+//! default biped is genuinely loaded as the first pack rather than compiled into
+//! the renderer (journal: "the second plan and the glue"). The authored functions
 //! remain the *source* the pack is generated from, and the compiled-in default
 //! the headless crates test against.
 //!
-//! **The second plan** ([`stout_plan`]) exists to test one claim, not to look
-//! good: bodies.md § IK says two-bone IK "makes one clip serve every mutation of
-//! a plan … across differing proportions", and until there were two plans that
-//! claim had never met evidence. `dc:body/stout` shares the biped's eleven joint
-//! names and binds the biped's *unmodified* clips; only the geometry differs, and
-//! it differs deliberately hard (half-length legs, 1.6× arms, a wide trunk, a
-//! big head). Its ugliness is the measurement, not a defect.
+//! **The experiment plans** ([`stout_plan`], [`longleg_plan`]) exist to test
+//! claims, not to look good, and they live in [`experiment_body_pack`] — never in
+//! the default pack.
+//!
+//! - `dc:body/stout` answers bodies.md § IK's *"one clip serves every mutation of
+//!   a plan … across differing proportions"*: until there were two plans that
+//!   claim had never met evidence. It shares the biped's eleven joint names and
+//!   binds the biped's *unmodified* clips; only the geometry differs, and it
+//!   differs deliberately hard (half-length legs, 1.6× arms, a wide trunk, a big
+//!   head). Its ugliness is the measurement, not a defect.
+//! - `dc:body/longleg` answers the question journal/0130 opened and could not
+//!   close: **the foot-placement IK had never once engaged, on any plan**, because
+//!   every plan's hip sits *higher* than its legs reach, so a sole on the ground
+//!   is outside the solver's annulus before animation runs. `longleg` is the
+//!   biped with **only the two leg bone lengths changed** — enough that ground
+//!   contact is reachable and the knee has to bend. One variable, one control.
 
 use serde::{Deserialize, Serialize};
 
@@ -365,7 +374,7 @@ pub fn validate_plan(
     Ok(())
 }
 
-// ------------------------------------------------- the vanilla biped --
+// ------------------------------------------------- the default biped --
 
 const TORSO: [f32; 3] = [0.9, 0.42, 0.12]; // signal-orange (companion legacy)
 const SKIN: [f32; 3] = [0.95, 0.85, 0.7];
@@ -389,7 +398,7 @@ fn seg(
     }
 }
 
-/// The vanilla biped body plan (`dc:body/biped`): trunk root, neck, head, two
+/// The default biped body plan (`dc:body/biped`): trunk root, neck, head, two
 /// upper/lower arms, two upper/lower legs — a modest step above the two-cuboid
 /// companion (bodies.md staircase step 1: fidelity, not a rig opera). The
 /// companion, and characters generally, are rendered as instances of this plan.
@@ -506,7 +515,7 @@ pub fn biped_plan() -> BodyPlan {
     ];
     BodyPlan {
         name: "dc:body/biped".into(),
-        doc: "The vanilla humanoid: jointed limbs, a neck, several segments — \
+        doc: "The default humanoid: jointed limbs, a neck, several segments — \
               above Minecraft, still cuboid (bodies.md)."
             .into(),
         segments,
@@ -667,6 +676,85 @@ pub fn stout_plan() -> BodyPlan {
     }
 }
 
+/// **The third plan** (`dc:body/longleg`) — the control that lets the
+/// foot-placement IK *engage at all*.
+///
+/// journal/0130 measured that the solver has **never once solved**: 176/176
+/// sampled frames were beyond the leg's reach and clamped to full extension. The
+/// cause is geometric and predates every clip. [`biped_plan`]'s hip pivot sits at
+/// **0.900 m** while its legs reach **0.880 m** (0.45 + 0.43), so the sole target
+/// at ground level is *outside* the solver's annulus `[|l1−l2|, l1+l2]` before any
+/// animation runs. [`stout_plan`] inherits the same sign of error (hip 0.46, reach
+/// 0.44). The rendered result is a **hover**, not a bob.
+///
+/// This plan is [`biped_plan`] with **exactly two numbers changed** — the two leg
+/// bone lengths — so the ONLY difference is the one under test:
+///
+/// | measure            | `dc:body/biped` | `dc:body/longleg` |
+/// |--------------------|-----------------|-------------------|
+/// | hip height         | 0.900 m         | 0.900 m (same)    |
+/// | upper bone `l1`    | 0.450 m         | 0.520 m           |
+/// | lower bone `l2`    | 0.430 m         | 0.500 m           |
+/// | reach `l1 + l2`    | 0.880 m         | 1.020 m           |
+/// | hip − reach        | **+0.020 m**    | **−0.120 m**      |
+/// | trunk/arms/head    | —               | identical         |
+///
+/// **Why 0.120 m of slack, and not less or more.** The number is derived, not
+/// picked to look right. The IK target for a planted sole is `(0, −hip_y, fz)`
+/// where `fz` is however far forward the *clip* swings that foot, so the reach the
+/// solver actually needs is `hypot(hip_y, fz)` — and `fz` itself scales with the
+/// bone lengths, so the demand grows as the legs do. Sweeping the authored clip
+/// set (`idle` 24 frames, `walk` 12, `jump` 8, both legs, at the renderer's 12 fps
+/// grid) gives a fixed point just above **0.102 m** of slack; below it the walk's
+/// stride extremes saturate the clamp again, and there is no slack at all that
+/// covers every frame without pushing the *resting* knee past a squat:
+///
+/// | slack | resting knee bend | frames still beyond reach (of 88) |
+/// |-------|-------------------|-----------------------------------|
+/// | −0.020 (today's biped) | 0.0° (clamped straight) | **88** — every one |
+/// | +0.030 | 29.2° | 32 |
+/// | +0.050 | 37.3° | 14 |
+/// | **+0.120 (this plan)** | **56.2°** | **2** |
+/// | +0.180 | 67.1° | 0 |
+///
+/// 0.120 m is the smallest slack that plants **every** `idle` and `jump` frame and
+/// all but two of `walk`'s, while keeping the resting bend under 60°. That the two
+/// columns trade against each other at all is the finding: the free variable
+/// nobody is using is the root's *vertical* travel (bodies.md § IK, the open user
+/// call), and this plan is the instrument that made the trade visible, not a
+/// proposal to resolve it.
+///
+/// **No standing as content** (*existence is not standing*): it rides
+/// [`experiment_body_pack`], binds the biped's unmodified clips, and its rest pose
+/// is deliberately wrong — un-IK'd, the soles sit 0.120 m *below* the floor. The
+/// IK is what lifts them, which is precisely what it is here to demonstrate.
+pub fn longleg_plan() -> BodyPlan {
+    let mut plan = biped_plan();
+    plan.name = "dc:body/longleg".into();
+    plan.doc = "The default biped with ONLY its two leg bone lengths changed \
+                (0.45/0.43 -> 0.52/0.50, reach 0.880 -> 1.020 m against an \
+                unchanged 0.900 m hip). It exists so a sole on the ground is \
+                inside the IK's annulus and the knee must bend to reach it — the \
+                control journal/0130 lacked. Not content."
+        .into();
+    // l1 = |lower.pivot| (hip→knee); l2 = |lower.offset.y| + lower.size.y / 2
+    // (knee→sole). Both bones grow; the boxes grow with them so the rendered limb
+    // is the bone (`body.rs::leg_rigs` derives the rig from exactly these fields).
+    const L1: f64 = 0.52;
+    const L2: f64 = 0.50;
+    for s in &mut plan.segments {
+        if s.name.starts_with("leg_") && s.name.ends_with("_upper") {
+            s.size_m[1] = L1;
+            s.offset_m[1] = -L1 / 2.0;
+        } else if s.name.starts_with("leg_") && s.name.ends_with("_lower") {
+            s.pivot_m[1] = -L1;
+            s.size_m[1] = L2;
+            s.offset_m[1] = -L2 / 2.0;
+        }
+    }
+    plan
+}
+
 fn kf(t: f64, bob: f64, rots: &[(&str, [f64; 3])]) -> Keyframe {
     Keyframe {
         t,
@@ -681,7 +769,7 @@ fn kf(t: f64, bob: f64, rots: &[(&str, [f64; 3])]) -> Keyframe {
     }
 }
 
-/// The vanilla biped's authored clips: `idle`, `walk`, and a minimal one-shot
+/// The default biped's authored clips: `idle`, `walk`, and a minimal one-shot
 /// `jump` (the documented fallback pose — bodies.md step 2). Angles are XYZ
 /// Euler radians; walking swings limbs about X (the sagittal plane).
 pub fn biped_clips() -> Vec<AnimClip> {
@@ -837,18 +925,18 @@ pub fn biped_clips() -> Vec<AnimClip> {
     vec![idle, walk, jump]
 }
 
-/// The vanilla body content as a recorded command batch — clips first, then the
-/// plans that bind them (the define order the contract requires). Content packs
-/// are just registry command batches; this is the bodies pack, and **the running
-/// game loads its bodies through it** (dc-client `authority.rs` submits it at
-/// world construction under a `registry.define(dc)` grant). Generated from the
-/// authored source ([`biped_plan`]/[`stout_plan`]/[`biped_clips`]) so pack and
-/// typed model cannot drift (proven by `tests/bodies.rs`'s
-/// `vanilla_pack_defines_through_the_door` and
-/// `registry_content_equals_the_authored_source`).
+/// The **default pack's** body content as a recorded command batch — clips first,
+/// then the plans that bind them (the define order the contract requires). Content
+/// packs are just registry command batches; this is the bodies pack, and **the
+/// running game loads its bodies through it** (dc-client `authority.rs` submits it
+/// at world construction under a `registry.define(dc)` grant). Generated from the
+/// authored source ([`biped_plan`]/[`biped_clips`]) so pack and typed model cannot
+/// drift (proven by `tests/bodies.rs`'s `default_pack_defines_through_the_door`
+/// and `registry_content_equals_the_authored_source`).
 ///
-/// The second plan is deliberately **NOT** in here — see [`experiment_body_pack`].
-pub fn vanilla_body_pack() -> Vec<Payload> {
+/// The experiment plans are deliberately **NOT** in here — see
+/// [`experiment_body_pack`].
+pub fn default_body_pack() -> Vec<Payload> {
     let mut out = Vec::new();
     for clip in biped_clips() {
         out.push(Payload::DefineAnimClip(DefineAnimClip(clip)));
@@ -857,23 +945,30 @@ pub fn vanilla_body_pack() -> Vec<Payload> {
     out
 }
 
-/// **The retargeting experiment's pack — an instrument, with NO standing as
-/// content.** [`stout_plan`] exists to falsify bodies.md's claim that two-bone IK
-/// retargets one clip set across proportions; it is not a creature anybody
-/// designed, ratified, or wants in the world.
+/// **The body experiments' pack — instruments, with NO standing as content.**
 ///
-/// It rides its own batch rather than [`vanilla_body_pack`] precisely so that
-/// "vanilla" stays the vanilla content. *Existence is not standing* (CLAUDE.md):
-/// an unratified body sitting inside the default pack would, in three months, be
-/// something a session found in the tree and assumed belonged there. Deleting the
-/// experiment is one call site in dc-client `authority.rs` plus this function.
+/// - [`stout_plan`] tests bodies.md's claim that two-bone IK retargets one clip
+///   set across proportions.
+/// - [`longleg_plan`] tests whether the foot-placement IK solves *at all* when the
+///   ground is inside the leg's reach — the control journal/0130 lacked.
 ///
-/// It emits **only the plan**: the clips it binds are vanilla's, unmodified, which
-/// is the entire point — so this batch must be submitted *after*
-/// [`vanilla_body_pack`], or the verb→slot contract rejects it for binding
+/// Neither is a creature anybody designed, ratified, or wants in the world. They
+/// ride their own batch rather than [`default_body_pack`] precisely so that the
+/// **default pack** stays the default content. *Existence is not standing*
+/// (CLAUDE.md): an unratified body sitting inside the default pack would, in three
+/// months, be something a session found in the tree and assumed belonged there.
+/// Deleting the experiments is one call site in dc-client `authority.rs` plus this
+/// function and the two plan functions.
+///
+/// It emits **only plans**: the clips they bind are the default pack's,
+/// unmodified, which is the entire point — so this batch must be submitted *after*
+/// [`default_body_pack`], or the verb→slot contract rejects it for binding
 /// unregistered clips.
 pub fn experiment_body_pack() -> Vec<Payload> {
-    vec![Payload::DefineBodyPlan(DefineBodyPlan(stout_plan()))]
+    vec![
+        Payload::DefineBodyPlan(DefineBodyPlan(stout_plan())),
+        Payload::DefineBodyPlan(DefineBodyPlan(longleg_plan())),
+    ]
 }
 
 #[cfg(test)]
@@ -885,7 +980,7 @@ mod tests {
     }
 
     #[test]
-    fn vanilla_biped_is_well_formed() {
+    fn default_biped_is_well_formed() {
         let clips = biped_clips();
         for c in &clips {
             validate_clip(c).unwrap_or_else(|e| panic!("clip {} invalid: {e}", c.name));
@@ -959,6 +1054,80 @@ mod tests {
                 leg(p)
             );
         }
+    }
+
+    /// **The third plan's defining property, asserted as a property and not as a
+    /// pair of magnitudes**: `dc:body/longleg` is the biped with a leg reach
+    /// *greater* than its hip height, so a sole at ground level lands **inside**
+    /// the IK annulus `[|l1−l2|, l1+l2]` instead of outside it. Every other plan
+    /// has the opposite sign, which is why the solver had never solved
+    /// (journal/0130).
+    ///
+    /// Also pins the isolation: **only the leg bones differ from the biped.** If a
+    /// later re-authoring drifts the trunk, the arms or the head, the control stops
+    /// being a control and this fails loudly rather than quietly measuring two
+    /// variables at once.
+    #[test]
+    fn longleg_reaches_the_ground_and_changes_nothing_else() {
+        let clips = biped_clips();
+        let long = longleg_plan();
+        let biped = biped_plan();
+        validate_plan(&long, clip_lookup(&clips)).expect("longleg plan is valid");
+        assert_eq!(
+            long.slots, biped.slots,
+            "longleg binds the default clips unmodified"
+        );
+
+        // hip→sole reach and hip height, from the same fields the renderer's
+        // `leg_rigs` reads.
+        let rig = |p: &BodyPlan| {
+            let lower = p.segments.iter().find(|s| s.name == "leg_l_lower").unwrap();
+            let l1 = lower.pivot_m[1].abs();
+            let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
+            let hip = p.segments.iter().find(|s| s.name == "trunk").unwrap().pivot_m[1];
+            (hip, l1 + l2)
+        };
+        let (hip_b, reach_b) = rig(&biped);
+        let (hip_l, reach_l) = rig(&long);
+        assert!(
+            reach_b < hip_b,
+            "the biped's ground target is unreachable by construction \
+             (reach {reach_b} < hip {hip_b}) — the premise of the experiment"
+        );
+        assert!(
+            reach_l > hip_l,
+            "longleg must be able to REACH the ground: reach {reach_l} <= hip {hip_l}"
+        );
+        assert!(
+            (hip_l - hip_b).abs() < 1e-12,
+            "the hip must not move — the slack has to come from the bones alone"
+        );
+        // Slack big enough that the knee is unmistakably bent, not a hair off
+        // straight: the bend at rest is 2·acos(hip / reach) for near-equal bones.
+        let bend = 2.0 * (hip_l / reach_l).acos();
+        assert!(
+            bend > 45.0f64.to_radians(),
+            "the resting knee must be visibly bent, got {:.1}°",
+            bend.to_degrees()
+        );
+
+        // Nothing but the legs differs from the biped.
+        for a in &biped.segments {
+            let b = long
+                .segments
+                .iter()
+                .find(|s| s.name == a.name)
+                .unwrap_or_else(|| panic!("longleg keeps the biped's joint `{}`", a.name));
+            if a.name.starts_with("leg_") {
+                continue;
+            }
+            assert_eq!(a, b, "segment `{}` must be untouched", a.name);
+        }
+        assert_eq!(
+            biped.segments.len(),
+            long.segments.len(),
+            "same eleven joints"
+        );
     }
 
     #[test]
