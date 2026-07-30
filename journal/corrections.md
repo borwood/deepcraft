@@ -3104,3 +3104,24 @@ confinement rule** — record in `flow.md` § 11.5's banner, with three sharpeni
 (eroding-cell attachment; window-vs-pairing; the 2× is gross-vs-net). All five sites
 stamped in the same commit as this entry: `flow.md` § 2.2, `refinement.md` § 8, the
 coupling-priors header, `dependency-graph.md` E5, `S19-flow-record-cost-results.md`.
+
+## 76. "Per chunk enumerate touched deep cells (≤ 9, typically 1)" (the member-#0 design pass § 2b, 2026-07-29 — refuted by arithmetic during the build the same day, journal/0129)
+
+The bilinear membership stencil is **always 2×2**, so a chunk interior to a deep cell
+touches **4** cells, not 1; with 1024 columns drawing per chunk, even a 0.001 weight is
+realised somewhere. "Typically 1" is true only within about half a metre of a cell-centre
+line. Consequence: the near-path restructure costs **~4× `run_strata` per chunk**, not ~1×
+— a 4× on a hot path (chunk load), mispriced in the plan that sequenced it.
+
+**Mechanism — the third outfit of the same misreading in five days:** *"away from a
+boundary one weight ≈ 1"* reads as *"the stencil usually collapses to one cell"*, and it
+never does — the weight is large, the SUPPORT is still four cells. First outfit: the
+`coarse.rs` doc comment that cost journal/0125 a failing gate. Second: the cell-wide-blend
+surprise (E[w_home] = 9/16, ~44 % of far voxels reading a neighbour). Third: this. A
+bilinear stencil's support is a *set*, not a winner.
+
+**Same document, same lesson, second claim:** § 2b's blast radius ("six functions") was a
+**lower bound read as a total** — measured at build time as **13 files / ~40 sites**,
+because the coupling was a `pub` *field*, invisible to a trace of producing code. *Grep
+the field, not the function.* Both targets stamped (the member-#0 audit header; the graph
+E5 row already carried the corrected numbers at merge).

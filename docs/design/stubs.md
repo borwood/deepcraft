@@ -1389,3 +1389,30 @@ contained) · dormant erosion-agent axes ("not a placeholder" by construction)
 animation + parametric crouch (ratified aesthetic/firewall) · placeholder
 texture packs + vertex-color albedo (rendering-asset placeholders — heir is
 authored art, outside this doctrine's scope; visuals.md owns the path).
+
+### 31. the-formation-context-frozen-at-the-chunk-centre — *added 2026-07-29 (journal/0129)*
+`collapse.rs::column` samples `temp_c` / `precip` / `depth_m` once per chunk and every
+column's member-fitness landscape reads those frozen values — so even with the octaves
+member dither (journal/0128) varying the *draw* per voxel, the fitness *thresholds* still
+step at the 28.8 m chunk grid. A step in thresholds is far weaker than the retired step in
+the draw, but it is not zero, and it is U22's named sibling (`dithered_member` under
+chunk-centre context). **Heir: per-column formation context**, naturally part of the
+near-path record restructure (member #0's remaining slice). Loud marker at the sampling
+site in `collapse.rs`.
+
+### 32. the-far-member-dither-still-reads-one-octave — *added 2026-07-29 (journal/0129, deliberate)*
+The far summary's member dither was left on the single-octave source **on purpose** when
+the near path moved to `draws::Octaves`: same defect class, different tier, and the far
+register's blend semantics were REJECTED by eye the same evening (journal/0127) — fixing
+the dither inside semantics that are themselves interim would polish a surface that is
+scheduled to be replaced. **Heir: the far register derived from refinement-operator
+budgets** (user sketch, ROADMAP § Observed field report). Annotated at the call site.
+
+### 33. a-private-gauss-module-inside-draws — *added 2026-07-29 (journal/0128)*
+`draws.rs` grew a private `gauss` module (normal quantile table, built via `ln`/`sqrt`)
+for the octaves source's normal-score transform. It is the shape `dc_sim::statistical`
+already owns machinery for, kept private per seam-first #6 (do not generalise on one
+consumer). **Heir: extraction to a shared home on the SECOND consumer.** Note the
+inherited hazard, flagged in journal/0128: the table's construction depends on libm
+`ln`/`sqrt`, so a cross-platform libm difference would move world identity — a hazard
+class the tree already carries (`flow_energy`, soft fitness), instance new.

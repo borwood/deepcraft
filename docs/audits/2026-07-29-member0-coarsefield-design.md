@@ -56,6 +56,13 @@ callers. Only `ShareVec<N>` is consumed (`lithology.rs:551,565,575,615`).
 >    make a per-voxel call cheap; binds first-party identically, so not a Deviation-2
 >    wall; escape valve = a member design pass flags MISSING MACHINERY on a concrete case).
 >
+> **CORRECTION to § 2b's arithmetic (body preserved as written) — corrections #76,
+> 2026-07-29:** *"≤ 9 touched deep cells, typically 1"* is refuted — the bilinear stencil
+> is always 2×2, so an interior chunk touches **4** (~4× `run_strata` per chunk, not ~1×),
+> and the *"six functions"* blast radius measured **13 files / ~40 sites** at build time
+> (journal/0129). Third outfit of the "one weight ≈ 1" misreading; a bilinear stencil's
+> support is a set, not a winner.
+>
 > **CORRECTION to § 3's U3 bullet (body preserved as written):** the "never probed"
 > claim is wrong — the 460-vs-28.8 question was **settled 2026-07-24 as member stepping**
 > (corrections #45 + the haunting diagnosis: *"fix = octaves, not resolution"*); the
