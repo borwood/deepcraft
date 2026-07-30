@@ -24,6 +24,10 @@ a close block, the audit that asked was never stamped, a design agent re-derived
 the question five days later, a main session propagated the re-derivation, and the
 user's memory caught it. This slice fixes (1) and does not fix (2).
 
+*And then measuring (1) at the site found that the word **dominant** does not hold
+there either — a third answer to a question that has now had three. That section is
+below, after the numbers, because the numbers are what earned it.*
+
 The asymmetry between them is the thing worth writing down. **(1) is a one-line
 change of source; (2) is a refactor of the near path's shape.** The fix for (1) is
 to replace one function's uniform with a better one. The fix for (2) is to make a
