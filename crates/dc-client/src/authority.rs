@@ -1401,8 +1401,21 @@ pub(crate) mod tests {
     fn edit_session_parity_direct_vs_mcp_tool_layer() {
         const SEED: i32 = 1337;
 
+        // **Flush the boot body packs first.** `Authority::new` submits them at
+        // construction, so without this tick they sit in the same queue as the
+        // script — and their position in the total order legitimately DIFFERS
+        // between the two paths, because the queue is priority-ordered by consumer
+        // kind: the direct path edits as `Player` (priority 0, sorts ahead of the
+        // packs' `Plugin`), while the MCP path edits as `McpSession` (priority 1,
+        // tying with `Plugin` and losing to it on submission order). The receipts
+        // then carry different global `seq` values for the same edits and this
+        // assertion fires — which is the priority rule working, not a parity
+        // break. Ticking once puts the packs at seq 1..5 in *both* worlds and
+        // leaves the comparison about the script, where the claim lives.
+        //
         // (a) Direct: typed envelopes through the player path.
         let mut direct = Authority::new(SEED, 3);
+        direct.tick_now();
         for payload in edit_script() {
             direct.submit_player(payload);
         }
@@ -1410,6 +1423,7 @@ pub(crate) mod tests {
 
         // (b) MCP tool layer: the same payloads as JSON tool calls.
         let mut mcp = Authority::new(SEED, 3);
+        mcp.tick_now();
         let mut replies = Vec::new();
         for payload in edit_script() {
             let tool = mcp_tool_name(payload.command_id());
@@ -1446,6 +1460,7 @@ pub(crate) mod tests {
 
         // And a different seed diverges (the generator is really in the loop).
         let mut other = Authority::new(SEED + 1, 3);
+        other.tick_now(); // flush the boot packs, as above
         for payload in edit_script() {
             other.submit_player(payload);
         }

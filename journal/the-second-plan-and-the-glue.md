@@ -18,7 +18,17 @@ had a set with one. Every green test was a test of the solver's *arithmetic*, an
 none of them was a test of the *claim*. This entry is about building the second
 element and looking.
 
-<!-- MEASUREMENTS-GO-HERE -->
+The short version, before the story: **the claim half-holds, and the half that
+fails was failing for the biped too.** The angle-based machinery retargets
+cleanly — a body with half the leg length and 1.6× the arm length wears the
+unmodified clips and produces artifacts that are *smaller in metres*, not
+different in kind. But "feet to actual ground" turns out never to have worked at
+all. On flat ground, across every stepped frame of all three clips and both
+plans — **176 of 176 samples** — the foot-placement IK is handed a target beyond
+the leg's reach, clamps to full extension, and leaves the foot in the air. The
+second plan did not break foot placement. The second plan is what made somebody
+finally measure it.
+
 
 ## Before the second plan: a door we had built and never walked through
 
@@ -81,6 +91,32 @@ but the renderer now has to tolerate "the registry cannot serve this plan yet"
 rather than `expect()`-ing its way through. That tolerance is also the honest
 report path if a pack genuinely fails to load.
 
+### The wrong turn: a parity test that was measuring more than its claim
+
+The gate then failed in a way I did not predict, and the failure was more
+interesting than the fix. `edit_session_parity_direct_vs_mcp_tool_layer` runs a
+scripted edit session twice — once as typed envelopes through the player path,
+once as JSON through the MCP tool layer — and asserts the two receipt logs are
+identical modulo the consumer's identity. It had been green for as long as it has
+existed. It went red the moment the body pack entered the command log.
+
+The receipts were not *wrong*; they were in a different order. In the direct run
+the edits arrived seq 1–8 and the pack seq 9–13; in the MCP run the pack came
+first, seq 1–5, edits 6–13. The cause is the priority-ordered command queue doing
+exactly its job: `ConsumerKind::Player` has priority 0, `Plugin` and `McpSession`
+both have priority 1. So the *player*'s edits sort ahead of the `vanilla-pack`
+plugin, while the *MCP session*'s edits tie with it and lose on submission order.
+
+That is correct behaviour, and the test's assertion was quietly broader than the
+claim it was named for: it asserted "these two paths produce identical receipt
+logs" when what it means is "these two paths produce identical receipts *for the
+script*". Adding a third consumer at boot is what made the difference legible. The
+fix is one line per run — tick once after construction, so the pack lands at
+seq 1–5 in both worlds and the comparison is about the script again — and the
+comment explaining *why* is longer than the fix, deliberately, because the next
+person to add a boot-time command batch will hit this and should not have to
+re-derive the priority rule from a diff of two 13-element receipt logs.
+
 ## The second plan: how to pick numbers that are not tasteful
 
 The instruction I gave myself was to make retargeting *work hard*, and
@@ -112,9 +148,136 @@ only thing a viewer can see is proportion — which is the question.
 The hanging arms end 0.08 m above the ground. It is a knuckle-dragger. It looks
 absurd. That is the correct outcome.
 
+One more choice worth recording, because it is the kind of thing that goes wrong
+quietly: `dc:body/stout` does **not** ride in `vanilla_body_pack()`. It has its own
+batch, `experiment_body_pack()`, submitted after vanilla because it binds vanilla's
+clips and authors none of its own. The reason is *existence is not standing*: an
+unratified body sitting inside the default pack is precisely how bootstrap
+fabrication becomes something a session finds in the tree six months later and
+assumes belongs there. Deleting the experiment is three named things and one
+`chain` call. A test asserts the experiment pack registers **zero clips**, which is
+both its design and the reason it is deletable.
+
 ## What the glue actually did
 
-<!-- FINDINGS-GO-HERE -->
+Ground at y = 0, both bodies standing on it, N = 2 (0.900 m voxels, so the foot-IK
+correction window is ±0.450 m), every stepped 12 fps frame of every clip, both
+legs. Sole heights in metres; positive = floating.
+
+```
+  plan   clip  hip    reach | clip sole        rendered         | samples = seated+corrected+refused | beyond-reach
+  biped  idle  0.900  0.880 | [+0.020,+0.035]  [+0.020,+0.035]  | 48 = 0 + 48 + 0                    | 48
+  biped  walk  0.900  0.880 | [+0.054,+0.129]  [+0.037,+0.102]  | 24 = 0 + 24 + 0                    | 24
+  biped  jump  0.900  0.880 | [+0.033,+0.129]  [+0.020,+0.125]  | 16 = 0 + 16 + 0                    | 16
+  stout  idle  0.460  0.440 | [+0.020,+0.035]  [+0.020,+0.035]  | 48 = 0 + 48 + 0                    | 48
+  stout  walk  0.460  0.440 | [+0.049,+0.074]  [+0.028,+0.068]  | 24 = 0 + 24 + 0                    | 24
+  stout  jump  0.460  0.440 | [+0.029,+0.125]  [+0.020,+0.125]  | 16 = 0 + 16 + 0                    | 16
+
+  reach ratio stout/biped = 0.500 (hips 0.460 / 0.900)
+  IK window ±0.450 m = 1.02x the stout leg, 0.51x the biped leg
+  authored walk root bob 0.040 m = 8.7% of the stout's hip height, 4.4% of the biped's
+  authored jump root bob 0.120 m = 26.1% of the stout's hip height, 13.3% of the biped's
+```
+
+### The part that holds
+
+The plan-derived rig is exactly `0.500×`. Nothing in the pipeline needed telling.
+`leg_rigs` reads the bone lengths out of the plan, `sample_clip` produces angles
+(which are dimensionless), `solve_leg_ik` is parameterized by `l1`/`l2` — and the
+result is that a body half as tall in the legs walks with the same gait, with
+absolute artifacts that *shrink*: the walk's rendered float peaks at 0.102 m on
+the biped and 0.068 m on the stout. No new *kind* of artifact appeared anywhere.
+The `idle` row is the cleanest possible statement of it: the two plans produce
+**byte-identical sole heights**, `[+0.020, +0.035]`, on completely different
+bodies.
+
+That matters, because the cheap prediction was "the second plan will look
+broken in a new way". It does not. It looks broken in the *same* way, less so in
+metres. One authored clip set genuinely dressed two bodies with a 2× leg-length
+difference, through the registry, with the verb→slot validator accepting it and
+without a single new keyframe. As a mechanism, plan-generic animation works.
+
+### The part that fails — and it was failing before there was a second plan
+
+`beyond-reach` is **every sample of every row**. Not one frame, in any clip, on
+either body, ever has its foot placed on the ground. The IK runs (it is inside
+the window), discovers the target is outside the annulus `[|l1−l2|, l1+l2]`,
+clamps to full extension, and returns a leg pointing at a ground it cannot touch.
+`residual ≤ 0.0000` in every row is not "perfect" — it is the probe reporting
+that there were **no reachable samples to measure a residual over**. The
+instrument's most useful column is the one that stayed empty.
+
+The immediate cause is embarrassingly simple, and it is arithmetic that has been
+sitting in `biped_plan()` since the day it was written: **the hip is 20 mm higher
+than the legs are long.** Hip 0.900, reach 0.880. So "put the sole at y = 0" is a
+request for 0.900 m of extension from an 0.880 m leg — out of reach *before any
+animation runs at all*. The body has always stood 2 cm off the floor, and every
+foot-placement solve has always been a clamp.
+
+Two centimetres is invisible, which is exactly why it survived. But it means the
+whole foot-IK path has been running in its degenerate branch for its entire life,
+and the ratified sentence "feet to actual ground" describes something that has
+never happened. (Honesty note: the stout's 20 mm is *mine* — I chose its hip
+height to give the same rest clearance as the biped, which is itself an
+absolute-metre choice I made without thinking about it, and I only noticed when
+the probe printed 48/48. The biped's 20 mm predates this work and is what makes
+the biped's own count 100%.)
+
+### The shape of every failure: scale-free authoring meets an absolute constant
+
+Once you have two bodies, all three defects turn out to be the same defect wearing
+different clothes. In each case something the *plan* expresses proportionally
+collides with something the *engine* or the *clip* expresses in metres, and
+nothing reconciles them:
+
+1. **The hip/reach deficit is metres.** 20 mm on a 0.88 m leg is 2.3%; the same
+   20 mm on a 0.44 m leg is 4.5%. Halving a body doubles the relative error.
+
+2. **The authored root bob is metres.** The walk's 0.040 m bob is 4.4% of the
+   biped's hip height and 8.7% of the stout's. The jump's 0.120 m is 13.3% and
+   **26.1%**. Look at what that does to the jump row: *both* bodies' feet peak at
+   **exactly +0.125 m**. Identical absolute float, on a body with half the legs.
+   The stout does not so much jump as launch out of its own legs, and the number
+   says the bob is doing it, not the solver.
+
+3. **The foot-IK correction window is metres, and worse, it comes from the voxel
+   grid.** Half a voxel is 0.450 m at N = 2. That is 0.51× the biped's leg and
+   **1.02× the stout's entire leg**. A tolerance intended as "only fix small
+   discrepancies" is, for the smaller body, larger than the body part it is
+   correcting. It is a statement about the world's resolution masquerading as a
+   statement about anatomy — and note that it would change if we changed voxel
+   scale, which is not a thing that should move a character's foot.
+
+The uncomfortable observation is that none of these are the *solver*. The two-bone
+IK is fine; its unit tests are honest and they pass. The retargeting glue's
+failure is not in the glue — it is in the three places where somebody wrote a
+length instead of a ratio, in a system whose whole premise is that proportions
+vary. And you cannot see any of them with one body plan, because with one body
+plan a length *is* a ratio.
+
+### One more thing, found while reading the sampler
+
+Not a retargeting finding, but it fell out of the same reading and belongs on the
+record: the `idle` clip's arm poses are **entirely erased by quantization**. The
+authored splay angles are 0.05, 0.06 and 0.08 rad; the rotation quantum is
+`TAU/32 = 0.196` rad, so anything under 0.098 rad rounds to zero. All of them do.
+The only thing that survives `dc:anim/biped_idle` is its 15 mm root bob — the
+breathing arm motion has never rendered, on any body. That is hand-derived from
+the two constants rather than measured by the probe, and it is stated as such.
+
+## Where this leaves the ratified claim
+
+The honest rewrite of bodies.md's sentence, if the user wants one, is two
+sentences instead of one: *IK and the clip sampler are proportion-generic and one
+clip set does serve differently-proportioned plans* — measured, true, and now with
+evidence. *Foot-to-ground contact is not achieved, for any plan, because the
+authored hip heights, the clips' root bob, and the correction window are absolute
+lengths.* Also measured, also true, and not a fact about the second plan.
+
+Which of those to act on is not a slice's call. What the slice can say is that the
+first sentence needed a second body plan to become evidence, and the second
+sentence needed one to become visible at all.
+
 
 ## The measurement that had to be built to see any of this
 

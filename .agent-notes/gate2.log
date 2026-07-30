@@ -1,0 +1,1481 @@
+   Compiling dc-client v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-client)
+    Finished `release` profile [optimized] target(s) in 33.34s
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_api-9d27f100509a6a4a.exe)
+
+running 50 tests
+test abi::tests::postcard_roundtrips_receipts_with_sparse_effects ... ok
+test abi::tests::ptr_len_roundtrip ... ok
+test bodies::tests::bad_clip_times_reject ... ok
+test bodies::tests::parent_cycle_rejects ... ok
+test bodies::tests::missing_required_slot_rejects ... ok
+test bodies::tests::bad_parent_rejects ... ok
+test bodies::tests::unknown_verb_rejects ... ok
+test bodies::tests::stout_is_well_formed_and_binds_the_biped_clips ... ok
+test bodies::tests::stout_proportions_differ_materially ... ok
+test bodies::tests::clip_animating_unknown_joint_rejects ... ok
+test bodies::tests::slot_binding_missing_clip_rejects ... ok
+test bodies::tests::vanilla_biped_is_well_formed ... ok
+test capability::tests::attenuation_narrows_but_never_widens ... ok
+test capability::tests::character_control_scopes_to_one_name_and_never_widens ... ok
+test capability::tests::covers_token_is_the_boundary_check ... ok
+test capability::tests::unbounded_read_covers_anywhere_bounded_does_not ... ok
+test capability::tests::empty_token_denies_everything ... ok
+test capability::tests::namespace_grant_is_exact ... ok
+test capability::tests::requirement_for_rejects_malformed_item_names ... ok
+test capability::tests::volume_scoped_write_covers_inside_only ... ok
+test character::tests::airborne_jump_request_is_dropped ... ok
+test character::tests::character_names_are_bare_slugs ... ok
+test character::tests::falls_settles_walks_and_jumps ... ok
+test character::tests::view_dir_matches_convention ... ok
+test character::tests::walls_block_and_slide ... ok
+test classes::tests::geology_contract_validates_its_own_vanilla_members ... ok
+test classes::tests::igneous_contract_omits_the_weather_axes ... ok
+test classes::tests::a_pack_declaring_an_empty_class_is_rejected_by_name ... ok
+test classes::tests::validate_params_enforces_the_contract ... ok
+test identify::tests::a_nonempty_record_wins_over_the_block_so_edits_stay_legible ... ok
+test classes::tests::vanilla_pack_round_trips_into_the_typed_vanilla_set ... ok
+test identify::tests::absent_grid_under_a_solid_block_is_unrecorded ... ok
+test identify::tests::air_is_a_recorded_empty_mixture_not_unrecorded ... ok
+test identify::tests::an_unrecorded_answer_is_not_an_empty_mixture ... ok
+test identify::tests::empty_record_under_a_solid_block_is_unrecorded_not_air ... ok
+test payload::tests::floor_voxel_handles_negatives ... ok
+test payload::tests::payload_ids_match_convention ... ok
+test payload::tests::volume_containment_is_inclusive ... ok
+test payload::tests::volume_normalizes_and_contains ... ok
+test schema::tests::block_completion_offers_known_names_filtered ... ok
+test schema::tests::body_plan_completion_reads_registered_plans ... ok
+test schema::tests::class_completion_reads_registered_classes ... ok
+test schema::tests::completion_hook_presence_matches_intent ... ok
+test schema::tests::event_kinds_completion_is_static_and_filtered ... ok
+test schema::tests::character_completion_reads_live_world ... ok
+test schema::tests::decode_rejects_malformed_payloads ... ok
+test schema::tests::ids_are_unique_and_mcp_names_are_valid_and_unique ... ok
+test schema::tests::set_posture_completes_both_character_and_static_posture ... ok
+test schema::tests::macro_table_is_internally_consistent ... ok
+test schema::tests::registry_covers_every_payload_variant ... ok
+
+test result: ok. 50 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\bodies.rs (B:\repos\borwood\deepcraft\target\release\deps\bodies-64b52c9496e89035.exe)
+
+running 13 tests
+test plan_before_its_clips_is_rejected ... ok
+test spawn_with_a_registered_plan_wears_it_and_reads_back ... ok
+test slot_bound_to_missing_clip_rejects ... ok
+test body_defs_are_namespace_owned ... ok
+test the_experiment_pack_requires_vanillas_clips ... ok
+test spawn_without_a_plan_gets_the_identity_default ... ok
+test the_experiment_pack_is_separate_and_carries_no_clips ... ok
+test spawn_with_an_unregistered_plan_is_refused_with_a_receipt ... ok
+test a_new_verb_needs_zero_new_payload_variants ... ok
+test missing_required_slot_rejects_at_define_time ... ok
+test bad_parent_rejects_at_define_time ... ok
+test registry_content_equals_the_authored_source ... ok
+test vanilla_pack_defines_through_the_door ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\character_semantics.rs (B:\repos\borwood\deepcraft\target\release\deps\character_semantics-64038fe2336f10c4.exe)
+
+running 10 tests
+test pose_echoes_feet_voxel_and_posture ... ok
+test posture_transitions_replay_identically ... ok
+test character_session_grant_is_a_cage ... ok
+test spawned_character_falls_walks_and_jumps_with_real_collision ... ok
+test spawn_validates_names_and_uniqueness ... ok
+test stand_up_is_blocked_under_a_low_ceiling ... ok
+test senses_are_embodied_and_range_capped ... ok
+test scripted_movement_session_replays_to_identical_pose ... ok
+test sense_raycast_reports_no_contents_for_unrecorded_rock ... ok
+test sense_raycast_still_reports_contents_for_recorded_rock ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\chunk_eviction.rs (B:\repos\borwood\deepcraft\target\release\deps\chunk_eviction-91309c8f8c9c6c12.exe)
+
+running 6 tests
+test a_no_op_write_does_not_pin_a_chunk ... ok
+test the_builtin_world_evicts_too ... ok
+test edited_chunks_accumulate_beyond_the_budget ... ok
+test region_hash_is_independent_of_the_budget ... ok
+test an_edited_chunk_survives_eviction_pressure ... ok
+test evicted_chunks_regenerate_byte_identically ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests\content_classes.rs (B:\repos\borwood\deepcraft\target\release\deps\content_classes-4a2345f961bd9a91.exe)
+
+running 5 tests
+test malformed_class_contracts_are_rejected ... ok
+test member_defines_are_schema_validated_at_define_time ... ok
+test class_and_member_defines_are_namespace_owned ... ok
+test vanilla_pack_applies_and_bridges_to_the_typed_set ... ok
+test member_registration_order_does_not_change_the_compiled_set ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\host_generator.rs (B:\repos\borwood\deepcraft\target\release\deps\host_generator-37884ef2c4309e1e.exe)
+
+running 1 test
+test generator_terrain_is_served_and_edits_layer_on_top ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\host_semantics.rs (B:\repos\borwood\deepcraft\target\release\deps\host_semantics-c2279a60c0f7053e.exe)
+
+running 19 tests
+test commands_are_tick_quantized ... ok
+test get_contents_requires_world_read ... ok
+test deny_by_default_and_volume_scoped_writes ... ok
+test events_flow_filter_and_drain ... ok
+test queries_read_last_completed_tick_and_never_mutate ... ok
+test identify_without_a_contents_source_is_unrecorded_for_solids_and_empty_for_air ... ok
+test namespace_ownership_is_enforced ... ok
+test get_contents_without_a_source_is_block_only ... ok
+test same_class_consumers_order_by_id_then_seq ... ok
+test scan_region_palette_is_first_appearance_order ... ok
+test target_tick_defers_and_past_targets_reject ... ok
+test total_order_is_priority_then_consumer_then_seq ... ok
+test transactions_are_all_or_nothing ... ok
+test genuine_air_in_a_recorded_chunk_still_reports_air ... ok
+test get_contents_unpacks_the_full_composition ... ok
+test get_contents_surfaces_edit_divergence ... ok
+test unrecorded_rock_in_a_recorded_chunk_no_longer_reports_air ... ok
+test replay_determinism ... ok
+test identify_separates_unrecorded_from_empty_and_from_a_mixture ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src\main.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_client-e440d97168df237b.exe)
+
+running 126 tests
+test app::tests::spawn_search_finds_open_ground_off_the_chasm_floor ... ok
+test authority::tests::dirty_set_interior_border_and_corner ... ok
+test authority::tests::cache_application_updates_loaded_chunks_and_skips_unloaded ... ok
+test authority::tests::attach_wears_a_named_plan_and_refuses_an_unknown_one ... ok
+test authority::tests::host_chunk_serves_terrain_plus_edits ... ok
+test authority::tests::pose_reply_echoes_feet_voxel_in_get_block_frame ... ok
+test authority::tests::the_vanilla_body_pack_loads_through_the_one_door ... ok
+test authority::tests::freeze_zeroes_move_intent_and_body_rests ... ok
+test authority::tests::attach_rejects_embedded_allows_clear_and_snaps_to_surface ... ok
+test authority::tests::character_session_replays_identically_and_stays_caged ... ok
+test authority::tests::edit_session_parity_direct_vs_mcp_tool_layer ... ok
+test body::tests::advance_history_replays_identically ... ok
+test body::tests::angles_are_quantized ... ok
+test body::tests::ik_clamps_reach_and_never_nans ... ok
+test body::tests::ik_is_deterministic_for_fixed_inputs ... ok
+test body::tests::ik_reconstructs_reachable_targets_with_a_forward_knee ... ok
+test body::tests::looping_wraps_deterministically ... ok
+test body::tests::orientation_is_stepped_and_splits_look_from_trunk ... ok
+test body::tests::retargeting_across_proportions_is_measured ... ok
+test body::tests::sampler_is_deterministic_for_fixed_time ... ok
+test body::tests::steer_faces_travel_holds_when_stopped_and_replays ... ok
+test body::tests::time_is_stepped_to_twelve_fps ... ok
+test body::tests::walk_starts_and_stops_by_speed ... ok
+test console::core::tests::active_arg_key_tracks_the_value_token ... ok
+test console::core::tests::arg_help_line_carries_type_required_desc_and_examples ... ok
+test console::core::tests::assemble_client_tool_bool_and_nested ... ok
+test console::core::tests::assemble_expands_dotted_paths_and_coerces ... ok
+test console::core::tests::assemble_rejects_unknown_key_of_closed_object ... ok
+test console::core::tests::complete_command_names_by_prefix ... ok
+test console::core::tests::complete_help_argument_is_command_names ... ok
+test authority::tests::surface_teleport_reply_reports_snapped_on_success_and_miss ... ok
+test console::core::tests::complete_param_keys_after_command ... ok
+test console::core::tests::example_invocation_uses_placeholders_and_description_hints ... ok
+test console::core::tests::every_registry_command_renders_signature_example_and_arg_help ... ok
+test console::core::tests::help_command_handles_no_params ... ok
+test console::core::tests::help_command_renders_params_types_and_requiredness ... ok
+test console::core::tests::no_value_completion_after_equals ... ok
+test console::core::tests::help_overview_lists_every_command ... ok
+test console::core::tests::parse_blank_is_none_and_bad_arg_errors ... ok
+test console::core::tests::parse_splits_command_and_kv ... ok
+test console::core::tests::param_paths_flattens_nested_and_marks_required ... ok
+test console::core::tests::registry_is_fully_surfaced ... ok
+test console::core::tests::value_completion_replaces_only_the_value_and_finds_common_prefix ... ok
+test console::core::tests::signature_marks_required_and_brackets_optional ... ok
+test console::core::tests::value_context_finds_the_value_half ... ok
+test devicelost::tests::a_healthy_lock_is_unaffected ... ok
+test devicelost::tests::the_exit_code_never_lies_about_a_lost_device ... ok
+test devicelost::tests::a_poisoned_lock_still_hands_back_its_value ... ok
+test farmesh::tests::coarse_scale_doubles_per_level ... ok
+test farmesh::tests::default_ring_edges_match_the_shipped_constants ... ok
+test farmesh::tests::every_lod_range_derives_from_the_one_ladder ... ok
+test farmesh::tests::a_stretched_horizon_opens_no_new_sky_holes ... ok
+test farmesh::tests::far_columns_quantize_the_near_ground_below_it ... ok
+test farmesh::tests::far_tile_is_stepped_voxel_columns_not_a_smooth_sheet ... ok
+test farmesh::tests::far_tiles_cover_the_rings_without_seams ... ok
+test farmesh::tests::horizon_stretches_only_the_outer_ring ... ok
+test farmesh::tests::far_horizon_heights_agree_with_the_near_ground ... ok
+test farmesh::tests::near_coverage_culls_far_columns_instead_of_burying_them ... ok
+test farmesh::tests::offloaded_far_derive_matches_on_thread ... ok
+test farmesh::tests::reduction_used_where_resident_and_floored_under_the_near_surface ... ok
+test farmesh::tests::ring_selection_by_distance ... ok
+test farmesh::tests::stacked_columns_mesh_overhangs_with_bottom_faces ... ok
+test farmesh::tests::uniform_push_keeps_same_level_seams_watertight_in_world_space ... ok
+test farmesh::tests::wanted_far_tiles_are_ring_shaped_and_deterministic ... ok
+test farmesh::tests::wanted_positions_are_ring_shaped_and_deterministic ... ok
+test farmesh::tests::warm_reduce_is_floored_geometry_safe ... ok
+test farpyramid::tests::eviction_falls_back_to_synthesis_and_keeps_the_nearest ... ok
+test farpyramid::tests::partial_subtrees_synthesize_rather_than_reading_air ... ok
+test inspector::tests::a_recorded_mixture_still_prints_its_materials ... ok
+test inspector::tests::genuine_air_still_reads_as_air_in_the_hud ... ok
+test inspector::tests::unrecorded_reaches_the_no_record_branch ... ok
+test mcp::tests::mcp_http_session_edits_scan_and_hash_parity ... ok
+test mcp::tests::options_parse_flags ... ok
+test mcp::tests::screenshot_names_are_bare_slugs_only ... ok
+test mcp_character::tests::character_session_is_embodied_and_attenuated ... ok
+test mcp_character::tests::dropping_an_attached_session_emits_a_freeze ... ok
+test mcp_character::tests::dropping_an_unattached_session_is_silent ... ok
+test meshing::tests::a_full_voxel_shows_its_underside_over_a_partial ... ok
+test meshing::tests::atlas_layers_are_distinct_and_in_range ... ok
+test meshing::tests::border_faces_consult_neighbor_query_in_world_coords ... ok
+test meshing::tests::cross_chunk_border_culls_against_a_taller_or_full_neighbor ... ok
+test meshing::tests::cross_chunk_border_emits_the_band_a_shorter_partial_leaves ... ok
+test meshing::tests::full_chunk_with_solid_neighbors_emits_nothing ... ok
+test meshing::tests::interior_faces_are_culled ... ok
+test meshing::tests::loose_only_contents_render_partial_height_with_an_exposed_top ... ok
+test meshing::tests::material_block_layer_agrees_with_direct_material_layer ... ok
+test meshing::tests::mixed_contents_are_a_single_quad_with_splat_weights ... ok
+test meshing::tests::over_n_constituents_selected_by_seed_deterministically ... ok
+test meshing::tests::partial_beside_a_full_voxel_culls_its_side_completely ... ok
+test meshing::tests::partial_beside_air_emits_its_full_side_face ... ok
+test meshing::tests::partial_tops_triangle_cost_vs_block_tier_culling ... ok
+test meshing::tests::perf_mixed_heavy_vs_uniform_triangle_counts ... ok
+test meshing::tests::plan_backed_mesh_equals_direct_mesh ... ok
+test meshing::tests::shell_backed_mesh_equals_direct_mesh ... ok
+test meshing::tests::single_voxel_emits_six_faces_with_uvs_and_layers ... ok
+test meshing::tests::taller_partial_beside_shorter_partial_emits_the_exposed_band ... ok
+test meshing::tests::top_splat_is_world_anchored_and_deterministic ... ok
+test meshing::tests::uniform_contents_sample_their_material_layer ... ok
+test meshing::tests::uvs_are_world_anchored_and_continuous_across_voxels ... ok
+test shaderpack::tests::broken_wgsl_is_rejected ... ok
+test shaderpack::tests::builtin_default_is_valid ... ok
+test shaderpack::tests::in_tree_packs_load_and_validate ... ok
+test shaderpack::tests::manifest_without_stages_falls_back_to_default_post ... ok
+test shaderpack::tests::missing_stage_function_is_rejected ... ok
+test shaderpack::tests::portability::every_pack_stage_translates_to_all_backends ... ok
+test shaderpack::tests::unknown_stage_name_is_rejected ... ok
+test shaderpack::tests::wrong_format_is_rejected ... ok
+test terrain_material::tests::fallback_layers_are_the_right_size ... ok
+test terrain_material::tests::fullbright_palette_is_registry_albedo ... ok
+test terrain_material::tests::layer_slugs_cover_every_atlas_layer_in_order ... ok
+test terrain_material::tests::palette_len_matches_atlas ... ok
+test worldgen::tests::block_at_matches_generate_chunk ... ok
+test worldgen::tests::chasm_region_exists_and_is_deep ... ok
+test worldgen::tests::same_seed_same_terrain ... ok
+test worldgen::tests::surface_height_m_underreports_true_voxel_surface ... ok
+test authority::tests::empty_cache_solidity_paths_read_the_worldgen_authority has been running for over 60 seconds
+test authority::tests::eye_in_solid_reads_the_authority_not_stale_s1 has been running for over 60 seconds
+test authority::tests::far_field_summary_gates_on_authority has been running for over 60 seconds
+test authority::tests::mesh_border_culling_cost_authority_vs_s1 has been running for over 60 seconds
+test authority::tests::per_task_generator_construction_is_cheap has been running for over 60 seconds
+test authority::tests::per_task_generator_is_byte_identical_to_the_shared_one has been running for over 60 seconds
+test authority::tests::worldgen_seam_cold_chunk_timing has been running for over 60 seconds
+test authority::tests::worldgen_seam_is_order_independent has been running for over 60 seconds
+test authority::tests::worldgen_surface_seating_never_embeds has been running for over 60 seconds
+test authority::tests::worldgen_true_surface_is_really_the_surface has been running for over 60 seconds
+test farmesh::tests::horizon_sweep_measures_the_far_field_cost has been running for over 60 seconds
+test authority::tests::empty_cache_solidity_paths_read_the_worldgen_authority ... ok
+test authority::tests::worldgen_surface_seating_never_embeds ... ok
+test authority::tests::far_field_summary_gates_on_authority ... ok
+test authority::tests::eye_in_solid_reads_the_authority_not_stale_s1 ... ok
+test authority::tests::worldgen_true_surface_is_really_the_surface ... ok
+test authority::tests::per_task_generator_construction_is_cheap ... ok
+test authority::tests::per_task_generator_is_byte_identical_to_the_shared_one ... ok
+test farmesh::tests::horizon_sweep_measures_the_far_field_cost ... ok
+test authority::tests::worldgen_seam_cold_chunk_timing ... ok
+test authority::tests::worldgen_seam_is_order_independent ... ok
+test authority::tests::mesh_border_culling_cost_authority_vs_s1 ... ok
+
+test result: ok. 126 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 175.91s
+
+     Running unittests examples\identify_census.rs (B:\repos\borwood\deepcraft\target\release\examples\identify_census-a949200241dbbfb3.exe)
+
+running 2 tests
+test gate::every_before_phantom_and_no_record_voxel_lands_in_unrecorded ... ok
+test gate::identify_never_reports_air_over_solid_ground ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.84s
+
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_core-aaaa2e9c92751a6d.exe)
+
+running 143 tests
+test chunk::tests::chunk_pos_from_world_voxel_handles_negatives ... ok
+test chunk::tests::min_voxel_roundtrips_with_local ... ok
+test chunk::tests::index_is_a_bijection_over_the_chunk ... ok
+test chunk::tests::index_layout_is_x_fastest ... ok
+test chunk::tests::index_panics_out_of_bounds - should panic ... ok
+test chunk::tests::raw_byte_size_is_32_kib ... ok
+test chunk::tests::set_then_get_roundtrip ... ok
+test chunk::tests::try_get_bounds ... ok
+test classify::tests::debris_speaks_when_there_is_no_structure ... ok
+test classify::tests::empty_classifies_to_air ... ok
+test classify::tests::classification_is_order_independent ... ok
+test classify::tests::every_material_classifies_to_its_own_identity ... ok
+test classify::tests::pore_fill_decides_only_when_alone ... ok
+test classify::tests::structure_outranks_pore_fill ... ok
+test coarse::tests::argmax_is_the_limiting_case_of_blend_table ... ok
+test coarse::tests::blend_is_exact_at_one_hot_for_f64 ... ok
+test coarse::tests::blend_is_exact_at_one_hot_for_sharevec ... ok
+test coarse::tests::blend_is_exact_at_uniform_samples_for_f64 ... ok
+test coarse::tests::blend_is_exact_at_uniform_samples_for_sharevec ... ok
+test coarse::tests::cell_honest_is_the_only_raw_read_and_it_is_named ... ok
+test coarse::tests::sample_interpolates_between_cells ... ok
+test coarse::tests::cake_law_a_minority_phase_interfingers_across_a_cell_boundary ... ok
+test coarse::tests::sample_is_exact_over_a_uniform_field ... ok
+test coarse::tests::the_naive_dot_would_drift_here_but_the_anchor_does_not ... ok
+test collision::tests::cannot_enter_one_voxel_gap_narrower_than_player ... ok
+test coarse::tests::the_draw_is_unbiased_over_the_uniform ... ok
+test collision::tests::column_top_solid_finds_surface_and_reports_empty_air ... ok
+test collision::tests::diagonal_high_speed_still_lands_on_floor ... ok
+test collision::tests::falls_onto_ground_and_stands ... ok
+test collision::tests::no_tunneling_through_thin_floor_at_high_speed ... ok
+test collision::tests::overlap_detects_embedded_and_ignores_flush_rest ... ok
+test collision::tests::resting_flush_against_wall_does_not_jitter ... ok
+test collision::tests::wall_slide_preserves_tangential_motion ... ok
+test column::tests::no_solid_column_reports_open ... ok
+test farfield::tests::compose_keeps_overhangs_and_gaps_between_known_nodes ... ok
+test farfield::tests::compose_lets_known_air_truncate_the_synth_claim ... ok
+test farfield::tests::compose_merges_a_reduced_surface_node_onto_the_synth_ground ... ok
+test farfield::tests::compose_with_no_known_nodes_is_the_synth_span ... ok
+test farfield::tests::quantize_top_floors_to_the_coarse_lattice ... ok
+test format::tests::future_version_is_refused_cleanly ... ok
+test column::tests::coarse_only_summary_answers_without_full_res ... ok
+test column::tests::full_res_summary_finds_surface ... ok
+test column::tests::overhang_open_air_beneath_is_visible_from_lod_only ... ok
+test format::tests::unknown_sidecar_sections_are_tolerated_and_preserved ... ok
+test column::tests::unknown_gap_flags_and_optimistic_sky ... ok
+test lod::tests::best_block_prefers_finest_available ... ok
+test coarse::tests::summarize_then_coarse_dither_matches_fine_dither_within_tolerance ... ok
+test format::tests::corrupt_payload_is_an_error_not_a_panic ... ok
+test farfield::tests::node_spans_read_runs_with_world_anchoring ... ok
+test format::tests::roundtrip_is_deterministic ... ok
+test format::tests::roundtrip_preserves_voxels_and_version ... ok
+test lod::tests::majority_rule_thresholds ... ok
+test column::tests::summaries_cache_is_lazy_and_stable ... ok
+test farfield::tests::node_spans_refine_block_through_reduced_materials ... ok
+test lod::tests::derive_places_children_in_correct_octants ... ok
+test lod::tests::subtree_fully_inserted_requires_every_child ... ok
+test lod::tests::direct_lod_insert_supports_higher_levels_without_children ... ok
+test materials::contents::tests::canonical_form_is_order_independent ... ok
+test materials::contents::tests::capacity_invariants_are_enforced ... ok
+test materials::contents::tests::decode_rejects_bad_input ... ok
+test materials::contents::tests::empty_is_empty ... ok
+test materials::contents::tests::encode_decode_roundtrip ... ok
+test materials::contents::tests::segments_are_independent_multisets ... ok
+test materials::extract::tests::dig_yields_ascending_dig_resistance ... ok
+test materials::extract::tests::empty_contents_yield_nothing ... ok
+test materials::extract::tests::debris_damage_never_reaches_structure ... ok
+test materials::extract::tests::same_material_across_pools_is_pooled ... ok
+test lod::tests::negative_positions_parent_correctly ... ok
+test materials::extract::tests::sieve_orders_by_grain_size_fines_first ... ok
+test materials::geology::tests::fitness_prefers_the_window_and_decays_outside ... ok
+test materials::geology::tests::builder_rejects_bad_defs ... ok
+test materials::geology::tests::igneous_selection_never_reads_the_weather ... ok
+test materials::geology::tests::member_indices_are_registration_order_independent ... ok
+test materials::geology::tests::selection_is_deterministic_and_seed_sensitive ... ok
+test materials::geology::tests::settle_energy_orders_grains_and_places_the_ore_with_the_gravel ... ok
+test lod::tests::derive_hand_built_fixture ... ok
+test materials::geology::tests::vanilla_builds_and_selects_each_class ... ok
+test materials::geology::tests::abundance_is_normalized_within_class ... ok
+test lod::tests::grass_surface_survives_via_priority ... ok
+test materials::intern::tests::interning_is_deduplicating_and_deterministic ... ok
+test materials::intern::tests::debris_free_chunk_attaches_no_sidecar_and_pays_nothing ... ok
+test materials::intern::tests::table_decode_rejects_corruption ... ok
+test materials::intern::tests::table_roundtrip ... ok
+test lod::tests::remove_chunk_vacates_and_rederives ... ok
+test materials::intern::tests::varint_roundtrip ... ok
+test materials::lod::tests::debris_dominance_folds_minority_rubble_in ... ok
+test materials::lod::tests::eighths_vote_not_voxels ... ok
+test materials::intern::tests::decode_rejects_corrupt_material_chunk ... ok
+test materials::intern::tests::sidecar_roundtrip_through_container ... ok
+test lod::tests::derivation_is_incremental ... ok
+test materials::lod::tests::mixture_proportions_survive_at_eighth_resolution ... ok
+test materials::lod::tests::scale_to_slots_is_exact_and_deterministic ... ok
+test materials::intern::tests::material_chunk_palette_compression ... ok
+test materials::lod::tests::structure_dominance_keeps_loose_as_pore_fill ... ok
+test materials::lod::tests::under_half_occupancy_reduces_to_empty ... ok
+test materials::packing::tests::accessory_genesis_is_exempt_by_construction ... ok
+test materials::packing::tests::boundary_is_inclusive ... ok
+test lod::tests::pluggable_rule_changes_output ... ok
+test materials::packing::tests::empty_host_admits_nothing ... ok
+test materials::packing::tests::fines_pack_into_coarse_host ... ok
+test materials::packing::tests::heterogeneous_host_uses_the_finest_grain ... ok
+test materials::packing::tests::packing_and_sieving_are_the_same_axis ... ok
+test materials::packing::tests::sand_does_not_pack_into_sandstone ... ok
+test materials::stratify::tests::deep_time_is_fully_banded_densest_first ... ok
+test materials::stratify::tests::fresh_deposit_is_fully_mixed ... ok
+test materials::stratify::tests::half_time_settles_half ... ok
+test materials::stratify::tests::settling_is_monotone_and_bands_refine ... ok
+test materials::stratify::tests::stratify_is_deterministic_and_pure ... ok
+test materials::stratify::tests::structure_and_pores_do_not_stratify ... ok
+test materials::tests::debris_damage_types_do_not_target_structure ... ok
+test materials::tests::material_qualified_names_match_registry ... ok
+test materials::tests::nothing_in_the_current_roster_dissolves ... ok
+test materials::tests::properties_are_sane ... ok
+test materials::tests::registry_ids_roundtrip_and_names_are_distinct ... ok
+test materials::tests::sieve_resistance_equals_grain_size ... ok
+test materials::tests::weatherability_orders_soft_over_hard_with_the_reference_at_one ... ok
+test palette::tests::bits_for_palette_len_edges ... ok
+test palette::tests::packed_indices_over_256_entries ... ok
+test palette::tests::packed_indices_zero_bits ... ok
+test coarse::tests::white_noise_is_unbiased_but_coherent_amplifies_the_majority ... ok
+test lod::tests::levels_zero_through_four_derive ... ok
+test raycast::tests::axis_aligned_hits_first_wall_voxel_with_entry_face ... ok
+test raycast::tests::diagonal_ray_lands_on_the_plane_it_actually_crosses ... ok
+test raycast::tests::max_distance_and_degenerate_directions ... ok
+test raycast::tests::negative_coordinates_walk_correctly ... ok
+test raycast::tests::starting_inside_solid_reports_zero_normal_hit ... ok
+test scale::tests::conversions_roundtrip ... ok
+test palette::tests::get_matches_dense_without_decompressing ... ok
+test palette::tests::dense_palette_dense_identity ... ok
+test scale::tests::player_height_scales ... ok
+test scale::tests::voxel_at_floors ... ok
+test palette::tests::uniform_chunk_collapses_to_one_entry_zero_bits ... ok
+test materials::lod::tests::missing_children_read_as_empty ... ok
+test voxel::tests::air_is_not_solid_everything_else_is ... ok
+test voxel::tests::block_is_one_byte ... ok
+test voxel::tests::ordinal_is_stable_and_orders_materials_by_id ... ok
+test palette::tests::validate_rejects_corruption ... ok
+test palette::tests::two_entry_palette_uses_one_bit ... ok
+test materials::intern::tests::contents_grid_resolves_render_only_view ... ok
+test palette::tests::compression_is_deterministic ... ok
+test lod::tests::derivation_is_deterministic ... ok
+test materials::lod::tests::composes_with_the_block_pyramid_over_two_levels ... ok
+test materials::lod::tests::derivation_is_deterministic ... ok
+
+test result: ok. 143 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests\s8_measurements.rs (B:\repos\borwood\deepcraft\target\release\deps\s8_measurements-dfeff8b2f3fc410b.exe)
+
+running 4 tests
+test repose_relaxation_conserves_and_stabilizes ... ok
+test deposition_is_deterministic ... ok
+test pathological_gradient_mixing ... ok
+test deposition_measurements ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.72s
+
+     Running tests\s8_properties.rs (B:\repos\borwood\deepcraft\target\release\deps\s8_properties-4ca09742e6e6ae36.exe)
+
+running 9 tests
+test canonical_form_is_permutation_invariant ... ok
+test encoding_roundtrips_and_is_canonical ... ok
+test sieve_separates_by_grain_size ... ok
+test debris_damage_never_yields_structure_slots ... ok
+test interning_identifies_exactly_the_equal_contents ... ok
+test extraction_conserves_mass ... ok
+test extraction_order_ascends_resistance_with_id_tiebreak ... ok
+test stratification_is_deterministic_monotone_and_conserving ... ok
+test material_sidecar_roundtrips_through_the_container ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_host-647e4fd1ecbec6f6.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\parity.rs (B:\repos\borwood\deepcraft\target\release\deps\parity-4bf0e6e8ee2621c5.exe)
+
+running 2 tests
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.46
+   Compiling unicode-ident v1.0.24
+   Compiling serde_core v1.0.228
+   Compiling thiserror v2.0.18
+   Compiling serde v1.0.228
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.150
+   Compiling syn v2.0.119
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling glam v0.30.10
+   Compiling thiserror-impl v2.0.18
+   Compiling serde_derive v1.0.228
+   Compiling cobs v0.3.0
+   Compiling postcard v1.1.3
+   Compiling dc-core v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-core)
+   Compiling dc-api v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-api)
+   Compiling demo-builder v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\plugins\demo-builder)
+    Finished `release` profile [optimized] target(s) in 15.97s
+test native_wasm_and_mcp_consumers_are_indistinguishable ... ok
+test wasm_replay_is_deterministic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.09s
+
+     Running tests\receipt_verbosity.rs (B:\repos\borwood\deepcraft\target\release\deps\receipt_verbosity-d7e95437c237d93b.exe)
+
+running 1 test
+test measure_envelope_and_receipt_bytes_for_the_demo_session ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\wasm_plugin.rs (B:\repos\borwood\deepcraft\target\release\deps\wasm_plugin-24a2c75f3ba1346d.exe)
+
+running 2 tests
+    Finished `release` profile [optimized] target(s) in 0.05s
+test demo_plugin_builds_defines_and_reacts ... ok
+test narrower_install_disables_only_the_uncovered_commands ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_mcp_dev-31e820d1da20dd9f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_mcp_dev-4f9c241dc38033aa.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\session.rs (B:\repos\borwood\deepcraft\target\release\deps\session-fd196078c38416e2.exe)
+
+running 1 test
+test mcp_session_list_define_build_scan ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_physics-925e0619e615405c.exe)
+
+running 10 tests
+test merge::tests::empty_region_is_no_boxes ... ok
+test merge::tests::checkerboard_covers_exactly ... ok
+test merge::tests::single_voxel ... ok
+test merge::tests::full_region_is_one_box ... ok
+test prop::tests::rotation_is_lattice_bijection ... ok
+test prop::tests::identityish_pose_snaps_to_identity ... ok
+test merge::tests::l_shape_merges_into_few_boxes ... ok
+test prop::tests::quarter_turn_about_y_snaps_to_exact_quarter_turn ... ok
+test merge::tests::flat_floor_merges_to_one_box_per_slab ... ok
+test prop::tests::there_are_24_distinct_axis_rotations ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\edit_invalidation.rs (B:\repos\borwood\deepcraft\target\release\deps\edit_invalidation-6a14a6cf01af9105.exe)
+
+running 2 tests
+test invalidating_an_unscanned_tile_is_a_no_op ... ok
+test edit_without_invalidation_is_stale_and_with_it_rebuilds_and_body_falls ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\s6_physics.rs (B:\repos\borwood\deepcraft\target\release\deps\s6_physics-4de0ac907698a061.exe)
+
+running 5 tests
+test bubble_refresh_is_incremental_and_colliders_are_dropped ... ok
+test moving_body_only_touches_bubble_edges ... ok
+test item_falls_settles_and_sleeps ... ok
+test prop_detach_settle_reattach_roundtrip ... ok
+test identical_scripts_produce_bit_identical_final_poses ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_sim-c2ab8bb5d08c0660.exe)
+
+running 10 tests
+test statistical::ledger::tests::append_is_idempotent_and_conflicts_bounce ... ok
+test statistical::ledger::tests::worldgen_fact_kinds_append_and_conflict ... ok
+test statistical::ledger::tests::content_hash_tracks_content ... ok
+test statistical::rng::tests::draws_are_deterministic_and_distinct ... ok
+test statistical::world::tests::with_graph_builds_custom_worlds ... ok
+test statistical::rng::tests::pcg32_reference_vector ... ok
+test statistical::world::tests::transition_distributions_are_normalised ... ok
+test statistical::ledger::tests::cross_aspect_implication_is_enforced ... ok
+test statistical::world::tests::with_graph_rejects_asymmetric_adjacency - should panic ... ok
+test statistical::world::tests::world_structure_is_seed_deterministic ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\s2_measurements.rs (B:\repos\borwood\deepcraft\target\release\deps\s2_measurements-792cda100b647de5.exe)
+
+running 2 tests
+test perf_sanity ... ok
+test distortion_from_bounded_depth ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.41s
+
+     Running tests\s2_torture.rs (B:\repos\borwood\deepcraft\target\release\deps\s2_torture-f83e4bfa6684560a.exe)
+
+running 10 tests
+test impossible_forced_fact_is_rejected_ledger_untouched ... ok
+test monotone_ledger_prefix_is_immutable ... ok
+test monotone_observation_narrows_never_contradicts ... ok
+test cascade_is_bounded_to_depth_n ... ok
+test consistency_queries_agree_with_committed_facts ... ok
+test consistency_committed_death_propagates_forward ... ok
+test consistency_future_facts_smooth_the_past ... ok
+test consistency_interleaved_overlapping_observations ... ok
+test travelers_report_survives_the_visit ... ok
+test determinism_same_seed_same_ledger ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.60s
+
+     Running unittests src\lib.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_worldgen-da7e4af745aa26cd.exe)
+
+running 182 tests
+test collapse::tests::deep_class_slot_matches_deep_class_of_species ... ok
+test deeptime::cadence::tests::a_zero_cadence_is_inexpressible ... ok
+test collapse::tests::classify_reproduces_the_retired_class_table ... ok
+test deeptime::cadence::tests::an_empty_table_keeps_every_declared_cadence ... ok
+test deeptime::cadence::tests::sub_turns_partition_the_phase_they_do_not_extend_it ... ok
+test deeptime::cadence::tests::the_default_cadence_is_one_epoch_one_turn ... ok
+test deeptime::cadence::tests::the_table_authors_by_pass_id_and_holds_one_answer_each ... ok
+test deeptime::erosion::creep_tests::a_composition_split_closes_to_the_bit ... ok
+test deeptime::erosion::creep_tests::a_surface_difference_is_exactly_antisymmetric ... ok
+test deeptime::census::tests::a_perfect_checkerboard_reads_at_its_closed_form_reference ... ok
+test deeptime::erosion::creep_tests::an_absent_species_stays_absent ... ok
+test deeptime::census::tests::a_smooth_ramp_has_no_grid_scale_structure ... ok
+test deeptime::erosion::creep_tests::an_unknown_composition_fabricates_no_identity ... ok
+test deeptime::erosion::creep_tests::the_creep_split_is_linear_in_the_quantity_so_nothing_is_sorted ... ok
+test deeptime::erosion::hillslope_operator_tests::dt_scales_the_uplift_plane_and_its_ledger_together ... ok
+test deeptime::erosion::hillslope_operator_tests::dt_scales_the_creep_rate_and_zero_stops_it ... ok
+test deeptime::erosion::hillslope_operator_tests::inside_the_bound_the_driver_is_the_raw_step ... ok
+test deeptime::erosion::hillslope_operator_tests::the_shipped_rate_sits_inside_the_bound_and_decays ... ok
+test deeptime::erosion::hillslope_operator_tests::the_calibrated_rate_has_an_exact_period_2_mode_and_the_bound_removes_it ... ok
+test deeptime::erosion::mfd_tests::a_cell_with_no_lower_neighbour_is_a_sink ... ok
+test deeptime::erosion::mfd_tests::a_large_exponent_collapses_the_partition_onto_one_receiver ... ok
+test deeptime::erosion::mfd_tests::a_steep_exponent_on_a_gentle_slope_still_finds_a_receiver ... ok
+test deeptime::erosion::mfd_tests::a_uniform_law_ignores_the_channelisation_index ... ok
+test deeptime::erosion::mfd_tests::a_unit_exponent_spreads_across_every_downslope_neighbour ... ok
+test deeptime::erosion::mfd_tests::a_zero_floor_keeps_every_downslope_neighbour ... ok
+test deeptime::erosion::mfd_tests::the_exponent_ramps_monotonically_from_hillslope_to_channel ... ok
+test deeptime::erosion::mfd_tests::the_partition_follows_slope_not_drop ... ok
+test deeptime::erosion::mfd_tests::the_partition_weights_sum_to_one ... ok
+test deeptime::erosion::mfd_tests::the_same_slope_field_disperses_on_a_hillslope_and_concentrates_in_a_channel ... ok
+test deeptime::erosion::mfd_tests::the_weight_floor_renormalises_rather_than_deleting_discharge ... ok
+test deeptime::erosion::hillslope_operator_tests::the_operator_conserves_mass_exactly_and_never_goes_negative ... ok
+test deeptime::erosion::hillslope_operator_tests::the_sub_cycled_operator_is_bit_identical_scalar_and_parallel ... ok
+test collapse::tests::coarse_surface_matches_near_column_height ... ok
+test deeptime::flux::tests::a_flux_entry_is_sixteen_bytes ... ok
+test deeptime::flux::tests::face_codes_round_trip ... ok
+test deeptime::flux::tests::the_lateral_faces_are_an_involution ... ok
+test deeptime::geotherm::tests::arc_is_hot_and_trench_is_cold ... ok
+test deeptime::geotherm::tests::rift_is_hotter_than_craton_and_temperature_rises_with_depth ... ok
+test deeptime::geotherm::tests::the_gradient_is_clamped_to_a_plausible_band ... ok
+test deeptime::head::tests::bound_head_crosses_a_surface_drainage_divide ... ok
+test deeptime::head::tests::confinement_is_derived_from_the_record_never_stored ... ok
+test deeptime::head::tests::head_can_exceed_the_local_surface_which_is_artesian ... ok
+test deeptime::head::tests::saturated_and_submerged_columns_exchange_nothing ... ok
+test deeptime::head::tests::the_exchange_plane_agrees_with_the_field ... ok
+test deeptime::head::tests::the_reference_lithologies_straddle_the_aquifer_and_aquitard_thresholds ... ok
+test deeptime::inventory::tests::a_cells_run_ends_at_its_own_boundary_not_the_next_cells ... ok
+test deeptime::inventory::tests::a_fact_cannot_name_an_undeclared_transition ... ok
+test deeptime::inventory::tests::an_undeclared_edge_does_not_run_at_all_not_merely_goes_unrecorded ... ok
+test deeptime::inventory::tests::base_composition_matches_the_collapse_tier_routing ... ok
+test deeptime::inventory::tests::buried_loose_below_a_structure_is_excluded_from_surface_h ... ok
+test deeptime::inventory::tests::derived_regolith_is_the_whole_loose_cover_over_a_production_shaped_inventory ... ok
+test deeptime::inventory::tests::dissolution_edge_commits_a_to_void_fact ... ok
+test deeptime::inventory::tests::eighths_appear_only_at_the_quantize_step ... ok
+test deeptime::inventory::tests::every_axis_survives_the_narrowing ... ok
+test deeptime::inventory::tests::fact_order_within_a_slot_is_preserved_across_interleaved_slots ... ok
+test deeptime::inventory::tests::identity_default_commit_appends_no_facts_and_leaves_the_record ... ok
+test deeptime::inventory::tests::move_form_is_a_mass_neutral_read_modify_write_edge ... ok
+test deeptime::inventory::tests::narrowing_costs_at_most_one_rounding_of_the_storage_resolution ... ok
+test deeptime::inventory::tests::non_identity_a_known_edge_commits_a_fact_that_re_derives ... ok
+test deeptime::inventory::tests::rekeying_moves_a_run_and_leaves_it_exact_sized ... ok
+test deeptime::inventory::tests::sizes_are_pinned ... ok
+test deeptime::inventory::tests::substrate_accommodates_fluid_without_building_it ... ok
+test deeptime::inventory::tests::the_edge_dictionary_names_materials_and_detects_a_registry_shift ... ok
+test deeptime::inventory::tests::the_grid_record_reproduces_every_cell_fact_for_fact_and_in_order ... ok
+test deeptime::inventory::tests::the_ledger_costs_its_facts_not_its_slots ... ok
+test deeptime::inventory::tests::the_record_costs_its_facts_not_its_cells ... ok
+test deeptime::inventory::tests::the_resident_fact_is_eight_bytes_with_zero_padding_and_the_accumulator_is_not ... ok
+test deeptime::lithology::tests::a_limestone_can_be_cliff_forming_and_cave_forming_at_once ... ok
+test deeptime::lithology::tests::basement_is_the_most_abrasion_resistant_thing_in_the_world ... ok
+test deeptime::lithology::tests::every_agent_has_an_axis_and_they_are_distinct_reads ... ok
+test deeptime::lithology::tests::frost_and_wave_rank_rocks_differently_from_abrasion ... ok
+test deeptime::lithology::tests::nothing_in_the_roster_is_susceptible_to_dissolution ... ok
+test deeptime::lithology::tests::soft_rock_erodes_faster_than_hard_rock ... ok
+test deeptime::lithology::tests::the_cap_bounds_every_multiplier_both_ways ... ok
+test deeptime::lithology::tests::the_reference_lithology_is_exactly_neutral ... ok
+test deeptime::providers::depth_to_water::tests::the_identity_depth_to_water_leaves_the_plane_empty ... ok
+test deeptime::providers::depth_to_water::tests::the_wet_index_is_clamped_and_monotone ... ok
+test deeptime::providers::depth_to_water::tests::wet_at_falls_through_to_the_proxy_only_when_the_plane_is_empty ... ok
+test deeptime::providers::paleo_temperature::tests::the_identity_depends_on_nothing_but_the_present_temperature ... ok
+test deeptime::providers::paleo_temperature::tests::the_identity_paleo_temp_is_the_present_temperature ... ok
+test deeptime::providers::parent_p::tests::the_identity_parent_p_is_uniform_one ... ok
+test deeptime::providers::tests::a_swapped_slot_is_not_the_identity_set ... ok
+test deeptime::providers::tests::every_slot_is_enumerated_once_with_a_distinct_name ... ok
+test deeptime::providers::tests::explicitly_supplying_the_identity_function_still_counts_as_supplied ... ok
+test deeptime::providers::tests::the_default_set_is_the_identity_set ... ok
+test deeptime::providers::tests::the_none_path_is_the_identity_function ... ok
+test deeptime::providers::tests::the_report_names_exactly_the_swapped_slots ... ok
+test deeptime::providers::wave_energy::tests::the_identity_wave_energy_is_the_configured_rate ... ok
+test deeptime::runner::tests::a_lagged_reader_stays_ahead_of_its_writer_under_a_hostile_rename ... ok
+test deeptime::runner::tests::a_world_may_author_a_passs_cadence_over_the_declared_default ... ok
+test deeptime::runner::tests::an_empty_cadence_table_reproduces_the_declared_schedule ... ok
+test deeptime::runner::tests::climate_is_a_coarse_rate_pass_that_fires_at_epoch_zero ... ok
+test deeptime::runner::tests::every_lagged_read_in_the_roster_is_ordered_before_its_writers ... ok
+test deeptime::runner::tests::no_shipped_pass_seeds_and_every_one_of_them_fires_at_epoch_zero ... ok
+test deeptime::runner::tests::order_ignores_registration_order ... ok
+test deeptime::runner::tests::order_reproduces_the_erosion_step_phase_order ... ok
+test deeptime::runner::tests::the_authored_period_decides_when_a_pass_fires ... ok
+test deeptime::runner::tests::the_biology_erosion_lag_must_be_loop_carried_or_the_runner_rejects_a_cycle ... ok
+test deeptime::runner::tests::the_geotherm_is_a_declared_coarse_rate_field_pass ... ok
+test deeptime::runner::tests::the_geotherm_is_absent_off_the_tectonic_path ... ok
+test deeptime::runner::tests::the_head_field_is_a_declared_field_pass_the_flow_record_reads ... ok
+test deeptime::runner::tests::the_head_field_is_absent_when_the_flag_is_off ... ok
+test deeptime::runner::tests::the_head_field_is_pinned_into_the_terrain_revision_it_reads ... ok
+test deeptime::runner::tests::the_loop_fires_every_pass_at_epoch_zero_and_a_pure_seed_never ... ok
+test deeptime::runner::tests::the_runner_seeds_before_it_steps_and_a_seed_integrates_no_time ... ok
+test deeptime::runner::tests::the_terrain_revision_declarations_are_schedule_neutral ... ok
+test deeptime::runner::tests::weather_inventory_is_absent_off_and_a_declared_cellular_pass_on ... ok
+test deeptime::schedule::tests::epoch_zero_fires_for_every_period_and_never_for_a_seed ... ok
+test deeptime::schedule::tests::every_period_integrates_exactly_the_elapsed_time ... ok
+test deeptime::schedule::tests::re_rating_preserves_the_variant ... ok
+test deeptime::schedule::tests::the_default_schedule_steps_every_epoch_and_does_not_seed ... ok
+test deeptime::schedule::tests::the_deleted_skip_rule_lost_a_whole_period_of_world_time ... ok
+test deeptime::weather_behavior::tests::dt_of_one_is_byte_transparent_and_grouping_is_pinned ... ok
+test deeptime::weather_behavior::tests::form_change_is_the_mass_neutral_r_to_h_transfer ... ok
+test deeptime::weather_behavior::tests::the_gate_blocks_a_drowned_cell ... ok
+test deeptime::weather_behavior::tests::the_material_property_drives_the_rate_in_the_single_material_path ... ok
+test deeptime::weather_inventory::tests::bedrock_facts_key_stably_as_the_record_grows ... ok
+test deeptime::weather_inventory::tests::dt_scales_the_share_linearly ... ok
+test deeptime::weather_inventory::tests::empty_inputs_are_the_identity_floor ... ok
+test deeptime::weather_inventory::tests::frost_acts_even_where_biota_is_absent ... ok
+test deeptime::weather_inventory::tests::mass_conservation_bedrock_structure_to_loose ... ok
+test deeptime::weather_inventory::tests::one_fact_per_agent_and_shares_sum_to_the_move ... ok
+test deeptime::weather_inventory::tests::one_fact_per_agent_per_firing ... ok
+test deeptime::weather_inventory::tests::rate_is_the_sum_of_the_three_agent_shares ... ok
+test deeptime::weather_inventory::tests::weathering_accumulates_across_epochs ... ok
+test draws::tests::a_stream_is_a_pure_function_of_seed_domain_and_address ... ok
+test draws::tests::every_domain_is_listed_and_distinct ... ok
+test draws::tests::the_deeptime_constants_agree_with_their_registered_domains ... ok
+test draws::tests::two_domains_are_independent_at_the_same_address ... ok
+test draws::tests::two_salts_of_the_coherent_source_are_independent ... ok
+test collapse::tests::far_class_dither_interfingers_across_a_real_deep_cell_frontier ... ok
+test collapse::tests::coarse_surface_answers_in_the_border_wilds ... ok
+test deeptime::field::tests::strata_is_shrunk_to_fit_after_the_compile ... ok
+test fill::tests::a_span_inside_one_event_is_single ... ok
+test fill::tests::allocation_always_totals_eight_eighths ... ok
+test fill::tests::allocation_is_unbiased_over_the_draw ... ok
+test fill::tests::no_window_of_the_fill_draw_predicts_the_pore_offset ... ok
+test fill::tests::the_pore_rider_share_is_unbiased_over_its_offset ... ok
+test fill::tests::two_bands_in_one_voxel_draw_independent_offsets ... ok
+test geology::tests::deposit_deep_history_records_the_paleo_temperature_providers_answer ... ok
+test geology::tests::the_front_grades_upward_and_its_base_retains_parent_structure ... ok
+test geology::tests::the_front_profile_is_the_exponential_decay ... ok
+test geology::tests::the_weathering_front_conserves_the_ledger_product_mass ... ok
+test geology::tests::the_weathering_front_folds_into_a_basal_band ... ok
+test passgraph::tests::a_lagged_read_of_an_unwritten_resource_is_inert ... ok
+test passgraph::tests::a_lagged_read_of_ones_own_write_is_not_a_cycle ... ok
+test passgraph::tests::a_lagged_read_outranks_the_id_tie_break ... ok
+test passgraph::tests::ambiguous_writers_rejected ... ok
+test passgraph::tests::creator_before_reader ... ok
+test passgraph::tests::cycle_is_rejected ... ok
+test passgraph::tests::folding_a_lagged_read_into_reads_reverses_it_into_a_cycle ... ok
+test passgraph::tests::multiple_creators_rejected ... ok
+test passgraph::tests::reads_and_reads_prev_of_the_same_resource_is_rejected ... ok
+test passgraph::tests::require_creator_is_the_loop_vs_dag_switch ... ok
+test pipeline::tests::an_empty_selected_class_is_rejected_with_the_culprits ... ok
+test pipeline::tests::cycles_are_rejected_with_names ... ok
+test pipeline::tests::double_creation_is_rejected ... ok
+test pipeline::tests::duplicate_ids_are_rejected ... ok
+test pipeline::tests::order_ignores_registration_order ... ok
+test pipeline::tests::reads_of_unwritten_resources_are_rejected ... ok
+test pipeline::tests::unordered_modifiers_are_rejected ... ok
+test pipeline::tests::vanilla_geology_set_satisfies_every_selecting_pass ... ok
+test pipeline::tests::vanilla_order_is_the_legacy_order_then_geology ... ok
+test pregen::climate::tests::calm_belts_bracket_the_band_boundaries ... ok
+test pregen::climate::tests::rainout_makes_the_thirty_belt_arid_and_the_equator_wet_on_flat_land ... ok
+test pregen::climate::tests::subsidence_peaks_at_thirty_and_spares_equator_and_front ... ok
+test pregen::climate::tests::zonal_wind_never_reverses_without_passing_through_zero ... ok
+test pregen::climate::tests::zonal_wind_signs_match_the_historical_bands ... ok
+test water::coarse::tests::an_edit_is_an_exact_integer_delta ... ok
+test water::coarse::tests::edit_order_is_irrelevant_to_the_summary ... ok
+test water::coarse::tests::flat_cell_capacity_is_area_times_depth ... ok
+test deeptime::field::tests::record_at_cell_is_the_producer_side_of_record_at_voxel ... ok
+test deeptime::field::tests::registration_agrees_with_deep_coords ... ok
+test collapse::tests::coarse_surface_is_seed_deterministic ... ok
+test collapse::tests::climate_at_reproduces_cells_own_climate_at_centre has been running for over 60 seconds
+test collapse::tests::coarse_surface_agrees_with_the_near_column_surface has been running for over 60 seconds
+test collapse::tests::coarse_surface_far_field_derivation_is_sub_second has been running for over 60 seconds
+test collapse::tests::far_surface_class_dither_splits_multiclass_deep_cells has been running for over 60 seconds
+test collapse::tests::surface_voxel_routes_through_columnfill_per_voxel has been running for over 60 seconds
+test far::tests::synthesis_is_deterministic has been running for over 60 seconds
+test far::tests::synthesized_node_agrees_with_reduced_children_statistically has been running for over 60 seconds
+test far::tests::synthesized_node_tops_equal_the_ff2a_surface has been running for over 60 seconds
+test collapse::tests::far_surface_class_dither_splits_multiclass_deep_cells ... ok
+test collapse::tests::surface_voxel_routes_through_columnfill_per_voxel ... ok
+test collapse::tests::coarse_surface_far_field_derivation_is_sub_second ... ok
+test far::tests::synthesis_is_deterministic ... ok
+test far::tests::synthesized_node_tops_equal_the_ff2a_surface ... ok
+test far::tests::synthesized_node_agrees_with_reduced_children_statistically ... ok
+test collapse::tests::climate_at_reproduces_cells_own_climate_at_centre ... ok
+test collapse::tests::coarse_surface_agrees_with_the_near_column_surface ... ok
+
+test result: ok. 182 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 140.07s
+
+     Running tests\artifact_tripwires.rs (B:\repos\borwood\deepcraft\target\release\deps\artifact_tripwires-c9109d6f4f452950.exe)
+
+running 7 tests
+test the_far_surface_is_a_fixed_point ... ok
+test the_far_sample_spreads_over_a_real_world_and_into_the_wilds ... ok
+test every_deepfield_member_is_classified ... ok
+test the_chapter_length_byte_is_blind_to_what_the_chapter_table_says ... ok
+test the_chapter_table_is_a_fixed_point ... ok
+test the_geotherm_plane_is_a_fixed_point ... ok
+test the_head_plane_is_a_fixed_point ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.38s
+
+     Running tests\biotic.rs (B:\repos\borwood\deepcraft\target\release\deps\biotic-cf6a3312ed96a509.exe)
+
+running 10 tests
+test coal_promotion_reads_burial_depth_not_seam_thickness ... ok
+test the_living_surface_is_never_coal_whatever_the_threshold ... ok
+test biotic_off_leaves_the_record_purely_mineral ... ok
+test mass_ledger_accounts_for_biotic_carbon ... ok
+test recorder_total_equals_alluvium_with_biotic_on ... ok
+test biotic_same_seed_is_byte_identical_planes_and_records ... ok
+test biology_changes_the_landscape_it_grows_on ... ok
+test biotic_parallel_equals_scalar_byte_identical ... ok
+test a_different_seed_diverges_biotically ... ok
+test the_four_target_signals_reach_the_record ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 52.89s
+
+     Running tests\calibrated_rates.rs (B:\repos\borwood\deepcraft\target\release\deps\calibrated_rates-0fc3523555423623.exe)
+
+running 5 tests
+test a_default_config_is_honestly_uncalibrated_and_production_is_not ... ok
+test the_calibration_scales_exactly_the_four_rate_constants ... ok
+test the_erosion_budget_reaches_every_rate_including_diffusion ... ok
+test calibrated_rates_off_is_production_and_on_moves_it ... ok
+test the_calibrated_world_is_a_uniform_erosion_budget_on_the_raw_rates has been running for over 60 seconds
+test the_calibrated_world_is_a_uniform_erosion_budget_on_the_raw_rates ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 92.76s
+
+     Running tests\contents_contract.rs (B:\repos\borwood\deepcraft\target\release\deps\contents_contract-93f395fd1e2f3aba.exe)
+
+running 3 tests
+test classification_does_not_depend_on_generator_state ... ok
+test block_equals_classify_of_contents has been running for over 60 seconds
+test generated_world_is_byte_identical_to_the_pre_contract_goldens has been running for over 60 seconds
+test generated_world_is_byte_identical_to_the_pre_contract_goldens ... ok
+test block_equals_classify_of_contents ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 101.77s
+
+     Running tests\creep_operator.rs (B:\repos\borwood\deepcraft\target\release\deps\creep_operator-fe390a775e3bdb2a.exe)
+
+running 3 tests
+test the_shipped_world_has_cells_past_the_bound ... ok
+test mass_is_conserved_with_the_pass_sub_cycled ... ok
+test creep_substep_off_is_the_unbounded_world_and_on_moves_it ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.78s
+
+     Running tests\deep_config_plumbing.rs (B:\repos\borwood\deepcraft\target\release\deps\deep_config_plumbing-2b6b63b9fbb54d78.exe)
+
+running 10 tests
+test deep_overrides_is_reexported_at_crate_root ... ok
+test extent_from_arg_round_trips_the_three_names_and_rejects_garbage ... ok
+test empty_overrides_yield_the_production_config ... ok
+test pregen_run_equals_run_with_default_overrides ... ok
+test full_agents_override_toggles_the_roster ... ok
+test amplitude_override_rides_through_with_tectonics ... ok
+test erosion_budget_one_is_byte_identical_to_no_flag ... ok
+test empty_overrides_build_a_byte_identical_field ... ok
+test erosion_budget_ten_reaches_the_run ... ok
+test tectonic_history_override_toggles_the_tectonic_exports ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.13s
+
+     Running tests\deeptime.rs (B:\repos\borwood\deepcraft\target\release\deps\deeptime-a56fc4710ed8058d.exe)
+
+running 6 tests
+test mass_is_conserved_up_to_uplift ... ok
+test recorder_total_equals_alluvium_everywhere ... ok
+test erosion_actually_moves_material ... ok
+test same_seed_is_byte_identical_planes_and_records ... ok
+test a_different_seed_diverges ... ok
+test parallel_equals_scalar_byte_identical ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.35s
+
+     Running tests\deeptime_integration.rs (B:\repos\borwood\deepcraft\target\release\deps\deeptime_integration-1cde789bfef4e7d4.exe)
+
+running 3 tests
+test integrated_deep_record_tells_true_stories ... ok
+test collapse_column_story_comes_from_the_deep_record has been running for over 60 seconds
+test integrated_deep_field_is_byte_identical_same_seed has been running for over 60 seconds
+test collapse_column_story_comes_from_the_deep_record ... ok
+test integrated_deep_field_is_byte_identical_same_seed ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 138.86s
+
+     Running tests\distribution_fill.rs (B:\repos\borwood\deepcraft\target\release\deps\distribution_fill-0fd8403df24b9a8f.exe)
+
+running 3 tests
+test expected_composition_matches_the_recorded_composition ... ok
+test the_record_produces_mixed_voxel_spans ... ok
+test fill_does_not_depend_on_generation_order ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 57.10s
+
+     Running tests\erodibility.rs (B:\repos\borwood\deepcraft\target\release\deps\erodibility-e9024e8e4e44951e.exe)
+
+running 13 tests
+test a_future_agent_reads_its_own_axis ... ok
+test litho_routing_matches_the_collapse_tier ... ok
+test the_stability_clamp_bounds_every_lithology ... ok
+test recorder_total_equals_alluvium_with_coupling_on ... ok
+test mass_is_conserved_with_coupling_on ... ok
+test the_differential_erosion_feedback_neither_runs_away_nor_stalls ... ok
+test stripped_columns_expose_basement ... ok
+test coupling_on_actually_changes_the_world ... ok
+test coupled_runs_are_byte_identical_on_a_repeated_seed ... ok
+test a_neutral_coupling_is_byte_identical_to_no_coupling ... ok
+test a_neutral_coupling_is_byte_identical_with_biology_on ... ok
+test coupled_parallel_equals_coupled_scalar_byte_identical ... ok
+test coupled_parallel_equals_scalar_with_biology_on_too ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 21.25s
+
+     Running tests\flux_record.rs (B:\repos\borwood\deepcraft\target\release\deps\flux_record-fbb9438c04c83ce1.exe)
+
+running 13 tests
+test a_face_is_shared_so_bs_in_flux_is_exactly_as_stored ... ok
+test the_face_vocabulary_still_spans_three_families_and_the_atom_seams_are_intact ... ok
+test the_flux_record_is_a_fixed_point ... ok
+test lateral_and_boundary_faces_are_populated ... ok
+test divergence_is_representable_which_a_receiver_tree_forbids ... ok
+test convergence_is_representable ... ok
+test the_receiver_export_agrees_with_the_final_chapters_faces ... ok
+test per_chapter_history_is_retained_not_just_the_final_epoch ... ok
+test the_record_reports_its_own_resident_cost ... ok
+test the_flow_record_is_deterministic_on_a_repeated_seed ... ok
+test the_flow_record_is_a_sidecar_and_the_world_is_byte_identical ... ok
+test parallel_and_scalar_record_the_same_flux ... ok
+test the_stratum_slot_is_derived_from_the_chapter_stamp ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.30s
+
+     Running tests\full_agents.rs (B:\repos\borwood\deepcraft\target\release\deps\full_agents-24cec53924828f85.exe)
+
+running 10 tests
+test recorder_total_equals_alluvium_with_full_agents_on ... ok
+test mass_is_conserved_with_full_agents_on ... ok
+test neutral_full_agents_is_byte_identical_to_off ... ok
+test wind_deflates_the_arid_interior_and_lays_loess_downwind ... ok
+test full_agents_on_actually_changes_the_world ... ok
+test frost_enhances_regolith_production_in_the_periglacial_band ... ok
+test full_agents_runs_are_byte_identical_on_a_repeated_seed ... ok
+test waves_cut_down_the_coastline ... ok
+test neutral_full_agents_is_byte_identical_with_biology_and_erodibility_on ... ok
+test full_agents_parallel_equals_scalar_byte_identical ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.01s
+
+     Running tests\geology.rs (B:\repos\borwood\deepcraft\target\release\deps\geology-54adf2056cff3b7c.exe)
+
+running 8 tests
+test family_contacts_wander_off_the_chunk_grid ... ok
+test accessory_inclusions_ride_igneous_pores has been running for over 60 seconds
+test adding_a_member_diversifies_but_never_inflates_its_class has been running for over 60 seconds
+test class_registration_order_cannot_change_world_bytes has been running for over 60 seconds
+test geology_world_regenerates_byte_identically has been running for over 60 seconds
+test placer_follows_the_sorted_gradient has been running for over 60 seconds
+test render_contents_carry_the_placer_mixture has been running for over 60 seconds
+test strata_records_are_province_and_climate_driven has been running for over 60 seconds
+test render_contents_carry_the_placer_mixture ... ok
+test placer_follows_the_sorted_gradient ... ok
+test class_registration_order_cannot_change_world_bytes ... ok
+test adding_a_member_diversifies_but_never_inflates_its_class ... ok
+test accessory_inclusions_ride_igneous_pores ... ok
+test strata_records_are_province_and_climate_driven ... ok
+test geology_world_regenerates_byte_identically ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 172.20s
+
+     Running tests\geotherm.rs (B:\repos\borwood\deepcraft\target\release\deps\geotherm-961272baa5486103.exe)
+
+running 4 tests
+test warm_reference_onset_for_thick_coal ... ignored
+test coal_follows_the_warm_crust_on_the_warm_reference_world has been running for over 60 seconds
+test the_geotherm_rule_governs_coalification_on_the_production_world has been running for over 60 seconds
+test the_temperature_field_is_populated_and_varies has been running for over 60 seconds
+test the_temperature_field_is_populated_and_varies ... ok
+test the_geotherm_rule_governs_coalification_on_the_production_world ... ok
+test coal_follows_the_warm_crust_on_the_warm_reference_world ... ok
+
+test result: ok. 3 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 92.42s
+
+     Running tests\head_field.rs (B:\repos\borwood\deepcraft\target\release\deps\head_field-89bba31c75be70eb.exe)
+
+running 8 tests
+test the_vertical_faces_are_no_longer_zero ... ok
+test an_unconfined_water_table_never_stands_above_its_own_ground ... ok
+test a_vertical_entry_binds_to_the_chapters_own_slot ... ok
+test with_the_head_field_off_the_vertical_faces_return_to_zero ... ok
+test the_head_field_is_a_sidecar_and_the_terrain_is_byte_identical ... ok
+test parallel_and_scalar_plant_the_same_head_field ... ok
+test the_head_field_reports_its_own_resident_cost ... ok
+test the_head_field_is_deterministic_on_a_repeated_seed ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.63s
+
+     Running tests\material_creep.rs (B:\repos\borwood\deepcraft\target\release\deps\material_creep-abbbbb7d5718cf1c.exe)
+
+running 6 tests
+test creep_identity_moves_no_terrain_in_the_epoch_it_is_measured_in ... ok
+test no_species_is_created_or_destroyed_by_creep ... ok
+test mass_is_conserved_with_material_creep_on ... ok
+test no_deposited_unit_claims_to_be_an_in_place_organic ... ok
+test creep_identity_is_inert_without_material_transport ... ok
+test material_creep_off_is_the_fluvial_only_world_and_on_moves_it ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.67s
+
+     Running tests\material_transport.rs (B:\repos\borwood\deepcraft\target\release\deps\material_transport-1d68654320b9eb00.exe)
+
+running 9 tests
+test a_shared_total_leaks_per_species_and_an_own_budget_does_not ... ok
+test the_settling_order_comes_out_of_the_property_sheet ... ok
+test the_species_axis_costs_the_record_nothing ... ok
+test mass_is_conserved_with_material_transport_on ... ok
+test no_recorded_unit_claims_to_be_basement ... ok
+test nothing_over_the_competence_ceiling_is_still_in_the_water ... ok
+test no_species_leaks_at_its_own_junction ... ok
+test a_recorded_unit_can_be_made_of_something_its_environment_would_not_imply ... ok
+test material_transport_off_is_the_pre_slice_world_and_on_moves_it ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.54s
+
+     Running tests\mfd_routing.rs (B:\repos\borwood\deepcraft\target\release\deps\mfd_routing-8737ca256ec7a92f.exe)
+
+running 11 tests
+test the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens ... ok
+test mass_is_conserved_with_mfd_on ... ok
+test the_partition_leaves_no_residue ... ok
+test every_routed_edge_descends_the_free_surface_potential ... ok
+test the_surface_carries_no_grid_scale_oscillation ... ok
+test no_interior_cell_is_cut_below_all_of_its_neighbours ... ok
+test temporal_divergence_survives_alongside_the_simultaneous_kind ... ok
+test the_receiver_projection_is_still_among_the_recorded_faces ... ok
+test no_interior_cell_carries_a_closed_hollow ... ok
+test simultaneous_divergence_is_zero_without_mfd_and_positive_with_it ... ok
+test mfd_off_leaves_the_single_receiver_solve_untouched_and_on_moves_the_world ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.04s
+
+     Running tests\organic.rs (B:\repos\borwood\deepcraft\target\release\deps\organic-4c25f3609793b282.exe)
+
+running 5 tests
+test production_config_runs_the_biotic_layer ... ok
+test every_biofacies_routes_to_a_class_the_vanilla_set_can_fill ... ok
+test organic_member_selection_is_registration_order_independent ... ok
+test the_measured_coal_seam_is_coal_a_player_can_dig ... ok
+test charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.84s
+
+     Running tests\outcrop_blend.rs (B:\repos\borwood\deepcraft\target\release\deps\outcrop_blend-0e6be2779646b248.exe)
+
+running 4 tests
+test a_mixed_window_blends_the_table_by_share ... ok
+test the_rate_is_continuous_across_the_old_flip ... ok
+test a_uniform_window_is_the_argmax_lookup_bit_for_bit ... ok
+test the_verdict_is_the_argmax_of_the_shares ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_depth_to_water.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_depth_to_water-91acfce043bba7da.exe)
+
+running 4 tests
+test the_identity_water_table_slot_leaves_the_plane_empty ... ok
+test the_identity_water_table_plane_is_empty ... ok
+test the_materialized_proxy_plane_agrees_with_the_inline_proxy ... ok
+test a_non_identity_water_table_reaches_the_run ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.12s
+
+     Running tests\providers_golden.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_golden-b47b69a1bf84483f.exe)
+
+running 2 tests
+test the_golden_world_still_hashes_to_the_pre_slice_goldens ... ok
+test the_fingerprint_is_reproducible_within_a_build ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.05s
+
+     Running tests\providers_outcrop_at.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_outcrop_at-abdc66b4a6b1a3b3.exe)
+
+running 5 tests
+test a_lone_thin_unit_yields_to_the_basement_deficit ... ok
+test an_empty_record_is_basement ... ok
+test the_identity_outcrop_is_the_dominant_lithology ... ok
+test many_thin_units_of_one_litho_do_dominate ... ok
+test a_thin_lamina_does_not_define_the_outcrop ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_paleo_temperature.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_paleo_temperature-cb0407c45a5ab19c.exe)
+
+running 3 tests
+test explicitly_supplying_the_identity_paleo_temperature_still_counts_as_supplied ... ok
+test the_default_set_does_not_supply_paleo_temperature ... ok
+test the_report_names_paleo_temperature_when_swapped ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_parent_p.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_parent_p-59b6179b614b463d.exe)
+
+running 1 test
+test the_parent_phosphorus_plane_is_materialized_once ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.17s
+
+     Running tests\providers_ritual.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_ritual-3c7239c3887123c7.exe)
+
+running 1 test
+test ritual_time_medium ... ignored, 17 s wall-clock measurement, not a correctness assertion
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_set.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_set-ef48979a28cd35af.exe)
+
+running 3 tests
+test a_default_set_that_cannot_be_constant_folded_still_reports_no_slots ... ok
+test the_default_providers_are_the_identity_functions ... ok
+test the_identity_report_names_no_slots_for_a_default_set ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\providers_wave_energy.rs (B:\repos\borwood\deepcraft\target\release\deps\providers_wave_energy-87a1bbbdba01951a.exe)
+
+running 1 test
+test a_non_identity_wave_provider_reaches_the_run ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.55s
+
+     Running tests\rate_axis.rs (B:\repos\borwood\deepcraft\target\release\deps\rate_axis-2cdc17610f6b9af9.exe)
+
+running 2 tests
+test an_empty_cadence_table_is_the_shipped_world_bit_for_bit ... ok
+test an_authored_cadence_moves_the_world_and_still_closes_the_mass_ledger ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.57s
+
+     Running tests\rh_unification.rs (B:\repos\borwood\deepcraft\target\release\deps\rh_unification-ed650d3ce31ea690.exe)
+
+running 2 tests
+test derived_regolith_agrees_with_the_scalar_h_plane_over_the_golden_field ... ok
+test derived_bedrock_agrees_with_the_scalar_r_plane_over_the_golden_field ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.90s
+
+     Running tests\s17_deep_cell_inventory.rs (B:\repos\borwood\deepcraft\target\release\deps\s17_deep_cell_inventory-a577fe916f782634.exe)
+
+running 3 tests
+test non_identity_agreement_on_a_real_cell ... ok
+test identity_default_appends_no_facts_over_a_whole_field ... ok
+test memory_measurement_per_stratum_vs_per_voxel ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.34s
+
+     Running tests\s18_first_behavior_weathering.rs (B:\repos\borwood\deepcraft\target\release\deps\s18_first_behavior_weathering-bf715959e5ce916f.exe)
+
+running 4 tests
+test identity_floor_off_flag_carries_no_ledgers_and_is_byte_identical ... ok
+test a_weathered_cell_carries_one_fact_per_agent_per_chapter_and_accumulates ... ok
+test on_flag_is_purely_additive_record_and_surface_untouched ... ok
+test production_scale_saprolite_band_reaches_at_least_one_voxel has been running for over 60 seconds
+test production_scale_saprolite_band_reaches_at_least_one_voxel ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 70.35s
+
+     Running tests\s7_measurements.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_measurements-d00eff4bf67584c9.exe)
+
+running 2 tests
+test chunk_latency_cold_vs_warm ... ok
+test pregen_time_vs_extent has been running for over 60 seconds
+test pregen_time_vs_extent ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 89.22s
+
+     Running tests\s7_pregen.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_pregen-2dc57491a36b21ac.exe)
+
+running 5 tests
+test climate_latitude_gradient_and_rain_shadow has been running for over 60 seconds
+test every_river_reaches_the_sea_by_construction has been running for over 60 seconds
+test pregen_is_deterministic_and_seed_sensitive has been running for over 60 seconds
+test tectonics_produces_provenance_diversity has been running for over 60 seconds
+test topology_world_ocean_ring_closes_the_disc has been running for over 60 seconds
+test climate_latitude_gradient_and_rain_shadow ... ok
+test tectonics_produces_provenance_diversity ... ok
+test every_river_reaches_the_sea_by_construction ... ok
+test topology_world_ocean_ring_closes_the_disc ... ok
+test pregen_is_deterministic_and_seed_sensitive ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 161.27s
+
+     Running tests\s7_walk.rs (B:\repos\borwood\deepcraft\target\release\deps\s7_walk-d816f462d3cf9954.exe)
+
+running 2 tests
+test vertical_generation_is_unbounded_downward ... ok
+test walk_10k_chunks_across_the_civilized_boundary has been running for over 60 seconds
+test walk_10k_chunks_across_the_civilized_boundary ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 140.49s
+
+     Running tests\schedule_axis.rs (B:\repos\borwood\deepcraft\target\release\deps\schedule_axis-cc9ca1ac10cd6d56.exe)
+
+running 3 tests
+test an_authored_cadence_cannot_desync_a_passs_clock ... ok
+test epoch_zero_fires_every_pass_in_every_roster ... ok
+test every_pass_integrates_exactly_the_worlds_elapsed_time ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\tectonic_history.rs (B:\repos\borwood\deepcraft\target\release\deps\tectonic_history-a9d4678b9bbdc2c8.exe)
+
+running 13 tests
+test dep_unit_sizeof_is_unchanged_by_the_chapter_stamp ... ok
+test belt_forcing_half_width_tracks_orogen_width_not_the_50km_smear ... ok
+test drainage_export_is_populated_and_accounts_for_every_cell ... ok
+test flag_off_allocates_no_tectonic_state_and_stamps_chapter_zero ... ok
+test thickness_ledger_balances ... ok
+test r_plus_h_ledger_balances_with_isostasy_as_declared_input ... ok
+test recorder_total_equals_alluvium_with_tectonic_history ... ok
+test stack_is_finite_and_stable_across_chapter_repaints ... ok
+test tectonic_runs_are_byte_identical_on_a_repeated_seed ... ok
+test flag_off_is_byte_identical_regardless_of_tectonic_knobs ... ok
+test tectonic_history_changes_the_world ... ok
+test drainage_export_is_empty_off_the_flag ... ok
+test tectonic_parallel_equals_scalar_byte_identical ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.11s
+
+     Running tests\water.rs (B:\repos\borwood\deepcraft\target\release\deps\water-cad31381b610ad85.exe)
+
+running 12 tests
+test a_sealed_basin_needs_storage_because_derivation_cannot_predict_it ... ok
+test level_and_volume_are_inverses ... ok
+test the_water_table_is_read_not_stored ... ok
+test a_finite_body_drains_into_the_void_it_is_breached_into ... ok
+test event_resolution_is_order_independent ... ok
+test breaching_a_pinned_reservoir_does_not_drain_it ... ok
+test the_far_end_of_a_dug_channel_is_the_same_body ... ok
+test the_index_is_a_pure_function_of_geometry_regardless_of_edit_order ... ok
+test bound_water_relaxation_is_deterministic_bit_for_bit ... ok
+test the_graph_survives_unload_and_reload_with_identical_derived_water ... ok
+test bound_water_relaxation_conserves_mass_exactly ... ok
+test a_seepage_drain_lowers_only_its_own_neighbourhood ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests\water_coarse.rs (B:\repos\borwood\deepcraft\target\release\deps\water_coarse-18568d46dd15344c.exe)
+
+running 4 tests
+test the_summary_is_double_run_and_order_independent_over_real_terrain ... ok
+test an_edit_delta_is_exactly_the_change_the_voxel_walk_sees ... ok
+test coarse_capacity_agrees_with_the_exact_voxel_walk ... ok
+test derived_water_survives_eviction_byte_identically ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.19s
+
+     Running tests\zonal_circulation.rs (B:\repos\borwood\deepcraft\target\release\deps\zonal_circulation-7c21774f29127bb0.exe)
+
+running 2 tests
+test the_desert_belt_sits_in_the_calm_belt ... ok
+test thirty_degree_desert_belt_exists_on_flat_terrain ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples\coal_walk_tour.rs (B:\repos\borwood\deepcraft\target\release\examples\coal_walk_tour-6d2a91dae757a9cf.exe)
+
+running 1 test
+test gate::the_run_decomposition_itemises_the_record_it_reads ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.12s
+
+     Running unittests examples\colluvium_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\colluvium_probe-56898f49b980c22b.exe)
+
+running 3 tests
+test gate::creep_conserves_every_species_at_every_junction ... ok
+test gate::the_species_itemisation_sums_to_the_recorded_total ... ok
+test gate::colluvial_identity_reaches_the_archive ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 17.53s
+
+     Running unittests examples\contents_air_over_solid_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\contents_air_over_solid_probe-88cb02970093d005.exe)
+
+running 2 tests
+test gate::every_solid_voxel_is_accounted_for_exactly_once ... ok
+test gate::no_solid_voxel_carries_a_nonempty_record_that_classifies_to_air ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.36s
+
+     Running unittests examples\creep_operator_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\creep_operator_probe-92fbd6a56218c321.exe)
+
+running 2 tests
+test gate::the_calibrated_solve_has_no_grid_scale_oscillation has been running for over 60 seconds
+test gate::the_sub_cycle_count_follows_from_the_rate has been running for over 60 seconds
+test gate::the_calibrated_solve_has_no_grid_scale_oscillation ... ok
+test gate::the_sub_cycle_count_follows_from_the_rate ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 77.42s
+
+     Running unittests examples\denudation_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\denudation_probe-f9b1a41c2fe2304e.exe)
+
+running 4 tests
+test gate::no_export_term_exceeds_the_flux_it_is_a_share_of ... ok
+test gate::the_sink_itemisation_sums_to_the_sink_total ... ok
+test gate::the_denudation_ledger_is_inert ... ok
+test gate::the_calibration_actually_raises_the_measured_denudation has been running for over 60 seconds
+test gate::the_calibration_actually_raises_the_measured_denudation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 64.92s
+
+     Running unittests examples\facies_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\facies_probe-64dff42572b8bc34.exe)
+
+running 3 tests
+test gate::the_archive_holds_no_basement ... ok
+test gate::identity_travels_on_and_is_a_tautology_off ... ok
+test gate::the_species_itemisation_sums_to_the_recorded_total ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.33s
+
+     Running unittests examples\flux_record_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\flux_record_probe-f3718271e6358c24.exe)
+
+running 2 tests
+test gate::the_flux_record_stays_sparse_against_the_dense_rectangle ... ok
+test gate::the_flux_record_holds_junctions_a_receiver_tree_cannot ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.62s
+
+     Running unittests examples\head_field_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\head_field_probe-94873643b4277d46.exe)
+
+running 2 tests
+test gate::turning_the_head_field_off_removes_the_vertical_flux ... ok
+test gate::the_head_field_fills_the_vertical_faces_slice_one_left_empty ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.99s
+
+     Running unittests examples\hybrid_p_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\hybrid_p_probe-cb75bbdcd699a383.exe)
+
+running 2 tests
+test gate::the_hybrid_solve_is_deterministic_under_its_lagged_area_read ... ok
+test gate::hybrid_p_concentrates_flow_without_destroying_simultaneous_divergence ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.93s
+
+     Running unittests examples\mfd_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\mfd_probe-d2d3fd0c25bc945d.exe)
+
+running 2 tests
+test gate::simultaneous_divergence_is_structurally_zero_off_and_present_on ... ok
+test gate::a_larger_exponent_produces_no_more_simultaneous_divergence ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.76s
+
+     Running unittests examples\palette_quant_tour.rs (B:\repos\borwood\deepcraft\target\release\examples\palette_quant_tour-653b52349c21d905.exe)
+
+running 4 tests
+test gate::a_mostly_empty_window_cannot_win_on_a_couple_of_loud_cells ... ok
+test gate::balance_breaks_the_tie_between_two_class_windows ... ok
+test gate::a_multi_class_window_outranks_a_uniform_one ... ok
+test gate::every_reachable_class_has_a_glyph ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples\perdepth_weathering_cost_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\perdepth_weathering_cost_probe-b3d79fe3fa55621c.exe)
+
+running 1 test
+test gate::the_perdepth_projection_is_self_consistent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.77s
+
+     Running unittests examples\pore_decorrelation_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\pore_decorrelation_probe-4a04134821f72ca7.exe)
+
+running 3 tests
+test gate::sibling_riders_in_one_voxel_round_independently ... ok
+test gate::the_decorrelation_moves_product_without_creating_it ... ok
+test gate::the_pore_offset_is_no_longer_readable_out_of_the_fill_offset ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.58s
+
+     Running unittests examples\s18_weathering_tour.rs (B:\repos\borwood\deepcraft\target\release\examples\s18_weathering_tour-b2dec8abefa5bd5c.exe)
+
+running 1 test
+test gate::the_weather_inventory_flag_leaves_a_band_on_the_world ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.57s
+
+     Running unittests examples\s20_ledger_residency_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\s20_ledger_residency_probe-58c5e3c2df138329.exe)
+
+running 1 test
+test gate::the_s20_residency_model_is_self_consistent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.03s
+
+     Running unittests examples\walk_tour_0115.rs (B:\repos\borwood\deepcraft\target\release\examples\walk_tour_0115-d1d5384b5ed6286e.exe)
+
+running 4 tests
+test gate::the_unbounded_operator_still_shows_the_defect_at_this_size ... ok
+test gate::the_shipped_solve_has_no_grid_scale_oscillation ... ok
+test gate::the_shipped_solve_leaves_no_closed_hollows ... ok
+test gate::the_shipped_solve_is_smooth_at_the_grid_scale ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.56s
+
+     Running unittests examples\weathering_profile_probe.rs (B:\repos\borwood\deepcraft\target\release\examples\weathering_profile_probe-9d817ee397fa178f.exe)
+
+running 3 tests
+test gate::the_eighth_draw_does_not_delete_the_thin_front ... ok
+test gate::the_fill_geometry_hands_the_front_the_metres_the_record_owes ... ok
+test gate::the_front_is_graded_over_many_voxels_and_never_pure_product ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.91s
+
+   Doc-tests dc_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dc_core
+
+running 1 test
+test crates\dc-core\src\coarse.rs - coarse::_raw_read_is_inexpressible (line 586) - compile fail ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+   Doc-tests dc_host
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dc_mcp_dev
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dc_physics
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests dc_sim
+
+running 1 test
+test crates\dc-sim\src\statistical\rng.rs - statistical::rng::draw_domains (line 191) ... ignored
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+all doctests ran in 0.65s; merged doctests compilation took 0.57s
+   Doc-tests dc_worldgen
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

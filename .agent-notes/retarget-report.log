@@ -1,0 +1,28 @@
+   Compiling dc-core v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-core)
+   Compiling dc-api v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-api)
+   Compiling dc-sim v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-sim)
+   Compiling dc-physics v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-physics)
+   Compiling dc-mcp-dev v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-mcp-dev)
+   Compiling dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-worldgen)
+   Compiling dc-client v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-client)
+    Finished `release` profile [optimized] target(s) in 1m 06s
+     Running unittests src\main.rs (B:\repos\borwood\deepcraft\target\release\deps\dc_client-ccbb1bc02c8d66a9.exe)
+
+running 1 test
+
+retargeting report — ground y=0, N=2 (voxel 0.900 m, IK window ±0.450 m)
+  biped   idle   hip 0.900 reach 0.880 | clip sole [+0.020,+0.035] rendered [+0.020,+0.035] | samples 48 = seated 0 + corrected 48 + refused 0 | beyond-reach 48 | residual<= 0.0000
+  biped   walk   hip 0.900 reach 0.880 | clip sole [+0.054,+0.129] rendered [+0.037,+0.102] | samples 24 = seated 0 + corrected 24 + refused 0 | beyond-reach 24 | residual<= 0.0000
+  biped   jump   hip 0.900 reach 0.880 | clip sole [+0.033,+0.129] rendered [+0.020,+0.125] | samples 16 = seated 0 + corrected 16 + refused 0 | beyond-reach 16 | residual<= 0.0000
+  stout   idle   hip 0.460 reach 0.440 | clip sole [+0.020,+0.035] rendered [+0.020,+0.035] | samples 48 = seated 0 + corrected 48 + refused 0 | beyond-reach 48 | residual<= 0.0000
+  stout   walk   hip 0.460 reach 0.440 | clip sole [+0.049,+0.074] rendered [+0.028,+0.068] | samples 24 = seated 0 + corrected 24 + refused 0 | beyond-reach 24 | residual<= 0.0000
+  stout   jump   hip 0.460 reach 0.440 | clip sole [+0.029,+0.125] rendered [+0.020,+0.125] | samples 16 = seated 0 + corrected 16 + refused 0 | beyond-reach 16 | residual<= 0.0000
+  reach ratio stout/biped = 0.500 (hips 0.460 / 0.900)
+  IK window ±0.450 m = 1.02x the stout leg, 0.51x the biped leg
+  authored walk root bob 0.040 m = 8.7% of the stout's hip height, 4.4% of the biped's
+  authored jump root bob 0.120 m = 26.1% of the stout's hip height, 13.3% of the biped's
+
+test body::tests::retargeting_across_proportions_is_measured ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 125 filtered out; finished in 0.00s
+
