@@ -126,6 +126,20 @@ fn complete_character(world: &HostWorld, param_path: &str, prefix: &str) -> Vec<
         .collect()
 }
 
+/// `body_plan` param (`spawn_character`): the body plans a pack has registered
+/// so far — genuinely dynamic content, and the only way a caller discovers that
+/// `dc:body/stout` exists without reading the source.
+fn complete_body_plan(world: &HostWorld, param_path: &str, prefix: &str) -> Vec<String> {
+    if param_path != "body_plan" {
+        return Vec::new();
+    }
+    world
+        .body_plans()
+        .map(|d| d.plan.name.clone())
+        .filter(|n| n.starts_with(prefix))
+        .collect()
+}
+
 /// `class` param (`define_class_member`): the content classes registered so
 /// far — a member joins an existing class, so its name completes from the
 /// registry.
@@ -529,7 +543,9 @@ commands! {
         id: CHARACTER_SPAWN = "dc:character/spawn_character",
         doc: "Spawn a persistent named character with a physical body at a \
               position (feet, world meters). It exists in the world, falls \
-              and collides, and is driven by whoever holds control of it.",
+              and collides, and is driven by whoever holds control of it. \
+              Optionally name the registered body plan it WEARS (`body_plan`); \
+              omitted = dc:body/biped. An unregistered plan name is refused.",
         cap: "entity.spawn (dev grant; character sessions spawn via \
               their attach flow)",
         schema: || s_obj(
@@ -541,9 +557,18 @@ commands! {
                     true,
                 ),
                 ("pos", s_vec3f("feet position in world meters"), true),
+                (
+                    "body_plan",
+                    s_str(
+                        "registered body plan the character wears, e.g. \
+                         dc:body/stout; omit for dc:body/biped. Refused if not \
+                         registered",
+                    ),
+                    false,
+                ),
             ],
         ),
-        complete: None,
+        complete: Some(Completer::World(complete_body_plan)),
     }
     SetMoveIntent: Command {
         id: CHARACTER_SET_MOVE_INTENT = "dc:character/set_move_intent",
@@ -840,6 +865,7 @@ mod tests {
             Payload::SpawnCharacter(payload::SpawnCharacter {
                 name: "scout".into(),
                 pos: Vec3f::new(1.0, 2.0, 3.0),
+                body_plan: Some("dc:body/stout".into()),
             }),
             Payload::SetMoveIntent(payload::SetMoveIntent {
                 character: "scout".into(),
@@ -993,6 +1019,7 @@ mod tests {
             payload: Payload::SpawnCharacter(payload::SpawnCharacter {
                 name: name.to_string(),
                 pos: Vec3f::new(0.0, 40.0, 0.0),
+                body_plan: None,
             }),
             target_tick: None,
             txn: None,
@@ -1075,6 +1102,56 @@ mod tests {
         assert!(f(&world, "class", "").is_empty());
     }
 
+    /// `spawn_character`'s `body_plan` completes from the plans a pack actually
+    /// registered — empty on a bare world (genuinely dynamic, not a fixed list),
+    /// and both registered plans once the body packs have been applied.
+    #[test]
+    fn body_plan_completion_reads_registered_plans() {
+        let Some(Completer::World(f)) = spec(ids::CHARACTER_SPAWN).unwrap().completions else {
+            panic!("spawn_character must carry a world completer for `body_plan`");
+        };
+        let mut world = HostWorld::new(3);
+        assert!(
+            f(&world, "body_plan", "").is_empty(),
+            "no pack loaded => no plans"
+        );
+        assert!(
+            f(&world, "pos", "").is_empty(),
+            "unknown param path → empty"
+        );
+
+        let source = ConsumerId::new(ConsumerKind::McpSession, "pack");
+        let grant = crate::capability::CapabilityToken::new(vec![Grant::RegistryDefine {
+            namespace: "dc".into(),
+        }]);
+        let batch = crate::bodies::default_body_pack()
+            .into_iter()
+            .chain(crate::bodies::experiment_body_pack());
+        for payload in batch {
+            let env = crate::envelope::CommandEnvelope {
+                id: payload.command_id().to_string(),
+                source: source.clone(),
+                grant: grant.clone(),
+                payload,
+                target_tick: None,
+                txn: None,
+            };
+            assert!(world.submit(env).is_ok(), "pack command queued");
+        }
+        world.tick();
+        let mut got = f(&world, "body_plan", "dc:body/");
+        got.sort();
+        assert_eq!(
+            got,
+            vec![
+                "dc:body/biped".to_string(),
+                "dc:body/longleg".to_string(),
+                "dc:body/stout".to_string()
+            ]
+        );
+        assert!(f(&world, "body_plan", "zz").is_empty(), "prefix filtered");
+    }
+
     /// The presence/absence of a completion source per command matches intent:
     /// value sources exist only where there is a real one.
     #[test]
@@ -1091,6 +1168,10 @@ mod tests {
             ids::CHARACTER_SENSE_SURROUNDINGS,
             ids::CHARACTER_SET_POSTURE,
             ids::REGISTRY_DEFINE_CLASS_MEMBER,
+            // Per-character body plans: `body_plan` completes from the plans a
+            // pack has actually registered (moved out of `no_source` when the
+            // argument landed — a real dynamic source now exists).
+            ids::CHARACTER_SPAWN,
         ];
         let no_source = [
             ids::WORLD_GET_BLOCK,
@@ -1100,7 +1181,6 @@ mod tests {
             ids::ENTITY_QUERY,
             ids::REGISTRY_DEFINE_ITEM,
             ids::EVENTS_POLL,
-            ids::CHARACTER_SPAWN,
             ids::REGISTRY_DEFINE_CONTENT_CLASS,
             ids::REGISTRY_DEFINE_BODY_PLAN,
             ids::REGISTRY_DEFINE_ANIM_CLIP,

@@ -1,6 +1,6 @@
-//! Character bodies in the render world: a jointed **biped**, rendered as an
-//! instance of the `dc:body/biped` registry plan (docs/design/bodies.md steps
-//! 1–2). Replaces the old two-cuboid figure. Purely a view: the authoritative
+//! Character bodies in the render world: a jointed cuboid figure, rendered as an
+//! instance of **whichever registry body plan the character wears**
+//! (docs/design/bodies.md steps 1–2). Purely a view: the authoritative
 //! state lives in the hosted world (dc-api characters, stepped on the host
 //! tick); this system mirrors each character into a segment hierarchy and
 //! animates it on the render clock, origin-relative like everything the GPU
@@ -11,23 +11,33 @@
 //! ([`crate::body`]) and never read back into simulation. The only sim state
 //! read is each body's velocity, to choose idle vs walk — a legal one-way read.
 //!
-//! v0: every character wears the one vanilla plan (per-character plans /
-//! transmog are step 3+). The plan drives geometry and the verb→slot bindings;
-//! `body.rs` drives the motion.
+//! **Plans come from the REGISTRY, per character.** This used to call
+//! `biped_plan()` / `biped_clips()` as compiled-in Rust; the default pack now
+//! arrives as a registry command batch at world construction
+//! (`authority.rs::load_body_packs`) and this system reads
+//! `HostWorld::body_plan` / `anim_clip` for **whatever plan each character
+//! wears** (`CharacterState::body_plan`, default `dc:body/biped`). Segment
+//! meshes/materials and the derived leg rigs are cached per plan, so N bodies of
+//! one plan still share one asset set.
+//!
+//! Transmog (a *running* body changing plan) has no verb yet; if the state's plan
+//! ever differs from the rendered one, the body is rebuilt — the same path a
+//! vanished character takes.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
 use dc_api::Posture;
-use dc_api::bodies::{AnimClip, BodyPlan, biped_clips, biped_plan};
+use dc_api::bodies::{AnimClip, BodyPlan};
 use dc_core::{VoxelQuery, VoxelScale};
 use glam::DVec3;
 
 use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
-    AnimState, CROUCH_ROOT_DROP_M, pose_for, resolve_orientation, solve_leg_ik, stepped_angle,
+    AnimState, CROUCH_ROOT_DROP_M, LegRig, fk_foot_local, leg_rigs, pose_for, resolve_orientation,
+    solve_leg_ik, stepped_angle,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
@@ -40,51 +50,50 @@ pub struct CharacterBody;
 #[derive(Component)]
 pub struct BodySegment;
 
-/// One rendered body: its root entity, its joint entities by segment name, and
-/// its animation state.
+/// One rendered body: its root entity, its joint entities by segment name, the
+/// plan it was built from, and its animation state.
 pub struct BodyInstance {
     root: Entity,
     joints: HashMap<String, Entity>,
     anim: AnimState,
+    /// The registered plan name this hierarchy was spawned from. A character
+    /// whose state names a different plan is rebuilt (no transmog verb yet).
+    plan: String,
 }
 
-/// Handles for spawned character bodies plus the shared plan/clip/asset cache.
+/// Handles for spawned character bodies plus the per-plan asset cache.
 #[derive(Resource, Default)]
 pub struct CharacterVisuals {
     pub bodies: HashMap<String, BodyInstance>,
-    assets: Option<BodyAssets>,
+    /// Plan name → its meshes/materials/clips/leg rigs, built on first sighting
+    /// of a character wearing it and shared by every body of that plan.
+    plans: HashMap<String, BodyAssets>,
+    /// Plan names already reported as unbuildable, so a body the registry cannot
+    /// serve warns once instead of every frame.
+    missing_plans: HashSet<String>,
 }
 
-/// A leg's two-bone rig, derived from the plan once: the hip joint position in
-/// body-local meters and the two bone lengths, for the foot-placement IK.
-struct LegRig {
-    upper: String,
-    lower: String,
-    /// Hip joint offset from the body root (feet), meters.
-    hip_local: [f64; 3],
-    /// Upper bone length (hip→knee) and lower bone length (knee→sole), meters.
-    l1: f64,
-    l2: f64,
-}
-
-/// The vanilla plan, its idle/walk clips, and the per-segment mesh+material,
-/// built once and shared across every body.
+/// One plan resolved for rendering: the plan itself, the clips its verb→slot
+/// bindings name, the per-segment mesh+material, and the leg rigs derived from
+/// its own proportions. Built once per plan and shared across every body of it.
 struct BodyAssets {
     plan: BodyPlan,
     idle: AnimClip,
     walk: AnimClip,
     /// Segment name → (cuboid mesh, tinted material).
     segs: HashMap<String, (Handle<Mesh>, Handle<StandardMaterial>)>,
-    /// The two legs' IK rigs (empty if the plan has no `leg_*_upper/lower`).
+    /// The legs' IK rigs (empty if the plan has no `leg_*_upper/lower`), derived
+    /// from THIS plan's bone lengths — the whole retargeting story is here.
     legs: Vec<LegRig>,
     /// v0 face cue: a small dark brow band parented to the head's front (−Z)
     /// face, so orientation is photographable (placeholder until head textures).
     face: (Handle<Mesh>, Handle<StandardMaterial>),
 }
 
-/// Mirror the authority's characters into animated biped bodies: spawn bodies
-/// for new characters, move + pose existing ones, despawn bodies whose
-/// character vanished (a scale switch rebuilds the authority).
+/// Mirror the authority's characters into animated bodies: resolve each
+/// character's body plan from the registry, spawn bodies for new characters,
+/// move + pose existing ones, despawn bodies whose character vanished (a scale
+/// switch rebuilds the authority).
 #[expect(
     clippy::too_many_arguments,
     reason = "bevy system: each parameter is a distinct resource"
@@ -101,94 +110,7 @@ pub fn sync_characters(
     mut visuals: ResMut<CharacterVisuals>,
     mut transforms: Query<&mut Transform, With<BodySegment>>,
 ) {
-    // Build the shared plan/clip/segment assets once.
-    if visuals.assets.is_none() {
-        let plan = biped_plan();
-        let clips = biped_clips();
-        let clip = |name: &str| {
-            clips
-                .iter()
-                .find(|c| c.name == name)
-                .cloned()
-                .expect("vanilla biped clip present")
-        };
-        let mut segs = HashMap::new();
-        for s in &plan.segments {
-            let mesh = meshes.add(Cuboid::new(
-                s.size_m[0] as f32,
-                s.size_m[1] as f32,
-                s.size_m[2] as f32,
-            ));
-            let material = materials.add(StandardMaterial {
-                base_color: Color::srgb(s.tint[0], s.tint[1], s.tint[2]),
-                perceptual_roughness: 0.9,
-                unlit: fullbright.0,
-                ..default()
-            });
-            segs.insert(s.name.clone(), (mesh, material));
-        }
-        // Derive each leg's IK rig from the plan: hip = parent(upper).pivot +
-        // upper.pivot; l1 = |lower.pivot| (hip→knee); l2 = |lower.offset.y| +
-        // lower.size.y/2 (knee→sole). Generic over any `leg_*_upper/_lower`.
-        let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
-        let mut legs = Vec::new();
-        for upper in plan
-            .segments
-            .iter()
-            .filter(|s| s.name.starts_with("leg_") && s.name.ends_with("_upper"))
-        {
-            let lower_name = upper.name.replace("_upper", "_lower");
-            let Some(lower) = seg_by(&lower_name) else {
-                continue;
-            };
-            let hip_local = match upper.parent.as_deref().and_then(seg_by) {
-                Some(parent) => [
-                    parent.pivot_m[0] + upper.pivot_m[0],
-                    parent.pivot_m[1] + upper.pivot_m[1],
-                    parent.pivot_m[2] + upper.pivot_m[2],
-                ],
-                None => upper.pivot_m,
-            };
-            let l1 =
-                (lower.pivot_m[0].powi(2) + lower.pivot_m[1].powi(2) + lower.pivot_m[2].powi(2))
-                    .sqrt();
-            let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
-            legs.push(LegRig {
-                upper: upper.name.clone(),
-                lower: lower_name,
-                hip_local,
-                l1,
-                l2,
-            });
-        }
-        // The v0 face cue: a thin dark quad across the head's upper front.
-        let face_mesh = meshes.add(Cuboid::new(0.2, 0.06, 0.02));
-        let face_material = materials.add(StandardMaterial {
-            base_color: Color::srgb(0.08, 0.08, 0.11),
-            perceptual_roughness: 0.9,
-            unlit: fullbright.0,
-            ..default()
-        });
-        visuals.assets = Some(BodyAssets {
-            idle: clip("dc:anim/biped_idle"),
-            walk: clip("dc:anim/biped_walk"),
-            plan,
-            segs,
-            legs,
-            face: (face_mesh, face_material),
-        });
-    }
-
     let dt = f64::from(time.delta_secs());
-
-    // Split the resource borrow: `assets` (read) and `bodies` (write) are
-    // disjoint fields, so the sampler can read the plan/clips while the anim
-    // states mutate.
-    let visuals = &mut *visuals;
-    let assets = visuals.assets.as_ref().expect("built above");
-
-    let mut seen: Vec<String> = Vec::new();
-    let mut to_spawn: Vec<(String, DVec3, f32, f64)> = Vec::new();
 
     // Collect the characters first (releasing the shared authority borrow),
     // then build the foot-IK ground query over the SAME authority. Foot
@@ -198,17 +120,66 @@ pub fn sync_characters(
     // Generating a chunk here is a pure, deterministic memoization of the host;
     // it never touches sim/replay state, so the animation firewall holds.
     let characters: Vec<dc_api::CharacterState> = authority.world.characters().cloned().collect();
+
+    // Resolve every plan in use from the REGISTRY (not a compiled-in call), once
+    // per plan. Done before the authority is borrowed mutably for the ground
+    // query below: the registry read and the solidity read are separate passes.
+    for character in &characters {
+        let name = character.body_plan.as_str();
+        if visuals.plans.contains_key(name) || visuals.missing_plans.contains(name) {
+            continue;
+        }
+        match build_plan_assets(name, &authority, &mut meshes, &mut materials, fullbright.0) {
+            Some(assets) => {
+                info!("body plan `{name}` resolved from the registry for rendering");
+                visuals.plans.insert(name.to_string(), assets);
+            }
+            None => {
+                // Only reachable before the pack's first tick, or if a pack
+                // failed to load — the host refuses a spawn naming an
+                // unregistered plan, so this cannot be a stale character.
+                warn!(
+                    "character `{}` wears body plan `{name}`, which the registry \
+                     cannot serve (plan or its idle/walk clip missing) — not rendered",
+                    character.name
+                );
+                visuals.missing_plans.insert(name.to_string());
+            }
+        }
+    }
+
+    // Split the resource borrow: the per-plan assets (read) and `bodies` (write)
+    // are disjoint fields, so the sampler can read a plan/clips while the anim
+    // states mutate.
+    let CharacterVisuals { bodies, plans, .. } = &mut *visuals;
+    let plans = &*plans;
+
+    let mut seen: Vec<String> = Vec::new();
+    let mut to_spawn: Vec<(String, String, DVec3, f32)> = Vec::new();
+
     let authority_cell = RefCell::new(&mut *authority);
     let solid = |x: i64, y: i64, z: i64| authority_cell.borrow_mut().is_solid_voxel(x, y, z);
 
     for character in &characters {
+        let Some(assets) = plans.get(character.body_plan.as_str()) else {
+            continue; // warned above; nothing to render for this body yet
+        };
         seen.push(character.name.clone());
         let feet = DVec3::new(character.pos_m.x, character.pos_m.y, character.pos_m.z);
         let translation = to_render(feet - origin.0);
         let speed =
             (character.vel_m.x * character.vel_m.x + character.vel_m.z * character.vel_m.z).sqrt();
 
-        match visuals.bodies.get_mut(character.name.as_str()) {
+        // A body whose rendered plan no longer matches its state is rebuilt
+        // (transmog has no verb yet; when it gets one, this is the seam).
+        let plan_changed = bodies
+            .get(character.name.as_str())
+            .is_some_and(|i| i.plan != character.body_plan);
+        if plan_changed && let Some(instance) = bodies.remove(character.name.as_str()) {
+            commands.entity(instance.root).despawn();
+        }
+
+        match bodies.get_mut(character.name.as_str()) {
             Some(instance) => {
                 instance.anim.advance(dt, speed);
                 instance
@@ -308,38 +279,107 @@ pub fn sync_characters(
                         Quat::from_euler(EulerRot::XYZ, e[0] as f32, e[1] as f32, e[2] as f32);
                 }
             }
-            None => to_spawn.push((character.name.clone(), feet, character.yaw, dt)),
+            None => to_spawn.push((
+                character.name.clone(),
+                character.body_plan.clone(),
+                feet,
+                character.yaw,
+            )),
         }
     }
 
     // Spawn new bodies (after the read-only pass over `bodies`).
-    for (name, feet, yaw, _dt) in to_spawn {
+    for (name, plan, feet, yaw) in to_spawn {
+        let Some(assets) = plans.get(plan.as_str()) else {
+            continue;
+        };
         let translation = to_render(feet - origin.0);
-        let instance = spawn_body(&mut commands, assets, translation, yaw);
-        visuals.bodies.insert(name, instance);
+        let instance = spawn_body(&mut commands, assets, &plan, translation, yaw);
+        bodies.insert(name, instance);
     }
 
-    // Characters gone from the authority lose their bodies.
-    let stale: Vec<String> = visuals
-        .bodies
+    // Characters gone from the authority lose their bodies. `seen` holds only the
+    // characters this frame could render, so an unrenderable body is also cleaned
+    // up — the honest outcome when a plan cannot be resolved.
+    let stale: Vec<String> = bodies
         .keys()
         .filter(|name| !seen.contains(name))
         .cloned()
         .collect();
     for name in stale {
-        if let Some(instance) = visuals.bodies.remove(&name) {
+        if let Some(instance) = bodies.remove(&name) {
             commands.entity(instance.root).despawn();
         }
     }
 }
 
-/// Spawn one biped body's entity hierarchy from the plan and return its
-/// instance. Joint entities are spawned first (so parenting can wire an
-/// arbitrary tree regardless of segment order), each carrying a mesh child
-/// offset from its pivot; then the tree is stitched with `add_child`.
+/// Resolve one plan name into render assets **from the registry**: the plan, the
+/// clips its `idle`/`walk` slots bind, per-segment cuboid mesh + tinted material,
+/// the leg rigs derived from this plan's own proportions, and the face cue.
+///
+/// `None` when the registry holds no such plan, or the plan's required slots bind
+/// clips that are not registered — a content failure the caller reports rather
+/// than papering over with a hard-coded biped.
+fn build_plan_assets(
+    name: &str,
+    authority: &Authority,
+    meshes: &mut Assets<Mesh>,
+    materials: &mut Assets<StandardMaterial>,
+    fullbright: bool,
+) -> Option<BodyAssets> {
+    let plan = authority.world.body_plan(name)?.plan.clone();
+    // Verbs → clips through the plan's own bindings, not a hard-coded clip name:
+    // a plan is free to bind any registered clip to `idle`/`walk`.
+    let clip_for = |verb: &str| -> Option<AnimClip> {
+        let slot = plan.slots.iter().find(|s| s.verb == verb)?;
+        Some(authority.world.anim_clip(&slot.clip)?.clip.clone())
+    };
+    let idle = clip_for("idle")?;
+    let walk = clip_for("walk")?;
+
+    let mut segs = HashMap::new();
+    for s in &plan.segments {
+        let mesh = meshes.add(Cuboid::new(
+            s.size_m[0] as f32,
+            s.size_m[1] as f32,
+            s.size_m[2] as f32,
+        ));
+        let material = materials.add(StandardMaterial {
+            base_color: Color::srgb(s.tint[0], s.tint[1], s.tint[2]),
+            perceptual_roughness: 0.9,
+            unlit: fullbright,
+            ..default()
+        });
+        segs.insert(s.name.clone(), (mesh, material));
+    }
+    let legs = leg_rigs(&plan);
+    // The v0 face cue: a thin dark quad across the head's upper front.
+    let face_mesh = meshes.add(Cuboid::new(0.2, 0.06, 0.02));
+    let face_material = materials.add(StandardMaterial {
+        base_color: Color::srgb(0.08, 0.08, 0.11),
+        perceptual_roughness: 0.9,
+        unlit: fullbright,
+        ..default()
+    });
+    Some(BodyAssets {
+        plan,
+        idle,
+        walk,
+        segs,
+        legs,
+        face: (face_mesh, face_material),
+    })
+}
+
+/// Spawn one body's entity hierarchy from its plan and return the instance.
+/// Joint entities are spawned first (so parenting can wire an arbitrary tree
+/// regardless of segment order), each carrying a mesh child offset from its
+/// pivot; then the tree is stitched with `add_child`. Nothing here is
+/// biped-specific — it walks whatever tree the plan declares.
 fn spawn_body(
     commands: &mut Commands,
     assets: &BodyAssets,
+    plan_name: &str,
     translation: Vec3,
     yaw: f32,
 ) -> BodyInstance {
@@ -416,17 +456,8 @@ fn spawn_body(
             trunk_yaw: f64::from(yaw),
             ..AnimState::default()
         },
+        plan: plan_name.to_string(),
     }
-}
-
-/// Foot position of a two-bone leg in its sagittal (y, z) plane, from the clip's
-/// hip/knee X-rotations — the inverse of [`solve_leg_ik`]'s reconstruction, used
-/// to find where the animation currently places the foot before re-seating it.
-fn fk_foot_local(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64) {
-    let ky = -l1 * upper_x.cos();
-    let kz = -l1 * upper_x.sin();
-    let total = upper_x + lower_x;
-    (ky - l2 * total.cos(), kz - l2 * total.sin())
 }
 
 /// Rotate a body-local horizontal offset `(x, z)` by trunk yaw into world XZ

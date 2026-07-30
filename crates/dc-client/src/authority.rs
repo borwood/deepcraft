@@ -283,9 +283,67 @@ impl Authority {
         ((sphere * 2.0) as usize).clamp(1024, 16_384)
     }
 
+    /// Load the **first pack**: the default pack's bodies content, as a registry
+    /// command batch through the one door.
+    ///
+    /// `dc_api::bodies::default_body_pack()` had existed since the body-plan
+    /// milestone on the stated principle that the default pack is the first pack, and
+    /// **nothing but a dc-api unit test had ever called it** — the renderer
+    /// reached for `biped_plan()`/`biped_clips()` as compiled-in Rust, so the
+    /// door was built and never travelled (spines.md § A-4). This is the
+    /// traversal: the clips and the biped plan arrive as `DefineAnimClip` /
+    /// `DefineBodyPlan` commands under a `registry.define(dc)` grant, and
+    /// `character.rs` reads the resulting registry. First-party content ships
+    /// through the same surface a third party would use — north-star
+    /// § core/plugin boundary, *"first-party content ships through the same SDK,
+    /// not a privileged internal path"*.
+    ///
+    /// The batch is **submitted, not applied**: it lands at the first tick
+    /// boundary like every other command, ahead of anything a consumer submits
+    /// later (total order), so a character spawned at any point after boot always
+    /// finds its plan registered. The renderer simply has no body assets to build
+    /// until then, which costs nothing — no character can exist before a tick.
+    ///
+    /// **The second batch is the body experiments, not content.**
+    /// `experiment_body_pack()` registers `dc:body/stout` (the ill-proportioned
+    /// instrument that tests bodies.md's retargeting claim) and `dc:body/longleg`
+    /// (the over-long-legged instrument that lets the foot-placement IK engage at
+    /// all — journal/0130 measured that it never had). Both load separately, and
+    /// *after* the default pack (they bind its clips), so that the **default pack**
+    /// keeps meaning the default content — deleting the experiments is this one
+    /// `chain` plus `dc_api::bodies::{stout_plan, longleg_plan,
+    /// experiment_body_pack}`. *Existence is not standing*: an unratified body
+    /// inside the default pack is how bootstrap fabrication becomes something a
+    /// later session assumes.
+    fn load_body_packs(world: &mut HostWorld) {
+        let source = ConsumerId::new(ConsumerKind::Plugin, "default-pack");
+        let token = CapabilityToken::new(vec![Grant::RegistryDefine {
+            namespace: "dc".into(),
+        }]);
+        let batch = dc_api::bodies::default_body_pack()
+            .into_iter()
+            .chain(dc_api::bodies::experiment_body_pack());
+        for payload in batch {
+            let envelope = CommandEnvelope {
+                id: payload.command_id().to_string(),
+                source: source.clone(),
+                grant: token.clone(),
+                payload,
+                target_tick: None,
+                txn: None,
+            };
+            if let Err(entry) = world.submit(envelope) {
+                // Structurally impossible (the batches are generated from the
+                // typed source), but a silent body-less world would be baffling.
+                error!("body pack rejected: {:?}", entry.receipt.result);
+            }
+        }
+    }
+
     /// Assemble the consumer identities / tokens shared by every authority.
     fn finish(scale: VoxelScale, mut world: HostWorld, surface: SurfaceAuthority) -> Self {
         world.set_chunk_budget(Self::chunk_budget_for(scale));
+        Self::load_body_packs(&mut world);
         Self {
             world,
             accumulator: 0.0,
@@ -657,11 +715,17 @@ impl Authority {
     /// `pos`'s x/z (mirroring the player's `surface` teleport) — reading the
     /// live world's solidity (edits included), not the analytic height that
     /// under-reports (ROADMAP Observed).
+    /// `body_plan` names the registered plan the new body **wears**; `None` is the
+    /// identity default (`dc:body/biped`), so every existing caller is unchanged.
+    /// An unregistered name is refused by the host with a receipt, and the refusal
+    /// is surfaced here as `ok:false, code:"unknown_body_plan"` — a silent fallback
+    /// would render a body the session did not ask for.
     pub fn handle_character_attach(
         &mut self,
         name: &str,
         pos: dc_api::payload::Vec3f,
         surface: bool,
+        body_plan: Option<String>,
         reply: oneshot::Sender<Value>,
     ) {
         if !dc_api::character::valid_character_name(name) {
@@ -674,6 +738,29 @@ impl Authority {
         }
         if self.world.character(name).is_some() {
             let _ = reply.send(json!({ "ok": true, "character": name, "spawned": false }));
+            return;
+        }
+        // Fail the plan name BEFORE the placement work: an unregistered plan is a
+        // content error, and answering it with "obstructed" would be a lie.
+        if let Some(plan) = &body_plan
+            && self.world.body_plan(plan).is_none()
+        {
+            let known: Vec<&str> = self
+                .world
+                .body_plans()
+                .map(|d| d.plan.name.as_str())
+                .collect();
+            let _ = reply.send(json!({
+                "ok": false,
+                "code": "unknown_body_plan",
+                "character": name,
+                "body_plan": plan,
+                "registered": known,
+                "error": format!(
+                    "cannot attach `{name}`: no registered body plan `{plan}`. \
+                     Registered plans: {known:?}."
+                ),
+            }));
             return;
         }
 
@@ -743,6 +830,7 @@ impl Authority {
             payload: Payload::SpawnCharacter(dc_api::payload::SpawnCharacter {
                 name: name.to_string(),
                 pos: feet,
+                body_plan,
             }),
             target_tick: None,
             txn: None,
@@ -936,6 +1024,7 @@ pub fn drain_bridge(
                 name,
                 pos,
                 surface,
+                body_plan,
                 reply,
             } => {
                 let pos = match pos {
@@ -951,7 +1040,7 @@ pub fn drain_bridge(
                         dc_api::payload::Vec3f::new(spot.x, spot.y, spot.z)
                     }
                 };
-                authority.handle_character_attach(&name, pos, surface, reply);
+                authority.handle_character_attach(&name, pos, surface, body_plan, reply);
             }
             BridgeRequest::CharacterApi {
                 tool,
@@ -1315,8 +1404,21 @@ pub(crate) mod tests {
     fn edit_session_parity_direct_vs_mcp_tool_layer() {
         const SEED: i32 = 1337;
 
+        // **Flush the boot body packs first.** `Authority::new` submits them at
+        // construction, so without this tick they sit in the same queue as the
+        // script — and their position in the total order legitimately DIFFERS
+        // between the two paths, because the queue is priority-ordered by consumer
+        // kind: the direct path edits as `Player` (priority 0, sorts ahead of the
+        // packs' `Plugin`), while the MCP path edits as `McpSession` (priority 1,
+        // tying with `Plugin` and losing to it on submission order). The receipts
+        // then carry different global `seq` values for the same edits and this
+        // assertion fires — which is the priority rule working, not a parity
+        // break. Ticking once puts the packs at seq 1..5 in *both* worlds and
+        // leaves the comparison about the script, where the claim lives.
+        //
         // (a) Direct: typed envelopes through the player path.
         let mut direct = Authority::new(SEED, 3);
+        direct.tick_now();
         for payload in edit_script() {
             direct.submit_player(payload);
         }
@@ -1324,6 +1426,7 @@ pub(crate) mod tests {
 
         // (b) MCP tool layer: the same payloads as JSON tool calls.
         let mut mcp = Authority::new(SEED, 3);
+        mcp.tick_now();
         let mut replies = Vec::new();
         for payload in edit_script() {
             let tool = mcp_tool_name(payload.command_id());
@@ -1360,6 +1463,7 @@ pub(crate) mod tests {
 
         // And a different seed diverges (the generator is really in the loop).
         let mut other = Authority::new(SEED + 1, 3);
+        other.tick_now(); // flush the boot packs, as above
         for payload in edit_script() {
             other.submit_player(payload);
         }
@@ -1381,6 +1485,7 @@ pub(crate) mod tests {
                 "scout",
                 dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
                 false,
+                None,
                 tx,
             );
             authority.tick_now();
@@ -1435,6 +1540,7 @@ pub(crate) mod tests {
             "scout",
             dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
             false,
+            None,
             tx,
         );
         authority.tick_now();
@@ -1444,6 +1550,7 @@ pub(crate) mod tests {
             "scout",
             dc_api::payload::Vec3f::new(9.0, 9.0, 9.0),
             false,
+            None,
             tx,
         );
         let reply = rx.try_recv().expect("existing attach answers immediately");
@@ -1461,6 +1568,139 @@ pub(crate) mod tests {
         assert!(
             reply["result"]["Rejected"]["MissingCapability"].is_object(),
             "foreign character denied: {reply}"
+        );
+    }
+
+    /// **The untraveled door, travelled.** `default_body_pack()` existed since the
+    /// body-plan milestone and only a dc-api unit test called it; the renderer used
+    /// compiled-in `biped_plan()`/`biped_clips()`. Now the running game *loads* it.
+    ///
+    /// The assertions are the re-housing proof from the client side: the pack is
+    /// queued at construction and applies at the first tick (like every command),
+    /// and what the registry then hands the renderer is `==` to the authored source
+    /// it used to call — so the rendered frame is unchanged by construction.
+    #[test]
+    fn the_default_body_pack_loads_through_the_one_door() {
+        // Legacy S1 terrain authority (key 3): no worldgen pregen, so this is a
+        // cheap world. The pack load is scale-independent.
+        let mut authority = Authority::new(1337, 3);
+        assert!(
+            authority.world.body_plan("dc:body/biped").is_none(),
+            "the pack is SUBMITTED at construction, not applied — it lands at a \
+             tick boundary like every other command"
+        );
+        authority.tick_now();
+
+        // All three plans and the one clip set are now registered.
+        assert_eq!(authority.world.body_plans().count(), 3);
+        assert_eq!(authority.world.anim_clips().count(), 3);
+        // And they are the authored source, byte for byte: this is what makes the
+        // registry route a re-housing rather than a change.
+        assert_eq!(
+            authority
+                .world
+                .body_plan("dc:body/biped")
+                .expect("biped")
+                .plan,
+            dc_api::bodies::biped_plan(),
+            "the plan the renderer reads must equal the one it used to call"
+        );
+        assert_eq!(
+            authority
+                .world
+                .body_plan("dc:body/stout")
+                .expect("stout")
+                .plan,
+            dc_api::bodies::stout_plan()
+        );
+        assert_eq!(
+            authority
+                .world
+                .body_plan("dc:body/longleg")
+                .expect("longleg")
+                .plan,
+            dc_api::bodies::longleg_plan()
+        );
+        for authored in dc_api::bodies::biped_clips() {
+            assert_eq!(
+                authority
+                    .world
+                    .anim_clip(&authored.name)
+                    .unwrap_or_else(|| panic!("clip {} registered", authored.name))
+                    .clip,
+                authored
+            );
+        }
+    }
+
+    /// Per-character plan selection through the attach flow: a named plan is worn
+    /// and reads back, and an unregistered name is a **receipt**, not a silent
+    /// fallback to the default body.
+    #[test]
+    fn attach_wears_a_named_plan_and_refuses_an_unknown_one() {
+        let mut authority = Authority::new(1337, 3);
+        authority.tick_now(); // the pack lands
+
+        // The default: no plan named.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "plain",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            None,
+            tx,
+        );
+        authority.tick_now();
+        assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
+        assert_eq!(
+            authority
+                .world
+                .character("plain")
+                .expect("spawned")
+                .body_plan,
+            dc_api::bodies::DEFAULT_BODY_PLAN
+        );
+
+        // A registered second plan. Same feet as above — the spot is known clear
+        // (the embed guard passed for `plain`), and characters do not collide with
+        // each other, so this isolates the plan argument as the only variable.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "squat",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            Some("dc:body/stout".to_string()),
+            tx,
+        );
+        authority.tick_now();
+        assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
+        assert_eq!(
+            authority
+                .world
+                .character("squat")
+                .expect("spawned")
+                .body_plan,
+            "dc:body/stout"
+        );
+
+        // An unregistered plan: refused with a receipt, and nothing spawned.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "ghost",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            Some("mod:body/nonexistent".to_string()),
+            tx,
+        );
+        let reply = rx
+            .try_recv()
+            .expect("an unknown plan is refused before any placement work");
+        assert_eq!(reply["ok"], json!(false), "{reply}");
+        assert_eq!(reply["code"], json!("unknown_body_plan"), "{reply}");
+        authority.tick_now();
+        assert!(
+            authority.world.character("ghost").is_none(),
+            "a refused attach spawns nothing"
         );
     }
 
@@ -1532,6 +1772,7 @@ pub(crate) mod tests {
             "buried",
             dc_api::payload::Vec3f::new(sx, buried_feet, sz),
             false,
+            None,
             tx,
         );
         let reply = rx.try_recv().expect("embed guard answers immediately");
@@ -1549,6 +1790,7 @@ pub(crate) mod tests {
             "flyer",
             dc_api::payload::Vec3f::new(sx, true_surf + 50.0, sz),
             false,
+            None,
             tx,
         );
         authority.tick_now();
@@ -1564,6 +1806,7 @@ pub(crate) mod tests {
             "walker",
             dc_api::payload::Vec3f::new(sx, true_surf + 100.0, sz),
             true,
+            None,
             tx,
         );
         authority.tick_now();
@@ -1731,6 +1974,7 @@ pub(crate) mod tests {
             "walker",
             dc_api::payload::Vec3f::new(spawn.x, 5000.0, spawn.z),
             true,
+            None,
             tx,
         );
         a.tick_now();
@@ -2078,6 +2322,7 @@ pub(crate) mod tests {
             "scout",
             dc_api::payload::Vec3f::new(spawn.x, spawn.y + 2.0, spawn.z),
             true,
+            None,
             tx,
         );
         authority.tick_now();

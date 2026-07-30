@@ -57,6 +57,109 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 
 ## IK — DECIDED 2026-07-19 (role, not solver choice)
 
+> **⚠ MEASURED 2026-07-29 (journal/0130) — THIS SECTION IS HALF-CONFIRMED AND HALF-REFUTED.**
+> **Confirmed:** the retargeting role is real. One unmodified clip set drives
+> `dc:body/biped` and `dc:body/stout` (legs 0.50x, arms 1.60x) with no new keyframes;
+> the derived leg rig comes out at exactly 0.500x, `idle` poses are byte-identical
+> across the two plans, and the walk's artifacts *shrink* in metres (0.102 -> 0.068 m).
+> No new kind of artifact appeared, and the second body reads as a coherent creature.
+> **Refuted: "feet to actual ground" has never happened, for ANY plan.** 176/176 sampled
+> frames are beyond the leg's reach and clamp to full extension. The biped's hip sits at
+> **0.900 m** while its legs reach **0.880 m** (0.45 + 0.43), so a sole at y=0 is
+> **geometrically unreachable before any animation runs** — a 20 mm gap present since
+> `biped_plan()` was written. The rendered result is a **hover**: `idle` sole height
+> oscillates over `[+0.020, +0.035] m`, feet never planted (user, on seeing it move:
+> *"the hover looks bad… it is not a bob, it is a hover"*).
+>
+> **The mechanism generalises past IK and is the reason this matters to
+> § "Plan parameters":** three quantities are **absolute metres** in a pipeline whose
+> premise is that proportions vary — hip height, the clips' **root bob** (jump 0.120 m =
+> 13% of the biped's hip height and **26%** of the stout's; both bodies' feet peak at
+> *exactly* +0.125 m), and the **foot-IK correction window**, which is **half a voxel**
+> (0.450 m at N=2 = **1.02x the stout's entire leg**) — a tolerance derived from voxel
+> resolution wearing the clothes of one about anatomy. **With exactly one body plan a
+> length IS a ratio**, which is why none of it was visible: anti-shape **A-1**, a stand-in
+> becoming the definition, sitting under the body builder's foundation.
+>
+> **Consequence for authoring: every plan parameter must declare its UNITS**
+> (ratio-of-plan vs absolute-metres) as well as which side of the determinism firewall it
+> touches. The units axis is undetectable while there is one plan and load-bearing the
+> instant there are two.
+>
+> **⚠ USER CALL, unresolved:** whether the 20 mm gap is intentional (feet visually
+> clearing terrain seams) or an off-by-a-half-thickness in `l2`. It decides whether these
+> three constants become **ratios of the plan** (an engine change that invalidates the
+> authored clip bobs and moves how every body looks) or whether *"feet to actual ground"*
+> is **retired from this section** as never-intended. **Nothing downstream may assume
+> ground contact until it lands.**
+>
+> **⚠ MEASURED AGAIN 2026-07-29 (journal/0131) — THE SOLVER WAS
+> NEVER THE PROBLEM, AND THE CALL ABOVE IS STILL THE USER'S.** A third plan,
+> `dc:body/longleg`, was authored *purely as a control*: the biped with its two leg bone
+> lengths changed and **nothing else** (reach 0.880 → 1.020 m against an unchanged 0.900 m
+> hip), riding the same three unmodified clips, in `experiment_body_pack()` — **no engine
+> constant was touched, and no part of the call above is answered here.** With the sole
+> target inside the annulus the closed-form IK solves on the first frame it is asked:
+> **86 of 88 samples plant** (a sample is one foot on one stepped frame; 88 per plan,
+> which is exactly half of journal/0130's 176 across two plans), **and the knee bends
+> to −56.2°.** The two failures are `walk`'s stride extremes, which need
+> `hypot(hip, stride_forward)` of reach, not `hip`.
+>
+> **The new fact, and it constrains the call:** the resting knee bend and the stride
+> coverage are **locked together** and trade against each other. Measured over the
+> authored clip set — `idle` 24 frames, `walk` 12, `jump` 8, both legs, at the 12 fps grid:
+>
+> | leg slack (reach − hip) | resting knee bend | samples still beyond reach (of 88) |
+> |-------------------------|-------------------|-----------------------------------|
+> | −0.020 m (today's biped) | 0.0° — clamped straight | **88**, every one |
+> | +0.030 m | 29.2° | 32 |
+> | +0.050 m | 37.3° | 14 |
+> | +0.120 m (`longleg`) | 56.2° | **2** |
+> | +0.180 m | 67.1° | 0 |
+>
+> There is **no slack that both plants every frame and keeps the knee out of a squat**,
+> because the stride's reach demand grows with the bones that serve it. The degree of
+> freedom nobody is spending is the root's **vertical travel** — the clips author a bob
+> *upward* where a walk needs the pelvis to *drop* on the stance leg. That observation is
+> offered as evidence for the call, not as a resolution of it.
+>
+> **⚠ THE UNITS LIST ABOVE IS SHORT BY ONE: there are FOUR absolute-metres constants,
+> not three.** The paragraph beginning *"three quantities are absolute metres"* names hip
+> height, the clips' root bob, and the foot-IK window. It misses
+> **`CROUCH_ROOT_DROP_M` = 0.45 m** (dc-client `body.rs`) — which is **50.0% of the
+> biped's hip height and 97.8% of the stout's**, so a crouching `dc:body/stout` puts its
+> hip at **0.010 m** and folds its knee to a degenerate **180°**. That constant is not a
+> footnote to the others: because it moves the hip *toward* the ground, it is **the one
+> posture in which the stock biped's foot IK has always worked** — 88/88 samples
+> corrected, knee bending to 123.7°. journal/0130's *"never engaged"* is true of
+> **standing**, and was never true of crouching. (Corollary in CLAUDE.md § reading a
+> null, landing on the entry that established it.)
+>
+> **⚠ AND FOOT PLACEMENT HAS TWO INDEPENDENT GATES, WHICH NOTHING RECONCILES.** A
+> correction happens only if the ground is inside the **half-voxel window** *and* the
+> sole target is inside the **annulus** `[|l1−l2|, l1+l2]`. The three plans fail
+> different gates in different postures, and **no plan passes both in every posture**:
+>
+> | | flat, standing | flat, crouching | +0.30 m step (synthetic) | one-voxel step |
+> |---|---|---|---|---|
+> | `biped` | annulus refuses, 0/88 | **88/88 plant**, knee 123.7° | uphill foot plants, knee 90° | window refuses raised foot |
+> | `stout` | annulus refuses, 0/88 | 88/88 plant, knee **180°** (degenerate) | uphill foot plants, knee 135° | window refuses raised foot |
+> | `longleg` | **86/88 plant**, knee 56.2° | **window refuses, 4/88** | 87/88 plant | window refuses raised foot |
+>
+> `longleg` standing works and crouching does not; `biped` crouching works and standing
+> does not. That complementarity is the sharpest available statement that the window
+> (voxel-derived) and the geometry (plan-derived) were never reconciled.
+>
+> **⚠ AND A THIRD, INDEPENDENT REFUSAL, SCALE-FREE:** the correction window is **half a
+> voxel** and the smallest relief real terrain can have is **one whole voxel**, at *every*
+> scale N — the ratio is fixed at **2:1 by construction**. So **no real terrain step ever
+> fits inside the window**: on a one-voxel step every raised-foot sample is refused, on all
+> three plans, for all three clips (asserted in dc-client `body.rs`
+> `foot_placement_and_retargeting_are_measured`). Foot placement engages only on
+> *sub-voxel* offsets — which, today, are produced by nothing but the plan's own hip/reach
+> mismatch. **The window's units problem is therefore not "half a voxel is the wrong
+> number"; it is that a voxel-derived tolerance can never express a terrain step.**
+
 Two-bone IK for limbs + neck look-at is the **retargeting glue** that makes
 one clip serve every mutation of a plan: feet to actual ground, hands to
 actual socket transforms, across differing proportions. Solver technique is
@@ -64,6 +167,19 @@ an implementation choice; artifact suppression uses standard techniques
 (pole vectors, joint limits) — cuboid rigs do not inherently pop.
 
 ## Stepped animation — DECIDED 2026-07-19 (aesthetic choice)
+
+> **⚠ QUANTIFIED 2026-07-30 (ROADMAP § Observed; journal/0130 + journal/0131) — THIS CHOICE
+> IS WHY FEET DO NOT PLANT, AND NEITHER JOURNAL KNEW IT.** `ROT_QUANTUM_RAD = TAU/32 =
+> 11.25°` means **one quantum of hip rotation moves the ankle 172 mm** on the biped's 0.88 m
+> leg. The foot corrections at issue need **1.30°** (the 20 mm standing gap), **0.98°** (the
+> 15 mm hover oscillation) and **0.33°** (`longleg`'s residual) — the quantizer is **9×, 12×
+> and 35× too coarse.** The IK solves correctly and the rounding discards the answer.
+> **Sub-decimetre foot placement is inexpressible under stepped rotation, at any body
+> proportion.** This section is not wrong and is not retired — the aesthetic stands — but it
+> is now a **known cost with a number**, and it is **upstream of** the § IK hip/reach user
+> call: fixing reach cannot plant a foot the quantizer will not move. Options, unratified:
+> exempt the IK correction chain from quantization while clips stay stepped; or quantize the
+> foot's **position** against the ground instead of the joint's **angle**.
 
 Character animation renders **frame-stepped (~12 fps, quantized rotations)**
 — a stop-motion look chosen for the elevated-pixel aesthetic (an identity,

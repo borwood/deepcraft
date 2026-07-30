@@ -1141,8 +1141,29 @@ impl HostWorld {
                         key: p.name.clone(),
                     });
                 }
-                self.characters
-                    .insert(p.name.clone(), CharacterState::new(p.name.clone(), p.pos));
+                // Which plan the body wears. An **explicitly named** plan must be
+                // registered — refused with a receipt, never silently defaulted
+                // (a caller whose pack failed to load must find out here).
+                //
+                // The identity default is NOT checked, deliberately: requiring it
+                // would make the engine's character primitive depend on content
+                // being loaded, and a plan is cosmetic — the collider comes from
+                // the world-global `CharacterConfig`. So a plan-less world can
+                // still spawn characters, and the *renderer* is what needs a pack.
+                // (Reported as a boundary finding, not smuggled in as obvious.)
+                let body_plan = match &p.body_plan {
+                    None => crate::bodies::DEFAULT_BODY_PLAN.to_string(),
+                    Some(name) => {
+                        if !self.body_plans.contains_key(name) {
+                            return Err(RejectReason::UnknownBodyPlan { name: name.clone() });
+                        }
+                        name.clone()
+                    }
+                };
+                self.characters.insert(
+                    p.name.clone(),
+                    CharacterState::with_body_plan(p.name.clone(), p.pos, body_plan),
+                );
                 journal.push(Undo::RemoveCharacter(p.name.clone()));
                 effects.characters_spawned.push(p.name.clone());
             }
@@ -1380,6 +1401,7 @@ impl HostWorld {
                     eye_in_solid: self.block_at(eye_voxel).is_solid(),
                     pos_voxel,
                     posture: character.posture.to_wire().to_string(),
+                    body_plan: character.body_plan.clone(),
                 }
             }
             Payload::SenseRaycast(p) => {

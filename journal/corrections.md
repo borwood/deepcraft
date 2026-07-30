@@ -3125,3 +3125,97 @@ bilinear stencil's support is a *set*, not a winner.
 because the coupling was a `pub` *field*, invisible to a trace of producing code. *Grep
 the field, not the function.* Both targets stamped (the member-#0 audit header; the graph
 E5 row already carried the corrected numbers at merge).
+## 77. "The foot-float defect is sub-perceptual, so it is a design decision rather than a fire" (2026-07-29, the integrator's own, falsified within the hour by the user)
+
+**The claim.** Having driven the two-body-plan walk (journal/0130) and read four
+screenshots, the integrator reported the measured 20 mm foot float as **not visible
+by eye**, and drew a priority conclusion from it: *"the defect is real, measured, and
+currently sub-perceptual. That argues it's a design decision to make deliberately
+rather than a fire to fight."*
+
+**Falsified by the user, immediately, from having watched the body move:**
+
+> *"the hover looks bad. i do not like the body hover, the body is oscillating gently
+> up and down. it's not a bob, it's a hover, because as you said, the feet don't touch
+> the ground… note the defects are sub-perceptual to claude who can only look at
+> screenshots, but human can see the problems jumping out and just hasn't bothered with
+> it because there's a lot else going on in this repo."*
+
+**Mechanism — a still frame is structurally blind to a temporal artifact.** The float
+is near-constant *within* any single frame, so a screenshot carries the offset and
+**cannot carry the oscillation**. The visible defect is the oscillation. No number of
+frames fixes this; it is the medium, not the sample size.
+
+**The number was already in hand and was misread.** The probe reported `idle` sole
+height as the range **`[+0.020, +0.035] m`**. That is a **15 mm amplitude** with the
+feet never planted — the hover, quantified. The integrator read a range as a
+*tolerance* (an error bar on a static offset) rather than as an *amplitude* (a time
+series), and then let the blind instrument overrule the sighted one.
+
+**Why this is not merely a repeat of #18/#19.** Those established *pick the control
+that can SEE your question* for the **lighting mode** — lit for shape, fullbright for
+material — and that discipline was followed correctly here (the walk used the lit pass
+precisely because fullbright flattens body cuboids). The unasked question was whether
+the **medium** could see it. **For a motion question the screenshot is the blind
+control, and its null proves nothing.** The instrument that could see it existed in
+the same report: a per-frame trace of the quantity.
+
+**Corollary, and it is the durable half:** the user's live view is senior to the
+integrator's screenshot read — already doctrine — but the *reason* matters, because it
+tells you when to insist. It is senior **specifically for anything temporal**:
+oscillation, skate, pop, jitter, easing, stutter. Where the question is motion, do not
+report a visual verdict from frames at all; report the trace, or record the screen.
+
+**Stamped in the same commit** (read-first item 5): journal/0130 § "The walk, and the
+instrument that could not see the defect" carries the pointer back here.
+
+## 78. "Foot-placement IK has never engaged — the path is dead in the common case, for any body plan" (journal/0130 + the ROADMAP Observed line it shipped, 2026-07-29 — falsified the same evening by the very next slice, journal/0131)
+
+**The claim.** journal/0130 measured 176/176 sampled frames beyond the leg's reach and
+concluded that foot-placement IK *"has never once engaged"*, that *"nobody has ever seen
+this rig bend a joint under IK"*, and — hedged, but still wrong — that the path is
+*"dead in the common case."* The integrator merged it.
+
+**Falsified: the stock biped's IK has ALWAYS solved while CROUCHING** — 88/88 samples,
+knee bending to 123.7°, on the unmodified `dc:body/biped`, since the day it shipped.
+journal/0130's finding is true of **standing only**.
+
+**Mechanism — verified independently by arithmetic on main's own constants, not taken
+from the report.** `CROUCH_ROOT_DROP_M = 0.45` (`dc-client/src/body.rs:58`) drops the
+rendered hip from **0.900 m** to **0.450 m**, against a leg reach of **0.880 m**
+(0.45 + 0.43). Standing, the target at y=0 needs a 0.900 m span and is unreachable by
+20 mm. Crouching, it needs 0.450 m and is reachable **with 0.430 m to spare** — deep
+inside the annulus, which is why the knee folds so hard.
+
+**The defect is a SWEEP, not a solver.** journal/0130's probe swept three axes
+exhaustively — clip × plan × foot — and held a fourth **fixed at its default**.
+`Posture` has exactly **two** variants, and the non-default one **moves the hip by half
+the body**. A claim quantified over *"any body plan"* was silently also quantified over
+*one posture*, and nothing in the itemisation could show it: the totals closed, every
+assertion was a derivation, and the count was 100% of what was actually sampled.
+
+**This is the same shape as #77, one level up, in the same session.** #77 was *the
+instrument could not see the axis* (a still frame cannot see time). #78 is *the sweep did
+not include the axis* (the probe never varied posture). **Both are an unswept axis
+reported as a property of the system**, and neither is detectable from inside the
+measurement — the itemisation is complete over the axes it has. It is the null-reading
+corollary of CLAUDE.md § *"a closed system cannot detect its own scale error"* — *before
+concluding "system X does nothing here", check that the conditions for it to do anything
+were ever in the sample.*
+
+**Two further things the wider sweep found, both of which sharpen the user call rather
+than answer it:**
+- **A FOURTH absolute-metres constant.** `CROUCH_ROOT_DROP_M` is **50.0 %** of the
+  biped's hip height and **97.8 %** of the stout's — a crouching stout has a **0.010 m**
+  hip and a degenerate **180°** knee. The banner journal/0130 wrote on `bodies.md` § IK
+  named **three** such constants; it was short by one, and is corrected in place with the
+  original left as dated testimony.
+- **The half-voxel correction window can never admit a terrain step — 2:1 by
+  construction at every scale N**, since the window is *defined* as half a voxel and the
+  smallest real relief is one voxel. So foot placement structurally only ever sees
+  *sub-voxel* offsets, which today are produced by nothing except a plan's own hip/reach
+  mismatch. Now an assertion rather than an observation.
+
+**Stamped in the same commit** (read-first item 5, the writer of the correction stamps
+its target): journal/0130 carries a banner at its head pointing here, and the ROADMAP
+Observed line it shipped is corrected in place.

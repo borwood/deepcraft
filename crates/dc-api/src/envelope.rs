@@ -187,6 +187,17 @@ pub enum RejectReason {
     // is postcard wire identity, so new reasons go at the end.
     #[error("character `{character}` cannot stand: the space above is obstructed")]
     PostureBlocked { character: String },
+    // Appended (per-character body plans) — variant order is postcard wire
+    // identity, so new reasons go at the end.
+    /// A spawn named a body plan that no pack has registered. The refusal is a
+    /// receipt on purpose: silently falling back to the default would render a
+    /// body the caller did not ask for, and the caller would never learn its pack
+    /// failed to load (S-5: an identity default covers the *absent* case, not the
+    /// *wrong* one).
+    #[error(
+        "unknown body plan `{name}` — define it (dc:registry/define_body_plan) before wearing it"
+    )]
+    UnknownBodyPlan { name: String },
 }
 
 /// Outcome half of a receipt.

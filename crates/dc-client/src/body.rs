@@ -26,7 +26,7 @@
 
 use std::collections::HashMap;
 
-use dc_api::bodies::AnimClip;
+use dc_api::bodies::{AnimClip, BodyPlan};
 
 /// Stepped-animation frame rate: the pose updates this many times per second.
 pub const ANIM_FPS: f64 = 12.0;
@@ -338,6 +338,76 @@ pub fn resolve_orientation(base_trunk_yaw: f64, look_yaw: f64, look_pitch: f64) 
     }
 }
 
+/// A leg's two-bone rig, **derived from a plan** (never hard-coded): the hip
+/// joint position in body-local meters and the two bone lengths, for the
+/// foot-placement IK. This is the plan-generic half of the retargeting glue —
+/// every proportion the solver knows about comes from here, so a plan with half
+/// the biped's leg length simply produces half the bone lengths.
+///
+/// Pure data + pure arithmetic, so it lives in this module rather than the bevy
+/// glue: [`leg_rigs`] is exactly what the second-plan measurement needs.
+#[derive(Clone, PartialEq, Debug)]
+pub struct LegRig {
+    pub upper: String,
+    pub lower: String,
+    /// Hip joint offset from the body root (the feet), meters.
+    pub hip_local: [f64; 3],
+    /// Upper bone length (hip→knee), meters.
+    pub l1: f64,
+    /// Lower bone length (knee→sole), meters.
+    pub l2: f64,
+}
+
+/// Derive each leg's two-bone rig from a body plan: hip = parent(upper).pivot +
+/// upper.pivot; `l1` = |lower.pivot| (hip→knee); `l2` = |lower.offset.y| +
+/// lower.size.y / 2 (knee→sole). Generic over any `leg_*_upper` / `leg_*_lower`
+/// pair, so a plan is not required to be a biped to get foot placement — it is
+/// required only to *name* its legs that way (a naming coupling, noted honestly:
+/// see the second-plan report).
+pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
+    let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
+    let mut legs = Vec::new();
+    for upper in plan
+        .segments
+        .iter()
+        .filter(|s| s.name.starts_with("leg_") && s.name.ends_with("_upper"))
+    {
+        let lower_name = upper.name.replace("_upper", "_lower");
+        let Some(lower) = seg_by(&lower_name) else {
+            continue;
+        };
+        let hip_local = match upper.parent.as_deref().and_then(seg_by) {
+            Some(parent) => [
+                parent.pivot_m[0] + upper.pivot_m[0],
+                parent.pivot_m[1] + upper.pivot_m[1],
+                parent.pivot_m[2] + upper.pivot_m[2],
+            ],
+            None => upper.pivot_m,
+        };
+        let l1 =
+            (lower.pivot_m[0].powi(2) + lower.pivot_m[1].powi(2) + lower.pivot_m[2].powi(2)).sqrt();
+        let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
+        legs.push(LegRig {
+            upper: upper.name.clone(),
+            lower: lower_name,
+            hip_local,
+            l1,
+            l2,
+        });
+    }
+    legs
+}
+
+/// Foot position of a two-bone leg in its sagittal (y, z) plane, from a clip's
+/// hip/knee X-rotations — the inverse of [`solve_leg_ik`]'s reconstruction, used
+/// to find where the *animation* puts the foot before the IK re-seats it.
+pub fn fk_foot_local(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64) {
+    let ky = -l1 * upper_x.cos();
+    let kz = -l1 * upper_x.sin();
+    let total = upper_x + lower_x;
+    (ky - l2 * total.cos(), kz - l2 * total.sin())
+}
+
 /// A two-bone IK solution: the upper and lower joint rotations (radians, about
 /// X — the sagittal plane), with the rest pose pointing straight down (−Y).
 /// `upper_x` is applied to the hip joint (relative to the trunk), `lower_x` to
@@ -417,6 +487,327 @@ pub fn pose_for(state: &AnimState, idle: &AnimClip, walk: &AnimClip) -> Pose {
         let from = sample_clip(clip(state.blend_from), state.clock_s);
         blend(&from, &to, state.stepped_blend())
     }
+}
+
+// ------------------------------------------- the retargeting measurement --
+
+/// The ground the headless probe stands a body on.
+///
+/// **Flat ground is the degenerate case** and journal/0130 only ever measured it:
+/// both feet want the same answer, so a flat-ground null says nothing about *foot
+/// placement* — only about the hip/reach arithmetic that is identical for both
+/// legs. The step cases are the real test.
+#[cfg(test)]
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum GroundCase {
+    /// Both soles target y = 0.
+    Flat,
+    /// The leg whose hip is on the **+X** side stands on a step `rise_m` above the
+    /// other; the root does not move (the renderer never moves it for terrain —
+    /// only the leg IK adapts). The two feet now want **different** answers.
+    Step { rise_m: f64 },
+}
+
+#[cfg(test)]
+impl GroundCase {
+    fn ground_m(self, leg: &LegRig) -> f64 {
+        match self {
+            GroundCase::Flat => 0.0,
+            GroundCase::Step { rise_m } => {
+                if leg.hip_local[0] > 0.0 {
+                    rise_m
+                } else {
+                    0.0
+                }
+            }
+        }
+    }
+
+    fn label(self) -> String {
+        match self {
+            GroundCase::Flat => "flat".to_string(),
+            GroundCase::Step { rise_m } => format!("step+{rise_m:.3}"),
+        }
+    }
+}
+
+/// What the renderer did with one foot on one frame — the per-sample verdict the
+/// summary counts are an itemisation *of*.
+///
+/// Two levels, and both close on their own total:
+/// `Seated + (Corrected + ClampedBeyondReach) + Refused == samples`.
+#[cfg(test)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Placement {
+    /// The clip already put the sole within 1 mm of the ground; the renderer
+    /// leaves it alone (`character.rs`'s `adjust.abs() > 1e-3` guard).
+    Seated,
+    /// Inside the half-voxel window **and** the sole target was inside the leg's
+    /// annulus: the IK ran and the knee bent.
+    Corrected,
+    /// Inside the window, but seating the sole was **beyond `l1 + l2`**:
+    /// `solve_leg_ik` clamps to full extension, the knee stays straight, and the
+    /// foot hovers. This is the state journal/0130 found in 176/176 samples.
+    ClampedBeyondReach,
+    /// Outside the half-voxel window: the renderer does not correct at all and the
+    /// foot floats honestly.
+    Refused,
+}
+
+#[cfg(test)]
+impl Placement {
+    fn code(self) -> &'static str {
+        match self {
+            Placement::Seated => "seat",
+            Placement::Corrected => "CORR",
+            Placement::ClampedBeyondReach => "clmp",
+            Placement::Refused => "ref!",
+        }
+    }
+}
+
+/// One foot on one frame. **The time series is the deliverable** (corrections
+/// #76: a still frame is structurally blind to a temporal artifact, and a
+/// min/max *range* is an amplitude, not an error bar) — so the probe records
+/// every sample rather than only its envelope.
+#[cfg(test)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct LegSample {
+    pub leg: String,
+    /// Ground height under this foot, metres.
+    pub ground_m: f64,
+    /// Sole height the **clip alone** puts the foot at, before any IK.
+    pub clip_sole_m: f64,
+    /// Sole height **as rendered** (IK where the renderer applies it, then snapped
+    /// to the rotation quantum).
+    pub rendered_sole_m: f64,
+    /// Signed distance from the ground under this foot, as rendered. This is the
+    /// number that carries the hover.
+    pub gap_m: f64,
+    /// The **hip** joint's rendered X rotation, degrees.
+    pub hip_deg: f64,
+    /// The **knee** joint's rendered X rotation, degrees; `0` is a dead-straight
+    /// leg, negative bends the knee forward. *The answer to "does the knee bend".*
+    pub knee_deg: f64,
+    pub verdict: Placement,
+}
+
+/// One stepped animation frame, all legs.
+#[cfg(test)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct FrameRow {
+    pub index: usize,
+    pub t_s: f64,
+    pub root_bob_m: f64,
+    pub legs: Vec<LegSample>,
+}
+
+/// What the retargeting glue actually achieves for one (plan, clip, ground,
+/// posture) case — **the instrument for bodies.md's IK claim** ("one clip serves
+/// every mutation of a plan … across differing proportions") and, since
+/// journal/0130, for the prior question of whether the foot IK ever runs to
+/// completion at all.
+///
+/// **Foot placement has TWO independent gates and the probe reports both.** A
+/// correction happens only if the ground is inside the **half-voxel window**
+/// (`refused` counts the failures) *and* the sole target is inside the leg's
+/// **annulus** (`clamped_beyond_reach` counts those). Nothing reconciles the two,
+/// and no plan yet passes both in every posture.
+///
+/// Every figure is in **metres**, measured over the clip's *stepped* frames (the
+/// 12 fps grid the renderer actually samples), for every leg the plan declares.
+///
+/// `#[cfg(test)]`: this is an instrument, not shipped renderer code, and it lives
+/// beside the production math it re-derives so the two cannot drift. It runs in
+/// the ordinary workspace gate (`foot_placement_and_retargeting_are_measured`) —
+/// the `examples/ … test = true` dance in CLAUDE.md § Gates exists for probes that
+/// need a printed `main`; this one prints from the test under `--nocapture`.
+#[cfg(test)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct RetargetReport {
+    pub plan: String,
+    pub clip: String,
+    /// Which ground the body stood on.
+    pub ground: String,
+    /// How far the cosmetic root was sunk, metres — `0` standing,
+    /// [`CROUCH_ROOT_DROP_M`] crouching. **A fourth absolute-metres constant** in a
+    /// pipeline whose premise is that proportions vary (bodies.md § IK names three
+    /// and misses this one): 0.45 m is 50% of the biped's hip height and **97.8% of
+    /// the stout's**.
+    pub root_drop_m: f64,
+    /// Hip height above the feet, metres (the plan's trunk pivot + hip offset), as
+    /// authored — *before* the crouch drop. See [`RetargetReport::hip_eff_m`].
+    pub hip_m: f64,
+    /// Total leg reach `l1 + l2`, metres — the IK's outer annulus.
+    pub reach_m: f64,
+    /// **The whole time series**, frame by frame, both feet. Not a range.
+    pub frames: Vec<FrameRow>,
+    /// Frames × legs measured.
+    pub samples: usize,
+    /// Sole height the **clip alone** puts the foot at: the raw retarget, before
+    /// any foot IK. Negative = through the floor, positive = floating.
+    pub clip_sole_min_m: f64,
+    pub clip_sole_max_m: f64,
+    /// Sole height **as rendered**: foot IK applied where the renderer applies it
+    /// (inside the half-voxel window), then snapped to the rotation quantum.
+    pub rendered_sole_min_m: f64,
+    pub rendered_sole_max_m: f64,
+    /// Samples the clip already put within 1 mm of the ground.
+    pub already_seated: usize,
+    /// Samples the renderer **corrected** and the solver **reached**: the IK ran to
+    /// completion and the knee bent. Zero here across every plan was journal/0130's
+    /// refutation.
+    pub corrected: usize,
+    /// Samples inside the window where the target was beyond `l1 + l2`: clamp
+    /// saturation, knee straight, foot hovering.
+    pub clamped_beyond_reach: usize,
+    /// Samples the renderer refused to correct because the ground was further than
+    /// half a voxel from the clip's foot — the foot floats honestly.
+    pub refused: usize,
+    /// Worst |knee angle| over the whole series, degrees — *did any knee bend?*
+    pub knee_bend_max_deg: f64,
+    /// Worst residual over samples the IK both attempted and could reach — how far
+    /// off the ground the foot still is after the glue ran, in metres. This is the
+    /// rotation quantum's cost, not the solver's error.
+    pub reachable_residual_max_m: f64,
+}
+
+#[cfg(test)]
+impl RetargetReport {
+    /// The corrections the renderer attempted, reached or not.
+    pub fn inside_window(&self) -> usize {
+        self.corrected + self.clamped_beyond_reach
+    }
+
+    /// The hip height the solver actually works against: the authored hip minus the
+    /// crouch drop. **This, not `hip_m`, is what `reach_m` has to beat** — which is
+    /// why the stock biped's IK engages while crouching and never while standing.
+    pub fn hip_eff_m(&self) -> f64 {
+        self.hip_m - self.root_drop_m
+    }
+}
+
+/// Measure one plan against one clip on one ground, in one posture.
+/// `voxel_size_m` is the active scale's voxel edge — the foot-IK correction window
+/// is **half a voxel**, an absolute length, which is precisely the kind of constant
+/// a second plan exists to interrogate. `root_drop_m` is the cosmetic crouch sink
+/// (`0` standing, [`CROUCH_ROOT_DROP_M`] crouching), which is the *other* absolute
+/// length that decides reachability.
+///
+/// This deliberately **re-implements** the renderer's foot-placement decision
+/// (`character.rs`: correct only inside the half-voxel window, then snap the
+/// solved angles to the rotation quantum), because the real one needs a bevy world
+/// and a voxel query. The duplication is the honest cost of measuring a render path
+/// headlessly, and it is the one thing in this file that can silently disagree with
+/// production — noted as a loose end.
+///
+/// **One known divergence, stated rather than hidden**: production reads ground
+/// through `character.rs::ground_top_m`, which scans a half-voxel band around the
+/// foot and returns the *top face of the highest solid voxel it finds* — so it can
+/// return a surface further away than the band, and it returns `None` (no
+/// correction) where the band holds no solid. This probe is handed the ground
+/// height directly. The two agree on the **decision** in every case measured here
+/// (correct iff the ground is within half a voxel of the clip's foot); they would
+/// diverge on an overhang.
+#[cfg(test)]
+pub fn retarget_report(
+    plan: &BodyPlan,
+    clip: &AnimClip,
+    voxel_size_m: f64,
+    ground: GroundCase,
+    root_drop_m: f64,
+) -> Option<RetargetReport> {
+    let legs = leg_rigs(plan);
+    let first = legs.first()?;
+    let half_voxel = voxel_size_m * 0.5;
+    let mut r = RetargetReport {
+        plan: plan.name.clone(),
+        clip: clip.name.clone(),
+        ground: ground.label(),
+        root_drop_m,
+        hip_m: first.hip_local[1],
+        reach_m: first.l1 + first.l2,
+        frames: Vec::new(),
+        samples: 0,
+        clip_sole_min_m: f64::INFINITY,
+        clip_sole_max_m: f64::NEG_INFINITY,
+        rendered_sole_min_m: f64::INFINITY,
+        rendered_sole_max_m: f64::NEG_INFINITY,
+        already_seated: 0,
+        corrected: 0,
+        clamped_beyond_reach: 0,
+        refused: 0,
+        knee_bend_max_deg: 0.0,
+        reachable_residual_max_m: 0.0,
+    };
+    let frames = ((clip.duration_s * ANIM_FPS).ceil() as usize).max(1);
+    for i in 0..frames {
+        let t_s = i as f64 / ANIM_FPS;
+        let pose = sample_clip(clip, t_s);
+        let mut row = FrameRow {
+            index: i,
+            t_s,
+            root_bob_m: pose.root_bob_m,
+            legs: Vec::new(),
+        };
+        for leg in &legs {
+            let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
+            let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
+            let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
+            // The hip rides at hip_local.y plus the clip's bob, minus the crouch
+            // sink; the root is where the collider bottom is, and terrain never
+            // moves it (character.rs applies exactly these three terms).
+            let hip_y = leg.hip_local[1] + pose.root_bob_m - root_drop_m;
+            let clip_sole = hip_y + fy;
+            let g = ground.ground_m(leg);
+            r.samples += 1;
+            r.clip_sole_min_m = r.clip_sole_min_m.min(clip_sole);
+            r.clip_sole_max_m = r.clip_sole_max_m.max(clip_sole);
+
+            // What the renderer does (character.rs): correct only inside the
+            // half-voxel window, and snap the solved angles to the 12 fps grid.
+            let adjust = g - clip_sole;
+            let (verdict, rendered_sole, hip_x, knee_x) = if adjust.abs() <= 1e-3 {
+                (Placement::Seated, clip_sole, cu, cl)
+            } else if adjust.abs() <= half_voxel {
+                let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
+                let (qu, ql) = (stepped_angle(ik.upper_x), stepped_angle(ik.lower_x));
+                let (qy, _) = fk_foot_local(leg.l1, leg.l2, qu, ql);
+                let sole = hip_y + qy;
+                let verdict = if ik.reachable {
+                    r.reachable_residual_max_m = r.reachable_residual_max_m.max((sole - g).abs());
+                    Placement::Corrected
+                } else {
+                    Placement::ClampedBeyondReach
+                };
+                (verdict, sole, qu, ql)
+            } else {
+                (Placement::Refused, clip_sole, cu, cl)
+            };
+            match verdict {
+                Placement::Seated => r.already_seated += 1,
+                Placement::Corrected => r.corrected += 1,
+                Placement::ClampedBeyondReach => r.clamped_beyond_reach += 1,
+                Placement::Refused => r.refused += 1,
+            }
+            let knee_deg = knee_x.to_degrees();
+            r.knee_bend_max_deg = r.knee_bend_max_deg.max(knee_deg.abs());
+            r.rendered_sole_min_m = r.rendered_sole_min_m.min(rendered_sole);
+            r.rendered_sole_max_m = r.rendered_sole_max_m.max(rendered_sole);
+            row.legs.push(LegSample {
+                leg: leg.upper.trim_end_matches("_upper").to_string(),
+                ground_m: g,
+                clip_sole_m: clip_sole,
+                rendered_sole_m: rendered_sole,
+                gap_m: rendered_sole - g,
+                hip_deg: hip_x.to_degrees(),
+                knee_deg,
+                verdict,
+            });
+        }
+        r.frames.push(row);
+    }
+    Some(r)
 }
 
 #[cfg(test)]
@@ -530,12 +921,11 @@ mod tests {
 
     /// Forward kinematics of a two-bone leg in the sagittal (y, z) plane, for
     /// checking the solver: rest pose points straight down, `upper_x` at the
-    /// hip, `lower_x` at the knee (relative to the upper).
+    /// hip, `lower_x` at the knee (relative to the upper). This used to be a
+    /// second copy of the arithmetic; it now delegates to the production
+    /// [`fk_foot_local`] so the check and the renderer cannot disagree.
     fn fk_foot(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64) {
-        let ky = -l1 * upper_x.cos();
-        let kz = -l1 * upper_x.sin();
-        let total = upper_x + lower_x;
-        (ky - l2 * total.cos(), kz - l2 * total.sin())
+        fk_foot_local(l1, l2, upper_x, lower_x)
     }
 
     #[test]
@@ -617,6 +1007,344 @@ mod tests {
         let held = s.trunk_yaw;
         s.steer(0.1, 0.0, 0.0);
         assert_eq!(s.trunk_yaw, held, "a stopped body keeps its facing");
+    }
+
+    // --- the body experiments: does one clip set retarget, and does the foot
+    // --- IK ever actually solve? -----------------------------------------
+
+    /// The N=2 boot scale's voxel edge (`PLAYER_HEIGHT_M / 2`) — the scale the
+    /// game actually launches at, and therefore the scale whose **half-voxel**
+    /// foot-IK window is the live one.
+    fn boot_voxel_size_m() -> f64 {
+        crate::PLAYER_HEIGHT_M / 2.0
+    }
+
+    /// Print one report's **per-frame time series** — the deliverable, not a
+    /// min/max range.
+    ///
+    /// corrections #76: *a still frame is structurally blind to a temporal
+    /// artifact*, and a range like `[+0.020, +0.035]` is an **amplitude**, not an
+    /// error bar. A reader has to be able to see the oscillation, or its absence,
+    /// in the numbers — so every frame gets a line and both feet are on it.
+    fn print_series(r: &RetargetReport) {
+        println!(
+            "\n  -- {} / {} / {} / {} -- hip {:.3} - drop {:.3} = effective {:.3} \
+             | reach {:.3} (slack {:+.3})",
+            r.plan.trim_start_matches("dc:body/"),
+            r.clip.trim_start_matches("dc:anim/biped_"),
+            r.ground,
+            if r.root_drop_m > 0.0 {
+                "crouch"
+            } else {
+                "stand"
+            },
+            r.hip_m,
+            r.root_drop_m,
+            r.hip_eff_m(),
+            r.reach_m,
+            r.reach_m - r.hip_eff_m(),
+        );
+        let mut head = format!("     {:>2} {:>6} {:>7}", "f", "t(s)", "bob");
+        for l in &r.frames[0].legs {
+            head.push_str(&format!(
+                " | {:<7} {:>7} {:>7} {:>6} {:>6} {:>4}",
+                l.leg, "gnd", "sole", "gap", "hip", "knee"
+            ));
+        }
+        println!("{head} (deg; v = verdict)");
+        for row in &r.frames {
+            let mut line = format!(
+                "     {:>2} {:>6.3} {:>+7.3}",
+                row.index, row.t_s, row.root_bob_m
+            );
+            for l in &row.legs {
+                line.push_str(&format!(
+                    " | {:>+7.3} {:>+7.3} {:>+7.3} {:>+6.1} {:>+6.1} {:>4}",
+                    l.ground_m,
+                    l.rendered_sole_m,
+                    l.gap_m,
+                    l.hip_deg,
+                    l.knee_deg,
+                    l.verdict.code()
+                ));
+            }
+            println!("{line}");
+        }
+        println!(
+            "     = {} samples: seated {} + corrected {} + clamped {} + refused {} \
+             | knee|max| {:.1} deg | residual<= {:.4} m | clip sole [{:+.3},{:+.3}] \
+             rendered [{:+.3},{:+.3}]",
+            r.samples,
+            r.already_seated,
+            r.corrected,
+            r.clamped_beyond_reach,
+            r.refused,
+            r.knee_bend_max_deg,
+            r.reachable_residual_max_m,
+            r.clip_sole_min_m,
+            r.clip_sole_max_m,
+            r.rendered_sole_min_m,
+            r.rendered_sole_max_m,
+        );
+    }
+
+    /// **The measurement.** Prints the full per-frame series for every
+    /// (plan × ground × posture × clip)
+    /// (`cargo test -p dc-client --release foot_placement -- --nocapture`) and
+    /// asserts only what must hold **by derivation**:
+    ///
+    /// 1. the itemisation closes on its own total, at both levels
+    ///    (`seated + corrected + clamped + refused == samples`, and
+    ///    `corrected + clamped == inside-window`), and the series holds every
+    ///    sample the summary counted;
+    /// 2. the glue never produces a non-finite pose for any plan;
+    /// 3. the rig the renderer derives really does track the plan's proportions
+    ///    (stout reach ≈ half the biped's) — otherwise the experiment is not
+    ///    measuring what it claims;
+    /// 4. where the IK both ran and could reach, the residual is bounded by one
+    ///    rotation quantum's arc at full extension (`reach × ROT_QUANTUM_RAD`) —
+    ///    a *derived* bound, so it stays honest at any proportion, and it is what
+    ///    would catch a solver regression rather than a colleague's re-authoring;
+    /// 5. **the sign law**, against the **effective** hip (`hip − crouch drop`): a
+    ///    plan whose `reach ≤ hip_eff` can never correct a single frame on flat
+    ///    ground (the sole target is outside the annulus before animation runs —
+    ///    journal/0130's refutation, restated as the derivation rather than as
+    ///    today's count); a plan whose `reach > hip_eff` **and** whose window let the
+    ///    solver run must solve and must bend a knee. Both gates are load-bearing:
+    ///    `longleg` crouching passes the annulus and is refused by the window;
+    /// 6. **the one-voxel-step law**: the correction window is half a voxel, so a
+    ///    step of one whole voxel — the smallest relief real terrain can have at
+    ///    *any* scale N — can never fit inside it. Every raised-foot sample is
+    ///    refused, and that 2:1 ratio is by construction, independent of N.
+    ///
+    /// Scale-free: every quantity is a per-frame, per-leg arithmetic on the plan's
+    /// own lengths, so one clip loop at 12 fps exercises the whole invariant.
+    #[test]
+    fn foot_placement_and_retargeting_are_measured() {
+        let clips = biped_clips();
+        let plans = [
+            dc_api::bodies::biped_plan(),
+            dc_api::bodies::stout_plan(),
+            dc_api::bodies::longleg_plan(),
+        ];
+        let vs = boot_voxel_size_m();
+        let half_voxel = vs * 0.5;
+        // Four cases. Flat/standing is the degenerate one journal/0130 measured
+        // (both feet want the same answer). Flat/CROUCHING is the same ground with
+        // the root sunk `CROUCH_ROOT_DROP_M`, which moves the hip *toward* the
+        // ground and is therefore the one posture where the stock biped's target is
+        // reachable. The synthetic 0.30 m step is inside the window and asks whether
+        // foot placement engages on uneven ground; the one-voxel step is the
+        // smallest offset real terrain can produce.
+        let cases = [
+            (GroundCase::Flat, 0.0),
+            (GroundCase::Flat, CROUCH_ROOT_DROP_M),
+            (GroundCase::Step { rise_m: 0.30 }, 0.0),
+            (GroundCase::Step { rise_m: vs }, 0.0),
+        ];
+        println!(
+            "\nfoot-placement + retargeting report — N=2 (voxel {vs:.3} m, IK window \
+             +/-{half_voxel:.3} m). Cases: flat standing; flat CROUCHING (root sunk \
+             {CROUCH_ROOT_DROP_M:.3} m); a SYNTHETIC +0.300 m step (inside the \
+             window, unrealizable at N=2); one whole voxel +{vs:.3} m (the smallest \
+             REAL step)."
+        );
+        let mut reach = Vec::new();
+        for plan in &plans {
+            for (ground, drop) in cases {
+                for clip in &clips {
+                    let r = retarget_report(plan, clip, vs, ground, drop)
+                        .expect("every plan here has legs");
+                    print_series(&r);
+
+                    // (1) the itemisation closes on its own total, both levels.
+                    assert_eq!(
+                        r.already_seated + r.corrected + r.clamped_beyond_reach + r.refused,
+                        r.samples,
+                        "{} / {} / {}: the placement itemisation must equal its own total",
+                        r.plan,
+                        r.clip,
+                        r.ground
+                    );
+                    assert_eq!(
+                        r.corrected + r.clamped_beyond_reach,
+                        r.inside_window(),
+                        "{} / {} / {}: the inside-window split must close",
+                        r.plan,
+                        r.clip,
+                        r.ground
+                    );
+                    assert_eq!(
+                        r.samples,
+                        r.frames.iter().map(|f| f.legs.len()).sum::<usize>(),
+                        "{} / {} / {}: the series must hold every sample counted",
+                        r.plan,
+                        r.clip,
+                        r.ground
+                    );
+                    // (2) finite everywhere, in the summary AND in every row.
+                    for v in [
+                        r.clip_sole_min_m,
+                        r.clip_sole_max_m,
+                        r.rendered_sole_min_m,
+                        r.rendered_sole_max_m,
+                        r.reachable_residual_max_m,
+                        r.knee_bend_max_deg,
+                    ] {
+                        assert!(v.is_finite(), "{} / {}: non-finite {v}", r.plan, r.clip);
+                    }
+                    for row in &r.frames {
+                        for l in &row.legs {
+                            assert!(
+                                l.rendered_sole_m.is_finite()
+                                    && l.hip_deg.is_finite()
+                                    && l.knee_deg.is_finite(),
+                                "{} / {} frame {}: non-finite pose {l:?}",
+                                r.plan,
+                                r.clip,
+                                row.index
+                            );
+                        }
+                    }
+                    // (4) the quantum's arc bounds the achieved residual.
+                    let bound = r.reach_m * ROT_QUANTUM_RAD + 1e-9;
+                    assert!(
+                        r.reachable_residual_max_m <= bound,
+                        "{} / {}: residual {:.4} m exceeds one rotation quantum's arc \
+                         at full extension ({bound:.4} m)",
+                        r.plan,
+                        r.clip,
+                        r.reachable_residual_max_m
+                    );
+
+                    if ground == GroundCase::Flat {
+                        // (5) the sign law, against the EFFECTIVE hip (the crouch
+                        // sink moves it). Derived, not snapshotted: a statement about
+                        // `reach` vs `hip - drop`, so it stays true (or vacuous) if
+                        // anybody re-authors a plan or the drop.
+                        if r.reach_m <= r.hip_eff_m() {
+                            assert_eq!(
+                                r.corrected,
+                                0,
+                                "{} / {}: reach {:.3} <= effective hip {:.3}, so a sole \
+                                 at ground level is OUTSIDE the annulus and the IK \
+                                 cannot reach (journal/0130); got {} corrected",
+                                r.plan,
+                                r.clip,
+                                r.reach_m,
+                                r.hip_eff_m(),
+                                r.corrected
+                            );
+                        } else if r.inside_window() > 0 {
+                            // The annulus admits it AND the window let the renderer
+                            // try. BOTH gates are needed — `longleg` crouching passes
+                            // the annulus and is refused by the window, which is the
+                            // sharpest statement that nothing reconciles the two.
+                            assert!(
+                                r.corrected > 0,
+                                "{} / {}: reach {:.3} > effective hip {:.3} and {} \
+                                 samples reached the solver, so it must solve",
+                                r.plan,
+                                r.clip,
+                                r.reach_m,
+                                r.hip_eff_m(),
+                                r.inside_window()
+                            );
+                            assert!(
+                                r.knee_bend_max_deg > 20.0,
+                                "{} / {}: a reachable plan must BEND A KNEE, got {:.1} deg",
+                                r.plan,
+                                r.clip,
+                                r.knee_bend_max_deg
+                            );
+                        }
+                        if r.clip == "dc:anim/biped_walk" && r.root_drop_m == 0.0 {
+                            reach.push((r.plan.clone(), r.reach_m, r.hip_m));
+                        }
+                    }
+
+                    // (6) the one-voxel-step law: window = voxel/2 < voxel = step,
+                    // at every N. Nothing on the raised foot can be corrected.
+                    if ground == (GroundCase::Step { rise_m: vs }) {
+                        for row in &r.frames {
+                            for l in row.legs.iter().filter(|l| l.ground_m > 0.0) {
+                                assert!(
+                                    (l.ground_m - l.clip_sole_m).abs() > half_voxel,
+                                    "{} / {} frame {}: a one-voxel step must sit outside \
+                                     a half-voxel window by construction",
+                                    r.plan,
+                                    r.clip,
+                                    row.index
+                                );
+                                assert_eq!(
+                                    l.verdict,
+                                    Placement::Refused,
+                                    "{} / {} frame {}: the raised foot must be refused",
+                                    r.plan,
+                                    r.clip,
+                                    row.index
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // (3) the rig tracks the plan: stout legs are half the biped's.
+        let biped = reach.iter().find(|(p, ..)| p == "dc:body/biped").unwrap();
+        let stout = reach.iter().find(|(p, ..)| p == "dc:body/stout").unwrap();
+        let long = reach.iter().find(|(p, ..)| p == "dc:body/longleg").unwrap();
+        let ratio = stout.1 / biped.1;
+        println!(
+            "\n  reach ratio stout/biped = {ratio:.3} (hips {:.3} / {:.3})",
+            stout.2, biped.2
+        );
+        // The absolute-length constants, expressed as a fraction of each body —
+        // this is where the retargeting story stops being scale-free. The IK
+        // window comes from the VOXEL SCALE and the root bob from the CLIP; the
+        // leg lengths come from the plan. Nothing reconciles them.
+        println!(
+            "  IK window +/-{half_voxel:.3} m = {:.2}x the stout leg, {:.2}x the biped \
+             leg, {:.2}x the longleg leg",
+            half_voxel / stout.1,
+            half_voxel / biped.1,
+            half_voxel / long.1,
+        );
+        println!(
+            "  hip - reach: biped {:+.3} m, stout {:+.3} m, longleg {:+.3} m \
+             (positive = the ground is UNREACHABLE before animation runs)",
+            biped.2 - biped.1,
+            stout.2 - stout.1,
+            long.2 - long.1,
+        );
+        println!(
+            "  one-voxel step {vs:.3} m / IK window {half_voxel:.3} m = {:.1}x — \
+             scale-FREE, so no real terrain step ever fits the window at any N",
+            vs / half_voxel
+        );
+        // The FOURTH absolute-metres constant, and bodies.md's units banner names
+        // only three (hip height, the clips' root bob, the IK window).
+        println!(
+            "  CROUCH_ROOT_DROP_M {CROUCH_ROOT_DROP_M:.3} m = {:.1}% of the biped's \
+             hip height, {:.1}% of the stout's, {:.1}% of the longleg's — a fourth \
+             absolute length bodies.md's units banner does not name",
+            100.0 * CROUCH_ROOT_DROP_M / biped.2,
+            100.0 * CROUCH_ROOT_DROP_M / stout.2,
+            100.0 * CROUCH_ROOT_DROP_M / long.2,
+        );
+        for (name, bob) in [("walk", 0.04_f64), ("jump", 0.12_f64)] {
+            println!(
+                "  authored {name} root bob {bob:.3} m = {:.1}% of the stout's hip \
+                 height, {:.1}% of the biped's",
+                100.0 * bob / stout.2,
+                100.0 * bob / biped.2
+            );
+        }
+        println!();
+        assert!(
+            (0.45..=0.55).contains(&ratio),
+            "the plan-derived rig must track the plan's proportions, got {ratio:.3}"
+        );
     }
 
     #[test]

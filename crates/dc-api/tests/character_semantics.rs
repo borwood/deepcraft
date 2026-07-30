@@ -96,6 +96,7 @@ fn spawn_scout(world: &mut HostWorld, pos: Vec3f) {
         Payload::SpawnCharacter(payload::SpawnCharacter {
             name: "scout".into(),
             pos,
+            body_plan: None,
         }),
     );
     match result {
@@ -192,6 +193,7 @@ fn character_session_grant_is_a_cage() {
         Payload::SpawnCharacter(payload::SpawnCharacter {
             name: "other".into(),
             pos: Vec3f::new(5.0, 0.0, 5.0),
+            body_plan: None,
         }),
     );
     assert!(result.is_ok());
@@ -236,6 +238,7 @@ fn character_session_grant_is_a_cage() {
         Payload::SpawnCharacter(payload::SpawnCharacter {
             name: "minion".into(),
             pos: Vec3f::new(0.0, 1.0, 0.0),
+            body_plan: None,
         }),
     );
     assert!(
@@ -636,6 +639,7 @@ fn spawn_validates_names_and_uniqueness() {
             Payload::SpawnCharacter(payload::SpawnCharacter {
                 name: bad.into(),
                 pos: Vec3f::new(0.0, 0.0, 0.0),
+                body_plan: None,
             }),
         );
         assert!(
@@ -653,6 +657,7 @@ fn spawn_validates_names_and_uniqueness() {
         Payload::SpawnCharacter(payload::SpawnCharacter {
             name: "scout".into(),
             pos: Vec3f::new(1.0, 0.0, 1.0),
+            body_plan: None,
         }),
     );
     assert!(

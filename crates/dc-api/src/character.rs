@@ -153,10 +153,39 @@ pub struct CharacterState {
     /// predate posture) decoding to `Standing`.
     #[serde(default)]
     pub posture: Posture,
+    /// Which registered body plan this character **wears** (bodies.md § body
+    /// plans; the renderer's per-character plan selection). Cosmetic by the
+    /// determinism firewall — the collider comes from the world-global
+    /// [`CharacterConfig`], never from the plan — but it is character state, so
+    /// it lives here and rides the command log like everything else.
+    ///
+    /// Appended field: postcard order is wire identity, so it stays last, and
+    /// `serde(default)` resolves pre-plan logs to the **identity default**
+    /// [`crate::bodies::DEFAULT_BODY_PLAN`] rather than an empty string — a
+    /// character recorded before plans existed was wearing the biped.
+    #[serde(default = "default_body_plan")]
+    pub body_plan: String,
+}
+
+/// serde's default for [`CharacterState::body_plan`]: the identity default.
+fn default_body_plan() -> String {
+    crate::bodies::DEFAULT_BODY_PLAN.to_string()
 }
 
 impl CharacterState {
+    /// A new character wearing the identity-default body plan.
     pub fn new(name: impl Into<String>, pos_m: Vec3f) -> Self {
+        Self::with_body_plan(name, pos_m, crate::bodies::DEFAULT_BODY_PLAN)
+    }
+
+    /// A new character wearing a named body plan. The caller (the host's
+    /// `SpawnCharacter` arm) is responsible for having checked that the plan is
+    /// registered — a name that is not gets a receipt, never a silent default.
+    pub fn with_body_plan(
+        name: impl Into<String>,
+        pos_m: Vec3f,
+        body_plan: impl Into<String>,
+    ) -> Self {
         Self {
             name: name.into(),
             pos_m,
@@ -166,6 +195,7 @@ impl CharacterState {
             on_ground: false,
             input: CharacterInput::default(),
             posture: Posture::Standing,
+            body_plan: body_plan.into(),
         }
     }
 

@@ -2478,6 +2478,75 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🟠 MEASURED 2026-07-29 (journal/0130 + journal/0131): BODY PLANS ARE A REAL SEAM NOW, AND
+  THE IK'S RATIFIED SENTENCE IS HALF TRUE.** Two experiments, no engine constant moved.
+  **Confirmed:** one unmodified clip set drives `dc:body/biped` and `dc:body/stout`
+  (legs 0.50×, arms 1.60×) — derived leg rig exactly 0.500×, `idle` poses byte-identical
+  across plans, walk artifacts *shrinking* 0.102 → 0.068 m, and the second body reads as a
+  coherent creature. `bodies.md` § IK's *"one clip serves every mutation of a plan across
+  differing proportions"* is **measured true**. **And the solver works:** `dc:body/longleg`
+  (+0.12 m leg slack, pack-side content) plants 86/88 flat samples with a **−56.2°** knee —
+  the first joint this project has seen bend under IK.
+  - **⚠ THE HOVER IS NOT FIXED, and it has TWO causes.** Slack removed the *offset*
+    (20 mm → 4 mm) and did nothing to the **15 mm oscillation**, which is the clips'
+    `root_bob_m` surviving `ROT_QUANTUM_RAD` (11.25°) — the solver computes the 5 mm
+    correction and the quantizer rounds it away. **Amplitude identical on both plans.**
+    User, on seeing it move: *"the hover looks bad… it's not a bob, it's a hover."*
+  - **⚠ FOUR absolute-metre constants sit in a pipeline whose premise is that proportions
+    vary** (count corrected from three, corrections #78): hip height · the clips' root bob
+    (jump 0.120 m = 13 % of the biped's hip, **26 %** of the stout's; both peak at *exactly*
+    +0.125 m) · the **half-voxel** foot window (**1.02× the stout's whole leg**) ·
+    `CROUCH_ROOT_DROP_M` (**97.8 %** of the stout's hip — a crouching stout has a 0.010 m hip
+    and a degenerate 180° knee). **With one plan a length IS a ratio**: anti-shape **A-1**
+    under the body builder's foundation.
+  - **The window can never admit a terrain step — 2:1 by construction at every N** (window ≡
+    voxel/2; smallest real relief ≡ one voxel). Foot placement structurally only ever sees
+    *sub-voxel* offsets. Now asserted.
+  - **Two gates nothing reconciles:** `longleg` plants standing and **refuses crouching**
+    (4/88); `biped` plants crouching and refuses standing. The plan built to make the solver
+    run **broke the posture that already ran.**
+  - **🔴 OWED — USER CALL, and nothing downstream may assume ground contact until it lands**
+    (`bodies.md` § IK banner): is the 20 mm hip/reach gap intentional (feet clearing terrain
+    seams) or an off-by-a-half-thickness? It decides whether all four constants become
+    **ratios of the plan** — an engine change that invalidates the authored clip bobs and
+    moves how every body looks — or whether *"feet to actual ground"* is **retired** as
+    never-intended. A measured slack-vs-bend trade curve is in journal/0131 as evidence for
+    the call, not a resolution.
+  - **🔴 THE DEEPEST CAUSE, quantified 2026-07-30 and known to NEITHER journal: THE
+    STOP-MOTION IDENTITY AND PLANTED FEET ARE IN STRUCTURAL CONFLICT.**
+    `ROT_QUANTUM_RAD = TAU/32 = 11.25°` (`dc-client/src/body.rs:35`). **One quantum of hip
+    rotation moves the ankle 172 mm** on the biped's 0.88 m leg (199 mm on `longleg`,
+    86 mm on the stout). The corrections at issue need **1.30°** (the 20 mm standing gap),
+    **0.98°** (the 15 mm bob oscillation) and **0.33°** (`longleg`'s residual 5 mm) — so the
+    quantizer is **9×, 12× and 35× too coarse respectively.** The solver computes each
+    correction exactly and the quantizer rounds it to **zero**.
+    - **No choice of leg slack can fix this.** It is an angular-resolution wall, not a
+      proportion problem — which is why `longleg` bends a beautiful knee and *still* floats.
+    - **It widens the user call.** `bodies.md` § stepped animation is **DECIDED 2026-07-19**
+      — frame-stepped ~12 fps with quantized rotations, *"an identity, not a workaround."*
+      Planted feet at sub-voxel precision is **inexpressible under it.** Both are available,
+      but somebody must choose the mechanism: exempt the **IK correction chain** from
+      quantization while keeping clip rotations stepped, or quantize the foot's **position**
+      against the ground rather than the joint's **angle**. **This is a fork nothing in the
+      corpus has posed, and it is upstream of the hip/reach question.**
+  - **Consequence for the params conversation:** a plan parameter must declare its **UNITS**
+    (ratio-of-plan vs absolute-metres) as well as its firewall side. The units axis is
+    undetectable at one plan and load-bearing at two.
+  - **Discharged:** the A-4 instance — the default body pack now loads through the registry
+    door (`authority.rs::load_body_packs`) instead of the client calling the authored source
+    directly, so first-party content ships the route a mod would take. `vanilla_body_pack` →
+    `default_body_pack`.
+
+- **🟠 "VANILLA" IS NOT THIS PROJECT'S WORD FOR THE DEFAULT PACK — STRUCK IN THE BODY FILES,
+  220 OCCURRENCES REMAIN** (user ruling, 2026-07-29: *"the default pack is not elsewhere
+  referred to as 'vanilla'… I would strike it"*). The premise that it was confined to
+  `bodies.md` was **false** — it was already corpus-wide before bodies ever used it. Struck to
+  **0** in the body files; residual **220**: crates **145** (`dc-api/src/classes.rs`,
+  `dc-worldgen/src/pipeline.rs`, `dc-core/src/materials/geology.rs` and worldgen
+  tests/examples — the geology cluster is the bulk **and is under active edit**), docs **37**
+  (7 non-body in `API.md`), ROADMAP+history **8**. **Journal's 30 are append-only history and
+  must NOT be swept.** Sequenceable as one mechanical sweep once the worldgen agents land.
+
 - **🔴 USER FIELD REPORT + RULING, walk 2026-07-29 evening (station 2 of the member-#0
   far-slice walk): THE CELL LINES ARE GONE, AND THE WHOLE CAKE IS SWIRLED.** Reference
   poses (corrections #48 — a prose landmark is not a pose): ground **feet (106263, 21.85,
