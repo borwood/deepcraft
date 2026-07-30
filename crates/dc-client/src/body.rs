@@ -524,6 +524,12 @@ pub struct RetargetReport {
     /// (inside the half-voxel window), then snapped to the rotation quantum.
     pub rendered_sole_min_m: f64,
     pub rendered_sole_max_m: f64,
+    /// Samples the clip already put within 1 mm of the ground: the renderer leaves
+    /// them alone.
+    pub already_seated: usize,
+    /// Samples the renderer **corrected**: inside the half-voxel window, so the IK
+    /// ran. `already_seated + inside_window + outside_window == samples`.
+    pub inside_window: usize,
     /// Samples the renderer refused to correct because the clip put the foot
     /// further than half a voxel from the ground — the foot floats honestly.
     pub outside_window: usize,
@@ -566,6 +572,8 @@ pub fn retarget_report(
         clip_sole_max_m: f64::NEG_INFINITY,
         rendered_sole_min_m: f64::INFINITY,
         rendered_sole_max_m: f64::NEG_INFINITY,
+        already_seated: 0,
+        inside_window: 0,
         outside_window: 0,
         beyond_reach: 0,
         reachable_residual_max_m: 0.0,
@@ -587,7 +595,11 @@ pub fn retarget_report(
             // What the renderer does (character.rs): correct only inside the
             // half-voxel window, and snap the solved angles to the 12 fps grid.
             let adjust = -clip_sole;
-            let rendered_sole = if adjust.abs() > 1e-3 && adjust.abs() <= half_voxel {
+            let rendered_sole = if adjust.abs() <= 1e-3 {
+                r.already_seated += 1;
+                clip_sole
+            } else if adjust.abs() <= half_voxel {
+                r.inside_window += 1;
                 let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
                 if !ik.reachable {
                     r.beyond_reach += 1;
@@ -604,9 +616,7 @@ pub fn retarget_report(
                 }
                 sole
             } else {
-                if adjust.abs() > half_voxel {
-                    r.outside_window += 1;
-                }
+                r.outside_window += 1;
                 clip_sole
             };
             r.rendered_sole_min_m = r.rendered_sole_min_m.min(rendered_sole);
@@ -853,21 +863,38 @@ mod tests {
             for clip in &clips {
                 let r = retarget_report(plan, clip, vs).expect("both plans have legs");
                 println!(
-                    "  {:<16} {:<22} hip {:.3} reach {:.3} | clip sole [{:+.3}, {:+.3}] \
-                     rendered [{:+.3}, {:+.3}] | outside-window {}/{} beyond-reach {} \
-                     residual<= {:.4}",
+                    "  {:<7} {:<6} hip {:.3} reach {:.3} | clip sole [{:+.3},{:+.3}] \
+                     rendered [{:+.3},{:+.3}] | samples {} = seated {} + corrected {} \
+                     + refused {} | beyond-reach {} | residual<= {:.4}",
                     r.plan.trim_start_matches("dc:body/"),
-                    r.clip.trim_start_matches("dc:anim/"),
+                    r.clip.trim_start_matches("dc:anim/biped_"),
                     r.hip_m,
                     r.reach_m,
                     r.clip_sole_min_m,
                     r.clip_sole_max_m,
                     r.rendered_sole_min_m,
                     r.rendered_sole_max_m,
-                    r.outside_window,
                     r.samples,
+                    r.already_seated,
+                    r.inside_window,
+                    r.outside_window,
                     r.beyond_reach,
                     r.reachable_residual_max_m,
+                );
+                // (0) the itemisation closes on its own total, and clamp
+                // saturation is a subset of the corrections actually attempted.
+                assert_eq!(
+                    r.already_seated + r.inside_window + r.outside_window,
+                    r.samples,
+                    "{} / {}: the placement itemisation must equal its own total",
+                    r.plan,
+                    r.clip
+                );
+                assert!(
+                    r.beyond_reach <= r.inside_window,
+                    "{} / {}: the IK cannot saturate on a frame it never ran",
+                    r.plan,
+                    r.clip
                 );
                 // (1) finite everywhere.
                 for v in [
@@ -899,49 +926,31 @@ mod tests {
         let stout = reach.iter().find(|(p, ..)| p == "dc:body/stout").unwrap();
         let ratio = stout.1 / biped.1;
         println!(
-            "  reach ratio stout/biped = {ratio:.3} (hips {:.3} / {:.3})\n",
+            "  reach ratio stout/biped = {ratio:.3} (hips {:.3} / {:.3})",
             stout.2, biped.2
         );
+        // The absolute-length constants, expressed as a fraction of each body —
+        // this is where the retargeting story stops being scale-free. The IK
+        // window comes from the VOXEL SCALE and the root bob from the CLIP; the
+        // leg lengths come from the plan. Nothing reconciles them.
+        let half_voxel = boot_voxel_size_m() * 0.5;
+        println!(
+            "  IK window ±{half_voxel:.3} m = {:.2}x the stout leg, {:.2}x the biped leg",
+            half_voxel / stout.1,
+            half_voxel / biped.1
+        );
+        for (name, bob) in [("walk", 0.04_f64), ("jump", 0.12_f64)] {
+            println!(
+                "  authored {name} root bob {bob:.3} m = {:.1}% of the stout's hip \
+                 height, {:.1}% of the biped's",
+                100.0 * bob / stout.2,
+                100.0 * bob / biped.2
+            );
+        }
+        println!();
         assert!(
             (0.45..=0.55).contains(&ratio),
             "the plan-derived rig must track the plan's proportions, got {ratio:.3}"
-        );
-    }
-
-    /// **The mechanism finding, pinned.** The foot-IK correction window is half a
-    /// voxel — an *absolute* length — while everything the clips author about legs
-    /// is scale-free angles. At the N=2 boot scale that window is 0.45 m, which is
-    /// larger than the whole stout leg. This test does not assert the window is
-    /// *right*; it asserts the window is **derived from the voxel scale and not
-    /// from the body**, which is the falsifiable half of the claim. If someone
-    /// later makes the window proportional to leg length, this test is the place
-    /// that must change, and the report is the reason why.
-    #[test]
-    fn the_foot_ik_window_is_a_world_constant_not_a_body_one() {
-        let vs = boot_voxel_size_m();
-        let half_voxel = vs * 0.5;
-        let stout_reach = {
-            let legs = leg_rigs(&dc_api::bodies::stout_plan());
-            legs[0].l1 + legs[0].l2
-        };
-        let biped_reach = {
-            let legs = leg_rigs(&dc_api::bodies::biped_plan());
-            legs[0].l1 + legs[0].l2
-        };
-        // The window is the same for both bodies — that is the whole point.
-        assert!(
-            half_voxel > 0.0,
-            "the IK window must come from the voxel scale"
-        );
-        assert!(
-            stout_reach < biped_reach,
-            "the experiment needs the second plan to be materially shorter"
-        );
-        println!(
-            "IK window ±{half_voxel:.3} m is {:.2}x the stout leg ({stout_reach:.3} m) \
-             and {:.2}x the biped leg ({biped_reach:.3} m)",
-            half_voxel / stout_reach,
-            half_voxel / biped_reach
         );
     }
 

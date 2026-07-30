@@ -904,8 +904,9 @@ mod tests {
     /// the second plan must differ a LOT or it measures nothing.
     #[test]
     fn stout_proportions_differ_materially() {
+        // Hip→sole: the upper bone (the lower segment's pivot offset) plus the
+        // lower bone (its box's centre offset plus half its length).
         let leg = |p: &BodyPlan| {
-            let upper = p.segments.iter().find(|s| s.name == "leg_l_upper").unwrap();
             let lower = p.segments.iter().find(|s| s.name == "leg_l_lower").unwrap();
             lower.pivot_m[1].abs() + lower.offset_m[1].abs() + lower.size_m[1] / 2.0
         };
