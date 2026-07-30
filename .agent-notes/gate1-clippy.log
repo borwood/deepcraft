@@ -1,9 +1,0 @@
-    Checking dc-core v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-core)
-    Checking dc-api v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-api)
-    Checking dc-sim v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-sim)
-    Checking dc-worldgen v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-worldgen)
-    Checking dc-mcp-dev v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-mcp-dev)
-    Checking dc-physics v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-physics)
-    Checking dc-host v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-host)
-    Checking dc-client v0.1.0 (B:\repos\borwood\deepcraft\.claude\worktrees\agent-a0b23e7bd65000578\crates\dc-client)
-    Finished `release` profile [optimized] target(s) in 31.70s
