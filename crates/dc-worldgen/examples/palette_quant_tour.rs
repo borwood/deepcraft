@@ -40,15 +40,34 @@
 //!   rather than straight. A frame that still shows a razor-straight 460 m edge
 //!   after this is a regression, not the signature.
 //!
-//! The NEAR-field mechanism this binary was written to localise (a chunk's whole
-//! strata composition point-sampled at the chunk centre — the paragraph above) is
-//! **untouched** by member #0's far-site slice and is still exactly as described.
+//! **⚠ AND THE NEAR-FIELD HALF IS NOW HALF-FIXED TOO** (journal/0129). This caption
+//! said the near mechanism was *"untouched … still exactly as described"*, and after
+//! the octaves slice that is true of **one** of U3's two signals and false of the
+//! other. Split them, because they are different scales and different fixes:
+//!
+//! - **the 28.8 m MEMBER stepping — FIXED.** The within-class member dither read a
+//!   *single* bilinear octave at chunk wavelength, so every member patch was
+//!   chunk-sized and every contact kinked on the 28.8 m grid (corrections #45; the
+//!   dominant U3 signal, settled 2026-07-24). It now reads `draws::Octaves`.
+//!   Measured at the reference pose by [`report_u3_member_stepping`] below, which is
+//!   why this binary grew a second half.
+//! - **the ~460 m RECORD tile — NOT FIXED.** A chunk's whole strata composition is
+//!   still ONE point sample of the deep record at the chunk centre, NEAREST at the
+//!   deep-cell grid — the paragraph above, still exact. The near-path restructure
+//!   that fixes it (per-column membership dither over the touched cells) is
+//!   sequenced, not shipped; its blockers MM-1 and MM-3 are discharged.
+//!
+//! So the tile scoring above is still the right instrument for the 460 m signature,
+//! and it is now the *only* signature it scores.
 //!
 //! `cargo run --release -p dc-worldgen --example palette_quant_tour`
 
+use dc_core::coarse::DitherSource;
 use dc_core::materials::geology::{CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE};
+use dc_sim::statistical::rng::Draws;
 use dc_worldgen::deeptime::{DeepField, DeepStrata};
-use dc_worldgen::geology::deep_class_of_species;
+use dc_worldgen::draws::{Coherent, Octaves};
+use dc_worldgen::geology::{StrataEvent, deep_class_of_species, dithered_member_with};
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, Provenance, WorldParams};
 use dc_worldgen::{DeepOverrides, WorldGenerator};
 
@@ -409,6 +428,8 @@ fn main() {
         "  P peat | H charcoal | o organic_soil | r ore_placer | . none (wilds/water/basement-less)\n"
     );
 
+    report_u3_member_stepping(&mut wgen);
+
     if box_edge_hit {
         println!(
             "NOTE: a strong (≥4-distinct) window rides the search-box edge — widen the box and re-run to be sure the true argmax is not just outside it."
@@ -425,6 +446,224 @@ fn main() {
             best.s.n_distinct
         );
     }
+}
+
+// ─────────── U3's member-stepping signature, measured A/B in one binary ──────────
+//
+// journal/0129. The station finder above answers *where to stand*; this answers
+// *what changed under your feet*, at the U3 reference pose, with the load-bearing
+// number rather than an adjective.
+
+/// U3's reference pose, feet in world **metres** (recorded 2026-07-24, corrections
+/// #48's rule — a prose landmark is not a pose).
+const U3_FEET_M: (f64, f64, f64) = (71_291.7, 372.1, -2_420.9);
+
+/// Half-edge of the measurement window, voxels. 128 → a 256-voxel (230 m) square,
+/// eight chunks across, wide enough that a 28.8 m signature has eight periods to
+/// show itself in and small enough to stay inside one deep cell's record.
+const WIN_VOX: i64 = 128;
+
+/// Lags the member-field autocorrelation is reported at, voxels.
+const LAGS: [i64; 8] = [1, 2, 4, 8, 16, 32, 64, 128];
+
+/// **The square-edge signature: how much of a selection field's curvature sits on
+/// the 28.8 m chunk lattice.**
+///
+/// A bilinear corner field is *linear along x inside a cell*, so its second
+/// difference along x is zero except where the three-point window straddles a cell
+/// line. A field whose only cell is the chunk therefore puts **all** of its
+/// curvature — every kink in every member contact it draws — on the 28.8 m grid,
+/// and that is what the eye reads as squares (corrections #45: world-anchored and
+/// C0-continuous, and still a grid, because *single-octave*).
+///
+/// Returns `(mean |Δ²u| where the window crosses a 32-line, mean |Δ²u| elsewhere)`.
+/// "Crosses" is phases 0 **and 31**, not phase 0 alone — `x + 1` is in the next
+/// cell.
+fn lattice_curvature(src: &dyn DitherSource, cx: i64, cz: i64, tag: u64) -> (f64, f64) {
+    let (mut on, mut on_n, mut off, mut off_n) = (0.0f64, 0u64, 0.0f64, 0u64);
+    for z in (cz - WIN_VOX)..(cz + WIN_VOX) {
+        for x in (cx - WIN_VOX)..(cx + WIN_VOX) {
+            let d2 = (src.uniform(x - 1, z, tag) - 2.0 * src.uniform(x, z, tag)
+                + src.uniform(x + 1, z, tag))
+            .abs();
+            if (x - 1).div_euclid(32) != (x + 1).div_euclid(32) {
+                on += d2;
+                on_n += 1;
+            } else {
+                off += d2;
+                off_n += 1;
+            }
+        }
+    }
+    (on / on_n as f64, off / off_n as f64)
+}
+
+/// The member field of one recorded event over the window, under one source.
+fn member_field(
+    set: &dc_core::materials::geology::GeologySet,
+    event: &StrataEvent,
+    src: &dyn DitherSource,
+    cx: i64,
+    cz: i64,
+) -> Vec<u16> {
+    let n = (WIN_VOX * 2) as usize;
+    let mut out = Vec::with_capacity(n * n);
+    for z in 0..n as i64 {
+        for x in 0..n as i64 {
+            let m = dithered_member_with(set, event, src, cx - WIN_VOX + x, cz - WIN_VOX + z);
+            out.push(m.0 as u16);
+        }
+    }
+    out
+}
+
+/// `P(m(p) == m(p + lag·x̂))` over the window — the member field's spatial
+/// autocorrelation. A field with **one** characteristic length saturates at that
+/// length and is flat past it; the lag where it stops falling *is* the patch size
+/// the eye reads.
+fn agreement_at_lag(field: &[u16], lag: i64) -> f64 {
+    let n = (WIN_VOX * 2) as usize;
+    let (mut same, mut total) = (0u64, 0u64);
+    for z in 0..n {
+        for x in 0..(n - lag as usize) {
+            total += 1;
+            if field[z * n + x] == field[z * n + x + lag as usize] {
+                same += 1;
+            }
+        }
+    }
+    same as f64 / total as f64
+}
+
+/// Fraction of aligned 32×32 chunk footprints in the window that hold **exactly
+/// one** member — "a chunk of ground is one rock", the literal shape of the U3
+/// complaint. Note this is not monotone in quality on its own: a field with
+/// coarse power also produces uniform chunks, honestly, because the ground there
+/// *is* uniform over more than a chunk. Read it with the autocorrelation, which
+/// says whether the uniformity has a 28.8 m *scale*.
+fn single_member_chunk_fraction(field: &[u16]) -> f64 {
+    let n = (WIN_VOX * 2) as usize;
+    let chunks = n / 32;
+    let (mut uniform, mut total) = (0u64, 0u64);
+    for cz in 0..chunks {
+        for cx in 0..chunks {
+            total += 1;
+            let first = field[cz * 32 * n + cx * 32];
+            let mut all_same = true;
+            for z in 0..32 {
+                for x in 0..32 {
+                    if field[(cz * 32 + z) * n + cx * 32 + x] != first {
+                        all_same = false;
+                    }
+                }
+            }
+            if all_same {
+                uniform += 1;
+            }
+        }
+    }
+    uniform as f64 / total as f64
+}
+
+/// Distinct members and the largest member's share — the unbiasedness the octaves
+/// source adds, read at the site rather than in a fixture.
+fn member_mix(field: &[u16]) -> (usize, f64) {
+    let mut counts: Vec<(u16, usize)> = Vec::new();
+    for &m in field {
+        match counts.iter_mut().find(|(k, _)| *k == m) {
+            Some((_, n)) => *n += 1,
+            None => counts.push((m, 1)),
+        }
+    }
+    let top = counts.iter().map(|(_, n)| *n).max().unwrap_or(0);
+    (counts.len(), top as f64 / field.len() as f64)
+}
+
+/// Print the whole U3 before/after comparison. `main` calls it after the station
+/// search; it is not in the gate (it builds the production world), but the
+/// *metric* is — see [`gate::the_stepping_metric_separates_one_octave_from_many`].
+fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
+    let (fx, _fy, fz) = U3_FEET_M;
+    let (vx, vz) = ((fx / VOXEL_M).round() as i64, (fz / VOXEL_M).round() as i64);
+    let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+    println!("\n=== U3 member stepping at the reference pose (journal/0129) ===");
+    println!(
+        "feet (world m) {:.1}, {:.1}, {:.1}  →  voxel ({vx}, {vz}), chunk ({cx}, {cz})",
+        U3_FEET_M.0, U3_FEET_M.1, U3_FEET_M.2
+    );
+    let col = g.column_record(cx, cz);
+    let Some(event) = col.strata.events.last().copied() else {
+        println!(
+            "NULL: the chunk-column at the U3 pose carries no strata record — nothing to \
+             measure. (Ocean, wilds, or bare province: pick another station rather than \
+             reporting a null as a result.)"
+        );
+        return;
+    };
+    let set = dc_core::materials::geology::vanilla();
+    let class = set.member(event.member).class.as_str();
+    let n_members = set.class(class).map_or(0, |c| c.members().len());
+    println!(
+        "top recorded event: member {} (class {class}, {n_members} members in that class), \
+         salt {:#x}, tag {}",
+        set.member(event.member).id,
+        event.sel_salt,
+        event.sel_tag
+    );
+    if n_members < 2 {
+        println!(
+            "NULL: that class has {n_members} member(s), so no within-class dither can \
+             express anything here. The measurement below would be a constant field."
+        );
+        return;
+    }
+    let _ = pregen;
+
+    let before = Coherent::new(Draws::from_recorded_salt(SEED, event.sel_salt), 32);
+    let after = Octaves::member(Draws::from_recorded_salt(SEED, event.sel_salt));
+
+    let (b_on, b_off) = lattice_curvature(&before, vx, vz, event.sel_tag);
+    let (a_on, a_off) = lattice_curvature(&after, vx, vz, event.sel_tag);
+    println!(
+        "\n-- the square-edge signature: |Δ²u| on the 28.8 m lattice vs off it --\n\
+         \x20 BEFORE (single octave, stride 32): on {b_on:.3e}  off {b_off:.3e}  ratio {:.3e}\n\
+         \x20 AFTER  (octaves, prime ladder):    on {a_on:.3e}  off {a_off:.3e}  ratio {:.3}",
+        b_on / b_off.max(f64::MIN_POSITIVE),
+        a_on / a_off
+    );
+
+    let fb = member_field(&set, &event, &before, vx, vz);
+    let fa = member_field(&set, &event, &after, vx, vz);
+    println!("\n-- member-field autocorrelation P(m(p) == m(p+lag)) --");
+    println!("  lag(vox)   metres    BEFORE    AFTER");
+    for lag in LAGS {
+        println!(
+            "  {lag:>7}   {:>6.1}    {:.4}    {:.4}",
+            lag as f64 * VOXEL_M,
+            agreement_at_lag(&fb, lag),
+            agreement_at_lag(&fa, lag)
+        );
+    }
+    let (b_dist, b_top) = member_mix(&fb);
+    let (a_dist, a_top) = member_mix(&fa);
+    println!(
+        "\n-- what the window actually shows --\n\
+         \x20 BEFORE: {b_dist} distinct members, largest share {:.3}, single-member chunks {:.3}\n\
+         \x20 AFTER : {a_dist} distinct members, largest share {:.3}, single-member chunks {:.3}",
+        b_top,
+        single_member_chunk_fraction(&fb),
+        a_top,
+        single_member_chunk_fraction(&fa)
+    );
+    println!(
+        "\nRead it this way: the BEFORE ratio is the mechanism (a bilinear field has NO \n\
+         curvature except on its own grid, so the number is a float-residue division), and \n\
+         the AFTER ratio near 1 says the 28.8 m lattice is no longer special. The \n\
+         autocorrelation says whether the field still has ONE characteristic length: if \n\
+         BEFORE goes flat by lag 32-64 and AFTER keeps falling, the patch size has stopped \n\
+         being the chunk. **Neither number is a verdict on appearance — the user's eye is \n\
+         (the walk this feeds).**"
+    );
 }
 
 /// **The gate's view of this instrument** (journal/0103).
@@ -550,6 +789,41 @@ mod gate {
             even.hnorm,
             lopsided.score,
             lopsided.hnorm
+        );
+    }
+
+    /// **The stepping metric must separate one octave from many** (journal/0129).
+    ///
+    /// [`lattice_curvature`] is what the U3 report's headline number comes from, so
+    /// if it stops discriminating, the report keeps printing confident numbers about
+    /// nothing. Two synthetic sources, no world:
+    ///
+    /// - a **stride-32 single octave** must show essentially all its curvature on
+    ///   the 32-voxel lattice (the ratio is a float-residue division), because a
+    ///   bilinear field is linear inside its cell;
+    /// - the **octaves ladder** must show no preference for that lattice, because
+    ///   no rung is 32 or a divisor of it.
+    ///
+    /// **Scale-free:** a second difference over three adjacent voxels is a local
+    /// arithmetic property of a pure function of position. No world, no extent, and
+    /// no amount of surrounding terrain enters it — which is also why this costs the
+    /// gate nothing measurable while the world-scale report above stays out of it.
+    #[test]
+    fn the_stepping_metric_separates_one_octave_from_many() {
+        let d = Draws::from_recorded_salt(1337, 0x5700_000E);
+        let (b_on, b_off) = lattice_curvature(&Coherent::new(d, 32), 0, 0, 3);
+        assert!(
+            b_off < 1e-15 && b_on / b_off > 1e9,
+            "a stride-32 field must concentrate its curvature on the 32-lattice \
+             (on {b_on:.3e}, off {b_off:.3e}) — that concentration IS the signature this \
+             probe reports"
+        );
+        let (a_on, a_off) = lattice_curvature(&Octaves::member(d), 0, 0, 3);
+        let ratio = a_on / a_off;
+        assert!(
+            (0.5..2.0).contains(&ratio),
+            "the octaves ladder still prefers the 32-lattice (on {a_on:.3e}, off {a_off:.3e}, \
+             ratio {ratio:.2}) — a stride became commensurate with 32"
         );
     }
 

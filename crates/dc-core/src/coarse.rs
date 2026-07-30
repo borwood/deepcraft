@@ -406,6 +406,61 @@ impl<T: Copy> CoarseField<T> {
         cj * self.w + ci
     }
 
+    /// **Move B, step 1 alone — dither WHICH cell answers, and hand back that
+    /// cell's payload** (member-#0 design pass **MM-1**).
+    ///
+    /// [`CoarseField::sample_dithered`] does this and then draws a class from the
+    /// chosen cell's shares. A consumer whose payload is **not** a share vector —
+    /// the near path's per-voxel-column choice of *which deep cell's strata record
+    /// skins this column* — needs step 1 on its own, and until 2026-07-29 step 1
+    /// was welded inside `sample_dithered` with no way to call it. That is the
+    /// whole of MM-1, and `sample_dithered` is now written in terms of this so
+    /// there is **one** membership dither rather than two.
+    ///
+    /// The four surrounding cells carry bilinear weights; one uniform draw
+    /// inverse-CDF-selects among them, so the probability a position reads cell
+    /// `k` **is** cell `k`'s weight there. Integrated over a cell the home cell
+    /// wins `9/16` of positions (see `sample_dithered`'s warning — this is a
+    /// cell-wide blend, not a perimeter treatment), and that unbiasedness is the
+    /// conservation statement any consumer's Law-3 argument rests on. It is
+    /// law-tested at [`tests::the_membership_dither_reproduces_the_bilinear_weights`].
+    ///
+    /// ## ⚠ The tension this call carries, named because it is one refactor from a defect
+    ///
+    /// This returns a **cell's payload**, which is uncomfortably close to the raw
+    /// per-cell read the whole type exists to forbid. The distinguishing property
+    /// is that **the caller cannot choose the cell** — it names a fine position and
+    /// receives whichever cell the seeded draw selected, so it cannot fetch a
+    /// verdict and paint it across a span. `_cell_honest` is the accessor that lets
+    /// you choose, and it is named to be greppable for exactly that reason.
+    ///
+    /// The `compile_fail` proof cannot see the difference between the two, so this
+    /// is a doctrine boundary rather than a structural one: **a consumer that pairs
+    /// this with its own cell arithmetic has written the square.** The design pass
+    /// flagged it in advance (MM-1: *"not the forbidden raw read … but one refactor
+    /// away"*), and it is recorded here so the next reader meets the warning at the
+    /// call rather than in an audit.
+    pub fn sample_source_cell(
+        &self,
+        pos: WorldVoxel,
+        src: &(impl DitherSource + ?Sized),
+        salt: u64,
+    ) -> Option<&T> {
+        let (idx, w) = self.stencil(pos)?;
+        let total_w: f64 = w.iter().sum();
+        let um = src.uniform(pos.0, pos.1, salt) * total_w;
+        let mut cum = 0.0f64;
+        let mut chosen = idx[0];
+        for (&wk, &ik) in w.iter().zip(idx.iter()) {
+            cum += wk;
+            chosen = ik;
+            if um < cum {
+                break;
+            }
+        }
+        self.data.get(chosen)
+    }
+
     /// The bilinear stencil at a world position: the four cell indices and their
     /// weights `[w00, w10, w01, w11]`, edge-clamped. `None` if the field is empty.
     fn stencil(&self, pos: WorldVoxel) -> Option<([usize; 4], [f64; 4])> {
@@ -502,22 +557,15 @@ impl<const N: usize> CoarseField<ShareVec<N>> {
         salt_membership: u64,
         salt_class: u64,
     ) -> Option<usize> {
-        let (idx, w) = self.stencil(pos)?;
         // 1. Cake law: inverse-CDF over the bilinear membership weights.
-        let total_w: f64 = w.iter().sum();
-        let um = src.uniform(pos.0, pos.1, salt_membership) * total_w;
-        let mut cum = 0.0f64;
-        let mut chosen = idx[0];
-        for (&wk, &ik) in w.iter().zip(idx.iter()) {
-            cum += wk;
-            chosen = ik;
-            if um < cum {
-                break;
-            }
-        }
+        //    **Step 1 is [`Self::sample_source_cell`]**, which used to be welded in
+        //    here — the near path needed it on its own (MM-1) and two copies of a
+        //    membership dither is exactly the A-4 shape this project keeps paying
+        //    for. Byte-identical: same stencil, same draw, same iteration order.
+        let cell = *self.sample_source_cell(pos, src, salt_membership)?;
         // 2. Draw a class within the chosen source cell's shares.
         let uc = src.uniform(pos.0, pos.1, salt_class);
-        self.data[chosen].draw(uc)
+        cell.draw(uc)
     }
 
     /// **The coarse read — sum the shares over a world region.** A coarse
@@ -970,6 +1018,130 @@ mod tests {
             coherent > 0.63,
             "coherent source should amplify the 0.6 majority past 0.63, got {coherent}"
         );
+    }
+
+    /// **MM-1's law: the membership dither reproduces the bilinear weights** —
+    /// the conservation statement every consumer of
+    /// [`CoarseField::sample_source_cell`] rests on. If the probability of reading
+    /// cell `k` is not cell `k`'s weight, a consumer that redistributes by this
+    /// dither creates or destroys whatever the payload measures.
+    ///
+    /// Two derived numbers, no fitted tolerances:
+    ///
+    /// - integrated over a cell, the **home** cell's weight is
+    ///   `4·(∫₀^½(1−x)dx)² = 9/16 = 0.5625` **exactly** (the same integral
+    ///   journal/0125 had to do to discover that this is a cell-wide blend rather
+    ///   than a perimeter treatment);
+    /// - at a **cell corner** all four weights are `1/4`, so each cell must be
+    ///   read a quarter of the time there.
+    ///
+    /// The source is WHITE noise, deliberately: a coherent source is correlated in
+    /// space, so a *finite window* of it does not realise its own expectation, and
+    /// this test would be measuring the source's autocorrelation rather than the
+    /// draw. Unbiasedness of the DRAW is what is asserted here; unbiasedness of a
+    /// given source's marginal is that source's own law test (dc-worldgen's
+    /// `Octaves` carries one, `Coherent` deliberately fails it — corrections #39).
+    ///
+    /// **Scale-free:** it is a statement about four weights at one position,
+    /// averaged; no part of it depends on how large the field or the world is.
+    #[test]
+    fn the_membership_dither_reproduces_the_bilinear_weights() {
+        // 3×3 distinguishable cells so "which cell answered" is readable from the
+        // payload: cell k's share vector is one-hot at k.
+        let cells: Vec<ShareVec<9>> = (0..9)
+            .map(|k| {
+                let mut s = [0.0; 9];
+                s[k] = 1.0;
+                ShareVec::from_shares(s)
+            })
+            .collect();
+        let cell_px = 60i64;
+        let reg = Registration::new(0.0, 0.0, cell_px as f64);
+        let f = CoarseField::from_cells(3, 3, reg, cells);
+        let src = WhiteNoise { seed: 4242 };
+        let which = |wx: i64, wz: i64| -> usize {
+            f.sample_source_cell((wx, wz), &src, 0)
+                .unwrap()
+                .argmax()
+                .unwrap()
+        };
+
+        // (a) Over the whole of the centre cell (4 = index (1,1)), the home cell
+        //     must win 9/16 of positions.
+        let (mut home, mut n) = (0usize, 0usize);
+        let c0 = cell_px; // centre of cell (1,1) in world voxels
+        for dz in -(cell_px / 2)..(cell_px / 2) {
+            for dx in -(cell_px / 2)..(cell_px / 2) {
+                n += 1;
+                if which(c0 + dx, c0 + dz) == 4 {
+                    home += 1;
+                }
+            }
+        }
+        let frac = home as f64 / n as f64;
+        // 4σ of a binomial at n = 3600, p = 0.5625 is 0.033.
+        assert!(
+            (frac - 0.5625).abs() < 0.033,
+            "the home cell won {frac:.4} of its own cell's positions; the bilinear \
+             integral says exactly 9/16 = 0.5625"
+        );
+
+        // (b) At a cell corner the four weights are 1/4 each, so the four cells
+        //     must be read equally often. One position, many salts — the draw's
+        //     distribution at a FIXED position, which is what "the probability is
+        //     the weight" actually claims.
+        let (cx, cz) = (cell_px / 2, cell_px / 2); // corner of cells 0,1,3,4
+        let mut counts = [0usize; 9];
+        for salt in 0..4000u64 {
+            counts[f
+                .sample_source_cell((cx, cz), &src, salt)
+                .unwrap()
+                .argmax()
+                .unwrap()] += 1;
+        }
+        for k in [0usize, 1, 3, 4] {
+            let got = counts[k] as f64 / 4000.0;
+            // 4σ of a binomial at n = 4000, p = 0.25 is 0.027.
+            assert!(
+                (got - 0.25).abs() < 0.027,
+                "at a cell corner cell {k} answered {got:.4} of draws; all four weights \
+                 are 1/4 there"
+            );
+        }
+        for k in [2usize, 5, 6, 7, 8] {
+            assert_eq!(
+                counts[k], 0,
+                "cell {k} is not in the stencil at this corner and must never answer"
+            );
+        }
+    }
+
+    /// `sample_dithered` **is** `sample_source_cell` followed by a draw — asserted,
+    /// not commented, because the refactor that made step 1 callable (MM-1) had to
+    /// leave the far field's shipped world byte-identical.
+    #[test]
+    fn sample_dithered_is_the_source_cell_then_the_class_draw() {
+        let a = ShareVec::from_shares([0.7, 0.3]);
+        let b = ShareVec::from_shares([0.2, 0.8]);
+        let reg = Registration::new(0.0, 0.0, 40.0);
+        let f = CoarseField::from_cells(2, 2, reg, vec![a, b, b, a]);
+        let src = Coherent {
+            seed: 11,
+            stride: 7,
+        };
+        for z in -20..40i64 {
+            for x in -20..40i64 {
+                let want = f
+                    .sample_source_cell((x, z), &src, 0xA)
+                    .unwrap()
+                    .draw(src.uniform(x, z, 0xB));
+                assert_eq!(
+                    f.sample_dithered((x, z), &src, 0xA, 0xB),
+                    want,
+                    "the two must agree bit-for-bit at ({x},{z})"
+                );
+            }
+        }
     }
 
     #[test]

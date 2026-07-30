@@ -576,7 +576,10 @@ fn family_contacts_wander_off_the_chunk_grid() {
         ore: None,
         accessory: None,
     };
-    let sample = |cx: i64, x: usize| dithered_member(&set, seed, &event, cx, 0, x, 0);
+    // Addressed by the absolute voxel since journal/0129 (the octaves selection
+    // field is world-addressed; the chunk/offset split was arithmetic the caller
+    // was doing for it).
+    let sample = |cx: i64, x: usize| dithered_member(&set, seed, &event, cx * 32 + x as i64, 0);
 
     // Determinism.
     assert_eq!(sample(3, 7), sample(3, 7));
@@ -632,8 +635,8 @@ fn family_contacts_wander_off_the_chunk_grid() {
     for cx in -6i64..6 {
         for x in 0..32usize {
             assert_eq!(
-                dithered_member(&set, seed, &event, cx, 0, x, 0),
-                dithered_member(&set2, seed, &event, cx, 0, x, 0),
+                dithered_member(&set, seed, &event, cx * 32 + x as i64, 0),
+                dithered_member(&set2, seed, &event, cx * 32 + x as i64, 0),
                 "registration order moved a dithered contact"
             );
         }

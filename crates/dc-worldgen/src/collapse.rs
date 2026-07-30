@@ -404,6 +404,16 @@ impl<'a> WorldGenerator<'a> {
         // (contents_contract). The memo is `(event, host) -> Block`, the block
         // twin of `material_ids`' `(event, host) -> MixtureId` memo.
         let mut block_memo: HashMap<(usize, GeoMemberIdx), Block> = HashMap::new();
+        // **The member dither, hoisted to once per voxel COLUMN per event**
+        // (journal/0129). It is a pure function of `(event, voxel column)` — the
+        // `y` loop below cannot change its answer — yet it used to run per *voxel*,
+        // up to 32 768 times per chunk and again in `material_ids`. The octaves
+        // source costs six times the hashes of the single octave it replaced, so
+        // the hoist is what keeps chunk load off the runtime budget: distinct
+        // events in one column are a handful, so this is ~32× fewer calls and pays
+        // for the ladder several times over. Cleared and re-sized per column, so
+        // one allocation serves the chunk.
+        let mut host_of_event: Vec<Option<GeoMemberIdx>> = Vec::new();
         let mut chunk = Chunk::new();
         let base_y = i64::from(pos.y) * 32;
         for z in 0..32usize {
@@ -411,6 +421,8 @@ impl<'a> WorldGenerator<'a> {
                 let i = z * 32 + x;
                 let h = i64::from(col.heights[i]);
                 let (vx, vz) = (cx * 32 + x as i64, cz * 32 + z as i64);
+                host_of_event.clear();
+                host_of_event.resize(col.strata.events.len(), None);
                 for y in 0..32usize {
                     let vy = base_y + y as i64;
                     let b = if vy > h {
@@ -441,8 +453,9 @@ impl<'a> WorldGenerator<'a> {
                             None => Block::Stone,
                             Some(Plan::Single(k)) => {
                                 let event = col.strata.events[*k];
-                                let host =
-                                    dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                                let host = *host_of_event[*k].get_or_insert_with(|| {
+                                    dithered_member(&self.geology, self.seed, &event, vx, vz)
+                                });
                                 *block_memo.entry((*k, host)).or_insert_with(|| {
                                     classify(&contents_for_event(&self.geology, host, &event))
                                 })
@@ -522,7 +535,7 @@ impl<'a> WorldGenerator<'a> {
                         Plan::Single(k) => {
                             let event = col.strata.events[*k];
                             let host =
-                                dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                                dithered_member(&self.geology, self.seed, &event, vx, vz);
                             *memo.entry((*k, host, n)).or_insert_with(|| {
                                 self.materials
                                     .intern(mixed_contents(&self.geology, &[(host, n)]))
@@ -543,10 +556,16 @@ impl<'a> WorldGenerator<'a> {
             // the pair, not the event alone (one intern per distinct mixture in
             // this chunk — still bounded, and interning is idempotent).
             let mut memo: HashMap<(usize, GeoMemberIdx), MixtureId> = HashMap::new();
+            // Per-column member-dither cache — see `generate_chunk`'s copy of this
+            // comment for why (journal/0129: a pure function of `(event, column)`
+            // that used to run per voxel).
+            let mut host_of_event: Vec<Option<GeoMemberIdx>> = Vec::new();
             for z in 0..32usize {
                 for x in 0..32usize {
                     let h = i64::from(col.heights[z * 32 + x]);
                     let (vx, vz) = (cx * 32 + x as i64, cz * 32 + z as i64);
+                    host_of_event.clear();
+                    host_of_event.resize(col.strata.events.len(), None);
                     for y in 0..32usize {
                         let vy = base_y + y as i64;
                         if vy >= h {
@@ -563,8 +582,9 @@ impl<'a> WorldGenerator<'a> {
                                 // Per-voxel-column host member (family contacts
                                 // wander off the chunk grid); ore/accessory stay
                                 // per-event.
-                                let host =
-                                    dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                                let host = *host_of_event[k].get_or_insert_with(|| {
+                                    dithered_member(&self.geology, self.seed, &event, vx, vz)
+                                });
                                 *memo.entry((k, host)).or_insert_with(|| {
                                     self.materials.intern(contents_for_event(
                                         &self.geology,
@@ -687,9 +707,10 @@ impl<'a> WorldGenerator<'a> {
         match plan {
             Plan::Single(k) => {
                 let event = strata.events[*k];
-                let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
-                let (x, z) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
-                let host = dithered_member(&self.geology, self.seed, &event, cx, cz, x, z);
+                // The chunk/offset decomposition this used to do here is gone: the
+                // dither is addressed by the absolute voxel, which is what this
+                // function already had in hand (journal/0129).
+                let host = dithered_member(&self.geology, self.seed, &event, vx, vz);
                 mixed_contents(&self.geology, &[(host, n)])
             }
             Plan::Mixed(w) => self.mixed_at(strata, w, vx, vy, vz, n),
@@ -834,6 +855,16 @@ impl<'a> WorldGenerator<'a> {
             let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
             let fx = (vx.rem_euclid(32) as f64 + 0.5) / 32.0;
             let fz = (vz.rem_euclid(32) as f64 + 0.5) / 32.0;
+            // ⚠ **STILL THE SINGLE OCTAVE, deliberately** (journal/0129). The NEAR
+            // path's member dither moved to `draws::Octaves` in that slice and its
+            // 28.8 m stepping is gone; this — the FAR summary's member dither — is
+            // the same defect at the other tier and it is **not** converted, for
+            // one reason: the far register's blend semantics were REJECTED by the
+            // user on 2026-07-29 (*"the whole cake is swirled now"*) and ride as an
+            // interim whose heir is a far register derived from refinement-operator
+            // budgets. Changing the appearance of a register that is being re-asked
+            // would answer a question nobody asked. Named in ROADMAP § Observed so
+            // it is a listed loose end rather than an oversight.
             let u = interp_corner_field(Draws::of::<GeoSelect>(self.seed), 4, cx, cz, fx, fz);
             let member = self.geology.select(class, &form, u).map(|(i, _)| i);
             let block = member
@@ -883,8 +914,8 @@ impl<'a> WorldGenerator<'a> {
     /// checkerboard).
     ///
     /// The draw reads the **coherent** bilinear corner-hash field
-    /// ([`interp_select_draw`], the same field the surface *member* dither uses,
-    /// journal/0058) at a **distinct salt** — deliberately NOT per-voxel white
+    /// (`draws::Coherent`, the same single-octave field the *far* surface member
+    /// dither uses, journal/0058) at a **distinct salt** — deliberately NOT white
     /// noise. The far field point-samples this class through `coarse_surface` at
     /// a wide stride, and white noise aliases there into a coarse speckle that
     /// doubled the far-tile mesh (journal/0073); a field coherent over a chunk
