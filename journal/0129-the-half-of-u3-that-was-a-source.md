@@ -116,6 +116,16 @@ claim.
 
 ## ⚠ And the corpus claim it was built on does not survive the site
 
+> **This section CONTESTS something that may be user-originated, so read it as evidence
+> and not as a verdict.** The 2026-07-24 diagnosis it questions — *"the member squares are
+> one octave of value noise at chunk wavelength — fix = octaves, not resolution"* — traces
+> to a conversation the user remembers and may have authored, and corrections #73 is the
+> receipt that the user's memory is what has been protecting this thread. An
+> implementation slice does not retire a user-originated claim (CLAUDE.md § *a
+> user-originated design may not be superseded by an implementation slice*). **The
+> mechanism half of that diagnosis was right and is now shipped**; the word in question is
+> *dominant*, and the ruling is the user's.
+
 The brief for this pair said, on the corpus's authority, that U3's dominant signal
 is the 28.8 m member stepping — settled 2026-07-24, corrections #45 — and told me
 to verify it against the site before relying on it. **It does not verify.** Three

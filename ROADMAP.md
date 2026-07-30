@@ -2515,7 +2515,18 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 - **⚠ THE "MEMBER STEPPING DOMINATES U3" CLAIM DOES NOT SURVIVE THE SITE — measured
   2026-07-29 (journal/0129), and this is the third time this question has been answered
-  with a different answer.** The entry below is preserved because its *stepping* half is
+  with a different answer.**
+  > **⚠ CONTESTS A POSSIBLY USER-ORIGINATED CLAIM — RECORDED AS A MEASUREMENT, NOT AS A
+  > RESOLUTION, AND IT NEEDS THE USER'S RULING.** The 2026-07-24 diagnosis (*"the member
+  > squares are one octave of value noise at chunk wavelength — fix = octaves, not
+  > resolution"*) traces back to a conversation the user remembers and may have authored;
+  > corrections #73 is the receipt that user memory is what protects this thread. Per
+  > CLAUDE.md § *a user-originated design may not be superseded by an implementation
+  > slice*, **an implementation slice does not get to retire it.** What is below is the
+  > *evidence* (three measurements at the pose, one of which refutes the slice author's
+  > own replacement hypothesis); what it is **not** is a decision about what the user saw.
+  > The mechanism half of the diagnosis was **correct and is now shipped**; only the word
+  > *dominant* is in question. The entry below is preserved because its *stepping* half is
   now shipped and measured; what is refuted is the word **dominant**. Three measurements
   at U3's own reference pose (`palette_quant_tour`, extended):
   1. **The vanilla set caps the member dither at a coin flip in 4 of 10 classes**, and
