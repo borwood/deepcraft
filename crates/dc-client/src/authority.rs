@@ -283,11 +283,11 @@ impl Authority {
         ((sphere * 2.0) as usize).clamp(1024, 16_384)
     }
 
-    /// Load the **first pack**: the vanilla bodies content, as a registry
+    /// Load the **first pack**: the default pack's bodies content, as a registry
     /// command batch through the one door.
     ///
-    /// `dc_api::bodies::vanilla_body_pack()` had existed since the body-plan
-    /// milestone on the stated principle "vanilla is the first pack", and
+    /// `dc_api::bodies::default_body_pack()` had existed since the body-plan
+    /// milestone on the stated principle that the default pack is the first pack, and
     /// **nothing but a dc-api unit test had ever called it** — the renderer
     /// reached for `biped_plan()`/`biped_clips()` as compiled-in Rust, so the
     /// door was built and never travelled (spines.md § A-4). This is the
@@ -304,20 +304,23 @@ impl Authority {
     /// finds its plan registered. The renderer simply has no body assets to build
     /// until then, which costs nothing — no character can exist before a tick.
     ///
-    /// **The second batch is the retargeting experiment, not content.**
-    /// `experiment_body_pack()` registers `dc:body/stout`, the deliberately
-    /// ill-proportioned instrument that tests bodies.md's IK claim. It is loaded
-    /// separately, and *after* vanilla (it binds vanilla's clips), so that
-    /// "vanilla" keeps meaning the vanilla content — deleting the experiment is
-    /// this one `chain` plus `dc_api::bodies::{stout_plan, experiment_body_pack}`.
-    /// *Existence is not standing*: an unratified body inside the default pack is
-    /// how bootstrap fabrication becomes something a later session assumes.
+    /// **The second batch is the body experiments, not content.**
+    /// `experiment_body_pack()` registers `dc:body/stout` (the ill-proportioned
+    /// instrument that tests bodies.md's retargeting claim) and `dc:body/longleg`
+    /// (the over-long-legged instrument that lets the foot-placement IK engage at
+    /// all — journal/0130 measured that it never had). Both load separately, and
+    /// *after* the default pack (they bind its clips), so that the **default pack**
+    /// keeps meaning the default content — deleting the experiments is this one
+    /// `chain` plus `dc_api::bodies::{stout_plan, longleg_plan,
+    /// experiment_body_pack}`. *Existence is not standing*: an unratified body
+    /// inside the default pack is how bootstrap fabrication becomes something a
+    /// later session assumes.
     fn load_body_packs(world: &mut HostWorld) {
-        let source = ConsumerId::new(ConsumerKind::Plugin, "vanilla-pack");
+        let source = ConsumerId::new(ConsumerKind::Plugin, "default-pack");
         let token = CapabilityToken::new(vec![Grant::RegistryDefine {
             namespace: "dc".into(),
         }]);
-        let batch = dc_api::bodies::vanilla_body_pack()
+        let batch = dc_api::bodies::default_body_pack()
             .into_iter()
             .chain(dc_api::bodies::experiment_body_pack());
         for payload in batch {
@@ -1568,7 +1571,7 @@ pub(crate) mod tests {
         );
     }
 
-    /// **The untraveled door, travelled.** `vanilla_body_pack()` existed since the
+    /// **The untraveled door, travelled.** `default_body_pack()` existed since the
     /// body-plan milestone and only a dc-api unit test called it; the renderer used
     /// compiled-in `biped_plan()`/`biped_clips()`. Now the running game *loads* it.
     ///
@@ -1577,7 +1580,7 @@ pub(crate) mod tests {
     /// and what the registry then hands the renderer is `==` to the authored source
     /// it used to call — so the rendered frame is unchanged by construction.
     #[test]
-    fn the_vanilla_body_pack_loads_through_the_one_door() {
+    fn the_default_body_pack_loads_through_the_one_door() {
         // Legacy S1 terrain authority (key 3): no worldgen pregen, so this is a
         // cheap world. The pack load is scale-independent.
         let mut authority = Authority::new(1337, 3);
@@ -1588,8 +1591,8 @@ pub(crate) mod tests {
         );
         authority.tick_now();
 
-        // Both plans and the one clip set are now registered.
-        assert_eq!(authority.world.body_plans().count(), 2);
+        // All three plans and the one clip set are now registered.
+        assert_eq!(authority.world.body_plans().count(), 3);
         assert_eq!(authority.world.anim_clips().count(), 3);
         // And they are the authored source, byte for byte: this is what makes the
         // registry route a re-housing rather than a change.
@@ -1609,6 +1612,14 @@ pub(crate) mod tests {
                 .expect("stout")
                 .plan,
             dc_api::bodies::stout_plan()
+        );
+        assert_eq!(
+            authority
+                .world
+                .body_plan("dc:body/longleg")
+                .expect("longleg")
+                .plan,
+            dc_api::bodies::longleg_plan()
         );
         for authored in dc_api::bodies::biped_clips() {
             assert_eq!(

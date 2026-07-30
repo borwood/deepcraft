@@ -12,9 +12,9 @@
 //! read is each body's velocity, to choose idle vs walk — a legal one-way read.
 //!
 //! **Plans come from the REGISTRY, per character.** This used to call
-//! `biped_plan()` / `biped_clips()` as compiled-in Rust; the vanilla content now
+//! `biped_plan()` / `biped_clips()` as compiled-in Rust; the default pack now
 //! arrives as a registry command batch at world construction
-//! (`authority.rs::load_vanilla_body_pack`) and this system reads
+//! (`authority.rs::load_body_packs`) and this system reads
 //! `HostWorld::body_plan` / `anim_clip` for **whatever plan each character
 //! wears** (`CharacterState::body_plan`, default `dc:body/biped`). Segment
 //! meshes/materials and the derived leg rigs are cached per plan, so N bodies of

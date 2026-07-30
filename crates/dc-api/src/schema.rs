@@ -1124,7 +1124,7 @@ mod tests {
         let grant = crate::capability::CapabilityToken::new(vec![Grant::RegistryDefine {
             namespace: "dc".into(),
         }]);
-        let batch = crate::bodies::vanilla_body_pack()
+        let batch = crate::bodies::default_body_pack()
             .into_iter()
             .chain(crate::bodies::experiment_body_pack());
         for payload in batch {
@@ -1143,7 +1143,11 @@ mod tests {
         got.sort();
         assert_eq!(
             got,
-            vec!["dc:body/biped".to_string(), "dc:body/stout".to_string()]
+            vec![
+                "dc:body/biped".to_string(),
+                "dc:body/longleg".to_string(),
+                "dc:body/stout".to_string()
+            ]
         );
         assert!(f(&world, "body_plan", "zz").is_empty(), "prefix filtered");
     }

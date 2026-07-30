@@ -1084,7 +1084,12 @@ mod tests {
             let lower = p.segments.iter().find(|s| s.name == "leg_l_lower").unwrap();
             let l1 = lower.pivot_m[1].abs();
             let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
-            let hip = p.segments.iter().find(|s| s.name == "trunk").unwrap().pivot_m[1];
+            let hip = p
+                .segments
+                .iter()
+                .find(|s| s.name == "trunk")
+                .unwrap()
+                .pivot_m[1];
             (hip, l1 + l2)
         };
         let (hip_b, reach_b) = rig(&biped);

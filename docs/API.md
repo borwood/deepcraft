@@ -205,7 +205,7 @@ size), if a slot names an unknown verb, or if a required verb's slot is
 unfilled or bound to a missing/joint-incompatible clip. **v0 verb vocabulary**:
 `idle`, `walk`, `jump`; **required**: `idle` + `walk` (locomotion is
 mandatory), `jump` optional (a minimal authored pose or documented fallback).
-The vanilla `dc:body/biped` (trunk, neck, head, two upper/lower arms, two
+The default pack's `dc:body/biped` (trunk, neck, head, two upper/lower arms, two
 upper/lower legs) with hand-authored `idle`/`walk`/`jump` clips is the first
 bodies pack, generated from the in-repo authored source so pack and model
 cannot drift. **Firewall**: plans/clips are pure data; the stepped ~12 fps
@@ -310,12 +310,13 @@ crouched instead of clipping up. Replay bit-identity extends to posture
 <!-- EDITED 2026-07-29 (per-character body plans) — NEEDS RATIFICATION on the
      two marked items below; the rest implements ratified bodies.md § body plans -->
 **Which body a character WEARS (added 2026-07-29).** Two appended, backward-
-compatible fields close the "v0: every character wears the one vanilla plan" hole
+compatible fields close the "v0: every character wears the one default plan" hole
 in dc-client `character.rs`:
 
 - `dc:character/spawn_character` gains optional **`body_plan`** — a registered
-  plan name (`dc:body/biped`, `dc:body/stout`). Omitted = the **identity default**
-  `dc:body/biped`, so every existing caller's spawn is byte-unchanged. Its
+  plan name (`dc:body/biped`, `dc:body/stout`, `dc:body/longleg`). Omitted = the
+  **identity default** `dc:body/biped`, so every existing caller's spawn is
+  byte-unchanged. Its
   completion source is world-backed: `body_plan=<TAB>` lists the plans a pack
   actually registered. The character surface's `character_attach` takes the same
   optional argument (ignored when attaching to an existing character — swapping a
@@ -347,25 +348,33 @@ Two consequences worth naming, both **NEEDS RATIFICATION**:
    height. bodies.md § plan parameters (PROPOSED) is where a sim-visible extent
    would have to be decided.
 
-**The vanilla bodies pack is now genuinely loaded as a pack.** dc-client submits
-`dc_api::bodies::vanilla_body_pack()` (three clips, then `dc:body/biped`) at world
-construction under a `registry.define(dc)` grant held by a `vanilla-pack` consumer
+**The default bodies pack is now genuinely loaded as a pack.** dc-client submits
+`dc_api::bodies::default_body_pack()` (three clips, then `dc:body/biped`) at world
+construction under a `registry.define(dc)` grant held by a `default-pack` consumer
 identity, and the renderer reads `HostWorld::body_plan`/`anim_clip`. Before this
 the pack function existed and only a dc-api unit test called it, while the renderer
 used compiled-in Rust — the door was built and never travelled (spines.md § A-4).
 First-party content now ships through the same surface a third party would use
 (north-star § core/plugin boundary).
 
-**`dc:body/stout` is an INSTRUMENT, not content.** The second plan exists only to
-test bodies.md's retargeting claim, and it rides its own batch
-(`experiment_body_pack()`), submitted after vanilla because it binds vanilla's
-clips and authors none of its own. It is deliberately *not* inside
-`vanilla_body_pack()`: an unratified body sitting in the default pack is how
-bootstrap fabrication becomes something a later session assumes belongs (*existence
-is not standing*). **NEEDS RATIFICATION: keep it, or delete it once the finding is
-recorded** — deleting is `experiment_body_pack` + `stout_plan` + one `chain` in
-dc-client `authority.rs::load_body_packs`. Note that deleting it also deletes the
-only evidence the retargeting claim has ever met.
+**`dc:body/stout` and `dc:body/longleg` are INSTRUMENTS, not content.** `stout`
+exists only to test bodies.md's retargeting claim; `longleg` exists only because
+journal/0130 measured that the foot-placement IK had **never once solved** — every
+plan's hip sits higher than its legs reach, so a sole at ground level is outside the
+solver's annulus before animation runs. `longleg` is the biped with its two leg bone
+lengths changed and nothing else (reach 0.880 -> 1.020 m against an unchanged
+0.900 m hip), which is the only way to ask "does the solver solve when the target is
+reachable?" without touching an engine constant the open user call in bodies.md
+§ IK owns.
+
+Both ride their own batch (`experiment_body_pack()`), submitted after the default
+pack because they bind its clips and author none of their own. They are deliberately
+*not* inside `default_body_pack()`: an unratified body sitting in the default pack is
+how bootstrap fabrication becomes something a later session assumes belongs
+(*existence is not standing*). **NEEDS RATIFICATION: keep them, or delete them once
+the findings are recorded** — deleting is `experiment_body_pack` + `stout_plan` +
+`longleg_plan` + one `chain` in dc-client `authority.rs::load_body_packs`. Note that
+deleting them also deletes the only evidence either claim has ever met.
 <!-- END EDIT -->
 
 

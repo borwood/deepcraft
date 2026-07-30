@@ -1,12 +1,12 @@
 //! Body-plan / anim-clip registry conformance (docs/design/bodies.md steps
 //! 1–2): plans and clips as data through the command door — namespace
 //! ownership, the define-order (clips then plan), the verb→slot contract
-//! checked at define time, and the vanilla body pack as a recorded command
+//! checked at define time, and the default body pack as a recorded command
 //! batch that round-trips into the authored source.
 
 use dc_api::bodies::{
-    AnimSlot, DEFAULT_BODY_PLAN, biped_clips, biped_plan, experiment_body_pack, stout_plan,
-    vanilla_body_pack,
+    AnimSlot, DEFAULT_BODY_PLAN, biped_clips, biped_plan, default_body_pack, experiment_body_pack,
+    longleg_plan, stout_plan,
 };
 use dc_api::payload::{DefineAnimClip, DefineBodyPlan, QueryData, SpawnCharacter, Vec3f};
 use dc_api::{
@@ -46,13 +46,13 @@ fn apply(world: &mut HostWorld, env: CommandEnvelope) -> CommandResult {
         .result
 }
 
-/// Install the vanilla clips + plan through the door, then the retargeting
-/// experiment's plan (which binds vanilla's clips, so order matters); return the
+/// Install the default pack's clips + plan through the door, then the experiment
+/// plans (which bind the default pack's clips, so order matters); return the
 /// world. This is the batch order dc-client boots with.
-fn world_with_vanilla_bodies() -> HostWorld {
+fn world_with_default_bodies() -> HostWorld {
     let mut world = HostWorld::new(1);
     let (src, token) = definer("dc");
-    for payload in vanilla_body_pack()
+    for payload in default_body_pack()
         .into_iter()
         .chain(experiment_body_pack())
     {
@@ -63,8 +63,8 @@ fn world_with_vanilla_bodies() -> HostWorld {
 }
 
 #[test]
-fn vanilla_pack_defines_through_the_door() {
-    let world = world_with_vanilla_bodies();
+fn default_pack_defines_through_the_door() {
+    let world = world_with_default_bodies();
     assert!(world.body_plan("dc:body/biped").is_some());
     assert!(world.anim_clip("dc:anim/biped_idle").is_some());
     assert!(world.anim_clip("dc:anim/biped_walk").is_some());
@@ -83,7 +83,7 @@ fn vanilla_pack_defines_through_the_door() {
 /// values, so equal inputs give an identical frame by construction.
 #[test]
 fn registry_content_equals_the_authored_source() {
-    let world = world_with_vanilla_bodies();
+    let world = world_with_default_bodies();
     // Plans.
     assert_eq!(
         world.body_plan("dc:body/biped").expect("biped").plan,
@@ -94,6 +94,10 @@ fn registry_content_equals_the_authored_source() {
         world.body_plan("dc:body/stout").expect("stout").plan,
         stout_plan()
     );
+    assert_eq!(
+        world.body_plan("dc:body/longleg").expect("longleg").plan,
+        longleg_plan()
+    );
     // Clips, each one, by name.
     for authored in biped_clips() {
         let stored = world
@@ -101,15 +105,17 @@ fn registry_content_equals_the_authored_source() {
             .unwrap_or_else(|| panic!("clip {} registered", authored.name));
         assert_eq!(stored.clip, authored, "clip {} drifted", authored.name);
     }
-    // And nothing else snuck into the bodies registry.
-    assert_eq!(world.body_plans().count(), 2);
+    // And nothing else snuck into the bodies registry: the default biped plus the
+    // two experiment plans, and one clip set for all three.
+    assert_eq!(world.body_plans().count(), 3);
     assert_eq!(world.anim_clips().count(), biped_clips().len());
 }
 
-/// **The experiment is not vanilla content.** `vanilla_body_pack` carries the clip
-/// set and the biped only; the ill-proportioned `dc:body/stout` rides its own
-/// batch, which registers **no clips at all** — it binds vanilla's. That is both
-/// the experiment's whole design (one clip set, two plans) and the reason it can
+/// **The experiments are not default content.** `default_body_pack` carries the
+/// clip set and the biped only; the ill-proportioned `dc:body/stout` and the
+/// deliberately over-long `dc:body/longleg` ride their own batch, which registers
+/// **no clips at all** — they bind the default pack's. That is both the
+/// experiments' whole design (one clip set, three plans) and the reason they can
 /// be deleted without touching the default pack (*existence is not standing*).
 #[test]
 fn the_experiment_pack_is_separate_and_carries_no_clips() {
@@ -130,16 +136,16 @@ fn the_experiment_pack_is_separate_and_carries_no_clips() {
             .collect();
         (clips, plans)
     };
-    let vanilla = vanilla_body_pack();
-    let (v_clips, v_plans) = names(&vanilla);
+    let default_pack = default_body_pack();
+    let (v_clips, v_plans) = names(&default_pack);
     assert_eq!(v_clips.len(), 3, "one clip set: {v_clips:?}");
     assert_eq!(v_plans, vec!["dc:body/biped".to_string()]);
     // Clips before the plan — the define order the contract requires.
-    let first_plan = vanilla
+    let first_plan = default_pack
         .iter()
         .position(|p| matches!(p, Payload::DefineBodyPlan(_)))
         .unwrap();
-    let last_clip = vanilla
+    let last_clip = default_pack
         .iter()
         .rposition(|p| matches!(p, Payload::DefineAnimClip(_)))
         .unwrap();
@@ -148,17 +154,20 @@ fn the_experiment_pack_is_separate_and_carries_no_clips() {
     let (e_clips, e_plans) = names(&experiment_body_pack());
     assert!(
         e_clips.is_empty(),
-        "the experiment authors NO clips — it reuses vanilla's, which is the \
-         measurement: {e_clips:?}"
+        "the experiments author NO clips — they reuse the default pack's, which \
+         is the measurement: {e_clips:?}"
     );
-    assert_eq!(e_plans, vec!["dc:body/stout".to_string()]);
+    assert_eq!(
+        e_plans,
+        vec!["dc:body/stout".to_string(), "dc:body/longleg".to_string()]
+    );
 }
 
 /// And the experiment pack **cannot** load on its own: submitted into a world
-/// without vanilla's clips, the verb→slot contract rejects it. This is the
-/// ordering constraint stated as a test rather than as a comment.
+/// without the default pack's clips, the verb→slot contract rejects it. This is
+/// the ordering constraint stated as a test rather than as a comment.
 #[test]
-fn the_experiment_pack_requires_vanillas_clips() {
+fn the_experiment_pack_requires_the_default_packs_clips() {
     let mut world = HostWorld::new(1);
     let (src, token) = definer("dc");
     for payload in experiment_body_pack() {
@@ -168,10 +177,11 @@ fn the_experiment_pack_requires_vanillas_clips() {
                 r,
                 CommandResult::Rejected(RejectReason::SchemaViolation { .. })
             ),
-            "stout binds clips it does not author: {r:?}"
+            "the experiment plans bind clips they do not author: {r:?}"
         );
     }
     assert!(world.body_plan("dc:body/stout").is_none());
+    assert!(world.body_plan("dc:body/longleg").is_none());
 }
 
 // ------------------------------------ per-character plan selection (S-5) --
@@ -214,7 +224,7 @@ fn spawn_without_a_plan_gets_the_identity_default() {
 /// a driver confirms what it got rather than trusting the spawn receipt.
 #[test]
 fn spawn_with_a_registered_plan_wears_it_and_reads_back() {
-    let mut world = world_with_vanilla_bodies();
+    let mut world = world_with_default_bodies();
     assert!(spawn(&mut world, "squat", Some("dc:body/stout")).is_ok());
     assert_eq!(
         world.character("squat").expect("spawned").body_plan,
@@ -244,7 +254,7 @@ fn spawn_with_a_registered_plan_wears_it_and_reads_back() {
 /// body the caller did not ask for and hide a pack that failed to load.
 #[test]
 fn spawn_with_an_unregistered_plan_is_refused_with_a_receipt() {
-    let mut world = world_with_vanilla_bodies();
+    let mut world = world_with_default_bodies();
     let r = spawn(&mut world, "ghost", Some("mod:body/nonexistent"));
     match r {
         CommandResult::Rejected(RejectReason::UnknownBodyPlan { name }) => {
@@ -377,7 +387,7 @@ fn a_new_verb_needs_zero_new_payload_variants() {
     // The whole point of data-defined plans: adding a plan that supports a new
     // verb (here still within the known set) needs no new Rust types. A foreign
     // plugin defines its own clip + plan joining the machinery.
-    let mut world = world_with_vanilla_bodies();
+    let mut world = world_with_default_bodies();
     let (src, token) = definer("mod");
     // A tiny standalone clip for the plugin's own one-segment plan.
     let clip = dc_api::bodies::AnimClip {
@@ -438,7 +448,7 @@ fn a_new_verb_needs_zero_new_payload_variants() {
 
 #[test]
 fn body_defs_are_namespace_owned() {
-    let mut world = world_with_vanilla_bodies();
+    let mut world = world_with_default_bodies();
     let (src, token) = definer("demo");
     // A demo-namespaced clip is fine.
     let clip = dc_api::bodies::AnimClip {

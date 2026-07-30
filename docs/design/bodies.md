@@ -92,6 +92,44 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 > authored clip bobs and moves how every body looks) or whether *"feet to actual ground"*
 > is **retired from this section** as never-intended. **Nothing downstream may assume
 > ground contact until it lands.**
+>
+> **⚠ MEASURED AGAIN 2026-07-29 (journal/the-knee-that-had-never-bent) — THE SOLVER WAS
+> NEVER THE PROBLEM, AND THE CALL ABOVE IS STILL THE USER'S.** A third plan,
+> `dc:body/longleg`, was authored *purely as a control*: the biped with its two leg bone
+> lengths changed and **nothing else** (reach 0.880 → 1.020 m against an unchanged 0.900 m
+> hip), riding the same three unmodified clips, in `experiment_body_pack()` — **no engine
+> constant was touched, and no part of the call above is answered here.** With the sole
+> target inside the annulus the closed-form IK solves on the first frame it is asked:
+> **86 of 88 sampled frames plant, and the knee bends to −56.2°.** The two failures are
+> `walk`'s stride extremes, which need `hypot(hip, stride_forward)` of reach, not `hip`.
+>
+> **The new fact, and it constrains the call:** the resting knee bend and the stride
+> coverage are **locked together** and trade against each other. Measured over the
+> authored clip set — `idle` 24 frames, `walk` 12, `jump` 8, both legs, at the 12 fps grid:
+>
+> | leg slack (reach − hip) | resting knee bend | frames still beyond reach (of 88) |
+> |-------------------------|-------------------|-----------------------------------|
+> | −0.020 m (today's biped) | 0.0° — clamped straight | **88**, every one |
+> | +0.030 m | 29.2° | 32 |
+> | +0.050 m | 37.3° | 14 |
+> | +0.120 m (`longleg`) | 56.2° | **2** |
+> | +0.180 m | 67.1° | 0 |
+>
+> There is **no slack that both plants every frame and keeps the knee out of a squat**,
+> because the stride's reach demand grows with the bones that serve it. The degree of
+> freedom nobody is spending is the root's **vertical travel** — the clips author a bob
+> *upward* where a walk needs the pelvis to *drop* on the stance leg. That observation is
+> offered as evidence for the call, not as a resolution of it.
+>
+> **⚠ AND A SECOND, INDEPENDENT REFUSAL, SCALE-FREE:** the correction window is **half a
+> voxel** and the smallest relief real terrain can have is **one whole voxel**, at *every*
+> scale N — the ratio is fixed at **2:1 by construction**. So **no real terrain step ever
+> fits inside the window**: on a one-voxel step every raised-foot sample is refused, on all
+> three plans, for all three clips (asserted in dc-client `body.rs`
+> `foot_placement_and_retargeting_are_measured`). Foot placement engages only on
+> *sub-voxel* offsets — which, today, are produced by nothing but the plan's own hip/reach
+> mismatch. **The window's units problem is therefore not "half a voxel is the wrong
+> number"; it is that a voxel-derived tolerance can never express a terrain step.**
 
 Two-bone IK for limbs + neck look-at is the **retargeting glue** that makes
 one clip serve every mutation of a plan: feet to actual ground, hands to
