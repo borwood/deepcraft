@@ -780,8 +780,8 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
          disagree on the DOMINANT class."
     );
     println!("   first row of signatures (glyph:metres in the top 0.9 m):");
-    for j in 0..8usize {
-        println!("     chunk ({},{})  {}", sigs[j].0, sigs[j].1, sigs[j].2);
+    for s in sigs.iter().take(8) {
+        println!("     chunk ({},{})  {}", s.0, s.1, s.2);
     }
     println!(
         "   ⚠ Whatever these numbers are, they are NOT moved by this slice and NOT moved by \
