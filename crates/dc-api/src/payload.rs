@@ -238,6 +238,14 @@ pub struct SpawnCharacter {
     /// identity.
     pub name: String,
     pub pos: Vec3f,
+    /// Which registered body plan the character wears, e.g. `dc:body/stout`.
+    /// `None` = the identity default [`crate::bodies::DEFAULT_BODY_PLAN`], so an
+    /// existing caller's spawn is unchanged. A name that is **not registered** is
+    /// refused with [`crate::envelope::RejectReason::UnknownBodyPlan`] — never
+    /// silently defaulted. Appended field: postcard is positional, so this stays
+    /// last, and `serde(default)` decodes pre-plan streams to `None`.
+    #[serde(default)]
+    pub body_plan: Option<String>,
 }
 
 /// `dc:character/set_move_intent` — set the character's horizontal movement
@@ -484,6 +492,13 @@ pub enum QueryData {
         /// decodes pre-posture streams to an empty string.
         #[serde(default)]
         posture: String,
+        /// The registered body plan this character wears (`dc:body/biped` unless
+        /// its spawn named another) — the readback half of per-character plan
+        /// selection, so a driver that spawned a `dc:body/stout` can confirm what
+        /// it got instead of trusting the spawn receipt. Appended field;
+        /// `serde(default)` decodes pre-plan streams to an empty string.
+        #[serde(default)]
+        body_plan: String,
     },
     /// First solid voxel along a character's gaze (`sense_raycast`).
     /// All fields are `None` on a miss.

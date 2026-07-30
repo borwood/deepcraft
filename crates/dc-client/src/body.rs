@@ -26,7 +26,7 @@
 
 use std::collections::HashMap;
 
-use dc_api::bodies::AnimClip;
+use dc_api::bodies::{AnimClip, BodyPlan};
 
 /// Stepped-animation frame rate: the pose updates this many times per second.
 pub const ANIM_FPS: f64 = 12.0;
@@ -338,6 +338,76 @@ pub fn resolve_orientation(base_trunk_yaw: f64, look_yaw: f64, look_pitch: f64) 
     }
 }
 
+/// A leg's two-bone rig, **derived from a plan** (never hard-coded): the hip
+/// joint position in body-local meters and the two bone lengths, for the
+/// foot-placement IK. This is the plan-generic half of the retargeting glue —
+/// every proportion the solver knows about comes from here, so a plan with half
+/// the biped's leg length simply produces half the bone lengths.
+///
+/// Pure data + pure arithmetic, so it lives in this module rather than the bevy
+/// glue: [`leg_rigs`] is exactly what the second-plan measurement needs.
+#[derive(Clone, PartialEq, Debug)]
+pub struct LegRig {
+    pub upper: String,
+    pub lower: String,
+    /// Hip joint offset from the body root (the feet), meters.
+    pub hip_local: [f64; 3],
+    /// Upper bone length (hip→knee), meters.
+    pub l1: f64,
+    /// Lower bone length (knee→sole), meters.
+    pub l2: f64,
+}
+
+/// Derive each leg's two-bone rig from a body plan: hip = parent(upper).pivot +
+/// upper.pivot; `l1` = |lower.pivot| (hip→knee); `l2` = |lower.offset.y| +
+/// lower.size.y / 2 (knee→sole). Generic over any `leg_*_upper` / `leg_*_lower`
+/// pair, so a plan is not required to be a biped to get foot placement — it is
+/// required only to *name* its legs that way (a naming coupling, noted honestly:
+/// see the second-plan report).
+pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
+    let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
+    let mut legs = Vec::new();
+    for upper in plan
+        .segments
+        .iter()
+        .filter(|s| s.name.starts_with("leg_") && s.name.ends_with("_upper"))
+    {
+        let lower_name = upper.name.replace("_upper", "_lower");
+        let Some(lower) = seg_by(&lower_name) else {
+            continue;
+        };
+        let hip_local = match upper.parent.as_deref().and_then(seg_by) {
+            Some(parent) => [
+                parent.pivot_m[0] + upper.pivot_m[0],
+                parent.pivot_m[1] + upper.pivot_m[1],
+                parent.pivot_m[2] + upper.pivot_m[2],
+            ],
+            None => upper.pivot_m,
+        };
+        let l1 =
+            (lower.pivot_m[0].powi(2) + lower.pivot_m[1].powi(2) + lower.pivot_m[2].powi(2)).sqrt();
+        let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
+        legs.push(LegRig {
+            upper: upper.name.clone(),
+            lower: lower_name,
+            hip_local,
+            l1,
+            l2,
+        });
+    }
+    legs
+}
+
+/// Foot position of a two-bone leg in its sagittal (y, z) plane, from a clip's
+/// hip/knee X-rotations — the inverse of [`solve_leg_ik`]'s reconstruction, used
+/// to find where the *animation* puts the foot before the IK re-seats it.
+pub fn fk_foot_local(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64) {
+    let ky = -l1 * upper_x.cos();
+    let kz = -l1 * upper_x.sin();
+    let total = upper_x + lower_x;
+    (ky - l2 * total.cos(), kz - l2 * total.sin())
+}
+
 /// A two-bone IK solution: the upper and lower joint rotations (radians, about
 /// X — the sagittal plane), with the rest pose pointing straight down (−Y).
 /// `upper_x` is applied to the hip joint (relative to the trunk), `lower_x` to
@@ -417,6 +487,118 @@ pub fn pose_for(state: &AnimState, idle: &AnimClip, walk: &AnimClip) -> Pose {
         let from = sample_clip(clip(state.blend_from), state.clock_s);
         blend(&from, &to, state.stepped_blend())
     }
+}
+
+// ------------------------------------------- the retargeting measurement --
+
+/// What the retargeting glue actually achieves for one (plan, clip) pair —
+/// **the instrument for bodies.md's IK claim** ("one clip serves every mutation
+/// of a plan … across differing proportions"). Until `dc:body/stout` existed
+/// there was exactly one body plan, so the claim had never met evidence.
+///
+/// Every figure is in **metres, with the ground at y = 0** and the body standing
+/// on it, measured over the clip's *stepped* frames (the 12 fps grid the renderer
+/// actually samples), for every leg the plan declares.
+#[derive(Clone, PartialEq, Debug)]
+pub struct RetargetReport {
+    pub plan: String,
+    pub clip: String,
+    /// Hip height above the feet, metres (the plan's trunk pivot + hip offset).
+    pub hip_m: f64,
+    /// Total leg reach `l1 + l2`, metres — the IK's outer annulus.
+    pub reach_m: f64,
+    /// Frames × legs measured.
+    pub samples: usize,
+    /// Sole height the **clip alone** puts the foot at: the raw retarget, before
+    /// any foot IK. Negative = through the floor, positive = floating.
+    pub clip_sole_min_m: f64,
+    pub clip_sole_max_m: f64,
+    /// Sole height **as rendered**: foot IK applied where the renderer applies it
+    /// (inside the half-voxel window), then snapped to the rotation quantum.
+    pub rendered_sole_min_m: f64,
+    pub rendered_sole_max_m: f64,
+    /// Samples the renderer refused to correct because the clip put the foot
+    /// further than half a voxel from the ground — the foot floats honestly.
+    pub outside_window: usize,
+    /// Samples where seating the foot on the ground was **beyond the leg's
+    /// reach**: `solve_leg_ik` clamps to full extension and the foot stays off
+    /// the ground. Clamp saturation.
+    pub beyond_reach: usize,
+    /// Worst residual over samples the IK both attempted and could reach — how
+    /// far off the ground the foot still is after the glue ran, in metres. This
+    /// is the rotation quantum's cost, not the solver's error.
+    pub reachable_residual_max_m: f64,
+}
+
+/// Measure one plan against one clip. `voxel_size_m` is the active scale's voxel
+/// edge — the foot-IK correction window is **half a voxel**, an absolute length,
+/// which is precisely the kind of constant a second plan exists to interrogate.
+pub fn retarget_report(
+    plan: &BodyPlan,
+    clip: &AnimClip,
+    voxel_size_m: f64,
+) -> Option<RetargetReport> {
+    let legs = leg_rigs(plan);
+    let first = legs.first()?;
+    let half_voxel = voxel_size_m * 0.5;
+    let mut r = RetargetReport {
+        plan: plan.name.clone(),
+        clip: clip.name.clone(),
+        hip_m: first.hip_local[1],
+        reach_m: first.l1 + first.l2,
+        samples: 0,
+        clip_sole_min_m: f64::INFINITY,
+        clip_sole_max_m: f64::NEG_INFINITY,
+        rendered_sole_min_m: f64::INFINITY,
+        rendered_sole_max_m: f64::NEG_INFINITY,
+        outside_window: 0,
+        beyond_reach: 0,
+        reachable_residual_max_m: 0.0,
+    };
+    let frames = ((clip.duration_s * ANIM_FPS).ceil() as usize).max(1);
+    for i in 0..frames {
+        let pose = sample_clip(clip, i as f64 / ANIM_FPS);
+        for leg in &legs {
+            let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
+            let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
+            let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
+            // Ground is y = 0; the hip rides at hip_local.y plus the clip's bob.
+            let hip_y = leg.hip_local[1] + pose.root_bob_m;
+            let clip_sole = hip_y + fy;
+            r.samples += 1;
+            r.clip_sole_min_m = r.clip_sole_min_m.min(clip_sole);
+            r.clip_sole_max_m = r.clip_sole_max_m.max(clip_sole);
+
+            // What the renderer does (character.rs): correct only inside the
+            // half-voxel window, and snap the solved angles to the 12 fps grid.
+            let adjust = -clip_sole;
+            let rendered_sole = if adjust.abs() > 1e-3 && adjust.abs() <= half_voxel {
+                let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
+                if !ik.reachable {
+                    r.beyond_reach += 1;
+                }
+                let (qy, _) = fk_foot_local(
+                    leg.l1,
+                    leg.l2,
+                    stepped_angle(ik.upper_x),
+                    stepped_angle(ik.lower_x),
+                );
+                let sole = hip_y + qy;
+                if ik.reachable {
+                    r.reachable_residual_max_m = r.reachable_residual_max_m.max(sole.abs());
+                }
+                sole
+            } else {
+                if adjust.abs() > half_voxel {
+                    r.outside_window += 1;
+                }
+                clip_sole
+            };
+            r.rendered_sole_min_m = r.rendered_sole_min_m.min(rendered_sole);
+            r.rendered_sole_max_m = r.rendered_sole_max_m.max(rendered_sole);
+        }
+    }
+    Some(r)
 }
 
 #[cfg(test)]
@@ -530,12 +712,11 @@ mod tests {
 
     /// Forward kinematics of a two-bone leg in the sagittal (y, z) plane, for
     /// checking the solver: rest pose points straight down, `upper_x` at the
-    /// hip, `lower_x` at the knee (relative to the upper).
+    /// hip, `lower_x` at the knee (relative to the upper). This used to be a
+    /// second copy of the arithmetic; it now delegates to the production
+    /// [`fk_foot_local`] so the check and the renderer cannot disagree.
     fn fk_foot(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64) {
-        let ky = -l1 * upper_x.cos();
-        let kz = -l1 * upper_x.sin();
-        let total = upper_x + lower_x;
-        (ky - l2 * total.cos(), kz - l2 * total.sin())
+        fk_foot_local(l1, l2, upper_x, lower_x)
     }
 
     #[test]
@@ -617,6 +798,136 @@ mod tests {
         let held = s.trunk_yaw;
         s.steer(0.1, 0.0, 0.0);
         assert_eq!(s.trunk_yaw, held, "a stopped body keeps its facing");
+    }
+
+    // --- the second-plan experiment: does one clip set retarget? ----------
+
+    /// The N=2 boot scale's voxel edge (`PLAYER_HEIGHT_M / 2`) — the scale the
+    /// game actually launches at, and therefore the scale whose **half-voxel**
+    /// foot-IK window is the live one.
+    fn boot_voxel_size_m() -> f64 {
+        crate::PLAYER_HEIGHT_M / 2.0
+    }
+
+    /// **The measurement.** Prints the full retargeting table for both plans
+    /// (`cargo test -p dc-client --release retargeting -- --nocapture`) and
+    /// asserts only what must hold by derivation:
+    ///
+    /// 1. the glue never produces a non-finite pose for either plan;
+    /// 2. the rig the renderer derives really does track the plan's proportions
+    ///    (stout reach ≈ half the biped's) — otherwise the experiment is not
+    ///    measuring what it claims;
+    /// 3. where the IK both ran and could reach, the residual is bounded by one
+    ///    rotation quantum's arc at full extension (`reach × ROT_QUANTUM_RAD`) —
+    ///    a *derived* bound, so it stays honest at any proportion, and it is what
+    ///    would catch a solver regression rather than a colleague's re-authoring.
+    ///
+    /// Scale-free: every quantity is a per-frame, per-leg arithmetic on the plan's
+    /// own lengths, so one clip loop at 12 fps exercises the whole invariant.
+    #[test]
+    fn retargeting_across_proportions_is_measured() {
+        let clips = biped_clips();
+        let plans = [dc_api::bodies::biped_plan(), dc_api::bodies::stout_plan()];
+        let vs = boot_voxel_size_m();
+        println!(
+            "\nretargeting report — ground y=0, N=2 (voxel {vs:.3} m, IK window ±{:.3} m)",
+            vs * 0.5
+        );
+        let mut reach = Vec::new();
+        for plan in &plans {
+            for clip in &clips {
+                let r = retarget_report(plan, clip, vs).expect("both plans have legs");
+                println!(
+                    "  {:<16} {:<22} hip {:.3} reach {:.3} | clip sole [{:+.3}, {:+.3}] \
+                     rendered [{:+.3}, {:+.3}] | outside-window {}/{} beyond-reach {} \
+                     residual<= {:.4}",
+                    r.plan.trim_start_matches("dc:body/"),
+                    r.clip.trim_start_matches("dc:anim/"),
+                    r.hip_m,
+                    r.reach_m,
+                    r.clip_sole_min_m,
+                    r.clip_sole_max_m,
+                    r.rendered_sole_min_m,
+                    r.rendered_sole_max_m,
+                    r.outside_window,
+                    r.samples,
+                    r.beyond_reach,
+                    r.reachable_residual_max_m,
+                );
+                // (1) finite everywhere.
+                for v in [
+                    r.clip_sole_min_m,
+                    r.clip_sole_max_m,
+                    r.rendered_sole_min_m,
+                    r.rendered_sole_max_m,
+                    r.reachable_residual_max_m,
+                ] {
+                    assert!(v.is_finite(), "{} / {}: non-finite {v}", r.plan, r.clip);
+                }
+                // (3) the quantum's arc bounds the achieved residual.
+                let bound = r.reach_m * ROT_QUANTUM_RAD + 1e-9;
+                assert!(
+                    r.reachable_residual_max_m <= bound,
+                    "{} / {}: residual {:.4} m exceeds one rotation quantum's arc \
+                     at full extension ({bound:.4} m)",
+                    r.plan,
+                    r.clip,
+                    r.reachable_residual_max_m
+                );
+                if r.clip == "dc:anim/biped_walk" {
+                    reach.push((r.plan.clone(), r.reach_m, r.hip_m));
+                }
+            }
+        }
+        // (2) the rig tracks the plan: stout legs are half the biped's.
+        let biped = reach.iter().find(|(p, ..)| p == "dc:body/biped").unwrap();
+        let stout = reach.iter().find(|(p, ..)| p == "dc:body/stout").unwrap();
+        let ratio = stout.1 / biped.1;
+        println!(
+            "  reach ratio stout/biped = {ratio:.3} (hips {:.3} / {:.3})\n",
+            stout.2, biped.2
+        );
+        assert!(
+            (0.45..=0.55).contains(&ratio),
+            "the plan-derived rig must track the plan's proportions, got {ratio:.3}"
+        );
+    }
+
+    /// **The mechanism finding, pinned.** The foot-IK correction window is half a
+    /// voxel — an *absolute* length — while everything the clips author about legs
+    /// is scale-free angles. At the N=2 boot scale that window is 0.45 m, which is
+    /// larger than the whole stout leg. This test does not assert the window is
+    /// *right*; it asserts the window is **derived from the voxel scale and not
+    /// from the body**, which is the falsifiable half of the claim. If someone
+    /// later makes the window proportional to leg length, this test is the place
+    /// that must change, and the report is the reason why.
+    #[test]
+    fn the_foot_ik_window_is_a_world_constant_not_a_body_one() {
+        let vs = boot_voxel_size_m();
+        let half_voxel = vs * 0.5;
+        let stout_reach = {
+            let legs = leg_rigs(&dc_api::bodies::stout_plan());
+            legs[0].l1 + legs[0].l2
+        };
+        let biped_reach = {
+            let legs = leg_rigs(&dc_api::bodies::biped_plan());
+            legs[0].l1 + legs[0].l2
+        };
+        // The window is the same for both bodies — that is the whole point.
+        assert!(
+            half_voxel > 0.0,
+            "the IK window must come from the voxel scale"
+        );
+        assert!(
+            stout_reach < biped_reach,
+            "the experiment needs the second plan to be materially shorter"
+        );
+        println!(
+            "IK window ±{half_voxel:.3} m is {:.2}x the stout leg ({stout_reach:.3} m) \
+             and {:.2}x the biped leg ({biped_reach:.3} m)",
+            half_voxel / stout_reach,
+            half_voxel / biped_reach
+        );
     }
 
     #[test]

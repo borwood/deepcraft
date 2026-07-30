@@ -38,13 +38,33 @@
 //! authored source — the default content, compiled in so it is deterministic
 //! without a data load. [`vanilla_body_pack`] emits that same content as a
 //! recorded command batch ("vanilla is the first pack"), generated *from* the
-//! authored source so pack and typed model cannot drift; the client renderer
-//! reads the authored source directly.
+//! authored source so pack and typed model cannot drift. **The client renderer
+//! reads the REGISTRY**, not the authored source: the pack is submitted through
+//! the one door at world construction (dc-client `authority.rs`), so the vanilla
+//! biped is genuinely loaded as the first pack rather than compiled into the
+//! renderer (journal: "the second plan and the glue"). The authored functions
+//! remain the *source* the pack is generated from, and the compiled-in default
+//! the headless crates test against.
+//!
+//! **The second plan** ([`stout_plan`]) exists to test one claim, not to look
+//! good: bodies.md § IK says two-bone IK "makes one clip serve every mutation of
+//! a plan … across differing proportions", and until there were two plans that
+//! claim had never met evidence. `dc:body/stout` shares the biped's eleven joint
+//! names and binds the biped's *unmodified* clips; only the geometry differs, and
+//! it differs deliberately hard (half-length legs, 1.6× arms, a wide trunk, a
+//! big head). Its ugliness is the measurement, not a defect.
 
 use serde::{Deserialize, Serialize};
 
 use crate::envelope::{ConsumerId, Tick};
 use crate::payload::{DefineAnimClip, DefineBodyPlan, Payload};
+
+/// The body plan a character wears when nothing names one — the **identity
+/// default** (spines.md § S-5): a seam whose default value reproduces the
+/// pre-seam behaviour exactly, so adding per-character plan selection changes
+/// nothing unbidden. Every existing character, and every character spawned
+/// without a `body_plan`, wears this.
+pub const DEFAULT_BODY_PLAN: &str = "dc:body/biped";
 
 /// The v0 driver-verb vocabulary a plan may declare slots for (bodies.md
 /// § verb→animation-slot contract: "move forward…, jump, idle…"). v0 keeps the
@@ -494,6 +514,159 @@ pub fn biped_plan() -> BodyPlan {
     }
 }
 
+/// **The second plan** (`dc:body/stout`) — the instrument that tests bodies.md's
+/// retargeting claim, authored in exactly the same shape as [`biped_plan`] and
+/// deliberately NOT tasteful.
+///
+/// Same eleven joint names as the biped, and it binds the biped's three
+/// *unmodified* clips (`dc:anim/biped_{idle,walk,jump}`), so [`validate_plan`]
+/// accepts it and one clip set genuinely has to serve both bodies. Only the
+/// geometry differs, and it differs as hard as the joint topology allows:
+///
+/// | measure                  | `dc:body/biped` | `dc:body/stout` | ratio |
+/// |--------------------------|-----------------|-----------------|-------|
+/// | leg (hip→sole)           | 0.88 m          | 0.44 m          | 0.50× |
+/// | arm (shoulder→fingertip) | 0.58 m          | 0.93 m          | 1.60× |
+/// | hip height               | 0.90 m          | 0.46 m          | 0.51× |
+/// | trunk width × depth      | 0.50 × 0.28 m   | 0.78 × 0.50 m   | 1.56× / 1.79× |
+/// | head edge                | 0.28 m          | 0.44 m          | 1.57× |
+/// | standing height          | 1.80 m          | 1.60 m          | 0.89× |
+///
+/// The arms reach to 0.08 m above the ground when hanging: a knuckle-dragger.
+/// That is the point — it puts the biped's authored swing angles, which are
+/// *scale-free*, next to the clips' authored root bob and the renderer's
+/// foot-IK correction window, which are **absolute metres**. Anything that
+/// survives 0.5× legs and 1.6× arms is genuinely retargeting; anything that
+/// does not is a proportion assumption we had never had a second body to find.
+///
+/// **Tints are identical to the biped's on purpose** — a side-by-side frame then
+/// carries only the shape difference, with no colour cue to read as art. The
+/// collider is unchanged either way: [`crate::CharacterConfig`] is world-global,
+/// so the sim sees the same 1.8 m box under both plans (see the report's honest
+/// list of what this experiment does NOT cover).
+pub fn stout_plan() -> BodyPlan {
+    let segments = vec![
+        // Trunk root: hips at 0.46 m — half the biped's, matching the halved
+        // legs — on a trunk 1.56× wider and 1.79× deeper.
+        seg(
+            "trunk",
+            None,
+            [0.0, 0.46, 0.0],
+            [0.78, 0.62, 0.5],
+            [0.0, 0.31, 0.0],
+            TORSO,
+        ),
+        // Neck: short and thick, so the head sits almost on the shoulders.
+        seg(
+            "neck",
+            Some("trunk"),
+            [0.0, 0.62, 0.0],
+            [0.22, 0.08, 0.22],
+            [0.0, 0.04, 0.0],
+            SKIN,
+        ),
+        seg(
+            "head",
+            Some("neck"),
+            [0.0, 0.08, 0.0],
+            [0.44, 0.44, 0.44],
+            [0.0, 0.22, 0.0],
+            SKIN,
+        ),
+        // Arms: 1.6× the biped's, shouldered out on the wide trunk.
+        seg(
+            "arm_l_upper",
+            Some("trunk"),
+            [0.47, 0.55, 0.0],
+            [0.16, 0.48, 0.16],
+            [0.0, -0.24, 0.0],
+            LIMB,
+        ),
+        seg(
+            "arm_l_lower",
+            Some("arm_l_upper"),
+            [0.0, -0.48, 0.0],
+            [0.14, 0.45, 0.14],
+            [0.0, -0.225, 0.0],
+            SKIN,
+        ),
+        seg(
+            "arm_r_upper",
+            Some("trunk"),
+            [-0.47, 0.55, 0.0],
+            [0.16, 0.48, 0.16],
+            [0.0, -0.24, 0.0],
+            LIMB,
+        ),
+        seg(
+            "arm_r_lower",
+            Some("arm_r_upper"),
+            [0.0, -0.48, 0.0],
+            [0.14, 0.45, 0.14],
+            [0.0, -0.225, 0.0],
+            SKIN,
+        ),
+        // Legs: half the biped's bone lengths, splayed wider under the trunk.
+        seg(
+            "leg_l_upper",
+            Some("trunk"),
+            [0.2, 0.0, 0.0],
+            [0.26, 0.225, 0.28],
+            [0.0, -0.1125, 0.0],
+            LIMB,
+        ),
+        seg(
+            "leg_l_lower",
+            Some("leg_l_upper"),
+            [0.0, -0.225, 0.0],
+            [0.24, 0.215, 0.26],
+            [0.0, -0.1075, 0.0],
+            LIMB,
+        ),
+        seg(
+            "leg_r_upper",
+            Some("trunk"),
+            [-0.2, 0.0, 0.0],
+            [0.26, 0.225, 0.28],
+            [0.0, -0.1125, 0.0],
+            LIMB,
+        ),
+        seg(
+            "leg_r_lower",
+            Some("leg_r_upper"),
+            [0.0, -0.225, 0.0],
+            [0.24, 0.215, 0.26],
+            [0.0, -0.1075, 0.0],
+            LIMB,
+        ),
+    ];
+    // The biped's clips, unmodified — that is the whole experiment.
+    let slots = vec![
+        AnimSlot {
+            verb: "idle".into(),
+            clip: "dc:anim/biped_idle".into(),
+        },
+        AnimSlot {
+            verb: "walk".into(),
+            clip: "dc:anim/biped_walk".into(),
+        },
+        AnimSlot {
+            verb: "jump".into(),
+            clip: "dc:anim/biped_jump".into(),
+        },
+    ];
+    BodyPlan {
+        name: "dc:body/stout".into(),
+        doc: "A squat, long-armed humanoid: half-length legs, 1.6x arms, a wide \
+              trunk and a big head. Same eleven joints as dc:body/biped and it \
+              binds the SAME clips — it exists to measure how far one clip set \
+              retargets across proportions (bodies.md § IK), not to look good."
+            .into(),
+        segments,
+        slots,
+    }
+}
+
 fn kf(t: f64, bob: f64, rots: &[(&str, [f64; 3])]) -> Keyframe {
     Keyframe {
         t,
@@ -665,16 +838,25 @@ pub fn biped_clips() -> Vec<AnimClip> {
 }
 
 /// The vanilla body content as a recorded command batch — clips first, then the
-/// plan that binds them (the define order the contract requires). Content packs
-/// are just registry command batches; this is the bodies pack. Generated from
-/// the authored source ([`biped_plan`]/[`biped_clips`]) so pack and typed model
-/// cannot drift (proven by [`tests::vanilla_pack_round_trips`]).
+/// plans that bind them (the define order the contract requires). Content packs
+/// are just registry command batches; this is the bodies pack, and **the running
+/// game loads its bodies through it** (dc-client `authority.rs` submits it at
+/// world construction under a `registry.define(dc)` grant). Generated from the
+/// authored source ([`biped_plan`]/[`stout_plan`]/[`biped_clips`]) so pack and
+/// typed model cannot drift (proven by `tests/bodies.rs`'s
+/// `vanilla_pack_defines_through_the_door` and
+/// `registry_content_equals_the_authored_source`).
+///
+/// Both plans bind the SAME three clips, which is why the clips are emitted once
+/// and the two `DefineBodyPlan`s follow: a clip is standalone data, and "one clip
+/// set, many plans" is the shape bodies.md § body plans asserts.
 pub fn vanilla_body_pack() -> Vec<Payload> {
     let mut out = Vec::new();
     for clip in biped_clips() {
         out.push(Payload::DefineAnimClip(DefineAnimClip(clip)));
     }
     out.push(Payload::DefineBodyPlan(DefineBodyPlan(biped_plan())));
+    out.push(Payload::DefineBodyPlan(DefineBodyPlan(stout_plan())));
     out
 }
 
@@ -693,6 +875,73 @@ mod tests {
             validate_clip(c).unwrap_or_else(|e| panic!("clip {} invalid: {e}", c.name));
         }
         validate_plan(&biped_plan(), clip_lookup(&clips)).expect("biped plan is valid");
+    }
+
+    /// The second plan validates against the **unmodified** biped clips — the
+    /// precondition of the whole retargeting experiment. If this ever fails,
+    /// somebody edited a clip or a joint name and the instrument is gone.
+    #[test]
+    fn stout_is_well_formed_and_binds_the_biped_clips() {
+        let clips = biped_clips();
+        let stout = stout_plan();
+        validate_plan(&stout, clip_lookup(&clips)).expect("stout plan is valid");
+        // Same joint set as the biped, so one clip set serves both.
+        let mut a: Vec<&str> = biped_plan().segments.iter().map(|s| &*s.name).collect();
+        let mut b: Vec<&str> = stout.segments.iter().map(|s| &*s.name).collect();
+        a.sort_unstable();
+        b.sort_unstable();
+        assert_eq!(a, b, "stout must share the biped's joint names");
+        // Same clip bindings, verbatim — no stout-specific clips exist.
+        assert_eq!(
+            stout.slots,
+            biped_plan().slots,
+            "stout binds the biped's clips unmodified"
+        );
+    }
+
+    /// The proportions are the experiment's independent variable, so pin the
+    /// *ratios* (not the absolute numbers, which are free to be re-authored):
+    /// the second plan must differ a LOT or it measures nothing.
+    #[test]
+    fn stout_proportions_differ_materially() {
+        let leg = |p: &BodyPlan| {
+            let upper = p.segments.iter().find(|s| s.name == "leg_l_upper").unwrap();
+            let lower = p.segments.iter().find(|s| s.name == "leg_l_lower").unwrap();
+            lower.pivot_m[1].abs() + lower.offset_m[1].abs() + lower.size_m[1] / 2.0
+        };
+        let arm = |p: &BodyPlan| {
+            let lower = p.segments.iter().find(|s| s.name == "arm_l_lower").unwrap();
+            lower.pivot_m[1].abs() + lower.offset_m[1].abs() + lower.size_m[1] / 2.0
+        };
+        let (bip, sto) = (biped_plan(), stout_plan());
+        let leg_ratio = leg(&sto) / leg(&bip);
+        let arm_ratio = arm(&sto) / arm(&bip);
+        assert!(
+            leg_ratio <= 0.6,
+            "stout legs must be at most 0.6x the biped's, got {leg_ratio:.3}"
+        );
+        assert!(
+            arm_ratio >= 1.4,
+            "stout arms must be at least 1.4x the biped's, got {arm_ratio:.3}"
+        );
+        // Hips ride at the top of the legs in both plans (the geometry is
+        // self-consistent: a plan whose hip height did not match its leg length
+        // would float or sink for reasons that are not about retargeting).
+        for p in [&bip, &sto] {
+            let hip = p
+                .segments
+                .iter()
+                .find(|s| s.name == "trunk")
+                .unwrap()
+                .pivot_m[1];
+            let sole_gap = hip - leg(p);
+            assert!(
+                (0.0..=0.05).contains(&sole_gap),
+                "plan `{}` hip {hip} vs leg {} leaves a {sole_gap} m rest gap",
+                p.name,
+                leg(p)
+            );
+        }
     }
 
     #[test]

@@ -58,7 +58,10 @@ pub fn attach_tool() -> Tool {
          name it. One attach per session. A spawn whose body would be embedded \
          in solid terrain is refused (ok:false, code:\"obstructed\") rather \
          than creating a stuck statue; pass surface:true to drop the body onto \
-         the true surface at pos's x/z first.",
+         the true surface at pos's x/z first. Optionally choose which registered \
+         body plan the new body WEARS (`body_plan`, e.g. dc:body/stout); omitted \
+         = dc:body/biped. An unregistered plan is refused (ok:false, \
+         code:\"unknown_body_plan\", with the registered names).",
         match json!({
             "type": "object",
             "properties": {
@@ -80,6 +83,10 @@ pub fn attach_tool() -> Tool {
                 "surface": {
                     "type": "boolean",
                     "description": "drop the new body onto the true voxel surface at pos's x/z (ignoring pos.y); ignored when attaching to an existing character",
+                },
+                "body_plan": {
+                    "type": "string",
+                    "description": "registered body plan the new body wears, e.g. dc:body/biped or dc:body/stout; omit for dc:body/biped. Ignored when attaching to an existing character",
                 },
             },
             "required": ["character"],
@@ -219,6 +226,17 @@ impl ServerHandler for CharacterMcpServer {
                 .get("surface")
                 .and_then(Value::as_bool)
                 .unwrap_or(false);
+            // Absent / null = the identity default (`dc:body/biped`); a present
+            // non-string is a caller error, not a silent fallback.
+            let body_plan = match args.get("body_plan") {
+                None | Some(Value::Null) => None,
+                Some(Value::String(s)) => Some(s.clone()),
+                Some(_) => {
+                    return Ok(CallToolResult::error(vec![ContentBlock::text(
+                        "body_plan must be a string (a registered plan name)",
+                    )]));
+                }
+            };
             let (reply, rx) = oneshot::channel();
             let result = self
                 .bridge(
@@ -226,6 +244,7 @@ impl ServerHandler for CharacterMcpServer {
                         name: name.to_string(),
                         pos,
                         surface,
+                        body_plan,
                         reply,
                     },
                     rx,
@@ -352,6 +371,7 @@ mod tests {
                             name,
                             pos,
                             surface,
+                            body_plan,
                             reply,
                         } => {
                             let pos = pos.expect("test always passes pos");
@@ -359,6 +379,7 @@ mod tests {
                                 &name,
                                 dc_api::payload::Vec3f::new(pos[0], pos[1], pos[2]),
                                 surface,
+                                body_plan,
                                 reply,
                             );
                         }

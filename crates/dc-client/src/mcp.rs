@@ -120,6 +120,10 @@ pub enum BridgeRequest {
         name: String,
         pos: Option<[f64; 3]>,
         surface: bool,
+        /// Registered body plan the new body wears; `None` = `dc:body/biped`
+        /// (the identity default). Ignored when attaching to an existing
+        /// character — a body swap is transmog, a separate verb (bodies.md).
+        body_plan: Option<String>,
         reply: oneshot::Sender<Value>,
     },
     /// A character-surface tool call. The ECS side derives the session's

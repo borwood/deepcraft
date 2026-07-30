@@ -283,9 +283,52 @@ impl Authority {
         ((sphere * 2.0) as usize).clamp(1024, 16_384)
     }
 
+    /// Load the **first pack**: the vanilla bodies content, as a registry
+    /// command batch through the one door.
+    ///
+    /// `dc_api::bodies::vanilla_body_pack()` had existed since the body-plan
+    /// milestone on the stated principle "vanilla is the first pack", and
+    /// **nothing but a dc-api unit test had ever called it** — the renderer
+    /// reached for `biped_plan()`/`biped_clips()` as compiled-in Rust, so the
+    /// door was built and never travelled (spines.md § A-4). This is the
+    /// traversal: the clips and both plans arrive as `DefineAnimClip` /
+    /// `DefineBodyPlan` commands under a `registry.define(dc)` grant, and
+    /// `character.rs` reads the resulting registry. First-party content ships
+    /// through the same surface a third party would use — north-star
+    /// § core/plugin boundary, *"first-party content ships through the same SDK,
+    /// not a privileged internal path"*.
+    ///
+    /// The batch is **submitted, not applied**: it lands at the first tick
+    /// boundary like every other command, ahead of anything a consumer submits
+    /// later (total order), so a character spawned at any point after boot always
+    /// finds its plan registered. The renderer simply has no body assets to build
+    /// until then, which costs nothing — no character can exist before a tick.
+    fn load_vanilla_body_pack(world: &mut HostWorld) {
+        let source = ConsumerId::new(ConsumerKind::Plugin, "vanilla-pack");
+        let token = CapabilityToken::new(vec![Grant::RegistryDefine {
+            namespace: "dc".into(),
+        }]);
+        for payload in dc_api::bodies::vanilla_body_pack() {
+            let envelope = CommandEnvelope {
+                id: payload.command_id().to_string(),
+                source: source.clone(),
+                grant: token.clone(),
+                payload,
+                target_tick: None,
+                txn: None,
+            };
+            if let Err(entry) = world.submit(envelope) {
+                // Structurally impossible (the batch is generated from the typed
+                // source), but a silent body-less world would be baffling.
+                error!("vanilla body pack rejected: {:?}", entry.receipt.result);
+            }
+        }
+    }
+
     /// Assemble the consumer identities / tokens shared by every authority.
     fn finish(scale: VoxelScale, mut world: HostWorld, surface: SurfaceAuthority) -> Self {
         world.set_chunk_budget(Self::chunk_budget_for(scale));
+        Self::load_vanilla_body_pack(&mut world);
         Self {
             world,
             accumulator: 0.0,
@@ -657,11 +700,17 @@ impl Authority {
     /// `pos`'s x/z (mirroring the player's `surface` teleport) — reading the
     /// live world's solidity (edits included), not the analytic height that
     /// under-reports (ROADMAP Observed).
+    /// `body_plan` names the registered plan the new body **wears**; `None` is the
+    /// identity default (`dc:body/biped`), so every existing caller is unchanged.
+    /// An unregistered name is refused by the host with a receipt, and the refusal
+    /// is surfaced here as `ok:false, code:"unknown_body_plan"` — a silent fallback
+    /// would render a body the session did not ask for.
     pub fn handle_character_attach(
         &mut self,
         name: &str,
         pos: dc_api::payload::Vec3f,
         surface: bool,
+        body_plan: Option<String>,
         reply: oneshot::Sender<Value>,
     ) {
         if !dc_api::character::valid_character_name(name) {
@@ -674,6 +723,29 @@ impl Authority {
         }
         if self.world.character(name).is_some() {
             let _ = reply.send(json!({ "ok": true, "character": name, "spawned": false }));
+            return;
+        }
+        // Fail the plan name BEFORE the placement work: an unregistered plan is a
+        // content error, and answering it with "obstructed" would be a lie.
+        if let Some(plan) = &body_plan
+            && self.world.body_plan(plan).is_none()
+        {
+            let known: Vec<&str> = self
+                .world
+                .body_plans()
+                .map(|d| d.plan.name.as_str())
+                .collect();
+            let _ = reply.send(json!({
+                "ok": false,
+                "code": "unknown_body_plan",
+                "character": name,
+                "body_plan": plan,
+                "registered": known,
+                "error": format!(
+                    "cannot attach `{name}`: no registered body plan `{plan}`. \
+                     Registered plans: {known:?}."
+                ),
+            }));
             return;
         }
 
@@ -743,6 +815,7 @@ impl Authority {
             payload: Payload::SpawnCharacter(dc_api::payload::SpawnCharacter {
                 name: name.to_string(),
                 pos: feet,
+                body_plan,
             }),
             target_tick: None,
             txn: None,
@@ -936,6 +1009,7 @@ pub fn drain_bridge(
                 name,
                 pos,
                 surface,
+                body_plan,
                 reply,
             } => {
                 let pos = match pos {
@@ -951,7 +1025,7 @@ pub fn drain_bridge(
                         dc_api::payload::Vec3f::new(spot.x, spot.y, spot.z)
                     }
                 };
-                authority.handle_character_attach(&name, pos, surface, reply);
+                authority.handle_character_attach(&name, pos, surface, body_plan, reply);
             }
             BridgeRequest::CharacterApi {
                 tool,
@@ -1381,6 +1455,7 @@ pub(crate) mod tests {
                 "scout",
                 dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
                 false,
+                None,
                 tx,
             );
             authority.tick_now();
@@ -1435,6 +1510,7 @@ pub(crate) mod tests {
             "scout",
             dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
             false,
+            None,
             tx,
         );
         authority.tick_now();
@@ -1444,6 +1520,7 @@ pub(crate) mod tests {
             "scout",
             dc_api::payload::Vec3f::new(9.0, 9.0, 9.0),
             false,
+            None,
             tx,
         );
         let reply = rx.try_recv().expect("existing attach answers immediately");
@@ -1532,6 +1609,7 @@ pub(crate) mod tests {
             "buried",
             dc_api::payload::Vec3f::new(sx, buried_feet, sz),
             false,
+            None,
             tx,
         );
         let reply = rx.try_recv().expect("embed guard answers immediately");
@@ -1549,6 +1627,7 @@ pub(crate) mod tests {
             "flyer",
             dc_api::payload::Vec3f::new(sx, true_surf + 50.0, sz),
             false,
+            None,
             tx,
         );
         authority.tick_now();
@@ -1564,6 +1643,7 @@ pub(crate) mod tests {
             "walker",
             dc_api::payload::Vec3f::new(sx, true_surf + 100.0, sz),
             true,
+            None,
             tx,
         );
         authority.tick_now();
@@ -1731,6 +1811,7 @@ pub(crate) mod tests {
             "walker",
             dc_api::payload::Vec3f::new(spawn.x, 5000.0, spawn.z),
             true,
+            None,
             tx,
         );
         a.tick_now();
@@ -2078,6 +2159,7 @@ pub(crate) mod tests {
             "scout",
             dc_api::payload::Vec3f::new(spawn.x, spawn.y + 2.0, spawn.z),
             true,
+            None,
             tx,
         );
         authority.tick_now();
