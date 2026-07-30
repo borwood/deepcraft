@@ -348,14 +348,24 @@ Two consequences worth naming, both **NEEDS RATIFICATION**:
    would have to be decided.
 
 **The vanilla bodies pack is now genuinely loaded as a pack.** dc-client submits
-`dc_api::bodies::vanilla_body_pack()` (three clips, then `dc:body/biped` and
-`dc:body/stout`) at world construction under a `registry.define(dc)` grant held by
-a `vanilla-pack` consumer identity, and the renderer reads
-`HostWorld::body_plan`/`anim_clip`. Before this the pack function existed and only
-a dc-api unit test called it, while the renderer used compiled-in Rust — the door
-was built and never travelled (spines.md § A-4). First-party content now ships
-through the same surface a third party would use (north-star § core/plugin
-boundary).
+`dc_api::bodies::vanilla_body_pack()` (three clips, then `dc:body/biped`) at world
+construction under a `registry.define(dc)` grant held by a `vanilla-pack` consumer
+identity, and the renderer reads `HostWorld::body_plan`/`anim_clip`. Before this
+the pack function existed and only a dc-api unit test called it, while the renderer
+used compiled-in Rust — the door was built and never travelled (spines.md § A-4).
+First-party content now ships through the same surface a third party would use
+(north-star § core/plugin boundary).
+
+**`dc:body/stout` is an INSTRUMENT, not content.** The second plan exists only to
+test bodies.md's retargeting claim, and it rides its own batch
+(`experiment_body_pack()`), submitted after vanilla because it binds vanilla's
+clips and authors none of its own. It is deliberately *not* inside
+`vanilla_body_pack()`: an unratified body sitting in the default pack is how
+bootstrap fabrication becomes something a later session assumes belongs (*existence
+is not standing*). **NEEDS RATIFICATION: keep it, or delete it once the finding is
+recorded** — deleting is `experiment_body_pack` + `stout_plan` + one `chain` in
+dc-client `authority.rs::load_body_packs`. Note that deleting it also deletes the
+only evidence the retargeting claim has ever met.
 <!-- END EDIT -->
 
 

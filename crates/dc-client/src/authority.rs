@@ -303,12 +303,24 @@ impl Authority {
     /// later (total order), so a character spawned at any point after boot always
     /// finds its plan registered. The renderer simply has no body assets to build
     /// until then, which costs nothing — no character can exist before a tick.
-    fn load_vanilla_body_pack(world: &mut HostWorld) {
+    ///
+    /// **The second batch is the retargeting experiment, not content.**
+    /// `experiment_body_pack()` registers `dc:body/stout`, the deliberately
+    /// ill-proportioned instrument that tests bodies.md's IK claim. It is loaded
+    /// separately, and *after* vanilla (it binds vanilla's clips), so that
+    /// "vanilla" keeps meaning the vanilla content — deleting the experiment is
+    /// this one `chain` plus `dc_api::bodies::{stout_plan, experiment_body_pack}`.
+    /// *Existence is not standing*: an unratified body inside the default pack is
+    /// how bootstrap fabrication becomes something a later session assumes.
+    fn load_body_packs(world: &mut HostWorld) {
         let source = ConsumerId::new(ConsumerKind::Plugin, "vanilla-pack");
         let token = CapabilityToken::new(vec![Grant::RegistryDefine {
             namespace: "dc".into(),
         }]);
-        for payload in dc_api::bodies::vanilla_body_pack() {
+        let batch = dc_api::bodies::vanilla_body_pack()
+            .into_iter()
+            .chain(dc_api::bodies::experiment_body_pack());
+        for payload in batch {
             let envelope = CommandEnvelope {
                 id: payload.command_id().to_string(),
                 source: source.clone(),
@@ -318,9 +330,9 @@ impl Authority {
                 txn: None,
             };
             if let Err(entry) = world.submit(envelope) {
-                // Structurally impossible (the batch is generated from the typed
-                // source), but a silent body-less world would be baffling.
-                error!("vanilla body pack rejected: {:?}", entry.receipt.result);
+                // Structurally impossible (the batches are generated from the
+                // typed source), but a silent body-less world would be baffling.
+                error!("body pack rejected: {:?}", entry.receipt.result);
             }
         }
     }
@@ -328,7 +340,7 @@ impl Authority {
     /// Assemble the consumer identities / tokens shared by every authority.
     fn finish(scale: VoxelScale, mut world: HostWorld, surface: SurfaceAuthority) -> Self {
         world.set_chunk_budget(Self::chunk_budget_for(scale));
-        Self::load_vanilla_body_pack(&mut world);
+        Self::load_body_packs(&mut world);
         Self {
             world,
             accumulator: 0.0,

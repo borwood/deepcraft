@@ -1124,7 +1124,10 @@ mod tests {
         let grant = crate::capability::CapabilityToken::new(vec![Grant::RegistryDefine {
             namespace: "dc".into(),
         }]);
-        for payload in crate::bodies::vanilla_body_pack() {
+        let batch = crate::bodies::vanilla_body_pack()
+            .into_iter()
+            .chain(crate::bodies::experiment_body_pack());
+        for payload in batch {
             let env = crate::envelope::CommandEnvelope {
                 id: payload.command_id().to_string(),
                 source: source.clone(),

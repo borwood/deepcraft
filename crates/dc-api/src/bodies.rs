@@ -847,17 +847,33 @@ pub fn biped_clips() -> Vec<AnimClip> {
 /// `vanilla_pack_defines_through_the_door` and
 /// `registry_content_equals_the_authored_source`).
 ///
-/// Both plans bind the SAME three clips, which is why the clips are emitted once
-/// and the two `DefineBodyPlan`s follow: a clip is standalone data, and "one clip
-/// set, many plans" is the shape bodies.md § body plans asserts.
+/// The second plan is deliberately **NOT** in here — see [`experiment_body_pack`].
 pub fn vanilla_body_pack() -> Vec<Payload> {
     let mut out = Vec::new();
     for clip in biped_clips() {
         out.push(Payload::DefineAnimClip(DefineAnimClip(clip)));
     }
     out.push(Payload::DefineBodyPlan(DefineBodyPlan(biped_plan())));
-    out.push(Payload::DefineBodyPlan(DefineBodyPlan(stout_plan())));
     out
+}
+
+/// **The retargeting experiment's pack — an instrument, with NO standing as
+/// content.** [`stout_plan`] exists to falsify bodies.md's claim that two-bone IK
+/// retargets one clip set across proportions; it is not a creature anybody
+/// designed, ratified, or wants in the world.
+///
+/// It rides its own batch rather than [`vanilla_body_pack`] precisely so that
+/// "vanilla" stays the vanilla content. *Existence is not standing* (CLAUDE.md):
+/// an unratified body sitting inside the default pack would, in three months, be
+/// something a session found in the tree and assumed belonged there. Deleting the
+/// experiment is one call site in dc-client `authority.rs` plus this function.
+///
+/// It emits **only the plan**: the clips it binds are vanilla's, unmodified, which
+/// is the entire point — so this batch must be submitted *after*
+/// [`vanilla_body_pack`], or the verb→slot contract rejects it for binding
+/// unregistered clips.
+pub fn experiment_body_pack() -> Vec<Payload> {
+    vec![Payload::DefineBodyPlan(DefineBodyPlan(stout_plan()))]
 }
 
 #[cfg(test)]
@@ -884,17 +900,17 @@ mod tests {
     fn stout_is_well_formed_and_binds_the_biped_clips() {
         let clips = biped_clips();
         let stout = stout_plan();
+        let biped = biped_plan();
         validate_plan(&stout, clip_lookup(&clips)).expect("stout plan is valid");
         // Same joint set as the biped, so one clip set serves both.
-        let mut a: Vec<&str> = biped_plan().segments.iter().map(|s| &*s.name).collect();
+        let mut a: Vec<&str> = biped.segments.iter().map(|s| &*s.name).collect();
         let mut b: Vec<&str> = stout.segments.iter().map(|s| &*s.name).collect();
         a.sort_unstable();
         b.sort_unstable();
         assert_eq!(a, b, "stout must share the biped's joint names");
         // Same clip bindings, verbatim — no stout-specific clips exist.
         assert_eq!(
-            stout.slots,
-            biped_plan().slots,
+            stout.slots, biped.slots,
             "stout binds the biped's clips unmodified"
         );
     }

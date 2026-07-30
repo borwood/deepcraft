@@ -5,7 +5,8 @@
 //! batch that round-trips into the authored source.
 
 use dc_api::bodies::{
-    AnimSlot, DEFAULT_BODY_PLAN, biped_clips, biped_plan, stout_plan, vanilla_body_pack,
+    AnimSlot, DEFAULT_BODY_PLAN, biped_clips, biped_plan, experiment_body_pack, stout_plan,
+    vanilla_body_pack,
 };
 use dc_api::payload::{DefineAnimClip, DefineBodyPlan, QueryData, SpawnCharacter, Vec3f};
 use dc_api::{
@@ -45,13 +46,18 @@ fn apply(world: &mut HostWorld, env: CommandEnvelope) -> CommandResult {
         .result
 }
 
-/// Install the vanilla clips + plan through the door; return the world.
+/// Install the vanilla clips + plan through the door, then the retargeting
+/// experiment's plan (which binds vanilla's clips, so order matters); return the
+/// world. This is the batch order dc-client boots with.
 fn world_with_vanilla_bodies() -> HostWorld {
     let mut world = HostWorld::new(1);
     let (src, token) = definer("dc");
-    for payload in vanilla_body_pack() {
+    for payload in vanilla_body_pack()
+        .into_iter()
+        .chain(experiment_body_pack())
+    {
         let r = apply(&mut world, envelope(&src, &token, payload));
-        assert!(r.is_ok(), "vanilla body pack define rejected: {r:?}");
+        assert!(r.is_ok(), "body pack define rejected: {r:?}");
     }
     world
 }
@@ -100,37 +106,72 @@ fn registry_content_equals_the_authored_source() {
     assert_eq!(world.anim_clips().count(), biped_clips().len());
 }
 
-/// The second plan rides the same pack and binds the same clips — so the pack
-/// contains exactly one clip set and two plans over it.
+/// **The experiment is not vanilla content.** `vanilla_body_pack` carries the clip
+/// set and the biped only; the ill-proportioned `dc:body/stout` rides its own
+/// batch, which registers **no clips at all** — it binds vanilla's. That is both
+/// the experiment's whole design (one clip set, two plans) and the reason it can
+/// be deleted without touching the default pack (*existence is not standing*).
 #[test]
-fn the_pack_carries_two_plans_over_one_clip_set() {
-    let pack = vanilla_body_pack();
-    let clips: Vec<&str> = pack
-        .iter()
-        .filter_map(|p| match p {
-            Payload::DefineAnimClip(DefineAnimClip(c)) => Some(&*c.name),
-            _ => None,
-        })
-        .collect();
-    let plans: Vec<&str> = pack
-        .iter()
-        .filter_map(|p| match p {
-            Payload::DefineBodyPlan(DefineBodyPlan(pl)) => Some(&*pl.name),
-            _ => None,
-        })
-        .collect();
-    assert_eq!(clips.len(), 3, "one clip set: {clips:?}");
-    assert_eq!(plans, vec!["dc:body/biped", "dc:body/stout"]);
-    // Clips before plans — the define order the contract requires.
-    let first_plan = pack
+fn the_experiment_pack_is_separate_and_carries_no_clips() {
+    let names = |pack: &[Payload]| -> (Vec<String>, Vec<String>) {
+        let clips = pack
+            .iter()
+            .filter_map(|p| match p {
+                Payload::DefineAnimClip(DefineAnimClip(c)) => Some(c.name.clone()),
+                _ => None,
+            })
+            .collect();
+        let plans = pack
+            .iter()
+            .filter_map(|p| match p {
+                Payload::DefineBodyPlan(DefineBodyPlan(pl)) => Some(pl.name.clone()),
+                _ => None,
+            })
+            .collect();
+        (clips, plans)
+    };
+    let vanilla = vanilla_body_pack();
+    let (v_clips, v_plans) = names(&vanilla);
+    assert_eq!(v_clips.len(), 3, "one clip set: {v_clips:?}");
+    assert_eq!(v_plans, vec!["dc:body/biped".to_string()]);
+    // Clips before the plan — the define order the contract requires.
+    let first_plan = vanilla
         .iter()
         .position(|p| matches!(p, Payload::DefineBodyPlan(_)))
         .unwrap();
-    let last_clip = pack
+    let last_clip = vanilla
         .iter()
         .rposition(|p| matches!(p, Payload::DefineAnimClip(_)))
         .unwrap();
     assert!(last_clip < first_plan, "clips must be defined before plans");
+
+    let (e_clips, e_plans) = names(&experiment_body_pack());
+    assert!(
+        e_clips.is_empty(),
+        "the experiment authors NO clips — it reuses vanilla's, which is the \
+         measurement: {e_clips:?}"
+    );
+    assert_eq!(e_plans, vec!["dc:body/stout".to_string()]);
+}
+
+/// And the experiment pack **cannot** load on its own: submitted into a world
+/// without vanilla's clips, the verb→slot contract rejects it. This is the
+/// ordering constraint stated as a test rather than as a comment.
+#[test]
+fn the_experiment_pack_requires_vanillas_clips() {
+    let mut world = HostWorld::new(1);
+    let (src, token) = definer("dc");
+    for payload in experiment_body_pack() {
+        let r = apply(&mut world, envelope(&src, &token, payload));
+        assert!(
+            matches!(
+                r,
+                CommandResult::Rejected(RejectReason::SchemaViolation { .. })
+            ),
+            "stout binds clips it does not author: {r:?}"
+        );
+    }
+    assert!(world.body_plan("dc:body/stout").is_none());
 }
 
 // ------------------------------------ per-character plan selection (S-5) --
