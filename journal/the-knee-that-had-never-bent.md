@@ -217,7 +217,59 @@ landing on the entry that established it.
 Note also the sign: the raised foot lands **22 mm below** the step surface, sunk into
 it. Same quantizer, opposite direction.
 
-### The second refusal, and this one is scale-free
+### And then the posture axis, which found the whole thing had been working all along
+
+The uneven-ground surprise suggested the obvious next question: *what else moves the hip
+toward the ground?* **Crouching does.** `CROUCH_ROOT_DROP_M` sinks the cosmetic root
+**0.45 m**, and `character.rs` applies it to the hip before the IK runs. So the probe
+grew a posture axis, and the result is the largest single finding in this entry:
+
+```
+dc:body/biped   / flat / crouch  — 88/88 samples CORRECTED, knee to −123.7°
+dc:body/biped   / flat / stand   —  0/88, every one clamped, knee 0.0°
+```
+
+**The stock biped's foot-placement IK has always worked. While crouching.** Nobody had
+ever looked at a crouching body. The 0.900 m hip becomes 0.450 m, which sits comfortably
+inside the 0.880 m annulus, and every foot plants with a deep bend. journal/0130's
+headline — *"foot-placement IK has never once engaged"* — is true of **standing** and
+was never true of the system.
+
+That is the second time in two entries that the same corollary bit: *before concluding
+"system X never fires", check that you sampled the states where it would.* 0130 sampled
+one posture on one ground and generalised to a mechanism. This entry sampled four cases
+and found the mechanism fires in three of them.
+
+And the axis is not decoration, because it also exposes a **fourth absolute-metres
+constant** that bodies.md's units banner does not name. 0.45 m is 50.0% of the biped's
+hip height and **97.8% of the stout's** — a crouching `dc:body/stout` puts its hip at
+**0.010 m** and folds its knee to a degenerate **180.0°**, the leg doubled flat on
+itself. The banner lists hip height, the clips' root bob and the IK window. There were
+always four.
+
+### Two gates, and no plan passes both
+
+Laying the cases side by side gives the cleanest statement of what is actually wrong.
+Foot placement has **two independent gates**: the ground must be inside the *half-voxel
+window*, and the sole target must be inside the *annulus*. Different plans fail
+different gates in different postures:
+
+| | flat, standing | flat, crouching | +0.30 m step | one-voxel step |
+|---|---|---|---|---|
+| `biped` | annulus refuses, 0/88 | **88/88**, knee 123.7° | uphill foot plants, knee 90° | window refuses raised foot |
+| `stout` | annulus refuses, 0/88 | 88/88, knee **180°** (degenerate) | uphill foot plants, knee 135° | window refuses raised foot |
+| `longleg` | **86/88**, knee 56.2° | **window refuses, 4/88** | 87/88 | window refuses raised foot |
+
+Read the diagonal. `longleg` standing works and crouching does not; `biped` crouching
+works and standing does not. The plan I built to make the solver run *broke the posture
+that already ran* — because its legs are now so long that crouching puts the clip's foot
+0.57 m below the ground, and the window only admits 0.45 m.
+
+**Nothing in the codebase reconciles those two gates.** One comes from the voxel scale,
+one from the plan's bones, and they were never introduced to each other. That, rather
+than any single constant, is what the open user call is really about.
+
+### The third refusal, and this one is scale-free
 
 The one-voxel step is where it stops being a tuning question. The correction window is
 **half a voxel**. The smallest relief real terrain can have is **one whole voxel**. The
@@ -246,6 +298,13 @@ squat-free slack provides. Both are engine-and-authoring questions sitting squar
 inside the open user call. This slice's job was to remove *reachability* from that
 call's list of unknowns, and that it did.
 
+What it bought that nobody asked for is worth more: the plan was built to make the
+solver run once, and instead it turned the probe into something that could enumerate
+**when** foot placement fires. The answer — three of four cases, including one that has
+been firing silently since the code shipped, and a fourth constant nobody had counted —
+was only visible because the instrument grew an axis. The reachable plan is almost a
+footnote to the matrix it made possible.
+
 ### Wrong turns
 
 - **The first instinct was to nudge `l2` by 20 mm.** It is a one-character diff and it
@@ -259,8 +318,16 @@ call's list of unknowns, and that it did.
   exists because the number was checked instead of typed.
 - **The step case was nearly authored at 0.900 m only**, as "the realistic one". It
   would have refused every sample and reported another clean null — and the biped's
-  90° uphill knee, the most surprising result here, would have stayed invisible. A
-  synthetic case that no terrain can produce was the one that could see the question.
+  90° uphill knee would have stayed invisible. A synthetic case that no terrain can
+  produce was the one that could see the question.
+- **The posture axis was very nearly not built.** The brief did not ask for it and the
+  plan was already done; adding it meant touching the probe's signature a second time.
+  The only reason it happened is that the build slot was occupied by a sibling's gate, so
+  the marginal cost of another edit was zero — and it produced the biggest result in the
+  entry. That is an uncomfortable thing to record: **the most valuable measurement here
+  was a consequence of being blocked**, not of judgement. The transferable version is
+  that "does mechanism X ever fire?" is never answerable from one point in the state
+  space, and the axes are usually cheap to enumerate once the harness exists.
 
 > blogworthy: **the closed system that could not see its own hover.** Two independent
 > defects, superimposed, in a quantity every internal check was blind to — one fixed by
