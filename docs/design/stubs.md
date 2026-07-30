@@ -942,7 +942,10 @@ structure-aware fine expression's choice of fabric. Nothing expresses it at runt
 today. *Loud marker at `DepUnit::species` and at `arriving_species`.*
 
 ### 26. a-channelisation-threshold-fitted-to-one-world — *added 2026-07-26 (FLOW continuation (b'), hybrid `p`, journal/0113)*
-`DeepConfig::mfd_chi_lo = 1e-4` / `mfd_chi_hi = 1e-2` are the ends of the ramp that
+`DeepConfig::mfd_chi_lo = ~~1e-4~~ **3.0e-2**` / `mfd_chi_hi = ~~1e-2~~ **1.2e-1**`
+*(opening line corrected 2026-07-29, record-terms priors audit: this entry carried
+three values across its own opener, body and the code — the shipped values are
+`grid.rs:588-589`, and the entry's own body already defended 1.2×10⁻¹)* are the ends of the ramp that
 carries the MFD convergence exponent from its hillslope value to its channel value.
 The **index** they threshold is real and cited — `χ = A · S²`, Montgomery & Dietrich
 (1988, 1992)'s channel-initiation criterion, which is why the law puts hillslopes,

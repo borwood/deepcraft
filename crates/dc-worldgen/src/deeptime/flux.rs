@@ -398,8 +398,12 @@ pub struct FluxEntry {
     ///
     /// **Bulk only.** The *composition* of the load — which materials, in what
     /// proportion, the thing a placer streak in channel gravel is made of — is a
-    /// named seam whose heir is **Movement 2b, material-aware transport**. An
-    /// honest bulk number now; a fabricated composition never.
+    /// named seam. Its heir was **Movement 2b, material-aware transport**, which
+    /// shipped 2026-07-26 *without landing this*: the per-species split exists in
+    /// the solve (`erosion.rs::split_by_shares` feeds a `face_total` that
+    /// deliberately collapses species) and is discarded. Heir re-named 2026-07-29:
+    /// **the fluvial record-terms slice** (refinement member #1, records-first
+    /// ruling). An honest bulk number now; a fabricated composition never.
     pub load: f32,
     /// **f** — the fluid. Always [`FluidId::WATER`] in slice 1.
     pub fluid: FluidId,
