@@ -499,6 +499,13 @@ pub fn pose_for(state: &AnimState, idle: &AnimClip, walk: &AnimClip) -> Pose {
 /// Every figure is in **metres, with the ground at y = 0** and the body standing
 /// on it, measured over the clip's *stepped* frames (the 12 fps grid the renderer
 /// actually samples), for every leg the plan declares.
+///
+/// `#[cfg(test)]`: this is an instrument, not shipped renderer code, and it lives
+/// beside the production math it re-derives so the two cannot drift. It runs in
+/// the ordinary workspace gate (`retargeting_across_proportions_is_measured`) —
+/// the `examples/ … test = true` dance in CLAUDE.md § Gates exists for probes that
+/// need a printed `main`; this one prints from the test under `--nocapture`.
+#[cfg(test)]
 #[derive(Clone, PartialEq, Debug)]
 pub struct RetargetReport {
     pub plan: String,
@@ -533,6 +540,14 @@ pub struct RetargetReport {
 /// Measure one plan against one clip. `voxel_size_m` is the active scale's voxel
 /// edge — the foot-IK correction window is **half a voxel**, an absolute length,
 /// which is precisely the kind of constant a second plan exists to interrogate.
+///
+/// This deliberately **re-implements** the renderer's foot-placement decision
+/// (`character.rs`: correct only inside the half-voxel window, then snap the
+/// solved angles to the rotation quantum) over flat ground at y = 0, because the
+/// real one needs a bevy world and a voxel query. The duplication is the honest
+/// cost of measuring a render path headlessly, and it is the one thing in this
+/// file that can silently disagree with production — noted as a loose end.
+#[cfg(test)]
 pub fn retarget_report(
     plan: &BodyPlan,
     clip: &AnimClip,

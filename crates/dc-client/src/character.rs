@@ -151,11 +151,7 @@ pub fn sync_characters(
     // Split the resource borrow: the per-plan assets (read) and `bodies` (write)
     // are disjoint fields, so the sampler can read a plan/clips while the anim
     // states mutate.
-    let CharacterVisuals {
-        bodies,
-        plans,
-        missing_plans: _,
-    } = &mut *visuals;
+    let CharacterVisuals { bodies, plans, .. } = &mut *visuals;
     let plans = &*plans;
 
     let mut seen: Vec<String> = Vec::new();
@@ -176,10 +172,10 @@ pub fn sync_characters(
 
         // A body whose rendered plan no longer matches its state is rebuilt
         // (transmog has no verb yet; when it gets one, this is the seam).
-        if let Some(instance) = bodies.get(character.name.as_str())
-            && instance.plan != character.body_plan
-        {
-            let instance = bodies.remove(character.name.as_str()).expect("just read");
+        let plan_changed = bodies
+            .get(character.name.as_str())
+            .is_some_and(|i| i.plan != character.body_plan);
+        if plan_changed && let Some(instance) = bodies.remove(character.name.as_str()) {
             commands.entity(instance.root).despawn();
         }
 

@@ -307,6 +307,57 @@ crouched instead of clipping up. Replay bit-identity extends to posture
 (`character_semantics::posture_transitions_replay_identically`).
 <!-- END EDIT -->
 
+<!-- EDITED 2026-07-29 (per-character body plans) — NEEDS RATIFICATION on the
+     two marked items below; the rest implements ratified bodies.md § body plans -->
+**Which body a character WEARS (added 2026-07-29).** Two appended, backward-
+compatible fields close the "v0: every character wears the one vanilla plan" hole
+in dc-client `character.rs`:
+
+- `dc:character/spawn_character` gains optional **`body_plan`** — a registered
+  plan name (`dc:body/biped`, `dc:body/stout`). Omitted = the **identity default**
+  `dc:body/biped`, so every existing caller's spawn is byte-unchanged. Its
+  completion source is world-backed: `body_plan=<TAB>` lists the plans a pack
+  actually registered. The character surface's `character_attach` takes the same
+  optional argument (ignored when attaching to an existing character — swapping a
+  live body is transmog, a separate verb).
+- `CharacterState` gains **`body_plan: String`** (`serde(default)` → the identity
+  default, so pre-plan logs decode to the biped), and
+  `dc:character/pose` echoes it back so a driver confirms what it got rather than
+  trusting the spawn receipt. `QueryData::CharacterPose` and `SpawnCharacter` both
+  grew appended fields only; postcard wire identity preserved.
+- An **unregistered** plan name is refused with the appended
+  `RejectReason::UnknownBodyPlan`, never silently defaulted — a caller whose pack
+  failed to load must find out at the spawn, not by looking at the render. The
+  attach flow surfaces it as `{ ok: false, code: "unknown_body_plan", registered:
+  [...] }`, following the existing `obstructed` convention.
+
+Two consequences worth naming, both **NEEDS RATIFICATION**:
+
+1. **The identity default is not checked against the registry.** Requiring it
+   would make dc-api's character primitive depend on *content* being loaded — a
+   plan is cosmetic (the collider comes from the world-global `CharacterConfig`),
+   so a plan-less world still spawns characters and it is the *renderer* that
+   needs a pack. Explicitly naming a plan is a claim about content and is
+   validated; omitting one is not. Alternative, if the user prefers: validate
+   always and make every character spawn require the bodies pack.
+2. **The body plan is not a collider.** Nothing about `dc:body/stout`'s 1.60 m
+   height or wide trunk reaches the sim: it walks, crouches, and is hit as the
+   same 1.8 × 0.6 m box as the biped. That is the determinism firewall working as
+   ratified, and it is also a visible mismatch the moment two plans differ in
+   height. bodies.md § plan parameters (PROPOSED) is where a sim-visible extent
+   would have to be decided.
+
+**The vanilla bodies pack is now genuinely loaded as a pack.** dc-client submits
+`dc_api::bodies::vanilla_body_pack()` (three clips, then `dc:body/biped` and
+`dc:body/stout`) at world construction under a `registry.define(dc)` grant held by
+a `vanilla-pack` consumer identity, and the renderer reads
+`HostWorld::body_plan`/`anim_clip`. Before this the pack function existed and only
+a dc-api unit test called it, while the renderer used compiled-in Rust — the door
+was built and never travelled (spines.md § A-4). First-party content now ships
+through the same surface a third party would use (north-star § core/plugin
+boundary).
+<!-- END EDIT -->
+
 
 ## Capabilities
 

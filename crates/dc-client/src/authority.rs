@@ -1541,6 +1541,131 @@ pub(crate) mod tests {
         );
     }
 
+    /// **The untraveled door, travelled.** `vanilla_body_pack()` existed since the
+    /// body-plan milestone and only a dc-api unit test called it; the renderer used
+    /// compiled-in `biped_plan()`/`biped_clips()`. Now the running game *loads* it.
+    ///
+    /// The assertions are the re-housing proof from the client side: the pack is
+    /// queued at construction and applies at the first tick (like every command),
+    /// and what the registry then hands the renderer is `==` to the authored source
+    /// it used to call — so the rendered frame is unchanged by construction.
+    #[test]
+    fn the_vanilla_body_pack_loads_through_the_one_door() {
+        // Legacy S1 terrain authority (key 3): no worldgen pregen, so this is a
+        // cheap world. The pack load is scale-independent.
+        let mut authority = Authority::new(1337, 3);
+        assert!(
+            authority.world.body_plan("dc:body/biped").is_none(),
+            "the pack is SUBMITTED at construction, not applied — it lands at a \
+             tick boundary like every other command"
+        );
+        authority.tick_now();
+
+        // Both plans and the one clip set are now registered.
+        assert_eq!(authority.world.body_plans().count(), 2);
+        assert_eq!(authority.world.anim_clips().count(), 3);
+        // And they are the authored source, byte for byte: this is what makes the
+        // registry route a re-housing rather than a change.
+        assert_eq!(
+            authority
+                .world
+                .body_plan("dc:body/biped")
+                .expect("biped")
+                .plan,
+            dc_api::bodies::biped_plan(),
+            "the plan the renderer reads must equal the one it used to call"
+        );
+        assert_eq!(
+            authority
+                .world
+                .body_plan("dc:body/stout")
+                .expect("stout")
+                .plan,
+            dc_api::bodies::stout_plan()
+        );
+        for authored in dc_api::bodies::biped_clips() {
+            assert_eq!(
+                authority
+                    .world
+                    .anim_clip(&authored.name)
+                    .unwrap_or_else(|| panic!("clip {} registered", authored.name))
+                    .clip,
+                authored
+            );
+        }
+    }
+
+    /// Per-character plan selection through the attach flow: a named plan is worn
+    /// and reads back, and an unregistered name is a **receipt**, not a silent
+    /// fallback to the default body.
+    #[test]
+    fn attach_wears_a_named_plan_and_refuses_an_unknown_one() {
+        let mut authority = Authority::new(1337, 3);
+        authority.tick_now(); // the pack lands
+
+        // The default: no plan named.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "plain",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            None,
+            tx,
+        );
+        authority.tick_now();
+        assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
+        assert_eq!(
+            authority
+                .world
+                .character("plain")
+                .expect("spawned")
+                .body_plan,
+            dc_api::bodies::DEFAULT_BODY_PLAN
+        );
+
+        // A registered second plan. Same feet as above — the spot is known clear
+        // (the embed guard passed for `plain`), and characters do not collide with
+        // each other, so this isolates the plan argument as the only variable.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "squat",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            Some("dc:body/stout".to_string()),
+            tx,
+        );
+        authority.tick_now();
+        assert_eq!(rx.try_recv().expect("attach")["ok"], json!(true));
+        assert_eq!(
+            authority
+                .world
+                .character("squat")
+                .expect("spawned")
+                .body_plan,
+            "dc:body/stout"
+        );
+
+        // An unregistered plan: refused with a receipt, and nothing spawned.
+        let (tx, mut rx) = oneshot::channel();
+        authority.handle_character_attach(
+            "ghost",
+            dc_api::payload::Vec3f::new(0.3, 40.0, 0.3),
+            false,
+            Some("mod:body/nonexistent".to_string()),
+            tx,
+        );
+        let reply = rx
+            .try_recv()
+            .expect("an unknown plan is refused before any placement work");
+        assert_eq!(reply["ok"], json!(false), "{reply}");
+        assert_eq!(reply["code"], json!("unknown_body_plan"), "{reply}");
+        authority.tick_now();
+        assert!(
+            authority.world.character("ghost").is_none(),
+            "a refused attach spawns nothing"
+        );
+    }
+
     /// The streamed cache is a copy of the authoritative world: a chunk
     /// fetched from the host carries both terrain and applied edits.
     #[test]
