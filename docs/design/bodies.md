@@ -216,7 +216,17 @@ an implementation choice; artifact suppression uses standard techniques
 > below is preserved as dated testimony, but that clause was never the user's, and the word
 > **"forgiving"** in the same sentence is the tell: it is what a workaround says about itself.
 > A justification that outlived its premise (anti-shape **A-2**), load-bearing for a year
-> because nobody re-read who wrote it.
+> because nobody re-read who wrote it. **Full record: `corrections.md` #82; narrative in
+> journal/0133.**
+>
+> **And removing it exposed a test the quantizer had been hiding.**
+> `looping_wraps_deterministically` asserted **bit-identity** between `sample_clip(walk, 0.4)`
+> and `sample_clip(walk, 1.4)`; `quantize_time` floors on a grid anchored at absolute `t = 0`
+> and wraps *afterwards*, so the two are one real number in different bits, and the 11.25° snap
+> rounded both to the same grid point. **It passed for a year while measuring `rem_euclid`'s
+> final ULP and calling it looping** — anti-shape **A-3**, concealed by the very mechanism this
+> ruling removes. Retargeted with a bound derived from the mechanism, not deleted. *A quantizer
+> wide enough to hide a defect is wide enough to hide a defect in its own guard.*
 >
 > **What is NOT decided here: the 12 fps step itself.** It is deferred, deliberately, to a
 > taste call the user wants to make **on a body whose feet actually reach the ground** — a

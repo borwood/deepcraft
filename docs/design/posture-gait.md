@@ -149,8 +149,28 @@ upper-body action during a walk are **not gait** and continue to use the clip ma
 
 > **⚠ SCOPED 2026-08-01 (user, cautiously ratified) — BALANCE IS THE RULE FOR *STANDING*
 > BODIES, NOT THE DEFINITION OF POSTURE.** Posture is determined by **how a body is
-> supported**, and a body **declares its support kind** — one more functional-part declaration
-> (§ decision 17/22), not a separate concept. Balance (CoM over base) governs **standing**
+> supported**. **⚠ AMENDED 2026-08-01 (user, same day): SUPPORT IS A PER-SEGMENT CAPABILITY,
+> ACTIVATED PER MODE — there is no "a body declares its support kind", and no separate
+> support-kind concept at all.** A **segment declares the support it is *capable* of**; a
+> **mode declares which capabilities are *active*** — capability on the part, activation by the
+> mode, exactly the shape of the open action vocabulary (a body declares what it *can* do;
+> what it is *doing* is separate). So support collapses into **roles (§ 7b) + modes**, both of
+> which already exist, and **modes become load-bearing rather than a gait detail.**
+> **The alligator is what exposed it**, and it breaks the earlier framing twice over: it has at
+> least four support modes (high walk on four feet; sprawling walk with feet **and belly**;
+> belly slide; swimming with **no ground contact at all**), so *"the body's support kind"* has
+> no referent — **and a single stance can MIX kinds** (sprawling: feet *standing*, belly
+> *distributed*, simultaneously), which every earlier test case was too pure to reveal. The
+> same part also changes role between modes: the belly bears weight sprawling, none in a high
+> walk, and touches nothing swimming — **so support is not a static property of a segment
+> either.**
+> **Cost, flagged rather than hidden: the bake gains a MODE axis** (an alligator's high-walk
+> posture and its basking posture are different postures). Net table size is unchanged — this
+> trades for the growth axis dropped in decision 24.
+> **Bonus: buoyancy is a fourth rule over the same inputs** — how a body floats is centre of
+> buoyancy against centre of mass, which needs exactly the per-segment volume and density the
+> mass integral already wants. Four consumers of one integral now: harvest yield, evolutionary
+> fitness, standing posture, flotation. Balance (CoM over base) governs **standing**
 > bodies. Other support kinds get other rules: **anchored** — structural bending under self
 > weight and wind (a tree); **lying/distributed** — shape, with no balance problem at all (a
 > snake, whose CoM is supported everywhere, so the balance rule is *satisfied by every possible

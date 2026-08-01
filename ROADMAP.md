@@ -2549,6 +2549,20 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🔴 THE FULL WORKSPACE GATE TAKES ~9 HOURS AND HOLDS THE SINGLE BUILD SLOT THE WHOLE TIME**
+  (measured 2026-08-01 during the quantizer removal; pre-existing and unrelated to that slice).
+  `cargo test --workspace --release` stage 2 is dominated by `dc-worldgen`'s Medium-extent
+  suites — `geology.rs` **~2 h**, `s7_pregen.rs` **~1.5 h**, with `s7_walk.rs`,
+  `deeptime_integration.rs`, `geotherm.rs` and `organic.rs` each **30–60 min**. **Mechanism:**
+  libtest runs a file's tests *concurrently* and each one builds a rayon-parallel Medium world,
+  so the suites **oversubscribe the box against themselves**. Consequence for throughput: with
+  one build slot across all agents and sessions, a single gate can consume a working day, and
+  the staged-gate rule (`session-workflow`) mitigates the *verdict* problem but not the
+  *duration* one. **Not diagnosed further and not scheduled** — the obvious levers (a smaller
+  extent for suites whose invariant is scale-free, `--test-threads` capping, or moving
+  world-building suites behind a feature) each need a call about what coverage is being traded.
+  *Recorded because it is a standing tax on every merge and nobody had measured it.*
+
 - **🟠 MEASURED 2026-07-29 (journal/0130 + journal/0131): BODY PLANS ARE A REAL SEAM NOW, AND
   THE IK'S RATIFIED SENTENCE IS HALF TRUE.** Two experiments, no engine constant moved.
   **Confirmed:** one unmodified clip set drives `dc:body/biped` and `dc:body/stout`

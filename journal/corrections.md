@@ -3365,3 +3365,72 @@ second time as an explicit request to explain a question that should not have ex
 
 **Stamped in the same commit:** `bodies.md` § IK, `posture-gait.md` § 8, and the ROADMAP
 Observed entry all corrected in place, originals preserved as dated testimony.
+
+## 82. "The stepped-animation identity was chosen for the aesthetic" (`bodies.md` § stepped animation, DECIDED 2026-07-19 — falsified 2026-08-01 by its own originator)
+
+**The claim.** `bodies.md` § *Stepped animation* has read, since 2026-07-19: *"Character
+animation renders **frame-stepped (~12 fps, quantized rotations)** — a stop-motion look chosen
+for the elevated-pixel aesthetic (an identity, not a workaround; it also happens to be cheap
+and forgiving)."* It carried a **DECIDED** heading in a read-first design doc and was treated
+as ratified aesthetic by every session since.
+
+**Falsified by the user, who remembered writing none of it:** *"both the 12fps stepping and the
+rotation snapping were recommendations claude came up with to try to hide weird rotations it
+foresaw we would get from IK solves: we never actually saw weird IK solves, and I didn't
+generate either idea myself."* The user rolled with an assistant proposal; a later session
+recorded the result as an **identity**; the identity then outranked three investigations that
+could have questioned it.
+
+**And the premise it guarded is measured false.** journal/0131's probe ran the two-bone solver
+over 3 plans × 4 ground cases × 3 clips — **1,056 samples** — and found well-behaved knee
+angles throughout (−56.2°, 90.0°, 123.7°). The lone degenerate 180° traces to
+`CROUCH_ROOT_DROP_M` consuming **97.8 %** of the stout's hip height: a bad constant, not an
+unstable solver. **The guard was guarding nothing** — and it cost sub-decimetre foot placement
+outright, since one quantum of hip rotation moves the biped's ankle **172 mm** against
+corrections needing 1.30° / 0.98° / 0.33°.
+
+**The tell was in the sentence, eleven words away.** *"an identity, not a workaround"* sits in
+the same sentence as *"forgiving"* — and forgiveness is not a property of an identity; it is
+what a mechanism offers when it absorbs a failure you expect. **A claim and its own refutation
+in one sentence**, in a file loaded at the start of every session. The corpus's previous
+tightest instances (#65, #81) were sections apart.
+
+**Mechanism: a defensive measure with no observed threat becomes indistinguishable from a taste
+choice once its author is gone.** A workaround and an identity look identical in code — both
+are just a constant. What separates them is **provenance**, and provenance was never recorded.
+(This is precisely why the 2026-07-25 rule exists: *user-originated constraints are data;
+assistant-originated ones are hypotheses that happened to survive.* The rule was in force and
+this entry predates its application to `bodies.md`.)
+
+**The rule this suggests, offered not ratified:** *when a design doc asserts something is an
+identity rather than a workaround, that sentence is doing defensive work — and defensive work
+implies a threat. Ask what the threat was. If nobody can name a time it fired, the mechanism is
+a guard against an anticipation, and an anticipation is a hypothesis that was never tested.*
+
+**Which control caught it: none of them.** `spine-audit` compares docs to code, and the code
+matched the doc perfectly. The staleness sweep compares docs to newer work, and the newer work
+(journal/0130, 0131, corrections #80) all *deferred* to the doc. `doc-topology` compares docs to
+each other, and both halves sat inside one sentence of one file. **The instrument was the user
+remembering who proposed it** — the fourth time in a week a human observation beat an
+instrument reading (#77, #78, #80, and this).
+
+**Disposed 2026-08-01 by user ruling, subtractively** (*"stop treating as a constraint we must
+satisfy and subtract the rotation quant"*): `ROT_QUANTUM_RAD`, `quantize_angle` and
+`stepped_angle` are gone with every call site; **nothing replaced them.** `ANIM_FPS = 12.0`
+rides, deliberately undecided, pending a taste call the user wants to make **on a body whose
+feet actually reach the ground**.
+
+**And the removal exposed a test the quantizer had been hiding.**
+`looping_wraps_deterministically` asserted **bit-identity** between `sample_clip(walk, 0.4)`
+and `sample_clip(walk, 1.4)`. `quantize_time` floors on a grid anchored at absolute `t = 0` and
+wraps *afterwards*, so the two are the same real number in different bits; the 11.25° snap
+rounded both to the same grid point. **It passed for a year while measuring `rem_euclid`'s
+final ULP and calling it looping** — anti-shape **A-3**, concealed by the very mechanism this
+slice removes. Retargeted (not deleted) with a bound derived from the mechanism: ~5e-15 rad
+expected, 1e-12 asserted. *A quantizer wide enough to hide a defect is wide enough to hide a
+defect in its own guard.*
+
+**Stamped in the same commit** (read-first item 5): `bodies.md` § stepped animation carries the
+banner — removal, provenance, the 1,056-sample refutation, and the withdrawal of *"an identity,
+not a workaround"* **as to the rotation half only** — with the original preserved unedited as
+dated testimony. journal/0133 is the narrative.
