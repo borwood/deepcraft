@@ -2567,28 +2567,29 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     honestly). **But it fixed the TEST to match the IMPLEMENTATION.** The one-line alternative —
     **wrap first, then quantize** — makes the original bit-identity assertion *true*, and
     removes the drift above at the same time.
-  - **Deliberately not fixed now.** The full gate measures **~9 hours** (see the entry above),
-    so a one-line change costs a working day of the single build slot to verify, against a bug
-    no shipped content triggers. **Rides as-built per the interim doctrine.**
+  - **Deliberately not fixed now — BUT THE REASON FIRST GIVEN WAS VOID** (corrections #83). The
+    original justification was *"the full gate measures ~9 hours, so a one-line change costs a
+    working day"*. **The gate is ~35–40 minutes**, so cost is not the argument. **The surviving
+    reasons are:** the bug is **latent** (no shipped looping clip is frame-misaligned), and the
+    fix belongs **with the slice that makes the pose sim-visible**, where the assertion is
+    re-tightened to exact in the same change. **Rides as-built on those grounds, not on cost.**
   - **⚠ IT STOPS BEING LATENT IF THE POSE BECOMES SIM-VISIBLE.** `posture-gait.md` § 5 proposes
     resolving damage against the **nominal pose**, which would make pose sampling
     **replay-critical** — and a tolerance-based test is not adequate for a replay claim. **Fix
     the ordering as part of that slice, not before**, and re-tighten the assertion to exact
     when it lands.
 
-- **🔴 THE FULL WORKSPACE GATE TAKES ~9 HOURS AND HOLDS THE SINGLE BUILD SLOT THE WHOLE TIME**
-  (measured 2026-08-01 during the quantizer removal; pre-existing and unrelated to that slice).
-  `cargo test --workspace --release` stage 2 is dominated by `dc-worldgen`'s Medium-extent
-  suites — `geology.rs` **~2 h**, `s7_pregen.rs` **~1.5 h**, with `s7_walk.rs`,
-  `deeptime_integration.rs`, `geotherm.rs` and `organic.rs` each **30–60 min**. **Mechanism:**
-  libtest runs a file's tests *concurrently* and each one builds a rayon-parallel Medium world,
-  so the suites **oversubscribe the box against themselves**. Consequence for throughput: with
-  one build slot across all agents and sessions, a single gate can consume a working day, and
-  the staged-gate rule (`session-workflow`) mitigates the *verdict* problem but not the
-  *duration* one. **Not diagnosed further and not scheduled** — the obvious levers (a smaller
-  extent for suites whose invariant is scale-free, `--test-threads` capping, or moving
-  world-building suites behind a feature) each need a call about what coverage is being traded.
-  *Recorded because it is a standing tax on every merge and nobody had measured it.*
+- **✅ FALSIFIED AND REPLACED 2026-08-01 (corrections #83) — THE FULL WORKSPACE GATE IS ~35–40
+  MINUTES, NOT 9 HOURS.** The 9-hour claim was an agent's, recorded here by the integrator as a
+  measured fact and repeated to the user twice. **Measured four ways, all agreeing:**
+  `rotquant-stage2b.log` ran **18:14:53 → 18:54:40 = 39.8 min** and the sum of its 90 suites'
+  own `finished in` figures is **39 min**; the integrator's independent merge gate hours earlier
+  (`merge-gate2b.log`) ran **34.5 min** against a suite-sum of **34.3 min**. The **slowest single
+  suite is 205 s** (3.4 min), against a claimed *"`geology.rs` ~2 h"* — off by ~35×. The attached
+  mechanism (libtest oversubscribing Medium-world builds) was **an explanation for a phenomenon
+  that does not exist.**
+  **The gate is not a standing tax and needs no remedy.** Staged invocation stays right for
+  *verdict* clarity — a killed run must be unambiguous — but not for duration.
 
 - **🟠 MEASURED 2026-07-29 (journal/0130 + journal/0131): BODY PLANS ARE A REAL SEAM NOW, AND
   THE IK'S RATIFIED SENTENCE IS HALF TRUE.** Two experiments, no engine constant moved.

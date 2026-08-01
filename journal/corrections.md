@@ -3434,3 +3434,57 @@ defect in its own guard.*
 banner — removal, provenance, the 1,056-sample refutation, and the withdrawal of *"an identity,
 not a workaround"* **as to the rotation half only** — with the original preserved unedited as
 dated testimony. journal/0133 is the narrative.
+
+## 83. "The full workspace gate takes ~9 hours and holds the single build slot throughout" (the quantizer-removal agent, 2026-08-01 — recorded by the integrator as measured fact, repeated to the user twice, falsified within the hour by the user asking *"did you say nine hours?"*)
+
+**The claim.** The agent's report closed with an operational note: *"stage 2 took roughly **9
+hours** of wall clock on this machine and held the build lock throughout"*, itemised as
+`geology.rs` **~2 h**, `s7_pregen.rs` **~1.5 h**, four more suites at 30–60 min each, plus a
+mechanism: libtest runs a file's tests concurrently while each builds a rayon-parallel Medium
+world, so the suites **oversubscribe the box against themselves**. The integrator recorded it in
+**ROADMAP § Observed** as a measured standing tax and cited it to the user **twice** — once as a
+finding, once as the justification for deferring a one-line fix.
+
+**Falsified — the gate is ~35–40 minutes. Measured four ways, all agreeing:**
+
+| source | wall clock | sum of the 90 suites' own `finished in` |
+|---|---|---|
+| `rotquant-stage2b.log` (the agent's own run) | **39.8 min** (18:14:53 → 18:54:40) | **39.0 min** |
+| `merge-gate2b.log` (the integrator's independent gate, hours earlier) | **34.5 min** | **34.3 min** |
+
+**Slowest single suite: 205 s (3.4 min)** — against a claimed 2 hours for `geology.rs`, off by
+**~35×**. The headline is off by **~13×**.
+
+**The discriminating evidence sat in the same notification block as the claim.** The agent's own
+reported lifetime was `duration_ms ≈ 3.8e6` — **about one hour, total**. *A nine-hour test run
+cannot occur inside a one-hour agent.* The contradiction was inches from the assertion and went
+unchecked. **And the integrator held a baseline:** its own full-workspace gate log, ~34 min, was
+in the scratchpad from earlier the same session.
+
+**Mechanism — A PLAUSIBLE MECHANISM ATTACHED TO A NUMBER MAKES THE NUMBER HARDER TO DOUBT.**
+The libtest-oversubscription story is *real physics*: it is exactly what would happen if it
+happened. Its presence made the magnitude feel **explained**, and an explained number does not
+invite arithmetic. **This is corrections #80 with the polarity reversed** — #80 was *a mechanism
+that explains the magnitude is not thereby the cause*; #83 is ***a mechanism that explains a
+magnitude is not evidence that the magnitude is real.*** Together: a mechanism licenses neither
+the cause nor the measurement.
+
+**And the standing doctrine was misapplied.** *"An agent's MECHANISM is a hypothesis; only its
+numbers are evidence"* got read as *numbers are evidence*. It means **measured** numbers. This
+one arrived hedged (*"roughly"*), with no method, no timestamps and no command — and was
+promoted to a read-first board entry carrying an itemised breakdown the agent never justified.
+
+**What it cost.** A false operational constraint on the board, and **a decision made on it**:
+the `quantize_time` ordering fix was deferred on the stated ground that *"a one-line change
+costs a working day of the single build slot."* It costs forty minutes. **The decision survives
+on its other reasons** — the bug is latent, and the fix belongs with the sim-visible-pose slice
+— but the reason given was void, and a future session would have inherited a throughput fear
+that does not exist.
+
+**Fifth instance this session of evidence already in hand being misread** (#77 a range read as a
+tolerance; #78 an unswept axis; #80 the constant knee angle; #81 a principle that had already
+answered the question; and this). **Every one was caught by the user — four of them by a single
+question.**
+
+**Stamped in the same commit:** ROADMAP § Observed's 9-hour entry is replaced by the
+measurement, and decision 26's justification is corrected in place.
