@@ -168,6 +168,19 @@ an implementation choice; artifact suppression uses standard techniques
 
 ## Stepped animation — DECIDED 2026-07-19 (aesthetic choice)
 
+> **⚠ CORRECTED 2026-08-01 — corrections #80. THE BANNER BELOW IS TRUE AS ARITHMETIC AND
+> WRONG AS A DIAGNOSIS, and it is preserved unedited as dated testimony.** The quantizer is
+> the **second** wall, not the operative one. The hover's actual cause is a space-layering
+> defect: `character.rs:219` builds the IK's hip as `feet.y + hip_local[1] - crouch_drop`
+> — **excluding `root_bob_m`** — while `character.rs:257` adds `root_bob_m` to the rendered
+> root. The solver is handed a hip that never moves, returns a correct and **constant** leg
+> pose, and the renderer then translates the whole body, feet included, by the bob. Fix that
+> and the quantizer becomes the next wall (a ~1° correction against an 11.25° step, and
+> `stepped_angle()` is applied to the IK output). **The discriminating evidence was already
+> in the report and was misread: the knee angle is CONSTANT across frames while the gap
+> tracks the bob one-for-one.** Found by the user watching the body move — the third time a
+> temporal observation has beaten an instrument reading (corrections #77, #78, #80).
+>
 > **⚠ QUANTIFIED 2026-07-30 (ROADMAP § Observed; journal/0130 + journal/0131) — THIS CHOICE
 > IS WHY FEET DO NOT PLANT, AND NEITHER JOURNAL KNEW IT.** `ROT_QUANTUM_RAD = TAU/32 =
 > 11.25°` means **one quantum of hip rotation moves the ankle 172 mm** on the biped's 0.88 m

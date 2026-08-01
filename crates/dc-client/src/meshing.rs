@@ -55,7 +55,14 @@
 //!
 //! Loose-only contents (debris role, no structure) render as **partial-height**
 //! boxes (height = loose eighths / 8, snow-layer style); the block-tier collider
-//! stays binary (the accepted, documented visible mismatch — visuals.md).
+//! stays binary **for now** (solid ≥ 4/8). **⚠ THIS IS AN INTERIM WITH A NAMED
+//! HEIR, NOT AN ACCEPTED END STATE** (user, 2026-08-01; corrections #79 — this
+//! comment previously read "the accepted, documented visible mismatch" and cited
+//! `visuals.md` while dropping every temporal qualifier its source carries).
+//! `visuals.md` says the mismatch is accepted **"for now… until movement learns
+//! partials"**, and names the heir: **"sinking" rules (knee-deep snow) are a
+//! deliberate future step**, as is body-driven compaction. The work was
+//! deprioritised, never settled.
 //! **Since journal/0055 worldgen skins nearly every column with a sub-8 loose
 //! top**, so this is the common case, not the test-only one it was written for.
 

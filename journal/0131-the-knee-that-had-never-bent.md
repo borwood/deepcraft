@@ -335,3 +335,61 @@ footnote to the matrix it made possible.
 > instrument must be able to see a temporal question, and the probe that cited that
 > rule then had to obey it) and 3 (three quantizers, an absolute-metres bob and a
 > voxel-derived tolerance meeting in one seam nobody owned).
+
+---
+
+## The walk, and the three verdicts that redirected the arc
+
+Assets: `0131-three-plans-standing`, `0131-longleg-knee-closeup`,
+`0131-three-plans-crouching`, `0131-stout-crouch-degenerate`. Lit pass + `--edges`; the
+three plans were **spawned in place** rather than walked, because two characters given the
+same heading collide and superimpose (the previous walk hit exactly that) and there is no
+character-teleport verb on the dev surface.
+
+The knee bend is visible and unmistakable. So is the crouch inversion: the biped folds
+properly, `longleg` stays straight and sinks, and the stout's trunk sits on the dirt with
+its legs below ground, because the fixed 0.45 m crouch drop is 97.8 % of its hip height.
+
+Then the user looked, and three sentences redirected the whole arc.
+
+**1. "The squat does not read realistic … posture actually is responsible for keeping
+center of gravity."** This is the finding. `longleg` squats because we pinned the pelvis at
+an *authored* hip height and made a longer leg absorb the surplus by bending. A real animal
+with those legs stands nearly straight and simply **stands taller** — hip height is an
+*output* of leg length, never an input beside it. The squat is the visible signature of an
+inverted dependency: **we pin the pelvis and ask the legs to reach the floor; reality pins
+the feet and lets the pelvis land where the legs put it.**
+
+Which reframes `root_bob_m` as a **leaked requirement** in the sense this project already
+has a rule for. A walk's vertical bob is not a curve — it is what happens when you alternate
+stance legs of fixed length. Authoring it as keyframes makes it *a summary standing in for
+an authority*, and creates two authorities for one quantity that then cannot agree. That is
+why no amount of feeding the bob into the solver would have fixed this.
+
+**2. The hover diagnosis, which beat the instrument for the third time.** *"The knee
+rotation does not change at all during this … a layering of global and local space."*
+Correct, and confirmed in code: `character.rs:219` excludes `root_bob_m` from the hip the IK
+solves against while `:257` adds it to the rendered root. The solver was never wrong; it was
+never told. `corrections.md` #80 carries it, and retires this session's own "the quantizer
+is the deepest cause" framing to second place. **The tell — knee angle constant while the
+gap tracks the bob — was sitting in this entry's own tables.**
+
+**3. "The block-tier collider being binary is NOT an accepted mismatch."** A comment in the
+mesher had stripped the "for now / until movement learns partials / deliberate future step"
+out of the `visuals.md` line it cited, and the integrator had built a design argument on the
+permanence it invented. `corrections.md` #79.
+
+## What the arc becomes
+
+Not "fix the IK." The direction the user set is **posture and gait derived from physics,
+baked per species at build time, sampled cheaply at runtime** — the two-clocks doctrine
+applied to bodies, and structurally the same move as baking a frond texture per species and
+inheriting it down the phylogeny. Gait has published scaling laws (pendulum cadence, the
+Froude number, the duty-factor gait transition), so a baked gait is **checkable against the
+literature** rather than tuned until it looks right — which is this project's standing bar
+for a constant being evidence instead of a fitted number.
+
+And it is what makes the body arc's original goal reachable. Authored clips break the moment
+topology changes, so an evolution pack would generate bodies nobody could animate. A bake
+from `(segment tree + masses) → (posture, gait)` means a mutated body **gets a plausible
+stance and walk by construction**, with no animator in the loop.

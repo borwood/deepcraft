@@ -2512,7 +2512,15 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     moves how every body looks — or whether *"feet to actual ground"* is **retired** as
     never-intended. A measured slack-vs-bend trade curve is in journal/0131 as evidence for
     the call, not a resolution.
-  - **🔴 THE DEEPEST CAUSE, quantified 2026-07-30 and known to NEITHER journal: THE
+  - **⚠ CORRECTED 2026-08-01 (corrections #80): the bullet below is right as arithmetic and
+    WRONG as a diagnosis — preserved as dated testimony.** The **operative** cause of the
+    hover is a space layering: `character.rs:219` excludes `root_bob_m` from the hip the IK
+    solves against, while `:257` adds it to the rendered root — so the solver returns a
+    correct, **constant** leg pose and the renderer hovers the whole body under it. The
+    quantizer is the wall **behind** that one. The tell was free and misread: **knee angle
+    constant while the gap tracks the bob**. Found by the user watching motion (third
+    instance; corrections #77, #78, #80).
+  - **🔴 THE SECOND WALL ~~DEEPEST CAUSE~~, quantified 2026-07-30 and known to NEITHER journal: THE
     STOP-MOTION IDENTITY AND PLANTED FEET ARE IN STRUCTURAL CONFLICT.**
     `ROT_QUANTUM_RAD = TAU/32 = 11.25°` (`dc-client/src/body.rs:35`). **One quantum of hip
     rotation moves the ankle 172 mm** on the biped's 0.88 m leg (199 mm on `longleg`,

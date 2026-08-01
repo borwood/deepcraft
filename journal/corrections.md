@@ -3219,3 +3219,92 @@ than answer it:**
 **Stamped in the same commit** (read-first item 5, the writer of the correction stamps
 its target): journal/0130 carries a banner at its head pointing here, and the ROADMAP
 Observed line it shipped is corrected in place.
+
+## 79. "The block-tier collider staying binary is the accepted, documented visible mismatch" (`crates/dc-client/src/meshing.rs:57-58`, citing `visuals.md` — falsified 2026-08-01 by the user, against the very doc it cites)
+
+**The claim.** The mesher's module docstring, describing partial-height loose rendering:
+*"the block-tier collider stays binary (**the accepted, documented visible mismatch** —
+visuals.md)."* Read as: settled, intended, nobody's problem.
+
+**Falsified by the user:** *"the block-tier collider being binary while mesher is partial
+is NOT an accepted mismatch, it's a thread of work that was neglected in favor of other
+things but which will be returned to. If it's actually documented as the intended final
+state of the project, it is incorrect."*
+
+**Mechanism — A CITATION THAT DROPS ITS SOURCE'S TEMPORAL QUALIFIER CONVERTS AN INTERIM
+INTO A DECISION.** The cited source is *correct*. `visuals.md:143-146` reads: *"Collider
+stays binary **for now** (solid ≥ 4/8) — the visible mismatch is accepted **until movement
+learns partials**; **'sinking' rules (knee-deep snow) are a deliberate future step**, as is
+body-driven compaction."* Interim flagged, heir named. The 2026-07-22 hydrology-priors
+audit agrees independently: *"deliberate future step; collider stays binary **meanwhile**."*
+
+The code comment kept the word *accepted* and discarded *for now*, *until*, *deliberate
+future step* — and kept the citation. **That is worse than an uncited claim, because the
+citation makes it look verified.** A reader who trusts the pointer never opens the source;
+a reader who opens the source finds it says the opposite.
+
+**It is also the wrong reader.** The qualifier survives in a *design doc* and a *dated
+audit*; it was stripped in the *module docstring at the top of the mesher* — i.e. it
+survived where designers look and died where coders look. Anti-shape **A-1** (a stand-in
+becomes the definition) with a citation as its transmission vector.
+
+**Cost, this session:** the integrator read the comment, believed it, and cited it **twice**
+as precedent in a live design argument — *"this repo already tolerates a known
+collider/visual divergence"* — to justify letting damage resolution diverge from the
+rendered pose. A design conclusion was being built on a permanence this project never
+ratified. The user caught it in one sentence.
+
+**The rule this suggests, offered not ratified:** when a comment cites a doc for a
+*disposition* (accepted / deferred / decided / interim), quote the qualifier or don't make
+the claim. A citation is a promise that the source says this.
+
+**Fixed in the same commit:** `meshing.rs` now carries the interim, the heir, and a pointer
+here. `visuals.md` is unchanged — it was right.
+
+## 80. "The rotation quantizer is THE DEEPEST CAUSE of the body hover" (the integrator's own, 2026-07-30, written into `bodies.md` § stepped animation and ROADMAP § Observed — falsified 2026-08-01 by the user's live observation, then confirmed in code)
+
+**The claim.** After journal/0130–0131, the integrator quantified `ROT_QUANTUM_RAD = 11.25°`
+against the corrections a planted foot needs (1.30° / 0.98° / 0.33°) and recorded the
+quantizer as **"THE DEEPEST CAUSE"** of the hover, in a read-first design doc and on the
+board — concluding that stepped animation and planted feet are in structural conflict.
+
+**Falsified: the quantizer is the SECOND wall, and it is not the one currently firing.**
+The user, watching the body move: *"this character still hovers up and down, only instead of
+its feet leaving the ground, they oscillate between the surface of the ground and deeper
+into the ground. **The knee rotation does not change at all during this**, meaning the hover
+offset is not changing coordinates of the body in a way legible to the IK solve — a layering
+of global and local space, perhaps."*
+
+**Confirmed in code, and the diagnosis is exactly right.** `character.rs:219` builds the hip
+the IK solves against:
+`let hip_y = feet.y + leg.hip_local[1] - crouch_drop;`
+and `character.rs:257` writes the rendered root:
+`if s.parent.is_none() { t.y += (pose.root_bob_m - crouch_drop) as f32; }`
+**`crouch_drop` appears in both; `root_bob_m` appears only in the second.** The solver sees a
+hip that never moves, so it produces a *correct and constant* leg pose; the renderer then
+translates the whole solved body — feet included — by the bob. The rig hovers underneath a
+solution that was never wrong.
+
+**Both are real, in series.** Feed the bob into `hip_y` and the needed correction becomes
+~1° against an 11.25° quantum, and `stepped_angle()` — which *is* applied to the IK output —
+rounds it to zero. So the quantizer finding stands as a **fact** and falls as a
+**diagnosis**: it is the wall *behind* the one we are hitting, and naming it "deepest"
+buried the operative defect under a more interesting one.
+
+**Mechanism of the integrator's error: a mechanism that EXPLAINS the magnitude is not
+thereby the CAUSE.** The quantizer arithmetic was correct, checkable, and matched the
+symptom's size — which is exactly why it was persuasive enough to write into a read-first
+doc without ruling out the cheaper explanation sitting two lines apart in the same function.
+**The discriminating evidence was free and already in the report: the knee angle is
+CONSTANT across frames while the gap tracks the bob one-for-one.** A quantizer eating a
+varying correction and a solver never being handed one look identical in the *gap* column
+and completely different in the *angle* column. The integrator had both columns.
+
+**Third instance of the same senior instrument.** #77 (a still frame cannot see a temporal
+artifact) and now #80 were both found by the user *watching motion*, against an integrator
+reading numbers and frames. `corrections #77`'s corollary — *the user's live view is senior
+specifically for anything temporal* — is now load-bearing rather than advisory.
+
+**Stamped in the same commit** (read-first item 5): `bodies.md` § stepped animation and
+ROADMAP § Observed both corrected in place, with the original claim preserved as dated
+testimony rather than deleted.
