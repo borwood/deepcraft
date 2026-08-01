@@ -1,5 +1,15 @@
 # Bodies, body plans, sockets, animation
 
+> **▶ POSTURE AND GAIT MOVED OUT, 2026-08-01 — see
+> [`posture-gait.md`](posture-gait.md) (CAUTIOUSLY RATIFIED).** This document remains the
+> **data model**: plans, segments, sockets, clips, the determinism firewall, the staircase.
+> **What a body's resting posture, hip height, knee angle, stance width, bob amplitude and
+> cadence should be is no longer authored here — those are OUTPUTS** of a per-species bake from
+> `(segment tree + masses)`. Where this document's § IK and § stepped animation describe the
+> current clip-plus-correction pipeline, they describe **what exists**, not the direction; both
+> carry banners recording what was measured against them (journal/0130, journal/0131,
+> corrections #77 #78 #80).
+
 Status: core decisions RATIFIED 2026-07-19 (marked DECIDED below); sections
 marked PROPOSED are sketches, NOT decisions. Expands the ratified seeds in
 materials.md § forms (body-as-plugin, sockets, transmog-as-body-swap) and

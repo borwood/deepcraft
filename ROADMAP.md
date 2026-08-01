@@ -356,6 +356,77 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### POSTURE AND GAIT ARE DERIVED, BAKED PER SPECIES, SAMPLED CHEAPLY — **CAUTIOUSLY RATIFIED 2026-08-01 (user)**
+
+**Doc: [`docs/design/posture-gait.md`](docs/design/posture-gait.md).** Bones (§§ 2–6) ratified;
+**§ 7 members are directions, not build orders** — each needs its own design pass against the
+bones, and a pass that finds them missing machinery says so loudly. Same reading as
+`refinement.md`'s 2026-07-29 ratification.
+
+**WHAT.** Stop authoring what physics determines. A body's resting posture, hip height, knee
+angle, stance width, bob amplitude and cadence become **outputs** of `(segment tree + masses)`,
+solved **once per species at pack build** and sampled at runtime. A gait is two keyframes
+(`neutral`, `extreme`) plus a per-limb `(phase, amplitude, duty)` triple. The sim owns a small
+quantized **phase**; the client adds only cosmetics.
+
+**WHY.** Measured, not supposed (journal/0130–0131): the pelvis is pinned at an authored hip
+height and the legs are asked to reach the floor, so `dc:body/longleg` **squats at −56.2°**
+where a real animal would just stand taller. `root_bob_m` is a **leaked requirement** — a walk's
+bob is what alternating stance legs *do*, so authoring it creates two authorities for one
+quantity. Four absolute-metre stand-ins became definitions because, with one body plan, **a
+length is a ratio** (anti-shape A-1). User's verdict, watching it move: *"the squat does not read
+realistic… posture actually is responsible for keeping center of gravity."*
+
+**How it UNIFIES.**
+- **It is the two-clocks doctrine applied to bodies**, and structurally the *same move* as
+  baking a frond texture per species and inheriting it down the phylogeny — two instances of
+  one shape.
+- **It is what makes the body/evolution arc reachable at all.** Authored clips break the moment
+  topology changes, so an evolution pack would generate bodies nobody could animate. A bake from
+  `(segment tree + masses)` means a **mutated body gets a plausible stance and gait by
+  construction**, no animator in the loop. This is the unblock for the whole
+  engine-owns-bodies / packs-define-them / evolution-mutates-them chain.
+- **The mass integral is shared three ways** — harvest yield, evolutionary fitness, standing
+  posture — which is the independent third argument for per-segment materials.
+- **S-9, third instance in one conversation** (meadow↔tuft, swarm↔individual, species
+  gait↔this wolf's limp). Individual deltas are not a new mechanism.
+- **It is checkable against the literature**: gait taxonomy *is* phase offsets; duty factor is
+  the walk/run discriminator; cadence scales as √(g/L) with the transition near a predictable
+  Froude number. A baked gait can be falsified against published bands rather than tuned to a
+  look.
+
+**FIRST SLICE — the resting-posture bake (member #0).** Headless, no rendering change, no
+engine constant moved. Derive a resting posture and hip height for a `BodyPlan` from its own
+geometry, using segment volume as the mass proxy **with per-segment material named as its heir**.
+- **Acceptance is an OUTCOME, and it is falsifiable:** `dc:body/longleg` must come out
+  **standing taller than the biped, not squatting**; hip height must be an output, and the three
+  shipped plans must land in plausible proportions. Report the numbers.
+- **Name what it is NOT:** it does **not** fix the hover (that is `character.rs:219`'s missing
+  `root_bob_m`, corrections #80, and it is a separate call); it does **not** touch the clips, the
+  renderer, `CROUCH_ROOT_DROP_M`, or the half-voxel window; it does **not** build gait,
+  colliders, or damage. A slice that "fixes the look" has escaped its scope.
+- **The one hazard:** the cheapest correct answer for a symmetric standing biped is *legs
+  straight, hip at leg reach*. That is **the right answer** and must not be mistaken for a
+  degenerate one — the effort-minimising solve is a later refinement, not this slice.
+
+**CONTINUATION SLOT — this is a slice OF the tier, and the arc continues with:**
+(a) the **gait bake** (duty and cadence against the published Froude band); (b) the **sim-side
+phase tuple**, which brings the firewall's new line *and* the 20 Hz vs 12 fps cadence question
+(0.05 s and 0.0833 s do not divide — the stepping must land evenly, and that is a choice about
+the stop-motion identity, not a technicality); (c) **derived collider sets** with bounded `k` and
+yaw buckets, retiring the world-global `CharacterConfig`; (d) **per-segment damage** against the
+nominal pose, and the injury→gait-delta loop that produces a limp nobody authored.
+
+**Not foreclosed, and it costs three properties today:** bake **parameters, not frames**; the
+seam is a **function signature** (`pose(species_gait, instance_delta)`, identity default,
+byte-identity tested); and **do not over-quantize** the baked gait or a 3 % limp becomes
+inexpressible — which is corrections #80 in a new costume, already paid for twice.
+
+**Blocked on nothing.** The open user call in `bodies.md` § IK (the 20 mm hip/reach gap, and
+whether the four absolute-metre constants become ratios) is **downstream** of this, not upstream:
+a derived hip height is what makes that question answerable with a number.
+
+
 - **Octree-substrate follow-ons (re-filed 2026-07-29 — the parent entry moved to history
   with journal number intact; these four were live inside it and stay owed):**
   persistence + the dirty-rail · synthesized sub-surface strata · partial-coverage

@@ -1,0 +1,240 @@
+# Posture and gait — derived, baked, sampled
+
+**Status: CAUTIOUSLY RATIFIED — user, 2026-08-01.** The ruling, with its qualifier carried
+verbatim because it governs all downstream work:
+
+> *"cautiously ratified, let's write it down and then sketch out first slice."*
+> — and, setting the direction: *"their posture and animation, while fully or partially
+> baked, should be informed by physics such that it looks **plausible instead of
+> arbitrary**. if per species there is a solve for the plausible resting hip, etc etc,
+> which gets baked and isn't always solving at runtime…"*
+
+**What "cautiously" binds** — the same reading `refinement.md` established 2026-07-29: §§ 2–6
+are the ratified **bones**. § 7's members are **directions, not build orders**; each gets its
+own design pass against this document before any build, and a member pass that finds these
+bones missing machinery **reports that loudly** — that is the "cautiously" working.
+
+**Provenance, marked because it changes how much weight each part carries**
+(the 2026-07-25 rule: *user-originated constraints are data; assistant-originated ones are
+hypotheses that happened to survive*).
+**User-originated:** posture is what keeps the centre of gravity, so it must be physics-informed
+rather than arbitrary · bake per species at gen time, never solve per-frame at runtime · sparse
+keyframes with the **server** owning which keyframes we are between and how long the
+interpolation takes · ping-pong for symmetric cycles · limb-specific damage so a creature can
+carry an injury and a limp (Dwarf-Fortress-like) · one or more AABBs for terrain collision,
+higher fidelity for damage · per-species bake with individual deltas **not foreclosed** · the
+space-layering diagnosis of the hover · *"the squat does not read realistic."*
+**Assistant-proposed (§§ 4–6 mechanisms):** the `(phase, amplitude, duty)` triple ·
+`neutral`/`extreme` as the two keyframes · phase-offset replacing mirroring · the Froude/duty
+literature anchor · derived collider box sets with bounded `k` and yaw buckets · damage
+resolved against the nominal pose · the three non-foreclosure properties · duty coupling as a
+bias rather than an override.
+
+Read with: `bodies.md` (the plan/segment/clip data model this builds on) · `north-star.md`
+§ *The two clocks* and § *Behavior is code; tuning is data* · `docs/spines.md` **S-9** ·
+`refinement.md` (the same bake-and-sample shape, one tier over) · journal/0130, journal/0131,
+`corrections.md` **#77 #78 #79 #80**.
+
+---
+
+## 1. The problem, stated as the inverted dependency
+
+Today the pelvis is **pinned** at an authored hip height and the legs are asked to reach the
+floor. Reality pins the **feet** and lets the pelvis land where the legs put it.
+
+Every defect measured in journal/0130–0131 is a symptom of that inversion:
+
+- The biped's hip sits at **0.900 m** with legs reaching **0.880 m**, so a planted foot was
+  geometrically impossible before any animation ran.
+- `dc:body/longleg` — the same body with 12 cm more leg — **squats at −56.2°**, because the
+  surplus had nowhere to go but the knee. A real animal with those legs stands nearly
+  straight and simply **stands taller**.
+- `CROUCH_ROOT_DROP_M` is a fixed **0.45 m**: 50 % of the biped's hip height and **97.8 %** of
+  the stout's, whose crouch therefore puts its hip at 0.010 m and folds its knee to 180°.
+
+**And `root_bob_m` is a leaked requirement** in the sense `ARCHITECTURE.md` § *A summary is
+not an authority* already forbids. A walk's vertical bob is not a curve — it is what happens
+when you alternate stance legs of fixed length. Authoring it as keyframes creates **two
+authorities for one quantity**, which is why they cannot be reconciled and why feeding the bob
+into the solver would only have made them argue more politely.
+
+**The test this document applies throughout:** *if this quantity has a physical determinant,
+it is an OUTPUT.* Hip height, resting knee angle, stance width, bob amplitude, foot spacing
+and cadence are all outputs. What remains authored is the body, the contact schedule, and the
+limits.
+
+## 2. The governing priors (all ratified; none re-argued here)
+
+1. **The two clocks.** Gen time is free; **runtime is sacred**. Expensive derivation happens
+   at bake; the runtime samples. This document is that doctrine applied to bodies.
+2. **Behavior is code; tuning is data.** The solver is code, the baked result is data —
+   which is what lets a baked posture reach the sim without the sim ever solving.
+3. **S-9 — derivable base + sparse committed facts + fallback query.** The species bake is
+   the base; per-instance injury or variation is the sparse overlay. *Third instance of this
+   spine in one design conversation* (meadow↔tuft, swarm↔individual, species gait↔this wolf's
+   limp), which is why individual deltas are not a new mechanism to invent.
+4. **Measure against the literature.** A constant tuned until an output looks right is a
+   number pretending to be a mechanism. Gait has published scaling laws — this is what makes
+   § 4 checkable rather than fitted.
+5. **The determinism firewall** (`bodies.md`): the sim must not depend on client-sampled
+   state. § 5 moves *where* the line sits without weakening it.
+6. **Seam-first.** Identity defaults, byte-identity as the acceptance test for a conversion,
+   and a stand-in annotated in code with its named heir.
+
+## 3. The machine — three layers, two clocks
+
+| | bake (per species) | sim | client |
+|---|---|---|---|
+| when | pack build; gen-time free | per tick, 20 Hz | per frame |
+| owns | posture, gait vector, collider sets, keyframes | **phase** + injury deltas | cosmetic refinement |
+| cost | irrelevant | a handful of scalars per entity | a lerp per joint |
+| determinism | pure fn of the body definition | replay-critical | free |
+
+- **Bake** takes `(segment tree + masses)` and emits the resting posture, the gait vector, the
+  keyframe pair, and the collider box sets. It is a **pure function of the body definition
+  with no world involvement**, so it runs at *pack build* rather than world gen — cacheable,
+  shareable, and a third-party pack gets it for free.
+- **Sim** owns the small, quantized **phase** — which keyframes we are between and how far —
+  plus any per-instance deltas. This is the user's proposal and it is what makes the pose a
+  pure function reconstructible identically in sim, client and replay.
+- **Client** adds what is genuinely cosmetic: look-at, expressive layers, and the IK foot
+  adjustment onto the actual terrain under this creature right now.
+
+**Structurally identical to the frond bake** (the vegetation thread, same conversation):
+expensive derivation per species at build time, inherited down the phylogeny, sampled cheaply
+at runtime. Two instances of one shape; if a third appears it is a primitive.
+
+## 4. The gait — two keyframes and a per-limb triple
+
+**The two keyframes are `neutral` and `extreme`**, not "left forward" and "right forward". A
+limb's motion is a phase-driven traversal between them; ping-pong falls out for free.
+
+**The gait is a per-limb triple, and it is where all the expressiveness lives:**
+
+| term | meaning | composition |
+|---|---|---|
+| **phase offset** | where in the cycle this limb sits | additive, mod 1 |
+| **amplitude** | how far toward `extreme` it travels | multiplicative |
+| **duty factor** | fraction of the cycle spent in **stance** | additive, then renormalised (§ 6) |
+
+**Phase offset replaces mirroring, and that is the point.** Every limb plays the *same* cycle,
+shifted in time — left leg at 0.0, right at 0.5. They are not mirror images. This deletes the
+left/right asymmetry hazard structurally: today `arm_l_upper` and `arm_r_upper` are two
+independent lists of magic numbers whose symmetry is a coincidence of hand-typing, and that is
+precisely the defect that opened this arc.
+
+**Why this parameterisation and not another — it is the one biomechanics already uses**
+(prior 4, and this is the clause that makes a baked gait falsifiable):
+
+- **Gait taxonomy *is* phase offsets.** Walk, trot, pace, bound, canter and gallop are the
+  same four limbs at different relative phases. Nothing else changes.
+- **Duty factor is the walk/run discriminator** — above 0.5 walking, below 0.5 running — and
+  the transition occurs near a predictable **Froude number** (`v²/gL`), with cadence scaling
+  as `√(g/L)`. So *"a big animal takes slow steps"* is derivable, not tuned.
+- Consequence: **the bake's output can be checked against published bands**, exactly as
+  denudation rates were. This is the standing bar for a constant being evidence.
+
+**A limp is a TIMING asymmetry, not a pose asymmetry.** You do not hold the hurt leg in a
+different shape so much as you **get off it faster**. So an injury perturbs `amplitude` and
+especially `duty` — same two keyframes, different numbers. This is what makes the
+Dwarf-Fortress-like injury loop affordable, and it is *legible*: a player sees **which** leg is
+hurt because the gait derives from which leg is impaired.
+
+**Scope limit, stated so "two keyframes" is not oversold.** This covers **periodic
+locomotion only**. Transitions (start, stop, turn), one-shots (jump, swing, attack) and
+upper-body action during a walk are **not gait** and continue to use the clip machinery of
+`bodies.md`. This is a specialised layer, never a replacement for all animation.
+
+## 5. Posture, colliders, and damage
+
+**Posture is the joint configuration that puts the centre of mass over the base of support at
+tolerable effort.** It is computable because each segment carries volume and — once the
+material work lands — mass. *The same mass integral serves harvest yield, evolutionary
+fitness, and standing posture*; that is the strongest argument for per-segment materials and
+it was arrived at independently from three directions.
+
+**Colliders are derived, not authored.** The bake emits a small ordered set of AABBs covering
+the segment tree, growing `k` until the boxes stop badly over-covering the true segment volume.
+A biped → **1 box, exactly today's collider** (the identity default). A horse → 2. A snake →
+several. **The engine caps `k`**, and that cap is the honest place to spend a limit. Movement
+sweeps each box and takes the most constrained result. Posture and growth stage select a
+different baked set; the existing stand-up embed guard generalises directly.
+**AABBs do not rotate** — bake per **yaw bucket** (4 or 8), which degenerates to one entry for
+anything rotationally symmetric.
+
+**Damage resolves per segment, against the NOMINAL pose** — the pose the sim can reconstruct
+from `(clip, phase)`, not the frame the client happens to draw. Both sides can do this because
+the clips already live sim-side (`AnimClipDef` in `HostState`); only the *sampler* was ever
+client-only. So the firewall's line moves from *"the sim knows no pose"* to **"the sim knows
+the nominal pose; the client refines it cosmetically"** — a better line, because it is the one
+that decides fairness and replay. Locational damage then falls out **for any body plan,
+including evolved ones**, because the hitboxes are the creature's own parts.
+
+**The cost of that move, stated plainly: it converts animation from free-to-edit into a
+versioned sim asset.** Retiming a clip changes hit detection, hence replay and world identity.
+This is why look-at, expressive layers and foot IK must stay firmly *outside* the sim-visible
+set — so at least those remain free to tune.
+
+## 6. Not foreclosing per-instance deltas — three properties, no machinery
+
+The bake is **per species** (user, 2026-08-01: *"of course… it's not baking for every
+individual wolf in existence"*). Individual deltas are wanted eventually; today we only owe
+**not foreclosing** them. That costs three properties and zero mechanism:
+
+1. **Bake PARAMETERS, not FRAMES.** Emitting final per-frame poses destroys duty and phase
+   permanently. Emitting `(neutral, extreme)` + the triple makes a delta arithmetic. *A
+   "make it fast" pass would quietly destroy this by pre-composing poses — the single
+   highest-risk foreclosure.*
+2. **The seam is a FUNCTION SIGNATURE, not a struct field.** Gait living *inside* `BodyPlan`
+   is per-species by construction with nowhere for an instance to speak. `pose(species_gait,
+   instance_delta)` with an identity default costs nothing and is the proven pattern (the four
+   deep-sim providers: empty plane + identity accessor, byte-identity tested). **Acceptance:
+   an uninjured creature reproduces the baked gait byte-identically.**
+3. **Do not over-quantize the baked gait.** If duty is stored in 4 bits, a 3 % limp is
+   *inexpressible* — and we would rediscover `corrections.md` #80 in a new costume, having
+   just paid for it twice.
+
+**The one coupling that is not free: duty factors are not independent.** A biped cannot have
+both legs reduce stance time arbitrarily — somebody must be on the ground, or it is a
+different gait. So an injury delta is a **bias** (*"favour this limb by k"*) followed by a
+deterministic renormalisation, **never a per-limb override**. Deciding that shape now matters,
+because per-limb override is the obvious API and it is the one that produces physically
+impossible gaits.
+
+## 7. Members — directions, not build orders
+
+> **⚠ Each requires its own design pass against §§ 2–6 before any build, and is revisited in
+> light of this document rather than taken as wherever it landed prior.**
+
+0. **The resting-posture bake.** The first slice; scoped in ROADMAP § Sequenced.
+1. **The gait bake** — duty and cadence from leg length and speed, against the published
+   Froude band; phases from the gait type.
+2. **The sim-side phase tuple** — and with it the firewall's new line and the 20 Hz / 12 fps
+   cadence question (0.05 s and 0.0833 s do not divide; the stepping must land evenly, and
+   *that is a choice about the stop-motion identity, not a technicality*).
+3. **Derived collider sets** — and the retirement of the world-global `CharacterConfig`.
+4. **Per-segment damage** and the injury→gait-delta loop.
+
+## 8. What this document does NOT decide
+
+The concrete SDK types · whether the effort term is a real minimisation or static geometry
+(§ 5 assumes the cheapest thing that gets hip height right) · the growth-stage axis (four bake
+keys — species, posture, growth, yaw — and the product is what sits in memory; **if growth is
+not happening soon, dropping that axis keeps the table small and it is re-addable**) · whether
+`k > 1` collider boxes ever need to articulate (assumed rigid; let the first creature that
+needs otherwise make the case) · the hip/reach and `root_bob_m` disposition in `bodies.md`
+§ IK, **which remains an open user call and is not resolved by this document.**
+
+## 9. Compliance
+
+**North star:** the two clocks, applied to bodies; bodies are already named a core data-model
+API, so the **solver is an engine primitive** (same argument as the field kernels — only the
+kernel knows its own bound) while **bodies are pack content** and the **bake is derived data in
+the pack's compiled form**. Behavior is code; tuning is data. No capability tiering (Deviation
+2) — a pack authors a body the same way the defaults do.
+**Spines:** S-9 (§ 6, third instance) · S-5 identity defaults (§ 6 property 2) · S-3 — the
+baked posture must never become an authority the physics reads back; it is derived *from* the
+body, and if a sim pass ever keys on the bake instead of the body that is the
+summary-wearing-authority defect. **A-1 is what this whole document retires**: `root_bob_m`,
+the 0.900 m hip, `CROUCH_ROOT_DROP_M` and the half-voxel window are four stand-ins that became
+definitions because, with one body plan, *a length is a ratio*.

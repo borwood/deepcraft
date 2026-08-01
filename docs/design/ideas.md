@@ -617,3 +617,71 @@ long as the terminating condition reads only deterministic world state. Multiple
 epochs (deepest runs tectonics/hydro/therm/weather → next adds eco → next adds
 socia) are the layering; **deliberately not thought about yet** (user: "don't
 think about multiple epochs for a second").
+
+## The segment tree as one primitive for bodies AND vegetation (sketch, 2026-08-01)
+
+*From the same design pass that produced [`posture-gait.md`](posture-gait.md). **Sketch, not
+decision** — the posture/gait half was cautiously ratified; this half was discussed and not
+put to a vote. Provenance is mixed and marked inline.*
+
+**The proposal:** a creature's limb chain and a plant's branch are the same primitive — an
+**addressed segment tree with parametric geometry, produced by a rule**. A body's generator is
+an explicit enumeration (which is exactly what `biped_plan()` already is); a plant's is a
+recursive production. Addresses rather than names, so a name (`arm_l_upper`) is the degenerate
+case of a path (`trunk/branch[2]/leaflet[3]`) — and `refinement.md` § 4 already promoted
+*"expression inherits the ADDRESS, not just the value"* to a rule.
+
+**Three things fall out as integrals over the same tree, identically for both kingdoms:**
+harvest yield (segment material × volume — a felled tree gives the wood that was in it, no
+loot tables); **colliders** (per-segment solidity policy); and **fitness readouts** — leaf area
+for a fern, surface-area-to-volume for a wolf. That last one is what lets an evolution pack
+*score* a body. Same mass integral as posture (`posture-gait.md` § 5), arrived at independently
+from three directions.
+
+**Where they diverge:** articulation (animal joints move per-frame; plants don't — wind is a
+shader), and **growth mode** — plants grow by *extending topology*, animals by *scaling
+proportions*. Those are exactly `ecology.md` § 4's two evolution operators (*"scalars =
+allometric drift; bools = segment gain/loss"*), so **growth and evolution are the same two
+operators at different timescales.**
+
+**Segment KINDS are a closed set the machine owns** — the `material-behavior.md` § 2 forms
+doctrine, copied verbatim: a kind is a mode the renderer, collider and mass integral must all
+reason about, so a pack **picks** a kind and never invents one; the set may grow as machine
+work. Opening set: `Box` and `Card`.
+
+**Why vegetation cannot be voxels** (measured, not supposed): forms are a closed set of five
+*occupancy modes* with no oriented/shaped member, and `StructureShape` reserves *capacity*, not
+geometry — the mesher never consults it. And at 0.9 m voxels with 0.1125 m eighths, moss
+(~0.02 m), a flower stem (~0.005 m) and a vine (~0.03 m) are all below the grid entirely. So
+foliage is sub-voxel geometry, which is what a body already is.
+
+**User-originated rulings from that conversation, recorded because they are the load-bearing
+parts:**
+- **The billboard threshold.** *"If it's a candidate to be a billboard instead of 3d, it's
+  below a representation resolution threshold where one does not assume they can interact with
+  its individual parts: they harvest the whole leaf or whole frond and get the mixed materials
+  all at once."* — so **choosing `Card` over `Box` IS the declaration that a part is not
+  individually addressable**; geometry kind and interaction granularity are one authored choice.
+- **Card, not a thin box.** An extruded box's rim cannot meet a frond drawn in the middle of an
+  alpha-cut broad face. *"My elevated pixel is not boxy, it's pixelated with dimension."* POM
+  for relief; the silhouette stays the alpha cut. (Assistant note: POM is stable on a
+  **fixed-orientation** card and swims on a camera-facing one — and a segment tree supplies
+  authored orientation for free. `terrain.wgsl` already packs a height channel in the normal
+  atlas's alpha and has a tangent-frame helper; it drives material heightlerp, never parallax.)
+- **Bake the frond at deeptime**, per species, shared down the phylogeny by genetic history —
+  so the fractal parameters are the genome and the texture is a cached phenotype, and you never
+  mutate pixels. *(Assistant flag: that makes generated assets part of world identity, which
+  wants fingerprinting the way journal/0126 just did for everything else.)*
+- **Mixed materials per segment**, radially ordered — legal here precisely because this is not
+  the voxel renderer and can have its own domain-specific shape. Cost is bounded because the
+  mixture is **species-level data**, not per-instance.
+
+**The unifying axis, and it appeared three times in one conversation:** identity is a **LOD**.
+A meadow is a population and the tuft you pick collapses to an individual; a swarm collapses to
+the fly you swat; and *within* one organism, a tree's branching must be topology (you climb it)
+while a frond's must be texture (nobody interacts with a leaflet). That is **S-9's
+observation-collapse**, and the S2 statistical tier (dependency-graph **E8**, HELD, *"zero
+consumers, do not find it one"*) is the primitive built for it. **Unholding E8 is a USER call
+gated on bio/eco; nothing here earns it.**
+
+**Not sequenced. Nothing above may be built without its own ratification.**

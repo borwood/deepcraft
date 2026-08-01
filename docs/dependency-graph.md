@@ -78,6 +78,31 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 
 ---
 
+## 2b. BODIES — engine data-model API + pack content (added 2026-08-01)
+
+| # | thing | state |
+|---|---|---|
+| **B1** | body plans / clips / validator / registry / per-character selection | **BUILT.** journal/0130 routed the **default pack** through the registry door (A-4 discharged); `dc:body/{biped,stout,longleg}` register, plan selection works end to end |
+| **B2** | **posture + gait bake** — derived, per species, at pack build | **CAUTIOUSLY RATIFIED 2026-08-01** — `docs/design/posture-gait.md`. Bones only; **members are directions, not build orders.** First slice (resting-posture bake) sequenced, **blocked on nothing** |
+| **B3** | sim-side animation **phase** + the firewall's new line | direction (§ 7 member 2). Brings the 20 Hz vs 12 fps cadence choice |
+| **B4** | derived collider sets (bounded `k`, yaw buckets) | direction (§ 7 member 3). Retires the world-global `CharacterConfig`, under which a 1.60 m stout is hit as 1.8 m |
+| **B5** | per-segment damage → injury → gait delta (the limp) | direction (§ 7 member 4). Needs B2 + B3 |
+| **B6** | per-segment **materials/mass** | unstarted. **Feeds B2's mass integral** — and the *same* integral serves harvest yield and evolutionary fitness |
+
+**The edge that matters most, and it is the one nobody had written down:** **B2 → the whole
+bio/evolution arc.** Authored clips break the moment topology changes, so an evolution pack
+would generate bodies **nobody could animate**. A bake from `(segment tree + masses)` means a
+mutated body gets a plausible stance and gait **by construction**. Bodies are engine (a named
+core data-model API); the bake's **solver** is an engine primitive, the **body** is pack content,
+the **baked result** is derived data in the pack's compiled form. *This does not open P9 — the
+bio/eco gate is a USER call and engine progress does not earn it.*
+
+**B2 is upstream of the `bodies.md` § IK user call, not downstream.** The 20 mm hip/reach gap
+and whether four absolute-metre constants become ratios are answerable **with a number** once
+hip height is derived.
+
+---
+
 ## 3. The edges that actually decide the order
 
 **E3 (RATE) → P1. ✅ DISCHARGED 2026-07-29 (journal/0123).** `ARCHITECTURE.md` argued the
