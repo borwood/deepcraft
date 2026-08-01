@@ -75,6 +75,7 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 | **P7** | metamorphism (grade from `exhum`/`t_crust`) | unblocked by the geotherm; unstarted |
 | **P8** | material **FORM** from provenance | `stubs.md` § 12 — the sub-voxel sieve deletes ~75 % of the sediment pile |
 | **P9** | bio / eco / socia / civ | **NOTHING EXISTS. ON HOLD, not never.** Gate is a **USER call**; earth-science progress does not open it |
+| **P10** | **grain-size continuum** — release spectra on materials + size state evolved by transport (abrasion + sorting), recorded at deposition | **SEQUENCED 2026-08-01** (user, fluvial record-terms ruling 1 — ROADMAP § Sequenced "THE GRAIN-SIZE CONTINUUM"). Design pass startable today; **calibration gated on P2** (pre-P2 no cell can carry sand). Named heir of: the composition-not-size distinction (record-terms priors § 1.6), stubs #23, `earth-processes.md` § 3e's "grain continuum". Blocks: fining-upward beds, placers, member #1's full § 7.1 grading |
 
 ---
 

@@ -356,6 +356,37 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### THE GRAIN-SIZE CONTINUUM — a real size axis on sediment — **SEQUENCED 2026-08-01 (user ruling: "option 2 — I just don't want to lose track of anything needing done")**
+
+**WHAT.** Sediment gains a **grain-size state**: source rocks release a size *distribution*
+(not their sheet's single `grain_size_mm`), transport **evolves** it — abrasion shrinks grains
+downstream (Sternberg, measured e-folding 50–100 km), sorting separates them (coarse settles
+first; the ratified capacity+competence+settling sketch, `material-behavior.md` § 13) — and
+the record stores the evolved distribution where deposition happens.
+
+**WHY.** The § 8 prize cross-section opens with *"a channel gravel with its placer streak,
+fining upward"* — **all three are grain-size children and none is expressible today.** The
+existing `grain_size_mm` is a broken proxy at the deep tier: the roster spans ~two distinct
+sizes, ClasticFine ≡ OrganicSoil exactly, peat outranks sandstone in settling, and nothing is
+gravel (measured: `docs/audits/2026-07-29-fluvial-record-terms-priors.md` § 1.6). The fluvial
+record-terms ruling (2026-08-01) records load **composition** now and explicitly does NOT fake
+grain size from the proxy — this arc is the named heir, ON THE BOARD so it cannot be lost.
+
+**UNIFIES.** material-behavior § 13's user-endorsed sorting sketch (*"sound and promising,
+refine on build"*) · stubs **#23** (`settle_energy` blindness) · `earth-processes.md` § 3e's
+*"widen recorder tags (agent axis + grain continuum)"* — the one prior corpus ask for exactly
+this · P2 (Shields/Sternberg/gravel-sand-transition literature bands become the calibration
+targets once magnitudes are real) · refinement member #1 (fining-upward and placers are what
+the channel operator expresses *with* it).
+
+**FIRST SLICE — a design pass, not code:** what IS the size state (φ-classes? a small
+histogram per load parcel?) · where it lives (a release-spectrum on materials + evolving
+state on the load) · how it composes with the composition term just ruled · literature
+anchors per the measure-against-the-literature rule. **CONTINUATION SLOT:** transport
+evolution (abrasion + sorting) → the record axis → operator consumption. **Calibration is
+gated on P2** (pre-P2, no cell can carry sand — competence ceiling 0.283 vs 0.840); the
+design pass is startable today.
+
 ### POSTURE AND GAIT ARE DERIVED, BAKED PER SPECIES, SAMPLED CHEAPLY — **CAUTIOUSLY RATIFIED 2026-08-01 (user)**
 
 **Doc: [`docs/design/posture-gait.md`](docs/design/posture-gait.md).** Bones (§§ 2–6) ratified;

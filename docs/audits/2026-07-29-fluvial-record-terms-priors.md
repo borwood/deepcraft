@@ -1,5 +1,15 @@
 # Fluvial member (refinement #1) — record-terms priors
 
+> **RULING 1 — the grain term (user, 2026-08-01, "option 2"):** v1 records **load
+> COMPOSITION** (per-species shares — § 1's recording change), named honestly as
+> composition, never presented as grain size; **the grain-size CONTINUUM is a separate
+> modelling arc, SEQUENCED on the board the same day** (ROADMAP § Sequenced "THE
+> GRAIN-SIZE CONTINUUM") so it cannot be lost — the user's stated reason for option 2
+> over option 1. § 1.6's proxy hazards (collision, inversion, no gravel) are thereby
+> load-bearing: an operator reading composition as size is a named defect. Rulings 2–3
+> (mobility; face-vs-unit) recorded here as they land. *(Mutable header; the body below
+> is the dated research record.)*
+
 **Read at `f94a568`** (branch `main`; this file added on top). Produced by a **read-only**
 research agent for the **fluvial member design pass**, against the user's ruling of
 2026-07-29: *record terms first* — deeptime must record a **grain distribution** and a
