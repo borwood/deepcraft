@@ -135,3 +135,6 @@ list and not a roadmap — some of these are far off, and that is fine.
   two things that almost never meet — so emeralds are rare *and* clustered, and the
   world places none of them: it runs the conditions and they appear where the
   conditions do. A mod adds a new gem the same way: a material, a formation rule.
+- You fell a tree and get the wood that was actually in it, because the trunk had a
+  volume and the volume was oak.
+- A wolf you wounded last winter still favours that leg, and you can see which one.

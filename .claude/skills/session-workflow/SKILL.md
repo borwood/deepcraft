@@ -243,6 +243,25 @@ You wear all four, switching freely:
   **what you yourself wrote this session** — the fastest falsifier is often
   a fact you handled an hour ago.
 
+  - **⚠ AND A NUMBER WITHOUT A METHOD IS NOT EVIDENCE EITHER — amended 2026-08-01,
+    corrections #83.** This rule got read as *"numbers are evidence"* and used to promote an
+    agent's *"stage 2 took **roughly 9 hours**"* into a read-first board entry, complete with an
+    itemised per-suite breakdown and a mechanism. **The gate is ~40 minutes** — off by 13×, the
+    per-suite claim off by 35×. It means **measured** numbers: a figure arrives with a **method**
+    — the command, the log path, the timestamps — or it is a report of an impression. A hedge
+    word (*"roughly"*) in front of a number that then gets itemised is the tell.
+  - **And a plausible MECHANISM attached to a number makes the number harder to doubt.** The
+    libtest-oversubscription story offered alongside the 9 hours is *real physics* — exactly what
+    would happen if it happened — so the magnitude felt **explained**, and an explained number
+    does not invite arithmetic. **Corrections #80 is the same trap with the polarity reversed**
+    (*a mechanism that explains the magnitude is not thereby the cause*). Together: **a mechanism
+    licenses neither the cause nor the measurement.**
+  - **The discriminating check is usually free, and you usually already hold it.** That agent's
+    own reported lifetime was ~1 hour — a nine-hour run cannot occur inside it, and the
+    contradiction sat in the same notification block. The integrator's own 34-minute gate log was
+    in the scratchpad from earlier the same session. **Before recording an operational
+    constraint, ask what it must be consistent with.**
+
 ## Audit trail (see CLAUDE.md for formats)
 
 - Journal entries are narrative for a future reader and developer-blog
@@ -787,7 +806,34 @@ once, in passing, becoming load-bearing doctrine nobody revisits.
 One clause is enough — *"(assistant-proposed, user-accepted <date>)"*. Two payoffs:
 the next reader knows it carries less weight than a user-originated constraint, and it
 is a legitimate target for periodic re-challenge. **User-originated constraints are
-data; assistant-originated ones are hypotheses that happened to survive.** Where a
+data; assistant-originated ones are hypotheses that happened to survive.**
+
+**⚠ THE RULE DOES NOT REACH BACKWARDS, AND THAT IS WHERE IT HAS COST MOST** (amended
+2026-08-01, corrections #82). It was written 2026-07-25 and nothing swept the **DECIDED entries
+that predate it**. `bodies.md` § *Stepped animation* — *"a stop-motion look chosen for the
+elevated-pixel aesthetic (**an identity, not a workaround**)"* — carried a dated DECIDED heading
+for a year while being an **assistant proposal the user rolled with**, guarding an IK instability
+that 1,056 measured samples later showed **does not exist**. Three separate investigations hit
+that quantizer and worked *around* it, correctly, on the authority of that heading. **Nothing in
+the protocol distinguishes *"the user chose this"* from *"the user did not object"* once it is
+written under a DECIDED.** A one-line provenance clause — or an explicit **`provenance:
+unknown`** — is what makes the next one visible. **Add it when you touch an old DECIDED entry;
+do not sweep the corpus for it** (a convention asking authors to restate something in a second
+notation dies — `JUSTIFIED-BY` got 3 uses, 0 in `crates/`).
+
+**THE DETECTION HEURISTIC: ASK WHAT A DEFENSIVE SENTENCE IS DEFENDING AGAINST.** When a doc
+insists something is *an identity, not a workaround* — or *deliberate, not a limitation*, or *by
+design* — **that sentence is doing defensive work, and defensive work implies a threat.** Ask
+what the threat was and when it last fired. **If nobody can name an occasion, the mechanism
+guards an anticipation, and an anticipation is a hypothesis nobody tested.**
+- The tell in the #82 case sat **eleven words** from the claim: *"it also happens to be cheap and
+  **forgiving**."* Forgiveness is not a property of an identity — it is what a mechanism offers
+  when it absorbs a failure you expect. **A claim and its own refutation, in one sentence, in a
+  read-first file.**
+- **Why no existing control catches this:** `spine-audit` compares docs to code, and the code
+  matched the doc perfectly; the staleness sweep compares docs to newer work, and the newer work
+  all *deferred* to the doc; `doc-topology` compares docs to each other, and both halves sat
+  inside one sentence of one file. **The instrument was the user remembering who proposed it.** Where a
 retirement happens, keep the superseded reasoning struck through rather than deleted
 if it remains load-bearing elsewhere (the LOD-ladder logic survives for a possible
 *render-side* query even though it died for the world query).
