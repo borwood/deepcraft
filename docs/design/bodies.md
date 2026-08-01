@@ -8,7 +8,9 @@
 > `(segment tree + masses)`. Where this document's § IK and § stepped animation describe the
 > current clip-plus-correction pipeline, they describe **what exists**, not the direction; both
 > carry banners recording what was measured against them (journal/0130, journal/0131,
-> corrections #77 #78 #80).
+> corrections #77 #78 #80). **And § stepped animation is now half retired: the ROTATION
+> quantization was removed 2026-08-01 by user ruling; only the 12 fps time step remains, and
+> that too is an open taste call.**
 
 Status: core decisions RATIFIED 2026-07-19 (marked DECIDED below); sections
 marked PROPOSED are sketches, NOT decisions. Expands the ratified seeds in
@@ -190,6 +192,37 @@ an implementation choice; artifact suppression uses standard techniques
 
 ## Stepped animation — DECIDED 2026-07-19 (aesthetic choice)
 
+> **▶ THE ROTATION QUANTIZATION IS REMOVED, 2026-08-01, BY USER RULING. THE 12 FPS STEP
+> RIDES UNCHANGED.** *"let's stop treating as a constraint we must satisfy and subtract the
+> rotation quant. 12fps can ride until we have more opportunity for human to see action in
+> game and make a more informed taste call."* `ROT_QUANTUM_RAD`, `quantize_angle` and
+> `stepped_angle` are gone from `dc-client/src/body.rs`, along with every call site
+> including the IK output path in `character.rs`. **Joint angles are now exact radians.**
+> `ANIM_FPS = 12.0` and `quantize_time` are untouched, as are `BOB_QUANTUM_M` (a positional
+> snap with a float-robustness job) and `BLEND_STEPS` (a blend *weight*, not an angle).
+> Nothing was added in the quantizer's place — no flag, no knob, no replacement.
+>
+> **Why: the premise was assistant-originated and is measured false.** The user has stated
+> the provenance — *"neither was my idea"*, *"we never actually saw weird IK solves"*. Both
+> the 12 fps stepping and the rotation snapping were proposed by an earlier session to hide
+> weird rotations it **anticipated** from IK solves; the user rolled with it, and every later
+> session read the result as a ratified aesthetic. journal/0131's probe then ran the two-bone
+> solver over **3 plans × 4 ground cases × 3 clips = 1,056 samples** and found well-behaved
+> knee angles throughout (−56.2°, 90.0°, 123.7°). The single degenerate 180° result traces to
+> `CROUCH_ROOT_DROP_M` consuming **97.8 %** of the stout's hip height — **a bad constant, not
+> an unstable solver.** The guard was guarding nothing.
+>
+> **⚠ *"an identity, not a workaround"* IS WITHDRAWN AS TO THE ROTATION HALF.** The prose
+> below is preserved as dated testimony, but that clause was never the user's, and the word
+> **"forgiving"** in the same sentence is the tell: it is what a workaround says about itself.
+> A justification that outlived its premise (anti-shape **A-2**), load-bearing for a year
+> because nobody re-read who wrote it.
+>
+> **What is NOT decided here: the 12 fps step itself.** It is deferred, deliberately, to a
+> taste call the user wants to make **on a body whose feet actually reach the ground** — a
+> judgement about motion that no still frame can answer (corrections #77). Until then it
+> rides as-is, and this section's DECIDED status covers it and nothing else.
+>
 > **⚠ CORRECTED 2026-08-01 — corrections #80. THE BANNER BELOW IS TRUE AS ARITHMETIC AND
 > WRONG AS A DIAGNOSIS, and it is preserved unedited as dated testimony.** The quantizer is
 > the **second** wall, not the operative one. The hover's actual cause is a space-layering

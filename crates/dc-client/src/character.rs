@@ -37,7 +37,7 @@ use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
     AnimState, CROUCH_ROOT_DROP_M, LegRig, fk_foot_local, leg_rigs, pose_for, resolve_orientation,
-    solve_leg_ik, stepped_angle,
+    solve_leg_ik,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
@@ -228,14 +228,12 @@ pub fn sync_characters(
                         if adjust.abs() > 1e-3 && adjust.abs() <= half_voxel {
                             let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
                             if ik.upper_x.is_finite() && ik.lower_x.is_finite() {
-                                leg_overrides.insert(
-                                    leg.upper.clone(),
-                                    [stepped_angle(ik.upper_x), 0.0, 0.0],
-                                );
-                                leg_overrides.insert(
-                                    leg.lower.clone(),
-                                    [stepped_angle(ik.lower_x), 0.0, 0.0],
-                                );
+                                // Applied exactly. The 11.25° snap that used to sit
+                                // here was removed 2026-08-01 (bodies.md § stepped
+                                // animation): it could not express the ~1° a planted
+                                // foot needs, so the solved answer was rounded away.
+                                leg_overrides.insert(leg.upper.clone(), [ik.upper_x, 0.0, 0.0]);
+                                leg_overrides.insert(leg.lower.clone(), [ik.lower_x, 0.0, 0.0]);
                             }
                         }
                     }

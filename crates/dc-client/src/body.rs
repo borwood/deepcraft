@@ -7,17 +7,23 @@
 //! only sim state this module *reads* is a character's velocity (to pick a
 //! locomotion state), which is a legal one-way read — animation is cosmetic.
 //!
-//! Three ratified aesthetics shape the sampler, built in from day one:
+//! Two stepping devices shape the sampler:
 //!
 //! - **Stepped ~12 fps.** The animation clock is quantized to [`ANIM_FPS`]
 //!   frames before sampling, so a pose only changes twelve times a second — the
 //!   stop-motion look (bodies.md § stepped animation), and cheap.
-//! - **Quantized rotations.** Sampled Euler angles snap to [`ROT_QUANTUM_RAD`]
-//!   increments, so joints click between discrete orientations rather than
-//!   sweeping smoothly.
 //! - **Stepped crossfade blend.** Locomotion transitions (idle ↔ walk) blend
 //!   over a short window, and the blend weight itself is quantized to a few
 //!   steps ([`BLEND_STEPS`]) so the transition reads as stop-motion too.
+//!
+//! **There used to be a third: sampled Euler angles snapped to a `TAU/32`
+//! (11.25°) rotation grid. It was REMOVED 2026-08-01 by user ruling** —
+//! bodies.md § stepped animation carries the banner. It was assistant-originated
+//! (a guard against IK instability that 1,056 measured samples show does not
+//! exist, journal/0131) and it cost sub-decimetre foot placement outright: one
+//! quantum of hip rotation moves the biped's ankle 172 mm, against corrections
+//! that need 1.30° / 0.98° / 0.33°. Joint angles are now exact. The 12 fps step
+//! is untouched and rides pending the user's taste call.
 //!
 //! The module is pure (no bevy, no glam) so it is trivially testable: a fixed
 //! `(dt, speed)` history and a fixed set of clips produce an identical pose
@@ -30,15 +36,14 @@ use dc_api::bodies::{AnimClip, BodyPlan};
 
 /// Stepped-animation frame rate: the pose updates this many times per second.
 pub const ANIM_FPS: f64 = 12.0;
-/// Rotation quantum: sampled Euler angles snap to multiples of this (32 steps
-/// per revolution — 11.25°).
-pub const ROT_QUANTUM_RAD: f64 = std::f64::consts::TAU / 32.0;
 /// Crossfade window for a locomotion transition, seconds (short and stepped).
 pub const BLEND_WINDOW_S: f64 = 0.18;
 /// The blend weight is quantized to this many steps across the window.
 pub const BLEND_STEPS: f64 = 4.0;
-/// Root-bob quantum, meters: the vertical bob snaps to this grid (stepped like
-/// the rotations, and robust to float rounding at the loop-wrap boundary).
+/// Root-bob quantum, meters: the vertical bob snaps to this grid. Kept when the
+/// rotation quantizer went (2026-08-01): it is a *positional* snap on a single
+/// authored scalar, and its second job — robustness to float rounding at the
+/// loop-wrap boundary — is not aesthetic.
 pub const BOB_QUANTUM_M: f64 = 0.005;
 /// Horizontal speed (m/s) above which a body is "walking".
 pub const WALK_SPEED_THRESHOLD_M_S: f64 = 0.35;
@@ -50,7 +55,8 @@ pub const NECK_YAW_CLAMP_RAD: f64 = 75.0 * std::f64::consts::PI / 180.0;
 /// convention). Beyond this the neck simply clamps — no trunk pitch in v0.
 pub const NECK_PITCH_CLAMP_RAD: f64 = 45.0 * std::f64::consts::PI / 180.0;
 /// Trunk turn window (seconds): how quickly the trunk yaw chases the travel
-/// direction. Short, and the *rendered* yaw is quantized, so turns read stepped.
+/// direction. Short, and the pose is sampled on the 12 fps grid, so turns still
+/// read stepped in time even though the yaw itself is now exact.
 pub const TRUNK_TURN_WINDOW_S: f64 = 0.22;
 /// How far the root sinks (meters) when the body is crouching — the cosmetic
 /// half of the parametric-crouch firewall split (the sim shrinks the collider;
@@ -98,18 +104,6 @@ fn quantize_time(t: f64, duration_s: f64, loops: bool) -> f64 {
     }
 }
 
-/// Snap an angle to the [`ROT_QUANTUM_RAD`] grid.
-fn quantize_angle(a: f64) -> f64 {
-    (a / ROT_QUANTUM_RAD).round() * ROT_QUANTUM_RAD
-}
-
-/// Snap an angle to the stepped-rotation grid (public wrapper for the renderer,
-/// which quantizes IK output so the closed-form solver's smooth angles never
-/// leak past the 12 fps stop-motion look).
-pub fn stepped_angle(a: f64) -> f64 {
-    quantize_angle(a)
-}
-
 fn quantize_blend(w: f64) -> f64 {
     ((w.clamp(0.0, 1.0) * BLEND_STEPS).round() / BLEND_STEPS).clamp(0.0, 1.0)
 }
@@ -127,9 +121,9 @@ fn lerp3(a: [f64; 3], b: [f64; 3], f: f64) -> [f64; 3] {
 }
 
 /// Sample a clip at animation time `t`: quantize the time to the frame grid,
-/// linearly interpolate between the bracketing keyframes at that stepped time,
-/// then quantize the resulting angles. The two quantizations together are the
-/// stop-motion look.
+/// then linearly interpolate between the bracketing keyframes at that stepped
+/// time. **The time step is the whole stop-motion look** — the angles it yields
+/// are exact (the rotation quantizer was removed 2026-08-01).
 pub fn sample_clip(clip: &AnimClip, t: f64) -> Pose {
     let mut pose = Pose::default();
     if clip.keyframes.is_empty() {
@@ -170,22 +164,15 @@ pub fn sample_clip(clip: &AnimClip, t: f64) -> Pose {
             .unwrap_or([0.0, 0.0, 0.0])
     };
     for name in names {
-        let e = lerp3(rot_in(a, name), rot_in(b, name), f);
-        pose.joints.insert(
-            name.to_string(),
-            [
-                quantize_angle(e[0]),
-                quantize_angle(e[1]),
-                quantize_angle(e[2]),
-            ],
-        );
+        pose.joints
+            .insert(name.to_string(), lerp3(rot_in(a, name), rot_in(b, name), f));
     }
     pose.root_bob_m = quantize_bob(a.root_bob_m + (b.root_bob_m - a.root_bob_m) * f);
     pose
 }
 
-/// Blend two poses by weight `w` (0 = all `a`, 1 = all `b`). Angles are lerped
-/// then re-quantized; the root bob is lerped. `w` is expected pre-stepped.
+/// Blend two poses by weight `w` (0 = all `a`, 1 = all `b`). Angles and the root
+/// bob are lerped. `w` is expected pre-stepped.
 pub fn blend(a: &Pose, b: &Pose, w: f64) -> Pose {
     let mut pose = Pose {
         joints: HashMap::new(),
@@ -202,15 +189,7 @@ pub fn blend(a: &Pose, b: &Pose, w: f64) -> Pose {
     for name in names {
         let za = a.joints.get(name).copied().unwrap_or([0.0, 0.0, 0.0]);
         let zb = b.joints.get(name).copied().unwrap_or([0.0, 0.0, 0.0]);
-        let e = lerp3(za, zb, w);
-        pose.joints.insert(
-            name.to_string(),
-            [
-                quantize_angle(e[0]),
-                quantize_angle(e[1]),
-                quantize_angle(e[2]),
-            ],
-        );
+        pose.joints.insert(name.to_string(), lerp3(za, zb, w));
     }
     pose
 }
@@ -283,7 +262,7 @@ impl AnimState {
     /// Steer the trunk toward the travel direction. When the body is moving
     /// (horizontal speed above the walk threshold) the trunk yaw chases the
     /// velocity heading over [`TRUNK_TURN_WINDOW_S`]; when stationary it holds.
-    /// The stored yaw is smooth; callers quantize it for display.
+    /// The stored yaw is smooth, and so is the rendered one.
     pub fn steer(&mut self, dt: f64, vel_x: f64, vel_z: f64) {
         let dt = dt.max(0.0);
         let speed = (vel_x * vel_x + vel_z * vel_z).sqrt();
@@ -305,7 +284,7 @@ impl AnimState {
 
 /// The resolved facing of a body: how far its trunk turns and how far its
 /// head/neck turns, after splitting the look off the travel-facing trunk.
-/// All angles are stepped (quantized) for the stop-motion look.
+/// All angles are exact radians; only the 12 fps time step remains.
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct Orientation {
     /// Trunk (root) yaw about Y, radians.
@@ -332,9 +311,9 @@ pub fn resolve_orientation(base_trunk_yaw: f64, look_yaw: f64, look_pitch: f64) 
     };
     let neck_pitch = look_pitch.clamp(-NECK_PITCH_CLAMP_RAD, NECK_PITCH_CLAMP_RAD);
     Orientation {
-        trunk_yaw: quantize_angle(trunk_yaw),
-        neck_yaw: quantize_angle(neck_yaw),
-        neck_pitch: quantize_angle(neck_pitch),
+        trunk_yaw,
+        neck_yaw,
+        neck_pitch,
     }
 }
 
@@ -411,8 +390,8 @@ pub fn fk_foot_local(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64)
 /// A two-bone IK solution: the upper and lower joint rotations (radians, about
 /// X — the sagittal plane), with the rest pose pointing straight down (−Y).
 /// `upper_x` is applied to the hip joint (relative to the trunk), `lower_x` to
-/// the knee joint (relative to the upper). Angles are NOT quantized here — the
-/// renderer snaps them so smooth solver output never leaks past the 12 fps grid.
+/// the knee joint (relative to the upper). The renderer applies these **exactly**
+/// — the 11.25° snap that used to round them off was removed 2026-08-01.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct LegIk {
     pub upper_x: f64,
@@ -578,8 +557,7 @@ pub struct LegSample {
     pub ground_m: f64,
     /// Sole height the **clip alone** puts the foot at, before any IK.
     pub clip_sole_m: f64,
-    /// Sole height **as rendered** (IK where the renderer applies it, then snapped
-    /// to the rotation quantum).
+    /// Sole height **as rendered** (IK where the renderer applies it).
     pub rendered_sole_m: f64,
     /// Signed distance from the ground under this foot, as rendered. This is the
     /// number that carries the hover.
@@ -649,7 +627,7 @@ pub struct RetargetReport {
     pub clip_sole_min_m: f64,
     pub clip_sole_max_m: f64,
     /// Sole height **as rendered**: foot IK applied where the renderer applies it
-    /// (inside the half-voxel window), then snapped to the rotation quantum.
+    /// (inside the half-voxel window).
     pub rendered_sole_min_m: f64,
     pub rendered_sole_max_m: f64,
     /// Samples the clip already put within 1 mm of the ground.
@@ -667,8 +645,10 @@ pub struct RetargetReport {
     /// Worst |knee angle| over the whole series, degrees — *did any knee bend?*
     pub knee_bend_max_deg: f64,
     /// Worst residual over samples the IK both attempted and could reach — how far
-    /// off the ground the foot still is after the glue ran, in metres. This is the
-    /// rotation quantum's cost, not the solver's error.
+    /// off the ground the foot still is after the glue ran, in metres. Until
+    /// 2026-08-01 this measured the **rotation quantum's** cost (bounded by
+    /// `reach × 11.25°`, ~172 mm on the biped); with the quantizer gone it measures
+    /// the **solver's own** residual, bounded by its annulus-clamp epsilon.
     pub reachable_residual_max_m: f64,
 }
 
@@ -695,8 +675,8 @@ impl RetargetReport {
 /// length that decides reachability.
 ///
 /// This deliberately **re-implements** the renderer's foot-placement decision
-/// (`character.rs`: correct only inside the half-voxel window, then snap the
-/// solved angles to the rotation quantum), because the real one needs a bevy world
+/// (`character.rs`: correct only inside the half-voxel window), because the real
+/// one needs a bevy world
 /// and a voxel query. The duplication is the honest cost of measuring a render path
 /// headlessly, and it is the one thing in this file that can silently disagree with
 /// production — noted as a loose end.
@@ -765,22 +745,21 @@ pub fn retarget_report(
             r.clip_sole_max_m = r.clip_sole_max_m.max(clip_sole);
 
             // What the renderer does (character.rs): correct only inside the
-            // half-voxel window, and snap the solved angles to the 12 fps grid.
+            // half-voxel window, and apply the solved angles exactly.
             let adjust = g - clip_sole;
             let (verdict, rendered_sole, hip_x, knee_x) = if adjust.abs() <= 1e-3 {
                 (Placement::Seated, clip_sole, cu, cl)
             } else if adjust.abs() <= half_voxel {
                 let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
-                let (qu, ql) = (stepped_angle(ik.upper_x), stepped_angle(ik.lower_x));
-                let (qy, _) = fk_foot_local(leg.l1, leg.l2, qu, ql);
-                let sole = hip_y + qy;
+                let (sy, _) = fk_foot_local(leg.l1, leg.l2, ik.upper_x, ik.lower_x);
+                let sole = hip_y + sy;
                 let verdict = if ik.reachable {
                     r.reachable_residual_max_m = r.reachable_residual_max_m.max((sole - g).abs());
                     Placement::Corrected
                 } else {
                     Placement::ClampedBeyondReach
                 };
-                (verdict, sole, qu, ql)
+                (verdict, sole, ik.upper_x, ik.lower_x)
             } else {
                 (Placement::Refused, clip_sole, cu, cl)
             };
@@ -842,28 +821,48 @@ mod tests {
         assert_ne!(a.joints, c.joints, "the next frame moves");
     }
 
+    /// One full loop apart samples the same phase — to f64 precision, not bit
+    /// for bit.
+    ///
+    /// **This test used to assert bit-identity, and it passed only because the
+    /// rotation quantizer was rounding f64 noise away** (found when the quantizer
+    /// was removed 2026-08-01 — the assertion had been guarding nothing about
+    /// looping and quietly guarding `rem_euclid`'s last two ULPs). `quantize_time`
+    /// floors on a grid anchored at absolute `t = 0` and *then* wraps, so
+    /// `(1.4 * 12).floor() / 12 - 1.0` and `(0.4 * 12).floor() / 12` are the same
+    /// real number and differ in the final bit.
+    ///
+    /// The bound is derived, not fitted: the wrap error is a few ULPs of a value
+    /// ~1.4 (≤ 1e-15 s), the walk clip's keyframe spans are 0.25 s so the
+    /// interpolation factor moves by ≤ 4e-15, and no joint traverses more than
+    /// ~1.1 rad across a span — ≤ 5e-15 rad of angle. 1e-12 leaves two decades of
+    /// margin and is still 6e-11 degrees, i.e. below any conceivable display.
+    /// `root_bob_m` stays *exactly* equal because [`BOB_QUANTUM_M`] survives, which
+    /// is the float-robustness job its doc comment claims.
     #[test]
-    fn angles_are_quantized() {
+    fn looping_wraps_to_the_same_phase() {
         let (_, walk) = clips();
-        let p = sample_clip(&walk, 0.13);
-        for e in p.joints.values() {
-            for &a in e {
-                let steps = a / ROT_QUANTUM_RAD;
+        let a = sample_clip(&walk, 0.4);
+        let b = sample_clip(&walk, 0.4 + walk.duration_s);
+        assert_eq!(
+            a.root_bob_m, b.root_bob_m,
+            "the quantized bob repeats exactly"
+        );
+        assert_eq!(
+            a.joints.keys().collect::<std::collections::BTreeSet<_>>(),
+            b.joints.keys().collect::<std::collections::BTreeSet<_>>(),
+            "the looped pose names the same joints"
+        );
+        for (name, ea) in &a.joints {
+            let eb = b.joints[name];
+            for i in 0..3 {
                 assert!(
-                    (steps - steps.round()).abs() < 1e-9,
-                    "angle {a} is not on the quantization grid"
+                    (ea[i] - eb[i]).abs() < 1e-12,
+                    "{name}[{i}]: looped phase differs by {} rad, beyond f64 wrap noise",
+                    ea[i] - eb[i]
                 );
             }
         }
-    }
-
-    #[test]
-    fn looping_wraps_deterministically() {
-        let (_, walk) = clips();
-        // One full loop apart samples the same phase.
-        let a = sample_clip(&walk, 0.4);
-        let b = sample_clip(&walk, 0.4 + walk.duration_s);
-        assert_eq!(a, b, "looped phase repeats");
     }
 
     #[test]
@@ -1072,7 +1071,7 @@ mod tests {
         }
         println!(
             "     = {} samples: seated {} + corrected {} + clamped {} + refused {} \
-             | knee|max| {:.1} deg | residual<= {:.4} m | clip sole [{:+.3},{:+.3}] \
+             | knee|max| {:.1} deg | residual<= {:.9} m | clip sole [{:+.3},{:+.3}] \
              rendered [{:+.3},{:+.3}]",
             r.samples,
             r.already_seated,
@@ -1101,10 +1100,11 @@ mod tests {
     /// 3. the rig the renderer derives really does track the plan's proportions
     ///    (stout reach ≈ half the biped's) — otherwise the experiment is not
     ///    measuring what it claims;
-    /// 4. where the IK both ran and could reach, the residual is bounded by one
-    ///    rotation quantum's arc at full extension (`reach × ROT_QUANTUM_RAD`) —
-    ///    a *derived* bound, so it stays honest at any proportion, and it is what
-    ///    would catch a solver regression rather than a colleague's re-authoring;
+    /// 4. where the IK both ran and could reach, the residual is bounded by the
+    ///    solver's **own annulus-clamp epsilon** — still a *derived* bound, but a
+    ///    different one since 2026-08-01: the rotation quantizer is gone, so the
+    ///    bound fell from `reach × 11.25°` (~172 mm on the biped) to ~1 µm. This
+    ///    is the assertion that would catch its silent reintroduction;
     /// 5. **the sign law**, against the **effective** hip (`hip − crouch drop`): a
     ///    plan whose `reach ≤ hip_eff` can never correct a single frame on flat
     ///    ground (the sole target is outside the annulus before animation runs —
@@ -1206,12 +1206,19 @@ mod tests {
                             );
                         }
                     }
-                    // (4) the quantum's arc bounds the achieved residual.
-                    let bound = r.reach_m * ROT_QUANTUM_RAD + 1e-9;
+                    // (4) the solver's own clamp bounds the achieved residual.
+                    // Derived from `solve_leg_ik`'s constants, not from today's
+                    // numbers: a reachable target has planar distance at most
+                    // `l1 + l2 + 1e-9` (the reachability tolerance) and the solver
+                    // clamps `d` to `l1 + l2 - 1e-6` (the annulus epsilon, which
+                    // keeps the knee off dead-straight), so the reconstruction can
+                    // miss by those two and f64 slop, and by nothing else.
+                    let bound = 1e-6 + 1e-9 + 1e-12;
                     assert!(
                         r.reachable_residual_max_m <= bound,
-                        "{} / {}: residual {:.4} m exceeds one rotation quantum's arc \
-                         at full extension ({bound:.4} m)",
+                        "{} / {}: residual {:.9} m exceeds the solver's annulus-clamp \
+                         epsilon ({bound:.9} m) — the IK is no longer exact, or a \
+                         rotation quantizer came back",
                         r.plan,
                         r.clip,
                         r.reachable_residual_max_m
@@ -1348,22 +1355,30 @@ mod tests {
     }
 
     #[test]
-    fn orientation_is_stepped_and_splits_look_from_trunk() {
-        // A look within the cervical range: the neck turns, the trunk holds,
-        // and every output angle lands on the quantization grid.
+    fn orientation_splits_look_from_trunk_exactly() {
+        // A look within the cervical range: the neck turns, the trunk holds, and
+        // the neck takes the WHOLE delta. Before 2026-08-01 the outputs were
+        // snapped to an 11.25° grid and this could only be asserted loosely; the
+        // split is now exact, which is the tightening the removal buys.
         let o = resolve_orientation(0.0, 0.3, -0.2);
-        assert!(o.trunk_yaw.abs() < 1e-9, "trunk holds within the clamp");
-        for a in [o.trunk_yaw, o.neck_yaw, o.neck_pitch] {
-            let steps = a / ROT_QUANTUM_RAD;
-            assert!((steps - steps.round()).abs() < 1e-9, "angle {a} off grid");
-        }
+        assert!(o.trunk_yaw.abs() < 1e-12, "trunk holds within the clamp");
+        assert!(
+            (o.neck_yaw - 0.3).abs() < 1e-12,
+            "the neck takes the whole delta, got {}",
+            o.neck_yaw
+        );
+        assert!(
+            (o.neck_pitch - -0.2).abs() < 1e-12,
+            "pitch passes through unclamped, got {}",
+            o.neck_pitch
+        );
 
         // A look far to the side drags the trunk; the neck bends only its max,
-        // yet the head still ends up aimed at the look (trunk + neck ≈ look).
+        // yet the head still ends up aimed exactly at the look (trunk + neck).
         let look = 2.0;
         let o = resolve_orientation(0.0, look, 0.0);
         assert!(
-            o.neck_yaw.abs() <= NECK_YAW_CLAMP_RAD + ROT_QUANTUM_RAD,
+            o.neck_yaw.abs() <= NECK_YAW_CLAMP_RAD + 1e-12,
             "neck clamped to the cervical range, got {}",
             o.neck_yaw
         );
@@ -1372,8 +1387,9 @@ mod tests {
             "trunk turned to make up the excess"
         );
         assert!(
-            wrap_pi(o.trunk_yaw + o.neck_yaw - look).abs() < ROT_QUANTUM_RAD * 1.5,
-            "head aims at the look"
+            wrap_pi(o.trunk_yaw + o.neck_yaw - look).abs() < 1e-12,
+            "head aims exactly at the look, off by {}",
+            wrap_pi(o.trunk_yaw + o.neck_yaw - look)
         );
 
         // Pitch clamps to the cervical range.
