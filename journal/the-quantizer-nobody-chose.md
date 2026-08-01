@@ -106,6 +106,42 @@ sharply:
 Both are derived bounds, not snapshots — the distinction CLAUDE.md § Gates insists on. The
 old ones were derived too. They were derived from a constant that should not have existed.
 
+## The test that failed, and what it was really guarding
+
+One test went red on the removal, and it is the most interesting thing in the slice.
+
+`looping_wraps_deterministically` sampled the walk clip at `t = 0.4` and at
+`t = 0.4 + duration_s`, and asserted the two poses were **bit-identical**. Its name and its
+comment both say it is about looping. It is not, and it never was.
+
+`quantize_time` floors onto a grid anchored at **absolute** `t = 0` and wraps *afterwards*:
+
+```rust
+let stepped = (t * ANIM_FPS).floor() / ANIM_FPS;
+stepped.rem_euclid(duration_s)
+```
+
+The walk clip is exactly 1.0 s, exactly twelve frames, so the two phases are the same **real
+number**. They are not the same **f64**: `16.0/12.0 − 1.0` and `4.0/12.0` differ in the last
+bit, the interpolation factor inherits it, and the joint angles come out about **5e-15 rad**
+apart. `assert_eq!` on `HashMap<String, [f64; 3]>` sees that.
+
+It passed for a year because the 11.25° quantizer rounded both to the same grid point.
+
+So the assertion was **guarding `rem_euclid`'s final ULP and calling it looping**, and no
+reader could have told, because a test that passes is a test nobody opens. This is the
+quantizer's real cost in miniature: it did not just discard the IK's answers, it made a whole
+class of float behaviour unobservable, and the tests written on top of it recorded confidence
+they had not earned.
+
+The retarget keeps the real subject — the loop returns to the same phase and does not drift —
+with a bound derived from the mechanism rather than fitted to today's numbers: a few ULPs of
+a value ~1.4 through a 0.25 s keyframe span across a ≤1.1 rad joint traverse is ≤5e-15 rad, so
+1e-12 has two decades of margin and is still 6e-11 degrees. `root_bob_m` is still asserted
+**exactly** equal, because `BOB_QUANTUM_M` survives — and that is precisely the
+float-robustness job its doc comment has always claimed, now demonstrated rather than
+asserted.
+
 ## The shape
 
 Anti-shape **A-2** — a justification that outlives its premise. The premise was *"IK solves
