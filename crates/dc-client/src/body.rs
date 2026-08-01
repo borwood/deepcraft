@@ -821,13 +821,48 @@ mod tests {
         assert_ne!(a.joints, c.joints, "the next frame moves");
     }
 
+    /// One full loop apart samples the same phase — to f64 precision, not bit
+    /// for bit.
+    ///
+    /// **This test used to assert bit-identity, and it passed only because the
+    /// rotation quantizer was rounding f64 noise away** (found when the quantizer
+    /// was removed 2026-08-01 — the assertion had been guarding nothing about
+    /// looping and quietly guarding `rem_euclid`'s last two ULPs). `quantize_time`
+    /// floors on a grid anchored at absolute `t = 0` and *then* wraps, so
+    /// `(1.4 * 12).floor() / 12 - 1.0` and `(0.4 * 12).floor() / 12` are the same
+    /// real number and differ in the final bit.
+    ///
+    /// The bound is derived, not fitted: the wrap error is a few ULPs of a value
+    /// ~1.4 (≤ 1e-15 s), the walk clip's keyframe spans are 0.25 s so the
+    /// interpolation factor moves by ≤ 4e-15, and no joint traverses more than
+    /// ~1.1 rad across a span — ≤ 5e-15 rad of angle. 1e-12 leaves two decades of
+    /// margin and is still 6e-11 degrees, i.e. below any conceivable display.
+    /// `root_bob_m` stays *exactly* equal because [`BOB_QUANTUM_M`] survives, which
+    /// is the float-robustness job its doc comment claims.
     #[test]
-    fn looping_wraps_deterministically() {
+    fn looping_wraps_to_the_same_phase() {
         let (_, walk) = clips();
-        // One full loop apart samples the same phase.
         let a = sample_clip(&walk, 0.4);
         let b = sample_clip(&walk, 0.4 + walk.duration_s);
-        assert_eq!(a, b, "looped phase repeats");
+        assert_eq!(
+            a.root_bob_m, b.root_bob_m,
+            "the quantized bob repeats exactly"
+        );
+        assert_eq!(
+            a.joints.keys().collect::<std::collections::BTreeSet<_>>(),
+            b.joints.keys().collect::<std::collections::BTreeSet<_>>(),
+            "the looped pose names the same joints"
+        );
+        for (name, ea) in &a.joints {
+            let eb = b.joints[name];
+            for i in 0..3 {
+                assert!(
+                    (ea[i] - eb[i]).abs() < 1e-12,
+                    "{name}[{i}]: looped phase differs by {} rad, beyond f64 wrap noise",
+                    ea[i] - eb[i]
+                );
+            }
+        }
     }
 
     #[test]
