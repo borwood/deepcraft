@@ -729,3 +729,25 @@ and the role system is being folded into the body-plan structure work **this wee
 shape is still cheap to widen. Related: `posture-gait.md` § 7b (roles, and the unresolved
 **cardinality** question), decision 17 (functional parts declared, not derived), and
 **[Plants: growth shaped by where you grew]** above. **Not sequenced.**
+
+## The WINDOW axis: a closed aggregator vocabulary (assistant-proposed, user-accepted as design-pass INPUT 2026-08-01 — not decided)
+
+Input for the future WINDOW design pass (flow.md § 11.1's ratified-but-unbuilt third
+scheduler axis), captured when the fluvial record-terms ruling deferred χ recording
+behind it. The user's open question it addresses: *"the best balance of freedom and
+small bug surface for window declaration."*
+
+**The sketch — the `DitherSource` balance applied to time-aggregation:** the engine owns
+a **closed aggregator vocabulary** (Sum · Max · Mean · perhaps Last), each implemented
+and tested once, engine-side; a pass **declares, per recorded quantity, which aggregator
+and what window**; the record **self-describes both** (flow.md § 11.3 — a reader can
+never hold a number without its meaning). Freedom where it is cheap: any quantity, any
+blessed meaning, any granularity, all authorable by a mod. Bug surface where it stays
+small: no author-supplied aggregation code, no unstated meanings. The residual failure
+mode is honest — picking Mean where Max was wiser is a *tuning* mistake, visible in
+data, not a silent-meaning defect.
+
+First forced customers, in likely order: χ (the confinement mobility hint — non-additive,
+deferred 2026-08-01 exactly for this axis), peak discharge, the episodic-event limit
+(flow.md § 5 limit 2 — a turbidite averages away inside a 25-epoch bucket while its
+graded bed is the whole signature).

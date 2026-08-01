@@ -755,7 +755,10 @@ a third party cannot reach.** This is the north-star's *"authored in a uniform,
 self-declaring shape and tuned by data"* applied to the time axis.
 
 **Consequence for § 5:** the cadence model grows a third axis —
-**ORDER × RATE × WINDOW**. Sequenced, not built.
+**ORDER × RATE × WINDOW**. Sequenced, not built. *(Design-pass input filed 2026-08-01:
+`ideas.md` § "The WINDOW axis: a closed aggregator vocabulary" — assistant-proposed, not
+decided. First forced customer: χ, the fluvial mobility hint, deferred behind this axis
+by record-terms ruling 2.)*
 
 ### 11.2 Chapter-vs-epoch resolution is a shipped DEFAULT, not an engine property
 

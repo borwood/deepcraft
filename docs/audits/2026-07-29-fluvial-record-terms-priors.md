@@ -6,9 +6,18 @@
 > modelling arc, SEQUENCED on the board the same day** (ROADMAP § Sequenced "THE
 > GRAIN-SIZE CONTINUUM") so it cannot be lost — the user's stated reason for option 2
 > over option 1. § 1.6's proxy hazards (collision, inversion, no gravel) are thereby
-> load-bearing: an operator reading composition as size is a named defect. Rulings 2–3
-> (mobility; face-vs-unit) recorded here as they land. *(Mutable header; the body below
-> is the dated research record.)*
+> load-bearing: an operator reading composition as size is a named defect.
+>
+> **RULING 2 — the mobility hint (user, 2026-08-01, "go with your proposal"):** the v1
+> recording slice is **COMPOSITION-ONLY** — no non-additive quantity ships before the
+> WINDOW axis exists, so no undeclared aggregation ever enters the record. **χ (the
+> confinement reading, § 3's strongest finding) is the specced mobility hint and waits
+> for WINDOW**; the avulsion half is **derived at read time** from out-face counts (§ 3,
+> S-2), never stored. Displacement-based mobility is dead permanently (the chapter-length
+> arithmetic, § 3). A closed-aggregator-vocabulary sketch for the WINDOW pass itself is
+> filed in `ideas.md` (assistant-proposed, accepted as input only). Ruling 3
+> (face-vs-unit) recorded here when it lands. *(Mutable header; the body below is the
+> dated research record.)*
 
 **Read at `f94a568`** (branch `main`; this file added on top). Produced by a **read-only**
 research agent for the **fluvial member design pass**, against the user's ruling of
