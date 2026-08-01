@@ -338,6 +338,20 @@ footnote to the matrix it made possible.
 
 ---
 
+## Reproducing the measurement
+
+The 1,056-sample matrix (3 plans x 4 ground cases x 3 clips) is not archived as a file
+deliberately - it is **regenerable**, and a stored table would rot the moment a constant moves:
+
+```
+cargo test -p dc-client --release foot_placement -- --nocapture
+```
+
+`body::tests::foot_placement_and_retargeting_are_measured` runs in the ordinary gate and costs
+it ~0.01 s (pure per-frame arithmetic, no world build); `--nocapture` prints the full per-frame
+series - frame, clip time, bob, ground, clip sole, rendered sole, gap, hip angle, knee angle and
+the seated/corrected/clamped verdict, per foot.
+
 ## The walk, and the three verdicts that redirected the arc
 
 Assets: `0131-three-plans-standing`, `0131-longleg-knee-closeup`,

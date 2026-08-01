@@ -82,8 +82,9 @@ diffusion pass. Housed in the kernel, **the unsafe call is inexpressible** — t
 
 | # | thing | state |
 |---|---|---|
-| **B1** | body plans / clips / validator / registry / per-character selection | **BUILT.** journal/0130 routed the **default pack** through the registry door (A-4 discharged); `dc:body/{biped,stout,longleg}` register, plan selection works end to end |
-| **B2** | **posture + gait bake** — derived, per species, at pack build | **CAUTIOUSLY RATIFIED 2026-08-01** — `docs/design/posture-gait.md`. Bones only; **members are directions, not build orders.** First slice (resting-posture bake) sequenced, **blocked on nothing** |
+| **B1** | body plans / clips / validator / registry / per-character selection | **BUILT**, and **B0 reshapes it.** journal/0130 routed the **default pack** through the registry door (A-4 discharged); `dc:body/{biped,stout,longleg}` register, plan selection works end to end |
+| **B0** | **body-plan STRUCTURE — the declaration slice** | **THE NEXT BUILD.** Carries five rulings that turned out to be *one mechanism*: the **open action vocabulary** (no closed verb list), **functional parts declared not derived** (mouth, stinger, ear), **address + role** as two identifiers (address = where it sits, role = what it is; animations bind to **roles**), **balance scoped to standing bodies**, and **support as a per-segment capability activated per mode**. Design pass: `docs/audits/2026-08-01-body-plan-structure-design.md`. **⚠ TIME-SENSITIVE:** segment identity is a **free** change today — nothing persists a `BodyPlan`, so it is a recompile, not a migration — and **that window closes when B5 moves the firewall** |
+| **B2** | **posture + gait bake** — derived, per species, at pack build | **CAUTIOUSLY RATIFIED 2026-08-01** — `docs/design/posture-gait.md`. Bones only; **members are directions, not build orders.** ~~First slice sequenced, blocked on nothing~~ — **SUPERSEDED the same day: sequencing is `structure → posture → gait` (user).** The resting-posture bake is **B0's successor, not the next thing**: deriving contact from three bipeds would be the N=1 trap that opened this whole arc (corrections #78). Bake key is `(species, posture, MODE, yaw)` — mode added by the alligator, growth dropped by decision 24 |
 | **B3** | sim-side animation **phase** + the firewall's new line | direction (§ 7 member 2). Brings the 20 Hz vs 12 fps cadence choice |
 | **B4** | derived collider sets (bounded `k`, yaw buckets) | direction (§ 7 member 3). Retires the world-global `CharacterConfig`, under which a 1.60 m stout is hit as 1.8 m |
 | **B5** | per-segment damage → injury → gait delta (the limp) | direction (§ 7 member 4). Needs B2 + B3 |
@@ -96,6 +97,19 @@ mutated body gets a plausible stance and gait **by construction**. Bodies are en
 core data-model API); the bake's **solver** is an engine primitive, the **body** is pack content,
 the **baked result** is derived data in the pack's compiled form. *This does not open P9 — the
 bio/eco gate is a USER call and engine progress does not earn it.*
+
+**Placements ruled 2026-08-01, recorded with WHERE so they are not re-derived from memory**
+(corrections #71's lesson): the **bake's solver is an engine primitive** — same argument as the
+field kernels, only the kernel knows its own bound; the **body is pack content**; the **baked
+result is derived data in the pack's compiled form**, produced at *pack build* rather than world
+gen because it is a pure function of the body definition with no world involvement. Ruled in
+`posture-gait.md` § 9 and § 3. **Segment KINDS** (`Box`/`Card`) are a **closed machine-owned
+set**, governed exactly like `material-behavior.md` § 2's forms — sketch only, `ideas.md`.
+
+**⚠ The `bodies.md` § IK "user call" is CLOSED, not open** (corrections #81). It was dissolved by
+`posture-gait.md` § 1 on the day that document was ratified and then re-presented to the user
+twice regardless. Hip height, root bob and crouch drop are **deleted, not corrected**. Do not
+re-open it.
 
 **B2 is upstream of the `bodies.md` § IK user call, not downstream.** The 20 mm hip/reach gap
 and whether four absolute-metre constants become ratios are answerable **with a number** once

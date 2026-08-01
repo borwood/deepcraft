@@ -3911,6 +3911,96 @@ second file.
 
 ---
 
+## NEXT SESSION — written at the 2026-08-01 close (supersedes every earlier block)
+
+**Sweeps first** (the `SessionStart` hook says which are due), then
+**[`docs/dependency-graph.md`](docs/dependency-graph.md)** — its new **§ 2b BODIES** table is
+where this session's work lives — then this block. Then `corrections.md` **#77–#83** (seven, and
+**five are the assistant's own**) and journals **0130–0133**.
+
+### The one paragraph that matters
+**A blue-sky session about bio/evolution became a bodies session in one exchange and never went
+back**, because the user named the unblock: *"engine owns bodies, plugin pack can define them,
+therefore an evolution plugin pack can model evolution — of bodies."* Three experiments later
+the arc has a **cautiously ratified tier** — `docs/design/posture-gait.md`, posture and gait
+**derived from physics, baked per species at pack build, sampled cheaply at runtime** — and the
+edge nobody had written down: **authored clips break the moment topology changes, so an evolution
+pack would generate bodies nobody could animate.** A bake from `(segment tree + masses)` means a
+mutated body gets a plausible stance and gait *by construction*. **That is the whole reason this
+detour was not a detour.**
+
+### Ratified today, in the user's terms (full log: `posture-gait.md`, `ideas.md`, and the audit)
+- **Posture/gait derived, baked per species** — *"informed by physics such that it looks
+  **plausible instead of arbitrary**"*; constant runtime solving is *"out of the question"*.
+- **The action vocabulary OPENS** — the closed `KNOWN_VERBS`/`REQUIRED_VERBS` contract rejected a
+  bird and a tree at define time and collided with north-star Deviation 2 (*"ASSUME MODS CAN DO
+  ANYTHING"*). Packs declare actions; the engine checks you supplied what you claimed.
+- **Functional parts are DECLARED, not derived** — *"mouth, a scorpion's stinger, and so on"*.
+- **Address + role as two identifiers** (cautious) — address is *where it sits*, role is *what it
+  is*; **animations bind to roles**. The user's centaur is the worked example: an upper-body clip
+  drives it because the roles match, and a mismatch is now *caught* instead of silent.
+- **Support is a per-segment CAPABILITY, activated per MODE** — no support-kind concept at all.
+  **The alligator killed the earlier framing**: four support modes, and a sprawling walk *mixes*
+  kinds (feet standing, belly distributed) — so support is not a property of a body *or* of a
+  segment.
+- **No artificial gap between a load-bearing segment and the ground**, and **anything presumptive
+  about size/proportion gets refactored.**
+- **Subtract the rotation quantizer**; **12 fps rides** until the taste call can be made *on a
+  body whose feet actually reach the ground*.
+
+### Falsified — five of seven are the assistant's own
+- **#77** a range read as a tolerance instead of an amplitude · **#78** an unswept axis (posture)
+  reported as a property of the system · **#80** the quantizer named "deepest cause" when the
+  operative defect was two lines away · **#81** a question re-presented after a principle the
+  same author wrote had already dissolved it · **#83** an agent's *"roughly 9 hours"* recorded as
+  measured fact — **the gate is ~40 minutes**, and the agent's own one-hour lifetime contradicted
+  it in the same notification block.
+- **#79** (user-caught) a code comment that **stripped its own cited source's "for now"**, turning
+  an interim into a decision. **#82** (user-caught) `bodies.md`'s *"an identity, not a workaround"*
+  — **assistant-originated**, guarding an IK instability **1,056 measured samples show does not
+  exist**, with the tell (*"forgiving"*) eleven words away in the same sentence.
+- **The pattern the next session should carry: every one was caught by the user, four by a single
+  question, and in five of seven the discriminating evidence was already in hand.**
+
+### Shipped
+journals **0130** (two body plans, one clip set — retargeting measured *true*, "feet to ground"
+never achieved), **0131** (the knee bends; the biped's IK had *always* worked while crouching),
+**0132** (the design pass), **0133** (the quantizer nobody chose). Plus: the default body pack
+now loads **through the registry door** (A-4 discharged, and `spines.md` never indexed it — see
+its new A-4 instance); `vanilla` struck from the body files; `scripts/mcp.ps1` rescued.
+
+### First things next session
+1. **B0 — the body-plan structure slice.** The next build, carrying all five rulings above as
+   **one mechanism**. **⚠ Time-sensitive:** segment identity is free to change *today* and the
+   window closes when damage moves the firewall. Bring the user the **concrete shape first** —
+   `posture-gait.md`'s "members are directions, not build orders" binds it.
+2. **Then** the resting-posture bake (B2). **Not before B0** — deriving contact from three bipeds
+   is the N=1 trap that opened this arc.
+3. **Live design threads the user deferred, with enough recorded to resume**: plants whose growth
+   is shaped by *where they grew* (phototropic canopies; growth is a **history**, not a state), and
+   **procedural attacks from evolved morphology**. Both in `ideas.md`, explicitly not sequenced.
+
+### Owed / unverified — deliberately not done
+- **A bird has two cycles** (wingbeat ≠ step); `posture-gait.md` § 4 assumes one. Waits for the
+  gait design *on purpose* — deciding it now means deciding it twice.
+- **Per-segment materials** — semantically independent but **NOT startable**: the roster has 26
+  materials, `bone` is the only body-relevant one, and **no `define_material` command exists**.
+- **`quantize_time` floors on an absolute grid then wraps** — latent (every looping shipped clip
+  is frame-aligned), fixed *inside* the sim-visible-pose slice, not before.
+- **`body.rs` 2.0× / `meshing.rs` 2.2×** the file-size threshold; both have a genuine cold half.
+- **No walk has been run since the quantizer came out.** The three bodies still hover — corrections
+  #80's defect is untouched and upstream.
+
+### Running
+**Nothing.** All agents complete and harvested, worktrees removed, branches deleted, lock free,
+port 7777 free, game closed. Gate state: **90 suites / 881 passed / 0 failed**, verified by test
+name case-sensitively from the Tee'd log; docs-only commits since.
+
+---
+
+<details>
+<summary>SUPERSEDED — the 2026-07-29 evening block (kept for its unfinished items)</summary>
+
 ## NEXT SESSION — written at the 2026-07-29 EVENING close (supersedes every earlier block)
 
 ### ⚠ LATE-NIGHT ADDENDUM (2026-07-29, the 529 session — read this first, block below still stands)
@@ -4024,3 +4114,6 @@ lines (structural lever still open - no honest classification reaches 2,500).
 from disk both times), worktrees removed, lock free, port 7777 free, game closed. Gate
 state: main's Rust last verified at the tripwire merge - **90 units / 857 passed / 0
 failed**, by name from the Tee'd log; docs-only commits since.
+
+
+</details>

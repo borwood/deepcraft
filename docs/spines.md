@@ -467,6 +467,16 @@ A system needing an answer another system will own declares a **provider**: a
 named function, an **identity default** reproducing today's behaviour exactly,
 and a doc comment naming its **heir**.
 
+- **instance (2026-08-01, journal/0130): per-character body plans.**
+  `CharacterState::body_plan` / `SpawnCharacter.body_plan` / `character_attach`'s
+  `body_plan`, all defaulting to `dc:body/biped` via `dc_api::bodies::DEFAULT_BODY_PLAN`.
+  The pre-seam behaviour is reproduced exactly by the default, and the identity is what let
+  a second and third body plan land without touching a single existing world.
+  **S-5's sharp edge, named because this instance is where it showed:** an identity default
+  covers the **absent** case and says nothing about the **wrong** one. An unregistered plan
+  name is therefore *refused with a receipt* (`RejectReason::UnknownBodyPlan`) rather than
+  silently defaulted — a default that swallows a typo is a seam that hides content bugs.
+
 - hand-rolled four times before it was named: `biotic`, `erodibility`,
   `full_agents`, `tectonic_history` — each an empty plane plus an identity
   accessor, each with its own byte-identity proof
@@ -1451,6 +1461,20 @@ optimizer).
 See § 3. **This is the anti-shape this file exists for.** Its sibling failure — the
 one the header calls this project's characteristic defect — is **a second mechanism
 written beside the one that already existed**:
+
+- **instance (2026-08-01, journal/0130): `dc_api::bodies::default_body_pack` (then
+  `vanilla_body_pack`) — built to emit the default biped as a registry command batch on the
+  stated principle *"vanilla is the first pack"*, and referenced **only from its own test**.
+  The running client called `biped_plan()`/`biped_clips()` directly as compiled-in Rust, so
+  the engine/pack seam for bodies existed and **nothing had ever travelled it**. DISCHARGED
+  the same day: `dc-client`'s `authority.rs::load_body_packs` submits it at world
+  construction under a `registry.define(dc)` grant, and `character.rs` reads the registry.
+  **The finding worth keeping is that this file never listed it.** § 3 is the index for
+  exactly this shape, and this instance was never in it — so the index did not catch it and
+  could not have. What caught it was a **design pass reading the code cold** with a question
+  the index could not express (*"can a pack define a body?"*). *Corroborates the ROADMAP's
+  own measured warning that **grep only finds what you already suspect** — § 3 has the same
+  limit, and `DeepField::chapters` surviving three spine audits is the sibling case.*
 
 - **instance (2026-07-24, post-M3 sweep): two fact-mergers, 300 lines apart —
   DISCHARGED 2026-07-25 (journal/0096, FLOW slice 1).** Folded exactly as
