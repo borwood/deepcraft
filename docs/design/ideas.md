@@ -685,3 +685,47 @@ consumers, do not find it one"*) is the primitive built for it. **Unholding E8 i
 gated on bio/eco; nothing here earns it.**
 
 **Not sequenced. Nothing above may be built without its own ratification.**
+
+## Plants: growth shaped by where you grew (flag, 2026-08-01 — user, deferred by the user)
+
+> *"plants having a salted growth pattern / a pose that is expressed differently for different
+> members of the same species based on location, surroundings, etc kinds of inputs. Thus
+> phototropic canopies etc. **Deserves a deeper talk**, just flagging it while thought of it."*
+
+**Filed, not designed.** Recorded now because it is a live constraint on a tier being built:
+`posture-gait.md` bakes **per species**, and this names a class where the per-instance result
+is not a small delta but the *dominant* signal — two oaks on the same hillside are different
+shapes because one grew in shade and one in wind.
+
+**Why it probably still fits, sketched only:** the bake would hold the **growth RULE**, not the
+pose; the rule is then **evaluated per instance against local conditions** (light, wind, slope,
+crowding) plus a position salt. That stays S-9 — a pure function of (species rule, address,
+sampled environment) with **nothing stored** — and it is the same shape as animal posture,
+which also bakes a rule and resolves it against local terrain. The difference is *degree*: an
+animal's posture is dominated by its own body, a plant's shape by its environment over time.
+
+**The open part, and why it needs the deeper talk:** growth is a *history*, not a state. A
+phototropic canopy is the accumulated record of where the light was over decades — so either
+the rule integrates a history cheaply, or the environment is sampled once and the tree is a
+snapshot of present conditions, which would get the *shape* right and the *story* wrong.
+Related: **[procedural attacks from evolved morphology]** (same file, filed 2026-08-01) and
+`posture-gait.md` § 6's individual-delta seam. **Not sequenced.**
+
+## Procedural attacks from evolved morphology (flag, 2026-08-01 — user, deferred by the user)
+
+> *"for the mod pack in the future, we would like to solve procedural scorpion stinger attacks
+> etc from an **evolved** scorpion-like animal: **not something to think about yet**, just a
+> note."*
+
+**Filed, not designed.** The point is the word *evolved*: nobody authored that species, so
+nobody authored its sting. The attack has to fall out of **declared functional parts** —
+`posture-gait.md` § 7b's role system, which is the same declaration that carries a stinger, a
+snout, an ear and a support kind.
+
+**Why it is worth having been flagged now rather than later:** it is a second, independent
+consumer of the role vocabulary, arriving from combat rather than from animation. A vocabulary
+designed for *one* consumer is how this project produces stand-ins that become definitions —
+and the role system is being folded into the body-plan structure work **this week**, while its
+shape is still cheap to widen. Related: `posture-gait.md` § 7b (roles, and the unresolved
+**cardinality** question), decision 17 (functional parts declared, not derived), and
+**[Plants: growth shaped by where you grew]** above. **Not sequenced.**

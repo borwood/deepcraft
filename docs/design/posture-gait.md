@@ -147,8 +147,25 @@ upper-body action during a walk are **not gait** and continue to use the clip ma
 
 ## 5. Posture, colliders, and damage
 
+> **⚠ SCOPED 2026-08-01 (user, cautiously ratified) — BALANCE IS THE RULE FOR *STANDING*
+> BODIES, NOT THE DEFINITION OF POSTURE.** Posture is determined by **how a body is
+> supported**, and a body **declares its support kind** — one more functional-part declaration
+> (§ decision 17/22), not a separate concept. Balance (CoM over base) governs **standing**
+> bodies. Other support kinds get other rules: **anchored** — structural bending under self
+> weight and wind (a tree); **lying/distributed** — shape, with no balance problem at all (a
+> snake, whose CoM is supported everywhere, so the balance rule is *satisfied by every possible
+> shape and therefore determines nothing*); **suspended/airborne** — neither.
+> **Left universal, the balance rule is not merely vacuous but specifically WRONG for plants:
+> it implies a straight tree**, and real trees lean and sag because statics, not balance,
+> shapes them.
+> **Built as scoped-now, implemented-narrow:** the support kind is **declared today** so the
+> vocabulary exists and nothing is foreclosed; only the **standing** rule is implemented, and a
+> non-balancing body is **loudly unsupported** rather than silently given a nonsense posture.
+> *Without this, "posture = balance" hardens into the definition of posture — anti-shape A-1,
+> the same failure as the four fixed distances and the closed verb list.*
+
 **Posture is the joint configuration that puts the centre of mass over the base of support at
-tolerable effort.** It is computable because each segment carries volume and — once the
+tolerable effort** *(for a **standing** body — see the scoping banner above)*. It is computable because each segment carries volume and — once the
 material work lands — mass. *The same mass integral serves harvest yield, evolutionary
 fitness, and standing posture*; that is the strongest argument for per-segment materials and
 it was arrived at independently from three directions.
@@ -214,6 +231,38 @@ impossible gaits.
    *that is a choice about the stop-motion identity, not a technicality*).
 3. **Derived collider sets** — and the retirement of the world-global `CharacterConfig`.
 4. **Per-segment damage** and the injury→gait-delta loop.
+
+## 7b. Identity: address and role (CAUTIOUSLY RATIFIED 2026-08-01, user — *"fold in with caution"*)
+
+A segment carries **two** identifiers, not one:
+
+- **address** — *where it sits in the body*. Unique, structural, generated-friendly
+  (`trunk/branch[2]/leaflet[3]`). This is what makes a fern's 300 leaflets expressible.
+- **role** — *what it is*. Declared, shared across different bodies, **and this is what
+  animations and systems bind to.**
+
+Today's `SegmentDef.name` fuses the two, which is why it can express neither a fern (needs many
+addresses) nor a stinger (needs an open role vocabulary). **A name is a poor man's role: it
+works when everyone types the same string and fails SILENTLY when they don't.**
+
+**The user's worked example is the proof.** An upper-body clip should drive a centaur, because
+a centaur's trunk/arms/head fill the same roles as a humanoid's. Under roles it wears a
+humanoid upper-body animation *and* a quadruped gait simultaneously, over disjoint role sets,
+and the engine checks at define time that both are satisfied — the *"did you supply what you
+claimed"* shape of the open action vocabulary. **Roles preserve the centaur property more
+strongly than names, because a mismatch is caught rather than silent.**
+
+Same mechanism serves the scorpion's **stinger**, the wolf's **snout**, the rabbit's **ear**,
+a fern's **foliage**, and a body's **support kind** — all one declaration.
+
+**Named sub-question, not hand-waved:** roles are **many-to-one over addresses** (300 `foliage`
+is the point), but a clip animating *the* left upper arm needs it to resolve to exactly one. So
+roles need a **cardinality** notion the validator enforces. Designable, not a footnote, and the
+part most likely to be got wrong first.
+
+**Timing:** segment identity is a **free** change today — nothing persists a `BodyPlan`, so it
+is a recompile rather than a migration — and that window **closes** when damage resolution
+moves the firewall (§ 5).
 
 ## 8. What this document does NOT decide
 
