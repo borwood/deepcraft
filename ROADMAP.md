@@ -2549,6 +2549,33 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🟠 `quantize_time` FLOORS ON AN ABSOLUTE GRID THEN WRAPS, SO A LOOPING CLIP'S FRAMES ARE
+  ANCHORED TO t=0 RATHER THAN TO THE LOOP** (`dc-client/src/body.rs`; found 2026-08-01 while
+  reviewing the quantizer removal's one flagged judgement call). `let stepped =
+  (t * ANIM_FPS).floor() / ANIM_FPS;` runs **before** `stepped.rem_euclid(duration_s)`.
+  - **Consequence:** for a looping clip whose duration is **not a whole number of frames**, each
+    cycle samples a *different* set of sub-frame phases — a slow, subtle drift with no visible
+    cause. **Latent today and measured so:** every *looping* shipped clip is frame-aligned at
+    12 fps (`idle` 2.0 s = 24 frames, `walk` 1.0 s = 12), and the only non-aligned clip (`jump`,
+    0.6 s = 7.2 frames) is a **one-shot**, so `rem_euclid` never runs on it. **A pack author
+    writing a 0.7 s looping clip triggers it immediately.**
+  - **The integrator's verdict on the flagged call:** the agent retargeted
+    `looping_wraps_deterministically` from `assert_eq!` to a derived 1e-12 tolerance, and that
+    was **locally right** — bit-identity was unachievable *by construction*, so the old
+    assertion was false-by-construction and only ever passed because the 11.25° snap rounded
+    `rem_euclid`'s last ULP away (anti-shape **A-3**, and the agent found and reported it
+    honestly). **But it fixed the TEST to match the IMPLEMENTATION.** The one-line alternative —
+    **wrap first, then quantize** — makes the original bit-identity assertion *true*, and
+    removes the drift above at the same time.
+  - **Deliberately not fixed now.** The full gate measures **~9 hours** (see the entry above),
+    so a one-line change costs a working day of the single build slot to verify, against a bug
+    no shipped content triggers. **Rides as-built per the interim doctrine.**
+  - **⚠ IT STOPS BEING LATENT IF THE POSE BECOMES SIM-VISIBLE.** `posture-gait.md` § 5 proposes
+    resolving damage against the **nominal pose**, which would make pose sampling
+    **replay-critical** — and a tolerance-based test is not adequate for a replay claim. **Fix
+    the ordering as part of that slice, not before**, and re-tighten the assertion to exact
+    when it lands.
+
 - **🔴 THE FULL WORKSPACE GATE TAKES ~9 HOURS AND HOLDS THE SINGLE BUILD SLOT THE WHOLE TIME**
   (measured 2026-08-01 during the quantizer removal; pre-existing and unrelated to that slice).
   `cargo test --workspace --release` stage 2 is dominated by `dc-worldgen`'s Medium-extent
