@@ -96,7 +96,19 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 > touches. The units axis is undetectable while there is one plan and load-bearing the
 > instant there are two.
 >
-> **⚠ USER CALL, unresolved:** whether the 20 mm gap is intentional (feet visually
+> **⚠ RESOLVED 2026-08-01 — corrections #81. THE "USER CALL" BELOW NO LONGER EXISTS**; it was
+> dissolved by `posture-gait.md` § 1 (*if a quantity has a physical determinant it is an
+> output*) on the day that document was ratified, and then re-presented to the user twice
+> before anyone noticed. **Hip height, the root bob and the crouch drop are all deleted rather
+> than corrected** — they are outputs of the per-species bake. The user's rulings: *"assume
+> that our loadbearing segments will not have an artificial gap between the mesh and the
+> ground"* (so the 20 mm is a **defect**, settled by ruling forward rather than by archaeology
+> into intent) and *"anything that is currently only meant to support a biped, or is
+> presumptive about possible size/proportion, is going to get refactored."* Only the
+> **half-voxel foot window** survives, as an engineering fix. **Nothing here is owed to the
+> user.** Preserved below as dated testimony:
+>
+> **⚠ ~~USER CALL, unresolved~~ (struck — see above):** whether the 20 mm gap is intentional (feet visually
 > clearing terrain seams) or an off-by-a-half-thickness in `l2`. It decides whether these
 > three constants become **ratios of the plan** (an engine change that invalidates the
 > authored clip bobs and moves how every body looks) or whether *"feet to actual ground"*

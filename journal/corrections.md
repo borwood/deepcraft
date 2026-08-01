@@ -3308,3 +3308,60 @@ specifically for anything temporal* — is now load-bearing rather than advisory
 **Stamped in the same commit** (read-first item 5): `bodies.md` § stepped animation and
 ROADMAP § Observed both corrected in place, with the original claim preserved as dated
 testimony rather than deleted.
+
+## 81. "The `bodies.md` § IK hip/reach question is an open USER CALL" (the integrator's own, 2026-07-30 → 2026-08-01 — dissolved by a decision the integrator itself wrote, and re-presented to the user twice after the fact)
+
+**The claim.** journal/0130's banner on `bodies.md` § IK, the ROADMAP Observed entry, and
+`posture-gait.md` § 8 all recorded an **unresolved user call**: is the 20 mm hip/reach gap
+intentional, and do the four absolute-metre constants become ratios of the plan? The
+integrator then restated it to the user as live **twice more**, including a full lay-terms
+unpacking on request.
+
+**Falsified by the user, who could not see why the question existed:** *"i genuinely don't
+understand why this question is arising based on what has been ratified… the bob is emergent
+and not authored with our current direction, yes or no?"*
+
+**Yes. And the document that dissolves it is the one that also preserved it.**
+`posture-gait.md` **§ 1** states the governing test — *"if this quantity has a physical
+determinant, it is an OUTPUT. Hip height, resting knee angle, stance width, bob amplitude,
+foot spacing and cadence are all outputs"* — while **§ 8**, written the same hour by the same
+author, lists the hip/reach and `root_bob_m` disposition as *"an open user call and not
+resolved by this document."* **A claim and its refutation, seven sections apart, in a document
+authored in one sitting.**
+
+**What § 1 actually disposes of, worked through:** the **0.900 m hip** is *deleted, not
+corrected* — there is no authored hip height left to be 20 mm wrong, so *"was the gap
+intentional?"* has no referent; the clips' **`root_bob_m`** is deleted as emergent;
+**`CROUCH_ROOT_DROP_M`** is deleted because crouch is a *posture* and § 3 already keys the bake
+on `(species, posture, growth, yaw)`. Only the **half-voxel foot window** survives, and it
+stops being a user call: its job becomes absorbing real terrain relief, at which it fails
+**2:1 by construction at every scale N** (window ≡ voxel/2; smallest relief ≡ one voxel). That
+is an engineering fix, not a ratification.
+
+**Mechanism — A QUESTION OUTLIVES ITS ANSWER WHEN THE ANSWER ARRIVES AS A PRINCIPLE.** The
+corpus is good at retiring a question when a decision *names* it (the "resolve the Observed
+line in the same commit" rule). It has no defence when a decision **subsumes** a question
+without naming it: § 1 is a general test about *classes* of quantity, and the open call was
+phrased about *specific constants*, so no grep for either finds the other. The integrator
+carried the question forward because it was still written down, and it was still written down
+because nothing prompted a re-read.
+
+**This is corrections #73's shape with the polarity reversed.** #73 was a *settled* question
+re-derived as unprobed. #81 is a *dissolved* question re-presented as open. Both are the gap
+between "the answer exists" and "the asking document knows it."
+
+**And it cost the user's attention twice**, which is the scarcest thing in this project — the
+second time as an explicit request to explain a question that should not have existed.
+
+**Rulings recorded in the same commit** (user, 2026-08-01), which close the residue:
+- ***"Assume that our loadbearing segments will not have an artificial gap between the mesh
+  and the ground."*** The 20 mm is a **defect, not a design** — settled, not by archaeology
+  into whether it was deliberate, but by ruling forward.
+- ***"Anything that is currently only meant to support a biped, or is presumptive about
+  possible size/proportion, is going to get refactored."*** The presumptive constants are
+  **scheduled demolition, not an open question.**
+- The bob was **never ratified**: hand-typed values in `biped_clips()` from bring-up.
+  *Existence is not standing.*
+
+**Stamped in the same commit:** `bodies.md` § IK, `posture-gait.md` § 8, and the ROADMAP
+Observed entry all corrected in place, originals preserved as dated testimony.

@@ -222,8 +222,19 @@ The concrete SDK types · whether the effort term is a real minimisation or stat
 keys — species, posture, growth, yaw — and the product is what sits in memory; **if growth is
 not happening soon, dropping that axis keeps the table small and it is re-addable**) · whether
 `k > 1` collider boxes ever need to articulate (assumed rigid; let the first creature that
-needs otherwise make the case) · the hip/reach and `root_bob_m` disposition in `bodies.md`
-§ IK, **which remains an open user call and is not resolved by this document.**
+needs otherwise make the case) · ~~the hip/reach and `root_bob_m` disposition in `bodies.md` § IK, which remains an open user
+call~~ — **STRUCK 2026-08-01, corrections #81: § 1 ALREADY DISPOSES OF IT, and this sentence
+contradicted § 1 in the same sitting.** *If a quantity has a physical determinant it is an
+output* deletes the 0.900 m hip (nothing authored is left to be 20 mm wrong), deletes the
+clips' `root_bob_m` as emergent, and deletes `CROUCH_ROOT_DROP_M` because crouch is a
+**posture** and § 3 already keys the bake on one. Only the **half-voxel foot window** survives,
+and it is an engineering question, not a ratification: its job becomes absorbing real terrain
+relief, at which it fails **2:1 by construction at every N**.
+**User rulings, 2026-08-01, which close the residue:** *"assume that our loadbearing segments
+will not have an artificial gap between the mesh and the ground"* — the 20 mm is a **defect,
+not a design**; and *"anything that is currently only meant to support a biped, or is
+presumptive about possible size/proportion, is going to get refactored"* — the presumptive
+constants are **scheduled demolition, not an open question**. The bob was never ratified.
 
 ## 9. Compliance
 

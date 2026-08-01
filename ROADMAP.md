@@ -2576,7 +2576,15 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   - **Two gates nothing reconciles:** `longleg` plants standing and **refuses crouching**
     (4/88); `biped` plants crouching and refuses standing. The plan built to make the solver
     run **broke the posture that already ran.**
-  - **🔴 OWED — USER CALL, and nothing downstream may assume ground contact until it lands**
+  - **✅ CLOSED 2026-08-01 (corrections #81) — THIS WAS NEVER A LIVE USER CALL after
+    `posture-gait.md` was ratified**; § 1 dissolved it the same day and it was re-presented to
+    the user twice regardless. Hip height, root bob and crouch drop are **deleted, not
+    corrected** (outputs of the bake). User rulings: **no artificial gap between a load-bearing
+    segment and the ground** (so the 20 mm is a defect, settled forward, not by archaeology),
+    and **anything presumptive about size/proportion is scheduled for refactor**. The
+    half-voxel window survives as an engineering fix — size it to the relief it must admit.
+    *Downstream may now assume ground contact is the intent.* Struck original below:
+  - **~~🔴 OWED — USER CALL, and nothing downstream may assume ground contact until it lands~~**
     (`bodies.md` § IK banner): is the 20 mm hip/reach gap intentional (feet clearing terrain
     seams) or an off-by-a-half-thickness? It decides whether all four constants become
     **ratios of the plan** — an engine change that invalidates the authored clip bobs and
