@@ -1416,3 +1416,32 @@ consumer). **Heir: extraction to a shared home on the SECOND consumer.** Note th
 inherited hazard, flagged in journal/0128: the table's construction depends on libm
 `ln`/`sqrt`, so a cross-platform libm difference would move world identity — a hazard
 class the tree already carries (`flow_energy`, soft fitness), instance new.
+
+### 34. the-binding-key-that-is-a-name-wearing-a-role — *added 2026-08-01 (posture-gait.md § 7b ruling)*
+- **What it fakes:** clips bind joints by segment NAME (`JointRot.segment`, exact string
+  equality in `validate_plan`), and cross-plan reuse works because plans happen to share
+  names — measured true across biped/stout/longleg (journal/0130). A name is a poor man's
+  ROLE (`posture-gait.md` § 7b, ratified: animations bind to roles): it works while
+  everyone types the same string and fails SILENTLY when they don't. Three more binders
+  sit on the same stand-in, unbuilt or untouched: clothing binds by segment name
+  (`bodies.md` § Clothing, DECIDED — mechanism untouched, key migrates), plan forking
+  inherits clips by retained joint names (§ Body plans, DECIDED), sockets mount on
+  segments (§ Sockets, PROPOSED).
+- **Heir:** role binding with cardinality enforcement, designed at the **gait-bake
+  member's design pass** (dependency-graph B2) — deliberately not before, because (1) the
+  gait bake likely *dissolves* the many-to-one case for locomotion (every carrier of a
+  role plays one cycle at a derived phase offset — the shipped walk clip already IS that,
+  measured in the body-plan-structure design pass § 4), and (2) a selector grammar
+  designed from the clip case alone is a vocabulary designed for one consumer
+  (`ideas.md` § procedural-attacks' exact warning). **Deadline: before member 2 (B3)
+  moves the firewall** — after that, the binding key of a versioned sim asset is a
+  migration, not a recompile.
+- **Loudness:** doc-comment marker on `JointRot.segment` naming this entry — **lands with
+  the B0 slice** (the field is untouched until then; this entry is the listing half of
+  the loose-end doctrine meanwhile). B0's system consumers of roles (look-at) resolve
+  **unique-or-loud at query time**, already louder than the name lookups they replace
+  (`character.rs` `== "neck"` / `== "head"`, silent no-ops on a miss).
+- **Blast radius:** `JointRot.segment` + `validate_plan`'s joint-membership check
+  (`bodies.rs`) · the centaur property rides unchecked until the heir (shared names,
+  working, journal/0130) · `bodies.md` § Clothing's binding key · § Body plans' fork
+  inheritance · § Sockets when built.

@@ -494,9 +494,15 @@ seam is a **function signature** (`pose(species_gait, instance_delta)`, identity
 byte-identity tested); and **do not over-quantize** the baked gait or a 3 % limp becomes
 inexpressible — which is corrections #80 in a new costume, already paid for twice.
 
-**Blocked on nothing.** The open user call in `bodies.md` § IK (the 20 mm hip/reach gap, and
-whether the four absolute-metre constants become ratios) is **downstream** of this, not upstream:
-a derived hip height is what makes that question answerable with a number.
+~~**Blocked on nothing.**~~ **SUPERSEDED the same day (user): sequencing is `structure →
+posture → gait`** — the resting-posture bake is **B0's successor** (dependency-graph § 2b),
+because deriving contact from three bipeds is the N=1 trap that opened this arc; B0's declared
+roles are what the solver's contacts input reads. ~~The open user call in `bodies.md` § IK …
+is **downstream** of this, not upstream.~~ **The § IK call is CLOSED, not open (corrections
+#81)** — dissolved by `posture-gait.md` § 1 the day it was ratified; this paragraph was written
+before that was caught. **Binding-key ruling 2026-08-01 (user):** clips stay address-bound
+through B0; role binding for animation + cardinality enforcement = **stubs #34**, decided at
+the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b).
 
 
 - **Octree-substrate follow-ons (re-filed 2026-07-29 — the parent entry moved to history

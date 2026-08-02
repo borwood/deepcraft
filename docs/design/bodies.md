@@ -283,8 +283,9 @@ later option). The earlier textures / transformed-segment-copies method
 survives as the **default/fallback authoring path** (a copy is the
 degenerate case: one cuboid, fully parented, inheriting segment transform).
 
-Binding is by **segment name**, and authored cuboids are expressed
-**relative to segment dimensions** (mechanism note: this is what keeps "one
+Binding is by **segment name** *(the binding KEY rides the `stubs.md` § 34 role-binding
+migration — see the § Body plans banner; the mechanism here is untouched)*, and authored
+cuboids are expressed **relative to segment dimensions** (mechanism note: this is what keeps "one
 chestplate def adorns every mob of every plan with those segments,
 mutations included" true — absolute-meter authoring would break on scaled
 mutations). Pinned/swinging pieces are cosmetic-side per the determinism
@@ -315,7 +316,9 @@ Interaction notes (Claude, for discussion — not decided):
 
 ## Sockets — PROPOSED
 
-A socket is a named, typed mount on a plan segment: `hand.r`, `back`, `head`.
+A socket is a named, typed mount on a plan segment: `hand.r`, `back`, `head`. *(A socket name
+is role-shaped — "the right hand" across a humanoid and a centaur is one socket. When built,
+it binds through the `stubs.md` § 34 role migration, not by raw segment name.)*
 
 - Acceptance is a predicate on **form archetypes** (materials.md § forms),
   not an item whitelist: `hand.*` accepts `graspable`, `back` accepts

@@ -726,8 +726,10 @@ snout, an ear and a support kind.
 consumer of the role vocabulary, arriving from combat rather than from animation. A vocabulary
 designed for *one* consumer is how this project produces stand-ins that become definitions —
 and the role system is being folded into the body-plan structure work **this week**, while its
-shape is still cheap to widen. Related: `posture-gait.md` § 7b (roles, and the unresolved
-**cardinality** question), decision 17 (functional parts declared, not derived), and
+shape is still cheap to widen. Related: `posture-gait.md` § 7b (roles, and the
+**cardinality** question — *ruled 2026-08-01: enforcement travels with the gait-bake
+binding heir, stubs #34; this flag was itself part of the argument for deferring it*),
+decision 17 (functional parts declared, not derived), and
 **[Plants: growth shaped by where you grew]** above. **Not sequenced.**
 
 ## The WINDOW axis: a closed aggregator vocabulary (assistant-proposed, user-accepted as design-pass INPUT 2026-08-01 — not decided)
