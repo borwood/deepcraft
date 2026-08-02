@@ -193,7 +193,6 @@ fn main() {
     let params = WorldParams {
         seed: SEED,
         extent: Extent::Medium,
-        ..WorldParams::default()
     };
     let pregen = Pregen::run(params);
     let r = measure(&pregen.grid);
@@ -255,7 +254,6 @@ mod gate {
         let params = WorldParams {
             seed: SEED,
             extent: Extent::Small,
-            ..WorldParams::default()
         };
         measure(&Pregen::run(params).grid)
     }
