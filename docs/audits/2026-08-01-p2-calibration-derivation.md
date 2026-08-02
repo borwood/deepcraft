@@ -2,6 +2,21 @@
 
 *2026-08-01 · read-only research pass · no cargo was run by this agent*
 
+> **RULING — the craton target (user, 2026-08-01): the PRESENT-STATE band governs**
+> (1–10 m/Myr; derived target ≈ 2.6). The user's reasoning, recorded because it settles
+> the run's *interpretation*, not just the number: *"our 500 Myr are not the entire
+> history of 'the world' — they're where we draw the line of compromise instead of
+> simming the boring billion."* The run models a mature craton state, not a full
+> Wilson-cycle integral, so the run-integrated 10–20 band is the wrong referent; the
+> 5–10 km Phanerozoic stripping figure stays a literature fact, not an acceptance bar.
+> Multiplier bracket proceeds as derived: **M ∈ [60, 240], central 100–200.**
+>
+> **`uplift_scale` (§ 6's sibling flag) — integrator-settled, measurement-first:** the
+> probe runs gain the sustainability column (rebound fraction vs the Airy prediction —
+> a physics identity, not a taste); if the craton band proves unsustainable at the
+> chosen M, `uplift_scale` returns as its own ratification topic WITH numbers. Not
+> pre-decided. *(Mutable header; the body below is the dated derivation.)*
+
 **What this is.** The literature half of P2 (`dependency-graph.md` § 2 row P2; § 4 item 4,
 *"needs a literature pass, not an engineering one"*). It derives the **target**, brackets the
 **multiplier**, splits the recorded sensitivity evidence into what survives journal/0122 and

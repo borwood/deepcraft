@@ -1,5 +1,14 @@
 # P10 — THE GRAIN-SIZE CONTINUUM: design pass (OPTIONS, none picked)
 
+> **USER LEANING RECORDED (2026-08-01 — not a ruling; U1 stays open until FS-A is
+> actually proposed):** *"'loose' gets an additional state (what grain is THIS loose
+> block of this material id)."* I.e. the provenance-keeping encoding: grain size
+> arrives as a **state on the loose FORM of the source identity**, never as replacement
+> ladder materials — which also points C4's resolution (the standalone
+> SAND/GRAVEL/CLAY/SCREE identities read as the scaffolding-era encoding) and forbids
+> reading FS-A as identity-erasure. The full U1 ruling happens against this doc when
+> FS-A is proposed. *(Mutable header; the body below is the dated design record.)*
+
 **Arc anchor:** `ROADMAP.md:413-442` § Sequenced *"THE GRAIN-SIZE CONTINUUM"* — **SEQUENCED
 2026-08-01 (user, "option 2 — I just don't want to lose track of anything needing done")**.
 Graph row: `docs/dependency-graph.md:78` (P10).
