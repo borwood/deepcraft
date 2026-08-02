@@ -29,7 +29,7 @@ use super::lithology::{Litho, litho_of_tag};
 /// [`DeepMember`](crate::draws::DeepMember) domain (`draws.rs` module docs,
 /// hole 1).
 ///
-/// Two agents that deposit into the same cell in the same epoch must not share a
+/// Two agents that deposit into the same cell in the same chapter must not share a
 /// draw: if the wave agent and the wind agent read one stream, their member
 /// picks are the same number and the two beds correlate for no physical reason.
 /// One constant per depositing agent is the cheap, legible answer; a `Domain` per
@@ -62,7 +62,7 @@ pub mod dep_tags {
 pub struct MemberCtx<'a> {
     pub geology: &'a GeologySet,
     pub draws: Draws,
-    pub epoch: u64,
+    pub chapter: u64,
     /// **The deep tier's classes, resolved once per run**, indexed by
     /// `Litho::index()`.
     ///
@@ -78,7 +78,7 @@ pub struct MemberCtx<'a> {
 impl<'a> MemberCtx<'a> {
     /// Open the stream for a world. The **only** place a deposition-time member
     /// draw is seeded.
-    pub fn new(geology: &'a GeologySet, seed: u64, epoch: u64) -> Self {
+    pub fn new(geology: &'a GeologySet, seed: u64, chapter: u64) -> Self {
         let mut classes = [None; Litho::COUNT];
         for l in Litho::ALL {
             classes[l.index()] = geology.class(crate::geology::deep_class_of_species(l));
@@ -86,7 +86,7 @@ impl<'a> MemberCtx<'a> {
         Self {
             geology,
             draws: Draws::of::<crate::draws::DeepMember>(seed),
-            epoch,
+            chapter,
             classes,
         }
     }
@@ -99,7 +99,7 @@ impl<'a> MemberCtx<'a> {
             form,
             draws: self.draws,
             cell: cell as u64,
-            epoch: self.epoch,
+            chapter: self.chapter,
             classes: self.classes,
         }
     }
@@ -157,30 +157,28 @@ pub struct DepositCtx<'a> {
     pub draws: Draws,
     /// Deep cell (row-major index) — the spatial half of the draw address.
     pub cell: u64,
-    /// Epoch — the temporal half. Two beds laid at one cell in different epochs
-    /// are independent draws.
+    /// **The tectonic chapter — the temporal half of the address.**
     ///
-    /// ⚠ **THIS GRANULARITY IS A DESIGN FORK WITH A MEASURED PRICE, AND IT IS NOT
-    /// RATIFIED.** A fresh roll every epoch means a cell in a *stable* environment
-    /// records an **alternating** stack — mudstone, siltstone, mudstone — rather
-    /// than one thick bed of whichever member fitness favours, because the
-    /// tie-break inside the fitness distribution is re-rolled on a coin the sim
-    /// tosses again every epoch. Identity is in the merge key, so those become
-    /// separate units: **measured split factor 2.4053×** on seed 1337 Medium
-    /// (10,951,030 units against 4,552,847 under the pre-P11 class-only key),
-    /// which is **+97.6 MiB of resident record** at 16 B/unit.
+    /// ⚠ **INTERIM SCAFFOLDING. This draw exists only until the record can answer
+    /// the question without rolling for it, and both of its heirs are sequenced:**
     ///
-    /// The alternative is `(cell, chapter)` — the member persists while conditions
-    /// do and changes at a real time surface. Fitness would still track climate
-    /// continuously; only the tie-break would stop being white noise **in time**.
-    /// journal/0073 learned exactly this one axis over, in space, and moved the
-    /// class dither to a coherent field for it.
+    /// - **P11 slice 2** retires it for **transported** deposits: identity comes
+    ///   from the *arriving composition term* — what the mover actually carried —
+    ///   so there is nothing left to pick.
+    /// - **FS-A** retires it for **weathered** material: release spectra say what
+    ///   a parent rock sheds, so the product's identity is derived, not drawn.
     ///
-    /// Left per-epoch because that is the literal reading of *"fitness at
-    /// deposition, under the context of its own geological day"* — flagged rather
-    /// than decided, with the price measured
-    /// (`examples/member_diversity_probe.rs`).
-    pub epoch: u64,
+    /// Until then a class still has to be filled, and this is the tie-break inside
+    /// the fitness distribution. **Chapter-grained, not epoch-grained**, and the
+    /// difference is not cosmetic: an epoch-grained roll re-rolls the tie-break
+    /// every step, so a cell in a *stable* environment records an alternating
+    /// stack instead of one bed — and since identity is in the merge key, that
+    /// multiplies the units. Chapter-grained, **the draw is fixed while the
+    /// fitness weights keep moving every epoch**, so identity changes exactly when
+    /// the shifting CDF crosses the fixed draw: at a real change in conditions,
+    /// which is what a bed contact is. A chapter boundary is already a time
+    /// surface the record refuses to merge across.
+    pub chapter: u64,
     /// The deep classes, pre-resolved — see [`MemberCtx::classes`].
     classes: [Option<&'a GeoClass>; Litho::COUNT],
 }
@@ -190,7 +188,7 @@ impl DepositCtx<'_> {
     /// × normalised abundance × this event's addressed draw.
     ///
     /// `tag` names the depositor ([`dep_tags`]) and `k` separates several events
-    /// from one depositor in one cell-epoch (a unit index, for instance).
+    /// from one depositor in one cell-chapter (a unit index, for instance).
     #[inline]
     pub fn material_for(&self, litho: Litho, tag: u64, k: u64) -> MaterialId {
         self.material_in(litho, &self.form, tag, k)
@@ -211,7 +209,12 @@ impl DepositCtx<'_> {
         tag: u64,
         k: u64,
     ) -> MaterialId {
-        let u = self.draws.unit(&[tag, self.cell, self.epoch, k]);
+        // INTERIM SCAFFOLDING — heirs: P11 slice 2 (transported deposits take
+        // their identity from the arriving composition term) and FS-A (weathering
+        // release spectra). See `DepositCtx::chapter`. Addressed by CHAPTER, not
+        // epoch: the draw is fixed while the fitness weights move, so identity
+        // turns over when conditions do and not on a per-step coin.
+        let u = self.draws.unit(&[tag, self.cell, self.chapter, k]);
         self.classes[litho.index()]
             .and_then(|c| self.geology.select_in(c, form, u))
             .map_or_else(|| litho.reference_material(), |(_, def)| def.material)

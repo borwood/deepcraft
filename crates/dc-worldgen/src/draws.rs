@@ -155,9 +155,16 @@ dc_sim::draw_domains! {
     ///
     /// **Tag space inside the domain** (module docs, hole 1) names the *depositor*
     /// — see `deeptime::recorder::dep_tags` — and the address is
-    /// `[tag, cell, epoch, k]`: per-cell, so the parallel record phase is
-    /// byte-identical to the scalar one, and per-epoch so two beds laid at the
-    /// same cell in different epochs are two independent draws.
+    /// `[tag, cell, chapter, k]`: per-cell, so the parallel record phase is
+    /// byte-identical to the scalar one, and per-**chapter** so the tie-break is
+    /// fixed while the fitness weights keep moving every epoch. Identity then
+    /// turns over when the shifting CDF crosses the fixed draw — at a real change
+    /// in conditions — rather than on a per-step coin.
+    ///
+    /// ⚠ **The whole domain is INTERIM SCAFFOLDING** and is retired in two pieces:
+    /// P11 slice 2 (transported deposits take their identity from the arriving
+    /// composition term) and FS-A (weathering release spectra). It exists only
+    /// while a class still has to be *filled*.
     DeepMember = 0x5900_0002;
     /// Biotic fire ignition (`deeptime/biotic.rs`).
     BioticFire = 0x5B00_0001;

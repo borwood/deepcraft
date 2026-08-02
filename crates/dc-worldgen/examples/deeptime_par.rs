@@ -84,8 +84,9 @@ fn profile(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> Profile {
             deeptime::climate::march(&mut grid, sl);
         }
         ero.set_sea_level(sl);
-        // Deposition-identity context (P11 slice 1): the vanilla set, this epoch.
-        let mem = MemberCtx::new(&geology, cfg.seed, u64::from(it));
+        // Deposition-identity context (P11 slice 1): the vanilla set, addressed
+        // by tectonic chapter (0 here — this harness runs history off).
+        let mem = MemberCtx::new(&geology, cfg.seed, u64::from(ero.current_chapter()));
         macro_rules! timed {
             ($k:expr, $call:expr) => {{
                 let t = Instant::now();

@@ -354,11 +354,15 @@ pub fn run_cells_with_geology(
     // Burial diagenesis: buried thick peat becomes coal (post-loop, unchanged).
     if let Some(b) = biota.as_ref() {
         // Burial diagenesis re-picks the promoted unit's member under the burial
-        // P/T it computes, so it needs the content set too. The epoch address is
-        // the run's last (`cfg.iterations`), which is when this happens.
+        // P/T it computes, so it needs the content set too. Addressed to the run's
+        // FINAL chapter, which is when this happens.
         b.finalize(
             &mut grid,
-            runner::DeepStepCtx::member_ctx_for(geology, cfg.seed, u64::from(cfg.iterations)),
+            runner::DeepStepCtx::member_ctx_for(
+                geology,
+                cfg.seed,
+                u64::from(erosion.current_chapter()),
+            ),
         );
     }
     // **Re-relax the head field on the FINAL terrain.** It is a coarse-rate pass, so

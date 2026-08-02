@@ -274,12 +274,22 @@ pub struct DeepStepCtx<'a> {
 }
 
 impl<'a> DeepStepCtx<'a> {
-    /// The deposition-identity context for the epoch currently firing — the
+    /// The deposition-identity context for the pass currently firing — the
     /// content set, the [`DeepMember`](crate::draws::DeepMember) stream seeded
-    /// from this world's seed, and the epoch that addresses the draw.
+    /// from this world's seed, and the **tectonic chapter** that addresses the
+    /// draw (`0` whenever tectonic history is off).
+    ///
+    /// The chapter and not [`Self::epoch`]: the draw is the interim tie-break
+    /// inside a class's fitness distribution, and re-rolling it every step would
+    /// turn a stable environment's one bed into an alternating stack. See
+    /// `DepositCtx::chapter` for the two heirs that retire it.
     #[inline]
     pub fn member_ctx(&self) -> super::recorder::MemberCtx<'a> {
-        Self::member_ctx_for(self.geology, self.cfg.seed, u64::from(self.epoch))
+        Self::member_ctx_for(
+            self.geology,
+            self.cfg.seed,
+            u64::from(self.erosion.current_chapter()),
+        )
     }
 
     /// [`Self::member_ctx`] for a caller that is **outside the loop** — the
@@ -288,9 +298,9 @@ impl<'a> DeepStepCtx<'a> {
     pub fn member_ctx_for(
         geology: &'a dc_core::materials::geology::GeologySet,
         seed: u64,
-        epoch: u64,
+        chapter: u64,
     ) -> super::recorder::MemberCtx<'a> {
-        super::recorder::MemberCtx::new(geology, seed, epoch)
+        super::recorder::MemberCtx::new(geology, seed, chapter)
     }
 }
 
