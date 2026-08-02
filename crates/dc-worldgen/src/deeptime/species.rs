@@ -103,6 +103,33 @@ pub struct SpeciesAxis {
     basement: u8,
 }
 
+impl Default for SpeciesAxis {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+impl SpeciesAxis {
+    /// **The no-content axis** — the degenerate door, and the state an
+    /// [`Erosion`](super::erosion::Erosion) built without a content set stays in.
+    ///
+    /// It carries nothing, so [`Self::is_empty`] is `true` and every consumer that
+    /// asks *"is there a member-grade answer here"* falls through to the class-grade
+    /// path it used before P11 slice 2. Same shape (and the same reason) as
+    /// [`DeepStrata::deposit`](super::recorder::DeepStrata::deposit)'s
+    /// reference-material door: a test or a probe that builds a grid in isolation
+    /// has no registered content to resolve against, and inventing one would be
+    /// worse than answering coarsely.
+    pub fn empty() -> Self {
+        Self {
+            ids: Vec::new(),
+            slot: [OFF_AXIS; MATERIAL_COUNT],
+            w_settle: Vec::new(),
+            basement: 0,
+        }
+    }
+}
+
 impl SpeciesAxis {
     /// Build the axis for a world's registered content.
     ///
@@ -464,6 +491,72 @@ pub fn mask_of_dense(row: &[f64]) -> u64 {
         }
     }
     m
+}
+
+/// **Split a bulk quantity into species by a sparse composition, exactly** — the
+/// member-grade heir of the transport pass's `split_by_shares` (P11 slice 2).
+///
+/// `src_axis` / `src_vals` are a composition row (a window read, or the bedrock
+/// composition below the record); `dst_axis` is the destination row's axis codes
+/// and `dst` its values, added into. **Both rows are ascending in axis order and
+/// the source is a subset of the destination** — the layouts are built so that
+/// holds — so this is a merge walk with no search and no popcount.
+///
+/// The residual rule is journal/0109's, unchanged and for the unchanged reason:
+/// normalised `f64` shares do not sum to `1` to the bit, so **the last non-zero
+/// share takes `total − Σ(earlier)`** and the itemisation equals its own total
+/// exactly rather than to an ulp. An all-zero composition adds nothing: the caller
+/// moved bulk it has no identity for, and fabricating one would be worse than
+/// recording none.
+///
+/// Returns the amount actually distributed (`total`, or `0.0` for an empty
+/// composition) so a caller can keep its own ledger honest.
+#[inline]
+pub fn split_row_into(
+    total: f64,
+    src_axis: &[u8],
+    src_vals: &[f64],
+    dst_axis: &[u8],
+    dst: &mut [f64],
+) -> f64 {
+    let Some(last) = src_vals.iter().rposition(|&v| v > 0.0) else {
+        return 0.0;
+    };
+    let mut given = 0.0;
+    let mut d = 0usize;
+    for (s, (&k, &sh)) in src_axis.iter().zip(src_vals.iter()).enumerate() {
+        if sh <= 0.0 {
+            continue;
+        }
+        while dst_axis[d] != k {
+            d += 1;
+        }
+        let v = if s == last { total - given } else { sh * total };
+        given += v;
+        dst[d] += v;
+    }
+    total
+}
+
+/// **Per-cell mutable views over a CSR plane's rows**, so a ragged plane can be
+/// driven by the same `par_iter` shape a dense `chunks_mut` gave.
+///
+/// Rayon has no ragged chunker, and the alternative — a popcount-addressed write
+/// through a shared `&mut` — is not expressible safely. This walks the row index
+/// once with `split_at_mut`, which costs `n` fat-pointer writes against the
+/// per-cell arithmetic that follows. The rows are disjoint by construction, so the
+/// parallel driver over them is byte-identical to the sequential one exactly as
+/// the dense form was.
+pub fn csr_rows_mut<'a>(vals: &'a mut [f64], layout: &SpeciesLayout) -> Vec<&'a mut [f64]> {
+    let n = layout.cells();
+    let mut rows = Vec::with_capacity(n);
+    let mut rest = vals;
+    for c in 0..n {
+        let (a, b) = rest.split_at_mut(layout.row(c).1.len());
+        rows.push(a);
+        rest = b;
+    }
+    rows
 }
 
 #[cfg(test)]

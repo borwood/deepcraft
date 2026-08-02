@@ -30,14 +30,23 @@
 //! field's fine accessor exposes this **interpolable share vector**, and the
 //! verdict is `argmax ∘ sample` — never a separately stored label.
 
-use crate::deeptime::lithology::{WindowShares, exposed_shares};
+use crate::deeptime::lithology::exposed_member_shares;
 use crate::deeptime::recorder::DepUnit;
+use crate::deeptime::species::SpeciesAxis;
 
 /// **Identity for [`Providers::outcrop_shares`](field@super::Providers::outcrop_shares)**:
-/// the per-[`Litho`] shares of the record's near-surface window
-/// ([`exposed_shares`], summing to `1.0`, deficit below a short record charged to
-/// [`Litho::Basement`]). Called under the slot's name so the identity is a *thing*
-/// and not a description; a `None` slot routes here.
-pub fn identity_outcrop_shares(units: &[DepUnit]) -> WindowShares {
-    exposed_shares(units)
+/// the per-**material** shares of the record's near-surface window
+/// ([`exposed_member_shares`], summing to `1.0`, deficit below a short record
+/// charged to the axis's basement slot). Called under the slot's name so the
+/// identity is a *thing* and not a description; a `None` slot routes here.
+///
+/// ⚠ **The grade changed with P11 slice 2, and the seam had to move with it.** It
+/// answered per-[`Litho`] until 2026-08-02, because the tables downstream were
+/// class-keyed. They are not any more: erosion blends a per-**material** rate row,
+/// so a class-grade seam would have been a seam the production rate path *bypasses*
+/// — and a seam nothing reads cannot be replaced by its heir. The heir is unchanged
+/// and so is its job: structural deformation supplies the **dipped** shares here,
+/// at whatever grade the record is written in.
+pub fn identity_outcrop_shares(axis: &SpeciesAxis, units: &[DepUnit], out: &mut [f64]) {
+    exposed_member_shares(axis, units, out);
 }

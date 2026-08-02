@@ -282,6 +282,7 @@ fn nothing_over_the_competence_ceiling_is_still_in_the_water() {
     let r = run(&pregen.grid, true);
     let w = r.erosion.settling();
     let load = r.erosion.load_species();
+    let layout = r.erosion.transport_layout();
     let energy = r.erosion.energy();
     // The ceiling is stated relative to the world's own `k_transport`
     // (journal/0114) — a capacity is that coefficient times a position in the
@@ -290,8 +291,12 @@ fn nothing_over_the_competence_ceiling_is_still_in_the_water() {
     let mut offenders = 0usize;
     for (c, e) in energy.iter().enumerate() {
         let ceiling = deeptime::competence_ceiling(*e, k_t);
-        for (k, ws) in w.iter().enumerate() {
-            if load[c * w.len() + k] > 0.0 && *ws > ceiling {
+        // P11 slice 2: the load is CSR-sparse over the species axis, so the row
+        // index says which species a cell can hold at all and the axis says how
+        // fast each of them settles.
+        let (b, ks) = layout.row(c);
+        for (j, &k) in ks.iter().enumerate() {
+            if load[b + j] > 0.0 && w[k as usize] > ceiling {
                 offenders += 1;
             }
         }

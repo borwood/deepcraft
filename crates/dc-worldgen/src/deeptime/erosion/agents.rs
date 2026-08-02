@@ -10,6 +10,7 @@ use super::super::grid::{DeepConfig, DeepGrid};
 use super::super::lithology::{self, Agent};
 use super::super::providers::WaveCell;
 use super::super::recorder::{Aridity, DepEnv, DepTag, EnergyBand, Eolian, MemberCtx, dep_tags};
+use super::weathering::SusTable;
 use super::{Erosion, NEIGH8, coords_of, in_grid};
 
 impl Erosion {
@@ -45,11 +46,13 @@ impl Erosion {
     pub fn wind(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, mem: MemberCtx<'_>) {
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
-        let sus_tab = lithology::susceptibility_table(
+        let sus_tab = SusTable::build(
+            &self.axis,
             Agent::Eolian,
             cfg.erodibility_contrast,
             cfg.erodibility_max,
         );
+        let mut row = vec![0.0f64; self.axis.len()];
         let providers = cfg.providers;
         let (w, thr, sea) = (self.w, cfg.eolian_arid_precip, self.sea_level);
         let (defl, dep_frac) = (cfg.eolian_deflation, cfg.eolian_deposit_frac);
@@ -112,9 +115,8 @@ impl Erosion {
                 // Deflation: dry, bare cells hand loose cover to the wind. Floor
                 // available cover at zero first — `H` can carry a sub-ULP negative
                 // from fp round-off, and `clamp(0.0, neg)` would panic.
-                let shares = providers
-                    .outcrop_shares(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
-                let sus = lithology::blend_susceptibility(&shares, &sus_tab);
+                let units = grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+                let sus = sus_tab.blend(&self.axis, &providers, units, &mut row);
                 let avail = grid.h[i].max(0.0);
                 let pickup = (defl * sus * arid * (1.0 - veg) * wind_mag).clamp(0.0, avail);
                 if pickup > 0.0 {
@@ -217,11 +219,13 @@ impl Erosion {
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
         let (w, sea) = (self.w, self.sea_level);
-        let sus_tab = lithology::susceptibility_table(
+        let sus_tab = SusTable::build(
+            &self.axis,
             Agent::Wave,
             cfg.erodibility_contrast,
             cfg.erodibility_max,
         );
+        let mut row = vec![0.0f64; self.axis.len()];
         for i in 0..self.n {
             let free = grid.r[i] + grid.h[i] - sea;
             if free <= 0.0 || free > band {
@@ -243,8 +247,8 @@ impl Erosion {
             let Some(j) = sink else {
                 continue; // not on the coast — no open water adjacent
             };
-            let shares = providers
-                .outcrop_shares(grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
+            let units = grid.strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+            let sus = sus_tab.blend(&self.axis, &providers, units, &mut row);
             let taper = (1.0 - free / band).clamp(0.0, 1.0);
             let rate = providers.wave_energy(WaveCell {
                 index: i,
@@ -252,7 +256,7 @@ impl Erosion {
                 gy: gy as usize,
                 base_rate,
             });
-            let cut = (rate * lithology::blend_susceptibility(&shares, &sus_tab) * taper).min(free);
+            let cut = (rate * sus * taper).min(free);
             if cut <= 0.0 {
                 continue;
             }

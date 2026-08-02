@@ -8,12 +8,13 @@ use rayon::prelude::*;
 
 use super::super::climate;
 use super::super::grid::DeepGrid;
-use super::super::lithology::{self, Litho};
+use super::super::lithology;
 use super::super::recorder::{
     Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, MemberCtx, dep_tags,
 };
+use super::super::species::{MAX_DEEP_SPECIES, SpeciesAxis};
 use super::transport::{ENERGY_LOW_MED, ENERGY_MED_HIGH, REFERENCE_KT};
-use super::{Erosion, SPECIES};
+use super::Erosion;
 use dc_core::materials::MaterialId;
 
 /// Map a stream transport capacity to a facies energy band, in a world whose
@@ -86,31 +87,37 @@ fn record_cell(
     }
 }
 
-/// **Which material the unit arriving at this cell is made of** (Movement 2b).
+/// **What the movers delivered here, and whether they outvoted the remainder** —
+/// the argmax of the arriving mixture (Movement 2b; re-graded to materials by P11
+/// slice 2).
 ///
-/// The cell's net gain has several sources, and **two of them now carry an
-/// identity**: the fluvial transport pass knows, per species, exactly what it set
-/// down (`dep`), and hillslope creep knows, per species, exactly what came down
-/// the slope into this cell (`creep`, Movement 2b continuation (b)). What is left
-/// in `dh` — bedrock weathered to regolith in place, wind and wave, the biotic
-/// layer — never rode any mover, and keeps the answer the record has always
-/// given: the tag's own lithology.
-///
-/// So the unit's **class** is the argmax of the whole mixture: each carried
-/// species against the un-carried remainder, with ties going to the incumbent (a
-/// strict `>` over fixed index order, so it is deterministic).
-///
-/// ⚠ **It answers the CLASS, not the rock** (P11 slice 1). The transport budgets
-/// are still `Litho::COUNT`-wide, so this argmax is over classes; the *member* is
-/// then chosen by fitness at deposition under the cell's own climate
-/// ([`super::super::recorder::MemberCtx::surface`]). Slice 2 re-grades the budgets, at
-/// which point the argmax is over materials and this function returns the rock
-/// directly.
+/// The cell's net gain has several sources, and **two of them carry an identity**:
+/// the fluvial transport pass knows, per species, exactly what it set down
+/// (`dep`), and hillslope creep knows, per species, exactly what came down the
+/// slope into this cell (`creep`, Movement 2b continuation (b)). What is left in
+/// `dh` — bedrock weathered to regolith in place, wind and wave, the biotic layer
+/// — never rode any mover, and is the *incumbent*: the answer the record gives
+/// when nothing that arrived outweighs it.
 ///
 /// **The two movers are summed, not ranked.** A cell that receives half a metre of
-/// fine clastic from upstream and half a metre of the same rock off the slope
-/// above has a metre of that rock, and pretending the two halves compete would
-/// make the answer depend on which agent we asked first.
+/// sandstone from upstream and half a metre of the same rock off the slope above
+/// has a metre of that rock, and pretending the two halves compete would make the
+/// answer depend on which agent we asked first.
+///
+/// **Only *gains* are candidates**: a species creep took **away** from this cell is
+/// not something the cell can be made of, so the negative entries are clamped out
+/// of both the mixture and the remainder.
+///
+/// ## The tie rule, spelled out because it is now load-bearing
+///
+/// The scan is a **strict `>` over the union of the two rows walked in axis
+/// order**, so the first-met maximum wins and the incumbent holds any tie with it.
+/// Axis order is **descending settling energy, ties broken by `MaterialId`
+/// index** — a total, deterministic, content-derived order (`species.rs`), not an
+/// enum's declaration order and not the order the rows happen to be stored in.
+/// Two materials with exactly equal arriving mass therefore resolve to the
+/// **coarser** one, which is the same bias the deposition arithmetic above it has
+/// (coarsest-first drawdown, the falling competence ceiling).
 ///
 /// **STUB #25 — which *mover* delivered it is a different axis, and the record does
 /// not carry one.** Colluvium and alluvium are separable only by signature, not by
@@ -118,41 +125,42 @@ fn record_cell(
 /// the free version is a packed `(species, mover)` byte. See `stubs.md` § 25 and
 /// `examples/colluvium_probe.rs`, which measures the signature the label is missing.
 ///
-/// Only *gains* are candidates: a species creep took **away** from this cell is
-/// not something the cell can be made of, so the negative entries are clamped out
-/// of both the mixture and the remainder.
-///
 /// This is deliberately *not* a threshold on "was most of this transported" —
 /// a threshold would be a second rule with a number in it. It is one comparison
 /// over one mixture, and it degenerates exactly to the old behaviour when nothing
 /// was carried here.
 #[inline]
-fn arriving_species(dh: f64, dep: &[f64], creep: &[f64], tag_species: Litho) -> Litho {
-    let mut mix = [0.0; SPECIES];
+fn arriving_material(
+    dh: f64,
+    axis: &SpeciesAxis,
+    dep_axis: &[u8],
+    dep: &[f64],
+    creep_axis: &[u8],
+    creep: &[f64],
+) -> Option<MaterialId> {
+    let mut mix = [0.0f64; MAX_DEEP_SPECIES];
     let mut carried = 0.0;
-    for k in 0..SPECIES {
-        let m = dep[k] + creep.get(k).copied().unwrap_or(0.0).max(0.0);
-        mix[k] = m;
+    for (j, &k) in dep_axis.iter().enumerate() {
+        let m = dep[j].max(0.0);
+        mix[k as usize] += m;
         carried += m;
     }
-    let mut best = tag_species;
+    for (j, &k) in creep_axis.iter().enumerate() {
+        let m = creep[j].max(0.0);
+        mix[k as usize] += m;
+        carried += m;
+    }
+    // The incumbent: what never rode a mover. A strict `>` against it means a tie
+    // leaves the record saying what the environment implies, exactly as before.
     let mut best_m = dh - carried;
-    let mut moved = false;
-    for (k, &m) in mix.iter().enumerate() {
+    let mut best: Option<usize> = None;
+    for (k, &m) in mix.iter().take(axis.len()).enumerate() {
         if m > best_m {
             best_m = m;
-            best = Litho::ALL[k];
-            moved = true;
+            best = Some(k);
         }
     }
-    // [`Litho::as_deposited`] answers *"what is this rock once a mover has set it
-    // down"*, so it applies to the **carried** winner and not to the tag's own
-    // default: the default was never carried anywhere and the record has always
-    // been allowed to say what it says. (On today's world the distinction is
-    // inert — the erosion recorder builds mineral tags only, and `litho_of_tag`
-    // maps those to clastics, which `as_deposited` leaves alone — but the rule
-    // should be right rather than accidentally right.)
-    if moved { best.as_deposited() } else { best }
+    best.map(|k| axis.material(k))
 }
 
 impl Erosion {
@@ -175,8 +183,9 @@ impl Erosion {
         // `transport` rather than re-read from a config this phase does not take.
         let k_t = self.k_transport;
         let dh = &self.dh;
-        let dep = &self.dep_sp;
-        let creep = &self.creep_sp;
+        let dep = self.dep_sp.vals();
+        let creep = self.creep_sp.vals();
+        let (axis, tlayout, clayout) = (&self.axis, &self.tlayout, &self.clayout);
         let sorted = self.sorted;
         // **The two halves of a unit's identity, in order** (P11 slice 1):
         //
@@ -193,23 +202,61 @@ impl Erosion {
         // the chunk's centre. The class is a fact about the load; the member is a
         // fact about the day. Both are known here and neither was written down.
         let species_at = |i: usize, tag: DepTag| {
-            let t = lithology::litho_of_tag(tag);
-            let class = if sorted {
-                let cr = if creep.is_empty() {
-                    &[][..]
+            let carried = if sorted {
+                let (db, dks) = tlayout.row(i);
+                let (cb, cks) = if creep.is_empty() {
+                    (0, &[][..])
                 } else {
-                    &creep[i * SPECIES..(i + 1) * SPECIES]
+                    clayout.row(i)
                 };
-                arriving_species(dh[i], &dep[i * SPECIES..(i + 1) * SPECIES], cr, t)
+                arriving_material(
+                    dh[i],
+                    axis,
+                    dks,
+                    &dep[db..db + dks.len()],
+                    cks,
+                    &creep[cb..cb + cks.len()],
+                )
             } else {
-                t
+                None
             };
+            // **THE DEPOSITION DRAW IS RETIRED FOR TRANSPORTED DEPOSITS**
+            // (P11 ruling 6, 2026-08-02). Identity is a *conserved quantity*
+            // flowing through the mass arithmetic — erosion releases it, transport
+            // carries it by id, deposition records what settled — so when a mover
+            // outvoted the un-carried remainder there is nothing left to pick: the
+            // rock that arrived IS the rock. The fitness envelope was selection
+            // machinery for filling a class, and a filled class has no hole.
+            //
+            // Two cases still reach the draw, and both are genuine degeneracy
+            // rather than missing information:
+            //
+            // 1. **the remainder won** — the metres were made here (bedrock
+            //    weathered to regolith in place) or brought by a mover that
+            //    carries no identity yet (wind, wave, the biotic layer). Nothing
+            //    was transported, so the environment is the only witness;
+            // 2. **a transformation edge** — basement a river quarried lands as
+            //    coarse clastic detritus, and detrital peat/coal/charcoal lands as
+            //    carbonaceous mud ([`lithology::deposited_transform`]). The
+            //    *parent* does not determine which member of the destination the
+            //    transformation makes; the conditions at the site do. So fitness
+            //    runs on the destination class, under this cell's own climate.
+            //
+            // FS-A retires case 1's weathered half (release spectra say what a
+            // parent rock sheds); what survives after that is primary formation.
             let temp_c = f64::from(climate::air_temp_c(lat[i / w], r[i] + h[i]));
+            let draw_class = match carried {
+                Some(m) => match lithology::deposited_transform(m) {
+                    None => return m,
+                    Some(to) => to,
+                },
+                None => lithology::litho_of_tag(tag),
+            };
             mem.surface(
                 i,
                 temp_c,
                 f64::from(precip[i]),
-                class,
+                draw_class,
                 dep_tags::TRANSPORT,
                 0,
             )

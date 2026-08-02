@@ -14,10 +14,10 @@
 //! coastal cells retreat. Numbers print under `--nocapture` and are quoted in the
 //! journal entry.
 
-use dc_core::coarse::ShareVec;
+use dc_core::materials::MaterialId;
 use dc_worldgen::deeptime::climate::air_temp_c;
-use dc_worldgen::deeptime::lithology::WindowShares;
-use dc_worldgen::deeptime::{self, DeepConfig, DeepRun, DepUnit, Eolian, Litho, Providers};
+use dc_worldgen::deeptime::species::SpeciesAxis;
+use dc_worldgen::deeptime::{self, DeepConfig, DeepRun, DepUnit, Eolian, Providers};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 const SEED: u64 = 0x0FDA_6E27_2034;
@@ -357,17 +357,22 @@ fn waves_cut_down_the_coastline() {
     // share vector is a uniform window, which the blend maps to exactly that
     // lithology's rate (argmax is the blend's limiting case), so this drives the
     // same soft/resistant contrast the verdict override used to.
-    let soft: fn(&[DepUnit]) -> WindowShares = |_| {
-        let mut s = [0.0f64; Litho::COUNT];
-        s[Litho::ClasticFine.index()] = 1.0;
-        ShareVec::from_shares(s)
+    //
+    // **P11 slice 2 re-graded the seam to MATERIALS**, so the one-hot is over the
+    // species axis rather than over the class roster — and the two rocks are named
+    // rather than looked up through a class: `dc:mudstone` (the reference the
+    // member rate table is anchored on, so its multiplier is exactly `1.0`) against
+    // `dc:granite` (the basement, the most wave-resistant thing in the world). The
+    // contrast the test drives is unchanged; only the alphabet is.
+    let soft: fn(&SpeciesAxis, &[DepUnit], &mut [f64]) = |axis, _, out| {
+        out.fill(0.0);
+        out[axis.slot_of(MaterialId::MUDSTONE)] = 1.0;
     };
-    let rock: fn(&[DepUnit]) -> WindowShares = |_| {
-        let mut s = [0.0f64; Litho::COUNT];
-        s[Litho::Basement.index()] = 1.0;
-        ShareVec::from_shares(s)
+    let rock: fn(&SpeciesAxis, &[DepUnit], &mut [f64]) = |axis, _, out| {
+        out.fill(0.0);
+        out[axis.slot_of(MaterialId::GRANITE)] = 1.0;
     };
-    let wave_cfg = |o: fn(&[DepUnit]) -> WindowShares| DeepConfig {
+    let wave_cfg = |o: fn(&SpeciesAxis, &[DepUnit], &mut [f64])| DeepConfig {
         full_agents: true,
         // Isolate wave from the other two agents.
         eolian_deflation: 0.0,

@@ -161,11 +161,36 @@ dc_sim::draw_domains! {
     /// turns over when the shifting CDF crosses the fixed draw — at a real change
     /// in conditions — rather than on a per-step coin.
     ///
-    /// ⚠ **The whole domain is INTERIM SCAFFOLDING** and is retired in two pieces:
-    /// P11 slice 2 (transported deposits take their identity from the arriving
-    /// composition term) and FS-A (weathering release spectra). It exists only
-    /// while a class still has to be *filled*.
-    DeepMember = 0x5900_0002;
+    /// ⚠ **Half of this domain is RETIRED** (P11 slice 2, ruling 6). A transported
+    /// deposit no longer draws: identity comes from the arriving composition term
+    /// — what the mover actually carried — so there is nothing left to pick. What
+    /// still reaches this stream is the genuine-degeneracy remainder: material made
+    /// where it lies, the movers that carry no identity yet (wind, wave, the biotic
+    /// layer), and the transformation edges (basement → coarse detritus, detrital
+    /// organics → carbonaceous mud), whose destination member is a fact about the
+    /// site rather than about the parent. FS-A retires the weathered half.
+    ///
+    /// ⚠ **THE VALUE MOVED, 2026-08-02, and every world's member picks moved with
+    /// it.** It was `0x5900_0002`, which is the value `deeptime/refine.rs` had been
+    /// spelling by hand as `SALT_DT_PERTURB` since before the domain list existed —
+    /// a **real collision** between two live decisions, found by the 2026-08-02
+    /// spine-audit and invisible to the `draw_domains!` duplicate check because one
+    /// of the two was not in the list. The refinement perturbation kept the number
+    /// (it is registered below as [`DeepTimePerturb`], byte-identically) and this
+    /// domain took the next unused value, because the perturbation is a *spike*
+    /// whose measured decay profile is a dated record and this is production
+    /// identity the golden re-capture was going to move anyway.
+    DeepMember = 0x5900_0003;
+    /// **The refinement experiment's boundary-condition perturbation**
+    /// (`deeptime/refine.rs`) — the `±bump_m` addressed jitter applied to the outer
+    /// halo ring, whose penetration the decay profile measures.
+    ///
+    /// **Registered 2026-08-02 at the value it already had**, so the perturbation
+    /// stream is unchanged to the bit: `Draws::bits` folds `(seed, salt, addr…)`
+    /// through exactly the chain `draw_f64(&[seed, SALT, addr…])` did, asserted by
+    /// `the_registered_perturbation_domain_is_the_hand_rolled_salt`. It was the
+    /// second half of a **collision** with [`DeepMember`]; see that domain's banner.
+    DeepTimePerturb = 0x5900_0002;
     /// Biotic fire ignition (`deeptime/biotic.rs`).
     BioticFire = 0x5B00_0001;
     /// Biotic flood (`deeptime/biotic.rs`).
@@ -651,12 +676,57 @@ mod tests {
         );
     }
 
+    /// **The byte-identity proof for [`DeepTimePerturb`]'s registration**
+    /// (P11 slice 2, the salt fix).
+    ///
+    /// `refine.rs` spelled `0x5900_0002` by hand and folded it as
+    /// `draw_f64(&[seed, SALT, gx, gy])`. Opening the registered domain must
+    /// produce the same bits at every address, or the decay experiment's dated
+    /// measurements would silently be describing a different perturbation field.
+    /// `Draws::bits` starts from the same IV, absorbs the seed, then the salt, then
+    /// the address — the identical chain — and this asserts it rather than arguing
+    /// it.
+    #[test]
+    fn the_registered_perturbation_domain_is_the_hand_rolled_salt() {
+        use dc_sim::statistical::rng::draw_f64;
+        const HAND_ROLLED: u64 = 0x5900_0002;
+        assert_eq!(<DeepTimePerturb as Domain>::SALT, HAND_ROLLED);
+        for seed in [0u64, 1337, 987_654_321] {
+            let d = Draws::of::<DeepTimePerturb>(seed);
+            for (gx, gy) in [(0u64, 0u64), (1, 0), (37, 91), (511, 511)] {
+                assert_eq!(
+                    d.unit(&[gx, gy]),
+                    draw_f64(&[seed, HAND_ROLLED, gx, gy]),
+                    "the registered domain moved the perturbation stream at                      seed {seed}, ({gx}, {gy})"
+                );
+            }
+        }
+    }
+
+    /// **And the collision it fixed cannot come back.** `DeepMember` and
+    /// `DeepTimePerturb` were the same number until 2026-08-02 — two live decisions
+    /// on one stream, which the `draw_domains!` duplicate check could not see
+    /// because only one of them was in the list. Now both are, so the compile-time
+    /// assertion covers it; this asserts the *independence* the compile-time check
+    /// only implies.
+    #[test]
+    fn the_member_draw_and_the_perturbation_no_longer_share_a_stream() {
+        assert_ne!(
+            <DeepMember as Domain>::SALT,
+            <DeepTimePerturb as Domain>::SALT
+        );
+        let (a, b) = (Draws::of::<DeepMember>(1337), Draws::of::<DeepTimePerturb>(1337));
+        for addr in [&[0u64, 0][..], &[3, 7], &[91, 12]] {
+            assert_ne!(a.unit(addr), b.unit(addr));
+        }
+    }
+
     /// The list is what the compile-time check reads, so it must actually list
     /// everything. A domain that never reaches `ALL_DOMAINS` is a domain the
     /// duplicate check cannot see.
     #[test]
     fn every_domain_is_listed_and_distinct() {
-        assert_eq!(ALL_DOMAINS.len(), 16, "a domain was added without a test");
+        assert_eq!(ALL_DOMAINS.len(), 17, "a domain was added without a test");
         let mut salts: Vec<u64> = ALL_DOMAINS.iter().map(|(_, s)| *s).collect();
         salts.sort_unstable();
         let n = salts.len();

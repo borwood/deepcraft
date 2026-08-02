@@ -703,6 +703,78 @@ pub fn member_susceptibility_table(
 /// so this is a derivation restated, not a re-tune.
 pub const REFERENCE_MATERIAL: MaterialId = MaterialId::MUDSTONE;
 
+/// **The rock below the whole sedimentary pile**, named as a material.
+///
+/// [`Litho::Basement`]'s reference member spelled out, for the same reason
+/// [`REFERENCE_MATERIAL`] is: under member grade there is no *"basement class"* to
+/// fall back on, so the axis needs the rock by name. Asserted equal to the class
+/// answer by `the_named_basement_is_the_class_reference` — the summary agrees with
+/// the authority for as long as both exist (slice 4 removes the authority).
+pub const DEEP_BASEMENT: MaterialId = MaterialId::GRANITE;
+
+/// **What a material IS once a mover has carried it and set it down** — the
+/// member-grade face of [`Litho::as_deposited`] (P11 slice 2).
+///
+/// Returns `None` when the rock is unchanged by the act of being deposited (the
+/// common case: sandstone a river carried is sandstone), and `Some(class)` when
+/// deposition is a genuine **transformation edge** — basement a river quarried
+/// lands as coarse clastic detritus, and detrital peat/coal/charcoal lands as
+/// carbonaceous mud. See [`Litho::as_deposited`] for why those two families are the
+/// same rule.
+///
+/// The *destination* is a class, not a rock, and that is deliberate: which member
+/// of the destination class a transformation produces is a question about the
+/// conditions at the site, not about the parent — so the caller re-runs fitness
+/// there. This is the one place P11 ruling 6's *"genuine-degeneracy remainder…
+/// transformation edges under declared conditions"* survives on the transported
+/// path.
+///
+/// ⚠ Rides [`Litho::of_material`], the interim class bucket, and retires with it
+/// (slice 4).
+#[inline]
+pub fn deposited_transform(m: MaterialId) -> Option<Litho> {
+    let from = Litho::of_material(m);
+    let to = from.as_deposited();
+    if to == from { None } else { Some(to) }
+}
+
+/// **Blend a per-material susceptibility table by a sparse window row** — the
+/// member-grade heir of [`blend_susceptibility`] (P11 slice 2).
+///
+/// `axis_of` are the row's axis codes and `shares` its values; `tab` is a
+/// [`member_susceptibility_table`] indexed by axis order. Anchored at the row's
+/// dominant material exactly as the class-grade blend is anchored at its argmax,
+/// and for the identical reason: `tab[d] + Σ shares[i]·(tab[i] − tab[d])` is
+/// **exact at the two boundaries the invariants pin** — a uniform window returns
+/// `tab[d]` bit for bit (so the blend is a strict generalisation of a point
+/// lookup), and a uniform table returns that value bit for bit (so a neutralised
+/// coupling is a perfect no-op). The bare dot is sub-ULP off at both, because
+/// share normalisation does not sum to exactly `1.0`.
+///
+/// Ties in the argmax break by **axis order** — descending settling energy, then
+/// `MaterialId` — which is the same total, content-derived order every other
+/// order-sensitive rule in this slice uses.
+#[inline]
+pub fn blend_member_susceptibility(axis_of: &[u8], shares: &[f64], tab: &[f64]) -> f64 {
+    let mut d = 0usize;
+    let mut best = f64::NEG_INFINITY;
+    for (i, &s) in shares.iter().enumerate() {
+        if s > best {
+            best = s;
+            d = i;
+        }
+    }
+    if shares.is_empty() {
+        return 1.0;
+    }
+    let anchor = tab[axis_of[d] as usize];
+    let mut acc = anchor;
+    for (i, &s) in shares.iter().enumerate() {
+        acc += s * (tab[axis_of[i] as usize] - anchor);
+    }
+    acc
+}
+
 /// The near-surface window's per-[`Litho`] share vector, as the headless
 /// [`ShareVec`](dc_core::coarse::ShareVec) the `CoarseField` extraction owns.
 ///
@@ -870,6 +942,72 @@ pub fn susceptibility_table(agent: Agent, contrast: f64, cap: f64) -> [f64; Lith
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// **The named rocks agree with the class authority they restate**
+    /// (CLAUDE.md § *A summary is not an authority*). [`REFERENCE_MATERIAL`] and
+    /// [`DEEP_BASEMENT`] are member-grade spellings of two class references; while
+    /// both spellings exist they must not drift. Slice 4 deletes the authority, at
+    /// which point these become the only spelling and the test retires with it.
+    #[test]
+    fn the_named_rocks_are_the_class_references() {
+        assert_eq!(REFERENCE_MATERIAL, REFERENCE_LITHO.reference_material());
+        assert_eq!(DEEP_BASEMENT, Litho::Basement.reference_material());
+    }
+
+    /// **The member-grade blend is a strict generalisation of a point lookup**, at
+    /// the two boundaries the class-grade blend's own invariants pin: a uniform
+    /// window returns that material's entry bit for bit, and a uniform table
+    /// returns its value bit for bit (so a neutralised coupling is a perfect
+    /// no-op). Both are exact-equality assertions, because the anchoring is what
+    /// makes them exact — the bare dot is sub-ULP off at each.
+    #[test]
+    fn a_uniform_member_window_is_that_rocks_rate_bit_for_bit() {
+        let tab = vec![0.7, 1.3, 2.9, 0.4];
+        for k in 0..4usize {
+            let mut row = vec![0.0; 4];
+            row[k] = 1.0;
+            let codes: Vec<u8> = (0..4u8).collect();
+            assert_eq!(
+                blend_member_susceptibility(&codes, &row, &tab).to_bits(),
+                tab[k].to_bits(),
+                "a window that is 100 % material {k} did not blend to its own rate"
+            );
+        }
+        let flat = vec![1.75; 4];
+        let row = vec![0.21, 0.4, 0.09, 0.3];
+        let codes: Vec<u8> = (0..4u8).collect();
+        assert_eq!(
+            blend_member_susceptibility(&codes, &row, &flat).to_bits(),
+            1.75f64.to_bits(),
+            "a uniform table must be a perfect no-op whatever the shares"
+        );
+    }
+
+    /// **A transformation edge is named, and only where deposition really changes
+    /// the rock.** Basement a river quarried lands as clastic detritus; detrital
+    /// organics land as carbonaceous mud; everything else is itself.
+    #[test]
+    fn only_the_transformation_edges_transform() {
+        assert_eq!(
+            deposited_transform(MaterialId::GRANITE),
+            Some(Litho::ClasticCoarse)
+        );
+        assert_eq!(deposited_transform(MaterialId::PEAT), Some(Litho::OrganicSoil));
+        assert_eq!(deposited_transform(MaterialId::COAL), Some(Litho::OrganicSoil));
+        assert_eq!(
+            deposited_transform(MaterialId::CHARCOAL),
+            Some(Litho::OrganicSoil)
+        );
+        for m in [
+            MaterialId::MUDSTONE,
+            MaterialId::SILTSTONE,
+            MaterialId::SANDSTONE,
+            MaterialId::CONGLOMERATE,
+            MaterialId::CARBONACEOUS_MUDSTONE,
+        ] {
+            assert_eq!(deposited_transform(m), None, "{} transformed", m.qualified_name());
+        }
+    }
 
     #[test]
     fn the_reference_lithology_is_exactly_neutral() {

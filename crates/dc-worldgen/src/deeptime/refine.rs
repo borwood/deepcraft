@@ -17,16 +17,13 @@
 //! and exposes the advective wall (the error stops decaying). Both fall out of
 //! the same function at two magnitudes.
 
-use dc_sim::statistical::rng::draw_f64;
+use dc_sim::statistical::rng::{Draws, draw_f64};
 
 use crate::pregen::{CELL_VOXELS, Pregen, provenance_roughness};
 
 use super::climate;
 use super::erosion::Erosion;
 use super::grid::{DeepConfig, DeepGrid, provenance_uplift};
-
-/// Addressed-draw salt for the boundary-condition perturbation.
-const SALT_DT_PERTURB: u64 = 0x5900_0002;
 
 /// A square fine sub-window of the pregen extent to refine.
 #[derive(Clone, Copy, Debug)]
@@ -172,12 +169,20 @@ fn ring_dist(gx: usize, gy: usize, w: usize) -> usize {
 /// Perturb the outer `halo`-cell ring's bedrock by up to `±bump_m` (addressed
 /// jitter): the boundary-condition error a refined region inherits.
 fn perturb_ring(grid: &mut DeepGrid, halo: usize, bump_m: f64, seed: u64) {
+    let draws = Draws::of::<crate::draws::DeepTimePerturb>(seed);
     let w = grid.w;
     for gy in 0..w {
         for gx in 0..w {
             if ring_dist(gx, gy, w) < halo {
                 let i = gy * w + gx;
-                let j = draw_f64(&[seed, SALT_DT_PERTURB, gx as u64, gy as u64]) * 2.0 - 1.0;
+                // `draws.rs` § `DeepTimePerturb`. This was a hand-rolled
+                // `const SALT_DT_PERTURB = 0x5900_0002` until 2026-08-02, when the
+                // spine-audit found it **colliding with the `DeepMember` domain** —
+                // two live decisions on one stream, invisible to the
+                // duplicate-fails-to-compile check because this half was never in
+                // the list. The number is unchanged here (the decay profile is a
+                // dated measurement); `DeepMember` moved.
+                let j = draws.unit(&[gx as u64, gy as u64]) * 2.0 - 1.0;
                 grid.r[i] += j * bump_m;
             }
         }
@@ -204,6 +209,14 @@ pub fn measure_decay(
     let mut e_ref = Erosion::new(&reference);
     let mut e_pert = Erosion::new(&perturbed);
     let geology = dc_core::materials::geology::vanilla();
+    // P11 slice 2: the erosion RATES are member-grade wherever a content set
+    // exists, so the experiment has to run the axis production runs on — a decay
+    // profile measured against class-grade rates would be measuring a world we no
+    // longer build.
+    e_ref.set_species_axis(&geology);
+    e_pert.set_species_axis(&geology);
+    e_ref.set_material_transport(run_cfg.material_transport);
+    e_pert.set_material_transport(run_cfg.material_transport);
     let mem = super::recorder::MemberCtx::new(&geology, run_cfg.seed, 0);
     let sl0 = super::grid::sea_level_at(&run_cfg, 0);
     climate::march(&mut reference, sl0);

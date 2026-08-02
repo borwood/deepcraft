@@ -145,7 +145,7 @@ pub use paleo_temperature::{PaleoUnit, identity_paleo_temperature};
 pub use parent_p::{ParentCell, identity_parent_p};
 pub use wave_energy::{WaveCell, identity_wave_energy};
 
-use super::lithology::{Litho, dominant_litho};
+use super::lithology::Litho;
 use super::recorder::DepUnit;
 
 /// The near-surface window's per-[`Litho`] share vector — the payload the
@@ -271,7 +271,7 @@ pub struct Providers {
     ///   with them automatically, because it *is* their argmax. Seaming the
     ///   quantity (not the verdict) is S-5's corollary.
     /// - *Granularity:* value-level, per cell per epoch.
-    pub outcrop_shares: Option<fn(&[DepUnit]) -> WindowShares>,
+    pub outcrop_shares: Option<fn(&super::species::SpeciesAxis, &[DepUnit], &mut [f64])>,
 
     // `burial_temp_c` lived here until journal/0093. It **retired as a field
     // pass**, not a provider heir: a real geotherm answers `T(depth)`, which is a
@@ -421,18 +421,40 @@ impl Providers {
     /// whatever the [`outcrop_shares`](Self::outcrop_shares()) slot answers, so when
     /// the structural-deformation heir supplies dipped shares the verdict dips with
     /// them, and the two can never disagree about where a bed is.
+    /// **⚠ The verdict is now a summary of a MEMBER-grade quantity.** With a live
+    /// axis it is the class of the dominant *material*; with the empty axis (the
+    /// degenerate door — no content set) it is the pre-slice class walk, unchanged
+    /// and byte-identical. Ties break by axis order, which is the same total,
+    /// content-derived order every other order-sensitive rule in the deep tier uses.
     #[inline]
-    pub fn outcrop_at(&self, units: &[DepUnit]) -> Litho {
-        dominant_litho(&self.outcrop_shares(units))
+    pub fn outcrop_at(&self, axis: &super::species::SpeciesAxis, units: &[DepUnit]) -> Litho {
+        if axis.is_empty() {
+            return super::lithology::exposed_litho(units);
+        }
+        let mut row = vec![0.0f64; axis.len()];
+        self.outcrop_shares(axis, units, &mut row);
+        let mut d = 0usize;
+        for k in 1..row.len() {
+            if row[k] > row[d] {
+                d = k;
+            }
+        }
+        Litho::of_material(axis.material(d))
     }
 
     /// Ask the [`outcrop_shares`](field@Self::outcrop_shares) slot, falling through
-    /// to [`identity_outcrop_shares`] when no heir has supplied it.
+    /// to [`identity_outcrop_shares`] when no heir has supplied it. `out` is a dense
+    /// row `axis.len()` wide, overwritten in full.
     #[inline]
-    pub fn outcrop_shares(&self, units: &[DepUnit]) -> WindowShares {
+    pub fn outcrop_shares(
+        &self,
+        axis: &super::species::SpeciesAxis,
+        units: &[DepUnit],
+        out: &mut [f64],
+    ) {
         match self.outcrop_shares {
-            Some(f) => f(units),
-            None => identity_outcrop_shares(units),
+            Some(f) => f(axis, units, out),
+            None => identity_outcrop_shares(axis, units, out),
         }
     }
 
@@ -504,6 +526,15 @@ impl Providers {
 mod tests {
     use super::*;
 
+    /// The vanilla species axis — the seam speaks member grade since P11 slice 2,
+    /// so a test of it needs the alphabet a world would supply.
+    fn test_axis() -> crate::deeptime::species::SpeciesAxis {
+        crate::deeptime::species::SpeciesAxis::new(
+            &dc_core::materials::geology::vanilla(),
+            crate::deeptime::lithology::DEEP_BASEMENT,
+        )
+    }
+
     #[test]
     fn the_default_set_is_the_identity_set() {
         let p = Providers::default();
@@ -554,11 +585,15 @@ mod tests {
             assert_eq!(p.parent_p(c).to_bits(), identity_parent_p(c).to_bits());
         }
         // The verdict is derived (argmax of the shares identity), not a slot.
+        let axis = test_axis();
         assert_eq!(
-            p.outcrop_at(&[]),
-            dominant_litho(&identity_outcrop_shares(&[]))
+            p.outcrop_at(&axis, &[]),
+            crate::deeptime::lithology::Litho::Basement
         );
-        assert_eq!(p.outcrop_shares(&[]), identity_outcrop_shares(&[]));
+        let (mut via_slot, mut direct) = (vec![0.0f64; axis.len()], vec![0.0f64; axis.len()]);
+        p.outcrop_shares(&axis, &[], &mut via_slot);
+        identity_outcrop_shares(&axis, &[], &mut direct);
+        assert_eq!(via_slot, direct);
 
         let (precip, r, h) = (vec![0.4f32; 9], vec![25.0f64; 9], vec![2.0f64; 9]);
         let (area, recv, filled) = (vec![12.0f64; 9], vec![-1i32; 9], vec![27.5f64; 9]);
@@ -605,7 +640,11 @@ mod tests {
         };
         assert_eq!(p.non_identity_slots(), vec![Slot::OutcropShares]);
         // …and it still generates identically, because it is the same function.
-        assert_eq!(p.outcrop_shares(&[]), identity_outcrop_shares(&[]));
+        let axis = test_axis();
+        let (mut via_slot, mut direct) = (vec![0.0f64; axis.len()], vec![0.0f64; axis.len()]);
+        p.outcrop_shares(&axis, &[], &mut via_slot);
+        identity_outcrop_shares(&axis, &[], &mut direct);
+        assert_eq!(via_slot, direct);
     }
 
     /// The reshaped report *names* the swapped slots, and names only those —
