@@ -268,7 +268,12 @@ an implementation choice; artifact suppression uses standard techniques
 > root. The solver is handed a hip that never moves, returns a correct and **constant** leg
 > pose, and the renderer then translates the whole body, feet included, by the bob. Fix that
 > and the quantizer becomes the next wall (a ~1° correction against an 11.25° step, and
-> `stepped_angle()` is applied to the IK output). **The discriminating evidence was already
+> `stepped_angle()` is applied to the IK output). **⚠ "Fix that" is NOT a work order
+> (corrections #93, 2026-08-02): the authored clip bob itself has no contemporary
+> ratification (user: "i don't even know that it makes sense as something we want for all
+> bodies, or uniformly for all bodies"), and #81's resolution below already deletes the bob
+> as an authored constant. The finding here is the space-layering FACT; the bob's disposal —
+> per-species output, or absent — is the gait-bake design pass's.** **The discriminating evidence was already
 > in the report and was misread: the knee angle is CONSTANT across frames while the gap
 > tracks the bob one-for-one.** Found by the user watching the body move — the third time a
 > temporal observation has beaten an instrument reading (corrections #77, #78, #80).

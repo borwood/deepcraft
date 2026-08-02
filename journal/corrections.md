@@ -3726,3 +3726,44 @@ OTHER session's live close block. The close-block doctrine cuts both ways: a han
 nobody re-reads fails its writer (corrections #73), and fails a PARALLEL READER the same
 way. Target stamped in the same commit: the Observed entry carries the strike and the
 pointer.
+
+## 93. "Corrections #80's temporal bob is a FIX we owe: feed the authored bob into the solver hip and the feet glue" (the bodies board's framing, 2026-08-02 — carried by the close block, repeated by the dependency graph, and proposed for implementation by the next session; falsified by the user, who was repeating himself)
+
+**The claim, as it stood on the board.** The 2026-08-02 bodies close block queued *"corrections
+#80's temporal bob — the last thing between these bodies and glued feet"*; the dependency-graph
+§ 2b row said *"the last un-glued-feet item"*; and the next session's assessment concluded *"no
+ruling is owed here"* and proposed the mechanical fix: include the clips' `root_bob_m` in the
+solver's hip so the knees absorb the bob and the soles stay planted.
+
+**Falsified by the user, verbatim:** *"i'll repeat myself again. there has been no contemporary
+sketch or ratification related to the bob and i don't even know that it makes sense as something
+we want for all bodies, or uniformly for all bodies."*
+
+**And "repeat" is exact — the ruling already existed, recorded INSIDE corrections #81's
+resolution:** *"Hip height, the root bob and the crouch drop are all deleted rather than
+corrected — they are outputs of the per-species bake"* (bodies.md § IK, 2026-08-01), resting on
+the user's own words: *"the bob is emergent and not authored with our current direction, yes or
+no?"* The authored `root_bob_m` keyframes in the three bootstrap clips are bring-up content —
+absolute metres in a proportional pipeline (the A-1 flag already measured them: jump bob
+0.120 m = 13 % of the biped's hip and 26 % of the stout's) — and **whether a body bobs at all,
+which bodies, and by how much are per-species questions that `posture-gait.md` § 1 already
+routes to the bake** (*a quantity with a physical determinant is an output*).
+
+**Mechanism, two-part.** (1) **A ruling recorded inside another correction's resolution text is
+invisible to a reader who files that correction under a different subject** — #81 is remembered
+as "the hip/reach question was dissolved," and the bob clause deleted alongside it stayed
+unread; #80 stayed alive on the board as a *defect narrative* ("feet un-glued") that silently
+inherited the unratified content it sat on. A defect framing carries an implicit ratification
+of everything it takes as background. (2) **The assessment quoted #81 while contradicting it**
+— citing a ruling is not the same as applying it; the session used #81 to close the question it
+remembered (*is the gap intentional?*) and never noticed the same paragraph deleting the
+constant its fix was built to serve. Existence-is-not-standing, temporal edition: *the clip
+bobs* proves the clip bobs, not that any body should.
+
+**What stands.** #80's space-layering finding is untouched as a FACT (the solver and the render
+root disagree about the vertical composition — two expressions that can drift). What died is
+the board's conclusion that the disposal is *wiring the authored bob through* — the disposal of
+the bob, and of the solver/root composition it implies, is decided at the **gait-bake design
+pass**, where bob is an output, per-species, or absent. Targets stamped in this commit: the
+close block's item 2, the dependency-graph § 2b row, and bodies.md § stepped animation's
+CORRECTED banner (whose *"fix that and…"* clause reads as a work order and primed this).

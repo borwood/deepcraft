@@ -4203,8 +4203,14 @@ arc's live close block (the tripwire trio was authorized expected-red all along)
    multi-segment-neck caveat), slice in journal/0142.** Original question: does move
    intent default to look-follows-travel unless a look is explicitly held, or do
    drivers own the look? Sibling of the postures ruling.
-2. **Corrections #80's temporal bob** — the last thing between these bodies and glued
-   feet.
+2. ~~**Corrections #80's temporal bob** — the last thing between these bodies and glued
+   feet.~~ **⚠ FRAMING FALSIFIED 2026-08-02 (user, corrections #93): *"there has been no
+   contemporary sketch or ratification related to the bob and i don't even know that it
+   makes sense as something we want for all bodies, or uniformly for all bodies."* The
+   authored clip bob is unratified bootstrap content (#81 already recorded it deleted —
+   an output of the per-species bake); the bob's disposal is decided at the gait-bake
+   design pass, not by a wiring fix. #80's space-layering FACT stands (solver hip vs
+   render root, two expressions that can drift).**
 3. **The gait-bake design pass** — inherits the posture key, the landed rest pose, a
    motion verdict, and OWNS stubs #34 (clip role-binding, before B3 moves the firewall).
 
