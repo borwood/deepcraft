@@ -23,45 +23,44 @@ use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 /// The seed the goldens were captured at.
 pub const SEED: u64 = 0x0B0A_57EE_0059;
 
-/// ---------------------------------------------------------------------------
-/// **§ P11 — WHY EVERY TERRAIN GOLDEN IN THIS FILE MOVED ON 2026-08-01.**
-///
-/// P11 slice 1 took the deep record member-grade: `DepUnit::species` is a registry
-/// `MaterialId` chosen by member fitness **at deposition**, not a 7-value `Litho`
-/// class refitted at expression (journal/pending-p11-slice1). Two distinct things
-/// reach these hashes and it matters which is which:
-///
-/// 1. **The RECORD halves moved because the record changed.** It names the rock
-///    now — `dc:mudstone` where it used to say *fine clastic* — and identity joins
-///    `deposit_as`'s merge key, so beds that coalesced as one class-grade unit
-///    split when their members differ. Both are the slice, working.
-///
-/// 2. **The SURFACE halves moved for a reason that is NOT a physics change, and
-///    this is the part worth reading before trusting the diff.** The erosion rule
-///    is untouched: `susceptibility_table` is still keyed by class and still built
-///    from each class's reference material, so a siltstone bed still erodes at
-///    mudstone's rate (slice 2 is what changes that). What moved is *rounding*.
-///    The recorder accumulates `top.thickness_m += d` per unit and `erode`
-///    subtracts per unit, so a finer segmentation produces different addends;
-///    `window_walk` buckets them back to the same class and gets the same quantity
-///    to within 1e-12, and the susceptibility blend reads that. One ulp, through
-///    the incision rate, compounded over 200 epochs, is a different continent.
-///
-///    Bounded and pinned at the site where it enters:
-///    `lithology::p11_bucket_tests::splitting_a_unit_within_its_class_preserves_the_outcrop_shares`.
-///    **A walk that coalesced runs back to the pre-P11 segmentation was built,
-///    measured and removed** — it did not restore the world, because the addends
-///    differ and not merely their grouping.
-///
-/// So: a *systematic* rate change would have to break mass conservation or move
-/// the denudation budget, and `deeptime.rs`'s ledger suite (`Δ(ΣR+ΣH) == uplift +
-/// biotic`) held through the whole re-grade. Read a moved surface hash here as
-/// **the same landscape rolled from a different ulp**, not as a re-tuned world —
-/// and note the claim's own limit: it is an argument from the mechanism plus a
-/// conservation check, **not** a measured before/after of relief, which nothing in
-/// the tree captures across commits.
-/// ---------------------------------------------------------------------------
-
+// ---------------------------------------------------------------------------
+// **§ P11 — WHY EVERY TERRAIN GOLDEN IN THIS FILE MOVED ON 2026-08-01.**
+//
+// P11 slice 1 took the deep record member-grade: `DepUnit::species` is a registry
+// `MaterialId` chosen by member fitness **at deposition**, not a 7-value `Litho`
+// class refitted at expression (journal/pending-p11-slice1). Two distinct things
+// reach these hashes and it matters which is which:
+//
+// 1. **The RECORD halves moved because the record changed.** It names the rock
+//    now — `dc:mudstone` where it used to say *fine clastic* — and identity joins
+//    `deposit_as`'s merge key, so beds that coalesced as one class-grade unit
+//    split when their members differ. Both are the slice, working.
+//
+// 2. **The SURFACE halves moved for a reason that is NOT a physics change, and
+//    this is the part worth reading before trusting the diff.** The erosion rule
+//    is untouched: `susceptibility_table` is still keyed by class and still built
+//    from each class's reference material, so a siltstone bed still erodes at
+//    mudstone's rate (slice 2 is what changes that). What moved is *rounding*.
+//    The recorder accumulates `top.thickness_m += d` per unit and `erode`
+//    subtracts per unit, so a finer segmentation produces different addends;
+//    `window_walk` buckets them back to the same class and gets the same quantity
+//    to within 1e-12, and the susceptibility blend reads that. One ulp, through
+//    the incision rate, compounded over 200 epochs, is a different continent.
+//
+//    Bounded and pinned at the site where it enters:
+//    `lithology::p11_bucket_tests::splitting_a_unit_within_its_class_preserves_the_outcrop_shares`.
+//    **A walk that coalesced runs back to the pre-P11 segmentation was built,
+//    measured and removed** — it did not restore the world, because the addends
+//    differ and not merely their grouping.
+//
+// So: a *systematic* rate change would have to break mass conservation or move
+// the denudation budget, and `deeptime.rs`'s ledger suite (`Δ(ΣR+ΣH) == uplift +
+// biotic`) held through the whole re-grade. Read a moved surface hash here as
+// **the same landscape rolled from a different ulp**, not as a re-tuned world —
+// and note the claim's own limit: it is an argument from the mechanism plus a
+// conservation check, **not** a measured before/after of relief, which nothing in
+// the tree captures across commits.
+// ---------------------------------------------------------------------------
 
 /// FNV-1a-64 over the surface planes of the golden fixture `DeepField`.
 ///
@@ -183,6 +182,7 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x260E_074F_211C_936D
 /// ```
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x15A6_B756_7A84_29FB`.
 pub const GOLDEN_SURFACE: u64 = 0xBF63_DA9D_2974_022A;
@@ -196,10 +196,12 @@ pub const GOLDEN_SURFACE: u64 = 0xBF63_DA9D_2974_022A;
 /// [`GOLDEN_SURFACE_SCALAR_LOAD`] and [`GOLDEN_SURFACE_ANONYMOUS_CREEP`]: an old
 /// solve that is still reachable, so a moved shipped golden is an authorized move
 /// rather than a lost fixed point.
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x260E_074F_211C_936D`.
 pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0x3866_6989_FA2D_FD09;
 /// The strata-record half of [`GOLDEN_SURFACE_UNBOUNDED_CREEP`].
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0xACB6_1859_6AA3_F3A8`.
 pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xE106_8099_C93B_1877;
@@ -240,10 +242,12 @@ pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xE106_8099_C93B_1877;
 /// the same multiplier strips the world to 1.40 m of mean regolith. So this constant
 /// still pins "the world `calibrated_rates: Some(true)` builds", which is what it is
 /// for; it no longer pins "the world we intend to ship when the flag flips".
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x53AD_BCCE_B157_09A8`.
 pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0xCE38_7587_69F0_64F2;
 /// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x830E_768D_3D1D_866B`.
 pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x8AF6_5B99_579C_436A;
@@ -258,6 +262,7 @@ pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x8AF6_5B99_579C_436A;
 /// `tests/mfd_routing.rs::the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens`
 /// — deliberately **not** in `providers_golden.rs`, which stays the cross-commit
 /// golden for the *shipped* configuration and nothing else.
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x176D_40F1_1CCB_006A`.
 pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x98E4_1972_0DA0_8EB6;
@@ -275,10 +280,12 @@ pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x98E4_1972_0DA0_8EB6;
 /// in the same commit, so every record hash in this file was re-derived. With the
 /// flag off the species is `litho_of_tag(tag)` at every unit, so the *record* is
 /// byte-identical and only the *hash* moved.
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x6F83_4D53_DB89_8C36`.
 pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0xC013_3553_0033_93A5;
 /// The strata-record half of [`GOLDEN_SURFACE_SCALAR_LOAD`].
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x3940_3AD9_C3A8_FD83`.
 pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x98B6_DAD5_5796_8D6A;
@@ -318,10 +325,12 @@ pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x98B6_DAD5_5796_8D6A;
 /// The **scalar-load** pair above is unmoved by #57 and still asserted, which pins
 /// the fix's own off-switch: with `material_transport` off nothing is ever carried,
 /// so there is no carried winner for `as_deposited` to answer about.
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0xDAB0_34AC_9984_209C`.
 pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xFAC2_2A81_1311_2075;
 /// The strata-record half of [`GOLDEN_SURFACE_ANONYMOUS_CREEP`].
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
 /// rock (case 1). Prior value, kept for audit: `0x447D_E3D0_7675_8D21`.
 pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0xE77F_385F_D58E_F020;
@@ -337,6 +346,7 @@ pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0xE77F_385F_D58E_F020;
 /// ```text
 /// GOLDEN_RECORD_SINGLE_RECEIVER 0x4A20_745B_3879_7C8A
 /// ```
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
 /// rock (case 1). Prior value, kept for audit: `0xAB2E_0CA4_2412_05C1`.
 pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x5ECD_3AC2_7468_5D5C;
@@ -407,6 +417,7 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x5ECD_3AC2_7468_5D5C;
 /// ```text
 /// GOLDEN_RECORD 0xACB6_1859_6AA3_F3A8
 /// ```
+///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x820B_A198_49DD_234A`.
 pub const GOLDEN_RECORD: u64 = 0x6739_19DA_BBA4_EA86;
