@@ -1507,8 +1507,12 @@ so a sweep must ask "does the cited constraint still hold?"
       bytes are not the cost — the real cost curve is the golden-capture window: free while a
       slice already owns the re-capture, a separate announced capture after. The fix rode P11
       slice 2b.)*
-    - **Reported, not applied** — a source-file change, outside the write-set (~~a ruling~~ —
-      same 2026-08-02 framing correction as above). It is cheapest **now**: the
+    - **✅ APPLIED 2026-08-02, P11 slice 2b (merge `07bd694`):** `DeepTimePerturb` registered
+      at its existing value with a byte-identity test; `DeepMember` re-rolled to
+      `0x5900_0003` inside the slice's golden capture; `ALL_DOMAINS` 16 → 17 and the
+      independence now compile-checked. *(Original disposition: reported, not applied — a
+      source-file change, outside the write-set; ~~a ruling~~ — same 2026-08-02 framing
+      correction as above. It was cheapest exactly when predicted:* the
       domain is hours old and self-declares as INTERIM SCAFFOLDING retired by P11 slice 2 + FS-A, so
       the worlds it has baked into are a day of fixtures. Converting `SALT_DT_PERTURB` into the
       macro (byte-identical, the same way `grid.rs`'s was) closes it from the other side and is the

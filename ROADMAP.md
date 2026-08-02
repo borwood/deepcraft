@@ -453,14 +453,24 @@ two).
    `GOLDEN_FAR_SURFACE`, and `GOLDEN_HEAD`. Accepted as-is by user ruling 2026-08-02;
    the full workspace gate was deliberately NOT run on merged main — slice 2's merge
    gate is the next full verification.**
-2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
-   `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
-   **composition slice folds in here** (the per-face species split records into a sparse
-   side array at the same grade — rulings 1–2 of the record-terms set, re-graded).
-   **AND (ruling 6, user 2026-08-02): this slice RETIRES the deposition fitness draw for
-   transported deposits** — identity comes from the arriving composition, propagated,
-   never drawn. *"MaterialId, not membership of a group, is the basic unit of deeptime";
-   the slice-1 draw is named scaffolding, (cell, chapter)-addressed as interim.*
+2. ~~**Sparse member-grade transport**~~ **✅ SHIPPED 2026-08-02 (journal/0141, merge
+   `07bd694`; foundation journal/0138 + the erosion/ split journal/0139 preceded it).**
+   The four budget planes are CSR-sparse over `MaterialId` — **measured 44.67 MiB,
+   0.70× the class-grade dense planes replaced** (p = 3.721 mean / 8 max, 14-material
+   axis); Law-3 closure re-proven at ~1 ULP with derived bounds. The composition term
+   folded in (per-face split in the sparse rows). **Ruling 6 executed: 77.21 % of
+   recorded metres take identity from the arriving composition and never reach a draw —
+   and 31.9 % of the whole record would have been named a DIFFERENT rock by the
+   deposition site's own climate.** The salt collision closed (`DeepTimePerturb`
+   registered byte-identically; `DeepMember` → `0x5900_0003`). All 14 expected-red
+   golden families captured once, whys per family (semantics vs float accumulation —
+   #89's discipline). Full workspace gate on the branch 928/929; the one red was the
+   60 s pregen budget under gate contention, **renegotiated by the user at merge
+   ("as long as it doesn't take 20min") → 1200 s**, prior value kept for audit.
+   Record units 1.9064× (the record got bigger because it got more honest); slice 3's
+   ratified packed `DepUnit` recovers it. Corrections #90–91, stubs #37–38 from the
+   slice. **Record-terms ruling 3's re-derived numbers are in journal/0141 § 11 —
+   ready for its re-entry.**
 3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
    `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
    13-file break), landing on the member-grade record. The ~460 m near tile dies here.
@@ -4155,7 +4165,9 @@ green at the agent's full gate (889 passed) and its final targeted smoke (lib 19
 deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
 
 ### First things (user-sequenced: "next session will start off slice 2 and U1→FS-A")
-1. **Dispatch P11 slice 2, FRESH agent** — scope is the arc's slice-2 entry (sparse
+1. ~~**Dispatch P11 slice 2, FRESH agent**~~ **✅ DONE 2026-08-02 — shipped as three
+   merges (foundation `407efac` / erosion split `3b3d898` / conversion `07bd694`),
+   arc entry stamped with the measured numbers** — scope was the arc's slice-2 entry (sparse
    member-grade transport · the composition term, measuring per-face sparsity `p` ·
    **retire the deposition draw for transported deposits per ruling 6** — identity =
    argmax of arriving mix, deterministic tie rule, full mix preserved on faces) + the
