@@ -177,17 +177,34 @@ reference material, so a siltstone bed still erodes at mudstone's rate (that is 
 job). The world moved because the *bookkeeping* got finer, and a class-grade rate has no
 business being able to tell.
 
-So the walk now sums **runs of the pre-P11 merge key** `(class, tag, chapter)` rather than
-units: a class-grade quantity is a function of the class-grade record, invariant to how
-finely identity subdivides a bed. It is eight lines, it dies in slice 2 when the shares go
-per-material and the subdivision starts to *mean* something, and it is pinned by a test
-asserting **bit** equality rather than a tolerance — because a tolerance is exactly the door
-the ulp came through.
+So the walk was rewritten to sum **runs of the pre-P11 merge key** `(class, tag, chapter)`
+rather than units — a class-grade quantity should be a function of the class-grade record,
+invariant to how finely identity subdivides a bed. Eight lines, dying in slice 2, pinned by
+a test asserting bit-equality.
 
-The lesson is not "watch your floats". It is that **a moved golden is a hypothesis, and the
-first plausible mechanism is not evidence.** The plausible story here (finer record, finer
-world) was true in every clause and wrong in its conclusion, and the thing that separated
-them was asking *which* difference the physics was allowed to see.
+**And it did not work, which is the more useful half of the story.**
+
+The next full run came back with the geotherm moved *again* — to a third value, neither the
+old one nor the previous new one. The premise was wrong in a way that was easy to miss:
+grouping was never the only difference. The recorder builds a unit's thickness by
+`top.thickness_m += d` epoch after epoch, and `erode` subtracts off the top unit by unit.
+Split the bed and you have not merely regrouped the addends — **you have different
+addends**, each carrying its own rounding history. Coalescing them afterwards sums numbers
+that were never the same numbers.
+
+So bit-restoration is not available at all while identity sits in the merge key, and the
+coalescing was **removed**: keeping a mechanism after the measurement has falsified its
+premise is the A-2 shape, and writing it into the same slice that celebrates fixing an A-2
+would have been a poor joke. What survives is the bound — the shares agree to well inside
+1e-12, so the erosion *rule* is unchanged and only its rounding is — and the honest
+statement in its place.
+
+Two lessons, and the second is the one worth keeping. First: **a moved golden is a
+hypothesis, and the first plausible mechanism is not evidence.** The plausible story (finer
+record, finer world) was true in every clause and wrong in its conclusion. Second: **the fix
+for a hypothesis you cannot confirm is not a smaller fix — it is a measurement.** The eight
+lines looked cheap enough to keep "just in case"; the run that would have proved them is the
+same run that deleted them.
 
 ## The scaffolding, named out loud
 

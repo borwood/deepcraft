@@ -527,34 +527,6 @@ pub fn exposed_litho(units: &[super::recorder::DepUnit]) -> Litho {
 /// shares. Keeping it one walk is also why the `Litho`-verdict path stays
 /// **byte-identical** to the pre-blend rule — the tie-break here is the same
 /// strict-`>` scan over first-met (nearest-surface) order it always was.
-/// Absorb one coalesced run of like units into the window. Returns `false` once
-/// the window is full, which is the caller's signal to stop walking down.
-///
-/// Factored out of [`window_walk`] so the run boundary is visible: the walk sums
-/// **runs**, not units, and the difference is exactly P11's merge-key split.
-#[inline]
-#[allow(clippy::too_many_arguments)]
-fn absorb_run(
-    l: Litho,
-    thickness_m: f64,
-    acc: &mut [f64; Litho::COUNT],
-    order: &mut [Litho; Litho::COUNT],
-    seen: &mut [bool; Litho::COUNT],
-    n_order: &mut usize,
-    remaining: &mut f64,
-) -> bool {
-    let idx = l.index();
-    if !seen[idx] {
-        seen[idx] = true;
-        order[*n_order] = l;
-        *n_order += 1;
-    }
-    let take = thickness_m.min(*remaining);
-    acc[idx] += take;
-    *remaining -= take;
-    *remaining > 0.0
-}
-
 fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Litho) {
     let mut acc = [0.0f64; Litho::COUNT];
     // The distinct lithologies, in the order they are first met walking down from
@@ -565,69 +537,34 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
     let mut n_order = 0usize;
     let mut remaining = OUTCROP_DOMINANCE_WINDOW_M;
 
-    // **The unit's own species, not its tag's** (Movement 2b): a window full of
-    // sand that a river delivered to a low-energy cell reads as sand rather than
-    // as whatever its environment would have implied.
-    //
-    // ⚠ **The bucket, not the rock** (P11 slice 1). The record names a
-    // `MaterialId` now, and the honest per-unit answer is
-    // `resistance_of_material(u.species)` — but the accumulator and everything
-    // downstream of it ([`WindowShares`], `susceptibility_table`, the four
-    // `n × SPECIES` transport planes) are still `Litho::COUNT`-wide, so the rock
-    // is coarsened back to its class here. **Slice 2 is what deletes this** —
-    // when the budgets go CSR-sparse over `MaterialId`, the window accumulates
-    // per material and mudstone stops eroding at siltstone's rate.
-    //
-    // ⚠⚠ **AND THAT IS WHY THE RUN IS COALESCED FIRST** — the same P11 slice, the
-    // same reason, and it is load-bearing. Identity joined `deposit_as`'s merge
-    // key, so a bed that used to be one `ClasticFine` unit is now two when its
-    // members differ. Bucketing gives back the same *quantity*, but adding
-    // `4.1 + 3.2` is not bit-identical to adding `7.3`, and IEEE addition is not
-    // associative: the susceptibility blend reads these shares, erosion reads the
-    // blend, and 200 epochs turn one ulp into a different continent. **A
-    // class-grade rate must be a function of the class-grade record**, invariant
-    // to how finely identity subdivides a bed — otherwise "the record got more
-    // precise" reads as "the physics changed", which it did not. The run key is
-    // exactly the pre-P11 merge key `(class, tag, chapter)`, so this walk sums the
-    // segmentation the recorder used to produce. It **dies with the bucket in
-    // slice 2**, where per-material shares make the subdivision meaningful.
-    let mut run: Option<((Litho, super::recorder::DepTag, u8), f64)> = None;
     for u in units.iter().rev() {
+        if remaining <= 0.0 {
+            break;
+        }
         if u.thickness_m <= 0.0 {
             continue;
         }
-        let key = (Litho::of_material(u.species), u.tag, u.chapter);
-        if let Some((k, t)) = run.as_mut()
-            && *k == key
-        {
-            *t += u.thickness_m;
-            continue;
+        // **The unit's own species, not its tag's** (Movement 2b): a window full
+        // of sand that a river delivered to a low-energy cell reads as sand
+        // rather than as whatever its environment would have implied.
+        //
+        // ⚠ **The bucket, not the rock** (P11 slice 1). The record names a
+        // `MaterialId` now, and the honest per-unit answer is
+        // `resistance_of_material(u.species)` — but the accumulator and everything
+        // downstream of it ([`WindowShares`], `susceptibility_table`, the four
+        // `n × SPECIES` transport planes) are still `Litho::COUNT`-wide, so the
+        // rock is coarsened back to its class here. **Slice 2 is what deletes this
+        // call** — when the budgets go CSR-sparse over `MaterialId`, the window
+        // accumulates per material and mudstone stops eroding at siltstone's rate.
+        let l = Litho::of_material(u.species);
+        let idx = l.index();
+        if !seen[idx] {
+            seen[idx] = true;
+            order[n_order] = l;
+            n_order += 1;
         }
-        if let Some((k, t)) = run.take()
-            && !absorb_run(
-                k.0,
-                t,
-                &mut acc,
-                &mut order,
-                &mut seen,
-                &mut n_order,
-                &mut remaining,
-            )
-        {
-            break;
-        }
-        run = Some((key, u.thickness_m));
-    }
-    if let Some((k, t)) = run.take() {
-        absorb_run(
-            k.0,
-            t,
-            &mut acc,
-            &mut order,
-            &mut seen,
-            &mut n_order,
-            &mut remaining,
-        );
+        acc[idx] += u.thickness_m.min(remaining);
+        remaining -= u.thickness_m.min(remaining);
     }
 
     // A record shorter than the window: the deficit is basement, below the pile —
@@ -1011,25 +948,36 @@ mod tests {
         }
     }
 
-    /// **A class-grade rate is a function of the class-grade record — BIT FOR
-    /// BIT.** The falsifier for `window_walk`'s run coalescing (P11 slice 1).
+    /// **Why every terrain golden moved, measured at the site where it enters.**
     ///
     /// P11 put the `MaterialId` in `deposit_as`'s merge key, so a bed that used to
-    /// be one `ClasticFine` unit is two when its members differ. Bucketing gives
-    /// back the same *quantity* — but `4.1 + 3.2` is not bit-identical to `7.3`,
-    /// IEEE addition is not associative, and the susceptibility blend reads these
-    /// shares. Left alone, "the record got more precise" would have read as "the
-    /// physics changed": **it moved every terrain golden in the tree, and the
-    /// erosion rule had not changed at all.**
+    /// be one `ClasticFine` unit is two when its members differ. [`window_walk`]
+    /// buckets both back to the same class and gets the same *quantity* — but
+    /// `4.1 + 3.2` is not bit-identical to `7.3`, IEEE addition is not associative,
+    /// and the susceptibility blend reads these shares. One ulp, through the
+    /// incision rate, compounded over 200 epochs, is a different continent.
     ///
-    /// The walk therefore sums **runs of the pre-P11 merge key**, and this is the
-    /// test that says so. Bit-equality is the right assertion here, not a
-    /// tolerance: a tolerance would let the ulp back in, and one ulp compounds into
-    /// a different continent over 200 epochs.
+    /// **This is stated as a bound, not as an identity, because bit-identity is
+    /// not achievable and a version of this walk that coalesced runs back to the
+    /// pre-P11 segmentation was BUILT, MEASURED AND REMOVED.** It did not restore
+    /// the world: the per-unit thicknesses themselves differ, because the
+    /// recorder accumulates `top.thickness_m += d` per unit and `erode` subtracts
+    /// per unit, so a finer segmentation changes the addends and not merely their
+    /// grouping. Keeping the coalescing would have been keeping a mechanism whose
+    /// premise the measurement had already falsified.
+    ///
+    /// The bound is what is true: **the shares agree to well inside 1e-12
+    /// relative**, so the erosion *rule* is unchanged and only its rounding is.
+    /// Slice 2 dissolves the question — the shares go per material, and a
+    /// member-grade subdivision starts to mean something.
     #[test]
     fn splitting_a_unit_within_its_class_preserves_the_outcrop_shares() {
         use crate::deeptime::recorder::{DepEnv, DepTag, DepUnit, EnergyBand};
-        let tag = DepTag::mineral(DepEnv::Subsea, crate::deeptime::Aridity::Humid, EnergyBand::Low);
+        let tag = DepTag::mineral(
+            DepEnv::Subsea,
+            crate::deeptime::Aridity::Humid,
+            EnergyBand::Low,
+        );
         let unit = |m, t| DepUnit {
             tag,
             thickness_m: t,
@@ -1046,10 +994,9 @@ mod tests {
         ];
         let (a, b) = (exposed_shares(&whole), exposed_shares(&split));
         for (x, y) in a.shares().iter().zip(b.shares()) {
-            assert_eq!(
-                x.to_bits(),
-                y.to_bits(),
-                "a within-class split moved the outcrop shares: {x} vs {y}"
+            assert!(
+                (x - y).abs() <= 1e-12,
+                "a within-class split moved the outcrop shares by more than                  rounding: {x} vs {y}"
             );
         }
         assert_eq!(
