@@ -7,7 +7,7 @@
   },
   "staleness": "72fbe86",
   "spine-audit": "72fbe86",
-  "doc-topology": "72fbe86",
+  "doc-topology": "d8407e1",
   "_baseline": {
     "commit": "f652b60",
     "date": "2026-07-28",
@@ -16,11 +16,11 @@
     "findings": "~80 pairs. Applied at baseline: the integrator's own same-day stalenesses + the ARCHITECTURE.md ON-HOLD banner. The remainder is filed as a ROADMAP entry, ranked, with the audits as the record."
   },
   "_doc_topology_last_run": {
-    "commit": "72fbe86",
-    "date": "2026-07-29",
-    "mode": "FULL (76 commits since f652b60)",
-    "audit": "docs/audits/2026-07-29-doc-topology-sweep.md",
-    "coverage": "SPINE-FOLLOWING, not 100%. Read-first set + the refinement-ratification arc + RATE/Schedule + corrections #71-73 + the face-pairing sites. The audit's section 0 lists exactly what was NOT opened; a null over those files is not a result.",
-    "findings": "10 contradiction pairs (F1-F10) + 7 one-directional pointers (P1-P7). Zero corrections.md entries proposed - every pair is banner/strike work. ONE process amendment proposed: CLAUDE.md read-first item 5's close-block clause is carried by no ritual (wrap SKILL section 9). NOT APPLIED - reported for the integrator per the 2026-07-29 standing rule."
+    "commit": "d8407e1",
+    "date": "2026-08-02",
+    "mode": "FULL (128 commits since 72fbe86; two arcs shipped in the window - P11 design+slice 1, bodies B0 + posture-bake member #0)",
+    "audit": "docs/audits/2026-08-02-doc-topology-sweep.md",
+    "coverage": "SPINE-FOLLOWING, not 100%. The P11 arc + the bodies arc + read-first items 1c/3/4/6 + the two arcs' cited design docs. NOT OPENED: docs/spines.md (306 lines changed in the window), docs/design/ideas.md (136 added), flow.md, refinement.md, ecology.md, session-workflow/wrap SKILLs. SHAPE 3 (user-originated design reconciled away) WAS NOT RUN AT ALL - ideas.md is its primary locus and went unread. A null on shape 3 from this run is not a result.",
+    "findings": "13 pairs (F1-F13) + 1 shape-7 candidate, not resolved. Zero corrections.md entries proposed. TWO ORDINAL COLLISIONS ARE THE HEADLINE: corrections.md has two #85 and two #86; stubs.md has two #34 and its only external citation calls one of them #33 - both from parallel-session wraps assigning 'next free' without re-reading at the tip, the third and fourth instances of that act in 24 hours (journal 0135 was the first two). Highest-value single banner: material-behavior.md 13.8b argues the exact premise P11 ruling 1 overturned, on the read path of the slice-2 dispatch. NOT APPLIED - reported for the integrator per the standing rule."
   }
 }
