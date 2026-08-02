@@ -424,6 +424,21 @@ two).
    alternating stack rather than one thick bed. `(cell, chapter)` addressing is the cheaper
    and arguably more honest alternative (journal/0073's coherent-vs-white lesson, one axis
    over, in time). **Flagged for ruling, not decided.**
+
+   **⚠ THE GATE IS RED ON ONE TEST AND IT IS THIS SAME CAUSE.** Measured against `main`
+   `957edfc`, three uncontended samples each side: **Medium pregen 42.79 s → 47.48 s
+   (+11.0 %)** and **`Pregen::approx_resident_bytes` 357,169,261 → 472,970,797 (+110.5 MiB,
+   +32.4 %)** — the residency corroborating the probe's +97.6 MiB record arithmetic
+   independently. `s7_measurements::pregen_time_vs_extent` asserts Medium **< 60 s**;
+   uncontended we pass at 47.5 s, but inside the full workspace gate (where that binary's
+   sibling test builds its own Medium world concurrently) it measured **62.7 s and FAILED**.
+   `main` uncontended is 42.8 s, so under the same contention `main` sits near 56 s — **the
+   budget was already ~95 % spent and this slice tips it.** The 60 s is a ratified number
+   (S13 called it that); **it has NOT been moved, because moving a gate to admit one's own
+   work is not a fix.** Two resolutions, both user-owned: renegotiate the budget (the
+   standing *"worldgen time is not a constraint"* position, which S13 already framed as a
+   renegotiation rather than a blocker), or take the `(cell, chapter)` draw fork above —
+   **one change fixes both costs, because they have one cause.**
 2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
    **composition slice folds in here** (the per-face species split records into a sparse

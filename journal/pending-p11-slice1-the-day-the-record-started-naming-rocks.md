@@ -364,6 +364,30 @@ in time moves it into a hotter loop**, and every "run it at deposition instead o
 expression" slice will meet the same wall. `select` was written for a caller that ran it
 thousands of times; P11 hands it tens of millions.
 
+### What it actually costs, measured against `main` rather than guessed
+
+Three uncontended samples each side, same machine, same session, `main` at `957edfc`:
+
+| | `main` | P11 slice 1 | Δ |
+|---|---:|---:|---:|
+| Medium pregen | 42.82 / 42.63 / 42.93 s | 48.31 / 47.05 / 47.09 s | **+4.69 s (+11.0 %)** |
+| Medium `approx_resident_bytes` | 357,169,261 | 472,970,797 | **+110.5 MiB (+32.4 %)** |
+| Small pregen | 2.36 s | 2.72 s | +0.35 s (+14.8 %) |
+
+The residency number is the independent corroboration of the split factor: the probe's
+per-unit arithmetic said +97.6 MiB of record, and the whole `Pregen` grew +110.5 MiB. Same
+story, measured two ways.
+
+**And the gate is RED on this, honestly.** `pregen_time_vs_extent` asserts Medium under
+60 s. Uncontended we are at 47.5 s and pass; run as part of the full workspace gate — where
+this binary's *other* test builds its own Medium world concurrently — it came in at
+**62.7 s** and failed. `main` uncontended is 42.8 s, so under that same contention `main` sits
+near 56 s: **the budget was already ~95 % spent, and this slice is what tips it over.** That
+is not a reason to move the line. The 60 s is a ratified number, and moving a gate to admit
+one's own work is the shape the corpus has the most receipts for. Reported red, with the
+attribution, for the ruling it needs — and note the cheapest fix on the table is the *same*
+`(cell, chapter)` draw fork that fixes the residency, because both costs have one cause.
+
 ## Goldens
 
 Identity is part of the deposited record and part of `deposit_as`'s merge key, so the
