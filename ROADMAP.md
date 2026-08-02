@@ -2713,6 +2713,23 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🟠 INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
+  look (user-sighted 2026-08-02 at the derived-hip walk, station 2; mechanism read from
+  code and CONFIRMED by a live control the same minute).** `resolve_orientation`'s clamp
+  rule — *a look beyond the neck clamp drags the trunk around* (journal/0014, built for
+  the player whose look follows the camera) — means a character whose `character.yaw` is
+  never updated has its trunk dragged back to the dead look while `steer()` chases travel:
+  permanent strafe. Control: `character_set_look` to the travel heading and the same body
+  walks facing its motion (asset `0138-look-steered-control`). **The dropped thread is
+  older than the sighting and the user remembered it:** S6 baseline audit row 95 has
+  carried *"nobody owns body orientation"* OPEN since 07-19; walk 8 sighted it, 0014
+  closed the player path, and no slice ever owned the non-player path. **The design
+  question it opens is a CONTROLLER-SURFACE call, adjacent to the 2026-08-02 postures
+  ruling:** does move intent default to look-follows-travel unless a look is explicitly
+  held (predator tracking prey while circling), or must every driver steer the look
+  (which today's MCP driver, NPC controllers, and the future animus all must then do)?
+  User-owned; not decided at the walk.
+
 - **🔴 THREE ARTIFACT TRIPWIRES ARE RED ON MAIN — a golden move without its authorizing
   entry (found 2026-08-02 by the bodies arc's debt-clearing gate; pre-existing, demonstrated
   on main WITHOUT the bodies slice, identical hashes).** `dc-worldgen
