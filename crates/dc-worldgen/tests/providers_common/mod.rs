@@ -53,10 +53,13 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 ///    measured and removed** — it did not restore the world, because the addends
 ///    differ and not merely their grouping.
 ///
-/// So: a *systematic* rate change would have shown up as a moved denudation
-/// budget and a moved mass ledger. Neither moved (`deeptime.rs`'s ledger suite and
-/// `denudation_probe` are green). Read a moved surface hash here as **the same
-/// landscape rolled from a different ulp**, not as a re-tuned world.
+/// So: a *systematic* rate change would have to break mass conservation or move
+/// the denudation budget, and `deeptime.rs`'s ledger suite (`Δ(ΣR+ΣH) == uplift +
+/// biotic`) held through the whole re-grade. Read a moved surface hash here as
+/// **the same landscape rolled from a different ulp**, not as a re-tuned world —
+/// and note the claim's own limit: it is an argument from the mechanism plus a
+/// conservation check, **not** a measured before/after of relief, which nothing in
+/// the tree captures across commits.
 /// ---------------------------------------------------------------------------
 
 

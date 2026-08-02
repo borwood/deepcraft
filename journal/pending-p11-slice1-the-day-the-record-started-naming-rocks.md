@@ -281,11 +281,26 @@ answer by coincidence.
 
 Identity is part of the deposited record and part of `deposit_as`'s merge key, so the
 world's bytes moved. Under the scratch-pad doctrine that owes no ratification loop and no
-byte-identicality — it owes the **why**, per golden. Two mechanisms, and they are different:
+byte-identicality — it owes the **why**, per golden. The full mechanism write-up lives at
+`tests/providers_common/mod.rs` § P11, beside the constants, where the next person to read a
+moved hash will actually be standing. Three families, and they are not the same event:
 
-1. **the identity itself** — a unit that recorded `ClasticFine` now records `dc:mudstone` or
-   `dc:siltstone`, chosen by fitness at deposition;
-2. **the merge-key split** — two adjacent beds that coalesced as one `ClasticFine` unit are
-   two units when one is mudstone and the other siltstone. The unit count rises, which is
-   the record getting more honest and the second-order residency cost the design audit left
-   unpriced (its I4).
+1. **The RECORD halves** — the record names the rock, and identity joins the merge key so
+   beds split where their members differ. This is the slice working. It is also the
+   second-order residency cost the design audit left unpriced (its I4): more units, at 16 B
+   each.
+2. **The CONTENTS goldens** — the most legible move in the tree: voxels that could only ever
+   hold `dc:mudstone` and `dc:sandstone` now hold `dc:siltstone` and `dc:conglomerate`.
+   *This is the change a walk will see.*
+3. **The SURFACE halves and everything downstream of them** (geotherm, flux, far field) —
+   **rounding, not rule**, per the section above. Worth stating plainly in the diff, because
+   the surface hashes are the ones that look like "the world was re-tuned" and were not.
+
+One move in the third family is not rounding and deserves its own line: **`GOLDEN_HEAD`**.
+`head::permeability_of` took a `Litho` and looked up its class's reference material; it now
+takes the recorded `MaterialId`. So a siltstone aquitard (k = 0.08) stops being a mudstone
+one (k = 0.02), and the head field becomes the **first consumer in the tree to read member
+grade as physics rather than as albedo**. It cost nothing — that function was already
+property-sheet derived rather than class-keyed, which the design audit had spotted and filed
+under *"sites that are already registry-shaped and survive any option"*. The audit was right,
+and the payoff arrived a slice earlier than expected.
