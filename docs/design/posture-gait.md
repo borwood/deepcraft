@@ -264,6 +264,67 @@ impossible gaits.
 0. **The resting-posture bake.** The first slice; scoped in ROADMAP § Sequenced.
 1. **The gait bake** — duty and cadence from leg length and speed, against the published
    Froude band; phases from the gait type.
+
+   > **⚠ DOCKET EXPANDED 2026-08-02 — user-ratified** (*"your reasoning here is sound and i
+   > want the repo to stay aligned to it on this sprint"*), in answer to two user questions
+   > this document could not answer as written. **Provenance: assistant-originated reasoning,
+   > user-ratified** — so it is **data** for the member pass, not a hypothesis the pass may
+   > quietly reconcile away.
+
+   **(a) The honest input inventory — state it before deriving anything.** The bake's entire
+   input set today is **segment geometry plus volume as the mass proxy at density ≡ 1**
+   (member #0's design pass; B6 is the named heir at that very line). There is **no strength,
+   no muscle, no weight, no metabolic term**, and `CharacterConfig.walk_speed_m_s = 4.5` is a
+   world-global constant that knows nothing about the body (B4 retires it). Therefore:
+   **length-scale facts are derivable and honest today** — cadence ∝ √(g/L), stride, phase
+   offsets, hip height, stance width — and **anything depending on FORCE is not**: the Froude
+   number's speed term, effort minimisation, acceleration, load carrying, transition
+   energetics. The pass states this boundary explicitly, because it bounds what a derived
+   gait may *claim*, and because both of the user's questions turned out to hinge on it.
+
+   **(b) Authored KNOBS are wanted, and the doctrine permits them.** *"A constant tuned until
+   an output looks right is a number pretending to be a mechanism"* forbids a knob that
+   **replaces** the derivation; it does not forbid one that **rides on top of** it. Four
+   kinds, ranked by how safe they are:
+   1. **Underdetermined style parameters — the largest and safest space.** Length scale fixes
+      *when* feet land and says almost nothing about how a body carries itself between
+      landings: foot lift above minimum clearance, trunk counter-rotation, head bob against
+      the trunk, tail carriage, shoulder roll. Physics does not pin these, so authored taste
+      here **fills a genuine void rather than fighting a mechanism**. Most of "shape it to my
+      liking" should live here.
+   2. **Gait-type selection.** Walk / trot / pace / bound / canter are all physically valid
+      for four limbs; *which* a species uses and *where* it transitions is a **biological**
+      fact, not a geometric one (a giraffe paces where a horse trots). Expressive, honest,
+      and it is just phase-offset data.
+   3. **Bounded dimensionless modifiers on derived terms** (`cadence_scale: 1.15` — "quicker-
+      stepping than its size predicts"), with an **identity default** so no-knob is
+      byte-identical to the pure derivation (S-5). **The bake REPORTS when a modifier pushes
+      an output past the published band** — never refuses it (a clockwork golem may want to
+      step wrong), but says so. That makes *measure against the literature* an **instrument
+      for the author** rather than a cage.
+   4. **An authored-clip override for a `(mode, speed band)`** — the escape hatch for things
+      that should move wrong. It costs the evolution property (an override cannot survive
+      topology mutation), so it must **degrade to the derived gait rather than break**.
+
+   **(c) The distinction that must not be missed: TASTE knobs vs STAND-IN knobs.** Kinds 1–2
+   are permanent taste. Kind 3 is mostly a **stand-in for physics we have not built** —
+   *"quicker than its size predicts"* plausibly becomes *"more muscle in its legs"* once B6
+   lands, derived rather than authored. **Design the two sets so B6 ABSORBS the stand-ins
+   rather than colliding with them, and give each stand-in a `stubs.md` entry naming B6 as
+   its heir.** A knob that becomes a lie the moment materials arrive is precisely what
+   `root_bob_m` just cost us (corrections #93).
+
+   **(d) Non-locomotion animation stays keyframed, and BOTH authoring routes keep it.** § 4's
+   scope limit is load-bearing: transitions, one-shots, emotes and upper-body action during a
+   walk ride `bodies.md`'s clip machinery, reachable from pack build **and from a live MCP
+   session** through the same `DefineAnimClip` door. The pass states the **composition rule**
+   (gait and clip over **disjoint role sets** — § 7b's centaur) and the
+   **coexistence/migration** answer for authored *locomotion* clips specifically: legal
+   override per (b)4, or retired. Today's three bootstrap clips are the first case to name.
+
+   **(e) The layer table's vocabulary** — corrections #94's **gaze** (sim state, aims
+   perception) vs **neck bend** (cosmetic) split — is **fixed here**, since member 2 moves
+   the firewall line that naming sits on.
 2. **The sim-side phase tuple** — and with it the firewall's new line and the 20 Hz / 12 fps
    cadence question (0.05 s and 0.0833 s do not divide; the stepping must land evenly, and
    *that is a choice about the stop-motion identity, not a technicality*).

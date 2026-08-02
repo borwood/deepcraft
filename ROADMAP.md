@@ -577,7 +577,11 @@ geometry, using segment volume as the mass proxy **with per-segment material nam
   degenerate one — the effort-minimising solve is a later refinement, not this slice.
 
 **CONTINUATION SLOT — this is a slice OF the tier, and the arc continues with:**
-(a) the **gait bake** (duty and cadence against the published Froude band); (b) the **sim-side
+(a) the **gait bake** (duty and cadence against the published Froude band) — **docket EXPANDED
+and user-ratified 2026-08-02: `posture-gait.md` § 7 member 1's banner now carries the honest
+input inventory (geometry + volume-at-density-1; no strength/mass until B6), the four-kind
+AUTHORED-KNOBS taxonomy with the taste-vs-stand-in rule, the keyframed-non-locomotion
+guarantee for both authoring routes, and corrections #94's gaze/bend vocabulary**; (b) the **sim-side
 phase tuple**, which brings the firewall's new line *and* the 20 Hz vs 12 fps cadence question
 (0.05 s and 0.0833 s do not divide — the stepping must land evenly, and that is a choice about
 the stop-motion identity, not a technicality); (c) **derived collider sets** with bounded `k` and
