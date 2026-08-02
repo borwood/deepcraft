@@ -84,6 +84,28 @@ pub struct StrataEvent {
     pub sel_tag: u64,
     pub ore: Option<(GeoMemberIdx, u8)>,
     pub accessory: Option<(GeoMemberIdx, u8)>,
+    /// **May expression re-pick this event's member within its class?**
+    /// (P11 slice 1.)
+    ///
+    /// `true` for the **year-zero veneer** passes — the clastic veneer, the
+    /// igneous bodies, the placer, the weathering front. Those select a member at
+    /// expression *because that is where their formation context lives*: the
+    /// veneer is still forming under the present climate, and geology.md's
+    /// formation-context ruling calls year-zero climate correct for it.
+    ///
+    /// `false` for **deep-time depositional history**, where the identity is
+    /// **recorded** (`DepUnit::species`) by fitness run at deposition, under the
+    /// climate of the epoch that laid the bed. Re-adjudicating it here would
+    /// overwrite a measured fact with a guess made from a chunk-centre sample of
+    /// a climate hundreds of millions of years too late — which is precisely what
+    /// this slice exists to stop. **Expression expresses; it stops inventing.**
+    ///
+    /// ⚠ The *spatial* half of the dither — sub-cell membership between
+    /// neighbouring deep cells' recorded identities — is **not** what this turns
+    /// off, because it does not exist yet: it is slice 3's near-path restructure
+    /// (ruling 5). Until then a deep cell's bed is one material across its whole
+    /// ~460 m footprint, and that tile is slice 3's to kill.
+    pub dither: bool,
 }
 
 /// The ordered per-column deposition log, bottom-up: `events[0]` is the
@@ -221,6 +243,10 @@ impl<'a> StrataCtx<'a> {
             sel_tag: tag,
             ore: None,
             accessory: None,
+            // Every caller of `push` is a year-zero veneer pass: it selected this
+            // member here, from this context, so re-picking per voxel is the
+            // dither doing its job (see `StrataEvent::dither`).
+            dither: true,
         });
     }
 }
@@ -698,7 +724,6 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
         if u.thickness_m <= 0.0 {
             continue;
         }
-        let class = deep_class_of_species(u.species);
         let precip = deep_precip(u.tag);
         let depth_m = depth_above + DEEP_VENEER_MARGIN_M;
         // **At-deposition temperature — the `paleo_temperature` seam** (#11,
@@ -722,8 +747,19 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
             depth_m,
         };
         let tag = k as u64;
-        let u_draw = ctx.draw(<crate::draws::GeoDeep as Domain>::SALT, tag);
-        if let Some((member, _)) = ctx.geology.select(class, &form, u_draw) {
+        // **The identity is READ, not re-derived** (P11 slice 1). Until
+        // 2026-08-01 this line ran `select(deep_class_of_species(u.species), …)`
+        // — the class the record carried, refitted here against a formation
+        // context sampled at the chunk centre, under a draw addressed to this
+        // chunk. The bed's own member was decided at deposition and thrown away;
+        // this is where it was re-invented.
+        //
+        // Now the recorded `MaterialId` names the rock and the only question left
+        // is which registered member deposits it. `None` means this world's
+        // content set has no member for that material — a reduced pack, or a
+        // record laid under a different set — and the unit is skipped exactly as
+        // an unfillable class was skipped before.
+        if let Some(member) = ctx.geology.member_of_material(u.species) {
             expressed_m += u.thickness_m;
             if let Some((idx, prev)) = last
                 && prev == member
@@ -735,6 +771,10 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
             ctx.strata.events.push(StrataEvent {
                 member,
                 thickness_m: u.thickness_m as f32,
+                // The at-expression context, kept as the **read-out** of the
+                // conditions this bed sits under today (burial depth, the paleo
+                // temperature seam's answer, the aridity tag's precipitation).
+                // Nothing selects from it any more; `dither: false` says so.
                 temp_c: temp_c as f32,
                 precip: precip as f32,
                 depth_m: depth_m as f32,
@@ -742,6 +782,7 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
                 sel_tag: tag,
                 ore: None,
                 accessory: None,
+                dither: false,
             });
             last = Some((ctx.strata.events.len() - 1, member));
         }
@@ -987,6 +1028,19 @@ pub fn dithered_member_with(
     vx: i64,
     vz: i64,
 ) -> GeoMemberIdx {
+    // **A recorded identity is not re-adjudicated** (P11 slice 1). Deep-time
+    // depositional events carry the member fitness chose at deposition, under the
+    // climate of the epoch that laid the bed; the whole point of the slice is that
+    // this function stops overwriting it from a chunk-centre sample of the present.
+    //
+    // ⚠ What is left below is the **year-zero veneer's** member dither and it
+    // rides unchanged — legitimately, because the veneer really is forming now,
+    // under this context. Its heir is slice 3's near-path restructure, which
+    // replaces re-selection with a spatial membership dither between recorded
+    // identities (ruling 5).
+    if !event.dither {
+        return event.member;
+    }
     let class = geology.member(event.member).class.as_str();
     let u = src.uniform(vx, vz, event.sel_tag);
     let ctx = FormationContext {
