@@ -393,7 +393,7 @@ two).
 
 **BUILD SEQUENCE (drafted 2026-08-01, integrator sequencing — veto welcome):**
 1. ~~**The identity swap + deposition-time fitness**~~ — **✅ BUILT 2026-08-01**
-   (journal/pending-p11-slice1). `DepUnit.species: Litho → MaterialId`, **zero-byte
+   (journal/0136). `DepUnit.species: Litho → MaterialId`, **zero-byte
    (compiler-asserted, the audit's I2)**; member fitness runs at **deposition**, per
    deposited unit, under that cell's own temperature/precipitation that epoch, through a
    new `DeepMember` draw domain addressed `[depositor, cell, epoch, k]`; **every** identity
@@ -4140,9 +4140,9 @@ already absorbed into the template sections) is owed when next touched, per the 
 Same family: ROADMAP itself (1.8×), `material-behavior.md`, `flux.rs`, `erosion.rs`.
 
 ### This session's numbered artifacts
-Corrections **#74–76, #84–86** (all targets stamped) · journals **0134, 0136** (*slice-1
+Corrections **#74–76, #84, #88–89** (all targets stamped; #88–89 renumbered from a colliding #85–86 on 2026-08-02 — the bodies session held those ordinals first) · journals **0134, 0136** (*slice-1
 journal renumbered 0135→0136 next session — bodies' B0 held 0135 first*) · stubs
-**#31 narrowed, #32–34 added** · P11 audit (6 rulings) · P2 derivation (craton ruling in
+**#31 narrowed, #32–33 added, #35 added** (*#35 renumbered from a colliding #34 on 2026-08-02 — bodies' binding-key stub held #34 first*) · P11 audit (6 rulings) · P2 derivation (craton ruling in
 header) · P10 design (U1 leaning in header) · record-terms rulings 1–2 (ruling 3 HELD →
 re-enters after slice 2).
 

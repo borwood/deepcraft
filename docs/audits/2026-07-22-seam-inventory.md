@@ -11,7 +11,7 @@ an answer some other system will eventually own?"*
 **Count**: 34 seams. 9 confirmed from the seed set, 25 found by sweep.
 
 > **⚠ SEAM #11's "today" ROW AND ITS NOTE ARE SUPERSEDED (2026-08-01, P11 slice 1 —
-> journal/pending-p11-slice1).** This audit records that the class→material table is
+> journal/0136).** This audit records that the class→material table is
 > *"Fixed, deliberately **not** sampled from the live registry"* and that its **fixedness is
 > a ratified property** (the pack-addition blast radius). Both were true when written; the
 > record now names a `MaterialId` chosen by member fitness **at deposition**, so the table is

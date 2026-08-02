@@ -3614,7 +3614,7 @@ result with an agent id, and the message citing no such receipt was describing o
 
 Dispatched for real in the same commit as this entry.
 
-## 85. "The identity swap is a zero-byte change" (the P11 design audit § 3.1's headline, 2026-08-01 — true per unit, inverted in aggregate; measured by the slice that built it)
+## 88. "The identity swap is a zero-byte change" (the P11 design audit § 3.1's headline, 2026-08-01 — true per unit, inverted in aggregate; measured by the slice that built it) *(renumbered from #85 on 2026-08-02 — the geo wrap assigned ordinals blind to the parallel bodies session's #85–#87; doc-topology sweep F1)*
 
 Per unit, exact: `DepUnit` stayed 16 bytes, compile-asserted. In aggregate, the audit's
 practical conclusion inverted: **identity joined the merge key**, and with the draw
@@ -3631,7 +3631,7 @@ per-entry size.
 address collapsed the split to **1.2775×** and residency to ≈ main at the merged tip.
 Target stamped: the P11 design audit header (same commit).
 
-## 86. "Identity, not mass — so the terrain is unchanged" (the slice-1 brief's implicit premise, 2026-08-01 — falsified by the slice's own measurement, with a negative result worth keeping)
+## 89. "Identity, not mass — so the terrain is unchanged" (the slice-1 brief's implicit premise, 2026-08-01 — falsified by the slice's own measurement, with a negative result worth keeping) *(renumbered from #86 on 2026-08-02, same cause as #88's note)*
 
 The brief asserted the swap could not change transport/budgets ("identity, not mass") and
 implied terrain stability. Mass conservation DID hold bit-for-bit — but **terrain moved

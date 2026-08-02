@@ -410,7 +410,7 @@ move anyone's terrain. The constraint that forced the proxy is gone. Fourth
 instance in one session of a conclusion outliving its premise (cf. charcoal,
 `stubs.md`; corrections #29).
 
-> **⚠ HALF-DISCHARGED 2026-08-01 by P11 slice 1** (journal/pending-p11-slice1). Be precise
+> **⚠ HALF-DISCHARGED 2026-08-01 by P11 slice 1** (journal/0136). Be precise
 > about which half, because the two are in different files and only one moved:
 >
 > - **The RECORD half is fixed.** `DepUnit::species` is a registry `MaterialId` chosen by

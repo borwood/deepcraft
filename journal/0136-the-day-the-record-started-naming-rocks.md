@@ -428,5 +428,5 @@ material), and the `(cell, chapter)` interim address was applied at tip `5914e70
 Final measured state at merge: split **1.2775×**, residency **≈ main**, Medium pregen
 **faster than main**, `pregen_time_vs_extent` **passes**. The goldens the address change
 moved are deliberately NOT re-captured — slice 2 moves them again and owns the single
-capture; the expected-red list is in the ROADMAP arc. Corrections #85/#86 record what
+capture; the expected-red list is in the ROADMAP arc. Corrections #88/#89 (renumbered from a colliding #85/#86) record what
 this slice falsified.
