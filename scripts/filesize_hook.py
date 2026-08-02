@@ -27,6 +27,15 @@ the user as a `systemMessage`, so it guides without nagging.
 CONVENTIONS — DECIDED 2026-07-28 (user). These are no longer provisional.
 =========================================================================
 
+**⚠ SCOPE CORRECTED 2026-08-01 (user; corrections #85): the liveness axis is a
+DOCUMENTS convention.** Every measurement below is a `.md` measurement, and the
+thresholds comment further down always said so — *"code splits on ordinary module
+boundaries"* — while `remedy()` fell through and emitted the docs doctrine at
+SOURCE files for four days. **Source files split BY CONCERN, on module
+boundaries**: the compiler and the gate enforce cross-file consistency, so the
+claim-near-refutation hazard that motivates everything below has no code
+analogue. The section that follows governs `.md` only.
+
 **THE SPLIT AXIS IS LIVENESS, NEVER TOPIC.** Every split moves out the *cold*
 half — content that is still true and still cited but is no longer read to do
 today's work. Both real conversions in this repo already did exactly that, and
@@ -135,6 +144,16 @@ def classify_md(norm_lower: str):
 
 
 def remedy(cls: str) -> str:
+    if cls == "SOURCE":
+        return (
+            "THIS IS SOURCE CODE: split it BY CONCERN, on ordinary module boundaries — the "
+            "compiler and the test gate enforce cross-file consistency, so the docs-only "
+            "claim-near-refutation hazard that forbids topic-splitting .md files has no "
+            "analogue here (user ruling 2026-08-01, corrections #85; the liveness axis was "
+            "always scoped to DOCUMENTS). Prefer splits that leave each module one concern "
+            "whose consumers import it by name. Propose the extraction to the user rather "
+            "than doing it silently mid-task."
+        )
     if cls == "REGISTRY":
         return (
             "THIS IS A REGISTRY (entry-addressable, append-only — read by ordinal, not read "
@@ -203,8 +222,9 @@ def main() -> int:
         "read.\n"
         f"{remedy(cls)}\n"
         "Adoption: immediate for new files, gradual for old work when touched. Conventions "
-        "DECIDED 2026-07-28 — see scripts/filesize_hook.py's module docstring for the axis, "
-        "the three .md classes, and why topic-splitting is disallowed."
+        "DECIDED 2026-07-28, scope corrected 2026-08-01 — see scripts/filesize_hook.py's "
+        "module docstring for the .md liveness axis, the three .md classes, and why "
+        "topic-splitting of DOCS (only) is disallowed."
     )
 
     json.dump(

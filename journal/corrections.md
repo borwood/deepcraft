@@ -3508,3 +3508,41 @@ instead of first sweeping for the ruling that collapses it. The sweep-the-corpus
 design-pass rule covers *opening threads*; it evidently must also cover **relaying a
 NEEDS-RATIFICATION item** — grep for the prior ruling before presenting the choice. Both
 targets stamped same commit (the P11 audit's U5 row via its header ruling 4; this entry).
+
+## 85. "THE SPLIT AXIS IS LIVENESS, NEVER TOPIC — emitted for source files too" (the file-size hook's `remedy()` fallthrough, wired 2026-07-28 — falsified 2026-08-01 by the user, against the hook's OWN source comment)
+
+**The claim as propagated.** Every over-threshold file that is not a REGISTRY `.md` —
+which includes every `.rs` — received the advisory *"THE SPLIT AXIS IS LIVENESS, NEVER
+TOPIC (DECIDED 2026-07-28)… Do NOT split by topic"*, closing with *"see the module
+docstring for… why topic-splitting is disallowed."*
+
+**Falsified.** The liveness doctrine's entire evidence base is the `.md` corpus:
+contradiction-by-addition, the 2–4 % deletion rate, claim-near-refutation distances, and
+both real conversions (`ROADMAP→history`, `notebook→evidence`) are document measurements.
+None of it transfers to source. Code's cross-file consistency is machine-checked (the
+compiler and the gate), a Rust module IS the native concern split, and this codebase
+splits by concern everywhere it splits at all. **The hook's own thresholds comment said
+exactly this the whole time** — *"(Note: the liveness rule above is about DOCUMENTS; code
+splits on ordinary module boundaries.)"* — fifty lines above the string that says
+otherwise. `remedy()` simply had two branches, REGISTRY and everything-else, and SOURCE
+fell through into the ARGUMENT-class text.
+
+**Mechanism, and it is the doctrine's own failure shape one level up:** a claim sitting
+beside its own refutation *inside the mechanism built to propagate doctrine*. Because the
+message is generated, co-location never got a reader — nobody re-reads a hook's emitted
+strings against its comments. It fired five times at one session in one afternoon
+(the B0 edits to `bodies.rs`), was relayed to the user as settled convention twice, and
+was caught by the user from first principles: *"the liveness reasoning for splitting
+overgrown files is specifically reasoned about docs… so it's actually inappropriate for
+source files."*
+
+**Cost this time: near zero — and the counterfactual is the point.** The `bodies.rs`
+proposal happened to be a case where the concern split and a liveness reading coincide,
+so no wrong split shipped. A session obeying the advisory on a file where they diverge
+would have contorted an ordinary module split into cold-half archaeology, on a class of
+file where the hazard being guarded does not exist.
+
+**Fix, same commit (the correction's author stamps the target):** `remedy()` gains a
+SOURCE branch (split by CONCERN on module boundaries); the trailer line scopes
+topic-splitting's prohibition to docs; the module docstring carries the scope banner;
+the `file-size-is-context` memory is scoped likewise.
