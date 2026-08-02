@@ -6,7 +6,7 @@
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
   "staleness": "72fbe86",
-  "spine-audit": "72fbe86",
+  "spine-audit": "d8407e1",
   "doc-topology": "72fbe86",
   "_baseline": {
     "commit": "f652b60",

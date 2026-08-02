@@ -380,7 +380,7 @@ A cheap answer written because a consumer cannot afford the real one must be
   disappearing-consumer test now answers *yes*: if the far field vanished, the
   surface rule would still exist unchanged, because it is the expression.
 - compliance: S15's coarse capacity held against an exact voxel walk
-- **compliance (2026-08-01, P11 slice 1) — the summary that was standing in for a
+- **compliance (2026-08-01, P11 slice 1, journal/0136) — the summary that was standing in for a
   measurement, retired.** `Litho::reference_material` was a fixed class→member table that
   the deep-cell inventory (`derive_base`) consulted for *"what rock weathered here"*, and
   the collapse tier re-selected a member from the class because the record held no member.
@@ -391,7 +391,11 @@ A cheap answer written because a consumer cannot afford the real one must be
   `Litho::of_material`, the class bucket the still-`Litho`-wide transport tables index by,
   carrying two named heirs (slices 2 and 4) and an **agreement test against the
   `GeologySet`'s declared member→class edge** — the doctrine's full price, paid in the same
-  commit. It also **retired one of the three duplicate `Litho`→class matches** the P11 design
+  commit. *(Verified 2026-08-02 at `d8407e1`: `lithology.rs:932`
+  `lithology_buckets_agree_with_the_registry` plus the round-trip at `:1013`. **⚠ Both run over
+  `geology::vanilla()` only**, so the agreement is asserted for the default pack and **not** for a
+  pack — which is fine for the doctrine and is **not** what the function's own doc comment claims.
+  See A-2's 2026-08-02 instance; the S-3 compliance stands, the guard sentence does not.)* It also **retired one of the three duplicate `Litho`→class matches** the P11 design
   audit indexed as C12: `tests/providers_common::species_code` now hashes the recorded
   `MaterialId` byte, which is both simpler and the only version that can *see* the
   distinction the slice creates.
@@ -1476,6 +1480,29 @@ so a sweep must ask "does the cited constraint still hold?"
     **the same mechanism it was written to retire**, one iteration later, in the sentence
     retiring it.* Reported to the integrator, not applied (source file; sweeps apply only to
     this doc as of the 2026-07-29 standing rule).
+  - **🔴 AND FOUR DAYS LATER THE UNNAMED SALT WAS ISSUED TO A SECOND DECISION (found 2026-08-02 at
+    `d8407e1`).** P11 slice 1 declared `DeepMember = 0x5900_0002` (`draws.rs:168`) —
+    **`SALT_DT_PERTURB`'s exact value**, still live at `refine.rs:29` with a live call site at
+    `:180`. Neither guard could see it: `draw_domains!`'s `const` assertion and
+    `every_domain_is_listed_and_distinct` (`draws.rs:659`) both read `ALL_DOMAINS`, and a
+    hand-rolled salt is by definition not in it. *No world is known to be wrong* — `Draws::bits`
+    and `draw_f64` fold the identical chain, so the two streams are separated by address **arity**
+    (`[tag, cell, chapter, k]` vs `[gx, gy]`) and yield different numbers — but the ratified
+    guarantee is that domains are independent **by construction, not by the care of whoever wrote
+    the call site** (`rng.rs`), and for this pair it is back to prose. `draws.rs`'s own retired-salt
+    note states the rule it broke: ***"never fill a hole."*** `0x5900_0002` was not a hole.
+    - **The mechanism is the finding.** The sweep above located the gap, filed it *"reported, not
+      applied"*, and named the reason it mattered: *"a `const` assertion covering only the converted
+      set cannot see them."* Nothing consumed that. **An unapplied finding about an unenforced
+      invariant is a countdown, and this one ran four days.** The transferable rule: when a sweep
+      finds an invariant that is *asserted rather than enforced*, the residue is not a documentation
+      debt — it is an open window, and the cost of closing it only ever rises (renumbering a salt
+      re-rolls every world generated from it).
+    - **Reported, not applied** — the fix is a ruling, not a doc edit. It is cheapest **now**: the
+      domain is hours old and self-declares as INTERIM SCAFFOLDING retired by P11 slice 2 + FS-A, so
+      the worlds it has baked into are a day of fixtures. Converting `SALT_DT_PERTURB` into the
+      macro (byte-identical, the same way `grid.rs`'s was) closes it from the other side and is the
+      fix `draws.rs` residue 2 has been owing its owner since 2026-07-26.
 - **instance (found 2026-07-29 morning, in a file changed the day before): `Erosion::diffuse`'s
   doc comment contradicts its own journal entry, about which worlds it changes.**
   **✅ FIXED — verified 2026-07-29 (evening) at `72fbe86`** (*the paragraph is `erosion.rs:3186` at
