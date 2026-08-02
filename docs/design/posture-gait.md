@@ -86,7 +86,7 @@ limits.
 | | bake (per species) | sim | client |
 |---|---|---|---|
 | when | pack build **or deeptime worldgen (venue corrected — corrections #86)**; gen-time free | per tick, 20 Hz | per frame |
-| owns | posture, gait vector, collider sets, keyframes | **phase** + injury deltas | cosmetic refinement |
+| owns | posture, gait vector, collider sets, keyframes | **phase** + injury deltas **+ the GAZE (see ⚠ below)** | cosmetic refinement |
 | cost | irrelevant | a handful of scalars per entity | a lerp per joint |
 | determinism | pure fn of the body definition | replay-critical | free |
 
@@ -102,8 +102,20 @@ limits.
 - **Sim** owns the small, quantized **phase** — which keyframes we are between and how far —
   plus any per-instance deltas. This is the user's proposal and it is what makes the pose a
   pure function reconstructible identically in sim, client and replay.
-- **Client** adds what is genuinely cosmetic: look-at, expressive layers, and the IK foot
-  adjustment onto the actual terrain under this creature right now.
+- **Client** adds what is genuinely cosmetic: ~~look-at~~ **the neck BEND (see below)**,
+  expressive layers, and the IK foot adjustment onto the actual terrain under this creature
+  right now.
+
+> **⚠ CORRECTED 2026-08-02 — corrections #94. "LOOK-AT" NAMES TWO MECHANISMS AND ONLY ONE OF
+> THEM IS CLIENT-SIDE.** The **GAZE** (`CharacterState.yaw/pitch`) is **sim state**: it aims
+> perception — `sense_raycast` with no explicit direction rays along `view_dir()`
+> (`host.rs:1430-1432`) — rides the command log, is replay-tested, and since 2026-08-02 is
+> *derived in the tick step* when unheld (look ownership, `bodies.md` § who owns the look,
+> journal/0142). The **NECK BEND** — how the declared look joint expresses that gaze, i.e.
+> `resolve_orientation`'s cervical clamp and the trunk drag beyond it — is the client-side,
+> cosmetic, free-to-tune half § 5's argument actually needs. Read every "look-at" in this
+> document as the *bend*. **The layer table's vocabulary is fixed at the gait-bake design
+> pass**, which owns the firewall-adjacent naming; it is not repaired unilaterally here.
 
 **Structurally identical to the frond bake** (the vegetation thread, same conversation):
 expensive derivation per species at build time, inherited down the phylogeny, sampled cheaply
@@ -214,8 +226,9 @@ including evolved ones**, because the hitboxes are the creature's own parts.
 
 **The cost of that move, stated plainly: it converts animation from free-to-edit into a
 versioned sim asset.** Retiming a clip changes hit detection, hence replay and world identity.
-This is why look-at, expressive layers and foot IK must stay firmly *outside* the sim-visible
-set — so at least those remain free to tune.
+This is why ~~look-at~~ **the neck bend (corrections #94: the GAZE is sim state and aims
+perception — it is the *bend* that is cosmetic)**, expressive layers and foot IK must stay
+firmly *outside* the sim-visible set — so at least those remain free to tune.
 
 ## 6. Not foreclosing per-instance deltas — three properties, no machinery
 

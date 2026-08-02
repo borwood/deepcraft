@@ -3767,3 +3767,49 @@ the bob, and of the solver/root composition it implies, is decided at the **gait
 pass**, where bob is an output, per-species, or absent. Targets stamped in this commit: the
 close block's item 2, the dependency-graph § 2b row, and bodies.md § stepped animation's
 CORRECTED banner (whose *"fix that and…"* clause reads as a work order and primed this).
+
+## 94. "Look-at is outside the sim-visible set — client-owned, cosmetic, free to tune" (`posture-gait.md` § 3's layer table and § 5's closing paragraph, assistant-proposed 2026-08-01 — falsified by the user asking the obvious question, 2026-08-02, against code that has read the other way since the character surface shipped)
+
+**The claim.** `posture-gait.md` § 3's three-layer table assigns the **client** the row
+*"cosmetic refinement"* and names *look-at* first among its examples; § 5 closes by arguing
+that damage-against-the-nominal-pose is affordable *because* **"look-at, expressive layers
+and foot IK must stay firmly *outside* the sim-visible set — so at least those remain free
+to tune."**
+
+**Falsified by the user, in one question:** *"look-at is not sim visible for perception?"*
+
+**It is, and it always was.** `host.rs:1430-1432` — `dc:character/sense_raycast` with no
+explicit direction rays along `character.view_dir()`, which is built from
+`CharacterState.yaw/pitch`. The gaze aims **perception**. It is set by a receipted command
+through the one door, rides the command log, and is covered by the replay tests
+(`character_session_replays_identically_and_stays_caged` sets a look mid-session). Nothing
+about it is cosmetic or free to tune. **And 2026-08-02 moved MORE of it sim-side**, hours
+before this was caught: the look-ownership slice (journal/0142) derives the unheld gaze from
+travel inside `step_character` — deliberately, because a renderer-only fix would have left a
+driven creature walking east while its senses pointed at its spawn heading. **The document
+asserts the opposite of the design its own arc shipped the same week.**
+
+**Mechanism: ONE WORD, TWO MECHANISMS, and the doc never separated them.**
+- **The GAZE** — the `(yaw, pitch)` scalar pair on `CharacterState`. Sim state. Aims senses,
+  rides the log, replay-critical, and now derived in the tick step when unheld.
+- **The NECK BEND** — how the declared look joint rotates to *express* that gaze:
+  `resolve_orientation`'s cervical clamp and the trunk drag beyond it. Client-side, cosmetic,
+  genuinely free to tune, and genuinely the thing § 5 was reaching for.
+
+§ 5's *argument* survives intact under the second reading; its *sentence* is false under the
+first. **The hazard is directional and expensive:** a future session reading "look-at is
+client-owned" has a licence to move the gaze or its derivation client-side for smoothness —
+silently breaking both the determinism firewall and every creature's perception. The
+half-truth points exactly the wrong way.
+
+**Second-order finding, filed rather than fixed:** this is the *third* time in this arc that
+an assistant-authored generality has papered over a distinction the code already made
+(cf. #80 magnitude-vs-cause, #82 a justification outliving its premise). The pattern is a
+noun standing for two things — "look-at", "the bob", "posture" — and the tell each time is
+that **the sentence is true of one referent and false of the other**.
+
+**Disposition: the CLAIM is corrected here and the two targets are stamped in this commit.
+The VOCABULARY is not fixed unilaterally** — renaming the layer table's rows is a design
+statement in a cautiously-ratified document, and it lands at the **gait-bake design pass**,
+which owns the firewall-adjacent vocabulary anyway (its member 2 moves the line). The pass
+inherits the split above as its starting point, not as a ruling.
