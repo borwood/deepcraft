@@ -6,7 +6,7 @@
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
   "staleness": "d8407e1",
-  "spine-audit": "d8407e1",
+  "spine-audit": "3cf8778",
   "doc-topology": "d8407e1",
   "_baseline": {
     "commit": "f652b60",
@@ -23,6 +23,14 @@
     "recalibration_verdict": "calibrated_rates STILL OFF BY DEFAULT (field.rs:374); the P2 work that landed (ee9fb94) is DOCS-ONLY and moved no constant (EROSION_CALIBRATION untouched since cdd1036). Voids nothing — corrections #68's receipt holds a third time. BUT P11 slice 1 IS default-on and moved terrain via record segmentation (corrections #86), so the APPEARANCE-observation cohort is two changes behind the world; rate/magnitude claims are untouched.",
     "coverage": "ROADMAP.md live sections (In flight / Sequenced / Observed / current close block) + dependency-graph.md, against the delta's blast radius. NOT covered: ROADMAP-history.md, the three superseded close blocks, corrections #1-73. See the audit's section 3.",
     "findings": "8 (F1-F8) + 5 CANNOT-DETERMINE. F1 is the headline: the parallel-session ordinal collision was diagnosed and fixed for journal 0135 (3cab931) and left unrepaired in TWO other numbering spaces - corrections.md carries duplicate #85 AND #86, stubs.md carries duplicate #34 (the older one holding all 13 inbound references). NOT APPLIED - the integrator adjudicates."
+  },
+  "_spine_audit_last_run": {
+    "commit": "3cf8778",
+    "date": "2026-08-02",
+    "mode": "FULL (61 commits since d8407e1; docs/spines.md itself moved in the window, so every prior verdict was void by this file's own _full_run_triggers rule)",
+    "audit": "docs/audits/2026-08-02-spine-audit-full.md",
+    "coverage": "spines.md sections 3/4/5/6 + S-2 corollary/S-3/S-4/S-5/A-1/A-2 opening/A-4/A-7 read in full; deeptime/species.rs read in full; erosion/{mod,transport,weathering,creep,creep_kernel,record,uplift}.rs, draws.rs, refine.rs, lithology.rs targeted; the posture-bake and look-ownership slices. NOT OPENED: examples/appearance_tour_p11.rs (1673 lines, new - grep only), examples/species_sparsity_probe.rs, the golden re-capture's contents, spines.md S-6/S-7/S-8/S-9/A-3/A-5/A-6 bodies (citations checked, claims not re-argued). A null from those is not a result.",
+    "findings": "12 (F1-F12). SECTION 3: one row EMPTY-ABLE (resting-posture bake - bake_resting_posture got its named production caller at dc-client/src/body.rs:434 in f4e7f75 and the row was not emptied; 19 -> 18), NO row added. HEADLINE F1: P11 slice 2 replaced `providers.outcrop_shares(&[])` - the bedrock-composition seam call - with a hardcoded DEEP_BASEMENT=GRANITE constant at erosion/{transport.rs:174,weathering.rs:421}, while three comments still say 'the same walk asked with an empty section' and 'Nothing is named here'. Value identical, claims false; and A-7's own worked-forwards instance (spines.md:2066-2072) now describes code that no longer exists. F2: A-7's 'TWO places' enumeration is short by three named MaterialId constants (REFERENCE_MATERIAL, DEEP_BASEMENT, ANCHOR_MATERIAL) - two asked for by a ratified design pass, colliding with an anti-shape declared NOT ratifiable. USER-OWNED. NOT APPLIED - the integrator adjudicates."
   },
   "_doc_topology_last_run": {
     "commit": "d8407e1",
