@@ -322,7 +322,9 @@ pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x98B6_DAD5_5796_8D6A;
 /// kept for audit: `0xDAB0_34AC_9984_209C`.
 pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xFAC2_2A81_1311_2075;
 /// The strata-record half of [`GOLDEN_SURFACE_ANONYMOUS_CREEP`].
-pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x447D_E3D0_7675_8D21;
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
+/// rock (case 1). Prior value, kept for audit: `0x447D_E3D0_7675_8D21`.
+pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0xE77F_385F_D58E_F020;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
 ///
 /// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**
@@ -335,7 +337,9 @@ pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x447D_E3D0_7675_8D21;
 /// ```text
 /// GOLDEN_RECORD_SINGLE_RECEIVER 0x4A20_745B_3879_7C8A
 /// ```
-pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
+/// rock (case 1). Prior value, kept for audit: `0xAB2E_0CA4_2412_05C1`.
+pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x5ECD_3AC2_7468_5D5C;
 /// FNV-1a-64 over the strata record of the same field.
 ///
 /// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
