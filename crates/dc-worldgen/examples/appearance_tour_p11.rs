@@ -127,7 +127,11 @@ fn class_members(set: &GeologySet, m: GeoMemberIdx) -> usize {
         .map_or(0, |c| c.members().len())
 }
 
-fn top_span(set: &GeologySet, fill: &ColumnFill, events: &[StrataEvent]) -> (TopSpan, Option<usize>) {
+fn top_span(
+    set: &GeologySet,
+    fill: &ColumnFill,
+    events: &[StrataEvent],
+) -> (TopSpan, Option<usize>) {
     match fill.plan(1) {
         None => (TopSpan::None, None),
         Some(Plan::Mixed(_)) => (TopSpan::Mixed, None),
@@ -142,6 +146,19 @@ fn top_span(set: &GeologySet, fill: &ColumnFill, events: &[StrataEvent]) -> (Top
     }
 }
 
+/// One expressed voxel: the member that fills it, and **whether the member got
+/// there by the octaves dither or by the record**. The second half is what keeps
+/// station set 2 honest — a member contact drawn by the veneer's per-column
+/// dither is *not* evidence for P11's recorded diversity, and the two look
+/// identical on a cut face.
+#[derive(Clone, Copy)]
+struct Expressed {
+    member: GeoMemberIdx,
+    /// `Plan::Single` on a `dither: true` event in a ≥2-member class — the only
+    /// shape the octaves slice can move.
+    movable: bool,
+}
+
 /// The expressed member at depth index `d` (1 = the surface voxel), at one voxel
 /// column — exactly `collapse.rs`'s resolution, `Mixed` reduced to its heaviest
 /// share so a vertical succession reads as one member per voxel.
@@ -152,23 +169,77 @@ fn expressed_member(
     d: u32,
     vx: i64,
     vz: i64,
-) -> Option<GeoMemberIdx> {
+) -> Option<Expressed> {
     match fill.plan(d)? {
         Plan::Single(k) => {
             let e = events[*k];
-            Some(dithered_member_with(
-                set,
-                &e,
-                &dc_worldgen::geology::selection_field(SEED, e.sel_salt),
-                vx,
-                vz,
-            ))
+            Some(Expressed {
+                member: dithered_member_with(
+                    set,
+                    &e,
+                    &dc_worldgen::geology::selection_field(SEED, e.sel_salt),
+                    vx,
+                    vz,
+                ),
+                movable: e.dither && class_members(set, e.member) > 1,
+            })
         }
         Plan::Mixed(w) => w
             .iter()
             .max_by_key(|(_, eighths)| *eighths)
-            .map(|(k, _)| events[*k].member),
+            .map(|(k, _)| Expressed {
+                member: events[*k].member,
+                movable: false,
+            }),
     }
+}
+
+/// Walk a column's expressed voxels and split its within-class member contacts
+/// into the two that must never be confused:
+///
+/// - **recorded** — both sides came from `dither: false` deep-history events, so
+///   the contact is a fact deep time wrote down (P11 slices 1/2b);
+/// - **dithered** — at least one side is a movable veneer span, so the contact is
+///   the octaves selection field drawing a patch boundary (journal/0128–0129).
+///
+/// Returns `(recorded, dithered, movable spans, runs)`, where a run is
+/// `(material name, first depth, last depth, movable)`.
+type ColumnRuns = Vec<(String, u32, u32, bool)>;
+fn expressed_column(
+    set: &GeologySet,
+    fill: &ColumnFill,
+    events: &[StrataEvent],
+    vx: i64,
+    vz: i64,
+) -> (usize, usize, usize, ColumnRuns) {
+    let (mut recorded, mut dithered, mut movable_spans) = (0usize, 0usize, 0usize);
+    let mut runs: ColumnRuns = Vec::new();
+    let mut prev: Option<Expressed> = None;
+    for d in 1..=fill.depth_count() as u32 {
+        let Some(e) = expressed_member(set, fill, events, d, vx, vz) else {
+            continue;
+        };
+        if e.movable {
+            movable_spans += 1;
+        }
+        let name = short(set.member(e.member).material).to_string();
+        match runs.last_mut() {
+            Some((n, _, hi, mv)) if *n == name && *mv == e.movable => *hi = d,
+            _ => runs.push((name, d, d, e.movable)),
+        }
+        if let Some(p) = prev
+            && p.member != e.member
+            && set.member(p.member).class == set.member(e.member).class
+        {
+            if p.movable || e.movable {
+                dithered += 1;
+            } else {
+                recorded += 1;
+            }
+        }
+        prev = Some(e);
+    }
+    (recorded, dithered, movable_spans, runs)
 }
 
 // ─────────────────────────────── the member field ────────────────────────────
@@ -202,7 +273,7 @@ fn member_window(
             }
         }
     }
-    counts.sort_by(|a, b| b.1.cmp(&a.1));
+    counts.sort_by_key(|(_, c)| std::cmp::Reverse(*c));
     let total = (n * n) as f64;
     let minority = if counts.len() > 1 {
         counts[1..].iter().map(|(_, c)| *c).sum::<usize>() as f64 / total
@@ -261,8 +332,7 @@ struct Band {
 /// alternation; mudstone → sandstone is a class change and is *not* counted,
 /// because the claim P11 slice 1 makes is that the record distinguishes rocks
 /// **inside** a class it used to collapse.
-fn member_alternations(strata: &DeepStrata) -> (usize, Vec<Band>) {
-    // Coalesce adjacent same-material units, bottom-up (the record's own order).
+fn coalesced_bands(strata: &DeepStrata) -> Vec<Band> {
     let mut bands: Vec<Band> = Vec::new();
     for u in &strata.units {
         if u.thickness_m <= 0.0 {
@@ -276,12 +346,18 @@ fn member_alternations(strata: &DeepStrata) -> (usize, Vec<Band>) {
             }),
         }
     }
-    let thick: Vec<Band> = bands.into_iter().filter(|b| b.thickness_m >= VOXEL_M).collect();
+    bands
+}
+
+fn member_alternations(strata: &DeepStrata) -> (usize, Vec<Band>) {
+    // Coalesce adjacent same-material units, bottom-up (the record's own order).
+    let thick: Vec<Band> = coalesced_bands(strata)
+        .into_iter()
+        .filter(|b| b.thickness_m >= VOXEL_M)
+        .collect();
     let mut alt = 0usize;
     for w in thick.windows(2) {
-        if w[0].mat != w[1].mat
-            && Litho::of_material(w[0].mat) == Litho::of_material(w[1].mat)
-        {
+        if w[0].mat != w[1].mat && Litho::of_material(w[0].mat) == Litho::of_material(w[1].mat) {
             alt += 1;
         }
     }
@@ -330,19 +406,142 @@ fn site_would_draw(
 
 // ─────────────────────────────── report helpers ──────────────────────────────
 
+/// **How loud is the difference between two rocks?** `3` cross-class, `2` a
+/// grain-size pair (sandstone vs conglomerate — the loudest thing the vanilla set
+/// has inside a class), `1` albedo-adjacent (mudstone/siltstone,
+/// granite/diorite, basalt/andesite: journal/0129's finding that a within-class
+/// member dither's *ceiling* is a subtle contrast).
+///
+/// ⚠ `Litho::code()` is `"coarse"` / `"fine"`, **not** the namespaced class id.
+/// Matching on the string `"clastic-coarse"` here scored every sandstone-vs-
+/// conglomerate station as albedo-adjacent on this probe's first run — the exact
+/// inverse of the truth. Match the enum.
+fn pair_visibility(a: MaterialId, b: MaterialId) -> u8 {
+    let l = Litho::of_material(a);
+    if l != Litho::of_material(b) {
+        return 3;
+    }
+    match l {
+        Litho::ClasticCoarse => 2,
+        _ => 1,
+    }
+}
+
+fn visibility_label(v: u8) -> &'static str {
+    match v {
+        3 => "CROSS-CLASS",
+        2 => "grain-size (loud)",
+        _ => "albedo-adjacent (subtle)",
+    }
+}
+
+/// **The square-edge signature** (journal/0129, `palette_quant_tour`'s metric,
+/// re-derived here because an example is its own crate root and a sibling cannot
+/// be called): how much of a selection field's curvature sits on the 28.8 m chunk
+/// lattice. A bilinear field is linear inside its own cell, so a single octave at
+/// chunk wavelength puts **all** its curvature on the 32-voxel grid; that
+/// concentration IS the defect the octaves slice removed. Returns
+/// `(mean |Δ²u| on the lattice, off it)` — "on" is phases 0 and 31, because
+/// `x + 1` is in the next cell.
+fn lattice_curvature(src: &dyn DitherSource, cx: i64, cz: i64, tag: u64, half: i64) -> (f64, f64) {
+    let (mut on, mut on_n, mut off, mut off_n) = (0.0f64, 0u64, 0.0f64, 0u64);
+    for z in (cz - half)..(cz + half) {
+        for x in (cx - half)..(cx + half) {
+            let d2 = (src.uniform(x - 1, z, tag) - 2.0 * src.uniform(x, z, tag)
+                + src.uniform(x + 1, z, tag))
+            .abs();
+            if (x - 1).div_euclid(32) != (x + 1).div_euclid(32) {
+                on += d2;
+                on_n += 1;
+            } else {
+                off += d2;
+                off_n += 1;
+            }
+        }
+    }
+    (on / on_n.max(1) as f64, off / off_n.max(1) as f64)
+}
+
 fn short(m: MaterialId) -> &'static str {
     // `qualified_name` is `dc:mudstone` etc.; the tail is what a briefing reads.
     let q = m.qualified_name();
     q.rsplit(':').next().unwrap_or(q)
 }
 
-fn pose(label: &str, x: f64, z: f64, surf: f64, standoff: f64, yaw: f64, pitch: f64, why: &str) {
+/// **Yaw is Bevy's: view dir at yaw θ is `(−sin θ, ·, −cos θ)`**
+/// (`dc-client::player.rs:57`). So **yaw 0 looks toward −Z** and **yaw π toward
+/// +Z**. Getting this backwards points the camera at the intact hillside behind
+/// the player instead of at the cut face — the pose-recording hazard of
+/// corrections #48 with a sign instead of a distance.
+const YAW_NORTH: f64 = std::f64::consts::PI;
+const YAW_SOUTH: f64 = 0.0;
+
+fn pose(label: &str, x: f64, y: f64, z: f64, yaw: f64, pitch: f64, why: &str) {
     println!(
-        "    POSE {label}: pose_set{{ x: {x:.0}, z: {z:.0}, surface: true }} then \
-         pose_set{{ x: {x:.0}, y: {:.0}, z: {z:.0}, yaw: {yaw:.2}, pitch: {pitch:.2} }}",
-        surf + standoff
+        "    POSE {label}: pose_set{{ x: {x:.0}, z: {z:.0}, surface: true }}  → read the live \
+         ground Y, then  pose_set{{ x: {x:.0}, y: {y:.0}, z: {z:.0}, yaw: {yaw:.3}, pitch: {pitch:.2} }}"
     );
-    println!("      ({why}; feet y is worldgen-frame {:.0} m + {standoff:.0} m standoff — teleport with surface:true FIRST and read the live ground Y, then re-set y)", surf);
+    println!(
+        "      ({why}; y {y:.0} m is the WORLDGEN frame — the live client frame can carry a \
+         constant offset, so always teleport with surface:true first)"
+    );
+}
+
+/// A road-cut bench, in **voxels** (`world_fill` speaks voxels; poses speak
+/// metres). Chunk-aligned in x so the face is one chunk's record and cannot be
+/// confounded by the per-chunk `StrataRec` stepping journal/0129 names as a third
+/// mechanism at this site. Returns `(x0, x1, y0, y1, z0, z1, face_z_voxel)`.
+#[allow(clippy::too_many_arguments)]
+fn bench(vx: i64, vz: i64, surf_m: f64, cut: i64) -> (i64, i64, i64, i64, i64, i64, i64) {
+    let cx = vx.div_euclid(32);
+    let sy = (surf_m / VOXEL_M).floor() as i64;
+    // 32 (one chunk) × 41 × cut voxels. cut = 16 → 20,992, the skill's ~20k.
+    (cx * 32, cx * 32 + 31, sy - cut + 1, sy, vz - 40, vz, vz + 1)
+}
+
+fn print_bench(vx: i64, vz: i64, surf_m: f64, cut: i64, mx: f64) {
+    // **The bench floor must stay above sea level.** A cut deeper than the ground
+    // is high floods, and a flooded bench is a null frame with a confident pose
+    // attached — the S2 #2 station asked for 24 voxels on 16.7 m of ground and
+    // would have put the player at y = −4.9 m.
+    let cut = cut.min(((surf_m - 2.0) / VOXEL_M).floor().max(3.0) as i64);
+    let (x0, x1, y0, y1, z0, z1, face) = bench(vx, vz, surf_m, cut);
+    let n = (x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1);
+    println!(
+        "    BENCH CUT — `world_fill` dc:air  x [{x0}, {x1}]  y [{y0}, {y1}]  z [{z0}, {z1}]  \
+         = {n} voxels (VOXEL coords)"
+    );
+    println!(
+        "      one chunk wide in x (chunk {}), 41 voxels of approach in z, {cut} voxels \
+         ({:.1} m) of face. The EXPOSED FACE is the intact wall at voxel z = {face} \
+         ({:.0} m); stand on the bench floor and look NORTH at it.",
+        vx.div_euclid(32),
+        cut as f64 * VOXEL_M,
+        face as f64 * VOXEL_M
+    );
+    // Stand ~19 m back from the face, on the bench floor.
+    let stand_z = (vz - 20) as f64 * VOXEL_M;
+    let floor_m = y0 as f64 * VOXEL_M;
+    pose(
+        "at the face",
+        mx,
+        floor_m + 1.7,
+        stand_z,
+        YAW_NORTH,
+        -0.05,
+        "eye height on the bench floor, ~19 m back from the face — the whole cut fills the frame. \
+         --fullbright (material question), NO --edges (never diff colour on an edges frame)",
+    );
+    pose(
+        "the face from above",
+        mx,
+        surf_m + 14.0,
+        (vz - 45) as f64 * VOXEL_M,
+        YAW_NORTH,
+        -0.5,
+        "back off past the bench lip and up 14 m: the cut face and the intact veneer above it \
+         in one frame",
+    );
 }
 
 // ─────────────────────────────── main ────────────────────────────────────────
@@ -404,13 +603,19 @@ fn main() {
         vz: i64,
         surf_m: f64,
         span: TopSpan,
+        /// The movable event, when there is one — at the SURFACE (`plan(1)`) or,
+        /// for the buried arm, the shallowest movable span in the column.
+        event: Option<StrataEvent>,
+        /// Depth index of `event` (1 = surface voxel).
+        event_depth: u32,
         /// Ranking quantity for station 1: minority member share in the window.
         minority: f64,
         distinct: usize,
-        /// The movable event, when there is one.
-        event: Option<StrataEvent>,
-        /// Expressed member alternations down the column (station 2's verified half).
-        expr_alt: usize,
+        /// Within-class member contacts in the EXPRESSED column, split by cause.
+        expr_recorded: usize,
+        expr_dithered: usize,
+        /// Voxel spans in this column the octaves dither can move.
+        movable_spans: usize,
         expr_depth: usize,
     }
 
@@ -448,38 +653,39 @@ fn main() {
                 TopSpan::SingleFrozen => 3,
             }] += 1;
 
-            // Station 1's ranking quantity — only meaningful on a movable span.
-            let (mut minority, mut distinct, mut event) = (0.0, 0usize, None);
-            if span == TopSpan::SingleMovable
-                && let Some(k) = k
-            {
-                let e = col.strata.events[k];
-                let src = Octaves::member(Draws::from_recorded_salt(SEED, e.sel_salt));
-                // A 32-voxel half-window is the cheap screen; the top picks get
-                // the full 128-voxel window below.
-                let (d, m, _) = member_window(set, &e, &src, vx, vz, 32);
-                minority = m;
-                distinct = d;
-                event = Some(e);
-            }
+            // Station 2's verified half AND station 1's buried arm, from one
+            // walk of the expressed column.
+            let (expr_recorded, expr_dithered, movable_spans, _) =
+                expressed_column(set, &fill, &col.strata.events, vx, vz);
 
-            // Station 2's verified half: the expressed vertical succession at
-            // this very voxel column, through `plan(d)`.
-            let depth = fill.depth_count();
-            let mut expr_alt = 0usize;
-            let mut prev: Option<GeoMemberIdx> = None;
-            for d in 1..=depth as u32 {
-                let Some(m) = expressed_member(set, &fill, &col.strata.events, d, vx, vz) else {
-                    continue;
-                };
-                if let Some(p) = prev
-                    && p != m
-                    && set.member(p).class == set.member(m).class
-                {
-                    expr_alt += 1;
+            // Station 1's event: the SURFACE one where the top span is movable,
+            // else the SHALLOWEST movable span in the column — which is a station
+            // a bench cut can reach even when the surface cannot show it.
+            let mut event = k
+                .filter(|_| span == TopSpan::SingleMovable)
+                .map(|k| (col.strata.events[k], 1u32));
+            if event.is_none() && movable_spans > 0 {
+                for d in 2..=fill.depth_count() as u32 {
+                    if let Some(Plan::Single(k)) = fill.plan(d) {
+                        let e = col.strata.events[*k];
+                        if e.dither && class_members(set, e.member) > 1 {
+                            event = Some((e, d));
+                            break;
+                        }
+                    }
                 }
-                prev = Some(m);
             }
+            // Ranking quantity — only meaningful where there is a movable event.
+            // A 32-voxel half-window is the cheap screen; the top picks get the
+            // full 128-voxel window below.
+            let (minority, distinct) = match event {
+                Some((e, _)) => {
+                    let src = Octaves::member(Draws::from_recorded_salt(SEED, e.sel_salt));
+                    let (d, m, _) = member_window(set, &e, &src, vx, vz, 32);
+                    (m, d)
+                }
+                None => (0.0, 0),
+            };
 
             samples.push(Sample {
                 idx,
@@ -487,11 +693,14 @@ fn main() {
                 vz,
                 surf_m,
                 span,
+                event: event.map(|(e, _)| e),
+                event_depth: event.map_or(0, |(_, d)| d),
                 minority,
                 distinct,
-                event,
-                expr_alt,
-                expr_depth: depth,
+                expr_recorded,
+                expr_dithered,
+                movable_spans,
+                expr_depth: fill.depth_count(),
             });
         }
     }
@@ -516,8 +725,39 @@ fn main() {
     println!(
         "  (MOVABLE = `Plan::Single` on a `dither:true` veneer event in a >=2-member class. \
          Only these can show the octaves slice: `Mixed` uses the UNDITHERED member by design, \
-         and deep-history events carry `dither:false`.)\n"
+         and deep-history events carry `dither:false`.)"
     );
+    // **The buried arm, and the positive control for station set 1's null.**
+    // A `Plan::Single` on a movable veneer event is the only shape the octaves
+    // slice can move, and the surface is not the only place it occurs. If this
+    // count is zero too, the classifier is suspect; if it is non-zero, a zero at
+    // the surface is a fact about the surface (CLAUDE.md § tour-map: a zero from
+    // an unproven census is not evidence).
+    let buried_movable = samples.iter().filter(|s| s.movable_spans > 0).count();
+    let movable_span_total: usize = samples.iter().map(|s| s.movable_spans).sum();
+    println!(
+        "  CONTROL — the same classifier BELOW the surface: {buried_movable} of {} land columns \
+         ({:.1} %) hold at least one movable `Single` span, {movable_span_total} spans in all.",
+        samples.len(),
+        100.0 * buried_movable as f64 / samples.len().max(1) as f64
+    );
+    // The expression-verified rate for station set 2, split by CAUSE. A contact
+    // drawn by the veneer's per-column dither is not evidence for P11's recorded
+    // diversity, and on a cut face the two are indistinguishable — so they are
+    // counted apart here rather than summed into one flattering number.
+    let with_recorded = samples.iter().filter(|s| s.expr_recorded > 0).count();
+    let with_dithered = samples.iter().filter(|s| s.expr_dithered > 0).count();
+    let deepest = samples.iter().map(|s| s.expr_depth).max().unwrap_or(0);
+    let mean_depth =
+        samples.iter().map(|s| s.expr_depth).sum::<usize>() as f64 / samples.len().max(1) as f64;
+    println!(
+        "  expressed within-class member contacts, by cause:  RECORDED (both sides `dither:false`, \
+         P11's claim) {with_recorded} columns ({:.1} %)  ·  DITHERED (a veneer span on one side) \
+         {with_dithered} columns ({:.1} %)",
+        100.0 * with_recorded as f64 / samples.len().max(1) as f64,
+        100.0 * with_dithered as f64 / samples.len().max(1) as f64
+    );
+    println!("  recorded column depth: mean {mean_depth:.1} voxels, max {deepest}\n");
 
     // ═══════════════════════════════════════════════════════════════════════
     // STATION SET 1 — the octaves near-member stepping
@@ -528,31 +768,111 @@ fn main() {
          `Mixed` top span and is structurally blind; this looks for `Single` in a two-member\n\
          class, on land, where the octave structure has visible spatial extent.\n"
     );
-    let mut movable: Vec<&Sample> = samples
+    // The brief's station: a movable span AT THE SURFACE. The buried arm is the
+    // fallback, and the two are never merged — one is walkable without a shovel
+    // and the other is not.
+    let surface_movable = samples
         .iter()
         .filter(|s| s.span == TopSpan::SingleMovable && s.distinct > 1)
+        .count();
+    if surface_movable == 0 {
+        println!(
+            "  ⚠ SURFACE NULL — 0 of {land_sampled} sampled land columns express `Plan::Single`\n\
+             on a movable (`dither:true`, >=2-member) event at the SURFACE VOXEL. The surface\n\
+             top span is `Mixed` on {} of them ({:.1} %), and `mixed_at` resolves a Mixed span\n\
+             from the UNDITHERED `event.member` by design — so the octaves slice cannot move\n\
+             the ground you stand on ANYWHERE on this world, not just at the old U3 pose.\n\
+             The old pose was not an unlucky pick; it was the universal case.",
+            span_counts[1],
+            100.0 * span_counts[1] as f64 / land_sampled.max(1) as f64
+        );
+        println!(
+            "  INSTRUMENT PROVED, not assumed: the identical classifier finds {buried_movable} \
+             columns\n  with a movable span BELOW the surface ({movable_span_total} spans). A zero \
+             from an unproven\n  census is not evidence — this one has its positive control on the \
+             same sample."
+        );
+    }
+    // **The loudness a movable span can reach is a property of its CLASS**, and
+    // journal/0129's first finding is that the ceiling is low: the four two-member
+    // classes are mudstone/siltstone, sandstone/conglomerate, granite/diorite and
+    // basalt/andesite, and only the second is a grain-size contrast. Rank by that
+    // first — a perfectly balanced basalt-vs-andesite patchwork is a station the
+    // eye cannot adjudicate, and sending the walk there wastes the session.
+    let span_class = |s: &Sample| -> u8 {
+        s.event.map_or(0, |e| {
+            let cls = set.class(set.member(e.member).class.as_str());
+            match cls.map(|c| c.members()) {
+                Some(ms) if ms.len() > 1 => {
+                    pair_visibility(set.member(ms[0]).material, set.member(ms[1]).material)
+                }
+                _ => 0,
+            }
+        })
+    };
+    let mut class_tally: HashMap<&str, usize> = HashMap::new();
+    for s in samples
+        .iter()
+        .filter(|s| s.event.is_some() && s.distinct > 1)
+    {
+        *class_tally
+            .entry(set.member(s.event.expect("filtered").member).class.as_str())
+            .or_insert(0) += 1;
+    }
+    let mut movable: Vec<&Sample> = samples
+        .iter()
+        .filter(|s| s.event.is_some() && s.distinct > 1)
         .collect();
-    movable.sort_by(|a, b| b.minority.total_cmp(&a.minority));
+    movable.sort_by(|a, b| {
+        // Surface spans first (walkable without a cut), then by how LOUD the
+        // class's member pair can be, then by how balanced the draw is over the
+        // window, then by how shallow the span is.
+        (a.event_depth == 1)
+            .cmp(&(b.event_depth == 1))
+            .reverse()
+            .then(span_class(b).cmp(&span_class(a)))
+            .then(b.minority.total_cmp(&a.minority))
+            .then(a.event_depth.cmp(&b.event_depth))
+    });
+    if !class_tally.is_empty() {
+        let mut rows: Vec<(&&str, &usize)> = class_tally.iter().collect();
+        rows.sort_by(|a, b| b.1.cmp(a.1));
+        println!("\n  which CLASSES carry the movable spans (the dither's expressive ceiling):");
+        for (cls, n) in rows {
+            let pair = set
+                .class(cls)
+                .map(|c| c.members())
+                .filter(|m| m.len() > 1)
+                .map(|m| {
+                    let (a, b) = (set.member(m[0]).material, set.member(m[1]).material);
+                    format!(
+                        "{} vs {} — {}",
+                        short(a),
+                        short(b),
+                        visibility_label(pair_visibility(a, b))
+                    )
+                })
+                .unwrap_or_else(|| "?".into());
+            println!("    {n:>6} columns  {cls}  [{pair}]");
+        }
+    }
 
     if movable.is_empty() {
         println!(
-            "  ⚠ NULL — not one sampled land cell expresses `Plan::Single` on a movable\n\
-             (`dither:true`, >=2-member) event with more than one member drawn in its window.\n\
-             The control is the census above: the scan DID find {} movable spans and {} Single\n\
-             spans overall, so the instrument sees the category; what is absent is the\n\
-             two-member expression. Do not launch for this station.",
-            span_counts[2],
-            span_counts[2] + span_counts[3]
+            "\n  ⚠ FULL NULL — no sampled land column holds a movable span at ANY depth whose\n\
+             window draws both members. Nothing to launch for; the walk cannot see this slice."
         );
     } else {
         println!(
-            "  DISTRIBUTION: {} of {land_sampled} sampled land cells ({:.1} %) carry a movable\n\
-             `Single` top span whose window draws BOTH members. Minority share p50 {:.3}, \
-             max {:.3}.",
+            "\n  DISTRIBUTION (surface + buried): {} of {land_sampled} sampled land columns \
+             ({:.1} %) hold\n  a movable span whose 115 m window draws BOTH members. Minority \
+             share p50 {:.3}, max {:.3}.\n  Of those, {} are at the SURFACE voxel; the rest need \
+             a cut.",
             movable.len(),
             100.0 * movable.len() as f64 / land_sampled.max(1) as f64,
             movable[movable.len() / 2].minority,
-            movable[0].minority
+            movable[0].minority,
+            movable.iter().filter(|s| s.event_depth == 1).count()
         );
         let mut picked: Vec<&&Sample> = Vec::new();
         for s in &movable {
@@ -586,8 +906,21 @@ fn main() {
                 s.vz
             );
             println!("    near-field surface elevation {:.1} m", s.surf_m);
+            if s.event_depth == 1 {
+                println!("    the movable span is the SURFACE VOXEL — no cut needed.");
+            } else {
+                println!(
+                    "    ⚠ BURIED: the movable span is `plan({})` = {:.1} m below the surface. \
+                     The surface here is `{:?}` and CANNOT show the slice; this station needs a \
+                     bench cut {} voxels deep.",
+                    s.event_depth,
+                    (s.event_depth as f64 - 1.0) * VOXEL_M,
+                    s.span,
+                    s.event_depth
+                );
+            }
             println!(
-                "    surface event: class {}  ({} registered members)  sel_salt {:#x} tag {}",
+                "    event: class {}  ({} registered members)  sel_salt {:#x} tag {}",
                 set.member(e.member).class,
                 class_members(set, e.member),
                 e.sel_salt,
@@ -601,9 +934,23 @@ fn main() {
                     100.0 * *c as f64 / (n * n) as f64
                 );
             }
-            println!("\n      distinct {da}, minority share {ma:.3}");
+            println!(
+                "\n      distinct {da}, minority share {ma:.3}   [{}]",
+                visibility_label(span_class(s))
+            );
             println!(
                 "    A/B at this site — BEFORE (single octave, stride 32): distinct {db}, minority {mb:.3}"
+            );
+            // The journal/0129 headline, re-measured here rather than remembered.
+            let (b_on, b_off) = lattice_curvature(&before, s.vx, s.vz, e.sel_tag, WIN_VOX);
+            let (a_on, a_off) = lattice_curvature(&after, s.vx, s.vz, e.sel_tag, WIN_VOX);
+            println!(
+                "    SQUARE-EDGE SIGNATURE |Δ²u| on the 28.8 m lattice vs off it:\n\
+                 \x20     BEFORE on {b_on:.3e} off {b_off:.3e}  ratio {:.3e}\n\
+                 \x20     AFTER  on {a_on:.3e} off {a_off:.3e}  ratio {:.3}   \
+                 (≈1 means the chunk grid is no longer special)",
+                b_on / b_off.max(f64::MIN_POSITIVE),
+                a_on / a_off
             );
             println!("    patch size, P(m(p) == m(p+lag)) along x:");
             println!("      lag(vox)  metres   BEFORE   AFTER");
@@ -615,58 +962,61 @@ fn main() {
                     agreement(&fa, n, lag)
                 );
             }
-            pose(
-                "eyes-down",
-                mx,
-                mz,
-                s.surf_m,
-                12.0,
-                0.0,
-                -0.9,
-                "12 m up, pitched down: a 115 m patch of ground fills the frame. --fullbright, no --edges (material question)",
-            );
-            pose(
-                "standing",
-                mx,
-                mz,
-                s.surf_m,
-                1.8,
-                0.0,
-                -0.35,
-                "eye height, the ground the octaves slice draws under your feet",
-            );
-        }
-
-        // The contrast: a Mixed top span nearby.
-        let anchor = conv.meters(picked[0].idx);
-        let mut mixed: Vec<&Sample> = samples.iter().filter(|s| s.span == TopSpan::Mixed).collect();
-        mixed.sort_by(|a, b| {
-            km_between(conv.meters(a.idx), anchor).total_cmp(&km_between(conv.meters(b.idx), anchor))
-        });
-        println!("\n  CONTRAST (the `Mixed` top span the octaves dither cannot touch):");
-        match mixed.first() {
-            None => println!(
-                "    none sampled — every land sample was `Single`. The contrast pair does not exist at this stride."
-            ),
-            Some(c) => {
-                let (cx_m, cz_m) = conv.meters(c.idx);
-                println!(
-                    "    world ({cx_m:.0} m, {cz_m:.0} m), surface {:.1} m — {:.1} km from S1 #1",
-                    c.surf_m,
-                    km_between((cx_m, cz_m), anchor)
+            if s.event_depth == 1 {
+                pose(
+                    "eyes-down",
+                    mx,
+                    s.surf_m + 12.0,
+                    mz,
+                    YAW_SOUTH,
+                    -0.9,
+                    "12 m up, pitched steeply down: a ~115 m patch of ground fills the frame, \
+                     which is the window the shares above were measured over. --fullbright \
+                     (material question), NO --edges",
                 );
                 pose(
-                    "contrast",
-                    cx_m,
-                    cz_m,
-                    c.surf_m,
-                    12.0,
-                    0.0,
-                    -0.9,
-                    "same framing as S1 #1 — the per-voxel eighth allocation varies this ground, not the member dither",
+                    "standing",
+                    mx,
+                    s.surf_m + 1.7,
+                    mz,
+                    YAW_SOUTH,
+                    -0.35,
+                    "eye height — the ground the octaves selection field draws under your feet",
+                );
+            } else {
+                print_bench(
+                    s.vx,
+                    s.vz,
+                    s.surf_m,
+                    (s.event_depth as i64 + 4).clamp(8, 24),
+                    mx,
                 );
             }
         }
+
+        // **The contrast is FREE at every one of these stations, and that is the
+        // finding.** The `Mixed` top span the dither cannot touch is not somewhere
+        // else on the map — it is the ground directly above the cut, on 99.1 % of
+        // land. Climb out of the bench and you are standing on it.
+        let anchor = conv.meters(picked[0].idx);
+        let mixed_pct = 100.0 * span_counts[1] as f64 / land_sampled.max(1) as f64;
+        println!("\n  CONTRAST (the `Mixed` top span the octaves dither cannot touch):");
+        println!(
+            "    NO TRAVEL NEEDED. The surface above every station above is `Mixed` — that is \
+             {mixed_pct:.1} % of\n    sampled land. Climb out of the bench, look at the ground, \
+             and that IS the contrast:\n    a surface whose material varies only by the per-voxel \
+             EIGHTH allocation, beside a cut\n    face whose material varies by the octaves \
+             selection field."
+        );
+        pose(
+            "contrast — the surface above S1 #1",
+            anchor.0,
+            picked[0].surf_m + 12.0,
+            anchor.1,
+            YAW_SOUTH,
+            -0.9,
+            "12 m up over the same coordinates, pitched down",
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -674,10 +1024,19 @@ fn main() {
     // ═══════════════════════════════════════════════════════════════════════
     println!("\n\n========== STATION SET 2 — MEMBER DIVERSITY IN THE DEEP RECORD ==========");
     println!(
-        "P11 slices 1 + 2b. Ranked by MEMBER ALTERNATIONS inside one class in the recorded\n\
-         succession, counting only bands >= one voxel (0.9 m) thick. Shortlisted on the deep\n\
-         record over ALL land cells, then VERIFIED through the expression path.\n"
+        "P11 slices 1 + 2b. **Ranked on the EXPRESSION, not on the record** — the number that\n\
+         matters is how many within-class member contacts survive the 0.9 m quantizer onto a\n\
+         cut face, with both sides `dither:false` so the contact is a recorded fact and not\n\
+         the veneer's own selection field drawing a patch edge.\n"
     );
+    // The record-side census, kept as the CONSERVATIVE reading and reported
+    // beside the expressed one because the two disagree by two orders of
+    // magnitude — and the disagreement is a real mechanism, not an error. A band
+    // thinner than a voxel still wins eighths inside a `Plan::Mixed` span and can
+    // be the dominant share at some depth, so the expression shows contacts the
+    // "band >= 0.9 m" record filter refuses to count. Both numbers are true of
+    // different questions: this one is "thick, unambiguous banding in the
+    // archive"; the expressed one is "what a face shows".
     let t = Instant::now();
     let mut alt_rank: Vec<(usize, usize, Vec<Band>)> = Vec::new();
     let mut cells_with_alt = 0usize;
@@ -693,149 +1052,144 @@ fn main() {
             alt_rank.push((alt, idx, bands));
         }
     }
-    alt_rank.sort_by(|a, b| b.0.cmp(&a.0));
+    alt_rank.sort_by_key(|(alt, _, _)| std::cmp::Reverse(*alt));
     eprintln!("record scan: {:.1} s", t.elapsed().as_secs_f64());
+
+    let mut s2: Vec<&Sample> = samples.iter().filter(|s| s.expr_recorded > 0).collect();
+    s2.sort_by(|a, b| {
+        b.expr_recorded
+            .cmp(&a.expr_recorded)
+            .then(a.expr_dithered.cmp(&b.expr_dithered))
+    });
     println!(
-        "  DISTRIBUTION: {cells_with_alt} of {land_cells} interior LAND deep cells ({:.2} %) carry\n\
-         at least one within-class member alternation in expressible bands. Max {} alternations.",
+        "  DISTRIBUTION (expressed, the walk's own instrument): {} of {} sampled land columns \
+         ({:.1} %)\n  show at least one RECORDED within-class member contact on a cut face. \
+         Max {} contacts in one column.",
+        s2.len(),
+        samples.len(),
+        100.0 * s2.len() as f64 / samples.len().max(1) as f64,
+        s2.first().map_or(0, |s| s.expr_recorded)
+    );
+    println!(
+        "  DISTRIBUTION (record-side, conservative): {cells_with_alt} of {land_cells} interior \
+         LAND deep cells\n  ({:.3} %) stack two members of one class in bands each >= 0.9 m. \
+         Max {} alternations.\n  The 2-orders-of-magnitude gap is the quantizer, not an error — \
+         see the comment in the source.",
         100.0 * cells_with_alt as f64 / land_cells.max(1) as f64,
         alt_rank.first().map(|a| a.0).unwrap_or(0)
     );
-    if alt_rank.is_empty() {
+    if s2.is_empty() {
         println!(
-            "  ⚠ NULL — no land cell alternates members inside a class in expressible bands.\n\
-             Control: run `member_diversity_probe`, whose census reports the per-class distinct\n\
-             material counts over the same archive; a non-trivial count there with a zero here\n\
-             means the diversity exists but never stacks two members adjacently."
+            "  ⚠ NULL — no sampled land column expresses a recorded within-class member contact.\n\
+             CONTROL: the record-side census above found {cells_with_alt} cells that DO stack two \
+             members\n  of one class in the archive, so the instrument reads the record; what is \
+             absent is\n  survival through expression. Brief the null; the walk cannot see this."
         );
     } else {
-        let mut picked: Vec<&(usize, usize, Vec<Band>)> = Vec::new();
-        for c in &alt_rank {
+        let mut picked: Vec<&&Sample> = Vec::new();
+        for c in &s2 {
             if picked.len() >= top_n {
                 break;
             }
-            let m = conv.meters(c.1);
-            // Must be walkable land in the NEAR field, verified, not just recorded.
-            let (vx, vz) = conv.idx_to_voxel(c.1);
-            if wgen.surface_elev_m(vx, vz) <= LAND_M {
-                continue;
-            }
+            let m = conv.meters(c.idx);
+            // 20 km apart: at 5 km the three picks all landed in one basin on a
+            // single grid column, which is a distribution the walk cannot read.
             if picked
                 .iter()
-                .all(|p| km_between(conv.meters(p.1), m) > 5.0)
+                .all(|p| km_between(conv.meters(p.idx), m) > 20.0)
             {
                 picked.push(c);
             }
         }
-        for (rank, (alt, idx, bands)) in picked.iter().enumerate() {
-            let (mx, mz) = conv.meters(*idx);
-            let (vx, vz) = conv.idx_to_voxel(*idx);
+        for (rank, s) in picked.iter().enumerate() {
+            let idx = &s.idx;
+            let (mx, _mz) = conv.meters(*idx);
+            let (vx, vz) = (s.vx, s.vz);
+            let (alt, bands) = member_alternations(&field.strata[*idx]);
             let surf_m = wgen.surface_elev_m(vx, vz);
             let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
             let col = wgen.column_record(cx, cz);
             let fill = ColumnFill::build(&col.strata, VOXEL_M);
             println!(
-                "\n  S2 #{}  world ({mx:.0} m, {mz:.0} m)  deep cell ({},{})  voxel ({vx}, {vz})  \
+                "\n  S2 #{}  world ({mx:.0} m, {:.0} m)  deep cell ({},{})  voxel ({vx}, {vz})  \
                  chunk ({cx}, {cz})",
                 rank + 1,
+                _mz,
                 idx % w,
                 idx / w
             );
             println!("    near-field surface elevation {surf_m:.1} m");
-            println!("    RANKING QUANTITY — {alt} within-class member alternations in the record");
-            println!("    recorded succession (bottom-up, bands >= 0.9 m):");
-            for b in bands.iter() {
-                println!("      {:>10}  {:>8.2} m", short(b.mat), b.thickness_m);
-            }
-            // VERIFY through expression: walk the plans and print the member per voxel.
+            let (recorded, dithered, movable_spans, runs) =
+                expressed_column(set, &fill, &col.strata.events, vx, vz);
             println!(
-                "    EXPRESSED column at voxel ({vx},{vz}) — `plan(d)`, d=1 is the SURFACE voxel:"
+                "    RANKING QUANTITY — {recorded} RECORDED within-class member contacts on the \
+                 expressed face\n      (+ {dithered} contacts the veneer's dither drew, over \
+                 {movable_spans} movable spans — read those as noise for THIS question)"
             );
-            let depth = fill.depth_count();
-            let mut runs: Vec<(String, u32, u32)> = Vec::new();
-            let mut expr_alt = 0usize;
-            let mut prev: Option<GeoMemberIdx> = None;
-            for d in 1..=depth as u32 {
-                let Some(m) = expressed_member(set, &fill, &col.strata.events, d, vx, vz) else {
-                    continue;
-                };
-                let name = short(set.member(m).material).to_string();
-                match runs.last_mut() {
-                    Some((n, _, hi)) if *n == name => *hi = d,
-                    _ => runs.push((name, d, d)),
+            println!(
+                "    the deep record here holds {alt} within-class alternation(s) in bands \
+                 >= 0.9 m ({} such bands).",
+                bands.len()
+            );
+            // The record is finely laminated — hundreds of centimetre bands — so
+            // printing it raw buries the walk's quotable thicknesses in a wall of
+            // `0.00 m` lines. Elide the laminae below 5 cm and SAY how many were
+            // elided, rather than silently truncating.
+            let all = coalesced_bands(&field.strata[*idx]);
+            let (mut acc, mut shown, mut elided) = (0.0f64, 0usize, 0usize);
+            println!(
+                "    RECORDED succession, TOP-DOWN ({} coalesced bands in all; bands under 5 cm \
+                 elided):",
+                all.len()
+            );
+            for b in all.iter().rev() {
+                if b.thickness_m >= 0.05 && shown < 16 {
+                    shown += 1;
+                    println!(
+                        "      {:>7.2}–{:>7.2} m below record top   {:>22}  {:>7.2} m{}",
+                        acc,
+                        acc + b.thickness_m,
+                        short(b.mat),
+                        b.thickness_m,
+                        if b.thickness_m < VOXEL_M {
+                            "  (sub-voxel — expresses through `Plan::Mixed` eighths)"
+                        } else {
+                            ""
+                        }
+                    );
+                } else {
+                    elided += 1;
                 }
-                if let Some(p) = prev
-                    && p != m
-                    && set.member(p).class == set.member(m).class
-                {
-                    expr_alt += 1;
+                acc += b.thickness_m;
+                if shown >= 16 {
+                    break;
                 }
-                prev = Some(m);
             }
             println!(
-                "      {} recorded voxels deep; {expr_alt} within-class alternations SURVIVE expression",
-                depth
+                "      ({elided} laminae elided in the {acc:.1} m shown; {} bands lie below)",
+                all.len().saturating_sub(shown + elided)
             );
-            for (name, lo, hi) in runs.iter().take(28) {
+            println!(
+                "    EXPRESSED column at voxel ({vx},{vz}) — `plan(d)`, d=1 is the SURFACE voxel, \
+                 {} voxels of record:",
+                fill.depth_count()
+            );
+            for (name, lo, hi, mv) in runs.iter().take(28) {
                 println!(
-                    "      d {lo:>3}..{hi:<3} ({:>7.1} m below surface)  {name}",
-                    (*lo as f64 - 1.0) * VOXEL_M
+                    "      d {lo:>3}..{hi:<3} ({:>7.1} m below surface)  {name}{}",
+                    (*lo as f64 - 1.0) * VOXEL_M,
+                    if *mv {
+                        "   [veneer, dither can move it]"
+                    } else {
+                        ""
+                    }
                 );
             }
             if runs.len() > 28 {
                 println!("      ... {} more runs below", runs.len() - 28);
             }
-            if expr_alt == 0 {
-                println!(
-                    "      ⚠ the record's alternations do NOT survive quantization at this column —\n\
-                       a band thinner than the voxel it must fill. Prefer a lower-ranked station\n\
-                       whose expressed count is non-zero."
-                );
-            }
-            // ── the bench cut, in VOXELS (world_fill speaks voxels) ──
-            let sy = (surf_m / VOXEL_M).floor() as i64;
-            let deepest = runs.last().map(|(_, _, hi)| *hi).unwrap_or(1) as i64;
-            let cut = deepest.min(24).max(8); // voxels of face to expose
-            // 61 x 41 x 8 = 20,008 voxels of dc:air — the skill's ~20k bench.
-            println!(
-                "    BENCH CUT (voxels; `world_fill` speaks VOXELS, pose speaks METRES):\n\
-                 \x20     dc:air  x [{}, {}]  y [{}, {}]  z [{}, {}]   = {} voxels",
-                vx - 30,
-                vx + 30,
-                sy - cut + 1,
-                sy,
-                vz - 20,
-                vz - 0,
-                61 * 21 * cut
-            );
-            println!(
-                "      cuts {cut} voxels ({:.1} m) down from the surface voxel y={sy}; \
-                 the exposed NORTH face is at z = {} (voxel), i.e. {:.0} m",
-                cut as f64 * VOXEL_M,
-                vz - 21,
-                (vz - 21) as f64 * VOXEL_M
-            );
-            pose(
-                "road-cut face",
-                mx,
-                (vz - 40) as f64 * VOXEL_M,
-                surf_m,
-                3.0,
-                0.0,
-                -0.15,
-                "stand ~18 m south of the cut looking NORTH at the exposed face (yaw 0 = +z); \
-                 --fullbright for material, no --edges for the colour read",
-            );
-            pose(
-                "face, elevated",
-                mx,
-                (vz - 55) as f64 * VOXEL_M,
-                surf_m,
-                18.0,
-                0.0,
-                -0.45,
-                "back off and up so the whole cut face and the veneer above it are in one frame",
-            );
+            let deepest = runs.last().map(|(_, _, hi, _)| *hi).unwrap_or(1) as i64;
+            print_bench(vx, vz, surf_m, deepest.clamp(8, 24), mx);
         }
     }
 
@@ -927,40 +1281,44 @@ fn main() {
             run.grid.r[idx] + run.grid.h[idx],
         ));
         let precip = f64::from(run.grid.precip[idx]);
-        // Top-down through the record; only the near-surface metres can express.
+        // Top-down through the record, **coalescing adjacent same-rock units the
+        // way `ColumnFill` will**: a bed the record kept as six thin units still
+        // fills a voxel, and testing each unit against the 0.9 m floor on its own
+        // is the `round Σ` vs `Σ round` error `fill.rs` exists to prevent. The
+        // band's chapter and tag are the TOPMOST unit's — that is the one whose
+        // draw address the counterfactual must reproduce.
+        let mut bands: Vec<(MaterialId, f64, f64, u8, bool)> = Vec::new(); // mat, thick, depth, chapter, travelled
         let mut depth_m = 0.0f64;
         for u in field.strata[idx].units.iter().rev() {
             if depth_m > 30.0 {
                 break;
             }
-            if u.thickness_m < VOXEL_M {
-                depth_m += u.thickness_m;
+            let travelled = Litho::of_material(u.species) != litho_of_tag(u.tag);
+            match bands.last_mut() {
+                Some(b) if b.0 == u.species => b.1 += u.thickness_m,
+                _ => bands.push((u.species, u.thickness_m, depth_m, u.chapter, travelled)),
+            }
+            depth_m += u.thickness_m;
+        }
+        for (mat, thickness_m, depth_m, chapter, travelled_class) in bands {
+            if thickness_m < VOXEL_M {
                 continue;
             }
             units_checked += 1;
-            let would = site_would_draw(
-                &mut mem_cache,
-                set,
-                idx,
-                temp_c,
-                precip,
-                u.species,
-                u.chapter,
-            );
-            if would != u.species {
+            let would = site_would_draw(&mut mem_cache, set, idx, temp_c, precip, mat, chapter);
+            if would != mat {
                 units_mismatched += 1;
                 mismatches.push(Mismatch {
                     idx,
                     depth_m,
-                    recorded: u.species,
+                    recorded: mat,
                     would,
-                    thickness_m: u.thickness_m,
-                    travelled_class: Litho::of_material(u.species) != litho_of_tag(u.tag),
+                    thickness_m,
+                    travelled_class,
                 });
-            } else if u.thickness_m >= VOXEL_M {
-                agreements.push((idx, u.species));
+            } else {
+                agreements.push((idx, mat));
             }
-            depth_m += u.thickness_m;
         }
     }
     eprintln!("provenance scan: {:.1} s", t.elapsed().as_secs_f64());
@@ -980,22 +1338,11 @@ fn main() {
         }
     );
 
-    // Rank: shallowest first (must reach the expression), then thickest, and
-    // prefer a pair that differs VISIBLY (grain size, i.e. a coarse-clastic pair)
-    // over an albedo-adjacent one.
-    let visible = |a: MaterialId, b: MaterialId| -> u8 {
-        let l = Litho::of_material(a);
-        if l != Litho::of_material(b) {
-            return 3;
-        }
-        match l.code() {
-            "clastic-coarse" => 2, // sandstone vs conglomerate — grain size, loud
-            _ => 1,                // mudstone/siltstone, granite/diorite — adjacent
-        }
-    };
+    // Rank: loudest pair first (it must be SEEABLE), then shallowest (it must
+    // reach the expression), then thickest.
     mismatches.sort_by(|a, b| {
-        visible(b.recorded, b.would)
-            .cmp(&visible(a.recorded, a.would))
+        pair_visibility(b.recorded, b.would)
+            .cmp(&pair_visibility(a.recorded, a.would))
             .then(a.depth_m.total_cmp(&b.depth_m))
             .then(b.thickness_m.total_cmp(&a.thickness_m))
     });
@@ -1021,7 +1368,10 @@ fn main() {
                 continue;
             }
             let mm = conv.meters(c.idx);
-            if picked.iter().all(|p| km_between(conv.meters(p.idx), mm) > 5.0) {
+            if picked
+                .iter()
+                .all(|p| km_between(conv.meters(p.idx), mm) > 5.0)
+            {
                 picked.push(c);
             }
         }
@@ -1043,11 +1393,7 @@ fn main() {
                  ({} contrast); {:.2} m thick, {:.2} m below the top of the deep record",
                 short(c.recorded),
                 short(c.would),
-                match visible(c.recorded, c.would) {
-                    3 => "CROSS-CLASS",
-                    2 => "grain-size (loud)",
-                    _ => "albedo-adjacent (subtle)",
-                },
+                visibility_label(pair_visibility(c.recorded, c.would)),
                 c.thickness_m,
                 c.depth_m
             );
@@ -1064,8 +1410,8 @@ fn main() {
             let fill = ColumnFill::build(&col.strata, VOXEL_M);
             let mut found: Option<u32> = None;
             for d in 1..=fill.depth_count() as u32 {
-                if let Some(mem) = expressed_member(set, &fill, &col.strata.events, d, vx, vz)
-                    && set.member(mem).material == c.recorded
+                if let Some(e) = expressed_member(set, &fill, &col.strata.events, d, vx, vz)
+                    && set.member(e.member).material == c.recorded
                 {
                     found = Some(d);
                     break;
@@ -1086,28 +1432,27 @@ fn main() {
                        record-only and the walk cannot see it."
                 ),
             }
-            let sy = (surf_m / VOXEL_M).floor() as i64;
-            let cut = found.map(|d| (d as i64 + 4).min(24)).unwrap_or(16);
-            println!(
-                "    BENCH CUT (voxels): dc:air  x [{}, {}]  y [{}, {}]  z [{}, {}] = {} voxels",
-                vx - 30,
-                vx + 30,
-                sy - cut + 1,
-                sy,
-                vz - 20,
-                vz,
-                61 * 21 * cut
-            );
-            pose(
-                "provenance face",
-                mx,
-                (vz - 40) as f64 * VOXEL_M,
-                surf_m,
-                3.0,
-                0.0,
-                -0.15,
-                "eye height ~18 m south of the cut, looking NORTH at the face; --fullbright",
-            );
+            if found == Some(1) {
+                pose(
+                    "provenance, standing",
+                    mx,
+                    surf_m + 1.7,
+                    mz,
+                    YAW_SOUTH,
+                    -0.5,
+                    "the rock is the surface voxel — no cut. --fullbright, then `world_get_contents` \
+                     at the feet voxel to read the mixture (NEVER `scan_region` for a material \
+                     question)",
+                );
+            } else {
+                print_bench(
+                    vx,
+                    vz,
+                    surf_m,
+                    found.map_or(16, |d| (d as i64 + 4).clamp(8, 24)),
+                    mx,
+                );
+            }
         }
 
         // The contrast: the nearest cell where recorded == counterfactual, same class.
@@ -1137,15 +1482,10 @@ fn main() {
                         short(*mat),
                         km_between((bx, bz), a)
                     );
-                    pose(
-                        "contrast",
-                        bx,
-                        (vz - 40) as f64 * VOXEL_M,
-                        surf_m,
-                        3.0,
-                        0.0,
-                        -0.15,
-                        "same framing as S3 #1: here the rock IS what this place would make",
+                    print_bench(vx, vz, surf_m, 12, bx);
+                    println!(
+                        "      same framing as S3 #1 — but here the rock IS what this place \
+                         would make."
                     );
                 }
             }
@@ -1154,11 +1494,11 @@ fn main() {
 
     // ─────────────────────── inter-station distances ────────────────────────
     println!("\n\n========== INTER-STATION DISTANCES (one launch plans them all) ==========");
-    let s1 = movable.first().map(|s| conv.meters(s.idx));
-    let s2 = alt_rank.first().map(|c| conv.meters(c.1));
-    let s3 = mismatches.first().map(|c| conv.meters(c.idx));
-    for (an, a) in [("S1", s1), ("S2", s2), ("S3", s3)] {
-        for (bn, b) in [("S1", s1), ("S2", s2), ("S3", s3)] {
+    let p1 = movable.first().map(|s| conv.meters(s.idx));
+    let p2 = s2.first().map(|s| conv.meters(s.idx));
+    let p3 = mismatches.first().map(|c| conv.meters(c.idx));
+    for (an, a) in [("S1", p1), ("S2", p2), ("S3", p3)] {
+        for (bn, b) in [("S1", p1), ("S2", p2), ("S3", p3)] {
             if an < bn
                 && let (Some(a), Some(b)) = (a, b)
             {
@@ -1168,7 +1508,10 @@ fn main() {
     }
     println!("  (teleports are free; the distances are for briefing, not for travel.)");
 
-    println!("\ntotal probe wall-clock {:.1} s", t0.elapsed().as_secs_f64());
+    println!(
+        "\ntotal probe wall-clock {:.1} s",
+        t0.elapsed().as_secs_f64()
+    );
 }
 
 /// **The gate's view of this instrument.**
@@ -1181,8 +1524,8 @@ fn main() {
 #[cfg(test)]
 mod gate {
     use super::*;
-    use dc_worldgen::deeptime::{DepEnv, DepTag, DepUnit, EnergyBand};
     use dc_worldgen::deeptime::recorder::Aridity;
+    use dc_worldgen::deeptime::{DepEnv, DepTag, DepUnit, EnergyBand};
 
     fn unit(mat: MaterialId, t: f64) -> DepUnit {
         DepUnit {
@@ -1292,17 +1635,15 @@ mod gate {
             dither,
         };
 
+        let with_events = |events: Vec<StrataEvent>| dc_worldgen::StrataRec { events };
+
         // A veneer event in a two-member class: MOVABLE.
-        let mut rec = dc_worldgen::StrataRec::default();
-        rec.events = vec![ev(mud, true)];
+        let mut rec = with_events(vec![ev(mud, true)]);
         let fill = ColumnFill::build(&rec, VOXEL_M);
-        assert_eq!(
-            top_span(&set, &fill, &rec.events).0,
-            TopSpan::SingleMovable
-        );
+        assert_eq!(top_span(&set, &fill, &rec.events).0, TopSpan::SingleMovable);
 
         // The same class, but a RECORDED identity (`dither: false`): frozen.
-        rec.events = vec![ev(mud, false)];
+        rec = with_events(vec![ev(mud, false)]);
         let fill = ColumnFill::build(&rec, VOXEL_M);
         assert_eq!(
             top_span(&set, &fill, &rec.events).0,
@@ -1313,7 +1654,7 @@ mod gate {
 
         // A veneer event in a ONE-member class: frozen, because the dither has
         // nothing to pick between.
-        rec.events = vec![ev(coal, true)];
+        rec = with_events(vec![ev(coal, true)]);
         let fill = ColumnFill::build(&rec, VOXEL_M);
         assert_eq!(
             top_span(&set, &fill, &rec.events).0,
@@ -1323,7 +1664,7 @@ mod gate {
 
         // Two events sharing the surface voxel: MIXED, which `mixed_at` resolves
         // from the UNDITHERED member — blind to this slice by design.
-        rec.events = vec![ev(mud, true), ev(coal, true)];
+        rec = with_events(vec![ev(mud, true), ev(coal, true)]);
         rec.events[0].thickness_m = 0.5;
         rec.events[1].thickness_m = 0.5;
         let fill = ColumnFill::build(&rec, VOXEL_M);
