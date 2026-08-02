@@ -2723,6 +2723,19 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **THE OCTAVES MEMBER FIELD IS INVISIBLE AT EVERY SURFACE OF THE SHIPPED WORLD — the
+  U3-dominance verdict is now a DESK question** (2026-08-02, the P11 walk's tour map —
+  journal/0143; probe `examples/appearance_tour_p11.rs`, gated). 0 of 4,792 sampled land
+  columns carry a `Single` top span in a multi-member class; 99.1 % of surface top spans
+  are `Mixed`, whose expression uses the undithered member by design. Control proven:
+  the identical classifier finds 343,625 movable spans BURIED (73.6 % of land columns),
+  and every both-members case is andesite/basalt — albedo twins. So journal/0129's "the
+  member dither is inert at U3's pose" was never an unlucky pose; it is universal. The
+  open question (undiagnosed, deliberately unfixed): what surface consumer, if any,
+  should the octaves member-selection field get — or does its value live underground
+  (mining faces, caves, cuts) where the spans actually are? Sequencing input for the
+  visuals road and P11 slice 3's per-column work, not a defect.
+
 - **🟠 SUBAGENTS DIE WHEN THEY BACKGROUND THEIR OWN GATE — two for two in one session
   (2026-08-02, both bodies builders).** Each implementer wrote its code, backgrounded a
   long cargo run (or armed a monitor for the build slot), ended its turn "waiting" — and
@@ -4275,10 +4288,13 @@ deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
    reclaim, landed with slice 3, gated on a measured grain split factor.** FS-A re-shapes
    under U1 and dispatches behind slice 2's merge.
 3. **P2 measurement runs** (plan in the P2 audit; needs the build slot) after slice 2.
-4. **The walk debt is now TWO stacked appearance changes** (octaves 2026-07-29 + P11
-   member diversity — *"this is what a walk will see"*) — walk after slice 2, new tour
-   map first (land filter + a Single-span two-member-class station + now a
-   member-diversity station).
+4. ~~**The walk debt is now TWO stacked appearance changes**~~ **✅ WALKED 2026-08-02
+   (journal/0143), three changes, both live stations verdicted positive by the user**
+   ("extremely cool… clear banding" at the member-banded road cut; "interesting and
+   unremarkable, for reasons you implied" at the provenance drape). **The requested
+   Single-span two-member-class station DOES NOT EXIST on this world's surface** —
+   proven null, 0/4,792 land columns (tour probe `appearance_tour_p11`, gated; audit
+   `docs/audits/2026-08-02-appearance-tour-p11.md`) — see the new § Observed entry.
 
 ### Owed, small
 `session-workflow/SKILL.md` crossed its ARGUMENT threshold (1,163/1,000) with the
