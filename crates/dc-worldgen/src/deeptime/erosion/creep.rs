@@ -6,8 +6,8 @@
 //! The step it sub-cycles, and the gather kernels under it, are
 //! `super::creep_kernel`.
 //!
-//! Partition (north star): **pass/content logic — plugin side by destination.** The kernel it drives is the
-//! embedded S-10 primitive (E4's future claim).
+//! Partition (north star): **pass/content logic — plugin side by destination.**
+//! The kernel it drives is the embedded S-10 primitive (E4's future claim).
 
 use super::super::grid::{DeepConfig, DeepGrid};
 use super::creep_kernel::{CREEP_MAX_EDGE_COEFF, eff_diff};

@@ -6,8 +6,8 @@
 //! The exponent these weights are raised to is authored next door in `mfd_law`;
 //! the phase that drives this kernel over the grid is `super::routing`.
 //!
-//! Partition (north star): **pass/content logic — plugin side by destination.** The partition is erosion's own
-//! physics, not an engine primitive.
+//! Partition (north star): **pass/content logic — plugin side by destination.**
+//! The partition is erosion's own physics, not an engine primitive.
 
 use super::mfd_law::MfdParams;
 use super::{NEIGH8, coords_of, in_grid, is_border};
