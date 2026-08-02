@@ -159,7 +159,11 @@ fn measure(cells: &CellGrid) -> Report {
 
     Report {
         axis_w: w,
-        axis_names: axis.materials().iter().map(|m| m.qualified_name()).collect(),
+        axis_names: axis
+            .materials()
+            .iter()
+            .map(|m| m.qualified_name())
+            .collect(),
         n,
         deep_secs,
         window: sparsity(&window, n),

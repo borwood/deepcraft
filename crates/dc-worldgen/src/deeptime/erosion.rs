@@ -1992,7 +1992,7 @@ impl Erosion {
     ///
     /// The companion to [`Self::processing_order`]; together they are the transport
     /// graph exactly as [`Self::transport`] walks it.
-    pub fn out_edges(&self, c: usize, f: &mut impl FnMut(usize)) {
+    pub fn out_edges(&self, c: usize, f: &mut dyn FnMut(usize)) {
         if self.mfd.is_none() {
             let rc = self.recv[c];
             if rc >= 0 {

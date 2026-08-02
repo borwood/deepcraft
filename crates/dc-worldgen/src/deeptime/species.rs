@@ -498,7 +498,10 @@ mod tests {
         for m in set.members() {
             assert!(a.carries(m.material), "{} is off the axis", m.id);
         }
-        assert!(a.carries(MaterialId::GRANITE), "the basement must be carried");
+        assert!(
+            a.carries(MaterialId::GRANITE),
+            "the basement must be carried"
+        );
     }
 
     /// Registration order cannot move a byte: the axis is sorted by a property of
