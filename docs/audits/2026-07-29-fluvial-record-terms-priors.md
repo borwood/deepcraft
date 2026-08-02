@@ -24,7 +24,9 @@
 > what P11 re-grades. **Ruling 3 (face-vs-unit) is HELD ~~pending P11's design pass and
 > ripple map~~ — the design pass CLOSED 2026-08-01 (six rulings in its header); ruling 3
 > re-enters after P11 slice 2's re-derived numbers land (stamped 2026-08-02, doc-topology
-> F12)**; the § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
+> F12) — **the numbers HAVE landed (slice 2b shipped same day): journal/0141 § 11 carries
+> the face-vs-unit table (p = 3.721/8 max · units 1.9064× · record 116.31 vs 61.01 MiB
+> class-merged · flux faces 291,663). Ruling 3 is READY for the user**; the § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
 > roster. *(Mutable header; the body below is the dated research record.)*
 
 **Read at `f94a568`** (branch `main`; this file added on top). Produced by a **read-only**

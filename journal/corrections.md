@@ -3813,3 +3813,19 @@ The VOCABULARY is not fixed unilaterally** — renaming the layer table's rows i
 statement in a cautiously-ratified document, and it lands at the **gait-bake design pass**,
 which owns the firewall-adjacent vocabulary anyway (its member 2 moves the line). The pass
 inherits the split above as its starting point, not as a ruling.
+
+## 95. "The orphaned `cargo.exe` pid 52792 came from my killed shell" (the tour scout's final report, 2026-08-02 — the PID was the live walk client's launcher; falsified by one process-list read with command lines) *(renumbered TWICE at commit time, #92→#93→#95 — CAUGHT BOTH TIMES BY THE ORDINAL PRE-COMMIT GUARD on the day it shipped, its own author as the second claimant; the bodies wrap held #92–#94 and the first "next free" guess was computed from a stale read of the tail. The guard is the only reason neither collision reached the repo.)*
+
+The scout, standing down, helpfully named "the specific diagnosed PID" for the
+integrator to stop if the walk needed the slot. `Get-CimInstance` showed 52792's
+command line: `cargo run --release -p dc-client -- --fullbright` — **the walk itself**.
+Stopping it would have killed the game between stations. The check that caught it is
+the standing rule doing its job (journal/0054 corollary: *a process list is not an
+attribution*; the mutex hook's own text: *stop the specific diagnosed PID* — where
+"diagnosed" means YOU read the command line, not that someone confident named a
+number). Mechanism, familiar: an agent attributing machine state it did not observe —
+its own cargo had already been stopped by the integrator an hour earlier, and it filled
+the gap with the nearest plausible story. No repo artifact carries the false claim (it
+lived only in the agent's report), so there is no target to stamp — this entry is the
+record. Cost: zero, because the attribution was checked before acting; the counterfactual
+is a dead client mid-walk.

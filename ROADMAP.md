@@ -360,9 +360,11 @@ footprint with S11's air-component container (S15 design choice 2).
 
 **WHAT.** The deep record stops being class-grade: member materials (registry
 `MaterialId`s — mudstone, siltstone, sandstone…) enter deep history as first-class
-recorded state. Today the ~7-entry Litho roster carries all of deep time and members are
+recorded state. ~~Today the ~7-entry Litho roster carries all of deep time and members are
 invented at expression (the member dither under formation context); after this arc,
-identity is *recorded*, and expression expresses.
+identity is *recorded*, and expression expresses.~~ **(Tense stamped 2026-08-02, staleness
+F8: slices 1–2 SHIPPED that half — identity IS recorded, transport carries it, the draw
+survives only for genuine degeneracy. The Litho roster's residue dies in slice 4.)**
 
 **WHY (user, verbatim):** *"we'll just keep re-deriving and punting this, while getting
 side-tracked on bug fixes coming from class machinery (quantization etc). members need to
@@ -1446,7 +1448,8 @@ the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b
     spine audits) or read it whole (and burn context on irrelevance, crowding out the files it
     actually needed). **This is the same defect as "the ROADMAP outgrew reading", generalised
     from one doc to the repo.**
-  - **THE MECHANISM (build it): a hook on file write that reminds, with an instruction to
+  - **THE MECHANISM (~~build it~~ ✅ SHIPPED 2026-07-28 as `scripts/filesize_hook.py`, scope
+    corrected by corrections #85 — stamped 2026-08-02, staleness F6): a hook on file write that reminds, with an instruction to
     restructure** — pull separate concerns into separate files. **Do not answer "the tool
     cannot see X" with a rule asking people to remember X** — that was tried for probes and
     **failed in one day** (CLAUDE.md § Gates). A reminder the harness issues is a mechanism; a
@@ -2726,6 +2729,20 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **OWED-SMALL from the 2026-08-02 geo session (deliberately not done, reasons attached):**
+  the sweeps' unapplied minor findings — doc-topology **F7** (stale `GOLDEN_SURFACE` hex in
+  4 docs: dated qualifiers owed, do NOT update the hex), **F9's § 4 re-cut** of
+  `dependency-graph.md` (rows were refreshed; the startable-today list re-cut is partial),
+  **F13** (graph's "last full pass" date — left honest at 2026-07-29 since no full graph
+  pass ran), staleness **F4** (ROADMAP :3203/:3447 dither notes — mechanism closed for deep
+  history by P11, veneer heir = slice 3) and **F5** ("vanilla" mentions grew 162→177 in
+  crates/ as default-pack prose; the strike-'vanilla' trigger has fired — a sweep-and-rename
+  pass is owed, cheap, mechanical). Pointers: `docs/audits/2026-08-02-doc-topology-sweep.md`
+  / `2026-08-02-roadmap-staleness-sweep.md`. Plus one from the erosion split (journal/0139):
+  **broken rustdoc intra-doc links** where doc comments reference symbols no longer in
+  module scope — `cargo doc` warnings only, invisible to the gate; fix if the corpus ever
+  gates on `cargo doc`, or opportunistically when those files are next open.
 
 - **FIELD REPORT, the P11 walk (user, 2026-08-02, post-walk):** two halves, opposite
   signs. **(a) POSITIVE — "the chunk-sized class-member quantization appears to be gone,
@@ -4196,6 +4213,72 @@ second file.
 
 ---
 
+## NEXT SESSION — written at the 2026-08-02 GEO-2 close (the geo thread's pickup; supersedes the geo FINAL block below; the bodies block below remains THAT thread's)
+
+**Read first:** sweeps hook (all three will be DUE — a large delta shipped) →
+`docs/dependency-graph.md` P11 row → this block → journal/0141 § 11 (ruling 3's numbers)
+→ journal/0143 (the walk + the user's field report).
+
+### The paragraph that matters
+**P11 slices 1–2 are SHIPPED, GATED AND WALKED.** Slice 2b (merge `07bd694`): CSR planes
+over `MaterialId` at **0.70× the class-grade dense cost** (p = 3.721/8 max) · ruling 6
+executed — **31.9 % of the record names a rock the deposition site's climate would have
+denied** · the salt collision closed compile-checked · all 14 golden families captured
+once with whys · **full workspace gate 929/0 by name on merged main** (batch debt
+cleared) after the user renegotiated the pregen budget (60 s → 1200 s, verbatim: *"I
+don't care whatsoever about this number as long as it doesn't take 20min"*). The walk
+(journal/0143) verdicted both stations positive; the user confirmed **the chunk-sized
+member quantization is gone to the eye** and reported **straight ~460 m member borders**
+— filed § Observed with the deep-cell tile as CANDIDATE mechanism and a grid-alignment
+check; if confirmed it is slice 3's acceptance criterion.
+
+### Rulings this session (user's words at the cited records)
+U1 — grain is an AXIS, a state on the loose form of the source identity ("option 1 it
+is"; `materials.md` forms ruling 2 addendum) · U5 — no record byte-step; grain + agent
+axis funded by the packed `DepUnit`, landed with slice 3, gated on a measured grain
+split factor ("agree on this also…") · the erosion split ("we split it now" → 13 modules,
+byte-identical, journal/0139) · scratch-world framing corrected (fixture re-rolls are
+engineering, not rulings — spine-audit runbook + spines.md stamped; memory pinned) ·
+the ordinal pre-commit hook greenlit and LIVE (`scripts/check_ordinals.py` +
+`.git/hooks/pre-commit`) · scouts are LEAN (memory pinned; tour-map fingerprint offered
+below) · bodies.md released to the bodies session (doc-topology F11 stamped).
+
+### First things
+1. **Present record-terms ruling 3 (face-vs-unit)** — numbers READY in journal/0141
+   § 11; unpack per protocol, one topic.
+2. **P11 slice 3 DESIGN PASS** — near-path restructure (ruling 5) + the packed `DepUnit`
+   co-rider (U5) + U4's φ-class count + the border field report's grid-alignment check
+   (cheap, first) and, if confirmed, the straight-border acceptance criterion.
+3. **P2 measurement runs** — slot is free; plan in the P2 audit; then the calibration
+   flag flip is a USER ratification (world changes → walk).
+4. **FS-A** is startable (re-shaped under U1: emit loose source-identity + grain state,
+   never ladder ids); its proposal carries U7 + the spectrum-shape sub-pick (user-owned).
+   Grep-confirm U6's collapse under U1/C4 before relaying anything as open.
+
+### This session's numbered artifacts
+Journals **0136** (renumbered), **0138, 0139, 0141, 0143** · corrections **#88–92**
+(#88/#89 renumbered from colliding #85/#86; targets stamped) · stubs **#35** (renumbered),
+**#36–38**, #25/#31 narrowed · three FULL sweep audits + the tour audit
+(`docs/audits/2026-08-02-*`) · U1/U5 recorded in `materials.md` + the P10 header ·
+`things-that-will-happen.md` fed (the provenance flat).
+
+### Gate state
+Main green: full trio on merged main at `0f0a75c` (**929 passed / 0 failed, 92
+binaries**, `pregen_time_vs_extent` ok by name under the 1200 s budget). Code landed
+after that gate: the tour probe only — its 2 gate tests + fmt + crate clippy verified by
+name at wrap. Everything else since is docs. **No expected-red list anymore — a red
+anywhere is a real defect.**
+
+### Machine state at close
+No agents of THIS session running; all its worktrees merged and removed. **One LOCKED
+worktree is NOT ours** (`agent-ac31ad030ca62b005` at `6a319be`) — presumed the bodies
+session's; verify ownership there before pruning. Working tree clean, pushed. No
+cargo/rustc/dc-client; port 7777 free; build lock free (hook-managed). A parallel USER
+session shares the checkout — stage explicit paths, never `add -A`; ordinal collisions
+now fail at commit time via the pre-commit guard.
+
+---
+
 ## NEXT SESSION — written at the 2026-08-02 BODIES close (the bodies thread's pickup; the geo FINAL block below is the geo thread's — both live, two parallel arcs)
 
 **Read first:** sweeps hook → `docs/dependency-graph.md` § 2b → this block → journals
@@ -4270,7 +4353,7 @@ session paid for it once: a stray client log).
 
 ---
 
-## NEXT SESSION — written at the 2026-08-02 close (geo session FINAL; supersedes both blocks below — the bodies block remains the pickup for THAT thread)
+## NEXT SESSION — written at the 2026-08-02 close (geo session FINAL; SUPERSEDED by the geo-2 block above — the bodies block remains the pickup for THAT thread)
 
 **Read first:** sweeps hook (if due) → `docs/dependency-graph.md` P11 row → this block →
 the P11 audit header's **six rulings** → journal/0134 + 0136 (with its merge postscript;

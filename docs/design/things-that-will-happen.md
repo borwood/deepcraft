@@ -141,3 +141,8 @@ list and not a roadmap — some of these are far off, and that is fine.
 - A species nobody authored — split off by a mountain range during deep time — is born
   knowing how to stand and how to walk, because its stance is solved from its own body
   the moment the world invents it. *(added 2026-08-02, user-greenlit at the bodies wrap)*
+- You stand on an unremarkable sandstone flat in conglomerate country, and the rock is
+  sandstone because a river carried it here from mountains you cannot see — the world
+  did not rename it to match the local weather, because the record knows where it came
+  from. *(added 2026-08-02, from the P11 walk's provenance station — user: "quite
+  interesting and also unremarkable, for reasons you implied")*
