@@ -346,7 +346,15 @@ mod gate {
             extent: Extent::Small,
         });
         let cfg = production_config(&pregen.grid, SEED);
+        // (a) same seed + config, twice: the record is a pure function of them.
         let a = run_cells(&pregen.grid, &cfg, true);
+        let again = run_cells(&pregen.grid, &cfg, true);
+        assert_eq!(
+            a.grid.strata, again.grid.strata,
+            "two runs of one seed produced different records"
+        );
+        // (b) the parallel record phase forks across cells, so the draw address
+        // must be the cell index and never an iteration counter.
         let b = run_cells(&pregen.grid, &cfg, false);
         assert_eq!(
             a.grid.strata.len(),
