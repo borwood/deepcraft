@@ -69,12 +69,15 @@ rotation-quantizer subtraction (0133) and the P2/P10/P11 design passes. **Findin
    as evidence goes stale the moment the list grows"* — it went stale in the direction the note did
    not consider: **wrong when written**, not merely later. Corrected below, with the command that
    produces it, so the next sweep re-runs a check instead of re-typing a number.
-8. **§ 6 has fallen behind for the THIRD time — seven audits unlisted** (`2026-07-29-doc-topology-sweep`,
+8. **§ 6 has fallen behind for the THIRD time — eight audits unlisted** (`2026-07-29-doc-topology-sweep`,
    `2026-07-29-roadmap-staleness-sweep`, `2026-07-29-fluvial-record-terms-priors`,
    `2026-08-01-body-plan-structure-design`, `2026-08-01-members-into-history-design`,
-   `2026-08-01-p10-grain-axis-design`, `2026-08-02-posture-bake-member0-design`). Eleven, then five,
-   now seven. Backfilled below — **and the backfill is again not a watcher**; the section says so
-   itself and the count keeps proving it.
+   `2026-08-01-p10-grain-axis-design`, `2026-08-01-p2-calibration-derivation`,
+   `2026-08-02-posture-bake-member0-design`). Eleven, then five, now eight — **`ls docs/audits/`
+   against § 6 is the whole check**, and two of the eight (the 07-29 doc-topology and staleness
+   sweeps) are cited *by name elsewhere in this very file* while unlisted in its own index.
+   Backfilled below — **and the backfill is again not a watcher**; the section says so itself, and
+   the count keeps proving it.
 9. **Citation drift, `runner.rs` again and now `field.rs`/`collapse.rs` with it.** Every `runner.rs`
    ref past ~line 470 moved **+41 to +44**; `field.rs`'s function bodies moved **+13** (its struct
    fields did **not** — `geotherm:555`, `head:573`, `chapters:581` are unmoved, which is why the
@@ -553,8 +556,8 @@ witness the type will be extracted from.
 **Live violation:** `DeepField::regolith_at_voxel` samples NEAREST while
 `surface_at_voxel` beside it is bilinear, so soil depth is a hard-edged 460 m
 mosaic under smooth terrain (ROADMAP Observed, 2026-07-22). *Before "fixing"
-nearest→bilinear, read `field.rs:788-806` (**refreshed 2026-07-29 evening at `72fbe86`**; cited
-`:735-744` when written): nearest is a forced trade-off —
+nearest→bilinear, read `field.rs:801-819` (**refreshed 2026-08-02 at `d8407e1`**; `:788-806` at
+`72fbe86`, `:735-744` when written): nearest is a forced trade-off —
 the record is a non-interpolable variable-length unit list and bilinear would
 break mass conservation. The fix must route around that, not through it
 (2026-07-22 audit).*
@@ -651,7 +654,8 @@ design.
 
 **The exemplar, reframed.** The deep-time runner's revision tokens — `Forced → Incised →
 Weathered → Diffused → Compensated → Windblown → Settled` (`runner.rs:89-90`, the enum at
-`:111`; **refreshed 2026-07-29 evening at `72fbe86`** — cited `:66-95`/`:97` at `ec9858e` eight
+`:111`; **re-verified UNMOVED 2026-08-02 at `d8407e1`** — the P11/B0 batch inserted below them;
+refreshed 2026-07-29 evening at `72fbe86` from `:66-95`/`:97` at `ec9858e` eight
 hours earlier, moved by the Schedule slice) — were cited here as this section's hardest-won compliance. They are the **artifact
 of derivation.** N passes that transform one shared terrain *in place* are unschedulable
 under `AmbiguousWriters`, so each stage must write a distinct token naming its output, and
@@ -697,8 +701,9 @@ place — against an authored order there is nothing left for a tie-break to dec
     is what let the axis land against journal/0122's fixed point as a hash comparison.
     *~~`declared_passes` is the one place the table is applied~~ — **corrected 2026-07-29
     (evening), the two functions were the wrong way round.** `deep_passes_with`
-    (`runner.rs:640-651`) is the one place the table is **applied**; `declared_passes`
-    (`runner.rs:655`) is the one place a pass is **declared**, and its own comment states the
+    (`runner.rs:681`, **refreshed 2026-08-02 at `d8407e1`**; `:640-651` at `72fbe86`) is the one
+    place the table is **applied**; `declared_passes`
+    (`runner.rs:696`, was `:655`) is the one place a pass is **declared**, and its own comment states the
     reason — *"split out so `deep_passes_with` has exactly one place to apply the table and cannot
     miss a pass"*. The property the sentence was reaching for is real and survives the fix: a new
     pass cannot be added past the table.*
@@ -739,16 +744,16 @@ place — against an authored order there is nothing left for a tie-break to dec
   the same-day citation refresh caught line numbers and missed the rename)* (`period = 1` until
   journal/0123), body a bare `fn`. The crossing
   constraint holds (declaration is plain data + `&'static str` ids + a bare `fn`
-  pointer, `runner.rs:963-971` — **refreshed 2026-07-29 evening at `72fbe86`**, was `:929-936` at
+  pointer, `runner.rs:1005` — **refreshed 2026-08-02 at `d8407e1`**, was `:963-971` at `72fbe86`, `:929-936` at
   the extraction — no closure crosses the seam), and `Saprolite` is an
   honest pure-write sink token in the `Geotherm` mould, so the pass is orderable
   without perturbing the erosion pipeline. **✅ BOTH DECLARATION DEFECTS BELOW ARE CLOSED —
   verified in code 2026-07-29 at `96ab14b`** (they were fixed 2026-07-25 and this section never
   said so; the file header did, ~400 lines up, which is the one-directional pointer failure).
-  `runner.rs:566-571` (**refreshed 2026-07-29 evening at `72fbe86`**, was `:560-567`) now carries
+  `runner.rs:607-612` (**refreshed 2026-08-02 at `d8407e1`**, was `:566-571` at `72fbe86`, `:560-567` before) now carries
   the reasoning verbatim — *"a `reads_prev` declaration was a
   fiction: with no edge … `biotic → weather_inventory`, and nothing reads `Saprolite`, so there
-  is no cycle"* — and `runner.rs:573` states *"**`Exposed` is deliberately NOT declared**:
+  is no cycle"* — and `runner.rs:614` (was `:573`) states *"**`Exposed` is deliberately NOT declared**:
   susceptibility is a constant off …"*. **The two entries below are preserved as the record of
   what was found and why; neither is a live defect.** *(**Line refs inside the two entries
   below are as-of 2026-07-24 and have ALL drifted** — re-checked 2026-07-29 **(evening) at
@@ -788,8 +793,8 @@ place — against an authored order there is nothing left for a tie-break to dec
 - **the two FLOW passes (journal/0096 + 0098), audited 2026-07-25 — one honest, one
   under-declared, and a systemic hole under both:**
   1. **`dc:deep/flow_record` is HONEST** — verified line by line against its body
-     (`runner.rs:483-495`; the declaration `:818-833`; **both refreshed 2026-07-29 evening at
-     `72fbe86`**, were `:479-495`/`:789-802`). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
+     (`runner.rs:524-536`; the declaration `:860`; **both refreshed 2026-08-02 at `d8407e1`**,
+     were `:483-495`/`:818-833` at `72fbe86` and `:479-495`/`:789-802` before). `reads: [Routed, Energy, Head]` covers `erosion.recv()`,
      `.area()`, `.routed_surface()` (the drainage solve → `Routed`), `.out_load()`
      (transport → `Energy`) and `grid.head_exchange` (→ `Head`); `writes: [FlowFlux]`
      covers `ctx.flux` and nothing else; and its claim not to read the strata record
@@ -805,8 +810,11 @@ place — against an authored order there is nothing left for a tie-break to dec
      `reads: [Routed]` covered `filled`/`routed_surface`/`area` and **not** the
      ground surface `R + H`, which the body builds from `grid.surf_at` and the solve
      uses as its seepage cap, its lake datum and its whole free-surface boundary
-     (built at `runner.rs:529-537`, consumed at `head.rs:462-495`; **refreshed 2026-07-29 evening
-     at `72fbe86`**, were `:524-530`/`:456-485`). The comment's defence, *"its position never affects the
+     (built at `runner.rs:573-580`, consumed inside `head::march` (`head.rs:439`); **refreshed
+     2026-08-02 at `d8407e1`** — the runner ref was `:529-537` at `72fbe86` and `:524-530` before;
+     the `head.rs` consumption ref, twice cited as a line range (`:462-495`, `:456-485`), is
+     **retargeted to the function** because `head.rs` moved again and a range inside a 200-line
+     solve is the citation shape that rots fastest). The comment's defence, *"its position never affects the
      terrain"*, was true and was **not the question**: it affects the field's own
      values, and the vertical flux recorded from them. **The revision is `Forced`,
      in every cfg path** — nothing between `forcing` and `transport` mutates `R`/`H`
@@ -965,8 +973,8 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     diff-and-append (apply-time edge logging is the ratified fact source; each fact
     carries its `cause`), byte-identical under the identity default over 25,600 real
     cells, provenance read = `base + facts`. **CONSUMED as a LIVE PROCESS 2026-07-24
-    (S18 → Movement 3, journal/0094):** `collapse.rs:1467` (**refreshed 2026-07-29 evening at
-    `72fbe86`**; `:1417-1420` before the member-#0 slice added ~50 lines above it) reads
+    (S18 → Movement 3, journal/0094):** `collapse.rs:1497` (**refreshed 2026-08-02 at `d8407e1`**;
+    `:1467` at `72fbe86`, `:1417-1420` before the member-#0 slice added ~50 lines above it) reads
     `FactLedger::weathering_product_m` into a basal weathering-front band, and the
     facts are now grown by the **`dc:deep/weather_inventory` runner pass running
     inside the deep-time loop, every epoch, accumulating** on each epoch's live
@@ -984,12 +992,13 @@ carries a resolved/resolution flag.** Two regimes on one axis:
     R/H unification"**, material-behavior.md §11 continuation slot + §13.6, and
     `docs/spikes/movement2a-rh-unification-plan.md` — but the split is **not yet the
     invariant the discharge note calls it**: `DeepField::derive_regolith_at`
-    (`field.rs:900-905`, **re-checked 2026-07-29 evening at `72fbe86`**; `:818-824` at `ec9858e`
-    that morning) materializes the "one authority" `H` view from
+    (`field.rs:913-918`, **re-checked 2026-08-02 at `d8407e1` and STILL TRUE** — the ledger it
+    builds is `FactLedger::empty_with_bedrock(strata)` at `field.rs:917`, unchanged by P11; was
+    `:900-905` at `72fbe86` and `:818-824` at `ec9858e`) materializes the "one authority" `H` view from
     `FactLedger::empty_with_bedrock`, i.e. **with an empty ledger**, so the derived
     view structurally cannot see the 6.09 m of `Loose` the M3 process committed.
     Movement 2a's claim that "the inventory is the authority and `R`/`H` are its
-    materialized views" (`field.rs:876-892`, refreshed from `:796-810`) is therefore true of the *record* half
+    materialized views" (`field.rs:889-905`, **refreshed 2026-08-02 at `d8407e1`**; was `:876-892`, refreshed from `:796-810`) is therefore true of the *record* half
     only; M3 added inventory content no view reflects. Two derivations of one
     quantity that cannot agree is this section's own consistency law — the
     unification is what closes it.
@@ -1072,8 +1081,8 @@ arrive in exactly one other.
   path"*. This exemplar is UNCONSUMED machinery.** Its `lateral_c = 0.25` (`water/sat.rs:82`,
   read at `96ab14b`) is the "safe by parameter choice" the section below argues from — safe in
   a module no world runs.
-- `dc-worldgen/src/deeptime/erosion.rs::diffuse` (`erosion.rs:3175` at `72fbe86`; was `:3148` at
-  `96ab14b`) — hillslope
+- `dc-worldgen/src/deeptime/erosion.rs::diffuse` (`erosion.rs:3211` at `d8407e1`; was `:3175` at
+  `72fbe86` and `:3148` at `96ab14b`) — hillslope
   creep (journal/0122). The inner step
   **already was** this shape, which is why mass-exactness and order-independence came free when
   the operator was rebuilt.
@@ -1606,14 +1615,16 @@ optimizer).
   from a different seed salt, advected at a different rate, or had every plate flipped oceanic,
   and it would not have twitched. Purest A-3: not a lenient assertion, an assertion *about
   something else*. Closed by `GOLDEN_CHAPTERS` **plus a negative control** —
-  `artifact_tripwires.rs:501::the_chapter_length_byte_is_blind_to_what_the_chapter_table_says`,
+  `artifact_tripwires.rs:530::the_chapter_length_byte_is_blind_to_what_the_chapter_table_says`
+  (**refreshed 2026-08-02 at `d8407e1`**, was `:501`),
   which asserts the *old* byte cannot see what the *new* one does, so the new golden's reason to
   exist is proven rather than argued.
   - **And the generalisation is structural, which is what makes it worth a spine entry.** The
     same file's claim *"every artifact the ritual ships has a tripwire"* is a **completeness**
     claim — the exact class that produced `draws.rs`'s overclaim two entries above (A-2, *"did it
-    ever?"*). It is not asserted in prose: `artifact_tripwires.rs:544::
-    every_deepfield_member_is_classified` **exhaustively destructures `DeepField`**, so adding a
+    ever?"*). It is not asserted in prose: `artifact_tripwires.rs:573::
+    every_deepfield_member_is_classified` (**refreshed 2026-08-02 at `d8407e1`**, was `:544`)
+    **exhaustively destructures `DeepField`**, so adding a
     member **stops the suite compiling** until it is classified COVERED / UNCOVERED / NOT SHIPPED
     with its evidence. That is A-2's own prescription — *when a justification asserts a property
     the language could enforce instead, make the property structural and delete the claim* —
@@ -2112,9 +2123,38 @@ directory listing) checks, not a list a human appends to.* Listed, one line each
 - **`2026-07-29-member0-coarsefield-design.md`** — E5 member #0's design pass (MM-1…MM-4; MM-4 is
   the ruling that sent `summarize` to the octree node contract, cited by § 3's `CoarseField` row).
 - **`2026-07-29-far-frontier-tourmap.md`** — the tour map for the member-#0 far walk.
-- **`2026-07-29-spine-audit-full.md`** — this sweep. The **first `spine-audit` artifact under
+- **`2026-07-29-spine-audit-full.md`** — that sweep. The **first `spine-audit` artifact under
   `docs/audits/`**: every prior run wrote only the header block above, which is why the baseline
   note recorded *"spine-audit had left no artifacts at all."*
+
+**⚠ AND IT FELL EIGHT BEHIND — the THIRD time, caught 2026-08-02 by the FULL spine-audit at
+`d8407e1`.** Eleven, then five, then eight, each caught by a sweep and each fixed by hand. *The
+2026-07-29 block above already named the remedy — **an enumeration a sweep with a directory listing
+checks, not a list a human appends to** — and then did the hand-append instead, which is why this
+paragraph exists. The check is one command:* `ls docs/audits/` *against the entries below.* Listed,
+one line each:
+
+- **`2026-07-29-doc-topology-sweep.md`** — the FULL docs-vs-docs sweep at `72fbe86` (10 contradiction
+  pairs F1–F10, 7 one-directional pointers P1–P7). Its findings are cited by name elsewhere in this
+  file (F5, the `cadence` → `schedule` rename) and it was still unlisted here.
+- **`2026-07-29-roadmap-staleness-sweep.md`** — the FULL staleness sweep at `72fbe86`, 11 findings
+  over 151 entries; all 11 applied to the ROADMAP body in `09f5cd8`.
+- **`2026-07-29-fluvial-record-terms-priors.md`** — the record-terms priors research (the grain term
+  is a recording change; the mobility term is one sentence). Feeds P10.
+- **`2026-08-01-body-plan-structure-design.md`** — what a body plan must DECLARE, gamed against five
+  bodies; the pass that found **both** A-7 instances retired by B0 (its § 5.3, § 6.H).
+- **`2026-08-01-members-into-history-design.md`** — the P11 design pass: representation options,
+  residency arithmetic, the 24-row ripple map, and the six rulings. **Ruling 6 is what makes the
+  deposition draw *named scaffolding* rather than a design fork**, and its C12 row is cited by S-3.
+- **`2026-08-01-p10-grain-axis-design.md`** — the grain-axis options pass (no picks); the finding
+  that the Wentworth ladder was already built.
+- **`2026-08-01-p2-calibration-derivation.md`** — the literature derivation behind the erosional
+  calibration: the target band, the `[60, 240]` multiplier bracket, and the two missing
+  measurements. *Also unlisted, and it is the one whose numbers CLAUDE.md's
+  measure-against-the-literature rule points a reader at.*
+- **`2026-08-02-posture-bake-member0-design.md`** — the greenlit spec for the resting-posture bake
+  (§ 3 row above): the A-1 ledger, the F1/F4/F5/F6 findings, and the continuation slot that names
+  the bake's first real consumer.
 
 **These were nearly lost.** They lived in a session scratchpad and were cited
 all day; nothing in the corpus pointed at them. That is **A-4 committed on the
