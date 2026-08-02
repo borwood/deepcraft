@@ -218,13 +218,34 @@ conversation:
 
 2. **Sand is a FORM of an existing clastic material (DECIDED).** No new
    "sand" identity: sand is the loose form of the clastic-coarse member —
-   "one material has one property [sheet]"; within-identity grain-size
-   gradation is not modelled (revisit later if a wall appears; user: "go
+   "one material has one property [sheet]"; ~~within-identity grain-size
+   gradation is not modelled~~ (revisit later if a wall appears; user: "go
    with forms. maybe it gets revisited at a later time but go with
    form"). **Known consequence, accepted:** loose clastic is currently
    textured identically to structural — indistinguishable in a cut face —
    which implies a later *visual* decision (form-dependent texture
    variants; files to the visuals road, not this pass).
+   - **⚠ THE REVISIT CLAUSE FIRED — U1 DECIDED 2026-08-02 (user): GRAIN IS AN
+     AXIS, NOT AN IDENTITY.** The struck half above is superseded exactly as its
+     own text anticipated: P10's WHAT ("source rocks release a size
+     *distribution*") is within-identity gradation, and the wall appeared
+     (`docs/audits/2026-08-01-p10-grain-axis-design.md` § 1.1/C1). The ruling,
+     per the user's 2026-08-01 sketch ratified 2026-08-02: **"'loose' gets an
+     additional state — what grain is THIS loose block of this material id."**
+     Grain size arrives as a **state on the loose FORM of the source identity**,
+     never as replacement ladder materials — provenance is kept (granitic sand ≠
+     basaltic sand), placers keep their density×size correlation, and the
+     standalone `SAND`/`GRAVEL`/`CLAY`/`SILT`/`SCREE` identities are
+     **scaffolding-era encoding** (this settles the P10 audit's C4
+     two-authorities defect in favour of `(source-id, Loose)` + grain state).
+     Everything else in ruling 2 stands: one identity, one sheet; forms carry
+     the loose/structure split. **U5 (does the RECORD grow, the ~42 MiB
+     byte-step) is deliberately NOT ruled here** — the user directed a
+     compression study first ("quick meditation… compress / not have to
+     increase footprint: what all we are storing, necessary precision, if
+     everything is sparse") before any byte is spent. FS-A re-shapes under this
+     ruling (release spectra emit loose source-identity + grain state, not
+     ladder ids) and dispatches behind P11 slice 2's merge.
 
 3. **The soil model (user).** Anything with roots carries a **root
    material in STRUCTURE form** — porous, holding the soil in its pores.

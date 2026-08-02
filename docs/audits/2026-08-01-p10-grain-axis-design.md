@@ -1,13 +1,20 @@
 # P10 — THE GRAIN-SIZE CONTINUUM: design pass (OPTIONS, none picked)
 
-> **USER LEANING RECORDED (2026-08-01 — not a ruling; U1 stays open until FS-A is
-> actually proposed):** *"'loose' gets an additional state (what grain is THIS loose
+> ~~**USER LEANING RECORDED (2026-08-01 — not a ruling; U1 stays open until FS-A is
+> actually proposed):**~~ **→ U1 DECIDED 2026-08-02 (user: "option 1 it is"): GRAIN IS
+> AN AXIS — the leaning below is now the ruling.** Recorded in `materials.md` § forms
+> design pass ruling 2 (the DECIDED it supersedes, struck there with the full rationale).
+> *"'loose' gets an additional state (what grain is THIS loose
 > block of this material id)."* I.e. the provenance-keeping encoding: grain size
 > arrives as a **state on the loose FORM of the source identity**, never as replacement
 > ladder materials — which also points C4's resolution (the standalone
 > SAND/GRAVEL/CLAY/SCREE identities read as the scaffolding-era encoding) and forbids
-> reading FS-A as identity-erasure. The full U1 ruling happens against this doc when
-> FS-A is proposed. *(Mutable header; the body below is the dated design record.)*
+> reading FS-A as identity-erasure. **U5 (the record byte-step) remains OPEN by explicit
+> direction: a storage/compression study ("what all we are storing, necessary precision,
+> is everything sparse") runs before any byte is spent — G3-vs-G4-vs-G5 and the § 6.3
+> owed measurements feed it. FS-A re-shapes under U1 (emit loose source-identity + grain
+> state, not ladder ids) and dispatches behind P11 slice 2's merge.**
+> *(Mutable header; the body below is the dated design record.)*
 
 **Arc anchor:** `ROADMAP.md:413-442` § Sequenced *"THE GRAIN-SIZE CONTINUUM"* — **SEQUENCED
 2026-08-01 (user, "option 2 — I just don't want to lose track of anything needing done")**.

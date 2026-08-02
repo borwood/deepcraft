@@ -4123,9 +4123,12 @@ deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
    argmax of arriving mix, deterministic tie rule, full mix preserved on faces) + the
    expected-red golden list above (it owns the single re-capture) + Law-3 closure + the
    standard brief discipline. Slice 2's merge gate is the next full verification.
-2. **U1 → FS-A**: present U1 for ruling (leaning recorded in the P10 audit header: grain
-   as a state on the loose form of the source identity; the sidebar unpacking is in this
-   session's log); on ratification, FS-A dispatches behind slice 2's merge.
+2. ~~**U1 → FS-A**: present U1 for ruling~~ — **✅ U1 DECIDED 2026-08-02 ("option 1 it
+   is"): grain is an AXIS — a state on the loose form of the source identity** (recorded
+   in `materials.md` § forms ruling 2, which it supersedes; P10 audit header stamped).
+   **U5 held open by user direction: a storage/compression meditation (what we store,
+   necessary precision, sparsity) runs before any record byte is spent.** FS-A re-shapes
+   under U1 and dispatches behind slice 2's merge.
 3. **P2 measurement runs** (plan in the P2 audit; needs the build slot) after slice 2.
 4. **The walk debt is now TWO stacked appearance changes** (octaves 2026-07-29 + P11
    member diversity — *"this is what a walk will see"*) — walk after slice 2, new tour
