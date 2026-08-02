@@ -42,6 +42,18 @@ field list and flagged as such.
 >    the identity FIELD is E7's manifest (the rule is written; the field is not — the
 >    2026-07-22 seam inventory). Caught by the user's memory before ruling; second
 >    instance of corrections #81's shape in three days.
+> 6. **IDENTITY PROPAGATES; THE DEPOSITION DRAW IS NAMED SCAFFOLDING** (user,
+>    2026-08-02, at slice 1's harvest): *"the interim does not matter in any way shape
+>    or form... we are marching toward slice 2 ASAP. this is not a real fork."*
+>    MaterialId — not membership of a group — is the basic unit of deeptime: identity
+>    is a conserved quantity flowing through the mass arithmetic (erosion releases →
+>    transport carries by id → deposition records what settled). The fitness draw at
+>    deposition is INTERIM SCAFFOLDING with two named heirs: **slice 2** retires it for
+>    transported deposits (identity from the arriving composition term); **FS-A**
+>    retires it for weathered material (release spectra, behind U1). What survives is
+>    the genuine-degeneracy remainder (primary formation, transformation edges under
+>    declared conditions), drawn coherently. The interim got the cheap engineering fix
+>    — (cell, chapter) addressing — with no ratification weight attached.
 > 5. **MM-3 / the near-path restructure FOLDS INTO P11's build sequence** (user,
 >    2026-08-01). One pass over the shared files instead of two overlapping surgeries;
 >    the restructure lands on the member-grade record it will serve; its cell-membership

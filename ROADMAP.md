@@ -400,6 +400,10 @@ two).
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
    **composition slice folds in here** (the per-face species split records into a sparse
    side array at the same grade — rulings 1–2 of the record-terms set, re-graded).
+   **AND (ruling 6, user 2026-08-02): this slice RETIRES the deposition fitness draw for
+   transported deposits** — identity comes from the arriving composition, propagated,
+   never drawn. *"MaterialId, not membership of a group, is the basic unit of deeptime";
+   the slice-1 draw is named scaffolding, (cell, chapter)-addressed as interim.*
 3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
    `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
    13-file break), landing on the member-grade record. The ~460 m near tile dies here.
