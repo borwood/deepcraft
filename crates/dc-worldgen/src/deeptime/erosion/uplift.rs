@@ -91,8 +91,9 @@ impl Erosion {
         let rate = cfg.iso_rate;
         let mut injected = 0.0f64;
         for i in 0..self.n {
-            let rho_c =
-                isostasy::rho_crust(super::super::tectonics::CrustKind::from_index(grid.crust_kind[i]));
+            let rho_c = isostasy::rho_crust(super::super::tectonics::CrustKind::from_index(
+                grid.crust_kind[i],
+            ));
             let e_eq = isostasy::equilibrium(t_bar[i], h_bar[i], rho_c);
             let surf = grid.r[i] + grid.h[i];
             let d_r = rate * (e_eq - surf);

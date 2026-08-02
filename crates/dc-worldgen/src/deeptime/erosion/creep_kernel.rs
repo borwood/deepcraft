@@ -256,7 +256,13 @@ impl Erosion {
     /// itemisation then *accumulates* rather than overwrites, so the epoch's
     /// creep plane is the sum of its sub-steps and [`Self::record`] still reads
     /// one epoch's worth of arriving colluvium.
-    pub(super) fn diffuse_step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, diff: f64, carry_on: bool) {
+    pub(super) fn diffuse_step(
+        &mut self,
+        grid: &mut DeepGrid,
+        cfg: &DeepConfig,
+        diff: f64,
+        carry_on: bool,
+    ) {
         let parallel = self.par();
         let w = self.w;
         // Freeze the surface.
