@@ -96,8 +96,8 @@ use std::cmp::Reverse;
 use std::collections::BinaryHeap;
 
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::lithology::Litho;
 use super::recorder::MemberCtx;
+use super::species::{SpeciesAxis, SpeciesLayout, SpeciesPlane};
 
 mod agents;
 mod creep;
@@ -120,7 +120,7 @@ pub use ledger::TransportLedger;
 pub use mfd::MFD_MIN_WEIGHT;
 pub use mfd_law::MfdParams;
 pub use record::energy_band;
-pub use transport::competence_ceiling;
+pub use transport::{ANCHOR_MATERIAL, competence_ceiling};
 
 const NEIGH8: [(i32, i32); 8] = [
     (-1, -1),
@@ -164,13 +164,16 @@ fn is_border(i: usize, w: usize) -> bool {
     gx == 0 || gy == 0 || gx as usize == w - 1 || gy as usize == w - 1
 }
 
-/// The number of **species** the suspended load is resolved into — one per
-/// [`Litho`], which is the material granularity deep time can distinguish at all
-/// (`lithology.rs`: *"not the material registry — the handful of classes the
-/// deep-time record can distinguish"*). Members within a class are chosen at
-/// collapse time, so resolving the load any finer than this would be inventing
-/// identity the tier does not have.
-const SPECIES: usize = Litho::COUNT;
+// **`const SPECIES: usize = Litho::COUNT` LIVED HERE AND IS GONE** (P11 slice 2).
+//
+// It said the load could be resolved no finer than the seven classes, because
+// *"members within a class are chosen at collapse time, so resolving the load any
+// finer than this would be inventing identity the tier does not have."* Slice 1
+// gave the tier that identity — `DepUnit::species` is a registry `MaterialId` —
+// and the sentence expired with it. The four budget planes are now CSR-sparse over
+// a content-derived [`SpeciesAxis`] (`super::super::species`), so the width is a
+// property of the registered content and of each cell's own catchment, never a
+// constant in this file.
 
 /// Reusable scratch for the erosion iteration (allocated once, reused every
 /// step — the per-iteration working set the memory measurement counts).
@@ -292,44 +295,79 @@ pub struct Erosion {
     /// empty, no branch in [`Self::exchange_cell`] fires, and the pass is the
     /// scalar solve byte for byte.
     sorted: bool,
-    /// The settling velocity of each species (`settling_table`), and the species
-    /// indices sorted **descending** by it — the order deposition draws in, which
-    /// is the only place "the load is kept sorted" is cashed out. Sorting a
-    /// seven-element array once per run is cheaper and more honest than keeping a
-    /// sorted structure per cell: the ordering is a property of the *materials*,
-    /// not of any particular load.
-    w_settle: [f64; SPECIES],
-    ws_order: [usize; SPECIES],
+    /// **The alphabet the load, the record and the erosion tables are resolved
+    /// against** — the registered content's materials, ordered by descending
+    /// settling energy (P11 slice 2, `super::super::species`).
+    ///
+    /// Empty when no content set was supplied ([`SpeciesAxis::empty`], the
+    /// degenerate door), in which case every member-grade consumer falls through to
+    /// the class-grade answer it gave before this slice.
+    ///
+    /// **The axis order is load-bearing, not cosmetic.** Two loops in the transport
+    /// pass are order-sensitive — the capacity drawdown (*coarsest first*) and the
+    /// competence ceiling — and under a sparse row a permutation of the whole axis
+    /// walked with a membership test would put the registry's width straight back
+    /// into the hot loop. A CSR row is stored ascending in axis order, which **is**
+    /// coarsest-first, so both loops walk the row and stop early. It also gives the
+    /// residual split's *"last non-zero share takes the remainder"* and the
+    /// arriving-identity argmax's tie-break one total, deterministic,
+    /// content-derived order instead of an enum's declaration order.
+    axis: SpeciesAxis,
     /// The composition of the material **below the record** — what incision
-    /// detaches. Asked of the *same* near-surface-composition seam every other
-    /// consumer uses, with an **empty section**: a window containing no recorded
-    /// units is entirely whatever lies beneath the pile. So the pass names no
-    /// lithology; it asks a question and the seam answers. (Refreshed each epoch
-    /// in [`Self::expose`], because the seam's heir — structural deformation — may
+    /// detaches — as the axis codes and values of a sparse row (today: one entry,
+    /// the basement, at share `1.0`).
+    ///
+    /// It is what the near-surface window walk answers for an **empty section**: a
+    /// window containing no recorded units is entirely whatever lies beneath the
+    /// pile. So the pass names no lithology; it asks the same question every other
+    /// consumer asks and takes the answer. (Refreshed each epoch in
+    /// [`Self::expose`], because the window's heir — structural deformation — may
     /// one day answer it differently per cell, at which point this becomes a plane
     /// rather than a constant.)
-    bedrock_sp: [f64; SPECIES],
-    /// **The load itself** — `n × SPECIES` metres of suspended material, the
-    /// multiset of § 13.3. Cell `c`'s slice holds its *in*-load while upstream
+    bedrock_axis: Vec<u8>,
+    bedrock_sp: Vec<f64>,
+    /// Reused buffer for the transport closure's seed masks (window | basement),
+    /// so the per-epoch rebuild allocates nothing.
+    bedrock_seed_scratch: Vec<u64>,
+    /// **Per-cell presence masks of the near-surface window** — bit `k` = axis
+    /// index `k`. The seed every layout below is built from, written by
+    /// [`Self::expose`] in the same walk that computes the window shares.
+    masks: Vec<u64>,
+    /// **The window layout** — what lies *at* each cell. [`Self::shares`] rides it.
+    window: SpeciesLayout,
+    /// **The transport layout** — the window (plus the bedrock incision can reach)
+    /// closed downstream over the solve's own routing, rebuilt each epoch in
+    /// [`Self::transport`] because both of its inputs move each epoch. It is exact,
+    /// not a heuristic: a species can never arrive at a cell whose row has no slot
+    /// for it, because the propagation *is* the transport graph's reachability
+    /// computed with `u64` ORs instead of `f64` adds.
+    tlayout: SpeciesLayout,
+    /// **The creep layout** — the window dilated by one 4-neighbourhood ring, since
+    /// creep moves the **donor's** composition across an edge.
+    clayout: SpeciesLayout,
+    /// **The load itself** — metres of suspended material over [`Self::tlayout`],
+    /// the multiset of § 13.3. Cell `c`'s row holds its *in*-load while upstream
     /// cells are still contributing, and is rewritten in place by
     /// [`Self::exchange_cell`] to hold its *out*-load; the chain is strictly
-    /// downstream-ordered, so a cell's slice is never read after it is spent.
+    /// downstream-ordered, so a cell's row is never read after it is spent.
     ///
-    /// **This vector is the mass authority when it is non-empty.** The scalar
+    /// **This plane is the mass authority when it is non-empty.** The scalar
     /// `qs` plane is not maintained on the sorted path at all: `qin` is summed
     /// from here and the per-face scalar written to the flux record is the sum of
     /// the per-species shares — one arithmetic, so the record and the budget
     /// cannot drift (flow.md § 3).
-    qs_sp: Vec<f64>,
-    /// `n × SPECIES` — the composition of the **surface loose** at each cell, from
-    /// the record's own near-surface window (the `outcrop_shares` seam). This is
-    /// the identity entrainment removes: a reach cutting a sandstone bench hands
-    /// the flow sand, and a stripped column hands it basement debris.
-    shares: Vec<f64>,
-    /// `n × SPECIES` — what the transport pass **set down** at each cell this
-    /// epoch, per species. Read by [`Self::record`] to name the arriving unit, and
-    /// by the outcome probe to measure the downstream fining gradient.
-    dep_sp: Vec<f64>,
+    qs_sp: SpeciesPlane,
+    /// The composition of the **surface loose** at each cell over
+    /// [`Self::window`], from the record's own near-surface window. This is the
+    /// identity entrainment removes: a reach cutting a sandstone bench hands the
+    /// flow sand, and a stripped column hands it basement debris. Since slice 2 it
+    /// is per *material*, so a siltstone bench and a mudstone bench are two
+    /// different benches.
+    shares: SpeciesPlane,
+    /// What the transport pass **set down** at each cell this epoch, per species,
+    /// over [`Self::tlayout`]. Read by [`Self::record`] to name the arriving unit,
+    /// and by the outcome probe to measure the downstream fining gradient.
+    dep_sp: SpeciesPlane,
     /// **Material-aware hillslope creep** (Movement 2b continuation (b)) — the
     /// gravity/mass-wasting member of § 13.2's transport family. Off ⇒
     /// [`Self::creep_sp`] is empty, [`Self::diffuse`] never runs its third pass,
@@ -338,14 +376,14 @@ pub struct Erosion {
     /// same `outcrop_shares` plane the load entrains from — one walk, now three
     /// consumers.
     creep_carries: bool,
-    /// `n × SPECIES` — the **net** metres of each species creep delivered to (or
-    /// took from) each cell this epoch. Signed: a hillslope cell loses species it
-    /// sheds and gains what came down from above.
+    /// The **net** metres of each species creep delivered to (or took from) each
+    /// cell this epoch, over [`Self::clayout`]. Signed: a hillslope cell loses
+    /// species it sheds and gains what came down from above.
     ///
     /// It is an **attribution, not a mass authority** — `grid.h` still moves by
     /// the scalar `netdiff`, bit for bit as before. Read by [`Self::record`] to
     /// name the arriving unit and by the outcome probe.
-    creep_sp: Vec<f64>,
+    creep_sp: SpeciesPlane,
     /// `n` — the **gross** creep traffic through each cell this epoch (every edge
     /// flux, in or out). The itemisation audit's denominator; see
     /// [`diffuse_species_cell`].
@@ -381,6 +419,27 @@ pub struct Erosion {
     /// leaves its source cell and a load that is never picked up at all are very
     /// different failures with very different heirs.
     ledger: TransportLedger,
+    /// **The identity-provenance audit** (P11 slice 2, ruling 6's outcome number).
+    /// Off by default and off in production: the plane below stays empty, the
+    /// counterfactual draw is never evaluated, and the solve is byte- and
+    /// cost-identical. On, [`Self::record`] tallies, per depositing cell per epoch,
+    /// **where the unit's identity came from** — the arriving composition or the
+    /// fitness draw — and, for the transported ones, whether the deposition-site
+    /// draw would have named a *different* rock.
+    ///
+    /// That last number is the claim: a transported deposit whose identity the
+    /// site's own climate would not have produced is a metre of rock whose name is
+    /// a fact about its **source**, which is the whole of what ruling 6 asked for.
+    /// It is expensive precisely because it evaluates the draw the slice exists to
+    /// stop evaluating, so it is an instrument and not a phase.
+    identity_audit: bool,
+    /// Per-cell audit result for the last [`Self::record`]: `0` no deposit, `1`
+    /// identity from the arriving composition, `2` from the draw, `3` from the
+    /// arriving composition **where the site's draw would have disagreed**.
+    id_class: Vec<u8>,
+    /// Running metres behind [`Self::id_class`], summed scalar after each record
+    /// phase so the totals are order-independent.
+    id_m: [f64; 4],
     /// **The denudation ledger switch** (journal/0111). Off by default and off in
     /// production: the five export counters on [`TransportLedger`] stay exactly
     /// zero, the shoreline-creep sweep in [`Self::diffuse`] never runs, and the
@@ -438,20 +497,28 @@ impl Erosion {
             out_area: Vec::new(),
             out_face_load: Vec::new(),
             sorted: false,
-            w_settle: [0.0; SPECIES],
-            ws_order: [0; SPECIES],
-            bedrock_sp: [0.0; SPECIES],
-            qs_sp: Vec::new(),
-            shares: Vec::new(),
-            dep_sp: Vec::new(),
+            axis: SpeciesAxis::empty(),
+            bedrock_axis: Vec::new(),
+            bedrock_sp: Vec::new(),
+            bedrock_seed_scratch: Vec::new(),
+            masks: Vec::new(),
+            window: SpeciesLayout::empty(),
+            tlayout: SpeciesLayout::empty(),
+            clayout: SpeciesLayout::empty(),
+            qs_sp: SpeciesPlane::default(),
+            shares: SpeciesPlane::default(),
+            dep_sp: SpeciesPlane::default(),
             creep_carries: false,
-            creep_sp: Vec::new(),
+            creep_sp: SpeciesPlane::default(),
             creep_gross: Vec::new(),
             creep_itemisation_residue: 0.0,
             creep_conservation_residue: 0.0,
             creep_faces: 0,
             split_residue: 0.0,
             ledger: TransportLedger::default(),
+            identity_audit: false,
+            id_class: Vec::new(),
+            id_m: [0.0; 4],
             denude: false,
             heap: BinaryHeap::new(),
         }
@@ -506,10 +573,6 @@ impl Erosion {
             + self.sus_creep.len()
             + self.frost.len()
             + self.mfd_w.len()
-            + self.qs_sp.len()
-            + self.shares.len()
-            + self.dep_sp.len()
-            + self.creep_sp.len()
             + self.creep_gross.len();
         f64s * 8
             + self.recv.len() * 4
@@ -517,6 +580,53 @@ impl Erosion {
             + self.done.len()
             + self.litho.len()
             + (self.out_area.len() + self.out_face_load.len()) * 4
+            // The four budget planes and the three CSR row indices they ride
+            // (P11 slice 2). Sparse, so this scales with each cell's own
+            // catchment rather than with the registry.
+            + self.species_bytes()
+            + self.masks.len() * 8
+    }
+
+    /// **What the four CSR budget planes and their layouts cost right now**
+    /// (bytes) — the number the residency probe reports against the dense
+    /// member-grade comparand and the shipped class-grade one. Zero when
+    /// material-aware transport is off.
+    pub fn species_bytes(&self) -> usize {
+        self.qs_sp.approx_bytes()
+            + self.dep_sp.approx_bytes()
+            + self.shares.approx_bytes()
+            + self.creep_sp.approx_bytes()
+            + self.window.approx_bytes()
+            + self.tlayout.approx_bytes()
+            + self.clayout.approx_bytes()
+    }
+
+    /// Turn the **identity-provenance audit** on (P11 slice 2). Off is
+    /// byte-identical and costs nothing; see the field docs.
+    pub fn set_identity_audit(&mut self, on: bool) {
+        self.identity_audit = on;
+        self.id_class = if on { vec![0u8; self.n] } else { Vec::new() };
+        self.id_m = [0.0; 4];
+    }
+
+    /// **Metres of record by where their identity came from**, over the whole run:
+    /// `[unused, from the arriving composition, from the fitness draw, from the
+    /// arriving composition where the site's own draw would have disagreed]`. All
+    /// zero unless [`Self::set_identity_audit`] is on. Index 3 is a **subset** of
+    /// index 1, reported separately.
+    pub fn identity_provenance_m(&self) -> [f64; 4] {
+        self.id_m
+    }
+
+    /// **The species axis this run resolves its load against** — empty until
+    /// [`Self::set_species_axis`] supplies a content set.
+    pub fn species_axis(&self) -> &SpeciesAxis {
+        &self.axis
+    }
+
+    /// The three layouts, for the residency probe: `(window, transport, creep)`.
+    pub fn species_layouts(&self) -> (&SpeciesLayout, &SpeciesLayout, &SpeciesLayout) {
+        (&self.window, &self.tlayout, &self.clayout)
     }
 
     /// Set the paleo-sea-level stand the standalone phase methods read (the

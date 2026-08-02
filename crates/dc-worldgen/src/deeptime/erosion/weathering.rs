@@ -12,9 +12,10 @@ use rayon::prelude::*;
 use super::super::climate;
 use super::super::grid::{DeepConfig, DeepGrid};
 use super::super::lithology::{self, Agent, Litho};
+use super::super::species::{build_creep_layout, build_local_layout, csr_rows_mut, mask_of_dense};
 use super::super::weather_behavior;
+use super::Erosion;
 use super::creep_kernel::sus_at;
-use super::{Erosion, SPECIES};
 
 // The per-cell weathering kernel now lives in the north-star behavior shape
 // (`weather_behavior::weather_one_cell` / `WeatheringPass`, S16). The domain
@@ -28,6 +29,74 @@ use super::{Erosion, SPECIES};
 // through the chemical term while resisting the mechanical one — the karst story
 // arriving without a rewrite) — carries over unchanged; the composition order is
 // pinned in `BedrockWeather::weather_rate`.
+
+/// **One agent's rate table, at whichever grade the run has content for**
+/// (P11 slice 2).
+///
+/// Three passes besides `expose` blend a susceptibility table by a cell's window —
+/// frost, wind and wave — and each of them should read *the rock*, not its class,
+/// for exactly the reason `expose` does: a permeable siltstone shatters where a
+/// tight mudstone endures, and the class view cannot say so.
+///
+/// The two arms are not two rules. [`Self::Class`] is the **degenerate door**: it
+/// is what these passes answered before this slice and it is what a run with no
+/// registered content set can honestly answer at all
+/// ([`SpeciesAxis::empty`](super::super::species::SpeciesAxis::empty)). Where the
+/// axis is live, every material that *is* its class's reference member blends to
+/// the same number bit for bit, so the member arm is a strict generalisation
+/// rather than a replacement.
+pub(super) enum SusTable {
+    Class(Box<[f64; Litho::COUNT]>),
+    /// Indexed by axis order, with a scratch row for the per-cell window walk.
+    Member(Vec<f64>),
+}
+
+impl SusTable {
+    pub(super) fn build(
+        axis: &super::super::species::SpeciesAxis,
+        agent: Agent,
+        contrast: f64,
+        cap: f64,
+    ) -> Self {
+        if axis.is_empty() {
+            SusTable::Class(Box::new(lithology::susceptibility_table(
+                agent, contrast, cap,
+            )))
+        } else {
+            SusTable::Member(lithology::member_susceptibility_table(
+                axis, agent, contrast, cap,
+            ))
+        }
+    }
+
+    /// The blended multiplier for one cell's near-surface window. `row` is a
+    /// caller-owned scratch buffer at least `axis.len()` wide (unused on the class
+    /// arm), so the per-cell call allocates nothing.
+    pub(super) fn blend(
+        &self,
+        axis: &super::super::species::SpeciesAxis,
+        providers: &super::super::providers::Providers,
+        units: &[super::super::recorder::DepUnit],
+        row: &mut [f64],
+    ) -> f64 {
+        match self {
+            // The degenerate door: with no content set there is no member row for
+            // the seam to answer with, so this arm walks the class window directly
+            // — the pre-slice identity, byte-identical. Production always has
+            // content and always goes through the seam.
+            SusTable::Class(tab) => {
+                lithology::blend_susceptibility(&lithology::exposed_shares(units), tab)
+            }
+            SusTable::Member(tab) => {
+                let aw = axis.len();
+                providers.outcrop_shares(axis, units, &mut row[..aw]);
+                let codes: [u8; super::super::species::MAX_DEEP_SPECIES] =
+                    std::array::from_fn(|i| i as u8);
+                lithology::blend_member_susceptibility(&codes[..aw], &row[..aw], tab)
+            }
+        }
+    }
+}
 
 /// The biotic weathering multiplier at cell `i`: `1.0` when the biotic layer is
 /// off (empty slice), so the abiotic weathering rate is byte-identical.
@@ -85,34 +154,22 @@ impl Erosion {
     /// Purely per-cell → byte-identical parallel. When the coupling is off this
     /// leaves the planes empty and every consumer reads the exact identity.
     pub fn expose(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
-        // Movement 2b: the same near-surface window, read for a different
-        // question — not "how fast does this cell erode" but "**what is it made
-        // of**", which is the identity entrainment lifts into the load. One walk,
-        // two consumers; the erodibility blend and the entrainment composition can
-        // never disagree about what is lying at the surface.
+        // **The member-grade path** (P11 slice 2). The near-surface window is read
+        // once per cell per pass and answers *three* questions at member grade —
+        // what is lying here (the `shares` plane entrainment and creep lift), how
+        // fast it wears (the two susceptibility blends), and which rock outcrops
+        // (the debug verdict). One walk, three consumers, exactly as the class-grade
+        // path had one walk and two: the erodibility blend and the entrainment
+        // composition can never disagree about what is at the surface.
+        //
+        // It costs **two window walks per cell per epoch**, which is what the
+        // class-grade path already cost (the `shares` compose and the `sus`
+        // per-cell closure each called the seam). The first walk derives the
+        // presence mask and the rates; the layouts are built from the masks; the
+        // second scatters the shares into the CSR rows the layout has just sized.
         if self.sorted {
-            if self.shares.len() != self.n * SPECIES {
-                self.shares = vec![0.0; self.n * SPECIES];
-            }
-            // What lies below the record, asked of the seam with an empty section.
-            self.bedrock_sp
-                .copy_from_slice(cfg.providers.outcrop_shares(&[]).shares());
-            let strata = &grid.strata;
-            let providers = cfg.providers;
-            let compose = |i: usize, out: &mut [f64]| {
-                let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
-                out.copy_from_slice(providers.outcrop_shares(units).shares());
-            };
-            if self.par() {
-                self.shares
-                    .par_chunks_mut(SPECIES)
-                    .enumerate()
-                    .for_each(|(i, out)| compose(i, out));
-            } else {
-                for (i, out) in self.shares.chunks_mut(SPECIES).enumerate() {
-                    compose(i, out);
-                }
-            }
+            self.expose_member(grid, cfg);
+            return;
         }
         if !cfg.erodibility {
             self.litho.clear();
@@ -147,10 +204,11 @@ impl Erosion {
         // degenerate case: a single-lithology window blends to that rock's rate bit
         // for bit. `litho[i]` (the debug outcrop, read by `exposed()`) stays the
         // dominant share.
-        let providers = cfg.providers;
         let per_cell = |i: usize| -> (u8, f64, f64) {
             let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
-            let shares = providers.outcrop_shares(units);
+            // The degenerate door (no content set): the class window walk direct,
+            // exactly as it was before P11 slice 2.
+            let shares = lithology::exposed_shares(units);
             let k = lithology::dominant_litho(&shares).index() as u8;
             (
                 k,
@@ -178,6 +236,190 @@ impl Erosion {
                 self.sus_creep[i] = ci;
             }
         }
+    }
+
+    /// **The member-grade window pass** (P11 slice 2) — the composition, the two
+    /// erodibility blends and the outcrop verdict, from one walk per cell.
+    ///
+    /// This is where *"mudstone stops eroding at siltstone's rate"* actually
+    /// happens. The class-grade path coarsened a recorded `MaterialId` back through
+    /// [`Litho::of_material`] before accumulating the window, because the tables
+    /// downstream were class-keyed; the accumulator here is per **material** and
+    /// the table it blends is
+    /// [`member_susceptibility_table`](lithology::member_susceptibility_table),
+    /// whose reference is the named anchor rock rather than a class. Every material
+    /// that *is* its class's reference member keeps its old multiplier bit for bit;
+    /// every other member gets its own, which is the point of the slice.
+    fn expose_member(&mut self, grid: &DeepGrid, cfg: &DeepConfig) {
+        let n = self.n;
+        let parallel = self.par();
+        let axis = self.axis.clone();
+        let axis = &axis;
+        let aw = axis.len();
+        let strata = &grid.strata;
+        let erod = cfg.erodibility;
+        // Per-agent rate rows: one per (agent, epoch), never one per cell, so a
+        // dense row over the axis is honest here — the `powf` is paid `axis.len()`
+        // times an epoch, exactly as the class-grade table paid it seven times.
+        let flow_tab = lithology::member_susceptibility_table(
+            axis,
+            Agent::Abrasion,
+            cfg.erodibility_contrast,
+            cfg.erodibility_max,
+        );
+        let creep_tab = lithology::member_susceptibility_table(
+            axis,
+            Agent::Abrasion,
+            cfg.erodibility_diffusion_contrast,
+            cfg.erodibility_max,
+        );
+        if erod && self.litho.len() != n {
+            self.litho = vec![0u8; n];
+            self.sus_flow = vec![1.0; n];
+            self.sus_creep = vec![1.0; n];
+        }
+        if !erod {
+            self.litho.clear();
+            self.sus_flow.clear();
+            self.sus_creep.clear();
+        }
+        // Pass 1: the walk. Mask (always), rates and verdict (when coupled).
+        // Sequential — the walk is short (the top 0.9 m of a record) and the
+        // parallel driver would need a second ragged decomposition for no gain.
+        {
+            // The dense row's axis codes are `0..aw`; the blend anchors on its own
+            // argmax exactly as the class-grade one does.
+            let codes: Vec<u8> = (0..aw as u8).collect();
+            let providers = cfg.providers;
+            let Erosion {
+                masks,
+                litho,
+                sus_flow,
+                sus_creep,
+                ..
+            } = self;
+            // **Per-cell, disjoint writes, one window walk each** ⇒ the parallel
+            // driver is byte-identical to the sequential one by construction, like
+            // every other per-cell phase in this file. It is not an optimisation to
+            // take or leave: this walk runs `n` times an epoch on a production
+            // world, and leaving it serial cost **18 s of Medium pregen** when the
+            // conversion first landed — the whole of that slice's measured gen-cost
+            // regression, in one loop.
+            // `then`, never `then_some`: with the coupling off the three rate planes
+            // are deliberately EMPTY (that emptiness is what makes every consumer
+            // read the exact identity `1.0`), so slicing them eagerly is an
+            // out-of-bounds on the uncoupled world. Same shape as the CSR row read
+            // in `exchange_cell` — a structure the off-path does not build.
+            let rates = erod.then(|| (&mut sus_flow[..n], &mut sus_creep[..n], &mut litho[..n]));
+            let cell = |i: usize, row: &mut [f64], m: &mut u64| -> Option<(f64, f64, u8)> {
+                let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+                providers.outcrop_shares(axis, units, row);
+                *m = mask_of_dense(row);
+                if !erod {
+                    return None;
+                }
+                let mut d = 0usize;
+                for k in 1..aw {
+                    if row[k] > row[d] {
+                        d = k;
+                    }
+                }
+                Some((
+                    lithology::blend_member_susceptibility(&codes, row, &flow_tab),
+                    lithology::blend_member_susceptibility(&codes, row, &creep_tab),
+                    // The debug outcrop stays the dominant *class*, derived from the
+                    // dominant material — a summary of the quantity, never a second
+                    // stored label (S-3).
+                    Litho::of_material(axis.material(d)).index() as u8,
+                ))
+            };
+            match rates {
+                Some((sf, sc, lt)) => {
+                    if parallel {
+                        masks[..n]
+                            .par_iter_mut()
+                            .zip(sf.par_iter_mut())
+                            .zip(sc.par_iter_mut())
+                            .zip(lt.par_iter_mut())
+                            .enumerate()
+                            .for_each_init(
+                                || vec![0.0f64; aw],
+                                |row, (i, (((m, f), c), l))| {
+                                    if let Some((a, b, k)) = cell(i, row, m) {
+                                        (*f, *c, *l) = (a, b, k);
+                                    }
+                                },
+                            );
+                    } else {
+                        let mut row = vec![0.0f64; aw];
+                        let z = masks[..n]
+                            .iter_mut()
+                            .zip(sf.iter_mut())
+                            .zip(sc.iter_mut())
+                            .zip(lt.iter_mut());
+                        for (i, (((m, f), c), l)) in z.enumerate() {
+                            if let Some((a, b, k)) = cell(i, &mut row, m) {
+                                (*f, *c, *l) = (a, b, k);
+                            }
+                        }
+                    }
+                }
+                None => {
+                    if parallel {
+                        masks[..n].par_iter_mut().enumerate().for_each_init(
+                            || vec![0.0f64; aw],
+                            |row, (i, m)| {
+                                cell(i, row, m);
+                            },
+                        );
+                    } else {
+                        let mut row = vec![0.0f64; aw];
+                        for (i, m) in masks[..n].iter_mut().enumerate() {
+                            cell(i, &mut row, m);
+                        }
+                    }
+                }
+            }
+        }
+        // The layouts the three composition planes ride, sized from the masks.
+        build_local_layout(&mut self.window, n, &self.masks);
+        if self.creep_carries {
+            build_creep_layout(&mut self.clayout, self.w, &self.masks);
+            self.creep_sp.reset_for(&self.clayout);
+            if self.creep_gross.len() != n {
+                self.creep_gross = vec![0.0; n];
+            }
+        }
+        self.shares.reset_for(&self.window);
+        // Pass 2: scatter the shares into the rows the layout has just sized.
+        {
+            let Erosion { window, shares, .. } = self;
+            let window = &*window;
+            let mut rows = csr_rows_mut(shares.vals_mut(), window);
+            let providers = cfg.providers;
+            let compose = |i: usize, out: &mut [f64]| {
+                let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+                let (_, ks) = window.row(i);
+                let mut dense = [0.0f64; super::super::species::MAX_DEEP_SPECIES];
+                providers.outcrop_shares(axis, units, &mut dense[..aw]);
+                for (j, &k) in ks.iter().enumerate() {
+                    out[j] = dense[k as usize];
+                }
+            };
+            if parallel {
+                rows.par_iter_mut()
+                    .enumerate()
+                    .for_each(|(i, out)| compose(i, out));
+            } else {
+                for (i, out) in rows.iter_mut().enumerate() {
+                    compose(i, out);
+                }
+            }
+        }
+        // What lies below the record: the same walk asked with an empty section,
+        // which is entirely whatever is beneath the pile. One entry, share `1.0`.
+        self.bedrock_axis = vec![axis.basement_slot() as u8];
+        self.bedrock_sp = vec![1.0];
     }
 
     // ---- phase 1c: periglacial frost (PARALLEL — per-cell independent) -----
@@ -210,7 +452,8 @@ impl Erosion {
             self.frost.clear();
             return;
         }
-        let frost_tab = lithology::susceptibility_table(
+        let frost_tab = SusTable::build(
+            &self.axis,
             Agent::FrostIce,
             cfg.erodibility_contrast,
             cfg.erodibility_max,
@@ -219,10 +462,14 @@ impl Erosion {
             self.frost = vec![1.0; self.n];
         }
         let (w, gain, width) = (self.w, cfg.frost_weathering_gain, cfg.frost_band_width_c);
+        let parallel = self.par();
+        let n = self.n;
         let strata = &grid.strata;
         let providers = cfg.providers;
+        let Erosion { frost, axis, .. } = self;
+        let axis = &*axis;
         let (r, h) = (&grid.r, &grid.h);
-        let per_cell = |i: usize| -> f64 {
+        let per_cell = |i: usize, row: &mut [f64]| -> f64 {
             let gy = i / w;
             let surf = r[i] + h[i];
             let t = f64::from(climate::air_temp_c(grid.lat_deg(gy), surf));
@@ -235,18 +482,19 @@ impl Erosion {
             if band <= 0.0 {
                 return 1.0;
             }
-            let shares =
-                providers.outcrop_shares(strata.get(i).map_or(&[][..], |s| s.units.as_slice()));
-            1.0 + gain * band * lithology::blend_susceptibility(&shares, &frost_tab)
+            let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
+            1.0 + gain * band * frost_tab.blend(axis, &providers, units, row)
         };
-        if self.par() {
-            self.frost
+        let aw = axis.len();
+        if parallel {
+            frost
                 .par_iter_mut()
                 .enumerate()
-                .for_each(|(i, f)| *f = per_cell(i));
+                .for_each_init(|| vec![0.0f64; aw], |row, (i, f)| *f = per_cell(i, row));
         } else {
-            for i in 0..self.n {
-                self.frost[i] = per_cell(i);
+            let mut row = vec![0.0f64; aw];
+            for (i, f) in frost.iter_mut().enumerate().take(n) {
+                *f = per_cell(i, &mut row);
             }
         }
     }

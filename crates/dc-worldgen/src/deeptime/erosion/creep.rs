@@ -10,8 +10,8 @@
 //! The kernel it drives is the embedded S-10 primitive (E4's future claim).
 
 use super::super::grid::{DeepConfig, DeepGrid};
+use super::Erosion;
 use super::creep_kernel::{CREEP_MAX_EDGE_COEFF, eff_diff};
-use super::{Erosion, SPECIES};
 
 impl Erosion {
     /// Turn **material-aware hillslope creep** on (Movement 2b continuation (b),
@@ -29,14 +29,16 @@ impl Erosion {
     pub fn set_material_creep(&mut self, on: bool) {
         self.creep_carries = on && self.sorted;
         if !self.creep_carries {
-            self.creep_sp = Vec::new();
+            self.creep_sp.clear();
             self.creep_gross = Vec::new();
+            self.clayout = Default::default();
             return;
         }
-        if self.creep_sp.len() != self.n * SPECIES {
-            self.creep_sp = vec![0.0; self.n * SPECIES];
-            self.creep_gross = vec![0.0; self.n];
-        }
+        assert!(
+            !self.axis.is_empty(),
+            "material-aware creep needs a species axis — it moves the same window              composition the load entrains from (P11 slice 2)"
+        );
+        self.creep_gross = vec![0.0; self.n];
     }
 
     /// Whether material-aware hillslope creep is on.
@@ -46,11 +48,18 @@ impl Erosion {
     }
 
     /// **What hillslope creep delivered to each cell in the last epoch, per
-    /// species** (`n × SPECIES` metres, signed; empty when creep carries no
-    /// identity). The colluvial half of the mixture [`Self::record`] names the
-    /// arriving unit from.
+    /// species** — a CSR plane over the creep layout, signed (empty when creep
+    /// carries no identity). The colluvial half of the mixture [`Self::record`]
+    /// names the arriving unit from. Read cell `c`'s row with
+    /// [`Self::creep_layout`]`.row(c)`.
     pub fn creep_species(&self) -> &[f64] {
-        &self.creep_sp
+        self.creep_sp.vals()
+    }
+
+    /// The layout [`Self::creep_species`] is laid out against — the window dilated
+    /// by one 4-neighbourhood ring, since creep moves the **donor's** composition.
+    pub fn creep_layout(&self) -> &super::super::species::SpeciesLayout {
+        &self.clayout
     }
 
     /// **The largest relative gap between the creep itemisation and its own

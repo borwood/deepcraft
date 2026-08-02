@@ -72,7 +72,8 @@ fn cfg_for(cells: &CellGrid) -> DeepConfig {
 ///
 /// The flux record is deliberately species-blind, so this moved **only** with the
 /// routing it accumulates over — case 2, downstream.
-const GOLDEN_FLUX: u64 = 0x08DC_FCE9_0048_B6FA;
+/// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0x08DC_FCE9_0048_B6FA`.
+const GOLDEN_FLUX: u64 = 0xB43D_D464_CE87_3C5C;
 
 fn flux_fingerprint(r: &dc_worldgen::deeptime::FluxRecord) -> u64 {
     fn byte(b: u8, h: &mut u64) {

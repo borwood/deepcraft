@@ -13,8 +13,8 @@
 use rayon::prelude::*;
 
 use super::super::grid::{DeepConfig, DeepGrid};
-use super::transport::split_by_shares;
-use super::{Erosion, NEIGH4, SPECIES, coords_of, in_grid};
+use super::super::species::{SpeciesLayout, csr_rows_mut, split_row_into};
+use super::{Erosion, NEIGH4, coords_of, in_grid};
 
 /// A per-cell erodibility multiplier, or the exact identity `1.0` when the
 /// plane is empty (coupling off). `x * 1.0` is bit-exact for every finite `x`,
@@ -183,47 +183,83 @@ pub(super) fn diffuse_scale_cell(
 /// much as it gains has a net near zero with real material moving through it, and
 /// dividing a rounding error by *that* would report a leak where there is only
 /// cancellation.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the diffusion kernel's own arity"
-)]
+///
+/// **Sparse since P11 slice 2.** `out` is cell `i`'s row in the *creep* layout —
+/// the window dilated by one 4-ring, so it holds everything cell `i` and its four
+/// neighbours can donate — and the donor's composition is its own row in the
+/// *window* layout. Both are ascending in axis order and the source is a subset of
+/// the destination, so [`split_row_into`] is a merge walk. **A negative
+/// contribution is written by subtracting the split's own output**, not by
+/// splitting a negative quantity, so the two endpoints of an edge still see bit-
+/// identical magnitudes.
+pub(super) struct CreepEdges<'a> {
+    pub w: usize,
+    pub surf: &'a [f64],
+    pub scale: &'a [f64],
+    pub diffusion: f64,
+    pub resist: &'a [f32],
+    pub sus: &'a [f64],
+    /// The window layout and its share plane — where a donor's composition lives.
+    pub window: &'a SpeciesLayout,
+    pub shares: &'a [f64],
+    /// The creep layout — where `out` lives.
+    pub clayout: &'a SpeciesLayout,
+}
+
 #[inline]
 pub(super) fn diffuse_species_cell(
     i: usize,
-    w: usize,
-    surf: &[f64],
-    scale: &[f64],
-    diffusion: f64,
-    resist: &[f32],
-    sus: &[f64],
-    shares: &[f64],
+    ctx: &CreepEdges<'_>,
     out: &mut [f64],
     accumulate: bool,
 ) -> f64 {
+    let CreepEdges {
+        w,
+        surf,
+        scale,
+        diffusion,
+        resist,
+        sus,
+        window,
+        shares,
+        clayout,
+    } = *ctx;
     let (gx, gy) = coords_of(i, w);
     let si = surf[i];
     let mut gross = 0.0;
     if !accumulate {
         out.fill(0.0);
     }
+    let (_, dst_axis) = clayout.row(i);
+    // One scratch row per call, on the stack: the split writes here and is then
+    // added into (or subtracted from) `out`, so a shed edge is the exact negation
+    // of the gained edge at the other endpoint.
+    let mut edge = [0.0f64; super::super::species::MAX_DEEP_SPECIES];
     for (dx, dy) in NEIGH4 {
         if let Some(j) = in_grid(gx + dx, gy + dy, w) {
             let d = si - surf[j];
-            if d > 0.0 {
-                let f = eff_diff(diffusion, resist, sus, i) * d * scale[i];
-                let s = split_by_shares(f, &shares[i * SPECIES..(i + 1) * SPECIES]);
-                for k in 0..SPECIES {
-                    out[k] -= s[k];
-                }
-                gross += f;
-            } else if d < 0.0 {
-                let f = eff_diff(diffusion, resist, sus, j) * (-d) * scale[j];
-                let s = split_by_shares(f, &shares[j * SPECIES..(j + 1) * SPECIES]);
-                for k in 0..SPECIES {
-                    out[k] += s[k];
-                }
-                gross += f;
+            if d == 0.0 {
+                continue;
             }
+            let (donor, f) = if d > 0.0 {
+                (i, eff_diff(diffusion, resist, sus, i) * d * scale[i])
+            } else {
+                (j, eff_diff(diffusion, resist, sus, j) * (-d) * scale[j])
+            };
+            let (sb, src_axis) = window.row(donor);
+            let e = &mut edge[..dst_axis.len()];
+            e.fill(0.0);
+            split_row_into(f, src_axis, &shares[sb..sb + src_axis.len()], dst_axis, e);
+            if d > 0.0 {
+                for (o, v) in out.iter_mut().zip(e.iter()) {
+                    *o -= *v;
+                }
+            } else {
+                for (o, v) in out.iter_mut().zip(e.iter()) {
+                    *o += *v;
+                }
+            }
+            gross += f;
         }
     }
     gross
@@ -337,22 +373,36 @@ impl Erosion {
         // applied from `netdiff` either way, so this pass cannot move a metre of
         // rock — it can only name the metres the pass above already moved.
         if self.creep_carries {
-            let surf = &self.surf;
-            let scale = &self.scale;
-            let resist = &grid.bio_resist;
-            let sus = &self.sus_creep;
-            let shares = &self.shares;
-            let creep = &mut self.creep_sp;
-            let gross = &mut self.creep_gross;
+            let Erosion {
+                surf,
+                scale,
+                sus_creep,
+                window,
+                shares,
+                clayout,
+                creep_sp,
+                creep_gross,
+                ..
+            } = self;
+            let ctx = CreepEdges {
+                w,
+                surf,
+                scale,
+                diffusion: diff,
+                resist: &grid.bio_resist,
+                sus: sus_creep,
+                window,
+                shares: shares.vals(),
+                clayout,
+            };
+            let gross = &mut creep_gross[..];
+            let mut rows = csr_rows_mut(creep_sp.vals_mut(), clayout);
             if parallel {
-                creep
-                    .par_chunks_mut(SPECIES)
+                rows.par_iter_mut()
                     .zip(gross.par_iter_mut())
                     .enumerate()
                     .for_each(|(i, (out, g))| {
-                        let f = diffuse_species_cell(
-                            i, w, surf, scale, diff, resist, sus, shares, out, carry_on,
-                        );
+                        let f = diffuse_species_cell(i, &ctx, out, carry_on);
                         if carry_on {
                             *g += f;
                         } else {
@@ -360,10 +410,8 @@ impl Erosion {
                         }
                     });
             } else {
-                for (i, (out, g)) in creep.chunks_mut(SPECIES).zip(gross.iter_mut()).enumerate() {
-                    let f = diffuse_species_cell(
-                        i, w, surf, scale, diff, resist, sus, shares, out, carry_on,
-                    );
+                for (i, (out, g)) in rows.iter_mut().zip(gross.iter_mut()).enumerate() {
+                    let f = diffuse_species_cell(i, &ctx, out, carry_on);
                     if carry_on {
                         *g += f;
                     } else {
@@ -428,26 +476,29 @@ impl Erosion {
         } else {
             &self.netdiff
         };
-        let mut sum_s = [0.0; SPECIES];
-        let mut abs_s = [0.0; SPECIES];
+        let aw = self.axis.len();
+        let mut sum_s = vec![0.0f64; aw];
+        let mut abs_s = vec![0.0f64; aw];
         let mut worst_item = self.creep_itemisation_residue;
-        for (i, row) in self.creep_sp.chunks(SPECIES).enumerate() {
+        let vals = self.creep_sp.vals();
+        for (i, (&total, &gross)) in net_total.iter().zip(self.creep_gross.iter()).enumerate() {
+            let (b, ks) = self.clayout.row(i);
             let mut net = 0.0;
-            for (k, &v) in row.iter().enumerate() {
+            for (j, &k) in ks.iter().enumerate() {
+                let v = vals[b + j];
                 net += v;
-                sum_s[k] += v;
-                abs_s[k] += v.abs();
+                sum_s[k as usize] += v;
+                abs_s[k as usize] += v.abs();
             }
-            let gross = self.creep_gross[i];
             if gross > 0.0 {
-                let rel = (net - net_total[i]).abs() / gross;
+                let rel = (net - total).abs() / gross;
                 if rel > worst_item {
                     worst_item = rel;
                 }
             }
         }
         self.creep_itemisation_residue = worst_item;
-        for k in 0..SPECIES {
+        for k in 0..aw {
             if abs_s[k] > 0.0 {
                 let rel = sum_s[k].abs() / abs_s[k];
                 if rel > self.creep_conservation_residue {
@@ -467,6 +518,19 @@ impl Erosion {
 #[cfg(test)]
 mod creep_tests {
     use super::*;
+
+    /// A seven-wide dense row and the axis codes that address it — the shape the
+    /// class-grade split used to take, re-expressed as a sparse row so the four
+    /// laws below still say exactly what they said.
+    const SPECIES: usize = 7;
+    fn codes() -> [u8; SPECIES] {
+        std::array::from_fn(|i| i as u8)
+    }
+    fn split_by_shares(total: f64, shares: &[f64]) -> [f64; SPECIES] {
+        let mut out = [0.0; SPECIES];
+        split_row_into(total, &codes(), shares, &codes(), &mut out);
+        out
+    }
 
     /// **The split closes exactly.** `Σ_species` of a composition split is the
     /// quantity that went in, to the bit — not to an epsilon. That is the whole

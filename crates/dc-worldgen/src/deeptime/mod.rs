@@ -252,10 +252,18 @@ pub fn run_cells_with_geology(
     // Movement 2b: the load becomes a multiset of (lithology, quantity). Off ⇒
     // every species vector stays empty and the pass carries a scalar mass, byte
     // for byte.
+    // P11 slice 2: the alphabet the load, the record and the erosion tables are
+    // all resolved against, derived from *this world's* registered content —
+    // never declared, so a pack that registers a member widens the axis by
+    // construction. Before `set_material_transport`, which requires it.
+    erosion.set_species_axis(geology);
     erosion.set_material_transport(cfg.material_transport);
     // journal/0111: the read-only denudation counters. Off ⇒ no branch fires and
     // the shoreline-creep sweep is never called — byte- and cost-identical.
     erosion.set_denudation_ledger(cfg.denudation_ledger);
+    // P11 slice 2: the draw-retirement instrument. Off ⇒ no counterfactual draw is
+    // ever evaluated and the run is byte- and cost-identical.
+    erosion.set_identity_audit(cfg.identity_audit);
     // Movement 2b continuation (b): the gravity/mass-wasting member of the same
     // family. **After** `set_material_transport`, which it is gated on — creep
     // moves the composition that pass publishes. Off ⇒ the creep plane stays empty

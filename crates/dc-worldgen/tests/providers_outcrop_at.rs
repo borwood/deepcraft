@@ -15,8 +15,17 @@ use dc_worldgen::deeptime::{
 
 /// The derived outcrop verdict on the identity provider set — `argmax` of the
 /// near-surface window shares.
+/// **The seam speaks member grade since P11 slice 2**, so the verdict — which is
+/// still `argmax ∘ outcrop_shares`, still derived and still not a slot — needs the
+/// alphabet a world supplies. The falsifiers below are unchanged: they are
+/// statements about the *thickness-dominance* rule, and that rule does not know
+/// what grade it is accumulating at.
 fn identity_outcrop_at(units: &[DepUnit]) -> Litho {
-    Providers::default().outcrop_at(units)
+    let axis = dc_worldgen::deeptime::species::SpeciesAxis::new(
+        &dc_core::materials::geology::vanilla(),
+        dc_worldgen::deeptime::lithology::DEEP_BASEMENT,
+    );
+    Providers::default().outcrop_at(&axis, units)
 }
 
 /// The recorder logs units bottom-up: `units[0]` is deepest, the last is the

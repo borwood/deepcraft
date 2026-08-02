@@ -162,9 +162,12 @@ pub struct DepositCtx<'a> {
     /// ⚠ **INTERIM SCAFFOLDING. This draw exists only until the record can answer
     /// the question without rolling for it, and both of its heirs are sequenced:**
     ///
-    /// - **P11 slice 2** retires it for **transported** deposits: identity comes
-    ///   from the *arriving composition term* — what the mover actually carried —
-    ///   so there is nothing left to pick.
+    /// - **P11 slice 2 DID retire it for transported deposits** (2026-08-02):
+    ///   identity comes from the *arriving composition term* — what the mover
+    ///   actually carried — so there is nothing left to pick. The draw is reached
+    ///   only where the un-carried remainder won, or on a **transformation edge**
+    ///   (basement → coarse detritus, detrital organics → carbonaceous mud), where
+    ///   the destination member is a fact about the site and not about the parent.
     /// - **FS-A** retires it for **weathered** material: release spectra say what
     ///   a parent rock sheds, so the product's identity is derived, not drawn.
     ///
@@ -209,9 +212,10 @@ impl DepositCtx<'_> {
         tag: u64,
         k: u64,
     ) -> MaterialId {
-        // INTERIM SCAFFOLDING — heirs: P11 slice 2 (transported deposits take
-        // their identity from the arriving composition term) and FS-A (weathering
-        // release spectra). See `DepositCtx::chapter`. Addressed by CHAPTER, not
+        // INTERIM SCAFFOLDING, now HALF RETIRED — P11 slice 2 took the
+        // transported deposits (2026-08-02); FS-A takes the weathered ones
+        // (release spectra). What reaches here is the genuine-degeneracy
+        // remainder. See `DepositCtx::chapter`. Addressed by CHAPTER, not
         // epoch: the draw is fixed while the fitness weights move, so identity
         // turns over when conditions do and not on a per-step coin.
         let u = self.draws.unit(&[tag, self.cell, self.chapter, k]);

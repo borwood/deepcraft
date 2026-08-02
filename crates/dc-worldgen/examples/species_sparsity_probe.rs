@@ -25,6 +25,15 @@
 //! fractionate (which the residual split guarantees it does not — every species
 //! present in the load is offered to every weighted face).
 //!
+//! ⚠ **SINCE THE CONVERSION LANDED THIS PROBE READS THE SOLVE, NOT A MODEL OF IT**
+//! (P11 slice 2). It used to rebuild all three layouts from the finished grid,
+//! because the solve did not have any — the planes were dense. Now the solve owns
+//! them, so the probe asks it (`Erosion::species_layouts` /
+//! `Erosion::species_bytes`) instead of re-deriving. A probe that computed its own
+//! layout would be a second construction that can silently disagree with the one
+//! the world was actually built by (S-3), and the whole point of the measurement
+//! is what the world *costs*.
+//!
 //! ⚠ **It is ONE epoch — the last one — not a run average.** The routing and the
 //! record both move every epoch, and this probe reads the state the run ended in.
 //! An early epoch has a thinner record (more of the window is basement deficit, so
@@ -40,20 +49,11 @@
 
 use std::time::Instant;
 
-use dc_core::materials::MaterialId;
-use dc_worldgen::deeptime::lithology::exposed_member_shares;
-use dc_worldgen::deeptime::species::{
-    SpeciesAxis, SpeciesLayout, build_creep_layout, build_local_layout, build_transport_layout,
-    mask_of_dense,
-};
+use dc_worldgen::deeptime::species::SpeciesLayout;
 use dc_worldgen::deeptime::{DeepConfig, production_config, run_cells};
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
 const SEED: u64 = 1337;
-
-/// The basement rock below the whole sedimentary pile — `Litho::Basement`'s
-/// reference material, named here rather than routed through the class view.
-const BASEMENT: MaterialId = MaterialId::GRANITE;
 
 fn mib(bytes: usize) -> f64 {
     bytes as f64 / (1024.0 * 1024.0)
@@ -113,47 +113,17 @@ fn measure(cells: &CellGrid) -> Report {
     let deep_secs = t.elapsed().as_secs_f64();
     let grid = &run.grid;
     let n = grid.w * grid.w;
-    let axis = SpeciesAxis::new(&dc_core::materials::geology::vanilla(), BASEMENT);
-    let w = axis.len();
-
-    // The window composition of every cell, at member grade, and its mask.
-    let mut row = vec![0.0f64; w];
-    let mut masks = vec![0u64; n];
-    for (c, mask) in masks.iter_mut().enumerate() {
-        let units = grid.strata.get(c).map_or(&[][..], |s| s.units.as_slice());
-        exposed_member_shares(&axis, units, &mut row);
-        *mask = mask_of_dense(&row);
-    }
-
-    let mut window = SpeciesLayout::empty();
-    build_local_layout(&mut window, n, &masks);
-
-    // The transport seed is the window PLUS the bedrock beneath it: incision
-    // detaches material from below the record, so basement can enter the load at
-    // any cell the flow cuts into rock.
-    let bedrock_bit = 1u64 << axis.slot_of(BASEMENT);
-    let seed: Vec<u64> = masks.iter().map(|m| m | bedrock_bit).collect();
-    let mut transport = SpeciesLayout::empty();
     let er = &run.erosion;
-    build_transport_layout(
-        &mut transport,
-        n,
-        &seed,
-        er.processing_order(),
-        |c, push| er.out_edges(c, push),
-    );
-
-    let mut creep = SpeciesLayout::empty();
-    build_creep_layout(&mut creep, grid.w, &masks);
+    let axis = er.species_axis();
+    let w = axis.len();
+    // **Asked of the solve, not re-derived.** These are the layouts the last epoch
+    // actually ran on.
+    let (window, transport, creep) = er.species_layouts();
 
     // The four budget planes: `qs_sp` and `dep_sp` over the transport layout,
-    // `creep_sp` over the creep layout, `shares` over the window layout.
-    let sparse_planes_bytes = transport.nnz() * 8 * 2
-        + creep.nnz() * 8
-        + window.nnz() * 8
-        + transport.approx_bytes()
-        + creep.approx_bytes()
-        + window.approx_bytes();
+    // `creep_sp` over the creep layout, `shares` over the window layout — plus the
+    // three CSR row indices, which the solve also pays for.
+    let sparse_planes_bytes = er.species_bytes();
     let dense_planes_bytes = n * w * 8 * 4;
     let class_planes_bytes = n * 7 * 8 * 4;
 
@@ -166,9 +136,9 @@ fn measure(cells: &CellGrid) -> Report {
             .collect(),
         n,
         deep_secs,
-        window: sparsity(&window, n),
-        transport: sparsity(&transport, n),
-        creep: sparsity(&creep, n),
+        window: sparsity(window, n),
+        transport: sparsity(transport, n),
+        creep: sparsity(creep, n),
         dense_planes_bytes,
         sparse_planes_bytes,
         class_planes_bytes,
@@ -282,6 +252,25 @@ mod gate {
              closure ({:.3})",
             r.window.mean,
             r.transport.mean
+        );
+    }
+
+    /// **The measured residency is the one the solve pays**, and it must be
+    /// strictly under the dense member-grade comparand — otherwise sparse is dense
+    /// with extra bookkeeping and ruling 3 bought nothing. Asserted as an
+    /// inequality, never as a MiB figure: the magnitudes move whenever the record
+    /// or the routing does, and a test pinned to yesterday's number fails because a
+    /// colleague improved the world.
+    ///
+    /// Scale-free: it is `nnz < n × width`, a statement about the row index.
+    #[test]
+    fn the_sparse_planes_cost_less_than_the_dense_ones_they_replace() {
+        let r = small();
+        assert!(
+            r.sparse_planes_bytes < r.dense_planes_bytes,
+            "CSR ({} B) is not cheaper than dense member grade ({} B)",
+            r.sparse_planes_bytes,
+            r.dense_planes_bytes
         );
     }
 
