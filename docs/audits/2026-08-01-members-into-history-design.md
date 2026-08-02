@@ -42,6 +42,13 @@ field list and flagged as such.
 >    the identity FIELD is E7's manifest (the rule is written; the field is not — the
 >    2026-07-22 seam inventory). Caught by the user's memory before ruling; second
 >    instance of corrections #81's shape in three days.
+> **⚠ § 3.1's "zero-byte swap" headline: TRUE PER UNIT, INVERTED IN AGGREGATE —
+> corrections #85** (identity joined the merge key; per-epoch draw measured 2.4053× units
+> / +110.5 MiB; the (cell, chapter) interim collapsed it to 1.2775× / ≈ main). § 9 items
+> 2–3 discharged by the slice (layout compile-asserted; tie rule documented). R9's
+> "structurally fixes #31" is half right — identity yes, veneer context no (stubs #31
+> narrowed, banner there).
+>
 > 6. **IDENTITY PROPAGATES; THE DEPOSITION DRAW IS NAMED SCAFFOLDING** (user,
 >    2026-08-02, at slice 1's harvest): *"the interim does not matter in any way shape
 >    or form... we are marching toward slice 2 ASAP. this is not a real fork."*

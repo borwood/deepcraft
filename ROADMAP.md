@@ -439,6 +439,20 @@ two).
    standing *"worldgen time is not a constraint"* position, which S13 already framed as a
    renegotiation rather than a blocker), or take the `(cell, chapter)` draw fork above —
    **one change fixes both costs, because they have one cause.**
+   **✅ RESOLVED AT MERGE (2026-08-02, tip `5914e708`): the `(cell, chapter)` interim
+   address was applied per ruling 6's "not a real fork" — measured at tip: split factor
+   **1.2775×** (5,782,931 units), residency **≈ main** (357,154,365 vs 357,169,261),
+   Medium pregen **faster than main** (41.8–42.2 s vs 42.6–42.9 s), and
+   `pregen_time_vs_extent` **passes**. Neither user-owned resolution was needed; the
+   budget stands unmoved. The two paragraphs above are the dated per-epoch measurement,
+   kept as the record of why the address matters.**
+   **⚠ GOLDENS: the final address change moved goldens that are NOT re-captured — slice 2
+   moves them again (draw retirement) and owns the single capture. Until then the golden
+   families are EXPECTED RED on main: the RECORD halves (`GOLDEN_RECORD` + 5 variants),
+   CONTENTS (two Medium triples), the SURFACE family + `GOLDEN_GEOTHERM`/`GOLDEN_FLUX`/
+   `GOLDEN_FAR_SURFACE`, and `GOLDEN_HEAD`. Accepted as-is by user ruling 2026-08-02;
+   the full workspace gate was deliberately NOT run on merged main — slice 2's merge
+   gate is the next full verification.**
 2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
    **composition slice folds in here** (the per-face species split records into a sparse
@@ -4074,7 +4088,60 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-01 LATE close (the "geo" session; supersedes every earlier block — the bodies-thread block below remains the valid pickup for THAT thread)
+## NEXT SESSION — written at the 2026-08-02 close (geo session FINAL; supersedes both blocks below — the bodies block remains the pickup for THAT thread)
+
+**Read first:** sweeps hook (if due) → `docs/dependency-graph.md` P11 row → this block →
+the P11 audit header's **six rulings** → journal/0134 + 0135 (with its merge postscript).
+
+### The paragraph that matters
+**P11 slice 1 is MERGED (`5f16dd1`, accepted as-is by user ruling): the deep record names
+rocks.** `DepUnit.species` is a `MaterialId`; fitness runs at deposition under each epoch's
+own context; both multi-member classes record both members at healthy shares; the
+`(cell, chapter)` interim address (ruling 6's cheap fix) collapsed the fragmentation —
+split 1.28×, residency ≈ main, pregen FASTER than main. **Ruling 6 governs everything
+next:** *identity propagates; the draw is scaffolding with two named heirs.*
+
+### ⚠ GATE STATE — read before trusting any red or green
+The full workspace gate was **deliberately not run** on merged main (user: accept as-is;
+march). Golden families are **EXPECTED RED until slice 2's single capture**: RECORD halves
+(`GOLDEN_RECORD` + 5 variants) · CONTENTS (two Medium triples) · SURFACE family +
+`GOLDEN_GEOTHERM`/`GOLDEN_FLUX`/`GOLDEN_FAR_SURFACE` · `GOLDEN_HEAD`. Everything else was
+green at the agent's full gate (889 passed) and its final targeted smoke (lib 194/194,
+deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
+
+### First things (user-sequenced: "next session will start off slice 2 and U1→FS-A")
+1. **Dispatch P11 slice 2, FRESH agent** — scope is the arc's slice-2 entry (sparse
+   member-grade transport · the composition term, measuring per-face sparsity `p` ·
+   **retire the deposition draw for transported deposits per ruling 6** — identity =
+   argmax of arriving mix, deterministic tie rule, full mix preserved on faces) + the
+   expected-red golden list above (it owns the single re-capture) + Law-3 closure + the
+   standard brief discipline. Slice 2's merge gate is the next full verification.
+2. **U1 → FS-A**: present U1 for ruling (leaning recorded in the P10 audit header: grain
+   as a state on the loose form of the source identity; the sidebar unpacking is in this
+   session's log); on ratification, FS-A dispatches behind slice 2's merge.
+3. **P2 measurement runs** (plan in the P2 audit; needs the build slot) after slice 2.
+4. **The walk debt is now TWO stacked appearance changes** (octaves 2026-07-29 + P11
+   member diversity — *"this is what a walk will see"*) — walk after slice 2, new tour
+   map first (land filter + a Single-span two-member-class station + now a
+   member-diversity station).
+
+### This session's numbered artifacts
+Corrections **#74–76, #84–86** (all targets stamped) · journals **0134, 0135** · stubs
+**#31 narrowed, #32–34 added** · P11 audit (6 rulings) · P2 derivation (craton ruling in
+header) · P10 design (U1 leaning in header) · record-terms rulings 1–2 (ruling 3 HELD →
+re-enters after slice 2).
+
+### Machine state at close
+No agents of THIS session running; its three worktrees merged and removed. One worktree
+remains that is NOT this session's (`agent-a4931a413642f6dc4` at `45b5014`) — presumed
+the parallel bodies session's; left untouched, verify ownership there before pruning.
+Working tree clean, pushed. `.agent-build.lock` free; no live cargo/rustc/dc-client;
+port 7777 free. A parallel USER session shares the checkout — **stage explicit paths,
+never `add -A`**.
+
+---
+
+## NEXT SESSION — written at the 2026-08-01 LATE close (SUPERSEDED by the 2026-08-02 FINAL block above)
 
 **Read first:** the sweeps hook (if due) → `docs/dependency-graph.md` (P11 row) → this
 block → `docs/audits/2026-08-01-members-into-history-design.md` header (the five P11
