@@ -1436,12 +1436,13 @@ class the tree already carries (`flow_energy`, soft fitness), instance new.
   (`ideas.md` § procedural-attacks' exact warning). **Deadline: before member 2 (B3)
   moves the firewall** — after that, the binding key of a versioned sim asset is a
   migration, not a recompile.
-- **Loudness:** doc-comment marker on `JointRot.segment` naming this entry — **lands with
-  the B0 slice** (the field is untouched until then; this entry is the listing half of
-  the loose-end doctrine meanwhile). B0's system consumers of roles (look-at) resolve
-  **unique-or-loud at query time**, already louder than the name lookups they replace
-  (`character.rs` `== "neck"` / `== "head"`, silent no-ops on a miss).
+- **Loudness:** ✅ the doc-comment marker on `JointRot.segment` **landed with the B0 slice
+  (2026-08-01, journal/0135)**, naming this entry. B0's system consumers of roles
+  (look-at, face) resolve **unique-or-loud at query time** — the `== "neck"` /
+  `== "head"` silent no-ops are gone.
 - **Blast radius:** `JointRot.segment` + `validate_plan`'s joint-membership check
   (`bodies.rs`) · the centaur property rides unchecked until the heir (shared names,
   working, journal/0130) · `bodies.md` § Clothing's binding key · § Body plans' fork
-  inheritance · § Sockets when built.
+  inheritance · § Sockets when built. *(B0 already retired the adjacent `leg_rigs`
+  naming coupling — that one was a derivation, not a binding, and declared soles
+  replaced it.)*

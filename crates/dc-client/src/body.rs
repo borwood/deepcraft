@@ -337,38 +337,77 @@ pub struct LegRig {
     pub l2: f64,
 }
 
-/// Derive each leg's two-bone rig from a body plan: hip = parent(upper).pivot +
-/// upper.pivot; `l1` = |lower.pivot| (hip→knee); `l2` = |lower.offset.y| +
-/// lower.size.y / 2 (knee→sole). Generic over any `leg_*_upper` / `leg_*_lower`
-/// pair, so a plan is not required to be a biped to get foot placement — it is
-/// required only to *name* its legs that way (a naming coupling, noted honestly:
-/// see the second-plan report).
+/// Derive each leg's two-bone rig from a body plan's **declared soles** (B0):
+/// a stance chain is found by walking parents from each `sole`-bearing segment
+/// to the first branch point, and a two-bone rig is built when that chain is
+/// exactly two segments — `[lower, upper]`. `hip` = the pivots accumulated
+/// from the root down to the upper bone; `l1` = |lower.pivot| (hip→knee);
+/// `l2` = the distance from the knee pivot to the declared sole anchor
+/// (knee→sole).
+///
+/// This retires the `starts_with("leg_")` / `_upper`→`_lower` naming coupling
+/// that used to live here (anti-shape A-7 — a content identity inside a
+/// process; flagged in its own doc comment since the second-plan report). A
+/// plan now gets foot placement by *declaring* where it meets the ground, in
+/// any names it likes. A sole chain that is not two bones gets no rig — the
+/// solver is two-bone; a longer chain is a feature the first such body will
+/// have to argue for, not a silent partial answer.
 pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
     let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
+    let child_count = |name: &str| {
+        plan.segments
+            .iter()
+            .filter(|s| s.parent.as_deref() == Some(name))
+            .count()
+    };
     let mut legs = Vec::new();
-    for upper in plan
-        .segments
-        .iter()
-        .filter(|s| s.name.starts_with("leg_") && s.name.ends_with("_upper"))
-    {
-        let lower_name = upper.name.replace("_upper", "_lower");
-        let Some(lower) = seg_by(&lower_name) else {
-            continue;
+    for sole in dc_api::bodies::segments_with_role(plan, "sole") {
+        // Walk parents from the sole segment to the first branch point (a
+        // segment with ≥2 children) or the root — the chain is DERIVED, the
+        // contact is DECLARED.
+        let mut chain = vec![sole];
+        let mut cur = sole;
+        while let Some(parent) = cur.parent.as_deref().and_then(seg_by) {
+            if child_count(&parent.name) >= 2 || parent.parent.is_none() {
+                break;
+            }
+            chain.push(parent);
+            cur = parent;
+        }
+        let &[lower, upper] = &chain[..] else {
+            continue; // not a two-bone chain; no rig (see doc comment)
         };
-        let hip_local = match upper.parent.as_deref().and_then(seg_by) {
-            Some(parent) => [
-                parent.pivot_m[0] + upper.pivot_m[0],
-                parent.pivot_m[1] + upper.pivot_m[1],
-                parent.pivot_m[2] + upper.pivot_m[2],
-            ],
-            None => upper.pivot_m,
-        };
+        // Hip = every pivot from the root down to (and including) the upper
+        // bone. For the shipped plans this is trunk.pivot + upper.pivot,
+        // byte-identical to the retired one-level formula.
+        let mut hip_local = upper.pivot_m;
+        let mut a = upper;
+        while let Some(p) = a.parent.as_deref().and_then(seg_by) {
+            hip_local[0] += p.pivot_m[0];
+            hip_local[1] += p.pivot_m[1];
+            hip_local[2] += p.pivot_m[2];
+            a = p;
+        }
         let l1 =
             (lower.pivot_m[0].powi(2) + lower.pivot_m[1].powi(2) + lower.pivot_m[2].powi(2)).sqrt();
-        let l2 = lower.offset_m[1].abs() + lower.size_m[1] / 2.0;
+        let anchor = sole
+            .roles
+            .iter()
+            .find(|r| r.role == "sole")
+            .and_then(|r| r.at_m)
+            .unwrap_or([0.0, -(lower.offset_m[1].abs() + lower.size_m[1] / 2.0), 0.0]);
+        // Knee→sole. The straight-down fast path is exact where the anchor
+        // sits directly under the pivot (every shipped plan) — byte-identical
+        // to the retired `|offset.y| + size.y/2`; the general norm serves an
+        // offset anchor without pretending the shipped numbers moved.
+        let l2 = if anchor[0] == 0.0 && anchor[2] == 0.0 {
+            anchor[1].abs()
+        } else {
+            (anchor[0].powi(2) + anchor[1].powi(2) + anchor[2].powi(2)).sqrt()
+        };
         legs.push(LegRig {
             upper: upper.name.clone(),
-            lower: lower_name,
+            lower: lower.name.clone(),
             hip_local,
             l1,
             l2,

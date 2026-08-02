@@ -1,11 +1,13 @@
 //! Body-plan / anim-clip registry conformance (docs/design/bodies.md steps
-//! 1–2): plans and clips as data through the command door — namespace
-//! ownership, the define-order (clips then plan), the verb→slot contract
-//! checked at define time, and the default body pack as a recorded command
-//! batch that round-trips into the authored source.
+//! 1–2, reshaped by B0 2026-08-01): plans and clips as data through the
+//! command door — namespace ownership, the define-order (clips then plan),
+//! the you-supplied-what-you-claimed contract checked at define time (the
+//! action vocabulary is OPEN; the verb→slot contract is retired), and the
+//! default body pack as a recorded command batch that round-trips into the
+//! authored source.
 
 use dc_api::bodies::{
-    AnimSlot, DEFAULT_BODY_PLAN, biped_clips, biped_plan, default_body_pack, experiment_body_pack,
+    ActionDef, DEFAULT_BODY_PLAN, biped_clips, biped_plan, default_body_pack, experiment_body_pack,
     longleg_plan, stout_plan,
 };
 use dc_api::payload::{DefineAnimClip, DefineBodyPlan, QueryData, SpawnCharacter, Vec3f};
@@ -164,8 +166,9 @@ fn the_experiment_pack_is_separate_and_carries_no_clips() {
 }
 
 /// And the experiment pack **cannot** load on its own: submitted into a world
-/// without the default pack's clips, the verb→slot contract rejects it. This is
-/// the ordering constraint stated as a test rather than as a comment.
+/// without the default pack's clips, the you-supplied-what-you-claimed
+/// contract rejects it (its actions bind unregistered clips). This is the
+/// ordering constraint stated as a test rather than as a comment.
 #[test]
 fn the_experiment_pack_requires_the_default_packs_clips() {
     let mut world = HostWorld::new(1);
@@ -304,8 +307,11 @@ fn plan_before_its_clips_is_rejected() {
     assert!(world.body_plan("dc:body/biped").is_none());
 }
 
+/// B0: the action vocabulary is OPEN and nothing is mandatory — a plan with
+/// no locomotion at all (a tree) defines through the door. `REQUIRED_VERBS`
+/// used to reject exactly this, at define time, on no machine justification.
 #[test]
-fn missing_required_slot_rejects_at_define_time() {
+fn a_plan_with_no_actions_defines_through_the_door() {
     let mut world = HostWorld::new(1);
     let (src, token) = definer("dc");
     for clip in biped_clips() {
@@ -315,21 +321,17 @@ fn missing_required_slot_rejects_at_define_time() {
         );
     }
     let mut plan = biped_plan();
-    plan.slots.retain(|s| s.verb != "walk"); // drop the required walk slot
+    plan.actions.clear();
     let r = apply(
         &mut world,
         envelope(&src, &token, Payload::DefineBodyPlan(DefineBodyPlan(plan))),
     );
-    match r {
-        CommandResult::Rejected(RejectReason::SchemaViolation { reason }) => {
-            assert!(reason.contains("walk"), "{reason}");
-        }
-        other => panic!("expected a schema violation naming walk, got {other:?}"),
-    }
+    assert!(r.is_ok(), "a tree does not walk, and defines: {r:?}");
+    assert!(world.body_plan("dc:body/biped").is_some());
 }
 
 #[test]
-fn slot_bound_to_missing_clip_rejects() {
+fn action_bound_to_missing_clip_rejects() {
     let mut world = HostWorld::new(1);
     let (src, token) = definer("dc");
     for clip in biped_clips() {
@@ -340,9 +342,9 @@ fn slot_bound_to_missing_clip_rejects() {
     }
     let mut plan = biped_plan();
     // Rebind walk to a clip that was never registered.
-    plan.slots
+    plan.actions
         .iter_mut()
-        .find(|s| s.verb == "walk")
+        .find(|a| a.action == "walk")
         .unwrap()
         .clip = "dc:anim/ghost".into();
     let r = apply(
@@ -383,9 +385,10 @@ fn bad_parent_rejects_at_define_time() {
 }
 
 #[test]
-fn a_new_verb_needs_zero_new_payload_variants() {
-    // The whole point of data-defined plans: adding a plan that supports a new
-    // verb (here still within the known set) needs no new Rust types. A foreign
+fn a_new_action_needs_zero_new_payload_variants() {
+    // The whole point of data-defined plans: adding a plan that supports its
+    // own actions needs no new Rust types — and since B0 the names need no
+    // engine's permission either (`ooze` is nobody's known verb). A foreign
     // plugin defines its own clip + plan joining the machinery.
     let mut world = world_with_default_bodies();
     let (src, token) = definer("mod");
@@ -426,14 +429,16 @@ fn a_new_verb_needs_zero_new_payload_variants() {
             size_m: [1.0, 1.0, 1.0],
             offset_m: [0.0, 0.5, 0.0],
             tint: [0.5, 0.5, 0.5],
+            roles: vec![],
         }],
-        slots: vec![
-            AnimSlot {
-                verb: "idle".into(),
+        modes: vec![],
+        actions: vec![
+            ActionDef {
+                action: "idle".into(),
                 clip: "mod:anim/blob_idle".into(),
             },
-            AnimSlot {
-                verb: "walk".into(),
+            ActionDef {
+                action: "ooze".into(),
                 clip: "mod:anim/blob_walk".into(),
             },
         ],

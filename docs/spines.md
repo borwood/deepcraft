@@ -1820,6 +1820,19 @@ one lithology a deposit cannot be* — which lives in the lithology **adapter**,
 in a pass, and is a statement about the record's own vocabulary rather than about
 any pack's content.
 
+**Two instances retired 2026-08-01 (B0, journal/0135) — recorded here because spines
+never indexed them while they were live; the body-plan-structure design pass found both
+(its § 5.3, § 6.H).** `dc-client::leg_rigs` derived a body's legs from
+`starts_with("leg_")` / `_upper`→`_lower` string surgery — a content *naming convention*
+inside a process, flagged in its own doc comment since journal/0130 — retired by the
+declared `sole` role (the chain is derived, the contact is declared). And
+`KNOWN_VERBS`/`REQUIRED_VERBS` were the same shape one level up: a closed engine-owned
+vocabulary of content identities with no machine justification (the engine never
+reasoned about *walk* vs *fly* — verbs were clip-slot keys), rejecting a bird and a
+tree at define time. Deleted for the open you-supplied-what-you-claimed contract.
+*Applying this row's diagnostic — which capability was each process missing? — gave
+the answer both times: a **declaration** (role on the part; claim on the plan).*
+
 ---
 
 # 6. The audits (`docs/audits/`)

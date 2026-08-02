@@ -495,9 +495,10 @@ byte-identity tested); and **do not over-quantize** the baked gait or a 3 % limp
 inexpressible — which is corrections #80 in a new costume, already paid for twice.
 
 ~~**Blocked on nothing.**~~ **SUPERSEDED the same day (user): sequencing is `structure →
-posture → gait`** — the resting-posture bake is **B0's successor** (dependency-graph § 2b),
-because deriving contact from three bipeds is the N=1 trap that opened this arc; B0's declared
-roles are what the solver's contacts input reads. ~~The open user call in `bodies.md` § IK …
+posture → gait`** — and **B0 SHIPPED 2026-08-01 (journal/0135)**, so **member #0 (this first
+slice) is now STARTABLE**, with its contacts input reading B0's **declared soles**
+(`segments_with_role`) instead of deriving feet from three bipeds' naming habits — the N=1
+trap (corrections #78) is structurally closed. ~~The open user call in `bodies.md` § IK …
 is **downstream** of this, not upstream.~~ **The § IK call is CLOSED, not open (corrections
 #81)** — dissolved by `posture-gait.md` § 1 the day it was ratified; this paragraph was written
 before that was caught. **Binding-key ruling 2026-08-01 (user):** clips stay address-bound

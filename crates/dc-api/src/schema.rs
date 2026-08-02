@@ -272,25 +272,31 @@ fn s_param_entries(doc: &str) -> Value {
     })
 }
 
-/// Schema for a body plan's `segments`/`slots` (body-plan staircase). Loose
-/// object arrays that mirror serde exactly; the joint-tree and verb→slot
-/// contract are deeply validated at define time.
+/// Schema for a body plan's `segments`/`modes`/`actions` (B0, the declaration
+/// slice). Loose object arrays that mirror serde exactly; the joint tree, the
+/// declarations and the you-supplied-what-you-claimed contract are deeply
+/// validated at define time.
 fn s_body_plan(doc: &str) -> Value {
     json!({
         "type": "object",
         "description": format!(
             "{doc}. Fields: name (namespaced, e.g. dc:body/biped), doc, \
              segments (each {{name, parent|null, pivot_m:[3], size_m:[3], \
-             offset_m:[3], tint:[3]}}), slots (each {{verb, clip}} — verb one \
-             of idle/walk/jump; idle+walk required)."
+             offset_m:[3], tint:[3], roles:[{{role, at_m:[3]|null}}]}} — role \
+             names are an OPEN vocabulary, e.g. sole/look/face), modes (each \
+             {{mode, bearing:[role…]}} — which roles bear weight per locomotor \
+             mode), actions (each {{action, clip}} — action names are OPEN; \
+             nothing is mandatory; every bound clip must be registered and \
+             joint-compatible)."
         ),
         "properties": {
             "name": s_str("namespaced plan name"),
             "doc": s_str("human-readable description"),
-            "segments": {"type": "array", "description": "joint-tree cuboid segments"},
-            "slots": {"type": "array", "description": "verb -> clip bindings"},
+            "segments": {"type": "array", "description": "joint-tree cuboid segments with declared roles"},
+            "modes": {"type": "array", "description": "locomotor modes and their bearing roles"},
+            "actions": {"type": "array", "description": "action -> clip bindings (open vocabulary)"},
         },
-        "required": ["name", "segments", "slots"],
+        "required": ["name", "segments", "actions"],
     })
 }
 
@@ -729,10 +735,11 @@ commands! {
     DefineBodyPlan: Command {
         id: REGISTRY_DEFINE_BODY_PLAN = "dc:registry/define_body_plan",
         doc: "Define a body plan: a joint-tree of cuboid segments plus its \
-              verb->anim-slot bindings. FAILS at define time if a required \
-              verb slot (idle/walk) is unfilled, a verb is unknown, or a \
-              slot binds a missing or joint-incompatible clip. Define its \
-              clips first.",
+              declared roles/modes and its action->clip bindings. Action and \
+              role vocabularies are OPEN (no known list, nothing mandatory); \
+              FAILS at define time only if a claim is unbacked — an action \
+              binds a missing or joint-incompatible clip, or a mode bears on \
+              a role no segment declares. Define its clips first.",
         cap: "registry.define(namespace of name)",
         schema: || s_body_plan("define_body_plan payload"),
         complete: None,

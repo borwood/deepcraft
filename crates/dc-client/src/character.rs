@@ -73,7 +73,7 @@ pub struct CharacterVisuals {
     missing_plans: HashSet<String>,
 }
 
-/// One plan resolved for rendering: the plan itself, the clips its verb→slot
+/// One plan resolved for rendering: the plan itself, the clips its action
 /// bindings name, the per-segment mesh+material, and the leg rigs derived from
 /// its own proportions. Built once per plan and shared across every body of it.
 struct BodyAssets {
@@ -82,12 +82,20 @@ struct BodyAssets {
     walk: AnimClip,
     /// Segment name → (cuboid mesh, tinted material).
     segs: HashMap<String, (Handle<Mesh>, Handle<StandardMaterial>)>,
-    /// The legs' IK rigs (empty if the plan has no `leg_*_upper/lower`), derived
+    /// The legs' IK rigs (empty if the plan declares no `sole` roles), derived
     /// from THIS plan's bone lengths — the whole retargeting story is here.
     legs: Vec<LegRig>,
-    /// v0 face cue: a small dark brow band parented to the head's front (−Z)
-    /// face, so orientation is photographable (placeholder until head textures).
+    /// v0 face cue: a small dark brow band parented to the face segment's front
+    /// (−Z) face, so orientation is photographable (placeholder until head
+    /// textures).
     face: (Handle<Mesh>, Handle<StandardMaterial>),
+    /// The segment the look-at drives — the plan's unique `look` role, resolved
+    /// once here (unique-or-loud; `None` = feature off, which is what a silent
+    /// name miss used to mean). Was `s.name == "neck"`.
+    look_joint: Option<String>,
+    /// The segment wearing the face cue — the plan's unique `face` role.
+    /// Was `s.name == "head"`.
+    face_segment: Option<String>,
 }
 
 /// Mirror the authority's characters into animated bodies: resolve each
@@ -256,13 +264,15 @@ pub fn sync_characters(
                         // the parametric-crouch split).
                         t.y += (pose.root_bob_m - crouch_drop) as f32;
                     }
-                    // IK override on a leg joint; the neck composes the look on
-                    // top of its clip pose; everything else is the clip pose.
+                    // IK override on a leg joint; the declared look joint
+                    // composes the look on top of its clip pose (B0 — was a
+                    // silent `== "neck"` name check); everything else is the
+                    // clip pose.
                     let e = if let Some(o) = leg_overrides.get(&s.name) {
                         *o
                     } else {
                         let base = pose.joints.get(&s.name).copied().unwrap_or([0.0, 0.0, 0.0]);
-                        if s.name == "neck" {
+                        if Some(s.name.as_str()) == assets.look_joint.as_deref() {
                             [
                                 base[0] + orient.neck_pitch,
                                 base[1] + orient.neck_yaw,
@@ -326,14 +336,33 @@ fn build_plan_assets(
     fullbright: bool,
 ) -> Option<BodyAssets> {
     let plan = authority.world.body_plan(name)?.plan.clone();
-    // Verbs → clips through the plan's own bindings, not a hard-coded clip name:
-    // a plan is free to bind any registered clip to `idle`/`walk`.
-    let clip_for = |verb: &str| -> Option<AnimClip> {
-        let slot = plan.slots.iter().find(|s| s.verb == verb)?;
-        Some(authority.world.anim_clip(&slot.clip)?.clip.clone())
+    // Actions → clips through the plan's own bindings, not a hard-coded clip
+    // name. The vocabulary is open (B0); `idle`/`walk` here are what THIS
+    // locomotion driver asks for — a plan that lacks them is a content
+    // failure the caller reports (`None`), never a pose the engine invents.
+    let clip_for = |action: &str| -> Option<AnimClip> {
+        let bound = plan.actions.iter().find(|a| a.action == action)?;
+        Some(authority.world.anim_clip(&bound.clip)?.clip.clone())
     };
     let idle = clip_for("idle")?;
     let walk = clip_for("walk")?;
+    // Role queries, resolved once per plan (B0, unique-or-loud): ambiguity
+    // names the contenders and disables the feature; absence is feature-off —
+    // exactly what a missed name equality used to mean, minus the silence.
+    let look_joint = match dc_api::unique_role_segment(&plan, "look") {
+        Ok(seg) => seg.map(|s| s.name.clone()),
+        Err(e) => {
+            warn!("{e}; look-at disabled for this plan");
+            None
+        }
+    };
+    let face_segment = match dc_api::unique_role_segment(&plan, "face") {
+        Ok(seg) => seg.map(|s| s.name.clone()),
+        Err(e) => {
+            warn!("{e}; face cue disabled for this plan");
+            None
+        }
+    };
 
     let mut segs = HashMap::new();
     for s in &plan.segments {
@@ -366,6 +395,8 @@ fn build_plan_assets(
         segs,
         legs,
         face: (face_mesh, face_material),
+        look_joint,
+        face_segment,
     })
 }
 
@@ -416,10 +447,12 @@ fn spawn_body(
             ))
             .id();
         commands.entity(joint).add_child(cuboid);
-        // v0 face cue: a dark brow band on the head's front (−Z) face, so the
-        // body's facing is photographable (walk-8: orientation was unverifiable
-        // on a featureless head). Placeholder until head textures land.
-        if s.name == "head" {
+        // v0 face cue: a dark brow band on the face segment's front (−Z) face,
+        // so the body's facing is photographable (walk-8: orientation was
+        // unverifiable on a featureless head). Placeholder until head textures
+        // land; the segment is the plan's declared `face` role (B0 — was a
+        // silent `== "head"` name check).
+        if Some(s.name.as_str()) == assets.face_segment.as_deref() {
             let (fm, fmat) = assets.face.clone();
             let face = commands
                 .spawn((

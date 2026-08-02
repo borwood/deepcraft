@@ -39,7 +39,8 @@ pub mod payload;
 pub mod schema;
 
 pub use bodies::{
-    AnimClip, AnimClipDef, AnimSlot, BodyPlan, BodyPlanDef, JointRot, Keyframe, SegmentDef,
+    ActionDef, AnimClip, AnimClipDef, BodyPlan, BodyPlanDef, JointRot, Keyframe, ModeDef, RoleDef,
+    SegmentDef, segments_with_role, unique_role_segment,
 };
 pub use capability::{CapabilityToken, Grant, Requirement};
 pub use character::{CharacterConfig, CharacterInput, CharacterState, Posture};
