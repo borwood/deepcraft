@@ -36,8 +36,8 @@ use glam::DVec3;
 use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
-    AnimState, CROUCH_ROOT_DROP_M, LegRig, fk_foot_local, leg_rigs, pose_for, resolve_orientation,
-    solve_leg_ik,
+    AnimState, CROUCH_ROOT_DROP_M, LegRig, derived_root_delta_m, fk_foot_local, leg_rigs, pose_for,
+    resolve_orientation, solve_leg_ik,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
@@ -84,7 +84,21 @@ struct BodyAssets {
     segs: HashMap<String, (Handle<Mesh>, Handle<StandardMaterial>)>,
     /// The legs' IK rigs (empty if the plan declares no `sole` roles), derived
     /// from THIS plan's bone lengths — the whole retargeting story is here.
+    /// The rigs stay AUTHORED geometry; the bake's `root_delta_m` is applied
+    /// at the consumer (the pose loop), not inside the rig.
     legs: Vec<LegRig>,
+    /// The DERIVED resting root height, metres (posture bake, 2026-08-02:
+    /// `bake_resting_posture(plan, "stand")` — the feet pin the pelvis, so
+    /// the root lands at chain reach: biped 0.880, stout 0.440, longleg
+    /// 1.020). `None` = the bake declined and this plan renders with the
+    /// authored pivot as hip, exactly as it always did (identity fallback,
+    /// warned once at build).
+    derived_root_m: Option<f64>,
+    /// `derived_root_m − authored root pivot Y`, or `0.0` on the identity
+    /// fallback — the delta the pose loop adds to the root segment's
+    /// translation AND to the IK hip, so the rendered body and the solver
+    /// agree on where the pelvis is.
+    root_delta_m: f64,
     /// v0 face cue: a small dark brow band parented to the face segment's front
     /// (−Z) face, so orientation is photographable (placeholder until head
     /// textures).
@@ -139,7 +153,17 @@ pub fn sync_characters(
         }
         match build_plan_assets(name, &authority, &mut meshes, &mut materials, fullbright.0) {
             Some(assets) => {
-                info!("body plan `{name}` resolved from the registry for rendering");
+                match assets.derived_root_m {
+                    Some(root_m) => info!(
+                        "body plan `{name}` resolved from the registry for rendering \
+                         (derived standing root {root_m:.3} m, {:+.3} m vs authored)",
+                        assets.root_delta_m
+                    ),
+                    None => info!(
+                        "body plan `{name}` resolved from the registry for rendering \
+                         (authored root pivot as hip — posture bake declined, see warning)"
+                    ),
+                }
                 visuals.plans.insert(name.to_string(), assets);
             }
             None => {
@@ -224,7 +248,13 @@ pub fn sync_characters(
                     let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
                     let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
                     let (hx, hz) = rotate_y_xz(trunk, leg.hip_local[0], leg.hip_local[2]);
-                    let hip_y = feet.y + leg.hip_local[1] - crouch_drop;
+                    // The DERIVED hip (posture bake): authored hip + bake delta,
+                    // minus the crouch sink — the same delta the root segment's
+                    // translation gets below, so the solver and the rendered
+                    // pelvis agree. (`root_bob_m` is still absent here while the
+                    // render root adds it — corrections #80's temporal half, a
+                    // separate ruled-on defect that rides; do not "fix" it here.)
+                    let hip_y = feet.y + leg.hip_local[1] + assets.root_delta_m - crouch_drop;
                     let (dfx, dfz) = rotate_y_xz(trunk, 0.0, fz);
                     let foot_x = feet.x + hx + dfx;
                     let foot_z = feet.z + hz + dfz;
@@ -260,6 +290,11 @@ pub fn sync_characters(
                         s.pivot_m[2] as f32,
                     );
                     if s.parent.is_none() {
+                        // The DERIVED resting root (posture bake, audit § 5):
+                        // authored pivot + bake delta — identity 0.0 when the
+                        // plan cannot bake, so a fallback plan renders as it
+                        // always did.
+                        t.y += assets.root_delta_m as f32;
                         // Root bob, plus the crouch spine drop (cosmetic half of
                         // the parametric-crouch split).
                         t.y += (pose.root_bob_m - crouch_drop) as f32;
@@ -323,7 +358,9 @@ pub fn sync_characters(
 
 /// Resolve one plan name into render assets **from the registry**: the plan, the
 /// clips its `idle`/`walk` slots bind, per-segment cuboid mesh + tinted material,
-/// the leg rigs derived from this plan's own proportions, and the face cue.
+/// the leg rigs derived from this plan's own proportions, the baked resting-root
+/// delta (the derived hip — computed once per plan here, exactly the
+/// consumer-memoization the posture-bake audit § 3(b) placed), and the face cue.
 ///
 /// `None` when the registry holds no such plan, or the plan's required slots bind
 /// clips that are not registered — a content failure the caller reports rather
@@ -380,6 +417,29 @@ fn build_plan_assets(
         segs.insert(s.name.clone(), (mesh, material));
     }
     let legs = leg_rigs(&plan);
+    // The DERIVED resting root (posture-bake consumer slice, 2026-08-02; audit
+    // § 5): stop pinning the pelvis at the authored hip — bake the standing
+    // posture once per plan and cache the root delta beside the rigs. On any
+    // decline (a tree's legal absence, an out-of-domain geometry) the IDENTITY
+    // FALLBACK is today's behaviour exactly: authored pivot as hip, delta 0,
+    // one warn naming why.
+    let (derived_root_m, root_delta_m) = match derived_root_delta_m(&plan) {
+        Ok(delta) => {
+            let authored = plan
+                .segments
+                .iter()
+                .find(|s| s.parent.is_none())
+                .map_or(0.0, |s| s.pivot_m[1]);
+            (Some(authored + delta), delta)
+        }
+        Err(why) => {
+            warn!(
+                "body plan `{name}`: resting-posture bake declined ({why}); rendering \
+                 with the authored root pivot as hip (identity fallback)"
+            );
+            (None, 0.0)
+        }
+    };
     // The v0 face cue: a thin dark quad across the head's upper front.
     let face_mesh = meshes.add(Cuboid::new(0.2, 0.06, 0.02));
     let face_material = materials.add(StandardMaterial {
@@ -394,6 +454,8 @@ fn build_plan_assets(
         walk,
         segs,
         legs,
+        derived_root_m,
+        root_delta_m,
         face: (face_mesh, face_material),
         look_joint,
         face_segment,

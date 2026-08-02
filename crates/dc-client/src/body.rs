@@ -407,6 +407,40 @@ pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
     legs
 }
 
+/// The derived resting-root DELTA the renderer applies on top of the authored
+/// root pivot, metres (posture-bake consumer slice, 2026-08-02; audit
+/// `docs/audits/2026-08-02-posture-bake-member0-design.md` § 5): the standing
+/// bake's `root_height_m` minus the plan's authored root `pivot_m[1]`. The
+/// pelvis stops being pinned at the authored hip — the feet pin it, and the
+/// root lands at chain reach (biped 0.880 m, stout 0.440 m, longleg 1.020 m
+/// against authored 0.900/0.460/0.900).
+///
+/// `Err(reason)` when the bake declines — a mode-less plan (a tree, a legal
+/// absence) or an out-of-domain geometry (the bake's own loud refusal). The
+/// caller then renders with the authored pivot unchanged (the IDENTITY
+/// FALLBACK: a plan that cannot bake keeps rendering as it always did) and
+/// warns once, naming why.
+///
+/// `"stand"` is the slice-one posture placeholder (the bake's own module doc:
+/// the posture axis becomes registry content by namespaced id —
+/// `dc:posture/stand` — at the consumer migration). The delta is applied at
+/// the CONSUMER — [`leg_rigs`]' `hip_local` stays authored geometry, and
+/// `character.rs` adds this delta to both the rendered root and the IK hip.
+pub fn derived_root_delta_m(plan: &BodyPlan) -> Result<f64, String> {
+    use dc_api::bodies::{BakeOutcome, bake_resting_posture};
+    let Some(root) = plan.segments.iter().find(|s| s.parent.is_none()) else {
+        return Err(format!("plan `{}` has no root segment", plan.name));
+    };
+    match bake_resting_posture(plan, "stand") {
+        BakeOutcome::Baked(p) => Ok(p.root_height_m - root.pivot_m[1]),
+        BakeOutcome::NothingDeclared => Err(format!(
+            "plan `{}` declares no locomotion modes (a tree) — no standing posture to derive",
+            plan.name
+        )),
+        BakeOutcome::Unsupported { reason } => Err(reason),
+    }
+}
+
 /// Foot position of a two-bone leg in its sagittal (y, z) plane, from a clip's
 /// hip/knee X-rotations — the inverse of [`solve_leg_ik`]'s reconstruction, used
 /// to find where the *animation* puts the foot before the IK re-seats it.
@@ -644,8 +678,14 @@ pub struct RetargetReport {
     /// the stout's**.
     pub root_drop_m: f64,
     /// Hip height above the feet, metres (the plan's trunk pivot + hip offset), as
-    /// authored — *before* the crouch drop. See [`RetargetReport::hip_eff_m`].
+    /// authored — *before* the bake delta and the crouch drop. See
+    /// [`RetargetReport::hip_derived_m`] and [`RetargetReport::hip_eff_m`].
     pub hip_m: f64,
+    /// The posture bake's root delta ([`derived_root_delta_m`]), metres — the
+    /// same number production's `build_plan_assets` caches and the pose loop
+    /// applies (2026-08-02, the consumer slice). `0.0` mirrors production's
+    /// identity fallback for a plan the bake declines.
+    pub root_delta_m: f64,
     /// Total leg reach `l1 + l2`, metres — the IK's outer annulus.
     pub reach_m: f64,
     /// **The whole time series**, frame by frame, both feet. Not a range.
@@ -689,11 +729,22 @@ impl RetargetReport {
         self.corrected + self.clamped_beyond_reach
     }
 
-    /// The hip height the solver actually works against: the authored hip minus the
-    /// crouch drop. **This, not `hip_m`, is what `reach_m` has to beat** — which is
-    /// why the stock biped's IK engages while crouching and never while standing.
+    /// The hip the renderer STANDS the body at (2026-08-02, the consumer
+    /// slice): authored hip + the posture bake's delta. Equal to `reach_m`
+    /// exactly for every plan the bake serves — the derived root IS the
+    /// chain reach, which puts a standing sole ON the IK annulus boundary
+    /// (posture-bake audit § 2.2).
+    pub fn hip_derived_m(&self) -> f64 {
+        self.hip_m + self.root_delta_m
+    }
+
+    /// The hip height the solver actually works against: the DERIVED hip
+    /// minus the crouch drop. **This, not `hip_m`, is what `reach_m` has to
+    /// beat.** Under the pinned hip this decided standing-vs-crouching
+    /// engagement (journal/0130); under the derived hip, standing sits at
+    /// zero slack exactly and only the crouch drop opens slack.
     pub fn hip_eff_m(&self) -> f64 {
-        self.hip_m - self.root_drop_m
+        self.hip_m + self.root_delta_m - self.root_drop_m
     }
 }
 
@@ -719,6 +770,14 @@ impl RetargetReport {
 /// height directly. The two agree on the **decision** in every case measured here
 /// (correct iff the ground is within half a voxel of the clip's foot); they would
 /// diverge on an overhang.
+///
+/// **The derived hip (2026-08-02, the consumer slice) is mirrored, not
+/// re-invented**: the probe adds the SAME [`derived_root_delta_m`] production's
+/// `build_plan_assets` caches, with the same `0.0` identity fallback — so the
+/// instrument keeps measuring what production does. (The probe's `hip_y` still
+/// carries `root_bob_m` where production's IK hip does not — corrections #80's
+/// temporal half, a separate ruled-on defect that rides here as the gap column's
+/// bob-tracking hover.)
 #[cfg(test)]
 pub fn retarget_report(
     plan: &BodyPlan,
@@ -730,12 +789,15 @@ pub fn retarget_report(
     let legs = leg_rigs(plan);
     let first = legs.first()?;
     let half_voxel = voxel_size_m * 0.5;
+    // Production's derived-hip read, mirrored (identity fallback included).
+    let root_delta_m = derived_root_delta_m(plan).unwrap_or(0.0);
     let mut r = RetargetReport {
         plan: plan.name.clone(),
         clip: clip.name.clone(),
         ground: ground.label(),
         root_drop_m,
         hip_m: first.hip_local[1],
+        root_delta_m,
         reach_m: first.l1 + first.l2,
         frames: Vec::new(),
         samples: 0,
@@ -764,10 +826,13 @@ pub fn retarget_report(
             let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
             let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
             let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
-            // The hip rides at hip_local.y plus the clip's bob, minus the crouch
-            // sink; the root is where the collider bottom is, and terrain never
-            // moves it (character.rs applies exactly these three terms).
-            let hip_y = leg.hip_local[1] + pose.root_bob_m - root_drop_m;
+            // The hip rides at hip_local.y plus the bake's root delta, plus the
+            // clip's bob, minus the crouch sink; the root is where the collider
+            // bottom is, and terrain never moves it. (Production's IK hip takes
+            // hip_local + delta − drop WITHOUT the bob — corrections #80's
+            // temporal half, riding — while its rendered root adds the bob; the
+            // probe keeps the bob so the gap column shows the hover it causes.)
+            let hip_y = leg.hip_local[1] + root_delta_m + pose.root_bob_m - root_drop_m;
             let clip_sole = hip_y + fy;
             let g = ground.ground_m(leg);
             r.samples += 1;
@@ -1057,8 +1122,8 @@ mod tests {
     /// in the numbers — so every frame gets a line and both feet are on it.
     fn print_series(r: &RetargetReport) {
         println!(
-            "\n  -- {} / {} / {} / {} -- hip {:.3} - drop {:.3} = effective {:.3} \
-             | reach {:.3} (slack {:+.3})",
+            "\n  -- {} / {} / {} / {} -- hip authored {:.3} {:+.3} bake = {:.3}, \
+             - drop {:.3} = effective {:.3} | reach {:.3} (slack {:+.3})",
             r.plan.trim_start_matches("dc:body/"),
             r.clip.trim_start_matches("dc:anim/biped_"),
             r.ground,
@@ -1068,6 +1133,8 @@ mod tests {
                 "stand"
             },
             r.hip_m,
+            r.root_delta_m,
+            r.hip_derived_m(),
             r.root_drop_m,
             r.hip_eff_m(),
             r.reach_m,
@@ -1131,17 +1198,23 @@ mod tests {
     ///    (stout reach ≈ half the biped's) — otherwise the experiment is not
     ///    measuring what it claims;
     /// 4. where the IK both ran and could reach, the residual is bounded by the
-    ///    solver's **own annulus-clamp epsilon** — still a *derived* bound, but a
-    ///    different one since 2026-08-01: the rotation quantizer is gone, so the
-    ///    bound fell from `reach × 11.25°` (~172 mm on the biped) to ~1 µm. This
-    ///    is the assertion that would catch its silent reintroduction;
-    /// 5. **the sign law**, against the **effective** hip (`hip − crouch drop`): a
-    ///    plan whose `reach ≤ hip_eff` can never correct a single frame on flat
-    ///    ground (the sole target is outside the annulus before animation runs —
-    ///    journal/0130's refutation, restated as the derivation rather than as
-    ///    today's count); a plan whose `reach > hip_eff` **and** whose window let the
-    ///    solver run must solve and must bend a knee. Both gates are load-bearing:
-    ///    `longleg` crouching passes the annulus and is refused by the window;
+    ///    solver's **own annulus clamps** — a *derived* bound that has moved twice:
+    ///    2026-08-01 the rotation quantizer went (from `reach × 11.25°` ~172 mm to
+    ///    the outer clamp's ~1 µm), and 2026-08-02 the derived hip let the crouch
+    ///    drop sink a hip to the ground, engaging the INNER clamp (`|l1 − l2| +
+    ///    1e-6` — ~10 mm on the stout). Still the assertion that would catch a
+    ///    quantizer reintroduction (~172 mm ≫ 21 mm);
+    /// 5. **the sign law**, against the **effective** hip
+    ///    (`hip + bake delta − crouch drop`), in THREE regimes since the derived
+    ///    hip landed (2026-08-02): at **zero slack** (standing — the derived hip
+    ///    equals reach exactly) every attempted target is pushed past the annulus
+    ///    by the clip's non-negative bob or stride, so nothing corrects, knees
+    ///    stay straight, and idle's rest frames SIT on the ground; at **negative
+    ///    slack** (the pinned-hip world's standing regime, journal/0130 — now only
+    ///    the identity fallback) nothing can correct; at **positive slack**
+    ///    (crouching) where the window let the solver run, it must solve and must
+    ///    bend a knee. Both gates stay load-bearing: under the pinned hip,
+    ///    `longleg` crouching passed the annulus and was refused by the window;
     /// 6. **the one-voxel-step law**: the correction window is half a voxel, so a
     ///    step of one whole voxel — the smallest relief real terrain can have at
     ///    *any* scale N — can never fit inside it. Every raised-foot sample is
@@ -1181,6 +1254,12 @@ mod tests {
         );
         let mut reach = Vec::new();
         for plan in &plans {
+            // The rig's bone lengths, for the assertion-(4) inner-annulus bound
+            // (same source as the report's own reach_m).
+            let legs_l1_l2 = {
+                let rig = leg_rigs(plan);
+                (rig[0].l1, rig[0].l2)
+            };
             for (ground, drop) in cases {
                 for clip in &clips {
                     let r = retarget_report(plan, clip, vs, ground, drop)
@@ -1236,14 +1315,28 @@ mod tests {
                             );
                         }
                     }
-                    // (4) the solver's own clamp bounds the achieved residual.
-                    // Derived from `solve_leg_ik`'s constants, not from today's
-                    // numbers: a reachable target has planar distance at most
-                    // `l1 + l2 + 1e-9` (the reachability tolerance) and the solver
-                    // clamps `d` to `l1 + l2 - 1e-6` (the annulus epsilon, which
-                    // keeps the knee off dead-straight), so the reconstruction can
-                    // miss by those two and f64 slop, and by nothing else.
-                    let bound = 1e-6 + 1e-9 + 1e-12;
+                    // (4) the solver's own clamp bounds the achieved residual —
+                    // BOTH edges of the annulus since the derived hip landed
+                    // (2026-08-02). Derived from `solve_leg_ik`'s constants, not
+                    // from today's numbers. OUTER edge: a reachable target has
+                    // planar distance at most `l1 + l2 + 1e-9` (the reachability
+                    // tolerance) and the solver clamps `d` to `l1 + l2 - 1e-6`
+                    // (the annulus epsilon), so the reconstruction misses by at
+                    // most those two. INNER edge (newly engaged: the crouch drop
+                    // is an absolute 0.45 m against a DERIVED stout hip of
+                    // 0.440 m, so a crouching stout's hip sits at or below the
+                    // ground and idle's sole targets land inside — or exactly
+                    // at — the inner annulus `|l1 − l2|`, including the
+                    // degenerate hip-at-ground case that falls back to straight
+                    // down): the clamp pushes `d` out to `|l1 − l2| + 1e-6`, so
+                    // the foot can miss by up to that whole distance (measured
+                    // on the stout: 0.010001 m = its |l1 − l2| + the epsilon,
+                    // exactly the derivation). The widened bound still catches a
+                    // rotation-quantizer reintroduction — one 11.25° quantum
+                    // moves the biped's ankle ~172 mm >> 21 mm — which is this
+                    // assertion's stated job.
+                    let inner_m = (legs_l1_l2.0 - legs_l1_l2.1).abs();
+                    let bound = inner_m + 1e-6 + 1e-9 + 1e-12;
                     assert!(
                         r.reachable_residual_max_m <= bound,
                         "{} / {}: residual {:.9} m exceeds the solver's annulus-clamp \
@@ -1255,15 +1348,73 @@ mod tests {
                     );
 
                     if ground == GroundCase::Flat {
-                        // (5) the sign law, against the EFFECTIVE hip (the crouch
-                        // sink moves it). Derived, not snapshotted: a statement about
-                        // `reach` vs `hip - drop`, so it stays true (or vacuous) if
-                        // anybody re-authors a plan or the drop.
-                        if r.reach_m <= r.hip_eff_m() {
+                        // (5) the sign law, against the EFFECTIVE hip (the bake
+                        // delta and the crouch sink both move it). Derived, not
+                        // snapshotted: a statement about `reach` vs
+                        // `hip + delta - drop`, so it stays true (or vacuous) if
+                        // anybody re-authors a plan or the drop. THREE regimes
+                        // since the derived hip landed (2026-08-02):
+                        let slack = r.reach_m - r.hip_eff_m();
+                        if slack.abs() <= 1e-9 {
+                            // The derived-hip rest: hip_eff == reach EXACTLY
+                            // (delta = bake reach − authored pivot is a
+                            // Sterbenz-exact f64 subtraction, and adding it back
+                            // to the same authored pivot reproduces the reach
+                            // bit for bit — `derived_hip_reaches_the_render_path`
+                            // pins the exact equality). A standing sole sits ON
+                            // the annulus boundary (posture-bake audit § 2.2):
+                            // the only target the solver could reach is the rest
+                            // pose itself (bob = 0, stride = 0), and that sample
+                            // is already seated within 1 mm so the IK never runs
+                            // on it. Every sample the window DOES hand the
+                            // solver carries a positive clip bob or a stride
+                            // offset, putting hypot(hip_eff + bob, fz) beyond
+                            // reach + 1e-9 (the authored clips' bobs are all
+                            // >= 0) — so nothing is corrected, and the knee
+                            // stays straight: the clamped solve's bend is
+                            // bounded by sqrt(2·reach·1e-6 / (l1·l2)) ≈ 0.25°
+                            // for the shipped plans; 1° is that with 4x
+                            // headroom.
+                            assert_eq!(
+                                r.corrected, 0,
+                                "{} / {}: at zero slack (derived hip == reach) every \
+                                 attempted target is pushed past the annulus by the \
+                                 clip's non-negative bob or stride; got {} corrected",
+                                r.plan, r.clip, r.corrected
+                            );
+                            assert!(
+                                r.knee_bend_max_deg < 1.0,
+                                "{} / {}: a standing body at the derived hip keeps \
+                                 straight knees (clamp bend ~0.25° max), got {:.2} deg",
+                                r.plan,
+                                r.clip,
+                                r.knee_bend_max_deg
+                            );
+                            if r.clip == "dc:anim/biped_idle" {
+                                // The planting the bake buys: idle's zero-bob,
+                                // zero-rotation frames put the sole at EXACTLY
+                                // ground level — the no-resting-gap invariant
+                                // (bake test 2) reaching the render path. Seated,
+                                // not corrected: contact by geometry, not by IK.
+                                assert!(
+                                    r.already_seated > 0,
+                                    "{} / {}: the rest pose must SIT on the ground \
+                                     (seated {} of {})",
+                                    r.plan,
+                                    r.clip,
+                                    r.already_seated,
+                                    r.samples
+                                );
+                            }
+                        } else if slack < 0.0 {
+                            // Strictly outside the annulus — the pinned-hip
+                            // world's standing regime (journal/0130), now only
+                            // reachable via the identity fallback or a
+                            // re-authored plan; kept as the derivation it was.
                             assert_eq!(
                                 r.corrected,
                                 0,
-                                "{} / {}: reach {:.3} <= effective hip {:.3}, so a sole \
+                                "{} / {}: reach {:.3} < effective hip {:.3}, so a sole \
                                  at ground level is OUTSIDE the annulus and the IK \
                                  cannot reach (journal/0130); got {} corrected",
                                 r.plan,
@@ -1273,10 +1424,13 @@ mod tests {
                                 r.corrected
                             );
                         } else if r.inside_window() > 0 {
-                            // The annulus admits it AND the window let the renderer
-                            // try. BOTH gates are needed — `longleg` crouching passes
-                            // the annulus and is refused by the window, which is the
-                            // sharpest statement that nothing reconciles the two.
+                            // Positive slack (today: only the crouch drop opens
+                            // it) AND the window let the renderer try. BOTH gates
+                            // are needed — under the pinned hip, `longleg`
+                            // crouching passed the annulus and was refused by the
+                            // window; under the derived hip every crouch case
+                            // passes both, which is itself a change this slice
+                            // measures.
                             assert!(
                                 r.corrected > 0,
                                 "{} / {}: reach {:.3} > effective hip {:.3} and {} \
@@ -1296,7 +1450,7 @@ mod tests {
                             );
                         }
                         if r.clip == "dc:anim/biped_walk" && r.root_drop_m == 0.0 {
-                            reach.push((r.plan.clone(), r.reach_m, r.hip_m));
+                            reach.push((r.plan.clone(), r.reach_m, r.hip_m, r.hip_derived_m()));
                         }
                     }
 
@@ -1333,8 +1487,9 @@ mod tests {
         let long = reach.iter().find(|(p, ..)| p == "dc:body/longleg").unwrap();
         let ratio = stout.1 / biped.1;
         println!(
-            "\n  reach ratio stout/biped = {ratio:.3} (hips {:.3} / {:.3})",
-            stout.2, biped.2
+            "\n  reach ratio stout/biped = {ratio:.3} (authored hips {:.3} / {:.3}, \
+             derived {:.3} / {:.3})",
+            stout.2, biped.2, stout.3, biped.3
         );
         // The absolute-length constants, expressed as a fraction of each body —
         // this is where the retargeting story stops being scale-free. The IK
@@ -1348,11 +1503,19 @@ mod tests {
             half_voxel / long.1,
         );
         println!(
-            "  hip - reach: biped {:+.3} m, stout {:+.3} m, longleg {:+.3} m \
-             (positive = the ground is UNREACHABLE before animation runs)",
+            "  AUTHORED hip - reach: biped {:+.3} m, stout {:+.3} m, longleg {:+.3} m \
+             — the gap class the posture bake deletes (journal/0130's hover)",
             biped.2 - biped.1,
             stout.2 - stout.1,
             long.2 - long.1,
+        );
+        println!(
+            "  DERIVED hip - reach: biped {:+.3} m, stout {:+.3} m, longleg {:+.3} m \
+             — zero by construction (root height IS chain reach), so a standing \
+             sole sits ON the annulus boundary and plants by geometry, not by IK",
+            biped.3 - biped.1,
+            stout.3 - stout.1,
+            long.3 - long.1,
         );
         println!(
             "  one-voxel step {vs:.3} m / IK window {half_voxel:.3} m = {:.1}x — \
@@ -1360,21 +1523,28 @@ mod tests {
             vs / half_voxel
         );
         // The FOURTH absolute-metres constant, and bodies.md's units banner names
-        // only three (hip height, the clips' root bob, the IK window).
+        // only three (hip height, the clips' root bob, the IK window). Ratios
+        // against the DERIVED hips — the ones the renderer now stands bodies at.
         println!(
             "  CROUCH_ROOT_DROP_M {CROUCH_ROOT_DROP_M:.3} m = {:.1}% of the biped's \
-             hip height, {:.1}% of the stout's, {:.1}% of the longleg's — a fourth \
-             absolute length bodies.md's units banner does not name",
-            100.0 * CROUCH_ROOT_DROP_M / biped.2,
-            100.0 * CROUCH_ROOT_DROP_M / stout.2,
-            100.0 * CROUCH_ROOT_DROP_M / long.2,
+             derived hip, {:.1}% of the stout's ({}), {:.1}% of the longleg's — a \
+             fourth absolute length bodies.md's units banner does not name",
+            100.0 * CROUCH_ROOT_DROP_M / biped.3,
+            100.0 * CROUCH_ROOT_DROP_M / stout.3,
+            if CROUCH_ROOT_DROP_M >= stout.3 {
+                "hip sinks TO OR BELOW the ground crouching — inner-annulus \
+                 clamp engages, see assertion (4)"
+            } else {
+                "above ground crouching"
+            },
+            100.0 * CROUCH_ROOT_DROP_M / long.3,
         );
         for (name, bob) in [("walk", 0.04_f64), ("jump", 0.12_f64)] {
             println!(
-                "  authored {name} root bob {bob:.3} m = {:.1}% of the stout's hip \
-                 height, {:.1}% of the biped's",
-                100.0 * bob / stout.2,
-                100.0 * bob / biped.2
+                "  authored {name} root bob {bob:.3} m = {:.1}% of the stout's derived \
+                 hip, {:.1}% of the biped's",
+                100.0 * bob / stout.3,
+                100.0 * bob / biped.3
             );
         }
         println!();
@@ -1382,6 +1552,63 @@ mod tests {
             (0.45..=0.55).contains(&ratio),
             "the plan-derived rig must track the plan's proportions, got {ratio:.3}"
         );
+    }
+
+    /// **The consumer edge itself** (posture-bake audit § 5, the continuation
+    /// slot): the render path stands each body at the DERIVED hip — the
+    /// authored root pivot plus [`derived_root_delta_m`]'s bake delta, the
+    /// same sum `character.rs` applies to the root translation and the IK
+    /// hip — and the three shipped plans land at **0.880 / 0.440 / 1.020 m**
+    /// against authored 0.900 / 0.460 / 0.900 (the predicted table of the
+    /// design pass, measured in journal/0137, now asserted at the consumer).
+    ///
+    /// The `assert_eq!` on floats is deliberate and derived, not hopeful:
+    /// `delta = bake root height − authored pivot` is an EXACT f64
+    /// subtraction (Sterbenz — each pair is within a factor of two), so
+    /// adding it back to the same authored pivot reproduces the bake's root
+    /// height bit for bit, and that equals the rig's `l1 + l2` because both
+    /// sum the identical pair of plan lengths. This exact equality is what
+    /// the sign law's zero-slack branch stands on.
+    #[test]
+    fn derived_hip_reaches_the_render_path() {
+        for (plan, expect) in [
+            (dc_api::bodies::biped_plan(), 0.880),
+            (dc_api::bodies::stout_plan(), 0.440),
+            (dc_api::bodies::longleg_plan(), 1.020),
+        ] {
+            let delta = derived_root_delta_m(&plan)
+                .expect("every shipped plan declares `stand [sole]` and bakes");
+            let rig = &leg_rigs(&plan)[0];
+            let hip = rig.hip_local[1] + delta;
+            assert!(
+                (hip - expect).abs() < 1e-9,
+                "plan `{}`: derived render hip {hip} m, expected {expect} m",
+                plan.name
+            );
+            assert_eq!(
+                hip,
+                rig.l1 + rig.l2,
+                "plan `{}`: the derived hip IS the chain reach (exact — see doc)",
+                plan.name
+            );
+        }
+
+        // The IDENTITY FALLBACK, by reason. A mode-less plan (a tree) is a
+        // legal absence: the helper declines naming it, and the renderer
+        // keeps the authored pivot (delta absent = 0) — today's behaviour
+        // exactly, with one warn at asset build.
+        let mut tree = dc_api::bodies::biped_plan();
+        tree.modes.clear();
+        let why = derived_root_delta_m(&tree).unwrap_err();
+        assert!(why.contains("no locomotion modes"), "{why}");
+
+        // And a plan whose declared modes don't include `stand` surfaces the
+        // bake's own loud refusal, naming the mode asked for.
+        let mut hoverer = dc_api::bodies::biped_plan();
+        hoverer.modes[0].mode = "hover".into();
+        let why = derived_root_delta_m(&hoverer).unwrap_err();
+        assert!(why.contains("stand"), "{why}");
+        assert!(why.contains("hover"), "{why}");
     }
 
     #[test]

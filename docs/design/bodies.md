@@ -81,7 +81,22 @@ animals, and so on. The fourth instance of the roles-as-contracts backbone
 
 ## IK — DECIDED 2026-07-19 (role, not solver choice)
 
-> **⚠ MEASURED 2026-07-29 (journal/0130) — THIS SECTION IS HALF-CONFIRMED AND HALF-REFUTED.**
+> **▶ RE-SCOPED 2026-08-02 — THE PINNED HIP THE TABLES BELOW MEASURE IS GONE.** The
+> posture bake's **consumer slice** landed: `build_plan_assets` reads the derived hip from
+> `dc_api::bodies::bake_resting_posture` and the renderer stands every body at **chain
+> reach** (biped 0.880 m, stout 0.440 m, longleg 1.020 m), applying the same delta to the
+> rendered root and the IK hip; a plan the bake declines keeps the authored pivot (identity
+> fallback). The measured tables below are **dated testimony about the pinned-hip world**
+> (still true of the fallback path): under the derived hip, standing soles sit ON the
+> annulus boundary and plant **by geometry, not by IK** (idle rest frames seat exactly;
+> knees straight to ~0.2°), and **all three plans' flat-crouch cases now correct** —
+> including longleg's, which the window used to refuse. New measured series + the
+> derivations: dc-client `body.rs` `foot_placement_and_retargeting_are_measured` /
+> `derived_hip_reaches_the_render_path`. One new mechanism the slice exposed: the 0.45 m
+> crouch drop sinks the stout's **derived** 0.440 m hip to/below the ground, engaging the
+> IK's **inner** annulus clamp (`|l1−l2|`, ~10 mm residual) — the fourth-constant hazard
+> below, sharpened. The hover's **temporal** half (corrections #80, `hip_y` without
+> `root_bob_m`) is untouched and rides.
 > **Confirmed:** the retargeting role is real. One unmodified clip set drives
 > `dc:body/biped` and `dc:body/stout` (legs 0.50x, arms 1.60x) with no new keyframes;
 > the derived leg rig comes out at exactly 0.500x, `idle` poses are byte-identical

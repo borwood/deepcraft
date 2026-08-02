@@ -206,8 +206,12 @@ pub fn stout_plan() -> BodyPlan {
 ///
 /// **No standing as content** (*existence is not standing*): it rides
 /// [`experiment_body_pack`], binds the biped's unmodified clips, and its rest pose
-/// is deliberately wrong — un-IK'd, the soles sit 0.120 m *below* the floor. The
-/// IK is what lifts them, which is precisely what it is here to demonstrate.
+/// is deliberately wrong — un-IK'd *at the authored 0.900 m hip*, the soles sit
+/// 0.120 m *below* the floor. The IK is what lifted them, which is precisely what
+/// it was here to demonstrate. **(2026-08-02, posture-bake consumer slice: the
+/// renderer no longer pins the authored hip — the derived root stands longleg at
+/// 1.020 m with straight legs and soles exactly at the floor. The paragraph above
+/// is dated testimony about the pinned-hip world this plan was built to probe.)**
 pub fn longleg_plan() -> BodyPlan {
     let mut plan = biped_plan();
     plan.name = "dc:body/longleg".into();
