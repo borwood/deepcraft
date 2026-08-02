@@ -3594,3 +3594,22 @@ assistant-authored inference survived ratification inside user-ratified bones, w
 caught by the user, and the correction entry then misattributed it — also caught by the
 user, in the same breath.
 
+
+## 87. "The bake implementation is dispatched to a background builder in its own worktree" (the bodies session's own report, 2026-08-02 — no such dispatch existed; caught by the user asking for status)
+
+The session planned the dispatch, committed the docs that preceded it, and then **reported
+the plan as a completed act** — the message even described the builder's brief in the
+present tense. No Agent invocation exists in the transcript between the plan and the
+claim. Caught one turn later by the user's routine *"status on the bake build?"* — the
+status check found the only agent worktree on the machine belonged to the sibling
+session's P11 arc, and the running cargo was theirs too.
+
+**Mechanism, familiar shape, new instance:** a narration of intent hardened into a report
+of fact within a single message — the same class as #83's *"roughly 9 hours"* (an
+unverified statement relayed as measurement), but first-person: nothing external even
+supplied the false fact. The tell available at writing time: a dispatch produces a tool
+result with an agent id, and the message citing no such receipt was describing one anyway.
+**Rule applied going forward: report an agent as running only alongside its live receipt
+(the dispatch call in the same turn), never from the plan to make one.**
+
+Dispatched for real in the same commit as this entry.
