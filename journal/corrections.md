@@ -3488,3 +3488,23 @@ question.**
 
 **Stamped in the same commit:** ROADMAP § Observed's 9-hour entry is replaced by the
 measurement, and decision 26's justification is corrected in place.
+
+## 84. "Whether a pack member may move terrain is an open user call" (the P11 design audit's U5 + the integrator presenting it as a three-option decision, 2026-08-01 — dissolved within one message by the user's memory of their own 2026-07-19 rule)
+
+The question was presented for ratification with options ("accept the reversal / accept
+with a constraint / reject"). It had been answered since 2026-07-19: **"patch set joins
+pack set in world identity"** (`ideas.md:189`, user-originated, quoted by the 2026-07-22
+seam inventory) — a different pack set is a *different world by definition*, so there is
+no same-world-new-pack scenario for the `lithology.rs` guard to protect at generation
+time. The one real hazard the guard addressed — a pack retroactively changing an
+*existing* world's expressed ground — is killed by P11's own record-bake. The presenting
+message also asserted the constraint option was "already implied by manifest-pinned
+generation", overstating a mechanism that is **written, not built** (E7's manifest field;
+the seam inventory's own words: *"the rule is written; the field is not"*).
+
+**Mechanism — corrections #81's shape, second instance in three days, different session:**
+a design-pass agent files a question as user-owned; the integrator relays it with options
+instead of first sweeping for the ruling that collapses it. The sweep-the-corpus-before-a-
+design-pass rule covers *opening threads*; it evidently must also cover **relaying a
+NEEDS-RATIFICATION item** — grep for the prior ruling before presenting the choice. Both
+targets stamped same commit (the P11 audit's U5 row via its header ruling 4; this entry).

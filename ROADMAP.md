@@ -382,20 +382,33 @@ parent-inheritance sketch (class-grade aggregation, if any survives, becomes
 parent-edge approximation with a legible error term — or dissolves) · genesis-passes /
 facies ambitions (P5) · the class-vs-member open question filed this same day.
 
-**FIRST SLICE — a DESIGN PASS, not code:** the member-grade representation (identity per
-`DepUnit`? shares? where the fitness machinery moves — deposition vs expression); the
-residency envelope (S19/S20-style arithmetic BEFORE commitment); what becomes of the
-Litho roster and `deep_class_of_species`; the migration path for shipped worlds (goldens
-are tripwires, not intent); and **the RIPPLE MAP** — an explicit disposition for every
-slated item this touches: the record-terms composition slice (rulings 1–2 logic stands;
-the species axis it records may change grade), record-terms ruling 3 (**HELD** pending
-this), P10 grain-size continuum (its state attaches to loads — same grade question),
-member-#0's remaining near-path restructure (MM-3 — touches exactly the member-dither
-machinery that may move), fluvial member #1, P5, stubs #23/#25/#31.
+~~**FIRST SLICE — a DESIGN PASS, not code**~~ **✅ DESIGN PHASE CLOSED 2026-08-01, same
+day** — `docs/audits/2026-08-01-members-into-history-design.md`, five rulings in its
+header: the record names **`MaterialId`** (history records the rock, not the road to it) ·
+representation **A-CLEAN** (identity per unit, fitness at DEPOSITION, **no class view
+survives storage or physics** — killed by the user's entrenchment challenge) · transport
+planes **SPARSE DAY ONE** (dense scales cells × registry, the wrong asymptote) · U5
+dissolved (corrections #84) · **MM-3/near-path restructure FOLDS IN** (one surgery, not
+two).
 
-**CONTINUATION SLOT:** per the design pass. **This entry is the arc's anchor; nothing
-slated below proceeds against the class-grade record without checking the ripple map
-first.**
+**BUILD SEQUENCE (drafted 2026-08-01, integrator sequencing — veto welcome):**
+1. **The identity swap + deposition-time fitness** — `DepUnit.species: Litho →
+   MaterialId` (zero-byte), fitness runs at deposition under the context of its own day,
+   expression reads the recorded id, `lithology.rs` guard comment rewritten (A-2), stubs
+   #31 dies by construction. Goldens move, announced.
+2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
+   `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
+   **composition slice folds in here** (the per-face species split records into a sparse
+   side array at the same grade — rulings 1–2 of the record-terms set, re-graded).
+3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
+   `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
+   13-file break), landing on the member-grade record. The ~460 m near tile dies here.
+4. **Litho dissolution residue** — delete `deep_class_of_species` and the ~250
+   remaining class-speaking sites; re-shape or minimally patch the far `ShareVec<6>`
+   site (rejected-interim; its real heir is the far register — do not gold-plate).
+**Record-terms ruling 3 (face-vs-unit) re-enters for ruling after slice 2's re-derived
+numbers land.** **CONTINUATION SLOT:** P10 (grain axis) and member #1 resume against the
+member-grade record; P5 stays its own deliberately-opened arc.
 
 ### THE GRAIN-SIZE CONTINUUM — a real size axis on sediment — **SEQUENCED 2026-08-01 (user ruling: "option 2 — I just don't want to lose track of anything needing done")**
 
@@ -3990,7 +4003,70 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-01 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-08-01 LATE close (the "geo" session; supersedes every earlier block — the bodies-thread block below remains the valid pickup for THAT thread)
+
+**Read first:** the sweeps hook (if due) → `docs/dependency-graph.md` (P11 row) → this
+block → `docs/audits/2026-08-01-members-into-history-design.md` header (the five P11
+rulings) → journal/0134.
+
+### The one paragraph that matters
+**P11 — MEMBERS INTO DEEP HISTORY — went from user decision to closed design to a
+dispatched build in one session.** The record names `MaterialId` (*"the rock, not the
+road to it"*); representation is A-CLEAN (**no class view survives storage or physics** —
+option D died on the user's *"are they just places the old shape is entrenched?"*, which
+verified); transport goes **sparse day one**; MM-3/the near-path restructure **folds in**
+as slice 3; U5 dissolved (corrections #84 — the 2026-07-19 world-identity rule had
+answered it). Before that, the fluvial record-terms pass ruled: **composition recorded
+now** (grain-size = sequenced arc P10), **nothing non-additive before WINDOW** (χ specced
+and waiting; aggregator-vocabulary sketch filed in ideas.md), ruling 3 (face-vs-unit)
+**HELD, re-enters after P11 slice 2**.
+
+### RUNNING — three agents (dispatched at close; **the session stays open until they land — subagents DIE with their session** (user, 2026-08-01); harvested before this block is final)
+1. **P11 slice 1 builder** (the identity swap + deposition-time fitness; holds the cargo
+   slot). Check rather than trust: the layout assert (was the swap zero-byte), the
+   member-diversity numbers with 1-member-class nulls stated honestly, Law-3
+   bit-identity on the mass side, goldens re-captured with whys. Its journal is
+   SLUG-NAMED — assign the next-free ordinal at merge (0134 is taken by this session).
+2. **P2 literature derivation** (docs-only, no cargo): returns bands + candidate
+   multiplier pairs + a measurement plan that NEEDS the build slot — schedule those runs
+   after slice 1 merges.
+3. **P10 grain-axis design pass** (docs-only): returns options targeting the
+   MEMBER-GRADE record; its NEEDS-RATIFICATION list gets the corrections-#84 treatment —
+   **grep for the prior ruling before relaying any item as open.**
+
+### Ratified this session (user's words in the cited records)
+Face-pairing three-mode confinement rule (2026-07-29 late, `flow.md` § 11.5 banner,
+corrections #75) · record-terms rulings 1–2 (composition now + P10 sequenced;
+composition-only v1) · P11 + its five rulings (the design audit header) · the build
+sequence (integrator-drafted, unvetoed).
+
+### Falsified — the assistant's own
+**#84** (U5 presented as open; dissolved by the user's own 2026-07-19 rule — second
+instance of #81's shape; the relay rule is in the entry). Also this session: #74 (a
+citation claim falsified by its own commit), #75 (face-pairing "unratified" was stale at
+assertion), #76 (the ≤9-typically-1 misreading).
+
+### Owed / standing
+The **octaves appearance walk** (merged 2026-07-29, gate-green, never walked — needs the
+NEW tour map: land filter + a Single-span two-member-class station; do NOT judge at the
+stale U3 pose) + the **U3-dominance verdict** (user's, from that walk's evidence) · P11
+slices 2–4 behind slice 1 · record-terms ruling 3 after slice 2 · the ROADMAP size lever
+(hook fires every edit; user call) · `material-behavior.md`/`flux.rs`/`erosion.rs` size
+flags (cold-half extractions, user call) · the 17 baseline escalations + open field
+reports carry unchanged.
+
+### Machine state at close
+Three agent worktrees LIVE (do not prune); builder legitimately holds
+`.agent-build.lock` intermittently; no dc-client, port 7777 free. Main pushed and green
+— last full gate on merged main: **90 units / 869 passed / 0 failed**, verified by name
+from the Tee'd log at the octaves merge; docs-only commits since, plus the P11 doc
+arc. A parallel USER session shares the checkout — stage explicit paths, never `add -A`
+(memory: stage-explicit-paths; it swept 3 files once this session, disclosed, content
+safe).
+
+---
+
+## NEXT SESSION — written at the 2026-08-01 close (SUPERSEDED by the geo-session block above; still the valid pickup for the BODIES thread)
 
 **Sweeps first** (the `SessionStart` hook says which are due), then
 **[`docs/dependency-graph.md`](docs/dependency-graph.md)** — its new **§ 2b BODIES** table is
