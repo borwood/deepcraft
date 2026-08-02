@@ -272,6 +272,20 @@ the goldens confirm it) recovered all of it. `pregen_time_vs_extent`'s ratified
 60 s budget was **not moved**; it is passing at 50.3 s with ~16 % headroom, where
 it had ~30 % before.
 
+**And the pregen budget is where this slice has to stop and ask.** The
+`pregen_time_vs_extent` assertion is a ratified 60 s, and it passes uncontended
+(50.3 s) and **fails inside the full workspace gate at 60.68 s**, where its
+sibling test builds its own Medium world on the same machine. That is the same
+shape ROADMAP recorded for slice 1 (62.7 s contended against 47.5 s uncontended),
+and it was resolved there by a **design change** — the `(cell, chapter)` draw
+address — rather than by moving the number. Moving a gate to admit one's own work
+is not a fix, so it is not moved here either. What is left on the table, unpriced:
+`expose` still walks each cell's window **twice** an epoch (once to derive the
+presence mask, once to scatter the shares into the rows that mask sized), and a
+transient dense scratch would buy the second walk back for ~33 MiB of gen-time
+memory. That is a real option and it is a user call, because it is spending the
+asymptote ruling 3 was cut to protect — even transiently, even in scratch.
+
 **Law 3 closes tighter than the conversion could have loosened it**, measured
 after the CSR change rather than assumed:
 
