@@ -150,3 +150,7 @@ test = true
 [[example]]
 name = "member_diversity_probe"
 test = true
+
+[[example]]
+name = "species_sparsity_probe"
+test = true
