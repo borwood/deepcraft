@@ -10,6 +10,18 @@ an answer some other system will eventually own?"*
 
 **Count**: 34 seams. 9 confirmed from the seed set, 25 found by sweep.
 
+> **⚠ SEAM #11's "today" ROW AND ITS NOTE ARE SUPERSEDED (2026-08-01, P11 slice 1 —
+> journal/pending-p11-slice1).** This audit records that the class→material table is
+> *"Fixed, deliberately **not** sampled from the live registry"* and that its **fixedness is
+> a ratified property** (the pack-addition blast radius). Both were true when written; the
+> record now names a `MaterialId` chosen by member fitness **at deposition**, so the table is
+> retired from the production identity path and the deposited rock *does* come from the live
+> registry. The ratified property it cites was not overruled but **DISSOLVED** — a different
+> pack set is a different world (`journal/corrections.md` #84), so the hazard the fixedness
+> protected against is answered by *storing* the identity rather than by refusing to sample.
+> The provider this row specifies is therefore no longer wanted as a **class-level** sheet.
+> Body unchanged, per immutable-body/mutable-header.
+
 > **⚠ FOUR OF THE FIVE "SOCIAL SIM" SEAMS NO LONGER EXIST (2026-07-28,
 > journal/0121).** Seams **30, 31, 34** and the whole of § 4's premise were sites
 > inside `pregen/history.rs` / `collapse.rs::ruin_posts`, **removed** on the

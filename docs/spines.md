@@ -294,6 +294,21 @@ A cheap answer written because a consumer cannot afford the real one must be
   disappearing-consumer test now answers *yes*: if the far field vanished, the
   surface rule would still exist unchanged, because it is the expression.
 - compliance: S15's coarse capacity held against an exact voxel walk
+- **compliance (2026-08-01, P11 slice 1) — the summary that was standing in for a
+  measurement, retired.** `Litho::reference_material` was a fixed class→member table that
+  the deep-cell inventory (`derive_base`) consulted for *"what rock weathered here"*, and
+  the collapse tier re-selected a member from the class because the record held no member.
+  Both are gone: `DepUnit::species` names the `MaterialId`, `derive_base` reads it, and
+  `dithered_member` refuses to re-adjudicate it. The disappearing-consumer test answers the
+  right way now — the identity exists because deposition decided it, not because expression
+  needed something to say. **One new summary is introduced and it is typed as one:**
+  `Litho::of_material`, the class bucket the still-`Litho`-wide transport tables index by,
+  carrying two named heirs (slices 2 and 4) and an **agreement test against the
+  `GeologySet`'s declared member→class edge** — the doctrine's full price, paid in the same
+  commit. It also **retired one of the three duplicate `Litho`→class matches** the P11 design
+  audit indexed as C12: `tests/providers_common::species_code` now hashes the recorded
+  `MaterialId` byte, which is both simpler and the only version that can *see* the
+  distinction the slice creates.
 - compliance (2026-07-23, journal/0078): `paleo_temperature` [#11] converted to a
   provider slot — `deposit_deep_history` read *today's* column temperature for a
   deep unit's at-deposition temperature (the summary), beside a sibling axis that
@@ -1088,6 +1103,20 @@ Charcoal excluded because no bed survived whole-voxel quantization — true unti
 partial voxels. `reference_material` fixed so packs could not move terrain —
 true until the content-set freeze, **the same day**.
 
+- **instance (2026-07-19 → FIXED 2026-08-01, P11 slice 1): the headline example above,
+  discharged.** `lithology.rs`'s module docs asserted, in the file every erodibility reader
+  loads, that the reference member is *"fixed per class rather than sampled from the live
+  registry, which is deliberate: it means **adding an organism or material pack can never
+  move terrain**."* Deposition-time member fitness makes that false — the deposited identity
+  feeds `exposed_shares` → `susceptibility_table` → the erosion rates. **The premise expired
+  by DISSOLUTION, not by being overruled** (corrections #84): a different pack set *is* a
+  different world (the user's 2026-07-19 world-identity rule), so the hazard the guard
+  protected against was answered by *storing* the identity instead of re-deriving it. The
+  paragraph was rewritten in the same slice that expired it — the shape every A-2 fix should
+  take, and the second corpus instance (after `BEDROCK_SEAM_THICKNESS_M`) of a justification
+  whose expiring decision lived in a **different file**. Note what caught it: **the user's
+  memory**, before the ruling, not a sweep.
+
 **Check:** ~~§ 5's convention.~~ **⚠ § 5's convention FINDS NOTHING — do not route a sweep
 through it** *(pointer added 2026-07-29, baseline sweep S1/#7; § 5's own drift note has said
 so since 2026-07-24, ~450 lines below this line, and the flag it raised was never
@@ -1650,6 +1679,8 @@ job is to be *followed* is the difference between a pointer and a decoration.
 | **`Schedule::Seed` / `Schedule::SeedAndStep`** — two of the three variants of the SCHEDULE axis (`deeptime/schedule.rs`), **BUILT 2026-07-29 (journal/0124), row added the day they were built.** They are **executed**, not stubs: `DeepSchedule::run` opens with a setup pass over `plan(None)` at `dt = 0.0`, and two runner tests drive a synthetic roster through it. What is missing is a **declarer** | `deeptime/schedule.rs` (the enum), `deeptime/runner.rs` (`DeepSchedule::plan`, `DeepSchedule::run`) | **no production declarer — every pass in every shipped roster is `Step`**, asserted by name (`runner.rs::no_shipped_pass_seeds_and_every_one_of_them_fires_at_epoch_zero`, `tests/schedule_axis.rs::epoch_zero_fires_every_pass_in_every_roster`). Only the synthetic rosters in those two files construct them | **declared epochs** (ROADMAP pass-architecture slot (d); named as the heir in `Schedule::Seed`'s own doc comment). `Seed` is *"member of the setup epoch"* said small. **⚠ Read this row in state 3, HELD AS A CANDIDATE, not state 1** — the variants exist because the *axis* is a sum type by ratification (`ARCHITECTURE.md` § Schedule: a `seeded: bool` cannot express run-once-only), and the audit that shipped them found the three pre-loop incumbents were all first-steps in disguise. **A zero-declarer count here is the audit's FINDING, not a gap to fill**: the roster's genuine setup work — the biotic layer's identity planes, the tectonic chapter table — is not pass-shaped yet, and making it so is (d)'s job, not a search for someone to seed |
 
 | **the RATE AUTHORING path — `CadenceTable::{with, unmatched}`, `Cadence::sub_turned`, `Schedule::integrated_dt`.** **BUILT 2026-07-29 (journal/0123 RATE + journal/0124 SCHEDULE); row added 2026-07-29 (evening) by the FULL spine-audit at `72fbe86` — five commits late, and the lateness is the finding.** The *reading* half of RATE is fully consumed: `Schedule`/`Cadence` are on every pass declaration, `deep_passes_with` applies the table on every production path, and the rate-shaped passes consume `dt`. What has no production caller is the **authoring** half — the verbs a world would use to say *"weathering ×5 while tectonics ×1"*. **Sibling of the `Schedule::Seed` row below, one axis over, and journal/0124 filed that one *the day it was built* while journal/0123 filed none for its own** | `deeptime/cadence.rs` (`:206` the `impl`, `:251` `unmatched`, `:120` `Cadence::sub_turned`), `deeptime/schedule.rs:169` (`integrated_dt`); the empty-table production entry points are `field.rs:608`, `mod.rs:175`, `runner.rs:619` | **zero production callers of the authoring verbs — search `grep -rn "CadenceTable\|sub_turned\|unmatched\|integrated_dt\|with_cadence" --include=*.rs crates/` at `72fbe86`.** Every hit that *constructs a non-empty table* is a test: `tests/rate_axis.rs:105,109`, `tests/schedule_axis.rs:109-113`, `runner.rs:1728-1733,1776`, `cadence.rs:314-316`. `unmatched` has **no caller at all** outside `runner.rs:1759` (a test) and its own — and `runner.rs:633` is a doc comment naming its future one (*"there for a caller that wants to be strict"*), the § 3 signature verbatim. `Schedule::integrated_dt` likewise: only `tests/schedule_axis.rs:79,115` and `schedule.rs`'s own suite; the runner does not compute `dt` through it. **`with_cadence` IS consumed** (`runner.rs:645`) and is not in this row | **the per-world MANIFEST** — named in-code, precisely, at `mod.rs:186-190`: *"**This is the seam, not the format.** When authored ORDER lands (the pass architecture's continuation slot (b)) it brings a per-world manifest with it, and the manifest's cadence section constructs the `CadenceTable` handed here. Inventing that format now would be building the general mechanism ahead of its caller, so **the parameter exists and the loader does not**."* That is `dependency-graph.md` **E7** (authored order + the validator), the same gate S-6 names. **⚠ Read this row in state 3, HELD AS A CANDIDATE:** the absence is *ruled*, not owed — a loader without a format would be the general mechanism ahead of its caller, which is the thing the seam-first practice forbids. **And it is § 3's third self-indictment in a row, of the identical kind as `chapters` and `CoarseField`: a comment that honestly declares its own hole is not an index**, and this one is as explicit as the corpus gets — five days after the `chapters` row made exactly that argument |
+
+| **the deep tier's CONTENT DOOR — `deeptime::run_cells_with_geology`, `deeptime::build_field_cfg_cadence_geology`.** **BUILT 2026-08-01 (P11 slice 1), row added the day it was built.** P11 made the deep sim content-aware — member fitness runs at deposition, so *which members exist* is now an input to the deep-time run and not merely to expression — and these are the two entry points that take a `GeologySet`. Everything else defaults to `geology::vanilla()`, exactly as `WorldGenerator::new` does at the collapse tier | `deeptime/mod.rs` (`run_cells_with_geology`), `deeptime/field.rs` (`build_field_cfg_cadence_geology`) | **no production caller** — `Pregen::run(WorldParams)` carries no content set, so the production pregen pass reaches `build_field_with` and takes the vanilla default. Only the two default-path wrappers call these, with `&vanilla()` | **the per-world MANIFEST (E7)** — the same consumer the RATE-authoring row above waits on, and the same one `journal/corrections.md` #84 names from the other direction (*the world-identity rule is written; the identity FIELD is not*). Until it lands, a world built through `WorldGenerator::with_geology(pregen, custom)` has a **vanilla-laid record read by a custom expression set**; expression handles the mismatch honestly (`member_of_material` returns `None` and the unit is skipped, exactly as an unfillable class was) rather than silently. Listed in `stubs.md` as *the-deep-tiers-content-set-is-hard-wired-to-vanilla*. **⚠ Read this row in state 1, not state 3: the consumer is genuinely wanted and genuinely missing** — this is a gap the slice OPENED, not one it ruled |
 
 **Departed (the good event):**
 

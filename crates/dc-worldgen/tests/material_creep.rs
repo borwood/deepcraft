@@ -283,7 +283,7 @@ fn no_deposited_unit_claims_to_be_an_in_place_organic() {
             continue;
         }
         if matches!(
-            u.species,
+            Litho::of_material(u.species),
             Litho::OrganicPeat | Litho::OrganicCoal | Litho::OrganicCharcoal
         ) {
             offenders += 1;

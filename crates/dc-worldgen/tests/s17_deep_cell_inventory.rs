@@ -66,7 +66,7 @@ fn non_identity_agreement_on_a_real_cell() {
         .expect("some cell has a unit thick enough to transform");
 
     let mut ledger = FactLedger::empty_with_bedrock(strata);
-    let base_mat = strata.units[0].species.reference_material();
+    let base_mat = strata.units[0].species;
     let sink = dc_core::MaterialId::CLAY;
 
     let mut inv = build_working(strata, &ledger);

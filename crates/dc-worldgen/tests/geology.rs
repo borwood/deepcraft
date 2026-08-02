@@ -575,6 +575,10 @@ fn family_contacts_wander_off_the_chunk_grid() {
         sel_tag: 3,
         ore: None,
         accessory: None,
+        // This suite is *about* the veneer's per-voxel dither, so the event
+        // declares itself ditherable (P11 slice 1; a deep-history event would
+        // not, and `dithered_member` would hand back the recorded member).
+        dither: true,
     };
     // Addressed by the absolute voxel since journal/0129 (the octaves selection
     // field is world-addressed; the chunk/offset split was arithmetic the caller

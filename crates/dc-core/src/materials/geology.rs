@@ -24,7 +24,7 @@
 
 use std::collections::BTreeMap;
 
-use super::{MaterialId, MaterialProps};
+use super::{MATERIAL_COUNT, MaterialId, MaterialProps};
 
 /// v1 class roster (DECIDED 2026-07-18: minimal-but-complete) plus the 3d
 /// accessory-inclusion class (docs/design/geology.md § roster/inclusions).
@@ -252,6 +252,25 @@ pub struct GeologySet {
     /// All members, sorted by id; index = [`GeoMemberIdx`].
     members: Vec<GeoMemberDef>,
     classes: BTreeMap<String, GeoClass>,
+    /// **The material → member reverse index** (P11 slice 1). Built at
+    /// [`GeologySetBuilder::build`] from the canonical member order, so it is
+    /// registration-order independent like everything else here.
+    ///
+    /// It exists because the deep record now names the **rock**
+    /// (`DepUnit::species: MaterialId` — ruling 1, *"history records the rock, not
+    /// the road to it"*), while the expression tier's `StrataEvent` still names a
+    /// **member**. Turning the recorded rock back into the member whose sheet the
+    /// expression reads is this lookup, and it must not be a hand-written table
+    /// beside the set.
+    ///
+    /// **`material → member` is not injective in general** and nothing forbids two
+    /// members from sharing a material (the audit flagged this as unverified;
+    /// `GeologySetBuilder::add_member` checks id uniqueness, not material
+    /// uniqueness). The rule here is stated rather than assumed: **the
+    /// canonically FIRST member wins**, deterministically, and
+    /// `vanilla_members_have_distinct_materials` pins that vanilla never exercises
+    /// the tie.
+    by_material: [Option<GeoMemberIdx>; MATERIAL_COUNT],
 }
 
 /// Builder: declare classes, register members in any order.
@@ -328,14 +347,23 @@ impl GeologySetBuilder {
                 )
             })
             .collect();
+        let mut by_material: [Option<GeoMemberIdx>; MATERIAL_COUNT] = [None; MATERIAL_COUNT];
         for (i, m) in self.members.iter().enumerate() {
             let class = classes.get_mut(&m.class).expect("validated at add");
             class.members.push(GeoMemberIdx(i as u16));
             class.abundance_sum += m.abundance;
+            // Canonically first wins: `members` is already id-sorted, so this
+            // walk fills each material's slot with the lowest-id member naming
+            // it and never overwrites.
+            let slot = &mut by_material[m.material.raw() as usize];
+            if slot.is_none() {
+                *slot = Some(GeoMemberIdx(i as u16));
+            }
         }
         GeologySet {
             members: self.members,
             classes,
+            by_material,
         }
     }
 }
@@ -365,6 +393,20 @@ impl GeologySet {
         self.classes.get(id)
     }
 
+    /// **The member that deposits `m`** — the inverse of
+    /// [`GeoMemberDef::material`], and the bridge the deep record needs now that
+    /// it names a `MaterialId` rather than a class (P11 slice 1).
+    ///
+    /// `None` when no registered member deposits that material (a reduced content
+    /// set, or a material no geology member names at all — `dc:sand` and its S8
+    /// debris siblings, for instance). Ties go to the canonically first member;
+    /// see [`GeologySet::by_material`](struct.GeologySet.html) for why that rule is
+    /// stated rather than assumed.
+    #[inline]
+    pub fn member_of_material(&self, m: MaterialId) -> Option<GeoMemberIdx> {
+        self.by_material[m.raw() as usize]
+    }
+
     /// Classes in canonical (id) order.
     pub fn classes(&self) -> impl Iterator<Item = &GeoClass> {
         self.classes.values()
@@ -384,37 +426,54 @@ impl GeologySet {
         ctx: &FormationContext,
         u: f64,
     ) -> Option<(GeoMemberIdx, &GeoMemberDef)> {
-        let class = self.classes.get(class)?;
+        self.select_in(self.classes.get(class)?, ctx, u)
+    }
+
+    /// [`Self::select`] over an **already-resolved** class — the hot form.
+    ///
+    /// `select` looks its class up in a `BTreeMap<String, _>`, which is a handful
+    /// of string comparisons. That was free while selection ran once per (chunk,
+    /// event); since P11 slice 1 it runs once per **deposition event in the deep
+    /// sim** — per cell, per epoch — and the lookup became a measurable share of
+    /// world-build time. A caller that knows its class need not re-find it every
+    /// time, and resolving it once is not a second authority: the `GeoClass` it
+    /// holds is this set's own.
+    ///
+    /// **Allocation-free, deliberately.** The weights used to be collected into a
+    /// `Vec` so the inverse-CDF could walk them twice; they are now *recomputed*
+    /// on the second walk instead. [`fitness`] is a pure function of
+    /// `(window, ctx)` — the same inputs give the same bits — so the answer is
+    /// unchanged, and a malloc/free per deposited bed is not.
+    pub fn select_in(
+        &self,
+        class: &GeoClass,
+        ctx: &FormationContext,
+        u: f64,
+    ) -> Option<(GeoMemberIdx, &GeoMemberDef)> {
         if class.members.is_empty() || class.abundance_sum <= 0.0 {
             return None;
         }
-        let mut total = 0.0f64;
-        let mut weights = Vec::with_capacity(class.members.len());
-        for &idx in &class.members {
+        let weight = |idx: GeoMemberIdx| {
             let m = self.member(idx);
-            let w = fitness(&m.window, ctx) * (m.abundance / class.abundance_sum);
-            weights.push(w);
-            total += w;
+            fitness(&m.window, ctx) * (m.abundance / class.abundance_sum)
+        };
+        let mut total = 0.0f64;
+        for &idx in &class.members {
+            total += weight(idx);
         }
         if total <= 0.0 {
             return None;
         }
         let threshold = u.clamp(0.0, 1.0 - f64::EPSILON) * total;
         let mut acc = 0.0f64;
-        for (&idx, &w) in class.members.iter().zip(&weights) {
-            acc += w;
+        for &idx in &class.members {
+            acc += weight(idx);
             if threshold < acc {
                 return Some((idx, self.member(idx)));
             }
         }
         // Float slack: the last member with nonzero weight takes the tail.
-        let last = *class
-            .members
-            .iter()
-            .zip(&weights)
-            .filter(|&(_, &w)| w > 0.0)
-            .map(|(idx, _)| idx)
-            .next_back()?;
+        let last = *class.members.iter().rfind(|&&idx| weight(idx) > 0.0)?;
         Some((last, self.member(last)))
     }
 }
@@ -708,6 +767,58 @@ mod tests {
             habit: GeoHabit::Blanket,
             hardness: 0.5,
             erodibility: 0.5,
+        }
+    }
+
+    /// **The record can name the rock only if the rock names one member back.**
+    /// P11 records a `MaterialId` and the expression tier resolves it through
+    /// [`GeologySet::member_of_material`]; the resolution is a *function* only
+    /// while no two members share a material. Nothing in `add_member` forbids
+    /// that (it checks id uniqueness), so this is the pin, not the guarantee —
+    /// the tie rule is documented and deterministic if a pack ever exercises it.
+    #[test]
+    fn vanilla_members_have_distinct_materials() {
+        let set = vanilla();
+        let mut seen: Vec<MaterialId> = set.members().iter().map(|m| m.material).collect();
+        let before = seen.len();
+        seen.sort_unstable();
+        seen.dedup();
+        assert_eq!(before, seen.len(), "two vanilla members share a material");
+    }
+
+    #[test]
+    fn member_of_material_inverts_the_member_material_map() {
+        let set = vanilla();
+        for (i, m) in set.members().iter().enumerate() {
+            assert_eq!(
+                set.member_of_material(m.material),
+                Some(GeoMemberIdx(i as u16)),
+                "member {} did not round-trip through its material",
+                m.id
+            );
+        }
+        // A material no geology member deposits answers honestly.
+        assert_eq!(set.member_of_material(MaterialId::SAND), None);
+    }
+
+    #[test]
+    fn member_of_material_is_registration_order_independent() {
+        let mut fwd = GeologySet::builder();
+        let mut rev = GeologySet::builder();
+        for c in v1_classes() {
+            fwd.declare_class(c).unwrap();
+            rev.declare_class(c).unwrap();
+        }
+        let members = vanilla_members();
+        for m in members.iter().cloned() {
+            fwd.add_member(m).unwrap();
+        }
+        for m in members.iter().rev().cloned() {
+            rev.add_member(m).unwrap();
+        }
+        let (fwd, rev) = (fwd.build(), rev.build());
+        for m in MaterialId::all() {
+            assert_eq!(fwd.member_of_material(m), rev.member_of_material(m));
         }
     }
 

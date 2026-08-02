@@ -141,6 +141,31 @@ dc_sim::draw_domains! {
     // ---- registered, call sites not yet converted (module docs, hole 2) ----
     /// Deep-time surface roughness jitter (`deeptime/grid.rs`).
     DeepTimeRoughness = 0x5900_0001;
+    /// **Deposition-time member fitness** (P11 slice 1): which registered member
+    /// a depositing agent's class resolves to *at the moment the bed is laid*,
+    /// under that epoch's own formation context.
+    ///
+    /// A **separate domain from [`GeoDeep`]**, which addresses the *collapse*
+    /// tier's re-selection of an already-recorded unit. The two are different
+    /// decisions at different tiers on different grids (deep cell vs chunk
+    /// column) and must not share a stream — reusing `GeoDeep`'s salt here would
+    /// make a bed's recorded identity a deterministic function of the draw the
+    /// expression tier makes over it, which is the exact defect the pore-offset
+    /// domain ([`GeoPore`]) was cut for.
+    ///
+    /// **Tag space inside the domain** (module docs, hole 1) names the *depositor*
+    /// — see `deeptime::recorder::dep_tags` — and the address is
+    /// `[tag, cell, chapter, k]`: per-cell, so the parallel record phase is
+    /// byte-identical to the scalar one, and per-**chapter** so the tie-break is
+    /// fixed while the fitness weights keep moving every epoch. Identity then
+    /// turns over when the shifting CDF crosses the fixed draw — at a real change
+    /// in conditions — rather than on a per-step coin.
+    ///
+    /// ⚠ **The whole domain is INTERIM SCAFFOLDING** and is retired in two pieces:
+    /// P11 slice 2 (transported deposits take their identity from the arriving
+    /// composition term) and FS-A (weathering release spectra). It exists only
+    /// while a class still has to be *filled*.
+    DeepMember = 0x5900_0002;
     /// Biotic fire ignition (`deeptime/biotic.rs`).
     BioticFire = 0x5B00_0001;
     /// Biotic flood (`deeptime/biotic.rs`).
@@ -631,7 +656,7 @@ mod tests {
     /// duplicate check cannot see.
     #[test]
     fn every_domain_is_listed_and_distinct() {
-        assert_eq!(ALL_DOMAINS.len(), 15, "a domain was added without a test");
+        assert_eq!(ALL_DOMAINS.len(), 16, "a domain was added without a test");
         let mut salts: Vec<u64> = ALL_DOMAINS.iter().map(|(_, s)| *s).collect();
         salts.sort_unstable();
         let n = salts.len();

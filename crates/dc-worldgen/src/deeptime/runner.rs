@@ -209,6 +209,12 @@ pub enum DeepAxis {
 /// constraint keeps *off* the declaration seam.
 pub struct DeepStepCtx<'a> {
     pub cfg: &'a DeepConfig,
+    /// **The registered geology content this world is being laid with**
+    /// (P11 slice 1). The deep tier used to be content-blind — it recorded a
+    /// class and let the collapse tier invent the member — and deposition-time
+    /// fitness is exactly what ends that. A pass reaches it through the ctx it is
+    /// handed, never through a global, like every other capability here.
+    pub geology: &'a dc_core::materials::geology::GeologySet,
     pub grid: DeepGrid,
     pub erosion: Erosion,
     pub biota: Option<BioticSim>,
@@ -265,6 +271,37 @@ pub struct DeepStepCtx<'a> {
     /// per-chapter entries at every chapter boundary. Inactive (and the pass
     /// absent) when `flow_record` is off ⇒ byte-identical.
     pub flux: FluxAccum,
+}
+
+impl<'a> DeepStepCtx<'a> {
+    /// The deposition-identity context for the pass currently firing — the
+    /// content set, the [`DeepMember`](crate::draws::DeepMember) stream seeded
+    /// from this world's seed, and the **tectonic chapter** that addresses the
+    /// draw (`0` whenever tectonic history is off).
+    ///
+    /// The chapter and not [`Self::epoch`]: the draw is the interim tie-break
+    /// inside a class's fitness distribution, and re-rolling it every step would
+    /// turn a stable environment's one bed into an alternating stack. See
+    /// `DepositCtx::chapter` for the two heirs that retire it.
+    #[inline]
+    pub fn member_ctx(&self) -> super::recorder::MemberCtx<'a> {
+        Self::member_ctx_for(
+            self.geology,
+            self.cfg.seed,
+            u64::from(self.erosion.current_chapter()),
+        )
+    }
+
+    /// [`Self::member_ctx`] for a caller that is **outside the loop** — the
+    /// post-loop coal promotion, which happens after the ctx has been destructured.
+    #[inline]
+    pub fn member_ctx_for(
+        geology: &'a dc_core::materials::geology::GeologySet,
+        seed: u64,
+        chapter: u64,
+    ) -> super::recorder::MemberCtx<'a> {
+        super::recorder::MemberCtx::new(geology, seed, chapter)
+    }
 }
 
 /// One self-declaring deep-time pass: identity + declared reads/writes (the
@@ -397,17 +434,20 @@ fn isostasy_pass(ctx: &mut DeepStepCtx<'_>) {
 /// The strata recorder: stamp each cell's net thickness change under the tag
 /// measured now.
 fn deposition_pass(ctx: &mut DeepStepCtx<'_>) {
-    ctx.erosion.record(&mut ctx.grid);
+    let mem = ctx.member_ctx();
+    ctx.erosion.record(&mut ctx.grid, mem);
 }
 
 /// The eolian agent: wind deflation + downwind loess/dune deposition.
 fn eolian_pass(ctx: &mut DeepStepCtx<'_>) {
-    ctx.erosion.wind(&mut ctx.grid, ctx.cfg);
+    let mem = ctx.member_ctx();
+    ctx.erosion.wind(&mut ctx.grid, ctx.cfg, mem);
 }
 
 /// The littoral wave agent: wave-cut erosion at the current sea stand.
 fn wave_pass(ctx: &mut DeepStepCtx<'_>) {
-    ctx.erosion.wave(&mut ctx.grid, ctx.cfg);
+    let mem = ctx.member_ctx();
+    ctx.erosion.wave(&mut ctx.grid, ctx.cfg, mem);
 }
 
 /// **The geotherm — the first §5 field pass.** Recompute the per-cell
@@ -430,8 +470,9 @@ fn geotherm_pass(ctx: &mut DeepStepCtx<'_>) {
 /// deposits its organic record, and writes the modifiers the NEXT epoch's
 /// erosion consumes.
 fn biotic_pass(ctx: &mut DeepStepCtx<'_>) {
+    let mem = ctx.member_ctx();
     if let Some(b) = ctx.biota.as_mut() {
-        ctx.biotic_total += b.step(&mut ctx.grid, &ctx.erosion, ctx.epoch);
+        ctx.biotic_total += b.step(&mut ctx.grid, &ctx.erosion, ctx.epoch, mem);
     }
 }
 

@@ -202,8 +202,8 @@ fn main() {
         let mut present = [false; Litho::COUNT];
         for u in &rec.units {
             total_record += u.thickness_m;
-            present[u.species.index()] = true;
-            if u.species != litho_of_tag(u.tag) {
+            present[Litho::of_material(u.species).index()] = true;
+            if Litho::of_material(u.species) != litho_of_tag(u.tag) {
                 travelled += u.thickness_m;
             }
         }

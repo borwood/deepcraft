@@ -392,10 +392,53 @@ dissolved (corrections #84) · **MM-3/near-path restructure FOLDS IN** (one surg
 two).
 
 **BUILD SEQUENCE (drafted 2026-08-01, integrator sequencing — veto welcome):**
-1. **The identity swap + deposition-time fitness** — `DepUnit.species: Litho →
-   MaterialId` (zero-byte), fitness runs at deposition under the context of its own day,
-   expression reads the recorded id, `lithology.rs` guard comment rewritten (A-2), stubs
-   #31 dies by construction. Goldens move, announced.
+1. ~~**The identity swap + deposition-time fitness**~~ — **✅ BUILT 2026-08-01**
+   (journal/pending-p11-slice1). `DepUnit.species: Litho → MaterialId`, **zero-byte
+   (compiler-asserted, the audit's I2)**; member fitness runs at **deposition**, per
+   deposited unit, under that cell's own temperature/precipitation that epoch, through a
+   new `DeepMember` draw domain addressed `[depositor, cell, epoch, k]`; **every** identity
+   writer converted, including the two that are not surface events — pedogenic overprint
+   and **burial diagenesis, which re-picks under the slab's real burial P/T, so the coal
+   class's rank axis is finally expressible**. Expression reads the recorded id
+   (`StrataEvent::dither = false` for deep history; the veneer's dither rides on,
+   legitimately). `deep_class_of_species` **no longer runs on the deep-history expression
+   path**; `derive_base` stopped up-converting through `reference_material` and the
+   `MaterialId`-grade deep-cell inventory (Crux 1) finally receives the grade it was built
+   for. `lithology.rs`'s guard comment rewritten (A-2, corrections #84). Stubs **#31
+   narrowed, not closed** (identity resolved by construction; the veneer's chunk-centre
+   context is live) and **one new stub opened, ordinal pending** (the deep tier's content set is
+   hard-wired to vanilla — the door exists, nothing upstream passes through it). Acceptance:
+   `examples/member_diversity_probe.rs`, gated.
+
+   **MEASURED (seed 1337, Medium, gated):** both multi-member deep classes now carry both
+   members — fine `dc:mudstone` **55.3 %** / `dc:siltstone` **44.7 %**, coarse
+   `dc:sandstone` **62.5 %** / `dc:conglomerate` **37.5 %**; the four one-member classes
+   read 1, which is correct and not a null (coal records **zero units** on this world —
+   corrections #51's finding, unchanged).
+   **⚠ THE PRICE THE DESIGN AUDIT LEFT UNPRICED (its I4) IS NOW MEASURED AND IT IS NOT
+   ZERO: the merge-key split factor is 2.4053× — 10,951,030 units against 4,552,847 —
+   i.e. +97.6 MiB of RESIDENT record (167.10 vs 69.47 MiB at 16 B/unit).** The field is 16
+   bytes per unit either way, so the audit's *"zero-byte swap"* holds; what it did not price
+   is that identity in the merge key multiplies the units. **The cause is a design fork, not
+   overhead:** the member draw is addressed per **epoch**, so a stable environment records an
+   alternating stack rather than one thick bed. `(cell, chapter)` addressing is the cheaper
+   and arguably more honest alternative (journal/0073's coherent-vs-white lesson, one axis
+   over, in time). **Flagged for ruling, not decided.**
+
+   **⚠ THE GATE IS RED ON ONE TEST AND IT IS THIS SAME CAUSE.** Measured against `main`
+   `957edfc`, three uncontended samples each side: **Medium pregen 42.79 s → 47.48 s
+   (+11.0 %)** and **`Pregen::approx_resident_bytes` 357,169,261 → 472,970,797 (+110.5 MiB,
+   +32.4 %)** — the residency corroborating the probe's +97.6 MiB record arithmetic
+   independently. `s7_measurements::pregen_time_vs_extent` asserts Medium **< 60 s**;
+   uncontended we pass at 47.5 s, but inside the full workspace gate (where that binary's
+   sibling test builds its own Medium world concurrently) it measured **62.7 s and FAILED**.
+   `main` uncontended is 42.8 s, so under the same contention `main` sits near 56 s — **the
+   budget was already ~95 % spent and this slice tips it.** The 60 s is a ratified number
+   (S13 called it that); **it has NOT been moved, because moving a gate to admit one's own
+   work is not a fix.** Two resolutions, both user-owned: renegotiate the budget (the
+   standing *"worldgen time is not a constraint"* position, which S13 already framed as a
+   renegotiation rather than a blocker), or take the `(cell, chapter)` draw fork above —
+   **one change fixes both costs, because they have one cause.**
 2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
    **composition slice folds in here** (the per-face species split records into a sparse

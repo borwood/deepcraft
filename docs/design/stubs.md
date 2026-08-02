@@ -1390,7 +1390,25 @@ animation + parametric crouch (ratified aesthetic/firewall) · placeholder
 texture packs + vertex-color albedo (rendering-asset placeholders — heir is
 authored art, outside this doctrine's scope; visuals.md owns the path).
 
-### 31. the-formation-context-frozen-at-the-chunk-centre — *added 2026-07-29 (journal/0129)*
+### 31. the-formation-context-frozen-at-the-chunk-centre — *added 2026-07-29 (journal/0129)* — **⚠ RESOLVED BY CONSTRUCTION for IDENTITY, 2026-08-01 (P11 slice 1); the entry SURVIVES, narrowed**
+> **BANNER (P11 slice 1, 2026-08-01).** The half of this entry that mattered is **gone, and not
+> by the heir it named.** Member fitness no longer runs at expression at all for deep-time
+> depositional history: it runs **at deposition**, under the deep cell's own measured
+> temperature/precipitation in the epoch that laid the bed, and the identity is *recorded*
+> (`DepUnit::species: MaterialId`). There is no chunk to freeze a fitness landscape at,
+> because no fitness landscape is consulted there. The named heir — *"per-column formation
+> context, part of the near-path record restructure"* — is **superseded by a stronger
+> mechanism**, exactly as the design audit's R9 predicted.
+>
+> **What is left, precisely, and it is not nothing:** `collapse.rs::column` still samples
+> `temp_c` / `precip` / `depth_m` **once per chunk at the chunk centre**, and the
+> **year-zero veneer** passes (clastic veneer, igneous emplacement, placer, the weathering
+> front) still select their members from that frozen sample — legitimately, since the veneer
+> is forming *now* under *this* climate (geology.md § formation context), but still at a
+> 28.8 m step. `StrataEvent::temp_c/precip/depth_m` also still carry it as a read-out.
+> So: **resolved for the deep record's identity; live for the veneer's.** Do not close it.
+
+
 `collapse.rs::column` samples `temp_c` / `precip` / `depth_m` once per chunk and every
 column's member-fitness landscape reads those frozen values — so even with the octaves
 member dither (journal/0128) varying the *draw* per voxel, the fitness *thresholds* still
@@ -1399,6 +1417,31 @@ the draw, but it is not zero, and it is U22's named sibling (`dithered_member` u
 chunk-centre context). **Heir: per-column formation context**, naturally part of the
 near-path record restructure (member #0's remaining slice). Loud marker at the sampling
 site in `collapse.rs`.
+
+### PENDING (ordinal assigned at merge — parallel sessions are live). the-deep-tiers-content-set-is-hard-wired-to-vanilla — *added 2026-08-01 (P11 slice 1)*
+P11 slice 1 made the deep sim **content-aware**: member fitness runs at deposition, so *which
+members exist* is now an input to the deep-time run and not merely to expression. The door
+exists — `deeptime::run_cells_with_geology` / `build_field_cfg_cadence_geology` — but
+**nothing upstream passes through it**: `Pregen::run(WorldParams)` carries no content set,
+so `build_field` defaults to `dc_core::materials::geology::vanilla()`, exactly as
+`WorldGenerator::new` does at the collapse tier.
+
+**Consequence, stated plainly:** a world built with `WorldGenerator::with_geology(pregen,
+custom)` has a **vanilla-laid deep record** read by a custom expression set. Expression
+handles the mismatch honestly rather than silently — `GeologySet::member_of_material`
+returns `None` for a material the custom set does not register, and `deposit_deep_history`
+skips that unit exactly as it skipped an unfillable class before — but the record is still
+the wrong pack's.
+
+**Blast radius:** zero on any shipped world (production is `WorldGenerator::new`, i.e.
+vanilla end to end) and on every test that does not pass a custom set. Real the day a pack
+does.
+
+**Heir:** the **per-world manifest** — the pack set carried into `WorldParams` so pregen and
+collapse are built from one declaration. This is E7's field, and the design audit's ruling 4
+already names the gap in the other direction: *"the identity FIELD is E7's manifest — the
+rule is written; the field is not"* (the 2026-07-22 seam inventory; `journal/corrections.md`
+#84). Loud marker on `run_cells_with_geology`.
 
 ### 32. the-far-member-dither-still-reads-one-octave — *added 2026-07-29 (journal/0129, deliberate)*
 The far summary's member dither was left on the single-octave source **on purpose** when

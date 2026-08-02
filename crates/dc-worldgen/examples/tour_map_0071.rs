@@ -43,7 +43,7 @@ fn interior(w: usize, idx: usize) -> bool {
 /// The pre-journal/0068 rule: top unit's lithology, basement if empty.
 fn old_rule(units: &[DepUnit]) -> Litho {
     match units.last() {
-        Some(u) => u.species,
+        Some(u) => Litho::of_material(u.species),
         None => Litho::Basement,
     }
 }

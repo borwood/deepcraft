@@ -64,7 +64,15 @@ fn cfg_for(cells: &CellGrid) -> DeepConfig {
 /// ```text
 /// GOLDEN_FLUX 0xCA5B_050A_BDC5_9D6E
 /// ```
-const GOLDEN_FLUX: u64 = 0x493B_9649_9E14_DC2E;
+///
+/// **Moved 2026-08-01 by P11 slice 1** — the deep record went member-grade
+/// (journal/pending-p11-slice1). See `providers_common` § P11 for the two
+/// mechanisms and for why a moved *surface* hash here is rounding rather than a
+/// re-tuned world. Prior value, kept for audit: `0x493B_9649_9E14_DC2E`.
+///
+/// The flux record is deliberately species-blind, so this moved **only** with the
+/// routing it accumulates over — case 2, downstream.
+const GOLDEN_FLUX: u64 = 0x08DC_FCE9_0048_B6FA;
 
 fn flux_fingerprint(r: &dc_worldgen::deeptime::FluxRecord) -> u64 {
     fn byte(b: u8, h: &mut u64) {

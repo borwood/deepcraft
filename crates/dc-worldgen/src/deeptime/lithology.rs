@@ -45,21 +45,43 @@
 //!
 //! ## Which rock is at the surface
 //!
-//! At the deep-time tier there is no material yet — the recorder tags units by
-//! *measured environment* ([`DepTag`]), and members are resolved at collapse
-//! time. So the chain is
+//! **Since P11 slice 1 (2026-08-01) the deep tier resolves the material at
+//! DEPOSITION**, so a recorded unit already knows which rock it is
+//! (`DepUnit::species: MaterialId`) and the chain is
 //!
 //! ```text
-//! DepTag  →  Litho  →  reference MaterialId  →  MaterialProps  →  LithoResistance
+//! DepTag  →  Litho (class)  →  fitness at deposition  →  MaterialId  →  MaterialProps  →  LithoResistance
 //! ```
 //!
 //! [`litho_of_tag`] mirrors `crate::geology::deep_class` exactly (asserted by
 //! test), so **the rock that resisted erosion is the rock a player will dig**.
-//! The reference member is *fixed per class* rather than sampled from the live
-//! registry, which is deliberate: it means adding an organism or material pack
-//! can never move terrain (ROADMAP § S10 follow-through call 5 — the
-//! pack-addition blast radius). Packs diversify what fills a class; they do not
-//! renegotiate how fast that class erodes.
+//!
+//! ## ⚠ The old guarantee here is GONE, deliberately, and this paragraph is its
+//! replacement
+//!
+//! This module used to say the reference member is *fixed per class rather than
+//! sampled from the live registry*, and that this meant **adding an organism or
+//! material pack can never move terrain**. That was true and it is no longer:
+//! deposition-time fitness reads the live registry, the deposited identity feeds
+//! [`exposed_shares`] → [`susceptibility_table`] → the erosion rates, and a pack
+//! that registers a new clastic member therefore *can* change how fast a hillside
+//! wears down.
+//!
+//! **That is not a regression; it is the ruling.** The reason the old guard
+//! existed — *"a pack must not retroactively change an existing world"* — was
+//! answered from a different direction: **a different pack set IS a different
+//! world** (the user's 2026-07-19 world-identity rule, `docs/design/ideas.md`),
+//! and P11's record-bake kills the one real hazard by *storing* the identity
+//! rather than re-deriving it at expression. A world generated with one pack set
+//! keeps its rocks forever. A world generated with another was never the same
+//! world. The question the guard was protecting against — U5,
+//! *"may pack members move terrain?"* — is **DISSOLVED, not overruled**
+//! (`journal/corrections.md` #84); this comment's own reason is what expired, and
+//! rewriting it is the owed work that dissolution named.
+//!
+//! What packs still cannot do is inflate a class: abundance is normalised within
+//! the class, so registering a member *diversifies* its share and never enlarges
+//! it (`dc_core::materials::geology`, tested).
 //!
 //! ## Structural deformation, and loose materials
 //!
@@ -295,9 +317,50 @@ impl Litho {
         }
     }
 
+    /// **The class a recorded material belongs to** — the interim parent view
+    /// (P11 slice 1).
+    ///
+    /// ⚠ **THIS IS SCAFFOLDING WITH A DATED DEMOLITION ORDER.** Ruling 2 of the
+    /// P11 design (2026-08-01) is *representation A-CLEAN: **no class view
+    /// survives in storage or physics***. This function is a class view in
+    /// physics. It exists for exactly one reason: the transport arithmetic is
+    /// still `Litho::COUNT`-wide (four `n × SPECIES` planes, `susceptibility_table`,
+    /// `settling_table`, [`WindowShares`]), so a `MaterialId`-grade record has to
+    /// be bucketed back down before the erosion tables can index it.
+    ///
+    /// **Heirs, both already sequenced:** slice 2 (the budget planes go
+    /// CSR-sparse over `MaterialId`, so the bucket has no consumer on the
+    /// transport side) and slice 4 (the `Litho` roster dissolves). Do not build
+    /// anything new on this.
+    ///
+    /// It is a **summary, and the doctrine's price is paid**: it is the exact
+    /// inverse of the member→class edge the `GeologySet` already declares, and
+    /// `lithology_buckets_agree_with_the_registry` asserts it agrees with that
+    /// authority for every vanilla member. A material no geology member deposits
+    /// answers [`Litho::Basement`] — the "not a depositional lithology" bucket the
+    /// window walk already charges its deficit to.
+    pub fn of_material(m: MaterialId) -> Litho {
+        match m {
+            MaterialId::MUDSTONE | MaterialId::SILTSTONE => Litho::ClasticFine,
+            MaterialId::SANDSTONE | MaterialId::CONGLOMERATE => Litho::ClasticCoarse,
+            MaterialId::CARBONACEOUS_MUDSTONE => Litho::OrganicSoil,
+            MaterialId::PEAT => Litho::OrganicPeat,
+            MaterialId::COAL => Litho::OrganicCoal,
+            MaterialId::CHARCOAL => Litho::OrganicCharcoal,
+            _ => Litho::Basement,
+        }
+    }
+
     /// The **reference member** whose property sheet stands for this whole
-    /// class in deep time. Fixed, not sampled from the live registry, so a
-    /// content pack cannot move terrain by adding a member (module docs).
+    /// class in deep time.
+    ///
+    /// ⚠ **P11 retired this from production identity.** A deposited unit's
+    /// material is now chosen by fitness at deposition
+    /// ([`super::recorder::DepositCtx`]); this survives as the *degenerate*
+    /// answer — the door tests use when they have no content set
+    /// ([`super::recorder::DeepStrata::deposit`]), and the S-5 identity default
+    /// when a class has no registered member at all. Its heir is slice 4's
+    /// dissolution of the roster.
     pub fn reference_material(self) -> MaterialId {
         match self {
             Litho::ClasticFine => MaterialId::MUDSTONE,
@@ -481,12 +544,19 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
         if u.thickness_m <= 0.0 {
             continue;
         }
-        // **The unit's own species, not its tag's** (Movement 2b). With
-        // material-aware transport off `u.species == litho_of_tag(u.tag)` at every
-        // construction site, so this walk is byte-identical; with it on, a window
-        // full of sand that a river delivered to a low-energy cell reads as sand
+        // **The unit's own species, not its tag's** (Movement 2b): a window full
+        // of sand that a river delivered to a low-energy cell reads as sand
         // rather than as whatever its environment would have implied.
-        let l = u.species;
+        //
+        // ⚠ **The bucket, not the rock** (P11 slice 1). The record names a
+        // `MaterialId` now, and the honest per-unit answer is
+        // `resistance_of_material(u.species)` — but the accumulator and everything
+        // downstream of it ([`WindowShares`], `susceptibility_table`, the four
+        // `n × SPECIES` transport planes) are still `Litho::COUNT`-wide, so the
+        // rock is coarsened back to its class here. **Slice 2 is what deletes this
+        // call** — when the budgets go CSR-sparse over `MaterialId`, the window
+        // accumulates per material and mudstone stops eroding at siltstone's rate.
+        let l = Litho::of_material(u.species);
         let idx = l.index();
         if !seen[idx] {
             seen[idx] = true;
@@ -847,5 +917,114 @@ mod tests {
             assert!(r.to(a) > 0.0, "{}", a.name());
         }
         assert_eq!(Agent::ALL.len(), 5);
+    }
+
+    /// **The summary agrees with the authority** (CLAUDE.md § *A summary is not an
+    /// authority*). [`Litho::of_material`] is a class view beside the
+    /// `GeologySet`, which already declares each member's class; this asserts the
+    /// two say the same thing for every registered member the deep tier can
+    /// deposit.
+    ///
+    /// It is the test that makes the interim bucket legitimate rather than an S-3
+    /// parallel rule — and it is what fails loudly if a pack adds a fine clastic
+    /// the bucket has never heard of.
+    #[test]
+    fn lithology_buckets_agree_with_the_registry() {
+        let set = dc_core::materials::geology::vanilla();
+        for m in set.members() {
+            let bucket = Litho::of_material(m.material);
+            if bucket == Litho::Basement {
+                // Not a depositional lithology at the deep tier (the igneous
+                // members, the placer and accessory grains): the deep record
+                // never names them, so there is nothing to agree about.
+                continue;
+            }
+            assert_eq!(
+                crate::geology::deep_class_of_species(bucket),
+                m.class.as_str(),
+                "bucket for {} disagrees with its registered class",
+                m.id
+            );
+        }
+    }
+
+    /// **Why every terrain golden moved, measured at the site where it enters.**
+    ///
+    /// P11 put the `MaterialId` in `deposit_as`'s merge key, so a bed that used to
+    /// be one `ClasticFine` unit is two when its members differ. [`window_walk`]
+    /// buckets both back to the same class and gets the same *quantity* — but
+    /// `4.1 + 3.2` is not bit-identical to `7.3`, IEEE addition is not associative,
+    /// and the susceptibility blend reads these shares. One ulp, through the
+    /// incision rate, compounded over 200 epochs, is a different continent.
+    ///
+    /// **This is stated as a bound, not as an identity, because bit-identity is
+    /// not achievable and a version of this walk that coalesced runs back to the
+    /// pre-P11 segmentation was BUILT, MEASURED AND REMOVED.** It did not restore
+    /// the world: the per-unit thicknesses themselves differ, because the
+    /// recorder accumulates `top.thickness_m += d` per unit and `erode` subtracts
+    /// per unit, so a finer segmentation changes the addends and not merely their
+    /// grouping. Keeping the coalescing would have been keeping a mechanism whose
+    /// premise the measurement had already falsified.
+    ///
+    /// The bound is what is true: **the shares agree to well inside 1e-12
+    /// relative**, so the erosion *rule* is unchanged and only its rounding is.
+    /// Slice 2 dissolves the question — the shares go per material, and a
+    /// member-grade subdivision starts to mean something.
+    #[test]
+    fn splitting_a_unit_within_its_class_preserves_the_outcrop_shares() {
+        use crate::deeptime::recorder::{DepEnv, DepTag, DepUnit, EnergyBand};
+        let tag = DepTag::mineral(
+            DepEnv::Subsea,
+            crate::deeptime::Aridity::Humid,
+            EnergyBand::Low,
+        );
+        let unit = |m, t| DepUnit {
+            tag,
+            thickness_m: t,
+            unconformity: false,
+            chapter: 0,
+            species: m,
+        };
+        // One thick fine-clastic bed, against the same metres split between two
+        // members of that same class — exactly what the new merge key produces.
+        let whole = [unit(MaterialId::MUDSTONE, 7.3)];
+        let split = [
+            unit(MaterialId::MUDSTONE, 4.1),
+            unit(MaterialId::SILTSTONE, 3.2),
+        ];
+        let (a, b) = (exposed_shares(&whole), exposed_shares(&split));
+        for (x, y) in a.shares().iter().zip(b.shares()) {
+            assert!(
+                (x - y).abs() <= 1e-12,
+                "a within-class split moved the outcrop shares by more than                  rounding: {x} vs {y}"
+            );
+        }
+        assert_eq!(
+            dominant_litho(&a),
+            dominant_litho(&b),
+            "the outcrop verdict changed under a within-class split"
+        );
+    }
+
+    /// Every class the deep record CAN deposit buckets *all* of its members back
+    /// to itself — otherwise a recorded unit would coarsen into a class the
+    /// erosion tables index differently from the one it was laid as.
+    #[test]
+    fn every_depositional_class_round_trips_through_the_bucket() {
+        let set = dc_core::materials::geology::vanilla();
+        for l in Litho::ALL {
+            if l == Litho::Basement {
+                continue;
+            }
+            let class = crate::geology::deep_class_of_species(l);
+            let members = set.class(class).expect("vanilla declares it").members();
+            assert!(!members.is_empty(), "{class} has no member");
+            assert!(
+                members
+                    .iter()
+                    .all(|&i| Litho::of_material(set.member(i).material) == l),
+                "a member of {class} buckets somewhere other than {l:?}"
+            );
+        }
     }
 }

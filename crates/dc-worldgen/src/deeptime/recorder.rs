@@ -18,8 +18,208 @@
 //! rather than one event per iteration, and makes the finalize invariant exact
 //! by construction: the record mirrors every metre that entered or left `H`.
 
+use dc_core::materials::MaterialId;
+use dc_core::materials::geology::{FormationContext, GeoClass, GeologySet};
+use dc_sim::statistical::rng::Draws;
+
 use super::geotherm::{self, BurialColumn};
 use super::lithology::{Litho, litho_of_tag};
+
+/// **Which depositor is asking** — the tag space inside the
+/// [`DeepMember`](crate::draws::DeepMember) domain (`draws.rs` module docs,
+/// hole 1).
+///
+/// Two agents that deposit into the same cell in the same chapter must not share a
+/// draw: if the wave agent and the wind agent read one stream, their member
+/// picks are the same number and the two beds correlate for no physical reason.
+/// One constant per depositing agent is the cheap, legible answer; a `Domain` per
+/// decision is the expensive one the module docs already name.
+pub mod dep_tags {
+    /// The erosion recorder — the fluvial load plus hillslope creep (the argmax
+    /// of everything that arrived). The bulk of the record.
+    pub const TRANSPORT: u64 = 0;
+    /// Wind: loess and dune beds.
+    pub const EOLIAN: u64 = 1;
+    /// Littoral wave attack's redeposition.
+    pub const WAVE: u64 = 2;
+    /// The biotic layer's fire beds (charcoal).
+    pub const BIOTIC: u64 = 3;
+    /// Pedogenesis — [`DeepStrata::overprint_top`], which *alters* the top unit
+    /// rather than stacking on it, so its identity is re-picked too.
+    pub const PEDOGENIC: u64 = 4;
+    /// Burial diagenesis — [`DeepStrata::promote_coal`]. The one identity event
+    /// that does **not** happen at the surface, and the reason its formation
+    /// context carries a real burial depth.
+    pub const DIAGENESIS: u64 = 5;
+}
+
+/// **The run-wide half of deposition-time identity** — what a deep-time pass
+/// carries so it can build a [`DepositCtx`] per cell (P11 slice 1).
+///
+/// It is `Copy` and three words wide, so it rides into a pass as a value rather
+/// than as another borrow of the runner's state.
+#[derive(Clone, Copy)]
+pub struct MemberCtx<'a> {
+    pub geology: &'a GeologySet,
+    pub draws: Draws,
+    pub chapter: u64,
+    /// **The deep tier's classes, resolved once per run**, indexed by
+    /// `Litho::index()`.
+    ///
+    /// `GeologySet::select` finds its class in a `BTreeMap<String, _>`, which is
+    /// a handful of string comparisons — free while selection ran once per
+    /// (chunk, event), and *not* free now that it runs once per deposition event
+    /// per cell per epoch. The roster is fixed for a run, so the lookup is hoisted
+    /// out of the loop entirely. It is the set's own `GeoClass`, not a copy of
+    /// one: no second authority, just no second lookup.
+    classes: [Option<&'a GeoClass>; Litho::COUNT],
+}
+
+impl<'a> MemberCtx<'a> {
+    /// Open the stream for a world. The **only** place a deposition-time member
+    /// draw is seeded.
+    pub fn new(geology: &'a GeologySet, seed: u64, chapter: u64) -> Self {
+        let mut classes = [None; Litho::COUNT];
+        for l in Litho::ALL {
+            classes[l.index()] = geology.class(crate::geology::deep_class_of_species(l));
+        }
+        Self {
+            geology,
+            draws: Draws::of::<crate::draws::DeepMember>(seed),
+            chapter,
+            classes,
+        }
+    }
+
+    /// The per-cell context under an explicit formation context.
+    #[inline]
+    pub fn at(&self, cell: usize, form: FormationContext) -> DepositCtx<'a> {
+        DepositCtx {
+            geology: self.geology,
+            form,
+            draws: self.draws,
+            cell: cell as u64,
+            chapter: self.chapter,
+            classes: self.classes,
+        }
+    }
+
+    /// **The common case: a bed laid at the surface.** Air temperature over the
+    /// current ground, the marched precipitation, and `depth_m = 0` — burial is a
+    /// later fact about a bed, never a condition of its formation.
+    #[inline]
+    pub fn surface(
+        &self,
+        cell: usize,
+        temp_c: f64,
+        precip: f64,
+        litho: Litho,
+        tag: u64,
+        k: u64,
+    ) -> MaterialId {
+        self.at(
+            cell,
+            FormationContext {
+                temp_c,
+                precip,
+                depth_m: 0.0,
+            },
+        )
+        .material_for(litho, tag, k)
+    }
+}
+
+/// **The identity-setting context a depositing agent hands the recorder**
+/// (P11 slice 1).
+///
+/// Before P11 a unit's identity was a *class* and the member was invented at
+/// expression, under the chunk-centre formation context of the day the chunk was
+/// generated — a context 460 m wide and hundreds of millions of years late. The
+/// ruling (2026-08-01) is that fitness runs **at deposition**, so the deep sim
+/// has to carry the three things fitness needs: the registered content, the
+/// formation conditions of *this* geological day, and an addressed draw.
+///
+/// It is `Copy` and holds a borrow, so it costs nothing to hand to a per-cell
+/// closure; `&GeologySet` is `Sync`, so the parallel record phase reads it
+/// without a lock and stays byte-identical to the scalar one (the address is the
+/// cell index, never an iteration counter).
+#[derive(Clone, Copy)]
+pub struct DepositCtx<'a> {
+    /// The registered geology content this world was built with.
+    pub geology: &'a GeologySet,
+    /// Surface conditions at the cell, this epoch: the marched precipitation and
+    /// the air temperature over the current surface. `depth_m` is **0** for every
+    /// depositional event — a bed is laid at the surface, and burial is a later
+    /// fact about it, not a condition of its formation. The one event that
+    /// overrides it is [`DeepStrata::promote_coal`], which *is* a burial event.
+    pub form: FormationContext,
+    /// The [`DeepMember`](crate::draws::DeepMember) stream for this world.
+    pub draws: Draws,
+    /// Deep cell (row-major index) — the spatial half of the draw address.
+    pub cell: u64,
+    /// **The tectonic chapter — the temporal half of the address.**
+    ///
+    /// ⚠ **INTERIM SCAFFOLDING. This draw exists only until the record can answer
+    /// the question without rolling for it, and both of its heirs are sequenced:**
+    ///
+    /// - **P11 slice 2** retires it for **transported** deposits: identity comes
+    ///   from the *arriving composition term* — what the mover actually carried —
+    ///   so there is nothing left to pick.
+    /// - **FS-A** retires it for **weathered** material: release spectra say what
+    ///   a parent rock sheds, so the product's identity is derived, not drawn.
+    ///
+    /// Until then a class still has to be filled, and this is the tie-break inside
+    /// the fitness distribution. **Chapter-grained, not epoch-grained**, and the
+    /// difference is not cosmetic: an epoch-grained roll re-rolls the tie-break
+    /// every step, so a cell in a *stable* environment records an alternating
+    /// stack instead of one bed — and since identity is in the merge key, that
+    /// multiplies the units. Chapter-grained, **the draw is fixed while the
+    /// fitness weights keep moving every epoch**, so identity changes exactly when
+    /// the shifting CDF crosses the fixed draw: at a real change in conditions,
+    /// which is what a bed contact is. A chapter boundary is already a time
+    /// surface the record refuses to merge across.
+    pub chapter: u64,
+    /// The deep classes, pre-resolved — see [`MemberCtx::classes`].
+    classes: [Option<&'a GeoClass>; Litho::COUNT],
+}
+
+impl DepositCtx<'_> {
+    /// The material a bed of class `litho` deposits as **here, today** — fitness
+    /// × normalised abundance × this event's addressed draw.
+    ///
+    /// `tag` names the depositor ([`dep_tags`]) and `k` separates several events
+    /// from one depositor in one cell-chapter (a unit index, for instance).
+    #[inline]
+    pub fn material_for(&self, litho: Litho, tag: u64, k: u64) -> MaterialId {
+        self.material_in(litho, &self.form, tag, k)
+    }
+
+    /// [`Self::material_for`] under an explicit formation context — for the
+    /// events whose conditions are not the surface's (burial diagenesis).
+    ///
+    /// **The fallback is the class's reference material**, which is exactly what
+    /// the record said before P11: a content set that leaves this class empty
+    /// still produces a rock, and a world built with the vanilla set never
+    /// reaches it (`Pipeline::check_class_satisfiability` refuses to build one
+    /// that would). S-5 identity default.
+    pub fn material_in(
+        &self,
+        litho: Litho,
+        form: &FormationContext,
+        tag: u64,
+        k: u64,
+    ) -> MaterialId {
+        // INTERIM SCAFFOLDING — heirs: P11 slice 2 (transported deposits take
+        // their identity from the arriving composition term) and FS-A (weathering
+        // release spectra). See `DepositCtx::chapter`. Addressed by CHAPTER, not
+        // epoch: the draw is fixed while the fitness weights move, so identity
+        // turns over when conditions do and not on a per-step coin.
+        let u = self.draws.unit(&[tag, self.cell, self.chapter, k]);
+        self.classes[litho.index()]
+            .and_then(|c| self.geology.select_in(c, form, u))
+            .map_or_else(|| litho.reference_material(), |(_, def)| def.material)
+    }
+}
 
 /// Depositional environment, measured at the event (surface vs. sea level).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -237,8 +437,8 @@ pub struct DepUnit {
     /// Appended last (wire discipline — corrections #3): fits `DepUnit`'s
     /// existing 8-byte padding, so `sizeof` is unchanged (verified in the spike).
     pub chapter: u8,
-    /// **The material that actually arrived here** (Movement 2b, `material-behavior.md`
-    /// § 13.3/§ 13.7).
+    /// **The rock this bed is made of** — a registry [`MaterialId`], not a class
+    /// (P11 slice 1, ruling 1: *history records the rock, not the road to it*).
     ///
     /// Every other axis of a unit is a *measurement of the environment* at the
     /// moment of deposition; this one is a measurement of **the load**. Before
@@ -249,13 +449,27 @@ pub struct DepUnit {
     /// that the flow reaching a distal cell has no gravel left to drop, because
     /// the gravel rained out at the mountain front twenty cells upstream.
     ///
-    /// With [`super::grid::DeepConfig::material_transport`] **off** this is
-    /// exactly `litho_of_tag(tag)` at every construction site — a pure function of
-    /// `tag`, so it adds nothing to the merge key and the record is byte-identical.
-    /// With it **on**, the recorder overrides it with the argmax species of the
-    /// whole mixture that arrived — what the fluvial pass set down, plus (since
-    /// `material_creep`, journal/0112) what hillslope creep brought down the slope
-    /// — and the unit's identity stops being derivable from its environment.
+    /// ## Why it is a material and not a class
+    ///
+    /// Until 2026-08-01 this was a `Litho` — one of **seven** classes — and the
+    /// member that actually fills a voxel (mudstone vs siltstone; sandstone vs
+    /// conglomerate) was invented at *expression*, per chunk, under a formation
+    /// context frozen at the chunk centre. Deep time therefore could not
+    /// distinguish two rocks it had itself deposited under different climates
+    /// hundreds of millions of years apart: the class was all it wrote down.
+    ///
+    /// Now the member is chosen **once, at deposition**, under the formation
+    /// context of the epoch that laid the bed ([`DepositCtx`]), and stored. The
+    /// fitness envelope is *selection machinery* — after it has run, the member
+    /// has done its whole job, and what history owes the future is the rock. Two
+    /// members that deposit one material are two roads to one rock and the record
+    /// is right not to distinguish them.
+    ///
+    /// **Zero bytes.** `MaterialId` is a `#[repr(u8)]` fieldless enum, exactly as
+    /// wide as `Litho` was; `size_of::<DepUnit>()` is still 16 with no padding
+    /// (compiler-asserted below — the `offset_of!` pin the design audit's I2 asked
+    /// for). It is *not* an appended field but a **replacement**, which moves the
+    /// goldens; legitimate under the scratch-pad doctrine with the why recorded.
     ///
     /// **STUB #25 — this axis says *what* arrived and not *who brought it*.**
     /// Since Movement 2b continuation (b) (journal/0112) two movers can deliver
@@ -265,13 +479,41 @@ pub struct DepUnit {
     /// sorted against far-travelled and sorted; `examples/colluvium_probe.rs`
     /// measures it by drainage-area decile). A `mover` byte is not free — this
     /// struct is 16 B with **no padding left**, so a seventeenth byte is +8 B ×
-    /// ~5.5 M units ≈ +42 MiB. **Heir:** a packed `(species, mover)` byte (3 bits
-    /// each), landing with § 13.8's lineage history.
-    ///
-    /// Appended last (wire discipline — corrections #3); it fills `DepUnit`'s
-    /// existing padding, so `size_of::<DepUnit>()` is unchanged (asserted).
-    pub species: Litho,
+    /// ~5.5 M units ≈ +42 MiB. **Heir:** a packed `(species, mover)` byte. #25's
+    /// arithmetic survives the re-grade: 26 materials need 5 bits, leaving 3 for
+    /// the mover — still exactly one byte.
+    pub species: MaterialId,
 }
+
+/// **The zero-byte swap, compiler-checked** (design audit § 9 item 2 / I2).
+///
+/// `DepUnit` is 16 B with no padding left, and the whole residency argument for
+/// naming a `MaterialId` rather than a `GeoMemberIdx` rests on that (a `u16`
+/// identity costs +8 B × ~5.5 M units ≈ 42 MiB). Until P11 that claim was field
+/// arithmetic in a doc comment; these are the facts.
+const _: () = {
+    assert!(size_of::<DepUnit>() == 16, "DepUnit must stay 16 bytes");
+    assert!(
+        size_of::<MaterialId>() == 1,
+        "the identity byte stays a byte"
+    );
+    // Zero padding: the fields' own widths already account for every byte, so
+    // there is no slack a wider field could grow into.
+    assert!(
+        size_of::<DepTag>()
+            + size_of::<f64>()
+            + size_of::<bool>()
+            + size_of::<u8>()
+            + size_of::<MaterialId>()
+            == 16,
+        "DepUnit has no padding left — a wider field costs a whole 8-byte slot"
+    );
+    // `repr(Rust)` may reorder, so where the compiler *actually* put things is a
+    // separate question from the widths adding up. Both fields land inside the
+    // 16 B the sum accounts for.
+    assert!(std::mem::offset_of!(DepUnit, thickness_m) + size_of::<f64>() <= 16);
+    assert!(std::mem::offset_of!(DepUnit, species) + size_of::<MaterialId>() <= 16);
+};
 
 /// The ordered per-cell deposition log, bottom-up. `units[0]` is the deepest
 /// recorded stratum; the last unit ends at the current surface. Below the
@@ -300,30 +542,58 @@ impl DeepStrata {
     /// unit otherwise. `chapter` is `0` on the pre-tectonic-history path, so the
     /// extra `top.chapter == chapter` guard is always satisfied and merging is
     /// byte-identical to before.
+    /// **The reference-material door — no registry is consulted.**
+    ///
+    /// Deposits the *reference member* of the tag's class, which is what the
+    /// record said for every depositor before P11. It survives for exactly two
+    /// customers and neither is a shipped depositor:
+    ///
+    /// - **tests and probes** that want mass in a column and have no content set
+    ///   to hand (a `DeepStrata` built in isolation);
+    /// - reasoning about the **degenerate content set**, where the class a bed
+    ///   belongs to has no member at all.
+    ///
+    /// Every production depositor now states the material it picked
+    /// ([`Self::deposit_as`]) after running fitness under its own formation
+    /// context. **If you are adding a depositing agent, you want `deposit_as`.**
+    ///
+    /// ⚠ **Heir: this goes with `Litho`** (P11 slice 4). It is the last live
+    /// caller of [`Litho::reference_material`] outside the S-5 fallback in
+    /// [`DepositCtx::material_in`], and both die when the class roster does.
     pub fn deposit(&mut self, tag: DepTag, d: f64, chapter: u8) {
-        self.deposit_as(tag, d, chapter, litho_of_tag(tag));
+        self.deposit_as(tag, d, chapter, litho_of_tag(tag).reference_material());
     }
 
     /// [`Self::deposit`], but stating **which material arrived** rather than
     /// letting it be inferred from the tag (Movement 2b, `material-behavior.md`
     /// § 13.3).
     ///
-    /// Only an agent that actually *carried* a load can answer that question, so
-    /// only the erosion recorder calls this — with the argmax of everything that
-    /// arrived at the cell: what the fluvial pass set down, plus what hillslope
-    /// creep brought down the slope (journal/0112, § 13.2's **gravity** member).
-    /// Every other depositor — the wind agent, the wave agent, the biotic layer,
-    /// the tests — goes through [`Self::deposit`] and gets the tag-derived default,
-    /// which is what the record has always said. (The **eolian** family genuinely
-    /// has a load too and would honestly travel its own identity; it is deferred
-    /// with the rest of § 13.2's wind/ice members and still reads its species off
-    /// the tag.)
+    /// **This is the writer every production depositor uses** (P11 slice 1).
+    ///
+    /// Two different questions arrive here and both end in a `MaterialId`:
+    ///
+    /// - *what did a mover bring?* — the erosion recorder answers with the argmax
+    ///   of everything that arrived at the cell (the fluvial pass's deposit plus
+    ///   what hillslope creep brought down the slope, journal/0112, § 13.2's
+    ///   **gravity** member), resolved to a member under the epoch's own
+    ///   formation context;
+    /// - *what does this environment make?* — the wind agent, the wave agent and
+    ///   the biotic layer carry no identity, so their class comes from the tag,
+    ///   but the **member** is still chosen by fitness at deposition
+    ///   ([`DepositCtx::material_for`]) rather than fixed to a reference. (The
+    ///   **eolian** family genuinely has a load too and would honestly travel its
+    ///   own identity; that is deferred with the rest of § 13.2's wind/ice
+    ///   members.)
     ///
     /// `species` joins the merge key: two runs of the same environment that
     /// delivered *different rock* are two units, not one. That is the whole point —
     /// a sand sheet and the mud that followed it at the same tag are a contact you
-    /// can see in a cliff.
-    pub fn deposit_as(&mut self, tag: DepTag, d: f64, chapter: u8, species: Litho) {
+    /// can see in a cliff. **Member grade sharpens the key**: two beds that merged
+    /// as one `ClasticFine` unit split when one is mudstone and the other
+    /// siltstone, so the unit count rises with the diversity. That is the record
+    /// getting more honest, and it is the second-order residency cost the design
+    /// audit left unpriced (§ 6a, I4).
+    pub fn deposit_as(&mut self, tag: DepTag, d: f64, chapter: u8, species: MaterialId) {
         if !self.stripped
             && let Some(top) = self.units.last_mut()
             && top.tag == tag
@@ -358,7 +628,10 @@ impl DeepStrata {
     ///
     /// Preserves `sum(units) == H` exactly: `extra` is added once, and the merge
     /// only moves thickness between units.
-    pub fn overprint_top(&mut self, tag: DepTag, extra: f64, chapter: u8) {
+    /// `species` is the material the overprint *makes*: pedogenesis is a genuine
+    /// identity event (the horizon is a new rock), so its member is picked by
+    /// fitness at the epoch that built it, under [`dep_tags::PEDOGENIC`].
+    pub fn overprint_top(&mut self, tag: DepTag, extra: f64, chapter: u8, species: MaterialId) {
         let charcoal_top = self
             .units
             .last()
@@ -370,7 +643,7 @@ impl DeepStrata {
                 thickness_m: extra,
                 unconformity: self.stripped,
                 chapter,
-                species: litho_of_tag(tag),
+                species,
             });
             self.stripped = false;
             return;
@@ -381,15 +654,15 @@ impl DeepStrata {
         top.chapter = chapter;
         // Pedogenesis **alters the material in place** — the horizon a community
         // built out of what was lying here is an organic soil whatever the flow
-        // delivered, so the overprint takes the tag's own species and the
-        // transported identity is genuinely overwritten rather than lost.
-        top.species = litho_of_tag(tag);
+        // delivered, so the overprint takes the soil's own identity and the
+        // transported one is genuinely overwritten rather than lost.
+        top.species = species;
         // Merge down into an identically-tagged predecessor of the same chapter.
         let n = self.units.len();
         if n >= 2
             && self.units[n - 2].tag == tag
             && self.units[n - 2].chapter == chapter
-            && self.units[n - 2].species == litho_of_tag(tag)
+            && self.units[n - 2].species == species
             && !self.units[n - 1].unconformity
         {
             let t = self.units.pop().expect("non-empty").thickness_m;
@@ -497,7 +770,16 @@ impl DeepStrata {
     /// not by a swamp's duration. `dc_core::materials::geology::CLASS_ORGANIC_COAL`'s
     /// contract — *"the class's depth axis is the rank axis"* — is what a real
     /// geotherm finally lets this become: a P/T path down which the single `Coal`
-    /// facies can one day split by rank (a later slice; not built here).
+    /// facies can one day split by rank.
+    ///
+    /// **P11 slice 1 is what makes that expressible, and it is the one identity
+    /// event that is not a surface event.** Every other depositor picks its member
+    /// under a formation context whose `depth_m` is 0 — a bed is laid at the
+    /// surface. This one is a *burial* transformation, so it re-runs fitness under
+    /// the depth and the geotherm temperature it has just computed: the rank axis
+    /// is the real burial depth of this slab in this column. Vanilla ships one
+    /// coal member so the pick cannot vary yet; the day a pack registers lignite
+    /// and anthracite, they separate here with no further work.
     ///
     /// **The topmost unit is never promoted**, unconditionally. Its overburden
     /// is zero, so every *positive* threshold excludes it anyway — but the guard
@@ -510,7 +792,7 @@ impl DeepStrata {
     /// which keeps the work proportional to the peat in the record rather than to
     /// the record. Called once at run finalize. Pure in the record; preserves
     /// `sum(units) == H` (only the tag changes, never a thickness).
-    pub fn promote_coal(&mut self, col: BurialColumn, onset_c: f64) {
+    pub fn promote_coal(&mut self, col: BurialColumn, onset_c: f64, ctx: &DepositCtx) {
         // Top-down, accumulating overburden: one pass, no allocation.
         let top = self.units.len().saturating_sub(1);
         let mut overburden_m = 0.0f64;
@@ -524,10 +806,15 @@ impl DeepStrata {
                 if t_c >= onset_c {
                     u.tag.biota = Biofacies::Coal;
                     // Diagenesis is a **material transformation**: the unit stops
-                    // being peat, so its species follows its tag. (A peat unit's
-                    // species is always the tag-derived one — peat is laid by the
-                    // biotic layer, which does not carry a load.)
-                    u.species = litho_of_tag(u.tag);
+                    // being peat, so its identity is re-picked — under *this*
+                    // slab's burial P/T, which is the coal class's own rank axis.
+                    let form = FormationContext {
+                        temp_c: t_c,
+                        precip: ctx.form.precip,
+                        depth_m,
+                    };
+                    u.species =
+                        ctx.material_in(litho_of_tag(u.tag), &form, dep_tags::DIAGENESIS, k as u64);
                 }
             }
             overburden_m += u.thickness_m;

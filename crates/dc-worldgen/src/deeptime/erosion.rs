@@ -73,8 +73,11 @@ use super::climate;
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
 use super::lithology::{self, Agent, Litho};
 use super::providers::WaveCell;
-use super::recorder::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, Eolian};
+use super::recorder::{
+    Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, Eolian, MemberCtx, dep_tags,
+};
 use super::weather_behavior;
+use dc_core::materials::MaterialId;
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
 const EPS: f64 = 0.001;
@@ -1111,12 +1114,25 @@ fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64, k_transport
 
 /// Apply one cell's net thickness change to its strata record under `tag`,
 /// stamped with the current tectonic `chapter` (0 when tectonic history is off).
+///
+/// **`tag` and `species` are LAZY, and that is a cost decision** (P11 slice 1).
+/// Deposition-time member fitness is an inverse-CDF over a class's registered
+/// members, and it allocates; evaluating it eagerly as a call argument would run
+/// it for **every cell every epoch** — ~297 k × 200 on a production world — when
+/// only the depositing minority can use the answer. A cell that eroded or did
+/// nothing this epoch never asks which rock arrived, because none did.
 #[inline]
-fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: Litho) {
+fn record_cell(
+    s: &mut DeepStrata,
+    dh: f64,
+    chapter: u8,
+    deposit: impl FnOnce() -> (DepTag, MaterialId),
+) {
     if dh.abs() < 1e-9 {
         return;
     }
     if dh > 0.0 {
+        let (tag, species) = deposit();
         s.deposit_as(tag, dh, chapter, species);
     } else {
         s.erode(-dh);
@@ -1133,9 +1149,16 @@ fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: L
 /// layer — never rode any mover, and keeps the answer the record has always
 /// given: the tag's own lithology.
 ///
-/// So the unit's species is the **argmax of the whole mixture**: each carried
+/// So the unit's **class** is the argmax of the whole mixture: each carried
 /// species against the un-carried remainder, with ties going to the incumbent (a
 /// strict `>` over fixed index order, so it is deterministic).
+///
+/// ⚠ **It answers the CLASS, not the rock** (P11 slice 1). The transport budgets
+/// are still `Litho::COUNT`-wide, so this argmax is over classes; the *member* is
+/// then chosen by fitness at deposition under the cell's own climate
+/// ([`super::recorder::MemberCtx::surface`]). Slice 2 re-grades the budgets, at
+/// which point the argmax is over materials and this function returns the rock
+/// directly.
 ///
 /// **The two movers are summed, not ranked.** A cell that receives half a metre of
 /// fine clastic from upstream and half a metre of the same rock off the slope
@@ -1960,7 +1983,20 @@ impl Erosion {
 
     /// One deep-time iteration at the given `sea_level` stand. Returns the
     /// total uplift added this step (for the mass-conservation ledger).
-    pub fn step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, sea_level: f64) -> f64 {
+    ///
+    /// `mem` is the deposition-identity context (P11 slice 1) — the registered
+    /// content plus this epoch's addressed member-fitness stream. It is consulted
+    /// only by the phases that write an identity (`record`, `wind`, `wave`), so a
+    /// caller running with `cfg.record` off never reaches it; it is still a
+    /// parameter rather than a default because *which members exist* is a world
+    /// input and must not be assumed by a solver.
+    pub fn step(
+        &mut self,
+        grid: &mut DeepGrid,
+        cfg: &DeepConfig,
+        sea_level: f64,
+        mem: MemberCtx<'_>,
+    ) -> f64 {
         self.sea_level = sea_level;
         // Phase 1: the external forcing. Legacy path adds a constant uplift plane
         // to bedrock; tectonic-history path adds the analytic thickening rate to
@@ -1999,7 +2035,7 @@ impl Erosion {
             legacy_uplift
         };
         if cfg.record {
-            self.record(grid);
+            self.record(grid, mem);
         }
         // The wind and wave agents run **after** the recorder and self-record
         // (like the biotic layer), so their own facies reach the record rather
@@ -2007,8 +2043,8 @@ impl Erosion {
         // mass — wind moves loose `H`, wave moves `R`/`H` offshore — so the mass
         // ledger `Δ(ΣR+ΣH) == uplift + biotic` is untouched (journal/0034).
         if cfg.full_agents {
-            self.wind(grid, cfg);
-            self.wave(grid, cfg);
+            self.wind(grid, cfg, mem);
+            self.wave(grid, cfg, mem);
         }
         ledger
     }
@@ -3474,10 +3510,16 @@ impl Erosion {
     /// Record each cell's net thickness change this iteration under the tag
     /// measured now. Each cell's `DeepStrata` is independent → byte-identical
     /// parallel (per-cell record ops, disjoint records).
-    pub fn record(&mut self, grid: &mut DeepGrid) {
+    pub fn record(&mut self, grid: &mut DeepGrid, mem: MemberCtx<'_>) {
         let parallel = self.par();
         let sea = self.sea_level;
         let chapter = self.cur_chapter;
+        // **The formation context of this geological day** (P11 slice 1). Lifted
+        // before the record is borrowed mutably: `lat_deg` takes `&self`, and the
+        // per-cell temperature is the same air-temperature model the biotic gate
+        // and the frost agent read (one climate, never a second).
+        let w = grid.w;
+        let lat: Vec<f64> = (0..w).map(|gy| grid.lat_deg(gy)).collect();
         let (r, h, precip, energy) = (&grid.r, &grid.h, &grid.precip, &self.energy);
         // The reference the energy bands are relative to — the coefficient the
         // capacities in `energy` were actually produced with, carried from
@@ -3487,9 +3529,23 @@ impl Erosion {
         let dep = &self.dep_sp;
         let creep = &self.creep_sp;
         let sorted = self.sorted;
+        // **The two halves of a unit's identity, in order** (P11 slice 1):
+        //
+        // 1. the CLASS is what the movers determine — the argmax of everything
+        //    that arrived (`arriving_species`), or the tag's own lithology where
+        //    nothing rode a mover. That is still `Litho`-grade because the
+        //    transport budgets are (slice 2 re-grades them);
+        // 2. the MEMBER is what the environment determines — fitness over the
+        //    registered members of that class, under this cell's temperature and
+        //    precipitation *this epoch*, through an addressed draw.
+        //
+        // What used to happen instead: (1) was recorded and (2) was invented at
+        // expression, hundreds of millions of sim-years later, from the climate of
+        // the chunk's centre. The class is a fact about the load; the member is a
+        // fact about the day. Both are known here and neither was written down.
         let species_at = |i: usize, tag: DepTag| {
             let t = lithology::litho_of_tag(tag);
-            if sorted {
+            let class = if sorted {
                 let cr = if creep.is_empty() {
                     &[][..]
                 } else {
@@ -3498,17 +3554,28 @@ impl Erosion {
                 arriving_species(dh[i], &dep[i * SPECIES..(i + 1) * SPECIES], cr, t)
             } else {
                 t
-            }
+            };
+            let temp_c = f64::from(climate::air_temp_c(lat[i / w], r[i] + h[i]));
+            mem.surface(
+                i,
+                temp_c,
+                f64::from(precip[i]),
+                class,
+                dep_tags::TRANSPORT,
+                0,
+            )
+        };
+        let deposit_at = |i: usize| {
+            let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
+            (tag, species_at(i, tag))
         };
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
-                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
-                record_cell(s, dh[i], tag, chapter, species_at(i, tag));
+                record_cell(s, dh[i], chapter, || deposit_at(i));
             });
         } else {
-            for i in 0..self.n {
-                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
-                record_cell(&mut grid.strata[i], dh[i], tag, chapter, species_at(i, tag));
+            for (i, s) in grid.strata.iter_mut().enumerate().take(self.n) {
+                record_cell(s, dh[i], chapter, || deposit_at(i));
             }
         }
     }
@@ -3544,7 +3611,7 @@ impl Erosion {
     /// its own facies reach the record rather than being lumped under the epoch's
     /// fluvial tag. Scalar in both drivers (a row carries a serial load), so it is
     /// deterministic and scalar↔parallel byte-identical.
-    pub fn wind(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+    pub fn wind(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, mem: MemberCtx<'_>) {
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
         let sus_tab = lithology::susceptibility_table(
@@ -3581,7 +3648,19 @@ impl Erosion {
                                 eolian: Eolian::Loess,
                                 ..DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low)
                             };
-                            grid.strata[i].deposit(tag, load, chapter);
+                            // Dust settling on the sea: the wind carries no
+                            // identity of its own (§ 13.2's wind member is
+                            // deferred), so the class is the tag's — but the
+                            // MEMBER is picked by fitness here, today.
+                            let m = mem.surface(
+                                i,
+                                f64::from(climate::air_temp_c(grid.lat_deg(gy), surf)),
+                                f64::from(grid.precip[i]),
+                                lithology::litho_of_tag(tag),
+                                dep_tags::EOLIAN,
+                                0,
+                            );
+                            grid.strata[i].deposit_as(tag, load, chapter, m);
                         }
                         load = 0.0;
                     }
@@ -3635,7 +3714,15 @@ impl Erosion {
                             eolian: facies,
                             ..DepTag::mineral(DepEnv::Subaerial, ar, energy)
                         };
-                        grid.strata[i].deposit(tag, drop, chapter);
+                        let m = mem.surface(
+                            i,
+                            f64::from(climate::air_temp_c(grid.lat_deg(gy), surf)),
+                            precip,
+                            lithology::litho_of_tag(tag),
+                            dep_tags::EOLIAN,
+                            1,
+                        );
+                        grid.strata[i].deposit_as(tag, drop, chapter, m);
                     }
                 }
             }
@@ -3650,7 +3737,15 @@ impl Erosion {
                         eolian: Eolian::Loess,
                         ..DepTag::mineral(DepEnv::Subaerial, Aridity::Arid, EnergyBand::Low)
                     };
-                    grid.strata[i].deposit(tag, load, chapter);
+                    let m = mem.surface(
+                        i,
+                        f64::from(climate::air_temp_c(grid.lat_deg(gy), grid.r[i] + grid.h[i])),
+                        f64::from(grid.precip[i]),
+                        lithology::litho_of_tag(tag),
+                        dep_tags::EOLIAN,
+                        2,
+                    );
+                    grid.strata[i].deposit_as(tag, load, chapter, m);
                 }
             }
         }
@@ -3676,7 +3771,7 @@ impl Erosion {
     ///
     /// Scalar (it writes a neighbour's cell), so deterministic and byte-identical
     /// scalar↔parallel. Only the thin shore band does work.
-    pub fn wave(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig) {
+    pub fn wave(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, mem: MemberCtx<'_>) {
         let (base_rate, band) = (cfg.wave_erosion, cfg.wave_band_m);
         // The configured rate is still the *off switch* — a `0.0` global rate
         // means "no littoral term at all", provider or no provider, which is the
@@ -3746,11 +3841,20 @@ impl Erosion {
                 if removed_h > 0.0 {
                     grid.strata[i].erode(removed_h);
                 }
-                grid.strata[j].deposit(
-                    DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low),
-                    cut,
-                    chapter,
+                let tag = DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low);
+                let m = mem.surface(
+                    j,
+                    // `j`'s own row: the bed is laid where the sediment lands.
+                    f64::from(climate::air_temp_c(
+                        grid.lat_deg(j / w),
+                        grid.r[j] + grid.h[j],
+                    )),
+                    f64::from(grid.precip[j]),
+                    lithology::litho_of_tag(tag),
+                    dep_tags::WAVE,
+                    0,
                 );
+                grid.strata[j].deposit_as(tag, cut, chapter, m);
             }
         }
     }

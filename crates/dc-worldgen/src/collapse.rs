@@ -1600,6 +1600,14 @@ const DEEP_CLASS_ORDER: [&str; DEEP_CLASSES] = [
 ];
 
 /// The [`DEEP_CLASS_ORDER`] slot a recorded unit's species contributes to.
+///
+/// ⚠ **Class-grade, and the far field's `ShareVec<6>` is why** (P11 slice 1). The
+/// record names a `MaterialId` now; this coarsens it back through
+/// [`Litho::of_material`] because the surface-class field is a fixed-6 share
+/// vector whose blend semantics the user already rejected by eye (2026-07-29) and
+/// which rides as interim. **Slice 4 owns this site** — minimally, deliberately
+/// not gold-plated, because its real heir is the far register derived from
+/// refinement-operator budgets, not a wider `ShareVec`.
 fn deep_class_slot(species: Litho) -> usize {
     match species {
         Litho::ClasticFine => 0,
@@ -1661,7 +1669,7 @@ fn top_voxel_shares(rec: &DeepStrata, voxel_m: f64) -> ShareVec<DEEP_CLASSES> {
             continue;
         }
         acc += take;
-        shares[deep_class_slot(u.species)] += take;
+        shares[deep_class_slot(Litho::of_material(u.species))] += take;
     }
     if acc < voxel_m / 2.0 {
         return ShareVec::zero();
@@ -1880,6 +1888,7 @@ mod tests {
             sel_tag: 0,
             ore: None,
             accessory: None,
+            dither: true,
         }
     }
 

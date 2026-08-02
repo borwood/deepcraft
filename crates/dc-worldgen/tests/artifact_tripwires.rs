@@ -250,7 +250,16 @@ fn far_surface_fingerprint(g: &mut WorldGenerator<'_>) -> u64 {
 /// finalize).
 ///
 /// Captured over **25,600 cells** (the fixture's 160² deep grid).
-const GOLDEN_GEOTHERM: u64 = 0xDBDE_C405_EBE0_239E;
+///
+/// **Moved 2026-08-01 by P11 slice 1** — the deep record went member-grade
+/// (journal/pending-p11-slice1). See `providers_common` § P11 for the two
+/// mechanisms and for why a moved *surface* hash here is rounding rather than a
+/// re-tuned world. Prior value, kept for audit: `0xDBDE_C405_EBE0_239E`.
+///
+/// **The geotherm RULE did not change** — this constant tracks `t_crust`, which
+/// tracks exhumation, which tracks the erosion the rounding perturbed. It moved
+/// *with* `GOLDEN_SURFACE`, which is the case its own doc calls uninteresting.
+const GOLDEN_GEOTHERM: u64 = 0xBC6E_77CD_3D52_0246;
 
 /// FNV-1a-64 over the exported `head` plane of the golden fixture.
 ///
@@ -268,7 +277,18 @@ const GOLDEN_GEOTHERM: u64 = 0xDBDE_C405_EBE0_239E;
 /// `GOLDEN_FLUX` is the corroborating hash), and keep the prior value.
 ///
 /// Captured over **25,600 cells** (the fixture's 160² deep grid).
-const GOLDEN_HEAD: u64 = 0x1013_984C_2B7B_BCF9;
+///
+/// **Moved 2026-08-01 by P11 slice 1** — the deep record went member-grade
+/// (journal/pending-p11-slice1). See `providers_common` § P11 for the two
+/// mechanisms and for why a moved *surface* hash here is rounding rather than a
+/// re-tuned world. Prior value, kept for audit: `0x1013_984C_2B7B_BCF9`.
+///
+/// **Two causes here, and the second is a real capability gain**: the routing
+/// moved with the surface, *and* `head::permeability_of` now reads the recorded
+/// material's own sheet instead of its class's reference — so a siltstone aquitard
+/// (k = 0.08) stops being a mudstone one (k = 0.02). The head field is the first
+/// consumer in the tree to see member grade as physics rather than as albedo.
+const GOLDEN_HEAD: u64 = 0x9AC3_4801_9AD6_FE1B;
 
 /// FNV-1a-64 over the exported chapter table of the golden fixture.
 ///
@@ -360,7 +380,16 @@ const GOLDEN_CHAPTERS: u64 = 0xF25B_E0C3_CF39_AC55;
 ///   whose coverage of its own motivating change is 0.43 % is a real tripwire and
 ///   a partial one, and calling it either without the number would be the A-3
 ///   shape.*
-const GOLDEN_FAR_SURFACE: u64 = 0x1424_7B7C_AB51_EFA5;
+///
+/// **Moved 2026-08-01 by P11 slice 1** — the deep record went member-grade
+/// (journal/pending-p11-slice1). See `providers_common` § P11 for the two
+/// mechanisms and for why a moved *surface* hash here is rounding rather than a
+/// re-tuned world. Prior value, kept for audit: `0x1424_7B7C_AB51_EFA5`.
+///
+/// **This one is a real content move**: the far field samples the surface
+/// *block*, and a surface that used to be `dc:mudstone` by table lookup is now
+/// whichever fine clastic deposition-time fitness actually chose.
+const GOLDEN_FAR_SURFACE: u64 = 0xF64E_7377_9F48_B696;
 
 // ---------------------------------------------------------------------------
 // The tripwires. One per artifact — see the module doc's "one hash per artifact".

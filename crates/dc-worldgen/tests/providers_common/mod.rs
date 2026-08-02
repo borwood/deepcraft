@@ -14,13 +14,53 @@
 // once per suite, so anything a given suite does not call is dead there.
 #![allow(dead_code)]
 
+use dc_core::materials::MaterialId;
 use dc_worldgen::deeptime::{
-    Aridity, Biofacies, DeepField, DepEnv, EnergyBand, Eolian, Litho, build_field,
+    Aridity, Biofacies, DeepField, DepEnv, EnergyBand, Eolian, build_field,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 /// The seed the goldens were captured at.
 pub const SEED: u64 = 0x0B0A_57EE_0059;
+
+// ---------------------------------------------------------------------------
+// **§ P11 — WHY EVERY TERRAIN GOLDEN IN THIS FILE MOVED ON 2026-08-01.**
+//
+// P11 slice 1 took the deep record member-grade: `DepUnit::species` is a registry
+// `MaterialId` chosen by member fitness **at deposition**, not a 7-value `Litho`
+// class refitted at expression (journal/pending-p11-slice1). Two distinct things
+// reach these hashes and it matters which is which:
+//
+// 1. **The RECORD halves moved because the record changed.** It names the rock
+//    now — `dc:mudstone` where it used to say *fine clastic* — and identity joins
+//    `deposit_as`'s merge key, so beds that coalesced as one class-grade unit
+//    split when their members differ. Both are the slice, working.
+//
+// 2. **The SURFACE halves moved for a reason that is NOT a physics change, and
+//    this is the part worth reading before trusting the diff.** The erosion rule
+//    is untouched: `susceptibility_table` is still keyed by class and still built
+//    from each class's reference material, so a siltstone bed still erodes at
+//    mudstone's rate (slice 2 is what changes that). What moved is *rounding*.
+//    The recorder accumulates `top.thickness_m += d` per unit and `erode`
+//    subtracts per unit, so a finer segmentation produces different addends;
+//    `window_walk` buckets them back to the same class and gets the same quantity
+//    to within 1e-12, and the susceptibility blend reads that. One ulp, through
+//    the incision rate, compounded over 200 epochs, is a different continent.
+//
+//    Bounded and pinned at the site where it enters:
+//    `lithology::p11_bucket_tests::splitting_a_unit_within_its_class_preserves_the_outcrop_shares`.
+//    **A walk that coalesced runs back to the pre-P11 segmentation was built,
+//    measured and removed** — it did not restore the world, because the addends
+//    differ and not merely their grouping.
+//
+// So: a *systematic* rate change would have to break mass conservation or move
+// the denudation budget, and `deeptime.rs`'s ledger suite (`Δ(ΣR+ΣH) == uplift +
+// biotic`) held through the whole re-grade. Read a moved surface hash here as
+// **the same landscape rolled from a different ulp**, not as a re-tuned world —
+// and note the claim's own limit: it is an argument from the mechanism plus a
+// conservation check, **not** a measured before/after of relief, which nothing in
+// the tree captures across commits.
+// ---------------------------------------------------------------------------
 
 /// FNV-1a-64 over the surface planes of the golden fixture `DeepField`.
 ///
@@ -142,7 +182,10 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// ```text
 /// GOLDEN_SURFACE 0x260E_074F_211C_936D
 /// ```
-pub const GOLDEN_SURFACE: u64 = 0x15A6_B756_7A84_29FB;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0x15A6_B756_7A84_29FB`.
+pub const GOLDEN_SURFACE: u64 = 0xBF63_DA9D_2974_022A;
 
 /// **The pre-journal/0122 hillslope operator, reachable and pinned.** The same
 /// production fixture built with `DeepConfig::creep_substep = false`: one raw
@@ -153,9 +196,15 @@ pub const GOLDEN_SURFACE: u64 = 0x15A6_B756_7A84_29FB;
 /// [`GOLDEN_SURFACE_SCALAR_LOAD`] and [`GOLDEN_SURFACE_ANONYMOUS_CREEP`]: an old
 /// solve that is still reachable, so a moved shipped golden is an authorized move
 /// rather than a lost fixed point.
-pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0x260E_074F_211C_936D;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0x260E_074F_211C_936D`.
+pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0x3866_6989_FA2D_FD09;
 /// The strata-record half of [`GOLDEN_SURFACE_UNBOUNDED_CREEP`].
-pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xACB6_1859_6AA3_F3A8;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
+/// kept for audit: `0xACB6_1859_6AA3_F3A8`.
+pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xE106_8099_C93B_1877;
 
 /// **The CALIBRATED world, reachable and pinned** (journal/0114). The same fixture
 /// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
@@ -193,9 +242,15 @@ pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xACB6_1859_6AA3_F3A8;
 /// the same multiplier strips the world to 1.40 m of mean regolith. So this constant
 /// still pins "the world `calibrated_rates: Some(true)` builds", which is what it is
 /// for; it no longer pins "the world we intend to ship when the flag flips".
-pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x53AD_BCCE_B157_09A8;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0x53AD_BCCE_B157_09A8`.
+pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0xCE38_7587_69F0_64F2;
 /// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
-pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x830E_768D_3D1D_866B;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
+/// kept for audit: `0x830E_768D_3D1D_866B`.
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x8AF6_5B99_579C_436A;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -207,7 +262,10 @@ pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x830E_768D_3D1D_866B;
 /// `tests/mfd_routing.rs::the_single_receiver_path_still_hashes_to_the_pre_mfd_goldens`
 /// — deliberately **not** in `providers_golden.rs`, which stays the cross-commit
 /// golden for the *shipped* configuration and nothing else.
-pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x176D_40F1_1CCB_006A;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0x176D_40F1_1CCB_006A`.
+pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x98E4_1972_0DA0_8EB6;
 /// **The pre-2b fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::material_transport`](dc_worldgen::deeptime::DeepConfig) **off**
 /// must reproduce the goldens as they stood before Movement 2b (journal/0110) —
@@ -222,9 +280,15 @@ pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x176D_40F1_1CCB_006A;
 /// in the same commit, so every record hash in this file was re-derived. With the
 /// flag off the species is `litho_of_tag(tag)` at every unit, so the *record* is
 /// byte-identical and only the *hash* moved.
-pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0x6F83_4D53_DB89_8C36;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0x6F83_4D53_DB89_8C36`.
+pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0xC013_3553_0033_93A5;
 /// The strata-record half of [`GOLDEN_SURFACE_SCALAR_LOAD`].
-pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x3940_3AD9_C3A8_FD83;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
+/// kept for audit: `0x3940_3AD9_C3A8_FD83`.
+pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x98B6_DAD5_5796_8D6A;
 
 /// **The fluvial-only fixed point, still reachable.** The same fixture world with
 /// [`DeepConfig::material_creep`](dc_worldgen::deeptime::DeepConfig) **off** must
@@ -261,9 +325,15 @@ pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x3940_3AD9_C3A8_FD83;
 /// The **scalar-load** pair above is unmoved by #57 and still asserted, which pins
 /// the fix's own off-switch: with `material_transport` off nothing is ever carried,
 /// so there is no carried winner for `as_deposited` to answer about.
-pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xDAB0_34AC_9984_209C;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0xDAB0_34AC_9984_209C`.
+pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xFAC2_2A81_1311_2075;
 /// The strata-record half of [`GOLDEN_SURFACE_ANONYMOUS_CREEP`].
-pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x447D_E3D0_7675_8D21;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
+/// rock (case 1). Prior value, kept for audit: `0x447D_E3D0_7675_8D21`.
+pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0xE77F_385F_D58E_F020;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
 ///
 /// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**
@@ -276,7 +346,10 @@ pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x447D_E3D0_7675_8D21;
 /// ```text
 /// GOLDEN_RECORD_SINGLE_RECEIVER 0x4A20_745B_3879_7C8A
 /// ```
-pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
+/// rock (case 1). Prior value, kept for audit: `0xAB2E_0CA4_2412_05C1`.
+pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x5ECD_3AC2_7468_5D5C;
 /// FNV-1a-64 over the strata record of the same field.
 ///
 /// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
@@ -344,7 +417,10 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0xAB2E_0CA4_2412_05C1;
 /// ```text
 /// GOLDEN_RECORD 0xACB6_1859_6AA3_F3A8
 /// ```
-pub const GOLDEN_RECORD: u64 = 0x820B_A198_49DD_234A;
+///
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
+/// kept for audit: `0x820B_A198_49DD_234A`.
+pub const GOLDEN_RECORD: u64 = 0x6739_19DA_BBA4_EA86;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on
@@ -415,16 +491,16 @@ fn biota_code(b: Biofacies) -> u8 {
 /// transport off it is a pure function of the tag, so it adds no information;
 /// with it on it is the whole point, and a fingerprint blind to it would let the
 /// slice move every rock in the world without moving a hash.
-fn species_code(l: Litho) -> u8 {
-    match l {
-        Litho::ClasticFine => 0,
-        Litho::ClasticCoarse => 1,
-        Litho::OrganicSoil => 2,
-        Litho::OrganicPeat => 3,
-        Litho::OrganicCoal => 4,
-        Litho::OrganicCharcoal => 5,
-        Litho::Basement => 6,
-    }
+///
+/// **P11 slice 1 widened it to the registry byte.** It used to hash a 7-value
+/// *class* code, which the record no longer carries; hashing the class of a
+/// recorded `MaterialId` would have kept the fingerprint blind to exactly the
+/// distinction the slice creates — mudstone and siltstone are one class — and the
+/// warning above would have come true in the same commit that wrote it. The raw
+/// `MaterialId` is a stable compile-time ordinal (registry-id order), so this is
+/// the same kind of value the code was, one byte wide, over a wider alphabet.
+fn species_code(m: MaterialId) -> u8 {
+    m.raw()
 }
 fn eolian_code(e: Eolian) -> u8 {
     match e {

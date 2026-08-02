@@ -203,6 +203,8 @@ pub fn measure_decay(
 
     let mut e_ref = Erosion::new(&reference);
     let mut e_pert = Erosion::new(&perturbed);
+    let geology = dc_core::materials::geology::vanilla();
+    let mem = super::recorder::MemberCtx::new(&geology, run_cfg.seed, 0);
     let sl0 = super::grid::sea_level_at(&run_cfg, 0);
     climate::march(&mut reference, sl0);
     climate::march(&mut perturbed, sl0);
@@ -212,8 +214,13 @@ pub fn measure_decay(
             climate::march(&mut reference, sl);
             climate::march(&mut perturbed, sl);
         }
-        e_ref.step(&mut reference, &run_cfg, sl);
-        e_pert.step(&mut perturbed, &run_cfg, sl);
+        // The decay experiment runs with the recorder OFF (`run_cfg.record`
+        // is false), so no identity is ever written and the content set is
+        // never consulted; it is passed explicitly rather than defaulted so
+        // the day this experiment does record, the omission is a compile
+        // error and not a silent vanilla assumption (P11 slice 1).
+        e_ref.step(&mut reference, &run_cfg, sl, mem);
+        e_pert.step(&mut perturbed, &run_cfg, sl, mem);
     }
 
     let w = reference.w;

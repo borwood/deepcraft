@@ -443,25 +443,41 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0xBA49FA738F5BC724  materials 0x9BB3D69807839519  table 0x97C6E0D80524F29C
 //   medium 0x539           blocks 0x1CF95D9081B51CB8  materials 0x54F0706D5B3792A0  table 0xB89BD3D3BAB4485D
 //   small  0xC11A7E2026    (unmoved)
+//
+// **Moved again 2026-08-01 by P11 slice 1** — the deep record went member-grade
+// (journal/pending-p11-slice1; the two mechanisms are laid out in
+// `providers_common` § P11). This suite is the one that *should* move most, and
+// for the most legible reason: a voxel that used to be filled from a class's
+// reference member is now filled from the member deposition-time fitness actually
+// chose, so `dc:siltstone` and `dc:conglomerate` appear in worlds that could only
+// ever hold `dc:mudstone` and `dc:sandstone`. The **Small row's materials and
+// mixture table are UNMOVED** — its sampled chunks carry no strata record, so
+// there is no member to have chosen, exactly as this file's header has said
+// through five previous moves; only its block plane follows the perturbed
+// terrain. Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0x7F53_3829_5019_FD72  materials 0xB1A8_93E1_4112_FF92  table 0xDC14_B424_893E_9099
+//   medium 0x539           blocks 0x6594_FCBA_B5C3_4D07  materials 0x2687_D8A3_3291_BD0E  table 0x10F4_9A39_D3F4_B531
+//   small  0xC11A7E2026    blocks 0x3DE2_E091_D05C_F7CD  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x7F53_3829_5019_FD72,
-        0xB1A8_93E1_4112_FF92,
-        0xDC14_B424_893E_9099,
+        0x7D74_13E5_BA5F_EB61,
+        0x004B_D42A_47B0_AA80,
+        0x914F_8059_1D01_F67D,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x6594_FCBA_B5C3_4D07,
-        0x2687_D8A3_3291_BD0E,
-        0x10F4_9A39_D3F4_B531,
+        0x9258_3B7D_31C4_8F58,
+        0x86B4_C6A6_6209_44F7,
+        0xA156_8063_4A58_EFDE,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x3DE2_E091_D05C_F7CD,
+        0xB237_8712_482C_2B74,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

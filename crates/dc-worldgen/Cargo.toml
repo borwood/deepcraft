@@ -140,3 +140,13 @@ test = true
 [[example]]
 name = "creep_operator_probe"
 test = true
+
+# P11 slice 1 — the members-into-deep-history acceptance. Gated because "a class
+# with two registered members has units of both in the archive" is exactly the
+# claim the slice makes, and a regression that put expression back in charge of
+# identity would collapse every class to one material silently. Scale-free (a
+# per-deposition-event fact), so the tests run at Extent::Small; the report's
+# distribution is Medium.
+[[example]]
+name = "member_diversity_probe"
+test = true
