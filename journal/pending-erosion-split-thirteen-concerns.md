@@ -45,8 +45,9 @@ The answer, by line count, once the file was mapped item by item:
 | the vertical drivers | 112 | uplift, thickening, isostasy, exhumation |
 | the denudation ledger | 247 | every metre that leaves the domain, and the flux-record exports |
 
-Eleven concerns, thirteen files (two concerns each split once more, below). Every
-file lands between 129 and 634 lines.
+Eleven concerns, thirteen files (the MFD block and the creep block each split
+once more, below). Every file lands between **130 and 634 lines**, against a
+700-line threshold.
 
 ## What made it cheap: the struct stays in `mod.rs`
 
@@ -109,8 +110,29 @@ signatures — both because my own edits (`pub(super) fn diffuse_step`,
 `super::super::tectonics::CrustKind`) pushed them past 100 columns. That is the
 entire non-mechanical diff.
 
-The gate is a before/after `cargo test -p dc-worldgen --release --no-fail-fast`
-compared **by test name and status**, not by exit code: several golden families
-are expected red on main awaiting P11 slice 2's capture, and that red set is part
-of the baseline. `--no-fail-fast` matters — the default stops at the first failing
-binary, which on a red baseline hides most of the suite from the comparison.
+## The gate a re-housing owes
+
+A pure move owes **byte-identical behaviour**, so the gate is a before/after
+`cargo test -p dc-worldgen --release --no-fail-fast` compared **by test name and
+status** — never by exit code. Fourteen golden families are expected red on main
+awaiting P11 slice 2's capture, and *that red set is part of the baseline*.
+
+`--no-fail-fast` is the load-bearing flag. The default stops at the first failing
+test **binary**, and on a red baseline that hides most of the suite from the
+comparison — the first attempt at the baseline reported 7 tests before giving up,
+against the 462 the flag reveals.
+
+Result: **462 tests, 446 ok / 14 FAILED / 2 ignored, both sides**, no test added,
+none removed, no status changed, and all fourteen failures report **byte-identical
+hashes and assertion text** (the only textual difference in the whole comparison is
+the OS thread id in the panic line). The 23 unit tests moved with their modules, so
+their *paths* gained a segment — `erosion::mfd_tests::X` became
+`erosion::mfd::mfd_tests::X` — which is what a module split is, and the leaf names
+and statuses are one-to-one.
+
+A footnote on instrument honesty: `cargo clippy --all-targets` on this crate
+finishes in **6 seconds**, which reads exactly like a gate that ran nothing. It was
+settled by injecting a `len() == 0` into `tests/mfd_routing.rs` and confirming
+clippy failed on it — clippy really does cover the 41 integration-test targets, and
+metadata-only checking really is that fast. *"Did it run?" is a separate question
+from "did it pass?"*, and the cheapest answer is usually a deliberate red.
