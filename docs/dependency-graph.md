@@ -111,6 +111,11 @@ pack build; evolved species bake when minted, inherited down the phylogeny like 
 `posture-gait.md` § 9 and § 3. **Segment KINDS** (`Box`/`Card`) are a **closed machine-owned
 set**, governed exactly like `material-behavior.md` § 2's forms — sketch only, `ideas.md`.
 
+**Postures DECIDED 2026-08-02 (user, sweep-checked first): registry content by namespaced
+id; engine owns the contract; default pack ships the 2026-07-19 posture ladder; controller
+surface = introspect + invoke-by-id** (`bodies.md` § Postures — the F3/Q1 answer). The
+enum→id wire migration is append-shaped and rides the sim-visible slices (replay-critical).
+
 **⚠ The `bodies.md` § IK "user call" is CLOSED, not open** (corrections #81). It was dissolved by
 `posture-gait.md` § 1 on the day that document was ratified and then re-presented to the user
 twice regardless. Hip height, root bob and crouch drop are **deleted, not corrected**. Do not

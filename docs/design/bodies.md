@@ -294,7 +294,43 @@ mutations). Pinned/swinging pieces are cosmetic-side per the determinism
 firewall. v1 boundary softens accordingly: pinned-rigid pieces (capes) are
 in; soft-body is later.
 
-## Plan parameters — PROPOSED (user sketch 2026-07-19)
+## Postures — DECIDED 2026-08-02 (user; sweep-checked against the 2026-07-19 corpus first)
+
+**Postures are pack-declared REGISTRY content, referenced by namespaced id** — the
+materials/geology-classes pattern, NOT the per-plan open strings that actions and modes use.
+The asymmetry is principled: actions and modes are plan-local declarations (clip bindings,
+bearing geometry — meaningless across bodies), while posture is the one vocabulary the sim
+(collider policy, replay), the input layer (the crouch key on ANY body), and the bake key all
+key on **across every body in the world**. A shared coordinate needs registry identity;
+string coincidence is the poor-man's-role failure this arc already paid for (stubs § 34).
+
+- **The engine owns the posture CONTRACT, never any posture's name**: a declared posture must
+  be bakeable for every plan that binds it, and carries its sim-visible disposition —
+  collider/clearance policy plus **transition semantics** (entry/exit: explicit verb or a
+  geometry-triggered rule; the engine enforces guards — `PostureBlocked` is the shipped
+  first instance, replay-tested).
+- **The default pack ships the basic set, and it is the 2026-07-19 posture ladder**:
+  `dc:posture/{stand, crouch, crawl, prone}` — crouch with its DECIDED semantics (0.6×,
+  sneak edge-walk, never passage); crawl and prone are declared-unscheduled until their
+  slices, with the ladder's crawl-as-geometry-triggered-transition mechanism (deliberate
+  entry only) as the declared entry rule when built.
+- **Cross-pack inheritance is a declared reference**: a mod's plan *binds* `dc:` posture ids
+  and the engine checks the reference at define time — never an engine default, never a
+  string coincidence. A body that binds no `crouch` cannot crouch; the key no-ops loudly
+  (you-supplied-what-you-claimed at the input layer). Evolution composes by construction:
+  postures are data through the define door, and the define door is callable from the
+  deeptime clock (corrections #86) — an evo pack minting a species can mint or bind
+  postures right there.
+- **The controller surface follows**: capability **introspection** (list a body's declared
+  postures/actions/modes) + **invoke by id**, controller-agnostic — the same two verbs
+  serve the player, the MCP animus (a golem's Claude driver discovers what an arbitrary
+  body can do), and future script/NPC controllers. Possession/assume-form UX is UI over
+  the same surface (lowest prio, user ruling).
+- **Migration is NOT free and is flagged as such**: `dc:character/set_posture` ships a
+  closed wire enum and posture is replay-bit-identity-tested
+  (`posture_transitions_replay_identically`), so enum→id rides the character surface's
+  appended-field discipline, sequenced with the sim-visible slices — not a B0-style
+  free-window recompile.
 
 Body plans may declare **scalar and bool parameters** that bodies bind to
 character state:

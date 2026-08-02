@@ -10,8 +10,13 @@
 > pure-fn-in-dc-api placement this pass recommended is thereby not merely right but
 > **forced** — dc-worldgen can call dc-api; it could never have called a pack-build stage.
 > § 3's "call site migrates when packs land on disk" widens to: **every minting clock is a
-> call site** (pack build, deeptime worldgen, define-time). Q1 (posture-axis vocabulary)
-> remains open, owed before the crouch bake.
+> call site** (pack build, deeptime worldgen, define-time). **Q1 is ANSWERED 2026-08-02
+> (user, sweep-checked): postures are pack-declared REGISTRY content by namespaced id,
+> engine owns the contract (bakeable + collider disposition + transition semantics), the
+> default pack ships the 2026-07-19 posture ladder — `bodies.md` § Postures.** The bake
+> key's posture axis is therefore an id, not an enum; slice one's `Standing` placeholder
+> maps to `dc:posture/stand` at the consumer migration (append-shaped — the wire enum is
+> replay-critical).
 
 **Status: DESIGN PASS. Nothing here is ratified and no code was changed.** The deliverable is
 this document. It works ROADMAP § Sequenced's first-slice spec against `posture-gait.md`'s
