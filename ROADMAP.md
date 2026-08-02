@@ -356,6 +356,47 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### MEMBERS INTO DEEP HISTORY — **DECIDED 2026-08-01 (user), TOP PRIORITY — ripples through everything below**
+
+**WHAT.** The deep record stops being class-grade: member materials (registry
+`MaterialId`s — mudstone, siltstone, sandstone…) enter deep history as first-class
+recorded state. Today the ~7-entry Litho roster carries all of deep time and members are
+invented at expression (the member dither under formation context); after this arc,
+identity is *recorded*, and expression expresses.
+
+**WHY (user, verbatim):** *"we'll just keep re-deriving and punting this, while getting
+side-tracked on bug fixes coming from class machinery (quantization etc). members need to
+go into deep history, proper. big work, big prio. will cause a ripple in all currently
+slated work."* The wall it removes, hit three ways in one week: **(1)** transition edges
+live on material definitions (DECIDED 2026-07-22) and a class-grade sim structurally
+cannot consult them — every class-keyed constant becomes an S-3 parallel rule the day
+edges land; **(2)** the member census (journal/0129 § 5): 4 of 10 classes cap the member
+dither at a coin flip — expression cannot diversify what history never distinguished;
+**(3)** the composition term had to be scoped provenance-not-size partly because the
+roster is class-grade (record-terms priors § 1.6).
+
+**UNIFIES.** Block-is-material (one namespace, no proxies) · *"the class system's
+fixed-constant roster is scaffolding"* (user, 2026-07-22 — this arc cashes it) ·
+transitions-on-material-definitions as the ONE authority both sims consult · the
+parent-inheritance sketch (class-grade aggregation, if any survives, becomes
+parent-edge approximation with a legible error term — or dissolves) · genesis-passes /
+facies ambitions (P5) · the class-vs-member open question filed this same day.
+
+**FIRST SLICE — a DESIGN PASS, not code:** the member-grade representation (identity per
+`DepUnit`? shares? where the fitness machinery moves — deposition vs expression); the
+residency envelope (S19/S20-style arithmetic BEFORE commitment); what becomes of the
+Litho roster and `deep_class_of_species`; the migration path for shipped worlds (goldens
+are tripwires, not intent); and **the RIPPLE MAP** — an explicit disposition for every
+slated item this touches: the record-terms composition slice (rulings 1–2 logic stands;
+the species axis it records may change grade), record-terms ruling 3 (**HELD** pending
+this), P10 grain-size continuum (its state attaches to loads — same grade question),
+member-#0's remaining near-path restructure (MM-3 — touches exactly the member-dither
+machinery that may move), fluvial member #1, P5, stubs #23/#25/#31.
+
+**CONTINUATION SLOT:** per the design pass. **This entry is the arc's anchor; nothing
+slated below proceeds against the class-grade record without checking the ripple map
+first.**
+
 ### THE GRAIN-SIZE CONTINUUM — a real size axis on sediment — **SEQUENCED 2026-08-01 (user ruling: "option 2 — I just don't want to lose track of anything needing done")**
 
 **WHAT.** Sediment gains a **grain-size state**: source rocks release a size *distribution*

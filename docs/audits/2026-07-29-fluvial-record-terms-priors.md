@@ -15,9 +15,15 @@
 > for WINDOW**; the avulsion half is **derived at read time** from out-face counts (§ 3,
 > S-2), never stored. Displacement-based mobility is dead permanently (the chapter-length
 > arithmetic, § 3). A closed-aggregator-vocabulary sketch for the WINDOW pass itself is
-> filed in `ideas.md` (assistant-proposed, accepted as input only). Ruling 3
-> (face-vs-unit) recorded here when it lands. *(Mutable header; the body below is the
-> dated research record.)*
+> filed in `ideas.md` (assistant-proposed, accepted as input only).
+>
+> **⚠ RIPPLE (2026-08-01, same day, senior to everything above): MEMBERS GO INTO DEEP
+> HISTORY (user DECIDED — ROADMAP § Sequenced, graph P11).** Rulings 1–2 stand in their
+> LOGIC (record composition, not a size proxy; nothing non-additive before WINDOW), but
+> the species axis they record against — this audit's 7-entry Litho roster — is exactly
+> what P11 re-grades. **Ruling 3 (face-vs-unit) is HELD pending P11's design pass and
+> ripple map**; the § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
+> roster. *(Mutable header; the body below is the dated research record.)*
 
 **Read at `f94a568`** (branch `main`; this file added on top). Produced by a **read-only**
 research agent for the **fluvial member design pass**, against the user's ruling of

@@ -519,6 +519,27 @@ forms of it… there are no edge cases where block != material in my mind."*
   of the materials themselves is what matters, no proxy." Packs add classes,
   not only members. The class system's fixed-constant roster is scaffolding.
 
+## DECIDED 2026-08-01 (user) — MEMBERS GO INTO DEEP HISTORY, PROPER
+
+The deep record stops being class-grade. The user, ruling after the class-vs-member wall
+surfaced for the third time in a week (transition edges on materials cannot be consulted
+by a sim that only knows classes — the S-3 collision; the member census capping the
+octaves fix at a coin flip in 4 of 10 classes; the composition term having to be scoped
+provenance-not-size):
+
+> *"We'll just keep re-deriving and punting this, while getting side-tracked on bug fixes
+> coming from class machinery (quantization etc). **Members need to go into deep history,
+> proper. Big work, big prio. Will cause a ripple in all currently slated work.**"*
+
+**What is decided:** member materials (registry identities) become first-class recorded
+state in deep history — identity stops being invented at expression time. **What is NOT
+decided:** the representation (identity per unit? member distributions? what happens to
+the member-fitness/dither machinery, the Litho roster, residency), the migration path,
+and the re-sequencing of slated work — all owned by the arc's **design pass** (ROADMAP
+§ Sequenced "MEMBERS INTO DEEP HISTORY"; `dependency-graph.md` P11). This is the
+continuation of this section's own 2026-07-22 line — *"the class system's fixed-constant
+roster is scaffolding"* — finally cashed in.
+
 ## DECIDED 2026-07-22 (same conversation) — transformation axes live on the
 ## material definition; both sims read the same rule
 
