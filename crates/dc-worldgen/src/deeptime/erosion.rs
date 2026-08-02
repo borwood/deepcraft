@@ -1114,12 +1114,25 @@ fn tag_of(surf_i: f64, precip_i: f32, energy_i: f64, sea_level: f64, k_transport
 
 /// Apply one cell's net thickness change to its strata record under `tag`,
 /// stamped with the current tectonic `chapter` (0 when tectonic history is off).
+///
+/// **`tag` and `species` are LAZY, and that is a cost decision** (P11 slice 1).
+/// Deposition-time member fitness is an inverse-CDF over a class's registered
+/// members, and it allocates; evaluating it eagerly as a call argument would run
+/// it for **every cell every epoch** — ~297 k × 200 on a production world — when
+/// only the depositing minority can use the answer. A cell that eroded or did
+/// nothing this epoch never asks which rock arrived, because none did.
 #[inline]
-fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: MaterialId) {
+fn record_cell(
+    s: &mut DeepStrata,
+    dh: f64,
+    chapter: u8,
+    deposit: impl FnOnce() -> (DepTag, MaterialId),
+) {
     if dh.abs() < 1e-9 {
         return;
     }
     if dh > 0.0 {
+        let (tag, species) = deposit();
         s.deposit_as(tag, dh, chapter, species);
     } else {
         s.erode(-dh);
@@ -3552,15 +3565,17 @@ impl Erosion {
                 0,
             )
         };
+        let deposit_at = |i: usize| {
+            let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
+            (tag, species_at(i, tag))
+        };
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
-                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
-                record_cell(s, dh[i], tag, chapter, species_at(i, tag));
+                record_cell(s, dh[i], chapter, || deposit_at(i));
             });
         } else {
             for i in 0..self.n {
-                let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
-                record_cell(&mut grid.strata[i], dh[i], tag, chapter, species_at(i, tag));
+                record_cell(&mut grid.strata[i], dh[i], chapter, || deposit_at(i));
             }
         }
     }
