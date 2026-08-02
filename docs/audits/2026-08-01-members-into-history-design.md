@@ -18,6 +18,21 @@ field list and flagged as such.
 >    are two paths to one rock. Zero-byte swap in `DepUnit`; openness arrives via the
 >    material registry (the SDK arc), never via a second identity system. `GeoMemberIdx`
 >    stays what it is: the selector fitness speaks, spent at deposition.
+> 2. **Representation = OPTION A, CLEAN** (user, 2026-08-01: *"i agree with this direction
+>    generally"* after killing D's premise): identity per unit, fitness at deposition, and
+>    **NO class view survives in storage or physics** — Option D died on the user's
+>    challenge *"are they just places the old shape is entrenched?"*, which verified: the
+>    far `ShareVec<6>` site's semantics are already rejected-interim, the transport planes
+>    need per-cell support not a global roster, and `LithoResistance` is already
+>    per-material. Fixed-N sites re-shape (sparse/top-k) rather than inherit a blessed
+>    class view. A future coarse view, if ever wanted, is derived against a real consumer
+>    and gets the proxy question asked THEN. Options B/C/E stay gated as written (B behind
+>    the closure audit; C/E behind a deliberate P5 opening — corrections #65).
+> 3. **Transport planes go SPARSE DAY ONE** (user, 2026-08-01, verbatim). Dense scales as
+>    cells × registry-size — the wrong asymptote for a plugin-first engine with an open
+>    material registry; sparse scales as cells × local presence (a cell's in-transit load
+>    only holds its catchment's species). CSR precedent in-tree (`FluxRecord`). Budget
+>    arithmetic stays f64 unless a store-f32 split re-proves Law-3 closure.
 
 **Status legend:** **DECIDED/RATIFIED** (user) · **BUILT** (code exists, verified here) ·
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input).
