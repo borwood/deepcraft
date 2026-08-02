@@ -44,10 +44,17 @@ condition of a geotherm seam.*
 
 ## 4. In-flight agents
 
-For each still running: what it holds, what it is blocked on, what the next
-session must **check rather than trust**. If one has parked, check the machine
-before concluding it failed — worktree present, branch commits, live processes
-— and remember an **empty worktree is not evidence of nothing**.
+**Subagents DIE when their session ends** (user, 2026-08-01 — a wrap had planned to
+"harvest next session" and would have orphaned three live agents). A wrap with agents
+in flight is a wrap that WAITS: finish every other check, then hold the session open
+until each agent lands and is harvested (or deliberately killed with its WIP committed).
+"Harvest next session" is only real for work already on disk — worktree commits and
+Tee'd logs — never for a running agent's completion.
+
+For each still running: what it holds, what it is blocked on, what must be **checked
+rather than trusted** at harvest. If one has parked, check the machine before
+concluding it failed — worktree present, branch commits, live processes — and remember
+an **empty worktree is not evidence of nothing**.
 
 ## 5. Unverified constants and trusted claims
 

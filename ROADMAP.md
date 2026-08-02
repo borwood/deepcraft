@@ -4020,7 +4020,7 @@ now** (grain-size = sequenced arc P10), **nothing non-additive before WINDOW** (
 and waiting; aggregator-vocabulary sketch filed in ideas.md), ruling 3 (face-vs-unit)
 **HELD, re-enters after P11 slice 2**.
 
-### RUNNING — three agents (dispatched at close; harvest next session, do not re-dispatch before checking worktrees)
+### RUNNING — three agents (dispatched at close; **the session stays open until they land — subagents DIE with their session** (user, 2026-08-01); harvested before this block is final)
 1. **P11 slice 1 builder** (the identity swap + deposition-time fitness; holds the cargo
    slot). Check rather than trust: the layout assert (was the swap zero-byte), the
    member-diversity numbers with 1-member-class nulls stated honestly, Law-3
