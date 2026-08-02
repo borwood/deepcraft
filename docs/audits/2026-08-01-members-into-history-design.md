@@ -432,11 +432,12 @@ Priors § 4.3/§ 4.4 priced this at 7 species. Re-derived:
 | into `FluxEntry`'s 2 padding bytes | ✗ (needs 7 B) | ✗ | ✗ |
 | widen `FluxEntry` (u8 shares) | 24 B, **19.76 MiB** | 32 B, **39.53 MiB** | 44 B, **69.17 MiB** |
 | parallel CSR over loaded entries (u8) | **4.43 MiB** | **7.73 MiB** | **13.39 MiB** |
-| sparse side array + `u32` index (u8) | 5.66 MiB | 9.24 MiB | 14.90 MiB |
+| sparse side array + `u32` index (u8) | 5.66 MiB (12 B rows) | 9.43 MiB (20 B rows) | 15.08 MiB (32 B rows) |
 
 Arithmetic: 494,296 × 14 = 6,920,144 B = 6.60 MiB + 1.13 CSR index = **7.73 MiB**;
 × 26 = 12,851,696 B = 12.26 + 1.13 = **13.39 MiB**. Widening: 2,590,372 × 16 = **39.53
-MiB**; × 28 = **69.17 MiB**.
+MiB**; × 28 = **69.17 MiB**. Side-array rows are `shares + u32` rounded to align 4:
+494,296 × 20 = **9.43 MiB**, × 32 = **15.08 MiB**.
 
 **The parallel-CSR ranking survives the re-grade** — it is still 3–5× cheaper than widening
 the entry, at every roster width. Ruling 3 (face-vs-unit) is HELD on P11; the arithmetic
