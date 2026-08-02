@@ -4002,7 +4002,70 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-01 close (supersedes every earlier block)
+## NEXT SESSION — written at the 2026-08-01 LATE close (the "geo" session; supersedes every earlier block — the bodies-thread block below remains the valid pickup for THAT thread)
+
+**Read first:** the sweeps hook (if due) → `docs/dependency-graph.md` (P11 row) → this
+block → `docs/audits/2026-08-01-members-into-history-design.md` header (the five P11
+rulings) → journal/0134.
+
+### The one paragraph that matters
+**P11 — MEMBERS INTO DEEP HISTORY — went from user decision to closed design to a
+dispatched build in one session.** The record names `MaterialId` (*"the rock, not the
+road to it"*); representation is A-CLEAN (**no class view survives storage or physics** —
+option D died on the user's *"are they just places the old shape is entrenched?"*, which
+verified); transport goes **sparse day one**; MM-3/the near-path restructure **folds in**
+as slice 3; U5 dissolved (corrections #84 — the 2026-07-19 world-identity rule had
+answered it). Before that, the fluvial record-terms pass ruled: **composition recorded
+now** (grain-size = sequenced arc P10), **nothing non-additive before WINDOW** (χ specced
+and waiting; aggregator-vocabulary sketch filed in ideas.md), ruling 3 (face-vs-unit)
+**HELD, re-enters after P11 slice 2**.
+
+### RUNNING — three agents (dispatched at close; harvest next session, do not re-dispatch before checking worktrees)
+1. **P11 slice 1 builder** (the identity swap + deposition-time fitness; holds the cargo
+   slot). Check rather than trust: the layout assert (was the swap zero-byte), the
+   member-diversity numbers with 1-member-class nulls stated honestly, Law-3
+   bit-identity on the mass side, goldens re-captured with whys. Its journal is
+   SLUG-NAMED — assign the next-free ordinal at merge (0134 is taken by this session).
+2. **P2 literature derivation** (docs-only, no cargo): returns bands + candidate
+   multiplier pairs + a measurement plan that NEEDS the build slot — schedule those runs
+   after slice 1 merges.
+3. **P10 grain-axis design pass** (docs-only): returns options targeting the
+   MEMBER-GRADE record; its NEEDS-RATIFICATION list gets the corrections-#84 treatment —
+   **grep for the prior ruling before relaying any item as open.**
+
+### Ratified this session (user's words in the cited records)
+Face-pairing three-mode confinement rule (2026-07-29 late, `flow.md` § 11.5 banner,
+corrections #75) · record-terms rulings 1–2 (composition now + P10 sequenced;
+composition-only v1) · P11 + its five rulings (the design audit header) · the build
+sequence (integrator-drafted, unvetoed).
+
+### Falsified — the assistant's own
+**#84** (U5 presented as open; dissolved by the user's own 2026-07-19 rule — second
+instance of #81's shape; the relay rule is in the entry). Also this session: #74 (a
+citation claim falsified by its own commit), #75 (face-pairing "unratified" was stale at
+assertion), #76 (the ≤9-typically-1 misreading).
+
+### Owed / standing
+The **octaves appearance walk** (merged 2026-07-29, gate-green, never walked — needs the
+NEW tour map: land filter + a Single-span two-member-class station; do NOT judge at the
+stale U3 pose) + the **U3-dominance verdict** (user's, from that walk's evidence) · P11
+slices 2–4 behind slice 1 · record-terms ruling 3 after slice 2 · the ROADMAP size lever
+(hook fires every edit; user call) · `material-behavior.md`/`flux.rs`/`erosion.rs` size
+flags (cold-half extractions, user call) · the 17 baseline escalations + open field
+reports carry unchanged.
+
+### Machine state at close
+Three agent worktrees LIVE (do not prune); builder legitimately holds
+`.agent-build.lock` intermittently; no dc-client, port 7777 free. Main pushed and green
+— last full gate on merged main: **90 units / 869 passed / 0 failed**, verified by name
+from the Tee'd log at the octaves merge; docs-only commits since, plus the P11 doc
+arc. A parallel USER session shares the checkout — stage explicit paths, never `add -A`
+(memory: stage-explicit-paths; it swept 3 files once this session, disclosed, content
+safe).
+
+---
+
+## NEXT SESSION — written at the 2026-08-01 close (SUPERSEDED by the geo-session block above; still the valid pickup for the BODIES thread)
 
 **Sweeps first** (the `SessionStart` hook says which are due), then
 **[`docs/dependency-graph.md`](docs/dependency-graph.md)** — its new **§ 2b BODIES** table is
