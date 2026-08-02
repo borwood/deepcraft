@@ -1,5 +1,7 @@
 # Three bodies stand at their own heights
 
+*(Renumbered 0138→0140 at 2026-08-02 integration: the geo session claimed and pushed 0138 nineteen minutes earlier; 0139 = the erosion split. Fifth ordinal collision of the 24-hour window — see the close block.)*
+
 *2026-08-02 · the derived-hip walk (consumer slice, journal/0137's continuation) · stations
 with the user live*
 
@@ -7,7 +9,7 @@ First appearance walk since the rotation quantizer came out, and the first ever 
 pelvis is not pinned. Two stations on a cut granite bench, the user's live view senior
 throughout.
 
-## Station 1 — rest (asset `0138-three-derived-heights-bench3`; pose: feet (0, 911.75,
+## Station 1 — rest (asset `0140-three-derived-heights-bench3`; pose: feet (0, 911.75,
 −12.2), yaw 0, pitch −0.1)
 
 Biped, stout, longleg side by side on flat granite at their derived hips — 0.880 m,
@@ -16,9 +18,9 @@ squatted at −56.2° under the pinned hip reads as a tall creature, which is th
 acceptance standing in a frame. **User verdict: "soles look planted other than the idle
 bob. reads right."** The idle bob residue is corrections #80's temporal half, known and
 deliberately untouched by the slice. (Companion sighting on natural rubble:
-`0138-three-derived-heights-idle`.)
+`0140-three-derived-heights-idle`.)
 
-## Station 2 — motion (assets `0138-walk-cycle-profile`, `0138-walk-cycle-front`)
+## Station 2 — motion (assets `0140-walk-cycle-profile`, `0140-walk-cycle-front`)
 
 The trio driven by move intents across the bench, profile pass then frontal pass. **User
 verdict: "walk cycle reads fine with caveat… they do not rotate to face the direction they
@@ -37,7 +39,7 @@ follows the camera, and reverses the walk-8 fix for any character whose look is 
 dead look drags the trunk while `steer()` chases travel, and the legs strafe under a body
 facing the wrong way. Confirmed live in one minute: `character_set_look` to the travel
 heading, same intent, and the biped walks away showing its back
-(`0138-look-steered-control`).
+(`0140-look-steered-control`).
 
 Filed in ROADMAP Observed with the design question it opens — whether move intent defaults
 to look-follows-travel unless a look is explicitly held, or every driver owns the look. A

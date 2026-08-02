@@ -2720,7 +2720,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   the player whose look follows the camera) — means a character whose `character.yaw` is
   never updated has its trunk dragged back to the dead look while `steer()` chases travel:
   permanent strafe. Control: `character_set_look` to the travel heading and the same body
-  walks facing its motion (asset `0138-look-steered-control`). **The dropped thread is
+  walks facing its motion (asset `0140-look-steered-control`, renumbered from 0138). **The dropped thread is
   older than the sighting and the user remembered it:** S6 baseline audit row 95 has
   carried *"nobody owns body orientation"* OPEN since 07-19; walk 8 sighted it, 0014
   closed the player path, and no slice ever owned the non-player path. **The design
