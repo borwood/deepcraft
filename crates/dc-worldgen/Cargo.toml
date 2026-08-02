@@ -154,3 +154,14 @@ test = true
 [[example]]
 name = "species_sparsity_probe"
 test = true
+
+# The appearance tour for the three stacked, never-walked changes (octaves member
+# stepping, member diversity in the deep record, provenance over site climate).
+# The STATIONS are recommendations judged by the eye and are deliberately not
+# gated — the precedent `palette_quant_tour` and `walk_tour_0115` set. The two
+# CLASSIFIERS that decide which cell the walk is sent to ARE gated: both are
+# per-column arithmetic over fixtures and build no world at all, so the gate cost
+# is nil.
+[[example]]
+name = "appearance_tour_p11"
+test = true
