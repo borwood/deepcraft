@@ -151,6 +151,44 @@ tile is real, it is visible, and it is slice 3's — the near-path restructure, 
 cell-membership dither interpolates between *recorded* neighbours instead of re-rolling.
 The slice trades a wrong answer that varied for a right answer that does not vary yet.
 
+## The bug that hid inside a golden diff
+
+The first full gate came back with **twelve failing suites** — the surface planes, the
+strata record, the far field, the geotherm, the head plane, the flux record, the voxel
+contents, and every *old-solve-still-reachable* golden beside them. That is a lot of world
+to move with a slice whose whole claim is *"identity, not mass"*, and the honest reading of
+the doctrine (goldens are tripwires; a ratified-semantics move re-captures with the why)
+would have let it through. The why was even ready to write: the record is finer, so the
+world is different.
+
+**It was wrong, and reading the diff as authorized would have shipped it.**
+
+Identity joined `deposit_as`'s merge key — deliberately, so a sand sheet and the mud that
+followed it are two units and not one. So a bed that used to be a single `ClasticFine` unit
+is now two when its members differ. `window_walk` — the near-surface window whose per-class
+shares set the erosion rate — buckets both back into `ClasticFine` and gets the **same
+quantity**. But it gets there by adding `4.1 + 3.2` instead of `7.3`, and IEEE addition is
+not associative. One ulp in the shares, into the susceptibility blend, into the incision
+rate, compounded over two hundred epochs: a different continent.
+
+**The erosion rule had not changed at all.** Nothing about how a rock resists anything was
+touched — `susceptibility_table` is still keyed by class and still built from the class's
+reference material, so a siltstone bed still erodes at mudstone's rate (that is slice 2's
+job). The world moved because the *bookkeeping* got finer, and a class-grade rate has no
+business being able to tell.
+
+So the walk now sums **runs of the pre-P11 merge key** `(class, tag, chapter)` rather than
+units: a class-grade quantity is a function of the class-grade record, invariant to how
+finely identity subdivides a bed. It is eight lines, it dies in slice 2 when the shares go
+per-material and the subdivision starts to *mean* something, and it is pinned by a test
+asserting **bit** equality rather than a tolerance — because a tolerance is exactly the door
+the ulp came through.
+
+The lesson is not "watch your floats". It is that **a moved golden is a hypothesis, and the
+first plausible mechanism is not evidence.** The plausible story here (finer record, finer
+world) was true in every clause and wrong in its conclusion, and the thing that separated
+them was asking *which* difference the physics was allowed to see.
+
 ## The scaffolding, named out loud
 
 Ruling 2 is **A-CLEAN: no class view survives in storage or physics**. This slice ships one
