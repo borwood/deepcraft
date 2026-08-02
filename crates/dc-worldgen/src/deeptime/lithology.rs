@@ -1007,8 +1007,14 @@ mod tests {
             deposited_transform(MaterialId::GRANITE),
             Some(Litho::ClasticCoarse)
         );
-        assert_eq!(deposited_transform(MaterialId::PEAT), Some(Litho::OrganicSoil));
-        assert_eq!(deposited_transform(MaterialId::COAL), Some(Litho::OrganicSoil));
+        assert_eq!(
+            deposited_transform(MaterialId::PEAT),
+            Some(Litho::OrganicSoil)
+        );
+        assert_eq!(
+            deposited_transform(MaterialId::COAL),
+            Some(Litho::OrganicSoil)
+        );
         assert_eq!(
             deposited_transform(MaterialId::CHARCOAL),
             Some(Litho::OrganicSoil)
@@ -1020,7 +1026,12 @@ mod tests {
             MaterialId::CONGLOMERATE,
             MaterialId::CARBONACEOUS_MUDSTONE,
         ] {
-            assert_eq!(deposited_transform(m), None, "{} transformed", m.qualified_name());
+            assert_eq!(
+                deposited_transform(m),
+                None,
+                "{} transformed",
+                m.qualified_name()
+            );
         }
     }
 

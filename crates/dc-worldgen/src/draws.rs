@@ -715,7 +715,10 @@ mod tests {
             <DeepMember as Domain>::SALT,
             <DeepTimePerturb as Domain>::SALT
         );
-        let (a, b) = (Draws::of::<DeepMember>(1337), Draws::of::<DeepTimePerturb>(1337));
+        let (a, b) = (
+            Draws::of::<DeepMember>(1337),
+            Draws::of::<DeepTimePerturb>(1337),
+        );
         for addr in [&[0u64, 0][..], &[3, 7], &[91, 12]] {
             assert_ne!(a.unit(addr), b.unit(addr));
         }

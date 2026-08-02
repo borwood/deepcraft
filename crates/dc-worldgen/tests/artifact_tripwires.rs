@@ -259,7 +259,8 @@ fn far_surface_fingerprint(g: &mut WorldGenerator<'_>) -> u64 {
 /// **The geotherm RULE did not change** — this constant tracks `t_crust`, which
 /// tracks exhumation, which tracks the erosion the rounding perturbed. It moved
 /// *with* `GOLDEN_SURFACE`, which is the case its own doc calls uninteresting.
-const GOLDEN_GEOTHERM: u64 = 0xBC6E_77CD_3D52_0246;
+/// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0xBC6E_77CD_3D52_0246`.
+const GOLDEN_GEOTHERM: u64 = 0x1ADC_A907_E52B_65DC;
 
 /// FNV-1a-64 over the exported `head` plane of the golden fixture.
 ///
@@ -288,7 +289,8 @@ const GOLDEN_GEOTHERM: u64 = 0xBC6E_77CD_3D52_0246;
 /// material's own sheet instead of its class's reference — so a siltstone aquitard
 /// (k = 0.08) stops being a mudstone one (k = 0.02). The head field is the first
 /// consumer in the tree to see member grade as physics rather than as albedo.
-const GOLDEN_HEAD: u64 = 0x9AC3_4801_9AD6_FE1B;
+/// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0x9AC3_4801_9AD6_FE1B`.
+const GOLDEN_HEAD: u64 = 0x751A_803A_1C9E_CC63;
 
 /// FNV-1a-64 over the exported chapter table of the golden fixture.
 ///
@@ -389,7 +391,8 @@ const GOLDEN_CHAPTERS: u64 = 0xF25B_E0C3_CF39_AC55;
 /// **This one is a real content move**: the far field samples the surface
 /// *block*, and a surface that used to be `dc:mudstone` by table lookup is now
 /// whichever fine clastic deposition-time fitness actually chose.
-const GOLDEN_FAR_SURFACE: u64 = 0xF64E_7377_9F48_B696;
+/// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0xF64E_7377_9F48_B696`.
+const GOLDEN_FAR_SURFACE: u64 = 0x092D_6318_94AE_DCFB;
 
 // ---------------------------------------------------------------------------
 // The tripwires. One per artifact — see the module doc's "one hash per artifact".

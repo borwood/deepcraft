@@ -249,13 +249,7 @@ pub(super) fn diffuse_species_cell(
             let (sb, src_axis) = window.row(donor);
             let e = &mut edge[..dst_axis.len()];
             e.fill(0.0);
-            split_row_into(
-                f,
-                src_axis,
-                &shares[sb..sb + src_axis.len()],
-                dst_axis,
-                e,
-            );
+            split_row_into(f, src_axis, &shares[sb..sb + src_axis.len()], dst_axis, e);
             if d > 0.0 {
                 for (o, v) in out.iter_mut().zip(e.iter()) {
                     *o -= *v;
@@ -487,7 +481,7 @@ impl Erosion {
         let mut abs_s = vec![0.0f64; aw];
         let mut worst_item = self.creep_itemisation_residue;
         let vals = self.creep_sp.vals();
-        for i in 0..self.clayout.cells() {
+        for (i, (&total, &gross)) in net_total.iter().zip(self.creep_gross.iter()).enumerate() {
             let (b, ks) = self.clayout.row(i);
             let mut net = 0.0;
             for (j, &k) in ks.iter().enumerate() {
@@ -496,9 +490,8 @@ impl Erosion {
                 sum_s[k as usize] += v;
                 abs_s[k as usize] += v.abs();
             }
-            let gross = self.creep_gross[i];
             if gross > 0.0 {
-                let rel = (net - net_total[i]).abs() / gross;
+                let rel = (net - total).abs() / gross;
                 if rel > worst_item {
                     worst_item = rel;
                 }

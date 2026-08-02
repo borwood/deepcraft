@@ -10,8 +10,8 @@
 //! The kernel it drives is the embedded S-10 primitive (E4's future claim).
 
 use super::super::grid::{DeepConfig, DeepGrid};
-use super::creep_kernel::{CREEP_MAX_EDGE_COEFF, eff_diff};
 use super::Erosion;
+use super::creep_kernel::{CREEP_MAX_EDGE_COEFF, eff_diff};
 
 impl Erosion {
     /// Turn **material-aware hillslope creep** on (Movement 2b continuation (b),

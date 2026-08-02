@@ -14,8 +14,8 @@ use super::super::grid::{DeepConfig, DeepGrid};
 use super::super::lithology::{self, Agent, Litho};
 use super::super::species::{build_creep_layout, build_local_layout, csr_rows_mut, mask_of_dense};
 use super::super::weather_behavior;
-use super::creep_kernel::sus_at;
 use super::Erosion;
+use super::creep_kernel::sus_at;
 
 // The per-cell weathering kernel now lives in the north-star behavior shape
 // (`weather_behavior::weather_one_cell` / `WeatheringPass`, S16). The domain
@@ -431,8 +431,8 @@ impl Erosion {
                 .for_each_init(|| vec![0.0f64; aw], |row, (i, f)| *f = per_cell(i, row));
         } else {
             let mut row = vec![0.0f64; aw];
-            for i in 0..n {
-                frost[i] = per_cell(i, &mut row);
+            for (i, f) in frost.iter_mut().enumerate().take(n) {
+                *f = per_cell(i, &mut row);
             }
         }
     }

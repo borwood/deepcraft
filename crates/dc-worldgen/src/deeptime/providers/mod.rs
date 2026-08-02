@@ -141,6 +141,16 @@ pub mod wave_energy;
 
 pub use depth_to_water::{WaterPass, identity_depth_to_water, identity_wet_index, wet_at};
 pub use outcrop_shares::identity_outcrop_shares;
+
+/// The `outcrop_shares` slot's function shape: *given this world's species axis
+/// and a cell's record, write the per-material shares of its near-surface window*.
+///
+/// A named type because the slot's signature grew a third parameter with P11
+/// slice 2 (the axis) and an out-parameter rather than a return (the row is
+/// registry-wide and dynamic, so it cannot be a `Copy` fixed-width value the way
+/// `WindowShares` was). Naming it keeps `Providers`'s field list readable, which
+/// is the property that makes adding a slot a compile error everyone can see.
+pub type OutcropSharesFn = fn(&super::species::SpeciesAxis, &[DepUnit], &mut [f64]);
 pub use paleo_temperature::{PaleoUnit, identity_paleo_temperature};
 pub use parent_p::{ParentCell, identity_parent_p};
 pub use wave_energy::{WaveCell, identity_wave_energy};
@@ -271,7 +281,7 @@ pub struct Providers {
     ///   with them automatically, because it *is* their argmax. Seaming the
     ///   quantity (not the verdict) is S-5's corollary.
     /// - *Granularity:* value-level, per cell per epoch.
-    pub outcrop_shares: Option<fn(&super::species::SpeciesAxis, &[DepUnit], &mut [f64])>,
+    pub outcrop_shares: Option<OutcropSharesFn>,
 
     // `burial_temp_c` lived here until journal/0093. It **retired as a field
     // pass**, not a provider heir: a real geotherm answers `T(depth)`, which is a

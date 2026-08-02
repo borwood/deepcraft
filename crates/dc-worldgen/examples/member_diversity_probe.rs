@@ -437,7 +437,10 @@ mod gate {
         );
         assert_eq!(off.grid.r, on.grid.r, "the audit moved the bedrock plane");
         assert_eq!(off.grid.h, on.grid.h, "the audit moved the alluvium plane");
-        assert_eq!(off.grid.strata, on.grid.strata, "the audit moved the record");
+        assert_eq!(
+            off.grid.strata, on.grid.strata,
+            "the audit moved the record"
+        );
         // And it actually measured something: a production world deposits.
         let m = on.erosion.identity_provenance_m();
         assert!(

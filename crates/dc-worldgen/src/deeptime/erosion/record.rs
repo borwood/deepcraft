@@ -13,8 +13,8 @@ use super::super::recorder::{
     Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, MemberCtx, dep_tags,
 };
 use super::super::species::{MAX_DEEP_SPECIES, SpeciesAxis};
-use super::transport::{ENERGY_LOW_MED, ENERGY_MED_HIGH, REFERENCE_KT};
 use super::Erosion;
+use super::transport::{ENERGY_LOW_MED, ENERGY_MED_HIGH, REFERENCE_KT};
 use dc_core::materials::MaterialId;
 
 /// Map a stream transport capacity to a facies energy band, in a world whose
