@@ -211,3 +211,28 @@ the split rule is read.
    that still draws.
 4. The single golden capture, after (3), covering the families the ROADMAP arc lists
    as expected-red.
+
+---
+
+## Merge postscript (integrator, 2026-08-02)
+
+The builder never got a cargo invocation — the build slot was contended by the
+parallel bodies session for its entire run — so the branch merged with integrator
+verification instead: nine `MaterialId as usize/u8` casts fixed via `.raw()` (the
+newtype has no primitive cast), two `WorldParams::default()` spreads removed (the
+struct has two fields, both set), rustfmt applied. Crate-scoped clippy `-D warnings`
+green from this worktree's path; the foundation's own tests green **by name** (6
+species-axis unit tests + the creep-absence pair, 4 probe gates, `0 failed` both).
+
+**The number the design priced blind, measured (seed 1337, Medium, final epoch):**
+the deep species axis is **14 materials**; per-face species count **p = 3.719 mean,
+max 8** — the load is 3.8× sparser than its axis. The four budget planes at that
+sparsity: class-grade dense (shipped) 63.45 MiB · member-grade dense 126.90 MiB (the
+wrong asymptote, confirmed) · **member-grade CSR 44.98 MiB — 0.71× the shipped
+cost**. Ruling 3's "sparse day one" is now measurement-backed: the member-grade
+upgrade is a residency *reduction*.
+
+Journal ordinal 0138 and stub #36 assigned at merge per the slug-only protocol
+(bodies session live; tails checked at assignment). The solver conversion — the
+actual slice 2 — follows the `erosion.rs` concern-split (user, 2026-08-02: "we
+split it now").
