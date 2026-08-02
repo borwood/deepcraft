@@ -239,11 +239,16 @@ conversation:
      **scaffolding-era encoding** (this settles the P10 audit's C4
      two-authorities defect in favour of `(source-id, Loose)` + grain state).
      Everything else in ruling 2 stands: one identity, one sheet; forms carry
-     the loose/structure split. **U5 (does the RECORD grow, the ~42 MiB
-     byte-step) is deliberately NOT ruled here** — the user directed a
-     compression study first ("quick meditation… compress / not have to
-     increase footprint: what all we are storing, necessary precision, if
-     everything is sparse") before any byte is spent. FS-A re-shapes under this
+     the loose/structure split. **U5 RULED the same day (user: "agree on
+     this also"): the record NEVER takes the byte-step — grain and the agent
+     axis (stub #25) are funded from reclaimed padding and over-precision,
+     landed with P11 slice 3, gated on a measured grain split factor.** The
+     funding mechanism is the compression study's packed `DepUnit` (fixed-point
+     thickness, exact/commutative accumulation — retiring corrections #89's
+     hazard class — plus a bitfield for the band axes; ~16 B → ~8–12 B/unit
+     WITH both new axes). The split-factor gate is the #88 lesson: the count
+     model, not the field, is the real cost — grain must arrive coherent via
+     propagation or it multiplies units. FS-A re-shapes under this
      ruling (release spectra emit loose source-identity + grain state, not
      ladder ids) and dispatches behind P11 slice 2's merge.
 

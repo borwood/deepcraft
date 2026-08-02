@@ -464,6 +464,12 @@ two).
 3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
    `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
    13-file break), landing on the member-grade record. The ~460 m near tile dies here.
+   **CO-RIDER, U5 RULED 2026-08-02 (user): the packed `DepUnit`** — fixed-point
+   thickness + bitfield axes, funding grain (3 bits) AND the agent axis (stub #25) from
+   reclaimed padding/over-precision at a net residency REDUCTION (~16 → ~8–12 B/unit);
+   one layout surgery, one golden move, one migration. **Gated on a measured grain
+   split factor** (the #88 count-model lesson) and the sub-quantum remainder-carry
+   (Law-3 bound becomes derivable: quantum × merge count).
 4. **Litho dissolution residue** — delete `deep_class_of_species` and the ~250
    remaining class-speaking sites; re-shape or minimally patch the far `ShareVec<6>`
    site (rejected-interim; its real heir is the far register — do not gold-plate).
@@ -4141,8 +4147,8 @@ deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
 2. ~~**U1 → FS-A**: present U1 for ruling~~ — **✅ U1 DECIDED 2026-08-02 ("option 1 it
    is"): grain is an AXIS — a state on the loose form of the source identity** (recorded
    in `materials.md` § forms ruling 2, which it supersedes; P10 audit header stamped).
-   **U5 held open by user direction: a storage/compression meditation (what we store,
-   necessary precision, sparsity) runs before any record byte is spent.** FS-A re-shapes
+   **U5 RULED 2026-08-02: no byte-step — grain + agent axis funded from packed-DepUnit
+   reclaim, landed with slice 3, gated on a measured grain split factor.** FS-A re-shapes
    under U1 and dispatches behind slice 2's merge.
 3. **P2 measurement runs** (plan in the P2 audit; needs the build slot) after slice 2.
 4. **The walk debt is now TWO stacked appearance changes** (octaves 2026-07-29 + P11

@@ -9,10 +9,14 @@
 > arrives as a **state on the loose FORM of the source identity**, never as replacement
 > ladder materials — which also points C4's resolution (the standalone
 > SAND/GRAVEL/CLAY/SCREE identities read as the scaffolding-era encoding) and forbids
-> reading FS-A as identity-erasure. **U5 (the record byte-step) remains OPEN by explicit
-> direction: a storage/compression study ("what all we are storing, necessary precision,
-> is everything sparse") runs before any byte is spent — G3-vs-G4-vs-G5 and the § 6.3
-> owed measurements feed it. FS-A re-shapes under U1 (emit loose source-identity + grain
+> reading FS-A as identity-erasure. **U5 RULED 2026-08-02 (user): the record never takes
+> the F4 byte-step — grain + the agent axis (stub #25, C7's co-rider) are funded from
+> reclaimed padding and over-precision (packed `DepUnit`), landed with P11 slice 3,
+> gated on a measured grain SPLIT FACTOR (the corrections-#88 count-model lesson).
+> Recorded in `materials.md` § forms ruling 2's U1 addendum. And § 6.3's owed
+> measurement 1 is MEASURED: p = 3.719 mean / 8 max on a 14-material axis (seed 1337,
+> Medium; journal/0138) — member-grade CSR planes price at 44.98 MiB, 0.71× the
+> shipped class-grade dense planes. FS-A re-shapes under U1 (emit loose source-identity + grain
 > state, not ladder ids) and dispatches behind P11 slice 2's merge.**
 > *(Mutable header; the body below is the dated design record.)*
 
