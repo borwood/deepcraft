@@ -367,6 +367,31 @@ Interaction notes (Claude, for discussion — not decided):
   (stats are sim state, so this is legal — but stepwise, never smooth
   per-frame).
 
+## Who owns the look — DECIDED 2026-08-02 (user; the walk-8 strafe's design half)
+
+**Move intent defaults to look-follows-travel; an explicit look is HELD until released.**
+The engine derives an unheld gaze from the direction of travel (yaw = travel heading, pitch
+level, computed in `step_character` so senses and renderer read the same gaze); when
+stationary it keeps its last heading, like the trunk. `dc:character/set_look` is the
+explicit override and **holds** until `dc:character/clear_look` releases it — deliberate
+gaze (a predator tracking prey while circling) is a driver's stated intent, never a stale
+default. No hold timer: decay would be a tuning constant nobody ratified. The pose readback
+reports `look_held`, so a driver knows which regime the gaze it reads is in.
+
+Why this side: the alternative (every driver owns the look) is the arrangement that
+actually failed — S6 row 95 carried *"nobody owns body orientation"* OPEN from 07-19 until
+the user re-sighted it at the 0140 walk as the strafe, because a driver obligation is
+invisible and its failure is silent. Same shape as the postures ruling: the engine owns the
+contract and the correct default; drivers invoke deviations explicitly by verb.
+
+**Compartmentalization caveat (user, at ratification):** *"in the future we may revisit the
+issue of animals with multi-segment necks. as long as the look-at can be replaced with a
+different function in the future / is compartmentalized enough, I don't think this is an
+issue."* The seam is `resolve_orientation` (dc-client `body.rs`) — a pure
+`(trunk_yaw, look_yaw, look_pitch) → Orientation` function, the one place the look becomes
+joint angles; a multi-segment neck replaces that function's body (distributing the clamp
+along the cervical chain) without touching who owns the look.
+
 ## Sockets — PROPOSED
 
 A socket is a named, typed mount on a plan segment: `hand.r`, `back`, `head`. *(A socket name

@@ -172,7 +172,8 @@ impl ServerHandler for CharacterMcpServer {
              character_attach once to spawn-or-attach to one character; the \
              session is then attenuated to exactly that character — drive its \
              body with character_set_move_intent / character_set_look / \
-             character_jump (commands, applied at the game's tick boundaries, \
+             character_clear_look / character_jump (commands, applied at the \
+             game's tick boundaries, \
              moving a real collision-checked body the player can see) and \
              perceive ONLY through its senses: character_pose \
              (proprioception), character_sense_raycast (its gaze), \

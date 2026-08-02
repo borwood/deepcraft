@@ -1196,6 +1196,19 @@ impl HostWorld {
                 journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
                 character.yaw = p.yaw;
                 character.pitch = p.pitch.clamp(-1.55, 1.55);
+                // Setting a look HOLDS it (look ownership, DECIDED
+                // 2026-08-02): the explicit override of follow-travel,
+                // until `clear_look` releases it.
+                character.look_held = true;
+            }
+            Payload::ClearLook(p) => {
+                let character = self.characters.get_mut(&p.character).ok_or_else(|| {
+                    RejectReason::UnknownCharacter {
+                        name: p.character.clone(),
+                    }
+                })?;
+                journal.push(Undo::RestoreCharacter(Box::new(character.clone())));
+                character.look_held = false;
             }
             Payload::Jump(p) => {
                 let character = self.characters.get_mut(&p.character).ok_or_else(|| {
@@ -1402,6 +1415,7 @@ impl HostWorld {
                     pos_voxel,
                     posture: character.posture.to_wire().to_string(),
                     body_plan: character.body_plan.clone(),
+                    look_held: character.look_held,
                 }
             }
             Payload::SenseRaycast(p) => {
@@ -1538,6 +1552,7 @@ impl HostWorld {
             | Payload::SpawnCharacter(_)
             | Payload::SetMoveIntent(_)
             | Payload::SetLook(_)
+            | Payload::ClearLook(_)
             | Payload::SetPosture(_)
             | Payload::Jump(_) => {
                 return reject(tick, RejectReason::NotAQuery { id: env.id.clone() });

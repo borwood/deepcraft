@@ -554,6 +554,70 @@ fn pose_echoes_feet_voxel_and_posture() {
     }
 }
 
+/// Look ownership through the one door (DECIDED 2026-08-02, user,
+/// bodies.md § who owns the look): an unheld gaze follows travel — no driver
+/// obligation — `set_look` HOLDS it against travel, and `clear_look` hands it
+/// back. The walk-8 strafe (journal/0140) was exactly an unheld stale look
+/// dragging the trunk against the travel heading.
+#[test]
+fn gaze_follows_travel_unless_held() {
+    let mut world = slab_world(7);
+    spawn_scout(&mut world, Vec3f::new(0.3, 1.0, 0.3));
+    let session = session_source("scout");
+    let intent = |dx: f64, dz: f64| {
+        Payload::SetMoveIntent(payload::SetMoveIntent {
+            character: "scout".into(),
+            dx,
+            dz,
+            speed: 1.0,
+        })
+    };
+    // The sim's own arithmetic (view convention θ = atan2(−x, −z), f64 then
+    // cast), so the equality below is exact rather than last-bit lucky.
+    let east_yaw = (-1.0f64).atan2(-0.0) as f32;
+
+    // Walk east: the gaze swings to the travel heading, level, unasked.
+    run(&mut world, &session, intent(1.0, 0.0));
+    for _ in 0..10 {
+        world.tick();
+    }
+    let c = world.character("scout").expect("exists").clone();
+    assert!(!c.look_held, "no look was ever set");
+    assert_eq!(c.yaw, east_yaw, "unheld gaze faces travel");
+    assert_eq!(c.pitch, 0.0, "unheld gaze is level");
+
+    // A set look HOLDS against continued travel (the explicit override).
+    run(
+        &mut world,
+        &session,
+        Payload::SetLook(payload::SetLook {
+            character: "scout".into(),
+            yaw: 1.2,
+            pitch: -0.4,
+        }),
+    );
+    for _ in 0..10 {
+        world.tick();
+    }
+    let c = world.character("scout").expect("exists").clone();
+    assert!(c.look_held, "set_look holds");
+    assert_eq!(c.yaw, 1.2, "held yaw survives travel");
+    assert_eq!(c.pitch, -0.4, "held pitch survives travel");
+
+    // clear_look releases: the gaze re-follows travel on the same tick.
+    run(
+        &mut world,
+        &session,
+        Payload::ClearLook(payload::ClearLook {
+            character: "scout".into(),
+        }),
+    );
+    let c = world.character("scout").expect("exists").clone();
+    assert!(!c.look_held, "clear_look releases");
+    assert_eq!(c.yaw, east_yaw, "released gaze re-follows travel");
+    assert_eq!(c.pitch, 0.0);
+}
+
 /// The determinism payoff (docs/API.md principle 3), embodied: the same
 /// scripted movement session against the same seed lands on the bit-identical
 /// final pose; a different seed's terrain produces a different trajectory.

@@ -165,6 +165,14 @@ pub struct CharacterState {
     /// character recorded before plans existed was wearing the biped.
     #[serde(default = "default_body_plan")]
     pub body_plan: String,
+    /// Is the gaze explicitly HELD? Look ownership (DECIDED 2026-08-02, user,
+    /// bodies.md § who owns the look): an unheld gaze **follows travel** —
+    /// the engine default, so a driven body never strafes behind a dead look —
+    /// and `set_look` HOLDS the gaze until `clear_look` releases it. Appended
+    /// field: postcard order is wire identity, so it stays last, and
+    /// `serde(default)` decodes pre-ruling streams to `false` (follow travel).
+    #[serde(default)]
+    pub look_held: bool,
 }
 
 /// serde's default for [`CharacterState::body_plan`]: the identity default.
@@ -196,6 +204,7 @@ impl CharacterState {
             input: CharacterInput::default(),
             posture: Posture::Standing,
             body_plan: body_plan.into(),
+            look_held: false,
         }
     }
 
@@ -256,6 +265,16 @@ pub fn step_character(c: &mut CharacterState, cfg: &CharacterConfig, world: &imp
     c.vel_m.x = nx * speed;
     c.vel_m.z = nz * speed;
     c.vel_m.y -= cfg.gravity_m_s2 * dt;
+
+    // Look ownership (DECIDED 2026-08-02, user): an unheld gaze follows
+    // travel — yaw from the horizontal intent (same convention as
+    // `view_dir`: θ = atan2(−x, −z)), pitch level. A held look (`set_look`,
+    // until `clear_look`) is the explicit override; when stationary the
+    // gaze keeps its last heading, like the trunk.
+    if !c.look_held && speed > 0.0 && (nx != 0.0 || nz != 0.0) {
+        c.yaw = (-nx).atan2(-nz) as f32;
+        c.pitch = 0.0;
+    }
 
     // A jump request is consumed by this step; it fires only from the ground.
     if c.input.jump {
@@ -395,6 +414,48 @@ mod tests {
             "stopped at the wall"
         );
         assert!(c.pos_m.z > 3.0, "kept sliding along z");
+    }
+
+    #[test]
+    fn unheld_gaze_follows_travel_held_gaze_survives_it() {
+        let cfg = cfg();
+        let mut c = CharacterState::new("t", Vec3f::new(0.5, 0.0, 0.5));
+        c.on_ground = true;
+        c.pitch = -0.4; // a stale downward gaze from spawn-time state
+        c.input.move_dir = (1.0, 0.0);
+        c.input.speed = 1.0;
+        step_character(&mut c, &cfg, &floor);
+        let v = c.view_dir();
+        assert!(
+            (v.x - 1.0).abs() < 1e-6 && v.y.abs() < 1e-6,
+            "unheld gaze faces travel (+X), level: {v}"
+        );
+
+        // A held look is the explicit override: it survives travel.
+        c.look_held = true;
+        c.yaw = 0.8;
+        c.pitch = -0.3;
+        for _ in 0..10 {
+            step_character(&mut c, &cfg, &floor);
+        }
+        assert_eq!(c.yaw, 0.8, "held yaw untouched by travel");
+        assert_eq!(c.pitch, -0.3, "held pitch untouched by travel");
+
+        // Released: the next moving tick re-derives the gaze from travel.
+        c.look_held = false;
+        step_character(&mut c, &cfg, &floor);
+        assert!(
+            (c.view_dir().x - 1.0).abs() < 1e-6,
+            "released gaze re-follows"
+        );
+
+        // Stationary: the gaze keeps its last heading, like the trunk.
+        c.input.speed = 0.0;
+        step_character(&mut c, &cfg, &floor);
+        assert!(
+            (c.view_dir().x - 1.0).abs() < 1e-6,
+            "gaze holds facing while stopped"
+        );
     }
 
     #[test]

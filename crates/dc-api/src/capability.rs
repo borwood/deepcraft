@@ -147,6 +147,7 @@ pub fn requirement_for(payload: &Payload) -> Result<Requirement, String> {
         Payload::SpawnCharacter(_) => Requirement::EntitySpawn,
         Payload::SetMoveIntent(p) => Requirement::CharacterControl(p.character.clone()),
         Payload::SetLook(p) => Requirement::CharacterControl(p.character.clone()),
+        Payload::ClearLook(p) => Requirement::CharacterControl(p.character.clone()),
         Payload::SetPosture(p) => Requirement::CharacterControl(p.character.clone()),
         Payload::Jump(p) => Requirement::CharacterControl(p.character.clone()),
         Payload::CharacterPose(p) => Requirement::CharacterControl(p.character.clone()),

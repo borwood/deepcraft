@@ -391,7 +391,7 @@ cross-reference §§ 4–5.
 | 92 | 4450 | Geology v1 loose ends | 07-19 | OPEN | `MixtureTable` persistence still owed; `def_changed` events still absent |
 | 93 | 4461 | Walk 10 + 3d loose ends | 07-19 | OPEN | Per-chunk `flow_energy` rounding still open |
 | 94 | 4473 | Walk 9 + 3c-2 loose ends | 07-19 | OPEN | Pregen introspection as dev MCP tools still wanted |
-| 95 | 4485 | Walk 8 + user live observations | 07-19 | OPEN | Nobody owns body orientation; faceless heads block facing verification |
+| 95 | 4485 | Walk 8 + user live observations | 07-19 | OPEN | ~~Nobody owns body orientation~~ **the orientation half RESOLVED 2026-08-02: look ownership DECIDED (bodies.md § who owns the look) — unheld gaze follows travel in the sim step, `set_look` holds until `clear_look` (journal/0142)**; faceless heads still block facing verification |
 | 96 | 4500 | Walk 7 loose ends — S1 phantom old world | 07-19 | RES | The phantom is gone by #87's own text: *"the phantom old world ~1 km down is gone"* |
 | 97 | 4512 | Walk 6 loose ends | 07-19 | OPEN | Surface-scan window still sized to S1 amplitude |
 | 98 | 4521 | Walks 3–4 (blowout, chasm speckle) | 07-19 | OPEN | The speckle diagnosis is still owed |

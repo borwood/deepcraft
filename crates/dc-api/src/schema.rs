@@ -628,7 +628,9 @@ commands! {
         id: CHARACTER_POSE = "dc:character/pose",
         doc: "The character's own proprioception: feet position in both \
               meters (`pos`) and world voxels (`pos_voxel`, the coordinate \
-              `get_block` takes), velocity, yaw/pitch, on_ground, posture \
+              `get_block` takes), velocity, yaw/pitch, look_held (false = \
+              the gaze is the follow-travel default, true = a set_look \
+              holds until clear_look), on_ground, posture \
               (`standing`|`crouching`), and eye_in_solid (true = its eyes \
               are buried; senses from here see the inside of terrain).",
         cap: "character.control(character)",
@@ -795,6 +797,19 @@ commands! {
         schema: || s_obj("get_contents payload", &[("pos", s_vec3i("voxel to read"), true)]),
         complete: None,
     }
+    ClearLook: Command {
+        id: CHARACTER_CLEAR_LOOK = "dc:character/clear_look",
+        doc: "Release a held look: the character's gaze returns to \
+              following its direction of travel, the engine default. A look \
+              set by set_look HOLDS until this releases it; use a held look \
+              only for deliberate gaze (tracking a target while moving).",
+        cap: "character.control(character)",
+        schema: || s_obj(
+            "clear_look payload",
+            &[("character", s_str("character name"), true)],
+        ),
+        complete: Some(Completer::World(complete_character)),
+    }
 }
 
 /// Look a spec up by command id.
@@ -930,6 +945,9 @@ mod tests {
             Payload::DefineBodyPlan(payload::DefineBodyPlan(crate::bodies::biped_plan())),
             Payload::GetContents(payload::GetContents {
                 pos: Vec3i::new(1, 2, 3),
+            }),
+            Payload::ClearLook(payload::ClearLook {
+                character: "scout".into(),
             }),
         ];
         assert_eq!(
@@ -1169,6 +1187,7 @@ mod tests {
             ids::EVENTS_SUBSCRIBE,
             ids::CHARACTER_SET_MOVE_INTENT,
             ids::CHARACTER_SET_LOOK,
+            ids::CHARACTER_CLEAR_LOOK,
             ids::CHARACTER_JUMP,
             ids::CHARACTER_POSE,
             ids::CHARACTER_SENSE_RAYCAST,

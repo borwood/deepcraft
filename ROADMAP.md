@@ -2733,9 +2733,18 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   FOREGROUND of its own session and waits — never `run_in_background` inside an agent.**
   FOLDED into session-workflow § Delegation 2026-08-02 (greenlit).
 
-- **🟠 INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
+- **🟢 RESOLVED 2026-08-02 (next session): the look-ownership ruling + the follow-travel
+  slice (journal/0142).** The user ruled the first option: **move intent defaults to
+  look-follows-travel; an explicit look is held until released** (bodies.md § who owns the
+  look — with the user's multi-segment-neck compartmentalization caveat recorded there).
+  Shipped sim-side in `step_character` (unheld gaze faces travel, level; senses and
+  renderer read the same gaze), with `set_look` now HOLDING until the new
+  `dc:character/clear_look` releases it and `look_held` in the pose readback. S6 row 95's
+  orientation half is stamped; its faceless-heads half stays open. *(Original sighting
+  below, kept as testimony.)*
+  ~~**INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
   look (user-sighted 2026-08-02 at the derived-hip walk, station 2; mechanism read from
-  code and CONFIRMED by a live control the same minute).** `resolve_orientation`'s clamp
+  code and CONFIRMED by a live control the same minute).**~~ `resolve_orientation`'s clamp
   rule — *a look beyond the neck clamp drags the trunk around* (journal/0014, built for
   the player whose look follows the camera) — means a character whose `character.yaw` is
   never updated has its trunk dragged back to the dead look while `steer()` chases travel:
@@ -3890,8 +3899,10 @@ second file.
   Coarse clastic is rare at world scale (5 river segments on the Medium
   seed) — honest sedimentology vs knob, revisit when rivers refine.
 
-- Walk 8 + user live observations (journal/0009): **nobody owns body
-  orientation** — `SetMoveIntent` never touches yaw, `SetLook` is the only
+- Walk 8 + user live observations (journal/0009): ~~**nobody owns body
+  orientation**~~ **→ RESOLVED 2026-08-02: the ENGINE owns it — look-follows-travel
+  default in `step_character`, `set_look` holds until `clear_look` (bodies.md § who owns
+  the look, journal/0142)** — `SetMoveIntent` never touches yaw, `SetLook` is the only
   writer, so un-looked bodies strafe/moonwalk; v0 fix is a design call
   (renderer-side trunk-toward-velocity, cosmetic, vs controller
   convention), real answer is staircase step 3's trunk/look split.
@@ -4186,9 +4197,12 @@ beside its live receipt · **#92** a cross-arc finding filed without reading the
 arc's live close block (the tripwire trio was authorized expected-red all along).
 
 ### First things next session (bodies thread)
-1. **The look-ownership ruling** (user, small): does move intent default to
-   look-follows-travel unless a look is explicitly held, or do drivers own the look?
-   Sibling of the postures ruling; the strafe fix is a short slice behind it.
+1. ~~**The look-ownership ruling** (user, small)~~ **✅ DECIDED + SHIPPED 2026-08-02
+   ("A definitely sounds like the right call"): look-follows-travel default, explicit
+   look held until `clear_look` releases — bodies.md § who owns the look (with the
+   multi-segment-neck caveat), slice in journal/0142.** Original question: does move
+   intent default to look-follows-travel unless a look is explicitly held, or do
+   drivers own the look? Sibling of the postures ruling.
 2. **Corrections #80's temporal bob** — the last thing between these bodies and glued
    feet.
 3. **The gait-bake design pass** — inherits the posture key, the landed rest pose, a

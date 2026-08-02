@@ -262,7 +262,9 @@ pub struct SetMoveIntent {
     pub speed: f64,
 }
 
-/// `dc:character/set_look` — aim the character's head/eyes.
+/// `dc:character/set_look` — aim the character's head/eyes. The look HOLDS
+/// until [`ClearLook`] releases it (look ownership, DECIDED 2026-08-02):
+/// setting a look is the explicit override of the follow-travel default.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct SetLook {
     pub character: String,
@@ -270,6 +272,14 @@ pub struct SetLook {
     pub yaw: f32,
     /// Radians, NEGATIVE looks down; clamped to ±1.55.
     pub pitch: f32,
+}
+
+/// `dc:character/clear_look` — release a held look: the character's gaze
+/// returns to following its direction of travel, the engine default (look
+/// ownership, DECIDED 2026-08-02, bodies.md § who owns the look).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct ClearLook {
+    pub character: String,
 }
 
 /// `dc:character/jump` — request a jump; fires at the next tick step if the
@@ -499,6 +509,14 @@ pub enum QueryData {
         /// `serde(default)` decodes pre-plan streams to an empty string.
         #[serde(default)]
         body_plan: String,
+        /// Is the gaze explicitly held (look ownership, DECIDED 2026-08-02)?
+        /// `false` = the yaw/pitch above are the follow-travel default; `true`
+        /// = a `set_look` holds until `clear_look` — the readback that lets a
+        /// driver know which regime the gaze it reads is in (the walk-11
+        /// round-trip principle). Appended field; `serde(default)` decodes
+        /// pre-ruling streams to `false`.
+        #[serde(default)]
+        look_held: bool,
     },
     /// First solid voxel along a character's gaze (`sense_raycast`).
     /// All fields are `None` on a miss.
