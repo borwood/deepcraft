@@ -240,9 +240,13 @@ pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xE106_8099_C93B_1877;
 /// the same multiplier strips the world to 1.40 m of mean regolith. So this constant
 /// still pins "the world `calibrated_rates: Some(true)` builds", which is what it is
 /// for; it no longer pins "the world we intend to ship when the flag flips".
-pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x53AD_BCCE_B157_09A8;
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
+/// kept for audit: `0x53AD_BCCE_B157_09A8`.
+pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0xCE38_7587_69F0_64F2;
 /// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
-pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x830E_768D_3D1D_866B;
+/// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
+/// kept for audit: `0x830E_768D_3D1D_866B`.
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x8AF6_5B99_579C_436A;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
