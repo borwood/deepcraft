@@ -382,20 +382,33 @@ parent-inheritance sketch (class-grade aggregation, if any survives, becomes
 parent-edge approximation with a legible error term — or dissolves) · genesis-passes /
 facies ambitions (P5) · the class-vs-member open question filed this same day.
 
-**FIRST SLICE — a DESIGN PASS, not code:** the member-grade representation (identity per
-`DepUnit`? shares? where the fitness machinery moves — deposition vs expression); the
-residency envelope (S19/S20-style arithmetic BEFORE commitment); what becomes of the
-Litho roster and `deep_class_of_species`; the migration path for shipped worlds (goldens
-are tripwires, not intent); and **the RIPPLE MAP** — an explicit disposition for every
-slated item this touches: the record-terms composition slice (rulings 1–2 logic stands;
-the species axis it records may change grade), record-terms ruling 3 (**HELD** pending
-this), P10 grain-size continuum (its state attaches to loads — same grade question),
-member-#0's remaining near-path restructure (MM-3 — touches exactly the member-dither
-machinery that may move), fluvial member #1, P5, stubs #23/#25/#31.
+~~**FIRST SLICE — a DESIGN PASS, not code**~~ **✅ DESIGN PHASE CLOSED 2026-08-01, same
+day** — `docs/audits/2026-08-01-members-into-history-design.md`, five rulings in its
+header: the record names **`MaterialId`** (history records the rock, not the road to it) ·
+representation **A-CLEAN** (identity per unit, fitness at DEPOSITION, **no class view
+survives storage or physics** — killed by the user's entrenchment challenge) · transport
+planes **SPARSE DAY ONE** (dense scales cells × registry, the wrong asymptote) · U5
+dissolved (corrections #84) · **MM-3/near-path restructure FOLDS IN** (one surgery, not
+two).
 
-**CONTINUATION SLOT:** per the design pass. **This entry is the arc's anchor; nothing
-slated below proceeds against the class-grade record without checking the ripple map
-first.**
+**BUILD SEQUENCE (drafted 2026-08-01, integrator sequencing — veto welcome):**
+1. **The identity swap + deposition-time fitness** — `DepUnit.species: Litho →
+   MaterialId` (zero-byte), fitness runs at deposition under the context of its own day,
+   expression reads the recorded id, `lithology.rs` guard comment rewritten (A-2), stubs
+   #31 dies by construction. Goldens move, announced.
+2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
+   `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
+   **composition slice folds in here** (the per-face species split records into a sparse
+   side array at the same grade — rulings 1–2 of the record-terms set, re-graded).
+3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
+   `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
+   13-file break), landing on the member-grade record. The ~460 m near tile dies here.
+4. **Litho dissolution residue** — delete `deep_class_of_species` and the ~250
+   remaining class-speaking sites; re-shape or minimally patch the far `ShareVec<6>`
+   site (rejected-interim; its real heir is the far register — do not gold-plate).
+**Record-terms ruling 3 (face-vs-unit) re-enters for ruling after slice 2's re-derived
+numbers land.** **CONTINUATION SLOT:** P10 (grain axis) and member #1 resume against the
+member-grade record; P5 stays its own deliberately-opened arc.
 
 ### THE GRAIN-SIZE CONTINUUM — a real size axis on sediment — **SEQUENCED 2026-08-01 (user ruling: "option 2 — I just don't want to lose track of anything needing done")**
 

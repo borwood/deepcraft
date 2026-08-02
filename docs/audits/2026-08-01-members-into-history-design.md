@@ -42,6 +42,14 @@ field list and flagged as such.
 >    the identity FIELD is E7's manifest (the rule is written; the field is not — the
 >    2026-07-22 seam inventory). Caught by the user's memory before ruling; second
 >    instance of corrections #81's shape in three days.
+> 5. **MM-3 / the near-path restructure FOLDS INTO P11's build sequence** (user,
+>    2026-08-01). One pass over the shared files instead of two overlapping surgeries;
+>    the restructure lands on the member-grade record it will serve; its cell-membership
+>    dither (spatial) survives P11 untouched while the expression-time member-fitness
+>    machinery it would have preserved is deleted instead. The ~460 m near tile rides
+>    until that slice; the octaves walk remains sequencing input. **The design phase of
+>    P11 is CLOSED** — remaining opens (Litho-dissolution residue sites, record-terms
+>    ruling 3 re-entry) are build-sequencing content, not design questions.
 
 **Status legend:** **DECIDED/RATIFIED** (user) · **BUILT** (code exists, verified here) ·
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input).
