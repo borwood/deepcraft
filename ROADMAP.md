@@ -2723,6 +2723,16 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🟠 SUBAGENTS DIE WHEN THEY BACKGROUND THEIR OWN GATE — two for two in one session
+  (2026-08-02, both bodies builders).** Each implementer wrote its code, backgrounded a
+  long cargo run (or armed a monitor for the build slot), ended its turn "waiting" — and
+  never resumed when the background work finished; both harvests happened by hand from
+  their worktrees. The work survived (worktree commits + Tee'd logs are the durable half,
+  exactly as the wrap doctrine says); the agents' completion machinery did not.
+  **Interim rule until the mechanism is understood: a subagent runs its gates in the
+  FOREGROUND of its own session and waits — never `run_in_background` inside an agent.**
+  Proposed for session-workflow (fingerprint, awaiting greenlight).
+
 - **🟠 INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
   look (user-sighted 2026-08-02 at the derived-hip walk, station 2; mechanism read from
   code and CONFIRMED by a live control the same minute).** `resolve_orientation`'s clamp
@@ -2740,7 +2750,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   (which today's MCP driver, NPC controllers, and the future animus all must then do)?
   User-owned; not decided at the walk.
 
-- **🔴 THREE ARTIFACT TRIPWIRES ARE RED ON MAIN — a golden move without its authorizing
+- **🟢→ RESOLVED AS EXPECTED-RED (corrections #92, same day): the authorization existed in the geo FINAL close block — P11 slice 2 owns the single re-capture, user-ruled "accept as-is; march"; this entry's "without its authorizing entry" was filed through one arc's lens without reading the other's live block.** ~~THREE ARTIFACT TRIPWIRES ARE RED ON MAIN — a golden move without its authorizing
   entry (found 2026-08-02 by the bodies arc's debt-clearing gate; pre-existing, demonstrated
   on main WITHOUT the bodies slice, identical hashes).** `dc-worldgen
   tests/artifact_tripwires`: **the far field** (0x1424_7B7C_AB51_EFA5 measured vs
@@ -2753,7 +2763,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   journal-entry mechanism naming + re-capture, or a revert.** The batching ruling's first
   bill: the debt window let this ride main for hours; the bodies arc's gate found it only
   because clearing its own debt required the full run. Bodies-arc merges state their
-  evidence net of this trio.
+  evidence net of this trio.~~ *(struck with the resolution above; kept as testimony of what the gate measured.)*
 
 - **🟠 THE BUILD-SLOT MUTEX IS DEAD AS A MECHANISM — both failure directions in one evening,
   from two sessions that both know the doctrine (2026-08-01, bodies session + geology
@@ -4141,6 +4151,71 @@ second file.
 
 ---
 
+## NEXT SESSION — written at the 2026-08-02 BODIES close (the bodies thread's pickup; the geo FINAL block below is the geo thread's — both live, two parallel arcs)
+
+**Read first:** sweeps hook → `docs/dependency-graph.md` § 2b → this block → journals
+**0135, 0137, 0138** → corrections **#85–#87, #92** (all this session's own) →
+`bodies.md` § Postures (the day's biggest ruling).
+
+### The paragraph that matters
+**The bodies arc went declaration → bake → renderer → walked, inside two days.** B0's
+roles/modes/open-actions landed (journal/0135); the resting-posture bake shipped with its
+design pass's predicted table confirmed to 1e-9 (journal/0137: biped 0.880 m, stout
+0.440 m, longleg 1.020 m, knees 0°); the consumer slice put the derived hip on screen and
+the user walked it (journal/0138) — verdicts: rest *"soles look planted other than the
+idle bob. reads right"*; motion *"reads fine with caveat"*. The caveat is the STRAFE
+(Observed): the walk-8 fix inverts for a stale look — S6 row 95's "nobody owns body
+orientation," OPEN since 07-19, remembered by the user before any sweep surfaced it.
+
+### Ratified this session, in the user's terms
+- **B0's shape** — with `collide` left OPEN for B4's machinery ("keep velocity up").
+- **Postures are REGISTRY content by namespaced id** (sweep-checked first, per the user's
+  procedural requirement): engine owns the contract, default pack ships the 2026-07-19
+  ladder, controller surface = introspect + invoke-by-id — `bodies.md` § Postures.
+- **The bake's venue** (corrections #86): *"the bake cannot run 'at pack build', or not
+  only"* — every minting clock is a call site; evolution mints species in deeptime.
+- **Gates batch per arc-chunk** (CLAUDE.md § Gates) — and its first bill arrived same day
+  (the expected-red trio rode hours unseen; net judgment: still worth it, the debt-clearing
+  run caught it).
+
+### Falsified — all four the assistant's own, all caught by the user or by receipts
+**#85** the liveness split axis emitted at source files (the hook's own comment refuted
+it) · **#86** provenance: an agent-authored venue sentence attributed to the user ·
+**#87** a dispatch REPORTED THAT NEVER HAPPENED — the rule: an agent is "running" only
+beside its live receipt · **#92** a cross-arc finding filed without reading the other
+arc's live close block (the tripwire trio was authorized expected-red all along).
+
+### First things next session (bodies thread)
+1. **The look-ownership ruling** (user, small): does move intent default to
+   look-follows-travel unless a look is explicitly held, or do drivers own the look?
+   Sibling of the postures ruling; the strafe fix is a short slice behind it.
+2. **Corrections #80's temporal bob** — the last thing between these bodies and glued
+   feet.
+3. **The gait-bake design pass** — inherits the posture key, the landed rest pose, a
+   motion verdict, and OWNS stubs #34 (clip role-binding, before B3 moves the firewall).
+
+### Owed / unverified
+- **Workspace-green is blocked on P11 slice 2's single re-capture** (geo-owned; their
+  verification was LIVE at this wrap — see their block below for the expected-red list).
+- **Subagents die when they background their own gate** — two for two this session, both
+  harvested by hand from worktrees (Observed; interim rule proposed: agents gate in
+  FOREGROUND — fingerprint awaiting greenlight).
+- `body.rs` grew again with the measurement series; the liveness/module-split family
+  (session-workflow, ROADMAP registry at 1.7×) per the geo block's "Owed, small".
+- Corpus sweeps were due-FULL at session start and deferred to the geo session — verify
+  at next pickup which ran (their blocks reference doc-topology F1, so at least that).
+
+### Machine state at close
+Game closed clean (exit 0), port 7777 free. This session's worktrees merged and removed;
+its three empty orphan dirs deleted. **The geo session is LIVE at this wrap** — its cargo
+holds the build slot (slice-2 verification) and two of ITS agent worktrees exist
+(`agent-a34dc…`, `agent-aa713…`) — untouched, theirs to harvest. The build-slot mutex is
+a PreToolUse hook now (2f673ef): nobody touches `.agent-build.lock` by hand. Staging rule
+adopted from the geo session's fingerprint: **explicit paths, never `add -A`** (this
+session paid for it once: a stray client log).
+
+---
+
 ## NEXT SESSION — written at the 2026-08-02 close (geo session FINAL; supersedes both blocks below — the bodies block remains the pickup for THAT thread)
 
 **Read first:** sweeps hook (if due) → `docs/dependency-graph.md` P11 row → this block →
@@ -4208,273 +4283,3 @@ port 7777 free. A parallel USER session shares the checkout — **stage explicit
 never `add -A`**.
 
 ---
-
-## NEXT SESSION — written at the 2026-08-01 LATE close (SUPERSEDED by the 2026-08-02 FINAL block above)
-
-**Read first:** the sweeps hook (if due) → `docs/dependency-graph.md` (P11 row) → this
-block → `docs/audits/2026-08-01-members-into-history-design.md` header (the five P11
-rulings) → journal/0134.
-
-### The one paragraph that matters
-**P11 — MEMBERS INTO DEEP HISTORY — went from user decision to closed design to a
-dispatched build in one session.** The record names `MaterialId` (*"the rock, not the
-road to it"*); representation is A-CLEAN (**no class view survives storage or physics** —
-option D died on the user's *"are they just places the old shape is entrenched?"*, which
-verified); transport goes **sparse day one**; MM-3/the near-path restructure **folds in**
-as slice 3; U5 dissolved (corrections #84 — the 2026-07-19 world-identity rule had
-answered it). Before that, the fluvial record-terms pass ruled: **composition recorded
-now** (grain-size = sequenced arc P10), **nothing non-additive before WINDOW** (χ specced
-and waiting; aggregator-vocabulary sketch filed in ideas.md), ruling 3 (face-vs-unit)
-**HELD, re-enters after P11 slice 2**.
-
-### RUNNING — three agents (dispatched at close; **the session stays open until they land — subagents DIE with their session** (user, 2026-08-01); harvested before this block is final)
-1. **P11 slice 1 builder** (the identity swap + deposition-time fitness; holds the cargo
-   slot). Check rather than trust: the layout assert (was the swap zero-byte), the
-   member-diversity numbers with 1-member-class nulls stated honestly, Law-3
-   bit-identity on the mass side, goldens re-captured with whys. Its journal is
-   SLUG-NAMED — assign the next-free ordinal at merge (0134 is taken by this session).
-2. **P2 literature derivation** (docs-only, no cargo): returns bands + candidate
-   multiplier pairs + a measurement plan that NEEDS the build slot — schedule those runs
-   after slice 1 merges.
-3. **P10 grain-axis design pass** (docs-only): returns options targeting the
-   MEMBER-GRADE record; its NEEDS-RATIFICATION list gets the corrections-#84 treatment —
-   **grep for the prior ruling before relaying any item as open.**
-
-### Ratified this session (user's words in the cited records)
-Face-pairing three-mode confinement rule (2026-07-29 late, `flow.md` § 11.5 banner,
-corrections #75) · record-terms rulings 1–2 (composition now + P10 sequenced;
-composition-only v1) · P11 + its five rulings (the design audit header) · the build
-sequence (integrator-drafted, unvetoed).
-
-### Falsified — the assistant's own
-**#84** (U5 presented as open; dissolved by the user's own 2026-07-19 rule — second
-instance of #81's shape; the relay rule is in the entry). Also this session: #74 (a
-citation claim falsified by its own commit), #75 (face-pairing "unratified" was stale at
-assertion), #76 (the ≤9-typically-1 misreading).
-
-### Owed / standing
-The **octaves appearance walk** (merged 2026-07-29, gate-green, never walked — needs the
-NEW tour map: land filter + a Single-span two-member-class station; do NOT judge at the
-stale U3 pose) + the **U3-dominance verdict** (user's, from that walk's evidence) · P11
-slices 2–4 behind slice 1 · record-terms ruling 3 after slice 2 · the ROADMAP size lever
-(hook fires every edit; user call) · `material-behavior.md`/`flux.rs`/`erosion.rs` size
-flags (cold-half extractions, user call) · the 17 baseline escalations + open field
-reports carry unchanged.
-
-### Machine state at close
-Three agent worktrees LIVE (do not prune); builder legitimately holds
-`.agent-build.lock` intermittently; no dc-client, port 7777 free. Main pushed and green
-— last full gate on merged main: **90 units / 869 passed / 0 failed**, verified by name
-from the Tee'd log at the octaves merge; docs-only commits since, plus the P11 doc
-arc. A parallel USER session shares the checkout — stage explicit paths, never `add -A`
-(memory: stage-explicit-paths; it swept 3 files once this session, disclosed, content
-safe).
-
----
-
-## NEXT SESSION — written at the 2026-08-01 close (SUPERSEDED by the geo-session block above; still the valid pickup for the BODIES thread)
-
-**Sweeps first** (the `SessionStart` hook says which are due), then
-**[`docs/dependency-graph.md`](docs/dependency-graph.md)** — its new **§ 2b BODIES** table is
-where this session's work lives — then this block. Then `corrections.md` **#77–#83** (seven, and
-**five are the assistant's own**) and journals **0130–0133**.
-
-### The one paragraph that matters
-**A blue-sky session about bio/evolution became a bodies session in one exchange and never went
-back**, because the user named the unblock: *"engine owns bodies, plugin pack can define them,
-therefore an evolution plugin pack can model evolution — of bodies."* Three experiments later
-the arc has a **cautiously ratified tier** — `docs/design/posture-gait.md`, posture and gait
-**derived from physics, baked per species at pack build, sampled cheaply at runtime** — and the
-edge nobody had written down: **authored clips break the moment topology changes, so an evolution
-pack would generate bodies nobody could animate.** A bake from `(segment tree + masses)` means a
-mutated body gets a plausible stance and gait *by construction*. **That is the whole reason this
-detour was not a detour.**
-
-### Ratified today, in the user's terms (full log: `posture-gait.md`, `ideas.md`, and the audit)
-- **Posture/gait derived, baked per species** — *"informed by physics such that it looks
-  **plausible instead of arbitrary**"*; constant runtime solving is *"out of the question"*.
-- **The action vocabulary OPENS** — the closed `KNOWN_VERBS`/`REQUIRED_VERBS` contract rejected a
-  bird and a tree at define time and collided with north-star Deviation 2 (*"ASSUME MODS CAN DO
-  ANYTHING"*). Packs declare actions; the engine checks you supplied what you claimed.
-- **Functional parts are DECLARED, not derived** — *"mouth, a scorpion's stinger, and so on"*.
-- **Address + role as two identifiers** (cautious) — address is *where it sits*, role is *what it
-  is*; **animations bind to roles**. The user's centaur is the worked example: an upper-body clip
-  drives it because the roles match, and a mismatch is now *caught* instead of silent.
-- **Support is a per-segment CAPABILITY, activated per MODE** — no support-kind concept at all.
-  **The alligator killed the earlier framing**: four support modes, and a sprawling walk *mixes*
-  kinds (feet standing, belly distributed) — so support is not a property of a body *or* of a
-  segment.
-- **No artificial gap between a load-bearing segment and the ground**, and **anything presumptive
-  about size/proportion gets refactored.**
-- **Subtract the rotation quantizer**; **12 fps rides** until the taste call can be made *on a
-  body whose feet actually reach the ground*.
-
-### Falsified — five of seven are the assistant's own
-- **#77** a range read as a tolerance instead of an amplitude · **#78** an unswept axis (posture)
-  reported as a property of the system · **#80** the quantizer named "deepest cause" when the
-  operative defect was two lines away · **#81** a question re-presented after a principle the
-  same author wrote had already dissolved it · **#83** an agent's *"roughly 9 hours"* recorded as
-  measured fact — **the gate is ~40 minutes**, and the agent's own one-hour lifetime contradicted
-  it in the same notification block.
-- **#79** (user-caught) a code comment that **stripped its own cited source's "for now"**, turning
-  an interim into a decision. **#82** (user-caught) `bodies.md`'s *"an identity, not a workaround"*
-  — **assistant-originated**, guarding an IK instability **1,056 measured samples show does not
-  exist**, with the tell (*"forgiving"*) eleven words away in the same sentence.
-- **The pattern the next session should carry: every one was caught by the user, four by a single
-  question, and in five of seven the discriminating evidence was already in hand.**
-
-### Shipped
-journals **0130** (two body plans, one clip set — retargeting measured *true*, "feet to ground"
-never achieved), **0131** (the knee bends; the biped's IK had *always* worked while crouching),
-**0132** (the design pass), **0133** (the quantizer nobody chose). Plus: the default body pack
-now loads **through the registry door** (A-4 discharged, and `spines.md` never indexed it — see
-its new A-4 instance); `vanilla` struck from the body files; `scripts/mcp.ps1` rescued.
-
-### First things next session
-1. **B0 — the body-plan structure slice.** The next build, carrying all five rulings above as
-   **one mechanism**. **⚠ Time-sensitive:** segment identity is free to change *today* and the
-   window closes when damage moves the firewall. Bring the user the **concrete shape first** —
-   `posture-gait.md`'s "members are directions, not build orders" binds it.
-2. **Then** the resting-posture bake (B2). **Not before B0** — deriving contact from three bipeds
-   is the N=1 trap that opened this arc.
-3. **Live design threads the user deferred, with enough recorded to resume**: plants whose growth
-   is shaped by *where they grew* (phototropic canopies; growth is a **history**, not a state), and
-   **procedural attacks from evolved morphology**. Both in `ideas.md`, explicitly not sequenced.
-
-### Owed / unverified — deliberately not done
-- **A bird has two cycles** (wingbeat ≠ step); `posture-gait.md` § 4 assumes one. Waits for the
-  gait design *on purpose* — deciding it now means deciding it twice.
-- **Per-segment materials** — semantically independent but **NOT startable**: the roster has 26
-  materials, `bone` is the only body-relevant one, and **no `define_material` command exists**.
-- **`quantize_time` floors on an absolute grid then wraps** — latent (every looping shipped clip
-  is frame-aligned), fixed *inside* the sim-visible-pose slice, not before.
-- **`body.rs` 2.0× / `meshing.rs` 2.2×** the file-size threshold; both have a genuine cold half.
-- **No walk has been run since the quantizer came out.** The three bodies still hover — corrections
-  #80's defect is untouched and upstream.
-
-### Running
-**Nothing.** All agents complete and harvested, worktrees removed, branches deleted, lock free,
-port 7777 free, game closed. Gate state: **90 suites / 881 passed / 0 failed**, verified by test
-name case-sensitively from the Tee'd log; docs-only commits since.
-
----
-
-<details>
-<summary>SUPERSEDED — the 2026-07-29 evening block (kept for its unfinished items)</summary>
-
-## NEXT SESSION — written at the 2026-07-29 EVENING close (supersedes every earlier block)
-
-### ⚠ LATE-NIGHT ADDENDUM (2026-07-29, the 529 session — read this first, block below still stands)
-
-**The API shed load and the session paused with nothing merged.** All four dispatched opus
-agents — the three FULL sweeps AND the octaves/near-path build pair — were killed by
-server-side 529s within minutes; **zero work produced, zero harvest loss** (verified: no
-worktrees, no branches, no commits). Machine clean, lock free, journal **0128/0129 were
-reserved but never used** — next-free is still 0128. **All three sweeps remain DUE (FULL)**;
-the hook will re-report. The member-#0 continuation-pair brief was written and is sound —
-re-dispatch it next session (its content: octaves `DitherSource` second impl per corrections
-#45's "fix = octaves, not resolution", then MM-1 + MM-3 + the § 2b near-path restructure from
-`docs/audits/2026-07-29-member0-coarsefield-design.md`, sequenced in ONE worktree because B
-consumes A and they share files).
-
-**The fluvial member (#1) design pass was OPENED in main session** (priors sweep done) and
-three rulings landed (user, 2026-07-29 late, via decision prompt):
-
-1. **Face-pairing is RE-OPENED** — argued fresh in the design pass, NOT inherited. The priors
-   sweep found the corpus holds its status in four places that disagree: `flow.md` § 2.2 flag
-   (*"NOT RATIFIED, resolve before any refinement/expression slice"*) · `flow.md` § 11.5
-   (*"RATIFIED (user): flow pairs by what confines it"* — the two-mode rule, 360 lines below
-   the flag, never cross-stamped) · `flux.rs` module docs (*"this slice pairs lateral faces by
-   CHAPTER… the design document is silent"*; bound residual explicitly a user call filed with
-   continuation (c)) · `refinement.md` § 8 + coupling-priors audit #6 (*"under-specified, not
-   ratified — live blocker"*). The fresh argument decides which site is right and stamps the
-   others; whether a corrections entry is owed falls out of that.
-   **✅ RESOLVED, same session: re-argued fresh against the channel operator and CAUTIOUSLY
-   RATIFIED (user) as the THREE-MODE CONFINEMENT RULE** — full record in `flow.md` § 11.5's
-   banner (three sharpenings: eroding-cell attachment to the surface-as-of-K; within-chapter
-   resolution is the WINDOW axis; the 2× is gross-vs-net, already spent). All five sites
-   stamped; **corrections #75** filed for the stale-at-assertion "unratified" claim. The
-   fluvial slice rides mode 1 and says so loudly.
-2. **Record terms FIRST**: deeptime records **grain distribution + mobility hint** before any
-   channel operator builds; the operator then expresses the full § 7.1 assemblage in one
-   slice. Today `FluxEntry.load` is **bulk only** (composition's named heir: material-aware
-   transport) and no mobility term exists anywhere.
-3. **Design now, BUILD AFTER P2**: the operator can only express recorded magnitudes (Law 1),
-   and this world exports 0.02 % of denudation by rivers — a walk on the member is
-   meaningless until the P2 literature re-pick lands. The design pass proceeds and should
-   tell P2 which quantities matter.
-
-**Sweeps first** (the `SessionStart` hook says which are due — spine-audit ran today and its
-findings were APPLIED, which is now the standing rule for all sweeps), then
-**`docs/dependency-graph.md`**, then this block. Then `corrections.md` **#73** and
-`journal/0127` (the day's narrative).
-
-### The one paragraph that matters
-**The pass architecture gained its clock and its schedule (E3 RATE + Schedule, both built,
-hash-verified), the refinement tier went from zero design to a cautiously-RATIFIED doc
-(`docs/design/refinement.md` - record families, term-keyed operators, three laws) with its
-first member BUILT and WALKED the same day** - and the walk returned a split verdict that
-sets the next arc: *the 460 m cell lines are gone by eye* (U22 discharged), *but the
-cell-wide blend "swirled the whole cake"* and rides only as an interim. Its named heir is
-the user's own sketch: a far register derived from refinement-operator budgets (S Observed
-field report, recorded verbatim).
-
-### Ratified today (user's terms - full records in ARCHITECTURE.md/refinement.md/audit headers)
-- **refinement.md CAUTIOUSLY RATIFIED**: bones only; *"first members... revisited in light
-  of this design, not taken as wherever they landed prior."* Members are directions, not
-  build orders.
-- **Schedule**: seed = initial condition, epoch 0 fires for everyone, skip rule deleted.
-  All three incumbents audited to `Step` - the seeds were repair for the skip
-  (journal/0124).
-- **Member #0 = K1 only**; `summarize` -> octree contract (*"LOD machinery stays engine...
-  goes to octree"*); per-voxel stays engine-executed, packs SELECT sources by id.
-- **Sweep findings are APPLIED, not filed** (spine-audit skill amended); **scratch-pad
-  doctrine promoted to CLAUDE.md** S Conventions; **five strikes** executed on the
-  classifier's candidates; **the testing world is a scratch pad** reaffirmed.
-- **Walk ruling**: the far blend rides as interim, *"replaced eventually"*.
-
-### Falsified - the assistant's own first
-- **#73**: "the 460-vs-28.8 checkerboard was never probed" - it was SETTLED 2026-07-24
-  (member stepping; corrections #45) and the answer lived only in a close block; a design
-  agent re-derived the question and the main session propagated it into a banner. **The
-  user's memory caught it.** Both targets stamped.
-- The E1 graph row overclaimed (kernel "validates an authored order" - it derives; E7
-  validates), and P6 sat on both sides of the engine/pack partition four rows apart. Both
-  fixed same-day, both found by agents reading fresh.
-
-### Shipped today (journal 0122 was yesterday; today: 0123-0127)
-RATE (0123) - Schedule (0124) - member-#0 far slice (0125) - artifact tripwires (0126,
-**7 goldens + compiler-enforced DeepField enumeration; nothing ships unfingerprinted**) -
-the day narrative + walk (0127). Plus: spine-audit (first ever) fully applied - S-6
-reconciled, 88 citations verified; runner.rs history extraction; ROADMAP 5,309 -> ~3,600
-lines (structural lever still open - no honest classification reaches 2,500).
-
-### First things next session
-1. **The member-#0 continuation pair that clears U3**: the **octaves `DitherSource`**
-   (settled as the dominant visible fix 2026-07-24 - corrections #45) + the **near-path
-   restructure** (needs MM-1 separately-callable membership dither + MM-3 the working-state
-   type). Both scoped in `docs/audits/2026-07-29-member0-coarsefield-design.md`.
-2. **E7 authored order + validator** (with E6 DeepAxis retirement) - unblocked, and the
-   tripwire net now catches what their hash-identity promises miss.
-3. **P2 erosion calibration re-pick** - STILL the standing red: `calibrated_rates` ships
-   FALSE. Literature pass; good background-agent work.
-4. Waiting on user calls: fluvial member design pass (face-pairing rule must be picked
-   LOUDLY); runner.rs module split (927 code lines); ROADMAP structural lever.
-
-### Owed / unverified - deliberately not done
-- **GOLDEN_FAR_SURFACE is captured on a 99.6%-ocean fixture** (Observed, orange-flagged) -
-  a land-bearing far golden is owed.
-- **Walk stations 3/4 unwalked** (same signature as the verdict station; poses in
-  `docs/audits/2026-07-29-far-frontier-tourmap.md`) - and the tour instrument needs a
-  LAND FILTER (station 1 scored a below-sea-level basin; finding recorded in that audit).
-- **tectonics.rs salt conversion** (draws.rs residue 3) - owed to the file owner.
-- The 17 baseline-sweep escalations and 15 open user field reports carry over unchanged.
-
-### Running
-**Nothing.** All agents in or dead-and-harvested (two API-5xx casualties, work recovered
-from disk both times), worktrees removed, lock free, port 7777 free, game closed. Gate
-state: main's Rust last verified at the tripwire merge - **90 units / 857 passed / 0
-failed**, by name from the Tee'd log; docs-only commits since.
-
-
-</details>

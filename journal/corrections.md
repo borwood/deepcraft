@@ -3708,3 +3708,21 @@ the lookup illegal.
 that exist for entirely unrelated reasons, and are the only ones in the suite that
 construct `Erosion` by hand. Nothing that goes through `run_cells` could have seen
 it, because production turns the tier on.
+
+## 92. "A golden move without its authorizing entry" (the bodies session's tripwire Observed filing, 2026-08-02 — the authorization EXISTED, in the geo session's FINAL close block, written before the finding was filed)
+
+The bodies arc's debt-clearing gate found `GOLDEN_FAR_SURFACE`/`GOLDEN_HEAD`/
+`GOLDEN_GEOTHERM` red on main, demonstrated the red pre-existing, and filed it as *"a
+golden move without its authorizing entry… owed: mechanism naming + re-capture, or
+revert."* **The severity claim was wrong when written.** The geo session's 2026-08-02
+FINAL close block already carried a GATE STATE section naming exactly those families
+**EXPECTED RED until P11 slice 2's single capture, under a user ruling ("accept as-is;
+march")** — authorization recorded, re-capture owned, before my gate ever ran.
+
+**Mechanism: a cross-arc finding filed through one arc's lens.** The evidence chain
+stopped at "pre-existing on main" and never asked *whose arc expected this* — and the
+answer lived in the one document this session had no habit of re-reading mid-day: the
+OTHER session's live close block. The close-block doctrine cuts both ways: a handoff
+nobody re-reads fails its writer (corrections #73), and fails a PARALLEL READER the same
+way. Target stamped in the same commit: the Observed entry carries the strike and the
+pointer.
