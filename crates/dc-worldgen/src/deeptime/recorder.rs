@@ -159,6 +159,27 @@ pub struct DepositCtx<'a> {
     pub cell: u64,
     /// Epoch — the temporal half. Two beds laid at one cell in different epochs
     /// are independent draws.
+    ///
+    /// ⚠ **THIS GRANULARITY IS A DESIGN FORK WITH A MEASURED PRICE, AND IT IS NOT
+    /// RATIFIED.** A fresh roll every epoch means a cell in a *stable* environment
+    /// records an **alternating** stack — mudstone, siltstone, mudstone — rather
+    /// than one thick bed of whichever member fitness favours, because the
+    /// tie-break inside the fitness distribution is re-rolled on a coin the sim
+    /// tosses again every epoch. Identity is in the merge key, so those become
+    /// separate units: **measured split factor 2.4053×** on seed 1337 Medium
+    /// (10,951,030 units against 4,552,847 under the pre-P11 class-only key),
+    /// which is **+97.6 MiB of resident record** at 16 B/unit.
+    ///
+    /// The alternative is `(cell, chapter)` — the member persists while conditions
+    /// do and changes at a real time surface. Fitness would still track climate
+    /// continuously; only the tie-break would stop being white noise **in time**.
+    /// journal/0073 learned exactly this one axis over, in space, and moved the
+    /// class dither to a coherent field for it.
+    ///
+    /// Left per-epoch because that is the literal reading of *"fitness at
+    /// deposition, under the context of its own geological day"* — flagged rather
+    /// than decided, with the price measured
+    /// (`examples/member_diversity_probe.rs`).
     pub epoch: u64,
     /// The deep classes, pre-resolved — see [`MemberCtx::classes`].
     classes: [Option<&'a GeoClass>; Litho::COUNT],

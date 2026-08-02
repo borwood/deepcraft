@@ -409,6 +409,21 @@ two).
    context is live) and **one new stub opened, ordinal pending** (the deep tier's content set is
    hard-wired to vanilla — the door exists, nothing upstream passes through it). Acceptance:
    `examples/member_diversity_probe.rs`, gated.
+
+   **MEASURED (seed 1337, Medium, gated):** both multi-member deep classes now carry both
+   members — fine `dc:mudstone` **55.3 %** / `dc:siltstone` **44.7 %**, coarse
+   `dc:sandstone` **62.5 %** / `dc:conglomerate` **37.5 %**; the four one-member classes
+   read 1, which is correct and not a null (coal records **zero units** on this world —
+   corrections #51's finding, unchanged).
+   **⚠ THE PRICE THE DESIGN AUDIT LEFT UNPRICED (its I4) IS NOW MEASURED AND IT IS NOT
+   ZERO: the merge-key split factor is 2.4053× — 10,951,030 units against 4,552,847 —
+   i.e. +97.6 MiB of RESIDENT record (167.10 vs 69.47 MiB at 16 B/unit).** The field is 16
+   bytes per unit either way, so the audit's *"zero-byte swap"* holds; what it did not price
+   is that identity in the merge key multiplies the units. **The cause is a design fork, not
+   overhead:** the member draw is addressed per **epoch**, so a stable environment records an
+   alternating stack rather than one thick bed. `(cell, chapter)` addressing is the cheaper
+   and arguably more honest alternative (journal/0073's coherent-vs-white lesson, one axis
+   over, in time). **Flagged for ruling, not decided.**
 2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
    **composition slice folds in here** (the per-face species split records into a sparse

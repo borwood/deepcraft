@@ -275,7 +275,65 @@ mechanism. Two rows carry the claim; the probe says so in those words, and a sec
 test pins that the one-member rows hold *that* member rather than the reference table's
 answer by coincidence.
 
-<!-- MEASUREMENTS: filled from examples/member_diversity_probe.rs on seed 1337, Extent::Medium -->
+### The numbers (seed 1337, `Extent::Medium`, `examples/member_diversity_probe.rs`)
+
+Deep run 38.75 s · **10,951,030 recorded units** · 404,898.8 m recorded · `DeepField`
+256.91 MiB.
+
+| class | registered members | distinct materials recorded | units | share by recorded metres |
+|---|---:|---:|---:|---|
+| fine | 2 | **2** | 1,194,668 | `dc:mudstone` 55.3 % · `dc:siltstone` 44.7 % |
+| coarse | 2 | **2** | 8,506,445 | `dc:sandstone` 62.5 % · `dc:conglomerate` 37.5 % |
+| soil | 1 | 1 | 1,224,612 | `dc:carbonaceous-mudstone` 100 % |
+| peat | 1 | 1 | 22,164 | `dc:peat` 100 % |
+| coal | 1 | — | **0** | nothing recorded |
+| charcoal | 1 | 1 | 3,141 | `dc:charcoal` 100 % |
+
+Before this slice every one of those rows read **one** material — the class's reference — and
+the other member existed only as something expression could roll for, per chunk, from the
+wrong century's weather. The two rows that *can* carry the claim both do, and they do not do
+it by a hair: siltstone is 44.7 % of the fine record and conglomerate 37.5 % of the coarse.
+Those are close to the abundance ratios the content set declares (1.0 : 0.7 and 1.0 : 0.6),
+which is the right shape — at `depth_m = 0` every clastic window is satisfied, so abundance
+carries most of the weight and climate tilts it.
+
+The four one-member rows read `1`, which is **correct and not a null**: a class with one
+member cannot diversify. The coal row reads **zero units recorded** — also not a defect, and
+already known: the 2026-07-25 tour map found **no coal on the shipped world** at all
+(corrections #51). Peat is recorded but never buried deep enough to rank up here.
+
+### And the number nobody had priced
+
+**The merge-key split factor is 2.4053×** — 10,951,030 units where the pre-P11 class-only
+key would have produced 4,552,847. At `DepUnit`'s 16 bytes that is **167.10 MiB against
+69.47 MiB: +97.6 MiB of resident record.**
+
+This is the design audit's I4, the one it filed as *"unpriced here"*, and it is the sharpest
+correction to the audit's own headline. Its § 3.1 was right that the identity **field** is
+free — `MaterialId` and `Litho` are both one byte, `size_of::<DepUnit>()` is still 16. But
+free per unit is not free per world when identity joins the merge key and the unit count
+2.4×s. **The zero-byte swap costs 97.6 MiB**, and `DeepField` is resident at runtime, where
+residency is first-class doctrine.
+
+The cause is worth stating precisely, because it is a **design fork and not an overhead**.
+The member draw is addressed `[depositor, cell, epoch, k]` — a fresh roll every epoch. So a
+cell sitting in a stable environment for two hundred epochs does not record one thick bed of
+whichever member fitness favours; it records an *alternating* stack, mudstone/siltstone,
+flipping on a coin the sim tosses again every epoch. That is where the 2.4× comes from.
+
+Is that right? It is the literal reading of *"fitness at deposition, under the context of its
+own geological day"*, and it is defensible: each epoch is its own depositional event. But the
+alternative is at least as defensible and much cheaper — address the draw by `(cell,
+chapter)` instead, so the member is **persistent while conditions are**, and changes at a
+real time surface rather than on a per-epoch coin. Fitness would still vary continuously
+with climate; only the tie-break within the distribution would stop being white noise in
+time.
+
+The corpus has already learned this lesson one axis over: journal/0073 moved the class dither
+from white noise to a *coherent* field because white noise aliased in **space**. This is the
+same shape in **time**, and it manufactures laminae no process made. It is left as it was
+built, flagged rather than decided — a per-epoch roll is what the slice was specified to do,
+and the honest contribution here is the measured price of that choice.
 
 ## Goldens
 
