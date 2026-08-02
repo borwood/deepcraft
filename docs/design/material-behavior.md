@@ -903,10 +903,16 @@ this facies"* to *"which rock was emplaced here in the first place"*, and it inh
 solve byte for byte; the pre-2b goldens are still reachable and still asserted
 (`tests/material_transport.rs`).
 
-- **The load is a multiset of `(Litho, quantity)`** — seven species, which is the
+- **The load is a multiset of `(Litho, quantity)`** — seven species, ~~which is the
   material granularity deep time can distinguish at all (`lithology.rs`: *"not the
   material registry — the handful of classes the record can distinguish"*).
-  Resolving it finer would be inventing identity the tier does not have.
+  Resolving it finer would be inventing identity the tier does not have.~~
+  **⚠ JUSTIFICATION SUPERSEDED 2026-08-01 (P11 rulings 1 & 6, user; banner stamped
+  2026-08-02, doc-topology F3): the record now names `MaterialId` and the tier DOES
+  have member-grade identity — `MaterialId`, not membership of a group, is the basic
+  unit of deeptime.** The *fact* (a `Litho`-keyed load) is still true of the shipped
+  solver until P11 slice 2 converts it; the *argument* for it is dead, and slice 2
+  retires the fact too (`docs/audits/2026-08-01-members-into-history-design.md`).
 - **Identity travels**, § 13.6's scratch-first reconcile: entrainment takes the
   cell's own near-surface composition (the `outcrop_shares` seam — one window walk,
   now with two consumers), incision takes the composition of an **empty** section

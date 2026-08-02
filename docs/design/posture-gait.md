@@ -85,7 +85,7 @@ limits.
 
 | | bake (per species) | sim | client |
 |---|---|---|---|
-| when | pack build; gen-time free | per tick, 20 Hz | per frame |
+| when | pack build **or deeptime worldgen (venue corrected — corrections #86)**; gen-time free | per tick, 20 Hz | per frame |
 | owns | posture, gait vector, collider sets, keyframes | **phase** + injury deltas | cosmetic refinement |
 | cost | irrelevant | a handful of scalars per entity | a lerp per joint |
 | determinism | pure fn of the body definition | replay-critical | free |

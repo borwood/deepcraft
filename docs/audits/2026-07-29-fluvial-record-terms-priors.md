@@ -21,8 +21,10 @@
 > HISTORY (user DECIDED — ROADMAP § Sequenced, graph P11).** Rulings 1–2 stand in their
 > LOGIC (record composition, not a size proxy; nothing non-additive before WINDOW), but
 > the species axis they record against — this audit's 7-entry Litho roster — is exactly
-> what P11 re-grades. **Ruling 3 (face-vs-unit) is HELD pending P11's design pass and
-> ripple map**; the § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
+> what P11 re-grades. **Ruling 3 (face-vs-unit) is HELD ~~pending P11's design pass and
+> ripple map~~ — the design pass CLOSED 2026-08-01 (six rulings in its header); ruling 3
+> re-enters after P11 slice 2's re-derived numbers land (stamped 2026-08-02, doc-topology
+> F12)**; the § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
 > roster. *(Mutable header; the body below is the dated research record.)*
 
 **Read at `f94a568`** (branch `main`; this file added on top). Produced by a **read-only**

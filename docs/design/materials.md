@@ -553,10 +553,14 @@ provenance-not-size):
 > proper. Big work, big prio. Will cause a ripple in all currently slated work.**"*
 
 **What is decided:** member materials (registry identities) become first-class recorded
-state in deep history — identity stops being invented at expression time. **What is NOT
+state in deep history — identity stops being invented at expression time. ~~**What is NOT
 decided:** the representation (identity per unit? member distributions? what happens to
 the member-fitness/dither machinery, the Litho roster, residency), the migration path,
-and the re-sequencing of slated work — all owned by the arc's **design pass** (ROADMAP
+and the re-sequencing of slated work~~ **→ ALL DECIDED 2026-08-01/02 (doc-topology F5
+stamp): representation = A-CLEAN identity per unit, fitness at deposition, no surviving
+class view; transport sparse day one; the deposition draw is named scaffolding (ruling
+6); build sequence = slices 1–4, slice 1 merged `5f16dd1`. The six rulings live in
+`docs/audits/2026-08-01-members-into-history-design.md`'s header** (ROADMAP
 § Sequenced "MEMBERS INTO DEEP HISTORY"; `dependency-graph.md` P11). This is the
 continuation of this section's own 2026-07-22 line — *"the class system's fixed-constant
 roster is scaffolding"* — finally cashed in.

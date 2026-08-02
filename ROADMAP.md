@@ -383,8 +383,8 @@ parent-edge approximation with a legible error term — or dissolves) · genesis
 facies ambitions (P5) · the class-vs-member open question filed this same day.
 
 ~~**FIRST SLICE — a DESIGN PASS, not code**~~ **✅ DESIGN PHASE CLOSED 2026-08-01, same
-day** — `docs/audits/2026-08-01-members-into-history-design.md`, five rulings in its
-header: the record names **`MaterialId`** (history records the rock, not the road to it) ·
+day** — `docs/audits/2026-08-01-members-into-history-design.md`, six rulings in its
+header (ruling 6 added 2026-08-02 at slice 1's harvest; the header prints them 1–4, 6, 5): the record names **`MaterialId`** (history records the rock, not the road to it) ·
 representation **A-CLEAN** (identity per unit, fitness at DEPOSITION, **no class view
 survives storage or physics** — killed by the user's entrenchment challenge) · transport
 planes **SPARSE DAY ONE** (dense scales cells × registry, the wrong asymptote) · U5
