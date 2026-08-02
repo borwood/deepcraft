@@ -3613,3 +3613,35 @@ result with an agent id, and the message citing no such receipt was describing o
 (the dispatch call in the same turn), never from the plan to make one.**
 
 Dispatched for real in the same commit as this entry.
+
+## 85. "The identity swap is a zero-byte change" (the P11 design audit § 3.1's headline, 2026-08-01 — true per unit, inverted in aggregate; measured by the slice that built it)
+
+Per unit, exact: `DepUnit` stayed 16 bytes, compile-asserted. In aggregate, the audit's
+practical conclusion inverted: **identity joined the merge key**, and with the draw
+addressed per epoch the unit count multiplied **2.4053×** (10,951,030 vs 4,552,847 —
++97.6 MiB of resident record, independently corroborated by +110.5 MiB of `Pregen`
+growth). The audit's own I4 flagged the split factor as unpriced; this is its price.
+
+**Mechanism:** a per-entry cost statement is not an aggregate cost statement when the
+change touches the MERGE KEY — the entry count is itself a function of the change. Same
+family as "quote the absolute beside every ratio": quote the *count model* beside every
+per-entry size.
+
+**Resolution:** ruling 6 declared the draw interim scaffolding; the `(cell, chapter)`
+address collapsed the split to **1.2775×** and residency to ≈ main at the merged tip.
+Target stamped: the P11 design audit header (same commit).
+
+## 86. "Identity, not mass — so the terrain is unchanged" (the slice-1 brief's implicit premise, 2026-08-01 — falsified by the slice's own measurement, with a negative result worth keeping)
+
+The brief asserted the swap could not change transport/budgets ("identity, not mass") and
+implied terrain stability. Mass conservation DID hold bit-for-bit — but **terrain moved
+anyway**, because the record's per-unit float accumulation changed with the segmentation:
+a finer unit structure changes the **addends**, not merely their grouping. The agent
+built a coalescing mechanism predicated on "grouping only," predicted byte-identity,
+**measured, and the prediction died** — so it deleted the mechanism rather than ship a
+premise its own measurement had killed.
+
+**The keeper:** "identity, not mass" bounds the *rule*, never the *rounding*. Any slice
+touching record segmentation moves goldens through accumulation order alone, and slice 2
+must not re-derive this the hard way. Recorded beside the golden constants
+(`providers_common` § P11) by the slice itself; this entry is the corpus-level pointer.

@@ -415,3 +415,18 @@ grade as physics rather than as albedo**. It cost nothing — that function was 
 property-sheet derived rather than class-keyed, which the design audit had spotted and filed
 under *"sites that are already registry-shaped and survive any option"*. The audit was right,
 and the payoff arrived a slice earlier than expected.
+
+---
+
+## Postscript at merge (2026-08-02, the integrator)
+
+The narrative above describes the per-epoch draw and its measured price (2.4053× split,
++110.5 MiB, the tripped pregen budget). Between the report and the merge, the user ruled
+the draw INTERIM SCAFFOLDING (P11 ruling 6 — *"this is not a real fork"*; identity
+propagates, slice 2 retires the draw for transported deposits, FS-A for weathered
+material), and the `(cell, chapter)` interim address was applied at tip `5914e708`.
+Final measured state at merge: split **1.2775×**, residency **≈ main**, Medium pregen
+**faster than main**, `pregen_time_vs_extent` **passes**. The goldens the address change
+moved are deliberately NOT re-captured — slice 2 moves them again and owns the single
+capture; the expected-red list is in the ROADMAP arc. Corrections #85/#86 record what
+this slice falsified.
