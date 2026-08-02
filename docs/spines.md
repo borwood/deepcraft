@@ -4,7 +4,88 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: **2026-07-29 (evening), at `72fbe86`** — a **FULL** re-check, because
+*Last `spine-audit` sweep: **2026-08-02, at `d8407e1`** — a **FULL** re-check (125 commits since the
+`72fbe86` watermark, and `docs/spines.md` itself moved in the window, so every prior verdict was void
+by the watermark file's own `_full_run_triggers` rule). Delta: **P11 slice 1** (the deep record went
+`MaterialId`-grade — journal/0136), **bodies B0** (journal/0135), the **posture bake member #0**
+(journal/0137), the octaves/MM-1 near adoption (0128–0129), the second body plan (0130–0132), the
+rotation-quantizer subtraction (0133) and the P2/P10/P11 design passes. **Findings:**
+1. **🔴 A SALT COLLISION, AND IT IS THE 72fbe86 SWEEP'S OWN UNAPPLIED FINDING COMING BACK.**
+   `draws.rs:168` declares `DeepMember = 0x5900_0002`; `refine.rs:29` declares
+   `const SALT_DT_PERTURB: u64 = 0x5900_0002` for the boundary-condition perturbation — **a
+   different decision, still live at `refine.rs:180`.** `draw_domains!`'s `const` assertion and
+   `every_domain_is_listed_and_distinct` (`draws.rs:659`) both read `ALL_DOMAINS` only, so neither
+   can see a hand-rolled salt, and neither fired. *No world is known to be wrong* — `Draws::bits`
+   and `draw_f64` fold the identical chain, so the two streams differ only by address **arity**
+   (`[tag, cell, chapter, k]` vs `[gx, gy]`) and produce different values — but the ratified
+   guarantee (*"two domains are statistically independent **by construction**, not by the care of
+   whoever wrote the call site"*, `rng.rs`) is for this pair **asserted rather than enforced**, and
+   `draws.rs`'s own retired-range note says **"never fill a hole."** `0x5900_0002` was not a hole:
+   it was occupied. **Reported, not applied** — the domain's salt is baked into every world
+   generated from it, so renumbering is a ruling, not a sweep edit. It is cheap *now* (the domain is
+   five hours old and self-declared INTERIM SCAFFOLDING retired by P11 slice 2 + FS-A) and expensive
+   later. **The mechanism is the whole point:** the 2026-07-29 evening sweep found
+   `SALT_DT_PERTURB` missing from `draws.rs`'s residue list and filed it *"reported, not applied
+   (source file)"*; four days later a new domain took that exact number. **An unapplied finding
+   about an unenforced invariant is a countdown.**
+2. **NEW A-2 instance, in code five hours old: `Litho::of_material`'s guard claim cannot see the
+   thing it claims to guard.** Its doc comment (`lithology.rs:339-341`) says the agreement test *"is
+   what fails loudly if a pack adds a fine clastic the bucket has never heard of."*
+   `lithology_buckets_agree_with_the_registry` (`lithology.rs:932`) and its sibling
+   (`lithology.rs:1013`) both iterate `geology::vanilla()` — **they structurally cannot see a
+   pack's members.** A pack's unbucketed member silently answers `Litho::Basement` at runtime. This
+   is A-2's *"did it ever?"* variant **and** A-3's fixture form (*which world did it run on?*) on
+   the same sentence. See A-2 below.
+3. **A-1's `Litho::reference_material` blast-radius entry is HALF DISCHARGED and read as live.**
+   P11 slice 1 changed `permeability_of` from `Litho` to `MaterialId` (`head.rs:222-224`), so
+   `column_hydro` reads `u.species` — **the recorded identity** — at `head.rs:287`. The entry's
+   *"confinement, transmissivity and every artesian column in the world now rest on a six-rock
+   stand-in"* is false for the record path; only the **basement fallback** (`head.rs:253`, `:281`)
+   still routes through `reference_material`. The entry itself predicted this (*"the day
+   `reference_material` is retired, hydrology is on the list of what moves"*) and the day came
+   without the stamp. Applied below.
+4. **A-7's completeness sentence is short by one.** *"The one place the roster is still named is
+   `Litho::as_deposited`"* — `Litho::of_material` (`lithology.rs:342-352`) is a **second**, six
+   `MaterialId` arms and a `_ => Basement` catch-all, in the same adapter, added 2026-08-01.
+   Corrected below. *An enumeration stated as "the one place" is the same shape as `draws.rs`'s
+   "there is no expression anywhere" — this file keeps writing the claim it keeps retiring.*
+5. **The 2026-07-29 evening sweep's `erosion.rs` residue was APPLIED and the entry still says it was
+   not.** `f94a568` ("both sweeps applied") rewrote it; `erosion.rs:4661-4665` now reads *"This once
+   read 'the shipped world is untouched'; that claim retired when `creep_substep` went default-ON."*
+   Stamped below — **the fourth consecutive sweep to find this same failure mode in this file.**
+6. **§ 3: ONE ROW ADDED** — the **resting-posture bake** (`bake_resting_posture` / `RestingPosture`,
+   journal/0137), built this morning with a 437-line test file and **no production caller**; its own
+   module doc says *"Slice one's consumers are the tests and their printed report."* Row added the
+   day it was built, per the discipline the `flux`/`head`/`Schedule::Seed` rows set. **No row
+   removed.** All 17 prior rows re-confirmed uncalled in production at `d8407e1`; searches recorded
+   per row.
+7. **AND § 3's ROW COUNT HAS BEEN WRONG BY TWO SINCE AT LEAST `96ab14b`.** The header claimed
+   *"thirteen"* at `96ab14b` (**15**), *"fourteen"* (**16**), then *"FIFTEEN ROWS"* at `72fbe86`
+   (**16 before the sweep's own addition, 17 after**). Counted mechanically:
+   `awk '/^# 3\. Built/,/^\*\*Departed/' docs/spines.md | grep -c '^| '` minus the header row. **18
+   at `d8407e1`.** The three stale counts sit inside a note whose entire subject is *"a count stated
+   as evidence goes stale the moment the list grows"* — it went stale in the direction the note did
+   not consider: **wrong when written**, not merely later. Corrected below, with the command that
+   produces it, so the next sweep re-runs a check instead of re-typing a number.
+8. **§ 6 has fallen behind for the THIRD time — seven audits unlisted** (`2026-07-29-doc-topology-sweep`,
+   `2026-07-29-roadmap-staleness-sweep`, `2026-07-29-fluvial-record-terms-priors`,
+   `2026-08-01-body-plan-structure-design`, `2026-08-01-members-into-history-design`,
+   `2026-08-01-p10-grain-axis-design`, `2026-08-02-posture-bake-member0-design`). Eleven, then five,
+   now seven. Backfilled below — **and the backfill is again not a watcher**; the section says so
+   itself and the count keeps proving it.
+9. **Citation drift, `runner.rs` again and now `field.rs`/`collapse.rs` with it.** Every `runner.rs`
+   ref past ~line 470 moved **+41 to +44**; `field.rs`'s function bodies moved **+13** (its struct
+   fields did **not** — `geotherm:555`, `head:573`, `chapters:581` are unmoved, which is why the
+   `where` column aged better than the narrative); `collapse.rs` **+30**;
+   `tests/providers_common/mod.rs` **+76**; `tests/artifact_tripwires.rs` **+29**. Refreshed at
+   `d8407e1` where the ref is a live pointer, left as dated testimony where the entry says it is
+   testimony. `coarse.rs`'s six symbol refs are **unmoved** — the 0129 merge's decision to cite that
+   row by symbol is the only citation in this file that has not rotted since.
+10. **No `docs/audits/` artifact was written for this run**, unlike the `72fbe86` sweep: the
+   dispatching brief scoped this agent read-only except `spines.md` and its watermark key. Flagged
+   rather than silently diverged — the `72fbe86` run set the precedent that a FULL pass leaves one.*
+
+*Previous: **2026-07-29 (evening), at `72fbe86`** — a **FULL** re-check, because
 **the reference side moved**: `docs/spines.md` itself changed in ten commits since the `96ab14b`
 watermark, so every prior verdict was void by the watermark file's own `_full_run_triggers` rule.
 Delta: the RATE slice (journal/0123), the SCHEDULE slice (journal/0124), the member-#0 far slice
