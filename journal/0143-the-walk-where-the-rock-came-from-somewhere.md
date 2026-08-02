@@ -73,3 +73,13 @@ unnecessary — the honest comparison is that the two look the same and *mean* d
 - The one unbriefed observation the user made — carb-mudstone stripes read clearly in
   fullbright — is a small positive data point for the palette: the organic axis is
   legible even where the coarse-clastic pair is albedo-close.
+
+## Post-walk field report (user, same session)
+
+Two observations after the stations closed: *"the chunk-sized class-member quantization
+appears to be gone, naturally"* — the appearance-level confirmation the P11 arc wanted —
+*"however, there are larger regional borders still… a straight line where mudstone is in
+the mix on one side, and not on the other."* Filed in ROADMAP § Observed with the
+integrator's candidate mechanism (the ~460 m deep-cell record tile, slice 3's named
+target) and its discriminating check. If the candidate holds, the walk ends having
+verdicted the shipped work AND handed slice 3 its acceptance criterion.

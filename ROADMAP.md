@@ -2727,6 +2727,23 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **FIELD REPORT, the P11 walk (user, 2026-08-02, post-walk):** two halves, opposite
+  signs. **(a) POSITIVE — "the chunk-sized class-member quantization appears to be gone,
+  naturally."** The 28.8 m member stepping that drove journal/0129's octaves work and
+  P11 itself is no longer visible to the user's eye — corroborates slices 1–2 at the
+  appearance level. **(b) OPEN — "there are larger regional borders still… a straight
+  line where mudstone is in the mix on one side, and not on the other."** CANDIDATE
+  mechanism (integrator hypothesis, NOT diagnosed): the **~460 m deep-cell record tile**
+  — every column currently reads exactly one deep cell's record, so per-cell member
+  presence produces ruler-straight borders at cell boundaries; this is exactly what
+  P11 slice 3's per-column cell-membership dither is sequenced to dissolve (ruling 5,
+  "the ~460 m near tile dies here"). The cheap discriminating check when someone is at
+  a border: is the line aligned to the deep-cell grid pitch? If confirmed, this
+  observation RESOLVES into slice 3's existing scope and adds an acceptance criterion
+  to it: the mudstone-mix border at a cell edge must stop being a straight line. If the
+  line is NOT grid-aligned, this is something else (geology-set region border?) and
+  needs its own diagnosis.
+
 - **THE OCTAVES MEMBER FIELD IS INVISIBLE AT EVERY SURFACE OF THE SHIPPED WORLD — the
   U3-dominance verdict is now a DESK question** (2026-08-02, the P11 walk's tour map —
   journal/0143; probe `examples/appearance_tour_p11.rs`, gated). 0 of 4,792 sampled land
