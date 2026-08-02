@@ -294,6 +294,21 @@ A cheap answer written because a consumer cannot afford the real one must be
   disappearing-consumer test now answers *yes*: if the far field vanished, the
   surface rule would still exist unchanged, because it is the expression.
 - compliance: S15's coarse capacity held against an exact voxel walk
+- **compliance (2026-08-01, P11 slice 1) — the summary that was standing in for a
+  measurement, retired.** `Litho::reference_material` was a fixed class→member table that
+  the deep-cell inventory (`derive_base`) consulted for *"what rock weathered here"*, and
+  the collapse tier re-selected a member from the class because the record held no member.
+  Both are gone: `DepUnit::species` names the `MaterialId`, `derive_base` reads it, and
+  `dithered_member` refuses to re-adjudicate it. The disappearing-consumer test answers the
+  right way now — the identity exists because deposition decided it, not because expression
+  needed something to say. **One new summary is introduced and it is typed as one:**
+  `Litho::of_material`, the class bucket the still-`Litho`-wide transport tables index by,
+  carrying two named heirs (slices 2 and 4) and an **agreement test against the
+  `GeologySet`'s declared member→class edge** — the doctrine's full price, paid in the same
+  commit. It also **retired one of the three duplicate `Litho`→class matches** the P11 design
+  audit indexed as C12: `tests/providers_common::species_code` now hashes the recorded
+  `MaterialId` byte, which is both simpler and the only version that can *see* the
+  distinction the slice creates.
 - compliance (2026-07-23, journal/0078): `paleo_temperature` [#11] converted to a
   provider slot — `deposit_deep_history` read *today's* column temperature for a
   deep unit's at-deposition temperature (the summary), beside a sibling axis that
@@ -1087,6 +1102,20 @@ that passes tests**.
 Charcoal excluded because no bed survived whole-voxel quantization — true until
 partial voxels. `reference_material` fixed so packs could not move terrain —
 true until the content-set freeze, **the same day**.
+
+- **instance (2026-07-19 → FIXED 2026-08-01, P11 slice 1): the headline example above,
+  discharged.** `lithology.rs`'s module docs asserted, in the file every erodibility reader
+  loads, that the reference member is *"fixed per class rather than sampled from the live
+  registry, which is deliberate: it means **adding an organism or material pack can never
+  move terrain**."* Deposition-time member fitness makes that false — the deposited identity
+  feeds `exposed_shares` → `susceptibility_table` → the erosion rates. **The premise expired
+  by DISSOLUTION, not by being overruled** (corrections #84): a different pack set *is* a
+  different world (the user's 2026-07-19 world-identity rule), so the hazard the guard
+  protected against was answered by *storing* the identity instead of re-deriving it. The
+  paragraph was rewritten in the same slice that expired it — the shape every A-2 fix should
+  take, and the second corpus instance (after `BEDROCK_SEAM_THICKNESS_M`) of a justification
+  whose expiring decision lived in a **different file**. Note what caught it: **the user's
+  memory**, before the ruling, not a sweep.
 
 **Check:** ~~§ 5's convention.~~ **⚠ § 5's convention FINDS NOTHING — do not route a sweep
 through it** *(pointer added 2026-07-29, baseline sweep S1/#7; § 5's own drift note has said
