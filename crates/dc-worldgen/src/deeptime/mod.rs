@@ -39,6 +39,7 @@ pub mod recorder;
 pub mod refine;
 pub mod runner;
 pub mod schedule;
+pub mod species;
 pub mod tectonics;
 pub mod weather_behavior;
 pub mod weather_inventory;
@@ -87,6 +88,7 @@ pub use lithology::{
     susceptibility_table,
 };
 pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
+pub use species::{SpeciesAxis, SpeciesLayout, SpeciesPlane};
 pub use recorder::{
     Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, DepositCtx, EnergyBand, Eolian,
     MemberCtx, dep_tags,

@@ -621,6 +621,88 @@ pub fn exposed_shares(units: &[super::recorder::DepUnit]) -> WindowShares {
     ShareVec::from_shares(acc.map(|a| a / OUTCROP_DOMINANCE_WINDOW_M))
 }
 
+/// **The near-surface window's shares at MEMBER grade** — the same walk as
+/// [`exposed_shares`], accumulated per [`SpeciesAxis`] slot instead of per class
+/// (P11 slice 2).
+///
+/// `out` is a dense row `axis.len()` wide, overwritten in full. The shares sum to
+/// `1.0` by the same construction as the class-grade walk (divide, never multiply
+/// by a reciprocal — `x / x == 1.0` exactly — so a single-material window is
+/// exactly `1.0` and a blend over it reproduces a point lookup bit for bit), and
+/// the deficit below a short record is charged to the axis's **basement** slot.
+///
+/// This is what makes the erosion rate a function of the *rock* rather than of its
+/// class: today `window_walk` coarsens a recorded `MaterialId` back through
+/// [`Litho::of_material`] because the tables downstream are class-keyed, and
+/// mudstone and siltstone therefore erode at one rate. The class accumulator is
+/// still computed beside this one — the far tier and the outcrop verdict read it
+/// until slice 4 dissolves the roster — but the *quantity erosion blends* comes
+/// from here.
+///
+/// **A material with no axis slot of its own** (nothing any registered geology
+/// member deposits — an igneous body the veneer placed) is charged to basement,
+/// through [`SpeciesAxis::slot_of`]'s own total answer. That is the same rule the
+/// window already applies to its deficit, not a second one.
+pub fn exposed_member_shares(
+    axis: &super::species::SpeciesAxis,
+    units: &[super::recorder::DepUnit],
+    out: &mut [f64],
+) {
+    debug_assert_eq!(out.len(), axis.len());
+    out.fill(0.0);
+    let mut remaining = OUTCROP_DOMINANCE_WINDOW_M;
+    for u in units.iter().rev() {
+        if remaining <= 0.0 {
+            break;
+        }
+        if u.thickness_m <= 0.0 {
+            continue;
+        }
+        let take = u.thickness_m.min(remaining);
+        out[axis.slot_of(u.species)] += take;
+        remaining -= take;
+    }
+    if remaining > 0.0 {
+        out[axis.basement_slot()] += remaining;
+    }
+    for v in out.iter_mut() {
+        *v /= OUTCROP_DOMINANCE_WINDOW_M;
+    }
+}
+
+/// **Per-material rate multipliers for one agent**, as a dense row indexed by
+/// [`SpeciesAxis`] order — the member-grade heir of [`susceptibility_table`]
+/// (P11 slice 2).
+///
+/// One row per (agent, epoch), never one per cell, so dense is honest here: the
+/// `powf` is paid `axis.len()` times an epoch. The reference is the **named
+/// anchor material** rather than a class: `REFERENCE_LITHO.reference_material()`
+/// is `dc:mudstone`, so the value is bit-identical to the class-grade table's for
+/// every material whose class reference it is, and *different* — correctly — for
+/// every other member. That difference is the point of the slice.
+pub fn member_susceptibility_table(
+    axis: &super::species::SpeciesAxis,
+    agent: Agent,
+    contrast: f64,
+    cap: f64,
+) -> Vec<f64> {
+    let reference = resistance_of_material(REFERENCE_MATERIAL).to(agent);
+    axis.materials()
+        .iter()
+        .map(|&m| resistance_of_material(m).susceptibility(agent, reference, contrast, cap))
+        .collect()
+}
+
+/// **The material whose property sheet defines the reference resistance** — the
+/// rate every other material is expressed relative to.
+///
+/// It is `REFERENCE_LITHO`'s reference member spelled out as a rock, which is the
+/// re-statement the P11 design audit's § 6b asked for: under member grade there is
+/// no *"fine clastic"* to anchor on, so the anchor has to be **named**. The value
+/// is unchanged — `Litho::ClasticFine.reference_material()` is `dc:mudstone` —
+/// so this is a derivation restated, not a re-tune.
+pub const REFERENCE_MATERIAL: MaterialId = MaterialId::MUDSTONE;
+
 /// The near-surface window's per-[`Litho`] share vector, as the headless
 /// [`ShareVec`](dc_core::coarse::ShareVec) the `CoarseField` extraction owns.
 ///

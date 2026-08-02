@@ -1975,6 +1975,39 @@ impl Erosion {
         self.litho.iter().map(|&b| Litho::ALL[b as usize])
     }
 
+    /// **The solve's own processing order** — cells by ascending filled surface,
+    /// the array [`Self::transport`] walks in reverse.
+    ///
+    /// Public so an instrument can traverse the transport graph **without
+    /// re-deriving it** (S-3: the summary derived from the authority, never beside
+    /// it). A probe that computed its own D8 receivers would be a second routing
+    /// rule that can silently disagree with the one the world was built by.
+    pub fn processing_order(&self) -> &[u32] {
+        &self.order
+    }
+
+    /// **Every cell this cell hands load to, this epoch** — the single D8 receiver
+    /// off the MFD path, or every MFD direction carrying positive weight. Yields
+    /// nothing for a sink.
+    ///
+    /// The companion to [`Self::processing_order`]; together they are the transport
+    /// graph exactly as [`Self::transport`] walks it.
+    pub fn out_edges(&self, c: usize, f: &mut impl FnMut(usize)) {
+        if self.mfd.is_none() {
+            let rc = self.recv[c];
+            if rc >= 0 {
+                f(rc as usize);
+            }
+            return;
+        }
+        let base = c * MFD_DIRS;
+        for d in 0..MFD_DIRS {
+            if self.mfd_w[base + d] > 0.0 {
+                f(self.mfd_neighbour(c, d));
+            }
+        }
+    }
+
     /// Set the paleo-sea-level stand the standalone phase methods read (the
     /// profiling harness drives phases individually; [`Self::step`] sets this).
     pub fn set_sea_level(&mut self, sea_level: f64) {
