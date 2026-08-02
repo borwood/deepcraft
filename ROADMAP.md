@@ -2774,6 +2774,37 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   (mining faces, caves, cuts) where the spans actually are? Sequencing input for the
   visuals road and P11 slice 3's per-column work, not a defect.
 
+- **🟠 GEO-ARC FINDINGS FROM THE 2026-08-02 SPINE-AUDIT (FULL, read at `3cf8778`) — filed by the
+  BODIES session for the geo thread, which had already wrapped when they landed.** Full record:
+  `docs/audits/2026-08-02-spine-audit-full.md`. Nothing applied; the arc adjudicates.
+  - **F1 🔴 (verified at source by the integrator before filing): `outcrop_shares` lost a SECOND
+    customer and three comments still describe the call.** Slice 2 replaced the
+    `outcrop_shares(&[])` empty-section call with a direct `bedrock_axis = [axis.basement_slot()]`
+    / `bedrock_sp = [1.0]` (`erosion/transport.rs:174-175`, `erosion/weathering.rs:419-422`).
+    **`grep -rn "outcrop_shares(&\[\])" --include=*.rs crates/` returns ZERO at `3cf8778`** —
+    confirmed independently. The value is identical; the *claims* are not: `transport.rs:356`
+    still says *"Nothing is named here"* and `weathering.rs:419` still says *"the same walk asked
+    with an empty section."* Anti-shape **A-2**, and it also kills **A-7's own worked-forwards
+    instance** (`spines.md:2066-2072`), which now describes deleted code. **This is corrections
+    #90's rule landing twice in one slice** — the slice caught the rate customer, filed the
+    correction, and missed the bedrock one.
+  - **F2 🔴 USER-OWNED — A-7's enumeration is short by three, and it collides with a ratified
+    ask.** `REFERENCE_MATERIAL=MUDSTONE` (`lithology.rs:731`), `DEEP_BASEMENT=GRANITE` (`:748`),
+    `ANCHOR_MATERIAL=SANDSTONE` (`transport.rs:86`) — two of which the **ratified**
+    members-into-history § 6b explicitly asked for, against A-7's *"naming is not a ratifiable
+    carve-out… a defect."* Ratified design ask vs read-first anti-shape, in direct conflict: a
+    loud plea, not an edit. The audit's own diagnostic points at the resolution — the
+    `GeologySet` declares neither its basement nor its reference sheet, while
+    `SpeciesAxis::new(geology, basement)` already takes basement as a **parameter** that
+    `set_species_axis` hands a constant.
+  - **F4** A-2 partially applied: the `Litho::of_material` guard claim was fixed on the function
+    (`lithology.rs:353-355`) and left verbatim on the test (`:1174-1176`).
+  - **F8** A-4's extraction entry cites `split_by_shares`, which no longer exists (successor
+    `species::split_row_into`; substance survives). **F10** eight citations into `erosion/` and
+    `tests/providers_common/mod.rs` drifted through the split-then-re-move.
+  - **F6** the content-door § 3 row's **severity rose without its status changing** — the species
+    axis is now content-derived, so a custom pack gets a vanilla axis too.
+
 - **🟠 SUBAGENTS DIE WHEN THEY BACKGROUND THEIR OWN GATE — two for two in one session
   (2026-08-02, both bodies builders).** Each implementer wrote its code, backgrounded a
   long cargo run (or armed a monitor for the build slot), ended its turn "waiting" — and
