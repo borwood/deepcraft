@@ -88,13 +88,13 @@ pub use lithology::{
     susceptibility_table,
 };
 pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
-pub use species::{SpeciesAxis, SpeciesLayout, SpeciesPlane};
 pub use recorder::{
     Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, DepositCtx, EnergyBand, Eolian,
     MemberCtx, dep_tags,
 };
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use schedule::Schedule;
+pub use species::{SpeciesAxis, SpeciesLayout, SpeciesPlane};
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
 pub use weather_behavior::{
     BedrockWeather, Form, Transform, Weather, WeatherAxis, WeatherCtx, WeatheringPass,

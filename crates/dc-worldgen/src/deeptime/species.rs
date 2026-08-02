@@ -112,18 +112,18 @@ impl SpeciesAxis {
     pub fn new(geology: &GeologySet, basement: MaterialId) -> Self {
         let mut present = [false; MATERIAL_COUNT];
         for m in geology.members() {
-            present[m.material as usize] = true;
+            present[m.material.raw() as usize] = true;
         }
-        present[basement as usize] = true;
+        present[basement.raw() as usize] = true;
         // Candidates in canonical `MaterialId` order first, so the settle sort's
         // tie-break is a stable, content-order-independent one.
         let mut ids: Vec<MaterialId> = (0..MATERIAL_COUNT as u8)
             .filter_map(MaterialId::from_raw)
-            .filter(|m| present[*m as usize])
+            .filter(|m| present[m.raw() as usize])
             .collect();
         ids.sort_by(|&a, &b| {
             let (wa, wb) = (settle_key(a), settle_key(b));
-            wb.total_cmp(&wa).then((a as u8).cmp(&(b as u8)))
+            wb.total_cmp(&wa).then(a.raw().cmp(&b.raw()))
         });
         assert!(
             ids.len() <= MAX_DEEP_SPECIES,
@@ -133,10 +133,10 @@ impl SpeciesAxis {
         );
         let mut slot = [OFF_AXIS; MATERIAL_COUNT];
         for (k, &m) in ids.iter().enumerate() {
-            slot[m as usize] = k as u8;
+            slot[m.raw() as usize] = k as u8;
         }
         let w_settle = ids.iter().map(|&m| settle_key(m)).collect();
-        let basement = slot[basement as usize];
+        let basement = slot[basement.raw() as usize];
         Self {
             ids,
             slot,
@@ -181,7 +181,7 @@ impl SpeciesAxis {
     /// force every caller to invent the same fallback.
     #[inline]
     pub fn slot_of(&self, m: MaterialId) -> usize {
-        let s = self.slot[m as usize];
+        let s = self.slot[m.raw() as usize];
         if s == OFF_AXIS {
             self.basement as usize
         } else {
@@ -193,7 +193,7 @@ impl SpeciesAxis {
     /// falling back to basement through [`Self::slot_of`]).
     #[inline]
     pub fn carries(&self, m: MaterialId) -> bool {
-        self.slot[m as usize] != OFF_AXIS
+        self.slot[m.raw() as usize] != OFF_AXIS
     }
 
     /// The axis index of the basement material.
