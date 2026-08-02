@@ -9,3 +9,4 @@
 /.claude/worktrees
 
 .agent-build.lock
+walk-client.log
