@@ -3547,7 +3547,7 @@ SOURCE branch (split by CONCERN on module boundaries); the trailer line scopes
 topic-splitting's prohibition to docs; the module docstring carries the scope banner;
 the `file-size-is-context` memory is scoped likewise.
 
-## 86. "It runs at pack build rather than world gen" (posture-gait.md § 3, ratified 2026-08-01 — narrowed by its own author 2026-08-02: *"my language was sloppy with this"*)
+## 86. "It runs at pack build rather than world gen" (posture-gait.md § 3 — an AGENT-authored sentence that survived ratification 2026-08-01; caught by the user 2026-08-02)
 
 **The claim.** The bones' § 3: *"a pure function of the body definition with no world
 involvement, **so** it runs at pack build rather than world gen"* — repeated in
@@ -3580,3 +3580,17 @@ be able to call it.
 
 **Both targets stamped this commit** (posture-gait.md § 3 banner; dependency-graph § 2b), and
 the member-#0 audit header carries the sharpened F1.
+
+**Provenance corrected same day, and the error was this entry's own:** the header above
+originally read *"narrowed by its own author… 'my language was sloppy with this'"* —
+attributing the falsified sentence to the USER. The user's "sloppy" was self-deprecation
+about their callout message; the venue sentence itself was, in their words, *"agent
+authored plan — like everything else in this repo that is not explicitly a user
+quotation."* The distinction is load-bearing (2026-07-25 rule: user-originated
+constraints are data; assistant-originated ones are hypotheses that happened to
+survive), and an entry that assigns a user the authorship of an assistant's surviving
+hypothesis inverts exactly the signal corrections exist to keep. So filed: an
+assistant-authored inference survived ratification inside user-ratified bones, was
+caught by the user, and the correction entry then misattributed it — also caught by the
+user, in the same breath.
+
