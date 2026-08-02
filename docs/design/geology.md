@@ -410,6 +410,24 @@ move anyone's terrain. The constraint that forced the proxy is gone. Fourth
 instance in one session of a conclusion outliving its premise (cf. charcoal,
 `stubs.md`; corrections #29).
 
+> **⚠ HALF-DISCHARGED 2026-08-01 by P11 slice 1** (journal/pending-p11-slice1). Be precise
+> about which half, because the two are in different files and only one moved:
+>
+> - **The RECORD half is fixed.** `DepUnit::species` is a registry `MaterialId` chosen by
+>   member fitness *at deposition*, so the deep-cell inventory (`derive_base`) reads the rock
+>   that was actually laid instead of calling `Litho::reference_material()`. The
+>   *"six classes to six fixed rocks"* table no longer stands between the record and the
+>   ledger. And the pack-safety justification quoted above is now retired **in the source
+>   too** — `lithology.rs`'s module docs were rewritten in the same slice, the owed work that
+>   `journal/corrections.md` #84's dissolution of U5 named.
+> - **The EROSION half is still live and this paragraph still describes it.**
+>   `susceptibility_table` remains `Litho::COUNT`-wide and still built from each class's
+>   reference sheet, so a siltstone bed is still handed mudstone's resistance and the sheets
+>   of the other registered materials are still discarded. **Heir: P11 slice 2**, where the
+>   four `n × SPECIES` budget planes go CSR-sparse over `MaterialId` and the window
+>   accumulates per material. The **form** error (lithified sheets answering for loose
+>   regolith) is untouched by P11 in either half.
+
 **The defect one layer down.** `MaterialProps` stores `density`, `cohesion`,
 `permeability`, `insulation` and extraction resistance as constants **on the
 substance** — but those are strongly *form*-dependent, and loose sand versus
