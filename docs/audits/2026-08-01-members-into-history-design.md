@@ -70,6 +70,34 @@ field list and flagged as such.
 >    P11 is CLOSED** — remaining opens (Litho-dissolution residue sites, record-terms
 >    ruling 3 re-entry) are build-sequencing content, not design questions.
 
+> **⚠ SLICE 2 (THE CONVERSION) LANDED 2026-08-02 — journal/pending-p11-slice2b.** What this
+> document priced as an option is now what the tier does, and three of its numbers are
+> answered rather than estimated:
+> - **Ruling 3 is BUILT.** The four budget planes are CSR-sparse over `MaterialId`, laid
+>   out against three per-epoch layouts (window / transport-closure / creep-dilation);
+>   `const SPECIES = Litho::COUNT` is deleted. Budget arithmetic stayed **f64** and the
+>   three residue instruments were re-measured after the conversion, not assumed.
+> - **Ruling 6 is DISCHARGED for transported deposits.** The fitness draw no longer runs
+>   where a mover outvoted the un-carried remainder; identity comes from the arriving
+>   composition, with a deterministic tie rule (axis order = descending settling energy,
+>   ties by `MaterialId`) documented at the site. What survives is the genuine-degeneracy
+>   remainder — material made in place, the identity-less movers, and the **transformation
+>   edges** (basement → coarse detritus, detrital organics → carbonaceous mud), where the
+>   destination member is a fact about the site rather than about the parent. FS-A takes
+>   the weathered half. `DeepMember`'s domain doc carries the same banner.
+> - **§ 6b's owed anchor is named in code.** `COMPETENCE_SCALE = 420`'s derivation
+>   (`settle_energy(dc:sandstone) ≈ 0.84` over the Low/Medium boundary `0.002`) now has
+>   `ANCHOR_MATERIAL` beside it and a test that evaluates the quotient.
+> - **⚠ AND ONE THING THIS DOCUMENT DID NOT ANTICIPATE:** the `outcrop_shares` **provider
+>   seam had to be re-signatured to member grade**. § 3 priced the planes; it did not ask
+>   what grade the *seam that feeds them* answers in. Left class-grade, the seam would have
+>   become one the production rate path bypasses — a socket whose heir (structural
+>   deformation) could no longer reach the rates it exists to dip. Nothing would have gone
+>   red. See the journal entry § *The seam that nearly got left behind*.
+>
+> **Record-terms ruling 3 (face-vs-unit) is still OPEN** and the slice supplies re-derived
+> numbers as data only.
+
 **Status legend:** **DECIDED/RATIFIED** (user) · **BUILT** (code exists, verified here) ·
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input).
 

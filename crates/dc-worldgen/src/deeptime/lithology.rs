@@ -50,7 +50,17 @@
 //! (`DepUnit::species: MaterialId`) and the chain is
 //!
 //! ```text
-//! DepTag  →  Litho (class)  →  fitness at deposition  →  MaterialId  →  MaterialProps  →  LithoResistance
+//! the arriving composition  →  MaterialId  →  MaterialProps  →  LithoResistance
+//! ```
+//!
+//! **and since P11 slice 2 (2026-08-02) that chain has no class in it at all** for
+//! a transported deposit: the mover carries identity by id and the record writes
+//! what settled (ruling 6). A class is still consulted where deposition is a
+//! genuine degeneracy — material made in place, the movers that carry no identity
+//! yet, and the transformation edges — and there the older chain still runs:
+//!
+//! ```text
+//! DepTag  →  Litho (class)  →  fitness at deposition  →  MaterialId  →  …
 //! ```
 //!
 //! [`litho_of_tag`] mirrors `crate::geology::deep_class` exactly (asserted by
@@ -328,10 +338,15 @@ impl Litho {
     /// `settling_table`, [`WindowShares`]), so a `MaterialId`-grade record has to
     /// be bucketed back down before the erosion tables can index it.
     ///
-    /// **Heirs, both already sequenced:** slice 2 (the budget planes go
-    /// CSR-sparse over `MaterialId`, so the bucket has no consumer on the
-    /// transport side) and slice 4 (the `Litho` roster dissolves). Do not build
-    /// anything new on this.
+    /// **Slice 2 landed and took the transport side with it** (2026-08-02). The
+    /// budget planes are CSR-sparse over `MaterialId`, the window accumulates per
+    /// material, and the erosion rate tables are keyed by rock — so this bucket no
+    /// longer stands between the record and any *rate*. What still calls it is
+    /// narrow and named: the deposition **transformation edges**
+    /// ([`deposited_transform`]), the debug outcrop verdict, the far tier's class
+    /// view, and the fitness draw's remaining degeneracy cases. **Heir: slice 4**,
+    /// which dissolves the roster and them with it. Do not build anything new on
+    /// this.
     ///
     /// It is a **summary, and the doctrine's price is paid**: it is the exact
     /// inverse of the member→class edge the `GeologySet` already declares, and
@@ -548,14 +563,14 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
         // of sand that a river delivered to a low-energy cell reads as sand
         // rather than as whatever its environment would have implied.
         //
-        // ⚠ **The bucket, not the rock** (P11 slice 1). The record names a
-        // `MaterialId` now, and the honest per-unit answer is
-        // `resistance_of_material(u.species)` — but the accumulator and everything
-        // downstream of it ([`WindowShares`], `susceptibility_table`, the four
-        // `n × SPECIES` transport planes) are still `Litho::COUNT`-wide, so the
-        // rock is coarsened back to its class here. **Slice 2 is what deletes this
-        // call** — when the budgets go CSR-sparse over `MaterialId`, the window
-        // accumulates per material and mudstone stops eroding at siltstone's rate.
+        // ⚠ **The bucket, not the rock — and EROSION NO LONGER READS THIS WALK**
+        // (P11 slice 2, 2026-08-02). It used to say *"slice 2 is what deletes this
+        // call"*, and slice 2 did: the erosion rate is blended from
+        // [`exposed_member_shares`], accumulated per **material**, so mudstone and
+        // siltstone stopped eroding at one rate. This class-grade walk survives for
+        // the consumers that genuinely want a class — the far tier's share vector,
+        // the outcrop verdict, the degenerate no-content door — and it retires with
+        // the roster in slice 4.
         let l = Litho::of_material(u.species);
         let idx = l.index();
         if !seen[idx] {

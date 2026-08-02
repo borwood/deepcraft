@@ -1,0 +1,237 @@
+# The load stopped being seven things
+
+*P11 slice 2 — the conversion. The four budget planes go CSR-sparse over
+`MaterialId`, the erosion rate stops being a fact about a class, and the
+deposition draw is retired for anything a mover carried.*
+
+> blogworthy: **lens 3 (reflexions in a deepsim codebase)** — the slice is a
+> worked example of *"a seam's success condition is that it disappears"* and of
+> its opposite failure, a seam the production path quietly stops reading.
+> Also **lens 2 (procgen against the priors)**: the choice not to widen a dense
+> plane is the whole slice, and the reason is an asymptote, not a megabyte count.
+
+---
+
+## What was wrong, stated as narrowly as it deserves
+
+Slice 1 gave the deep record an identity: `DepUnit::species` became a registry
+`MaterialId` and the member was chosen by fitness at deposition, under the
+formation context of the epoch that laid the bed. That was the whole of slice 1
+and it worked.
+
+It also made the *rest* of the tier the coarse link. Four planes carried the
+solve's material arithmetic —
+
+| plane | what it is |
+|---|---|
+| `shares` | the composition of the loose cover at each cell |
+| `qs_sp` | the suspended load in flight |
+| `dep_sp` | what the flow set down |
+| `creep_sp` | what hillslope creep delivered |
+
+— and every one of them was `n × Litho::COUNT`: **seven classes**, dense. So a
+siltstone bed eroded at mudstone's rate, because the table that answered was
+keyed by class. The record knew which rock it was; nothing downstream could ask.
+
+The obvious move is to widen the planes to the registry. It is the wrong
+asymptote, and the user ruled it out before it could be written: *"transport
+planes go **SPARSE DAY ONE**"* (ruling 3, 2026-08-01). Dense scales as
+`cells × registry`, and the registry is open by design — a plugin-first engine
+whose material count is a *pack's* choice cannot put that count in a per-cell
+array. Sparse scales as `cells × local presence`, and the claim underneath that
+is a claim about the world: **a cell's in-transit load only ever holds its
+catchment's species, never the world's.**
+
+Nobody had measured it. The foundation slice did (journal/0138): on the shipped
+world, `p = 3.719` species per cell mean, 8 max, on a 14-material axis.
+
+## The three layouts, and why the layout is exact rather than a guess
+
+A CSR plane needs a row index, and the interesting question is where the rows
+come from. There are three, and each answers a different question:
+
+- **window** — what lies *at* a cell (the near-surface `OUTCROP_DOMINANCE_WINDOW_M`);
+- **transport** — the window closed **downstream along the solve's own routing**;
+- **creep** — the window dilated by one 4-neighbourhood ring, because creep moves
+  the *donor's* composition across an edge.
+
+The transport layout is the one that could have been a heuristic and is not. It
+is built by asking the transport pass for its own processing order and its own
+out-edges — `Erosion::processing_order` and `Erosion::out_edges`, which exist for
+exactly this reason — and propagating presence bits along them in the same
+direction the load is about to move. So the row index *is* the transport graph's
+reachability, computed with `u64` ORs where the pass will compute `f64` adds. A
+species cannot arrive at a cell whose row has no slot for it, not because we
+sized generously, but because the two walks are the same walk.
+
+That is also why `slot_of(j, k).expect(…)` is honest rather than optimistic. The
+`expect` is a statement about the construction, and if it ever fires it means the
+closure and the chain have diverged — which is the only interesting failure.
+
+## The thing that nearly went wrong: the order
+
+Two loops in the transport pass are order-sensitive. The capacity drawdown is
+*coarsest first* — the excess a flow cannot hold is paid out of the heaviest
+fraction it is carrying, which is why a bar is gravel and sand rather than an
+average of everything in the water. The competence ceiling is the same shape from
+the other side.
+
+Under a dense plane those loops read a precomputed permutation, `ws_order`. Under
+a sparse row, walking a permutation of the whole axis and testing membership
+would put the registry's width straight back into the hot loop — the exact
+asymptote sparsity exists to remove.
+
+The foundation's answer is to move the ordering into the **axis** rather than into
+a loop: the axis is sorted by descending settling energy, ties broken by
+`MaterialId`, and a row is stored ascending in axis order. So walking a row front
+to back *is* coarsest-first, over exactly the species that cell holds, and the
+competence sweep can `break` the moment it meets one under the ceiling.
+
+The unlooked-for benefit is that it gives every order-sensitive rule in the slice
+**one** total order: the residual split's *"last non-zero share takes the
+remainder"*, the arriving-identity argmax's tie-break, and the two drawdown loops
+all break ties the same content-derived way instead of by an enum's declaration
+order. When we wrote the tie rule into the arriving-identity argmax's doc comment
+it did not need a new sentence; it needed a pointer.
+
+## The seam that nearly got left behind
+
+Erosion does not walk the record for its rates. It asks the `outcrop_shares`
+provider seam — a named socket whose heir is structural deformation, so that when
+beds dip, the *dipped* shares arrive and the rate field dips with them.
+
+The seam answered per `Litho`. The rate table went per material. Both of those
+sentences can be true at once only if the rate path stops reading the seam — and
+for about an hour, that is what the conversion did: `expose` called
+`lithology::exposed_member_shares` directly.
+
+Nothing failed. The tests were green, the world eroded, and the seam still had
+consumers. What had happened is that the socket the layer-cake term is supposed to
+plug into had quietly become a socket for a *different, smaller* question: erosion
+would have kept blending its rates from a walk the heir could never replace.
+
+The tell was a test. `full_agents.rs::waves_cut_down_the_coastline` drives a soft
+and a resistant coast **through** the seam, because the shipped world's coasts are
+basement-heavy and the mechanism question is not a question about this world's
+composition. Under the bypass, that test's override became inert — the run would
+still have gone green, because the assertion is differential and both arms would
+have moved together. A test that stops testing is not a red.
+
+So the seam was re-signatured to member grade:
+
+```rust
+pub outcrop_shares: Option<fn(&SpeciesAxis, &[DepUnit], &mut [f64])>,
+```
+
+and the class-grade window walk stayed where it was, for the consumers that
+genuinely want a class — the far tier, the outcrop verdict, and the degenerate
+no-content door. **A seam's success condition is that it disappears** (providers.rs
+says so in as many words); its failure condition is that it *survives with the
+wrong customer*, and that is much harder to see.
+
+## The draw is retired, for the deposits that never needed it
+
+Ruling 6, the day before this slice: *"MaterialId — not membership of a group — is
+the basic unit of deeptime: identity is a conserved quantity flowing through the
+mass arithmetic."*
+
+The deposition-time fitness draw existed to **fill a class**. Erosion released a
+metre of *fine clastic*; transport carried a metre of *fine clastic*; deposition
+had to decide which fine clastic, and the only witness available was the climate
+at the site. That is a real answer to a real hole, and it is also a hole that
+member-grade transport closes: the mover now carries `dc:siltstone`, not
+`clastic-fine`, and there is nothing left to pick.
+
+So the record's identity rule became:
+
+1. sum what the two identity-carrying movers delivered (fluvial `dep_sp`,
+   hillslope `creep_sp`), positive contributions only;
+2. compare the biggest arrival against the **un-carried remainder** — the metres
+   that were made here or brought by a mover with no identity yet;
+3. if an arrival wins, **that is the rock**, no draw;
+4. if the remainder wins, or if deposition genuinely transforms the rock, draw.
+
+Step 4's second clause is the part worth defending. Basement a river quarried
+lands as coarse clastic detritus — a gravel, not a granite — and detrital
+peat/coal/charcoal land as carbonaceous mud. Those are the `as_deposited` edges
+journal/0112 found the hard way, when creep carried thin charcoal beds downslope
+and won a cell's argmax with them. On a transformation edge the *parent* does not
+determine which member of the destination is produced; the conditions at the site
+do. So fitness runs, on the destination class, and ruling 6's *"transformation
+edges under declared conditions, drawn coherently"* is what that clause is.
+
+### Measuring a retirement is harder than performing one
+
+"The code path is taken" proves nothing. The claim that matters is: **of the
+metres whose identity came from the arriving composition, how many would the
+deposition site's own climate have named differently?** Those are the metres whose
+rock is a fact about their *source*.
+
+Answering it means evaluating exactly the draw the slice exists to stop
+evaluating, per depositing cell per epoch — which is why it is an instrument
+(`DeepConfig::identity_audit`), off in production, asserted bit-inert, and read by
+`member_diversity_probe`. If that number came back near zero the ruling would have
+bought correctness of principle with no expression, and saying so would have been
+the honest report.
+
+MEASURED: `<transported %>` of the record's metres take their identity from the
+arriving composition; of those, `<disagree %>` would have been named differently
+by the site's own draw.
+
+## The salt that was two decisions
+
+The 2026-08-02 spine-audit found `refine.rs`'s hand-rolled
+`SALT_DT_PERTURB = 0x5900_0002` sitting on `draws.rs`'s `DeepMember` domain. Two
+live decisions, one stream.
+
+The `draw_domains!` macro exists precisely to make this a compile error, and it
+could not see this one, **because only one of the two was in the list**. That is
+the same shape as the defect the macro was cut for (`pore_rider_share` slicing bits
+out of a neighbouring draw with a comment claiming they were disjoint): a claim
+about hash bands that no gate can check.
+
+The fix names both halves. `DeepTimePerturb` is registered at the value it already
+had, so the refinement experiment's decay profile — a dated measurement — is
+unchanged to the bit, asserted rather than argued
+(`the_registered_perturbation_domain_is_the_hand_rolled_salt`). `DeepMember` took
+the next unused value, because it is production identity and the golden re-capture
+was going to move it anyway.
+
+## What moved, and which movements are semantics
+
+Every deep-time golden. Three separate mechanisms, and the distinction matters
+because corrections #89 is live here:
+
+1. **semantics** — the erosion rate is now a function of the rock. Mudstone and
+   siltstone have different `smash` sheets, so a window that used to blend one
+   rate blends two;
+2. **semantics** — transported deposits take their identity from the load rather
+   than from a draw, which changes what gets recorded and therefore what the next
+   epoch's window holds;
+3. **float accumulation** — the CSR row visits the same species in the same order
+   as the dense plane did, but the *rows differ per cell*, so a sum that used to
+   run over seven slots (five of them zero) now runs over three. `a + 0 + b` and
+   `a + b` are the same number; `(a + b) + c` and `a + (b + c)` are not, and the
+   drawdown loop's early `break` changes where the partial sums land.
+
+Under the scratch-pad doctrine that is a re-capture with the why recorded, not a
+ratification. The `_off_is_the_pre_slice_world` arms moved too, and they had to:
+those constants pin *"the material tier off is the world before the tier existed"*,
+and the world before the tier existed is now a world whose rates are member-grade.
+
+## The one real red
+
+`exchange_cell` read the transport row unconditionally. On the scalar-load solve
+every CSR structure is deliberately empty — that emptiness is what makes the
+off-path byte-identical — so the row read is an out-of-bounds on any harness that
+drives `Erosion` directly without turning the material tier on. Three tests caught
+it (`mass_is_conserved_up_to_uplift`, `mass_is_conserved_with_coupling_on`,
+`the_differential_erosion_feedback_neither_runs_away_nor_stalls`), and all three
+are tests that exist for a *different* reason. The lesson is the ordinary one: the
+identity path and the live path have to be guarded at every site that reads a
+structure the identity path does not build, and "the flag is off" is not a guard
+unless it is written down.
+
+---
+
+**Numbers, gates and the residency delta are in the merge report.**

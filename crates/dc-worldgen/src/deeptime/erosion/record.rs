@@ -194,20 +194,21 @@ impl Erosion {
         let creep = self.creep_sp.vals();
         let (axis, tlayout, clayout) = (&self.axis, &self.tlayout, &self.clayout);
         let sorted = self.sorted;
-        // **The two halves of a unit's identity, in order** (P11 slice 1):
+        // **A unit's identity, and where it comes from** (P11 slice 1, re-graded
+        // by slice 2's ruling 6).
         //
-        // 1. the CLASS is what the movers determine — the argmax of everything
-        //    that arrived (`arriving_species`), or the tag's own lithology where
-        //    nothing rode a mover. That is still `Litho`-grade because the
-        //    transport budgets are (slice 2 re-grades them);
-        // 2. the MEMBER is what the environment determines — fitness over the
-        //    registered members of that class, under this cell's temperature and
-        //    precipitation *this epoch*, through an addressed draw.
+        // Slice 1 wrote this as two halves in order: the movers determine the
+        // CLASS, the environment determines the MEMBER by fitness. That was the
+        // honest shape *while the budgets were class-wide* — the movers could not
+        // say which rock, only which kind. They can now. So the halves collapsed:
+        // where a mover outvoted the un-carried remainder, **the arriving
+        // composition IS the identity** and no draw runs. The environment answers
+        // only where nothing was transported, or where deposition genuinely
+        // transforms the rock.
         //
-        // What used to happen instead: (1) was recorded and (2) was invented at
-        // expression, hundreds of millions of sim-years later, from the climate of
-        // the chunk's centre. The class is a fact about the load; the member is a
-        // fact about the day. Both are known here and neither was written down.
+        // What used to happen before either slice: the class was recorded and the
+        // member was invented at expression, hundreds of millions of sim-years
+        // later, from the climate of the chunk's centre.
         let audit = self.identity_audit;
         let species_at = |i: usize, tag: DepTag, prov: &mut u8| {
             let carried = if sorted {
