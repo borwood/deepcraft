@@ -4125,6 +4125,13 @@ deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
    map first (land filter + a Single-span two-member-class station + now a
    member-diversity station).
 
+### Owed, small
+`session-workflow/SKILL.md` crossed its ARGUMENT threshold (1,163/1,000) with the
+2026-08-02 fingerprint folds — it is measured pure-accretion (deletes ~2 % of what it
+adds); a **liveness extraction** (the dated "proven practice" strata whose lessons are
+already absorbed into the template sections) is owed when next touched, per the hook.
+Same family: ROADMAP itself (1.8×), `material-behavior.md`, `flux.rs`, `erosion.rs`.
+
 ### This session's numbered artifacts
 Corrections **#74–76, #84–86** (all targets stamped) · journals **0134, 0135** · stubs
 **#31 narrowed, #32–34 added** · P11 audit (6 rulings) · P2 derivation (craton ruling in

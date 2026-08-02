@@ -108,6 +108,13 @@ You wear all four, switching freely:
   main-session model) by deliberate, stated choice.
   Design conversation, integration judgment, and walk interpretation stay
   in the main session regardless.
+- **An agent's reported token count is DISPATCH INPUT** (user-directed 2026-08-02): past
+  ~400–500k tokens an agent is in the degraded range — prefer **harvest + merge + fresh
+  agent** over extending it into new work; the merge cycle is cheaper than a tired worker
+  on work that matters. **And agent-lifecycle calls (continue vs fresh, kill vs wait)
+  are surfaced to the user, not made silently** — their attention allocates the machine,
+  not only the decisions. *Earned the hard way: a ~650k-token builder was extended
+  straight into the next slice to dodge one merge cycle; the user caught it.*
 - Agents sometimes stop while waiting on background builds and their
   completion notification can be lost — if a "waiting" agent goes quiet,
   check for live compiler processes; if none, verify the gates yourself and
@@ -210,6 +217,13 @@ You wear all four, switching freely:
   answers are the integrator's to settle or to sequence as work. Sort the
   agent's list into user-owned / rides-as-built / needs-measurement before
   it reaches the user, and say which is which.
+  - **AND GREP FOR THE PRIOR RULING BEFORE RELAYING ANY ITEM AS OPEN** (added
+    2026-08-02, corrections #84 — the second instance of #81's shape in three days).
+    An agent's NEEDS-RATIFICATION list is a **hypothesis about what is open**, made by
+    a worker who has not read the whole corpus. The sweep-before-a-design-pass rule
+    applies at the RELAY point too: before presenting a choice, search for the ruling
+    that collapses it. Both instances were caught by the user's memory of their own
+    prior decisions — the corpus's job, done by a human, twice.
 
 - **Keep `docs/design/things-that-will-happen.md` fed** (added 2026-07-20,
   user's instruction). A one-pager of concrete one-line examples of what
@@ -1052,7 +1066,15 @@ is free, and it pins it"*) was **half wrong** in the hardest way to catch.
 
 **2. RESERVE every numbered artifact at dispatch — and record the reservation.**
 Not just journals: `stubs.md`, `corrections.md`, spike ids — **any append-only numbered
-inventory** has the concurrent-collision hazard. Two agents both filed a **stub #19** this
+inventory** has the concurrent-collision hazard.
+**When a parallel USER session may be live, reservation is impossible — go SLUG-ONLY by
+default** (added 2026-08-02, proven that day: `journal/pending-p11-slice1-<slug>.md` and a
+`### PENDING`-headed stub both landed and took ordinals 0135/#34 cleanly at merge, while
+two sessions were writing to the same inventories). The integrator assigns ordinals at
+merge, checks the inventory's tail at that moment, and notes when an ordinal sits out of
+positional sequence (ordinals follow time; position may follow topic). *One sharp edge
+from the same night: a MOVED path in an explicit `git add` list ABORTS THE WHOLE ADD
+silently — verify staged-vs-modified before the closing push.* Two agents both filed a **stub #19** this
 session. And a *reserved-but-unlanded* number looks identical to a *lost* one: journal **0105**
 was absent at wrap because its agent was still running. **Say so in the close block** — a gap
 nobody explained reads as a mistake. Merge checklist gains one line: **grep for duplicate
