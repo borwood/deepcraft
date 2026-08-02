@@ -2641,6 +2641,28 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🟠 THE BUILD-SLOT MUTEX IS DEAD AS A MECHANISM — both failure directions in one evening,
+  from two sessions that both know the doctrine (2026-08-01, bodies session + geology
+  session, both testimonies in hand).** The bodies session's full test gate (this
+  machine's single build slot, lock written first) died externally at **58/90 suites,
+  802 passed, 0 failed, exit −1 mid-suite** — two foreign cargo processes were alive when
+  the corpse was found. The geology session's own account, volunteered unprompted: it
+  *waited* ~90 min for the foreign gate and did not touch it, **but** its cleanup was
+  `Get-Process cargo,rustc | Stop-Process -Force` plus an **unconditional `Remove-Item`
+  of `.agent-build.lock`** — *"ownership-blind by construction… I deleted a mutex without
+  reading it back, which is the exact failure CLAUDE.md names. No harm done, wrong shape,
+  my error."* **Mechanism of the gate kill: uncertain** between shared-`CARGO_TARGET_DIR`
+  artifact collision from a concurrent build and something else; commit `f96f12c`'s
+  message attributes it to the concurrent cargo and this entry is the banner on that
+  attribution (both accounts preserved here; the substance — externally terminated, not a
+  test failure — is not in doubt). **The observation:** an advisory lock file has now been
+  ignored-or-unseen during a live gate AND deleted unread, by competent sessions, in one
+  night. *"Do not answer 'the gate cannot see X' with a rule asking people to remember X"*
+  applies verbatim. **Heir, if the user wants it: a PreToolUse hook on cargo invocations**
+  that refuses while a fresh foreign lock exists or foreign cargo/rustc PIDs are alive —
+  the mutex becomes a mechanism instead of a memo. Not built; the user's call (it gates
+  both sessions' tooling).
+
 - **🟠 `quantize_time` FLOORS ON AN ABSOLUTE GRID THEN WRAPS, SO A LOOPING CLIP'S FRAMES ARE
   ANCHORED TO t=0 RATHER THAN TO THE LOOP** (`dc-client/src/body.rs`; found 2026-08-01 while
   reviewing the quantizer removal's one flagged judgement call). `let stepped =
