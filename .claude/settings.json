@@ -1,5 +1,18 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR:-.}/scripts/cargo_mutex_hook.py\"",
+            "timeout": 15,
+            "statusMessage": "Checking the cargo build slot"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

@@ -2658,10 +2658,12 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   test failure — is not in doubt). **The observation:** an advisory lock file has now been
   ignored-or-unseen during a live gate AND deleted unread, by competent sessions, in one
   night. *"Do not answer 'the gate cannot see X' with a rule asking people to remember X"*
-  applies verbatim. **Heir, if the user wants it: a PreToolUse hook on cargo invocations**
-  that refuses while a fresh foreign lock exists or foreign cargo/rustc PIDs are alive —
-  the mutex becomes a mechanism instead of a memo. Not built; the user's call (it gates
-  both sessions' tooling).
+  applies verbatim. **✅ HEIR BUILT 2026-08-02 (user greenlit):**
+  `scripts/cargo_mutex_hook.py`, PreToolUse on Bash|PowerShell — denies cargo while build
+  processes are alive (own session included) or a foreign claim is <3 min old; stamps the
+  lock itself on allow; **sessions no longer touch the lock by hand** (CLAUDE.md § Build
+  rules updated same commit). Deny and allow paths both proven live in-session, including
+  a real denial of this session's own cargo call against a planted foreign claim.
 
 - **🟠 `quantize_time` FLOORS ON AN ABSOLUTE GRID THEN WRAPS, SO A LOOPING CLIP'S FRAMES ARE
   ANCHORED TO t=0 RATHER THAN TO THE LOOP** (`dc-client/src/body.rs`; found 2026-08-01 while
