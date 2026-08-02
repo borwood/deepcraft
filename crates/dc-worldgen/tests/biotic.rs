@@ -6,9 +6,10 @@
 //!
 //! Measured numbers live in docs/spikes/S10-results.md; these are the falsifiers.
 
+use dc_core::materials::geology::{GeologySet, vanilla};
 use dc_worldgen::deeptime::{
     self, Aridity, Biofacies, BurialColumn, COAL_MIN_M, DeepConfig, DeepGrid, DeepStrata, DepEnv,
-    DepTag, EnergyBand, Eolian,
+    DepTag, DepositCtx, EnergyBand, Eolian, MemberCtx,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -238,6 +239,21 @@ fn biology_changes_the_landscape_it_grows_on() {
 /// temperature at a unit's mid-depth is numerically its burial depth in metres,
 /// so an onset in "metres" behaves exactly as the retired identity did. This
 /// keeps the axis falsifiers below reading as pure burial-depth tests.
+/// The vanilla content set these coal falsifiers pick members from. Coal ships
+/// **one** member, so which member `promote_coal` lands on is not what is under
+/// test here — that it *re-picks under the burial context at all* is (P11 slice
+/// 1); the axis assertions below are about `Biofacies`, unchanged.
+fn member_ctx(set: &GeologySet) -> DepositCtx<'_> {
+    MemberCtx::new(set, SEED, 0).at(
+        0,
+        dc_core::materials::geology::FormationContext {
+            temp_c: 0.0,
+            precip: 0.5,
+            depth_m: 0.0,
+        },
+    )
+}
+
 fn degenerate_column() -> BurialColumn {
     BurialColumn {
         index: 0,
@@ -280,7 +296,7 @@ fn coal_promotion_reads_burial_depth_not_seam_thickness() {
     let before = s.total_m();
 
     let col = degenerate_column();
-    s.promote_coal(col, 8.0);
+    s.promote_coal(col, 8.0, &member_ctx(&vanilla()));
 
     let biota: Vec<Biofacies> = s.units.iter().map(|u| u.tag.biota).collect();
     assert_eq!(
@@ -313,11 +329,11 @@ fn the_living_surface_is_never_coal_whatever_the_threshold() {
     let mut s = DeepStrata::default();
     s.deposit(organic_tag(Biofacies::Peat), 40.0, 0);
     let col = degenerate_column();
-    s.promote_coal(col, 0.0);
+    s.promote_coal(col, 0.0, &member_ctx(&vanilla()));
     assert_eq!(s.units[0].tag.biota, Biofacies::Peat);
 
     // And with something above it, the same peat IS coal at zero threshold.
     s.deposit(organic_tag(Biofacies::Mineral), 0.1, 0);
-    s.promote_coal(col, 0.0);
+    s.promote_coal(col, 0.0, &member_ctx(&vanilla()));
     assert_eq!(s.units[0].tag.biota, Biofacies::Coal);
 }

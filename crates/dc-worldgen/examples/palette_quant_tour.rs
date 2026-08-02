@@ -136,7 +136,7 @@ fn dominant_sedimentary(strata: &DeepStrata) -> Option<&'static str> {
             continue;
         }
         acc += take;
-        let c = deep_class_of_species(u.species);
+        let c = deep_class_of_species(Litho::of_material(u.species));
         match by_class.iter_mut().find(|(k, _)| *k == c) {
             Some((_, m)) => *m += take,
             None => by_class.push((c, take)),

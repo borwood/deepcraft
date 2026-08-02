@@ -1068,7 +1068,7 @@ mod tests {
             thickness_m: 5.0,
             unconformity: false,
             chapter: 2,
-            species: Litho::ClasticCoarse,
+            species: dc_core::materials::MaterialId::SANDSTONE,
         }]
     }
 

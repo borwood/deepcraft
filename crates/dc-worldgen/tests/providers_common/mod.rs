@@ -487,7 +487,7 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
             h.f64(u.thickness_m);
             h.byte(u8::from(u.unconformity));
             h.byte(u.chapter);
-            h.byte(species_code(u.species));
+            h.byte(species_code(Litho::of_material(u.species)));
         }
     }
     h.0

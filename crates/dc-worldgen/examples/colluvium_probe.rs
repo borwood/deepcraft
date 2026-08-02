@@ -137,9 +137,9 @@ fn measure(cells: &CellGrid, material_creep: bool) -> Colluvium {
             out.units += 1;
             out.total_m += u.thickness_m;
             out.total_by_decile[dec] += u.thickness_m;
-            out.mass_by_species[u.species.index()] += u.thickness_m;
-            present[u.species.index()] = true;
-            if u.species != litho_of_tag(u.tag) {
+            out.mass_by_species[Litho::of_material(u.species).index()] += u.thickness_m;
+            present[Litho::of_material(u.species).index()] = true;
+            if Litho::of_material(u.species) != litho_of_tag(u.tag) {
                 out.travelled_m += u.thickness_m;
                 out.travelled_by_decile[dec] += u.thickness_m;
             }

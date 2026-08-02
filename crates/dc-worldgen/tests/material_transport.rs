@@ -323,7 +323,7 @@ fn a_recorded_unit_can_be_made_of_something_its_environment_would_not_imply() {
         f.strata
             .iter()
             .flat_map(|s| s.units.iter())
-            .filter(|u| u.species != litho_of_tag(u.tag))
+            .filter(|u| Litho::of_material(u.species) != litho_of_tag(u.tag))
             .count()
     };
     assert_eq!(
@@ -353,7 +353,7 @@ fn no_recorded_unit_claims_to_be_basement() {
         .strata
         .iter()
         .flat_map(|s| s.units.iter())
-        .filter(|u| u.species == Litho::Basement)
+        .filter(|u| Litho::of_material(u.species) == Litho::Basement)
         .count();
     assert_eq!(
         basement_units, 0,

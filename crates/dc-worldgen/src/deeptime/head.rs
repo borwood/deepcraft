@@ -119,6 +119,8 @@
 //!   live record at its own cadence, so compaction lands without staling a cache.
 
 use super::grid::DeepGrid;
+use dc_core::materials::MaterialId;
+
 use super::lithology::Litho;
 use super::recorder::DeepStrata;
 
@@ -207,12 +209,18 @@ pub const PONDED_MIN_M: f64 = 0.01;
 /// renegotiate. Heir: continuation (d), fluid identity.
 pub const FLUID_DENSITY_REL: f64 = 1.0;
 
-/// The **relative permeability** of a deep-tier lithology, read off its reference
-/// material's property sheet. Derived, never a second table (S-2): the same sheet
+/// The **relative permeability of a rock**, read off its property sheet.
+/// Derived, never a second table (S-2): the same sheet
 /// [`super::lithology::resistance_of_material`] reads for erodibility.
+///
+/// It took a `Litho` and looked up that class's *reference* material until P11
+/// slice 1. It now takes the `MaterialId` the record names, so a mudstone aquitard
+/// and a siltstone one stop being the same rock to the head field — a widening
+/// that cost nothing, because this was already property-sheet derived rather than
+/// class-keyed (the design audit's § 1.1a).
 #[inline]
-pub fn permeability_of(litho: Litho) -> f64 {
-    f64::from(litho.reference_material().props().permeability)
+pub fn permeability_of(m: MaterialId) -> f64 {
+    f64::from(m.props().permeability)
 }
 
 /// **The hydraulic character of one column**, derived from the strata record.
@@ -242,7 +250,7 @@ impl ColumnHydro {
     /// The bedrock-only column — an empty record. Unconfined by construction:
     /// there is nothing above the basement to seal it.
     pub fn bare_basement() -> Self {
-        let k = permeability_of(Litho::Basement);
+        let k = permeability_of(Litho::Basement.reference_material());
         Self {
             transmissivity: k * BASEMENT_AQUIFER_M,
             k_vertical: k,
@@ -270,7 +278,7 @@ pub fn column_hydro(strata: &DeepStrata) -> ColumnHydro {
     if strata.units.is_empty() {
         return ColumnHydro::bare_basement();
     }
-    let basement_k = permeability_of(Litho::Basement);
+    let basement_k = permeability_of(Litho::Basement.reference_material());
     let mut transmissivity = basement_k * BASEMENT_AQUIFER_M;
     let mut thickness = 0.0f64;
     // Series resistance Σ(t / k) — the harmonic-mean denominator.
@@ -561,8 +569,8 @@ mod tests {
     /// landform-specific code anywhere.
     #[test]
     fn the_reference_lithologies_straddle_the_aquifer_and_aquitard_thresholds() {
-        let fine = permeability_of(Litho::ClasticFine);
-        let coarse = permeability_of(Litho::ClasticCoarse);
+        let fine = permeability_of(Litho::ClasticFine.reference_material());
+        let coarse = permeability_of(Litho::ClasticCoarse.reference_material());
         assert!(
             fine <= AQUITARD_K_MAX,
             "fine clastic k={fine} must confine (<= {AQUITARD_K_MAX})"
@@ -571,7 +579,7 @@ mod tests {
             coarse >= AQUIFER_K_MIN,
             "coarse clastic k={coarse} must conduct (>= {AQUIFER_K_MIN})"
         );
-        assert!(permeability_of(Litho::Basement) <= AQUITARD_K_MAX);
+        assert!(permeability_of(Litho::Basement.reference_material()) <= AQUITARD_K_MAX);
     }
 
     /// Confinement is a *derivation over the record*: mud over sand confines, sand
@@ -595,7 +603,7 @@ mod tests {
         // Series flow: the vertical conductivity of the confined column is dragged
         // toward the aquitard, not the aquifer.
         assert!(
-            confined.k_vertical < permeability_of(Litho::ClasticCoarse),
+            confined.k_vertical < permeability_of(Litho::ClasticCoarse.reference_material()),
             "the aquitard must govern the series path"
         );
         assert!(ColumnHydro::bare_basement().k_vertical > 0.0);

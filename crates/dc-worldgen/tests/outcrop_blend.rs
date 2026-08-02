@@ -28,7 +28,7 @@ fn unit(tag: DepTag, thickness_m: f64) -> DepUnit {
         // The tag-derived species — what a unit carries whenever nothing
         // transported it (material-aware transport off, and every non-fluvial
         // depositor). These suites are about the *window walk*, not the load.
-        species: litho_of_tag(tag),
+        species: litho_of_tag(tag).reference_material(),
     }
 }
 
