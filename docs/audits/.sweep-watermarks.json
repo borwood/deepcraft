@@ -5,7 +5,7 @@
     "spine-audit": "any edit to docs/spines.md — every prior verdict was made against a different rule",
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
-  "staleness": "72fbe86",
+  "staleness": "d8407e1",
   "spine-audit": "72fbe86",
   "doc-topology": "72fbe86",
   "_baseline": {
@@ -14,6 +14,15 @@
     "coverage": "100% of the 62,264-line corpus — 9 parallel opus readers, ~3,900 lines of audit in docs/audits/baseline-2026-07-28/",
     "note": "First full-corpus baseline. Before it, doc-topology had covered ~9% in one run and spine-audit had left no artifacts at all. The staleness watermark is set because S5+S6 read all of ROADMAP Sequenced and Observed against newer work; doc-topology is set because S1-S4+S7-S9 covered the rest. spine-audit stayed null ON PURPOSE — this baseline was docs-vs-docs and never checked spines.md against the CODE, which is the one question spine-audit answers. RESOLVED 2026-07-29: spine-audit ran its own full pass at 96ab14b (docs/spines.md header) and set its watermark; the null is no longer outstanding. SUPERSEDED THE SAME DAY: a second FULL pass ran at 72fbe86 because spines.md itself changed in ten commits (the _full_run_triggers rule for this key), and it left the corpus's first spine-audit ARTIFACT — docs/audits/2026-07-29-spine-audit-full.md. The 'left no artifacts at all' clause above is now a statement about everything before that file.",
     "findings": "~80 pairs. Applied at baseline: the integrator's own same-day stalenesses + the ARCHITECTURE.md ON-HOLD banner. The remainder is filed as a ROADMAP entry, ranked, with the audits as the record."
+  },
+  "_staleness_last_run": {
+    "commit": "d8407e1",
+    "date": "2026-08-02",
+    "mode": "FULL (128 commits since 72fbe86; a recalibration landed in the window)",
+    "audit": "docs/audits/2026-08-02-roadmap-staleness-sweep.md",
+    "recalibration_verdict": "calibrated_rates STILL OFF BY DEFAULT (field.rs:374); the P2 work that landed (ee9fb94) is DOCS-ONLY and moved no constant (EROSION_CALIBRATION untouched since cdd1036). Voids nothing — corrections #68's receipt holds a third time. BUT P11 slice 1 IS default-on and moved terrain via record segmentation (corrections #86), so the APPEARANCE-observation cohort is two changes behind the world; rate/magnitude claims are untouched.",
+    "coverage": "ROADMAP.md live sections (In flight / Sequenced / Observed / current close block) + dependency-graph.md, against the delta's blast radius. NOT covered: ROADMAP-history.md, the three superseded close blocks, corrections #1-73. See the audit's section 3.",
+    "findings": "8 (F1-F8) + 5 CANNOT-DETERMINE. F1 is the headline: the parallel-session ordinal collision was diagnosed and fixed for journal 0135 (3cab931) and left unrepaired in TWO other numbering spaces - corrections.md carries duplicate #85 AND #86, stubs.md carries duplicate #34 (the older one holding all 13 inbound references). NOT APPLIED - the integrator adjudicates."
   },
   "_doc_topology_last_run": {
     "commit": "72fbe86",
