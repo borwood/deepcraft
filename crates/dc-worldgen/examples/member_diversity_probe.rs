@@ -51,7 +51,7 @@ use std::time::Instant;
 use dc_core::materials::geology::{GeologySet, vanilla};
 use dc_core::materials::{MATERIAL_COUNT, MaterialId};
 use dc_worldgen::deeptime::lithology::Litho;
-use dc_worldgen::deeptime::{DeepField, build_field, production_config, run_cells};
+use dc_worldgen::deeptime::{DeepField, build_field};
 use dc_worldgen::geology::deep_class_of_species;
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -157,10 +157,7 @@ fn measure(cells: &CellGrid) -> Diversity {
 fn main() {
     let extent = Extent::Medium;
     let t = Instant::now();
-    let pregen = Pregen::run(WorldParams {
-        seed: SEED,
-        extent,
-    });
+    let pregen = Pregen::run(WorldParams { seed: SEED, extent });
     println!("pregen: {:.2} s", t.elapsed().as_secs_f64());
     let d = measure(&pregen.grid);
 
@@ -178,8 +175,8 @@ fn main() {
     );
     println!("AFTER: the material fitness chose at deposition, recorded.\n");
     println!(
-        "{:<12} {:>10} {:>10} {:>12}  {}",
-        "class", "members", "distinct", "units", "share by recorded metres"
+        "{:<12} {:>10} {:>10} {:>12}  share by recorded metres",
+        "class", "members", "distinct", "units"
     );
     for l in Litho::ALL {
         if l == Litho::Basement {
@@ -259,6 +256,7 @@ fn main() {
 #[cfg(test)]
 mod gate {
     use super::*;
+    use dc_worldgen::deeptime::{production_config, run_cells};
 
     /// **The invariant is scale-free**: "a class with two registered members has
     /// units of both in the archive" is a statement about the *selection*

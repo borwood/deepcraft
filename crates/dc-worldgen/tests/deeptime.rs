@@ -93,6 +93,10 @@ fn mass_is_conserved_up_to_uplift() {
     let cfg = test_cfg(SEED);
     let mut grid = deeptime::build(&pregen, &cfg);
     let mut ero = Erosion::new(&grid);
+    // The deposition-identity context (P11 slice 1) — the vanilla content set,
+    // which is what these ledger/stability suites run against anyway.
+    let geology = dc_core::materials::geology::vanilla();
+    let mem = deeptime::MemberCtx::new(&geology, cfg.seed, 0);
     let before = deeptime::total_mass(&grid);
     deeptime::climate::march(&mut grid, deeptime::sea_level_at(&cfg, 0));
     let mut uplift_total = 0.0;
@@ -101,7 +105,7 @@ fn mass_is_conserved_up_to_uplift() {
         if it > 0 && it % cfg.remarch_interval == 0 {
             deeptime::climate::march(&mut grid, sl);
         }
-        uplift_total += ero.step(&mut grid, &cfg, sl);
+        uplift_total += ero.step(&mut grid, &cfg, sl, mem);
     }
     let after = deeptime::total_mass(&grid);
     let residual = after - before - uplift_total;

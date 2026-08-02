@@ -236,6 +236,10 @@ fn mass_is_conserved_with_coupling_on() {
     let cfg = cfg_on(SEED);
     let mut grid = deeptime::build(&pregen, &cfg);
     let mut ero = Erosion::new(&grid);
+    // The deposition-identity context (P11 slice 1) — the vanilla content set,
+    // which is what these ledger/stability suites run against anyway.
+    let geology = dc_core::materials::geology::vanilla();
+    let mem = deeptime::MemberCtx::new(&geology, cfg.seed, 0);
     let before = deeptime::total_mass(&grid);
     deeptime::climate::march(&mut grid, deeptime::sea_level_at(&cfg, 0));
     let mut uplift_total = 0.0;
@@ -244,7 +248,7 @@ fn mass_is_conserved_with_coupling_on() {
         if it > 0 && it % cfg.remarch_interval == 0 {
             deeptime::climate::march(&mut grid, sl);
         }
-        uplift_total += ero.step(&mut grid, &cfg, sl);
+        uplift_total += ero.step(&mut grid, &cfg, sl, mem);
     }
     let residual = deeptime::total_mass(&grid) - before - uplift_total;
     assert!(residual.abs() < 1.0, "mass leaked: residual {residual}");
@@ -283,6 +287,10 @@ fn the_differential_erosion_feedback_neither_runs_away_nor_stalls() {
     };
     let mut grid = deeptime::build(&pregen, &cfg);
     let mut ero = Erosion::new(&grid);
+    // The deposition-identity context (P11 slice 1) — the vanilla content set,
+    // which is what these ledger/stability suites run against anyway.
+    let geology = dc_core::materials::geology::vanilla();
+    let mem = deeptime::MemberCtx::new(&geology, cfg.seed, 0);
     deeptime::climate::march(&mut grid, deeptime::sea_level_at(&cfg, 0));
 
     let mut prev: Vec<f64> = (0..grid.r.len()).map(|i| grid.surf_at(i)).collect();
@@ -293,7 +301,7 @@ fn the_differential_erosion_feedback_neither_runs_away_nor_stalls() {
         if it > 0 && it % cfg.remarch_interval == 0 {
             deeptime::climate::march(&mut grid, sl);
         }
-        ero.step(&mut grid, &cfg, sl);
+        ero.step(&mut grid, &cfg, sl, mem);
         let mut worst = 0.0f64;
         let mut moving = 0usize;
         for (i, p) in prev.iter_mut().enumerate() {

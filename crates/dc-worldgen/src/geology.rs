@@ -758,11 +758,6 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
             chapter: u.chapter,
             present_temp_c: ctx.temp_c,
         });
-        let form = FormationContext {
-            temp_c,
-            precip,
-            depth_m,
-        };
         let tag = k as u64;
         // **The identity is READ, not re-derived** (P11 slice 1). Until
         // 2026-08-01 this line ran `select(deep_class_of_species(u.species), …)`

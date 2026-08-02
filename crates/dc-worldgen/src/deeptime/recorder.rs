@@ -452,7 +452,10 @@ pub struct DepUnit {
 /// arithmetic in a doc comment; these are the facts.
 const _: () = {
     assert!(size_of::<DepUnit>() == 16, "DepUnit must stay 16 bytes");
-    assert!(size_of::<MaterialId>() == 1, "the identity byte stays a byte");
+    assert!(
+        size_of::<MaterialId>() == 1,
+        "the identity byte stays a byte"
+    );
     // Zero padding: the fields' own widths already account for every byte, so
     // there is no slack a wider field could grow into.
     assert!(
@@ -769,12 +772,8 @@ impl DeepStrata {
                         precip: ctx.form.precip,
                         depth_m,
                     };
-                    u.species = ctx.material_in(
-                        litho_of_tag(u.tag),
-                        &form,
-                        dep_tags::DIAGENESIS,
-                        k as u64,
-                    );
+                    u.species =
+                        ctx.material_in(litho_of_tag(u.tag), &form, dep_tags::DIAGENESIS, k as u64);
                 }
             }
             overburden_m += u.thickness_m;

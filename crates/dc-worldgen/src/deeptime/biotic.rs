@@ -72,8 +72,8 @@ use crate::draws::{BioticFire, BioticFlood};
 use super::erosion::Erosion;
 use super::geotherm::{self, BurialColumn};
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
-use super::providers::{ParentCell, Providers, WaterPass, wet_at};
 use super::lithology;
+use super::providers::{ParentCell, Providers, WaterPass, wet_at};
 use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand, MemberCtx, dep_tags};
 
 // **The biotic layer's two salts are gone from this file** (2026-07-26,

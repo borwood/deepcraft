@@ -65,7 +65,7 @@
 use dc_core::coarse::DitherSource;
 use dc_core::materials::geology::{CLASS_IGNEOUS_EXTRUSIVE, CLASS_IGNEOUS_INTRUSIVE};
 use dc_sim::statistical::rng::Draws;
-use dc_worldgen::deeptime::{DeepField, DeepStrata};
+use dc_worldgen::deeptime::{DeepField, DeepStrata, Litho};
 use dc_worldgen::draws::{Coherent, Octaves};
 use dc_worldgen::geology::{StrataEvent, deep_class_of_species, dithered_member_with};
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, Provenance, WorldParams};

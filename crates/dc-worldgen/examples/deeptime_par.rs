@@ -13,7 +13,7 @@
 
 use std::time::Instant;
 
-use dc_worldgen::deeptime::{self, DeepConfig, DeepGrid, Erosion};
+use dc_worldgen::deeptime::{self, DeepConfig, DeepGrid, Erosion, MemberCtx};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
@@ -75,6 +75,7 @@ fn profile(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> Profile {
     let mut ero = Erosion::new(&grid);
     ero.set_parallel(parallel);
     deeptime::climate::march(&mut grid, deeptime::sea_level_at(cfg, 0));
+    let geology = dc_core::materials::geology::vanilla();
     let mut ms = [0.0f64; 9];
     let t_all = Instant::now();
     for it in 0..cfg.iterations {
@@ -83,6 +84,8 @@ fn profile(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> Profile {
             deeptime::climate::march(&mut grid, sl);
         }
         ero.set_sea_level(sl);
+        // Deposition-identity context (P11 slice 1): the vanilla set, this epoch.
+        let mem = MemberCtx::new(&geology, cfg.seed, u64::from(it));
         macro_rules! timed {
             ($k:expr, $call:expr) => {{
                 let t = Instant::now();
@@ -101,7 +104,7 @@ fn profile(pregen: &Pregen, cfg: &DeepConfig, parallel: bool) -> Profile {
         timed!(6, ero.weather(&mut grid, cfg));
         timed!(7, ero.diffuse(&mut grid, cfg, 1.0));
         if cfg.record {
-            timed!(8, ero.record(&mut grid));
+            timed!(8, ero.record(&mut grid, mem));
         }
     }
     let ms_total = t_all.elapsed().as_secs_f64() * 1000.0;

@@ -619,12 +619,7 @@ pub fn build_field_cfg_cadence(
     cfg: &DeepConfig,
     cadence: &super::cadence::CadenceTable,
 ) -> DeepField {
-    build_field_cfg_cadence_geology(
-        cells,
-        cfg,
-        cadence,
-        &dc_core::materials::geology::vanilla(),
-    )
+    build_field_cfg_cadence_geology(cells, cfg, cadence, &dc_core::materials::geology::vanilla())
 }
 
 /// [`build_field_cfg_cadence`] over an **explicit geology content set** — the

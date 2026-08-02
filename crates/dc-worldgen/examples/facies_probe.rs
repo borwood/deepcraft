@@ -192,8 +192,7 @@ fn measure(cells: &CellGrid, material_transport: bool) -> Facies {
             let clastic = matches!(
                 Litho::of_material(u.species),
                 Litho::ClasticFine | Litho::ClasticCoarse
-            )
-                && !u.tag.biota.is_organic();
+            ) && !u.tag.biota.is_organic();
             if !clastic {
                 continue;
             }

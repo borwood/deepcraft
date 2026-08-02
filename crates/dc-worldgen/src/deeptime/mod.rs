@@ -54,8 +54,7 @@ pub use erosion::{
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, EROSION_CALIBRATION,
     build_field, build_field_cfg, build_field_cfg_cadence, build_field_cfg_cadence_geology,
-    build_field_with, production_config,
-    production_config_with, scale_erosion_rates,
+    build_field_with, production_config, production_config_with, scale_erosion_rates,
 };
 pub use flux::{
     FACE_SLOTS, FaceKey, FlowCause, FlowForm, FluidId, FluxAccum, FluxCensus, FluxEntry,

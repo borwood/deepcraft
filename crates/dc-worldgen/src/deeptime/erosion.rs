@@ -76,8 +76,8 @@ use super::providers::WaveCell;
 use super::recorder::{
     Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, Eolian, MemberCtx, dep_tags,
 };
-use dc_core::materials::MaterialId;
 use super::weather_behavior;
+use dc_core::materials::MaterialId;
 
 /// Strictly-descending fill increment (metres) — as in pregen hydrology.
 const EPS: f64 = 0.001;
@@ -1970,7 +1970,20 @@ impl Erosion {
 
     /// One deep-time iteration at the given `sea_level` stand. Returns the
     /// total uplift added this step (for the mass-conservation ledger).
-    pub fn step(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, sea_level: f64) -> f64 {
+    ///
+    /// `mem` is the deposition-identity context (P11 slice 1) — the registered
+    /// content plus this epoch's addressed member-fitness stream. It is consulted
+    /// only by the phases that write an identity (`record`, `wind`, `wave`), so a
+    /// caller running with `cfg.record` off never reaches it; it is still a
+    /// parameter rather than a default because *which members exist* is a world
+    /// input and must not be assumed by a solver.
+    pub fn step(
+        &mut self,
+        grid: &mut DeepGrid,
+        cfg: &DeepConfig,
+        sea_level: f64,
+        mem: MemberCtx<'_>,
+    ) -> f64 {
         self.sea_level = sea_level;
         // Phase 1: the external forcing. Legacy path adds a constant uplift plane
         // to bedrock; tectonic-history path adds the analytic thickening rate to
@@ -2009,7 +2022,7 @@ impl Erosion {
             legacy_uplift
         };
         if cfg.record {
-            self.record(grid);
+            self.record(grid, mem);
         }
         // The wind and wave agents run **after** the recorder and self-record
         // (like the biotic layer), so their own facies reach the record rather
@@ -2017,8 +2030,8 @@ impl Erosion {
         // mass — wind moves loose `H`, wave moves `R`/`H` offshore — so the mass
         // ledger `Δ(ΣR+ΣH) == uplift + biotic` is untouched (journal/0034).
         if cfg.full_agents {
-            self.wind(grid, cfg);
-            self.wave(grid, cfg);
+            self.wind(grid, cfg, mem);
+            self.wave(grid, cfg, mem);
         }
         ledger
     }
@@ -3817,7 +3830,10 @@ impl Erosion {
                 let m = mem.surface(
                     j,
                     // `j`'s own row: the bed is laid where the sediment lands.
-                    f64::from(climate::air_temp_c(grid.lat_deg(j / w), grid.r[j] + grid.h[j])),
+                    f64::from(climate::air_temp_c(
+                        grid.lat_deg(j / w),
+                        grid.r[j] + grid.h[j],
+                    )),
                     f64::from(grid.precip[j]),
                     lithology::litho_of_tag(tag),
                     dep_tags::WAVE,
