@@ -4256,8 +4256,10 @@ below) · bodies.md released to the bodies session (doc-topology F11 stamped).
    Grep-confirm U6's collapse under U1/C4 before relaying anything as open.
 
 ### This session's numbered artifacts
-Journals **0136** (renumbered), **0138, 0139, 0141, 0143** · corrections **#88–92**
-(#88/#89 renumbered from colliding #85/#86; targets stamped) · stubs **#35** (renumbered),
+Journals **0136** (renumbered), **0138, 0139, 0141, 0143** · corrections **#88–91, #95**
+(#88/#89 renumbered from colliding #85/#86; #95 renumbered TWICE at commit time — the
+ordinal guard's first live catches, same day it shipped: it rejected #92, then #93, both
+already held by the bodies wrap, which took #92–#94; targets stamped) · stubs **#35** (renumbered),
 **#36–38**, #25/#31 narrowed · three FULL sweep audits + the tour audit
 (`docs/audits/2026-08-02-*`) · U1/U5 recorded in `materials.md` + the P10 header ·
 `things-that-will-happen.md` fed (the provenance flat).
