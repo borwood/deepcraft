@@ -941,6 +941,12 @@ inspector, an ore model that cares whether a gravel is alluvial or colluvial, th
 structure-aware fine expression's choice of fabric. Nothing expresses it at runtime
 today. *Loud marker at `DepUnit::species` and at `arriving_species`.*
 
+- **NARROWED 2026-08-02 (P11 slice 2):** the arriving-identity argmax is now over
+  **materials** (`erosion/record.rs::arriving_material`), and the arithmetic
+  survives the re-grade unchanged — 26 materials need 5 bits, leaving 3 for a
+  mover, still exactly one byte. U5's ruled packed-`DepUnit` (slice 3) is the
+  vehicle: this stub's mover bits are the "agent axis" it funds.
+
 ### 26. a-channelisation-threshold-fitted-to-one-world — *added 2026-07-26 (FLOW continuation (b'), hybrid `p`, journal/0113)*
 `DeepConfig::mfd_chi_lo = ~~1e-4~~ **3.0e-2**` / `mfd_chi_hi = ~~1e-2~~ **1.2e-1**`
 *(opening line corrected 2026-07-29, record-terms priors audit: this entry carried
@@ -1520,3 +1526,39 @@ one is the cheaper half.
 **The honest failure mode.** 
 It is an `assert!` with a message that names the fix, not a silent truncation — a
 world that would need a 65th deep species refuses to build rather than losing a rock.
+
+- **LIVE as of 2026-08-02 (P11 slice 2 conversion):** the one-word mask is now what
+  `SpeciesLayout` addresses in production; the 64 ceiling still sits behind the
+  registry's stricter 51 (stubs #21). The entry guards a shipped structure now,
+  not a prospective one.
+
+### 37. the-degenerate-no-content-door-is-a-two-armed-rate-path — *added 2026-08-02 (P11 slice 2 conversion, journal/0141); ordinal assigned at merge*
+
+**The stand-in.** `SusTable::{Class, Member}` (`erosion/weathering.rs`) and
+`Providers::outcrop_at`'s empty-axis branch answer the same question two ways,
+selected by whether a content set was supplied. Legitimate (the S-5 identity
+default; the member arm is a strict generalisation — every material that *is* its
+class's reference member blends to the same number bit for bit), but a stand-in
+with a named heir.
+
+- **Blast radius if it hardens:** every rate consumer (`expose`, `periglacial`,
+  `wind`, `wave`) carries a branch a reader must resolve before they can say what
+  the world's erosion rate *is*.
+- **Heir:** P11 slice 4 — `Litho` dissolves, the class arm dies, `SpeciesAxis`
+  becomes mandatory and the door closes.
+- **Today's identity:** the class arm is byte-identical to the pre-slice-2 rate
+  path, so a no-content harness reproduces exactly what it used to.
+
+### 38. refine-runs-a-different-tier-configuration-from-production — *added 2026-08-02 (P11 slice 2 conversion, journal/0141); ordinal assigned at merge*
+
+**The stand-in.** `measure_decay` (`deeptime/refine.rs`) sets the species axis and
+mirrors `material_transport`, so the decay experiment's rates are member-grade
+like production's — but it does **not** mirror `material_creep`, and its `record`
+is off, so the composition the rates blend is the one the record would have held
+had it been recording. Honest for a relaxation-decay measurement (perturb bedrock,
+measure surface penetration); not the solve production runs.
+
+- **Blast radius:** a future halo-sizing decision read off `S*-results` would be
+  read off a solve whose record is empty.
+- **Heir:** whoever re-runs the decay experiment for a real refinement slice
+  (architecture C).

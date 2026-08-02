@@ -31,8 +31,13 @@ fn pregen_time_vs_extent() {
             p.grid.w,
             p.approx_resident_bytes(),
         );
-        // Sanity: the pause must stay a ritual, not a wait.
-        assert!(ms < 60_000.0, "{extent:?} pregen took {ms} ms");
+        // Sanity: the pause must stay a ritual, not a wait. Budget renegotiated
+        // 2026-08-02 at P11 slice 2b's merge (user, verbatim: "I don't care
+        // whatsoever about this number as long as it doesn't take 20min") —
+        // the prior 60 s bound (S13) sat at ~95 % spent under gate contention
+        // and doctrine says gen time is not a constraint; content is. Prior
+        // value, kept for audit: 60_000.0.
+        assert!(ms < 1_200_000.0, "{extent:?} pregen took {ms} ms");
     }
 }
 
