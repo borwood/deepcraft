@@ -4091,7 +4091,9 @@ second file.
 ## NEXT SESSION — written at the 2026-08-02 close (geo session FINAL; supersedes both blocks below — the bodies block remains the pickup for THAT thread)
 
 **Read first:** sweeps hook (if due) → `docs/dependency-graph.md` P11 row → this block →
-the P11 audit header's **six rulings** → journal/0134 + 0135 (with its merge postscript).
+the P11 audit header's **six rulings** → journal/0134 + 0136 (with its merge postscript;
+*renumbered from 0135 on 2026-08-02 — the parallel bodies session had already taken 0135
+for B0, and the geo wrap assigned "next free" without seeing it*).
 
 ### The paragraph that matters
 **P11 slice 1 is MERGED (`5f16dd1`, accepted as-is by user ruling): the deep record names
@@ -4133,7 +4135,8 @@ already absorbed into the template sections) is owed when next touched, per the 
 Same family: ROADMAP itself (1.8×), `material-behavior.md`, `flux.rs`, `erosion.rs`.
 
 ### This session's numbered artifacts
-Corrections **#74–76, #84–86** (all targets stamped) · journals **0134, 0135** · stubs
+Corrections **#74–76, #84–86** (all targets stamped) · journals **0134, 0136** (*slice-1
+journal renumbered 0135→0136 next session — bodies' B0 held 0135 first*) · stubs
 **#31 narrowed, #32–34 added** · P11 audit (6 rulings) · P2 derivation (craton ruling in
 header) · P10 design (U1 leaning in header) · record-terms rulings 1–2 (ruling 3 HELD →
 re-enters after slice 2).
