@@ -1155,10 +1155,23 @@ Four shipped instances found in one audit: `surface_sample`'s branch,
 placeholder, it names an heir. A leaked requirement **looks like working code
 that passes tests**.
 
+- **✅ HALF DISCHARGED 2026-08-02 (P11 slice 1, journal/0136) — and the entry below predicted this
+  exact day without ever being stamped for it.** `permeability_of` now takes a `MaterialId`
+  (`head.rs:222-224`, verified at `d8407e1`) and `column_hydro` reads `u.species` directly
+  (`head.rs:287`) — **the identity the recorder actually deposited**, not the class's reference
+  rock. Transmissivity, the harmonic-mean `k_vertical`, the aquitard cap and every artesian column
+  are therefore member-grade. **What survives is the basement fallback only:**
+  `permeability_of(Litho::Basement.reference_material())` at `head.rs:253` (the bare-basement
+  column) and `:281` (the basement aquifer term under every record), plus the tests at `:572-606`.
+  *Note which half moved and which did not: the six-rock table is still the answer for the rock
+  **below the record**, which is the same hole `outcrop_shares(&[])` routes around in A-7's worked
+  instance and the same one stub #16's genesis heir closes.* Original entry preserved, because the
+  prediction is the point:
 - **blast radius widened, not a new instance (2026-07-25, journal/0098):**
   `Litho::reference_material` — the six named rocks standing for every material in
   the world, an A-1 instance since the first audit — **gained a whole new dependent**.
-  `head.rs::permeability_of` (`head.rs:214-216`) routes the head field's entire
+  `head.rs::permeability_of` (`head.rs:214-216` *as-of 2026-07-25; `:222-224` at `d8407e1`, with a
+  `MaterialId` parameter — see the discharge above*) routes the head field's entire
   hydraulic model through it, and the head field's own docs correctly cite S-2 for
   doing so (*"Derived, never a second table … the same sheet
   `resistance_of_material` reads for erodibility"*, `head.rs:210-212`). Both readings
@@ -1167,7 +1180,10 @@ that passes tests**.
   the world now rest on a six-rock stand-in. Recorded so the day
   `reference_material` is retired, hydrology is on the list of what moves — the
   compliant choice deepened the dependency, which is the normal and easily-missed
-  price of S-2.
+  price of S-2. *(**It moved on 2026-08-01 and this line was not stamped in that commit** — the
+  sweep found it a day later. A prediction filed in the index is only worth what the retiring slice
+  does with it: read-first item 5's obligation on the writer of a correction applies to whoever
+  retires a stand-in, not only to whoever writes a `corrections.md` entry.)*
 - guarded (2026-07-25, journal/0101): *"empty"* had become the definition of
   *"unrecorded"* at the query surface — `VoxelContents::EMPTY` was the only value
   available for both, so the stand-in **was** the definition. `Identity::Unrecorded`
@@ -1451,7 +1467,9 @@ so a sweep must ask "does the cited constraint still hold?"
     this doc as of the 2026-07-29 standing rule).
 - **instance (found 2026-07-29 morning, in a file changed the day before): `Erosion::diffuse`'s
   doc comment contradicts its own journal entry, about which worlds it changes.**
-  **✅ FIXED — verified 2026-07-29 (evening) at `72fbe86`: `erosion.rs:3150-3160` now opens
+  **✅ FIXED — verified 2026-07-29 (evening) at `72fbe86`** (*the paragraph is `erosion.rs:3186` at
+  `d8407e1`, +36 by the P11/creep batch; the standing check is unmoved at
+  `tests/creep_operator.rs:119`*)**: `erosion.rs:3150-3160` now opens
   *"**The shipped configuration is NOT such a world** — and the sentence that used to end this
   paragraph said it was (anti-shape A-2, caught by the 2026-07-29 spine-audit)"***, states the
   2.1× measurement, the `n = 2`, the default-on flag and *"its goldens moved with the fix"*, names
@@ -1460,11 +1478,22 @@ so a sweep must ask "does the cited constraint still hold?"
   check** — `creep_operator.rs:119::the_shipped_world_has_cells_past_the_bound`, so the claim
   cannot silently re-expire. *That last part is the difference between a corrected comment and a
   fixed A-2: the premise now has a test, not a reader.*
-  **⚠ One residue, reported not applied:** `erosion.rs:4557-4559`, the doc comment on
-  `inside_the_bound_the_driver_is_the_raw_step`, still says *"The claim that **the shipped world
+  ~~**⚠ One residue, reported not applied:**~~ **✅ APPLIED — `f94a568` ("both sweeps applied"),
+  verified 2026-08-02 at `d8407e1`.** `erosion.rs:4661-4665` now reads *"`n = 1` **is** the old
+  operator, bit for bit — `x / 1.0 == x`, asserted rather than argued. (This once read 'the shipped
+  world is untouched'; that claim retired when `creep_substep` went default-ON with 2 sub-steps and
+  the goldens moved. The predicate this test pins is unchanged — spine-audit residue fix,
+  2026-07-29.)"* **The retired claim is kept beside the correction**, which is the shape this
+  section keeps asking for. *Original finding preserved:* `erosion.rs:4557-4559`, the doc comment on
+  `inside_the_bound_the_driver_is_the_raw_step`, said *"The claim that **the shipped world
   is untouched** rests entirely on `x / 1.0 == x`"* — the retired claim, surviving 1,400 lines
   below its own retraction, in the test that proves the *predicate* rather than the world. The
-  honest wording is *"the claim that a world inside the bound is untouched"*.
+  honest wording is *"the claim that a world inside the bound is untouched"*. **⚠ And the entry
+  above sat reading "reported not applied" for four days after it was applied** — the fourth
+  consecutive sweep to find that failure mode in this file (see the 2026-07-29 morning block's
+  finding #2 and the evening block's #3). *A sweep that writes a finding is writing a claim that
+  will be fixed; it owes the entry a shape that can be stamped, and "reported, not applied" is a
+  status, not a shape.*
   *Original finding preserved:* `erosion.rs:3132-3134` (at `96ab14b`) read: *"`n = 1`
   reproduces the previous operator **bit for bit** … so every world whose peak effective
   diffusivity already sat inside the bound is untouched — **which is the entire shipped
@@ -1486,6 +1515,36 @@ so a sweep must ask "does the cited constraint still hold?"
     signal, and `journal/0122:194-195` calls re-baselining *"the discipline that makes a moved
     golden an **authorized** move rather than a lost fixed point"* — while a reader of
     `erosion.rs` alone would conclude no golden could have moved.
+- **NEW instance (found 2026-08-02 at `d8407e1`, in code merged five hours earlier — P11 slice 1,
+  journal/0136): a guard claim that names the case its test structurally cannot reach.**
+  `Litho::of_material` is the interim class bucket the still-`Litho`-wide transport tables index by,
+  and it is *scrupulously* documented — dated demolition order, both heirs named, S-3's agreement
+  test paid in the same commit (S-3 above records it as the doctrine's full price). One sentence in
+  that doc comment is wrong: `lithology.rs:339-341` says the test *"is what fails loudly if a pack
+  adds a fine clastic the bucket has never heard of."* **It is not.**
+  `lithology_buckets_agree_with_the_registry` (`lithology.rs:932`) opens with
+  `let set = geology::vanilla();` and iterates `set.members()`; its sibling
+  `every_depositional_class_round_trips_through_the_bucket` (`lithology.rs:1013`) does the same.
+  Search: `grep -rn "of_material" --include=*.rs crates/` at `d8407e1` — **every caller and every
+  assertion is over `vanilla()`; no test hands `of_material` a non-vanilla set**, though
+  `tests/geology.rs` builds `extended` ones for other purposes. A pack's unrecognised member takes
+  the `_ => Litho::Basement` arm and is charged to the window walk's deficit **silently**, which the
+  same doc comment describes correctly two sentences later. So the *mechanism* is honest and
+  ratified; the **claim about the guard** is not.
+  - **Two anti-shapes in one sentence, which is why it is worth the entry.** It is A-2's
+    *"did it ever?"* variant (`pore_rider_share`, `draws.rs`) — false when written, and only
+    checkable by *running* the claim rather than reading it. And it is **A-3's fixture form**
+    (`production_field`, corrections #51): a guard that genuinely runs and genuinely passes, on a
+    world that is not the one the claim is about. *A helper named for an environment must BE that
+    environment; a test cited as a **pack** guard must run on a **pack**.*
+  - **Reported, not applied** (source file, and `dc-worldgen` is in flight with P11 slice 2). The
+    two honest fixes are the usual pair: **correct the sentence** to say the bucket is asserted
+    against vanilla and degrades silently for anything else, or **make the property structural** —
+    the move A-3 praises and this file keeps recommending: have the *set* answer the class
+    (`GeologySet` already declares the member→class edge that `of_material` is the hand-written
+    inverse of), at which point there is no bucket to guard. Slice 2 retires the transport-side
+    consumer and slice 4 dissolves `Litho`, so the sentence may outlive the function — which is an
+    argument for the one-line correction, not against it.
 - **not-an-instance, and the good version of the shape (2026-07-26, journal/0118).**
   Finishing journal/0105's hole 2 deleted an agreement test — `SALT_BIO_FIRE` /
   `SALT_BIO_FLOOD` had no production reader once their call sites reached `Draws::of`, so
@@ -1927,10 +1986,25 @@ because the obvious answer was a constant:
   `outcrop_shares(&[])` and the constant disappears. The day basement stops being
   uniform, the seam's heir answers and the pass does not change.
 
-The one place the roster is still named is `Litho::as_deposited` — *basement is the
-one lithology a deposit cannot be* — which lives in the lithology **adapter**, not
-in a pass, and is a statement about the record's own vocabulary rather than about
-any pack's content.
+~~The one place the roster is still named is~~ **⚠ TWO places, corrected 2026-08-02 at `d8407e1`
+— the sentence went stale the day P11 slice 1 merged, and "the one place" is the same
+completeness shape `draws.rs`'s *"there is no expression anywhere in worldgen"* was (A-2).** Both
+live in the lithology **adapter**, not in a pass, and both are statements about the record's own
+vocabulary rather than about any pack's content — which is what keeps them out of this
+anti-shape's teeth:
+
+- `Litho::as_deposited` (`lithology.rs:765`) — *basement is the
+  one lithology a deposit cannot be*.
+- `Litho::of_material` (`lithology.rs:342-352`, added 2026-08-01) — **six `MaterialId` arms plus
+  `_ => Litho::Basement`.** Structurally it is `classify::block_twin`'s shape, which this section
+  names as an instance two paragraphs up — fifteen named materials with a catch-all that swallows a
+  pack's additions. It is **not** filed as an instance for three reasons stated in its own doc
+  comment and verified here: it is an adapter rather than a process, it carries a dated demolition
+  order with both heirs sequenced (P11 slices 2 and 4), and it is the declared inverse of an edge
+  the `GeologySet` already owns, with an agreement test against it. *The distinction is real and
+  it is thin*: what makes `block_twin` a defect and this a stand-in is that this one **names the
+  authority it is a summary of**. ⚠ Its guard sentence overclaims — the agreement test runs on
+  `vanilla()` only, so it cannot see the pack case the comment says it catches (A-2, above).
 
 **Two instances retired 2026-08-01 (B0, journal/0135) — recorded here because spines
 never indexed them while they were live; the body-plan-structure design pass found both
