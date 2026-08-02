@@ -79,6 +79,14 @@ sharpen. The file earns its read-first slot or it loses it.
     findings to main session, which forwards them to the owning agent.
   - No refactors, no "while I was in there" — the apply tier is *corrections of
     false statements*, never improvements.
+  - **Frame world-byte findings by the scratch-pad doctrine** (user, 2026-08-02,
+    correcting a finding that called a salt re-roll "a ruling"): the shipped world
+    is a fixture — a fix that moves world output under *ratified semantics* is an
+    ENGINEERING item whose cost is the golden-capture window (free while a slice
+    already owns the re-capture, a separate announced capture otherwise), never a
+    byte ratification. Route it as sequencing ("fold into the slice that owns the
+    capture"), not as a user decision. What IS user-owned stays so: unratified
+    semantics, and appearance-as-a-design-axis (walk-gated).
 - **Do not run cargo.** This is a reading task, and the build slot belongs to
   implementers. `git log`/`git show`/`git grep` are fine.
 - **Cite `file:line` for every claim**, and distinguish what the code does from

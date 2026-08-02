@@ -21,8 +21,11 @@ rotation-quantizer subtraction (0133) and the P2/P10/P11 design passes. **Findin
    guarantee (*"two domains are statistically independent **by construction**, not by the care of
    whoever wrote the call site"*, `rng.rs`) is for this pair **asserted rather than enforced**, and
    `draws.rs`'s own retired-range note says **"never fill a hole."** `0x5900_0002` was not a hole:
-   it was occupied. **Reported, not applied** — the domain's salt is baked into every world
-   generated from it, so renumbering is a ruling, not a sweep edit. It is cheap *now* (the domain is
+   it was occupied. **Reported, not applied** — a source-file change, outside a sweep's write-set.
+   ~~renumbering is a ruling, not a sweep edit~~ *(framing corrected 2026-08-02, user: the
+   shipped world is a fixture/scratch pad — a re-roll under ratified semantics is recorded
+   with its why and re-captured in the sanctioned window, never routed for byte
+   ratification. The reason a sweep doesn't apply it is the write-set rule alone.)* It is cheap *now* (the domain is
    five hours old and self-declared INTERIM SCAFFOLDING retired by P11 slice 2 + FS-A) and expensive
    later. **The mechanism is the whole point:** the 2026-07-29 evening sweep found
    `SALT_DT_PERTURB` missing from `draws.rs`'s residue list and filed it *"reported, not applied
@@ -1499,9 +1502,13 @@ so a sweep must ask "does the cited constraint still hold?"
       set cannot see them."* Nothing consumed that. **An unapplied finding about an unenforced
       invariant is a countdown, and this one ran four days.** The transferable rule: when a sweep
       finds an invariant that is *asserted rather than enforced*, the residue is not a documentation
-      debt — it is an open window, and the cost of closing it only ever rises (renumbering a salt
-      re-rolls every world generated from it).
-    - **Reported, not applied** — the fix is a ruling, not a doc edit. It is cheapest **now**: the
+      debt — it is an open window. ~~the cost of closing it only ever rises (renumbering a salt
+      re-rolls every world generated from it)~~ *(framing corrected 2026-08-02, user: fixture
+      bytes are not the cost — the real cost curve is the golden-capture window: free while a
+      slice already owns the re-capture, a separate announced capture after. The fix rode P11
+      slice 2b.)*
+    - **Reported, not applied** — a source-file change, outside the write-set (~~a ruling~~ —
+      same 2026-08-02 framing correction as above). It is cheapest **now**: the
       domain is hours old and self-declares as INTERIM SCAFFOLDING retired by P11 slice 2 + FS-A, so
       the worlds it has baked into are a day of fixtures. Converting `SALT_DT_PERTURB` into the
       macro (byte-identical, the same way `grid.rs`'s was) closes it from the other side and is the
