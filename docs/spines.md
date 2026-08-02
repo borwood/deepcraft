@@ -1636,7 +1636,8 @@ optimizer).
   is fine. A non-production fixture called production is not.)*
 - **instance, and its MEDICINE, in one slice (2026-07-29, journal/0126): a hash that was green
   about the wrong thing, and an enumeration the compiler checks.**
-  `surface_fingerprint` hashed `f.chapters.len()` (`tests/providers_common/mod.rs:469`) and
+  `surface_fingerprint` hashed `f.chapters.len()` (`tests/providers_common/mod.rs:469` as-of
+  journal/0126; the surviving `.len()` line is `:545` at `d8407e1`) and
   nothing inside the table. **A real number about the wrong thing reads as coverage**: the chapter
   count is a config constant, so that byte pinned the config — the table could have been rebuilt
   from a different seed salt, advected at a different rate, or had every plate flipped oceanic,
