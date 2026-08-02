@@ -33,6 +33,15 @@ field list and flagged as such.
 >    material registry; sparse scales as cells × local presence (a cell's in-transit load
 >    only holds its catchment's species). CSR precedent in-tree (`FluxRecord`). Budget
 >    arithmetic stays f64 unless a store-f32 split re-proves Law-3 closure.
+> 4. **U5 (pack-members-move-terrain) is DISSOLVED, not ruled — corrections #84.** The
+>    user's 2026-07-19 world-identity rule (`ideas.md:189`, *"patch set joins pack set in
+>    world identity"*) makes the question vacuous: a different pack set IS a different
+>    world; and P11's record-bake kills the one real hazard (retroactive change to an
+>    existing world's expression). What remains is owed work, not a decision: rewrite the
+>    `lithology.rs:58-62` comment in the P11 slice (its reason expires — A-2), and note
+>    the identity FIELD is E7's manifest (the rule is written; the field is not — the
+>    2026-07-22 seam inventory). Caught by the user's memory before ruling; second
+>    instance of corrections #81's shape in three days.
 
 **Status legend:** **DECIDED/RATIFIED** (user) · **BUILT** (code exists, verified here) ·
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input).
