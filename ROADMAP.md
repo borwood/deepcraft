@@ -392,10 +392,23 @@ dissolved (corrections #84) · **MM-3/near-path restructure FOLDS IN** (one surg
 two).
 
 **BUILD SEQUENCE (drafted 2026-08-01, integrator sequencing — veto welcome):**
-1. **The identity swap + deposition-time fitness** — `DepUnit.species: Litho →
-   MaterialId` (zero-byte), fitness runs at deposition under the context of its own day,
-   expression reads the recorded id, `lithology.rs` guard comment rewritten (A-2), stubs
-   #31 dies by construction. Goldens move, announced.
+1. ~~**The identity swap + deposition-time fitness**~~ — **✅ BUILT 2026-08-01**
+   (journal/pending-p11-slice1). `DepUnit.species: Litho → MaterialId`, **zero-byte
+   (compiler-asserted, the audit's I2)**; member fitness runs at **deposition**, per
+   deposited unit, under that cell's own temperature/precipitation that epoch, through a
+   new `DeepMember` draw domain addressed `[depositor, cell, epoch, k]`; **every** identity
+   writer converted, including the two that are not surface events — pedogenic overprint
+   and **burial diagenesis, which re-picks under the slab's real burial P/T, so the coal
+   class's rank axis is finally expressible**. Expression reads the recorded id
+   (`StrataEvent::dither = false` for deep history; the veneer's dither rides on,
+   legitimately). `deep_class_of_species` **no longer runs on the deep-history expression
+   path**; `derive_base` stopped up-converting through `reference_material` and the
+   `MaterialId`-grade deep-cell inventory (Crux 1) finally receives the grade it was built
+   for. `lithology.rs`'s guard comment rewritten (A-2, corrections #84). Stubs **#31
+   narrowed, not closed** (identity resolved by construction; the veneer's chunk-centre
+   context is live) and **#33 opened** (the deep tier's content set is hard-wired to
+   vanilla — the door exists, nothing upstream passes through it). Acceptance:
+   `examples/member_diversity_probe.rs`, gated.
 2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
    **composition slice folds in here** (the per-face species split records into a sparse

@@ -1888,6 +1888,7 @@ mod tests {
             sel_tag: 0,
             ore: None,
             accessory: None,
+            dither: true,
         }
     }
 

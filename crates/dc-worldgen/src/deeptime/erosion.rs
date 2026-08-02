@@ -1136,9 +1136,16 @@ fn record_cell(s: &mut DeepStrata, dh: f64, tag: DepTag, chapter: u8, species: M
 /// layer — never rode any mover, and keeps the answer the record has always
 /// given: the tag's own lithology.
 ///
-/// So the unit's species is the **argmax of the whole mixture**: each carried
+/// So the unit's **class** is the argmax of the whole mixture: each carried
 /// species against the un-carried remainder, with ties going to the incumbent (a
 /// strict `>` over fixed index order, so it is deterministic).
+///
+/// ⚠ **It answers the CLASS, not the rock** (P11 slice 1). The transport budgets
+/// are still `Litho::COUNT`-wide, so this argmax is over classes; the *member* is
+/// then chosen by fitness at deposition under the cell's own climate
+/// ([`super::recorder::MemberCtx::surface`]). Slice 2 re-grades the budgets, at
+/// which point the argmax is over materials and this function returns the rock
+/// directly.
 ///
 /// **The two movers are summed, not ranked.** A cell that receives half a metre of
 /// fine clastic from upstream and half a metre of the same rock off the slope
@@ -3809,7 +3816,8 @@ impl Erosion {
                 let tag = DepTag::mineral(DepEnv::Subsea, Aridity::Humid, EnergyBand::Low);
                 let m = mem.surface(
                     j,
-                    f64::from(climate::air_temp_c(grid.lat_deg(gy), grid.r[j] + grid.h[j])),
+                    // `j`'s own row: the bed is laid where the sediment lands.
+                    f64::from(climate::air_temp_c(grid.lat_deg(j / self.w), grid.r[j] + grid.h[j])),
                     f64::from(grid.precip[j]),
                     lithology::litho_of_tag(tag),
                     dep_tags::WAVE,

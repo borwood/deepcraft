@@ -27,6 +27,17 @@
 //! **addressed** seed draw (`draw_f64`, new SALT_GEO_* addresses) — no
 //! iteration-order entropy anywhere, and registration order cannot change a
 //! single byte of the world (proven in tests/geology.rs).
+//!
+//! ## ⚠ Since P11 slice 1 (2026-08-01) that is the VENEER's story only
+//!
+//! The three passes above are **year-zero** passes: they select a member here
+//! because here is where their formation context lives. **Deep-time depositional
+//! history does not** — its identity is chosen by fitness *at deposition*, under
+//! the climate of the epoch that laid the bed, and stored in
+//! `DepUnit::species: MaterialId`. [`deposit_deep_history`] therefore **reads**
+//! that identity (`GeologySet::member_of_material`) instead of re-selecting from a
+//! class, and [`dithered_member`] refuses to re-adjudicate it
+//! ([`StrataEvent::dither`]). *Expression expresses; it stops inventing.*
 
 use dc_core::coarse::DitherSource;
 use dc_core::materials::geology::{
@@ -443,11 +454,17 @@ fn deep_precip(tag: DepTag) -> f64 {
 ///
 /// [`deep_class`] answers *"what rock does this environment imply"*; this answers
 /// *"what rock actually arrived"*, and with material-aware transport off the two
-/// are the same answer by construction (`unit.species == litho_of_tag(unit.tag)`,
-/// pinned over the whole tag space by
-/// `tests/erodibility.rs::litho_routing_matches_the_collapse_tier`). Kept
+/// are the same answer by construction, pinned over the whole tag space by
+/// `tests/erodibility.rs::litho_routing_matches_the_collapse_tier`. Kept
 /// immediately beside its sibling so the pair is read together and neither can
 /// drift into a third copy of the routing.
+///
+/// ⚠ **P11 slice 1 took its biggest reader away.** `deposit_deep_history` used to
+/// call this on every recorded unit to find the class to re-select from; it now
+/// reads the recorded `MaterialId`. What is left is the *deposition* side — the
+/// deep sim asks which class a `Litho` names so fitness has a roster — plus the
+/// far field's `deep_class_slot`. **Slice 4 deletes this function** along with the
+/// roster; do not build new callers.
 ///
 /// [`Litho::Basement`] is not a depositional lithology — a unit never carries it,
 /// because `Litho::as_deposited` turns quarried basement into the coarse clastic
