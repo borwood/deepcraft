@@ -335,6 +335,35 @@ same shape in **time**, and it manufactures laminae no process made. It is left 
 built, flagged rather than decided — a per-epoch roll is what the slice was specified to do,
 and the honest contribution here is the measured price of that choice.
 
+## The cost the doctrine says is free, and the gate that says otherwise
+
+*"Gen time is not a constraint"* is standing doctrine, and it is not the same statement as
+*"gen time has no gate"*. `s7_measurements::pregen_time_vs_extent` asserts a Medium pregen
+stays under **60 s** — a ratified number (S13's own cost note calls it that when it argued a
+finer deep cell would break it). The first full run after the conversion came back at
+**81.8 s**.
+
+Two causes, both mine, both the same mistake in different clothes — **a per-world decision
+left inside a per-event loop**:
+
+1. `GeologySet::select` found its class in a `BTreeMap<String, _>` and collected its member
+   weights into a `Vec`. Free at one call per (chunk, event). Not free at one call per
+   *deposition event per cell per epoch*.
+2. The identity was computed as a **call argument** to `record_cell`, so every cell paid for
+   it every epoch — including the ones that eroded, and the ones that did nothing.
+
+The fixes are unglamorous and total: the identity is evaluated lazily inside the
+`dh > 0` branch, `select_in` takes an already-resolved `&GeoClass` so a run resolves its six
+deep classes once, and the inverse-CDF recomputes its weights on the second walk instead of
+storing them (`fitness` is pure, so the answer is bit-identical and the malloc is gone —
+which the goldens then confirmed, since they did not move across that change). The gate went
+green.
+
+Worth naming because the trap is structural rather than clever: **moving a decision earlier
+in time moves it into a hotter loop**, and every "run it at deposition instead of at
+expression" slice will meet the same wall. `select` was written for a caller that ran it
+thousands of times; P11 hands it tens of millions.
+
 ## Goldens
 
 Identity is part of the deposited record and part of `deposit_as`'s merge key, so the
