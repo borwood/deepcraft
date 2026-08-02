@@ -223,7 +223,7 @@ pub fn run_cells_with_cadence(
 /// today has a vanilla-laid deep record under a custom expression set. That is a
 /// **plumbing gap this slice opened and did not close**; its heir is the
 /// per-world manifest (E7) that carries the pack set into `WorldParams`. Listed
-/// in `docs/design/stubs.md`.
+/// in `docs/design/stubs.md` (*the-deep-tiers-content-set-is-hard-wired-to-vanilla*).
 pub fn run_cells_with_geology(
     cells: &CellGrid,
     cfg: &DeepConfig,

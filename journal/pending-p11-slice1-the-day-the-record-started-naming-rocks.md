@@ -199,7 +199,7 @@ exactly as `WorldGenerator::new` does — but nothing upstream passes through it
 built with a custom set has a **vanilla-laid record read by a custom expression set**.
 
 Zero blast radius today (production is vanilla end to end) and real the day a pack exists.
-Filed as stubs #33 with its heir named: E7's per-world manifest — which is the same field
+Filed as a stubs.md entry (ordinal assigned at merge) with its heir named: E7's per-world manifest — which is the same field
 corrections #84 already noted is *"written as a rule and not as a field"*. The slice did not
 close it; it made it visible from a second direction, which is how a seam usually gets built.
 

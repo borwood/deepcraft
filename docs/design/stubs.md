@@ -1418,7 +1418,7 @@ chunk-centre context). **Heir: per-column formation context**, naturally part of
 near-path record restructure (member #0's remaining slice). Loud marker at the sampling
 site in `collapse.rs`.
 
-### 33. the-deep-tiers-content-set-is-hard-wired-to-vanilla — *added 2026-08-01 (P11 slice 1)*
+### PENDING (ordinal assigned at merge — parallel sessions are live). the-deep-tiers-content-set-is-hard-wired-to-vanilla — *added 2026-08-01 (P11 slice 1)*
 P11 slice 1 made the deep sim **content-aware**: member fitness runs at deposition, so *which
 members exist* is now an input to the deep-time run and not merely to expression. The door
 exists — `deeptime::run_cells_with_geology` / `build_field_cfg_cadence_geology` — but

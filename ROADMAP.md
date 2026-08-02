@@ -406,8 +406,8 @@ two).
    `MaterialId`-grade deep-cell inventory (Crux 1) finally receives the grade it was built
    for. `lithology.rs`'s guard comment rewritten (A-2, corrections #84). Stubs **#31
    narrowed, not closed** (identity resolved by construction; the veneer's chunk-centre
-   context is live) and **#33 opened** (the deep tier's content set is hard-wired to
-   vanilla — the door exists, nothing upstream passes through it). Acceptance:
+   context is live) and **one new stub opened, ordinal pending** (the deep tier's content set is
+   hard-wired to vanilla — the door exists, nothing upstream passes through it). Acceptance:
    `examples/member_diversity_probe.rs`, gated.
 2. **Sparse member-grade transport** — the four budget planes go CSR-sparse over
    `MaterialId`; Law-3 closure re-proven; gen cost measured. The record-terms
