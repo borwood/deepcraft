@@ -2707,6 +2707,21 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **🔴 THREE ARTIFACT TRIPWIRES ARE RED ON MAIN — a golden move without its authorizing
+  entry (found 2026-08-02 by the bodies arc's debt-clearing gate; pre-existing, demonstrated
+  on main WITHOUT the bodies slice, identical hashes).** `dc-worldgen
+  tests/artifact_tripwires`: **the far field** (0x1424_7B7C_AB51_EFA5 measured vs
+  0xF64E_7377_9F48_B696 pinned), **the head plane** (0x93AF_F969_6A7A_9952 vs
+  0x9AC3_4801_9AD6_FE1B), **the geotherm plane** (0xF650_5F2C_E066_58EB vs
+  0xBC6E_77CD_3D52_0246). Almost certainly the P11 members-into-history merges — the arc
+  that moves the record — whose slices re-captured some goldens; these three either lack
+  their authorization ("a hash move produced by ratified semantics re-captures the goldens
+  **with the why recorded**") or lack the re-capture. **Owed by the geology arc: the
+  journal-entry mechanism naming + re-capture, or a revert.** The batching ruling's first
+  bill: the debt window let this ride main for hours; the bodies arc's gate found it only
+  because clearing its own debt required the full run. Bodies-arc merges state their
+  evidence net of this trio.
+
 - **🟠 THE BUILD-SLOT MUTEX IS DEAD AS A MECHANISM — both failure directions in one evening,
   from two sessions that both know the doctrine (2026-08-01, bodies session + geology
   session, both testimonies in hand).** The bodies session's full test gate (this
