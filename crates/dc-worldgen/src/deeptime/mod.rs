@@ -53,7 +53,8 @@ pub use erosion::{
 };
 pub use field::{
     DEEP_CELL_M, DEEP_ITERATIONS, DEEP_MAX_WIDTH, DeepField, DeepOverrides, EROSION_CALIBRATION,
-    build_field, build_field_cfg, build_field_cfg_cadence, build_field_with, production_config,
+    build_field, build_field_cfg, build_field_cfg_cadence, build_field_cfg_cadence_geology,
+    build_field_with, production_config,
     production_config_with, scale_erosion_rates,
 };
 pub use flux::{
@@ -87,7 +88,10 @@ pub use lithology::{
     susceptibility_table,
 };
 pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
-pub use recorder::{Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, EnergyBand, Eolian};
+pub use recorder::{
+    Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, DepositCtx, EnergyBand, Eolian,
+    MemberCtx, dep_tags,
+};
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use schedule::Schedule;
 pub use tectonics::{BoundaryKind, CrustKind, Plate};
@@ -194,6 +198,40 @@ pub fn run_cells_with_cadence(
     parallel: bool,
     cadence: &cadence::CadenceTable,
 ) -> DeepRun {
+    run_cells_with_geology(
+        cells,
+        cfg,
+        parallel,
+        cadence,
+        &dc_core::materials::geology::vanilla(),
+    )
+}
+
+/// [`run_cells_with_cadence`] over an **explicit geology content set** — the
+/// deep tier's half of the door `WorldGenerator::with_geology` already opens at
+/// the collapse tier (P11 slice 1).
+///
+/// Since deposition-time fitness landed, *which members exist* is an input to the
+/// deep sim, not merely to expression: a world laid with a different member
+/// roster has different rocks in its record and therefore erodes differently
+/// (`lithology.rs` module docs — the guard that used to forbid this expired with
+/// corrections #84). The other entries default to
+/// [`dc_core::materials::geology::vanilla`], exactly as `WorldGenerator::new`
+/// does.
+///
+/// ⚠ **The production pregen path still defaults to vanilla** — `Pregen::run`
+/// takes no content set, so a world built through `WorldGenerator::with_geology`
+/// today has a vanilla-laid deep record under a custom expression set. That is a
+/// **plumbing gap this slice opened and did not close**; its heir is the
+/// per-world manifest (E7) that carries the pack set into `WorldParams`. Listed
+/// in `docs/design/stubs.md`.
+pub fn run_cells_with_geology(
+    cells: &CellGrid,
+    cfg: &DeepConfig,
+    parallel: bool,
+    cadence: &cadence::CadenceTable,
+    geology: &dc_core::materials::geology::GeologySet,
+) -> DeepRun {
     let mut grid = build_cells(cells, cfg);
     let mut erosion = Erosion::new(&grid);
     erosion.set_parallel(parallel);
@@ -279,6 +317,7 @@ pub fn run_cells_with_cadence(
         .expect("the deep-time pass graph is valid");
     let mut ctx = runner::DeepStepCtx {
         cfg,
+        geology,
         grid,
         erosion,
         biota,
@@ -315,7 +354,13 @@ pub fn run_cells_with_cadence(
 
     // Burial diagenesis: buried thick peat becomes coal (post-loop, unchanged).
     if let Some(b) = biota.as_ref() {
-        b.finalize(&mut grid);
+        // Burial diagenesis re-picks the promoted unit's member under the burial
+        // P/T it computes, so it needs the content set too. The epoch address is
+        // the run's last (`cfg.iterations`), which is when this happens.
+        b.finalize(
+            &mut grid,
+            runner::DeepStepCtx::member_ctx_for(geology, cfg.seed, u64::from(cfg.iterations)),
+        );
     }
     // **Re-relax the head field on the FINAL terrain.** It is a coarse-rate pass, so
     // the plane the loop leaves behind was relaxed at its last firing — twenty epochs

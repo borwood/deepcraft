@@ -53,6 +53,66 @@ pub mod dep_tags {
     pub const DIAGENESIS: u64 = 5;
 }
 
+/// **The run-wide half of deposition-time identity** — what a deep-time pass
+/// carries so it can build a [`DepositCtx`] per cell (P11 slice 1).
+///
+/// It is `Copy` and three words wide, so it rides into a pass as a value rather
+/// than as another borrow of the runner's state.
+#[derive(Clone, Copy)]
+pub struct MemberCtx<'a> {
+    pub geology: &'a GeologySet,
+    pub draws: Draws,
+    pub epoch: u64,
+}
+
+impl<'a> MemberCtx<'a> {
+    /// Open the stream for a world. The **only** place a deposition-time member
+    /// draw is seeded.
+    pub fn new(geology: &'a GeologySet, seed: u64, epoch: u64) -> Self {
+        Self {
+            geology,
+            draws: Draws::of::<crate::draws::DeepMember>(seed),
+            epoch,
+        }
+    }
+
+    /// The per-cell context under an explicit formation context.
+    #[inline]
+    pub fn at(&self, cell: usize, form: FormationContext) -> DepositCtx<'a> {
+        DepositCtx {
+            geology: self.geology,
+            form,
+            draws: self.draws,
+            cell: cell as u64,
+            epoch: self.epoch,
+        }
+    }
+
+    /// **The common case: a bed laid at the surface.** Air temperature over the
+    /// current ground, the marched precipitation, and `depth_m = 0` — burial is a
+    /// later fact about a bed, never a condition of its formation.
+    #[inline]
+    pub fn surface(
+        &self,
+        cell: usize,
+        temp_c: f64,
+        precip: f64,
+        litho: Litho,
+        tag: u64,
+        k: u64,
+    ) -> MaterialId {
+        self.at(
+            cell,
+            FormationContext {
+                temp_c,
+                precip,
+                depth_m: 0.0,
+            },
+        )
+        .material_for(litho, tag, k)
+    }
+}
+
 /// **The identity-setting context a depositing agent hands the recorder**
 /// (P11 slice 1).
 ///

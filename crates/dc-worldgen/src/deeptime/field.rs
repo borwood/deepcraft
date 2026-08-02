@@ -619,7 +619,25 @@ pub fn build_field_cfg_cadence(
     cfg: &DeepConfig,
     cadence: &super::cadence::CadenceTable,
 ) -> DeepField {
-    let run = super::run_cells_with_cadence(cells, cfg, true, cadence);
+    build_field_cfg_cadence_geology(
+        cells,
+        cfg,
+        cadence,
+        &dc_core::materials::geology::vanilla(),
+    )
+}
+
+/// [`build_field_cfg_cadence`] over an **explicit geology content set** — the
+/// deep tier's content door (P11 slice 1; see [`super::run_cells_with_geology`]
+/// for why the deep sim now needs one, and for the plumbing gap that is still
+/// open above it).
+pub fn build_field_cfg_cadence_geology(
+    cells: &CellGrid,
+    cfg: &DeepConfig,
+    cadence: &super::cadence::CadenceTable,
+    geology: &dc_core::materials::geology::GeologySet,
+) -> DeepField {
+    let run = super::run_cells_with_geology(cells, cfg, true, cadence, geology);
     let w = run.grid.w;
     let cell_m = run.grid.cell_m;
     let surf: Vec<f64> = run

@@ -73,7 +73,8 @@ use super::erosion::Erosion;
 use super::geotherm::{self, BurialColumn};
 use super::grid::{DeepConfig, DeepGrid, SEA_LEVEL_M};
 use super::providers::{ParentCell, Providers, WaterPass, wet_at};
-use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand};
+use super::lithology;
+use super::recorder::{Aridity, Biofacies, DepEnv, DepTag, EnergyBand, MemberCtx, dep_tags};
 
 // **The biotic layer's two salts are gone from this file** (2026-07-26,
 // journal/0105 hole 2). They used to be `SALT_BIO_FIRE = 0x5B00_0001` and
@@ -667,7 +668,13 @@ impl BioticSim {
     /// One epoch of the six biotic processes over the whole grid, reading the
     /// post-erosion surface. Returns the total organic mass added to `H` this
     /// epoch (the external biotic-carbon input for the mass ledger).
-    pub fn step(&mut self, grid: &mut DeepGrid, ero: &Erosion, epoch: u32) -> f64 {
+    pub fn step(
+        &mut self,
+        grid: &mut DeepGrid,
+        ero: &Erosion,
+        epoch: u32,
+        mem: MemberCtx<'_>,
+    ) -> f64 {
         // Freeze previous cover for the dispersal kernel.
         for (dst, c) in self.prev_cover.iter_mut().zip(&self.cells) {
             *dst = c.cover;
@@ -720,22 +727,50 @@ impl BioticSim {
         // Organic units carry the same tectonic chapter the erosion recorder is
         // stamping this epoch (0 when tectonic history is off — byte-identical).
         let chapter = ero.current_chapter();
+        // Row latitudes for the per-cell formation context (`lat_deg` takes
+        // `&grid` and the loop holds `&mut grid.strata`).
+        let lat: Vec<f64> = (0..grid.w).map(|gy| grid.lat_deg(gy)).collect();
         let mut bio_input = 0.0f64;
         for i in 0..self.n {
             let o = self.out[i];
             self.cells[i] = o.cell;
             grid.bio_weather[i] = o.weather;
             grid.bio_resist[i] = o.resist;
+            // The formation context this cell's biology is living in, this
+            // epoch (P11 slice 1): a soil horizon and a fire bed are both
+            // identity events, and both get their member from fitness here
+            // rather than from a fixed reference at expression.
+            let temp_c = f64::from(super::climate::air_temp_c(
+                lat[i / w],
+                grid.r[i] + grid.h[i],
+            ));
+            let precip = f64::from(grid.precip[i]);
             if o.org_deposit > 0.0 {
                 grid.h[i] += o.org_deposit;
+                let m = mem.surface(
+                    i,
+                    temp_c,
+                    precip,
+                    lithology::litho_of_tag(o.org_tag),
+                    dep_tags::PEDOGENIC,
+                    0,
+                );
                 // Pedogenesis OVERPRINTS the surface material rather than
                 // stacking a lamina: a stable surface becomes one thick horizon.
-                grid.strata[i].overprint_top(o.org_tag, o.org_deposit, chapter);
+                grid.strata[i].overprint_top(o.org_tag, o.org_deposit, chapter, m);
                 bio_input += o.org_deposit;
             }
             if o.charcoal > 0.0 {
                 grid.h[i] += o.charcoal;
-                grid.strata[i].deposit(o.char_tag, o.charcoal, chapter);
+                let m = mem.surface(
+                    i,
+                    temp_c,
+                    precip,
+                    lithology::litho_of_tag(o.char_tag),
+                    dep_tags::BIOTIC,
+                    0,
+                );
+                grid.strata[i].deposit_as(o.char_tag, o.charcoal, chapter, m);
                 bio_input += o.charcoal;
             }
         }
@@ -755,11 +790,12 @@ impl BioticSim {
     /// pass planted on the grid. The row latitudes are lifted out first: `lat_deg`
     /// takes `&grid` and the loop holds `&mut grid.strata`, so a `w`-long vector
     /// sidesteps the borrow.
-    pub fn finalize(&self, grid: &mut DeepGrid) {
+    pub fn finalize(&self, grid: &mut DeepGrid, mem: MemberCtx<'_>) {
         let lat: Vec<f64> = (0..grid.w).map(|gy| grid.lat_deg(gy)).collect();
         let DeepGrid {
             ref r,
             ref h,
+            ref precip,
             ref geotherm,
             ref mut strata,
             ..
@@ -785,6 +821,14 @@ impl BioticSim {
                     gradient_c_per_m,
                 },
                 COAL_ONSET_C,
+                &mem.at(
+                    index,
+                    dc_core::materials::geology::FormationContext {
+                        temp_c: surface_temp_c,
+                        precip: f64::from(precip[index]),
+                        depth_m: 0.0,
+                    },
+                ),
             );
         }
     }
