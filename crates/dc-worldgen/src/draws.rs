@@ -649,7 +649,7 @@ mod tests {
     /// duplicate check cannot see.
     #[test]
     fn every_domain_is_listed_and_distinct() {
-        assert_eq!(ALL_DOMAINS.len(), 15, "a domain was added without a test");
+        assert_eq!(ALL_DOMAINS.len(), 16, "a domain was added without a test");
         let mut salts: Vec<u64> = ALL_DOMAINS.iter().map(|(_, s)| *s).collect();
         salts.sort_unstable();
         let n = salts.len();

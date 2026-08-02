@@ -948,6 +948,53 @@ mod tests {
         }
     }
 
+    /// **Why the goldens moved: splitting a unit is not bit-neutral.**
+    ///
+    /// P11 put the `MaterialId` in `deposit_as`'s merge key, so two beds that used
+    /// to coalesce as one `ClasticFine` unit are two units when one is mudstone and
+    /// the other siltstone. [`window_walk`] buckets both into the *same* class, so
+    /// the outcrop shares are the same quantity — but they are reached by a
+    /// **different sequence of floating-point additions**, and IEEE addition is not
+    /// associative. The susceptibility blend reads those shares, erosion reads the
+    /// susceptibility, and 200 epochs turn an ulp into a different world.
+    ///
+    /// This pins the size of that effect where it enters: **the shares agree to
+    /// well inside 1e-12 relative**, so the *rule* is unchanged and only its
+    /// rounding is. It is the honest form of the claim — asserting bit-identity
+    /// here would be asserting something false, and asserting nothing would leave
+    /// the golden move unexplained.
+    #[test]
+    fn splitting_a_unit_within_its_class_preserves_the_outcrop_shares() {
+        use crate::deeptime::recorder::{DepEnv, DepTag, DepUnit, EnergyBand};
+        let tag = DepTag::mineral(DepEnv::Subsea, super::Aridity::Humid, EnergyBand::Low);
+        let unit = |m, t| DepUnit {
+            tag,
+            thickness_m: t,
+            unconformity: false,
+            chapter: 0,
+            species: m,
+        };
+        // One thick fine-clastic bed, against the same metres split between two
+        // members of that same class — exactly what the new merge key produces.
+        let whole = [unit(MaterialId::MUDSTONE, 7.3)];
+        let split = [
+            unit(MaterialId::MUDSTONE, 4.1),
+            unit(MaterialId::SILTSTONE, 3.2),
+        ];
+        let (a, b) = (exposed_shares(&whole), exposed_shares(&split));
+        for (x, y) in a.shares().iter().zip(b.shares()) {
+            assert!(
+                (x - y).abs() <= 1e-12,
+                "outcrop shares moved by more than rounding: {x} vs {y}"
+            );
+        }
+        assert_eq!(
+            dominant_litho(&a),
+            dominant_litho(&b),
+            "the outcrop verdict changed under a within-class split"
+        );
+    }
+
     /// Every class the deep record CAN deposit buckets *all* of its members back
     /// to itself — otherwise a recorded unit would coarsen into a class the
     /// erosion tables index differently from the one it was laid as.
