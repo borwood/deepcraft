@@ -524,11 +524,18 @@ pub fn validate_plan(
 // The authored content lives in submodules, split by CONCERN (2026-08-01):
 // `default_pack` is the first content pack (compiled in for determinism);
 // `experiments` are instruments with no standing as content. Re-exported so
-// every existing `dc_api::bodies::*` path keeps working.
+// every existing `dc_api::bodies::*` path keeps working. `bake` is NOT
+// content: the resting-posture bake (posture-gait member #0), an engine
+// primitive over plan data — pure, deterministic, callable from any clock.
 
+mod bake;
 mod default_pack;
 mod experiments;
 
+pub use bake::{
+    BakeOutcome, ChainPose, JointAngle, RestingPosture, bake_resting_posture, stance_chain,
+    stance_chains,
+};
 pub use default_pack::{biped_clips, biped_plan, default_body_pack};
 pub use experiments::{experiment_body_pack, longleg_plan, stout_plan};
 
