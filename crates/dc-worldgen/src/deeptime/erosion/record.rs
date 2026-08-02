@@ -163,6 +163,13 @@ fn arriving_material(
     best.map(|k| axis.material(k))
 }
 
+/// The metres a cell deposited this epoch — the audit's weight. Only positive
+/// `dh` reaches the identity decision, so a negative reads as zero.
+#[inline]
+fn dh_at(dh: &[f64], i: usize) -> f64 {
+    dh[i].max(0.0)
+}
+
 impl Erosion {
     /// Record each cell's net thickness change this iteration under the tag
     /// measured now. Each cell's `DeepStrata` is independent → byte-identical
@@ -201,7 +208,8 @@ impl Erosion {
         // expression, hundreds of millions of sim-years later, from the climate of
         // the chunk's centre. The class is a fact about the load; the member is a
         // fact about the day. Both are known here and neither was written down.
-        let species_at = |i: usize, tag: DepTag| {
+        let audit = self.identity_audit;
+        let species_at = |i: usize, tag: DepTag, prov: &mut u8| {
             let carried = if sorted {
                 let (db, dks) = tlayout.row(i);
                 let (cb, cks) = if creep.is_empty() {
@@ -247,11 +255,31 @@ impl Erosion {
             let temp_c = f64::from(climate::air_temp_c(lat[i / w], r[i] + h[i]));
             let draw_class = match carried {
                 Some(m) => match lithology::deposited_transform(m) {
-                    None => return m,
+                    None => {
+                        // The instrument (off in production, byte-inert): would
+                        // this site's own climate have named a different rock?
+                        // Evaluating it is exactly the work the slice exists to
+                        // stop doing, which is why it is a flag and not a phase.
+                        *prov = if audit {
+                            let would = mem.surface(
+                                i,
+                                temp_c,
+                                f64::from(precip[i]),
+                                super::super::lithology::Litho::of_material(m),
+                                dep_tags::TRANSPORT,
+                                0,
+                            );
+                            if would == m { 1 } else { 3 }
+                        } else {
+                            1
+                        };
+                        return m;
+                    }
                     Some(to) => to,
                 },
                 None => lithology::litho_of_tag(tag),
             };
+            *prov = 2;
             mem.surface(
                 i,
                 temp_c,
@@ -261,17 +289,58 @@ impl Erosion {
                 0,
             )
         };
-        let deposit_at = |i: usize| {
+        let deposit_at = |i: usize, prov: &mut u8| {
             let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
-            (tag, species_at(i, tag))
+            (tag, species_at(i, tag, prov))
         };
+        let n = self.n;
+        if audit {
+            // The audit plane rides beside the record, written per cell (disjoint),
+            // and is reduced **scalar afterwards** so the totals are
+            // order-independent whichever driver ran.
+            let id_class = &mut self.id_class;
+            id_class.fill(0);
+            if parallel {
+                grid.strata
+                    .par_iter_mut()
+                    .zip(id_class.par_iter_mut())
+                    .enumerate()
+                    .for_each(|(i, (s, prov))| {
+                        record_cell(s, dh[i], chapter, || deposit_at(i, prov));
+                    });
+            } else {
+                for (i, (s, prov)) in grid
+                    .strata
+                    .iter_mut()
+                    .zip(id_class.iter_mut())
+                    .enumerate()
+                    .take(n)
+                {
+                    record_cell(s, dh[i], chapter, || deposit_at(i, prov));
+                }
+            }
+            for i in 0..n {
+                let k = self.id_class[i] as usize;
+                if k != 0 {
+                    // Index 3 is a subset of index 1: a transported metre whose
+                    // identity the site's draw would not have produced is still a
+                    // transported metre.
+                    self.id_m[if k == 3 { 1 } else { k }] += dh_at(&self.dh, i);
+                    if k == 3 {
+                        self.id_m[3] += dh_at(&self.dh, i);
+                    }
+                }
+            }
+            return;
+        }
+        let mut sink = 0u8;
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
-                record_cell(s, dh[i], chapter, || deposit_at(i));
+                record_cell(s, dh[i], chapter, || deposit_at(i, &mut 0));
             });
         } else {
-            for (i, s) in grid.strata.iter_mut().enumerate().take(self.n) {
-                record_cell(s, dh[i], chapter, || deposit_at(i));
+            for (i, s) in grid.strata.iter_mut().enumerate().take(n) {
+                record_cell(s, dh[i], chapter, || deposit_at(i, &mut sink));
             }
         }
     }

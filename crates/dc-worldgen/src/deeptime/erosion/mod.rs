@@ -419,6 +419,27 @@ pub struct Erosion {
     /// leaves its source cell and a load that is never picked up at all are very
     /// different failures with very different heirs.
     ledger: TransportLedger,
+    /// **The identity-provenance audit** (P11 slice 2, ruling 6's outcome number).
+    /// Off by default and off in production: the plane below stays empty, the
+    /// counterfactual draw is never evaluated, and the solve is byte- and
+    /// cost-identical. On, [`Self::record`] tallies, per depositing cell per epoch,
+    /// **where the unit's identity came from** — the arriving composition or the
+    /// fitness draw — and, for the transported ones, whether the deposition-site
+    /// draw would have named a *different* rock.
+    ///
+    /// That last number is the claim: a transported deposit whose identity the
+    /// site's own climate would not have produced is a metre of rock whose name is
+    /// a fact about its **source**, which is the whole of what ruling 6 asked for.
+    /// It is expensive precisely because it evaluates the draw the slice exists to
+    /// stop evaluating, so it is an instrument and not a phase.
+    identity_audit: bool,
+    /// Per-cell audit result for the last [`Self::record`]: `0` no deposit, `1`
+    /// identity from the arriving composition, `2` from the draw, `3` from the
+    /// arriving composition **where the site's draw would have disagreed**.
+    id_class: Vec<u8>,
+    /// Running metres behind [`Self::id_class`], summed scalar after each record
+    /// phase so the totals are order-independent.
+    id_m: [f64; 4],
     /// **The denudation ledger switch** (journal/0111). Off by default and off in
     /// production: the five export counters on [`TransportLedger`] stay exactly
     /// zero, the shoreline-creep sweep in [`Self::diffuse`] never runs, and the
@@ -495,6 +516,9 @@ impl Erosion {
             creep_faces: 0,
             split_residue: 0.0,
             ledger: TransportLedger::default(),
+            identity_audit: false,
+            id_class: Vec::new(),
+            id_m: [0.0; 4],
             denude: false,
             heap: BinaryHeap::new(),
         }
@@ -575,6 +599,23 @@ impl Erosion {
             + self.window.approx_bytes()
             + self.tlayout.approx_bytes()
             + self.clayout.approx_bytes()
+    }
+
+    /// Turn the **identity-provenance audit** on (P11 slice 2). Off is
+    /// byte-identical and costs nothing; see the field docs.
+    pub fn set_identity_audit(&mut self, on: bool) {
+        self.identity_audit = on;
+        self.id_class = if on { vec![0u8; self.n] } else { Vec::new() };
+        self.id_m = [0.0; 4];
+    }
+
+    /// **Metres of record by where their identity came from**, over the whole run:
+    /// `[unused, from the arriving composition, from the fitness draw, from the
+    /// arriving composition where the site's own draw would have disagreed]`. All
+    /// zero unless [`Self::set_identity_audit`] is on. Index 3 is a **subset** of
+    /// index 1, reported separately.
+    pub fn identity_provenance_m(&self) -> [f64; 4] {
+        self.id_m
     }
 
     /// **The species axis this run resolves its load against** — empty until

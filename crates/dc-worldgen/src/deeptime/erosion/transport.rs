@@ -271,9 +271,16 @@ impl Erosion {
         // transport row is a superset of the window row by construction — the
         // closure seeds from the window — so every species entrainment can lift has
         // a slot to be lifted into.
-        let (tbase, tlen) = {
+        // **Only the sorted path has a layout at all.** The scalar-load solve
+        // leaves every CSR structure empty (that is what makes it byte-identical),
+        // so reading a row here unconditionally is an out-of-bounds on a world that
+        // simply is not carrying identity — caught by `mass_is_conserved_up_to
+        // _uplift`, which drives `Erosion` directly and never turns the tier on.
+        let (tbase, tlen) = if self.sorted {
             let (b, ks) = self.tlayout.row(c);
             (b, ks.len())
+        } else {
+            (0, 0)
         };
         if qin <= cap {
             let mut room = cap - qin;
@@ -551,9 +558,11 @@ impl Erosion {
             for k in (0..self.order.len()).rev() {
                 let c = self.order[k] as usize;
                 let rc = self.recv[c];
-                let (base, len) = {
+                let (base, len) = if sorted {
                     let (b, ks) = self.tlayout.row(c);
                     (b, ks.len())
+                } else {
+                    (0, 0)
                 };
                 let qin = if sorted {
                     self.qs_sp.vals()[base..base + len].iter().sum()
@@ -618,9 +627,11 @@ impl Erosion {
         for k in (0..self.order.len()).rev() {
             let c = self.order[k] as usize;
             let base = c * MFD_DIRS;
-            let (sbase, slen) = {
+            let (sbase, slen) = if sorted {
                 let (b, ks) = self.tlayout.row(c);
                 (b, ks.len())
+            } else {
+                (0, 0)
             };
             let qin = if sorted {
                 self.qs_sp.vals()[sbase..sbase + slen].iter().sum()

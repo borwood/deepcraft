@@ -418,6 +418,18 @@ pub struct DeepConfig {
     /// turns it on, and its gate asserts the surface plane is bit-identical
     /// either way.
     pub denudation_ledger: bool,
+    /// **The identity-provenance audit** (P11 slice 2, ruling 6's outcome number)
+    /// — where each recorded metre's `MaterialId` came from: the arriving
+    /// composition, or the deposition-site fitness draw, and for the transported
+    /// ones whether that draw would have named a **different** rock.
+    ///
+    /// **Off by default and off in production**, and for a sharper reason than the
+    /// denudation counters: turning it on evaluates the very draw the slice exists
+    /// to stop evaluating (an inverse-CDF over a class's members, per depositing
+    /// cell per epoch). With it off no counterfactual runs, the plane stays empty,
+    /// and the solve is byte- and cost-identical.
+    /// `examples/member_diversity_probe.rs` is the only caller.
+    pub identity_audit: bool,
     /// **Material-aware hillslope creep** (Movement 2b continuation (b),
     /// `material-behavior.md` § 13.2, journal/0112) — the **gravity /
     /// mass-wasting** member of the transport family, on the same load machinery
@@ -590,6 +602,7 @@ impl Default for DeepConfig {
             mfd_min_weight: super::erosion::MFD_MIN_WEIGHT,
             material_transport: true,
             denudation_ledger: false,
+            identity_audit: false,
             material_creep: true,
             // **False, deliberately.** The four rate constants written above are the
             // raw pre-calibration values; `production_config` is what multiplies them

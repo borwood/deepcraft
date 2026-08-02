@@ -44,6 +44,24 @@
 //! siltstone. The probe counts the units the record holds against the units it
 //! *would* hold if adjacent same-class units re-merged.
 //!
+//! ## The slice-2 half: **where does a unit's identity come from?**
+//!
+//! Slice 1 answered *"does the record hold members"*. Ruling 6 asks a sharper
+//! question: **whose fact is a bed's name — the load's, or the site's?** Slice 2
+//! retires the deposition draw for transported deposits, so identity is now a
+//! conserved quantity flowing through the mass arithmetic rather than a roll at
+//! the end of it.
+//!
+//! The falsifier is not "is the code path taken" — that is trivially checkable and
+//! proves nothing. It is: **of the metres whose identity came from the arriving
+//! composition, how many would the deposition site's own climate have named
+//! differently?** Those metres are the ones whose rock is a fact about their
+//! *source*. If the number were near zero, source composition and site climate
+//! would be agreeing anyway and the ruling would have bought correctness of
+//! principle with no expression. `DeepConfig::identity_audit` evaluates exactly
+//! the counterfactual draw the slice exists to stop evaluating, which is why it is
+//! an instrument and off in production.
+//!
 //! Run: `cargo run --release -p dc-worldgen --example member_diversity_probe`
 
 use std::time::Instant;
@@ -51,7 +69,7 @@ use std::time::Instant;
 use dc_core::materials::geology::{GeologySet, vanilla};
 use dc_core::materials::{MATERIAL_COUNT, MaterialId};
 use dc_worldgen::deeptime::lithology::Litho;
-use dc_worldgen::deeptime::{DeepField, build_field};
+use dc_worldgen::deeptime::{DeepConfig, DeepField, build_field, production_config, run_cells};
 use dc_worldgen::geology::deep_class_of_species;
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -154,6 +172,34 @@ fn measure(cells: &CellGrid) -> Diversity {
     measure_field(&f, secs)
 }
 
+/// **Where the record's metres got their names** (P11 slice 2, ruling 6):
+/// `(from the arriving composition, from the fitness draw, and — a subset of the
+/// first — from the arriving composition where the site's own draw would have
+/// disagreed)`.
+struct Provenance {
+    transported_m: f64,
+    drawn_m: f64,
+    site_would_disagree_m: f64,
+    secs: f64,
+}
+
+fn measure_provenance(cells: &CellGrid) -> Provenance {
+    let cfg = DeepConfig {
+        identity_audit: true,
+        ..production_config(cells, SEED)
+    };
+    let t = Instant::now();
+    let run = run_cells(cells, &cfg, true);
+    let secs = t.elapsed().as_secs_f64();
+    let m = run.erosion.identity_provenance_m();
+    Provenance {
+        transported_m: m[1],
+        drawn_m: m[2],
+        site_would_disagree_m: m[3],
+        secs,
+    }
+}
+
 fn main() {
     let extent = Extent::Medium;
     let t = Instant::now();
@@ -251,6 +297,37 @@ fn main() {
         d.units as f64 * 16.0 / (1024.0 * 1024.0),
         d.units_class_merged as f64 * 16.0 / (1024.0 * 1024.0)
     );
+
+    // ---- P11 slice 2: whose fact is a bed's name? -------------------------
+    let p = measure_provenance(&pregen.grid);
+    let total = p.transported_m + p.drawn_m;
+    println!(
+        "\n=== IDENTITY PROVENANCE (ruling 6 — the draw retirement) ===\n\
+         audited run {:.2} s (the counterfactual draw is the cost; production \
+         does not pay it)",
+        p.secs
+    );
+    println!(
+        "  from the ARRIVING COMPOSITION (no draw)  {:>12.1} m  {:>6.2} %",
+        p.transported_m,
+        100.0 * p.transported_m / total.max(1e-9)
+    );
+    println!(
+        "  from the FITNESS DRAW                    {:>12.1} m  {:>6.2} %",
+        p.drawn_m,
+        100.0 * p.drawn_m / total.max(1e-9)
+    );
+    println!(
+        "  ...of the transported metres, the ones the SITE would have named\n\
+           differently: {:.1} m ({:.2} % of transported, {:.2} % of all record)",
+        p.site_would_disagree_m,
+        100.0 * p.site_would_disagree_m / p.transported_m.max(1e-9),
+        100.0 * p.site_would_disagree_m / total.max(1e-9)
+    );
+    println!(
+        "  → that last figure is the OUTCOME: metres whose rock is a fact about\n\
+           their SOURCE and not about the climate where they landed."
+    );
 }
 
 #[cfg(test)]
@@ -331,6 +408,48 @@ mod gate {
                 l.code()
             );
         }
+    }
+
+    /// **The instrument cannot perturb the world it measures** (P11 slice 2).
+    ///
+    /// `identity_audit` evaluates a counterfactual draw beside the real one. A
+    /// draw is entropy, and entropy that leaked into the recorded identity would
+    /// make the measurement a report about the measuring. Asserted as record
+    /// equality, which is stricter than a tolerance and is the only honest bar for
+    /// an instrument.
+    ///
+    /// Scale-free: it is a statement about one code path's side effects.
+    #[test]
+    fn the_identity_audit_is_bit_inert() {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: Extent::Small,
+        });
+        let cfg = production_config(&pregen.grid, SEED);
+        let off = run_cells(&pregen.grid, &cfg, true);
+        let on = run_cells(
+            &pregen.grid,
+            &DeepConfig {
+                identity_audit: true,
+                ..cfg
+            },
+            true,
+        );
+        assert_eq!(off.grid.r, on.grid.r, "the audit moved the bedrock plane");
+        assert_eq!(off.grid.h, on.grid.h, "the audit moved the alluvium plane");
+        assert_eq!(off.grid.strata, on.grid.strata, "the audit moved the record");
+        // And it actually measured something: a production world deposits.
+        let m = on.erosion.identity_provenance_m();
+        assert!(
+            m[1] + m[2] > 0.0,
+            "the audit tallied no metres at all — it is not wired to the record"
+        );
+        assert!(
+            m[3] <= m[1],
+            "the disagreement subset ({}) exceeds the transported total ({})",
+            m[3],
+            m[1]
+        );
     }
 
     /// **Determinism**: same seed, same config, byte-identical record. Fitness at

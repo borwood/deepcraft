@@ -261,6 +261,9 @@ pub fn run_cells_with_geology(
     // journal/0111: the read-only denudation counters. Off ⇒ no branch fires and
     // the shoreline-creep sweep is never called — byte- and cost-identical.
     erosion.set_denudation_ledger(cfg.denudation_ledger);
+    // P11 slice 2: the draw-retirement instrument. Off ⇒ no counterfactual draw is
+    // ever evaluated and the run is byte- and cost-identical.
+    erosion.set_identity_audit(cfg.identity_audit);
     // Movement 2b continuation (b): the gravity/mass-wasting member of the same
     // family. **After** `set_material_transport`, which it is gated on — creep
     // moves the composition that pass publishes. Off ⇒ the creep plane stays empty
