@@ -53,6 +53,16 @@ You wear all four, switching freely:
   for the thread's nouns, and open the notebook with a **priors section
   first** — your own observations go *after* it, demoted to what survived
   the sweep. The user should never have to say "we've discussed this."
+  - **AND THE SWEEP INCLUDES PARALLEL THREADS' LIVE CLOSE BLOCKS — especially before
+    filing a CROSS-ARC finding** (2026-08-02, corrections #92; greenlit fingerprint).
+    A bodies-session gate found three geology tripwires red on main and filed them as
+    *"a golden move without its authorizing entry"* — while the geo session's FINAL
+    close block, written hours earlier, carried those exact families as EXPECTED RED
+    under a user ruling, with the re-capture owned. The evidence chain stopped at
+    "pre-existing on main" and never asked *whose arc expects this*. A close block
+    fails its writer when nobody re-reads it (corrections #73); it fails a PARALLEL
+    READER the same way. Before recording a finding about another arc's artifacts:
+    read that arc's live block first.
 
 ## Delegation
 
@@ -119,6 +129,14 @@ You wear all four, switching freely:
   completion notification can be lost — if a "waiting" agent goes quiet,
   check for live compiler processes; if none, verify the gates yourself and
   finish the bookkeeping rather than re-nudging forever.
+  - **HARDENED TO A DISPATCH RULE 2026-08-02 (greenlit fingerprint): an agent runs its
+    gates in the FOREGROUND of its own session and waits — never `run_in_background`
+    inside a subagent, and never "arm a monitor and end the turn".** Two builders in one
+    session backgrounded their gate/slot-wait, ended their turns "waiting", and never
+    resumed when the background work finished; both harvests happened by hand from their
+    worktrees. The durable half (worktree commits, Tee'd logs) survived — the agents'
+    completion machinery did not, twice for two. Put the rule IN THE BRIEF: "run gates
+    foreground and wait; if the build slot is taken, retry in the foreground."
 
 ## Dispatch: two clauses earned 2026-07-28
 

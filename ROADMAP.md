@@ -2731,7 +2731,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   exactly as the wrap doctrine says); the agents' completion machinery did not.
   **Interim rule until the mechanism is understood: a subagent runs its gates in the
   FOREGROUND of its own session and waits — never `run_in_background` inside an agent.**
-  Proposed for session-workflow (fingerprint, awaiting greenlight).
+  FOLDED into session-workflow § Delegation 2026-08-02 (greenlit).
 
 - **🟠 INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
   look (user-sighted 2026-08-02 at the derived-hip walk, station 2; mechanism read from

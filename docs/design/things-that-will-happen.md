@@ -138,3 +138,6 @@ list and not a roadmap — some of these are far off, and that is fine.
 - You fell a tree and get the wood that was actually in it, because the trunk had a
   volume and the volume was oak.
 - A wolf you wounded last winter still favours that leg, and you can see which one.
+- A species nobody authored — split off by a mountain range during deep time — is born
+  knowing how to stand and how to walk, because its stance is solved from its own body
+  the moment the world invents it. *(added 2026-08-02, user-greenlit at the bodies wrap)*
