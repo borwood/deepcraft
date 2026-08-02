@@ -14,8 +14,9 @@
 // once per suite, so anything a given suite does not call is dead there.
 #![allow(dead_code)]
 
+use dc_core::materials::MaterialId;
 use dc_worldgen::deeptime::{
-    Aridity, Biofacies, DeepField, DepEnv, EnergyBand, Eolian, Litho, build_field,
+    Aridity, Biofacies, DeepField, DepEnv, EnergyBand, Eolian, build_field,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -415,16 +416,16 @@ fn biota_code(b: Biofacies) -> u8 {
 /// transport off it is a pure function of the tag, so it adds no information;
 /// with it on it is the whole point, and a fingerprint blind to it would let the
 /// slice move every rock in the world without moving a hash.
-fn species_code(l: Litho) -> u8 {
-    match l {
-        Litho::ClasticFine => 0,
-        Litho::ClasticCoarse => 1,
-        Litho::OrganicSoil => 2,
-        Litho::OrganicPeat => 3,
-        Litho::OrganicCoal => 4,
-        Litho::OrganicCharcoal => 5,
-        Litho::Basement => 6,
-    }
+///
+/// **P11 slice 1 widened it to the registry byte.** It used to hash a 7-value
+/// *class* code, which the record no longer carries; hashing the class of a
+/// recorded `MaterialId` would have kept the fingerprint blind to exactly the
+/// distinction the slice creates — mudstone and siltstone are one class — and the
+/// warning above would have come true in the same commit that wrote it. The raw
+/// `MaterialId` is a stable compile-time ordinal (registry-id order), so this is
+/// the same kind of value the code was, one byte wide, over a wider alphabet.
+fn species_code(m: MaterialId) -> u8 {
+    m.raw()
 }
 fn eolian_code(e: Eolian) -> u8 {
     match e {
@@ -487,7 +488,7 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
             h.f64(u.thickness_m);
             h.byte(u8::from(u.unconformity));
             h.byte(u.chapter);
-            h.byte(species_code(Litho::of_material(u.species)));
+            h.byte(species_code(u.species));
         }
     }
     h.0

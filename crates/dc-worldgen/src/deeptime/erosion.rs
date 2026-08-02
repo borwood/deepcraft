@@ -3817,7 +3817,7 @@ impl Erosion {
                 let m = mem.surface(
                     j,
                     // `j`'s own row: the bed is laid where the sediment lands.
-                    f64::from(climate::air_temp_c(grid.lat_deg(j / self.w), grid.r[j] + grid.h[j])),
+                    f64::from(climate::air_temp_c(grid.lat_deg(j / w), grid.r[j] + grid.h[j])),
                     f64::from(grid.precip[j]),
                     lithology::litho_of_tag(tag),
                     dep_tags::WAVE,
