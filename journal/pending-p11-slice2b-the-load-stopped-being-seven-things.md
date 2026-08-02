@@ -174,9 +174,21 @@ evaluating, per depositing cell per epoch — which is why it is an instrument
 bought correctness of principle with no expression, and saying so would have been
 the honest report.
 
-MEASURED: `<transported %>` of the record's metres take their identity from the
-arriving composition; of those, `<disagree %>` would have been named differently
-by the site's own draw.
+**MEASURED (seed 1337, Medium, 404,202 m of record):** **77.21 %** of the record's
+metres take their identity from the arriving composition and never reach a draw.
+Of those, **41.31 %** — 209,670 m, **31.90 % of the whole record** — would have
+been named a *different rock* by the deposition site's own climate. So it is not a
+correctness-of-principle change: nearly a third of the world's recorded rock now
+says something about where it came from that the place it landed would have
+denied.
+
+The number also explains the residency. Member-grade transport genuinely
+diversifies what gets written — a mover delivers siltstone where the draw would
+have said mudstone — so `deposit_as`'s merge key splits more often: the split
+factor went **1.2775× → 1.9064×** (7,622,541 units against 3,998,428 under the
+pre-P11 class-only key), and `Pregen::approx_resident_bytes` with it
+(357,154,365 → 403,151,293, **+43.87 MiB**). The record got bigger because it got
+more honest, which is the trade this arc has been making since slice 1.
 
 ## The salt that was two decisions
 
@@ -234,4 +246,43 @@ unless it is written down.
 
 ---
 
-**Numbers, gates and the residency delta are in the merge report.**
+## The costs, measured
+
+**The four budget planes, on the real solve** (not on a model of it — the probe
+reads `Erosion::species_layouts` now):
+
+| | MiB |
+|---|---|
+| class-grade, dense, what shipped | 63.45 |
+| **member-grade, dense** — the wrong asymptote | 126.90 |
+| **member-grade, CSR-sparse** — ruling 3 | **44.67** |
+
+`p = 3.721` mean species per cell, max 8, on a 14-material axis: the foundation's
+blind prediction was 3.719 / 8, and its 44.98 MiB estimate lands within 0.7 % of
+the 44.67 MiB the solve actually pays. **Sparse member grade is 0.70× the cost of
+the class grade it replaces**, while carrying twice the identity.
+
+**Gen time is where the bill landed.** Medium pregen, three uncontended samples:
+**50.26 / 50.23 / 50.55 s** against main `5914e708`'s 41.8–42.2 s — **+19.4 %**.
+The first measurement of this slice was **60.3 s**, and the extra 10 s was one
+loop: `expose`'s window walk had gone sequential in the conversion, on a phase
+that runs `n` times an epoch and had been data-parallel since S9b. Restoring the
+parallel driver (per-cell, disjoint writes, byte-identical by construction, and
+the goldens confirm it) recovered all of it. `pregen_time_vs_extent`'s ratified
+60 s budget was **not moved**; it is passing at 50.3 s with ~16 % headroom, where
+it had ~30 % before.
+
+**Law 3 closes tighter than the conversion could have loosened it**, measured
+after the CSR change rather than assumed:
+
+| instrument | measured | bound |
+|---|---|---|
+| `max_species_split_residue` | 2.175e-16 | < 1e-12 |
+| `max_creep_itemisation_residue` | 1.352e-15 | traffic-relative |
+| `max_creep_conservation_residue` | 9.908e-16 | 0 to round-off |
+
+All three are **at or within a few ULP of exact**, which is the point: the
+residual rule survived the shape change because it moved with the arithmetic
+rather than beside it. `split_row_into` is one function and entrainment, incision
+and creep all route through it, so no caller can invent its own budget — the same
+guarantee `split_by_shares` gave, over a different index.

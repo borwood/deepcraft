@@ -290,7 +290,6 @@ impl Erosion {
             // The dense row's axis codes are `0..aw`; the blend anchors on its own
             // argmax exactly as the class-grade one does.
             let codes: Vec<u8> = (0..aw as u8).collect();
-            let mut row = vec![0.0f64; aw];
             let providers = cfg.providers;
             let Erosion {
                 masks,
@@ -299,23 +298,86 @@ impl Erosion {
                 sus_creep,
                 ..
             } = self;
-            for i in 0..n {
+            // **Per-cell, disjoint writes, one window walk each** ⇒ the parallel
+            // driver is byte-identical to the sequential one by construction, like
+            // every other per-cell phase in this file. It is not an optimisation to
+            // take or leave: this walk runs `n` times an epoch on a production
+            // world, and leaving it serial cost **18 s of Medium pregen** when the
+            // conversion first landed — the whole of that slice's measured gen-cost
+            // regression, in one loop.
+            // `then`, never `then_some`: with the coupling off the three rate planes
+            // are deliberately EMPTY (that emptiness is what makes every consumer
+            // read the exact identity `1.0`), so slicing them eagerly is an
+            // out-of-bounds on the uncoupled world. Same shape as the CSR row read
+            // in `exchange_cell` — a structure the off-path does not build.
+            let rates = erod.then(|| (&mut sus_flow[..n], &mut sus_creep[..n], &mut litho[..n]));
+            let cell = |i: usize, row: &mut [f64], m: &mut u64| -> Option<(f64, f64, u8)> {
                 let units = strata.get(i).map_or(&[][..], |s| s.units.as_slice());
-                providers.outcrop_shares(axis, units, &mut row);
-                masks[i] = mask_of_dense(&row);
-                if erod {
-                    sus_flow[i] = lithology::blend_member_susceptibility(&codes, &row, &flow_tab);
-                    sus_creep[i] = lithology::blend_member_susceptibility(&codes, &row, &creep_tab);
+                providers.outcrop_shares(axis, units, row);
+                *m = mask_of_dense(row);
+                if !erod {
+                    return None;
+                }
+                let mut d = 0usize;
+                for k in 1..aw {
+                    if row[k] > row[d] {
+                        d = k;
+                    }
+                }
+                Some((
+                    lithology::blend_member_susceptibility(&codes, row, &flow_tab),
+                    lithology::blend_member_susceptibility(&codes, row, &creep_tab),
                     // The debug outcrop stays the dominant *class*, derived from the
                     // dominant material — a summary of the quantity, never a second
                     // stored label (S-3).
-                    let mut d = 0usize;
-                    for k in 1..aw {
-                        if row[k] > row[d] {
-                            d = k;
+                    Litho::of_material(axis.material(d)).index() as u8,
+                ))
+            };
+            match rates {
+                Some((sf, sc, lt)) => {
+                    if parallel {
+                        masks[..n]
+                            .par_iter_mut()
+                            .zip(sf.par_iter_mut())
+                            .zip(sc.par_iter_mut())
+                            .zip(lt.par_iter_mut())
+                            .enumerate()
+                            .for_each_init(
+                                || vec![0.0f64; aw],
+                                |row, (i, (((m, f), c), l))| {
+                                    if let Some((a, b, k)) = cell(i, row, m) {
+                                        (*f, *c, *l) = (a, b, k);
+                                    }
+                                },
+                            );
+                    } else {
+                        let mut row = vec![0.0f64; aw];
+                        let z = masks[..n]
+                            .iter_mut()
+                            .zip(sf.iter_mut())
+                            .zip(sc.iter_mut())
+                            .zip(lt.iter_mut());
+                        for (i, (((m, f), c), l)) in z.enumerate() {
+                            if let Some((a, b, k)) = cell(i, &mut row, m) {
+                                (*f, *c, *l) = (a, b, k);
+                            }
                         }
                     }
-                    litho[i] = Litho::of_material(axis.material(d)).index() as u8;
+                }
+                None => {
+                    if parallel {
+                        masks[..n].par_iter_mut().enumerate().for_each_init(
+                            || vec![0.0f64; aw],
+                            |row, (i, m)| {
+                                cell(i, row, m);
+                            },
+                        );
+                    } else {
+                        let mut row = vec![0.0f64; aw];
+                        for (i, m) in masks[..n].iter_mut().enumerate() {
+                            cell(i, &mut row, m);
+                        }
+                    }
                 }
             }
         }
