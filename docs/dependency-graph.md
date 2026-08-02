@@ -103,8 +103,11 @@ bio/eco gate is a USER call and engine progress does not earn it.*
 **Placements ruled 2026-08-01, recorded with WHERE so they are not re-derived from memory**
 (corrections #71's lesson): the **bake's solver is an engine primitive** — same argument as the
 field kernels, only the kernel knows its own bound; the **body is pack content**; the **baked
-result is derived data in the pack's compiled form**, produced at *pack build* rather than world
-gen because it is a pure function of the body definition with no world involvement. Ruled in
+result is derived data in the pack's compiled form** ~~produced at *pack build* rather than world
+gen~~ — **VENUE CORRECTED 2026-08-02 (user, corrections #86): the purity that was cited as the
+reason for pack-build-only is what makes the bake callable from ANY clock, and evolution mints
+species DURING DEEPTIME WORLDGEN, so worldgen is a first-class caller** (authored species bake at
+pack build; evolved species bake when minted, inherited down the phylogeny like the frond). Ruled in
 `posture-gait.md` § 9 and § 3. **Segment KINDS** (`Box`/`Card`) are a **closed machine-owned
 set**, governed exactly like `material-behavior.md` § 2's forms — sketch only, `ideas.md`.
 

@@ -3546,3 +3546,37 @@ file where the hazard being guarded does not exist.
 SOURCE branch (split by CONCERN on module boundaries); the trailer line scopes
 topic-splitting's prohibition to docs; the module docstring carries the scope banner;
 the `file-size-is-context` memory is scoped likewise.
+
+## 86. "It runs at pack build rather than world gen" (posture-gait.md § 3, ratified 2026-08-01 — narrowed by its own author 2026-08-02: *"my language was sloppy with this"*)
+
+**The claim.** The bones' § 3: *"a pure function of the body definition with no world
+involvement, **so** it runs at pack build rather than world gen"* — repeated in
+`dependency-graph.md` § 2b's placements paragraph, inherited by the member-#0 design pass
+(its F1 worked "no pack-build step exists today" without questioning the venue itself).
+
+**The correction, in the user's words:** *"the bake cannot run 'at pack build' or not only.
+our drive behind the body generator is planning default plugin pack to ship evolution, which
+will drive the body knobs, making new bodies, requiring them to have gait etc baked during
+the deeptime world generation."*
+
+**The corpus already said so, three ways** — this is a recorded-ambition recovery, not new
+design: `ecology.md` § 4 (USER design): speciation is emergent from simulated terrain —
+species are **minted during deeptime**, so they cannot be baked at pack build; `ideas.md`
+(user ruling, the SAME conversation that ratified the bones): *"bake the frond at deeptime,
+per species, shared down the phylogeny"* — the sibling instance of the self-same declared
+shape, assigned the venue the posture sentence excluded; and the arc's own driver (close
+block 2026-08-01): a mutated body gets its stance *by construction* — which has to happen
+when the mutation does.
+
+**Mechanism: a purity property over-read into a venue schedule, with the inference running
+backwards.** "No world involvement" means the bake is callable from ANY clock — pack build
+for authored species, deeptime worldgen for evolved ones (deterministic for free: pure fn of
+a seeded definition), define-time for MCP-authored plans. The "so" converted the property
+that *enables* every venue into an argument for exactly one. Nobody caught it through one
+ratification, one graph transcription, and one design pass — including the design pass that
+stared directly at the venue gap (F1) and resolved it correctly (pure fn in dc-api, call-site
+migrates) *without noticing the deeper reason that resolution was forced*: dc-worldgen must
+be able to call it.
+
+**Both targets stamped this commit** (posture-gait.md § 3 banner; dependency-graph § 2b), and
+the member-#0 audit header carries the sharpened F1.

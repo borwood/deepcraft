@@ -155,7 +155,13 @@ cargo clippy --workspace --all-targets --release -- -D warnings
 cargo test --workspace --release
 ```
 
-- **A gate is only evidence about the code it actually ran.** Agent worktrees
+- **GATES MAY BATCH ACROSS RELATED SLICES (user, 2026-08-02: "let's keep velocity up. we
+  can gate for every couple slices if they're related to each other").** The full trio is
+  owed per **arc-chunk**, not per merge: consecutive slices of one arc may merge on cheap
+  evidence (fmt + clippy on the changed crates + the changed crates' own tests), with the
+  full workspace gate run before the arc pauses, before anything ships beyond the arc, and
+  at wrap. **The batch debt is recorded in each intermediate commit message and cleared
+  loudly** — an unrecorded deferred gate is a false green wearing a schedule.
   share one `CARGO_TARGET_DIR`, and a sibling's stale artifact can be served
   as fresh — producing a **false green**: exit 0, every suite `ok`, and the
   code you just wrote never built (corrections #27; the silent mirror of #21's

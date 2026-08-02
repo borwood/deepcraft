@@ -54,7 +54,25 @@ LOCK = os.path.join(REPO, ".agent-build.lock")
 # cancelled permission prompt self-heals quickly.
 SPAWN_GRACE_S = 180
 
-CARGO_RE = re.compile(r"cargo(\.exe)?[\"']?(\s|$)", re.IGNORECASE)
+# Match cargo as an INVOKED PROGRAM, not as a substring: (position) at the
+# start of the command, after a command separator (; & | ( or newline), or as
+# the tail of a path (…\cargo.exe / …/cargo); AND (shape) followed by a
+# subcommand-looking word, a flag, a toolchain +, or end-of-command. Two false
+# positives taught this shape in the hook's first hours (2026-08-02): a grep
+# whose PATTERN contained "cargo …", then a commit message whose line wrap put
+# a quoted "cargo" mention at start-of-line. Residual misses are accepted and
+# fail-open (`ENV=1 cargo build`, an unlisted future subcommand — add it to
+# SUBCOMMANDS); a residual false positive remains for prose lines that START
+# with a real invocation shape ("cargo test is slow") — reword and retry.
+SUBCOMMANDS = (
+    "add|bench|b|build|check|c|clean|clippy|doc|fix|fmt|install|metadata|"
+    "nextest|remove|run|r|test|t|tree|update|version"
+)
+CARGO_RE = re.compile(
+    r"(?:^[\"']?|[;&|(\n]\s*[\"']?|[\\/])cargo(\.exe)?[\"']?"
+    rf"(\s+(?:[+-]|(?:{SUBCOMMANDS})\b)|$)",
+    re.IGNORECASE,
+)
 
 
 def build_processes():

@@ -92,8 +92,13 @@ limits.
 
 - **Bake** takes `(segment tree + masses)` and emits the resting posture, the gait vector, the
   keyframe pair, and the collider box sets. It is a **pure function of the body definition
-  with no world involvement**, so it runs at *pack build* rather than world gen — cacheable,
-  shareable, and a third-party pack gets it for free.
+  with no world involvement**, ~~so it runs at *pack build* rather than world gen~~ —
+  **VENUE CORRECTED 2026-08-02 (user; corrections #86): purity makes the bake callable from
+  ANY clock, and the arc's own driver requires the deeptime clock** — pack build for authored
+  species (cacheable, shareable, a third-party pack gets it for free), **deeptime worldgen
+  for species the evolution pack mints** (deterministic for free; inherited down the
+  phylogeny exactly like the frond bake below, which was always ruled "at deeptime"), and
+  define-time for MCP-authored plans. The venue is the caller's; the purity is the contract.
 - **Sim** owns the small, quantized **phase** — which keyframes we are between and how far —
   plus any per-instance deltas. This is the user's proposal and it is what makes the pose a
   pure function reconstructible identically in sim, client and replay.
