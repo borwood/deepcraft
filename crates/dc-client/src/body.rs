@@ -345,6 +345,12 @@ pub struct LegRig {
 /// `l2` = the distance from the knee pivot to the declared sole anchor
 /// (knee→sole).
 ///
+/// The chain walk itself is the SHARED dc-api derivation
+/// ([`dc_api::bodies::stance_chains`]) — hoisted 2026-08-02 so the resting
+/// bake and this rig builder derive chains from one function instead of two
+/// copies of one truth (posture-bake audit F6; the byte-identical rigs are
+/// pinned by the tests below).
+///
 /// This retires the `starts_with("leg_")` / `_upper`→`_lower` naming coupling
 /// that used to live here (anti-shape A-7 — a content identity inside a
 /// process; flagged in its own doc comment since the second-plan report). A
@@ -354,26 +360,11 @@ pub struct LegRig {
 /// have to argue for, not a silent partial answer.
 pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
     let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
-    let child_count = |name: &str| {
-        plan.segments
-            .iter()
-            .filter(|s| s.parent.as_deref() == Some(name))
-            .count()
-    };
     let mut legs = Vec::new();
-    for sole in dc_api::bodies::segments_with_role(plan, "sole") {
-        // Walk parents from the sole segment to the first branch point (a
-        // segment with ≥2 children) or the root — the chain is DERIVED, the
-        // contact is DECLARED.
-        let mut chain = vec![sole];
-        let mut cur = sole;
-        while let Some(parent) = cur.parent.as_deref().and_then(seg_by) {
-            if child_count(&parent.name) >= 2 || parent.parent.is_none() {
-                break;
-            }
-            chain.push(parent);
-            cur = parent;
-        }
+    for chain in dc_api::bodies::stance_chains(plan, "sole") {
+        // The chain is DERIVED (shared walk, dc-api), the contact is
+        // DECLARED: `[sole segment, .., topmost bone]`, parents walked to
+        // the first branch point (≥2 children) or the root.
         let &[lower, upper] = &chain[..] else {
             continue; // not a two-bone chain; no rig (see doc comment)
         };
@@ -390,7 +381,7 @@ pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
         }
         let l1 =
             (lower.pivot_m[0].powi(2) + lower.pivot_m[1].powi(2) + lower.pivot_m[2].powi(2)).sqrt();
-        let anchor = sole
+        let anchor = lower
             .roles
             .iter()
             .find(|r| r.role == "sole")

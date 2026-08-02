@@ -480,7 +480,12 @@ realistic… posture actually is responsible for keeping center of gravity."*
   Froude number. A baked gait can be falsified against published bands rather than tuned to a
   look.
 
-**FIRST SLICE — the resting-posture bake (member #0).** Headless, no rendering change, no
+**FIRST SLICE — the resting-posture bake (member #0). ✅ SHIPPED 2026-08-02 (journal/0137,
+design pass `docs/audits/2026-08-02-posture-bake-member0-design.md`): acceptance met by
+measurement — longleg 1.020 m > biped 0.880 m, standing not squatting; hip is an output;
+predicted table held to 1e-9. Gate debt per the 2026-08-02 batching ruling: full workspace
+gate + dc-client suite (leg_rigs hoist) batch with the consumer slice.** Original spec:
+Headless, no rendering change, no
 engine constant moved. Derive a resting posture and hip height for a `BodyPlan` from its own
 geometry, using segment volume as the mass proxy **with per-segment material named as its heir**.
 - **Acceptance is an OUTCOME, and it is falsifiable:** `dc:body/longleg` must come out
