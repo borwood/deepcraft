@@ -284,6 +284,28 @@ part most likely to be got wrong first.
 is a recompile rather than a migration — and that window **closes** when damage resolution
 moves the firewall (§ 5).
 
+**RULED 2026-08-01 (user), disposing of the named sub-question above — after a defeat-check
+sweep of every sketch that touches binding.** **B0 lands roles for SYSTEMS** — contact anchors,
+support capability, functional parts, the look-at joint — and **clip binding stays
+address-exact**. Role binding for animation is a **named heir, decided at the gait-bake
+member's design pass** (`stubs.md` § 34), and it must land **before member 2 moves the
+firewall** — after that, the binding key of a versioned sim asset is a migration rather than a
+recompile. **Cardinality enforcement travels with the heir.** It is not a clip-only question:
+B0's first system consumers resolve a role to **exactly one segment or fail loudly at query
+time** — already stronger than the name lookups they replace, which miss silently.
+Two findings carried the call:
+**(1)** § 4 makes it likely the gait bake *dissolves* the many-to-one case for locomotion —
+every segment carrying a role plays the *same* cycle at a derived phase offset, and the
+shipped walk clip already IS that (measured: body-plan-structure design pass § 4) — so a
+selector grammar built now risks being machinery the next tier obsoletes;
+**(2)** the clip is not the only name-keyed binder: clothing binds by segment name
+(`bodies.md` § Clothing, DECIDED), plan forking inherits clips by retained joint names
+(§ Body plans, DECIDED), and sockets mount on segments (PROPOSED). A binding vocabulary
+designed today from the clip case alone is a vocabulary designed for one consumer — the exact
+hazard `ideas.md` § procedural-attacks flags — and all four migrate through the same heir.
+Until then, cross-plan clip reuse rides as it ships today: shared names, working and
+unchecked (measured, journal/0130).
+
 ## 8. What this document does NOT decide
 
 The concrete SDK types · whether the effort term is a real minimisation or static geometry

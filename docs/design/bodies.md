@@ -30,6 +30,16 @@ hard-coded body. This doc is layer 2.
 
 ## Body plans — DECIDED 2026-07-19
 
+> **⚠ TWO HALVES SUPERSEDED 2026-08-01 (user; log: ROADMAP 2026-08-01 close block,
+> `posture-gait.md` § 7b):** **(1)** the verb→slot contract's *closed vocabulary* is retired —
+> the action vocabulary **OPENS** (packs declare actions; the engine checks you supplied what
+> you claimed; `KNOWN_VERBS`/`REQUIRED_VERBS` go with the B0 structure slice). The
+> define-time-checking *principle* stands. **(2)** name-keyed binding — clips to joint names
+> here, forking's clip inheritance by retained names, § Clothing's segment-name binding,
+> § Sockets' segment mounts — is a **stand-in**: `posture-gait.md` § 7b ratifies that
+> animations bind to ROLES. The binding-key migration is `stubs.md` § 34's heir, decided at
+> the gait bake, **before the firewall moves**.
+
 Fidelity target: **above Minecraft, still cuboid** — jointed limbs, several
 body segments, a neck. A **body plan** is a registry contract: a named joint
 topology (segment tree). Concrete bodies are *parameterizations* of a plan —

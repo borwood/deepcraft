@@ -4,6 +4,24 @@
 this document. It proposes a shape for `dc_api::bodies::{BodyPlan, SegmentDef}`; proposing a
 change and making one are different acts, and the second is the user's call.
 
+> **⚠ RULINGS LANDED 2026-08-01, SAME DAY (user) — this banner is the mutable header; the body
+> below is dated testimony.** The five rulings (logged in ROADMAP's 2026-08-01 close block and
+> `dependency-graph.md` § 2b) collapse § 1's five proposed types into **roles + modes** as the
+> direction — the concrete struct is owed to the B0 slice presentation, not decided here:
+> **§ 6.H's contest UPHELD** (the action vocabulary opens; `KNOWN_VERBS`/`REQUIRED_VERBS` go) ·
+> **§ 6.C's contest UPHELD and widened** into the support amendment (`posture-gait.md` § 5:
+> support is a per-segment *capability* activated per *mode*; the `ContactDef`/`LimbDef`
+> contact-and-purpose framing is superseded by that shape, `ModeDef`'s insight survives inside
+> it) · **§ 11 Q1 answered** (vocabulary opens) · **§ 11 Q2 answered** (balance scoped to
+> standing bodies) · **§ 11 Q4 answered** (functional parts DECLARED, as roles with
+> segment-local anchors). **§ 11 Q3 (growth vs plan-parameters) remains open.**
+> **And the § 7b binding sub-question is RULED 2026-08-01** (`posture-gait.md` § 7b): B0 lands
+> roles for systems; **clip binding stays address-exact**; role binding for animation is
+> `stubs.md` § 34's heir at the gait bake, before the firewall moves, with cardinality
+> enforcement travelling with it. **§ 8 item 2's interim (contacts derived from `leg_rigs`) is
+> dissolved** by the user's `structure → posture → gait` ordering — the posture bake will read
+> declared roles.
+
 **The question.** *What must a body plan declare, for the engine to derive posture, gait,
 colliders and damage from it — across body kinds we have not built?*
 

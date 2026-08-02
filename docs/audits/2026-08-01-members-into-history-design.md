@@ -10,6 +10,15 @@ marked **(assistant-proposed)**. No cargo was invoked; every number is arithmeti
 already-measured quantities, cited to source, or a `size_of` computed by hand from the
 field list and flagged as such.
 
+> **RULINGS (mutable header; body is the dated design record):**
+> 1. **The record names `MaterialId`** (user, 2026-08-01, *"certainly"* — the Q1 upstream
+>    fork). Rationale as presented and accepted: after deposition-time fitness has run,
+>    the member has done its whole job — the fitness envelope is *selection machinery*,
+>    and history records **the rock, not the road to it**. Two members sharing a material
+>    are two paths to one rock. Zero-byte swap in `DepUnit`; openness arrives via the
+>    material registry (the SDK arc), never via a second identity system. `GeoMemberIdx`
+>    stays what it is: the selector fitness speaks, spent at deposition.
+
 **Status legend:** **DECIDED/RATIFIED** (user) · **BUILT** (code exists, verified here) ·
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input).
 
