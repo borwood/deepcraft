@@ -1029,7 +1029,7 @@ mod tests {
     #[test]
     fn splitting_a_unit_within_its_class_preserves_the_outcrop_shares() {
         use crate::deeptime::recorder::{DepEnv, DepTag, DepUnit, EnergyBand};
-        let tag = DepTag::mineral(DepEnv::Subsea, super::Aridity::Humid, EnergyBand::Low);
+        let tag = DepTag::mineral(DepEnv::Subsea, crate::deeptime::Aridity::Humid, EnergyBand::Low);
         let unit = |m, t| DepUnit {
             tag,
             thickness_m: t,

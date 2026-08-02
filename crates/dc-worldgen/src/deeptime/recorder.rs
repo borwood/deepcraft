@@ -19,7 +19,7 @@
 //! by construction: the record mirrors every metre that entered or left `H`.
 
 use dc_core::materials::MaterialId;
-use dc_core::materials::geology::{FormationContext, GeologySet};
+use dc_core::materials::geology::{FormationContext, GeoClass, GeologySet};
 use dc_sim::statistical::rng::Draws;
 
 use super::geotherm::{self, BurialColumn};
@@ -63,16 +63,31 @@ pub struct MemberCtx<'a> {
     pub geology: &'a GeologySet,
     pub draws: Draws,
     pub epoch: u64,
+    /// **The deep tier's classes, resolved once per run**, indexed by
+    /// `Litho::index()`.
+    ///
+    /// `GeologySet::select` finds its class in a `BTreeMap<String, _>`, which is
+    /// a handful of string comparisons — free while selection ran once per
+    /// (chunk, event), and *not* free now that it runs once per deposition event
+    /// per cell per epoch. The roster is fixed for a run, so the lookup is hoisted
+    /// out of the loop entirely. It is the set's own `GeoClass`, not a copy of
+    /// one: no second authority, just no second lookup.
+    classes: [Option<&'a GeoClass>; Litho::COUNT],
 }
 
 impl<'a> MemberCtx<'a> {
     /// Open the stream for a world. The **only** place a deposition-time member
     /// draw is seeded.
     pub fn new(geology: &'a GeologySet, seed: u64, epoch: u64) -> Self {
+        let mut classes = [None; Litho::COUNT];
+        for l in Litho::ALL {
+            classes[l.index()] = geology.class(crate::geology::deep_class_of_species(l));
+        }
         Self {
             geology,
             draws: Draws::of::<crate::draws::DeepMember>(seed),
             epoch,
+            classes,
         }
     }
 
@@ -85,6 +100,7 @@ impl<'a> MemberCtx<'a> {
             draws: self.draws,
             cell: cell as u64,
             epoch: self.epoch,
+            classes: self.classes,
         }
     }
 
@@ -144,6 +160,8 @@ pub struct DepositCtx<'a> {
     /// Epoch — the temporal half. Two beds laid at one cell in different epochs
     /// are independent draws.
     pub epoch: u64,
+    /// The deep classes, pre-resolved — see [`MemberCtx::classes`].
+    classes: [Option<&'a GeoClass>; Litho::COUNT],
 }
 
 impl DepositCtx<'_> {
@@ -172,10 +190,9 @@ impl DepositCtx<'_> {
         tag: u64,
         k: u64,
     ) -> MaterialId {
-        let class = crate::geology::deep_class_of_species(litho);
         let u = self.draws.unit(&[tag, self.cell, self.epoch, k]);
-        self.geology
-            .select(class, form, u)
+        self.classes[litho.index()]
+            .and_then(|c| self.geology.select_in(c, form, u))
             .map_or_else(|| litho.reference_material(), |(_, def)| def.material)
     }
 }

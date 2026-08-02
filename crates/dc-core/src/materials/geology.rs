@@ -426,37 +426,54 @@ impl GeologySet {
         ctx: &FormationContext,
         u: f64,
     ) -> Option<(GeoMemberIdx, &GeoMemberDef)> {
-        let class = self.classes.get(class)?;
+        self.select_in(self.classes.get(class)?, ctx, u)
+    }
+
+    /// [`Self::select`] over an **already-resolved** class — the hot form.
+    ///
+    /// `select` looks its class up in a `BTreeMap<String, _>`, which is a handful
+    /// of string comparisons. That was free while selection ran once per (chunk,
+    /// event); since P11 slice 1 it runs once per **deposition event in the deep
+    /// sim** — per cell, per epoch — and the lookup became a measurable share of
+    /// world-build time. A caller that knows its class need not re-find it every
+    /// time, and resolving it once is not a second authority: the `GeoClass` it
+    /// holds is this set's own.
+    ///
+    /// **Allocation-free, deliberately.** The weights used to be collected into a
+    /// `Vec` so the inverse-CDF could walk them twice; they are now *recomputed*
+    /// on the second walk instead. [`fitness`] is a pure function of
+    /// `(window, ctx)` — the same inputs give the same bits — so the answer is
+    /// unchanged, and a malloc/free per deposited bed is not.
+    pub fn select_in(
+        &self,
+        class: &GeoClass,
+        ctx: &FormationContext,
+        u: f64,
+    ) -> Option<(GeoMemberIdx, &GeoMemberDef)> {
         if class.members.is_empty() || class.abundance_sum <= 0.0 {
             return None;
         }
-        let mut total = 0.0f64;
-        let mut weights = Vec::with_capacity(class.members.len());
-        for &idx in &class.members {
+        let weight = |idx: GeoMemberIdx| {
             let m = self.member(idx);
-            let w = fitness(&m.window, ctx) * (m.abundance / class.abundance_sum);
-            weights.push(w);
-            total += w;
+            fitness(&m.window, ctx) * (m.abundance / class.abundance_sum)
+        };
+        let mut total = 0.0f64;
+        for &idx in &class.members {
+            total += weight(idx);
         }
         if total <= 0.0 {
             return None;
         }
         let threshold = u.clamp(0.0, 1.0 - f64::EPSILON) * total;
         let mut acc = 0.0f64;
-        for (&idx, &w) in class.members.iter().zip(&weights) {
-            acc += w;
+        for &idx in &class.members {
+            acc += weight(idx);
             if threshold < acc {
                 return Some((idx, self.member(idx)));
             }
         }
         // Float slack: the last member with nonzero weight takes the tail.
-        let last = *class
-            .members
-            .iter()
-            .zip(&weights)
-            .filter(|&(_, &w)| w > 0.0)
-            .map(|(idx, _)| idx)
-            .next_back()?;
+        let last = *class.members.iter().rfind(|&&idx| weight(idx) > 0.0)?;
         Some((last, self.member(last)))
     }
 }

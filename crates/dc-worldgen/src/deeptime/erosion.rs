@@ -3574,8 +3574,8 @@ impl Erosion {
                 record_cell(s, dh[i], chapter, || deposit_at(i));
             });
         } else {
-            for i in 0..self.n {
-                record_cell(&mut grid.strata[i], dh[i], chapter, || deposit_at(i));
+            for (i, s) in grid.strata.iter_mut().enumerate().take(self.n) {
+                record_cell(s, dh[i], chapter, || deposit_at(i));
             }
         }
     }
