@@ -293,6 +293,12 @@ mutable header is a small ordinal hazard of its own, and this session already pa
 
 ### F11 — `bodies.md`'s `## Plan parameters — PROPOSED (user sketch 2026-07-19)` heading was **overwritten**, not moved. Its body survives under a `DECIDED` heading, and four citations dangle.
 
+> **✅ RESOLVED BY USER RULING 2026-08-02 — no action, deliberately.** *"Let the bodies
+> session worry about bodies.md; if we accidentally committed their change then it was an
+> in-progress or intended change and they will make sure it's right."* The finding is
+> released to the owning session; the geo/integration side takes no restore. (Stamped by
+> the ruling's recorder, same commit.)
+
 | | claim |
 |---|---|
 | **A** | `docs/design/bodies.md:297` — `## Postures — DECIDED 2026-08-02 (user; sweep-checked…)`. `f815d69`'s diff replaces the line `-## Plan parameters — PROPOSED (user sketch 2026-07-19)` with this heading; the scalar/bool plan-parameter body at `:335-353` is **untouched** and now sits inside § Postures with no heading of its own. |
