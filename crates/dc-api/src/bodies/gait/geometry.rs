@@ -209,6 +209,13 @@ pub(super) fn clearance_pose(
     let inner = (l1 - l2).abs();
     let lift_floor = knobs.foot_clearance_ratio * reach;
     let lift_ceiling = reach - inner;
+    // NaN-safe early-out: `!(a > b)` deliberately routes the incomparable case
+    // (a degenerate measurement) into the error arm rather than proceeding.
+    // Allowed, not restyled, so the author's semantics stay bit-for-bit —
+    // `a <= b` would silently PROCEED on NaN. (Lint arrived red with the gait
+    // merge and blocked an unrelated gate, 2026-08-03; owner may restyle to
+    // `partial_cmp` if preferred.)
+    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     if !(lift_ceiling > lift_floor + EPS_M) {
         return Err(format!(
             "the chain from `{}` cannot lift its anchor clear of the ground under its own \
