@@ -480,10 +480,10 @@ impl DepTag {
 /// accessor + one golden re-capture, not a ~141-site sweep. Fields are
 /// private; construction is [`Self::new`] (tests/probes) or the recorder.
 ///
-/// **The mover axis is recorded WITHOUT merge-key membership (M-2)** pending
-/// the measured mover split factor (M0; the #88 rule — an axis joined the key
-/// unmeasured once and multiplied units 2.4×). See [`DeepStrata::deposit_moved`]
-/// for the combine rule. **Grain is in the key** — inert while every unit is
+/// **The mover axis is IN the merge key (M-1)** — taken on M0's measured split
+/// factor of 1.0308× (under the ≲1.1 bar; the #88 rule — an axis joined the key
+/// unmeasured once and multiplied units 2.4×). A colluvial and an alluvial bed
+/// of the same rock are two units. **Grain is in the key** — inert while every unit is
 /// UNSET (the #88 tripwire asserts the unit count is identical), and exactly
 /// the split instrument FS-A's writers will be gated on.
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -706,8 +706,8 @@ impl DepUnit {
             (self.bits & !(0b111 << GRAIN_SHIFT)) | (u32::from(grain & 0b111) << GRAIN_SHIFT);
     }
 
-    /// The merge-key view of the bitfield (tag axes + species + grain +
-    /// chapter; never unconformity, never the mover — see [`MERGE_KEY_MASK`]).
+    /// The merge-key view of the bitfield (tag axes + species + grain + mover +
+    /// chapter; never unconformity — see [`MERGE_KEY_MASK`]).
     #[inline]
     fn key_bits(&self) -> u32 {
         self.bits & MERGE_KEY_MASK

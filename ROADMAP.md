@@ -2880,9 +2880,22 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     refinement content, and for the default deepsim plugin pack, it must model a
     process honestly.**"* Smoothness is the unearned default; sharpness is bought by an
     honest process — the positive half of the 2026-07-19 "I'll scream" ruling. **Design
-    pass dispatched 2026-08-03** (`docs/audits/2026-08-03-stratigraphic-correlation-design.md`
-    when it lands); it supersedes-as-plan the membership dither shipped in slice 3 —
-    existence is not standing, applied to our own day-old mechanism.
+    pass DONE 2026-08-03 (`docs/audits/2026-08-03-stratigraphic-correlation-design.md`,
+    harvested same day).** Recommended: R-C, the shared-clock proportional rule (chapter
+    partition + cumulative-thickness fraction; arity-free, chunk-seam-free; pinch-outs
+    and truncation wedges fall out). **The mass argument HOLDS** (blend-of-sums exact in
+    f64; F2 coherent; and the key simplification — correlation is READ-side, so
+    quantum/carry/merge-key are untouched and every deep-time golden must be STILL, the
+    strongest tripwire). Retires: `cell_of`, the near `sample_source_cell` call site,
+    the `NearRecordMembership` domain, F6/P-6's framing. Survives: `SubCell` + records
+    (the boreholes are the input), `cell_bundle`, the accessor layer, `Octaves`, the
+    packed unit (chapter bits become the correlation clock). **User picks pending in its
+    § 9: P-1 identity treatment (mixtures vs octaves-cut vs hybrid — carries the
+    two-user-rulings tension: 2026-07-19 "dress every contact with noise/dither" vs
+    2026-08-03 "utterly smooth default") · P-2 the inverted acceptance criterion · P-3
+    R-C vs R-C′ · P-4 the onlap feather at the record edge (the 0147 wall becomes a
+    wedge) · P-5 formal supersession ratification.** Side finding fixed in the harvest:
+    two `recorder.rs` doc comments still claimed M-2 while the code ships M-1.
 
 - **🟢 RESOLVED same night — the bodies session's arc gate (`0e344ca`) caught and fixed it
   as its defect #4 (a hand-maintained pinned tool list vs their `character_clear_look`
