@@ -17,16 +17,37 @@
 > arithmetic, § 3). A closed-aggregator-vocabulary sketch for the WINDOW pass itself is
 > filed in `ideas.md` (assistant-proposed, accepted as input only).
 >
-> **⚠ RIPPLE (2026-08-01, same day, senior to everything above): MEMBERS GO INTO DEEP
+> **RULING 3 — face-vs-unit (user, 2026-08-02, "Face"):** the composition term lands on
+> the **FACE** — a sparse CSR sidecar to the flux record, u8-quantized shares over the
+> species the face actually carried (§ 4.4's parallel-CSR shape, re-ranked first at member
+> grade in `2026-08-01-members-into-history-design.md` § 3.4 and confirmed by the measured
+> p = 3.721 mean / 8 max). `DepUnit` stays single-species; the packed-`DepUnit` slice (U5)
+> proceeds; a packed per-unit hint (argmax + share in one byte) remains a slice-3
+> design-pass option, deliberately not foreclosed. **The user's reason goes beyond the
+> cost arithmetic and is directional:** *"it provides hints for the refinement operators —
+> what direction/how did certain materials enter a region. The directional face
+> information is far more valuable to the actual presentation/refinement layer"* — the
+> face is where provenance-in-transit lives; the unit only ever remembers what stayed.
+> Rider from the same ruling: the partially implemented refinement machinery **needs
+> re-visiting now that material identity is in the record** (ROADMAP, E5 continuation).
+> Exact MiB re-measures in the recording slice's design pass — the loaded-face counts
+> below predate P11.
+>
+> **⚠ RIPPLE (2026-08-01, same day, senior to rulings 1–2 above): MEMBERS GO INTO DEEP
 > HISTORY (user DECIDED — ROADMAP § Sequenced, graph P11).** Rulings 1–2 stand in their
 > LOGIC (record composition, not a size proxy; nothing non-additive before WINDOW), but
 > the species axis they record against — this audit's 7-entry Litho roster — is exactly
-> what P11 re-grades. **Ruling 3 (face-vs-unit) is HELD ~~pending P11's design pass and
+> what P11 re-grades. **Ruling 3 (face-vs-unit) was HELD ~~pending P11's design pass and
 > ripple map~~ — the design pass CLOSED 2026-08-01 (six rulings in its header); ruling 3
-> re-enters after P11 slice 2's re-derived numbers land (stamped 2026-08-02, doc-topology
-> F12) — **the numbers HAVE landed (slice 2b shipped same day): journal/0141 § 11 carries
-> the face-vs-unit table (p = 3.721/8 max · units 1.9064× · record 116.31 vs 61.01 MiB
-> class-merged · flux faces 291,663). Ruling 3 is READY for the user**; the § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
+> re-entered after P11 slice 2's re-derived numbers landed (stamped 2026-08-02, doc-topology
+> F12) and was **RULED 2026-08-02 — see the block above**. *(Pointer corrected 2026-08-02:
+> an earlier draft of this banner cited "journal/0141 § 11" for an assembled face-vs-unit
+> table; 0141 has nine unnumbered sections and no such table exists anywhere — the numbers
+> live scattered: p = 3.721/8 and the unit split 1.9064× (3,998,428 → 7,622,541 units ⇒
+> 61.01 → 116.31 MiB at 16 B/unit) in journal/0141; the flux-face count 291,663 in
+> `crates/dc-worldgen/tests/flux_record.rs` (that suite's world, not production); the
+> member-grade cost re-derivation in `2026-08-01-members-into-history-design.md` § 3.4.)*
+> The § 4 cost arithmetic (7 × u8 shares) re-derives under a member-grade
 > roster. *(Mutable header; the body below is the dated research record.)*
 
 **Read at `f94a568`** (branch `main`; this file added on top). Produced by a **read-only**

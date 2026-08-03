@@ -485,9 +485,15 @@ two).
 4. **Litho dissolution residue** — delete `deep_class_of_species` and the ~250
    remaining class-speaking sites; re-shape or minimally patch the far `ShareVec<6>`
    site (rejected-interim; its real heir is the far register — do not gold-plate).
-**Record-terms ruling 3 (face-vs-unit) re-enters for ruling after slice 2's re-derived
-numbers land.** **CONTINUATION SLOT:** P10 (grain axis) and member #1 resume against the
-member-grade record; P5 stays its own deliberately-opened arc.
+**Record-terms ruling 3 (face-vs-unit) RULED 2026-08-02 (user): FACE** — composition as a
+sparse CSR sidecar to the flux record; `DepUnit` stays single-species (U5 packing
+proceeds). The user's rationale is directional, beyond cost: the face carries *what
+direction / how materials entered a region* — provenance hints for the refinement
+operators (full record: priors header). **Rider from the same ruling: the partially
+implemented refinement machinery needs re-visiting now that material identity is in the
+record** — folded into member #1's resumption below. **CONTINUATION SLOT:** P10 (grain
+axis) and member #1 resume against the member-grade record; P5 stays its own
+deliberately-opened arc.
 
 ### THE GRAIN-SIZE CONTINUUM — a real size axis on sediment — **SEQUENCED 2026-08-01 (user ruling: "option 2 — I just don't want to lose track of anything needing done")**
 
@@ -4244,7 +4250,7 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-02 GEO-2 close (the geo thread's pickup; supersedes the geo FINAL block below; the bodies block below remains THAT thread's)
+## NEXT SESSION — written at the 2026-08-02 GEO-2 close (the geo thread's pickup; supersedes the geo FINAL block, archived to ROADMAP-history.md 2026-08-02 by status; the bodies block below remains THAT thread's)
 
 **Read first:** sweeps hook (all three will be DUE — a large delta shipped) →
 `docs/dependency-graph.md` P11 row → this block → journal/0141 § 11 (ruling 3's numbers)
@@ -4312,7 +4318,7 @@ now fail at commit time via the pre-commit guard.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-02 BODIES close (the bodies thread's pickup; the geo FINAL block below is the geo thread's — both live, two parallel arcs)
+## NEXT SESSION — written at the 2026-08-02 BODIES close (the bodies thread's pickup; the geo thread's is the GEO-2 block above, its FINAL predecessor archived to history — both threads live, two parallel arcs)
 
 **Read first:** sweeps hook → `docs/dependency-graph.md` § 2b → this block → journals
 **0135, 0137, 0138** → corrections **#85–#87, #92** (all this session's own) →
@@ -4383,76 +4389,5 @@ holds the build slot (slice-2 verification) and two of ITS agent worktrees exist
 a PreToolUse hook now (2f673ef): nobody touches `.agent-build.lock` by hand. Staging rule
 adopted from the geo session's fingerprint: **explicit paths, never `add -A`** (this
 session paid for it once: a stray client log).
-
----
-
-## NEXT SESSION — written at the 2026-08-02 close (geo session FINAL; SUPERSEDED by the geo-2 block above — the bodies block remains the pickup for THAT thread)
-
-**Read first:** sweeps hook (if due) → `docs/dependency-graph.md` P11 row → this block →
-the P11 audit header's **six rulings** → journal/0134 + 0136 (with its merge postscript;
-*renumbered from 0135 on 2026-08-02 — the parallel bodies session had already taken 0135
-for B0, and the geo wrap assigned "next free" without seeing it*).
-
-### The paragraph that matters
-**P11 slice 1 is MERGED (`5f16dd1`, accepted as-is by user ruling): the deep record names
-rocks.** `DepUnit.species` is a `MaterialId`; fitness runs at deposition under each epoch's
-own context; both multi-member classes record both members at healthy shares; the
-`(cell, chapter)` interim address (ruling 6's cheap fix) collapsed the fragmentation —
-split 1.28×, residency ≈ main, pregen FASTER than main. **Ruling 6 governs everything
-next:** *identity propagates; the draw is scaffolding with two named heirs.*
-
-### ⚠ GATE STATE — read before trusting any red or green
-The full workspace gate was **deliberately not run** on merged main (user: accept as-is;
-march). Golden families are **EXPECTED RED until slice 2's single capture**: RECORD halves
-(`GOLDEN_RECORD` + 5 variants) · CONTENTS (two Medium triples) · SURFACE family +
-`GOLDEN_GEOTHERM`/`GOLDEN_FLUX`/`GOLDEN_FAR_SURFACE` · `GOLDEN_HEAD`. Everything else was
-green at the agent's full gate (889 passed) and its final targeted smoke (lib 194/194,
-deeptime 6/6, diversity gate 3/3). **A red outside that list is a real defect.**
-
-### First things (user-sequenced: "next session will start off slice 2 and U1→FS-A")
-1. ~~**Dispatch P11 slice 2, FRESH agent**~~ **✅ DONE 2026-08-02 — shipped as three
-   merges (foundation `407efac` / erosion split `3b3d898` / conversion `07bd694`),
-   arc entry stamped with the measured numbers** — scope was the arc's slice-2 entry (sparse
-   member-grade transport · the composition term, measuring per-face sparsity `p` ·
-   **retire the deposition draw for transported deposits per ruling 6** — identity =
-   argmax of arriving mix, deterministic tie rule, full mix preserved on faces) + the
-   expected-red golden list above (it owns the single re-capture) + Law-3 closure + the
-   standard brief discipline. Slice 2's merge gate is the next full verification.
-2. ~~**U1 → FS-A**: present U1 for ruling~~ — **✅ U1 DECIDED 2026-08-02 ("option 1 it
-   is"): grain is an AXIS — a state on the loose form of the source identity** (recorded
-   in `materials.md` § forms ruling 2, which it supersedes; P10 audit header stamped).
-   **U5 RULED 2026-08-02: no byte-step — grain + agent axis funded from packed-DepUnit
-   reclaim, landed with slice 3, gated on a measured grain split factor.** FS-A re-shapes
-   under U1 and dispatches behind slice 2's merge.
-3. **P2 measurement runs** (plan in the P2 audit; needs the build slot) after slice 2.
-4. ~~**The walk debt is now TWO stacked appearance changes**~~ **✅ WALKED 2026-08-02
-   (journal/0143), three changes, both live stations verdicted positive by the user**
-   ("extremely cool… clear banding" at the member-banded road cut; "interesting and
-   unremarkable, for reasons you implied" at the provenance drape). **The requested
-   Single-span two-member-class station DOES NOT EXIST on this world's surface** —
-   proven null, 0/4,792 land columns (tour probe `appearance_tour_p11`, gated; audit
-   `docs/audits/2026-08-02-appearance-tour-p11.md`) — see the new § Observed entry.
-
-### Owed, small
-`session-workflow/SKILL.md` crossed its ARGUMENT threshold (1,163/1,000) with the
-2026-08-02 fingerprint folds — it is measured pure-accretion (deletes ~2 % of what it
-adds); a **liveness extraction** (the dated "proven practice" strata whose lessons are
-already absorbed into the template sections) is owed when next touched, per the hook.
-Same family: ROADMAP itself (1.8×), `material-behavior.md`, `flux.rs`, `erosion.rs`.
-
-### This session's numbered artifacts
-Corrections **#74–76, #84, #88–89** (all targets stamped; #88–89 renumbered from a colliding #85–86 on 2026-08-02 — the bodies session held those ordinals first) · journals **0134, 0136** (*slice-1
-journal renumbered 0135→0136 next session — bodies' B0 held 0135 first*) · stubs
-**#31 narrowed, #32–33 added, #35 added** (*#35 renumbered from a colliding #34 on 2026-08-02 — bodies' binding-key stub held #34 first*) · P11 audit (6 rulings) · P2 derivation (craton ruling in
-header) · P10 design (U1 leaning in header) · record-terms rulings 1–2 (ruling 3 HELD →
-re-enters after slice 2).
-
-### Machine state at close
-No agents of THIS session running; its three worktrees merged and removed. One worktree
-remains that is NOT this session's (`agent-a4931a413642f6dc4` at `45b5014`) — presumed
-the parallel bodies session's; left untouched, verify ownership there before pruning.
-Working tree clean, pushed. `.agent-build.lock` free; no live cargo/rustc/dc-client;
-port 7777 free. A parallel USER session shares the checkout — **stage explicit paths,
-never `add -A`**.
 
 ---
