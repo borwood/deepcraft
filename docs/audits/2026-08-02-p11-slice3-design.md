@@ -26,6 +26,16 @@ needs the user's eye).
 > soon"* — eco/civ storage (ON HOLD domain) is the named unknown; the ruling-3 hint byte
 > stays UNFORECLOSED as exactly such a widening. L-12 was declined, not refuted.
 >
+> **P-3 + MARCH ORDER 2026-08-02 (user): "Seriously whatever's easiest because FS-A is
+> shipping today and this is an in-progress slice. Eyes on the prize."** P-3 = O-2
+> (bits named and UNSET — also the easiest). The remaining picks take this audit's
+> integrator defaults under that directive, NEEDS-RATIFICATION-flagged where user-owned:
+> P-4 measure-M0-first (M-1 iff the mover split ≲1.1×, else M-2 with the number reported
+> loudly) · P-5 veneer OUT (stub #31's heir re-pointed honestly; flagged) · P-6/P-7 ride
+> the acceptance walk (the walk IS the ratification) · P-8 sequencing as proposed
+> (3a cheap-evidence → 3b with the full gate clearing the batch debt). Build dispatched
+> same hour; FS-A dispatched behind 3b.
+>
 > **U4 RULED 2026-08-02 (user, "I agree: 5"):** five φ classes — the loose ladder's
 > natural rungs (scree / gravel / sand / silt / clay). Grain reserves **3 bits** in the
 > packed u32 (§ 2.2's U4=5 row); widening to 8 later is a semantic re-capture inside the
