@@ -8,7 +8,8 @@
 //! MCP surface grows the tools automatically):
 //!
 //! - `dc:registry/define_anim_clip` — a named, per-plan animation clip:
-//!   keyframed joint rotations plus an optional root bob, and a loop flag.
+//!   keyframed joint rotations and a loop flag. **A clip animates joints;
+//!   root height belongs to the gait and the mover** (user call #2, 2026-08-02).
 //!   Clips are standalone data; they name joints but do not name a plan, so a
 //!   clip can be defined before any plan binds it (mechanism: this dodges the
 //!   plan⇄clip chicken-and-egg — see below).
@@ -221,16 +222,26 @@ pub struct JointRot {
     pub euler: [f64; 3],
 }
 
-/// One keyframe: a time plus the pose (per-joint rotations + root bob) at that
-/// time. Joints omitted from a keyframe are identity there.
+/// One keyframe: a time plus the per-joint rotations at that time. Joints
+/// omitted from a keyframe are identity there.
+///
+/// **A clip animates JOINTS. Root height belongs to the gait and to the mover**
+/// — `root_bob_m` LEFT this struct 2026-08-02 (user call #2, the gait-bake
+/// design pass's header: *"A, remove it while it's still a recompile"*). It was
+/// a second authority for one vertical composition, able to drift from the IK
+/// hip by exactly its own value (corrections #80), and its three authored uses
+/// were disposed together: the walk bob retired **with its clip**, the jump bob
+/// was a double authority with the mover, the idle bob was a root translation
+/// where breath belongs in joints. The one composition that replaces it is
+/// `root_offset` (`dc-client/src/body.rs`), read by both the render root and
+/// the IK hip — so the drift is structurally impossible rather than merely
+/// fixed. **Do not re-introduce a vertical field here**; a one-shot that wants
+/// to move the whole body wants the mover.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Keyframe {
     /// Seconds from the clip start; strictly ascending across a clip, within
     /// `[0, duration_s]`.
     pub t: f64,
-    /// Vertical offset of the whole body root at this time (the walk bob).
-    #[serde(default)]
-    pub root_bob_m: f64,
     pub rotations: Vec<JointRot>,
 }
 
@@ -269,7 +280,7 @@ fn all_finite(v: &[f64]) -> bool {
 
 /// Validate a clip on its own (at `define_anim_clip` time): finite positive
 /// duration, at least one keyframe, strictly-ascending in-range keyframe times,
-/// finite angles/bob, no duplicate joint within a keyframe. Joint-vs-plan
+/// finite angles, no duplicate joint within a keyframe. Joint-vs-plan
 /// compatibility is NOT checked here — a clip is standalone until a plan binds
 /// it ([`validate_plan`]).
 pub fn validate_clip(clip: &AnimClip) -> Result<(), String> {
@@ -297,12 +308,6 @@ pub fn validate_clip(clip: &AnimClip) -> Result<(), String> {
             ));
         }
         prev_t = kf.t;
-        if !kf.root_bob_m.is_finite() {
-            return Err(format!(
-                "clip `{}` keyframe {i} has a non-finite root bob",
-                clip.name
-            ));
-        }
         for (j, r) in kf.rotations.iter().enumerate() {
             if r.segment.is_empty() {
                 return Err(format!(
@@ -537,7 +542,7 @@ pub use bake::{
     BakeOutcome, ChainPose, JointAngle, RestingPosture, bake_resting_posture, stance_chain,
     stance_chains,
 };
-pub use default_pack::{biped_clips, biped_plan, default_body_pack};
+pub use default_pack::{biped_clips, biped_plan, default_body_pack, retired_biped_walk_clip};
 pub use experiments::{experiment_body_pack, longleg_plan, stout_plan};
 pub use gait::{
     BandReport, GaitAtSpeed, GaitBakeOutcome, GaitKnobs, GaitVector, InstanceDelta, LimbAtSpeed,
@@ -571,7 +576,7 @@ mod tests {
         let mut plan = biped_plan();
         plan.actions
             .iter_mut()
-            .find(|a| a.action == "walk")
+            .find(|a| a.action == "jump")
             .unwrap()
             .action = "fly".into();
         validate_plan(&plan, clip_lookup(&clips)).expect("fly is not the engine's business");
@@ -592,7 +597,7 @@ mod tests {
         let mut plan = biped_plan();
         plan.actions
             .iter_mut()
-            .find(|a| a.action == "walk")
+            .find(|a| a.action == "jump")
             .unwrap()
             .clip = "dc:anim/nonexistent".into();
         assert!(validate_plan(&plan, clip_lookup(&clips)).is_err());
@@ -667,10 +672,10 @@ mod tests {
     #[test]
     fn clip_animating_unknown_joint_rejects() {
         let mut clips = biped_clips();
-        // Point the walk clip at a joint the plan does not declare.
+        // Point a clip at a joint the plan does not declare.
         clips
             .iter_mut()
-            .find(|c| c.name == "dc:anim/biped_walk")
+            .find(|c| c.name == "dc:anim/biped_idle")
             .unwrap()
             .keyframes[0]
             .rotations

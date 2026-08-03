@@ -69,7 +69,6 @@ fn default_pack_defines_through_the_door() {
     let world = world_with_default_bodies();
     assert!(world.body_plan("dc:body/biped").is_some());
     assert!(world.anim_clip("dc:anim/biped_idle").is_some());
-    assert!(world.anim_clip("dc:anim/biped_walk").is_some());
     assert!(world.anim_clip("dc:anim/biped_jump").is_some());
     // The stored plan is byte-for-byte the authored source (no drift).
     assert_eq!(world.body_plan("dc:body/biped").unwrap().plan, biped_plan());
@@ -79,7 +78,7 @@ fn default_pack_defines_through_the_door() {
 /// `biped_clips()` as compiled-in Rust and now reads the *registry*. The render
 /// is unchanged iff what the registry hands back is `==` to what the compiled-in
 /// call handed back — segment for segment (geometry, pivots, offsets, tints) and
-/// keyframe for keyframe (times, bobs, joint eulers). Structural equality of the
+/// keyframe for keyframe (times, joint eulers). Structural equality of the
 /// exact inputs to the renderer is a stronger statement than a screenshot diff:
 /// every downstream line of `character.rs`/`body.rs` is a pure function of these
 /// values, so equal inputs give an identical frame by construction.
@@ -140,7 +139,19 @@ fn the_experiment_pack_is_separate_and_carries_no_clips() {
     };
     let default_pack = default_body_pack();
     let (v_clips, v_plans) = names(&default_pack);
-    assert_eq!(v_clips.len(), 3, "one clip set: {v_clips:?}");
+    // The default pack ships TWO clips since 2026-08-02: `dc:anim/biped_walk`
+    // was retired as content (user call #3) because locomotion is DERIVED, so
+    // what is left is the idle breath and the jump one-shot. Counted against
+    // the authored source rather than a literal, so the two cannot drift.
+    assert_eq!(
+        v_clips.len(),
+        biped_clips().len(),
+        "the pack carries exactly the authored clip set: {v_clips:?}"
+    );
+    assert!(
+        !v_clips.iter().any(|c| c == "dc:anim/biped_walk"),
+        "the retired walk clip must not ship: {v_clips:?}"
+    );
     assert_eq!(v_plans, vec!["dc:body/biped".to_string()]);
     // Clips before the plan — the define order the contract requires.
     let first_plan = default_pack
@@ -341,10 +352,10 @@ fn action_bound_to_missing_clip_rejects() {
         );
     }
     let mut plan = biped_plan();
-    // Rebind walk to a clip that was never registered.
+    // Rebind an action to a clip that was never registered.
     plan.actions
         .iter_mut()
-        .find(|a| a.action == "walk")
+        .find(|a| a.action == "jump")
         .unwrap()
         .clip = "dc:anim/ghost".into();
     let r = apply(
@@ -400,7 +411,6 @@ fn a_new_action_needs_zero_new_payload_variants() {
         loops: true,
         keyframes: vec![dc_api::bodies::Keyframe {
             t: 0.0,
-            root_bob_m: 0.0,
             rotations: vec![dc_api::bodies::JointRot {
                 segment: "body".into(),
                 euler: [0.0, 0.0, 0.0],
@@ -463,7 +473,6 @@ fn body_defs_are_namespace_owned() {
         loops: true,
         keyframes: vec![dc_api::bodies::Keyframe {
             t: 0.0,
-            root_bob_m: 0.0,
             rotations: vec![],
         }],
     };

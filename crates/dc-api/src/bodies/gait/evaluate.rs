@@ -197,12 +197,49 @@ impl GaitVector {
         }
     }
 
+    /// How much of the `clearance` keyframe the swing actually reaches, at this
+    /// speed. `1.0` at and above a normal walk; grading to **exactly 0 at rest**.
+    ///
+    /// ⚠ **A GAP IN THE DESIGN PASS, RESOLVED HERE — reported, not smuggled.**
+    /// Design § 3.2 derives `clearance` from a published foot-lift margin
+    /// (Winter 1992, ≈ 1.5 % of leg length) and it is therefore **speed-
+    /// invariant**, while every other gait term — stride, θmax, cadence — goes
+    /// to zero with speed. The pass never says what the swing does as `v → 0`,
+    /// and taken literally its traversal lifts a foot to full clearance at *any*
+    /// speed, so a body that stops mid-swing **freezes with a foot in the air**.
+    /// That directly falsifies user call #1's own framing — *idle is the
+    /// ladder's degenerate limit* — for the swing half of the cycle.
+    ///
+    /// The resolution, and why it introduces no new number: the lift is scaled
+    /// by `sin θmax(Fr)` against its value at **the duty law's published normal-
+    /// walking anchor** ([`WALK_DUTY_ANCHOR_FR`] = 0.25, Winter), clamped to 1.
+    /// `sin θmax` *is* the step as a fraction of twice the leg's reach, so this
+    /// reads as: **a foot that is barely advancing does not lift.** Above a
+    /// normal walk the published clearance is reproduced exactly and this is an
+    /// identity; below it the swing shrinks continuously into the resting pose.
+    ///
+    /// **It is a STAND-IN and its heir is named**: what a real animal does
+    /// between walking and standing is a *stop transition*, which design § 6
+    /// puts in a clip and explicitly does not design. When transitions land,
+    /// this gain is deleted rather than re-tuned. *(Owed a `stubs.md` entry —
+    /// the integrator applies; this slice may not write that file.)*
+    #[must_use]
+    pub fn swing_gain(&self, froude: f64) -> f64 {
+        let anchor = self.theta_max_rad(super::WALK_DUTY_ANCHOR_FR).sin();
+        if anchor > 0.0 {
+            (self.theta_max_rad(froude).sin() / anchor).clamp(0.0, 1.0)
+        } else {
+            1.0
+        }
+    }
+
     /// One limb's sampled pose — the three keyframes composed by the traversal.
     /// This is the whole per-frame cost, and it is the same shape as the clip
     /// sampler it replaces: one lerp per joint.
     #[must_use]
     pub fn limb_pose(&self, limb: &LimbGait, froude: f64, phase: f64) -> Vec<JointAngle> {
         let (a, blend) = self.traversal(limb, phase);
+        let blend = blend * self.swing_gain(froude);
         let swung = add_scaled(
             &limb.neutral,
             &limb.contact_per_rad,

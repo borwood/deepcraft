@@ -1591,9 +1591,19 @@ pub(crate) mod tests {
         );
         authority.tick_now();
 
-        // All three plans and the one clip set are now registered.
+        // All three plans and the one clip set are now registered. The clip
+        // count is TWO since 2026-08-02: `dc:anim/biped_walk` retired as
+        // shipped content (user call #3) because locomotion is derived, so the
+        // pack carries `idle` and `jump` only.
         assert_eq!(authority.world.body_plans().count(), 3);
-        assert_eq!(authority.world.anim_clips().count(), 3);
+        assert_eq!(
+            authority.world.anim_clips().count(),
+            dc_api::bodies::biped_clips().len()
+        );
+        assert!(
+            authority.world.anim_clip("dc:anim/biped_walk").is_none(),
+            "the retired walk clip must not be shipped through the pack"
+        );
         // And they are the authored source, byte for byte: this is what makes the
         // registry route a re-housing rather than a change.
         assert_eq!(

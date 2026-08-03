@@ -1,52 +1,73 @@
 //! The client-side animation player (docs/design/bodies.md steps 1–2).
 //!
-//! This is the render half of the determinism firewall: it turns a registry
-//! [`AnimClip`] into a posed skeleton, entirely on the client, driven by the
-//! render clock. **Nothing here is ever read back into simulation.** The sim
-//! sees the swept-AABB mover (`dc_api::character`) and parametric posture; the
-//! only sim state this module *reads* is a character's velocity (to pick a
-//! locomotion state), which is a legal one-way read — animation is cosmetic.
+//! This is the render half of the determinism firewall: it turns a **derived
+//! gait** (and, for non-locomotion, a registry [`AnimClip`]) into a posed
+//! skeleton, entirely on the client, driven by the render clock. **Nothing here
+//! is ever read back into simulation.** The sim sees the swept-AABB mover
+//! (`dc_api::character`), parametric posture, and — since 2026-08-02 — the
+//! **target trunk facing**; the only sim state this module *reads* is a
+//! character's speed and that target, both legal one-way reads.
 //!
-//! Two stepping devices shape the sampler:
+//! # Locomotion is DERIVED, not played (2026-08-02, gait member #1 slice two)
 //!
-//! - **Stepped ~12 fps.** The animation clock is quantized to [`ANIM_FPS`]
-//!   frames before sampling, so a pose only changes twelve times a second — the
-//!   stop-motion look (bodies.md § stepped animation), and cheap.
-//! - **Stepped crossfade blend.** Locomotion transitions (idle ↔ walk) blend
-//!   over a short window, and the blend weight itself is quantized to a few
-//!   steps ([`BLEND_STEPS`]) so the transition reads as stop-motion too.
+//! `sample_clip(walk, t)` is gone. [`pose_for`] samples
+//! [`dc_api::bodies::GaitVector`] — cadence, stride, duty, hip excursion and
+//! root height all closed-form functions of the **Froude number** `Fr =
+//! v²/(gL)` of the body's own leg length. Three consequences worth stating
+//! because each retires something that used to be here:
 //!
-//! **There used to be a third: sampled Euler angles snapped to a `TAU/32`
-//! (11.25°) rotation grid. It was REMOVED 2026-08-01 by user ruling** —
-//! bodies.md § stepped animation carries the banner. It was assistant-originated
-//! (a guard against IK instability that 1,056 measured samples show does not
-//! exist, journal/0131) and it cost sub-decimetre foot placement outright: one
-//! quantum of hip rotation moves the biped's ankle 172 mm, against corrections
-//! that need 1.30° / 0.98° / 0.33°. Joint angles are now exact. The 12 fps step
-//! is untouched and rides pending the user's taste call.
+//! - **There is no gait SWITCH.** `WALK_SPEED_THRESHOLD_M_S = 0.35` and the
+//!   two-state `enum Loco { Idle, Walk }` are gone (user call #1, `stubs.md`
+//!   #42 — *"when we have controller support an analog stick can actually grade
+//!   intent up the ladder"*). Fr is continuous and **idle is its degenerate
+//!   limit**: at v → 0 the stride → 0, so θmax → 0, so every keyframe collapses
+//!   onto the derived resting pose and the phase clock stops. Nothing had to be
+//!   special-cased to make a stopped body stand still. **Never re-introduce a
+//!   discrete gait switch** — that is the ruling's explicit prohibition.
+//! - **The phase clock advances with DISTANCE, not wall time.** `phase +=
+//!   cadence(Fr)·dt`, and `cadence = v/λ`, so `dphase = ds/λ` exactly: one full
+//!   limb cycle per stride travelled. The old clip incremented `clock_s += dt`
+//!   with no speed term at all, which is why the feet supplied 1.84 m/s of a
+//!   4.5 m/s walk and **2.66 m/s was skate**.
+//! - **There is no bob TERM.** Root height is a function of phase
+//!   ([`root_offset_m`]) read by both the render root and the IK hip — one
+//!   composition, so corrections #80's two-expression drift is structurally
+//!   impossible rather than merely fixed. `Keyframe.root_bob_m` left the schema
+//!   (user call #2) and `Pose` has no vertical field.
+//!
+//! Non-locomotion clips (idle's breath, the jump one-shot) still ride, as an
+//! **additive layer over the gait's base on non-bearing segments** — design § 6
+//! rule 4, which is how a sword swing rides a walk. A clip's contribution to a
+//! **bearing** chain is refused: authoring a leg over a locomotion gait is a
+//! gait-type choice, not a clip.
+//!
+//! # The one stepping device left
+//!
+//! **Stepped ~12 fps.** The sampled `(phase, Fr)` pair is latched on the
+//! [`ANIM_FPS`] grid, so a pose only changes twelve times a second — the
+//! stop-motion look (bodies.md § stepped animation), and cheap. It rides
+//! pending the user's taste call.
+//!
+//! **There used to be two more.** Sampled Euler angles snapped to a `TAU/32`
+//! (11.25°) rotation grid — REMOVED 2026-08-01 by user ruling (bodies.md
+//! § stepped animation carries the banner): assistant-originated, guarding an
+//! IK instability that 1,056 measured samples show does not exist
+//! (journal/0131), and it cost sub-decimetre foot placement outright. And the
+//! **stepped crossfade** between the two `Loco` states, which went with the
+//! states themselves — a continuous ladder has nothing to cross-fade between.
 //!
 //! The module is pure (no bevy, no glam) so it is trivially testable: a fixed
-//! `(dt, speed)` history and a fixed set of clips produce an identical pose
-//! stream every run (see the determinism tests). The bevy/glam glue that spawns
-//! the segment hierarchy and writes joint transforms lives in `character.rs`.
+//! `(dt, speed)` history and a fixed plan produce an identical pose stream
+//! every run (see the determinism tests). The bevy/glam glue that spawns the
+//! segment hierarchy and writes joint transforms lives in `character.rs`.
 
 use std::collections::HashMap;
 
-use dc_api::bodies::{AnimClip, BodyPlan};
+use dc_api::Posture;
+use dc_api::bodies::{AnimClip, BodyPlan, GaitVector};
 
 /// Stepped-animation frame rate: the pose updates this many times per second.
 pub const ANIM_FPS: f64 = 12.0;
-/// Crossfade window for a locomotion transition, seconds (short and stepped).
-pub const BLEND_WINDOW_S: f64 = 0.18;
-/// The blend weight is quantized to this many steps across the window.
-pub const BLEND_STEPS: f64 = 4.0;
-/// Root-bob quantum, meters: the vertical bob snaps to this grid. Kept when the
-/// rotation quantizer went (2026-08-01): it is a *positional* snap on a single
-/// authored scalar, and its second job — robustness to float rounding at the
-/// loop-wrap boundary — is not aesthetic.
-pub const BOB_QUANTUM_M: f64 = 0.005;
-/// Horizontal speed (m/s) above which a body is "walking".
-pub const WALK_SPEED_THRESHOLD_M_S: f64 = 0.35;
 /// Cervical yaw range: the head may turn this far (radians, ~75°) relative to
 /// the trunk before the trunk itself turns to make up the difference. Closes
 /// the walk-8 orientation gap: the trunk faces travel, the head faces the look.
@@ -72,24 +93,26 @@ fn wrap_pi(a: f64) -> f64 {
     if x <= -PI { x + TAU } else { x }
 }
 
-/// The trunk yaw (bevy convention, 0 = −Z) that faces a horizontal velocity.
-/// Zero-length velocity has no facing; the caller keeps the last trunk yaw.
-pub fn yaw_from_velocity(vel_x: f64, vel_z: f64) -> Option<f64> {
-    if vel_x * vel_x + vel_z * vel_z <= 1e-12 {
-        None
-    } else {
-        // view_dir at yaw θ is (−sinθ, ·, −cosθ); to face (vx, vz) horizontally
-        // we need θ = atan2(−vx, −vz).
-        Some((-vel_x).atan2(-vel_z))
-    }
-}
+// `yaw_from_velocity` lived here until 2026-08-02 and is now
+// `dc_api::character::yaw_from_travel` — ONE authority for the convention,
+// because the SIM derives the trunk's target facing (user call #5) and the
+// client only chases it. Two copies of a facing convention in two crates is
+// the two-derivations-of-one-quantity failure `bodies.md` § THE SIM OWNS THE
+// TARGET forbids by name, and it is where the walk-8 strafe lived.
 
-/// A sampled skeletal pose: per-joint XYZ Euler rotation (radians) plus a
-/// vertical root bob (meters). Joints absent from the map are identity.
+/// A sampled skeletal pose: per-joint XYZ Euler rotation (radians). Joints
+/// absent from the map are identity.
+///
+/// **There is no vertical field, deliberately.** A pose is joints; root height
+/// is [`root_offset_m`]'s, read once per body per frame by both the render root
+/// and the IK hip. The retired `root_bob_m` here was the *second* expression of
+/// one composition and the two drifted by exactly its own value (corrections
+/// #80) — deleting the term is what makes the drift impossible, where a tidier
+/// version of the falsified fix (add the bob to the hip too) would only have
+/// asked two expressions to agree.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Pose {
     pub joints: HashMap<String, [f64; 3]>,
-    pub root_bob_m: f64,
 }
 
 /// Quantize an animation time to the [`ANIM_FPS`] grid, then wrap (looping
@@ -104,14 +127,6 @@ fn quantize_time(t: f64, duration_s: f64, loops: bool) -> f64 {
     }
 }
 
-fn quantize_blend(w: f64) -> f64 {
-    ((w.clamp(0.0, 1.0) * BLEND_STEPS).round() / BLEND_STEPS).clamp(0.0, 1.0)
-}
-
-fn quantize_bob(b: f64) -> f64 {
-    (b / BOB_QUANTUM_M).round() * BOB_QUANTUM_M
-}
-
 fn lerp3(a: [f64; 3], b: [f64; 3], f: f64) -> [f64; 3] {
     [
         a[0] + (b[0] - a[0]) * f,
@@ -120,10 +135,15 @@ fn lerp3(a: [f64; 3], b: [f64; 3], f: f64) -> [f64; 3] {
     ]
 }
 
-/// Sample a clip at animation time `t`: quantize the time to the frame grid,
-/// then linearly interpolate between the bracketing keyframes at that stepped
-/// time. **The time step is the whole stop-motion look** — the angles it yields
-/// are exact (the rotation quantizer was removed 2026-08-01).
+/// Sample a NON-LOCOMOTION clip at animation time `t`: quantize the time to the
+/// frame grid, then linearly interpolate between the bracketing keyframes at
+/// that stepped time. **The time step is the whole stop-motion look** — the
+/// angles it yields are exact (the rotation quantizer was removed 2026-08-01).
+///
+/// Locomotion does not come through here any more: it is derived
+/// ([`pose_for`]). What is left is the idle breath, the jump one-shot, and
+/// whatever a pack authors that is genuinely *not* gait — transitions, emotes,
+/// upper-body action (design § 6).
 pub fn sample_clip(clip: &AnimClip, t: f64) -> Pose {
     let mut pose = Pose::default();
     if clip.keyframes.is_empty() {
@@ -167,55 +187,43 @@ pub fn sample_clip(clip: &AnimClip, t: f64) -> Pose {
         pose.joints
             .insert(name.to_string(), lerp3(rot_in(a, name), rot_in(b, name), f));
     }
-    pose.root_bob_m = quantize_bob(a.root_bob_m + (b.root_bob_m - a.root_bob_m) * f);
     pose
 }
 
-/// Blend two poses by weight `w` (0 = all `a`, 1 = all `b`). Angles and the root
-/// bob are lerped. `w` is expected pre-stepped.
-pub fn blend(a: &Pose, b: &Pose, w: f64) -> Pose {
-    let mut pose = Pose {
-        joints: HashMap::new(),
-        root_bob_m: quantize_bob(a.root_bob_m + (b.root_bob_m - a.root_bob_m) * w),
-    };
-    let mut names: Vec<&str> = Vec::new();
-    for p in [a, b] {
-        for k in p.joints.keys() {
-            if !names.contains(&k.as_str()) {
-                names.push(k);
-            }
-        }
-    }
-    for name in names {
-        let za = a.joints.get(name).copied().unwrap_or([0.0, 0.0, 0.0]);
-        let zb = b.joints.get(name).copied().unwrap_or([0.0, 0.0, 0.0]);
-        pose.joints.insert(name.to_string(), lerp3(za, zb, w));
-    }
-    pose
-}
-
-/// The two locomotion states v0 blends between (driven by body velocity).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Loco {
-    Idle,
-    Walk,
-}
-
-/// Per-body animation state: the animation clock plus the crossfade machine.
-/// Advanced from the render clock (`dt`) and the body's horizontal speed.
+/// Per-body animation state: the **gait phase** and the trunk's approach toward
+/// the sim's target facing.
+///
+/// The state a locomotion crossfade needed is gone with the crossfade: there
+/// are no discrete states to blend between, so there is no `blend_w`, no
+/// `blend_from`, and no `Loco`. What survives is a clock (for non-locomotion
+/// clips and the 12 fps latch), a phase, and a facing.
 #[derive(Clone, Debug)]
 pub struct AnimState {
-    /// Animation clock, seconds (drives clip phase; quantized at sample time).
+    /// Wall clock since spawn, seconds — drives NON-locomotion clips and the
+    /// stop-motion latch. Locomotion does not read it: gait phase advances with
+    /// distance travelled, not with time.
     pub clock_s: f64,
-    /// The locomotion state currently blended *toward*.
-    pub current: Loco,
-    /// The state being blended *from* during a transition.
-    pub blend_from: Loco,
-    /// Blend progress 0..1 from `blend_from` to `current`.
-    pub blend_w: f64,
-    /// The smoothed trunk yaw (radians, bevy convention) — the body's facing,
-    /// derived from its horizontal velocity (a legal one-way read of sim state).
-    /// Persists while stationary so a stopped body keeps facing where it walked.
+    /// Gait phase in `[0, 1)`: where in the limb cycle this body is.
+    /// `phase += cadence(Fr)·dt`, and cadence is `v/λ`, so one cycle passes per
+    /// stride **travelled**. A stopped body's phase does not advance at all,
+    /// because its cadence is zero — which is also why idle needs no state.
+    pub phase: f64,
+    /// The dimensionless speed the gait is being evaluated at.
+    pub froude: f64,
+    /// The `(phase, Fr)` pair actually sampled — latched on the [`ANIM_FPS`]
+    /// grid, which is the whole stop-motion look. Reading these rather than the
+    /// live pair is what makes the pose change twelve times a second.
+    pub stepped_phase: f64,
+    /// …and the latched Froude number.
+    pub stepped_froude: f64,
+    /// The frame index the latch last fired on. `NaN` until the first advance,
+    /// so the first frame always latches (`NaN != x` for every `x`).
+    latched_frame: f64,
+    /// The **rendered** trunk yaw (radians, bevy convention) — the *approach*
+    /// half of the facing split (user call #5, 2026-08-02; `bodies.md` § THE SIM
+    /// OWNS THE TARGET). It chases `CharacterState.facing_yaw` over
+    /// [`TRUNK_TURN_WINDOW_S`]. The target is the sim's and is replay-safe; this
+    /// smoothing is cosmetic and free to tune.
     pub trunk_yaw: f64,
 }
 
@@ -223,56 +231,71 @@ impl Default for AnimState {
     fn default() -> Self {
         Self {
             clock_s: 0.0,
-            current: Loco::Idle,
-            blend_from: Loco::Idle,
-            blend_w: 1.0,
+            phase: 0.0,
+            froude: 0.0,
+            stepped_phase: 0.0,
+            stepped_froude: 0.0,
+            latched_frame: f64::NAN,
             trunk_yaw: 0.0,
         }
     }
 }
 
 impl AnimState {
-    /// Advance one render frame: tick the clock, pick the locomotion state from
-    /// `speed_m_s`, and progress (or start) a crossfade.
-    pub fn advance(&mut self, dt: f64, speed_m_s: f64) {
+    /// A fresh state already facing `trunk_yaw` — used at spawn so the trunk
+    /// does not swing to the sim's target from an arbitrary zero on the first
+    /// steps. A constructor rather than a struct literal because the latch
+    /// index is private: there is exactly one way to build this, and it starts
+    /// un-latched.
+    #[must_use]
+    pub fn facing(trunk_yaw: f64) -> Self {
+        Self {
+            trunk_yaw,
+            ..Self::default()
+        }
+    }
+
+    /// Advance one render frame: tick the clock, grade the gait continuously
+    /// over Froude, advance the phase by the **derived cadence**, and latch the
+    /// sampled pair onto the 12 fps grid.
+    ///
+    /// **No branch on speed.** `Fr = v²/(gL)` and `cadence = k_f·Fr^0.2`, so a
+    /// standing body advances its phase by exactly zero and samples its resting
+    /// pose — idle is the ladder's degenerate limit, not a state. A plan whose
+    /// gait declined (a tree, an out-of-domain geometry) passes `None` and gets
+    /// the same still resting pose, which is the identity fallback.
+    pub fn advance(&mut self, dt: f64, gait: Option<&GaitVector>, speed_m_s: f64) {
         let dt = dt.max(0.0);
         self.clock_s += dt;
-        let desired = if speed_m_s > WALK_SPEED_THRESHOLD_M_S {
-            Loco::Walk
-        } else {
-            Loco::Idle
-        };
-        if desired != self.current {
-            self.blend_from = self.current;
-            self.current = desired;
-            self.blend_w = 0.0;
+        let froude = gait.map_or(0.0, |g| g.froude(speed_m_s.max(0.0)));
+        let cadence_hz = gait.map_or(0.0, |g| g.cadence_hz(froude));
+        self.froude = froude;
+        // `dphase = f·dt = (v/λ)·dt = ds/λ`: the phase clock is a DISTANCE
+        // clock wearing a rate. The retired clip incremented `clock_s += dt`
+        // with no speed term, which is precisely where the skate came from.
+        if cadence_hz.is_finite() {
+            self.phase = (self.phase + cadence_hz * dt).rem_euclid(1.0);
         }
-        if BLEND_WINDOW_S > 0.0 {
-            self.blend_w = (self.blend_w + dt / BLEND_WINDOW_S).min(1.0);
-        } else {
-            self.blend_w = 1.0;
+        let frame = (self.clock_s * ANIM_FPS).floor();
+        if frame != self.latched_frame {
+            self.latched_frame = frame;
+            self.stepped_phase = self.phase;
+            self.stepped_froude = self.froude;
         }
     }
 
-    /// The stepped crossfade weight (quantized).
-    pub fn stepped_blend(&self) -> f64 {
-        quantize_blend(self.blend_w)
-    }
-
-    /// Steer the trunk toward the travel direction. When the body is moving
-    /// (horizontal speed above the walk threshold) the trunk yaw chases the
-    /// velocity heading over [`TRUNK_TURN_WINDOW_S`]; when stationary it holds.
-    /// The stored yaw is smooth, and so is the rendered one.
-    pub fn steer(&mut self, dt: f64, vel_x: f64, vel_z: f64) {
+    /// Steer the trunk toward the **sim's target facing** over
+    /// [`TRUNK_TURN_WINDOW_S`] — the approach half of the split. The target is
+    /// held by the sim when the body is stationary, so this needs no speed test
+    /// of its own: a stopped body simply chases a target that is not moving.
+    /// *That is the threshold this used to carry, and its removal is the whole
+    /// point of the split.*
+    pub fn steer(&mut self, dt: f64, target_yaw: f64) {
         let dt = dt.max(0.0);
-        let speed = (vel_x * vel_x + vel_z * vel_z).sqrt();
-        if speed <= WALK_SPEED_THRESHOLD_M_S {
-            return; // keep the last facing
-        }
-        let Some(target) = yaw_from_velocity(vel_x, vel_z) else {
+        if !target_yaw.is_finite() {
             return;
-        };
-        let delta = wrap_pi(target - self.trunk_yaw);
+        }
+        let delta = wrap_pi(target_yaw - self.trunk_yaw);
         let f = if TRUNK_TURN_WINDOW_S > 0.0 {
             (dt / TRUNK_TURN_WINDOW_S).min(1.0)
         } else {
@@ -299,7 +322,8 @@ pub struct Orientation {
 /// Split a look direction off a travel-facing trunk (bodies.md step 3, the
 /// walk-8 fix). The head follows the look within the cervical clamp; a look
 /// beyond the clamp drags the trunk around so the neck only ever bends its
-/// maximum. `base_trunk_yaw` is the velocity-followed facing ([`AnimState`]).
+/// maximum. `base_trunk_yaw` is the trunk's *approached* facing
+/// ([`AnimState::trunk_yaw`], chasing the sim's target).
 pub fn resolve_orientation(base_trunk_yaw: f64, look_yaw: f64, look_pitch: f64) -> Orientation {
     let delta = wrap_pi(look_yaw - base_trunk_yaw);
     let (trunk_yaw, neck_yaw) = if delta.abs() > NECK_YAW_CLAMP_RAD {
@@ -441,6 +465,32 @@ pub fn derived_root_delta_m(plan: &BodyPlan) -> Result<f64, String> {
     }
 }
 
+/// The DERIVED gait for a plan's standing mode, baked once per plan
+/// (`dc_api::bodies::bake_gait`) — the consumer edge of gait member #1.
+///
+/// **Gravity is the world's and is passed in, never assumed.** The design
+/// derived its whole predicted table at Earth's 9.81 m/s²; a gait baked against
+/// the wrong `g` would be dimensionally coherent and wrong for the world the
+/// body walks in — the closed-system scale error, one tier down. So the caller
+/// reads it from `CharacterConfig` and states it.
+///
+/// `Err(reason)` on any decline — a mode-less plan (a tree, a legal absence),
+/// an out-of-domain geometry, a chain the two-bone clearance solve cannot serve.
+/// The caller then renders the identity fallback (no locomotion, the resting
+/// pose, clips only) and warns once naming why: **a body that cannot bake a
+/// gait stands still rather than moving wrongly.**
+pub fn derived_gait(plan: &BodyPlan, gravity_m_s2: f64) -> Result<GaitVector, String> {
+    use dc_api::bodies::{GaitBakeOutcome, GaitKnobs, bake_gait};
+    match bake_gait(plan, "stand", gravity_m_s2, &GaitKnobs::default()) {
+        GaitBakeOutcome::Baked(v) => Ok(v),
+        GaitBakeOutcome::NothingDeclared => Err(format!(
+            "plan `{}` declares no locomotion modes (a tree) — no gait to derive",
+            plan.name
+        )),
+        GaitBakeOutcome::Unsupported { reason } => Err(reason),
+    }
+}
+
 /// Foot position of a two-bone leg in its sagittal (y, z) plane, from a clip's
 /// hip/knee X-rotations — the inverse of [`solve_leg_ik`]'s reconstruction, used
 /// to find where the *animation* puts the foot before the IK re-seats it.
@@ -515,21 +565,115 @@ pub fn solve_leg_ik(l1: f64, l2: f64, target: [f64; 3]) -> LegIk {
     }
 }
 
-/// The pose to render for this state, given the plan's idle/walk clips. Samples
-/// the target clip; when mid-transition, blends it against the from-clip at the
-/// stepped weight.
-pub fn pose_for(state: &AnimState, idle: &AnimClip, walk: &AnimClip) -> Pose {
-    let clip = |l: Loco| match l {
-        Loco::Idle => idle,
-        Loco::Walk => walk,
-    };
-    let to = sample_clip(clip(state.current), state.clock_s);
-    if state.blend_from == state.current || state.blend_w >= 1.0 {
-        to
-    } else {
-        let from = sample_clip(clip(state.blend_from), state.clock_s);
-        blend(&from, &to, state.stepped_blend())
+/// The pose to render for this state: **the derived gait, plus non-locomotion
+/// clips as an additive layer** (design § 6's composition rule).
+///
+/// 1. **The gait OWNS** every segment on a bearing chain, and the non-bearing
+///    limbs it derives a counter-swing for. It is sampled at the latched
+///    `(phase, Fr)`, which is what makes the pose stepped.
+/// 2. **A clip is ADDITIVE on non-bearing segments** — this is how a sword
+///    swing rides a walk, and it is already the shape `character.rs` uses for
+///    the look joint (`base + orient`). The idle breath lands on the arms this
+///    way, over their derived counter-swing, with no blend weight anywhere: at
+///    v → 0 the counter-swing amplitude is zero of its own accord.
+/// 3. **A clip's contribution to a BEARING chain is REFUSED.** You cannot
+///    author a leg over a locomotion gait; that request is a gait-type choice
+///    or an override, and refusing it here is cheaper than blending two
+///    authorities at runtime. (Refused silently at the consumer today; the
+///    define-time refusal wants the § 7 binding vocabulary and is not this
+///    slice's.)
+///
+/// `gait: None` is the identity fallback — a plan the bake declined renders its
+/// clips over an unposed skeleton, exactly as a clip-only body always did.
+pub fn pose_for(state: &AnimState, gait: Option<&GaitVector>, clips: &[&AnimClip]) -> Pose {
+    let mut pose = Pose::default();
+    let mut bearing: Vec<String> = Vec::new();
+    if let Some(g) = gait {
+        for limb in &g.limbs {
+            if limb.bearing {
+                bearing.extend(limb.neutral.iter().map(|j| j.segment.clone()));
+            }
+            for ja in g.limb_pose(limb, state.stepped_froude, state.stepped_phase) {
+                pose.joints.insert(ja.segment, ja.euler);
+            }
+        }
     }
+    for &clip in clips {
+        let layer = sample_clip(clip, state.clock_s);
+        for (name, euler) in layer.joints {
+            if bearing.contains(&name) {
+                continue; // rule 3: the gait owns a bearing chain outright
+            }
+            let base = pose.joints.entry(name).or_insert([0.0, 0.0, 0.0]);
+            for i in 0..3 {
+                base[i] += euler[i];
+            }
+        }
+    }
+    pose
+}
+
+/// **THE ONE VERTICAL COMPOSITION** — `root_offset(posture, mode, phase)`,
+/// design § 4.3. Metres above the plan's authored root pivot, and the *whole*
+/// vertical story: read once per body per frame and consumed by **both** the
+/// render root and the IK hip.
+///
+/// Three terms that used to be able to disagree collapse into one call:
+///
+/// - `root_delta_m` — member #0's static resting delta (the derived standing
+///   root minus the authored pivot), the phase-INVARIANT part;
+/// - the stance-chain drop, the phase-VARYING part: during its compass window a
+///   stance chain is a rigid link about a pinned contact, so the attachment
+///   joint traces `h = L·cos θ`, peaking at midstance and troughing at the
+///   contact extremes. **Nothing is authored and there is no toggle** — a body
+///   bobs iff its stance contacts alternate, and by exactly as much as its own
+///   geometry says. A distributed-bearing body (a snake's belly) gets exactly
+///   zero, and needs no flag to say so;
+/// - the crouch sink, which is a **posture** and will stop being a term at all
+///   once crouch is its own bake key (`CROUCH_ROOT_DROP_M` is scheduled
+///   demolition, corrections #81).
+///
+/// **A declined root height holds the neutral height**, it does not fabricate a
+/// flight arc: above the walk/run transition the apex is ballistic and needs
+/// takeoff force, which does not exist at density ≡ 1 (`stubs.md` #39, heir
+/// B6). The bake reports the decline with the Froude number; the renderer's
+/// honest response is to stop bobbing, not to invent a parabola.
+///
+/// ⚠ **And that decline is the ONE step in an otherwise continuous ladder, by
+/// construction: crossing the walk/run transition drops the root excursion to
+/// zero in one frame** (≈ 0.10 m for the shipped biped, at v ≈ 2.08 m/s). It is
+/// not a gait switch — nothing branches, no state exists, every *joint* stays
+/// continuous — it is the visible edge of the model's domain, exactly where
+/// **G5 / `stubs.md` #39** says the derivation stops. **Smoothing it would mean
+/// interpolating toward a value the bake refused to compute**, which is the
+/// fabrication the ruling forbids by name. It goes when B6 gives the flight
+/// phase a real answer, not before. *Reported here because a walk will see it
+/// and should recognise it rather than file it as a bug.*
+///
+/// **Why this rather than a tidier version of the falsified fix** (corrections
+/// #80): that one *added* the bob to the hip, preserving two expressions and
+/// asking them to agree. This deletes the additive term, so there is no second
+/// place to forget it. `the_render_root_and_the_ik_hip_read_one_root_offset`
+/// is the test that keeps it that way.
+#[must_use]
+pub fn root_offset_m(
+    gait: Option<&GaitVector>,
+    root_delta_m: f64,
+    froude: f64,
+    phase: f64,
+    posture: Posture,
+) -> f64 {
+    let stance_drop_m = gait
+        .and_then(|g| {
+            g.root_height_ratio_at(froude, phase)
+                .map(|ratio| g.governing_reach_m * (ratio - 1.0))
+        })
+        .unwrap_or(0.0);
+    let crouch_drop_m = match posture {
+        Posture::Crouching => CROUCH_ROOT_DROP_M,
+        Posture::Standing => 0.0,
+    };
+    root_delta_m + stance_drop_m - crouch_drop_m
 }
 
 // ------------------------------------------- the retargeting measurement --
@@ -640,7 +784,6 @@ pub struct LegSample {
 pub struct FrameRow {
     pub index: usize,
     pub t_s: f64,
-    pub root_bob_m: f64,
     pub legs: Vec<LegSample>,
 }
 
@@ -713,7 +856,21 @@ pub struct RetargetReport {
     /// half a voxel from the clip's foot — the foot floats honestly.
     pub refused: usize,
     /// Worst |knee angle| over the whole series, degrees — *did any knee bend?*
+    /// Includes REFUSED and SEATED samples, whose rendered knee is the clip's
+    /// own authored angle rather than anything the solver produced.
     pub knee_bend_max_deg: f64,
+    /// Worst |knee angle| over the samples the **solver actually ran on**
+    /// (corrected or clamped), degrees. *This, not the field above, is the
+    /// number that answers "did the IK bend a knee".*
+    ///
+    /// Split out 2026-08-03, and the gate is what forced it: with the clip's
+    /// root bob gone the jump clip's hip sits lower, some samples fall outside
+    /// the half-voxel window and are honestly refused — and a refused sample
+    /// renders the **clip's** knee (3.8° on jump), which was being counted
+    /// against a bound derived from the *solver's* annulus clamp (~0.25°). The
+    /// assertion was measuring one thing and claiming another; it passed before
+    /// only because the bob happened to keep every sample inside the window.
+    pub solver_knee_bend_max_deg: f64,
     /// Worst residual over samples the IK both attempted and could reach — how far
     /// off the ground the foot still is after the glue ran, in metres. Until
     /// 2026-08-01 this measured the **rotation quantum's** cost (bounded by
@@ -771,13 +928,17 @@ impl RetargetReport {
 /// (correct iff the ground is within half a voxel of the clip's foot); they would
 /// diverge on an overhang.
 ///
-/// **The derived hip (2026-08-02, the consumer slice) is mirrored, not
-/// re-invented**: the probe adds the SAME [`derived_root_delta_m`] production's
-/// `build_plan_assets` caches, with the same `0.0` identity fallback — so the
-/// instrument keeps measuring what production does. (The probe's `hip_y` still
-/// carries `root_bob_m` where production's IK hip does not — corrections #80's
-/// temporal half, a separate ruled-on defect that rides here as the gap column's
-/// bob-tracking hover.)
+/// **The derived hip is mirrored, not re-invented**: the probe composes its hip
+/// from the SAME [`root_offset_m`] production's pose loop composes, with the
+/// same identity fallback — so the instrument keeps measuring what production
+/// does. Corrections #80's temporal half, which used to ride here as a
+/// bob-tracking hover in the gap column, is **gone**: there is one expression
+/// now and the probe reads it too.
+///
+/// **This measures CLIPS, not the gait** — the non-locomotion layer and the
+/// parked walk fixture, standing still (Fr = 0, phase 0). Whether the *derived*
+/// gait seats its feet is a different question, asked by
+/// `three_bodies_walk_at_their_own_cadence` and ultimately by a walk.
 #[cfg(test)]
 pub fn retarget_report(
     plan: &BodyPlan,
@@ -791,6 +952,15 @@ pub fn retarget_report(
     let half_voxel = voxel_size_m * 0.5;
     // Production's derived-hip read, mirrored (identity fallback included).
     let root_delta_m = derived_root_delta_m(plan).unwrap_or(0.0);
+    // THE ONE VERTICAL COMPOSITION, read exactly as production reads it. The
+    // probe stands the body still, so there is no gait term; `root_drop_m` is
+    // the crouch case, expressed as the posture it actually is.
+    let posture = if root_drop_m > 0.0 {
+        Posture::Crouching
+    } else {
+        Posture::Standing
+    };
+    let root_offset = root_offset_m(None, root_delta_m, 0.0, 0.0, posture);
     let mut r = RetargetReport {
         plan: plan.name.clone(),
         clip: clip.name.clone(),
@@ -810,6 +980,7 @@ pub fn retarget_report(
         clamped_beyond_reach: 0,
         refused: 0,
         knee_bend_max_deg: 0.0,
+        solver_knee_bend_max_deg: 0.0,
         reachable_residual_max_m: 0.0,
     };
     let frames = ((clip.duration_s * ANIM_FPS).ceil() as usize).max(1);
@@ -819,20 +990,17 @@ pub fn retarget_report(
         let mut row = FrameRow {
             index: i,
             t_s,
-            root_bob_m: pose.root_bob_m,
             legs: Vec::new(),
         };
         for leg in &legs {
             let cu = pose.joints.get(&leg.upper).map_or(0.0, |e| e[0]);
             let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
             let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
-            // The hip rides at hip_local.y plus the bake's root delta, plus the
-            // clip's bob, minus the crouch sink; the root is where the collider
-            // bottom is, and terrain never moves it. (Production's IK hip takes
-            // hip_local + delta − drop WITHOUT the bob — corrections #80's
-            // temporal half, riding — while its rendered root adds the bob; the
-            // probe keeps the bob so the gap column shows the hover it causes.)
-            let hip_y = leg.hip_local[1] + root_delta_m + pose.root_bob_m - root_drop_m;
+            // The hip rides at hip_local.y plus THE ONE ROOT OFFSET — the
+            // same call production makes, with no gait (this probe stands the
+            // body still) and the crouch expressed as the posture it is. The
+            // root is where the collider bottom is; terrain never moves it.
+            let hip_y = leg.hip_local[1] + root_offset;
             let clip_sole = hip_y + fy;
             let g = ground.ground_m(leg);
             r.samples += 1;
@@ -866,6 +1034,12 @@ pub fn retarget_report(
             }
             let knee_deg = knee_x.to_degrees();
             r.knee_bend_max_deg = r.knee_bend_max_deg.max(knee_deg.abs());
+            if matches!(
+                verdict,
+                Placement::Corrected | Placement::ClampedBeyondReach
+            ) {
+                r.solver_knee_bend_max_deg = r.solver_knee_bend_max_deg.max(knee_deg.abs());
+            }
             r.rendered_sole_min_m = r.rendered_sole_min_m.min(rendered_sole);
             r.rendered_sole_max_m = r.rendered_sole_max_m.max(rendered_sole);
             row.legs.push(LegSample {
@@ -887,32 +1061,36 @@ pub fn retarget_report(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dc_api::bodies::biped_clips;
+    use dc_api::bodies::{
+        biped_clips, biped_plan, longleg_plan, retired_biped_walk_clip, stout_plan,
+    };
 
-    fn clips() -> (AnimClip, AnimClip) {
-        let cs = biped_clips();
-        let idle = cs
-            .iter()
+    /// **This world's** gravity — READ, never restated (`dc_core`'s world
+    /// constant, DECIDED 2026-08-02). The gait's whole Froude chain closes
+    /// against it, and a test that hand-types a `g` is the two-authority defect
+    /// the constant exists to end.
+    const G: f64 = dc_core::DEFAULT_GRAVITY_M_S2;
+
+    fn idle_clip() -> AnimClip {
+        biped_clips()
+            .into_iter()
             .find(|c| c.name == "dc:anim/biped_idle")
-            .unwrap()
-            .clone();
-        let walk = cs
-            .iter()
-            .find(|c| c.name == "dc:anim/biped_walk")
-            .unwrap()
-            .clone();
-        (idle, walk)
+            .expect("the default pack ships an idle clip")
+    }
+
+    fn gait_of(plan: &BodyPlan) -> GaitVector {
+        derived_gait(plan, G).expect("every shipped plan bakes a gait")
     }
 
     #[test]
     fn time_is_stepped_to_twelve_fps() {
         // Two times inside the same 1/12 s frame sample identically; the next
         // frame differs.
-        let (_, walk) = clips();
-        let a = sample_clip(&walk, 0.30);
-        let b = sample_clip(&walk, 0.30 + 1.0 / (ANIM_FPS * 4.0)); // same frame
+        let idle = idle_clip();
+        let a = sample_clip(&idle, 0.30);
+        let b = sample_clip(&idle, 0.30 + 1.0 / (ANIM_FPS * 4.0)); // same frame
         assert_eq!(a, b, "within one frame the pose is held");
-        let c = sample_clip(&walk, 0.30 + 1.0 / ANIM_FPS); // next frame
+        let c = sample_clip(&idle, 0.30 + 1.0 / ANIM_FPS); // next frame
         assert_ne!(a.joints, c.joints, "the next frame moves");
     }
 
@@ -924,25 +1102,23 @@ mod tests {
     /// was removed 2026-08-01 — the assertion had been guarding nothing about
     /// looping and quietly guarding `rem_euclid`'s last two ULPs). `quantize_time`
     /// floors on a grid anchored at absolute `t = 0` and *then* wraps, so
-    /// `(1.4 * 12).floor() / 12 - 1.0` and `(0.4 * 12).floor() / 12` are the same
+    /// `(2.4 * 12).floor() / 12 - 2.0` and `(0.4 * 12).floor() / 12` are the same
     /// real number and differ in the final bit.
     ///
     /// The bound is derived, not fitted: the wrap error is a few ULPs of a value
-    /// ~1.4 (≤ 1e-15 s), the walk clip's keyframe spans are 0.25 s so the
+    /// ~2.4 (≤ 1e-15 s), the clip's keyframe spans are ≥ 0.25 s so the
     /// interpolation factor moves by ≤ 4e-15, and no joint traverses more than
     /// ~1.1 rad across a span — ≤ 5e-15 rad of angle. 1e-12 leaves two decades of
     /// margin and is still 6e-11 degrees, i.e. below any conceivable display.
-    /// `root_bob_m` stays *exactly* equal because [`BOB_QUANTUM_M`] survives, which
-    /// is the float-robustness job its doc comment claims.
+    ///
+    /// *It used to also assert the quantized bob repeated exactly. There is no
+    /// bob: `Keyframe.root_bob_m` and `BOB_QUANTUM_M` both left with user call
+    /// #2, and root height is a phase function now.*
     #[test]
     fn looping_wraps_to_the_same_phase() {
-        let (_, walk) = clips();
-        let a = sample_clip(&walk, 0.4);
-        let b = sample_clip(&walk, 0.4 + walk.duration_s);
-        assert_eq!(
-            a.root_bob_m, b.root_bob_m,
-            "the quantized bob repeats exactly"
-        );
+        let idle = idle_clip();
+        let a = sample_clip(&idle, 0.4);
+        let b = sample_clip(&idle, 0.4 + idle.duration_s);
         assert_eq!(
             a.joints.keys().collect::<std::collections::BTreeSet<_>>(),
             b.joints.keys().collect::<std::collections::BTreeSet<_>>(),
@@ -962,17 +1138,20 @@ mod tests {
 
     #[test]
     fn sampler_is_deterministic_for_fixed_time() {
-        let (_, walk) = clips();
+        let idle = idle_clip();
         for t in [0.0, 0.05, 0.333, 0.5, 0.917, 1.4, 7.25] {
-            assert_eq!(sample_clip(&walk, t), sample_clip(&walk, t));
+            assert_eq!(sample_clip(&idle, t), sample_clip(&idle, t));
         }
     }
 
     #[test]
     fn advance_history_replays_identically() {
         // A fixed (dt, speed) history yields an identical pose stream twice —
-        // the whole player, not just the sampler, is deterministic.
-        let (idle, walk) = clips();
+        // the whole player, not just the sampler, is deterministic. The gait is
+        // a pure function of (plan, g) and the pose a pure function of
+        // (phase, Fr), so this is a statement about the whole derived path.
+        let idle = idle_clip();
+        let gait = gait_of(&biped_plan());
         let history = [
             (0.016, 0.0),
             (0.016, 0.0),
@@ -987,28 +1166,404 @@ mod tests {
             let mut s = AnimState::default();
             let mut poses = Vec::new();
             for (dt, spd) in history {
-                s.advance(dt, spd);
-                poses.push(pose_for(&s, &idle, &walk));
+                s.advance(dt, Some(&gait), spd);
+                poses.push(pose_for(&s, Some(&gait), &[&idle]));
             }
             poses
         };
         assert_eq!(run(), run());
     }
 
+    /// **The binary switch is gone and nothing may replace it** (user call #1,
+    /// `stubs.md` #42 — *"never re-introduce a discrete gait switch"*).
+    ///
+    /// The old test asserted a *state transition* at `WALK_SPEED_THRESHOLD_M_S`.
+    /// The property that replaces it is the one the prohibition actually
+    /// protects: **the pose is continuous in speed**. A discrete switch — a
+    /// threshold, a crossfade, a gait-name lookup — necessarily puts a step in
+    /// this sweep, and a step is what this bound catches.
+    ///
+    /// Scale-free, and derived rather than fitted: over a fine sweep the
+    /// steepest term is `θmax(Fr)`, and `dθ/dv` is bounded on `[0, 4.5]` by the
+    /// stride regression's own exponents, so a per-step joint move of more than
+    /// a few times the sweep's own resolution can only be a discontinuity. Idle
+    /// is checked as the ladder's LIMIT, not as a state: at v = 0 the pose is
+    /// exactly the derived resting pose.
     #[test]
-    fn walk_starts_and_stops_by_speed() {
-        let mut s = AnimState::default();
-        assert_eq!(s.current, Loco::Idle);
-        s.advance(0.1, 5.0);
-        assert_eq!(s.current, Loco::Walk, "speed above threshold walks");
-        // Blend runs and completes over the window.
-        assert!(s.blend_w < 1.0 || BLEND_WINDOW_S <= 0.1);
-        for _ in 0..10 {
-            s.advance(0.05, 5.0);
+    fn the_gait_ladder_is_continuous_and_idle_is_its_limit() {
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            let gait = gait_of(&plan);
+            let phase = 0.37; // an arbitrary mid-cycle instant, held fixed
+            let at_rest = pose_at(&gait, 0.0, phase);
+            for (name, e) in &at_rest {
+                for (i, a) in e.iter().enumerate() {
+                    assert!(
+                        a.abs() < 1e-12,
+                        "{}: at v = 0 the pose must BE the derived rest, but {name}[{i}] \
+                         = {a} rad — idle is the ladder's limit, not a state",
+                        plan.name,
+                    );
+                }
+            }
+            let steps = 900;
+            let v_max = 4.5; // the shipped top speed
+            let mut prev = at_rest;
+            let mut worst = 0.0_f64;
+            for k in 1..=steps {
+                let v = v_max * k as f64 / steps as f64;
+                let now = pose_at(&gait, gait.froude(v), phase);
+                for (name, e) in &now {
+                    let p = prev.get(name).copied().unwrap_or([0.0; 3]);
+                    for i in 0..3 {
+                        worst = worst.max((e[i] - p[i]).abs());
+                    }
+                }
+                prev = now;
+            }
+            // One sweep step is 5 mm/s of speed; the whole excursion across the
+            // sweep is under ~1.6 rad, so a smooth ladder moves any joint by
+            // ~1e-3 rad per step. 0.05 rad is 30x that and still 1/30 of any
+            // switch's jump (the retired Loco crossfade moved the hip by 1.1 rad
+            // across four blend steps).
+            assert!(
+                worst < 0.05,
+                "{}: a {worst:.4} rad jump between adjacent speeds — that is a \
+                 DISCRETE GAIT SWITCH, which user call #1 forbids by name",
+                plan.name
+            );
         }
-        assert!((s.stepped_blend() - 1.0).abs() < 1e-9, "blend completes");
-        s.advance(0.1, 0.0);
-        assert_eq!(s.current, Loco::Idle, "speed below threshold idles");
+    }
+
+    /// Sample every gait-driven joint at one `(Fr, phase)`, as the renderer
+    /// does. A test helper only — production goes through [`pose_for`], and
+    /// this calls the same [`GaitVector::limb_pose`] it does.
+    fn pose_at(gait: &GaitVector, froude: f64, phase: f64) -> HashMap<String, [f64; 3]> {
+        let mut out = HashMap::new();
+        for limb in &gait.limbs {
+            for ja in gait.limb_pose(limb, froude, phase) {
+                out.insert(ja.segment, ja.euler);
+            }
+        }
+        out
+    }
+
+    /// **THE BEHAVIOURAL ACCEPTANCE, at the CONSUMER.** Slice one asserted the
+    /// bake's arithmetic; this asserts that what the *renderer samples* carries
+    /// it — three bodies of different proportions walking with derived cadence,
+    /// stride and duty.
+    ///
+    /// Two invariants, both ratios, neither a snapshot:
+    ///
+    /// 1. **Cadence scales as `√(g/L)`.** `f·√L` is constant across the three
+    ///    plans at equal Froude — the `Fr^0.2` term cancels — so a big animal
+    ///    takes slow steps as *arithmetic*, not as an authored clip duration.
+    ///    The retired clip was 1.000 s for every body regardless of its legs.
+    /// 2. **Dynamic similarity.** At equal Fr the duty, the hip excursion and
+    ///    the root-height excursion **as a fraction of leg length** are
+    ///    identical across all three plans; only the metres differ (Alexander &
+    ///    Jayes 1983, reproduced by our own arithmetic).
+    #[test]
+    fn three_bodies_walk_at_their_own_cadence() {
+        let plans = [biped_plan(), stout_plan(), longleg_plan()];
+        let fr = 0.25; // a comfortable walk, below the published transition
+        let mut rows = Vec::new();
+        println!("\nthe RENDERED gait at Fr = {fr} (g = {G} m/s²) — what pose_for samples");
+        for plan in &plans {
+            let gait = gait_of(plan);
+            let at = gait.at(fr);
+            // The root excursion as the RENDERER composes it: the peak-to-trough
+            // of `root_offset_m` over one cycle, which is the only vertical
+            // authority there is.
+            let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+            for k in 0..720 {
+                let phase = k as f64 / 720.0;
+                let y = root_offset_m(Some(&gait), 0.0, fr, phase, Posture::Standing);
+                lo = lo.min(y);
+                hi = hi.max(y);
+            }
+            let excursion_m = hi - lo;
+            println!(
+                "  {:<16} L {:.3} m | v {:.4} m/s | cadence {:.4} Hz | period {:.4} s | \
+                 duty {:.4} | θmax {:.4} rad | root excursion {:.4} m = {:.3} % of L",
+                plan.name.trim_start_matches("dc:body/"),
+                gait.governing_reach_m,
+                at.speed_m_s,
+                at.cadence_hz,
+                at.period_s,
+                at.mean_duty,
+                at.theta_max_rad,
+                excursion_m,
+                100.0 * excursion_m / gait.governing_reach_m,
+            );
+            rows.push((
+                plan.name.clone(),
+                gait.governing_reach_m,
+                at.cadence_hz,
+                at.mean_duty,
+                at.theta_max_rad,
+                excursion_m / gait.governing_reach_m,
+            ));
+        }
+        // (1) f·√L is invariant — i.e. f_i/f_j = √(L_j/L_i), exactly.
+        for w in rows.windows(2) {
+            let (a, b) = (&w[0], &w[1]);
+            let ka = a.2 * a.1.sqrt();
+            let kb = b.2 * b.1.sqrt();
+            assert!(
+                (ka - kb).abs() < 1e-12 * ka.abs().max(1.0),
+                "{} and {}: f·√L = {ka} vs {kb} — cadence is not scaling as √(g/L)",
+                a.0,
+                b.0
+            );
+            let predicted = (b.1 / a.1).sqrt();
+            let measured = a.2 / b.2;
+            assert!(
+                (predicted - measured).abs() < 1e-12,
+                "{} / {}: cadence ratio {measured} against √(L/L) = {predicted}",
+                a.0,
+                b.0
+            );
+        }
+        // (2) dynamic similarity: duty, excursion and bob-as-a-fraction are the
+        // SAME number on every body at equal Fr.
+        for w in rows.windows(2) {
+            let (a, b) = (&w[0], &w[1]);
+            for (what, x, y) in [
+                ("duty", a.3, b.3),
+                ("θmax", a.4, b.4),
+                ("root excursion / L", a.5, b.5),
+            ] {
+                assert!(
+                    (x - y).abs() < 1e-12,
+                    "{} vs {}: {what} differs ({x} vs {y}) — dynamic similarity broken",
+                    a.0,
+                    b.0
+                );
+            }
+        }
+        // …and the metres genuinely do differ, or the check above is vacuous.
+        assert!(
+            rows[0].1 != rows[1].1 && rows[1].1 != rows[2].1,
+            "the three plans must have different leg lengths for this to mean anything"
+        );
+    }
+
+    /// **Runtime is sacred** (CLAUDE.md § Conventions), and this slice moved a
+    /// per-frame path, so it owes a measured cost. Both paths are timed here —
+    /// the derived gait that ships, and `sample_clip` on the parked walk fixture
+    /// it replaced — and the numbers print under `--nocapture`.
+    ///
+    /// **The assertion is a bound with a derivation, not a snapshot** (the
+    /// timing of a number a colleague will improve tomorrow is exactly what
+    /// § Gates forbids pinning): at 60 fps a thousand bodies must fit in a
+    /// frame, so 16 µs per body per frame is already catastrophic and 20 µs is
+    /// a ceiling nothing sane approaches. Measured cost sits ~two orders below
+    /// it, so this cannot flake on a loaded machine and still catches a
+    /// pathology — an allocation in the inner loop, a table build per frame.
+    #[test]
+    fn per_frame_pose_cost_is_measured() {
+        use std::time::Instant;
+        let gait = gait_of(&biped_plan());
+        let idle = idle_clip();
+        let walk = retired_biped_walk_clip();
+        let mut state = AnimState::default();
+        state.advance(1.0 / ANIM_FPS, Some(&gait), 1.47);
+
+        let n = 20_000;
+        // Warm both paths so neither pays first-touch costs in its timed run.
+        for _ in 0..2_000 {
+            std::hint::black_box(pose_for(&state, Some(&gait), &[&idle]));
+            std::hint::black_box(sample_clip(&walk, 0.3));
+        }
+        let t0 = Instant::now();
+        for i in 0..n {
+            let mut s = state.clone();
+            s.advance(1.0 / 60.0, Some(&gait), 1.47);
+            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle]));
+            std::hint::black_box(root_offset_m(
+                Some(&gait),
+                0.0,
+                s.stepped_froude,
+                s.stepped_phase,
+                Posture::Standing,
+            ));
+            std::hint::black_box(i);
+        }
+        let derived_ns = t0.elapsed().as_nanos() as f64 / f64::from(n);
+        let t1 = Instant::now();
+        for i in 0..n {
+            std::hint::black_box(sample_clip(&walk, f64::from(i) / 60.0));
+            std::hint::black_box(sample_clip(&idle, f64::from(i) / 60.0));
+        }
+        let clip_ns = t1.elapsed().as_nanos() as f64 / f64::from(n);
+        println!(
+            "\nper-frame pose cost, one body: DERIVED gait + one clip layer + the \
+             root offset = {derived_ns:.0} ns; the retired two-clip sample it \
+             replaces = {clip_ns:.0} ns ({:.2}x)",
+            derived_ns / clip_ns.max(1e-9)
+        );
+        assert!(
+            derived_ns < 20_000.0,
+            "a per-body per-frame pose costing {derived_ns:.0} ns cannot serve a \
+             thousand bodies at 60 fps — something pathological is in the inner loop"
+        );
+    }
+
+    /// **The durable value of this slice: the bob is structurally
+    /// single-authored.** Corrections #80 was two *expressions* of one vertical
+    /// composition — `character.rs` built the IK hip as
+    /// `feet.y + hip_local[1] + root_delta − crouch` while the render root
+    /// wrote `t.y += root_delta; t.y += (root_bob − crouch)` — and they drifted
+    /// by exactly the bob.
+    ///
+    /// A value test cannot catch that class: two expressions agree until
+    /// somebody edits one. So this reads the pose loop's **source** and asserts
+    /// the shape:
+    ///
+    /// 1. there is exactly ONE call to [`root_offset_m`] in the whole file;
+    /// 2. inside the per-frame pose loop, `root_delta_m` appears exactly once —
+    ///    inside that call — and `CROUCH_ROOT_DROP_M` not at all (the crouch is
+    ///    passed as the *posture* it is, so there is no second place to sink a
+    ///    root);
+    /// 3. both consumers read the same binding by name.
+    ///
+    /// It fails the moment anyone composes a second vertical anywhere in that
+    /// loop, which is precisely the defect. *A source-text assertion is unusual
+    /// and deliberate: the property being protected is textual — that two
+    /// expressions do not exist — and no value check can express it.*
+    #[test]
+    fn the_render_root_and_the_ik_hip_read_one_root_offset() {
+        let src = include_str!("character.rs");
+        assert_eq!(
+            src.matches("root_offset_m(").count(),
+            1,
+            "there must be exactly ONE vertical composition site in character.rs"
+        );
+        // The per-frame pose block, bounded by its own two anchors: from the
+        // per-body match arm to the spawn arm that follows it. Deliberately
+        // narrower than `sync_characters`, whose *setup* legitimately reports
+        // the resting delta in a log line — the rule is about the per-frame
+        // composition, not about never naming the delta.
+        let loop_start = src
+            .find("match bodies.get_mut(character.name.as_str())")
+            .expect("the per-body pose block starts at the match");
+        let loop_end = src[loop_start..]
+            .find("None => to_spawn.push(")
+            .map(|i| loop_start + i)
+            .expect("the pose block ends at the spawn arm");
+        let pose_loop = &src[loop_start..loop_end];
+        assert_eq!(
+            pose_loop.matches("root_delta_m").count(),
+            1,
+            "the resting delta may only be read INSIDE the one composition"
+        );
+        assert_eq!(
+            pose_loop.matches("CROUCH_ROOT_DROP_M").count(),
+            0,
+            "the crouch sink is a POSTURE passed to the one composition, never a \
+             term the pose loop adds for itself"
+        );
+        // Both consumers, by name, reading the same binding.
+        assert!(
+            pose_loop.contains("let hip_y = feet.y + leg.hip_local[1] + root_offset;"),
+            "the IK hip must read the one root offset"
+        );
+        assert!(
+            pose_loop.contains("t.y += root_offset as f32;"),
+            "the render root must read the one root offset"
+        );
+    }
+
+    /// The one composition's identity and its honest refusal, as values.
+    ///
+    /// - **At rest it is exactly the posture bake's delta** — adding a gait
+    ///   changed nothing for a standing body, which is the S-5 identity the
+    ///   consumer slice owes (`derived_hip_reaches_the_render_path` pins the
+    ///   delta itself).
+    /// - **Its excursion is downward only.** Midstance is the peak (`h = L`,
+    ///   the resting height) and the contact extremes are the troughs, so a
+    ///   walking body dips below its standing height and never rises above it.
+    ///   That is the compass geometry, and it is why the derived gait cannot
+    ///   lift a body off its own legs.
+    /// - **A run DECLINES rather than fabricating a flight arc** (`stubs.md`
+    ///   #39, heir B6): above the transition the offset holds still.
+    #[test]
+    fn root_offset_is_the_one_vertical_and_declines_a_run() {
+        let gait = gait_of(&biped_plan());
+        let rest = root_offset_m(Some(&gait), 0.25, 0.0, 0.0, Posture::Standing);
+        assert!(
+            (rest - 0.25).abs() < 1e-12,
+            "at v = 0 the offset must be the resting delta alone, got {rest}"
+        );
+        // Walking: strictly at or below the resting height, and genuinely moving.
+        let fr = 0.25;
+        let (mut lo, mut hi) = (f64::INFINITY, f64::NEG_INFINITY);
+        for k in 0..720 {
+            let y = root_offset_m(Some(&gait), 0.0, fr, k as f64 / 720.0, Posture::Standing);
+            assert!(
+                y <= 1e-12,
+                "the root may dip below the standing height, never rise above it \
+                 (got {y} m at phase {})",
+                k as f64 / 720.0
+            );
+            lo = lo.min(y);
+            hi = hi.max(y);
+        }
+        assert!(
+            hi - lo > 1e-3,
+            "a walking biped's root must actually move, got {:.6} m",
+            hi - lo
+        );
+        // A run: the flight apex is ballistic and is DECLINED, so the offset is
+        // flat rather than invented.
+        let run_fr = gait.froude(4.5);
+        assert!(run_fr > 0.5, "4.5 m/s is a run for this body (Fr {run_fr})");
+        let a = root_offset_m(Some(&gait), 0.0, run_fr, 0.10, Posture::Standing);
+        let b = root_offset_m(Some(&gait), 0.0, run_fr, 0.60, Posture::Standing);
+        assert_eq!(
+            a, b,
+            "a declined root height must HOLD, not fabricate a flight arc"
+        );
+        // The identity fallback: no gait at all is the pre-gait behaviour.
+        assert_eq!(
+            root_offset_m(None, 0.25, 0.9, 0.4, Posture::Standing),
+            0.25,
+            "a plan with no gait renders exactly as it did before this slice"
+        );
+        assert_eq!(
+            root_offset_m(None, 0.25, 0.9, 0.4, Posture::Crouching),
+            0.25 - CROUCH_ROOT_DROP_M
+        );
+    }
+
+    /// The gait owns bearing chains outright; a clip layers additively on
+    /// everything else (design § 6 rules 1–4). Asserted as a *composition*
+    /// property, not a snapshot: the arms carry gait + clip, the legs carry the
+    /// gait alone even when a clip asks for them.
+    #[test]
+    fn a_clip_layers_on_non_bearing_segments_and_is_refused_on_a_leg() {
+        let plan = biped_plan();
+        let gait = gait_of(&plan);
+        let mut clip = idle_clip();
+        // Ask the clip for a LEG as well as its arms.
+        clip.keyframes[0].rotations.push(dc_api::bodies::JointRot {
+            segment: "leg_l_upper".into(),
+            euler: [1.0, 0.0, 0.0],
+        });
+        let mut state = AnimState::default();
+        state.advance(1.0 / ANIM_FPS, Some(&gait), 1.5);
+        let bare = pose_for(&state, Some(&gait), &[]);
+        let layered = pose_for(&state, Some(&gait), &[&clip]);
+        let arm = "arm_l_upper";
+        assert!(
+            (layered.joints[arm][2] - bare.joints[arm][2]).abs() > 1e-9,
+            "the clip must ADD to a non-bearing segment over its counter-swing"
+        );
+        assert_eq!(
+            layered.joints["leg_l_upper"], bare.joints["leg_l_upper"],
+            "a clip may not contribute to a BEARING chain — that request is a \
+             gait-type choice, not an animation"
+        );
     }
 
     // --- step 3: trunk/look split, two-bone leg IK ------------------------
@@ -1067,40 +1622,70 @@ mod tests {
         assert_eq!(solve_leg_ik(0.45, 0.43, t), solve_leg_ik(0.45, 0.43, t));
     }
 
+    /// The **approach** half of the facing split (user call #5). It chases a
+    /// target and nothing else: the speed test it used to carry moved to the
+    /// sim, which simply stops moving the target when the body stops. That
+    /// removal is the point — one derivation of the facing, not one per side.
     #[test]
-    fn steer_faces_travel_holds_when_stopped_and_replays() {
+    fn the_trunk_chases_the_sims_target_and_holds_when_it_stops_moving() {
+        // A fixed target history replays identically.
+        // The SIM's convention, read from the sim — not restated here.
+        let facing_x = dc_api::character::yaw_from_travel(1.0, 0.0).unwrap();
+        let facing_z = dc_api::character::yaw_from_travel(0.0, -1.0).unwrap();
         let hist = [
-            (0.016, 1.0, 0.0),
-            (0.02, 1.0, 0.0),
-            (0.02, 0.0, -1.0),
-            (0.05, 0.0, 0.0),
-            (0.016, -1.0, 0.0),
+            (0.016, facing_x),
+            (0.02, facing_x),
+            (0.02, facing_z),
+            (0.05, facing_z),
+            (0.016, -facing_x),
         ];
         let run = || {
             let mut s = AnimState::default();
             let mut ys = Vec::new();
-            for (dt, vx, vz) in hist {
-                s.steer(dt, vx, vz);
+            for (dt, target) in hist {
+                s.steer(dt, target);
                 ys.push(s.trunk_yaw);
             }
             ys
         };
         assert_eq!(run(), run(), "fixed steer history replays identically");
 
-        // Steering toward +X travel settles the trunk facing +X (yaw −π/2).
+        // Chasing the +X target settles the trunk facing +X (yaw −π/2).
         let mut s = AnimState::default();
         for _ in 0..60 {
-            s.steer(0.05, 1.0, 0.0);
+            s.steer(0.05, facing_x);
         }
         assert!(
             wrap_pi(s.trunk_yaw - (-std::f64::consts::FRAC_PI_2)).abs() < 1e-3,
-            "trunk faces travel, got {}",
+            "trunk reaches the sim's target, got {}",
             s.trunk_yaw
         );
-        // Stationary: the facing is held, not reset.
-        let held = s.trunk_yaw;
-        s.steer(0.1, 0.0, 0.0);
-        assert_eq!(s.trunk_yaw, held, "a stopped body keeps its facing");
+        // The sim holds its target when the body stops; the trunk converges on
+        // it and stays. Asserted as CONVERGENCE, not equality: the approach is
+        // exponential, so more frames against an unchanged target can only
+        // close the residual further — never open it, and never drift off.
+        // *(This assertion said "unchanged" and the gate caught it: an
+        // asymptotic chase never lands exactly, and demanding that it does is
+        // asserting a snapshot of the easing curve rather than the property.)*
+        let residual_before = wrap_pi(s.trunk_yaw - facing_x).abs();
+        for _ in 0..5 {
+            s.steer(0.1, facing_x);
+        }
+        let residual_after = wrap_pi(s.trunk_yaw - facing_x).abs();
+        assert!(
+            residual_after <= residual_before && residual_after < 1e-3,
+            "an unchanged target must close the facing, not move it: \
+             {residual_before} -> {residual_after} rad"
+        );
+        // It approaches over TRUNK_TURN_WINDOW_S rather than snapping — the
+        // half that is genuinely the client's and genuinely free to tune.
+        let mut s = AnimState::default();
+        s.steer(TRUNK_TURN_WINDOW_S / 4.0, facing_x);
+        assert!(
+            s.trunk_yaw.abs() > 1e-9 && wrap_pi(s.trunk_yaw - facing_x).abs() > 1e-3,
+            "a partial frame must move partway, got {}",
+            s.trunk_yaw
+        );
     }
 
     // --- the body experiments: does one clip set retarget, and does the foot
@@ -1140,7 +1725,7 @@ mod tests {
             r.reach_m,
             r.reach_m - r.hip_eff_m(),
         );
-        let mut head = format!("     {:>2} {:>6} {:>7}", "f", "t(s)", "bob");
+        let mut head = format!("     {:>2} {:>6}", "f", "t(s)");
         for l in &r.frames[0].legs {
             head.push_str(&format!(
                 " | {:<7} {:>7} {:>7} {:>6} {:>6} {:>4}",
@@ -1149,10 +1734,7 @@ mod tests {
         }
         println!("{head} (deg; v = verdict)");
         for row in &r.frames {
-            let mut line = format!(
-                "     {:>2} {:>6.3} {:>+7.3}",
-                row.index, row.t_s, row.root_bob_m
-            );
+            let mut line = format!("     {:>2} {:>6.3}", row.index, row.t_s);
             for l in &row.legs {
                 line.push_str(&format!(
                     " | {:>+7.3} {:>+7.3} {:>+7.3} {:>+6.1} {:>+6.1} {:>4}",
@@ -1168,14 +1750,15 @@ mod tests {
         }
         println!(
             "     = {} samples: seated {} + corrected {} + clamped {} + refused {} \
-             | knee|max| {:.1} deg | residual<= {:.9} m | clip sole [{:+.3},{:+.3}] \
-             rendered [{:+.3},{:+.3}]",
+             | knee|max| {:.1} deg (solver {:.1}) | residual<= {:.9} m | clip sole \
+             [{:+.3},{:+.3}] rendered [{:+.3},{:+.3}]",
             r.samples,
             r.already_seated,
             r.corrected,
             r.clamped_beyond_reach,
             r.refused,
             r.knee_bend_max_deg,
+            r.solver_knee_bend_max_deg,
             r.reachable_residual_max_m,
             r.clip_sole_min_m,
             r.clip_sole_max_m,
@@ -1224,12 +1807,14 @@ mod tests {
     /// own lengths, so one clip loop at 12 fps exercises the whole invariant.
     #[test]
     fn foot_placement_and_retargeting_are_measured() {
-        let clips = biped_clips();
-        let plans = [
-            dc_api::bodies::biped_plan(),
-            dc_api::bodies::stout_plan(),
-            dc_api::bodies::longleg_plan(),
-        ];
+        // The shipped clips plus the PARKED walk fixture. The fixture is here
+        // because this probe's history is written against it and its rows are
+        // the comparison a reader of journal/0130–0132 expects — not because
+        // the derived gait is being checked against an animator (user call #3
+        // is explicit that it is parked, not enshrined).
+        let mut clips = biped_clips();
+        clips.push(retired_biped_walk_clip());
+        let plans = [biped_plan(), stout_plan(), longleg_plan()];
         let vs = boot_voxel_size_m();
         let half_voxel = vs * 0.5;
         // Four cases. Flat/standing is the degenerate one journal/0130 measured
@@ -1382,13 +1967,19 @@ mod tests {
                                  clip's non-negative bob or stride; got {} corrected",
                                 r.plan, r.clip, r.corrected
                             );
+                            // The SOLVER's bend, not the clip's: a refused
+                            // sample renders the clip's own authored knee and
+                            // says nothing about the IK. See the field's doc —
+                            // the gate caught this conflation the day the root
+                            // bob left the schema.
                             assert!(
-                                r.knee_bend_max_deg < 1.0,
+                                r.solver_knee_bend_max_deg < 1.0,
                                 "{} / {}: a standing body at the derived hip keeps \
-                                 straight knees (clamp bend ~0.25° max), got {:.2} deg",
+                                 straight knees wherever the SOLVER ran (clamp bend \
+                                 ~0.25° max), got {:.2} deg",
                                 r.plan,
                                 r.clip,
-                                r.knee_bend_max_deg
+                                r.solver_knee_bend_max_deg
                             );
                             if r.clip == "dc:anim/biped_idle" {
                                 // The planting the bake buys: idle's zero-bob,
@@ -1539,14 +2130,13 @@ mod tests {
             },
             100.0 * CROUCH_ROOT_DROP_M / long.3,
         );
-        for (name, bob) in [("walk", 0.04_f64), ("jump", 0.12_f64)] {
-            println!(
-                "  authored {name} root bob {bob:.3} m = {:.1}% of the stout's derived \
-                 hip, {:.1}% of the biped's",
-                100.0 * bob / stout.3,
-                100.0 * bob / biped.3
-            );
-        }
+        // The authored root bobs used to be itemised here as a fraction of
+        // each body — 0.040 m walk, 0.120 m jump, i.e. 9.1 % of the stout's hip
+        // against a *derived* 7.5 %. There is nothing left to print: the field
+        // left the schema 2026-08-02 (user call #2) and root height is now a
+        // function of phase that scales with the body by construction. **That
+        // is one of the four absolute-metre constants this arc set out to
+        // retire, gone.**
         println!();
         assert!(
             (0.45..=0.55).contains(&ratio),
@@ -1572,9 +2162,9 @@ mod tests {
     #[test]
     fn derived_hip_reaches_the_render_path() {
         for (plan, expect) in [
-            (dc_api::bodies::biped_plan(), 0.880),
-            (dc_api::bodies::stout_plan(), 0.440),
-            (dc_api::bodies::longleg_plan(), 1.020),
+            (biped_plan(), 0.880),
+            (stout_plan(), 0.440),
+            (longleg_plan(), 1.020),
         ] {
             let delta = derived_root_delta_m(&plan)
                 .expect("every shipped plan declares `stand [sole]` and bakes");
@@ -1597,14 +2187,14 @@ mod tests {
         // legal absence: the helper declines naming it, and the renderer
         // keeps the authored pivot (delta absent = 0) — today's behaviour
         // exactly, with one warn at asset build.
-        let mut tree = dc_api::bodies::biped_plan();
+        let mut tree = biped_plan();
         tree.modes.clear();
         let why = derived_root_delta_m(&tree).unwrap_err();
         assert!(why.contains("no locomotion modes"), "{why}");
 
         // And a plan whose declared modes don't include `stand` surfaces the
         // bake's own loud refusal, naming the mode asked for.
-        let mut hoverer = dc_api::bodies::biped_plan();
+        let mut hoverer = biped_plan();
         hoverer.modes[0].mode = "hover".into();
         let why = derived_root_delta_m(&hoverer).unwrap_err();
         assert!(why.contains("stand"), "{why}");

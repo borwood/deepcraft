@@ -177,6 +177,26 @@ pub struct CharacterState {
     /// `serde(default)` decodes pre-ruling streams to `false` (follow travel).
     #[serde(default)]
     pub look_held: bool,
+    /// **The TARGET trunk facing** (radians, bevy convention, 0 = −Z) — the
+    /// heading the body's chest is turning toward. DECIDED 2026-08-02 (user
+    /// call #5, widened into `bodies.md` § *THE SIM OWNS THE TARGET; THE CLIENT
+    /// OWNS THE APPROACH*): the **sim owns the target**, derived deterministically
+    /// from travel and replay-safe; the **client owns the approach**, the turn
+    /// rate toward it (`TRUNK_TURN_WINDOW_S`). Neither half is "the" facing, and
+    /// the word for the whole thing is the trap.
+    ///
+    /// It is the arc's **second instance** of that pattern (after the gaze), and
+    /// it moves here now rather than later because B4 buckets colliders by yaw
+    /// and B5 resolves damage against the nominal pose — facing decides *which*
+    /// collider and *whether you were hit in the back*. Today it is a recompile;
+    /// after B3 it is a wire migration. It is also exactly where the walk-8
+    /// strafe lived (journal/0140): nobody owned it, so it inverted.
+    ///
+    /// Held when stationary, so a stopped body keeps facing where it walked.
+    /// Appended field: postcard order is wire identity, so it stays last, and
+    /// `serde(default)` decodes pre-ruling streams to 0.0 (facing −Z).
+    #[serde(default)]
+    pub facing_yaw: f32,
 }
 
 /// serde's default for [`CharacterState::body_plan`]: the identity default.
@@ -209,6 +229,7 @@ impl CharacterState {
             posture: Posture::Standing,
             body_plan: body_plan.into(),
             look_held: false,
+            facing_yaw: 0.0,
         }
     }
 
@@ -235,6 +256,25 @@ impl CharacterState {
             self.pos_m.y + cfg.eye_fraction * self.effective_height_m(cfg),
             self.pos_m.z,
         )
+    }
+}
+
+/// The yaw (radians, bevy convention, 0 = −Z) that faces a horizontal travel
+/// direction. `None` for a zero-length direction, which has no facing — the
+/// caller keeps whatever it had.
+///
+/// **One authority for the convention.** `view_dir` reads `(−sin θ, ·, −cos θ)`,
+/// so facing `(x, z)` is `atan2(−x, −z)`; this is the inverse, and both the
+/// gaze's follow-travel default and the **target trunk facing** derive through
+/// it. It used to be hand-inlined in [`step_character`] and separately as
+/// `yaw_from_velocity` in the client's animation player — two copies of one
+/// convention, which is exactly the shape the facing split exists to end.
+#[must_use]
+pub fn yaw_from_travel(x: f64, z: f64) -> Option<f64> {
+    if x * x + z * z <= 1e-24 || !(x.is_finite() && z.is_finite()) {
+        None
+    } else {
+        Some((-x).atan2(-z))
     }
 }
 
@@ -275,9 +315,31 @@ pub fn step_character(c: &mut CharacterState, cfg: &CharacterConfig, world: &imp
     // `view_dir`: θ = atan2(−x, −z)), pitch level. A held look (`set_look`,
     // until `clear_look`) is the explicit override; when stationary the
     // gaze keeps its last heading, like the trunk.
-    if !c.look_held && speed > 0.0 && (nx != 0.0 || nz != 0.0) {
-        c.yaw = (-nx).atan2(-nz) as f32;
+    let travel_yaw = if speed > 0.0 {
+        yaw_from_travel(nx, nz)
+    } else {
+        None
+    };
+    if !c.look_held
+        && let Some(y) = travel_yaw
+    {
+        c.yaw = y as f32;
         c.pitch = 0.0;
+    }
+
+    // The TARGET trunk facing (user call #5, 2026-08-02): derived from travel
+    // whenever there is horizontal motion, held otherwise. **The sim owns the
+    // target; the client owns the approach** — the turn rate toward this is
+    // `AnimState::steer`'s and stays cosmetic and free to tune. Deriving it
+    // here, from the same normalized intent the velocity comes from, is what
+    // makes it replay-safe for B4's yaw-bucketed colliders and B5's damage
+    // resolution: one derivation, not one per consumer.
+    //
+    // Note it is NOT the gaze. A held look aims perception and can point
+    // anywhere; the chest still faces where the body travels, and the neck
+    // takes the difference (`resolve_orientation`, the approach half).
+    if let Some(y) = travel_yaw {
+        c.facing_yaw = y as f32;
     }
 
     // A jump request is consumed by this step; it fires only from the ground.
@@ -460,6 +522,68 @@ mod tests {
             (c.view_dir().x - 1.0).abs() < 1e-6,
             "gaze holds facing while stopped"
         );
+    }
+
+    /// **The sim owns the TARGET facing** (user call #5, 2026-08-02). Three
+    /// properties, each a consequence of the split rather than a snapshot:
+    /// travel derives it; a HELD LOOK does not (the chest faces where the body
+    /// goes and the neck takes the difference — that is the whole walk-8 fix,
+    /// and letting a look steer the trunk is the defect it repaired); and it
+    /// holds while stationary, so a stopped body keeps facing where it walked.
+    #[test]
+    fn the_sim_derives_the_target_facing_from_travel_not_from_the_look() {
+        let cfg = cfg();
+        let mut c = CharacterState::new("t", Vec3f::new(0.5, 0.0, 0.5));
+        c.on_ground = true;
+        assert_eq!(c.facing_yaw, 0.0, "a fresh body faces its spawn heading");
+
+        // Travel +X: the target facing is atan2(−x, −z) = −π/2, the same
+        // convention `view_dir` reads — one derivation, not two.
+        c.input.move_dir = (1.0, 0.0);
+        c.input.speed = 1.0;
+        step_character(&mut c, &cfg, &floor);
+        let want = (-1.0_f64).atan2(0.0) as f32;
+        assert!(
+            (c.facing_yaw - want).abs() < 1e-6,
+            "target facing {} should be travel's {want}",
+            c.facing_yaw
+        );
+
+        // A HELD look does not move the trunk target: the gaze aims perception,
+        // the chest keeps facing travel. (Strafing is exactly this case.)
+        c.look_held = true;
+        c.yaw = 2.0;
+        step_character(&mut c, &cfg, &floor);
+        assert!(
+            (c.facing_yaw - want).abs() < 1e-6,
+            "a held look must not steer the trunk target, got {}",
+            c.facing_yaw
+        );
+
+        // Stationary: the target is held, not reset.
+        c.input.speed = 0.0;
+        step_character(&mut c, &cfg, &floor);
+        assert!(
+            (c.facing_yaw - want).abs() < 1e-6,
+            "a stopped body keeps its facing target, got {}",
+            c.facing_yaw
+        );
+
+        // And it is deterministic: a fixed intent history replays identically.
+        let replay = |dirs: &[(f64, f64, f64)]| {
+            let mut c = CharacterState::new("t", Vec3f::new(0.5, 0.0, 0.5));
+            c.on_ground = true;
+            let mut ys = Vec::new();
+            for (dx, dz, spd) in dirs {
+                c.input.move_dir = (*dx, *dz);
+                c.input.speed = *spd;
+                step_character(&mut c, &cfg, &floor);
+                ys.push(c.facing_yaw);
+            }
+            ys
+        };
+        let hist = [(1.0, 0.0, 1.0), (0.0, -1.0, 0.6), (0.0, 0.0, 0.0)];
+        assert_eq!(replay(&hist), replay(&hist));
     }
 
     #[test]

@@ -60,9 +60,11 @@
 //! - **the speed the Froude number needs is the world's, not the body's**
 //!   (`stubs.md` #41, heir B4) — which is why `gravity_m_s2` and the evaluation
 //!   speed are arguments and not baked constants;
-//! - **the binary `Loco` switch** that discards the analog intent (`stubs.md`
-//!   #42) is member 2's to retire; nothing here re-introduces a discrete gait
-//!   switch — Fr is continuous and idle is its degenerate limit.
+//! - **the binary `Loco` switch** that discarded the analog intent (`stubs.md`
+//!   #42) is **retired** — the consumer slice deleted it 2026-08-03
+//!   (journal/0147). Fr is continuous and idle is its degenerate limit;
+//!   `dc-client`'s `the_gait_ladder_is_continuous_and_idle_is_its_limit` is
+//!   what keeps a discrete gait switch from coming back.
 //!
 //! ⚠ **SEAM — B7 (joint rotation limits).** No plan, solver or validator in
 //! this tree prevents a knee inverting: `SegmentDef` carries no rotation range
