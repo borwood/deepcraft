@@ -3156,47 +3156,6 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   FOREGROUND of its own session and waits — never `run_in_background` inside an agent.**
   FOLDED into session-workflow § Delegation 2026-08-02 (greenlit).
 
-- **🟢 RESOLVED 2026-08-02 (next session): the look-ownership ruling + the follow-travel
-  slice (journal/0142).** The user ruled the first option: **move intent defaults to
-  look-follows-travel; an explicit look is held until released** (bodies.md § who owns the
-  look — with the user's multi-segment-neck compartmentalization caveat recorded there).
-  Shipped sim-side in `step_character` (unheld gaze faces travel, level; senses and
-  renderer read the same gaze), with `set_look` now HOLDING until the new
-  `dc:character/clear_look` releases it and `look_held` in the pose readback. S6 row 95's
-  orientation half is stamped; its faceless-heads half stays open. *(Original sighting
-  below, kept as testimony.)*
-  ~~**INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
-  look (user-sighted 2026-08-02 at the derived-hip walk, station 2; mechanism read from
-  code and CONFIRMED by a live control the same minute).**~~ `resolve_orientation`'s clamp
-  rule — *a look beyond the neck clamp drags the trunk around* (journal/0014, built for
-  the player whose look follows the camera) — means a character whose `character.yaw` is
-  never updated has its trunk dragged back to the dead look while `steer()` chases travel:
-  permanent strafe. Control: `character_set_look` to the travel heading and the same body
-  walks facing its motion (asset `0140-look-steered-control`, renumbered from 0138). **The dropped thread is
-  older than the sighting and the user remembered it:** S6 baseline audit row 95 has
-  carried *"nobody owns body orientation"* OPEN since 07-19; walk 8 sighted it, 0014
-  closed the player path, and no slice ever owned the non-player path. **The design
-  question it opens is a CONTROLLER-SURFACE call, adjacent to the 2026-08-02 postures
-  ruling:** does move intent default to look-follows-travel unless a look is explicitly
-  held (predator tracking prey while circling), or must every driver steer the look
-  (which today's MCP driver, NPC controllers, and the future animus all must then do)?
-  User-owned; not decided at the walk.
-
-- **🟢→ RESOLVED AS EXPECTED-RED (corrections #92, same day): the authorization existed in the geo FINAL close block — P11 slice 2 owns the single re-capture, user-ruled "accept as-is; march"; this entry's "without its authorizing entry" was filed through one arc's lens without reading the other's live block.** ~~THREE ARTIFACT TRIPWIRES ARE RED ON MAIN — a golden move without its authorizing
-  entry (found 2026-08-02 by the bodies arc's debt-clearing gate; pre-existing, demonstrated
-  on main WITHOUT the bodies slice, identical hashes).** `dc-worldgen
-  tests/artifact_tripwires`: **the far field** (0x1424_7B7C_AB51_EFA5 measured vs
-  0xF64E_7377_9F48_B696 pinned), **the head plane** (0x93AF_F969_6A7A_9952 vs
-  0x9AC3_4801_9AD6_FE1B), **the geotherm plane** (0xF650_5F2C_E066_58EB vs
-  0xBC6E_77CD_3D52_0246). Almost certainly the P11 members-into-history merges — the arc
-  that moves the record — whose slices re-captured some goldens; these three either lack
-  their authorization ("a hash move produced by ratified semantics re-captures the goldens
-  **with the why recorded**") or lack the re-capture. **Owed by the geology arc: the
-  journal-entry mechanism naming + re-capture, or a revert.** The batching ruling's first
-  bill: the debt window let this ride main for hours; the bodies arc's gate found it only
-  because clearing its own debt required the full run. Bodies-arc merges state their
-  evidence net of this trio.~~ *(struck with the resolution above; kept as testimony of what the gate measured.)*
-
 - **🟠 THE BUILD-SLOT MUTEX IS DEAD AS A MECHANISM — both failure directions in one evening,
   from two sessions that both know the doctrine (2026-08-01, bodies session + geology
   session, both testimonies in hand).** The bodies session's full test gate (this
@@ -3250,18 +3209,6 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     **replay-critical** — and a tolerance-based test is not adequate for a replay claim. **Fix
     the ordering as part of that slice, not before**, and re-tighten the assertion to exact
     when it lands.
-
-- **✅ FALSIFIED AND REPLACED 2026-08-01 (corrections #83) — THE FULL WORKSPACE GATE IS ~35–40
-  MINUTES, NOT 9 HOURS.** The 9-hour claim was an agent's, recorded here by the integrator as a
-  measured fact and repeated to the user twice. **Measured four ways, all agreeing:**
-  `rotquant-stage2b.log` ran **18:14:53 → 18:54:40 = 39.8 min** and the sum of its 90 suites'
-  own `finished in` figures is **39 min**; the integrator's independent merge gate hours earlier
-  (`merge-gate2b.log`) ran **34.5 min** against a suite-sum of **34.3 min**. The **slowest single
-  suite is 205 s** (3.4 min), against a claimed *"`geology.rs` ~2 h"* — off by ~35×. The attached
-  mechanism (libtest oversubscribing Medium-world builds) was **an explanation for a phenomenon
-  that does not exist.**
-  **The gate is not a standing tax and needs no remedy.** Staged invocation stays right for
-  *verdict* clarity — a killed run must be unambiguous — but not for duration.
 
 - **🟠 MEASURED 2026-07-29 (journal/0130 + journal/0131): BODY PLANS ARE A REAL SEAM NOW, AND
   THE IK'S RATIFIED SENTENCE IS HALF TRUE.** Two experiments, no engine constant moved.
@@ -3479,6 +3426,16 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   alone will not clear the checkerboard — the octaves `DitherSource` is a co-requisite**,
   and both defects (460 m facies point-sampling; single-octave member dither) are real.
   Residue: a confirm re-shoot at U3's reference pose rides the next appearance walk.
+
+**⬇ 94 → 91 entries, 2026-08-03 (archive pass 3).** Three entries whose own bodies declared
+them resolved BEFORE 2026-08-03 left this section for [`ROADMAP-history.md`](ROADMAP-history.md)
+**§ Observed — archived 2026-08-03 (pass 3)**: the look-ownership ruling + follow-travel slice
+(resolved 2026-08-02, journal/0142), the three-artifact-tripwires expected-red (resolved
+2026-08-02, corrections #92), and the 9-hour-gate falsification (resolved 2026-08-01,
+corrections #83). **Every entry stamped resolved ON 2026-08-03 was deliberately kept live one
+session for the user's review of the day's staleness/doc-topology stamps**, as were entries
+whose bodies say they are kept on purpose (charcoal-premise, build-slot-mutex banner). § Sequenced
+was swept and yielded zero movable entries. Verbatim moves, poses and assets intact.
 
 **⬇ 129 → 85 entries, 2026-07-29.** Forty-five entries left this section for
 [`ROADMAP-history.md`](ROADMAP-history.md) **§ Observed — archived**: **8 user field reports the
