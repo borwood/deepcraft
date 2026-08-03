@@ -356,6 +356,37 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### FOUR LIVE ARCS PROMOTED FROM CLOSE BLOCKS — **stamped 2026-08-03 (staleness F1: three
+user decisions/greenlights and one superseding build had NO live-board entry — they lived
+only in `dependency-graph.md` rows and the two close blocks, and a close block is a handoff
+that gets archived).** Compact entries by design: ROADMAP wins on content, the graph on
+sequence — each names its authority docs rather than restating them.
+
+- **THE STRATIGRAPHIC-CORRELATION BUILD (geo thread; supersedes P11 slice 3's membership
+  dither as plan).** User sketch + smoothness principle, 2026-08-03; design pass DONE —
+  `docs/audits/2026-08-03-stratigraphic-correlation-design.md` (R-C shared-clock rule;
+  mass argument holds; read-side, so **every deep-time golden must stay bit-still**).
+  **Blocked on its § 9 picks P-1…P-5 (user-owned, being taken one at a time), then
+  S0 (M0′ measurements) → S1 (kernel) → S2 (wiring + goldens) → S3 (acceptance walk,
+  Claude drives).** Was: a sub-bullet of the § Observed field report only.
+- **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
+  "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically
+  (journal/0150, `dc-core::field::FieldKernel`, stubs #30 discharged). **Live
+  ⚠ NEEDS RATIFICATION: the `dc-core` venue + its rayon rider** (audit U-3;
+  `docs/audits/2026-08-03-e4-implicit-kernel-design.md` § 8 U-1…U-5). E4-2 =
+  `Scheme::ImplicitBE`, non-default, convergence study; **E4-3 flips adoption WITH the
+  P2 re-pick so goldens move once** (D3(M) ladder re-runs under the new integrator
+  first). Graph row E4.
+- **B7 — joint rotation limits (bodies thread; DECIDED 2026-08-02, user).** Design pass
+  done (`docs/audits/2026-08-02-joint-limits-b7-design.md`, all seven calls closed);
+  its five stubs land WITH the build, deliberately not before. Wants the pre-B3
+  segment-identity window. Graph row B7; bodies close block item 3.
+- **B8 — individual proportion variation (bodies thread; DECIDED 2026-08-03, user).**
+  SIZE FIRST via allometric axes; range = engine, distribution = pack, pack owns
+  fairness; does NOT wait on B4; size is free today (the bake returns angles + a
+  height ratio). `bodies.md` § Individual proportion variation; graph row B8. Unbuilt,
+  no design pass yet.
+
 ### THE STAND-IN MARKER CONTROL — **owed 2026-08-03 (corrections #97, greenlit fingerprint); survey first, sweep second**
 
 **The gap it closes.** CLAUDE.md read-first item 6 wants a deliberate loose end annotated **in
@@ -391,12 +422,14 @@ general one.
 defaults to Earth*** (with its same-day SDK/geo-pass widening). `25.0 m/s²` was a bring-up
 artifact nobody chose; *existence is not standing, applied to a physical constant*.
 
-1. ~~**The flip + one authority**~~ **✅ LANDED 2026-08-02 (`bd0c82c`, renamed `26bf42f`) — ⚠ UNGATED,
-   the gate is the first thing owed.** `dc-core::DEFAULT_GRAVITY_M_S2 = 9.81`; **three** hardcoded
+1. ~~**The flip + one authority**~~ **✅ LANDED 2026-08-02 (`bd0c82c`, renamed `26bf42f`)** —
+   ~~⚠ UNGATED, the gate is the first thing owed~~ **GATED since, twice (stamped 2026-08-03,
+   staleness F7): the bodies arc gate `0e344ca` (962/0, which also caught and fixed the stale
+   `G_WORLD = 25.0` Froude print) and the geo wrap trio (984/0 at `090f778`+).**
+   `dc-core::DEFAULT_GRAVITY_M_S2 = 9.81`; **three** hardcoded
    `25.0`s collapsed (`CharacterConfig`, `dc-client` player, and `PhysicsConfig` — the third found
    only by doing it, and its doc comment *named the file holding the authority and copied the
-   digits anyway*). **Gate owed on dc-core / dc-api / dc-client / dc-physics** — blocked at the time
-   by the sibling session's 69-minute P2 sweep.
+   digits anyway*).
 2. **One place to SET it — the configuration half, still open.** Three configs each hold their own
    `gravity_m_s2` field, all merely *defaulting* to the constant, so a world wanting Mars gravity
    sets it in **three places**: the same defect moved from the literal to the field. End state is
@@ -577,7 +610,8 @@ two).
    one layout surgery, one golden move, one migration. **Gated on a measured grain
    split factor** (the #88 count-model lesson) and the sub-quantum remainder-carry
    (Law-3 bound becomes derivable: quantum × merge count).
-   **✅ BUILT 2026-08-02/03 (slice-3 worktree, journal/pending-p11-slice3; audit header
+   **✅ BUILT 2026-08-02/03 (slice-3 worktree, journal/0145 — *was `journal/pending-p11-slice3`,
+   the dangling-pointer shape again, fixed 2026-08-03 staleness F9*; audit header
    carries the banner).** M0 measured first: mover split **1.0308×** → **M-1, the mover
    is IN the merge key** (P-4 resolved integrator-side, under the ≲1.1× bar); max unit
    thickness **65.38 m** (2⁻¹⁰ m u32 quantum stands; u16 would have overflowed);
@@ -713,11 +747,16 @@ geometry, using segment volume as the mass proxy **with per-segment material nam
   degenerate one — the effort-minimising solve is a later refinement, not this slice.
 
 **CONTINUATION SLOT — this is a slice OF the tier, and the arc continues with:**
-(a) the **gait bake** (duty and cadence against the published Froude band) — **docket EXPANDED
+(a) the **gait bake** — **✅ SHIPPED 2026-08-03 (stamped by staleness F2: the entry still read
+as an expanded docket after the work shipped three times over): headless `bake_gait`
+journal/0144 (predicted table confirmed ~1e-5) → consumer journal/0147 (Froude ladder,
+`root_bob_m` out of the schema, `biped_walk` retired) → walked journal/0148 (verdicts
+recorded; new stand-ins `swing_gain` stubs #43 + the 12 fps aliasing finding); arc gate
+`0e344ca` 962/0.** ~~(docket EXPANDED
 and user-ratified 2026-08-02: `posture-gait.md` § 7 member 1's banner now carries the honest
 input inventory (geometry + volume-at-density-1; no strength/mass until B6), the four-kind
 AUTHORED-KNOBS taxonomy with the taste-vs-stand-in rule, the keyframed-non-locomotion
-guarantee for both authoring routes, and corrections #94's gaze/bend vocabulary**; (b) the **sim-side
+guarantee for both authoring routes, and corrections #94's gaze/bend vocabulary)~~; (b) the **sim-side
 phase tuple**, which brings the firewall's new line *and* the 20 Hz vs 12 fps cadence question
 (0.05 s and 0.0833 s do not divide — the stepping must land evenly, and that is a choice about
 the stop-motion identity, not a technicality); (c) **derived collider sets** with bounded `k` and
@@ -1135,10 +1174,14 @@ the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b
       ruling turned out to cost one line and to name the E4 extraction target precisely.
     - **WHY IT NOW LEADS.** The shipped world sat **2.1× past its own stability bound** for
       weeks with every golden green, and the only thing that caught it was one author doing
-      the analysis once, in one pass. **Every future field pass that diffuses anything has
-      the same trap and no defence.** That is an engine-shaped hole, and `spines.md` § S-10
+      the analysis once, in one pass. ~~**Every future field pass that diffuses anything has
+      the same trap and no defence.**~~ **The defence EXISTS since 2026-08-03 (stamped by
+      staleness F11; `stubs.md` § 30 is FULLY DISCHARGED): E4-1 extracted
+      `dc-core::field::FieldKernel` — the kernel owns its own bound and sub-cycle, and the
+      unsafe call is inexpressible** (journal/0150). That is the engine-shaped hole filled;
+      `spines.md` § S-10
       names the shape it belongs to — with the sub-cycle explicitly excluded from the spine
-      *because* it belongs here.
+      *because* it belongs to the kernel.
   - **CONTINUATION SLOT** (this is a slice OF *"passes are plugins and the engine is
     agnostic"*): after RATE — **(b)** authored order + the validator (and with it the
     retirement of the revision chain); **(c)** the open resource vocabulary, `DeepAxis`
@@ -1248,6 +1291,20 @@ the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b
 - **🔴 RE-PICK `EROSION_CALIBRATION` AGAINST THE FIXED OPERATOR — and flip the flag**
   (sequenced 2026-07-29, user: *"yes"*; journal/0122). **The constant was fitted to a broken
   solve and does not survive its repair.**
+  - **⚠ ENTRY OVERTAKEN — stamped 2026-08-03 (staleness F4, second consecutive sweep):
+    the work has moved three stages past this body.** The literature pass shipped
+    (`ee9fb94`); the **measurement runs are DONE 2026-08-02**
+    (`docs/audits/2026-08-02-p2-measurement-runs.md`): target **doubly confirmed**
+    (2.63 derived ↔ 2.653 from the world's own Airy decomposition), measured
+    D3(M) ≈ 0.0070·M puts the target at **M ≈ 375–380** — the derivation's [60, 240]
+    bracket was low 1.6×. **The flip is blocked on three USER calls** (runs doc § 4):
+    the M re-pick · the pits-bar conflict (every in-band rung violates the
+    hollows>10 m = 0 guard — so this entry's acceptance bullet below is in KNOWN
+    CONFLICT with the band; the guard's own derivation is contested, see the
+    2026-08-03 doc-topology sweep's shape-7 finding) · the gen-time/register trade —
+    the last **mostly dissolved by E4** (the 38-min gen time is explicit-stability
+    CFL tax; the implicit kernel is the ruled answer-shape, and **E4-3 flips adoption
+    WITH this re-pick so goldens move once**, dependency-graph E4/P2 rows).
   - **What moved.** `EROSION_CALIBRATION = 45` was derived on the capped operator. With the
     cap gone, 45× strips the world to **1.40 m** mean regolith — *below* the shipped world's
     4.57 m — and the ladder **inverts journal/0114's headline finding**: cover now **thins**
@@ -1423,14 +1480,18 @@ the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b
     - **Goldens: 2 of `contents_contract`'s 3 triples moved, mechanism recorded beside the
       constants**; the Small row is byte-identical for the reason its header already states
       (its sampled chunks carry no strata record). No other workspace golden moved.
-    - **⚠ NOT SHIPPED — the near-path RECORD restructure (U3's 460 m half).** Blast radius
-      **MEASURED at 13 files / ~40 sites** against the design pass's six generation-path
-      functions: `ColumnRec.strata` is a `pub` field read directly by **8 example probes
-      and 5 test files** as *the* record of a chunk, which is what stops existing when a
-      chunk-column holds up to nine. **MM-3's type was written and deliberately
-      WITHDRAWN** — a declared type with no consumer is `CoarseField` on 2026-07-22, the
-      exact failure this arc teaches; it ships with its restructure or not at all (the
-      proposal is in the slice report, awaiting ratification).
+    - ~~**⚠ NOT SHIPPED — the near-path RECORD restructure (U3's 460 m half).**~~
+      **✅ SHIPPED 2026-08-02/03 as P11 slice 3 (stamped 2026-08-03, staleness F3 —
+      the answer lived in the graph while this asking entry stayed open):**
+      journal/0145, merge `cd1058a` — `ColumnRec.strata` dissolved into per-column
+      `records: Vec<SubCell>`, blast radius re-measured 14 files / ~71 sites before
+      the cut, and **MM-3's type shipped WITH its consumer** exactly per the
+      withdrawal condition below. *(The membership DITHER that rode it was rejected
+      at the walk and superseded by the stratigraphic-correlation design — see that
+      audit's § 5 for what survives as substrate.)* Historical body kept: blast
+      radius was first measured 13 files / ~40 sites; MM-3 was written and
+      deliberately WITHDRAWN pending its consumer (a declared type with no consumer
+      is `CoarseField` on 2026-07-22, the exact failure this arc teaches).
     - **⚠ AND THE COST QUESTION THAT SLICE OWES IS WORSE THAN THE DESIGN PASS SAID.**
       *"≤ 9 touched cells, typically 1"* reads the stencil as *"cells the chunk
       overlaps"*. The bilinear stencil is **always 2×2**, so a chunk in a cell's interior
@@ -1482,7 +1543,9 @@ the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b
     at the ~460 m deep-cell grid — FLAGGED sampling choice"*, `field.rs:758-772`). Two expressions:
     **U22 / far field** at `collapse.rs::surface_class` (the class draw's *shares* are still
     nearest-per-cell, so minority phases die at the 460 m line), and **U3 / near field** at
-    `collapse.rs:1409` (one point-sample per chunk shared across all 1024 columns). The 2026-07-24
+    `collapse.rs:1409` *(site RETIRED 2026-08-02/03 — journal/0129's `selection_field` + slice 3's
+    per-column records; line number kept as history, staleness F12)* (one point-sample per chunk
+    shared across all 1024 columns). The 2026-07-24
     diagnosis audit § 5 already drew this line and nobody has read it since: *"**One mechanism at
     the level of root cause; distinct at the level of site.** A fix targeting one site would not
     automatically fix the other."*
@@ -2265,7 +2328,8 @@ FIRST SLICE, and the CONTINUATION SLOT that outlives that slice. -->
       root cause (coarse facies point-sampled)"*. It structurally cannot, and the claim was
       never ratified.** Verified in code, not from either doc: `interp_select_draw` selects a
       **member** *after* `run_strata` has already fixed the chunk's **class stack** from
-      `record_at_voxel(cx*32+16, cz*32+16)` (`collapse.rs:1409`). Octaves applied to the member
+      `record_at_voxel(cx*32+16, cz*32+16)` (`collapse.rs:1409` — *site retired 2026-08-02/03,
+      journal/0129 + 0145; historical citation, staleness F12*). Octaves applied to the member
       dither run **downstream** of the class boundary the deep sample drew and cannot move it.
       The same-day audit said so plainly and nobody reconciled the two:
       `docs/audits/2026-07-24-palette-quant-generation-diagnosis.md` § 2 — *"the per-voxel
@@ -2949,7 +3013,10 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   pass ran), staleness **F4** (ROADMAP :3203/:3447 dither notes — mechanism closed for deep
   history by P11, veneer heir = slice 3) and **F5** ("vanilla" mentions grew 162→177 in
   crates/ as default-pack prose; the strike-'vanilla' trigger has fired — a sweep-and-rename
-  pass is owed, cheap, mechanical). Pointers: `docs/audits/2026-08-02-doc-topology-sweep.md`
+  pass is owed, ~~cheap, mechanical~~ **and the debt ACCELERATED while owed — 2026-08-03
+  staleness F8: crates 177→215, docs 56→89, and FS-A shipped a source file NAMED for the
+  struck word (`crates/dc-core/src/materials/release_vanilla.rs`), so the rename now
+  includes a file path; still mechanical, no longer cheap**). Pointers: `docs/audits/2026-08-02-doc-topology-sweep.md`
   / `2026-08-02-roadmap-staleness-sweep.md`. Plus one from the erosion split (journal/0139):
   **broken rustdoc intra-doc links** where doc comments reference symbols no longer in
   module scope — `cargo doc` warnings only, invisible to the gate; fix if the corpus ever
@@ -2978,7 +3045,12 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   span already holds; it cannot add or remove mudstone). **This observation RESOLVES
   into slice 3's scope and its acceptance criterion** — the mudstone-mix border at a
   cell edge must stop being a straight line; the slice-3 design pass (in flight same
-  day) drafts the criterion + its instrument.
+  day) drafts the criterion + its instrument. **→ ANSWERED BY THE USER'S OWN LIVE VIEW
+  2026-08-03 (stamped by staleness F13): slice 3 shipped, the ~460 m tile is dead in
+  code and the ruler-straight border is gone — but the dither that replaced it was
+  REJECTED at the same view (journal/0149); the border question's live successor is
+  the stratigraphic-correlation build (its § 7 inverted acceptance criterion is this
+  entry's criterion, generalized).**
 
 - **GRADE AND FORM LEGIBILITY — how does the player KNOW what they're looking at?
   (user, 2026-08-02, raised at the U4 ruling; explicitly ruled NOT to bear on U4.)**
@@ -3191,7 +3263,10 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   differing proportions"* is **measured true**. **And the solver works:** `dc:body/longleg`
   (+0.12 m leg slack, pack-side content) plants 86/88 flat samples with a **−56.2°** knee —
   the first joint this project has seen bend under IK.
-  - **⚠ THE HOVER IS NOT FIXED, and it has TWO causes.** Slack removed the *offset*
+  - **⚠ THE HOVER IS NOT FIXED, and it has TWO causes.** *(Both causes since DELETED from
+    the tree — stamped 2026-08-03, staleness F10: the rotation quantizer came out before the
+    0140 walk, and `root_bob_m` left the schema in journal/0147; this bullet is history.)*
+    Slack removed the *offset*
     (20 mm → 4 mm) and did nothing to the **15 mm oscillation**, which is the clips'
     `root_bob_m` surviving `ROT_QUANTUM_RAD` (11.25°) — the solver computes the 5 mm
     correction and the quantizer rounds it away. **Amplitude identical on both plans.**
@@ -3234,6 +3309,10 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     instance; corrections #77, #78, #80).
   - **🔴 THE SECOND WALL ~~DEEPEST CAUSE~~, quantified 2026-07-30 and known to NEITHER journal: THE
     STOP-MOTION IDENTITY AND PLANTED FEET ARE IN STRUCTURAL CONFLICT.**
+    *(⚠ `ROT_QUANTUM_RAD` is GONE from the tree — stamped 2026-08-03, staleness F10: the
+    quantizer was removed before the 0140 walk; the numbers below are history of the
+    removed mechanism, and the surviving form of this conflict is the 12 fps
+    cadence-aliasing finding, journal/0148 + the bodies close block's item 2.)*
     `ROT_QUANTUM_RAD = TAU/32 = 11.25°` (`dc-client/src/body.rs:35`). **One quantum of hip
     rotation moves the ankle 172 mm** on the biped's 0.88 m leg (199 mm on `longleg`,
     86 mm on the stout). The corrections at issue need **1.30°** (the 20 mm standing gap),
@@ -3367,9 +3446,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   recorded pose cannot settle it because nothing there steps at 28.8 m today.** The fourth
   possibility is corrections #48's own hazard: **the pose is from 2026-07-24 and the world
   is not** — journal/0111's 1000× denudation recalibration and 0112's material creep both
-  landed after it and both rewrote that surface. **Owed before any game time: a tour map
+  landed after it and both rewrote that surface. ~~**Owed before any game time: a tour map
   that finds a chunk whose surface top span is `Single` in a two-member class.** Nothing has
-  ever searched for that, and it is the only station where this fix is visible.
+  ever searched for that, and it is the only station where this fix is visible.~~
+  **✅ ANSWERED WITH A PROVEN NULL 2026-08-02 (stamped 2026-08-03, staleness F5 — the
+  answer sat in the audit while all three asking sites stayed open):**
+  `docs/audits/2026-08-02-appearance-tour-p11.md` searched the whole shipped world —
+  `Single`-movable surface top spans number **0 of 4,792** (99.1 % `Mixed`), with a
+  positive control (73.6 % of columns carry a movable `Single` span BELOW the surface,
+  so the instrument sees the category). **The station this walk needed does not exist
+  on the shipped world; the walk should not be launched for it.** *(The correlation
+  redesign moots the near-membership question anyway — its § 5 retires the dither.)*
 
 - **The U3 checkerboard's dominant signal is the 28.8 m MEMBER STEPPING, settled
   2026-07-24 — and the answer never flowed back into the audit that asked it** (corrected
@@ -3417,7 +3504,8 @@ of its own since 2026-07-20 (S6 finding F5).
   - **Scope check — this is FAR/COLD ONLY, and that is load-bearing.** journal/0074 removed the
     near ground's class consult (`collapse.rs:881-883`), so the surface-class draw #39 corrects
     is far-field exclusively. **Do not conflate with U3**, the near-field per-chunk checkerboard
-    at `collapse.rs:1409` — different site, different tier, same root.
+    formerly at `collapse.rs:1409` — different site, different tier, same root *(that site
+    retired 2026-08-02/03, journal/0129 + 0145; staleness F12)*.
   - **UNMEASURED, and deliberately so.** No probe has compared a cold tile against the same
     ground loaded. That comparison **is** the instrument this entry wants, and it is cheap:
     render both, diff. *Do not close this on reasoning.*
@@ -4360,9 +4448,15 @@ second file.
   named three surviving salts; the finding it corrected named four; **`refine.rs:29` (live
   call site `:180`) appears in neither** — the enumerate-what-you-touched mechanism the
   paragraph was written to retire. Preferred fix: **convert, don't document** — one call
-  site, byte-identical, and `refine.rs` then holds zero hand-rolled salts. **QUEUED behind
+  site, byte-identical~~, and `refine.rs` then holds zero hand-rolled salts~~. ~~**QUEUED behind
   the in-flight member-#0 build pair's merge** (its worktree owns the draws.rs
-  neighbourhood; never dispatch into a file an unmerged branch touches).
+  neighbourhood; never dispatch into a file an unmerged branch touches).~~
+  **✅ CONVERTED byte-identically (stamped 2026-08-03, staleness F6: `draws.rs:205`
+  registered domain, proof of byte-identicality at `:691-707`) — BUT the struck success
+  condition above was FALSE when written and stays unmet: `refine.rs:152` still reads
+  `grid::SALT_DT_ROUGH`, a sixth hand-rolled salt the residue enumerations missed
+  (the enumerate-what-you-touched shape, again). That read is the remaining owed
+  conversion, to the file owner when next touched.**
 
 - **The spines § 6 audit index has no completeness check — it fell five behind ONE DAY
   after the backfill that fixed eleven** (FULL spine-audit 2026-07-29, process finding).
