@@ -514,11 +514,18 @@ two).
    ratified packed `DepUnit` recovers it. Corrections #90–91, stubs #37–38 from the
    slice. **Record-terms ruling 3's re-derived numbers are in journal/0141 § 11 —
    ready for its re-entry.**
-3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
-   `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
-   13-file break), landing on the member-grade record. The ~460 m near tile dies here.
-   **DESIGN PASS DONE 2026-08-02 (`docs/audits/2026-08-02-p11-slice3-design.md`; 8 user
-   picks P-1…P-8 pending in its § 9).** Load-bearing findings: the three NEAREST reads are
+3. ~~**The near-path restructure** (ruling 5)~~ **✅ SHIPPED 2026-08-03 (journal/0144,
+   merge `cd1058a`; 3a+3b as ONE merge unit — deviation priced by the audit, reasoning
+   in the journal).** Per-voxel-column record membership (`SubCell` + `cell_bundle`, the
+   F2 mass-coupled trio inexpressible to un-bundle) + packed `DepUnit` L-8 (8 B/unit,
+   accessors, sub-quantum carry, grain 3 bits UNSET for FS-A, **mover IN the merge key**
+   on M0's measured 1.0308×). Full trio on the branch: **938/2, both reds accounted**
+   (the inherited dc-client red · the hollow-gate bound corrected to 0122's derived
+   10 m bar — it was an underived 1 m sitting on the dimple floor). **The ~460 m near
+   tile is dead in code; the ACCEPTANCE WALK is owed** (borders → interfingered
+   contacts, knowing the far-tier blend semantics ride along — P-6/P-7).
+   **DESIGN PASS DONE 2026-08-02 (`docs/audits/2026-08-02-p11-slice3-design.md`; build
+   banner in its header).** Load-bearing findings: the three NEAREST reads are
    MASS-COUPLED (record + regolith `H` + ledger bedrock slot must move as one bundle per
    column or Law 3 leaks at every frontier — F2); blast radius re-measured **14 files /
    ~71 sites** (the gated tour probe post-dates the old count); **the layout is RULED
