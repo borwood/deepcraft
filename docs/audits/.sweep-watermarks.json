@@ -6,7 +6,7 @@
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
   "staleness": "d8407e1",
-  "spine-audit": "3cf8778",
+  "spine-audit": "2985273",
   "doc-topology": "d8407e1",
   "_baseline": {
     "commit": "f652b60",
@@ -25,6 +25,15 @@
     "findings": "8 (F1-F8) + 5 CANNOT-DETERMINE. F1 is the headline: the parallel-session ordinal collision was diagnosed and fixed for journal 0135 (3cab931) and left unrepaired in TWO other numbering spaces - corrections.md carries duplicate #85 AND #86, stubs.md carries duplicate #34 (the older one holding all 13 inbound references). NOT APPLIED - the integrator adjudicates."
   },
   "_spine_audit_last_run": {
+    "commit": "2985273",
+    "date": "2026-08-03",
+    "mode": "FULL (82 commits since 3cf8778; docs/spines.md itself moved in the window, so every prior verdict was void by this file's own _full_run_triggers rule)",
+    "audit": "NONE — findings are written into docs/spines.md's header block and in place at each entry, per the dispatching brief's write-set (docs/spines.md + this file). The 3cf8778 run's artifact docs/audits/2026-08-02-spine-audit-full.md remains the standing reference for F1-F12 and SIX of its twelve were still live at 2985273.",
+    "coverage": "docs/spines.md read IN FULL. Section 3: all 20 standing rows re-searched, search recorded per row. Targeted source reads: dc-core/src/field.rs + field/gather.rs, dc-core/src/materials/release.rs + world_constants.rs, dc-api/src/bodies/gait.rs + gait/evaluate.rs + bake.rs, dc-worldgen/src/subcell.rs + draws.rs, deeptime/{field,inventory,lithology,recorder,weather_inventory,species,cadence,schedule,runner,head,grid}.rs, deeptime/erosion/*, collapse.rs anchors + the slice-3a column path. NOT OPENED: dc-client/src/body.rs beyond the gait/bake consumer edges (+1114 lines in the window), dc-api/src/bodies/gait/tests*, examples/appearance_tour_p11.rs + denudation_probe.rs + release_spectrum_probe.rs beyond grep, the golden re-captures, the two 2026-08-03 design audits beyond their one-line section-6 roles. A null from those is not a result.",
+    "findings": "8. SECTION 3: ONE ROW ADDED — the per-instance gait seam (gait::pose + InstanceDelta, dc-api/src/bodies/gait.rs:469/:210): a declared S-5 seam with a bit-identical identity default, a named heir and ZERO production callers, while its sibling bake_gait IS consumed (dc-client body.rs:484 -> character.rs:481). The RATE-authoring split, one crate over. NO row removed; the other 19 re-confirmed uncalled. The GRAIN-GRADE row's stated blocker DISCHARGED and the row got WORSE: P11 slice 3b shipped the grain storage (recorder.rs:536/:695/:703) and set_grain's only caller is its own test at :1254 — two built halves of one hand-off, neither joined. SIX of the 3cf8778 run's findings still live a day later (F1, F4, F7, F8, F9, F11); F1 (outcrop_shares(&[]) -> zero hits, three source comments still assert the call) and F4 (the of_material guard sentence MOVED to the guard test's own doc comment rather than dying) are stamped in spines.md and remain REPORTED for source. Section 6 fell behind for the FIFTH time — TEN unlisted, including all three 2026-08-02 corpus-sweep artifacts; backfilled. The section-3 count command no longer produces the section-3 count (a DISCHARGED-and-kept row is a table row that is not a standing row); caveat recorded rather than the number re-typed. Citation drift refreshed — including field.rs:555, the citation this file called 'the most stable in the file' through four sweeps.",
+    "proposed_not_applied": "S-2's storage corollary may owe a THIRD variant row for SpeciesLayout's dense-row-pointer-PLUS-popcount-rank shape (species.rs:257-371; slot_of at :300-307). Section 4's rule binds the auditor — the user decides whether it is a third variant or an instance of the dense row-pointer."
+  },
+  "_spine_audit_run_before_last": {
     "commit": "3cf8778",
     "date": "2026-08-02",
     "mode": "FULL (61 commits since d8407e1; docs/spines.md itself moved in the window, so every prior verdict was void by this file's own _full_run_triggers rule)",
