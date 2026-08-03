@@ -1562,3 +1562,61 @@ measure surface penetration); not the solve production runs.
   read off a solve whose record is empty.
 - **Heir:** whoever re-runs the decay experiment for a real refinement slice
   (architecture C).
+
+
+### 39. the-flight-phase-is-not-derivable-at-density-one — *added 2026-08-02 (gait-bake design pass finding G5; user call #1's ruled cost)*
+- **What it fakes:** a run (duty factor β < 0.5) has an airborne segment, and where the body
+  goes while nothing touches the ground is ballistics — which wants **mass**, not just volume.
+  The bake computes at **density ≡ 1**, so any run's flight phase is a shape assumed rather
+  than solved. **This fires on day one for all three shipped plans**, because user call #1
+  ruled the mover keeps its 4.5 m/s top speed and derives a run there (Fr 2.0–4.7).
+- **Heir:** **B6**, per-segment materials/mass. The same integral already serves harvest yield,
+  evolutionary fitness, standing posture and flotation; the flight phase is its fifth consumer.
+- **Loudness:** owed — the interim must **report** which of its outputs are assumed rather than
+  derived, per the ratified docket's (b) *report-when-out-of-band* rule. A silently-assumed
+  flight phase is the summary-wearing-authority defect.
+- **Blast radius:** the run half of every gait ladder · any acceptance test that checks a run
+  against a published band (it would be checking the assumption) · not the walk half, which is
+  fully derived from length scale.
+
+### 40. mass-is-volume-until-b6 — *added 2026-08-02 (member #0 shipped it, the gait pass widened it)*
+- **What it fakes:** every mass in the bodies arc is **segment box volume with density ≡ 1**
+  (`bake.rs`, the CoM integral). Member #0 shipped it as the posture solve's mass proxy and
+  named B6 at the line; the gait bake now takes the **same proxy** for cadence, duty and the
+  balance verdict, so one stand-in feeds two members and will feed more.
+- **Heir:** **B6**. Explicitly named in `posture-gait.md` § 5 (*"the same mass integral serves
+  harvest yield, evolutionary fitness, and standing posture"* — the third independent argument
+  for per-segment materials).
+- **Loudness:** ✅ member #0's bake says so in-module; **the gait bake owes the same declaration**
+  when it lands.
+- **Blast radius:** anything heterogeneous in density reads wrong — a hollow-boned flier, a
+  heavy-tailed biped, an armoured body. The three shipped plans are near-uniform, which is
+  exactly why the proxy has been invisible (**A-1**: with uniform bodies, volume *is* mass).
+
+### 41. one-global-speed-stands-in-for-a-per-body-range — *added 2026-08-02 (gait pass G4; user call #1 re-typed it rather than removing it)*
+- **What it fakes:** `CharacterConfig.walk_speed_m_s = 4.5` is **world-global** — one number for
+  every body, knowing nothing about leg length. User call #1 ruled it **mislabelled, not wrong**:
+  it stays as the *top* speed and the gait grades continuously below it. But a per-body speed
+  range is what the Froude chain actually wants, and today every body borrows one constant.
+- **Heir:** **B4**, which retires the world-global `CharacterConfig` for derived per-body sets
+  (the same entry that owns *"a 1.60 m stout is hit as 1.8 m"*).
+- **Loudness:** owed at the gait build — the name `walk_speed_m_s` is now the lie (it is a top
+  speed, and at it every shipped body is *running*), and renaming it is part of the ruling.
+- **Blast radius:** the Froude number's speed term for every body · gait selection thresholds ·
+  the stout, whose 0.44 m legs put it at **Fr 4.69** on the shared constant — the worst-served
+  body and the one whose proportions the arc exists to respect.
+
+### 42. the-binary-loco-switch-discards-an-analog-intent-that-already-exists — *added 2026-08-02 (user call #1's own finding)*
+- **What it fakes:** `AnimState` collapses movement to a two-state `enum Loco { Idle, Walk }`
+  at `dc-client/src/body.rs:199`, switched on `WALK_SPEED_THRESHOLD_M_S = 0.35` (`:49`, used at
+  `:240`). **The analog magnitude it discards already exists end to end**: `SetMoveIntent.speed`
+  is a `[0,1]` fraction carried through the one door, receipted and replayed. The stand-in is
+  not the missing analog channel — it is the *discarding* of one we already have.
+- **Heir:** the **graded Froude ladder** (gait member #1), user-ruled 2026-08-02: *"when we have
+  controller support an analog stick can actually grade intent up the ladder."* **Never a
+  discrete gait switch** — that is the ruling's explicit prohibition.
+- **Loudness:** owed — the two constants should name this entry in-code when the gait build
+  touches them.
+- **Blast radius:** every driven body's gait selection · the controller mapping when it lands
+  (which needs no new wire surface, only this to stop throwing the magnitude away) · the
+  walk/run transition, which cannot exist while the switch is binary.
