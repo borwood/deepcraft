@@ -2860,7 +2860,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     mudstone-presence flip bracketed 82,400→82,480→82,560 m at z = 13,334 m (a
     four-material mix appears at the contact and vanishes 80 m to either side). Bench
     cut voxels (91620–91690, 238–264, 14816–14830). **Wall pose: feet (82490, 215.5,
-    13346) m, yaw 0, pitch +0.12** — assets `0147-interfinger-contact-wall.png` (+
+    13346) m, yaw 0, pitch +0.12** — assets `0149-interfinger-contact-wall.png` (+
     `-benchcut` rim view). **And the wall sharpened the finding: the contact is
     recorded-record vs UNRECORDED BASEMENT at the same elevation** (left: banded
     sandstone/conglomerate strata, `has_contents: true`; right: `dc:stone`,

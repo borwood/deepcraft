@@ -3,7 +3,7 @@
 **Arc anchor:** ROADMAP § Observed, *"FIELD REPORT, slice 3's interfingering"*
 (`ROADMAP.md:2838-2885`) — the live-view REJECT trending on slice 3's membership dither,
 its recorded station (wall pose feet **(82490, 215.5, 13346) m, yaw 0, pitch +0.12**;
-assets `0147-interfinger-contact-wall.png` + `-benchcut`), and the design conversation the
+assets `0149-interfinger-contact-wall.png` + `-benchcut`), and the design conversation the
 user opened from it. Supersedes-as-plan the mechanism of
 `docs/audits/2026-08-02-p11-slice3-design.md` (the membership dither) — *existence is not
 standing, applied to our own day-old mechanism.*
