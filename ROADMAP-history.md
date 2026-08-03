@@ -5241,6 +5241,85 @@ Use the LIT pass — this is a dig-depth/section question:
 
 
 
+## Observed — archived 2026-08-03 (pass 3)
+
+**Archived from `ROADMAP.md` § Observed on 2026-08-03, by STATUS, not by age** — the third
+archive pass (predecessors: the 2026-07-26 live/history split and the two 2026-07-29
+passes above). Scope was § Observed and § Sequenced; **§ Sequenced yielded zero movable
+entries** — every entry there carries owed work, a live blocker, a NEEDS RATIFICATION
+flag, or a same-day stamp.
+
+**Entries are reproduced VERBATIM.** Recorded poses, measured numbers and asset filenames
+travel with them; nothing was summarised away and nothing was deleted. Where an archived
+entry carries a measurement, that measurement is a dated record (read-first item 5:
+immutable body, mutable header).
+
+**Deliberately NOT moved, despite closed-reading bodies:** every entry whose resolution
+stamp is dated **2026-08-03** — the day's staleness/doc-topology stamps stay live one
+session for the user's review — plus entries whose own bodies say they are kept live on
+purpose (the charcoal-premise entry's *"kept rather than archived"*, the hillslope
+operator's *"kept live only because"*, the TerrainGen seal's *"Kept OPEN, not archived"*,
+and the build-slot-mutex entry, which names itself the banner on `f96f12c`'s attribution).
+
+**archived 2026-08-03, archive pass 3, resolved 2026-08-02 by the user's look-ownership ruling + journal/0142.**
+
+- **🟢 RESOLVED 2026-08-02 (next session): the look-ownership ruling + the follow-travel
+  slice (journal/0142).** The user ruled the first option: **move intent defaults to
+  look-follows-travel; an explicit look is held until released** (bodies.md § who owns the
+  look — with the user's multi-segment-neck compartmentalization caveat recorded there).
+  Shipped sim-side in `step_character` (unheld gaze faces travel, level; senses and
+  renderer read the same gaze), with `set_look` now HOLDING until the new
+  `dc:character/clear_look` releases it and `look_held` in the pose readback. S6 row 95's
+  orientation half is stamped; its faceless-heads half stays open. *(Original sighting
+  below, kept as testimony.)*
+  ~~**INTENT-DRIVEN CHARACTERS STRAFE — the walk-8 orientation fix INVERTS for a stale
+  look (user-sighted 2026-08-02 at the derived-hip walk, station 2; mechanism read from
+  code and CONFIRMED by a live control the same minute).**~~ `resolve_orientation`'s clamp
+  rule — *a look beyond the neck clamp drags the trunk around* (journal/0014, built for
+  the player whose look follows the camera) — means a character whose `character.yaw` is
+  never updated has its trunk dragged back to the dead look while `steer()` chases travel:
+  permanent strafe. Control: `character_set_look` to the travel heading and the same body
+  walks facing its motion (asset `0140-look-steered-control`, renumbered from 0138). **The dropped thread is
+  older than the sighting and the user remembered it:** S6 baseline audit row 95 has
+  carried *"nobody owns body orientation"* OPEN since 07-19; walk 8 sighted it, 0014
+  closed the player path, and no slice ever owned the non-player path. **The design
+  question it opens is a CONTROLLER-SURFACE call, adjacent to the 2026-08-02 postures
+  ruling:** does move intent default to look-follows-travel unless a look is explicitly
+  held (predator tracking prey while circling), or must every driver steer the look
+  (which today's MCP driver, NPC controllers, and the future animus all must then do)?
+  User-owned; not decided at the walk.
+
+**archived 2026-08-03, archive pass 3, resolved 2026-08-02 by corrections #92 (the authorization existed in the geo FINAL close block; user-ruled "accept as-is; march").**
+
+- **🟢→ RESOLVED AS EXPECTED-RED (corrections #92, same day): the authorization existed in the geo FINAL close block — P11 slice 2 owns the single re-capture, user-ruled "accept as-is; march"; this entry's "without its authorizing entry" was filed through one arc's lens without reading the other's live block.** ~~THREE ARTIFACT TRIPWIRES ARE RED ON MAIN — a golden move without its authorizing
+  entry (found 2026-08-02 by the bodies arc's debt-clearing gate; pre-existing, demonstrated
+  on main WITHOUT the bodies slice, identical hashes).** `dc-worldgen
+  tests/artifact_tripwires`: **the far field** (0x1424_7B7C_AB51_EFA5 measured vs
+  0xF64E_7377_9F48_B696 pinned), **the head plane** (0x93AF_F969_6A7A_9952 vs
+  0x9AC3_4801_9AD6_FE1B), **the geotherm plane** (0xF650_5F2C_E066_58EB vs
+  0xBC6E_77CD_3D52_0246). Almost certainly the P11 members-into-history merges — the arc
+  that moves the record — whose slices re-captured some goldens; these three either lack
+  their authorization ("a hash move produced by ratified semantics re-captures the goldens
+  **with the why recorded**") or lack the re-capture. **Owed by the geology arc: the
+  journal-entry mechanism naming + re-capture, or a revert.** The batching ruling's first
+  bill: the debt window let this ride main for hours; the bodies arc's gate found it only
+  because clearing its own debt required the full run. Bodies-arc merges state their
+  evidence net of this trio.~~ *(struck with the resolution above; kept as testimony of what the gate measured.)*
+
+**archived 2026-08-03, archive pass 3, resolved 2026-08-01 by corrections #83 (measured four ways; "needs no remedy" is the entry's own closing verdict).** *The one live consumer of #83's number — the `quantize_time` entry's "the reason first given was void" bullet — restates the 35–40 min figure in place, so nothing live depends on this body.*
+
+- **✅ FALSIFIED AND REPLACED 2026-08-01 (corrections #83) — THE FULL WORKSPACE GATE IS ~35–40
+  MINUTES, NOT 9 HOURS.** The 9-hour claim was an agent's, recorded here by the integrator as a
+  measured fact and repeated to the user twice. **Measured four ways, all agreeing:**
+  `rotquant-stage2b.log` ran **18:14:53 → 18:54:40 = 39.8 min** and the sum of its 90 suites'
+  own `finished in` figures is **39 min**; the integrator's independent merge gate hours earlier
+  (`merge-gate2b.log`) ran **34.5 min** against a suite-sum of **34.3 min**. The **slowest single
+  suite is 205 s** (3.4 min), against a claimed *"`geology.rs` ~2 h"* — off by ~35×. The attached
+  mechanism (libtest oversubscribing Medium-world builds) was **an explanation for a phenomenon
+  that does not exist.**
+  **The gate is not a standing tax and needs no remedy.** Staged invocation stays right for
+  *verdict* clarity — a killed run must be unambiguous — but not for duration.
+
 # Superseded close blocks
 
 <!-- archived 2026-07-29 evening -->
