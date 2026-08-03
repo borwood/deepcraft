@@ -541,6 +541,32 @@ pub fn bake_resting_posture(plan: &BodyPlan, mode: &str) -> BakeOutcome {
     let hull = convex_hull(corners);
     let com_in_support = strictly_inside(&hull, [com_m[0], com_m[2]]);
 
+    // B7 — the bake checks its OWN output before it publishes it: every joint
+    // angle in every chain must be inside that joint's limits, else a loud
+    // refusal naming the joint, the angle, the range, and which end was
+    // declared versus derived (joint-limits audit § 5.2).
+    //
+    // **Vacuous by construction on the shipped plans, and that is correct**:
+    // the resting angles are all exactly 0.0 and `min <= 0 <= max` is a
+    // `validate_plan` invariant. It is a guard positioned BEFORE its trigger,
+    // and it goes live at the two places already sequenced — member #0's
+    // effort seam (a bird's tendon-held folded rest) and member #1's derived
+    // gait poses, which is why B7 is upstream of the gait bake.
+    let limits = super::limits::derive_joint_limits(plan);
+    for chain in &chains {
+        for ja in &chain.joints {
+            if let Err(why) = limits.check(&ja.segment, ja.euler) {
+                return BakeOutcome::Unsupported {
+                    reason: format!(
+                        "plan `{}` mode `{mode}`: the resting solve puts a joint outside its \
+                         declared range — {why}",
+                        plan.name
+                    ),
+                };
+            }
+        }
+    }
+
     BakeOutcome::Baked(RestingPosture {
         chains,
         root_height_ratio,

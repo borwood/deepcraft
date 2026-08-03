@@ -4,7 +4,9 @@
 //! pack*, compiled in for determinism, not engine API. When packs-on-disk
 //! arrive, this file is the thing that migrates.
 
-use super::{ActionDef, AnimClip, BodyPlan, JointRot, Keyframe, ModeDef, RoleDef, SegmentDef};
+use super::{
+    ActionDef, AnimClip, Axis, BodyPlan, DofDef, JointRot, Keyframe, ModeDef, RoleDef, SegmentDef,
+};
 use crate::payload::{DefineAnimClip, DefineBodyPlan, Payload};
 
 pub(super) const TORSO: [f32; 3] = [0.9, 0.42, 0.12]; // signal-orange (companion legacy)
@@ -27,7 +29,46 @@ pub(super) fn seg(
         offset_m: offset,
         tint,
         roles: Vec::new(),
+        // B7's identity default: nothing declared, everything derived (S-5).
+        // The one plan segment that declares anything is the neck — see
+        // [`with_cervical_range`].
+        dofs: None,
     }
+}
+
+/// Cervical yaw (Y) and pitch (X) ranges, radians — **the ONE declaration in
+/// the shipped pack**, and it is a MIGRATION rather than a new authoring act.
+///
+/// These two numbers were `NECK_YAW_CLAMP_RAD` (75°) and `NECK_PITCH_CLAMP_RAD`
+/// (45°) in `dc-client/src/body.rs` until 2026-08-03: world-global absolute
+/// constants, blind to the plan, applied to every body including one with an
+/// 0.08 m neck. They are **correct anatomy in the wrong place** (A-1, in the
+/// family this arc has been retiring), and B7's declaration vocabulary is their
+/// right home — so every plan that wants a cervical range now says so itself,
+/// and the numbers are byte-identical to the constants they replace.
+///
+/// Note what is deliberately NOT declared: **roll (Z)**. The look split has
+/// never produced a neck roll, and leaving it off the DOF list makes that a
+/// checked fact rather than a coincidence of the renderer writing 0.
+pub(super) const NECK_YAW_RAD: f64 = 75.0 * std::f64::consts::PI / 180.0;
+/// See [`NECK_YAW_RAD`].
+pub(super) const NECK_PITCH_RAD: f64 = 45.0 * std::f64::consts::PI / 180.0;
+
+/// Declare the cervical DOFs on a `look` segment ([`NECK_YAW_RAD`]).
+pub(super) fn with_cervical_range(mut s: SegmentDef) -> SegmentDef {
+    s.dofs = Some(vec![
+        DofDef {
+            axis: Axis::X,
+            min_rad: Some(-NECK_PITCH_RAD),
+            max_rad: Some(NECK_PITCH_RAD),
+        },
+        DofDef {
+            axis: Axis::Y,
+            min_rad: Some(-NECK_YAW_RAD),
+            max_rad: Some(NECK_YAW_RAD),
+        },
+    ]);
+    s
 }
 
 /// Negate a lateral coordinate for a mirror without minting `-0.0`: the
@@ -142,7 +183,7 @@ pub fn biped_plan() -> BodyPlan {
             [0.0, 0.25, 0.0],
             TORSO,
         ),
-        with_role(
+        with_cervical_range(with_role(
             seg(
                 "neck",
                 Some("trunk"),
@@ -152,7 +193,7 @@ pub fn biped_plan() -> BodyPlan {
                 SKIN,
             ),
             "look",
-        ),
+        )),
         with_role(
             seg(
                 "head",
