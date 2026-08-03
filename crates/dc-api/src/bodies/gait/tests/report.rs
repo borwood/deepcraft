@@ -16,8 +16,8 @@
 //!
 //! Run with `--nocapture` for the full report.
 
-use super::super::{GaitBakeOutcome, GaitKnobs, GaitVector, RootHeight, bake_gait, duty_exponent};
 use super::super::super::{AnimClip, BodyPlan, biped_clips, biped_plan, longleg_plan, stout_plan};
+use super::super::{GaitBakeOutcome, GaitKnobs, GaitVector, RootHeight, bake_gait, duty_exponent};
 use super::{G_EARTH, G_WORLD, by};
 
 fn baked(plan: &BodyPlan, g: f64) -> GaitVector {
@@ -34,7 +34,9 @@ fn confirm(row: &str, cell: &str, measured: f64, predicted: f64, rel: f64) -> f6
     } else {
         ((measured - predicted) / predicted).abs()
     };
-    println!("  {row:<16} {cell:<10} predicted {predicted:>12.6}  measured {measured:>12.6}  rel {err:.2e}");
+    println!(
+        "  {row:<16} {cell:<10} predicted {predicted:>12.6}  measured {measured:>12.6}  rel {err:.2e}"
+    );
     assert!(
         err <= rel,
         "DIVERGENCE — {row} {cell}: design predicts {predicted}, the arithmetic gives \
@@ -53,17 +55,23 @@ fn table_a_the_derived_walk_at_earth_gravity() {
         (
             "biped",
             biped_plan(),
-            [1.4691, 1.3353, 0.6677, 0.9090, 1.1002, 0.6000, 0.3891, 0.0658, 0.07475],
+            [
+                1.4691, 1.3353, 0.6677, 0.9090, 1.1002, 0.6000, 0.3891, 0.0658, 0.07475,
+            ],
         ),
         (
             "stout",
             stout_plan(),
-            [1.0388, 0.6677, 0.3338, 0.6427, 1.5559, 0.6000, 0.3891, 0.0329, 0.07475],
+            [
+                1.0388, 0.6677, 0.3338, 0.6427, 1.5559, 0.6000, 0.3891, 0.0329, 0.07475,
+            ],
         ),
         (
             "longleg",
             longleg_plan(),
-            [1.5816, 1.5478, 0.7739, 0.9786, 1.0219, 0.6000, 0.3891, 0.0762, 0.07475],
+            [
+                1.5816, 1.5478, 0.7739, 0.9786, 1.0219, 0.6000, 0.3891, 0.0762, 0.07475,
+            ],
         ),
     ];
     println!("\nTABLE A — derived walk, Fr = 0.25, g = {G_EARTH} (the design pass's basis)");
@@ -268,7 +276,10 @@ fn table_c_the_authored_clip_decomposed() {
         "derived step {derived_step:.4} m against the clip's {step:.4} m — {:.1} % apart",
         gap * 100.0
     );
-    println!("  derived-vs-authored stride gap at the clip's own speed: {:.1} %", gap * 100.0);
+    println!(
+        "  derived-vs-authored stride gap at the clip's own speed: {:.1} %",
+        gap * 100.0
+    );
 
     // …and at THIS WORLD's gravity the same comparison is far worse, because
     // the clip encodes a human's Earth-gravity gait. Printed, not asserted:

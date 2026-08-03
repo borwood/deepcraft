@@ -343,7 +343,10 @@ pub fn bake_gait(
     }
     if !knobs_are_finite(knobs) {
         return GaitBakeOutcome::Unsupported {
-            reason: format!("gait bake: plan `{}` was given a non-finite knob", plan.name),
+            reason: format!(
+                "gait bake: plan `{}` was given a non-finite knob",
+                plan.name
+            ),
         };
     }
 
@@ -481,4 +484,3 @@ pub fn pose(species_gait: &GaitVector, delta: &InstanceDelta) -> GaitVector {
     }
     out
 }
-
