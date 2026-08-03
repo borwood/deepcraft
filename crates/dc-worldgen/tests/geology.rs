@@ -159,9 +159,8 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
     let cols_v = sample_columns(&mut g_v, 14);
     let cols_e = sample_columns(&mut g_e, 14);
 
-    let fine_thickness = |set: &GeologySet, col: &dc_worldgen::collapse::ColumnRec| -> f64 {
-        col.strata
-            .events
+    let fine_thickness = |set: &GeologySet, rec: &dc_worldgen::StrataRec| -> f64 {
+        rec.events
             .iter()
             .filter(|e| set.member(e.member).class == CLASS_CLASTIC_FINE)
             .map(|e| f64::from(e.thickness_m))
@@ -171,6 +170,12 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
     let mut new_member_hits = 0usize;
     let mut old_member_hits = 0usize;
     for (cv, ce) in cols_v.iter().zip(&cols_e) {
+        // P11 slice 3: per-column records. The two worlds share seed and
+        // therefore the same membership dither, so the centre columns name the
+        // same deep cell in both — the comparison stays cell-to-cell.
+        let (Some(sv), Some(se)) = (cv.centre_record(), ce.centre_record()) else {
+            continue;
+        };
         // The class share (how much fine stratum exists) is untouched by
         // adding a member — only WHO fills it changes.
         // Metres, not voxel counts, since journal/0055 — so this compares with a
@@ -179,12 +184,15 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
         // the same total is summed in a different order and the last bits of the
         // f32→f64 accumulation differ. 1e-4 m is 0.1 mm against ~7.6 m; a real
         // class-share inflation is a whole recorded bed.
-        let (a, b) = (fine_thickness(&vanilla, cv), fine_thickness(&extended, ce));
+        let (a, b) = (
+            fine_thickness(&vanilla, sv.strata()),
+            fine_thickness(&extended, se.strata()),
+        );
         assert!(
             (a - b).abs() < 1e-4,
             "adding a member must not inflate the class share: {a} vs {b}"
         );
-        for e in &ce.strata.events {
+        for e in &se.strata().events {
             if e.member == siltstone_e {
                 new_member_hits += 1;
             }
@@ -203,9 +211,9 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
         // different numbers of events describing the same column. The invariant
         // that must not move is the **class geography**: the same classes in the
         // same order for the same metres.
-        let profile = |set: &GeologySet, col: &dc_worldgen::collapse::ColumnRec| {
+        let profile = |set: &GeologySet, rec: &dc_worldgen::StrataRec| {
             let mut out: Vec<(String, f64)> = Vec::new();
-            for e in &col.strata.events {
+            for e in &rec.events {
                 let c = set.member(e.member).class.clone();
                 match out.last_mut() {
                     Some((k, m)) if *k == c => *m += f64::from(e.thickness_m),
@@ -214,7 +222,10 @@ fn adding_a_member_diversifies_but_never_inflates_its_class() {
             }
             out
         };
-        let (pv, pe) = (profile(&vanilla, cv), profile(&extended, ce));
+        let (pv, pe) = (
+            profile(&vanilla, sv.strata()),
+            profile(&extended, se.strata()),
+        );
         assert_eq!(pv.len(), pe.len(), "class profile length moved");
         for ((kv, mv), (ke, me)) in pv.iter().zip(&pe) {
             assert_eq!(kv, ke, "class order moved");
@@ -332,7 +343,9 @@ fn placer_follows_the_sorted_gradient() {
     let mut ore_columns = 0usize;
     let mut barren_alluvial = 0usize;
     for col in cols {
-        for e in &col.strata.events {
+        // P11 slice 3: census over every SubCell the chunk realized (counts are
+        // per record, and the asserts are existence claims).
+        for e in col.records.iter().flat_map(|s| &s.strata().events) {
             if let Some((m, k)) = e.ore {
                 assert_eq!(set.member(m).class, "dc:ore/placer");
                 assert_eq!(
@@ -481,6 +494,12 @@ fn strata_records_are_province_and_climate_driven() {
                 continue;
             }
             land_cols += 1;
+            // P11 slice 3: per-column records; the chunk-centre column's
+            // SubCell stands in for "the chunk's record" (I-5 judgment site).
+            let Some(sub) = col.centre_record() else {
+                bare_cols += 1;
+                continue;
+            };
             // The clastic veneer is deposited where there is loose cover to
             // deposit. **This used to assert "every land column"** — pre-0053
             // the veneer budget was `1 + precip*2.5` with a floor of one voxel,
@@ -489,8 +508,8 @@ fn strata_records_are_province_and_climate_driven() {
             // bare gets none (journal/0053), so the honest claim is
             // *predominance*, asserted below, plus the deposition-context
             // invariants per event.
-            let clastic: Vec<_> = col
-                .strata
+            let clastic: Vec<_> = sub
+                .strata()
                 .events
                 .iter()
                 .filter(|e| {
@@ -503,7 +522,7 @@ fn strata_records_are_province_and_climate_driven() {
             } else {
                 clastic_cols += 1;
             }
-            for e in &col.strata.events {
+            for e in &sub.strata().events {
                 assert!(e.precip >= 0.0 && e.precip <= 1.0);
                 assert!(e.temp_c.is_finite());
             }
@@ -513,8 +532,8 @@ fn strata_records_are_province_and_climate_driven() {
             // weather-selected.
             if matches!(cellp, Some(Provenance::Orogeny | Provenance::Arc)) {
                 orogenic += 1;
-                let basement_is_intrusive = col
-                    .strata
+                let basement_is_intrusive = sub
+                    .strata()
                     .events
                     .first()
                     .is_some_and(|e| set.member(e.member).class == CLASS_IGNEOUS_INTRUSIVE);
@@ -669,7 +688,9 @@ fn accessory_inclusions_ride_igneous_pores() {
                 continue;
             }
             let mut col_has_accessory = false;
-            for e in &col.strata.events {
+            // P11 slice 3: census over every SubCell the chunk realized — a
+            // record realized by ANY of the chunk's columns can express.
+            for e in col.records.iter().flat_map(|s| &s.strata().events) {
                 let class = set.member(e.member).class.as_str();
                 if class == CLASS_IGNEOUS_INTRUSIVE || class == CLASS_IGNEOUS_EXTRUSIVE {
                     igneous_events += 1;

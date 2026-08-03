@@ -23,10 +23,9 @@ use std::collections::BTreeMap;
 use dc_core::materials::geology::vanilla;
 use dc_core::{ChunkPos, classify};
 use dc_worldgen::fill::{allocate, fill_draw, share_eighths};
-use dc_worldgen::{ColumnFill, Extent, Plan, Pregen, WorldGenerator, WorldParams};
+use dc_worldgen::{Extent, Plan, Pregen, WorldGenerator, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
-const VOXEL_M: f64 = 0.9;
 
 fn medium() -> Pregen {
     Pregen::run(WorldParams {
@@ -50,11 +49,16 @@ fn the_record_produces_mixed_voxel_spans() {
     let (mut cols_with_record, mut spans, mut mixed) = (0usize, 0usize, 0usize);
     for (cx, cz) in sample_columns(24) {
         let col = g.column_record(cx, cz);
-        if col.strata.events.is_empty() {
+        // P11 slice 3: the record is per column; the chunk-centre column's
+        // SubCell is the census representative (I-5 judgment site).
+        let Some(sub) = col.centre_record() else {
+            continue;
+        };
+        if sub.strata().events.is_empty() {
             continue;
         }
         cols_with_record += 1;
-        let fill = ColumnFill::build(&col.strata, VOXEL_M);
+        let fill = sub.fill();
         for d in 1..=fill.depth_count() as u32 {
             spans += 1;
             if matches!(fill.plan(d), Some(Plan::Mixed(_))) {
@@ -89,10 +93,15 @@ fn expected_composition_matches_the_recorded_composition() {
     let mut worst = 0.0f64;
     for (cx, cz) in sample_columns(24) {
         let col = g.column_record(cx, cz);
-        if col.strata.events.is_empty() {
+        // P11 slice 3: per-column records; the chunk-centre column stands in
+        // (I-5 judgment site — this test only needs A real mixed span).
+        let Some(sub) = col.centre_record() else {
+            continue;
+        };
+        if sub.strata().events.is_empty() {
             continue;
         }
-        let fill = ColumnFill::build(&col.strata, VOXEL_M);
+        let fill = sub.fill();
         // The richest mixed span in this column — the hardest case, where the
         // most materials compete for eight eighths.
         let Some(weights) = (1..=fill.depth_count() as u32)

@@ -17,7 +17,7 @@
 use dc_core::materials::geology::{self, GeologySet};
 use dc_worldgen::WorldGenerator;
 use dc_worldgen::deeptime::Biofacies;
-use dc_worldgen::fill::{ColumnFill, Plan, allocate, fill_draw};
+use dc_worldgen::fill::{Plan, allocate, fill_draw};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
@@ -59,16 +59,16 @@ fn main() {
         let mut over = 0.0f64;
         let mut has_char = false;
         for u in s.units.iter().rev() {
-            match u.tag.biota {
-                Biofacies::Peat => organics.push((u.thickness_m, over, false)),
-                Biofacies::Coal => organics.push((u.thickness_m, over, true)),
+            match u.tag().biota {
+                Biofacies::Peat => organics.push((u.thickness_m(), over, false)),
+                Biofacies::Coal => organics.push((u.thickness_m(), over, true)),
                 Biofacies::Charcoal => {
-                    char_t.push(u.thickness_m);
+                    char_t.push(u.thickness_m());
                     has_char = true;
                 }
                 _ => {}
             }
-            over += u.thickness_m;
+            over += u.thickness_m();
         }
         if has_char {
             char_cols += 1;
@@ -133,12 +133,12 @@ fn main() {
             let mut over = 0.0f64;
             let mut hit = false;
             for u in s.units.iter().rev() {
-                if matches!(u.tag.biota, Biofacies::Peat | Biofacies::Coal)
-                    && keep(u.thickness_m, over)
+                if matches!(u.tag().biota, Biofacies::Peat | Biofacies::Coal)
+                    && keep(u.thickness_m(), over)
                 {
                     hit = true;
                 }
-                over += u.thickness_m;
+                over += u.thickness_m();
             }
             if hit {
                 n += 1;
@@ -211,11 +211,16 @@ fn main() {
     for cz in (-3000..3000).step_by(stride as usize) {
         for cx in (-3000..3000).step_by(stride as usize) {
             let col = g.column_record(cx, cz);
-            if col.strata.events.is_empty() {
+            // P11 slice 3: the record is per column; sample local (0,0)'s own
+            // SubCell — the record that voxel column actually renders.
+            let Some(sub) = col.record_for(0, 0) else {
+                continue;
+            };
+            if sub.strata().events.is_empty() {
                 continue;
             }
             sampled_cols += 1;
-            let cf = ColumnFill::build(&col.strata, VOXEL_M);
+            let cf = sub.fill();
             // One voxel column per chunk column (local 0,0) — the plan is shared,
             // only the addressed draw differs, so this samples the draw space
             // without paying 1024×.
@@ -234,7 +239,7 @@ fn main() {
                 let mut has_coal = false;
                 for (i, k) in parts {
                     total_eighths += u64::from(k);
-                    let m = &set.member(col.strata.events[i].member);
+                    let m = &set.member(sub.strata().events[i].member);
                     if m.material.props().name == "charcoal" {
                         has_char = true;
                         charcoal_eighths += u64::from(k);

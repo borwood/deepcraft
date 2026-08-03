@@ -35,7 +35,7 @@ use dc_core::materials::geology::{CLASS_CLASTIC_FINE, vanilla, vanilla_members};
 use dc_core::{ChunkPos, MaterialId, VoxelContents};
 use dc_worldgen::collapse::WorldGenerator;
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
-use dc_worldgen::{ColumnFill, DeepOverrides, Plan};
+use dc_worldgen::{DeepOverrides, Plan};
 
 const SEED: u64 = 1337;
 const EXTENT: Extent = Extent::Medium;
@@ -171,14 +171,37 @@ fn column_mass(pregen: &Pregen, cell: usize) -> Option<ColumnMass> {
     let (w, wp) = (pregen.deep.w, pregen.deep.wp);
     let (vx, vz) = idx_to_voxel(w, wp, cell);
     let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
-    let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
+    let (lx0, lz0) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
     let mut generator = WorldGenerator::new(pregen);
     let rec = generator.column_record(cx, cz);
+    // P11 slice 3: this probe audits ONE deep cell's mass against its ledger,
+    // so it must read a column that REALIZES that cell. At the cell centre the
+    // home cell's bilinear weight is ~1, so the nearest realizing column is
+    // essentially always (lx0, lz0) itself; the search is the honest guard.
+    let mut pick: Option<(usize, usize)> = None;
+    let mut best_d = i64::MAX;
+    for z in 0..32usize {
+        for x in 0..32usize {
+            if rec
+                .record_for(x, z)
+                .and_then(dc_worldgen::SubCell::cell_index)
+                == Some(cell as u32)
+            {
+                let d = (x as i64 - lx0 as i64).pow(2) + (z as i64 - lz0 as i64).pow(2);
+                if d < best_d {
+                    best_d = d;
+                    pick = Some((x, z));
+                }
+            }
+        }
+    }
+    let (lx, lz) = pick?;
+    let sub = rec.record_for(lx, lz)?;
     let h = i64::from(rec.heights[lz * 32 + lx]);
-    let fill = ColumnFill::build(&rec.strata, VOXEL_M);
-    let front: Vec<usize> = (0..rec.strata.events.len())
+    let fill = sub.fill();
+    let front: Vec<usize> = (0..sub.strata().events.len())
         .filter(|&i| {
-            rec.strata.events[i]
+            sub.strata().events[i]
                 .accessory
                 .is_some_and(|(m, _)| set.member(m).class.as_str() == CLASS_CLASTIC_FINE)
         })
@@ -189,17 +212,17 @@ fn column_mass(pregen: &Pregen, cell: usize) -> Option<ColumnMass> {
     let owed: f64 = front
         .iter()
         .filter_map(|&i| {
-            rec.strata.events[i]
+            sub.strata().events[i]
                 .accessory
-                .map(|(_, k)| f64::from(rec.strata.events[i].thickness_m) * f64::from(k) / 8.0)
+                .map(|(_, k)| f64::from(sub.strata().events[i].thickness_m) * f64::from(k) / 8.0)
         })
         .sum();
-    let product_mat = rec.strata.events[front[0]]
+    let product_mat = sub.strata().events[front[0]]
         .accessory
         .map(|(m, _)| set.member(m).material)?;
     // Eighths of product a front band carries, as the expression path reads it.
     let band_k = |i: usize| -> f64 {
-        rec.strata.events[i]
+        sub.strata().events[i]
             .accessory
             .map_or(0.0, |(_, k)| f64::from(k))
     };
@@ -237,7 +260,7 @@ fn column_mass(pregen: &Pregen, cell: usize) -> Option<ColumnMass> {
                 for &(k, x) in ws {
                     if front.contains(&k) {
                         this_plan_m += VOXEL_M * (x as f64 / tot) * band_k(k) / 8.0;
-                    } else if set.member(rec.strata.events[k].member).material == product_mat {
+                    } else if set.member(sub.strata().events[k].member).material == product_mat {
                         // An overlying bed of the very material the front's
                         // product is made of: the material census cannot tell
                         // its eighths from the front's.
@@ -448,27 +471,60 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
 
     let mut generator = WorldGenerator::new(pregen);
     let rec = generator.column_record(cx, cz);
+    // P11 slice 3: read the column skinned by THIS cell's record (the cell
+    // centre realizes its home cell with weight ~1; fall back to the nearest
+    // realizing column if the draw went elsewhere).
+    let (lx, lz) = {
+        let mut pick = (lx, lz);
+        if rec
+            .record_for(lx, lz)
+            .and_then(dc_worldgen::SubCell::cell_index)
+            != Some(cell as u32)
+        {
+            let mut best_d = i64::MAX;
+            for z in 0..32usize {
+                for x in 0..32usize {
+                    if rec
+                        .record_for(x, z)
+                        .and_then(dc_worldgen::SubCell::cell_index)
+                        == Some(cell as u32)
+                    {
+                        let d = (x as i64 - lx as i64).pow(2) + (z as i64 - lz as i64).pow(2);
+                        if d < best_d {
+                            best_d = d;
+                            pick = (x, z);
+                        }
+                    }
+                }
+            }
+        }
+        pick
+    };
+    let Some(sub) = rec.record_for(lx, lz) else {
+        println!("(cell {cell}: no column of its chunk realizes a record — skipped)");
+        return;
+    };
     let h = rec.heights[lz * 32 + lx];
-    let fill = ColumnFill::build(&rec.strata, VOXEL_M);
+    let fill = sub.fill();
 
     // The front's events are those carrying a **loose** pore-slot rider — the
     // weathering product. (The sparse igneous inclusion rides the same slot but
     // is a mineral, not a product; without this test the 96-voxel basement body
     // reads as "front".)
-    let front: Vec<usize> = (0..rec.strata.events.len())
+    let front: Vec<usize> = (0..sub.strata().events.len())
         .filter(|&i| {
-            rec.strata.events[i]
+            sub.strata().events[i]
                 .accessory
                 .is_some_and(|(m, _)| set.member(m).class.as_str() == CLASS_CLASTIC_FINE)
         })
         .collect();
     let product_mat = front
         .first()
-        .and_then(|&i| rec.strata.events[i].accessory)
+        .and_then(|&i| sub.strata().events[i].accessory)
         .map(|(m, _)| set.member(m).material);
     let parent_mat = front
         .first()
-        .map(|&i| set.member(rec.strata.events[i].member).material);
+        .map(|&i| set.member(sub.strata().events[i].member).material);
 
     println!("\n================ {label} ================");
     println!(
@@ -490,14 +546,14 @@ fn probe(pregen: &Pregen, label: &str, cell: usize, band_m: f64) {
         front.len(),
         front
             .first()
-            .map_or(0.0, |&i| f64::from(rec.strata.events[i].thickness_m)),
+            .map_or(0.0, |&i| f64::from(sub.strata().events[i].thickness_m)),
         front
             .iter()
-            .map(|&i| f64::from(rec.strata.events[i].thickness_m))
+            .map(|&i| f64::from(sub.strata().events[i].thickness_m))
             .sum::<f64>(),
         front
             .iter()
-            .map(|&i| f64::from(rec.strata.events[i].thickness_m))
+            .map(|&i| f64::from(sub.strata().events[i].thickness_m))
             .sum::<f64>()
             / VOXEL_M,
     );

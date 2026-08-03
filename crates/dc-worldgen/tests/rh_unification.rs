@@ -40,11 +40,14 @@ fn golden_field() -> DeepField {
     build_field(&pregen.grid, SEED)
 }
 
-/// Tolerance (metres) for derived-vs-scalar agreement. The residual is pure f64
-/// round-off between the incrementally-mutated `grid.h` and the record's
-/// `Σ thickness` (the two accumulate the same per-epoch deltas from different
-/// bases over 200 epochs); it is far below any physical signal (`H` is metres).
-const TOL_M: f64 = 1e-6;
+/// Tolerance (metres) for derived-vs-scalar agreement. Two derived terms, both
+/// bounded: (a) f64 round-off between the incrementally-mutated `grid.h` and
+/// the record's `Σ thickness` (the pre-pack residual, < 1e-6); (b) since P11
+/// slice 3's packed record, the **sub-quantum carry** — the record is
+/// quantized at 2⁻¹⁰ m and the residue rides per cell with `|carry| ≤ q/2`
+/// (`recorder.rs`), so the derived view may sit up to half a quantum from the
+/// unquantized plane. The bound is their sum, derived rather than fitted.
+const TOL_M: f64 = 1e-6 + dc_worldgen::deeptime::DepUnit::THICKNESS_QUANTUM_M / 2.0;
 
 #[test]
 fn derived_regolith_agrees_with_the_scalar_h_plane_over_the_golden_field() {

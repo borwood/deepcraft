@@ -42,12 +42,12 @@ fn main() {
             rec.total_m()
         );
         for u in rec.units.iter().rev() {
-            let tv = (u.thickness_m / voxel_m).round();
+            let tv = (u.thickness_m() / voxel_m).round();
             println!(
                 "   {:8.3} m  {:>4} vox  [{}] {}",
-                u.thickness_m,
+                u.thickness_m(),
                 tv,
-                u.tag.code(),
+                u.tag().code(),
                 if tv < 1.0 { "DROPPED (sub-voxel)" } else { "" }
             );
         }
@@ -69,11 +69,11 @@ fn main() {
     };
     for s in &pregen.deep.strata {
         for u in &s.units {
-            let k = idx(u.tag.biota);
-            rec_m[k] += u.thickness_m;
+            let k = idx(u.tag().biota);
+            rec_m[k] += u.thickness_m();
             units[k] += 1;
-            if (u.thickness_m / voxel_m).round() >= 1.0 {
-                kept_m[k] += u.thickness_m;
+            if (u.thickness_m() / voxel_m).round() >= 1.0 {
+                kept_m[k] += u.thickness_m();
                 kept_units[k] += 1;
             }
         }
@@ -82,19 +82,28 @@ fn main() {
     let mut g = WorldGenerator::new(&pregen);
     let set = geology::vanilla();
     let (cx, cz) = (SITES[0].1.div_euclid(32), SITES[0].2.div_euclid(32));
-    let col = g.column_record(cx, cz);
-    println!(
-        "\ncollapsed chunk-column ({cx},{cz}) at the coal site — {} events, top first:",
-        col.strata.events.len()
+    let (lx, lz) = (
+        SITES[0].1.rem_euclid(32) as usize,
+        SITES[0].2.rem_euclid(32) as usize,
     );
-    for e in col.strata.events.iter().rev().take(40) {
-        let m = set.member(e.member);
+    let col = g.column_record(cx, cz);
+    // P11 slice 3: the record is per column — read the site voxel's own SubCell.
+    if let Some(sub) = col.record_for(lx, lz) {
         println!(
-            "   {:>8.3} m  {:28} [{}]",
-            e.thickness_m,
-            m.id,
-            m.class.trim_start_matches("dc:")
+            "\ncollapsed chunk-column ({cx},{cz}) at the coal site — {} events, top first:",
+            sub.strata().events.len()
         );
+        for e in sub.strata().events.iter().rev().take(40) {
+            let m = set.member(e.member);
+            println!(
+                "   {:>8.3} m  {:28} [{}]",
+                e.thickness_m,
+                m.id,
+                m.class.trim_start_matches("dc:")
+            );
+        }
+    } else {
+        println!("\ncollapsed chunk-column ({cx},{cz}): no record at the site column");
     }
 
     // Ritual A/B: the deep-time sim with biology ON (production) vs OFF.

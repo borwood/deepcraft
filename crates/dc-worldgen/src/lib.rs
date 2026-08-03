@@ -45,6 +45,7 @@ pub mod geology;
 pub mod passgraph;
 pub mod pipeline;
 pub mod pregen;
+pub mod subcell;
 pub mod water;
 
 pub use collapse::{
@@ -57,5 +58,6 @@ pub use pipeline::{Pass, PassBody, Phase, Pipeline, PipelineError, PregenCtx, Re
 pub use pregen::{
     CELL_CHUNKS, CELL_VOXELS, Cell, CellGrid, CellView, Extent, Pregen, Provenance, WorldParams,
 };
+pub use subcell::SubCell;
 
 pub const CRATE_ROLE: &str = "hierarchical lazy worldgen + deep-time history";

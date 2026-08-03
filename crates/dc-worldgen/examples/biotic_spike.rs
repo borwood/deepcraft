@@ -70,12 +70,12 @@ fn fingerprint(grid: &DeepGrid) -> u64 {
     for s in &grid.strata {
         mix(s.units.len() as u64);
         for u in &s.units {
-            mix(u.thickness_m.to_bits());
-            mix(u.tag.biota as u64);
-            mix(u.tag.energy as u64);
-            mix(u.tag.env as u64);
-            mix(u.tag.aridity as u64);
-            mix(u64::from(u.unconformity));
+            mix(u.thickness_m().to_bits());
+            mix(u.tag().biota as u64);
+            mix(u.tag().energy as u64);
+            mix(u.tag().env as u64);
+            mix(u.tag().aridity as u64);
+            mix(u64::from(u.unconformity()));
         }
     }
     h
@@ -114,9 +114,9 @@ fn scan(grid: &DeepGrid) -> Signals {
             s.coal_cols += 1;
             s.coal_seams += coal;
             for u in &rec.units {
-                if u.tag.biota == Biofacies::Coal {
-                    s.coal_max_m = s.coal_max_m.max(u.thickness_m);
-                    s.coal_total_m += u.thickness_m;
+                if u.tag().biota == Biofacies::Coal {
+                    s.coal_max_m = s.coal_max_m.max(u.thickness_m());
+                    s.coal_total_m += u.thickness_m();
                 }
             }
         }
@@ -135,10 +135,10 @@ fn scan(grid: &DeepGrid) -> Signals {
             s.retro_cols += 1;
             s.retro_bands += retro;
         }
-        if rec.units.iter().any(|u| u.tag.biota == Biofacies::Peat) {
+        if rec.units.iter().any(|u| u.tag().biota == Biofacies::Peat) {
             s.peat_cols += 1;
         }
-        if rec.units.iter().any(|u| u.tag.biota.is_organic()) {
+        if rec.units.iter().any(|u| u.tag().biota.is_organic()) {
             s.organic_cols += 1;
         }
     }
@@ -202,21 +202,21 @@ fn print_column(grid: &DeepGrid, wp: usize, i: usize, why: &str) {
     );
     let last = rec.units.len().saturating_sub(1);
     for (k, u) in rec.units.iter().enumerate().rev() {
-        let unc = if u.unconformity {
+        let unc = if u.unconformity() {
             "  <-- unconformity"
         } else {
             ""
         };
-        let buried = if k != last && u.tag.biota.is_organic() {
+        let buried = if k != last && u.tag().biota.is_organic() {
             "  <-- PALEOSOL (buried soil)"
         } else {
             ""
         };
-        let env = match u.tag.env {
+        let env = match u.tag().env {
             DepEnv::Subaerial => "subaerial",
             DepEnv::Subsea => "marine   ",
         };
-        let bio = match u.tag.biota {
+        let bio = match u.tag().biota {
             Biofacies::Mineral => "",
             Biofacies::Soil => "  organic soil horizon",
             Biofacies::Peat => "  PEAT (waterlogged organic)",
@@ -226,8 +226,8 @@ fn print_column(grid: &DeepGrid, wp: usize, i: usize, why: &str) {
         };
         println!(
             "       {:>7.3} m  [{:<9}]  {}{}{}{}",
-            u.thickness_m,
-            u.tag.code(),
+            u.thickness_m(),
+            u.tag().code(),
             env,
             bio,
             buried,
@@ -453,8 +453,8 @@ fn main() {
         let m: f64 = g.strata[i]
             .units
             .iter()
-            .filter(|u| u.tag.biota == Biofacies::Coal)
-            .map(|u| u.thickness_m)
+            .filter(|u| u.tag().biota == Biofacies::Coal)
+            .map(|u| u.thickness_m())
             .sum();
         (m > 0.0).then_some(m)
     }) {

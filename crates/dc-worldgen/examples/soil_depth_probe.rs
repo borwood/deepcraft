@@ -24,7 +24,7 @@ use dc_core::materials::geology::{
     GeologySet, vanilla,
 };
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
-use dc_worldgen::{ColumnFill, Plan, WorldGenerator};
+use dc_worldgen::{Plan, WorldGenerator};
 
 /// The client's `BENCH_SEED` — the world every walk so far has stood in.
 const SEED: u64 = 1337;
@@ -122,7 +122,7 @@ fn main() {
         let rec: Vec<f64> = pregen
             .deep
             .record_at_voxel(*vx, *vz)
-            .map(|s| s.units.iter().map(|u| u.thickness_m).collect())
+            .map(|s| s.units.iter().map(|u| u.thickness_m()).collect())
             .unwrap_or_default();
         site(&mut g, &set, name, *vx, *vz, h_m, &rec);
     }
@@ -162,14 +162,14 @@ fn distribution(pregen: &Pregen) {
         if f.surf[i] <= 0.0 {
             continue;
         }
-        let rec: f64 = f.strata[i].units.iter().map(|u| u.thickness_m).sum();
+        let rec: f64 = f.strata[i].units.iter().map(|u| u.thickness_m()).sum();
         rsum += rec;
         // Voxels the record actually EXPRESSES: each unit rounded to whole
         // voxels, sub-half-voxel beds dropped by the sieve (deposit_deep_history).
         let rec_vox: f64 = f.strata[i]
             .units
             .iter()
-            .map(|u| (u.thickness_m / VOXEL_M).round())
+            .map(|u| (u.thickness_m() / VOXEL_M).round())
             .filter(|t| *t >= 1.0)
             .sum();
         let res = ((f.regolith[i] / VOXEL_M).round() - rec_vox).max(0.0) * VOXEL_M;
@@ -216,10 +216,10 @@ fn distribution(pregen: &Pregen) {
             continue;
         }
         let units = &f.strata[i].units;
-        let rec: f64 = units.iter().map(|u| u.thickness_m).sum();
+        let rec: f64 = units.iter().map(|u| u.thickness_m()).sum();
         let old: f64 = units
             .iter()
-            .map(|u| (u.thickness_m / VOXEL_M).round())
+            .map(|u| (u.thickness_m() / VOXEL_M).round())
             .filter(|t| *t >= 1.0)
             .sum::<f64>()
             * VOXEL_M;
@@ -368,9 +368,15 @@ fn site(
     // topmost contiguous clastic run" was the diggable pile. The record is
     // interbedded, so that run is now often one thin bed. What a player digs is
     // the whole recorded column above basement, and its clastic share.
+    // P11 slice 3: the record is per column — read the chunk-centre column's
+    // SubCell (the station voxel is addressed by chunk here).
+    let Some(sub) = col.centre_record() else {
+        println!("  (no record realized at the centre column — fallback ground)");
+        return;
+    };
     let mut loose_m = 0.0f64;
     let mut column_m = 0.0f64;
-    for e in col.strata.events.iter().rev() {
+    for e in sub.strata().events.iter().rev() {
         let c = &set.member(e.member).class;
         if c == CLASS_IGNEOUS_INTRUSIVE || c == CLASS_IGNEOUS_EXTRUSIVE {
             break;
@@ -387,13 +393,13 @@ fn site(
     );
     // Distribution-first expression (journal/0055): how the record slices into
     // voxel spans, and how many of those spans straddle a contact.
-    let fill = ColumnFill::build(&col.strata, VOXEL_M);
+    let fill = sub.fill();
     let mixed = (1..=fill.depth_count() as u32)
         .filter(|d| matches!(fill.plan(*d), Some(Plan::Mixed(_))))
         .count();
     println!(
         "  EXPRESSED             : {} events, {} voxel spans, {mixed} of them mixed",
-        col.strata.events.len(),
+        sub.strata().events.len(),
         fill.depth_count()
     );
     // What the world is skinned with here (journal/0055, journal/0074): the
@@ -411,12 +417,13 @@ fn site(
         },
         match top {
             None => " (fallback — no record to skin it with)".to_string(),
-            Some(Plan::Single(k)) => format!(" of {}", set.member(col.strata.events[*k].member).id),
+            Some(Plan::Single(k)) =>
+                format!(" of {}", set.member(sub.strata().events[*k].member).id),
             Some(Plan::Mixed(_)) => " (mixed top span)".to_string(),
         }
     );
-    let tail: Vec<String> = col
-        .strata
+    let tail: Vec<String> = sub
+        .strata()
         .events
         .iter()
         .rev()

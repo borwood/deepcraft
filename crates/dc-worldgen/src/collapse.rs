@@ -51,13 +51,14 @@ use dc_sim::statistical::rng::Draws;
 use crate::deeptime::DeepField;
 use crate::deeptime::lithology::Litho;
 use crate::deeptime::recorder::DeepStrata;
-use crate::draws::{Coherent, Elev, GeoClass, GeoSelect, interp_corner_field};
-use crate::fill::{
-    ColumnFill, Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share,
+use crate::draws::{
+    Coherent, Elev, GeoClass, GeoSelect, NearRecordMembership, Octaves, interp_corner_field,
 };
+use crate::fill::{Plan, allocate_partial, fill_draw, mixed_contents, pore_draw, pore_rider_share};
 use crate::geology::{StrataCtx, StrataEvent, StrataRec, dithered_member};
 use crate::pipeline::PipelineError;
 use crate::pregen::{CELL_VOXELS, Pregen, Provenance, temp_sea_level};
+use crate::subcell::SubCell;
 
 /// Lattice level whose spacing is one region (8 192 voxels, 7.37 km).
 pub const L_REGION: u8 = 1;
@@ -187,21 +188,35 @@ pub struct LocaleRec {
 }
 
 /// Collapsed chunk-column: the 32×32 voxel-column surface of one chunk
-/// footprint — heights, surface blocks, soil depth.
+/// footprint — heights, surface blocks, and the per-column deep-cell records
+/// (P11 slice 3: a chunk no longer has *the* record; each voxel column names
+/// one of [`Self::records`] via [`Self::record_for`]).
 pub struct ColumnRec {
     /// Surface voxel y per voxel column, indexed `z * 32 + x`.
     pub heights: Vec<i32>,
     pub surface: Vec<Block>,
-    /// Regolith band depth, whole voxels — the deep sim's carried `H` plane
-    /// quantized by [`regolith_voxels`] (or, in the wilds only, the genesis
-    /// precip rule). Applies where no strata pass deposited (ocean, wilds);
-    /// **may be 0**, which is a column with bedrock at the surface.
+    /// **The wilds/no-record fallback** regolith depth, whole voxels — the
+    /// genesis precip rule ([`wilds_regolith_voxels`]). Applies only to columns
+    /// with no SubCell ([`Self::record_for`] → `None`); columns with one read
+    /// their own cell's [`SubCell::soil`] (the F2 bundle). **May be 0**, which
+    /// is a column with bedrock at the surface.
     pub soil: u8,
     /// True when generated beyond the pregen grid (border wilds).
     pub wilds: bool,
-    /// The ordered deposition log (geology strata passes). Empty where no
-    /// pass deposited (ocean, wilds): the legacy soil band applies there.
-    pub strata: StrataRec,
+    /// **One strata record per deep cell the chunk's columns drew** (P11
+    /// slice 3, ruling 5): `run_strata` runs once per touched cell — always 4
+    /// in a cell interior, up to 9 straddling cell edges — and each product
+    /// rides here as a [`SubCell`] (record + its own fill + the same cell's
+    /// soil). The expensive pass stays per-cell; only the cheap index below is
+    /// per voxel column.
+    pub records: Vec<SubCell>,
+    /// Per voxel column (`z * 32 + x`): index into [`Self::records`] of the
+    /// SubCell that skins it, or [`Self::NO_RECORD`] where the column is
+    /// outside the record grid (border wilds). The pick is MM-1's membership
+    /// dither ([`CoarseField::sample_source_cell`]) over the deep grid's
+    /// bilinear stencil, through the registered [`NearRecordMembership`]
+    /// domain on an [`Octaves`] source.
+    pub cell_of: Vec<u8>,
     /// **How many eighths of the surface voxel the ground occupies**, per voxel
     /// column: `ceil((elev − h·0.9) / 0.9 · 8)`, at least 1 — the top-of-column
     /// remainder (journal/0055). The surface voxel is the *top span* of
@@ -212,6 +227,45 @@ pub struct ColumnRec {
     /// (border wilds, subaqueous, bare-province): there the surface voxel keeps
     /// the year-zero fallback block ([`Self::surface`]) and carries no contents.
     pub surface_eighths: Vec<u8>,
+}
+
+impl ColumnRec {
+    /// [`Self::cell_of`] sentinel: this column has no deep-cell record at all
+    /// (outside the record grid).
+    pub const NO_RECORD: u8 = u8::MAX;
+
+    /// The [`SubCell`] skinning voxel column `(lx, lz)` (chunk-local, `0..32`),
+    /// or `None` outside the record grid. THE read of the restructure: every
+    /// consumer that used to take "the chunk's record" now names a column.
+    #[inline]
+    pub fn record_for(&self, lx: usize, lz: usize) -> Option<&SubCell> {
+        let slot = *self.cell_of.get(lz * 32 + lx)?;
+        if slot == Self::NO_RECORD {
+            return None;
+        }
+        self.records.get(usize::from(slot))
+    }
+
+    /// The chunk-centre column's SubCell — the nearest analog of the retired
+    /// per-chunk record (which was the cell nearest the chunk centre).
+    /// Census-style consumers that want "the chunk's story" read this; sites
+    /// that mean a specific column must say which (the I-5 judgment sites).
+    #[inline]
+    pub fn centre_record(&self) -> Option<&SubCell> {
+        self.record_for(16, 16)
+    }
+
+    /// Rough heap footprint (bytes) of this chunk-column record — the runtime
+    /// residency line the slice's RETURN spec reports (`column_cache` is
+    /// runtime-resident and the restructure multiplies the strata payload).
+    pub fn heap_bytes(&self) -> usize {
+        self.heights.capacity() * std::mem::size_of::<i32>()
+            + self.surface.capacity() * std::mem::size_of::<Block>()
+            + self.records.iter().map(SubCell::heap_bytes).sum::<usize>()
+            + self.records.capacity() * std::mem::size_of::<SubCell>()
+            + self.cell_of.capacity()
+            + self.surface_eighths.capacity()
+    }
 }
 
 /// One evaluation of the shared surface kernel ([`WorldGenerator::surface_sample`]).
@@ -286,6 +340,12 @@ pub struct WorldGenerator<'a> {
     /// resident global field (the member-#0 design pass, MM-2: no borrowed or
     /// lazy `CoarseField` variant until a second consumer asks for one).
     class_window: Option<ClassWindow>,
+    /// **The record-membership field** (P11 slice 3): the deep grid's cells as
+    /// their own row-major indices, under the deep registration — what MM-1's
+    /// `sample_source_cell` dithers over to pick *which deep cell's record
+    /// skins a voxel column*. Built once per generator (`w² × 4 B`, ~1.1 MiB at
+    /// Medium); `None` when the world has no record grid.
+    record_cells: Option<CoarseField<u32>>,
     trace: Trace,
     last_stats: ChunkStats,
 }
@@ -354,6 +414,17 @@ impl<'a> WorldGenerator<'a> {
     fn assemble(pregen: PregenSource<'a>, geology: GeologySet) -> Self {
         let scale = VoxelScale::from_player_height(1.8, 2); // N=2: 0.9 m voxels
         let seed = pregen.seed;
+        // The record-membership field (P11 slice 3): every deep cell as its own
+        // index, under the deep registration — derived state, built once.
+        let record_cells = (!pregen.deep.strata.is_empty()).then(|| {
+            let w = pregen.deep.w;
+            CoarseField::from_cells(
+                w,
+                w,
+                pregen.deep.registration(),
+                (0..(w * w) as u32).collect(),
+            )
+        });
         Self {
             pregen,
             seed,
@@ -366,6 +437,7 @@ impl<'a> WorldGenerator<'a> {
             locale_cache: HashMap::new(),
             column_cache: HashMap::new(),
             class_window: None,
+            record_cells,
             trace: Trace::default(),
             last_stats: ChunkStats::default(),
         }
@@ -389,11 +461,6 @@ impl<'a> WorldGenerator<'a> {
         self.trace.clear();
         let (cx, cz) = (i64::from(pos.x), i64::from(pos.z));
         let col = self.column(cx, cz);
-        // The recorded column sliced into voxel spans (crate::fill) — the SAME
-        // slicing the material path uses, so the two cannot disagree about where
-        // the record is or what is in it.
-        let fill = ColumnFill::build(&col.strata, self.voxel_m);
-        let has_record = !col.strata.events.is_empty();
         // A buried single-event voxel's block is `classify` of the very contents
         // [`Self::material_ids`] interns for it — the SAME per-voxel-column
         // dithered host member, keyed and memoized identically. Before the
@@ -401,9 +468,10 @@ impl<'a> WorldGenerator<'a> {
         // shared a `block_twin`, so the event's recorded member sufficed and this
         // was a flat per-event table; now the block IS the member's material, so
         // it MUST track the dither or `block == classify(contents)` breaks
-        // (contents_contract). The memo is `(event, host) -> Block`, the block
-        // twin of `material_ids`' `(event, host) -> MixtureId` memo.
-        let mut block_memo: HashMap<(usize, GeoMemberIdx), Block> = HashMap::new();
+        // (contents_contract). The memo is `(subcell, event, host) -> Block` —
+        // the SubCell slot joined the key with P11 slice 3, because event
+        // indices are per-record and a chunk now holds several records.
+        let mut block_memo: HashMap<(u8, usize, GeoMemberIdx), Block> = HashMap::new();
         // **The member dither, hoisted to once per voxel COLUMN per event**
         // (journal/0129). It is a pure function of `(event, voxel column)` — the
         // `y` loop below cannot change its answer — yet it used to run per *voxel*,
@@ -421,8 +489,19 @@ impl<'a> WorldGenerator<'a> {
                 let i = z * 32 + x;
                 let h = i64::from(col.heights[i]);
                 let (vx, vz) = (cx * 32 + x as i64, cz * 32 + z as i64);
+                // **This column's record** (P11 slice 3): the SubCell its
+                // membership draw picked; the legacy-soil fallback where its
+                // record is empty (per-cell soil — the F2 bundle) or absent
+                // entirely (the chunk-level wilds fallback).
+                let slot = col.cell_of[i];
+                let sub = (slot != ColumnRec::NO_RECORD).then(|| &col.records[usize::from(slot)]);
+                let (has_record, soil) = match sub {
+                    Some(s) if !s.strata().events.is_empty() => (true, s.soil()),
+                    Some(s) => (false, s.soil()),
+                    None => (false, col.soil),
+                };
                 host_of_event.clear();
-                host_of_event.resize(col.strata.events.len(), None);
+                host_of_event.resize(sub.map_or(0, |s| s.strata().events.len()), None);
                 for y in 0..32usize {
                     let vy = base_y + y as i64;
                     let b = if vy > h {
@@ -431,12 +510,13 @@ impl<'a> WorldGenerator<'a> {
                         col.surface[i]
                     } else if !has_record {
                         // No deposition record (ocean, wilds): legacy soil.
-                        if vy >= h - i64::from(col.soil) {
+                        if vy >= h - i64::from(soil) {
                             Block::Dirt
                         } else {
                             Block::Stone
                         }
                     } else {
+                        let s = sub.expect("has_record implies a SubCell");
                         // The record fills the column; below it is unrecorded
                         // basement = stone. Every recorded voxel's block is
                         // `classify(contents)` of the very contents the material
@@ -449,19 +529,19 @@ impl<'a> WorldGenerator<'a> {
                         // span. The whole buried column shifts down one record span
                         // to make room for the surface it now owns.
                         let depth = (h - vy) as u32;
-                        match fill.plan(depth + 1) {
+                        match s.fill().plan(depth + 1) {
                             None => Block::Stone,
                             Some(Plan::Single(k)) => {
-                                let event = col.strata.events[*k];
+                                let event = s.strata().events[*k];
                                 let host = *host_of_event[*k].get_or_insert_with(|| {
                                     dithered_member(&self.geology, self.seed, &event, vx, vz)
                                 });
-                                *block_memo.entry((*k, host)).or_insert_with(|| {
+                                *block_memo.entry((slot, *k, host)).or_insert_with(|| {
                                     classify(&contents_for_event(&self.geology, host, &event))
                                 })
                             }
                             Some(Plan::Mixed(w)) => {
-                                classify(&self.mixed_at(&col.strata, w, vx, vy, vz, 8))
+                                classify(&self.mixed_at(s.strata(), w, vx, vy, vz, 8))
                             }
                         }
                     };
@@ -501,7 +581,6 @@ impl<'a> WorldGenerator<'a> {
     fn material_ids(&mut self, pos: ChunkPos) -> Vec<MixtureId> {
         let (cx, cz) = (i64::from(pos.x), i64::from(pos.z));
         let col = self.column(cx, cz);
-        let fill = ColumnFill::build(&col.strata, self.voxel_m);
         let mut dense = vec![MixtureId::EMPTY; CHUNK_VOLUME];
         let base_y = i64::from(pos.y) * 32;
         // **The surface voxel is the record's top span** (journal/0074): the
@@ -510,9 +589,12 @@ impl<'a> WorldGenerator<'a> {
         // `surface_class` (the deep-record consult) — that path is gone from the
         // near field and now lives only in the far summary. A column with no
         // record top span keeps the year-zero fallback block and no contents,
-        // which is the shrinking absent-contents exception.
+        // which is the shrinking absent-contents exception. Since P11 slice 3
+        // the record — and therefore the fill and its top span — is the
+        // column's own SubCell, and every memo key carries the SubCell slot
+        // (event indices are per-record now).
         {
-            let mut memo: HashMap<(usize, GeoMemberIdx, u8), MixtureId> = HashMap::new();
+            let mut memo: HashMap<(u8, usize, GeoMemberIdx, u8), MixtureId> = HashMap::new();
             for z in 0..32usize {
                 for x in 0..32usize {
                     let i = z * 32 + x;
@@ -522,26 +604,31 @@ impl<'a> WorldGenerator<'a> {
                         continue;
                     }
                     let (vx, vz) = (cx * 32 + x as i64, cz * 32 + z as i64);
+                    let slot = col.cell_of[i];
+                    if slot == ColumnRec::NO_RECORD {
+                        continue; // fallback column: no record to skin it with
+                    }
+                    let sub = &col.records[usize::from(slot)];
                     // The surface voxel is `plan(1)` — the record's topmost span
                     // (the buried column is shifted down one span to make room).
-                    let Some(plan) = fill.plan(1) else {
-                        continue; // fallback column: no record to skin it with
+                    let Some(plan) = sub.fill().plan(1) else {
+                        continue; // empty record: fallback column
                     };
                     let n = col.surface_eighths[i];
-                    // Memo key: `Single` interns per (event, dithered host, n);
-                    // `Mixed` is position-addressed and rarely repeats, so it is
-                    // keyed on a sentinel and simply re-interned (idempotent).
+                    // Memo key: `Single` interns per (subcell, event, dithered
+                    // host, n); `Mixed` is position-addressed and rarely
+                    // repeats, so it is simply re-interned (idempotent).
                     let id = match plan {
                         Plan::Single(k) => {
-                            let event = col.strata.events[*k];
+                            let event = sub.strata().events[*k];
                             let host = dithered_member(&self.geology, self.seed, &event, vx, vz);
-                            *memo.entry((*k, host, n)).or_insert_with(|| {
+                            *memo.entry((slot, *k, host, n)).or_insert_with(|| {
                                 self.materials
                                     .intern(mixed_contents(&self.geology, &[(host, n)]))
                             })
                         }
                         Plan::Mixed(_) => {
-                            let c = self.surface_voxel_contents(&col.strata, plan, n, vx, vy, vz);
+                            let c = self.surface_voxel_contents(sub.strata(), plan, n, vx, vy, vz);
                             self.materials.intern(c)
                         }
                     };
@@ -549,22 +636,29 @@ impl<'a> WorldGenerator<'a> {
                 }
             }
         }
-        if fill.depth_count() > 1 {
-            // Memoize per (event, resolved host member): the boundary dither
-            // re-selects the host member per voxel-column, so the intern key is
-            // the pair, not the event alone (one intern per distinct mixture in
-            // this chunk — still bounded, and interning is idempotent).
-            let mut memo: HashMap<(usize, GeoMemberIdx), MixtureId> = HashMap::new();
+        if col.records.iter().any(|s| s.fill().depth_count() > 1) {
+            // Memoize per (subcell, event, resolved host member): the boundary
+            // dither re-selects the host member per voxel-column, so the intern
+            // key is the tuple, not the event alone (one intern per distinct
+            // mixture in this chunk — still bounded, and interning is
+            // idempotent).
+            let mut memo: HashMap<(u8, usize, GeoMemberIdx), MixtureId> = HashMap::new();
             // Per-column member-dither cache — see `generate_chunk`'s copy of this
             // comment for why (journal/0129: a pure function of `(event, column)`
             // that used to run per voxel).
             let mut host_of_event: Vec<Option<GeoMemberIdx>> = Vec::new();
             for z in 0..32usize {
                 for x in 0..32usize {
-                    let h = i64::from(col.heights[z * 32 + x]);
+                    let i = z * 32 + x;
+                    let slot = col.cell_of[i];
+                    if slot == ColumnRec::NO_RECORD {
+                        continue;
+                    }
+                    let sub = &col.records[usize::from(slot)];
+                    let h = i64::from(col.heights[i]);
                     let (vx, vz) = (cx * 32 + x as i64, cz * 32 + z as i64);
                     host_of_event.clear();
-                    host_of_event.resize(col.strata.events.len(), None);
+                    host_of_event.resize(sub.strata().events.len(), None);
                     for y in 0..32usize {
                         let vy = base_y + y as i64;
                         if vy >= h {
@@ -573,18 +667,18 @@ impl<'a> WorldGenerator<'a> {
                         // `depth + 1`: the surface owns `plan(1)`, so the first
                         // buried voxel reads `plan(2)` (journal/0074).
                         let depth = (h - vy) as u32;
-                        let id = match fill.plan(depth + 1) {
+                        let id = match sub.fill().plan(depth + 1) {
                             None => continue, // unrecorded basement
                             Some(Plan::Single(k)) => {
                                 let k = *k;
-                                let event = col.strata.events[k];
+                                let event = sub.strata().events[k];
                                 // Per-voxel-column host member (family contacts
                                 // wander off the chunk grid); ore/accessory stay
                                 // per-event.
                                 let host = *host_of_event[k].get_or_insert_with(|| {
                                     dithered_member(&self.geology, self.seed, &event, vx, vz)
                                 });
-                                *memo.entry((k, host)).or_insert_with(|| {
+                                *memo.entry((slot, k, host)).or_insert_with(|| {
                                     self.materials.intern(contents_for_event(
                                         &self.geology,
                                         host,
@@ -593,7 +687,7 @@ impl<'a> WorldGenerator<'a> {
                                 })
                             }
                             Some(Plan::Mixed(w)) => {
-                                let c = self.mixed_at(&col.strata, w, vx, vy, vz, 8);
+                                let c = self.mixed_at(sub.strata(), w, vx, vy, vz, 8);
                                 self.materials.intern(c)
                             }
                         };
@@ -1394,6 +1488,18 @@ impl<'a> WorldGenerator<'a> {
     }
 
     /// Collapse one chunk-column (the chunk footprint's 32×32 voxel columns).
+    ///
+    /// **P11 slice 3 (ruling 5): the record is per voxel COLUMN, not per
+    /// chunk.** The retired shape sampled the deep record once, NEAREST, at the
+    /// chunk centre — so a chunk's whole strata composition was one point
+    /// sample, member-presence borders could only fall where the chunk-centre's
+    /// nearest cell flips, and every frontier on the map was a straight
+    /// chunk-quantized line (the 2026-08-02 field report; design audit F1).
+    /// Now each voxel column draws which deep cell's record skins it from the
+    /// bilinear stencil weights (MM-1's membership dither), `run_strata` runs
+    /// once per **touched cell** (typically 4, up to 9 — the expensive pass at
+    /// the granularity its answer changes at), and the F2 bundle keeps each
+    /// SubCell's record, regolith `H` and ledger naming the same cell.
     fn column(&mut self, cx: i64, cz: i64) -> Arc<ColumnRec> {
         self.trace.columns.insert((cx, cz));
         if let Some(c) = self.column_cache.get(&(cx, cz)) {
@@ -1401,21 +1507,9 @@ impl<'a> WorldGenerator<'a> {
         }
         let locale = self.locale(cx >> 4, cz >> 4);
         let (temp_sl, precip) = self.climate_at(cx * 32 + 16, cz * 32 + 16);
-        // **Regolith depth from the recorded cause** (journal/0053, retiring the
-        // soil half of stubs.md § 3). The deep-time sim spends its whole run
-        // weathering bedrock into loose cover, moving it, and dropping it; that
-        // per-cell thickness `H` is now carried in the `DeepField` instead of
-        // being summed into the surface and thrown away. `None` only in the
-        // border wilds, where there is no deep-time history to read — see
-        // [`wilds_regolith_voxels`].
-        let regolith_m = self
-            .pregen
-            .deep
-            .regolith_at_voxel(cx * 32 + 16, cz * 32 + 16);
-        let soil = match regolith_m {
-            Some(h) => regolith_voxels(h, self.voxel_m),
-            None => wilds_regolith_voxels(precip),
-        };
+        // **The wilds/no-record fallback soil** (genesis precip rule). Columns
+        // with a SubCell read their own cell's soil instead (the F2 bundle).
+        let soil = wilds_regolith_voxels(precip);
         let mut heights = vec![0i32; 1024];
         let mut surface = vec![Block::Stone; 1024];
         // Eighths of the surface voxel the ground fills — the top-of-column
@@ -1477,69 +1571,116 @@ impl<'a> WorldGenerator<'a> {
             .iter()
             .map(|s| s.width * (-seg_point_dist(s, ccx, ccz) / 24.0).exp())
             .fold(0.0f64, f64::max);
-        // The deep-time depositional record for this column: the strata of the
-        // nearest 460 m deep cell (the at-deposition formation-context source).
-        // Empty in the wilds / where the deep sim laid nothing down.
-        let deep_units = self
-            .pregen
-            .deep
-            .record_at_voxel(cx * 32 + 16, cz * 32 + 16)
-            .map_or(&[][..], |s| s.units.as_slice());
-        // **The weathering fold** (the first-real-behavior slice): read the deep
-        // cell's `base + facts` weathering product (metres of loose regolith the
-        // bedrock seam yielded). `0.0` unless `weather_inventory` is on — the S-5
-        // identity default. The ledger is sampled at the SAME nearest cell as
-        // `deep_units`, so its bedrock slot index is `deep_units.len()`.
-        let deep_weathering_m = self
-            .pregen
-            .deep
-            .ledger_at_voxel(cx * 32 + 16, cz * 32 + 16)
-            .map_or(0.0, |l| l.weathering_product_m(deep_units.len()));
-        let mut strata_ctx = StrataCtx {
-            seed: self.seed,
-            cx,
-            cz,
-            temp_c: temp_sl,
-            precip,
-            provenance,
-            elev_m,
-            flow_energy,
-            voxel_m: self.voxel_m,
-            regolith_m,
-            deep_units,
-            deep_weathering_m,
-            wilds,
-            geology: &self.geology,
-            providers: self.providers,
-            strata: StrataRec::default(),
-            alluvium: None,
-        };
-        self.pregen.pipeline.run_strata(&mut strata_ctx);
-        let strata = strata_ctx.strata;
 
-        // **Skin the surface voxel from the record's top span** (journal/0074 —
-        // the surface-branch removal). The surface voxel is [`ColumnFill`]
-        // `plan(1)`, the record's topmost span, expressed as the per-column
-        // partial — the SAME span, through the SAME fill machinery, that the
-        // block and material paths resolve every buried voxel from. There is no
-        // parallel "what is the surface made of" computation any more: the
-        // history the strata passes just wrote IS the surface. `block ==
-        // classify(contents)` holds by construction — the block is set to
-        // `classify` of exactly the contents [`Self::material_ids`] will intern.
-        // Columns with no record top span (subaqueous, wilds, bare-province)
-        // keep the year-zero fallback block set above and carry no contents (the
-        // shrinking absent-contents exception).
-        let fill = ColumnFill::build(&strata, self.voxel_m);
-        if let Some(plan) = fill.plan(1) {
+        // **Per voxel column: which deep cell's record skins it** — MM-1's
+        // membership dither over the record grid's bilinear stencil, through
+        // the registered `NearRecordMembership` domain on the `Octaves` source
+        // (the unbiased coherent source; `Coherent` would amplify the home
+        // cell, i.e. re-straighten exactly the border this dither kills).
+        // Deterministic and chunk-order-free: addressed by absolute voxel.
+        let src = Octaves::member(Draws::of::<NearRecordMembership>(self.seed));
+        let mut cell_of = vec![ColumnRec::NO_RECORD; 1024];
+        // Global deep-cell index of each distinct touched cell, in first-touch
+        // order (a chunk touches ≤ 9 cells; linear scan beats a map).
+        let mut touched: Vec<u32> = Vec::with_capacity(4);
+        if let Some(field) = &self.record_cells {
             for z in 0..32i64 {
                 for x in 0..32i64 {
-                    let i = (z * 32 + x) as usize;
                     let (vx, vz) = (cx * 32 + x, cz * 32 + z);
-                    let vy = i64::from(heights[i]);
-                    let contents =
-                        self.surface_voxel_contents(&strata, plan, surface_eighths[i], vx, vy, vz);
-                    surface[i] = classify(&contents);
+                    // Outside the record grid there is no cell to draw —
+                    // `deep_coords` is the extent authority, the registration
+                    // alone would clamp and lie.
+                    if self.pregen.deep.deep_coords(vx, vz).is_none() {
+                        continue;
+                    }
+                    let Some(&g) = field.sample_source_cell((vx, vz), &src, 0) else {
+                        continue;
+                    };
+                    let slot = match touched.iter().position(|&t| t == g) {
+                        Some(s) => s,
+                        None => {
+                            touched.push(g);
+                            touched.len() - 1
+                        }
+                    };
+                    cell_of[(z * 32 + x) as usize] = slot as u8;
                 }
+            }
+        }
+
+        // **One `run_strata` per touched cell** (the restructure's whole cost:
+        // typically 4×, up to 9× — measured in M0, reported in the slice's
+        // RETURN spec). Each SubCell is built from the F2 bundle of ITS cell:
+        // record + regolith `H` + ledger together, so the veneer subtraction
+        // and the weathering fold structurally cannot mix parents.
+        let w = self.pregen.deep.w as i64;
+        let mut records: Vec<SubCell> = Vec::with_capacity(touched.len());
+        for &g in &touched {
+            let (ix, iy) = (g as i64 % w, g as i64 / w);
+            let bundle = self
+                .pregen
+                .deep
+                .cell_bundle(ix, iy)
+                .expect("touched cells exist: record_cells is Some only over a record grid");
+            let deep_weathering_m = bundle.weathering_product_m();
+            let regolith_m = bundle.regolith_m;
+            let mut strata_ctx = StrataCtx {
+                seed: self.seed,
+                cx,
+                cz,
+                temp_c: temp_sl,
+                precip,
+                provenance,
+                elev_m,
+                flow_energy,
+                voxel_m: self.voxel_m,
+                regolith_m,
+                deep_units: bundle.record.units.as_slice(),
+                deep_weathering_m,
+                wilds,
+                geology: &self.geology,
+                providers: self.providers,
+                strata: StrataRec::default(),
+                alluvium: None,
+            };
+            self.pregen.pipeline.run_strata(&mut strata_ctx);
+            let cell_soil = match regolith_m {
+                Some(h) => regolith_voxels(h, self.voxel_m),
+                None => soil,
+            };
+            records.push(SubCell::new(
+                strata_ctx.strata,
+                self.voxel_m,
+                cell_soil,
+                Some(g),
+            ));
+        }
+
+        // **Skin the surface voxel from the record's top span** (journal/0074 —
+        // the surface-branch removal), now per column from ITS OWN SubCell.
+        // The surface voxel is [`ColumnFill`] `plan(1)`, the record's topmost
+        // span, expressed as the per-column partial — the SAME span, through
+        // the SAME fill machinery, that the block and material paths resolve
+        // every buried voxel from. `block == classify(contents)` holds by
+        // construction. Columns with no record top span (subaqueous, wilds,
+        // bare-province) keep the year-zero fallback block set above and carry
+        // no contents (the shrinking absent-contents exception).
+        for z in 0..32i64 {
+            for x in 0..32i64 {
+                let i = (z * 32 + x) as usize;
+                let slot = cell_of[i];
+                if slot == ColumnRec::NO_RECORD {
+                    continue;
+                }
+                let sub = &records[usize::from(slot)];
+                let Some(plan) = sub.fill().plan(1) else {
+                    continue;
+                };
+                let (vx, vz) = (cx * 32 + x, cz * 32 + z);
+                let vy = i64::from(heights[i]);
+                let contents =
+                    self.surface_voxel_contents(sub.strata(), plan, surface_eighths[i], vx, vy, vz);
+                surface[i] = classify(&contents);
             }
         }
 
@@ -1548,7 +1689,8 @@ impl<'a> WorldGenerator<'a> {
             surface,
             soil,
             wilds,
-            strata,
+            records,
+            cell_of,
             surface_eighths,
         });
         self.column_cache.insert((cx, cz), rec.clone());
@@ -1664,12 +1806,12 @@ fn top_voxel_shares(rec: &DeepStrata, voxel_m: f64) -> ShareVec<DEEP_CLASSES> {
         if acc >= voxel_m {
             break;
         }
-        let take = u.thickness_m.min(voxel_m - acc);
+        let take = u.thickness_m().min(voxel_m - acc);
         if take <= 0.0 {
             continue;
         }
         acc += take;
-        shares[deep_class_slot(Litho::of_material(u.species))] += take;
+        shares[deep_class_slot(Litho::of_material(u.species()))] += take;
     }
     if acc < voxel_m / 2.0 {
         return ShareVec::zero();
@@ -2230,7 +2372,7 @@ mod tests {
     ///    surface would make every column identical.
     #[test]
     fn surface_voxel_routes_through_columnfill_per_voxel() {
-        use crate::fill::{ColumnFill, Plan};
+        use crate::fill::Plan;
         use dc_core::VoxelContents;
         let pregen = Pregen::run(WorldParams {
             seed: 1337,
@@ -2241,22 +2383,27 @@ mod tests {
         for cx in -8..=8i64 {
             for cz in -8..=8i64 {
                 let col = g.column_record(cx, cz);
-                let fill = ColumnFill::build(&col.strata, 0.9);
-                // Mixed top spans exercise the per-voxel allocation; Single spans
-                // (vanishingly rare post-0055) go through `dithered_member`.
-                let plan = match fill.plan(1) {
-                    Some(p @ Plan::Mixed(_)) => p,
-                    _ => continue,
-                };
-                mixed_top += 1;
+                // P11 slice 3: the top span is per COLUMN (each column's own
+                // SubCell). Mixed top spans exercise the per-voxel allocation;
+                // Single spans (vanishingly rare post-0055) go through
+                // `dithered_member`. A chunk counts when a majority of its
+                // columns carry a mixed top span.
+                let mut mixed_cols = 0usize;
                 let mut seen: Vec<VoxelContents> = Vec::new();
                 for z in 0..32i64 {
                     for x in 0..32i64 {
                         let i = (z * 32 + x) as usize;
+                        let Some(sub) = col.record_for(x as usize, z as usize) else {
+                            continue;
+                        };
+                        let Some(plan @ Plan::Mixed(_)) = sub.fill().plan(1) else {
+                            continue;
+                        };
+                        mixed_cols += 1;
                         let (vx, vz) = (cx * 32 + x, cz * 32 + z);
                         let vy = i64::from(col.heights[i]);
                         let c = g.surface_voxel_contents(
-                            &col.strata,
+                            sub.strata(),
                             plan,
                             col.surface_eighths[i],
                             vx,
@@ -2277,6 +2424,10 @@ mod tests {
                         }
                     }
                 }
+                if mixed_cols < 512 {
+                    continue;
+                }
+                mixed_top += 1;
                 if seen.len() > 1 {
                     varied += 1;
                 }
@@ -2679,6 +2830,119 @@ mod tests {
             split >= 20,
             "only {split} of {cells} deep cells surface more than one geology class — \
              the far class membership dither is not live (plurality would give exactly 0)"
+        );
+    }
+
+    /// **M0 (P11 slice 3, design audit § 1.3/§ 7): `run_strata`'s share of
+    /// `column()`** — measured BEFORE the near-path restructure multiplies the
+    /// `run_strata` count ~4× (the 2×2 stencil), so the ~4× prior has a
+    /// denominator. A measurement, not a gate: `#[ignore]`d, wall-clock, run
+    /// explicitly with
+    /// `cargo test -p dc-worldgen --release m0_run_strata -- --ignored --nocapture`.
+    ///
+    /// Method: arm 1 times `column_record` on fresh chunk-columns (the whole
+    /// chunk-load collapse). Arm 2 rebuilds each chunk's `StrataCtx` from the
+    /// same inputs `column()` hands it — context assembly OUTSIDE the timer —
+    /// and times `pipeline.run_strata` alone.
+    #[test]
+    #[ignore = "M0 measurement, not a gate — run with --ignored --nocapture"]
+    fn m0_run_strata_share_of_column() {
+        use super::seg_point_dist;
+        use crate::fill::ColumnFill;
+        use crate::geology::StrataRec;
+        use crate::pregen::Provenance;
+        use std::time::Instant;
+        let pregen = Pregen::run(WorldParams {
+            seed: 1337,
+            extent: Extent::Medium,
+        });
+        let positions: Vec<(i64, i64)> = (0..200i64)
+            .map(|k| (k * 7 - 350, (k % 13) * 11 - 70))
+            .collect();
+
+        // Arm 1: the whole column collapse, fresh generator, fresh chunks.
+        let mut g = WorldGenerator::new(&pregen);
+        let t0 = Instant::now();
+        for &(cx, cz) in &positions {
+            let _ = g.column_record(cx, cz);
+        }
+        let t_col = t0.elapsed().as_secs_f64();
+
+        // Arm 2: run_strata alone over the same chunk centres. Context is built
+        // outside the timer, from the very reads column() does.
+        let mut g2 = WorldGenerator::new(&pregen);
+        let mut t_rs = 0.0f64;
+        let mut t_fill = 0.0f64;
+        for &(cx, cz) in &positions {
+            let col = g.column_record(cx, cz); // cached from arm 1 — cheap
+            let locale = g2.locale(cx >> 4, cz >> 4);
+            let (temp_sl, precip) = g2.climate_at(cx * 32 + 16, cz * 32 + 16);
+            let regolith_m = g2.pregen.deep.regolith_at_voxel(cx * 32 + 16, cz * 32 + 16);
+            let (pgx, pgy) = g2.pregen.grid.cell_of_voxel(cx * 32 + 16, cz * 32 + 16);
+            let provenance = match (i32::try_from(pgx), i32::try_from(pgy)) {
+                (Ok(gx32), Ok(gy32)) => g2
+                    .pregen
+                    .grid
+                    .get(gx32, gy32)
+                    .map_or(Provenance::OceanFloor, |c| c.provenance),
+                _ => Provenance::OceanFloor,
+            };
+            let mean_h = col.heights.iter().map(|&h| f64::from(h)).sum::<f64>() / 1024.0;
+            let (ccx, ccz) = ((cx * 32 + 16) as f64, (cz * 32 + 16) as f64);
+            let flow_energy = locale
+                .segs
+                .iter()
+                .map(|s| s.width * (-seg_point_dist(s, ccx, ccz) / 24.0).exp())
+                .fold(0.0f64, f64::max);
+            let deep_units = g2
+                .pregen
+                .deep
+                .record_at_voxel(cx * 32 + 16, cz * 32 + 16)
+                .map_or(&[][..], |s| s.units.as_slice());
+            let deep_weathering_m = g2
+                .pregen
+                .deep
+                .ledger_at_voxel(cx * 32 + 16, cz * 32 + 16)
+                .map_or(0.0, |l| l.weathering_product_m(deep_units.len()));
+            let mut ctx = crate::geology::StrataCtx {
+                seed: g2.seed,
+                cx,
+                cz,
+                temp_c: temp_sl,
+                precip,
+                provenance,
+                elev_m: mean_h * g2.voxel_m,
+                flow_energy,
+                voxel_m: g2.voxel_m,
+                regolith_m,
+                deep_units,
+                deep_weathering_m,
+                wilds: col.wilds,
+                geology: &g2.geology,
+                providers: g2.providers,
+                strata: StrataRec::default(),
+                alluvium: None,
+            };
+            let t = Instant::now();
+            g2.pregen.pipeline.run_strata(&mut ctx);
+            t_rs += t.elapsed().as_secs_f64();
+            let t = Instant::now();
+            let fill = ColumnFill::build(&ctx.strata, g2.voxel_m);
+            t_fill += t.elapsed().as_secs_f64();
+            std::hint::black_box(&fill);
+        }
+        println!(
+            "M0 run_strata share: {} chunks | column() total {:.3} s ({:.2} ms/chunk) | \
+             run_strata alone {:.3} s ({:.2} ms/chunk, {:.1} % of column) | \
+             ColumnFill::build {:.3} s ({:.1} %)",
+            positions.len(),
+            t_col,
+            1e3 * t_col / positions.len() as f64,
+            t_rs,
+            1e3 * t_rs / positions.len() as f64,
+            100.0 * t_rs / t_col,
+            t_fill,
+            100.0 * t_fill / t_col,
         );
     }
 }

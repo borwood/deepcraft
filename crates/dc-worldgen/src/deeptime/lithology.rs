@@ -556,7 +556,7 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
         if remaining <= 0.0 {
             break;
         }
-        if u.thickness_m <= 0.0 {
+        if u.thickness_m() <= 0.0 {
             continue;
         }
         // **The unit's own species, not its tag's** (Movement 2b): a window full
@@ -571,15 +571,15 @@ fn window_walk(units: &[super::recorder::DepUnit]) -> ([f64; Litho::COUNT], Lith
         // the consumers that genuinely want a class — the far tier's share vector,
         // the outcrop verdict, the degenerate no-content door — and it retires with
         // the roster in slice 4.
-        let l = Litho::of_material(u.species);
+        let l = Litho::of_material(u.species());
         let idx = l.index();
         if !seen[idx] {
             seen[idx] = true;
             order[n_order] = l;
             n_order += 1;
         }
-        acc[idx] += u.thickness_m.min(remaining);
-        remaining -= u.thickness_m.min(remaining);
+        acc[idx] += u.thickness_m().min(remaining);
+        remaining -= u.thickness_m().min(remaining);
     }
 
     // A record shorter than the window: the deficit is basement, below the pile —
@@ -670,11 +670,11 @@ pub fn exposed_member_shares(
         if remaining <= 0.0 {
             break;
         }
-        if u.thickness_m <= 0.0 {
+        if u.thickness_m() <= 0.0 {
             continue;
         }
-        let take = u.thickness_m.min(remaining);
-        out[axis.slot_of(u.species)] += take;
+        let take = u.thickness_m().min(remaining);
+        out[axis.slot_of(u.species())] += take;
         remaining -= take;
     }
     if remaining > 0.0 {
@@ -1224,13 +1224,7 @@ mod tests {
             crate::deeptime::Aridity::Humid,
             EnergyBand::Low,
         );
-        let unit = |m, t| DepUnit {
-            tag,
-            thickness_m: t,
-            unconformity: false,
-            chapter: 0,
-            species: m,
-        };
+        let unit = |m, t| DepUnit::new(tag, t, false, 0, m);
         // One thick fine-clastic bed, against the same metres split between two
         // members of that same class — exactly what the new merge key produces.
         let whole = [unit(MaterialId::MUDSTONE, 7.3)];

@@ -20,16 +20,16 @@ const CAP: f64 = 8.0;
 
 /// Recorder order: `units[0]` is deepest, the last is the surface.
 fn unit(tag: DepTag, thickness_m: f64) -> DepUnit {
-    DepUnit {
+    // The tag-derived species — what a unit carries whenever nothing
+    // transported it (material-aware transport off, and every non-fluvial
+    // depositor). These suites are about the *window walk*, not the load.
+    DepUnit::new(
         tag,
         thickness_m,
-        unconformity: false,
-        chapter: 0,
-        // The tag-derived species — what a unit carries whenever nothing
-        // transported it (material-aware transport off, and every non-fluvial
-        // depositor). These suites are about the *window walk*, not the load.
-        species: litho_of_tag(tag).reference_material(),
-    }
+        false,
+        0,
+        litho_of_tag(tag).reference_material(),
+    )
 }
 
 fn mud(thickness_m: f64) -> DepUnit {
@@ -72,9 +72,13 @@ fn a_mixed_window_blends_the_table_by_share() {
     let sh = shares.shares(); // producer-side value inspection (no CoarseField raw read)
     let fi = Litho::ClasticFine.index();
     let ci = Litho::ClasticCoarse.index();
+    // Tolerance derived from the packed record's thickness quantum (P11
+    // slice 3): a stated thickness lands within q/2 = 2⁻¹¹ m of itself, so a
+    // share over the 0.9 m window can sit up to ~q/0.9 ≈ 1.1e-3 from the
+    // nominal 0.55/0.45. Derived, not fitted.
     assert!(
-        (sh[fi] - 0.55).abs() < 1e-9 && (sh[ci] - 0.45).abs() < 1e-9,
-        "shares fine {} coarse {} — expected 0.55 / 0.45",
+        (sh[fi] - 0.55).abs() < 2e-3 && (sh[ci] - 0.45).abs() < 2e-3,
+        "shares fine {} coarse {} — expected 0.55 / 0.45 (± the thickness quantum)",
         sh[fi],
         sh[ci]
     );
@@ -205,7 +209,13 @@ fn the_rate_is_continuous_across_the_old_flip() {
         worst = worst.max((r - prev).abs());
         prev = r;
     }
-    let bound = (step / 0.9) * gap * 1.001;
+    // The derived Lipschitz bound gained a term with P11 slice 3's packed
+    // record: a stated caprock thickness stores as the nearest 2^-10 m quantum,
+    // so two adjacent sweep samples can differ in STORED thickness by up to
+    // `step + quantum` (each endpoint rounds up to half a quantum the other
+    // way). Derived, not fitted — the pre-pack bound is the q → 0 limit.
+    let q = dc_worldgen::deeptime::DepUnit::THICKNESS_QUANTUM_M;
+    let bound = ((step + q) / 0.9) * gap * 1.001;
     assert!(
         worst <= bound,
         "max adjacent rate step {worst} exceeds the continuity bound {bound}"
@@ -232,7 +242,7 @@ fn the_verdict_is_the_argmax_of_the_shares() {
             exposed_litho(&record),
             dominant_litho(&exposed_shares(&record)),
             "verdict and argmax-of-shares disagree on {:?}",
-            record.iter().map(|u| u.thickness_m).collect::<Vec<_>>()
+            record.iter().map(|u| u.thickness_m()).collect::<Vec<_>>()
         );
     }
 }

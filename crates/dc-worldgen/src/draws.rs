@@ -137,6 +137,18 @@ dc_sim::draw_domains! {
     /// address is what separates one band's decision from its neighbour's inside
     /// a single voxel.
     GeoPore = 0x5700_0011;
+    /// **The near-path record-membership dither** (P11 slice 3, ruling 5 — the
+    /// consumer of MM-1's `CoarseField::sample_source_cell`). Per voxel column:
+    /// *which deep cell's strata record skins this column*, drawn from the
+    /// bilinear stencil weights of the ~460 m record grid. Registered as its own
+    /// domain (the journal/0141 salt lesson: two decisions must never share a
+    /// stream) — independent of [`GeoClass`], which is the FAR tier's surface
+    /// class membership at the same grid, and of [`GeoDeep`], the within-class
+    /// member re-pick. Source: `Octaves` (the unbiased coherent source,
+    /// journal/0128) — `Coherent` would re-import corrections #39's majority
+    /// amplification at this joint, and the amplified party would be the home
+    /// cell, i.e. exactly the straight border this dither exists to kill.
+    NearRecordMembership = 0x5700_0012;
 
     // ---- registered, call sites not yet converted (module docs, hole 2) ----
     /// Deep-time surface roughness jitter (`deeptime/grid.rs`).
@@ -729,7 +741,9 @@ mod tests {
     /// duplicate check cannot see.
     #[test]
     fn every_domain_is_listed_and_distinct() {
-        assert_eq!(ALL_DOMAINS.len(), 17, "a domain was added without a test");
+        // 18 since P11 slice 3 added `NearRecordMembership` (the near-path
+        // record-membership dither's own stream).
+        assert_eq!(ALL_DOMAINS.len(), 18, "a domain was added without a test");
         let mut salts: Vec<u64> = ALL_DOMAINS.iter().map(|(_, s)| *s).collect();
         salts.sort_unstable();
         let n = salts.len();

@@ -98,7 +98,8 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 /// (the surface can now be a genuinely **mixed** partial — a state the
 /// single-member surface path could not construct). **Small did not move at all**,
 /// and the mechanism is exactly the surface-branch removal's blind spot:
-/// Small's sampled chunks carry **no strata record** (empty `col.strata`), so
+/// Small's sampled chunks carry **no strata record** (empty per-column SubCells
+/// since P11 slice 3; formerly an empty `col.strata`), so
 /// `ColumnFill` is empty, the surface takes the unchanged year-zero fallback block,
 /// the buried column takes the unchanged legacy soil band, and there is nothing to
 /// re-route — a record-less column is byte-identical under this slice by
@@ -459,25 +460,46 @@ fn world_fingerprint(seed: u64, extent: Extent) -> (u64, u64, u64) {
 //   medium 0x0D5EED572026  blocks 0x7F53_3829_5019_FD72  materials 0xB1A8_93E1_4112_FF92  table 0xDC14_B424_893E_9099
 //   medium 0x539           blocks 0x6594_FCBA_B5C3_4D07  materials 0x2687_D8A3_3291_BD0E  table 0x10F4_9A39_D3F4_B531
 //   small  0xC11A7E2026    blocks 0x3DE2_E091_D05C_F7CD  (materials/table unmoved)
+// **Moved 2026-08-03 by P11 slice 3 (journal/pending-p11-slice3) — authorized,
+// and it is TWO ratified mechanisms in one merge** (the design audit § 7's
+// priced combined option):
+//
+//  1. **The near-path restructure (ruling 5):** a chunk no longer holds *the*
+//     record — each voxel column draws which deep cell's record skins it (MM-1's
+//     membership dither over the record grid), so member-presence borders stop
+//     being straight chunk-quantized lines. Moves blocks + materials + table on
+//     every world whose sampled chunks carry a record.
+//  2. **The packed `DepUnit` (U5, P-2 = L-8):** recorded thickness is fixed-point
+//     at 2^-10 m and feeds back through the outcrop window into erosion rates, so
+//     the terrain itself moved everywhere — which is why **Small's BLOCK hash
+//     moved** (its surface follows the quantized deep trajectory) while its
+//     **materials and table stayed byte-identical** (its sampled chunks carry no
+//     strata record — the same structural reason as every prior move).
+//
+// Prior values, kept auditable:
+//
+//   medium 0x0D5EED572026  blocks 0x26FE91C36796A61D  materials 0xC76550F7045BEE6C  table 0xF1897D6B4A0E26FE
+//   medium 0x539           blocks 0x86327CB00E99542F  materials 0x8DAA41EDCE4B37CD  table 0xC84BD660BBADABC3
+//   small  0xC11A7E2026    blocks 0x94485BD5C1EFCE05  (materials/table unmoved)
 const GOLDENS: [(u64, &str, u64, u64, u64); 3] = [
     (
         0x0000_0D5E_ED57_2026,
         "medium",
-        0x26FE_91C3_6796_A61D,
-        0xC765_50F7_045B_EE6C,
-        0xF189_7D6B_4A0E_26FE,
+        0xD0C7_10EA_C585_C7E0,
+        0xC735_5E9D_4D8C_16F8,
+        0xEE41_43FA_C75E_F21C,
     ),
     (
         0x0000_0000_0000_0539,
         "medium",
-        0x8632_7CB0_0E99_542F,
-        0x8DAA_41ED_CE4B_37CD,
-        0xC84B_D660_BBAD_ABC3,
+        0x65A8_B685_62AC_2B3B,
+        0x5A25_3514_E98A_02AC,
+        0xE645_13D7_CF1C_FA3B,
     ),
     (
         0x0000_00C1_1A7E_2026,
         "small",
-        0x9448_5BD5_C1EF_CE05,
+        0xD9BA_21E1_7687_60C4,
         0x3222_7B87_48CB_0F75,
         0xD0A3_9718_6727_310C,
     ),

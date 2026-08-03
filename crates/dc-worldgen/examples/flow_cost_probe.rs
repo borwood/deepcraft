@@ -14,7 +14,7 @@
 //! 1. grid geometry (cells, `cell_m`, chapters, epochs, epochs/chapter),
 //! 2. the **units-per-cell distribution** (min/mean/median/p95/max/total) — the
 //!    slot multiplier that decides everything — split land / marine / empty,
-//! 3. the **causal (slot, chapter) pair count** `Σ_units (K − unit.chapter)`: a
+//! 3. the **causal (slot, chapter) pair count** `Σ_units (K − unit.chapter())`: a
 //!    slot deposited in chapter `c` cannot carry flow facts from before `c`,
 //!    so this is the honest dense ceiling, not `slots × K`,
 //! 4. today's `DeepField` residency, decomposed by part,
@@ -242,7 +242,7 @@ struct Geom {
     chapters: usize,
     /// Σ over units of 1 — total stratum slots in the world.
     slots: usize,
-    /// Σ over units of `(K − unit.chapter)` — the causally-possible (slot, chapter)
+    /// Σ over units of `(K − unit.chapter())` — the causally-possible (slot, chapter)
     /// pairs (a slot cannot carry a fact from before it was deposited).
     slot_chapters_causal: usize,
     /// `slots × K` — the naive dense ceiling, for contrast.
@@ -348,8 +348,8 @@ fn main() {
             marine.push(n);
         }
         for u in &field.strata[i].units {
-            chapter_hist[u.chapter as usize] += 1;
-            let sc = chapters.saturating_sub(u.chapter as usize);
+            chapter_hist[u.chapter() as usize] += 1;
+            let sc = chapters.saturating_sub(u.chapter() as usize);
             slot_chapters_causal += sc;
             if is_land {
                 slot_chapters_land += sc;

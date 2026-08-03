@@ -31,7 +31,7 @@ fn pct(a: usize, b: usize) -> f64 {
 /// The pre-journal/0068 rule: the top unit's lithology, or basement if empty.
 fn old_rule(units: &[dc_worldgen::deeptime::DepUnit]) -> Litho {
     match units.last() {
-        Some(u) => Litho::of_material(u.species),
+        Some(u) => Litho::of_material(u.species()),
         None => Litho::Basement,
     }
 }

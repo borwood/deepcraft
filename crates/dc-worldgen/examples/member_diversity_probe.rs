@@ -31,7 +31,7 @@
 //! ## The before, and why it is reconstructible in one binary
 //!
 //! The pre-P11 record is recoverable exactly, from the same run, with no second
-//! build: every unit's class is `Litho::of_material(u.species)` and the material
+//! build: every unit's class is `Litho::of_material(u.species())` and the material
 //! the old record would have carried is that class's `reference_material()`. So
 //! **BEFORE is the same walk with the identity collapsed to its class's
 //! reference** — one material per class by construction — and AFTER is the
@@ -113,6 +113,18 @@ struct Diversity {
     total_m: f64,
     deep_secs: f64,
     resident_bytes: usize,
+    /// Units per mover value (P11 slice 3's agent axis; index = `FlowCause as
+    /// u8`, 7 = `MOVER_NONE`). The mover is IN the merge key — M-1, taken
+    /// after M0 measured the split at **1.0308×** (2026-08-02, this probe's
+    /// pre-key instrument, retired with the decision), under the ≲1.1× bar.
+    units_by_mover: [u64; 8],
+    /// **M0: max recorded unit thickness (m)** — the u32 fixed-point cap check
+    /// (2⁻¹⁰ m quantum caps at 4.19e6 m; the measurement is what makes that a
+    /// fact rather than a hope).
+    max_unit_m: f64,
+    /// **M0: unit-thickness decade histogram** — counts in
+    /// `[<1 mm, 1–10 mm, 10–100 mm, 0.1–1 m, 1–10 m, 10–100 m, ≥100 m]`.
+    thickness_hist: [u64; 7],
 }
 
 fn registered_per_class(set: &GeologySet) -> [usize; Litho::COUNT] {
@@ -132,22 +144,44 @@ fn measure_field(f: &DeepField, deep_secs: f64) -> Diversity {
     let set = vanilla();
     let mut by_class: [ClassTally; Litho::COUNT] = Default::default();
     let (mut units, mut units_class_merged, mut total_m) = (0u64, 0u64, 0.0f64);
+    let mut units_by_mover = [0u64; 8];
+    let mut max_unit_m = 0.0f64;
+    let mut thickness_hist = [0u64; 7];
     for s in &f.strata {
         let mut prev: Option<(Litho, u8)> = None;
         for u in &s.units {
-            let l = Litho::of_material(u.species);
+            let t_m = u.thickness_m();
+            units_by_mover[usize::from(u.mover().min(7))] += 1;
+            max_unit_m = max_unit_m.max(t_m);
+            let bucket = if t_m < 1e-3 {
+                0
+            } else if t_m < 1e-2 {
+                1
+            } else if t_m < 1e-1 {
+                2
+            } else if t_m < 1.0 {
+                3
+            } else if t_m < 10.0 {
+                4
+            } else if t_m < 100.0 {
+                5
+            } else {
+                6
+            };
+            thickness_hist[bucket] += 1;
+            let l = Litho::of_material(u.species());
             let t = &mut by_class[l.index()];
-            t.mass_m[u.species.raw() as usize] += u.thickness_m;
-            t.units[u.species.raw() as usize] += 1;
+            t.mass_m[u.species().raw() as usize] += u.thickness_m();
+            t.units[u.species().raw() as usize] += 1;
             units += 1;
-            total_m += u.thickness_m;
+            total_m += u.thickness_m();
             // The counterfactual merge: the pre-P11 key was (tag, chapter,
             // class), so two adjacent units differing only in material would
             // have been one. Approximated by (class, chapter) — tag equality is
             // implied for a same-class run laid by the same depositor, and this
             // is deliberately the *generous* reading, so the split factor it
             // reports is a lower bound.
-            let key = (l, u.chapter);
+            let key = (l, u.chapter());
             if prev != Some(key) {
                 units_class_merged += 1;
             }
@@ -162,6 +196,9 @@ fn measure_field(f: &DeepField, deep_secs: f64) -> Diversity {
         total_m,
         deep_secs,
         resident_bytes: f.resident_bytes(),
+        units_by_mover,
+        max_unit_m,
+        thickness_hist,
     }
 }
 
@@ -298,6 +335,51 @@ fn main() {
         d.units_class_merged as f64 * 16.0 / (1024.0 * 1024.0)
     );
 
+    // ---- P11 slice 3: the pack's axes on the shipped record ---------------
+    println!(
+        "\n=== THE PACKED AXES (P11 slice 3) ===\n\
+         mover (M-1, IN the merge key — measured 1.0308x before joining, M0 \
+         2026-08-02): units by mover value"
+    );
+    let mover_names = [
+        "fluvial",
+        "eolian",
+        "glacial",
+        "gravity",
+        "marine",
+        "hydrothermal",
+        "dissolution",
+        "none (in place)",
+    ];
+    for (name, n) in mover_names.iter().zip(d.units_by_mover.iter()) {
+        if *n > 0 {
+            println!(
+                "  {name:>16}  {n:>10}  {:.2} %",
+                100.0 * *n as f64 / d.units.max(1) as f64
+            );
+        }
+    }
+    println!(
+        "MAX unit thickness: {:.3} m (u32 fixed-point @ 2^-10 m caps at 4.19e6 m)",
+        d.max_unit_m
+    );
+    let labels = [
+        "<1 mm",
+        "1-10 mm",
+        "10-100 mm",
+        "0.1-1 m",
+        "1-10 m",
+        "10-100 m",
+        ">=100 m",
+    ];
+    println!("unit thickness histogram:");
+    for (lab, n) in labels.iter().zip(d.thickness_hist.iter()) {
+        println!(
+            "  {lab:>10}  {n:>10}  {:.2} %",
+            100.0 * *n as f64 / d.units.max(1) as f64
+        );
+    }
+
     // ---- P11 slice 2: whose fact is a bed's name? -------------------------
     let p = measure_provenance(&pregen.grid);
     let total = p.transported_m + p.drawn_m;
@@ -333,7 +415,43 @@ fn main() {
 #[cfg(test)]
 mod gate {
     use super::*;
-    use dc_worldgen::deeptime::{production_config, run_cells};
+    use dc_worldgen::deeptime::{DepUnit, MOVER_NONE, production_config, run_cells};
+
+    /// **P11 slice 3's reserved axes, on a REAL record** (the pack's gate
+    /// half): every unit's grain is `GRAIN_UNSET` — no writer exists until
+    /// FS-A, so a set grain here is a stray write — and every mover is in its
+    /// 3-bit vocabulary with at least two distinct movers actually recorded
+    /// (the axis is live day one: fluvial/gravity from the transport recorder,
+    /// eolian from wind). Scale-free: per-unit predicates; `Small` runs the
+    /// same depositors.
+    #[test]
+    fn the_grain_axis_is_unset_and_the_mover_axis_is_live_on_a_real_record() {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: Extent::Small,
+        });
+        let f = build_field(&pregen.grid, SEED);
+        let mut units = 0u64;
+        let mut movers_seen = [false; 8];
+        for s in &f.strata {
+            for u in &s.units {
+                units += 1;
+                assert_eq!(
+                    u.grain(),
+                    DepUnit::GRAIN_UNSET,
+                    "a unit carries a set grain but no writer exists yet (FS-A)"
+                );
+                assert!(u.mover() <= MOVER_NONE);
+                movers_seen[usize::from(u.mover())] = true;
+            }
+        }
+        assert!(units > 0, "the record is empty — the probe proved nothing");
+        assert!(
+            movers_seen.iter().filter(|&&b| b).count() >= 2,
+            "only one mover value appears on a whole world — the agent axis is \
+             not being written ({movers_seen:?})"
+        );
+    }
 
     /// **The invariant is scale-free**: "a class with two registered members has
     /// units of both in the archive" is a statement about the *selection*

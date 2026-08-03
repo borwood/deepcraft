@@ -497,6 +497,20 @@ two).
    one layout surgery, one golden move, one migration. **Gated on a measured grain
    split factor** (the #88 count-model lesson) and the sub-quantum remainder-carry
    (Law-3 bound becomes derivable: quantum × merge count).
+   **✅ BUILT 2026-08-02/03 (slice-3 worktree, journal/pending-p11-slice3; audit header
+   carries the banner).** M0 measured first: mover split **1.0308×** → **M-1, the mover
+   is IN the merge key** (P-4 resolved integrator-side, under the ≲1.1× bar); max unit
+   thickness **65.38 m** (2⁻¹⁰ m u32 quantum stands; u16 would have overflowed);
+   `run_strata` = **0.2 % of `column()`** (the 4× prior is noise). Restructure: `SubCell`
+   (own module) + `ColumnRec.strata → records`/`cell_of` + `DeepField::cell_bundle` (the
+   F2 mass-coupled read) + the `NearRecordMembership` domain on `Octaves`; acceptance
+   instrument gates in `appearance_tour_p11` (structural asserts — the audit's binomial
+   floors were unsound under its own coherent-source pick, corrected loudly in the
+   banner). Pack: 8 B/unit (bits + u32 quanta), accessors everywhere, per-cell carry,
+   grain named + UNSET (`grain()`/`set_grain()`/`GRAIN_UNSET` await FS-A). Stubs #25
+   discharged, #31 heir re-pointed. Deviation: shipped as ONE merge (the § 7-priced
+   combined option — the two surgeries share fourteen files); all-family golden move in
+   that merge, whys per family in test comments.
 4. **Litho dissolution residue** — delete `deep_class_of_species` and the ~250
    remaining class-speaking sites; re-shape or minimally patch the far `ShareVec<6>`
    site (rejected-interim; its real heir is the far register — do not gold-plate).

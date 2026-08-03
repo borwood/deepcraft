@@ -673,7 +673,7 @@ impl FluxCensus {
 /// cannot. Callers wanting the bedrock seam use `strata.units.len()`, the same
 /// sentinel slot the [`FactLedger`](super::inventory::FactLedger) keys bedrock at.
 pub fn slot_for_chapter(strata: &DeepStrata, chapter: u8) -> Option<usize> {
-    strata.units.iter().rposition(|u| u.chapter == chapter)
+    strata.units.iter().rposition(|u| u.chapter() == chapter)
 }
 
 // ---------------------------------------------------------------------------

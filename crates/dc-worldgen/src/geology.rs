@@ -611,7 +611,7 @@ fn emplace_weathering_front(ctx: &mut StrataCtx) {
     // depth for the entire front: it is one weathering environment, not eight
     // burial depths (and a per-band depth would let the member dither flip the
     // parent between bands).
-    let record_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
+    let record_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m()).sum();
     let depth_m = record_m + DEEP_VENEER_MARGIN_M;
     let form = FormationContext {
         temp_c: ctx.temp_c,
@@ -730,18 +730,18 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
     // honest. No-op (byte-identical) when `deep_weathering_m == 0` — off, or the
     // identity floor.
     emplace_weathering_front(ctx);
-    let total_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m).sum();
+    let total_m: f64 = ctx.deep_units.iter().map(|u| u.thickness_m()).sum();
     let mut expressed_m = 0.0f64;
     let mut below_m = 0.0;
     // Index of the event this pass pushed last, for run-length coalescing.
     let mut last: Option<(usize, GeoMemberIdx)> = None;
     for (k, u) in ctx.deep_units.iter().enumerate() {
-        let depth_above = (total_m - below_m - u.thickness_m).max(0.0);
-        below_m += u.thickness_m;
-        if u.thickness_m <= 0.0 {
+        let depth_above = (total_m - below_m - u.thickness_m()).max(0.0);
+        below_m += u.thickness_m();
+        if u.thickness_m() <= 0.0 {
             continue;
         }
-        let precip = deep_precip(u.tag);
+        let precip = deep_precip(u.tag());
         let depth_m = depth_above + DEEP_VENEER_MARGIN_M;
         // **At-deposition temperature — the `paleo_temperature` seam** (#11,
         // journal/0078). Pre-seam this read `ctx.temp_c` (the column's *present*
@@ -755,12 +755,12 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
         let temp_c = ctx.providers.paleo_temperature(PaleoUnit {
             cx: ctx.cx,
             cz: ctx.cz,
-            chapter: u.chapter,
+            chapter: u.chapter(),
             present_temp_c: ctx.temp_c,
         });
         let tag = k as u64;
         // **The identity is READ, not re-derived** (P11 slice 1). Until
-        // 2026-08-01 this line ran `select(deep_class_of_species(u.species), …)`
+        // 2026-08-01 this line ran `select(deep_class_of_species(u.species()), …)`
         // — the class the record carried, refitted here against a formation
         // context sampled at the chunk centre, under a draw addressed to this
         // chunk. The bed's own member was decided at deposition and thrown away;
@@ -771,18 +771,18 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
         // content set has no member for that material — a reduced pack, or a
         // record laid under a different set — and the unit is skipped exactly as
         // an unfillable class was skipped before.
-        if let Some(member) = ctx.geology.member_of_material(u.species) {
-            expressed_m += u.thickness_m;
+        if let Some(member) = ctx.geology.member_of_material(u.species()) {
+            expressed_m += u.thickness_m();
             if let Some((idx, prev)) = last
                 && prev == member
             {
                 let e = &mut ctx.strata.events[idx];
-                e.thickness_m += u.thickness_m as f32;
+                e.thickness_m += u.thickness_m() as f32;
                 continue;
             }
             ctx.strata.events.push(StrataEvent {
                 member,
-                thickness_m: u.thickness_m as f32,
+                thickness_m: u.thickness_m() as f32,
                 // The at-expression context, kept as the **read-out** of the
                 // conditions this bed sits under today (burial depth, the paleo
                 // temperature seam's answer, the aridity tag's precipitation).
@@ -1075,13 +1075,13 @@ mod tests {
     fn one_mineral_unit() -> Vec<DepUnit> {
         // Subaerial / medium energy routes to a clastic class the vanilla set
         // fills, so `select` returns a member and an event is actually pushed.
-        vec![DepUnit {
-            tag: DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Medium),
-            thickness_m: 5.0,
-            unconformity: false,
-            chapter: 2,
-            species: dc_core::materials::MaterialId::SANDSTONE,
-        }]
+        vec![DepUnit::new(
+            DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Medium),
+            5.0,
+            false,
+            2,
+            dc_core::materials::MaterialId::SANDSTONE,
+        )]
     }
 
     fn ctx_over<'a>(
