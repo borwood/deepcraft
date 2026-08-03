@@ -16,6 +16,18 @@
 > a physics identity, not a taste); if the craton band proves unsustainable at the
 > chosen M, `uplift_scale` returns as its own ratification topic WITH numbers. Not
 > pre-decided. *(Mutable header; the body below is the dated derivation.)*
+>
+> **⚠ MEASURED 2026-08-02 (`2026-08-02-p2-measurement-runs.md`, § 6's runs executed):
+> the bracket M ∈ [60, 240] is LOW by ~1.6×** — measured D3(M) ≈ 0.0070·M puts the 2.63
+> target at **M ≈ 375–380**. The TARGET itself is doubly confirmed (the fixed Airy
+> decomposition independently yields 2.653 m/Myr from measured densities + uplift);
+> chain B's missing term is now measured (⟨taper⟩ = 0.80–0.83, ⟨mod⟩ ≈ 1.7,
+> supply-dominated: incision ≤ 0.3 % of D3). `uplift_scale` is NOT triggered (Airy
+> ratio 1.06–1.11, never below 1 under the fixed operator). § 4.5's pair-space
+> collapse is REFUTED at the measured point ((150,50) loses 40 % of D3 — transport is
+> a real second axis at that end). The flip conversation is blocked on three user
+> calls recorded in the runs doc § 4: the M re-pick, the pits-bar conflict (every
+> in-band rung violates hollows>10 m = 0), and the gen-time/register trade.
 
 **What this is.** The literature half of P2 (`dependency-graph.md` § 2 row P2; § 4 item 4,
 *"needs a literature pass, not an engineering one"*). It derives the **target**, brackets the
