@@ -608,10 +608,19 @@ anchors per the measure-against-the-literature rule. **→ DESIGN PASS DONE 2026
 PRODUCTS, and the primitive is general per the user's directive (a product may be a
 loose grade of the source OR a totally different material — mods may want this; engine
 admits any `MaterialId` product, provenance-keeping is vanilla's authoring; recorded in
-`material-behavior.md` § 3). U6 collapsed by U1. **FS-A (release spectrum + pass-through
-record) is the ruled first build slice — and U4 RULED 2026-08-02 (user, "I agree: 5"):
-five φ classes, the ladder's natural rungs (scree/gravel/sand/silt/clay), grain = 3 bits.
-FS-A's brief is fully unblocked (U1 + U5 + U7 + U4 all ruled).** Still open: U2, U3; and
+`material-behavior.md` § 3). U6 collapsed by U1. **FS-A ✅ SHIPPED 2026-08-03 (journal/0146,
+merge `4635056`): `EdgeProducts` on the material definition (per-mille shares, exact-sum
+by equality, compile-closed, multi-modal capable), 8 vanilla grus/saprolite tables
+literature-cited, `InvCtx::release` with a tested bit-identical vanilla collapse. On the
+shipped world: 130,426.8 m shed as 35/45/5/15 % gravel/sand/silt/clay (flag-on
+instrument; production stays flag-off). ⚠ THE GRAIN WRITER WAS WITHHELD ON SEMANTIC
+GROUNDS AND THAT IS THE RIGHT CALL PENDING RATIFICATION: the split-factor gate PASSES
+(≤1.0329×, under U5's bar) but grading a recorded bed by its own release spectrum
+answers "what would this rock shed", not "what grain IS this bed" — the slice-3 audit's
+rejected O-1 wearing a new hat. The honest writer is P10's PROPAGATED grain; the seam
+(`grain_write_seam` + `set_grain`) is marked and every unit verified GRAIN_UNSET. FS-A's
+acceptance WALK is owed (stripped upland vs distal basin; tour exemplars in the merge
+report).** Still open: U2, U3; and
 the grade/form LEGIBILITY presentation question (user, filed § Observed 2026-08-02).** **CONTINUATION SLOT:** transport
 evolution (abrasion + sorting) → the record axis → operator consumption. **Calibration is
 gated on P2** (pre-P2, no cell can carry sand — competence ceiling 0.283 vs 0.840).
@@ -2826,8 +2835,12 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **INHERITED RED ON MAIN — `dc-client` `mcp_character::tests::character_session_is_embodied_and_attenuated`
-  (filed by the geo session 2026-08-03; belongs to the BODIES thread).** Assertion
+- **🟢 RESOLVED same night — the bodies session's arc gate (`0e344ca`) caught and fixed it
+  as its defect #4 (a hand-maintained pinned tool list vs their `character_clear_look`
+  addition; full workspace 962/0 after). Exactly the batching ruling working as intended:
+  the debt was recorded at the time and collected at the arc gate.** ~~**INHERITED RED ON
+  MAIN — `dc-client` `mcp_character::tests::character_session_is_embodied_and_attenuated`
+  (filed by the geo session 2026-08-03; belongs to the BODIES thread).**~~ Assertion
   `left == right` fails at `mcp_character.rs:444`, **verified on clean main** (single-test
   run, compile line cites the main checkout — not a worktree artifact). Entered via the
   2026-08-02 `[UNGATED]` bodies-thread commits (gravity step 1 / gait work; exact culprit
