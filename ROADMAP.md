@@ -2967,6 +2967,34 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   - **F6** the content-door § 3 row's **severity rose without its status changing** — the species
     axis is now content-derived, so a custom pack gets a vanilla axis too.
 
+- **🟠 A FIXED 12 fps ALIASES A DERIVED CADENCE — the stout hitches, and it is the smallest body
+  that shows it first (user-sighted 2026-08-03 at the derived-gait walk, station 3; mechanism
+  computed from the shipped formula, journal/0148).** `ANIM_FPS = 12.0` is fixed while cadence is
+  now **derived per body**, so frames-per-cycle is no longer a constant anyone chose: at 4.5 m/s
+  the biped gets **6.97** frames/cycle (essentially 7 — near-integer, so its samples nearly repeat
+  and read stable), the longleg **7.73**, and the **stout 4.29** — shortest legs, fastest cadence,
+  fewest samples, barely above Nyquist for the fundamental. The samples drift through the cycle
+  and beat against it. **Anti-shape A-1, fourth instance this arc has retired**: 12 fps was chosen
+  when there was ONE clip at ONE cadence and "frames per cycle" was a number nobody had to think
+  about. **The user's leaning is FORFEIT and it is NOT YET A RULING** — *"probably we just forfeit
+  it… i just don't care enough"* — but the diagnosis inside it is worth keeping either way: **the
+  fault is quantizing per SECOND against a cadence that varies per BODY; quantizing per CYCLE (N
+  poses per stride) gives every body the identical stop-motion look regardless of leg turnover.**
+  ⚠ **This is the deferred taste call from the quantizer removal (journal/0133), and its stated
+  precondition — *"a body whose feet actually reach the ground"* — was met at this walk.** Owner:
+  the user; adjacent to B3's 20 Hz vs 12 fps question (`posture-gait.md` § 7 member 2).
+
+- **🟠 THE WALK LOOP HAS NO STOP CHANNEL — the user built a WALL to compensate for agent latency
+  (2026-08-03, derived-gait walk).** *"i blocked them off, by the way, because there's no way for
+  me to tell you to stop them before they reach a ledge. claude time vs realtime."* The loop's
+  premise is that Claude drives while the user observes, but **every intent commits several
+  seconds of world motion before the driver can react, and the observer has no channel at all.**
+  Evidence is a wall the user placed in the world. Costs a real station: this walk's station 2 was
+  also mis-framed (all three on one line, occluding each other) and had to be rebuilt as lanes.
+  Candidates, none designed: a **leash/tether radius**; a **duration- or distance-bounded intent**
+  (*walk 3 m then stop*); a dev **freeze-all-characters** verb. **Will bite every future bodies
+  walk identically.**
+
 - **🟠 SUBAGENTS DIE WHEN THEY BACKGROUND THEIR OWN GATE — two for two in one session
   (2026-08-02, both bodies builders).** Each implementer wrote its code, backgrounded a
   long cargo run (or armed a monitor for the build slot), ended its turn "waiting" — and
