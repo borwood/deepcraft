@@ -4475,71 +4475,96 @@ second file.
 
 ---
 
-## NEXT SESSION — written at the 2026-08-02 GEO-2 close (the geo thread's pickup; supersedes the geo FINAL block, archived to ROADMAP-history.md 2026-08-02 by status; the bodies block below remains THAT thread's)
+## NEXT SESSION — written at the 2026-08-03 GEO-3 close (the geo thread's pickup; supersedes GEO-2, archived to history; the bodies block below remains THAT thread's)
 
-**Read first:** sweeps hook (all three will be DUE — a large delta shipped) →
-`docs/dependency-graph.md` P11 row → this block → journal/0141 § 11 (ruling 3's numbers)
-→ journal/0143 (the walk + the user's field report).
+**Read first:** sweeps hook (**staleness-sweep + doc-topology are OVERDUE FULL** — held
+2026-08-03 morning by user call while bodies ran spine-audit; the delta since is enormous:
+five merges, four design audits, two rulings-heavy days) → `docs/dependency-graph.md`
+P10/P11/E4/P2 rows → this block → `docs/audits/2026-08-03-stratigraphic-correlation-design.md`
+§ picks (P-1…P-5) + `2026-08-03-e4-implicit-kernel-design.md` § 8 (U-1…U-5) →
+journal/0149 + 0150.
 
 ### The paragraph that matters
-**P11 slices 1–2 are SHIPPED, GATED AND WALKED.** Slice 2b (merge `07bd694`): CSR planes
-over `MaterialId` at **0.70× the class-grade dense cost** (p = 3.721/8 max) · ruling 6
-executed — **31.9 % of the record names a rock the deposition site's climate would have
-denied** · the salt collision closed compile-checked · all 14 golden families captured
-once with whys · **full workspace gate 929/0 by name on merged main** (batch debt
-cleared) after the user renegotiated the pregen budget (60 s → 1200 s, verbatim: *"I
-don't care whatsoever about this number as long as it doesn't take 20min"*). The walk
-(journal/0143) verdicted both stations positive; the user confirmed **the chunk-sized
-member quantization is gone to the eye** and reported **straight ~460 m member borders**
-— filed § Observed with the deep-cell tile as CANDIDATE mechanism and a grid-alignment
-check; if confirmed it is slice 3's acceptance criterion.
-
-### Rulings this session (user's words at the cited records)
-U1 — grain is an AXIS, a state on the loose form of the source identity ("option 1 it
-is"; `materials.md` forms ruling 2 addendum) · U5 — no record byte-step; grain + agent
-axis funded by the packed `DepUnit`, landed with slice 3, gated on a measured grain
-split factor ("agree on this also…") · the erosion split ("we split it now" → 13 modules,
-byte-identical, journal/0139) · scratch-world framing corrected (fixture re-rolls are
-engineering, not rulings — spine-audit runbook + spines.md stamped; memory pinned) ·
-the ordinal pre-commit hook greenlit and LIVE (`scripts/check_ordinals.py` +
-`.git/hooks/pre-commit`) · scouts are LEAN (memory pinned; tour-map fingerprint offered
-below) · bodies.md released to the bodies session (doc-topology F11 stamped).
-
-### First things
-1. **Present record-terms ruling 3 (face-vs-unit)** — numbers READY in journal/0141
-   § 11; unpack per protocol, one topic.
-2. **P11 slice 3 DESIGN PASS** — near-path restructure (ruling 5) + the packed `DepUnit`
-   co-rider (U5) + U4's φ-class count + the border field report's grid-alignment check
-   (cheap, first) and, if confirmed, the straight-border acceptance criterion.
-3. **P2 measurement runs** — slot is free; plan in the P2 audit; then the calibration
-   flag flip is a USER ratification (world changes → walk).
-4. **FS-A** is startable (re-shaped under U1: emit loose source-identity + grain state,
-   never ladder ids); its proposal carries U7 + the spectrum-shape sub-pick (user-owned).
-   Grep-confirm U6's collapse under U1/C4 before relaying anything as open.
-
-### This session's numbered artifacts
-Journals **0136** (renumbered), **0138, 0139, 0141, 0143** · corrections **#88–91, #95**
-(#88/#89 renumbered from colliding #85/#86; #95 renumbered TWICE at commit time — the
-ordinal guard's first live catches, same day it shipped: it rejected #92, then #93, both
-already held by the bodies wrap, which took #92–#94; targets stamped) · stubs **#35** (renumbered),
-**#36–38**, #25/#31 narrowed · three FULL sweep audits + the tour audit
-(`docs/audits/2026-08-02-*`) · U1/U5 recorded in `materials.md` + the P10 header ·
-`things-that-will-happen.md` fed (the provenance flat).
+Five things shipped and one pivoted. **P11 slice 3** (journal/0145, `cd1058a`): per-column
+record membership + packed `DepUnit` L-8, mover IN the key on M0's 1.0308×, accessor layer
+throughout. **FS-A** (journal/0146, `4635056`): release spectra as pack-authored edge
+products, 8 literature-cited tables — **the grain writer withheld on semantic grounds and
+the user RATIFIED the withholding in conversation** ("the build agent made the right call —
+propagated grain sounds like the actual source"); propagated grain is P10's live next
+build. **P2 measurement runs** (`2026-08-02-p2-measurement-runs.md`): target doubly
+confirmed (2.63 ↔ 2.653 from the world's own Airy), bracket low 1.6× (target M ≈ 375–380),
+three flip blockers named. **E4 design + E4-1** (journal/0150, `62b0449`): the 38-min
+gen-time is CFL tax; kernel extracted byte-identically to `dc-core::field` (**zero goldens
+moved**, stubs #30 discharged). **And the pivot** (journal/0149): slice 3's membership
+dither was walked, REJECTED live, and superseded-as-plan the same day by the user's
+stratigraphic-correlation sketch + smoothness principle — *"there are no deep cells"*;
+deep cells are boreholes; smooth interpolation is the unearned default and sharpness must
+model an honest process. The correlation design pass is DONE (R-C shared-clock rule; mass
+argument HOLDS; read-side, so deep goldens stay STILL through the build).
 
 ### Gate state
-Main green: full trio on merged main at `0f0a75c` (**929 passed / 0 failed, 92
-binaries**, `pregen_time_vs_extent` ok by name under the 1200 s budget). Code landed
-after that gate: the tour probe only — its 2 gate tests + fmt + crate clippy verified by
-name at wrap. Everything else since is docs. **No expected-red list anymore — a red
-anywhere is a real defect.**
+**Main is FULLY GREEN at `090f778`+: the wrap trio ran on merged main after `cargo clean
+-p` of all six touched crates — fmt 0 · clippy 0 · `test --workspace --no-fail-fast`
+= 984 passed / 0 failed / 94 suites, exit 0.** All recorded batch debt (FS-A's merge,
+the recorder M-1 comment fix, E4-1's merge) cleared by this gate. No expected-red list —
+a red anywhere is a real defect.
+
+### First things
+1. **Correlation picks, one at a time (P-1 first — it carries the two-user-rulings
+   tension:** 2026-07-19 "dress every contact with noise/dither" vs 2026-08-03 "utterly
+   smooth default"; mixtures vs octaves-cut vs the M-C hybrid). Then P-2 (inverted
+   acceptance criterion) · P-3 (R-C vs R-C′) · P-4 (onlap feather at the record edge —
+   the 0149 wall becomes a wedge) · P-5 (formal supersession ratification). Then the
+   correlation build (read-side; **deep goldens must be bit-still** — the strongest
+   tripwire; M0′ fill-cost measurement first).
+2. **E4-2** (implicit scheme, non-default, convergence study; picks U-1…U-5 —
+   **NEEDS RATIFICATION outstanding: the `dc-core::field` venue + its rayon rider**).
+   E4-3 flips adoption WITH the P2 re-pick so goldens move once; the D3(M) ladder
+   re-runs under the new integrator first.
+3. **P10 propagated grain** — FS-A's ratified writer-owner; seam marked
+   (`grain_write_seam` + `set_grain`); U2/U3 still open; split-factor gate binds here.
+4. **P2 threads 2–3** (M re-pick · gen-time/register — mostly dissolved by E4) and the
+   **pit safari** (walk-first ruled; cheap post-E4-3; census on the same world if wrong).
+5. **The overdue sweeps** (staleness + doc-topology, FULL).
+
+### Rulings this session (user's words at the records)
+Record-terms ruling 3 ("Face", + the directional-provenance rationale) · U4 ("I agree:
+5") · P-2 ("if it's cheap to replace 8, may as well start at 8") · P-3 + march order
+("whatever's easiest… eyes on the prize") · U7 ("R2 it is — authored edges", + the
+mods-generality rider) · pits approach ("go right to [the walk]… census on same world") →
+deferred ("no time to block on 40min gen") · E4 ("e4 yes. queue right away") · dispatch
+autonomy ("you don't have to wait on my word for a dispatch that has all of its calls
+made" — memory pinned) · accessor calls endorsed repo-wide (memory pinned) · the
+boreholes sketch + smoothness principle (memory pinned) · FS-A's withheld writer
+ratified. Relayed from bodies: gravity is a world constant (their filing; geo checked:
+zero worldgen passes consume g today).
+
+### This session's numbered artifacts
+Journals **0145, 0146, 0149, 0150** (0144→0145 and 0147/0148→0149/0150 renumbers — the
+ordinal guard + wrap caught both collisions; bodies holds 0144/0147/0148) · audits
+**2026-08-02-p11-slice3-design** (+ build banner), **2026-08-02-p2-measurement-runs**,
+**2026-08-03-e4-implicit-kernel-design**, **2026-08-03-stratigraphic-correlation-design**
+· assets 0149-interfinger-* (pose recorded) · memories: accessor-calls-preferred,
+dispatch-without-asking-when-calls-made, smoothness-default-sharpness-earned · no new
+corrections entries (all falsifications stamped at their sites: the 0141 § 11 pointer,
+the collapse.rs:1459 citation, the underived 1 m hollow bound, the M-2 recorder comments,
+the P2 bracket).
+
+### Owed, small
+File-size extraction proposals (hook-flagged on touch, none done mid-slice):
+`material-behavior.md` cold half · `session-workflow/SKILL.md` liveness ·
+`walk_tour_0115.rs` + `weather_inventory.rs` + `recorder.rs` (2.0×) + `erosion/mod.rs`
+by-concern splits · ROADMAP itself (1.9× — archive resolved § Observed entries next
+touch). E4-1b (`sat.rs` conversion) filed with a loud marker, no build order. The FS-A
+walk waits for propagated grain (nothing visible until a writer exists).
 
 ### Machine state at close
-No agents of THIS session running; all its worktrees merged and removed. **One LOCKED
-worktree is NOT ours** (`agent-ac31ad030ca62b005` at `6a319be`) — presumed the bodies
-session's; verify ownership there before pruning. Working tree clean, pushed. No
-cargo/rustc/dc-client; port 7777 free; build lock free (hook-managed). A parallel USER
-session shares the checkout — stage explicit paths, never `add -A`; ordinal collisions
-now fail at commit time via the pre-commit guard.
+No agents running; ALL geo worktrees merged, removed, branches deleted. Working tree
+clean, **pushed** (`git status -sb` clean of ahead-markers at close). No cargo/rustc/
+dc-client; port 7777 free; build lock hook-managed. A parallel USER session (bodies)
+shares the checkout — explicit paths, never `add -A`; the ordinal pre-commit guard is
+live and caught both of today's collisions. Gate logs: `%TEMP%\wrap-trio.log`
+(UTF-16; the totals are quoted above and in the wrap commits).
 
 ---
 
