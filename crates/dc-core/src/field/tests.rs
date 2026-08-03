@@ -119,14 +119,12 @@ fn the_flux_form_gather_is_the_embedded_gather_to_the_bit() {
     for rate in [0.05, 0.7, 5.4] {
         let plan = kernel.plan_unbounded_legacy(rate, n, &coeff);
         let (scale, net) = run_step(&kernel, &plan, w, &potential, &state, &coeff, false);
-        for i in 0..n {
+        for (i, nd) in net.iter().enumerate() {
             let reference = reference_net_cell(i, w, &potential, &scale, rate, &coeff);
             assert_eq!(
-                net[i].to_bits(),
+                nd.to_bits(),
                 reference.to_bits(),
-                "rate {rate}, cell {i}: flux-form net {} != embedded gather {}",
-                net[i],
-                reference
+                "rate {rate}, cell {i}: flux-form net {nd} != embedded gather {reference}"
             );
         }
     }
@@ -186,12 +184,10 @@ fn the_donor_limiter_keeps_state_non_negative() {
     for rate in [0.12, 5.4, 40.0] {
         let plan = kernel.plan(rate, n, &coeff);
         let (_, net) = run_step(&kernel, &plan, w, &potential, &state, &coeff, false);
-        for i in 0..n {
+        for (i, (s, nd)) in state.iter().zip(net.iter()).enumerate() {
             assert!(
-                state[i] + net[i] >= -1e-9,
-                "rate {rate}, cell {i}: state {} + net {} went negative",
-                state[i],
-                net[i]
+                *s + *nd >= -1e-9,
+                "rate {rate}, cell {i}: state {s} + net {nd} went negative"
             );
         }
     }
