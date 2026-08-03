@@ -2761,11 +2761,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   presence produces ruler-straight borders at cell boundaries; this is exactly what
   P11 slice 3's per-column cell-membership dither is sequenced to dissolve (ruling 5,
   "the ~460 m near tile dies here"). The cheap discriminating check when someone is at
-  a border: is the line aligned to the deep-cell grid pitch? If confirmed, this
-  observation RESOLVES into slice 3's existing scope and adds an acceptance criterion
-  to it: the mudstone-mix border at a cell edge must stop being a straight line. If the
-  line is NOT grid-aligned, this is something else (geology-set region border?) and
-  needs its own diagnosis.
+  a border: is the line aligned to the deep-cell grid pitch? **→ CONFIRMED AT DESK
+  2026-08-02 (geo-2 session), no probe needed:** `collapse.rs:1459` — every chunk's
+  strata parent is `cell_of_voxel(chunk-center)` and there is ONE `ColumnRec` per chunk
+  (`column_record`, cached by chunk coords), so the recorded mix is uniform per chunk and
+  a member-presence border can ONLY fall on a deep-cell grid line, quantized to 28.8 m
+  chunk edges — ruler-straight at ~460 m pitch, exactly as observed. Nothing else in the
+  near path moves recorded-mix composition (the veneer dither selects among members a
+  span already holds; it cannot add or remove mudstone). **This observation RESOLVES
+  into slice 3's scope and its acceptance criterion** — the mudstone-mix border at a
+  cell edge must stop being a straight line; the slice-3 design pass (in flight same
+  day) drafts the criterion + its instrument.
 
 - **THE OCTAVES MEMBER FIELD IS INVISIBLE AT EVERY SURFACE OF THE SHIPPED WORLD — the
   U3-dominance verdict is now a DESK question** (2026-08-02, the P11 walk's tour map —
