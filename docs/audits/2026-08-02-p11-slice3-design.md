@@ -15,6 +15,17 @@ flagged as such.
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input /
 needs the user's eye).
 
+> **P-2 RULED 2026-08-02 (user): L-8.** *"I theoretically agree with L-8… if it's cheap
+> to replace 8, may as well start at 8."* The packed `DepUnit` is **8 B/unit** (u32
+> bitfield + u32 fixed-point thickness; record 116.31 → 58.15 MiB). The ruling's load-
+> bearing premise is § 2.2's accessor conversion — every read goes through accessors, so
+> a future widening is accessors + one golden re-capture, not ~141 raw sites — and the
+> user endorsed that as a repo-wide pattern: *"I'm glad we're converting to accessor
+> calls right now and I hope we follow that pattern where possible in this repo."*
+> Recorded expectation, not a commitment: an upgrade may come *"one day, who knows how
+> soon"* — eco/civ storage (ON HOLD domain) is the named unknown; the ruling-3 hint byte
+> stays UNFORECLOSED as exactly such a widening. L-12 was declined, not refuted.
+>
 > **U4 RULED 2026-08-02 (user, "I agree: 5"):** five φ classes — the loose ladder's
 > natural rungs (scree / gravel / sand / silt / clay). Grain reserves **3 bits** in the
 > packed u32 (§ 2.2's U4=5 row); widening to 8 later is a semantic re-capture inside the

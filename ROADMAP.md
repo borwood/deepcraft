@@ -480,9 +480,12 @@ two).
    picks P-1…P-8 pending in its § 9).** Load-bearing findings: the three NEAREST reads are
    MASS-COUPLED (record + regolith `H` + ledger bedrock slot must move as one bundle per
    column or Law 3 leaks at every frontier — F2); blast radius re-measured **14 files /
-   ~71 sites** (the gated tour probe post-dates the old count); the packed layout closes
-   at **8 B/unit** (L-8 −58.15 MiB) with the ruling-3 hint byte only fitting L-12
-   (−29.08 MiB); the grain split-factor gate structurally cannot bind at slice 3 (grain
+   ~71 sites** (the gated tour probe post-dates the old count); **the layout is RULED
+   2026-08-02 (user, P-2): L-8, 8 B/unit, record 116.31 → 58.15 MiB** — premised on the
+   accessor conversion making future widening cheap (user endorsed accessors as the
+   repo-wide pattern; the hint byte stays unforeclosed as exactly such a widening, with
+   eco/civ-era axes the named who-knows-how-soon unknown); **U4 RULED same day: 5 φ
+   classes** (grain = 3 bits); the grain split-factor gate structurally cannot bind at slice 3 (grain
    is uniform until FS-A writes real state — the gate transfers to FS-A's writers; the
    measurable-today analogue is the MOVER split, owed before the mover joins the merge
    key). ⚠ F6: the near dither inherits the far tier's cell-wide-blend semantics the user
