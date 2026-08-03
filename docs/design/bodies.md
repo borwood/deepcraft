@@ -475,6 +475,46 @@ is upstream of `posture-gait.md` § 7 member 1, which is where it surfaced.
   Declared overrides derived; the derivation itself (from segment geometry, and what "plausible"
   means for a joint nobody has seen) is **owed a design pass** and is not settled here.
 
+### Fold sense — DECIDED 2026-08-02 (user): a SETTING on the joint, and unspecified means NO PREFERENCE
+
+**Geometry cannot supply it and we stop trying.** The derivation gives a joint's **magnitude**
+(how far it folds before the child chain enters an ancestor's box — 155° for the biped knee,
+in the published band); it cannot give the **sign**, because **our bodies have no front**.
+Every shipped plan is mirror-symmetric in Z as well as X, so a knee and an elbow are *the same
+object* to the derivation. Real anatomy carries the arrow in its asymmetry — a knee folds away
+from travel *because the foot extends forward of the ankle* — and our feet are centred boxes
+with no toe and no heel.
+
+- **The bend is DECLARED, at any level of specificity, by any author** (user): *"hand authored,
+  mcp authored, evolution authored can all config the bend of a knee at different levels of
+  specificity."* One vocabulary, three minting clocks — the same shape as postures and the bake.
+- **Unspecified is not "unlimited" and not "assume a hinge": the joint HONESTLY HAS NO
+  PREFERENCE** (user's words). It keeps the derived magnitude bound in **both** directions and
+  declares no sign — the honest-absence pattern this corpus uses everywhere (`Undetermined{reason}`,
+  the IK's honest float, `has_contents: false` meaning *no record*, never *air*). A consequence
+  to state plainly: **derived-only limits catch a backwards knee ZERO times**, and that is
+  correct — an outer bound with no sign cannot reject one. Declaring is what makes the walk
+  clip's 28.65° hyperextension catchable.
+- **Express it in SEGMENT-LOCAL axes plus a sign, never relative to a body forward.** Strictly
+  more general and it is what homes the ask: *"the fore and aft limbs of horses and lizards and
+  dolphins and humans."* A lizard's sprawled knee folds about its own local axis whatever the
+  limb's orientation to the trunk; a body-forward-relative encoding would need a reference frame
+  that sprawl and flippers immediately break.
+- **Feet make the sign derivable LATER, which demotes the declaration to a default.** Once a
+  foot has a toe and a heel the arrow is in the geometry. **Add feet to the testing models**
+  (user); for the deep-sim pack, **feet exist if they evolved** — the engine only ever needs
+  the *support declaration* (`sole`, already B0's role vocabulary), never a named body part.
+
+**⚠ AND A GAP THIS OPENS, verified at source 2026-08-02: BODY-LOCAL FORWARD IS AN UNSTATED
+CONVENTION.** `BodyPlan` declares `name, doc, segments, modes, actions` — **no forward axis**.
+World-space forward exists (move intent, and the trunk chasing it), but the plan's local **−Z
+is forward purely by inherited camera convention**, undeclared and uncontradictable. User:
+*"clearly we should just know what way a body's forward is."* **A-1 in its usual costume** —
+one body orientation, so a convention became a definition. Its consumers are not hypothetical:
+**B5** resolves whether a hit landed on the front or the back, asymmetric anatomy needs a side
+to be asymmetric *about*, and the fold-sense derivation above needs it the moment feet gain
+toes. Filed as its own item; not folded into B7 silently.
+
 **Sequencing:** upstream of the gait member's build, and it wants the segment-identity window
 while it is still cheap — a range on `SegmentDef` is a recompile today and a **wire migration**
 once B3 makes the pose a versioned sim asset, the same deadline `stubs.md` #34 rides.
