@@ -155,6 +155,16 @@ test = true
 name = "species_sparsity_probe"
 test = true
 
+# FS-A — release spectra as pack-authored edge products. The gated half is the
+# Law-3 itemisation (a cell's grade split must re-sum to its own recorded band —
+# per-cell arithmetic, wrong at every world size if wrong at any) and the
+# declared-coverage claim (only authored grades are inhabited). The production
+# per-grade magnitudes and the tour-map exemplars are main's job. Runs at
+# Extent::Small.
+[[example]]
+name = "release_spectrum_probe"
+test = true
+
 # The appearance tour for the three stacked, never-walked changes (octaves member
 # stepping, member diversity in the deep record, provenance over site climate).
 # The STATIONS are recommendations judged by the eye and are deliberately not

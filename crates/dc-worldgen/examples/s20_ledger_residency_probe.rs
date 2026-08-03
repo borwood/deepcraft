@@ -67,7 +67,8 @@ use dc_worldgen::deeptime::inventory::{
 };
 use dc_worldgen::deeptime::{
     DeepConfig, DeepStrata, WEATHERING_AGENTS, WeatherInputs, agent_share, build_field_cfg,
-    empty_accumulator, finalize_ledgers, production_config, weather_bedrock_epoch,
+    empty_accumulator, finalize_ledgers, grain_write_seam, production_config,
+    weather_bedrock_epoch,
 };
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
@@ -990,7 +991,7 @@ fn narrowing_audit() {
         let mut acc = empty_accumulator();
         for e in 0..firings {
             let chapter = (e % u32::from(chapters)) as u8;
-            weather_bedrock_epoch(&mut acc, chapter, &inp, 1.0);
+            weather_bedrock_epoch(&mut acc, chapter, &inp, 1.0, grain_write_seam);
         }
         let in_accumulator: FracM = acc
             .facts_for(0)
@@ -1271,6 +1272,7 @@ mod gate {
                     frost: 2.0,
                 },
                 1.0,
+                grain_write_seam,
             );
         }
         let in_accumulator: FracM = acc

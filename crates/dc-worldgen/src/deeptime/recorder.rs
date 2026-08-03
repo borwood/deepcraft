@@ -170,6 +170,11 @@ pub struct DepositCtx<'a> {
     ///   the destination member is a fact about the site and not about the parent.
     /// - **FS-A** retires it for **weathered** material: release spectra say what
     ///   a parent rock sheds, so the product's identity is derived, not drawn.
+    ///   *(Status 2026-08-02: FS-A's first slice shipped the declared spectra +
+    ///   the inventory-weathering emission — `dc-core::materials::release`,
+    ///   `InvCtx::release` — but this draw still runs for weathered deposits;
+    ///   the record-path retirement is the wire-up behind P11 slice 3's packed
+    ///   `DepUnit`, with the grain write.)*
     ///
     /// Until then a class still has to be filled, and this is the tie-break inside
     /// the fitness distribution. **Chapter-grained, not epoch-grained**, and the

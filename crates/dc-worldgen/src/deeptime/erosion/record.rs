@@ -253,6 +253,9 @@ impl Erosion {
             //
             // FS-A retires case 1's weathered half (release spectra say what a
             // parent rock sheds); what survives after that is primary formation.
+            // (Status 2026-08-02: the spectra exist and the inventory-weathering
+            // pass emits through them — this record-path draw is NOT yet retired;
+            // that wire-up rides behind P11 slice 3's packed DepUnit.)
             let temp_c = f64::from(climate::air_temp_c(lat[i / w], r[i] + h[i]));
             let draw_class = match carried {
                 Some(m) => match lithology::deposited_transform(m) {

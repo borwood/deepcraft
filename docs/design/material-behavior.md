@@ -246,6 +246,24 @@ authored-table shape is also what keeps **bimodal release expressible** (granite
 coarse + fines) without forcing the bimodality question (P10's U3) — recorded here so
 that coupling is found once, not four times.
 
+**IN TREE since 2026-08-02 (FS-A).** The primitive is
+`dc-core/src/materials/release.rs` (`EdgeProducts`/`ReleaseProduct`/`GrainGrade`,
+integer per-mille shares so "shares sum to 1 exactly" is checkable equality;
+compile-closed product vocabulary; `validate_release_registry` in the gate) — in
+`dc-core` because `materials.md` DECIDED 2026-07-22 makes the declaration the one
+authority both sims consult, which also forced `InvForm` to move to
+`dc-core::materials::form` (re-exported from `deeptime::inventory`, no call-site
+churn). The vanilla spectra are `release_vanilla.rs` — the 8 deep source rocks,
+authored against the literature (grus band, basalt-saprolite clay fraction,
+arenite framework definition; per-table citations + confidence in the doc
+comments), provenance-keeping per U1, granite and conglomerate bimodal. First
+consumer: the inventory-weathering pass emits `Structure→Loose` through
+`InvCtx::release`; vanilla tables collapse to one bit-identical edge (facts and
+goldens unmoved), and the grade split feeds `weather_inventory::grain_write_seam`
+— **inert until P11 slice 3's packed `DepUnit`**, whose wire-up commit replaces
+exactly that seam. Probe: `examples/release_spectrum_probe.rs` (gated,
+itemisation == band).
+
 ## 4. Agents — rate-term contributors on edges (content)
 
 An **agent** is a *named rate-term bound to an edge*:

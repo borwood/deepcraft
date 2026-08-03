@@ -45,6 +45,7 @@ pub use materials::contents::{
     ContentsError, SOLID_EIGHTHS, StructureShape, VOXEL_EIGHTHS, VoxelContents,
 };
 pub use materials::extract::{ExtractionYield, extraction_sequence};
+pub use materials::form::{FORM_COUNT, InvForm};
 pub use materials::geology::{
     FormationContext, FormationWindow, GeoClass, GeoHabit, GeoMemberDef, GeoMemberIdx,
     GeologyError, GeologySet, GeologySetBuilder,
@@ -55,6 +56,10 @@ pub use materials::intern::{
 };
 pub use materials::lod::{
     DominantClassDebrisAware, MixtureDownsampleRule, derive_material_lod_chunk,
+};
+pub use materials::release::{
+    EdgeProducts, GRAIN_GRADE_COUNT, GrainGrade, ReleaseError, ReleaseProduct, SHARE_DENOMINATOR,
+    split_quantities, validate_edge_products, validate_release_registry,
 };
 pub use materials::stratify::{
     Band, STRATIFY_FULL_TIME, STRATIFY_HALF_TIME, StratifiedView, stratify,
