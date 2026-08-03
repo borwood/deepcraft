@@ -754,3 +754,47 @@ looked right. **The prescription split in two along the ownership line:** `rate 
 engine's (authored, RATE) and the stability sub-division is the *kernel's* (derived, E4). Both
 now sit four lines apart in `Erosion::diffuse`, which is where E4 will lift the second one
 from.
+
+## Gravity is a WORLD constant, and it defaults to Earth — DECIDED 2026-08-02 (user)
+
+**`25.0 m/s²` was never chosen.** Surfaced when the gait bake's build found the design pass had
+derived its whole Froude table at `9.81` while `CharacterConfig::gravity_m_s2` reads `25.0`
+(`dc-api/src/character.rs:64`). User: *"Nobody ever consciously chose 25 m/s². This is the first
+I'm hearing of it because it's a bootstrapping artifact. Better approach for us is to make
+gravity a world-defined constant, default it to earth, and set us up to allow worlds with
+different gravities in the future."*
+
+**Existence-is-not-standing, applied to a physical constant.** The test — *if this did not exist,
+would we build it today, in this shape?* — answers no. Unratified bring-up content has no
+standing at any magnitude, and a constant is content.
+
+- **Gravity is a property of the WORLD**, not of a character config or a renderer module. It
+  becomes a world-defined value with an **Earth default (9.81 m/s²)**, read by every consumer
+  rather than restated by each.
+- **Per-world gravity is the point, not a someday.** The seam is the value's *location*; the
+  loader is **E7's per-world manifest**, the same consumer `CadenceTable` waits on. Declare the
+  field with the Earth default now; the manifest wires it when it lands. Building the loader
+  ahead of its caller is what seam-first forbids.
+
+**⚠ IT IS TWO AUTHORITIES TODAY, not one — found in the same sweep.** `CharacterConfig::gravity_m_s2
+= 25.0` (`dc-api/src/character.rs:64`) and `const GRAVITY_M_S2: f64 = 25.0`
+(`dc-client/src/player.rs:25`) are **independent hardcoded copies** that agree only by coincidence
+of hand-typing, and they integrate the player and every character separately (`player.rs:116,119`
+vs `character.rs:267,283`). **Fourth instance of the two-authorities defect recorded in one day**
+(`root_bob_m` — corrections #80/#93; the gaze — #94; trunk facing — `bodies.md` § the sim owns the
+target). Unifying them is part of this ruling, not a follow-up.
+
+**What changes in game, stated so the switch is a conscious act this time.**
+- **Jump apex does NOT change.** The jump is *height*-parameterised — `jump_height_m =
+  jump_clearance_voxels × voxel_size_m`, and the launch velocity is `√(2·g·h)`, so the apex is
+  exactly `h` at any gravity. That is a genuinely good piece of bring-up design and it survives.
+- **Everything gets floatier in TIME.** At `9.81` versus `25.0`, jump arcs and falls take
+  **√(25/9.81) ≈ 1.6×** longer. Voxel games often run high gravity for snappy jumps, which is the
+  likeliest unexamined origin of `25`. **This is the one real feel change and it is a taste call
+  the user now owns rather than inherits.**
+- **The gait table becomes CORRECT rather than needing correction.** The design pass derived at
+  `9.81`; at an Earth default its Froude figures (biped **2.35**, stout 4.69, longleg 2.02 at the
+  4.5 m/s top speed) stand as published, and user call #1's ruling — that top speed is a *run* —
+  is unaffected. **The build's structural finding survives and is the durable half: gravity must
+  be an ARGUMENT to the bake, never a constant inside it**, because per-world gravity is now
+  explicitly wanted.
