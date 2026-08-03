@@ -476,6 +476,18 @@ two).
 3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
    `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
    13-file break), landing on the member-grade record. The ~460 m near tile dies here.
+   **DESIGN PASS DONE 2026-08-02 (`docs/audits/2026-08-02-p11-slice3-design.md`; 8 user
+   picks P-1…P-8 pending in its § 9).** Load-bearing findings: the three NEAREST reads are
+   MASS-COUPLED (record + regolith `H` + ledger bedrock slot must move as one bundle per
+   column or Law 3 leaks at every frontier — F2); blast radius re-measured **14 files /
+   ~71 sites** (the gated tour probe post-dates the old count); the packed layout closes
+   at **8 B/unit** (L-8 −58.15 MiB) with the ruling-3 hint byte only fitting L-12
+   (−29.08 MiB); the grain split-factor gate structurally cannot bind at slice 3 (grain
+   is uniform until FS-A writes real state — the gate transfers to FS-A's writers; the
+   measurable-today analogue is the MOVER split, owed before the mover joins the merge
+   key). ⚠ F6: the near dither inherits the far tier's cell-wide-blend semantics the user
+   rejected by eye — not a contradiction (ruling 5 folded MM-3 in knowingly) but the
+   acceptance walk must verdict it knowing borders become ~460 m gradational interfingering.
    **CO-RIDER, U5 RULED 2026-08-02 (user): the packed `DepUnit`** — fixed-point
    thickness + bitfield axes, funding grain (3 bits) AND the agent axis (stub #25) from
    reclaimed padding/over-precision at a net residency REDUCTION (~16 → ~8–12 B/unit);
@@ -2762,9 +2774,11 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   P11 slice 3's per-column cell-membership dither is sequenced to dissolve (ruling 5,
   "the ~460 m near tile dies here"). The cheap discriminating check when someone is at
   a border: is the line aligned to the deep-cell grid pitch? **→ CONFIRMED AT DESK
-  2026-08-02 (geo-2 session), no probe needed:** `collapse.rs:1459` — every chunk's
-  strata parent is `cell_of_voxel(chunk-center)` and there is ONE `ColumnRec` per chunk
-  (`column_record`, cached by chunk coords), so the recorded mix is uniform per chunk and
+  2026-08-02 (geo-2 session), no probe needed** *(citation corrected same day by the
+  slice-3 design pass, F1: the record read is `record_at_voxel` at `collapse.rs:1483-1487`,
+  resolved NEAREST by `field.rs:836-844`; `:1459` is the provenance half of the same
+  chunk-centre addressing)*: one `run_strata` per chunk skins all 1024 columns from the
+  chunk-centre's nearest deep cell, so the recorded mix is uniform per chunk and
   a member-presence border can ONLY fall on a deep-cell grid line, quantized to 28.8 m
   chunk edges — ruler-straight at ~460 m pitch, exactly as observed. Nothing else in the
   near path moves recorded-mix composition (the veneer dither selects among members a
