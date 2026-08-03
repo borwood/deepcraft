@@ -1,20 +1,44 @@
-//! **The hillslope-creep operator kernel** — the per-cell *gather* functions
-//! (each cell sums its own in/out edge fluxes from a frozen surface and a frozen
-//! per-cell limiter, so scalar and parallel agree to the bit), the monotonicity
-//! bound they must respect, the single explicit step that drives them over the
-//! grid, and the species-conservation audit of that step.
+//! **The content side of the hillslope-creep kernel call** — creep's declared
+//! coefficient field ([`CreepCoeff`] over [`eff_diff`]), the per-sub-step
+//! orchestration ([`Erosion::diffuse_step`]), the species split that rides the
+//! same edge fluxes, and the species-conservation audit.
 //!
-//! **Which side of the engine/pack partition this sits on** (north star): this
-//! is the **engine-shaped primitive embedded inside a content pass** — spines
-//! § S-10's field-solver gather. Extracting it is the deferred E4 arc; the rest
-//! of `super` is pass/content logic on the plugin side, and this is the part
-//! that is not.
+//! **The operator itself is EXTRACTED (E4-1, 2026-08-03).** The gather
+//! arithmetic, the monotonicity bound and the sub-cycle derivation this file
+//! used to embed live in [`dc_core::field`] now — `FieldKernel`, spines
+//! § S-10's first engine field-solver primitive (**⚠ NEEDS RATIFICATION —
+//! venue**, audit pick U-3: `docs/audits/2026-08-03-e4-implicit-kernel-design.md`
+//! § 3.5). What remains here is exactly what the partition assigns to content:
+//! the coefficient's composition (biotic × lithology, journal/0029), what to do
+//! with the fluxes (the species split, the tallies), and the audits.
 
 use rayon::prelude::*;
+
+use dc_core::field::{CoeffField, ExplicitPlan, FieldKernel, Stencil, StepScratch};
 
 use super::super::grid::{DeepConfig, DeepGrid};
 use super::super::species::{SpeciesLayout, csr_rows_mut, split_row_into};
 use super::{Erosion, NEIGH4, coords_of, in_grid};
+
+/// The kernel creep declares against: explicit scheme, 4-neighbour stencil —
+/// today's operator, byte for byte, behind the E4 API.
+pub(super) const CREEP_KERNEL: FieldKernel = FieldKernel::explicit(Stencil::FourNeighbour);
+
+/// **Creep's coefficient field, as the pass declares it** — the E4 `CoeffField`
+/// wrapper over [`eff_diff`]. The kernel evaluates it at its own sub-divided
+/// rate; the composition (rate × biotic × lithology, in that pinned order) is
+/// content physics and stays here.
+pub(super) struct CreepCoeff<'a> {
+    pub resist: &'a [f32],
+    pub sus: &'a [f64],
+}
+
+impl CoeffField for CreepCoeff<'_> {
+    #[inline]
+    fn at(&self, rate: f64, i: usize) -> f64 {
+        eff_diff(rate, self.resist, self.sus, i)
+    }
+}
 
 /// A per-cell erodibility multiplier, or the exact identity `1.0` when the
 /// plane is empty (coupling off). `x * 1.0` is bit-exact for every finite `x`,
@@ -52,108 +76,22 @@ pub(super) fn eff_diff(diffusion: f64, resist: &[f32], sus: &[f64], i: usize) ->
     }
 }
 
-/// Net hillslope-diffusion thickness change at cell `i` (metres), gathered from
-/// its four edges on the frozen surface with the frozen per-cell limiter
-/// `scale`. Outflux edges (i higher) use `scale[i]` and the donor `i`'s effective
-/// diffusivity; influx edges (neighbour higher) use the donor `j`'s `scale[j]`
-/// and `j`'s effective diffusivity — exactly the flux the scatter form moved, so
-/// the two conserve mass identically. Summation order is fixed (`NEIGH4`).
-#[inline]
-pub(super) fn diffuse_net_cell(
-    i: usize,
-    w: usize,
-    surf: &[f64],
-    scale: &[f64],
-    diffusion: f64,
-    resist: &[f32],
-    sus: &[f64],
-) -> f64 {
-    let (gx, gy) = coords_of(i, w);
-    let si = surf[i];
-    let mut net = 0.0;
-    for (dx, dy) in NEIGH4 {
-        if let Some(j) = in_grid(gx + dx, gy + dy, w) {
-            let d = si - surf[j];
-            if d > 0.0 {
-                net -= eff_diff(diffusion, resist, sus, i) * d * scale[i];
-            } else if d < 0.0 {
-                net += eff_diff(diffusion, resist, sus, j) * (-d) * scale[j];
-            }
-        }
-    }
-    net
-}
-
-/// **The per-edge coefficient at which an explicit 4-neighbour Laplacian stops
-/// oscillating** — the bound the hillslope-transport operator sub-cycles to
-/// respect (journal/0122).
-///
-/// # Where 1/8 comes from — derived, never tuned
-///
-/// Write one epoch of hillslope diffusion on the frozen surface as
-/// `h_i ← h_i + a·Σ_j (s_j − s_i)` over the four cardinal neighbours, with `a`
-/// the per-edge coefficient ([`eff_diff`]). The von Neumann amplification factor
-/// is `g(k) = 1 − 2a(2 − cos k_x − cos k_y)`, so:
-///
-/// - `a ≤ 1/4` ⇒ `g ≥ −1`: **stable**, but the grid-scale (Nyquist) mode is
-///   reflected with its amplitude intact — `g(π,π) = −1` is a period-2
-///   flip-flop that never decays.
-/// - `a ≤ 1/8` ⇒ `g ≥ 0`: **monotone**. No mode may change sign, so a
-///   checkerboard cannot survive a step, let alone be created by one.
-///
-/// **What the shipped world actually sits at, since the config rate is not the
-/// whole story.** `diffusion = 0.12` is 4 % *inside* this bound — but [`eff_diff`]
-/// folds in the lithology's creep susceptibility, and peat is the softest thing in
-/// the world, so the shipped grid's **peak effective coefficient is 0.261**: 2.1×
-/// past. Under the calibration it is **12.60**, or **100.8× past**. That gap is the
-/// whole defect: a 2.1× excursion on a handful of soft cells carrying 4.6 m of cover
-/// produces a wobble the surface absorbs (shipped `conc(h)` ACF −0.10, no
-/// checkerboard), while a 100.8× excursion everywhere carrying 41 m produces
-/// −0.82 and a 40 m grid-scale residual.
-///
-/// *The two facts journal/0116 could not reconcile — "saturation alone is not
-/// sufficient" and "the limiter is deaf to the step" — are the same fact read from
-/// either side of this constant.* The coefficient decides that the grid-scale mode
-/// flips sign; the limiter decides how far, by capping the export at the cell's
-/// inventory, which is what turns a divergence into a finite period-2 limit cycle.
-///
-/// **This is why journal/0116's 4× time-step refinement read as a null.** It took
-/// the coefficient 5.4 → 1.35, which is still **11× past the bound**; the
-/// experiment was sound and the refinement was an order of magnitude too small to
-/// reach the register it was testing. See `corrections.md` #72.
-pub const CREEP_MAX_EDGE_COEFF: f64 = 0.125;
-
-/// Per-cell diffusion outflux sum → limiter scale on the frozen surface (using
-/// the donor cell's biotic-reduced effective diffusivity).
-#[inline]
-pub(super) fn diffuse_scale_cell(
-    i: usize,
-    w: usize,
-    surf: &[f64],
-    h: f64,
-    diffusion: f64,
-    resist: &[f32],
-    sus: &[f64],
-) -> f64 {
-    let (gx, gy) = coords_of(i, w);
-    let si = surf[i];
-    let mut out = 0.0;
-    for (dx, dy) in NEIGH4 {
-        if let Some(j) = in_grid(gx + dx, gy + dy, w) {
-            let d = si - surf[j];
-            if d > 0.0 {
-                out += eff_diff(diffusion, resist, sus, i) * d;
-            }
-        }
-    }
-    if out > h && out > 0.0 { h / out } else { 1.0 }
-}
+// **`diffuse_net_cell`, `diffuse_scale_cell` and `CREEP_MAX_EDGE_COEFF` LIVED
+// HERE AND ARE EXTRACTED** (E4-1, 2026-08-03). The gather arithmetic is
+// `dc_core::field::gather` (the net re-expressed as antisymmetric edge fluxes
+// + a fixed-order gather, bit-identically -- asserted at fixture scale by
+// `field/tests.rs::the_flux_form_gather_is_the_embedded_gather_to_the_bit` and
+// at world scale by the golden suite staying green); the bound, with its von
+// Neumann derivation and the journal/0116/0122 history, is
+// `dc_core::field::MONOTONE_MAX_EDGE_COEFF`, re-exported by `super` under its
+// old name `CREEP_MAX_EDGE_COEFF` for the probes and tests that report against
+// it.
 
 /// **Material-aware hillslope creep** (Movement 2b continuation (b),
 /// `material-behavior.md` § 13.2 — the **gravity / mass-wasting** member of the
 /// transport family). The per-species net thickness change at cell `i`, gathered
-/// from exactly the same four edges, with exactly the same fluxes, as
-/// [`diffuse_net_cell`].
+/// from exactly the same four edges, with exactly the same fluxes, as the
+/// kernel's own gather (`dc_core::field`, since E4-1).
 ///
 /// **Colluvium is not sorted, and that is the point.** Creep is diffusive and
 /// gravity-driven: it has no competence ceiling, no settling draw, no
@@ -174,7 +112,7 @@ pub(super) fn diffuse_scale_cell(
 /// and is asserted as one.
 ///
 /// **This is an attribution, never a mass authority.** The terrain still moves by
-/// the scalar [`diffuse_net_cell`], unchanged and byte-identical; this vector only
+/// the kernel's scalar net gather, unchanged and byte-identical; this vector only
 /// says *what* the metres were made of. That separation is deliberate: identity
 /// riding a second arithmetic could not perturb `H` even if it were wrong.
 ///
@@ -287,55 +225,49 @@ pub(super) fn diffuse_outflux_faces(i: usize, w: usize, surf: &[f64], scale: &[f
 }
 
 impl Erosion {
-    /// One sub-step of the hillslope gather, at the sub-step diffusivity
-    /// `diff`. `carry_on` is set for every sub-step after the first: the species
-    /// itemisation then *accumulates* rather than overwrites, so the epoch's
-    /// creep plane is the sum of its sub-steps and [`Self::record`] still reads
-    /// one epoch's worth of arriving colluvium.
+    /// One sub-step of the hillslope operator, at the plan's own sub-rate
+    /// (E4-1: the limiter, the edge fluxes and the net gather are the kernel's;
+    /// this method is the pass's per-sub-step orchestration — tallies, the
+    /// species split, and the apply). `carry_on` is set for every sub-step
+    /// after the first: the species itemisation then *accumulates* rather than
+    /// overwrites, so the epoch's creep plane is the sum of its sub-steps and
+    /// [`Self::record`] still reads one epoch's worth of arriving colluvium.
     pub(super) fn diffuse_step(
         &mut self,
         grid: &mut DeepGrid,
         cfg: &DeepConfig,
-        diff: f64,
+        plan: &ExplicitPlan,
         carry_on: bool,
     ) {
         let parallel = self.par();
         let w = self.w;
+        let diff = plan.sub_rate();
         // Freeze the surface.
         self.build_surface(grid);
-        // Pass 1: per-cell limiter scale on the frozen surface.
+        // Kernel passes (dc_core::field, flux-form): the donor limiter plane,
+        // the antisymmetric edge fluxes, and their net gather. The kernel never
+        // applies — the pass owns the state and applies `netdiff` below, after
+        // its own read-only instruments have seen the frozen epoch.
         {
-            let surf = &self.surf;
-            let scale = &mut self.scale;
-            let h = &grid.h;
-            let resist = &grid.bio_resist;
-            let sus = &self.sus_creep;
-            if parallel {
-                scale.par_iter_mut().enumerate().for_each(|(i, sc)| {
-                    *sc = diffuse_scale_cell(i, w, surf, h[i], diff, resist, sus)
-                });
-            } else {
-                for i in 0..self.n {
-                    scale[i] = diffuse_scale_cell(i, w, surf, h[i], diff, resist, sus);
-                }
-            }
-        }
-        // Pass 2: gather net ΔH per cell.
-        {
-            let surf = &self.surf;
-            let scale = &self.scale;
-            let netdiff = &mut self.netdiff;
-            let resist = &grid.bio_resist;
-            let sus = &self.sus_creep;
-            if parallel {
-                netdiff.par_iter_mut().enumerate().for_each(|(i, nd)| {
-                    *nd = diffuse_net_cell(i, w, surf, scale, diff, resist, sus)
-                });
-            } else {
-                for (i, nd) in netdiff.iter_mut().enumerate() {
-                    *nd = diffuse_net_cell(i, w, surf, scale, diff, resist, sus);
-                }
-            }
+            let coeff = CreepCoeff {
+                resist: &grid.bio_resist,
+                sus: &self.sus_creep,
+            };
+            CREEP_KERNEL.step(
+                plan,
+                &dc_core::field::DiffusionProblem {
+                    w,
+                    potential: &self.surf,
+                    state: &grid.h,
+                    coeff: &coeff,
+                    parallel,
+                },
+                StepScratch {
+                    scale: &mut self.scale,
+                    fluxes: &mut self.creep_flux,
+                    net: &mut self.netdiff,
+                },
+            );
         }
         // The other Movement 2b control: how much regolith **creep** moves, against
         // how much the rivers do. The gain side only — the net is zero by

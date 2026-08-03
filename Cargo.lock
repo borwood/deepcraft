@@ -2594,6 +2594,7 @@ dependencies = [
  "fastnoise-lite",
  "glam 0.30.10",
  "postcard",
+ "rayon",
  "serde",
  "thiserror 2.0.18",
 ]

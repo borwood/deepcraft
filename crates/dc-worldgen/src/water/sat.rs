@@ -15,6 +15,15 @@
 //!
 //! The **water table** is not stored. It is read as the top of the saturated
 //! zone, per water.md consequence 1.
+//!
+//! **E4-1b (filed 2026-08-03, heir: `dc_core::field::FieldKernel`).** The
+//! lateral step below is the second S-10 instance and was NOT converted when
+//! creep's was extracted (E4-1): it needs the pair-permeability coefficient
+//! rule (`PairMin`) and the **upper** (pore-space) obstacle, plus f32/3D
+//! adaptation — the shape-proof slice the E4 design audit sequences as E4-2b
+//! (`docs/audits/2026-08-03-e4-implicit-kernel-design.md` § 3.4). This module
+//! is unconsumed machinery (spines § 3), so the conversion is a shape check on
+//! the API, not a build order.
 
 /// Per-rock pore facts. In production these come from the property sheet
 /// (materials.md: porosity from structure fill, permeability a granular

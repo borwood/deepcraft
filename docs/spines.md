@@ -1077,6 +1077,17 @@ reinventing it — the loud check.
 
 ## S-10. The frozen-snapshot, doubly-limited gather — *RATIFIED 2026-07-29 (user)*
 
+> **✅ EXTRACTED 2026-08-03 (E4-1, byte-identically — ⚠ NEEDS RATIFICATION on venue, audit
+> pick U-3).** The operator is now the **first engine field-solver primitive**:
+> `dc-core/src/field.rs` (`FieldKernel` — explicit scheme, flux-form return, the bound is
+> `MONOTONE_MAX_EDGE_COEFF`, re-exported to the pass under its old name
+> `CREEP_MAX_EDGE_COEFF`). `erosion/creep_kernel.rs` keeps the **content side** of the call:
+> the coefficient field (`CreepCoeff` over `eff_diff`), the species split riding the same
+> fluxes, the audits. The creep instance below now *declares against* the kernel instead of
+> embedding it; the `sat.rs` instance is **not** converted (filed E4-1b — needs the `PairMin`
+> coefficient rule + the upper obstacle + f32/3D adaptation the audit slices as E4-2b).
+> Design: `docs/audits/2026-08-03-e4-implicit-kernel-design.md` §§ 3, 7.
+
 **A field relaxes toward its neighbours by reading a frozen snapshot of the previous state,
 computing an antisymmetric per-edge flux, and limiting that flux twice — once by what the donor
 actually has, once by what the exchange would overshoot.** Mass-exactness and
@@ -1140,7 +1151,8 @@ answer reads as a stable one — and that is also why refining `dt` did nothing.
 bound.** The two instances prove it from opposite sides: `sat.rs` is stable only because
 `lateral_c = 0.25` happens to sit inside its bound **by parameter choice**, and `erosion.rs` was
 **2.1× past that bound on the shipped world** — same shape, one accidentally safe, one silently
-not, for weeks, with every golden green. Stand-in: `stubs.md` § 30, heir **this primitive**.
+not, for weeks, with every golden green. Stand-in: `stubs.md` § 30, heir **this primitive**
+*(discharged 2026-08-03 — E4-1 built the heir; see the banner at the top of this entry)*.
 
 **Two properties the first cut must have, and one it must not.**
 - **Report the sub-step count.** Calibrated, `n = 100`. **The cost is gen-time, which is free by
@@ -1148,6 +1160,14 @@ not, for weeks, with every golden green. Stand-in: `stubs.md` § 30, heir **this
   so this is a **diagnostic**, not a perf guard, and must not be argued as one. *(An earlier
   draft of this reasoning invoked "runtime is sacred", which governs the **gameplay** clock and
   has no authority over deeptime. User-corrected 2026-07-29 before it reached a doc.)*
+  - **⚠ BANNER 2026-08-03 (stamped by the E4-1 slice):** the *"free by doctrine"* clause above
+    is now in tension with the user's 2026-08-03 ruling that the calibrated in-band gen time is
+    *"actually unacceptable"* — see the E4 design audit § 0
+    (`docs/audits/2026-08-03-e4-implicit-kernel-design.md`): the P2 ladder measured sub-steps
+    ∝ M (2 shipped → 896 @ M=400, gen 41 s → 2,306 s against the 1,200 s
+    `pregen_time_vs_extent` budget). Both ends are user-authored; **the later ruling wins** —
+    gen time has a *budget*, and the ruled answer-shape is E4-2's unconditionally stable
+    scheme, never a smaller world. The count itself stays a diagnostic.
 - **`n` is set by the max cell over the whole grid** — one hot coefficient sub-divides
   everywhere, which is why the calibrated cost is 6.9× rather than proportional to the affected
   area.

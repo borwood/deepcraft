@@ -88,9 +88,10 @@
 //!
 //! **Which side of the engine/pack partition this sits on** (north star): all of
 //! it is **pass/content logic — plugin side by destination**. The one
-//! engine-shaped thing embedded here is the field-solver gather in
-//! `creep_kernel` (spines § S-10); extracting it is the deferred E4 arc and this
-//! move does not attempt it.
+//! engine-shaped thing that WAS embedded here — the field-solver gather in
+//! `creep_kernel` (spines § S-10) — was **extracted 2026-08-03 (E4-1,
+//! byte-identically)** to [`dc_core::field`]; `creep_kernel` keeps the content
+//! side of that call (the coefficient field, the species split, the audits).
 
 use std::cmp::Reverse;
 use std::collections::BinaryHeap;
@@ -114,7 +115,11 @@ mod weathering;
 
 use flood::Item;
 
-pub use creep_kernel::CREEP_MAX_EDGE_COEFF;
+/// The operator's monotonicity bound, re-exported under its historical name.
+/// The constant itself is the kernel's since E4-1 (2026-08-03) — it is a
+/// property of the discretisation, and the discretisation lives in
+/// [`dc_core::field`] now.
+pub use dc_core::field::MONOTONE_MAX_EDGE_COEFF as CREEP_MAX_EDGE_COEFF;
 pub use flood::{flood_fill_serial, flood_fill_tiled};
 pub use ledger::TransportLedger;
 pub use mfd::MFD_MIN_WEIGHT;
@@ -217,6 +222,11 @@ pub struct Erosion {
     scale: Vec<f64>,
     /// Diffusion gather scratch: per-cell net ΔH, applied after the gather.
     netdiff: Vec<f64>,
+    /// **The kernel's flux-form return** (E4-1): the antisymmetric per-edge
+    /// creep fluxes of the last sub-step, written by
+    /// `dc_core::field::FieldKernel::step` and gathered into [`Self::netdiff`]
+    /// by the same call. Sized on first use (empty until the first `diffuse`).
+    creep_flux: dc_core::field::EdgeFluxes,
     /// **The epoch's TOTAL diffusion ΔH when the pass sub-cycles** (journal/0122).
     /// Empty — and never touched — when `creep_substeps == 1` or creep carries no
     /// identity, so the shipped configuration's scratch residency is unmoved. It
@@ -481,6 +491,7 @@ impl Erosion {
             k_transport: 0.0016,
             scale: vec![0.0; n],
             netdiff: vec![0.0; n],
+            creep_flux: dc_core::field::EdgeFluxes::new(),
             netdiff_acc: Vec::new(),
             creep_substeps: 1,
             creep_peak_coeff: 0.0,
@@ -575,6 +586,7 @@ impl Erosion {
             + self.mfd_w.len()
             + self.creep_gross.len();
         f64s * 8
+            + self.creep_flux.bytes()
             + self.recv.len() * 4
             + self.order.capacity() * 4
             + self.done.len()
