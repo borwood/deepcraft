@@ -69,28 +69,54 @@ use super::inventory::{
 };
 use super::recorder::DeepStrata;
 
-/// **THE GRAIN-WRITE SEAM (FS-A, 2026-08-02) — heir: the P11-slice-3 wire-up
-/// commit, and nothing else.**
+/// **THE GRAIN-WRITE SEAM (FS-A, 2026-08-02) — and the U5 gate's verdict on it
+/// (2026-08-03, post-P11-slice-3 wire-up).**
 ///
-/// The weathering emission now runs through the declared release spectrum
+/// The weathering emission runs through the declared release spectrum
 /// ([`super::inventory::InvCtx::release`]): the mass split per grain grade IS
-/// computed, per product, per firing — and lands here, where it is deliberately
-/// **dropped**. Grades have no storage until P11 slice 3's packed `DepUnit`
-/// merges (U5, `materials.md` § forms ruling 2 addendum: grain + the agent axis
-/// are funded from reclaimed padding, `grain()`/`set_grain()`/`GRAIN_UNSET`).
-/// Inventing a home for them here — a plane, a sidecar, a field on the fact —
-/// would be the A-1 anti-shape: **the packed record is the one home.**
+/// computed, per product, per firing — and lands here. **The record's write
+/// surface now EXISTS** (P11 slice 3 merged 2026-08-03: the packed `DepUnit`
+/// carries 3 grain bits, `grain()`/`set_grain()`/`GRAIN_UNSET`, **grain in the
+/// merge key**) — and this seam still deliberately writes nothing. The U5
+/// ruling gates any writer on a **measured grain SPLIT FACTOR** (the
+/// corrections-#88 count-model rule: *"grain must arrive coherent via
+/// propagation or it multiplies units"*), and the measurement is in — but the
+/// verdict is two-part, and the count is the part that PASSES:
 ///
-/// The post-slice-3 wire-up replaces exactly this function's body (and the
-/// gating of unit multiplication behind the measured grain SPLIT FACTOR — the
-/// corrections-#88 count-model lesson); the emission arithmetic upstream does
-/// not change. Probes do not read this seam: they itemise the recorded band
-/// through the same [`dc_core::materials::release::split_quantities`] the
-/// emission uses, so report and pass cannot disagree (S-3).
+/// - **The count-model gate passes**: the candidate population (the record's
+///   made-where-it-lies deposits — `MOVER_NONE`, mineral biota, spectrum'd
+///   species) is 1.6 % of the shipped record, so even full per-grade splitting
+///   bounds at **≤ 1.0329×** (seed 1337 Medium, 2026-08-03;
+///   `examples/release_spectrum_probe.rs` § grain split) — under M0's ≲1.1×
+///   precedent bar.
+/// - **The SEMANTICS do not**: those units' identities are *drawn members*
+///   (a bed recorded as sandstone), and grading a recorded bed by its own
+///   release spectrum answers *"what would this rock shed if weathered"*, not
+///   *"what grain is this bed"* — the wrong question wearing the right axis.
+///   The weathering consumer's actual product (the granite grus split this
+///   module computes) lives in the per-cell **fact band**, which has no unit
+///   to write. The non-splitting alternative — one grade per unit, the
+///   spectrum's dominant — is a pure function of `species`, which the slice-3
+///   design audit (§ 2.4 O-1) names *"a constant wearing state's clothes"*.
+///   Neither is built, on purpose.
+///
+/// **The honest writer arrives when grain state PROPAGATES** — P10's transport
+/// slices carry grain per parcel, deposits arrive single-graded and coherent,
+/// and the split factor is a property of real sorting rather than of a
+/// per-species table. That writer replaces this body via [`DepUnit::set_grain`]
+/// (`super::recorder::DepUnit::set_grain`); until then every unit stays
+/// [`GRAIN_UNSET`](super::recorder::DepUnit::GRAIN_UNSET) and the recorder's
+/// #88 tripwire (`the_grain_axis_in_the_key_splits_nothing_while_unset`) keeps
+/// asserting the axis is inert.
+///
+/// Probes do not read this seam: they itemise the recorded band through the
+/// same [`dc_core::materials::release::split_quantities`] the emission uses, so
+/// report and pass cannot disagree (S-3).
 #[inline]
 pub fn grain_write_seam(_grade: Option<GrainGrade>, _quantity_m: FracM) {
-    // P11 slice 3 wire-up lands here. Until then: computed, handed over, and
-    // honestly unstored.
+    // The gated write surface: `DepUnit::set_grain` exists and is deliberately
+    // not called — the U5 split-factor gate binds (see the doc above). The
+    // propagated-grain writer (P10 transport) lands here.
 }
 
 /// The three weathering agents that SUM on the `Structure→Loose` edge, each a
@@ -584,11 +610,11 @@ mod tests {
         let mut ungraded = 0.0f64;
         let mut moved_total = 0.0f64;
         for e in 0..10u32 {
-            moved_total += weather_bedrock_epoch(&mut acc, (e % 3) as u8, &inp, 1.0, |g, q| match g
-            {
-                Some(g) => by_grade[g.raw() as usize] += q,
-                None => ungraded += q,
-            });
+            moved_total +=
+                weather_bedrock_epoch(&mut acc, (e % 3) as u8, &inp, 1.0, |g, q| match g {
+                    Some(g) => by_grade[g.raw() as usize] += q,
+                    None => ungraded += q,
+                });
         }
         // Granite declares a spectrum, so nothing may arrive ungraded…
         assert_eq!(ungraded, 0.0, "granite has a declared spectrum");

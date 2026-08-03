@@ -2040,7 +2040,11 @@ mod tests {
         );
         assert_eq!(moved_a, moved_b);
         assert_eq!(a.spans[0].portions, b.spans[0].portions);
-        assert_eq!(seen, vec![(None, moved_a)], "grade unresolved, full quantity");
+        assert_eq!(
+            seen,
+            vec![(None, moved_a)],
+            "grade unresolved, full quantity"
+        );
     }
 
     #[test]
@@ -2085,7 +2089,10 @@ mod tests {
             (sum - moved_a).abs() <= 1e-15 * moved_a.max(1.0),
             "itemisation {sum} != total {moved_a}"
         );
-        assert!(grades.iter().all(|(g, _)| g.is_some()), "every product graded");
+        assert!(
+            grades.iter().all(|(g, _)| g.is_some()),
+            "every product graded"
+        );
     }
 
     #[test]

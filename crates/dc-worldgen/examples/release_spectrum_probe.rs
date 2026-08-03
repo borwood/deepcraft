@@ -28,7 +28,9 @@
 
 use dc_core::materials::release::{GRAIN_GRADE_COUNT, GrainGrade, split_quantities};
 use dc_worldgen::deeptime::inventory::{BEDROCK_SEAM_MATERIAL, InvForm};
-use dc_worldgen::deeptime::{DeepConfig, build_field_cfg, production_config};
+use dc_worldgen::deeptime::{
+    Biofacies, DeepConfig, DepUnit, MOVER_NONE, build_field_cfg, production_config,
+};
 use dc_worldgen::pregen::{Extent, Pregen, WorldParams};
 
 /// The world `dc-client` boots — `BENCH_SEED` at `WORLDGEN_EXTENT` (the same
@@ -55,6 +57,40 @@ struct Spectrum {
     /// half. The deepest saprolite bands sit where subaerial residence was
     /// longest and cover thinnest.
     top: Vec<(f64, usize, usize)>,
+    /// **The U5 gate's instrument** — the grain SPLIT FACTOR count model.
+    split: GrainSplit,
+}
+
+/// **The grain split-factor count model** (the corrections-#88 instrument the
+/// U5 ruling gates FS-A's record writer on; same shape as M0's mover
+/// measurement, which ruled M-1 at 1.0308×).
+///
+/// The candidate writer: grade the record's **made-where-it-lies** deposits
+/// (`mover == MOVER_NONE`, mineral biota — the weathered-in-place remainder)
+/// from their species' declared weathering spectrum. Grain is in the merge key,
+/// so a per-grade emission splits what is one unit today into up to K (= the
+/// spectrum's product count). `modeled_units` is that **upper bound** (every
+/// affected unit → K); the honest writer's true factor lies between 1.0 (one
+/// grade per unit — but that is a pure function of `species`, the slice-3
+/// audit's rejected O-1) and this bound.
+#[derive(Default)]
+struct GrainSplit {
+    /// Units in the record.
+    units: u64,
+    /// Units the candidate writer would grade: species declares a weathering
+    /// spectrum, `MOVER_NONE`, mineral biota.
+    affected: u64,
+    /// The upper-bound unit count under per-grade splitting.
+    modeled_units: u64,
+    /// Every unit's grain is still `GRAIN_UNSET` (no writer exists) — the
+    /// world-scale echo of the recorder's #88 tripwire.
+    all_unset: bool,
+}
+
+impl GrainSplit {
+    fn factor_upper(&self) -> f64 {
+        self.modeled_units as f64 / (self.units.max(1)) as f64
+    }
 }
 
 fn measure(extent: Extent) -> Spectrum {
@@ -79,7 +115,29 @@ fn measure(extent: Extent) -> Spectrum {
         by_grade_m: [0.0; GRAIN_GRADE_COUNT],
         max_cell_residual_m: 0.0,
         top: Vec::new(),
+        split: GrainSplit {
+            all_unset: true,
+            ..GrainSplit::default()
+        },
     };
+    // --- the U5 split-factor count model, over every recorded unit ---
+    for s in &field.strata {
+        for u in &s.units {
+            out.split.units += 1;
+            out.split.all_unset &= u.grain() == DepUnit::GRAIN_UNSET;
+            let k = u
+                .species()
+                .release_products(InvForm::Structure, InvForm::Loose)
+                .map_or(0, <[_]>::len) as u64;
+            let graded = k > 0 && u.mover() == MOVER_NONE && u.tag().biota == Biofacies::Mineral;
+            if graded {
+                out.split.affected += 1;
+                out.split.modeled_units += k;
+            } else {
+                out.split.modeled_units += 1;
+            }
+        }
+    }
     for (i, s) in field.strata.iter().enumerate() {
         let Some(view) = field.ledgers.get(i) else {
             continue;
@@ -143,7 +201,10 @@ fn report(s: &Spectrum) {
         "    itemisation == total: worst per-cell residual {:.3e} m (remainder-exact split)\n",
         s.max_cell_residual_m
     );
-    println!("  --- strongest exemplars (tour-map candidates; deep-grid cells, {} m each) ---", s.cell_m);
+    println!(
+        "  --- strongest exemplars (tour-map candidates; deep-grid cells, {} m each) ---",
+        s.cell_m
+    );
     for (band, gx, gy) in &s.top {
         println!("    band {band:>8.3} m   deep cell ({gx:>3}, {gy:>3})");
     }
@@ -151,6 +212,26 @@ fn report(s: &Spectrum) {
         "\n  (walk framing: a stripped upland shows the thickest in-place grus — coarse\n\
          \x20  gravel+sand modes; the distal basin face shows what transport DID with the\n\
          \x20  fines. The walk itself is main-session driven, post-merge.)\n"
+    );
+    println!("  --- the U5 GATE: the grain split factor (corrections-#88 count model) ---");
+    let g = &s.split;
+    println!(
+        "    recorded units {}   candidate-graded units {} ({:.1}%)   every unit GRAIN_UNSET: {}",
+        g.units,
+        g.affected,
+        100.0 * g.affected as f64 / g.units.max(1) as f64,
+        g.all_unset
+    );
+    println!(
+        "    per-grade splitting upper bound: {} units -> SPLIT FACTOR <= {:.4}x  (M0's mover \
+         precedent bar: <~1.1x)",
+        g.modeled_units,
+        g.factor_upper()
+    );
+    println!(
+        "    (the 1.0x alternative — one grade per unit — is a pure function of species,\n\
+         \x20    the slice-3 audit's rejected O-1. The honest writer waits for PROPAGATED\n\
+         \x20    grain — P10's transport slices — per the U5 ruling; the seam stays inert.)\n"
     );
 }
 
@@ -228,5 +309,29 @@ mod gate {
         for &(band, gx, gy) in &s.top {
             assert!(band > 0.0 && gx < w && gy < w);
         }
+
+        // --- the U5 split-factor instrument (scale-free structural claims;
+        //     the Medium magnitude is main's job) ---
+        let g = &s.split;
+        // No writer exists: every unit must still read GRAIN_UNSET — the
+        // world-scale echo of the recorder's #88 tripwire
+        // (`the_grain_axis_in_the_key_splits_nothing_while_unset`).
+        assert!(g.all_unset, "a unit carries grain but no writer exists");
+        // The count model is internally consistent at any scale.
+        assert!(g.units > 0 && g.affected <= g.units);
+        assert!(g.modeled_units >= g.units, "splitting can only add units");
+        assert_eq!(
+            g.factor_upper() == 1.0,
+            g.affected == 0,
+            "the factor exceeds 1.0 exactly when some unit would grade"
+        );
+        // The instrument is live: the candidate writer's target population
+        // exists on any world with a mineral record (made-where-it-lies units
+        // of spectrum-declaring rocks) — a dead instrument would report a
+        // vacuous 1.0 forever.
+        assert!(
+            g.affected > 0,
+            "the split instrument found no candidate unit"
+        );
     }
 }
