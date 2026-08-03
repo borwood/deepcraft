@@ -836,3 +836,30 @@ primitives they declare against).
   constant, and calling the result derived. A fitted constant with `g` factored back out is still
   fitted (§ *A summary is not an authority*, and the measure-against-the-literature rule). Each
   pass's adoption is its own slice with its own literature check.
+
+## Blast radius is not a reason to be conservative, at this stage — DECIDED 2026-08-03 (user)
+
+> *"blast radius is nothing to be too conservative about when we're building core systems and
+> there's no released product, no users, no nothing. we can fix anything that breaks."*
+
+**The generalisation of corrections #96**, which caught a *"never ship a broken main"* constraint
+imported from a project shape this one does not have. #96 settled the main-breaking case; this
+settles the disposition behind it.
+
+- **A caution must name whom it protects.** If the answer is *a user who does not exist yet*, it is
+  a preference to be offered with its cost — never a wall, and never presented as a property of
+  the problem. Two such invented constraints were caught in a single hour on 2026-08-02 (the
+  broken-main rule and a B7-before-gait ordering), both defensible engineering, both stated as
+  forced.
+- **It does NOT retire the gates, and the distinction is the whole point.** *"We can fix anything
+  that breaks"* is about **reversibility**, not about **not knowing**. A defect we can see and
+  chose to ship is cheap; a defect we cannot see is exactly what the false-green rules exist for —
+  and the same day this was ruled, the arc gate caught code that **did not compile**, a **stale
+  constant**, and a **caption that had gone false**, none of which a reading would have found.
+  **Be bold about consequences; be paranoid about evidence.**
+- **What it does retire:** batching for safety, staging for safety, shims that preserve a
+  bring-up state nobody ratified, and sequencing arguments whose beneficiary is hypothetical.
+  Batch for **wall-clock**; sequence for **dependency**; never for timidity.
+- **Re-read this when the project has users.** It is scoped to *"no released product, no users, no
+  nothing"* and it expires with that condition — the failure mode of a ruling like this one is
+  outliving its premise (anti-shape **A-2**, the thing that cost this arc the rotation quantizer).
