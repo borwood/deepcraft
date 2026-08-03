@@ -300,3 +300,15 @@ residual rule survived the shape change because it moved with the arithmetic
 rather than beside it. `split_row_into` is one function and entrainment, incision
 and creep all route through it, so no caller can invent its own budget — the same
 guarantee `split_by_shares` gave, over a different index.
+
+---
+
+*Merge postscript, stamped 2026-08-03 (doc-topology F1 — this entry was the one
+arc journal of three without one).* The § 11 claim above that the ratified 60 s
+pregen budget *"was **not moved**… moving a gate to admit one's own work is not a
+fix, so it is not moved here either"* was **overruled by the user at this very
+slice's merge**: the budget was renegotiated 60 s → **1,200 s**
+(`tests/s7_measurements.rs` — *"Prior value, kept for audit: 60_000.0"*; the
+user's words at the record: *"as long as it doesn't take 20min"*). The claim was
+honest when written; the author's principle — that the author must not move the
+gate — is exactly why the move belonged to the user, who then made it.

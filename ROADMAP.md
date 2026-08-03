@@ -2928,6 +2928,15 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **THE BUILD-MUTEX HOOK DENIES NON-CARGO COMMANDS THAT MERELY MENTION CARGO IN TEXT**
+  (geo session, 2026-08-03, hit live): a `git commit` whose **commit message** contained
+  the word "cargo" was denied as a build-slot claim (`scripts/cargo_mutex_hook.py` —
+  evidently a substring match over the whole command string, which includes quoted
+  message text). Cost: one reworded commit; the failure mode is worse for wrap commits,
+  whose messages routinely cite gate commands. Fix shape: match the command's leading
+  token(s)/invocation position, not the raw string. Small, mechanical, hook-owned;
+  owed to whoever next opens the hook file.
+
 - **FIELD REPORT, slice 3's interfingering, LIVE VIEW (user, 2026-08-03, during the
   bodies session's game session — formal walk verdict pending, no pose yet, corrections
   #48 gap to close at the acceptance walk): "as predicted, i do not like this,
