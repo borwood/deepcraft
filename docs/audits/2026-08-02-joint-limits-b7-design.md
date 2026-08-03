@@ -1,5 +1,95 @@
 # Joint rotation limits (B7) — a design pass against the ruling
 
+> **⚠ BUILT 2026-08-03 — SLICE ONE. The body below is testimony; this banner is what the build
+> MEASURED against its predictions.** Every number in § 3.2, § 3.3 and § 5.3 was hand-derived
+> with *"no cargo command run"* and labelled *"a prediction the build checks."* It has now been
+> checked. Code: `crates/dc-api/src/bodies/limits.rs`; journal: `pending-b7-joint-limits`.
+>
+> **1. THE LAW AS WRITTEN IS AMBIGUOUS, AND § 3.2's ROWS ARE NOT SELF-CONSISTENT.** § 3.1 says
+> *"the eight corners of the child subtree's TERMINAL box."* No reading of that sentence
+> reproduces the table:
+> - *"eight corners"* is **degenerate** — the terminal box's *proximal* corners are the very L1
+>   failure the law exists to escape. Test them and the biped knee returns **0°**, not 155°.
+>   Every row is reproducible only with the **distal** corners.
+> - *"terminal box"* contradicts the table's own **hip** rows, which are derived from the
+>   **thigh's** distal corner — the rotating segment's own box. The shank, the actual terminal
+>   box, never re-enters the trunk at all; drop the rotating segment's own box and both hip rows
+>   become `Undetermined`, taking § 3.2's headline finding (stout 77° vs biped 150°) and § 5.2's
+>   number for gait member #1 with them.
+> - The **neck** rows go the other way: derived from the **head's** distal corner with the neck's
+>   own box omitted. Include it — as the hip rows do — and it binds first.
+>
+> Built as the one self-consistent reading: **the distal corners of EVERY box in the rotating
+> subtree, plus declared role anchors, against every strict ancestor.**
+>
+> **2. THE MAGNITUDES ARE CONFIRMED. The neck rows and `head` are not.** Measured (derived `max`
+> end, radians; `derived_limits_match_the_predicted_table` pins these):
+>
+> | row | § 3.2 predicted | **measured** | verdict |
+> |---|---|---|---|
+> | biped knee X | 2.70541 (155.009°) | **2.7056301 (155.021°)** | ✅ Δ 0.012° |
+> | stout knee X | 2.00676 (114.979°) | **2.0067251 (114.977°)** | ✅ Δ 0.002° |
+> | longleg knee X | 2.76546 (158.449°) | **2.7653693 (158.444°)** | ✅ Δ 0.005° |
+> | biped hip X | 2.61431 (149.789°) | **2.6143472 (149.791°)** | ✅ Δ 0.002° |
+> | stout hip X | 1.35304 (77.523°) | **1.3522680 (77.479°)** | ✅ Δ 0.044° |
+> | longleg hip X | UNDETERMINED | **UNDETERMINED** | ✅ shaft-contact miss, as predicted |
+> | biped/longleg elbow X | 2.71787 (155.722°) | **2.7178262 (155.720°)** | ✅ |
+> | stout elbow X | 2.81076 (161.045°) | **2.8106925 (161.041°)** | ✅ |
+> | shoulder X (all three) | UNDETERMINED | **UNDETERMINED** | ✅ |
+> | **biped neck X (pitch)** | 2.46825 (141.420°) | **1.0427219 (59.744°)** | ❌ **the neck's own box binds first** |
+> | **stout neck X (pitch)** | 2.28291 (130.801°) | **0.6287963 (36.027°)** | ❌ same cause |
+> | biped neck Y (yaw) | UNDETERMINED | **UNDETERMINED** | ✅ |
+> | **biped neck Z (roll)** | 2.17408 (124.566°) | **1.0427219 (59.744°)** | ❌ same cause |
+> | biped knee Y (twist) | UNDETERMINED | **UNDETERMINED** | ✅ |
+> | biped knee Z (lateral) | 2.75046 (157.590°) | **2.7503973 (157.586°)** | ✅ |
+> | **biped `head` X** | UNDETERMINED (*"no child chain to collide"*) | **2.2142974 (126.870°)** | ❌ a segment's own box IS part of its rotating subtree |
+> | biped `trunk` | UNDETERMINED | **WELDED** (zero DOFs) | ✅ stronger, per Q4 |
+>
+> The audit's own hand-arithmetic drifts by ~1e-4 rad throughout; the *stout hip* row is the
+> worst at 7.7e-4 (0.044°). No row's conclusion changes on that.
+>
+> **3. § 3.3's LITERATURE ROWS MOVE WITH THE NECK.** Derived cervical flexion/extension is
+> **59.74°**, not 141.42° — which lands **inside** the published 45–70° extension band rather
+> than 3× over it, and cervical lateral at 59.74° vs 45° is ~1.3× over rather than 2.8×. Every
+> other row stands, and § 3.3's *conclusion* — the derivation is good where the end-range is
+> **bony** and useless where it is **ligamentous** — is unaffected and better supported.
+> **The published figures themselves were NOT re-verified: this build had no network either, and
+> they are carried forward with the pass's own disclaimer intact.**
+>
+> **4. § 5.3's `d_min` TABLE CONFIRMED, and the degenerate stout crouch is gone.** Measured
+> biped **0.19121** (predicted 0.19143), stout **0.23664** (0.23660), longleg **0.19174**
+> (0.19199) — each the fully-folded foot distance to 1e-9, asserted as geometry rather than
+> pinned as a number. The stout's crouch target (`d = 0.010`, a sole *below the ground*) is now
+> `Reach::BeyondFlexion` and the foot floats honestly; journal/0131's 180° knee cannot be
+> reached.
+>
+> **5. A CASE THE PASS NAMED BUT DID NOT COST: `dc:body/stout`'s FLUSH SHOULDERS.** § 3.2 called
+> it *"a zero-measure graze at x = 0.39 exactly."* In f64 the two shoulders land on **opposite
+> sides** of that boundary, and read as an entry it derived a **0° bound**, welded both arms and
+> **rejected the shipped `dc:anim/biped_idle` clip on the shipped pack.** A point already
+> intersecting an ancestor at rest is now reported as a graze in the authored geometry, never as
+> a limit.
+>
+> **6. THE POLE IS NOT FULLY DATA YET, and § 5.3(1) over-promised.** *"The `ka.1 <= kb.1`
+> comparison is deleted, not generalised"* holds only where a range is one-sided. Every shipped
+> plan's derived range is **symmetric** (§ 3.4's own finding), so **both** poles are admissible
+> and something must break the tie — and if that something is not the pre-B7 forward convention,
+> the identity default is not byte-identical and § 8's test 1 fails. Built as: the pole is the
+> candidate the declared range admits; a tie falls back to the forward convention, marked
+> `⚠ STAND-IN` with `stubs.md` B7-a as its heir.
+>
+> **7. § 5.4's MIGRATION IS BYTE-IDENTICAL — AND IT IMMEDIATELY REPORTS ITS OWN DEFECT.**
+> `NECK_YAW_CLAMP_RAD` (75°) and `NECK_PITCH_CLAMP_RAD` (45°) are now declared on each plan's
+> `look` joint. On `dc:body/stout` that declared ±45° pitch is **outside** its derived ±36.03°:
+> its neck is an 0.08 m slab on a 0.62 m trunk and it genuinely cannot pitch that far. Reported,
+> not refused (so the render is unchanged), and it is exactly the A-1 defect § 5.4 named — *"the
+> stout's short thick neck gets the biped's numbers"* — now visible instead of invisible.
+>
+> **8. § 5.1's REJECTION TABLE CONFIRMED** on a fixture plan: a declared one-sided biped knee
+> rejects `dc:anim/biped_walk` at keyframe 0 naming `leg_r_lower` at **+0.500000 rad (+28.648°)**,
+> and `dc:anim/biped_jump` at its **+0.100000 rad** keyframe. `biped_idle` survives. Nothing is
+> declared on the shipped pack's knees, per § 5.1's forced order.
+
 > **⚠ Q4 RULED PROVISIONALLY 2026-08-03 (user): WELD THE ROOT — *"i'm willing to go A for now"*
 > — AND THE TWO RESERVATIONS ARE PART OF THE RULING, NOT COMMENTARY.** The root segment has no
 > rotational DOF of its own; body orientation belongs to the facing system, and a clip keying the

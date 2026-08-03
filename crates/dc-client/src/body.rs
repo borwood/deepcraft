@@ -64,17 +64,18 @@
 use std::collections::HashMap;
 
 use dc_api::Posture;
-use dc_api::bodies::{AnimClip, BodyPlan, GaitVector};
+use dc_api::bodies::{AnimClip, Axis, BodyPlan, GaitVector};
 
 /// Stepped-animation frame rate: the pose updates this many times per second.
 pub const ANIM_FPS: f64 = 12.0;
-/// Cervical yaw range: the head may turn this far (radians, ~75°) relative to
-/// the trunk before the trunk itself turns to make up the difference. Closes
-/// the walk-8 orientation gap: the trunk faces travel, the head faces the look.
-pub const NECK_YAW_CLAMP_RAD: f64 = 75.0 * std::f64::consts::PI / 180.0;
-/// Cervical pitch range (radians, ~45°); negative looks down (character.rs
-/// convention). Beyond this the neck simply clamps — no trunk pitch in v0.
-pub const NECK_PITCH_CLAMP_RAD: f64 = 45.0 * std::f64::consts::PI / 180.0;
+// `NECK_YAW_CLAMP_RAD` (75°) and `NECK_PITCH_CLAMP_RAD` (45°) LEFT THIS FILE
+// 2026-08-03 (B7 § 5.4). They were **anatomical joint limits, hard-coded,
+// world-global, and blind to the plan** — the stout's 0.08 m neck got the
+// biped's numbers — which is A-1 in the family of absolute constants this arc
+// has been retiring. They are now DECLARED on the `look` joint of each plan
+// (`dc_api::bodies::default_pack`'s `with_cervical_range`), read here through
+// [`Cervical::of`]. The migration is byte-identical: the same two numbers,
+// a different home, and now a body *can* say its own.
 /// Trunk turn window (seconds): how quickly the trunk yaw chases the travel
 /// direction. Short, and the pose is sampled on the 12 fps grid, so turns still
 /// read stepped in time even though the yaw itself is now exact.
@@ -319,21 +320,86 @@ pub struct Orientation {
     pub neck_pitch: f64,
 }
 
+/// A plan's **declared** cervical range, resolved once per plan (B7 § 5.4) —
+/// the replacement for the two world-global constants that used to live at the
+/// top of this file.
+///
+/// `None` on an end means the plan's `look` joint leaves that end unbounded (or
+/// declares no such DOF at all), and the look is then **not clamped on that
+/// axis** — the identity behaviour for a body nobody has given a neck range.
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
+pub struct Cervical {
+    /// Largest |yaw| the neck may take relative to the trunk, radians.
+    pub yaw_max: Option<f64>,
+    /// Pitch range, radians; negative looks down (character.rs convention).
+    pub pitch_min: Option<f64>,
+    pub pitch_max: Option<f64>,
+}
+
+impl Cervical {
+    /// Read a plan's cervical range off its unique `look` joint's declared
+    /// limits. Unique-or-loud resolves the joint (B0); a plan with no `look`
+    /// role, or an ambiguous one, gets an unclamped neck — the same
+    /// feature-off a missing name has always meant.
+    pub fn of(plan: &BodyPlan) -> Self {
+        use dc_api::bodies::{Axis, derive_joint_limits, unique_role_segment};
+        let Ok(Some(seg)) = unique_role_segment(plan, "look") else {
+            return Cervical::default();
+        };
+        let limits = derive_joint_limits(plan);
+        let Some(joint) = limits.joint(&seg.name) else {
+            return Cervical::default();
+        };
+        // The YAW bound is a magnitude: the split is symmetric by construction
+        // (the trunk absorbs the excess on whichever side), so a plan that
+        // declared an asymmetric yaw would need the split itself to change.
+        // Take the tighter end rather than inventing a side.
+        let yaw = joint.dof(Axis::Y).and_then(|d| match (d.min.value(), d.max.value()) {
+            (Some(lo), Some(hi)) => Some(lo.abs().min(hi.abs())),
+            (Some(lo), None) => Some(lo.abs()),
+            (None, Some(hi)) => Some(hi.abs()),
+            (None, None) => None,
+        });
+        let pitch = joint.dof(Axis::X);
+        Cervical {
+            yaw_max: yaw,
+            pitch_min: pitch.and_then(|d| d.min.value()),
+            pitch_max: pitch.and_then(|d| d.max.value()),
+        }
+    }
+}
+
 /// Split a look direction off a travel-facing trunk (bodies.md step 3, the
-/// walk-8 fix). The head follows the look within the cervical clamp; a look
-/// beyond the clamp drags the trunk around so the neck only ever bends its
-/// maximum. `base_trunk_yaw` is the trunk's *approached* facing
+/// walk-8 fix). The head follows the look within the **declared** cervical range
+/// (B7 § 5.4); a look beyond it drags the trunk around so the neck only ever
+/// bends its maximum. `base_trunk_yaw` is the trunk's *approached* facing
 /// ([`AnimState::trunk_yaw`], chasing the sim's target).
-pub fn resolve_orientation(base_trunk_yaw: f64, look_yaw: f64, look_pitch: f64) -> Orientation {
+///
+/// The YAW clamp is a **redistribution**, not a truncation — the trunk absorbs
+/// the excess, so the gaze target survives (`bodies.md` § THE SIM OWNS THE
+/// TARGET). The PITCH clamp genuinely truncates ("no trunk pitch in v0"): a body
+/// can look somewhere its renderer cannot show it looking. That predates B7 and
+/// is exactly what B7 exists to absorb — it is now a declared limit rather than
+/// an anonymous constant, and the overflow is the honest-float story one level
+/// up.
+pub fn resolve_orientation(
+    base_trunk_yaw: f64,
+    look_yaw: f64,
+    look_pitch: f64,
+    cervical: Cervical,
+) -> Orientation {
     let delta = wrap_pi(look_yaw - base_trunk_yaw);
-    let (trunk_yaw, neck_yaw) = if delta.abs() > NECK_YAW_CLAMP_RAD {
-        let clamped = NECK_YAW_CLAMP_RAD * delta.signum();
-        // Trunk absorbs the excess so the neck bends exactly its limit.
-        (wrap_pi(look_yaw - clamped), clamped)
-    } else {
-        (base_trunk_yaw, delta)
+    let (trunk_yaw, neck_yaw) = match cervical.yaw_max {
+        Some(m) if delta.abs() > m => {
+            let clamped = m * delta.signum();
+            // Trunk absorbs the excess so the neck bends exactly its limit.
+            (wrap_pi(look_yaw - clamped), clamped)
+        }
+        _ => (base_trunk_yaw, delta),
     };
-    let neck_pitch = look_pitch.clamp(-NECK_PITCH_CLAMP_RAD, NECK_PITCH_CLAMP_RAD);
+    let neck_pitch = look_pitch
+        .max(cervical.pitch_min.unwrap_or(f64::NEG_INFINITY))
+        .min(cervical.pitch_max.unwrap_or(f64::INFINITY));
     Orientation {
         trunk_yaw,
         neck_yaw,
@@ -359,6 +425,59 @@ pub struct LegRig {
     pub l1: f64,
     /// Lower bone length (knee→sole), meters.
     pub l2: f64,
+    /// **The joint limits, resolved from the plan** (B7). Carried on the rig
+    /// rather than passed beside it so [`solve_leg_ik`] takes them as a
+    /// REQUIRED argument with **no unlimited overload** — there is then no way
+    /// to produce an IK pose that ignores the joint (audit § 2.4's E4 test,
+    /// answered in the one place inexpressibility is genuinely available: the
+    /// solver is code we own, not data flowing through a door).
+    pub limits: LegLimits,
+}
+
+/// A leg's two joints as the solver needs them: the sagittal (X) range of each,
+/// and the inner radius of the reachable **sector** that the knee's range cuts
+/// out of the old annulus.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct LegLimits {
+    /// Is X a declared DOF of the knee? `false` ⇒ the solver refuses rather
+    /// than producing a silently wrong pose for a joint that does not hinge
+    /// sagittally.
+    pub knee_sagittal: bool,
+    pub knee_min: Option<f64>,
+    pub knee_max: Option<f64>,
+    pub hip_sagittal: bool,
+    pub hip_min: Option<f64>,
+    pub hip_max: Option<f64>,
+    /// Distance from hip to foot at **full flexion**,
+    /// `sqrt(l1² + l2² + 2·l1·l2·cos f_max)` — the honest inner bound of the
+    /// reachable set, replacing the *numerical* `|l1 − l2|`. Where the knee's
+    /// range is unbounded this IS `|l1 − l2|`, so an undeclared, underivable
+    /// knee reproduces today's annulus exactly (S-5).
+    pub d_min: f64,
+}
+
+/// Resolve one leg's limits out of a plan's derived+declared joint limits.
+fn leg_limits(limits: &dc_api::bodies::JointLimits, upper: &str, lower: &str, l1: f64, l2: f64) -> LegLimits {
+    use dc_api::bodies::Axis;
+    let dof = |seg: &str| limits.joint(seg).and_then(|j| j.dof(Axis::X)).cloned();
+    let (knee, hip) = (dof(lower), dof(upper));
+    let f_max = knee
+        .as_ref()
+        .and_then(|d| d.max_magnitude())
+        .unwrap_or(std::f64::consts::PI)
+        .min(std::f64::consts::PI);
+    let d_min = (l1 * l1 + l2 * l2 + 2.0 * l1 * l2 * f_max.cos())
+        .max(0.0)
+        .sqrt();
+    LegLimits {
+        knee_sagittal: knee.is_some(),
+        knee_min: knee.as_ref().and_then(|d| d.min.value()),
+        knee_max: knee.as_ref().and_then(|d| d.max.value()),
+        hip_sagittal: hip.is_some(),
+        hip_min: hip.as_ref().and_then(|d| d.min.value()),
+        hip_max: hip.as_ref().and_then(|d| d.max.value()),
+        d_min,
+    }
 }
 
 /// Derive each leg's two-bone rig from a body plan's **declared soles** (B0):
@@ -384,6 +503,10 @@ pub struct LegRig {
 /// have to argue for, not a silent partial answer.
 pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
     let seg_by = |name: &str| plan.segments.iter().find(|s| s.name == name);
+    // B7: the plan's joint limits, derived once here and carried on each rig.
+    // Returned, not stored (S-3) — this local is the memoization, and the rig
+    // holds resolved numbers rather than a second copy of the plan.
+    let limits = dc_api::bodies::derive_joint_limits(plan);
     let mut legs = Vec::new();
     for chain in dc_api::bodies::stance_chains(plan, "sole") {
         // The chain is DERIVED (shared walk, dc-api), the contact is
@@ -426,6 +549,7 @@ pub fn leg_rigs(plan: &BodyPlan) -> Vec<LegRig> {
             hip_local,
             l1,
             l2,
+            limits: leg_limits(&limits, &upper.name, &lower.name, l1, l2),
         });
     }
     legs
@@ -506,29 +630,70 @@ pub fn fk_foot_local(l1: f64, l2: f64, upper_x: f64, lower_x: f64) -> (f64, f64)
 /// `upper_x` is applied to the hip joint (relative to the trunk), `lower_x` to
 /// the knee joint (relative to the upper). The renderer applies these **exactly**
 /// — the 11.25° snap that used to round them off was removed 2026-08-01.
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct LegIk {
     pub upper_x: f64,
     pub lower_x: f64,
-    /// False when the target was beyond `l1 + l2`: the leg is left reaching
-    /// straight at it (fully extended) and the caller lets the foot float
-    /// rather than stretch the bones.
-    pub reachable: bool,
+    /// Why the solve did or did not land inside the leg's reachable set.
+    /// **Replaced `reachable: bool` 2026-08-03 (B7 § 5.3):** "too far" and "too
+    /// folded" are opposite failures that want opposite caller behaviour, and
+    /// one flag could not carry the second.
+    pub reach: Reach,
 }
 
-/// Closed-form two-bone IK in the sagittal (Y–Z) plane. `target` is the desired
-/// foot position **relative to the hip joint** (meters; x lateral, y up, z
-/// forward = −z), `l1`/`l2` the upper/lower bone lengths. The knee pole points
-/// forward (−Z), so knees bend like knees. The reach is clamped into the
-/// solvable annulus `[|l1−l2|, l1+l2]`, kept a hair off the singular ends so the
-/// solution is always finite (never NaN) and the knee never locks dead straight.
-pub fn solve_leg_ik(l1: f64, l2: f64, target: [f64; 3]) -> LegIk {
+/// The outcome of a two-bone solve against the leg's declared limits.
+#[derive(Clone, PartialEq, Debug)]
+pub enum Reach {
+    Ok,
+    /// The target is beyond `l1 + l2`. The leg is left reaching straight at it
+    /// (fully extended) and the caller lets the foot float — pre-B7 behaviour,
+    /// unchanged: this is the annulus's OUTER edge, not a joint limit.
+    BeyondExtension,
+    /// The target is inside `d_min` — closer to the hip than the knee's own
+    /// range allows the foot to come. **The pose is refused, never clamped**:
+    /// solving freely and then clamping the knee into range moves the foot off
+    /// its target with no signal, which is a working call, a passing test and a
+    /// silently wrong output (A-3).
+    BeyondFlexion { joint: String },
+    /// The solve landed outside a joint's declared range on an axis the solver
+    /// does not solve into (the hip — restricting the *upper* joint turns the
+    /// reachable set from an annulus sector into a lune, which the closed form
+    /// does not cover), or the joint does not declare the axis the solver
+    /// assumes. Checked and reported, never solved into.
+    JointBlocked { joint: String, axis: Axis },
+}
+
+/// Closed-form two-bone IK in the sagittal (Y–Z) plane, **within the rig's
+/// declared limit set**. `target` is the desired foot position **relative to the
+/// hip joint** (meters; x lateral, y up, z forward = −z).
+///
+/// **The reachable set is an annulus SECTOR, not an annulus** (B7 § 5.3): the
+/// inner bound is `rig.limits.d_min`, the distance at full flexion, not the
+/// *numerical* `|l1 − l2|` that only ever kept `acos` in domain. On the shipped
+/// plans that moves the inner radius by 9.6× (biped) to 23.7× (stout) — and it
+/// retires by construction the degenerate 180° stout crouch journal/0131
+/// measured, which today folds the knee flat to chase a target *below the
+/// ground* and leaves a ~10 mm residual nobody is told about.
+///
+/// **The knee pole is a READ, not a heuristic.** With a one-sided knee range the
+/// pole is *determined* by the sign of the range: exactly one of the two
+/// candidates lands inside it.
+///
+/// ⚠ STAND-IN — `stubs.md` (B7-a, `the-fold-sense-is-declared-because-our-bodies-have-no-front`).
+/// When BOTH candidates are admissible — a symmetric derived range, which is
+/// every shipped plan, because every box is z-centred and the bodies have no
+/// front — the tie is broken by the pre-B7 forward-pole convention (*"the knee
+/// pole points forward (−Z), so knees bend like knees"*). That is an
+/// undeclared anatomical assumption surviving as a **tie-break**, and it is what
+/// keeps the identity default byte-identical; the heir is a declaration, and it
+/// disappears the moment a plan states which way its knee folds.
+pub fn solve_leg_ik(rig: &LegRig, target: [f64; 3]) -> LegIk {
+    let (l1, l2) = (rig.l1, rig.l2);
     let ty = target[1];
     let tz = target[2];
     let d_full = (target[0] * target[0] + ty * ty + tz * tz).sqrt();
     let max = l1 + l2;
     let min = (l1 - l2).abs();
-    let reachable = d_full <= max + 1e-9;
     let eps = 1e-6;
     // Solve within the sagittal plane on the planar (y, z) distance.
     let d_planar = (ty * ty + tz * tz).sqrt();
@@ -549,19 +714,65 @@ pub fn solve_leg_ik(l1: f64, l2: f64, target: [f64; 3]) -> LegIk {
         let kz = l1 * (cos_a * uz + pole * sin_a * uy);
         (ky, kz)
     };
-    let (ka, kb) = (knee(1.0), knee(-1.0));
-    let (ky, kz) = if ka.1 <= kb.1 { ka } else { kb };
     // Absolute X-rotation of a planar point p: rotX(θ)·(0,−1,0) = (−cosθ, −sinθ)
     // in (y, z), so θ = atan2(−p.z, −p.y).
-    let upper_x = (-kz).atan2(-ky);
-    // The (clamped) target, and the lower bone from knee to it.
     let (fy, fz) = (uy * d, uz * d);
-    let total = (-(fz - kz)).atan2(-(fy - ky));
-    let lower_x = wrap_pi(total - upper_x);
+    let solve = |(ky, kz): (f64, f64)| {
+        let upper_x = (-kz).atan2(-ky);
+        let total = (-(fz - kz)).atan2(-(fy - ky));
+        (upper_x, wrap_pi(total - upper_x))
+    };
+    let (ka, kb) = (knee(1.0), knee(-1.0));
+    let (sa, sb) = (solve(ka), solve(kb));
+    // THE POLE, as declared data: keep the candidate whose knee angle is inside
+    // the declared range. Both admissible (a symmetric derived range — every
+    // shipped plan) falls back to the forward-pole tie-break; see the doc
+    // comment's STAND-IN marker.
+    let admits = |lower_x: f64| {
+        rig.limits.knee_min.is_none_or(|lo| lower_x >= lo - 1e-9)
+            && rig.limits.knee_max.is_none_or(|hi| lower_x <= hi + 1e-9)
+    };
+    let (upper_x, lower_x) = match (admits(sa.1), admits(sb.1)) {
+        (true, false) => sa,
+        (false, true) => sb,
+        _ => {
+            if ka.1 <= kb.1 {
+                sa
+            } else {
+                sb
+            }
+        }
+    };
+    let reach = if !rig.limits.knee_sagittal {
+        Reach::JointBlocked {
+            joint: rig.lower.clone(),
+            axis: Axis::X,
+        }
+    } else if d_planar < rig.limits.d_min - 1e-9 {
+        // Inside the sector's inner radius: the knee cannot fold far enough.
+        Reach::BeyondFlexion {
+            joint: rig.lower.clone(),
+        }
+    } else if d_full > max + 1e-9 {
+        Reach::BeyondExtension
+    } else if rig.limits.hip_sagittal
+        && (rig.limits.hip_min.is_some_and(|lo| upper_x < lo - 1e-9)
+            || rig.limits.hip_max.is_some_and(|hi| upper_x > hi + 1e-9))
+    {
+        // The hip is CHECKED, not solved into: restricting the upper joint
+        // turns the reachable set from a sector into a lune, which this closed
+        // form does not cover. Reporting it beats pretending to serve it.
+        Reach::JointBlocked {
+            joint: rig.upper.clone(),
+            axis: Axis::X,
+        }
+    } else {
+        Reach::Ok
+    };
     LegIk {
         upper_x,
         lower_x,
-        reachable,
+        reach,
     }
 }
 
@@ -877,6 +1088,12 @@ pub struct RetargetReport {
     /// `reach × 11.25°`, ~172 mm on the biped); with the quantizer gone it measures
     /// the **solver's own** residual, bounded by its annulus-clamp epsilon.
     pub reachable_residual_max_m: f64,
+    /// Samples the solver **refused on a JOINT LIMIT** (B7): the target was
+    /// inside `d_min`, or a joint declared no sagittal DOF. Counted separately
+    /// from `refused` (outside the half-voxel window) because they are
+    /// different refusals — one is the renderer declining to correct, the other
+    /// is the body declining to bend.
+    pub refused_by_limits: usize,
 }
 
 #[cfg(test)]
@@ -982,6 +1199,7 @@ pub fn retarget_report(
         knee_bend_max_deg: 0.0,
         solver_knee_bend_max_deg: 0.0,
         reachable_residual_max_m: 0.0,
+        refused_by_limits: 0,
     };
     let frames = ((clip.duration_s * ANIM_FPS).ceil() as usize).max(1);
     for i in 0..frames {
@@ -1013,16 +1231,27 @@ pub fn retarget_report(
             let (verdict, rendered_sole, hip_x, knee_x) = if adjust.abs() <= 1e-3 {
                 (Placement::Seated, clip_sole, cu, cl)
             } else if adjust.abs() <= half_voxel {
-                let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
+                let ik = solve_leg_ik(leg, [0.0, fy + adjust, fz]);
                 let (sy, _) = fk_foot_local(leg.l1, leg.l2, ik.upper_x, ik.lower_x);
                 let sole = hip_y + sy;
-                let verdict = if ik.reachable {
-                    r.reachable_residual_max_m = r.reachable_residual_max_m.max((sole - g).abs());
-                    Placement::Corrected
-                } else {
-                    Placement::ClampedBeyondReach
-                };
-                (verdict, sole, ik.upper_x, ik.lower_x)
+                // B7: a solve that leaves the LIMIT SET is refused, and the
+                // clip pose stands — the foot floats honestly rather than
+                // lying about contact. `BeyondExtension` is not a limit (it
+                // is the annulus's outer edge) and keeps its pre-B7 handling.
+                match &ik.reach {
+                    Reach::Ok => {
+                        r.reachable_residual_max_m =
+                            r.reachable_residual_max_m.max((sole - g).abs());
+                        (Placement::Corrected, sole, ik.upper_x, ik.lower_x)
+                    }
+                    Reach::BeyondExtension => {
+                        (Placement::ClampedBeyondReach, sole, ik.upper_x, ik.lower_x)
+                    }
+                    Reach::BeyondFlexion { .. } | Reach::JointBlocked { .. } => {
+                        r.refused_by_limits += 1;
+                        (Placement::Refused, clip_sole, cu, cl)
+                    }
+                }
             } else {
                 (Placement::Refused, clip_sole, cu, cl)
             };
@@ -1577,17 +1806,73 @@ mod tests {
         fk_foot_local(l1, l2, upper_x, lower_x)
     }
 
+    /// A rig for the classic biped bone lengths with **no declared limits and
+    /// no derivable ones** — `d_min` collapses to `|l1 − l2|` and the solver is
+    /// exactly the pre-B7 closed form. The tests that predate B7 use this, so
+    /// what they assert is still what they asserted.
+    fn bare_rig(l1: f64, l2: f64) -> LegRig {
+        LegRig {
+            upper: "leg_l_upper".into(),
+            lower: "leg_l_lower".into(),
+            hip_local: [0.0, 0.9, 0.0],
+            l1,
+            l2,
+            limits: LegLimits {
+                knee_sagittal: true,
+                knee_min: None,
+                knee_max: None,
+                hip_sagittal: true,
+                hip_min: None,
+                hip_max: None,
+                d_min: (l1 - l2).abs(),
+            },
+        }
+    }
+
+    /// The pre-B7 solver, verbatim, as the byte-identity reference for
+    /// `nothing_declared_leaves_the_solver_bit_identical`. A retired
+    /// implementation kept **test-side only** so an identity claim has
+    /// something to be identical TO — it is not a second authority and nothing
+    /// but that one test may call it.
+    fn legacy_solve_leg_ik(l1: f64, l2: f64, target: [f64; 3]) -> (f64, f64) {
+        let (ty, tz) = (target[1], target[2]);
+        let max = l1 + l2;
+        let min = (l1 - l2).abs();
+        let eps = 1e-6;
+        let d_planar = (ty * ty + tz * tz).sqrt();
+        let d = d_planar.clamp(min + eps, max - eps);
+        let (uy, uz) = if d_planar > 1e-9 {
+            (ty / d_planar, tz / d_planar)
+        } else {
+            (-1.0, 0.0)
+        };
+        let cos_a = ((l1 * l1 + d * d - l2 * l2) / (2.0 * l1 * d)).clamp(-1.0, 1.0);
+        let sin_a = (1.0 - cos_a * cos_a).max(0.0).sqrt();
+        let knee = |pole: f64| {
+            let ky = l1 * (cos_a * uy + pole * sin_a * (-uz));
+            let kz = l1 * (cos_a * uz + pole * sin_a * uy);
+            (ky, kz)
+        };
+        let (ka, kb) = (knee(1.0), knee(-1.0));
+        let (ky, kz) = if ka.1 <= kb.1 { ka } else { kb };
+        let upper_x = (-kz).atan2(-ky);
+        let (fy, fz) = (uy * d, uz * d);
+        let total = (-(fz - kz)).atan2(-(fy - ky));
+        (upper_x, wrap_pi(total - upper_x))
+    }
+
     #[test]
     fn ik_reconstructs_reachable_targets_with_a_forward_knee() {
         let (l1, l2) = (0.45, 0.43);
+        let rig = bare_rig(l1, l2);
         for target in [
             [0.0, -0.8, 0.0],
             [0.0, -0.6, -0.3],
             [0.0, -0.7, 0.15],
             [0.05, -0.75, -0.1],
         ] {
-            let ik = solve_leg_ik(l1, l2, target);
-            assert!(ik.reachable, "{target:?} is within reach");
+            let ik = solve_leg_ik(&rig, target);
+            assert_eq!(ik.reach, Reach::Ok, "{target:?} is within reach");
             let (fy, fz) = fk_foot(l1, l2, ik.upper_x, ik.lower_x);
             assert!(
                 (fy - target[1]).abs() < 1e-6 && (fz - target[2]).abs() < 1e-6,
@@ -1602,9 +1887,10 @@ mod tests {
     #[test]
     fn ik_clamps_reach_and_never_nans() {
         let (l1, l2) = (0.45, 0.43);
+        let rig = bare_rig(l1, l2);
         // Beyond reach: flagged, still finite, near full extension.
-        let ik = solve_leg_ik(l1, l2, [0.0, -2.0, 0.0]);
-        assert!(!ik.reachable);
+        let ik = solve_leg_ik(&rig, [0.0, -2.0, 0.0]);
+        assert_eq!(ik.reach, Reach::BeyondExtension);
         assert!(ik.upper_x.is_finite() && ik.lower_x.is_finite());
         let (fy, _) = fk_foot(l1, l2, ik.upper_x, ik.lower_x);
         assert!(
@@ -1612,14 +1898,192 @@ mod tests {
             "clamped to near full extension, got {fy}"
         );
         // Degenerate: target at the hip. No NaN.
-        let ik = solve_leg_ik(l1, l2, [0.0, 0.0, 0.0]);
+        let ik = solve_leg_ik(&rig, [0.0, 0.0, 0.0]);
         assert!(ik.upper_x.is_finite() && ik.lower_x.is_finite());
+    }
+
+    // ------------------------------------------------------- B7, tests 1b/10/11 --
+
+    /// **The S-5 acceptance, IK half** (audit § 8 test 1). Across the measured
+    /// sweep, the B7 solver is **bit-identical** to the pre-B7 closed form for
+    /// every target the pre-B7 solver could honestly serve — that is, every
+    /// target OUTSIDE the derived `d_min`. Inside it the two disagree by
+    /// construction, and the test enumerates that set rather than hiding it:
+    /// it is exactly the degeneracy § 5.3 retires.
+    #[test]
+    fn nothing_declared_leaves_the_solver_bit_identical() {
+        let mut compared = 0_usize;
+        let mut refused = Vec::new();
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            for rig in leg_rigs(&plan) {
+                let reach = rig.l1 + rig.l2;
+                // A sweep over the sagittal plane the renderer actually asks
+                // about: distances from a hair off the hip out past full reach.
+                for i in 0..=40 {
+                    for j in -6..=6 {
+                        let d = reach * f64::from(i) / 40.0;
+                        let a = f64::from(j) * 0.2;
+                        let t = [0.0, -d * a.cos(), -d * a.sin()];
+                        let ik = solve_leg_ik(&rig, t);
+                        let (uy, ly) = legacy_solve_leg_ik(rig.l1, rig.l2, t);
+                        let d_planar = (t[1] * t[1] + t[2] * t[2]).sqrt();
+                        if d_planar < rig.limits.d_min - 1e-9 {
+                            refused.push((plan.name.clone(), d_planar, rig.limits.d_min));
+                            continue;
+                        }
+                        assert_eq!(
+                            (ik.upper_x.to_bits(), ik.lower_x.to_bits()),
+                            (uy.to_bits(), ly.to_bits()),
+                            "plan `{}` target {t:?}: B7 must be BIT-identical outside d_min",
+                            plan.name
+                        );
+                        compared += 1;
+                    }
+                }
+            }
+        }
+        assert!(compared > 2000, "the sweep must be a sweep, got {compared}");
+        assert!(
+            !refused.is_empty(),
+            "the inner-sector set must be non-empty, or this test proves nothing \
+             about the mechanism being armed (A-3)"
+        );
+        println!(
+            "\nB7 IK identity: {compared} targets bit-identical; {} inside d_min \
+             (refused, not clamped)",
+            refused.len()
+        );
+    }
+
+    /// **Audit § 8 test 10.** The reachable set is the annulus **sector**: the
+    /// measured `d_min` per plan, and the stout's degenerate crouch honestly
+    /// refused instead of folding a knee to 180° to chase a target below the
+    /// ground (journal/0131).
+    #[test]
+    fn the_ik_reachable_set_is_the_sector_not_the_annulus() {
+        println!(
+            "\n§ 5.3 d_min MEASURED   {:>8} {:>8} {:>12} {:>12} {:>8}",
+            "l1", "l2", "|l1-l2|", "d_min", "ratio"
+        );
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            let rig = leg_rigs(&plan).remove(0);
+            let annulus = (rig.l1 - rig.l2).abs();
+            println!(
+                "{:<22} {:>8.3} {:>8.3} {:>12.5} {:>12.5} {:>8.1}x",
+                plan.name,
+                rig.l1,
+                rig.l2,
+                annulus,
+                rig.limits.d_min,
+                rig.limits.d_min / annulus
+            );
+            assert!(
+                rig.limits.d_min > annulus,
+                "plan `{}`: the sector's inner bound must be HONEST, not numerical",
+                plan.name
+            );
+            // The inner bound is the geometry, not a number: at full flexion the
+            // foot is exactly d_min from the hip, by the law of cosines.
+            let f_max = rig.limits.knee_min.expect("a derived fold magnitude").abs();
+            let (fy, fz) = fk_foot_local(rig.l1, rig.l2, 0.0, -f_max);
+            assert!(
+                ((fy * fy + fz * fz).sqrt() - rig.limits.d_min).abs() < 1e-9,
+                "d_min must BE the fully-folded foot distance"
+            );
+        }
+        // journal/0131's degenerate stout crouch: the sole target sits BELOW
+        // the ground (hip 0.440 − 0.45 drop = −0.010 m), so the planar distance
+        // is 0.010 against a 0.2366 m inner bound. Today: clamped, knee folded
+        // flat, ~10 mm residual, nobody told. Under B7: refused, and it says so.
+        let stout = leg_rigs(&stout_plan()).remove(0);
+        let ik = solve_leg_ik(&stout, [0.0, -0.010, 0.0]);
+        assert_eq!(
+            ik.reach,
+            Reach::BeyondFlexion {
+                joint: stout.lower.clone()
+            },
+            "the stout's crouch target is far inside d_min = {:.5}",
+            stout.limits.d_min
+        );
+    }
+
+    /// **Audit § 8 test 11.** The knee pole is a READ of declared data: flip the
+    /// declared sign and the solved knee flips with it, with no code path
+    /// selecting a side. (With nothing declared the range is symmetric, both
+    /// poles are admissible, and the pre-B7 forward convention survives as the
+    /// tie-break — the STAND-IN on `solve_leg_ik`, heir `stubs.md` B7-a.)
+    #[test]
+    fn the_knee_pole_comes_from_the_declaration() {
+        let base = leg_rigs(&longleg_plan()).remove(0);
+        let target = [0.0, -0.80, 0.0]; // well inside the annulus: knee must bend
+        let mut back = base.clone();
+        back.limits.knee_max = Some(0.0); // folds one way (a knee)
+        back.limits.knee_min = base.limits.knee_min;
+        let mut fore = base.clone();
+        fore.limits.knee_min = Some(0.0); // folds the other (an elbow)
+        fore.limits.knee_max = base.limits.knee_min.map(f64::abs);
+
+        let a = solve_leg_ik(&back, target);
+        let b = solve_leg_ik(&fore, target);
+        assert_eq!(a.reach, Reach::Ok);
+        assert_eq!(b.reach, Reach::Ok);
+        assert!(
+            a.lower_x < -1e-3 && b.lower_x > 1e-3,
+            "the declared sign must decide the fold: {} vs {}",
+            a.lower_x,
+            b.lower_x
+        );
+        assert!(
+            (a.lower_x + b.lower_x).abs() < 1e-9,
+            "the two poles are mirror images: {} vs {}",
+            a.lower_x,
+            b.lower_x
+        );
+        // Both solutions still put the foot on the target — the pole chooses
+        // WHICH WAY, never WHERE.
+        for ik in [&a, &b] {
+            let (fy, fz) = fk_foot_local(base.l1, base.l2, ik.upper_x, ik.lower_x);
+            assert!((fy - target[1]).abs() < 1e-6 && (fz - target[2]).abs() < 1e-6);
+        }
+    }
+
+    /// The cervical migration (§ 5.4) is byte-identical: the two constants that
+    /// left `body.rs` are the two numbers the plans now declare, and
+    /// `resolve_orientation` reads them rather than restating them.
+    #[test]
+    fn the_cervical_range_is_declared_and_unchanged() {
+        let yaw = 75.0_f64.to_radians();
+        let pitch = 45.0_f64.to_radians();
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            let c = Cervical::of(&plan);
+            assert_eq!(
+                (c.yaw_max, c.pitch_min, c.pitch_max),
+                (Some(yaw), Some(-pitch), Some(pitch)),
+                "plan `{}` must declare the migrated cervical range exactly",
+                plan.name
+            );
+        }
+        // A plan with no `look` role gets an unclamped neck — the same
+        // feature-off a missing name has always meant.
+        let mut faceless = biped_plan();
+        for s in &mut faceless.segments {
+            s.roles.retain(|r| r.role != "look");
+            s.dofs = None;
+        }
+        let c = Cervical::of(&faceless);
+        assert_eq!(c, Cervical::default());
+        let o = resolve_orientation(0.0, 3.0, -1.4, c);
+        assert!(
+            (o.neck_yaw - 3.0).abs() < 1e-12 && (o.neck_pitch + 1.4).abs() < 1e-12,
+            "an undeclared neck is unclamped, got {o:?}"
+        );
     }
 
     #[test]
     fn ik_is_deterministic_for_fixed_inputs() {
         let t = [0.03, -0.72, -0.15];
-        assert_eq!(solve_leg_ik(0.45, 0.43, t), solve_leg_ik(0.45, 0.43, t));
+        let rig = leg_rigs(&biped_plan()).remove(0);
+        assert_eq!(solve_leg_ik(&rig, t), solve_leg_ik(&rig, t));
     }
 
     /// The **approach** half of the facing split (user call #5). It chases a
@@ -2207,7 +2671,10 @@ mod tests {
         // the neck takes the WHOLE delta. Before 2026-08-01 the outputs were
         // snapped to an 11.25° grid and this could only be asserted loosely; the
         // split is now exact, which is the tightening the removal buys.
-        let o = resolve_orientation(0.0, 0.3, -0.2);
+        // The range is now READ from the plan (B7 § 5.4) instead of being two
+        // constants in this file — same numbers, declared home.
+        let c = Cervical::of(&biped_plan());
+        let o = resolve_orientation(0.0, 0.3, -0.2, c);
         assert!(o.trunk_yaw.abs() < 1e-12, "trunk holds within the clamp");
         assert!(
             (o.neck_yaw - 0.3).abs() < 1e-12,
@@ -2223,9 +2690,9 @@ mod tests {
         // A look far to the side drags the trunk; the neck bends only its max,
         // yet the head still ends up aimed exactly at the look (trunk + neck).
         let look = 2.0;
-        let o = resolve_orientation(0.0, look, 0.0);
+        let o = resolve_orientation(0.0, look, 0.0, c);
         assert!(
-            o.neck_yaw.abs() <= NECK_YAW_CLAMP_RAD + 1e-12,
+            o.neck_yaw.abs() <= c.yaw_max.expect("a declared cervical yaw") + 1e-12,
             "neck clamped to the cervical range, got {}",
             o.neck_yaw
         );
@@ -2240,9 +2707,9 @@ mod tests {
         );
 
         // Pitch clamps to the cervical range.
-        let o = resolve_orientation(0.0, 0.0, -1.4);
+        let o = resolve_orientation(0.0, 0.0, -1.4, c);
         assert!(
-            o.neck_pitch >= -NECK_PITCH_CLAMP_RAD - 1e-9,
+            o.neck_pitch >= c.pitch_min.expect("a declared cervical pitch") - 1e-9,
             "pitch clamped"
         );
     }

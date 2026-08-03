@@ -39,8 +39,8 @@ use glam::DVec3;
 use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
-    AnimState, LegRig, derived_gait, derived_root_delta_m, fk_foot_local, leg_rigs, pose_for,
-    resolve_orientation, root_offset_m, solve_leg_ik,
+    AnimState, Cervical, LegRig, Reach, derived_gait, derived_root_delta_m, fk_foot_local,
+    leg_rigs, pose_for, resolve_orientation, root_offset_m, solve_leg_ik,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
@@ -97,6 +97,10 @@ struct BodyAssets {
     /// The rigs stay AUTHORED geometry; the bake's `root_delta_m` is applied
     /// at the consumer (the pose loop), not inside the rig.
     legs: Vec<LegRig>,
+    /// The plan's DECLARED cervical range (B7 § 5.4), resolved once here — the
+    /// home of the two `NECK_*_CLAMP_RAD` constants that used to be world-global
+    /// and blind to the plan.
+    cervical: Cervical,
     /// The DERIVED resting root height, metres (posture bake, 2026-08-02:
     /// `bake_resting_posture(plan, "stand")` — the feet pin the pelvis, so
     /// the root lands at chain reach: biped 0.880, stout 0.440, longleg
@@ -247,6 +251,7 @@ pub fn sync_characters(
                     instance.anim.trunk_yaw,
                     f64::from(character.yaw),
                     f64::from(character.pitch),
+                    assets.cervical,
                 );
 
                 // ---- THE ONE VERTICAL COMPOSITION (design § 4.3) ------------
@@ -297,8 +302,21 @@ pub fn sync_characters(
                     {
                         let adjust = ground - foot_y;
                         if adjust.abs() > 1e-3 && adjust.abs() <= half_voxel {
-                            let ik = solve_leg_ik(leg.l1, leg.l2, [0.0, fy + adjust, fz]);
-                            if ik.upper_x.is_finite() && ik.lower_x.is_finite() {
+                            // B7: the limits ride ON the rig, so there is no
+                            // way to ask for a pose that ignores the joint.
+                            let ik = solve_leg_ik(leg, [0.0, fy + adjust, fz]);
+                            // One added condition (B7 § 5.3): skip the override
+                            // when the solve leaves the LIMIT SET, leaving the
+                            // clip pose — the foot floats honestly rather than
+                            // lying about contact, exactly as it already does
+                            // outside the half-voxel window. `BeyondExtension`
+                            // is the annulus's outer edge, not a limit, and
+                            // keeps applying as it always did.
+                            let within_limits = !matches!(
+                                ik.reach,
+                                Reach::BeyondFlexion { .. } | Reach::JointBlocked { .. }
+                            );
+                            if within_limits && ik.upper_x.is_finite() && ik.lower_x.is_finite() {
                                 // Applied exactly. The 11.25° snap that used to sit
                                 // here was removed 2026-08-01 (bodies.md § stepped
                                 // animation): it could not express the ~1° a planted
@@ -450,6 +468,14 @@ fn build_plan_assets(
         segs.insert(s.name.clone(), (mesh, material));
     }
     let legs = leg_rigs(&plan);
+    // B7's declared cervical range, and its band reports. A declared bound
+    // WIDER than the plan's own self-contact geometry is reported, never
+    // refused (a clockwork golem may want to bend wrong) — so it warns once,
+    // here, beside every other per-plan derivation.
+    let cervical = Cervical::of(&plan);
+    for report in &dc_api::bodies::derive_joint_limits(&plan).reports {
+        warn!("body plan `{name}`: {report}");
+    }
     // The DERIVED resting root (posture-bake consumer slice, 2026-08-02; audit
     // § 5): stop pinning the pelvis at the authored hip — bake the standing
     // posture once per plan and cache the root delta beside the rigs. On any
@@ -502,6 +528,7 @@ fn build_plan_assets(
         gait,
         segs,
         legs,
+        cervical,
         derived_root_m,
         root_delta_m,
         face: (face_mesh, face_material),

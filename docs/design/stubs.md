@@ -1631,6 +1631,13 @@ measure surface penetration); not the solve production runs.
 - **Blast radius:** anything heterogeneous in density reads wrong — a hollow-boned flier, a
   heavy-tailed biped, an armoured body. The three shipped plans are near-uniform, which is
   exactly why the proxy has been invisible (**A-1**: with uniform bodies, volume *is* mass).
+- **⚠ THIRD MEMBER, added 2026-08-03 (B7, joint limits):** the derived **end-range** is the same
+  stand-in one level out. `derive_joint_limits` bounds a joint by where the body's own **boxes**
+  intersect — geometry with no soft tissue, no ligament, no capsule, because at density ≡ 1 there
+  is no force to model one with. Measured against the literature it is **good where the end-range
+  is BONY and useless where it is LIGAMENTOUS** (knee flexion 155.02° derived vs 135–150° active /
+  ~160° passive; hip extension 149.79° derived vs a published 20–30°, over by ~5–7×). One proxy
+  now feeds **three** members — posture's CoM, the gait bake's cadence/duty, and B7's ranges.
 
 ### 41. one-global-speed-stands-in-for-a-per-body-range — *added 2026-08-02 (gait pass G4; user call #1 re-typed it rather than removing it)*
 - **What it fakes:** `CharacterConfig.walk_speed_m_s = 4.5` is **world-global** — one number for
@@ -1723,3 +1730,133 @@ measure surface penetration); not the solve production runs.
 - **Blast radius:** every derived gait's cadence, duty, vertical excursion and foot lift · the
   walk verdict on the bob specifically, whose ~65 % gap from the retired authored value **is the
   documented compass over-prediction and not a defect** · S3 is the one a walk can judge by eye.
+
+<!-- STUBS: unnumbered -->
+<!--
+  B7 (joint rotation limits) drafted five entries in its design pass § 6 and this
+  slice built them. The `### NN.` headings below are LITERAL PLACEHOLDERS — the
+  integrator assigns ordinals at merge, because a parallel user session shares
+  this checkout and ordinal collisions have happened six times in thirty hours.
+  Do not renumber, reorder or edit anything above this block.
+-->
+
+### NN. the-fold-sense-is-declared-because-our-bodies-have-no-front — *added 2026-08-03 (B7 slice one; design pass § 6 B7-a, finding J1, user call Q1)*
+- **What it fakes:** the derivation supplies a hinge's **magnitude** and structurally cannot supply
+  its **SIGN**. Verified exhaustively at source: in `biped_plan`, `stout_plan` and `longleg_plan`,
+  **every** segment has `pivot_m[2] = offset_m[2] = 0.0`, and sole anchors inherit `offset_m` — the
+  shipped bodies are mirror-symmetric fore-and-aft as well as left-and-right, so **they have no
+  front and there is no anterior datum to derive a fold sense from.** A knee folds posteriorly and
+  an elbow anteriorly on chains of identical topology and near-identical proportion; the difference
+  is which side the flexors are on, which is anatomy we do not model. Measured: every derived range
+  on every shipped plan is **exactly symmetric** (asserted in
+  `derived_limits_match_the_predicted_table`), so an undeclared joint hinges both ways. **That is
+  complete and honest, not a degraded mode** — the user ruled the premise out of existence: *"a
+  'knee' could bend backwards: it's not actually a knee until constraint is declared."*
+  Hyperextension is a concept that exists only relative to a declaration.
+  - The stand-in this leaves **in code** is narrower and sharper: `solve_leg_ik`'s knee pole. With a
+    one-sided declared range the pole is *determined* (exactly one candidate is admissible) and the
+    solver reads it. With a symmetric range — every shipped plan — **both** are admissible, and the
+    tie is broken by the pre-B7 forward-pole convention (*"the knee pole points forward (−Z), so
+    knees bend like knees"*): an undeclared anatomical assertion, world-global, blind to the plan,
+    demoted to a tie-break. Keeping it is what makes the identity default byte-identical.
+- **Heir:** a **declaration** (pack-side; the default pack's knee declaration lands with the gait
+  slice that retires `dc:anim/biped_walk`) · **anatomical asymmetry** where a body has any — *a
+  bearing chain's hinge folds so the distal segment moves away from the direction its terminal
+  segment extends*, live the moment a plan has a foot, a snout or a tail offset in z · **evolution**
+  inheriting a parent generation's constraint and mutating it (user ruling: **pack** behaviour on
+  the engine's declaration vocabulary, never an engine answer).
+- **Loudness:** ✅ `Bound::Undetermined { reason }` names the geometry at every underivable end ·
+  ✅ `⚠ STAND-IN` on `solve_leg_ik`'s doc comment naming this entry.
+- **Blast radius:** an evolved fore-aft-symmetric body gets an unsigned range, so hyperextension
+  remains possible for it — the ruling's own opening motive, honestly unmet at density ≡ 1 · a plan
+  whose knee should fold forward renders backwards until it says so.
+
+### NN. the-derived-limit-tests-distal-extent-only — *added 2026-08-03 (B7 slice one; design pass § 6 B7-b, § 3.6)*
+- **What it fakes:** L3 tests, per joint, the corners of each box in the rotating subtree that are
+  **farthest from the joint's pivot**, against **ancestors only**. Three known misses:
+  1. **Shaft contact.** A long child whose *tip* sails past an ancestor while its *shaft* would
+     graze it returns `Undetermined`. **`dc:body/longleg`'s hip is exactly this case** — the 0.52 m
+     thigh's distal corner clears the trunk's top (`y = 0.5`) before its `z` re-enters.
+  2. **Siblings.** The biped's knee lateral bound of **157.586°** is against its own thigh; swinging
+     the shank medially would put it through the *other* leg, and L3 does not look.
+  3. **Proximal geometry.** The corners nearer the pivot are deliberately not tested, because a
+     parent and child box **abut at the pivot** by construction and testing them returns **0° for
+     every joint on every plan** (the design pass's L1 degeneracy). Every rescue that keeps them is
+     an exclusion radius, i.e. a tuning constant with no derivation.
+  Related, and honest rather than faked: a distal point already intersecting an ancestor **at rest**
+  (within the resting bake's accumulated-rounding `EPS_M`) is reported as a graze in the authored
+  geometry, never as a 0° limit. `dc:body/stout`'s upper arms are drawn flush against its trunk and
+  its two shoulders land on **opposite sides** of the f64 boundary; read as an entry, that welded
+  both arms and rejected the shipped idle clip.
+- **Heir:** a swept-volume self-collision test with a derived articular neighbourhood (rounded bone
+  ends, compliant tissue) — which needs an articular model, so **B6-adjacent**; plus a sibling pass
+  once any body has limbs that can reach each other.
+- **Loudness:** ✅ every `Undetermined` prints its reason, naming the ancestor and which extent
+  missed · ✅ the module doc states the law and its misses at the top.
+- **Blast radius:** under-catch only — the bound is an **outer** bound and never falsely rejects a
+  pose a real animal of that shape could hold. A body that can put a limb through its own other limb
+  will do so silently.
+
+### NN. the-euler-box-over-approximates-a-ball-joint — *added 2026-08-03 (B7 slice one; design pass § 6 B7-c, § 2.3)*
+- **What it fakes:** a joint's reachable set is a **per-axis min/max box in Euler space**. For a
+  hinge that is exact — a rotation about a single coordinate axis is a one-parameter subgroup and
+  the box's face is exactly its boundary. For a **ball** joint (shoulder, hip) the true reachable
+  set is a swing cone, and a 3-DOF box's corners are poses a real cone cannot reach: the box
+  **over-approximates**, so it under-catches. It never falsely rejects.
+- **Heir:** **swing-cone + twist** (the standard rig representation), to land when a body exists
+  whose shoulder range anyone has measured. Rejected for slice one because a hinge expressed as a
+  degenerate ball is a hinge whose one-DOF-ness is an accident of two numbers being zero — the same
+  silent-coincidence shape as the hand-typed limb symmetry that opened this arc — and because it
+  buys nothing today: all three plans' shoulders derive **`Undetermined`**, so the cone would be
+  constraining nothing more precisely than the box.
+- **Loudness:** ✅ `⚠ STAND-IN` in-module at `DofDef`.
+- **Blast radius:** shoulders and hips on any body whose ball joints someone bothers to bound; a
+  swing-and-twist combination in the box's corner passes validation and looks wrong.
+
+### NN. a-dof-axis-can-only-be-x-y-or-z — *added 2026-08-03 (B7 slice one; design pass § 6 B7-d, § 2.4)*
+- **What it fakes:** `Axis` is `{X, Y, Z}`, so an **oblique hinge axis** — a bird's ankle, an
+  insect's — is inexpressible. The reason is worth stating as a design law rather than an apology:
+  **the DOF vocabulary can only be as rich as the pose representation.** X/Y/Z is exactly what an
+  XYZ Euler triple can carry (`JointRot.euler`, `Pose.joints`,
+  `Quat::from_euler(EulerRot::XYZ, ..)`); an arbitrary axis needs the pose to become axis-angle or
+  quaternion.
+- **Heir:** a **non-Euler pose representation** — a wire change of a different order, and explicitly
+  **not** in the pre-B3 window.
+- **Loudness:** ✅ `⚠ STAND-IN` in-module at `Axis`.
+- **Blast radius:** any evolved or authored body whose real hinge is not axis-aligned must either be
+  re-authored so it is, or lose its limit; the derivation still answers per axis and would bound the
+  wrong plane.
+
+### NN. a-limit-that-cannot-know-soft-tissue — *added 2026-08-03 (B7 slice one; design pass § 6 B7-e, § 3.3 — and the literature check is what found it)*
+- **What it fakes:** the derivation is pure box geometry, so wherever a real end-range is
+  **ligamentous** rather than **bony** it over-predicts badly. Measured on `dc:body/biped` against
+  published human ranges of motion — **⚠ the published figures are carried forward from the design
+  pass with its own disclaimer intact: from the assistant's knowledge, NOT network-verified (AAOS/AMA
+  goniometric norms as reported in Norkin & White, *Measurement of Joint Motion*; passive knee flexion
+  per Kapandji, *The Physiology of the Joints*). This build had no network either and adds no citation
+  of its own:**
+
+  | joint | derived | published | verdict |
+  |---|---|---|---|
+  | knee flexion | **155.02°** | 135–150 active, ~160 passive | in band, from cuboids, nothing fitted |
+  | elbow flexion | **155.72°** | 145–150 | in band, ~4 % over |
+  | hip flexion | **149.79°** | 120 | ~25 % over, plausible-shaped |
+  | **hip extension** | **149.79°** | **20–30** | **over by ~5–7× — the iliofemoral ligament, not bone** |
+  | cervical flex/ext | **59.74°** | 45–50 / 45–70 | *inside the extension band* |
+  | cervical lateral | **59.74°** | 45 | ~1.3× over |
+  | cervical rotation | **undetermined** | 60–80 | geometry says nothing at all |
+
+  **The pattern is the finding, and only a literature check could have shown it: the derivation is
+  good where the end-range is BONY and useless where it is LIGAMENTOUS.** Knee and elbow flexion stop
+  when the calf meets the thigh — geometry, and we get it right. Hip extension and cervical rotation
+  stop when a ligament stops them — force, and we have none.
+- **Heir:** **B6** — passive tissue is force, and the same mass/material integral serves harvest
+  yield, evolutionary fitness, standing posture and flotation. See also `mass-is-volume-until-b6`,
+  which this widened to a third member.
+- **Loudness:** ✅ the band report at define (a declared bound outside the derived one is **reported,
+  never refused**) and warned once per plan by the renderer · ✅ `report_the_literature_comparison`
+  prints the table under `--nocapture` and asserts nothing, because a published band is not ours to
+  assert.
+- **Blast radius:** every joint whose real limit is soft tissue is unbounded or wildly wide until a
+  pack declares it — the correct division (declaration is content's job), but it means the derived
+  default is not by itself a plausibility model, only an impossibility bound.
