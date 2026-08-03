@@ -356,6 +356,47 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### GRAVITY BECOMES A WORLD PARAMETER — **DECIDED 2026-08-02 (user); step 1 LANDED (ungated), steps 2–4 OWED**
+
+**Doc: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) § *Gravity is a WORLD constant, and it
+defaults to Earth*** (with its same-day SDK/geo-pass widening). `25.0 m/s²` was a bring-up
+artifact nobody chose; *existence is not standing, applied to a physical constant*.
+
+1. ~~**The flip + one authority**~~ **✅ LANDED 2026-08-02 (`bd0c82c`, renamed `26bf42f`) — ⚠ UNGATED,
+   the gate is the first thing owed.** `dc-core::DEFAULT_GRAVITY_M_S2 = 9.81`; **three** hardcoded
+   `25.0`s collapsed (`CharacterConfig`, `dc-client` player, and `PhysicsConfig` — the third found
+   only by doing it, and its doc comment *named the file holding the authority and copied the
+   digits anyway*). **Gate owed on dc-core / dc-api / dc-client / dc-physics** — blocked at the time
+   by the sibling session's 69-minute P2 sweep.
+2. **One place to SET it — the configuration half, still open.** Three configs each hold their own
+   `gravity_m_s2` field, all merely *defaulting* to the constant, so a world wanting Mars gravity
+   sets it in **three places**: the same defect moved from the literal to the field. End state is
+   one world-level value the three derive from. **Consumer: E7's per-world manifest** — the same
+   loader `CadenceTable` waits on. *Recorded in `world_constants.rs`'s module docs too, because a
+   fix that closes the visible half and leaves the other half unnamed is how the visible half
+   comes back.*
+3. **SDK exposure** (user: *"world grav should be exposed on sdk surface"*) — gravity becomes a
+   primitive passes declare against, per the north star.
+4. **Pass adoption, one slice each, each with its own literature check.** **Measured 2026-08-02:
+   ZERO worldgen passes consume gravity** — every `gravity` hit in `dc-worldgen` is a *doc comment*
+   describing the mechanism beside code that never receives it (`creep.rs:18` calls itself *"the
+   gravity/mass-wasting member"* and takes no `g`). Real consumers: lithostatic pressure `ρ·g·h`
+   (burial/compaction/diagenesis) · grain settling velocity (Stokes) · transport capacity and
+   stream power · isostasy · hillslope diffusion. **⚠ A pass may NOT factor `g` back out of an
+   empirically fitted constant and call the result derived** — `EROSION_CALIBRATION` is the live
+   case, already owed a literature-derived re-pick (P2).
+
+**⚠ ORDER IS LOAD-BEARING AND STEP 1 IS ALREADY BANKED.** Once a pass reads `g`, gravity joins the
+seed and the frozen content set as **world identity** and changing it moves **terrain**. Nothing
+consumed it on 2026-08-02, which is exactly why the flip went in that day — it moved **no terrain
+golden**, only character/player/item motion. **Steps 3–4 close that window permanently.**
+
+**The one taste consequence, now consciously owned rather than inherited:** jump **apex is
+unchanged** (the jump is height-parameterised — launch velocity `√(2gh)` puts the apex at exactly
+`h` at any gravity, a good piece of bring-up design that survives), but everything is **≈1.6×
+floatier in TIME** — longer arcs, slower falls. High gravity for snappy jumps is a common voxel-game
+choice and is the likeliest unexamined origin of `25`.
+
 ### MEMBERS INTO DEEP HISTORY — **DECIDED 2026-08-01 (user), TOP PRIORITY — ripples through everything below**
 
 **WHAT.** The deep record stops being class-grade: member materials (registry
