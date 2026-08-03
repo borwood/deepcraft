@@ -2855,6 +2855,20 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   forced one-cell-per-column. A design conversation, user-called; do not build against
   an assumed answer.** Neighbours: the far-register heir (refinement-operator budgets),
   MM-3/SubCell (the shipped mechanism), the acceptance walk (P-7, owed).
+  - **STATION RECORDED 2026-08-03 (geo session, in the kept-open game; corrections-#48
+    gap closed):** contact zone at the x≈82,483 m cell edge on station 1's transect —
+    mudstone-presence flip bracketed 82,400→82,480→82,560 m at z = 13,334 m (a
+    four-material mix appears at the contact and vanishes 80 m to either side). Bench
+    cut voxels (91620–91690, 238–264, 14816–14830). **Wall pose: feet (82490, 215.5,
+    13346) m, yaw 0, pitch +0.12** — assets `0147-interfinger-contact-wall.png` (+
+    `-benchcut` rim view). **And the wall sharpened the finding: the contact is
+    recorded-record vs UNRECORDED BASEMENT at the same elevation** (left: banded
+    sandstone/conglomerate strata, `has_contents: true`; right: `dc:stone`,
+    `has_contents: false`, floor-to-rim razor-vertical) — the membership dither
+    transplants not only stratigraphy but **record EXTENT**, so a column boundary can
+    be a full-height cliff between "the world has history here" and "the world has
+    none", which no bed-level blending of identities alone would dress. The design
+    conversation must cover the record-depth discontinuity, not only the mix.
 
 - **🟢 RESOLVED same night — the bodies session's arc gate (`0e344ca`) caught and fixed it
   as its defect #4 (a hand-maintained pinned tool list vs their `character_clear_look`
