@@ -7,7 +7,7 @@
   },
   "staleness": "d8407e1",
   "spine-audit": "3cf8778",
-  "doc-topology": "d8407e1",
+  "doc-topology": "2985273",
   "_baseline": {
     "commit": "f652b60",
     "date": "2026-07-28",
@@ -33,11 +33,20 @@
     "findings": "12 (F1-F12). SECTION 3: one row EMPTY-ABLE (resting-posture bake - bake_resting_posture got its named production caller at dc-client/src/body.rs:434 in f4e7f75 and the row was not emptied; 19 -> 18), NO row added. HEADLINE F1: P11 slice 2 replaced `providers.outcrop_shares(&[])` - the bedrock-composition seam call - with a hardcoded DEEP_BASEMENT=GRANITE constant at erosion/{transport.rs:174,weathering.rs:421}, while three comments still say 'the same walk asked with an empty section' and 'Nothing is named here'. Value identical, claims false; and A-7's own worked-forwards instance (spines.md:2066-2072) now describes code that no longer exists. F2: A-7's 'TWO places' enumeration is short by three named MaterialId constants (REFERENCE_MATERIAL, DEEP_BASEMENT, ANCHOR_MATERIAL) - two asked for by a ratified design pass, colliding with an anti-shape declared NOT ratifiable. USER-OWNED. NOT APPLIED - the integrator adjudicates."
   },
   "_doc_topology_last_run": {
-    "commit": "d8407e1",
-    "date": "2026-08-02",
+    "commit": "2985273",
+    "date": "2026-08-03",
+    "mode": "FULL (143 commits since d8407e1; two arcs shipped in the window - GEO-3 (P11 slices 1/2/3, erosion split, FS-A, P2 measurement runs, E4+E4-1, the stratigraphic-correlation pivot) and bodies (posture bake, look ownership, gait bake + consumer, the derived-gait walk))",
+    "audit": "docs/audits/2026-08-03-doc-topology-sweep.md",
+    "read_at": "9fd6430 (worktree agent-a82d628ce6a56c778; = 2985273 plus this audit's own skeleton commit, no source/doc file differs)",
+    "coverage": "SPINE-FOLLOWING, not 100%. All 15 delta journal entries (0136-0150) in full + doc-topology SKILL + dependency-graph.md in full + ROADMAP's TWO live close blocks and the superseded 08-02 bodies block, checked against themselves + ROADMAP sec Observed + the P11 arc entry + every cited target in its relevant section (S13-results, ARCHITECTURE sec Gravity, spines A-2, the slice-3 and correlation audits, the P2 runs doc, journal/0122, flow.md sec 5). NOT OPENED: north-star.md (untouched in delta but read-first item 0 - skipped on the artifact-count bound, NOT because it is clean), spines.md beyond A-2, stubs.md ordinal space, and the design docs (material-behavior/materials/geology/bodies/posture-gait/refinement/ecology/ores) which were GREPPED ONLY. SHAPE 1 ACROSS THE DESIGN DOCS WAS EFFECTIVELY NOT RUN and two arcs' rulings landed in them - that is the largest known hole. ROADMAP sec In flight and most of sec Sequenced unread (staleness sweep's axis, also overdue FULL).",
+    "findings": "11 pairs (F1-F11) + 1 shape-7 candidate (the pits bar, NOT resolved) + a shape-3 null with one reciprocity caveat (the smoothness principle is absent from refinement.md). ZERO corrections filed - every finding's honest disposal is a banner, a postscript, or a pointer fix, not a new ordinal; if the integrator disagrees on F1 the next free number was #98 at 9fd6430 and MUST be re-verified at merge. HEADLINE F1: journal/0141 states in its own body that the ratified 60 s pregen budget 'was not moved' and that 'moving a gate to admit one's own work is not a fix' - the user renegotiated it to 1,200 s at that same slice's merge (s7_measurements.rs:34-40, ROADMAP:540), and 0141 is the one arc entry of three with no merge postscript. F2 is its twin: S13-results.md's option C (230 m deep cells - 'the only candidate that makes the summit plateau into a landform') is priced out by that same <60 s bound, carries no banner, and the renegotiation record NAMES S13 while recording it. F3: DEEP_MAX_WIDTH=550's stated justification is that same expired bound - a third A-2 instance spines.md does not list. NOT APPLIED - the integrator adjudicates.",
+    "superseded_by_this_run": {
+      "commit": "d8407e1",
+      "date": "2026-08-02",
     "mode": "FULL (128 commits since 72fbe86; two arcs shipped in the window - P11 design+slice 1, bodies B0 + posture-bake member #0)",
     "audit": "docs/audits/2026-08-02-doc-topology-sweep.md",
     "coverage": "SPINE-FOLLOWING, not 100%. The P11 arc + the bodies arc + read-first items 1c/3/4/6 + the two arcs' cited design docs. NOT OPENED: docs/spines.md (306 lines changed in the window), docs/design/ideas.md (136 added), flow.md, refinement.md, ecology.md, session-workflow/wrap SKILLs. SHAPE 3 (user-originated design reconciled away) WAS NOT RUN AT ALL - ideas.md is its primary locus and went unread. A null on shape 3 from this run is not a result.",
     "findings": "13 pairs (F1-F13) + 1 shape-7 candidate, not resolved. Zero corrections.md entries proposed. TWO ORDINAL COLLISIONS ARE THE HEADLINE: corrections.md has two #85 and two #86; stubs.md has two #34 and its only external citation calls one of them #33 - both from parallel-session wraps assigning 'next free' without re-reading at the tip, the third and fourth instances of that act in 24 hours (journal 0135 was the first two). Highest-value single banner: material-behavior.md 13.8b argues the exact premise P11 ruling 1 overturned, on the read path of the slice-2 dispatch. NOT APPLIED - reported for the integrator per the standing rule."
+    }
   }
 }
