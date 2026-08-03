@@ -4387,8 +4387,19 @@ arc's live close block (the tripwire trio was authorized expected-red all along)
    an output of the per-species bake); the bob's disposal is decided at the gait-bake
    design pass, not by a wiring fix. #80's space-layering FACT stands (solver hip vs
    render root, two expressions that can drift).**
-3. **The gait-bake design pass** — inherits the posture key, the landed rest pose, a
-   motion verdict, and OWNS stubs #34 (clip role-binding, before B3 moves the firewall).
+3. ~~**The gait-bake design pass**~~ **✅ SHIPPED 2026-08-02 —
+   `docs/audits/2026-08-02-gait-bake-member1-design.md`, FIVE user calls ruled in its header,
+   BUILD NOT YET GREENLIT (the user is reading the pass first; member #0's precedent is an
+   explicit greenlight before code).** It inherited the posture key, the landed rest pose, a
+   motion verdict, and owned stubs #34. Outcomes: the **bob is not a term anywhere** — root
+   height becomes one `root_offset(posture, mode, phase)` read by both the IK hip and the
+   render root, so corrections #80's drift is *structurally impossible* and a body whose
+   contacts never alternate bobs **exactly zero by construction** (the user's "not uniformly
+   for all bodies", with no toggle); the shipped walk clip decomposed to **a coherent walk at
+   1.84 m/s played at 4.5** (the skate), demanding **0.154 m** of bob against an authored
+   0.040 (the hover from a third direction), and **internally inconsistent by 46 mm**; stubs
+   #34 resolves as **one `BindTarget` across all four binders**. Seven bones-found-missing
+   findings (G1–G7) — the "cautiously ratified" qualifier working. Zero CONTESTS.
 
 ### Owed / unverified
 - **Workspace-green is blocked on P11 slice 2's single re-capture** (geo-owned; their
