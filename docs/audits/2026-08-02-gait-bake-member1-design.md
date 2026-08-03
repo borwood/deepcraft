@@ -41,6 +41,23 @@
 > upstream of this member: the bake, the IK solver, the validator, clip validation and every
 > evolved body all want it. Scoped as its own thread; not folded into this pass silently.
 
+> **⚠ USER CALL #2 RULED 2026-08-02: `Keyframe.root_bob_m` LEAVES THE SCHEMA.** *"A, remove
+> it while it's still a recompile."* Not kept dormant (a field nothing reads is the stub this
+> corpus catalogs — someone sets it, something reads it "just for jump", and the two-authority
+> condition that produced corrections #80 is back), and not kept as a per-clip override (the
+> clip/gait split already routes one-shots).
+>
+> **⚠ SEQUENCING, stated because the ruling is a WHAT and not a WHEN, and the difference has
+> already cost this arc once:** the removal **rides with the derived `root_offset(posture,
+> mode, phase)` in the same slice**. Deleting the field on its own is an unratified appearance
+> change with no replacement behind it — the exact option the user declined earlier the same
+> day (*"A it is"*, ride as-is until this pass ruled). **The deadline is real and is the
+> window the user named: it is a recompile while nothing persists a clip, and a WIRE MIGRATION
+> once B3 makes the pose a versioned sim asset** — the same deadline B7 and `stubs.md` #34
+> ride. Three fields die together and none of them alone: the walk bob **retires with its
+> clip**, the jump bob is **deleted as a double authority with the mover**, the idle bob is
+> **deleted as a root translation** (breath belongs in joints).
+
 **Status: DESIGN PASS. Nothing else here is ratified and no code was changed.** The deliverable is
 this document. It works `posture-gait.md` § 7 member 1 — **including its user-ratified expanded
 docket (a)–(e), 2026-08-02** — against the ratified bones (§§ 2–6) and the post-member-#0 code,
