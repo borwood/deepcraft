@@ -58,6 +58,18 @@
 > clip**, the jump bob is **deleted as a double authority with the mover**, the idle bob is
 > **deleted as a root translation** (breath belongs in joints).
 
+> **⚠ USER CALL #3 RULED 2026-08-02: `dc:anim/biped_walk` is RETIRED as shipped content and
+> parked as a test fixture** — *"Sure, A. Mostly because it's not worth doing anything with."*
+>
+> **The user's reason is recorded verbatim because it is NOT this pass's reason, and the
+> difference governs what may be built on it.** This pass argued the clip has evidentiary value
+> (a measured human-authored attempt to check the derivation against). The user ruled A on the
+> narrower ground that **removing it is not worth the effort** — parked, not enshrined.
+> **So: no comparison harness, no "derivation agrees with the animator to within X" acceptance
+> test, no ceremony around it.** It stops being content, it stays in the tree, and anything
+> further wants its own ask. *(The evidentiary framing above is the assistant's; attributing it
+> to the user would be corrections #86's error repeated.)*
+
 **Status: DESIGN PASS. Nothing else here is ratified and no code was changed.** The deliverable is
 this document. It works `posture-gait.md` § 7 member 1 — **including its user-ratified expanded
 docket (a)–(e), 2026-08-02** — against the ratified bones (§§ 2–6) and the post-member-#0 code,
