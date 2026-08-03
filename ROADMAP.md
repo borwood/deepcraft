@@ -4568,7 +4568,100 @@ live and caught both of today's collisions. Gate logs: `%TEMP%\wrap-trio.log`
 
 ---
 
-## NEXT SESSION — written at the 2026-08-02 BODIES close (the bodies thread's pickup; the geo thread's is the GEO-2 block above, its FINAL predecessor archived to history — both threads live, two parallel arcs)
+## NEXT SESSION — written at the 2026-08-03 BODIES close (⚠ **THE PARALLEL PATTERN ENDS HERE — next session is SINGLE-THREAD** and holds BOTH this block and the GEO-3 block above)
+
+**Read first:** sweeps hook → `docs/dependency-graph.md` § 2b (rows **B7**, **B8**, and **B6**'s
+eight inbound edges) → this block → the GEO-3 block above → journals **0142, 0144, 0147, 0148**
+→ corrections **#93, #94, #96, #97** (all four the assistant's own).
+
+### The paragraph that matters
+**Locomotion stopped being an authored clip.** A body's cadence, stride, duty, foot lift and
+vertical motion are now computed from its own skeleton — shipped headless (0144), consumed by
+the renderer (0147), and **walked with the user (0148)**. Verdicts: rest *"the bob is gone…
+soles are planted"*; motion *"they genuinely look pretty good… the cadence difference is very
+clear, i like it"*; the bob *"a tad exaggerated but — they're block people."* **We predicted
+that bob verdict from the literature before taking the walk** — 6.6 cm compass vs 4.6 cm
+measured (Saunders/Inman/Eberhart 1953) — which is the measure-against-the-literature rule
+paying forward instead of backward. `Keyframe.root_bob_m` left the schema; corrections #80's
+two-authority hover is now **unrepresentable rather than fixed**. Workspace **980 passed / 94
+suites / 0 failed**.
+
+### Ratified this session, in the user's terms
+- **Look ownership** — move intent defaults to look-follows-travel; `set_look` HOLDS until the new
+  `clear_look`. *"A definitely sounds like the right call"*, plus the multi-segment-neck
+  compartmentalisation caveat, which the chain-solve design later honoured.
+- **"It's not actually a knee until constraint is declared"** — the ruling that **dissolved** B7's
+  J1 rather than answering it. Engine = declared limits plus whatever geometry supplies; magnitude
+  in both directions is complete and honest. **Inheritance of fold sense is PACK behaviour**
+  (copy-or-mutate the parent generation), correcting an assistant partition error.
+- **Gravity is a WORLD constant defaulting to Earth** — *"nobody ever consciously chose 25 m/s²"* —
+  widened same day to **the SDK surface, consumed by geo passes**. Three hardcoded `25.0`s
+  collapsed to one authority.
+- **Locomotion lean is NOT a posture** — a term in the posture solve; support is a MODE, timing is
+  a GAIT, lowering is CROUCH, and what remains is one continuous lean.
+- **Proportion variation: SIZE FIRST**, declared allometric axes later; range=engine,
+  distribution=pack, **pack owns fairness**.
+- **The sim owns the target; the client owns the approach** — *"good pattern to stick with in
+  bodies"*, now its own `bodies.md` section with three instances.
+- **Blast radius is not a reason for conservatism** at this stage — *"we can fix anything that
+  breaks"* — explicitly **not** a retirement of the gates.
+- **Three keyframes**, **`root_bob_m` out of the schema**, **`biped_walk` retired** (*"mostly
+  because it's not worth doing anything with"* — parked, **not enshrined**), **root segment
+  welded** (provisionally — see Owed).
+
+### Falsified — the assistant's own, first
+**#93** a fix-framing built on unratified content (the bob), which the board had carried and this
+session propagated · **#94** *"look-at is outside the sim-visible set"* — false for the gaze,
+which aims perception; one word, two mechanisms · **#96** *"you can't ship a broken main"* — a
+real principle imported at the wrong scale, and the **second invented constraint presented as a
+property of the problem** in one hour · **#97** *"a stand-in marked in code is filed"* — four B6
+heirs shipped to **no locus**, caught by the user asking a question, **and the entry's own origin
+date was wrong and had to be corrected within the hour** (they shipped in slice ONE and survived
+the integrator's own gate, a merge, and a second slice).
+
+### First things next session — single thread, and they are ordered
+1. **B6 (per-segment materials/mass) is the strongest candidate on the board, and the argument is
+   empirical:** at the 0148 walk **the user independently found THREE of its four stand-ins by
+   eye** — the bob reading high, the missing push-off flexion, the run's absent vertical — without
+   being pointed at any. Eight named inbound edges (graph B6). *This is a claim about priority,
+   not a ruling — the bio/eco gate remains a user call.*
+2. **The 12 fps call, now takeable.** Its stated precondition (*"a body whose feet actually reach
+   the ground"*) was met at this walk, and the walk gave a **non-taste** reason: a fixed 12 fps
+   **aliases** a derived cadence (stout 4.29 frames/cycle vs biped 6.97). **User leaning is
+   FORFEIT and is recorded as a LEANING, not a ruling.** Keep the diagnosis either way: quantize
+   per **CYCLE**, not per second.
+3. **B7's build** — design done (`2026-08-02-joint-limits-b7-design.md`), all seven calls closed.
+   Its **five stubs land WITH the build**, deliberately not before (they describe code that does
+   not exist). Wants the pre-B3 window.
+4. **The walk loop has no stop channel** — the user built a *wall*. Leash radius, bounded intent,
+   or a freeze-all verb; none designed.
+
+### Owed / unverified — read before trusting anything
+- **The root weld is PROVISIONAL** against two live threads the user named: idle root-motion as a
+  legitimate expressive technique, and — sharper — **the weld silently decides that death/knockdown
+  must come from physics**, which was never discussed.
+- **`swing_gain` (stubs #43) is a stand-in for a STOP TRANSITION nothing owns.** The design pass's
+  `clearance` was speed-invariant; taken literally a body stopping mid-swing freezes with a foot in
+  the air. Heir: the stop transition, which `posture-gait.md` § 4 explicitly does not design.
+- **A control that diffs in-code stand-in markers against the three loci does not exist** (#97).
+  Scope measured and left open: `heir` appears at 200+ in-code sites across ~40 files; grep cannot
+  separate a real stand-in from prose. **Finding out is the task.**
+- **`stubs.md` is briefed as off-limits to agents and the rule is too broad** — the hazard is the
+  ORDINAL, not the content. Proposed narrowing: agents write the entry, the integrator numbers it.
+- One **foreign uncommitted change**: `plugins/demo-builder/Cargo.lock` (+52 lines, a lockfile
+  update). Not this session's and deliberately left — shared checkout.
+
+### Machine state at close
+**⚠ THE GAME IS DELIBERATELY LEFT RUNNING** (`dc-client` pid 50396; MCP dev 7777, character 7778)
+**at the user's request, for the geo thread's walk.** The scratch world carries this session's
+station: a cut stone bench with a ~63 m runway at **x −46…−24, z −72…−2, y ≈ 1015**, six parked
+characters, and **a wall the user built** to stop them walking off a ledge. Scratch-pad doctrine
+applies — it is not pristine terrain if geo wants an untouched station. All worktrees pruned; no
+`.agent-build.lock`; working tree otherwise clean and pushed.
+
+---
+
+## ~~NEXT SESSION — written at the 2026-08-02 BODIES close~~ **SUPERSEDED by the 2026-08-03 BODIES block above** (the bodies thread's pickup; the geo thread's is the GEO-2 block above, its FINAL predecessor archived to history — both threads live, two parallel arcs)
 
 **Read first:** sweeps hook → `docs/dependency-graph.md` § 2b → this block → journals
 **0135, 0137, 0138** → corrections **#85–#87, #92** (all this session's own) →
