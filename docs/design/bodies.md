@@ -488,6 +488,24 @@ with no toe and no heel.
 - **The bend is DECLARED, at any level of specificity, by any author** (user): *"hand authored,
   mcp authored, evolution authored can all config the bend of a knee at different levels of
   specificity."* One vocabulary, three minting clocks — the same shape as postures and the bake.
+- **⚠ AND THE FRAMING THAT DISSOLVES THE WHOLE PROBLEM (user, 2026-08-02): *"it's not actually
+  a knee until constraint is declared."*** An undeclared joint that hinges both ways is **not a
+  hyperextending knee — it is a joint**. *Hyperextension is a concept that exists only relative
+  to a declaration*, so the geometric derivation is not failing to prevent anything; there is
+  nothing yet to prevent. **This retires B7's J1 as a tension** (which asked how the derived
+  default could deliver *"plausible limits by construction"* when it cannot supply a sign) and
+  it retires the assistant's framing of a backwards-bending joint as a defect the engine owes a
+  guard against. The engine's contract is exactly: **declared limits, plus whatever geometry can
+  supply where a declaration is absent or incomplete — magnitude only, both directions, and that
+  is a complete and honest answer.**
+- **ENGINE / PACK PARTITION, ruled in the same breath and correcting an assistant error:**
+  phylogenetic **inheritance of constraints is PACK behaviour, not engine machinery.** Evolution
+  mints a generation by taking the previous generation's constraint and *"either copy it forward
+  or mutate it, generally speaking"* (user) — an evolution-pack concern, sitting on the engine's
+  declaration vocabulary like any other content. **The assistant had proposed inheritance as the
+  engine's answer to J1**, which put a pack mechanism in the engine's lap and is the partition
+  error `dependency-graph.md` § 0 exists to prevent. A novel limb with nothing to inherit from
+  simply **has no constraint** — legal, honest, and not a gap needing a loud refusal.
 - **Unspecified is not "unlimited" and not "assume a hinge": the joint HONESTLY HAS NO
   PREFERENCE** (user's words). It keeps the derived magnitude bound in **both** directions and
   declares no sign — the honest-absence pattern this corpus uses everywhere (`Undetermined{reason}`,
