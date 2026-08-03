@@ -1645,17 +1645,31 @@ measure surface penetration); not the solve production runs.
   the stout, whose 0.44 m legs put it at **Fr 4.69** on the shared constant — the worst-served
   body and the one whose proportions the arc exists to respect.
 
-### 42. the-binary-loco-switch-discards-an-analog-intent-that-already-exists — *added 2026-08-02 (user call #1's own finding)*
-- **What it fakes:** `AnimState` collapses movement to a two-state `enum Loco { Idle, Walk }`
-  at `dc-client/src/body.rs:199`, switched on `WALK_SPEED_THRESHOLD_M_S = 0.35` (`:49`, used at
-  `:240`). **The analog magnitude it discards already exists end to end**: `SetMoveIntent.speed`
-  is a `[0,1]` fraction carried through the one door, receipted and replayed. The stand-in is
-  not the missing analog channel — it is the *discarding* of one we already have.
+### 42. the-binary-loco-switch-discards-an-analog-intent-that-already-exists — *added 2026-08-02 (user call #1's own finding)* — **✅ DISCHARGED 2026-08-03 (gait member #1 slice two, journal/0147)**
+- **What it faked:** `AnimState` collapsed movement to a two-state `enum Loco { Idle, Walk }`,
+  switched on `WALK_SPEED_THRESHOLD_M_S = 0.35`. **The analog magnitude it discarded already
+  existed end to end**: `SetMoveIntent.speed` is a `[0,1]` fraction carried through the one
+  door, receipted and replayed. The stand-in was not the missing analog channel — it was the
+  *discarding* of one we already had.
 - **Heir:** the **graded Froude ladder** (gait member #1), user-ruled 2026-08-02: *"when we have
   controller support an analog stick can actually grade intent up the ladder."* **Never a
   discrete gait switch** — that is the ruling's explicit prohibition.
-- **Loudness:** owed — the two constants should name this entry in-code when the gait build
-  touches them.
-- **Blast radius:** every driven body's gait selection · the controller mapping when it lands
-  (which needs no new wire surface, only this to stop throwing the magnitude away) · the
-  walk/run transition, which cannot exist while the switch is binary.
+- **✅ How it was discharged.** The enum, the threshold and the stepped crossfade between the
+  two states are **deleted**. The renderer samples `bake_gait` at `Fr = v²/(gL)` and everything
+  — cadence, stride, duty, hip excursion, root height — is a closed-form function of it, so
+  **idle is the ladder's degenerate limit and not a state**: at `v → 0` the stride goes to zero,
+  the hip excursion with it, and the pose collapses onto the derived resting pose while the
+  phase clock stops. *Nothing had to be special-cased to make a stopped body stand still*, which
+  is the tell that the switch was never expressing anything.
+  - The prohibition is guarded by a test, not by a note: `the_gait_ladder_is_continuous_and_idle_is_its_limit`
+    sweeps 900 speeds from 0 to the top speed on all three plans and fails on any per-step joint
+    jump above 0.05 rad. **A threshold, a crossfade or a gait-name lookup all necessarily put a
+    step in that sweep** — which is the property the ruling protects, rather than the absence of
+    a particular identifier.
+  - The phase clock now advances with **distance travelled** (`dphase = cadence·dt = ds/λ`),
+    which retires the other half of the same defect: the clip incremented `clock_s += dt` with
+    no speed term, so at 4.5 m/s the feet supplied 1.84 m/s and **2.66 m/s was skate**.
+- **Blast radius (as discharged):** every driven body's gait selection · the controller mapping
+  when it lands, which needs no new wire surface, only this · the walk/run transition, which is
+  now a *reported band* (`Regime`) rather than a branch — and above it the root height is
+  DECLINED, not fabricated (**§ 39**, still live, heir B6).

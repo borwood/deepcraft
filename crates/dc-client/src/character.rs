@@ -8,8 +8,12 @@
 //!
 //! **Firewall discipline.** The plan and clips are pure registry data
 //! ([`dc_api::bodies`]); the pose is sampled entirely here on the client
-//! ([`crate::body`]) and never read back into simulation. The only sim state
-//! read is each body's velocity, to choose idle vs walk — a legal one-way read.
+//! ([`crate::body`]) and never read back into simulation. The sim state read is
+//! each body's **speed** (which grades the derived gait up its Froude ladder),
+//! its **posture**, and its **target trunk facing** — all legal one-way reads.
+//! Note the third is new (user call #5, 2026-08-02): the sim owns the facing
+//! target because B4 buckets colliders by yaw and B5 resolves damage against
+//! the nominal pose; the client owns only the turn rate toward it.
 //!
 //! **Plans come from the REGISTRY, per character.** This used to call
 //! `biped_plan()` / `biped_clips()` as compiled-in Rust; the default pack now
@@ -28,16 +32,15 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
 use bevy::prelude::*;
-use dc_api::Posture;
-use dc_api::bodies::{AnimClip, BodyPlan};
+use dc_api::bodies::{AnimClip, BodyPlan, GaitVector};
 use dc_core::{VoxelQuery, VoxelScale};
 use glam::DVec3;
 
 use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
-    AnimState, CROUCH_ROOT_DROP_M, LegRig, derived_root_delta_m, fk_foot_local, leg_rigs, pose_for,
-    resolve_orientation, solve_leg_ik,
+    AnimState, LegRig, derived_gait, derived_root_delta_m, fk_foot_local, leg_rigs, pose_for,
+    resolve_orientation, root_offset_m, solve_leg_ik,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
@@ -78,8 +81,15 @@ pub struct CharacterVisuals {
 /// its own proportions. Built once per plan and shared across every body of it.
 struct BodyAssets {
     plan: BodyPlan,
+    /// The non-locomotion clip that rides as an additive layer (design § 6).
+    /// **There is no `walk` any more** — locomotion is [`BodyAssets::gait`],
+    /// and `dc:anim/biped_walk` retired as content 2026-08-02 (user call #3).
     idle: AnimClip,
-    walk: AnimClip,
+    /// The DERIVED gait (`dc_api::bodies::bake_gait`), baked once per plan
+    /// against the world's gravity. `None` = the bake declined and this body
+    /// stands in its resting pose with clips only (identity fallback, warned
+    /// once at build) — it never moves wrongly.
+    gait: Option<GaitVector>,
     /// Segment name → (cuboid mesh, tinted material).
     segs: HashMap<String, (Handle<Mesh>, Handle<StandardMaterial>)>,
     /// The legs' IK rigs (empty if the plan declares no `sole` roles), derived
@@ -142,6 +152,10 @@ pub fn sync_characters(
     // Generating a chunk here is a pure, deterministic memoization of the host;
     // it never touches sim/replay state, so the animation firewall holds.
     let characters: Vec<dc_api::CharacterState> = authority.world.characters().cloned().collect();
+    // The WORLD's gravity, read from the one authority rather than restated —
+    // the gait's Froude chain closes against it, and a gait baked at the wrong
+    // `g` is coherent and wrong (the closed-system scale error, one tier down).
+    let gravity_m_s2 = authority.world.character_config().gravity_m_s2;
 
     // Resolve every plan in use from the REGISTRY (not a compiled-in call), once
     // per plan. Done before the authority is borrowed mutably for the ground
@@ -151,7 +165,14 @@ pub fn sync_characters(
         if visuals.plans.contains_key(name) || visuals.missing_plans.contains(name) {
             continue;
         }
-        match build_plan_assets(name, &authority, &mut meshes, &mut materials, fullbright.0) {
+        match build_plan_assets(
+            name,
+            &authority,
+            gravity_m_s2,
+            &mut meshes,
+            &mut materials,
+            fullbright.0,
+        ) {
             Some(assets) => {
                 match assets.derived_root_m {
                     Some(root_m) => info!(
@@ -213,22 +234,35 @@ pub fn sync_characters(
 
         match bodies.get_mut(character.name.as_str()) {
             Some(instance) => {
-                instance.anim.advance(dt, speed);
-                instance
-                    .anim
-                    .steer(dt, character.vel_m.x, character.vel_m.z);
-                let pose = pose_for(&instance.anim, &assets.idle, &assets.walk);
+                // The gait is graded CONTINUOUSLY over Froude — no threshold,
+                // no state, no crossfade (user call #1). Idle is the ladder's
+                // degenerate limit and needs no branch here or anywhere.
+                instance.anim.advance(dt, assets.gait.as_ref(), speed);
+                // The trunk chases the SIM's target facing (user call #5): the
+                // sim owns the target, the client owns the approach.
+                instance.anim.steer(dt, f64::from(character.facing_yaw));
+                let pose = pose_for(&instance.anim, assets.gait.as_ref(), &[&assets.idle]);
                 // Trunk faces travel; head/neck follow the look (the walk-8 gap).
                 let orient = resolve_orientation(
                     instance.anim.trunk_yaw,
                     f64::from(character.yaw),
                     f64::from(character.pitch),
                 );
-                let crouch_drop = if character.posture == Posture::Crouching {
-                    CROUCH_ROOT_DROP_M
-                } else {
-                    0.0
-                };
+
+                // ---- THE ONE VERTICAL COMPOSITION (design § 4.3) ------------
+                // Evaluated once per body per frame and read by BOTH the IK hip
+                // and the render root below. Nothing else in this loop may add
+                // a vertical term — that is asserted structurally by
+                // `the_render_root_and_the_ik_hip_read_one_root_offset`, and it
+                // is what makes corrections #80's drift impossible rather than
+                // merely fixed.
+                let root_offset = root_offset_m(
+                    assets.gait.as_ref(),
+                    assets.root_delta_m,
+                    instance.anim.stepped_froude,
+                    instance.anim.stepped_phase,
+                    character.posture,
+                );
 
                 // Root: feet position; the trunk faces travel, not the look.
                 if let Ok(mut transform) = transforms.get_mut(instance.root) {
@@ -248,13 +282,12 @@ pub fn sync_characters(
                     let cl = pose.joints.get(&leg.lower).map_or(0.0, |e| e[0]);
                     let (fy, fz) = fk_foot_local(leg.l1, leg.l2, cu, cl);
                     let (hx, hz) = rotate_y_xz(trunk, leg.hip_local[0], leg.hip_local[2]);
-                    // The DERIVED hip (posture bake): authored hip + bake delta,
-                    // minus the crouch sink — the same delta the root segment's
-                    // translation gets below, so the solver and the rendered
-                    // pelvis agree. (`root_bob_m` is still absent here while the
-                    // render root adds it — corrections #80's temporal half, a
-                    // separate ruled-on defect that rides; do not "fix" it here.)
-                    let hip_y = feet.y + leg.hip_local[1] + assets.root_delta_m - crouch_drop;
+                    // The DERIVED hip: authored hip + THE ONE ROOT OFFSET —
+                    // literally the same number the root segment's translation
+                    // takes below, so the solver and the rendered pelvis cannot
+                    // disagree. Reading it from a binding rather than
+                    // re-composing it is the whole fix.
+                    let hip_y = feet.y + leg.hip_local[1] + root_offset;
                     let (dfx, dfz) = rotate_y_xz(trunk, 0.0, fz);
                     let foot_x = feet.x + hx + dfx;
                     let foot_z = feet.z + hz + dfz;
@@ -290,14 +323,11 @@ pub fn sync_characters(
                         s.pivot_m[2] as f32,
                     );
                     if s.parent.is_none() {
-                        // The DERIVED resting root (posture bake, audit § 5):
-                        // authored pivot + bake delta — identity 0.0 when the
-                        // plan cannot bake, so a fallback plan renders as it
-                        // always did.
-                        t.y += assets.root_delta_m as f32;
-                        // Root bob, plus the crouch spine drop (cosmetic half of
-                        // the parametric-crouch split).
-                        t.y += (pose.root_bob_m - crouch_drop) as f32;
+                        // The rendered root: authored pivot + THE ONE ROOT
+                        // OFFSET. Identity 0.0 when the plan can neither bake a
+                        // resting posture nor a gait, so a fallback plan
+                        // renders exactly as it always did.
+                        t.y += root_offset as f32;
                     }
                     // IK override on a leg joint; the declared look joint
                     // composes the look on top of its clip pose (B0 — was a
@@ -326,18 +356,18 @@ pub fn sync_characters(
                 character.name.clone(),
                 character.body_plan.clone(),
                 feet,
-                character.yaw,
+                character.facing_yaw,
             )),
         }
     }
 
     // Spawn new bodies (after the read-only pass over `bodies`).
-    for (name, plan, feet, yaw) in to_spawn {
+    for (name, plan, feet, facing_yaw) in to_spawn {
         let Some(assets) = plans.get(plan.as_str()) else {
             continue;
         };
         let translation = to_render(feet - origin.0);
-        let instance = spawn_body(&mut commands, assets, &plan, translation, yaw);
+        let instance = spawn_body(&mut commands, assets, &plan, translation, facing_yaw);
         bodies.insert(name, instance);
     }
 
@@ -368,21 +398,24 @@ pub fn sync_characters(
 fn build_plan_assets(
     name: &str,
     authority: &Authority,
+    gravity_m_s2: f64,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
     fullbright: bool,
 ) -> Option<BodyAssets> {
     let plan = authority.world.body_plan(name)?.plan.clone();
     // Actions → clips through the plan's own bindings, not a hard-coded clip
-    // name. The vocabulary is open (B0); `idle`/`walk` here are what THIS
-    // locomotion driver asks for — a plan that lacks them is a content
-    // failure the caller reports (`None`), never a pose the engine invents.
+    // name. The vocabulary is open (B0); `idle` here is what THIS driver asks
+    // for — a plan that lacks it is a content failure the caller reports
+    // (`None`), never a pose the engine invents.
+    //
+    // **`walk` is no longer asked for.** Locomotion is derived below, so a plan
+    // needs no walk clip and the default pack ships none (user call #3).
     let clip_for = |action: &str| -> Option<AnimClip> {
         let bound = plan.actions.iter().find(|a| a.action == action)?;
         Some(authority.world.anim_clip(&bound.clip)?.clip.clone())
     };
     let idle = clip_for("idle")?;
-    let walk = clip_for("walk")?;
     // Role queries, resolved once per plan (B0, unique-or-loud): ambiguity
     // names the contenders and disables the feature; absence is feature-off —
     // exactly what a missed name equality used to mean, minus the silence.
@@ -440,6 +473,21 @@ fn build_plan_assets(
             (None, 0.0)
         }
     };
+    // The DERIVED GAIT (gait member #1's consumer slice, 2026-08-02): baked
+    // once per plan against the world's gravity, then evaluated per frame at
+    // the body's own Froude number. On a decline the body stands still with
+    // clips only — the identity fallback, warned once naming why, because a
+    // body that cannot bake a gait must not move wrongly.
+    let gait = match derived_gait(&plan, gravity_m_s2) {
+        Ok(g) => Some(g),
+        Err(why) => {
+            warn!(
+                "body plan `{name}`: gait bake declined ({why}); this body will stand \
+                 in its resting pose and play only its non-locomotion clips"
+            );
+            None
+        }
+    };
     // The v0 face cue: a thin dark quad across the head's upper front.
     let face_mesh = meshes.add(Cuboid::new(0.2, 0.06, 0.02));
     let face_material = materials.add(StandardMaterial {
@@ -451,7 +499,7 @@ fn build_plan_assets(
     Some(BodyAssets {
         plan,
         idle,
-        walk,
+        gait,
         segs,
         legs,
         derived_root_m,
@@ -472,13 +520,14 @@ fn spawn_body(
     assets: &BodyAssets,
     plan_name: &str,
     translation: Vec3,
-    yaw: f32,
+    facing_yaw: f32,
 ) -> BodyInstance {
     let root = commands
         .spawn((
             CharacterBody,
             BodySegment,
-            Transform::from_translation(translation).with_rotation(Quat::from_rotation_y(yaw)),
+            Transform::from_translation(translation)
+                .with_rotation(Quat::from_rotation_y(facing_yaw)),
             Visibility::default(),
         ))
         .id();
@@ -543,12 +592,9 @@ fn spawn_body(
     BodyInstance {
         root,
         joints,
-        anim: AnimState {
-            // Start facing the spawn yaw so the trunk doesn't swing to face
-            // travel from an arbitrary zero on the first steps.
-            trunk_yaw: f64::from(yaw),
-            ..AnimState::default()
-        },
+        // Start at the sim's target facing so the trunk doesn't swing to it
+        // from an arbitrary zero on the first steps.
+        anim: AnimState::facing(f64::from(facing_yaw)),
         plan: plan_name.to_string(),
     }
 }

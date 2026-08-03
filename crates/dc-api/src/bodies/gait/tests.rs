@@ -14,8 +14,8 @@
 
 use super::super::default_pack::{seg, with_sole};
 use super::super::{
-    AnimClip, BodyPlan, JointAngle, ModeDef, RoleDef, SegmentDef, biped_clips, biped_plan,
-    longleg_plan, stout_plan,
+    AnimClip, BodyPlan, JointAngle, ModeDef, RoleDef, SegmentDef, biped_plan, longleg_plan,
+    retired_biped_walk_clip, stout_plan,
 };
 use super::*;
 
@@ -233,10 +233,8 @@ fn phase_offsets_reproduce_the_authored_walk() {
 
     // …and the authored clip measures the same phase structure: at every key,
     // on both leg bones, right = left half a cycle later.
-    let walk = biped_clips()
-        .into_iter()
-        .find(|c| c.name == "dc:anim/biped_walk")
-        .unwrap();
+    // The PARKED fixture (user call #3: retired as content, kept in the tree).
+    let walk = retired_biped_walk_clip();
     for bone in ["upper", "lower"] {
         for kf in &walk.keyframes {
             let l = kf

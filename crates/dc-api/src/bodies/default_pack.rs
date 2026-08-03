@@ -180,13 +180,12 @@ pub fn biped_plan() -> BodyPlan {
         bearing: vec!["sole".into()],
     }];
     let actions = vec![
+        // No `walk` binding: locomotion is DERIVED (the gait bake), not
+        // authored — `dc:anim/biped_walk` was retired as shipped content
+        // 2026-08-02 (user call #3). See `retired_biped_walk_clip`.
         ActionDef {
             action: "idle".into(),
             clip: "dc:anim/biped_idle".into(),
-        },
-        ActionDef {
-            action: "walk".into(),
-            clip: "dc:anim/biped_walk".into(),
         },
         ActionDef {
             action: "jump".into(),
@@ -204,10 +203,9 @@ pub fn biped_plan() -> BodyPlan {
     }
 }
 
-fn kf(t: f64, bob: f64, rots: &[(&str, [f64; 3])]) -> Keyframe {
+fn kf(t: f64, rots: &[(&str, [f64; 3])]) -> Keyframe {
     Keyframe {
         t,
-        root_bob_m: bob,
         rotations: rots
             .iter()
             .map(|(s, e)| JointRot {
@@ -218,19 +216,25 @@ fn kf(t: f64, bob: f64, rots: &[(&str, [f64; 3])]) -> Keyframe {
     }
 }
 
-/// The default biped's authored clips: `idle`, `walk`, and a minimal one-shot
-/// `jump` (the documented fallback pose — bodies.md step 2). Angles are XYZ
-/// Euler radians; walking swings limbs about X (the sagittal plane).
+/// The default biped's authored clips: `idle` and a minimal one-shot `jump`
+/// (the documented fallback pose — bodies.md step 2). Angles are XYZ Euler
+/// radians.
+///
+/// **`walk` is NOT here.** Locomotion is derived — [`super::bake_gait`] — and
+/// `dc:anim/biped_walk` was retired as shipped content 2026-08-02 (user call
+/// #3). It survives as [`retired_biped_walk_clip`], a parked fixture, and is
+/// not registered by [`default_body_pack`] nor bound by any plan.
 pub fn biped_clips() -> Vec<AnimClip> {
-    // Idle: a slow breath — a faint arm splay and a small vertical bob, 2 s loop.
+    // Idle: a slow breath — a faint arm splay, 2 s loop. Its root translation
+    // went with `Keyframe.root_bob_m` (user call #2): a resting animal's breath
+    // is chest and shoulder motion, not the whole body sliding up 15 mm.
     let idle = AnimClip {
         name: "dc:anim/biped_idle".into(),
-        doc: "Standing rest: a slow breathing bob.".into(),
+        doc: "Standing rest: a slow breath in the shoulders.".into(),
         duration_s: 2.0,
         loops: true,
         keyframes: vec![
             kf(
-                0.0,
                 0.0,
                 &[
                     ("arm_l_upper", [0.06, 0.0, 0.05]),
@@ -239,7 +243,6 @@ pub fn biped_clips() -> Vec<AnimClip> {
             ),
             kf(
                 1.0,
-                0.015,
                 &[
                     ("arm_l_upper", [-0.02, 0.0, 0.08]),
                     ("arm_r_upper", [-0.02, 0.0, -0.08]),
@@ -247,80 +250,9 @@ pub fn biped_clips() -> Vec<AnimClip> {
             ),
             kf(
                 2.0,
-                0.0,
                 &[
                     ("arm_l_upper", [0.06, 0.0, 0.05]),
                     ("arm_r_upper", [0.06, 0.0, -0.05]),
-                ],
-            ),
-        ],
-    };
-    // Walk: contralateral swing, a knee bend on the trailing leg, a step bob.
-    // 1 s loop, four poses (two strides). Left-forward at t=0.
-    let walk = AnimClip {
-        name: "dc:anim/biped_walk".into(),
-        doc: "Contralateral limb swing with a step bob (1 s loop).".into(),
-        duration_s: 1.0,
-        loops: true,
-        keyframes: vec![
-            kf(
-                0.0,
-                0.0,
-                &[
-                    ("leg_l_upper", [0.6, 0.0, 0.0]),
-                    ("leg_l_lower", [-0.15, 0.0, 0.0]),
-                    ("leg_r_upper", [-0.5, 0.0, 0.0]),
-                    ("leg_r_lower", [0.5, 0.0, 0.0]),
-                    ("arm_l_upper", [-0.5, 0.0, 0.05]),
-                    ("arm_r_upper", [0.5, 0.0, -0.05]),
-                ],
-            ),
-            kf(
-                0.25,
-                0.04,
-                &[
-                    ("leg_l_upper", [0.05, 0.0, 0.0]),
-                    ("leg_l_lower", [-0.05, 0.0, 0.0]),
-                    ("leg_r_upper", [-0.05, 0.0, 0.0]),
-                    ("leg_r_lower", [0.2, 0.0, 0.0]),
-                    ("arm_l_upper", [0.0, 0.0, 0.05]),
-                    ("arm_r_upper", [0.0, 0.0, -0.05]),
-                ],
-            ),
-            kf(
-                0.5,
-                0.0,
-                &[
-                    ("leg_l_upper", [-0.5, 0.0, 0.0]),
-                    ("leg_l_lower", [0.5, 0.0, 0.0]),
-                    ("leg_r_upper", [0.6, 0.0, 0.0]),
-                    ("leg_r_lower", [-0.15, 0.0, 0.0]),
-                    ("arm_l_upper", [0.5, 0.0, 0.05]),
-                    ("arm_r_upper", [-0.5, 0.0, -0.05]),
-                ],
-            ),
-            kf(
-                0.75,
-                0.04,
-                &[
-                    ("leg_l_upper", [-0.05, 0.0, 0.0]),
-                    ("leg_l_lower", [0.2, 0.0, 0.0]),
-                    ("leg_r_upper", [0.05, 0.0, 0.0]),
-                    ("leg_r_lower", [-0.05, 0.0, 0.0]),
-                    ("arm_l_upper", [0.0, 0.0, 0.05]),
-                    ("arm_r_upper", [0.0, 0.0, -0.05]),
-                ],
-            ),
-            kf(
-                1.0,
-                0.0,
-                &[
-                    ("leg_l_upper", [0.6, 0.0, 0.0]),
-                    ("leg_l_lower", [-0.15, 0.0, 0.0]),
-                    ("leg_r_upper", [-0.5, 0.0, 0.0]),
-                    ("leg_r_lower", [0.5, 0.0, 0.0]),
-                    ("arm_l_upper", [-0.5, 0.0, 0.05]),
-                    ("arm_r_upper", [0.5, 0.0, -0.05]),
                 ],
             ),
         ],
@@ -335,7 +267,6 @@ pub fn biped_clips() -> Vec<AnimClip> {
         keyframes: vec![
             kf(
                 0.0,
-                0.0,
                 &[
                     ("leg_l_upper", [0.5, 0.0, 0.0]),
                     ("leg_l_lower", [-0.9, 0.0, 0.0]),
@@ -347,7 +278,6 @@ pub fn biped_clips() -> Vec<AnimClip> {
             ),
             kf(
                 0.3,
-                0.12,
                 &[
                     ("leg_l_upper", [-0.1, 0.0, 0.0]),
                     ("leg_l_lower", [0.1, 0.0, 0.0]),
@@ -359,7 +289,6 @@ pub fn biped_clips() -> Vec<AnimClip> {
             ),
             kf(
                 0.6,
-                0.0,
                 &[
                     ("leg_l_upper", [0.1, 0.0, 0.0]),
                     ("leg_l_lower", [-0.2, 0.0, 0.0]),
@@ -371,7 +300,95 @@ pub fn biped_clips() -> Vec<AnimClip> {
             ),
         ],
     };
-    vec![idle, walk, jump]
+    vec![idle, jump]
+}
+
+/// **The retired `dc:anim/biped_walk` — a PARKED TEST FIXTURE, not content.**
+///
+/// RETIRED as shipped content 2026-08-02 by user call #3 (the gait-bake design
+/// pass's header): *"Sure, A. Mostly because it's not worth doing anything
+/// with."* It is **parked, not enshrined** — the user's ground was that
+/// removing it is not worth the effort, NOT that the clip has evidentiary
+/// standing. So: no comparison harness, no *"the derivation agrees with the
+/// animator to within X"* acceptance test, no ceremony. It is a hand-typed
+/// locomotion clip that the derived gait replaces, and it is kept only because
+/// a couple of tests already decompose it (design § 3.5's Table C) and deleting
+/// it would cost more than leaving it.
+///
+/// It is **not** in [`biped_clips`], **not** in [`default_body_pack`], and
+/// **not** bound by any plan's actions. Its authored `root_bob_m` went with the
+/// schema field (user call #2) — the clip's own leg geometry demanded 0.154 m
+/// while it authored 0.040 m, which is the hover, and the derived `root_offset`
+/// now owns that number.
+pub fn retired_biped_walk_clip() -> AnimClip {
+    // Contralateral swing, a knee bend on the trailing leg. 1 s loop, four
+    // poses (two strides). Left-forward at t=0. Its step bob left with the
+    // schema field; what remains is the joint testimony.
+    AnimClip {
+        name: "dc:anim/biped_walk".into(),
+        doc: "RETIRED (2026-08-02, user call #3): contralateral limb swing, \
+          1 s loop. A parked fixture, not shipped content."
+            .into(),
+        duration_s: 1.0,
+        loops: true,
+        keyframes: vec![
+            kf(
+                0.0,
+                &[
+                    ("leg_l_upper", [0.6, 0.0, 0.0]),
+                    ("leg_l_lower", [-0.15, 0.0, 0.0]),
+                    ("leg_r_upper", [-0.5, 0.0, 0.0]),
+                    ("leg_r_lower", [0.5, 0.0, 0.0]),
+                    ("arm_l_upper", [-0.5, 0.0, 0.05]),
+                    ("arm_r_upper", [0.5, 0.0, -0.05]),
+                ],
+            ),
+            kf(
+                0.25,
+                &[
+                    ("leg_l_upper", [0.05, 0.0, 0.0]),
+                    ("leg_l_lower", [-0.05, 0.0, 0.0]),
+                    ("leg_r_upper", [-0.05, 0.0, 0.0]),
+                    ("leg_r_lower", [0.2, 0.0, 0.0]),
+                    ("arm_l_upper", [0.0, 0.0, 0.05]),
+                    ("arm_r_upper", [0.0, 0.0, -0.05]),
+                ],
+            ),
+            kf(
+                0.5,
+                &[
+                    ("leg_l_upper", [-0.5, 0.0, 0.0]),
+                    ("leg_l_lower", [0.5, 0.0, 0.0]),
+                    ("leg_r_upper", [0.6, 0.0, 0.0]),
+                    ("leg_r_lower", [-0.15, 0.0, 0.0]),
+                    ("arm_l_upper", [0.5, 0.0, 0.05]),
+                    ("arm_r_upper", [-0.5, 0.0, -0.05]),
+                ],
+            ),
+            kf(
+                0.75,
+                &[
+                    ("leg_l_upper", [-0.05, 0.0, 0.0]),
+                    ("leg_l_lower", [0.2, 0.0, 0.0]),
+                    ("leg_r_upper", [0.05, 0.0, 0.0]),
+                    ("leg_r_lower", [-0.05, 0.0, 0.0]),
+                    ("arm_l_upper", [0.0, 0.0, 0.05]),
+                    ("arm_r_upper", [0.0, 0.0, -0.05]),
+                ],
+            ),
+            kf(
+                1.0,
+                &[
+                    ("leg_l_upper", [0.6, 0.0, 0.0]),
+                    ("leg_l_lower", [-0.15, 0.0, 0.0]),
+                    ("leg_r_upper", [-0.5, 0.0, 0.0]),
+                    ("leg_r_lower", [0.5, 0.0, 0.0]),
+                    ("arm_l_upper", [-0.5, 0.0, 0.05]),
+                    ("arm_r_upper", [0.5, 0.0, -0.05]),
+                ],
+            ),
+        ],
+    }
 }
 
 /// The **default pack's** body content as a recorded command batch — clips first,

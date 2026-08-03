@@ -16,7 +16,9 @@
 //!
 //! Run with `--nocapture` for the full report.
 
-use super::super::super::{AnimClip, BodyPlan, biped_clips, biped_plan, longleg_plan, stout_plan};
+use super::super::super::{
+    AnimClip, BodyPlan, biped_plan, longleg_plan, retired_biped_walk_clip, stout_plan,
+};
 use super::super::{GaitBakeOutcome, GaitKnobs, GaitVector, RootHeight, bake_gait, duty_exponent};
 use super::{G_EARTH, G_WORLD, by};
 
@@ -186,7 +188,7 @@ fn the_same_bodies_at_this_worlds_gravity() {
     );
 }
 
-/// **Table C — the shipped `dc:anim/biped_walk`, decomposed as the
+/// **Table C — the (now RETIRED) `dc:anim/biped_walk`, decomposed as the
 /// cross-check.** Measured from the clip's own keys and the plan's own
 /// geometry; compared against what the derivation says at the clip's *own*
 /// implied speed. Earth gravity, because the clip is a hand-authored human walk
@@ -194,10 +196,10 @@ fn the_same_bodies_at_this_worlds_gravity() {
 #[test]
 fn table_c_the_authored_clip_decomposed() {
     let plan = biped_plan();
-    let clip: AnimClip = biped_clips()
-        .into_iter()
-        .find(|c| c.name == "dc:anim/biped_walk")
-        .unwrap();
+    // The PARKED fixture. It stopped being shipped content 2026-08-02 (user
+    // call #3) and this decomposition is the only reason it is still in the
+    // tree — the testimony below is dated and does not move.
+    let clip: AnimClip = retired_biped_walk_clip();
     let reach = baked(&plan, G_EARTH).governing_reach_m;
 
     // Measured from the clip: the widest hip spread, on the leg bones.
@@ -222,11 +224,6 @@ fn table_c_the_authored_clip_decomposed() {
     let at = v.at(fr);
     let derived_step = at.step_m;
     let bob_from_clip_geometry = reach - reach * fwd.cos();
-    let authored_bob = clip
-        .keyframes
-        .iter()
-        .map(|k| k.root_bob_m)
-        .fold(f64::MIN, f64::max);
     let front_pins = reach * fwd.cos();
     let rear_pins = reach * (-back).cos();
 
@@ -260,11 +257,12 @@ fn table_c_the_authored_clip_decomposed() {
         0.045977,
         1e-3,
     ));
-    println!(
-        "  authored root_bob_m = {authored_bob:.4} m = {:.1} % of what the clip's own leg \
-         swing requires",
-        100.0 * authored_bob / bob_from_clip_geometry
-    );
+    // The authored-bob row is GONE, and its absence is the point: the clip's
+    // own leg swing demanded the `bob_from_clip_geometry` above while the
+    // keyframes authored 0.040 m — 26 % of it, which *was* the hover. That
+    // field left the schema 2026-08-02 (user call #2), so there is no longer a
+    // number here to compare, and the derived `root_offset` owns the quantity.
+    // The dated measurement stays in the design pass § 3.5, unrewritten.
     println!("  worst relative deviation across Table C: {worst:.3e}");
 
     // The conversion's acceptance, band-softened because the original was

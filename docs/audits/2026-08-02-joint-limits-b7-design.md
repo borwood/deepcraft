@@ -1,5 +1,33 @@
 # Joint rotation limits (B7) — a design pass against the ruling
 
+> **⚠ Q4 RULED PROVISIONALLY 2026-08-03 (user): WELD THE ROOT — *"i'm willing to go A for now"*
+> — AND THE TWO RESERVATIONS ARE PART OF THE RULING, NOT COMMENTARY.** The root segment has no
+> rotational DOF of its own; body orientation belongs to the facing system, and a clip keying the
+> root is rejected at define time. Free today: no shipped clip keys it. Same two-authorities-become-
+> one move as `root_bob_m`, the gaze and gravity.
+>
+> **Reservation 1 — option B is what many games actually do, and the assistant dismissed it too
+> fast.** User: *"the character is facing one direction, but their idle animation has them look
+> around or something that appears to rotate root a little."* That is a real expressive technique,
+> not a mistake. **The weld forecloses it**, and if idle root-motion is later wanted, this is the
+> rule to revisit — with a composition rule (add? override?) rather than by quietly un-welding.
+>
+> **Reservation 2 — THE WELD SILENTLY DECIDES SOMETHING NOBODY DISCUSSED.** User: *"it does seem to
+> force a preference for physics for death/knock which we haven't discussed."* Correct, and it is
+> the sharper of the two. Toppling, knockdown and death rotate the **whole body**; welding the root
+> against clips means that motion **must** come from physics or the facing system. **No such ruling
+> was ever made — the death/knockdown/ragdoll question is genuinely UNOPENED**, and this weld
+> constrains its answer in advance. *An implicit ruling riding inside an explicit one is exactly the
+> class this session has been catching all night* (corrections #93's fix-framing, #96's invented
+> constraint). **Filed as an open thread, not resolved here; the weld is provisional against it.**
+>
+> **⚠ Q6 CLOSED 2026-08-03 (user): batch or separate BY CONVENIENCE — the question was
+> over-thought.** *"i don't care. if the recompile takes a while, then batch them so we don't wait
+> as long."* Measured: nothing persists a `BodyPlan`, so all three pre-B3 changes
+> (`SegmentDef.dofs`, `root_bob_m`, stubs #34's binding key) are **recompiles, not migrations**, and
+> `root_bob_m` is landing separately anyway in the consumer slice. **Batch for wall-clock, not for
+> safety.**
+
 > **⚠ Q1 / J1 RULED 2026-08-02 (user) — AND THE FINDING IS DISSOLVED, NOT ANSWERED. Mutable
 > header; the body below is testimony.** J1 asked how the derived default can give an evolved
 > body *"plausible limits by construction"* when geometry supplies a magnitude and never a
