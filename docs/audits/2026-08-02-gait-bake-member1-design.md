@@ -95,13 +95,27 @@
 > ruling here is a judgment about motion and corrections #77 is explicit that a still frame
 > cannot see a temporal artifact.
 >
-> **⚠ THE USER'S PRINCIPLE GOVERNS THE SEQUENCING AND IS NOT A LICENCE TO BREAK MAIN.** *"Without
+> **⚠ OVERRULED BY THE USER WITHIN THE HOUR — corrections #96. THE PARAGRAPH BELOW IS
+> PRESERVED AS DATED TESTIMONY AND ITS CONCLUSION IS FALSE.** *"you can ship a broken main
+> when the very next slice fixes it. Nobody is spawning a body and driving it except you and
+> I."* **Never-break-main is a real principle imported at the wrong SCALE** — it prices a
+> hazard belonging to a project with users, CI consumers or contributors pulling between
+> slices, and this one has two participants who are both in the conversation that sequences
+> the slices. **B7's declarations and the clip retirement MAY land ahead of the derived
+> gait.** The sequence below is a **preference with a cost** (a bigger revert surface, more
+> at once under a single walk verdict) — *not a wall*. **Second assistant-invented constraint
+> in this banner presented as a property of the problem**; the other is the reversed B7
+> ordering two paragraphs down, which this banner already catches. The rule recorded in #96:
+> *a sequencing constraint must name whom it protects — if that is a user who does not exist
+> yet, it is a preference offered with its cost.*
+>
+> ~~**THE USER'S PRINCIPLE GOVERNS THE SEQUENCING AND IS NOT A LICENCE TO BREAK MAIN.** *"Without
 > trying to preserve any interim states indefensibly"* retires the instinct to shim bring-up
 > content — the authored clips are **retiring, not being defended**. It does **not** license
 > landing B7's declarations (or the clip retirement) before the derived gait exists: two of the
 > pack's three clips fail a declared knee limit (B7 § 5), and `biped_walk` dying before its
 > replacement leaves every body moving with no locomotion at all. **That is a broken main, not
-> a preserved interim.**
+> a preserved interim.**~~
 >
 > **⚠ AND THE SEQUENCE THIS PASS INHERITED IS REVERSED.** The board said B7 was upstream of this
 > build. B7's design pass returned with **seven open user calls including its representation**,
