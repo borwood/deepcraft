@@ -25,6 +25,22 @@
 > derivable at density ≡ 1, so it waits on B6 (per-segment materials) or takes an interim.
 > Name the interim as a stand-in with B6 as its heir, per the ratified docket's (c).
 
+> **⚠ USER CALL #4 (G1) RULED 2026-08-02: THREE KEYFRAMES.** *"I agree with A."* The bones'
+> two-keyframe count was assistant-originated and does not survive a real leg; the count
+> changes and the mechanism does not. The user's own sparse-keyframes-with-the-server-between
+> formulation is untouched — three is still sparse.
+>
+> **⚠ AND THE USER OPENED A NEW ITEM, WHICH IS STRONGER THAN THE FIX IT COMMENTS ON:**
+> *"frankly, hyper-extension just shouldn't be possible if we set rotation limits on joints."*
+> **Verified at source, 2026-08-02: JOINT ROTATION LIMITS DO NOT EXIST ANYWHERE.**
+> `SegmentDef` (`dc-api/src/bodies.rs`) carries `name, parent, pivot_m, size_m, offset_m,
+> tint, roles` — **no rotation range**; B0 landed roles and stopped there. `solve_leg_ik`
+> (`dc-client/src/body.rs:485,493`) clamps only to keep `acos` in domain and the target inside
+> reach — **numerical guards, not anatomical ones**. No plan, no solver and no validator
+> prevents a knee inverting. **This is a missing PRIMITIVE, not a gait detail**, and it is
+> upstream of this member: the bake, the IK solver, the validator, clip validation and every
+> evolved body all want it. Scoped as its own thread; not folded into this pass silently.
+
 **Status: DESIGN PASS. Nothing else here is ratified and no code was changed.** The deliverable is
 this document. It works `posture-gait.md` § 7 member 1 — **including its user-ratified expanded
 docket (a)–(e), 2026-08-02** — against the ratified bones (§§ 2–6) and the post-member-#0 code,
