@@ -275,6 +275,27 @@ walk time, Claude does all of it.** The loop, every time:
 6. **On their word, move to the next station** and repeat. Record each verdict per station,
    in the same session.
 
+**BUILD THE STATION SO IT CAN ANSWER — three framing rules, each earned at the 0148 walk in one
+sitting (greenlit fingerprint 2026-08-03).**
+1. **SEPARATE THE SUBJECTS.** Comparing N bodies means N *lanes*, never one line. The 0148 walk
+   put three bodies on one path; they occluded each other and the user said *"that makes it hard
+   to study them."* A station that cannot separate its subjects yields a verdict about the
+   framing, not about the sim.
+2. **CAPTURE WITHIN SECONDS OF THE INTENT — Claude time is not real time.** Setting three intents
+   then screenshotting is ~4 MCP round-trips ≈ several seconds ≈ **metres of travel**; the 0148
+   walkers left frame before the shutter. Either shoot immediately, or aim the camera where the
+   subject **will be**, or drive the subject **toward** the camera so framing improves as it
+   moves.
+3. **PICK THE VIEW THE SEPARATION AXIS ALLOWS.** Subjects separated along X and viewed along X
+   overlap. Lanes want a head-on or from-behind camera; profile wants a single subject. *Vertical*
+   questions (a bob) read against a horizontal ground line; *cadence* questions read head-on.
+
+**And the walk loop has NO STOP CHANNEL** (ROADMAP § Observed, 2026-08-03): every intent commits
+seconds of world motion before the driver can react, and the observer has none at all. The user
+**built a wall** to stop bodies walking off a ledge. Until a leash / bounded intent / freeze verb
+exists, **prefer intents that terminate safely** — drive toward the observer, or into open ground,
+never toward an edge.
+
 **Tour-map first, always.** Before spending any of the user's game time, run a headless
 probe that finds the strongest exemplar of each signature and prints coordinates. A walk
 that turns out to have nothing to look at is a walk that should never have been launched —

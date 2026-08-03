@@ -66,6 +66,39 @@ You wear all four, switching freely:
 
 ## Delegation
 
+### ⚠ HARVEST FROM THE DIFF, NOT THE REPORT — and let agents write stub BODIES (2026-08-03, greenlit fingerprint; corrections #97)
+
+**Two halves of one defect, both cheap to fix.**
+
+**(a) An agent annotates more than it narrates.** CLAUDE.md read-first item 6 wants a loose end
+annotated **in code AND** listed in a locus. Under delegation those halves have **two owners**,
+and nothing carries the second across. Measured: a build agent marked four `GaitKnobs` values
+`STAND-IN, heir B6` in source — with bands and a literature citation — and mentioned **one** in
+its report. The integrator filed that one. The other four reached **no locus**, survived the
+integrator's own full workspace gate, a merge, and a second slice, and were found by the **user**
+asking an unrelated question.
+- **So: at harvest, grep the agent's DIFF** for `STAND-IN`, `heir`, `stubs.md #` — do not file
+  from its prose alone. The report is what the agent thought worth saying; the diff is what it
+  actually did.
+- No corpus control catches this: `spine-audit` reads `spines.md` against code, the staleness
+  sweep cannot see a thread that was never on the board, `doc-topology` compares docs to each
+  other. **A control that walks the tree for markers and diffs them against the loci is owed and
+  unbuilt** (ROADMAP § Sequenced).
+
+**(b) The `stubs.md` ban in briefs is TOO BROAD — the hazard is the ORDINAL, not the content.**
+Forbidding the whole file was a real fix for a real problem (six ordinal collisions in thirty
+hours, including a duplicated #34 whose older twin held all thirteen inbound references) applied
+at a wider scope than its reason — and the extra width is exactly where the four heirs fell
+through. **New brief line: an agent WRITES the entry body and LEAVES THE NUMBER** (`### NN.` as a
+literal placeholder, or appended under a `<!-- STUBS: unnumbered -->` block); the integrator
+numbers it at merge. Annotation and listing then land together, in the actor that knows what the
+stand-in is.
+
+*Same shape as corrections #96: a genuine constraint imported at a scope wider than it needs.
+When writing a prohibition into a brief, state what it protects — if the protected thing is one
+FIELD, forbid the field.*
+
+
 - One milestone/spike = one background agent in a worktree
   (`isolation: "worktree"`). Design conversation continues while it runs.
 - **Parallelize by write-set, serialize the machine** (user, 2026-07-20):

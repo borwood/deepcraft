@@ -356,6 +356,35 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### THE STAND-IN MARKER CONTROL — **owed 2026-08-03 (corrections #97, greenlit fingerprint); survey first, sweep second**
+
+**The gap it closes.** CLAUDE.md read-first item 6 wants a deliberate loose end annotated **in
+code AND** listed in a locus (`stubs.md` · `spines.md` § 3 · ROADMAP Owed). **Nothing checks the
+second half.** `spine-audit` reads `spines.md` against code; the staleness sweep cannot see a
+thread that was never on the board; `doc-topology` compares docs to each other. The inverse of
+§ 3's *"built and nothing calls it"*, and equally structural.
+
+**What it cost:** four `GaitKnobs` stand-ins marked `STAND-IN, heir B6` in source with bands and
+a citation, reaching **no locus**, surviving the integrator's own full workspace gate, a merge to
+main and a second slice — found by the **user** asking an unrelated question.
+
+**Step 1 is a SURVEY, not a sweep, and this is the load-bearing part.** Scope is genuinely
+unknown: the explicit `STAND-IN` convention is **three files**, but the word **`heir` appears at
+200+ in-code sites across ~40 files** and only ~12 cite a `stubs.md` number. **Grep cannot
+separate a real stand-in from ordinary design prose** — so the first deliverable is *how many of
+those 200 are real*, not a fix. Answer that before designing the check.
+
+**Step 2, once the density is known:** a check that walks the tree for stand-in markers and diffs
+them against the three loci. **⚠ It must be a MECHANISM, not a rule asking anyone to remember**
+— this project has watched that shape die twice (`JUSTIFIED-BY`: documented in two places with a
+promised sweep, **3 uses, 0 in `crates/`**; and *"re-run the probes by hand after a merge"*, dead
+in one day). Candidate venues: a pre-commit hook like the ordinal guard, or a fourth corpus sweep.
+
+**Partly mitigated already** (2026-08-03, same fingerprint): `session-workflow` § Delegation now
+says **harvest from the DIFF, not the report**, and briefs let an agent write a stub body while
+the integrator assigns the number. That narrows the delegation hole; it does not close the
+general one.
+
 ### GRAVITY BECOMES A WORLD PARAMETER — **DECIDED 2026-08-02 (user); step 1 LANDED (ungated), steps 2–4 OWED**
 
 **Doc: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) § *Gravity is a WORLD constant, and it
