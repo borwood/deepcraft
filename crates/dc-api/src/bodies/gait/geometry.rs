@@ -209,7 +209,16 @@ pub(super) fn clearance_pose(
     let inner = (l1 - l2).abs();
     let lift_floor = knobs.foot_clearance_ratio * reach;
     let lift_ceiling = reach - inner;
-    if !(lift_ceiling > lift_floor + EPS_M) {
+    // Proceed ONLY on a definite `Greater`. Written as an explicit `partial_cmp`
+    // rather than `<=` because the two are not equivalent here: a non-finite
+    // `lift_ceiling` (a degenerate plan) compares `None`, and this arm must
+    // REFUSE it. `<=` would let NaN fall through into the acos solve below and
+    // produce a silently non-finite pose — the honest-refusal rule of
+    // `bodies.md` § Joint rotation limits, one tier down.
+    if !matches!(
+        lift_ceiling.partial_cmp(&(lift_floor + EPS_M)),
+        Some(std::cmp::Ordering::Greater)
+    ) {
         return Err(format!(
             "the chain from `{}` cannot lift its anchor clear of the ground under its own \
              attachment (clearance {lift_floor:.4} m, inner reach limit leaves \

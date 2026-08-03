@@ -19,10 +19,25 @@ use super::super::{
 };
 use super::*;
 
-/// Earth, and the basis of every cited measurement.
+/// Earth, and the basis of every cited measurement in the literature these
+/// tests check against. Stated as a literal on purpose: it is a **physical
+/// fact**, not a world setting, and it must not follow the world if the world
+/// changes.
 const G_EARTH: f64 = 9.81;
-/// This world's, `CharacterConfig::default().gravity_m_s2`.
-const G_WORLD: f64 = 25.0;
+/// **This world's** gravity — READ, never restated (`dc_core::world_constants`).
+///
+/// It was a hand-typed `25.0` when these tests were written hours earlier, and
+/// it went stale the moment gravity became a world constant defaulting to Earth
+/// (DECIDED 2026-08-02, `ARCHITECTURE.md`). A test that restates the world's
+/// gravity is the same two-authority defect the constant exists to end — and
+/// this one sat *inside the tests that measure gravity's effect*, printing
+/// `Fr 0.9205` for a world that had already moved to `Fr 2.3457`.
+///
+/// **The two are equal today and that is the point, not a redundancy**: `G_EARTH`
+/// asserts *what the literature was measured at*, `G_WORLD` asserts *what this
+/// world runs at*. A world that sets Mars gravity separates them again without
+/// touching a citation.
+const G_WORLD: f64 = dc_core::DEFAULT_GRAVITY_M_S2;
 
 fn baked(plan: &BodyPlan, g: f64) -> GaitVector {
     match bake_gait(plan, "stand", g, &GaitKnobs::default()) {
@@ -126,7 +141,11 @@ fn cadence_scales_as_root_g_over_l() {
         }
     }
     // …and the ratio the design pass names, which is pure length scale.
-    let (b, s, l) = (baked(&biped_plan(), G_WORLD), baked(&stout_plan(), G_WORLD), baked(&longleg_plan(), G_WORLD));
+    let (b, s, l) = (
+        baked(&biped_plan(), G_WORLD),
+        baked(&stout_plan(), G_WORLD),
+        baked(&longleg_plan(), G_WORLD),
+    );
     let fr = 0.25;
     let r_stout = s.cadence_hz(fr) / b.cadence_hz(fr);
     let r_biped = b.cadence_hz(fr) / l.cadence_hz(fr);
@@ -182,7 +201,12 @@ fn dynamic_similarity_holds() {
 fn phase_offsets_reproduce_the_authored_walk() {
     let plan = biped_plan();
     let v = baked(&plan, G_WORLD);
-    let mut soles: Vec<f64> = v.limbs.iter().filter(|l| l.bearing).map(|l| l.phase).collect();
+    let mut soles: Vec<f64> = v
+        .limbs
+        .iter()
+        .filter(|l| l.bearing)
+        .map(|l| l.phase)
+        .collect();
     soles.sort_by(|a, b| a.partial_cmp(b).unwrap());
     assert_eq!(soles.len(), 2);
     assert!(soles[0] == 0.0 && soles[1] == 0.5, "{soles:?}");
@@ -190,7 +214,10 @@ fn phase_offsets_reproduce_the_authored_walk() {
     // Rule 4: the derived counter-swing chains are the arms, each at the
     // CONTRALATERAL leg's phase — half a cycle from its own side's leg.
     let get = |n: &str| v.limbs.iter().find(|l| l.contact_segment == n).unwrap();
-    for (arm, leg) in [("arm_l_lower", "leg_l_lower"), ("arm_r_lower", "leg_r_lower")] {
+    for (arm, leg) in [
+        ("arm_l_lower", "leg_l_lower"),
+        ("arm_r_lower", "leg_r_lower"),
+    ] {
         let (a, l) = (get(arm), get(leg));
         assert!(!a.bearing, "{arm} must not bear");
         assert!(
@@ -259,7 +286,12 @@ fn gait_is_scale_invariant() {
         let plan = biped_plan();
         let mut scaled = plan.clone();
         for s in &mut scaled.segments {
-            for v in s.pivot_m.iter_mut().chain(&mut s.size_m).chain(&mut s.offset_m) {
+            for v in s
+                .pivot_m
+                .iter_mut()
+                .chain(&mut s.size_m)
+                .chain(&mut s.offset_m)
+            {
                 *v *= k;
             }
             for r in &mut s.roles {
@@ -336,7 +368,10 @@ fn mode_less_plan_is_a_legal_absence() {
 fn a_three_bone_chain_is_refused_loudly() {
     let plan = three_bone_biped();
     let reason = refused(&plan, "stand");
-    assert!(reason.contains("three") || reason.contains("3 bones"), "{reason}");
+    assert!(
+        reason.contains("three") || reason.contains("3 bones"),
+        "{reason}"
+    );
     assert!(reason.contains("two-bone"), "{reason}");
     assert!(reason.contains("B7"), "names the heir: {reason}");
 }
@@ -391,7 +426,11 @@ fn run_regime_is_declined_loudly() {
             let v = baked(&plan, g);
             let at = v.at(v.froude(4.5));
             assert_eq!(at.regime, Regime::Run, "plan `{}` at g = {g}", plan.name);
-            assert!(at.mean_duty < 0.5, "a run has β < 0.5, got {}", at.mean_duty);
+            assert!(
+                at.mean_duty < 0.5,
+                "a run has β < 0.5, got {}",
+                at.mean_duty
+            );
             let RootHeight::Declined { reason } = &at.root_height else {
                 panic!("plan `{}` must decline the run bob at g = {g}", plan.name);
             };
@@ -431,9 +470,17 @@ fn bob_has_one_trough_per_bearing_contact() {
             plan.name
         );
         let theta = v.at(fr).theta_max_rad;
-        let (lo, hi) = h.iter().fold((f64::MAX, f64::MIN), |(a, b), x| (a.min(*x), b.max(*x)));
-        assert!((hi - 1.0).abs() < 1e-12, "midstance is the full column: {hi}");
-        assert!((lo - theta.cos()).abs() < 1e-12, "the trough is L·cos θmax: {lo}");
+        let (lo, hi) = h
+            .iter()
+            .fold((f64::MAX, f64::MIN), |(a, b), x| (a.min(*x), b.max(*x)));
+        assert!(
+            (hi - 1.0).abs() < 1e-12,
+            "midstance is the full column: {hi}"
+        );
+        assert!(
+            (lo - theta.cos()).abs() < 1e-12,
+            "the trough is L·cos θmax: {lo}"
+        );
     }
 }
 
@@ -458,7 +505,10 @@ fn clearance_pose_puts_the_anchor_under_the_attachment() {
                 // p is the anchor relative to the attachment joint, so −p.y is
                 // the distance down to it and `reach − that` is the foot lift.
                 let lift = limb.reach_m + p[1];
-                assert!(p[0].abs() < 1e-12 && p[2].abs() < 1e-12, "under the hip: {p:?}");
+                assert!(
+                    p[0].abs() < 1e-12 && p[2].abs() < 1e-12,
+                    "under the hip: {p:?}"
+                );
                 assert!(
                     lift >= floor - 1e-12,
                     "plan `{}` lifted {lift:.4} m, floor {floor:.4}",
@@ -473,7 +523,10 @@ fn clearance_pose_puts_the_anchor_under_the_attachment() {
                 // The knee bends FORWARD and the shank never hyperextends past
                 // the thigh — the defect G1 exists to prevent.
                 assert!(limb.clearance[1].euler[0] > 0.0, "thigh forward");
-                assert!(limb.clearance[0].euler[0] < 0.0, "knee flexed, not inverted");
+                assert!(
+                    limb.clearance[0].euler[0] < 0.0,
+                    "knee flexed, not inverted"
+                );
             }
         }
     }
@@ -494,7 +547,10 @@ fn contact_is_a_coefficient_not_a_frozen_frame() {
         assert_eq!(j.euler, [0.0; 3]);
     }
     let (a, b) = (v.contact_pose(limb, 0.1), v.contact_pose(limb, 0.4));
-    assert!(a[top].euler[0] < b[top].euler[0], "faster = longer excursion");
+    assert!(
+        a[top].euler[0] < b[top].euler[0],
+        "faster = longer excursion"
+    );
     assert!(
         (b[top].euler[0] - (limb.neutral[top].euler[0] + v.theta_max_rad(0.4))).abs() < 1e-15,
         "contact = neutral + θmax·gradient, exactly"
@@ -595,7 +651,12 @@ fn a_three_percent_limp_is_expressible_and_mean_preserving() {
     let (base, hurt) = (v.at(fr), limped.at(fr));
     assert_eq!(base.cadence_hz, hurt.cadence_hz, "a limp is not a speed");
     assert_eq!(base.stride_m, hurt.stride_m);
-    let duties: Vec<f64> = hurt.limbs.iter().filter(|l| l.bearing).map(|l| l.duty).collect();
+    let duties: Vec<f64> = hurt
+        .limbs
+        .iter()
+        .filter(|l| l.bearing)
+        .map(|l| l.duty)
+        .collect();
     let mean = duties.iter().sum::<f64>() / duties.len() as f64;
     assert!(
         (mean - base.mean_duty).abs() < 1e-15,
@@ -604,7 +665,10 @@ fn a_three_percent_limp_is_expressible_and_mean_preserving() {
     );
     let spread = duties.iter().cloned().fold(f64::MIN, f64::max)
         - duties.iter().cloned().fold(f64::MAX, f64::min);
-    assert!((spread - 0.03).abs() < 1e-15, "3 % survives intact: {spread}");
+    assert!(
+        (spread - 0.03).abs() < 1e-15,
+        "3 % survives intact: {spread}"
+    );
 }
 
 /// Two calls, `==` — pure f64 arithmetic over plan data, no maps, no ambient
@@ -630,9 +694,20 @@ fn an_out_of_band_knob_reports_and_proceeds() {
     let GaitBakeOutcome::Baked(v) = bake_gait(&biped_plan(), "stand", G_WORLD, &knobs) else {
         panic!("out of band must not refuse")
     };
-    assert!(v.notes.iter().any(|n| n.contains("cadence_scale")), "{:?}", v.notes);
-    assert!(v.notes.iter().any(|n| n.contains("bob_damping")), "{:?}", v.notes);
-    assert!(v.notes.iter().all(|n| n.contains("B6")), "each names its heir");
+    assert!(
+        v.notes.iter().any(|n| n.contains("cadence_scale")),
+        "{:?}",
+        v.notes
+    );
+    assert!(
+        v.notes.iter().any(|n| n.contains("bob_damping")),
+        "{:?}",
+        v.notes
+    );
+    assert!(
+        v.notes.iter().all(|n| n.contains("B6")),
+        "each names its heir"
+    );
     // …and the knob actually rode: 3× the cadence, and a damped bob.
     let base = baked(&biped_plan(), G_WORLD);
     assert!((v.cadence_hz(0.25) / base.cadence_hz(0.25) - 3.0).abs() < 1e-12);

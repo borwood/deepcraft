@@ -445,6 +445,12 @@ mod tests {
             sorted,
             vec![
                 "character_attach",
+                // Look ownership (DECIDED 2026-08-02): `set_look` HOLDS the
+                // gaze, and this releases it back to follow-travel. The verb
+                // comes free from the command-table macro; this hand-maintained
+                // list is the one place a new character verb must be restated,
+                // which is why it is the thing that broke.
+                "character_clear_look",
                 "character_jump",
                 "character_pose",
                 "character_sense_raycast",

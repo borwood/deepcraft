@@ -362,7 +362,11 @@ impl GaitVector {
         let mean_bias = if bearing.is_empty() {
             0.0
         } else {
-            bearing.iter().map(|i| self.limbs[*i].duty_bias).sum::<f64>() / bearing.len() as f64
+            bearing
+                .iter()
+                .map(|i| self.limbs[*i].duty_bias)
+                .sum::<f64>()
+                / bearing.len() as f64
         };
         let mut duty: Vec<f64> = self
             .limbs
