@@ -134,10 +134,8 @@ pub fn stout_plan() -> BodyPlan {
             action: "idle".into(),
             clip: "dc:anim/biped_idle".into(),
         },
-        ActionDef {
-            action: "walk".into(),
-            clip: "dc:anim/biped_walk".into(),
-        },
+        // No `walk`: locomotion is derived (the gait bake), and the authored
+        // walk clip retired 2026-08-02 (user call #3).
         ActionDef {
             action: "jump".into(),
             clip: "dc:anim/biped_jump".into(),

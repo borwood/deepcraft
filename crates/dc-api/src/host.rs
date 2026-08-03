@@ -1416,6 +1416,7 @@ impl HostWorld {
                     posture: character.posture.to_wire().to_string(),
                     body_plan: character.body_plan.clone(),
                     look_held: character.look_held,
+                    facing_yaw: character.facing_yaw,
                 }
             }
             Payload::SenseRaycast(p) => {

@@ -517,6 +517,15 @@ pub enum QueryData {
         /// pre-ruling streams to `false`.
         #[serde(default)]
         look_held: bool,
+        /// The **TARGET trunk facing** (radians) the sim derives from travel —
+        /// the sim-owned half of the facing split (user call #5, 2026-08-02;
+        /// `bodies.md` § *THE SIM OWNS THE TARGET; THE CLIENT OWNS THE
+        /// APPROACH*). The client's rendered trunk chases this over
+        /// `TRUNK_TURN_WINDOW_S`, so a readback showing the two apart is a turn
+        /// in progress, not a defect. Appended field; `serde(default)` decodes
+        /// pre-ruling streams to 0.0.
+        #[serde(default)]
+        facing_yaw: f32,
     },
     /// First solid voxel along a character's gaze (`sense_raycast`).
     /// All fields are `None` on a miss.

@@ -306,10 +306,11 @@ fn s_anim_clip(doc: &str) -> Value {
     json!({
         "type": "object",
         "description": format!(
-            "{doc}. Fields: name (namespaced, e.g. dc:anim/biped_walk), doc, \
-             duration_s (>0), loops (bool), keyframes (each {{t, root_bob_m, \
+            "{doc}. Fields: name (namespaced, e.g. dc:anim/biped_idle), doc, \
+             duration_s (>0), loops (bool), keyframes (each {{t, \
              rotations:[{{segment, euler:[3]}}]}}, t strictly ascending in \
-             [0,duration_s])."
+             [0,duration_s]). A clip animates JOINTS: root height belongs to \
+             the gait and the mover, so there is no vertical field."
         ),
         "properties": {
             "name": s_str("namespaced clip name"),
@@ -631,8 +632,11 @@ commands! {
               `get_block` takes), velocity, yaw/pitch, look_held (false = \
               the gaze is the follow-travel default, true = a set_look \
               holds until clear_look), on_ground, posture \
-              (`standing`|`crouching`), and eye_in_solid (true = its eyes \
-              are buried; senses from here see the inside of terrain).",
+              (`standing`|`crouching`), facing_yaw (the TARGET trunk facing \
+              the sim derives from travel — the rendered trunk chases it, so \
+              the two differing is a turn in progress), and eye_in_solid \
+              (true = its eyes are buried; senses from here see the inside \
+              of terrain).",
         cap: "character.control(character)",
         schema: || s_obj(
             "pose payload",
@@ -748,8 +752,9 @@ commands! {
     }
     DefineAnimClip: Command {
         id: REGISTRY_DEFINE_ANIM_CLIP = "dc:registry/define_anim_clip",
-        doc: "Define an animation clip: keyframed joint rotations plus an \
-              optional root bob, and a loop flag. Standalone data — define \
+        doc: "Define an animation clip: keyframed joint rotations and a loop \
+              flag. A clip animates JOINTS — root height belongs to the gait \
+              and the mover, so there is no vertical field. Standalone data — define \
               clips before the body plan that binds them. Validated at \
               define time (finite positive duration, strictly-ascending \
               in-range keyframe times).",
