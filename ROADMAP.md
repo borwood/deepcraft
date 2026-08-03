@@ -2802,6 +2802,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **INHERITED RED ON MAIN — `dc-client` `mcp_character::tests::character_session_is_embodied_and_attenuated`
+  (filed by the geo session 2026-08-03; belongs to the BODIES thread).** Assertion
+  `left == right` fails at `mcp_character.rs:444`, **verified on clean main** (single-test
+  run, compile line cites the main checkout — not a worktree artifact). Entered via the
+  2026-08-02 `[UNGATED]` bodies-thread commits (gravity step 1 / gait work; exact culprit
+  undiagnosed from the geo side, and the assertion's *intent* is bodies-session design
+  territory, so geo did not guess a fix). Its sibling — a non-exhaustive grant match in
+  `dc-host` missing `Payload::ClearLook` — was fixed in-flight by the slice-3 builder and
+  merges with slice 3. Until this red is fixed, **every full workspace gate on main runs
+  `--no-fail-fast` with exactly this one documented red**; a second red is a real defect.
+
 - **OWED-SMALL from the 2026-08-02 geo session (deliberately not done, reasons attached):**
   the sweeps' unapplied minor findings — doc-topology **F7** (stale `GOLDEN_SURFACE` hex in
   4 docs: dated qualifiers owed, do NOT update the hex), **F9's § 4 re-cut** of
