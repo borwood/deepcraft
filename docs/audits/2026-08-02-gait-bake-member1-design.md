@@ -82,6 +82,34 @@
 > forbids by name (two derivations of one quantity). **Whether it is a corpus-wide spine is
 > filed and NOT assumed** — the user scoped it to bodies.
 
+> **✅ BUILD GREENLIT 2026-08-02 (user): FIRST SLICE IS THE HEADLESS BAKE.** *"Go with your
+> rec, whatever gets us from point A to point B fastest without trying to preserve any interim
+> states indefensibly. We're in progress."*
+>
+> **Slice one: `bake_gait` in dc-api, headless.** No renderer change, no schema change, no clip
+> retirement, nothing visible — the member #0 precedent, whose first slice was headless and
+> whose consumer slice came after and got walked. **Acceptance is the predicted table**
+> (§ 2), falsifiable before a frame is drawn, as member #0's was and met to 1e-9.
+> **Slice two is the consumer** and it is where `root_bob_m`, `biped_walk`, the binary `Loco`
+> switch and the trunk-facing split all land together — and it **owes a WALK**, because every
+> ruling here is a judgment about motion and corrections #77 is explicit that a still frame
+> cannot see a temporal artifact.
+>
+> **⚠ THE USER'S PRINCIPLE GOVERNS THE SEQUENCING AND IS NOT A LICENCE TO BREAK MAIN.** *"Without
+> trying to preserve any interim states indefensibly"* retires the instinct to shim bring-up
+> content — the authored clips are **retiring, not being defended**. It does **not** license
+> landing B7's declarations (or the clip retirement) before the derived gait exists: two of the
+> pack's three clips fail a declared knee limit (B7 § 5), and `biped_walk` dying before its
+> replacement leaves every body moving with no locomotion at all. **That is a broken main, not
+> a preserved interim.**
+>
+> **⚠ AND THE SEQUENCE THIS PASS INHERITED IS REVERSED.** The board said B7 was upstream of this
+> build. B7's design pass returned with **seven open user calls including its representation**,
+> while this pass has **zero** — so the gait bake, fully specified, goes FIRST, and B7's calls
+> are settled in parallel. **The dependency is additive, not blocking:** the bake's
+> refuse-loudly-on-limit-violation enforcement point wires up when B7 lands. *An unspecified
+> slice is not a blocker; it is a queue.*
+
 **Status: DESIGN PASS. Nothing else here is ratified and no code was changed.** The deliverable is
 this document. It works `posture-gait.md` § 7 member 1 — **including its user-ratified expanded
 docket (a)–(e), 2026-08-02** — against the ratified bones (§§ 2–6) and the post-member-#0 code,
