@@ -3868,7 +3868,16 @@ made.
 
 ## 97. "A stand-in marked in the code is filed" (the integrator's own filing practice, 2026-08-03 — four heirs shipped to no locus, caught by the user asking a question rather than by any control)
 
-**What happened.** The gait consumer slice shipped four `GaitKnobs` values, each correctly marked
+**⚠ CORRECTED WITHIN THE HOUR, BY ITS OWN AUTHOR, AND THE CORRECTION IS WORSE THAN THE ENTRY.**
+This entry blamed the **consumer slice** (journal/0147). `git log -S` puts the four markers in
+**`5859976` — gait bake slice ONE** (journal/0144). So they did not slip past a delegation
+boundary once: **they shipped, then survived the integrator's own full-workspace gate, a merge to
+main, and a second slice on top**, before a user question found them. The mechanism below is
+unchanged and its blast radius is one slice wider than stated. *Filed rather than silently
+repaired: a date error inside a correction about dropped follow-ups is the same class of defect
+it describes.*
+
+**What happened.** The gait bake slices shipped four `GaitKnobs` values, each correctly marked
 in code as **STAND-IN, heir B6**, with bands and a literature citation (`gait.rs:155-171`). The
 integrator filed `stubs.md` **#43** from the agent's report and considered the slice's loose ends
 closed. **Measured when the user asked an unrelated question about the bob: `cadence_scale`,
@@ -3902,7 +3911,15 @@ turned out to be a human (cf. journal/0140's blogworthy line on the strafe).
 found from the heir's end — the two-directional-pointer rule (read-first item 5) applied to
 stubs rather than to spikes.
 
-**Owed, and NOT built:** a control that greps the tree for stand-in markers and diffs them against
+**Scope, measured 2026-08-03 and deliberately left OPEN rather than guessed:** the explicit
+`STAND-IN` marker convention appears in exactly **three files**, all in the gait/bodies area — so
+*that* convention is narrow and is now fully filed. But the word **`heir`** appears in **200+
+in-code sites across ~40 files**, and only ~12 files cite a `stubs.md` number. **Whether each of
+those is a genuine unlisted stand-in or ordinary design prose is not answerable by grep** — which
+is exactly why the owed control below is real work and not a one-liner. *The honest answer to
+"how big is this?" is "unknown, and finding out is the task."*
+
+**Owed, and NOT built:** a control that walks the tree for stand-in markers and diffs them against
 the three loci. Filed rather than hand-waved, because *"remember to file what the agent marked"*
 is precisely the shape of rule this project has already watched die twice (`JUSTIFIED-BY`, and
 "re-run the probes by hand after a merge" — dead in one day).
