@@ -4,7 +4,75 @@ Created 2026-07-22 at the user's instruction, after a session in which the
 corpus turned out to be ahead of the assistant **fourteen times**. Not because
 the ideas were missing — because they were **already built and lost**.
 
-*Last `spine-audit` sweep: **2026-08-02, at `d8407e1`** — a **FULL** re-check (125 commits since the
+*Last `spine-audit` sweep: **2026-08-03, at `2985273`** — a **FULL** re-check (**82 commits** since the
+`3cf8778` watermark, and `docs/spines.md` itself moved in the window, so every prior verdict was void
+by the watermark file's own `_full_run_triggers` rule). Delta: **P11 slice 3** (3a the near-path
+restructure + 3b the packed `DepUnit`, journal/0145), **FS-A** (release spectra as pack-authored edge
+products, journal/0146), **E4-1** (the S-10 kernel extracted to `dc_core::field`, journal/0150), the
+**gait bake member #1** and its renderer consumer (journal 0144/0147/0148), the **gravity world
+constant**, and the P2 measurement runs. **Findings:**
+1. **§ 3: ONE ROW ADDED — the PER-INSTANCE GAIT SEAM (`gait::pose` + `InstanceDelta`), and it is
+   the RATE-authoring shape one crate over.** `dc-api/src/bodies/gait.rs:469` is a declared seam with
+   an identity default that reproduces the species gait bit for bit, a doc comment naming its
+   consumer, and **zero production callers**: search `grep -rn "InstanceDelta\|gait::pose"
+   --include=*.rs crates/` at `2985273` returns the definition, the `bodies.rs:549` re-export and
+   `gait/tests.rs:622,643`. Its sibling `bake_gait` **is** consumed (`dc-client/src/body.rs:484` →
+   `character.rs`), which is exactly the split RATE has: the *reading* half consumed, the
+   *authoring* half with no authorer. Row added below. **No row removed;** the other 19 re-confirmed
+   uncalled in production at `2985273`, searches recorded per row.
+2. **The GRAIN-GRADE row's stated blocker DISCHARGED, and the row got worse rather than better.**
+   It read *"grades have no storage until P11 slice 3's packed `DepUnit` lands (U5:
+   `grain()`/`set_grain()`/`GRAIN_UNSET`)."* Slice 3b landed (`68d5f03`): the storage exists at
+   `recorder.rs:536`/`:703`. **`set_grain` still has exactly one caller and it is its own test**
+   (`recorder.rs:1254`; search `grep -rn "set_grain" --include=*.rs crates/`). So both halves are
+   now built and **neither is joined to the other** — an itemisation with nowhere to go and a field
+   nothing writes, on opposite sides of an inert seam. Stamped below.
+3. **The 2026-08-02 sweep's F1 is STILL LIVE at `2985273`, and § A-7's worked-forwards instance is
+   still a description of code that does not exist.** `grep -rn "outcrop_shares(&\[\])" --include=*.rs
+   crates/` → **zero hits**; `erosion/weathering.rs:419` still says *"the same walk asked with an empty
+   section"* and `erosion/mod.rs:332` still says *"the pass names no lithology."* The source fix is
+   outside a sweep's write-set and was filed to ROADMAP Observed by `cfebd04`; **this file's own
+   paragraph is inside it**, and is stamped below. *The corpus's single best illustration of A-7
+   working forwards spent a day and a half asserting a call site that had been deleted.*
+4. **F4 also still live, and it MOVED rather than died.** The `Litho::of_material` doc comment was
+   rewritten (the *"fails loudly if a pack"* sentence is gone from `lithology.rs:330-356`) — and the
+   same sentence now sits on the **test's** doc comment at `lithology.rs:1175-1176`, above a body
+   that still opens `let set = geology::vanilla();` (`:1179`). A claim relocated is not a claim
+   retired. Citations corrected below; the source fix stays reported.
+5. **Citation drift, and this time it took the citation this file called its most stable.** The § 3
+   `geotherm` row has said for four sweeps that *"the struct's field lines are the most stable
+   citations in this file"*, with `field.rs:555` **"STILL unmoved (four sweeps)"**. P11 slice 3 moved
+   it to `:583`. Also moved: `chapters` `:581`→`:609`, `head` `:601`, `exhum`/`t_crust` `:572`/`:573`;
+   `inventory.rs` moved **backwards** (`FactLedger` `:659`→`:604`, `SlotRun` `:674`→`:619`,
+   `BEDROCK_SEAM_THICKNESS_M` `:1290`→`:1241`); `lithology.rs` +15 to +240 (`of_material`
+   `:342`→`:357`, `as_deposited` `:765`→`:934`, the two guard tests `:932`/`:1013`→`:1178`/`:1253`);
+   `collapse.rs` `:1497`→`:1625` **and through a different call shape**; `grid.rs::surf_at`
+   `:718`→`:733` (drifted before this window and never caught). Refreshed below where the ref is a
+   live pointer.
+6. **F7 and F8 of the `3cf8778` run applied to this file** (they were report-only under that
+   dispatch): A-4's `split_by_shares` renamed to `species::split_row_into`, and the S-2 storage
+   corollary's *"a fourth author writing a fourth layout is the failure this row exists to prevent"*
+   stamped — **the fourth author came and ported** (`species.rs:22-26` did the A-4 check in writing).
+   Whether `SpeciesLayout`'s popcount-rank variant earns a **third table row** is proposed, not
+   applied: § 4's rule binds the auditor.
+7. **§ 6 has fallen behind for the FIFTH time — six audits unlisted.** Eleven, five, eight, three,
+   now six. `ls docs/audits/` against § 6 is still the whole check and still nobody's job. Backfilled
+   below, by hand, again.
+8. **The § 3 count command no longer produces the § 3 count, and has not since `3cf8778`.** The
+   recorded `awk … | grep -c '^| '` minus 1 returns **20** at `2985273` while the standing count is
+   **19** — the discharged-but-kept resting-posture row is a table row and is not a standing row. The
+   caveat is recorded with the command below rather than the number being quietly adjusted, because
+   the command is the part that is supposed to survive.*
+
+*Previous: **2026-08-02, at `3cf8778`** — a **FULL** re-check (61 commits since `d8407e1`), the first
+spine-audit run whose findings went to an artifact rather than to this header:
+`docs/audits/2026-08-02-spine-audit-full.md`, **12 findings (F1–F12)**, dispatched report-only.
+**Only F3 was applied** (`cfebd04`: the resting-posture row emptied, 19 → 18); F1/F2/F4/F6/F8/F10 were
+filed to ROADMAP Observed for the geo thread. **F1, F4, F7, F8, F9, F11 were re-checked by the
+2026-08-03 sweep above and all six were still live** — which is this file's own *"an unapplied finding
+about an unenforced invariant is a countdown"* observed on a second sample.*
+
+*Previous: **2026-08-02, at `d8407e1`** — a **FULL** re-check (125 commits since the
 `72fbe86` watermark, and `docs/spines.md` itself moved in the window, so every prior verdict was void
 by the watermark file's own `_full_run_triggers` rule). Delta: **P11 slice 1** (the deep record went
 `MaterialId`-grade — journal/0136), **bodies B0** (journal/0135), the **posture bake member #0**
@@ -1604,11 +1672,25 @@ so a sweep must ask "does the cited constraint still hold?"
   `Litho::of_material` is the interim class bucket the still-`Litho`-wide transport tables index by,
   and it is *scrupulously* documented — dated demolition order, both heirs named, S-3's agreement
   test paid in the same commit (S-3 above records it as the doctrine's full price). One sentence in
-  that doc comment is wrong: `lithology.rs:339-341` says the test *"is what fails loudly if a pack
-  adds a fine clastic the bucket has never heard of."* **It is not.**
-  `lithology_buckets_agree_with_the_registry` (`lithology.rs:932`) opens with
-  `let set = geology::vanilla();` and iterates `set.members()`; its sibling
-  `every_depositional_class_round_trips_through_the_bucket` (`lithology.rs:1013`) does the same.
+  that doc comment is wrong: `lithology.rs:339-341` (as-of `d8407e1`) says the test *"is what fails
+  loudly if a pack adds a fine clastic the bucket has never heard of."* **It is not.**
+  `lithology_buckets_agree_with_the_registry` (`lithology.rs:932` at `d8407e1`, **`:1178` at
+  `2985273`**) opens with `let set = geology::vanilla();` and iterates `set.members()`; its sibling
+  `every_depositional_class_round_trips_through_the_bucket` (`:1013`, **`:1253` at `2985273`**) does
+  the same.
+  - **⚠ STILL LIVE 2026-08-03 at `2985273`, AND IT MOVED RATHER THAN DIED — the sharpest form this
+    entry could take.** `of_material`'s doc comment was rewritten by P11 slice 2 (`lithology.rs:330-356`
+    now narrates the slice-2 narrowing and names slice 4 as heir) and **the false sentence is not in
+    it any more.** It is on the **test's** doc comment, `lithology.rs:1175-1176`, verbatim: *"and it
+    is what fails loudly if a pack adds a fine clastic the bucket has never heard of"* — directly
+    above `fn lithology_buckets_agree_with_the_registry()` at `:1178`, whose first line is still
+    `let set = dc_core::materials::geology::vanilla();` (`:1179`). **A rewrite that carries the wrong
+    sentence to a new home discharges nothing**, and it is *harder* to find there: a reader auditing
+    the function now sees a clean doc comment, and the overclaim sits on the guard itself, which is
+    the last place a reader looks for a false claim about the guard. Search:
+    `grep -rn "fails loudly if a pack" --include=*.rs crates/` at `2985273` → one hit, `:1175`.
+    Reported, not applied (source file); the fix is still the one-line correction below, now aimed at
+    the test's doc comment.
   Search: `grep -rn "of_material" --include=*.rs crates/` at `d8407e1` — **every caller and every
   assertion is over `vanilla()`; no test hands `of_material` a non-vanilla set**, though
   `tests/geology.rs` builds `extended` ones for other purposes. A pack's unrecognised member takes
@@ -1904,6 +1986,18 @@ EMPTIED five commits after it was written — its named consumer landed** (`f4e7
 exactly as intended and the fastest a § 3 row has ever discharged.** *The count above is
 preserved as the sweep-day record; this line is the live one.* **→ 19 with FS-A (2026-08-02):
 the grain-grade-split row below, added in the same commit as the seam it indexes.**
+**→ 20 at `2985273` (2026-08-03 spine-audit FULL, finding 1): the per-instance gait seam.**
+
+**⚠ AND THE COMMAND ABOVE NO LONGER PRODUCES THIS COUNT — it has not since `3cf8778`, and the gap
+is a feature of the fix that created it.** The `awk`/`grep -c` returns **21** at `2985273`, i.e. **20
+table rows** after the header, against **20 standing rows** — which agrees only by coincidence:
+the table holds **21** entries, one of which (the resting-posture bake) is **DISCHARGED and kept as
+testimony** per the `CoarseField` precedent, and a discharged row is a table row that is not a
+standing row. *The mechanical check and the stated number answer different questions and always will
+once rows are kept after they empty.* **Run the command, then subtract the rows whose first cell
+carries `✅ DISCHARGED`** — one, today. Recorded rather than repaired by re-typing a number, because
+the previous three counts in this section were all wrong when written and a command that is right
+about the wrong quantity is the `chapters` `.len()` trap (A-3) applied to this file's own bookkeeping.
 
 The searches were `grep -rn --include=*.rs crates/` for each
 row's symbol with its defining file excluded; where a row's "called by" cell already names its
@@ -1939,7 +2033,9 @@ job is to be *followed* is the difference between a pointer and a decoration.
 
 | **the RESTING-POSTURE BAKE — `bake_resting_posture`, and the `RestingPosture` / `ChainPose` / `JointAngle` / `BakeOutcome` types it answers in.** **✅ DISCHARGED 2026-08-02 — THE FASTEST A § 3 ROW HAS EVER EMPTIED (five commits; spine-audit F3, verified at source before applying).** Its named consumer landed exactly where the row said it would: `dc-client/src/body.rs:430-442` calls `bake_resting_posture(plan, "stand")`, reaching production at `character.rs:426` — the renderer's `build_plan_assets` replacing the pinned `trunk.pivot_m[1]`-as-hip read, which is the continuation slot this row named as its heir. **Kept, not deleted** (the `CoarseField` precedent): a row that discharges *as designed* is the only evidence § 3 works, and deleting it would leave the index looking like the row never existed. **⚠ The count in this section's header moved 19 → 18 with this discharge** — and the row was emptied by a SWEEP rather than by the consuming commit, which is the standing miss `CLAUDE.md` names (*update it in the same commit as work that empties a row of § 3*); the consumer slice shipped the fix and left the bookkeeping. *Original entry follows as dated testimony.* **BUILT 2026-08-02 (posture bake member #0, journal/0137), row added the day it was built** — the discipline the `flux`, `head` and `Schedule::Seed` rows set, and the one journal/0123's RATE half missed. It is a **pure function of the body definition** (no world, no RNG, no clock) whose result is *returned, not stored* — deliberately a sibling of `BodyPlan`, never a field of it and never registry state (S-3: the plan stays the authority). **Note what is NOT in this row:** `stance_chains` shipped in the same slice and **is consumed** — `dc-client/src/body.rs:364`'s `leg_rigs` walks it, which is the F6 de-duplication that made the bake and the rig builder derive chains from one function instead of two copies | `dc-api/src/bodies/bake.rs` (`:278` `bake_resting_posture`, `:84` `RestingPosture`, `:107` `BakeOutcome`, `:72` `ChainPose`, `:62` `JointAngle`); re-exported at `dc-api/src/bodies.rs:536-537` | **no production caller — search `grep -rn "bake_resting_posture\|RestingPosture\|BakeOutcome" --include=*.rs crates/` at `d8407e1`, whose only hits outside `bake.rs` and `bake/tests.rs` are the re-export line and `dc-client/src/body.rs:349`, a doc comment.** The consumers are `bake/tests.rs` (437 lines) and their printed report — **and the module says so itself**, verbatim: *"Slice one's consumers are the tests and their printed report"* (`bake.rs:57`) | **the renderer's `build_plan_assets`** — named in-code as *"First real consumer (the continuation slot, audit § 5)"*, replacing the pinned `trunk.pivot_m[1]`-as-hip read. **⚠ Read this row in state 1, not state 3: the consumer is wanted, named, and sequenced as this member's own continuation slot** — this is not a seam held open on purpose like RATE's loader. Spec: `docs/audits/2026-08-02-posture-bake-member0-design.md`. *Filed here because § 3's standing lesson is that **a comment that honestly declares its own hole is not an index** — the `chapters`, `CoarseField` and RATE rows each made that argument, and this module's declaration is as explicit as any of them* |
 
-| **the GRAIN-GRADE SPLIT feed — `weather_inventory::grain_write_seam`, and the `on_product` channel of `InvCtx::release` that feeds it.** **BUILT 2026-08-02 (FS-A), row added the day it was built** — the discipline the `flux`/`head`/`Schedule::Seed`/posture-bake rows set. The release-spectrum *primitive itself is consumed* (the inventory-weathering pass emits `Structure→Loose` through `InvCtx::release`, and the vanilla tables validate in the gate); what has no consumer is **the grade split it computes**: every firing itemises its metres per grain grade (granite → grus: gravel/sand/silt/clay), hands them to this seam, and the seam **deliberately drops them** — grades have no storage until P11 slice 3's packed `DepUnit` lands (U5: `grain()`/`set_grain()`/`GRAIN_UNSET`, funded from reclaimed padding). Inventing a home here — a plane, a sidecar — would be A-1: the packed record is the one home | `dc-worldgen/src/deeptime/weather_inventory.rs` (`grain_write_seam`, at the top of the module); the feed is `inventory.rs::InvCtx::release`'s `on_product` | **the production callback is the inert seam, on purpose**; test/probe readers pass tallies (`weather_inventory` unit tests; `examples/release_spectrum_probe.rs`, which itemises the recorded band through the same `split_quantities` rather than reading the seam, so report and pass cannot disagree) | **the P11-slice-3 wire-up commit** — replace exactly the seam's body with the packed record's grain write, gated on the measured grain SPLIT FACTOR (corrections #88's count-model lesson). **⚠ Read this row in state 1: the consumer is wanted, named, and sequenced** (FS-A merges behind slice 3 by the main session's own sequencing); this is a scheduled hand-off, not a seam held open indefinitely |
+| **the GRAIN-GRADE SPLIT feed — `weather_inventory::grain_write_seam`, and the `on_product` channel of `InvCtx::release` that feeds it.** **BUILT 2026-08-02 (FS-A), row added the day it was built** — the discipline the `flux`/`head`/`Schedule::Seed`/posture-bake rows set. The release-spectrum *primitive itself is consumed* (the inventory-weathering pass emits `Structure→Loose` through `InvCtx::release`, and the vanilla tables validate in the gate); what has no consumer is **the grade split it computes**: every firing itemises its metres per grain grade (granite → grus: gravel/sand/silt/clay), hands them to this seam, and the seam **deliberately drops them** — grades have no storage until P11 slice 3's packed `DepUnit` lands (U5: `grain()`/`set_grain()`/`GRAIN_UNSET`, funded from reclaimed padding). Inventing a home here — a plane, a sidecar — would be A-1: the packed record is the one home. **⚠ THE STATED BLOCKER IS DISCHARGED AND THE ROW GOT WORSE, NOT BETTER (2026-08-03 sweep, finding 2).** P11 slice 3b landed (`68d5f03`): the storage exists — `DepUnit::GRAIN_UNSET` at `recorder.rs:536`, `grain()` at `:695`, `set_grain()` at `:703`, in bits 19–21 of the packed word (`recorder.rs:458`). **`set_grain` has exactly one caller and it is its own test** (`recorder.rs:1254`; search `grep -rn "set_grain" --include=*.rs crates/` at `2985273`, whose other hits are all doc comments). So the split has nowhere to go **and** the field has nobody to write it: *two built halves of one hand-off, each self-declaring its own hole, neither joined.* `recorder.rs:1337` asserts the state by name (*"no writer exists in slice 3, so every unit must be `GRAIN_UNSET`"*), and `examples/release_spectrum_probe.rs:316` re-asserts it from the other side | `dc-worldgen/src/deeptime/weather_inventory.rs:116` (`grain_write_seam`); the feed is `inventory.rs:1738` (`InvCtx::release`'s `on_product`, reaching `on_product(Some(p.grade), q)` at `:1822`). **The write end is `recorder.rs:703` (`DepUnit::set_grain`) — added to this row 2026-08-03; it is the same absence seen from the storage side** | **the production callback is the inert seam, on purpose**; test/probe readers pass tallies (`weather_inventory` unit tests; `examples/release_spectrum_probe.rs`, which itemises the recorded band through the same `split_quantities` rather than reading the seam, so report and pass cannot disagree) | **the wire-up commit** — replace exactly the seam's body with `DepUnit::set_grain`, gated on the measured grain SPLIT FACTOR (corrections #88's count-model lesson). ~~the P11-slice-3 wire-up commit~~ *(corrected 2026-08-03: slice 3 shipped the storage and did NOT do the wire-up, so naming the consumer by its slice number went stale in the commit that was supposed to be it).* **⚠ Read this row in state 1: the consumer is wanted, named, and sequenced**; this is a scheduled hand-off, not a seam held open indefinitely |
+
+| **the PER-INSTANCE GAIT SEAM — `dc_api::bodies::gait::pose(species_gait, delta)` and the `InstanceDelta` it takes.** **BUILT 2026-08-02/03 (gait bake member #1), row added by the 2026-08-03 FULL sweep — five commits after the consuming slice merged without one**, which is the `flux`/`head`/`Schedule::Seed`/posture-bake discipline missed again. It is **S-5 exactly**: a named function, an identity default that reproduces today's behaviour **bit for bit** (`InstanceDelta::default()` returns the species gait unchanged, asserted at `gait/tests.rs:622`), and a doc comment naming its heir. **And it is the RATE-authoring shape one crate over:** the *reading* half of this member is fully consumed — `bake_gait` is called from `dc-client/src/body.rs:484` (inside `derived_gait`, `:482`) and reaches production at `dc-client/src/character.rs:481`, and `GaitVector::limb_pose` / `root_height_ratio_at` drive the renderer at `body.rs:596`/`:668` — while the half that lets a *world* say anything has no caller. Same split, same day-late filing | `dc-api/src/bodies/gait.rs:469` (`pose`), `:210` (`InstanceDelta`); re-exported at `dc-api/src/bodies.rs:549` | **no production caller — search `grep -rn "InstanceDelta\|gait::pose" --include=*.rs crates/` at `2985273`**, whose only hits outside `gait.rs` are the `bodies.rs:548-549` re-export line and `gait/tests.rs:622,643` (the identity-default assertion and the limp case). **Not in this row, checked and rejected:** `GaitVector::at` → `GaitAtSpeed`/`BandReport`/`Regime`/`RootHeight` (`evaluate.rs:297,22,32,50,91`) also have no production caller, but their consumer is the **printed band report** (`gait/tests/report.rs`) that exists today — the `flux_record_probe` category (an instrument with a current consumer), not the `chapters` category. Recorded so the next sweep does not re-open it, per the `3cf8778` run's F5 precedent | **individual proportion variation** — `DECIDED 2026-08-02 (B8): "size first, declared axes later."* The identity default is what makes the first declared axis a non-event, and the doc states the law the axis must obey (*"a limp is a duty bias plus deterministic renormalisation, never a per-limb override: `β̄` is what Fr pins"*, `gait.rs:204-208`). **⚠ Read this row in state 3, HELD AS A CANDIDATE:** the axes are ruled *later*, so this seam is not owed a caller yet — it is owed one **the day the first instance axis is declared**, and the row exists so that day does not arrive with the seam forgotten beside a second one |
 
 **Departed (the good event):**
 
@@ -2105,6 +2201,27 @@ because the obvious answer was a constant:
   `outcrop_shares(&[])` and the constant disappears. The day basement stops being
   uniform, the seam's heir answers and the pass does not change.
 
+> **🔴 THAT LAST SENTENCE DESCRIBES CODE THAT NO LONGER EXISTS — found 2026-08-02 at `3cf8778`
+> (spine-audit F1), STILL LIVE 2026-08-03 at `2985273`.** P11 slice 2 replaced the seam call with a
+> constant: `erosion/weathering.rs:421-422` and `erosion/transport.rs:174-175` both write
+> `self.bedrock_axis = vec![axis.basement_slot() as u8]; self.bedrock_sp = vec![1.0];`, and
+> `basement_slot()` resolves to `lithology::DEEP_BASEMENT = MaterialId::GRANITE`. **Search proving
+> the absence:** `grep -rn "outcrop_shares(&\[\])" --include=*.rs crates/` at `2985273` → **zero
+> hits.** *The value is arithmetically identical* — an empty section leaves the whole window charged
+> to the basement slot — **so no world is wrong.** What is wrong is the claim, in three places that
+> still assert the call: `erosion/weathering.rs:419-420` (*"the same walk asked with an empty
+> section"*), `erosion/transport.rs:354-359` (*"**Nothing is named here**"* — `dc:granite` is named,
+> one file over), and `erosion/mod.rs:330-336` (*"the pass names no lithology … refreshed each epoch
+> **because the window's heir — structural deformation — may one day answer it differently per
+> cell**"*, a heir path this quantity no longer has: a pack-supplied `outcrop_shares` override, which
+> `tests/full_agents.rs` installs, cannot reach the bedrock composition at all).
+>
+> **The source fix is outside a sweep's write-set** and is filed to ROADMAP Observed (`cfebd04`).
+> **This paragraph is inside it**, and the stamp is the point: *the corpus's single best worked
+> example of the A-7 diagnostic — "what property am I reaching for?" → the constant dissolves — was
+> still being cited, in the read-first file, for a call site that had been deleted.* When a slice
+> takes back the answer a diagnostic produced, the diagnostic's write-up is part of the diff.
+
 ~~The one place the roster is still named is~~ **⚠ TWO places, corrected 2026-08-02 at `d8407e1`
 — the sentence went stale the day P11 slice 1 merged, and "the one place" is the same
 completeness shape `draws.rs`'s *"there is no expression anywhere in worldgen"* was (A-2).** Both
@@ -2112,9 +2229,10 @@ live in the lithology **adapter**, not in a pass, and both are statements about 
 vocabulary rather than about any pack's content — which is what keeps them out of this
 anti-shape's teeth:
 
-- `Litho::as_deposited` (`lithology.rs:765`) — *basement is the
-  one lithology a deposit cannot be*.
-- `Litho::of_material` (`lithology.rs:342-352`, added 2026-08-01) — **six `MaterialId` arms plus
+- `Litho::as_deposited` (`lithology.rs:934`, **refreshed 2026-08-03 at `2985273`**; was `:765` at
+  `d8407e1`) — *basement is the one lithology a deposit cannot be*.
+- `Litho::of_material` (`lithology.rs:357-367`, added 2026-08-01; **refreshed 2026-08-03 at
+  `2985273`**, was `:342-352`) — **six `MaterialId` arms plus
   `_ => Litho::Basement`.** Structurally it is `classify::block_twin`'s shape, which this section
   names as an instance two paragraphs up — fifteen named materials with a catch-all that swallows a
   pack's additions. It is **not** filed as an instance for three reasons stated in its own doc
@@ -2124,6 +2242,10 @@ anti-shape's teeth:
   it is thin*: what makes `block_twin` a defect and this a stand-in is that this one **names the
   authority it is a summary of**. ⚠ Its guard sentence overclaims — the agreement test runs on
   `vanilla()` only, so it cannot see the pack case the comment says it catches (A-2, above).
+  **⚠ Re-checked 2026-08-03 at `2985273`: the sentence was rewritten OUT of `of_material`'s doc
+  comment and is now on the TEST's, at `lithology.rs:1175-1176`, above a body that still opens
+  `let set = dc_core::materials::geology::vanilla();` (`:1179`).** A claim relocated is not a claim
+  retired — see A-2.
 
 **Two instances retired 2026-08-01 (B0, journal/0135) — recorded here because spines
 never indexed them while they were live; the body-plan-structure design pass found both
