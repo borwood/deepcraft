@@ -397,6 +397,48 @@ issue."* The seam is `resolve_orientation` (dc-client `body.rs`) — a pure
 joint angles; a multi-segment neck replaces that function's body (distributing the clamp
 along the cervical chain) without touching who owns the look.
 
+## Joint rotation limits — DECIDED 2026-08-02 (user; the primitive B0 stopped short of)
+
+**A joint carries a rotation range, and exceeding it is a VALIDATION FAILURE, never a runtime
+clamp.** Opened by the user while ruling the gait pass's keyframe count — *"frankly,
+hyper-extension just shouldn't be possible if we set rotation limits on joints"* — and the
+sweep that followed found the hole is total: `SegmentDef` carries `name, parent, pivot_m,
+size_m, offset_m, tint, roles` and **no rotation range**; `solve_leg_ik`'s clamps
+(`dc-client/src/body.rs:485,493`) keep `acos` in domain and the target inside reach, which are
+**numerical guards, not anatomical ones**. No plan, no solver, no validator prevents a knee
+inverting today.
+
+**It is a PRIMITIVE, not a gait detail.** Its consumers are the resting-posture bake, the gait
+bake, the IK solver, clip validation, plan forking, and every body an evolution pack mints. It
+is upstream of `posture-gait.md` § 7 member 1, which is where it surfaced.
+
+- **Enforcement is at the free clock, never the sacred one** (the two-clocks doctrine, and the
+  reason this is option A rather than a clamp). The **bake** checks its own output against the
+  limits and **refuses loudly** if a derived gait would exceed them. The **validator** rejects
+  a clip that keys a joint past its range **at define time** — so an authored clip that would
+  break a creature is caught when it is authored, not watched. The **IK solver** treats the
+  limit as part of the reachable set and solves *within* it, rather than solving freely and
+  correcting afterwards. **The runtime never silently clamps.**
+- **Why not a clamp** (it was the cheaper option and it is the wrong one): a clamp *hides* the
+  error. The gait asks for a pose, the joint quietly refuses, and the foot lands somewhere the
+  gait never intended with **no signal anywhere** — working code, passing tests, silently
+  wrong output, which is the failure mode this corpus has paid for repeatedly (`ARCHITECTURE.md`
+  § *A summary is not an authority*; anti-shape **A-3**).
+- **The existing honest-failure precedent EXTENDS, and is not replaced:** when the foot-IK
+  terrain correction exceeds what the leg can do, the foot **floats honestly** rather than
+  lying about contact (`character.rs`, the half-voxel window). Limits are the same discipline
+  one level up.
+- **Declared per joint, with a DERIVED DEFAULT** (user-ruled). Declared is simple and honest
+  for a hand-authored body; a **derived default is what makes the primitive survive evolution**
+  — nobody is present to author ranges for a species the deeptime sim invented, so a mutated
+  body must get plausible limits by construction, exactly as it gets a posture and a gait.
+  Declared overrides derived; the derivation itself (from segment geometry, and what "plausible"
+  means for a joint nobody has seen) is **owed a design pass** and is not settled here.
+
+**Sequencing:** upstream of the gait member's build, and it wants the segment-identity window
+while it is still cheap — a range on `SegmentDef` is a recompile today and a **wire migration**
+once B3 makes the pose a versioned sim asset, the same deadline `stubs.md` #34 rides.
+
 ## Sockets — PROPOSED
 
 A socket is a named, typed mount on a plan segment: `hand.r`, `back`, `head`. *(A socket name
