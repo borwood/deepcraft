@@ -6,6 +6,7 @@
 //! Partition (north star): **pass/content logic — plugin side by destination.**
 
 use super::super::climate;
+use super::super::flux::FlowCause;
 use super::super::grid::{DeepConfig, DeepGrid};
 use super::super::lithology::{self, Agent};
 use super::super::providers::WaveCell;
@@ -94,7 +95,13 @@ impl Erosion {
                                 dep_tags::EOLIAN,
                                 0,
                             );
-                            grid.strata[i].deposit_as(tag, load, chapter, m);
+                            grid.strata[i].deposit_moved(
+                                tag,
+                                load,
+                                chapter,
+                                m,
+                                FlowCause::Eolian as u8,
+                            );
                         }
                         load = 0.0;
                     }
@@ -155,7 +162,13 @@ impl Erosion {
                             dep_tags::EOLIAN,
                             1,
                         );
-                        grid.strata[i].deposit_as(tag, drop, chapter, m);
+                        grid.strata[i].deposit_moved(
+                            tag,
+                            drop,
+                            chapter,
+                            m,
+                            FlowCause::Eolian as u8,
+                        );
                     }
                 }
             }
@@ -178,7 +191,7 @@ impl Erosion {
                         dep_tags::EOLIAN,
                         2,
                     );
-                    grid.strata[i].deposit_as(tag, load, chapter, m);
+                    grid.strata[i].deposit_moved(tag, load, chapter, m, FlowCause::Eolian as u8);
                 }
             }
         }
@@ -289,7 +302,7 @@ impl Erosion {
                     dep_tags::WAVE,
                     0,
                 );
-                grid.strata[j].deposit_as(tag, cut, chapter, m);
+                grid.strata[j].deposit_moved(tag, cut, chapter, m, FlowCause::Marine as u8);
             }
         }
     }

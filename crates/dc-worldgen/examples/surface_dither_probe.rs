@@ -27,7 +27,7 @@ use std::time::Instant;
 use dc_core::materials::geology::vanilla;
 use dc_core::{Block, ChunkPos, MaterialId};
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
-use dc_worldgen::{ColumnFill, Plan, WorldGenerator};
+use dc_worldgen::{Plan, WorldGenerator};
 
 /// The client's `BENCH_SEED` (`dc-client/src/bench.rs`), widened exactly the way
 /// `Authority::new_worldgen` widens it (`seed as u64`).
@@ -297,13 +297,9 @@ fn site(g: &mut WorldGenerator<'_>, pregen: &Pregen, label: &str, vx: i64, vz: i
     let h_m = pregen.deep.regolith_at_voxel(vx, vz);
     let rec = pregen.deep.record_at_voxel(vx, vz);
     let (units, rec_m) = rec.map_or((0usize, 0.0f64), |s| {
-        (s.units.len(), s.units.iter().map(|u| u.thickness_m).sum())
+        (s.units.len(), s.units.iter().map(|u| u.thickness_m()).sum())
     });
     let col = g.column_record(cx, cz);
-    let fill = ColumnFill::build(&col.strata, VOXEL_M);
-    let mixed = (1..=fill.depth_count() as u32)
-        .filter(|d| matches!(fill.plan(*d), Some(Plan::Mixed(_))))
-        .count();
     println!("--- SITE {label} ---");
     println!(
         "  voxel ({vx}, {vz}) = world ({:.0} m, {:.0} m) | chunk ({cx}, {cz}) | surface y {}",
@@ -319,9 +315,18 @@ fn site(g: &mut WorldGenerator<'_>, pregen: &Pregen, label: &str, vx: i64, vz: i
         None => println!("  recorded H            : NONE (border wilds)"),
     }
     println!("  deep record           : {units} units, {rec_m:.2} m total");
+    // P11 slice 3: the record is per column — this voxel column's own SubCell.
+    let Some(sub) = col.record_for(lx, lz) else {
+        println!("  EXPRESSED             : no record realized at this column (fallback)\n");
+        return;
+    };
+    let fill = sub.fill();
+    let mixed = (1..=fill.depth_count() as u32)
+        .filter(|d| matches!(fill.plan(*d), Some(Plan::Mixed(_))))
+        .count();
     println!(
         "  EXPRESSED             : {} events, {} voxel spans, {mixed} of them mixed",
-        col.strata.events.len(),
+        sub.strata().events.len(),
         fill.depth_count()
     );
     let top = fill.plan(1);
@@ -335,7 +340,7 @@ fn site(g: &mut WorldGenerator<'_>, pregen: &Pregen, label: &str, vx: i64, vz: i
         },
         match top {
             None => " (fallback — no record)".to_string(),
-            Some(Plan::Single(k)) => format!(" of member {}", col.strata.events[*k].member.0),
+            Some(Plan::Single(k)) => format!(" of member {}", sub.strata().events[*k].member.0),
             Some(Plan::Mixed(_)) => " (mixed top span)".to_string(),
         }
     );

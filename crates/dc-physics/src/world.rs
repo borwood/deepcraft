@@ -23,9 +23,15 @@ pub struct PhysicsConfig {
     /// Fixed simulation step, seconds. Stepping is accumulator-driven and
     /// independent of frame rate.
     pub fixed_dt: f64,
-    /// Downward gravity, m/s^2. Defaults to the game's character gravity
-    /// (player.rs uses 25.0) so dropped items and the player agree about how
-    /// heavy the world feels.
+    /// Downward gravity, m/s^2. Defaults to the **world's** gravity
+    /// ([`dc_core::DEFAULT_GRAVITY_M_S2`]) so dropped items, the player and every
+    /// character agree about how heavy the world feels.
+    ///
+    /// This doc comment used to say *"defaults to the game's character gravity
+    /// (player.rs uses 25.0)"* — which described the intent correctly and
+    /// achieved it by **hand-copying the number**, the third independent `25.0`
+    /// in the tree. It is now read, not restated (DECIDED 2026-08-02, user:
+    /// `ARCHITECTURE.md` § *Gravity is a WORLD constant*).
     pub gravity_m_s2: f64,
     /// Cap on catch-up steps per [`PhysicsWorld::advance`] call; beyond this
     /// the accumulator is dropped (slow-frame spiral protection).
@@ -37,7 +43,7 @@ impl Default for PhysicsConfig {
     fn default() -> Self {
         Self {
             fixed_dt: 1.0 / 60.0,
-            gravity_m_s2: 25.0,
+            gravity_m_s2: dc_core::DEFAULT_GRAVITY_M_S2,
             max_steps_per_advance: 8,
             bubble: BubbleConfig::default(),
         }

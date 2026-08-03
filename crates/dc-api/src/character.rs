@@ -61,7 +61,11 @@ impl Default for CharacterConfig {
             width_m: 0.6,
             eye_fraction: 0.9,
             walk_speed_m_s: 4.5,
-            gravity_m_s2: 25.0,
+            // The world's gravity, read from the one authority — never restated
+            // (dc-core `world_constants`). Was a hand-typed `25.0` that nobody
+            // chose, in two places that agreed by coincidence; DECIDED
+            // 2026-08-02 (user): a world constant, defaulting to Earth.
+            gravity_m_s2: dc_core::DEFAULT_GRAVITY_M_S2,
             jump_clearance_voxels: 1.3,
             tick_dt_s: 1.0 / 20.0,
         }

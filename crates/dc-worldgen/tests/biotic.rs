@@ -125,7 +125,7 @@ fn biotic_off_leaves_the_record_purely_mineral() {
     for s in &run.grid.strata {
         for u in &s.units {
             assert_eq!(
-                u.tag.biota,
+                u.tag().biota,
                 Biofacies::Mineral,
                 "biotic-off must record only mineral units"
             );
@@ -141,7 +141,10 @@ fn recorder_total_equals_alluvium_with_biotic_on() {
     let run = deeptime::run(&small(SEED), &cfg(SEED, 1000.0, 80, true));
     let mut worst = 0.0f64;
     for (i, s) in run.grid.strata.iter().enumerate() {
-        worst = worst.max((s.total_m() - run.grid.h[i]).abs());
+        // P11 slice 3 (the pack): the record is quantized (2^-10 m) and the
+        // sub-quantum residue rides in the per-cell carry, so the exact mirror
+        // of H is record + carry; the record alone sits within quantum/2 of H.
+        worst = worst.max((s.total_m() + s.carry_m() - run.grid.h[i]).abs());
     }
     assert!(
         worst < 1e-6,
@@ -298,7 +301,7 @@ fn coal_promotion_reads_burial_depth_not_seam_thickness() {
     let col = degenerate_column();
     s.promote_coal(col, 8.0, &member_ctx(&vanilla()));
 
-    let biota: Vec<Biofacies> = s.units.iter().map(|u| u.tag.biota).collect();
+    let biota: Vec<Biofacies> = s.units.iter().map(|u| u.tag().biota).collect();
     assert_eq!(
         biota[0],
         Biofacies::Coal,
@@ -330,10 +333,10 @@ fn the_living_surface_is_never_coal_whatever_the_threshold() {
     s.deposit(organic_tag(Biofacies::Peat), 40.0, 0);
     let col = degenerate_column();
     s.promote_coal(col, 0.0, &member_ctx(&vanilla()));
-    assert_eq!(s.units[0].tag.biota, Biofacies::Peat);
+    assert_eq!(s.units[0].tag().biota, Biofacies::Peat);
 
     // And with something above it, the same peat IS coal at zero threshold.
     s.deposit(organic_tag(Biofacies::Mineral), 0.1, 0);
     s.promote_coal(col, 0.0, &member_ctx(&vanilla()));
-    assert_eq!(s.units[0].tag.biota, Biofacies::Coal);
+    assert_eq!(s.units[0].tag().biota, Biofacies::Coal);
 }

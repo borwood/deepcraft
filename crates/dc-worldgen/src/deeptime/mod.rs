@@ -90,7 +90,7 @@ pub use lithology::{
 pub use providers::{PaleoUnit, ParentCell, Providers, WaveCell};
 pub use recorder::{
     Aridity, Biofacies, DeepStrata, DepEnv, DepTag, DepUnit, DepositCtx, EnergyBand, Eolian,
-    MemberCtx, dep_tags,
+    MOVER_NONE, MemberCtx, dep_tags,
 };
 pub use refine::{DecayProfile, RegionSpec, measure_decay};
 pub use schedule::Schedule;

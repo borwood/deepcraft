@@ -125,7 +125,9 @@ fn recorder_total_equals_alluvium_everywhere() {
     let run = deeptime::run(&pregen, &cfg);
     let mut worst = 0.0f64;
     for (i, s) in run.grid.strata.iter().enumerate() {
-        let diff = (s.total_m() - run.grid.h[i]).abs();
+        // P11 slice 3 (the pack): record + carry is the exact mirror of H;
+        // the record alone sits within quantum/2 (the sub-quantum residue).
+        let diff = (s.total_m() + s.carry_m() - run.grid.h[i]).abs();
         worst = worst.max(diff);
     }
     assert!(

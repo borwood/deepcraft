@@ -531,10 +531,15 @@ pub fn validate_plan(
 mod bake;
 mod default_pack;
 mod experiments;
+mod gait;
 
 pub use bake::{
     BakeOutcome, ChainPose, JointAngle, RestingPosture, bake_resting_posture, stance_chain,
     stance_chains,
+};
+pub use gait::{
+    BandReport, GaitAtSpeed, GaitBakeOutcome, GaitKnobs, GaitVector, InstanceDelta, LimbAtSpeed,
+    LimbGait, Regime, RootHeight, bake_gait, duty_exponent, pose,
 };
 pub use default_pack::{biped_clips, biped_plan, default_body_pack};
 pub use experiments::{experiment_body_pack, longleg_plan, stout_plan};

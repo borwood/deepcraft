@@ -356,6 +356,47 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### GRAVITY BECOMES A WORLD PARAMETER — **DECIDED 2026-08-02 (user); step 1 LANDED (ungated), steps 2–4 OWED**
+
+**Doc: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) § *Gravity is a WORLD constant, and it
+defaults to Earth*** (with its same-day SDK/geo-pass widening). `25.0 m/s²` was a bring-up
+artifact nobody chose; *existence is not standing, applied to a physical constant*.
+
+1. ~~**The flip + one authority**~~ **✅ LANDED 2026-08-02 (`bd0c82c`, renamed `26bf42f`) — ⚠ UNGATED,
+   the gate is the first thing owed.** `dc-core::DEFAULT_GRAVITY_M_S2 = 9.81`; **three** hardcoded
+   `25.0`s collapsed (`CharacterConfig`, `dc-client` player, and `PhysicsConfig` — the third found
+   only by doing it, and its doc comment *named the file holding the authority and copied the
+   digits anyway*). **Gate owed on dc-core / dc-api / dc-client / dc-physics** — blocked at the time
+   by the sibling session's 69-minute P2 sweep.
+2. **One place to SET it — the configuration half, still open.** Three configs each hold their own
+   `gravity_m_s2` field, all merely *defaulting* to the constant, so a world wanting Mars gravity
+   sets it in **three places**: the same defect moved from the literal to the field. End state is
+   one world-level value the three derive from. **Consumer: E7's per-world manifest** — the same
+   loader `CadenceTable` waits on. *Recorded in `world_constants.rs`'s module docs too, because a
+   fix that closes the visible half and leaves the other half unnamed is how the visible half
+   comes back.*
+3. **SDK exposure** (user: *"world grav should be exposed on sdk surface"*) — gravity becomes a
+   primitive passes declare against, per the north star.
+4. **Pass adoption, one slice each, each with its own literature check.** **Measured 2026-08-02:
+   ZERO worldgen passes consume gravity** — every `gravity` hit in `dc-worldgen` is a *doc comment*
+   describing the mechanism beside code that never receives it (`creep.rs:18` calls itself *"the
+   gravity/mass-wasting member"* and takes no `g`). Real consumers: lithostatic pressure `ρ·g·h`
+   (burial/compaction/diagenesis) · grain settling velocity (Stokes) · transport capacity and
+   stream power · isostasy · hillslope diffusion. **⚠ A pass may NOT factor `g` back out of an
+   empirically fitted constant and call the result derived** — `EROSION_CALIBRATION` is the live
+   case, already owed a literature-derived re-pick (P2).
+
+**⚠ ORDER IS LOAD-BEARING AND STEP 1 IS ALREADY BANKED.** Once a pass reads `g`, gravity joins the
+seed and the frozen content set as **world identity** and changing it moves **terrain**. Nothing
+consumed it on 2026-08-02, which is exactly why the flip went in that day — it moved **no terrain
+golden**, only character/player/item motion. **Steps 3–4 close that window permanently.**
+
+**The one taste consequence, now consciously owned rather than inherited:** jump **apex is
+unchanged** (the jump is height-parameterised — launch velocity `√(2gh)` puts the apex at exactly
+`h` at any gravity, a good piece of bring-up design that survives), but everything is **≈1.6×
+floatier in TIME** — longer arcs, slower falls. High gravity for snappy jumps is a common voxel-game
+choice and is the likeliest unexamined origin of `25`.
+
 ### MEMBERS INTO DEEP HISTORY — **DECIDED 2026-08-01 (user), TOP PRIORITY — ripples through everything below**
 
 **WHAT.** The deep record stops being class-grade: member materials (registry
@@ -473,11 +514,18 @@ two).
    ratified packed `DepUnit` recovers it. Corrections #90–91, stubs #37–38 from the
    slice. **Record-terms ruling 3's re-derived numbers are in journal/0141 § 11 —
    ready for its re-entry.**
-3. **The near-path restructure** (ruling 5) — per-column cell-membership dither + MM-3's
-   `SubCell` type (its consumer now exists) + `ColumnRec.strata → records` (the measured
-   13-file break), landing on the member-grade record. The ~460 m near tile dies here.
-   **DESIGN PASS DONE 2026-08-02 (`docs/audits/2026-08-02-p11-slice3-design.md`; 8 user
-   picks P-1…P-8 pending in its § 9).** Load-bearing findings: the three NEAREST reads are
+3. ~~**The near-path restructure** (ruling 5)~~ **✅ SHIPPED 2026-08-03 (journal/0144,
+   merge `cd1058a`; 3a+3b as ONE merge unit — deviation priced by the audit, reasoning
+   in the journal).** Per-voxel-column record membership (`SubCell` + `cell_bundle`, the
+   F2 mass-coupled trio inexpressible to un-bundle) + packed `DepUnit` L-8 (8 B/unit,
+   accessors, sub-quantum carry, grain 3 bits UNSET for FS-A, **mover IN the merge key**
+   on M0's measured 1.0308×). Full trio on the branch: **938/2, both reds accounted**
+   (the inherited dc-client red · the hollow-gate bound corrected to 0122's derived
+   10 m bar — it was an underived 1 m sitting on the dimple floor). **The ~460 m near
+   tile is dead in code; the ACCEPTANCE WALK is owed** (borders → interfingered
+   contacts, knowing the far-tier blend semantics ride along — P-6/P-7).
+   **DESIGN PASS DONE 2026-08-02 (`docs/audits/2026-08-02-p11-slice3-design.md`; build
+   banner in its header).** Load-bearing findings: the three NEAREST reads are
    MASS-COUPLED (record + regolith `H` + ledger bedrock slot must move as one bundle per
    column or Law 3 leaks at every frontier — F2); blast radius re-measured **14 files /
    ~71 sites** (the gated tour probe post-dates the old count); **the layout is RULED
@@ -497,6 +545,20 @@ two).
    one layout surgery, one golden move, one migration. **Gated on a measured grain
    split factor** (the #88 count-model lesson) and the sub-quantum remainder-carry
    (Law-3 bound becomes derivable: quantum × merge count).
+   **✅ BUILT 2026-08-02/03 (slice-3 worktree, journal/pending-p11-slice3; audit header
+   carries the banner).** M0 measured first: mover split **1.0308×** → **M-1, the mover
+   is IN the merge key** (P-4 resolved integrator-side, under the ≲1.1× bar); max unit
+   thickness **65.38 m** (2⁻¹⁰ m u32 quantum stands; u16 would have overflowed);
+   `run_strata` = **0.2 % of `column()`** (the 4× prior is noise). Restructure: `SubCell`
+   (own module) + `ColumnRec.strata → records`/`cell_of` + `DeepField::cell_bundle` (the
+   F2 mass-coupled read) + the `NearRecordMembership` domain on `Octaves`; acceptance
+   instrument gates in `appearance_tour_p11` (structural asserts — the audit's binomial
+   floors were unsound under its own coherent-source pick, corrected loudly in the
+   banner). Pack: 8 B/unit (bits + u32 quanta), accessors everywhere, per-cell carry,
+   grain named + UNSET (`grain()`/`set_grain()`/`GRAIN_UNSET` await FS-A). Stubs #25
+   discharged, #31 heir re-pointed. Deviation: shipped as ONE merge (the § 7-priced
+   combined option — the two surgeries share fourteen files); all-family golden move in
+   that merge, whys per family in test comments.
 4. **Litho dissolution residue** — delete `deep_class_of_species` and the ~250
    remaining class-speaking sites; re-shape or minimally patch the far `ShareVec<6>`
    site (rejected-interim; its real heir is the far register — do not gold-plate).
@@ -2760,6 +2822,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
    editor; not yet scheduled against the geology track.
 
 ## Observed (undiagnosed or deliberately unfixed)
+
+- **INHERITED RED ON MAIN — `dc-client` `mcp_character::tests::character_session_is_embodied_and_attenuated`
+  (filed by the geo session 2026-08-03; belongs to the BODIES thread).** Assertion
+  `left == right` fails at `mcp_character.rs:444`, **verified on clean main** (single-test
+  run, compile line cites the main checkout — not a worktree artifact). Entered via the
+  2026-08-02 `[UNGATED]` bodies-thread commits (gravity step 1 / gait work; exact culprit
+  undiagnosed from the geo side, and the assertion's *intent* is bodies-session design
+  territory, so geo did not guess a fix). Its sibling — a non-exhaustive grant match in
+  `dc-host` missing `Payload::ClearLook` — was fixed in-flight by the slice-3 builder and
+  merges with slice 3. Until this red is fixed, **every full workspace gate on main runs
+  `--no-fail-fast` with exactly this one documented red**; a second red is a real defect.
 
 - **OWED-SMALL from the 2026-08-02 geo session (deliberately not done, reasons attached):**
   the sweeps' unapplied minor findings — doc-topology **F7** (stale `GOLDEN_SURFACE` hex in

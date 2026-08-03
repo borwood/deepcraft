@@ -7,10 +7,11 @@
 use rayon::prelude::*;
 
 use super::super::climate;
+use super::super::flux::FlowCause;
 use super::super::grid::DeepGrid;
 use super::super::lithology;
 use super::super::recorder::{
-    Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, MemberCtx, dep_tags,
+    Aridity, DeepStrata, DepEnv, DepTag, EnergyBand, MOVER_NONE, MemberCtx, dep_tags,
 };
 use super::super::species::{MAX_DEEP_SPECIES, SpeciesAxis};
 use super::Erosion;
@@ -74,14 +75,14 @@ fn record_cell(
     s: &mut DeepStrata,
     dh: f64,
     chapter: u8,
-    deposit: impl FnOnce() -> (DepTag, MaterialId),
+    deposit: impl FnOnce() -> (DepTag, MaterialId, u8),
 ) {
     if dh.abs() < 1e-9 {
         return;
     }
     if dh > 0.0 {
-        let (tag, species) = deposit();
-        s.deposit_as(tag, dh, chapter, species);
+        let (tag, species, mover) = deposit();
+        s.deposit_moved(tag, dh, chapter, species, mover);
     } else {
         s.erode(-dh);
     }
@@ -137,12 +138,17 @@ fn arriving_material(
     dep: &[f64],
     creep_axis: &[u8],
     creep: &[f64],
-) -> Option<MaterialId> {
+) -> Option<(MaterialId, u8)> {
     let mut mix = [0.0f64; MAX_DEEP_SPECIES];
+    // The fluvial half alone, so the winner's dominant mover is derivable
+    // (creep's share of species `k` is `mix[k] - mix_dep[k]`). Purely a
+    // *report* about the same argmax — the species answer is unchanged.
+    let mut mix_dep = [0.0f64; MAX_DEEP_SPECIES];
     let mut carried = 0.0;
     for (j, &k) in dep_axis.iter().enumerate() {
         let m = dep[j].max(0.0);
         mix[k as usize] += m;
+        mix_dep[k as usize] += m;
         carried += m;
     }
     for (j, &k) in creep_axis.iter().enumerate() {
@@ -160,7 +166,17 @@ fn arriving_material(
             best = Some(k);
         }
     }
-    best.map(|k| axis.material(k))
+    // The winning species' dominant mover: fluvial vs hillslope gravity, by the
+    // same ≥ bias the arithmetic above has (water outranks the slope on a tie —
+    // an arbitrary but stated rule; the two are equal-mass ties only).
+    best.map(|k| {
+        let mover = if mix_dep[k] >= mix[k] - mix_dep[k] {
+            FlowCause::Fluvial as u8
+        } else {
+            FlowCause::Gravity as u8
+        };
+        (axis.material(k), mover)
+    })
 }
 
 /// The metres a cell deposited this epoch — the audit's weight. Only positive
@@ -257,8 +273,8 @@ impl Erosion {
             // pass emits through them — this record-path draw is NOT yet retired;
             // that wire-up rides behind P11 slice 3's packed DepUnit.)
             let temp_c = f64::from(climate::air_temp_c(lat[i / w], r[i] + h[i]));
-            let draw_class = match carried {
-                Some(m) => match lithology::deposited_transform(m) {
+            let (draw_class, mover) = match carried {
+                Some((m, mover)) => match lithology::deposited_transform(m) {
                     None => {
                         // The instrument (off in production, byte-inert): would
                         // this site's own climate have named a different rock?
@@ -277,25 +293,32 @@ impl Erosion {
                         } else {
                             1
                         };
-                        return m;
+                        return (m, mover);
                     }
-                    Some(to) => to,
+                    // A transformation edge is still a delivery: the mover that
+                    // brought the parent is the mover of the product.
+                    Some(to) => (to, mover),
                 },
-                None => lithology::litho_of_tag(tag),
+                // The un-carried remainder won: made where it lies.
+                None => (lithology::litho_of_tag(tag), MOVER_NONE),
             };
             *prov = 2;
-            mem.surface(
-                i,
-                temp_c,
-                f64::from(precip[i]),
-                draw_class,
-                dep_tags::TRANSPORT,
-                0,
+            (
+                mem.surface(
+                    i,
+                    temp_c,
+                    f64::from(precip[i]),
+                    draw_class,
+                    dep_tags::TRANSPORT,
+                    0,
+                ),
+                mover,
             )
         };
         let deposit_at = |i: usize, prov: &mut u8| {
             let tag = tag_of(r[i] + h[i], precip[i], energy[i], sea, k_t);
-            (tag, species_at(i, tag, prov))
+            let (species, mover) = species_at(i, tag, prov);
+            (tag, species, mover)
         };
         let n = self.n;
         if audit {

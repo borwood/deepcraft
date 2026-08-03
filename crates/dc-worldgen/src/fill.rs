@@ -197,6 +197,21 @@ impl ColumnFill {
     pub fn depth_count(&self) -> usize {
         self.plans.len()
     }
+
+    /// Rough heap footprint (bytes) of the plan index — a residency report
+    /// line, not an authority (P11 slice 3: `ColumnRec` holds several fills and
+    /// `column_cache` is runtime-resident).
+    pub fn heap_bytes(&self) -> usize {
+        self.plans.capacity() * std::mem::size_of::<Plan>()
+            + self
+                .plans
+                .iter()
+                .map(|p| match p {
+                    Plan::Single(_) => 0,
+                    Plan::Mixed(w) => w.capacity() * std::mem::size_of::<(usize, u64)>(),
+                })
+                .sum::<usize>()
+    }
 }
 
 /// Normalize overlaps to exactly [`TOTAL`] fixed-point eighths.

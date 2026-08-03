@@ -22,7 +22,13 @@ pub const PLAYER_WIDTH_M: f64 = 0.6;
 pub const EYE_FRACTION: f64 = 0.9;
 const WALK_SPEED_M_S: f64 = 4.5;
 const FLY_SPEED_M_S: f64 = 16.0;
-const GRAVITY_M_S2: f64 = 25.0;
+/// The world's gravity. Read from dc-core's one authority rather than restated
+/// here — this file used to hold an independent hand-typed `25.0` that matched
+/// `CharacterConfig`'s only by coincidence, so the player and every character
+/// fell at the same rate by luck (DECIDED 2026-08-02, user: gravity is a world
+/// constant defaulting to Earth — `ARCHITECTURE.md`, and the two-authority
+/// family in `bodies.md` § the sim owns the target).
+const GRAVITY_M_S2: f64 = dc_core::DEFAULT_GRAVITY_M_S2;
 /// Jump clears this many voxel heights (with a little margin), so the jump
 /// arc is part of what changes between scales — deliberately so.
 const JUMP_CLEARANCE_VOXELS: f64 = 1.3;

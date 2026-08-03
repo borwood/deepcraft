@@ -284,10 +284,10 @@ pub fn column_hydro(strata: &DeepStrata) -> ColumnHydro {
     // Series resistance Σ(t / k) — the harmonic-mean denominator.
     let mut resistance = 0.0f64;
     for u in &strata.units {
-        let k = permeability_of(u.species).max(HEAD_EPS_M);
-        transmissivity += u.thickness_m * k;
-        thickness += u.thickness_m;
-        resistance += u.thickness_m / k;
+        let k = permeability_of(u.species()).max(HEAD_EPS_M);
+        transmissivity += u.thickness_m() * k;
+        thickness += u.thickness_m();
+        resistance += u.thickness_m() / k;
     }
     let k_vertical = if resistance > 0.0 && thickness > 0.0 {
         thickness / resistance
@@ -300,9 +300,9 @@ pub fn column_hydro(strata: &DeepStrata) -> ColumnHydro {
     let mut cap_m = 0.0f64;
     let mut seals_an_aquifer = false;
     for u in strata.units.iter().rev() {
-        let k = permeability_of(u.species);
+        let k = permeability_of(u.species());
         if k <= AQUITARD_K_MAX {
-            cap_m += u.thickness_m;
+            cap_m += u.thickness_m();
             continue;
         }
         // First non-confining bed under the cap ends the walk. Only a genuinely

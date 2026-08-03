@@ -49,11 +49,10 @@ use dc_worldgen::fill::{
     pore_rider_share, share_eighths,
 };
 use dc_worldgen::pregen::{CELL_VOXELS, Extent, Pregen, WorldParams};
-use dc_worldgen::{ColumnFill, DeepOverrides, Plan};
+use dc_worldgen::{DeepOverrides, Plan};
 
 /// The production world the weathering probes read (journal/0099, /0103).
 const SEED: u64 = 1337;
-const VOXEL_M: f64 = 0.9;
 /// Border ring excluded from station picks (march edge artifacts).
 const EDGE_MARGIN: i64 = 4;
 /// Chunk-columns sampled for the population statistics.
@@ -207,10 +206,14 @@ fn sample_chunk(pregen: &Pregen, cx: i64, cz: i64) -> ChunkSample {
     let seed = pregen.seed;
     let mut generator = WorldGenerator::new(pregen);
     let rec = generator.column_record(cx, cz);
-    let fill = ColumnFill::build(&rec.strata, VOXEL_M);
     let mut out = ChunkSample::default();
     for lz in 0..32usize {
         for lx in 0..32usize {
+            // P11 slice 3: each voxel column's own SubCell (record + fill).
+            let Some(sub) = rec.record_for(lx, lz) else {
+                continue;
+            };
+            let fill = sub.fill();
             let h = i64::from(rec.heights[lz * 32 + lx]);
             let (vx, vz) = (cx * 32 + lx as i64, cz * 32 + lz as i64);
             // `plan(1)` is the surface voxel's partial (journal/0074); the buried
@@ -227,7 +230,7 @@ fn sample_chunk(pregen: &Pregen, cx: i64, cz: i64) -> ChunkSample {
                 let uq = fill_offset(u);
                 let mut riders = Vec::new();
                 for (k, cnt) in allocate_partial(w, u, 8) {
-                    let e = &rec.strata.events[k];
+                    let e = &sub.strata().events[k];
                     if e.ore.is_some_and(|(_, k8)| k8 > 0) {
                         continue; // the placer arm wins the match first
                     }

@@ -26,6 +26,7 @@ pub mod palette;
 pub mod raycast;
 pub mod scale;
 pub mod voxel;
+pub mod world_constants;
 
 pub use chunk::{CHUNK_SIZE, CHUNK_SIZE_USIZE, CHUNK_VOLUME, Chunk, ChunkPos, local_voxel};
 pub use classify::{classify, dominant_material};
@@ -69,3 +70,4 @@ pub use palette::{PackedIndices, PaletteError, PalettedChunk, bits_for_palette_l
 pub use raycast::{RaycastHit, raycast_voxels};
 pub use scale::VoxelScale;
 pub use voxel::Block;
+pub use world_constants::DEFAULT_GRAVITY_M_S2;

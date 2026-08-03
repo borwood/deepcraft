@@ -1,5 +1,32 @@
 # Joint rotation limits (B7) — a design pass against the ruling
 
+> **⚠ Q1 / J1 RULED 2026-08-02 (user) — AND THE FINDING IS DISSOLVED, NOT ANSWERED. Mutable
+> header; the body below is testimony.** J1 asked how the derived default can give an evolved
+> body *"plausible limits by construction"* when geometry supplies a magnitude and never a
+> sign, so a fore-aft-symmetric evolved body is not protected from hyperextension — the
+> ruling's own opening motive. **The user reframed the premise out of existence:** *"a 'knee'
+> could bend backwards: it's not actually a knee until constraint is declared."*
+> **Hyperextension is a concept that exists only relative to a declaration.** An undeclared
+> joint hinging both ways is not a hyperextending knee; it is a joint. The derivation is
+> therefore not failing to prevent anything, and the engine owes no guard against it.
+>
+> **The engine's contract, ruled:** *"on the engine side, limits are declared and we only derive
+> what we can from geometry if declaration is absent or incomplete. This does mean that a limb,
+> in a vacuum, that does not have a declared constraint, can hinge any way and we only know
+> magnitude."* That is **complete and honest**, not a degraded mode.
+>
+> **⚠ PARTITION CORRECTION, same ruling:** the assistant proposed **phylogenetic inheritance as
+> the ENGINE's answer to J1**. Wrong side. *"On the plugin side / evolution: of course evolution
+> can declare what side it bends or not at all, and the mechanism for inheritance is to take the
+> previous generation's constraint and either copy it forward or mutate it"* — **pack behaviour
+> sitting on the engine's declaration vocabulary**, exactly like every other content concern
+> (`dependency-graph.md` § 0). A novel limb with nothing to inherit from simply **has no
+> constraint**: legal, honest, not a gap owed a loud refusal.
+>
+> **Consequence for the default pack, unchanged and now correctly located:** the walk clip's
+> 28.65° hyperextension becomes catchable **when the default pack declares its biped's knee** —
+> an *authoring* act in content, never an engine default.
+
 **Status: DESIGN PASS. Nothing here is ratified and no code was changed.** The deliverable is
 this document. It works `bodies.md` § *Joint rotation limits* (**DECIDED 2026-08-02, user**)
 against the post-member-#0 code and proposes a concrete shape for the three things the ruling

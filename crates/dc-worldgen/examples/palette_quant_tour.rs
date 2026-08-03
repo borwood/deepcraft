@@ -131,12 +131,12 @@ fn dominant_sedimentary(strata: &DeepStrata) -> Option<&'static str> {
         if acc >= VOXEL_M {
             break;
         }
-        let take = u.thickness_m.min(VOXEL_M - acc);
+        let take = u.thickness_m().min(VOXEL_M - acc);
         if take <= 0.0 {
             continue;
         }
         acc += take;
-        let c = deep_class_of_species(Litho::of_material(u.species));
+        let c = deep_class_of_species(Litho::of_material(u.species()));
         match by_class.iter_mut().find(|(k, _)| *k == c) {
             Some((_, m)) => *m += take,
             None => by_class.push((c, take)),
@@ -618,18 +618,24 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
 
     // ── What the SURFACE at this chunk is actually made of, and whether the
     //    member dither can move it ──
-    let fill = &col.strata;
+    // P11 slice 3: the record is per column — read the pose voxel's own SubCell.
+    let (plx, plz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
+    let Some(sub) = col.record_for(plx, plz) else {
+        println!("\nno record realized at the pose column (fallback) — U3 report skipped");
+        return;
+    };
+    let rec = sub.strata();
     let mut single_movable = 0usize;
     let mut single_frozen = 0usize;
     let mut mixed = 0usize;
     {
-        use dc_worldgen::{ColumnFill, Plan};
-        let cf = ColumnFill::build(fill, VOXEL_M);
+        use dc_worldgen::Plan;
+        let cf = sub.fill();
         match cf.plan(1) {
             None => println!("\nthe surface voxel has no record top span here (fallback column)"),
             Some(Plan::Mixed(_)) => mixed = 1024,
             Some(Plan::Single(k)) => {
-                let e = fill.events[*k];
+                let e = rec.events[*k];
                 let c = set.member(e.member).class.as_str();
                 if set.class(c).map_or(0, |cl| cl.members().len()) > 1 {
                     single_movable = 1024;
@@ -652,8 +658,7 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
     }
 
     // ── Pick an event whose class can actually express, so the A/B has content ──
-    let Some(event) = col
-        .strata
+    let Some(event) = rec
         .events
         .iter()
         .rev()
@@ -668,7 +673,7 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
              belongs to a multi-member class, so the within-class member dither is INERT here \
              under any source. That is a result about U3, not a failed measurement — see \
              journal/0129.",
-            col.strata.events.len()
+            rec.events.len()
         );
         return;
     };
@@ -717,24 +722,29 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
         a_top,
         single_member_chunk_fraction(&fa)
     );
-    // ── The OTHER 28.8 m mechanism, measured because the census above says the
-    //    member dither cannot be the whole story at this pose ──
+    // ── The OTHER 28.8 m mechanism — RETIRED by P11 slice 3, kept as its
+    //    receipt ──
     //
-    // A chunk's whole `StrataRec` is produced by ONE `run_strata` per chunk, from
-    // context sampled at the chunk CENTRE: climate, mean elevation, flow energy,
-    // provenance. So the *record itself* — which classes surface and in what
-    // proportion — is chunk-quantized, independently of any dither and independently
-    // of the 460 m deep-cell grid. A class change is a large tint change (tan vs
-    // grey vs dark); a within-class member change is a small one. This counts how
-    // often adjacent chunks disagree about their surface class mix.
-    println!("\n-- the record itself is per-CHUNK: do neighbours disagree? --");
+    // Until slice 3 a chunk's whole `StrataRec` was ONE point sample of the
+    // deep record at the chunk centre (NEAREST at the 460 m grid), so the
+    // record itself was chunk-quantized. The restructure made the record
+    // per-voxel-column (each column's SubCell). This census now reads the
+    // CENTRE column per chunk: adjacent chunks may still disagree (their
+    // centre columns dither among neighbouring cells), but the disagreement is
+    // no longer a straight chunk-pitch line — the acceptance instrument in
+    // `appearance_tour_p11` asserts that directly.
+    println!("\n-- centre-column surface class mix: do neighbour chunks disagree? --");
     let mut sigs: Vec<(i64, i64, String)> = Vec::new();
     for dz in 0..8i64 {
         for dx in 0..8i64 {
             let c = g.column_record(cx + dx, cz + dz);
+            let Some(csub) = c.centre_record() else {
+                sigs.push((cx + dx, cz + dz, String::new()));
+                continue;
+            };
             let mut top: Vec<(&str, f64)> = Vec::new();
             let mut acc = 0.0f64;
-            for e in c.strata.events.iter().rev() {
+            for e in csub.strata().events.iter().rev() {
                 if acc >= VOXEL_M {
                     break;
                 }
@@ -784,9 +794,11 @@ fn report_u3_member_stepping(g: &mut WorldGenerator<'_>) {
         println!("     chunk ({},{})  {}", s.0, s.1, s.2);
     }
     println!(
-        "   ⚠ Whatever these numbers are, they are NOT moved by this slice and NOT moved by \
-         the 460 m record-membership restructure either: the fix for a chunk-quantized \
-         RECORD is per-column formation context, a third mechanism at this site."
+        "   ⚠ P11 slice 3 made WHICH record a column reads per-column (the membership \
+         dither), so record-presence borders stop being chunk-pitch lines — but the \
+         record's FORMATION CONTEXT (climate, mean elevation, flow energy) is still \
+         sampled once per chunk, a third mechanism at this site whose heir is the \
+         per-column formation context (stubs.md #31, deliberately out of slice 3)."
     );
 
     println!(

@@ -754,3 +754,85 @@ looked right. **The prescription split in two along the ownership line:** `rate 
 engine's (authored, RATE) and the stability sub-division is the *kernel's* (derived, E4). Both
 now sit four lines apart in `Erosion::diffuse`, which is where E4 will lift the second one
 from.
+
+## Gravity is a WORLD constant, and it defaults to Earth — DECIDED 2026-08-02 (user)
+
+**`25.0 m/s²` was never chosen.** Surfaced when the gait bake's build found the design pass had
+derived its whole Froude table at `9.81` while `CharacterConfig::gravity_m_s2` reads `25.0`
+(`dc-api/src/character.rs:64`). User: *"Nobody ever consciously chose 25 m/s². This is the first
+I'm hearing of it because it's a bootstrapping artifact. Better approach for us is to make
+gravity a world-defined constant, default it to earth, and set us up to allow worlds with
+different gravities in the future."*
+
+**Existence-is-not-standing, applied to a physical constant.** The test — *if this did not exist,
+would we build it today, in this shape?* — answers no. Unratified bring-up content has no
+standing at any magnitude, and a constant is content.
+
+- **Gravity is a property of the WORLD**, not of a character config or a renderer module. It
+  becomes a world-defined value with an **Earth default (9.81 m/s²)**, read by every consumer
+  rather than restated by each.
+- **Per-world gravity is the point, not a someday.** The seam is the value's *location*; the
+  loader is **E7's per-world manifest**, the same consumer `CadenceTable` waits on. Declare the
+  field with the Earth default now; the manifest wires it when it lands. Building the loader
+  ahead of its caller is what seam-first forbids.
+
+**⚠ IT IS ~~TWO~~ THREE AUTHORITIES TODAY — *and the count was wrong in this very paragraph until
+the fix went in, which is the defect it describes, committed inside its own correction.*** The
+first sweep found `CharacterConfig::gravity_m_s2 = 25.0` (`dc-api/src/character.rs`) and
+`const GRAVITY_M_S2: f64 = 25.0` (`dc-client/src/player.rs`); implementing the flip immediately
+turned up a **third**, `PhysicsConfig::default`'s `gravity_m_s2: 25.0`
+(`dc-physics/src/world.rs:40`). That third one is the sharpest of the set, because its doc comment
+**states the intent correctly and then achieves it by hand-copying the number**: *"defaults to the
+game's character gravity (player.rs uses 25.0) so dropped items and the player agree about how
+heavy the world feels."* An author who knew there was one authority, wrote down which file held
+it, and still copied the digits. All three are **independent hardcoded copies** agreeing only by
+coincidence, integrating the player, every character, and every dropped item separately.
+**Fourth instance of the two-authorities defect recorded in one day**
+(`root_bob_m` — corrections #80/#93; the gaze — #94; trunk facing — `bodies.md` § the sim owns the
+target). Unifying them is part of this ruling, not a follow-up.
+
+**What changes in game, stated so the switch is a conscious act this time.**
+- **Jump apex does NOT change.** The jump is *height*-parameterised — `jump_height_m =
+  jump_clearance_voxels × voxel_size_m`, and the launch velocity is `√(2·g·h)`, so the apex is
+  exactly `h` at any gravity. That is a genuinely good piece of bring-up design and it survives.
+- **Everything gets floatier in TIME.** At `9.81` versus `25.0`, jump arcs and falls take
+  **√(25/9.81) ≈ 1.6×** longer. Voxel games often run high gravity for snappy jumps, which is the
+  likeliest unexamined origin of `25`. **This is the one real feel change and it is a taste call
+  the user now owns rather than inherits.**
+- **The gait table becomes CORRECT rather than needing correction.** The design pass derived at
+  `9.81`; at an Earth default its Froude figures (biped **2.35**, stout 4.69, longleg 2.02 at the
+  4.5 m/s top speed) stand as published, and user call #1's ruling — that top speed is a *run* —
+  is unaffected. **The build's structural finding survives and is the durable half: gravity must
+  be an ARGUMENT to the bake, never a constant inside it**, because per-world gravity is now
+  explicitly wanted.
+
+**⚠ WIDENED THE SAME DAY (user): GRAVITY BELONGS ON THE SDK SURFACE, AND THE GEO PASSES SHOULD
+CONSUME IT.** *"truly, world grav should be exposed on sdk surface and the geo passes should be
+consuming it for various things."* This changes what gravity **is**: not a physics constant the
+character sim happens to need, but a **world parameter that CONTENT reads** — declared against
+like any other SDK primitive, per the north star (passes are content; the engine supplies the
+primitives they declare against).
+
+- **Real consumers, none of them hypothetical:** lithostatic pressure `ρ·g·h` in burial,
+  compaction and diagenesis · **grain settling velocity** (Stokes) — already on `CLAUDE.md`'s
+  own list of quantities with published counterparts · sediment transport capacity and stream
+  power · isostasy · hillslope diffusion and mass wasting, whose whole driver is gravity
+  (`creep.rs:18` calls itself *"the gravity/mass-wasting member"* and takes no `g`).
+- **Measured 2026-08-02: ZERO worldgen passes consume gravity today.** Every hit in
+  `dc-worldgen` is a *doc comment* — prose describing gravity as the mechanism beside code that
+  never receives it. **So `g` is currently hidden inside fitted constants**, `EROSION_CALIBRATION`
+  chief among them (P2 — a number fitted to a broken solve, already scheduled for a
+  literature-derived re-pick). A calibration that silently contains gravity **cannot survive a
+  world with different gravity**, which is exactly what this ruling says we want.
+- **THEREFORE GRAVITY BECOMES PART OF WORLD IDENTITY**, alongside the seed and the frozen content
+  set (§ *The content set is frozen at world creation*). Once a pass reads `g`, changing it moves
+  terrain — not just jump arcs.
+  - **⚠ AND THAT MAKES THE ORDER OF OPERATIONS LOAD-BEARING: change the default NOW, while it is
+    free.** No pass consumes `g` today, so `25.0 → 9.81` moves **no terrain golden** — it touches
+    only character/player motion. **The moment a pass takes `g` as an argument, the same change
+    becomes a whole-world re-capture.** Do the constant first, the SDK exposure second, the pass
+    adoption third.
+- **What it does NOT license:** retro-fitting `g` into a pass whose rate is an empirically fitted
+  constant, and calling the result derived. A fitted constant with `g` factored back out is still
+  fitted (§ *A summary is not an authority*, and the measure-against-the-literature rule). Each
+  pass's adoption is its own slice with its own literature check.

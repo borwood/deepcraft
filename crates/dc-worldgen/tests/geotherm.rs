@@ -95,17 +95,18 @@ fn candidates(f: &DeepField) -> Vec<Candidate> {
         // Top-down, accumulating overburden — exactly promote_coal's walk.
         let mut overburden_m = 0.0f64;
         for (k, u) in s.units.iter().enumerate().rev() {
-            let is_candidate = k != top && matches!(u.tag.biota, Biofacies::Peat | Biofacies::Coal);
+            let is_candidate =
+                k != top && matches!(u.tag().biota, Biofacies::Peat | Biofacies::Coal);
             if is_candidate {
-                let depth = overburden_m + 0.5 * u.thickness_m;
+                let depth = overburden_m + 0.5 * u.thickness_m();
                 out.push(Candidate {
                     t_c: deeptime::temperature_c(surface_t, gradient, depth),
                     overburden_m,
                     gradient_c_per_m: gradient,
-                    is_coal: u.tag.biota == Biofacies::Coal,
+                    is_coal: u.tag().biota == Biofacies::Coal,
                 });
             }
-            overburden_m += u.thickness_m;
+            overburden_m += u.thickness_m();
         }
     }
     out
@@ -351,16 +352,16 @@ fn warm_reference_onset_for_thick_coal() {
             let mut acc = 0.0;
             for (k, u) in s.units.iter().enumerate().rev() {
                 over[k] = acc;
-                acc += u.thickness_m;
+                acc += u.thickness_m();
             }
             let mut run = 0.0f64;
             let mut col_best = 0.0f64;
             for (k, u) in s.units.iter().enumerate() {
-                let is_peat = matches!(u.tag.biota, Biofacies::Peat | Biofacies::Coal);
-                let depth = over[k] + 0.5 * u.thickness_m;
+                let is_peat = matches!(u.tag().biota, Biofacies::Peat | Biofacies::Coal);
+                let depth = over[k] + 0.5 * u.thickness_m();
                 let t = deeptime::temperature_c(surface_t, gradient, depth);
                 if k != top && is_peat && t >= onset {
-                    run += u.thickness_m;
+                    run += u.thickness_m();
                     col_best = col_best.max(run);
                 } else {
                     run = 0.0;

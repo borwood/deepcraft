@@ -178,31 +178,31 @@ fn measure(cells: &CellGrid, material_transport: bool) -> Facies {
     for (i, rec) in f.strata.iter().enumerate() {
         let dec = decile_of(f.area[i]);
         for u in &rec.units {
-            let g = grain[Litho::of_material(u.species).index()];
+            let g = grain[Litho::of_material(u.species()).index()];
             out.units += 1;
-            out.total_m += u.thickness_m;
-            out.mass_by_species[Litho::of_material(u.species).index()] += u.thickness_m;
-            if Litho::of_material(u.species) != litho_of_tag(u.tag) {
-                out.travelled_m += u.thickness_m;
+            out.total_m += u.thickness_m();
+            out.mass_by_species[Litho::of_material(u.species()).index()] += u.thickness_m();
+            if Litho::of_material(u.species()) != litho_of_tag(u.tag()) {
+                out.travelled_m += u.thickness_m();
             }
             // The facies question is about clastic sediment. Organic horizons are
             // *made* where they lie — a peat is not something a river carried —
             // so including them would measure the biotic layer's footprint rather
             // than the transport pass's.
             let clastic = matches!(
-                Litho::of_material(u.species),
+                Litho::of_material(u.species()),
                 Litho::ClasticFine | Litho::ClasticCoarse
-            ) && !u.tag.biota.is_organic();
+            ) && !u.tag().biota.is_organic();
             if !clastic {
                 continue;
             }
-            let b = match u.tag.energy {
+            let b = match u.tag().energy {
                 EnergyBand::Low => 0,
                 EnergyBand::Medium => 1,
                 EnergyBand::High => 2,
             };
-            out.by_band[b].add(u.thickness_m, g);
-            out.by_area_decile[dec].add(u.thickness_m, g);
+            out.by_band[b].add(u.thickness_m(), g);
+            out.by_area_decile[dec].add(u.thickness_m(), g);
         }
     }
     out

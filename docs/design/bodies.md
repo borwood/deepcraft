@@ -352,6 +352,60 @@ string coincidence is the poor-man's-role failure this arc already paid for (stu
   appended-field discipline, sequenced with the sim-visible slices — not a B0-style
   free-window recompile.
 
+### Locomotion lean is NOT a posture — DECIDED 2026-08-03 (user; the fork gamed out, then agreed)
+
+**A posture is a collider-and-support disposition: declared, discrete, registry content. Lean is
+a continuous derived term applied to whichever posture is active.** There is no
+`dc:posture/run`.
+
+**Why the lean exists at all** (and it is sharper than *"because running"*): a body accelerates
+forward only if the ground pushes it forward, and the ground reaction force runs from the contact
+through the centre of mass — so the CoM must sit **ahead of** the contact. It is a torque balance,
+`tan θ ≈ a / g`. **Therefore the dramatic lean is an ACCELERATION phenomenon, not a running
+one:** a sprinter leaving the blocks is at ~45°, a distance runner at steady pace is nearly
+upright, leaning only against drag. Modelling it on acceleration gets both for free with no
+sprint-start special case. **It is the resting-posture solve with one horizontal force term
+added** — the same primitive, one term richer, and the arc's own test applied again (*a quantity
+with a physical determinant is an output*).
+
+**The four cases that settled the fork** (declared posture vs continuous modifier):
+1. **The crouch-run.** A declared posture forces `crouch_run`, then `crawl_run`, then
+   prone-anything: posture × locomotion is a **product**, and products in a registry are how
+   vocabularies die. As a modifier, crouch keeps owning the collider and lean applies on top.
+2. **The accelerating walker.** A walker accelerating hard leans, *below any run threshold* — so a
+   declared `run` posture does not remove the continuous term, it stacks a discrete layer on one
+   you still need. The threshold was never real: lean tracks acceleration, and acceleration does
+   not respect gait boundaries.
+3. **The evolved quadruped.** Nobody declares a run posture for a species deeptime minted last
+   epoch. As a modifier it falls out of the solve like its stance and gait; as a declared posture
+   an undeclared species **cannot run** — the exact failure the bake exists to prevent.
+4. **The alligator's belly slide** — the case expected to rescue the declared option, and it does
+   not: it is already **a MODE** (a different active support set, § 5), as are swimming and
+   climbing.
+
+**The synthesis, and it is why the fork was less balanced than it first looked:** everything that
+*feels* like a locomotion posture is already covered by a ruled axis — **fundamentally different
+support is a MODE**, **limb timing is a GAIT**, **body-lowering is the CROUCH posture we already
+have**. What remains after those three is exactly one thing: a continuous lean tracking
+acceleration. **No fourth axis, no product explosion**, and the continuous-Froude-ladder ruling
+extends rather than competing with the postures ruling.
+
+- **It is gravity-dependent** (`atan(a/g)`), so a low-gravity world's creatures lean **more** for
+  the same acceleration — an emergent consequence the 2026-08-02 gravity ruling made expressible,
+  and checkable against published sprint-start and steady-state trunk angles.
+- **Sim owns the TARGET, client owns the APPROACH** (§ above). The lean target is a *deterministic
+  function of sim state* (acceleration and gravity), so it is sim-ownable without breaking replay —
+  it is **not** the "smooth per-frame" the firewall forbids, because it is derived rather than
+  ambient. The smoothing toward it is cosmetic.
+- **ENGINE owns the solve** — only the solver knows its own statics, the field-kernel argument
+  again. **PACK owns the posture vocabulary, the body, and the stylistic DISTRIBUTION**, which is
+  genuinely underdetermined: physics fixes the CoM offset and says nothing about whether it comes
+  from ankle, hip, trunk or neck. A human leans from the ankles; a chicken pitches its trunk and
+  counter-rotates its neck. That is knobs-taxonomy **kind 1** (underdetermined style), per § 7
+  member 1's ratified docket.
+- **Selection rides the existing ladder**: the same dimensionless speed that selects gait informs
+  lean, continuously. **Never a discrete switch** — user call #1's explicit prohibition.
+
 Body plans may declare **scalar and bool parameters** that bodies bind to
 character state:
 
@@ -475,9 +529,118 @@ is upstream of `posture-gait.md` § 7 member 1, which is where it surfaced.
   Declared overrides derived; the derivation itself (from segment geometry, and what "plausible"
   means for a joint nobody has seen) is **owed a design pass** and is not settled here.
 
+### Fold sense — DECIDED 2026-08-02 (user): a SETTING on the joint, and unspecified means NO PREFERENCE
+
+**Geometry cannot supply it and we stop trying.** The derivation gives a joint's **magnitude**
+(how far it folds before the child chain enters an ancestor's box — 155° for the biped knee,
+in the published band); it cannot give the **sign**, because **our bodies have no front**.
+Every shipped plan is mirror-symmetric in Z as well as X, so a knee and an elbow are *the same
+object* to the derivation. Real anatomy carries the arrow in its asymmetry — a knee folds away
+from travel *because the foot extends forward of the ankle* — and our feet are centred boxes
+with no toe and no heel.
+
+- **The bend is DECLARED, at any level of specificity, by any author** (user): *"hand authored,
+  mcp authored, evolution authored can all config the bend of a knee at different levels of
+  specificity."* One vocabulary, three minting clocks — the same shape as postures and the bake.
+- **⚠ AND THE FRAMING THAT DISSOLVES THE WHOLE PROBLEM (user, 2026-08-02): *"it's not actually
+  a knee until constraint is declared."*** An undeclared joint that hinges both ways is **not a
+  hyperextending knee — it is a joint**. *Hyperextension is a concept that exists only relative
+  to a declaration*, so the geometric derivation is not failing to prevent anything; there is
+  nothing yet to prevent. **This retires B7's J1 as a tension** (which asked how the derived
+  default could deliver *"plausible limits by construction"* when it cannot supply a sign) and
+  it retires the assistant's framing of a backwards-bending joint as a defect the engine owes a
+  guard against. The engine's contract is exactly: **declared limits, plus whatever geometry can
+  supply where a declaration is absent or incomplete — magnitude only, both directions, and that
+  is a complete and honest answer.**
+- **ENGINE / PACK PARTITION, ruled in the same breath and correcting an assistant error:**
+  phylogenetic **inheritance of constraints is PACK behaviour, not engine machinery.** Evolution
+  mints a generation by taking the previous generation's constraint and *"either copy it forward
+  or mutate it, generally speaking"* (user) — an evolution-pack concern, sitting on the engine's
+  declaration vocabulary like any other content. **The assistant had proposed inheritance as the
+  engine's answer to J1**, which put a pack mechanism in the engine's lap and is the partition
+  error `dependency-graph.md` § 0 exists to prevent. A novel limb with nothing to inherit from
+  simply **has no constraint** — legal, honest, and not a gap needing a loud refusal.
+- **Unspecified is not "unlimited" and not "assume a hinge": the joint HONESTLY HAS NO
+  PREFERENCE** (user's words). It keeps the derived magnitude bound in **both** directions and
+  declares no sign — the honest-absence pattern this corpus uses everywhere (`Undetermined{reason}`,
+  the IK's honest float, `has_contents: false` meaning *no record*, never *air*). A consequence
+  to state plainly: **derived-only limits catch a backwards knee ZERO times**, and that is
+  correct — an outer bound with no sign cannot reject one. Declaring is what makes the walk
+  clip's 28.65° hyperextension catchable.
+- **Express it in SEGMENT-LOCAL axes plus a sign, never relative to a body forward.** Strictly
+  more general and it is what homes the ask: *"the fore and aft limbs of horses and lizards and
+  dolphins and humans."* A lizard's sprawled knee folds about its own local axis whatever the
+  limb's orientation to the trunk; a body-forward-relative encoding would need a reference frame
+  that sprawl and flippers immediately break.
+- **Feet make the sign derivable LATER, which demotes the declaration to a default.** Once a
+  foot has a toe and a heel the arrow is in the geometry. **Add feet to the testing models**
+  (user); for the deep-sim pack, **feet exist if they evolved** — the engine only ever needs
+  the *support declaration* (`sole`, already B0's role vocabulary), never a named body part.
+
+**⚠ AND A GAP THIS OPENS, verified at source 2026-08-02: BODY-LOCAL FORWARD IS AN UNSTATED
+CONVENTION.** `BodyPlan` declares `name, doc, segments, modes, actions` — **no forward axis**.
+World-space forward exists (move intent, and the trunk chasing it), but the plan's local **−Z
+is forward purely by inherited camera convention**, undeclared and uncontradictable. User:
+*"clearly we should just know what way a body's forward is."* **A-1 in its usual costume** —
+one body orientation, so a convention became a definition. Its consumers are not hypothetical:
+**B5** resolves whether a hit landed on the front or the back, asymmetric anatomy needs a side
+to be asymmetric *about*, and the fold-sense derivation above needs it the moment feet gain
+toes. Filed as its own item; not folded into B7 silently.
+
 **Sequencing:** upstream of the gait member's build, and it wants the segment-identity window
 while it is still cheap — a range on `SegmentDef` is a recompile today and a **wire migration**
 once B3 makes the pose a versioned sim asset, the same deadline `stubs.md` #34 rides.
+
+## Individual proportion variation — DECIDED 2026-08-03 (user): SIZE FIRST, declared axes deferred
+
+**Every biped in the world is dimensionally identical today** — `SegmentDef` carries exact
+`pivot_m` / `size_m` / `offset_m`, so "this wolf" and "that wolf" differ in nothing but position.
+The wanted end state is a plan that declares **ranges**, and an individual that is a **salted
+sample**: this one's ears slightly smaller, that one's muzzle longer. Structurally this is **S-9**
+(derivable base + sparse committed facts), fourth instance — species is the base, an individual
+is a seed plus a few numbers.
+
+**Partition, ruled** (user): **RANGE is ENGINE** vocabulary — what may vary and within what
+bounds — and **DISTRIBUTION is PACK**, *"pack is what spawns things in the world, this only makes
+sense."* **Sim-visible variation is fine, and the PACK owns fairness** — the engine does not owe a
+guarantee that a smaller individual is hit fairly; that is the pack's problem, which unblocks this
+from waiting behind **B4**.
+
+**The mechanism family is ALLOMETRY** (user): *"infant-adult growth etc."* Juvenile→adult and
+inter-individual proportion are **the same mechanism**, which is what makes the unit of variation
+an **axis** rather than a parameter.
+
+**Four thought experiments settled the shape, and each one breaks "put a range on any param":**
+1. **The disconnected limb.** Independent ranges on `pivot_m` and `size_m` let a thigh shrink while
+   its knee pivot stays put — the shin floats off the femur or interpenetrates it. Nothing declares
+   that a child's pivot lives on its parent's surface, because with fixed numbers it always did by
+   construction. **Proportions are RELATIONSHIPS, not numbers.**
+2. **The wolf pup.** Jitter every param independently by ±15 % and you get a slightly different
+   *adult*, never a juvenile — a pup's head is proportionally bigger and its legs proportionally
+   shorter, and those move **together, in a specific direction**. Independent variation cannot
+   express growth **at any range width**, because growth is a correlated trajectory, not a cloud.
+3. **The evolution substrate.** Independent params give the evo pack a search space that is mostly
+   nonsense (a leg 3× longer with an unchanged foot and pelvis); declared axes give a space that is
+   nearly all viable but only holds variations someone anticipated. **These are two mechanisms at
+   two timescales:** declared axes for cheap always-viable *within-species* variation; **evolution
+   mutates the PLAN itself, including its axes**, over deep time. Individual jitter and speciation
+   must not share a mechanism.
+4. **The cost gradient — and it chose the first slice.** **Uniform scale is FREE**: the resting bake
+   returns **scale-free outputs, angles plus a height ratio** (`bake.rs:81`, decision 24's *bake
+   ratios and angles, not metres*), so a 1.05× wolf has **identical joint angles** and its hip
+   height falls out of one multiply — no re-bake, no correction. An allometric axis (longer legs,
+   same trunk) changes angles and needs a correction or a re-bake. Arbitrary per-param jitter needs
+   a **full re-bake per individual**, which the per-species ruling explicitly refuses (*"it's not
+   baking for every individual wolf in existence"*).
+
+**SEQUENCED BY COST, ruled 2026-08-03: SIZE FIRST; declared allometric axes are LATER** (user:
+*"fair — size first, later think about declared axes"*). Size is free today and immediately yields
+big and small individuals. **The question this arc must not re-derive:** it is *not* "which
+parameters may vary" — it is **"what axes do they co-vary along"**, and only the size axis is
+ruled so far.
+
+**⚠ Texture-side variation — coat, markings, eye shape — is a DIFFERENT PIPELINE** (user: *"mostly
+new and a whole other thing"*), sharing only the salt. Do not fold it in here.
 
 ## Sockets — PROPOSED
 

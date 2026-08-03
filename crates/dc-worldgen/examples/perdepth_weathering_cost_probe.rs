@@ -294,7 +294,7 @@ fn project(extent: Extent, measure_baseline: bool) -> Projection {
         let mut slots_by_chapter = Vec::with_capacity(chapters as usize);
         let mut k = 0usize;
         for c in 0..chapters {
-            while k < s.units.len() && u32::from(s.units[k].chapter) <= c {
+            while k < s.units.len() && u32::from(s.units[k].chapter()) <= c {
                 k += 1;
             }
             slots_by_chapter.push(u32::try_from(k + 1).expect("slot count fits in u32"));
@@ -420,7 +420,7 @@ fn time_firings(
         let mut ledger = FactLedger::default();
         for c in 0..chapters {
             let mut truncated = strata[i].clone();
-            truncated.units.retain(|u| u32::from(u.chapter) <= c);
+            truncated.units.retain(|u| u32::from(u.chapter()) <= c);
             for _ in 0..per_chapter {
                 acc += per_depth_firing_cost_model(&truncated, &mut ledger, c as u8, &inputs, 1.0);
             }

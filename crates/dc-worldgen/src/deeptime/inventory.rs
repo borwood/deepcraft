@@ -1085,7 +1085,7 @@ impl<'a> LedgerView<'a> {
 /// rock the unit is made of, at the unit's full thickness.
 ///
 /// **This is the bridge P11 slice 1 deleted.** It used to read
-/// `unit.species.reference_material()` — a fixed class → member table — because
+/// `unit.species().reference_material()` — a fixed class → member table — because
 /// the record could only name a class, and the deep-cell inventory has been
 /// `MaterialId`-grade since it was built (the north star's Crux 1 keystone). So
 /// the ledger's whole notion of *which rock weathered here* was one of seven
@@ -1094,9 +1094,9 @@ impl<'a> LedgerView<'a> {
 /// was always built for: no new mechanism, one lookup less.
 pub fn derive_base(unit: &DepUnit) -> Vec<Portion> {
     vec![Portion {
-        material: unit.species,
+        material: unit.species(),
         form: InvForm::Loose,
-        quantity_m: unit.thickness_m,
+        quantity_m: unit.thickness_m(),
     }]
 }
 
@@ -1300,8 +1300,8 @@ pub fn build_identity(strata: &DeepStrata, granularity: Granularity) -> WorkingI
             Granularity::PerVoxel { voxel_m } => {
                 let mat = base[0].material;
                 let mut consumed = 0.0f64;
-                while consumed < u.thickness_m {
-                    let t = (u.thickness_m - consumed).min(voxel_m);
+                while consumed < u.thickness_m() {
+                    let t = (u.thickness_m() - consumed).min(voxel_m);
                     spans.push(InvSpan {
                         unit_index: ui,
                         portions: vec![Portion {
@@ -1937,9 +1937,9 @@ mod tests {
         for u in &rec.units {
             let base = derive_base(u);
             assert_eq!(base.len(), 1);
-            assert_eq!(base[0].material, u.species);
+            assert_eq!(base[0].material, u.species());
             assert_eq!(base[0].form, InvForm::Loose);
-            assert_eq!(base[0].quantity_m, u.thickness_m);
+            assert_eq!(base[0].quantity_m, u.thickness_m());
         }
     }
 
@@ -1954,7 +1954,7 @@ mod tests {
             s
         };
         let mut ledger = FactLedger::empty_with_bedrock(&strata);
-        let base_mat = strata.units[0].species;
+        let base_mat = strata.units[0].species();
         assert_eq!(base_mat, MaterialId::SANDSTONE);
 
         // Behavior: 0.5 m of SANDSTONE/Loose -> MUDSTONE/Loose (a material change),
@@ -2155,7 +2155,7 @@ mod tests {
             s
         };
         let mut ledger = FactLedger::empty_with_bedrock(&strata);
-        let mat = strata.units[0].species;
+        let mat = strata.units[0].species();
         let mut inv = build_working(&strata, &ledger);
         inv.ctx_for(1, Cause::Dissolution).apply_edge(
             0,
@@ -2228,9 +2228,15 @@ mod tests {
     fn eighths_appear_only_at_the_quantize_step() {
         let mut s = DeepStrata::default();
         s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 0.37, 0);
+        // P11 slice 3: the record is fixed-point at 2⁻¹⁰ m, so the stored bed
+        // is 0.37 rounded to the nearest quantum — the inventory must carry
+        // exactly THAT quantity in metres (no eighths yet), which is the
+        // claim this test makes: eighths appear only at the quantize step.
+        let stored = s.units[0].thickness_m();
+        assert!((stored - 0.37).abs() <= DepUnit::THICKNESS_QUANTUM_M / 2.0 + f64::EPSILON);
         let inv = build_identity(&s, Granularity::PerStratum);
-        assert_eq!(inv.spans[0].portions[0].quantity_m, 0.37);
-        assert_eq!(quantize_to_eighths(0.37, 0.9), 3);
+        assert_eq!(inv.spans[0].portions[0].quantity_m, stored);
+        assert_eq!(quantize_to_eighths(stored, 0.9), 3);
         assert_eq!(collapse_top_voxel(&inv, 0.9).solid_eighths(), 3);
     }
 
@@ -2242,7 +2248,7 @@ mod tests {
         let rec = sample_record();
         let ledger = FactLedger::empty_with_bedrock(&rec);
         let inv = build_working(&rec, &ledger);
-        let cover: f64 = rec.units.iter().map(|u| u.thickness_m).sum();
+        let cover: f64 = rec.units.iter().map(|u| u.thickness_m()).sum();
         assert!((inv.derived_regolith_m() - cover).abs() < 1e-12);
         assert!((inv.derived_structure_stock_m() - BEDROCK_SEAM_THICKNESS_M).abs() < 1e-12);
     }

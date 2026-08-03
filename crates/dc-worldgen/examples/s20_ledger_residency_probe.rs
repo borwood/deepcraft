@@ -249,7 +249,7 @@ fn measure_geometry(extent: Extent) -> Geometry {
         let mut slots_by_chapter = Vec::with_capacity(chapters as usize);
         let mut k = 0usize;
         for c in 0..chapters {
-            while k < s.units.len() && u32::from(s.units[k].chapter) <= c {
+            while k < s.units.len() && u32::from(s.units[k].chapter()) <= c {
                 k += 1;
             }
             slots_by_chapter.push(k + 1);

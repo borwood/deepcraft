@@ -85,10 +85,14 @@ fn main() {
         for u in s.units.iter().rev().take(12) {
             println!(
                 "      {:>8.3} m  {:?}  chapter {}{}",
-                u.thickness_m,
-                u.tag,
-                u.chapter,
-                if u.unconformity { "  UNCONFORMITY" } else { "" }
+                u.thickness_m(),
+                u.tag(),
+                u.chapter(),
+                if u.unconformity() {
+                    "  UNCONFORMITY"
+                } else {
+                    ""
+                }
             );
         }
         if s.units.len() > 12 {
@@ -207,7 +211,7 @@ fn anisotropy(f: &DeepField, label: &str) {
 }
 
 fn total(s: &DeepStrata) -> f64 {
-    s.units.iter().map(|u| u.thickness_m).sum()
+    s.units.iter().map(|u| u.thickness_m()).sum()
 }
 
 /// Deep-cell index of a world voxel — the inverse `DeepField::deep_coords`
