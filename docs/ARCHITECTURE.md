@@ -798,3 +798,34 @@ target). Unifying them is part of this ruling, not a follow-up.
   is unaffected. **The build's structural finding survives and is the durable half: gravity must
   be an ARGUMENT to the bake, never a constant inside it**, because per-world gravity is now
   explicitly wanted.
+
+**⚠ WIDENED THE SAME DAY (user): GRAVITY BELONGS ON THE SDK SURFACE, AND THE GEO PASSES SHOULD
+CONSUME IT.** *"truly, world grav should be exposed on sdk surface and the geo passes should be
+consuming it for various things."* This changes what gravity **is**: not a physics constant the
+character sim happens to need, but a **world parameter that CONTENT reads** — declared against
+like any other SDK primitive, per the north star (passes are content; the engine supplies the
+primitives they declare against).
+
+- **Real consumers, none of them hypothetical:** lithostatic pressure `ρ·g·h` in burial,
+  compaction and diagenesis · **grain settling velocity** (Stokes) — already on `CLAUDE.md`'s
+  own list of quantities with published counterparts · sediment transport capacity and stream
+  power · isostasy · hillslope diffusion and mass wasting, whose whole driver is gravity
+  (`creep.rs:18` calls itself *"the gravity/mass-wasting member"* and takes no `g`).
+- **Measured 2026-08-02: ZERO worldgen passes consume gravity today.** Every hit in
+  `dc-worldgen` is a *doc comment* — prose describing gravity as the mechanism beside code that
+  never receives it. **So `g` is currently hidden inside fitted constants**, `EROSION_CALIBRATION`
+  chief among them (P2 — a number fitted to a broken solve, already scheduled for a
+  literature-derived re-pick). A calibration that silently contains gravity **cannot survive a
+  world with different gravity**, which is exactly what this ruling says we want.
+- **THEREFORE GRAVITY BECOMES PART OF WORLD IDENTITY**, alongside the seed and the frozen content
+  set (§ *The content set is frozen at world creation*). Once a pass reads `g`, changing it moves
+  terrain — not just jump arcs.
+  - **⚠ AND THAT MAKES THE ORDER OF OPERATIONS LOAD-BEARING: change the default NOW, while it is
+    free.** No pass consumes `g` today, so `25.0 → 9.81` moves **no terrain golden** — it touches
+    only character/player motion. **The moment a pass takes `g` as an argument, the same change
+    becomes a whole-world re-capture.** Do the constant first, the SDK exposure second, the pass
+    adoption third.
+- **What it does NOT license:** retro-fitting `g` into a pass whose rate is an empirically fitted
+  constant, and calling the result derived. A fitted constant with `g` factored back out is still
+  fitted (§ *A summary is not an authority*, and the measure-against-the-literature rule). Each
+  pass's adoption is its own slice with its own literature check.
