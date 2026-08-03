@@ -941,6 +941,33 @@ the log**. Re-dispatching before harvesting would have re-spent a full slice bot
 *Corollary: when the API is actively shedding load (repeat 5xx), stop feeding it new
 agents — mechanical completions move to the main session.*
 
+## No yield-on-watcher; long gates run DETACHED (2026-08-03, greenlit fingerprints — one night, five agents, ~12 wake cycles)
+
+**Build-agent briefs FORBID parking on a self-armed watcher.** The failure mode, observed
+five times in one session: an agent launches its build/suite as a background task, arms a
+"completion notification will wake me" watcher, and yields — and the watcher dies
+silently, every time. The agent then sits parked until the main session notices, checks
+the machine, and hand-wakes it with a SendMessage; each cycle costs a round-trip and
+minutes-to-hours of wall-clock. **The brief clause that worked, now standard:** *"run
+your builds foreground and read the output directly; when the slot is denied, wait
+60–120 s and retry — never arm a fire-and-forget watcher and yield."* An agent that
+genuinely must wait long (another session holds the slot) should say exactly what it is
+blocked on and park — the MAIN session owns the watcher (its Monitors are visible,
+stoppable, and actually fire).
+
+**Long gates from the main session run DETACHED, not as harness background tasks.** Twice
+in the same night, ordinary background gate runs were killed mid-suite by something
+outside any session (cause never identified; the user confirmed it was not them). The
+shape that survived both times: write the gate script to a file, launch it
+`Start-Process -WindowStyle Hidden` (its process tree outlives any task-level kill),
+have it append every stage's `$LASTEXITCODE` to a log and drop a `.DONE` marker file
+last, and watch the MARKER with a Monitor — never the processes (a multi-phase gate has
+gaps between cargo and its test binaries that a process-watcher misreads as completion).
+**Caveat that cost a false "0 tests ran" scare: PowerShell 5's `*>>` writes UTF-16 —
+`iconv -f UTF-16LE` before grepping, or grep counts silently read zero.** Verify by
+stage exit codes + summed pass/fail counts + `Compiling` lines citing the intended
+checkout, same as any gate.
+
 ## Never dispatch INTO a file another agent's UNMERGED branch touches (2026-07-29, cost a full redo; greenlit fingerprint)
 
 The `runner.rs` history extraction was dispatched while the E3/RATE agent's unmerged

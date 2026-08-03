@@ -21,12 +21,21 @@ machine). Any Bash/PowerShell command that invokes cargo is DENIED while:
      TOTAL, not one per session); or
   2. `.agent-build.lock` is fresher than SPAWN_GRACE_S and stamped by a
      DIFFERENT session — this covers the window after another session's hook
-     approved a cargo command but before its process shows up in tasklist.
+     approved a cargo command but before its process shows up in tasklist; or
+  3. the slot is free but `.agent-build.queue` says another session was
+     denied FIRST and is still retrying (entries refresh on each retry and
+     expire after QUEUE_TTL_S). Added 2026-08-03 (greenlit fingerprint):
+     without it, a contended slot was won by whichever session's retry poll
+     landed first, and a slower-polling session could starve indefinitely.
+     First-come order, recorded at first denial. `.agent-build.queue` is
+     hook-managed exactly like the lock: never write, delete, or reason from
+     it by hand.
 
 Otherwise the hook stays silent (exit 0, no decision) so the normal
-permission flow proceeds unchanged — it never auto-APPROVES anything — and it
-stamps the lock with this session's id, a timestamp and the command, so the
-next session's hook (and any human) can see who holds the slot.
+permission flow proceeds unchanged — it never auto-APPROVES anything — pops
+this session from the queue head if it was there, and stamps the lock with
+this session's id, a timestamp and the command, so the next session's hook
+(and any human) can see who holds the slot.
 
 SESSIONS NO LONGER MANAGE THE LOCK BY HAND. Do not write it, do not delete
 it, do not re-read it before cargo calls — the hook stamps it and the hook
@@ -48,11 +57,22 @@ import time
 
 REPO = os.environ.get("CLAUDE_PROJECT_DIR") or r"B:\repos\borwood\deepcraft"
 LOCK = os.path.join(REPO, ".agent-build.lock")
+QUEUE = os.path.join(REPO, ".agent-build.queue")
 
 # How long a foreign lock stamp blocks the slot while no process is visible
 # yet. Long enough to cover approval->spawn latency; short enough that a
 # cancelled permission prompt self-heals quickly.
 SPAWN_GRACE_S = 180
+
+# How long a queue entry stays valid without being refreshed by a retry.
+# Denied sessions retry every 60-120 s by doctrine; 600 s tolerates a slow
+# loop while evicting sessions that stopped retrying (killed, wrapped, gone).
+# Added 2026-08-03 (greenlit fingerprint): before the queue, contended
+# afternoons were retry RACES — whichever session's retry landed first took
+# the slot, and a session could starve behind two faster-polling siblings.
+# First-come order, recorded at first denial, fixes that. Fail-open like
+# everything else here: unreadable queue = no queue.
+QUEUE_TTL_S = 600
 
 # Match cargo as an INVOKED PROGRAM, not as a substring: (position) at the
 # start of the command, after a command separator (; & | ( or newline), or as
@@ -94,6 +114,45 @@ def build_processes():
     return procs
 
 
+def read_queue():
+    """The live queue: [{'session', 'ts'}, ...] with stale entries evicted.
+    Fail-open: any error reads as an empty queue."""
+    try:
+        with open(QUEUE, encoding="utf-8") as fh:
+            entries = json.load(fh)
+        now = time.time()
+        return [
+            e for e in entries
+            if isinstance(e, dict) and now - float(e.get("ts", 0)) < QUEUE_TTL_S
+        ]
+    except Exception:
+        return []
+
+
+def write_queue(entries) -> None:
+    try:
+        if entries:
+            with open(QUEUE, "w", encoding="utf-8") as fh:
+                json.dump(entries, fh)
+        elif os.path.isfile(QUEUE):
+            os.remove(QUEUE)
+    except Exception:
+        pass
+
+
+def enqueue(session: str) -> int:
+    """Register (or refresh) this session's place; return its 1-based position."""
+    entries = read_queue()
+    for i, e in enumerate(entries):
+        if e.get("session") == session:
+            e["ts"] = time.time()
+            write_queue(entries)
+            return i + 1
+    entries.append({"session": session, "ts": time.time()})
+    write_queue(entries)
+    return len(entries)
+
+
 def deny(reason: str) -> int:
     json.dump(
         {
@@ -120,13 +179,16 @@ def main() -> int:
 
     procs = build_processes()
     if procs:
+        pos = enqueue(session)
         return deny(
             "BUILD SLOT TAKEN — live build processes: "
             + ", ".join(procs)
-            + ". One cargo invocation at a time across ALL sessions (CLAUDE.md "
+            + f". You are QUEUED at position {pos} (first-come; your place "
+            "refreshes on every retry and expires after 10 min without one). "
+            "One cargo invocation at a time across ALL sessions (CLAUDE.md "
             "§ Build rules; parallel builds have hung this machine) — this "
-            "includes your own background gate. Wait for them to exit and "
-            "retry. Do NOT Stop-Process ownership-blind; if a build is truly "
+            "includes your own background gate. Wait 60-120 s and retry. "
+            "Do NOT Stop-Process ownership-blind; if a build is truly "
             "wedged, diagnose and stop the specific PID."
         )
 
@@ -140,14 +202,31 @@ def main() -> int:
         except Exception:
             holder, age = "unparsable (pre-hook format)", time.time() - os.path.getmtime(LOCK)
         if holder != session and age < SPAWN_GRACE_S:
+            pos = enqueue(session)
             return deny(
                 f"BUILD SLOT CLAIMED {int(age)}s ago by another session "
-                f"({holder}) whose cargo has not spawned yet. Wait "
-                f"~{int(SPAWN_GRACE_S - age)}s and retry; if no cargo process "
-                "ever appears, the claim expires on its own."
+                f"({holder}) whose cargo has not spawned yet. You are QUEUED "
+                f"at position {pos}. Wait ~{int(SPAWN_GRACE_S - age)}s and "
+                "retry; if no cargo process ever appears, the claim expires "
+                "on its own."
             )
 
-    # Slot is free: stamp it for the other session's hook to see, and stay
+    # Slot is free. Honor the queue: whoever was denied first goes first.
+    entries = read_queue()
+    if entries:
+        head = str(entries[0].get("session", ""))
+        if head != session:
+            pos = enqueue(session)
+            return deny(
+                f"BUILD SLOT FREE but QUEUED — session {head} was denied "
+                f"first and holds the head of the queue; you are position "
+                f"{pos}. Wait 60-120 s and retry; a head that stops retrying "
+                "is evicted after 10 min and the queue advances."
+            )
+        # This session is the head: pop itself and take the slot.
+        write_queue(entries[1:])
+
+    # Stamp the slot for the other sessions' hooks to see, and stay
     # silent so the normal permission flow decides the command itself.
     try:
         with open(LOCK, "w", encoding="utf-8") as fh:

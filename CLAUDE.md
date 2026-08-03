@@ -244,9 +244,14 @@ cargo test --workspace --release
   `Stop-Process` (ROADMAP § Observed, 2026-08-01) — so the rule became a
   mechanism, per this section's own doctrine. The hook **denies any cargo
   command while cargo/rustc processes are alive (yours included) or another
-  session's claim is <3 min old**, and stamps the lock itself on allow. Don't
-  write the lock, don't delete it, don't re-read it. If a build is truly
-  wedged, stop the **specific diagnosed PID** — never an unscoped
+  session's claim is <3 min old**, and stamps the lock itself on allow. **It is
+  also a QUEUE (2026-08-03, greenlit fingerprint): a denied session is recorded
+  first-come in `.agent-build.queue`, its place refreshed by each retry and
+  expired after 10 min without one — when the slot frees, only the queue head
+  passes.** So a denial's retry loop (60–120 s) IS your place in line; don't
+  poll faster to jump it, and don't touch the queue file any more than the
+  lock. Don't write the lock, don't delete it, don't re-read it. If a build is
+  truly wedged, stop the **specific diagnosed PID** — never an unscoped
   `Get-Process cargo | Stop-Process`.
 
 ## Agent walks
