@@ -5,6 +5,14 @@
 
 > *(Mutable header, per the immutable-body convention — CLAUDE.md read-first item 5.
 > Nothing above this line is testimony; everything below it is dated measurement.)*
+>
+> **§ 4 finding 6 (the pits-bar conflict) — APPROACH RULED 2026-08-03 (user): "let's go
+> right to [the walk] and if there's clearly something wrong we can run [the census] on
+> same world."** A high-M world gets generated and its deepest hollows tour-mapped and
+> walked; the headless pit census (position-in-drainage / depth distribution) runs on the
+> SAME world only if the walk shows something clearly wrong. The bar itself is not
+> revised sight-unseen. Findings 5 (M re-pick) and 7 (gen-time/register) remain open,
+> sequenced behind the walk.
 
 **What this is.** The four runs § 6.2 of the derivation ordered, taken with the five probe
 changes § 6.1 ordered (M1–M5), on one commit, one machine, one seed. **It does not pick
