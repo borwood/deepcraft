@@ -2869,6 +2869,20 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     be a full-height cliff between "the world has history here" and "the world has
     none", which no bed-level blending of identities alone would dress. The design
     conversation must cover the record-depth discontinuity, not only the mix.
+  - **THE DESIGN CONVERSATION OPENED 2026-08-03 (user), AND ITS ANCHOR IS A USER SKETCH
+    + A USER PRINCIPLE, both verbatim in the dispatched design pass:** *"a deep cell is
+    a construct… wouldn't we just join layer to layer across boundaries? layers created
+    at the same time in two different deep cells should… blend? find a midpoint and
+    smoothly grade their thickness, as well as whatever the physical drivers etc does
+    to facies"* — stratigraphic correlation; deep cells are boreholes 460 m apart. And
+    the principle: *"ideally our default case, barring any physical drivers, is utterly
+    smooth interpolation between all deepcell boreholes. **non-smooth detail is
+    refinement content, and for the default deepsim plugin pack, it must model a
+    process honestly.**"* Smoothness is the unearned default; sharpness is bought by an
+    honest process — the positive half of the 2026-07-19 "I'll scream" ruling. **Design
+    pass dispatched 2026-08-03** (`docs/audits/2026-08-03-stratigraphic-correlation-design.md`
+    when it lands); it supersedes-as-plan the membership dither shipped in slice 3 —
+    existence is not standing, applied to our own day-old mechanism.
 
 - **🟢 RESOLVED same night — the bodies session's arc gate (`0e344ca`) caught and fixed it
   as its defect #4 (a hand-maintained pinned tool list vs their `character_clear_look`
