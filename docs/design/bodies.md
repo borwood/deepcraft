@@ -352,6 +352,60 @@ string coincidence is the poor-man's-role failure this arc already paid for (stu
   appended-field discipline, sequenced with the sim-visible slices — not a B0-style
   free-window recompile.
 
+### Locomotion lean is NOT a posture — DECIDED 2026-08-03 (user; the fork gamed out, then agreed)
+
+**A posture is a collider-and-support disposition: declared, discrete, registry content. Lean is
+a continuous derived term applied to whichever posture is active.** There is no
+`dc:posture/run`.
+
+**Why the lean exists at all** (and it is sharper than *"because running"*): a body accelerates
+forward only if the ground pushes it forward, and the ground reaction force runs from the contact
+through the centre of mass — so the CoM must sit **ahead of** the contact. It is a torque balance,
+`tan θ ≈ a / g`. **Therefore the dramatic lean is an ACCELERATION phenomenon, not a running
+one:** a sprinter leaving the blocks is at ~45°, a distance runner at steady pace is nearly
+upright, leaning only against drag. Modelling it on acceleration gets both for free with no
+sprint-start special case. **It is the resting-posture solve with one horizontal force term
+added** — the same primitive, one term richer, and the arc's own test applied again (*a quantity
+with a physical determinant is an output*).
+
+**The four cases that settled the fork** (declared posture vs continuous modifier):
+1. **The crouch-run.** A declared posture forces `crouch_run`, then `crawl_run`, then
+   prone-anything: posture × locomotion is a **product**, and products in a registry are how
+   vocabularies die. As a modifier, crouch keeps owning the collider and lean applies on top.
+2. **The accelerating walker.** A walker accelerating hard leans, *below any run threshold* — so a
+   declared `run` posture does not remove the continuous term, it stacks a discrete layer on one
+   you still need. The threshold was never real: lean tracks acceleration, and acceleration does
+   not respect gait boundaries.
+3. **The evolved quadruped.** Nobody declares a run posture for a species deeptime minted last
+   epoch. As a modifier it falls out of the solve like its stance and gait; as a declared posture
+   an undeclared species **cannot run** — the exact failure the bake exists to prevent.
+4. **The alligator's belly slide** — the case expected to rescue the declared option, and it does
+   not: it is already **a MODE** (a different active support set, § 5), as are swimming and
+   climbing.
+
+**The synthesis, and it is why the fork was less balanced than it first looked:** everything that
+*feels* like a locomotion posture is already covered by a ruled axis — **fundamentally different
+support is a MODE**, **limb timing is a GAIT**, **body-lowering is the CROUCH posture we already
+have**. What remains after those three is exactly one thing: a continuous lean tracking
+acceleration. **No fourth axis, no product explosion**, and the continuous-Froude-ladder ruling
+extends rather than competing with the postures ruling.
+
+- **It is gravity-dependent** (`atan(a/g)`), so a low-gravity world's creatures lean **more** for
+  the same acceleration — an emergent consequence the 2026-08-02 gravity ruling made expressible,
+  and checkable against published sprint-start and steady-state trunk angles.
+- **Sim owns the TARGET, client owns the APPROACH** (§ above). The lean target is a *deterministic
+  function of sim state* (acceleration and gravity), so it is sim-ownable without breaking replay —
+  it is **not** the "smooth per-frame" the firewall forbids, because it is derived rather than
+  ambient. The smoothing toward it is cosmetic.
+- **ENGINE owns the solve** — only the solver knows its own statics, the field-kernel argument
+  again. **PACK owns the posture vocabulary, the body, and the stylistic DISTRIBUTION**, which is
+  genuinely underdetermined: physics fixes the CoM offset and says nothing about whether it comes
+  from ankle, hip, trunk or neck. A human leans from the ankles; a chicken pitches its trunk and
+  counter-rotates its neck. That is knobs-taxonomy **kind 1** (underdetermined style), per § 7
+  member 1's ratified docket.
+- **Selection rides the existing ladder**: the same dimensionless speed that selects gait informs
+  lean, continuously. **Never a discrete switch** — user call #1's explicit prohibition.
+
 Body plans may declare **scalar and bool parameters** that bodies bind to
 character state:
 
