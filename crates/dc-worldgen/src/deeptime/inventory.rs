@@ -37,6 +37,7 @@
 //! read over the per-unit `base + facts` (DECIDED), so the fact ledger itself is
 //! per-unit — the commit path runs at per-stratum granularity.
 
+use dc_core::materials::release::{GrainGrade, ReleaseProduct, SHARE_DENOMINATOR};
 use dc_core::{MATERIAL_COUNT, MaterialId, VOXEL_EIGHTHS, VoxelContents};
 
 use super::recorder::{DeepStrata, DepUnit};
@@ -115,71 +116,15 @@ pub fn stored_fold_tolerance(magnitude: FracM) -> FracM {
     FOLD_DEPTH_HEADROOM * F32_RELATIVE_RESOLUTION * magnitude.abs() + NEAR_ZERO_FLOOR
 }
 
-/// The **form** a material-portion occupies volume in (material-behavior.md §2).
-///
-/// `Structure`/`Loose`/`PoreFill`/`Fluid` are the storable roles. `Void` is **not
-/// a storable role** — it is the unoccupied complement (§2) — but it *is* a legal
-/// **edge endpoint** (§3: edges to/from void change occupancy), so a [`Fact`] may
-/// name it as a source or destination (dissolution is `… → Void`). Invariant: a
-/// stored [`Portion`] never has `form == Void`; [`build_identity`] and the ctx
-/// never create one.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub enum InvForm {
-    /// Coherent, load-bearing framework (the `R`/structural stock).
-    Structure,
-    /// Granular, unreserved volume that obeys gravity (the `H`/regolith stock).
-    Loose,
-    /// Material held inside another's reserved-but-unfilled pore capacity.
-    PoreFill,
-    /// Liquid in pores + open space. **Accommodated, never stored by the identity
-    /// default** — the water model derives it (§10, S-2).
-    Fluid,
-    /// The unoccupied complement — **edge endpoint only, never a stored portion**.
-    Void,
-}
-
-/// The number of [`InvForm`] variants — material-behavior.md §3's *"5 forms → 20
-/// directed edges"*. It is the **radix** an [`EdgeId`] packs a form in, so it is a
-/// constant of the encoding and not just a count.
-pub const FORM_COUNT: u8 = 5;
-
-impl InvForm {
-    /// This form's position in the closed set, `0..FORM_COUNT`.
-    #[inline]
-    pub const fn raw(self) -> u8 {
-        match self {
-            InvForm::Structure => 0,
-            InvForm::Loose => 1,
-            InvForm::PoreFill => 2,
-            InvForm::Fluid => 3,
-            InvForm::Void => 4,
-        }
-    }
-
-    /// The form at position `raw`, or `None` when out of the closed set.
-    #[inline]
-    pub const fn from_raw(raw: u8) -> Option<InvForm> {
-        match raw {
-            0 => Some(InvForm::Structure),
-            1 => Some(InvForm::Loose),
-            2 => Some(InvForm::PoreFill),
-            3 => Some(InvForm::Fluid),
-            4 => Some(InvForm::Void),
-            _ => None,
-        }
-    }
-
-    /// Short name for the edge dictionary and for provenance output.
-    pub const fn name(self) -> &'static str {
-        match self {
-            InvForm::Structure => "structure",
-            InvForm::Loose => "loose",
-            InvForm::PoreFill => "pore-fill",
-            InvForm::Fluid => "fluid",
-            InvForm::Void => "void",
-        }
-    }
-}
+/// The **form** a material-portion occupies volume in (material-behavior.md §2)
+/// — **moved to `dc-core::materials::form` by FS-A (2026-08-02)** and re-exported
+/// here so every `deeptime::inventory::InvForm` path still resolves. The move is
+/// forced, not cosmetic: release spectra are edge-keyed product tables declared
+/// on the material definition (U7/R2), and `materials.md` DECIDED 2026-07-22
+/// makes such declarations the ONE authority both sims consult — the runtime sim
+/// cannot see `dc-worldgen`, so the edge key's form vocabulary had to live
+/// beside `MaterialId`. Nothing about the type changed but its address.
+pub use dc_core::materials::form::{FORM_COUNT, InvForm};
 
 // ===========================================================================
 // The declared transition graph as the authority for what edges exist
@@ -1758,6 +1703,128 @@ impl InvCtx<'_> {
     ) -> FracM {
         self.apply_edge(span, (material, from), (material, to), qty)
     }
+
+    /// **Run a transformation edge THROUGH ITS DECLARED RELEASE SPECTRUM**
+    /// (FS-A, 2026-08-02 — U7/R2, `material-behavior.md` §3): move `qty` metres
+    /// of `(material, from)` to the edge's **declared products** instead of to
+    /// the source's own identity.
+    ///
+    /// - **No spectrum declared** (the S-5 identity default): exactly
+    ///   [`Self::move_form`] — one edge, source identity, grade unresolved
+    ///   (`on_product(None, moved)`).
+    /// - **Spectrum declared**: products are grouped by destination material
+    ///   (first-appearance order) and one [`Self::apply_edge`] runs per distinct
+    ///   destination, with the intended quantities remainder-exact over `qty` —
+    ///   so a vanilla provenance-keeping table (every product = the source
+    ///   itself, U1) collapses to **one edge at the full `qty`, bit-identical
+    ///   to `move_form`**, and the facts it commits are byte-identical to the
+    ///   pre-FS-A ones. A modded table naming another `MaterialId` routes its
+    ///   share through the same call as an honest material-change edge (F3:
+    ///   already legal, already recordable).
+    ///
+    /// `on_product` receives every emitted product's **grain grade** and its
+    /// metres (itemisation == the returned total, remainder-exact within each
+    /// group). **It is the grain seam's feed**: grades have NO storage until
+    /// P11 slice 3's packed `DepUnit` lands (U5), so the production callback is
+    /// `weather_inventory::grain_write_seam` — deliberately inert — and the
+    /// post-slice-3 wire-up replaces that seam, not this primitive.
+    pub fn release(
+        &mut self,
+        span: usize,
+        material: MaterialId,
+        from: InvForm,
+        to: InvForm,
+        qty: FracM,
+        mut on_product: impl FnMut(Option<GrainGrade>, FracM),
+    ) -> FracM {
+        match material.release_products(from, to) {
+            None => {
+                let moved = self.apply_edge(span, (material, from), (material, to), qty);
+                if moved > EPS {
+                    on_product(None, moved);
+                }
+                moved
+            }
+            Some(products) => {
+                self.release_into(span, (material, from), to, qty, products, &mut on_product)
+            }
+        }
+    }
+
+    /// The spectrum emission itself, over an explicit product table — private so
+    /// the DECLARATION stays the only production door (a pass consulting an
+    /// arbitrary table would be a parallel rule beside the material definition,
+    /// the S-3 defect). Reached by tests directly to exercise the primitive's
+    /// generality (a product naming a different `MaterialId`) without putting a
+    /// non-provenance table in the vanilla registry.
+    fn release_into(
+        &mut self,
+        span: usize,
+        source: (MaterialId, InvForm),
+        to: InvForm,
+        qty: FracM,
+        products: &[ReleaseProduct],
+        on_product: &mut impl FnMut(Option<GrainGrade>, FracM),
+    ) -> FracM {
+        // Distinct destination materials, in first-appearance order. Counting
+        // first lets the LAST group take `qty - assigned` (remainder-exact), so
+        // Σ(intended) == qty to the bit and a one-destination table gets the
+        // full qty in one edge — the bit-identity the vanilla path rides.
+        let distinct = products
+            .iter()
+            .enumerate()
+            .filter(|(i, p)| !products[..*i].iter().any(|q| q.material == p.material))
+            .count();
+        let mut seen = 0usize;
+        let mut assigned = 0.0f64;
+        let mut total = 0.0f64;
+        for (i, first) in products.iter().enumerate() {
+            let dest = first.material;
+            if products[..i].iter().any(|p| p.material == dest) {
+                continue; // this destination's group already ran
+            }
+            seen += 1;
+            let group: u32 = products
+                .iter()
+                .filter(|p| p.material == dest)
+                .map(|p| u32::from(p.share_permille))
+                .sum();
+            let intended = if seen == distinct {
+                qty - assigned
+            } else {
+                qty * f64::from(group) / f64::from(SHARE_DENOMINATOR)
+            };
+            assigned += intended;
+            let moved = self.apply_edge(span, source, (dest, to), intended);
+            total += moved;
+            if moved <= EPS {
+                continue;
+            }
+            // Per-grade attribution within the group, remainder-exact over the
+            // quantity ACTUALLY moved (apply_edge clamps to what the source
+            // holds; the grades split what really left, never what was asked).
+            let last = products
+                .iter()
+                .rposition(|p| p.material == dest)
+                .expect("the group is non-empty");
+            let mut g_assigned = 0.0f64;
+            for (j, p) in products.iter().enumerate() {
+                if p.material != dest {
+                    continue;
+                }
+                let q = if j == last {
+                    moved - g_assigned
+                } else {
+                    moved * f64::from(p.share_permille) / f64::from(group)
+                };
+                g_assigned += q;
+                if q > 0.0 {
+                    on_product(Some(p.grade), q);
+                }
+            }
+        }
+        total
+    }
 }
 
 /// A unit's **provenance**: its immutable depositional base and the facts that
@@ -1937,6 +2004,152 @@ mod tests {
         let prov = UnitProvenance::of(&strata, &ledger, 0).unwrap();
         assert_eq!(prov.facts().len(), 1);
         assert_eq!(prov.compose(), comp);
+    }
+
+    // --- FS-A: the release-spectrum emission primitive ----------------------
+
+    #[test]
+    fn release_without_a_spectrum_is_exactly_move_form() {
+        // The S-5 identity default: an edge with no declared products emits the
+        // source identity at an unresolved grade, and the fact is byte-identical
+        // to what move_form commits. SANDSTONE declares only structure→loose, so
+        // loose→pore_fill reaches the default arm.
+        let strata = {
+            let mut s = DeepStrata::default();
+            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3); // SANDSTONE
+            s
+        };
+        let ledger = FactLedger::empty_with_bedrock(&strata);
+        let mut a = build_working(&strata, &ledger);
+        let mut b = build_working(&strata, &ledger);
+        let mut seen = Vec::new();
+        let moved_a = a.ctx_for(1, Cause::Chemical).release(
+            0,
+            MaterialId::SANDSTONE,
+            InvForm::Loose,
+            InvForm::PoreFill,
+            0.4,
+            |g, q| seen.push((g, q)),
+        );
+        let moved_b = b.ctx_for(1, Cause::Chemical).move_form(
+            0,
+            MaterialId::SANDSTONE,
+            InvForm::Loose,
+            InvForm::PoreFill,
+            0.4,
+        );
+        assert_eq!(moved_a, moved_b);
+        assert_eq!(a.spans[0].portions, b.spans[0].portions);
+        assert_eq!(
+            seen,
+            vec![(None, moved_a)],
+            "grade unresolved, full quantity"
+        );
+    }
+
+    #[test]
+    fn a_vanilla_spectrum_collapses_to_one_bit_identical_edge() {
+        // U1 provenance-keeping: every granite product is granite, so the
+        // grouped emission runs ONE apply_edge at the full quantity — the fact
+        // set (edge, fraction) is bit-identical to move_form's, which is what
+        // holds the flag-on world byte-identical through FS-A. The grades ride
+        // the callback only (no storage until P11 slice 3).
+        let strata = DeepStrata::default();
+        let ledger = FactLedger::empty_with_bedrock(&strata);
+        let mut a = build_working(&strata, &ledger); // span 0 = the bedrock seam
+        let mut b = build_working(&strata, &ledger);
+        let mut grades = Vec::new();
+        let qty = 0.017;
+        let moved_a = a.ctx_for(2, Cause::Frost).release(
+            0,
+            BEDROCK_SEAM_MATERIAL,
+            InvForm::Structure,
+            InvForm::Loose,
+            qty,
+            |g, q| grades.push((g, q)),
+        );
+        let moved_b = b.ctx_for(2, Cause::Frost).move_form(
+            0,
+            BEDROCK_SEAM_MATERIAL,
+            InvForm::Structure,
+            InvForm::Loose,
+            qty,
+        );
+        assert_eq!(moved_a, moved_b, "one destination ⇒ one edge at full qty");
+        assert_eq!(a.log, b.log, "the logged fact is bit-identical");
+        assert_eq!(a.spans[0].portions, b.spans[0].portions);
+        // The grade itemisation covers the declared spectrum and re-sums to the
+        // move exactly (remainder-exact split — Law 3's shape at emission).
+        let products = BEDROCK_SEAM_MATERIAL
+            .release_products(InvForm::Structure, InvForm::Loose)
+            .expect("granite declares a weathering spectrum");
+        assert_eq!(grades.len(), products.len());
+        let sum: FracM = grades.iter().map(|(_, q)| q).sum();
+        assert!(
+            (sum - moved_a).abs() <= 1e-15 * moved_a.max(1.0),
+            "itemisation {sum} != total {moved_a}"
+        );
+        assert!(
+            grades.iter().all(|(g, _)| g.is_some()),
+            "every product graded"
+        );
+    }
+
+    #[test]
+    fn a_modded_spectrum_routes_mass_to_the_named_material() {
+        // THE GENERALITY HALF OF U7, exercised without violating U1's vanilla
+        // policy: `release_into` is driven with a synthetic table naming a
+        // DIFFERENT MaterialId — the "mods may want this" case — and the mass
+        // honestly lands under that identity through the same declared
+        // material-change edge vocabulary (F3) the graph always had. Private
+        // door on purpose: production only ever consults the declaration.
+        static MODDED: [ReleaseProduct; 2] = [
+            ReleaseProduct {
+                material: MaterialId::GRANITE,
+                grade: GrainGrade::Sand,
+                share_permille: 600,
+            },
+            ReleaseProduct {
+                material: MaterialId::BASALT,
+                grade: GrainGrade::Clay,
+                share_permille: 400,
+            },
+        ];
+        let strata = DeepStrata::default();
+        let ledger = FactLedger::empty_with_bedrock(&strata);
+        let mut inv = build_working(&strata, &ledger);
+        let mut items = Vec::new();
+        let qty = 1.0;
+        let mut ctx = inv.ctx_for(0, Cause::Chemical);
+        let moved = ctx.release_into(
+            0,
+            (MaterialId::GRANITE, InvForm::Structure),
+            InvForm::Loose,
+            qty,
+            &MODDED,
+            &mut |g, q| items.push((g, q)),
+        );
+        assert!((moved - qty).abs() < 1e-12);
+        let q_of = |m: MaterialId, f: InvForm| -> FracM {
+            inv.spans[0]
+                .portions
+                .iter()
+                .find(|p| p.material == m && p.form == f)
+                .map_or(0.0, |p| p.quantity_m)
+        };
+        assert!((q_of(MaterialId::GRANITE, InvForm::Loose) - 0.6).abs() < 1e-12);
+        assert!((q_of(MaterialId::BASALT, InvForm::Loose) - 0.4).abs() < 1e-12);
+        // Two facts logged — one per destination — both on declared edges.
+        assert_eq!(inv.log.len(), 2);
+        assert_eq!(inv.log[0].edge.to(), (MaterialId::GRANITE, InvForm::Loose));
+        assert_eq!(inv.log[1].edge.to(), (MaterialId::BASALT, InvForm::Loose));
+        // Itemisation == total across groups.
+        let sum: FracM = items.iter().map(|(_, q)| q).sum();
+        assert!((sum - moved).abs() <= 1e-15);
+        assert_eq!(
+            items.iter().map(|(g, _)| *g).collect::<Vec<_>>(),
+            vec![Some(GrainGrade::Sand), Some(GrainGrade::Clay)]
+        );
     }
 
     #[test]

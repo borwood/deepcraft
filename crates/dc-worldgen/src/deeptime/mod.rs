@@ -102,7 +102,8 @@ pub use weather_behavior::{
 };
 pub use weather_inventory::{
     WEATHERING_AGENTS, WeatherInputs, agent_share, empty_accumulator, finalize_ledgers,
-    susceptibility, weather_bedrock_epoch, weather_cell, weather_column, weather_rate,
+    grain_write_seam, susceptibility, weather_bedrock_epoch, weather_cell, weather_column,
+    weather_rate,
 };
 
 use crate::pregen::{CellGrid, Pregen};

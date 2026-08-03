@@ -27,6 +27,16 @@
 //! the basement contact). The loose product inherits the bedrock's identity — which
 //! *material* is a stand-in until the genesis/emplacement heir (stub #16).
 //!
+//! **And since FS-A (2026-08-02) it emits THROUGH THE DECLARED RELEASE SPECTRUM**
+//! (`material-behavior.md` §3, U7/R2: pack-authored edge products): the
+//! `Structure→Loose` move runs `InvCtx::release`, which consults the source
+//! material's declared product table and computes the **grain-grade mass split**
+//! per product (granite → grus: gravel/sand modes + clay fines, authored against
+//! the literature in `dc-core::materials::release_vanilla`). Vanilla products
+//! keep provenance (U1), so the committed facts are bit-identical to the
+//! pre-FS-A ones; the grade split feeds [`grain_write_seam`] — the one marked
+//! seam the P11-slice-3 wire-up replaces with the packed record's grain write.
+//!
 //! **Susceptibility axis — the refinement seam.** `MaterialProps` carries one
 //! weathering-susceptibility field, `weatherability`. **Chemical** uses it as its
 //! native axis. **Biotic** and **Frost** *reuse* `weatherability` as their
@@ -50,12 +60,64 @@
 //! unit tests.
 
 use dc_core::materials::MaterialId;
+use dc_core::materials::release::GrainGrade;
 
 use super::grid::{DeepConfig, DeepGrid};
 use super::inventory::{
-    BEDROCK_SEAM_MATERIAL, Cause, FactLedger, InvForm, LedgerField, build_working, commit_chapter,
+    BEDROCK_SEAM_MATERIAL, Cause, FactLedger, FracM, InvForm, LedgerField, build_working,
+    commit_chapter,
 };
 use super::recorder::DeepStrata;
+
+/// **THE GRAIN-WRITE SEAM (FS-A, 2026-08-02) — and the U5 gate's verdict on it
+/// (2026-08-03, post-P11-slice-3 wire-up).**
+///
+/// The weathering emission runs through the declared release spectrum
+/// ([`super::inventory::InvCtx::release`]): the mass split per grain grade IS
+/// computed, per product, per firing — and lands here. **The record's write
+/// surface now EXISTS** (P11 slice 3 merged 2026-08-03: the packed `DepUnit`
+/// carries 3 grain bits, `grain()`/`set_grain()`/`GRAIN_UNSET`, **grain in the
+/// merge key**) — and this seam still deliberately writes nothing. The U5
+/// ruling gates any writer on a **measured grain SPLIT FACTOR** (the
+/// corrections-#88 count-model rule: *"grain must arrive coherent via
+/// propagation or it multiplies units"*), and the measurement is in — but the
+/// verdict is two-part, and the count is the part that PASSES:
+///
+/// - **The count-model gate passes**: the candidate population (the record's
+///   made-where-it-lies deposits — `MOVER_NONE`, mineral biota, spectrum'd
+///   species) is 1.6 % of the shipped record, so even full per-grade splitting
+///   bounds at **≤ 1.0329×** (seed 1337 Medium, 2026-08-03;
+///   `examples/release_spectrum_probe.rs` § grain split) — under M0's ≲1.1×
+///   precedent bar.
+/// - **The SEMANTICS do not**: those units' identities are *drawn members*
+///   (a bed recorded as sandstone), and grading a recorded bed by its own
+///   release spectrum answers *"what would this rock shed if weathered"*, not
+///   *"what grain is this bed"* — the wrong question wearing the right axis.
+///   The weathering consumer's actual product (the granite grus split this
+///   module computes) lives in the per-cell **fact band**, which has no unit
+///   to write. The non-splitting alternative — one grade per unit, the
+///   spectrum's dominant — is a pure function of `species`, which the slice-3
+///   design audit (§ 2.4 O-1) names *"a constant wearing state's clothes"*.
+///   Neither is built, on purpose.
+///
+/// **The honest writer arrives when grain state PROPAGATES** — P10's transport
+/// slices carry grain per parcel, deposits arrive single-graded and coherent,
+/// and the split factor is a property of real sorting rather than of a
+/// per-species table. That writer replaces this body via [`DepUnit::set_grain`]
+/// (`super::recorder::DepUnit::set_grain`); until then every unit stays
+/// [`GRAIN_UNSET`](super::recorder::DepUnit::GRAIN_UNSET) and the recorder's
+/// #88 tripwire (`the_grain_axis_in_the_key_splits_nothing_while_unset`) keeps
+/// asserting the axis is inert.
+///
+/// Probes do not read this seam: they itemise the recorded band through the
+/// same [`dc_core::materials::release::split_quantities`] the emission uses, so
+/// report and pass cannot disagree (S-3).
+#[inline]
+pub fn grain_write_seam(_grade: Option<GrainGrade>, _quantity_m: FracM) {
+    // The gated write surface: `DepUnit::set_grain` exists and is deliberately
+    // not called — the U5 split-factor gate binds (see the doc above). The
+    // propagated-grain writer (P10 transport) lands here.
+}
 
 /// The three weathering agents that SUM on the `Structure→Loose` edge, each a
 /// `(cause, driver, susceptibility)` term. Dissolution is dormant (§10, no soluble
@@ -149,8 +211,11 @@ pub fn weather_rate(inputs: &WeatherInputs, material: MaterialId) -> f64 {
 /// The gate is subaerial-only in spirit; here it is expressed as "there is bedrock
 /// to weather and the cell is above water" via the caller supplying a real cell
 /// (the deeptime driver only calls this for subaerial cells). For each agent it
-/// opens a **cause-scoped** [`InvCtx`] and moves its share `Structure→Loose` on the
-/// bedrock seam span — so the commit lands **one fact per agent**.
+/// opens a **cause-scoped** [`InvCtx`](super::inventory::InvCtx) and emits its
+/// share `Structure→Loose` on the bedrock seam span **through the material's
+/// declared release spectrum** (FS-A; grades to [`grain_write_seam`]) — so the
+/// commit lands **one fact per agent** (vanilla provenance-keeping collapses the
+/// spectrum to one edge; see `InvCtx::release`).
 ///
 /// Returns the total rate moved (a measurement).
 pub fn weather_cell(
@@ -169,12 +234,13 @@ pub fn weather_cell(
         if share <= 0.0 {
             continue;
         }
-        let moved = inv.ctx_for(chapter, cause).move_form(
+        let moved = inv.ctx_for(chapter, cause).release(
             bedrock_span,
             material,
             InvForm::Structure,
             InvForm::Loose,
             share,
+            grain_write_seam,
         );
         total += moved;
     }
@@ -217,11 +283,17 @@ pub fn weather_column(strata: &DeepStrata, chapters: u8, inputs: &WeatherInputs)
 /// scales by `dt` (the pass's phase length), so a coarser cadence weathers
 /// proportionally more per firing — `share ∝ dt`. At `period = 1`, `dt = 1.0` and a
 /// firing is one epoch. Returns the total metres moved this firing.
+///
+/// **`on_product` is the release-spectrum feed** (FS-A): each emitted product's
+/// grain grade and metres, itemising exactly to the return value. Production
+/// passes [`grain_write_seam`] (inert until P11 slice 3); probes and tests pass
+/// a tally to assert the itemisation.
 pub fn weather_bedrock_epoch(
     ledger: &mut FactLedger,
     chapter: u8,
     inputs: &WeatherInputs,
     dt: f64,
+    mut on_product: impl FnMut(Option<GrainGrade>, FracM),
 ) -> f64 {
     // build_working over an EMPTY record ⇒ one span, the bedrock seam, at index 0
     // (== spans.len()-1). Re-derived from `base + facts` each firing (S-2), so the
@@ -236,12 +308,13 @@ pub fn weather_bedrock_epoch(
         if share <= 0.0 {
             continue;
         }
-        total += inv.ctx_for(chapter, cause).move_form(
+        total += inv.ctx_for(chapter, cause).release(
             bedrock_span,
             material,
             InvForm::Structure,
             InvForm::Loose,
             share,
+            &mut on_product,
         );
     }
     // **A-4 fold (journal/0096): the second merger is gone.** This used to be
@@ -293,7 +366,9 @@ pub fn weather_epoch(
             biotic: bio.get(i).map_or(1.0, |&b| f64::from(b)),
             frost: frost.get(i).copied().unwrap_or(1.0),
         };
-        weather_bedrock_epoch(ledger, chapter, &inputs, dt);
+        // The grade split is computed per product inside `release` and handed to
+        // the grain-write seam — inert until P11 slice 3's packed record lands.
+        weather_bedrock_epoch(ledger, chapter, &inputs, dt, grain_write_seam);
     }
 }
 
@@ -468,7 +543,7 @@ mod tests {
         // A single firing on a fresh accumulator commits exactly one fact per active
         // agent (the S18 §1 invariant, preserved by the in-loop path).
         let mut acc = empty_accumulator();
-        let moved = weather_bedrock_epoch(&mut acc, 0, &inputs(), 1.0);
+        let moved = weather_bedrock_epoch(&mut acc, 0, &inputs(), 1.0, grain_write_seam);
         let bedrock = acc.facts_for(0);
         assert_eq!(
             bedrock.len(),
@@ -492,7 +567,7 @@ mod tests {
         let mut acc = empty_accumulator();
         let mut last = 0.0;
         for n in 1..=10 {
-            weather_bedrock_epoch(&mut acc, 0, &inp, 1.0);
+            weather_bedrock_epoch(&mut acc, 0, &inp, 1.0, grain_write_seam);
             let band = acc_band(&acc);
             assert!(band > last, "band grows at firing {n}: {band} !> {last}");
             last = band;
@@ -513,10 +588,62 @@ mod tests {
         let inp = inputs();
         let mut a1 = empty_accumulator();
         let mut a2 = empty_accumulator();
-        let m1 = weather_bedrock_epoch(&mut a1, 0, &inp, 1.0);
-        let m2 = weather_bedrock_epoch(&mut a2, 0, &inp, 2.0);
+        let m1 = weather_bedrock_epoch(&mut a1, 0, &inp, 1.0, grain_write_seam);
+        let m2 = weather_bedrock_epoch(&mut a2, 0, &inp, 2.0, grain_write_seam);
         assert!((m2 - 2.0 * m1).abs() < 1e-12, "dt=2 moves twice dt=1");
         assert!((acc_band(&a2) - 2.0 * acc_band(&a1)).abs() < 1e-12);
+    }
+
+    // --- FS-A: the release spectrum through the real pass -------------------
+
+    #[test]
+    fn the_grade_itemisation_equals_the_move_through_the_pass() {
+        // ITEMISATION == TOTAL, through the shipped firing path (the FS-A
+        // acceptance invariant, Law-3-shaped). Scale-free: a per-firing
+        // arithmetic identity — every product's metres re-sum to the metres
+        // moved, at any world size, any dt, any agent mix.
+        use dc_core::materials::release::{GRAIN_GRADE_COUNT, split_quantities};
+
+        let inp = inputs();
+        let mut acc = empty_accumulator();
+        let mut by_grade = [0.0f64; GRAIN_GRADE_COUNT];
+        let mut ungraded = 0.0f64;
+        let mut moved_total = 0.0f64;
+        for e in 0..10u32 {
+            moved_total +=
+                weather_bedrock_epoch(&mut acc, (e % 3) as u8, &inp, 1.0, |g, q| match g {
+                    Some(g) => by_grade[g.raw() as usize] += q,
+                    None => ungraded += q,
+                });
+        }
+        // Granite declares a spectrum, so nothing may arrive ungraded…
+        assert_eq!(ungraded, 0.0, "granite has a declared spectrum");
+        // …and the grade itemisation re-sums to the total moved. The bound is
+        // derived, not tuned: each firing's split is remainder-exact per group
+        // (≤ 1 ulp of that firing's share survives the re-summation order), and
+        // 10 firings × 3 agents fold ≤ 30 such crumbs — far under 1e-12 relative.
+        let sum: f64 = by_grade.iter().sum::<f64>();
+        assert!(
+            (sum - moved_total).abs() <= 1e-12 * moved_total.max(1.0),
+            "grade itemisation {sum} != moved {moved_total}"
+        );
+        // The proportions are the DECLARED shares (one destination, so each
+        // grade's fraction is exactly share/1000 of the total, up to the same
+        // fold noise) — the pass emits the authored spectrum, not a house blend.
+        let products = BEDROCK_SEAM_MATERIAL
+            .release_products(InvForm::Structure, InvForm::Loose)
+            .expect("granite declares a weathering spectrum");
+        for (p, expect) in split_quantities(products, moved_total) {
+            let got = by_grade[p.grade.raw() as usize];
+            assert!(
+                (got - expect).abs() <= 1e-12 * moved_total.max(1.0),
+                "{}: got {got}, declared share implies {expect}",
+                p.grade.name()
+            );
+        }
+        // And the band the record composes is untouched by the spectrum split —
+        // vanilla provenance-keeping leaves the facts bit-identical (U1).
+        assert!((acc_band(&acc) - moved_total).abs() < 1e-12);
     }
 
     #[test]
@@ -528,7 +655,7 @@ mod tests {
         let inp = inputs();
         let mut acc = empty_accumulator();
         for _ in 0..5 {
-            weather_bedrock_epoch(&mut acc, 0, &inp, 1.0);
+            weather_bedrock_epoch(&mut acc, 0, &inp, 1.0, grain_write_seam);
         }
         let band_in_accumulator = acc_band(&acc);
         assert!(band_in_accumulator > 0.0);

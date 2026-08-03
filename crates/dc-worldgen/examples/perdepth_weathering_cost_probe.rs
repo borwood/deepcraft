@@ -46,7 +46,9 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use dc_worldgen::deeptime::inventory::{Fact, FactLedger, InvForm, build_working, commit_chapter};
-use dc_worldgen::deeptime::weather_inventory::{empty_accumulator, weather_bedrock_epoch};
+use dc_worldgen::deeptime::weather_inventory::{
+    empty_accumulator, grain_write_seam, weather_bedrock_epoch,
+};
 use dc_worldgen::deeptime::{
     DeepConfig, DeepStrata, WEATHERING_AGENTS, WeatherInputs, agent_share, build_field_cfg,
     production_config,
@@ -402,7 +404,7 @@ fn time_firings(
         let mut ledger = empty_accumulator();
         for c in 0..chapters {
             for _ in 0..per_chapter {
-                acc += weather_bedrock_epoch(&mut ledger, c as u8, &inputs, 1.0);
+                acc += weather_bedrock_epoch(&mut ledger, c as u8, &inputs, 1.0, grain_write_seam);
             }
         }
     }

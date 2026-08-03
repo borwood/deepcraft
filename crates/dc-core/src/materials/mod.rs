@@ -23,10 +23,13 @@
 
 pub mod contents;
 pub mod extract;
+pub mod form;
 pub mod geology;
 pub mod intern;
 pub mod lod;
 pub mod packing;
+pub mod release;
+mod release_vanilla;
 pub mod stratify;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
