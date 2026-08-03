@@ -474,8 +474,11 @@ which is the rule working, not a finding.
 **The one caveat, and it is a reciprocity gap rather than a reconciliation:** the smoothness
 principle — which `journal/0149:57` says *"now governs the whole presentation stack"* —
 does **not** appear in `docs/design/refinement.md`, the **ratified** doc that owns that stack
-(E5, `dependency-graph.md:51`). Pathspec: `grep -in "smooth\|borehole\|correlat"
-docs/design/refinement.md` at `9fd6430` returns **no hit on any of the three**. A principle
+(E5, `dependency-graph.md:51`). Pathspec, stated exactly (corrections #63 — state the search,
+not just the verdict): `grep -in "smooth\|borehole\|correlat" docs/design/refinement.md` at
+`9fd6430` returns **two hits, neither of them this principle** — `:241`
+*"correlated-rounding defect"* and `:288` *"the fluvial assemblage is correlated"*, both
+unrelated senses of the word. **Zero hits on `smooth` and zero on `borehole`.** A principle
 that governs a tier and lives only in a journal entry, a § Observed body, a close block and an
 audit is one archive away from being unfindable from the tier's own doc.
 **Recommendation (labelled):** one paragraph in `refinement.md`, quoting the user verbatim
