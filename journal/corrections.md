@@ -3865,3 +3865,44 @@ compress"; it says **say which it is.**
 
 **Stamped in the same commit:** the gait design pass's greenlight banner, where the claim was
 made.
+
+## 97. "A stand-in marked in the code is filed" (the integrator's own filing practice, 2026-08-03 — four heirs shipped to no locus, caught by the user asking a question rather than by any control)
+
+**What happened.** The gait consumer slice shipped four `GaitKnobs` values, each correctly marked
+in code as **STAND-IN, heir B6**, with bands and a literature citation (`gait.rs:155-171`). The
+integrator filed `stubs.md` **#43** from the agent's report and considered the slice's loose ends
+closed. **Measured when the user asked an unrelated question about the bob: `cadence_scale`,
+`duty_exponent`, `bob_damping`, `swing_flexion` appeared ZERO times in `stubs.md` and ZERO times
+in `dependency-graph.md`.** Read-first item 6 is explicit — *a thread deliberately left open is
+annotated in code **and** listed in one of the three loci; an unlisted loose end is the defect,
+not a licence.* Half the rule was satisfied and it read as all of it.
+
+**Mechanism, and it is a hole in the delegation loop rather than anybody's forgetfulness: THE
+INTEGRATOR FILES FROM THE AGENT'S REPORT, AND IN-CODE MARKERS ARE NOT IN THE REPORT.** The
+briefing told the agent *"do not edit `stubs.md`, the integrator applies"* — correct, and it is
+why the agent flagged `swing_gain` in prose (filed as #43) while writing four other markers
+straight into the source and mentioning none of them. **Anything an agent annotates but does not
+narrate is invisible to the step that files it.** The two halves of the loose-end rule are owned
+by two different actors, and nothing carries the second half across the boundary.
+
+**Why no control caught it.** `spine-audit` reads `spines.md` against code, not `stubs.md`
+against code. The staleness sweep compares board entries to newer work — it cannot see a thread
+that was never on the board. `doc-topology` compares docs to each other. **There is no control
+that walks the tree for stand-in markers and checks each against the loci** — the exact inverse
+of § 3's "built and nothing calls it", and equally structural.
+
+**The user found it by instinct, not by process, and said so:** *"i hope this wasn't something we
+just derived fresh this time because i asked, and was something actually sequenced/known already,
+otherwise it makes me think we may be losing some important follow-ups."* It was derived fresh.
+**We were losing follow-ups.** Third time in this corpus that the instrument for a dropped thread
+turned out to be a human (cf. journal/0140's blogworthy line on the strafe).
+
+**Fixed here:** `stubs.md` **#44** files all four with their bands, citations and heir;
+`dependency-graph.md`'s **B6** row now carries its eight named inbound edges, so the heir can be
+found from the heir's end — the two-directional-pointer rule (read-first item 5) applied to
+stubs rather than to spikes.
+
+**Owed, and NOT built:** a control that greps the tree for stand-in markers and diffs them against
+the three loci. Filed rather than hand-waved, because *"remember to file what the agent marked"*
+is precisely the shape of rule this project has already watched die twice (`JUSTIFIED-BY`, and
+"re-run the probes by hand after a merge" — dead in one day).

@@ -1685,3 +1685,28 @@ measure surface penetration); not the solve production runs.
 - **Blast radius:** every body's foot height below a normal walk · the idle↔walk boundary the
   continuous ladder now spans · **not** the walk or run regimes, where the lift is the published
   value exactly.
+
+
+### 44. the-four-gait-knobs-are-force-shaped-holes-wearing-taste-clothes — *added 2026-08-03, LATE: the markers shipped in code with journal/0147 and reached no locus until the user asked (see corrections #97)*
+- **What it fakes:** `GaitKnobs` carries four values the gait bake cannot derive at density ≡ 1,
+  each marked **STAND-IN, heir B6** in `dc-api/src/bodies/gait.rs:155-171` — and each is a
+  **FORCE** term wearing a tuning knob's clothes:
+  - **S1 `cadence_scale`** — *"quicker-stepping than its size predicts"* is muscle power against
+    limb inertia. Band `[0.8, 1.25]`, identity 1.0.
+  - **S2 `duty_exponent`** — the duty curve's interior exponent.
+  - **S3 `bob_damping`** — **the one with a measured number.** The rigid compass chain
+    over-predicts vertical excursion: measured human walking **≈ 4.6 cm** against a compass
+    **≈ 6.6 cm** (Saunders, Inman & Eberhart 1953). The gap is stance-knee flexion, pelvic list
+    and ankle rocker — all joint stiffness, all force. **Identity 1.0 is the honest UPPER bound,
+    and the shipped biped derives 6.58 cm, i.e. essentially the compass value.** The authored bob
+    this arc retired was 4.0 cm — nearer the *measured* human figure. Band `[0.5, 1.0]`.
+  - **S4 `swing_flexion`** — swing-leg energetics, interpolating mid-swing lift from the
+    geometric clearance to the highest the chain can tuck. Band `[0, 1]`.
+- **Heir: B6** (per-segment materials/mass) for all four. They are the fifth, sixth, seventh and
+  eighth consumers of the mass integral — beside harvest yield, evolutionary fitness, standing
+  posture and flotation.
+- **Loudness:** ✅ marked in code at the site with bands and citations. ❌ **and that was the whole
+  problem** — see corrections #97: an in-code marker is not a locus, and these four reached none.
+- **Blast radius:** every derived gait's cadence, duty, vertical excursion and foot lift · the
+  walk verdict on the bob specifically, whose ~65 % gap from the retired authored value **is the
+  documented compass over-prediction and not a defect** · S3 is the one a walk can judge by eye.
