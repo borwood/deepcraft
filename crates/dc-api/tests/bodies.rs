@@ -440,6 +440,11 @@ fn a_new_action_needs_zero_new_payload_variants() {
             offset_m: [0.0, 0.5, 0.0],
             tint: [0.5, 0.5, 0.5],
             roles: vec![],
+            // B7's identity default. The blob is a single ROOT segment, so its
+            // derived default is a WELD — and its clip keys `body` at exactly
+            // zero, which a weld admits. A plugin that wants its root to
+            // rotate declares DOFs; body orientation is the facing system's.
+            dofs: None,
         }],
         modes: vec![],
         actions: vec![

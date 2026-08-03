@@ -6,7 +6,9 @@
 //! Split out of `bodies.rs` by concern 2026-08-01. Deleting the experiments
 //! is this file plus one call site in dc-client `authority.rs`.
 
-use super::default_pack::{LIMB, SKIN, TORSO, mirrored, seg, with_role, with_sole};
+use super::default_pack::{
+    LIMB, SKIN, TORSO, mirrored, seg, with_cervical_range, with_role, with_sole,
+};
 use super::{ActionDef, BodyPlan, ModeDef, biped_plan, segments_with_role};
 use crate::payload::{DefineBodyPlan, Payload};
 
@@ -91,7 +93,11 @@ pub fn stout_plan() -> BodyPlan {
             TORSO,
         ),
         // Neck: short and thick, so the head sits almost on the shoulders.
-        with_role(
+        // It declares the SAME cervical range as the biped, which is the
+        // byte-identical migration of `NECK_*_CLAMP_RAD` and not an assertion
+        // that a thick short neck turns as far — that per-body number is what
+        // the declaration now makes SAYABLE (§ 5.4's whole point).
+        with_cervical_range(with_role(
             seg(
                 "neck",
                 Some("trunk"),
@@ -101,7 +107,7 @@ pub fn stout_plan() -> BodyPlan {
                 SKIN,
             ),
             "look",
-        ),
+        )),
         with_role(
             seg(
                 "head",

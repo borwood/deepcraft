@@ -133,6 +133,63 @@ pub struct ModeDef {
     pub bearing: Vec<String>,
 }
 
+/// A segment-local rotation axis. **X/Y/Z ONLY** — a pose is an XYZ Euler
+/// triple ([`JointRot::euler`]), so an oblique hinge axis (a bird's ankle, an
+/// insect's) is INEXPRESSIBLE.
+///
+/// ⚠ STAND-IN — `stubs.md` (B7-d, `a-dof-axis-can-only-be-x-y-or-z`). The DOF
+/// vocabulary can only be as rich as the pose representation; the heir is a
+/// non-Euler pose (axis-angle or quaternion), a wire change of a different
+/// order and explicitly not in the B3 window.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+pub enum Axis {
+    X,
+    Y,
+    Z,
+}
+
+impl Axis {
+    /// Index into an XYZ Euler triple.
+    pub fn index(self) -> usize {
+        match self {
+            Axis::X => 0,
+            Axis::Y => 1,
+            Axis::Z => 2,
+        }
+    }
+
+    /// `"X"` / `"Y"` / `"Z"`, for error messages.
+    pub fn name(self) -> &'static str {
+        match self {
+            Axis::X => "X",
+            Axis::Y => "Y",
+            Axis::Z => "Z",
+        }
+    }
+}
+
+/// One declared degree of freedom of a joint (B7). Each **END is independently
+/// declared or derived** — the finest granularity that is still meaningful, so
+/// the only thing the default pack has to say about a knee (*"it does not go
+/// past straight"*) is one number, and an author never restates a derived
+/// magnitude that could then drift from its authority (S-3).
+///
+/// ⚠ STAND-IN — `stubs.md` (B7-c, `the-euler-box-over-approximates-a-ball-joint`).
+/// A 3-DOF per-axis box's corners are poses a real swing cone cannot reach, so
+/// this **under-catches** for shoulders and hips; it never falsely rejects.
+/// Heir: swing-cone + twist, when a body exists whose shoulder range anyone
+/// has measured.
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct DofDef {
+    pub axis: Axis,
+    /// `None` = take the derived bound for this end.
+    #[serde(default)]
+    pub min_rad: Option<f64>,
+    /// `None` = take the derived bound for this end.
+    #[serde(default)]
+    pub max_rad: Option<f64>,
+}
+
 /// One cuboid segment of a body plan's joint tree.
 ///
 /// A segment is a joint (a pivot) with a cuboid hung off it. `pivot_m` is the
@@ -164,6 +221,23 @@ pub struct SegmentDef {
     /// the identity default: a role-less plan behaves exactly as before.
     #[serde(default)]
     pub roles: Vec<RoleDef>,
+    /// This joint's rotational degrees of freedom and their ranges (B7).
+    /// A segment IS a joint, and its rotation is relative to its parent, so the
+    /// range belongs to the child — never a second address-keyed table on the
+    /// plan (which would be `stubs.md` § 34's defect in a new costume).
+    ///
+    /// - `None` — **the identity default** (S-5): three DOFs, all six bounds
+    ///   derived from geometry ([`limits::derive_joint_limits`]). On the ROOT
+    ///   segment, `None` derives to a **weld** instead: body orientation
+    ///   belongs to the facing system, so a clip keying the root is a
+    ///   define-time error (ruled provisionally 2026-08-03).
+    /// - `Some([])` — **welded**: zero DOFs; this segment does not rotate.
+    /// - `Some(v)` — exactly these DOFs. **An axis not listed is NOT a DOF**,
+    ///   which is the whole reason this is a DOF *set* and not a plain
+    ///   `[[f64;2];3]` box: "a knee has no twist" and "twist is pinned to
+    ///   [0,0]" stop being the same statement.
+    #[serde(default)]
+    pub dofs: Option<Vec<DofDef>>,
     // DELIBERATELY ABSENT, heirs named (B0 ratification, 2026-08-01):
     // `collide` — per-segment collider participation is B4's design question
     // (a folded wing vs a spread one suggests it may be MODE-scoped, and a
@@ -428,6 +502,59 @@ pub fn validate_plan(
                 ));
             }
         }
+        // B7 check 1 — well-formedness of the DOF declaration. In the loop
+        // that already walks every segment: no new traversal, no new door.
+        if let Some(dofs) = &s.dofs {
+            for (j, d) in dofs.iter().enumerate() {
+                if dofs[..j].iter().any(|o| o.axis == d.axis) {
+                    return Err(format!(
+                        "plan `{}` segment `{}` declares the {} degree of freedom twice",
+                        plan.name,
+                        s.name,
+                        d.axis.name()
+                    ));
+                }
+                for (end, v) in [("min", d.min_rad), ("max", d.max_rad)] {
+                    if let Some(v) = v
+                        && !v.is_finite()
+                    {
+                        return Err(format!(
+                            "plan `{}` segment `{}` declares a non-finite {end} bound about {}",
+                            plan.name,
+                            s.name,
+                            d.axis.name()
+                        ));
+                    }
+                }
+                match (d.min_rad, d.max_rad) {
+                    (Some(lo), Some(hi)) if lo > hi => {
+                        return Err(format!(
+                            "plan `{}` segment `{}` declares {} range [{lo}, {hi}] with min > max",
+                            plan.name,
+                            s.name,
+                            d.axis.name()
+                        ));
+                    }
+                    _ => {}
+                }
+                // The authored rest IS the Euler origin, so a range excluding
+                // zero is a joint that can never be at rest. (Behind member
+                // #0's effort seam — where a bake returns a non-zero rest —
+                // this becomes `min <= rest <= max`; recorded as the seam, not
+                // built now.)
+                if d.min_rad.is_some_and(|lo| lo > 0.0) || d.max_rad.is_some_and(|hi| hi < 0.0) {
+                    return Err(format!(
+                        "plan `{}` segment `{}` declares a {} range excluding 0, so the joint \
+                         can never be at its authored rest ({:?}, {:?})",
+                        plan.name,
+                        s.name,
+                        d.axis.name(),
+                        d.min_rad,
+                        d.max_rad
+                    ));
+                }
+            }
+        }
     }
     // Exactly one root; every parent present.
     let root_count = plan.segments.iter().filter(|s| s.parent.is_none()).count();
@@ -491,6 +618,10 @@ pub fn validate_plan(
             }
         }
     }
+    // The resolved joint limits (B7): declared bounds over derived ones, per
+    // end of per axis. Returned, not stored (S-3) — this local IS the whole
+    // lifetime of the derivation at define time.
+    let limits = limits::derive_joint_limits(plan);
     // The you-supplied-what-you-claimed contract (open vocabulary — no name
     // is checked against a list and nothing is mandatory).
     for (i, a) in plan.actions.iter().enumerate() {
@@ -509,12 +640,23 @@ pub fn validate_plan(
                 plan.name, a.action, a.clip
             ));
         };
-        for kf in &c.keyframes {
+        for (k, kf) in c.keyframes.iter().enumerate() {
             for r in &kf.rotations {
                 if !plan.segments.iter().any(|s| s.name == r.segment) {
                     return Err(format!(
                         "plan `{}` action `{}`: clip `{}` animates joint `{}`, not in the plan",
                         plan.name, a.action, a.clip, r.segment
+                    ));
+                }
+                // B7 checks 2 (DOF membership) and 3 (range), inside the walk
+                // that already visits every keyframe's every JointRot. A clip
+                // is limit-checked against a PLAN, never standalone — limits
+                // live on the plan, and a clip is standalone until a plan
+                // adopts it (the module's own define-order argument).
+                if let Err(why) = limits.check(&r.segment, r.euler) {
+                    return Err(format!(
+                        "plan `{}` action `{}`: clip `{}` keyframe {k} (t = {:.3}) {why}",
+                        plan.name, a.action, a.clip, kf.t
                     ));
                 }
             }
@@ -537,6 +679,9 @@ mod bake;
 mod default_pack;
 mod experiments;
 mod gait;
+pub mod limits;
+
+pub use limits::{Bound, DofLimit, JointLimit, JointLimits, derive_joint_limits};
 
 pub use bake::{
     BakeOutcome, ChainPose, JointAngle, RestingPosture, bake_resting_posture, stance_chain,
