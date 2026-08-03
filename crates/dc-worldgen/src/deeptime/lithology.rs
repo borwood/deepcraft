@@ -1172,8 +1172,10 @@ mod tests {
     /// deposit.
     ///
     /// It is the test that makes the interim bucket legitimate rather than an S-3
-    /// parallel rule — and it is what fails loudly if a pack adds a fine clastic
-    /// the bucket has never heard of.
+    /// parallel rule — and it is what fails loudly if the VANILLA set adds a fine
+    /// clastic the bucket has never heard of. (Only the vanilla set: the body
+    /// opens `geology::vanilla()`, so a third-party pack's members are not walked
+    /// here — that wider guard needs the per-world set, E7's manifest heir.)
     #[test]
     fn lithology_buckets_agree_with_the_registry() {
         let set = dc_core::materials::geology::vanilla();

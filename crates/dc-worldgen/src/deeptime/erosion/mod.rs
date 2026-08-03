@@ -327,11 +327,12 @@ pub struct Erosion {
     /// detaches — as the axis codes and values of a sparse row (today: one entry,
     /// the basement, at share `1.0`).
     ///
-    /// It is what the near-surface window walk answers for an **empty section**: a
-    /// window containing no recorded units is entirely whatever lies beneath the
-    /// pile. So the pass names no lithology; it asks the same question every other
-    /// consumer asks and takes the answer. (Refreshed each epoch in
-    /// [`Self::expose`], because the window's heir — structural deformation — may
+    /// Since P11 slice 2 this is the **named basement constant**
+    /// (`basement_slot()` → `DEEP_BASEMENT`, granite): the provider-seam walk
+    /// that used to answer an empty section (`outcrop_shares(&[])`) is retired,
+    /// so the pass takes a named constant rather than asking a seam — same
+    /// value, honest about being a constant. (Refreshed each epoch in
+    /// [`Self::expose`], because its heir — structural deformation — may
     /// one day answer it differently per cell, at which point this becomes a plane
     /// rather than a constant.)
     bedrock_axis: Vec<u8>,

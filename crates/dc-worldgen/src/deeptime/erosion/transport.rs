@@ -351,12 +351,12 @@ impl Erosion {
                 let inc = inc_pot.min(room).min(max_inc);
                 grid.r[c] -= inc;
                 carried += inc;
-                // Incision detaches material from **below the record**, and the
-                // composition seam answers that question too — an empty section is
-                // whatever lies beneath the pile (`bedrock_sp`). Nothing is named
-                // here; on today's world the answer comes back as the hardest,
-                // coarsest thing there is, which is why a headwater reach cutting
-                // rock rather than reworking cover puts gravel into the load.
+                // Incision detaches material from **below the record**; its
+                // composition is the `bedrock_sp` row — since P11 slice 2 the
+                // named basement constant (`DEEP_BASEMENT`, granite; the
+                // provider-seam walk is retired). The hardest, coarsest thing
+                // there is, which is why a headwater reach cutting rock rather
+                // than reworking cover puts gravel into the load.
                 if self.sorted && inc > 0.0 {
                     self.ledger.incised_m += inc;
                     let Erosion {

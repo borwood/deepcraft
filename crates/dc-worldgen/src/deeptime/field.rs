@@ -25,7 +25,11 @@
 //! grows with the *square* of world extent: a literal 460 m at
 //! [`Extent::Large`](crate::pregen::Extent::Large) (~1017 km) is a 2211² ≈
 //! 4.9 M-cell run — minutes and gigabytes, which also blows the
-//! `pregen_time_vs_extent` <60 s budget. So the production config **caps the
+//! `pregen_time_vs_extent` budget (**cite the test's assert, not a figure**:
+//! the bound was 60 s when this was written, renegotiated 20× to 1,200 s on
+//! 2026-08-02 — `tests/s7_measurements.rs` — and is contested again by E4's
+//! M-ladder gen times; the cap's RAM and quadratic-cost arguments stand on
+//! their own either way). So the production config **caps the
 //! grid width** at [`DEEP_MAX_WIDTH`]: Small/Medium keep 460 m as specified;
 //! Large gets a coarser cell (~1.8 km) that holds the ritual budget. The
 //! read-quality is coarser at Large (S9 measured true stories already at the

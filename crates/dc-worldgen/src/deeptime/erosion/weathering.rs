@@ -416,8 +416,10 @@ impl Erosion {
                 }
             }
         }
-        // What lies below the record: the same walk asked with an empty section,
-        // which is entirely whatever is beneath the pile. One entry, share `1.0`.
+        // What lies below the record: the named basement constant
+        // (`basement_slot()` → `DEEP_BASEMENT`, granite). P11 slice 2 retired
+        // the provider-seam walk (`outcrop_shares(&[])`) that used to answer
+        // this; same value, no seam consulted. One entry, share `1.0`.
         self.bedrock_axis = vec![axis.basement_slot() as u8];
         self.bedrock_sp = vec![1.0];
     }
