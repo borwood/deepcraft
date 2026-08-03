@@ -776,11 +776,18 @@ standing at any magnitude, and a constant is content.
   field with the Earth default now; the manifest wires it when it lands. Building the loader
   ahead of its caller is what seam-first forbids.
 
-**⚠ IT IS TWO AUTHORITIES TODAY, not one — found in the same sweep.** `CharacterConfig::gravity_m_s2
-= 25.0` (`dc-api/src/character.rs:64`) and `const GRAVITY_M_S2: f64 = 25.0`
-(`dc-client/src/player.rs:25`) are **independent hardcoded copies** that agree only by coincidence
-of hand-typing, and they integrate the player and every character separately (`player.rs:116,119`
-vs `character.rs:267,283`). **Fourth instance of the two-authorities defect recorded in one day**
+**⚠ IT IS ~~TWO~~ THREE AUTHORITIES TODAY — *and the count was wrong in this very paragraph until
+the fix went in, which is the defect it describes, committed inside its own correction.*** The
+first sweep found `CharacterConfig::gravity_m_s2 = 25.0` (`dc-api/src/character.rs`) and
+`const GRAVITY_M_S2: f64 = 25.0` (`dc-client/src/player.rs`); implementing the flip immediately
+turned up a **third**, `PhysicsConfig::default`'s `gravity_m_s2: 25.0`
+(`dc-physics/src/world.rs:40`). That third one is the sharpest of the set, because its doc comment
+**states the intent correctly and then achieves it by hand-copying the number**: *"defaults to the
+game's character gravity (player.rs uses 25.0) so dropped items and the player agree about how
+heavy the world feels."* An author who knew there was one authority, wrote down which file held
+it, and still copied the digits. All three are **independent hardcoded copies** agreeing only by
+coincidence, integrating the player, every character, and every dropped item separately.
+**Fourth instance of the two-authorities defect recorded in one day**
 (`root_bob_m` — corrections #80/#93; the gaze — #94; trunk facing — `bodies.md` § the sim owns the
 target). Unifying them is part of this ruling, not a follow-up.
 
