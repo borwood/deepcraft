@@ -514,7 +514,9 @@ two).
    ratified packed `DepUnit` recovers it. Corrections #90–91, stubs #37–38 from the
    slice. **Record-terms ruling 3's re-derived numbers are in journal/0141 § 11 —
    ready for its re-entry.**
-3. ~~**The near-path restructure** (ruling 5)~~ **✅ SHIPPED 2026-08-03 (journal/0144,
+3. ~~**The near-path restructure** (ruling 5)~~ **✅ SHIPPED 2026-08-03 (journal/0145
+   — renumbered from a colliding 0144 the same day, the ordinal guard's catch; bodies'
+   gait-gravity entry holds 0144;
    merge `cd1058a`; 3a+3b as ONE merge unit — deviation priced by the audit, reasoning
    in the journal).** Per-voxel-column record membership (`SubCell` + `cell_bundle`, the
    F2 mass-coupled trio inexpressible to un-bundle) + packed `DepUnit` L-8 (8 B/unit,

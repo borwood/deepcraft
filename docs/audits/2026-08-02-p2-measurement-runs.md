@@ -11,8 +11,17 @@
 > same world."** A high-M world gets generated and its deepest hollows tour-mapped and
 > walked; the headless pit census (position-in-drainage / depth distribution) runs on the
 > SAME world only if the walk shows something clearly wrong. The bar itself is not
-> revised sight-unseen. Findings 5 (M re-pick) and 7 (gen-time/register) remain open,
-> sequenced behind the walk.
+> revised sight-unseen. Findings 5 (M re-pick) and 7 (gen-time/register) remain open.
+>
+> **RE-SEQUENCED 2026-08-03 (user): the pit walk is DEFERRED — "no time to block on
+> 40min gen right now" — and finding 7's ANSWER-SHAPE IS RULED: E4.** The 38-minute
+> in-band solve is integrator tax, not physics (sub-steps scale ∝ M: 2 → 896 across the
+> ladder — the explicit scheme's stability limit); the fix is the **implicit,
+> unconditionally-stable kernel E4 was always chartered to own** (stubs #30's remaining
+> half; Braun & Willett-lineage O(n) implicit solvers are the literature norm at exactly
+> these rates). **E4 design pass dispatched 2026-08-03.** The safari runs when worlds
+> are cheap (post-E4) or when a 38-minute window is worth it — the walk-first ruling
+> above stands; only its schedule moved.
 
 **What this is.** The four runs § 6.2 of the derivation ordered, taken with the five probe
 changes § 6.1 ordered (M1–M5), on one commit, one machine, one seed. **It does not pick
