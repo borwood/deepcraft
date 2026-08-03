@@ -260,6 +260,21 @@ an implementation choice; artifact suppression uses standard techniques
 > judgement about motion that no still frame can answer (corrections #77). Until then it
 > rides as-is, and this section's DECIDED status covers it and nothing else.
 >
+> **⚠ THE PRECONDITION ARRIVED 2026-08-03 AND THE CALL IS NOW TAKEABLE (journal/0148).** The feet
+> reach the ground: the derived gait shipped, `root_bob_m` left the schema, and the user's walk
+> verdict was *"the bob is gone… soles are planted."* **And the walk produced a reason to take
+> the call that is not about taste at all: a FIXED 12 fps ALIASES A DERIVED CADENCE.** Frames per
+> cycle is no longer a constant anyone chose — at 4.5 m/s the biped gets 6.97 (near-integer, reads
+> stable), the longleg 7.73, and the **stout 4.29**, barely above Nyquist, so its samples drift
+> through the cycle and beat against it. The user saw the hitch and diagnosed it unprompted.
+> **A-1's fourth instance in this arc**: 12 fps was chosen when there was one clip at one cadence.
+> **User leaning is FORFEIT — recorded as a LEANING, not a ruling** (*"probably we just forfeit
+> it… i just don't care enough"*). **Their diagnosis survives either way and is the thing to keep:
+> the fault is quantizing per SECOND against a cadence that varies per BODY — quantize per CYCLE
+> (N poses per stride) and every body gets the identical stop-motion look regardless of leg
+> turnover.** That is the shape that would have let the aesthetic survive derived gait. Board:
+> ROADMAP § Observed; adjacent to B3's 20 Hz vs 12 fps question (`posture-gait.md` § 7 member 2).
+>
 > **⚠ CORRECTED 2026-08-01 — corrections #80. THE BANNER BELOW IS TRUE AS ARITHMETIC AND
 > WRONG AS A DIAGNOSIS, and it is preserved unedited as dated testimony.** The quantizer is
 > the **second** wall, not the operative one. The hover's actual cause is a space-layering
