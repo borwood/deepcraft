@@ -227,7 +227,22 @@ write down. The 20-edge count above is checked by the gate rather than quoted
 endpoint, mixed radix `material * 5 + form` — which is also what took the resident
 fact from 16 B to 8 B, but the bytes were the consequence and this was the reason.
 
----
+**RULED 2026-08-02 (user, FS-A / P10's U7): RELEASE SPECTRA ARE AUTHORED EDGE
+PRODUCTS — "R2 it is, authored edges."** An edge (first customer: `structure → loose`,
+weathering) may declare a **product table**: shares over what the transition emits.
+**The primitive's product vocabulary is GENERAL, by the user's own directive:** *"an
+edge can define a transition to a loose grade of the original material, or to a
+totally different material (mods may want this)."* So the engine-side shape admits
+any `MaterialId` product; the **default pack** authors provenance-keeping products —
+loose grades of the source identity per U1 (grain is an AXIS on the loose form,
+`materials.md` § forms ruling 2 addendum) — as its content choice, not as an engine
+constraint. This is the plugin-first split stated once: **generality lives in the
+primitive, provenance lives in the vanilla authoring.** No conflict with U1, which
+governs the default pack's encoding, not the edge shape. Grade alphabet width (U4,
+8/5/4/2 φ classes) is a separate open pick (slice-3 design pass § 9, P-1). The
+authored-table shape is also what keeps **bimodal release expressible** (granite →
+coarse + fines) without forcing the bimodality question (P10's U3) — recorded here so
+that coupling is found once, not four times.
 
 ## 4. Agents — rate-term contributors on edges (content)
 

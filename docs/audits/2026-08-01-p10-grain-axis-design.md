@@ -18,6 +18,19 @@
 > Medium; journal/0138) — member-grade CSR planes price at 44.98 MiB, 0.71× the
 > shipped class-grade dense planes. FS-A re-shapes under U1 (emit loose source-identity + grain
 > state, not ladder ids) and dispatches behind P11 slice 2's merge.**
+>
+> **U7 RULED 2026-08-02 (user, "R2 it is — authored edges"): release spectra are
+> PACK-AUTHORED EDGE PRODUCTS (§ 1.3's R2), not engine-derived.** And the primitive is
+> ruled GENERAL by the same breath: *"an edge can define a transition to a loose grade
+> of the original material, or to a totally different material (mods may want this)"* —
+> the engine edge shape admits any `MaterialId` product; provenance-keeping (loose
+> grades of the source, per U1) is the DEFAULT PACK's authoring choice, not an engine
+> constraint. Full record: `material-behavior.md` § 3 (stamped same day). R2 keeps
+> bimodality expressible, so U3 stays genuinely open rather than silently ruled.
+> U6 is COLLAPSED by U1 (grain is an axis, never ladder identities — the ladder is
+> scaffolding, not the alphabet). Still open here: U2, U3, U4 (presented priced in
+> `2026-08-02-p11-slice3-design.md` § 3, its P-1). FS-A's build brief is now writable;
+> grades (U4) is the one input it still wants.
 > *(Mutable header; the body below is the dated design record.)*
 
 **Arc anchor:** `ROADMAP.md:413-442` § Sequenced *"THE GRAIN-SIZE CONTINUUM"* — **SEQUENCED

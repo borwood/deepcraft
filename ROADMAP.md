@@ -533,10 +533,19 @@ the channel operator expresses *with* it).
 **FIRST SLICE — a design pass, not code:** what IS the size state (φ-classes? a small
 histogram per load parcel?) · where it lives (a release-spectrum on materials + evolving
 state on the load) · how it composes with the composition term just ruled · literature
-anchors per the measure-against-the-literature rule. **CONTINUATION SLOT:** transport
+anchors per the measure-against-the-literature rule. **→ DESIGN PASS DONE 2026-08-01
+(`docs/audits/2026-08-01-p10-grain-axis-design.md`), and its rulings have landed: U1
+(grain is an AXIS, 2026-08-02) · U5 (packed-`DepUnit` funding, 2026-08-02) · U7 RULED
+2026-08-02 ("R2 it is — authored edges"): release spectra are pack-authored EDGE
+PRODUCTS, and the primitive is general per the user's directive (a product may be a
+loose grade of the source OR a totally different material — mods may want this; engine
+admits any `MaterialId` product, provenance-keeping is vanilla's authoring; recorded in
+`material-behavior.md` § 3). U6 collapsed by U1. **FS-A (release spectrum + pass-through
+record) is the ruled first build slice — its brief is writable now; it wants U4 (φ-class
+count, slice-3 design pass P-1) for the grade alphabet before build.** Still open: U2,
+U3.** **CONTINUATION SLOT:** transport
 evolution (abrasion + sorting) → the record axis → operator consumption. **Calibration is
-gated on P2** (pre-P2, no cell can carry sand — competence ceiling 0.283 vs 0.840); the
-design pass is startable today.
+gated on P2** (pre-P2, no cell can carry sand — competence ceiling 0.283 vs 0.840).
 
 ### POSTURE AND GAIT ARE DERIVED, BAKED PER SPECIES, SAMPLED CHEAPLY — **CAUTIOUSLY RATIFIED 2026-08-01 (user)**
 
