@@ -173,7 +173,11 @@ pub fn stance_chains<'a>(plan: &'a BodyPlan, role: &str) -> Vec<Vec<&'a SegmentD
 /// summing `pivot_m` up the parent walk and **excluding the root's own
 /// `pivot_m`**, which is an authored rest origin, not a hip
 /// (body-plan-structure § 5.1; `hip_height_is_an_output` pins this).
-fn offset_from_root(plan: &BodyPlan, seg: &SegmentDef) -> [f64; 3] {
+///
+/// `pub(super)` so the GAIT bake reads the one derivation rather than
+/// carrying a second copy (audit F6: hoist, don't duplicate) — the same
+/// argument that hoisted [`stance_chain`] out of dc-client.
+pub(super) fn offset_from_root(plan: &BodyPlan, seg: &SegmentDef) -> [f64; 3] {
     let mut acc = [0.0_f64; 3];
     let mut cur = seg;
     let mut hops = 0;
@@ -197,7 +201,7 @@ fn offset_from_root(plan: &BodyPlan, seg: &SegmentDef) -> [f64; 3] {
     acc
 }
 
-fn norm3(v: [f64; 3]) -> f64 {
+pub(super) fn norm3(v: [f64; 3]) -> f64 {
     (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt()
 }
 
@@ -260,7 +264,7 @@ struct Contact<'a> {
 /// audit's F4 refusal specifies — chains that genuinely differ (any
 /// authored asymmetry is millimetres at least) are orders of magnitude
 /// beyond it.
-const EPS_M: f64 = 1e-9;
+pub(super) const EPS_M: f64 = 1e-9;
 
 /// Bake the resting posture of `plan` for the declared locomotor `mode` —
 /// pure, deterministic, no world involvement (see the module doc for the
