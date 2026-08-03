@@ -1,6 +1,31 @@
 # The gait bake (member #1) — a design pass against the posture-gait bones
 
-**Status: DESIGN PASS. Nothing here is ratified and no code was changed.** The deliverable is
+> **⚠ USER CALL #1 RULED 2026-08-02 — mutable header; the body below is testimony and is not
+> rewritten.** *"Option A for sure! When we have controller support an analog stick can
+> actually grade intent up the ladder."*
+>
+> **THE SPEED CONSTANT IS MISLABELLED, NOT WRONG.** `walk_speed_m_s = 4.5` stays as the
+> **top** speed — it is a deliberate voxel-traversal game-feel choice and traversal feel is
+> not being paid for fidelity. What changes is that the mover gains a **speed RANGE** and the
+> gait is **selected by Froude across it**: low intent walks, full intent runs. The constant
+> is re-typed, not lowered. Its name is now the lie and goes with it.
+>
+> **THE LADDER IS CONTINUOUS, AND THE ANALOG CHANNEL ALREADY EXISTS END TO END** (user's own
+> extension, and it is a design fact this pass did not have). `SetMoveIntent.speed` is already
+> *"a fraction of full walk speed, clamped to [0,1]"* — a real analog magnitude, carried
+> through the one door, receipted and replayed. A controller stick maps to it with no new wire
+> surface. **What throws that magnitude away is exactly the machinery this pass proposes to
+> retire:** `WALK_SPEED_THRESHOLD_M_S = 0.35` (`body.rs:49`) and the two-state `enum Loco`
+> (`:199`) collapse a continuous intent into Idle-or-Walk at `:240`. So the analog ladder is
+> **not future work gated on controller support** — it is unblocked by this ruling, and the
+> binary switch is now a *named artifact with a named replacement*, not merely an engineering
+> nit. **Grade the gait continuously over Fr; never re-introduce a discrete gait switch.**
+>
+> **The known cost is unchanged and rides:** G5 — a run's flight phase is not cleanly
+> derivable at density ≡ 1, so it waits on B6 (per-segment materials) or takes an interim.
+> Name the interim as a stand-in with B6 as its heir, per the ratified docket's (c).
+
+**Status: DESIGN PASS. Nothing else here is ratified and no code was changed.** The deliverable is
 this document. It works `posture-gait.md` § 7 member 1 — **including its user-ratified expanded
 docket (a)–(e), 2026-08-02** — against the ratified bones (§§ 2–6) and the post-member-#0 code,
 and proposes a concrete shape. Proposing and building are different acts; the second is the
