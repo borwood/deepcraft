@@ -19,6 +19,7 @@ pub mod coarse;
 pub mod collision;
 pub mod column;
 pub mod farfield;
+pub mod field;
 pub mod format;
 pub mod lod;
 pub mod materials;
@@ -36,6 +37,10 @@ pub use collision::{
 pub use column::{ColumnInfo, ColumnSummaries, LodBlockSource, column_summary, open_air_below};
 pub use farfield::{
     ColumnSpan, FAR_BOTTOM_UNBOUNDED, compose_column, level_stride, node_column_spans, quantize_top,
+};
+pub use field::{
+    CoeffField, DiffusionProblem, EdgeFluxes, ExplicitPlan, FieldKernel, MONOTONE_MAX_EDGE_COEFF,
+    Scheme, Stencil, StepScratch,
 };
 pub use format::{ChunkContainer, FORMAT_VERSION, FormatError, Sidecar};
 pub use lod::{

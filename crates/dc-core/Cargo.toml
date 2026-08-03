@@ -8,6 +8,10 @@ publish.workspace = true
 [dependencies]
 glam.workspace = true
 postcard.workspace = true
+# The E4 field-solver kernel's parallel driver (`field.rs`): the scalar↔parallel
+# bit-identity promise is the kernel's own, so the drive lives with it.
+# Flagged with the module's NEEDS RATIFICATION (venue) note.
+rayon.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 

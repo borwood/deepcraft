@@ -93,8 +93,9 @@ pub struct TransportLedger {
     /// Airborne **dust settling on the sea** during the eolian march.
     pub eolian_to_sea_m: f64,
     /// **Cell-epochs in which the creep flux limiter bound** — the cell wanted to
-    /// shed more regolith than it had, so [`diffuse_scale_cell`] clamped its export
-    /// to its whole `H` (journal/0114).
+    /// shed more regolith than it had, so the kernel's donor limiter
+    /// (`dc_core::field`, since E4-1) clamped its export to its whole `H`
+    /// (journal/0114).
     ///
     /// **This is the honesty check on the erosional calibration, and it measures a
     /// discretisation limit rather than a physics one.** Hillslope diffusion is
@@ -214,7 +215,8 @@ impl Erosion {
     /// This is the term the answer turns on, because creep moves 918× what the
     /// rivers pick up on this world (corrections #55) and no instrument before
     /// this one could say how much of it actually *leaves*. It re-reads exactly
-    /// the influx expression [`diffuse_net_cell`] uses for a submerged cell `j`
+    /// the influx expression the kernel's gather (`dc_core::field`, since E4-1)
+    /// uses for a submerged cell `j`
     /// from a higher subaerial neighbour `i` — the same donor scale, the same
     /// effective diffusivity — so the number is a partition of a flux the solve
     /// already computed, not a second model of it.

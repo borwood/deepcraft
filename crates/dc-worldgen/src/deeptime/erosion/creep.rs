@@ -1,17 +1,18 @@
 //! **The hillslope-creep pass** — the driver that takes the epoch it is given
-//! and sub-divides it internally into as many explicit steps as the operator's
-//! own monotonicity bound requires, plus the material-creep toggle and the
-//! instrumentation the probes read.
+//! and hands it to the engine's field-solver kernel, which derives its own
+//! sub-cycle from its own monotonicity bound; plus the material-creep toggle
+//! and the instrumentation the probes read.
 //!
-//! The step it sub-cycles, and the gather kernels under it, are
-//! `super::creep_kernel`.
+//! The kernel it declares against is `dc_core::field::FieldKernel` (E4-1,
+//! 2026-08-03 — extracted from `super::creep_kernel`, which keeps the content
+//! side: the coefficient field, the species split, the audits).
 //!
 //! Partition (north star): **pass/content logic — plugin side by destination.**
-//! The kernel it drives is the embedded S-10 primitive (E4's future claim).
+//! The S-10 primitive it used to embed is engine now.
 
 use super::super::grid::{DeepConfig, DeepGrid};
 use super::Erosion;
-use super::creep_kernel::{CREEP_MAX_EDGE_COEFF, eff_diff};
+use super::creep_kernel::{CREEP_KERNEL, CreepCoeff, eff_diff};
 
 impl Erosion {
     /// Turn **material-aware hillslope creep** on (Movement 2b continuation (b),
@@ -97,7 +98,7 @@ impl Erosion {
     ///
     /// The step above is an **explicit** Laplacian, and an explicit Laplacian has
     /// a period-2 grid-scale mode whenever its per-edge coefficient exceeds
-    /// [`CREEP_MAX_EDGE_COEFF`]. At `diffusion = 5.4` (the shipped rate under
+    /// [`CREEP_MAX_EDGE_COEFF`](super::CREEP_MAX_EDGE_COEFF). At `diffusion = 5.4` (the shipped rate under
     /// `EROSION_CALIBRATION`) the coefficient is **43× past** that bound, and the
     /// flux limiter — which caps a cell's export at its *entire inventory* rather
     /// than at the amount that would level the pair — turns the divergence into a
@@ -109,9 +110,10 @@ impl Erosion {
     ///
     /// So the fix is **not** a smaller `dt` asked of the caller, and it is not a
     /// cap on the rate either — capping would reinstate the one-cell-per-epoch
-    /// conveyor that `stubs.md` #27 is about. The pass takes the epoch it is given
-    /// and **splits it internally** into `n` steps each of which respects the
-    /// bound, with `n` derived from the rate the config actually states:
+    /// conveyor that `stubs.md` #27 is about. The epoch the pass is given is
+    /// **split internally** into `n` steps each of which respects the bound —
+    /// since E4-1 by the kernel itself (`dc_core::field::FieldKernel::plan`),
+    /// with `n` derived from the rate the config actually states:
     ///
     /// ```text
     /// n = ceil( max_cell eff_diff / CREEP_MAX_EDGE_COEFF )
@@ -160,10 +162,11 @@ impl Erosion {
         // split the user ruled on 2026-07-29 when RATE was nearly widened to own
         // substepping: *"couldn't substepping be solved within the field instead,
         // where it takes `dt` from outside and calcs its own internal multiplier?"*
-        // Yes — and this is what that looks like. `stubs.md` § 30's remaining half
-        // is hoisting the derived multiplier into the S-10 field-solver kernel so
-        // no future pass author has to write the analysis; the authored half is
-        // discharged here.
+        // Yes — and this is what that looks like. `stubs.md` § 30 is FULLY
+        // DISCHARGED as of E4-1 (2026-08-03): the authored half landed with RATE
+        // (journal/0123), and the derived multiplier now lives in the S-10
+        // field-solver kernel itself (`dc_core::field::FieldKernel::plan`), so
+        // no future pass author has to write the analysis.
         //
         // `dt = 1.0` (the shipped roster) is bit-identical to the pre-RATE
         // operator: `x * 1.0 == x` exactly for f64, so `rate == cfg.diffusion` and
@@ -172,22 +175,28 @@ impl Erosion {
         if rate <= 0.0 {
             return;
         }
-        let d_max = self.max_eff_creep(grid, rate);
-        let n_sub = if !cfg.creep_substep {
-            // The pre-journal/0122 operator, bit for bit: one raw step at whatever
-            // coefficient the config states. Kept reachable so the goldens captured
-            // under it stay fixed points (`DeepConfig::creep_substep`).
-            1
-        } else if d_max > CREEP_MAX_EDGE_COEFF {
-            // `ceil` of a finite positive ratio; the `max(1)` is belt-and-braces
-            // against a denormal reduction, not a live case.
-            ((d_max / CREEP_MAX_EDGE_COEFF).ceil() as u32).max(1)
-        } else {
-            1
+        // The pass DECLARES; the kernel DERIVES (E4-1). The coefficient field
+        // is content — `eff_diff`'s biotic × lithology composition, wrapped as
+        // `CreepCoeff` — and the sub-step count comes out of the kernel's own
+        // bound, so no pass author ever writes the von Neumann analysis again.
+        let plan = {
+            let coeff = CreepCoeff {
+                resist: &grid.bio_resist,
+                sus: &self.sus_creep,
+            };
+            if cfg.creep_substep {
+                CREEP_KERNEL.plan(rate, self.n, &coeff)
+            } else {
+                // The pre-journal/0122 operator, bit for bit: one raw step at
+                // whatever coefficient the config states. Kept reachable so the
+                // goldens captured under it stay fixed points
+                // (`DeepConfig::creep_substep`).
+                CREEP_KERNEL.plan_unbounded_legacy(rate, self.n, &coeff)
+            }
         };
+        let n_sub = plan.substeps();
         self.creep_substeps = n_sub;
-        self.creep_peak_coeff = d_max;
-        let diff_sub = rate / f64::from(n_sub);
+        self.creep_peak_coeff = plan.peak_coeff();
         // The species itemisation is audited against the epoch's TOTAL ΔH, so a
         // sub-cycled epoch needs somewhere to accumulate it. Allocated only when
         // both sub-cycling and identity-carrying creep are live, so the shipped
@@ -202,7 +211,7 @@ impl Erosion {
         }
         self.creep_faces = 0;
         for s in 0..n_sub {
-            self.diffuse_step(grid, cfg, diff_sub, s > 0);
+            self.diffuse_step(grid, cfg, &plan, s > 0);
             if accumulate {
                 for (a, nd) in self.netdiff_acc.iter_mut().zip(self.netdiff.iter()) {
                     *a += *nd;
@@ -215,9 +224,11 @@ impl Erosion {
     }
 
     /// **The largest effective creep diffusivity anywhere on the grid** — the
-    /// quantity [`diffuse`](Self::diffuse) divides by [`CREEP_MAX_EDGE_COEFF`] to
-    /// pick its sub-cycle count. Read by the operator probe so the report can say
-    /// *which* cells forced the count.
+    /// quantity the kernel's plan divides by [`CREEP_MAX_EDGE_COEFF`](super::CREEP_MAX_EDGE_COEFF) to pick
+    /// the sub-cycle count [`diffuse`](Self::diffuse) runs (the same
+    /// order-independent `f64::max` fold, kept here as the pass-side
+    /// diagnostic). Read by the operator probe so the report can say *which*
+    /// cells forced the count.
     pub fn max_eff_creep(&self, grid: &DeepGrid, diffusion: f64) -> f64 {
         let (resist, sus) = (&grid.bio_resist, &self.sus_creep);
         (0..self.n)
@@ -226,7 +237,7 @@ impl Erosion {
     }
 
     /// **How many sub-steps the last [`diffuse`](Self::diffuse) took.** `1` means
-    /// the epoch's stated rate already sat inside [`CREEP_MAX_EDGE_COEFF`] and the
+    /// the epoch's stated rate already sat inside [`CREEP_MAX_EDGE_COEFF`](super::CREEP_MAX_EDGE_COEFF) and the
     /// operator was the pre-journal/0122 one bit for bit.
     #[inline]
     pub fn creep_substeps(&self) -> u32 {
@@ -246,6 +257,7 @@ impl Erosion {
 
 #[cfg(test)]
 mod hillslope_operator_tests {
+    use super::super::CREEP_MAX_EDGE_COEFF;
     use super::*;
 
     /// A bare grid with flat bedrock and a **checkerboard regolith cover** — the
@@ -431,12 +443,21 @@ mod hillslope_operator_tests {
         let cfg = creep_cfg(calibrated);
 
         // --- the operator as it stood: one raw step at the stated rate ---------
+        // (through the kernel's one deliberate door past the bound)
         let mut grid = checkerboard(32, cover);
         let mut er = Erosion::new(&grid);
         let a0 = signed_amplitude(&grid);
         let mut legacy = Vec::new();
+        let raw = CREEP_KERNEL.plan_unbounded_legacy(
+            calibrated,
+            grid.h.len(),
+            &CreepCoeff {
+                resist: &grid.bio_resist,
+                sus: &er.sus_creep,
+            },
+        );
         for _ in 0..6 {
-            er.diffuse_step(&mut grid, &cfg, calibrated, false);
+            er.diffuse_step(&mut grid, &cfg, &raw, false);
             legacy.push(signed_amplitude(&grid));
         }
         // Period 2: strict sign alternation with the amplitude *conserved* rather
@@ -588,9 +609,17 @@ mod hillslope_operator_tests {
         let mut b = checkerboard(32, 4.6);
         let mut ea = Erosion::new(&a);
         let mut eb = Erosion::new(&b);
+        let raw = CREEP_KERNEL.plan_unbounded_legacy(
+            0.12,
+            b.h.len(),
+            &CreepCoeff {
+                resist: &b.bio_resist,
+                sus: &eb.sus_creep,
+            },
+        );
         for _ in 0..5 {
             ea.diffuse(&mut a, &cfg, 1.0);
-            eb.diffuse_step(&mut b, &cfg, 0.12, false);
+            eb.diffuse_step(&mut b, &cfg, &raw, false);
         }
         assert_eq!(a.h, b.h);
     }

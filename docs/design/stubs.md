@@ -1294,13 +1294,26 @@ at any realistic rate at all, which makes it the most valuable erosion work on t
 
 ### 30. a-pass-that-hand-rolled-its-own-timestep — *added 2026-07-29 (journal/0122); **heir named by the user in the same breath as the spine that excludes it***
 
+> **🟢 FULLY DISCHARGED 2026-08-03 (E4-1, byte-identical extraction; ⚠ NEEDS RATIFICATION on
+> venue, audit U-3).** The DERIVED half landed at the heir the user named: the sub-cycle
+> derivation and the bound live in the S-10 kernel itself now —
+> `dc_core::field::FieldKernel::plan` derives `n = ceil(max_cell coeff /
+> MONOTONE_MAX_EDGE_COEFF)` **inside the engine**, the pass declares only its coefficient
+> field (`erosion/creep_kernel.rs::CreepCoeff` over `eff_diff`), and an out-of-bound step is
+> inexpressible from a pass (the one loud door, `plan_unbounded_legacy`, exists for the
+> unbounded-creep golden fixed points and the operator tests' reference arm). No future pass
+> author writes the von Neumann analysis — which was the whole of this entry's blast radius.
+> Design + sequencing: `docs/audits/2026-08-03-e4-implicit-kernel-design.md` §§ 3, 7.
+
 > **🟡 HALF DISCHARGED 2026-07-29 (journal/0123) — the AUTHORED half.** RATE is built. The pass
 > no longer assumes `dt = 1.0`: it takes its phase length from the runner
 > (`Erosion::diffuse(grid, cfg, dt)`, `rate = cfg.diffusion * dt`) and the shipped world is
 > **hash-identical** through it (`tests/rate_axis.rs`, `GOLDEN_SURFACE 0x15A6_B756_7A84_29FB` /
 > `GOLDEN_RECORD 0x820B_A198_49DD_234A`).
 >
-> **STILL OWED — the DERIVED half, and it is the whole reason this entry exists.** The
+> **~~STILL OWED~~ — the DERIVED half, and it is the whole reason this entry exists.**
+> *(Discharged 2026-08-03 — see the 🟢 banner above; the text below is what was true between
+> journal/0123 and E4-1.)* The
 > sub-cycle is still hand-rolled *inside this one pass*: `n = ceil(max_cell eff_diff /
 > CREEP_MAX_EDGE_COEFF)`, four lines below the `dt` multiply. **Heir unchanged: E4, the S-10
 > field-solver primitive.** The blast radius below is unchanged too — every future field pass
