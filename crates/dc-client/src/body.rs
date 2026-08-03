@@ -354,12 +354,14 @@ impl Cervical {
         // (the trunk absorbs the excess on whichever side), so a plan that
         // declared an asymmetric yaw would need the split itself to change.
         // Take the tighter end rather than inventing a side.
-        let yaw = joint.dof(Axis::Y).and_then(|d| match (d.min.value(), d.max.value()) {
-            (Some(lo), Some(hi)) => Some(lo.abs().min(hi.abs())),
-            (Some(lo), None) => Some(lo.abs()),
-            (None, Some(hi)) => Some(hi.abs()),
-            (None, None) => None,
-        });
+        let yaw = joint
+            .dof(Axis::Y)
+            .and_then(|d| match (d.min.value(), d.max.value()) {
+                (Some(lo), Some(hi)) => Some(lo.abs().min(hi.abs())),
+                (Some(lo), None) => Some(lo.abs()),
+                (None, Some(hi)) => Some(hi.abs()),
+                (None, None) => None,
+            });
         let pitch = joint.dof(Axis::X);
         Cervical {
             yaw_max: yaw,
@@ -457,7 +459,13 @@ pub struct LegLimits {
 }
 
 /// Resolve one leg's limits out of a plan's derived+declared joint limits.
-fn leg_limits(limits: &dc_api::bodies::JointLimits, upper: &str, lower: &str, l1: f64, l2: f64) -> LegLimits {
+fn leg_limits(
+    limits: &dc_api::bodies::JointLimits,
+    upper: &str,
+    lower: &str,
+    l1: f64,
+    l2: f64,
+) -> LegLimits {
     use dc_api::bodies::Axis;
     let dof = |seg: &str| limits.joint(seg).and_then(|j| j.dof(Axis::X)).cloned();
     let (knee, hip) = (dof(lower), dof(upper));
@@ -654,13 +662,18 @@ pub enum Reach {
     /// solving freely and then clamping the knee into range moves the foot off
     /// its target with no signal, which is a working call, a passing test and a
     /// silently wrong output (A-3).
-    BeyondFlexion { joint: String },
+    BeyondFlexion {
+        joint: String,
+    },
     /// The solve landed outside a joint's declared range on an axis the solver
     /// does not solve into (the hip — restricting the *upper* joint turns the
     /// reachable set from an annulus sector into a lune, which the closed form
     /// does not cover), or the joint does not declare the axis the solver
     /// assumes. Checked and reported, never solved into.
-    JointBlocked { joint: String, axis: Axis },
+    JointBlocked {
+        joint: String,
+        axis: Axis,
+    },
 }
 
 /// Closed-form two-bone IK in the sagittal (Y–Z) plane, **within the rig's

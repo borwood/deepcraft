@@ -39,7 +39,11 @@ fn bound_of(plan: &BodyPlan, segment: &str, axis: Axis, max: bool) -> Bound {
     let dof = joint
         .dof(axis)
         .unwrap_or_else(|| panic!("`{segment}` has a {} DOF", axis.name()));
-    if max { dof.max.clone() } else { dof.min.clone() }
+    if max {
+        dof.max.clone()
+    } else {
+        dof.min.clone()
+    }
 }
 
 /// A test fixture: the biped, with the DOF declaration the default pack is
@@ -162,17 +166,65 @@ fn derived_limits_match_the_predicted_table() {
     #[allow(clippy::type_complexity)]
     let rows: &[(&str, &str, Axis, Option<f64>, Option<f64>)] = &[
         // knees — the audit's magnitudes confirmed to ~1e-4 rad
-        ("biped", "leg_l_lower", Axis::X, Some(2.705_630_055_648_907), Some(2.705_41)),
-        ("stout", "leg_l_lower", Axis::X, Some(2.006_725_103_173_108_6), Some(2.006_76)),
-        ("longleg", "leg_l_lower", Axis::X, Some(2.765_369_302_485_903), Some(2.765_46)),
+        (
+            "biped",
+            "leg_l_lower",
+            Axis::X,
+            Some(2.705_630_055_648_907),
+            Some(2.705_41),
+        ),
+        (
+            "stout",
+            "leg_l_lower",
+            Axis::X,
+            Some(2.006_725_103_173_108_6),
+            Some(2.006_76),
+        ),
+        (
+            "longleg",
+            "leg_l_lower",
+            Axis::X,
+            Some(2.765_369_302_485_903),
+            Some(2.765_46),
+        ),
         // hips — likewise, and the stout/biped SPREAD is the finding
-        ("biped", "leg_l_upper", Axis::X, Some(2.614_347_249_741_193_5), Some(2.614_31)),
-        ("stout", "leg_l_upper", Axis::X, Some(1.352_267_952_406_582_8), Some(1.353_04)),
+        (
+            "biped",
+            "leg_l_upper",
+            Axis::X,
+            Some(2.614_347_249_741_193_5),
+            Some(2.614_31),
+        ),
+        (
+            "stout",
+            "leg_l_upper",
+            Axis::X,
+            Some(1.352_267_952_406_582_8),
+            Some(1.353_04),
+        ),
         ("longleg", "leg_l_upper", Axis::X, None, None),
         // elbows
-        ("biped", "arm_l_lower", Axis::X, Some(2.717_826_195_059_022_3), Some(2.717_87)),
-        ("longleg", "arm_l_lower", Axis::X, Some(2.717_826_195_059_022_3), Some(2.717_87)),
-        ("stout", "arm_l_lower", Axis::X, Some(2.810_692_493_662_150_7), Some(2.810_76)),
+        (
+            "biped",
+            "arm_l_lower",
+            Axis::X,
+            Some(2.717_826_195_059_022_3),
+            Some(2.717_87),
+        ),
+        (
+            "longleg",
+            "arm_l_lower",
+            Axis::X,
+            Some(2.717_826_195_059_022_3),
+            Some(2.717_87),
+        ),
+        (
+            "stout",
+            "arm_l_lower",
+            Axis::X,
+            Some(2.810_692_493_662_150_7),
+            Some(2.810_76),
+        ),
         // shoulders — geometry constrains them not at all
         ("biped", "arm_l_upper", Axis::X, None, None),
         ("stout", "arm_l_upper", Axis::X, None, None),
@@ -182,13 +234,37 @@ fn derived_limits_match_the_predicted_table() {
         // omitted, while deriving the hips from the thigh's — the rotating
         // segment's own box. Include it, as the hip rows do, and the neck's
         // top corner reaches the trunk first.
-        ("biped", "neck", Axis::X, Some(1.042_721_878_536_622_5), Some(2.468_25)),
-        ("stout", "neck", Axis::X, Some(0.628_796_286_415_433_2), Some(2.282_91)),
+        (
+            "biped",
+            "neck",
+            Axis::X,
+            Some(1.042_721_878_536_622_5),
+            Some(2.468_25),
+        ),
+        (
+            "stout",
+            "neck",
+            Axis::X,
+            Some(0.628_796_286_415_433_2),
+            Some(2.282_91),
+        ),
         ("biped", "neck", Axis::Y, None, None),
-        ("biped", "neck", Axis::Z, Some(1.042_721_878_536_622_5), Some(2.174_08)),
+        (
+            "biped",
+            "neck",
+            Axis::Z,
+            Some(1.042_721_878_536_622_5),
+            Some(2.174_08),
+        ),
         // the knee's other two axes
         ("biped", "leg_l_lower", Axis::Y, None, None),
-        ("biped", "leg_l_lower", Axis::Z, Some(2.750_397_280_311_131_6), Some(2.750_46)),
+        (
+            "biped",
+            "leg_l_lower",
+            Axis::Z,
+            Some(2.750_397_280_311_131_6),
+            Some(2.750_46),
+        ),
         // ⚠ `head` DIVERGES: the audit read it as *"no child chain to
         // collide"*, but a segment's own box is part of its rotating subtree,
         // and the head's top corners reach the trunk at 126.87°.
@@ -268,7 +344,12 @@ fn derived_limits_are_scale_invariant() {
             let base = derive_joint_limits(&plan);
             let mut scaled = plan.clone();
             for s in &mut scaled.segments {
-                for v in s.pivot_m.iter_mut().chain(&mut s.size_m).chain(&mut s.offset_m) {
+                for v in s
+                    .pivot_m
+                    .iter_mut()
+                    .chain(&mut s.size_m)
+                    .chain(&mut s.offset_m)
+                {
                     *v *= k;
                 }
                 for r in &mut s.roles {
@@ -425,7 +506,10 @@ fn a_hyperextending_clip_is_rejected() {
         clip_lookup(&clips),
     )
     .expect_err("jump's +0.10 knee is a hyperextension too");
-    assert!(err.contains("+0.100000") && err.contains("leg_l_lower"), "{err}");
+    assert!(
+        err.contains("+0.100000") && err.contains("leg_l_lower"),
+        "{err}"
+    );
     validate_plan(
         &fixture_binding("idle", "dc:anim/biped_idle"),
         clip_lookup(&clips),
@@ -582,7 +666,8 @@ fn the_resting_pose_is_inside_every_limit() {
                 );
             }
         }
-        let crate::bodies::BakeOutcome::Baked(p) = crate::bodies::bake_resting_posture(&plan, "stand")
+        let crate::bodies::BakeOutcome::Baked(p) =
+            crate::bodies::bake_resting_posture(&plan, "stand")
         else {
             panic!("plan `{}` must bake", plan.name);
         };
@@ -634,11 +719,26 @@ fn the_resting_pose_is_inside_every_limit() {
 fn report_the_literature_comparison() {
     let biped = derived_only(biped_plan());
     let rows: &[(&str, &str, Axis, &str)] = &[
-        ("knee flexion", "leg_l_lower", Axis::X, "135-150 active; ~160 passive"),
-        ("knee extension", "leg_l_lower", Axis::X, "0 (genu recurvatum past ~10)"),
+        (
+            "knee flexion",
+            "leg_l_lower",
+            Axis::X,
+            "135-150 active; ~160 passive",
+        ),
+        (
+            "knee extension",
+            "leg_l_lower",
+            Axis::X,
+            "0 (genu recurvatum past ~10)",
+        ),
         ("elbow flexion", "arm_l_lower", Axis::X, "145-150"),
         ("hip flexion", "leg_l_upper", Axis::X, "120 (knee flexed)"),
-        ("hip extension", "leg_l_upper", Axis::X, "20-30 (iliofemoral ligament)"),
+        (
+            "hip extension",
+            "leg_l_upper",
+            Axis::X,
+            "20-30 (iliofemoral ligament)",
+        ),
         ("cervical rotation", "neck", Axis::Y, "60-80"),
         ("cervical flex/ext", "neck", Axis::X, "45-50 / 45-70"),
         ("cervical lateral", "neck", Axis::Z, "45"),
@@ -646,8 +746,8 @@ fn report_the_literature_comparison() {
     ];
     println!(
         "\n§ 3.3 DERIVED vs PUBLISHED (degrees; published NOT network-verified)\n\
-         {:<20} {:>12}  {}",
-        "joint", "derived", "published"
+         {:<20} {:>12}  published",
+        "joint", "derived"
     );
     let limits = derive_joint_limits(&biped);
     for (label, seg, axis, published) in rows {
@@ -655,7 +755,10 @@ fn report_the_literature_comparison() {
         let v = d.and_then(|d| d.max.value());
         println!(
             "{label:<20} {:>12}  {published}",
-            v.map_or("undetermined".into(), |v: f64| format!("{:.2}", v.to_degrees()))
+            v.map_or("undetermined".into(), |v: f64| format!(
+                "{:.2}",
+                v.to_degrees()
+            ))
         );
     }
 }

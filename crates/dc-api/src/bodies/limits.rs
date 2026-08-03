@@ -56,12 +56,30 @@
 //! # What this can and cannot claim (audit § 1, § 3.5)
 //!
 //! It is an **impossibility bound**, not an anatomy model: it forbids only
-//! poses that put the body's own boxes through each other. It cannot supply the
-//! **sign** of a fold (every shipped plan is mirror-symmetric in z — our bodies
-//! have no front; `stubs.md` B7-a), a **ligamentous** end-range (B7-e), a
-//! **swing cone** (B7-c), or an oblique hinge axis (B7-d). Where it has no
+//! poses that put the body's own boxes through each other. Where it has no
 //! answer it says [`Bound::Undetermined`] with a reason — a loud, named
 //! absence, never a silent ∞.
+//!
+//! ⚠ STAND-IN — five entries in `stubs.md`, all added with this module:
+//!
+//! - **B7-a** `the-fold-sense-is-declared-because-our-bodies-have-no-front` —
+//!   it supplies a hinge's magnitude and structurally **cannot supply its
+//!   SIGN**: every shipped plan has `pivot_m[2] = offset_m[2] = 0` on every
+//!   segment, so the bodies are mirror-symmetric fore-and-aft and there is no
+//!   anterior datum. Every derived range here is exactly symmetric.
+//! - **B7-b** `the-derived-limit-tests-distal-extent-only` — ancestors only, so
+//!   **shaft contact** (`dc:body/longleg`'s hip) and **siblings** (a shank
+//!   through the other thigh) are missed; heir is a swept-volume test with an
+//!   articular neighbourhood, which is B6-adjacent.
+//! - **B7-c** `the-euler-box-over-approximates-a-ball-joint` — heir: swing-cone
+//!   + twist. Marked at [`DofDef`].
+//! - **B7-d** `a-dof-axis-can-only-be-x-y-or-z` — heir: a non-Euler pose.
+//!   Marked at [`Axis`].
+//! - **B7-e** `a-limit-that-cannot-know-soft-tissue` — the derivation is in band
+//!   where an end-range is **bony** and over-predicts by 3–7× where it is
+//!   **ligamentous**, because at density ≡ 1 there is no force to model passive
+//!   tissue with. Heir: **B6** (and it is the third member of `stubs.md`
+//!   `mass-is-volume-until-b6`).
 
 use super::bake::offset_from_root;
 use super::{Axis, BodyPlan, DofDef, SegmentDef};
@@ -615,7 +633,15 @@ pub fn derive_joint_limits(plan: &BodyPlan) -> JointLimits {
                 let mut out = Vec::with_capacity(declared.len());
                 for d in declared {
                     let mut resolved = derive(d.axis);
-                    resolve_end(plan, seg, d, &mut resolved.min, d.min_rad, true, &mut reports);
+                    resolve_end(
+                        plan,
+                        seg,
+                        d,
+                        &mut resolved.min,
+                        d.min_rad,
+                        true,
+                        &mut reports,
+                    );
                     resolve_end(
                         plan,
                         seg,
