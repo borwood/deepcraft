@@ -57,11 +57,14 @@
 > they are carried forward with the pass's own disclaimer intact.**
 >
 > **4. § 5.3's `d_min` TABLE CONFIRMED, and the degenerate stout crouch is gone.** Measured
-> biped **0.19121** (predicted 0.19143), stout **0.23664** (0.23660), longleg **0.19174**
-> (0.19199) — each the fully-folded foot distance to 1e-9, asserted as geometry rather than
-> pinned as a number. The stout's crouch target (`d = 0.010`, a sole *below the ground*) is now
-> `Reach::BeyondFlexion` and the foot floats honestly; journal/0131's 180° knee cannot be
-> reached.
+> biped **0.19131** (predicted 0.19143), stout **0.23664** (0.23660), longleg **0.19175**
+> (0.19199) — 9.6× / 23.7× / 9.6× the numerical `|l1−l2|` they replace, matching the predicted
+> ratios exactly. Each is the fully-folded foot distance to 1e-9, asserted as geometry rather
+> than pinned as a magnitude. The stout's crouch target (`d = 0.010`, a sole *below the ground*)
+> is now `Reach::BeyondFlexion` and the foot floats honestly; journal/0131's 180° knee cannot be
+> reached. Across a 3198-target sweep of all three plans the solver is **bit-identical** to its
+> pre-B7 self on the 2184 targets outside `d_min`; the 1014 inside are refused rather than
+> clamped, which is the whole of the behaviour change.
 >
 > **5. A CASE THE PASS NAMED BUT DID NOT COST: `dc:body/stout`'s FLUSH SHOULDERS.** § 3.2 called
 > it *"a zero-measure graze at x = 0.39 exactly."* In f64 the two shoulders land on **opposite
