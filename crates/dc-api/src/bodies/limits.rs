@@ -333,6 +333,10 @@ enum Miss {
     OutOfRadius,
     /// Both extents are individually reachable but never simultaneously.
     NeverSimultaneous,
+    /// The point is **already inside** the ancestor at rest, so it never
+    /// *enters*. This is not a limit and must not be reported as one — see
+    /// [`first_entry`]'s note.
+    AlreadyInside,
 }
 
 /// The first angle, searching in `dir` (`+1` / `-1`) from 0 and stopping at
@@ -347,10 +351,32 @@ enum Miss {
 /// The ±π cap is not a magic number: an Euler component is read wrapped into
 /// `(-π, π]`, so a bound of larger magnitude constrains nothing that the other
 /// end does not already constrain.
+///
+/// **A point already inside the box at θ = 0 is [`Miss::AlreadyInside`], never a
+/// zero limit.** The authored rest is the reference the law measures departure
+/// from; a rest-pose overlap is the author's geometry, not a joint's range, and
+/// reporting it as `[0, 0]` would weld a limb for a reason that has nothing to
+/// do with rotation. `dc:body/stout` is exactly this case and it took a build to
+/// find: its upper arms are drawn **flush** against its trunk (arm
+/// `x ∈ [0.39, 0.55]` against trunk `x ∈ [-0.39, 0.39]` — the audit's own
+/// *"zero-measure graze at x = 0.39 exactly"*), and in f64 that graze lands a
+/// few ulps INSIDE. Read as an entry it welded both shoulders and rejected the
+/// shipped idle clip on the shipped pack.
 fn first_entry(p: [f64; 3], b: &Box3, axis: Axis, dir: f64) -> Result<f64, Miss> {
     let ia = axis.index();
     let ip = (ia + 1) % 3;
     let iq = (ia + 2) % 3;
+    // Contact at rest, within the accumulated-rounding epsilon: the graze is
+    // decided by ULPs otherwise, and `dc:body/stout`'s two shoulders landed on
+    // OPPOSITE sides of it (one flush-inside, one flush-outside → a 0° bound
+    // on one arm and not the other). `EPS_M` is the resting bake's own
+    // "exactly equal, up to accumulated f64 rounding" epsilon, borrowed with
+    // its derivation intact: a nanometre, against authored geometry that
+    // differs by millimetres at least.
+    let e = super::bake::EPS_M;
+    if (0..3).all(|i| b.lo[i] - e < p[i] && p[i] < b.hi[i] + e) {
+        return Err(Miss::AlreadyInside);
+    }
     // The rotation-invariant coordinate: if it misses, no angle can help.
     if !(b.lo[ia] < p[ia] && p[ia] < b.hi[ia]) {
         return Err(Miss::InvariantAxis);
@@ -363,11 +389,7 @@ fn first_entry(p: [f64; 3], b: &Box3, axis: Axis, dir: f64) -> Result<f64, Miss>
     };
     // A point on the rotation axis itself never moves.
     if r <= 0.0 {
-        return if inside(0.0) {
-            Ok(0.0)
-        } else {
-            Err(Miss::OutOfRadius)
-        };
+        return Err(Miss::OutOfRadius);
     }
     let mut cuts: Vec<f64> = Vec::with_capacity(8);
     crossings(r, b.lo[ip], false, &mut cuts);
@@ -375,12 +397,8 @@ fn first_entry(p: [f64; 3], b: &Box3, axis: Axis, dir: f64) -> Result<f64, Miss>
     crossings(r, b.lo[iq], true, &mut cuts);
     crossings(r, b.hi[iq], true, &mut cuts);
     if cuts.is_empty() {
-        // No face is ever crossed: inside for every θ, or for none.
-        return if inside(phi) {
-            Ok(0.0)
-        } else {
-            Err(Miss::OutOfRadius)
-        };
+        // No face is ever crossed, and rest is outside: never inside.
+        return Err(Miss::OutOfRadius);
     }
     // Walk the circle from ψ0 = φ in `dir`, arc by arc; the first arc whose
     // interior is inside the box starts at the entry angle.
@@ -502,9 +520,17 @@ fn derived_bound(plan: &BodyPlan, seg: &SegmentDef, axis: Axis, dir: f64) -> Bou
         for p in &points {
             match first_entry(*p, b, axis, dir) {
                 Ok(t) => anc_best = Some(anc_best.map_or(t, |x: f64| x.min(t))),
-                Err(Miss::InvariantAxis) => anc_miss = Miss::InvariantAxis,
+                // Most-specific miss wins the reason: an already-inside point
+                // is the sharpest thing to say, then an axis that never
+                // overlaps, then a radius that never reaches.
+                Err(Miss::AlreadyInside) => anc_miss = Miss::AlreadyInside,
+                Err(Miss::InvariantAxis) => {
+                    if anc_miss != Miss::AlreadyInside {
+                        anc_miss = Miss::InvariantAxis;
+                    }
+                }
                 Err(Miss::OutOfRadius) => {
-                    if anc_miss != Miss::InvariantAxis {
+                    if matches!(anc_miss, Miss::NeverSimultaneous) {
                         anc_miss = Miss::OutOfRadius;
                     }
                 }
@@ -529,6 +555,10 @@ fn derived_bound(plan: &BodyPlan, seg: &SegmentDef, axis: Axis, dir: f64) -> Bou
                     Miss::NeverSimultaneous =>
                         "the chain's distal extent clears this segment (its extents are never \
                          satisfied at the same angle)"
+                            .to_string(),
+                    Miss::AlreadyInside =>
+                        "the chain's distal extent already intersects this segment at REST — a \
+                         graze in the authored geometry, not a rotation limit"
                             .to_string(),
                 }
             )),
