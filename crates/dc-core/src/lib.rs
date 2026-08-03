@@ -65,4 +65,4 @@ pub use palette::{PackedIndices, PaletteError, PalettedChunk, bits_for_palette_l
 pub use raycast::{RaycastHit, raycast_voxels};
 pub use scale::VoxelScale;
 pub use voxel::Block;
-pub use world_constants::EARTH_GRAVITY_M_S2;
+pub use world_constants::DEFAULT_GRAVITY_M_S2;

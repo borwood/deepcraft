@@ -24,7 +24,7 @@ pub struct PhysicsConfig {
     /// independent of frame rate.
     pub fixed_dt: f64,
     /// Downward gravity, m/s^2. Defaults to the **world's** gravity
-    /// ([`dc_core::EARTH_GRAVITY_M_S2`]) so dropped items, the player and every
+    /// ([`dc_core::DEFAULT_GRAVITY_M_S2`]) so dropped items, the player and every
     /// character agree about how heavy the world feels.
     ///
     /// This doc comment used to say *"defaults to the game's character gravity
@@ -43,7 +43,7 @@ impl Default for PhysicsConfig {
     fn default() -> Self {
         Self {
             fixed_dt: 1.0 / 60.0,
-            gravity_m_s2: dc_core::EARTH_GRAVITY_M_S2,
+            gravity_m_s2: dc_core::DEFAULT_GRAVITY_M_S2,
             max_steps_per_advance: 8,
             bubble: BubbleConfig::default(),
         }
