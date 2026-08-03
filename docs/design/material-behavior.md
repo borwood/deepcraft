@@ -238,8 +238,10 @@ loose grades of the source identity per U1 (grain is an AXIS on the loose form,
 `materials.md` § forms ruling 2 addendum) — as its content choice, not as an engine
 constraint. This is the plugin-first split stated once: **generality lives in the
 primitive, provenance lives in the vanilla authoring.** No conflict with U1, which
-governs the default pack's encoding, not the edge shape. Grade alphabet width (U4,
-8/5/4/2 φ classes) is a separate open pick (slice-3 design pass § 9, P-1). The
+governs the default pack's encoding, not the edge shape. Grade alphabet width **RULED same day (U4, user: "I agree: 5")** — five φ classes, the
+ladder's natural rungs (scree/gravel/sand/silt/clay); how grades (and loose-vs-structure
+generally) READ to the player is an open user-led design question, ROADMAP § Observed
+2026-08-02. The
 authored-table shape is also what keeps **bimodal release expressible** (granite →
 coarse + fines) without forcing the bimodality question (P10's U3) — recorded here so
 that coupling is found once, not four times.

@@ -15,6 +15,15 @@ flagged as such.
 **PROPOSED** (recorded, not decided) · ⚠ **FLAGGED** (could not verify / stale input /
 needs the user's eye).
 
+> **U4 RULED 2026-08-02 (user, "I agree: 5"):** five φ classes — the loose ladder's
+> natural rungs (scree / gravel / sand / silt / clay). Grain reserves **3 bits** in the
+> packed u32 (§ 2.2's U4=5 row); widening to 8 later is a semantic re-capture inside the
+> same bits, not a layout surgery (§ 3 reading (b)). The user flagged, explicitly *not*
+> bearing on this ruling: the **presentation layer for grades is an open question** (how
+> does the player know which grade they're looking at — and the broader unwritten one,
+> loose vs structure legibility in general); user has thoughts; filed ROADMAP § Observed
+> 2026-08-02.
+
 **Immutable body, mutable header** (CLAUDE.md read-first item 5). Read at commit
 `665167e`. Anything that later refutes or re-scopes this file gets a banner **here**,
 stamped by the author of the correction.

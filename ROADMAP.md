@@ -541,9 +541,10 @@ PRODUCTS, and the primitive is general per the user's directive (a product may b
 loose grade of the source OR a totally different material — mods may want this; engine
 admits any `MaterialId` product, provenance-keeping is vanilla's authoring; recorded in
 `material-behavior.md` § 3). U6 collapsed by U1. **FS-A (release spectrum + pass-through
-record) is the ruled first build slice — its brief is writable now; it wants U4 (φ-class
-count, slice-3 design pass P-1) for the grade alphabet before build.** Still open: U2,
-U3.** **CONTINUATION SLOT:** transport
+record) is the ruled first build slice — and U4 RULED 2026-08-02 (user, "I agree: 5"):
+five φ classes, the ladder's natural rungs (scree/gravel/sand/silt/clay), grain = 3 bits.
+FS-A's brief is fully unblocked (U1 + U5 + U7 + U4 all ruled).** Still open: U2, U3; and
+the grade/form LEGIBILITY presentation question (user, filed § Observed 2026-08-02).** **CONTINUATION SLOT:** transport
 evolution (abrasion + sorting) → the record axis → operator consumption. **Calibration is
 gated on P2** (pre-P2, no cell can carry sand — competence ceiling 0.283 vs 0.840).
 
@@ -2795,6 +2796,19 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   into slice 3's scope and its acceptance criterion** — the mudstone-mix border at a
   cell edge must stop being a straight line; the slice-3 design pass (in flight same
   day) drafts the criterion + its instrument.
+
+- **GRADE AND FORM LEGIBILITY — how does the player KNOW what they're looking at?
+  (user, 2026-08-02, raised at the U4 ruling; explicitly ruled NOT to bear on U4.)**
+  Two nested opens, the second older than the first and never previously written down:
+  **(a)** the five grain grades just ruled (scree/gravel/sand/silt/clay) need a
+  presentation answer — what tells the eye sand-grade from silt-grade on a surface;
+  **(b)** the general form question — how does a player know they are looking at
+  LOOSE versus STRUCTURE of a material at all? **The user has thoughts; this is a
+  user-led design conversation to schedule, not a slice, and nothing should be built
+  against an assumed answer.** Collides first with FS-A's walk acceptance (a stripped
+  upland vs distal basin cut face is only a verdict if the grades READ). Neighbours:
+  `visuals.md` (SPLAT_N, palette), the appearance cluster, the octaves-member-field
+  surface-consumer question (this list's own entry above).
 
 - **THE OCTAVES MEMBER FIELD IS INVISIBLE AT EVERY SURFACE OF THE SHIPPED WORLD — the
   U3-dominance verdict is now a DESK question** (2026-08-02, the P11 walk's tour map —

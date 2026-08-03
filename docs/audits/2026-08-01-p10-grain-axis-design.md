@@ -28,9 +28,11 @@
 > constraint. Full record: `material-behavior.md` § 3 (stamped same day). R2 keeps
 > bimodality expressible, so U3 stays genuinely open rather than silently ruled.
 > U6 is COLLAPSED by U1 (grain is an axis, never ladder identities — the ladder is
-> scaffolding, not the alphabet). Still open here: U2, U3, U4 (presented priced in
-> `2026-08-02-p11-slice3-design.md` § 3, its P-1). FS-A's build brief is now writable;
-> grades (U4) is the one input it still wants.
+> scaffolding, not the alphabet). **U4 RULED 2026-08-02 (user, "I agree: 5"): five φ
+> classes, the ladder's natural rungs — grain = 3 bits** (presented priced in
+> `2026-08-02-p11-slice3-design.md` § 3; ruling banner there; the grade-legibility
+> presentation question filed § Observed same day). Still open here: U2, U3.
+> **FS-A's build brief is fully unblocked** — U1 + U5 + U7 + U4 are all ruled.
 > *(Mutable header; the body below is the dated design record.)*
 
 **Arc anchor:** `ROADMAP.md:413-442` § Sequenced *"THE GRAIN-SIZE CONTINUUM"* — **SEQUENCED
