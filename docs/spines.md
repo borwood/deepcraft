@@ -66,7 +66,27 @@ constant**, and the P2 measurement runs. **Findings:**
    recorded `awk … | grep -c '^| '` minus 1 returns **20** at `2985273` while the standing count is
    **19** — the discharged-but-kept resting-posture row is a table row and is not a standing row. The
    caveat is recorded with the command below rather than the number being quietly adjusted, because
-   the command is the part that is supposed to survive.*
+   the command is the part that is supposed to survive.
+9. **A THIRD live A-2, surfaced by the same day's `doc-topology` sweep and re-verified at source
+   here: `DEEP_MAX_WIDTH`'s justification cites the `<60 s` pregen budget the user retired 20×
+   (→ 1,200 s) at P11 slice 2b's merge.** `field.rs:28` is the **only** surviving `<60 s` citation in
+   `crates/`; `tests/s7_measurements.rs:33-40` holds the renegotiation verbatim and the new assert.
+   And the replacement number is **already** contested by § S-10's own 2026-08-03 banner (E4 measures
+   2,306 s against it), so the constraint moved twice in one day and `field.rs` cites neither state.
+   Filed under A-2 below, **reported not applied** (source file). *Recorded with its provenance: the
+   tip came from another sweep and was treated as a pointer, never as evidence — this file's
+   quotation-needs-a-revision rule applies to tips too.*
+10. **⚠ THIS FILE HAS CROSSED ITS OWN SIZE THRESHOLD — 2,527 lines against the 2,500-line REGISTRY
+   bar, flagged by the write hook during this sweep, and the auditor may not fix it.** The hook's
+   prescribed remedy for a registry is **archiving RESOLVED entries by STATUS into a cold file**, the
+   `ROADMAP` / `ROADMAP-history` shape, with each entry keeping its stable pointer. The candidates
+   are visible from here — the five superseded sweep header blocks (~130 lines), the `✅ FIXED` /
+   `✅ APPLIED` / `✅ CLOSED` A-2 and S-6 entries preserved as dated testimony, § 3's `Departed` rows —
+   but **which of those have stopped requiring a live read is a judgement, and a wrong archive here
+   deletes the corpus's memory of a defect class.** Proposed to the main session; § 4's rule binds
+   the auditor. *Note the irony the hook's own text names: the file that indexes "built and nobody
+   found it" is now large enough that a cold reader greps it, and grep only finds what you already
+   suspect.*
 
 *Previous: **2026-08-02, at `3cf8778`** — a **FULL** re-check (61 commits since `d8407e1`), the first
 spine-audit run whose findings went to an artifact rather than to this header:
@@ -1742,6 +1762,51 @@ so a sweep must ask "does the cited constraint still hold?"
     inverse of), at which point there is no bucket to guard. Slice 2 retires the transport-side
     consumer and slice 4 dissolves `Litho`, so the sentence may outlive the function — which is an
     argument for the one-line correction, not against it.
+- **NEW instance (found 2026-08-03 at `2985273`, flagged by the doc-topology sweep's check 5 and
+  VERIFIED AT SOURCE HERE): `DEEP_MAX_WIDTH`'s justification cites a budget the user retired the
+  day before, and the number that replaced it is itself already contested.**
+  `deeptime/field.rs:26-29` argues the grid-width cap from a gen-time bound: a literal 460 m at
+  `Extent::Large` is a 2211² ≈ 4.9 M-cell run — *"minutes and gigabytes, **which also blows the
+  `pregen_time_vs_extent` <60 s budget***. So the production config **caps the grid width** at
+  `DEEP_MAX_WIDTH`"* (the constant, `field.rs:43-46`, argues the same cap from *"~15 s regardless of
+  extent"*; `field.rs:280-286` adds *"the ritual grows 15 s → 25 s at every extent"*).
+  **The 60 s budget does not exist.** The user renegotiated it **20×** at P11 slice 2b's merge, and
+  the retirement is recorded at the assert that used to hold it — `tests/s7_measurements.rs:33-40`,
+  verbatim: *"Budget renegotiated 2026-08-02 at P11 slice 2b's merge (user … **'I don't care
+  whatsoever about this number as long as it doesn't take 20min'**) — the prior 60 s bound (S13) sat
+  at ~95 % spent under gate contention and doctrine says gen time is not a constraint; content is.
+  **Prior value, kept for audit: 60_000.0**"*, with `assert!(ms < 1_200_000.0)`. Corroborated at
+  `ROADMAP.md:540-541` and in `dependency-graph.md`'s P11 row. **Search:**
+  `grep -rn "60 s budget\|<60 s\|60_000" --include=*.rs crates/` at `2985273` returns exactly two
+  live sites — `field.rs:28` (the stale citation) and `s7_measurements.rs:39` (the audit note
+  recording its death). *The expiring decision is in a different file, on a different day, and the
+  file that expired it wrote the retirement down properly; the file that depended on it was never
+  told.* Textbook A-2, and the fourth corpus instance of the different-file variant after
+  `BEDROCK_SEAM_THICKNESS_M`, `lithology.rs`'s pack-freeze and `COMPETENCE_SCALE`.
+  - **What is NOT wrong, said plainly, because A-2 is about the reason and not the value:** the cap
+    itself may be entirely right. Its *other* two arguments — the RAM half (*"gigabytes"*,
+    *"RAM-heavy"*) and the flat-cost property (`DEEP_MAX_WIDTH` is what makes biotic's +10 s
+    extent-independent, `field.rs:283`) — are untouched by a wall-clock renegotiation. **Do not read
+    this finding as "raise the cap."** Read it as: the sentence a future author will use to decide
+    whether the cap may move is citing a number nobody holds any more.
+  - **⚠ And the replacement number is ALREADY under pressure, which is what makes this worth more
+    than a one-line fix.** § S-10's 2026-08-03 banner records the user's ruling that the calibrated
+    in-band gen time is *"actually unacceptable"* and that **gen time has a budget** — the E4 design
+    audit measures 2,306 s at M = 400 against exactly this 1,200 s bar. So the constraint did not
+    merely move: **it moved 20× up and then back under active challenge inside one day**, and
+    `field.rs` cites neither state. A comment pinned to a renegotiated number is worse than a stale
+    one, because the live number is not yet stable either. *The honest fix is the shape this section
+    keeps asking for: cite the **assert**, not the figure* — `pregen_time_vs_extent` is a real test
+    with a real bound and a recorded history, and a comment that names it cannot go stale without
+    the test going red.
+  - **Reported, not applied** — a source file, outside a sweep's write-set. Recorded here so the
+    next reader of `field.rs` § Resolution is not the one who has to notice.
+  - *Provenance, per this file's own quotation rule: the pair was surfaced by the 2026-08-03
+    `doc-topology` sweep (its check 5 overlaps this section's check 4) and **re-verified at source at
+    `2985273` before being written down** — the tip was treated as a pointer, never as evidence.
+    That the two sweeps' checks overlap here is itself worth knowing: docs-vs-code found the
+    stale citation, docs-vs-docs found the renegotiation, and neither could have closed it alone.*
+
 - **not-an-instance, and the good version of the shape (2026-07-26, journal/0118).**
   Finishing journal/0105's hole 2 deleted an agreement test — `SALT_BIO_FIRE` /
   `SALT_BIO_FLOOD` had no production reader once their call sites reached `Draws::of`, so
@@ -2036,13 +2101,15 @@ the grain-grade-split row below, added in the same commit as the seam it indexes
 **→ 20 at `2985273` (2026-08-03 spine-audit FULL, finding 1): the per-instance gait seam.**
 
 **⚠ AND THE COMMAND ABOVE NO LONGER PRODUCES THIS COUNT — it has not since `3cf8778`, and the gap
-is a feature of the fix that created it.** The `awk`/`grep -c` returns **21** at `2985273`, i.e. **20
-table rows** after the header, against **20 standing rows** — which agrees only by coincidence:
-the table holds **21** entries, one of which (the resting-posture bake) is **DISCHARGED and kept as
-testimony** per the `CoarseField` precedent, and a discharged row is a table row that is not a
-standing row. *The mechanical check and the stated number answer different questions and always will
-once rows are kept after they empty.* **Run the command, then subtract the rows whose first cell
-carries `✅ DISCHARGED`** — one, today. Recorded rather than repaired by re-typing a number, because
+is a feature of the fix that created it.** The `awk`/`grep -c` returns **22** at `2985273`, i.e.
+**21 table rows** after the header — against **20 standing rows**. The extra one is the
+resting-posture bake, **DISCHARGED and kept as testimony** per the `CoarseField` precedent, and *a
+discharged row is a table row that is not a standing row*. **The mechanical check and the stated
+number answer different questions, and always will once rows are kept after they empty** — which is
+the right trade (deleting a discharged row would leave the index looking like the row never
+existed), but it means the command needs its correction stated with it rather than discovered.
+**Run the command, subtract 1 for the header, then subtract the rows whose first cell carries
+`✅ DISCHARGED`** — one, today: `22 − 1 − 1 = 20`. Recorded rather than repaired by re-typing a number, because
 the previous three counts in this section were all wrong when written and a command that is right
 about the wrong quantity is the `chapters` `.len()` trap (A-3) applied to this file's own bookkeeping.
 
