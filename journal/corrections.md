@@ -3829,3 +3829,39 @@ the gap with the nearest plausible story. No repo artifact carries the false cla
 lived only in the agent's report), so there is no target to stamp — this entry is the
 record. Cost: zero, because the attribution was checked before acting; the counterfactual
 is a dead client mid-walk.
+
+## 96. "Landing B7's declarations before the derived gait exists is a BROKEN MAIN, not a preserved interim" (the integrator's own sequencing constraint, written into the gait pass's greenlight banner 2026-08-02 — overruled by the user within the hour, and the reasoning is what matters)
+
+**The claim.** Ruling on the build sequence, the integrator wrote into the gait design pass's
+greenlight banner that the user's *"don't preserve interim states indefensibly"* principle
+*"does **not** license landing B7's declarations (or the clip retirement) before the derived
+gait exists… That is a broken main, not a preserved interim."*
+
+**Overruled by the user:** *"you can ship a broken main when the very next slice fixes it.
+Nobody is spawning a body and driving it except you and I."*
+
+**Mechanism: a real principle imported at the wrong SCALE.** "Never ship a broken main" is
+correct for a codebase with users, CI consumers, or contributors who pull between slices.
+**This project has two participants and both of them are in the conversation that sequences
+the slices.** The cost of a two-slice window where bodies have no locomotion is *that the two
+of us do not spawn a body for an hour* — and neither of us was going to, because we are the
+ones building the replacement. The integrator priced a hazard from a project shape this repo
+does not have, and used it to forbid the compression the user had just explicitly asked for
+in the same breath (*"whatever gets us from point A to point B fastest"*).
+
+**Why it is worth an entry rather than a quiet fix: this is the second time in one session
+that an ASSISTANT-ORIGINATED CONSTRAINT was presented to the user as a property of the
+problem.** The first was sequencing B7 ahead of the gait build — *"an unspecified slice is not
+a blocker; it is a queue I invented"*, caught in the same banner. Both were defensible
+engineering; both were **invented, stated as forced, and would have cost real time**. The
+tell is identical to corrections #65's: *the reconciliation was defensible and the author
+believed it* — the defect is that it was **unilateral and wore the clothes of a constraint.**
+
+**The rule going forward:** *a sequencing constraint must name whom it protects.* If the
+answer is "a user who does not exist yet", it is a preference and must be offered as one —
+with its cost — not stated as a wall. **Batching for its own sake is still a real cost**
+(a bigger revert surface, more at once under a walk verdict), so this does not say "always
+compress"; it says **say which it is.**
+
+**Stamped in the same commit:** the gait design pass's greenlight banner, where the claim was
+made.
