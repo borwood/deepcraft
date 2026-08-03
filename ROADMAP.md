@@ -2835,6 +2835,27 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **FIELD REPORT, slice 3's interfingering, LIVE VIEW (user, 2026-08-03, during the
+  bodies session's game session — formal walk verdict pending, no pose yet, corrections
+  #48 gap to close at the acceptance walk): "as predicted, i do not like this,
+  visually."** Two halves, both mechanism-confirmed at desk: **(a)** the contacts are
+  still SHARP — *"sharp differences between regions, they just don't follow the cardinal
+  directions"* — because the membership dither assigns each column exactly ONE deep cell
+  (forced by F2's mass coupling: record + regolith H + ledger must name the same cell),
+  so the contact is column-granular, jagged instead of straight, never gradational;
+  **(b)** worse and load-bearing — *"the difference is not only at the surface: it
+  extends all the way down the column. So we have this finger of one material
+  distribution running through another, and it has an entirely different stratigraphy"*
+  — a finger is a full-depth transplant of a neighbouring cell's whole geological
+  biography, where real facies interfinger BED-BY-BED. This is the slice-3 audit's F6
+  risk realized (the near dither inherits the far tier's cell-wide-blend semantics the
+  user rejected 2026-07-29, "the whole cake is swirled"); P-6 said the walk is the
+  ratification and the live verdict is trending REJECT. **The design question it opens:
+  gradational bed/event-level contacts WITHOUT breaking the F2 mass coupling that
+  forced one-cell-per-column. A design conversation, user-called; do not build against
+  an assumed answer.** Neighbours: the far-register heir (refinement-operator budgets),
+  MM-3/SubCell (the shipped mechanism), the acceptance walk (P-7, owed).
+
 - **🟢 RESOLVED same night — the bodies session's arc gate (`0e344ca`) caught and fixed it
   as its defect #4 (a hand-maintained pinned tool list vs their `character_clear_look`
   addition; full workspace 962/0 after). Exactly the batching ruling working as intended:
