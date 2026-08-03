@@ -5241,6 +5241,26 @@ Use the LIT pass — this is a dig-depth/section question:
 
 
 
+## Observed — archived 2026-08-03 (pass 3)
+
+**Archived from `ROADMAP.md` § Observed on 2026-08-03, by STATUS, not by age** — the third
+archive pass (predecessors: the 2026-07-26 live/history split and the two 2026-07-29
+passes above). Scope was § Observed and § Sequenced; **§ Sequenced yielded zero movable
+entries** — every entry there carries owed work, a live blocker, a NEEDS RATIFICATION
+flag, or a same-day stamp.
+
+**Entries are reproduced VERBATIM.** Recorded poses, measured numbers and asset filenames
+travel with them; nothing was summarised away and nothing was deleted. Where an archived
+entry carries a measurement, that measurement is a dated record (read-first item 5:
+immutable body, mutable header).
+
+**Deliberately NOT moved, despite closed-reading bodies:** every entry whose resolution
+stamp is dated **2026-08-03** — the day's staleness/doc-topology stamps stay live one
+session for the user's review — plus entries whose own bodies say they are kept live on
+purpose (the charcoal-premise entry's *"kept rather than archived"*, the hillslope
+operator's *"kept live only because"*, the TerrainGen seal's *"Kept OPEN, not archived"*,
+and the build-slot-mutex entry, which names itself the banner on `f96f12c`'s attribution).
+
 # Superseded close blocks
 
 <!-- archived 2026-07-29 evening -->
