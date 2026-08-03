@@ -5,7 +5,7 @@
     "spine-audit": "any edit to docs/spines.md — every prior verdict was made against a different rule",
     "doc-topology": "no reference side; incremental = changed docs read in full, then their NOUNS drive the search across everything else"
   },
-  "staleness": "d8407e1",
+  "staleness": "2985273",
   "spine-audit": "3cf8778",
   "doc-topology": "d8407e1",
   "_baseline": {
@@ -16,6 +16,15 @@
     "findings": "~80 pairs. Applied at baseline: the integrator's own same-day stalenesses + the ARCHITECTURE.md ON-HOLD banner. The remainder is filed as a ROADMAP entry, ranked, with the audits as the record."
   },
   "_staleness_last_run": {
+    "commit": "2985273",
+    "date": "2026-08-03",
+    "mode": "FULL (143 commits since d8407e1; the board was restructured — a close block superseded, two written — AND a default-on recalibration landed: the gravity flip)",
+    "audit": "docs/audits/2026-08-03-roadmap-staleness-sweep.md",
+    "recalibration_verdict": "GRAVITY 25.0 -> 9.81 m/s2 IS DEFAULT-ON, no flag (dc-core/src/world_constants.rs:85, read by player.rs:31 / character.rs:68 / dc-physics world.rs:46 / body.rs:1072). Enabled-check PASSES, so it voids something — but the cohort is ONE entry: every other live body/motion observation rests on kinematic or geometric quantities gravity does not touch (hip heights, knee angles, authored clip bobs), and the 12 fps cadence numbers post-date the flip. The one voided entry is the USER FIELD REPORT 'throughput ceiling at terminal velocity' (ROADMAP.md:3774), which STAYS OPEN per hard rule 3 — there is no terminal-velocity clamp in player.rs, so descent speed moved 0.626x over 1.596x the time. The --perf-drop INSTRUMENT is a scripted teleport (perf.rs:265-270), so the 2026-07-23 perf baseline audit is NOT voided — do not stamp it. calibrated_rates STILL false (field.rs:374) and EROSION_CALIBRATION still 45.0 with one commit in its history (cdd1036): corrections #68's receipt holds a FOURTH time. FS-A shipped OFF (grain writer withheld, every unit GRAIN_UNSET). E4-1 byte-identical, zero goldens moved. P11 slice 3 IS default-on and moved all golden families, but its appearance change was walked and REJECTED inside the window (ROADMAP.md:2867-2886), so that debt is booked, not latent.",
+    "findings": "13 (F1-F13) + 6 CANNOT-DETERMINE. HEADLINE F1: three things the user DECIDED or GREENLIT this window have NO entry on the live board and exist only in dependency-graph.md + a close block — E4 (greenlit, design pass, E4-1 SHIPPED, E4-2/3 open, a live NEEDS RATIFICATION on the dc-core::field venue), B7 (joint limits, DECIDED 2026-08-02, seven calls closed, five stubs owed), B8 (proportion variation, DECIDED 2026-08-03). A close block gets archived. STRUCTURAL META: six findings are one shape — the answer was written in a stub/audit/graph and the ROADMAP body entry that asked was never stamped; the board diagnosed this itself at ROADMAP.md:838-843 and it still has no mechanism. F4 is the second consecutive sweep for the P2 entry. NOT APPLIED — the integrator adjudicates.",
+    "superseded_run": "docs/audits/2026-08-02-roadmap-staleness-sweep.md — its F1/F3/F6/F7/F8 were APPLIED; F4/F5 are recorded as deliberately owed at ROADMAP.md:2949-2952; F2 was NOT applied and is re-filed as this run's F4, larger."
+  },
+  "_staleness_run_2026_08_02": {
     "commit": "d8407e1",
     "date": "2026-08-02",
     "mode": "FULL (128 commits since 72fbe86; a recalibration landed in the window)",
