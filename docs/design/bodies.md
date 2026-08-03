@@ -591,6 +591,57 @@ toes. Filed as its own item; not folded into B7 silently.
 while it is still cheap — a range on `SegmentDef` is a recompile today and a **wire migration**
 once B3 makes the pose a versioned sim asset, the same deadline `stubs.md` #34 rides.
 
+## Individual proportion variation — DECIDED 2026-08-03 (user): SIZE FIRST, declared axes deferred
+
+**Every biped in the world is dimensionally identical today** — `SegmentDef` carries exact
+`pivot_m` / `size_m` / `offset_m`, so "this wolf" and "that wolf" differ in nothing but position.
+The wanted end state is a plan that declares **ranges**, and an individual that is a **salted
+sample**: this one's ears slightly smaller, that one's muzzle longer. Structurally this is **S-9**
+(derivable base + sparse committed facts), fourth instance — species is the base, an individual
+is a seed plus a few numbers.
+
+**Partition, ruled** (user): **RANGE is ENGINE** vocabulary — what may vary and within what
+bounds — and **DISTRIBUTION is PACK**, *"pack is what spawns things in the world, this only makes
+sense."* **Sim-visible variation is fine, and the PACK owns fairness** — the engine does not owe a
+guarantee that a smaller individual is hit fairly; that is the pack's problem, which unblocks this
+from waiting behind **B4**.
+
+**The mechanism family is ALLOMETRY** (user): *"infant-adult growth etc."* Juvenile→adult and
+inter-individual proportion are **the same mechanism**, which is what makes the unit of variation
+an **axis** rather than a parameter.
+
+**Four thought experiments settled the shape, and each one breaks "put a range on any param":**
+1. **The disconnected limb.** Independent ranges on `pivot_m` and `size_m` let a thigh shrink while
+   its knee pivot stays put — the shin floats off the femur or interpenetrates it. Nothing declares
+   that a child's pivot lives on its parent's surface, because with fixed numbers it always did by
+   construction. **Proportions are RELATIONSHIPS, not numbers.**
+2. **The wolf pup.** Jitter every param independently by ±15 % and you get a slightly different
+   *adult*, never a juvenile — a pup's head is proportionally bigger and its legs proportionally
+   shorter, and those move **together, in a specific direction**. Independent variation cannot
+   express growth **at any range width**, because growth is a correlated trajectory, not a cloud.
+3. **The evolution substrate.** Independent params give the evo pack a search space that is mostly
+   nonsense (a leg 3× longer with an unchanged foot and pelvis); declared axes give a space that is
+   nearly all viable but only holds variations someone anticipated. **These are two mechanisms at
+   two timescales:** declared axes for cheap always-viable *within-species* variation; **evolution
+   mutates the PLAN itself, including its axes**, over deep time. Individual jitter and speciation
+   must not share a mechanism.
+4. **The cost gradient — and it chose the first slice.** **Uniform scale is FREE**: the resting bake
+   returns **scale-free outputs, angles plus a height ratio** (`bake.rs:81`, decision 24's *bake
+   ratios and angles, not metres*), so a 1.05× wolf has **identical joint angles** and its hip
+   height falls out of one multiply — no re-bake, no correction. An allometric axis (longer legs,
+   same trunk) changes angles and needs a correction or a re-bake. Arbitrary per-param jitter needs
+   a **full re-bake per individual**, which the per-species ruling explicitly refuses (*"it's not
+   baking for every individual wolf in existence"*).
+
+**SEQUENCED BY COST, ruled 2026-08-03: SIZE FIRST; declared allometric axes are LATER** (user:
+*"fair — size first, later think about declared axes"*). Size is free today and immediately yields
+big and small individuals. **The question this arc must not re-derive:** it is *not* "which
+parameters may vary" — it is **"what axes do they co-vary along"**, and only the size axis is
+ruled so far.
+
+**⚠ Texture-side variation — coat, markings, eye shape — is a DIFFERENT PIPELINE** (user: *"mostly
+new and a whole other thing"*), sharing only the salt. Do not fold it in here.
+
 ## Sockets — PROPOSED
 
 A socket is a named, typed mount on a plan segment: `hand.r`, `back`, `head`. *(A socket name
