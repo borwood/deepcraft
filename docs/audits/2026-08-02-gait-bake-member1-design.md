@@ -133,7 +133,7 @@ number below is hand-derived from source literals and is a *prediction the build
 
 **Read with:** `posture-gait.md` (bones §§ 2–6; § 7 member 1's ratified docket; the § 3 and
 § 5 corrected banners) · `docs/audits/2026-08-02-posture-bake-member0-design.md` + its header
-rulings (member #0, **built and consumed** — journal/0137, 0138) ·
+rulings (member #0, **built and consumed** — journal/0137, 0140 (0138→0140 renumber)) ·
 `docs/audits/2026-08-01-body-plan-structure-design.md` § 4 (the measured clip decomposition) ·
 `bodies.md` §§ Postures, Stepped animation, Who owns the look, Clothing, Body plans, Sockets
 (**§ IK is CLOSED — corrections #81 — and nothing below re-presents it**) · `stubs.md` § 34 ·

@@ -2922,7 +2922,7 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
     § 9: P-1 identity treatment (mixtures vs octaves-cut vs hybrid — carries the
     two-user-rulings tension: 2026-07-19 "dress every contact with noise/dither" vs
     2026-08-03 "utterly smooth default") · P-2 the inverted acceptance criterion · P-3
-    R-C vs R-C′ · P-4 the onlap feather at the record edge (the 0147 wall becomes a
+    R-C vs R-C′ · P-4 the onlap feather at the record edge (the 0149 wall becomes a
     wedge) · P-5 formal supersession ratification.** Side finding fixed in the harvest:
     two `recorder.rs` doc comments still claimed M-2 while the code ships M-1.
 
@@ -4701,7 +4701,7 @@ applies — it is not pristine terrain if geo wants an untouched station. All wo
 roles/modes/open-actions landed (journal/0135); the resting-posture bake shipped with its
 design pass's predicted table confirmed to 1e-9 (journal/0137: biped 0.880 m, stout
 0.440 m, longleg 1.020 m, knees 0°); the consumer slice put the derived hip on screen and
-the user walked it (journal/0138) — verdicts: rest *"soles look planted other than the
+the user walked it (journal/0140; 0138→0140 renumber) — verdicts: rest *"soles look planted other than the
 idle bob. reads right"*; motion *"reads fine with caveat"*. The caveat is the STRAFE
 (Observed): the walk-8 fix inverts for a stale look — S6 row 95's "nobody owns body
 orientation," OPEN since 07-19, remembered by the user before any sweep surfaced it.

@@ -1,5 +1,15 @@
 # P11 slice 3 — the near-path restructure + the packed `DepUnit` co-rider: design pass
 
+> **⚠ SUPERSEDED-AS-PLAN in part, 2026-08-03 (banner stamped by the integrator; the
+> slot below pre-declared it).** The **membership dither** this pass designed (§ 1, § 4,
+> F2's one-cell-per-column premise) was walked, REJECTED in the user's live view
+> (journal/0149), and superseded the same day by the user's stratigraphic-correlation
+> sketch — see `docs/audits/2026-08-03-stratigraphic-correlation-design.md` (its § 5
+> lists exactly what dies and what survives). **The substrate this pass built stands:**
+> `SubCell`, the per-column records, the packed 8 B `DepUnit`, the accessor layer, and
+> the M0 numbers remain load-bearing inputs to the correlation design. Formal
+> supersession ratification is that pass's P-5, pending at stamp time.
+
 **Arc anchor:** `ROADMAP.md:359-496` § Sequenced *"MEMBERS INTO DEEP HISTORY"*, build item 3
 (ruling 5, folded 2026-08-01) + the U5 co-rider (RULED 2026-08-02, user — recorded in
 `docs/design/materials.md:242-253`). Graph rows: `docs/dependency-graph.md:79` (P11),

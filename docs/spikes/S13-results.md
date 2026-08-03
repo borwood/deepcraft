@@ -1,5 +1,15 @@
 # S13 results — where the terrain roughness goes
 
+> **⚠ RE-SCOPED 2026-08-03 (doc-topology sweep F2, stamped by the integrator).** The
+> option-C pricing below (§ "the 230 m deep-cell candidate", *"the only candidate that
+> makes the summit plateau into a landform"*) was priced OUT against the pregen
+> `<60 s` budget *"which is a ratified number"*. **That budget was renegotiated by the
+> user 2026-08-02, 60 s → 1,200 s** (P11 slice-2 merge; `ROADMAP.md` § P11,
+> `crates/dc-worldgen/tests/s7_measurements.rs`, `dependency-graph.md` P11 row —
+> *"as long as it doesn't take 20min"*). Option C's cost objection is therefore
+> expired; its merits were never re-examined under the new budget. The measurements
+> below are unchanged and remain a dated record.
+
 Status: measurement complete, 2026-07-21. **Measurement only — no production
 behaviour changed.** The harness is
 `crates/dc-worldgen/examples/roughness_probe.rs`; it reads the world through two

@@ -40,6 +40,11 @@ needs the user's eye).
 slice-3 worktree state (post-`cd1058a` merge content). Anything that later refutes or
 re-scopes this file gets a banner **here**, stamped by the author of the correction.
 
+> *Clerical (2026-08-03, doc-topology F6): the body's three mentions of "the 0147
+> wall" (§§ 4, 7 S3, 9 P-4) mean **journal/0149**'s wall station — the 0147→0149
+> renumber landed the same day this was written; the § 0 asset citations
+> (`0149-interfinger-*`) are correct. Body left as written.*
+
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /
 truncated-Gaussian construction) · journal/0129 (the stencil arithmetic, "grep the field")

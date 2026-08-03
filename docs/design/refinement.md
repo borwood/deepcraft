@@ -27,6 +27,15 @@ plugin-agnostic engine"*). **What this document proposes is the surface**: the
 authoring shape, the coupling, and the first members. That is exactly the slot
 north-star § refinement left open: *"the boundary is decided; the surface is not."*
 
+**Principle added to this stack 2026-08-03 (user; stamped here by the integrator after
+doc-topology found this doc — the stack's owner — did not carry it):** *"ideally our
+default case, barring any physical drivers, is utterly smooth interpolation between all
+deepcell boreholes. non-smooth detail is refinement content, and for the default deepsim
+plugin pack, it must model a process honestly."* (journal/0149; anchor block of
+`docs/audits/2026-08-03-stratigraphic-correlation-design.md`, whose § 3.3 surfaces a
+live tension between this principle and 2026-07-19's dress-every-contact ruling — the
+user-owned P-1 pick, pending at stamp time.)
+
 **Framing (user, 2026-07-29): refinement is the PRESENTATION layer.** The deep sim
 thinks in ~460 m cells; the player walks voxels. Refinement is how recorded history
 becomes visible ground — a *view* over the record, never a second simulation and
