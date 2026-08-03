@@ -75,12 +75,16 @@
 //! makes a number taken with the flag on a number about the *shipped* world.
 //!
 //! Run: `cargo run --release -p dc-worldgen --example denudation_probe`
-//! (optionally with an explicit ladder: `-- 100 300 1000`)
+//! (optionally with an explicit ladder: `-- 100 300 1000`; a pair rung
+//! `-- 150:50` scales supply 150× / transport 50× — audit § 6.2 R3; an
+//! unbounded-operator control rung `-- u:150` runs with `creep_substep: false`
+//! — R4. Explicit rungs run the measurement lean: the calibration-comparison
+//! and single-lever-contrast arms are skipped.)
 
 use dc_worldgen::deeptime::erosion::TransportLedger;
 use dc_worldgen::deeptime::{
-    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_cells, production_config, production_config_with,
-    run_cells, sea_level_at,
+    DeepConfig, DeepOverrides, SEA_LEVEL_M, build_cells, census, production_config,
+    production_config_with, run_cells, sea_level_at,
 };
 use dc_worldgen::pregen::{CellGrid, Extent, Pregen, WorldParams};
 
@@ -164,6 +168,42 @@ fn cfg_uniform(cells: &CellGrid, mult: f64) -> DeepConfig {
     }
 }
 
+/// **The pair rung `(S, T)`** (audit § 6.2 R3): supply (`weathering`,
+/// `k_transport`, `k_bedrock`) at `S×` and transport (`diffusion`) at `T×`,
+/// both over the raw constants. At `S == T` this is [`cfg_uniform`] bit for bit
+/// (the same multiplies on the same operands — independent fields, so order is
+/// immaterial). Its one question: is a cheaper transport still in band, i.e. is
+/// chain C's "transport stops binding" derivation right where it matters.
+fn cfg_pair(cells: &CellGrid, s: f64, t: f64) -> DeepConfig {
+    let mut c = DeepConfig {
+        denudation_ledger: true,
+        ..production_config(cells, SEED)
+    };
+    c.weathering *= s;
+    c.k_transport *= s;
+    c.k_bedrock *= s;
+    c.diffusion *= t;
+    c
+}
+
+/// **The unbounded control** (audit § 6.2 R4): one uniform rung run under the
+/// pre-journal/0122 operator (`creep_substep: false`), so the operator repair
+/// stays visible inside the same report rather than quoted across two entries.
+fn cfg_unbounded(cells: &CellGrid, mult: f64) -> DeepConfig {
+    DeepConfig {
+        creep_substep: false,
+        ..cfg_uniform(cells, mult)
+    }
+}
+
+/// One rung of the derivation ladder, as parsed off the command line:
+/// `150` → uniform, `150:50` → pair `(S, T)`, `u:150` → unbounded control.
+enum Rung {
+    Uniform(f64),
+    Pair(f64, f64),
+    Unbounded(f64),
+}
+
 /// One denudation measurement of a world.
 struct Denudation {
     // --- the frame -------------------------------------------------------
@@ -220,6 +260,45 @@ struct Denudation {
     /// one (which moves it and detunes the taper). Reported per row of the
     /// derivation ladder for exactly that reason.
     mean_h: f64,
+
+    // --- the chain-B coupling terms (P2 audit 2026-08-01 § 6.1, M1/M2) ----
+    /// **`⟨exp(−H/H*)⟩`, run-integrated** — the area-weighted mean cover taper
+    /// over every subaerial cell-epoch the weathering phase visited. The single
+    /// number that closes the derivation's chain B: § 4.3 of the audit falsifies
+    /// the `exp(−⟨H⟩/H*)` substitute by five orders of magnitude (Jensen — the
+    /// weathering lives in the thin-cover tail, the mean in the thick bulk).
+    taper_run: f64,
+    /// The same taper on the **final** surface, over end-of-run land cells — the
+    /// end-state companion, so a drifting taper is visible as run-vs-end.
+    taper_end: f64,
+    /// **`⟨(biotic × weatherability) × frost⟩`, run-integrated** — the modulator
+    /// product, resolving the 1.34-vs-6× ambiguity in chain B's `D3₁/0.008`.
+    mod_run: f64,
+    /// **D3's supply side**: bedrock converted in place by the weathering front
+    /// (`ledger.weathered_m`, whole-grid subaerial, land-area-averaged m/Myr).
+    d3_supply: f64,
+    /// **D3's incision side**: bedrock detached by `k_bedrock` fluvial incision
+    /// (`ledger.incised_m`, same frame). Supply + incision itemise the R-lowering
+    /// D3 integrates (up to the land-at-end restriction and the wave quarry,
+    /// which are printed beside them rather than folded in).
+    d3_incision: f64,
+
+    // --- shape, neighbour-relative (journal/0122's instruments; M5 + the
+    // --- acceptance table's conc/ACF/pit bars, corrections #61/#62) --------
+    /// rms of the 8-neighbour Laplacian of the regolith plane over interior land.
+    conc_h_rms: f64,
+    /// Lag-1 autocorrelation of `conc(h)` along x / y (white noise −0.167).
+    acf_h: (f64, f64),
+    /// Closed hollows deeper than 1 m / 10 m on the router's own fill (the
+    /// non-saturating instrument, corrections #62), and the deepest anywhere.
+    hollow_1: usize,
+    hollow_10: usize,
+    deepest: f64,
+    /// Sub-steps the hillslope pass took (1 = the unbounded / in-bound operator).
+    substeps: u32,
+    /// Whether this run held the fixed (sub-cycled) operator — asserted per row
+    /// so a report cannot silently mix operators (audit § 6.2).
+    substep_on: bool,
     /// **Wall time of this world's deep-time run**, seconds — the gen-time cost, so a
     /// calibration reports its own like any other slice. Both arms are timed in the
     /// same process on the same machine, so the *difference* is the claim and the
@@ -289,6 +368,7 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
     let mut exhumed = 0.0;
     let mut mean_surf = 0.0;
     let mut mean_h = 0.0;
+    let mut taper_end = 0.0;
     let mut max_surf = f64::NEG_INFINITY;
     let mut min_surf = f64::INFINITY;
     let mut per_cell: Vec<f64> = Vec::with_capacity(land_cells);
@@ -303,11 +383,63 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
         per_cell.push(e / myr);
         mean_surf += surf[i];
         mean_h += g.h[i];
+        taper_end += (-g.h[i] / cfg.h_star).exp();
         max_surf = max_surf.max(surf[i]);
         min_surf = min_surf.min(surf[i]);
     }
     mean_surf /= nl;
     mean_h /= nl;
+    taper_end /= nl;
+
+    // --- the run-integrated coupling terms (M1/M2), read off the ledger ----
+    let taper_run = if ledger.weather_cell_epochs > 0 {
+        ledger.weather_taper_sum / ledger.weather_cell_epochs as f64
+    } else {
+        f64::NAN
+    };
+    let mod_run = if ledger.weather_cell_epochs > 0 {
+        ledger.weather_mod_sum / ledger.weather_cell_epochs as f64
+    } else {
+        f64::NAN
+    };
+    let d3_supply = ledger.weathered_m / nl / myr;
+    let d3_incision = ledger.incised_m / nl / myr;
+
+    // --- shape, neighbour-relative (journal/0122's instruments, M5) --------
+    // Population and stencil match `creep_operator_probe` exactly (interior
+    // cells above the FINAL sea stand), so these columns are commensurable with
+    // journal/0122's ladder — which is what the ±0.15 acceptance bar is stated
+    // against.
+    let w = g.w;
+    let sea_final = sea_level_at(&cfg, cfg.iterations.saturating_sub(1));
+    let ok: Vec<bool> = (0..n)
+        .map(|i| {
+            let (x, y) = (i % w, i / w);
+            x > 0 && y > 0 && x < w - 1 && y < w - 1 && surf[i] > sea_final
+        })
+        .collect();
+    let conc_h = census::laplacian8(&g.h, w);
+    let conc_h_rms = census::rms(&conc_h, &ok);
+    let acf_h = (
+        census::acf4(&conc_h, &ok, w, true)[0],
+        census::acf4(&conc_h, &ok, w, false)[0],
+    );
+    let filled = run.erosion.filled();
+    let routed = run.erosion.routed_surface();
+    let (mut hollow_1, mut hollow_10, mut deepest) = (0usize, 0usize, 0.0f64);
+    for i in 0..n {
+        if !ok[i] {
+            continue;
+        }
+        let dpit = filled[i] - routed[i];
+        if dpit > 1.0 {
+            hollow_1 += 1;
+            deepest = deepest.max(dpit);
+        }
+        if dpit > 10.0 {
+            hollow_10 += 1;
+        }
+    }
 
     // The wave agent lowers `R` *after* `track_exhumation` runs, so its bedrock
     // quarry is missing from `exhum` and has to be added back. It is a whole-grid
@@ -367,6 +499,18 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
         max_surf,
         relief: max_surf - min_surf,
         mean_h,
+        taper_run,
+        taper_end,
+        mod_run,
+        d3_supply,
+        d3_incision,
+        conc_h_rms,
+        acf_h,
+        hollow_1,
+        hollow_10,
+        deepest,
+        substeps: run.erosion.creep_substeps(),
+        substep_on: cfg.creep_substep,
         secs,
         units,
     }
@@ -380,17 +524,31 @@ fn measure_cfg(cells: &CellGrid, cfg: &DeepConfig) -> Denudation {
 const LADDER: [f64; 5] = [10.0, 45.0, 100.0, 300.0, 1000.0];
 
 fn main() {
-    let ladder: Vec<f64> = {
-        let args: Vec<f64> = std::env::args()
-            .skip(1)
-            .filter_map(|a| a.parse().ok())
-            .collect();
-        if args.is_empty() {
-            LADDER.to_vec()
-        } else {
-            args
+    // `150` = uniform rung; `150:50` = pair (S, T); `u:150` = unbounded control.
+    // With NO args the historical full report runs (default ladder + the
+    // calibration comparison + the single-lever contrast). With EXPLICIT rungs
+    // the probe runs the measurement plan lean — the 1× headline plus exactly
+    // the rungs asked for — because the P2 runs (audit § 6.2) cost over an hour
+    // of solve already and the calibration/contrast arms answer a question those
+    // runs are not asking.
+    let mut rungs: Vec<Rung> = Vec::new();
+    for a in std::env::args().skip(1) {
+        if let Some(rest) = a.strip_prefix("u:") {
+            if let Ok(m) = rest.parse() {
+                rungs.push(Rung::Unbounded(m));
+            }
+        } else if let Some((s, t)) = a.split_once(':') {
+            if let (Ok(s), Ok(t)) = (s.parse(), t.parse()) {
+                rungs.push(Rung::Pair(s, t));
+            }
+        } else if let Ok(m) = a.parse::<f64>() {
+            rungs.push(Rung::Uniform(m));
         }
-    };
+    }
+    let explicit = !rungs.is_empty();
+    if !explicit {
+        rungs = LADDER.iter().map(|&m| Rung::Uniform(m)).collect();
+    }
     println!("=== denudation probe — seed {SEED}, Extent::Medium ===\n");
     let pregen = Pregen::run(WorldParams {
         seed: SEED,
@@ -616,6 +774,13 @@ fn main() {
         "\n  D1 = {d1:.4} m/Myr and the world's MOST ACTIVE SINGLE CELL is {:.4} m/Myr.",
         d.max_cell
     );
+    println!(
+        "  MATCH THE INSTRUMENT TO THE BAND (P2 audit § 1.4): D1 is catchment-averaged, so\n  \
+         its literature counterpart is the BASIN row; D3 = {:.4} m/Myr is a bedrock-lowering\n  \
+         plane, so its counterpart is the outcrop/craton rows — and D3, not D1, is the\n  \
+         acceptance quantity (corrections #60: D1 is a gross shoreline flux, upper bound only).",
+        d.bedrock_erosion
+    );
 
     println!("\n--- READING IT ---");
     // The caption is DERIVED from the measurement, never written ahead of it
@@ -633,9 +798,10 @@ fn main() {
             "  BELOW EVERY PUBLISHED TERRESTRIAL BAND — and so is the world's single fastest\n  \
              cell. The land average is {:.0}x slower than the bottom of the stable-craton band\n  \
              and {:.0}x slower than the slowest surfaces ever measured on Earth (McMurdo Dry\n  \
-             Valleys bedrock, ~{:.2} m/Myr; hyperarid Atacama, where 21Ne exposure ages reach\n  \
-             37 Myr). The MOST ACTIVE CELL ON THE WHOLE WORLD, at {:.4} m/Myr, is still slower\n  \
-             than Antarctic bare rock under permanent ice-free hyperaridity.\n  \
+             Valleys regolith, {:.2}-2.1 m/Myr, Arena Valley steady-state 0.53 — Morgan et al.\n  \
+             2010; the hyperarid Atacama core, ~1, arid since the Oligocene-Miocene — Dunai\n  \
+             et al. 2005). The MOST ACTIVE CELL ON THE WHOLE WORLD, at {:.4} m/Myr, is still\n  \
+             slower than Antarctic bare rock under permanent ice-free hyperaridity.\n  \
              This is not a slow landscape. It is a landscape whose erosional clock has stopped.",
             CRATON_FLOOR / d1,
             EXTREME_FLOOR / d1,
@@ -691,11 +857,43 @@ fn main() {
         above_floor,
     );
 
-    // -----------------------------------------------------------------------
-    // THE CALIBRATION (journal/0114) — built, measured, and OFF.
-    // -----------------------------------------------------------------------
+    // --- the ceiling this world sets for itself (M3: the FIXED formula) ----
+    // Airy compensation returns (rho_m - rho_c)/rho_m of every eroded metre as
+    // a surface drop and rebounds the rest. The pre-P2 version of this divided
+    // the MEASURED rock uplift — which already contains the rebound of current
+    // erosion — by f, a form valid only while erosion is negligible, i.e. only
+    // in the regime the calibration exists to leave (P2 audit § 4.1). The fixed
+    // form decomposes first: U_tect = D4 − (1−f)·D3, then ceiling = U_tect / f.
+    let rho_m = dc_worldgen::deeptime::isostasy::RHO_MANTLE;
+    let rho_c =
+        dc_worldgen::deeptime::isostasy::rho_crust(dc_worldgen::deeptime::CrustKind::Continental);
+    let f_airy = (rho_m - rho_c) / rho_m;
+    let u_tect = d.rock_uplift - (1.0 - f_airy) * d.bedrock_erosion;
+    let ceiling = u_tect / f_airy;
+    println!(
+        "\n--- THE CEILING THIS WORLD SETS FOR ITSELF ---\n  \
+         Airy compensation returns (rho_m - rho_c)/rho_m = {f_airy:.4} of each eroded metre as a\n  \
+         surface DROP and rebounds the other {:.1} %. Decomposing the measured D4 = {:.4} m/Myr:\n  \
+         U_tect = D4 - (1-f)*D3 = {u_tect:.4} m/Myr, and a landscape in topographic steady\n  \
+         state denudes at U_tect / {f_airy:.4} = {ceiling:.3} m/Myr.\n  \
+         THAT NUMBER WAS NOT CHOSEN. It falls out of two densities and a measured uplift, and\n  \
+         it lands inside the published cratonic bedrock band (1-4 m/Myr, Namib mean ~2.5) on\n  \
+         its own — the independent statement that the band is the right target for THIS world.\n  \
+         (The pre-P2 formula, D4/f, prints {:.3} here; the two diverge exactly when the\n  \
+         calibration starts working — P2 audit § 4.1.)",
+        100.0 * (1.0 - f_airy),
+        d.rock_uplift,
+        d.rock_uplift / f_airy,
+    );
 
+    // -----------------------------------------------------------------------
+    // THE CALIBRATION (journal/0114) — built, measured, and OFF. Skipped when
+    // explicit rungs are given (the P2 measurement plan, audit § 6.2 — those
+    // runs cost an hour-plus of solve, and the calibration/contrast arms
+    // answer journal/0114's question, not P2's).
+    // -----------------------------------------------------------------------
     let prod_cfg = cfg(&pregen.grid);
+    let full = (!explicit).then(|| {
     let cal_cfg = cfg_calibrated(&pregen.grid);
     let cal = measure_cfg(&pregen.grid, &cal_cfg);
     let mult = cal_cfg.weathering / prod_cfg.weathering;
@@ -757,31 +955,6 @@ fn main() {
         println!("  {name:<28} {a:>14.4} {b:>14.4}");
     }
 
-    // --- the ceiling this world sets for itself ----------------------------
-    // Airy compensation returns (rho_m - rho_c)/rho_m of every eroded metre as a
-    // surface drop and rebounds the rest, so a landscape in topographic steady
-    // state denudes at U / that fraction. Computed from the isostasy module's own
-    // densities, so it moves if they do — never transcribed.
-    let rho_m = dc_worldgen::deeptime::isostasy::RHO_MANTLE;
-    let rho_c =
-        dc_worldgen::deeptime::isostasy::rho_crust(dc_worldgen::deeptime::CrustKind::Continental);
-    let f_airy = (rho_m - rho_c) / rho_m;
-    let ceiling = d.rock_uplift / f_airy;
-    println!(
-        "\n--- THE CEILING THIS WORLD SETS FOR ITSELF ---\n  \
-         Airy compensation returns (rho_m - rho_c)/rho_m = {f_airy:.4} of each eroded metre as a\n  \
-         surface DROP and rebounds the other {:.1} %. A landscape in topographic steady state\n  \
-         therefore denudes at U / {f_airy:.4} = {:.1} x its tectonic rock uplift. With the\n  \
-         shipped world's measured D4 = {:.4} m/Myr that ceiling is {ceiling:.3} m/Myr.\n  \
-         THAT NUMBER WAS NOT CHOSEN. It falls out of two densities and a measured uplift, and\n  \
-         it lands inside the published stable-craton band (1-10) on its own — the independent\n  \
-         statement that the band is the right target for THIS world, even though the ladder\n  \
-         below shows the world cannot be scaled into it.",
-        100.0 * (1.0 - f_airy),
-        1.0 / f_airy,
-        d.rock_uplift,
-    );
-
     // --- the measured response ---------------------------------------------
     println!(
         "\n--- THE MEASURED RESPONSE ---\n  \
@@ -804,13 +977,31 @@ fn main() {
          `mean H` and why reaching the craton band costs hundreds of metres of soil.\n",
         prod_cfg.h_star,
     );
+        (cal, mult)
+    });
+    if explicit {
+        println!("\n\n=== THE DERIVATION LADDER (P2 audit 2026-08-01 § 6.2) ===");
+        println!(
+            "  Explicit rungs. The calibration-comparison and single-lever-contrast arms are\n  \
+             skipped: they answer journal/0114's question, not this run's. Every row is a full\n  \
+             {}-epoch world under the FIXED operator (creep_substep: true) unless labelled UNB\n  \
+             — the `sub` column in the mechanism table is the per-row assertion.",
+            c.iterations
+        );
+    }
+
     let limited = |r: &Denudation| -> f64 {
         100.0 * r.ledger.creep_limited_cell_epochs as f64
             / (r.ledger.creep_cell_epochs.max(1)) as f64
     };
+    // **The band verdict is on D3, against the cratonic bedrock band** (P2 audit
+    // § 1.4): D1 is a gross shoreline flux and is inadmissible as the acceptance
+    // quantity (corrections #60) — it is printed as an upper bound only.
     let band = |v: f64| -> &'static str {
-        if (1.0..=10.0).contains(&v) {
-            "IN BAND"
+        if (1.0..=4.0).contains(&v) {
+            "IN 1-4"
+        } else if v > 4.0 && v <= 10.0 {
+            "in 1-10"
         } else if v < 1.0 {
             "below"
         } else {
@@ -818,35 +1009,115 @@ fn main() {
         }
     };
     println!(
-        "  uniform x        D1        D3    D1/D3  D1/D4  meansurf   relief   mean H    land  creep-lim  band?"
+        "\n  x            D1(ub)        D3   D3/D4  D1/D3  meansurf   relief   mean H    land  creep-lim  band(D3)"
     );
-    let row = |label: String, r: &Denudation| {
+    let row = |label: &str, r: &Denudation| {
         println!(
-            "  {label:<10} {:>10.4} {:>10.4} {:>6.2} {:>6.2} {:>8.1} {:>8.1} {:>7.2} {:>7} {:>6.1} %  {}",
+            "  {label:<10} {:>10.4} {:>9.4} {:>6.2} {:>6.2} {:>8.1} {:>8.1} {:>7.2} {:>7} {:>6.1} %  {}",
             r.catchment_averaged,
             r.bedrock_erosion,
+            r.bedrock_erosion / r.rock_uplift.max(1e-30),
             r.catchment_averaged / r.bedrock_erosion.max(1e-30),
-            r.catchment_averaged / r.rock_uplift.max(1e-30),
             r.mean_surf,
             r.relief,
             r.mean_h,
             r.land_cells,
             limited(r),
-            band(r.catchment_averaged),
+            band(r.bedrock_erosion),
         );
     };
-    row("1 SHIPPED".to_string(), &d);
-    for m in &ladder {
-        let r = measure_cfg(&pregen.grid, &cfg_uniform(&pregen.grid, *m));
-        row(format!("{m:.0}"), &r);
+    row("1 SHIPPED", &d);
+    let mut rows: Vec<(String, Denudation)> = Vec::new();
+    for rung in &rungs {
+        let (label, rcfg) = match rung {
+            // The shipped row above IS the 1× rung — do not re-solve it.
+            Rung::Uniform(m) if *m == 1.0 => continue,
+            Rung::Uniform(m) => (format!("{m:.0}"), cfg_uniform(&pregen.grid, *m)),
+            Rung::Pair(s, t) => (format!("{s:.0}:{t:.0}"), cfg_pair(&pregen.grid, *s, *t)),
+            Rung::Unbounded(m) => (format!("{m:.0} UNB"), cfg_unbounded(&pregen.grid, *m)),
+        };
+        let r = measure_cfg(&pregen.grid, &rcfg);
+        row(&label, &r);
+        rows.push((label, r));
+    }
+
+    // --- the mechanism & shape table (M1/M2/M5 + the § 6.2 acceptance rows) --
+    println!(
+        "\n  MECHANISM & SHAPE per rung — ⟨taper⟩ = run-mean exp(-H/H*) (chain B's missing\n  \
+         term), ⟨mod⟩ = run-mean (biotic x weatherability) x frost, supply/incis = the D3\n  \
+         split (weathering front vs k_bedrock, whole-grid frame), conc(h)/ACF vs\n  \
+         journal/0122 (white noise -0.167), hollows on the router's own fill (bar: >10 m = 0).\n"
+    );
+    println!(
+        "  x           sub  taper.run  taper.end   mod   supply   incis  conc(h)   ACF x   ACF y  h>1     >10  deepest       D4   gen s"
+    );
+    let mrow = |label: &str, r: &Denudation| {
+        // `!` after the sub-step count = creep_substep OFF (the unbounded
+        // operator) — the per-row operator assertion the audit § 6.2 requires.
+        let sub = if r.substep_on {
+            format!("{}", r.substeps)
+        } else {
+            format!("{}!", r.substeps)
+        };
+        println!(
+            "  {label:<10} {sub:>4} {:>9.4} {:>9.4} {:>6.3} {:>8.4} {:>7.4} {:>8.2} {:>7.3} {:>7.3} {:>6} {:>6} {:>7.1} {:>8.4} {:>7.1}",
+            r.taper_run,
+            r.taper_end,
+            r.mod_run,
+            r.d3_supply,
+            r.d3_incision,
+            r.conc_h_rms,
+            r.acf_h.0,
+            r.acf_h.1,
+            r.hollow_1,
+            r.hollow_10,
+            r.deepest,
+            r.rock_uplift,
+            r.secs,
+        );
+    };
+    mrow("1 SHIPPED", &d);
+    for (label, r) in &rows {
+        mrow(label, r);
+    }
+
+    // --- the Airy sustainability column (the audit header's integrator-settled
+    // --- measurement: rebound fraction vs the Airy prediction, a physics
+    // --- identity — if D4 stalls while D3 rises, the § 5.4 uplift call is owed)
+    println!(
+        "\n  AIRY SUSTAINABILITY — measured D4 vs the prediction U_tect + (1-f)*D3, with\n  \
+         U_tect = {u_tect:.4} m/Myr from the shipped row. A ratio well below 1.0 means the\n  \
+         sim's smoothed isostasy is NOT returning Airy rebound at this erosion rate, and\n  \
+         the craton-band target may not be sustainable without an uplift_scale call (§ 5.4)."
+    );
+    println!("  x            D4 meas   D4 Airy    ratio");
+    let srow = |label: &str, r: &Denudation| {
+        let pred = u_tect + (1.0 - f_airy) * r.bedrock_erosion;
+        println!(
+            "  {label:<10} {:>8.4} {:>9.4} {:>8.2}",
+            r.rock_uplift,
+            pred,
+            r.rock_uplift / pred.max(1e-30),
+        );
+    };
+    srow("1 SHIPPED", &d);
+    for (label, r) in &rows {
+        srow(label, r);
     }
 
     println!(
-        "\n  READ IT THIS WAY. `D1/D3` is the tell.\n    \
+        "\n  READ IT THIS WAY. D3 is the acceptance quantity (1-4 m/Myr, target 2.63); D1 is\n  \
+         an upper bound only (corrections #60). `D1/D3` is the tell.\n    \
          ~1.0  the land sheds everything it detaches — a landscape in balance.\n    \
          <1.0  the land is making regolith it cannot move — TRANSPORT-limited.\n    \
-         >1.0  the land is exporting stored cover faster than it detaches new rock."
+         >1.0  the land is exporting stored cover faster than it detaches new rock\n    \
+               (or the shoreline gross-flux artifact — see the D1/D3 caption above)."
     );
+    // Everything below compares against the calibrated arm, which only the
+    // no-args (journal/0114 replication) mode measures.
+    let Some((cal, mult)) = full else {
+        return;
+    };
     println!(
         "\n  AND THE TWO INSTRUMENTS SEPARATE AS THE FLUXES GROW — say it rather than average it.\n  \
          journal/0111 reported D1 as the headline because D1 and D3 agreed to 2.4 % at the\n  \
@@ -967,27 +1238,39 @@ fn main() {
 /// real compilation or a named study, and the *floor* row is the load-bearing
 /// one, because a world below the floor is not a slow landscape, it is a stopped
 /// one.
-const BANDS: [(&str, f64, f64, &str); 6] = [
+const BANDS: [(&str, f64, f64, &str); 7] = [
     (
         "FLOOR: Antarctic Dry Valleys / Atacama",
         0.1,
         1.0,
-        "Morgan et al. 2010 JGR-ES (10Be/26Al, McMurdo 0.1-4, Arena Valley ~0.19); \
-         Ritter et al. 2023 JGR-ES (Atacama near-stasis, 21Ne exposure ages 9-37 Ma)",
+        "Morgan et al. 2010 JGR-ES (10Be/26Al, McMurdo regolith 0.19-2.1; Arena Valley \
+         steady-state 0.53); Dunai et al. 2005 Geology + Placzek et al. 2010 EPSL \
+         (hyperarid Atacama core ~1, arid since the Oligocene-Miocene)",
     ),
     (
-        "stable craton / shield bedrock",
+        "stable craton / shield BEDROCK",
         1.0,
-        10.0,
-        "Bierman & Caffee 2002 GSA Bull (Australian inselbergs 0.3-5.7); \
-         Bierman & Caffee 2001 Am.J.Sci (Namib bedrock 1-5); \
-         Veselovskiy et al. 2019 Tectonics (Fennoscandia AFT 1-2.5)",
+        4.0,
+        "Bierman & Caffee 2001 Am.J.Sci (Namib bedrock 1-5, mean ~2.5); \
+         Bierman & Caffee 2002 GSA Bull (Australian inselbergs 0.3-5.7 max-limiting); \
+         Veselovskiy et al. 2019 Tectonics (Fennoscandia AFT 1-2.5; UNVERIFIED — \
+         P2 audit 2026-08-01 § 1.1). THE D3 ACCEPTANCE BAND (audit § 1.4)",
     ),
     (
-        "global outcrop median (10Be, n=1599)",
+        "global OUTCROP median (10Be, n=450)",
         5.4,
         12.0,
-        "Portenga & Bierman 2011 GSA Today — median 5.4, mean 12, max ~140",
+        "Portenga & Bierman 2011 GSA Today — outcrops: median 5.4, mean 12 +- 1.3, \
+         n = 450 (n=1599 is the WHOLE compilation, outcrops + basins)",
+    ),
+    (
+        "global BASIN median (10Be, drainage basins)",
+        54.0,
+        218.0,
+        "Portenga & Bierman 2011 GSA Today — basins: median 54, mean 218. THE row D1 \
+         is commensurable with: D1 is a catchment-averaged quantity (its own doc \
+         comment says so), and judging it against the OUTCROP row is a category \
+         mismatch of one order of magnitude (P2 audit § 1.3)",
     ),
     (
         "Phanerozoic global continental mean",
@@ -1111,10 +1394,53 @@ mod gate {
             0.0,
             "the export counters must be exactly zero with the flag off"
         );
+        assert_eq!(
+            a.erosion.transport_ledger().weather_cell_epochs,
+            0,
+            "the chain-B coupling counters (P2 audit § 6.1 M1/M2) must be exactly \
+             zero with the flag off — the accumulation branch fired in production"
+        );
         assert!(
             b.erosion.transport_ledger().exported_m() > 0.0,
             "nothing at all left the land system — either the world is inert or the \
              counters are not wired"
+        );
+    }
+
+    /// **The chain-B coupling counters are wired and bounded** (P2 audit
+    /// 2026-08-01 § 6.1, M1/M2). The run-mean cover taper `⟨exp(−H/H*)⟩` is a
+    /// mean of per-cell-epoch values each in `(0, 1]` (H ≥ 0 up to a sub-ULP
+    /// transport residue, covered by the 1e-9 slack), so its sum must sit in
+    /// `(0, count]`; the modulator product must be positive wherever weathering
+    /// ran. Invariants, never snapshots — the magnitudes are the report's job.
+    ///
+    /// *Why it is scale-free.* Both are per-cell-epoch algebraic bounds on a
+    /// monotone function of non-negative state — true at any extent.
+    #[test]
+    fn the_weather_coupling_counters_are_wired_and_bounded() {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: Extent::Small,
+        });
+        let c = DeepConfig {
+            denudation_ledger: true,
+            ..production_config(&pregen.grid, SEED)
+        };
+        let l = run_cells(&pregen.grid, &c, true).erosion.transport_ledger();
+        assert!(
+            l.weather_cell_epochs > 0,
+            "no subaerial cell-epochs were counted — the accumulation never ran"
+        );
+        let n = l.weather_cell_epochs as f64;
+        assert!(
+            l.weather_taper_sum > 0.0 && l.weather_taper_sum <= n * (1.0 + 1e-9),
+            "the mean cover taper must sit in (0, 1]: sum {} over {} cell-epochs",
+            l.weather_taper_sum,
+            l.weather_cell_epochs
+        );
+        assert!(
+            l.weather_mod_sum > 0.0,
+            "the modulator-product sum must be positive where weathering ran"
         );
     }
 

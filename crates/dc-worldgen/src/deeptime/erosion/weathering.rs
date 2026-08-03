@@ -519,6 +519,29 @@ impl Erosion {
         };
         let parallel = self.par();
         let (sea, weathering, h_star) = (self.sea_level, cfg.weathering, cfg.h_star);
+        // **The chain-B coupling counters** (P2 audit 2026-08-01 § 6.1 M1/M2):
+        // the run-mean cover taper `⟨exp(−H/H*)⟩` and modulator product
+        // `⟨(biotic × weatherability) × frost⟩`, accumulated over the exact
+        // population the kernel below gates on (subaerial at this epoch's sea
+        // stand), read **before** the kernel moves `H` so each epoch's taper is
+        // the taper that epoch's weathering actually saw. Denude-gated: a pure
+        // read of the planes — no write, no branch, no cost when off.
+        if self.denude {
+            let mut taper = 0.0f64;
+            let mut modp = 0.0f64;
+            let mut cnt = 0u64;
+            for i in 0..self.n {
+                if grid.r[i] + grid.h[i] > sea {
+                    taper += (-grid.h[i] / h_star).exp();
+                    modp += (wmult_at(&grid.bio_weather, i) * sus_at(&self.sus_flow, i))
+                        * frost_at(&self.frost, i);
+                    cnt += 1;
+                }
+            }
+            self.ledger.weather_taper_sum += taper;
+            self.ledger.weather_mod_sum += modp;
+            self.ledger.weather_cell_epochs += cnt;
+        }
         let dh = &mut self.dh;
         let bio = &grid.bio_weather;
         let sus = &self.sus_flow;

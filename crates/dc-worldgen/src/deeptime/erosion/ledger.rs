@@ -128,6 +128,31 @@ pub struct TransportLedger {
     /// on any world that takes one sub-step. Named `_cell_epochs` still, because
     /// renaming a counter whose ratio is quoted in four journal entries buys nothing.
     pub creep_cell_epochs: u64,
+
+    // ---- the CHAIN-B coupling terms (P2 audit, 2026-08-01 § 6.1 M1/M2) ----
+    //
+    // The calibration derivation is a one-parameter family in the mean cover
+    // taper `⟨exp(−H/H*)⟩` — a quantity this repo had never printed — and the
+    // audit's § 4.3 falsifies the tempting `exp(−⟨H⟩/H*)` substitute against the
+    // corpus's own ladder by five orders of magnitude (Jensen's inequality: the
+    // weathering happens in the thin-cover tail, the mean is set by the thick
+    // bulk). So the true, area-weighted, run-integrated taper is accumulated
+    // here, in the weathering phase itself, over the exact population the kernel
+    // gates on (subaerial cells at the epoch's own sea stand). Same for the
+    // modulator product, which decomposes the 1.34× composite of § 4.2.
+    //
+    // All three are accumulated **only when the denudation ledger is on** — off,
+    // no branch fires and the run is byte- and cost-identical to production.
+    /// `Σ exp(−H/H*)` over every (subaerial cell, epoch) the weathering phase
+    /// visited — the numerator of the run-mean cover taper `⟨exp(−H/H*)⟩`.
+    pub weather_taper_sum: f64,
+    /// `Σ (biotic × weatherability) × frost` over the same population — the
+    /// numerator of the run-mean modulator product `⟨mod⟩` (the composite the
+    /// derivation could not decompose from D3 alone).
+    pub weather_mod_sum: f64,
+    /// The population: subaerial cell-epochs the weathering phase visited — the
+    /// shared denominator of the two sums above.
+    pub weather_cell_epochs: u64,
 }
 
 impl TransportLedger {
