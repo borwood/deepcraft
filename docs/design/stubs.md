@@ -1660,3 +1660,28 @@ measure surface penetration); not the solve production runs.
   when it lands, which needs no new wire surface, only this · the walk/run transition, which is
   now a *reported band* (`Regime`) rather than a branch — and above it the root height is
   DECLINED, not fabricated (**§ 39**, still live, heir B6).
+
+
+### 43. the-swing-lift-fades-with-speed-because-nothing-owns-stopping — *added 2026-08-03 (gait member #1 slice two, journal/0147; the builder found the hole and could not file it)*
+- **What it fakes:** `GaitVector::swing_gain` (`dc-api/src/bodies/gait/evaluate.rs:227`) scales the
+  mid-swing foot lift by `sin θmax(Fr)` against its value at the duty law's published normal-walk
+  anchor `Fr = 0.25`, so the lift fades as the body slows. **It is standing in for a stop
+  TRANSITION that nothing owns.**
+- **Why it had to exist:** the design pass's three keyframes are speed-graded in every term
+  *except* `clearance`, which it left speed-invariant. Taken literally that lifts a foot to full
+  published clearance at **any** speed, so a body stopping mid-swing **freezes with a foot in the
+  air** — falsifying user call #1's own framing that *idle is the ladder's degenerate limit*, for
+  half of every cycle. The pass never addresses `v → 0`. **This is the design pass being wrong,
+  found at the build and reported loudly rather than smoothed** (the practice working — cf. the
+  member #0 pass's own § 8).
+- **Why this shape and not a constant:** no new number was invented. `sin θmax` **is** the step as
+  a fraction of twice the reach, so the rule reads as *a foot that is barely advancing does not
+  lift*, and published clearance stays **exact at and above a normal walk**
+  (`the_three_keyframes_compose_the_cycle` still asserts mid-swing **is** `clearance` to 1e-12).
+  A bound with a derivation is evidence; one chosen until it looked right would not be.
+- **Heir:** the **stop transition** — `posture-gait.md` § 4's scope limit puts transitions (start,
+  stop, turn) in the clip machinery and **explicitly does not design them**. When that lands, the
+  fade belongs to it and this scaling retires.
+- **Blast radius:** every body's foot height below a normal walk · the idle↔walk boundary the
+  continuous ladder now spans · **not** the walk or run regimes, where the lift is the published
+  value exactly.
