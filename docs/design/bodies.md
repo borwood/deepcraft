@@ -397,6 +397,46 @@ issue."* The seam is `resolve_orientation` (dc-client `body.rs`) — a pure
 joint angles; a multi-segment neck replaces that function's body (distributing the clamp
 along the cervical chain) without touching who owns the look.
 
+## THE SIM OWNS THE TARGET; THE CLIENT OWNS THE APPROACH — DECIDED 2026-08-02 (user: *"Good pattern to stick with in bodies"*)
+
+**The arc's standing rule for any quantity that sits near the determinism firewall.** Split it
+into the **target** — the value the body is heading for, which is derived from sim state, is
+deterministic and replay-safe — and the **approach**, the cosmetic path taken toward it
+(smoothing rates, easing, expression within a clamp), which stays client-side and genuinely
+free to tune. **Neither half is "the" quantity, and the word for the whole thing is the trap.**
+
+**Three instances, which is this project's own threshold for a shape being real**
+(`posture-gait.md` § 3: *"Two instances of one shape; if a third appears it is a primitive"*):
+
+| quantity | target (SIM) | approach (CLIENT) |
+|---|---|---|
+| **gaze / look** | `CharacterState.yaw/pitch` — aims perception (`sense_raycast`), rides the command log, follows travel when unheld | the **neck bend**: `resolve_orientation`'s cervical clamp and the trunk drag beyond it |
+| **trunk facing** | the target facing derived from travel or a held look | the **turn rate** toward it (`TRUNK_TURN_WINDOW_S`) |
+| **pose** | the **nominal pose** the sim reconstructs from `(clip, phase)` — what damage resolves against (`posture-gait.md` § 5) | foot IK onto actual terrain, expressive layers |
+
+**Why it keeps paying.** Every defect this rule would have prevented had the same signature: a
+quantity that *reads* cosmetic while sim consumers were already sequenced against it.
+- The **gaze** was documented as client-owned and cosmetic while it aimed every creature's
+  perception (corrections #94) — the doc asserted the opposite of what the arc shipped the same
+  week.
+- **Trunk facing** is client-side today only because our colliders are axis-aligned boxes that
+  do not rotate. **B4 bakes collider sets per yaw bucket and B5 resolves damage against the
+  nominal pose** — so facing decides *which collider* and *whether you were hit in the back*.
+  It is fairness-critical and replay-critical the moment either lands, and it is **exactly
+  where the walk-8 strafe lived** (journal/0140): nobody owned it, so it inverted on the path
+  nobody built for.
+- Doing it late is the expensive version: before a consumer exists this is a recompile; after
+  B3 makes the pose a versioned sim asset it is a wire migration.
+
+**The failure mode it forbids by name:** *two derivations of one quantity.* Letting B4 and B5
+each derive facing for themselves is the two-authority condition that produced `root_bob_m`
+(corrections #80, #93) and the gaze confusion (#94) — three instances in one day, which is why
+this is a rule and not an observation.
+
+**⚠ Scoped to BODIES by the ruling.** Whether this is a corpus-wide **spine** (it has its three
+instances, and `spines.md` § 4 wants deviations and additions ratified deliberately) is a
+separate, unasked question — filed, not assumed.
+
 ## Joint rotation limits — DECIDED 2026-08-02 (user; the primitive B0 stopped short of)
 
 **A joint carries a rotation range, and exceeding it is a VALIDATION FAILURE, never a runtime

@@ -70,6 +70,18 @@
 > further wants its own ask. *(The evidentiary framing above is the assistant's; attributing it
 > to the user would be corrections #86's error repeated.)*
 
+> **⚠ USER CALL #5 (G7) RULED 2026-08-02: THREE QUANTITIES, AND TRUNK FACING SPLITS LIKE THE
+> GAZE.** *"Agreed on (A) reasoning. Good pattern to stick with in bodies."* The sim owns the
+> **target** facing (derived from travel or a held look — deterministic, replay-safe); the
+> client keeps the **turn rate** toward it. G7's finding stands: corrections #94 split one noun
+> into two and the real count is **three**, the third being where the walk-8 strafe lived.
+>
+> **AND THE RULING WAS WIDENED BY THE USER INTO A STANDING PATTERN FOR THE ARC** —
+> *the sim owns the target; the client owns the approach* — now recorded as its own section in
+> `bodies.md` with its three instances (gaze, trunk facing, pose) and the failure mode it
+> forbids by name (two derivations of one quantity). **Whether it is a corpus-wide spine is
+> filed and NOT assumed** — the user scoped it to bodies.
+
 **Status: DESIGN PASS. Nothing else here is ratified and no code was changed.** The deliverable is
 this document. It works `posture-gait.md` § 7 member 1 — **including its user-ratified expanded
 docket (a)–(e), 2026-08-02** — against the ratified bones (§§ 2–6) and the post-member-#0 code,
