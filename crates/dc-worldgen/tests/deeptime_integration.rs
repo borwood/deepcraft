@@ -64,8 +64,8 @@ fn integrated_deep_record_tells_true_stories() {
         if s.units.len() >= 2 {
             multi_unit += 1;
         }
-        let marine = s.units.iter().any(|u| u.tag.env == DepEnv::Subsea);
-        let subaerial = s.units.iter().any(|u| u.tag.env == DepEnv::Subaerial);
+        let marine = s.units.iter().any(|u| u.tag().env == DepEnv::Subsea);
+        let subaerial = s.units.iter().any(|u| u.tag().env == DepEnv::Subaerial);
         with_marine += usize::from(marine);
         with_subaerial += usize::from(subaerial);
         transgressive += usize::from(marine && subaerial);
@@ -135,7 +135,13 @@ fn collapse_column_story_comes_from_the_deep_record() {
             if col.wilds || col.heights.iter().sum::<i32>() <= 0 {
                 continue;
             }
-            cols.push((ccx, ccz, col.strata.events.len()));
+            // P11 slice 3: per-column records; the chunk-centre column's event
+            // count ranks the chunk (I-5 judgment site — a richness heuristic).
+            cols.push((
+                ccx,
+                ccz,
+                col.centre_record().map_or(0, |s| s.strata().events.len()),
+            ));
         }
     }
     cols.sort_by_key(|c| std::cmp::Reverse(c.2));

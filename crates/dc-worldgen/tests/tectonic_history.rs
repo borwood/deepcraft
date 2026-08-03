@@ -99,7 +99,7 @@ fn flag_off_allocates_no_tectonic_state_and_stamps_chapter_zero() {
     assert_eq!(run.thickening_total, 0.0);
     for s in &run.grid.strata {
         for u in &s.units {
-            assert_eq!(u.chapter, 0, "off path must stamp chapter 0");
+            assert_eq!(u.chapter(), 0, "off path must stamp chapter 0");
         }
     }
 }
@@ -308,8 +308,12 @@ fn thickness_ledger_balances() {
 
 #[test]
 fn dep_unit_sizeof_is_unchanged_by_the_chapter_stamp() {
-    // The stamp is expected to fit DepUnit's existing 8-byte-aligned padding.
-    assert_eq!(std::mem::size_of::<deeptime::DepUnit>(), 16);
+    // The stamp fit the 16-byte layout's padding when it landed; since P11
+    // slice 3 the unit is the PACKED 8-byte layout (u32 bitfield + u32
+    // fixed-point thickness, U5/P-2 = L-8) and the chapter is 8 of its bits —
+    // the claim this test keeps is that the stamp costs no bytes, restated
+    // against the layout that exists.
+    assert_eq!(std::mem::size_of::<deeptime::DepUnit>(), 8);
 }
 
 /// The recorder invariant `sum(units) == H` survives the chapter-stamp merge key.
@@ -319,7 +323,10 @@ fn recorder_total_equals_alluvium_with_tectonic_history() {
     let run = deeptime::run(&pregen, &tec_cfg(SEED));
     let mut worst = 0.0f64;
     for (i, s) in run.grid.strata.iter().enumerate() {
-        worst = worst.max((s.total_m() - run.grid.h[i]).abs());
+        // P11 slice 3 (the pack): the record is quantized (2^-10 m) and the
+        // sub-quantum residue rides in the per-cell carry, so the exact mirror
+        // of H is record + carry; the record alone sits within quantum/2 of H.
+        worst = worst.max((s.total_m() + s.carry_m() - run.grid.h[i]).abs());
     }
     assert!(worst < 1e-6, "sum(units)==H violated, worst {worst}");
 }

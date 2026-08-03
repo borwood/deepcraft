@@ -133,7 +133,7 @@ fn a_vertical_entry_binds_to_the_chapters_own_slot() {
             }
             match slot_for_chapter(&f.strata[i], e.chapter) {
                 Some(slot) => {
-                    assert_eq!(f.strata[i].units[slot].chapter, e.chapter);
+                    assert_eq!(f.strata[i].units[slot].chapter(), e.chapter);
                     resolved += 1;
                 }
                 None => eroded_away += 1,

@@ -92,7 +92,7 @@ fn superposition_columns(field: &DeepField) -> usize {
         let mut chapters_seen = [false; 32];
         let mut distinct = 0;
         for u in &s.units {
-            let c = u.chapter as usize;
+            let c = u.chapter() as usize;
             if c < 32 && !chapters_seen[c] {
                 chapters_seen[c] = true;
                 distinct += 1;

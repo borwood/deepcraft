@@ -127,7 +127,7 @@ fn runs(
     let mut out = Vec::new();
     let mut start: Option<usize> = None;
     for k in 0..=units.len() {
-        let hit = k < units.len() && units[k].tag.biota == want;
+        let hit = k < units.len() && units[k].tag().biota == want;
         if hit {
             start.get_or_insert(k);
         } else if let Some(a) = start.take() {
@@ -135,7 +135,7 @@ fn runs(
             out.push(Seam {
                 cell,
                 depth_m: over[b],
-                thick_m: (a..=b).map(|j| units[j].thickness_m).sum(),
+                thick_m: (a..=b).map(|j| units[j].thickness_m()).sum(),
             });
         }
     }
@@ -173,7 +173,7 @@ fn census(f: &DeepField) -> Census {
         let mut acc = 0.0;
         for k in (0..n).rev() {
             over[k] = acc;
-            acc += s.units[k].thickness_m;
+            acc += s.units[k].thickness_m();
         }
 
         let surf_t = surface_temp_c(f, i);
@@ -181,15 +181,15 @@ fn census(f: &DeepField) -> Census {
         let mut has_candidate = false;
         let mut has_peat = false;
         for (k, u) in s.units.iter().enumerate() {
-            if k != top && matches!(u.tag.biota, Biofacies::Peat | Biofacies::Coal) {
+            if k != top && matches!(u.tag().biota, Biofacies::Peat | Biofacies::Coal) {
                 has_candidate = true;
-                if u.tag.biota == Biofacies::Peat {
+                if u.tag().biota == Biofacies::Peat {
                     has_peat = true;
                 }
                 cand_temps.push(deeptime::temperature_c(
                     surf_t,
                     grad,
-                    over[k] + 0.5 * u.thickness_m,
+                    over[k] + 0.5 * u.thickness_m(),
                 ));
             }
         }
@@ -547,7 +547,7 @@ fn main() {
         f.strata
             .iter()
             .flat_map(|s| s.units.iter())
-            .fold((0usize, 0usize), |(c, p), u| match u.tag.biota {
+            .fold((0usize, 0usize), |(c, p), u| match u.tag().biota {
                 Biofacies::Coal => (c + 1, p),
                 Biofacies::Peat => (c, p + 1),
                 _ => (c, p),
@@ -867,8 +867,8 @@ mod gate {
             let total: f64 = f.strata[cell]
                 .units
                 .iter()
-                .filter(|u| u.tag.biota == Biofacies::Coal)
-                .map(|u| u.thickness_m)
+                .filter(|u| u.tag().biota == Biofacies::Coal)
+                .map(|u| u.thickness_m())
                 .sum();
             assert!(
                 (sum - total).abs() < 1e-9,
@@ -882,8 +882,8 @@ mod gate {
             let total: f64 = f.strata[s.cell]
                 .units
                 .iter()
-                .filter(|u| u.tag.biota == Biofacies::Peat)
-                .map(|u| u.thickness_m)
+                .filter(|u| u.tag().biota == Biofacies::Peat)
+                .map(|u| u.thickness_m())
                 .sum();
             assert!(
                 s.thick_m > 0.0 && s.thick_m <= total + 1e-9,

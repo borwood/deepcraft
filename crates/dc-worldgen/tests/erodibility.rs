@@ -260,7 +260,10 @@ fn recorder_total_equals_alluvium_with_coupling_on() {
     let run = deeptime::run(&pregen, &cfg_on(SEED));
     let mut worst = 0.0f64;
     for (i, s) in run.grid.strata.iter().enumerate() {
-        worst = worst.max((s.total_m() - run.grid.h[i]).abs());
+        // P11 slice 3 (the pack): the record is quantized (2^-10 m) and the
+        // sub-quantum residue rides in the per-cell carry, so the exact mirror
+        // of H is record + carry; the record alone sits within quantum/2 of H.
+        worst = worst.max((s.total_m() + s.carry_m() - run.grid.h[i]).abs());
     }
     assert!(worst < 1e-6, "sum(units)==H violated, worst {worst}");
 }

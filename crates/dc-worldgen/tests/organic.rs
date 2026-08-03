@@ -23,11 +23,22 @@ use dc_core::materials::geology::{
     GeoMemberDef, GeologySet,
 };
 use dc_core::{Block, ChunkPos, MaterialId, VoxelContents};
-use dc_worldgen::deeptime::{Biofacies, DeepConfig, EnergyBand};
+use dc_worldgen::deeptime::{Biofacies, DeepConfig, DeepField, EnergyBand};
 use dc_worldgen::pregen::{CELL_VOXELS, CellGrid};
 use dc_worldgen::{Extent, Pregen, WorldGenerator, WorldParams};
 
 const SEED: u64 = 0x0D5E_ED57_2026;
+
+/// The row-major deep-cell index NEAREST a world voxel — the address
+/// `record_at_voxel` answers, replicated so the test can name the SubCell
+/// realizing that same cell inside a chunk (P11 slice 3: a chunk holds up to
+/// nine records, and the seam this suite measures lives in one specific cell).
+fn nearest_cell_index(deep: &DeepField, vx: i64, vz: i64) -> Option<u32> {
+    let (gx, gy) = deep.deep_coords(vx, vz)?;
+    let ix = (gx.round() as i64).clamp(0, deep.w as i64 - 1) as u32;
+    let iy = (gy.round() as i64).clamp(0, deep.w as i64 - 1) as u32;
+    Some(iy * deep.w as u32 + ix)
+}
 
 /// Minimum diggable-coal voxels the strongest low-energy seam must render in its
 /// collapsed column. Re-baselined for the full-agents flip (journal/0047): the old
@@ -123,8 +134,8 @@ fn coal_seam_candidates(pregen: &Pregen, min_m: f64) -> Vec<(i64, i64, f64)> {
             let coal = s
                 .units
                 .iter()
-                .filter(|u| u.tag.biota == Biofacies::Coal)
-                .map(|u| u.thickness_m)
+                .filter(|u| u.tag().biota == Biofacies::Coal)
+                .map(|u| u.thickness_m())
                 .fold(0.0f64, f64::max);
             (coal > min_m).then(|| (voxel((i % w) as f64), voxel((i / w) as f64), coal))
         })
@@ -145,8 +156,8 @@ fn low_energy_coal_m(pregen: &Pregen, vx: i64, vz: i64) -> Option<f64> {
     let rec = pregen.deep.record_at_voxel(vx, vz)?;
     rec.units
         .iter()
-        .filter(|u| u.tag.biota == Biofacies::Coal && u.tag.energy == EnergyBand::Low)
-        .map(|u| u.thickness_m)
+        .filter(|u| u.tag().biota == Biofacies::Coal && u.tag().energy == EnergyBand::Low)
+        .map(|u| u.thickness_m())
         .fold(None, |acc, t| Some(acc.map_or(t, |a: f64| a.max(t))))
 }
 
@@ -294,8 +305,18 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     // world's strongest exemplar.
     let coal_collapse_vox = |g: &mut WorldGenerator, vx: i64, vz: i64| -> u32 {
         let (cx, cz) = column_of(vx, vz);
-        (g.column_record(cx, cz)
-            .strata
+        // P11 slice 3: the chunk holds one record per touched deep cell; the
+        // seam belongs to the cell nearest this voxel, so measure THAT SubCell.
+        let target = nearest_cell_index(&pregen.deep, vx, vz);
+        let col = g.column_record(cx, cz);
+        let Some(sub) = col
+            .records
+            .iter()
+            .find(|s| s.cell_index().is_some() && s.cell_index() == target)
+        else {
+            return 0; // the dither realized no column of the seam's cell here
+        };
+        (sub.strata()
             .events
             .iter()
             .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
@@ -339,10 +360,18 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
         .expect("the coal site is inside the pregen grid");
     let (cx, cz) = column_of(coal_x, coal_z);
     let col = g.column_record(cx, cz);
+    // P11 slice 3: name the SubCell of the seam's own cell (the selection above
+    // guaranteed the chunk realizes it — `coal_collapse_vox` returned nonzero).
+    let target = nearest_cell_index(&pregen.deep, coal_x, coal_z);
+    let sub = col
+        .records
+        .iter()
+        .find(|s| s.cell_index().is_some() && s.cell_index() == target)
+        .expect("the picked chunk realizes the seam's own deep cell");
 
     // ---- 2. the seam survives collapse as the COAL class -------------------
-    let coal_m: f64 = col
-        .strata
+    let coal_m: f64 = sub
+        .strata()
         .events
         .iter()
         .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
@@ -358,7 +387,7 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
         "expected a diggable coal seam in the collapsed column, got {coal_vox}"
     );
     assert!(
-        col.strata
+        sub.strata()
             .events
             .iter()
             .any(|e| set.member(e.member).material == MaterialId::COAL),
@@ -374,16 +403,16 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     let seam = rec
         .units
         .iter()
-        .filter(|u| u.tag.biota == Biofacies::Coal && u.tag.energy == EnergyBand::Low)
-        .max_by(|a, b| a.thickness_m.total_cmp(&b.thickness_m))
+        .filter(|u| u.tag().biota == Biofacies::Coal && u.tag().energy == EnergyBand::Low)
+        .max_by(|a, b| a.thickness_m().total_cmp(&b.thickness_m()))
         .expect("the low-energy coal seam (selection guaranteed one)");
     assert_eq!(
-        seam.tag.energy,
+        seam.tag().energy,
         EnergyBand::Low,
         "the seam is a LOW-energy unit — the old rule would have made it mudstone"
     );
-    let classes: Vec<&str> = col
-        .strata
+    let classes: Vec<&str> = sub
+        .strata()
         .events
         .iter()
         .map(|e| set.member(e.member).class.as_str())
@@ -437,8 +466,13 @@ fn the_measured_coal_seam_is_coal_a_player_can_dig() {
     // so a second one to make the same point is not worth the wall clock.
     let extended = with_second_coal();
     let coal_class_vox = |set: &GeologySet, g: &mut WorldGenerator, cx: i64, cz: i64| -> u32 {
-        (g.column_record(cx, cz)
-            .strata
+        // P11 slice 3: per-column records; the centre column stands in, and the
+        // two sets share the seed and therefore the same membership dither.
+        let col = g.column_record(cx, cz);
+        let Some(s) = col.centre_record() else {
+            return 0;
+        };
+        (s.strata()
             .events
             .iter()
             .filter(|e| set.member(e.member).class == CLASS_ORGANIC_COAL)
@@ -492,7 +526,7 @@ fn contents_contain(c: &VoxelContents, m: MaterialId) -> bool {
 #[test]
 fn charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum() {
     use dc_core::materials::geology::GeoMemberIdx;
-    use dc_worldgen::fill::{ColumnFill, Plan, allocate, fill_draw};
+    use dc_worldgen::fill::{Plan, allocate, fill_draw};
 
     let pregen = medium();
     let set = geology::vanilla();
@@ -514,10 +548,15 @@ fn charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum() {
     for cz in (-2400..2400).step_by(149) {
         for cx in (-2400..2400).step_by(149) {
             let col = g.column_record(cx as i64, cz as i64);
-            if col.strata.events.is_empty() {
+            // P11 slice 3: the chunk-centre column's SubCell stands in for "the
+            // chunk's record" in this span census (I-5 judgment site).
+            let Some(sub) = col.centre_record() else {
+                continue;
+            };
+            if sub.strata().events.is_empty() {
                 continue;
             }
-            let cf = ColumnFill::build(&col.strata, VOXEL_M);
+            let cf = sub.fill();
             let (vx, vz) = (cx as i64 * 32, cz as i64 * 32);
             let surf = i64::from(col.heights[0]);
             for d in 1..=cf.depth_count() as u32 {
@@ -532,7 +571,7 @@ fn charcoal_reaches_the_voxel_as_an_inclusion_never_as_a_stratum() {
                 let n: u8 = parts
                     .iter()
                     .filter(|(i, _)| {
-                        set.member(col.strata.events[*i].member).material == MaterialId::CHARCOAL
+                        set.member(sub.strata().events[*i].member).material == MaterialId::CHARCOAL
                     })
                     .map(|(_, k)| *k)
                     .sum();

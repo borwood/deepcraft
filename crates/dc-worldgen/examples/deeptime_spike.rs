@@ -132,13 +132,16 @@ fn read_quality(grid: &DeepGrid) -> ReadQuality {
         if s.unconformities() > 0 {
             unconf += 1;
         }
-        if s.units.iter().any(|x| matches!(x.tag.env, DepEnv::Subsea)) {
+        if s.units
+            .iter()
+            .any(|x| matches!(x.tag().env, DepEnv::Subsea))
+        {
             subsea += 1;
         }
         // Fining-upward: a conformable pair whose lower unit is higher energy
         // than the unit above it (coarse below, fine above).
         let fines = s.units.windows(2).any(|w| {
-            energy_rank(w[0].tag.energy) > energy_rank(w[1].tag.energy) && !w[1].unconformity
+            energy_rank(w[0].tag().energy) > energy_rank(w[1].tag().energy) && !w[1].unconformity()
         });
         if fines {
             fining += 1;
@@ -217,29 +220,29 @@ fn print_example_columns(grid: &DeepGrid, want: usize) {
         );
         // Top (youngest) first.
         for u in s.units.iter().rev() {
-            let unc = if u.unconformity {
+            let unc = if u.unconformity() {
                 "  <-- unconformity (erosional gap)"
             } else {
                 ""
             };
-            let env = match u.tag.env {
+            let env = match u.tag().env {
                 DepEnv::Subaerial => "subaerial",
                 DepEnv::Subsea => "marine   ",
             };
-            let ar = match (u.tag.env, u.tag.aridity) {
+            let ar = match (u.tag().env, u.tag().aridity) {
                 (DepEnv::Subsea, _) => "     ",
                 (_, Aridity::Arid) => "arid ",
                 (_, Aridity::Humid) => "humid",
             };
-            let en = match u.tag.energy {
+            let en = match u.tag().energy {
                 EnergyBand::Low => "low ",
                 EnergyBand::Medium => "med ",
                 EnergyBand::High => "high",
             };
             println!(
                 "       {:>6.2} m  [{}]  {} {} energy:{}{}",
-                u.thickness_m,
-                u.tag.code(),
+                u.thickness_m(),
+                u.tag().code(),
                 env,
                 ar,
                 en,

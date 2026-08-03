@@ -31,13 +31,13 @@ fn identity_outcrop_at(units: &[DepUnit]) -> Litho {
 /// The recorder logs units bottom-up: `units[0]` is deepest, the last is the
 /// surface. So a "lamina atop mud" record is `[mud, lamina]`.
 fn unit(tag: DepTag, thickness_m: f64) -> DepUnit {
-    DepUnit {
+    DepUnit::new(
         tag,
         thickness_m,
-        unconformity: false,
-        chapter: 0,
-        species: litho_of_tag(tag).reference_material(),
-    }
+        false,
+        0,
+        litho_of_tag(tag).reference_material(),
+    )
 }
 
 /// A marine mud unit → `Litho::ClasticFine`.

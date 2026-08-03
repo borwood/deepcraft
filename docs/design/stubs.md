@@ -893,7 +893,21 @@ with the evidence attached (journal/0114) instead of the guesswork this entry as
 
 *Loud markers at `EROSION_CALIBRATION`, `scale_erosion_rates`, `erosion_budget` and
 `DeepConfig::calibrated_rates`.*
-### 25. the-record-knows-what-arrived-and-not-who-brought-it — *added 2026-07-26 (Movement 2b continuation (b), journal/0112)*
+### 25. the-record-knows-what-arrived-and-not-who-brought-it — *added 2026-07-26 (Movement 2b continuation (b), journal/0112)* — **✅ DISCHARGED 2026-08-02/03 (P11 slice 3, the packed `DepUnit`)**
+> **BANNER (P11 slice 3).** The mover axis is REAL: every recorded unit carries 3 mover
+> bits (`FlowCause as u8`, `MOVER_NONE` = made in place), written by every production
+> depositor — the transport recorder derives the dominant arriving mover from the same
+> argmax that names the rock (fluvial vs hillslope gravity), wind writes `Eolian`, waves
+> write `Marine`, pedogenesis/diagenesis write NONE. **It is IN the merge key (M-1), and
+> it joined by measurement, not by assumption** — the #88 rule this entry's own heir note
+> demanded: M0 counted the would-be splits on the shipped world first (**1.0308×**,
+> 226,534 over 7,363,947 units, seed 1337 Medium), under the design audit's ≲1.1× bar.
+> Colluvium and alluvium are now distinguishable by label, as separate units. The heir
+> shape shipped differently from the sketch below — a packed u32 bitfield (8 B/unit, a
+> net residency REDUCTION), not a `(species, mover)` byte — same idea, wider funding.
+> **What this entry does NOT discharge:** § 13.8's lineage history (`Fact::Move` chain of
+> custody) still rides; nothing expresses the mover at runtime yet (the geologist-facing
+> consumers in the blast note below are still unbuilt).
 `dc-worldgen/src/deeptime/recorder.rs::DepUnit`: a recorded unit now carries the
 **material that arrived** (`species`, journal/0110) and, since this slice, that
 material can have been delivered by either of two movers — the fluvial load or
@@ -1415,14 +1429,26 @@ authored art, outside this doctrine's scope; visuals.md owns the path).
 > So: **resolved for the deep record's identity; live for the veneer's.** Do not close it.
 
 
+> **BANNER 2 (P11 slice 3, 2026-08-02): the near-path restructure SHIPPED WITHOUT taking
+> this heir, deliberately — so the heir pointer below is re-pointed, not silently stale a
+> second time.** Slice 3 made *which deep cell's record skins a column* per-column (the
+> membership dither + `SubCell`), but the veneer's formation context — `temp_c`/`precip`
+> sampled once per chunk at the centre — was ruled **OUT of the slice** (design audit
+> D-6/P-5, under the 2026-08-02 "eyes on the prize" march-order directive; the audit prices
+> both sides at § 1.4). The old heir line *"naturally part of the near-path record
+> restructure"* is therefore dead: that restructure has now happened and did not carry it.
+> **New heir: a per-column `climate_at` slice of its own** (1024 bilinear samples per chunk
+> on the chunk-load path — measure before shipping; runtime is sacred). Flagged in the
+> slice-3 report for the main session to sequence.
+
 `collapse.rs::column` samples `temp_c` / `precip` / `depth_m` once per chunk and every
 column's member-fitness landscape reads those frozen values — so even with the octaves
 member dither (journal/0128) varying the *draw* per voxel, the fitness *thresholds* still
 step at the 28.8 m chunk grid. A step in thresholds is far weaker than the retired step in
 the draw, but it is not zero, and it is U22's named sibling (`dithered_member` under
-chunk-centre context). **Heir: per-column formation context**, naturally part of the
-near-path record restructure (member #0's remaining slice). Loud marker at the sampling
-site in `collapse.rs`.
+chunk-centre context). **Heir: ~~per-column formation context, naturally part of the
+near-path record restructure~~ → a per-column formation-context slice of its own (see
+banner 2)**. Loud marker at the sampling site in `collapse.rs`.
 
 ### 35. the-deep-tiers-content-set-is-hard-wired-to-vanilla — *added 2026-08-01 (P11 slice 1); ordinal assigned at merge 2026-08-02 (sits beside #31 by topic; ordinals follow time, not position); renumbered #34→#35 on 2026-08-02 — the merge-time assignment was blind to the parallel bodies session's binding-key #34 (doc-topology sweep F2)*
 P11 slice 1 made the deep sim **content-aware**: member fitness runs at deposition, so *which

@@ -45,6 +45,25 @@ needs the user's eye).
 > loose vs structure legibility in general); user has thoughts; filed ROADMAP § Observed
 > 2026-08-02.
 
+> **BUILT 2026-08-02/03 (the slice-3 worktree; journal/pending-p11-slice3). The M0
+> numbers this audit demanded, measured:** mover split factor **1.0308×** (226,534
+> would-be splits / 7,363,947 units, seed 1337 Medium) → **P-4 resolved M-1, the mover
+> is in the merge key**; max unit thickness **65.38 m** → the 2⁻¹⁰ m u32 quantum stands
+> (and § 2.3's u16 caution was vindicated — u16 @2⁻¹⁰ caps at 64 m and would have
+> overflowed); `run_strata` is **0.2 % of `column()`** (~7 µs/call, 200-chunk timing) →
+> § 1.3's 4× prior is noise, mitigation (ii) taken. **Two deviations from this body,
+> made loudly:** (1) § 7's two-capture sequencing collapsed into the § 7-priced
+> combined single merge — the accessor sweep and the consumer migration run through the
+> same fourteen files and no compiling intermediate state existed (the journal entry
+> carries the full reasoning); (2) § 4.2's per-chunk 4σ *binomial* floors are unsound
+> under this audit's own I-2 source pick (`Octaves` is coherent, so per-column draws
+> are not independent — journal/0129: *"the source has to be white for that test to
+> mean anything"*); the shipped instrument asserts structural impossibilities of the
+> retired chunk-centre read instead (within-chunk off-lattice transitions; realization
+> of the far parent beyond the 16-voxel legacy reach) and PRINTS the frequency-vs-weight
+> comparison as a report. § 1.4's D-6 stayed OUT per the P-5 default; stub #31's heir
+> re-pointed in its banner.
+
 **Immutable body, mutable header** (CLAUDE.md read-first item 5). Read at commit
 `665167e`. Anything that later refutes or re-scopes this file gets a banner **here**,
 stamped by the author of the correction.

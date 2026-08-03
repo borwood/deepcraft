@@ -279,15 +279,15 @@ fn no_deposited_unit_claims_to_be_an_in_place_organic() {
         // biofacies on the tag. What must not exist is a unit the **erosion
         // recorder** built (a mineral tag) that nonetheless claims to be one of
         // those in-place products.
-        if u.tag.biota.is_organic() {
+        if u.tag().biota.is_organic() {
             continue;
         }
         if matches!(
-            Litho::of_material(u.species),
+            Litho::of_material(u.species()),
             Litho::OrganicPeat | Litho::OrganicCoal | Litho::OrganicCharcoal
         ) {
             offenders += 1;
-            thickest = thickest.max(u.thickness_m);
+            thickest = thickest.max(u.thickness_m());
         }
     }
     assert_eq!(

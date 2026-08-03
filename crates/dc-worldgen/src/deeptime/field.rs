@@ -442,6 +442,34 @@ pub fn production_config_with(
     cfg
 }
 
+/// **One deep cell's mass-coupled read bundle** — the payload of
+/// [`DeepField::cell_bundle`] (P11 slice 3, F2). Record, regolith `H` and the
+/// weathering ledger of the SAME cell travel together; the ledger is private so
+/// its bedrock slot can only be indexed by **this** record's length
+/// ([`Self::weathering_product_m`]) — mixing parents is a type error, not a
+/// discipline.
+pub struct CellBundle<'a> {
+    /// Row-major deep-cell index this bundle names.
+    pub cell: usize,
+    /// The cell's strata record.
+    pub record: &'a DeepStrata,
+    /// The same cell's regolith `H` (metres); `None` when the run kept no
+    /// regolith plane (synthetic tests).
+    pub regolith_m: Option<f64>,
+    ledger: Option<LedgerView<'a>>,
+}
+
+impl CellBundle<'_> {
+    /// Metres of loose weathering product from the bedrock seam, folded at THIS
+    /// record's own bedrock slot (`record.units.len()`) — the only index that
+    /// slot can legally take. `0.0` when inventory weathering is off.
+    pub fn weathering_product_m(&self) -> f64 {
+        self.ledger
+            .as_ref()
+            .map_or(0.0, |l| l.weathering_product_m(self.record.units.len()))
+    }
+}
+
 /// The distilled deep-time output the world keeps: the eroded final surface and
 /// the per-cell strata record, plus the coordinate bridge back to the pregen
 /// grid. Sampled by the collapse layer (elevation + depositional context).
@@ -865,6 +893,43 @@ impl DeepField {
         let ix = ix.clamp(0, self.w as i64 - 1) as usize;
         let iy = iy.clamp(0, self.w as i64 - 1) as usize;
         self.strata.get(iy * self.w + ix)
+    }
+
+    /// **The three mass-coupled reads of ONE deep cell, answered together**
+    /// (P11 slice 3, design audit F2): the strata record, the regolith `H`, and
+    /// the weathering ledger — by **cell index**, for the near path's per-column
+    /// membership dither.
+    ///
+    /// The coupling is why this is one call and not three: `H` is *exactly* the
+    /// sum of the same cell's record unit thicknesses (journal/0053's finalize
+    /// invariant), the collapse tier's surficial veneer is the **difference** of
+    /// the two, and the ledger's bedrock slot index is `record.units.len()` — a
+    /// per-record quantity. Every one of those conserves mass only when all
+    /// three name the **same cell**. A consumer that dithers the record and
+    /// reads `H` or the ledger from anywhere else has written a Law-3 leak at
+    /// every boundary column; routing the collapse tier exclusively through this
+    /// bundle is what makes that un-bundled read inexpressible there.
+    ///
+    /// Edge-clamped like [`Self::record_at_cell`]. `None` when there is no
+    /// record grid at all.
+    pub fn cell_bundle(&self, ix: i64, iy: i64) -> Option<CellBundle<'_>> {
+        if self.strata.is_empty() {
+            return None;
+        }
+        let ix = ix.clamp(0, self.w as i64 - 1) as usize;
+        let iy = iy.clamp(0, self.w as i64 - 1) as usize;
+        let i = iy * self.w + ix;
+        let record = self.strata.get(i)?;
+        Some(CellBundle {
+            cell: i,
+            record,
+            regolith_m: self.regolith.get(i).copied(),
+            ledger: if self.ledgers.is_empty() {
+                None
+            } else {
+                self.ledgers.get(i)
+            },
+        })
     }
 
     /// The **weathering fact ledger** of the deep cell **nearest** the world voxel,

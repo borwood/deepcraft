@@ -43,14 +43,14 @@ fn interior(w: usize, idx: usize) -> bool {
 /// The pre-journal/0068 rule: top unit's lithology, basement if empty.
 fn old_rule(units: &[DepUnit]) -> Litho {
     match units.last() {
-        Some(u) => Litho::of_material(u.species),
+        Some(u) => Litho::of_material(u.species()),
         None => Litho::Basement,
     }
 }
 
 /// Total recorded thickness of a column.
 fn record_m(units: &[DepUnit]) -> f64 {
-    units.iter().map(|u| u.thickness_m).sum()
+    units.iter().map(|u| u.thickness_m()).sum()
 }
 
 /// The deep-cell ↔ world-voxel bridge (as tour_map.rs, from roughness_probe).
@@ -268,8 +268,8 @@ fn main() {
         let coal: f64 = grid.strata[i]
             .units
             .iter()
-            .filter(|u| u.tag.biota == Biofacies::Coal)
-            .map(|u| u.thickness_m)
+            .filter(|u| u.tag().biota == Biofacies::Coal)
+            .map(|u| u.thickness_m())
             .sum();
         if coal > 0.0 && (best_coal.is_none() || coal > best_coal.unwrap().1) {
             best_coal = Some((i, coal));
@@ -282,9 +282,9 @@ fn main() {
             // Burial of the topmost coal unit: thickness above it.
             let top_coal = units
                 .iter()
-                .rposition(|u| u.tag.biota == Biofacies::Coal)
+                .rposition(|u| u.tag().biota == Biofacies::Coal)
                 .expect("column has coal");
-            let burial: f64 = units[top_coal + 1..].iter().map(|u| u.thickness_m).sum();
+            let burial: f64 = units[top_coal + 1..].iter().map(|u| u.thickness_m()).sum();
             println!("  {}", conv.where_line(i));
             println!("  surface elevation : {:.1} m", grid.surf_at(i));
             println!(
@@ -311,9 +311,9 @@ fn main() {
         }
         let (mut beds, mut m) = (0usize, 0.0f64);
         for u in &grid.strata[i].units {
-            if u.tag.biota == Biofacies::Charcoal {
+            if u.tag().biota == Biofacies::Charcoal {
                 beds += 1;
-                m += u.thickness_m;
+                m += u.thickness_m();
             }
         }
         if beds > 0 && (best_char.is_none() || beds > best_char.unwrap().1) {

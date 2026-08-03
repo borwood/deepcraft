@@ -335,14 +335,14 @@ struct Band {
 fn coalesced_bands(strata: &DeepStrata) -> Vec<Band> {
     let mut bands: Vec<Band> = Vec::new();
     for u in &strata.units {
-        if u.thickness_m <= 0.0 {
+        if u.thickness_m() <= 0.0 {
             continue;
         }
         match bands.last_mut() {
-            Some(b) if b.mat == u.species => b.thickness_m += u.thickness_m,
+            Some(b) if b.mat == u.species() => b.thickness_m += u.thickness_m(),
             _ => bands.push(Band {
-                mat: u.species,
-                thickness_m: u.thickness_m,
+                mat: u.species(),
+                thickness_m: u.thickness_m(),
             }),
         }
     }
@@ -643,9 +643,16 @@ fn main() {
             }
             land_sampled += 1;
             let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+            let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
             let col = wgen.column_record(cx, cz);
-            let fill = ColumnFill::build(&col.strata, VOXEL_M);
-            let (span, k) = top_span(set, &fill, &col.strata.events);
+            // P11 slice 3: the record is per column — read the voxel's OWN
+            // column's SubCell, which is exactly what expression renders here.
+            let Some(sub) = col.record_for(lx, lz) else {
+                span_counts[0] += 1;
+                continue;
+            };
+            let fill = sub.fill();
+            let (span, k) = top_span(set, fill, &sub.strata().events);
             span_counts[match span {
                 TopSpan::None => 0,
                 TopSpan::Mixed => 1,
@@ -656,18 +663,18 @@ fn main() {
             // Station 2's verified half AND station 1's buried arm, from one
             // walk of the expressed column.
             let (expr_recorded, expr_dithered, movable_spans, _) =
-                expressed_column(set, &fill, &col.strata.events, vx, vz);
+                expressed_column(set, fill, &sub.strata().events, vx, vz);
 
             // Station 1's event: the SURFACE one where the top span is movable,
             // else the SHALLOWEST movable span in the column — which is a station
             // a bench cut can reach even when the surface cannot show it.
             let mut event = k
                 .filter(|_| span == TopSpan::SingleMovable)
-                .map(|k| (col.strata.events[k], 1u32));
+                .map(|k| (sub.strata().events[k], 1u32));
             if event.is_none() && movable_spans > 0 {
                 for d in 2..=fill.depth_count() as u32 {
                     if let Some(Plan::Single(k)) = fill.plan(d) {
-                        let e = col.strata.events[*k];
+                        let e = sub.strata().events[*k];
                         if e.dither && class_members(set, e.member) > 1 {
                             event = Some((e, d));
                             break;
@@ -1108,8 +1115,8 @@ fn main() {
             let (alt, bands) = member_alternations(&field.strata[*idx]);
             let surf_m = wgen.surface_elev_m(vx, vz);
             let (cx, cz) = (vx.div_euclid(32), vz.div_euclid(32));
+            let (lx, lz) = (vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
             let col = wgen.column_record(cx, cz);
-            let fill = ColumnFill::build(&col.strata, VOXEL_M);
             println!(
                 "\n  S2 #{}  world ({mx:.0} m, {:.0} m)  deep cell ({},{})  voxel ({vx}, {vz})  \
                  chunk ({cx}, {cz})",
@@ -1119,8 +1126,14 @@ fn main() {
                 idx / w
             );
             println!("    near-field surface elevation {surf_m:.1} m");
+            // P11 slice 3: the voxel's own column's SubCell (what renders here).
+            let Some(sub) = col.record_for(lx, lz) else {
+                println!("    (no record realized at this column — station skipped)");
+                continue;
+            };
+            let fill = sub.fill();
             let (recorded, dithered, movable_spans, runs) =
-                expressed_column(set, &fill, &col.strata.events, vx, vz);
+                expressed_column(set, fill, &sub.strata().events, vx, vz);
             println!(
                 "    RANKING QUANTITY — {recorded} RECORDED within-class member contacts on the \
                  expressed face\n      (+ {dithered} contacts the veneer's dither drew, over \
@@ -1293,12 +1306,18 @@ fn main() {
             if depth_m > 30.0 {
                 break;
             }
-            let travelled = Litho::of_material(u.species) != litho_of_tag(u.tag);
+            let travelled = Litho::of_material(u.species()) != litho_of_tag(u.tag());
             match bands.last_mut() {
-                Some(b) if b.0 == u.species => b.1 += u.thickness_m,
-                _ => bands.push((u.species, u.thickness_m, depth_m, u.chapter, travelled)),
+                Some(b) if b.0 == u.species() => b.1 += u.thickness_m(),
+                _ => bands.push((
+                    u.species(),
+                    u.thickness_m(),
+                    depth_m,
+                    u.chapter(),
+                    travelled,
+                )),
             }
-            depth_m += u.thickness_m;
+            depth_m += u.thickness_m();
         }
         for (mat, thickness_m, depth_m, chapter, travelled_class) in bands {
             if thickness_m < VOXEL_M {
@@ -1405,16 +1424,20 @@ fn main() {
                     "same class; the disagreement is at MEMBER grade"
                 }
             );
-            // Does it reach the expression, and at what depth?
+            // Does it reach the expression, and at what depth? (P11 slice 3:
+            // through the voxel's own column's SubCell — what renders here.)
             let col = wgen.column_record(cx, cz);
-            let fill = ColumnFill::build(&col.strata, VOXEL_M);
+            let sub = col.record_for(vx.rem_euclid(32) as usize, vz.rem_euclid(32) as usize);
             let mut found: Option<u32> = None;
-            for d in 1..=fill.depth_count() as u32 {
-                if let Some(e) = expressed_member(set, &fill, &col.strata.events, d, vx, vz)
-                    && set.member(e.member).material == c.recorded
-                {
-                    found = Some(d);
-                    break;
+            if let Some(sub) = sub {
+                let fill = sub.fill();
+                for d in 1..=fill.depth_count() as u32 {
+                    if let Some(e) = expressed_member(set, fill, &sub.strata().events, d, vx, vz)
+                        && set.member(e.member).material == c.recorded
+                    {
+                        found = Some(d);
+                        break;
+                    }
                 }
             }
             match found {
@@ -1528,13 +1551,13 @@ mod gate {
     use dc_worldgen::deeptime::{DepEnv, DepTag, DepUnit, EnergyBand};
 
     fn unit(mat: MaterialId, t: f64) -> DepUnit {
-        DepUnit {
-            tag: DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Medium),
-            thickness_m: t,
-            unconformity: false,
-            chapter: 0,
-            species: mat,
-        }
+        DepUnit::new(
+            DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Medium),
+            t,
+            false,
+            0,
+            mat,
+        )
     }
 
     /// **`member_alternations` must count WITHIN-class changes and only those.**
@@ -1669,5 +1692,275 @@ mod gate {
         rec.events[1].thickness_m = 0.5;
         let fill = ColumnFill::build(&rec, VOXEL_M);
         assert_eq!(top_span(&set, &fill, &rec.events).0, TopSpan::Mixed);
+    }
+
+    /// The materials present in a record's top window (metres per material over
+    /// the top `win_m` of the pile) — the presence quantity the frontier finder
+    /// compares across adjacent cells.
+    fn top_window_materials(rec: &DeepStrata, win_m: f64) -> Vec<(MaterialId, f64)> {
+        let mut out: Vec<(MaterialId, f64)> = Vec::new();
+        let mut acc = 0.0f64;
+        for u in rec.units.iter().rev() {
+            if acc >= win_m {
+                break;
+            }
+            let take = u.thickness_m().min(win_m - acc);
+            if take <= 0.0 {
+                continue;
+            }
+            acc += take;
+            match out.iter_mut().find(|(m, _)| *m == u.species()) {
+                Some((_, t)) => *t += take,
+                None => out.push((u.species(), take)),
+            }
+        }
+        out
+    }
+
+    /// **P11 slice 3's ACCEPTANCE INSTRUMENT** (design audit § 4.2; the
+    /// mudstone-mix border invariant, asserted rather than snapshotted):
+    ///
+    /// > At a deep-cell frontier where one cell's near-surface record contains
+    /// > a member and its neighbour's does not, the presence border stops being
+    /// > a straight chunk-quantized line: both parent records are realized by
+    /// > voxel columns on BOTH sides of the geometric cell edge, and no chunk
+    /// > straddling the frontier is single-parent.
+    ///
+    /// The asserts are **structural impossibilities under the retired
+    /// chunk-centre NEAREST read**, never statistical bounds — and that is a
+    /// deliberate correction to the design audit's § 4.2, which drafted
+    /// per-chunk 4σ *binomial* floors. A binomial bound assumes per-column
+    /// independent draws; the audit's own source pick (I-2: `Octaves`,
+    /// coherent on purpose — a rock body is not per-voxel speckle) makes
+    /// nearby columns share low-frequency draw values, so realized counts at
+    /// chunk granularity are legitimately over-dispersed and a 4σ binomial
+    /// would fire on healthy worlds (journal/0129: *"the source has to be
+    /// white for that test to mean anything"* — the same lesson, at this
+    /// joint). What survives coherence:
+    ///
+    /// 1. a frontier exists (found, not fabricated; a null is printed and is
+    ///    a result — corrections #51);
+    /// 2. **a realized-parent transition exists INSIDE a chunk, off the
+    ///    chunk-pitch lattice** — impossible under the retired read (the
+    ///    parent was constant per chunk, flipping only at x ≡ 0 mod 32; the
+    ///    field report's straight border, inverted into a tripwire);
+    /// 3. **deep interfingering**: a column MORE than 16 voxels west of the
+    ///    geometric cell edge realizes the east parent, and mirrored —
+    ///    impossible under the retired read (nearest-at-centre could hand a
+    ///    column the far parent only inside a straddling chunk, ≤ 16 voxels
+    ///    from the edge);
+    /// 4. the MM-1 frequency-vs-weight comparison is PRINTED as a report, not
+    ///    asserted — the law is asserted where it is measurable (dc-core,
+    ///    white source); a fitted band here would be the tolerance
+    ///    anti-pattern;
+    /// 5. F2: the realized cell's record total equals its own regolith `H`
+    ///    (the Law-3 leak tripwire, per column via the bundle).
+    ///
+    /// **Extent: Medium, and that is the smallest that exercises it** — Small's
+    /// sampled chunks carry no strata record (journal/0129's golden note), so
+    /// no presence frontier is realizable there; the extent requirement is
+    /// about record presence, not production magnitude. Added gate wall-clock
+    /// is reported in the slice's RETURN spec.
+    #[test]
+    fn the_presence_border_interfingers_across_the_deep_cell_frontier() {
+        let pregen = Pregen::run(WorldParams {
+            seed: SEED,
+            extent: EXTENT,
+        });
+        let deep = &pregen.deep;
+        let w = deep.w;
+        let conv = Conv { w, wp: deep.wp };
+        let win_m = 3.0 * VOXEL_M;
+
+        // ---- 1. the frontier finder (the tour-map half) --------------------
+        // Horizontally adjacent interior cell pairs; strongest = most present
+        // metres of a material absent next door.
+        let mut best: Option<(usize, usize, MaterialId, f64)> = None;
+        for iy in 0..w {
+            for ix in 0..w - 1 {
+                let (ia, ib) = (iy * w + ix, iy * w + ix + 1);
+                if !conv.interior(ia) || !conv.interior(ib) {
+                    continue;
+                }
+                let (Some(ra), Some(rb)) = (deep.record_at_cell(ix as i64, iy as i64), {
+                    deep.record_at_cell(ix as i64 + 1, iy as i64)
+                }) else {
+                    continue;
+                };
+                if ra.units.is_empty() || rb.units.is_empty() {
+                    continue;
+                }
+                let (ta, tb) = (
+                    top_window_materials(ra, win_m),
+                    top_window_materials(rb, win_m),
+                );
+                for (m, t) in &ta {
+                    if !tb.iter().any(|(mb, _)| mb == m) && best.as_ref().is_none_or(|b| *t > b.3) {
+                        best = Some((ia, ib, *m, *t));
+                    }
+                }
+                for (m, t) in &tb {
+                    if !ta.iter().any(|(ma, _)| ma == m) && best.as_ref().is_none_or(|b| *t > b.3) {
+                        best = Some((ib, ia, *m, *t));
+                    }
+                }
+            }
+        }
+        let Some((present, absent, mat, strength)) = best else {
+            // A null is a result: brief it, never fabricate a station.
+            println!(
+                "NULL: no adjacent deep-cell pair differs in top-window material \
+                 presence on this world — nothing for the border invariant to bind on"
+            );
+            return;
+        };
+        let (pa, pb) = (conv.meters(present), conv.meters(absent));
+        println!(
+            "frontier: {mat:?} present {strength:.2} m in cell {present} \
+             ({:.0} m, {:.0} m), absent in neighbour {absent} ({:.0} m, {:.0} m)",
+            pa.0, pa.1, pb.0, pb.1
+        );
+        // Ready pose for the walk (station 1), on the edge midpoint.
+        let (va, vb) = (conv.idx_to_voxel(present), conv.idx_to_voxel(absent));
+        let edge_vx = (va.0 + vb.0) / 2;
+        println!(
+            "station pose (feet, world metres): x {:.1} z {:.1} — the cell edge runs N-S here",
+            edge_vx as f64 * VOXEL_M,
+            va.1 as f64 * VOXEL_M
+        );
+
+        // ---- 2..5. the frontier neighbourhood ------------------------------
+        // A band of chunks either side of the edge (±2 chunks in x, a strip in
+        // z), so the deep-interfingering assert (#3) can see columns well past
+        // the 16-voxel reach the retired read had.
+        let mut g = WorldGenerator::new(&pregen);
+        let (west, east) = if va.0 < vb.0 {
+            (present, absent)
+        } else {
+            (absent, present)
+        };
+        let edge_cx = edge_vx.div_euclid(32);
+        let mut off_lattice_transitions = 0usize; // #2
+        let mut deep_west_east = 0usize; // #3: >16 vox west, realizes east
+        let mut deep_east_west = 0usize; // #3 mirrored
+        let mut f2_checked = 0usize;
+        let mut columns_seen = 0usize;
+        // #4's report quantities: pooled realized-vs-weight for the two parents.
+        let mut expect_w = 0.0f64;
+        let mut obs_w = 0usize;
+        for k in -6i64..=6 {
+            let cz = (va.1 + k * 32).div_euclid(32);
+            for dcx in -2i64..=2 {
+                let ccx = edge_cx + dcx;
+                let col = g.column_record(ccx, cz);
+                for lz in 0..32usize {
+                    // The realized parent along this west→east row of columns;
+                    // a change at lx with vx % 32 != 0 is a transition the
+                    // retired chunk-constant read could not produce. Rows are
+                    // scanned per chunk, so a chunk-boundary flip never counts.
+                    let mut prev: Option<u32> = None;
+                    for lx in 0..32usize {
+                        let (vx, vz) = (ccx * 32 + lx as i64, cz * 32 + lz as i64);
+                        let Some(sub) = col.record_for(lx, lz) else {
+                            prev = None;
+                            continue;
+                        };
+                        let Some(gcell) = sub.cell_index() else {
+                            prev = None;
+                            continue;
+                        };
+                        columns_seen += 1;
+                        if let Some(p) = prev
+                            && p != gcell
+                        {
+                            // lx > 0 by construction: within-chunk transition.
+                            off_lattice_transitions += 1;
+                        }
+                        prev = Some(gcell);
+                        // ---- 3. deep interfingering past the 16-voxel reach.
+                        if vx < edge_vx - 16 && gcell as usize == east {
+                            deep_west_east += 1;
+                        }
+                        if vx > edge_vx + 16 && gcell as usize == west {
+                            deep_east_west += 1;
+                        }
+                        // ---- 4's report: realized-vs-weight for the west
+                        // parent (printed, never asserted — see the doc
+                        // comment on why a σ bound is unsound here).
+                        if let Some((gx, gy)) = deep.deep_coords(vx, vz) {
+                            let (i0, j0) = (gx.floor(), gy.floor());
+                            let (fx, fz) = (gx - i0, gy - j0);
+                            for (di, dj, wt) in [
+                                (0i64, 0i64, (1.0 - fx) * (1.0 - fz)),
+                                (1, 0, fx * (1.0 - fz)),
+                                (0, 1, (1.0 - fx) * fz),
+                                (1, 1, fx * fz),
+                            ] {
+                                let ci = (i0 as i64 + di).clamp(0, w as i64 - 1) as u32;
+                                let cj = (j0 as i64 + dj).clamp(0, w as i64 - 1) as u32;
+                                if cj * w as u32 + ci == west as u32 {
+                                    expect_w += wt;
+                                }
+                            }
+                        }
+                        if gcell as usize == west {
+                            obs_w += 1;
+                        }
+                        // ---- 5. the F2 bundle: record total == the SAME
+                        // cell's H. Sampled sparsely (one column in 64) — the
+                        // predicate is per-column and identical everywhere.
+                        if (lz * 32 + lx) % 64 == 0 {
+                            let (ci, cj) = (gcell as i64 % w as i64, gcell as i64 / w as i64);
+                            if let Some(bundle) = deep.cell_bundle(ci, cj)
+                                && let Some(h) = bundle.regolith_m
+                            {
+                                // Bound: the recorder's f64 accumulation
+                                // residual, plus (post-pack) half a thickness
+                                // quantum — both under 1e-3 m. Derived, not
+                                // fitted.
+                                assert!(
+                                    (bundle.record.total_m() - h).abs() < 1e-3,
+                                    "cell {gcell}: record total {} != regolith H {h} — \
+                                     the dithered column reads a record and an H that \
+                                     disagree (the F2 Law-3 leak)",
+                                    bundle.record.total_m()
+                                );
+                                f2_checked += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        assert!(
+            columns_seen > 10_000,
+            "only {columns_seen} recorded columns near the frontier — the sample \
+             cannot carry the invariant"
+        );
+        // ---- 2. the border left the chunk lattice --------------------------
+        assert!(
+            off_lattice_transitions > 0,
+            "no realized-parent transition occurs INSIDE any chunk near the \
+             frontier — under the retired chunk-centre NEAREST read the parent was \
+             constant per chunk (transitions only at 28.8 m chunk pitch), and that \
+             is still what this world shows (the field report's straight border)"
+        );
+        // ---- 3. deep interfingering ----------------------------------------
+        assert!(
+            deep_west_east > 0 && deep_east_west > 0,
+            "no column further than 16 voxels from the cell edge realizes the far \
+             parent (west→east {deep_west_east}, east→west {deep_east_west}) — the \
+             retired read could reach at most 16 voxels past the edge (a straddling \
+             chunk's half), so a cell-wide membership blend must exceed it"
+        );
+        assert!(f2_checked > 0, "the F2 bundle check never ran");
+        println!(
+            "border invariant: {off_lattice_transitions} within-chunk parent \
+             transitions; deep interfingering west→east {deep_west_east} / east→west \
+             {deep_east_west} columns (past the 16-voxel legacy reach); MM-1 report — \
+             west parent realized {obs_w} of {columns_seen} columns vs summed bilinear \
+             weight {expect_w:.0} (printed, not asserted: coherent source); F2 bundle \
+             checked at {f2_checked} columns"
+        );
     }
 }

@@ -328,7 +328,7 @@ fn a_recorded_unit_can_be_made_of_something_its_environment_would_not_imply() {
         f.strata
             .iter()
             .flat_map(|s| s.units.iter())
-            .filter(|u| Litho::of_material(u.species) != litho_of_tag(u.tag))
+            .filter(|u| Litho::of_material(u.species()) != litho_of_tag(u.tag()))
             .count()
     };
     assert_eq!(
@@ -358,7 +358,7 @@ fn no_recorded_unit_claims_to_be_basement() {
         .strata
         .iter()
         .flat_map(|s| s.units.iter())
-        .filter(|u| Litho::of_material(u.species) == Litho::Basement)
+        .filter(|u| Litho::of_material(u.species()) == Litho::Basement)
         .count();
     assert_eq!(
         basement_units, 0,
@@ -376,16 +376,16 @@ fn no_recorded_unit_claims_to_be_basement() {
 /// snapshot a future field would have to be talked out of.
 #[test]
 fn the_species_axis_costs_the_record_nothing() {
-    #[allow(dead_code)]
-    struct DepUnitBefore {
-        tag: dc_worldgen::deeptime::DepTag,
-        thickness_m: f64,
-        unconformity: bool,
-        chapter: u8,
-    }
+    // The pre-P11 claim was "species fits the 16-byte layout's padding". Since
+    // P11 slice 3 the unit is PACKED (8 bytes: u32 bitfield + u32 fixed-point
+    // thickness), and the axis claim got stronger, not weaker: species (6 bits),
+    // the mover (3) and the grain reservation (3) all ride INSIDE half the old
+    // footprint. The invariant this test keeps is the direction — axes must not
+    // grow the unit — asserted against the packed layout's own compile-checked
+    // size.
     assert_eq!(
         std::mem::size_of::<dc_worldgen::deeptime::DepUnit>(),
-        std::mem::size_of::<DepUnitBefore>(),
-        "the species axis grew DepUnit; it was supposed to fit its padding"
+        8,
+        "an axis grew the packed DepUnit past its 8 bytes"
     );
 }

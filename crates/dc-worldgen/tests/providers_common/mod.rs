@@ -229,7 +229,14 @@ pub const SEED: u64 = 0x0B0A_57EE_0059;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x15A6_B756_7A84_29FB`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0xBF63_DA9D_2974_022A`.
-pub const GOLDEN_SURFACE: u64 = 0xC1AA_3442_90EF_F070;
+// Re-captured 2026-08-03 (P11 slice 3, journal/pending-p11-slice3): the packed
+// `DepUnit` quantizes recorded thickness to 2^-10 m and the quantized record
+// feeds back through the outcrop window into erosion rates, so the whole deep
+// trajectory moves once — ratified quantization semantics (U5), NOT float order
+// (fixed-point sums are exact and commutative; corrections #89's hazard class
+// retires for record sums). The near-path restructure (3a) additionally moved
+// the collapse-tier families (per-column record membership, ruling 5).
+pub const GOLDEN_SURFACE: u64 = 0x0DB6_2869_EF90_E09B;
 
 /// **The pre-journal/0122 hillslope operator, reachable and pinned.** The same
 /// production fixture built with `DeepConfig::creep_substep = false`: one raw
@@ -244,13 +251,15 @@ pub const GOLDEN_SURFACE: u64 = 0xC1AA_3442_90EF_F070;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x260E_074F_211C_936D`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0x3866_6989_FA2D_FD09`.
-pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0xC90E_3EAB_0FFB_71E9;
+// Re-captured 2026-08-03 (P11 slice 3): quantization semantics reach every
+// config arm — the un-sub-cycled operator runs over the same packed record.
+pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0x5ADF_C706_CB10_BB7F;
 /// The strata-record half of [`GOLDEN_SURFACE_UNBOUNDED_CREEP`].
 ///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0xACB6_1859_6AA3_F3A8`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0xE106_8099_C93B_1877`.
-pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0x741D_C7B0_B9B3_CEC8;
+pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0x3911_0859_768D_07F7;
 
 /// **The CALIBRATED world, reachable and pinned** (journal/0114). The same fixture
 /// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
@@ -292,13 +301,15 @@ pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0x741D_C7B0_B9B3_CEC8;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x53AD_BCCE_B157_09A8`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 above.** Case 1, the RULE, at the calibrated rates: member-grade erosion rates plus the retired deposition draw, exactly as the shipped arm. This constant pins a FUTURE solve so the eventual flip is a diff and not a surprise; it re-captures for the same reason the shipped one does. Prior value, kept for audit: `0xCE38_7587_69F0_64F2`.
-pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x8A59_7494_F877_D8E2;
+// Re-captured 2026-08-03 (P11 slice 3): the calibrated arm records through the
+// same packed recorder — see GOLDEN_SURFACE.
+pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x0850_6980_60C4_60F2;
 /// The strata-record half of [`GOLDEN_SURFACE_CALIBRATED`].
 ///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x830E_768D_3D1D_866B`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 above.** Case 1, the RULE, at the calibrated rates: member-grade erosion rates plus the retired deposition draw, exactly as the shipped arm. This constant pins a FUTURE solve so the eventual flip is a diff and not a surprise; it re-captures for the same reason the shipped one does. Prior value, kept for audit: `0x8AF6_5B99_579C_436A`.
-pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x9B24_4E0E_ADF9_97B4;
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0xE6F0_3350_F22B_FC3D;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -314,7 +325,8 @@ pub const GOLDEN_RECORD_CALIBRATED: u64 = 0x9B24_4E0E_ADF9_97B4;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x176D_40F1_1CCB_006A`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0x98E4_1972_0DA0_8EB6`.
-pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x948F_7D61_463D_F644;
+// Re-captured 2026-08-03 (P11 slice 3): same mechanism as SCALAR_LOAD above.
+pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0xD84C_6A4D_48A8_DCC1;
 /// **The pre-2b fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::material_transport`](dc_worldgen::deeptime::DeepConfig) **off**
 /// must reproduce the goldens as they stood before Movement 2b (journal/0110) —
@@ -333,13 +345,16 @@ pub const GOLDEN_SURFACE_SINGLE_RECEIVER: u64 = 0x948F_7D61_463D_F644;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0x6F83_4D53_DB89_8C36`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0xC013_3553_0033_93A5`.
-pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0xFE29_469F_A773_4C22;
+// Re-captured 2026-08-03 (P11 slice 3): the scalar-load arm records through the
+// same packed recorder (quantized thickness, mover axis), so the pre-2b fixed
+// point moved once with the pack and holds again.
+pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0x1CB0_C1BC_66BF_0EB7;
 /// The strata-record half of [`GOLDEN_SURFACE_SCALAR_LOAD`].
 ///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x3940_3AD9_C3A8_FD83`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0x98B6_DAD5_5796_8D6A`.
-pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x738A_7122_82EA_8EA3;
+pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0xE4F1_395B_565D_EFDF;
 
 /// **The fluvial-only fixed point, still reachable.** The same fixture world with
 /// [`DeepConfig::material_creep`](dc_worldgen::deeptime::DeepConfig) **off** must
@@ -380,13 +395,14 @@ pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x738A_7122_82EA_8EA3;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** Rounding, not rule (case 2). Prior value,
 /// kept for audit: `0xDAB0_34AC_9984_209C`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0xFAC2_2A81_1311_2075`.
-pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0x3458_DF33_DAE8_F49D;
+// Re-captured 2026-08-03 (P11 slice 3): same mechanism as SCALAR_LOAD above.
+pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xA706_5161_068F_061D;
 /// The strata-record half of [`GOLDEN_SURFACE_ANONYMOUS_CREEP`].
 ///
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
 /// rock (case 1). Prior value, kept for audit: `0x447D_E3D0_7675_8D21`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0xE77F_385F_D58E_F020`.
-pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0xA350_9CF8_4C6F_A295;
+pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x5DEE_9CC7_8C0C_8AF3;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
 ///
 /// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**
@@ -403,7 +419,7 @@ pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0xA350_9CF8_4C6F_A295;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
 /// rock (case 1). Prior value, kept for audit: `0xAB2E_0CA4_2412_05C1`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 above.** Case 3, ROUNDING not rule: the single-receiver differential claim is untouched, but the world it is an arm OF now has member-grade rates. Prior value, kept for audit: `0x5ECD_3AC2_7468_5D5C`.
-pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x7A0B_0B0A_D430_4F6C;
+pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x0571_3759_07DA_44BB;
 /// FNV-1a-64 over the strata record of the same field.
 ///
 /// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
@@ -475,7 +491,10 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x7A0B_0B0A_D430_4F6C;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x820B_A198_49DD_234A`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0x6739_19DA_BBA4_EA86`.
-pub const GOLDEN_RECORD: u64 = 0x548A_6D50_3E53_D4C9;
+// Re-captured 2026-08-03 (P11 slice 3): see GOLDEN_SURFACE's note — the record
+// itself is the quantized artifact (8 B packed units; mover axis in the key,
+// measured 1.0308x before joining).
+pub const GOLDEN_RECORD: u64 = 0x84E4_2349_B872_6684;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on
@@ -610,15 +629,15 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
         h.usize(s.units.len());
         h.u64(u64::from(s.strips));
         for u in &s.units {
-            h.byte(env_code(u.tag.env));
-            h.byte(aridity_code(u.tag.aridity));
-            h.byte(energy_code(u.tag.energy));
-            h.byte(biota_code(u.tag.biota));
-            h.byte(eolian_code(u.tag.eolian));
-            h.f64(u.thickness_m);
-            h.byte(u8::from(u.unconformity));
-            h.byte(u.chapter);
-            h.byte(species_code(u.species));
+            h.byte(env_code(u.tag().env));
+            h.byte(aridity_code(u.tag().aridity));
+            h.byte(energy_code(u.tag().energy));
+            h.byte(biota_code(u.tag().biota));
+            h.byte(eolian_code(u.tag().eolian));
+            h.f64(u.thickness_m());
+            h.byte(u8::from(u.unconformity()));
+            h.byte(u.chapter());
+            h.byte(species_code(u.species()));
         }
     }
     h.0

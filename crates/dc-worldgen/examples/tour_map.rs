@@ -244,9 +244,9 @@ fn aggregates(off: &DeepRun, wind: &DeepRun, frost: &DeepRun, wave: &DeepRun) {
     let (mut loess, mut dune) = (0.0f64, 0.0f64);
     for s in &wind.grid.strata {
         for u in &s.units {
-            match u.tag.eolian {
-                Eolian::Loess => loess += u.thickness_m,
-                Eolian::Dune => dune += u.thickness_m,
+            match u.tag().eolian {
+                Eolian::Loess => loess += u.thickness_m(),
+                Eolian::Dune => dune += u.thickness_m(),
                 Eolian::None => {}
             }
         }
@@ -344,8 +344,8 @@ fn station_dune(full: &DeepRun, conv: &Conv) {
         let dune: f64 = s
             .units
             .iter()
-            .filter(|u| u.tag.eolian == Eolian::Dune)
-            .map(|u| u.thickness_m)
+            .filter(|u| u.tag().eolian == Eolian::Dune)
+            .map(|u| u.thickness_m())
             .sum();
         if dune > best.1 {
             best = (i, dune);
@@ -379,8 +379,8 @@ fn station_loess(full: &DeepRun, off: &DeepRun, conv: &Conv) {
         let loess: f64 = s
             .units
             .iter()
-            .filter(|u| u.tag.eolian == Eolian::Loess)
-            .map(|u| u.thickness_m)
+            .filter(|u| u.tag().eolian == Eolian::Loess)
+            .map(|u| u.thickness_m())
             .sum();
         if loess > best.1 {
             best = (i, loess);
@@ -409,7 +409,7 @@ fn station_loess(full: &DeepRun, off: &DeepRun, conv: &Conv) {
             let is_dune = full.grid.strata[j]
                 .units
                 .iter()
-                .any(|u| u.tag.eolian == Eolian::Dune);
+                .any(|u| u.tag().eolian == Eolian::Dune);
             let is_arid = off.grid.surf_at(j) > 0.0 && f64::from(off.grid.precip[j]) < arid;
             if is_dune || is_arid {
                 let d = ((dx * dx + dy * dy) as f64).sqrt() * full.grid.cell_m;

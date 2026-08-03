@@ -73,7 +73,11 @@ fn cfg_for(cells: &CellGrid) -> DeepConfig {
 /// The flux record is deliberately species-blind, so this moved **only** with the
 /// routing it accumulates over — case 2, downstream.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 1, the RULE: the erosion rate is now a function of the ROCK, not of its class, so a window holding mudstone and siltstone blends two multipliers where it blended one — and transported deposits take their identity from the load rather than from a draw. Case 3 rides along: the CSR row visits the species a cell actually holds, so the partial sums of a budget land differently from a dense row padded with zeros. Prior value, kept for audit: `0x08DC_FCE9_0048_B6FA`.
-const GOLDEN_FLUX: u64 = 0xB43D_D464_CE87_3C5C;
+// Re-captured 2026-08-03 (P11 slice 3, the packed record): flux magnitudes
+// integrate a solve whose rates read the quantized outcrop window — the
+// record's quantization feeds the whole deep trajectory (U5 semantics;
+// journal/pending-p11-slice3).
+const GOLDEN_FLUX: u64 = 0x1674_A7A5_BF33_D342;
 
 fn flux_fingerprint(r: &dc_worldgen::deeptime::FluxRecord) -> u64 {
     fn byte(b: u8, h: &mut u64) {
@@ -225,7 +229,8 @@ fn the_stratum_slot_is_derived_from_the_chapter_stamp() {
             match slot_for_chapter(strata, k) {
                 Some(slot) => {
                     assert_eq!(
-                        strata.units[slot].chapter, k,
+                        strata.units[slot].chapter(),
+                        k,
                         "slot {slot} of cell {i} is not chapter {k}"
                     );
                     checked += 1;
