@@ -8,6 +8,23 @@
 > the venue). U-5 (extraction-first) is thereby also closed as executed. **U-1,
 > U-2, U-4 remain open — being taken one at a time.**
 
+> **✅ U-1 RULED 2026-08-04 (user: "we just have to run with k2 and get the
+> measurements re: anisotropy"):** **K2**, K0 retained as the reference scheme,
+> K1 rejected as priced, K3 deferred with its road named. **The § 2 fallback map is
+> AMENDED at ratification, two ways:** (1) the user explicitly UN-COMMITS the
+> fallback — *"your k2-alt may not cost less than k3, idk, but not thinking about
+> that right now"* — so if the study's measurements demand an escalation, **K2-alt
+> vs K3 is re-priced THEN, on real numbers; no fallback is pre-committed**; (2) the
+> ratification conversation surfaced that K2's two named weaknesses have different
+> heirs — anisotropy (splitting error; the rotated-ridge fixture measures it) vs
+> cascade fidelity in the ~70 %-limited regime (K2's fixed-Picard approximation;
+> K2-alt would inherit it, only K3 removes it) — and the § 5 study gains an
+> **assistant-proposed strongly-limited cascade fixture** (a steep bare-bedrock
+> chain) so cascade adequacy is measured, not assumed. Perf was established as a
+> non-decider between K2 and K3 (both flat in M, constant factor apart, both inside
+> the 1,200 s budget); the pick is engineering mass vs exactness, resolved toward
+> K2-with-measurements.
+
 **Arc anchor:** `docs/dependency-graph.md:50` (E4, "SHAPE NAMED 2026-07-29 (S-10), 2 instances,
 NOT EXTRACTED") + `:56-61` (§ "E4's rule") · `docs/spines.md:1078-1167` (S-10, RATIFIED
 2026-07-29) · `docs/design/stubs.md:1295-1354` (#30, the DERIVED half still owed, heir = this
