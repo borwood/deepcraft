@@ -1851,3 +1851,107 @@ measure surface penetration); not the solve production runs.
 - **Blast radius:** every joint whose real limit is soft tissue is unbounded or wildly wide until a
   pack declares it — the correct division (declaration is content's job), but it means the derived
   default is not by itself a plausibility model, only an impossibility bound.
+
+<!-- STUBS: unnumbered — drafted by the B6 body-composition DESIGN PASS, 2026-08-03
+     (docs/audits/2026-08-03-b6-body-composition-design.md § 11). NOTHING BELOW IS RATIFIED
+     and no code was changed; these are draft bodies awaiting the design pass's user calls.
+     The integrator assigns ordinals at merge. Do not renumber anything above. -->
+
+### NN. an-inertia-with-no-actuation — *drafted 2026-08-03 (B6 design pass § 9; contingent on B6 being greenlit)*
+- **What it fakes:** the mass integral supplies the **inertia** half of every force-shaped hole in
+  the bodies arc and **none of the power half**. `√(gMd/I)` gives a limb's pendulum frequency; it
+  gives nothing that generates a push-off, a take-off impulse, or a joint torque. So a build that
+  lands B6 has **not** made the gait force-aware — it has made the gait's *denominator* real.
+- **Why it must be filed the moment B6 lands:** the corpus currently records **eight named inbound
+  heirs** on B6 (`dependency-graph.md` § 2b), and the design pass measures that B6-as-proposed
+  closes **zero of them outright**: S1 `cadence_scale` and S4 `swing_flexion` go half-derived,
+  S2 `duty_exponent` becomes a candidate, and S3, #39 and #49 are not touched at all (§§ 9.2–9.4).
+  **Without this entry, "B6 shipped" reads as "the eight are discharged", which is false.**
+- **Heir:** an **actuation model** — joint torque / muscle force / an actuator with a power
+  density. Nothing in the corpus designs one, at any stage.
+- **Loudness owed:** the integral's module doc must say what it is not, and any output derived
+  through it (a derived `cadence_scale`) must **report** that its numerator is still authored —
+  the ratified docket's *report-when-out-of-band* rule applied to a missing term rather than an
+  out-of-band one. A silently half-derived knob is the summary-wearing-authority defect.
+- **Blast radius:** every `GaitKnobs` stand-in · the run's flight phase · the standing-posture
+  effort term (member #0's zero-torque static geometry) · B7's ligamentous end-ranges · anything
+  that would want to ask *how hard can this body push*.
+
+### NN. the-tissue-materials-are-test-stand-ins — *drafted 2026-08-03 (B6 design pass § 0a, § 5; the user's caveat is the entry)*
+- **What it fakes:** the tissue materials B6 would add (`dc:tissue/{muscle,fat,bone,void}`) are
+  **TEST MATERIALS** — stand-ins that exist so the mass integral has real numbers to integrate,
+  and nothing more. **[user-ruled, 2026-08-03, verbatim]:** *"the materials you recommend are
+  ~ testing materials. we don't know if there are different types of bone and muscle yet, etc."*
+  **They are not a roster, not a taxonomy, and not a claim about what bodies are made of.** There
+  may be many kinds of bone (cortical ≈ 1900 kg/m³ vs trabecular 200–1000 apparent — *a factor of
+  nearly ten inside one word*) and many kinds of muscle (slow vs fast twitch), and the pneumatic
+  bone that makes a bird a bird is a third thing again.
+- **⚠ Nothing may be tuned to these numbers** — no constant derived from them, no golden pinned
+  to them, no calibration seated against them. They are recalled **human** figures (NOT
+  network-verified) applied to a **caricature** body measured at **2.43×** a human's volume, so a
+  constant fitted to them is fitted to an accidental composite of a real measurement and a
+  bring-up geometry.
+- **Why they exist at all** (the *existence-is-not-standing* test, applied to this pass's own
+  proposal): *would we build a tissue taxonomy today?* **No** — bio/eco is ON HOLD and the gate is
+  a user call. *Would we supply four densities so an integral stops integrating the number 1?*
+  **Yes.** That is the whole of the justification and it does not extend one entry further.
+- **Heir:** a **ratified tissue vocabulary** — a **USER call**, gated on bio/eco, which engine
+  progress does not earn.
+- **Loudness:** four structural markers rather than a note (design pass § 5.5) — the `dc:tissue/*`
+  namespace · **no content-class membership**, so no pass can ever select them into the ground ·
+  an **empty `RELEASE_DECLARATIONS` row, asserted** by `no_tissue_declares_an_edge_product` ·
+  **no granular facet**, so a grain-size or sieve question about muscle is *inexpressible* rather
+  than answered wrongly. Plus the doc comment at the four registry rows.
+- **Blast radius:** every derived mass, CoM and inertia in the bodies arc · the whole-body density
+  literature check · **21 remaining slots** against the compile-time registry ceiling of 51
+  (§ 21) — a seven-muscle, four-bone taxonomy would consume half of it, which is itself an
+  argument for keeping the *test* set at four.
+
+### NN. a-composition-whose-radial-order-nothing-reads — *drafted 2026-08-03 (B6 design pass § 3.3)*
+- **What it fakes:** `SegmentDef.composition` is an **ordered** list of layers, outward from the
+  segment's long axis, exactly as the user's design states (`ideas.md`: *"mixed materials per
+  segment, **radially ordered**"*). **The mass integral is order-invariant — a sum is — so today
+  the order is carried and read by nothing.** It is preserved because it is the author's
+  declaration, not because a consumer exists.
+- **What the order is WORTH to the animation path, measured rather than assumed:** radial
+  redistribution moves mass only within a segment's cross-section, so it can touch only the
+  `m·z²/12` term of a limb's swing inertia and neither the long-axis term nor the parallel-axis
+  term. On the shipped biped's leg that term is **1.277 %** of the hip inertia, so under a
+  *physically impossible* extreme (all mass at the skin, or all on the bone axis) the inertia
+  moves **[−1.28 %, +2.55 %]** and the derived cadence **[−1.25 %, +0.65 %]**. Below any bar this
+  project accepts a slice on — **which is why the reader is deferred and the DESIGN is not.**
+- **⚠ This is a SCOPING choice, never a narrowing of the user's design** (corrections #65 checked
+  before filing): the ordering survives in the data, and what is deferred is a *reader*.
+- **Heir:** the order's real consumers, all outside the animation scope — **harvest depth** (you
+  butcher inward: skin, fat, meat, bone) · **damage penetration** (an arrow reaches different
+  tissue at different depth) · **buoyancy's shell term** (`posture-gait.md` § 5's fourth rule; a
+  blubber shell is a floating body's whole story) · and, distantly, a radial inertia term.
+- **Loudness:** ✅ in-module at `CompLayer` · ✅ `radial_order_does_not_change_the_mass_integral`
+  asserts the invariance as a *property*, so the day a consumer does read the order **that test is
+  what fails and says so**.
+- **Blast radius:** nothing today, by construction. The entry exists so the order is not later
+  deleted as dead data, and so the first order-reading consumer knows what it is inheriting.
+
+### NN. density-is-not-stiffness — *drafted 2026-08-03 (B6 design pass § 9.2; a correction to two entries above)*
+- **What it fakes:** two live stubs name **B6** as the heir of a quantity B6 structurally cannot
+  supply. **Stiffness is an ELASTIC MODULUS, and density is not one** — two materials of identical
+  density can differ in modulus by orders of magnitude, `MaterialProps` carries no modulus axis,
+  and the B6 design pass does not propose one.
+  - **`the-four-gait-knobs-are-force-shaped-holes-wearing-taste-clothes` (S3 `bob_damping`).** The
+    gait design pass's absorption table says *"B6 gives joint stiffness → the stance chain flexes
+    under load and the reduction emerges."* **It does not.** B6 gives the **load** the stance chain
+    carries; it says nothing about what the chain *does* under that load. S3 is **not absorbed**.
+  - **`a-limit-that-cannot-know-soft-tissue` (B7's).** A ligamentous end-range is a force produced
+    by a *compliant tissue*; B6 gives mass. Its honest heir is the same modulus axis.
+- **And a third, adjacent:** `the-flight-phase-is-not-derivable-at-density-one` says the flight
+  phase *"wants mass"* — but **a ballistic arc of a CoM is mass-INDEPENDENT** (`m` cancels out of
+  `mg = ma`). What needs force is the **take-off impulse**, which is actuation, not density.
+- **Heir:** a **mechanical-property axis on the material sheet** (elastic modulus, yield) plus a
+  compliant joint model. Neither exists nor is designed anywhere in the corpus.
+- **Loudness owed:** the three entries above must record the re-attribution, and
+  `docs/audits/2026-08-02-gait-bake-member1-design.md` **owes a banner** — a correction's author
+  stamps its target in the same commit (CLAUDE.md read-first item 5; a one-directional pointer is
+  not a pointer).
+- **Blast radius:** the expected discharge list of B6 shrinks by three entries · any plan that
+  sequenced *"B6 then the bob is right"* · the walk verdict on the bob specifically, which is a
+  verdict on S3 and therefore on a knob B6 does not own.
