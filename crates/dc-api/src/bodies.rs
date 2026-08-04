@@ -680,8 +680,10 @@ mod default_pack;
 mod experiments;
 mod gait;
 pub mod limits;
+pub mod mass;
 
 pub use limits::{Bound, DofLimit, JointLimit, JointLimits, derive_joint_limits};
+pub use mass::{MassProperties, mass_properties, segment_densities};
 
 pub use bake::{
     BakeOutcome, ChainPose, JointAngle, RestingPosture, bake_resting_posture, stance_chain,
