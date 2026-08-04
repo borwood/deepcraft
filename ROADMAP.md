@@ -367,12 +367,15 @@ carries the full ruling, the rejected alternative and the foreclosed work; this 
 restate them.
 
 **WHY.** A fixed rate **aliases a derived cadence**. Frames-per-cycle stopped being a number
-anyone chose the moment gait was derived per body: biped 6.977, longleg 7.742, **stout 4.286** —
+anyone chose the moment gait was derived per body: biped **6.970**, longleg **7.729**, **stout 4.291** —
+*(these read 6.977 / 7.742 / 4.286 until 2026-08-04: three-decimal figures carried from conversation,
+off in the third decimal. **Measured at the build**, and journal/0148's own two-decimal table
+— 6.97 / 7.73 / 4.29 — was right all along. **No N moves**; the ruling is untouched.)*
 low *and* fractional, so its samples drift through the cycle and beat against it. The user saw
 the hitch at the 0148 walk and diagnosed it unprompted. **A-1's fourth instance in this arc**
 (after the four absolute-metre constants, the world-global walk speed, and the hardcoded gravity).
-*The fix is that N becomes an **integer**, not that it becomes larger* — 4.286 → **4**, 6.977 → **7**,
-7.742 → **8**. Nothing gets smoother; it stops beating.
+*The fix is that N becomes an **integer**, not that it becomes larger* — 4.291 → **4**, 6.970 → **7**,
+7.729 → **8**. Nothing gets smoother; it stops beating.
 
 **UNIFIES.** Third instance of *the sim owns the target, the client owns the approach* — framerate
 is approach. First use of `dependency-graph.md` § 0b (**opinion vs absence**) to place a body knob:
@@ -381,7 +384,7 @@ opinion because two well-made packs would answer *"is this body mechanical"* dif
 
 **FIRST SLICE.** Client-side only, no firewall move, no sim state: derive `N` per cycle from the
 target; clamp at 2; blend `Δt = duration / N` per bone by ownership; delete the fixed constant.
-Acceptance is **the stout's hitch gone with the biped visually unchanged** (6.977 → 7 is inside a
+Acceptance is **the stout's hitch gone with the biped visually unchanged** (6.970 → 7 is inside a
 rounding), and a test that `N` is integer and ≥ 2 for every plan across a cadence sweep. **Its one
 open call: an explicit guard that quantization never feeds back into anything sim-visible** — if
 B5's damage resolution reads a pose it reads the *unquantized* target, or two clients at different
@@ -3312,8 +3315,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   rules updated same commit). Deny and allow paths both proven live in-session, including
   a real denial of this session's own cargo call against a planted foreign claim.
 
-- **🟠 `quantize_time` FLOORS ON AN ABSOLUTE GRID THEN WRAPS, SO A LOOPING CLIP'S FRAMES ARE
-  ANCHORED TO t=0 RATHER THAN TO THE LOOP** (`dc-client/src/body.rs`; found 2026-08-01 while
+- **✅ RESOLVED 2026-08-04 — DISSOLVED, NOT FIXED, by the per-cycle quantization slice
+  (journal/0155).** This entry asked that the wrap-before-quantize order be corrected *"with the
+  slice that makes the pose sim-visible, not before."* **Per-cycle quantization is phase-domain
+  quantization, so there is no absolute-time grid left for a loop to drift against** — the defect
+  has no expressible form in the new scheme, and the builder reports it had no alternative to
+  choose. `looping_wraps_to_the_same_phase` is back to an exact `assert_eq!` and now also covers a
+  **0.7 s clip**, the exact case this entry named. *Recorded because a side-effect resolution is
+  the easy kind to leave rotting on the board: nobody who fixed it was looking at this entry.*
+
+- ~~**🟠 `quantize_time` FLOORS ON AN ABSOLUTE GRID THEN WRAPS, SO A LOOPING CLIP'S FRAMES ARE
+  ANCHORED TO t=0 RATHER THAN TO THE LOOP**~~ (`dc-client/src/body.rs`; found 2026-08-01 while
   reviewing the quantizer removal's one flagged judgement call). `let stepped =
   (t * ANIM_FPS).floor() / ANIM_FPS;` runs **before** `stepped.rem_euclid(duration_s)`.
   - **Consequence:** for a looping clip whose duration is **not a whole number of frames**, each

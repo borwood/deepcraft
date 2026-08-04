@@ -1991,7 +1991,7 @@ correlation partition uses epoch, not chapter, so it is unaffected.
      parallel session shares the checkout, so the INTEGRATOR assigns the number.
      Nothing above this block was touched. -->
 
-### NN. the-per-body-max-target-fps — *added 2026-08-04 (the per-cycle quantization slice; `bodies.md` § Stepped animation, ruling 3)*
+### 53. the-per-body-max-target-fps — *added 2026-08-04 (the per-cycle quantization slice; `bodies.md` § Stepped animation, ruling 3)*
 
 **The stand-in:** the client's `--anim-fps` target governs **every** body in the world.
 `AnimRate` is one setting, read once per frame in `character.rs::sync_characters` and applied
