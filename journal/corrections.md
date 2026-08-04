@@ -3872,6 +3872,20 @@ made.
 
 ## 97. "A stand-in marked in the code is filed" (the integrator's own filing practice, 2026-08-03 — four heirs shipped to no locus, caught by the user asking a question rather than by any control)
 
+> **⚠ AND ITS OWN REMEDIATION HAS THE DEFECT IT WAS FILED ABOUT — measured 2026-08-04
+> (`docs/audits/2026-08-04-stand-in-marker-control-scoping.md` § 6).** This entry's fix wrote the
+> `stubs.md` entry (**#44**) and **never stamped the source**, so the four `GaitKnobs` markers still
+> carry **no back-pointer from the code** to the locus that now holds them. A census of all 14
+> doc-comment `STAND-IN` sites found **5 filed with no back-pointer**, four of them these.
+> ***A one-directional pointer is not a pointer*** — read-first item 5, landing on the fix of the
+> correction that exists because a pointer was one-directional. Not repaired here: the sites sit in
+> files a live agent and the parallel session are holding. **Owed.**
+>
+> **The audit also replayed the proposed control against 268 commits: at `5859976` it fires exactly
+> four alarms — these four, and nothing else.** The control that would have caught this is buildable
+> and costs nothing new; the discriminator (`STAND-IN` in a doc comment) is **100 % precise across
+> its entire history**, one lifetime false positive.
+
 **⚠ CORRECTED WITHIN THE HOUR, BY ITS OWN AUTHOR, AND THE CORRECTION IS WORSE THAN THE ENTRY.**
 This entry blamed the **consumer slice** (journal/0147). `git log -S` puts the four markers in
 **`5859976` — gait bake slice ONE** (journal/0144). So they did not slip past a delegation

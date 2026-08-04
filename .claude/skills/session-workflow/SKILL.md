@@ -74,7 +74,10 @@ You wear all four, switching freely:
 annotated **in code AND** listed in a locus. Under delegation those halves have **two owners**,
 and nothing carries the second across. Measured: a build agent marked four `GaitKnobs` values
 `STAND-IN, heir B6` in source — with bands and a literature citation — and mentioned **one** in
-its report. The integrator filed that one. The other four reached **no locus**, survived the
+its report. The integrator filed that one. The other **three** *(this read "four" until 2026-08-04 —
+four marked minus one filed is three, and `corrections.md` #97 had it right all along; the arithmetic
+was wrong inside the rule about not filing from prose, in the file every session loads at start, and
+it was caught by a census agent rather than by any reader)* reached **no locus**, survived the
 integrator's own full workspace gate, a merge, and a second slice, and were found by the **user**
 asking an unrelated question.
 - **So: at harvest, grep the agent's DIFF** for `STAND-IN`, `heir`, `stubs.md #` — do not file
