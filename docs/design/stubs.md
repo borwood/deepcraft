@@ -1731,16 +1731,7 @@ measure surface penetration); not the solve production runs.
   walk verdict on the bob specifically, whose ~65 % gap from the retired authored value **is the
   documented compass over-prediction and not a defect** · S3 is the one a walk can judge by eye.
 
-<!-- STUBS: unnumbered -->
-<!--
-  B7 (joint rotation limits) drafted five entries in its design pass § 6 and this
-  slice built them. The `### NN.` headings below are LITERAL PLACEHOLDERS — the
-  integrator assigns ordinals at merge, because a parallel user session shares
-  this checkout and ordinal collisions have happened six times in thirty hours.
-  Do not renumber, reorder or edit anything above this block.
--->
-
-### NN. the-fold-sense-is-declared-because-our-bodies-have-no-front — *added 2026-08-03 (B7 slice one; design pass § 6 B7-a, finding J1, user call Q1)*
+### 45. the-fold-sense-is-declared-because-our-bodies-have-no-front — *added 2026-08-03 (B7 slice one; design pass § 6 B7-a, finding J1, user call Q1)*
 - **What it fakes:** the derivation supplies a hinge's **magnitude** and structurally cannot supply
   its **SIGN**. Verified exhaustively at source: in `biped_plan`, `stout_plan` and `longleg_plan`,
   **every** segment has `pivot_m[2] = offset_m[2] = 0.0`, and sole anchors inherit `offset_m` — the
@@ -1771,7 +1762,7 @@ measure surface penetration); not the solve production runs.
   remains possible for it — the ruling's own opening motive, honestly unmet at density ≡ 1 · a plan
   whose knee should fold forward renders backwards until it says so.
 
-### NN. the-derived-limit-tests-distal-extent-only — *added 2026-08-03 (B7 slice one; design pass § 6 B7-b, § 3.6)*
+### 46. the-derived-limit-tests-distal-extent-only — *added 2026-08-03 (B7 slice one; design pass § 6 B7-b, § 3.6)*
 - **What it fakes:** L3 tests, per joint, the corners of each box in the rotating subtree that are
   **farthest from the joint's pivot**, against **ancestors only**. Three known misses:
   1. **Shaft contact.** A long child whose *tip* sails past an ancestor while its *shaft* would
@@ -1797,7 +1788,7 @@ measure surface penetration); not the solve production runs.
   pose a real animal of that shape could hold. A body that can put a limb through its own other limb
   will do so silently.
 
-### NN. the-euler-box-over-approximates-a-ball-joint — *added 2026-08-03 (B7 slice one; design pass § 6 B7-c, § 2.3)*
+### 47. the-euler-box-over-approximates-a-ball-joint — *added 2026-08-03 (B7 slice one; design pass § 6 B7-c, § 2.3)*
 - **What it fakes:** a joint's reachable set is a **per-axis min/max box in Euler space**. For a
   hinge that is exact — a rotation about a single coordinate axis is a one-parameter subgroup and
   the box's face is exactly its boundary. For a **ball** joint (shoulder, hip) the true reachable
@@ -1813,7 +1804,7 @@ measure surface penetration); not the solve production runs.
 - **Blast radius:** shoulders and hips on any body whose ball joints someone bothers to bound; a
   swing-and-twist combination in the box's corner passes validation and looks wrong.
 
-### NN. a-dof-axis-can-only-be-x-y-or-z — *added 2026-08-03 (B7 slice one; design pass § 6 B7-d, § 2.4)*
+### 48. a-dof-axis-can-only-be-x-y-or-z — *added 2026-08-03 (B7 slice one; design pass § 6 B7-d, § 2.4)*
 - **What it fakes:** `Axis` is `{X, Y, Z}`, so an **oblique hinge axis** — a bird's ankle, an
   insect's — is inexpressible. The reason is worth stating as a design law rather than an apology:
   **the DOF vocabulary can only be as rich as the pose representation.** X/Y/Z is exactly what an
@@ -1827,7 +1818,7 @@ measure surface penetration); not the solve production runs.
   re-authored so it is, or lose its limit; the derivation still answers per axis and would bound the
   wrong plane.
 
-### NN. a-limit-that-cannot-know-soft-tissue — *added 2026-08-03 (B7 slice one; design pass § 6 B7-e, § 3.3 — and the literature check is what found it)*
+### 49. a-limit-that-cannot-know-soft-tissue — *added 2026-08-03 (B7 slice one; design pass § 6 B7-e, § 3.3 — and the literature check is what found it)*
 - **What it fakes:** the derivation is pure box geometry, so wherever a real end-range is
   **ligamentous** rather than **bony** it over-predicts badly. Measured on `dc:body/biped` against
   published human ranges of motion — **⚠ the published figures are carried forward from the design
