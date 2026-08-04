@@ -2151,6 +2151,73 @@ mod tests {
         );
     }
 
+    /// **TEMPORARY HARNESS — the byte-identity evidence for the ownership
+    /// hoist.** Prints every composed pose as raw `f64::to_bits`, over a sweep
+    /// of plans × targets × speeds × layer sets, so a re-housing can be shown to
+    /// be a re-housing rather than asserted to be one. Run with `--nocapture`
+    /// before and after and diff the `POSEBITS|` lines.
+    ///
+    /// Deliberately NOT left in the tree: a committed digest of today's poses is
+    /// exactly the snapshot § Gates forbids — it would fail the day a colleague
+    /// legitimately improves the gait, which is worse than the defect it guards.
+    #[test]
+    fn posebits_sweep() {
+        let clips = biped_clips();
+        let idle = clips
+            .iter()
+            .find(|c| c.name == "dc:anim/biped_idle")
+            .expect("idle")
+            .clone();
+        let jump = clips
+            .iter()
+            .find(|c| c.name == "dc:anim/biped_jump")
+            .expect("jump")
+            .clone();
+        // A clip that also asks for a BEARING chain — rule 3's refusal, and the
+        // path where a clip's ownership is narrowed by the gait's.
+        let mut greedy = idle.clone();
+        greedy.keyframes[0].rotations.push(dc_api::bodies::JointRot {
+            segment: "leg_l_upper".into(),
+            euler: [0.3, 0.0, 0.0],
+        });
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            let gait = gait_of(&plan);
+            for (layers, layer_name) in [
+                (vec![], "none"),
+                (vec![&idle], "idle"),
+                (vec![&idle, &jump], "idle+jump"),
+                (vec![&greedy], "greedy"),
+            ] {
+                for fps in [6.0, 12.0, 30.0, 144.0] {
+                    let rate = AnimRate::new(fps).expect("a legal target");
+                    for speed in [0.0, 0.4, 1.47, 2.6, 4.5] {
+                        // Both the derived-gait body and the identity fallback.
+                        for with_gait in [true, false] {
+                            let g = with_gait.then_some(&gait);
+                            let mut state = AnimState::default();
+                            for step in 0..24 {
+                                state.advance(1.0 / 60.0, g, speed, rate);
+                                let pose = pose_for(&state, g, &layers, rate);
+                                let mut names: Vec<&String> = pose.joints.keys().collect();
+                                names.sort();
+                                for n in names {
+                                    let e = pose.joints[n];
+                                    println!(
+                                        "POSEBITS|{}|{layer_name}|{fps}|{speed}|{with_gait}|{step}|{n}|{:016x}|{:016x}|{:016x}",
+                                        plan.name,
+                                        e[0].to_bits(),
+                                        e[1].to_bits(),
+                                        e[2].to_bits()
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // --- per-cycle quantization (2026-08-04) -------------------------------
 
     /// The three shipped plans at the shipped top speed, as `(name, cadence,
