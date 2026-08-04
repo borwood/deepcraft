@@ -33,6 +33,22 @@
 > fixture, never shipping. Rationale as ruled: a switchable production scheme is two
 > worlds wearing one seed — the world-identity rule forbids it. **U-4 remains.**
 
+> **✅ U-4 RULED 2026-08-04, WITH THE PURPOSE REFRAMED BY THE USER — the bar is
+> INSTRUMENT-MEANING CONTINUITY, not world fidelity:** *"i 'don't care what the
+> current physics of the world are' or maintaining them — it's a scratchpad fixture
+> more or less — but we do need to know what our existing instrumentation MEANS
+> after the change."* The rung-noise-derived bar is adopted as the mechanism
+> (explicit↔K2 at the same M must differ by less than adjacent ladder rungs differ
+> — a derived bound, never fitted), but its reading is: **within the bar, every
+> explicit-era measurement (the D3(M) ladder, the M≈375–380 target, the P2
+> acceptance numbers) keeps its meaning across the integrator change; beyond the
+> bar, K2 is not thereby "failed" — the ladder re-runs under K2, the target
+> re-derives, and explicit-era numbers are marked integrator-scoped.** The only
+> hard rejections are the structural fixtures (anisotropy squares, cascade
+> wrongness — S-4-class defects, wrong under any integrator). **ALL FIVE E4 PICKS
+> ARE NOW CLOSED: U-1 K2 · U-2 always-implicit · U-3 dc-core · U-4 as above ·
+> U-5 executed. E4-2 is dispatchable.**
+
 **Arc anchor:** `docs/dependency-graph.md:50` (E4, "SHAPE NAMED 2026-07-29 (S-10), 2 instances,
 NOT EXTRACTED") + `:56-61` (§ "E4's rule") · `docs/spines.md:1078-1167` (S-10, RATIFIED
 2026-07-29) · `docs/design/stubs.md:1295-1354` (#30, the DERIVED half still owed, heir = this
