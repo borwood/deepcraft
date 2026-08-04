@@ -587,3 +587,64 @@ order: ecology supplies the flammable inventory; the entry-species record
 carries what actually burned; the burned-axis on organic materials supplies
 the outcome. Charcoal and coal ride as-built until those heirs land — "I
 don't care about coal and charcoal right now, they have heirs.")
+
+## DECIDED 2026-08-04 (user) — MATERIALS ARE LABELS OVER A TERM SPACE (the sim-pack roster philosophy)
+
+**The ruling, in the user's words** (geo session, the P-1 continua conversation):
+*"materials are a label for a point in a smooth field. .. at least, this is the
+philosophy for the sim pack. i cannot say for certain to what extent this opinion is
+engine-level. but, we have axes that materials can be related on, and the pack can
+derive relationships from these axes, and with these opinions it will drive the
+refinement/presentational rules for how these materials can share space together —
+which will layer on other refinement rules such as the physical drivers for facies."*
+Ratified against the restatement-with-sharpenings below: *"that's it. I'm onboard."*
+Context that opened it: *"i'm not married to a single material in the roster yet"* —
+the roster is bring-up-era (the `(roster proof)` members in `geology.rs`), and coal
+is a named proxy (*"it's seamed because we have no actual organics introduced to the
+world yet, no real forms of life, only proxies in the passes"*).
+
+**The sharpened form (assistant restatement, user-ratified):**
+1. **A material name is a pack-authored label over a REGION of a continuous term
+   space** (composition, grain spectrum, cementation, organic fraction, …). The
+   record stores the name; expression may move within the region and blend between
+   regions. The space between names is not nameless matter — it is MIXTURE, which
+   the engine already expresses. *(Region, not point: granite is a fenced field on
+   QAPF, and a point would make within-body variation inexpressible.)*
+2. **Two smooth things, kept distinct:** the term space (where materials live) and
+   world fields (facies drivers — functions over space/time taking values in that
+   space). Transects are smooth because the world-field is smooth; blends are legal
+   because regions adjoin in term space.
+3. **Relations are DERIVED from declared axes, never hand-paired.** Continuum iff
+   two regions adjoin on a declared axis (day-one data: the FS-A release spectra +
+   the property sheet; the `settle_energy` derive-don't-table precedent). A hand
+   list of "continuum pairs" is a fitted taxonomy and is forbidden here.
+4. **S-3 applied to petrology:** a rock name is a SUMMARY of composition and state;
+   the summary derives from the authority (the terms), never stands beside it. The
+   real-world grounding: clastic rock names are texture labels on a conserved
+   mineral stock (mechanical weathering re-sorts; only chemical edges transform);
+   igneous names are regions of a continuous composition space; U1 already made
+   this move for the loose forms (grain is an AXIS) — this ruling is the lithified
+   side of the same symmetry.
+5. **Engine/pack split:** the CAPABILITY is engine (term schemas as declarable
+   data, per-term blend/conservation, the mixture channel, term-keyed kernels —
+   refinement.md § 4 already rules operators read terms); the OPINION is pack
+   (which axes exist, every label, every derived relation, this philosophy). The
+   subtraction test decides every future case.
+
+**Standing obligations (incremental, no roster rebuild, record stays 8 B):**
+- Every `MaterialId` in the sim-pack roster owes a definition in terms; a member
+  that cannot honestly write one is a **PROXY** and is marked with its heir
+  (coal → life/organics, per the § transformation-axes heir chain above).
+- Conserved-stock discipline as eventual gate: mechanical passes move matter
+  within a composition; only declared chemical edges change it.
+- The class roster remains a SELECTION contract (formation windows) — never a
+  relation source (the A-CLEAN bar, ruling 2 above).
+
+**Consequence — P-1 of `2026-08-03-stratigraphic-correlation-design.md` § 9
+resolves as M-C with the derived predicate** (mixture where regions adjoin on a
+declared axis; octaves-cut interfingering where discrete; sharpness only from
+declared breaks). Recorded in that audit's header banner, same commit.
+
+**Operational carrier: `.claude/skills/roster/SKILL.md`** — the add/modify-a-roster-
+member procedure (user-directed, same conversation), self-updating against new
+rulings in this domain, sim-pack-scoped by name.

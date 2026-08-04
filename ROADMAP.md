@@ -366,9 +366,12 @@ sequence — each names its authority docs rather than restating them.
   dither as plan).** User sketch + smoothness principle, 2026-08-03; design pass DONE —
   `docs/audits/2026-08-03-stratigraphic-correlation-design.md` (R-C shared-clock rule;
   mass argument holds; read-side, so **every deep-time golden must stay bit-still**).
-  **Blocked on its § 9 picks P-1…P-5 (user-owned, being taken one at a time), then
-  S0 (M0′ measurements) → S1 (kernel) → S2 (wiring + goldens) → S3 (acceptance walk,
-  Claude drives).** Was: a sub-bullet of the § Observed field report only.
+  **Blocked on its § 9 picks (user-owned, being taken one at a time): ✅ P-1 RULED
+  2026-08-04 — M-C with the DERIVED predicate, via the materials-roster philosophy
+  (`materials.md` § DECIDED 2026-08-04, audit header banner stamped) — P-2…P-5
+  remain; then S0 (M0′ measurements) → S1 (kernel) → S2 (wiring + goldens) → S3
+  (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
+  report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
   "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically
   (journal/0150, `dc-core::field::FieldKernel`, stubs #30 discharged). **Live

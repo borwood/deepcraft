@@ -45,6 +45,18 @@ re-scopes this file gets a banner **here**, stamped by the author of the correct
 > renumber landed the same day this was written; the § 0 asset citations
 > (`0149-interfinger-*`) are correct. Body left as written.*
 
+> **✅ P-1 RULED 2026-08-04 (user) — M-C, WITH THE PREDICATE DERIVED, NOT AUTHORED.**
+> Resolved through the materials-roster philosophy ratified the same conversation
+> (`materials.md` § DECIDED 2026-08-04: materials are labels over regions of a
+> continuous term space): continuum iff two regions adjoin on a declared axis —
+> computed from the FS-A release spectra + property sheet, never a hand pair-list —
+> → mixture grading (M-A's channel); discrete pairs → the octaves cut (M-B's
+> channel); sharpness only from declared breaks (§ 1.3's seam). § 3.3's tension
+> resolves rather than picks a side: smoothness governs continua, dress-every-contact
+> governs the discrete cut's texture. Note for the build: I-4 (the new draw domain)
+> is conditional on the discrete branch, which vanilla exercises at every
+> clastic-igneous and clastic-organic contact. P-2…P-5 remain open.
+
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /
 truncated-Gaussian construction) · journal/0129 (the stencil arithmetic, "grep the field")
