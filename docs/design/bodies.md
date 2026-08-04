@@ -219,6 +219,66 @@ an implementation choice; artifact suppression uses standard techniques
 
 ## Stepped animation — DECIDED 2026-07-19 (aesthetic choice)
 
+> **▶▶ THE 12 FPS CALL IS TAKEN — DECIDED 2026-08-04 (user). `ANIM_FPS` AS A FIXED CONSTANT IS
+> RETIRED; QUANTIZATION BECOMES PER-CYCLE, PER-BONE, AND CLIENT-OWNED.** The deferred taste call
+> below became takeable when the feet reached the ground (journal/0148), and the walk supplied a
+> reason that is not taste: **a fixed rate aliases a derived cadence.** Mechanism (user-originated
+> unless marked):
+>
+> **1. `N = round(cycle_duration × target_fps)`, clamped to `N ≥ 2`.** *"A cycle gets N poses per
+> cycle where N is a quantization of allotted time."* The **floor is the user's** (*"there can't be
+> fewer than 2 frames per cycle"*) and it converts the Nyquist edge into a defined outcome instead
+> of a degenerate one — `round()` alone returns **1** for a cycle near `1/fps` and **0** below
+> `1/(2·fps)`.
+>
+> **The fix is that N is an INTEGER, not that it is larger.** At a 12 fps target the three shipped
+> bodies barely move: biped **6.977 → 7**, longleg **7.742 → 8**, stout **4.286 → 4**. *The hitch
+> the user saw at the 0148 walk was the `.29`, not the 4* — a fractional N drifts through the cycle
+> and beats against it; an integer N lands on the same phases every cycle. It also explains why the
+> biped always read stable: it was already within 0.03 of an integer.
+>
+> **2. Framerate is CLIENT-SIDE. The engine owns the target only** (user) — § *THE SIM OWNS THE
+> TARGET* applied to time. **Target fps is a client performance/visual setting and is NOT pack
+> content.** *(This corrects an assistant proposal made and withdrawn the same day, which had put
+> the rate in the pack.)*
+>
+> **3. The pack MAY declare a per-body MAX target fps** — *"preserves toy-like or mechanical
+> aesthetics for a robot in a smooth world."* A **cap**, not a value, so the client's setting still
+> governs downward and the two compose rather than fight. Clean under `dependency-graph.md` § 0b:
+> two well-made packs would answer *"is this body mechanical"* differently, so it is an **opinion**.
+>
+> **4. Per-bone dynamic fps, by proportion of the anims owning the bone** (user) — *"a weighted
+> blend is a weighted blend, a single owner is a single owner."* This dissolves the
+> two-blended-cycles problem without a precedence rule: it is interpolation, not arbitration.
+> *[assistant, implementation note]* blend the **time step** `Δt = duration / N`, weighted by
+> ownership — frames-per-cycle across different cycle durations is not a commensurable quantity.
+> *[assistant, observation]* because every `N` derives from the **same** target fps, every `Δt` is
+> `≈ 1/fps` and differs only by rounding, so per-bone rates cluster tightly around the target no
+> matter how many layers exist. The body is not one exact snapshot and **the user is explicitly not
+> worried about that reading as buggy**; this is why.
+>
+> **5. A ONE-OFF IS JUST A CYCLE THAT DOES NOT REPEAT** (user). If its length is known, identical
+> formula. *This collapses a case split the design conversation had been carrying* — there is no
+> cycle-vs-one-off rule, only "do we know the duration."
+>
+> **6. ⚠ ACCEPTED COST, AND IT FORECLOSES WORK — record before anyone re-opens it.** A player who
+> lowers their target fps **can lose detail**: a fast kick may not show its full swing. That raises
+> *which* frames matter most, and the user ruled there is **no engine answer worth building**:
+> *"a hand-authored anim for low fps actions will beat an engine baked locomotion anim in those
+> cases, which maybe just is what it is."* Importance-weighted frame selection is **not** owed and
+> is not a gap.
+>
+> **REJECTED, recorded so it is not re-proposed** *(assistant proposal, killed by the user)*: a
+> single shared time grid at `fps = N × f_fastest_live_cycle`. It buys one exact whole-body
+> snapshot and needs no per-bone rule — and it is **fatally globally coupled**: *"add one fast
+> cycle and suddenly the world is smoother."* A local addition with a world-wide effect, not
+> fixable by tuning.
+>
+> **OPEN for the slice, not decided here:** quantization must never feed back into anything
+> **sim-visible** — if B5's damage resolution ever reads a pose it reads the sim's *unquantized*
+> target, or two clients at different fps resolve hits differently. Implied by the partition;
+> owed an explicit guard.
+
 > **▶ THE ROTATION QUANTIZATION IS REMOVED, 2026-08-01, BY USER RULING. THE 12 FPS STEP
 > RIDES UNCHANGED.** *"let's stop treating as a constraint we must satisfy and subtract the
 > rotation quant. 12fps can ride until we have more opportunity for human to see action in

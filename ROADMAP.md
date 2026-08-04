@@ -356,6 +356,45 @@ footprint with S11's air-component container (S15 design choice 2).
 
 ## Sequenced
 
+### PER-CYCLE QUANTIZATION — the 12 fps call, taken (bodies thread; **DECIDED 2026-08-04, user**)
+
+**WHAT.** Retire `ANIM_FPS = 12.0` as a fixed constant (`dc-client/src/body.rs:70`). Quantization
+becomes **per cycle** (`N = round(cycle_duration × target_fps)`, clamped **N ≥ 2**), **per bone**
+(weighted by the proportion of anims owning it), and **client-owned** (target fps is a client
+performance/visual setting; the pack may declare a per-body **max**). A one-off is just a cycle
+that does not repeat. **Authority: `bodies.md` § Stepped animation, the 2026-08-04 banner** — it
+carries the full ruling, the rejected alternative and the foreclosed work; this entry does not
+restate them.
+
+**WHY.** A fixed rate **aliases a derived cadence**. Frames-per-cycle stopped being a number
+anyone chose the moment gait was derived per body: biped 6.977, longleg 7.742, **stout 4.286** —
+low *and* fractional, so its samples drift through the cycle and beat against it. The user saw
+the hitch at the 0148 walk and diagnosed it unprompted. **A-1's fourth instance in this arc**
+(after the four absolute-metre constants, the world-global walk speed, and the hardcoded gravity).
+*The fix is that N becomes an **integer**, not that it becomes larger* — 4.286 → **4**, 6.977 → **7**,
+7.742 → **8**. Nothing gets smoother; it stops beating.
+
+**UNIFIES.** Third instance of *the sim owns the target, the client owns the approach* — framerate
+is approach. First use of `dependency-graph.md` § 0b (**opinion vs absence**) to place a body knob:
+the *rule* is an engine kernel, the *rate* is a client setting, and the per-body **cap** is a pack
+opinion because two well-made packs would answer *"is this body mechanical"* differently.
+
+**FIRST SLICE.** Client-side only, no firewall move, no sim state: derive `N` per cycle from the
+target; clamp at 2; blend `Δt = duration / N` per bone by ownership; delete the fixed constant.
+Acceptance is **the stout's hitch gone with the biped visually unchanged** (6.977 → 7 is inside a
+rounding), and a test that `N` is integer and ≥ 2 for every plan across a cadence sweep. **Its one
+open call: an explicit guard that quantization never feeds back into anything sim-visible** — if
+B5's damage resolution reads a pose it reads the *unquantized* target, or two clients at different
+fps resolve hits differently.
+
+**CONTINUATION SLOT — this is a slice OF the derived-locomotion arc (B2 member 1 → B3).** After it:
+the **per-body cap** as pack data (wants a body plan field, so it rides the B3 wire window with
+`stubs.md` #34's binding key), and **B3 itself**, which brings the 20 Hz sim-tick vs client-step
+question this ruling has now half-answered — the client's step is derived and per-bone, so B3's
+question narrows to *what rate the sim publishes targets at*, which is a different question than
+the one the board has been carrying. **Appearance-gated: the user rules the look from motion, not
+from a still (corrections #77).**
+
 ### FOUR LIVE ARCS PROMOTED FROM CLOSE BLOCKS — **stamped 2026-08-03 (staleness F1: three
 user decisions/greenlights and one superseding build had NO live-board entry — they lived
 only in `dependency-graph.md` rows and the two close blocks, and a close block is a handoff
