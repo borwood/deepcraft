@@ -295,8 +295,17 @@ sitting (greenlit fingerprint 2026-08-03).**
    overlap. Lanes want a head-on or from-behind camera; profile wants a single subject. *Vertical*
    questions (a bob) read against a horizontal ground line; *cadence* questions read head-on.
 
-**And the walk loop has NO STOP CHANNEL** (ROADMAP § Observed, 2026-08-03): every intent commits
-seconds of world motion before the driver can react, and the observer has none at all. The user
+**And the walk loop has NO *FAST* STOP CHANNEL** — ⚠ **this bullet said "NO STOP CHANNEL" and that
+the observer "has none at all", and BOTH ARE FALSE (corrections #100, 2026-08-04).** The **in-game
+dev console is registered unconditionally** (`dc-client/src/app.rs:342`) and carries the dc-api
+command surface, so **the user standing in the game can press T and zero a move intent today**; and
+`Authority::freeze_character` (`authority.rs:583`) is already exactly the freeze verb this asked
+for, wired only to session teardown. *The doctrine describing the OBSERVER's situation was written
+entirely by the DRIVER, which has no keyboard in the world — it meant "I have none at all."* What
+is **true** is that the observer has no channel **fast enough to use in the moment** (~0.225 s
+floor for a keybind vs typing a command), and the driver's floor is an unimprovable MCP
+round-trip ≈ **4.5 m of travel**: every intent commits
+seconds of world motion before the driver can react. The user
 **built a wall** to stop bodies walking off a ledge. Until a leash / bounded intent / freeze verb
 exists, **prefer intents that terminate safely** — drive toward the observer, or into open ground,
 never toward an edge.

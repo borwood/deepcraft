@@ -3988,3 +3988,65 @@ is a design question for whoever first needs it, not an owed fix.
 **Stamped in this commit:** journal/0154 postscript · the clock audit header · the
 correlation audit's P-3 banner (text corrected in place — it is header, not testimony)
 · both ROADMAP entries.
+
+## 100. "The walk loop has NO stop channel — the observer has none at all" (`CLAUDE.md` § Agent walks, ROADMAP § Observed 2026-08-03, journal/0148 — and repeated to the user by this session before it was checked; falsified 2026-08-04 by the stop-channel design pass, at source)
+
+**The claim.** After the 0148 walk, three documents recorded that there is no way to stop a
+walking body: *"every intent commits seconds of world motion before the driver can react, and
+**the observer has none at all**. The user **built a wall** to stop them walking off a ledge.
+**Until a leash / bounded intent / freeze verb exists**…"* The board filed it as **none designed**.
+
+**What is actually in the tree, verified at source before this entry was written.**
+
+- **The observer has a channel and always has.** `ConsolePlugin` is registered
+  **unconditionally** (`dc-client/src/app.rs:342`; the adjacent comment reads *"The bridge always
+  exists (its channel also carries the dev console's submissions)"*). Per `API.md`'s
+  generated-surface principle it exposes the dc-api command surface, so the user standing in the
+  game can press **T** and zero a character's move intent. **No walk doc mentions the console.**
+- **A freeze mechanism already ships.** `Authority::freeze_character` (`authority.rs:583-607`,
+  DECIDED 2026-07-19) zeroes a character's move intent *"so the body stands where it was left…
+  submitted as an ordinary zero move-intent command… rides the same receipted, tick-quantized
+  rail as any controller verb."* Its only production caller is **session teardown**
+  (`authority.rs:1056`). The verb the board asked for exists; it is wired to one event.
+- **Scheduled commands exist too** — the host honours a `target_tick` (`host.rs:658-676`) and
+  **every caller hardcodes `None`**. An unindexed **A-4**.
+
+**What survives, and it is the real need.** The observer lacks a **fast, argumentless** channel.
+Typing a command into a console is not a veto you reach for when a body is two seconds from a
+ledge; the design pass measures the observer's floor at **≈0.225 m** (one frame + one tick)
+against a driver's unimprovable **≈4.5 m** MCP round-trip. *"No channel"* was false; **"no channel
+fast enough to be used in the moment"** was true, and that is a different fix — a keybind, not a
+new primitive.
+
+**⚠ FIRST, WHICH WAY THIS CUTS: THE USER'S OWN WORDS WERE NARROW AND ACCURATE.** What they said at
+the walk was *"there's no way for me to tell **you** to stop them before they reach a ledge. claude
+time vs realtime"* — a statement about the **round-trip to the driver**, which is real, measured
+(≈4.5 m of travel) and unimprovable by any verb. **The assistant transcribing it generalised that
+into "the observer has none at all," which is a different and false claim**, and the generalisation
+is what three documents then carried. This is the same shape as the `CLAUDE.md` ecology widening
+already on file: *a user statement broadened by one clause in transcription, then read downstream
+as fact.* **The error is entirely the assistant's, twice — once in 2026-08-03's transcription and
+again in this session, which repeated it to the user before checking.**
+
+**THE MECHANISM, AND IT IS THE PART WORTH KEEPING: the walk doctrine describing the OBSERVER's
+situation was written entirely by the DRIVER.** Every session that has ever written walk doctrine
+drives the game through MCP from outside it. It has no keyboard in the world, so the in-game
+console is not in its toolset — and it wrote *"the observer has none at all"* meaning, without
+noticing, *"I have none at all."* **An actor enumerated another actor's affordances from its own
+vantage and the corpus recorded the result as a fact about the world.**
+
+That is why no existing control caught it. `spine-audit` compares `spines.md` to code and this
+claim is in neither; the staleness sweep compares the board to newer work and nothing newer
+touched it; `doc-topology` compares docs to each other and **all three docs agreed** — they
+agreed because they are three copies of one sentence written by one kind of reader. *A consensus
+among documents with a common author is not corroboration.*
+
+**Cost.** One design pass was dispatched to build a channel that half-exists; it returned the
+inventory instead, which is the good outcome. Had it been briefed to *build* rather than to
+*price options*, it would have added a third freeze path beside two live ones — the
+characteristic failure, in the file that names it.
+
+**Fixed:** banners on all three sites, and the design pass
+(`docs/audits/2026-08-04-walk-stop-channel-design.md`) carries the full inventory with `file:line`
+for each piece. **Not fixed:** `target_tick`'s A-4 row in `spines.md` § 3 — handed up, not written,
+because the agent was scoped read-only there.

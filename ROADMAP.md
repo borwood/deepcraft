@@ -3253,8 +3253,22 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   precondition — *"a body whose feet actually reach the ground"* — was met at this walk.** Owner:
   the user; adjacent to B3's 20 Hz vs 12 fps question (`posture-gait.md` § 7 member 2).
 
-- **🟠 THE WALK LOOP HAS NO STOP CHANNEL — the user built a WALL to compensate for agent latency
-  (2026-08-03, derived-gait walk).** *"i blocked them off, by the way, because there's no way for
+- **🟠 THE WALK LOOP HAS NO *FAST* STOP CHANNEL — the user built a WALL to compensate for agent latency
+  (2026-08-03, derived-gait walk).**
+  > **⚠ CORRECTED 2026-08-04 — corrections #100. This entry's title said "NO STOP CHANNEL" and the
+  > body said the observer has none; both are false.** The in-game dev console is registered
+  > **unconditionally** (`dc-client/src/app.rs:342`) and carries the dc-api command surface — the
+  > user can press **T** and zero a move intent today — and `Authority::freeze_character`
+  > (`authority.rs:583`) is already the freeze verb, wired only to session teardown. **Note which
+  > way this cuts: the USER'S OWN WORDS below are narrow and accurate** — *"no way for me to tell
+  > **you** to stop them"* is a statement about the **round-trip to the driver**, which is real and
+  > unimprovable (≈4.5 m of travel). **The assistant-authored doctrine generalised it into "the
+  > observer has no channel at all," which is a different and false claim.** Same shape as the
+  > CLAUDE.md ecology widening: a user statement broadened by an assistant transcribing it, then
+  > read as fact by everything downstream. Inventory + priced options:
+  > `docs/audits/2026-08-04-walk-stop-channel-design.md`.
+
+  *"i blocked them off, by the way, because there's no way for
   me to tell you to stop them before they reach a ledge. claude time vs realtime."* The loop's
   premise is that Claude drives while the user observes, but **every intent commits several
   seconds of world motion before the driver can react, and the observer has no channel at all.**
