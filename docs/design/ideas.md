@@ -753,3 +753,53 @@ First forced customers, in likely order: χ (the confinement mobility hint — n
 deferred 2026-08-01 exactly for this axis), peak discharge, the episodic-event limit
 (flow.md § 5 limit 2 — a turbidite averages away inside a 25-epoch bucket while its
 graded bed is the whole signature).
+
+## The engine is general at heart — the pack decides what kind of game it is (USER SKETCH, 2026-08-03)
+
+Captured verbatim from the geo session's refinement conversation (context: the
+borehole story, the engine-vs-pack partition analysis, and the subtraction test —
+"subtract the pack and the world must lose every feature while keeping every
+conservation property"):
+
+> *"we could write a pack that just **is minecraft** - no history, just diverse
+> biomes. or we could write a pack that just is a superstructure, refined in
+> stages, no story or earth. the engine gives you storage buckets and does to
+> them what you tell it to do to them, including iteratively, and
+> interpolates/refines/presents them however you say, by layers of authored
+> refinement machinery, built on engine primitives, that reads the record left
+> by the deeptime passes. a pack could use the deeptime iteration to determine
+> different themed areas ('this area is maze-like, this area is cathedral like'),
+> and construct most of the content of that ahistorical labyrinth world entirely
+> in the refinement. (i'm thinking past our stated plans right now, for what
+> refinement might mean, for how structures might be implemented eventually in
+> our pack, and so on.)*
+>
+> *while it will first be an engine very good at earth science simulation - it is
+> something more general at heart, following from the engine/pack split. it
+> provides primitives for space, time, physics, bodies, materials... (items,
+> structures, recipes, communities, agents, etc... eventually...). the catered
+> blending of packs will lead to some bizarre and compelling experiences in the
+> modding community."*
+
+**Status: recorded ambition** (the CLAUDE.md doctrine: future-tense, user-authored,
+retires no goal and builds nothing). Explicitly *thinking past stated plans* — this
+does not re-prioritize the board, and the structures/communities/agents tail sits
+behind the P9 gate, which stays a user call.
+
+*Assistant notes, marked as such (what the two hypothetical packs would stress in
+the bones as built — useful the day either is attempted, and as engine-shape
+probes today):*
+- *The Minecraft pack is a world that is pure initial condition + presentation:
+  the `Schedule` variants `Seed`/`SeedAndStep` — built 2026-07-29 with **no
+  production declarer** (graph E3) — are exactly its shape; the biome field is the
+  facies driver row of the tiers-layer table, and "no history" = an empty cadence
+  table.*
+- *The labyrinth pack stresses: move C (bounded stochastic detail synthesis — the
+  third coarse→fine move, still ownerless), Law 3's conserved quantity (mass-shaped
+  today; a structure pack wants per-term conservation contracts declared by the
+  family), Law 2 (themes are categorical drivers — "maze-like here" is a tag, and
+  tag boundaries need the same discipline as facies: correlate/dither/earn the
+  sharpness), and E6/E7 (its resource vocabulary and pass order are nothing like
+  vanilla's).*
+- *The engine-side honesty tests are domain-free already: the subtraction test,
+  Law 1/2/3, runtime-is-sacred, purity. Nothing in them names earth.*
