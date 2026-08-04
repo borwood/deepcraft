@@ -99,6 +99,33 @@ authority" — a stand-in acquiring the status of the thing it stands in for. Pa
 move with better clothes, and it is harder to catch because the placement is architecturally
 correct-looking.*
 
+**⚠ THERE IS A THIRD ANSWER: DEV / CREATIVE TOOLING (user, 2026-08-04).** The two-way test above is
+about **content**, and some things are neither. A halt-all verb for the walk loop, the dev console,
+a teleport, a world-fill: **no pack ever sees them and no pack has a view about them** — read
+through the opinion/absence test alone they file as *absences*, i.e. as unbuilt mechanisms awaiting
+an heir that will never arrive. They are **instruments**, and `API.md` already names the category in
+its two-surfaces table. Surfaced by the stop-channel design pass, which hit the gap and flagged it
+rather than forcing an answer; **confirmed by the user** — *"correct that it's dev/creative-tooling."*
+
+> **So the test has three outcomes: OPINION → pack · ABSENCE → engine-side loud stub · INSTRUMENT →
+> the dev/creative surface, gated.**
+
+**And the gate does not exist yet (user, 2026-08-04):** *"we don't have a concept (that I know of) of
+gamemode yet — these systems, aside from informational debug stuff, will need to be gated somehow in
+the eventual product, which may be something like **gamemode / server-rules / world-settings /
+player-permissions**."* Plus the standing direction: *"we should **centralize and maintain the dev
+backdoor commands with a high degree of intentionality**."*
+- **Verified at source 2026-08-04:** `dc-api/src/capability.rs:71` has a `Requirement` enum
+  (`WorldRead`/`WorldReadAnywhere`/`WorldWrite`/`EntitySpawn`/`RegistryDefine`/`EventsSubscribe`/
+  `CharacterControl`) — that scopes **what a token may do**, and is *not* a gamemode. **No gamemode,
+  server-rule, world-setting or player-permission concept exists anywhere in the tree.** Its only
+  trace is one comment at `dc-client/src/authority.rs:360` — *"scoping (reach, gamemode) belongs to
+  a later slice"* — an heir named in code that reaches **no locus**, which is itself an instance of
+  the defect `corrections.md` #97 is about.
+- **Sequenced, not designed:** the dev-surface gating concept is **owed a design pass** and every
+  instrument shipped before it (the console, `halt_all`, teleport, world-fill) is a **future
+  consumer of it**, not an exception to it.
+
 **OPEN, not settled here:** which side each of `stubs.md` #44's four knobs lands on once the test is
 applied — `cadence_scale` appears to decompose (engine inertia denominator, pack actuation
 numerator), `swing_flexion` appears to be pack actuation, `duty_exponent` half-decomposes

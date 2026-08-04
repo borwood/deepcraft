@@ -129,7 +129,7 @@ pub const CLEARANCE_RATIO: f64 = 0.015;
 /// and using the exact one makes `β(0.25)` land on 0.600000000 rather than
 /// 0.5999847.*
 ///
-/// ⚠ **STAND-IN — `stubs.md` S2 territory, heir B6.** The two *endpoints* are
+/// ⚠ **STAND-IN — `stubs.md` #44 (S2), heir B6.** The two *endpoints* are
 /// published; the curve BETWEEN them is a regression, not a mechanism. B6 plus
 /// a cost-of-transport minimisation derives `β(Fr)` per body and this exponent
 /// is deleted, not re-tuned.
@@ -152,19 +152,23 @@ pub fn duty_exponent() -> f64 {
 /// multiplier rather than colliding with it.
 #[derive(Clone, PartialEq, Debug)]
 pub struct GaitKnobs {
-    /// **STAND-IN (S1), heir B6.** Quicker-stepping than its size predicts =
+    /// **STAND-IN — `stubs.md` #44 (S1), heir B6.** Quicker-stepping than its size predicts =
     /// muscle power against limb inertia. Band `[0.8, 1.25]`.
     pub cadence_scale: f64,
-    /// **STAND-IN (S2), heir B6.** The duty curve's interior exponent; see
+    /// **STAND-IN — `stubs.md` #44 (S2), heir B6.** The duty curve's interior exponent; see
     /// [`duty_exponent`].
     pub duty_exponent: f64,
-    /// **STAND-IN (S3), heir B6.** The rigid ("compass") chain over-predicts
+    /// **STAND-IN — `stubs.md` #44 (S3). ⚠ HEIR CORRECTED: NOT B6** (`stubs.md` #50,
+    /// 2026-08-04 — *density is not stiffness*; a mass integral cannot yield an
+    /// elastic modulus). Real heir: a mechanical-property axis on the material
+    /// sheet plus a compliant joint model, neither designed. The rigid
+    /// ("compass") chain over-predicts
     /// real vertical excursion — measured human walking ≈ 4.6 cm against a
     /// compass ≈ 6.6 cm (Saunders, Inman & Eberhart 1953), the gap being
     /// stance-knee flexion, pelvic list and ankle rocker: all joint stiffness,
     /// all FORCE. Identity 1.0 is the honest upper bound. Band `[0.5, 1.0]`.
     pub bob_damping: f64,
-    /// **STAND-IN (S4), heir B6.** Swing-leg energetics. Interpolates the
+    /// **STAND-IN — `stubs.md` #44 (S4), heir B6.** Swing-leg energetics. Interpolates the
     /// mid-swing foot lift from the geometric clearance (0.0 — the compass,
     /// near-straight swing) to the highest the chain can tuck with the anchor
     /// under its attachment (1.0). Band `[0, 1]`.

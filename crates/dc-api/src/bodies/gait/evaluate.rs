@@ -221,8 +221,10 @@ impl GaitVector {
     /// **It is a STAND-IN and its heir is named**: what a real animal does
     /// between walking and standing is a *stop transition*, which design § 6
     /// puts in a clip and explicitly does not design. When transitions land,
-    /// this gain is deleted rather than re-tuned. *(Owed a `stubs.md` entry —
-    /// the integrator applies; this slice may not write that file.)*
+    /// this gain is deleted rather than re-tuned. **Filed: `stubs.md` #43.**
+    /// *(This read "owed a `stubs.md` entry" until 2026-08-04. The entry existed;
+    /// the back-pointer did not — a one-directional pointer, caught by
+    /// `scripts/standin_locus_check.py` on its first run.)*
     #[must_use]
     pub fn swing_gain(&self, froude: f64) -> f64 {
         let anchor = self.theta_max_rad(super::WALK_DUTY_ANCHOR_FR).sin();

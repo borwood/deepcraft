@@ -117,6 +117,18 @@ def check(root: Path) -> list[tuple[str, int, str]]:
 
 
 def main() -> int:
+    # A control that CRASHES on some terminals is a control people stop trusting.
+    # Marker text routinely contains `⚠`, `—`, `§`; a Windows console defaulting to
+    # cp1252 raises UnicodeEncodeError mid-report and the run dies AFTER printing a
+    # partial finding — which reads exactly like a broken tool rather than a real
+    # hit. Found on this script's first real run, 2026-08-04. Degrade the glyph,
+    # never the verdict.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):  # not a reconfigurable TextIO
+            pass
+
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parent.parent
     alarms = check(root)
     if not alarms:

@@ -110,6 +110,28 @@ sharpen. The file earns its read-first slot or it loses it.
 - **Report what you removed and why**, not only what you added. A shrinking
   § 3 is the success condition.
 
+## Run the stand-in marker check — one command, first thing
+
+```
+python scripts/standin_locus_check.py
+```
+
+**Every `⚠ STAND-IN` in a doc comment must carry a resolvable pointer to a locus.** The check walks
+the tree for the sigil and diffs it against the loci; ~166 ms. **Report its output in your return,
+including a clean run** — a control nobody reports is a control nobody runs.
+
+*Why this and not a wider grep:* measured 2026-08-04 over a full census of 213 `heir` sites
+(`docs/audits/2026-08-04-stand-in-marker-control-scoping.md`). The **wide** check yields **27 false
+positives, 6 filed-elsewhere and 1 true defect** out of 34 — a gate people route around. The
+**narrow** one is **100 % precise across the sigil's entire history**, one lifetime false positive,
+and replayed against 268 commits it fires **exactly the four `GaitKnobs` markers** at the commit
+that produced `corrections.md` #97. **A hit is a real finding; investigate every one.**
+
+**Loci are FIVE, not three** (user-ratified emergent practice, 2026-08-04 — read-first item 6 names
+three and the tree cites five): `docs/design/stubs.md` · `docs/spines.md` § 3 · ROADMAP **Owed /
+Observed** · **`journal/NNNN`** · **a `docs/audits/` design pass**. Measured share: journal **41.4 %**,
+audits **25.5 %**, stubs+spines+ROADMAP **38.6 %** combined, with ROADMAP alone at **4.5 %**.
+
 ## Return
 
 A short report: instances that no longer resolve · § 3 rows added, removed
