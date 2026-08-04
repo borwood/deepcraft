@@ -38,6 +38,75 @@ table, that is the bug.*
 native and WASM**, so "the engine should own it because it's more trusted" is not an argument
 that exists here.
 
+### 0a. BODIES ARE IN THIS FIELD TOO (user, 2026-08-04)
+
+> *"bodies is not outside the engine-plugin divide. it needs seated in that same field: engine
+> provides capabilities, primitives — plugin provides content, opinions. we are building both,
+> each proving and informing the other, same as in the geo session."*
+>
+> *"the evolution system that will drive body creation lives in the **same earth sim pack** that
+> geo named in the skill."*
+>
+> *"the engine alone can't solve all of these problems and without plugins it will remain
+> **honestly neutral/degenerate** where it cannot know things like modulus… part of the anim
+> machinery we're building right now may properly be on the plugin side, not the engine side, and
+> we need to know where the line is drawn: **primitives, kernels, capabilities on the engine
+> side**."*
+
+**This is a generalisation of a ruling already made twice, not a new commitment.** B7 (2026-08-02):
+*"it's not actually a knee until constraint is declared… a limb, in a vacuum, that does not have a
+declared constraint, can hinge any way and we only know magnitude. **That is complete and honest,
+not a degraded mode**"* — and inheritance of fold sense is **pack** behaviour. B8 (2026-08-03):
+range is engine, **distribution is pack, and the pack owns fairness**. The shipped proof is
+`derive_joint_limits`, which supplies a hinge's magnitude from geometry, **structurally cannot
+supply its sign** (our bodies are mirror-symmetric fore-and-aft — they have no front), and returns
+`Undetermined { reason }` rather than inventing one (test: `an_unbounded_joint_is_loudly_undetermined`).
+
+**⚠ One asymmetry with geo, and it constrains how far machinery may move:** *"no pack"* is
+unreachable for geology — without a roster there is no world, so nobody ever experiences
+engine-only worldgen. For bodies it is **reachable and shipping**: characters render every frame
+today. So a body primitive's neutral answer must be **good enough to ship**, not merely honest.
+B7 set the bar with a byte-identical identity default; hold every future move to it.
+
+### 0b. THE TEST: is it an OPINION or an ABSENCE? (assistant-proposed 2026-08-04, **USER-RATIFIED** same day)
+
+The partition above says where content goes. This says how to tell whether something *is* content —
+because the engine/plugin line gives a **legitimate-looking home** to things that are not opinions
+at all, and unlike a stub, a pack-side number **looks ratified**.
+
+> **An OPINION is something two well-made packs would legitimately answer DIFFERENTLY** — Earth vs
+> a low-gravity moon; vertebrates vs a chitin-bodied fauna; which axes exist and where materials
+> sit on them.
+>
+> **An ABSENCE is something every pack would answer the SAME way if only we had built it** — an
+> unbuilt mechanism, not a choice.
+>
+> **Opinions go to the pack. Absences stay engine-side as loud stubs.**
+>
+> **The test is one question: *would two good packs disagree about this?*** If no, it is not an
+> opinion, and calling it one **retires a mechanism instead of building it**.
+
+**The worked case that produced the rule.** `bob_damping` (`stubs.md` #44 S3) reads exactly like a
+pack opinion — a per-species number about how a body carries itself. It is not. A rigid compass gait
+predicts **6.6 cm** of vertical travel where humans measure **4.6 cm**, and the difference is the
+**determinants of gait** (pelvic rotation, pelvic tilt, stance-knee flexion). That is *kinematics*:
+not a property of muscle, not a term on any axis, and **no pack has a view about it**. A pack
+declaring `bob_damping = 0.7` would not be expressing an opinion about its materials — it would be
+**hiding an unbuilt mechanism behind a number that now has a respectable owner**.
+
+*Why this needed saying: the same defect class as `ARCHITECTURE.md` § "a summary is not an
+authority" — a stand-in acquiring the status of the thing it stands in for. Pack-placement is that
+move with better clothes, and it is harder to catch because the placement is architecturally
+correct-looking.*
+
+**OPEN, not settled here:** which side each of `stubs.md` #44's four knobs lands on once the test is
+applied — `cadence_scale` appears to decompose (engine inertia denominator, pack actuation
+numerator), `swing_flexion` appears to be pack actuation, `duty_exponent` half-decomposes
+(mechanical work yes, metabolic cost no), and `bob_damping` is the absence above. **Those are the
+integrator's readings, unratified**, and where the line physically sits for bodies (a proposal: at
+the bake's inputs — pack authors, bake consumes, runtime reads the baked result) is likewise an
+open assistant proposal, not a decision.
+
 ---
 
 ## 1. ENGINE / SDK — the primitives plugins declare against
