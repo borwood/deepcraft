@@ -2875,6 +2875,14 @@ mod tests {
         let mut g2 = WorldGenerator::new(&pregen);
         let mut t_rs = 0.0f64;
         let mut t_fill = 0.0f64;
+        // S0/M0' (b) — the F4 decider's extra rows (2026-08-04).
+        const NAIVE_SAMPLE: usize = 25;
+        let mut events: Vec<usize> = Vec::with_capacity(positions.len());
+        let mut depths: Vec<usize> = Vec::with_capacity(positions.len());
+        let mut fill_heap: Vec<usize> = Vec::with_capacity(positions.len());
+        let mut fills = 0usize;
+        let mut t_naive = 0.0f64;
+        let mut naive_chunks = 0usize;
         for &(cx, cz) in &positions {
             let col = g.column_record(cx, cz); // cached from arm 1 — cheap
             let locale = g2.locale(cx >> 4, cz >> 4);
@@ -2931,8 +2939,33 @@ mod tests {
             let t = Instant::now();
             let fill = ColumnFill::build(&ctx.strata, g2.voxel_m);
             t_fill += t.elapsed().as_secs_f64();
+            // S0/M0' (b): the shapes the per-column fill would have to carry.
+            events.push(ctx.strata.events.len());
+            depths.push(fill.depth_count());
+            fill_heap.push(fill.heap_bytes());
+            fills += 1;
             std::hint::black_box(&fill);
+            // S0/M0' (b), the F4 decider: today ONE fill per chunk serves all
+            // 1024 columns; a per-column thickness vector needs per-column fill
+            // state. Arm 3 measures the NAIVE upper bound — rebuild the fill
+            // 1024 times from the same record — over a subsample, so the
+            // projection has a measured per-build cost rather than a ratio.
+            if naive_chunks < NAIVE_SAMPLE {
+                let t = Instant::now();
+                for _ in 0..1024 {
+                    let f = ColumnFill::build(&ctx.strata, g2.voxel_m);
+                    std::hint::black_box(&f);
+                }
+                t_naive += t.elapsed().as_secs_f64();
+                naive_chunks += 1;
+            }
         }
+        let mean = |v: &[usize]| v.iter().sum::<usize>() as f64 / v.len().max(1) as f64;
+        let mut ev = events.clone();
+        ev.sort_unstable();
+        let mut dp = depths.clone();
+        dp.sort_unstable();
+        let p95 = |v: &[usize]| v[((v.len() as f64 - 1.0) * 0.95).round() as usize];
         println!(
             "M0 run_strata share: {} chunks | column() total {:.3} s ({:.2} ms/chunk) | \
              run_strata alone {:.3} s ({:.2} ms/chunk, {:.1} % of column) | \
@@ -2945,6 +2978,29 @@ mod tests {
             100.0 * t_rs / t_col,
             t_fill,
             100.0 * t_fill / t_col,
+        );
+        println!(
+            "M0' (b) fill shape: {fills} fills | events/chunk mean {:.2} median {} p95 {} \
+             max {} | fill depth_count mean {:.2} median {} p95 {} max {} | \
+             fill heap mean {:.0} B",
+            mean(&events),
+            ev[ev.len() / 2],
+            p95(&ev),
+            ev[ev.len() - 1],
+            mean(&depths),
+            dp[dp.len() / 2],
+            p95(&dp),
+            dp[dp.len() - 1],
+            mean(&fill_heap),
+        );
+        let per_fill_us = 1e6 * t_fill / fills as f64;
+        let naive_ms = 1e3 * t_naive / naive_chunks.max(1) as f64;
+        println!(
+            "M0' (b) per-column projection: ColumnFill::build {per_fill_us:.2} us/call | \
+             naive 1024 rebuilds {naive_ms:.2} ms/chunk over {naive_chunks} chunks \
+             ({:.1} % of column()'s {:.2} ms/chunk)",
+            100.0 * naive_ms / (1e3 * t_col / positions.len() as f64),
+            1e3 * t_col / positions.len() as f64,
         );
     }
 }
