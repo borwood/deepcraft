@@ -101,12 +101,26 @@ re-scopes this file gets a banner **here**, stamped by the author of the correct
 > **✅ P-3 RESOLVED BY RESHAPING, 2026-08-04 — the deposition clock lands (O-2b
 > ruled, `2026-08-04-deposition-clock-design.md` header).** The record gains the
 > raw epoch per unit at zero widening, so correlation matches **true epoch
-> intervals**: same-age boundaries join exactly; the unconformity flag returns to
-> GAP SEMANTICS with the gap now measurable; **R-C is demoted to within-interval
+> intervals**: same-age boundaries join exactly; **R-C is demoted to within-interval
 > interpolation** (where it was always defensible), and R-C vs R-C′ is moot —
-> epoch intervals are their own anchors. § 1.2's rule text stands as the record of
-> why the question existed; § 2's mass identity and § 2.3's invariants carry over
-> unchanged (invariant 5 strengthens).
+> epoch intervals are their own anchors *(and doubly moot per S0: interior
+> unconformity flags are structurally ZERO — the flag fires only when a strip
+> empties the record — so gap DURATION is unrecoverable as recorded; corrections
+> #99 revised the gap-semantics clause that briefly stood here)*. § 1.2's rule text
+> stands as the record of why the question existed; § 2's mass identity and § 2.3's
+> invariants carry over unchanged (invariant 5 strengthens).
+
+> **⚠ S0 MEASURED, 2026-08-04 (`2026-08-04-s0-correlation-measurements.md`; banner
+> by the integrator):** F4's hand-arithmetic was **8.6× off** — `column()` is
+> **1.62 ms/chunk**, not ≈14 ms, so every share-of-`column()` figure in § 6 reads
+> LOW by that factor (D-1's true cost ≈ +315 %, its rejection hardens; "the blend
+> itself cannot be the fight" was too strong — the dot product is ~3–37 % of the
+> real budget). **I-5 resolves to (ii), lazy per-column evaluation** (naive
+> materialization = +104.8 % and ~3 MB/chunk transient). F1's ~7.4 M unit count is
+> settled at **7,304,581**. The § 6 RETURN baseline re-measured: `contents_contract`
+> 102.43 s → **137.31 s**. Partition sizes for S1: 2×2 epoch-union mean **44.9** /
+> p95 145; the clock is 4.2× finer than chapters. Mixture cap: **14 mintable
+> mixtures world-wide** vs the 3,002 bound — passes enormously.
 
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /

@@ -388,8 +388,10 @@ sequence — each names its authority docs rather than restating them.
   word, zero widening, unit count identical by structure; premise corrected at
   ratification — 16,384 m is the per-UNIT thickness cap, not layers/cell; user's
   bit-donation expectation recorded) → P-3 RESOLVED BY RESHAPING: correlation
-  matches true epoch intervals, unconformity flag = measurable gap semantics, R-C
-  demoted to within-interval interpolation** (`2026-08-04-deposition-clock-design.md`,
+  matches true epoch intervals, R-C demoted to within-interval interpolation
+  ~~unconformity flag = measurable gap semantics~~ (corrections #99: gap DURATION
+  is structurally unrecoverable — the flag fires only when a strip empties the
+  record; the surface is real, its length is not)** (`2026-08-04-deposition-clock-design.md`,
   rulings in header). **ALL PICKS CLOSED.** Build sequence: ~~**the CLOCK SLICE first**~~ **✅ THE CLOCK
   SLICE SHIPPED 2026-08-04 (journal/0154; merged same day):** O-2b layout (u24+u8,
   zero widening, unit count bit-identical with the old-shape identity proof),
@@ -398,8 +400,14 @@ sequence — each names its authority docs rather than restating them.
   pinned), exactly the 6 GOLDEN_RECORD* families re-captured once, all others
   byte-still; full trio **fmt 0 · clippy 0 · 1006/0 · 94 suites**. New stand-in:
   stubs #52 (epoch immutable under overprint; alteration-time axis is the heir).
-  **NEXT: S0** (M0′ measurements + the unit-count-hypothesis probe re-run, build
-  slot) → S1 (kernel, now epoch-interval correlation) → S2 (wiring + goldens,
+  ~~**NEXT: S0**~~ **✅ S0 DONE 2026-08-04** (`2026-08-04-s0-correlation-measurements.md`,
+  merged): I-5 = **(ii) lazy per-column evaluation** (naive = +104.8 % of `column()`;
+  (iii) not needed); 2×2 epoch-partition mean 44.9 / p95 145 (clock 4.2× finer than
+  chapters); mixture cap passes 14 vs 3,002; unit count settled **7,304,581** (the
+  Observed entry resolved); `contents_contract` re-baselined 137.31 s; **two
+  refutations stamped** — the gap-duration claim (corrections #99) and F4's 8.6×
+  cost arithmetic (banner on the design). **NEXT: S1** (kernel, epoch-interval
+  correlation, lazy-eval fill shape) → S2 (wiring + goldens,
   retirements) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
@@ -2989,14 +2997,15 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
-- **ONE COUNT, TWO VALUES: the record's total unit count** (voxel-explainability audit
-  2026-08-04, flagged outside its remit): journal/0136:280 says **10,951,030 units**;
-  `2026-08-03-stratigraphic-correlation-design.md:85-86` says **~7.4 M** over the same
-  297,025 cells — a 48 % gap, neither artifact pointing at the other, and the worlds/
-  moments they measured are not obviously the same (slice-1 era vs slice-3 M0).
-  CANNOT-DETERMINE which is current without a re-measure; whoever next runs a record
-  census owes both artifacts their banner. Doc-topology shape 4, caught by a third
-  audit reading both.
+- ~~**ONE COUNT, TWO VALUES: the record's total unit count**~~ **✅ RESOLVED 2026-08-04
+  (S0 § g): STALE, NOT WRONG — the settled count is 7,304,581, measured by BOTH
+  instruments in agreement** (including the one that produced 10.95 M). The drop
+  decomposes: slice 2's identity rederivation −30.4 %, slice 3's sub-quantum carry
+  −3.4 %, drift −0.8 % (journal/0141's 7,622,541 at slice 2b is the dating middle
+  figure). All artifacts stamped (0136, 0141, the correlation + clock audits, the
+  fluvial priors). *Historical body: journal/0136:280 said 10,951,030; the correlation
+  design said ~7.4 M; a 48 % gap with neither pointing at the other — doc-topology
+  shape 4, caught by a third audit reading both.*
 
 - **THE BUILD-MUTEX HOOK DENIES NON-CARGO COMMANDS THAT MERELY MENTION CARGO IN TEXT**
   (geo session, 2026-08-03, hit live): a `git commit` whose **commit message** contained

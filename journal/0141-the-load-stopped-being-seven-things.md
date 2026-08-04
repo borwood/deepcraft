@@ -312,3 +312,8 @@ slice's merge**: the budget was renegotiated 60 s → **1,200 s**
 user's words at the record: *"as long as it doesn't take 20min"*). The claim was
 honest when written; the author's principle — that the author must not move the
 gate — is exactly why the move belonged to the user, who then made it.
+
+*Count note, 2026-08-04 (S0):* this entry's 7,622,541 units (slice 2b) is the missing
+middle figure between 0136's 10.95 M and today's **7,304,581** — it dates the big drop
+to slice 2's identity rederivation, not slice 3's carry. See
+`2026-08-04-s0-correlation-measurements.md` § g.

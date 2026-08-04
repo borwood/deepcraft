@@ -54,6 +54,16 @@ journal/0145 · `crates/dc-worldgen/src/deeptime/recorder.rs` ·
 > u16 is the known floor violation). P-E noted: sequencing is free, no migration
 > exists. P-C executes in the same commit: the correlation design's P-3 banner.
 
+> **⚠ TWO S0 CORRECTIONS, same day (`2026-08-04-s0-correlation-measurements.md`,
+> stamped by the integrator):** (1) the "measurable gap" illustration in § what-
+> correlation-becomes is **unproducible** — the unconformity flag is set only when a
+> strip empties the record, so interior flagged contacts are structurally zero and gap
+> DURATION is unrecoverable (corrections #99; the clock, intervals, and correlation
+> all stand). (2) This pass's F6 count hypothesis was right but its mechanism was the
+> small half: the settled count is **7,304,581**, and the 10.95 M → 7.3 M drop is
+> slice 2's identity rederivation (−30.4 %), not mainly the sub-quantum carry
+> (−3.4 %).
+
 ## 0. The answer to the anchor, in one paragraph
 
 **Yes, the time was thrown away — but not where the question assumed, and the correction

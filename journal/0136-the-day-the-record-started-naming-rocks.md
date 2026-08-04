@@ -430,3 +430,12 @@ Final measured state at merge: split **1.2775×**, residency **≈ main**, Mediu
 moved are deliberately NOT re-captured — slice 2 moves them again and owns the single
 capture; the expected-red list is in the ROADMAP arc. Corrections #88/#89 (renumbered from a colliding #85/#86) record what
 this slice falsified.
+
+---
+
+*Count postscript, 2026-08-04 (S0, `2026-08-04-s0-correlation-measurements.md` § g).*
+This entry's 10,951,030 total units was true when measured and is superseded:
+**7,304,581** on the current world, by the same instrument. The drop decomposes as
+slice 2's identity-from-arriving-composition (−30.4 %), slice 3's sub-quantum carry
+(−3.4 %), and drift since (−0.8 %). Stale, not wrong — corrections #88's count-model
+lesson holds throughout.

@@ -1,5 +1,8 @@
 # Fluvial member (refinement #1) — record-terms priors
 
+> *Count banner, 2026-08-04 (S0): any total-unit figure this doc's pointers reach is
+> superseded — the settled count is **7,304,581** (`2026-08-04-s0-correlation-measurements.md` § g).*
+
 > **RULING 1 — the grain term (user, 2026-08-01, "option 2"):** v1 records **load
 > COMPOSITION** (per-species shares — § 1's recording change), named honestly as
 > composition, never presented as grain size; **the grain-size CONTINUUM is a separate

@@ -3616,6 +3616,10 @@ Dispatched for real in the same commit as this entry.
 
 ## 88. "The identity swap is a zero-byte change" (the P11 design audit § 3.1's headline, 2026-08-01 — true per unit, inverted in aggregate; measured by the slice that built it) *(renumbered from #85 on 2026-08-02 — the geo wrap assigned ordinals blind to the parallel bodies session's #85–#87; doc-topology sweep F1)*
 
+*(Count pointer, 2026-08-04: unit totals cited in this entry's era are superseded —
+settled at **7,304,581**, S0 § g, both instruments agreeing; the count-model lesson
+below is unaffected and was load-bearing in settling it.)*
+
 Per unit, exact: `DepUnit` stayed 16 bytes, compile-asserted. In aggregate, the audit's
 practical conclusion inverted: **identity joined the merge key**, and with the draw
 addressed per epoch the unit count multiplied **2.4053×** (10,951,030 vs 4,552,847 —
@@ -3955,3 +3959,32 @@ flip is now blocked on the M re-pick (+ E4-3's timing) only.
 
 **Stamped in the same commit:** `2026-08-02-p2-measurement-runs.md` header ·
 journal/0122 postscript · ROADMAP P2 entry · `dependency-graph.md` P2 row.
+
+## 99. "The unconformity gap is now measurable in epochs — a unit at epoch 41 under a flagged contact, the next at 88, ⇒ 47 epochs stripped" (the deposition-clock arc's own claim, 2026-08-04 — journal/0154, the clock audit, the correlation P-3 banner, two ROADMAP entries; falsified the SAME DAY by S0's measurement, wrong at assertion)
+
+**The claim:** with the raw epoch recorded per unit, an unconformity-flagged contact
+brackets its gap — the epochs missing between the unit below and the unit above are the
+strip's measured duration. It propagated within hours into journal/0154, the clock
+audit's "what correlation becomes," the correlation design's P-3-resolution banner, and
+the board's correlation entry ("measurable gap semantics").
+
+**The falsification (S0, `2026-08-04-s0-correlation-measurements.md` § refutation 1):**
+interior flagged contacts number **ZERO on the shipped world, and structurally must**:
+`DeepStrata::stripped` is set only when `units.is_empty()` (`recorder.rs:1178-1181`), so
+a flagged unit is always `units[0]` — **the strata that would define the gap's lower
+bracket were deleted by the very strip the flag records.** 114,945 flags exist, all at
+the record base; 46.3 % of recorded cells sit on one. The surface is real; **its
+duration is unrecoverable from the record as written.**
+
+**Mechanism of the error: assertion-time, not staleness** — the example was written
+from the flag's *semantics* ("a property of the contact below") without reading its
+*write path*. The clock itself is unaffected (epochs, intervals, correlation all
+stand); what dies is the free-gap-duration claim, and **R-C′ is moot on two independent
+grounds** (epoch anchors made it redundant; and the anchors it wanted cannot occur
+interior). If gap duration is ever wanted, it is a RECORDER change (persist the
+pre-strip top epoch on the flagged contact — one u8 in the flag's neighborhood), which
+is a design question for whoever first needs it, not an owed fix.
+
+**Stamped in this commit:** journal/0154 postscript · the clock audit header · the
+correlation audit's P-3 banner (text corrected in place — it is header, not testimony)
+· both ROADMAP entries.

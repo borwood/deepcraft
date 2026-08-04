@@ -80,3 +80,13 @@ The user diagnosed it from outside: *"it's stuck on nothing"* — and the slot w
 indeed free, the lock stamp our own. The integrator stopped the agent, verified its
 two commits (complete, with the identity proof already run), and ran the gate from
 the worktree directly. The work was good; the waiting was the defect.
+
+---
+
+*Postscript, 2026-08-04, same day (corrections #99).* The "47 epochs stripped" example
+above describes a state the recorder cannot produce: the unconformity flag is set only
+when a strip EMPTIES the record (`recorder.rs:1178-1181`), so a flagged unit is always
+the record's base — the strata that would bracket the gap were the strip's victims. S0
+measured it: zero interior flagged contacts, 114,945 at the base. The clock and the
+epoch-interval correlation stand; the free gap-duration claim does not. R-C′ is moot
+on two independent grounds now.
