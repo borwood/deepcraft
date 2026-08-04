@@ -64,6 +64,14 @@ mod player;
 mod poststage;
 mod shaderpack;
 mod streaming;
+/// **The longleg swing probe** (`docs/audits/2026-08-04-longleg-swing-probe.md`).
+/// An instrument, not shipped renderer code, so it is `cfg(test)` like
+/// `body::retarget_report` and costs the binary nothing. `dc-client` is a
+/// **binary** crate with no lib target, so the `examples/ … test = true` shape
+/// in CLAUDE.md § Gates cannot reach `body.rs`'s solver at all; this is the same
+/// "prints from the test under `--nocapture`" answer that file already uses.
+#[cfg(test)]
+mod swing_probe;
 mod terrain_material;
 mod worldgen;
 
