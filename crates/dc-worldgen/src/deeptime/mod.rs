@@ -25,6 +25,7 @@ pub mod biotic;
 pub mod cadence;
 pub mod census;
 pub mod climate;
+pub mod correlate;
 pub mod erosion;
 pub mod field;
 pub mod flux;
