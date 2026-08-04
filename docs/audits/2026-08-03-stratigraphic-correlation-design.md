@@ -57,6 +57,19 @@ re-scopes this file gets a banner **here**, stamped by the author of the correct
 > is conditional on the discrete branch, which vanilla exercises at every
 > clastic-igneous and clastic-organic contact. P-2…P-5 remain open.
 
+> **✅ P-2 RULED 2026-08-04 (user: "yes") — the inverted acceptance criterion + S3
+> walk plan are RATIFIED as drafted (§ 7), with the two-register reading recorded as
+> part of the ratification per P-1's M-C:** continuum pairs read LITERALLY per column
+> (mixture fractions ramp smoothly — assertable arithmetic); discrete pairs read
+> STATISTICALLY (realized fractions ramp monotonically, contacts carry the variogram's
+> texture, no straight line, no full-column transplant). A sharp contact with no owning
+> process is a defect, not a texture; today's complete legitimate-sharpness list:
+> nothing inside the grid, the grid border in the wilds. "Names its owning process"
+> stays a WALK JUDGMENT for now — the machine-checkable form (every sharpness traceable
+> to a declared break or cut) is a probe candidate for when the § 1.3 discontinuity
+> seam has its first real occupant. The criterion doubles as the § 2.3 instrument's
+> spec, so build slices assert against it from S1. P-3…P-5 remain open.
+
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /
 truncated-Gaussian construction) · journal/0129 (the stencil arithmetic, "grep the field")

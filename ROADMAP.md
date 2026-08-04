@@ -368,7 +368,9 @@ sequence — each names its authority docs rather than restating them.
   mass argument holds; read-side, so **every deep-time golden must stay bit-still**).
   **Blocked on its § 9 picks (user-owned, being taken one at a time): ✅ P-1 RULED
   2026-08-04 — M-C with the DERIVED predicate, via the materials-roster philosophy
-  (`materials.md` § DECIDED 2026-08-04, audit header banner stamped) — P-2…P-5
+  (`materials.md` § DECIDED 2026-08-04) · ✅ P-2 RULED 2026-08-04 ("yes") — the
+  inverted acceptance criterion + walk plan, two-register reading, sharpness
+  guilty-until-process-claims-it (audit header banners carry both) — P-3…P-5
   remain; then S0 (M0′ measurements) → S1 (kernel) → S2 (wiring + goldens) → S3
   (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
