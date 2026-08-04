@@ -2931,6 +2931,15 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
 
 ## Observed (undiagnosed or deliberately unfixed)
 
+- **ONE COUNT, TWO VALUES: the record's total unit count** (voxel-explainability audit
+  2026-08-04, flagged outside its remit): journal/0136:280 says **10,951,030 units**;
+  `2026-08-03-stratigraphic-correlation-design.md:85-86` says **~7.4 M** over the same
+  297,025 cells — a 48 % gap, neither artifact pointing at the other, and the worlds/
+  moments they measured are not obviously the same (slice-1 era vs slice-3 M0).
+  CANNOT-DETERMINE which is current without a re-measure; whoever next runs a record
+  census owes both artifacts their banner. Doc-topology shape 4, caught by a third
+  audit reading both.
+
 - **THE BUILD-MUTEX HOOK DENIES NON-CARGO COMMANDS THAT MERELY MENTION CARGO IN TEXT**
   (geo session, 2026-08-03, hit live): a `git commit` whose **commit message** contained
   the word "cargo" was denied as a build-slot claim (`scripts/cargo_mutex_hook.py` —

@@ -1,10 +1,17 @@
 # Tour map — the three stacked appearance changes (2026-08-02)
 
-> **Status banner (read first).** Nothing has refuted or re-scoped this yet. A dated
+> **Status banner (read first).** ~~Nothing has refuted or re-scoped this yet.~~ A dated
 > measurement artifact: **immutable body, mutable header** (CLAUDE.md read-first item 5).
 > If a later slice moves the surface top-span distribution, the octaves dither's reach, or
 > the identity-provenance share, **stamp the pointer here, in the same commit as the
 > correction.**
+>
+> **⚠ ONE SHARE STALE + ONE SCOPE CAVEAT (stamped 2026-08-04 by the integrator, per
+> `2026-08-04-voxel-explainability-audit.md`):** the **0.5 % "no record"** column share
+> predates journal/0149's floor-to-rim no-record columns at the interfinger wall — treat
+> as stale pending re-census. And the census is **depth-truncated to the top 65 voxels**
+> (`identify_census.rs:52`), which this file's summary line does not say — a high
+> recorded share is not a high *explainable* share.
 
 Instrument: `crates/dc-worldgen/examples/appearance_tour_p11.rs`
 (`cargo run --release -p dc-worldgen --example appearance_tour_p11 -- --stride 3 --top 3`,
