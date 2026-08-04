@@ -80,9 +80,17 @@ P11 slice 3), extended here with three rows the F4 question needs:
 over a stencil is the **union of the epochs its parents carry**: each `DepUnit` carries one
 epoch, epochs are monotone up-stack, so a parent's stack partitions into epoch-runs and a
 parent contributes zero thickness to an epoch it does not hold. The union count therefore
-*is* the per-column dot-product length. Measured as a 256-bit presence bitset per cell,
-OR-ed over every 2×2 stencil (the interior case, 544² stencils) and every 3×3 stencil (the
-straddling case, 543²).
+*is* the per-column dot-product length. Measured as a 256-bit presence bitset per cell
+(`DEEP_ITERATIONS = 200`, so 256 bits covers the axis exactly), OR-ed over every 2×2
+stencil (the interior case, 544² stencils) and every 3×3 stencil (the straddling case,
+543²).
+
+**What an "interval" is, precisely.** A `DepUnit` is a **merged run**, and merge keeps the
+**bottom** epoch (`recorder.rs::add_quanta`, journal/0154). So the epochs a cell *stamps*
+are the run-start ticks, not every tick it deposited in — which is exactly the boundary set
+correlation needs, and the reason the count below is the partition's true width rather than
+a proxy for it. A stable environment holding epochs 37..41 in one unit contributes **one**
+boundary, at 37, in every parent that shares that stability.
 
 *(numbers pending)*
 
@@ -164,7 +172,25 @@ F6's **conclusion** stands (the two docs were out of order, not in conflict, and
 current); its **mechanism** is only the small half. Both are recorded so the correction is
 a refinement, not a reversal.
 
-*(measured number pending)*
+### 7.2 The owed-banner list — LISTED, NOT STAMPED
+
+Per read-first item 5, the obligation lands on the **writer of the correction**, in the
+same commit. This run is a measurement agent in a worktree; **the integrator stamps at
+merge**. Nothing below has been edited by this run.
+
+| artifact | the stale claim | what the banner should say |
+|---|---|---|
+| **journal/0136:280, :307** | *"10,951,030 recorded units"*; *"the merge-key split factor is 2.4053×"* | superseded at P11 slice 2b (journal/0141) and again at slice 3; the count is now § 7.3's figure. The 2.4053× split factor and the derived **+97.6 MiB** both move with it. **The ROADMAP entry names this artifact by name as owed a banner.** |
+| **journal/corrections.md #88** (`:3621`) | restates *"2.4053× (10,951,030 vs 4,552,847)"* as the priced correction | same supersession; the *mechanism* of #88 (a per-entry cost statement is not an aggregate one when the change touches the merge key) is **unaffected and still right** — only its magnitude moved |
+| **`docs/audits/2026-08-03-stratigraphic-correlation-design.md` F1** (`:136`) | *"~7.4 M units … mean ~25 units/cell, mean unit 0.053 m"* | the current measured count, and F1's *"⚠ max stack depth and the per-cell H distribution are unmeasured"* is **discharged by this file** |
+| **`docs/audits/2026-08-04-deposition-clock-design.md` F6** (`:194-210`) | the hypothesis that slice 3's sub-quantum carry explains the gap | **conclusion confirmed, mechanism refined**: the carry is −3.4 %, slice 2's identity-from-arriving-composition is −30.4 % (§ 7.1). Its falsifier ran; this file is the answer |
+| **journal/0141:188** | *"7,622,541 units … split factor 1.2775× → 1.9064×"* | superseded by slice 3 + this run; listed because it is the figure that dates the drop and neither disputing doc cites it |
+| **`docs/audits/2026-07-29-fluvial-record-terms-priors.md:46`** | *"the unit split 1.9064× (3,998,428 → 7,622,541 units)"* | same |
+| **`ROADMAP.md` § Observed, *"ONE COUNT, TWO VALUES"*** | the open question | **RESOLVED** — move to the resolved/close-block treatment with a pointer here (and per the close-block rule, the resolution owes the asking documents their banners in the same commit, which is this table) |
+
+### 7.3 The measured answer
+
+*(pending)*
 
 ## 8. What each number decides
 
@@ -182,4 +208,32 @@ a refinement, not a reversal.
 
 ## 9. CANNOT-DETERMINE
 
-*(pending)*
+First-class, not smoothed. Each says what would answer it.
+
+1. **The real continuum predicate.** P-1 ruled it **derived** from the FS-A release spectra
+   + property sheet. FS-A has not written the grain bits yet (`GRAIN_UNSET`,
+   `recorder.rs`), so the predicate does not exist to evaluate. § 4 measures with
+   **same-`Litho`-class** as a stand-in, which can only over-count the continuum branch.
+   *Answered by:* the first slice that lands the derived predicate re-running § 4's probe.
+2. **The realized mixture count, as opposed to its bound.** § 4 counts the distinct species
+   *sets* a correlated interval presents and the eighth-states each set can express. Which
+   of those states the blend actually visits depends on the weight field the S1 kernel
+   produces, which does not exist yet. The figure is therefore an **upper bound**.
+   *Answered by:* re-running the count against the S1 kernel's realized weights.
+3. **Mitigation (i)'s and (ii)'s actual cost.** § 2 arm 3 measures the **naive** per-column
+   rebuild — the ceiling. A prefix-sum fill over a shared interval list (i) and a lazy
+   in-walk evaluation (ii) are *cheaper than* that by construction, but by how much cannot
+   be measured before they are written. The naive number is what makes "(i) or (ii)" a
+   pick rather than a hope, and it is what bounds the risk if both disappoint.
+   *Answered by:* S1 reporting its own before/after on this same harness.
+4. **Whether the epoch partition holds up per-column rather than per-cell.** Everything in
+   § 3 is measured over deep cells. The expression tier interpolates a per-column stencil;
+   whether the union widens once weights enter is an S1 property, not a record property.
+5. **Nothing here touches the P-1 *identity* question at a bench cut.** These are desk
+   numbers about counts and costs. The design's own § 10.5 — *is R-C's position-not-identity
+   weakness visible at 460 m spacing* — is now largely moot (epochs replaced fractions), but
+   the M-A-vs-M-B *appearance* question is a walk question and stays one (S3).
+6. **`collapse.rs` is 3,006 lines against the 700-line threshold** (4.3×, flagged by the
+   write hook on every edit this run made). The M0 harness lives inside it. Not this run's
+   to split — flagged for the integrator, per the hook's own *"propose the extraction rather
+   than doing it silently mid-task"*.
