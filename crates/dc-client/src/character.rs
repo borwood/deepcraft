@@ -39,8 +39,8 @@ use glam::DVec3;
 use crate::app::{AnimRateSetting, CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
-    AnimState, Cervical, LegRig, Reach, derived_gait, derived_root_delta_m, fk_foot_local,
-    leg_rigs, pose_for, resolve_orientation, root_offset_m, solve_leg_ik, PoseOwnership,
+    AnimState, Cervical, LegRig, PoseOwnership, Reach, derived_gait, derived_root_delta_m,
+    fk_foot_local, leg_rigs, pose_for, resolve_orientation, root_offset_m, solve_leg_ik,
 };
 
 /// Root marker on a character's body root entity (translation = feet, rotation
