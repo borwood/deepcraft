@@ -70,6 +70,20 @@ re-scopes this file gets a banner **here**, stamped by the author of the correct
 > seam has its first real occupant. The criterion doubles as the § 2.3 instrument's
 > spec, so build slices assert against it from S1. P-3…P-5 remain open.
 
+> **✅ P-4 RULED 2026-08-04 (user: "yes, that's right. an empty stack is a parent
+> whose every chap thickness is 0.") — B-1, the zero-partner blend (§ 4).** The
+> record feathers out against basement as an onlap wedge; B-3's hard edge stays for
+> the true grid border only. Station 1 of the ratified walk (the 0149 wall) judges
+> the cliff-face caveat. Orthogonal to the deposition-clock question — thickness
+> arithmetic either way.
+>
+> **⏸ P-3 PAUSED 2026-08-04 by the user's architecture question** (*"they were laid
+> down on the same clock. did we throw the time away?"* — yes: only the 8-chapter
+> clock survived packing, § 10.7's flag). The **deposition-clock design pass**
+> (`2026-08-04-deposition-clock-design.md`) prices recording/deriving per-bed epoch
+> time; if it lands, correlation matches true isochrons, R-C shrinks to the
+> within-unit interpolant, and R-C vs R-C′ largely dissolves. P-5 remains open.
+
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /
 truncated-Gaussian construction) · journal/0129 (the stencil arithmetic, "grep the field")

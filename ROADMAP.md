@@ -377,7 +377,9 @@ sequence — each names its authority docs rather than restating them.
   (`docs/audits/2026-08-04-deposition-clock-design.md` when it lands) — if a
   per-bed epoch prices sane, correlation matches by true isochrons and P-3
   largely dissolves; it also pays the explainability WHEN axis and knowledge.md
-  req 3** — P-4/P-5 remain; then S0 (M0′ measurements) → S1 (kernel) → S2
+  req 3** · **✅ P-4 RULED 2026-08-04 ("an empty stack is a parent whose every chap
+  thickness is 0") — B-1 onlap feather; hard edge survives at the true grid border
+  only** — P-5 remains; then S0 (M0′ measurements) → S1 (kernel) → S2
   (wiring + goldens) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
