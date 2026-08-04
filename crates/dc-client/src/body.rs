@@ -984,8 +984,7 @@ pub fn pose_for(
     // Per clip: its grid, its time step, and the segments it owns — bearing
     // chains excluded, because rule 3's refusal is refused ownership too: a
     // contribution that will not be applied may not drag the bone's rate either.
-    let mut clip_rates: Vec<(Option<CycleGrid>, f64, Vec<&str>)> =
-        Vec::with_capacity(clips.len());
+    let mut clip_rates: Vec<(Option<CycleGrid>, f64, Vec<&str>)> = Vec::with_capacity(clips.len());
     for clip in clips {
         let cycle = rate.cycle(clip.duration_s);
         let step = cycle.map_or(rate.step_s(), CycleGrid::step_s);
@@ -1608,7 +1607,10 @@ mod tests {
     fn a_clip_is_held_on_its_own_cycle_grid() {
         let rate = AnimRate::default();
         let idle = idle_clip();
-        let step = rate.cycle(idle.duration_s).expect("a shipped clip").step_s();
+        let step = rate
+            .cycle(idle.duration_s)
+            .expect("a shipped clip")
+            .step_s();
         let a = sample_clip(&idle, 0.30, rate);
         let b = sample_clip(&idle, 0.30 + step / 4.0, rate); // the same held pose
         assert_eq!(a, b, "within one held pose the clip does not move");
@@ -2204,7 +2206,9 @@ mod tests {
                     );
                     // The formula, restated as the property: N is the rounded
                     // product OR the floor, never anything else.
-                    let want = (1.0 / cadence * fps).round().max(f64::from(MIN_POSES_PER_CYCLE));
+                    let want = (1.0 / cadence * fps)
+                        .round()
+                        .max(f64::from(MIN_POSES_PER_CYCLE));
                     assert!(
                         (f64::from(grid.poses()) - want).abs() < 1e-9,
                         "{} at {v:.2} m/s, {fps} fps: N = {} against round(T·fps) = {want}",
@@ -2278,7 +2282,8 @@ mod tests {
                 .map(|k| (f64::from(k) / f64::from(n)).to_bits())
                 .collect();
             assert_eq!(
-                sampled, want,
+                sampled,
+                want,
                 "{}: {} strides sampled {} distinct phases, not its own N = {n}",
                 plan.name,
                 20,

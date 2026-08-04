@@ -410,12 +410,9 @@ mod tests {
         assert!((blended - 0.09).abs() < 1e-15);
         // Equal proportions is the shipped case (the composition carries no
         // blend weights), so a mean and a proportional blend agree.
-        let proportional = blended_step_s(&[
-            (0.08, 1.0 / 3.0),
-            (0.09, 1.0 / 3.0),
-            (0.10, 1.0 / 3.0),
-        ])
-        .expect("three owners");
+        let proportional =
+            blended_step_s(&[(0.08, 1.0 / 3.0), (0.09, 1.0 / 3.0), (0.10, 1.0 / 3.0)])
+                .expect("three owners");
         assert!((blended - proportional).abs() < 1e-15);
     }
 
@@ -434,8 +431,8 @@ mod tests {
             "a bone nobody shares must sit on its own whole N"
         );
         assert_eq!(gait.phases_at_step(alone).buckets(), 7.0);
-        let shared = blended_step_s(&[(gait.step_s(), 1.0), (clip.step_s(), 1.0)])
-            .expect("two owners");
+        let shared =
+            blended_step_s(&[(gait.step_s(), 1.0), (clip.step_s(), 1.0)]).expect("two owners");
         let g = gait.phases_at_step(shared);
         assert!(
             (g.buckets() - 7.0).abs() > 1e-9 && (g.buckets() - 7.0).abs() < 1.0,
