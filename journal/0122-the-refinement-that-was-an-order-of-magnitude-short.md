@@ -342,3 +342,15 @@ if you have decided in advance that the corpus's confident claims are the ones w
 
 > *The most dangerous artefact in a corpus is not an unanswered question. It is a
 > well-controlled experiment whose null was recorded as an answer.*
+
+---
+
+*Postscript, stamped 2026-08-04 (corrections #98, by that correction's author).* The
+pits bar this entry derived — hollows > 10 m = 0 — was a **clamp-failure detector**,
+valid between the ~1 m dimple floor and the ~45 m failure scale it measured, at M≈45,
+on the operator as it then stood. It later travelled to M≈375–400 as an acceptance
+*doctrine*, carrying a premise this entry never claimed and nobody ever decided ("a
+deep closed depression is a defect"), and blocked the P2 flip for a week. The user
+rejected the premise 2026-08-04; the replacement criterion is process-ownership
+(corrections #98). The detector's derivation stands at its own scale; what expired
+was the jurisdiction.

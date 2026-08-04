@@ -1356,13 +1356,16 @@ the gait-bake design pass, before B3 moves the firewall (`posture-gait.md` § 7b
     (2.63 derived ↔ 2.653 from the world's own Airy decomposition), measured
     D3(M) ≈ 0.0070·M puts the target at **M ≈ 375–380** — the derivation's [60, 240]
     bracket was low 1.6×. **The flip is blocked on three USER calls** (runs doc § 4):
-    the M re-pick · the pits-bar conflict (every in-band rung violates the
-    hollows>10 m = 0 guard — so this entry's acceptance bullet below is in KNOWN
-    CONFLICT with the band; the guard's own derivation is contested, see the
-    2026-08-03 doc-topology sweep's shape-7 finding) · the gen-time/register trade —
+    the M re-pick · ~~the pits-bar conflict~~ **DISSOLVED 2026-08-04 (corrections
+    #98, user: "the dimple test does not make sense"): the hollows>10 m = 0 guard
+    carried a never-decided premise and is retired as a blocker — replacement is
+    the process-ownership criterion (a closed depression is legitimate iff a
+    process owns it; the pit safari becomes a provenance check)** · the
+    gen-time/register trade —
     the last **mostly dissolved by E4** (the 38-min gen time is explicit-stability
     CFL tax; the implicit kernel is the ruled answer-shape, and **E4-3 flips adoption
-    WITH this re-pick so goldens move once**, dependency-graph E4/P2 rows).
+    WITH this re-pick so goldens move once**, dependency-graph E4/P2 rows). **Net:
+    the flip is blocked on the M re-pick alone, sequenced with E4-3.**
   - **What moved.** `EROSION_CALIBRATION = 45` was derived on the capped operator. With the
     cap gone, 45× strips the world to **1.40 m** mean regolith — *below* the shipped world's
     4.57 m — and the ladder **inverts journal/0114's headline finding**: cover now **thins**

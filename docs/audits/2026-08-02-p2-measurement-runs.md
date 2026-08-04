@@ -13,6 +13,18 @@
 > SAME world only if the walk shows something clearly wrong. The bar itself is not
 > revised sight-unseen. Findings 5 (M re-pick) and 7 (gen-time/register) remain open.
 >
+> **⚠ AND THE BAR ITSELF IS RETIRED AS A BLOCKER — corrections #98, RULED 2026-08-04
+> (user), stamped by the correction's author:** *"hollows > 10 m = 0"* carried a
+> never-decided premise (*a deep closed depression is a defect*), was derived at M≈45
+> on the broken operator as a clamp-failure detector, and vetoed the whole in-band
+> range at 8× its calibration. **Replacement: a closed depression is legitimate iff a
+> process OWNS it** (P-2's sharpness criterion pointed at topography); the acceptance
+> bar becomes *"every hollow above the dimple floor names its owning process,"* and
+> the walk/census above becomes a PROVENANCE check (the deposition clock + mover axis
+> make ownership answerable). § 4's numbers stand as measurement; the flip's blockers
+> reduce to finding 5 (the M re-pick, with E4-3's timing) — finding 7 was already
+> mostly dissolved by E4.
+>
 > **RE-SEQUENCED 2026-08-03 (user): the pit walk is DEFERRED — "no time to block on
 > 40min gen right now" — and finding 7's ANSWER-SHAPE IS RULED: E4.** The 38-minute
 > in-band solve is integrator tax, not physics (sub-steps scale ∝ M: 2 → 896 across the

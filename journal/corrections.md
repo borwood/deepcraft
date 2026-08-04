@@ -3923,3 +3923,35 @@ is exactly why the owed control below is real work and not a one-liner. *The hon
 the three loci. Filed rather than hand-waved, because *"remember to file what the agent marked"*
 is precisely the shape of rule this project has already watched die twice (`JUSTIFIED-BY`, and
 "re-run the probes by hand after a merge" — dead in one day).
+
+## 98. "hollows > 10 m = 0" as P2's acceptance guard — a never-decided premise wearing a measurement (derived at M≈45 on the broken operator, applied as a blocker at M≈375–400; REJECTED by the user 2026-08-04)
+
+**The claim as it stood:** journal/0122 derived a pits bar — *hollows deeper than 10 m
+= 0* — and the P2 measurement runs (`2026-08-02-p2-measurement-runs.md` § 4) carried it
+forward as one of the flip's three blockers: every in-band rung violates it (33 @150 →
+8,878 @400), so the guard vetoed the entire calibration band the literature target
+demands.
+
+**What was actually false:** not the numbers — the **premise wrapped around them**.
+*"A deep closed depression is a defect"* was never written as a decision anywhere; the
+bar was derived as a **clamp-failure detector**, valid between a ~1 m dimple floor and
+a ~45 m failure scale, both measured at M≈45 **on the broken operator** — and then
+applied at 8× that calibration, outside its derivation, where it read as doctrine.
+Meanwhile `flow.md` lists sinkholes and cenotes among phenomena the model must
+represent, and wind deflation — a process that honestly digs closed basins — is live
+in the agent roster. **The mechanism is doc-topology shape 7 (a premise hiding inside
+a caveat), the same shape as #70's ore-legibility premise:** a correct measurement
+lends its authority to an unstated claim, and the claim blocks user-owned work for a
+week because a *blocked* item looks handled. Found by the 2026-08-03 doc-topology FULL
+sweep; put to the user 2026-08-04; the user: *"the dimple test does not make sense and
+i'm annoyed that it lodged itself as a blocker."*
+
+**The replacement (RULED 2026-08-04, user):** P-2's criterion pointed at topography —
+**a closed depression is legitimate iff a process owns it; an unowned one is a defect
+at any depth.** The acceptance bar becomes *"every hollow above the dimple floor names
+its owning process"*; the pit safari becomes a provenance check on sampled hollows at
+the candidate M (the deposition clock and mover axis make ownership answerable). P2's
+flip is now blocked on the M re-pick (+ E4-3's timing) only.
+
+**Stamped in the same commit:** `2026-08-02-p2-measurement-runs.md` header ·
+journal/0122 postscript · ROADMAP P2 entry · `dependency-graph.md` P2 row.
