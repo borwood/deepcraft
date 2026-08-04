@@ -1,7 +1,20 @@
 # S0 — the stratigraphic-correlation pre-slice measurement run (M0′)
 
-**Status: MEASUREMENTS IN FLIGHT** — every section carries its command and its
-CANNOT-DETERMINE line; numbers land as runs complete.
+**Status: COMPLETE.** All seven measurements ran. Two of them **refute a claim in the
+documents that asked for them** — recorded here, banners owed and listed, none stamped:
+
+- **⚠ THE UNCONFORMITY GAP IS NOT MEASURABLE, AND STRUCTURALLY CANNOT BE** (§ 5.2). The
+  shipped world carries **0** interior unconformity-flagged contacts and **114,945** flagged
+  at the record base. `DeepStrata::stripped` is set *only when `units.is_empty()`*
+  (`recorder.rs:1178-1181`), so a flagged unit is **always `units[0]`** — its predecessor
+  was erased by the very strip the flag records. journal/0154's illustration (*"a unit at
+  epoch 41 under a flagged contact, the next at 88 — 47 epochs stripped"*) describes a
+  record state the recorder cannot produce.
+- **⚠ `column()` IS 1.62 ms/chunk, NOT ≈14 ms** (§ 2). The correlation design's F4 derived
+  ≈14 ms by hand from M0's ratio and flagged it as arithmetic. Measured, it is **8.6×
+  smaller** — which makes every *share-of-`column()`* claim in § 6 of that design 8.6× more
+  expensive than it reads, including the one that concluded *"the blend itself cannot be the
+  fight."*
 
 **What this is.** `docs/audits/2026-08-03-stratigraphic-correlation-design.md` § 6 names
 M0′ as the pre-slice measurement run the build owes before S1 wiring, and § 9b lists it as
@@ -45,6 +58,13 @@ cargo test --release -p dc-worldgen --test contents_contract                # (f
 cargo run  --release -p dc-worldgen --example member_diversity_probe        # (g) cross-check
 ```
 
+Run wall-clock, for whoever repeats this: probe **42.7 s** (42.24 s of it `Pregen::run`) ·
+M0 harness **41.6 s** · `contents_contract` **137.3 s** · `member_diversity_probe` **~3 min**
+(it pays `Pregen::run` *and* a second `build_field` *and* an identity-audit `run_cells`).
+Console output was Tee'd to the session scratchpad, not committed — every figure quoted
+below is reproduced verbatim in the tables and code blocks of its own section, per
+*read the log the gate wrote*.
+
 ---
 
 ## 1. (a) Per-cell H histogram + max stack depth
@@ -56,7 +76,35 @@ disagreement as a self-check on that identity. *Events per cell* is a different 
 (it is a per-**column** expression product, not a record product) and is measured in § 2
 with the fill, where it belongs.
 
-*(numbers pending)*
+### 1.1 The numbers
+
+`Pregen::run` **42.24 s** · deep grid 545×545 = **297,025 cells** · cell **460.0 m** ·
+`DeepField` resident **147.80 MiB** · **248,322 cells (83.6 %) carry a record**.
+
+| distribution | n | mean | median | p95 | max | min |
+|---|---:|---:|---:|---:|---:|---:|
+| **stack depth**, all cells | 297,025 | **24.592** | 14 | 104 | **460** | 0 |
+| **stack depth**, recorded cells | 248,322 | 29.416 | 17 | 117 | **460** | 1 |
+| **H** = Σ unit thickness, all cells | 297,025 | **1.377 m** | 0.596 m | 5.116 m | **539.358 m** | 0 |
+| **H**, recorded cells | 248,322 | 1.647 m | 0.727 m | 5.730 m | 539.358 m | 0.001 m |
+
+- **max single unit thickness 62.936 m** (was 65.38 m at slice-3 M0 — the u24 fixed-point
+  cap of 16,384 m keeps its ~260× headroom).
+- **`max |DeepField::regolith − Σ units| = 4.8828 × 10⁻⁴ m`** — that is **exactly q/2** for
+  `q = 2⁻¹⁰ m`. The journal/0053 finalize invariant and the slice-3 sub-quantum carry bound
+  (`|carry| ≤ q/2`) are the *same* number, confirmed at world scale rather than in a unit
+  test. **This is the strongest single evidence that F2's linearity argument is safe**: the
+  record's thickness sum and `H` never disagree by more than one carry.
+- **The stack-depth tail is much longer than the mean advertises.** The design reasoned from
+  *"mean ~25 units/cell"*; the distribution is heavily right-skewed — median **14**, p95
+  **104**, max **460**. Cells with 380–460 units exist (single-digit counts each). Empty
+  stacks: **48,703 cells** (16.4 %).
+
+**What the tail does to the rejected R-B.** Needleman–Wunsch is `O(m·n)`; at the mean that
+is 25² ≈ 625, at p95 104² ≈ 10,816, and at the tail 460² = **211,600 cells per pair per
+chapter** — a 340× spread. R-B was already rejected on correctness (§ 1.2 of the design);
+this prices how badly its worst case would have behaved, and the answer is *much* worse
+than the mean suggested.
 
 ## 2. (b) `ColumnFill::build` share of `column()` — the F4 decider
 
@@ -72,7 +120,69 @@ P11 slice 3), extended here with three rows the F4 question needs:
   naive cost is the *upper bound* mitigation (i)/(ii) must beat. Measuring it directly —
   rather than multiplying a ratio — is what makes the I-5 pick evidence.
 
-*(numbers pending)*
+### 2.1 The numbers
+
+```
+M0 run_strata share: 200 chunks | column() total 0.323 s (1.62 ms/chunk)
+  | run_strata alone 0.001 s (0.00 ms/chunk, 0.3 % of column)
+  | ColumnFill::build 0.001 s (0.2 %)
+M0' (b) fill shape: 200 fills | events/chunk mean 90.61 median 86 p95 180 max 236
+  | fill depth_count mean 104.84 median 104 p95 112 max 116 | fill heap mean 2912 B
+M0' (b) per-column projection: ColumnFill::build 3.03 us/call
+  | naive 1024 rebuilds 1.69 ms/chunk over 25 chunks (104.8 % of column()'s 1.62 ms/chunk)
+```
+
+| quantity | measured |
+|---|---|
+| **`column()` (cold `column_record`)** | **1.62 ms/chunk** |
+| `run_strata` alone | ~5 µs/call, **0.3 %** of `column()` |
+| `ColumnFill::build` | **3.03 µs/call**, **0.2 %** of `column()` (one fill per chunk today) |
+| `StrataRec::events` per chunk | mean **90.61**, median 86, p95 **180**, max 236 |
+| `ColumnFill::depth_count` | mean **104.84**, median 104, p95 112, max 116 voxels |
+| `ColumnFill` heap | mean **2,912 B** per fill |
+| **naive per-column fill (1024 rebuilds/chunk)** | **1.69 ms/chunk = +104.8 % of `column()`** |
+
+### 2.2 ⚠ `column()` is 1.62 ms/chunk, not ≈14 ms
+
+The design's F4 wrote *"≈14 ms/chunk by that ratio — hand arithmetic, flagged"*, and § 1.4
+priced D-1 against it (*"1024 × 7 µs ≈ 7 ms/chunk added (≈ 50 % of `column()`)"*). Measured,
+`column()` is **1.62 ms**. So:
+
+- **D-1 (blend `DeepStrata`, then `run_strata` per column) is worse than it looked, not
+  better**: 1024 × 5 µs ≈ 5.1 ms against a 1.62 ms budget — **+315 %**, not +50 %. The
+  design's rejection of D-1 stands and hardens.
+- Every other *share-of-`column()`* figure in that § 6 is likewise **8.6× larger** than it
+  reads.
+
+### 2.3 The I-5 RECOMMENDATION — **(ii) lazy per-column evaluation inside the voxel walk**
+
+Two independent arguments, both from the numbers above.
+
+**Wall clock.** The naive materialization costs **+104.8 %** — it roughly *doubles* the
+chunk collapse. That is not noise and it is not a shrug; against *runtime is sacred* it
+disqualifies (iii)-free naivety and makes the mitigation pick load-bearing rather than
+cosmetic. Mitigation **(i)** (shared interval list + per-column thickness vector, prefix
+sums) still *materializes* a `Plan` vector per column and so keeps most of that cost;
+mitigation **(ii)** does the same arithmetic inside a walk that already visits spans in
+depth order and never materializes the vector at all.
+
+**Memory, and this is the sharper argument.** Today the record-side transient is **one**
+`ColumnFill` per `SubCell` — mean **2,912 B**, ≤ 9 per chunk. Per-column state means 1024 of
+them: **≈ 2.98 MB per chunk** of transient — and `column_cache` is **runtime-resident**
+(`subcell.rs` heap-bytes doc, the design's own RETURN spec). Add the correlation thickness
+vector itself at § 3's measured widths (mean 44.9 f64 = 359 B/column, p95 145 = 1,160 B,
+max 200 = 1,600 B) and materializing per column adds a further **368 KB mean / 1.19 MB p95
+/ 1.64 MB max per chunk**. Lazy evaluation carries **one** interval vector for the chunk and
+a running dot product per column — it removes both.
+
+**(iii) — the weight-bucket cache — is NOT needed and should not be reached for.** It buys
+back a cost that (ii) does not pay, and it reintroduces exactly the quantized steps this
+whole arc exists to kill (the design flags it *"only as a fallback, loudly"*). Nothing
+measured here creates a case for it.
+
+*Caveat, stated rather than smoothed:* (ii)'s own cost cannot be measured before it exists
+(§ 9.3). What is measured is the **ceiling** it must beat (+104.8 %) and the allocation it
+avoids (≈3 MB/chunk). Both point the same way.
 
 ## 3. (c) Shared-partition interval counts under EPOCH correlation
 
@@ -92,7 +202,42 @@ correlation needs, and the reason the count below is the partition's true width 
 a proxy for it. A stable environment holding epochs 37..41 in one unit contributes **one**
 boundary, at 37, in every parent that shares that stability.
 
-*(numbers pending)*
+### 3.1 The numbers
+
+| stencil | n | mean | median | p95 | max | min |
+|---|---:|---:|---:|---:|---:|---:|
+| **2×2** (interior), all | 295,936 | **44.936** | 36 | **145** | 200 | 0 |
+| **2×2**, non-empty | 248,454 | 53.524 | 42 | 153 | 200 | 1 |
+| **3×3** (straddling), all | 294,849 | **61.731** | 52 | **183** | 200 | 0 |
+| **3×3**, non-empty | 248,551 | 73.230 | 60 | 188 | 200 | 1 |
+
+Single-cell floor, for scale (§ 5): distinct epochs per **recorded cell** mean **22.968**,
+median 17, p95 70, max 200. A 2×2 stencil roughly **doubles** the partition width (23 → 54);
+a 3×3 roughly triples it (23 → 73). The world's epoch axis is 200 ticks
+(`DEEP_ITERATIONS = 200`) and the union saturates at 200 in the deep basins.
+
+### 3.2 The per-column dot-product constant, and what it costs
+
+The design's § 6 estimated *"a union of ~10² intervals … ~10⁵ multiply-adds per 1024-column
+chunk, microseconds"*. The estimate's **width** was right (mean 45, p95 145 — the same order
+as 10²). Its **conclusion** does not survive § 2.2's correction to `column()`:
+
+| | intervals | multiply-adds per chunk (× 4 parents × 1024 columns) |
+|---|---:|---:|
+| mean | 44.9 | **184,000** |
+| p95 | 145 | **594,000** |
+| max | 200 | **819,000** |
+
+At a realistic 1–4 GFLOP/s for a strided FMA over f64 vectors, that is **≈0.05–0.6 ms per
+chunk against a 1.62 ms budget — 3 % to 37 %.** *(Arithmetic, flagged as such: no
+correlation kernel exists to time. The FLOP count is measured; the rate is assumed.)*
+
+**So "the blend itself cannot be the fight" is too strong.** It is not the *dominant* cost —
+the per-column fill state is, at +104.8 % — but at the p95 tail it is a double-digit
+percentage of the chunk budget and it belongs in the S1 slice's RETURN spec as a measured
+line, not as a dismissal. **This is the number that makes I-5's (ii) a requirement rather
+than a preference**: the dot product is affordable, materializing 1024 fills around it is
+not.
 
 ## 4. (d) Distinct blended mixtures per continuum-pair transition zone
 
@@ -110,7 +255,66 @@ work. This probe uses **same-`Litho`-class** as the measurable stand-in (clastic
 brief names. A derived predicate can only ever *narrow* the continuum set relative to
 same-class, so the mixture count below is an **upper bound** under M-C.
 
-*(numbers pending)*
+### 4.1 The numbers
+
+**13,298,244 stencil-intervals scanned** over 295,936 2×2 stencils; **6,231,820 (46.86 %)
+carry more than one species.**
+
+| k = distinct species in a stencil-interval | count | share | eighth-states `C(7, k−1)` | combinatorial cap `C(k+8,8) − 1` |
+|---:|---:|---:|---:|---:|
+| 1 | 7,066,424 | 53.138 % | 1 | 8 |
+| **2** | **4,695,703** | **35.311 %** | 7 | 44 |
+| 3 | 1,216,817 | 9.150 % | 21 | 164 |
+| 4 | 288,101 | 2.166 % | 35 | 494 |
+| 5 | 30,992 | 0.233 % | 35 | 1,286 |
+| **6 (max observed)** | 207 | 0.002 % | 21 | **3,002** |
+
+**Distinct species SETS with k > 1: 98.** Split by the same-class proxy:
+
+| | sets | mintable mixtures at the eighths quantum |
+|---|---:|---:|
+| **CONTINUUM** (M-C's mixture branch) | **2** | **14** |
+| **DISCRETE** (M-C's octaves cut — no mixture minted) | **96** | — |
+
+The two continuum sets are exactly the roster's two multi-member depositional classes:
+
+| set | class | occurrences | states |
+|---|---|---:|---:|
+| `dc:sandstone + dc:conglomerate` | clastic-coarse | **2,762,133** | 7 |
+| `dc:mudstone + dc:siltstone` | clastic-fine | **111,112** | 7 |
+
+By occurrence, continuum intervals are **2,873,245 of 6,231,820 multi-species intervals
+(46.1 %)**; the octaves cut owns the other **53.9 %**.
+
+### 4.2 THE MIXTURE-CAP CHECK PASSES, WITH ENORMOUS MARGIN
+
+**14 distinct blended mixtures, world-wide, upper bound.** Not 14 per transition zone — 14
+in total, because the mixture branch can only ever fire on the **two** same-class pairs the
+vanilla roster contains, and each pair admits 7 interior states at the fill's own eighths
+quantum. Against the combinatorial doctrine's `C(k+8,8) − 1` = **3,002** at the observed
+max k = 6, and against a mixture table the world already populates from every other source,
+**M-C's mixture branch is a rounding error on the palette.**
+
+Three consequences the build should carry:
+
+1. **P-1's M-A worry about palette growth is empirically dead.** The design flagged it as
+   *"⚠ unmeasured how many distinct blended mixtures a transition zone mints"* (§ 3.2,
+   § 10.6). Measured: at most 14. **Discharged.**
+2. **M-C's *discrete* branch is the one carrying the load** — 96 of 98 sets, 53.9 % of
+   multi-species intervals. **This sizes I-4** (the new registered draw domain): it is
+   exercised at over half of all multi-species correlated intervals, on 96 distinct species
+   combinations up to k = 6. The design's note that *"vanilla exercises [the discrete branch]
+   at every clastic-igneous and clastic-organic contact"* is confirmed and understated — the
+   single most common **discrete** set is `dc:sandstone + dc:carbonaceous-mudstone` at
+   **747,413** occurrences, a clastic-against-soil contact.
+3. **A caution the numbers force.** The commonest set of all is
+   `sandstone + conglomerate` (2.76 M) — which the same-class proxy calls continuum. If the
+   derived FS-A predicate later says sandstone↔conglomerate is **not** a continuum (it is a
+   clast-size step, not a smooth silt/clay ratio), the mixture branch collapses to
+   `mudstone + siltstone` alone — **7 mixtures, 111,112 intervals, 1.8 % of the multi-species
+   population** — and M-C becomes, in practice, "the octaves cut, with one small exception".
+   That is a real possibility this run cannot settle (§ 9.1) and the S2 slice should not be
+   surprised by it.
 
 ## 5. (e) Epoch statistics
 
@@ -122,7 +326,64 @@ defined gap; they are counted separately rather than folded in as zero. The prob
 counts epoch **non-monotonicity** up-stack — which must be 0, and is the field-scale
 version of the debug assert journal/0154 landed.
 
-*(numbers pending)*
+### 5.1 The numbers
+
+- **Epoch range present in the record: 0 ..= 199.** Every one of the 200 iterations
+  (`DEEP_ITERATIONS`) has surviving rock somewhere on the world.
+- **Epoch NON-monotone up-stack: 0.** Across all 7,304,581 units. The correlation design's
+  § 10.4 owed assert and journal/0154's debug assert are both confirmed at world scale, in
+  release, where `debug_assert!` does not run.
+
+| distribution | n | mean | median | p95 | max | min |
+|---|---:|---:|---:|---:|---:|---:|
+| distinct **epochs** / cell, all | 297,025 | 19.202 | 14 | 64 | 200 | 0 |
+| distinct **epochs** / recorded cell | 248,322 | **22.968** | 17 | 70 | 200 | 1 |
+| distinct **chapters** / recorded cell | 248,322 | **5.442** | 6 | 8 | **8** | 1 |
+
+**The clock is ~4.2× finer than the chapters it replaced** (22.97 epochs against 5.44
+chapters per recorded cell). That ratio is the concrete value of O-2b: correlation now has
+23 anchors per borehole where it had 5, and R-C's proportional guessing shrinks to the gap
+*between* them (§ 8).
+
+### 5.2 ⚠ THE UNCONFORMITY GAP HAS ZERO INSTANCES, AND CANNOT HAVE ANY
+
+```
+unconformity-flagged contacts .... 0 interior + 114945 at the record base
+```
+
+**114,945 flagged units — every single one is `units[0]`.** Not one flagged contact in the
+world has a predecessor in its own record, so **no epoch gap is defined anywhere**, and the
+"measurable gap" figure this section was asked to produce **does not exist**.
+
+**This is structural, not a property of seed 1337.** `DeepStrata::stripped` is set in
+exactly one place — `erode`, and only `if self.units.is_empty()` (`recorder.rs:1178-1181`).
+The flag therefore means *"the record was stripped to bedrock"*, and the unit that carries
+it is by construction the first unit of a record that was empty a moment earlier. **The
+strata whose deposition time would define the gap were deleted by the very event the flag
+records.** A flagged unit can never migrate off index 0: later deposits push above it, and
+merge-down (`:1142-1148`) pops the *upper* unit into the survivor.
+
+**What this refutes, and what it does not.**
+
+- It **refutes** journal/0154's illustration — *"a unit at epoch 41 under a flagged contact,
+  the next at 88 — 47 epochs stripped"* — as a description of the shipped recorder. If the
+  column was stripped to bedrock, the epoch-41 unit is gone.
+- It **refutes** the correlation design's R-C′ premise (§ 1.2) that *"where both parents
+  carry [a flag] at the same chapter transition"* an anchor can be built. There are no
+  interior flags to pair. **R-C′ is moot on two independent grounds now** — the clock
+  superseded it, and its input never existed.
+- It does **not** refute the clock. Epochs are real, dense (§ 5.1) and monotone; correlation
+  matching true epoch intervals is unaffected.
+- It does **not** mean the world has no unconformities. **46.3 % of recorded cells
+  (114,945 / 248,322) sit on one** — the record-to-basement contact is an erosional surface
+  almost half the time. That is a large, real, expressible fact; what is missing is only the
+  *duration*, because the record above bedrock is the only record there is.
+
+**What would make the gap measurable** (recorded, not proposed as work): the strip event
+would have to leave a trace — the epoch at which the column was last stripped, or the epoch
+of the youngest unit it destroyed. `DeepStrata::strips` counts strips (`:886-888`) but
+records no time. That is a recorder-side widening and therefore outside this arc, which is
+read-side only (design F3). **Flagged for whoever owns the gap-semantics claim.**
 
 ## 6. (f) `contents_contract` re-baseline
 
@@ -131,7 +392,22 @@ the whole suite. The 102.43 s figure is journal/0129's machine-state (2026-07-26
 predates P11 slices 1–3, the packed `DepUnit`, the near-path restructure and the
 deposition clock.
 
-*(numbers pending)*
+### 6.1 The number
+
+```
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 137.31s
+```
+
+| | wall clock | source |
+|---|---:|---|
+| 2026-07-26 (journal/0129, post-U3) | 102.43 s | journal/0129:202 |
+| **2026-08-04 (this run)** | **137.31 s** | `contents_contract-199b58089a8d7d05.exe` |
+
+**+34.88 s, +34.1 %** over nine days. The suite's shape did not change (3 tests, same
+sample); what grew is the world it generates — P11 slices 1–3 (member identity in the record,
+the CSR-sparse budget planes, the near-path restructure with `run_strata` per touched cell)
+and the deposition clock. **This 137.31 s is the denominator the correlation build's RETURN
+spec reports against**; the design's citation of 102.43 s is retired.
 
 ## 7. (g) THE UNIT-COUNT HYPOTHESIS
 
@@ -188,11 +464,61 @@ merge**. Nothing below has been edited by this run.
 | **`docs/audits/2026-07-29-fluvial-record-terms-priors.md:46`** | *"the unit split 1.9064× (3,998,428 → 7,622,541 units)"* | same |
 | **`ROADMAP.md` § Observed, *"ONE COUNT, TWO VALUES"*** | the open question | **RESOLVED** — move to the resolved/close-block treatment with a pointer here (and per the close-block rule, the resolution owes the asking documents their banners in the same commit, which is this table) |
 
-### 7.3 The measured answer
+### 7.3 The measured answer — **7,304,581 units**
 
-*(pending)*
+**Two independent instruments, byte-for-byte agreement.**
+
+| instrument | reads | figure |
+|---|---|---:|
+| `correlation_m0_probe` (new) | `pregen.deep.strata` — the field `Pregen::run` distils and the game loads | **7,304,581** |
+| `member_diversity_probe` (unchanged — *the instrument that produced 10,951,030*) | its own `build_field(cells, SEED)` run | **7,304,581** |
+
+`member_diversity_probe` also reports **409,070.4 m** recorded (⇒ mean unit **0.056 m**),
+split factor **1.9314×** against a 3,782,091-unit class-only counterfactual, and max unit
+**62.936 m** — all consistent with the new probe's independent scan.
+
+**VERDICT.** The 10,951,030 figure is **stale, not wrong** — it was correct for P11 slice 1
+and has been superseded twice. The current count is **7,304,581**, a further **−0.8 %**
+below slice-3's 7,363,947 (the FS-A wire-up and the deposition clock landed in between). The
+full history:
+
+| stage | units | Δ |
+|---|---:|---:|
+| P11 slice 1 (journal/0136) | 10,951,030 | — |
+| P11 slice 2b (journal/0141) — identity from the arriving composition | 7,622,541 | **−30.4 %** |
+| P11 slice 3 (journal/0145) — the sub-quantum carry | 7,363,947 | −3.4 % |
+| **today (this run)** | **7,304,581** | −0.8 % |
+
+**ROADMAP § Observed *"ONE COUNT, TWO VALUES"* is RESOLVED.** The two values were never in
+conflict; they were fourteen commits apart, and the dominant mechanism was slice 2's, not
+slice 3's (§ 7.1).
 
 ## 8. What each number decides
+
+### 8.0 The headline answers
+
+| question | answer |
+|---|---|
+| **I-5 — fill-state mitigation** | **(ii), lazy per-column evaluation inside the voxel walk.** Naive materialization costs **+104.8 %** of `column()` and ≈**3 MB/chunk** of transient in a runtime-resident cache; (i) keeps most of both; (iii) is unnecessary (§ 2.3) |
+| **the dot-product constant** | **mean 44.9 intervals per 2×2 stencil** (p95 145, max 200) ⇒ **184 k–819 k multiply-adds/chunk**, ≈3–37 % of a 1.62 ms budget (§ 3.2) |
+| **the mixture cap under M-C** | **PASSES with enormous margin — 14 mixtures world-wide, upper bound**, against a cap of 3,002 at the observed max k = 6. The discrete branch carries 96 of 98 sets (§ 4.2) |
+| **the unit count** | **7,304,581**, two instruments agreeing exactly; the dispute is closed (§ 7.3) |
+| **`contents_contract` baseline** | **137.31 s** (was 102.43 s) (§ 6.1) |
+| **the unconformity gap** | **⚠ CANNOT-DETERMINE, structurally — 0 interior flagged contacts** (§ 5.2) |
+
+### 8.1 Banners owed by THIS file's two refutations — LISTED, NOT STAMPED
+
+Same discipline as § 7.2: the integrator stamps at merge.
+
+| artifact | the claim | what the banner should say |
+|---|---|---|
+| `2026-08-03-stratigraphic-correlation-design.md` **F4** (`:171-179`) and **§ 1.4 D-1** | *"≈14 ms/chunk by that ratio — hand arithmetic, flagged"*; *"1024 × 7 µs ≈ 7 ms/chunk added (≈ 50 % of `column()`)"* | measured: `column()` is **1.62 ms/chunk**; D-1's added cost is **+315 %**, not +50 %; every share-of-`column()` figure in its § 6 reads 8.6× low. The *rejection* of D-1 is unaffected and strengthened |
+| `2026-08-03-stratigraphic-correlation-design.md` **§ 1.2 R-C′** (`:271-281`) | the unconformity-anchor refinement | its input does not exist: **0 interior flagged contacts, structurally** (§ 5.2). R-C′ is moot on two grounds |
+| `2026-08-03-stratigraphic-correlation-design.md` **§ 3.2 / § 10.6** | *"⚠ unmeasured how many distinct blended mixtures a transition zone mints"* | **discharged: 14, world-wide** (§ 4.2) |
+| `2026-08-03-stratigraphic-correlation-design.md` **F1 / § 10.2** | *"⚠ max stack depth and the per-cell H distribution are unmeasured"* | **discharged** (§ 1.1); the tail is far longer than the mean advertised (median 14, p95 104, max 460) |
+| **journal/0154** (the deposition-clock entry) | *"the unconformity flag returns to GAP SEMANTICS with the gap now measurable (a unit at epoch 41 under a flagged contact, the next at 88 — 47 epochs stripped)"* | the recorder cannot produce that state: `stripped` is set only on a **full** strip, so a flagged unit is always `units[0]` and its predecessor was deleted (§ 5.2). The clock itself is unaffected |
+| `2026-08-04-deposition-clock-design.md` (header + the P-3 resolution it drove) | the same gap-semantics claim, restated | same |
+| `2026-08-03-stratigraphic-correlation-design.md` **§ 6 RETURN spec** | *"the 102.43 s figure is nine days old"* | **re-baselined: 137.31 s** (§ 6.1) |
 
 | measurement | the decision it feeds | where the decision lives |
 |---|---|---|
@@ -233,7 +559,16 @@ First-class, not smoothed. Each says what would answer it.
    numbers about counts and costs. The design's own § 10.5 — *is R-C's position-not-identity
    weakness visible at 460 m spacing* — is now largely moot (epochs replaced fractions), but
    the M-A-vs-M-B *appearance* question is a walk question and stays one (S3).
-6. **`collapse.rs` is 3,006 lines against the 700-line threshold** (4.3×, flagged by the
+6. **⚠ THE UNCONFORMITY GAP — CANNOT-DETERMINE, AND THE REASON IS STRUCTURAL** (§ 5.2). The
+   measurement (e) asked for is not merely absent from this world; the recorder cannot
+   produce it. 0 interior flagged contacts against 114,945 basal ones.
+   *Answered by:* a recorder-side widening that logs *when* a strip happened (`strips` counts
+   them and records no time) — out of this arc's read-side scope (design F3).
+7. **The FLOP-to-milliseconds conversion in § 3.2 is arithmetic, not measurement.** The
+   multiply-add **count** is measured; the rate (1–4 GFLOP/s for a strided f64 FMA) is
+   assumed, which is why the answer is a 3–37 % range rather than a number.
+   *Answered by:* S1 timing its own kernel on this same 200-chunk harness.
+8. **`collapse.rs` is 3,006 lines against the 700-line threshold** (4.3×, flagged by the
    write hook on every edit this run made). The M0 harness lives inside it. Not this run's
    to split — flagged for the integrator, per the hook's own *"propose the extraction rather
    than doing it silently mid-task"*.
