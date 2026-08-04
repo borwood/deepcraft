@@ -1,5 +1,13 @@
 # E4 — the field-solver primitive and the implicit kernel: design pass
 
+> **✅ U-3 RULED 2026-08-04 (user, emphatic) — the venue is `dc-core::field`, as
+> E4-1 provisionally executed:** *"The engine owns primitives. The engine owns
+> primitives. The engine owns primitives. We're not going to entrench a primitive
+> in worldgen, whose heir is the pack."* The rayon rider rides with it (the
+> kernel's parallel arm brought rayon into dc-core at E4-1; ratified as part of
+> the venue). U-5 (extraction-first) is thereby also closed as executed. **U-1,
+> U-2, U-4 remain open — being taken one at a time.**
+
 **Arc anchor:** `docs/dependency-graph.md:50` (E4, "SHAPE NAMED 2026-07-29 (S-10), 2 instances,
 NOT EXTRACTED") + `:56-61` (§ "E4's rule") · `docs/spines.md:1078-1167` (S-10, RATIFIED
 2026-07-29) · `docs/design/stubs.md:1295-1354` (#30, the DERIVED half still owed, heir = this
