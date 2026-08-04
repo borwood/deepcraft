@@ -136,11 +136,49 @@ dispatch hypothesis: the older count predates slice 3's sub-quantum carry.
 over `pregen.deep.strata` (the shipped world the game loads), and `member_diversity_probe`
 re-run unchanged — the very instrument that produced 10,951,030.
 
-*(numbers pending)*
+### 7.1 The corpus archaeology (desk work, no cargo — done before the run)
+
+The two disputed figures are not the only ones. **There is a third, and it dates the drop.**
+
+| count | artifact | instrument | landed |
+|---:|---|---|---|
+| 10,951,030 | journal/0136:280, :307 · corrections #88 (`:3621`) | `member_diversity_probe` | commit `3cab931`, **2026-08-02** (P11 **slice 1**) |
+| **7,622,541** | **journal/0141:188** · `2026-07-29-fluvial-record-terms-priors.md:46` | `member_diversity_probe` | commit `81d8d3b`, **2026-08-02** (P11 **slice 2b**) |
+| 7,363,947 | journal/0145:9 · `2026-08-02-p11-slice3-design.md:60` | the recorder's M0 mover-split counter | commit `ee2f800`, **2026-08-03** (P11 **slice 3**) |
+
+**This refines the hypothesis both the dispatching brief and the clock audit's F6 state.**
+F6 (`2026-08-04-deposition-clock-design.md:198-210`) attributes the whole 48 % gap to
+**slice 3's sub-quantum carry** and offers exactly the falsifier this section runs. The
+intermediate figure says the carry cannot be the bulk of it: the count had already fallen
+to 7,622,541 **one slice earlier**, before the carry existed. The split is
+
+- **slice 2 (journal/0141, ruling 6 — identity comes from the arriving composition rather
+  than a per-deposit draw): 10,951,030 → 7,622,541, −30.4 %.** Transported identity is
+  *more coherent bed-to-bed* than an independent draw at every deposit, so `deposit_as`'s
+  merge key splits **less** often. The same entry records the split factor moving
+  2.4053× → 1.9064× against a pre-P11 baseline that itself moved (4,552,847 → 3,998,428).
+- **slice 3 (journal/0145 — the sub-quantum carry): 7,622,541 → 7,363,947, −3.4 %.** Real,
+  and the direction F6 predicts, but ~1/9th of the gap.
+
+F6's **conclusion** stands (the two docs were out of order, not in conflict, and ~7.4 M is
+current); its **mechanism** is only the small half. Both are recorded so the correction is
+a refinement, not a reversal.
+
+*(measured number pending)*
 
 ## 8. What each number decides
 
-*(pending)*
+| measurement | the decision it feeds | where the decision lives |
+|---|---|---|
+| (a) stack depth p95/max | R-B's rejection cost (`O(m·n)` alignment at the tail, not the mean) — already rejected on correctness, now also priced; and the transient size of the per-column thickness vector | design § 1.2, § 6.2 |
+| (a) H distribution | how many voxels a correlated interval can actually express (mean H ≈ 1.5 voxels; the tails are what read at a bench cut) | design § 6.2, § 2.2.4 |
+| (b) `ColumnFill::build` µs/call + the naive 1024× projection | **I-5 — the fill-state mitigation pick**: (i) shared interval list + per-column thickness vector, (ii) lazy per-column evaluation inside the voxel walk, (iii) weight-bucket cache *(fallback only, loudly — it reintroduces steps)* | design § 6.1, § 9b I-5 |
+| (c) 2×2 / 3×3 union interval count | **the per-column dot-product constant** — the design estimated "~10² intervals"; this replaces the estimate. Also sets the per-column vector width and hence the transient memory line in the build slice's RETURN spec | design § 6 (the ~10⁵ multiply-add estimate), § 6.2 |
+| (d) k-histogram + continuum species-set inventory | **the mixture-cap check under P-1's M-C**: how many distinct blended mixtures the mixture branch can mint, and how many *discrete* sets the octaves cut must dress (which sizes **I-4**, the new draw domain) | design § 3.2 M-A/M-C, § 9b I-4, § 10.6 |
+| (e) distinct epochs/cell | the same quantity as (c) at stencil size 1 — the floor the union can never go below, and the first evidence that epoch intervals are a *finer* clock than the 8 chapters | clock audit § 5 |
+| (e) epoch gap at unconformities | the **measurable-gap claim's first numbers** (journal/0154: *"a unit at epoch 41 under a flagged contact, the next at 88 — 47 epochs stripped"*) — and whether a flagged contact reliably carries a gap at all | clock audit header, design § 1.2 R-C′ |
+| (f) `contents_contract` wall-clock | the **denominator of the build slice's RETURN spec** — the before/after the correlation wiring is measured against | design § 6 RETURN spec |
+| (g) unit count | closes ROADMAP § Observed *"ONE COUNT, TWO VALUES"*; the banner list is § 7.2 | ROADMAP § Observed |
 
 ## 9. CANNOT-DETERMINE
 

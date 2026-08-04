@@ -84,15 +84,16 @@ fn dist(v: &mut [f64]) -> Dist {
         };
     }
     v.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let n = v.len();
-    let pick = |q: f64| v[((n as f64 - 1.0) * q).round() as usize];
+    let s: &[f64] = v;
+    let n = s.len();
+    let pick = |q: f64| s[((n as f64 - 1.0) * q).round() as usize];
     Dist {
         n,
-        mean: v.iter().sum::<f64>() / n as f64,
+        mean: s.iter().sum::<f64>() / n as f64,
         median: pick(0.5),
         p95: pick(0.95),
-        max: v[n - 1],
-        min: v[0],
+        max: s[n - 1],
+        min: s[0],
     }
 }
 
