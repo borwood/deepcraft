@@ -1,5 +1,19 @@
 # The gait bake (member #1) — a design pass against the posture-gait bones
 
+> **⚠ ITS B6 CLAIMS ARE PARTLY FALSIFIED — stamped 2026-08-03 by the B6 body-composition design
+> pass (`docs/audits/2026-08-03-b6-body-composition-design.md` § 9.2; `stubs.md` #50).** This
+> document's `GaitKnobs` docket promises that B6 closes knobs it structurally cannot:
+> **density is not stiffness**, and a mass integral cannot yield an elastic modulus.
+> - **S3 `bob_damping` is NOT absorbed by B6.** Damping is a compliance term; its real heir is a
+>   mechanical-property axis on the material sheet plus a compliant joint model — undesigned.
+> - **S1 `cadence_scale` is HALF-closed.** B6 makes the inertia denominator real; the muscle-power
+>   numerator remains absent. And for a *uniform* body the derived value is exactly **1.0** — the
+>   mechanism closes without the number moving.
+> - **S4 `swing_flexion` (push-off) is pure actuation** and is unreachable from mass alone.
+>
+> **Zero of B6's eight named inbound heirs close outright.** The body below is testimony and is not
+> rewritten; this banner is the pointer it owed.
+
 > **⚠ USER CALL #1 RULED 2026-08-02 — mutable header; the body below is testimony and is not
 > rewritten.** *"Option A for sure! When we have controller support an analog stick can
 > actually grade intent up the ladder."*
