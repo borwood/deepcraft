@@ -254,15 +254,22 @@ fn main() -> std::process::ExitCode {
         // falls back rather than aborting the boot (the `--horizon` behaviour).
         let anim_rate = match args.windows(2).find(|w| w[0] == "--anim-fps") {
             Some(v) => match v[1].parse::<f64>().ok().and_then(anim_rate::AnimRate::new) {
-                Some(r) => app::AnimRateSetting(r),
+                Some(r) => {
+                    // Echoed because a walk's verdict is ABOUT this number, and a
+                    // launch flag that leaves no trace in the log is a condition
+                    // nobody can reconstruct afterwards.
+                    eprintln!("stop-motion target: {} poses per second", r.target_fps());
+                    app::AnimRateSetting(r)
+                }
                 None => {
+                    let fallback = app::AnimRateSetting::default();
                     eprintln!(
                         "--anim-fps expects a positive number (poses per second), got `{}`; \
                          using the default {}",
                         v[1],
-                        anim_rate::DEFAULT_TARGET_FPS
+                        fallback.0.target_fps()
                     );
-                    app::AnimRateSetting::default()
+                    fallback
                 }
             },
             None => app::AnimRateSetting::default(),

@@ -79,7 +79,7 @@ use std::collections::HashMap;
 use dc_api::Posture;
 use dc_api::bodies::{AnimClip, Axis, BodyPlan, GaitVector};
 
-use crate::anim_rate::{AnimRate, CycleGrid, PhaseGrid, blended_step_s};
+use crate::anim_rate::{AnimRate, CycleGrid, PhaseGrid, StepBlend};
 
 // `ANIM_FPS = 12.0` LEFT THIS FILE 2026-08-04 (user ruling; `bodies.md`
 // § Stepped animation, the `▶▶ DECIDED 2026-08-04` banner). It was a
@@ -187,10 +187,14 @@ fn lerp3(a: [f64; 3], b: [f64; 3], f: f64) -> [f64; 3] {
 /// whatever a pack authors that is genuinely *not* gait — transitions, emotes,
 /// upper-body action (design § 6).
 ///
-/// This is the **whole-clip** entry point, used where every bone of the clip
-/// rides the clip's own rate. [`pose_for`] does not call it: a bone shared with
-/// the gait rides a blended step, so composition samples per bone group through
-/// [`sample_clip_at_phase`].
+/// **`#[cfg(test)]`, and that is a fact about the composition rather than about
+/// this function.** This is the whole-clip entry point: every bone of the clip
+/// on the clip's own rate. Production has no such caller — [`pose_for`] samples
+/// **per bone group**, because a bone the gait co-owns rides a blended step —
+/// so the live consumers are `retarget_report` and the acceptance tests. Left
+/// visible (rather than deleted or inlined) because it is the honest statement
+/// of one clip's own grid, and it is what the tests assert that grid against.
+#[cfg(test)]
 pub fn sample_clip(clip: &AnimClip, t: f64, rate: AnimRate) -> Pose {
     let phase = clip_phase(clip, t);
     let stepped = rate
@@ -955,79 +959,97 @@ pub fn pose_for(
 
     // --- who owns what -----------------------------------------------------
     // Ownership is a property of the ANIM, not of the current keyframe bracket:
-    // a clip that names a joint in one keyframe owns it for the whole cycle, or
-    // a bone's rate would flicker as keyframes came and went. Keys borrow from
-    // the gait and the clips, both of which outlive this call.
+    // a clip that names a joint anywhere owns it for the whole cycle, or a
+    // bone's rate would flicker as keyframes came and went.
+    //
+    // **Held as short name LISTS, not as a map, and that is a perf call with a
+    // receipt.** This runs per body per frame. A `HashMap<&str, StepBlend>` over
+    // ~20 bones cost ~60 sip-hashes and measured **+1.6 µs per body per frame**
+    // against a 3.3 µs baseline; a clip names two or three segments and a limb
+    // has two or three joints, so a linear scan of a three-element slice beats
+    // hashing outright at these sizes. `Vec::contains` on `&str` is a length
+    // check and a memcmp.
     let mut bearing: Vec<&str> = Vec::new();
-    let mut owners: HashMap<&str, Vec<(f64, f64)>> = HashMap::new();
+    let mut gait_names: Vec<&str> = Vec::new();
     if let Some(g) = gait {
         for limb in &g.limbs {
             for ja in &limb.neutral {
+                gait_names.push(ja.segment.as_str());
                 if limb.bearing {
                     bearing.push(ja.segment.as_str());
                 }
-                owners
-                    .entry(ja.segment.as_str())
-                    .or_default()
-                    .push((gait_step, 1.0));
             }
         }
     }
-    // One derivation per clip, consulted twice below (ownership, then sampling).
-    let clip_cycles: Vec<Option<CycleGrid>> = clips.iter().map(|c| rate.cycle(c.duration_s)).collect();
-    for (clip, cycle) in clips.iter().zip(&clip_cycles) {
+    // Per clip: its grid, its time step, and the segments it owns — bearing
+    // chains excluded, because rule 3's refusal is refused ownership too: a
+    // contribution that will not be applied may not drag the bone's rate either.
+    let mut clip_rates: Vec<(Option<CycleGrid>, f64, Vec<&str>)> =
+        Vec::with_capacity(clips.len());
+    for clip in clips {
+        let cycle = rate.cycle(clip.duration_s);
         let step = cycle.map_or(rate.step_s(), CycleGrid::step_s);
-        // Once per clip per segment: ownership is per anim, and a clip names the
-        // same joint in every keyframe.
         let mut named: Vec<&str> = Vec::new();
         for kf in &clip.keyframes {
             for r in &kf.rotations {
                 let name = r.segment.as_str();
-                // Rule 3, applied at the OWNERSHIP layer: a refused contribution
-                // is not part-ownership, so it may not drag a bearing chain's
-                // rate around either.
-                if bearing.contains(&name) || named.contains(&name) {
-                    continue;
+                if !bearing.contains(&name) && !named.contains(&name) {
+                    named.push(name);
                 }
-                named.push(name);
-                owners.entry(name).or_default().push((step, 1.0));
             }
         }
+        clip_rates.push((cycle, step, named));
     }
-    // Every layer contributes with unit weight (the composition has no blend
-    // weights anywhere), so `k` owners hold `1/k` each and this is a mean. The
-    // weighted form is the seam for the day layers carry real weights.
-    let bone_step: HashMap<&str, f64> = owners
-        .iter()
-        .filter_map(|(&name, o)| blended_step_s(o).map(|dt| (name, dt)))
-        .collect();
+    // One bone's blended rate. Every layer contributes with unit weight (the
+    // composition carries no blend weights anywhere), so a bone's `k` owners
+    // hold `1/k` each and the blend is a mean; the weighted form is the seam for
+    // the day layers carry real weights.
+    let blended = |name: &str| -> Option<f64> {
+        let mut blend = StepBlend::default();
+        if gait_names.contains(&name) {
+            blend.add(gait_step, 1.0);
+        }
+        for (_, step, named) in &clip_rates {
+            if named.contains(&name) {
+                blend.add(*step, 1.0);
+            }
+        }
+        blend.step_s()
+    };
 
     // --- sample each anim, per bone-rate group -----------------------------
     let mut pose = Pose::default();
+    // Two scratch buffers, allocated once per call and reused per anim: this
+    // bone's rate beside its name, and the distinct rates among them.
+    let mut rates: Vec<(&str, f64)> = Vec::new();
+    let mut groups: Vec<f64> = Vec::new();
     if let Some(g) = gait {
         for limb in &g.limbs {
-            for step in distinct_steps(limb.neutral.iter().map(|j| j.segment.as_str()), &bone_step)
-            {
+            group_rates(
+                limb.neutral.iter().map(|j| j.segment.as_str()),
+                &blended,
+                &mut rates,
+                &mut groups,
+            );
+            for &step in &groups {
                 let phase = phase_on(gait_cycle, step, state.phase);
                 for ja in g.limb_pose(limb, state.stepped_froude, phase) {
-                    if bone_step.get(ja.segment.as_str()).copied() == Some(step) {
+                    if rate_of(&rates, ja.segment.as_str()) == Some(step) {
                         pose.joints.insert(ja.segment, ja.euler);
                     }
                 }
             }
         }
     }
-    for (clip, &cycle) in clips.iter().zip(&clip_cycles) {
+    for (clip, (cycle, _, named)) in clips.iter().zip(&clip_rates) {
         let live = clip_phase(clip, state.clock_s);
-        let names = clip
-            .keyframes
-            .iter()
-            .flat_map(|kf| kf.rotations.iter().map(|r| r.segment.as_str()))
-            .filter(|n| !bearing.contains(n)); // rule 3: the gait owns a bearing chain outright
-        for step in distinct_steps(names, &bone_step) {
-            let layer = sample_clip_at_phase(clip, phase_on(cycle, step, live));
+        group_rates(named.iter().copied(), &blended, &mut rates, &mut groups);
+        for &step in &groups {
+            let layer = sample_clip_at_phase(clip, phase_on(*cycle, step, live));
             for (name, euler) in layer.joints {
-                if bone_step.get(name.as_str()).copied() != Some(step) {
+                // Rule 3: the gait owns a bearing chain outright, so a clip's
+                // contribution to one is dropped here as it always was.
+                if rate_of(&rates, name.as_str()) != Some(step) {
                     continue;
                 }
                 let base = pose.joints.entry(name).or_insert([0.0, 0.0, 0.0]);
@@ -1040,23 +1062,33 @@ pub fn pose_for(
     pose
 }
 
-/// The distinct blended time steps among a set of bones — the groups one anim
-/// has to be sampled at.
+/// One bone's rate out of a small name→rate list.
+fn rate_of(rates: &[(&str, f64)], name: &str) -> Option<f64> {
+    rates.iter().find(|(n, _)| *n == name).map(|&(_, s)| s)
+}
+
+/// Blend every named bone's rate, and collect the **distinct** ones — the groups
+/// one anim has to be sampled at.
 ///
-/// Usually **one**: on the shipped bodies every bone of a limb has the same
-/// owner set, so this adds no per-frame sampling at all. Compared by bits
-/// because equal owner sets are accumulated in the same order and so agree
-/// exactly.
-fn distinct_steps<'a>(names: impl Iterator<Item = &'a str>, bone_step: &HashMap<&str, f64>) -> Vec<f64> {
-    let mut out: Vec<f64> = Vec::new();
+/// Usually **one group**: on the shipped bodies every bone of a limb has the
+/// same owner set, so the per-bone rate costs no extra sampling at all. Compared
+/// by bits, which is exact rather than approximate because equal owner sets
+/// accumulate in the same order and so agree to the last bit.
+fn group_rates<'a>(
+    names: impl Iterator<Item = &'a str>,
+    blended: &impl Fn(&str) -> Option<f64>,
+    rates: &mut Vec<(&'a str, f64)>,
+    groups: &mut Vec<f64>,
+) {
+    rates.clear();
+    groups.clear();
     for name in names {
-        if let Some(&s) = bone_step.get(name)
-            && !out.iter().any(|x| x.to_bits() == s.to_bits())
-        {
-            out.push(s);
+        let Some(s) = blended(name) else { continue };
+        rates.push((name, s));
+        if !groups.iter().any(|x| x.to_bits() == s.to_bits()) {
+            groups.push(s);
         }
     }
-    out
 }
 
 /// One anim's phase, held on the grid a bone with time step `step_s` sees.
@@ -1543,7 +1575,7 @@ pub fn retarget_report(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::anim_rate::{DEFAULT_TARGET_FPS, MIN_POSES_PER_CYCLE};
+    use crate::anim_rate::{DEFAULT_TARGET_FPS, MIN_POSES_PER_CYCLE, blended_step_s};
     use dc_api::bodies::{
         biped_clips, biped_plan, longleg_plan, retired_biped_walk_clip, stout_plan,
     };
@@ -1892,9 +1924,23 @@ mod tests {
     /// timing of a number a colleague will improve tomorrow is exactly what
     /// § Gates forbids pinning): at 60 fps a thousand bodies must fit in a
     /// frame, so 16 µs per body per frame is already catastrophic and 20 µs is
-    /// a ceiling nothing sane approaches. Measured cost sits ~two orders below
-    /// it, so this cannot flake on a loaded machine and still catches a
+    /// a ceiling nothing sane approaches. Measured cost sits several times
+    /// below it, so this cannot flake on a loaded machine and still catches a
     /// pathology — an allocation in the inner loop, a table build per frame.
+    ///
+    /// **⚠ PER-CYCLE QUANTIZATION COST IT 22 % (2026-08-04, measured both sides
+    /// on one machine in one sitting): 3312 ns before, 4036 ns after.** The
+    /// per-bone rate is a real derivation — ownership resolved and blended per
+    /// bone, then one sample per distinct rate — and it is not free. Two
+    /// intermediate shapes were measured and rejected on this number: a
+    /// `Vec` of owners per bone (**6445 ns**) and a `HashMap<&str, StepBlend>`
+    /// (**4945 ns**); the shipped path holds ownership as short name lists and
+    /// hashes nothing. **The named heir for the rest is hoisting the ownership
+    /// tables into `character.rs`'s per-plan `BodyAssets`** — ownership is
+    /// constant per (plan, clip set) and only `gait_step` moves with speed, so
+    /// the whole pre-pass is per-plan work being redone per body per frame.
+    /// Not done here: it changes `pose_for`'s signature, and this slice is an
+    /// appearance change the user has yet to rule on.
     #[test]
     fn per_frame_pose_cost_is_measured() {
         use std::time::Instant;

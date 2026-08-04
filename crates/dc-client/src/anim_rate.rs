@@ -151,15 +151,16 @@ pub struct CycleGrid {
 
 impl CycleGrid {
     /// `N` — poses per cycle. An integer by construction; that is the fix.
+    ///
+    /// `#[cfg(test)]`: production consumes the grid, never the count — it asks
+    /// for a [`CycleGrid::step_s`] to blend or a [`PhaseGrid`] to quantize on.
+    /// `N` is the **reported** quantity: what the probe prints and what the
+    /// acceptance tests assert. Gated rather than left `pub` so the split reads
+    /// as deliberate instead of as an accessor nobody happened to call.
+    #[cfg(test)]
     #[must_use]
     pub fn poses(self) -> u32 {
         self.poses
-    }
-
-    /// The cycle this grid divides, seconds.
-    #[must_use]
-    pub fn cycle_s(self) -> f64 {
-        self.cycle_s
     }
 
     /// `Δt = duration / N` — **the quantity the per-bone blend averages**
@@ -207,7 +208,11 @@ pub struct PhaseGrid {
 }
 
 impl PhaseGrid {
-    /// Poses per cycle on this grid.
+    /// Poses per cycle on this grid — real-valued, so this is the number that
+    /// says whether the blend moved a bone off its anim's whole `N`.
+    /// `#[cfg(test)]` for the same reason as [`CycleGrid::poses`]: reported, not
+    /// consumed.
+    #[cfg(test)]
     #[must_use]
     pub fn buckets(self) -> f64 {
         self.buckets
@@ -235,32 +240,62 @@ impl PhaseGrid {
 /// **The per-bone rate**: the time step of a bone owned by several anims, each
 /// with its own cycle and its own `N`.
 ///
-/// `(step_s, ownership)` pairs in, `Σ w·Δt / Σ w` out — *"a weighted blend is a
-/// weighted blend, a single owner is a single owner"* (user, mechanism 4). It is
-/// **interpolation, not arbitration**: there is no precedence rule to get wrong,
-/// and the two-blended-cycles problem dissolves instead of being adjudicated.
+/// `Σ w·Δt / Σ w` — *"a weighted blend is a weighted blend, a single owner is a
+/// single owner"* (user, mechanism 4). It is **interpolation, not arbitration**:
+/// there is no precedence rule to get wrong, and the two-blended-cycles problem
+/// dissolves instead of being adjudicated.
 ///
-/// `None` when nothing owns the bone or every weight is zero — the caller then
-/// has no rate to impose, which is a different statement from "rate zero".
+/// **An accumulator rather than a function over a slice, and that is a
+/// perf decision with a receipt.** The renderer blends one of these *per bone
+/// per body per frame*; collecting each bone's owners into a `Vec` first cost a
+/// heap allocation per bone and measured **+1.4 µs per body per frame** against
+/// a 3.3 µs baseline. Runtime is sacred (CLAUDE.md § Conventions), so ownership
+/// streams in and nothing is collected.
 ///
 /// **Where ownership comes from today:** the composition in `body::pose_for` is
 /// additive with no blend weights anywhere, so each of a bone's `k` owners has
-/// proportion `1/k` and this is a mean. The weight argument is the seam for the
-/// day layers carry real weights (crossfades, action layers, B3's blend tree);
-/// the identity it must preserve is `blended_step_s(&[(dt, w)]) == dt` for any
-/// single owner, asserted in this module's tests.
+/// proportion `1/k` and this is a mean. The `ownership` argument is the seam for
+/// the day layers carry real weights (crossfades, action layers, B3's blend
+/// tree); the identity it must preserve is that any single owner reduces to its
+/// own `Δt`, asserted in this module's tests.
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
+pub struct StepBlend {
+    acc: f64,
+    weight: f64,
+}
+
+impl StepBlend {
+    /// Fold one owner in. A non-finite or non-positive step or ownership is
+    /// **ignored**, not propagated: an owner that cannot state a rate has no
+    /// opinion about this bone, which is different from wanting rate zero.
+    pub fn add(&mut self, step_s: f64, ownership: f64) {
+        if !(step_s.is_finite() && step_s > 0.0) || !(ownership.is_finite() && ownership > 0.0) {
+            return;
+        }
+        self.acc += step_s * ownership;
+        self.weight += ownership;
+    }
+
+    /// The blended step, or `None` when nothing owns this bone — which is a
+    /// different statement from "rate zero", and the caller has no rate to
+    /// impose.
+    #[must_use]
+    pub fn step_s(self) -> Option<f64> {
+        (self.weight > 0.0).then(|| self.acc / self.weight)
+    }
+}
+
+/// [`StepBlend`] over a ready-made owner list — the shape the tests read in.
+/// `#[cfg(test)]` because production streams (see the accumulator's note); one
+/// authority either way, since this is written in terms of it.
+#[cfg(test)]
 #[must_use]
 pub fn blended_step_s(owners: &[(f64, f64)]) -> Option<f64> {
-    let mut total_w = 0.0;
-    let mut acc = 0.0;
-    for &(dt, w) in owners {
-        if !(dt.is_finite() && dt > 0.0) || !(w.is_finite() && w > 0.0) {
-            continue;
-        }
-        total_w += w;
-        acc += dt * w;
+    let mut blend = StepBlend::default();
+    for &(step_s, ownership) in owners {
+        blend.add(step_s, ownership);
     }
-    (total_w > 0.0).then(|| acc / total_w)
+    blend.step_s()
 }
 
 #[cfg(test)]
