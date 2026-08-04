@@ -84,6 +84,20 @@ re-scopes this file gets a banner **here**, stamped by the author of the correct
 > time; if it lands, correlation matches true isochrons, R-C shrinks to the
 > within-unit interpolant, and R-C vs R-C′ largely dissolves. P-5 remains open.
 
+> **✅ P-5 RULED 2026-08-04 (user: "yes, ratified") — THE SUPERSESSION IS FORMAL.**
+> The slice-3 membership dither is retired as plan; § 5's retirement list executes
+> in S2 (`cell_of` · the near `sample_source_cell` call site · the
+> `NearRecordMembership` domain, never refilled · the membership asserts rewritten
+> to P-2's criterion); the § 5 survivor list is the build's substrate. **And the
+> ratification carries the user's direction rider, recorded because it names the
+> arc's purpose:** *"i'm interested to re-implement the variety in our terrain as
+> the result of purposeful standardized operators. this was needed work anyways —
+> most refinement was old native code, not on the plugin shape."* (The refinement.md
+> § 1 founding complaint, now a user-stated build direction — move C's ownerless
+> relief and the `collapse.rs` decomp are its named territory.) All five picks are
+> now closed or paused: P-1 ✅ M-C-derived · P-2 ✅ · P-3 ⏸ deposition-clock pass ·
+> P-4 ✅ B-1 · P-5 ✅.
+
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /
 truncated-Gaussian construction) · journal/0129 (the stencil arithmetic, "grep the field")

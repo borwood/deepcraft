@@ -379,8 +379,13 @@ sequence — each names its authority docs rather than restating them.
   largely dissolves; it also pays the explainability WHEN axis and knowledge.md
   req 3** · **✅ P-4 RULED 2026-08-04 ("an empty stack is a parent whose every chap
   thickness is 0") — B-1 onlap feather; hard edge survives at the true grid border
-  only** — P-5 remains; then S0 (M0′ measurements) → S1 (kernel) → S2
-  (wiring + goldens) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
+  only** · **✅ P-5 RULED 2026-08-04 ("yes, ratified") — the supersession is FORMAL;
+  the § 5 retirement list executes in S2. Direction rider (user, at ratification):
+  "re-implement the variety in our terrain as the result of purposeful standardized
+  operators… most refinement was old native code, not on the plugin shape."** All
+  picks closed or paused (P-3 ⏸ on the clock pass); next: the clock pass verdict →
+  P-3 → S0 (M0′ measurements, build slot) → S1 (kernel) → S2 (wiring + goldens,
+  retirements) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
   "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically

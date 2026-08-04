@@ -7,8 +7,10 @@
 > sketch — see `docs/audits/2026-08-03-stratigraphic-correlation-design.md` (its § 5
 > lists exactly what dies and what survives). **The substrate this pass built stands:**
 > `SubCell`, the per-column records, the packed 8 B `DepUnit`, the accessor layer, and
-> the M0 numbers remain load-bearing inputs to the correlation design. Formal
-> supersession ratification is that pass's P-5, pending at stamp time.
+> the M0 numbers remain load-bearing inputs to the correlation design. ~~Formal
+> supersession ratification is that pass's P-5, pending at stamp time.~~ **P-5 RULED
+> 2026-08-04 (user: "yes, ratified") — the supersession is formal; the retirement
+> list executes in the correlation build's S2.**
 
 **Arc anchor:** `ROADMAP.md:359-496` § Sequenced *"MEMBERS INTO DEEP HISTORY"*, build item 3
 (ruling 5, folded 2026-08-01) + the U5 co-rider (RULED 2026-08-02, user — recorded in
