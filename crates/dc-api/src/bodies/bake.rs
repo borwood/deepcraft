@@ -35,7 +35,13 @@
 //!   not change when the internals do.
 //! - **mass = segment volume × density 1**; heir: per-segment materials
 //!   (dependency-graph B6) — this CoM is the mass integral's first
-//!   posture-side consumer.
+//!   posture-side consumer. **B6-a (2026-08-04) moved the seam, not the
+//!   number:** the CoM loop that used to sit inline here is now
+//!   [`super::mass::mass_properties`] with a density of exactly 1.0 from
+//!   [`super::mass::segment_densities`], bit-identically. The stand-in is
+//!   unchanged and its heir is now **B6-c** (a declared
+//!   `SegmentDef.composition` against a materials roster), which changes
+//!   `segment_densities` and nothing else.
 //! - **domain = ≥ 2 anchored point contacts, equal reaches, chains
 //!   authored as vertical columns**; heirs: distributed/anchored support
 //!   rules (gated on their own ratifications), the unequal-chain solve
@@ -93,8 +99,11 @@ pub struct RestingPosture {
     /// metres from the plan's own lengths at consumption.
     pub root_height_m: f64,
     /// Centre of mass at the resting pose, metres, ground frame (y = 0 at
-    /// the ground, x/z body-local): volume-weighted box centres over ALL
-    /// segments, density ≡ 1 (heir: per-segment materials, B6).
+    /// the ground, x/z body-local): [`super::mass::mass_properties`] over
+    /// ALL segments at [`super::mass::segment_densities`], whose identity is
+    /// density ≡ 1 (⚠ STAND-IN, `stubs.md` #40; heir: per-segment
+    /// composition, B6-c). Re-derived from the integral here, never copied
+    /// from it (S-3).
     pub com_m: [f64; 3],
     /// The balance verdict: CoM (x, z) strictly inside the convex hull of
     /// the bearing segments' bottom-face support patches (Q3). The hull
@@ -485,37 +494,29 @@ pub fn bake_resting_posture(plan: &BodyPlan, mode: &str) -> BakeOutcome {
     let root_height_m = root_height_ratio * governing_reach;
 
     // CoM at the resting pose (identity angles = the authored rest pose,
-    // root at the derived height): volume-weighted box centres over ALL
+    // root at the derived height): mass-weighted box centres over ALL
     // segments — the stout's knuckle-dragging arms participate in the CoM
     // and not in support, which is the mode axis doing its job.
-    let mut vol_sum = 0.0_f64;
-    let mut moment = [0.0_f64; 3];
-    for s in &plan.segments {
-        let v = s.size_m[0] * s.size_m[1] * s.size_m[2];
-        let base = offset_from_root(plan, s);
-        let center = [
-            base[0] + s.offset_m[0],
-            root_height_m + base[1] + s.offset_m[1],
-            base[2] + s.offset_m[2],
-        ];
-        vol_sum += v;
-        for (m, c) in moment.iter_mut().zip(center) {
-            *m += v * c;
-        }
-    }
-    if !(vol_sum.is_finite() && vol_sum > 0.0) {
+    //
+    // **This loop used to live here** (B6-a, 2026-08-04). It is now the mass
+    // integral's first consumer: `mass_properties` is the one authority and
+    // this is a re-derivation of it, never a copy that can drift (S-3 — the
+    // failure `root_bob_m` cost us twice, corrections #80/#93). At the
+    // identity density ρ ≡ 1.0 the arithmetic is unchanged (`v * 1.0 == v`)
+    // and the result is bit-identical to the volume proxy it replaces; the
+    // proxy has stopped BEING the authority and started DERIVING from one,
+    // which is the whole point of the slice (`stubs.md` #40).
+    let densities = super::mass::segment_densities(plan);
+    let mp = super::mass::mass_properties(plan, &densities, root_height_m);
+    if !(mp.mass_kg.is_finite() && mp.mass_kg > 0.0) {
         return BakeOutcome::Unsupported {
             reason: format!(
-                "plan `{}` has no volume to balance (total {vol_sum})",
-                plan.name
+                "plan `{}` has no mass to balance (volume {} m³, mass {})",
+                plan.name, mp.volume_m3, mp.mass_kg
             ),
         };
     }
-    let com_m = [
-        moment[0] / vol_sum,
-        moment[1] / vol_sum,
-        moment[2] / vol_sum,
-    ];
+    let com_m = mp.com_m;
 
     // Base of support: the bottom-face patch of each bearing segment (Q3
     // — the box's x/z extents around the declared anchor, the same
