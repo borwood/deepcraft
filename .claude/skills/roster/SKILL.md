@@ -29,6 +29,27 @@ relying on anything below:
 3. Record the sweep watermark here when you update: **last swept/updated 2026-08-04**
    (creation; the ruling it carries was ratified that day).
 
+> **⚠ A SWEEP RESULT IS ALREADY WAITING — `docs/audits/2026-08-04-roster-skill-bio-and-parent-findings.md`**
+> (written by the **bodies session** the same day, *for* this skill; findings and questions only,
+> nothing adjusted here, no geo ruling made). Read it before step 1. In brief:
+> - **User ruling 2026-08-04:** bodies sit in the engine/plugin field and **the evolution system
+>   driving body creation lives in THIS pack** — so tissue materials are pack members that are
+>   **not `GeologySet` members**, and § 8's scope line is the thing to decide first.
+> - **User-ratified 2026-08-04:** the **opinion-vs-absence** test (`dependency-graph.md` § 0b),
+>   which cuts across § 2 step 1's single **proxy** bucket.
+> - **User leaning 2026-08-04, against the OPEN question `material-genesis-notebook.md:315-317`
+>   § 5 Q3:** *"a parent is strictly just another material — being treated as a parent."*
+>   Parenthood as a relation, not a kind. **Parent-materials work is ratified, user-originated,
+>   and has ZERO code** — its sequencing is asked of this thread.
+> - **A candidate addition to § 2 step 2:** parentage must imply **nothing** about material
+>   relations, for the same reason class co-membership does not (the A-CLEAN bar) — otherwise a
+>   hand-authored taxonomy enters through the inheritance door.
+> - **A question about § 2 step 1's own term source:** `density_kg_m3` is documented *"bulk"* but
+>   is read **only ordinally** today (a sort key and `settle_energy`), and the roster answers it
+>   two ways — sand 1600 is loose-with-voids, granite 2700 is solid. Flagged as a **question, not
+>   a finding**. B6-a (journal/0153) is the first consumer in the tree that multiplies it by a
+>   volume.
+
 ## 1. The philosophy (RATIFIED 2026-08-04, user — `materials.md` § DECIDED 2026-08-04)
 
 **A material name is a pack-authored label over a REGION of a continuous term space.**
