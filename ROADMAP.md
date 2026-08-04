@@ -420,6 +420,31 @@ sequence — each names its authority docs rather than restating them.
   height ratio). `bodies.md` § Individual proportion variation; graph row B8. Unbuilt,
   no design pass yet.
 
+### PARENT MATERIALS — inheritance with tri-state shadowing — **filed 2026-08-04 (the roster-skill fold; ratified design, user-originated, ZERO code)**
+
+**What it is:** parent pointer + per-parameter shadowing at the material tier —
+ratified at `north-star.md:205-209` (origin journal/0081), the shadowing semantics
+user-originated and PROPOSED at `material-genesis-notebook.md` §§ 2.3/2.5b. Parameters
+are tri-state (*inherit* · *override* · *disable*) so "unspecified" and "specified as
+nothing" are distinguishable; **no engine root, no engine defaults** — resolution
+terminating undeclared yields **absence, never a substituted value**. Parenthood is a
+RELATION, not a kind (user leaning 2026-08-04, tentative), and **parentage implies
+nothing about material relations** (ratified same day — `.claude/skills/roster/SKILL.md`
+§ 2b carries the constraints).
+
+**Why filed now:** it was ratified with zero code and lived only in the notebook and
+north-star — the close-block-only shape staleness F1 spent a day repairing. The bodies
+session's findings doc (`2026-08-04-roster-skill-bio-and-parent-findings.md`) asked its
+sequencing; the user ratified the disposition.
+
+**Sequencing:** design pass **after the correlation arc settles** (that arc owns the
+golden windows). First build per the north-star de-risk item: **hierarchical behavior
+resolution prototyped on wood/charcoal `combust→`**. The **density/porosity sheet
+reconciliation rides the same design pass** (solid density + porosity as axes, bulk
+derived — the sheet's two-convention defect, roster skill § 2 step 1 caveat). B6-c
+(bodies) is a second consumer, **not the justification** — the argument stands without
+bodies.
+
 ### THE STAND-IN MARKER CONTROL — **owed 2026-08-03 (corrections #97, greenlit fingerprint); survey first, sweep second**
 
 **The gap it closes.** CLAUDE.md read-first item 6 wants a deliberate loose end annotated **in

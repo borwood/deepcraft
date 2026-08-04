@@ -1,17 +1,21 @@
 ---
 name: roster
-description: Add, modify, or retire a material in the DEEPSIM DEFAULT PACK's roster (the GeologySet members and their materials) — the term-space philosophy, the definition a member owes, the derived-relations rule, and the proxy discipline. Use whenever anyone proposes a new rock/sediment/organic material, questions whether an existing member should exist, or reaches for a hand-authored material relationship. NOT for engine material machinery (MaterialId type, mixtures, packing, contents) — that is dc-core primitive work; this skill is pack content only.
+description: Add, modify, or retire a material in the DEEPSIM DEFAULT PACK — ALL pack materials (rock, sediment, organic, tissue), with GeologySet membership as one property a member may or may not have. Carries the term-space philosophy, the definition a member owes, the derived-relations rule, the proxy-vs-opinion discipline, and the parent-materials constraints. Use whenever anyone proposes a new pack material, questions whether an existing member should exist, or reaches for a hand-authored material relationship. NOT for engine material machinery (MaterialId type, mixtures, packing, contents) — that is dc-core primitive work; this skill is pack content only.
 ---
 
 # roster — adding to the sim pack's material roster
 
-**Scope, first, because the user drew it by name (2026-08-04):** this skill governs the
-**sim pack's roster** — the `GeologySet` members (`crates/dc-core/src/materials/geology.rs
-::vanilla_members`), the materials they deposit, and their term definitions. It does
-**not** govern engine material machinery (the `MaterialId` type, the mixture/eighths
-model, packing, contents) — deeply related, different owner. If your change is to the
-*capability* rather than the *content*, you are in dc-core primitive territory and this
-skill only tells you to say so loudly.
+**Scope (WIDENED 2026-08-04, user-ratified, on the bodies session's finding):** this
+skill governs **the sim pack's MATERIALS** — every pack-declared material, including the
+tissue materials the evolution system will mint (user ruling 2026-08-04: bodies/evolution
+live in THIS pack). **`GeologySet` membership is one PROPERTY a member may have** — it is
+the *can-this-be-deposited* contract (formation window, abundance, habit), and *class
+membership, not materialhood, is what decides whether something can appear in the
+ground*. A tissue material is a pack member belonging to no class; that is legal and
+complete. The skill does **not** govern engine material machinery (the `MaterialId`
+type, the mixture/eighths model, packing, contents) — deeply related, different owner.
+If your change is to the *capability* rather than the *content*, you are in dc-core
+primitive territory and this skill only tells you to say so loudly.
 
 ## 0. SWEEP BEFORE USE — this skill is self-updating, by design
 
@@ -26,29 +30,18 @@ relying on anything below:
 2. If anything bears on this skill, **update this file in the same session and check
    with the user** — a stale procedure doc is worse than none (the corpus's
    one-directional-pointer lesson).
-3. Record the sweep watermark here when you update: **last swept/updated 2026-08-04**
-   (creation; the ruling it carries was ratified that day).
+3. Record the sweep watermark here when you update: **last swept/updated 2026-08-04,
+   second pass — the bodies session's findings folded, all five dispositions RATIFIED
+   by the user the same day.**
 
-> **⚠ A SWEEP RESULT IS ALREADY WAITING — `docs/audits/2026-08-04-roster-skill-bio-and-parent-findings.md`**
-> (written by the **bodies session** the same day, *for* this skill; findings and questions only,
-> nothing adjusted here, no geo ruling made). Read it before step 1. In brief:
-> - **User ruling 2026-08-04:** bodies sit in the engine/plugin field and **the evolution system
->   driving body creation lives in THIS pack** — so tissue materials are pack members that are
->   **not `GeologySet` members**, and § 8's scope line is the thing to decide first.
-> - **User-ratified 2026-08-04:** the **opinion-vs-absence** test (`dependency-graph.md` § 0b),
->   which cuts across § 2 step 1's single **proxy** bucket.
-> - **User leaning 2026-08-04, against the OPEN question `material-genesis-notebook.md:315-317`
->   § 5 Q3:** *"a parent is strictly just another material — being treated as a parent."*
->   Parenthood as a relation, not a kind. **Parent-materials work is ratified, user-originated,
->   and has ZERO code** — its sequencing is asked of this thread.
-> - **A candidate addition to § 2 step 2:** parentage must imply **nothing** about material
->   relations, for the same reason class co-membership does not (the A-CLEAN bar) — otherwise a
->   hand-authored taxonomy enters through the inheritance door.
-> - **A question about § 2 step 1's own term source:** `density_kg_m3` is documented *"bulk"* but
->   is read **only ordinally** today (a sort key and `settle_energy`), and the roster answers it
->   two ways — sand 1600 is loose-with-voids, granite 2700 is solid. Flagged as a **question, not
->   a finding**. B6-a (journal/0153) is the first consumer in the tree that multiplies it by a
->   volume.
+> **First fold, for the record:** the bodies session ran this § 0 sweep for us
+> same-day (`docs/audits/2026-08-04-roster-skill-bio-and-parent-findings.md` —
+> findings and questions only, ownership respected; the cross-session handoff shape
+> worked and is precedent). Its five questions were dispositioned and ratified
+> 2026-08-04: the widened scope above · the proxy/opinion split + density caveat
+> (§ 2 step 1) · the parentage-implies-no-relation constraint (§ 2 step 2) · the
+> parents block (§ 2b) · the parent-work board entry (ROADMAP § Sequenced). That
+> doc's header carries the answer banner.
 
 ## 1. The philosophy (RATIFIED 2026-08-04, user — `materials.md` § DECIDED 2026-08-04)
 
@@ -95,14 +88,37 @@ the pack — whatever remains is engine, and it must be featureless and conserva
    what region does it occupy? Day-one term sources: the FS-A release spectrum
    (`release_vanilla.rs` — literature-cited, add one for a new member), the property
    sheet (grain size, density, hardness/erodibility), organic/carbonate fraction if its
-   axis exists. **A member you cannot honestly define in terms is a PROXY** — it may
-   still ship (proxies are legal bring-up), but it is *marked* as one, with its heir
-   named (the coal precedent: heir = life/organics, `materials.md` § transformation
-   axes heir chain).
+   axis exists. **Split what you cannot define along the ratified OPINION-vs-ABSENCE
+   line** (user-ratified 2026-08-04, `dependency-graph.md` § 0b): an **absence-proxy**
+   stands in for something no pack could answer yet because the upstream system is
+   unbuilt (coal before life) — it may ship, *marked*, with its **heir** named (the
+   coal precedent: heir = life/organics, `materials.md` § transformation-axes heir
+   chain); an **opinion** is a value two well-made packs would answer differently (a
+   tuned hardness) — that is authoring, not debt, and wants a literature citation
+   rather than an heir. **The discipline reaches PARENT materials explicitly**: a
+   fabricated number at a parent is inherited by every child and looks more
+   authoritative for being shared — parent fabrication is singular and auditable,
+   but only if it is marked.
+   ⚠ **Density caveat (2026-08-04, unresolved):** `density_kg_m3` mixes two
+   conventions — sand 1600 is loose-bulk (voids in), granite 2700 is solid rock —
+   harmless while every reader was ordinal; B6-a (journal/0153) is the first cardinal
+   consumer. **Do not build a term definition on `density_kg_m3` without stating
+   which convention the member uses.** The reconciliation (solid density + porosity
+   as the axes, bulk DERIVED — the term-space philosophy applied to the sheet
+   itself) rides the parent-materials design pass.
 2. **Derive, never hand-pair.** Any relationship this member has to others (continuum
    membership, weathering products, settle ordering) must be computed from its terms —
    the `settle_energy` precedent: *"from properties instead of a hand table."* A hand
-   list of related materials is a fitted taxonomy and gets rejected at review.
+   list of related materials is a fitted taxonomy and gets rejected at review. (A
+   second in-tree instance, named 2026-08-04: `extraction_resistance`'s tested sieve
+   invariant — sieve resistance equals grain size — is a derived value already living
+   on the sheet.) **And PARENTAGE IMPLIES NOTHING ABOUT MATERIAL RELATIONS** (ratified
+   2026-08-04; it falls out of this step colliding with the A-CLEAN bar): inheritance
+   resolves to flat per-material values and then disappears — a leaf did not become
+   *related* to its parent, it **got some of its numbers from there**. Term space says
+   where a material SITS; inheritance says how its declaration was AUTHORED — they are
+   orthogonal, and anything downstream reading a parent pointer to infer relatedness
+   is a hand taxonomy entering through the inheritance door.
 3. **The class is a SELECTION contract, nothing more.** Formation window, abundance,
    habit — where and how often this member is deposited. Class co-membership implies
    NOTHING about material relations (the A-CLEAN bar: no class view survives storage or
@@ -124,6 +140,28 @@ the pack — whatever remains is engine, and it must be featureless and conserva
    moved; ROADMAP if it unblocks/blocks anything; the release tables' own comments; and
    this skill (§ 0) if the ruling landscape moved.
 
+## 2b. Parents — the inheritance mechanism (ratified constraints + a tentative leaning)
+
+- **User LEANING (2026-08-04, explicitly tentative — "may not survive"):** *"a parent
+  is strictly just another material — being treated as a parent."* Parenthood is a
+  RELATION, not a kind; no abstract-only material kind exists. (One namespace holds —
+  the 2026-07-22 collapse; and never-being-deposited is already supplied by
+  classlessness, so an abstract kind would add a kind without adding a capability.)
+- **Per-parameter shadowing is user-originated and PROPOSED**
+  (`material-genesis-notebook.md` §§ 2.3/2.5b): parameters are tri-state — *inherit* ·
+  *override* · *disable* — because "unspecified" and "specified as nothing" must be
+  distinguishable (the `Identity::Unrecorded` shape). The disable state is what makes
+  *unanswered* representable: a deposition pass asking muscle for grain size gets
+  absence and refuses loudly, no invented number.
+- **No engine root, no engine defaults:** every material is pack-declared, parents
+  included (parent materials are a PRODUCT SURFACE). The engine supplies the
+  resolution rule, the three states, and — when a chain terminates undeclared —
+  **absence, never a substituted value**.
+- **Zero code exists** for any of this. Sequencing: ROADMAP § Sequenced, the
+  parent-materials entry (filed 2026-08-04); the north-star de-risk names
+  wood/charcoal `combust→` resolution as the first build; the density/porosity
+  sheet reconciliation rides the same design pass.
+
 ## 3. Pointers
 
 - `docs/design/materials.md` § DECIDED 2026-08-04 (the ruling), § DECIDED 2026-07-22
@@ -134,5 +172,7 @@ the pack — whatever remains is engine, and it must be featureless and conserva
   M-C with the derived predicate — the first consumer of the derived-relations rule).
 - `docs/design/material-genesis-notebook.md` § 2 (term-keyed edges),
   `docs/design/refinement.md` § 4 (operators read terms, never names).
+- `docs/audits/2026-08-04-roster-skill-bio-and-parent-findings.md` — the bodies
+  session's § 0 sweep result (first fold; dispositions ratified, its header banner).
 - The 2026-08-04 geo-session conversation (journal/0152) — the borehole story, the
   petrology walkthrough, and the ratification exchange this skill compresses.

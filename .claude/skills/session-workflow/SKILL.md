@@ -1239,3 +1239,56 @@ clean both — cleaning the leaf leaves the poisoned trunk in place.
 file.* When the error cannot be true of the source in front of you, stop reading the source and
 suspect the artifact. Also seen this day: a sibling **clobbered the lock file mid-run** — so
 re-read the lock before every cargo call, never merely on acquire.
+
+## Worktree agents branch STALE — the brief's first line is "merge main, verify tip" (2026-08-04, three data points in one session)
+
+An agent worktree is created from a ref that can lag main by a whole session's work.
+The 2026-08-04 archive-pass agent branched from the session-START commit — ten commits
+and ~130 board-line edits behind, in the exact files it was about to restructure — and
+was saved only by the dispatcher noticing the worktree list. The two agents briefed
+AFTER the incident ("run `git merge main` in your worktree FIRST and verify
+`git log -1 main` matches") both based correctly; one reported the merge as a no-op,
+which is the cheap case proving the check costs nothing.
+
+**The rule: every worktree-agent brief opens with `git merge main` + a verify line,
+and the agent states its base in its report.** A dispatcher can also send the
+correction mid-flight (SendMessage reached the archive agent in time), but that is
+luck wearing a process costume — put it in the brief.
+
+## Build-slot conduct, extended: the takeover pattern, and verify contention from OUTSIDE (2026-08-04; extends the 2026-08-03 no-yield rule and 2026-07-25's read-the-lock)
+
+The no-yield-on-watcher rule recurred in a new costume the day after it was folded: a
+build agent yielded to a "background watcher" (dead on arrival — a stopped agent is
+not re-invoked by its own watcher), was resumed with explicit orders, and then wedged
+inside a **Monitor that could never trip**. The user diagnosed it from outside:
+*"it's stuck on nothing"* — and the slot WAS free, the lock stamp our own.
+
+Three practices, each proven in the recovery:
+
+1. **Verify contention claims from outside before believing them.** `Get-Process
+   cargo,rustc` + read (never write) the lock stamp. An agent's "sibling build is
+   live" is a hypothesis; the process table is the measurement. Thirty seconds.
+2. **The integrator takeover is a clean pattern, and early commits are what enable
+   it.** TaskStop the wedged agent · read its commits (the 2026-07-22 commit-early
+   rule is why there was anything to read — both slice commits were complete, with
+   the identity proof already run and recorded in the message) · run the gate
+   YOURSELF from the agent's worktree (env vars + Tee + verify-by-count, same as any
+   gate) · merge on green. The work was good; the waiting was the defect.
+3. **A blocked agent's honest endgame is a REPORT, not a wait.** Bounded retries in
+   its own turn (the mutex queue refreshes on retry and expires without one — silent
+   waiting LOSES the place); keep doing non-cargo work between retries; if the slot
+   stays contested, return the full report with the gate state stated honestly and
+   the batch debt recorded. "Standing by" is not a state an agent is allowed to end
+   its turn in.
+
+## Two small conventions that made the triple-sweep day walkable (2026-08-04)
+
+- **Cross-sweep tips are POINTERS, never evidence.** When one sweep's finding lands
+  in a concurrently-running sweep's territory, SendMessage it with "verify at source
+  yourself; do not take this message as evidence." The 2026-08-03 doc-topology → 
+  spine-audit tip (the third A-2) was verified at source by the receiver and recorded
+  with its own citations — coordination without contamination.
+- **A stamp names its SWEEP and FINDING ID** ("stamped 2026-08-03, staleness F5").
+  Fifteen-odd stamps went down that day; every one can be walked back to the audit
+  row that produced it from the stamped end — which is the two-directional-pointer
+  doctrine applied to the stamps themselves.

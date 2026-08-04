@@ -1,5 +1,29 @@
 # Findings for the roster skill: the bio lens, and the parent-materials thread
 
+> **✅ ANSWERED — ALL FIVE § 5 QUESTIONS DISPOSITIONED AND USER-RATIFIED 2026-08-04
+> (geo session; banner stamped by the answering integrator, same commit as the
+> application):**
+> 1. **Scope: WIDENED** — the skill now governs the sim pack's MATERIALS; `GeologySet`
+>    membership is one property (the can-this-be-deposited contract; § 2.2's
+>    classlessness observation adopted verbatim).
+> 2. **Proxy vs absence: SPLIT ADOPTED**, and it reaches parents explicitly
+>    (absence-proxies carry heirs; opinions carry citations).
+> 3. **Q3: the leaning is adopted AS a leaning** (relation, not kind — marked
+>    tentative), and § 3.3's parentage-implies-no-relation constraint joins the
+>    skill's step 2 unreservedly.
+> 4. **Sequencing: filed live** — ROADMAP § Sequenced "PARENT MATERIALS" entry,
+>    design pass after the correlation arc settles; wood/charcoal `combust→` first
+>    build per the north-star de-risk; B6-c noted as second consumer, not
+>    justification.
+> 5. **Density: real, dissolved by the philosophy** — solid density + porosity as
+>    axes, bulk derived; reconciliation rides the parent design pass; the skill
+>    carries the interim caveat. (§ 4.2's sieve invariant is named in step 2 as an
+>    existing derived-value instance.)
+>
+> All folds live in `.claude/skills/roster/SKILL.md` (watermark updated). This
+> cross-session handoff shape — findings doc + pointer banner, ownership respected —
+> worked end to end and is precedent.
+
 **Written 2026-08-04 by the BODIES session, for the GEO session.** This is a **§ 0 sweep
 result handed to `.claude/skills/roster/SKILL.md`**, which asks to be updated when new
 rulings bear on its domain and carries a watermark at its creation the same day.
