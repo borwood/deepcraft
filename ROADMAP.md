@@ -390,12 +390,17 @@ sequence — each names its authority docs rather than restating them.
   bit-donation expectation recorded) → P-3 RESOLVED BY RESHAPING: correlation
   matches true epoch intervals, unconformity flag = measurable gap semantics, R-C
   demoted to within-interval interpolation** (`2026-08-04-deposition-clock-design.md`,
-  rulings in header). **ALL PICKS CLOSED.** Build sequence: **the CLOCK SLICE first**
-  (recorder signature + O-2b layout + `set_epoch` plumbing + the funnel widening +
-  fingerprint extension; exactly 6 GOLDEN_RECORD* families re-capture once) → S0
-  (M0′ measurements + the unit-count-hypothesis probe re-run, build slot) → S1
-  (kernel, now epoch-interval correlation) → S2 (wiring + goldens, retirements) →
-  S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
+  rulings in header). **ALL PICKS CLOSED.** Build sequence: ~~**the CLOCK SLICE first**~~ **✅ THE CLOCK
+  SLICE SHIPPED 2026-08-04 (journal/0154; merged same day):** O-2b layout (u24+u8,
+  zero widening, unit count bit-identical with the old-shape identity proof),
+  unconditional `set_epoch`, monotonicity asserts (epoch AND chapter — the design's
+  owed assert discharged), funnel widened (`StrataEvent` epoch span, carry-never-read
+  pinned), exactly the 6 GOLDEN_RECORD* families re-captured once, all others
+  byte-still; full trio **fmt 0 · clippy 0 · 1006/0 · 94 suites**. New stand-in:
+  stubs #52 (epoch immutable under overprint; alteration-time axis is the heir).
+  **NEXT: S0** (M0′ measurements + the unit-count-hypothesis probe re-run, build
+  slot) → S1 (kernel, now epoch-interval correlation) → S2 (wiring + goldens,
+  retirements) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
   "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically
