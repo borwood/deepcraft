@@ -1,5 +1,56 @@
 # B6 — per-segment body composition: a design pass against the animation path
 
+> **⚠ MUTABLE HEADER, 2026-08-04 — TWO THINGS LANDED THE DAY AFTER THIS PASS AND BOTH BEAR ON IT.
+> The body below is testimony and is not rewritten.**
+>
+> **(1) RADIAL ORDER — the user's LEANING, and it closes this pass's § 11 "could not determine".**
+> The pass could not attribute what *"radially ordered"* meant and correctly refused to guess
+> (corrections #65). The user answered it as a contrast, **as a leaning, explicitly "unplanned and
+> still up for debate"** — *not* a DECIDED entry:
+> - *"in mixed blocks, material order is destroyed. a mix of A, B, and C materials does not order
+>   them, their deeptime deposit order is effectively destroyed in gametime voxel representation."*
+> - *"a body segment, contrarily, i have ruled can contain a radial order (bone - muscle - fat -
+>   chitin - etc)."*
+>
+> So the pass's concentric-shell reading is the leaning's reading, and the ≤ 2.6 % swing-inertia
+> bound computed on it stands. **Why this is one rule and not an exception, and it is worth stating
+> because it will be asked again:** a voxel is a **sample of a continuum** — the user's own 0149
+> ruling, *"there are no deep cells; deep cells are boreholes"* — so it answers *what is here and in
+> what proportion*, and internal arrangement is **below the representation's resolution**.
+> `VoxelContents` stores its multiset in *canonical sorted form*, so order is destroyed **by
+> construction, not by choice**. A body segment is **not a sample**: it is an object with an
+> intrinsic, known radial axis, because that is what a limb *is*. **Order survives wherever the
+> representation has an axis to hang it on** — the voxel has none, the segment has one. Same rule,
+> two outcomes.
+>
+> **(2) MATERIALS ARE LABELS OVER A TERM SPACE** (`materials.md` § DECIDED 2026-08-04, geo session;
+> `.claude/skills/roster/SKILL.md`). **This pass predates that ruling and its § 4 recommendation is
+> in question.** A material name is a pack-authored label over a **REGION** of a continuous term
+> space; relations are **derived from declared axes, never hand-paired**; the *capability* (term
+> schemas as declarable data) is engine, the *opinion* (which axes exist) is pack.
+> - **It may SUBSUME this pass's facet split.** § 4 recommends splitting `MaterialProps` into a
+>   universal core plus `granular`/`geologic` facets (69 read sites) so that *"muscle has no angle
+>   of repose"* becomes inexpressible. Under term space there is no facet to switch off — **muscle
+>   is simply not placed on the grain-size axis.** Adopting the facet split without testing it
+>   against the term schema risks building a second mechanism beside the one just ratified, which
+>   is this project's characteristic failure. **The integrator recommended taking the facet split
+>   an hour before reading the ruling; that recommendation is withdrawn pending the comparison.**
+> - **It also dissolves this pass's own framing of the test materials.** Cortical bone 1900 vs
+>   trabecular 200–1000 kg/m³ — the pass's *"a factor of ten inside one word"* — is not two species
+>   awaiting a taxonomy; it is **within-region variation on a porosity axis**, exactly what ruling
+>   1's *"region, not point"* clause exists to express. The user's caveat (*"we don't know if there
+>   are different types of bone and muscle yet"*) is answered by the mechanism rather than deferred
+>   by a stand-in.
+> - **The one axis bodies need first is one geo already declares: DENSITY.** The tissue-specific
+>   axes (mineralization/porosity, elastic modulus, fibre anisotropy) are **not** in the geo term
+>   set, and **modulus is the axis `stubs.md` #50 proved `bob_damping` and #49 actually need.**
+> - **Named bio blindspots in the roster skill, which is geo-lensed by construction:** its
+>   *"class is a SELECTION contract (formation window, abundance, habit)"* has no tissue analogue —
+>   tissue is **grown, not deposited**; and its **conserved-stock discipline** (*"mechanical passes
+>   move matter within a composition; only declared chemical edges change it"*) is something biology
+>   violates at organism scale by growing. Neither is a defect in that skill — they are boundaries
+>   it was never asked about.
+
 **Status: DESIGN PASS. Nothing here is ratified and no code was changed.** The deliverable is
 this document. Proposing a change and making one are different acts, and the second is the
 user's call. **No cargo command was run**; every number below is derived from source literals
