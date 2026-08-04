@@ -364,7 +364,10 @@ fn report_the_mass_integral() {
     let mp = mass_properties(&plan, &segment_densities(&plan), p.root_height_m);
 
     println!("\nB6-a MASS INTEGRAL — measured against design pass § 10 (g = {G_EARTH})");
-    println!("  P1 whole-body volume  {:.9} m³ (predicted 0.168388000)", mp.volume_m3);
+    println!(
+        "  P1 whole-body volume  {:.9} m³ (predicted 0.168388000)",
+        mp.volume_m3
+    );
     println!("     share table:");
     let mut share_sum = 0.0;
     for (s, m) in plan.segments.iter().zip(&mp.segment_mass_kg) {
@@ -380,12 +383,7 @@ fn report_the_mass_integral() {
     println!(
         "  P3 mass at a uniform 1010 kg/m³  {:.3} kg (predicted 170.072) — NOT a check; \
          the biped is 2.43× a human by volume",
-        mass_properties(
-            &plan,
-            &vec![1010.0; plan.segments.len()],
-            p.root_height_m
-        )
-        .mass_kg
+        mass_properties(&plan, &vec![1010.0; plan.segments.len()], p.root_height_m).mass_kg
     );
 
     // P4: the leg about the hip, uniform density.

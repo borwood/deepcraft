@@ -1624,11 +1624,22 @@ measure surface penetration); not the solve production runs.
   fully derived from length scale.
 
 ### 40. mass-is-volume-until-b6 — *added 2026-08-02 (member #0 shipped it, the gait pass widened it)*
+> **⚠ THE SITE MOVED, THE STAND-IN DID NOT — B6-a, 2026-08-04.** The proxy is no longer a literal
+> `1` inside `bake_resting_posture`'s CoM loop: that loop is gone, and the bake now re-derives from
+> `dc-api/src/bodies/mass.rs`'s `mass_properties` at the density
+> `segment_densities` returns, **whose identity is exactly 1.0** — byte-identically (the full
+> `RestingPosture` bit dump for all three shipped plans is unchanged). *This entry is still LIVE:
+> the density is still 1, and nothing in the world is any heavier.* What changed is that the proxy
+> stopped **being** the authority and started **deriving from** one (`ARCHITECTURE.md` § *a summary
+> is not an authority*), so the heir narrows from "B6" to **B6-c** — a declared
+> `SegmentDef.composition` resolved against a materials roster — and when it lands, **only
+> `segment_densities` changes.**
 - **What it fakes:** every mass in the bodies arc is **segment box volume with density ≡ 1**
-  (`bake.rs`, the CoM integral). Member #0 shipped it as the posture solve's mass proxy and
+  (~~`bake.rs`, the CoM integral~~ → `mass.rs::segment_densities`). Member #0 shipped it as the
+  posture solve's mass proxy and
   named B6 at the line; the gait bake now takes the **same proxy** for cadence, duty and the
   balance verdict, so one stand-in feeds two members and will feed more.
-- **Heir:** **B6**. Explicitly named in `posture-gait.md` § 5 (*"the same mass integral serves
+- **Heir:** **B6** (narrowed to **B6-c** by the B6-a build, above). Explicitly named in `posture-gait.md` § 5 (*"the same mass integral serves
   harvest yield, evolutionary fitness, and standing posture"* — the third independent argument
   for per-segment materials).
 - **Loudness:** ✅ member #0's bake says so in-module; **the gait bake owes the same declaration**
@@ -1877,7 +1888,12 @@ measure surface penetration); not the solve production runs.
      ("its five stubs land WITH the build, deliberately not before"). A stub inventory whose
      entries point at nothing in the tree is its own defect.
      The fourth is numbered below because it is LIVE NOW: it corrects two entries that already
-     exist and already name the wrong heir. -->
+     exist and already name the wrong heir.
+
+     UPDATE 2026-08-04, B6-a SHIPPED (the mass integral): one of the three has landed —
+     `an-inertia-with-no-actuation`, below, because the integral now exists in the tree and
+     supplies inertia and no actuation. The other TWO stay drafted: B6-a builds no tissue
+     material and no `composition` field, so their entries would still point at nothing. -->
 
 ### 50. density-is-not-stiffness — *drafted 2026-08-03 (B6 design pass § 9.2; a correction to two entries above)*
 - **What it fakes:** two live stubs name **B6** as the heir of a quantity B6 structurally cannot
@@ -1902,3 +1918,46 @@ measure surface penetration); not the solve production runs.
 - **Blast radius:** the expected discharge list of B6 shrinks by three entries · any plan that
   sequenced *"B6 then the bob is right"* · the walk verdict on the bob specifically, which is a
   verdict on S3 and therefore on a knob B6 does not own.
+
+<!-- STUBS: unnumbered — the integrator assigns. Drafted by the B6 design pass § 11 and
+     LANDED WITH B6-a (2026-08-04, the mass integral), per that pass's build-contingent rule:
+     the code it describes now exists. Current ordinals run to #50. -->
+
+### NN. an-inertia-with-no-actuation — *drafted 2026-08-03 (B6 design pass § 9, § 11); **landed with B6-a**, 2026-08-04 (`dc-api/src/bodies/mass.rs`)*
+- **What it fakes:** `mass_properties` supplies the **INERTIA** half of every force-shaped hole in
+  the bodies arc — mass, per-segment mass, centre of mass, and the second moments a caller can
+  build from them — and **none of the POWER half.** Joint torque, muscle force, the push-off
+  impulse and the metabolic cost of carrying a limb are properties of an **actuator**, and a
+  density is not one. The integral says what a body *weighs and where*; it says nothing about
+  what moves it.
+- **Why it still shipped, and this is the whole argument:** half a mechanism honestly named beats
+  a whole one assumed. Before B6-a the mass was the literal `1` in the middle of a CoM loop
+  (`stubs.md` #40); after it, the load term of every derivation is real data flowing through a
+  named seam. **What did NOT change is which questions are answerable** — measured at build, the
+  slice closes **zero** of the eight inbound heirs that name B6 outright (design pass § 9.4):
+  - **`cadence_scale` (#44 S1)** — half. The `√(gMd/I)` denominator is now derivable from the
+    integral's per-segment masses; the **muscle-power numerator does not exist**. And note the
+    shape of the answer: for a uniform body the derived scale is **exactly 1.0**, so a build
+    that "closed" it would not move the shipped number — which is why *"the number changed"* is
+    not evidence for anything here.
+  - **`swing_flexion` (#44 S4)** — the one B6 plausibly closes *later*: a free ballistic swing is
+    computable with no actuation (Mochon & McMahon), but the **driven** half still wants a hip
+    torque. Measured at this build: the biped's free-swing period is **1.523 s** against a
+    recalled human ~1.2–1.4 s, and the gap is a caricature body being distal-heavy.
+  - **`bob_damping` (#44 S3)** and **the soft-tissue end-range (#49)** — **not at all**, and
+    `stubs.md` #50 is the correction. Density is not stiffness.
+  - **the flight phase (#39)** — **not at all**; a ballistic arc is mass-independent and the
+    take-off impulse is actuation. #50's third bullet.
+- **Heir:** an **actuation model** — joint torque / muscle force over the segment tree — which
+  **nothing in the corpus designs**, and which `dependency-graph` § 0b's OPINION-vs-ABSENCE test
+  will have to be applied to before it is placed. *Whether a body's power is a pack opinion (two
+  well-made packs would legitimately give a chitin fauna different muscle) or an engine absence
+  (an unbuilt mechanism) is open, and this entry does not pre-answer it.*
+- **Loudness:** ✅ named in `bodies/mass.rs`'s module doc under *"What this is NOT, and the
+  boundary is the point"*, at the seam itself rather than in a report.
+- **Blast radius:** every derivation that wants a **force** and will keep getting a **load** ·
+  `GaitKnobs`' four stand-ins, which stay stand-ins · any sequencing that reads *"B6 landed"* as
+  *"the gait is derived now"* · **not** the CoM, posture, balance verdict or whole-body density,
+  which are inertia-side and now honest.
+- **⚠ Do not read this entry as a licence to build the actuation model next.** `bio/eco` is ON
+  HOLD and the gate is a user call; this names the hole, it does not sequence filling it.

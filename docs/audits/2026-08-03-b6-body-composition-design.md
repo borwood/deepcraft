@@ -1,7 +1,32 @@
 # B6 — per-segment body composition: a design pass against the animation path
 
-> **⚠ MUTABLE HEADER, 2026-08-04 — TWO THINGS LANDED THE DAY AFTER THIS PASS AND BOTH BEAR ON IT.
+> **⚠ MUTABLE HEADER, 2026-08-04 — THREE THINGS LANDED AFTER THIS PASS AND ALL BEAR ON IT.
 > The body below is testimony and is not rewritten.**
+>
+> **(0) B6-a IS BUILT** (`crates/dc-api/src/bodies/mass.rs`, journal `pending-b6a-the-integral-that-changes-nothing`).
+> **Every § 10 prediction this slice could reach was CONFIRMED EXACTLY, to every printed digit** —
+> P1 (0.168388000 m³ and the whole share table), P3 (170.072 kg), P4 (`M/ρ` 0.028584, `d` 0.415630,
+> `I/ρ` 0.006848268, **ω 4.125332 rad/s**, `T` 1.523074 s), P5 (4.114713 and 3.985832), P6
+> (`com_m[1]` = **0.968187 m**, root-relative +0.088187; lungs-in-trunk 164.227 kg and +0.067496),
+> P8 (z-term 0.000087437 = 1.277 %, ω ∈ [−1.253 %, +0.645 %]). P2's mixture arithmetic checks by
+> hand. **No golden moved and the `RestingPosture` bit dump is unchanged for all three plans.**
+> P7 and P9–P11 are B6-b/B6-c's and were not reached. **This pass's arithmetic is sound; do not
+> re-derive it.**
+> - **Its § 4 `subtree_inertia` was WITHHELD**, on this pass's own condition (*"if that derivation
+>   is not in the same slice, `subtree_inertia` does not ship in it"*). B6-a does not derive
+>   `cadence_scale`, and the only site in the tree that would call it —
+>   `bodies/gait/tests/report.rs:306`, which already computes exactly P4's numbers — is an
+>   instrument, not production. **A-4 answered by not building it.**
+> - **One thing the pass did not foresee, and it is a finding about ITS § 7 test 2.**
+>   `uniform_density_is_animation_invariant` as specified ("*every derived output equal within
+>   1e-12 relative*") **fails on the lateral and fore-aft CoM axes**, and correctly so: on a
+>   mirror-symmetric plan those coordinates are **exact cancellation residuals** (measured: biped
+>   `com_m[0]` = **−8.2e-19 m**, stout **+9.9e-19 m**) whose **sign flips** under any reordering or
+>   rescaling of the densities. A *relative* comparison there asks whether a rounding residual kept
+>   its sign — the A-3 shape inverted, a red for a reason unrelated to the claim. The tolerance for
+>   a **position** must be relative to the **body's own length scale**, not to the coordinate's own
+>   magnitude, which is the reading `bake/tests.rs` already used (`com_m[0].abs() < 1e-9`).
+>   Recorded rather than smoothed.
 >
 > **(1) RADIAL ORDER — the user's LEANING, and it closes this pass's § 11 "could not determine".**
 > The pass could not attribute what *"radially ordered"* meant and correctly refused to guess

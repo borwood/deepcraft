@@ -172,11 +172,7 @@ pub fn segment_densities(plan: &BodyPlan) -> Vec<f64> {
 /// a mismatch is a programming error, not authored data: a silent fallback to
 /// 1.0 for a missing entry would be a wrong answer wearing an identity
 /// default's clothes (A-3).
-pub fn mass_properties(
-    plan: &BodyPlan,
-    densities: &[f64],
-    root_height_m: f64,
-) -> MassProperties {
+pub fn mass_properties(plan: &BodyPlan, densities: &[f64], root_height_m: f64) -> MassProperties {
     assert_eq!(
         densities.len(),
         plan.segments.len(),
