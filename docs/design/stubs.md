@@ -1961,3 +1961,27 @@ measure surface penetration); not the solve production runs.
   which are inertia-side and now honest.
 - **⚠ Do not read this entry as a licence to build the actuation model next.** `bio/eco` is ON
   HOLD and the gate is a user call; this names the hole, it does not sequence filling it.
+
+### 52. an-epoch-that-alteration-cannot-move — *added 2026-08-04 (the deposition-clock slice, journal/0154; F4 of `2026-08-04-deposition-clock-design.md`)*
+
+**The stand-in:** a `DepUnit`'s **epoch is immutable under pedogenic overprint** (P-D:
+the record stores the raw deposition tick), but `set_tag_and_chapter` still **rewrites
+chapter in place** — so after an overprint, a unit's chapter and its epoch can
+disagree (`chapter != floor(epoch / chapter_length)`). The in-code marker sits at
+`set_tag_and_chapter` in `recorder.rs`.
+
+**Why it is a stand-in and not a defect:** alteration is not deposition. The overprint
+is recording *that the unit became something else*, and it currently has only the
+chapter field to say *when-ish*. The deposition epoch must not move (it answers "when
+was this laid down"); what is missing is a second time.
+
+**Heir:** an **alteration-time axis** — when a transformation edge fires on a recorded
+unit, the record carries the alteration's own tick beside the deposition tick. Rides
+whichever slice first needs to ask "when was this altered" (metamorphism P7 and the
+diagenesis transforms are the likely askers). Until then, no production reader
+consults chapter-vs-epoch consistency — the monotonicity asserts cover deposition
+order only, deliberately.
+
+**Blast radius:** any future reader that assumes `chapter(unit)` is derivable from
+`epoch(unit)` — true for never-overprinted units, false after overprint. The
+correlation partition uses epoch, not chapter, so it is unaffected.
