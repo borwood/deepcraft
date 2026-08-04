@@ -184,7 +184,13 @@ fn the_lazy_column_stream_is_a_prefix_sum_over_the_partition() {
     let mut count = 0usize;
     let mut last = None;
     for iv in part.column(&w) {
-        assert_eq!(iv.base_m, prev_top, "interval {} starts where {} ended", iv.index, iv.index.saturating_sub(1));
+        assert_eq!(
+            iv.base_m,
+            prev_top,
+            "interval {} starts where {} ended",
+            iv.index,
+            iv.index.saturating_sub(1)
+        );
         assert!(iv.thickness_m >= 0.0);
         prev_top = iv.top_m();
         count += 1;
@@ -283,7 +289,11 @@ fn invariant_3_a_bed_only_one_parent_holds_tapers_monotonically_to_zero() {
         .expect("epoch 9 is in the union");
     assert_eq!(part.parent_thickness(0, k), 4.0);
     for j in 1..part.parents() {
-        assert_eq!(part.parent_thickness(j, k), 0.0, "only parent 0 holds epoch 9");
+        assert_eq!(
+            part.parent_thickness(j, k),
+            0.0,
+            "only parent 0 holds epoch 9"
+        );
     }
 
     let fz = 0.25;
@@ -297,7 +307,11 @@ fn invariant_3_a_bed_only_one_parent_holds_tapers_monotonically_to_zero() {
             .nth(k)
             .expect("the interval is in every column's stream");
         assert_eq!(iv.epoch, 9);
-        assert_eq!(iv.thickness_m, w[0] * 4.0, "the pinch-out is w_A · t_A, exactly");
+        assert_eq!(
+            iv.thickness_m,
+            w[0] * 4.0,
+            "the pinch-out is w_A · t_A, exactly"
+        );
         assert!(iv.thickness_m <= prev, "thickness is monotone in w_A");
         prev = iv.thickness_m;
     }
@@ -363,7 +377,10 @@ fn invariant_4_adjacent_chunks_sharing_parents_are_seam_free_at_their_boundary()
             .filter(|iv| iv.thickness_m > 0.0)
             .map(|iv| (iv.epoch, iv.thickness_m, iv.base_m))
             .collect();
-        assert_eq!(l, r, "the shared boundary column at fz = {fz} disagrees across the chunk seam");
+        assert_eq!(
+            l, r,
+            "the shared boundary column at fz = {fz} disagrees across the chunk seam"
+        );
         assert!(!l.is_empty());
     }
 }
