@@ -234,7 +234,11 @@ fn main() {
 
     println!("\n--- (a) PER-CELL STACK DEPTH AND H ---");
     row("stack depth, all cells", &dist(&mut depth_all), "units");
-    row("stack depth, recorded cells", &dist(&mut depth_rec), "units");
+    row(
+        "stack depth, recorded cells",
+        &dist(&mut depth_rec),
+        "units",
+    );
     row("H = Sum(unit thickness), all", &dist(&mut h_all), "m");
     row("H = Sum(unit thickness), recorded", &dist(&mut h_rec), "m");
     println!("  max single unit thickness ........ {max_unit_m:.3} m");
@@ -331,22 +335,14 @@ fn main() {
             }
         }
     }
-    row("2x2 stencil union intervals (all)", &dist(&mut u2), "epochs");
     row(
-        "2x2 stencil union, non-empty",
-        &dist(&mut u2_rec),
+        "2x2 stencil union intervals (all)",
+        &dist(&mut u2),
         "epochs",
     );
-    row(
-        "3x3 stencil union (straddling)",
-        &dist(&mut u3),
-        "epochs",
-    );
-    row(
-        "3x3 stencil union, non-empty",
-        &dist(&mut u3_rec),
-        "epochs",
-    );
+    row("2x2 stencil union, non-empty", &dist(&mut u2_rec), "epochs");
+    row("3x3 stencil union (straddling)", &dist(&mut u3), "epochs");
+    row("3x3 stencil union, non-empty", &dist(&mut u3_rec), "epochs");
 
     // ------------------------------------------------------------------- (d)
     println!("\n--- (d) MIXTURE-CAP CHECK FOR P-1's M-C ---");
@@ -472,8 +468,7 @@ fn main() {
             c,
             eighths_states(k),
             if continuum { "CONT" } else { "disc" },
-            mats
-                .iter()
+            mats.iter()
                 .map(|x| x.qualified_name().to_string())
                 .collect::<Vec<_>>()
                 .join(" + ")
