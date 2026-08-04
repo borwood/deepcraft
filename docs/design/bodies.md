@@ -219,6 +219,36 @@ an implementation choice; artifact suppression uses standard techniques
 
 ## Stepped animation — DECIDED 2026-07-19 (aesthetic choice)
 
+> **▶ BUILT 2026-08-04 (journal `pending-quant-the-rate-a-body-sets-for-itself`), AND THE
+> BANNER BELOW IS RIGHT ON EVERY `N` AND OFF IN THE THIRD DECIMAL ON EVERY FRACTION.**
+> Re-derived from the shipped gait bake at 4.5 m/s rather than restated
+> (`body::tests::every_shipped_plan_gets_a_whole_number_of_poses_per_cycle` prints it):
+>
+> | plan | cadence | cycle | frames/cycle at 12 fps | **N** |
+> |---|---|---|---|---|
+> | biped | 1.722 Hz | 0.5809 s | **6.970** (banner: 6.977) | **7** ✅ |
+> | longleg | 1.553 Hz | 0.6441 s | **7.729** (banner: 7.742) | **8** ✅ |
+> | stout | 2.797 Hz | 0.3576 s | **4.291** (banner: 4.286) | **4** ✅ |
+>
+> **Nothing the ruling rests on moves** — the three `N` are exactly as predicted, and the
+> biped is still within 0.03 of an integer. The three-decimal figures were carried into the
+> banner from a conversation; **journal/0148's own two-decimal table (6.97 / 7.73 / 4.29) is
+> correct** and is the one to quote. ROADMAP § Sequenced repeats the banner's three-decimal
+> version and is owed the same stamp (integrator).
+>
+> **What the slice measured that the ruling could not predict:** the retired 1/12 s grid
+> wandered over **140 / 155 / 86** distinct phases in twenty strides (biped / longleg /
+> stout) where the per-cycle grid holds exactly **7 / 8 / 4** — the beat, quantified. Per-bone
+> blending lands where mechanism 4's observation said it would: at 4.5 m/s the biped's legs
+> take Δt **0.08298 s** (gait alone), its arms **0.08316 s** (gait + idle), against the idle
+> clip's own **0.08333 s**. **Cost: the per-frame pose went 3312 → 4036 ns per body, +22 %**
+> (both measured on one machine in one sitting; heir named in the perf test's doc comment).
+>
+> **⚠ THE APPEARANCE VERDICT IS OUTSTANDING.** The acceptance — *the stout's hitch gone, the
+> biped visually unchanged* — is a judgement about motion no still frame and no test can make
+> (corrections #77). The numbers are in; the look is the user's, from the running game.
+> `--anim-fps <n>` sets the target at launch, so 6 / 12 / 24 are one relaunch apart.
+
 > **▶▶ THE 12 FPS CALL IS TAKEN — DECIDED 2026-08-04 (user). `ANIM_FPS` AS A FIXED CONSTANT IS
 > RETIRED; QUANTIZATION BECOMES PER-CYCLE, PER-BONE, AND CLIENT-OWNED.** The deferred taste call
 > below became takeable when the feet reached the ground (journal/0148), and the walk supplied a
@@ -278,6 +308,21 @@ an implementation choice; artifact suppression uses standard techniques
 > **sim-visible** — if B5's damage resolution ever reads a pose it reads the sim's *unquantized*
 > target, or two clients at different fps resolve hits differently. Implied by the partition;
 > owed an explicit guard.
+>
+> > **✅ ANSWERED 2026-08-04 BY THE SLICE: NO SUCH PATH EXISTS TODAY, AND IT IS PINNED RATHER
+> > THAN GUARDED.** Nothing outside `dc-client` can see a pose — no crate depends on the
+> > client, and the pose's only consumers are bevy `Transform` writes. So there is nothing to
+> > guard *yet*, and a guard on an absent consumer would be the mechanism-with-no-caller this
+> > project keeps building. What shipped instead is a **two-directional pin**
+> > (`body::tests::the_target_fps_never_reaches_a_sim_visible_quantity`): **upstream**, the
+> > unquantized target (`AnimState::phase`/`froude`/`clock_s`/`trunk_yaw`) is asserted
+> > **bit-identical at 1, 6, 12, 30, 144 and 1000 fps**, so the rate reaches the *hold* and
+> > nothing else; **downstream**, `CharacterState`'s wire field names are asserted to contain
+> > no pose, phase, frame or fps. *That second half fails the day B3 or B5 puts a pose on the
+> > wire* — which is the moment the guard becomes real, and the failure message says so and
+> > names `AnimState::phase` as the thing to read. **The structural half is that the stepped
+> > phase is no longer state at all**: it is derived from the live phase on demand, so there
+> > is no held value for a sim consumer to reach for by mistake.
 
 > **▶ THE ROTATION QUANTIZATION IS REMOVED, 2026-08-01, BY USER RULING. THE 12 FPS STEP
 > RIDES UNCHANGED.** *"let's stop treating as a constraint we must satisfy and subtract the
