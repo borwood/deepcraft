@@ -25,6 +25,14 @@
 > the 1,200 s budget); the pick is engineering mass vs exactness, resolved toward
 > K2-with-measurements.
 
+> **✅ U-2 RULED 2026-08-04 (user: "Absolutely, always implicit, no dual-worlds from
+> one seed"):** adoption shape (a) — once E4-3 lands, the shipped world runs
+> **always-implicit**, one code path; all golden families re-capture ONCE, sequenced
+> WITH the P2 flip and the M re-pick so the world's goldens move a single time; the
+> explicit scheme survives as `Scheme::Explicit`, the validation reference and gate
+> fixture, never shipping. Rationale as ruled: a switchable production scheme is two
+> worlds wearing one seed — the world-identity rule forbids it. **U-4 remains.**
+
 **Arc anchor:** `docs/dependency-graph.md:50` (E4, "SHAPE NAMED 2026-07-29 (S-10), 2 instances,
 NOT EXTRACTED") + `:56-61` (§ "E4's rule") · `docs/spines.md:1078-1167` (S-10, RATIFIED
 2026-07-29) · `docs/design/stubs.md:1295-1354` (#30, the DERIVED half still owed, heir = this
