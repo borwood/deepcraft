@@ -194,7 +194,14 @@ impl Erosion {
                         dep_tags::EOLIAN,
                         2,
                     );
-                    grid.strata[i].deposit_moved(tag, load, chapter, epoch, m, FlowCause::Eolian as u8);
+                    grid.strata[i].deposit_moved(
+                        tag,
+                        load,
+                        chapter,
+                        epoch,
+                        m,
+                        FlowCause::Eolian as u8,
+                    );
                 }
             }
         }

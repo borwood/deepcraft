@@ -690,6 +690,11 @@ impl Erosion {
     /// One deep-time iteration at the given `sea_level` stand. Returns the
     /// total uplift added this step (for the mass-conservation ledger).
     ///
+    /// **A caller driving `step` in its own loop owns the deposition clock**:
+    /// call [`Self::set_epoch`] per iteration, or every unit records epoch 0
+    /// (the production loop, `DeepSchedule::run`, stamps it unconditionally —
+    /// this one-epoch driver cannot know which tick it is).
+    ///
     /// `mem` is the deposition-identity context (P11 slice 1) — the registered
     /// content plus this epoch's addressed member-fitness stream. It is consulted
     /// only by the phases that write an identity (`record`, `wind`, `wave`), so a

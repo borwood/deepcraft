@@ -259,7 +259,11 @@ pub const GOLDEN_SURFACE_UNBOUNDED_CREEP: u64 = 0x5ADF_C706_CB10_BB7F;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0xACB6_1859_6AA3_F3A8`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0xE106_8099_C93B_1877`.
-pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0x3911_0859_768D_07F7;
+// Re-captured 2026-08-04 (the deposition clock — hash-shape only, see
+// GOLDEN_RECORD): the fingerprint gained the epoch byte; this arm's SURFACE
+// above is untouched, which pins the arm's world as unmoved. Prior value,
+// kept for audit: `0x3911_0859_768D_07F7`.
+pub const GOLDEN_RECORD_UNBOUNDED_CREEP: u64 = 0xB10E_CB58_6E2E_A670;
 
 /// **The CALIBRATED world, reachable and pinned** (journal/0114). The same fixture
 /// built with [`DeepOverrides::calibrated_rates`](dc_worldgen::deeptime::DeepOverrides)
@@ -309,7 +313,11 @@ pub const GOLDEN_SURFACE_CALIBRATED: u64 = 0x0850_6980_60C4_60F2;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x830E_768D_3D1D_866B`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 above.** Case 1, the RULE, at the calibrated rates: member-grade erosion rates plus the retired deposition draw, exactly as the shipped arm. This constant pins a FUTURE solve so the eventual flip is a diff and not a surprise; it re-captures for the same reason the shipped one does. Prior value, kept for audit: `0x8AF6_5B99_579C_436A`.
-pub const GOLDEN_RECORD_CALIBRATED: u64 = 0xE6F0_3350_F22B_FC3D;
+// Re-captured 2026-08-04 (the deposition clock — hash-shape only, see
+// GOLDEN_RECORD): the fingerprint gained the epoch byte; the arm's surface
+// (GOLDEN_SURFACE_CALIBRATED above) is untouched. Prior value, kept for
+// audit: `0xE6F0_3350_F22B_FC3D`.
+pub const GOLDEN_RECORD_CALIBRATED: u64 = 0xDA35_ED09_70E9_C852;
 
 /// **The pre-MFD fixed point, still reachable.** The same fixture world built with
 /// [`DeepConfig::mfd`](dc_worldgen::deeptime::DeepConfig) **off** must reproduce
@@ -354,7 +362,10 @@ pub const GOLDEN_SURFACE_SCALAR_LOAD: u64 = 0x1CB0_C1BC_66BF_0EB7;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the rock (case 1). Prior value,
 /// kept for audit: `0x3940_3AD9_C3A8_FD83`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0x98B6_DAD5_5796_8D6A`.
-pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0xE4F1_395B_565D_EFDF;
+// Re-captured 2026-08-04 (the deposition clock — hash-shape only, see
+// GOLDEN_RECORD): the fingerprint gained the epoch byte; the arm's surface is
+// untouched. Prior value, kept for audit: `0xE4F1_395B_565D_EFDF`.
+pub const GOLDEN_RECORD_SCALAR_LOAD: u64 = 0x1E67_1F06_3129_021C;
 
 /// **The fluvial-only fixed point, still reachable.** The same fixture world with
 /// [`DeepConfig::material_creep`](dc_worldgen::deeptime::DeepConfig) **off** must
@@ -402,7 +413,10 @@ pub const GOLDEN_SURFACE_ANONYMOUS_CREEP: u64 = 0xA706_5161_068F_061D;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
 /// rock (case 1). Prior value, kept for audit: `0x447D_E3D0_7675_8D21`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 below.** Case 3, ROUNDING not rule: this arm's semantics are unchanged, but the world it is an arm OF moved (member-grade rates), and the sums it re-runs are the sums of a different record. Prior value, kept for audit: `0xE77F_385F_D58E_F020`.
-pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x5DEE_9CC7_8C0C_8AF3;
+// Re-captured 2026-08-04 (the deposition clock — hash-shape only, see
+// GOLDEN_RECORD): the fingerprint gained the epoch byte; the arm's surface is
+// untouched. Prior value, kept for audit: `0x5DEE_9CC7_8C0C_8AF3`.
+pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x7084_7D01_56BD_96FD;
 /// The strata-record half of [`GOLDEN_SURFACE_SINGLE_RECEIVER`].
 ///
 /// **Re-derived 2026-07-26 (journal/0110), and the record did NOT move.**
@@ -419,7 +433,10 @@ pub const GOLDEN_RECORD_ANONYMOUS_CREEP: u64 = 0x5DEE_9CC7_8C0C_8AF3;
 /// **Moved 2026-08-01 by P11 slice 1 — see § P11 above.** The record now names the
 /// rock (case 1). Prior value, kept for audit: `0xAB2E_0CA4_2412_05C1`.
 /// **Moved 2026-08-02 by P11 slice 2 (the conversion) — see § P11 SLICE 2 above.** Case 3, ROUNDING not rule: the single-receiver differential claim is untouched, but the world it is an arm OF now has member-grade rates. Prior value, kept for audit: `0x5ECD_3AC2_7468_5D5C`.
-pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x0571_3759_07DA_44BB;
+// Re-captured 2026-08-04 (the deposition clock — hash-shape only, see
+// GOLDEN_RECORD): the fingerprint gained the epoch byte; the arm's surface is
+// untouched. Prior value, kept for audit: `0x0571_3759_07DA_44BB`.
+pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x246B_BF7C_A3F9_DEFB;
 /// FNV-1a-64 over the strata record of the same field.
 ///
 /// **Moved 2026-07-24 by the geotherm (journal/0093) — authorized.** The first
@@ -494,7 +511,18 @@ pub const GOLDEN_RECORD_SINGLE_RECEIVER: u64 = 0x0571_3759_07DA_44BB;
 // Re-captured 2026-08-03 (P11 slice 3): see GOLDEN_SURFACE's note — the record
 // itself is the quantized artifact (8 B packed units; mover axis in the key,
 // measured 1.0308x before joining).
-pub const GOLDEN_RECORD: u64 = 0x84E4_2349_B872_6684;
+//
+// Re-captured 2026-08-04 (the DEPOSITION CLOCK, O-2b ruled — see
+// `record_fingerprint`'s doc and `docs/audits/2026-08-04-deposition-clock-design.md`
+// § 3 branch B): the record gained the per-unit raw-epoch axis and the
+// fingerprint now hashes it, so every GOLDEN_RECORD* re-derived ONCE. The
+// record is byte-identical apart from the new axis — PROVEN at capture by
+// hashing the new world through the OLD fingerprint shape, which reproduced
+// the prior value below exactly (per-cell unit counts included; 47,399 units
+// on this fixture, epochs 0..199 all present). GOLDEN_SURFACE held byte-still
+// in the same run: the epoch is write-only to the sim. Prior value, kept for
+// audit: `0x84E4_2349_B872_6684`.
+pub const GOLDEN_RECORD: u64 = 0x728A_5FB0_01B4_94D7;
 
 // ---------------------------------------------------------------------------
 // A deterministic fingerprint (FNV-1a 64), written by hand so it depends on

@@ -948,7 +948,13 @@ impl DeepStrata {
     /// caller of [`Litho::reference_material`] outside the S-5 fallback in
     /// [`DepositCtx::material_in`], and both die when the class roster does.
     pub fn deposit(&mut self, tag: DepTag, d: f64, chapter: u8, epoch: u8) {
-        self.deposit_as(tag, d, chapter, epoch, litho_of_tag(tag).reference_material());
+        self.deposit_as(
+            tag,
+            d,
+            chapter,
+            epoch,
+            litho_of_tag(tag).reference_material(),
+        );
     }
 
     /// [`Self::deposit`], but stating **which material arrived** rather than
@@ -1381,7 +1387,14 @@ mod tests {
         // Every registry species survives the 6-bit field.
         for raw in 0..dc_core::materials::MATERIAL_COUNT as u8 {
             let sp = MaterialId::from_raw(raw).unwrap();
-            let u = DepUnit::new(tag(DepEnv::Subaerial, EnergyBand::Low), 1.0, false, 0, 0, sp);
+            let u = DepUnit::new(
+                tag(DepEnv::Subaerial, EnergyBand::Low),
+                1.0,
+                false,
+                0,
+                0,
+                sp,
+            );
             assert_eq!(u.species(), sp);
         }
         // Grain writes round-trip without disturbing any sibling axis
