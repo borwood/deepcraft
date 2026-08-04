@@ -75,6 +75,7 @@ fn record_cell(
     s: &mut DeepStrata,
     dh: f64,
     chapter: u8,
+    epoch: u8,
     deposit: impl FnOnce() -> (DepTag, MaterialId, u8),
 ) {
     if dh.abs() < 1e-9 {
@@ -82,7 +83,7 @@ fn record_cell(
     }
     if dh > 0.0 {
         let (tag, species, mover) = deposit();
-        s.deposit_moved(tag, dh, chapter, species, mover);
+        s.deposit_moved(tag, dh, chapter, epoch, species, mover);
     } else {
         s.erode(-dh);
     }
@@ -194,6 +195,9 @@ impl Erosion {
         let parallel = self.par();
         let sea = self.sea_level;
         let chapter = self.cur_chapter;
+        // The deposition clock (O-2b): the raw tick the epoch loop stamped via
+        // `set_epoch`, written into every unit this pass deposits.
+        let epoch = self.cur_epoch;
         // **The formation context of this geological day** (P11 slice 1). Lifted
         // before the record is borrowed mutably: `lat_deg` takes `&self`, and the
         // per-cell temperature is the same air-temperature model the biotic gate
@@ -333,7 +337,7 @@ impl Erosion {
                     .zip(id_class.par_iter_mut())
                     .enumerate()
                     .for_each(|(i, (s, prov))| {
-                        record_cell(s, dh[i], chapter, || deposit_at(i, prov));
+                        record_cell(s, dh[i], chapter, epoch, || deposit_at(i, prov));
                     });
             } else {
                 for (i, (s, prov)) in grid
@@ -343,7 +347,7 @@ impl Erosion {
                     .enumerate()
                     .take(n)
                 {
-                    record_cell(s, dh[i], chapter, || deposit_at(i, prov));
+                    record_cell(s, dh[i], chapter, epoch, || deposit_at(i, prov));
                 }
             }
             for i in 0..n {
@@ -363,11 +367,11 @@ impl Erosion {
         let mut sink = 0u8;
         if parallel {
             grid.strata.par_iter_mut().enumerate().for_each(|(i, s)| {
-                record_cell(s, dh[i], chapter, || deposit_at(i, &mut 0));
+                record_cell(s, dh[i], chapter, epoch, || deposit_at(i, &mut 0));
             });
         } else {
             for (i, s) in grid.strata.iter_mut().enumerate().take(n) {
-                record_cell(s, dh[i], chapter, || deposit_at(i, &mut sink));
+                record_cell(s, dh[i], chapter, epoch, || deposit_at(i, &mut sink));
             }
         }
     }

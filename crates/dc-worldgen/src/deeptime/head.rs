@@ -558,7 +558,7 @@ mod tests {
     fn strata(beds: &[(DepTag, f64)]) -> DeepStrata {
         let mut s = DeepStrata::default();
         for (tag, m) in beds {
-            s.deposit(*tag, *m, 0);
+            s.deposit(*tag, *m, 0, 0);
         }
         s
     }

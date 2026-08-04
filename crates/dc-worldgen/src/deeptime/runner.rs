@@ -1076,6 +1076,7 @@ impl DeepSchedule {
         ctx.epoch = 0;
         ctx.sea_level = sea_level_at(ctx.cfg, 0);
         ctx.erosion.set_sea_level(ctx.sea_level);
+        ctx.erosion.set_epoch(0);
         for t in self.plan(None) {
             ctx.dt = t.dt;
             (self.passes[t.index].body)(ctx);
@@ -1090,6 +1091,14 @@ impl DeepSchedule {
             // is load-bearing for byte-identity (the sinusoidal stand drives the
             // shoreline, marine deposition, and the wave agent).
             ctx.erosion.set_sea_level(ctx.sea_level);
+            // **The deposition clock, stamped UNCONDITIONALLY from the epoch
+            // loop** (O-2b ruled 2026-08-04, design F1/I-2): the raw tick every
+            // unit deposited this epoch carries. Deliberately NOT set by
+            // `tectonics_pass` — that pass is absent on the legacy path
+            // (`cfg.tectonic_history` off), where an epoch riding
+            // `set_tectonic` would silently read 0 forever; epoch 0 there
+            // would be a lie where chapter 0 happens to be the truth.
+            ctx.erosion.set_epoch(it);
             for t in self.plan(Some(it)) {
                 ctx.dt = t.dt;
                 for _ in 0..t.turns {

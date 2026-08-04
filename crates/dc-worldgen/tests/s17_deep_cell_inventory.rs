@@ -131,10 +131,10 @@ fn memory_measurement_per_stratum_vs_per_voxel() {
         use dc_worldgen::deeptime::{Aridity, DeepStrata, DepEnv, DepTag, EnergyBand};
         let mut s = DeepStrata::default();
         let t = |env, energy| DepTag::mineral(env, Aridity::Humid, energy);
-        s.deposit(t(DepEnv::Subsea, EnergyBand::Low), 8.0, 0);
-        s.deposit(t(DepEnv::Subaerial, EnergyBand::High), 5.0, 0);
-        s.deposit(t(DepEnv::Subaerial, EnergyBand::Low), 4.0, 0);
-        s.deposit(t(DepEnv::Subaerial, EnergyBand::Medium), 3.0, 0);
+        s.deposit(t(DepEnv::Subsea, EnergyBand::Low), 8.0, 0, 0);
+        s.deposit(t(DepEnv::Subaerial, EnergyBand::High), 5.0, 0, 0);
+        s.deposit(t(DepEnv::Subaerial, EnergyBand::Low), 4.0, 0, 0);
+        s.deposit(t(DepEnv::Subaerial, EnergyBand::Medium), 3.0, 0, 0);
         s
     };
     let thick_ps = build_identity(&thick, Granularity::PerStratum);

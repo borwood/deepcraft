@@ -273,6 +273,13 @@ pub struct Erosion {
     /// R-lowering (incision + weathering) to `exhum`/`t_crust` — never the
     /// isostatic bedrock motion, which runs afterward.
     cur_chapter: u8,
+    /// **The deposition clock's stamp** (O-2b, ruled 2026-08-04): the raw
+    /// runner tick the recorder writes into every unit deposited this epoch.
+    /// Set **unconditionally** by the epoch loop ([`Self::set_epoch`], driven
+    /// from `DeepSchedule::run`) — deliberately NOT by `tectonics_pass`, which
+    /// is absent on the legacy path, where an epoch riding `set_tectonic`
+    /// would silently read 0 forever (deposition-clock design F1).
+    cur_epoch: u8,
     forcing: Vec<f64>,
     r_snap: Vec<f64>,
     /// **Per-cell suspended load leaving toward the receiver this epoch** (the
@@ -501,6 +508,7 @@ impl Erosion {
             sus_creep: Vec::new(),
             frost: Vec::new(),
             cur_chapter: 0,
+            cur_epoch: 0,
             forcing: Vec::new(),
             r_snap: Vec::new(),
             out_load: Vec::new(),
@@ -554,6 +562,37 @@ impl Erosion {
     #[inline]
     pub fn current_chapter(&self) -> u8 {
         self.cur_chapter
+    }
+
+    /// **Set the deposition clock** — the raw runner tick every unit deposited
+    /// this epoch is stamped with (O-2b, ruled 2026-08-04). Called
+    /// **unconditionally, once per epoch, from the epoch loop**
+    /// (`DeepSchedule::run`) — never from `tectonics_pass`, which the legacy
+    /// path does not register (F1: an epoch riding `set_tectonic` would
+    /// silently read 0 there, the failure mode the chapter axis already has
+    /// where 0 happens to be correct and epoch 0 would not be).
+    ///
+    /// The record's field is u8 against `DEEP_ITERATIONS` = 200 (56 ticks of
+    /// headroom; every `iterations:` literal in the tree is ≤ 200). A run past
+    /// 256 epochs is a schema decision, not a truncation — loud in debug,
+    /// saturating in release (O-7: the escalation is O-1's 12 bytes or a
+    /// declared coarsening, decided then, never silently wrapped here).
+    #[inline]
+    pub fn set_epoch(&mut self, epoch: u32) {
+        debug_assert!(
+            epoch <= u32::from(u8::MAX),
+            "DEPOSITION-CLOCK RANGE: epoch {epoch} exceeds the u8 tick \
+             (iterations > 256) — decide O-7's escalation, do not wrap"
+        );
+        self.cur_epoch = epoch.min(u32::from(u8::MAX)) as u8;
+    }
+
+    /// The epoch the recorder is currently stamping (read by the biotic layer
+    /// so its organic units carry the same tick — the sibling of
+    /// [`Self::current_chapter`]).
+    #[inline]
+    pub fn current_epoch(&self) -> u8 {
+        self.cur_epoch
     }
 
     /// Turn data-parallel per-cell phases on/off. Off by default (the scalar
@@ -650,6 +689,11 @@ impl Erosion {
 
     /// One deep-time iteration at the given `sea_level` stand. Returns the
     /// total uplift added this step (for the mass-conservation ledger).
+    ///
+    /// **A caller driving `step` in its own loop owns the deposition clock**:
+    /// call [`Self::set_epoch`] per iteration, or every unit records epoch 0
+    /// (the production loop, `DeepSchedule::run`, stamps it unconditionally —
+    /// this one-epoch driver cannot know which tick it is).
     ///
     /// `mem` is the deposition-identity context (P11 slice 1) — the registered
     /// content plus this epoch's addressed member-fitness stream. It is consulted

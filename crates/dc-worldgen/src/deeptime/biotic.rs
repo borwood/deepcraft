@@ -727,6 +727,9 @@ impl BioticSim {
         // Organic units carry the same tectonic chapter the erosion recorder is
         // stamping this epoch (0 when tectonic history is off — byte-identical).
         let chapter = ero.current_chapter();
+        // The deposition clock's tick, from the same stamp the erosion recorder
+        // is writing this epoch (its sibling accessor — one clock, never two).
+        let dep_epoch = ero.current_epoch();
         // Row latitudes for the per-cell formation context (`lat_deg` takes
         // `&grid` and the loop holds `&mut grid.strata`).
         let lat: Vec<f64> = (0..grid.w).map(|gy| grid.lat_deg(gy)).collect();
@@ -757,7 +760,7 @@ impl BioticSim {
                 );
                 // Pedogenesis OVERPRINTS the surface material rather than
                 // stacking a lamina: a stable surface becomes one thick horizon.
-                grid.strata[i].overprint_top(o.org_tag, o.org_deposit, chapter, m);
+                grid.strata[i].overprint_top(o.org_tag, o.org_deposit, chapter, dep_epoch, m);
                 bio_input += o.org_deposit;
             }
             if o.charcoal > 0.0 {
@@ -770,7 +773,7 @@ impl BioticSim {
                     dep_tags::BIOTIC,
                     0,
                 );
-                grid.strata[i].deposit_as(o.char_tag, o.charcoal, chapter, m);
+                grid.strata[i].deposit_as(o.char_tag, o.charcoal, chapter, dep_epoch, m);
                 bio_input += o.charcoal;
             }
         }

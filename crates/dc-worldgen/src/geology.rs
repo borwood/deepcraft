@@ -117,6 +117,21 @@ pub struct StrataEvent {
     /// (ruling 5). Until then a deep cell's bed is one material across its whole
     /// ~460 m footprint, and that tile is slice 3's to kill.
     pub dither: bool,
+    /// **The deposition-clock interval this event spans** (the funnel widening,
+    /// deposition-clock design § 5.1, ruled O-2b 2026-08-04): the raw runner
+    /// epoch of the FIRST deep unit that contributed to this event. `0` for the
+    /// year-zero veneer passes, whose beds are laid after the deep run and are
+    /// not on the deep clock at all (their `dither: true` is the discriminant).
+    ///
+    /// **CARRIED, never READ** — expression expresses; it stops inventing
+    /// (`StrataEvent::dither`'s ruling). No fitness, draw, or thickness may
+    /// branch on this pair; the consumer is stratigraphic correlation and the
+    /// voxel-explainability WHEN axis, downstream. A test pins the blindness.
+    pub epoch_bottom: u8,
+    /// The raw epoch of the LAST contributing unit — widened by the coalescer
+    /// (`prev == member` merges span their whole interval; a single tag would
+    /// be wrong the moment two units merged). An interval, `bottom ≤ top`.
+    pub epoch_top: u8,
 }
 
 /// The ordered per-column deposition log, bottom-up: `events[0]` is the
@@ -258,6 +273,10 @@ impl<'a> StrataCtx<'a> {
             // member here, from this context, so re-picking per voxel is the
             // dither doing its job (see `StrataEvent::dither`).
             dither: true,
+            // Veneer beds are laid after the deep run ends — they are not on
+            // the deep clock (see `StrataEvent::epoch_bottom`).
+            epoch_bottom: 0,
+            epoch_top: 0,
         });
     }
 }
@@ -778,6 +797,12 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
             {
                 let e = &mut ctx.strata.events[idx];
                 e.thickness_m += u.thickness_m() as f32;
+                // The funnel widening (deposition-clock § 5.1): a coalesced
+                // event spans the epochs of every unit it absorbed — WIDEN,
+                // never discard. This one line is what converts the coalescer
+                // from lossy-in-time to lossless-in-time while staying exactly
+                // as lossless-for-expression as its doc above claims.
+                e.epoch_top = u.epoch();
                 continue;
             }
             ctx.strata.events.push(StrataEvent {
@@ -795,6 +820,10 @@ fn deposit_deep_history(ctx: &mut StrataCtx) -> f64 {
                 ore: None,
                 accessory: None,
                 dither: false,
+                // The deep clock reaches expression (deposition-clock § 5.1):
+                // a fresh event's interval is the unit's own epoch, both ends.
+                epoch_bottom: u.epoch(),
+                epoch_top: u.epoch(),
             });
             last = Some((ctx.strata.events.len() - 1, member));
         }
@@ -1080,8 +1109,81 @@ mod tests {
             5.0,
             false,
             2,
+            55,
             dc_core::materials::MaterialId::SANDSTONE,
         )]
+    }
+
+    /// **The deposition clock reaches the event funnel, and expression is
+    /// BLIND to it** (deposition-clock § 5.1, I-5). Three claims in one
+    /// driver:
+    ///
+    /// 1. a fresh event carries its unit's epoch as a degenerate interval;
+    /// 2. the coalescer WIDENS — two same-member units from different epochs
+    ///    become one event spanning `[first, last]`;
+    /// 3. expression never *branches* on the epoch: the same stack with every
+    ///    epoch rewritten expresses byte-identically except the carried
+    ///    interval itself (member, thickness, temp, depth all equal) — the
+    ///    "expression expresses; it stops inventing" ruling, extended to time.
+    #[test]
+    fn the_event_interval_is_carried_and_widened_but_never_read() {
+        let geo = vanilla();
+        let t = DepTag::mineral(DepEnv::Subaerial, Aridity::Humid, EnergyBand::Medium);
+        let sp = dc_core::materials::MaterialId::SANDSTONE;
+        // Two same-member units laid at epochs 12 and 40 (distinct chapters so
+        // the recorder itself would not have merged them), plus a third at 90.
+        let units = vec![
+            DepUnit::new(t, 2.0, false, 0, 12, sp),
+            DepUnit::new(t, 1.0, false, 1, 40, sp),
+            DepUnit::new(t, 0.5, false, 3, 90, sp),
+        ];
+        let mut ctx = ctx_over(&units, &geo, Providers::default(), 9.0);
+        deposit_deep_history(&mut ctx);
+        assert_eq!(
+            ctx.strata.events.len(),
+            1,
+            "same-member units coalesce exactly as before the clock"
+        );
+        let e = ctx.strata.events[0];
+        assert_eq!(
+            (e.epoch_bottom, e.epoch_top),
+            (12, 90),
+            "the coalescer must WIDEN the interval, not discard it"
+        );
+        // Blindness: rewrite every epoch; everything but the interval is equal.
+        let shifted = vec![
+            DepUnit::new(t, 2.0, false, 0, 100, sp),
+            DepUnit::new(t, 1.0, false, 1, 101, sp),
+            DepUnit::new(t, 0.5, false, 3, 102, sp),
+        ];
+        let mut ctx2 = ctx_over(&shifted, &geo, Providers::default(), 9.0);
+        deposit_deep_history(&mut ctx2);
+        assert_eq!(ctx2.strata.events.len(), 1);
+        let f = ctx2.strata.events[0];
+        assert_eq!(
+            (
+                e.member,
+                e.thickness_m,
+                e.temp_c,
+                e.precip,
+                e.depth_m,
+                e.sel_salt,
+                e.sel_tag,
+                e.dither
+            ),
+            (
+                f.member,
+                f.thickness_m,
+                f.temp_c,
+                f.precip,
+                f.depth_m,
+                f.sel_salt,
+                f.sel_tag,
+                f.dither
+            ),
+            "expression branched on the epoch — it must only CARRY it"
+        );
+        assert_eq!((f.epoch_bottom, f.epoch_top), (100, 102));
     }
 
     fn ctx_over<'a>(

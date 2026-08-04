@@ -427,8 +427,8 @@ mod tests {
 
     fn sample_record() -> DeepStrata {
         let mut s = DeepStrata::default();
-        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.7, 0);
-        s.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 1.1, 0);
+        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.7, 0, 0);
+        s.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 1.1, 0, 0);
         s
     }
 
@@ -664,7 +664,7 @@ mod tests {
         // weathering ran) — its bedrock index is units.len(), far from slot 0.
         let mut grown = DeepStrata::default();
         for _ in 0..7 {
-            grown.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 0.6, 0);
+            grown.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 0.6, 0, 0);
         }
         let finalized = finalize_ledgers(vec![acc], std::slice::from_ref(&grown));
         // journal/0102: `finalized` is one grid-wide record; cell 0 is a borrowed

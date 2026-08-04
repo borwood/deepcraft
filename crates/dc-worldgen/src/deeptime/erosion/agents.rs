@@ -47,6 +47,7 @@ impl Erosion {
     pub fn wind(&mut self, grid: &mut DeepGrid, cfg: &DeepConfig, mem: MemberCtx<'_>) {
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
+        let epoch = self.cur_epoch;
         let sus_tab = SusTable::build(
             &self.axis,
             Agent::Eolian,
@@ -99,6 +100,7 @@ impl Erosion {
                                 tag,
                                 load,
                                 chapter,
+                                epoch,
                                 m,
                                 FlowCause::Eolian as u8,
                             );
@@ -166,6 +168,7 @@ impl Erosion {
                             tag,
                             drop,
                             chapter,
+                            epoch,
                             m,
                             FlowCause::Eolian as u8,
                         );
@@ -191,7 +194,14 @@ impl Erosion {
                         dep_tags::EOLIAN,
                         2,
                     );
-                    grid.strata[i].deposit_moved(tag, load, chapter, m, FlowCause::Eolian as u8);
+                    grid.strata[i].deposit_moved(
+                        tag,
+                        load,
+                        chapter,
+                        epoch,
+                        m,
+                        FlowCause::Eolian as u8,
+                    );
                 }
             }
         }
@@ -231,6 +241,7 @@ impl Erosion {
         let providers = cfg.providers;
         let record = !grid.strata.is_empty();
         let chapter = self.cur_chapter;
+        let epoch = self.cur_epoch;
         let (w, sea) = (self.w, self.sea_level);
         let sus_tab = SusTable::build(
             &self.axis,
@@ -302,7 +313,7 @@ impl Erosion {
                     dep_tags::WAVE,
                     0,
                 );
-                grid.strata[j].deposit_moved(tag, cut, chapter, m, FlowCause::Marine as u8);
+                grid.strata[j].deposit_moved(tag, cut, chapter, epoch, m, FlowCause::Marine as u8);
             }
         }
     }
