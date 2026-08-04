@@ -3062,6 +3062,17 @@ free-water body-graph coupling. Caves ride **FLOW continuation (c)**.
   design said ~7.4 M; a 48 % gap with neither pointing at the other — doc-topology
   shape 4, caught by a third audit reading both.*
 
+- **🔴 THE BUILD-MUTEX HOOK SILENTLY DISCARDS NON-CARGO WORK BUNDLED WITH A DENIED CALL —
+  DATA LOSS, not just a stall** (E4-2 agent, 2026-08-04, caught by proofreading): when a
+  Bash/PowerShell invocation contains a cargo command **and** other commands (an edit, a
+  file write, a python heredoc), a denial discards **the whole invocation** — the non-cargo
+  side never runs, and nothing says so. The E4-2 agent lost two python edits this way and
+  found them only by re-reading its own files; **one would not have compiled.** Interim
+  rule for every agent and session: **never bundle an edit with a cargo call** — separate
+  invocations, always. Fix shape (hook-owned, unowned): deny with a message naming what was
+  discarded, or scope the denial to the cargo command alone. Sibling of the text-match
+  false positive below; same file, same afternoon, both found by use.
+
 - **THE BUILD-MUTEX HOOK DENIES NON-CARGO COMMANDS THAT MERELY MENTION CARGO IN TEXT**
   (geo session, 2026-08-03, hit live): a `git commit` whose **commit message** contained
   the word "cargo" was denied as a build-slot claim (`scripts/cargo_mutex_hook.py` —
