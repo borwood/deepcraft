@@ -1923,7 +1923,7 @@ measure surface penetration); not the solve production runs.
      LANDED WITH B6-a (2026-08-04, the mass integral), per that pass's build-contingent rule:
      the code it describes now exists. Current ordinals run to #50. -->
 
-### NN. an-inertia-with-no-actuation — *drafted 2026-08-03 (B6 design pass § 9, § 11); **landed with B6-a**, 2026-08-04 (`dc-api/src/bodies/mass.rs`)*
+### 51. an-inertia-with-no-actuation — *drafted 2026-08-03 (B6 design pass § 9, § 11); **landed with B6-a**, 2026-08-04 (`dc-api/src/bodies/mass.rs`)*
 - **What it fakes:** `mass_properties` supplies the **INERTIA** half of every force-shaped hole in
   the bodies arc — mass, per-segment mass, centre of mass, and the second moments a caller can
   build from them — and **none of the POWER half.** Joint torque, muscle force, the push-off
