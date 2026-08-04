@@ -98,6 +98,16 @@ re-scopes this file gets a banner **here**, stamped by the author of the correct
 > now closed or paused: P-1 ✅ M-C-derived · P-2 ✅ · P-3 ⏸ deposition-clock pass ·
 > P-4 ✅ B-1 · P-5 ✅.
 
+> **✅ P-3 RESOLVED BY RESHAPING, 2026-08-04 — the deposition clock lands (O-2b
+> ruled, `2026-08-04-deposition-clock-design.md` header).** The record gains the
+> raw epoch per unit at zero widening, so correlation matches **true epoch
+> intervals**: same-age boundaries join exactly; the unconformity flag returns to
+> GAP SEMANTICS with the gap now measurable; **R-C is demoted to within-interval
+> interpolation** (where it was always defensible), and R-C vs R-C′ is moot —
+> epoch intervals are their own anchors. § 1.2's rule text stands as the record of
+> why the question existed; § 2's mass identity and § 2.3's invariants carry over
+> unchanged (invariant 5 strengthens).
+
 **Read with:** `docs/audits/2026-08-02-p11-slice3-design.md` (F2 mass coupling, § 1, § 4 —
 the superseded mechanism) · journal/0145 (what shipped) · journal/0128 (the octaves /
 truncated-Gaussian construction) · journal/0129 (the stencil arithmetic, "grep the field")

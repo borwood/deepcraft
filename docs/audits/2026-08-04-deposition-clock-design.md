@@ -41,6 +41,19 @@ journal/0145 · `crates/dc-worldgen/src/deeptime/recorder.rs` ·
 
 ---
 
+> **✅ RULED 2026-08-04 (user): O-2b AGREED — P-A, P-B, P-D closed together.** The
+> clock is restored in the second word: u24 thickness + u8 epoch, zero widening,
+> unit count identical by structure, merge keeps the bottom epoch, **the record
+> stores the RAW TICK, never a derived time** (P-D's rider, ruling out O-2a/O-5).
+> **Premise corrected at ratification:** the user read u24 as "~16,384 layers per
+> cell"; it is the per-UNIT thickness cap (2^24-1 quanta = 16,384 m against the
+> measured 65.38 m max — 250x headroom); layers per cell are unbounded. The
+> conclusion agreed to — ample headroom, further donation candidate — holds on the
+> corrected reading, and the user's donation expectation is recorded: thickness
+> bits may be donated again if a future axis needs them (u20 keeps 15x headroom;
+> u16 is the known floor violation). P-E noted: sequencing is free, no migration
+> exists. P-C executes in the same commit: the correlation design's P-3 banner.
+
 ## 0. The answer to the anchor, in one paragraph
 
 **Yes, the time was thrown away — but not where the question assumed, and the correction

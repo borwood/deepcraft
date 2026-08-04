@@ -383,9 +383,19 @@ sequence — each names its authority docs rather than restating them.
   the § 5 retirement list executes in S2. Direction rider (user, at ratification):
   "re-implement the variety in our terrain as the result of purposeful standardized
   operators… most refinement was old native code, not on the plugin shape."** All
-  picks closed or paused (P-3 ⏸ on the clock pass); next: the clock pass verdict →
-  P-3 → S0 (M0′ measurements, build slot) → S1 (kernel) → S2 (wiring + goldens,
-  retirements) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
+  picks closed or paused ~~(P-3 ⏸ on the clock pass)~~ — **and the clock pass landed
+  same day: ✅ O-2b RULED 2026-08-04 (u24 thickness + u8 raw epoch in the second
+  word, zero widening, unit count identical by structure; premise corrected at
+  ratification — 16,384 m is the per-UNIT thickness cap, not layers/cell; user's
+  bit-donation expectation recorded) → P-3 RESOLVED BY RESHAPING: correlation
+  matches true epoch intervals, unconformity flag = measurable gap semantics, R-C
+  demoted to within-interval interpolation** (`2026-08-04-deposition-clock-design.md`,
+  rulings in header). **ALL PICKS CLOSED.** Build sequence: **the CLOCK SLICE first**
+  (recorder signature + O-2b layout + `set_epoch` plumbing + the funnel widening +
+  fingerprint extension; exactly 6 GOLDEN_RECORD* families re-capture once) → S0
+  (M0′ measurements + the unit-count-hypothesis probe re-run, build slot) → S1
+  (kernel, now epoch-interval correlation) → S2 (wiring + goldens, retirements) →
+  S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
   "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically
