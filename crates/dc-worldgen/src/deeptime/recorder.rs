@@ -437,11 +437,12 @@ impl DepTag {
 }
 
 /// One recorded unit, **PACKED** (P11 slice 3, U5/P-2 ruled L-8, user
-/// 2026-08-02): a u32 bitfield of every measured axis + a u32 **fixed-point**
-/// thickness. **8 bytes per unit** against the retired 16 (record
-/// 116.31 → 58.15 MiB at the 2026-08-02 unit count), while ADDING two axes —
-/// the mover (stub #25's agent axis) and the grain reservation (U4: 5 φ
-/// classes in 3 bits, UNSET until FS-A writes real state).
+/// 2026-08-02): a u32 bitfield of every measured axis + a u32 second word
+/// holding **fixed-point thickness and the deposition epoch**. **8 bytes per
+/// unit** against the retired 16 (record 116.31 → 58.15 MiB at the 2026-08-02
+/// unit count), while ADDING two axes — the mover (stub #25's agent axis) and
+/// the grain reservation (U4: 5 φ classes in 3 bits, UNSET until FS-A writes
+/// real state).
 ///
 /// ## The bitfield (LSB up; 30 of 32 bits used, 2 spare)
 ///
@@ -458,11 +459,27 @@ impl DepTag {
 /// | 19–21 | grain       | U4's 5 φ classes + [`Self::GRAIN_UNSET`] |
 /// | 22–29 | chapter     | u8 generality kept |
 ///
-/// ## Thickness: u32 fixed point at 2⁻¹⁰ m, and the Law-3 carry
+/// ## The second word: u24 thickness quanta + u8 epoch (the DEPOSITION CLOCK,
+/// O-2b, RULED 2026-08-04 — `docs/audits/2026-08-04-deposition-clock-design.md`)
 ///
-/// [`Self::THICKNESS_QUANTUM_M`] = 2⁻¹⁰ m ≈ 0.977 mm; the u32 caps at
-/// 4.19e6 m (no geology approaches it — M0 measured the max unit on the
-/// shipped world; the histogram is in `member_diversity_probe`). The record is
+/// `packed = (epoch << 24) | quanta`. The high byte is the **raw runner tick**
+/// the unit was first deposited on (`DeepStepCtx::epoch`, 0..`iterations`) —
+/// **never a derived time** (P-D: the engine must not bake a pack's calendar
+/// into E2 storage; how long an epoch is in years is a world/pack call). It is
+/// **structurally out of the merge key** (`key_bits` masks `bits` only), so
+/// the unit count is bit-identical to the pre-clock record by construction. A
+/// merged run keeps the **bottom (first) epoch** — `add_quanta` never touches
+/// the high byte — so unit *k*'s age interval is `[epoch(k), epoch(k+1))` by
+/// stack order (F3: no writer inserts below the top, no writer reorders).
+///
+/// ## Thickness: u24 fixed point at 2⁻¹⁰ m, and the Law-3 carry
+///
+/// [`Self::THICKNESS_QUANTUM_M`] = 2⁻¹⁰ m ≈ 0.977 mm; the u24 caps at
+/// 2²⁴−1 quanta = **16,384 m per unit**, against a measured production max of
+/// 65.38 m (journal/0141) — **250× headroom**, loudly debug-asserted at
+/// construction and on every merge. (Thickness bits may be donated again if a
+/// future axis needs them — u20 keeps 15×; u16 is the known floor violation,
+/// O-7.) The record is
 /// *working state* (the outcrop window reads thickness back every epoch), so
 /// quantization enters the sim loop — every deposit/strip quantizes through a
 /// per-cell f64 remainder ([`DeepStrata`]'s `carry`), which keeps
@@ -489,7 +506,10 @@ impl DepTag {
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct DepUnit {
     bits: u32,
-    quanta: u32,
+    /// `(epoch << 24) | quanta` — see the struct docs. Access by accessor only
+    /// ([`Self::thickness_quanta`] / [`Self::epoch`] / [`Self::add_quanta`] /
+    /// [`Self::sub_quanta`]); a raw read of this field conflates two axes.
+    packed: u32,
 }
 
 const ENV_SHIFT: u32 = 0;
@@ -524,6 +544,11 @@ const MERGE_KEY_MASK: u32 = (1 << ENV_SHIFT)
     | (0b111 << GRAIN_SHIFT)
     | (0xFF << CHAPTER_SHIFT);
 
+/// The low 24 bits of [`DepUnit`]'s second word: thickness quanta. The high
+/// byte above it is the deposition epoch.
+const THICKNESS_MASK: u32 = 0x00FF_FFFF;
+const EPOCH_SHIFT: u32 = 24;
+
 impl DepUnit {
     /// The thickness quantum: 2⁻¹⁰ m. Power of two, so f64 ↔ fixed conversion
     /// is exact on dyadics and quantum sums are exact in f64 far past any
@@ -535,12 +560,14 @@ impl DepUnit {
     /// through [`Self::set_grain`].
     pub const GRAIN_UNSET: u8 = 7;
 
-    /// A unit from parts (the recorder's constructor).
+    /// A unit from parts (the recorder's constructor). `epoch` is the raw
+    /// runner tick of this deposit (the deposition clock's stamp).
     fn from_parts(
         tag: DepTag,
         quanta: u32,
         unconformity: bool,
         chapter: u8,
+        epoch: u8,
         species: MaterialId,
         mover: u8,
     ) -> DepUnit {
@@ -571,6 +598,15 @@ impl DepUnit {
             Eolian::Dune => 2,
         };
         debug_assert!(mover <= MOVER_NONE, "mover is 3 bits");
+        debug_assert!(
+            quanta <= THICKNESS_MASK,
+            "DEPOSITION-CLOCK OVERFLOW: a single unit of {quanta} quanta \
+             ({:.1} m) exceeds the u24 thickness cap of 16,384 m — the measured \
+             production max is 65.38 m (250x headroom); this is a defect, not a \
+             capacity call. Escalation is O-1's 12 bytes or a declared epoch \
+             coarsening, never another thickness byte (O-7).",
+            f64::from(quanta) * Self::THICKNESS_QUANTUM_M
+        );
         let bits = (env << ENV_SHIFT)
             | (aridity << ARIDITY_SHIFT)
             | (energy << ENERGY_SHIFT)
@@ -581,7 +617,10 @@ impl DepUnit {
             | (u32::from(mover) << MOVER_SHIFT)
             | (u32::from(Self::GRAIN_UNSET) << GRAIN_SHIFT)
             | (u32::from(chapter) << CHAPTER_SHIFT);
-        DepUnit { bits, quanta }
+        DepUnit {
+            bits,
+            packed: (u32::from(epoch) << EPOCH_SHIFT) | (quanta & THICKNESS_MASK),
+        }
     }
 
     /// A unit stated in metres — the constructor tests and probes use.
@@ -592,10 +631,11 @@ impl DepUnit {
         thickness_m: f64,
         unconformity: bool,
         chapter: u8,
+        epoch: u8,
         species: MaterialId,
     ) -> DepUnit {
         let q = (thickness_m / Self::THICKNESS_QUANTUM_M).round().max(0.0) as u32;
-        Self::from_parts(tag, q, unconformity, chapter, species, MOVER_NONE)
+        Self::from_parts(tag, q, unconformity, chapter, epoch, species, MOVER_NONE)
     }
 
     /// The measured depositional tag, reassembled from the bitfield.
@@ -638,13 +678,59 @@ impl DepUnit {
     /// Thickness in metres: quanta × [`Self::THICKNESS_QUANTUM_M`], exact.
     #[inline]
     pub fn thickness_m(&self) -> f64 {
-        f64::from(self.quanta) * Self::THICKNESS_QUANTUM_M
+        f64::from(self.thickness_quanta()) * Self::THICKNESS_QUANTUM_M
     }
 
     /// Thickness in quanta of 2⁻¹⁰ m — the exact integer the sums close in.
+    /// The low 24 bits of the second word; the epoch rides above.
     #[inline]
     pub fn thickness_quanta(&self) -> u32 {
-        self.quanta
+        self.packed & THICKNESS_MASK
+    }
+
+    /// **The deposition epoch** — the raw runner tick (`DeepStepCtx::epoch`)
+    /// this unit was **first** deposited on (the deposition clock, O-2b, ruled
+    /// 2026-08-04). A merged run keeps the epoch it *started*, so unit *k*'s
+    /// age interval is `[epoch(k), epoch(k+1))` by stack order (non-decreasing
+    /// up-stack — debug-asserted at every push).
+    ///
+    /// **A raw tick, never a derived time** (P-D): what an epoch means in
+    /// years, and whether chapters exist, are world/pack calls — the record
+    /// stores the schedule-invariant loop counter and nothing else. Structurally
+    /// out of the merge key (the key masks `bits` only), so this axis cannot
+    /// move the unit count.
+    ///
+    /// **IMMUTABLE under pedogenic overprint** (F4, integrator ruling
+    /// 2026-08-04): overprint is *alteration*, not deposition — see
+    /// [`Self::set_tag_and_chapter`].
+    #[inline]
+    pub fn epoch(&self) -> u8 {
+        (self.packed >> EPOCH_SHIFT) as u8
+    }
+
+    /// Recorder-internal: grow the thickness (the merge paths). The epoch byte
+    /// is never touched — a merged run keeps its **bottom (first) epoch**,
+    /// which is the ruled merge semantics (O-2b) and costs no code beyond this
+    /// mask discipline.
+    #[inline]
+    fn add_quanta(&mut self, q: u32) {
+        let t = self.thickness_quanta();
+        debug_assert!(
+            q <= THICKNESS_MASK - t,
+            "DEPOSITION-CLOCK OVERFLOW on merge: {t} + {q} quanta exceeds the \
+             u24 cap (16,384 m) — see DepUnit::from_parts"
+        );
+        self.packed = (self.packed & !THICKNESS_MASK) | ((t.wrapping_add(q)) & THICKNESS_MASK);
+    }
+
+    /// Recorder-internal: shrink the thickness (`erode`'s partial pop). The
+    /// epoch byte is never touched — a truncated unit keeps its deposition
+    /// tick; erosion removes rock, not history-of-when.
+    #[inline]
+    fn sub_quanta(&mut self, q: u32) {
+        let t = self.thickness_quanta();
+        debug_assert!(q <= t, "erode must never truncate below zero quanta");
+        self.packed = (self.packed & !THICKNESS_MASK) | ((t - q) & THICKNESS_MASK);
     }
 
     /// True when this unit was deposited directly onto bedrock the column had
@@ -742,8 +828,21 @@ impl DepUnit {
 
     /// Recorder-internal: the pedogenic overprint retags the whole
     /// environment axis set + chapter in place (the horizon is a new bed).
+    ///
+    /// ⚠ **STAND-IN — chapter and epoch DISAGREE after an overprint, on
+    /// purpose** (F4, deposition-clock design, integrator ruling 2026-08-04,
+    /// consistent with P-D). This rewrites the CHAPTER byte (as-built S10
+    /// behaviour: "the horizon is a new bed") but the EPOCH in the second word
+    /// is **immutable** — the unit's epoch is its DEPOSITION tick, and
+    /// overprint is *alteration*, not deposition. So an overprinted unit can
+    /// read `chapter 4` beside `epoch 37` (chapter 1): the chapter says when
+    /// the horizon was last altered, the epoch says when its substrate was
+    /// laid. **Heir: a future alteration-time axis** — a second tick recording
+    /// when pedogenesis/diagenesis reworked a bed, at which point the chapter
+    /// rewrite here retires and both questions get honest answers. Until then
+    /// this comment is the marker; the stubs entry names the blast radius.
     fn set_tag_and_chapter(&mut self, tag: DepTag, chapter: u8) {
-        let fresh = DepUnit::from_parts(tag, 0, false, chapter, self.species(), MOVER_NONE);
+        let fresh = DepUnit::from_parts(tag, 0, false, chapter, 0, self.species(), MOVER_NONE);
         const TAG_MASK: u32 = (1 << ENV_SHIFT)
             | (1 << ARIDITY_SHIFT)
             | (0b11 << ENERGY_SHIFT)
@@ -767,9 +866,12 @@ const _: () = {
         size_of::<MaterialId>() == 1,
         "the identity byte stays a byte (6 bits of it are packed)"
     );
-    // The quantum is a power of two (exact dyadic f64 conversion) and the u32
-    // range covers any geology: 2^32 quanta ≈ 4.19e6 m of one bed.
+    // The quantum is a power of two (exact dyadic f64 conversion) and the u24
+    // range covers any geology: 2^24-1 quanta = 16,384 m of one bed against a
+    // measured production max of 65.38 m (the deposition clock's O-2b split;
+    // the high byte is the epoch).
     assert!(DepUnit::THICKNESS_QUANTUM_M == 1.0 / 1024.0);
+    assert!(THICKNESS_MASK == (1 << EPOCH_SHIFT) - 1, "u24 + u8 split");
 };
 
 /// The ordered per-cell deposition log, bottom-up. `units[0]` is the deepest
@@ -845,8 +947,8 @@ impl DeepStrata {
     /// ⚠ **Heir: this goes with `Litho`** (P11 slice 4). It is the last live
     /// caller of [`Litho::reference_material`] outside the S-5 fallback in
     /// [`DepositCtx::material_in`], and both die when the class roster does.
-    pub fn deposit(&mut self, tag: DepTag, d: f64, chapter: u8) {
-        self.deposit_as(tag, d, chapter, litho_of_tag(tag).reference_material());
+    pub fn deposit(&mut self, tag: DepTag, d: f64, chapter: u8, epoch: u8) {
+        self.deposit_as(tag, d, chapter, epoch, litho_of_tag(tag).reference_material());
     }
 
     /// [`Self::deposit`], but stating **which material arrived** rather than
@@ -878,8 +980,8 @@ impl DeepStrata {
     /// siltstone, so the unit count rises with the diversity. That is the record
     /// getting more honest, and it is the second-order residency cost the design
     /// audit left unpriced (§ 6a, I4).
-    pub fn deposit_as(&mut self, tag: DepTag, d: f64, chapter: u8, species: MaterialId) {
-        self.deposit_moved(tag, d, chapter, species, MOVER_NONE);
+    pub fn deposit_as(&mut self, tag: DepTag, d: f64, chapter: u8, epoch: u8, species: MaterialId) {
+        self.deposit_moved(tag, d, chapter, epoch, species, MOVER_NONE);
     }
 
     /// [`Self::deposit_as`], but stating **which mover delivered it** — the agent
@@ -903,6 +1005,7 @@ impl DeepStrata {
         tag: DepTag,
         d: f64,
         chapter: u8,
+        epoch: u8,
         species: MaterialId,
         mover: u8,
     ) {
@@ -916,14 +1019,30 @@ impl DeepStrata {
         }
         let q = qf as u32;
         self.carry -= f64::from(q) * DepUnit::THICKNESS_QUANTUM_M;
-        let unit = DepUnit::from_parts(tag, q, self.stripped, chapter, species, mover);
+        let unit = DepUnit::from_parts(tag, q, self.stripped, chapter, epoch, species, mover);
         if !self.stripped
             && let Some(top) = self.units.last_mut()
             && top.key_bits() == unit.key_bits()
         {
-            top.quanta += q;
+            // The merge keeps the BOTTOM (first) epoch: `add_quanta` never
+            // touches the high byte, so the run records the tick it started.
+            top.add_quanta(q);
             return;
         }
+        // The clock's monotonicity, converted from an argument into a fact
+        // (deposition-clock I-4, discharging the correlation design's § 10.4
+        // owed chapter assert in the same line): no writer inserts below the
+        // top and no writer reorders, so both stamps are non-decreasing
+        // up-stack in every cell at all times.
+        debug_assert!(
+            self.units
+                .last()
+                .is_none_or(|t| t.epoch() <= epoch && t.chapter() <= chapter),
+            "the deposition clock ran backwards: pushing epoch {epoch} \
+             chapter {chapter} over epoch {} chapter {}",
+            self.units.last().map_or(0, |t| t.epoch()),
+            self.units.last().map_or(0, |t| t.chapter()),
+        );
         self.units.push(unit);
         self.stripped = false;
     }
@@ -946,7 +1065,14 @@ impl DeepStrata {
     /// `species` is the material the overprint *makes*: pedogenesis is a genuine
     /// identity event (the horizon is a new rock), so its member is picked by
     /// fitness at the epoch that built it, under [`dep_tags::PEDOGENIC`].
-    pub fn overprint_top(&mut self, tag: DepTag, extra: f64, chapter: u8, species: MaterialId) {
+    pub fn overprint_top(
+        &mut self,
+        tag: DepTag,
+        extra: f64,
+        chapter: u8,
+        epoch: u8,
+        species: MaterialId,
+    ) {
         // The organic gain quantizes through the same per-cell carry every
         // deposit does; the RETAG below happens regardless (a sub-quantum
         // horizon still alters the surface bed's identity).
@@ -967,11 +1093,20 @@ impl DeepStrata {
                 return; // nothing expressible yet: the gain rides in the carry
             }
             // Bare bedrock, or a fire bed we must not overwrite: start a unit.
+            // This branch IS a deposition, so the new unit takes the current
+            // epoch (the same monotonicity fact as deposit_moved's push).
+            debug_assert!(
+                self.units
+                    .last()
+                    .is_none_or(|t| t.epoch() <= epoch && t.chapter() <= chapter),
+                "the deposition clock ran backwards under an overprint push"
+            );
             self.units.push(DepUnit::from_parts(
                 tag,
                 q,
                 self.stripped,
                 chapter,
+                epoch,
                 species,
                 MOVER_NONE,
             ));
@@ -979,7 +1114,11 @@ impl DeepStrata {
             return;
         }
         let top = self.units.last_mut().expect("non-empty");
-        top.quanta += q;
+        // The altered bed's EPOCH is untouched (F4 ruling: the epoch is the
+        // deposition tick, immutable under overprint — alteration is not
+        // deposition; the chapter rewrite below is the as-built stand-in, see
+        // `set_tag_and_chapter`).
+        top.add_quanta(q);
         top.set_tag_and_chapter(tag, chapter);
         // Pedogenesis is an in-place alteration: nothing rode a mover, so the
         // horizon's mover is NONE whatever delivered the material it reworked.
@@ -990,13 +1129,16 @@ impl DeepStrata {
         // transported one is genuinely overwritten rather than lost.
         top.set_species(species);
         // Merge down into an identically-keyed predecessor of the same chapter.
+        // The SURVIVOR is units[n-2], so the merged horizon keeps the OLDER
+        // (bottom) epoch — the same first-epoch semantics as deposit_moved's
+        // merge, with no code beyond add_quanta's mask discipline.
         let n = self.units.len();
         if n >= 2
             && self.units[n - 2].key_bits() == self.units[n - 1].key_bits()
             && !self.units[n - 1].unconformity()
         {
-            let t = self.units.pop().expect("non-empty").quanta;
-            self.units.last_mut().expect("non-empty").quanta += t;
+            let t = self.units.pop().expect("non-empty").thickness_quanta();
+            self.units.last_mut().expect("non-empty").add_quanta(t);
         }
     }
 
@@ -1020,7 +1162,9 @@ impl DeepStrata {
                     q -= tq;
                     self.units.pop();
                 } else {
-                    top.quanta -= q as u32;
+                    // A truncated unit keeps its epoch: erosion removes rock,
+                    // never the surviving bed's deposition tick.
+                    top.sub_quanta(q as u32);
                     q = 0;
                 }
             }
@@ -1211,16 +1355,21 @@ mod tests {
                             };
                             for unconf in [false, true] {
                                 for chapter in [0u8, 7, 255] {
-                                    let sp = MaterialId::SILTSTONE;
-                                    let u = DepUnit::from_parts(t, 3, unconf, chapter, sp, 2);
-                                    assert_eq!(u.tag(), t);
-                                    assert_eq!(u.unconformity(), unconf);
-                                    assert_eq!(u.chapter(), chapter);
-                                    assert_eq!(u.species(), sp);
-                                    assert_eq!(u.mover(), 2);
-                                    assert_eq!(u.grain(), DepUnit::GRAIN_UNSET);
-                                    assert_eq!(u.thickness_quanta(), 3);
-                                    checked += 1;
+                                    for epoch in [0u8, 137, 255] {
+                                        let sp = MaterialId::SILTSTONE;
+                                        let u = DepUnit::from_parts(
+                                            t, 3, unconf, chapter, epoch, sp, 2,
+                                        );
+                                        assert_eq!(u.tag(), t);
+                                        assert_eq!(u.unconformity(), unconf);
+                                        assert_eq!(u.chapter(), chapter);
+                                        assert_eq!(u.epoch(), epoch);
+                                        assert_eq!(u.species(), sp);
+                                        assert_eq!(u.mover(), 2);
+                                        assert_eq!(u.grain(), DepUnit::GRAIN_UNSET);
+                                        assert_eq!(u.thickness_quanta(), 3);
+                                        checked += 1;
+                                    }
                                 }
                             }
                         }
@@ -1228,11 +1377,11 @@ mod tests {
                 }
             }
         }
-        assert_eq!(checked, 2 * 2 * 3 * 6 * 3 * 2 * 3);
+        assert_eq!(checked, 2 * 2 * 3 * 6 * 3 * 2 * 3 * 3);
         // Every registry species survives the 6-bit field.
         for raw in 0..dc_core::materials::MATERIAL_COUNT as u8 {
             let sp = MaterialId::from_raw(raw).unwrap();
-            let u = DepUnit::new(tag(DepEnv::Subaerial, EnergyBand::Low), 1.0, false, 0, sp);
+            let u = DepUnit::new(tag(DepEnv::Subaerial, EnergyBand::Low), 1.0, false, 0, 0, sp);
             assert_eq!(u.species(), sp);
         }
         // Grain writes round-trip without disturbing any sibling axis
@@ -1242,12 +1391,14 @@ mod tests {
             2.5,
             true,
             9,
+            42,
             MaterialId::CONGLOMERATE,
         );
         let before = (
             u.tag(),
             u.unconformity(),
             u.chapter(),
+            u.epoch(),
             u.species(),
             u.mover(),
         );
@@ -1258,6 +1409,7 @@ mod tests {
                 u.tag(),
                 u.unconformity(),
                 u.chapter(),
+                u.epoch(),
                 u.species(),
                 u.mover()
             ),
@@ -1285,7 +1437,10 @@ mod tests {
         let mut n_ops = 0u32;
         for (i, &d) in ops.iter().enumerate() {
             if d >= 0.0 {
-                s.deposit_as(t, d, (i % 3) as u8, MaterialId::MUDSTONE);
+                // Chapter and epoch advance with i (the clock's monotonicity
+                // debug-assert holds in every cell, this one included); the
+                // chapter split still varies the merge key across the series.
+                s.deposit_as(t, d, (i / 4) as u8, i as u8, MaterialId::MUDSTONE);
             } else {
                 s.erode(-d);
             }
@@ -1327,7 +1482,7 @@ mod tests {
         let mut model = 0usize;
         let mut prev: Option<(DepTag, MaterialId, u8)> = None;
         for &(t, sp, ch) in &seq {
-            s.deposit_as(t, 1.0, ch, sp);
+            s.deposit_as(t, 1.0, ch, 0, sp);
             if prev != Some((t, sp, ch)) {
                 model += 1;
             }
@@ -1355,15 +1510,15 @@ mod tests {
         let mut s = DeepStrata::default();
         let t = tag(DepEnv::Subaerial, EnergyBand::Medium);
         let sp = MaterialId::SANDSTONE;
-        s.deposit_moved(t, 1.0, 0, sp, 0); // fluvial
-        s.deposit_moved(t, 0.5, 0, sp, 0); // fluvial: merges
+        s.deposit_moved(t, 1.0, 0, 0, sp, 0); // fluvial
+        s.deposit_moved(t, 0.5, 0, 0, sp, 0); // fluvial: merges
         assert_eq!(s.units.len(), 1, "same key + same mover must merge");
-        s.deposit_moved(t, 0.25, 0, sp, 3); // gravity: a colluvial contact
+        s.deposit_moved(t, 0.25, 0, 0, sp, 3); // gravity: a colluvial contact
         assert_eq!(s.units.len(), 2, "a differing mover is a new unit (M-1)");
         assert_eq!(s.units[0].mover(), 0);
         assert_eq!(s.units[1].mover(), 3);
         assert!((s.units[0].thickness_m() - 1.5).abs() <= Q / 2.0 + f64::EPSILON);
-        s.deposit_moved(t, 0.25, 0, sp, 3); // gravity again: merges into the top
+        s.deposit_moved(t, 0.25, 0, 0, sp, 3); // gravity again: merges into the top
         assert_eq!(s.units.len(), 2);
         assert!((s.units[1].thickness_m() - 0.5).abs() <= Q / 2.0 + f64::EPSILON);
     }
@@ -1375,10 +1530,11 @@ mod tests {
     fn erosion_pops_quanta_and_strips_flag_unconformity() {
         let mut s = DeepStrata::default();
         let t = tag(DepEnv::Subaerial, EnergyBand::Low);
-        s.deposit_as(t, 2.0, 0, MaterialId::MUDSTONE);
+        s.deposit_as(t, 2.0, 0, 0, MaterialId::MUDSTONE);
         s.deposit_as(
             tag(DepEnv::Subsea, EnergyBand::Low),
             1.0,
+            0,
             0,
             MaterialId::MUDSTONE,
         );
@@ -1389,10 +1545,89 @@ mod tests {
         s.erode(10.0); // strips to bedrock; excess demand is dropped
         assert!(s.units.is_empty());
         assert_eq!(s.strips, 1);
-        s.deposit_as(t, 0.5, 0, MaterialId::MUDSTONE);
+        s.deposit_as(t, 0.5, 0, 0, MaterialId::MUDSTONE);
         assert!(
             s.units[0].unconformity(),
             "the first bed after a strip sits on an erosional surface"
         );
+    }
+
+    /// **THE DEPOSITION CLOCK'S #88 TRIPWIRE (O-2b, ruled 2026-08-04): the
+    /// epoch axis is structurally OUT of the merge key, so it splits NOTHING.**
+    /// A same-key run deposited across several epochs is ONE unit — the count
+    /// equals an epoch-blind model — and the merged unit keeps its **bottom
+    /// (first) epoch**, which is the ruled merge semantics. Scale-free: a
+    /// per-merge predicate over a sequence.
+    #[test]
+    fn the_epoch_axis_splits_nothing_and_a_merged_run_keeps_its_first_epoch() {
+        let mut s = DeepStrata::default();
+        let a = tag(DepEnv::Subaerial, EnergyBand::Low);
+        let b = tag(DepEnv::Subsea, EnergyBand::Low);
+        // (tag, species, chapter, epoch) — epochs advance every op; the
+        // first-word key changes only twice.
+        let seq = [
+            (a, MaterialId::MUDSTONE, 0u8, 0u8),
+            (a, MaterialId::MUDSTONE, 0, 1),
+            (a, MaterialId::MUDSTONE, 0, 2),
+            (b, MaterialId::MUDSTONE, 0, 3),
+            (b, MaterialId::MUDSTONE, 0, 7),
+            (a, MaterialId::SILTSTONE, 1, 9),
+        ];
+        // The epoch-blind count model: a new unit exactly when the first-word
+        // key (tag, species, chapter) changes.
+        let mut model = 0usize;
+        let mut prev: Option<(DepTag, MaterialId, u8)> = None;
+        for &(t, sp, ch, ep) in &seq {
+            s.deposit_as(t, 1.0, ch, ep, sp);
+            if prev != Some((t, sp, ch)) {
+                model += 1;
+            }
+            prev = Some((t, sp, ch));
+        }
+        assert_eq!(
+            s.units.len(),
+            model,
+            "the epoch axis moved the unit count — it must be structurally \
+             out of the merge key (corrections #88's silent multiplication)"
+        );
+        // Bottom epochs: the first run started at epoch 0, the marine run at
+        // 3 (not 7 — the merge keeps the FIRST epoch), the siltstone at 9.
+        let epochs: Vec<u8> = s.units.iter().map(|u| u.epoch()).collect();
+        assert_eq!(epochs, vec![0, 3, 9], "a merged run records its start");
+        // And the stamps are non-decreasing up-stack (I-4's fact, read back).
+        assert!(epochs.windows(2).all(|w| w[0] <= w[1]));
+    }
+
+    /// **F4's ruled seam: the epoch is IMMUTABLE under a pedogenic overprint.**
+    /// The overprint rewrites tag + chapter in place (as-built S10 behaviour)
+    /// and grows the bed, but the unit's epoch stays the tick its substrate
+    /// was deposited on — overprint is alteration, not deposition. The
+    /// chapter/epoch disagreement this creates is the recorded stand-in whose
+    /// heir is an alteration-time axis (see `set_tag_and_chapter`).
+    #[test]
+    fn overprint_alters_chapter_but_never_the_deposition_epoch() {
+        let mut s = DeepStrata::default();
+        let t = tag(DepEnv::Subaerial, EnergyBand::Low);
+        s.deposit_as(t, 2.0, 1, 37, MaterialId::SANDSTONE);
+        assert_eq!(s.units[0].epoch(), 37);
+        let soil = DepTag {
+            biota: Biofacies::Soil,
+            ..t
+        };
+        s.overprint_top(soil, 0.5, 4, 101, MaterialId::MUDSTONE);
+        assert_eq!(s.units.len(), 1, "overprint alters, it does not stack");
+        assert_eq!(s.units[0].chapter(), 4, "the chapter rewrite is as-built");
+        assert_eq!(
+            s.units[0].epoch(),
+            37,
+            "the deposition epoch must survive the overprint (F4 ruling)"
+        );
+        assert_eq!(s.units[0].tag().biota, Biofacies::Soil);
+        // A bare-bedrock overprint IS a deposition: the new unit takes the
+        // current epoch.
+        let mut bare = DeepStrata::default();
+        bare.overprint_top(soil, 0.5, 4, 101, MaterialId::MUDSTONE);
+        assert_eq!(bare.units.len(), 1);
+        assert_eq!(bare.units[0].epoch(), 101);
     }
 }

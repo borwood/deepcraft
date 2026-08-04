@@ -292,10 +292,10 @@ fn coal_promotion_reads_burial_depth_not_seam_thickness() {
     let mut s = DeepStrata::default();
     // Bottom-up: a THIN peat, buried under 21 m of section, then a THICK peat
     // under only 1 m, then nothing — the second peat is near the living surface.
-    s.deposit(organic_tag(Biofacies::Peat), 0.05, 0);
-    s.deposit(organic_tag(Biofacies::Mineral), 20.0, 0);
-    s.deposit(organic_tag(Biofacies::Peat), 9.0, 0);
-    s.deposit(organic_tag(Biofacies::Mineral), 1.0, 0);
+    s.deposit(organic_tag(Biofacies::Peat), 0.05, 0, 0);
+    s.deposit(organic_tag(Biofacies::Mineral), 20.0, 0, 0);
+    s.deposit(organic_tag(Biofacies::Peat), 9.0, 0, 0);
+    s.deposit(organic_tag(Biofacies::Mineral), 1.0, 0, 0);
     let before = s.total_m();
 
     let col = degenerate_column();
@@ -330,13 +330,13 @@ fn coal_promotion_reads_burial_depth_not_seam_thickness() {
 #[test]
 fn the_living_surface_is_never_coal_whatever_the_threshold() {
     let mut s = DeepStrata::default();
-    s.deposit(organic_tag(Biofacies::Peat), 40.0, 0);
+    s.deposit(organic_tag(Biofacies::Peat), 40.0, 0, 0);
     let col = degenerate_column();
     s.promote_coal(col, 0.0, &member_ctx(&vanilla()));
     assert_eq!(s.units[0].tag().biota, Biofacies::Peat);
 
     // And with something above it, the same peat IS coal at zero threshold.
-    s.deposit(organic_tag(Biofacies::Mineral), 0.1, 0);
+    s.deposit(organic_tag(Biofacies::Mineral), 0.1, 0, 0);
     s.promote_coal(col, 0.0, &member_ctx(&vanilla()));
     assert_eq!(s.units[0].tag().biota, Biofacies::Coal);
 }

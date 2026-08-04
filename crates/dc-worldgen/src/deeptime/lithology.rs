@@ -1226,7 +1226,7 @@ mod tests {
             crate::deeptime::Aridity::Humid,
             EnergyBand::Low,
         );
-        let unit = |m, t| DepUnit::new(tag, t, false, 0, m);
+        let unit = |m, t| DepUnit::new(tag, t, false, 0, 0, m);
         // One thick fine-clastic bed, against the same metres split between two
         // members of that same class — exactly what the new merge key produces.
         let whole = [unit(MaterialId::MUDSTONE, 7.3)];

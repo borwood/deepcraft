@@ -28,6 +28,7 @@ fn unit(tag: DepTag, thickness_m: f64) -> DepUnit {
         thickness_m,
         false,
         0,
+        0,
         litho_of_tag(tag).reference_material(),
     )
 }

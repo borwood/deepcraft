@@ -621,7 +621,17 @@ pub fn surface_fingerprint(f: &DeepField) -> u64 {
 }
 
 /// The tagged deposition log, unit by unit: every tag axis, thickness bits,
-/// unconformity flag, chapter, and the per-cell strip count.
+/// unconformity flag, chapter, **epoch**, and the per-cell strip count.
+///
+/// **The epoch byte joined 2026-08-04 (the deposition clock, O-2b ruled —
+/// § 3 branch B of `docs/audits/2026-08-04-deposition-clock-design.md`).** The
+/// fingerprint hashes by accessor, so a new axis is invisible until a line is
+/// added — and an axis without a tripwire is the `flow_cost_probe` shape (an
+/// axis the gate structurally cannot see), which this repo has been bitten by
+/// twice (CLAUDE.md § Gates). Adding it re-captured exactly the six
+/// `GOLDEN_RECORD*` families once; every SURFACE/GEOTHERM/FLUX/HEAD/CONTENTS/
+/// far golden is byte-still because the epoch is write-only to the sim —
+/// nothing in the erosion pipeline reads it back.
 pub fn record_fingerprint(f: &DeepField) -> u64 {
     let mut h = Fnv::new();
     h.usize(f.strata.len());
@@ -637,6 +647,7 @@ pub fn record_fingerprint(f: &DeepField) -> u64 {
             h.f64(u.thickness_m());
             h.byte(u8::from(u.unconformity()));
             h.byte(u.chapter());
+            h.byte(u.epoch());
             h.byte(species_code(u.species()));
         }
     }

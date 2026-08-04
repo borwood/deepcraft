@@ -2031,6 +2031,8 @@ mod tests {
             ore: None,
             accessory: None,
             dither: true,
+            epoch_bottom: 0,
+            epoch_top: 0,
         }
     }
 

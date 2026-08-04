@@ -1556,6 +1556,7 @@ mod gate {
             t,
             false,
             0,
+            0,
             mat,
         )
     }
@@ -1656,6 +1657,8 @@ mod gate {
             ore: None,
             accessory: None,
             dither,
+            epoch_bottom: 0,
+            epoch_top: 0,
         };
 
         let with_events = |events: Vec<StrataEvent>| dc_worldgen::StrataRec { events };

@@ -1907,9 +1907,9 @@ mod tests {
 
     fn sample_record() -> DeepStrata {
         let mut s = DeepStrata::default();
-        s.deposit(tag(DepEnv::Subsea, EnergyBand::Low), 4.3, 0);
-        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.7, 0);
-        s.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 1.1, 0);
+        s.deposit(tag(DepEnv::Subsea, EnergyBand::Low), 4.3, 0, 0);
+        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.7, 0, 0);
+        s.deposit(tag(DepEnv::Subaerial, EnergyBand::Low), 1.1, 0, 0);
         s
     }
 
@@ -1950,7 +1950,7 @@ mod tests {
         // the changed composition, and the provenance read returns the fact.
         let strata = {
             let mut s = DeepStrata::default();
-            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3); // -> SANDSTONE (coarse)
+            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3, 0); // -> SANDSTONE (coarse)
             s
         };
         let mut ledger = FactLedger::empty_with_bedrock(&strata);
@@ -2016,7 +2016,7 @@ mod tests {
         // loose→pore_fill reaches the default arm.
         let strata = {
             let mut s = DeepStrata::default();
-            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3); // SANDSTONE
+            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 3, 0); // SANDSTONE
             s
         };
         let ledger = FactLedger::empty_with_bedrock(&strata);
@@ -2158,7 +2158,7 @@ mod tests {
         // destination form is Void, and re-derivation shrinks the column.
         let strata = {
             let mut s = DeepStrata::default();
-            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 0);
+            s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 2.0, 0, 0);
             s
         };
         let mut ledger = FactLedger::empty_with_bedrock(&strata);
@@ -2234,7 +2234,7 @@ mod tests {
     #[test]
     fn eighths_appear_only_at_the_quantize_step() {
         let mut s = DeepStrata::default();
-        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 0.37, 0);
+        s.deposit(tag(DepEnv::Subaerial, EnergyBand::High), 0.37, 0, 0);
         // P11 slice 3: the record is fixed-point at 2⁻¹⁰ m, so the stored bed
         // is 0.37 rounded to the nearest quantum — the inventory must carry
         // exactly THAT quantity in metres (no eighths yet), which is the
@@ -2363,7 +2363,7 @@ mod tests {
             } else {
                 EnergyBand::Low
             };
-            deep.deposit(tag(DepEnv::Subaerial, energy), 0.5, 0);
+            deep.deposit(tag(DepEnv::Subaerial, energy), 0.5, 0, 0);
         }
         assert_eq!(deep.units.len(), 10_000, "alternating tags never merge");
         let old_shape = (deep.units.len() + 1) * std::mem::size_of::<Vec<Fact>>();

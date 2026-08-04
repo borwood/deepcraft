@@ -594,6 +594,8 @@ fn family_contacts_wander_off_the_chunk_grid() {
         sel_tag: 3,
         ore: None,
         accessory: None,
+        epoch_bottom: 0,
+        epoch_top: 0,
         // This suite is *about* the veneer's per-voxel dither, so the event
         // declares itself ditherable (P11 slice 1; a deep-history event would
         // not, and `dithered_member` would hand back the recorded member).
