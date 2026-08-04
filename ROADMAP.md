@@ -370,9 +370,15 @@ sequence — each names its authority docs rather than restating them.
   2026-08-04 — M-C with the DERIVED predicate, via the materials-roster philosophy
   (`materials.md` § DECIDED 2026-08-04) · ✅ P-2 RULED 2026-08-04 ("yes") — the
   inverted acceptance criterion + walk plan, two-register reading, sharpness
-  guilty-until-process-claims-it (audit header banners carry both) — P-3…P-5
-  remain; then S0 (M0′ measurements) → S1 (kernel) → S2 (wiring + goldens) → S3
-  (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
+  guilty-until-process-claims-it (audit header banners carry both) — **P-3 PAUSED
+  2026-08-04 by the user's architecture question ("they were laid down on the same
+  clock. did we throw the time away?" — answer: yes, only the 8-chapter clock
+  survived packing): the DEPOSITION-CLOCK design pass is in flight
+  (`docs/audits/2026-08-04-deposition-clock-design.md` when it lands) — if a
+  per-bed epoch prices sane, correlation matches by true isochrons and P-3
+  largely dissolves; it also pays the explainability WHEN axis and knowledge.md
+  req 3** — P-4/P-5 remain; then S0 (M0′ measurements) → S1 (kernel) → S2
+  (wiring + goldens) → S3 (acceptance walk, Claude drives).** Was: a sub-bullet of the § Observed field
   report only.
 - **E4-2 + E4-3 — the implicit field kernel and its adoption (geo thread; greenlit
   "e4 yes. queue right away", 2026-08-03).** E4-1 shipped byte-identically
