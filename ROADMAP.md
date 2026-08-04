@@ -19,6 +19,19 @@ read live, never when it gets old.**
 
 ## In flight
 
+- **TWO BUILDS DISPATCHED 2026-08-04 (geo session), independent file territories,
+  sharing the build slot:**
+  - **S1 — the correlation kernel** (pure functions, consumerless; epoch-interval
+    partition + lazy per-column evaluation per S0's I-5; § 2.3 invariants as tests;
+    B-1's zero-partner feather asserted; the M-C continuum predicate built-if-it-fits,
+    else owed to S2). New module under `deeptime/`; no golden moves; cheap-evidence tier.
+  - **E4-2 — the implicit field kernel + convergence study** (K2: BE-factorized ADI +
+    fixed-k Picard + today's limiter as the final projection; non-default, nothing ships
+    through it, no golden moves). Study: world agreement at M ∈ {45, 150} on the P2
+    instruments against the **rung-noise-derived bar**, plus the two structural fixtures
+    (rotated-ridge anisotropy; the added strongly-limited cascade). `dc-core::field` +
+    `creep_operator_probe`.
+
 - **THE NORTH STAR — the engine shape everything converges to (RATIFIED
   2026-07-23; `docs/design/north-star.md`; now CLAUDE.md read-first item 0).**
   A **native** engine whose core is only cell storage + a pass-runner +
