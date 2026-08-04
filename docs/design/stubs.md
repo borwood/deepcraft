@@ -1985,3 +1985,35 @@ order only, deliberately.
 **Blast radius:** any future reader that assumes `chapter(unit)` is derivable from
 `epoch(unit)` — true for never-overprinted units, false after overprint. The
 correlation partition uses epoch, not chapter, so it is unaffected.
+
+<!-- STUBS: unnumbered — SLUG-ONLY, added by the per-cycle quantization slice
+     (2026-08-04, agent worktree). Ordinals ran to #52 when this was written and a
+     parallel session shares the checkout, so the INTEGRATOR assigns the number.
+     Nothing above this block was touched. -->
+
+### NN. the-per-body-max-target-fps — *added 2026-08-04 (the per-cycle quantization slice; `bodies.md` § Stepped animation, ruling 3)*
+
+**The stand-in:** the client's `--anim-fps` target governs **every** body in the world.
+`AnimRate` is one setting, read once per frame in `character.rs::sync_characters` and applied
+to whatever plan each body wears.
+
+**Why it is a stand-in and not a defect:** the user's ruling 3 says *"the pack MAY declare a
+per-body MAX target fps"* — *"preserves toy-like or mechanical aesthetics for a robot in a
+smooth world"* — a **cap**, not a value, so the client's setting still governs downward and
+the two compose rather than fight. It is a genuine **opinion** under `dependency-graph.md`
+§ 0b (two well-made packs would answer *"is this body mechanical"* differently), so it belongs
+to the pack. It was **ruled and deliberately not built**, which is what makes it a stub rather
+than an omission.
+
+**Heir:** a **`BodyPlan` field** — a wire change, so it rides the **B3 wire window** beside
+`stubs.md` #34's role-binding key rather than paying a migration of its own. The composition
+when it lands is `min(client target, plan cap)`, evaluated where `AnimRate` is read today;
+`AnimRate::cycle` needs no change at all, because a cap is just a different target.
+
+**Loudness:** ✅ named at the seam — `anim_rate.rs`'s module doc, § *The target is a CLIENT
+setting*, which is the file anyone touching the rate opens.
+
+**Blast radius:** every body renders at the client's target until it lands, so a pack that
+wants a mechanical body cannot ask for one · a walk verdict taken at one target says nothing
+about a body that would have capped itself · **not** the sim: a cap is still client-side
+*approach*, so it moves nothing across the firewall.

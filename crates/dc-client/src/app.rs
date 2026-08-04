@@ -179,6 +179,23 @@ pub struct Fullbright(pub bool);
 #[derive(Resource, Clone, Copy)]
 pub struct Edges(pub bool);
 
+/// `--anim-fps <n>`: **the client's stop-motion target** (DECIDED 2026-08-04,
+/// user — `bodies.md` § Stepped animation). A performance/visual setting like
+/// `--horizon`, not pack content and not sim state: it decides how many held
+/// poses a body's cycle is divided into, and nothing the sim resolves.
+///
+/// A resource rather than a const, so the rate is a launch decision; the default
+/// ([`crate::anim_rate::DEFAULT_TARGET_FPS`]) reproduces the shipped biped's
+/// look exactly as `--horizon`'s default reproduces the shipped 1.2 km rings.
+#[derive(Resource, Clone, Copy, Default)]
+pub struct AnimRateSetting(pub crate::anim_rate::AnimRate);
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the launch-flag surface: each parameter is an independent, \
+              separately-parsed CLI decision, and bundling them into a struct \
+              would only move the same list one call up"
+)]
 pub fn run(
     pack_selector: Option<String>,
     mcp_options: McpOptions,
@@ -187,6 +204,7 @@ pub fn run(
     gen_options: authority::GenOptions,
     horizon: farmesh::HorizonConfig,
     perf_drop: Option<f64>,
+    anim_rate: AnimRateSetting,
 ) -> AppExit {
     // ROADMAP 3c-1: boot at N=2 (the ratified S1 scale) over the real
     // hierarchical worldgen authority — `Authority::new` maps player=2 voxels
@@ -237,6 +255,7 @@ pub fn run(
         .insert_resource(ClearColor(Color::srgb(0.55, 0.72, 0.95)))
         .insert_resource(Fullbright(fullbright))
         .insert_resource(Edges(edges))
+        .insert_resource(anim_rate)
         // The far field's ring geometry (`--horizon`, journal/0042). A resource, not
         // a const, so the horizon is a launch decision; the default reproduces the
         // shipped 1.2 km rings exactly.

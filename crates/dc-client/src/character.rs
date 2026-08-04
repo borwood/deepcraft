@@ -36,7 +36,7 @@ use dc_api::bodies::{AnimClip, BodyPlan, GaitVector};
 use dc_core::{VoxelQuery, VoxelScale};
 use glam::DVec3;
 
-use crate::app::{CurrentScale, FloatingOrigin, Fullbright, to_render};
+use crate::app::{AnimRateSetting, CurrentScale, FloatingOrigin, Fullbright, to_render};
 use crate::authority::Authority;
 use crate::body::{
     AnimState, Cervical, LegRig, Reach, derived_gait, derived_root_delta_m, fk_foot_local,
@@ -143,10 +143,16 @@ pub fn sync_characters(
     origin: Res<FloatingOrigin>,
     mut authority: ResMut<Authority>,
     scale: Res<CurrentScale>,
+    anim_rate: Res<AnimRateSetting>,
     mut visuals: ResMut<CharacterVisuals>,
     mut transforms: Query<&mut Transform, With<BodySegment>>,
 ) {
     let dt = f64::from(time.delta_secs());
+    // The client's stop-motion target (`--anim-fps`, default 12). A performance
+    // and visual setting, NOT sim state and NOT pack content: it decides how a
+    // body's motion is *approached*, never where the sim says it is going
+    // (`bodies.md` § THE SIM OWNS THE TARGET, third instance).
+    let rate = anim_rate.0;
 
     // Collect the characters first (releasing the shared authority borrow),
     // then build the foot-IK ground query over the SAME authority. Foot
@@ -241,11 +247,11 @@ pub fn sync_characters(
                 // The gait is graded CONTINUOUSLY over Froude — no threshold,
                 // no state, no crossfade (user call #1). Idle is the ladder's
                 // degenerate limit and needs no branch here or anywhere.
-                instance.anim.advance(dt, assets.gait.as_ref(), speed);
+                instance.anim.advance(dt, assets.gait.as_ref(), speed, rate);
                 // The trunk chases the SIM's target facing (user call #5): the
                 // sim owns the target, the client owns the approach.
                 instance.anim.steer(dt, f64::from(character.facing_yaw));
-                let pose = pose_for(&instance.anim, assets.gait.as_ref(), &[&assets.idle]);
+                let pose = pose_for(&instance.anim, assets.gait.as_ref(), &[&assets.idle], rate);
                 // Trunk faces travel; head/neck follow the look (the walk-8 gap).
                 let orient = resolve_orientation(
                     instance.anim.trunk_yaw,
@@ -265,7 +271,10 @@ pub fn sync_characters(
                     assets.gait.as_ref(),
                     assets.root_delta_m,
                     instance.anim.stepped_froude,
-                    instance.anim.stepped_phase,
+                    // The root's vertical is the BEARING chains' story, and the
+                    // gait owns those outright — so it reads the body's own
+                    // stride grid (a whole `N`), never a blended one.
+                    instance.anim.stepped_phase(assets.gait.as_ref(), rate),
                     character.posture,
                 );
 

@@ -43,10 +43,23 @@
 //!
 //! # The one stepping device left
 //!
-//! **Stepped ~12 fps.** The sampled `(phase, Fr)` pair is latched on the
-//! [`ANIM_FPS`] grid, so a pose only changes twelve times a second — the
-//! stop-motion look (bodies.md § stepped animation), and cheap. It rides
-//! pending the user's taste call.
+//! **Stepped, per CYCLE.** A cycle gets `N = round(duration × target_fps)` held
+//! poses, `N ≥ 2`, and the target is a **client setting** — see
+//! [`crate::anim_rate`], which carries the ruling. `ANIM_FPS = 12.0` was retired
+//! 2026-08-04 (user): it was a world-global absolute constant aliasing a cadence
+//! that is now derived per body, and the stout — shortest legs, fastest cadence,
+//! 4.29 samples per cycle — hitched visibly for it.
+//!
+//! Three consequences live in this file:
+//!
+//! - the **gait** is sampled at a phase held on its own cycle's grid, so the
+//!   same `N` phases come round every stride whatever the body's leg turnover;
+//! - a **clip** is sampled at a phase held on its own duration's grid — wrapped
+//!   first, then quantized, which is what makes cycle *k* sample cycle 0's
+//!   phases bit for bit;
+//! - a **bone owned by several anims** is sampled at the blended time step
+//!   ([`crate::anim_rate::blended_step_s`]), weighted by ownership. A bone with
+//!   one owner keeps that owner's whole `N`.
 //!
 //! **There used to be two more.** Sampled Euler angles snapped to a `TAU/32`
 //! (11.25°) rotation grid — REMOVED 2026-08-01 by user ruling (bodies.md
@@ -66,8 +79,15 @@ use std::collections::HashMap;
 use dc_api::Posture;
 use dc_api::bodies::{AnimClip, Axis, BodyPlan, GaitVector};
 
-/// Stepped-animation frame rate: the pose updates this many times per second.
-pub const ANIM_FPS: f64 = 12.0;
+use crate::anim_rate::{AnimRate, CycleGrid, PhaseGrid, StepBlend};
+
+// `ANIM_FPS = 12.0` LEFT THIS FILE 2026-08-04 (user ruling; `bodies.md`
+// § Stepped animation, the `▶▶ DECIDED 2026-08-04` banner). It was a
+// world-global absolute constant quantizing per SECOND against a cadence that
+// is now derived per BODY — A-1's fourth retirement in this arc, and the one
+// the stout's hitch made visible. Its heir is [`crate::anim_rate::AnimRate`], a
+// **client setting** whose default (12.0) reproduces the biped's look; the rate
+// a given cycle actually renders at is derived per cycle, not declared.
 // `NECK_YAW_CLAMP_RAD` (75°) and `NECK_PITCH_CLAMP_RAD` (45°) LEFT THIS FILE
 // 2026-08-03 (B7 § 5.4). They were **anatomical joint limits, hard-coded,
 // world-global, and blind to the plan** — the stout's 0.08 m neck got the
@@ -77,8 +97,8 @@ pub const ANIM_FPS: f64 = 12.0;
 // [`Cervical::of`]. The migration is byte-identical: the same two numbers,
 // a different home, and now a body *can* say its own.
 /// Trunk turn window (seconds): how quickly the trunk yaw chases the travel
-/// direction. Short, and the pose is sampled on the 12 fps grid, so turns still
-/// read stepped in time even though the yaw itself is now exact.
+/// direction. Short, and the pose is sampled on the client's stop-motion grid,
+/// so turns still read stepped in time even though the yaw itself is now exact.
 pub const TRUNK_TURN_WINDOW_S: f64 = 0.22;
 /// How far the root sinks (meters) when the body is crouching — the cosmetic
 /// half of the parametric-crouch firewall split (the sim shrinks the collider;
@@ -116,15 +136,36 @@ pub struct Pose {
     pub joints: HashMap<String, [f64; 3]>,
 }
 
-/// Quantize an animation time to the [`ANIM_FPS`] grid, then wrap (looping
-/// clips) or clamp (one-shots) into `[0, duration]`.
-fn quantize_time(t: f64, duration_s: f64, loops: bool) -> f64 {
-    let stepped = (t * ANIM_FPS).floor() / ANIM_FPS;
-    if loops {
+/// Where in its own cycle a clip is at animation time `t`: a fraction in
+/// `[0, 1]`, **wrapped** for a looping clip and **clamped** for a one-shot.
+///
+/// **A one-off is just a cycle that does not repeat** (user, 2026-08-04): the
+/// only difference between the two is what happens past the end, and there is no
+/// cycle-vs-one-off branch anywhere else in this file.
+///
+/// **The wrap happens HERE, before any quantization** — the retired
+/// `quantize_time` did it the other way round, flooring onto a grid anchored at
+/// absolute `t = 0` and wrapping afterwards, so a looping clip whose duration was
+/// not a whole number of frames sampled a different set of sub-frame phases every
+/// cycle (ROADMAP § Observed; latent because every shipped looping clip happened
+/// to be frame-aligned at 12 fps). Quantizing a **phase** cannot express that
+/// defect, so the ordering fix is not a separate change here — it is what
+/// per-cycle quantization *is*.
+///
+/// A clip with no usable duration sits at phase 0 (its first keyframe); the
+/// define door refuses such a clip (`dc_api::bodies::validate_clip`), so this is
+/// reachable only from a hand-built fixture.
+fn clip_phase(clip: &AnimClip, t: f64) -> f64 {
+    if !(clip.duration_s.is_finite() && clip.duration_s > 0.0) || !t.is_finite() {
+        return 0.0;
+    }
+    let u = t / clip.duration_s;
+    if clip.loops {
         // rem_euclid keeps a negative or huge clock in range deterministically.
-        stepped.rem_euclid(duration_s)
+        let p = u.rem_euclid(1.0);
+        if p >= 1.0 { 0.0 } else { p }
     } else {
-        stepped.clamp(0.0, duration_s)
+        u.clamp(0.0, 1.0)
     }
 }
 
@@ -136,21 +177,45 @@ fn lerp3(a: [f64; 3], b: [f64; 3], f: f64) -> [f64; 3] {
     ]
 }
 
-/// Sample a NON-LOCOMOTION clip at animation time `t`: quantize the time to the
-/// frame grid, then linearly interpolate between the bracketing keyframes at
-/// that stepped time. **The time step is the whole stop-motion look** — the
-/// angles it yields are exact (the rotation quantizer was removed 2026-08-01).
+/// Sample a NON-LOCOMOTION clip at animation time `t`, on the clip's **own**
+/// per-cycle grid: `N = round(duration × target_fps)` held poses per cycle,
+/// `N ≥ 2`. **The time step is the whole stop-motion look** — the angles it
+/// yields are exact (the rotation quantizer was removed 2026-08-01).
 ///
 /// Locomotion does not come through here any more: it is derived
 /// ([`pose_for`]). What is left is the idle breath, the jump one-shot, and
 /// whatever a pack authors that is genuinely *not* gait — transitions, emotes,
 /// upper-body action (design § 6).
-pub fn sample_clip(clip: &AnimClip, t: f64) -> Pose {
+///
+/// **`#[cfg(test)]`, and that is a fact about the composition rather than about
+/// this function.** This is the whole-clip entry point: every bone of the clip
+/// on the clip's own rate. Production has no such caller — [`pose_for`] samples
+/// **per bone group**, because a bone the gait co-owns rides a blended step —
+/// so the live consumers are `retarget_report` and the acceptance tests. Left
+/// visible (rather than deleted or inlined) because it is the honest statement
+/// of one clip's own grid, and it is what the tests assert that grid against.
+#[cfg(test)]
+pub fn sample_clip(clip: &AnimClip, t: f64, rate: AnimRate) -> Pose {
+    let phase = clip_phase(clip, t);
+    let stepped = rate
+        .cycle(clip.duration_s)
+        .map_or(phase, |c| c.phases().quantize(phase));
+    sample_clip_at_phase(clip, stepped)
+}
+
+/// Interpolate a clip at an **already-quantized** cycle fraction — the shared
+/// half of [`sample_clip`], reached directly by [`pose_for`] when a bone's grid
+/// is not the clip's own.
+fn sample_clip_at_phase(clip: &AnimClip, phase: f64) -> Pose {
     let mut pose = Pose::default();
     if clip.keyframes.is_empty() {
         return pose;
     }
-    let st = quantize_time(t, clip.duration_s, clip.loops);
+    let st = if clip.duration_s.is_finite() && clip.duration_s > 0.0 {
+        phase * clip.duration_s
+    } else {
+        0.0
+    };
     // Find the bracketing keyframes [a, b] with a.t <= st <= b.t.
     let kfs = &clip.keyframes;
     let (a, b, f) = if st <= kfs[0].t {
@@ -197,7 +262,14 @@ pub fn sample_clip(clip: &AnimClip, t: f64) -> Pose {
 /// The state a locomotion crossfade needed is gone with the crossfade: there
 /// are no discrete states to blend between, so there is no `blend_w`, no
 /// `blend_from`, and no `Loco`. What survives is a clock (for non-locomotion
-/// clips and the 12 fps latch), a phase, and a facing.
+/// clips and the speed latch), a phase, and a facing.
+///
+/// **The stepped PHASE is no longer state** (2026-08-04). It used to be latched
+/// here beside the Froude number, because both were held on one world-global
+/// time grid. Under per-cycle quantization the phase's grid is the *cycle's* and
+/// the bone's, so `stepped_phase` is a **derived accessor**
+/// ([`AnimState::stepped_phase`]) over the live phase — one authority (S-3),
+/// and nothing to keep in sync.
 #[derive(Clone, Debug)]
 pub struct AnimState {
     /// Wall clock since spawn, seconds — drives NON-locomotion clips and the
@@ -208,14 +280,29 @@ pub struct AnimState {
     /// `phase += cadence(Fr)·dt`, and cadence is `v/λ`, so one cycle passes per
     /// stride **travelled**. A stopped body's phase does not advance at all,
     /// because its cadence is zero — which is also why idle needs no state.
+    ///
+    /// **This is the UNQUANTIZED target** and it is what a sim-visible consumer
+    /// would have to read (`bodies.md` § THE SIM OWNS THE TARGET). It is a pure
+    /// function of the `(dt, speed)` history and **does not depend on the
+    /// client's target fps at all** — pinned by
+    /// `the_target_fps_never_reaches_a_sim_visible_quantity`.
     pub phase: f64,
-    /// The dimensionless speed the gait is being evaluated at.
+    /// The dimensionless speed the gait is being evaluated at. Unquantized, and
+    /// likewise independent of the target fps.
     pub froude: f64,
-    /// The `(phase, Fr)` pair actually sampled — latched on the [`ANIM_FPS`]
-    /// grid, which is the whole stop-motion look. Reading these rather than the
-    /// live pair is what makes the pose change twelve times a second.
-    pub stepped_phase: f64,
-    /// …and the latched Froude number.
+    /// The Froude number actually sampled, held on the client's base grid
+    /// `1/target_fps`.
+    ///
+    /// **Why speed is held on a TIME grid while phase is held on a CYCLE grid,
+    /// and it is not an inconsistency.** Phase is a cycle-domain quantity — "N
+    /// poses per stride" is exactly a statement about it, and it can be
+    /// quantized as a pure function of the live value. Speed is a time-domain
+    /// signal with no cycle of its own: holding it is a sample-and-hold, which
+    /// needs memory, and the cycle grid cannot serve as its clock (a body at
+    /// rest has a frozen phase, so a phase-triggered latch would never notice it
+    /// starting to move). It is held at `1/target_fps` because every derived
+    /// `Δt` in the world is within a rounding of that — which is the same
+    /// observation that makes per-bone rates cluster.
     pub stepped_froude: f64,
     /// The frame index the latch last fired on. `NaN` until the first advance,
     /// so the first frame always latches (`NaN != x` for every `x`).
@@ -234,7 +321,6 @@ impl Default for AnimState {
             clock_s: 0.0,
             phase: 0.0,
             froude: 0.0,
-            stepped_phase: 0.0,
             stepped_froude: 0.0,
             latched_frame: f64::NAN,
             trunk_yaw: 0.0,
@@ -257,15 +343,20 @@ impl AnimState {
     }
 
     /// Advance one render frame: tick the clock, grade the gait continuously
-    /// over Froude, advance the phase by the **derived cadence**, and latch the
-    /// sampled pair onto the 12 fps grid.
+    /// over Froude, advance the phase by the **derived cadence**, and hold the
+    /// sampled speed on the client's base grid.
     ///
     /// **No branch on speed.** `Fr = v²/(gL)` and `cadence = k_f·Fr^0.2`, so a
     /// standing body advances its phase by exactly zero and samples its resting
     /// pose — idle is the ladder's degenerate limit, not a state. A plan whose
     /// gait declined (a tree, an out-of-domain geometry) passes `None` and gets
     /// the same still resting pose, which is the identity fallback.
-    pub fn advance(&mut self, dt: f64, gait: Option<&GaitVector>, speed_m_s: f64) {
+    ///
+    /// **`rate` reaches only the hold.** `clock_s`, `phase` and `froude` are
+    /// computed before it is consulted and are bit-identical at any target — the
+    /// firewall property, asserted by
+    /// `the_target_fps_never_reaches_a_sim_visible_quantity`.
+    pub fn advance(&mut self, dt: f64, gait: Option<&GaitVector>, speed_m_s: f64, rate: AnimRate) {
         let dt = dt.max(0.0);
         self.clock_s += dt;
         let froude = gait.map_or(0.0, |g| g.froude(speed_m_s.max(0.0)));
@@ -277,12 +368,41 @@ impl AnimState {
         if cadence_hz.is_finite() {
             self.phase = (self.phase + cadence_hz * dt).rem_euclid(1.0);
         }
-        let frame = (self.clock_s * ANIM_FPS).floor();
+        let frame = (self.clock_s / rate.step_s()).floor();
         if frame != self.latched_frame {
             self.latched_frame = frame;
-            self.stepped_phase = self.phase;
             self.stepped_froude = self.froude;
         }
+    }
+
+    /// This body's **gait cycle** at the speed it is being rendered at — one
+    /// stride, in seconds — and the `N` poses the client's target divides it
+    /// into.
+    ///
+    /// `None` when there is no cycle to divide: no gait, or a cadence of zero (a
+    /// standing body, whose stride takes forever). See
+    /// [`AnimRate::cycle`] for why the long-cycle limit is a dissolve rather than
+    /// a cliff.
+    #[must_use]
+    pub fn gait_cycle(&self, gait: Option<&GaitVector>, rate: AnimRate) -> Option<CycleGrid> {
+        let cadence_hz = gait?.cadence_hz(self.stepped_froude);
+        rate.cycle(1.0 / cadence_hz)
+    }
+
+    /// The gait phase actually sampled: the live phase held at the start of its
+    /// bucket on **this body's own stride grid**.
+    ///
+    /// This is the number the whole slice is about. A biped at 4.5 m/s strides
+    /// in 0.581 s and gets `N = 7` — the same seven phases every stride, instead
+    /// of 6.977 phases that drift through it.
+    ///
+    /// Bones shared with a clip do not use this — they ride a blended step
+    /// ([`pose_for`]). The bearing chains do, and so does the root's vertical,
+    /// which is why `character.rs` reads it directly.
+    #[must_use]
+    pub fn stepped_phase(&self, gait: Option<&GaitVector>, rate: AnimRate) -> f64 {
+        self.gait_cycle(gait, rate)
+            .map_or(self.phase, |c| c.phases().quantize(self.phase))
     }
 
     /// Steer the trunk toward the **sim's target facing** over
@@ -308,7 +428,7 @@ impl AnimState {
 
 /// The resolved facing of a body: how far its trunk turns and how far its
 /// head/neck turns, after splitting the look off the travel-facing trunk.
-/// All angles are exact radians; only the 12 fps time step remains.
+/// All angles are exact radians; only the per-cycle time step remains.
 #[derive(Clone, Copy, PartialEq, Debug, Default)]
 pub struct Orientation {
     /// Trunk (root) yaw about Y, radians.
@@ -809,32 +929,177 @@ pub fn solve_leg_ik(rig: &LegRig, target: [f64; 3]) -> LegIk {
 ///
 /// `gait: None` is the identity fallback — a plan the bake declined renders its
 /// clips over an unposed skeleton, exactly as a clip-only body always did.
-pub fn pose_for(state: &AnimState, gait: Option<&GaitVector>, clips: &[&AnimClip]) -> Pose {
-    let mut pose = Pose::default();
-    let mut bearing: Vec<String> = Vec::new();
+///
+/// # 4. **The rate is PER BONE** (user, 2026-08-04)
+///
+/// Each anim has its own cycle and therefore its own `N`; a bone several anims
+/// own is sampled at the **blended time step**, weighted by the proportion of
+/// them that own it. *"A weighted blend is a weighted blend, a single owner is a
+/// single owner."* There is no precedence rule because this is interpolation,
+/// not arbitration — the two-blended-cycles problem dissolves.
+///
+/// Concretely, on the shipped biped: the legs are a bearing chain the gait owns
+/// outright, so they sit on the gait's whole `N`. The arms are owned by the gait
+/// (counter-swing) **and** the idle clip, so they sit on the mean of the two
+/// time steps — a bucket count a few hundredths off an integer, because both
+/// steps derive from the same target and differ only by rounding. The body is
+/// therefore not one exact snapshot, and the user is explicitly not worried
+/// about that reading as buggy; this is why.
+pub fn pose_for(
+    state: &AnimState,
+    gait: Option<&GaitVector>,
+    clips: &[&AnimClip],
+    rate: AnimRate,
+) -> Pose {
+    // The gait's own cycle, and the fallback for an anim with no usable one:
+    // the client's base step, which is what "we do not know this cycle's
+    // duration" honestly means.
+    let gait_cycle = state.gait_cycle(gait, rate);
+    let gait_step = gait_cycle.map_or(rate.step_s(), CycleGrid::step_s);
+
+    // --- who owns what -----------------------------------------------------
+    // Ownership is a property of the ANIM, not of the current keyframe bracket:
+    // a clip that names a joint anywhere owns it for the whole cycle, or a
+    // bone's rate would flicker as keyframes came and went.
+    //
+    // **Held as short name LISTS, not as a map, and that is a perf call with a
+    // receipt.** This runs per body per frame. A `HashMap<&str, StepBlend>` over
+    // ~20 bones cost ~60 sip-hashes and measured **+1.6 µs per body per frame**
+    // against a 3.3 µs baseline; a clip names two or three segments and a limb
+    // has two or three joints, so a linear scan of a three-element slice beats
+    // hashing outright at these sizes. `Vec::contains` on `&str` is a length
+    // check and a memcmp.
+    let mut bearing: Vec<&str> = Vec::new();
+    let mut gait_names: Vec<&str> = Vec::new();
     if let Some(g) = gait {
         for limb in &g.limbs {
-            if limb.bearing {
-                bearing.extend(limb.neutral.iter().map(|j| j.segment.clone()));
-            }
-            for ja in g.limb_pose(limb, state.stepped_froude, state.stepped_phase) {
-                pose.joints.insert(ja.segment, ja.euler);
+            for ja in &limb.neutral {
+                gait_names.push(ja.segment.as_str());
+                if limb.bearing {
+                    bearing.push(ja.segment.as_str());
+                }
             }
         }
     }
-    for &clip in clips {
-        let layer = sample_clip(clip, state.clock_s);
-        for (name, euler) in layer.joints {
-            if bearing.contains(&name) {
-                continue; // rule 3: the gait owns a bearing chain outright
+    // Per clip: its grid, its time step, and the segments it owns — bearing
+    // chains excluded, because rule 3's refusal is refused ownership too: a
+    // contribution that will not be applied may not drag the bone's rate either.
+    let mut clip_rates: Vec<(Option<CycleGrid>, f64, Vec<&str>)> = Vec::with_capacity(clips.len());
+    for clip in clips {
+        let cycle = rate.cycle(clip.duration_s);
+        let step = cycle.map_or(rate.step_s(), CycleGrid::step_s);
+        let mut named: Vec<&str> = Vec::new();
+        for kf in &clip.keyframes {
+            for r in &kf.rotations {
+                let name = r.segment.as_str();
+                if !bearing.contains(&name) && !named.contains(&name) {
+                    named.push(name);
+                }
             }
-            let base = pose.joints.entry(name).or_insert([0.0, 0.0, 0.0]);
-            for i in 0..3 {
-                base[i] += euler[i];
+        }
+        clip_rates.push((cycle, step, named));
+    }
+    // One bone's blended rate. Every layer contributes with unit weight (the
+    // composition carries no blend weights anywhere), so a bone's `k` owners
+    // hold `1/k` each and the blend is a mean; the weighted form is the seam for
+    // the day layers carry real weights.
+    let blended = |name: &str| -> Option<f64> {
+        let mut blend = StepBlend::default();
+        if gait_names.contains(&name) {
+            blend.add(gait_step, 1.0);
+        }
+        for (_, step, named) in &clip_rates {
+            if named.contains(&name) {
+                blend.add(*step, 1.0);
+            }
+        }
+        blend.step_s()
+    };
+
+    // --- sample each anim, per bone-rate group -----------------------------
+    let mut pose = Pose::default();
+    // Two scratch buffers, allocated once per call and reused per anim: this
+    // bone's rate beside its name, and the distinct rates among them.
+    let mut rates: Vec<(&str, f64)> = Vec::new();
+    let mut groups: Vec<f64> = Vec::new();
+    if let Some(g) = gait {
+        for limb in &g.limbs {
+            group_rates(
+                limb.neutral.iter().map(|j| j.segment.as_str()),
+                &blended,
+                &mut rates,
+                &mut groups,
+            );
+            for &step in &groups {
+                let phase = phase_on(gait_cycle, step, state.phase);
+                for ja in g.limb_pose(limb, state.stepped_froude, phase) {
+                    if rate_of(&rates, ja.segment.as_str()) == Some(step) {
+                        pose.joints.insert(ja.segment, ja.euler);
+                    }
+                }
+            }
+        }
+    }
+    for (clip, (cycle, _, named)) in clips.iter().zip(&clip_rates) {
+        let live = clip_phase(clip, state.clock_s);
+        group_rates(named.iter().copied(), &blended, &mut rates, &mut groups);
+        for &step in &groups {
+            let layer = sample_clip_at_phase(clip, phase_on(*cycle, step, live));
+            for (name, euler) in layer.joints {
+                // Rule 3: the gait owns a bearing chain outright, so a clip's
+                // contribution to one is dropped here as it always was.
+                if rate_of(&rates, name.as_str()) != Some(step) {
+                    continue;
+                }
+                let base = pose.joints.entry(name).or_insert([0.0, 0.0, 0.0]);
+                for i in 0..3 {
+                    base[i] += euler[i];
+                }
             }
         }
     }
     pose
+}
+
+/// One bone's rate out of a small name→rate list.
+fn rate_of(rates: &[(&str, f64)], name: &str) -> Option<f64> {
+    rates.iter().find(|(n, _)| *n == name).map(|&(_, s)| s)
+}
+
+/// Blend every named bone's rate, and collect the **distinct** ones — the groups
+/// one anim has to be sampled at.
+///
+/// Usually **one group**: on the shipped bodies every bone of a limb has the
+/// same owner set, so the per-bone rate costs no extra sampling at all. Compared
+/// by bits, which is exact rather than approximate because equal owner sets
+/// accumulate in the same order and so agree to the last bit.
+fn group_rates<'a>(
+    names: impl Iterator<Item = &'a str>,
+    blended: &impl Fn(&str) -> Option<f64>,
+    rates: &mut Vec<(&'a str, f64)>,
+    groups: &mut Vec<f64>,
+) {
+    rates.clear();
+    groups.clear();
+    for name in names {
+        let Some(s) = blended(name) else { continue };
+        rates.push((name, s));
+        if !groups.iter().any(|x| x.to_bits() == s.to_bits()) {
+            groups.push(s);
+        }
+    }
+}
+
+/// One anim's phase, held on the grid a bone with time step `step_s` sees.
+///
+/// `cycle: None` — an anim whose duration is not known — returns the live phase.
+/// That is the **limit**, not a special case: as a cycle lengthens its `N` grows
+/// and its phase grid vanishes continuously, so a body slowing to a stop
+/// dissolves its quantization rather than snapping out of it.
+fn phase_on(cycle: Option<CycleGrid>, step_s: f64, phase: f64) -> f64 {
+    cycle.map_or(phase, |c| {
+        PhaseGrid::quantize(c.phases_at_step(step_s), phase)
+    })
 }
 
 /// **THE ONE VERTICAL COMPOSITION** — `root_offset(posture, mode, phase)`,
@@ -1023,8 +1288,9 @@ pub struct FrameRow {
 /// **annulus** (`clamped_beyond_reach` counts those). Nothing reconciles the two,
 /// and no plan yet passes both in every posture.
 ///
-/// Every figure is in **metres**, measured over the clip's *stepped* frames (the
-/// 12 fps grid the renderer actually samples), for every leg the plan declares.
+/// Every figure is in **metres**, measured over the clip's *stepped* frames (its
+/// own per-cycle grid at the default target, which is what the renderer samples),
+/// for every leg the plan declares.
 ///
 /// `#[cfg(test)]`: this is an instrument, not shipped renderer code, and it lives
 /// beside the production math it re-derives so the two cannot drift. It runs in
@@ -1214,10 +1480,15 @@ pub fn retarget_report(
         reachable_residual_max_m: 0.0,
         refused_by_limits: 0,
     };
-    let frames = ((clip.duration_s * ANIM_FPS).ceil() as usize).max(1);
+    // The clip's OWN grid at the default target — exactly the frames the
+    // renderer holds, rather than a second opinion about how many there are.
+    let rate = AnimRate::default();
+    let grid = rate.cycle(clip.duration_s);
+    let frames = grid.map_or(1, |g| g.poses() as usize);
+    let step_s = grid.map_or(rate.step_s(), CycleGrid::step_s);
     for i in 0..frames {
-        let t_s = i as f64 / ANIM_FPS;
-        let pose = sample_clip(clip, t_s);
+        let t_s = i as f64 * step_s;
+        let pose = sample_clip(clip, t_s, rate);
         let mut row = FrameRow {
             index: i,
             t_s,
@@ -1303,6 +1574,7 @@ pub fn retarget_report(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::anim_rate::{DEFAULT_TARGET_FPS, MIN_POSES_PER_CYCLE, blended_step_s};
     use dc_api::bodies::{
         biped_clips, biped_plan, longleg_plan, retired_biped_walk_clip, stout_plan,
     };
@@ -1324,57 +1596,111 @@ mod tests {
         derived_gait(plan, G).expect("every shipped plan bakes a gait")
     }
 
+    /// A clip is held on ITS OWN cycle's grid, and the hold is real: two times
+    /// inside one held pose sample identically, the next one moves.
+    ///
+    /// The step is `duration / N`, not `1/fps` — the same number here only
+    /// because the shipped idle happens to be frame-aligned (2.0 s, N = 24).
+    /// Written against the grid rather than against the target so it stays a
+    /// statement about *this clip's* cycle.
     #[test]
-    fn time_is_stepped_to_twelve_fps() {
-        // Two times inside the same 1/12 s frame sample identically; the next
-        // frame differs.
+    fn a_clip_is_held_on_its_own_cycle_grid() {
+        let rate = AnimRate::default();
         let idle = idle_clip();
-        let a = sample_clip(&idle, 0.30);
-        let b = sample_clip(&idle, 0.30 + 1.0 / (ANIM_FPS * 4.0)); // same frame
-        assert_eq!(a, b, "within one frame the pose is held");
-        let c = sample_clip(&idle, 0.30 + 1.0 / ANIM_FPS); // next frame
-        assert_ne!(a.joints, c.joints, "the next frame moves");
+        let step = rate
+            .cycle(idle.duration_s)
+            .expect("a shipped clip")
+            .step_s();
+        let a = sample_clip(&idle, 0.30, rate);
+        let b = sample_clip(&idle, 0.30 + step / 4.0, rate); // the same held pose
+        assert_eq!(a, b, "within one held pose the clip does not move");
+        let c = sample_clip(&idle, 0.30 + step, rate); // the next one
+        assert_ne!(a.joints, c.joints, "the next held pose moves");
     }
 
-    /// One full loop apart samples the same phase — to f64 precision, not bit
-    /// for bit.
+    /// **The target is a SETTING, and it is the only thing that decides how many
+    /// poses a cycle gets** — A-1's retirement stated as behaviour rather than
+    /// as the absence of a constant.
+    #[test]
+    fn the_target_is_a_setting_and_it_moves_n() {
+        let idle = idle_clip(); // 2.0 s, looping
+        let mut counts = Vec::new();
+        for (fps, expect_n) in [(6.0, 12_u32), (12.0, 24), (30.0, 60)] {
+            let rate = AnimRate::new(fps).expect("a legal target");
+            let grid = rate.cycle(idle.duration_s).expect("a shipped clip");
+            assert_eq!(grid.poses(), expect_n, "at {fps} fps");
+            // …and the sampler really uses it. The idle's arm splay is a
+            // triangle wave symmetric about mid-cycle, so the *distinct* count
+            // is about N/2 — bounded by N, never equal to it, and that is the
+            // clip's own shape rather than anything about the grid.
+            let seen: std::collections::BTreeSet<u64> = (0..2_000)
+                .map(|k| {
+                    let t = idle.duration_s * f64::from(k) / 2_000.0;
+                    sample_clip(&idle, t, rate).joints["arm_l_upper"][2].to_bits()
+                })
+                .collect();
+            assert!(
+                seen.len() >= 2 && seen.len() <= expect_n as usize,
+                "at {fps} fps a 2 s cycle showed {} distinct arm angles against \
+                 its own N = {expect_n}",
+                seen.len()
+            );
+            counts.push(seen.len());
+        }
+        assert!(
+            counts[0] < counts[1] && counts[1] < counts[2],
+            "a higher target must hold fewer poses for longer, got {counts:?}"
+        );
+    }
+
+    /// One full loop apart samples the same phase — **bit for bit, and the
+    /// tolerance is gone.**
     ///
-    /// **This test used to assert bit-identity, and it passed only because the
-    /// rotation quantizer was rounding f64 noise away** (found when the quantizer
-    /// was removed 2026-08-01 — the assertion had been guarding nothing about
-    /// looping and quietly guarding `rem_euclid`'s last two ULPs). `quantize_time`
-    /// floors on a grid anchored at absolute `t = 0` and *then* wraps, so
-    /// `(2.4 * 12).floor() / 12 - 2.0` and `(0.4 * 12).floor() / 12` are the same
-    /// real number and differ in the final bit.
+    /// **The history matters more than the assertion.** This test asserted
+    /// bit-identity for a year and passed only because the rotation quantizer was
+    /// rounding f64 noise away; when that quantizer was removed (2026-08-01) the
+    /// identity turned out to be **false by construction** — `quantize_time`
+    /// floored onto a grid anchored at absolute `t = 0` and wrapped *afterwards*,
+    /// so `(2.4·12).floor()/12 − 2.0` and `(0.4·12).floor()/12` were one real
+    /// number in different bits. It was retargeted to a derived 1e-12 tolerance,
+    /// which was locally right and **fixed the test to match the
+    /// implementation** (anti-shape A-3; ROADMAP § Observed named the one-line
+    /// alternative — *wrap first, then quantize* — and deferred it).
     ///
-    /// The bound is derived, not fitted: the wrap error is a few ULPs of a value
-    /// ~2.4 (≤ 1e-15 s), the clip's keyframe spans are ≥ 0.25 s so the
-    /// interpolation factor moves by ≤ 4e-15, and no joint traverses more than
-    /// ~1.1 rad across a span — ≤ 5e-15 rad of angle. 1e-12 leaves two decades of
-    /// margin and is still 6e-11 degrees, i.e. below any conceivable display.
+    /// Per-cycle quantization **is** that alternative, not as a fix but as its
+    /// definition: [`clip_phase`] wraps into the cycle and the grid divides the
+    /// cycle, so there is no absolute-time grid left to anchor anything to. The
+    /// assertion is therefore exact again, and it is now asserting what its name
+    /// always claimed.
     ///
     /// *It used to also assert the quantized bob repeated exactly. There is no
     /// bob: `Keyframe.root_bob_m` and `BOB_QUANTUM_M` both left with user call
     /// #2, and root height is a phase function now.*
     #[test]
     fn looping_wraps_to_the_same_phase() {
+        let rate = AnimRate::default();
         let idle = idle_clip();
-        let a = sample_clip(&idle, 0.4);
-        let b = sample_clip(&idle, 0.4 + idle.duration_s);
-        assert_eq!(
-            a.joints.keys().collect::<std::collections::BTreeSet<_>>(),
-            b.joints.keys().collect::<std::collections::BTreeSet<_>>(),
-            "the looped pose names the same joints"
-        );
-        for (name, ea) in &a.joints {
-            let eb = b.joints[name];
-            for i in 0..3 {
-                assert!(
-                    (ea[i] - eb[i]).abs() < 1e-12,
-                    "{name}[{i}]: looped phase differs by {} rad, beyond f64 wrap noise",
-                    ea[i] - eb[i]
-                );
-            }
+        for k in 1..=8 {
+            let a = sample_clip(&idle, 0.4, rate);
+            let b = sample_clip(&idle, 0.4 + idle.duration_s * f64::from(k), rate);
+            assert_eq!(a, b, "cycle {k} did not sample cycle 0's phase exactly");
+        }
+        // And on a duration that is NOT a whole number of frames — the case the
+        // old ordering broke immediately and no shipped clip happened to hit
+        // (ROADMAP § Observed: "a pack author writing a 0.7 s looping clip
+        // triggers it immediately").
+        let mut odd = idle.clone();
+        odd.duration_s = 0.7;
+        odd.keyframes[1].t = 0.35;
+        odd.keyframes[2].t = 0.7;
+        for k in 1..=8 {
+            let a = sample_clip(&odd, 0.31, rate);
+            let b = sample_clip(&odd, 0.31 + odd.duration_s * f64::from(k), rate);
+            assert_eq!(
+                a, b,
+                "a clip whose duration is not a whole number of frames drifted \
+                 through its own loop at cycle {k}"
+            );
         }
     }
 
@@ -1382,7 +1708,8 @@ mod tests {
     fn sampler_is_deterministic_for_fixed_time() {
         let idle = idle_clip();
         for t in [0.0, 0.05, 0.333, 0.5, 0.917, 1.4, 7.25] {
-            assert_eq!(sample_clip(&idle, t), sample_clip(&idle, t));
+            let rate = AnimRate::default();
+            assert_eq!(sample_clip(&idle, t, rate), sample_clip(&idle, t, rate));
         }
     }
 
@@ -1408,8 +1735,8 @@ mod tests {
             let mut s = AnimState::default();
             let mut poses = Vec::new();
             for (dt, spd) in history {
-                s.advance(dt, Some(&gait), spd);
-                poses.push(pose_for(&s, Some(&gait), &[&idle]));
+                s.advance(dt, Some(&gait), spd, AnimRate::default());
+                poses.push(pose_for(&s, Some(&gait), &[&idle], AnimRate::default()));
             }
             poses
         };
@@ -1599,34 +1926,49 @@ mod tests {
     /// timing of a number a colleague will improve tomorrow is exactly what
     /// § Gates forbids pinning): at 60 fps a thousand bodies must fit in a
     /// frame, so 16 µs per body per frame is already catastrophic and 20 µs is
-    /// a ceiling nothing sane approaches. Measured cost sits ~two orders below
-    /// it, so this cannot flake on a loaded machine and still catches a
+    /// a ceiling nothing sane approaches. Measured cost sits several times
+    /// below it, so this cannot flake on a loaded machine and still catches a
     /// pathology — an allocation in the inner loop, a table build per frame.
+    ///
+    /// **⚠ PER-CYCLE QUANTIZATION COST IT 22 % (2026-08-04, measured both sides
+    /// on one machine in one sitting): 3312 ns before, 4036 ns after.** The
+    /// per-bone rate is a real derivation — ownership resolved and blended per
+    /// bone, then one sample per distinct rate — and it is not free. Two
+    /// intermediate shapes were measured and rejected on this number: a
+    /// `Vec` of owners per bone (**6445 ns**) and a `HashMap<&str, StepBlend>`
+    /// (**4945 ns**); the shipped path holds ownership as short name lists and
+    /// hashes nothing. **The named heir for the rest is hoisting the ownership
+    /// tables into `character.rs`'s per-plan `BodyAssets`** — ownership is
+    /// constant per (plan, clip set) and only `gait_step` moves with speed, so
+    /// the whole pre-pass is per-plan work being redone per body per frame.
+    /// Not done here: it changes `pose_for`'s signature, and this slice is an
+    /// appearance change the user has yet to rule on.
     #[test]
     fn per_frame_pose_cost_is_measured() {
         use std::time::Instant;
         let gait = gait_of(&biped_plan());
         let idle = idle_clip();
         let walk = retired_biped_walk_clip();
+        let rate = AnimRate::default();
         let mut state = AnimState::default();
-        state.advance(1.0 / ANIM_FPS, Some(&gait), 1.47);
+        state.advance(rate.step_s(), Some(&gait), 1.47, rate);
 
         let n = 20_000;
         // Warm both paths so neither pays first-touch costs in its timed run.
         for _ in 0..2_000 {
-            std::hint::black_box(pose_for(&state, Some(&gait), &[&idle]));
-            std::hint::black_box(sample_clip(&walk, 0.3));
+            std::hint::black_box(pose_for(&state, Some(&gait), &[&idle], rate));
+            std::hint::black_box(sample_clip(&walk, 0.3, rate));
         }
         let t0 = Instant::now();
         for i in 0..n {
             let mut s = state.clone();
-            s.advance(1.0 / 60.0, Some(&gait), 1.47);
-            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle]));
+            s.advance(1.0 / 60.0, Some(&gait), 1.47, rate);
+            std::hint::black_box(pose_for(&s, Some(&gait), &[&idle], rate));
             std::hint::black_box(root_offset_m(
                 Some(&gait),
                 0.0,
                 s.stepped_froude,
-                s.stepped_phase,
+                s.stepped_phase(Some(&gait), rate),
                 Posture::Standing,
             ));
             std::hint::black_box(i);
@@ -1634,8 +1976,8 @@ mod tests {
         let derived_ns = t0.elapsed().as_nanos() as f64 / f64::from(n);
         let t1 = Instant::now();
         for i in 0..n {
-            std::hint::black_box(sample_clip(&walk, f64::from(i) / 60.0));
-            std::hint::black_box(sample_clip(&idle, f64::from(i) / 60.0));
+            std::hint::black_box(sample_clip(&walk, f64::from(i) / 60.0, rate));
+            std::hint::black_box(sample_clip(&idle, f64::from(i) / 60.0, rate));
         }
         let clip_ns = t1.elapsed().as_nanos() as f64 / f64::from(n);
         println!(
@@ -1792,10 +2134,11 @@ mod tests {
             segment: "leg_l_upper".into(),
             euler: [1.0, 0.0, 0.0],
         });
+        let rate = AnimRate::default();
         let mut state = AnimState::default();
-        state.advance(1.0 / ANIM_FPS, Some(&gait), 1.5);
-        let bare = pose_for(&state, Some(&gait), &[]);
-        let layered = pose_for(&state, Some(&gait), &[&clip]);
+        state.advance(rate.step_s(), Some(&gait), 1.5, rate);
+        let bare = pose_for(&state, Some(&gait), &[], rate);
+        let layered = pose_for(&state, Some(&gait), &[&clip], rate);
         let arm = "arm_l_upper";
         assert!(
             (layered.joints[arm][2] - bare.joints[arm][2]).abs() > 1e-9,
@@ -1806,6 +2149,319 @@ mod tests {
             "a clip may not contribute to a BEARING chain — that request is a \
              gait-type choice, not an animation"
         );
+    }
+
+    // --- per-cycle quantization (2026-08-04) -------------------------------
+
+    /// The three shipped plans at the shipped top speed, as `(name, cadence,
+    /// cycle, N)` — the table the ruling was taken on, **re-derived from the
+    /// shipped bake rather than restated.**
+    fn cadence_table(rate: AnimRate) -> Vec<(String, f64, f64, u32)> {
+        [biped_plan(), stout_plan(), longleg_plan()]
+            .into_iter()
+            .map(|plan| {
+                let gait = gait_of(&plan);
+                let cadence = gait.cadence_hz(gait.froude(4.5));
+                let cycle = 1.0 / cadence;
+                let n = rate.cycle(cycle).expect("a walking body has a cycle");
+                (plan.name.clone(), cadence, cycle, n.poses())
+            })
+            .collect()
+    }
+
+    /// **`N` is a whole number, and never below 2, for every shipped plan across
+    /// the whole speed range** — the slice's arithmetic acceptance.
+    ///
+    /// The floor is the user's ruling and this sweep is where it bites: the stout
+    /// is the smallest, fastest-cadence body we ship, and at high speed its cycle
+    /// is short enough that a lower target would round it under 2.
+    ///
+    /// Scale-free: `N` is a per-cycle arithmetic on one duration, so a sweep of
+    /// speeds and targets exercises the whole claim without a world.
+    #[test]
+    fn every_shipped_plan_gets_a_whole_number_of_poses_per_cycle() {
+        println!("\nper-cycle quantization at the {DEFAULT_TARGET_FPS} fps default, v = 4.5 m/s:");
+        for (name, cadence, cycle, n) in cadence_table(AnimRate::default()) {
+            println!(
+                "  {name:22} cadence {cadence:.3} Hz  cycle {cycle:.4} s  \
+                 fractional {:.3}  ->  N = {n}",
+                cycle * DEFAULT_TARGET_FPS
+            );
+        }
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            let gait = gait_of(&plan);
+            for fps in [1.0, 6.0, 12.0, 24.0, 60.0] {
+                let rate = AnimRate::new(fps).expect("a legal target");
+                for k in 1..=450 {
+                    let v = 4.5 * f64::from(k) / 450.0;
+                    let cadence = gait.cadence_hz(gait.froude(v));
+                    let Some(grid) = rate.cycle(1.0 / cadence) else {
+                        continue; // a cycle too long to divide — the dissolve limit
+                    };
+                    assert!(
+                        grid.poses() >= MIN_POSES_PER_CYCLE,
+                        "{} at {v:.2} m/s, {fps} fps: N = {} is below the floor",
+                        plan.name,
+                        grid.poses()
+                    );
+                    // The formula, restated as the property: N is the rounded
+                    // product OR the floor, never anything else.
+                    let want = (1.0 / cadence * fps)
+                        .round()
+                        .max(f64::from(MIN_POSES_PER_CYCLE));
+                    assert!(
+                        (f64::from(grid.poses()) - want).abs() < 1e-9,
+                        "{} at {v:.2} m/s, {fps} fps: N = {} against round(T·fps) = {want}",
+                        plan.name,
+                        grid.poses()
+                    );
+                }
+            }
+        }
+    }
+
+    /// **A cycle faster than the floor clamps rather than degenerating** — the
+    /// Nyquist edge, with the stout as the real body closest to it.
+    #[test]
+    fn a_cycle_faster_than_the_floor_clamps() {
+        let gait = gait_of(&stout_plan());
+        let cadence = gait.cadence_hz(gait.froude(4.5));
+        // At a 2 fps target the stout's 0.357 s cycle wants round(0.71) = 1, and
+        // below 1.4 fps it wants 0. Both are held at 2.
+        for fps in [0.5, 1.0, 1.4, 2.0, 2.8] {
+            let rate = AnimRate::new(fps).expect("a legal target");
+            let grid = rate.cycle(1.0 / cadence).expect("a cycle");
+            assert_eq!(
+                grid.poses(),
+                MIN_POSES_PER_CYCLE,
+                "at {fps} fps the stout's cycle must clamp, not degenerate"
+            );
+            // A clamped grid is still a grid: two distinct held phases, not one.
+            let phases: std::collections::BTreeSet<u64> = (0..1_000)
+                .map(|k| grid.phases().quantize(f64::from(k) / 1_000.0).to_bits())
+                .collect();
+            assert_eq!(phases.len(), 2);
+        }
+    }
+
+    /// **THE BEHAVIOURAL ACCEPTANCE: a body lands on the same `N` phases every
+    /// stride, and the retired grid did not.**
+    ///
+    /// `N` being an integer is arithmetic; *this* is the thing the user saw. The
+    /// old scheme held the pose on a world-global `1/12 s` grid, so the phases it
+    /// sampled walked around the cycle — 6.977 per cycle for the biped, 4.286 for
+    /// the stout — and the stout's beat was visible as a hitch. Under a per-cycle
+    /// grid the sampled phases are exactly `{0/N, 1/N, …, (N−1)/N}`, in every
+    /// stride, at any speed.
+    ///
+    /// The retired scheme is reproduced here (test-side only, like
+    /// `legacy_solve_leg_ik`) so the contrast is measured rather than asserted.
+    #[test]
+    fn a_body_lands_on_the_same_n_phases_every_stride() {
+        let rate = AnimRate::default();
+        for plan in [biped_plan(), stout_plan(), longleg_plan()] {
+            let gait = gait_of(&plan);
+            let speed = 4.5;
+            let cadence = gait.cadence_hz(gait.froude(speed));
+            let n = rate.cycle(1.0 / cadence).expect("a walking body").poses();
+
+            let mut state = AnimState::default();
+            let mut sampled: std::collections::BTreeSet<u64> = std::collections::BTreeSet::new();
+            let mut legacy: std::collections::BTreeSet<u64> = std::collections::BTreeSet::new();
+            let dt = 1.0 / 60.0;
+            let frames = (20.0 / (cadence * dt)) as usize; // ~20 strides
+            for _ in 0..frames {
+                state.advance(dt, Some(&gait), speed, rate);
+                sampled.insert(state.stepped_phase(Some(&gait), rate).to_bits());
+                // The RETIRED scheme: hold the phase on a world-global 1/12 s
+                // grid, anchored at absolute t = 0.
+                let t_held = (state.clock_s * DEFAULT_TARGET_FPS).floor() / DEFAULT_TARGET_FPS;
+                legacy.insert(((cadence * t_held).rem_euclid(1.0) * 1e9).round().to_bits());
+            }
+            let want: std::collections::BTreeSet<u64> = (0..n)
+                .map(|k| (f64::from(k) / f64::from(n)).to_bits())
+                .collect();
+            assert_eq!(
+                sampled,
+                want,
+                "{}: {} strides sampled {} distinct phases, not its own N = {n}",
+                plan.name,
+                20,
+                sampled.len()
+            );
+            println!(
+                "  {:22} N = {n} phases per stride, held; the retired 1/12 s grid \
+                 wandered over {} distinct phases in 20 strides",
+                plan.name,
+                legacy.len()
+            );
+            assert!(
+                legacy.len() > sampled.len(),
+                "{}: the retired grid must be the one that wanders — if it does \
+                 not, this test is measuring nothing",
+                plan.name
+            );
+        }
+    }
+
+    /// **The per-bone rate, as behaviour.** A bearing chain has one owner (the
+    /// gait refuses clip contributions on it), so it sits on the gait's whole
+    /// `N`. An arm is owned by the gait's counter-swing **and** the idle clip, so
+    /// it sits on the mean of the two time steps — a different, fractional grid.
+    ///
+    /// Asserted as a *count of held poses per stride*, which is the quantity the
+    /// ruling is about, rather than as an angle nobody can read.
+    #[test]
+    fn a_shared_bone_rides_a_blended_step_and_an_owned_bone_does_not() {
+        let rate = AnimRate::default();
+        let plan = biped_plan();
+        let gait = gait_of(&plan);
+        let idle = idle_clip();
+        let speed = 4.5;
+        let cadence = gait.cadence_hz(gait.froude(speed));
+        let n = rate.cycle(1.0 / cadence).expect("a walking body").poses();
+
+        let mut state = AnimState::default();
+        let dt = 1.0 / 240.0; // finer than any grid in play, so nothing is missed
+        let frames = (6.0 / (cadence * dt)) as usize; // six strides
+        let mut leg: Vec<u64> = Vec::new();
+        let mut arm: Vec<u64> = Vec::new();
+        for _ in 0..frames {
+            state.advance(dt, Some(&gait), speed, rate);
+            let pose = pose_for(&state, Some(&gait), &[&idle], rate);
+            leg.push(pose.joints["leg_l_upper"][0].to_bits());
+            arm.push(pose.joints["arm_l_upper"][2].to_bits());
+        }
+        let holds = |v: &[u64]| v.windows(2).filter(|w| w[0] != w[1]).count();
+        // Six strides on a whole N: the leg changes value exactly 6·N times
+        // (every bucket boundary), because the gait alone owns it.
+        let leg_changes = holds(&leg);
+        assert!(
+            leg_changes >= 6 * n as usize - 1 && leg_changes <= 6 * n as usize + 1,
+            "the leg changed {leg_changes} times over six strides, not the 6·N = {} \
+             a single-owner bearing chain must",
+            6 * n as usize
+        );
+        // The arm is shared, so its grid is the blend and its change count is
+        // NOT the gait's N — the idle clip's own step (2.0 s / 24) pulls it.
+        let arm_changes = holds(&arm);
+        let gait_step = rate.cycle(1.0 / cadence).expect("a cycle").step_s();
+        let clip_step = rate.cycle(idle.duration_s).expect("the idle").step_s();
+        let blended = blended_step_s(&[(gait_step, 1.0), (clip_step, 1.0)]).expect("two owners");
+        println!(
+            "  per-bone: leg Δt {gait_step:.5} s (N = {n}, sole owner) · \
+             arm Δt {blended:.5} s (gait + idle) · clip Δt {clip_step:.5} s"
+        );
+        assert!(
+            (blended - gait_step).abs() > 1e-9,
+            "this test is vacuous unless the two owners actually differ"
+        );
+        assert!(
+            arm_changes != leg_changes,
+            "a shared bone must not ride its co-owner's whole N ({arm_changes} \
+             changes against the leg's {leg_changes})"
+        );
+        // …and the blend is a compromise, not a takeover: the arm's rate sits
+        // between the two owners', because that is what a mean is.
+        let lo = gait_step.min(clip_step);
+        let hi = gait_step.max(clip_step);
+        assert!(lo <= blended && blended <= hi);
+    }
+
+    /// **THE FIREWALL GUARD, and the answer to the slice's open call.**
+    ///
+    /// Quantization must never feed back into anything **sim-visible**: if B5's
+    /// damage resolution ever reads a pose it must read the sim's *unquantized*
+    /// target, or two clients at different targets would resolve hits
+    /// differently (`bodies.md` § Stepped animation, OPEN; § THE SIM OWNS THE
+    /// TARGET).
+    ///
+    /// **No such path exists today**, and this pins the absence in both
+    /// directions:
+    ///
+    /// 1. **Upstream** — the state a sim-visible consumer would read (`phase`,
+    ///    `froude`, `clock_s`, `trunk_yaw`) is **bit-identical at any target**.
+    ///    The rate reaches the *hold* and nothing else, so no future consumer of
+    ///    the unquantized target can inherit a client's setting by accident.
+    /// 2. **Downstream** — `dc_api::CharacterState` is a body's entire
+    ///    sim-visible surface, and it carries no pose, phase or frame. **When
+    ///    that stops being true this test fails**, which is the moment the guard
+    ///    has to become a real one rather than a pin.
+    #[test]
+    fn the_target_fps_never_reaches_a_sim_visible_quantity() {
+        let gait = gait_of(&biped_plan());
+        let history = [
+            (0.016, 0.0),
+            (0.016, 0.0),
+            (0.02, 2.0),
+            (0.02, 3.0),
+            (0.033, 3.0),
+            (0.016, 0.1),
+            (0.05, 0.0),
+            (0.016, 4.5),
+            (0.016, 4.5),
+        ];
+        let run = |fps: f64| {
+            let rate = AnimRate::new(fps).expect("a legal target");
+            let mut s = AnimState::default();
+            let mut targets = Vec::new();
+            for (dt, spd) in history {
+                s.advance(dt, Some(&gait), spd, rate);
+                s.steer(dt, 0.7);
+                targets.push((
+                    s.clock_s.to_bits(),
+                    s.phase.to_bits(),
+                    s.froude.to_bits(),
+                    s.trunk_yaw.to_bits(),
+                ));
+            }
+            targets
+        };
+        let reference = run(12.0);
+        for fps in [1.0, 6.0, 12.0, 30.0, 144.0, 1000.0] {
+            assert_eq!(
+                run(fps),
+                reference,
+                "at {fps} fps the UNQUANTIZED target moved — a client setting \
+                 has reached a quantity the sim would resolve against"
+            );
+        }
+        // …and the quantized view really does differ, or the check above is
+        // vacuous: the whole point is that only the *approach* moves.
+        let held = |fps: f64| {
+            let rate = AnimRate::new(fps).expect("a legal target");
+            let mut s = AnimState::default();
+            for (dt, spd) in history {
+                s.advance(dt, Some(&gait), spd, rate);
+            }
+            s.stepped_phase(Some(&gait), rate)
+        };
+        assert!(
+            (held(6.0) - held(60.0)).abs() > 1e-9,
+            "two targets must render differently, or nothing is being quantized"
+        );
+
+        // The downstream pin. A body's sim-visible surface is CharacterState;
+        // when a pose, a phase or a frame index appears on it, the sim has a
+        // pose consumer and this slice's guard is owed for real. Read off the
+        // WIRE field names, because that is the surface a replay and a second
+        // client both see.
+        let state = dc_api::CharacterState::new("pin", dc_api::Vec3f::new(0.0, 0.0, 0.0));
+        let sim_visible = serde_json::to_value(&state).expect("CharacterState serializes");
+        let fields: Vec<&str> = sim_visible
+            .as_object()
+            .expect("a struct serializes to an object")
+            .keys()
+            .map(String::as_str)
+            .collect();
+        for forbidden in ["pose", "phase", "frame", "stepped", "fps"] {
+            assert!(
+                !fields.iter().any(|f| f.contains(forbidden)),
+                "`{forbidden}` appeared on CharacterState — the sim can now see a \
+                 pose. Make it read the UNQUANTIZED target (AnimState::phase), \
+                 never AnimState::stepped_phase, and turn this pin into a guard."
+            );
+        }
     }
 
     // --- step 3: trunk/look split, two-bone leg IK ------------------------
@@ -2281,7 +2937,8 @@ mod tests {
     ///    refused, and that 2:1 ratio is by construction, independent of N.
     ///
     /// Scale-free: every quantity is a per-frame, per-leg arithmetic on the plan's
-    /// own lengths, so one clip loop at 12 fps exercises the whole invariant.
+    /// own lengths, so one clip loop at the default target exercises the whole
+    /// invariant.
     #[test]
     fn foot_placement_and_retargeting_are_measured() {
         // The shipped clips plus the PARKED walk fixture. The fixture is here
