@@ -7,7 +7,7 @@
   },
   "staleness": "2985273",
   "spine-audit": "2985273",
-  "doc-topology": "2985273",
+  "doc-topology": "b4d7514",
   "_baseline": {
     "commit": "f652b60",
     "date": "2026-07-28",
@@ -51,6 +51,14 @@
     "findings": "12 (F1-F12). SECTION 3: one row EMPTY-ABLE (resting-posture bake - bake_resting_posture got its named production caller at dc-client/src/body.rs:434 in f4e7f75 and the row was not emptied; 19 -> 18), NO row added. HEADLINE F1: P11 slice 2 replaced `providers.outcrop_shares(&[])` - the bedrock-composition seam call - with a hardcoded DEEP_BASEMENT=GRANITE constant at erosion/{transport.rs:174,weathering.rs:421}, while three comments still say 'the same walk asked with an empty section' and 'Nothing is named here'. Value identical, claims false; and A-7's own worked-forwards instance (spines.md:2066-2072) now describes code that no longer exists. F2: A-7's 'TWO places' enumeration is short by three named MaterialId constants (REFERENCE_MATERIAL, DEEP_BASEMENT, ANCHOR_MATERIAL) - two asked for by a ratified design pass, colliding with an anti-shape declared NOT ratifiable. USER-OWNED. NOT APPLIED - the integrator adjudicates."
   },
   "_doc_topology_last_run": {
+    "commit": "b4d7514",
+    "date": "2026-08-04",
+    "mode": "FULL (105 commits since 2985273; the GEO-4 arc shipped in the window - the deposition clock (journal/0154), S1's correlation kernel (journal/0157), the roster philosophy ratified + the /roster skill, all five E4 picks ruled + the E4-2 convergence study, five correlation picks ruled; plus the parallel BODIES arc's B6-a mass integral, B7 slice one, B8, and the per-cycle quantization ruling)",
+    "audit": "docs/audits/2026-08-04-doc-topology-sweep.md",
+    "read_at": "978cb64 (worktree agent-a1a83809e18504d21; = b4d7514 plus this audit's own skeleton commit, no source/doc file differs)",
+    "coverage": "SPINE-FOLLOWING, not 100%. READ IN FULL: materials.md · .claude/skills/roster/SKILL.md · dependency-graph.md · journal/0154 + 0157 · spines.md A-7 body + section 3 preamble · geology.md Backbone · ROADMAP section In flight + the E4/S2 Sequenced entries + THE WHOLE CURRENT CLOSE BLOCK CHECKED AGAINST ITSELF · the deposition-clock, stratigraphic-correlation, e4-implicit-kernel and e4-2-convergence-study headers · the full delta diffs of bodies.md, ideas.md, refinement.md, corrections.md. TARGETED SECTIONS: flow.md sections 2/6/9/10.3, material-behavior.md sections 3+5, stubs.md #30 + the clock stub, ores.md recorded-context-axes, refinement.md sections 4-5. NOT OPENED: north-star.md (SKIPPED A SECOND CONSECUTIVE RUN - read-first item 0, untouched in delta but NOT thereby clean; this is now the corpus's longest unexamined read-first surface) · stubs.md beyond two entries (+332 in delta) · spines.md beyond A-7 (+350) · posture-gait.md (the BODIES half of the shape-1 hole is essentially UNRUN) · ores.md/tectonics.md/water.md/ecology.md beyond grep · the four bodies-thread audits (headers only) · ROADMAP section Observed and most of Sequenced. THE PRIOR RUN'S NAMED HOLE (shape 1 across the design docs) IS PARTLY CLOSED: the geo half ran and produced F1/F4/F6/F7/F9; the bodies half did not.",
+    "findings": "9 pairs (F1-F9) + 7 reported nulls. ZERO corrections filed - every disposal is a banner, a strike, or a pointer fix; if the integrator disagrees, the next free ordinal appeared to be #101 at b4d7514 and MUST be re-verified at merge (parallel BODIES session shares the checkout). HEADLINE F1: materials.md:617-620's ratified roster ruling names 'day-one data: the FS-A release spectra + the property sheet' as the input to the derived continuum predicate, and journal/0157:103-110 + roster SKILL section 2b measured the SAME DAY that no material declares a REGION and the spectra describe what a rock SHEDS, not where it SITS - the blocker is stamped in the skill and the close block, and NOT at the ratified authority or at the correlation audit's P-1 banner that repeats the premise verbatim. F2/F3 are one artifact against itself: ROADMAP section In flight still runs E4-2's diagnosis as live and states a hypothesis its own close block records as WRONG, and ROADMAP:486-488 still calls the dc-core venue a live NEEDS RATIFICATION after U-3 was ruled emphatically. F4: flow.md:88-90's 'correlate by CHAPTER, use the chapter stamp' vs the shipped epoch-keyed join (stubs.md:2000 says so explicitly) - but flow.md:264/:478's aggregation-window claims are checked TRUE and must not be swept with it. F5: the E4 design pass has no back-pointer to the study that found its ruled answer unadoptable. F7 is user-owned if contested (the /roster skill's 'weathering products must be derived' vs U7's user-ruled 'authored edges'). NOT APPLIED - the integrator adjudicates.",
+    "superseded_run_2026_08_03": {
     "commit": "2985273",
     "date": "2026-08-03",
     "mode": "FULL (143 commits since d8407e1; two arcs shipped in the window - GEO-3 (P11 slices 1/2/3, erosion split, FS-A, P2 measurement runs, E4+E4-1, the stratigraphic-correlation pivot) and bodies (posture bake, look ownership, gait bake + consumer, the derived-gait walk))",
@@ -65,6 +73,7 @@
     "audit": "docs/audits/2026-08-02-doc-topology-sweep.md",
     "coverage": "SPINE-FOLLOWING, not 100%. The P11 arc + the bodies arc + read-first items 1c/3/4/6 + the two arcs' cited design docs. NOT OPENED: docs/spines.md (306 lines changed in the window), docs/design/ideas.md (136 added), flow.md, refinement.md, ecology.md, session-workflow/wrap SKILLs. SHAPE 3 (user-originated design reconciled away) WAS NOT RUN AT ALL - ideas.md is its primary locus and went unread. A null on shape 3 from this run is not a result.",
     "findings": "13 pairs (F1-F13) + 1 shape-7 candidate, not resolved. Zero corrections.md entries proposed. TWO ORDINAL COLLISIONS ARE THE HEADLINE: corrections.md has two #85 and two #86; stubs.md has two #34 and its only external citation calls one of them #33 - both from parallel-session wraps assigning 'next free' without re-reading at the tip, the third and fourth instances of that act in 24 hours (journal 0135 was the first two). Highest-value single banner: material-behavior.md 13.8b argues the exact premise P11 ruling 1 overturned, on the read path of the slice-2 dispatch. NOT APPLIED - reported for the integrator per the standing rule."
+    }
     }
   }
 }
