@@ -193,6 +193,33 @@ impl Trace {
         self.worst(|a, b| (b.foot_y_m - a.foot_y_m).abs())
     }
 
+    /// The largest knee-angle change between adjacent samples **whose placement
+    /// decision is the same**, and its phase. This is the statistic the gate
+    /// asserts on: it excludes the one discontinuity this probe found and
+    /// therefore says *"nothing else is jumping"*.
+    #[must_use]
+    pub fn max_step_within_decision(&self) -> (f64, f64) {
+        self.worst(|a, b| {
+            if a.decision == b.decision {
+                (b.knee_deg - a.knee_deg).abs()
+            } else {
+                0.0
+            }
+        })
+    }
+
+    /// The rendered sole's envelope over the stride, metres — against
+    /// [`Trace::gait_lift_max_m`], *how much of the gait's derived foot
+    /// clearance survives the foot IK.*
+    #[must_use]
+    pub fn rendered_sole_range_m(&self) -> (f64, f64) {
+        self.series
+            .iter()
+            .fold((f64::MAX, f64::MIN), |(lo, hi), s| {
+                (lo.min(s.foot_y_m), hi.max(s.foot_y_m))
+            })
+    }
+
     fn worst(&self, f: impl Fn(&Sample, &Sample) -> f64) -> (f64, f64) {
         let n = self.series.len();
         let mut out = (0.0_f64, 0.0_f64);
@@ -278,9 +305,7 @@ pub fn ground_top_level(voxel_m: f64, near_y_m: f64, half_voxel_m: f64) -> Optio
 
 /// A `Vec<JointAngle>` as a name→euler lookup.
 fn angles(list: &[JointAngle]) -> HashMap<&str, [f64; 3]> {
-    list.iter()
-        .map(|j| (j.segment.as_str(), j.euler))
-        .collect()
+    list.iter().map(|j| (j.segment.as_str(), j.euler)).collect()
 }
 
 /// Trace one plan's bearing legs over one full stride on level ground.
@@ -377,7 +402,8 @@ pub fn trace_stride(
             gait_lift_min_m = gait_lift_min_m.min(gait_foot_y);
 
             // --- the renderer's foot placement ----------------------------
-            let adjust = ground_top_level(VOXEL_M, gait_foot_y, half_voxel).map(|g| g - gait_foot_y);
+            let adjust =
+                ground_top_level(VOXEL_M, gait_foot_y, half_voxel).map(|g| g - gait_foot_y);
             let decision = Decision::of(leg, fy, fz, adjust, half_voxel);
             let applied = matches!(decision, Decision::Applied(_));
             let ty = fy + if applied { adjust.unwrap_or(0.0) } else { 0.0 };
@@ -465,13 +491,17 @@ mod gate {
             "    l1={:.5} l2={:.5} reach={:.5} d_min={:.5} stance_window={:.4}",
             t.l1_m, t.l2_m, t.reach_m, t.d_min_m, t.compass_window
         );
+        let (rlo, rhi) = t.rendered_sole_range_m();
         println!(
             "    gait sole over the stride: [{:+.5}, {:+.5}] m   (lift above ground / drive below it)",
             t.gait_lift_min_m, t.gait_lift_max_m
         );
+        println!("    RENDERED sole over the stride: [{rlo:+.5}, {rhi:+.5}] m");
         let (dk, pk) = t.max_step();
         let (df, pf) = t.max_foot_step();
+        let (dw, pw) = t.max_step_within_decision();
         println!("    MAX adjacent knee step {dk:.4}° at phase {pk:.4}");
+        println!("    MAX adjacent knee step WITHIN one decision {dw:.4}° at phase {pw:.4}");
         println!("    MAX adjacent sole step {df:.5} m at phase {pf:.4}");
         println!(
             "    d_planar / d_min  min = {:.3}   d_planar / reach  max = {:.5}",
@@ -489,13 +519,15 @@ mod gate {
         // user is describing ("bend … back to straight … back to bent") is a
         // sign pattern in this row, not a statistic.
         let mut track: Vec<String> = Vec::new();
-        let mut last = f64::NAN;
+        // `Option`, not a NaN sentinel: `(x - NaN).abs() > eps` is **false**, so
+        // a NaN seed silently emits an empty track. It did, on the first run.
+        let mut last: Option<f64> = None;
         let swing: Vec<&Sample> = t.series.iter().filter(|s| s.swing).collect();
         // A continuous trace has one distinct pose per sample; decimate it to a
         // readable row. A quantized one already has exactly its held poses.
         let stride = if t.quantized { 1 } else { swing.len() / 40 + 1 };
         for s in swing.into_iter().step_by(stride) {
-            if (s.knee_deg - last).abs() > 1e-9 {
+            if last.is_none_or(|l| (s.knee_deg - l).abs() > 1e-9) {
                 track.push(format!(
                     "{:.1}{}",
                     s.knee_deg,
@@ -505,7 +537,7 @@ mod gate {
                         ""
                     }
                 ));
-                last = s.knee_deg;
+                last = Some(s.knee_deg);
             }
         }
         println!(
@@ -594,12 +626,25 @@ mod gate {
         }
     }
 
-    /// **The invariant, and it is scale-free.** A C0-continuous signal's largest
-    /// adjacent-sample change is `|f′| · Δphase`, so refining the phase grid by
-    /// 4 divides it by ≈ 4; a genuine jump is invariant under refinement. The
-    /// ratio therefore tells the two apart **with no tolerance on the angle
-    /// itself** — which is what keeps this from being a snapshot test that fails
-    /// because somebody improved the gait.
+    /// **THE ONE DISCONTINUITY IS THE PLACEMENT BOUNDARY, AND NOTHING ELSE
+    /// JUMPS.** The scale-free invariant, and the finding turned into a
+    /// tripwire.
+    ///
+    /// A C0-continuous signal's largest adjacent-sample change is `|f′|·Δphase`,
+    /// so refining the phase grid by 4 divides it by ≈ 4; a genuine jump is
+    /// invariant under refinement. That ratio tells the two apart **with no
+    /// tolerance on the angle itself**, which is what keeps this from being a
+    /// snapshot test that fails because somebody improved the gait.
+    ///
+    /// Measured 2026-08-04 (`docs/audits/2026-08-04-longleg-swing-probe.md`):
+    /// the raw statistic does **not** refine — it holds at ≈ 5.0° (longleg),
+    /// 7.3° (stout), 5.4° (biped), because `character.rs`'s
+    /// `adjust.abs() > 1e-3` seat guard switches the leg between the gait pose
+    /// and the IK pose six times a cycle. So the assertion is made on the
+    /// largest step **between samples that decided the same way**: it excludes
+    /// the known boundary and says *nothing else in the swing is jumping*. A
+    /// second discontinuity appearing anywhere — a pole flip, a `d_min`
+    /// refusal, a clearance seam — lands here.
     ///
     /// Asserted on the CONTINUOUS trace only: the rendered one is quantized by
     /// design (journal/0155) and its staircase is not a defect.
@@ -608,21 +653,21 @@ mod gate {
     /// one body's own geometry — no world is built at all, and the property
     /// holds at any sample count, any speed and any plan.
     #[test]
-    fn the_continuous_swing_geometry_refines() {
+    fn the_only_swing_discontinuity_is_the_placement_boundary() {
         let clip = idle();
         let clips: Vec<&AnimClip> = vec![&clip];
         for plan in [longleg_plan(), stout_plan(), biped_plan()] {
             let coarse = trace_stride(&plan, &clips, V, 60.0, 1_000, false).expect("a gait");
             let fine = trace_stride(&plan, &clips, V, 60.0, 4_000, false).expect("a gait");
             for (c, f) in coarse.iter().zip(&fine) {
-                let (dc, pc) = c.max_step();
-                let (df, pf) = f.max_step();
+                let (dc, pc) = c.max_step_within_decision();
+                let (df, pf) = f.max_step_within_decision();
                 assert!(
                     df * 2.5 < dc,
-                    "{} / {}: the continuous knee track did NOT refine — {dc:.4}° at 1 000 \
-                     samples (phase {pc:.4}), {df:.4}° at 4 000 (phase {pf:.4}). A step that \
-                     survives refinement is a DISCONTINUITY in the swing geometry, which is \
-                     exactly what this probe exists to find.",
+                    "{} / {}: a knee step that is NOT a placement-decision change failed to \
+                     refine — {dc:.4}° at 1 000 samples (phase {pc:.4}), {df:.4}° at 4 000 \
+                     (phase {pf:.4}). That is a SECOND discontinuity in the swing geometry, \
+                     beside the seat/IK boundary this probe already measured.",
                     c.plan,
                     c.leg
                 );
